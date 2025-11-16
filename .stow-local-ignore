@@ -1,0 +1,15 @@
+.+,v
+
+# Liceenses
+^/README.*
+^/LICENSE.*
+^/COPYING
+README.md
+
+# Version Control
+.git
+.gitignore
+.gitmodules
+
+# Custom
+scripts
