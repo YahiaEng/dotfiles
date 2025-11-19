@@ -7,6 +7,9 @@ paru -R $(pacman -Qtdq)
 paru -Sc
 
 
+# See running proccess tree
+systemctl --user list-units
+
 # ================
 # Initial Setup
 # =================
@@ -49,7 +52,7 @@ sudo limine-scan
 # ---------------
 2.a: AUR apps
 # ---------------
-paru -S spotify discord\
+paru -S spotify discord
 
 
 # ---------------
@@ -64,7 +67,7 @@ flatpak install flathub app.zen_browser.zen
 # ============
 
 # ---------------
-# 1.c Shell setup
+# 1.c Shell
 # ---------------
 
 sources:
@@ -86,10 +89,16 @@ paru -S swww
 
 
 # ---------------
-# 3.c Themes
+# 3.c GTK Themes
 # ---------------
 
-paru -Sy nwg-look catppuccin-gtk-theme-mocha
+paru -S nwg-look catppuccin-gtk-theme-mocha
+
+# ---------------
+# 3.d App launcer
+# ---------------
+paru -S fuzzel app2unit
+
 
 
 # ---------------
@@ -98,7 +107,10 @@ paru -Sy nwg-look catppuccin-gtk-theme-mocha
 paru -S waybar power-profiles-daemon cava
 
 
-
+# ---------------
+# Others
+# ---------------
+paru -S hyprpicker wl-clipboard cliphist
 
 
 

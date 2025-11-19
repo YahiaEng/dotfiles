@@ -1,4 +1,7 @@
 
+# Set app2unit to use UWSM's slices
+APP2UNIT_SLICES="a=app-graphical.slice b=background-graphical.slice s=session-graphical.slice"
+
 # Set the directory for zinit and plugins
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 
@@ -72,6 +75,7 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 alias ls='ls -lah --color'
 alias vim='nvim'
 alias c='clear'
+alias codium='codium --ozone-platform=wayland'
 
 
 # Shell integrations

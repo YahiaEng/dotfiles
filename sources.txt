@@ -1,0 +1,16 @@
+Dot files
+
+catppuccin
+    - https://github.com/catppuccin
+
+
+TYpecraft
+    - https://github.com/typecraft-dev/dotfiles
+
+
+Arch install kit
+    - https://github.com/Zilero232/arch-install-kit
+
+Riverwm
+    - https://github.com/adarsh-67r/riverwm
+
