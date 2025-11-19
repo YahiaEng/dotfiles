@@ -1,0 +1,1 @@
+https://github.com/typecraft-dev/dotfiles/blob/master/waybar/.config/waybar/mocha.css

@@ -1,0 +1,135 @@
+# Reset incorrect password attempts
+su
+faillock --reset
+
+# Remove unused packages and clear cache
+paru -R $(pacman -Qtdq)
+paru -Sc
+
+
+# ================
+# Initial Setup
+# =================
+
+# Core Packages
+sudo pacman -S wget curl flatpak stow zip unzip nvim libreoffice-fresh 1password
+
+# Commands to run on the stowed dotfiles
+chmod +x ./config/waybar/scripts/reload.sh
+
+# Package Manager
+sudo pacman -S --needed base-devel
+git clone https://aur.archlinux.org/paru.git
+cd paru
+makepkg -si
+
+# Set the closest 5 servers for packages
+
+
+
+# Graphical UI for package manager
+paru -S --skipreview octopi
+
+# Audio
+paru -S pavucontrol
+
+# Limine Bootloader
+paru -S limine-dracut-support
+paru -S kernel-modules-hook
+sudo rm /boot/EFI/limine/limine.conf
+sudo limine-install --fallback
+sudo limine-update
+sudo limine-scan
+
+
+# ============
+# B: Apps
+# ============
+
+# ---------------
+2.a: AUR apps
+# ---------------
+paru -S spotify discord\
+
+
+# ---------------
+2.b: Flatpak apps
+# ---------------
+flatpak install flathub app.zen_browser.zen
+
+
+
+# ============
+# c: Ricing
+# ============
+
+# ---------------
+# 1.c Shell setup
+# ---------------
+
+sources:
+ - https://www.youtube.com/watch?v=ud7YxC33Z3w
+ - https://www.youtube.com/watch?v=9U8LCjuQzdc
+ - https://www.youtube.com/watch?v=aghxkpyRVDY
+
+paru -S zsh fzf oh-my-posh zoxide
+
+
+# ---------------
+# 2.c Wallpapers
+# ---------------
+
+cd Pictures
+git clone  https://github.com/mylinuxforwork/wallpaper.git
+
+paru -S swww
+
+
+# ---------------
+# 3.c Themes
+# ---------------
+
+paru -Sy nwg-look catppuccin-gtk-theme-mocha
+
+
+# ---------------
+# Status Bar
+# ---------------
+paru -S waybar power-profiles-daemon cava
+
+
+
+
+
+
+# ----------------------------------------------
+# Install Awseome Fonts for waybar icons to work
+# ----------------------------------------------
+paru -S otf-font-awesome
+
+# -----------------------------
+# Install Nerd Fonts With getnf
+# -----------------------------
+paru -S getnf
+getnf
+
+# ---------------------------
+# Install Nerd Fonts Manually
+# ---------------------------
+
+1: got to: https://www.nerdfonts.com/font-downloads
+
+2: copy download link and paste it below
+wget -P ~/.local/share/fonts https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip \
+&& cd ~/.local/share/fonts \
+&& unzip JetBrainsMono.zip \
+&& rm JetBrainsMono.zip \
+&& fc-cache -fv
+
+3: The font family name is the same name from the nerd fonts website: [JetBrainsMono Nerd Font OR JetBrains Mono NL]
+
+
+
+# check these packages
+playerctl
+wpctl
