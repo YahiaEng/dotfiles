@@ -10,6 +10,10 @@ paru -Sc
 # See running proccess tree
 systemctl --user list-units
 
+# Theme: catppuccin mocha flamingo
+# FOnt: 
+
+
 # ================
 # Initial Setup
 # =================
@@ -110,7 +114,7 @@ paru -S waybar power-profiles-daemon cava
 # ---------------
 # Others
 # ---------------
-paru -S hyprpicker wl-clipboard cliphist
+paru -S hyprpicker wl-clipboard cliphist fyi
 
 
 

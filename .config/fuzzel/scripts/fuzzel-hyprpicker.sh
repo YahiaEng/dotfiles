@@ -1,12 +1,12 @@
-#!/usr/bin/env bash
-# A tool to pick colors from the screen using hyprpicker and fuzzel
+#!/bin/bash
+# A tool to pick colors from the screen using hyprpicker - fuzzel - wl-clipboard - fyi
 
 set +u  # Disable nounset
 APP_NAME="fuzzel-hyprpicker"
-NOTIFY="notify-desktop --app-name=$APP_NAME --icon=org.gnome.design.Palette"
+NOTIFY="fyi --app-name=$APP_NAME --icon=org.gnome.design.Palette"
 
 # Set up the storage directory and file
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/$APP_NAME"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/fuzzel/$APP_NAME"
 HISTORY_FILE="$CONFIG_DIR/colors.txt"
 HISTORY_NUM=10
 ICONS_DIR="$CONFIG_DIR/icons"
@@ -22,22 +22,20 @@ function create_eye_dropper_svg() {
   # Create an SVG for the eyedropper icon if it doesn't exist
   if [ ! -f "$icon_path" ]; then
     cat > "$icon_path" <<EOF
-<svg fill="$color" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
-  <g id="eyedropper">
-    <path
-      d="M223.99658,67.50391a35.73557,35.73557,0,0,0-11.26172-25.66114c-14.01806-13.2705-36.71875-12.771-50.60254,1.11328L140.18408,64.90479a24.02939,24.02939,0,0,0-33.15429.75195L100,72.68652a16.01779,16.01779,0,0,0,0,22.627l2.05908,2.05908L51.71533,147.71582a40.15638,40.15638,0,0,0-11.01074,35.771l-9.78271,22.40869a13.66329,13.66329,0,0,0,2.87744,15.21728,15.915,15.915,0,0,0,11.27929,4.70313,16.077,16.077,0,0,0,6.43555-1.353l20.999-9.16748a40.15391,40.15391,0,0,0,35.771-11.01123l50.34326-50.34326L160.68652,156a16.01779,16.01779,0,0,0,22.627,0l7.02978-7.02979a24.02843,24.02843,0,0,0,.752-33.15429l22.36036-22.36035A35.71726,35.71726,0,0,0,223.99658,67.50391ZM96.9707,192.9707a24.09567,24.09567,0,0,1-23.1914,6.21436,8.0052,8.0052,0,0,0-5.26416.39746L47.044,208.95605l9.37353-21.47119a8.00234,8.00234,0,0,0,.39746-5.26416,24.0986,24.0986,0,0,1,6.21436-23.1914L113.37256,108.686l33.9414,33.9414Z">
-      id="eyedropper_path" />
-  </g>
+<?xml version="1.0" encoding="utf-8"?>
+<svg fill="$color" width="800px" height="800px" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <path d="M13.354.646a1.207 1.207 0 0 0-1.708 0L8.5 3.793l-.646-.647a.5.5 0 1 0-.708.708L8.293 5l-7.147 7.146A.5.5 0 0 0 1 12.5v1.793l-.854.853a.5.5 0 1 0 .708.707L1.707 15H3.5a.5.5 0 0 0 .354-.146L11 7.707l1.146 1.147a.5.5 0 0 0 .708-.708l-.647-.646 3.147-3.146a1.207 1.207 0 0 0 0-1.708zM2 12.707l7-7L10.293 7l-7 7H2z"/>
 </svg>
 EOF
   fi
 }
 
+
 function create_trash_svg() {
   local color="#C8D1EE"
   local icon_path="$ICONS_DIR/trash.svg"
 
-  # Create an SVG for the eyedropper icon if it doesn't exist
+  # Create an SVG for the trash icon if it doesn't exist
   if [ ! -f "$icon_path" ]; then
     cat > "$icon_path" <<EOF
 <?xml version="1.0" encoding="utf-8"?>
