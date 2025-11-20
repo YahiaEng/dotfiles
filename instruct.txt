@@ -12,15 +12,19 @@ systemctl --user list-units
 # Theme: catppuccin mocha flamingo
 # Font: 
 
+#Temp: nwg-drawer
 
-#Temp: nwg-drawer wofi
+# check these packages
+playerctl
+wpctl
+cava
 
 # ================
 # Initial Setup
 # =================
 
 # Core Packages
-sudo pacman -S wget curl flatpak stow zip unzip nvim libreoffice-fresh 1password
+sudo pacman -S wget curl flatpak stow zip unzip libreoffice-fresh 1password
 
 # Commands to run on the stowed dotfiles
 chmod +x ./config/waybar/scripts/reload.sh
@@ -37,6 +41,7 @@ makepkg -si
 
 # Graphical UI for package manager
 paru -S --skipreview octopi
+
 
 # Audio
 paru -S pavucontrol
@@ -106,9 +111,11 @@ paru -S fuzzel app2unit
 
 
 # ---------------
-# FIle Manager
+# FIle Managers
 # ---------------
 paru -S thunar
+paru -S yazi-git ffmpeg 7zip jq poppler fd ripgrep fzf zoxide resvg imagemagick --needed
+paru -R dolphin
 
 
 # ---------------
@@ -121,6 +128,20 @@ paru -S dunst
 # Status Bar
 # ---------------
 paru -S waybar power-profiles-daemon cava
+
+
+# ---------------
+# Code Editors
+# ---------------
+# Vscode
+paru -S codium
+
+# Nvim
+paru -S nvim lazygit curl fzf --needed
+cargo install --locked tree-sitter-cli
+
+# Zed
+curl -f https://zed.dev/install.sh | sh
 
 
 # ---------------
@@ -156,10 +177,3 @@ wget -P ~/.local/share/fonts https://github.com/ryanoasis/nerd-fonts/releases/do
 && fc-cache -fv
 
 3: The font family name is the same name from the nerd fonts website: [JetBrainsMono Nerd Font OR JetBrains Mono NL]
-
-
-
-# check these packages
-playerctl
-wpctl
-cava

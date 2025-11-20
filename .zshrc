@@ -77,8 +77,17 @@ alias vim='nvim'
 alias c='clear'
 alias codium='codium --ozone-platform=wayland'
 alias zed='~/.local/bin/zed'
-
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d '' cwd < "$tmp"
+	[ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
+	rm -f -- "$tmp"
+}
 
 # Shell integrations
 eval "$(fzf --zsh)"
 eval "$(zoxide init --cmd cd zsh)"
+
+# Path
+export PATH="$HOME/.cargo/bin:$PATH"
