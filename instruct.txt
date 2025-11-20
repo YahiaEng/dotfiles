@@ -132,21 +132,22 @@ paru -S hyprpicker wl-clipboard cliphist fyi zathura hyprshot satty
 
 
 # ----------------------------------------------
-# Install Awseome Fonts for waybar icons to work
+# Special Fonts
 # ----------------------------------------------
-paru -S otf-font-awesome
+paru -S otf-font-awesome noto-fonts-emoji
+fc-cache -fv
 
 # -----------------------------
-# Install Nerd Fonts With getnf
+# Nerd Fonts With getnf
 # -----------------------------
 paru -S getnf
 getnf
+fc-cache -fv
 
 # ---------------------------
-# Install Nerd Fonts Manually
+# Nerd Fonts Manually
 # ---------------------------
-
-1: got to: https://www.nerdfonts.com/font-downloads
+1: go to: https://www.nerdfonts.com/font-downloads
 
 2: copy download link and paste it below
 wget -P ~/.local/share/fonts https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip \
@@ -162,3 +163,4 @@ wget -P ~/.local/share/fonts https://github.com/ryanoasis/nerd-fonts/releases/do
 # check these packages
 playerctl
 wpctl
+cava
