@@ -76,6 +76,7 @@ alias ls='ls -lah --color'
 alias vim='nvim'
 alias c='clear'
 alias codium='codium --ozone-platform=wayland'
+alias zed='~/.local/bin/zed'
 
 
 # Shell integrations

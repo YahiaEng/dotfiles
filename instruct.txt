@@ -6,12 +6,11 @@ faillock --reset
 paru -R $(pacman -Qtdq)
 paru -Sc
 
-
 # See running proccess tree
 systemctl --user list-units
 
 # Theme: catppuccin mocha flamingo
-# FOnt: 
+# Font: 
 
 
 #Temp: nwg-drawer wofi
