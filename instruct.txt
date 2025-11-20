@@ -127,7 +127,7 @@ paru -S waybar power-profiles-daemon cava
 # ---------------
 # Others
 # ---------------
-paru -S hyprpicker wl-clipboard cliphist fyi zathura
+paru -S hyprpicker wl-clipboard cliphist fyi zathura hyprshot satty
 
 
 
