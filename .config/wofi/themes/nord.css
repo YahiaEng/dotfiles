@@ -1,0 +1,64 @@
+@import ".config/wofi/colors/nord.css";
+
+* {
+    font-family: JetBrainsMono Nerd Font, FontAwesome;
+    font-size: 17px;
+    border-radius: 15px;
+    border: none;
+}
+
+window {
+    margin: 0px;
+    background-color: @nord3-transparent;
+    border-radius: 0px;
+    /*
+    border-right-width: 3px;
+    border-right-color: @nord3;
+    border-right-style: solid;
+
+    border-left-width: 3px;
+    border-left-color: @nord3;
+    border-left-style: solid;*/
+}
+
+#outer-box {
+    margin: 0px;
+    border-radius: 0px;
+}
+
+#input {
+    margin: 10px 10px 20px 10px;
+    font-size: 19px;
+    background-color: @nord0;
+    color: @nord4;
+    padding: 15px;
+    border: none;
+}
+
+#inner-box {
+    margin: 0px 10px 50px 10px;
+    border-radius: 0px;
+    background-color: rgba(59, 66, 82, 0.0);
+}
+
+#scroll {
+    margin: 0px 0px;
+    border-radius: 3px;
+    border: none;
+}
+
+#text {
+    margin: 10px;
+}
+
+#entry {
+    border: none;
+    padding: 5px;
+  padding-left: 10px;
+    margin: 0px;
+}
+
+#entry:selected {
+    color: @nord1;
+    background-color: @nord7;
+}

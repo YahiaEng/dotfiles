@@ -14,6 +14,8 @@ systemctl --user list-units
 # FOnt: 
 
 
+#Temp: nwg-drawer wofi
+
 # ================
 # Initial Setup
 # =================
@@ -95,14 +97,25 @@ paru -S swww
 # ---------------
 # 3.c GTK Themes
 # ---------------
-
 paru -S nwg-look catppuccin-gtk-theme-mocha
+
 
 # ---------------
 # 3.d App launcer
 # ---------------
 paru -S fuzzel app2unit
 
+
+# ---------------
+# FIle Manager
+# ---------------
+paru -S thunar
+
+
+# ---------------
+# Notification
+# ---------------
+paru -S dunst
 
 
 # ---------------
@@ -114,7 +127,7 @@ paru -S waybar power-profiles-daemon cava
 # ---------------
 # Others
 # ---------------
-paru -S hyprpicker wl-clipboard cliphist fyi
+paru -S hyprpicker wl-clipboard cliphist fyi zathura
 
 
 
