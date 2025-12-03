@@ -6,7 +6,7 @@ PICS=($(ls ${DIR}))
 RANDOMPICS=${PICS[ $RANDOM % ${#PICS[@]} ]}
 # fuzzel config
 WIDTH=30
-fuzzel_command="fuzzel --dmenu --prompt="󰸉 >" --width=$WIDTH"
+fuzzel_command="fuzzel --dmenu --prompt='󰸉 >' --width=$WIDTH"
 # Transition config (see 'swww img --help' for more settings)
 FPS=60
 TYPE="simple"

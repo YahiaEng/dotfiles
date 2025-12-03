@@ -10,7 +10,7 @@ paru -Sc
 systemctl --user list-units
 
 # Theme: catppuccin mocha flamingo
-# Font: 
+# Font:
 
 #Temp: nwg-drawer
 
@@ -71,7 +71,6 @@ paru -S spotify discord
 flatpak install flathub app.zen_browser.zen
 
 
-
 # ============
 # c: Ricing
 # ============
@@ -113,7 +112,7 @@ paru -S fuzzel app2unit
 # ---------------
 # FIle Managers
 # ---------------
-paru -S thunar
+paru -S thunar gvfs
 paru -S yazi-git ffmpeg 7zip jq poppler fd ripgrep fzf zoxide resvg imagemagick --needed
 paru -R dolphin
 
@@ -154,7 +153,7 @@ paru -S hyprpicker wl-clipboard cliphist fyi zathura hyprshot satty
 # ----------------------------------------------
 # Special Fonts
 # ----------------------------------------------
-paru -S otf-font-awesome noto-fonts-emoji
+paru -S otf-font-awesome noto-fonts-emoji noto-fonts-cjk
 fc-cache -fv
 
 # -----------------------------
