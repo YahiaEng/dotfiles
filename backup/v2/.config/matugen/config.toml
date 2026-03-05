@@ -5,7 +5,11 @@ wallpaper_command = "" # We handle the wallpaper with swww in our script
 
 [templates.hyprland]
 input_path = "~/.config/matugen/templates/hyprland-colors.conf"
-output_path = "~/.config/hypr/colors.conf"
+output_path = "~/.config/hypr/theme/hyprland-colors.conf"
+
+[templates.hyprlock]
+input_path = "~/.config/matugen/templates/hyprlock-colors.conf"
+output_path = "~/.config/hypr/theme/hyprlock-colors.conf"
 
 [templates.waybar]
 input_path = "~/.config/matugen/templates/waybar-colors.css"
@@ -22,7 +26,3 @@ output_path = "~/.config/kitty/theme.conf"
 [templates.swaync]
 input_path = "~/.config/matugen/templates/swaync-colors.css"
 output_path = "~/.config/swaync/colors.css"
-
-[templates.hyprlock]
-input_path = "~/.config/matugen/templates/hyprlock-colors.conf"
-output_path = "~/.config/hypr/hyprlock-colors.conf"
