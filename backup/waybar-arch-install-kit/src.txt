@@ -1,1 +1,0 @@
-https://github.com/Zilero232/arch-install-kit/blob/master/dotfiles/.config/waybar/modules.jsonc

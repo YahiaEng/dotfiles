@@ -1,0 +1,28 @@
+# ~/.dotfiles/matugen/.config/matugen/config.toml
+
+[config]
+wallpaper_command = "" # We handle the wallpaper with swww in our script
+
+[templates.hyprland]
+input_path = "~/.config/matugen/templates/hyprland-colors.conf"
+output_path = "~/.config/hypr/colors.conf"
+
+[templates.waybar]
+input_path = "~/.config/matugen/templates/waybar-colors.css"
+output_path = "~/.config/waybar/colors.css"
+
+[templates.fuzzel]
+input_path = "~/.config/matugen/templates/fuzzel-colors.ini"
+output_path = "~/.config/fuzzel/colors.ini"
+
+[templates.kitty]
+input_path = "~/.config/matugen/templates/kitty-colors.conf"
+output_path = "~/.config/kitty/theme.conf"
+
+[templates.swaync]
+input_path = "~/.config/matugen/templates/swaync-colors.css"
+output_path = "~/.config/swaync/colors.css"
+
+[templates.hyprlock]
+input_path = "~/.config/matugen/templates/hyprlock-colors.conf"
+output_path = "~/.config/hypr/hyprlock-colors.conf"
