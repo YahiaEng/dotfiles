@@ -1,0 +1,151 @@
+@import "colors.css";
+
+/* ── Control center ────────────────────────────────── */
+.control-center {
+    background: alpha(@surface, 0.90);
+    border: 2px solid alpha(@outline, 0.3);
+    border-radius: 16px;
+    padding: 10px;
+    font-family: "FiraCode Nerd Font";
+}
+
+/* ── Title widget ──────────────────────────────────── */
+.widget-title {
+    color: @on_surface;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 6px 8px;
+}
+
+.widget-title > button {
+    background: alpha(@primary_container, 0.5);
+    color: @primary;
+    border: none;
+    border-radius: 10px;
+    padding: 4px 16px;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.widget-title > button:hover {
+    background: @primary;
+    color: @on_primary;
+}
+
+/* ── DND widget ────────────────────────────────────── */
+.widget-dnd {
+    margin: 4px 8px;
+    color: @on_surface;
+    font-size: 13px;
+}
+
+.widget-dnd > switch {
+    border-radius: 12px;
+    background: @surface_variant;
+}
+
+.widget-dnd > switch:checked {
+    background: @primary;
+}
+
+.widget-dnd > switch slider {
+    background: @on_surface;
+    border-radius: 50%;
+}
+
+/* ── Notifications ─────────────────────────────────── */
+.notification-row {
+    outline: none;
+}
+
+.notification {
+    background: alpha(@surface_variant, 0.7);
+    border: 1px solid alpha(@outline, 0.2);
+    border-radius: 12px;
+    margin: 4px 6px;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.notification:hover {
+    border-color: alpha(@primary, 0.4);
+}
+
+.notification-content {
+    padding: 10px 14px;
+}
+
+.summary {
+    color: @on_surface;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.time {
+    color: @on_surface_variant;
+    font-size: 11px;
+}
+
+.body {
+    color: @on_surface_variant;
+    font-size: 13px;
+}
+
+/* ── Close button ──────────────────────────────────── */
+.close-button {
+    background: alpha(@error, 0.2);
+    color: @error;
+    border: none;
+    border-radius: 50%;
+    min-width: 24px;
+    min-height: 24px;
+    margin: 6px;
+    transition: all 0.2s ease;
+}
+
+.close-button:hover {
+    background: @error;
+    color: @on_error;
+}
+
+/* ── Notification window (floating) ────────────────── */
+.notification-row .notification-background .notification {
+    background: alpha(@surface, 0.90);
+    border: 1px solid alpha(@outline, 0.3);
+    border-radius: 14px;
+    box-shadow: 0 4px 12px alpha(@shadow, 0.3);
+}
+
+/* ── Critical notification ─────────────────────────── */
+.critical .notification {
+    border-color: @error;
+}
+
+/* ── Low priority ──────────────────────────────────── */
+.low .notification {
+    border-color: alpha(@outline, 0.15);
+}
+
+/* ── Actions ───────────────────────────────────────── */
+.notification-action {
+    background: alpha(@primary_container, 0.5);
+    color: @primary;
+    border: none;
+    border-radius: 8px;
+    margin: 4px 2px;
+    padding: 4px 12px;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.notification-action:hover {
+    background: @primary;
+    color: @on_primary;
+}
+
+/* ── Empty state ───────────────────────────────────── */
+.control-center .notification-row .notification-background .notification {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}

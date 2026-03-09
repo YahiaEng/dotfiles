@@ -1,4 +1,0 @@
-icon = "" 
-max_items = 500
-image_editor_cmd = "satty -f %FILE% -o %FILE%"
-text_editor_cmd = "ghostty -e nvim '%FILE%'"

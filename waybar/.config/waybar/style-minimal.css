@@ -1,0 +1,48 @@
+@import "colors.css";
+
+* {
+    font-family: "FiraCode Nerd Font", "Font Awesome 6 Free";
+    font-size: 13px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: alpha(@surface, 0.75);
+    color: @on_surface;
+    border-radius: 14px;
+}
+
+#workspaces button {
+    padding: 0 8px;
+    color: @on_surface_variant;
+    background: transparent;
+    border-radius: 10px;
+    margin: 4px 2px;
+    transition: all 0.3s ease;
+}
+
+#workspaces button.active {
+    color: @on_primary;
+    background: @primary;
+}
+
+#workspaces button:hover {
+    background: alpha(@primary, 0.3);
+    color: @primary;
+}
+
+#clock {
+    padding: 0 14px;
+    color: @primary;
+    font-weight: bold;
+}
+
+#tray {
+    padding: 0 8px;
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}

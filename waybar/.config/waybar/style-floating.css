@@ -1,0 +1,113 @@
+@import "colors.css";
+
+* {
+    font-family: "FiraCode Nerd Font", "Font Awesome 6 Free";
+    font-size: 13px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: transparent;
+    color: @on_surface;
+}
+
+/* ── Island groups ─────────────────────────────────── */
+#left-island,
+#center-island,
+#right-island {
+    background: alpha(@surface, 0.82);
+    border-radius: 16px;
+    padding: 2px 6px;
+    margin: 0 4px;
+    border: 1px solid alpha(@outline, 0.3);
+    box-shadow: 0 4px 12px alpha(@shadow, 0.3);
+}
+
+/* ── Workspaces ────────────────────────────────────── */
+#workspaces button {
+    padding: 0 6px;
+    color: @on_surface_variant;
+    background: transparent;
+    border-radius: 12px;
+    margin: 3px 2px;
+    font-size: 10px;
+    transition: all 0.3s ease;
+}
+
+#workspaces button.active {
+    color: @on_primary;
+    background: @primary;
+    padding: 0 10px;
+}
+
+#workspaces button.empty {
+    color: @outline;
+}
+
+#workspaces button:hover {
+    background: alpha(@primary, 0.3);
+    color: @primary;
+}
+
+/* ── Clock ─────────────────────────────────────────── */
+#clock {
+    padding: 0 12px;
+    color: @primary;
+    font-weight: bold;
+}
+
+/* ── Right modules ─────────────────────────────────── */
+#pulseaudio,
+#network {
+    padding: 0 8px;
+    color: @on_surface;
+    transition: all 0.3s ease;
+}
+
+#pulseaudio { color: @tertiary; }
+#network { color: @secondary; }
+
+#pulseaudio:hover,
+#network:hover {
+    color: @primary;
+}
+
+/* ── Custom modules ────────────────────────────────── */
+#custom-media {
+    padding: 0 10px;
+    color: @secondary;
+    font-style: italic;
+    max-width: 200px;
+}
+
+#custom-theme {
+    padding: 0 8px;
+    color: @primary;
+    transition: all 0.3s ease;
+}
+
+#custom-theme:hover {
+    color: @tertiary;
+}
+
+/* ── Tray ──────────────────────────────────────────── */
+#tray {
+    padding: 0 6px;
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+/* ── Tooltip ───────────────────────────────────────── */
+tooltip {
+    background: @surface;
+    border: 1px solid @outline;
+    border-radius: 12px;
+}
+
+tooltip label {
+    color: @on_surface;
+}

@@ -1,0 +1,96 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 36,
+    "margin-top": 8,
+    "margin-left": 0,
+    "margin-right": 0,
+    "spacing": 0,
+    "mode": "dock",
+
+    "modules-left": ["group/left-island"],
+    "modules-center": ["group/center-island"],
+    "modules-right": ["group/right-island"],
+
+    "group/left-island": {
+        "orientation": "inherit",
+        "modules": [
+            "hyprland/workspaces"
+        ]
+    },
+
+    "group/center-island": {
+        "orientation": "inherit",
+        "modules": [
+            "custom/media",
+            "clock"
+        ]
+    },
+
+    "group/right-island": {
+        "orientation": "inherit",
+        "modules": [
+            "pulseaudio",
+            "network",
+            "custom/theme",
+            "tray"
+        ]
+    },
+
+    "hyprland/workspaces": {
+        "format": "{icon}",
+        "format-icons": {
+            "active": "",
+            "default": "",
+            "empty": ""
+        },
+        "on-click": "activate",
+        "sort-by-number": true,
+        "persistent-workspaces": {
+            "*": 5
+        }
+    },
+
+    "clock": {
+        "format": "  {:%H:%M}",
+        "format-alt": "  {:%a %b %d}",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>"
+    },
+
+    "pulseaudio": {
+        "format": "{icon}  {volume}%",
+        "format-muted": "  muted",
+        "format-icons": {
+            "default": ["", "", ""]
+        },
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-click-right": "pavucontrol"
+    },
+
+    "network": {
+        "format-wifi": "  {signalStrength}%",
+        "format-ethernet": " ",
+        "format-disconnected": " ",
+        "tooltip-format": "{ifname}: {ipaddr}\n{essid}"
+    },
+
+    "custom/media": {
+        "format": "{}",
+        "max-length": 25,
+        "exec": "playerctl metadata --format '  {{title}}' 2>/dev/null || echo ''",
+        "interval": 3,
+        "on-click": "playerctl play-pause"
+    },
+
+    "custom/theme": {
+        "format": " ",
+        "tooltip-format": "Theme / Layout",
+        "on-click": "~/.config/hypr/scripts/theme-switch.sh",
+        "on-click-right": "~/.config/hypr/scripts/waybar-switch.sh"
+    },
+
+    "tray": {
+        "icon-size": 16,
+        "spacing": 6
+    }
+}

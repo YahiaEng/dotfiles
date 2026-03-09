@@ -1,0 +1,49 @@
+# ╔══════════════════════════════════════════════════════╗
+# ║              MATUGEN CONFIGURATION                    ║
+# ║       Material You dynamic color generation           ║
+# ╚══════════════════════════════════════════════════════╝
+
+[config]
+reload_apps = true
+set_wallpaper = true
+wallpaper_tool = "Swww"
+prefix = "@"
+swww_options = [
+    "--transition-type", "center",
+    "--transition-duration", "2",
+    "--transition-fps", "165",
+]
+
+[config.reload_apps_list]
+waybar = true
+kitty = true
+gtk_theme = true
+
+# ── Hyprland colors ─────────────────────────────────
+[templates.hyprland]
+input_path = "~/.config/matugen/templates/hyprland-colors.conf"
+output_path = "~/.config/hypr/colors.conf"
+post_hook = "hyprctl reload"
+
+# ── Waybar colors ────────────────────────────────────
+[templates.waybar]
+input_path = "~/.config/matugen/templates/waybar-colors.css"
+output_path = "~/.config/waybar/colors.css"
+post_hook = "pkill -SIGUSR2 waybar"
+
+# ── Kitty colors ─────────────────────────────────────
+[templates.kitty]
+input_path = "~/.config/matugen/templates/kitty-colors.conf"
+output_path = "~/.config/kitty/colors.conf"
+post_hook = "pkill -SIGUSR1 kitty"
+
+# ── Wofi colors ──────────────────────────────────────
+[templates.wofi]
+input_path = "~/.config/matugen/templates/wofi-colors.css"
+output_path = "~/.config/wofi/colors.css"
+
+# ── SwayNC colors ────────────────────────────────────
+[templates.swaync]
+input_path = "~/.config/matugen/templates/swaync-colors.css"
+output_path = "~/.config/swaync/colors.css"
+post_hook = "swaync-client -rs"

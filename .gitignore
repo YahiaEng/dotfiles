@@ -1,2 +1,10 @@
-*.svg
-switcher
+# OS
+.DS_Store
+Thumbs.db
+
+# Wallpapers (add your own, don't commit large binaries)
+# wallpapers/Pictures/Wallpapers/*.jpg
+# wallpapers/Pictures/Wallpapers/*.jpeg
+# wallpapers/Pictures/Wallpapers/*.png
+# wallpapers/Pictures/Wallpapers/*.webp
+# !wallpapers/Pictures/Wallpapers/.gitkeep

@@ -1,0 +1,141 @@
+@import "colors.css";
+
+* {
+    font-family: "FiraCode Nerd Font", "Font Awesome 6 Free";
+    font-size: 13px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: alpha(@surface, 0.82);
+    color: @on_surface;
+    border-radius: 14px;
+    border-bottom: 2px solid alpha(@primary, 0.25);
+}
+
+/* ── Workspaces ────────────────────────────────────── */
+#workspaces button {
+    padding: 0 8px;
+    color: @on_surface_variant;
+    background: transparent;
+    border-radius: 10px;
+    margin: 4px 2px;
+    transition: all 0.3s ease;
+}
+
+#workspaces button.active {
+    color: @on_primary;
+    background: @primary;
+    box-shadow: 0 0 8px alpha(@primary, 0.4);
+}
+
+#workspaces button:hover {
+    background: alpha(@primary, 0.3);
+    color: @primary;
+}
+
+/* ── Window title ──────────────────────────────────── */
+#window {
+    padding: 0 12px;
+    color: @on_surface_variant;
+    font-style: italic;
+}
+
+/* ── Clock ─────────────────────────────────────────── */
+#clock {
+    padding: 0 14px;
+    color: @primary;
+    font-weight: bold;
+}
+
+/* ── System modules ────────────────────────────────── */
+#cpu,
+#memory,
+#temperature,
+#pulseaudio,
+#network {
+    padding: 0 10px;
+    margin: 4px 1px;
+    border-radius: 10px;
+    background: alpha(@surface_variant, 0.5);
+    color: @on_surface;
+    transition: all 0.3s ease;
+}
+
+#cpu { color: @tertiary; }
+#memory { color: @secondary; }
+#temperature { color: @primary; }
+#temperature.critical { color: @error; }
+#pulseaudio { color: @tertiary; }
+#network { color: @secondary; }
+
+#cpu:hover,
+#memory:hover,
+#temperature:hover,
+#pulseaudio:hover,
+#network:hover {
+    background: alpha(@primary_container, 0.6);
+}
+
+/* ── Custom modules ────────────────────────────────── */
+#custom-media {
+    padding: 0 12px;
+    color: @secondary;
+    font-style: italic;
+}
+
+#custom-theme,
+#custom-waybar-layout {
+    padding: 0 8px;
+    margin: 4px 2px;
+    border-radius: 10px;
+    color: @primary;
+    background: alpha(@primary_container, 0.4);
+    transition: all 0.3s ease;
+}
+
+#custom-theme:hover,
+#custom-waybar-layout:hover {
+    background: @primary;
+    color: @on_primary;
+}
+
+#custom-power {
+    padding: 0 12px;
+    margin: 4px 4px 4px 2px;
+    border-radius: 10px;
+    color: @error;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+#custom-power:hover {
+    background: @error;
+    color: @on_error;
+}
+
+/* ── Tray ──────────────────────────────────────────── */
+#tray {
+    padding: 0 8px;
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
+
+/* ── Tooltip ───────────────────────────────────────── */
+tooltip {
+    background: @surface;
+    border: 1px solid @outline;
+    border-radius: 10px;
+}
+
+tooltip label {
+    color: @on_surface;
+}
