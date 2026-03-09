@@ -25,9 +25,16 @@ window {
 
 #input:focus {
     border: 2px solid @primary;
+    box-shadow: 0 0 8px rgba(144,147,140, 0.3);
 }
 
 /* ── List container ────────────────────────────────── */
+#inner-box {
+    margin: 8px;
+    padding-top: 5px;
+    background-color: transparent;
+}
+
 #outer-box {
     margin: 0 8px 8px 8px;
 }

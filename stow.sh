@@ -25,6 +25,7 @@ PACKAGES=(
     matugen
     themes
     wallpapers
+    zshell
 )
 
 echo "╔══════════════════════════════════════════╗"
@@ -49,6 +50,9 @@ chmod +x "$HOME/.config/hypr/scripts/"*.sh 2>/dev/null || true
 mkdir -p "$HOME/.cache"
 echo "catppuccin" > "$HOME/.cache/current-theme"
 echo "full" > "$HOME/.cache/current-waybar-layout"
+
+# ── Switch to zshell ─────────────────────────────────
+chsh -s $(which zsh)
 
 echo ""
 echo "╔══════════════════════════════════════════╗"

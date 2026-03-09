@@ -98,6 +98,10 @@ AUR_PKGS=(
     swaync
     matugen-bin
     bibata-cursor-theme
+    zsh
+    fzf
+    oh-my-posh
+    zoxide
 )
 
 echo ""
