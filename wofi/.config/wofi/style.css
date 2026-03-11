@@ -3,9 +3,9 @@
 /* ── Main window ───────────────────────────────────── */
 window {
     margin: 0;
-    border: 2px solid alpha(@primary, 0.4);
+    border: 2px solid @primary;
     border-radius: 16px;
-    background-color: alpha(@surface, 0.88);
+    background-color: @surface;
     font-family: "FiraCode Nerd Font";
     font-size: 14px;
 }
@@ -14,27 +14,18 @@ window {
 #input {
     margin: 10px 14px;
     padding: 10px 16px;
-    border: none;
+    border: 2px solid @outline;
     border-radius: 12px;
     background-color: @surface_variant;
     color: @on_surface;
     font-size: 14px;
-    outline: none;
-    box-shadow: none;
 }
 
 #input:focus {
-    border: 2px solid @primary;
-    box-shadow: 0 0 8px rgba(144,147,140, 0.3);
+    border-color: @primary;
 }
 
 /* ── List container ────────────────────────────────── */
-#inner-box {
-    margin: 8px;
-    padding-top: 5px;
-    background-color: transparent;
-}
-
 #outer-box {
     margin: 0 8px 8px 8px;
 }
@@ -45,21 +36,22 @@ window {
 
 /* ── List entries ──────────────────────────────────── */
 #entry {
-    padding: 8px 14px;
+    padding: 10px 14px;
     margin: 2px 4px;
     border-radius: 10px;
+    border: 2px solid transparent;
     color: @on_surface;
-    transition: all 0.2s ease;
 }
 
 #entry:selected {
-    background-color: alpha(@primary, 0.25);
-    color: @primary;
-    outline: none;
+    background-color: @primary_container;
+    color: @on_primary_container;
+    border-color: @primary;
 }
 
 #entry:hover {
-    background-color: alpha(@primary_container, 0.3);
+    background-color: @surface_variant;
+    border-color: @outline;
 }
 
 /* ── Entry text ────────────────────────────────────── */
@@ -68,7 +60,8 @@ window {
 }
 
 #text:selected {
-    color: @primary;
+    color: @on_primary_container;
+    font-weight: bold;
 }
 
 /* ── Images / icons ────────────────────────────────── */

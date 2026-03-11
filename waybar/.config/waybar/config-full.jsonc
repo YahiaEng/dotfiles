@@ -12,7 +12,7 @@
         "hyprland/window"
     ],
     "modules-center": [
-        "custom/media",
+        "mpris",
         "clock"
     ],
     "modules-right": [
@@ -24,6 +24,7 @@
         "custom/theme",
         "custom/waybar-layout",
         "tray",
+        "custom/notification",
         "custom/power"
     ],
 
@@ -54,10 +55,51 @@
         "separate-outputs": true
     },
 
+    "mpris": {
+        "format": "{player_icon}  {artist} — {title}",
+        "format-paused": "{status_icon}  {artist} — {title}",
+        "format-stopped": "",
+        "player-icons": {
+            "default": "",
+            "spotify": "",
+            "firefox": "",
+            "chromium": "",
+            "mpv": "▶"
+        },
+        "status-icons": {
+            "paused": "",
+            "stopped": ""
+        },
+        "max-length": 40,
+        "on-click": "playerctl play-pause",
+        "on-click-right": "playerctl next",
+        "on-scroll-up": "playerctl volume 0.05+",
+        "on-scroll-down": "playerctl volume 0.05-",
+        "tooltip-format": "{player}: {artist} — {title}\n{album}\n{position} / {length}"
+    },
+
     "clock": {
         "format": "  {:%H:%M}",
-        "format-alt": "  {:%A, %B %d, %Y  %H:%M}",
-        "tooltip-format": "<tt><small>{calendar}</small></tt>"
+        "format-alt": "  {:%A, %B %d, %Y}",
+        "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>",
+        "calendar": {
+            "mode": "month",
+            "mode-mon-col": 3,
+            "weeks-pos": "left",
+            "on-scroll": 1,
+            "format": {
+                "months":   "<span color='#cba6f7'><b>{}</b></span>",
+                "days":     "<span color='#cdd6f4'>{}</span>",
+                "weeks":    "<span color='#585b70'>W{}</span>",
+                "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
+                "today":    "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>"
+            }
+        },
+        "actions": {
+            "on-click-right": "mode",
+            "on-scroll-up": "shift_up",
+            "on-scroll-down": "shift_down"
+        }
     },
 
     "cpu": {
@@ -96,14 +138,6 @@
         "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n{essid}"
     },
 
-    "custom/media": {
-        "format": "{}",
-        "max-length": 35,
-        "exec": "playerctl metadata --format '{{artist}} — {{title}}' 2>/dev/null || echo ''",
-        "interval": 3,
-        "on-click": "playerctl play-pause"
-    },
-
     "custom/theme": {
         "format": " ",
         "tooltip-format": "Switch Theme",
@@ -114,6 +148,27 @@
         "format": " ",
         "tooltip-format": "Switch Waybar Layout",
         "on-click": "~/.config/hypr/scripts/waybar-switch.sh"
+    },
+
+    "custom/notification": {
+        "tooltip": false,
+        "format": "{icon} {}",
+        "format-icons": {
+            "notification": "󰂚<span foreground='red'><sup></sup></span>",
+            "none": "󰂜",
+            "dnd-notification": "󰂛<span foreground='red'><sup></sup></span>",
+            "dnd-none": "󰂛",
+            "inhibited-notification": "󰂚<span foreground='red'><sup></sup></span>",
+            "inhibited-none": "󰂜",
+            "dnd-inhibited-notification": "󰂛<span foreground='red'><sup></sup></span>",
+            "dnd-inhibited-none": "󰂛"
+        },
+        "return-type": "json",
+        "exec-if": "which swaync-client",
+        "exec": "swaync-client -swb",
+        "on-click": "swaync-client -t -sw",
+        "on-click-right": "swaync-client -d -sw",
+        "escape": true
     },
 
     "custom/power": {

@@ -9,10 +9,10 @@
 }
 
 window#waybar {
-    background: alpha(@surface, 0.82);
+    background: @surface;
     color: @on_surface;
     border-radius: 14px;
-    border-bottom: 2px solid alpha(@primary, 0.25);
+    border-bottom: 2px solid @primary_container;
 }
 
 /* ── Workspaces ────────────────────────────────────── */
@@ -28,11 +28,10 @@ window#waybar {
 #workspaces button.active {
     color: @on_primary;
     background: @primary;
-    box-shadow: 0 0 8px alpha(@primary, 0.4);
 }
 
 #workspaces button:hover {
-    background: alpha(@primary, 0.3);
+    background: @primary_container;
     color: @primary;
 }
 
@@ -59,7 +58,7 @@ window#waybar {
     padding: 0 10px;
     margin: 4px 1px;
     border-radius: 10px;
-    background: alpha(@surface_variant, 0.5);
+    background: @surface_variant;
     color: @on_surface;
     transition: all 0.3s ease;
 }
@@ -76,23 +75,48 @@ window#waybar {
 #temperature:hover,
 #pulseaudio:hover,
 #network:hover {
-    background: alpha(@primary_container, 0.6);
+    background: @primary_container;
 }
 
-/* ── Custom modules ────────────────────────────────── */
-#custom-media {
+/* ── MPRIS (now playing) ───────────────────────────── */
+#mpris {
     padding: 0 12px;
     color: @secondary;
     font-style: italic;
 }
 
+#mpris.paused {
+    color: @on_surface_variant;
+}
+
+#mpris.stopped {
+    color: transparent;
+    padding: 0;
+    margin: 0;
+}
+
+/* ── Notification bell ─────────────────────────────── */
+#custom-notification {
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 10px;
+    color: @primary;
+    font-size: 15px;
+    transition: all 0.3s ease;
+}
+
+#custom-notification:hover {
+    background: @primary_container;
+}
+
+/* ── Custom modules ────────────────────────────────── */
 #custom-theme,
 #custom-waybar-layout {
     padding: 0 8px;
     margin: 4px 2px;
     border-radius: 10px;
     color: @primary;
-    background: alpha(@primary_container, 0.4);
+    background: @primary_container;
     transition: all 0.3s ease;
 }
 

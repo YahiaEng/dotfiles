@@ -12,6 +12,7 @@
     "timeout-low": 3,
     "timeout-critical": 0,
     "fit-to-screen": true,
+    "relative-timestamps": true,
     "control-center-margin-top": 10,
     "control-center-margin-bottom": 10,
     "control-center-margin-right": 10,
@@ -25,18 +26,23 @@
     "hide-on-action": true,
     "script-fail-notify": true,
     "widgets": [
-        "title",
         "dnd",
+        "mpris",
+        "title",
         "notifications"
     ],
     "widget-config": {
+        "dnd": {
+            "text": "Do not disturb"
+        },
+        "mpris": {
+            "image-size": 96,
+            "image-radius": 12
+        },
         "title": {
             "text": "Notifications",
             "clear-all-button": true,
             "button-text": "Clear All"
-        },
-        "dnd": {
-            "text": "Do Not Disturb"
         }
     }
 }
