@@ -79,7 +79,6 @@ window#waybar {
     padding: 0 10px;
     color: @secondary;
     font-style: italic;
-    max-width: 200px;
 }
 
 #mpris.paused {
