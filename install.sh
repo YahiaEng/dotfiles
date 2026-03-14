@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║          ARCH LINUX HYPRLAND SETUP                ║
+# ║          ARCH LINUX HYPRLAND SETUP                   ║
 # ║   Installs all dependencies for this rice            ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -10,6 +10,13 @@ echo "╔═══════════════════════�
 echo "║   Installing Hyprland Rice Dependencies  ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
+
+echo "Synchronizing closest mirrors..."
+echo ""
+sudo pacman -Sy reflector
+sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+sudo reflector --verbose --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+sudo pacman -Syu
 
 # ── Check for yay/paru ───────────────────────────────
 AUR_HELPER=""
@@ -25,6 +32,7 @@ else
     AUR_HELPER="paru"
 fi
 
+echo ""
 echo "Using AUR helper: $AUR_HELPER"
 echo ""
 
