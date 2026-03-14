@@ -57,6 +57,7 @@ PACMAN_PKGS=(
     cliphist
     brightnessctl
     playerctl
+    fastfetch
     jq
     stow
 

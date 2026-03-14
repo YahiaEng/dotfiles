@@ -25,6 +25,7 @@ PACKAGES=(
     matugen
     themes
     uwsm
+    fastfetch
     wallpapers
     zshell
 )
