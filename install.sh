@@ -83,8 +83,11 @@ PACMAN_PKGS=(
     yazi
     ffmpegthumbnailer
     fd
+    resvg
     ripgrep
+    poppler
     zoxide
+    7zip
 
     # Polkit
     polkit-gnome
@@ -105,10 +108,10 @@ PACMAN_PKGS=(
     gtk3
 
     # Personal
+    1password
     zip
     unzip
     libreoffice-fresh
-    1password
     octopi
 )
 
@@ -132,6 +135,16 @@ AUR_PKGS=(
     # Limine Bootloader
     limine-dracut-support
     kernel-modules-hook
+
+    # Code editors
+    vscodium-bin
+
+    # Browsers
+    zen-browser-bin
+
+    # Other
+    spotify
+    discord
 )
 
 echo ""
