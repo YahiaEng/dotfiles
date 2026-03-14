@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║          ARCH LINUX PACKAGE INSTALLER                ║
+# ║          ARCH LINUX HYPRLAND SETUP                ║
 # ║   Installs all dependencies for this rice            ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -72,6 +72,8 @@ PACMAN_PKGS=(
     ttf-firacode-nerd
     noto-fonts
     noto-fonts-emoji
+    noto-fonts-cjk
+    otf-font-awesome
 
     # File manager
     thunar
@@ -93,6 +95,13 @@ PACMAN_PKGS=(
     libnotify
     python-gobject
     gtk3
+
+    # Personal
+    zip
+    unzip
+    libreoffice-fresh
+    1password
+    octopi
 )
 
 echo "Installing pacman packages..."
@@ -100,18 +109,40 @@ sudo pacman -S --needed --noconfirm "${PACMAN_PKGS[@]}"
 
 # ── AUR packages ─────────────────────────────────────
 AUR_PKGS=(
+    # Rice
     swaync
     matugen-bin
+
+    # Utils
     bibata-cursor-theme
+    alpm_octopi_utils
+
+    # Z-shell
     zsh
     fzf
     oh-my-posh
     zoxide
+
+    # Limine Bootloader
+    limine-dracut-support
+    kernel-modules-hook
 )
 
 echo ""
 echo "Installing AUR packages..."
 $AUR_HELPER -S --needed --noconfirm "${AUR_PKGS[@]}"
+
+echo ""
+echo "Removing unused packages and clearing cache..."
+paru -R "$(pacman -Qtdq)"
+paru -Sc
+
+echo ""
+echo "Updating limine bootloader entries..."
+sudo rm /boot/EFI/limine/limine.conf
+sudo limine-install --fallback
+sudo limine-update
+sudo limine-scan
 
 echo ""
 echo "╔══════════════════════════════════════════╗"

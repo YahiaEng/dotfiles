@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║              STOW DOTFILES SETUP                      ║
-# ║   Creates symlinks from ~/dotfiles → ~/.config        ║
+# ║              STOW DOTFILES SETUP                     ║
+# ║   Creates symlinks from ~/dotfiles → ~/.config       ║
 # ╚══════════════════════════════════════════════════════╝
 
 set -euo pipefail
@@ -31,7 +31,7 @@ PACKAGES=(
 )
 
 echo "╔══════════════════════════════════════════╗"
-echo "║       Stowing dotfile packages...         ║"
+echo "║       Stowing dotfile packages...        ║"
 echo "╚══════════════════════════════════════════╝"
 
 for pkg in "${PACKAGES[@]}"; do
@@ -58,7 +58,7 @@ chsh -s $(which zsh)
 
 echo ""
 echo "╔══════════════════════════════════════════╗"
-echo "║       Dotfiles stowed successfully!       ║"
+echo "║       Dotfiles stowed successfully!      ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 echo "Next steps:"

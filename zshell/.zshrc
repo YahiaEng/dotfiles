@@ -90,7 +90,7 @@ eval "$(zoxide init --cmd cd zsh)"
 
 # Path
 export PATH="$HOME/.cargo/bin:$PATH"
-# export PATH="$HOME/.local/bin/theme.sh"
+# export PATH="$HOME/.local/bin:$PATH"
 
 # Source
 source /usr/share/nvm/init-nvm.sh # node version manager
