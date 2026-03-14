@@ -16,8 +16,8 @@ SELECTED=$(echo "$OPTIONS" | wofi --dmenu \
 [[ -z "$SELECTED" ]] && exit 0
 
 case "$SELECTED" in
-    *"Lock"*)     hyprlock                  ;;
-    *"Logout"*)   hyprctl dispatch exit      ;;
+    *"Lock"*)     uwsm app -- hyprlock       ;;
+    *"Logout"*)   uwsm stop                  ;;
     *"Reboot"*)   systemctl reboot           ;;
     *"Shutdown"*) systemctl poweroff         ;;
     *"Suspend"*)  systemctl suspend          ;;

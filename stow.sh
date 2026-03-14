@@ -24,6 +24,7 @@ PACKAGES=(
     swaync
     matugen
     themes
+    uwsm
     wallpapers
     zshell
 )

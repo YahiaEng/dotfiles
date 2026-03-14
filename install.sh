@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║          ARCH LINUX PACKAGE INSTALLER                 ║
-# ║   Installs all dependencies for this rice             ║
+# ║          ARCH LINUX PACKAGE INSTALLER                ║
+# ║   Installs all dependencies for this rice            ║
 # ╚══════════════════════════════════════════════════════╝
 
 set -euo pipefail
@@ -35,6 +35,10 @@ PACMAN_PKGS=(
     hyprlock
     hypridle
     xdg-desktop-portal-hyprland
+
+    # Session manager
+    uwsm
+    dbus-broker
 
     # Bar, launcher, notifications
     waybar
@@ -110,7 +114,16 @@ $AUR_HELPER -S --needed --noconfirm "${AUR_PKGS[@]}"
 
 echo ""
 echo "╔══════════════════════════════════════════╗"
-echo "║     All packages installed successfully!  ║"
+echo "║     All packages installed successfully! ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
-echo "Run './stow.sh' next to set up symlinks."
+
+# ── Enable dbus-broker (recommended for uwsm) ───────
+echo "Enabling dbus-broker for uwsm..."
+systemctl --user enable --now dbus-broker.service 2>/dev/null || true
+echo ""
+
+echo "Next steps:"
+echo "  1. Run './stow.sh' to set up symlinks"
+echo "  2. Select 'Hyprland (uwsm-managed)' in your display manager"
+echo "  3. Or from TTY: uwsm start hyprland-uwsm.desktop"
