@@ -178,6 +178,11 @@ echo "║     All packages installed successfully! ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
+echo ""
+echo "Configuring git..."
+git config --global user.name yahiaEng
+git config --global user.email eng-yahia-tarek@outlook.com
+
 # ── Enable dbus-broker (recommended for uwsm) ───────
 echo "Enabling dbus-broker for uwsm..."
 systemctl --user enable --now dbus-broker.service 2>/dev/null || true
