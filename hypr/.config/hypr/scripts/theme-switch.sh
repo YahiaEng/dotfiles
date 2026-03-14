@@ -12,6 +12,7 @@ WAYBAR_COLORS="$HOME/.config/waybar/colors.css"
 KITTY_COLORS="$HOME/.config/kitty/colors.conf"
 WOFI_COLORS="$HOME/.config/wofi/colors.css"
 SWAYNC_COLORS="$HOME/.config/swaync/colors.css"
+YAZI_THEME="$HOME/.config/yazi/theme.toml"
 STATE_FILE="$HOME/.cache/current-theme"
 
 # Ensure cache directory exists
@@ -61,6 +62,9 @@ apply_static_theme() {
 
     # Copy kitty colors
     cp "$THEMES_DIR/kitty/${name}.conf" "$KITTY_COLORS"
+
+    # Copy yazi theme
+    cp "$THEMES_DIR/yazi/${name}.toml" "$YAZI_THEME"
 
     # Reload applications
     hyprctl reload

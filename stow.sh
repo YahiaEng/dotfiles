@@ -27,6 +27,7 @@ PACKAGES=(
     uwsm
     fastfetch
     wallpapers
+    yazi
     zshell
 )
 

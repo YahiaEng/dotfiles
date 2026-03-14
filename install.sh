@@ -80,6 +80,11 @@ PACMAN_PKGS=(
 
     # File manager
     thunar
+    yazi
+    ffmpegthumbnailer
+    fd
+    ripgrep
+    zoxide
 
     # Polkit
     polkit-gnome
@@ -123,7 +128,6 @@ AUR_PKGS=(
     # Z-shell
     zsh
     oh-my-posh
-    zoxide
 
     # Limine Bootloader
     limine-dracut-support
