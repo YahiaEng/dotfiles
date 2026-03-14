@@ -12,6 +12,5 @@ case "$LAYOUT" in
     *) LAYOUT="full" ;;
 esac
 
-waybar -c "$WAYBAR_DIR/config-${LAYOUT}.jsonc" \
-       -s "$WAYBAR_DIR/style-${LAYOUT}.css" &
-disown
+exec waybar -c "$WAYBAR_DIR/config-${LAYOUT}.jsonc" \
+       -s "$WAYBAR_DIR/style-${LAYOUT}.css"

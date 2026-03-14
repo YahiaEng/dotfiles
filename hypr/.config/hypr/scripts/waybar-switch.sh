@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║           WAYBAR LAYOUT SWITCHER (wofi)               ║
-# ║   Switches between minimal, full, floating configs    ║
+# ║           WAYBAR LAYOUT SWITCHER (wofi)              ║
+# ║   Switches between minimal, full, floating configs   ║
 # ╚══════════════════════════════════════════════════════╝
 
 set -euo pipefail
@@ -38,10 +38,9 @@ esac
 pkill waybar || true
 sleep 0.3
 
-# Launch waybar with the selected config and style
-waybar -c "$WAYBAR_DIR/config-${LAYOUT}.jsonc" \
+# Launch waybar as a uwsm-managed scope unit
+uwsm app -- waybar -c "$WAYBAR_DIR/config-${LAYOUT}.jsonc" \
        -s "$WAYBAR_DIR/style-${LAYOUT}.css" &
-disown
 
 # Save state
 echo "$LAYOUT" > "$STATE_FILE"
