@@ -58,6 +58,9 @@ PACMAN_PKGS=(
     brightnessctl
     playerctl
     fastfetch
+    fzf
+    chafa
+    imagemagick
     jq
     stow
 
@@ -119,7 +122,6 @@ AUR_PKGS=(
 
     # Z-shell
     zsh
-    fzf
     oh-my-posh
     zoxide
 
