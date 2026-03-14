@@ -7,7 +7,7 @@
 set -euo pipefail
 
 echo "╔══════════════════════════════════════════╗"
-echo "║   Installing Hyprland Rice Dependencies   ║"
+echo "║   Installing Hyprland Rice Dependencies  ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
@@ -20,9 +20,9 @@ elif command -v yay &>/dev/null; then
 else
     echo "⚠  No AUR helper found. Installing yay..."
     sudo pacman -S --needed --noconfirm git base-devel
-    git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin
-    cd /tmp/yay-bin && makepkg -si --noconfirm
-    AUR_HELPER="yay"
+    git clone git clone https://aur.archlinux.org/paru.git /tmp/paru
+    cd /tmp/paru && makepkg -si --noconfirm
+    AUR_HELPER="paru"
 fi
 
 echo "Using AUR helper: $AUR_HELPER"
