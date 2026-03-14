@@ -1,4 +1,4 @@
-@import "colors.css";
+@import url("colors.css");
 
 * {
     font-family: "FiraCode Nerd Font", "Font Awesome 6 Free";
