@@ -25,9 +25,10 @@ if command -v paru &>/dev/null; then
 elif command -v yay &>/dev/null; then
     AUR_HELPER="yay"
 else
-    echo "⚠  No AUR helper found. Installing yay..."
-    sudo pacman -S --needed --noconfirm git base-devel
-    git clone git clone https://aur.archlinux.org/paru.git /tmp/paru
+    echo "⚠  No AUR helper found. Installing paru..."
+    sudo pacman -Sy --needed --noconfirm git base-devel rustup
+    rustup default stable
+    git clone https://aur.archlinux.org/paru.git /tmp/paru
     cd /tmp/paru && makepkg -si --noconfirm
     AUR_HELPER="paru"
 fi
@@ -116,15 +117,13 @@ PACMAN_PKGS=(
     gtk3
 
     # Personal
-    1password
     zip
     unzip
     libreoffice-fresh
-    octopi
 )
 
 echo "Installing pacman packages..."
-sudo pacman -S --needed --noconfirm "${PACMAN_PKGS[@]}"
+sudo pacman -Sy --needed --noconfirm "${PACMAN_PKGS[@]}"
 
 # ── AUR packages ─────────────────────────────────────
 AUR_PKGS=(
@@ -153,11 +152,13 @@ AUR_PKGS=(
     # Other
     spotify
     discord
+    1password
+    octopi
 )
 
 echo ""
 echo "Installing AUR packages..."
-$AUR_HELPER -S --needed --noconfirm "${AUR_PKGS[@]}"
+$AUR_HELPER -Sy --needed --noconfirm "${AUR_PKGS[@]}"
 
 echo ""
 echo "Removing unused packages and clearing cache..."
@@ -166,7 +167,7 @@ paru -Sc
 
 echo ""
 echo "Updating limine bootloader entries..."
-sudo rm /boot/EFI/limine/limine.conf
+sudo rm /boot/limine/limine.conf
 sudo limine-install --fallback
 sudo limine-update
 sudo limine-scan

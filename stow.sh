@@ -35,6 +35,9 @@ echo "╔═══════════════════════�
 echo "║       Stowing dotfile packages...        ║"
 echo "╚══════════════════════════════════════════╝"
 
+# Remove and backup existing hyprland conf
+mv ~/.config/hypr/hyprland.conf ~/.config/hyprland.conf.bak
+
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
