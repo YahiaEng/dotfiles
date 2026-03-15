@@ -163,6 +163,7 @@ $AUR_HELPER -Sy --needed --noconfirm "${AUR_PKGS[@]}"
 # ── Install VSCodium theme extensions ────────────────
 echo ""
 echo "Installing VSCodium theme extensions..."
+chmod +x "$HOME"/.config/hypr/scripts/vscodium-extensions.sh || true
 "$HOME"/.config/hypr/scripts/vscodium-extensions.sh 2>/dev/null || true
 
 echo ""
