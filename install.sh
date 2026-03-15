@@ -160,6 +160,11 @@ echo ""
 echo "Installing AUR packages..."
 $AUR_HELPER -Sy --needed --noconfirm "${AUR_PKGS[@]}"
 
+# ── Install VSCodium theme extensions ────────────────
+echo ""
+echo "Installing VSCodium theme extensions..."
+"$HOME"/.config/hypr/scripts/vscodium-extensions.sh 2>/dev/null || true
+
 echo ""
 echo "Removing unused packages and clearing cache..."
 paru -R "$(pacman -Qtdq)"

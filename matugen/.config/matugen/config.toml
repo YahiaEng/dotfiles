@@ -1,6 +1,6 @@
 # ╔══════════════════════════════════════════════════════╗
-# ║              MATUGEN CONFIGURATION                    ║
-# ║       Material You dynamic color generation           ║
+# ║              MATUGEN CONFIGURATION                   ║
+# ║       Material You dynamic color generation          ║
 # ╚══════════════════════════════════════════════════════╝
 
 [config]
@@ -52,3 +52,9 @@ post_hook = "swaync-client -rs"
 [templates.yazi]
 input_path = "~/.config/matugen/templates/yazi-theme.toml"
 output_path = "~/.config/yazi/theme.toml"
+
+# ── VSCodium colors ─────────────────────────────────
+[templates.vscodium]
+input_path = "~/.config/matugen/templates/vscodium-colors.json"
+output_path = "~/.cache/matugen-vscodium.json"
+post_hook = "~/.config/hypr/scripts/vscodium-theme.sh materialyou"

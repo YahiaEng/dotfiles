@@ -41,6 +41,7 @@ else
     cp "$THEMES_DIR/css/${THEME}.css" "$SWAYNC_COLORS"
     cp "$THEMES_DIR/kitty/${THEME}.conf" "$KITTY_COLORS"
     cp "$THEMES_DIR/yazi/${THEME}.toml" "$YAZI_THEME"
+    "$HOME"/.config/hypr/scripts/vscodium-theme.sh "$THEME"
 
     hyprctl reload 2>/dev/null || true
     pkill -SIGUSR2 waybar 2>/dev/null || true

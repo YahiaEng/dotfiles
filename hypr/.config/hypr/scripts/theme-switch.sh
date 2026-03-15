@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║              THEME SWITCHER (wofi)                    ║
+# ║              THEME SWITCHER (wofi)                   ║
 # ║   Switches between Material You + 6 static themes    ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -65,6 +65,9 @@ apply_static_theme() {
 
     # Copy yazi theme
     cp "$THEMES_DIR/yazi/${name}.toml" "$YAZI_THEME"
+
+    # Apply VSCodium theme
+    "$HOME"/.config/hypr/scripts/vscodium-theme.sh "$name"
 
     # Reload applications
     hyprctl reload

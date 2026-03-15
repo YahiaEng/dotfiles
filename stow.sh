@@ -26,8 +26,9 @@ PACKAGES=(
     themes
     uwsm
     fastfetch
-    wallpapers
     yazi
+    vscodium
+    wallpapers
     zshell
 )
 
