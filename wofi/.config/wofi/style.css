@@ -3,9 +3,9 @@
 /* ── Main window ───────────────────────────────────── */
 window {
     margin: 0;
-    border: 2px solid @primary;
+    border: 3px solid @primary;
     border-radius: 16px;
-    background-color: @surface;
+    background-color: @background;
     font-family: "FiraCode Nerd Font";
     font-size: 14px;
 }
@@ -14,7 +14,7 @@ window {
 #input {
     margin: 10px 14px;
     padding: 10px 16px;
-    border: 2px solid @outline;
+    border: 2px solid @primary;
     border-radius: 12px;
     background-color: @surface_variant;
     color: @on_surface;
@@ -22,7 +22,9 @@ window {
 }
 
 #input:focus {
-    border-color: @primary;
+    border-color: @secondary;
+    background-color: @primary_container;
+    color: @on_primary_container;
 }
 
 /* ── List container ────────────────────────────────── */
@@ -44,14 +46,16 @@ window {
 }
 
 #entry:selected {
-    background-color: @primary_container;
-    color: @on_primary_container;
-    border-color: @primary;
+    background-color: @primary;
+    color: @on_primary;
+    border-color: @secondary;
+    font-weight: bold;
 }
 
 #entry:hover {
-    background-color: @surface_variant;
-    border-color: @outline;
+    background-color: @primary_container;
+    color: @on_primary_container;
+    border-color: @primary;
 }
 
 /* ── Entry text ────────────────────────────────────── */
@@ -60,7 +64,7 @@ window {
 }
 
 #text:selected {
-    color: @on_primary_container;
+    color: @on_primary;
     font-weight: bold;
 }
 

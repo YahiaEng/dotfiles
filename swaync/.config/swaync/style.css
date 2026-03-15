@@ -2,8 +2,8 @@
 
 /* ── Control center ────────────────────────────────── */
 .control-center {
-    background: @surface;
-    border: 2px solid @outline;
+    background: @background;
+    border: 3px solid @primary;
     border-radius: 16px;
     padding: 10px;
     font-family: "FiraCode Nerd Font";
@@ -11,15 +11,15 @@
 
 /* ── Title widget ──────────────────────────────────── */
 .widget-title {
-    color: @on_surface;
+    color: @primary;
     font-size: 16px;
     font-weight: bold;
     margin: 6px 8px;
 }
 
 .widget-title > button {
-    background: @primary_container;
-    color: @primary;
+    background: @primary;
+    color: @on_primary;
     border: none;
     border-radius: 10px;
     padding: 4px 16px;
@@ -28,8 +28,8 @@
 }
 
 .widget-title > button:hover {
-    background: @primary;
-    color: @on_primary;
+    background: @secondary;
+    color: @on_secondary;
 }
 
 /* ── DND widget ────────────────────────────────────── */
@@ -42,10 +42,12 @@
 .widget-dnd > switch {
     border-radius: 12px;
     background: @surface_variant;
+    border: 2px solid @outline;
 }
 
 .widget-dnd > switch:checked {
     background: @primary;
+    border-color: @primary;
 }
 
 .widget-dnd > switch slider {
@@ -60,7 +62,7 @@
 
 .widget-mpris-player {
     background: @surface_variant;
-    border: 1px solid @outline;
+    border: 2px solid @secondary;
     border-radius: 14px;
     padding: 10px;
     margin: 4px 0;
@@ -78,13 +80,13 @@
 }
 
 .widget-mpris-subtitle {
-    color: @on_surface_variant;
+    color: @secondary;
     font-size: 12px;
 }
 
 .widget-mpris-player button {
     background: transparent;
-    color: @on_surface;
+    color: @primary;
     border: none;
     border-radius: 50%;
     min-width: 32px;
@@ -94,8 +96,8 @@
 }
 
 .widget-mpris-player button:hover {
-    background: @primary_container;
-    color: @primary;
+    background: @primary;
+    color: @on_primary;
 }
 
 /* ── Notifications ─────────────────────────────────── */
@@ -105,7 +107,7 @@
 
 .notification {
     background: @surface_variant;
-    border: 1px solid @outline;
+    border: 2px solid @outline;
     border-radius: 12px;
     margin: 4px 6px;
     padding: 0;
@@ -121,13 +123,13 @@
 }
 
 .summary {
-    color: @on_surface;
+    color: @primary;
     font-size: 14px;
     font-weight: bold;
 }
 
 .time {
-    color: @on_surface_variant;
+    color: @tertiary;
     font-size: 11px;
 }
 
@@ -155,14 +157,15 @@
 
 /* ── Notification window (floating) ────────────────── */
 .notification-row .notification-background .notification {
-    background: @surface;
-    border: 1px solid @outline;
+    background: @background;
+    border: 2px solid @primary;
     border-radius: 14px;
 }
 
 /* ── Critical notification ─────────────────────────── */
 .critical .notification {
     border-color: @error;
+    border-width: 3px;
 }
 
 /* ── Low priority ──────────────────────────────────── */
@@ -172,8 +175,8 @@
 
 /* ── Actions ───────────────────────────────────────── */
 .notification-action {
-    background: @primary_container;
-    color: @primary;
+    background: @primary;
+    color: @on_primary;
     border: none;
     border-radius: 8px;
     margin: 4px 2px;
@@ -183,8 +186,8 @@
 }
 
 .notification-action:hover {
-    background: @primary;
-    color: @on_primary;
+    background: @secondary;
+    color: @on_secondary;
 }
 
 /* ── Empty state ───────────────────────────────────── */

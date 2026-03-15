@@ -14,21 +14,20 @@ window#waybar {
 }
 
 /* ── Island containers ─────────────────────────────── */
-/* Each module section becomes a floating island        */
 .modules-left,
 .modules-center,
 .modules-right {
-    background-color: @surface;
+    background-color: @background;
     border-radius: 16px;
     padding: 2px 8px;
     margin: 2px 6px;
-    border: 1px solid @outline;
+    border: 2px solid @primary;
 }
 
 /* ── Workspaces ────────────────────────────────────── */
 #workspaces button {
     padding: 0 6px;
-    color: @on_surface_variant;
+    color: @outline;
     background: transparent;
     border-radius: 12px;
     margin: 3px 2px;
@@ -43,12 +42,12 @@ window#waybar {
 }
 
 #workspaces button.empty {
-    color: @outline;
+    color: @surface_variant;
 }
 
 #workspaces button:hover {
     background: @primary_container;
-    color: @primary;
+    color: @on_primary_container;
 }
 
 /* ── Clock ─────────────────────────────────────────── */
@@ -62,12 +61,15 @@ window#waybar {
 #pulseaudio,
 #network {
     padding: 0 8px;
-    color: @on_surface;
     transition: all 0.3s ease;
 }
 
-#pulseaudio { color: @tertiary; }
-#network { color: @secondary; }
+#pulseaudio {
+    color: @tertiary;
+}
+#network {
+    color: @secondary;
+}
 
 #pulseaudio:hover,
 #network:hover {
@@ -82,7 +84,7 @@ window#waybar {
 }
 
 #mpris.paused {
-    color: @on_surface_variant;
+    color: @outline;
 }
 
 #mpris.stopped {
@@ -94,23 +96,27 @@ window#waybar {
 /* ── Notification bell ─────────────────────────────── */
 #custom-notification {
     padding: 0 8px;
-    color: @primary;
+    color: @on_primary;
+    background: @primary;
+    border-radius: 10px;
+    margin: 3px 2px;
     font-size: 14px;
     transition: all 0.3s ease;
 }
 
 #custom-notification:hover {
-    color: @tertiary;
+    background: @secondary;
+    color: @on_secondary;
 }
 
 #custom-theme {
     padding: 0 8px;
-    color: @primary;
+    color: @tertiary;
     transition: all 0.3s ease;
 }
 
 #custom-theme:hover {
-    color: @tertiary;
+    color: @primary;
 }
 
 /* ── Tray ──────────────────────────────────────────── */
@@ -125,7 +131,7 @@ window#waybar {
 /* ── Tooltip ───────────────────────────────────────── */
 tooltip {
     background: @surface;
-    border: 1px solid @outline;
+    border: 2px solid @primary;
     border-radius: 12px;
 }
 
