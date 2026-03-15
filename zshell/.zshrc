@@ -1,6 +1,11 @@
 # Set app2unit to use UWSM's slices
 APP2UNIT_SLICES="a=app-graphical.slice b=background-graphical.slice s=session-graphical.slice"
 
+# Run fastfetch only in interactive shells
+if [ -t 0 ]; then
+    fastfetch
+fi
+
 # Set the directory for zinit and plugins
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 
