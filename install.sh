@@ -160,23 +160,10 @@ echo ""
 echo "Installing AUR packages..."
 $AUR_HELPER -Sy --needed --noconfirm "${AUR_PKGS[@]}"
 
-# ── Install VSCodium theme extensions ────────────────
-echo ""
-echo "Installing VSCodium theme extensions..."
-chmod +x "$HOME"/.config/hypr/scripts/vscodium-extensions.sh || true
-"$HOME"/.config/hypr/scripts/vscodium-extensions.sh 2>/dev/null || true
-
 echo ""
 echo "Removing unused packages and clearing cache..."
 paru -R "$(pacman -Qtdq)"
 paru -Sc
-
-echo ""
-echo "Updating limine bootloader entries..."
-sudo rm /boot/limine/limine.conf
-sudo limine-install --fallback
-sudo limine-update
-sudo limine-scan
 
 echo ""
 echo "╔══════════════════════════════════════════╗"
@@ -184,6 +171,24 @@ echo "║     All packages installed successfully! ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
 
+echo ""
+echo "╔══════════════════════════════════════════╗"
+echo "║     Post installation tasks              ║"
+echo "╚══════════════════════════════════════════╝"
+echo ""
+
+# ── Install vscodium theme extensions ────────────────
+echo ""
+echo "Installing VSCodium theme extensions..."
+chmod +x "$HOME"/.config/hypr/scripts/vscodium-extensions.sh || true
+"$HOME"/.config/hypr/scripts/vscodium-extensions.sh 2>/dev/null || true
+
+# ── Make sure audio services are enabled ────────────────
+echo ""
+echo "Enabling audio services..."
+systemctl --user enable --now pipewire.service wireplumber.service pipewire-pulse.service
+
+# ── Configure git username and password ────────────────
 echo ""
 echo "Configuring git..."
 git config --global user.name yahiaEng
@@ -193,6 +198,14 @@ git config --global user.email eng-yahia-tarek@outlook.com
 echo "Enabling dbus-broker for uwsm..."
 systemctl --user enable --now dbus-broker.service 2>/dev/null || true
 echo ""
+
+# ── Update Limine Bootloader entries ────────────────
+echo ""
+echo "Updating limine bootloader entries..."
+sudo rm /boot/limine/limine.conf
+sudo limine-install --fallback
+sudo limine-update
+sudo limine-scan
 
 echo "Next steps:"
 echo "  1. Run './stow.sh' to set up symlinks"
