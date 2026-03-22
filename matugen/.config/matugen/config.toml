@@ -58,3 +58,8 @@ output_path = "~/.config/yazi/theme.toml"
 input_path = "~/.config/matugen/templates/vscodium-colors.json"
 output_path = "~/.cache/matugen-vscodium.json"
 post_hook = "~/.config/hypr/scripts/vscodium-theme.sh materialyou"
+
+# ── Wlogout colors ──────────────────────────────────
+[templates.wlogout]
+input_path = "~/.config/matugen/templates/wlogout-colors.css"
+output_path = "~/.config/wlogout/colors.css"

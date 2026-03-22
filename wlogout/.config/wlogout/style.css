@@ -1,0 +1,97 @@
+@import url("colors.css");
+
+/* ── Full-screen overlay ───────────────────────────── */
+window {
+    background-color: rgba(0, 0, 0, 0.6);
+    font-family: "FiraCode Nerd Font";
+    color: @on_surface;
+}
+
+/* ── Button grid ───────────────────────────────────── */
+button {
+    background-color: @background;
+    color: @on_surface;
+    border: 3px solid @outline;
+    border-radius: 20px;
+    margin: 10px;
+    padding: 10px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 30%;
+    box-shadow: none;
+    text-shadow: none;
+    transition: all 0.3s cubic-bezier(0.55, 0, 0.28, 1.68);
+}
+
+button:hover {
+    background-color: @primary_container;
+    border-color: @primary;
+    background-size: 40%;
+}
+
+button:focus {
+    background-color: @primary_container;
+    border-color: @primary;
+}
+
+/* ── Individual button icons + hover accents ───────── */
+
+#lock {
+    background-image: url("icons/lock.svg");
+    border-color: @primary;
+}
+#lock:hover {
+    background-color: @primary;
+    color: @on_primary;
+    border-color: @secondary;
+}
+
+#logout {
+    background-image: url("icons/logout.svg");
+    border-color: @secondary;
+}
+#logout:hover {
+    background-color: @secondary;
+    color: @on_secondary;
+    border-color: @primary;
+}
+
+#suspend {
+    background-image: url("icons/suspend.svg");
+    border-color: @tertiary;
+}
+#suspend:hover {
+    background-color: @tertiary;
+    color: @on_tertiary;
+    border-color: @primary;
+}
+
+#hibernate {
+    background-image: url("icons/hibernate.svg");
+    border-color: @on_surface_variant;
+}
+#hibernate:hover {
+    background-color: @secondary_container;
+    color: @on_secondary_container;
+    border-color: @secondary;
+}
+
+#shutdown {
+    background-image: url("icons/shutdown.svg");
+    border-color: @error;
+}
+#shutdown:hover {
+    background-color: @error;
+    color: @on_error;
+    border-color: @on_error;
+}
+
+#reboot {
+    background-image: url("icons/reboot.svg");
+    border-color: @tertiary;
+}
+#reboot:hover {
+    background-color: @tertiary;
+    color: @on_tertiary;
+    border-color: @secondary;
+}

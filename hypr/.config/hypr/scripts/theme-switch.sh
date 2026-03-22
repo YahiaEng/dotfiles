@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║              THEME SWITCHER (wofi)                   ║
+# ║              THEME SWITCHER (wofi)                    ║
 # ║   Switches between Material You + 6 static themes    ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -12,6 +12,7 @@ WAYBAR_COLORS="$HOME/.config/waybar/colors.css"
 KITTY_COLORS="$HOME/.config/kitty/colors.conf"
 WOFI_COLORS="$HOME/.config/wofi/colors.css"
 SWAYNC_COLORS="$HOME/.config/swaync/colors.css"
+WLOGOUT_COLORS="$HOME/.config/wlogout/colors.css"
 YAZI_THEME="$HOME/.config/yazi/theme.toml"
 STATE_FILE="$HOME/.cache/current-theme"
 
@@ -55,10 +56,11 @@ apply_static_theme() {
     # Copy Hyprland colors
     cp "$THEMES_DIR/static/${name}.conf" "$HYPR_COLORS"
 
-    # Copy CSS colors for waybar, wofi, swaync
+    # Copy CSS colors for waybar, wofi, swaync, wlogout
     cp "$THEMES_DIR/css/${name}.css" "$WAYBAR_COLORS"
     cp "$THEMES_DIR/css/${name}.css" "$WOFI_COLORS"
     cp "$THEMES_DIR/css/${name}.css" "$SWAYNC_COLORS"
+    cp "$THEMES_DIR/css/${name}.css" "$WLOGOUT_COLORS"
 
     # Copy kitty colors
     cp "$THEMES_DIR/kitty/${name}.conf" "$KITTY_COLORS"
@@ -67,7 +69,7 @@ apply_static_theme() {
     cp "$THEMES_DIR/yazi/${name}.toml" "$YAZI_THEME"
 
     # Apply VSCodium theme
-    "$HOME"/.config/hypr/scripts/vscodium-theme.sh "$name"
+    ~/.config/hypr/scripts/vscodium-theme.sh "$name"
 
     # Reload applications
     hyprctl reload

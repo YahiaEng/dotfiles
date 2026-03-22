@@ -11,6 +11,7 @@ WAYBAR_COLORS="$HOME/.config/waybar/colors.css"
 KITTY_COLORS="$HOME/.config/kitty/colors.conf"
 WOFI_COLORS="$HOME/.config/wofi/colors.css"
 SWAYNC_COLORS="$HOME/.config/swaync/colors.css"
+WLOGOUT_COLORS="$HOME/.config/wlogout/colors.css"
 YAZI_THEME="$HOME/.config/yazi/theme.toml"
 WALLPAPER="$HOME/Pictures/Wallpapers/current.jpg"
 
@@ -39,9 +40,10 @@ else
     cp "$THEMES_DIR/css/${THEME}.css" "$WAYBAR_COLORS"
     cp "$THEMES_DIR/css/${THEME}.css" "$WOFI_COLORS"
     cp "$THEMES_DIR/css/${THEME}.css" "$SWAYNC_COLORS"
+    cp "$THEMES_DIR/css/${THEME}.css" "$WLOGOUT_COLORS"
     cp "$THEMES_DIR/kitty/${THEME}.conf" "$KITTY_COLORS"
     cp "$THEMES_DIR/yazi/${THEME}.toml" "$YAZI_THEME"
-    "$HOME"/.config/hypr/scripts/vscodium-theme.sh "$THEME"
+    ~/.config/hypr/scripts/vscodium-theme.sh "$THEME"
 
     hyprctl reload 2>/dev/null || true
     pkill -SIGUSR2 waybar 2>/dev/null || true

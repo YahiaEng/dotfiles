@@ -49,9 +49,10 @@ PACMAN_PKGS=(
     uwsm
     dbus-broker
 
-    # Bar, launcher, notifications
+    # Bar, launcher, notifications, logout
     waybar
     wofi
+    wlogout
 
     # Terminal
     kitty

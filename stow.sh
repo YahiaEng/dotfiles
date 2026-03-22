@@ -28,6 +28,7 @@ PACKAGES=(
     fastfetch
     yazi
     vscodium
+    wlogout
     wallpapers
     zshell
 )
