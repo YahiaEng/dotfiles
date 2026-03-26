@@ -1,0 +1,52 @@
+# ╔══════════════════════════════════════════════════════╗
+# ║              WALKER CONFIGURATION                    ║
+# ╚══════════════════════════════════════════════════════╝
+
+theme = "rice"
+close_when_open = true
+click_to_close = true
+selection_wrap = true
+
+[placeholders]
+"default" = { input = "Search...", list = "No Results" }
+"desktopapplications" = { input = "Launch App...", list = "No Apps Found" }
+
+[providers]
+default = [
+    "desktopapplications",
+    "calc",
+    "runner",
+    "websearch",
+    "menus",
+]
+empty = ["desktopapplications"]
+max_results = 50
+
+[[providers.prefixes]]
+prefix = "="
+provider = "calc"
+
+[[providers.prefixes]]
+prefix = "/"
+provider = "files"
+
+[[providers.prefixes]]
+prefix = ":"
+provider = "clipboard"
+
+[[providers.prefixes]]
+prefix = "."
+provider = "symbols"
+
+[[providers.prefixes]]
+prefix = ";"
+provider = "providerlist"
+
+[[providers.prefixes]]
+prefix = "@"
+provider = "websearch"
+
+# ── Sets (launched via walker -s <name>) ─────────────
+[sets.runner]
+providers = ["runner"]
+placeholder = { input = "Run command...", list = "No matches" }

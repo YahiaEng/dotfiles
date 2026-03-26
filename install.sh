@@ -133,6 +133,16 @@ AUR_PKGS=(
     matugen-bin
     adw-gtk3
 
+    # Walker
+    walker
+    elephant
+    elephant-desktopapplications
+    elephant-providerlist
+    elephant-calc
+    elephant-clipboard
+    elephant-symbols
+    elephant-menus
+
     # Utils
     bibata-cursor-theme
     alpm_octopi_utils

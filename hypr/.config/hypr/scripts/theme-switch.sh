@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║              THEME SWITCHER (wofi)                   ║
+# ║              THEME SWITCHER (walker)                 ║
 # ║   Switches between Material You + 6 static themes    ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -30,12 +30,8 @@ THEME_LIST="🎨 Material You (Dynamic)
 🌃 Tokyo Night
 ❄️ Nord"
 
-# ── Show wofi menu ───────────────────────────────────
-SELECTED=$(echo "$THEME_LIST" | wofi --dmenu \
-    --prompt "Select Theme" \
-    --width 380 \
-    --height 320 \
-    --cache-file /dev/null)
+# ── Show walker menu ───────────────────────────────────
+SELECTED=$(echo "$THEME_LIST" | walker --dmenu --placeholder "Select Theme")
 
 [[ -z "$SELECTED" ]] && exit 0
 

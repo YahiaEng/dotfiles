@@ -17,20 +17,21 @@ cd "$DOTFILES_DIR"
 
 # ── Stow packages ───────────────────────────────────
 PACKAGES=(
+    fastfetch
     gtk
     hypr
-    waybar
     kitty
-    wofi
-    swaync
     matugen
+    swaync
     themes
     uwsm
-    fastfetch
-    yazi
     vscodium
-    wlogout
+    walker
     wallpapers
+    waybar
+    wlogout
+    wofi
+    yazi
     zshell
 )
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║           WAYBAR LAYOUT SWITCHER (wofi)              ║
+# ║           WAYBAR LAYOUT SWITCHER (walker)            ║
 # ║   Switches between minimal, full, floating configs   ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -16,12 +16,8 @@ LAYOUT_LIST="📏 Minimal — Clock + Workspaces
 📊 Full — System stats, media, tray
 🏝️ Floating — Island-style modules"
 
-# ── Show wofi menu ───────────────────────────────────
-SELECTED=$(echo "$LAYOUT_LIST" | wofi --dmenu \
-    --prompt "Waybar Layout" \
-    --width 420 \
-    --height 200 \
-    --cache-file /dev/null)
+# ── Show walker menu ───────────────────────────────────
+SELECTED=$(echo "$LAYOUT_LIST" | walker --dmenu --placeholder "Waybar Layout")
 
 [[ -z "$SELECTED" ]] && exit 0
 

@@ -1,0 +1,80 @@
+/* ╔══════════════════════════════════════════════════════╗
+ * ║  Walker "rice" theme — inherits GTK4 dynamic colors  ║
+ * ║  Colors come from ~/.config/gtk-4.0/colors.css       ║
+ * ╚══════════════════════════════════════════════════════╝ 
+*/
+
+/* Main window */
+#window {
+    background-color: @window_bg_color;
+    border: 3px solid @accent_color;
+    border-radius: 16px;
+}
+
+/* Search input */
+#search {
+    background-color: @view_bg_color;
+    color: @view_fg_color;
+    border: 2px solid @accent_color;
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin: 10px;
+    font-size: 15px;
+    font-family: "FiraCode Nerd Font";
+}
+
+#search:focus {
+    border-color: @warning_color;
+}
+
+/* List container */
+#list {
+    background-color: transparent;
+    margin: 0 8px 8px 8px;
+}
+
+/* List items */
+#item {
+    padding: 8px 14px;
+    margin: 2px 4px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    color: @view_fg_color;
+}
+
+#item:selected {
+    background-color: @accent_bg_color;
+    color: @accent_fg_color;
+    border-color: @warning_color;
+}
+
+#item:hover {
+    background-color: @sidebar_bg_color;
+    border-color: @accent_color;
+}
+
+/* Item text */
+#item label {
+    color: inherit;
+}
+
+#item:selected label {
+    color: @accent_fg_color;
+    font-weight: bold;
+}
+
+/* Item icon */
+#item image {
+    margin-right: 8px;
+}
+
+/* Scrollbar */
+scrollbar slider {
+    background-color: @scrollbar_outline_color;
+    border-radius: 8px;
+    min-width: 6px;
+}
+
+scrollbar slider:hover {
+    background-color: @accent_color;
+}

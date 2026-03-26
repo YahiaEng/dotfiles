@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Power menu with wofi
+# Power menu with walker
 
 OPTIONS="🔒 Lock
 🚪 Logout
@@ -7,11 +7,7 @@ OPTIONS="🔒 Lock
 ⏻  Shutdown
 💤 Suspend"
 
-SELECTED=$(echo "$OPTIONS" | wofi --dmenu \
-    --prompt "Power Menu" \
-    --width 300 \
-    --height 260 \
-    --cache-file /dev/null)
+SELECTED=$(echo "$OPTIONS" | walker --dmenu --placeholder "Power Menu")
 
 [[ -z "$SELECTED" ]] && exit 0
 
