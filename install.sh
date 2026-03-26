@@ -131,6 +131,7 @@ AUR_PKGS=(
     # Rice
     swaync
     matugen-bin
+    adw-gtk3
 
     # Utils
     bibata-cursor-theme

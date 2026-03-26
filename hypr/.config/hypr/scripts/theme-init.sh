@@ -12,6 +12,8 @@ KITTY_COLORS="$HOME/.config/kitty/colors.conf"
 WOFI_COLORS="$HOME/.config/wofi/colors.css"
 SWAYNC_COLORS="$HOME/.config/swaync/colors.css"
 WLOGOUT_COLORS="$HOME/.config/wlogout/colors.css"
+GTK3_COLORS="$HOME/.config/gtk-3.0/colors.css"
+GTK4_COLORS="$HOME/.config/gtk-4.0/colors.css"
 YAZI_THEME="$HOME/.config/yazi/theme.toml"
 WALLPAPER="$HOME/Pictures/Wallpapers/current.jpg"
 
@@ -41,6 +43,8 @@ else
     cp "$THEMES_DIR/css/${THEME}.css" "$WOFI_COLORS"
     cp "$THEMES_DIR/css/${THEME}.css" "$SWAYNC_COLORS"
     cp "$THEMES_DIR/css/${THEME}.css" "$WLOGOUT_COLORS"
+    cp "$THEMES_DIR/gtk/${THEME}.css" "$GTK3_COLORS"
+    cp "$THEMES_DIR/gtk/${THEME}.css" "$GTK4_COLORS"
     cp "$THEMES_DIR/kitty/${THEME}.conf" "$KITTY_COLORS"
     cp "$THEMES_DIR/yazi/${THEME}.toml" "$YAZI_THEME"
     ~/.config/hypr/scripts/vscodium-theme.sh "$THEME"
@@ -49,6 +53,8 @@ else
     pkill -SIGUSR2 waybar 2>/dev/null || true
     pkill -SIGUSR1 kitty 2>/dev/null || true
     swaync-client -rs 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface gtk-theme "" 2>/dev/null
+    gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark 2>/dev/null
 fi
 
 echo "$THEME" > "$STATE_FILE"

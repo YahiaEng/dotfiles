@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║              THEME SWITCHER (wofi)                    ║
+# ║              THEME SWITCHER (wofi)                   ║
 # ║   Switches between Material You + 6 static themes    ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -13,6 +13,8 @@ KITTY_COLORS="$HOME/.config/kitty/colors.conf"
 WOFI_COLORS="$HOME/.config/wofi/colors.css"
 SWAYNC_COLORS="$HOME/.config/swaync/colors.css"
 WLOGOUT_COLORS="$HOME/.config/wlogout/colors.css"
+GTK3_COLORS="$HOME/.config/gtk-3.0/colors.css"
+GTK4_COLORS="$HOME/.config/gtk-4.0/colors.css"
 YAZI_THEME="$HOME/.config/yazi/theme.toml"
 STATE_FILE="$HOME/.cache/current-theme"
 
@@ -62,6 +64,10 @@ apply_static_theme() {
     cp "$THEMES_DIR/css/${name}.css" "$SWAYNC_COLORS"
     cp "$THEMES_DIR/css/${name}.css" "$WLOGOUT_COLORS"
 
+    # Copy GTK colors
+    cp "$THEMES_DIR/gtk/${name}.css" "$GTK3_COLORS"
+    cp "$THEMES_DIR/gtk/${name}.css" "$GTK4_COLORS"
+
     # Copy kitty colors
     cp "$THEMES_DIR/kitty/${name}.conf" "$KITTY_COLORS"
 
@@ -76,6 +82,8 @@ apply_static_theme() {
     pkill -SIGUSR2 waybar || true
     pkill -SIGUSR1 kitty || true
     swaync-client -rs || true
+    gsettings set org.gnome.desktop.interface gtk-theme "" 2>/dev/null
+    gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark 2>/dev/null
 
     # Save state
     echo "$name" > "$STATE_FILE"

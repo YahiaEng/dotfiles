@@ -17,6 +17,7 @@ cd "$DOTFILES_DIR"
 
 # ── Stow packages ───────────────────────────────────
 PACKAGES=(
+    gtk
     hypr
     waybar
     kitty
