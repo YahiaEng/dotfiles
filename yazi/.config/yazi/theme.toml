@@ -1,71 +1,71 @@
-# Tokyo Night — Yazi theme (auto-managed by theme-switch.sh)
+# Catppuccin — Yazi theme (auto-managed by theme-switch.sh)
 
 [mgr]
-cwd = { fg = "#7aa2f7", bold = true }
-hovered = { bg = "#24283b", bold = true }
-preview_hovered = { bg = "#24283b" }
-find_keyword = { fg = "#7dcfff", bold = true, underline = true }
-find_position = { fg = "#bb9af7", italic = true }
-marker_selected = { fg = "#7aa2f7", bg = "#7aa2f7" }
-marker_copied = { fg = "#7dcfff", bg = "#7dcfff" }
-marker_cut = { fg = "#f7768e", bg = "#f7768e" }
-tab_active = { fg = "#1a1b26", bg = "#7aa2f7", bold = true }
-tab_inactive = { fg = "#c0caf5", bg = "#24283b" }
+cwd = { fg = "#cba6f7", bold = true }
+hovered = { bg = "#313244", bold = true }
+preview_hovered = { bg = "#313244" }
+find_keyword = { fg = "#94e2d5", bold = true, underline = true }
+find_position = { fg = "#f5c2e7", italic = true }
+marker_selected = { fg = "#cba6f7", bg = "#cba6f7" }
+marker_copied = { fg = "#94e2d5", bg = "#94e2d5" }
+marker_cut = { fg = "#f38ba8", bg = "#f38ba8" }
+tab_active = { fg = "#1e1e2e", bg = "#cba6f7", bold = true }
+tab_inactive = { fg = "#cdd6f4", bg = "#313244" }
 tab_width = 1
-count_selected = { fg = "#1a1b26", bg = "#7aa2f7", bold = true }
-count_copied = { fg = "#1a1b26", bg = "#7dcfff", bold = true }
-count_cut = { fg = "#1a1b26", bg = "#f7768e", bold = true }
+count_selected = { fg = "#1e1e2e", bg = "#cba6f7", bold = true }
+count_copied = { fg = "#1e1e2e", bg = "#94e2d5", bold = true }
+count_cut = { fg = "#1e1e2e", bg = "#f38ba8", bold = true }
 border_symbol = "│"
-border_style = { fg = "#414868" }
+border_style = { fg = "#585b70" }
 
 [mode]
-normal_main = { fg = "#1a1b26", bg = "#7aa2f7", bold = true }
-normal_alt = { fg = "#7aa2f7", bg = "#24283b" }
-select_main = { fg = "#1a1b26", bg = "#7dcfff", bold = true }
-select_alt = { fg = "#7dcfff", bg = "#24283b" }
-unset_main = { fg = "#1a1b26", bg = "#f7768e", bold = true }
-unset_alt = { fg = "#f7768e", bg = "#24283b" }
+normal_main = { fg = "#1e1e2e", bg = "#cba6f7", bold = true }
+normal_alt = { fg = "#cba6f7", bg = "#313244" }
+select_main = { fg = "#1e1e2e", bg = "#94e2d5", bold = true }
+select_alt = { fg = "#94e2d5", bg = "#313244" }
+unset_main = { fg = "#1e1e2e", bg = "#f38ba8", bold = true }
+unset_alt = { fg = "#f38ba8", bg = "#313244" }
 
 [status]
 separator_open = ""
 separator_close = ""
-separator_style = { fg = "#24283b", bg = "#24283b" }
-perm_type = { fg = "#7aa2f7" }
-perm_read = { fg = "#7dcfff" }
-perm_write = { fg = "#bb9af7" }
-perm_exec = { fg = "#f7768e" }
-perm_sep = { fg = "#414868" }
+separator_style = { fg = "#313244", bg = "#313244" }
+perm_type = { fg = "#cba6f7" }
+perm_read = { fg = "#94e2d5" }
+perm_write = { fg = "#f5c2e7" }
+perm_exec = { fg = "#f38ba8" }
+perm_sep = { fg = "#585b70" }
 
 [pick]
-border = { fg = "#7aa2f7" }
-active = { fg = "#7aa2f7", bold = true }
-inactive = { fg = "#a9b1d6" }
+border = { fg = "#cba6f7" }
+active = { fg = "#cba6f7", bold = true }
+inactive = { fg = "#a6adc8" }
 
 [input]
-border = { fg = "#7aa2f7" }
-title = { fg = "#7aa2f7" }
-value = { fg = "#c0caf5" }
-selected = { bg = "#24283b" }
+border = { fg = "#cba6f7" }
+title = { fg = "#cba6f7" }
+value = { fg = "#cdd6f4" }
+selected = { bg = "#313244" }
 
 [cmp]
-border = { fg = "#7aa2f7" }
-active = { fg = "#7aa2f7", bold = true }
-inactive = { fg = "#a9b1d6" }
+border = { fg = "#cba6f7" }
+active = { fg = "#cba6f7", bold = true }
+inactive = { fg = "#a6adc8" }
 icon_file = ""
 icon_folder = ""
 icon_command = ""
 
 [help]
-on = { fg = "#7aa2f7" }
-run = { fg = "#bb9af7" }
-desc = { fg = "#a9b1d6" }
-hovered = { bg = "#24283b", bold = true }
-footer = { fg = "#c0caf5", bg = "#24283b" }
+on = { fg = "#cba6f7" }
+run = { fg = "#f5c2e7" }
+desc = { fg = "#a6adc8" }
+hovered = { bg = "#313244", bold = true }
+footer = { fg = "#cdd6f4", bg = "#313244" }
 
 [notify]
-title_info = { fg = "#7aa2f7" }
-title_warn = { fg = "#bb9af7" }
-title_error = { fg = "#f7768e" }
+title_info = { fg = "#cba6f7" }
+title_warn = { fg = "#f5c2e7" }
+title_error = { fg = "#f38ba8" }
 icon_info = ""
 icon_warn = ""
 icon_error = ""
@@ -73,22 +73,22 @@ icon_error = ""
 [filetype]
 rules = [
     # Media
-    { mime = "image/*", fg = "#7dcfff" },
-    { mime = "video/*", fg = "#bb9af7" },
-    { mime = "audio/*", fg = "#bb9af7" },
+    { mime = "image/*", fg = "#94e2d5" },
+    { mime = "video/*", fg = "#f5c2e7" },
+    { mime = "audio/*", fg = "#f5c2e7" },
     # Archives
-    { mime = "application/zip", fg = "#f7768e" },
-    { mime = "application/gzip", fg = "#f7768e" },
-    { mime = "application/x-tar", fg = "#f7768e" },
-    { mime = "application/x-bzip*", fg = "#f7768e" },
-    { mime = "application/x-xz", fg = "#f7768e" },
-    { mime = "application/x-7z-compressed", fg = "#f7768e" },
-    { mime = "application/x-rar", fg = "#f7768e" },
+    { mime = "application/zip", fg = "#f38ba8" },
+    { mime = "application/gzip", fg = "#f38ba8" },
+    { mime = "application/x-tar", fg = "#f38ba8" },
+    { mime = "application/x-bzip*", fg = "#f38ba8" },
+    { mime = "application/x-xz", fg = "#f38ba8" },
+    { mime = "application/x-7z-compressed", fg = "#f38ba8" },
+    { mime = "application/x-rar", fg = "#f38ba8" },
     # Documents
-    { mime = "application/pdf", fg = "#7aa2f7" },
-    { mime = "application/doc", fg = "#7aa2f7" },
-    { mime = "text/*", fg = "#c0caf5" },
+    { mime = "application/pdf", fg = "#cba6f7" },
+    { mime = "application/doc", fg = "#cba6f7" },
+    { mime = "text/*", fg = "#cdd6f4" },
     # Fallback
-    { name = "*", fg = "#c0caf5" },
-    { name = "*/", fg = "#7aa2f7", bold = true },
+    { name = "*", fg = "#cdd6f4" },
+    { name = "*/", fg = "#cba6f7", bold = true },
 ]
