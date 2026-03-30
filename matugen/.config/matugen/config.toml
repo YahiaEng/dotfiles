@@ -77,3 +77,8 @@ post_hook = 'gsettings set org.gnome.desktop.interface gtk-theme "" ; gsettings 
 [templates.gtk4]
 input_path = "~/.config/matugen/templates/gtk-colors.css"
 output_path = "~/.config/gtk-4.0/colors.css"
+
+# ── Walker colors ──────────────────────────────────
+[templates.walker]
+input_path = "~/.config/matugen/templates/waybar-colors.css"
+output_path = "~/.config/walker/themes/rice/colors.css"

@@ -15,6 +15,7 @@ SWAYNC_COLORS="$HOME/.config/swaync/colors.css"
 WLOGOUT_COLORS="$HOME/.config/wlogout/colors.css"
 GTK3_COLORS="$HOME/.config/gtk-3.0/colors.css"
 GTK4_COLORS="$HOME/.config/gtk-4.0/colors.css"
+WALKER_COLORS="$HOME/.config/walker/themes/rice/colors.css"
 YAZI_THEME="$HOME/.config/yazi/theme.toml"
 STATE_FILE="$HOME/.cache/current-theme"
 
@@ -63,6 +64,9 @@ apply_static_theme() {
     # Copy GTK colors
     cp "$THEMES_DIR/gtk/${name}.css" "$GTK3_COLORS"
     cp "$THEMES_DIR/gtk/${name}.css" "$GTK4_COLORS"
+
+    # Copy Walker colors
+    cp "$THEMES_DIR/css/${name}.css" "$WALKER_COLORS"
 
     # Copy kitty colors
     cp "$THEMES_DIR/kitty/${name}.conf" "$KITTY_COLORS"
