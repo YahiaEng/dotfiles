@@ -3,138 +3,277 @@
 * {
     font-family: "FiraCode Nerd Font", "Font Awesome 6 Free";
     font-size: 13px;
-    min-height: 0;
-    border: none;
-    border-radius: 0;
+    min-height: 10px;
+	border: none;
+	border-radius: 10;
 }
 
 window#waybar {
-    background: transparent;
-    color: @on_surface;
+	background: transparent;
 }
 
-/* ── Island containers ─────────────────────────────── */
-.modules-left,
-.modules-center,
-.modules-right {
-    background-color: @background;
-    border-radius: 16px;
-    padding: 2px 8px;
-    margin: 2px 6px;
-    border: 2px solid @primary;
+window#waybar.hidden {
+	opacity: 0.2;
 }
 
-/* ── Workspaces ────────────────────────────────────── */
+/* ── Window title ──────────────────────────────────── */
+#window {
+	margin-top: 6px;
+	padding-left: 10px;
+	padding-right: 10px;
+	border-radius: 10px;
+	transition: none;
+    color: transparent;
+	background: transparent;
+}
+
+/* ── Left modules ──────────────────────────────────── */
+#custom-launcher {
+	font-size: 24px;
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 5px;
+	border-radius: 10px;
+	transition: none;
+	color: @tertiary;
+	background: @on_tertiary;
+    /* color: #89DCEB; */
+    /* background: #161320; */
+}
+
+#cpu {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	margin-bottom: 0px;
+	padding-right: 10px;
+	border-radius: 10px;
+	transition: none;
+	color: @on_tertiary;
+	background: @tertiary;
+	/* color: #161320; */
+	/* background: #96CDFB; */
+}
+
+#memory {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	margin-bottom: 0px;
+	padding-right: 10px;
+	border-radius: 10px;
+	transition: none;
+	color: @on_primary;
+	background: @primary;
+	/* color: #161320; */
+	/* background: #DDB6F2; */
+}
+
+#custom-media {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: @on_secondary_container;
+	background: @secondary_container;
+	/* color: #161320; */
+	/* background: #F2CDCD; */
+}
+
+#tray {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	margin-bottom: 0px;
+	padding-right: 10px;
+	border-radius: 10px;
+	transition: none;
+	color: @on_secondary_container;
+	background: @secondary_container;
+	/* color: #B5E8E0; */
+	/* background: #161320; */
+}
+
+/* ── Center Modules ────────────────────────────────── */
+#workspaces {
+	margin-top: 6px;
+	margin-left: 12px;
+	font-size: 4px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	background: @background;
+	/* background: #161320; */
+	transition: none;
+}
+
+/* For all workspace buttons */
 #workspaces button {
-    padding: 0 6px;
-    color: @outline;
-    background: transparent;
-    border-radius: 12px;
-    margin: 3px 2px;
-    font-size: 10px;
-    transition: all 0.3s ease;
+	transition: none;
+	/* color: #B5E8E0 */
+	color: @primary;
+	background: transparent;
+	font-size: 16px;
+	border-radius: 2px;
 }
 
+/* Currently active workspace */
 #workspaces button.active {
-    color: @on_primary;
-    background: @primary;
-    padding: 0 10px;
+	/*
+	color: #ABE9B3;
+    border-top: 2px solid #ABE9B3;
+    border-bottom: 2px solid #ABE9B3;
+	*/
+	color: @tertiary;
+    border-top: 2px solid @tertiary;
+    border-bottom: 2px solid @tertiary;
 }
 
-#workspaces button.empty {
-    color: @surface_variant;
+/* Workspaces with open windows */
+#workspaces button.occupied {
+	transition: none;
+	/* color: #F28FAD; */
+	color: @surface;
+	background: transparent;
+	font-size: 4px;
 }
 
+/* Hovered workspace */
 #workspaces button:hover {
-    background: @primary_container;
-    color: @on_primary_container;
+	transition: none;
+	box-shadow: inherit;
+	text-shadow: inherit;
+    /* border-color: #E8A2AF; */
+    /*  color: #E8A2AF; */
+	border-color: @secondary;
+    color: @secondary;
 }
 
-/* ── Clock ─────────────────────────────────────────── */
-#clock {
-    padding: 0 12px;
-    color: @primary;
-    font-weight: bold;
+#workspaces button.active:hover {
+    /* color: #E8A2AF; */
+	color: @secondary;
 }
 
-/* ── Right modules ─────────────────────────────────── */
-#pulseaudio,
+/* ── Right Modules ─────────────────────────────────── */
 #network {
-    padding: 0 8px;
-    transition: all 0.3s ease;
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #161320;
+	background: #bd93f9;
 }
 
 #pulseaudio {
-    color: @tertiary;
-}
-#network {
-    color: @secondary;
-}
-
-#pulseaudio:hover,
-#network:hover {
-    color: @primary;
-}
-
-/* ── MPRIS (now playing) ───────────────────────────── */
-#mpris {
-    padding: 0 10px;
-    color: @secondary;
-    font-style: italic;
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #1A1826;
+	background: #FAE3B0;
 }
 
-#mpris.paused {
-    color: @outline;
+#battery {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #161320;
+	background: #B5E8E0;
 }
 
-#mpris.stopped {
-    color: transparent;
-    padding: 0;
-    margin: 0;
+#battery.charging, #battery.plugged {
+	color: #161320;
+    background-color: #B5E8E0;
 }
 
-/* ── Notification bell ─────────────────────────────── */
-#custom-notification {
-    padding: 0 8px;
-    color: @on_primary;
-    background: @primary;
-    border-radius: 10px;
-    margin: 3px 2px;
-    font-size: 14px;
-    transition: all 0.3s ease;
+#battery.critical:not(.charging) {
+    background-color: #B5E8E0;
+    color: #161320;
+    animation-name: blink;
+    animation-duration: 0.5s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
 }
 
-#custom-notification:hover {
-    background: @secondary;
-    color: @on_secondary;
+@keyframes blink {
+    to {
+        background-color: #BF616A;
+        color: #B5E8E0;
+    }
 }
 
-#custom-theme {
-    padding: 0 8px;
-    color: @tertiary;
-    transition: all 0.3s ease;
+#backlight {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #161320;
+	background: #F8BD96;
+}
+#clock {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #161320;
+	background: #ABE9B3;
+	/*background: #1A1826;*/
 }
 
-#custom-theme:hover {
-    color: @primary;
+#custom-power {
+	font-size: 20px;
+	margin-top: 6px;
+	margin-left: 8px;
+	margin-right: 8px;
+	padding-left: 10px;
+	padding-right: 5px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #161320;
+	background: #F28FAD;
 }
 
-/* ── Tray ──────────────────────────────────────────── */
-#tray {
-    padding: 0 6px;
+#custom-wallpaper {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #161320;
+	background: #C9CBFF;
 }
 
-#tray > .passive {
-    -gtk-icon-effect: dim;
-}
-
-/* ── Tooltip ───────────────────────────────────────── */
-tooltip {
-    background: @surface;
-    border: 2px solid @primary;
-    border-radius: 12px;
-}
-
-tooltip label {
-    color: @on_surface;
+#custom-updates {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #161320;
+	background: #E8A2AF;
 }

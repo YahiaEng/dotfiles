@@ -1,136 +1,136 @@
 {
-    "layer": "top",
-    "position": "top",
-    "height": 36,
-    "margin-top": 8,
-    "margin-left": 400,
-    "margin-right": 400,
-    "spacing": 0,
-    "mode": "dock",
-
-    "modules-left": [
-        "hyprland/workspaces"
-    ],
-    "modules-center": [
-        "mpris",
-        "clock"
-    ],
-    "modules-right": [
-        "pulseaudio",
-        "network",
-        "custom/theme",
-        "custom/notification",
+	"layer": "top",
+	"modules-left": [
+        "custom/launcher",
+        "cpu",
+        "memory",
+        "custom/media",
         "tray"
     ],
+	"modules-center": [
+        "hyprland/workspaces"
+    ],
+	"modules-right": [
+        "custom/updates",
+        "custom/wallpaper",
+        "backlight",
+        "pulseaudio",
+        "clock",
+        "battery",
+        "custom/power"
+    ],
 
+/* ── Left modules ──────────────────────────────────── */
+    "custom/launcher":{
+        "format": " ",
+        "on-click": "walker",
+        "on-click-right": "killall walker"
+    },    
+    "cpu": {
+        "interval": 15,
+        "format": " {}%",
+        "max-length": 10
+    },
+    "memory": {
+        "interval": 30,
+        "format": " {}%",
+        "max-length": 10
+    },
+    "custom/media": {
+        "interval": 30,
+        "format": "{icon} {}",
+        "return-type": "json",
+        "max-length": 20,
+        "format-icons": {
+            "spotify": " ",
+            "default": " "
+        },
+        "escape": true,
+        "exec": "$HOME/.config/system_scripts/mediaplayer.py 2> /dev/null",
+        "on-click": "playerctl play-pause"
+    },
+	"tray":{
+        "icon-theme": "Papirus-Dark",
+		"icon-size":18,
+		"spacing": 10
+	},
+
+/* ── Center Modules ────────────────────────────────── */
     "hyprland/workspaces": {
         "format": "{icon}",
         "format-icons": {
-            "active": "",
-            "default": "",
-            "empty": ""
+            "1": "1",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+            "7": "7",
+            "8": "8",
+            "9": "9"
         },
         "on-click": "activate",
+        "on-scroll-up": "hyprctl dispatch workspace e+1",
+        "on-scroll-down": "hyprctl dispatch workspace e-1",
         "sort-by-number": true,
         "persistent-workspaces": {
-            "*": 5
+            "*": 6
         }
     },
 
-    "mpris": {
-        "format": "{player_icon}  {title}",
-        "format-paused": "{status_icon}  {title}",
-        "format-stopped": "",
-        "player-icons": {
-            "default": "",
-            "spotify": "",
-            "firefox": "",
-            "chromium": "",
-            "mpv": "▶"
+/* ── Right Modules ─────────────────────────────────── */
+	"network": {
+		"tooltip": false,
+		"format-wifi": "  {essid}",
+		"format-ethernet": ""
+	},
+	"backlight": {
+		"tooltip": false,
+		"format": " {}%",
+		"interval":1,
+        "on-scroll-up": "light -A 5",
+		"on-scroll-down": "light -U 5"
+	},
+    "battery": {
+        "states": {
+            "good": 95,
+            "warning": 30,
+            "critical": 20
         },
-        "status-icons": {
-            "paused": "",
-            "stopped": ""
-        },
-        "max-length": 25,
-        "on-click": "playerctl play-pause",
-        "on-click-right": "playerctl next",
-        "on-scroll-up": "playerctl volume 0.05+",
-        "on-scroll-down": "playerctl volume 0.05-",
-        "tooltip-format": "{player}: {artist} — {title}\n{album}\n{position} / {length}"
+        "format": "{icon}  {capacity}%",
+        "format-charging": " {capacity}%",
+        "format-plugged": " {capacity}%",
+        "format-alt": "{time} {icon}",
+        "format-icons": ["", "", "", "", ""]
     },
-
     "clock": {
-        "format": "  {:%H:%M}",
-        "format-alt": "  {:%a %b %d}",
-        "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>",
-        "calendar": {
-            "mode": "month",
-            "mode-mon-col": 3,
-            "weeks-pos": "left",
-            "on-scroll": 1,
-            "format": {
-                "months":   "<span color='#cba6f7'><b>{}</b></span>",
-                "days":     "<span color='#cdd6f4'>{}</span>",
-                "weeks":    "<span color='#585b70'>W{}</span>",
-                "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
-                "today":    "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>"
-            }
-        },
-        "actions": {
-            "on-click-right": "mode",
-            "on-scroll-up": "shift_up",
-            "on-scroll-down": "shift_down"
-        }
+        "format": "{: %I:%M %p   %d/%m/%Y}"
     },
 
-    "pulseaudio": {
-        "format": "{icon}  {volume}%",
-        "format-muted": "  muted",
-        "format-icons": {
-            "default": ["", "", ""]
-        },
-        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
-        "on-click-right": "pavucontrol"
+    "custom/power":{
+        "format": " ",
+        "on-click": "bash ~/.config/rofi/leave/leave.sh",
     },
-
-    "network": {
-        "format-wifi": "  {signalStrength}%",
-        "format-ethernet": " ",
-        "format-disconnected": " ",
-        "tooltip-format": "{ifname}: {ipaddr}\n{essid}"
+    "custom/updates":{
+        "format": "{} Update(s)",
+        "exec": "checkupdates | wc -l",
+        "exec-if": "[[ $(checkupdates | wc -l) != 0 ]]",
+        "interval": 15,
+        "on-click": "kitty -e paru -Syu && notify-send 'The system has been updated' "
     },
-
-    "custom/theme": {
-        "format": " ",
-        "tooltip-format": "Theme / Layout",
-        "on-click": "~/.config/hypr/scripts/theme-switch.sh",
-        "on-click-right": "~/.config/hypr/scripts/waybar-switch.sh"
+    "custom/wallpaper":{
+        "format":" ",
+        "on-click": "bash ~/.config/hypr/scripts/wallpaper-switch.sh"
     },
+	"pulseaudio": {
+		"tooltip": false,
+		"scroll-step": 5,
+		"format": "{icon} {volume}%",
+		"format-muted": "{icon} {volume}%",
+		"on-click":"pactl set-sink-mute @DEFAULT_SINK@ toggle",
+		"format-icons": {
+			"default": ["", "", ""]
+		}
+	}
 
-    "custom/notification": {
-        "tooltip": false,
-        "format": "{icon}",
-        "format-icons": {
-            "notification": "󰂚<span foreground='red'><sup></sup></span>",
-            "none": "󰂜",
-            "dnd-notification": "󰂛<span foreground='red'><sup></sup></span>",
-            "dnd-none": "󰂛",
-            "inhibited-notification": "󰂚<span foreground='red'><sup></sup></span>",
-            "inhibited-none": "󰂜",
-            "dnd-inhibited-notification": "󰂛<span foreground='red'><sup></sup></span>",
-            "dnd-inhibited-none": "󰂛"
-        },
-        "return-type": "json",
-        "exec-if": "which swaync-client",
-        "exec": "swaync-client -swb",
-        "on-click": "swaync-client -t -sw",
-        "on-click-right": "swaync-client -d -sw",
-        "escape": true
-    },
-
-    "tray": {
-        "icon-size": 16,
-        "spacing": 6
-    }
 }
