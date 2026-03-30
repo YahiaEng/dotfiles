@@ -1,13 +1,13 @@
-/* Rosé Pine */
-@define-color primary #c4a7e7;
+/* Rosé Pine — warm rose+gold */
+@define-color primary #ebbcba;
 @define-color on_primary #191724;
 @define-color primary_container #26233a;
 @define-color on_primary_container #e0def4;
-@define-color secondary #ebbcba;
+@define-color secondary #f6c177;
 @define-color on_secondary #191724;
 @define-color secondary_container #26233a;
-@define-color on_secondary_container #ebbcba;
-@define-color tertiary #9ccfd8;
+@define-color on_secondary_container #f6c177;
+@define-color tertiary #c4a7e7;
 @define-color on_tertiary #191724;
 @define-color surface #191724;
 @define-color on_surface #e0def4;

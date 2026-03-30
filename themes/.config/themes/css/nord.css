@@ -1,13 +1,13 @@
-/* Nord */
+/* Nord — frost teal + aurora green + aurora purple */
 @define-color primary #88c0d0;
 @define-color on_primary #2e3440;
 @define-color primary_container #3b4252;
 @define-color on_primary_container #eceff4;
-@define-color secondary #81a1c1;
+@define-color secondary #a3be8c;
 @define-color on_secondary #2e3440;
 @define-color secondary_container #3b4252;
-@define-color on_secondary_container #81a1c1;
-@define-color tertiary #a3be8c;
+@define-color on_secondary_container #a3be8c;
+@define-color tertiary #b48ead;
 @define-color on_tertiary #2e3440;
 @define-color surface #2e3440;
 @define-color on_surface #eceff4;

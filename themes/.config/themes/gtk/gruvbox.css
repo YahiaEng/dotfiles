@@ -1,4 +1,4 @@
-/* Gruvbox Dark — GTK colors (libadwaita @define-color names) */
+/* Gruvbox Dark — GTK colors */
 @define-color accent_bg_color #d79921;
 @define-color accent_fg_color #282828;
 @define-color accent_color #d79921;
@@ -26,9 +26,9 @@
 @define-color thumbnail_fg_color #a89984;
 @define-color shade_color rgba(0, 0, 0, 0.36);
 @define-color scrollbar_outline_color #504945;
-@define-color warning_bg_color #b8bb26;
+@define-color warning_bg_color #fe8019;
 @define-color warning_fg_color #282828;
-@define-color warning_color #b8bb26;
+@define-color warning_color #fe8019;
 @define-color error_bg_color #fb4934;
 @define-color error_fg_color #282828;
 @define-color error_color #fb4934;

@@ -1,12 +1,12 @@
-/* Dracula */
-@define-color primary #bd93f9;
+/* Dracula — pink-forward */
+@define-color primary #ff79c6;
 @define-color on_primary #282a36;
 @define-color primary_container #44475a;
 @define-color on_primary_container #f8f8f2;
-@define-color secondary #ff79c6;
+@define-color secondary #bd93f9;
 @define-color on_secondary #282a36;
 @define-color secondary_container #44475a;
-@define-color on_secondary_container #ff79c6;
+@define-color on_secondary_container #bd93f9;
 @define-color tertiary #8be9fd;
 @define-color on_tertiary #282a36;
 @define-color surface #282a36;

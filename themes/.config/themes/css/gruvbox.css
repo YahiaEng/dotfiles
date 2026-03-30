@@ -1,12 +1,12 @@
-/* Gruvbox Dark */
+/* Gruvbox Dark — amber + orange + aqua */
 @define-color primary #d79921;
 @define-color on_primary #282828;
-@define-color primary_container #3c3836;
+@define-color primary_container #504945;
 @define-color on_primary_container #ebdbb2;
-@define-color secondary #b8bb26;
+@define-color secondary #fe8019;
 @define-color on_secondary #282828;
 @define-color secondary_container #3c3836;
-@define-color on_secondary_container #b8bb26;
+@define-color on_secondary_container #fe8019;
 @define-color tertiary #8ec07c;
 @define-color on_tertiary #282828;
 @define-color surface #282828;

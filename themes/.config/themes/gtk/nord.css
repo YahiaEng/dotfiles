@@ -1,4 +1,4 @@
-/* Nord — GTK colors (libadwaita @define-color names) */
+/* Nord — GTK colors */
 @define-color accent_bg_color #88c0d0;
 @define-color accent_fg_color #2e3440;
 @define-color accent_color #88c0d0;
@@ -26,15 +26,15 @@
 @define-color thumbnail_fg_color #d8dee9;
 @define-color shade_color rgba(0, 0, 0, 0.36);
 @define-color scrollbar_outline_color #4c566a;
-@define-color warning_bg_color #81a1c1;
+@define-color warning_bg_color #a3be8c;
 @define-color warning_fg_color #2e3440;
-@define-color warning_color #81a1c1;
+@define-color warning_color #a3be8c;
 @define-color error_bg_color #bf616a;
 @define-color error_fg_color #2e3440;
 @define-color error_color #bf616a;
-@define-color success_bg_color #a3be8c;
+@define-color success_bg_color #b48ead;
 @define-color success_fg_color #2e3440;
-@define-color success_color #a3be8c;
+@define-color success_color #b48ead;
 @define-color destructive_bg_color #bf616a;
 @define-color destructive_fg_color #2e3440;
 @define-color destructive_color #bf616a;

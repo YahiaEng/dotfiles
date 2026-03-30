@@ -1,94 +1,68 @@
-# Dracula — Yazi theme (auto-managed by theme-switch.sh)
+# Dracula — Yazi theme
+"$schema" = "https://yazi-rs.github.io/schemas/theme.json"
 
 [mgr]
-cwd = { fg = "#bd93f9", bold = true }
-hovered = { bg = "#44475a", bold = true }
-preview_hovered = { bg = "#44475a" }
-find_keyword = { fg = "#8be9fd", bold = true, underline = true }
+cwd = { fg = "#ff79c6" }
+tab_active = { fg = "#282a36", bg = "#ff79c6", bold = true }
+tab_inactive = { fg = "#6272a4", bg = "#44475a" }
+border = { fg = "#6272a4" }
+find_keyword = { fg = "#bd93f9", bold = true, underline = true }
 find_position = { fg = "#ff79c6", italic = true }
 marker_selected = { fg = "#bd93f9", bg = "#bd93f9" }
-marker_copied = { fg = "#8be9fd", bg = "#8be9fd" }
+marker_copied = { fg = "#ff79c6", bg = "#ff79c6" }
 marker_cut = { fg = "#ff5555", bg = "#ff5555" }
-tab_active = { fg = "#282a36", bg = "#bd93f9", bold = true }
-tab_inactive = { fg = "#f8f8f2", bg = "#44475a" }
-tab_width = 1
 count_selected = { fg = "#282a36", bg = "#bd93f9", bold = true }
-count_copied = { fg = "#282a36", bg = "#8be9fd", bold = true }
+count_copied = { fg = "#282a36", bg = "#ff79c6", bold = true }
 count_cut = { fg = "#282a36", bg = "#ff5555", bold = true }
-border_symbol = "│"
-border_style = { fg = "#6272a4" }
 
 [mode]
-normal_main = { fg = "#282a36", bg = "#bd93f9", bold = true }
-normal_alt = { fg = "#bd93f9", bg = "#44475a" }
-select_main = { fg = "#282a36", bg = "#8be9fd", bold = true }
-select_alt = { fg = "#8be9fd", bg = "#44475a" }
-unset_main = { fg = "#282a36", bg = "#ff5555", bold = true }
-unset_alt = { fg = "#ff5555", bg = "#44475a" }
+normal = { fg = "#282a36", bg = "#ff79c6", bold = true }
+select = { fg = "#282a36", bg = "#bd93f9", bold = true }
+unset = { fg = "#282a36", bg = "#ff5555", bold = true }
 
 [status]
-separator_open = ""
-separator_close = ""
-separator_style = { fg = "#44475a", bg = "#44475a" }
-perm_type = { fg = "#bd93f9" }
-perm_read = { fg = "#8be9fd" }
-perm_write = { fg = "#ff79c6" }
+separator_open = { fg = "#44475a" }
+separator_close = { fg = "#44475a" }
+progress_label = { fg = "#f8f8f2", bold = true }
+progress_normal = { fg = "#ff79c6" }
+progress_error = { fg = "#ff5555" }
+perm_read = { fg = "#ff79c6" }
+perm_write = { fg = "#bd93f9" }
 perm_exec = { fg = "#ff5555" }
 perm_sep = { fg = "#6272a4" }
 
-[pick]
-border = { fg = "#bd93f9" }
-active = { fg = "#bd93f9", bold = true }
-inactive = { fg = "#bfbfbf" }
-
 [input]
-border = { fg = "#bd93f9" }
-title = { fg = "#bd93f9" }
+border = { fg = "#ff79c6" }
+title = { fg = "#ff79c6" }
 value = { fg = "#f8f8f2" }
-selected = { bg = "#44475a" }
+selected = { reversed = true }
 
-[cmp]
-border = { fg = "#bd93f9" }
-active = { fg = "#bd93f9", bold = true }
-inactive = { fg = "#bfbfbf" }
-icon_file = ""
-icon_folder = ""
-icon_command = ""
+[pick]
+border = { fg = "#ff79c6" }
+active = { fg = "#ff79c6", bold = true }
+inactive = { fg = "#f8f8f2" }
+
+[confirm]
+border = { fg = "#ff79c6" }
+title = { fg = "#ff79c6" }
+content = { fg = "#f8f8f2" }
+list = { fg = "#f8f8f2" }
+btn_yes = { fg = "#282a36", bg = "#ff79c6", bold = true }
+btn_no = { fg = "#282a36", bg = "#6272a4", bold = true }
+
+[completion]
+border = { fg = "#ff79c6" }
+active = { fg = "#ff79c6", bold = true }
+inactive = { fg = "#6272a4" }
 
 [help]
-on = { fg = "#bd93f9" }
-run = { fg = "#ff79c6" }
-desc = { fg = "#bfbfbf" }
-hovered = { bg = "#44475a", bold = true }
-footer = { fg = "#f8f8f2", bg = "#44475a" }
+on = { fg = "#ff79c6" }
+run = { fg = "#bd93f9" }
+desc = { fg = "#f8f8f2" }
+hovered = { reversed = true, bold = true }
+footer = { fg = "#6272a4", italic = true }
 
 [notify]
-title_info = { fg = "#bd93f9" }
-title_warn = { fg = "#ff79c6" }
+title_info = { fg = "#ff79c6" }
+title_warn = { fg = "#bd93f9" }
 title_error = { fg = "#ff5555" }
-icon_info = ""
-icon_warn = ""
-icon_error = ""
-
-[filetype]
-rules = [
-    # Media
-    { mime = "image/*", fg = "#8be9fd" },
-    { mime = "video/*", fg = "#ff79c6" },
-    { mime = "audio/*", fg = "#ff79c6" },
-    # Archives
-    { mime = "application/zip", fg = "#ff5555" },
-    { mime = "application/gzip", fg = "#ff5555" },
-    { mime = "application/x-tar", fg = "#ff5555" },
-    { mime = "application/x-bzip*", fg = "#ff5555" },
-    { mime = "application/x-xz", fg = "#ff5555" },
-    { mime = "application/x-7z-compressed", fg = "#ff5555" },
-    { mime = "application/x-rar", fg = "#ff5555" },
-    # Documents
-    { mime = "application/pdf", fg = "#bd93f9" },
-    { mime = "application/doc", fg = "#bd93f9" },
-    { mime = "text/*", fg = "#f8f8f2" },
-    # Fallback
-    { name = "*", fg = "#f8f8f2" },
-    { name = "*/", fg = "#bd93f9", bold = true },
-]
