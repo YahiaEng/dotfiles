@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Applies the last-used theme on login. Falls back to catppuccin.
-# Also sets a default wallpaper with swww if one exists.
+# Also sets a default wallpaper with awww if one exists.
 
 set -euo pipefail
 
@@ -21,7 +21,7 @@ THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "catppuccin")
 
 # Set wallpaper if it exists
 if [[ -f "$WALLPAPER" ]]; then
-    swww img "$WALLPAPER" \
+    awww img "$WALLPAPER" \
         --transition-type center \
         --transition-duration 1 \
         --transition-fps 165

@@ -1,6 +1,6 @@
 # 🍚 Hyprland Dotfiles — Material You + Multi-Theme Rice
 
-A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + swww) alongside **6 hand-crafted static themes**, with theme and waybar layout switching through custom wofi menus.
+A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme and waybar layout switching through custom wofi menus.
 
 ## ✨ Features
 
@@ -22,7 +22,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 | Launcher        | Wofi                  |
 | Terminal        | Kitty                 |
 | Notifications   | SwayNC                |
-| Wallpaper       | swww                  |
+| Wallpaper       | awww                  |
 | Theming         | Matugen               |
 | Lock Screen     | Hyprlock              |
 | Idle Daemon     | Hypridle              |

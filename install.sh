@@ -58,7 +58,7 @@ PACMAN_PKGS=(
     kitty
 
     # Wallpaper
-    swww
+    awww
 
     # Utilities
     grim

@@ -5,14 +5,17 @@
 
 [config]
 reload_apps = true
-set_wallpaper = true
-wallpaper_tool = "Swww"
 prefix = "@"
-swww_options = [
+
+[config.wallpaper]
+command = "awww"
+arguments = [
+    "img",
     "--transition-type", "center",
     "--transition-duration", "2",
     "--transition-fps", "165",
 ]
+set = true
 
 [config.reload_apps_list]
 waybar = true

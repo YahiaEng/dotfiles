@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║     WALLPAPER PICKER — fzf + chafa + live swww       ║
+# ║     WALLPAPER PICKER — fzf + chafa + live awww       ║
 # ║                                                      ║
 # ║  - Left pane:  wallpaper list with fzf fuzzy search  ║
 # ║  - Right pane: chafa thumbnail preview               ║
-# ║  - Desktop:    live swww animated preview as you     ║
+# ║  - Desktop:    live awww animated preview as you     ║
 # ║                navigate through selections           ║
 # ║                                                      ║
 # ║  Enter  = confirm selection                          ║
@@ -67,13 +67,13 @@ echo -e " \e[1m$1\e[0m  │  ${DIMS}  │  ${SIZE}"
 PREVIEW
 chmod +x "$PREVIEW_SCRIPT"
 
-# ── Live preview script (swww on desktop) ────────────
+# ── Live preview script (awww on desktop) ────────────
 LIVE_SCRIPT=$(mktemp /tmp/wp-live-XXXXXX.sh)
 cat > "$LIVE_SCRIPT" << 'LIVE'
 #!/usr/bin/env bash
 FILE="$HOME/Pictures/Wallpapers/$1"
 [[ ! -f "$FILE" ]] && exit 0
-swww img "$FILE" \
+awww img "$FILE" \
     --transition-type wipe \
     --transition-angle 30 \
     --transition-duration 1 \
@@ -87,7 +87,7 @@ SELECTED=$(echo "$IMAGES" | fzf \
     --preview "$PREVIEW_SCRIPT {}" \
     --preview-window "right,60%,border-left" \
     --bind "focus:execute-silent($LIVE_SCRIPT {})" \
-    --bind "ctrl-r:execute-silent(swww img '$WALLPAPER_DIR/{}' --transition-type random --transition-duration 1 --transition-fps 165)" \
+    --bind "ctrl-r:execute-silent(awww img '$WALLPAPER_DIR/{}' --transition-type random --transition-duration 1 --transition-fps 165)" \
     --header " 🖼  Wallpaper Picker  │  ↑↓ browse  │  Enter confirm  │  Esc cancel" \
     --header-first \
     --prompt "  " \
@@ -110,7 +110,7 @@ rm -f "$PREVIEW_SCRIPT" "$LIVE_SCRIPT"
 if [[ -z "$SELECTED" ]]; then
     # Cancelled — restore previous wallpaper
     if [[ -n "$PREVIOUS_WALLPAPER" && -f "$PREVIOUS_WALLPAPER" ]]; then
-        swww img "$PREVIOUS_WALLPAPER" \
+        awww img "$PREVIOUS_WALLPAPER" \
             --transition-type center \
             --transition-duration 1 \
             --transition-fps 165 2>/dev/null
@@ -124,7 +124,7 @@ FULL_PATH="$WALLPAPER_DIR/$SELECTED"
 ln -sf "$FULL_PATH" "$CURRENT_LINK"
 
 # Final animated set (in case live preview didn't fire)
-swww img "$FULL_PATH" \
+awww img "$FULL_PATH" \
     --transition-type center \
     --transition-duration 2 \
     --transition-fps 165
