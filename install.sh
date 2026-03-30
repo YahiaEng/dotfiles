@@ -15,7 +15,7 @@ echo "Synchronizing closest mirrors..."
 echo ""
 sudo pacman -Sy reflector
 sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
-sudo reflector --verbose --latest 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+sudo reflector --verbose --latest 30 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 sudo pacman -Syu
 
 # ── Check for yay/paru ───────────────────────────────
