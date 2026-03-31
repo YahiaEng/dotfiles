@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+
+    <action>
+        <icon>utilities-terminal</icon>
+        <name>Open Terminal Here</name>
+        <submenu></submenu>
+        <unique-id>1001-terminal-here</unique-id>
+        <command>uwsm app -- kitty --working-directory %f</command>
+        <description>Open kitty terminal in this directory</description>
+        <range></range>
+        <patterns>*</patterns>
+        <directories/>
+    </action>
+
+    <action>
+        <icon>vscodium</icon>
+        <name>Open in VSCodium</name>
+        <submenu></submenu>
+        <unique-id>1002-vscodium</unique-id>
+        <command>uwsm app -- codium %f</command>
+        <description>Open file or folder in VSCodium</description>
+        <range>*</range>
+        <patterns>*</patterns>
+        <directories/>
+        <text-files/>
+    </action>
+
+    <action>
+        <icon>preferences-desktop-wallpaper</icon>
+        <name>Set as Wallpaper</name>
+        <submenu></submenu>
+        <unique-id>1003-set-wallpaper</unique-id>
+        <command>ln -sf %f ~/Pictures/Wallpapers/current.jpg &amp;&amp; awww img %f --transition-type center --transition-duration 2 --transition-fps 165 &amp;&amp; THEME=$(cat ~/.cache/current-theme 2>/dev/null); [ "$THEME" = "materialyou" ] &amp;&amp; matugen image %f -m dark || notify-send "Wallpaper Changed" "Set to %n"</command>
+        <description>Set this image as wallpaper (with Material You if active)</description>
+        <range>1</range>
+        <patterns>*.jpg;*.jpeg;*.png;*.webp</patterns>
+        <image-files/>
+    </action>
+
+    <action>
+        <icon>yazi</icon>
+        <name>Open in Yazi</name>
+        <submenu></submenu>
+        <unique-id>1004-yazi</unique-id>
+        <command>uwsm app -- kitty --class yazi-fm --title "Yazi" -- yazi %f</command>
+        <description>Open this directory in Yazi file manager</description>
+        <range></range>
+        <patterns>*</patterns>
+        <directories/>
+    </action>
+
+</actions>

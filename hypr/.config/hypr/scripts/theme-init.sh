@@ -55,8 +55,11 @@ else
     pkill -SIGUSR2 waybar 2>/dev/null || true
     pkill -SIGUSR1 kitty 2>/dev/null || true
     swaync-client -rs 2>/dev/null || true
-    gsettings set org.gnome.desktop.interface gtk-theme "" 2>/dev/null
-    gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark 2>/dev/null
+    # Reload GTK apps (Thunar, etc.)
+    ~/.config/hypr/scripts/gtk-reload.sh
+
+    # Restart Walker service with new colors
+    ~/.config/hypr/scripts/walker-restart.sh
 fi
 
 echo "$THEME" > "$STATE_FILE"

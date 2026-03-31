@@ -90,6 +90,11 @@ PACMAN_PKGS=(
 
     # File manager
     thunar
+    thunar-archive-plugin
+    thunar-volman
+    tumbler
+    gvfs
+    gvfs-mtp
     yazi
     ffmpegthumbnailer
     fd

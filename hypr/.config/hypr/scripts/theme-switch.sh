@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║              THEME SWITCHER (walker)                 ║
+# ║              THEME SWITCHER (walker)                    ║
 # ║   Switches between Material You + 6 static themes    ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -82,8 +82,11 @@ apply_static_theme() {
     pkill -SIGUSR2 waybar || true
     pkill -SIGUSR1 kitty || true
     swaync-client -rs || true
-    gsettings set org.gnome.desktop.interface gtk-theme "" 2>/dev/null
-    gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark 2>/dev/null
+    # Reload GTK apps (Thunar, etc.)
+    ~/.config/hypr/scripts/gtk-reload.sh
+
+    # Restart Walker (no reload signal — must restart the service)
+    ~/.config/hypr/scripts/walker-restart.sh
 
     # Save state
     echo "$name" > "$STATE_FILE"

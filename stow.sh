@@ -24,6 +24,7 @@ PACKAGES=(
     matugen
     swaync
     themes
+    thunar
     uwsm
     vscodium
     walker
