@@ -1,7 +1,7 @@
 @import url("colors.css");
 
 * {
-    font-family: "FiraCode Nerd Font", "Font Awesome 6 Free";
+    font-family: "FiraCode Nerd Font", "Fira Code", "monospace";
     font-size: 13px;
     min-height: 10px;
 	border: none;
@@ -36,10 +36,8 @@ window#waybar.hidden {
 	padding-right: 5px;
 	border-radius: 10px;
 	transition: none;
-	color: @tertiary;
-	background: @on_tertiary;
-    /* color: #89DCEB; */
-    /* background: #161320; */
+	color: @on_primary_container;
+	background: @primary_container;
 }
 
 #cpu {
@@ -50,10 +48,8 @@ window#waybar.hidden {
 	padding-right: 10px;
 	border-radius: 10px;
 	transition: none;
-	color: @on_tertiary;
-	background: @tertiary;
-	/* color: #161320; */
-	/* background: #96CDFB; */
+	color: @on_primary;
+	background: @primary;
 }
 
 #memory {
@@ -64,10 +60,8 @@ window#waybar.hidden {
 	padding-right: 10px;
 	border-radius: 10px;
 	transition: none;
-	color: @on_primary;
-	background: @primary;
-	/* color: #161320; */
-	/* background: #DDB6F2; */
+	color: @on_tertiary;
+	background: @tertiary;
 }
 
 #custom-media {
@@ -78,10 +72,8 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	transition: none;
-	color: @on_secondary_container;
-	background: @secondary_container;
-	/* color: #161320; */
-	/* background: #F2CDCD; */
+	color: @on_secondary;
+	background: @secondary;
 }
 
 #tray {
@@ -94,8 +86,6 @@ window#waybar.hidden {
 	transition: none;
 	color: @on_secondary_container;
 	background: @secondary_container;
-	/* color: #B5E8E0; */
-	/* background: #161320; */
 }
 
 /* ── Center Modules ────────────────────────────────── */
@@ -106,14 +96,12 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	background: @background;
-	/* background: #161320; */
 	transition: none;
 }
 
 /* For all workspace buttons */
 #workspaces button {
 	transition: none;
-	/* color: #B5E8E0 */
 	color: @primary;
 	background: transparent;
 	font-size: 16px;
@@ -122,11 +110,6 @@ window#waybar.hidden {
 
 /* Currently active workspace */
 #workspaces button.active {
-	/*
-	color: #ABE9B3;
-    border-top: 2px solid #ABE9B3;
-    border-bottom: 2px solid #ABE9B3;
-	*/
 	color: @tertiary;
     border-top: 2px solid @tertiary;
     border-bottom: 2px solid @tertiary;
@@ -135,7 +118,6 @@ window#waybar.hidden {
 /* Workspaces with open windows */
 #workspaces button.occupied {
 	transition: none;
-	/* color: #F28FAD; */
 	color: @surface;
 	background: transparent;
 	font-size: 4px;
@@ -146,19 +128,17 @@ window#waybar.hidden {
 	transition: none;
 	box-shadow: inherit;
 	text-shadow: inherit;
-    /* border-color: #E8A2AF; */
-    /*  color: #E8A2AF; */
 	border-color: @secondary;
     color: @secondary;
 }
 
 #workspaces button.active:hover {
-    /* color: #E8A2AF; */
 	color: @secondary;
 }
 
 /* ── Right Modules ─────────────────────────────────── */
-#network {
+
+#custom-updates {
 	margin-top: 6px;
 	margin-left: 8px;
 	padding-left: 10px;
@@ -166,8 +146,20 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	transition: none;
-	color: #161320;
-	background: #bd93f9;
+	color: @on_primary;
+	background: @primary;
+}
+
+#custom-wallpaper {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: @on_secondary;
+	background: @secondary;
 }
 
 #pulseaudio {
@@ -178,8 +170,32 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	transition: none;
-	color: #1A1826;
-	background: #FAE3B0;
+	color: @on_tertiary;
+	background: @tertiary;
+}
+
+#clock {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: @on_background;
+	background: @background;
+}
+
+#backlight {
+	margin-top: 6px;
+	margin-left: 8px;
+	padding-left: 10px;
+	padding-right: 10px;
+	margin-bottom: 0px;
+	border-radius: 10px;
+	transition: none;
+	color: #161320;
+	background: #F8BD96;
 }
 
 #battery {
@@ -216,30 +232,6 @@ window#waybar.hidden {
     }
 }
 
-#backlight {
-	margin-top: 6px;
-	margin-left: 8px;
-	padding-left: 10px;
-	padding-right: 10px;
-	margin-bottom: 0px;
-	border-radius: 10px;
-	transition: none;
-	color: #161320;
-	background: #F8BD96;
-}
-#clock {
-	margin-top: 6px;
-	margin-left: 8px;
-	padding-left: 10px;
-	padding-right: 10px;
-	margin-bottom: 0px;
-	border-radius: 10px;
-	transition: none;
-	color: #161320;
-	background: #ABE9B3;
-	/*background: #1A1826;*/
-}
-
 #custom-power {
 	font-size: 20px;
 	margin-top: 6px;
@@ -250,11 +242,11 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	transition: none;
-	color: #161320;
-	background: #F28FAD;
+	color: @on_error;
+	background: @error;
 }
 
-#custom-wallpaper {
+#network {
 	margin-top: 6px;
 	margin-left: 8px;
 	padding-left: 10px;
@@ -262,18 +254,6 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	transition: none;
-	color: #161320;
-	background: #C9CBFF;
-}
-
-#custom-updates {
-	margin-top: 6px;
-	margin-left: 8px;
-	padding-left: 10px;
-	padding-right: 10px;
-	margin-bottom: 0px;
-	border-radius: 10px;
-	transition: none;
-	color: #161320;
-	background: #E8A2AF;
+	color: @on_secondary_container;
+	background: @secondary_container;
 }

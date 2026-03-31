@@ -1,5 +1,7 @@
 {
 	"layer": "top",
+    "position": "top",
+    "spacing": "4",
 	"modules-left": [
         "custom/launcher",
         "cpu",
@@ -13,9 +15,10 @@
 	"modules-right": [
         "custom/updates",
         "custom/wallpaper",
-        "backlight",
+        "network",
         "pulseaudio",
         "clock",
+        "backlight",
         "battery",
         "custom/power"
     ],
@@ -37,17 +40,19 @@
         "max-length": 10
     },
     "custom/media": {
-        "interval": 30,
         "format": "{icon} {}",
-        "return-type": "json",
-        "max-length": 20,
         "format-icons": {
             "spotify": " ",
-            "default": " "
+            "default": " "
         },
         "escape": true,
-        "exec": "$HOME/.config/system_scripts/mediaplayer.py 2> /dev/null",
-        "on-click": "playerctl play-pause"
+        "max-length": 30,
+        "interval": 30,
+        "return-type": "json",        
+        "exec": "python ~/.config/hypr/scripts/media-player.py 2> /dev/null",
+        "on-click": "playerctl play-pause",
+        "on-scroll-up": "playerctl next",
+        "on-scroll-down": "playerctl previous"
     },
 	"tray":{
         "icon-theme": "Papirus-Dark",
@@ -79,38 +84,6 @@
     },
 
 /* ── Right Modules ─────────────────────────────────── */
-	"network": {
-		"tooltip": false,
-		"format-wifi": "  {essid}",
-		"format-ethernet": ""
-	},
-	"backlight": {
-		"tooltip": false,
-		"format": " {}%",
-		"interval":1,
-        "on-scroll-up": "light -A 5",
-		"on-scroll-down": "light -U 5"
-	},
-    "battery": {
-        "states": {
-            "good": 95,
-            "warning": 30,
-            "critical": 20
-        },
-        "format": "{icon}  {capacity}%",
-        "format-charging": " {capacity}%",
-        "format-plugged": " {capacity}%",
-        "format-alt": "{time} {icon}",
-        "format-icons": ["", "", "", "", ""]
-    },
-    "clock": {
-        "format": "{: %I:%M %p   %d/%m/%Y}"
-    },
-
-    "custom/power":{
-        "format": " ",
-        "on-click": "bash ~/.config/rofi/leave/leave.sh",
-    },
     "custom/updates":{
         "format": "{} Update(s)",
         "exec": "checkupdates | wc -l",
@@ -131,6 +104,46 @@
 		"format-icons": {
 			"default": ["", "", ""]
 		}
-	}
-
+	},
+    "clock": {
+		"tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+		"format": "{:%d %B  %I:%M%p}",
+		"format-alt": "{:%d/%m/%Y  %T}",
+		"interval": 1
+    },
+    "backlight": {
+		"tooltip": false,
+		"format": " {}%",
+		"interval":1,
+        "on-scroll-up": "light -A 5",
+		"on-scroll-down": "light -U 5"
+	},
+    "battery": {
+        "states": {
+            "good": 95,
+            "warning": 30,
+            "critical": 20
+        },
+        "format": "{icon}  {capacity}%",
+        "format-charging": " {capacity}%",
+        "format-plugged": " {capacity}%",
+        "format-alt": "{time} {icon}",
+        "format-icons": ["", "", "", "", ""]
+    },
+    "custom/power":{
+        "format": " ",
+        "on-click": "bash ~/.config/hypr/scripts/wlogout.sh"
+    },
+    "network": {
+        "format": "{ifname}",
+        "format-wifi": "{essid} ({signalStrength}%) {icon}",
+        "format-ethernet": "{bandwidthTotalBytes} 󰍹",
+        "format-disconnected": "󰤮",
+        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+        "tooltip-format": "{ifname}",
+        "tooltip-format-wifi": "󰕒 {bandwidthUpBytes} / 󰇚 {bandwidthDownBytes}",
+        "tooltip-format-ethernet": "󰕒 {bandwidthUpBytes} / 󰇚 {bandwidthDownBytes}",
+        "tooltip-format-disconnected": "Disconnected!",
+        "max-length": 30
+    }
 }

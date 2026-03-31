@@ -22,6 +22,7 @@ PACKAGES=(
     hypr
     kitty
     matugen
+    scripts
     swaync
     themes
     thunar
