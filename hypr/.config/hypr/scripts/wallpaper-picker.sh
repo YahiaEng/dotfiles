@@ -134,6 +134,25 @@ CURRENT_THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 if [[ "$CURRENT_THEME" == "materialyou" ]]; then
     sleep 0.5
     matugen image "$FULL_PATH" -m dark
+
+    # Concatenate GTK and Walker colors
+    cat "$HOME/.config/gtk-3.0/colors.css" "$HOME/.config/gtk-3.0/gtk-base.css" \
+        > "$HOME/.config/gtk-3.0/gtk.css" 2>/dev/null
+    cat "$HOME/.config/gtk-4.0/colors.css" "$HOME/.config/gtk-4.0/gtk-base.css" \
+        > "$HOME/.config/gtk-4.0/gtk.css" 2>/dev/null
+    cat "$HOME/.config/walker/themes/rice/colors.css" \
+        "$HOME/.config/walker/themes/rice/style-base.css" \
+        > "$HOME/.config/walker/themes/rice/style.css" 2>/dev/null
+
+    # Reload all applications
+    hyprctl reload 2>/dev/null || true
+    pkill -SIGUSR2 waybar 2>/dev/null || true
+    pkill -SIGUSR1 kitty 2>/dev/null || true
+    swaync-client -rs 2>/dev/null || true
+    ~/.config/hypr/scripts/gtk-reload.sh
+    ~/.config/hypr/scripts/walker-restart.sh
+    ~/.config/hypr/scripts/vscodium-theme.sh materialyou
+
     notify-send -a "Wallpaper Picker" "Wallpaper + Theme Updated" \
         "Material You colors regenerated from $SELECTED" \
         -i preferences-desktop-wallpaper -t 3000
