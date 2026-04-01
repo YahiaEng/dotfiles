@@ -54,8 +54,8 @@ output_path = "~/.config/yazi/theme.toml"
 [templates.vscodium]
 input_path = "~/.config/matugen/templates/vscodium-colors.json"
 output_path = "~/.cache/matugen-vscodium.json"
-post_hook = "~/.config/hypr/scripts/vscodium-theme.sh materialyou"
 
+post_hook = "~/.config/hypr/scripts/vscodium-theme.sh materialyou"
 # ── Wlogout colors ──────────────────────────────────
 [templates.wlogout]
 input_path = "~/.config/matugen/templates/wlogout-colors.css"
@@ -72,8 +72,8 @@ input_path = "~/.config/matugen/templates/gtk-colors.css"
 output_path = "~/.config/gtk-4.0/colors.css"
 post_hook = "~/.config/hypr/scripts/gtk-reload.sh"
 
-# ── Walker colors ──────────────────────────────────
+# ── Walker theme (hardcoded CSS, no @define-color) ──
 [templates.walker]
-input_path = "~/.config/matugen/templates/waybar-colors.css"
-output_path = "~/.config/walker/themes/rice/colors.css"
+input_path = "~/.config/matugen/templates/walker-style.css"
+output_path = "~/.config/walker/themes/rice/style.css"
 post_hook = "~/.config/hypr/scripts/walker-restart.sh"

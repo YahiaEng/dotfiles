@@ -1,6 +1,6 @@
 # ╔══════════════════════════════════════════════════════╗
 # ║     UWSM ENVIRONMENT — shared across all sessions    ║
-# ║     Format: export KEY=VALUE (no comments inline)     ║
+# ║     Format: export KEY=VALUE (no comments inline)    ║
 # ╚══════════════════════════════════════════════════════╝
 
 export GDK_BACKEND=wayland,x11,*

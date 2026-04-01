@@ -1,6 +1,6 @@
 # ╔══════════════════════════════════════════════════════╗
 # ║     UWSM ENVIRONMENT — Hyprland-specific             ║
-# ║     NVIDIA + XDG vars exclusive to Hyprland           ║
+# ║     NVIDIA + XDG vars exclusive to Hyprland          ║
 # ╚══════════════════════════════════════════════════════╝
 
 export LIBVA_DRIVER_NAME=nvidia
