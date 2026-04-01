@@ -15,14 +15,11 @@ SWAYNC_COLORS="$HOME/.config/swaync/colors.css"
 WLOGOUT_COLORS="$HOME/.config/wlogout/colors.css"
 GTK3_COLORS="$HOME/.config/gtk-3.0/colors.css"
 GTK4_COLORS="$HOME/.config/gtk-4.0/colors.css"
-WALKER_COLORS="$HOME/.config/walker/themes/rice/colors.css"
 YAZI_THEME="$HOME/.config/yazi/theme.toml"
 STATE_FILE="$HOME/.cache/current-theme"
 
-# Ensure cache directory exists
 mkdir -p "$(dirname "$STATE_FILE")"
 
-# ── Theme options ────────────────────────────────────
 THEME_LIST="🎨 Material You (Dynamic)
 🐱 Catppuccin Mocha
 🧛 Dracula
@@ -31,12 +28,9 @@ THEME_LIST="🎨 Material You (Dynamic)
 🌃 Tokyo Night
 ❄️ Nord"
 
-# ── Show walker menu ───────────────────────────────────
 SELECTED=$(echo "$THEME_LIST" | walker --dmenu --placeholder "Select Theme")
-
 [[ -z "$SELECTED" ]] && exit 0
 
-# ── Map selection to theme name ──────────────────────
 case "$SELECTED" in
     *"Material You"*)  THEME="materialyou" ;;
     *"Catppuccin"*)    THEME="catppuccin"  ;;
@@ -48,52 +42,39 @@ case "$SELECTED" in
     *)                 exit 1              ;;
 esac
 
-# ── Apply theme ──────────────────────────────────────
+reload_all() {
+    hyprctl reload
+    pkill -SIGUSR2 waybar || true
+    pkill -SIGUSR1 kitty || true
+    swaync-client -rs || true
+    ~/.config/hypr/scripts/gtk-reload.sh
+    ~/.config/hypr/scripts/walker-restart.sh
+}
+
 apply_static_theme() {
     local name="$1"
 
-    # Copy Hyprland colors
     cp "$THEMES_DIR/static/${name}.conf" "$HYPR_COLORS"
-
-    # Copy CSS colors for waybar, wofi, swaync, wlogout
     cp "$THEMES_DIR/css/${name}.css" "$WAYBAR_COLORS"
     cp "$THEMES_DIR/css/${name}.css" "$WOFI_COLORS"
     cp "$THEMES_DIR/css/${name}.css" "$SWAYNC_COLORS"
     cp "$THEMES_DIR/css/${name}.css" "$WLOGOUT_COLORS"
 
-    # Copy GTK colors + rebuild gtk.css (no @import — inline colors)
+    # GTK: write colors.css then rebuild gtk.css via concatenation
     cp "$THEMES_DIR/gtk/${name}.css" "$GTK3_COLORS"
     cp "$THEMES_DIR/gtk/${name}.css" "$GTK4_COLORS"
     cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" > "$HOME/.config/gtk-3.0/gtk.css"
     cat "$GTK4_COLORS" "$HOME/.config/gtk-4.0/gtk-base.css" > "$HOME/.config/gtk-4.0/gtk.css"
 
-    # Copy Walker colors + rebuild style.css (no @import — inline colors)
-    cp "$THEMES_DIR/css/${name}.css" "$WALKER_COLORS"
-    cat "$WALKER_COLORS" "$HOME/.config/walker/themes/rice/style-base.css" > "$HOME/.config/walker/themes/rice/style.css"
+    # Walker: generate CSS with hardcoded hex (no @define-color)
+    ~/.config/hypr/scripts/walker-theme-gen.sh --from-css "$THEMES_DIR/css/${name}.css"
 
-    # Copy kitty colors
     cp "$THEMES_DIR/kitty/${name}.conf" "$KITTY_COLORS"
-
-    # Copy yazi theme
     cp "$THEMES_DIR/yazi/${name}.toml" "$YAZI_THEME"
-
-    # Apply VSCodium theme
     ~/.config/hypr/scripts/vscodium-theme.sh "$name"
 
-    # Reload applications
-    hyprctl reload
-    pkill -SIGUSR2 waybar || true
-    pkill -SIGUSR1 kitty || true
-    swaync-client -rs || true
-    # Reload GTK apps (Thunar, etc.)
-    ~/.config/hypr/scripts/gtk-reload.sh
-
-    # Restart Walker (no reload signal — must restart the service)
-    ~/.config/hypr/scripts/walker-restart.sh
-
-    # Save state
+    reload_all
     echo "$name" > "$STATE_FILE"
-
     notify-send -a "Theme Switcher" "Theme Applied" "Switched to ${name}" \
         -i preferences-desktop-theme -t 3000
 }
@@ -105,44 +86,31 @@ apply_material_you() {
 
     if [[ ! -f "$wallpaper" ]]; then
         notify-send -a "Theme Switcher" "Error" \
-            "No wallpaper found at ~/Pictures/Wallpapers/current.jpg\nUse Super+Shift+B to pick a wallpaper first." \
+            "No wallpaper found. Use Super+Shift+B to pick one first." \
             -i dialog-error -t 5000
         exit 1
     fi
 
-    # Run matugen — generates all colors.css / theme files via templates
-    matugen image "$wallpaper" -m dark
+    # matugen generates ALL outputs directly:
+    #   Walker style.css (hardcoded hex via walker-style.css template)
+    #   GTK colors.css, waybar/wofi/swaync/wlogout colors.css, etc.
+    # Dark is the default mode, no flag needed.
+    matugen image "$wallpaper"
 
-    # Concatenate GTK colors (matugen wrote colors.css, now build gtk.css)
+    # Rebuild GTK gtk.css (matugen wrote colors.css, concatenate with base)
     cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" \
         > "$HOME/.config/gtk-3.0/gtk.css" 2>/dev/null
     cat "$GTK4_COLORS" "$HOME/.config/gtk-4.0/gtk-base.css" \
         > "$HOME/.config/gtk-4.0/gtk.css" 2>/dev/null
 
-    # Concatenate Walker colors
-    cat "$WALKER_COLORS" "$HOME/.config/walker/themes/rice/style-base.css" \
-        > "$HOME/.config/walker/themes/rice/style.css" 2>/dev/null
-
-    # Apply VSCodium theme
     ~/.config/hypr/scripts/vscodium-theme.sh materialyou
-
-    # Reload all applications
-    hyprctl reload
-    pkill -SIGUSR2 waybar || true
-    pkill -SIGUSR1 kitty || true
-    swaync-client -rs || true
-    ~/.config/hypr/scripts/gtk-reload.sh
-    ~/.config/hypr/scripts/walker-restart.sh
-
-    # Save state
+    reload_all
     echo "materialyou" > "$STATE_FILE"
-
     notify-send -a "Theme Switcher" "Material You Applied" \
         "Colors generated from current wallpaper" \
         -i preferences-desktop-theme -t 3000
 }
 
-# ── Execute ──────────────────────────────────────────
 if [[ "$THEME" == "materialyou" ]]; then
     apply_material_you
 else
