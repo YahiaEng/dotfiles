@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║              THEME SWITCHER (walker)                    ║
+# ║              THEME SWITCHER (walker)                 ║
 # ║   Switches between Material You + 6 static themes    ║
 # ╚══════════════════════════════════════════════════════╝
 
@@ -61,12 +61,15 @@ apply_static_theme() {
     cp "$THEMES_DIR/css/${name}.css" "$SWAYNC_COLORS"
     cp "$THEMES_DIR/css/${name}.css" "$WLOGOUT_COLORS"
 
-    # Copy GTK colors
+    # Copy GTK colors + rebuild gtk.css (no @import — inline colors)
     cp "$THEMES_DIR/gtk/${name}.css" "$GTK3_COLORS"
     cp "$THEMES_DIR/gtk/${name}.css" "$GTK4_COLORS"
+    cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" > "$HOME/.config/gtk-3.0/gtk.css"
+    cat "$GTK4_COLORS" "$HOME/.config/gtk-4.0/gtk-base.css" > "$HOME/.config/gtk-4.0/gtk.css"
 
-    # Copy Walker colors
+    # Copy Walker colors + rebuild style.css (no @import — inline colors)
     cp "$THEMES_DIR/css/${name}.css" "$WALKER_COLORS"
+    cat "$WALKER_COLORS" "$HOME/.config/walker/themes/rice/style-base.css" > "$HOME/.config/walker/themes/rice/style.css"
 
     # Copy kitty colors
     cp "$THEMES_DIR/kitty/${name}.conf" "$KITTY_COLORS"
@@ -107,8 +110,29 @@ apply_material_you() {
         exit 1
     fi
 
-    # Run matugen with dark mode
+    # Run matugen — generates all colors.css / theme files via templates
     matugen image "$wallpaper" -m dark
+
+    # Concatenate GTK colors (matugen wrote colors.css, now build gtk.css)
+    cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" \
+        > "$HOME/.config/gtk-3.0/gtk.css" 2>/dev/null
+    cat "$GTK4_COLORS" "$HOME/.config/gtk-4.0/gtk-base.css" \
+        > "$HOME/.config/gtk-4.0/gtk.css" 2>/dev/null
+
+    # Concatenate Walker colors
+    cat "$WALKER_COLORS" "$HOME/.config/walker/themes/rice/style-base.css" \
+        > "$HOME/.config/walker/themes/rice/style.css" 2>/dev/null
+
+    # Apply VSCodium theme
+    ~/.config/hypr/scripts/vscodium-theme.sh materialyou
+
+    # Reload all applications
+    hyprctl reload
+    pkill -SIGUSR2 waybar || true
+    pkill -SIGUSR1 kitty || true
+    swaync-client -rs || true
+    ~/.config/hypr/scripts/gtk-reload.sh
+    ~/.config/hypr/scripts/walker-restart.sh
 
     # Save state
     echo "materialyou" > "$STATE_FILE"

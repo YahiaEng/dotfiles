@@ -4,7 +4,6 @@
 # ╚══════════════════════════════════════════════════════╝
 
 [config]
-reload_apps = true
 prefix = "@"
 
 [config.wallpaper]
@@ -16,11 +15,6 @@ arguments = [
     "--transition-fps", "165",
 ]
 set = true
-
-[config.reload_apps_list]
-waybar = true
-kitty = true
-gtk_theme = true
 
 # ── Hyprland colors ─────────────────────────────────
 [templates.hyprland]
@@ -71,12 +65,12 @@ output_path = "~/.config/wlogout/colors.css"
 [templates.gtk3]
 input_path = "~/.config/matugen/templates/gtk-colors.css"
 output_path = "~/.config/gtk-3.0/colors.css"
-post_hook = "~/.config/hypr/scripts/gtk-reload.sh"
 
 # ── GTK 4.0 colors ─────────────────────────────────
 [templates.gtk4]
 input_path = "~/.config/matugen/templates/gtk-colors.css"
 output_path = "~/.config/gtk-4.0/colors.css"
+post_hook = "~/.config/hypr/scripts/gtk-reload.sh"
 
 # ── Walker colors ──────────────────────────────────
 [templates.walker]

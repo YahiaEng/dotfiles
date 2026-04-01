@@ -32,6 +32,27 @@ fi
 if [[ "$THEME" == "materialyou" ]]; then
     if [[ -f "$WALLPAPER" ]]; then
         matugen image "$WALLPAPER" -m dark
+
+        # Concatenate GTK colors
+        cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" \
+            > "$HOME/.config/gtk-3.0/gtk.css" 2>/dev/null
+        cat "$GTK4_COLORS" "$HOME/.config/gtk-4.0/gtk-base.css" \
+            > "$HOME/.config/gtk-4.0/gtk.css" 2>/dev/null
+
+        # Concatenate Walker colors
+        cat "$WALKER_COLORS" "$HOME/.config/walker/themes/rice/style-base.css" \
+            > "$HOME/.config/walker/themes/rice/style.css" 2>/dev/null
+
+        # Apply VSCodium theme
+        ~/.config/hypr/scripts/vscodium-theme.sh materialyou
+
+        # Reload all applications
+        hyprctl reload 2>/dev/null || true
+        pkill -SIGUSR2 waybar 2>/dev/null || true
+        pkill -SIGUSR1 kitty 2>/dev/null || true
+        swaync-client -rs 2>/dev/null || true
+        ~/.config/hypr/scripts/gtk-reload.sh
+        ~/.config/hypr/scripts/walker-restart.sh
     fi
 else
     # Validate theme name
@@ -46,7 +67,10 @@ else
     cp "$THEMES_DIR/css/${THEME}.css" "$WLOGOUT_COLORS"
     cp "$THEMES_DIR/gtk/${THEME}.css" "$GTK3_COLORS"
     cp "$THEMES_DIR/gtk/${THEME}.css" "$GTK4_COLORS"
+    cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" > "$HOME/.config/gtk-3.0/gtk.css"
+    cat "$GTK4_COLORS" "$HOME/.config/gtk-4.0/gtk-base.css" > "$HOME/.config/gtk-4.0/gtk.css"
     cp "$THEMES_DIR/css/${THEME}.css" "$WALKER_COLORS"
+    cat "$WALKER_COLORS" "$HOME/.config/walker/themes/rice/style-base.css" > "$HOME/.config/walker/themes/rice/style.css"
     cp "$THEMES_DIR/kitty/${THEME}.conf" "$KITTY_COLORS"
     cp "$THEMES_DIR/yazi/${THEME}.toml" "$YAZI_THEME"
     ~/.config/hypr/scripts/vscodium-theme.sh "$THEME"
