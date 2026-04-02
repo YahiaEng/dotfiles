@@ -14,3 +14,7 @@ export ELECTRON_OZONE_PLATFORM_HINT=auto
 export ELECTRON_ENABLE_WAYLAND=1
 export XCURSOR_SIZE=24
 export XCURSOR_THEME=Bibata-Modern-Classic
+export GTK_THEME=adw-gtk3-dark
+export XDG_CURRENT_DESKTOP=Hyprland
+export XDG_SESSION_TYPE=wayland
+export XDG_SESSION_DESKTOP=Hyprland

@@ -44,6 +44,7 @@ PACMAN_PKGS=(
     hyprlock
     hypridle
     xdg-desktop-portal-hyprland
+    xdg-desktop-portal-gtk
 
     # Session manager
     uwsm
