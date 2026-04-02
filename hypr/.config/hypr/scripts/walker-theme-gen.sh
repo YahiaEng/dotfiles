@@ -34,7 +34,7 @@ cat > "$WALKER_STYLE" << CSS
 /* Auto-generated — do not edit. Regenerated on theme switch. */
 
 window {
-    background-color: ${BG};
+    background-color: transparent;
     color: ${FG};
 }
 
