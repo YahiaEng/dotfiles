@@ -4,8 +4,6 @@
 # ║   Switches between Material You + 6 static themes    ║
 # ╚══════════════════════════════════════════════════════╝
 
-set -euo pipefail
-
 THEMES_DIR="$HOME/.config/themes"
 HYPR_COLORS="$HOME/.config/hypr/colors.conf"
 WAYBAR_COLORS="$HOME/.config/waybar/colors.css"
@@ -94,8 +92,12 @@ apply_material_you() {
     # matugen generates ALL outputs directly:
     #   Walker style.css (hardcoded hex via walker-style.css template)
     #   GTK colors.css, waybar/wofi/swaync/wlogout colors.css, etc.
-    # Dark is the default mode, no flag needed.
-    matugen image "$wallpaper"
+    if ! matugen image "$wallpaper" 2>/tmp/matugen-error.log; then
+        notify-send -a "Theme Switcher" "Matugen Error" \
+            "$(cat /tmp/matugen-error.log 2>/dev/null || echo 'Unknown error')" \
+            -i dialog-error -t 5000
+        exit 1
+    fi
 
     # Rebuild GTK gtk.css (matugen wrote colors.css, concatenate with base)
     cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" \

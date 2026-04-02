@@ -4,7 +4,6 @@
 # ╚══════════════════════════════════════════════════════╝
 
 [config]
-prefix = "@"
 
 [config.wallpaper]
 command = "awww"
@@ -54,8 +53,8 @@ output_path = "~/.config/yazi/theme.toml"
 [templates.vscodium]
 input_path = "~/.config/matugen/templates/vscodium-colors.json"
 output_path = "~/.cache/matugen-vscodium.json"
-
 post_hook = "~/.config/hypr/scripts/vscodium-theme.sh materialyou"
+
 # ── Wlogout colors ──────────────────────────────────
 [templates.wlogout]
 input_path = "~/.config/matugen/templates/wlogout-colors.css"
