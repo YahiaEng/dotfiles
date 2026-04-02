@@ -30,7 +30,7 @@ fi
 # Apply theme
 if [[ "$THEME" == "materialyou" ]]; then
     if [[ -f "$WALLPAPER" ]]; then
-        matugen image "$WALLPAPER"
+        matugen image "$WALLPAPER" --source-color-index 0
 
         # Rebuild GTK gtk.css
         cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" \

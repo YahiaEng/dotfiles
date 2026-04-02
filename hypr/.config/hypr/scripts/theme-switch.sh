@@ -92,7 +92,7 @@ apply_material_you() {
     # matugen generates ALL outputs directly:
     #   Walker style.css (hardcoded hex via walker-style.css template)
     #   GTK colors.css, waybar/wofi/swaync/wlogout colors.css, etc.
-    if ! matugen image "$wallpaper" 2>/tmp/matugen-error.log; then
+    if ! matugen image "$wallpaper" --source-color-index 0 2>/tmp/matugen-error.log; then
         notify-send -a "Theme Switcher" "Matugen Error" \
             "$(cat /tmp/matugen-error.log 2>/dev/null || echo 'Unknown error')" \
             -i dialog-error -t 5000

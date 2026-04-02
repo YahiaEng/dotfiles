@@ -19,19 +19,19 @@ set = true
 [templates.hyprland]
 input_path = "~/.config/matugen/templates/hyprland-colors.conf"
 output_path = "~/.config/hypr/colors.conf"
-post_hook = "hyprctl reload"
+post_hook = "hyprctl reload || true"
 
 # ── Waybar colors ────────────────────────────────────
 [templates.waybar]
 input_path = "~/.config/matugen/templates/waybar-colors.css"
 output_path = "~/.config/waybar/colors.css"
-post_hook = "pkill -SIGUSR2 waybar"
+post_hook = "pkill -SIGUSR2 waybar || true"
 
 # ── Kitty colors ─────────────────────────────────────
 [templates.kitty]
 input_path = "~/.config/matugen/templates/kitty-colors.conf"
 output_path = "~/.config/kitty/colors.conf"
-post_hook = "pkill -SIGUSR1 kitty"
+post_hook = "pkill -SIGUSR1 kitty || true"
 
 # ── Wofi colors ──────────────────────────────────────
 [templates.wofi]
@@ -42,7 +42,7 @@ output_path = "~/.config/wofi/colors.css"
 [templates.swaync]
 input_path = "~/.config/matugen/templates/swaync-colors.css"
 output_path = "~/.config/swaync/colors.css"
-post_hook = "swaync-client -rs"
+post_hook = "swaync-client -rs || true"
 
 # ── Yazi theme ───────────────────────────────────────
 [templates.yazi]

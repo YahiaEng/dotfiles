@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
-# ║     WALLPAPER PICKER — fzf + chafa + live awww        ║
-# ║                                                        ║
-# ║  - Left pane:  wallpaper list with fzf fuzzy search    ║
-# ║  - Right pane: chafa thumbnail preview                 ║
-# ║  - Desktop:    live awww animated preview as you       ║
-# ║                navigate through selections             ║
-# ║                                                        ║
-# ║  Enter  = confirm selection                            ║
-# ║  Esc/q  = cancel and restore previous wallpaper        ║
+# ║     WALLPAPER PICKER — fzf + chafa + live awww       ║
+# ║                                                      ║
+# ║  - Left pane:  wallpaper list with fzf fuzzy search  ║
+# ║  - Right pane: chafa thumbnail preview               ║
+# ║  - Desktop:    live awww animated preview as you     ║
+# ║                navigate through selections           ║
+# ║                                                      ║
+# ║  Enter  = confirm selection                          ║
+# ║  Esc/q  = cancel and restore previous wallpaper      ║
 # ╚══════════════════════════════════════════════════════╝
 
 set -euo pipefail
@@ -36,7 +36,7 @@ if [[ -z "$IMAGES" ]]; then
     echo "Add images and try again."
     echo ""
     echo "Press any key to exit..."
-    read -n1
+    read -rn1
     exit 1
 fi
 
@@ -133,7 +133,7 @@ awww img "$FULL_PATH" \
 CURRENT_THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 if [[ "$CURRENT_THEME" == "materialyou" ]]; then
     sleep 0.5
-    matugen image "$FULL_PATH"
+    matugen image "$FULL_PATH" --source-color-index 0
 
     # Rebuild GTK gtk.css (matugen wrote colors.css)
     cat "$HOME/.config/gtk-3.0/colors.css" "$HOME/.config/gtk-3.0/gtk-base.css" \
