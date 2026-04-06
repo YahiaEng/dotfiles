@@ -19,6 +19,12 @@ STATE_FILE="$HOME/.cache/current-theme"
 THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "catppuccin")
 WALLPAPER="$HOME/Pictures/Wallpapers/current.jpg"
 
+# Break Walker stow symlink if present (so writes go to real file)
+WALKER_STYLE="$HOME/.config/walker/themes/rice/style.css"
+mkdir -p "$(dirname "$WALKER_STYLE")"
+[[ -L "$WALKER_STYLE" ]] && rm -f "$WALKER_STYLE"
+rm -rf "$HOME/.local/share/walker/themes/rice" 2>/dev/null
+
 # Set wallpaper if it exists
 if [[ -f "$WALLPAPER" ]]; then
     awww img "$WALLPAPER" \

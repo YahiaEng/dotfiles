@@ -6,6 +6,14 @@
 WALKER_STYLE="$HOME/.config/walker/themes/rice/style.css"
 mkdir -p "$(dirname "$WALKER_STYLE")"
 
+# Break stow symlink if present (ensures Walker reads a real file)
+if [[ -L "$WALKER_STYLE" ]]; then
+    rm -f "$WALKER_STYLE"
+fi
+
+# Remove any auto-generated Walker theme that could shadow ours
+rm -rf "$HOME/.local/share/walker/themes/rice" 2>/dev/null
+
 if [[ "$1" == "--from-css" && -f "$2" ]]; then
     # Parse @define-color values from a CSS file
     get_color() { grep "@define-color $1 " "$2" | sed "s/.*@define-color $1 //;s/;//" | tr -d ' '; }
