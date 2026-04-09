@@ -73,6 +73,7 @@ PACMAN_PKGS=(
     chafa
     imagemagick
     jq
+    psmisc
     stow
 
     # Audio

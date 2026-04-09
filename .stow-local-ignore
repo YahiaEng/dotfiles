@@ -5,3 +5,4 @@ install\.sh
 stow\.sh
 LICENSE
 \.stow-local-ignore
+debug.txt

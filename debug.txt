@@ -1,0 +1,8 @@
+After extracting and re-stowing, please log out and log back in before testing. This is critical because the UWSM env file (GTK_THEME=adw-gtk3-dark) and the systemd user environment are only fully populated at session start.
+To verify the fixes are working, you can run these diagnostic commands after logging back in:
+
+Check GTK_THEME reached systemd: systemctl --user show-environment | grep GTK
+Check it reached dbus: dbus-send --session --dest=org.freedesktop.DBus --print-reply /org/freedesktop/DBus org.freedesktop.DBus.GetConnectionUnixProcessID string:org.freedesktop.portal.Desktop 2>/dev/null && echo "portal running" || echo "portal NOT running"
+Check Walker theme dir is real (not symlink): file ~/.config/walker/themes/rice
+Check Walker style.css exists after theme-init: head -5 ~/.config/walker/themes/rice/style.css
+Check adw-gtk3 is installed: pacman -Q adw-gtk3

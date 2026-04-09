@@ -19,10 +19,16 @@ STATE_FILE="$HOME/.cache/current-theme"
 THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "catppuccin")
 WALLPAPER="$HOME/Pictures/Wallpapers/current.jpg"
 
-# Break Walker stow symlink if present (so writes go to real file)
-WALKER_STYLE="$HOME/.config/walker/themes/rice/style.css"
-mkdir -p "$(dirname "$WALKER_STYLE")"
-[[ -L "$WALKER_STYLE" ]] && rm -f "$WALKER_STYLE"
+# Ensure GTK_THEME is in systemd/dbus environment (may not be there yet at login)
+export GTK_THEME=adw-gtk3-dark
+systemctl --user import-environment GTK_THEME 2>/dev/null
+dbus-update-activation-environment --systemd GTK_THEME 2>/dev/null
+
+# Ensure Walker theme dir is a real directory (not a stow symlink)
+WALKER_DIR="$HOME/.config/walker/themes/rice"
+[[ -L "$WALKER_DIR" ]] && rm -f "$WALKER_DIR"
+mkdir -p "$WALKER_DIR"
+[[ -L "$WALKER_DIR/style.css" ]] && rm -f "$WALKER_DIR/style.css"
 rm -rf "$HOME/.local/share/walker/themes/rice" 2>/dev/null
 
 # Set wallpaper if it exists

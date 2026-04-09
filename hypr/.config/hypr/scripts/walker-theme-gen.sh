@@ -3,15 +3,19 @@
 # Usage: walker-theme-gen.sh <bg> <fg> <primary> <on_primary> <secondary> <surface_variant> <primary_container> <on_primary_container> <outline>
 # Or:    walker-theme-gen.sh --from-css <path/to/colors.css>
 
-WALKER_STYLE="$HOME/.config/walker/themes/rice/style.css"
-mkdir -p "$(dirname "$WALKER_STYLE")"
+WALKER_DIR="$HOME/.config/walker/themes/rice"
+WALKER_STYLE="$WALKER_DIR/style.css"
 
-# Break stow symlink if present (ensures Walker reads a real file)
-if [[ -L "$WALKER_STYLE" ]]; then
-    rm -f "$WALKER_STYLE"
+# Ensure the theme dir exists as a REAL directory (not a stow symlink)
+if [[ -L "$WALKER_DIR" ]]; then
+    rm -f "$WALKER_DIR"
 fi
+mkdir -p "$WALKER_DIR"
 
-# Remove any auto-generated Walker theme that could shadow ours
+# Also break file-level symlink if present
+[[ -L "$WALKER_STYLE" ]] && rm -f "$WALKER_STYLE"
+
+# Remove any auto-generated Walker theme from XDG data dir
 rm -rf "$HOME/.local/share/walker/themes/rice" 2>/dev/null
 
 if [[ "$1" == "--from-css" && -f "$2" ]]; then
