@@ -2,7 +2,24 @@ After extracting and re-stowing, please log out and log back in before testing. 
 To verify the fixes are working, you can run these diagnostic commands after logging back in:
 
 Check GTK_THEME reached systemd: systemctl --user show-environment | grep GTK
+> GTK_THEME=adw-gtk3-dark
+
 Check it reached dbus: dbus-send --session --dest=org.freedesktop.DBus --print-reply /org/freedesktop/DBus org.freedesktop.DBus.GetConnectionUnixProcessID string:org.freedesktop.portal.Desktop 2>/dev/null && echo "portal running" || echo "portal NOT running"
+
+> method return time=1776879698.881861 sender=org.freedesktop.DBus -> destination=:1.73 serial=4294967295 reply_serial=2
+   uint32 1217
+portal running
+
 Check Walker theme dir is real (not symlink): file ~/.config/walker/themes/rice
+
+> /home/aorus/.config/walker/themes/rice: directory
+
 Check Walker style.css exists after theme-init: head -5 ~/.config/walker/themes/rice/style.css
+>/* Auto-generated — do not edit. Regenerated on theme switch. */
+
+window {
+    background-color: transparent;
+}
+
 Check adw-gtk3 is installed: pacman -Q adw-gtk3
+> error: package 'adw-gtk3' was not found
