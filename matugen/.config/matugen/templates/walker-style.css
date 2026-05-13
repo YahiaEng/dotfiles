@@ -21,6 +21,7 @@ window {
     margin-bottom: 8px;
     font-size: 15px;
     font-family: "FiraCode Nerd Font";
+    caret-color: {{colors.primary.default.hex}};
 }
 
 #search:focus {
@@ -29,7 +30,8 @@ window {
     color: {{colors.on_primary_container.default.hex}};
 }
 
-child {
+row {
+    background-color: transparent;
     padding: 8px 14px;
     margin: 2px 4px;
     border-radius: 10px;
@@ -37,24 +39,24 @@ child {
     color: {{colors.on_surface.default.hex}};
 }
 
-child:selected {
+row:selected {
     background-color: {{colors.primary.default.hex}};
     color: {{colors.on_primary.default.hex}};
     border-color: {{colors.secondary.default.hex}};
     font-weight: bold;
 }
 
-child:hover {
+row:hover:not(:selected) {
     background-color: {{colors.primary_container.default.hex}};
     border-color: {{colors.primary.default.hex}};
     color: {{colors.on_primary_container.default.hex}};
 }
 
-child label {
+row label {
     color: inherit;
 }
 
-child image {
+row image {
     margin-right: 8px;
 }
 

@@ -2,6 +2,7 @@
 
 window {
     background-color: transparent;
+    color: #cdd6f4;
 }
 
 #box {
@@ -20,6 +21,7 @@ window {
     margin-bottom: 8px;
     font-size: 15px;
     font-family: "FiraCode Nerd Font";
+    caret-color: #cba6f7;
 }
 
 #search:focus {
@@ -28,32 +30,33 @@ window {
     color: #cdd6f4;
 }
 
-child {
+row {
     padding: 8px 14px;
     margin: 2px 4px;
     border-radius: 10px;
     border: 2px solid transparent;
     color: #cdd6f4;
+    background-color: transparent;
 }
 
-child:selected {
+row:selected {
     background-color: #cba6f7;
     color: #1e1e2e;
     border-color: #89b4fa;
     font-weight: bold;
 }
 
-child:hover {
+row:hover:not(:selected) {
     background-color: #45475a;
     border-color: #cba6f7;
     color: #cdd6f4;
 }
 
-child label {
+row label {
     color: inherit;
 }
 
-child image {
+row image {
     margin-right: 8px;
 }
 

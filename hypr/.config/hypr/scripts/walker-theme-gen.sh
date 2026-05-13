@@ -1,25 +1,16 @@
 #!/usr/bin/env bash
 # Generates Walker's style.css with hardcoded hex colors
-# Usage: walker-theme-gen.sh <bg> <fg> <primary> <on_primary> <secondary> <surface_variant> <primary_container> <on_primary_container> <outline>
-# Or:    walker-theme-gen.sh --from-css <path/to/colors.css>
+# Usage: walker-theme-gen.sh --from-css <path/to/colors.css>
 
 WALKER_DIR="$HOME/.config/walker/themes/rice"
 WALKER_STYLE="$WALKER_DIR/style.css"
 
-# Ensure the theme dir exists as a REAL directory (not a stow symlink)
-if [[ -L "$WALKER_DIR" ]]; then
-    rm -f "$WALKER_DIR"
-fi
+[[ -L "$WALKER_DIR" ]] && rm -f "$WALKER_DIR"
 mkdir -p "$WALKER_DIR"
-
-# Also break file-level symlink if present
 [[ -L "$WALKER_STYLE" ]] && rm -f "$WALKER_STYLE"
-
-# Remove any auto-generated Walker theme from XDG data dir
 rm -rf "$HOME/.local/share/walker/themes/rice" 2>/dev/null
 
 if [[ "$1" == "--from-css" && -f "$2" ]]; then
-    # Parse @define-color values from a CSS file
     get_color() { grep "@define-color $1 " "$2" | sed "s/.*@define-color $1 //;s/;//" | tr -d ' '; }
     BG=$(get_color "background" "$2")
     FG=$(get_color "on_surface" "$2")
@@ -31,15 +22,9 @@ if [[ "$1" == "--from-css" && -f "$2" ]]; then
     ON_PRIMARY_CONT=$(get_color "on_primary_container" "$2")
     OUTLINE=$(get_color "outline" "$2")
 else
-    BG="${1:-#1e1e2e}"
-    FG="${2:-#cdd6f4}"
-    PRIMARY="${3:-#cba6f7}"
-    ON_PRIMARY="${4:-#1e1e2e}"
-    SECONDARY="${5:-#89b4fa}"
-    SURFACE_VAR="${6:-#313244}"
-    PRIMARY_CONT="${7:-#45475a}"
-    ON_PRIMARY_CONT="${8:-#cdd6f4}"
-    OUTLINE="${9:-#585b70}"
+    BG="#1e1e2e"; FG="#cdd6f4"; PRIMARY="#cba6f7"; ON_PRIMARY="#1e1e2e"
+    SECONDARY="#89b4fa"; SURFACE_VAR="#313244"; PRIMARY_CONT="#45475a"
+    ON_PRIMARY_CONT="#cdd6f4"; OUTLINE="#585b70"
 fi
 
 cat > "$WALKER_STYLE" << CSS
@@ -66,6 +51,7 @@ window {
     margin-bottom: 8px;
     font-size: 15px;
     font-family: "FiraCode Nerd Font";
+    caret-color: ${PRIMARY};
 }
 
 #search:focus {
@@ -74,32 +60,33 @@ window {
     color: ${ON_PRIMARY_CONT};
 }
 
-child {
+row {
     padding: 8px 14px;
     margin: 2px 4px;
     border-radius: 10px;
     border: 2px solid transparent;
     color: ${FG};
+    background-color: transparent;
 }
 
-child:selected {
+row:selected {
     background-color: ${PRIMARY};
     color: ${ON_PRIMARY};
     border-color: ${SECONDARY};
     font-weight: bold;
 }
 
-child:hover {
+row:hover:not(:selected) {
     background-color: ${PRIMARY_CONT};
     border-color: ${PRIMARY};
     color: ${ON_PRIMARY_CONT};
 }
 
-child label {
+row label {
     color: inherit;
 }
 
-child image {
+row image {
     margin-right: 8px;
 }
 
@@ -113,3 +100,5 @@ scrollbar slider:hover {
     background-color: ${PRIMARY};
 }
 CSS
+echo "Done"
+    
