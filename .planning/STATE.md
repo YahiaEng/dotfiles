@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: Static ↔ Dynamic Parity & Switch Reliability
+current_phase: 02
+current_phase_name: static-dynamic-parity-switch-reliability
 status: executing
 stopped_at: Phase 2 context gathered
-last_updated: "2026-07-07T21:59:34.494Z"
+last_updated: "2026-07-07T22:15:14.850Z"
 last_activity: 2026-07-07
-last_activity_desc: Phase 01 complete, transitioned to Phase 2
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
   percent: 33
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 01 — root-cause-fix-consolidated-theme-engine
+**Current focus:** Phase 02 — static-dynamic-parity-switch-reliability
 
 ## Current Position
 
-Phase: 2 — Static ↔ Dynamic Parity & Switch Reliability
-Plan: Not started
+Phase: 02 (static-dynamic-parity-switch-reliability) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-07 — Phase 01 complete, transitioned to Phase 2
+Last activity: 2026-07-07 — Phase 02 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 25min | 2 tasks | 2 files |
 | Phase 01 P02 | 40min | 3 tasks | 27 files |
 | Phase 01 P03 | multi-session | 3 tasks | 9 files |
+| Phase 02 P01 | 25min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-03: Thunar deferred-restart notify-and-skip branch never re-fired — replaced with a deduped bounded-poll watcher that restarts once the last window closes
 - [Phase 01]: 01-03: RESEARCH Open Question 2 answered — GTK3 windows do not re-color live, D-15's stale-until-closed caveat stands unmodified
 - [Phase 01]: 01-03: theme-doctor's one remaining gap (elephant listproviders missing files/menus/providerlist/runner/websearch) is accepted and deferred to Phase 3 INST-01 per user sign-off
+- [Phase ?]: 02-01: contract.json models the output contract as files[] with per-file format/exempt_keys (not a flat variable-name list) because the 10 rendered files span 6 genuinely different syntaxes (D-30)
+- [Phase ?]: 02-01: theme-parity all-green (217 passed, 0 failed) across all 7 targets - zero divergence found between static presets and matugen dynamic mode; no Phase-1 palette/template fix was needed
+- [Phase ?]: 02-01: semantic-value no-empty-slot rule is format-conditional - enforced for gtk-css/hypr-vars/kitty-kv/css-literal (every key is definitionally a color) but only color-shaped values are validated for toml/json (mixed formats with legitimate non-color string leaves like yazi.toml icon glyphs)
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T21:23:03.405Z
+Last session: 2026-07-07T22:15:14.845Z
 Stopped at: Phase 2 context gathered
 Resume file: .planning/phases/02-static-dynamic-parity-switch-reliability/02-CONTEXT.md

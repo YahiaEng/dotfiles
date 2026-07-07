@@ -60,12 +60,12 @@ Plans:
   2. Every app re-themes identically regardless of whether the source was a static preset or a dynamic wallpaper theme (no mode-only divergence).
   3. Running 10 consecutive theme switches with Thunar and Walker open leaves every app correctly themed on the final switch — no drift, no stuck-white, no stale caches (100% correct).
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Parity proof (PIPE-04): contract.json manifest + render-only `theme-parity` checker (structure/name-set/semantic-value across 6 presets + materialyou); `theme-doctor` reads the manifest
+- [x] 02-01-PLAN.md — Parity proof (PIPE-04): contract.json manifest + render-only `theme-parity` checker (structure/name-set/semantic-value across 6 presets + materialyou); `theme-doctor` reads the manifest
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -100,5 +100,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Root-Cause Fix & Consolidated Theme Engine | 3/3 | Complete    | 2026-07-07 |
-| 2. Static ↔ Dynamic Parity & Switch Reliability | 0/2 | Not started | - |
+| 2. Static ↔ Dynamic Parity & Switch Reliability | 1/2 | In Progress|  |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | 0/2 | Not started | - |

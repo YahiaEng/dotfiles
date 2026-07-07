@@ -21,7 +21,7 @@ Requirements for the bug-fix milestone. Each maps to roadmap phases.
 - [x] **PIPE-01**: One shared theme engine (single apply-theme entrypoint + shared reload library) used by both the interactive switcher and login init — no duplicated orchestration
 - [x] **PIPE-02**: Reload fan-out is owned by exactly one place (matugen post_hooks OR the shared reload script, not both)
 - [x] **PIPE-03**: Matugen generated output lives outside the stowed git tree; app configs import from the generated location
-- [ ] **PIPE-04**: Static presets and matugen dynamic themes produce an identical output contract (same canonical paths, same variable names) through one pipeline
+- [x] **PIPE-04**: Static presets and matugen dynamic themes produce an identical output contract (same canonical paths, same variable names) through one pipeline
 - [x] **PIPE-05**: `GTK_THEME` and related theme env vars consolidated to a single source of truth
 - [ ] **PIPE-06**: Repeated theme switching is reliable (stress test: 10 consecutive switches with Thunar/Walker open, 100% correct result)
 
@@ -98,7 +98,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-05 | Phase 1 | Complete |
 | SCAN-01 | Phase 1 | Complete |
 | SCAN-02 | Phase 1 | Complete |
-| PIPE-04 | Phase 2 | Pending |
+| PIPE-04 | Phase 2 | Complete |
 | PIPE-06 | Phase 2 | Pending |
 | CLEAN-01 | Phase 3 | Pending |
 | CLEAN-02 | Phase 3 | Pending |
