@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║              THEME-APPLY (D-01/D-02)                 ║
+# ║  Single entrypoint: renders + reloads for BOTH static ║
+# ║  presets and Material You, atomically (D-14).         ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Usage: theme-apply <materialyou|catppuccin|dracula|gruvbox|nord|rosepine|tokyonight>
+#
+# The walker dmenu picker, wallpaper picker, and login init (theme-init.sh)
+# are thin callers of this script — they only pass a name.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+ENGINE_DIR="$SCRIPT_DIR"
+LIB_DIR="$ENGINE_DIR/lib"
+PALETTES_DIR="$ENGINE_DIR/palettes"
+STATE_DIR="$HOME/.local/state/theme"
+
+# shellcheck source=lib/generate.sh
+source "$LIB_DIR/generate.sh"
+# shellcheck source=lib/commit.sh
+source "$LIB_DIR/commit.sh"
+# shellcheck source=lib/gtk.sh
+source "$LIB_DIR/gtk.sh"
+# shellcheck source=lib/reload.sh
+source "$LIB_DIR/reload.sh"
+
+usage() {
+    echo "Usage: theme-apply <materialyou|preset-name>" >&2
+    echo "Available presets:" >&2
+    for f in "$PALETTES_DIR"/*.json; do
+        [[ -f "$f" ]] && echo "  - $(basename "$f" .json)" >&2
+    done
+}
+
+if [[ $# -ne 1 ]]; then
+    usage
+    exit 1
+fi
+
+NAME="$1"
+
+# Security Domain V5 — validate the argument against the ACTUAL palette
+# filenames before it is ever interpolated into a filesystem path. Reject
+# unknown names outright rather than building "$PALETTES_DIR/$NAME.json"
+# from unvalidated input.
+if [[ "$NAME" != "materialyou" ]]; then
+    if [[ ! -f "$PALETTES_DIR/$NAME.json" ]]; then
+        notify-send -a "Theme Switcher" "Error" \
+            "Unknown theme: ${NAME}. Desktop left unchanged." \
+            -i dialog-error -t 5000 2>/dev/null || true
+        echo "theme-apply: unknown theme '$NAME'" >&2
+        usage
+        exit 1
+    fi
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+if ! theme_engine_generate "$NAME" "$TMP_DIR"; then
+    ERROR_LOG="$STATE_DIR/.last-render-error.log"
+    ERROR_SUMMARY="Theme render failed. Desktop left unchanged."
+    if [[ -f "$ERROR_LOG" ]]; then
+        # Truncate + sanitize before it ever reaches notify-send — full
+        # detail stays in the log file only (Security Domain: notification
+        # content injection).
+        ERROR_SUMMARY=$(head -c 200 "$ERROR_LOG" | tr -d '\000-\011\013\014\016-\037')
+    fi
+    notify-send -a "Theme Switcher" "Error" \
+        "${ERROR_SUMMARY}" \
+        -i dialog-error -t 5000 2>/dev/null || true
+    echo "theme-apply: render failed for '$NAME' — desktop left unchanged" >&2
+    exit 1
+fi
+
+# Only reached on a fully successful render — atomic commit (D-14).
+theme_engine_commit "$NAME" "$TMP_DIR"
+
+# Single reload owner (D-04) — runs once, only after commit succeeds.
+theme_engine_reload
+
+notify-send -a "Theme Switcher" "Theme Applied" "Switched to ${NAME}" \
+    -i preferences-desktop-theme -t 3000 2>/dev/null || true

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║              THEME-DOCTOR (D-25)                     ║
+# ║  Rerunnable health check for the theme-engine's core  ║
+# ║  invariants. Report-only — never mutates state.       ║
+# ╚══════════════════════════════════════════════════════╝
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+STATE_DIR="$HOME/.local/state/theme"
+DOTFILES_DIR="$HOME/dotfiles"
+
+PASS=0
+FAIL=0
+
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        echo "  [PASS] $desc"
+        PASS=$((PASS + 1))
+    else
+        echo "  [FAIL] $desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+echo "theme-doctor — theme-engine health check"
+echo ""
+
+# ── adw-gtk-theme installed (THEME-02 root cause) ──────────
+pacman -Q adw-gtk-theme >/dev/null 2>&1
+check "adw-gtk-theme package installed" "$?"
+
+# ── gsettings resolves to the expected adw theme ───────────
+GTK_THEME_VALUE=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'")
+[[ "$GTK_THEME_VALUE" == "adw-gtk3-dark" ]]
+check "gsettings gtk-theme = adw-gtk3-dark (got: ${GTK_THEME_VALUE:-<unset>})" "$?"
+
+# ── state-dir contract present ──────────────────────────────
+[[ -f "$STATE_DIR/current-theme" ]]
+check "$STATE_DIR/current-theme exists" "$?"
+
+for f in hyprland.conf waybar.css kitty.conf swaync.css wlogout.css \
+         gtk-3.0-colors.css gtk-4.0-colors.css walker-style.css \
+         yazi.toml vscodium.json; do
+    [[ -f "$STATE_DIR/$f" ]]
+    check "$STATE_DIR/$f exists" "$?"
+done
+
+# ── walker/yazi wiring symlinks point at the state dir ─────
+[[ -L "$HOME/.config/walker/themes/rice/style.css" ]] \
+    && [[ "$(readlink -f "$HOME/.config/walker/themes/rice/style.css")" == "$STATE_DIR/walker-style.css" ]]
+check "walker style.css symlinked to state dir" "$?"
+
+[[ -L "$HOME/.config/yazi/theme.toml" ]] \
+    && [[ "$(readlink -f "$HOME/.config/yazi/theme.toml")" == "$STATE_DIR/yazi.toml" ]]
+check "yazi theme.toml symlinked to state dir" "$?"
+
+# ── no stow conflicts for theme-engine (or the repo isn't
+#    positioned as $HOME/dotfiles — skip gracefully) ────────
+if command -v stow >/dev/null 2>&1 && [[ -d "$DOTFILES_DIR/theme-engine" ]]; then
+    (cd "$DOTFILES_DIR" && stow -n theme-engine >/dev/null 2>/tmp/theme-doctor-stow.log)
+    check "stow -n theme-engine reports no conflicts" "$?"
+else
+    echo "  [SKIP] stow -n theme-engine (stow or $DOTFILES_DIR/theme-engine not found)"
+fi
+
+# ── elephant presence (full provider-parity check is Phase 3's
+#    SCAN-02 follow-up, INST-01 — this is a presence stub only) ──
+if command -v elephant >/dev/null 2>&1; then
+    elephant listproviders >/dev/null 2>&1
+    check "elephant listproviders responds" "$?"
+else
+    echo "  [FAIL] elephant binary not found"
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
+echo "Summary: ${PASS} passed, ${FAIL} failed"
+[[ "$FAIL" -eq 0 ]]
+exit $?
