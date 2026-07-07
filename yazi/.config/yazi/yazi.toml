@@ -30,11 +30,16 @@ reveal = [
 ]
 
 [open]
+# Schema note: yazi (26.5.6-4) renamed the OpenRule matcher key from
+# `name` to `url` (glob against the file's path) or `mime` (mime-type
+# match) — `name` alone now fails to parse ("at least one of `url` or
+# `mime` must be specified"), verified against the installed binary and
+# upstream yazi-config/preset/yazi-default.toml (sxyazi/yazi@main).
 prepend_rules = [
-    { name = "*.md", use = ["edit", "open"] },
-    { name = "*.toml", use = ["edit"] },
-    { name = "*.json", use = ["edit"] },
-    { name = "*.jsonc", use = ["edit"] },
-    { name = "*.conf", use = ["edit"] },
-    { name = "*.sh", use = ["edit"] },
+    { url = "*.md", use = ["edit", "open"] },
+    { url = "*.toml", use = ["edit"] },
+    { url = "*.json", use = ["edit"] },
+    { url = "*.jsonc", use = ["edit"] },
+    { url = "*.conf", use = ["edit"] },
+    { url = "*.sh", use = ["edit"] },
 ]
