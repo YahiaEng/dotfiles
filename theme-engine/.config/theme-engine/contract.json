@@ -1,0 +1,15 @@
+{
+  "files": [
+    { "name": "hyprland.conf", "format": "hypr-vars", "exempt_keys": ["image"] },
+    { "name": "waybar.css", "format": "gtk-css" },
+    { "name": "kitty.conf", "format": "kitty-kv" },
+    { "name": "swaync.css", "format": "gtk-css" },
+    { "name": "wlogout.css", "format": "gtk-css" },
+    { "name": "gtk-3.0-colors.css", "format": "gtk-css" },
+    { "name": "gtk-4.0-colors.css", "format": "gtk-css" },
+    { "name": "walker-style.css", "format": "css-literal" },
+    { "name": "yazi.toml", "format": "toml" },
+    { "name": "vscodium.json", "format": "json" }
+  ],
+  "state_metadata_files": ["current-theme"]
+}

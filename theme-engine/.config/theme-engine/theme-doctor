@@ -11,6 +11,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 STATE_DIR="$HOME/.local/state/theme"
 DOTFILES_DIR="$HOME/dotfiles"
 
+# shellcheck source=lib/contract.sh
+source "$SCRIPT_DIR/lib/contract.sh"
+
 PASS=0
 FAIL=0
 
@@ -42,12 +45,12 @@ check "gsettings gtk-theme = adw-gtk3-dark (got: ${GTK_THEME_VALUE:-<unset>})" "
 [[ -f "$STATE_DIR/current-theme" ]]
 check "$STATE_DIR/current-theme exists" "$?"
 
-for f in hyprland.conf waybar.css kitty.conf swaync.css wlogout.css \
-         gtk-3.0-colors.css gtk-4.0-colors.css walker-style.css \
-         yazi.toml vscodium.json; do
+# D-30: file list sourced from contract.json (single source of truth,
+# shared with theme-parity) instead of a hardcoded loop.
+while IFS= read -r f; do
     [[ -f "$STATE_DIR/$f" ]]
     check "$STATE_DIR/$f exists" "$?"
-done
+done < <(contract_files)
 
 # ── walker/yazi wiring symlinks point at the state dir ─────
 [[ -L "$HOME/.config/walker/themes/rice/style.css" ]] \
