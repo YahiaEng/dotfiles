@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║              THEME-PARITY (D-26/D-27/D-28/D-29)      ║
+# ║  Render-only output-contract parity checker across    ║
+# ║  all 7 targets. Report-only — never mutates state,     ║
+# ║  never fires a reload.                                 ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Usage: theme-parity [target]
+#   With no argument: renders and cross-compares all 6 static presets +
+#   materialyou (D-29). With a target argument: renders and reports on that
+#   one target's internal well-formedness only (no cross-target diff).
+#
+# Proves PIPE-04's output contract across three independent layers, all run
+# for every target (D-28, never skipped even when a prior layer passed —
+# Pitfall 3): (1) structure parity — identical file-path set, (2) name-set
+# parity — identical per-file variable/key names (contract.json-declared
+# format), (3) semantic-value parity — every color value well-formed, with
+# contract.json's declared exempt_keys honored (Pitfall 2).
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+ENGINE_DIR="$SCRIPT_DIR"
+LIB_DIR="$ENGINE_DIR/lib"
+PALETTES_DIR="$ENGINE_DIR/palettes"
+STATE_DIR="$HOME/.local/state/theme"
+LOG_DIR="$STATE_DIR/logs"
+
+# shellcheck source=lib/contract.sh
+source "$LIB_DIR/contract.sh"
+# shellcheck source=lib/generate.sh
+source "$LIB_DIR/generate.sh"
+
+PASS=0
+FAIL=0
+
+mkdir -p "$LOG_DIR"
+chmod 700 "$LOG_DIR" 2>/dev/null || true
+
+TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+LOG_FILE="$LOG_DIR/theme-parity-${TIMESTAMP}.log"
+printf '# theme-parity run %s\n' "$TIMESTAMP" > "$LOG_FILE"
+
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        echo "  [PASS] $desc"
+        printf 'PASS\t%s\n' "$desc" >> "$LOG_FILE"
+        PASS=$((PASS + 1))
+    else
+        echo "  [FAIL] $desc"
+        printf 'FAIL\t%s\n' "$desc" >> "$LOG_FILE"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# Security Domain V5 — validate an optional single-target argument against
+# the ACTUAL palette filenames before it is ever interpolated into a path,
+# exactly as theme-apply does (theme-apply lines 45-58). Reject unknown
+# names outright.
+TARGET_ARG="${1:-}"
+if [[ -n "$TARGET_ARG" ]]; then
+    if [[ "$TARGET_ARG" != "materialyou" && ! -f "$PALETTES_DIR/$TARGET_ARG.json" ]]; then
+        echo "theme-parity: unknown theme '$TARGET_ARG'" >&2
+        exit 1
+    fi
+    TARGETS=("$TARGET_ARG")
+else
+    TARGETS=(materialyou catppuccin dracula gruvbox nord rosepine tokyonight)
+fi
+
+echo "theme-parity — output-contract parity check ($TIMESTAMP)"
+echo ""
+
+declare -A RENDERED_DIRS
+declare -A RENDER_OK
+TMP_DIRS=()
+
+cleanup() {
+    local t
+    for t in "${TMP_DIRS[@]}"; do
+        rm -rf "$t"
+    done
+}
+trap cleanup EXIT
+
+CONTRACT_FILE_LIST="$(contract_files)"
+
+# ── Render-only snapshot into temp dirs (D-27, Pattern 3) ──────────────
+echo "-- Rendering ${#TARGETS[@]} target(s) --"
+for target in "${TARGETS[@]}"; do
+    tmp="$(mktemp -d)"
+    TMP_DIRS+=("$tmp")
+
+    if theme_engine_generate "$target" "$tmp"; then
+        # matugen -p prefix-join behavior (Pitfall 4) — reuse commit.sh's
+        # exact join, never re-derive it.
+        rendered_dir="$tmp$STATE_DIR"
+        file_count=0
+        [[ -d "$rendered_dir" ]] && file_count=$(find "$rendered_dir" -maxdepth 1 -type f 2>/dev/null | wc -l)
+
+        if [[ "$file_count" -eq 0 ]]; then
+            # A zero-file render is a FAIL, never a silent skip/false-pass
+            # (Pitfall 4).
+            check "$target: render produced files (Pitfall-4 false-pass guard)" "1"
+            RENDER_OK[$target]=0
+        else
+            check "$target: render produced files (found $file_count)" "0"
+            RENDERED_DIRS[$target]="$rendered_dir"
+            RENDER_OK[$target]=1
+        fi
+    else
+        check "$target: theme_engine_generate succeeded" "1"
+        RENDER_OK[$target]=0
+    fi
+done
+
+# ── Layer 1: structure parity ───────────────────────────────────────────
+echo ""
+echo "-- Structure parity --"
+while IFS= read -r fname; do
+    [[ -z "$fname" ]] && continue
+    for target in "${TARGETS[@]}"; do
+        [[ "${RENDER_OK[$target]}" == "1" ]] || continue
+        [[ -f "${RENDERED_DIRS[$target]}/$fname" ]]
+        check "$target: $fname present" "$?"
+    done
+done <<< "$CONTRACT_FILE_LIST"
+
+# ── Layer 2: name-set parity ────────────────────────────────────────────
+echo ""
+echo "-- Name-set parity --"
+while IFS= read -r fname; do
+    [[ -z "$fname" ]] && continue
+    reference_target=""
+    reference_names=""
+    for target in "${TARGETS[@]}"; do
+        [[ "${RENDER_OK[$target]}" == "1" ]] || continue
+        [[ -f "${RENDERED_DIRS[$target]}/$fname" ]] || continue
+        names="$(contract_extract_names "$fname" "${RENDERED_DIRS[$target]}/$fname")"
+        if [[ -z "$reference_target" ]]; then
+            reference_target="$target"
+            reference_names="$names"
+            check "$fname: $target name-set captured as reference" "0"
+        elif [[ "$names" == "$reference_names" ]]; then
+            check "$fname: $target name-set matches $reference_target" "0"
+        else
+            check "$fname: $target name-set matches $reference_target" "1"
+        fi
+    done
+done <<< "$CONTRACT_FILE_LIST"
+
+# ── Layer 3: semantic-value parity ──────────────────────────────────────
+echo ""
+echo "-- Semantic-value parity --"
+while IFS= read -r fname; do
+    [[ -z "$fname" ]] && continue
+    exempt_keys="$(contract_exempt_keys "$fname")"
+    fmt="$(contract_format "$fname")"
+    # gtk-css/hypr-vars/kitty-kv/css-literal: EVERY declared key/token in
+    # these formats is definitionally a color (Pattern 1's format table) —
+    # enforce the "no empty slot" rule there. toml/json are mixed formats
+    # (yazi.toml/vscodium.json also carry non-color string leaves like
+    # icon glyphs, separators, "workbench.colorTheme") — an empty non-color
+    # leaf is not a contract violation, so only validate values that
+    # actually look like a color for those two formats. `{{...}}` template
+    # leftovers are always a failure regardless of format (Pitfall 2/3).
+    case "$fmt" in
+        gtk-css|hypr-vars|kitty-kv|css-literal) enforce_emptiness=1 ;;
+        *) enforce_emptiness=0 ;;
+    esac
+
+    for target in "${TARGETS[@]}"; do
+        [[ "${RENDER_OK[$target]}" == "1" ]] || continue
+        path="${RENDERED_DIRS[$target]}/$fname"
+        [[ -f "$path" ]] || continue
+
+        bad=0
+        while IFS=$'\t' read -r key val; do
+            is_exempt=0
+            if [[ -n "$exempt_keys" ]]; then
+                while IFS= read -r ek; do
+                    [[ -n "$ek" && "$key" == "$ek" ]] && is_exempt=1
+                done <<< "$exempt_keys"
+            fi
+
+            if [[ "$val" == *'{{'* || "$val" == *'}}'* ]]; then
+                bad=1
+                echo "    -> $target/$fname: template leftover for key '$key': $val"
+                continue
+            fi
+
+            if [[ -z "$val" ]]; then
+                if [[ "$is_exempt" == "1" || "$enforce_emptiness" == "0" ]]; then
+                    continue
+                fi
+                bad=1
+                echo "    -> $target/$fname: empty non-exempt value for key '$key'"
+                continue
+            fi
+
+            if [[ "$val" =~ ^\#?[0-9a-fA-F]{6}$ || "$val" =~ ^rgba?\( ]]; then
+                if ! contract_wellformed_color "$val" >/dev/null 2>&1; then
+                    bad=1
+                    echo "    -> $target/$fname: malformed color for key '$key': $val"
+                fi
+            fi
+        done < <(contract_extract_values "$fname" "$path")
+
+        check "$target: $fname semantic values well-formed" "$bad"
+    done
+done <<< "$CONTRACT_FILE_LIST"
+
+echo ""
+echo "Summary: ${PASS} passed, ${FAIL} failed"
+printf 'SUMMARY\t%s passed, %s failed\n' "$PASS" "$FAIL" >> "$LOG_FILE"
+[[ "$FAIL" -eq 0 ]]
+exit $?
