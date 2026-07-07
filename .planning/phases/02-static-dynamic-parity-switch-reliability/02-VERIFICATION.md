@@ -1,128 +1,138 @@
 ---
 phase: 02-static-dynamic-parity-switch-reliability
-plan: 02-02
-verified: 2026-07-08T01:34:00+03:00
+verified: 2026-07-07T22:54:24Z
 status: passed
-gate: D-41 clean full gate
-human_signoff: approved
+score: 3/3 roadmap success criteria verified; 8/8 plan-level must-haves verified
+behavior_unverified: 0
+overrides_applied: 0
+human_signoff: approved (recorded 2026-07-08, this session — preserved from prior 02-02 Task 3 checkpoint)
+gate: D-41 clean full gate (preserved from prior verification pass)
 ---
 
-# Phase 2 Plan 02: Repeated-Switch Reliability (PIPE-06) — Verification Report
+# Phase 2: Static ↔ Dynamic Parity & Switch Reliability — Verification Report
 
-**Objective proven:** A fresh, uninterrupted 10-switch alternating static↔dynamic run with Thunar and Walker open completes with zero per-switch failures, `theme-parity` is all-green immediately after, and a human visually confirmed switch #10 is correctly themed across every visible app.
+**Phase Goal:** Static presets and matugen dynamic themes are proven to be one pipeline producing an identical output contract, and switching stays correct under repeated real-world use.
+**Verified:** 2026-07-07T22:54:24Z (this pass; supersedes/extends the prior 02-02-Task-3-generated VERIFICATION.md, whose D-41 gate evidence and human sign-off are preserved below, not discarded)
+**Status:** passed
+**Re-verification:** No — this is the phase-level goal-backward verification (the prior 02-VERIFICATION.md was plan-scoped, produced by 02-02's Task 3 checkpoint to record D-41 evidence + human sign-off).
 
-## D-41 Clean Full Gate — Evidence
+## Goal Achievement
 
-The gate requires BOTH of the following in one uninterrupted sequence (no stitched/resumed runs):
+### Observable Truths (Roadmap Success Criteria)
 
-1. A fresh `theme-stress-test` run (default: 10 switches, alternating static↔dynamic, 3–5s settle gap) completes with **zero failures**.
-2. `theme-parity` (from Plan 02-01) is **all-green** immediately after.
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 1 | Switching to a static preset and to a matugen dynamic theme both produce the same canonical color files — identical paths and variable names — verifiable by diffing the generated output structure. | ✓ VERIFIED | Fresh re-run this session: `theme-parity` exit 0, `Summary: 217 passed, 0 failed` (independently reproduced, not just read from SUMMARY). Layer 1 (structure) diffs the file-path set across all 7 targets against `contract.json`'s 10-file manifest; Layer 2 (name-set) diffs extracted variable/key names per file across all 7 targets. Spot-checked the extraction path directly (bypassing the tool) against a fresh `rosepine` render: `waybar.css` 19 names, `hyprland.conf` 21 names, `yazi.toml` 66 names, `vscodium.json` 73 names, `walker-style.css` 64 selector/property pairs — all non-empty and substantive, confirming Layer 1/2 are exercising real data, not a vacuous pass. |
+| 2 | Every app re-themes identically regardless of whether the source was a static preset or a dynamic wallpaper theme (no mode-only divergence). | ✓ VERIFIED | `theme-parity` Layer 3 (semantic-value parity, all 7 targets, all 10 files) is part of the same 217/0 passing run. `theme-doctor` fresh re-run this session: 21 passed / 1 failed (the single FAIL is the pre-existing, explicitly-accepted elephant-provider-parity gap deferred to Phase 3 INST-01 — confirmed unchanged from 02-01's baseline, not a Phase 2 regression). Human sign-off (recorded in the prior 02-VERIFICATION.md content, preserved below) directly confirmed Thunar, Walker, waybar, swaync, and kitty all rendered the same materialyou (dynamic) palette correctly on switch #10 — the human-observable half of "no mode-only divergence" that grep/diff cannot see. |
+| 3 | Running 10 consecutive theme switches with Thunar and Walker open leaves every app correctly themed on the final switch — no drift, no stuck-white, no stale caches (100% correct). | ✓ VERIFIED | `~/.local/state/theme/logs/stress-20260707T222706Z.log` inspected directly this session: `SUMMARY 140 passed, 0 failed`, a fresh uninterrupted 10-switch run with all pre/postconditions and all 10 per-switch check blocks (theme-apply success, theme-doctor pass, per-file sentinel match across `hyprland.conf`/`waybar.css`/`swaync.css`/`wlogout.css`/`gtk-4.0-colors.css`/`kitty.conf`, walker+elephant liveness+bus-name) present and PASS. Human sign-off (D-35 bar) confirmed switch #10's palette on a newly-opened Thunar window + summoned Walker + waybar/swaync/kitty, with the D-15/D-37 already-open-GTK3-window caveat explicitly documented as an accepted non-failure. |
 
-### 1. Stress run — `~/.local/state/theme/logs/stress-20260707T222706Z.log`
+**Score:** 3/3 roadmap truths verified (0 present-but-behavior-unverified).
 
-Tail of the passing run (switch #10 + postconditions):
+### Plan-Level Must-Haves (02-01 / PIPE-04)
 
-```
-PASS	switch=9	theme=rosepine	switch #9: elephant listproviders responds
-PASS	switch=10	theme=materialyou	switch #10: theme-apply materialyou succeeded
-PASS	switch=10	theme=materialyou	switch #10: theme-doctor passes (no new failures beyond the accepted elephant-provider gap)
-PASS	switch=10	theme=materialyou	switch #10: sentinel color extracted for materialyou
-PASS	switch=10	theme=materialyou	switch #10: sentinel (cfbdfe) present in hyprland.conf (normalized)
-PASS	switch=10	theme=materialyou	switch #10: sentinel (cfbdfe) present in waybar.css (normalized)
-PASS	switch=10	theme=materialyou	switch #10: sentinel (cfbdfe) present in swaync.css (normalized)
-PASS	switch=10	theme=materialyou	switch #10: sentinel (cfbdfe) present in wlogout.css (normalized)
-PASS	switch=10	theme=materialyou	switch #10: sentinel (cfbdfe) present in gtk-4.0-colors.css (normalized)
-PASS	switch=10	theme=materialyou	switch #10: sentinel (cfbdfe) present in kitty.conf (normalized)
-PASS	switch=10	theme=materialyou	switch #10: walker process running
-PASS	switch=10	theme=materialyou	switch #10: walker bus-name (dev.benz.walker) registered
-PASS	switch=10	theme=materialyou	switch #10: elephant process running
-PASS	switch=10	theme=materialyou	switch #10: elephant listproviders responds
-PASS	switch=post	theme=materialyou	postcondition: Thunar window still open
-PASS	switch=post	theme=materialyou	postcondition: walker process still running
-PASS	switch=post	theme=materialyou	postcondition: walker bus-name (dev.benz.walker) still registered
-PASS	switch=post	theme=materialyou	postcondition: elephant process still running
-PASS	switch=post	theme=materialyou	postcondition: elephant listproviders still responds
-SUMMARY	140 passed, 0 failed
-```
+| # | Must-have | Status | Evidence |
+|---|-----------|--------|----------|
+| 1 | `theme-parity` renders all 7 targets and reports structural parity (identical file-path structure) | ✓ VERIFIED | Fresh run, Layer 1 all-PASS; Pitfall-4 zero-file guard present in code (`file_count -eq 0` → FAIL, not skip). |
+| 2 | `theme-parity` reports identical variable/key-name set per contract file across all 7 renders (name-set parity) | ✓ VERIFIED | Fresh run, Layer 2 all-PASS; extraction spot-checked non-vacuous (see truth 1 evidence). |
+| 3 | `theme-parity` reports every color value well-formed, no empty non-exempt slot, no `{{...}}` leftovers | ✓ VERIFIED (with a documented tooling gap, see Anti-Patterns) | Fresh run, Layer 3 all-PASS. Live rendered `walker-style.css` independently checked for literal `{{` — none present (`grep -c '{{'` exit 1 / zero matches). |
+| 4 | `theme-doctor` sources its state-dir file list from `contract.json` and still exits 0 with every prior check passing | ✓ VERIFIED (one pre-existing, accepted exception) | `theme-doctor` sources `lib/contract.sh`, iterates `contract_files()` (confirmed by reading the script — line "while IFS= read -r f; do ... done < <(contract_files)"). Fresh run: 21/22 checks pass; the 1 FAIL is the pre-existing elephant-provider gap, explicitly out of Phase 2 scope (deferred to Phase 3 INST-01), unchanged before/after this phase's refactor per 02-01-SUMMARY's git-stash comparison. |
+| 5 | `theme-parity` writes a timestamped machine-readable log under `~/.local/state/theme/logs/` | ✓ VERIFIED | `theme-parity-20260707T225041Z.log` (this session's fresh run) and 3 prior logs present, each with `PASS`/`FAIL`/`SUMMARY` TSV lines. |
 
-**Result: 140 passed, 0 failed.** All 10 switches (alternating static↔dynamic across catppuccin/dracula/gruvbox/nord/rosepine presets interleaved with materialyou) passed every per-switch check: `theme-doctor` exit 0, format-normalized sentinel-color match (including the Pitfall-1 `hyprland.conf` `rgba(RRGGBBAA)` case), and walker+elephant liveness with D-Bus bus-name registration. Pre/postconditions (Thunar window open, walker/elephant healthy before switch 1 and after switch 10) both held.
+### Plan-Level Must-Haves (02-02 / PIPE-06)
 
-### 2. Parity run — `~/.local/state/theme/logs/theme-parity-20260707T222832Z.log`
+| # | Must-have | Status | Evidence |
+|---|-----------|--------|----------|
+| 6 | `theme-stress-test` performs 10 consecutive alternating static↔dynamic switches with a 3–5s gap by default | ✓ VERIFIED | `SWITCHES=10`, `GAP=4` defaults confirmed in code; `STATIC_PRESETS` rotation + `i % 2` alternation confirmed; `--switches`/`--gap` flags present and validated. |
+| 7 | Preconditions open Thunar + confirm walker/elephant health before switch 1; postconditions re-assert after switch 10 | ✓ VERIFIED | Precondition block (lines 278–307) and postcondition block (lines 378–397) both present in code; stress log confirms both blocks executed and passed (`postcondition: Thunar window still open`, etc.). |
+| 8 | Each switch's checks (theme-doctor, format-normalized sentinel incl. `hyprland.conf`, walker+elephant liveness+bus-name) pass, abort-on-first-failure with diagnostics dump | ✓ VERIFIED | `check_or_abort` → `abort_with_diagnostics` structurally confirmed (dumps failed check, switch, theme name, theme-doctor output, representative file contents, sanitized notify-send). Stress log shows every per-switch line for switches 1–10 present and PASS, using `contract_normalize_color`; `hyprland.conf` explicitly included in `REPRESENTATIVE_FILES`. |
+| 9 | Both `theme-parity` and `theme-stress-test` exist as executable keeper scripts alongside `theme-doctor` | ✓ VERIFIED | All three present, executable (`-rwxr-xr-x`), stowed at `theme-engine/.config/theme-engine/`. |
 
-Tail of the passing run (final semantic-value checks + summary):
+**Combined plan-level score:** 8/8 (with one documented, non-blocking tooling gap noted below).
 
-```
-PASS	dracula: walker-style.css semantic values well-formed
-PASS	gruvbox: walker-style.css semantic values well-formed
-PASS	nord: walker-style.css semantic values well-formed
-PASS	rosepine: walker-style.css semantic values well-formed
-PASS	tokyonight: walker-style.css semantic values well-formed
-PASS	materialyou: yazi.toml semantic values well-formed
-PASS	catppuccin: yazi.toml semantic values well-formed
-PASS	dracula: yazi.toml semantic values well-formed
-PASS	gruvbox: yazi.toml semantic values well-formed
-PASS	nord: yazi.toml semantic values well-formed
-PASS	rosepine: yazi.toml semantic values well-formed
-PASS	tokyonight: yazi.toml semantic values well-formed
-PASS	materialyou: vscodium.json semantic values well-formed
-PASS	catppuccin: vscodium.json semantic values well-formed
-PASS	dracula: vscodium.json semantic values well-formed
-PASS	gruvbox: vscodium.json semantic values well-formed
-PASS	nord: vscodium.json semantic values well-formed
-PASS	rosepine: vscodium.json semantic values well-formed
-PASS	tokyonight: vscodium.json semantic values well-formed
-SUMMARY	217 passed, 0 failed
-```
+### Required Artifacts
 
-**Result: 217 passed, 0 failed.** All 6 static presets + materialyou (7 targets) produce an identical structure/variable-name set with well-formed semantic values — no divergence between static and dynamic rendering (PIPE-04 held; confirmed unchanged from 02-01).
+| Artifact | Expected | Status | Details |
+|----------|----------|--------|---------|
+| `theme-engine/.config/theme-engine/contract.json` | 10-file manifest, 6 format tags, `hyprland.conf` `image` exemption | ✓ VERIFIED | `jq -e '.files\|length==10'` passes; format set is exactly `{gtk-css,hypr-vars,kitty-kv,toml,json,css-literal}`; `image` is the only `exempt_keys` entry. |
+| `theme-engine/.config/theme-engine/lib/contract.sh` | Shared extraction/normalization library | ✓ VERIFIED | All 7 documented functions present and confirmed working with real data (`contract_files`, `contract_format`, `contract_exempt_keys`, `contract_extract_names`, `contract_extract_values`, `contract_normalize_color`, `contract_wellformed_color`). |
+| `theme-engine/.config/theme-engine/theme-parity` | Render-only 3-layer parity checker | ✓ VERIFIED | Executable, `bash -n` clean, fresh run exit 0, 217/0. |
+| `theme-engine/.config/theme-engine/theme-doctor` | Refactored to read contract.json | ✓ VERIFIED | Sources `lib/contract.sh`, iterates `contract_files()`, all other checks preserved. |
+| `theme-engine/.config/theme-engine/theme-stress-test` | 10-switch alternating harness | ✓ VERIFIED | Executable, `bash -n` clean, drives real `theme-apply`, structurally matches all acceptance criteria (grep-confirmed `$((waited+1))` form, no unscoped `killall`, `dev.benz.walker` bus check). |
+| `theme-engine/.config/theme-engine/lib/commit.sh` | D-40 fix: exclude `logs/` from rsync `--delete` | ✓ VERIFIED | `rsync -a --delete --exclude=logs/ "$rendered_dir"/ "$STATE_DIR"/` present in code with an explanatory comment tying it to the D-40 finding. |
+| `.planning/phases/02-.../02-VERIFICATION.md` | Evidence record with human sign-off | ✓ VERIFIED | This file (supersedes the prior plan-scoped version while preserving its evidence, see below). |
 
-**Sequence integrity:** Both logs were produced back-to-back in the same session (stress run 22:27:06Z → parity run immediately after at 22:28:32Z, following the D-40 fix at commit `0d34782`), satisfying the "one clean uninterrupted sequence" requirement — not a stitched combination of separate partial runs.
+### Key Link Verification
 
-## D-40 Reliability Bug Found and Fixed
+| From | To | Via | Status | Details |
+|------|----|----|--------|---------|
+| `theme-doctor` | `contract.json` | `source lib/contract.sh` + `contract_files()` loop | ✓ WIRED | Confirmed by direct code read and fresh execution (10 state-dir file checks present in output, sourced from the manifest, not hardcoded). |
+| `theme-parity` | `lib/generate.sh` (`theme_engine_generate`) | Render loop, `$tmp$STATE_DIR` prefix-join | ✓ WIRED | Confirmed in code; independently reproduced the exact prefix-join behavior in a standalone spot-check (`$tmp$STATE_DIR` correctly resolved to the rendered tree). |
+| `theme-stress-test` | `theme-apply` | `"$ENGINE_DIR/theme-apply" "$current_theme_name"` | ✓ WIRED | Drives the real entrypoint, not a reimplementation (D-44) — confirmed by direct code read. |
+| `theme-stress-test` | `lib/contract.sh` (`contract_normalize_color`) | `sentinel_present_in_file` | ✓ WIRED | Confirmed in code and in the stress log (`sentinel (cfbdfe) present in hyprland.conf (normalized)` — proves the Pitfall-1 rgba-vs-hex normalization path is actually exercised, not just declared). |
+| `commit.sh` | `theme-parity`/`theme-stress-test` logs | `rsync --exclude=logs/` | ✓ WIRED | Fix present; corroborated by the stress log itself surviving all 10 switches in the same run that produced it (self-referential proof — the log could not exist intact if the exclude were missing). |
 
-A reliability bug WAS found during the clean-gate loop (Task 2) — not a "no bug found" outcome:
+### Behavioral Spot-Checks
 
-- **Bug:** `lib/commit.sh`'s atomic commit step used `rsync -a --delete` from the temp render dir to the live state dir. Because `logs/` (created by `theme-stress-test` for its own timestamped output) is not part of the matugen render contract and therefore never exists in the temp render dir, `--delete` wiped `~/.local/state/theme/logs/` on every subsequent `theme-apply` commit — i.e., every one of the 10 switches in the stress run destroyed its own prior log output mid-run.
-- **Fix:** `lib/commit.sh` rsync invocation now excludes `logs/` (`--exclude=logs/`), so the commit step still atomically syncs every contract file but leaves the non-contract `logs/` subdirectory alone. Fixed minimally, reusing the existing rsync call rather than introducing new sync logic.
-- **Commit:** `0d34782` — "fix(02-02): commit.sh rsync --delete was wiping the logs/ directory on every switch"
-- **Re-verification:** `theme-parity` re-run all-green after the fix (confirms no regression to the render/commit contract for the 10 tracked state-dir files); the stress run immediately following the fix (`stress-20260707T222706Z.log`) completed 140/140 with its own log surviving all 10 switches, proving the fix.
+| Behavior | Command | Result | Status |
+|----------|---------|--------|--------|
+| theme-parity all-green, fresh | `theme-engine/.config/theme-engine/theme-parity` | `Summary: 217 passed, 0 failed`, exit 0 | ✓ PASS |
+| theme-doctor exits with only the known-accepted gap | `theme-engine/.config/theme-engine/theme-doctor` | `Summary: 21 passed, 1 failed` (elephant-provider gap, pre-existing) | ✓ PASS |
+| Extraction produces real, non-empty data (not vacuous) | Standalone `bash -c` sourcing `lib/contract.sh` + `lib/generate.sh`, rendering `rosepine`, calling `contract_extract_names` per file | 19/21/66/73/64 names extracted across 5 representative files | ✓ PASS |
+| No literal `{{` template leftover in live `walker-style.css` | `grep -c '{{' ~/.local/state/theme/walker-style.css` | No match (exit 1) | ✓ PASS |
+| theme-stress-test structural gate | `bash -n theme-stress-test`; grep for `contract_normalize_color`, `theme-apply`, `dev.benz.walker`, `$((waited+1))`, absence of unscoped `killall` | All present/absent as required | ✓ PASS |
+| Stress log evidence for a fresh, uninterrupted 10-switch run | Read `~/.local/state/theme/logs/stress-20260707T222706Z.log` directly | `SUMMARY 140 passed, 0 failed`; all pre/post-conditions present | ✓ PASS |
 
-## Human Visual Sign-Off (D-35 success-criterion bar)
+Note: `theme-stress-test` itself was **not** re-executed during this verification pass — it mutates the live desktop theme (by design) and a fresh 10-switch run would take several minutes and change the user's currently-applied theme without cause, since a fresh, uninterrupted, zero-failure run plus human sign-off already exists from this same working session (see Human Sign-Off below). Its correctness was instead verified structurally (code read + `bash -n` + grep-confirmed acceptance-criteria patterns) and via direct inspection of its most recent real output log.
 
-**Status: APPROVED.**
+### Requirements Coverage
 
-The user ran the fresh default gate, then on switch #10 (materialyou, applied theme at sign-off):
+| Requirement | Source Plan | Description | Status | Evidence |
+|-------------|-------------|-------------|--------|----------|
+| PIPE-04 | 02-01-PLAN.md | Static presets and matugen dynamic themes produce an identical output contract | ✓ SATISFIED | `theme-parity` 217/0; REQUIREMENTS.md marks PIPE-04 `[x]` Complete, traced to Phase 2. |
+| PIPE-06 | 02-02-PLAN.md | Repeated theme switching is reliable (10-switch stress test, 100% correct) | ✓ SATISFIED | `theme-stress-test` log 140/0 + human sign-off; REQUIREMENTS.md marks PIPE-06 `[x]` Complete, traced to Phase 2. |
 
-- Opened a **newly-created** Thunar window (not one that had been open since before switch #1) and confirmed it rendered the switch-#10 materialyou palette correctly.
+No orphaned requirements: REQUIREMENTS.md's "Phase 2" rows are exactly {PIPE-04, PIPE-06}, matching the union of both plans' `requirements:` frontmatter.
+
+### Anti-Patterns Found
+
+No debt markers (`TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER`) in any file this phase created or modified (`contract.json`, `lib/contract.sh`, `theme-parity`, `theme-doctor`, `theme-stress-test`, `lib/commit.sh`) — confirmed by direct grep this session.
+
+The phase's own code review (`02-REVIEW.md`, 1 Critical + 5 Warning + 7 Info) surfaced two findings worth carrying forward as non-blocking, disclosed gaps rather than silently dropping them:
+
+| File | Finding | Severity | Impact on this verification |
+|------|---------|----------|------------------------------|
+| `lib/contract.sh`, `theme-parity`, `theme-doctor` | CR-01: unknown/typo'd `format` tag, or a missing `jq`/`python3`, causes an extraction layer to silently emit nothing and the affected checks vacuously PASS instead of FAILing loud. | Critical (review), ⚠️ WARNING (this verification) | **Does not currently invalidate the 217/0 result.** Independently spot-checked this session: extraction against a fresh real render produces substantive non-empty output (19–73 names per file) — the checks are exercising real data today, not a vacuous path. This is a real robustness gap for *future* drift protection (a mistyped format tag or missing tool would go undetected), not evidence that today's parity claim is false. Recommend a follow-up hardening pass before relying on this tool as a long-term regression gate (e.g., Phase 3 or a dedicated fix plan). |
+| `lib/contract.sh:165-167`, `theme-parity:169` | WR-01: the documented "`{{...}}` leftovers are always a failure regardless of format" guarantee does not hold for `css-literal` (`walker-style.css`) — its value extractor only emits hex/rgba-shaped tokens, so a leftover in that file would never be seen by the leftover check. | Warning (review), ⚠️ WARNING (this verification) | **Does not currently invalidate the "no mode-only divergence" truth.** Directly confirmed the live rendered `walker-style.css` has zero literal `{{` occurrences today, and the human sign-off separately, visually confirmed Walker renders correctly. This is a coverage gap in the *safety net* for the one file with this project's worst regression history (the original stuck-white Walker bug), not a present defect. Recommend adding the format-agnostic `grep -q '{{' "$path"` scan the review proposes, as a low-cost follow-up. |
+
+Neither finding is a stub, a missing artifact, or an unwired link — both are judgment calls about the verification tooling's defense-in-depth for *future* runs, and both are already fully documented with proposed fixes in `02-REVIEW.md`. Given this phase's goal is to *prove* parity/reliability (which it does, backed by fresh, independently-reproduced evidence in this session) rather than to ship a permanently bulletproof regression harness, these are tracked as recommended hardening follow-ups, not phase-blocking gaps.
+
+## Human Sign-Off (preserved from prior 02-VERIFICATION.md / 02-02 Task 3)
+
+**Status: APPROVED.** (Recorded in this same working session, per the orchestrator's briefing and confirmed by the project's session log.)
+
+The user ran the fresh default gate, then on switch #10 (materialyou, the applied theme at sign-off):
+
+- Opened a **newly-created** Thunar window (not one open since before switch #1) and confirmed it rendered the switch-#10 materialyou palette correctly.
 - Summoned Walker (`dev.benz.walker` bus name registered, `--gapplication-service` healthy, elephant `listproviders` responding) and confirmed it rendered themed and returned working search results (D-38).
 - Glanced at waybar, swaync (including a test notification), and kitty — all confirmed showing the switch-#10 materialyou palette with no drift, no stuck-white, and no stale mix of two themes.
 
-User's exact confirmation: *"approved" — Thunar, Walker, waybar, swaync, and kitty all render the current materialyou palette correctly after the 10-switch stress run. No issues reported.*
+User's exact confirmation (as recorded by the 02-02 Task 3 checkpoint): *"approved" — Thunar, Walker, waybar, swaync, and kitty all render the current materialyou palette correctly after the 10-switch stress run. No issues reported.*
 
 ### D-15 / D-37 Caveat — Documented Pass
 
-Per D-15 (established in Phase 1) and D-37 (this phase's explicit re-confirmation), a GTK3 window that was **already open before a theme switch** does NOT live-update its colors — GTK3 has no live CSS reload API, so an existing Thunar window retains the palette it was rendered with until it is closed and reopened. This is an accepted, documented limitation, **not a failure**.
+Per D-15 (established in Phase 1) and D-37 (this phase's explicit re-confirmation), a GTK3 window that was **already open before a theme switch** does NOT live-update its colors — GTK3 has no live CSS reload API, so an existing Thunar window retains the palette it was rendered with until it is closed and reopened. This is an accepted, documented limitation, **not a failure**. It was directly observed during the stress run (a precondition-opened Thunar window stayed on its original palette through the run), and the human sign-off above was deliberately performed against a **newly-opened** Thunar window to validate the actual live-rendering contract, routing around this documented caveat.
 
-This behavior was directly observed during this plan's stress run: the Thunar window opened as a stress-test precondition (before switch #1) remained on its original palette through the run. The deferred-restart watcher (hardened in Phase 1, `lib/gtk.sh`) detected the daemon process change (PID 778290 → 899510) once that stale window was closed, and confirmed a freshly-opened window rendered correctly on the current theme. The human sign-off above was performed against a **newly-opened** Thunar window specifically to route around this caveat and validate the actual live-rendering contract (D-35's bar), per the how-to-verify instructions in Task 3.
+## D-41 Clean Full Gate — Evidence (preserved)
 
-## Pitfall-1 Verification
+1. **Stress run** — `~/.local/state/theme/logs/stress-20260707T222706Z.log`: **140 passed, 0 failed.** Fresh, uninterrupted 10-switch run (independently re-confirmed present and intact this session).
+2. **Parity run** — `~/.local/state/theme/logs/theme-parity-20260707T222832Z.log`: **217 passed, 0 failed.** Immediately following the stress run in the same session.
+3. **D-40 reliability bug found and fixed**: `lib/commit.sh`'s `rsync -a --delete` was wiping `~/.local/state/theme/logs/` on every `theme-apply` commit; fixed with `--exclude=logs/` (commit `0d34782`), independently confirmed present in the current code this session.
 
-The stress harness's sentinel check was confirmed to correctly use format-normalized comparison rather than a naive literal grep: a literal grep for a hex sentinel such as `#ebbcba` would fail against `hyprland.conf`'s rendered `rgba(ebbcbaff)` form. The harness's `contract_normalize_color`-based comparison (sourced from `lib/contract.sh`, established in 02-01) correctly matched across both the flat-hex and `rgba(RRGGBBAA)` formats — confirmed directly in the passing stress log line `sentinel (cfbdfe) present in hyprland.conf (normalized)`.
+## Gaps Summary
 
-## Summary
-
-| Gate component | Result |
-|---|---|
-| Fresh 10-switch stress run | 140 passed, 0 failed |
-| theme-parity immediately after | 217 passed, 0 failed |
-| D-40 reliability bug | Found (logs/ wiped by rsync --delete) and fixed (`0d34782`) |
-| D-41 clean full gate | ✓ Achieved in one uninterrupted sequence |
-| Human visual sign-off (D-35) | ✓ APPROVED — Thunar, Walker, waybar, swaync, kitty all correct on switch #10 |
-| D-15/D-37 caveat | ✓ Documented pass — verified via newly-opened Thunar window |
-
-**PIPE-06 proven:** 10 consecutive switches with Thunar/Walker open, 100% correct on the final switch, human-verified.
+No gaps block phase completion. Two tooling-robustness findings from the phase's own code review (CR-01, WR-01) are carried forward as disclosed, non-blocking recommendations for a future hardening pass — both were independently investigated this session and confirmed to **not** currently produce a false result for PIPE-04/PIPE-06 (extraction is substantive on real data; the live `walker-style.css` has no leftover artifacts today). The phase's three roadmap success criteria and both plans' full must-haves are all verified with fresh, independently-reproduced evidence, not solely SUMMARY.md claims.
 
 ---
-*Phase: 02-static-dynamic-parity-switch-reliability*
-*Plan: 02-02*
-*Verified: 2026-07-08*
+
+_Verified: 2026-07-07T22:54:24Z_
+_Verifier: Claude (gsd-verifier)_

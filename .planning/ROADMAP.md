@@ -100,5 +100,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Root-Cause Fix & Consolidated Theme Engine | 3/3 | Complete    | 2026-07-07 |
-| 2. Static ↔ Dynamic Parity & Switch Reliability | 2/2 | Complete   | 2026-07-07 |
+| 2. Static ↔ Dynamic Parity & Switch Reliability | 2/2 | Complete    | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | 0/2 | Not started | - |
