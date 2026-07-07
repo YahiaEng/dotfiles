@@ -194,8 +194,8 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	transition: none;
-	color: #161320;
-	background: #F8BD96;
+	color: @on_secondary;
+	background: @secondary;
 }
 
 #battery {
@@ -206,18 +206,18 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	transition: none;
-	color: #161320;
-	background: #B5E8E0;
+	color: @on_secondary;
+	background: @secondary;
 }
 
 #battery.charging, #battery.plugged {
-	color: #161320;
-    background-color: #B5E8E0;
+	color: @on_tertiary;
+    background-color: @tertiary;
 }
 
 #battery.critical:not(.charging) {
-    background-color: #B5E8E0;
-    color: #161320;
+    background-color: @secondary;
+    color: @on_secondary;
     animation-name: blink;
     animation-duration: 0.5s;
     animation-timing-function: linear;
@@ -227,8 +227,8 @@ window#waybar.hidden {
 
 @keyframes blink {
     to {
-        background-color: #BF616A;
-        color: #B5E8E0;
+        background-color: @error;
+        color: @on_error;
     }
 }
 
