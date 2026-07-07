@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 02
 current_phase_name: static-dynamic-parity-switch-reliability
-status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-07-07T22:15:14.850Z"
+status: verifying
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-07-07T22:37:42.861Z"
 last_activity: 2026-07-07
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
-  percent: 33
+  completed_plans: 5
+  percent: 67
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 
 Phase: 02 (static-dynamic-parity-switch-reliability) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-07 — Phase 02 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P02 | 40min | 3 tasks | 27 files |
 | Phase 01 P03 | multi-session | 3 tasks | 9 files |
 | Phase 02 P01 | 25min | 3 tasks | 4 files |
+| Phase 02 P02 | 11min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-01: contract.json models the output contract as files[] with per-file format/exempt_keys (not a flat variable-name list) because the 10 rendered files span 6 genuinely different syntaxes (D-30)
 - [Phase ?]: 02-01: theme-parity all-green (217 passed, 0 failed) across all 7 targets - zero divergence found between static presets and matugen dynamic mode; no Phase-1 palette/template fix was needed
 - [Phase ?]: 02-01: semantic-value no-empty-slot rule is format-conditional - enforced for gtk-css/hypr-vars/kitty-kv/css-literal (every key is definitionally a color) but only color-shaped values are validated for toml/json (mixed formats with legitimate non-color string leaves like yazi.toml icon glyphs)
+- [Phase 02]: 02-02: D-40 fix scope - excluded logs/ from commit.sh's rsync --delete rather than relocating logs/ or reworking the commit sync logic — Minimal fix preserving the atomic-commit contract for all 10 tracked output files while protecting the harness's own runtime log output
+- [Phase 02]: 02-02: D-41 gate satisfied by running theme-stress-test then theme-parity back-to-back (22:27:06Z to 22:28:32Z) in one uninterrupted session — Immediately after the D-40 fix landed - not stitched together from separate historical runs, satisfying the 'no stitched/resumed runs as passing evidence' requirement
 
 ### Pending Todos
 
@@ -105,6 +108,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T22:15:14.845Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-static-dynamic-parity-switch-reliability/02-CONTEXT.md
+Last session: 2026-07-07T22:37:42.856Z
+Stopped at: Completed 02-02-PLAN.md
+Resume file: None

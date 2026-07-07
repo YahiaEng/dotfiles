@@ -23,7 +23,7 @@ Requirements for the bug-fix milestone. Each maps to roadmap phases.
 - [x] **PIPE-03**: Matugen generated output lives outside the stowed git tree; app configs import from the generated location
 - [x] **PIPE-04**: Static presets and matugen dynamic themes produce an identical output contract (same canonical paths, same variable names) through one pipeline
 - [x] **PIPE-05**: `GTK_THEME` and related theme env vars consolidated to a single source of truth
-- [ ] **PIPE-06**: Repeated theme switching is reliable (stress test: 10 consecutive switches with Thunar/Walker open, 100% correct result)
+- [x] **PIPE-06**: Repeated theme switching is reliable (stress test: 10 consecutive switches with Thunar/Walker open, 100% correct result)
 
 ### Bug Scan
 
@@ -99,7 +99,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCAN-01 | Phase 1 | Complete |
 | SCAN-02 | Phase 1 | Complete |
 | PIPE-04 | Phase 2 | Complete |
-| PIPE-06 | Phase 2 | Pending |
+| PIPE-06 | Phase 2 | Complete |
 | CLEAN-01 | Phase 3 | Pending |
 | CLEAN-02 | Phase 3 | Pending |
 | INST-01 | Phase 3 | Pending |

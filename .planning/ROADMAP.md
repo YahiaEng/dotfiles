@@ -14,7 +14,7 @@ This milestone fixes the theming pipeline that is the project's entire premise: 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Root-Cause Fix & Consolidated Theme Engine** - Eliminate the stuck-white root cause, unify orchestration, make every app re-theme live (completed 2026-07-07)
-- [ ] **Phase 2: Static ↔ Dynamic Parity & Switch Reliability** - Prove both modes are one pipeline and survive repeated switching
+- [x] **Phase 2: Static ↔ Dynamic Parity & Switch Reliability** - Prove both modes are one pipeline and survive repeated switching (completed 2026-07-07)
 - [ ] **Phase 3: Repo Cleanup & Fresh-Install Reproducibility** - Remove dead configs and verify the themed desktop reproduces from scratch
 
 ## Phase Details
@@ -60,7 +60,7 @@ Plans:
   2. Every app re-themes identically regardless of whether the source was a static preset or a dynamic wallpaper theme (no mode-only divergence).
   3. Running 10 consecutive theme switches with Thunar and Walker open leaves every app correctly themed on the final switch — no drift, no stuck-white, no stale caches (100% correct).
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 
 Plans:
 **Wave 1**
@@ -69,7 +69,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — Repeated-switch reliability (PIPE-06): parameterized `theme-stress-test` (10 alternating static↔dynamic switches, per-switch assertions, abort-on-fail) + clean-gate fixes + human sign-off
+- [x] 02-02-PLAN.md — Repeated-switch reliability (PIPE-06): parameterized `theme-stress-test` (10 alternating static↔dynamic switches, per-switch assertions, abort-on-fail) + clean-gate fixes + human sign-off
 
 ### Phase 3: Repo Cleanup & Fresh-Install Reproducibility
 
@@ -100,5 +100,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Root-Cause Fix & Consolidated Theme Engine | 3/3 | Complete    | 2026-07-07 |
-| 2. Static ↔ Dynamic Parity & Switch Reliability | 1/2 | In Progress|  |
+| 2. Static ↔ Dynamic Parity & Switch Reliability | 2/2 | Complete   | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | 0/2 | Not started | - |
