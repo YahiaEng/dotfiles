@@ -123,6 +123,7 @@ PACMAN_PKGS=(
     libnotify
     python-gobject
     gtk3
+    adw-gtk-theme
 
     # Personal
     zip
@@ -147,7 +148,6 @@ AUR_PKGS=(
     # Rice
     swaync
     matugen-bin
-    adw-gtk3
 
     # Walker
     walker
@@ -158,6 +158,9 @@ AUR_PKGS=(
     elephant-clipboard
     elephant-symbols
     elephant-menus
+    elephant-runner
+    elephant-websearch
+    elephant-files
 
     # Utils
     bibata-cursor-theme
