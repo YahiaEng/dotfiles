@@ -2,77 +2,62 @@
 # ║              MATUGEN CONFIGURATION                   ║
 # ║       Material You dynamic color generation          ║
 # ╚══════════════════════════════════════════════════════╝
+#
+# Reload is owned solely by theme-engine/lib/reload.sh (PIPE-02, D-04) — no
+# post_hook lines below. Wallpaper-setting is owned by the engine/picker, not
+# matugen (D-19) — leaving [config.wallpaper] enabled crashes `matugen json`
+# outright, so it must stay absent. Every output_path below targets the
+# state-dir contract (D-05/D-06); theme-engine/lib/generate.sh redirects the
+# actual write location per-invocation via matugen's -p/--prefix flag.
 
 [config]
-
-[config.wallpaper]
-command = "awww"
-arguments = [
-    "img",
-    "--transition-type", "center",
-    "--transition-duration", "2",
-    "--transition-fps", "165",
-]
-set = true
 
 # ── Hyprland colors ─────────────────────────────────
 [templates.hyprland]
 input_path = "~/.config/matugen/templates/hyprland-colors.conf"
-output_path = "~/.config/hypr/colors.conf"
-post_hook = "hyprctl reload || true"
+output_path = "~/.local/state/theme/hyprland.conf"
 
 # ── Waybar colors ────────────────────────────────────
 [templates.waybar]
 input_path = "~/.config/matugen/templates/waybar-colors.css"
-output_path = "~/.config/waybar/colors.css"
-post_hook = "pkill -SIGUSR2 waybar || true"
+output_path = "~/.local/state/theme/waybar.css"
 
 # ── Kitty colors ─────────────────────────────────────
 [templates.kitty]
 input_path = "~/.config/matugen/templates/kitty-colors.conf"
-output_path = "~/.config/kitty/colors.conf"
-post_hook = "pkill -SIGUSR1 kitty || true"
-
-# ── Wofi colors ──────────────────────────────────────
-[templates.wofi]
-input_path = "~/.config/matugen/templates/wofi-colors.css"
-output_path = "~/.config/wofi/colors.css"
+output_path = "~/.local/state/theme/kitty.conf"
 
 # ── SwayNC colors ────────────────────────────────────
 [templates.swaync]
 input_path = "~/.config/matugen/templates/swaync-colors.css"
-output_path = "~/.config/swaync/colors.css"
-post_hook = "swaync-client -rs || true"
+output_path = "~/.local/state/theme/swaync.css"
 
 # ── Yazi theme ───────────────────────────────────────
 [templates.yazi]
 input_path = "~/.config/matugen/templates/yazi-theme.toml"
-output_path = "~/.config/yazi/theme.toml"
+output_path = "~/.local/state/theme/yazi.toml"
 
 # ── VSCodium colors ─────────────────────────────────
 [templates.vscodium]
 input_path = "~/.config/matugen/templates/vscodium-colors.json"
-output_path = "~/.cache/matugen-vscodium.json"
-post_hook = "~/.config/hypr/scripts/vscodium-theme.sh materialyou"
+output_path = "~/.local/state/theme/vscodium.json"
 
 # ── Wlogout colors ──────────────────────────────────
 [templates.wlogout]
 input_path = "~/.config/matugen/templates/wlogout-colors.css"
-output_path = "~/.config/wlogout/colors.css"
+output_path = "~/.local/state/theme/wlogout.css"
 
 # ── GTK 3.0 colors ─────────────────────────────────
 [templates.gtk3]
 input_path = "~/.config/matugen/templates/gtk-colors.css"
-output_path = "~/.config/gtk-3.0/colors.css"
+output_path = "~/.local/state/theme/gtk-3.0-colors.css"
 
 # ── GTK 4.0 colors ─────────────────────────────────
 [templates.gtk4]
 input_path = "~/.config/matugen/templates/gtk-colors.css"
-output_path = "~/.config/gtk-4.0/colors.css"
-post_hook = "~/.config/hypr/scripts/gtk-reload.sh"
+output_path = "~/.local/state/theme/gtk-4.0-colors.css"
 
 # ── Walker theme (hardcoded CSS, no @define-color) ──
 [templates.walker]
 input_path = "~/.config/matugen/templates/walker-style.css"
-output_path = "~/.config/walker/themes/rice/style.css"
-post_hook = "~/.config/hypr/scripts/walker-restart.sh"
+output_path = "~/.local/state/theme/walker-style.css"
