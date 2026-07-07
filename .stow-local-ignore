@@ -6,3 +6,9 @@ stow\.sh
 LICENSE
 \.stow-local-ignore
 debug.txt
+
+# D-09/AUDIT #17: the walker rice-theme dir is wired directly by
+# theme-engine/lib/commit.sh (a symlink into ~/.local/state/theme/,
+# idempotent on every theme-apply) — never let a plain `stow --restow`
+# fight over this path.
+^rice$

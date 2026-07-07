@@ -24,6 +24,7 @@ PACKAGES=(
     matugen
     scripts
     swaync
+    theme-engine
     themes
     thunar
     uwsm
@@ -59,8 +60,10 @@ echo "Making scripts executable..."
 chmod +x "$HOME/.config/hypr/scripts/"*.sh 2>/dev/null || true
 
 # ── Initialize cache ─────────────────────────────────
+# Theme state now lives in ~/.local/state/theme/ (D-05) — theme-init.sh
+# falls back to catppuccin automatically when no state exists yet (D-10),
+# so no pre-seed is needed here.
 mkdir -p "$HOME/.cache"
-echo "catppuccin" > "$HOME/.cache/current-theme"
 echo "full" > "$HOME/.cache/current-waybar-layout"
 
 # ── Switch to zshell ─────────────────────────────────

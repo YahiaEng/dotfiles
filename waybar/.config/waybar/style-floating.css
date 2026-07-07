@@ -1,4 +1,4 @@
-@import url("colors.css");
+@import url("../../.local/state/theme/waybar.css");
 
 * {
     font-family: "FiraCode Nerd Font", "Fira Code", "monospace";

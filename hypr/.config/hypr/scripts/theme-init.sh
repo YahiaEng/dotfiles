@@ -1,37 +1,16 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
 # ║              THEME INIT (login)                      ║
-# ║  Restores saved theme + wallpaper on session start   ║
+# ║   Thin caller: reads the saved theme (D-10 fallback), ║
+# ║   sets the wallpaper (D-19), and calls theme-apply.   ║
 # ╚══════════════════════════════════════════════════════╝
 
-THEMES_DIR="$HOME/.config/themes"
-HYPR_COLORS="$HOME/.config/hypr/colors.conf"
-WAYBAR_COLORS="$HOME/.config/waybar/colors.css"
-KITTY_COLORS="$HOME/.config/kitty/colors.conf"
-WOFI_COLORS="$HOME/.config/wofi/colors.css"
-SWAYNC_COLORS="$HOME/.config/swaync/colors.css"
-WLOGOUT_COLORS="$HOME/.config/wlogout/colors.css"
-GTK3_COLORS="$HOME/.config/gtk-3.0/colors.css"
-GTK4_COLORS="$HOME/.config/gtk-4.0/colors.css"
-YAZI_THEME="$HOME/.config/yazi/theme.toml"
-STATE_FILE="$HOME/.cache/current-theme"
-
-THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "catppuccin")
+STATE_FILE="$HOME/.local/state/theme/current-theme"
 WALLPAPER="$HOME/Pictures/Wallpapers/current.jpg"
 
-# Ensure GTK_THEME is in systemd/dbus environment (may not be there yet at login)
-export GTK_THEME=adw-gtk3-dark
-systemctl --user import-environment GTK_THEME 2>/dev/null
-dbus-update-activation-environment --systemd GTK_THEME 2>/dev/null
+THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "catppuccin")
 
-# Ensure Walker theme dir is a real directory (not a stow symlink)
-WALKER_DIR="$HOME/.config/walker/themes/rice"
-[[ -L "$WALKER_DIR" ]] && rm -f "$WALKER_DIR"
-mkdir -p "$WALKER_DIR"
-[[ -L "$WALKER_DIR/style.css" ]] && rm -f "$WALKER_DIR/style.css"
-rm -rf "$HOME/.local/share/walker/themes/rice" 2>/dev/null
-
-# Set wallpaper if it exists
+# Wallpaper-setting is owned by the picker/init, never by matugen (D-19).
 if [[ -f "$WALLPAPER" ]]; then
     awww img "$WALLPAPER" \
         --transition-type center \
@@ -39,53 +18,4 @@ if [[ -f "$WALLPAPER" ]]; then
         --transition-fps 165
 fi
 
-# Apply theme
-if [[ "$THEME" == "materialyou" ]]; then
-    if [[ -f "$WALLPAPER" ]]; then
-        matugen image "$WALLPAPER" --source-color-index 0
-
-        # Rebuild GTK gtk.css
-        cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" \
-            > "$HOME/.config/gtk-3.0/gtk.css" 2>/dev/null
-        cat "$GTK4_COLORS" "$HOME/.config/gtk-4.0/gtk-base.css" \
-            > "$HOME/.config/gtk-4.0/gtk.css" 2>/dev/null
-
-        ~/.config/hypr/scripts/vscodium-theme.sh materialyou
-        hyprctl reload 2>/dev/null || true
-        pkill -SIGUSR2 waybar 2>/dev/null || true
-        pkill -SIGUSR1 kitty 2>/dev/null || true
-        swaync-client -rs 2>/dev/null || true
-        ~/.config/hypr/scripts/gtk-reload.sh
-        ~/.config/hypr/scripts/walker-restart.sh
-    fi
-else
-    if [[ ! -f "$THEMES_DIR/static/${THEME}.conf" ]]; then
-        THEME="catppuccin"
-    fi
-
-    cp "$THEMES_DIR/static/${THEME}.conf" "$HYPR_COLORS"
-    cp "$THEMES_DIR/css/${THEME}.css" "$WAYBAR_COLORS"
-    cp "$THEMES_DIR/css/${THEME}.css" "$WOFI_COLORS"
-    cp "$THEMES_DIR/css/${THEME}.css" "$SWAYNC_COLORS"
-    cp "$THEMES_DIR/css/${THEME}.css" "$WLOGOUT_COLORS"
-
-    cp "$THEMES_DIR/gtk/${THEME}.css" "$GTK3_COLORS"
-    cp "$THEMES_DIR/gtk/${THEME}.css" "$GTK4_COLORS"
-    cat "$GTK3_COLORS" "$HOME/.config/gtk-3.0/gtk-base.css" > "$HOME/.config/gtk-3.0/gtk.css"
-    cat "$GTK4_COLORS" "$HOME/.config/gtk-4.0/gtk-base.css" > "$HOME/.config/gtk-4.0/gtk.css"
-
-    ~/.config/hypr/scripts/walker-theme-gen.sh --from-css "$THEMES_DIR/css/${THEME}.css"
-
-    cp "$THEMES_DIR/kitty/${THEME}.conf" "$KITTY_COLORS"
-    cp "$THEMES_DIR/yazi/${THEME}.toml" "$YAZI_THEME"
-    ~/.config/hypr/scripts/vscodium-theme.sh "$THEME"
-
-    hyprctl reload 2>/dev/null || true
-    pkill -SIGUSR2 waybar 2>/dev/null || true
-    pkill -SIGUSR1 kitty 2>/dev/null || true
-    swaync-client -rs 2>/dev/null || true
-    ~/.config/hypr/scripts/gtk-reload.sh
-    ~/.config/hypr/scripts/walker-restart.sh
-fi
-
-echo "$THEME" > "$STATE_FILE"
+exec ~/.config/theme-engine/theme-apply "$THEME"

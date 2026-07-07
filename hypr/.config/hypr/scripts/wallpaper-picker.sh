@@ -15,7 +15,7 @@ set -euo pipefail
 
 WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
 CURRENT_LINK="$WALLPAPER_DIR/current.jpg"
-STATE_FILE="$HOME/.cache/current-theme"
+STATE_FILE="$HOME/.local/state/theme/current-theme"
 PREVIOUS_FILE="$HOME/.cache/wallpaper-picker-previous"
 
 # ── Ensure directory exists ──────────────────────────
@@ -129,32 +129,15 @@ awww img "$FULL_PATH" \
     --transition-duration 2 \
     --transition-fps 165
 
-# ── Material You regeneration if active ──────────────
+# ── Material You regeneration if active (D-20) ───────
+# In dynamic mode, wallpaper and palette must always match — re-run the
+# single shared engine entrypoint (theme-apply), never reimplement
+# apply+reload here (this used to be the third duplication site, D-01).
+# In static mode, picking a wallpaper changes only the wallpaper.
 CURRENT_THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 if [[ "$CURRENT_THEME" == "materialyou" ]]; then
     sleep 0.5
-    matugen image "$FULL_PATH" --source-color-index 0
-
-    # Rebuild GTK gtk.css (matugen wrote colors.css)
-    cat "$HOME/.config/gtk-3.0/colors.css" "$HOME/.config/gtk-3.0/gtk-base.css" \
-        > "$HOME/.config/gtk-3.0/gtk.css" 2>/dev/null
-    cat "$HOME/.config/gtk-4.0/colors.css" "$HOME/.config/gtk-4.0/gtk-base.css" \
-        > "$HOME/.config/gtk-4.0/gtk.css" 2>/dev/null
-
-    # Walker style.css was written directly by matugen template
-
-    # Reload all applications
-    hyprctl reload 2>/dev/null || true
-    pkill -SIGUSR2 waybar 2>/dev/null || true
-    pkill -SIGUSR1 kitty 2>/dev/null || true
-    swaync-client -rs 2>/dev/null || true
-    ~/.config/hypr/scripts/gtk-reload.sh
-    ~/.config/hypr/scripts/walker-restart.sh
-    ~/.config/hypr/scripts/vscodium-theme.sh materialyou
-
-    notify-send -a "Wallpaper Picker" "Wallpaper + Theme Updated" \
-        "Material You colors regenerated from $SELECTED" \
-        -i preferences-desktop-wallpaper -t 3000
+    ~/.config/theme-engine/theme-apply materialyou
 else
     notify-send -a "Wallpaper Picker" "Wallpaper Changed" \
         "Set to $SELECTED" \
