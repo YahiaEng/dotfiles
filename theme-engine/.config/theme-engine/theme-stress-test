@@ -1,0 +1,407 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║           THEME-STRESS-TEST (D-31..D-45)             ║
+# ║  Parameterized real-switch reliability harness.       ║
+# ║  MUTATES the live desktop — drives the real           ║
+# ║  theme-apply entrypoint, aborts on first failure.     ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Usage: theme-stress-test [--switches N] [--gap S]
+#   --switches N   number of consecutive switches (default: 10, PIPE-06)
+#   --gap S        settle delay in seconds between switches (default: 4,
+#                   inside the 3-5s real-usage-pacing window, D-32)
+#
+# A bare invocation reproduces the PIPE-06 gate exactly (D-43): 10
+# alternating static<->dynamic switches with a fixed settle gap, Thunar and
+# Walker preconditions verified before the first switch, per-switch
+# theme-doctor + sentinel-color + walker/elephant health assertions, and
+# postconditions re-checked after the last switch.
+#
+# Opposite failure-handling philosophy from theme-parity (D-39): this tool
+# aborts IMMEDIATELY on the first failed check and dumps diagnostics — it
+# does NOT run every check and report all failures. Do not copy
+# theme-parity's report-only accumulator model here.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+ENGINE_DIR="$SCRIPT_DIR"
+LIB_DIR="$ENGINE_DIR/lib"
+PALETTES_DIR="$ENGINE_DIR/palettes"
+STATE_DIR="$HOME/.local/state/theme"
+LOG_DIR="$STATE_DIR/logs"
+BUS_NAME="dev.benz.walker"
+
+# shellcheck source=lib/contract.sh
+source "$LIB_DIR/contract.sh"
+
+SWITCHES=10
+GAP=4
+
+usage() {
+    echo "Usage: theme-stress-test [--switches N] [--gap S]" >&2
+    echo "  --switches N   number of consecutive switches (default: 10)" >&2
+    echo "  --gap S        settle delay in seconds between switches (default: 4)" >&2
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --switches)
+            SWITCHES="${2:-}"
+            shift 2
+            ;;
+        --gap)
+            GAP="${2:-}"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "theme-stress-test: unknown argument '$1'" >&2
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+if [[ ! "$SWITCHES" =~ ^[0-9]+$ ]] || [[ "$SWITCHES" -lt 1 ]]; then
+    echo "theme-stress-test: --switches must be a positive integer (got: ${SWITCHES:-<empty>})" >&2
+    exit 1
+fi
+if [[ ! "$GAP" =~ ^[0-9]+$ ]] || [[ "$GAP" -lt 1 ]]; then
+    echo "theme-stress-test: --gap must be a positive integer (got: ${GAP:-<empty>})" >&2
+    exit 1
+fi
+
+# Static preset rotation (D-31). Odd sequence positions consume the next
+# preset here in order (wrapping if --switches exceeds 12); even positions
+# are materialyou. A default 10-switch run exercises 5 of these 6 presets —
+# the 6th (and full 6-preset coverage) is proven by theme-parity (all 6
+# presets vs materialyou) and by running `--switches 12` here.
+STATIC_PRESETS=(catppuccin dracula gruvbox nord rosepine tokyonight)
+
+# No user-controlled theme-name argument exists in this tool (Security
+# Domain V5 / T-02-04): the switch sequence is built entirely from this
+# hardcoded rotation array plus the literal string "materialyou" — never
+# from external input — so there is no argument to validate against
+# palettes/*.json before path interpolation. theme-apply performs its own
+# defense-in-depth validation on every name regardless (reused, not
+# reimplemented, per D-44).
+
+mkdir -p "$LOG_DIR"
+chmod 700 "$LOG_DIR" 2>/dev/null || true
+
+TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+LOG_FILE="$LOG_DIR/stress-${TIMESTAMP}.log"
+printf '# theme-stress-test run %s (switches=%s gap=%s)\n' "$TIMESTAMP" "$SWITCHES" "$GAP" > "$LOG_FILE"
+
+PASS=0
+FAIL=0
+current_switch_num="init"
+current_theme_name="<init>"
+
+check_or_abort() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        echo "  [PASS] $desc"
+        printf 'PASS\tswitch=%s\ttheme=%s\t%s\n' "$current_switch_num" "$current_theme_name" "$desc" >> "$LOG_FILE"
+        PASS=$((PASS + 1))
+    else
+        echo "  [FAIL] $desc"
+        printf 'FAIL\tswitch=%s\ttheme=%s\t%s\n' "$current_switch_num" "$current_theme_name" "$desc" >> "$LOG_FILE"
+        FAIL=$((FAIL + 1))
+        abort_with_diagnostics "$desc"
+    fi
+}
+
+# abort_with_diagnostics <failed-check-desc>
+# D-39: dump which check failed, at which switch, the applied theme name,
+# full theme-doctor output, and relevant state-dir file contents to the
+# log. set +e here — a diagnostics dump must not itself be cut short by a
+# secondary failure while collecting evidence for the primary one.
+abort_with_diagnostics() {
+    set +e
+    local failed_desc="$1"
+
+    {
+        echo ""
+        echo "ABORT: switch=${current_switch_num} theme=${current_theme_name} check=\"${failed_desc}\""
+        echo ""
+        echo "-- theme-doctor output --"
+        "$ENGINE_DIR/theme-doctor" 2>&1
+        echo ""
+        echo "-- state-dir file contents (representative set) --"
+        local f
+        for f in "${REPRESENTATIVE_FILES[@]:-}"; do
+            [[ -z "$f" ]] && continue
+            echo "### $STATE_DIR/$f ###"
+            cat "$STATE_DIR/$f" 2>&1
+            echo ""
+        done
+        echo "### $STATE_DIR/current-theme ###"
+        cat "$STATE_DIR/current-theme" 2>&1
+    } >> "$LOG_FILE" 2>&1
+
+    printf 'ABORT\tswitch=%s\ttheme=%s\tcheck=%s\n' "$current_switch_num" "$current_theme_name" "$failed_desc" >> "$LOG_FILE"
+
+    local notify_summary
+    notify_summary=$(printf 'Aborted at switch %s: %s failed.' "$current_switch_num" "$failed_desc" | head -c 200 | tr -d '\000-\011\013\014\016-\037')
+    notify-send -a "Theme Stress Test" "Error" "${notify_summary}" \
+        -i dialog-error -t 6000 2>/dev/null || true
+
+    echo "" >&2
+    echo "ABORTED: switch=${current_switch_num} theme=${current_theme_name}" >&2
+    echo "Failed check: ${failed_desc}" >&2
+    echo "Full diagnostics: ${LOG_FILE}" >&2
+    exit 1
+}
+
+# ── Reused check primitives (Don't-Hand-Roll — copied verbatim from the
+#    already-hardened patterns in lib/gtk.sh / lib/reload.sh / theme-doctor,
+#    never reimplemented) ─────────────────────────────────────────────────
+
+# Thunar-window-open detection (lib/gtk.sh lines 51-59).
+check_thunar_window_open() {
+    hyprctl clients -j 2>/dev/null \
+        | jq -e '[.[] | select(.class | ascii_downcase == "thunar")] | length > 0' \
+        >/dev/null 2>&1
+}
+
+check_walker_process() {
+    pgrep -x walker >/dev/null 2>&1
+}
+
+check_elephant_process() {
+    pgrep -x elephant >/dev/null 2>&1
+}
+
+# Walker D-Bus bus-name registration (lib/reload.sh lines 97-103,157-166).
+# Gracefully degrades (treated as satisfied) if busctl is unavailable, same
+# as lib/reload.sh's own `command -v busctl` guard.
+check_walker_busname() {
+    command -v busctl >/dev/null 2>&1 || return 0
+    busctl --user status "$BUS_NAME" >/dev/null 2>&1
+}
+
+check_elephant_listproviders() {
+    command -v elephant >/dev/null 2>&1 || return 1
+    elephant listproviders >/dev/null 2>&1
+}
+
+# check_theme_doctor
+# Runs theme-doctor and requires no [FAIL] line OTHER than the single,
+# already-accepted "elephant listproviders covers all configured walker
+# providers" gap. That gap was verified in Plan 02-01 (SUMMARY: "theme-
+# doctor's overall exit code is 1, not 0, both before and after this
+# plan's refactor — the single FAIL is a pre-existing, already-accepted
+# gap ... explicitly deferred to Phase 3's INST-01 verification loop per
+# user sign-off") and empirically re-confirmed at the start of this plan
+# (21 passed / 1 failed, exit 1, same single FAIL line). Requiring a
+# literal exit-0 here would make every single switch fail forever — this
+# mirrors RESEARCH.md's Pitfall 2 discipline (a blanket rule must not
+# flag an already-documented, intentional exception on every run). Any
+# OTHER [FAIL] line IS a real regression and aborts immediately.
+THEME_DOCTOR_OUTPUT=""
+check_theme_doctor() {
+    THEME_DOCTOR_OUTPUT="$("$ENGINE_DIR/theme-doctor" 2>&1)" || true
+    local unexpected
+    unexpected="$(printf '%s\n' "$THEME_DOCTOR_OUTPUT" \
+        | grep -c '^\s*\[FAIL\]' \
+        | tr -d '[:space:]')"
+    local accepted
+    accepted="$(printf '%s\n' "$THEME_DOCTOR_OUTPUT" \
+        | grep -c '^\s*\[FAIL\] elephant listproviders covers all configured walker providers' \
+        | tr -d '[:space:]')"
+    [[ "${unexpected:-0}" -le "${accepted:-0}" ]]
+}
+
+# get_expected_sentinel_normalized <theme-name>
+# For a static preset: the palette JSON's primary color (source of truth).
+# For materialyou: the FRESHLY-RENDERED primary, read from waybar.css —
+# not gtk-4.0-colors.css as the plan text names, since gtk-colors.css (the
+# shared template rendering BOTH gtk-3.0-colors.css and gtk-4.0-colors.css)
+# defines only accent_color/accent_bg_color (mapped from colors.primary),
+# never a literal "@define-color primary" name (verified empirically
+# against matugen/.config/matugen/templates/gtk-colors.css and the live
+# rendered gtk-4.0-colors.css this session — [Rule 1] deviation, see
+# SUMMARY). waybar.css DOES define "@define-color primary" verbatim and is
+# already committed to the live state dir by the time theme-apply returns
+# (D-14 atomic commit), so reading it here reflects the just-applied theme.
+get_expected_sentinel_normalized() {
+    local name="$1"
+    local raw=""
+    if [[ "$name" == "materialyou" ]]; then
+        raw="$(sed -nE 's/@define-color[[:space:]]+primary[[:space:]]+(.*);.*/\1/p' "$STATE_DIR/waybar.css" 2>/dev/null | head -1)"
+    else
+        raw="$(jq -r '.colors.primary.default.color' "$PALETTES_DIR/$name.json" 2>/dev/null)"
+    fi
+    [[ -n "$raw" ]] || return 1
+    contract_normalize_color "$raw"
+}
+
+# sentinel_present_in_file <expected-normalized-hex> <contract-filename>
+# Never a raw literal grep (Pitfall 1) — every extracted value is run
+# through contract_normalize_color before comparison, so hyprland.conf's
+# distinct rgba(RRGGBBAA)-no-comma format is checked on equal footing with
+# every @define-color / kitty-kv file.
+sentinel_present_in_file() {
+    local expected="$1"
+    local fname="$2"
+    local path="$STATE_DIR/$fname"
+    [[ -f "$path" ]] || return 1
+
+    local key val norm
+    while IFS=$'\t' read -r key val; do
+        norm="$(contract_normalize_color "$val" 2>/dev/null)" || continue
+        if [[ "$norm" == "$expected" ]]; then
+            return 0
+        fi
+    done < <(contract_extract_values "$fname" "$path")
+    return 1
+}
+
+# Representative set of state-dir files for the per-switch sentinel check
+# (D-36) — spans both format families that actually carry a literal
+# "primary"-named/keyed value (gtk-css: waybar.css/swaync.css/wlogout.css;
+# hypr-vars: hyprland.conf — REQUIRED, Pitfall 1's exact target) plus two
+# files where the primary VALUE appears under a different key name
+# (gtk-4.0-colors.css's accent_color; kitty.conf's color4/color12/cursor) —
+# confirming the sentinel is checked by value, not by name, across formats.
+REPRESENTATIVE_FILES=(hyprland.conf waybar.css swaync.css wlogout.css gtk-4.0-colors.css kitty.conf)
+
+echo "theme-stress-test — ${SWITCHES}-switch reliability run (gap=${GAP}s) — ${TIMESTAMP}"
+echo ""
+
+# ── Preconditions (D-34) ────────────────────────────────────────────────
+echo "-- Preconditions --"
+current_switch_num="pre"
+current_theme_name="<precondition>"
+
+if ! check_thunar_window_open; then
+    setsid uwsm app -- thunar >/dev/null 2>&1 </dev/null &
+    disown
+fi
+
+waited=0
+while ! check_thunar_window_open && (( waited < 50 )); do
+    sleep 0.1
+    waited=$((waited + 1))
+done
+
+if check_thunar_window_open; then thunar_pre_rc=0; else thunar_pre_rc=1; fi
+check_or_abort "precondition: Thunar window open" "$thunar_pre_rc"
+
+if check_walker_process; then rc=0; else rc=1; fi
+check_or_abort "precondition: walker process running" "$rc"
+
+if check_walker_busname; then rc=0; else rc=1; fi
+check_or_abort "precondition: walker bus-name ($BUS_NAME) registered" "$rc"
+
+if check_elephant_process; then rc=0; else rc=1; fi
+check_or_abort "precondition: elephant process running" "$rc"
+
+if check_elephant_listproviders; then rc=0; else rc=1; fi
+check_or_abort "precondition: elephant listproviders responds" "$rc"
+
+# ── Build the alternating switch sequence (D-31/D-33) ───────────────────
+# Odd positions: next static preset from the rotation, in order. Even
+# positions: materialyou. Wallpaper is never touched anywhere in this
+# script — materialyou switches reuse whatever wallpaper is already
+# current (D-33); there is no wallpaper-picker call or matugen image-
+# source change anywhere in this file.
+SEQUENCE=()
+static_idx=0
+for (( i = 1; i <= SWITCHES; i++ )); do
+    if (( i % 2 == 1 )); then
+        SEQUENCE+=("${STATIC_PRESETS[$(( static_idx % ${#STATIC_PRESETS[@]} ))]}")
+        static_idx=$((static_idx + 1))
+    else
+        SEQUENCE+=("materialyou")
+    fi
+done
+
+# ── Switch loop (D-32/D-35/D-36/D-38/D-39) ──────────────────────────────
+echo ""
+echo "-- Switch sequence: ${SEQUENCE[*]} --"
+
+for (( i = 1; i <= SWITCHES; i++ )); do
+    current_switch_num="$i"
+    current_theme_name="${SEQUENCE[$((i - 1))]}"
+
+    echo ""
+    echo "== Switch #${i}/${SWITCHES}: applying '${current_theme_name}' =="
+
+    # Drives the REAL entrypoint (D-44) — the same call the picker and
+    # login init use. No reimplemented render/reload here.
+    if "$ENGINE_DIR/theme-apply" "$current_theme_name"; then apply_rc=0; else apply_rc=1; fi
+    check_or_abort "switch #${i}: theme-apply ${current_theme_name} succeeded" "$apply_rc"
+
+    # (a) theme-doctor pass (baseline-aware — see check_theme_doctor above)
+    if check_theme_doctor; then rc=0; else rc=1; fi
+    check_or_abort "switch #${i}: theme-doctor passes (no new failures beyond the accepted elephant-provider gap)" "$rc"
+
+    # (b) format-normalized sentinel-color match (Pitfall 1)
+    expected_sentinel=""
+    if ! expected_sentinel="$(get_expected_sentinel_normalized "$current_theme_name")"; then
+        expected_sentinel=""
+    fi
+    if [[ -n "$expected_sentinel" ]]; then sentinel_extract_rc=0; else sentinel_extract_rc=1; fi
+    check_or_abort "switch #${i}: sentinel color extracted for ${current_theme_name}" "$sentinel_extract_rc"
+
+    for fname in "${REPRESENTATIVE_FILES[@]}"; do
+        if sentinel_present_in_file "$expected_sentinel" "$fname"; then rc=0; else rc=1; fi
+        check_or_abort "switch #${i}: sentinel (${expected_sentinel}) present in ${fname} (normalized)" "$rc"
+    done
+
+    # (c) walker+elephant liveness incl. bus-name registration (D-38)
+    if check_walker_process; then rc=0; else rc=1; fi
+    check_or_abort "switch #${i}: walker process running" "$rc"
+
+    if check_walker_busname; then rc=0; else rc=1; fi
+    check_or_abort "switch #${i}: walker bus-name ($BUS_NAME) registered" "$rc"
+
+    if check_elephant_process; then rc=0; else rc=1; fi
+    check_or_abort "switch #${i}: elephant process running" "$rc"
+
+    if check_elephant_listproviders; then rc=0; else rc=1; fi
+    check_or_abort "switch #${i}: elephant listproviders responds" "$rc"
+
+    if (( i < SWITCHES )); then
+        echo "  (settling ${GAP}s before next switch...)"
+        sleep "$GAP"
+    fi
+done
+
+# ── Postconditions (D-34) ────────────────────────────────────────────────
+echo ""
+echo "-- Postconditions (after switch #${SWITCHES}) --"
+current_switch_num="post"
+current_theme_name="${SEQUENCE[$((SWITCHES - 1))]}"
+
+if check_thunar_window_open; then rc=0; else rc=1; fi
+check_or_abort "postcondition: Thunar window still open" "$rc"
+
+if check_walker_process; then rc=0; else rc=1; fi
+check_or_abort "postcondition: walker process still running" "$rc"
+
+if check_walker_busname; then rc=0; else rc=1; fi
+check_or_abort "postcondition: walker bus-name ($BUS_NAME) still registered" "$rc"
+
+if check_elephant_process; then rc=0; else rc=1; fi
+check_or_abort "postcondition: elephant process still running" "$rc"
+
+if check_elephant_listproviders; then rc=0; else rc=1; fi
+check_or_abort "postcondition: elephant listproviders still responds" "$rc"
+
+echo ""
+echo "Summary: ${PASS} passed, ${FAIL} failed"
+printf 'SUMMARY\t%s passed, %s failed\n' "$PASS" "$FAIL" >> "$LOG_FILE"
+
+notify-send -a "Theme Stress Test" "Complete" \
+    "${SWITCHES} switches passed with zero failures. Log: $(basename "$LOG_FILE")" \
+    -i preferences-desktop-theme -t 5000 2>/dev/null || true
+
+exit 0
