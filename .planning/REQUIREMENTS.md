@@ -12,17 +12,17 @@ Requirements for the bug-fix milestone. Each maps to roadmap phases.
 - [ ] **THEME-01**: Walker follows theme switches (static and dynamic) — no more stuck-white launcher
 - [ ] **THEME-02**: Thunar follows theme switches with full GTK3 palette (adw-gtk-theme installed and applied)
 - [ ] **THEME-03**: GTK4/libadwaita apps follow dark/light mode + accent color, with best-effort `gtk-4.0/gtk.css` overrides (documented as the realistic ceiling)
-- [ ] **THEME-04**: Waybar re-themes correctly on switch, verified in both static and dynamic modes
-- [ ] **THEME-05**: Swaync re-themes correctly on switch, verified in both static and dynamic modes
-- [ ] **THEME-06**: One theme switch updates every visible app live — no relogin or session restart required
+- [x] **THEME-04**: Waybar re-themes correctly on switch, verified in both static and dynamic modes
+- [x] **THEME-05**: Swaync re-themes correctly on switch, verified in both static and dynamic modes
+- [x] **THEME-06**: One theme switch updates every visible app live — no relogin or session restart required
 
 ### Pipeline Consolidation
 
-- [ ] **PIPE-01**: One shared theme engine (single apply-theme entrypoint + shared reload library) used by both the interactive switcher and login init — no duplicated orchestration
-- [ ] **PIPE-02**: Reload fan-out is owned by exactly one place (matugen post_hooks OR the shared reload script, not both)
-- [ ] **PIPE-03**: Matugen generated output lives outside the stowed git tree; app configs import from the generated location
+- [x] **PIPE-01**: One shared theme engine (single apply-theme entrypoint + shared reload library) used by both the interactive switcher and login init — no duplicated orchestration
+- [x] **PIPE-02**: Reload fan-out is owned by exactly one place (matugen post_hooks OR the shared reload script, not both)
+- [x] **PIPE-03**: Matugen generated output lives outside the stowed git tree; app configs import from the generated location
 - [ ] **PIPE-04**: Static presets and matugen dynamic themes produce an identical output contract (same canonical paths, same variable names) through one pipeline
-- [ ] **PIPE-05**: `GTK_THEME` and related theme env vars consolidated to a single source of truth
+- [x] **PIPE-05**: `GTK_THEME` and related theme env vars consolidated to a single source of truth
 - [ ] **PIPE-06**: Repeated theme switching is reliable (stress test: 10 consecutive switches with Thunar/Walker open, 100% correct result)
 
 ### Bug Scan
@@ -89,13 +89,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | THEME-01 | Phase 1 | Pending |
 | THEME-02 | Phase 1 | Pending |
 | THEME-03 | Phase 1 | Pending |
-| THEME-04 | Phase 1 | Pending |
-| THEME-05 | Phase 1 | Pending |
-| THEME-06 | Phase 1 | Pending |
-| PIPE-01 | Phase 1 | Pending |
-| PIPE-02 | Phase 1 | Pending |
-| PIPE-03 | Phase 1 | Pending |
-| PIPE-05 | Phase 1 | Pending |
+| THEME-04 | Phase 1 | Complete |
+| THEME-05 | Phase 1 | Complete |
+| THEME-06 | Phase 1 | Complete |
+| PIPE-01 | Phase 1 | Complete |
+| PIPE-02 | Phase 1 | Complete |
+| PIPE-03 | Phase 1 | Complete |
+| PIPE-05 | Phase 1 | Complete |
 | SCAN-01 | Phase 1 | Complete |
 | SCAN-02 | Phase 1 | Complete |
 | PIPE-04 | Phase 2 | Pending |

@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A single theme switch updates every visible app at once, with no relogin or session restart required.
   5. The same theme applies identically whether triggered from the interactive picker or at login (one shared entrypoint, one reload owner, one GTK_THEME source), and a documented full-repo audit records findings across the theme pipeline, hyprland/keybinds/uwsm config, stow, and install scripts.
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 
 Plans:
 **Wave 1**
@@ -42,7 +42,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Consolidated theme engine: shared theme-apply entrypoint, single-rendering-path palettes, atomic apply, single reload owner, outputs out of the git tree, single GTK theme env source
+- [x] 01-02-PLAN.md — Consolidated theme engine: shared theme-apply entrypoint, single-rendering-path palettes, atomic apply, single reload owner, outputs out of the git tree, single GTK theme env source
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -94,6 +94,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Root-Cause Fix & Consolidated Theme Engine | 1/3 | In Progress|  |
+| 1. Root-Cause Fix & Consolidated Theme Engine | 2/3 | In Progress|  |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | 0/1 | Not started | - |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | 0/2 | Not started | - |

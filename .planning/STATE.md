@@ -6,14 +6,14 @@ current_phase: 01
 current_phase_name: root-cause-fix-consolidated-theme-engine
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-07-07T17:03:15.720Z"
+last_updated: "2026-07-07T17:30:25.789Z"
 last_activity: 2026-07-07
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 01 (root-cause-fix-consolidated-theme-engine) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-07 — Phase 01 execution started
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01 P01 | 25min | 2 tasks | 2 files |
+| Phase 01 P02 | 40min | 3 tasks | 27 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - Roadmap: Full-repo bug audit (SCAN-01) placed in Phase 1 as foundational discovery to break the patch-without-diagnosing loop (8+ prior failed fix commits).
 - [Phase 01]: elephant-runner/websearch/files added to install.sh AUR array — all three verified via paru -Si (RESEARCH A2 confirmed)
 - [Phase 01]: elephant-providerlist silent install failure and menus-provider-inactive anomaly deferred to Phase 3 INST-01 verification loop
+- [Phase 01]: 01-02: matugen 4.1.0 never populates colors.image in EITHER json or image render mode (correction to 01-RESEARCH.md) - hardcoded a blank $image in the hyprland template since hyprlock theming is out of scope this milestone
+- [Phase 01]: 01-02: walker-restart.sh/walker-theme-gen.sh/gtk-reload.sh/vscodium-theme.sh left on disk unreferenced - Plan 01-03 explicitly owns their retirement
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T17:02:25.402Z
+Last session: 2026-07-07T17:29:36.804Z
 Stopped at: Phase 1 context gathered
 Resume file: .planning/phases/01-root-cause-fix-consolidated-theme-engine/01-CONTEXT.md
