@@ -27,6 +27,8 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - ✓ One theme switch updates every visible app instantly, no relogin — all ten targets human-verified — Validated in Phase 1
 - ✓ Both static preset and matugen dynamic themes run through one `theme-apply` pipeline — Validated in Phase 1
 - ✓ Full-repo bug scan (AUDIT.md) — Validated in Phase 1
+- ✓ Static presets and matugen dynamic themes proven one pipeline — identical file structure, variable name-sets, well-formed values across all 7 render targets (`contract.json` + `theme-parity`, 217/217 green) — Validated in Phase 2
+- ✓ Repeated switching stays correct: 10 consecutive static↔dynamic switches with Thunar and Walker open leave every app correctly themed (`theme-stress-test` D-41 clean gate 140/140 + human visual sign-off) — Validated in Phase 2
 
 ### Active
 
@@ -54,7 +56,8 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - **Repo layout:** one stow package per app (`hypr/`, `kitty/`, `walker/`, `thunar/`, `gtk/`, `waybar/`, `swaync/`, `matugen/`, `themes/`, `wallpapers/`, `uwsm/`, `vscodium/`, `yazi/`, `zshell/`, `fastfetch/`, `wlogout/`, `wofi/` (dead)), plus `install.sh` and `stow.sh` at the root.
 - **Theming pipeline:** matugen (`matugen/.config/matugen/config.toml` + templates) generates colors from wallpaper; custom scripts toggle between static preset themes and dynamic matugen themes.
 - **Current state:** Phase 1 complete (2026-07-07) — consolidated `theme-engine/` stow package owns rendering (matugen templates → `~/.local/state/theme/`) and the single reload fan-out; all ten targets (Hyprland, waybar, kitty, swaync, wlogout, Thunar/GTK3, GTK4, walker, yazi, vscodium) re-theme live in both static and dynamic modes, human-verified. Root cause of the historic stuck-white bug: the `adw-gtk3` package name in install.sh never existed — the real package is `adw-gtk-theme`.
-- **Known deferred:** elephant provider gap (files/menus/providerlist/runner/websearch) and install.sh fresh-install breakers (missing rsync dep, orphan-cleanup abort) → Phase 3 INST-01.
+- **Current state (Phase 2):** Phase 2 complete (2026-07-07) — parity and switch reliability proven. `contract.json` is the single source of truth for the render-target file list (consumed by both `theme-doctor` and `theme-parity`); `theme-stress-test` drives real 10-switch static↔dynamic runs as a rerunnable regression gate. One reliability bug found and fixed in-scope (D-40: `lib/commit.sh` rsync `--delete` wiped `logs/` on every switch).
+- **Known deferred:** elephant provider gap (files/menus/providerlist/runner/websearch) and install.sh fresh-install breakers (missing rsync dep, orphan-cleanup abort) → Phase 3 INST-01. Advisory hardening of the new verification tooling (extraction false-pass paths, CR-01/WR-01 in 02-REVIEW.md) — non-blocking, verifier confirmed current passes are genuine.
 - **Uncommitted work in tree:** modifications to hypr keybinds/config, install.sh, zshrc, current wallpaper; untracked claude-code-url-handler.desktop and screenshots directory.
 
 ## Constraints
@@ -90,4 +93,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-07 after Phase 1 completion*
+*Last updated: 2026-07-08 after Phase 2 completion*
