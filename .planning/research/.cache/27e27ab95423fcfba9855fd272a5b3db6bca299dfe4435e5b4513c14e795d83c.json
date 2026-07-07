@@ -1,0 +1,1 @@
+{"content":"Waybar hot-reloads style.css on SIGUSR2 or automatically with 'reload_style_on_change': true in bar config. Config.jsonc changes always require full restart. Known bug: tooltip CSS sometimes not fully refreshed via SIGUSR2.","source":"web","provider":"websearch","confidence":"LOW","fetched_at":"2026-07-07T03:44:39.422Z","ttl":86400000,"kind":"web"}

@@ -1,0 +1,1 @@
+{"content":"GTK3 apps read ~/.config/gtk-3.0/gtk.css as a user override at startup only; there is no live-reload API. Changing settings.ini or gtk.css requires restarting the GTK3 process (e.g. Thunar) to see changes.","source":"web","provider":"websearch","confidence":"LOW","fetched_at":"2026-07-07T03:44:39.161Z","ttl":86400000,"kind":"web"}
