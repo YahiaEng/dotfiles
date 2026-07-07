@@ -24,7 +24,7 @@ theme_engine_reload() {
     # ── Walker: restart-only, no hotreload_theme key exists in
     #    walker 2.16.2 (Pitfall W1) — hardened kill/relaunch with a
     #    bounded poll for process exit and an elephant health check
-    #    before declaring success, folding in walker-restart.sh's logic.
+    #    before declaring success, fully inlined below.
     theme_engine_reload_walker
 
     # ── VSCodium: both static and dynamic modes now render
@@ -36,11 +36,16 @@ theme_engine_reload() {
 
 theme_engine_reload_walker() {
     local walker_dir="$HOME/.config/walker/themes/rice"
+    local elephant_sock="/run/user/$(id -u)/elephant/elephant.sock"
 
     if [[ ! -f "$walker_dir/style.css" ]]; then
         notify-send -a "Walker" "Warning" "style.css missing after commit — check theme-doctor" -t 2000 2>/dev/null || true
     fi
 
+    # Walker 2.16.2 has no theme hot-reload key (RESEARCH Pitfall W1,
+    # verified against src/config.rs at the exact installed tag) — restart
+    # is the ONLY mechanism. Do not set any hotreload/hot_reload/live_reload
+    # theme key anywhere in this engine.
     killall -q walker 2>/dev/null || true
 
     local waited=0
@@ -49,27 +54,49 @@ theme_engine_reload_walker() {
         (( waited++ ))
     done
     if pgrep -x walker >/dev/null 2>&1; then
+        # Bounded poll exhausted (T-03-01) — fall through to a forced kill
+        # rather than hang the switch on a process that never exits.
         killall -q -9 walker 2>/dev/null || true
     fi
 
     rm -f "/run/user/$(id -u)/walker/walker.sock" 2>/dev/null || true
+
+    # ── Elephant health gate (SCAN-02, D-25, T-03-02) ──────────────────
+    # Verify the backend is healthy — socket present AND `elephant version`
+    # responds — BEFORE relaunching walker, so a stale/mismatched elephant
+    # is never mistaken for a themed walker (Pitfall W2: 3 configured
+    # providers already have no installed elephant package on this repo).
+    # Bounded poll, never a fixed sleep; falls through to relaunch after
+    # the cap (T-03-01) instead of hanging the switch on a dead elephant —
+    # theme-doctor remains the authoritative post-hoc health check (D-25).
+    if command -v elephant >/dev/null 2>&1; then
+        local hwaited=0
+        while { [[ ! -S "$elephant_sock" ]] || ! elephant version >/dev/null 2>&1; } && (( hwaited < 20 )); do
+            sleep 0.1
+            (( hwaited++ ))
+        done
+
+        if [[ -S "$elephant_sock" ]] && elephant version >/dev/null 2>&1; then
+            # No documented version-pin/compatibility matrix exists between
+            # walker and elephant (RESEARCH "Version compatibility" table —
+            # both are independently versioned by the same upstream author,
+            # no pin mechanism in install.sh). A responsive `elephant
+            # version` is the practical compatibility signal available;
+            # log both for diagnostics.
+            local elephant_v walker_v
+            elephant_v=$(elephant version 2>/dev/null)
+            walker_v=$(walker --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            : "${elephant_v:=unknown}" "${walker_v:=unknown}"
+        else
+            notify-send -a "Walker" "Warning" "elephant backend not healthy — launcher may show stale/empty results (see theme-doctor)" -t 3000 2>/dev/null || true
+        fi
+    fi
 
     # Fully detach: redirect stdio away from theme-apply's own descriptors
     # so a long-running walker daemon never holds a caller's pipe open
     # (e.g. when theme-apply is invoked from a script that captures output).
     setsid uwsm app -- walker --gapplication-service >/dev/null 2>&1 </dev/null &
     disown
-
-    # Bounded poll for elephant health after relaunch — best-effort, never
-    # blocks theme-apply's success on this (walker itself may still be
-    # starting up; theme-doctor is the authoritative health check, D-25).
-    if command -v elephant >/dev/null 2>&1; then
-        local ewaited=0
-        while ! elephant listproviders >/dev/null 2>&1 && (( ewaited < 20 )); do
-            sleep 0.1
-            (( ewaited++ ))
-        done
-    fi
 }
 
 theme_engine_reload_vscodium() {

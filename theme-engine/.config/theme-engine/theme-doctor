@@ -67,14 +67,71 @@ else
     echo "  [SKIP] stow -n theme-engine (stow or $DOTFILES_DIR/theme-engine not found)"
 fi
 
-# ── elephant presence (full provider-parity check is Phase 3's
-#    SCAN-02 follow-up, INST-01 — this is a presence stub only) ──
+# ── walker/elephant health + version-match + provider parity ───────
+#    (THEME-01, SCAN-02, D-25). No documented version-pin/compat matrix
+#    exists between walker and elephant (RESEARCH "Version compatibility"
+#    table — both are independently versioned by the same upstream
+#    author, no pin mechanism in install.sh); a responsive `elephant
+#    version` alongside a running walker binary is the practical
+#    compatibility signal available.
+WALKER_CONFIG="$HOME/.config/walker/config.toml"
+
 if command -v elephant >/dev/null 2>&1; then
+    ELEPHANT_VERSION=$(elephant version 2>/dev/null)
+    [[ -n "$ELEPHANT_VERSION" ]]
+    check "elephant version responds (got: ${ELEPHANT_VERSION:-<empty>})" "$?"
+
     elephant listproviders >/dev/null 2>&1
     check "elephant listproviders responds" "$?"
 else
     echo "  [FAIL] elephant binary not found"
     FAIL=$((FAIL + 1))
+    echo "  [FAIL] elephant listproviders responds"
+    FAIL=$((FAIL + 1))
+fi
+
+if command -v walker >/dev/null 2>&1; then
+    WALKER_VERSION=$(walker --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    [[ -n "$WALKER_VERSION" ]]
+    check "walker version responds (got: ${WALKER_VERSION:-<empty>})" "$?"
+else
+    echo "  [FAIL] walker binary not found"
+    FAIL=$((FAIL + 1))
+fi
+
+pgrep -x walker >/dev/null 2>&1
+check "walker process running" "$?"
+
+pgrep -x elephant >/dev/null 2>&1
+check "elephant process running" "$?"
+
+# Provider parity: compare `elephant listproviders` (active) against every
+# provider walker/config.toml actually references — the `[providers]
+# default` array and every `[[providers.prefixes]]` entry (Pitfall W2).
+# A non-empty gap here is expected/known until Phase 3's INST-01 install
+# verification loop lands (AUDIT.md findings #7/#19/#20) — this check
+# reports the gap, it does not attempt to fix it (no package installs
+# happen in this plan).
+if command -v elephant >/dev/null 2>&1 && [[ -f "$WALKER_CONFIG" ]]; then
+    ACTIVE_PROVIDERS=$(elephant listproviders 2>/dev/null)
+    CONFIGURED_PROVIDERS=$(awk '
+        /^default[[:space:]]*=[[:space:]]*\[/{inarr=1}
+        inarr{print}
+        inarr && /\]/{inarr=0}
+        /provider[[:space:]]*=[[:space:]]*"/{print}
+    ' "$WALKER_CONFIG" | grep -oE '"[a-zA-Z_]+"' | tr -d '"' | sort -u)
+
+    MISSING=""
+    for p in $CONFIGURED_PROVIDERS; do
+        if ! printf '%s\n' "$ACTIVE_PROVIDERS" | grep -qx "$p"; then
+            MISSING="$MISSING $p"
+        fi
+    done
+    MISSING="$(echo "$MISSING" | xargs)"
+    [[ -z "$MISSING" ]]
+    check "elephant listproviders covers all configured walker providers (missing: ${MISSING:-none})" "$?"
+else
+    echo "  [SKIP] elephant/walker provider parity ($WALKER_CONFIG or elephant not found)"
 fi
 
 echo ""
