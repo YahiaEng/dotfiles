@@ -59,7 +59,45 @@ theme_engine_gtk_reload() {
         fi
 
         if [[ "$thunar_has_window" == "1" ]]; then
-            notify-send -a "Thunar" "Notice" "New theme applied. Open Thunar window(s) will refresh after being closed and reopened." -t 3000 2>/dev/null || true
+            # Deviation, fix(01-03) round 2: the notify-and-skip branch
+            # used to leave the daemon stale INDEFINITELY — nothing ever
+            # re-fired the restart once the window closed, so Thunar kept
+            # serving the CSS baseline from whatever theme was active when
+            # the window was first opened, no matter how many switches
+            # happened afterward. Fixed by spawning ONE detached watcher
+            # that polls until no Thunar window remains, then performs the
+            # same bounded quit/relaunch as the immediate path below.
+            notify-send -a "Thunar" "Notice" "New theme applied. Thunar will refresh automatically once all windows are closed." -t 3000 2>/dev/null || true
+
+            local runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+            local lock_dir="$runtime_dir/theme-engine-thunar-watcher.lock"
+
+            # Self-heal a stale lock (e.g. left behind by a killed/crashed
+            # prior watcher) before attempting to acquire it, so a single
+            # bad run can't permanently block future deferred restarts.
+            if [[ -d "$lock_dir" ]]; then
+                local existing_pid=""
+                [[ -f "$lock_dir/pid" ]] && existing_pid=$(cat "$lock_dir/pid" 2>/dev/null)
+                if [[ -z "$existing_pid" ]] || ! kill -0 "$existing_pid" 2>/dev/null; then
+                    rm -rf "$lock_dir" 2>/dev/null || true
+                fi
+            fi
+
+            # `mkdir` is atomic, so this doubles as a dedupe lock: if a
+            # watcher from an EARLIER switch is still polling, do not
+            # stack a second one. The single existing watcher already
+            # covers this newer switch too — it re-reads Thunar's window
+            # state and, when it finally restarts the daemon, always picks
+            # up whatever CSS is CURRENT in ~/.local/state/theme/ at that
+            # moment (after commit.sh's atomic move), never a stale
+            # snapshot from when it was first spawned. No cancel/replace
+            # logic is needed for correctness — only for not wasting a
+            # redundant background process.
+            if mkdir "$lock_dir" 2>/dev/null; then
+                export -f theme_engine_thunar_deferred_watcher 2>/dev/null || true
+                setsid bash -c "theme_engine_thunar_deferred_watcher '$lock_dir'" >/dev/null 2>&1 </dev/null &
+                disown
+            fi
         else
             # Bounded poll instead of a fixed sleep for the exit wait
             # (Don't-Hand-Roll table); falls through to a forced kill
@@ -70,7 +108,7 @@ theme_engine_gtk_reload() {
             local waited=0
             while pgrep -x thunar >/dev/null 2>&1 && (( waited < 20 )); do
                 sleep 0.1
-                (( waited++ ))
+                waited=$(( waited + 1 ))
             done
             if pgrep -x thunar >/dev/null 2>&1; then
                 killall -q -9 thunar 2>/dev/null || true
@@ -83,6 +121,72 @@ theme_engine_gtk_reload() {
             disown
         fi
     fi
+}
+
+# theme_engine_thunar_deferred_watcher — deviation, fix(01-03) round 2.
+# Runs fully detached (setsid, own bash -c invocation via `export -f` so
+# it survives theme-apply's own process exiting). Polls Thunar's window
+# state every 5s until no window remains, then performs the identical
+# bounded quit/relaunch as the immediate restart path above, so the
+# daemon never stays stale past the point the user closes their last
+# Thunar window. Bounded to ~60 minutes total (T-03-01) so a window left
+# open indefinitely cannot leave a watcher process running forever — the
+# daemon simply stays on the old palette until the NEXT theme switch
+# re-arms a fresh watcher, same graceful-degradation shape as the rest of
+# this engine's bounded polls.
+#
+# Accepted race (documented, not fixed): if a NEW Thunar window opens in
+# the instant between this watcher's "no window" check and the
+# `thunar --quit` call below, that window is closed along with the
+# daemon — the same inherent limitation noted in theme_engine_gtk_reload
+# above (Thunar has no separate daemon-only PID to target once a window
+# is attached). Narrow window, accepted for a personal single-user
+# desktop; not worth a second, more invasive detection layer.
+theme_engine_thunar_deferred_watcher() {
+    local lock_dir="$1"
+    echo $$ > "$lock_dir/pid" 2>/dev/null || true
+
+    local max_polls=720
+    local n=0
+    while (( n < max_polls )); do
+        if ! pgrep -x thunar >/dev/null 2>&1; then
+            # Thunar exited entirely on its own (e.g. user quit it) —
+            # nothing left to restart; the next `thunar --daemon` launch
+            # (ours or a future window) picks up fresh CSS naturally.
+            break
+        fi
+
+        local still_open=0
+        if command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+            if hyprctl clients -j 2>/dev/null \
+                | jq -e '[.[] | select(.class | ascii_downcase == "thunar")] | length > 0' \
+                >/dev/null 2>&1; then
+                still_open=1
+            fi
+        fi
+
+        if [[ "$still_open" == "0" ]]; then
+            thunar --quit 2>/dev/null || true
+
+            local waited=0
+            while pgrep -x thunar >/dev/null 2>&1 && (( waited < 20 )); do
+                sleep 0.1
+                waited=$(( waited + 1 ))
+            done
+            if pgrep -x thunar >/dev/null 2>&1; then
+                killall -q -9 thunar 2>/dev/null || true
+            fi
+
+            setsid uwsm app -- thunar --daemon >/dev/null 2>&1 </dev/null &
+            disown
+            break
+        fi
+
+        sleep 5
+        n=$(( n + 1 ))
+    done
+
+    rm -rf "$lock_dir" 2>/dev/null || true
 }
 
 # theme_engine_gtk4_accent — best-effort GTK4/libadwaita accent-color
