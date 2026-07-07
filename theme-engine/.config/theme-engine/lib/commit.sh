@@ -27,7 +27,22 @@ theme_engine_commit() {
 
     # Atomic replace: state dir contents only change here, in one step,
     # after a fully successful render (D-14).
-    rsync -a --delete "$rendered_dir"/ "$STATE_DIR"/
+    #
+    # Deviation (fix, Plan 02-02 Task 2, D-40): --exclude=logs/ is
+    # required. Without it, a bare `rsync -a --delete` treats
+    # $STATE_DIR/logs/ (added in Plan 02-01 by theme-parity, D-45) as an
+    # extraneous destination path not present in $rendered_dir (matugen
+    # never renders a logs/ subdirectory — it is not part of the output
+    # contract) and DELETES it whole on every single theme-apply commit —
+    # silently destroying theme-parity's and theme-stress-test's entire
+    # regression-log history on the very next real theme switch.
+    # Reproduced empirically this round: a 2-switch theme-stress-test run
+    # had its own in-progress log file deleted out from under it after
+    # switch #1's commit. logs/ is the only engine-owned, non-render-
+    # contract subdirectory that must survive a commit; excluding it by
+    # name is the minimal, correct fix (no new process/sync logic
+    # invented).
+    rsync -a --delete --exclude=logs/ "$rendered_dir"/ "$STATE_DIR"/
 
     # rsync -a syncs the destination directory's own mode from the source
     # (matugen creates $rendered_dir with the process umask, typically
