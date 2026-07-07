@@ -128,6 +128,15 @@ PACMAN_PKGS=(
     zip
     unzip
     libreoffice-fresh
+    obsidian
+
+    # DevOps
+    ansible
+    aws-cli-v2
+    kubectl
+    github-cli
+    vault
+    terraform
 )
 
 echo "Installing pacman packages..."
@@ -225,6 +234,9 @@ sudo rm /boot/limine/limine.conf
 sudo limine-install --fallback
 sudo limine-update
 sudo limine-scan
+
+# ── Set Time Zone ────────────────────────────────
+sudo timedatectl set-timezone Africa/Cairo
 
 echo "Next steps:"
 echo "  1. Run './stow.sh' to set up symlinks"
