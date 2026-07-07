@@ -13,7 +13,7 @@ This milestone fixes the theming pipeline that is the project's entire premise: 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Root-Cause Fix & Consolidated Theme Engine** - Eliminate the stuck-white root cause, unify orchestration, make every app re-theme live
+- [x] **Phase 1: Root-Cause Fix & Consolidated Theme Engine** - Eliminate the stuck-white root cause, unify orchestration, make every app re-theme live (completed 2026-07-07)
 - [ ] **Phase 2: Static ↔ Dynamic Parity & Switch Reliability** - Prove both modes are one pipeline and survive repeated switching
 - [ ] **Phase 3: Repo Cleanup & Fresh-Install Reproducibility** - Remove dead configs and verify the themed desktop reproduces from scratch
 
@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A single theme switch updates every visible app at once, with no relogin or session restart required.
   5. The same theme applies identically whether triggered from the interactive picker or at login (one shared entrypoint, one reload owner, one GTK_THEME source), and a documented full-repo audit records findings across the theme pipeline, hyprland/keybinds/uwsm config, stow, and install scripts.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -46,7 +46,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — Per-app live re-theme: hardened restart-based Walker reload (no hotreload key exists) + elephant health, daemon-only Thunar restart, GTK4 dark/accent, all-ten end-to-end verify (static + dynamic)
+- [x] 01-03-PLAN.md — Per-app live re-theme: hardened restart-based Walker reload (no hotreload key exists) + elephant health, daemon-only Thunar restart, GTK4 dark/accent, all-ten end-to-end verify (static + dynamic)
 
 ### Phase 2: Static ↔ Dynamic Parity & Switch Reliability
 
@@ -94,6 +94,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Root-Cause Fix & Consolidated Theme Engine | 2/3 | In Progress|  |
+| 1. Root-Cause Fix & Consolidated Theme Engine | 3/3 | Complete   | 2026-07-07 |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | 0/1 | Not started | - |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | 0/2 | Not started | - |

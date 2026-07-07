@@ -9,9 +9,9 @@ Requirements for the bug-fix milestone. Each maps to roadmap phases.
 
 ### Theme Propagation
 
-- [ ] **THEME-01**: Walker follows theme switches (static and dynamic) — no more stuck-white launcher
-- [ ] **THEME-02**: Thunar follows theme switches with full GTK3 palette (adw-gtk-theme installed and applied)
-- [ ] **THEME-03**: GTK4/libadwaita apps follow dark/light mode + accent color, with best-effort `gtk-4.0/gtk.css` overrides (documented as the realistic ceiling)
+- [x] **THEME-01**: Walker follows theme switches (static and dynamic) — no more stuck-white launcher
+- [x] **THEME-02**: Thunar follows theme switches with full GTK3 palette (adw-gtk-theme installed and applied)
+- [x] **THEME-03**: GTK4/libadwaita apps follow dark/light mode + accent color, with best-effort `gtk-4.0/gtk.css` overrides (documented as the realistic ceiling)
 - [x] **THEME-04**: Waybar re-themes correctly on switch, verified in both static and dynamic modes
 - [x] **THEME-05**: Swaync re-themes correctly on switch, verified in both static and dynamic modes
 - [x] **THEME-06**: One theme switch updates every visible app live — no relogin or session restart required
@@ -86,9 +86,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| THEME-01 | Phase 1 | Pending |
-| THEME-02 | Phase 1 | Pending |
-| THEME-03 | Phase 1 | Pending |
+| THEME-01 | Phase 1 | Complete |
+| THEME-02 | Phase 1 | Complete |
+| THEME-03 | Phase 1 | Complete |
 | THEME-04 | Phase 1 | Complete |
 | THEME-05 | Phase 1 | Complete |
 | THEME-06 | Phase 1 | Complete |

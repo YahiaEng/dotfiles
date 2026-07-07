@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 01
 current_phase_name: root-cause-fix-consolidated-theme-engine
-status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-07-07T17:30:25.789Z"
+status: verifying
+stopped_at: Plan 01-03 complete — Phase 1 execution done, all ten targets human-verified in both static and dynamic modes; phase awaiting verification
+last_updated: "2026-07-07T19:34:20.979Z"
 last_activity: 2026-07-07
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 33
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 
 Phase: 01 (root-cause-fix-consolidated-theme-engine) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-07 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 01 P01 | 25min | 2 tasks | 2 files |
 | Phase 01 P02 | 40min | 3 tasks | 27 files |
+| Phase 01 P03 | multi-session | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,11 @@ Recent decisions affecting current work:
 - [Phase 01]: elephant-providerlist silent install failure and menus-provider-inactive anomaly deferred to Phase 3 INST-01 verification loop
 - [Phase 01]: 01-02: matugen 4.1.0 never populates colors.image in EITHER json or image render mode (correction to 01-RESEARCH.md) - hardcoded a blank $image in the hyprland template since hyprlock theming is out of scope this milestone
 - [Phase 01]: 01-02: walker-restart.sh/walker-theme-gen.sh/gtk-reload.sh/vscodium-theme.sh left on disk unreferenced - Plan 01-03 explicitly owns their retirement
+- [Phase 01]: 01-03: set -e + (( counter++ )) at counter=0 silently aborts theme-apply mid-reload before the walker relaunch line — rewritten to counter=$((counter+1)) everywhere in reload.sh/gtk.sh
+- [Phase 01]: 01-03: walker-style.css selectors (#box/#search/row) matched no real widget in walker 2.16.2's class-based UI — rewritten against the actual widget tree
+- [Phase 01]: 01-03: Thunar deferred-restart notify-and-skip branch never re-fired — replaced with a deduped bounded-poll watcher that restarts once the last window closes
+- [Phase 01]: 01-03: RESEARCH Open Question 2 answered — GTK3 windows do not re-color live, D-15's stale-until-closed caveat stands unmodified
+- [Phase 01]: 01-03: theme-doctor's one remaining gap (elephant listproviders missing files/menus/providerlist/runner/websearch) is accepted and deferred to Phase 3 INST-01 per user sign-off
 
 ### Pending Todos
 
@@ -95,6 +101,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T17:29:36.804Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-root-cause-fix-consolidated-theme-engine/01-CONTEXT.md
+Last session: 2026-07-07T19:34:20.974Z
+Stopped at: Plan 01-03 complete — Phase 1 execution done, all ten targets human-verified in both static and dynamic modes; phase awaiting verification
+Resume file: None
