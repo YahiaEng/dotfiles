@@ -153,3 +153,9 @@ None - no external service configuration required.
 ---
 *Phase: 02-static-dynamic-parity-switch-reliability*
 *Completed: 2026-07-07*
+
+## Self-Check: PASSED
+
+- All 4 key files verified present on disk (contract.json, lib/contract.sh, theme-parity, theme-doctor).
+- All 3 commit hashes verified present in git log (3557f23, 23f15e5, 9159fef).
+- theme-parity re-run at self-check time: 217 passed, 0 failed, exit 0.
