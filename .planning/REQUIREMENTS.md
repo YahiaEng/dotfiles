@@ -27,8 +27,8 @@ Requirements for the bug-fix milestone. Each maps to roadmap phases.
 
 ### Bug Scan
 
-- [ ] **SCAN-01**: Full-repo bug audit completed with documented findings across theme pipeline, hyprland config, keybinds, uwsm, stow setup, and install scripts
-- [ ] **SCAN-02**: Walker/elephant functional health verified (backend daemon lifecycle, provider packages referenced in config actually present)
+- [x] **SCAN-01**: Full-repo bug audit completed with documented findings across theme pipeline, hyprland config, keybinds, uwsm, stow setup, and install scripts
+- [x] **SCAN-02**: Walker/elephant functional health verified (backend daemon lifecycle, provider packages referenced in config actually present)
 
 ### Install & Reproducibility
 
@@ -96,8 +96,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-02 | Phase 1 | Pending |
 | PIPE-03 | Phase 1 | Pending |
 | PIPE-05 | Phase 1 | Pending |
-| SCAN-01 | Phase 1 | Pending |
-| SCAN-02 | Phase 1 | Pending |
+| SCAN-01 | Phase 1 | Complete |
+| SCAN-02 | Phase 1 | Complete |
 | PIPE-04 | Phase 2 | Pending |
 | PIPE-06 | Phase 2 | Pending |
 | CLEAN-01 | Phase 3 | Pending |
@@ -107,6 +107,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INST-03 | Phase 3 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 19 total (note: prior "18 total" was an off-by-one; there are 19 requirement IDs)
 - Mapped to phases: 19
 - Unmapped: 0 ✓

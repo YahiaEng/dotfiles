@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Root-Cause Fix & Consolidated Theme Engine
+current_phase: 01
+current_phase_name: root-cause-fix-consolidated-theme-engine
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-07-07T15:47:16.459Z"
+last_updated: "2026-07-07T17:03:15.720Z"
 last_activity: 2026-07-07
-last_activity_desc: Roadmap created (3 phases, 19 v1 requirements mapped)
+last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 1 — Root-Cause Fix & Consolidated Theme Engine
+**Current focus:** Phase 01 — root-cause-fix-consolidated-theme-engine
 
 ## Current Position
 
-Phase: 1 of 3 (Root-Cause Fix & Consolidated Theme Engine)
-Plan: 0 of 3 in current phase
+Phase: 01 (root-cause-fix-consolidated-theme-engine) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-07 — Roadmap created (3 phases, 19 v1 requirements mapped)
+Last activity: 2026-07-07 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01 P01 | 25min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,8 @@ Recent decisions affecting current work:
 
 - Roadmap: Fix theming pipeline root-cause-first before any v2 expansion — every v2 surface reads from the pipeline this milestone repairs.
 - Roadmap: Full-repo bug audit (SCAN-01) placed in Phase 1 as foundational discovery to break the patch-without-diagnosing loop (8+ prior failed fix commits).
+- [Phase 01]: elephant-runner/websearch/files added to install.sh AUR array — all three verified via paru -Si (RESEARCH A2 confirmed)
+- [Phase 01]: elephant-providerlist silent install failure and menus-provider-inactive anomaly deferred to Phase 3 INST-01 verification loop
 
 ### Pending Todos
 
@@ -89,6 +92,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T15:03:14.127Z
+Last session: 2026-07-07T17:02:25.402Z
 Stopped at: Phase 1 context gathered
 Resume file: .planning/phases/01-root-cause-fix-consolidated-theme-engine/01-CONTEXT.md
