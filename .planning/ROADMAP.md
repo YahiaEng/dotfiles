@@ -32,9 +32,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Full-repo bug audit + root-cause dependency fix (adw-gtk-theme, Walker/elephant health)
-- [ ] 01-02: Consolidated theme engine — shared apply-theme entrypoint, single reload owner, outputs out of the git tree, single GTK_THEME source
-- [ ] 01-03: Per-app live re-theme — Walker hotreload, hardened Thunar/tumbler restart, GTK4 accent overrides, waybar/swaync verify
+- [ ] 01-01-PLAN.md — Full-repo bug audit (AUDIT.md) + root-cause dependency fix (adw-gtk-theme install, Walker/elephant provider health)
+- [ ] 01-02-PLAN.md — Consolidated theme engine: shared theme-apply entrypoint, single-rendering-path palettes, atomic apply, single reload owner, outputs out of the git tree, single GTK theme env source
+- [ ] 01-03-PLAN.md — Per-app live re-theme: hardened restart-based Walker reload (no hotreload key exists) + elephant health, daemon-only Thunar restart, GTK4 dark/accent, all-ten end-to-end verify (static + dynamic)
 
 ### Phase 2: Static ↔ Dynamic Parity & Switch Reliability
 **Goal**: Static presets and matugen dynamic themes are proven to be one pipeline producing an identical output contract, and switching stays correct under repeated real-world use.
