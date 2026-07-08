@@ -126,14 +126,35 @@ None - Tasks 1 and 2 were built exactly as specified in the plan, matching every
 - **Verification:** `git log --oneline origin/main..HEAD | wc -l` confirms the gap; `test -x verify/container-run.sh && test -f VERIFICATION.md` (the plan's own Task 3 automated check) passes, confirming the gate artifacts are present and ready.
 - **Committed in:** N/A (no commit — documented here and via `state add-blocker`)
 
+### Continuation: first real container-gate run exposed a false pass + two zero-prompt violations (fixed)
+
+After the user authorized the push, the orchestrator ran `verify/container-run.sh` for real. It **failed for the right reason and then lied about it** — exactly the D-67 class of silent-false-pass defect this phase exists to hunt. Evidence: `verify/logs/run-20260708T220706Z/` (summary.log ends at `step=install status=fail` with no `overall=` line, yet the banner printed PASS and the script exited 0).
+
+**2. [Rule 1 - Bug] install.sh violated D-59's strictly-zero-prompt guarantee**
+- **Found during:** Continuation (first genuine container-gate run)
+- **Issue:** `sudo pacman -Syu` (install.sh:217) and `sudo pacman -Sy reflector --needed` (install.sh:214) were missing `--noconfirm`; the fresh container's archlinux-keyring upgrade made `-Syu` prompt `:: Proceed with installation? [Y/n]`, hard-failing `install.sh --core-only`. Audit also found `paru -Sc` (prompts to clear the package cache) — same class. Full prompt-audit of install.sh + stow.sh found nothing else that can read stdin (remaining pacman uses are `-Q` queries; `chsh` runs root-privileged, skipping the PAM prompt).
+- **Fix:** `--noconfirm` added to all three calls.
+- **Files modified:** install.sh
+- **Verification:** `bash -n` + `shellcheck -S error` pass; grep audit of both scripts shows every pacman/paru mutation now carries `--noconfirm`.
+- **Committed in:** `f83ed9f` (fix(03-02) — scoped gap closure of 03-02's zero-prompt guarantee)
+
+**3. [Rule 1 - Bug] container-run.sh false pass: heredoc-over-stdin let a prompting step eat bash's own unread script**
+- **Found during:** Continuation (same run)
+- **Issue:** The inner script was fed to `bash -s` via heredoc over the container's stdin. When pacman prompted, it read its answer FROM THE REMAINING HEREDOC TEXT, draining bash's unread input — bash hit EOF right after `GATE_FAIL=1`, never reached `exit "$GATE_FAIL"`, and exited 0 (status of the last echo). The outer harness trusted the container rc alone and printed `container-run: PASS` on a hard install failure, leaving summary.log with no `overall=` verdict.
+- **Fix (two structural changes):** (a) The inner script is now written to `$LOG_DIR/container-script.sh` and executed from the existing `/logs` bind mount (`bash /logs/container-script.sh`) — never over stdin — with `exec </dev/null` inside as belt-and-suspenders so any prompting command gets immediate EOF and fails loudly; the script file doubles as preserved per-run evidence. (b) The outer verdict now requires BOTH container rc == 0 AND `overall=PASS` present in summary.log; a missing summary, missing `overall=` line, `overall=FAIL`, or an rc/summary mismatch is FAIL with an explicit printed reason, and the outer script appends `overall=FAIL` itself whenever the inner verdict line is absent so the machine-readable log is never ambiguous.
+- **Files modified:** verify/container-run.sh
+- **Verification:** `bash -n` + `shellcheck -S error` pass on the harness AND on the extracted inner script; the plan's original Task 1 verify greps still pass.
+- **Committed in:** `1da982c` (fix(03-04))
+
 ---
 
-**Total deviations:** 0 auto-fixed; 1 explicitly-deferred blocker (per the plan's own documented fallback for Task 3).
-**Impact on plan:** Tasks 1 and 2 fully complete and verified. Task 3's *tooling* deliverable (the harness + doc) is complete; its *execution* deliverable (an actual pass/fail run + VM human sign-off) is blocked on a push decision outside this session's authorization, and is recorded as a phase-level blocker rather than faked.
+**Total deviations:** 2 auto-fixed post-completion (both Rule 1 bugs surfaced by the first genuine gate run); 1 explicitly-deferred blocker (per the plan's own documented fallback for Task 3), since resolved by the user-authorized push.
+**Impact on plan:** Tasks 1 and 2 fully complete and verified. The first real gate run was a *productive failure*: it caught a real D-59 zero-prompt violation in install.sh AND a D-67-class false-pass path in the harness itself — both now fixed. Container-gate re-run (by the orchestrator, post-push) is the remaining container-tier evidence step; the VM human sign-off remains outstanding.
 
 ## Issues Encountered
 
-- `origin/main` is ~80 commits behind local `main` — discovered during Task 3 prep via `git log --oneline origin/main..HEAD`. This is a pre-existing condition (flagged in the orchestrator's environment notes before this plan began), not something introduced by this plan's work. Resolved by deferring the container-tier run rather than proceeding with misleading evidence.
+- `origin/main` is ~80 commits behind local `main` — discovered during Task 3 prep via `git log --oneline origin/main..HEAD`. This is a pre-existing condition (flagged in the orchestrator's environment notes before this plan began), not something introduced by this plan's work. Initially resolved by deferring the container-tier run; subsequently resolved for real by a user-authorized push.
+- **First genuine container-gate run (run-20260708T220706Z) failed AND false-passed** — install.sh prompted on a keyring upgrade (D-59 violation) and the harness's heredoc-over-stdin design let that prompt eat the script, producing a PASS banner on a hard failure. Both defects fixed in `f83ed9f` + `1da982c`; see the continuation section under Deviations for the full post-mortem. The orchestrator re-runs the gate post-push.
 
 ## User Setup Required
 
