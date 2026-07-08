@@ -25,3 +25,7 @@ wallpapers/Pictures/Screenshots/
 # GSD research cache — ephemeral web-research cache written by the research
 # skill/tool, never meant to be tracked (CLEAN-02/D-50 git-clean invariant).
 .planning/research/.cache/
+
+# container-run.sh runtime logs (03-04) — machine-readable evidence written
+# per invocation under verify/logs/run-<timestamp>/, never repo content.
+verify/logs/
