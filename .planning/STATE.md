@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: repo-cleanup-fresh-install-reproducibility
 status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-07-08T21:24:58.083Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-07-08T21:45:14.100Z"
 last_activity: 2026-07-08
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
   percent: 67
 ---
 
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 03 (repo-cleanup-fresh-install-reproducibility) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 03
+Plan: 2 of 4
+Status: Ready to execute
 Last activity: 2026-07-08 — Phase 03 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P02 | 11min | 3 tasks | 3 files |
 | Phase 03 P01 | 20min | 3 tasks | 8 files |
 | Phase 03 P02 | 10min | 3 tasks | 2 files |
+| Phase 03 P03 | 55min+continuation | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,7 @@ Recent decisions affecting current work:
 - [Phase 03]: powermenu.sh and .vscode/settings.json kept undeleted, batched as ambiguous per D-47/D-51 — D-51 explicitly names older switch/picker variants and root-level oddities as ambiguous-bucket candidates requiring confirmation, even when functionally superseded
 - [Phase 03]: 03-02: verify_packages() runs once at the end of main with a combined array (core set always, NVIDIA_PKGS only when section_hardware actually installed them) — Matches D-65's 'verify exactly what the selected sections installed' without per-section verification calls
 - [Phase 03]: 03-02: theme-apply invoked via its absolute stowed path (/home/aorus/.config/theme-engine/theme-apply), matching theme-init.sh's convention — theme-engine's binaries are never added to PATH in this repo, so a bare theme-apply call would not resolve
+- [Phase 03]: 03-03: elephant provider gap resolved via human-run paru --rebuild of the elephant split package + restart — root cause was a Go plugin/host build-invocation mismatch, not missing packages; theme-doctor now exits 0 (23 passed, 0 failed)
 
 ### Pending Todos
 
@@ -104,7 +106,6 @@ None yet.
 
 - Source discrepancy: REQUIREMENTS.md coverage note and the roadmapper brief state "18 total" v1 requirements, but there are actually 19 requirement IDs. Roadmap maps all 19; coverage note corrected to 19 in REQUIREMENTS.md traceability.
 - Research flags (verify empirically during Phase 1 planning): does Walker `hotreload_theme=true` remove the restart need? does GTK3 gtk.css file-monitoring make the Thunar restart optional? does `dbus-update-activation-environment` truly eliminate relogin?
-- 03-03: elephant provider gap needs a sudo-gated full paru rebuild of the elephant split package (host binary + all provider .so files built together in one invocation), not a simple package install as the plan assumed - main elephant binary (built 2026-05-13) does not recognize files/providerlist/runner/websearch (rebuilt independently 2026-07-08); see 03-03-SUMMARY.md for exact fix/verification commands
 
 ## Deferred Items
 
@@ -116,6 +117,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T21:24:58.078Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-07-08T21:45:14.095Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None

@@ -36,7 +36,7 @@ key-decisions:
 patterns-established:
   - "Verification tools that reuse elephant listproviders must treat data-driven providers (name:instance registration) with a prefix/package-aware branch, never a bare string equality"
 
-requirements-completed: []  # NOT completing INST-01/CLEAN-02 yet — see status below; the code-level CLEAN-02 invariant is functionally complete and correctly verified working (fires FAIL on dirty tree, will fire PASS once committed), but INST-01's "all configured providers register" truth is still unmet on this machine pending the human action.
+requirements-completed: [INST-01, CLEAN-02]  # Both now met: the elephant rebuild (human action) closed the provider gap, and theme-doctor exits 0 clean (23 passed, 0 failed) including the git-clean invariant.
 
 coverage:
   - id: D1
@@ -66,26 +66,29 @@ coverage:
   - id: D4
     description: "The four genuinely-missing elephant providers (files/providerlist/runner/websearch) register in elephant listproviders and theme-doctor exits 0 on this machine"
     requirement: INST-01
-    verification: []
+    verification:
+      - kind: unit
+        ref: "Continuation session: `elephant listproviders` now returns symbols, desktopapplications, clipboard, files, calc, providerlist, runner, websearch (all 8 configured providers active) after the human-run paru --rebuild of the elephant split package + elephant restart. `theme-doctor` re-run: Summary: 23 passed, 0 failed, exit 0."
+        status: pass
     human_judgment: true
-    rationale: "Root-caused as a Go plugin/host binary build-invocation mismatch (not a package-install gap): elephant main binary was built 2026-05-13; elephant-files/providerlist/runner/websearch were rebuilt independently 2026-07-08 in a separate paru invocation. All elephant-* packages ARE installed (pacman -Qs elephant confirms all 9 provider packages + host binary present), but the host binary's own provider registry does not recognize the four newer plugins (confirmed via `elephant generate doc files` producing zero output vs a working provider like calc). The fix requires a single coordinated `paru` rebuild of the whole elephant split package (host + every provider .so built together in one invocation) followed by `pacman -U`, which needs interactive sudo — unavailable in this non-interactive execution session. Requires a human to run the fix command in their own terminal; verification command provided below."
+    rationale: "Root-caused as a Go plugin/host binary build-invocation mismatch (not a package-install gap): elephant main binary was built 2026-05-13; elephant-files/providerlist/runner/websearch were rebuilt independently 2026-07-08 in a separate paru invocation. All elephant-* packages ARE installed (pacman -Qs elephant confirms all 9 provider packages + host binary present), but the host binary's own provider registry did not recognize the four newer plugins (confirmed via `elephant generate doc files` producing zero output vs a working provider like calc). RESOLVED: user ran the coordinated `paru --rebuild elephant elephant-*` + elephant restart in their own interactive terminal (sudo required); a continuation session re-verified `elephant listproviders` and a strict `theme-doctor` exit 0 afterward."
 
 # Metrics
-duration: 55min
-completed: 2026-07-08
-status: blocked
+duration: 55min (original session) + continuation verification
+completed: 2026-07-09
+status: complete
 ---
 
 # Phase 3 Plan 3: Strict Verification Tooling Summary
 
-**theme-doctor and theme-stress-test are now strict (menus provider-parity fixed, git-clean invariant added, all carve-outs removed) — but theme-doctor still cannot exit 0 on this machine because the elephant provider gap is a Go plugin/host build-invocation mismatch, not the simple "never installed" gap the plan assumed, and its real fix needs interactive sudo unavailable in this session.**
+**theme-doctor and theme-stress-test are now strict (menus provider-parity fixed, git-clean invariant added, all carve-outs removed), and the elephant provider gap — a Go plugin/host build-invocation mismatch, not the simple "never installed" gap the plan assumed — is closed on this machine: theme-doctor exits 0 (23 passed, 0 failed).**
 
 ## Performance
 
-- **Duration:** ~55 min
+- **Duration:** ~55 min (original session) + continuation verification session
 - **Started:** 2026-07-08T20:30:00Z (approx)
-- **Completed:** 2026-07-08T21:25:31Z (paused at blocker, not plan-complete)
-- **Tasks:** 2 of 2 code-complete; 1 of 2 fully verified end-to-end (Task 2's code is fully verifiable statically; Task 1's live "theme-doctor exits 0" acceptance criterion is blocked)
+- **Completed:** 2026-07-09 (continuation session verified the human-action fix and finalized the plan)
+- **Tasks:** 2 of 2 code-complete and fully verified end-to-end (theme-doctor exits 0 clean after the user's elephant rebuild)
 - **Files modified:** 2
 
 ## Accomplishments
@@ -102,10 +105,10 @@ status: blocked
 
 Each task was committed atomically:
 
-1. **Task 1: Close the elephant provider gap and harden theme-doctor (provider parity + git-clean invariant)** - `90f73c2` (fix) — code complete; the "elephant provider gap closed on this machine" and "theme-doctor exits 0" acceptance criteria remain **unmet** pending the human action below
+1. **Task 1: Close the elephant provider gap and harden theme-doctor (provider parity + git-clean invariant)** - `90f73c2` (fix) — code complete; the "elephant provider gap closed on this machine" and "theme-doctor exits 0" acceptance criteria are now **confirmed met** after the human-run elephant rebuild (verified in continuation session)
 2. **Task 2: Make theme-stress-test strict and confirm the Phase-2 false-pass guards hold** - `1a4ce30` (fix) — fully complete and statically verified
-
-**Plan metadata:** not yet committed — this plan is not complete; no final `docs({phase}-{plan}): complete` commit will be made until the blocker below is resolved and a continuation session confirms `theme-doctor` exits 0.
+3. **Pause/checkpoint commit** - `99097a7` (docs) — recorded the sudo-gated blocker and paused state
+4. **Continuation/finalization commit** - see commit table in PLAN COMPLETE response — finalizes SUMMARY.md, STATE.md, ROADMAP.md, REQUIREMENTS.md after re-verifying the fix
 
 _Note: no TDD tasks in this plan._
 
@@ -117,7 +120,7 @@ _Note: no TDD tasks in this plan._
 - menus provider parity: satisfied via `elephant-menus` package presence OR a `menus:*` active entry — no placeholder menu file seeded (this was Research's Open Question 1; resolved per the planner_note's recommendation, the cheaper/correct interpretation)
 - check_theme_doctor: requires theme-doctor exit 0, full stop — no tolerated FAIL of any kind now that the carve-out is gone
 - Did NOT attempt an alternative/similar-named package substitute for the missing elephant providers (Rule 3's package-manager-install exclusion) — instead root-caused precisely why the already-correctly-named, already-installed packages still don't register, which is a build-invocation issue, not a naming/legitimacy issue
-- Did NOT mark INST-01/CLEAN-02 as complete in requirements-completed — CLEAN-02's git-clean invariant mechanism is code-complete and verified working, but INST-01's "all configured providers register" truth (a must_haves item in this plan's own frontmatter) is not yet true on this machine
+- Marked INST-01/CLEAN-02 as complete in requirements-completed — confirmed in this continuation session: CLEAN-02's git-clean invariant is code-complete and verified working, and INST-01's "all configured providers register" truth is now true on this machine after the human-run elephant rebuild
 
 ## Deviations from Plan
 
@@ -133,67 +136,72 @@ _Note: no TDD tasks in this plan._
 
 ---
 
-**Total deviations:** 1 auto-fixed (1 bug)
-**Impact on plan:** Necessary correctness fix, no scope creep — without it, theme-stress-test would have crashed instead of aborting-with-diagnostics on its very first `theme-doctor` failure.
+**2. [Checkpoint - human-action] Elephant provider gap required a sudo-gated full package rebuild, not the plan-assumed "install missing packages"**
+- **Found during:** Task 1
+- **Issue:** The plan's Task 1 action assumed the elephant provider gap was a simple "genuinely-missing package" problem, fixable with `paru -S --needed --noconfirm elephant-files elephant-providerlist elephant-runner elephant-websearch`. Investigation found that assumption was **incorrect**: `pacman -Qs elephant` showed all 9 elephant-* provider packages AND the main `elephant` package already installed. `elephant listproviders` still only reported `calc`, `clipboard`, `desktopapplications`, `symbols` — missing `files`, `providerlist`, `runner`, `websearch`. `pacman -Qi` showed the main `elephant` package and the 4 working providers were all installed together on 2026-05-13, while the 4 missing providers were installed independently on 2026-07-08 in a separate `paru` invocation. `elephant generate doc files` produced zero output (vs. real output for `calc`) — proving the host binary's compiled-in provider registry, not just its plugin-`.so` loader, didn't recognize the four newer plugins. This is a Go plugin ABI mismatch: the host binary and every `.so` plugin it loads must be compiled together in the same build invocation. Restarting the `elephant` process alone did not fix it. The real fix (`paru --rebuild` of the whole elephant split package) requires interactive sudo, unavailable in the original non-interactive execution session.
+- **Resolution:** Checkpoint returned as `human-action`. The user ran, in their own interactive terminal:
+  ```bash
+  paru -Bcc elephant
+  paru -S --noconfirm --rebuild elephant elephant-calc elephant-clipboard elephant-desktopapplications \
+    elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-websearch
+  pkill -x elephant
+  setsid uwsm app -- elephant >/dev/null 2>&1 </dev/null & disown
+  ```
+  and confirmed with "done". This continuation session re-verified: `elephant listproviders` now returns all 8 active providers (symbols, desktopapplications, clipboard, files, calc, providerlist, runner, websearch), and `theme-doctor` exits 0 with "Summary: 23 passed, 0 failed".
+- **Files modified:** none (runtime/package-state fix only, no repo files touched)
+- **Verification:** `elephant listproviders` output and `theme-doctor` exit-0 re-run, both captured live in the continuation session.
+- **Committed in:** N/A (no code change — the fix was a package rebuild + daemon restart on the dev machine, not a repo change)
+
+---
+
+**Total deviations:** 1 auto-fixed (1 bug) + 1 human-action checkpoint (resolved)
+**Impact on plan:** Necessary correctness fix (Task 2) + a real environmental blocker correctly identified and resolved via human action (Task 1) — no scope creep, no shortcuts taken to work around the sudo requirement.
 
 ## Issues Encountered
 
-**Blocked / Requires Human Action — theme-doctor cannot yet exit 0 on this machine**
+**RESOLVED — theme-doctor now exits 0 on this machine**
 
-The plan's Task 1 action assumed the elephant provider gap was a simple "genuinely-missing package" problem, fixable with `paru -S --needed --noconfirm elephant-files elephant-providerlist elephant-runner elephant-websearch`. Investigation this session found that assumption is **incorrect**:
+The plan's Task 1 action assumed the elephant provider gap was a simple "genuinely-missing package" problem. Investigation found the real cause was a Go plugin/host build-invocation mismatch (see Deviation 2 above) requiring a coordinated `paru --rebuild` of the entire elephant split package, which needs interactive sudo. This was surfaced as a `human-action` checkpoint; the user resolved it in their own terminal.
 
-- `pacman -Qs elephant` shows all 9 elephant-* provider packages AND the main `elephant` package already installed (version `2.21.0-1` across the board).
-- `elephant listproviders` still only reports `calc`, `clipboard`, `desktopapplications`, `symbols` — the same 4 as before this session, missing `files`, `providerlist`, `runner`, `websearch`.
-- `pacman -Qi` shows the main `elephant` package and the 4 "working" providers were all installed together on **2026-05-13** (one batch/build), while `elephant-files`/`elephant-providerlist`/`elephant-runner`/`elephant-websearch` were installed independently on **2026-07-08** — a separate, later `paru` invocation.
-- `elephant generate doc files` (and `menus`) produce **zero output**, whereas `elephant generate doc calc` produces real documentation — this proves the main `elephant` host binary's own compiled-in provider registry, not just its plugin-`.so` loader, does not recognize these four provider names at all. This is consistent with Go's plugin ABI requiring the host binary and every `.so` plugin it loads to be compiled together in the same build invocation — `elephant` (the host) was never rebuilt in the same invocation as the four newer provider `.so` files, so it doesn't know about them even though the files exist on disk at `/usr/lib/elephant/*.so`.
-- Restarting the `elephant` process (attempted twice this session) does not change this — the gap is baked into the compiled host binary, not a stale-daemon issue.
-- Attempted the real fix — `paru -S --noconfirm elephant elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-websearch` (forcing a coordinated rebuild+reinstall of the entire split package in one invocation) — paru determined the `elephant` pkgbase was "up to date" and skipped rebuilding, then required `sudo` to install the (stale-cached) packages; `sudo` demanded an interactive password prompt this non-interactive session cannot supply (`sudo: a terminal is required to read the password`).
+**Confirmed in this continuation session:**
+```
+$ elephant listproviders
+symbols
+desktopapplications
+clipboard
+files
+calc
+providerlist
+runner
+websearch
 
-**What the plan's Task 1 code-level acceptance criteria this affects:**
-- ✅ `bash -n`/`shellcheck -S error` pass on theme-doctor
-- ✅ Provider-parity loop has the menus branch; all other providers use exact-line match
-- ✅ "expected/known gap" carve-out comment is gone
-- ✅ git-clean invariant present, correctly FAILs/PASSes
-- ❌ `elephant listproviders` covers files/providerlist/runner/websearch (still missing — blocked)
-- ❌ Running `theme-doctor` exits 0 on this machine (currently exits 1: 21 passed, 2 failed — the provider-parity FAIL above, plus the git-clean FAIL which will resolve once this plan's commits land)
-
-**Exact fix for a human to run** (in their own interactive terminal, where they can enter their sudo password):
-```bash
-paru -Bcc elephant   # optional: clear paru's stale per-package build cache first, forces a true rebuild
-paru -S --noconfirm --rebuild elephant elephant-calc elephant-clipboard elephant-desktopapplications \
-  elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-websearch
-pkill -x elephant
-setsid uwsm app -- elephant >/dev/null 2>&1 </dev/null & disown
+$ theme-engine/.config/theme-engine/theme-doctor
+...
+Summary: 23 passed, 0 failed
+EXIT_CODE=0
 ```
 
-**Verification command** (run after the above):
-```bash
-elephant listproviders
-# Expected: calc, clipboard, desktopapplications, files, providerlist, runner, symbols, websearch
-# (menus will only appear as menus:<file> once a real menu file exists under
-#  ~/.config/elephant/menus/ — theme-doctor's fix already accounts for this
-#  via the elephant-menus package check, so menus absence here is fine)
-
-~/.local/state/theme  # sanity: confirm state dir intact
-theme-engine/.config/theme-engine/theme-doctor  # or the stowed path once re-stowed
-# Expected: Summary: 23 passed, 0 failed / exit 0
-```
-
-Once `theme-doctor` exits 0, a continuation session should: (1) re-run the plan's Task 1 `<verify>` block in full to confirm the automated PASS, (2) update `requirements-completed` in this SUMMARY to `[INST-01, CLEAN-02]`, (3) run `state advance-plan` / `roadmap update-plan-progress` / `requirements mark-complete INST-01 CLEAN-02`, and (4) make the final `docs(03-03): complete strict verification tooling plan` metadata commit.
+All plan `must_haves.truths` are now confirmed:
+- `elephant listproviders` covers every provider walker/config.toml configures (files, providerlist, runner, websearch active) ✓
+- theme-doctor's menus provider-parity branch is prefix/package-aware, satisfied via `elephant-menus` install ✓
+- theme-doctor exits 0 (23 passed, 0 failed) — no accepted-gap carve-out remains ✓
+- theme-doctor asserts `git status --porcelain` is empty (CLEAN-02/D-50) ✓ (verified clean before this session's commit)
+- theme-stress-test's `check_theme_doctor` requires a clean theme-doctor pass (strict, no tolerated FAIL) ✓
+- The Phase-2 false-pass guards (D-67) still hold: theme-parity fails loudly on zero results (`# A zero-file render is a FAIL, never a silent skip/false-pass`) and walker-style.css `{{...}}` template-leftover coverage is present (re-confirmed via grep in this session) ✓
 
 ## User Setup Required
 
-**A human must run the elephant rebuild command above in their own interactive terminal** (this session's sandboxed shell cannot supply a sudo password). See "Issues Encountered" above for the exact command and verification steps. No other external service configuration is required.
+None remaining. The elephant rebuild (the plan's one human-action item) was completed and verified in this continuation session.
 
 ## Next Phase Readiness
 
-- theme-doctor and theme-stress-test's CODE is fully strict and ready to serve as fresh-install evidence for Plan 03-04's reproduction gate, **once** the elephant rebuild lands and `theme-doctor` genuinely exits 0 on a re-run.
-- Plan 03-04 (or a continuation of this plan) should NOT proceed to using these tools as "green means healthy" evidence until the human action above is confirmed — running them now would show a real, accurate FAIL, not a false pass, but the FAIL still needs to be resolved before this plan's must_haves are satisfied.
-- The git-clean invariant will show PASS once this plan's own commits are made (the only current source of repo dirtiness besides the pre-existing `.planning/STATE.md` edit is this plan's own uncommitted work).
+- theme-doctor and theme-stress-test are fully strict and confirmed exit-0-clean — ready to serve as fresh-install evidence for Plan 03-04's reproduction gate.
+- Plan 03-04 can proceed using these tools as genuine "green means healthy" evidence — the elephant provider gap is closed and independently re-verified, not just code-complete.
+- The git-clean invariant passed in this session's pre-commit check; it will continue to hold as long as future theme switches don't leave stray tracked changes.
 
 ---
 *Phase: 03-repo-cleanup-fresh-install-reproducibility*
-*Paused (not complete): 2026-07-08*
+*Completed: 2026-07-09*
 
 ## Self-Check: PASSED
 
@@ -202,3 +210,6 @@ Once `theme-doctor` exits 0, a continuation session should: (1) re-run the plan'
 - FOUND: .planning/phases/03-repo-cleanup-fresh-install-reproducibility/03-03-SUMMARY.md
 - FOUND commit: 90f73c2
 - FOUND commit: 1a4ce30
+- FOUND commit: 99097a7
+- CONFIRMED: elephant listproviders covers all 8 active providers (files, providerlist, runner, websearch now active)
+- CONFIRMED: theme-doctor exits 0, "Summary: 23 passed, 0 failed"
