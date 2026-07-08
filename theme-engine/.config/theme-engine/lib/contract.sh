@@ -56,7 +56,10 @@ contract_extract_names() {
             grep -oP '@define-color \K\S+' "$path" 2>/dev/null | sort -u
             ;;
         hypr-vars)
-            grep -oP '^\$\K[A-Za-z_]+(?= =)' "$path" 2>/dev/null | sort -u
+            # WR-05: allow digits after the first character ($color4,
+            # $surface2) — a digit-bearing variable silently vanishing from
+            # BOTH name and value extraction is a false-pass generator.
+            grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_]*(?= =)' "$path" 2>/dev/null | sort -u
             ;;
         kitty-kv)
             grep -oP '^[A-Za-z0-9_]+(?=\s)' "$path" 2>/dev/null | sort -u
@@ -133,7 +136,9 @@ contract_extract_values() {
             sed -nE 's/@define-color[[:space:]]+([A-Za-z0-9_]+)[[:space:]]+(.*);.*/\1\t\2/p' "$path" 2>/dev/null
             ;;
         hypr-vars)
-            sed -nE 's/^\$([A-Za-z_]+)[[:space:]]*=[[:space:]]*(.*)$/\1\t\2/p' "$path" 2>/dev/null
+            # WR-05: keep in lockstep with the name extractor above —
+            # digits allowed after the first character.
+            sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*(.*)$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         kitty-kv)
             awk '$1 !~ /^#/ && NF >= 2 { print $1"\t"$2 }' "$path" 2>/dev/null
