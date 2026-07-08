@@ -211,10 +211,14 @@ section_core_rice() {
 
     echo "Synchronizing closest mirrors..."
     echo ""
-    sudo pacman -Sy reflector --needed
+    # D-59 (strictly zero prompts): every pacman/paru invocation in this
+    # script must carry --noconfirm — the container gate's first real run
+    # (verify/logs/run-20260708T220706Z) caught `pacman -Syu` prompting
+    # ":: Proceed with installation? [Y/n]" on an archlinux-keyring upgrade.
+    sudo pacman -Sy --needed --noconfirm reflector
     sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
     sudo reflector --verbose --latest 30 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-    sudo pacman -Syu
+    sudo pacman -Syu --noconfirm
 
     # ── Check for yay/paru ───────────────────────────────
     AUR_HELPER=""
@@ -257,7 +261,9 @@ section_core_rice() {
     if (( ${#ORPHANS[@]} > 0 )); then
         paru -R --noconfirm "${ORPHANS[@]}"
     fi
-    paru -Sc
+    # paru -Sc prompts "remove all other packages from cache? [Y/n]" without
+    # --noconfirm — same D-59 zero-prompt violation class as the -Syu above.
+    paru -Sc --noconfirm
 
     echo ""
     echo "╔══════════════════════════════════════════╗"
