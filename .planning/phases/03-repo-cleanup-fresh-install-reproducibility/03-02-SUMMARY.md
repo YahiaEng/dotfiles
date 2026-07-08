@@ -192,3 +192,9 @@ None - no external service configuration required.
 ---
 *Phase: 03-repo-cleanup-fresh-install-reproducibility*
 *Completed: 2026-07-08*
+
+## Self-Check: PASSED
+
+- FOUND: install.sh, stow.sh
+- FOUND commits: 98e7d93 (Task 1), 289980d (Task 2), 372feb8 (Task 3), 89a8444 (SUMMARY)
+- Plan-level `<verification>` block re-run: all 6 checks pass (bash -n + shellcheck clean on both scripts; `--help`/`--bogus` behave correctly; old orphan-removal form gone, array+count guard present; limine backup-then-`rm -f` present; `verify_packages` hard-fails; stow.sh uses `sudo chsh`, PACKAGES has no `scripts`/`wofi` entry, seeds `theme-apply catppuccin`)
