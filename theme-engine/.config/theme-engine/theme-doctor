@@ -119,10 +119,14 @@ check "elephant process running" "$?"
 # Provider parity: compare `elephant listproviders` (active) against every
 # provider walker/config.toml actually references — the `[providers]
 # default` array and every `[[providers.prefixes]]` entry (Pitfall W2).
-# A non-empty gap here is expected/known until Phase 3's INST-01 install
-# verification loop lands (AUDIT.md findings #7/#19/#20) — this check
-# reports the gap, it does not attempt to fix it (no package installs
-# happen in this plan).
+# This check is strict (D-66): every configured provider must actually be
+# active. The one exception is `menus`, which is data-driven — elephant
+# only ever publishes it as `menus:<filename>` once a menu file exists
+# under ~/.config/elephant/menus/, never the bare string "menus" (Pattern
+# 3). With zero menu files in v1 (MENU-01/02/03 are v2-deferred), the
+# correct, cheapest signal that the provider is genuinely available is the
+# elephant-menus PACKAGE being installed — no placeholder menu file is
+# seeded to force a `menus:*` entry to appear.
 if command -v elephant >/dev/null 2>&1 && [[ -f "$WALKER_CONFIG" ]]; then
     ACTIVE_PROVIDERS=$(elephant listproviders 2>/dev/null)
     CONFIGURED_PROVIDERS=$(awk '
@@ -134,15 +138,32 @@ if command -v elephant >/dev/null 2>&1 && [[ -f "$WALKER_CONFIG" ]]; then
 
     MISSING=""
     for p in $CONFIGURED_PROVIDERS; do
-        if ! printf '%s\n' "$ACTIVE_PROVIDERS" | grep -qx "$p"; then
-            MISSING="$MISSING $p"
+        if [[ "$p" == "menus" ]]; then
+            if printf '%s\n' "$ACTIVE_PROVIDERS" | grep -q '^menus:' || pacman -Q elephant-menus >/dev/null 2>&1; then
+                continue
+            fi
+        elif printf '%s\n' "$ACTIVE_PROVIDERS" | grep -qx "$p"; then
+            continue
         fi
+        MISSING="$MISSING $p"
     done
     MISSING="$(echo "$MISSING" | xargs)"
     [[ -z "$MISSING" ]]
     check "elephant listproviders covers all configured walker providers (missing: ${MISSING:-none})" "$?"
 else
     echo "  [SKIP] elephant/walker provider parity ($WALKER_CONFIG or elephant not found)"
+fi
+
+# ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
+#    switch. Guarded-skip mirrors the stow-conflict check above — this must
+#    degrade gracefully, not FAIL, when git or the repo itself is absent
+#    (e.g. a fresh-install container that never cloned the dotfiles repo). ─
+if command -v git >/dev/null 2>&1 && [[ -d "$DOTFILES_DIR/.git" ]]; then
+    GIT_DIRTY_OUTPUT=$(git -C "$DOTFILES_DIR" status --porcelain 2>/dev/null)
+    [[ -z "$GIT_DIRTY_OUTPUT" ]]
+    check "git status --porcelain is empty ($DOTFILES_DIR stays clean)" "$?"
+else
+    echo "  [SKIP] git status --porcelain ($DOTFILES_DIR/.git or git not found)"
 fi
 
 echo ""
