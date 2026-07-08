@@ -63,7 +63,6 @@ PACMAN_PKGS=(
 
     # Bar, launcher, notifications, logout
     waybar
-    wlogout
 
     # Terminal
     kitty
@@ -176,6 +175,9 @@ AUR_PKGS=(
     # Utils
     bibata-cursor-theme
     alpm_octopi_utils
+
+    # Logout menu (AUR-only; not in official repos)
+    wlogout
 
     # Z-shell
     zsh
