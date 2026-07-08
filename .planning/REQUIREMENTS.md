@@ -38,8 +38,8 @@ Requirements for the bug-fix milestone. Each maps to roadmap phases.
 
 ### Repo Cleanup
 
-- [ ] **CLEAN-01**: Dead configs removed — wofi package, `debug.txt`, stray screenshots, other unused files
-- [ ] **CLEAN-02**: `git status` stays clean after a theme switch (no generated files tracked in the repo)
+- [x] **CLEAN-01**: Dead configs removed — wofi package, `debug.txt`, stray screenshots, other unused files
+- [x] **CLEAN-02**: `git status` stays clean after a theme switch (no generated files tracked in the repo)
 
 ## v2 Requirements
 
@@ -100,8 +100,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCAN-02 | Phase 1 | Complete |
 | PIPE-04 | Phase 2 | Complete |
 | PIPE-06 | Phase 2 | Complete |
-| CLEAN-01 | Phase 3 | Pending |
-| CLEAN-02 | Phase 3 | Pending |
+| CLEAN-01 | Phase 3 | Complete |
+| CLEAN-02 | Phase 3 | Complete |
 | INST-01 | Phase 3 | Pending |
 | INST-02 | Phase 3 | Pending |
 | INST-03 | Phase 3 | Pending |

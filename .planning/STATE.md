@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 3
-current_phase_name: Repo Cleanup & Fresh-Install Reproducibility
+current_phase: 03
+current_phase_name: repo-cleanup-fresh-install-reproducibility
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-07-08T04:02:28.420Z"
-last_activity: 2026-07-07
-last_activity_desc: Phase 02 complete, transitioned to Phase 3
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-07-08T11:27:14.518Z"
+last_activity: 2026-07-08
+last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 9
+  completed_plans: 6
   percent: 67
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 02 — static-dynamic-parity-switch-reliability
+**Current focus:** Phase 03 — repo-cleanup-fresh-install-reproducibility
 
 ## Current Position
 
-Phase: 3 — Repo Cleanup & Fresh-Install Reproducibility
-Plan: Not started
+Phase: 03 (repo-cleanup-fresh-install-reproducibility) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-07 — Phase 02 complete, transitioned to Phase 3
+Last activity: 2026-07-08 — Phase 03 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P03 | multi-session | 3 tasks | 9 files |
 | Phase 02 P01 | 25min | 3 tasks | 4 files |
 | Phase 02 P02 | 11min | 3 tasks | 3 files |
+| Phase 03 P01 | 20min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-01: semantic-value no-empty-slot rule is format-conditional - enforced for gtk-css/hypr-vars/kitty-kv/css-literal (every key is definitionally a color) but only color-shaped values are validated for toml/json (mixed formats with legitimate non-color string leaves like yazi.toml icon glyphs)
 - [Phase 02]: 02-02: D-40 fix scope - excluded logs/ from commit.sh's rsync --delete rather than relocating logs/ or reworking the commit sync logic — Minimal fix preserving the atomic-commit contract for all 10 tracked output files while protecting the harness's own runtime log output
 - [Phase 02]: 02-02: D-41 gate satisfied by running theme-stress-test then theme-parity back-to-back (22:27:06Z to 22:28:32Z) in one uninterrupted session — Immediately after the D-40 fix landed - not stitched together from separate historical runs, satisfying the 'no stitched/resumed runs as passing evidence' requirement
+- [Phase 03]: screenshot.sh save path left unchanged; fixed via stow-fold exclusion + gitignore pair, not path relocation (D-48) — ~/Pictures is stow-folded from wallpapers/Pictures, so relocating the save path alone would not stop future screenshots from re-entering the fold
+- [Phase 03]: powermenu.sh and .vscode/settings.json kept undeleted, batched as ambiguous per D-47/D-51 — D-51 explicitly names older switch/picker variants and root-level oddities as ambiguous-bucket candidates requiring confirmation, even when functionally superseded
 
 ### Pending Todos
 
@@ -109,6 +112,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T03:15:12.101Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-repo-cleanup-fresh-install-reproducibility/03-CONTEXT.md
+Last session: 2026-07-08T11:27:14.513Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
