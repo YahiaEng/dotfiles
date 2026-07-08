@@ -42,7 +42,17 @@ theme_engine_commit() {
     # contract subdirectory that must survive a commit; excluding it by
     # name is the minimal, correct fix (no new process/sync logic
     # invented).
-    rsync -a --delete --exclude=logs/ "$rendered_dir"/ "$STATE_DIR"/
+    #
+    # WR-02: current-theme and .last-render-error.log are engine-owned
+    # ROOT-LEVEL files that are also not part of the rendered tree — a
+    # bare --delete removed current-theme mid-sync (recreated only below),
+    # so a concurrent reader (theme-init.sh, the picker) could observe a
+    # state dir with rendered files but no current-theme, and a crash
+    # between the rsync and the rewrite lost it permanently. Excluding
+    # both keeps the old value visible until the atomic replace below.
+    rsync -a --delete --exclude=logs/ --exclude=current-theme \
+        --exclude=.last-render-error.log \
+        "$rendered_dir"/ "$STATE_DIR"/
 
     # rsync -a syncs the destination directory's own mode from the source
     # (matugen creates $rendered_dir with the process umask, typically
@@ -51,7 +61,10 @@ theme_engine_commit() {
     # readable/writable).
     chmod 700 "$STATE_DIR"
 
-    echo "$name" > "$STATE_DIR/current-theme"
+    # WR-02: temp-file + mv gives per-file atomicity — readers see either
+    # the old theme name or the new one, never a truncated/absent file.
+    printf '%s\n' "$name" > "$STATE_DIR/current-theme.tmp" \
+        && mv "$STATE_DIR/current-theme.tmp" "$STATE_DIR/current-theme"
 
     # D-07: walker and yazi have no @import/include mechanism, so the
     # engine wires their config path directly to the state-dir output via
