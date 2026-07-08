@@ -130,8 +130,20 @@ abort_with_diagnostics() {
         echo ""
         echo "ABORT: switch=${current_switch_num} theme=${current_theme_name} check=\"${failed_desc}\""
         echo ""
-        echo "-- theme-doctor output --"
-        "$ENGINE_DIR/theme-doctor" 2>&1
+        # WR-03: when the failed check IS the theme-doctor check, dump the
+        # output captured at failure time (check_theme_doctor's
+        # THEME_DOCTOR_OUTPUT) — re-running here can observe an already-
+        # recovered system (e.g. walker briefly dead during reload but
+        # respawned seconds later) and show a healthy doctor run for the
+        # very failure D-39 exists to evidence. For non-doctor failures a
+        # fresh run is the right diagnostic.
+        if [[ "$failed_desc" == *"theme-doctor"* && -n "$THEME_DOCTOR_OUTPUT" ]]; then
+            echo "-- theme-doctor output (captured at failure time) --"
+            printf '%s\n' "$THEME_DOCTOR_OUTPUT"
+        else
+            echo "-- theme-doctor output --"
+            "$ENGINE_DIR/theme-doctor" 2>&1
+        fi
         echo ""
         echo "-- state-dir file contents (representative set) --"
         local f
