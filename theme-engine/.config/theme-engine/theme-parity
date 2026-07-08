@@ -29,6 +29,12 @@ LOG_DIR="$STATE_DIR/logs"
 
 # shellcheck source=lib/contract.sh
 source "$LIB_DIR/contract.sh"
+# WR-04: theme-parity is report-only ("never mutates state") — its 7
+# successive renders must not truncate the live
+# $STATE_DIR/.last-render-error.log. Point generate.sh's render log into
+# the parity log dir instead. Must be set BEFORE sourcing generate.sh
+# (GENERATE_LOG is resolved at source time).
+THEME_ENGINE_RENDER_LOG="$LOG_DIR/theme-parity-render-error.log"
 # shellcheck source=lib/generate.sh
 source "$LIB_DIR/generate.sh"
 

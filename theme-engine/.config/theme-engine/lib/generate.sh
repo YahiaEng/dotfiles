@@ -9,7 +9,11 @@
 
 MATUGEN_CFG="$HOME/.config/matugen/config.toml"
 WALLPAPER_LINK="$HOME/Pictures/Wallpapers/current.jpg"
-GENERATE_LOG="$HOME/.local/state/theme/.last-render-error.log"
+# WR-04: report-only callers (theme-parity) must not truncate the LIVE
+# error log — it may hold the diagnosis of a real theme-apply failure.
+# They can redirect renders elsewhere via THEME_ENGINE_RENDER_LOG, set
+# before sourcing this file. Default (theme-apply path) is unchanged.
+GENERATE_LOG="${THEME_ENGINE_RENDER_LOG:-$HOME/.local/state/theme/.last-render-error.log}"
 
 # theme_engine_generate <name> <tmp_dir>
 # name: "materialyou" or a validated static preset name (theme-apply already
