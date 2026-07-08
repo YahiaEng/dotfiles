@@ -6,38 +6,48 @@
 
 set -euo pipefail
 
-echo "╔══════════════════════════════════════════╗"
-echo "║   Installing Hyprland Rice Dependencies  ║"
-echo "╚══════════════════════════════════════════╝"
-echo ""
+# ── Flag parsing ─────────────────────────────────────
+# --core-only : run only section_core_rice (packages + AUR helper + core
+#               post-install tasks). Skips section_hardware and
+#               section_personal. Used by the container/VM verification
+#               gate (D-52/D-57), where hardware guards and personal
+#               config would be meaningless or destructive.
+# --help/-h   : print usage and exit 0 before any sudo/pacman call.
+# Any other flag is rejected loudly (Security V5) — never silently ignored.
+CORE_ONLY=false
 
-echo "Synchronizing closest mirrors..."
-echo ""
-sudo pacman -Sy reflector --needed
-sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
-sudo reflector --verbose --latest 30 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-sudo pacman -Syu
+usage() {
+    cat <<'USAGE'
+Usage: install.sh [--core-only] [--help]
 
-# ── Check for yay/paru ───────────────────────────────
-AUR_HELPER=""
-if command -v paru &>/dev/null; then
-    AUR_HELPER="paru"
-elif command -v yay &>/dev/null; then
-    AUR_HELPER="yay"
-else
-    echo "⚠  No AUR helper found. Installing paru..."
-    sudo pacman -Sy --needed --noconfirm git base-devel rustup
-    rustup default stable
-    git clone https://aur.archlinux.org/paru.git /tmp/paru
-    cd /tmp/paru && makepkg -si --noconfirm
-    AUR_HELPER="paru"
-fi
+  --core-only   Install only the core rice section: pacman + AUR packages,
+                AUR-helper bootstrap, audio/dbus-broker services, VSCodium
+                extensions. Skips the hardware section (NVIDIA/limine) and
+                the personal section (git identity, timezone). Intended
+                for the container/VM verification gate.
+  --help, -h    Show this help message and exit.
+USAGE
+}
 
-echo ""
-echo "Using AUR helper: $AUR_HELPER"
-echo ""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --core-only)
+            CORE_ONLY=true
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "install.sh: unknown flag: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
 
-# ── Official repo packages ──────────────────────────
+# ── Official repo packages (core — always installed) ─
 PACMAN_PKGS=(
     # Hyprland ecosystem
     hyprland
@@ -52,7 +62,6 @@ PACMAN_PKGS=(
 
     # Bar, launcher, notifications, logout
     waybar
-    wofi
     wlogout
 
     # Terminal
@@ -109,11 +118,8 @@ PACMAN_PKGS=(
     # Polkit
     polkit-gnome
 
-    # NVIDIA
-    nvidia-dkms
-    nvidia-utils
-    libva-nvidia-driver
-    egl-wayland
+    # Notifications (IN-11: official extra repo, not AUR)
+    swaync
 
     # Qt Wayland
     qt5-wayland
@@ -140,13 +146,17 @@ PACMAN_PKGS=(
     terraform
 )
 
-echo "Installing pacman packages..."
-sudo pacman -Sy --needed --noconfirm "${PACMAN_PKGS[@]}"
+# ── Official repo packages (hardware — NVIDIA GPU only) ─
+NVIDIA_PKGS=(
+    nvidia-dkms
+    nvidia-utils
+    libva-nvidia-driver
+    egl-wayland
+)
 
-# ── AUR packages ─────────────────────────────────────
+# ── AUR packages (core — always installed) ───────────
 AUR_PKGS=(
     # Rice
-    swaync
     matugen-bin
 
     # Walker
@@ -187,59 +197,137 @@ AUR_PKGS=(
     octopi
 )
 
-echo ""
-echo "Installing AUR packages..."
-$AUR_HELPER -Sy --needed --noconfirm "${AUR_PKGS[@]}"
+# ── section_core_rice ─────────────────────────────────
+# Mirror sync, AUR-helper bootstrap, pacman + AUR package installs,
+# orphan cleanup, audio/dbus-broker services, VSCodium extensions.
+# Always runs — this is the section the container/VM gate exercises
+# via --core-only, and what a default (no-flag) run always includes.
+section_core_rice() {
+    echo "╔══════════════════════════════════════════╗"
+    echo "║   Installing Hyprland Rice Dependencies  ║"
+    echo "╚══════════════════════════════════════════╝"
+    echo ""
 
-echo ""
-echo "Removing unused packages and clearing cache..."
-paru -R "$(pacman -Qtdq)"
-paru -Sc
+    echo "Synchronizing closest mirrors..."
+    echo ""
+    sudo pacman -Sy reflector --needed
+    sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+    sudo reflector --verbose --latest 30 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+    sudo pacman -Syu
 
-echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║     All packages installed successfully! ║"
-echo "╚══════════════════════════════════════════╝"
-echo ""
+    # ── Check for yay/paru ───────────────────────────────
+    AUR_HELPER=""
+    if command -v paru &>/dev/null; then
+        AUR_HELPER="paru"
+    elif command -v yay &>/dev/null; then
+        AUR_HELPER="yay"
+    else
+        echo "⚠  No AUR helper found. Installing paru..."
+        sudo pacman -Sy --needed --noconfirm git base-devel rustup
+        rustup default stable
+        git clone https://aur.archlinux.org/paru.git /tmp/paru
+        cd /tmp/paru && makepkg -si --noconfirm
+        AUR_HELPER="paru"
+    fi
 
-echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║     Post installation tasks              ║"
-echo "╚══════════════════════════════════════════╝"
-echo ""
+    echo ""
+    echo "Using AUR helper: $AUR_HELPER"
+    echo ""
 
-# ── Install vscodium theme extensions ────────────────
-echo ""
-echo "Installing VSCodium theme extensions..."
-chmod +x "$HOME"/.config/hypr/scripts/vscodium-extensions.sh || true
-"$HOME"/.config/hypr/scripts/vscodium-extensions.sh 2>/dev/null || true
+    echo "Installing pacman packages..."
+    sudo pacman -Sy --needed --noconfirm "${PACMAN_PKGS[@]}"
 
-# ── Make sure audio services are enabled ────────────────
-echo ""
-echo "Enabling audio services..."
-systemctl --user enable --now pipewire.service wireplumber.service pipewire-pulse.service
+    echo ""
+    echo "Installing AUR packages..."
+    $AUR_HELPER -Sy --needed --noconfirm "${AUR_PKGS[@]}"
 
-# ── Configure git username and password ────────────────
-echo ""
-echo "Configuring git..."
-git config --global user.name yahiaEng
-git config --global user.email eng-yahia-tarek@outlook.com
+    echo ""
+    echo "Removing unused packages and clearing cache..."
+    paru -R "$(pacman -Qtdq)"
+    paru -Sc
 
-# ── Enable dbus-broker (recommended for uwsm) ───────
-echo "Enabling dbus-broker for uwsm..."
-systemctl --user enable --now dbus-broker.service 2>/dev/null || true
-echo ""
+    echo ""
+    echo "╔══════════════════════════════════════════╗"
+    echo "║     All packages installed successfully! ║"
+    echo "╚══════════════════════════════════════════╝"
+    echo ""
 
-# ── Update Limine Bootloader entries ────────────────
-echo ""
-echo "Updating limine bootloader entries..."
-sudo rm /boot/limine/limine.conf
-sudo limine-install --fallback
-sudo limine-update
-sudo limine-scan
+    echo ""
+    echo "╔══════════════════════════════════════════╗"
+    echo "║     Post installation tasks              ║"
+    echo "╚══════════════════════════════════════════╝"
+    echo ""
 
-# ── Set Time Zone ────────────────────────────────
-sudo timedatectl set-timezone Africa/Cairo
+    # ── Install vscodium theme extensions ────────────────
+    echo ""
+    echo "Installing VSCodium theme extensions..."
+    chmod +x "$HOME"/.config/hypr/scripts/vscodium-extensions.sh || true
+    "$HOME"/.config/hypr/scripts/vscodium-extensions.sh 2>/dev/null || true
+
+    # ── Make sure audio services are enabled ────────────────
+    echo ""
+    echo "Enabling audio services..."
+    systemctl --user enable --now pipewire.service wireplumber.service pipewire-pulse.service
+
+    # ── Enable dbus-broker (recommended for uwsm) ───────
+    echo "Enabling dbus-broker for uwsm..."
+    systemctl --user enable --now dbus-broker.service 2>/dev/null || true
+    echo ""
+}
+
+# ── section_hardware ──────────────────────────────────
+# NVIDIA package group and limine bootloader steps — both hardware-guarded
+# (D-58): NVIDIA only installs when an NVIDIA GPU is detected via lspci;
+# limine steps only run when limine is actually the installed bootloader.
+# Skipped entirely under --core-only.
+section_hardware() {
+    echo ""
+    echo "╔══════════════════════════════════════════╗"
+    echo "║     Hardware-specific setup              ║"
+    echo "╚══════════════════════════════════════════╝"
+    echo ""
+
+    if lspci | grep -qi nvidia; then
+        echo "NVIDIA GPU detected — installing NVIDIA packages..."
+        sudo pacman -Sy --needed --noconfirm "${NVIDIA_PKGS[@]}"
+    else
+        echo "No NVIDIA GPU detected — skipping NVIDIA packages."
+    fi
+
+    echo ""
+    if command -v limine-install &>/dev/null; then
+        echo "Updating limine bootloader entries..."
+        sudo rm /boot/limine/limine.conf
+        sudo limine-install --fallback
+        sudo limine-update
+        sudo limine-scan
+    else
+        echo "limine not detected — skipping bootloader update."
+    fi
+}
+
+# ── section_personal ──────────────────────────────────
+# Hardcoded personal config (git identity, timezone) — not meaningful (and
+# potentially wrong) inside a disposable container/VM, so this section is
+# skipped under --core-only (D-61).
+section_personal() {
+    echo ""
+    echo "Configuring git..."
+    git config --global user.name yahiaEng
+    git config --global user.email eng-yahia-tarek@outlook.com
+
+    echo ""
+    echo "Setting timezone..."
+    sudo timedatectl set-timezone Africa/Cairo
+}
+
+# ── Main ──────────────────────────────────────────────
+section_core_rice
+
+if [[ "$CORE_ONLY" != "true" ]]; then
+    section_hardware
+    section_personal
+fi
 
 echo "Next steps:"
 echo "  1. Run './stow.sh' to set up symlinks"
