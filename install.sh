@@ -15,6 +15,7 @@ set -euo pipefail
 # --help/-h   : print usage and exit 0 before any sudo/pacman call.
 # Any other flag is rejected loudly (Security V5) — never silently ignored.
 CORE_ONLY=false
+NVIDIA_INSTALLED=false
 
 usage() {
     cat <<'USAGE'
@@ -225,6 +226,10 @@ section_core_rice() {
         echo "⚠  No AUR helper found. Installing paru..."
         sudo pacman -Sy --needed --noconfirm git base-devel rustup
         rustup default stable
+        # WR-09: a stale clone from a prior interrupted/re-run leaves
+        # /tmp/paru non-empty, which makes `git clone` fail — clear it first
+        # so the bootstrap is idempotent on a re-run.
+        rm -rf /tmp/paru
         git clone https://aur.archlinux.org/paru.git /tmp/paru
         cd /tmp/paru && makepkg -si --noconfirm
         AUR_HELPER="paru"
@@ -243,7 +248,15 @@ section_core_rice() {
 
     echo ""
     echo "Removing unused packages and clearing cache..."
-    paru -R "$(pacman -Qtdq)"
+    # Pitfall 4: a fresh install has zero orphans, so the old unquoted
+    # command substitution passed directly to paru -R ran it against an
+    # empty string and aborted the script under set -e. Array-collect +
+    # count-guard: zero orphans is a no-op, multiple orphans expand
+    # correctly, and the removal never prompts (--noconfirm).
+    mapfile -t ORPHANS < <(pacman -Qtdq || true)
+    if (( ${#ORPHANS[@]} > 0 )); then
+        paru -R --noconfirm "${ORPHANS[@]}"
+    fi
     paru -Sc
 
     echo ""
@@ -290,14 +303,22 @@ section_hardware() {
     if lspci | grep -qi nvidia; then
         echo "NVIDIA GPU detected — installing NVIDIA packages..."
         sudo pacman -Sy --needed --noconfirm "${NVIDIA_PKGS[@]}"
+        NVIDIA_INSTALLED=true
     else
         echo "No NVIDIA GPU detected — skipping NVIDIA packages."
+        NVIDIA_INSTALLED=false
     fi
 
     echo ""
     if command -v limine-install &>/dev/null; then
         echo "Updating limine bootloader entries..."
-        sudo rm /boot/limine/limine.conf
+        # Pitfall 5/WR-08: back up before deleting, and use `rm -f` so a
+        # re-run where limine.conf is already gone doesn't abort the script
+        # under set -e. Never a bare `rm` without a prior backup.
+        if [[ -f /boot/limine/limine.conf ]]; then
+            sudo cp /boot/limine/limine.conf /boot/limine/limine.conf.bak
+        fi
+        sudo rm -f /boot/limine/limine.conf
         sudo limine-install --fallback
         sudo limine-update
         sudo limine-scan
@@ -321,6 +342,40 @@ section_personal() {
     sudo timedatectl set-timezone Africa/Cairo
 }
 
+# ── verify_packages ───────────────────────────────────
+# Hard-fail post-install verification (D-63/D-64/D-65): takes a nameref to
+# a package array, checks each with `pacman -Q`, prints a full [OK]/[MISS]
+# table, and exits nonzero the instant any package in the verified set is
+# missing — exactly what would have caught the adw-gtk3 ghost. No
+# warn-and-continue path.
+verify_packages() {
+    local -n pkgs_ref="$1"
+    local missing=() name
+
+    echo ""
+    echo "╔══════════════════════════════════════════╗"
+    echo "║     Verifying installed packages         ║"
+    echo "╚══════════════════════════════════════════╝"
+
+    for name in "${pkgs_ref[@]}"; do
+        if pacman -Q "$name" &>/dev/null; then
+            printf '  [OK]   %s\n' "$name"
+        else
+            printf '  [MISS] %s\n' "$name"
+            missing+=("$name")
+        fi
+    done
+
+    if (( ${#missing[@]} > 0 )); then
+        echo ""
+        echo "install.sh: ${#missing[@]} package(s) failed to install: ${missing[*]}" >&2
+        exit 1
+    fi
+
+    echo ""
+    echo "All ${#pkgs_ref[@]} packages verified installed."
+}
+
 # ── Main ──────────────────────────────────────────────
 section_core_rice
 
@@ -328,6 +383,16 @@ if [[ "$CORE_ONLY" != "true" ]]; then
     section_hardware
     section_personal
 fi
+
+# Verify exactly the packages the selected sections installed: the core
+# set always; the NVIDIA group additionally, but only when section_hardware
+# actually installed it (a --core-only run verifies the core set only —
+# D-65).
+VERIFY_PKGS=("${PACMAN_PKGS[@]}" "${AUR_PKGS[@]}")
+if [[ "$CORE_ONLY" != "true" && "$NVIDIA_INSTALLED" == "true" ]]; then
+    VERIFY_PKGS+=("${NVIDIA_PKGS[@]}")
+fi
+verify_packages VERIFY_PKGS
 
 echo "Next steps:"
 echo "  1. Run './stow.sh' to set up symlinks"
