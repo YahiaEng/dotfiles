@@ -32,8 +32,8 @@ Requirements for the bug-fix milestone. Each maps to roadmap phases.
 
 ### Install & Reproducibility
 
-- [ ] **INST-01**: `install.sh` installs the correct theming-critical packages (`adw-gtk-theme`, not the nonexistent `adw-gtk3`) and verifies critical packages post-install
-- [ ] **INST-02**: `stow.sh` completes successfully on a genuinely fresh system (no unguarded operations that assume existing state)
+- [x] **INST-01**: `install.sh` installs the correct theming-critical packages (`adw-gtk-theme`, not the nonexistent `adw-gtk3`) and verifies critical packages post-install
+- [x] **INST-02**: `stow.sh` completes successfully on a genuinely fresh system (no unguarded operations that assume existing state)
 - [ ] **INST-03**: Full `install.sh` + `stow.sh` run verified in a disposable Arch VM/container, producing the fully themed desktop
 
 ### Repo Cleanup
@@ -102,8 +102,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-06 | Phase 2 | Complete |
 | CLEAN-01 | Phase 3 | Complete |
 | CLEAN-02 | Phase 3 | Complete |
-| INST-01 | Phase 3 | Pending |
-| INST-02 | Phase 3 | Pending |
+| INST-01 | Phase 3 | Complete |
+| INST-02 | Phase 3 | Complete |
 | INST-03 | Phase 3 | Pending |
 
 **Coverage:**

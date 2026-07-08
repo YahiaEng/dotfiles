@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: repo-cleanup-fresh-install-reproducibility
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-07-08T11:27:14.518Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-07-08T11:35:36.410Z"
 last_activity: 2026-07-08
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 7
   percent: 67
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 03 (repo-cleanup-fresh-install-reproducibility) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-08 — Phase 03 execution started
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02 P01 | 25min | 3 tasks | 4 files |
 | Phase 02 P02 | 11min | 3 tasks | 3 files |
 | Phase 03 P01 | 20min | 3 tasks | 8 files |
+| Phase 03 P02 | 10min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,8 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-02: D-41 gate satisfied by running theme-stress-test then theme-parity back-to-back (22:27:06Z to 22:28:32Z) in one uninterrupted session — Immediately after the D-40 fix landed - not stitched together from separate historical runs, satisfying the 'no stitched/resumed runs as passing evidence' requirement
 - [Phase 03]: screenshot.sh save path left unchanged; fixed via stow-fold exclusion + gitignore pair, not path relocation (D-48) — ~/Pictures is stow-folded from wallpapers/Pictures, so relocating the save path alone would not stop future screenshots from re-entering the fold
 - [Phase 03]: powermenu.sh and .vscode/settings.json kept undeleted, batched as ambiguous per D-47/D-51 — D-51 explicitly names older switch/picker variants and root-level oddities as ambiguous-bucket candidates requiring confirmation, even when functionally superseded
+- [Phase 03]: 03-02: verify_packages() runs once at the end of main with a combined array (core set always, NVIDIA_PKGS only when section_hardware actually installed them) — Matches D-65's 'verify exactly what the selected sections installed' without per-section verification calls
+- [Phase 03]: 03-02: theme-apply invoked via its absolute stowed path (/home/aorus/.config/theme-engine/theme-apply), matching theme-init.sh's convention — theme-engine's binaries are never added to PATH in this repo, so a bare theme-apply call would not resolve
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T11:27:14.513Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-07-08T11:35:36.405Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None

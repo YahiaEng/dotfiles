@@ -85,13 +85,13 @@ Plans:
   4. On that same fresh system, `stow.sh` completes without aborting — no unguarded operations that assume pre-existing state.
   5. A full `install.sh` + `stow.sh` run in a disposable VM/container produces the fully themed desktop unattended — a real reproduction, not a re-stow on the dev machine.
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1** *(parallel — disjoint files)*
 
 - [x] 03-01-PLAN.md — Repo cleanup: remove dead files (wofi/debug.txt/retired scripts), fix the screenshot stow-fold + untrack, doc alignment, reference-based dead-file hunt (CLEAN-01, CLEAN-02)
-- [ ] 03-02-PLAN.md — install.sh + stow.sh fresh-install hardening: flagged sections, hardware guards, orphan/limine/mv guards, zero-prompt, hard-fail package verify table, first-boot seed (INST-01, INST-02, CLEAN-01)
+- [x] 03-02-PLAN.md — install.sh + stow.sh fresh-install hardening: flagged sections, hardware guards, orphan/limine/mv guards, zero-prompt, hard-fail package verify table, first-boot seed (INST-01, INST-02, CLEAN-01)
 - [ ] 03-03-PLAN.md — Verification tooling hardening: close the elephant provider gap, git-clean invariant (D-50), remove accepted-gap carve-outs, confirm Phase-2 false-pass guards (INST-01, CLEAN-02)
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -107,4 +107,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Root-Cause Fix & Consolidated Theme Engine | 3/3 | Complete    | 2026-07-07 |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | 2/2 | Complete    | 2026-07-07 |
-| 3. Repo Cleanup & Fresh-Install Reproducibility | 1/4 | In Progress|  |
+| 3. Repo Cleanup & Fresh-Install Reproducibility | 2/4 | In Progress|  |
