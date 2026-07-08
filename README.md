@@ -1,13 +1,13 @@
 # 🍚 Hyprland Dotfiles — Material You + Multi-Theme Rice
 
-A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme and waybar layout switching through custom wofi menus.
+A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme and waybar layout switching through custom Walker menus.
 
 ## ✨ Features
 
 - **Dynamic Material You theming** — colors auto-generated from your wallpaper via Matugen
 - **6 static themes** — Catppuccin Mocha, Dracula, Rosé Pine, Gruvbox Dark, Tokyo Night, Nord
 - **3 waybar layouts** — Minimal, Full (system stats + media), Floating (island-style)
-- **Wofi-powered switching** — change themes and waybar layouts on the fly
+- **Walker-powered switching** — change themes and waybar layouts on the fly
 - **NVIDIA optimized** — env variables for 2160×1440 @ 165Hz
 - **Smooth animations** — Material Design 3 inspired bezier curves
 - **GNU Stow managed** — clean symlink structure from `~/dotfiles` → `~/.config`
@@ -19,7 +19,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 |:----------------|:----------------------|
 | Window Manager  | Hyprland              |
 | Status Bar      | Waybar                |
-| Launcher        | Wofi                  |
+| Launcher        | Walker                |
 | Terminal        | Kitty                 |
 | Notifications   | SwayNC                |
 | Wallpaper       | awww                  |
@@ -49,9 +49,9 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │   ├── hypridle.conf
 │   ├── hyprlock.conf
 │   └── scripts/
-│       ├── theme-switch.sh             # Wofi theme picker
-│       ├── waybar-switch.sh            # Wofi waybar layout picker
-│       ├── wallpaper-switch.sh         # Wofi wallpaper picker + matugen
+│       ├── theme-switch.sh             # Walker theme picker
+│       ├── waybar-switch.sh            # Walker waybar layout picker
+│       ├── wallpaper-switch.sh         # Walker wallpaper picker + matugen
 │       ├── waybar-launch.sh            # Launches waybar with saved layout
 │       ├── theme-init.sh               # Restores theme on login
 │       ├── screenshot.sh               # grim + slurp screenshots
@@ -70,11 +70,6 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │   ├── kitty.conf
 │   └── colors.conf                     # Active colors (auto-managed)
 │
-├── wofi/.config/wofi/
-│   ├── config
-│   ├── style.css
-│   └── colors.css                      # Active colors (auto-managed)
-│
 ├── swaync/.config/swaync/
 │   ├── config.json
 │   ├── style.css
@@ -86,7 +81,6 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │       ├── hyprland-colors.conf
 │       ├── waybar-colors.css
 │       ├── kitty-colors.conf
-│       ├── wofi-colors.css
 │       └── swaync-colors.css
 │
 ├── themes/.config/themes/
@@ -123,7 +117,7 @@ cp /path/to/your/wallpapers/*.jpg ~/Pictures/Wallpapers/
 | Binding              | Action                    |
 |:---------------------|:--------------------------|
 | `Super + Return`     | Open Kitty terminal       |
-| `Super + D`          | Open Wofi launcher        |
+| `Super` (tap)        | Open Walker launcher      |
 | `Super + Q`          | Close window              |
 | `Super + F`          | Toggle fullscreen         |
 | `Super + V`          | Toggle floating           |
