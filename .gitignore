@@ -21,3 +21,7 @@ yazi/.config/yazi/theme.toml
 # Screenshots (D-48) — runtime output from screenshot.sh, never repo content.
 # Belt-and-suspenders alongside the .stow-local-ignore fold exclusion above.
 wallpapers/Pictures/Screenshots/
+
+# GSD research cache — ephemeral web-research cache written by the research
+# skill/tool, never meant to be tracked (CLEAN-02/D-50 git-clean invariant).
+.planning/research/.cache/
