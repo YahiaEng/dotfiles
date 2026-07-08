@@ -46,11 +46,19 @@ check "gsettings gtk-theme = adw-gtk3-dark (got: ${GTK_THEME_VALUE:-<unset>})" "
 check "$STATE_DIR/current-theme exists" "$?"
 
 # D-30: file list sourced from contract.json (single source of truth,
-# shared with theme-parity) instead of a hardcoded loop.
-while IFS= read -r f; do
-    [[ -f "$STATE_DIR/$f" ]]
-    check "$STATE_DIR/$f exists" "$?"
-done < <(contract_files)
+# shared with theme-parity) instead of a hardcoded loop. An empty list
+# (jq missing, contract.json unreadable) must surface as a loud FAIL —
+# not ten per-file checks silently vanishing from the output.
+CONTRACT_FILE_LIST="$(contract_files)"
+if [[ -z "$CONTRACT_FILE_LIST" ]]; then
+    check "contract.json file list readable and non-empty (jq present)" "1"
+else
+    while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        [[ -f "$STATE_DIR/$f" ]]
+        check "$STATE_DIR/$f exists" "$?"
+    done <<< "$CONTRACT_FILE_LIST"
+fi
 
 # ── walker/yazi wiring symlinks point at the state dir ─────
 [[ -L "$HOME/.config/walker/themes/rice/style.css" ]] \

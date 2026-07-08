@@ -62,7 +62,7 @@ contract_extract_names() {
             grep -oP '^[A-Za-z0-9_]+(?=\s)' "$path" 2>/dev/null | sort -u
             ;;
         toml)
-            python3 - "$path" <<'PYEOF' 2>/dev/null
+            python3 - "$path" <<'PYEOF'
 import tomllib, sys
 
 with open(sys.argv[1], "rb") as f:
@@ -85,7 +85,7 @@ print("\n".join(sorted(found)))
 PYEOF
             ;;
         json)
-            jq -r '.. | objects | keys[]' "$path" 2>/dev/null | sort -u
+            jq -r '.. | objects | keys[]' "$path" | sort -u
             ;;
         css-literal)
             # No named color variables in this file — extract the shape of
@@ -108,6 +108,10 @@ PYEOF
             ' "$path" 2>/dev/null | sort -u
             ;;
         *)
+            # CR-01: an unknown/typo format tag must be loud — a silent
+            # `return 1` with no output lets callers that swallow exit codes
+            # false-pass on an empty extraction.
+            echo "contract.sh: unknown format '$fmt' for '$name'" >&2
             return 1
             ;;
     esac
@@ -135,7 +139,7 @@ contract_extract_values() {
             awk '$1 !~ /^#/ && NF >= 2 { print $1"\t"$2 }' "$path" 2>/dev/null
             ;;
         toml)
-            python3 - "$path" <<'PYEOF' 2>/dev/null
+            python3 - "$path" <<'PYEOF'
 import tomllib, sys
 
 with open(sys.argv[1], "rb") as f:
@@ -160,12 +164,16 @@ for k, v in results:
 PYEOF
             ;;
         json)
-            jq -r '[paths(scalars) as $p | {key: ($p | join(".")), value: getpath($p)}] | .[] | select(.value | type == "string") | "\(.key)\t\(.value)"' "$path" 2>/dev/null
+            jq -r '[paths(scalars) as $p | {key: ($p | join(".")), value: getpath($p)}] | .[] | select(.value | type == "string") | "\(.key)\t\(.value)"' "$path"
             ;;
         css-literal)
             grep -oP '#[0-9a-fA-F]{6}|rgba\([^)]*\)' "$path" 2>/dev/null | awk '{print NR"\t"$0}'
             ;;
         *)
+            # CR-01: an unknown/typo format tag must be loud — a silent
+            # `return 1` with no output lets callers that swallow exit codes
+            # false-pass on an empty extraction.
+            echo "contract.sh: unknown format '$fmt' for '$name'" >&2
             return 1
             ;;
     esac

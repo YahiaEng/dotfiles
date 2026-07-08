@@ -88,6 +88,15 @@ trap cleanup EXIT
 
 CONTRACT_FILE_LIST="$(contract_files)"
 
+# An empty contract file list means jq is missing or contract.json is
+# unreadable — Layers 1-3 would silently loop zero times and the script
+# would exit 0 on render checks alone. Pitfall-4 discipline applies to the
+# contract itself: fail loud, never a silent skip/false-pass.
+if [[ -z "$CONTRACT_FILE_LIST" ]]; then
+    echo "theme-parity: contract_files produced no entries (jq missing or contract.json unreadable)" >&2
+    exit 1
+fi
+
 # ── Render-only snapshot into temp dirs (D-27, Pattern 3) ──────────────
 echo "-- Rendering ${#TARGETS[@]} target(s) --"
 for target in "${TARGETS[@]}"; do
@@ -139,8 +148,20 @@ while IFS= read -r fname; do
     for target in "${TARGETS[@]}"; do
         [[ "${RENDER_OK[$target]}" == "1" ]] || continue
         [[ -f "${RENDERED_DIRS[$target]}/$fname" ]] || continue
-        names="$(contract_extract_names "$fname" "${RENDERED_DIRS[$target]}/$fname")"
+        # Capture the extractor's exit status — an unknown format tag or a
+        # failed python3/jq/grep extraction must be a FAIL, never an
+        # empty-string that vacuously matches every other empty extraction.
+        if ! names="$(contract_extract_names "$fname" "${RENDERED_DIRS[$target]}/$fname")"; then
+            check "$fname: $target name extraction succeeded" "1"
+            continue
+        fi
         if [[ -z "$reference_target" ]]; then
+            if [[ -z "$names" ]]; then
+                # Refuse an empty reference name-set: empty == empty would
+                # make every subsequent cross-target comparison vacuous.
+                check "$fname: $target name-set captured as reference (non-empty)" "1"
+                continue
+            fi
             reference_target="$target"
             reference_names="$names"
             check "$fname: $target name-set captured as reference" "0"
@@ -177,8 +198,23 @@ while IFS= read -r fname; do
         path="${RENDERED_DIRS[$target]}/$fname"
         [[ -f "$path" ]] || continue
 
+        # Capture the extractor's exit status (same discipline as Layer 2):
+        # unknown format tags and python3/jq failures must FAIL, not
+        # silently iterate zero times.
+        if ! values="$(contract_extract_values "$fname" "$path")"; then
+            check "$target: $fname value extraction succeeded" "1"
+            continue
+        fi
+        # For formats where every key is definitionally a color, extracting
+        # zero key/value pairs is itself a failure, not a vacuous pass.
+        if [[ -z "$values" && "$enforce_emptiness" == "1" ]]; then
+            check "$target: $fname value extraction produced values" "1"
+            continue
+        fi
+
         bad=0
         while IFS=$'\t' read -r key val; do
+            [[ -z "$key" && -z "$val" ]] && continue
             is_exempt=0
             if [[ -n "$exempt_keys" ]]; then
                 while IFS= read -r ek; do
@@ -207,7 +243,7 @@ while IFS= read -r fname; do
                     echo "    -> $target/$fname: malformed color for key '$key': $val"
                 fi
             fi
-        done < <(contract_extract_values "$fname" "$path")
+        done <<< "$values"
 
         check "$target: $fname semantic values well-formed" "$bad"
     done
