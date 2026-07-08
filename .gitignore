@@ -17,3 +17,7 @@ Thumbs.db
 # theme-apply creates lands at these exact repo-relative paths — ignore it.
 walker/.config/walker/themes/rice/style.css
 yazi/.config/yazi/theme.toml
+
+# Screenshots (D-48) — runtime output from screenshot.sh, never repo content.
+# Belt-and-suspenders alongside the .stow-local-ignore fold exclusion above.
+wallpapers/Pictures/Screenshots/

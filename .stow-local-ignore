@@ -11,3 +11,8 @@ LICENSE
 # idempotent on every theme-apply) — never let a plain `stow --restow`
 # fight over this path.
 ^rice$
+
+# D-48: screenshot.sh writes runtime PNGs to ~/Pictures/Screenshots, which
+# stow-folds into the `wallpapers` package tree — exclude this subtree from
+# the fold so it stays a plain runtime-write directory, not repo content.
+^Pictures/Screenshots$
