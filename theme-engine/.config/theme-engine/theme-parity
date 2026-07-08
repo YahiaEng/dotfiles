@@ -198,6 +198,19 @@ while IFS= read -r fname; do
         path="${RENDERED_DIRS[$target]}/$fname"
         [[ -f "$path" ]] || continue
 
+        # Direct, format-agnostic leftover scan on the raw rendered file
+        # (WR-01). The css-literal value extractor only emits color-looking
+        # tokens, so a `{{...}}` leftover in a value position would never
+        # reach the per-value check below — scan every contract file
+        # directly so the "template leftovers are always a failure
+        # regardless of format" guarantee actually holds (Pitfall 2/3).
+        leftover_bad=0
+        if grep -q '{{' "$path"; then
+            leftover_bad=1
+            echo "    -> $target/$fname: raw {{ template leftover present"
+        fi
+        check "$target: $fname free of raw {{ template leftovers" "$leftover_bad"
+
         # Capture the extractor's exit status (same discipline as Layer 2):
         # unknown format tags and python3/jq failures must FAIL, not
         # silently iterate zero times.
