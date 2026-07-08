@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: repo-cleanup-fresh-install-reproducibility
 status: executing
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-07-08T21:45:14.100Z"
+stopped_at: Completed 03-04-PLAN.md (INST-03 tooling built; container-tier execution + VM human sign-off deferred pending push authorization)
+last_updated: "2026-07-08T22:04:29.794Z"
 last_activity: 2026-07-08
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
-  percent: 67
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 03 (repo-cleanup-fresh-install-reproducibility) — EXECUTING
-Plan: 2 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-08 — Phase 03 execution started
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03 P01 | 20min | 3 tasks | 8 files |
 | Phase 03 P02 | 10min | 3 tasks | 2 files |
 | Phase 03 P03 | 55min+continuation | 2 tasks | 2 files |
+| Phase 03 P04 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,7 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-02: verify_packages() runs once at the end of main with a combined array (core set always, NVIDIA_PKGS only when section_hardware actually installed them) — Matches D-65's 'verify exactly what the selected sections installed' without per-section verification calls
 - [Phase 03]: 03-02: theme-apply invoked via its absolute stowed path (/home/aorus/.config/theme-engine/theme-apply), matching theme-init.sh's convention — theme-engine's binaries are never added to PATH in this repo, so a bare theme-apply call would not resolve
 - [Phase 03]: 03-03: elephant provider gap resolved via human-run paru --rebuild of the elephant split package + restart — root cause was a Go plugin/host build-invocation mismatch, not missing packages; theme-doctor now exits 0 (23 passed, 0 failed)
+- [Phase 03-04]: container-tier gate execution deferred — origin/main is ~80 commits behind local HEAD (predates theme-engine entirely); running verify/container-run.sh now would clone a pre-Phase-3 state and produce meaningless evidence. Push to origin was NOT performed autonomously — requires explicit user authorization before container run + VM human sign-off can close INST-03.
 
 ### Pending Todos
 
@@ -106,6 +108,7 @@ None yet.
 
 - Source discrepancy: REQUIREMENTS.md coverage note and the roadmapper brief state "18 total" v1 requirements, but there are actually 19 requirement IDs. Roadmap maps all 19; coverage note corrected to 19 in REQUIREMENTS.md traceability.
 - Research flags (verify empirically during Phase 1 planning): does Walker `hotreload_theme=true` remove the restart need? does GTK3 gtk.css file-monitoring make the Thunar restart optional? does `dbus-update-activation-environment` truly eliminate relogin?
+- INST-03 evidence outstanding: verify/container-run.sh and VERIFICATION.md are complete and ready-to-run, but the container-tier gate has not actually been executed (origin/main predates theme-engine/Phase 3 -- a push is required first) and the graphical VM human visual confirmation has not been performed. Resolve before declaring Milestone 1 complete.
 
 ## Deferred Items
 
@@ -117,6 +120,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T21:45:14.095Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-07-08T22:04:29.789Z
+Stopped at: Completed 03-04-PLAN.md (INST-03 tooling built; container-tier execution + VM human sign-off deferred pending push authorization)
 Resume file: None

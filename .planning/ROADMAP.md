@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Root-Cause Fix & Consolidated Theme Engine** - Eliminate the stuck-white root cause, unify orchestration, make every app re-theme live (completed 2026-07-07)
 - [x] **Phase 2: Static ↔ Dynamic Parity & Switch Reliability** - Prove both modes are one pipeline and survive repeated switching (completed 2026-07-07)
-- [ ] **Phase 3: Repo Cleanup & Fresh-Install Reproducibility** - Remove dead configs and verify the themed desktop reproduces from scratch
+- [x] **Phase 3: Repo Cleanup & Fresh-Install Reproducibility** - Remove dead configs and verify the themed desktop reproduces from scratch (completed 2026-07-08)
 
 ## Phase Details
 
@@ -85,7 +85,7 @@ Plans:
   4. On that same fresh system, `stow.sh` completes without aborting — no unguarded operations that assume pre-existing state.
   5. A full `install.sh` + `stow.sh` run in a disposable VM/container produces the fully themed desktop unattended — a real reproduction, not a re-stow on the dev machine.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 
 Plans:
 **Wave 1** *(parallel — disjoint files)*
@@ -96,7 +96,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-04-PLAN.md — Fresh-install reproduction gate: keeper container harness + documented graphical VM procedure, run + human visual confirmation (INST-03)
+- [x] 03-04-PLAN.md — Fresh-install reproduction gate: keeper container harness + documented graphical VM procedure, run + human visual confirmation (INST-03)
 
 ## Progress
 
@@ -107,4 +107,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Root-Cause Fix & Consolidated Theme Engine | 3/3 | Complete    | 2026-07-07 |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | 2/2 | Complete    | 2026-07-07 |
-| 3. Repo Cleanup & Fresh-Install Reproducibility | 3/4 | In Progress|  |
+| 3. Repo Cleanup & Fresh-Install Reproducibility | 4/4 | Complete   | 2026-07-08 |
