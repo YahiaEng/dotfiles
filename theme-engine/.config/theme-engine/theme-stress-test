@@ -204,30 +204,25 @@ check_elephant_listproviders() {
 }
 
 # check_theme_doctor
-# Runs theme-doctor and requires no [FAIL] line OTHER than the single,
-# already-accepted "elephant listproviders covers all configured walker
-# providers" gap. That gap was verified in Plan 02-01 (SUMMARY: "theme-
-# doctor's overall exit code is 1, not 0, both before and after this
-# plan's refactor — the single FAIL is a pre-existing, already-accepted
-# gap ... explicitly deferred to Phase 3's INST-01 verification loop per
-# user sign-off") and empirically re-confirmed at the start of this plan
-# (21 passed / 1 failed, exit 1, same single FAIL line). Requiring a
-# literal exit-0 here would make every single switch fail forever — this
-# mirrors RESEARCH.md's Pitfall 2 discipline (a blanket rule must not
-# flag an already-documented, intentional exception on every run). Any
-# OTHER [FAIL] line IS a real regression and aborts immediately.
+# Runs theme-doctor and requires a strict exit 0 (D-66) — the elephant
+# provider gap and the accepted-gap tolerance that used to live here were
+# removed once the gap was root-caused and closed (Phase 3 Plan 03-03).
+# A clean theme-doctor is now the bar for every switch; any [FAIL] line
+# is a real regression and aborts immediately via check_or_abort.
 THEME_DOCTOR_OUTPUT=""
 check_theme_doctor() {
-    THEME_DOCTOR_OUTPUT="$("$ENGINE_DIR/theme-doctor" 2>&1)" || true
-    local unexpected
-    unexpected="$(printf '%s\n' "$THEME_DOCTOR_OUTPUT" \
-        | grep -c '^\s*\[FAIL\]' \
-        | tr -d '[:space:]')"
-    local accepted
-    accepted="$(printf '%s\n' "$THEME_DOCTOR_OUTPUT" \
-        | grep -c '^\s*\[FAIL\] elephant listproviders covers all configured walker providers' \
-        | tr -d '[:space:]')"
-    [[ "${unexpected:-0}" -le "${accepted:-0}" ]]
+    local rc
+    # set +e/-e toggle (mirrors abort_with_diagnostics' own use of this
+    # idiom below): under set -euo pipefail, a bare `VAR=$(failing_cmd)`
+    # assignment is NOT exempted from errexit just because the caller
+    # tests this function's result in an `if` — the failure would abort
+    # the whole script here, inside the function, before check_or_abort
+    # ever gets a chance to log/abort with diagnostics.
+    set +e
+    THEME_DOCTOR_OUTPUT="$("$ENGINE_DIR/theme-doctor" 2>&1)"
+    rc=$?
+    set -e
+    return "$rc"
 }
 
 # get_expected_sentinel_normalized <theme-name>
@@ -353,7 +348,7 @@ for (( i = 1; i <= SWITCHES; i++ )); do
 
     # (a) theme-doctor pass (baseline-aware — see check_theme_doctor above)
     if check_theme_doctor; then rc=0; else rc=1; fi
-    check_or_abort "switch #${i}: theme-doctor passes (no new failures beyond the accepted elephant-provider gap)" "$rc"
+    check_or_abort "switch #${i}: theme-doctor passes (strict exit 0, D-66)" "$rc"
 
     # (b) format-normalized sentinel-color match (Pitfall 1)
     expected_sentinel=""
