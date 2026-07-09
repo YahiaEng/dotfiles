@@ -121,7 +121,7 @@ fi
 
 # ── Confirm selection ────────────────────────────────
 FULL_PATH="$WALLPAPER_DIR/$SELECTED"
-ln -sf "$FULL_PATH" "$CURRENT_LINK"
+ln -sfr "$FULL_PATH" "$CURRENT_LINK"
 
 # Final animated set (in case live preview didn't fire)
 awww img "$FULL_PATH" \
