@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 4
-status: planning
-stopped_at: Phase 4 UI-SPEC approved
-last_updated: "2026-07-09T09:30:22.082Z"
+status: ready-to-execute
+stopped_at: Phase 4 planned (4 plans, 2 waves)
+last_updated: "2026-07-09T12:50:00.000Z"
 last_activity: 2026-07-09
-last_activity_desc: v2.0 roadmap created (5 phases, 32/32 requirements mapped)
+last_activity_desc: Phase 4 planned — 4 plans in 2 waves, checker passed
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
   percent: 0
 ---
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 ## Current Position
 
-Phase: Phase 4 — Reliability Fixes & Tech Debt (not started)
-Plan: —
-Status: Roadmap created, awaiting phase planning
-Last activity: 2026-07-09 — v2.0 roadmap created (5 phases, 32/32 requirements mapped)
+Phase: Phase 4 — Reliability Fixes & Tech Debt (planned)
+Plan: 4 plans in 2 waves (04-01..04-04)
+Status: Ready to execute
+Last activity: 2026-07-09 — Phase 4 planned (4 plans, 2 waves; plan-checker passed, 29/29 coverage)
 
 ## Performance Metrics
 
@@ -105,10 +105,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T09:30:22.077Z
-Stopped at: Phase 4 UI-SPEC approved
-Resume file: .planning/phases/04-reliability-fixes-tech-debt/04-UI-SPEC.md
+Last session: 2026-07-09T12:50:00.000Z
+Stopped at: Phase 4 planned (4 plans, 2 waves)
+Resume file: .planning/phases/04-reliability-fixes-tech-debt/04-01-PLAN.md
 
 ## Operator Next Steps
 
-- Plan the first v2.0 phase with /gsd-plan-phase 4
+- Execute Phase 4 with /gsd-execute-phase 4
