@@ -1,253 +1,231 @@
-# Architecture Research
+# Architecture Research: v2.0 Desktop Expansion Integration
 
-**Domain:** Unified dynamic theming for Arch Linux + Hyprland dotfiles
-**Researched:** 2026-07-07
-**Confidence:** MEDIUM (HIGH for current-repo findings via direct code inspection; LOW-MEDIUM for reference-project claims sourced from web search / DeepWiki summaries — flagged inline)
+**Domain:** Personal Arch + Hyprland dotfiles — theme-engine-centered rice, GNU stow package-per-app
+**Researched:** 2026-07-09
+**Confidence:** HIGH for all findings sourced from direct repo inspection (the large majority of this document); LOW for the two findings explicitly marked websearch/webfetch (elephant custom-menu schema, Zen browser theming mechanism) — those need a phase-specific research spike before implementation, not roadmap-level trust.
 
-## Standard Architecture
+This document supersedes the 2026-07-07 pre-implementation ARCHITECTURE.md (that research predates Phase 1's theme-engine consolidation — its "themes/{static,css,gtk,...}/ is the static source" claim is now stale; see the dead-code finding below). It answers one question only: **how do the six v2.0 feature groups plug into the existing `theme-engine`/stow architecture**, not whether the architecture itself should change. The pipeline (`theme-apply` → generate → commit → reload, `contract.json` as single source of truth, one stow package per app) is treated as fixed per PROJECT.md constraints.
 
-Every mature Hyprland theming system (Omarchy, JaKooLit/Hyprland-Dots, ML4W, end-4/dots-hyprland) converges on the same five-layer shape, regardless of whether colors come from a hand-picked static palette or a wallpaper-driven generator (matugen/wallust/pywal). This repo already has all five layers — the milestone's job is to make the layers **consistent** and **converge to one code path**, not to invent new architecture.
+## Standard Architecture (as it exists today, verified against the repo)
 
 ### System Overview
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│  TRIGGER LAYER                                                        │
-│  ┌────────────────┐ ┌──────────────────┐ ┌───────────────────────┐   │
-│  │ Walker "Theme   │ │ Walker "Wallpaper │ │ Login (theme-init.sh  │   │
-│  │ Switcher" menu  │ │ Picker" menu      │ │ via uwsm autostart)   │   │
-│  └────────┬────────┘ └────────┬──────────┘ └───────────┬───────────┘  │
-├───────────┴───────────────────┴────────────────────────┴─────────────┤
-│  GENERATION LAYER  (branches on mode, converges on output contract)   │
-│  ┌─────────────────────────────┐   ┌────────────────────────────┐    │
-│  │ STATIC: cp preset files from │   │ DYNAMIC: matugen image      │    │
-│  │ themes/{static,css,gtk,...}/ │   │ <wallpaper> renders          │    │
-│  │ <name>.* → canonical paths   │   │ templates/*.{conf,css,toml} │    │
-│  └───────────────┬─────────────┘   └──────────────┬───────────────┘    │
-├──────────────────┴──────────────────────────────────┴─────────────────┤
-│  DISTRIBUTION LAYER — single source of truth per app                  │
-│  ┌───────────┐┌────────────┐┌───────────┐┌──────────┐┌──────────────┐ │
-│  │colors.conf││colors.css  ││colors.css ││colors.css││style.css     │ │
-│  │(hypr)     ││(waybar)    ││(swaync)   ││(gtk 3/4) ││(walker,      │ │
-│  │           ││            ││           ││          ││literal hex)  │ │
-│  └───────────┘└────────────┘└───────────┘└──────────┘└──────────────┘ │
-├─────────────────────────────────────────────────────────────────────┤
-│  APPLICATION LAYER — each app's own config `source`s / `@import`s     │
-│  the canonical color file above; app logic never embeds colors        │
-├─────────────────────────────────────────────────────────────────────┤
-│  RELOAD / SIGNAL LAYER — fan-out, per-app mechanism                   │
-│  hyprctl reload · SIGUSR2 waybar · SIGUSR1 kitty · swaync-client -rs  │
-│  · gsettings toggle + gtk.css rebuild (GTK) · full restart (walker)   │
-├─────────────────────────────────────────────────────────────────────┤
-│  STATE LAYER                                                          │
-│  ~/.cache/current-theme · ~/.cache/current-waybar-layout               │
-│  (read by theme-init.sh at login to restore last state)               │
-└─────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│  TRIGGER LAYER (thin callers — D-01: only pick a name/action)          │
+│  theme-switch.sh · wallpaper-picker.sh · wallpaper-switch.sh ·          │
+│  theme-init.sh (autostart) · waybar-switch.sh (independent, no engine) │
+└───────────────────────────┬─────────────────────────────────────────┘
+                             │  theme-apply <name>
+                             ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│  theme-engine/.config/theme-engine/  (SINGLE OWNER of render+reload)   │
+│  ┌────────────┐  ┌───────────┐  ┌───────────┐  ┌────────────────────┐ │
+│  │generate.sh │→ │commit.sh  │→ │reload.sh  │  │contract.json (D-30) │ │
+│  │matugen json│  │atomic     │  │ONE fan-out│  │single source of     │ │
+│  │or image →  │  │rsync to   │  │owner;     │  │truth for the        │ │
+│  │$TMP_DIR    │  │state dir; │  │hyprctl/   │  │state-dir file list, │ │
+│  │            │  │walker+yazi│  │waybar/    │  │consumed by          │ │
+│  │            │  │symlinks   │  │kitty/     │  │theme-doctor AND     │ │
+│  │            │  │(D-07)     │  │swaync/gtk/│  │theme-parity so they │ │
+│  │            │  │           │  │walker/    │  │can never drift      │ │
+│  │            │  │           │  │vscodium   │  │                     │ │
+│  └────────────┘  └───────────┘  └───────────┘  └────────────────────┘ │
+└───────────────────────────┬─────────────────────────────────────────┘
+                             │ renders into
+                             ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│  ~/.local/state/theme/  (generated, git-ignored — D-05/D-06)           │
+│  hyprland.conf · waybar.css · kitty.conf · swaync.css · wlogout.css ·  │
+│  gtk-3.0-colors.css · gtk-4.0-colors.css · walker-style.css ·          │
+│  yazi.toml · vscodium.json · current-theme (metadata)                 │
+└───────────────────────────┬─────────────────────────────────────────┘
+                             │ consumed via @import / source / symlink
+                             ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│  STOWED APP CONFIGS (repo-tracked, never edited by the engine)         │
+│  hyprland.conf `source =` · gtk.css/swaync/wlogout `@import url(...)`  │
+│  · walker/yazi symlinked directly (no import syntax) · vscodium.json   │
+│  merged into settings.json with jq                                    │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
-**Confidence:** HIGH for this repo's current shape (read directly from `theme-switch.sh`, `theme-init.sh`, `matugen/config.toml`, `gtk-reload.sh`, `walker-restart.sh`, `walker-theme-gen.sh`). MEDIUM for "every mature system converges on this shape" — corroborated by Omarchy (DeepWiki, LOW-confidence secondary source) and JaKooLit/Hyprland-Dots (DeepWiki, LOW-confidence secondary source), which both describe the same trigger→generate→distribute→reload pipeline independently.
+The rendering contract has two independent input modes feeding the **same** matugen templates (D-03 parity): `matugen json <palette>.json` (static preset, one hand-authored JSON per preset under `theme-engine/.config/theme-engine/palettes/`) or `matugen image <wallpaper>` (Material You, dynamic). Both write through `matugen -p "$TMP_DIR"`, and `commit.sh` is the only thing that ever touches the live `~/.local/state/theme/` tree.
 
 ### Component Responsibilities
 
-| Component | Responsibility | Current implementation in this repo |
-|-----------|----------------|------------------------|
-| Trigger scripts | Collect user intent (which theme/wallpaper), never touch app configs directly | `theme-switch.sh` (walker dmenu), `wallpaper-picker.sh`, `theme-init.sh` (login) |
-| Generation | Produce canonical per-app color files, either by `cp` from a static preset or by running `matugen image <wallpaper>` against templates | Static: file copy loop in `theme-switch.sh`. Dynamic: `matugen/config.toml` + `matugen/templates/*` |
-| Distribution contract | The canonical color file path + variable naming convention every app config depends on | `~/.config/{hypr,waybar,kitty,swaync,wlogout,gtk-3.0,gtk-4.0}/colors.{conf,css}`, `walker/themes/rice/style.css` |
-| App configs | Read colors via `source`/`@import`/`@define-color` reference, contain zero hardcoded colors | `hyprland.conf` sources `colors.conf`; waybar/swaync/wlogout CSS `@import "colors.css"` (verify — see Pitfalls) |
-| Reload orchestration | Fan out the correct reload mechanism per app after distribution completes | `reload_all()` in `theme-switch.sh`; **reimplemented, not shared, in `theme-init.sh`** |
-| GTK subsystem | Bridge GTK's settings-daemon model (gsettings, named theme, dark/light) with the colors.css override model; GTK3 and GTK4/libadwaita need different treatment | `gtk-reload.sh` (partial — toggles gsettings dark-mode + rebuilds `gtk.css`, but `GTK_THEME` name itself is a fixed value `adw-gtk3-dark`, not per-preset) |
-| Walker subsystem | Walker (gtk4-layer-shell) does not consume `@define-color` GTK tokens reliably for its own compiled CSS theme — needs a dedicated hex-literal renderer and a full process restart | `walker-theme-gen.sh` (regex-extracts hex from `colors.css`, writes literal-value `style.css`), `walker-restart.sh` (kills socket + process, relaunches via uwsm) |
-| State persistence | Record "what is currently applied" so login/session-restore and future UI (waybar module, OSD) can query it without re-deriving | `~/.cache/current-theme`, `~/.cache/current-waybar-layout` |
+| Component | Responsibility | Owns |
+|-----------|----------------|------|
+| `theme-engine/lib/generate.sh` | Render preset/dynamic palette through matugen into a scratch dir | matugen invocation only, never touches live state |
+| `theme-engine/lib/commit.sh` | Atomic move of rendered tree into `~/.local/state/theme/`, wires the two apps with no `@import` mechanism (walker, yazi) via symlink | The only writer of the live state dir |
+| `theme-engine/lib/reload.sh` | The single fan-out owner (D-04) — every `hyprctl reload`/`pkill -SIGUSR*`/`swaync-client -rs`/walker restart/vscodium merge lives here and nowhere else | Post-commit propagation to running processes |
+| `theme-engine/lib/gtk.sh` | gsettings toggle, GTK4 accent-color hue mapping, GTK3 Thunar daemon restart (deferred-watcher pattern if a window is open) | GTK-specific reload subtleties |
+| `theme-engine/contract.json` + `lib/contract.sh` | Declares the 10 output files + format tag per file; both `theme-doctor` and `theme-parity` read it so they can't drift | The state-dir output contract |
+| `matugen/.config/matugen/config.toml` | One `[templates.X]` block per rendered file: `input_path` (repo template) → `output_path` (state-dir target, redirected via `-p`) | Template→output wiring, no post_hooks (stripped intentionally, D-04) |
+| `theme-engine/palettes/*.json` | One hand-authored Material-You-role JSON per **static** preset name (`catppuccin`, `dracula`, `gruvbox`, `nord`, `rosepine`, `tokyonight`) — currently all dark, single `"default"` color set per role, no scheme/mode key | The actual live source of static presets |
 
-## Recommended Project Structure
+## Critical Existing-Repo Fact That Changes the Plan
 
-The current repo scatters theme **orchestration logic** inside the `hypr` stow package (`hypr/.config/hypr/scripts/*.sh`), while theme **data** lives in a separate `themes` package and `matugen` package. This is the root structural weakness behind the milestone's bugs: orchestration code that touches waybar/swaync/gtk/walker is owned by the `hypr` package, so there is no single place that "is" the theming system, and no shared library — which is why `reload_all()` exists once in `theme-switch.sh` but is copy-pasted a second time (with drift risk) in `theme-init.sh`.
+**`themes/.config/themes/{static,css,gtk,kitty,vscodium,yazi}/*` is dead code.** It is a separate stow package (still listed in `stow.sh`'s `PACKAGES` array and installed) containing a full second copy of hand-authored per-preset colors in five different formats. A repo-wide `grep -rn` across every script/toml/json/conf found **zero references** to any file under `themes/.config/themes/`. This predates the Milestone-1 theme-engine consolidation (the 2026-07-07 pre-implementation research still assumed this was the live static source — it is not, as of the shipped v1.0 pipeline) and was never removed. **Do not add new light presets here** — the live source of truth for static presets is `theme-engine/.config/theme-engine/palettes/*.json`, consumed by `generate.sh`. Treat `themes/` as a v2.0 cleanup candidate (delete or repurpose), not a place to extend.
 
-Recommended reorganization (can be done incrementally, does not require a rewrite):
+## New vs Modified Components by Feature Group
 
-```
-theme/                              # new stow package — the theming ENGINE
-├── .config/theme/
-│   ├── lib/
-│   │   ├── distribute.sh           # static cp OR matugen invoke → canonical color files
-│   │   ├── reload.sh               # single fan-out: hyprctl/waybar/kitty/swaync/gtk/walker
-│   │   └── gtk.sh                  # gsettings + gtk.css rebuild + light/dark + accent handling
-│   ├── apply-theme.sh              # entrypoint: apply-theme.sh <name|materialyou>
-│   │                                #   sourced by BOTH the walker picker AND theme-init.sh
-│   └── state.sh                    # read/write ~/.cache/current-theme, current-waybar-layout
-themes/                             # UNCHANGED — static preset data only (no logic)
-matugen/                            # UNCHANGED — dynamic template data only (no logic)
-hypr/                               # UNCHANGED — hyprland.conf, keybinds; keybinds call
-                                     #   `~/.config/theme/apply-theme.sh` instead of owning logic
-waybar/, swaync/, gtk/, walker/,    # UNCHANGED — each owns only its own static config +
-kitty/, wlogout/, yazi/             #   a colors.* stub file the engine writes into
-```
+### 1. New themed surfaces (hyprlock, swayosd, Zen browser, wallpaper-picker UI)
 
-### Structure Rationale
+| Surface | Status | What's needed |
+|---------|--------|----------------|
+| **hyprlock** | **Already wired, MODIFY only** | `hyprlock.conf` already does `source = ~/.local/state/theme/hyprland.conf` (line 5) and already consumes `$primary`/`$secondary`/`$tertiary`/`$surface`/`$on_surface`/`$error`/`$image`. No new matugen template, no new contract entry. The "themed via shared pipeline" requirement is data-flow-complete today — the "redesigned look" work is pure `hyprlock.conf` editing (new `label`/`input-field` blocks, layout), reusing variables the pipeline already renders. If the redesign needs a role the current `hyprland-colors.conf` template doesn't emit (e.g. `tertiary_container`), extend that one existing template — still zero new contract entries. |
+| **swayosd** | **NEW** | New stow package `swayosd/.config/swayosd/style.css` following the exact `@import url("../../.local/state/theme/swayosd.css");` pattern already used by `swaync/style.css` and `wlogout/style.css`. Requires: (a) new matugen template `matugen/.config/matugen/templates/swayosd-colors.css` + `[templates.swayosd]` block in `config.toml`, (b) new `contract.json` entry `{"name": "swayosd.css", "format": "gtk-css"}`, (c) `swayosd.service --user` enabled at install time (systemd unit ships with the package — an `install.sh` post-install `systemctl --user enable --now swayosd.service` step, not a stow concern), (d) no reload.sh change needed if swayosd hot-reloads its CSS; if it doesn't, add a restart/signal line to `reload.sh` mirroring the `pkill -SIGUSR2 waybar` pattern (verify swayosd's actual reload mechanism before wiring — flagged as an open question, not yet checked against upstream). |
+| **Zen browser** | **NEW, structurally different** | Zen (Firefox-derived) reads `userChrome.css`/`userContent.css` from inside a **randomly-named profile directory** (`~/.zen/<hash>.default*`), which cannot be a fixed stow target. This breaks the "stow symlink to a fixed path" pattern used everywhere else in the repo. Needs a **profile-locator script** (new, e.g. `hypr/.config/hypr/scripts/zen-theme-link.sh`) that reads `profiles.ini` to resolve the live profile path and `ln -sf`s a rendered `zen-colors.css` (new matugen template + contract entry) into `<profile>/chrome/userChrome.css` (or `@import`s it, if a stow-owned `userChrome.css` can `@import file://` an absolute state-dir path — needs verification; Firefox-family browsers are stricter about `file://` imports in chrome CSS than GTK is). Add this as a new `reload.sh` step (`theme_engine_reload_zen`) that is a no-op if no Zen profile exists yet (same defensive style as the existing walker/elephant health gates) — Zen may not be installed/first-run on every machine. This is the riskiest new integration in the whole v2.0 set; treat it as needing its own research spike, not a roadmap-confident line item. |
+| **Wallpaper-picker UI** | **MODIFY, likely a rewrite of the picker's front-end only** | Current `wallpaper-picker.sh` is a kitty-hosted `fzf` + `chafa` TUI — it has no CSS/GTK surface to theme at all (colors are hardcoded ANSI in the `fzf --color=` flags, not pipeline-driven). "Omarchy-level aesthetics" implies either (a) keep the fzf shape but derive its `--color=` flags from the live palette (cheap: source `~/.local/state/theme/kitty.conf`'s hex values in the script), or (b) replace it with a GTK4 layer-shell grid (bigger lift, would then need its own contract entry). Recommend (a) first — theming an existing terminal UI via the already-rendered kitty palette is a same-pattern extension, not a new pipeline component. The **restriction logic** (theme-aware wallpaper sets) is a separate, orthogonal change — see Data Flow Changes below. |
 
-- **`theme/lib/` as the single engine:** every future add-on (OSD, walker menus, media center) that needs to react to a theme change subscribes to this engine (calls `reload.sh` fragment or is added as one more line in it) instead of every script re-deriving reload logic. This is exactly Omarchy's rationale for centralizing under `~/.config/omarchy/` rather than scattering theme logic across each app's own stow package (DeepWiki, LOW confidence, but directionally consistent with the two-stage-swap pattern below).
-- **`apply-theme.sh` as the only entrypoint:** `theme-switch.sh` (interactive) and `theme-init.sh` (login) currently duplicate ~40 lines of "copy files then reload everything" logic. Collapsing both into calls to one shared script removes an entire class of "fixed in one place, still broken in the other" bugs — which is very likely why walker/thunar fixes have not stuck across multiple past commits (`fix: walker and thunar not responding to theme changes`, `fix: gtk themes`, `debug: white theme`).
-- **Static preset data and matugen template data stay separate but produce an identical output contract:** both must write to the exact same canonical file paths with the exact same variable names (see `walker-theme-gen.sh`'s `@define-color background/on_surface/primary/...` extraction — these names must exist in *both* `themes/css/<name>.css` and matugen-generated `colors.css`, or the two modes silently diverge). This is a hard constraint from PROJECT.md ("Both static preset themes and matugen dynamic themes work through the same pipeline").
+### 2. Utility scripts suite (screenshot, emoji, color picker, clipboard history, icon theme picker, nerd-font switcher)
 
-## Architectural Patterns
+**Location decision: extend `hypr/.config/hypr/scripts/`, do not create a new stow package**, unless a utility ships its own non-hypr config directory (swayosd is the only such case above). Rationale: every existing automation script in this repo already lives there (`theme-switch.sh`, `wallpaper-picker.sh`, `wallpaper-switch.sh`, `waybar-switch.sh`, `screenshot.sh`, `media-player.py`, `powermenu.sh`, `wlogout.sh`, `theme-init.sh`, `vscodium-extensions.sh`), `stow.sh` already `chmod +x`'s the whole directory on every stow run, and the "thin caller" convention (D-01) means these scripts don't need their own package boundary — they're not theming surfaces, they're actions.
 
-### Pattern 1: Single Source of Truth Per App, Not Per System
+| Utility | New or modify | Notes |
+|---------|----------------|-------|
+| Screenshot suite (capture/annotate/record) | **MODIFY** `screenshot.sh` (extend the existing `full/area/window` case) + **NEW** flags/functions for annotate (needs an external tool — `satty` or `swappy`, neither currently in `install.sh`) and record (`wf-recorder`, also not currently installed) | `grim`/`slurp` already in `PACMAN_PKGS`; annotate/record tools are net-new `install.sh` additions |
+| Emoji picker | **Likely already solved** | `walker/config.toml` already enables `elephant-symbols` (prefix `.`) and `AUR_PKGS` already installs `elephant-symbols`. Verify this actually covers emoji, not just Unicode/math symbols, before treating this as a new build item — may just need a keybind/placeholder tweak rather than a new script |
+| Color picker | **NEW** script wrapping `hyprpicker` (not currently in `install.sh` — net-new package dependency) | Simple: `hyprpicker -a` copies hex to clipboard; script only needs a `notify-send` wrapper matching this repo's UX convention |
+| Clipboard history | **Already exists as an inline keybind**, not a script | `keybinds.conf` line 45: `bind = $mainMod, C, exec, cliphist list \| walker --dmenu \| cliphist decode \| wl-copy`. If v2.0 wants this as a dedicated walker menu/set instead of a bare `--dmenu` pipe, that's a `walker/config.toml` change (new `[sets.clipboard]`), not a new script |
+| Icon theme picker (Thunar) | **NEW** script | Needs to enumerate `/usr/share/icons` + `~/.local/share/icons`, present via `walker --dmenu`, then `gsettings set org.gnome.desktop.interface icon-theme <name>` — same live-update mechanism `gtk.sh` already uses for `gtk-theme`/`color-scheme`, so this is additive to the existing GSettings pattern, not a new mechanism |
+| Nerd-font switcher (vscodium/kitty/GTK/etc.) | **NEW** script, cross-cutting | Font is currently hardcoded per-app: `kitty.conf` (`font_family`), `gtk-3.0/settings.ini` + `gtk-4.0/settings.ini` (`gtk-font-name`), presumably waybar CSS `font-family` too. A font switcher needs to touch **multiple stowed static files** (not state-dir renders) or become a new contract-managed value. Recommend: treat font name as a new theme-engine-owned value (fold it into an existing render or add a small dedicated one) so switching font goes through the same render→commit→reload path instead of a bespoke sed-in-place-on-stowed-files script (sed-in-place would fight the "generated output never in git, static files never engine-written" boundary enforced since Phase 1). This is the one utility that actually touches the *pipeline*, not just adds a peripheral script. |
 
-**What:** Each app gets exactly one generated color file (`colors.conf`, `colors.css`, `style.css`) that both the static path and the dynamic (matugen) path write to, using the same variable names. The app's own hand-written config (`hyprland.conf`, `style.css` for waybar, etc.) never contains a literal hex value — it only sources/imports the generated file.
-**When to use:** Always, for every app added to the pipeline (including future OSD and media-center widgets).
-**Trade-offs:** Requires every app's stylesheet to actually support the include mechanism (`@import`, `source =`, `@define-color`). Apps that don't (Walker's GTK4 CSS engine reportedly does not resolve `@define-color` tokens the way GTK3 does) need a dedicated renderer that resolves variables to literal values at generation time — which is exactly what `walker-theme-gen.sh` already does. Keep that pattern explicit rather than trying to force every app into the same mechanism.
+### 3. Omarchy-style Super-tap walker menu tree
 
-**Example (this repo, matugen side):**
-```toml
-[templates.hyprland]
-input_path = "~/.config/matugen/templates/hyprland-colors.conf"
-output_path = "~/.config/hypr/colors.conf"
-post_hook = "hyprctl reload || true"
-```
+Walker's `menus` provider (backed by `elephant-menus`, already installed and already listed in `walker/config.toml`'s `[providers] default` array) is the mechanism. **LOW confidence, websearch-only** — verify against `elephant generatedoc` output on this machine before committing to exact syntax in a plan:
 
-### Pattern 2: Mode-Branching Generator, Converging Distributor
+- Custom menu definitions are files under (reported location, unverified on this install) `~/.config/elephant/menus/*.toml` — this needs a **new stow package** `elephant/.config/elephant/menus/` (elephant, not walker, owns this config surface — separate from `walker/.config/walker/config.toml`).
+- Each menu file declares `name`/`name_pretty`/`icon` plus `[[entries]]` with `text`/`icon`/`actions`, and nests via a `submenu` field pointing at another menu's `dmenu:<name>` reference — this is how the tree (Utilities → screenshot/color-picker/emoji/... , AI dashboard → launchers + workspace jump, Game center, power, settings, keybind cheat-sheet) gets built: **one root menu + N leaf/branch menu files**, not one giant flat file.
+- **Custom icons**: `icon` fields reference the system icon theme by name by default (per Walker docs) — supplying genuinely custom (non-icon-theme) icons needs either (a) a small local icon set installed into `~/.local/share/icons/hicolor/...` and referenced by name, or (b) absolute-path icon support if elephant-menus allows it (unverified — flag for the research spike).
+- **Wiring the bare-$SUPER-tap trigger**: today, `keybinds.conf` line 33 binds `$mainMod, SUPER_L` (a bare Super tap) directly to `$app_launcher = walker` (the full multi-provider search). To make a bare tap open **the menu tree** instead, this bind must be repointed to a **new dedicated walker set** (e.g. `walker -s mainmenu`, following the exact same `[sets.runner]` pattern already in `walker/config.toml`) restricted to `providers = ["menus"]` with the root menu's `dmenu:` set as the entry point. App search (currently on the same bare-tap bind) needs to move fully onto the existing `$mainMod, R` (`$app_launcher_drun`) bind, which already exists and is unaffected.
+- This is **MODIFY** `keybinds.conf` (repoint one bind) + **MODIFY** `walker/config.toml` (new `[sets.mainmenu]`) + **NEW** `elephant/` stow package with the menu tree, in that dependency order.
 
-**What:** One entrypoint script takes a mode (`static:<name>` or `materialyou`), branches internally only for the *generation* step (file copy vs. `matugen image`), then funnels into one shared "distribute + reload" tail regardless of mode.
-**When to use:** Any system supporting both curated presets and generative theming from the same UI.
-**Trade-offs:** The branch must fully converge — if the static path additionally does something the dynamic path doesn't (or vice versa), that divergence becomes an intermittent, mode-dependent bug. This repo's current `theme-switch.sh` mostly does this correctly (`apply_static_theme` and `apply_material_you` both end by calling `reload_all()`), but `theme-init.sh` reimplements both branches independently instead of calling the same functions — the exact anti-pattern this section warns against.
+### 4. Waybar evolution
 
-### Pattern 3: Reload Strategy Split by App Capability
+Waybar already has a proven 3-way layout-variant pattern: `config-{minimal,full,floating}.jsonc` + matching `style-{minimal,full,floating}.css`, switched at runtime by `waybar-switch.sh` (kills + relaunches `waybar -c ... -s ...`) and persisted via `~/.cache/current-waybar-layout`, read back by `waybar-launch.sh` on session start. **All three existing style files `@import` the exact same single rendered `~/.local/state/theme/waybar.css`** — meaning a new layout variant needs **zero matugen/contract.json changes**, only new config/style file pairs plus two small script edits.
 
-**What:** Not all apps reload the same way. Classify each integration target into one of three reload strategies and pick per-app, not uniformly:
-1. **Live signal reload** — app watches a signal and re-reads config in place. Hyprland (`hyprctl reload`), Kitty (`SIGUSR1`, or better, `kitty @ set-colors --all` via remote control socket for flicker-free reload), Waybar (`SIGUSR2`), SwayNC (`swaync-client -rs`).
-2. **Settings-daemon reload** — app doesn't read a file at all, it reads a live gsettings/dconf key and repaints on the settings-changed signal. GTK apps' *dark/light mode* and *icon theme* fall here (`gsettings set org.gnome.desktop.interface color-scheme ...`). Critically, toggling a gsettings key to empty-then-back is a documented trick to force a change-notify even when the target value is unchanged (used in `gtk-reload.sh` for `gtk-theme` already; the missing piece is doing the equivalent for **palette/accent**, not just dark-mode).
-3. **Restart-required reload** — app compiles/caches its stylesheet once at startup and has no file-watch or IPC reload path. Walker falls here per this repo's own comments in `walker-restart.sh`; GTK3 daemonized apps like `thunar --daemon` are being treated as restart-required in `gtk-reload.sh`, though GTK3's `~/.config/gtk-3.0/gtk.css` is documented to support live file-monitoring in many GTK3 versions — worth re-verifying before assuming restart is mandatory (flag for pitfalls/phase research, not resolved here).
+| Item | Status | What's needed |
+|------|--------|----------------|
+| Vertical (left) layout | **NEW** `config-vertical.jsonc` + `style-vertical.css` (copy the `full` pair, change `"layer"`/anchor, rotate module groups, `@import` the same `waybar.css`) | **MODIFY** `waybar-switch.sh` (add `vertical` to `LAYOUT_LIST`/case) and `waybar-launch.sh` (add `vertical` to the validate-case) |
+| Media-center module/popup (mpris) | **Already exists** — `config-full.jsonc` already has a built-in `"mpris"` module in `modules-center`. v2.0's "media center" ask is about expanding this to a **popup/expanded panel**, which waybar's built-in `mpris` module cannot do (inline text only) — this pushes toward the custom-`playerctl`-script-module path noted in this repo's STACK.md, i.e. **MODIFY→replace** the mpris entry with a `custom/mpris` module in `config-full.jsonc` (and any new vertical/OLED variant) whose `on-click` opens a themed GTK popover. Uses the already-installed `playerctl` and the already-present `hypr/.config/hypr/scripts/media-player.py` — check that script's current role before building a second popover | **MODIFY** `config-full.jsonc` (+ any new variant configs); possibly already partially built — verify `media-player.py` first |
+| Notification-center button | **Already exists** — `custom/notification` module in `config-full.jsonc` already calls `swaync-client -swb`/`-t -sw`/`-d -sw`. v2.0 work here is replication into new layout variants, not new plumbing | **MODIFY** — copy the existing module block into vertical/OLED variants |
+| OLED-safe behavior (auto-hide/transparency/pixel-shift) | **NEW mechanism, no precedent in repo** | None of Hyprland's config or waybar's own config currently does auto-hide or pixel-shift. Auto-hide is native waybar (`"layer": "top"` + a script toggling visibility, or a Hyprland `layerrule`); pixel-shift is unprecedented in this repo — likely a new lightweight timer script (via `hypridle` or a background loop) nudging bar margins by 1-2px periodically. This is genuinely new infrastructure, not a pattern extension — flag as needing its own design pass, not just a config edit. |
 
-**Trade-offs:** Restart-required reload is disruptive (loses window state, causes a visible flash) — use it only where signal/settings reload genuinely does not exist, and treat "does this app actually need a restart" as a question to re-verify per app rather than copy the heaviest fix everywhere.
+### 5. More static presets incl. light themes; theme-aware wallpaper sets
 
-### Pattern 4: GTK Chrome vs. Palette Separation
+This is the data-flow-heaviest feature group — see the dedicated section below.
 
-**What:** Treat "which named GTK theme is active" (chrome: widget shapes, e.g. `adw-gtk3-dark`) as a *different, rarely-changing* setting from "which colors that theme should render" (palette: accent/background/surface, changes every theme switch). GTK3 lets a later-loaded user `gtk.css` redefine `@define-color` tokens the named theme already defined, which is how palette overlay is supposed to work without changing the theme name. GTK4/libadwaita is more restrictive: libadwaita apps largely ignore custom named themes altogether and only respect a constrained `accent-color` enum via `gsettings set org.gnome.desktop.interface accent-color <name>` (libadwaita ≥ 1.6) plus `color-scheme` for dark/light — arbitrary wallpaper-derived hex accents are not fully supported for libadwaita-native (GTK4) apps without per-app CSS injection tricks, and never for sandboxed (Flatpak) apps.
-**When to use:** Whenever the stack mixes GTK3 (Thunar, many legacy apps) and GTK4/libadwaita apps (newer GNOME-family apps, potentially Walker's rendering layer).
-**Trade-offs:** This means "GTK apps generally follow theme switches" (this milestone's Active requirement) has a ceiling — GTK3 apps can be made to follow the full wallpaper-derived palette; GTK4/libadwaita apps realistically only follow discrete accent-color + dark/light, not arbitrary hex. Roadmap should scope the GTK4 sub-goal accordingly rather than treat it as the same problem as GTK3.
+### 6. Bug-fix surfaces (wlogout, hyprlock timing, kitty startup)
 
-**Confidence:** MEDIUM — corroborated by two independent web sources (GitHub Gradience issue #641, gonwan.com GTK3/GTK4 theming article) describing libadwaita's `adw_style_manager_constructed()` hardcoding `gtk-theme-name` to `Adwaita-empty` and using its own `AdwSettings`/CSS providers layered on top of, not replacing, GTK4's theme mechanism.
+None of these three touch the theme-engine pipeline structurally:
 
-## Data Flow
+- **wlogout shutdown hang**: `wlogout.sh` toggles the wlogout layer-shell UI (`pkill`/launch with `--protocol layer-shell`); the actual shutdown action lives in `wlogout/.config/wlogout/layout` (not yet read in this pass — likely calls `systemctl poweroff` directly or via a wrapper). The redesign ("modern-rice standard") is a `layout`/`style.css` content change; `style.css` already `@import`s the state-dir `wlogout.css`, so re-theming after the redesign is free — this is a **MODIFY**, contained entirely inside the `wlogout/` package, no engine changes.
+- **Hyprlock first-keystroke drop**: almost certainly a `hypridle.conf`/`hyprlock.conf` `grace`/focus-timing issue, unrelated to the theming pipeline (`hyprlock.conf`'s `general { grace = 5 }` is already set) — isolated fix inside `hyprlock.conf`/`hypridle.conf`.
+- **Kitty slow startup**: `kitty.conf` is a stowed static file (not a theme-engine render target) — likely a shell-init cost (zshell/oh-my-posh) rather than a `kitty.conf` issue itself; profiling touches `zshell/` and possibly `kitty.conf`'s shell-integration settings, not the theme pipeline.
 
-### Theme-switch flow (interactive, via Walker)
+## Data Flow Changes
 
-```
-User: Super+Shift+T
-    ↓
-theme-switch.sh shows walker --dmenu picker
-    ↓
-Branch on selection:
-  ├─ static preset  → cp themes/{static,css,gtk,kitty,yazi,vscodium}/<name>.* → canonical paths
-  └─ Material You    → matugen image <current wallpaper> --source-color-index 0
-                        (matugen/config.toml renders every [templates.*] entry,
-                         writing directly to canonical paths AND firing its own
-                         per-template post_hook, e.g. hyprctl reload, SIGUSR2 waybar)
-    ↓ (both branches converge here)
-Rebuild gtk.css = colors.css + gtk-base.css (GTK3 and GTK4 separately)
-    ↓
-reload_all():
-  hyprctl reload
-  pkill -SIGUSR2 waybar
-  pkill -SIGUSR1 kitty
-  swaync-client -rs
-  gtk-reload.sh     (gsettings toggle, GTK_THEME env re-import, thunar restart)
-  walker-restart.sh (kill socket + process, uwsm relaunch)
-    ↓
-echo "<name>" > ~/.cache/current-theme
-```
+### A. Light/dark mode flag in theme presets
 
-Note the **double-application risk** in the Material You branch: matugen's own `post_hook`s (defined per-template in `matugen/config.toml`) already fire `hyprctl reload`, `pkill -SIGUSR2 waybar`, `swaync-client -rs`, `gtk-reload.sh`, and `walker-restart.sh` individually as each template renders — and then `theme-switch.sh`'s `reload_all()` fires the *same* set again afterward. This is redundant (not currently harmful beyond a flash/restart-storm) and is a candidate for simplification: pick one place to own reload — either matugen's per-template `post_hook`s, or the orchestrator's `reload_all()`, not both.
+**Current state (verified):** `theme-engine/palettes/*.json` (e.g. `catppuccin.json`) have no scheme/mode key at all — every role is a single `"default": {"color": "#hex"}`, and all six existing presets are dark. Two independent places in the engine currently **hardcode dark unconditionally**, both of which must become mode-aware or light presets will render palettes correctly but the desktop chrome will stay dark regardless:
 
-### Login/session-restore flow
+1. `theme-engine/lib/gtk.sh` lines 21-24 — unconditionally calls `gsettings set ... color-scheme "prefer-dark"` and `gsettings set ... gtk-theme "adw-gtk3-dark"`.
+2. `gtk/.config/gtk-3.0/settings.ini` (stowed, static, **not** engine-rendered) — `gtk-application-prefer-dark-theme=1` is a hard client-side force that some GTK3 apps honor ahead of the live gsettings `color-scheme` value.
 
-```
-uwsm session start → theme-init.sh (autostart)
-    ↓
-Read ~/.cache/current-theme (fallback: "catppuccin")
-    ↓
-Set wallpaper (awww img ~/Pictures/Wallpapers/current.jpg)
-    ↓
-Re-run the FULL apply logic inline (independently reimplemented —
-does not call theme-switch.sh's apply_static_theme/apply_material_you/reload_all)
-    ↓
-echo "<theme>" > ~/.cache/current-theme
-```
+**This is the single most important data-flow addition for feature group 5.** Fixing only (1) without (2), or vice versa, will produce a "light preset that still looks dark" bug that is easy to mis-diagnose as a template problem. Both must move from static/hardcoded to mode-derived.
 
-### Future add-on flows (planned, not yet built)
+Two viable mechanisms for deriving mode, in order of recommendation:
 
-- **OSD (volume/brightness):** consumes the same canonical `colors.css`/`colors.conf` as any other app — needs one new matugen template + one new static preset variant + a reload mechanism appropriate to whichever OSD daemon is chosen (e.g. `swayosd-server` — verify whether it hot-reloads its own CSS or needs a restart, this is a build-order dependency, research before implementing).
-- **Walker custom menus (power menu, settings, etc. "Omarchy-style"):** these are *new invocations of the existing walker binary* with `--dmenu`, exactly like `theme-switch.sh` and `waybar-switch.sh` already are. They automatically inherit whatever theme walker is currently rendering (`themes/rice/style.css`) — **zero new propagation work**, provided the Walker theming bug is fixed first. This is a strong argument for sequencing: fix Walker's core theme-follow bug before building new Walker-based menus, or the new menus inherit the same "stuck white" bug on day one.
-- **Media center (now-playing widget):** if implemented as a Waybar module (e.g. `custom/mpris`), it inherits Waybar's existing `colors.css` automatically — no new integration needed. If implemented as a standalone widget (AGS/eww/GTK), it becomes a brand-new theming target requiring its own template + reload entry, following Pattern 1–3 above.
+- **(Preferred) Auto-detect from the rendered `surface`/`background` lightness**, the same technique `gtk.sh`'s existing `theme_engine_gtk4_accent()` already uses (Python `colorsys.rgb_to_hls`, HLS lightness channel) to map an arbitrary hex to a GNOME accent enum. Add a sibling `theme_engine_gtk_mode()` that reads the just-committed `gtk-4.0-colors.css` (or `hyprland.conf`) `surface`/`background` value, computes lightness, and picks `"prefer-dark"`/`"default"` + `"adw-gtk3-dark"`/`"adw-gtk3"` accordingly. This works uniformly for **both** static presets and Material You (a light wallpaper's dynamically-generated palette is correctly detected as light with zero manual annotation) — no new palette-JSON schema field needed at all.
+- **(Fallback) Manual `"mode": "light"|"dark"` key** at the top of each palette JSON, read via `jq` in `gtk.sh` before the gsettings calls. Simpler to reason about per-preset but does nothing for Material You mode detection (would need its own separate luminance check anyway) — recommend only if the auto-detect approach proves unreliable on real palettes.
 
-## Growth / Scope Considerations
+Either way, `gtk/.config/gtk-3.0/settings.ini`'s `gtk-application-prefer-dark-theme=1` line needs to stop being a static hardcode — either delete the line (let the portal/gsettings value be the sole authority, verify no GTK3 app regresses to light-by-default before doing this) or make `settings.ini` itself a new contract-managed render target (10th → 11th file), which is more invasive (breaks the "some GTK3 config is repo-static, only colors are engine-rendered" split held since Phase 1) — recommend the delete-and-verify path first as the minimal-diff fix.
 
-| Concern | Today (7 themed apps) | After milestone 2 (10-11 themed surfaces: + OSD, walker menus, media center) |
-|---------|------------------------|-------------------------------------------------------------------------------|
-| Reload fan-out list | Hardcoded in 2 duplicated places (`theme-switch.sh`, `theme-init.sh`) | Must live in exactly one shared `reload.sh` or every new surface doubles the drift risk |
-| Static preset completeness | 6 presets × 6 file types (`static/css/gtk/kitty/yazi/vscodium`) | Each new app adds one more file type per preset — a missing file for one preset silently breaks only that preset (why "both modes work through the same pipeline" must be a checked invariant, not an assumption) |
-| Matugen template completeness | 10 `[templates.*]` entries | Same growth; a template output path typo doesn't fail loudly (matugen renders what's configured, silently skips what isn't) |
+New static presets themselves (e.g. `catppuccin-latte`) are added exactly like the existing six: **one new file under `theme-engine/palettes/`**, listed as a new case arm in `theme-switch.sh`'s `THEME_LIST`/`case` — zero `generate.sh`/`commit.sh`/`contract.json` changes needed, confirming this part of the pipeline already generalizes cleanly.
 
-### Growth priorities
+### B. Per-theme wallpaper metadata / wallpaper-picker restriction
 
-1. **First bottleneck:** logic duplication between the interactive switcher and login-init path. Any new app integration (OSD, media center) added to only one of the two will work after a manual switch but break/mismatch after reboot, or vice versa — an easy, hard-to-notice regression. Fix by extracting a shared library before adding new surfaces.
-2. **Second bottleneck:** GTK4/libadwaita's hard ceiling on arbitrary palette theming (Pattern 4). If future add-ons are built as libadwaita apps (common default for new GTK4 tooling), they will hit the same "stuck" symptom Thunar/Walker have now unless scoped to accent-color + dark/light rather than full wallpaper-derived hex.
+**Current state (verified):** `wallpapers/Pictures/Wallpapers/` is a flat directory — `wallpaper-picker.sh` globs every image in it with no notion of which preset(s) a wallpaper "belongs to". The picker already reads `~/.local/state/theme/current-theme` (line 137) to decide whether to re-trigger Material You after a wallpaper change — this existing read is the hook point for restriction logic, not a new mechanism.
 
-## Anti-Patterns
+Two viable layouts, in order of recommendation:
 
-### Anti-Pattern 1: Reimplementing the Reload Sequence Per Entrypoint
+- **(Preferred) Per-preset subdirectories**: `wallpapers/Pictures/Wallpapers/<preset-name>/*.jpg` (plus a top-level, unrestricted pool for Material You mode, since dynamic mode derives colors *from* the wallpaper — restriction is meaningless there and must stay disabled when `current-theme == materialyou`). `wallpaper-picker.sh`'s `find` glob changes from a single flat directory to `$WALLPAPER_DIR/$(cat "$STATE_FILE")` when in static-preset mode. Simple, filesystem-native, no new parsing dependency (this repo already avoids adding metadata-file parsers where a directory convention suffices, matching its general minimal-diff bias).
+- **(Fallback) A manifest sidecar** (`wallpapers/Pictures/Wallpapers/manifest.json` mapping wallpaper filename → allowed preset name(s), for wallpapers that should be valid across multiple presets). More flexible (many-to-many) but adds a `jq` parse to a script that currently has zero JSON dependencies — only worth it if 1:1 directory-per-preset proves too rigid once real presets/wallpapers exist.
 
-**What people do:** Write the "apply colors, then reload everything" sequence once in the interactive switcher, then copy-paste a second (subtly different) version into the login/init script.
-**Why it's wrong:** This repo's own git history shows this exact failure mode — multiple commits attempting to fix walker/thunar theming, none of which stuck, most plausibly because the fix landed in one script and not the other, or because the two scripts' color-generation steps drifted (e.g. one rebuilds `gtk.css` before restarting Thunar, the other might not).
-**Do this instead:** One `apply-theme.sh <mode>` script, sourced/called by both the walker picker and the login autostart. Both callers pass just the theme identifier; all copy/generate/reload logic lives in one place.
+Either layout is a **pure `wallpapers/` package + `wallpaper-picker.sh` change** — it does not touch `theme-engine/` at all, since wallpaper selection happens *before* `theme-apply` is invoked (for Material You) or is independent of it (for static presets, where the wallpaper is decorative only).
 
-### Anti-Pattern 2: Treating CSS-Variable Redefinition as Equivalent to a Live-Reload Signal
+### C. Menu-tree data flow (walker/elephant)
 
-**What people do:** Assume that overwriting `colors.css` (which a running app's stylesheet already has loaded) is sufficient — the running process will "just pick it up."
-**Why it's wrong:** Whether a running app notices a changed file depends entirely on whether it has a file-watcher on that specific path. GTK3 has partial support for this via its own `gtk.css` monitor; GTK4/libadwaita apps and Walker's compiled theme do not reliably re-read on file change and need an explicit signal (gsettings toggle) or full restart, matching what `walker-restart.sh`'s own comment already states ("Restart Walker service to pick up new CSS").
-**Do this instead:** For each app, explicitly document and test which of the three reload strategies (Pattern 3) it needs — don't assume file-write alone is enough, and don't assume restart is always required either (that's needlessly disruptive for apps that do support live signals).
+New, one-directional: `elephant/.config/elephant/menus/*.toml` (repo-tracked, stowed) → elephant daemon reads at query time → walker UI renders. This flow does **not** pass through `theme-engine` at all for its *content* — only its **appearance** (colors) comes from the pipeline, via the same `walker-style.css` (already a contract file, already symlinked by `commit.sh`) that themes the rest of walker. No new contract entry needed for the menu tree itself; it inherits walker's existing single stylesheet.
 
-### Anti-Pattern 3: One Named GTK Theme Standing in for the Whole Palette
+## Suggested Build Order
 
-**What people do:** Hardcode `GTK_THEME=adw-gtk3-dark` everywhere (uwsm env, `theme-init.sh`, `gtk-reload.sh`) and expect per-preset color variation to come entirely from the separately-injected `colors.css`.
-**Why it's wrong:** The named theme controls chrome (widget shapes/borders) and is a *legitimate* constant across presets — but conflating "the theme name never changes" with "therefore palette changes must come from CSS injection alone" ignores that libadwaita apps largely ignore that CSS injection (Pattern 4). The palette needs its own explicit propagation path (accent-color gsettings key for GTK4, `@define-color` overlay is fine for GTK3), not a single mechanism assumed to cover both.
-**Do this instead:** Split "set GTK_THEME name" (rare, chrome-only) from "set palette" (every switch) and give palette a GTK4-aware path (`gsettings set org.gnome.desktop.interface accent-color ...` where the running libadwaita version supports it) in addition to the GTK3 CSS overlay.
+Ordered to put low-risk, pattern-confirming work first and to satisfy the two genuine hard dependencies in this set: **(a) light-mode plumbing must exist before light presets are added** (adding a light preset before fixing the two dark-hardcodes in `gtk.sh`/`settings.ini` produces a visibly broken feature), and **(b) the walker menu-framework/keybind repoint must exist before any submenu content is meaningful** (building Utilities/AI-dashboard/Game-center content against a menu system that isn't yet reachable from a keybind is untestable work).
+
+1. **Cleanup + guardrail**: resolve the dead `themes/` package (delete or repurpose) before anyone accidentally edits it thinking it's live — pure risk-reduction, zero dependencies, do first.
+2. **Bug fixes (wlogout shutdown, hyprlock keystroke, kitty startup)** — isolated, no dependency on anything else in this list, safe to parallelize with everything below, and de-risks the base before layering new surfaces on top.
+3. **Light/dark mode plumbing** (`gtk.sh` mode detection or flag, `settings.ini` hardcode removal) — must land **before** step 4.
+4. **New static presets incl. light themes** — depends on 3.
+5. **Theme-aware wallpaper directories + wallpaper-picker restriction logic** — independent of 3/4 in mechanism, but only becomes *meaningful* once light presets (4) exist to restrict against; sequence after 4 for testability, though it could technically be built in parallel.
+6. **New themed surfaces: hyprlock redesign (cheap, already wired), swayosd (new template+contract+package), Zen browser (spike first — LOW confidence)** — each is independent of the others; do hyprlock first (near-zero plumbing risk), swayosd second (proven `@import` pattern), Zen last (needs its own research spike before committing to a plan).
+7. **Utility scripts suite** — independent of everything except the font-switcher item, which depends on deciding whether font becomes a contract-managed value (a mini version of step 3/4's pattern: pipeline change before the feature that depends on it). Screenshot/color-picker/icon-picker/emoji have no cross-dependencies and can be built in any order once `install.sh` package additions (hyprpicker, satty/swappy, wf-recorder) land.
+8. **Walker menu framework**: `elephant/` stow package with the *root* menu + keybind repoint (`keybinds.conf` bare-Super rebind, new `[sets.mainmenu]` in `walker/config.toml`) — this is the dependency gate for step 9.
+9. **Menu tree content** (Utilities, AI dashboard + workspace rules, Game center, power, settings, keybind cheat-sheet submenus) — depends on 8. Utilities submenu additionally depends on step 7 (it wraps the utility scripts as menu actions), so sequence Utilities after both 7 and 8 land; the other submenus (Game center, power, settings, cheat-sheet) only depend on 8.
+10. **Waybar evolution**: vertical layout (near-zero risk, proven 3-way pattern) → OLED-safe behavior (genuinely new infra, no precedent — budget more time) → media-center popup upgrade (depends on deciding `media-player.py`'s current role first — check before planning). All three are independent of 1-9 and can run in parallel with the whole rest of this list.
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Editing `themes/.config/themes/*` believing it's live
+
+**What people do:** See six per-preset files already present under `themes/gtk/`, `themes/kitty/`, etc. and assume that's where a new preset or a light-mode variant belongs.
+**Why it's wrong:** Verified zero references to this package anywhere in the repo's scripts/configs — it is dead weight from before the Milestone-1 theme-engine consolidation. Time spent editing it produces no visible effect and no error message to signal the mistake.
+**Instead:** All static preset content lives in `theme-engine/.config/theme-engine/palettes/*.json`, consumed by `generate.sh`.
+
+### Anti-Pattern 2: Fixing only one of the two dark-mode hardcodes
+
+**What people do:** Add a light preset, notice `gtk.sh`'s `gsettings ... prefer-dark` call, fix that one line, ship it.
+**Why it's wrong:** `gtk-3.0/settings.ini`'s `gtk-application-prefer-dark-theme=1` is a separate, static, non-engine-rendered hardcode that some GTK3 apps honor independent of the live `color-scheme` gsetting — leaves a "light preset that still renders dark in Thunar" bug that looks like a template/render problem but isn't.
+**Instead:** Treat both hardcodes as one atomic change (see Data Flow Changes §A) and verify against an actual GTK3 app (Thunar), not just `gsettings get`.
+
+### Anti-Pattern 3: Adding a new waybar layout by touching matugen/contract.json
+
+**What people do:** See waybar has a `waybar.css` contract entry and assume a new layout variant needs its own new contract entry / matugen template.
+**Why it's wrong:** All existing layout variants (`minimal`/`full`/`floating`) already `@import` the **same single** rendered `waybar.css` — a new layout is purely a new `config-*.jsonc`/`style-*.css` pair plus two switcher-script edits. Adding a redundant second contract entry would silently fork the palette between layouts and break `theme-parity`'s guarantees.
+**Instead:** New layout = new config/style pair only, reusing the existing single waybar contract file.
+
+### Anti-Pattern 4: Bespoke sed-in-place font/config switching outside the engine
+
+**What people do:** Write a nerd-font-switcher script that directly `sed`s `kitty.conf`, `gtk-3.0/settings.ini`, waybar CSS, etc. in place.
+**Why it's wrong:** Directly mutates repo-tracked (stow-owned) files at runtime, which fights the hard-won "generated output never in git, static config never engine-written" boundary enforced since Phase 1 (`git status` must stay clean after any theme action — this was a stress-tested invariant in the v1.0 milestone). A sed-based switcher would make `git status` dirty after every font change and desync from a fresh `stow --restow`.
+**Instead:** Route font selection through the same render→commit→reload path as colors (new template variable or new contract file), exactly as recommended in the utility-scripts table above.
 
 ## Integration Points
 
-### External Services / Binaries
+### External daemons/services
 
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| `matugen` | CLI invoked with wallpaper path; renders all `[templates.*]` from `matugen/config.toml` in one process, firing per-template `post_hook`s | Confidence HIGH (read directly from repo). Consider whether `post_hook`s or the orchestrator's own `reload_all()` should own reload — not both (see Data Flow note). |
-| `awww` (wallpaper daemon) | `awww img <path> --transition-*` invoked both from `theme-init.sh` directly and from matugen's `[config.wallpaper]` `command` | Two invocation sites for the same action — confirm they don't race or double-transition when Material You mode also sets a wallpaper. |
-| `uwsm` | Wraps every long-lived process launch (`uwsm app -- walker ...`, `uwsm app -- thunar --daemon`, `uwsm app -- waybar ...`) so it's tracked as a systemd scope | Env vars set in `uwsm/.config/uwsm/env*` are only read at session start; mid-session changes (like `GTK_THEME`) need the `systemctl --user import-environment` + `dbus-update-activation-environment` dance already present in `gtk-reload.sh` — this is the correct pattern, keep it when adding new env-dependent apps. |
-| `gsettings` / dconf | GTK settings-daemon bridge; only works if `xdg-desktop-portal-gtk` (or equivalent) is running to back the schema | Already noted as a soft-dependency in `gtk-reload.sh` comment ("works if xdg-desktop-portal-gtk is running") — verify this is installed/enabled in `install.sh`, otherwise the entire GTK reload path silently no-ops. |
+| Component | Integration pattern | Notes |
+|-----------|---------------------|-------|
+| `elephant` (menus provider) | Config files under `~/.config/elephant/menus/*.toml`, read by the already-running `elephant` daemon at query time | Verify exact directory + schema via `elephant generatedoc` on this machine before planning (websearch-only confidence today) |
+| `swayosd.service --user` | Systemd user service shipped by the `swayosd` package; theming via GTK-CSS `@import` from the state dir, same pattern as swaync/wlogout | Confirm whether swayosd hot-reloads its CSS or needs a restart signal in `reload.sh` |
+| Zen browser profile | `profiles.ini`-mediated, randomly-named profile directory — cannot be a static stow target | Needs a locator script; treat as its own research spike |
+| GSettings/dconf + `xdg-desktop-portal-gtk` | Already the live-update layer for dark/light + accent (per this repo's STACK.md findings) | Extend, don't replace — mode detection plugs into the exact same `gsettings set` calls already in `gtk.sh` |
 
-### Internal Boundaries
+### Internal boundaries
 
 | Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Orchestrator ↔ Hyprland | `colors.conf` file + `hyprctl reload` | Clean, working today per PROJECT.md validated list. |
-| Orchestrator ↔ Waybar | `colors.css` file + `SIGUSR2` | Believed working; unverified per PROJECT.md — cheap to confirm since the mechanism is standard and matches Omarchy/JaKooLit precedent. |
-| Orchestrator ↔ SwayNC | `colors.css` file + `swaync-client -rs` | Same as Waybar — unverified but low-risk mechanism. |
-| Orchestrator ↔ Kitty | `colors.conf` file + `SIGUSR1` | Working today. Consider migrating to `kitty @ set-colors` via the remote-control socket for flicker-free application (kitty must have `allow_remote_control` enabled) — optional polish, not a blocker. |
-| Orchestrator ↔ GTK (3 and 4) | `colors.css` → concatenated `gtk.css` + `gsettings` toggle + env re-import | The weakest boundary today — mixes a file-based mechanism (GTK3-oriented) with a settings-daemon mechanism (dark/light only) and doesn't address GTK4/libadwaita's palette ceiling (Pattern 4). This is the boundary the milestone's "GTK apps generally follow theme switches" requirement lives on. |
-| Orchestrator ↔ Walker | Literal-hex `style.css` (bespoke renderer) + full process/socket restart | Bespoke because Walker doesn't consume GTK named-color tokens the way GTK3 apps do — this is a deliberate, documented workaround (`walker-theme-gen.sh` header comment), not an accident. Keep this pattern; the bug is more likely in *when/whether* the restart actually fires cleanly (stale socket, timing) than in the renderer design itself. |
-| Orchestrator ↔ Thunar | `colors.css` → `gtk.css` (GTK3 path) + forced `thunar --quit` / relaunch | Currently always restarts Thunar rather than relying on GTK3's live file-monitor — worth testing whether restart is actually necessary before keeping it as permanent behavior (adds visible disruption every switch). |
+|----------|----------------|-------|
+| Trigger scripts ↔ `theme-engine` | Positional CLI arg (`theme-apply <name>`) only — D-01 thin-caller contract | Any new trigger (icon-theme-picker, font-switcher if pipeline-routed) must follow this exact shape, not reimplement render/reload |
+| `theme-engine` ↔ stowed app configs | One-directional: engine writes `~/.local/state/theme/*`, app configs `@import`/`source`/symlink from it, engine never writes into a stowed repo path | Any new themed surface must add its own `@import`/`source` line in its own stowed config — the engine does not and should not know app-specific config syntax beyond the format tag in `contract.json` |
+| `waybar-switch.sh`/`waybar-launch.sh` ↔ `theme-engine` | **None** — waybar layout switching is entirely independent of theme switching; both read the same rendered `waybar.css` but neither script calls the other | Keep this independence when adding the vertical layout — do not make layout switching call `theme-apply` or vice versa |
 
 ## Sources
 
-- Direct repository inspection (HIGH confidence — primary source): `hypr/.config/hypr/scripts/theme-switch.sh`, `theme-init.sh`, `gtk-reload.sh`, `walker-restart.sh`, `walker-theme-gen.sh`, `waybar-switch.sh`, `wallpaper-switch.sh`; `matugen/.config/matugen/config.toml`; `gtk/.config/gtk-{3,4}.0/{settings.ini,gtk-base.css,colors.css}`; `uwsm/.config/uwsm/env*`; `walker/.config/walker/config.toml`; `stow.sh`, `install.sh`.
-- [Theme System Architecture | basecamp/omarchy | DeepWiki](https://deepwiki.com/basecamp/omarchy/7.1-theme-system-architecture) — LOW confidence (secondary/AI-summarized source), used for the two-stage atomic-swap pattern and component-restart cascade concept.
-- [Customization and Theming | basecamp/omarchy | DeepWiki](https://deepwiki.com/basecamp/omarchy/6-theming-and-customization) — LOW confidence, limited content returned.
-- [Application-Specific Theming | basecamp/omarchy | DeepWiki](https://deepwiki.com/basecamp/omarchy/7.2-terminal-tools-and-utilities) — LOW confidence; GTK theming section not documented in source, noted as a gap.
-- [Color and Theme System | JaKooLit/Hyprland-Dots | DeepWiki](https://deepwiki.com/JaKooLit/Hyprland-Dots/3.1-theming-system) — LOW confidence, corroborates the wallpaper→extraction→per-app-files→refresh pipeline shape and SIGUSR1/SIGUSR2 signal convention independently of Omarchy.
-- [bug: Custom CSS is not working for GTK4 · Issue #641 · GradienceTeam/Gradience](https://github.com/GradienceTeam/Gradience/issues/641) — LOW confidence per classifier, but a primary GitHub issue describing libadwaita's `adw_style_manager_constructed()` behavior; used for Pattern 4 / Anti-Pattern 3.
-- [Themes in Gtk3 and Gtk4 | 0x2B|~0x2B](https://www.gonwan.com/2026/02/17/themes-in-gtk3-and-gtk4/) — LOW confidence per classifier, corroborates the GTK3 vs GTK4/libadwaita distinction independently.
-- Matugen GTK4/gsettings integration pattern (accent-color toggle trick) — general web search synthesis, LOW confidence, treat as a lead to verify against matugen's own documentation during phase-specific research, not as settled fact.
+- Direct repository inspection (HIGH confidence, ground truth) — read in full: `theme-engine/.config/theme-engine/{theme-apply,contract.json,lib/*.sh,palettes/catppuccin.json}`, `matugen/.config/matugen/config.toml`, `walker/.config/walker/config.toml`, `waybar/.config/waybar/{config-full.jsonc,style-*.css}`, `hypr/.config/hypr/{hyprland.conf,hyprlock.conf,config/keybinds.conf,config/autostart.conf,scripts/{theme-switch,waybar-switch,wallpaper-picker,screenshot,wlogout}.sh}`, `gtk/.config/gtk-{3,4}.0/{settings.ini,gtk.css}`, `swaync/.config/swaync/style.css`, `wlogout/.config/wlogout/style.css`, `themes/.config/themes/**` (confirmed dead via repo-wide grep), `install.sh` (PACMAN_PKGS/AUR_PKGS), `stow.sh` (PACKAGES array), `kitty/.config/kitty/kitty.conf`, `.planning/PROJECT.md`
+- websearch: "walker elephant-menus provider config.toml custom menu submenu icon example" — confidence LOW
+- webfetch (benz.gitbook.io/walker/customization/custom-menus): custom menu file format, `submenu` nesting field — confidence LOW, needs verification against `elephant generatedoc` on this machine before a plan is written against it
 
 ---
-*Architecture research for: unified Hyprland desktop theming*
-*Researched: 2026-07-07*
+*Architecture research for: v2.0 Desktop Expansion integration into the existing theme-engine/stow architecture*
+*Researched: 2026-07-09*
