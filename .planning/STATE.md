@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: repo-cleanup-fresh-install-reproducibility
 status: executing
-stopped_at: Quick task 260709-a5i complete (alpm_octopi_utils removed); container gate re-run pending after push
-last_updated: "2026-07-09T04:30:00.000Z"
+stopped_at: Quick task 260709-buf complete (headless reload guard + gate timeout); container gate re-run next
+last_updated: "2026-07-09T05:45:00.000Z"
 last_activity: 2026-07-09
-last_activity_desc: Completed quick task 260709-a5i - removed dead alpm_octopi_utils from install.sh AUR_PKGS
+last_activity_desc: Completed quick task 260709-buf - fixed headless reload hang and added gate step timeout
 progress:
   total_phases: 3
   completed_phases: 3
@@ -96,12 +96,14 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-03: elephant provider gap resolved via human-run paru --rebuild of the elephant split package + restart — root cause was a Go plugin/host build-invocation mismatch, not missing packages; theme-doctor now exits 0 (23 passed, 0 failed)
 - [Phase 03-04]: container-tier gate execution deferred — origin/main is ~80 commits behind local HEAD (predates theme-engine entirely); running verify/container-run.sh now would clone a pre-Phase-3 state and produce meaningless evidence. Push to origin was NOT performed autonomously — requires explicit user authorization before container run + VM human sign-off can close INST-03. (Since resolved: user authorized the push; origin/main current.)
 - [Quick 260709-a5i]: Removed dead alpm_octopi_utils AUR_PKGS entry from install.sh — package no longer exists in AUR (only -git variant) and octopi 0.19.0 declares Conflicts With: alpm_octopi_utils, making paru hard-fail under --noconfirm during the INST-03 container gate
+- [Quick 260709-buf]: theme_engine_reload now early-returns headless (no WAYLAND_DISPLAY/DBUS_SESSION_BUS_ADDRESS) — swaync-client -rs blocked forever in the headless container during stow.sh's first-boot seed (gate run 042501Z hung 45+ min); swaync call additionally pgrep-gated + timeout 5. container-run.sh now bounds the whole podman run with timeout (CONTAINER_TIMEOUT, default 3600s) so any future hang is a loud FAIL, not a stall
 
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260709-a5i | Fix install.sh AUR conflict: remove dead alpm_octopi_utils | 2026-07-09 | 0ffa5d9 | [260709-a5i-fix-install-sh-aur-conflict-remove-dead-](./quick/260709-a5i-fix-install-sh-aur-conflict-remove-dead-/) |
+| 260709-buf | Fix theme reload headless hang + gate step timeout | 2026-07-09 | 1e747eb, 50ad696 | [260709-buf-fix-theme-reload-headless-hang-gate-step](./quick/260709-buf-fix-theme-reload-headless-hang-gate-step/) |
 
 ### Pending Todos
 
@@ -128,5 +130,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-07-09 (resumed)
-Stopped at: Session resumed; INST-03 container gate re-run launched (verify/container-run.sh, run #4). Prior context: push to origin completed (origin/main = 606b417), run #2 failed on wlogout-not-in-pacman (fixed in 606b417), run #3 interrupted mid-install with no verdict. Awaiting container PASS, then VM human sign-off per VERIFICATION.md to close INST-03.
+Stopped at: Quick task 260709-buf complete (headless reload guard + gate timeout hardening); relaunching container gate.
 Resume file: None
