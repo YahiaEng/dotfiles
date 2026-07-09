@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: repo-cleanup-fresh-install-reproducibility
 status: executing
-stopped_at: Quick task 260709-buf complete (headless reload guard + gate timeout); container gate re-run next
-last_updated: "2026-07-09T05:45:00.000Z"
+stopped_at: Quick task 260709-ciu complete (relative wallpaper symlink); container gate run 7 next
+last_updated: "2026-07-09T06:30:00.000Z"
 last_activity: 2026-07-09
-last_activity_desc: Completed quick task 260709-buf - fixed headless reload hang and added gate step timeout
+last_activity_desc: Completed quick task 260709-ciu - relative current.jpg symlink fixes fresh-install materialyou
 progress:
   total_phases: 3
   completed_phases: 3
@@ -97,6 +97,7 @@ Recent decisions affecting current work:
 - [Phase 03-04]: container-tier gate execution deferred — origin/main is ~80 commits behind local HEAD (predates theme-engine entirely); running verify/container-run.sh now would clone a pre-Phase-3 state and produce meaningless evidence. Push to origin was NOT performed autonomously — requires explicit user authorization before container run + VM human sign-off can close INST-03. (Since resolved: user authorized the push; origin/main current.)
 - [Quick 260709-a5i]: Removed dead alpm_octopi_utils AUR_PKGS entry from install.sh — package no longer exists in AUR (only -git variant) and octopi 0.19.0 declares Conflicts With: alpm_octopi_utils, making paru hard-fail under --noconfirm during the INST-03 container gate
 - [Quick 260709-buf]: theme_engine_reload now early-returns headless (no WAYLAND_DISPLAY/DBUS_SESSION_BUS_ADDRESS) — swaync-client -rs blocked forever in the headless container during stow.sh's first-boot seed (gate run 042501Z hung 45+ min); swaync call additionally pgrep-gated + timeout 5. container-run.sh now bounds the whole podman run with timeout (CONTAINER_TIMEOUT, default 3600s) so any future hang is a loud FAIL, not a stall
+- [Quick 260709-ciu]: current.jpg wallpaper symlink retargeted to relative shaded-landscape.jpg and wallpaper-picker.sh switched to ln -sfr — the tracked symlink stored a host-absolute /home/aorus path that dangles for any other user, breaking materialyou on fresh installs (gate run 054046Z: theme-parity 246/1)
 
 ### Quick Tasks Completed
 
@@ -104,6 +105,7 @@ Recent decisions affecting current work:
 |---|-------------|------|--------|-----------|
 | 260709-a5i | Fix install.sh AUR conflict: remove dead alpm_octopi_utils | 2026-07-09 | 0ffa5d9 | [260709-a5i-fix-install-sh-aur-conflict-remove-dead-](./quick/260709-a5i-fix-install-sh-aur-conflict-remove-dead-/) |
 | 260709-buf | Fix theme reload headless hang + gate step timeout | 2026-07-09 | 1e747eb, 50ad696 | [260709-buf-fix-theme-reload-headless-hang-gate-step](./quick/260709-buf-fix-theme-reload-headless-hang-gate-step/) |
+| 260709-ciu | Make current.jpg wallpaper symlink relative (fresh-install materialyou fix) | 2026-07-09 | 49536d5 | [260709-ciu-fix-host-absolute-wallpaper-symlink-brea](./quick/260709-ciu-fix-host-absolute-wallpaper-symlink-brea/) |
 
 ### Pending Todos
 
