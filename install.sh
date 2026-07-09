@@ -174,7 +174,6 @@ AUR_PKGS=(
 
     # Utils
     bibata-cursor-theme
-    alpm_octopi_utils
 
     # Logout menu (AUR-only; not in official repos)
     wlogout
