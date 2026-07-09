@@ -8,6 +8,20 @@ Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow an
 
 One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
 
+## Current Milestone: v2.0 Desktop Expansion
+
+**Goal:** Evolve the repaired v1.0 theming foundation into a complete, modern rice — fix the remaining reliability bugs, add the missing desktop utilities and menus, and extend the theme pipeline to every remaining surface.
+
+**Target features:**
+- Bug fixes: wlogout shutdown hang, hyprlock first-keystroke drops, kitty slow startup
+- Redesigns: wlogout (modern-rice standard), hyprlock (themed surface + new look), wallpaper picker (Omarchy-level aesthetics + theme-aware wallpaper restriction)
+- Utility scripts: screenshot full suite (capture/annotate/record), emoji picker, color picker, clipboard history, icon theme picker, nerd-font switcher
+- Super-key walker menu (Omarchy-style, custom icons): Utilities, AI dashboard (launcher submenu + dedicated workspace), Game center, power menu, settings menu, keybind cheat-sheet
+- Waybar: OLED-safe behavior (research auto-hide/transparency/pixel-shift), vertical (left) layout, media center (mpris — form per research), notification center access (swaync overlay)
+- SwayOSD volume/brightness indicators, themed via the shared pipeline
+- Theming expansion: more static presets incl. light themes; Zen browser follows theme switches
+- Tech-debt carry-over: rsync explicit in install.sh PACMAN_PKGS
+
 ## Requirements
 
 ### Validated
@@ -34,19 +48,24 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 
 ### Active
 
-<!-- Milestone 2 (expansion — to be refined via /gsd-new-milestone): -->
+<!-- Milestone v2.0 Desktop Expansion -->
 
-- [ ] OSD indicators for volume/brightness (e.g. swayosd), themed
-- [ ] Custom walker menus in the style of Omarchy (power menu, settings, etc.)
-- [ ] Media center showing currently playing media, accessible from waybar
-- [ ] Visual polish: animations, cohesive styling across all apps
-- [ ] More themes: additional static presets, better wallpaper-driven dynamic theming
+- [ ] wlogout shutdown completes reliably (no blank-screen hang) and the menu is redesigned to modern-rice standards
+- [ ] Hyprlock registers the first keystrokes reliably, is themed via the shared pipeline, and gets a redesigned look
+- [ ] Kitty startup is fast (profiled and fixed)
+- [ ] Utility scripts: screenshot full suite (capture/annotate/record + animations/feedback), emoji picker, color picker, clipboard history, icon theme picker (Thunar), nerd-font switcher (vscodium/kitty/GTK/etc.)
+- [ ] Pressing $SUPER alone opens an Omarchy-style walker menu with custom icons: Utilities, AI dashboard (launchers + workspace), Game center, power, settings, keybind cheat-sheet
+- [ ] Waybar: OLED-safe behavior, additional vertical (left) layout, media center (mpris), notification center access
+- [ ] SwayOSD volume/brightness indicators, themed
+- [ ] More static presets incl. light themes; wallpaper picker refined (Omarchy aesthetics + theme-aware wallpaper sets)
+- [ ] Zen browser follows theme switches
+- [ ] rsync explicit in install.sh PACMAN_PKGS (v1.0 tech-debt)
 
 ### Out of Scope
 
 - Wofi — abandoned in favor of walker; configs removed in v1.0
 - Supporting other distros/compositors — this is a personal Arch + Hyprland setup
-- Lock screen / idle management (hyprlock/hypridle) — not selected for expansion; can be revisited later
+- Custom AI assistant widgets/sidebars — v2.0's AI dashboard is launchers + a workspace, not built-in assistant UI
 - Full GTK4/libadwaita palette theming — structurally unsupported upstream; dark/light + accent is the documented ceiling (validated in v1.0)
 - Re-theme on every wallpaper auto-cycle — latency/flicker cost; re-theme only on explicit user action
 
@@ -97,4 +116,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 after v1.0 milestone*
+*Last updated: 2026-07-09 — v2.0 Desktop Expansion milestone started*
