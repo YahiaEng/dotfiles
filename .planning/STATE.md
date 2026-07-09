@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
 status: planning
-last_updated: "2026-07-09T07:15:26.149Z"
+last_updated: "2026-07-09T07:40:00.000Z"
 last_activity: 2026-07-09
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Planning next milestone (v2.0 Desktop Expansion) — start with `/gsd-new-milestone`
+**Current focus:** v2.0 Desktop Expansion roadmapped (Phases 4-8, 32 requirements). Next: `/gsd-plan-phase 4`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 4 — Reliability Fixes & Tech Debt (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-09 — Milestone v2.0 started
+Status: Roadmap created, awaiting phase planning
+Last activity: 2026-07-09 — v2.0 roadmap created (5 phases, 32/32 requirements mapped)
 
 ## Performance Metrics
 
@@ -84,7 +84,12 @@ None yet.
 
 [Issues that affect future work]
 
-None — all v1.0 blockers resolved before milestone close (see milestone archive). Non-blocking tech debt carried into v2 is listed in MILESTONES.md and PROJECT.md Current State.
+Research flags to resolve during phase planning (from research/SUMMARY.md):
+
+- **Phase 5 / Phase 6:** Zen browser profile-path resolution (native vs flatpak, "profile doesn't exist yet" chicken-and-egg) — research spike before THM-05 planning.
+- **Phase 8:** OLED auto-hide mechanism (hypridle availability, idle integration, pixel-shift feasibility) — research spike before BAR-01/BAR-02 planning.
+- **Phase 7:** elephant/walker version skew silently breaks custom menus — pin walker + elephant-* together and health-gate before shipping MENU-01.
+- **Phase 6:** hyprlock lockout-recovery discipline (second TTY logged in) and clipboard size-cap/wipe policy are launch requirements, not follow-ups.
 
 ## Deferred Items
 
@@ -92,14 +97,15 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| Milestone 2 | OSD, Walker menus, media widget, polish, more themes | Deferred to v2 | 2026-07-07 |
+| v2.0 | OSD, Walker menus, media widget, polish, more themes | Now roadmapped into v2.0 Phases 4-8 | 2026-07-09 |
+| Future | ICON-BROWSE (browse/install new icon themes), POLISH-01 (cohesive animation language) | Deferred beyond v2.0 | 2026-07-09 |
 
 ## Session Continuity
 
 Last session: 2026-07-09
-Stopped at: Milestone v1.0 shipped, archived, and tagged. Next: /gsd-new-milestone for v2.0.
+Stopped at: v2.0 Desktop Expansion roadmap created — 5 phases (4-8), 32/32 requirements mapped. Next: /gsd-plan-phase 4.
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan the first v2.0 phase with /gsd-plan-phase 4

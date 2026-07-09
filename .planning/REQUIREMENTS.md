@@ -93,13 +93,44 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmap) | | |
+| FIX-01 | Phase 4 | Pending |
+| FIX-02 | Phase 4 | Pending |
+| FIX-03 | Phase 4 | Pending |
+| DEBT-01 | Phase 4 | Pending |
+| THM-01 | Phase 5 | Pending |
+| THM-02 | Phase 5 | Pending |
+| THM-03 | Phase 5 | Pending |
+| THM-04 | Phase 5 | Pending |
+| WLOG-01 | Phase 6 | Pending |
+| LOCK-01 | Phase 6 | Pending |
+| OSD-01 | Phase 6 | Pending |
+| THM-05 | Phase 6 | Pending |
+| SHOT-01 | Phase 6 | Pending |
+| SHOT-02 | Phase 6 | Pending |
+| SHOT-03 | Phase 6 | Pending |
+| UTIL-01 | Phase 6 | Pending |
+| UTIL-02 | Phase 6 | Pending |
+| UTIL-03 | Phase 6 | Pending |
+| UTIL-04 | Phase 6 | Pending |
+| UTIL-05 | Phase 6 | Pending |
+| MENU-01 | Phase 7 | Pending |
+| MENU-02 | Phase 7 | Pending |
+| MENU-03 | Phase 7 | Pending |
+| MENU-04 | Phase 7 | Pending |
+| MENU-05 | Phase 7 | Pending |
+| MENU-06 | Phase 7 | Pending |
+| MENU-07 | Phase 7 | Pending |
+| BAR-01 | Phase 8 | Pending |
+| BAR-02 | Phase 8 | Pending |
+| BAR-03 | Phase 8 | Pending |
+| BAR-04 | Phase 8 | Pending |
+| BAR-05 | Phase 8 | Pending |
 
 **Coverage:**
 
-- v2 requirements: 30 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 30
+- v2 requirements: 32 total
+- Mapped to phases: 32 (Phases 4-8)
+- Unmapped: 0
 
 ---
-*Requirements defined: 2026-07-09*
+*Requirements defined: 2026-07-09; traceability populated by roadmap 2026-07-09*
