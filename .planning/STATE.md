@@ -4,8 +4,8 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 4
 status: planning
-stopped_at: Phase 4 context gathered
-last_updated: "2026-07-09T09:12:37.039Z"
+stopped_at: Phase 4 UI-SPEC approved
+last_updated: "2026-07-09T09:30:22.082Z"
 last_activity: 2026-07-09
 last_activity_desc: v2.0 roadmap created (5 phases, 32/32 requirements mapped)
 progress:
@@ -105,9 +105,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T09:12:37.032Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-reliability-fixes-tech-debt/04-CONTEXT.md
+Last session: 2026-07-09T09:30:22.077Z
+Stopped at: Phase 4 UI-SPEC approved
+Resume file: .planning/phases/04-reliability-fixes-tech-debt/04-UI-SPEC.md
 
 ## Operator Next Steps
 
