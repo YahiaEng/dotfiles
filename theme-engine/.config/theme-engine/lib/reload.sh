@@ -12,11 +12,41 @@ STATE_DIR="$HOME/.local/state/theme"
 
 # theme_engine_reload
 theme_engine_reload() {
+    # ── Headless guard (Quick 260709-buf, T-buf-01) ─────────────────
+    # Render+commit already happened before this function is ever called
+    # (theme-apply's own ordering); the entire fan-out below assumes a
+    # live Wayland+D-Bus session (hyprctl, waybar/kitty signals, swaync,
+    # GTK gsettings, walker's D-Bus bus-name dance, and even the
+    # file-only vscodium merge are all skipped here). With no session,
+    # there is nothing to reload — the committed state is picked up at
+    # next login. This matters concretely for stow.sh's first-boot theme
+    # seed, which calls theme-apply in a headless container/fresh-install
+    # context: swaync-client -rs in particular blocked forever there with
+    # no session D-Bus (INST-03 gate hang, 45+ min, evidence
+    # verify/logs/run-20260709T042501Z) — `|| true` only guards a
+    # non-zero exit, not a hang. Discretion call: vscodium's merge is
+    # purely file-based and would itself be headless-safe, but skipping
+    # it too keeps this a single early return covering the whole
+    # fan-out (simplest correct fix) — the merge is idempotent and
+    # re-runs on the next real, session-backed theme switch, so nothing
+    # is lost by skipping it here.
+    if [[ -z "${WAYLAND_DISPLAY:-}" && -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+        echo "theme_engine_reload: no graphical session detected — skipping reload fan-out (committed state applies at next login)"
+        return 0
+    fi
+
     # ── Signal-reloaded surface (D-21: flips in <1s) ──────────────
     hyprctl reload >/dev/null 2>&1 || true
     pkill -SIGUSR2 waybar 2>/dev/null || true
     pkill -SIGUSR1 kitty 2>/dev/null || true
-    swaync-client -rs >/dev/null 2>&1 || true
+    # swaync belt-and-suspenders (Quick 260709-buf, T-buf-01): only fire
+    # when the daemon is actually present, and bound the call with a
+    # timeout even then — the headless guard above should already
+    # prevent this from ever running with no session, but this is the
+    # second layer directly on the line that hung.
+    if pgrep -x swaync >/dev/null 2>&1; then
+        timeout 5 swaync-client -rs >/dev/null 2>&1 || true
+    fi
 
     # ── GTK (gsettings toggle + env propagation + Thunar daemon) ──
     theme_engine_gtk_reload
