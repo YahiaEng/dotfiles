@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow and installed on fresh systems via a custom `install.sh`. The centerpiece is a dynamic theming system: custom scripts switch between static pre-configured themes and matugen-generated (wallpaper-driven) themes, propagating colors to every desktop component — Hyprland, kitty, waybar, swaync, walker, thunar, GTK apps, wlogout.
+Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow and installed on fresh systems via a custom `install.sh`. The centerpiece is a dynamic theming system: a consolidated `theme-engine` stow package with a single `theme-apply` entrypoint renders both static presets and matugen-generated (wallpaper-driven) themes through one pipeline into `~/.local/state/theme/`, propagating colors live to every desktop component — Hyprland, kitty, waybar, swaync, walker, thunar, GTK3/GTK4 apps, wlogout, yazi, vscodium. The whole setup reproduces unattended on a fresh Arch system (proven in a container gate + graphical VM).
 
 ## Core Value
 
@@ -29,15 +29,12 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - ✓ Full-repo bug scan (AUDIT.md) — Validated in Phase 1
 - ✓ Static presets and matugen dynamic themes proven one pipeline — identical file structure, variable name-sets, well-formed values across all 7 render targets (`contract.json` + `theme-parity`, 217/217 green) — Validated in Phase 2
 - ✓ Repeated switching stays correct: 10 consecutive static↔dynamic switches with Thunar and Walker open leave every app correctly themed (`theme-stress-test` D-41 clean gate 140/140 + human visual sign-off) — Validated in Phase 2
+- ✓ `install.sh` + `stow.sh` produce a fully working themed setup on a genuinely fresh Arch system — container gate PASS (run-20260709T060703Z, theme-parity 287/0) + graphical VM human sign-off — v1.0
+- ✓ Repo cleanup: dead configs removed (wofi, debug.txt, stray screenshots, retired scripts); `git status` stays clean after theme switches — v1.0
 
 ### Active
 
-<!-- Milestone 1: Fix the theming pipeline + full bug scan -->
-
-- [ ] `install.sh` verified to produce a fully working themed setup on a clean Arch system (carry-over: code review found rsync missing from package lists and an orphan-cleanup abort — CR-01/CR-02 in 01-REVIEW.md, scoped to Phase 3 INST-01)
-- [ ] Repo cleanup: dead configs removed (wofi, debug.txt, stray screenshots), stow applies cleanly
-
-<!-- Milestone 2 (expansion — refined after milestone 1): -->
+<!-- Milestone 2 (expansion — to be refined via /gsd-new-milestone): -->
 
 - [ ] OSD indicators for volume/brightness (e.g. swayosd), themed
 - [ ] Custom walker menus in the style of Omarchy (power menu, settings, etc.)
@@ -47,18 +44,20 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 
 ### Out of Scope
 
-- Wofi — abandoned in favor of walker; its configs will be removed, not fixed
+- Wofi — abandoned in favor of walker; configs removed in v1.0
 - Supporting other distros/compositors — this is a personal Arch + Hyprland setup
 - Lock screen / idle management (hyprlock/hypridle) — not selected for expansion; can be revisited later
+- Full GTK4/libadwaita palette theming — structurally unsupported upstream; dark/light + accent is the documented ceiling (validated in v1.0)
+- Re-theme on every wallpaper auto-cycle — latency/flicker cost; re-theme only on explicit user action
 
-## Context
+## Current State
 
-- **Repo layout:** one stow package per app (`hypr/`, `kitty/`, `walker/`, `thunar/`, `gtk/`, `waybar/`, `swaync/`, `matugen/`, `themes/`, `wallpapers/`, `uwsm/`, `vscodium/`, `yazi/`, `zshell/`, `fastfetch/`, `wlogout/`, `wofi/` (dead)), plus `install.sh` and `stow.sh` at the root.
-- **Theming pipeline:** matugen (`matugen/.config/matugen/config.toml` + templates) generates colors from wallpaper; custom scripts toggle between static preset themes and dynamic matugen themes.
-- **Current state:** Phase 1 complete (2026-07-07) — consolidated `theme-engine/` stow package owns rendering (matugen templates → `~/.local/state/theme/`) and the single reload fan-out; all ten targets (Hyprland, waybar, kitty, swaync, wlogout, Thunar/GTK3, GTK4, walker, yazi, vscodium) re-theme live in both static and dynamic modes, human-verified. Root cause of the historic stuck-white bug: the `adw-gtk3` package name in install.sh never existed — the real package is `adw-gtk-theme`.
-- **Current state (Phase 2):** Phase 2 complete (2026-07-07) — parity and switch reliability proven. `contract.json` is the single source of truth for the render-target file list (consumed by both `theme-doctor` and `theme-parity`); `theme-stress-test` drives real 10-switch static↔dynamic runs as a rerunnable regression gate. One reliability bug found and fixed in-scope (D-40: `lib/commit.sh` rsync `--delete` wiped `logs/` on every switch).
-- **Known deferred:** elephant provider gap (files/menus/providerlist/runner/websearch) and install.sh fresh-install breakers (missing rsync dep, orphan-cleanup abort) → Phase 3 INST-01. Advisory hardening of the new verification tooling (extraction false-pass paths, CR-01/WR-01 in 02-REVIEW.md) — non-blocking, verifier confirmed current passes are genuine.
-- **Uncommitted work in tree:** modifications to hypr keybinds/config, install.sh, zshrc, current wallpaper; untracked claude-code-url-handler.desktop and screenshots directory.
+**Shipped: v1.0 Theme Pipeline Repair (2026-07-09)** — 3 phases, 9 plans, 98 commits, 160 files (+13,636 / −1,176) over 3 days. All 19 v1 requirements verified; milestone audit passed.
+
+- **Repo layout:** one stow package per app (`hypr/`, `kitty/`, `walker/`, `thunar/`, `gtk/`, `waybar/`, `swaync/`, `matugen/`, `theme-engine/`, `themes/`, `wallpapers/`, `uwsm/`, `vscodium/`, `yazi/`, `zshell/`, `fastfetch/`, `wlogout/`), plus `install.sh`, `stow.sh`, and `verify/` (container gate harness) at the root. The dead `wofi/` package was removed in v1.0.
+- **Theming pipeline:** `theme-engine/` owns everything — `theme-apply <name>` renders static presets and Material You through the same matugen templates into `~/.local/state/theme/` (10-file output contract in `contract.json`), owns the single reload fan-out, and keeps generated output out of the git tree. `theme-doctor`, `theme-parity`, and `theme-stress-test` are rerunnable regression gates.
+- **Reproducibility:** `install.sh` (flagged sections, hardware guards, hard-fail package verify) + `stow.sh` (idempotent, zero-prompt, first-boot theme seed) proven unattended in a podman container gate and a graphical VM with human sign-off.
+- **Tech debt (non-blocking, carried into v2):** rsync not explicit in install.sh PACMAN_PKGS (arrives transitively); GTK3 windows stay stale until closed (accepted upstream limitation); theme-doctor session checks are graphical-tier-only by design.
 
 ## Constraints
 
@@ -74,6 +73,11 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 | Fix bugs before expanding | Theming pipeline is the core value; building on a broken base compounds problems | ✓ Good — Phase 1 fixed root cause + consolidated engine |
 | Full-repo audit in milestone 1 | Multiple past fix attempts failed; systematic scan beats spot-fixing | ✓ Good — AUDIT.md found the missing-package root cause; broke the patch loop |
 | Consolidated theme-engine over per-app scripts | Three duplicated orchestrators kept drifting; one `theme-apply` entrypoint + state-dir contract ends the drift | ✓ Good — Phase 1 |
+| Restart-based reload for Walker/Thunar (no hot-reload) | walker 2.16.2 has no hotreload key; GTK3 has no live CSS reload API — hardened restarts with health gates beat imaginary APIs | ✓ Good — Phase 1; stale-until-closed caveat accepted |
+| `contract.json` as single source of truth for the 10-file output contract | One manifest consumed by theme-doctor and theme-parity prevents checker/renderer drift | ✓ Good — Phase 2; parity 217/0 dev, 287/0 container |
+| Two-tier INST-03 gate (container + graphical VM) | Container proves unattended install/stow/parity headless; VM proves the visual result — neither alone suffices | ✓ Good — Phase 3; gate runs caught 6 real fresh-install defects |
+| Generated theme output lives in `~/.local/state/theme/`, never in git | Keeps `git status` clean after every switch; repo holds templates, not artifacts | ✓ Good — Phase 1/3; enforced by git-clean invariant in stress test |
+| Headless guard in reload fan-out | `swaync-client -rs` hangs forever without a session bus; early-return keeps container installs unattended | ✓ Good — quick 260709-buf |
 
 ## Evolution
 
@@ -93,4 +97,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-08 after Phase 2 completion*
+*Last updated: 2026-07-09 after v1.0 milestone*
