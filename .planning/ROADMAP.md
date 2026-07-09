@@ -37,7 +37,11 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. After the lock screen activates, the very first keystrokes register — the user types their password in one attempt with no dropped-input failed-auth loop.
   3. Opening a new kitty terminal feels instant — startup is profiled before/after and the regression is gone.
   4. A fresh `install.sh` run installs rsync explicitly (listed in PACMAN_PKGS), so theme-engine's commit step never relies on a transitive dependency.
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 04-01-PLAN.md — FIX-01 wlogout shutdown/reboot hang: diagnose (keyboard-vs-mouse, journalctl/coredumpctl), apply uwsm-correct session actions; DEBT-01 rsync in PACMAN_PKGS [wave 1]
+- [ ] 04-02-PLAN.md — FIX-02 hyprlock first-keystroke drop: confirm #423 grace double-unlock signature, apply grace=0, lockout-recovery procedure [wave 1]
+- [ ] 04-03-PLAN.md — FIX-03 profile kitty/shell startup (zprof/hyperfine/fastfetch --stat), optimize zsh (local oh-my-posh, lazy nvm/bun, zinit turbo, fastfetch trim) [wave 1]
+- [ ] 04-04-PLAN.md — FIX-03 benchmark optimized zsh vs fish, user decision, optional full fish adoption via kitty.conf/install.sh/stow [wave 2]
 
 ### Phase 5: Light Mode Pipeline & Theme Presets
 **Goal**: The theme pipeline gains full light-mode support and a richer, better-organized preset and wallpaper experience — light themes render correctly across every surface and the wallpaper picker looks the part.
@@ -97,7 +101,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 1. Root-Cause Fix & Consolidated Theme Engine | v1.0 | 3/3 | Complete | 2026-07-07 |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | v1.0 | 2/2 | Complete | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
-| 4. Reliability Fixes & Tech Debt | v2.0 | 0/TBD | Not started | - |
+| 4. Reliability Fixes & Tech Debt | v2.0 | 0/4 | Not started | - |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 0/TBD | Not started | - |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 0/TBD | Not started | - |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
