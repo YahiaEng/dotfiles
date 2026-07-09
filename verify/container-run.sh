@@ -41,6 +41,10 @@ TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG_DIR="$SCRIPT_DIR/logs/run-${TIMESTAMP}"
 SUMMARY_FILE="$LOG_DIR/summary.log"
 CONTAINER_SCRIPT_FILE="$LOG_DIR/container-script.sh"
+# A full run (pull + install.sh + stow.sh + theme-parity) is minutes,
+# not an hour — anything past this budget means a step hung (Quick
+# 260709-buf, T-buf-02). Env-overridable for slower hosts/CI.
+CONTAINER_TIMEOUT="${CONTAINER_TIMEOUT:-3600}"
 
 echo "╔══════════════════════════════════════════╗"
 echo "║   container-run — installer regression   ║"
@@ -226,12 +230,28 @@ chmod +x "$CONTAINER_SCRIPT_FILE"
 # ── Run the whole regression inside one fresh container ──
 # No -i / no stdin feed: the script executes from the /logs mount (see
 # the post-mortem note above the heredoc).
-if podman run --rm \
+#
+# Chosen approach (Quick 260709-buf, T-buf-02): an outer `timeout`
+# around the single `podman run` — rather than per-step timeouts inside
+# the heredoc — is the simplest correct change and catches ALL hangs
+# (including future ones not yet anticipated), not only the swaync one
+# fixed separately in reload.sh. SIGTERM at the budget, SIGKILL 30s
+# later if podman doesn't stop. `timeout` exits 124 on expiry, which
+# flows into IN_CONTAINER_RC exactly like any other nonzero rc.
+if timeout --kill-after=30 "$CONTAINER_TIMEOUT" podman run --rm \
     -v "$LOG_DIR:/logs:Z" \
     "$IMAGE" bash /logs/container-script.sh; then
     IN_CONTAINER_RC=0
 else
     IN_CONTAINER_RC=$?
+fi
+
+# Detect a timeout (124: SIGTERM expiry; 137: SIGKILL fallthrough after
+# --kill-after) so the verdict logic below can record it explicitly.
+CONTAINER_TIMED_OUT=0
+if [[ "$IN_CONTAINER_RC" -eq 124 || "$IN_CONTAINER_RC" -eq 137 ]]; then
+    CONTAINER_TIMED_OUT=1
+    echo "step=container-run status=timeout after=${CONTAINER_TIMEOUT}s" >> "$SUMMARY_FILE"
 fi
 
 # ── Verdict: never trust the container exit code alone ───
@@ -244,7 +264,10 @@ fi
 # overall=FAIL itself whenever the inner verdict line is absent, so the
 # machine-readable log is never ambiguous.
 FAIL_REASON=""
-if [[ ! -f "$SUMMARY_FILE" ]]; then
+if [[ "$CONTAINER_TIMED_OUT" -eq 1 ]]; then
+    grep -q '^overall=' "$SUMMARY_FILE" 2>/dev/null || echo "overall=FAIL" >> "$SUMMARY_FILE"
+    FAIL_REASON="container run exceeded ${CONTAINER_TIMEOUT}s and was killed (timeout) — check the last-running step's log in $LOG_DIR/"
+elif [[ ! -f "$SUMMARY_FILE" ]]; then
     FAIL_REASON="summary.log missing — container never wrote its log"
 elif ! grep -q '^overall=' "$SUMMARY_FILE"; then
     echo "overall=FAIL" >> "$SUMMARY_FILE"
