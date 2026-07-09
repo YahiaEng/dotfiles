@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: repo-cleanup-fresh-install-reproducibility
 status: executing
-stopped_at: "INST-03 container tier PASSED (run-20260709T060703Z, overall=PASS, parity 287/0); VM tier human sign-off is the last outstanding evidence"
-last_updated: "2026-07-09T06:45:00.000Z"
+stopped_at: "INST-03 fully closed: container tier PASS (run-20260709T060703Z) + VM tier human visual sign-off recorded 2026-07-09. All 19 v1 requirements complete; Milestone 1 ready for audit/close"
+last_updated: "2026-07-09T07:00:00.000Z"
 last_activity: 2026-07-09
-last_activity_desc: Container gate green - first full PASS; only VM human visual confirmation remains for INST-03
+last_activity_desc: VM tier human sign-off recorded - INST-03 complete, Milestone 1 evidence done
 progress:
   total_phases: 3
   completed_phases: 3
@@ -119,7 +119,7 @@ None yet.
 
 - Source discrepancy: REQUIREMENTS.md coverage note and the roadmapper brief state "18 total" v1 requirements, but there are actually 19 requirement IDs. Roadmap maps all 19; coverage note corrected to 19 in REQUIREMENTS.md traceability.
 - Research flags (verify empirically during Phase 1 planning): does Walker `hotreload_theme=true` remove the restart need? does GTK3 gtk.css file-monitoring make the Thunar restart optional? does `dbus-update-activation-environment` truly eliminate relogin?
-- INST-03 evidence: container tier PASSED 2026-07-09 (verify/logs/run-20260709T060703Z — overall=PASS, theme-parity 287/0, install verify all-OK) after 4 quick-fix rounds (wlogout AUR move, alpm_octopi_utils removal, headless reload guard + gate timeout, relative wallpaper symlink). REMAINING: graphical VM tier human visual confirmation per VERIFICATION.md (steps through 8). Resolve before declaring Milestone 1 complete.
+- ~~INST-03 evidence~~ RESOLVED 2026-07-09: container tier PASSED (verify/logs/run-20260709T060703Z — overall=PASS, theme-parity 287/0, install verify all-OK) after 4 quick-fix rounds (wlogout AUR move, alpm_octopi_utils removal, headless reload guard + gate timeout, relative wallpaper symlink), AND graphical VM tier human visual sign-off recorded per VERIFICATION.md — user confirmed the fully themed desktop works with no issues. INST-03 marked Complete in REQUIREMENTS.md. Milestone 1 is clear to close.
 
 ## Deferred Items
 
@@ -132,5 +132,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-07-09 (resumed)
-Stopped at: INST-03 container tier PASSED (run-20260709T060703Z). Next: VM tier human visual confirmation per VERIFICATION.md, then milestone close.
+Stopped at: INST-03 fully closed (container PASS + VM human sign-off 2026-07-09). Next: milestone audit/close.
 Resume file: None
