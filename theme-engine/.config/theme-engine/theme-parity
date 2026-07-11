@@ -65,16 +65,24 @@ check() {
 # Security Domain V5 — validate an optional single-target argument against
 # the ACTUAL palette filenames before it is ever interpolated into a path,
 # exactly as theme-apply does (theme-apply lines 45-58). Reject unknown
-# names outright.
+# names outright. Extended to accept materialyou-light alongside
+# materialyou (mirrors theme-apply's two-literal allowlist, T-05-04).
 TARGET_ARG="${1:-}"
 if [[ -n "$TARGET_ARG" ]]; then
-    if [[ "$TARGET_ARG" != "materialyou" && ! -f "$PALETTES_DIR/$TARGET_ARG.json" ]]; then
+    if [[ "$TARGET_ARG" != "materialyou" && "$TARGET_ARG" != "materialyou-light" && ! -f "$PALETTES_DIR/$TARGET_ARG.json" ]]; then
         echo "theme-parity: unknown theme '$TARGET_ARG'" >&2
         exit 1
     fi
     TARGETS=("$TARGET_ARG")
 else
-    TARGETS=(materialyou catppuccin dracula gruvbox nord rosepine tokyonight)
+    # RESEARCH Pitfall 2 permanent fix: dynamic palettes/*.json enumeration
+    # instead of a hardcoded array — every current and future preset is
+    # automatically covered, never silently excluded from parity coverage.
+    TARGETS=()
+    for f in "$PALETTES_DIR"/*.json; do
+        [[ -f "$f" ]] && TARGETS+=("$(basename "$f" .json)")
+    done
+    TARGETS+=(materialyou materialyou-light)
 fi
 
 echo "theme-parity — output-contract parity check ($TIMESTAMP)"
@@ -131,6 +139,39 @@ for target in "${TARGETS[@]}"; do
         RENDER_OK[$target]=0
     fi
 done
+
+# ── Mode fixtures (THM-01 SC 2) ──────────────────────────────────────────
+# Report-only, same accumulator as every other check here (never abort
+# early). Every successfully-rendered target must have written a "mode"
+# state-metadata file (lib/generate.sh) containing exactly "light" or
+# "dark"; two fixture assertions pin the light/dark auto-detection
+# contract itself — a dark preset (catppuccin) and a light preset
+# (catppuccin-latte) must resolve to the expected mode.
+echo ""
+echo "-- Mode fixtures --"
+for target in "${TARGETS[@]}"; do
+    [[ "${RENDER_OK[$target]}" == "1" ]] || continue
+    mode_file="${RENDERED_DIRS[$target]}/mode"
+    mode_val=""
+    [[ -f "$mode_file" ]] && mode_val="$(cat "$mode_file" 2>/dev/null)"
+    mode_ok=1
+    [[ "$mode_val" == "light" || "$mode_val" == "dark" ]] && mode_ok=0
+    check "$target: mode file present and light|dark (got '${mode_val}')" "$mode_ok"
+done
+
+if [[ "${RENDER_OK[catppuccin]:-0}" == "1" ]]; then
+    dark_fixture="$(cat "${RENDERED_DIRS[catppuccin]}/mode" 2>/dev/null)"
+    dark_fixture_ok=1
+    [[ "$dark_fixture" == "dark" ]] && dark_fixture_ok=0
+    check "fixture: catppuccin resolves mode=dark (got '${dark_fixture}')" "$dark_fixture_ok"
+fi
+
+if [[ "${RENDER_OK[catppuccin-latte]:-0}" == "1" ]]; then
+    light_fixture="$(cat "${RENDERED_DIRS[catppuccin-latte]}/mode" 2>/dev/null)"
+    light_fixture_ok=1
+    [[ "$light_fixture" == "light" ]] && light_fixture_ok=0
+    check "fixture: catppuccin-latte resolves mode=light (got '${light_fixture}')" "$light_fixture_ok"
+fi
 
 # ── Layer 1: structure parity ───────────────────────────────────────────
 echo ""

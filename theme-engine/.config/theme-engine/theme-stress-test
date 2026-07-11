@@ -75,12 +75,19 @@ if [[ ! "$GAP" =~ ^[0-9]+$ ]] || [[ "$GAP" -lt 1 ]]; then
     exit 1
 fi
 
-# Static preset rotation (D-31). Odd sequence positions consume the next
-# preset here in order (wrapping if --switches exceeds 12); even positions
-# are materialyou. A default 10-switch run exercises 5 of these 6 presets —
-# the 6th (and full 6-preset coverage) is proven by theme-parity (all 6
-# presets vs materialyou) and by running `--switches 12` here.
-STATIC_PRESETS=(catppuccin dracula gruvbox nord rosepine tokyonight)
+# Static preset rotation (D-31, RESEARCH Pitfall 2 permanent fix). Odd
+# sequence positions consume the next preset here in order (wrapping once
+# --switches exceeds the number of shipped presets); even positions
+# alternate materialyou/materialyou-light so the light dynamic path gets
+# real-switch coverage too. Dynamic palettes/*.json enumeration (mirrors
+# theme-apply's own usage() pattern) means every current and future
+# preset is automatically exercised — full preset coverage is proven by
+# theme-parity (every palette vs both Material You entries) and by
+# running `--switches` high enough to wrap the full rotation here.
+STATIC_PRESETS=()
+for f in "$PALETTES_DIR"/*.json; do
+    [[ -f "$f" ]] && STATIC_PRESETS+=("$(basename "$f" .json)")
+done
 
 # No user-controlled theme-name argument exists in this tool (Security
 # Domain V5 / T-02-04): the switch sequence is built entirely from this
@@ -227,20 +234,24 @@ check_theme_doctor() {
 
 # get_expected_sentinel_normalized <theme-name>
 # For a static preset: the palette JSON's primary color (source of truth).
-# For materialyou: the FRESHLY-RENDERED primary, read from waybar.css —
-# not gtk-4.0-colors.css as the plan text names, since gtk-colors.css (the
-# shared template rendering BOTH gtk-3.0-colors.css and gtk-4.0-colors.css)
-# defines only accent_color/accent_bg_color (mapped from colors.primary),
-# never a literal "@define-color primary" name (verified empirically
-# against matugen/.config/matugen/templates/gtk-colors.css and the live
-# rendered gtk-4.0-colors.css this session — [Rule 1] deviation, see
-# SUMMARY). waybar.css DOES define "@define-color primary" verbatim and is
-# already committed to the live state dir by the time theme-apply returns
-# (D-14 atomic commit), so reading it here reflects the just-applied theme.
+# For materialyou/materialyou-light: the FRESHLY-RENDERED primary, read
+# from waybar.css — not gtk-4.0-colors.css as the plan text names, since
+# gtk-colors.css (the shared template rendering BOTH gtk-3.0-colors.css
+# and gtk-4.0-colors.css) defines only accent_color/accent_bg_color
+# (mapped from colors.primary), never a literal "@define-color primary"
+# name (verified empirically against matugen/.config/matugen/templates/
+# gtk-colors.css and the live rendered gtk-4.0-colors.css this session —
+# [Rule 1] deviation, see SUMMARY). waybar.css DOES define "@define-color
+# primary" verbatim and is already committed to the live state dir by the
+# time theme-apply returns (D-14 atomic commit), so reading it here
+# reflects the just-applied theme. materialyou-light shares this branch
+# (Task 3, [Rule 1] deviation) — without it, the newly-added
+# materialyou-light sequence entries would look up a nonexistent
+# palettes/materialyou-light.json and abort the stress test on every run.
 get_expected_sentinel_normalized() {
     local name="$1"
     local raw=""
-    if [[ "$name" == "materialyou" ]]; then
+    if [[ "$name" == "materialyou" || "$name" == "materialyou-light" ]]; then
         raw="$(sed -nE 's/@define-color[[:space:]]+primary[[:space:]]+(.*);.*/\1/p' "$STATE_DIR/waybar.css" 2>/dev/null | head -1)"
     else
         raw="$(jq -r '.colors.primary.default.color' "$PALETTES_DIR/$name.json" 2>/dev/null)"
@@ -315,18 +326,23 @@ check_or_abort "precondition: elephant listproviders responds" "$rc"
 
 # ── Build the alternating switch sequence (D-31/D-33) ───────────────────
 # Odd positions: next static preset from the rotation, in order. Even
-# positions: materialyou. Wallpaper is never touched anywhere in this
-# script — materialyou switches reuse whatever wallpaper is already
-# current (D-33); there is no wallpaper-picker call or matugen image-
-# source change anywhere in this file.
+# positions: alternate materialyou/materialyou-light so the light dynamic
+# path gets real-switch coverage (RESEARCH Pitfall 2 follow-through).
+# Wallpaper is never touched anywhere in this script — materialyou/
+# materialyou-light switches reuse whatever wallpaper is already current
+# (D-33); there is no wallpaper-picker call or matugen image-source
+# change anywhere in this file.
 SEQUENCE=()
 static_idx=0
+even_idx=0
+MATERIALYOU_VARIANTS=(materialyou materialyou-light)
 for (( i = 1; i <= SWITCHES; i++ )); do
     if (( i % 2 == 1 )); then
         SEQUENCE+=("${STATIC_PRESETS[$(( static_idx % ${#STATIC_PRESETS[@]} ))]}")
         static_idx=$((static_idx + 1))
     else
-        SEQUENCE+=("materialyou")
+        SEQUENCE+=("${MATERIALYOU_VARIANTS[$(( even_idx % ${#MATERIALYOU_VARIANTS[@]} ))]}")
+        even_idx=$((even_idx + 1))
     fi
 done
 

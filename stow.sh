@@ -25,7 +25,6 @@ PACKAGES=(
     matugen
     swaync
     theme-engine
-    themes
     thunar
     uwsm
     vscodium
