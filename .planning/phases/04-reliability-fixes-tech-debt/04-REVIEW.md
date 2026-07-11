@@ -1,165 +1,138 @@
 ---
 phase: 04-reliability-fixes-tech-debt
-reviewed: 2026-07-11T17:45:00Z
+reviewed: 2026-07-11T18:50:00Z
 depth: standard
-files_reviewed: 10
+files_reviewed: 8
 files_reviewed_list:
   - fastfetch/.config/fastfetch/config.jsonc
   - fish/.config/fish/config.fish
   - fish/.config/fish/functions/y.fish
   - hypr/.config/hypr/hyprlock.conf
   - hypr/.config/hypr/scripts/powermenu.sh
-  - install.sh
   - kitty/.config/kitty/kitty.conf
-  - stow.sh
   - zshell/.config/oh-my-posh/catppuccin.omp.json
   - zshell/.zshrc
 findings:
   critical: 0
   warning: 4
-  info: 8
-  total: 12
+  info: 7
+  total: 11
 status: issues_found
 ---
 
-# Phase 04: Code Review Report (Re-review after gap-closure plan 04-05)
+# Phase 4: Code Review Report
 
-**Reviewed:** 2026-07-11T17:45:00Z
+**Reviewed:** 2026-07-11T18:50:00Z
 **Depth:** standard
-**Files Reviewed:** 10
+**Files Reviewed:** 8
 **Status:** issues_found
 
 ## Summary
 
-Re-review of the full Phase 04 change surface (diff base `2e34f4d^..HEAD`) after gap-closure plan 04-05 executed. The prior review's single Critical (CR-01: fish never activated the default Node version because `conf.d/nvm.fish`'s auto-activation guard runs before `config.fish` sets `nvm_default_version`) was the sole target of 04-05.
+Fresh review of all 8 files after gap-closure plans 04-05 (fish nvm activation, closing prior CR-01) and 04-06 (hyprlock `ignore_empty_input`). This review supersedes the previous 04-REVIEW.md.
 
-**CR-01 fix verified sound — proven live, not just by reading:**
+Core fixes verified sound against the live system, not just by reading:
 
-- Clean-environment reproduction of the original failing test now passes on this machine with the stowed HEAD config (`readlink` + `diff` confirmed the stowed `~/.config/fish/config.fish` is byte-identical to the repo file):
-  ```
-  $ env -i HOME=$HOME USER=$USER TERM=xterm PATH=/usr/bin:/bin \
-      fish -i -c 'type -q node; and echo NODE=YES; or echo NODE=NO; ...'
-  NODE=YES
-  def=v24.18.0
-  cur=v24.18.0
-  v24.18.0
-  ```
-  Previously this printed `NODE=NO`.
-- The guard logic was checked against the installed nvm.fish 2.2.18 source: `_nvm_version_activate` does `set --global --export nvm_current_version`, so the `not set -q nvm_current_version` inherited-from-parent no-op claim in the config.fish comment is accurate; `functions -q nvm` correctly resolves the autoloadable (not-yet-loaded) function; `nvm use` reads only `$nvm_data` directories (no network at shell start).
-- `install.sh:409-415` now documents the one-time `nvm install v24.18.0` provisioning step in the correct order (stow first, then open fish, then install).
-- `fish -n`, `zsh -n`, `bash -n` pass on all shell files; both JSON configs validated (`jq`, and `fastfetch --config ... ` exits 0).
+- **hyprlock.conf (FIX-02):** all options used exist in the installed hyprlock 0.9.5 binary — `general:ignore_empty_input`, `general:immediate_render`, `check_text`, `invert_numlock`, and the `fadeIn` animation name were confirmed via binary string inspection. Removed options (`grace`, `no_fade_in/out`, `fail_transition`) are correctly absent. `animation = fadeIn, 0` is valid disable syntax.
+- **Prior CR-01 (fish nvm activation) is genuinely closed:** fish sources `conf.d/nvm.fish` before `config.fish`, so the plugin's own guard no-ops (verified in the installed plugin: `if status is-interactive && set --query nvm_default_version && ! set --query nvm_current_version`). The explicit `nvm use` in `config.fish` fills that gap, and its `not set -q nvm_current_version` guard is correct — `_nvm_version_activate` sets `nvm_current_version` with `--global --export`, so nested shells inherit both the variable and PATH and correctly skip re-activation.
+- **oh-my-posh vendored theme (FIX-03/D-03):** `oh-my-posh print primary --config zshell/.config/oh-my-posh/catppuccin.omp.json --shell zsh` renders successfully (exit 0) with the installed omp 29.25.1 — the old remote GitHub *blob HTML* URL bug is fixed.
+- **zshrc lazy-load wrappers (FIX-03/D-04):** the `eval "function $cmd() { lazy_load_nvm; $cmd \"\$@\" }"` pattern was executed under zsh and works (zsh permits `}` without a preceding terminator; self-`unset -f` during execution is safe in zsh; no recursion path when `nvm.sh` is absent because wrappers are unset before dispatch).
+- **Syntax:** `bash -n`, `fish -n` (both files), and `zsh -n` all pass.
+- **fastfetch/config.jsonc** is unchanged since the diff base (`121cd1f`); reviewed anyway, no issues.
 
-**However**, verifying the fix surfaced one new defect in the fresh-machine path (WR-04: the "silent" activation is not silent before Node is provisioned — proven live), and the prior review's three Warnings and seven Info items are all still present in the tree — plan 04-05 scoped only CR-01, so they carry forward unaddressed and are restated below with current line numbers.
+Remaining findings are robustness gaps on the fresh-install path (the project's stated reproducibility constraint) and consistency/quality items. No security or data-loss issues.
 
 ## Narrative Findings (AI reviewer)
 
-### Resolved since prior review
-
-- **CR-01 (fish node activation)** — RESOLVED. `fish/.config/fish/config.fish:58-60` adds the guarded `nvm use --silent $nvm_default_version` inside the `status is-interactive` block; `install.sh:411-413` documents the one-time `nvm install v24.18.0`. Verified live as described in the Summary.
-
 ## Warnings
 
-### WR-01: `hyprshutdown --post-cmd` may be killed by uwsm session teardown before `systemctl poweroff/reboot` runs — still unverified on hardware (carried forward)
+### WR-01: Fisher bootstrap pipes curl output to `source` without `--fail`
 
-**File:** `hypr/.config/hypr/scripts/powermenu.sh:17-18` (also `wlogout/.config/wlogout/layout:27,33`)
-**Issue:** Unchanged since the prior review. `hyprshutdown` runs inside walker's app scope (from powermenu) or the `wayland-wm@hyprland` unit (from the wlogout keybind); forking does not escape a cgroup. Its sequence is close apps → exit Hyprland → run post-cmd; under uwsm, Hyprland exiting stops the session units and systemd kills every remaining process in those cgroups — racing the post-cmd. If the kill wins, the session ends at a TTY without powering off/rebooting (the exact failure class FIX-01 targeted). No end-to-end hardware verification of a wlogout/powermenu Shutdown and Reboot press reaching `systemctl poweroff`/`reboot` is recorded in the phase artifacts.
-**Fix:** Verify on hardware. If the race is real, detach into a transient unit outside the session graph:
+**File:** `fish/.config/fish/config.fish:46`
+**Issue:** `curl -sL https://raw.githubusercontent.com/.../fisher.fish | source` does not use `-f/--fail`. If GitHub returns a non-200 body (rate limiting, captive portal, 404 after upstream rename), curl still emits the error page on stdout and `source` attempts to execute HTML — the first interactive shell on a fresh install spews parse errors instead of skipping cleanly. With `-f`, curl outputs nothing and returns non-zero, so the `and fisher update` chain short-circuits and the bootstrap silently retries on the next shell (the `not test -e ...fisher.fish` guard already gives retry semantics).
+**Fix:**
+```fish
+curl -fsSL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
+and fisher update
 ```
-uwsm app -- systemd-run --user --collect hyprshutdown --no-fork --post-cmd 'systemctl poweroff'
-```
-(or `systemd-run --user --collect hyprshutdown ...` directly from the script).
 
-### WR-02: `.zshrc` unconditionally sources uv's env file — errors on every shell start on a fresh install (carried forward)
+### WR-02: `nvm use --silent` prints an error on every shell start until Node is provisioned
+
+**File:** `fish/.config/fish/config.fish:58-59`
+**Issue:** On a fresh system, `install.sh` explicitly instructs the user to open a fish shell first and *then* run `nvm install v24.18.0`. But the installed nvm.fish's `use` branch errors unconditionally when the version isn't installed — `--silent` only suppresses the "Now using Node ..." success message, not the error path (verified in `~/.config/fish/functions/nvm.fish`: `echo "nvm: Can't use Node \"$their_version\", version must be installed first" >&2; return 1`). Result: every interactive fish shell between first launch and `nvm install` prints `nvm: Can't use Node "v24.18.0", version must be installed first` — exactly the documented first-run flow.
+**Fix:** Guard on the version directory existing (matches the nvm_data layout this config already relies on):
+```fish
+if not set -q nvm_current_version; and functions -q nvm
+    and test -d $nvm_data/$nvm_default_version
+    nvm use --silent $nvm_default_version
+end
+```
+
+### WR-03: Unguarded `source` of uv env file breaks fresh-install zsh startup
 
 **File:** `zshell/.zshrc:123`
-**Issue:** Unchanged. `. "$HOME/.local/share/../bin/env"` has no existence guard, and `install.sh` does not install uv — on a fresh system every interactive zsh prints `.zshrc:.:123: no such file or directory`, contrary to this phase's shell-startup-polish goal and the reproducibility constraint. The `share/..` indirection obscures that the target is `~/.local/bin/env`.
+**Issue:** `. "$HOME/.local/share/../bin/env"` has no existence guard. `install.sh` does not install uv (grep confirms no uv package), so on a fresh system every zsh start ends with `no such file or directory: /home/.../.local/share/../bin/env` and a non-zero final status. This violates the project's reproducibility constraint (install.sh + stow must produce a working setup). The `.local/share/../bin` indirection is also needlessly obfuscated — it resolves to `.local/bin`.
 **Fix:**
 ```zsh
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
 ```
 
-### WR-03: fisher bootstrap pipes an unvalidated `curl` body into `source` (carried forward)
+### WR-04: Logout path not given the FIX-01 graceful-teardown treatment
 
-**File:** `fish/.config/fish/config.fish:46`
-**Issue:** Unchanged. `curl -sL ... | source` has no `--fail`: an HTTP error body (404 page, rate-limit HTML) gets `source`d and spews syntax errors into shell startup, and the bootstrap re-runs with a network round-trip on every interactive shell start while offline/failing, since `fisher.fish` never materializes. It also executes unpinned `main`-branch code.
-**Fix:**
-```fish
-curl -sSfL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
-and fisher update
+**File:** `hypr/.config/hypr/scripts/powermenu.sh:16` (same pattern in `wlogout/.config/wlogout/layout` logout entry)
+**Issue:** FIX-01 wrapped Reboot/Shutdown in `hyprshutdown --post-cmd '...'` so clients close gracefully before session teardown. Logout still runs bare `uwsm stop`, which tears down the graphical session scope with apps live — the same class of hazard (apps ignoring SIGTERM stall unit teardown on systemd stop timeouts) that motivated FIX-01 for shutdown/reboot. If the FIX-01 diagnosis was "session units hang waiting on unclosed clients," logout retains that hang window; if logout was deliberately excluded, that decision is undocumented in the script.
+**Fix:** Either apply the same wrapper —
+```bash
+*"Logout"*)   hyprshutdown --post-cmd 'uwsm stop' ;;
 ```
-
-### WR-04: `nvm use --silent` is not silent when Node isn't installed — fresh installs print an error on every fish shell start until `nvm install` is run (new; found while verifying the CR-01 fix)
-
-**File:** `fish/.config/fish/config.fish:58-60`; `install.sh:411-413`
-**Issue:** In nvm.fish 2.2.18, `--silent` suppresses only the stdout "Now using Node ..." line (`nvm.fish:158`); the not-installed error path is unguarded stderr (`nvm.fish:149-150`). Proven live:
-```
-$ fish -c 'set -g nvm_data <empty-dir>; nvm use --silent v24.18.0; echo exit-status=$status'
-nvm: Can't use Node "v24.18.0", version must be installed first
-exit-status=1
-```
-On a truly fresh machine (install.sh + stow.sh done, `nvm install v24.18.0` not yet run — exactly the window between Next steps 1 and 2), every interactive fish shell prints this error. On the very first shell it can appear twice: fisher sources the plugin's `conf.d/nvm.fish` during `fisher update` at a point where `nvm_default_version` is already set (line 28 runs before the bootstrap block at 45-48), so the plugin's own auto-activation also fires and fails, then config.fish's explicit call fails again. Transient and self-resolving after provisioning, but it degrades the fresh-install first impression this phase targeted, and it reads like a broken config rather than a pending provisioning step.
-**Fix:** Skip activation cleanly until the pinned version exists on disk (nvm.fish stores versions at `$nvm_data/<ver>` exactly):
-```fish
-if not set -q nvm_current_version
-    and functions -q nvm
-    and test -d $nvm_data/$nvm_default_version
-    nvm use --silent $nvm_default_version
-end
-```
-Optionally emit a one-line "run 'nvm install v24.18.0' to finish Node provisioning" hint in the else branch instead of nvm's raw error.
+— (and mirror it in the wlogout layout) or add a comment recording why `uwsm stop` is exempt from the graceful-close treatment.
 
 ## Info
 
-### IN-01: `APP2UNIT_SLICES` is dead config in both shells (carried forward)
+### IN-01: powermenu.sh has no call sites — FIX-01 change is unreachable via normal use
 
-**File:** `fish/.config/fish/config.fish:8`; `zshell/.zshrc:2`
-**Issue:** Set but never exported in either shell (`set -g`, not `set -gx`; no `export` in zsh) and nothing in the repo references app2unit — zero runtime effect. Interactive rc files are also the wrong layer for session env under uwsm.
-**Fix:** Delete from both files, or move to `uwsm/.config/uwsm/env` as a real exported session variable.
+**File:** `hypr/.config/hypr/scripts/powermenu.sh`
+**Issue:** Nothing in the repo invokes this script: `keybinds.conf` binds `$mainMod SHIFT+Q` to `wlogout.sh`, waybar configs don't reference it, and the only mention is a README tree listing. The phase's hyprshutdown fix here is correct but only exercisable by running the script manually — the live power-menu path is wlogout. Either wire it to a bind/waybar action or remove it to avoid maintaining two divergent power menus.
+**Fix:** Add a keybind (e.g. `bind = $mainMod, Escape, exec, ~/.config/hypr/scripts/powermenu.sh`) or delete the script and its README entry.
 
-### IN-02: `vim`/`zed` aliases point at binaries `install.sh` never installs (carried forward)
+### IN-02: APP2UNIT_SLICES is dead configuration in both shells
 
-**File:** `fish/.config/fish/config.fish:64,67`; `zshell/.zshrc:80,83`; `install.sh:52-152`
-**Issue:** `alias vim nvim` — neovim is absent from `PACMAN_PKGS`/`AUR_PKGS`; `zed` points at `~/.local/bin/zed`, which nothing provisions. On a fresh system both aliases are broken (`vim` stops working entirely since the alias shadows any real vim).
-**Fix:** Add `neovim` to `PACMAN_PKGS`, or guard/drop the aliases.
+**File:** `fish/.config/fish/config.fish:8`, `zshell/.zshrc:2`
+**Issue:** `app2unit` reads `APP2UNIT_SLICES` from its process environment. In zsh it's assigned unexported; the fish port faithfully reproduces this with `set -g` (comment even notes "unexported there too"). Unexported, it reaches no child process — and even exported from an interactive rc it would never reach app2unit invocations spawned by Hyprland's process tree. As written the variable has no effect anywhere. Parity with a bug is still a bug.
+**Fix:** Export it (`set -gx` / `export`) if terminal-launched `app2unit` calls should honor it, or configure slices where app2unit actually runs (uwsm env / `~/.config/uwsm/env`) and delete these lines.
 
-### IN-03: fisher rewrites `fish_plugins` through the stow symlink into the repo — stow.sh comment overstates the invariant (carried forward)
-
-**File:** `fish/.config/fish/fish_plugins:1-2`; `stow.sh:55-60`
-**Issue:** `fish_plugins` is stowed as a symlink and fisher rewrites it on every `fisher install/update/remove` — writes land in the git working tree. Today the content round-trips identically, but any interactive fisher operation will silently dirty the repo, contradicting the comment's "never inside the repo tree" framing.
-**Fix:** Adjust the stow.sh comment to state `fish_plugins` is intentionally repo-backed and fisher writes to it.
-
-### IN-04: zsh lazy-load wrapper for `bun` defeats its own purpose (carried forward)
-
-**File:** `zshell/.zshrc:117-119`
-**Issue:** `bun` is already on PATH via `BUN_INSTALL/bin` (line 106); wrapping it means the first `bun` invocation sources all of `nvm.sh` — the exact ~53% startup cost D-04 deferred — just to load bun's tab completions.
-**Fix:** Drop `bun` from the wrapper loop; source `$BUN_INSTALL/_bun` behind its own tiny wrapper if completions matter.
-
-### IN-05: `HISTDUP=erase` is not a zsh option (carried forward)
+### IN-03: `HISTDUP=erase` is not a zsh option
 
 **File:** `zshell/.zshrc:60`
-**Issue:** `HISTDUP` is not a zsh parameter; the line is a no-op. Dedup actually comes from the `setopt hist_*` lines below.
+**Issue:** zsh has no `HISTDUP` parameter — this is a no-op assignment (dedup is already handled by the `setopt hist_ignore_all_dups`/`hist_save_no_dups` lines below). Dead config carried from a tutorial.
 **Fix:** Delete the line.
 
-### IN-06: hyprlock placeholder color hardcodes a Catppuccin hex, bypassing the theme engine (carried forward)
+### IN-04: `bun` wrapper forces a full nvm load for a binary already on PATH
 
-**File:** `hypr/.config/hypr/hyprlock.conf:94`
-**Issue:** `placeholder_text = <span foreground="##a6adc8">...` hardcodes Catppuccin's overlay1 while every other color uses `$primary`/`$on_surface` theme variables — under a matugen dynamic theme the placeholder stays Catppuccin-tinted.
-**Fix:** Use a sourced theme variable, or document the exception.
+**File:** `zshell/.zshrc:117-119` (with `zshell/.zshrc:105-106`)
+**Issue:** `$BUN_INSTALL/bin` is prepended to PATH at line 106, so `bun` works without nvm. The lazy-load wrapper shadows it anyway, making the first `bun` call pay the full ~50%-of-shell-init nvm sourcing cost just to load bun completions — the exact cost D-04 set out to avoid.
+**Fix:** Drop `bun` from the wrapper loop, or give it its own lightweight loader that sources only `$BUN_INSTALL/_bun`.
 
-### IN-07: oh-my-posh palette key `"wight"` is a typo for `"white"` (carried forward)
+### IN-05: Palette key "wight" is a typo for "white"
 
-**File:** `zshell/.config/oh-my-posh/catppuccin.omp.json:8,17`
-**Issue:** Self-consistent so it renders, but the misspelled palette key (`p:wight`) is a trap for future edits.
-**Fix:** Rename the key and its one reference to `white`.
+**File:** `zshell/.config/oh-my-posh/catppuccin.omp.json:8` (referenced at line 17)
+**Issue:** Internally consistent so it renders correctly, but the misspelled key will trip up future edits (a "white" reference would silently fail to resolve).
+**Fix:** Rename the palette key and its `p:wight` reference to `white`.
 
-### IN-08: zsh's nvm lazy-load references `$NVM_DIR/nvm.sh`, which nothing installs — Node remains absent in zsh on a fresh system (new)
+### IN-06: hyprlock placeholder text hardcodes a catppuccin hex color
 
-**File:** `zshell/.zshrc:102,111-119`; `install.sh:52-205`
-**Issue:** The 04-05 provisioning doc closes the Node gap for fish only. `lazy_load_nvm` sources `$NVM_DIR/nvm.sh` (`~/.config/nvm/nvm.sh`) behind an `[ -s ... ]` guard, but no package in `install.sh` provides bash nvm (line 101's `/usr/share/nvm/init-nvm.sh` source is commented out and the `nvm` package isn't in any list). On a fresh machine the guard silently skips, the wrappers unset themselves, and `node`/`npm` fall through to a bare PATH lookup — command not found, forever, with no error hinting why. Even after fish's `nvm install v24.18.0` populates `~/.config/nvm/versions/node/v24.18.0`, zsh gains nothing because activation requires `nvm.sh`. Impact is limited — fish is the interactive shell (D-08/D-12) and zsh is the TTY-recovery path — but the same fresh-install reasoning that justified CR-01 applies in miniature here.
-**Fix:** Either add the `nvm` package to `PACMAN_PKGS` and restore the `/usr/share/nvm/init-nvm.sh`-based lazy-load, or as a zero-package alternative have the zsh wrappers prepend `~/.config/nvm/versions/node/v24.18.0/bin` (the fish-provisioned install) to PATH, or document that Node tooling is fish-only.
+**File:** `hypr/.config/hypr/hyprlock.conf:100`
+**Issue:** `placeholder_text = <span foreground="##a6adc8">...` bakes in a catppuccin gray while every other color in the file uses theme variables (`$primary`, `$on_surface`, ...) sourced from `~/.local/state/theme/hyprland.conf`. Switching to a non-catppuccin static theme or a matugen palette leaves the placeholder stale — against the project's "one switch re-themes everything" core value.
+**Fix:** Use a theme variable, e.g. `<span foreground="##$on_surface_variant">` (adjust to whichever named color the theme file exports).
+
+### IN-07: `ctrl+c` remapped to unconditional copy removes SIGINT from its conventional key
+
+**File:** `kitty/.config/kitty/kitty.conf:60-65`
+**Issue:** `map ctrl+c copy_to_clipboard` means Ctrl+C never interrupts a running process (interrupt is relocated to `ctrl+shift+c` sending `\x03`). With no selection, Ctrl+C does nothing at all. The commented-out alternatives show this was a deliberate choice, but `copy_or_interrupt` preserves both behaviors with no downside.
+**Fix:** `map ctrl+c copy_or_interrupt` (copies when a selection exists, interrupts otherwise).
 
 ---
 
-_Reviewed: 2026-07-11T17:45:00Z_
+_Reviewed: 2026-07-11T18:50:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
