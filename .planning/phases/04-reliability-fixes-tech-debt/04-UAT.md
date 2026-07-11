@@ -1,14 +1,22 @@
 ---
-status: diagnosed
+status: testing
 phase: 04-reliability-fixes-tech-debt
 source: [04-VERIFICATION.md]
 started: 2026-07-11T17:48:07Z
-updated: 2026-07-11T18:17:40Z
+updated: 2026-07-11T18:58:35Z
 ---
 
 ## Current Test
 
-[testing complete]
+number: 2
+name: D-23 hyprlock 10-trial lock-and-type reliability re-test (post-04-06)
+expected: |
+  100% first-try unlock across ~10 trials mixing ENTER-first and type-immediately
+  variants on both the manual-lock keybind and idle-lock (loginctl lock-session)
+  paths — no dropped first character, no failed-auth loop, including the
+  previously-failing ENTER-first case. Optional: submit one deliberately-wrong
+  password and confirm the check_text 'Checking...' cue renders.
+awaiting: user response
 
 ## Tests
 
@@ -16,11 +24,10 @@ updated: 2026-07-11T18:17:40Z
 expected: From the wlogout menu, perform 5 consecutive real cycles alternating keyboard/mouse selection and Shutdown/Reboot. After each boot, grep `journalctl -b -1` for teardown-timeout signatures. Expected: 5/5 clean cycles, no black-screen hang, no 'stop-sigterm timed out' / nvidia_drm failure lines. (Also settles WR-01: whether hyprshutdown survives uwsm's session-cgroup teardown.)
 result: pass
 
-### 2. D-23 hyprlock 10-trial lock-and-type reliability test
-expected: With a second TTY logged in, perform ~10 lock-then-immediately-type trials across both the manual-lock keybind and the idle-lock (`loginctl lock-session`) path. Expected: 100% first-try unlock, no dropped first character, no failed-auth loop.
-result: issue
-reported: "If I start typing the password immediately, hyprlock works just fine. But if I try to press 'ENTER' key and then type my password, it fails authentication and no characters get typed inside the password input box."
-severity: major
+### 2. D-23 hyprlock 10-trial lock-and-type reliability re-test (post-04-06)
+expected: With a second TTY logged in first (lockout-recovery escape hatch), perform ~10 lock-then-type trials across both the manual-lock keybind and the idle-lock (`loginctl lock-session`) path, explicitly mixing ENTER-first and type-immediately variants. Expected: 100% first-try unlock, no dropped first character, no failed-auth loop — including the previously-failing ENTER-first case. Optional: submit one deliberately-wrong password and confirm the check_text 'Checking...' cue renders.
+result: [pending]
+history: "2026-07-11 first run: issue — ENTER-first-then-type caused failed auth with zero registered keystrokes (severity: major). Root-caused and fixed by gap-closure plan 04-06 (commits 520f6a7, 069c2ab); re-test required against the new config."
 
 ### 3. D-24 container-gate rerun (verify/container-run.sh)
 expected: Push this phase's commits to origin/main, then run `verify/container-run.sh` from the repo root. Expected: clean clone -> install.sh --core-only -> stow.sh -> theme-parity all pass; summary.log records overall=PASS. (Precondition: local main is ~37 commits ahead of origin/main — push required first.)
@@ -34,15 +41,16 @@ result: pass
 
 total: 4
 passed: 3
-issues: 1
-pending: 0
+issues: 0
+pending: 1
 skipped: 0
 blocked: 0
 
 ## Gaps
 
 - truth: "After the lock screen activates, the very first keystrokes register — 100% first-try unlock across manual-lock keybind and idle-lock paths, no failed-auth loop"
-  status: failed
+  status: resolved
+  resolution: "Gap-closure plan 04-06 (commits 520f6a7, 069c2ab): general:ignore_empty_input = true added to general{} (ENTER on empty buffer never starts a PAM round) and input-field:check_text added (visible in-flight verification cue). Both options schema-verified against installed hyprlock 0.9.5 via strings /usr/bin/hyprlock. Human re-test pending (Test 2)."
   reason: "User reported: If I start typing the password immediately, hyprlock works just fine. But if I try to press 'ENTER' key and then type my password, it fails authentication and no characters get typed inside the password input box."
   severity: major
   test: 2
