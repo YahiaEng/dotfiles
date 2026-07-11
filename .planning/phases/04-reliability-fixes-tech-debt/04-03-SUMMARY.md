@@ -155,6 +155,49 @@ Full `hyperfine fastfetch` run: mean 6.0ms ± 0.4ms (434 runs, warmup 3, min-run
 
 `kitty/.config/kitty/kitty.conf` was not touched (git diff confirms zero changes) — consistent with Pitfall 3 (rendering-latency knobs, not shell-startup knobs).
 
+## Before/After Comparison (Task 3)
+
+### Shell-init warm mean (`hyperfine --warmup 3 --min-runs 10 'zsh -i -c exit'`)
+
+| | Before | After | Delta |
+|---|---|---|---|
+| Mean | 641.3 ms ± 5.9 ms | 96.1 ms ± 2.2 ms | **-545.2 ms (-85.0%)** |
+| Min … Max | 634.0 … 651.0 ms | 92.6 … 103.5 ms | |
+| Runs | 10 | 31 (min-runs 10, hyperfine ran more since each run is fast) | |
+
+**AFTER warm mean (96.1ms) is dramatically lower than BEFORE (641.3ms) — the regression is not just reduced, it is effectively eliminated.**
+
+### fastfetch (`hyperfine 'fastfetch'` + `fastfetch --stat`)
+
+| | Before | After | Delta |
+|---|---|---|---|
+| Full-run hyperfine mean | 6.0 ms ± 0.4 ms | 5.9 ms ± 0.3 ms | ~0 (unchanged, as expected — config untouched) |
+| `disk` module | 0.025ms | 0.015ms | unchanged (noise-level) |
+| `gpu` module | 0.443ms | 0.414ms | unchanged (noise-level) |
+| `terminal` module (slowest, retained) | 2.809ms | 2.456ms | unchanged (noise-level) |
+
+fastfetch numbers are stable run-to-run (as expected — its config was not modified) and remain negligible.
+
+### Combined time-to-usable-prompt (D-21)
+
+| | Before | After |
+|---|---|---|
+| Shell-init (`zsh -i -c exit`) | 641.3 ms | 96.1 ms |
+| + fastfetch | + 6.0 ms | + 5.9 ms |
+| **Combined estimate** | **~647.3 ms** | **~102.0 ms** |
+
+**D-21's ~400ms warm starting target is MET** — the combined shell-init + fastfetch warm time (~102ms) is well under the ~400ms budget, a 4x margin. No residual cost from this plan's scope remains that threatens the target.
+
+### Conclusion
+
+The FIX-03 regression is conclusively resolved. The two applied fixes account for nearly all of the measured 545ms improvement:
+- nvm lazy-load (D-04): the dominant contributor, removing the ~400ms `nvm_auto` chain from every shell start
+- oh-my-posh local vendor (D-03): removing the ~214ms remote-fetch cost
+
+Combined, these two evidence-driven fixes (614ms of measured cost) closely match the observed 545ms total reduction (the remainder is measurement variance/overlap between the two costs in the original profiled run). fastfetch, disk/gpu modules, and zinit plugin loading were correctly left untouched — evidence showed none of them were meaningful cost centers on this hardware, and blind trimming would have provided no benefit while risking the "fastfetch stays, box-frame intact" prohibition.
+
+**Residual cost for Plan 04's fish benchmark:** The `compinit`/`compdump`/`compdef` zsh completion-system machinery (~250ms cumulative in the original zprof profile, now the dominant remaining cost in the 96.1ms after-mean) is standard zsh machinery, not one of this plan's four named mechanisms (D-01–D-06) — no fix applied here. This is worth watching in Plan 04: if fish's own completion system has a materially different (lower or higher) startup cost, that becomes a real data point in the D-07/D-08 zsh-vs-fish decision.
+
 ## Accomplishments
 - Captured full before-baseline: hyperfine shell-init timing, zprof per-function breakdown, standalone oh-my-posh remote-fetch timing, fastfetch --stat module breakdown
 - Vendored the oh-my-posh catppuccin theme JSON locally into the zshell stow package; `.zshrc` init line now points at `$HOME/.config/oh-my-posh/catppuccin.omp.json` with no http(s) URL
