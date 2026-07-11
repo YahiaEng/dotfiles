@@ -408,5 +408,8 @@ verify_packages VERIFY_PKGS
 
 echo "Next steps:"
 echo "  1. Run './stow.sh' to set up symlinks"
-echo "  2. Select 'Hyprland (uwsm-managed)' in your display manager"
-echo "  3. Or from TTY: uwsm start hyprland-uwsm.desktop"
+echo "  2. One-time Node provisioning (fish shell): open a new fish shell"
+echo "     (self-bootstraps fisher + nvm.fish via config.fish), then run"
+echo "     'nvm install v24.18.0' to install the pinned default version"
+echo "  3. Select 'Hyprland (uwsm-managed)' in your display manager"
+echo "  4. Or from TTY: uwsm start hyprland-uwsm.desktop"
