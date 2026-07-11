@@ -11,7 +11,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 
 - [x] **FIX-01**: wlogout shutdown completes reliably — root cause of the blank-screen hang diagnosed (keyboard-vs-mouse test, journalctl/coredumpctl) and fixed before any redesign work
 - [x] **FIX-02**: Hyprlock registers the first keystrokes after lock activation — no more failed-auth loops from dropped input (root-caused, not patched around)
-- [ ] **FIX-03**: Kitty startup is fast — startup profiled, cause identified, and fixed
+- [x] **FIX-03**: Kitty startup is fast — startup profiled, cause identified, and fixed
 
 ### Redesigns
 
@@ -95,7 +95,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | FIX-01 | Phase 4 | Complete |
 | FIX-02 | Phase 4 | Complete |
-| FIX-03 | Phase 4 | Pending |
+| FIX-03 | Phase 4 | Complete |
 | DEBT-01 | Phase 4 | Complete |
 | THM-01 | Phase 5 | Pending |
 | THM-02 | Phase 5 | Pending |
