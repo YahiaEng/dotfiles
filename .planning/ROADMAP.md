@@ -69,8 +69,14 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   4. With a static theme active, the wallpaper picker offers only that theme's wallpaper set; with Material You active, any wallpaper is allowed.
   5. The redesigned wallpaper picker presents wallpapers with Omarchy-level polish (thumbnails/layout), not the old bare list.
 
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 05-01-PLAN.md — Light-mode pipeline core: mode.sh detection (D-06), materialyou-light (D-05), mode-aware gtk.sh + rendered settings.ini symlinks (D-07/D-08), uwsm GTK_THEME hardcode removed [wave 1]
+- [ ] 05-02-PLAN.md — Preset expansion: 9 Omarchy dark + 5 canonical light palette JSONs, dynamic parity/stress gates with light+dark fixtures, dynamic theme picker, themes/ package deleted (D-01..D-04) [wave 2]
+- [ ] 05-03-PLAN.md — Wallpaper sets: folder renames to 1:1 palette names (D-09/D-10), theme-apply wallpaper auto-set with per-theme last-used memory (D-11/D-12) [wave 2]
+- [ ] 05-04-PLAN.md — Picker redesign: kitty-graphics previews + active marker (D-13/D-14), pipeline-themed fzf colors (D-15), theme restriction with Ctrl-A + fall-open (D-16), visual checkpoint [wave 3]
 
 ### Phase 6: Themed Surfaces & Utility Suite
 
@@ -127,7 +133,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 2. Static ↔ Dynamic Parity & Switch Reliability | v1.0 | 2/2 | Complete | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
-| 5. Light Mode Pipeline & Theme Presets | v2.0 | 0/TBD | Not started | - |
+| 5. Light Mode Pipeline & Theme Presets | v2.0 | 0/4 | Not started | - |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 0/TBD | Not started | - |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
