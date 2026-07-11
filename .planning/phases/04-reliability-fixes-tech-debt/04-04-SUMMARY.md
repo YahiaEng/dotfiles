@@ -44,4 +44,16 @@ Both shells are comfortably under the ~400ms D-21 budget. The zsh warm mean (95.
 
 ## Decision (D-08)
 
-**Decision: pending** — awaiting the Task 3 checkpoint selection (fish or zsh).
+**Decision: fish** — selected by the user at the Task 3 checkpoint. Deciding numbers: fish warm mean **32.7 ms ± 0.8 ms** vs optimized zsh **95.5 ms ± 2.0 ms** (~2.9x faster, −62.8 ms), with full D-10 parity verified live.
+
+### Applied wiring (Task 4)
+
+- `kitty/.config/kitty/kitty.conf`: new `# ── Shell ─` banner section with `shell fish` — the ONLY switch point (D-12). No chsh anywhere; `stow.sh`'s existing `sudo chsh -s "$(which zsh)"` line is unchanged, so the system login shell stays zsh (TTY recovery path keeps the proven zshell setup). kitty's `repaint_delay`/`input_delay`/`sync_to_monitor` untouched (Pitfall 3).
+- `install.sh`: `fish` added to PACMAN_PKGS under a new `# Shell` group (official `extra` repo — NOT AUR_PKGS). 04-01's additions (`rsync`, `hyprshutdown`) preserved. Flows through the existing `verify_packages` hard-fail gate automatically.
+- `stow.sh`: `fish` added to PACKAGES alphabetically (fastfetch → fish → gtk). `zshell` remains in PACKAGES — the fallback shell is retained (D-11).
+
+### Prohibitions confirmed
+
+- **No chsh for fish** — the only chsh in the repo is stow.sh's pre-existing zsh line (D-12). ✓
+- **zshell stow package retained** — still in stow.sh PACKAGES, `zshell/` directory intact (D-11). ✓
+- **No nushell evaluated** — benchmark compared only optimized zsh and fish (D-07). ✓

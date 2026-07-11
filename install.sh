@@ -68,6 +68,9 @@ PACMAN_PKGS=(
     # Terminal
     kitty
 
+    # Shell (interactive, launched via kitty.conf; login shell stays zsh — D-12)
+    fish
+
     # Wallpaper
     awww
 

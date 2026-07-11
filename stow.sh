@@ -18,6 +18,7 @@ cd "$DOTFILES_DIR"
 # ── Stow packages ───────────────────────────────────
 PACKAGES=(
     fastfetch
+    fish
     gtk
     hypr
     kitty
