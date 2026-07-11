@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 5
-current_phase_name: Light Mode Pipeline & Theme Presets
+current_phase: 05
+current_phase_name: light-mode-pipeline-theme-presets
 status: executing
-stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-07-11T22:25:09.418Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-07-11T22:37:07.099Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 04 complete, transitioned to Phase 5
+last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 10
+  completed_plans: 7
   percent: 20
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-11)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 5 — Light Mode Pipeline & Theme Presets
+**Current focus:** Phase 05 — light-mode-pipeline-theme-presets
 
 ## Current Position
 
-Phase: 5 — Light Mode Pipeline & Theme Presets
-Plan: Not started
+Phase: 05 (light-mode-pipeline-theme-presets) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-11 — Phase 04 complete, transitioned to Phase 5
+Last activity: 2026-07-11 — Phase 05 execution started
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Last activity: 2026-07-11 — Phase 04 complete, transitioned to Phase 5
 | Phase 04 P04 | 25min | 4 tasks | 6 files |
 | Phase 04 P05 | 10min | 2 tasks | 2 files |
 | Phase 04 P06 | 8min | 2 tasks | 1 files |
+| Phase 05 P01 | 20min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 04-04]: FIX-03 closed with fish adoption (D-08 user decision): fish 32.7ms vs optimized zsh 95.5ms warm (~2.9x) at full D-10 parity; switch is kitty.conf-only (shell fish, no chsh) + install.sh PACMAN_PKGS + stow.sh; zshell retained as TTY/fallback shell (D-11); fisher+nvm.fish human-approved at package-legitimacy gate and self-bootstrapped for fresh-install reproducibility
 - [Phase 04-05]: FIX-03 gap closure — fish's own conf.d/nvm.fish activation guard runs before config.fish sets nvm_default_version, so fresh shells silently skipped node activation; fixed with an explicit guarded nvm use --silent inside status is-interactive (04-REVIEW.md CR-01), plus install.sh Next steps now documents the one-time nvm install v24.18.0 provisioning
 - [Phase 04-06]: FIX-02 UAT gap closed: hyprlock ENTER-first input drop fixed with general:ignore_empty_input = true (blocks empty-buffer PAM submits) plus input-field:check_text visible checking cue for the remaining wrong-password window; both options pre-verified against installed hyprlock 0.9.5 binary schema via strings
+- [Phase 05-01]: gtk.sh becomes the single mode-aware owner of GTK_THEME propagation; uwsm/env's static export was removed to eliminate the second hardcode site (THM-01)
+- [Phase 05-01]: settings.ini mode-sensitive lines rendered via shell printf in generate.sh rather than a matugen template, since matugen has no mode-conditional templating primitive
 
 ### Quick Tasks Completed
 
@@ -123,6 +126,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T20:42:21.450Z
-Stopped at: Phase 5 UI-SPEC approved
-Resume file: .planning/phases/05-light-mode-pipeline-theme-presets/05-UI-SPEC.md
+Last session: 2026-07-11T22:37:07.094Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
