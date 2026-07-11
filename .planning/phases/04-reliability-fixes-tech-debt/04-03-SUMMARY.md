@@ -144,6 +144,17 @@ Full `hyperfine fastfetch` run: mean 6.0ms ± 0.4ms (434 runs, warmup 3, min-run
 4. fastfetch (~6ms total) — negligible, no fix needed
 5. zinit plugin/snippet loading itself (self-time small, no dominant call site) — turbo mode NOT applied (D-05 condition not met)
 
+## Applied Fixes (Task 2)
+
+| Mechanism | Applied? | Evidence basis |
+|---|---|---|
+| D-03 oh-my-posh local vendor | Yes | Standalone `time oh-my-posh init ...` showed ~214ms wall cost from the remote URL; fetched `catppuccin.omp.json` from `raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/catppuccin.omp.json` into `zshell/.config/oh-my-posh/catppuccin.omp.json` (71 lines, `jq .` valid), stowed via `stow -R -t "$HOME" zshell` so it resolves to `~/.config/oh-my-posh/catppuccin.omp.json`; `.zshrc` line 46 now reads the local path, no `http(s)://` substring remains on that line |
+| D-04 nvm/bun lazy-load | Yes | zprof showed `nvm_auto` at 53.52% cumulative (the dominant cost center by far); replaced synchronous `nvm.sh`/bun sourcing with the `lazy_load_nvm` self-unsetting shim wrapping `nvm node npm npx bun`, per RESEARCH.md Pattern 5 verbatim; `NVM_DIR`/`BUN_INSTALL` exports retained; verified `node --version`, `nvm --version`, and `bun --version` all resolve correctly through the shim in a fresh `zsh -i -c` invocation |
+| D-05 zinit turbo mode | **Not applied** | zprof showed zinit's own self-time spread thin across ~13 small call sites (max single self-time 0.50%) — no dominant zinit call site to justify turbo-mode restructuring; condition "if zprof implicates zinit" (D-05) was not met. All plugin/snippet names in `.zshrc` are byte-identical to before (verified via `git diff` showing zero changes to the zinit block) |
+| D-02 fastfetch trim | **Not applied** | `fastfetch --stat` showed `disk` (0.025ms) and `gpu` (0.443ms) — the only two candidates present in this repo's config — both negligible; total fastfetch runtime measured at 6.0ms via hyperfine. No evidence-based justification to remove either module. `fastfetch/.config/fastfetch/config.jsonc` is unchanged (`git diff` shows zero changes); box-frame and all 12 retained module keys (os/kernel/packages/uptime/wm/terminal/shell/terminalfont/cpu/memory/display/colors) are intact |
+
+`kitty/.config/kitty/kitty.conf` was not touched (git diff confirms zero changes) — consistent with Pitfall 3 (rendering-latency knobs, not shell-startup knobs).
+
 ## Accomplishments
 - Captured full before-baseline: hyperfine shell-init timing, zprof per-function breakdown, standalone oh-my-posh remote-fetch timing, fastfetch --stat module breakdown
 - Vendored the oh-my-posh catppuccin theme JSON locally into the zshell stow package; `.zshrc` init line now points at `$HOME/.config/oh-my-posh/catppuccin.omp.json` with no http(s) URL

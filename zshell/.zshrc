@@ -42,8 +42,8 @@ autoload -Uz compinit && compinit
 zinit cdreplay -q
 
 
-# Initialize oh-my-posh
-eval "$(oh-my-posh init zsh --config 'https://github.com/JanDeDobbeleer/oh-my-posh/blob/main/themes/catppuccin.omp.json')"
+# Initialize oh-my-posh (local vendored theme — no remote fetch at shell start, D-03)
+eval "$(oh-my-posh init zsh --config "$HOME/.config/oh-my-posh/catppuccin.omp.json")"
 
 
 # Keybindings
@@ -100,15 +100,23 @@ export PATH="$HOME/.local/bin:$PATH"
 # Source
 # source /usr/share/nvm/init-nvm.sh # node version manager
 export NVM_DIR="$HOME/.config/nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-# bun completions
-[ -s "/home/aorus/.bun/_bun" ] && source "/home/aorus/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+
+# Lazy-load nvm/bun (D-04) — nvm sourcing measured at ~53% of shell-init time
+# (zprof: nvm_auto cumulative 53.52%); defer until first invocation instead of
+# paying the cost on every interactive shell start.
+lazy_load_nvm() {
+    unset -f nvm node npm npx bun 2>/dev/null
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+    [ -s "$BUN_INSTALL/_bun" ] && source "$BUN_INSTALL/_bun"  # bun completions
+}
+for cmd in nvm node npm npx bun; do
+    eval "function $cmd() { lazy_load_nvm; $cmd \"\$@\" }"
+done
 
 export PATH=$PATH:/home/aorus/.spicetify
 
