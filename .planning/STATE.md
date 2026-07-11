@@ -6,14 +6,14 @@ current_phase: 05
 current_phase_name: light-mode-pipeline-theme-presets
 status: executing
 stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-07-11T22:54:10.971Z"
+last_updated: "2026-07-11T23:00:05.818Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 20
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-11)
 ## Current Position
 
 Phase: 05 (light-mode-pipeline-theme-presets) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 05 execution started
 
@@ -72,6 +72,7 @@ Last activity: 2026-07-11 — Phase 05 execution started
 | Phase 04 P06 | 8min | 2 tasks | 1 files |
 | Phase 05 P01 | 20min | 3 tasks | 10 files |
 | Phase 05 P02 | 30min | 3 tasks | 54 files |
+| Phase 05 P03 | 10min | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Phase 05-02]: hackerman and vantablack have no red hue upstream — error mapped to each theme's highest-contrast attention accent instead of inventing a literal red
 - [Phase ?]: [Phase 05-02]: theme-parity/theme-stress-test/theme-switch.sh all converted to dynamic palettes/*.json glob enumeration, permanently closing RESEARCH Pitfall 2
 - [Phase ?]: [Phase 05-02]: legacy themes/ stow package deleted (D-04) after reconfirming zero repo-wide references; stow.sh PACKAGES array and live ~/.config/themes symlink cleaned up
+- [Phase 05-03]: Wallpaper folders locked 1:1 to palette JSON basenames with no mapping file (D-09); empty folders (dracula, 5 light variants) fall open to keep-current (D-12); per-theme last-used wallpaper state as one flat file under ~/.local/state/theme/last-wallpaper/<preset>
 
 ### Quick Tasks Completed
 
@@ -131,6 +133,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T22:54:10.966Z
+Last session: 2026-07-11T22:59:38.269Z
 Stopped at: Completed 05-02-PLAN.md
 Resume file: None
