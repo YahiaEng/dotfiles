@@ -8,24 +8,30 @@ dependency-graph:
   provides: [uwsm-correct-power-actions, rsync-in-pacman-pkgs]
   affects: [wlogout/.config/wlogout/layout, hypr/.config/hypr/scripts/powermenu.sh, install.sh]
 tech-stack:
-  added: []
-  patterns: ["uwsm-correct session teardown before systemd power transition"]
+  added: [hyprshutdown 0.1.1-3 (official extra repo, hyprwm upstream)]
+  patterns: ["graceful compositor exit before systemd power transition (hyprshutdown --post-cmd)"]
 key-files:
-  created: []
+  created:
+    - .planning/phases/04-reliability-fixes-tech-debt/04-01-SUMMARY.md
   modified:
     - wlogout/.config/wlogout/layout
     - hypr/.config/hypr/scripts/powermenu.sh
     - install.sh
-decisions: []
+decisions:
+  - "FIX-01 fix: hyprshutdown --post-cmd 'systemctl poweroff/reboot' replaces bare systemctl in wlogout layout + powermenu.sh — graceful app+compositor exit before the power transition (class fix per D-13)"
+  - "--vt flag omitted: it shells out to 'sudo -n chvt N' (needs a passwordless sudoers rule this machine lacks — would silently no-op) and targets the exit-to-greeter black screen, not the power-transition path"
+  - "Suspend/Hibernate stay bare systemctl (D-14): they resume into the same session — wrapping them in session teardown would be a logout-on-suspend bug"
+  - "wleave replacement branch did NOT fire (D-15): no evidence implicated the wlogout binary itself; wlogout.sh and keybinds.conf untouched"
+  - "hyprshutdown added to install.sh PACMAN_PKGS (reproducibility constraint — layout now depends on it)"
 metrics:
-  duration: TBD
-  completed: TBD
-status: in-progress
+  duration: ~50min (excl. human checkpoint wait)
+  completed: 2026-07-11
+status: complete
 ---
 
 # Phase 4 Plan 1: FIX-01 wlogout hang + DEBT-01 rsync Summary
 
-FIX-01/DEBT-01 root-cause diagnosis and fix, in progress.
+Shutdown/Reboot now go through hyprshutdown's graceful compositor teardown (`hyprshutdown --post-cmd 'systemctl poweroff|reboot'`) in both wlogout and the walker power menu, replacing bare in-session `systemctl` calls; rsync is explicit in install.sh PACMAN_PKGS.
 
 ## Task 1: Diagnosis from existing evidence (preliminary)
 
@@ -83,4 +89,66 @@ Per RESEARCH.md: the **NVIDIA compositor-unload-vs-systemd-kill-timeout race** (
 
 git diff at this point shows only `04-01-SUMMARY.md` added — `wlogout/layout` and `powermenu.sh` are unchanged (no fix applied yet; Task 2's human-verify checkpoint gates Task 3).
 
-<!-- gsd:write-continue -->
+## Task 2: Live reproduction result (human checkpoint, approved)
+
+- **No hang reproduced** — Shutdown and Reboot both completed cleanly in testing.
+- **Keyboard vs. mouse: identical results** — no input-path difference. Per Pitfall 1's interpretation rule, this is evidence AGAINST the historical Hyprland mouse-click bug (`hyprwm/Hyprland#4599`, fixed March 2024, this machine runs 0.55.4) and consistent with the teardown-path hypothesis.
+- **No journalctl hang signature captured** — nothing to capture, since no hang occurred during the reproduction attempts.
+
+**Final root-cause disposition (D-13/D-25):** FIX-01 is **intermittent / not currently reproducible on demand**. The leading (and only surviving) hypothesis remains the NVIDIA compositor-unload-vs-systemd-kill-timeout race (`basecamp/omarchy#5726` pattern): NVIDIA GA104 RTX 3070 on the `nvidia` driver, SDDM-managed session, and a confirmed structural defect — Shutdown/Reboot dispatched a bare, unmanaged `systemctl poweroff`/`reboot` from *inside* the uwsm-managed session, so the compositor received SIGTERM mid-transition and raced systemd's kill-timeout during driver unload. Per the plan's interpretation guide and the checkpoint approval, the class-of-bug fix was applied on the strength of the Task 1 audit evidence (the bare-systemctl pattern is present and wrong regardless of on-demand reproducibility), not patched around.
+
+## Task 3: Applied fix
+
+### FIX-01 — uwsm-correct session-teardown actions
+
+`wlogout/.config/wlogout/layout` (only `action` strings changed; every `label`, `text`, `keybind` byte-for-byte identical; style.css untouched per D-16):
+
+| Action | Before | After |
+|--------|--------|-------|
+| Shutdown | `systemctl poweroff` | `hyprshutdown --post-cmd 'systemctl poweroff'` |
+| Reboot | `systemctl reboot` | `hyprshutdown --post-cmd 'systemctl reboot'` |
+
+`hypr/.config/hypr/scripts/powermenu.sh` — identical class fix in the `Reboot`/`Shutdown` case branches (the walker power menu is a Phase 7 MENU-05 surface; it no longer carries the same defect).
+
+**Why hyprshutdown:** official `extra` repo package (0.1.1-3, hyprwm upstream — `pacman -Si` verified; **no AUR legitimacy gate required**, resolving RESEARCH.md Open Question 3). It is purpose-built for exactly this failure mode: it daemonizes itself (double-fork + setsid, verified in upstream `src/main.cpp`) so it survives the compositor's death, gracefully closes all apps via Hyprland IPC, exits Hyprland cleanly (non-forced), and only *then* runs the `--post-cmd` power transition — the documented "end the session cleanly before the systemd power transition" pattern from `hyprwm/Hyprland#12174` (RESEARCH.md Pattern 1), implemented by a maintained upstream tool instead of hand-rolled wrapper logic ("Don't Hand-Roll").
+
+**Why NOT `--vt N`:** upstream source shows `--vt` shells out to `sudo -n chvt N`, which requires a passwordless sudoers rule for `chvt` that this machine does not have (`sudo -n` fails) — it would silently no-op. It also targets the NVIDIA+SDDM *exit-to-greeter* black screen (per the upstream code comment), not the power-transition path this plan fixes. If the D-22 five-cycle test still black-screens, the follow-up is a `/etc/sudoers.d/` chvt rule + `--vt` — documented here so the option isn't lost.
+
+**Suspend/Hibernate audit decision (D-14):** left as bare `systemctl suspend`/`systemctl hibernate` in both files. They resume back into the *same* session — tearing the session down first would convert every suspend into a logout (threat T-04-03, disposition: accept). Task 2's evidence did not implicate them.
+
+**wleave branch (D-15): did not fire.** No evidence implicated the wlogout binary itself (the defect was in the action strings' session-teardown semantics). `hypr/.config/hypr/scripts/wlogout.sh` and `hypr/.config/hypr/config/keybinds.conf` are untouched.
+
+### DEBT-01 — rsync explicit in install.sh
+
+Added `rsync` to `PACMAN_PKGS` under the existing `# Utilities` group (alongside jq/psmisc/stow, one package per line). `theme-engine/lib/commit.sh`'s unconditional `rsync -a --delete` no longer relies on a transitive dependency on a minimal fresh Arch install. AUR_PKGS, NVIDIA_PKGS, and verify_packages() untouched — the new entries flow through the existing `VERIFY_PKGS=("${PACMAN_PKGS[@]}" ...)` hard-fail gate automatically.
+
+## Deviations from Plan
+
+### Auto-fixed / auto-added
+
+**1. [Rule 2 - Missing critical functionality] hyprshutdown added to install.sh PACMAN_PKGS**
+- **Found during:** Task 3
+- **Issue:** The rewritten layout/powermenu actions depend on the `hyprshutdown` binary, which was not in any install.sh package array — a fresh install would have non-functional Shutdown/Reboot menu entries (violates the reproducibility constraint).
+- **Fix:** Added `hyprshutdown` to `PACMAN_PKGS` under `# Hyprland ecosystem` (official `extra` repo — no AUR gate needed).
+- **Files modified:** install.sh
+
+No other deviations — plan executed as written.
+
+## Authentication gates
+
+**hyprshutdown host install requires sudo (password-gated).** `sudo -n` is unavailable in this environment, so the package could not be installed by the executor. **Before running the D-22 five-cycle test, run:** `sudo pacman -S --needed hyprshutdown`. This is folded into the Task 4 verification checkpoint rather than a separate gate.
+
+## Verification status (Task 4 — end-of-phase human checkpoint, pending)
+
+Per config `human_verify_mode: end-of-phase`, the blocking Task 4 checkpoint is deferred to end-of-phase verification:
+
+- **FIX-01 (D-22), pending:** install hyprshutdown (`sudo pacman -S --needed hyprshutdown`), then 5 consecutive real cycles from the wlogout menu — alternate keyboard/mouse selection, mix Shutdown and Reboot; after each boot run `journalctl -b -1 --no-pager | grep -iE "stop-sigterm|timed out|nvidia_drm|failed"` and confirm no teardown-timeout errors. Do not sign off below 5/5 clean.
+- **DEBT-01 (D-24), pending:** `./verify/container-run.sh` rerun. **Note:** the gate performs a genuine `git clone` of the real remote (D-56) — these commits must be pushed to `github.com/yahiaeng/dotfiles` before the rerun tests them.
+
+## Automated verification (executed this session)
+
+- Task 3 plan gate: no uncommented `"action": "systemctl poweroff|reboot"` in layout; `grep -Eq '^[[:space:]]*rsync([[:space:]]|$)' install.sh` passes; keybind count == 6 → **PASS**
+- All six `text` values (Lock/Logout/Suspend/Hibernate/Shutdown/Reboot) unchanged → **PASS**
+- `git diff --stat`: `wlogout/.config/wlogout/style.css` unchanged; no CSS/icon/asset files touched (D-16 prohibition) → **PASS**
+- `bash -n` clean on powermenu.sh and install.sh → **PASS**
+- `pacman -Si hyprshutdown` → `extra/hyprshutdown 0.1.1-3` (official repo, no AUR checkpoint required) → **PASS**

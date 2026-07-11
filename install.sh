@@ -54,6 +54,7 @@ PACMAN_PKGS=(
     hyprland
     hyprlock
     hypridle
+    hyprshutdown
     xdg-desktop-portal-hyprland
     xdg-desktop-portal-gtk
 
@@ -83,6 +84,7 @@ PACMAN_PKGS=(
     imagemagick
     jq
     psmisc
+    rsync
     stow
 
     # Audio

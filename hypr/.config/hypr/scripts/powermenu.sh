@@ -14,7 +14,7 @@ SELECTED=$(echo "$OPTIONS" | walker --dmenu --placeholder "Power Menu")
 case "$SELECTED" in
     *"Lock"*)     uwsm app -- hyprlock       ;;
     *"Logout"*)   uwsm stop                  ;;
-    *"Reboot"*)   systemctl reboot           ;;
-    *"Shutdown"*) systemctl poweroff         ;;
+    *"Reboot"*)   hyprshutdown --post-cmd 'systemctl reboot'   ;;
+    *"Shutdown"*) hyprshutdown --post-cmd 'systemctl poweroff' ;;
     *"Suspend"*)  systemctl suspend          ;;
 esac
