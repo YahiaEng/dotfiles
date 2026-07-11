@@ -52,6 +52,13 @@ if [[ -e "$HYPR_CONF" && ! -L "$HYPR_CONF" ]]; then
     mv "$HYPR_CONF" "$HYPR_BAK"
 fi
 
+# Pre-create fish's plugin dirs as real directories so stow links individual
+# files instead of dir-folding ~/.config/fish into the repo — fisher writes
+# generated plugin files (fisher.fish, nvm.fish, ...) into these dirs at
+# first run, and they must live host-side, never inside the repo tree
+# (git-clean invariant).
+mkdir -p "$HOME/.config/fish/functions" "$HOME/.config/fish/conf.d" "$HOME/.config/fish/completions"
+
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
