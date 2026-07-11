@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 05
 current_phase_name: light-mode-pipeline-theme-presets
-status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-07-11T23:00:05.818Z"
+status: verifying
+stopped_at: Completed 05-04-PLAN.md (Phase 05 fully executed — checkpoint approved)
+last_updated: "2026-07-11T23:36:37.167Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 10
-  completed_plans: 9
-  percent: 20
+  completed_plans: 10
+  percent: 40
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-11)
 
 Phase: 05 (light-mode-pipeline-theme-presets) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-11 — Phase 05 execution started
 
 ## Performance Metrics
@@ -73,6 +73,7 @@ Last activity: 2026-07-11 — Phase 05 execution started
 | Phase 05 P01 | 20min | 3 tasks | 10 files |
 | Phase 05 P02 | 30min | 3 tasks | 54 files |
 | Phase 05 P03 | 10min | 2 tasks | 15 files |
+| Phase 05 P04 | 10min | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Phase 05-02]: theme-parity/theme-stress-test/theme-switch.sh all converted to dynamic palettes/*.json glob enumeration, permanently closing RESEARCH Pitfall 2
 - [Phase ?]: [Phase 05-02]: legacy themes/ stow package deleted (D-04) after reconfirming zero repo-wide references; stow.sh PACKAGES array and live ~/.config/themes symlink cleaned up
 - [Phase 05-03]: Wallpaper folders locked 1:1 to palette JSON basenames with no mapping file (D-09); empty folders (dracula, 5 light variants) fall open to keep-current (D-12); per-theme last-used wallpaper state as one flat file under ~/.local/state/theme/last-wallpaper/<preset>
+- [Phase 05]: [Phase 05-04]: fzf-colors.conf added as the 13th pipeline contract file (env-kv format) — locked 60/30/10 slot mapping per UI-SPEC, BG's -1 literal is an intentional exemption from the zero-literal-hex rule
+- [Phase 05]: [Phase 05-04]: WALLPAPER_DIR_REAL resolved-symlink base established as the pattern for comparing paths against ~/Pictures (a stow symlink into the repo) — fixes active-wallpaper marker detection
+- [Phase 05]: [Phase 05-04]: Post-selection theme-apply re-run always passes the exact active dynamic variant name (materialyou or materialyou-light), never hardcoded (D-05)
 
 ### Quick Tasks Completed
 
@@ -133,6 +137,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T22:59:38.269Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-07-11T23:36:37.161Z
+Stopped at: Completed 05-04-PLAN.md (Phase 05 fully executed — checkpoint approved)
 Resume file: None

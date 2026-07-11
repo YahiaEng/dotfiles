@@ -21,7 +21,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 ### v2.0 Desktop Expansion (Phases 4-8)
 
 - [x] **Phase 4: Reliability Fixes & Tech Debt** - Root-cause and fix the wlogout shutdown hang, hyprlock first-keystroke drop, and kitty slow startup, then close the rsync install.sh carry-over (completed 2026-07-11)
-- [ ] **Phase 5: Light Mode Pipeline & Theme Presets** - Extend the theme pipeline to light mode, ship more presets (incl. light), and organize per-theme wallpapers behind a redesigned picker
+- [x] **Phase 5: Light Mode Pipeline & Theme Presets** - Extend the theme pipeline to light mode, ship more presets (incl. light), and organize per-theme wallpapers behind a redesigned picker (completed 2026-07-11)
 - [ ] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite
 - [ ] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet
 - [ ] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access
@@ -69,7 +69,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   4. With a static theme active, the wallpaper picker offers only that theme's wallpaper set; with Material You active, any wallpaper is allowed.
   5. The redesigned wallpaper picker presents wallpapers with Omarchy-level polish (thumbnails/layout), not the old bare list.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 **UI hint**: yes
 
 Plans:
@@ -84,7 +84,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 05-04-PLAN.md — Picker redesign: kitty-graphics previews + active marker (D-13/D-14), pipeline-themed fzf colors (D-15), theme restriction with Ctrl-A + fall-open (D-16), visual checkpoint [wave 3]
+- [x] 05-04-PLAN.md — Picker redesign: kitty-graphics previews + active marker (D-13/D-14), pipeline-themed fzf colors (D-15), theme restriction with Ctrl-A + fall-open (D-16), visual checkpoint [wave 3]
 
 ### Phase 6: Themed Surfaces & Utility Suite
 
@@ -141,7 +141,7 @@ Plans:
 | 2. Static ↔ Dynamic Parity & Switch Reliability | v1.0 | 2/2 | Complete | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
-| 5. Light Mode Pipeline & Theme Presets | v2.0 | 3/4 | In Progress|  |
+| 5. Light Mode Pipeline & Theme Presets | v2.0 | 4/4 | Complete   | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 0/TBD | Not started | - |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
