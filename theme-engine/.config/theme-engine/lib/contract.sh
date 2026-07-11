@@ -70,6 +70,11 @@ contract_extract_names() {
             # structure/error-handling of the kitty-kv branch above.
             grep -oP '^[A-Za-z0-9_-]+(?==)' "$path" 2>/dev/null | sort -u
             ;;
+        env-kv)
+            # THM-04/D-15: fzf-colors.conf NAME="VALUE" assignment lines —
+            # skip blanks/comments, extract the bare NAME token before '='.
+            grep -oP '^[A-Za-z0-9_]+(?==)' "$path" 2>/dev/null | sort -u
+            ;;
         toml)
             python3 - "$path" <<'PYEOF'
 import tomllib, sys
@@ -153,6 +158,13 @@ contract_extract_values() {
             # THM-01/D-08: key<TAB>value pairs, same skip rules as the name
             # extractor above (section headers/blanks/comments never match).
             sed -nE 's/^([A-Za-z0-9_-]+)=(.*)$/\1\t\2/p' "$path" 2>/dev/null
+            ;;
+        env-kv)
+            # THM-04/D-15: NAME<TAB>value pairs, surrounding double quotes
+            # stripped from the value (fzf-colors.conf's -1 literal for
+            # FZF_COLOR_BG is a non-color token and does not match the
+            # color regex in theme-parity's Layer 3 — it passes untouched).
+            sed -nE 's/^([A-Za-z0-9_]+)="?([^"]*)"?$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         toml)
             python3 - "$path" <<'PYEOF'

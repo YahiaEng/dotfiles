@@ -236,7 +236,7 @@ while IFS= read -r fname; do
     # actually look like a color for those two formats. `{{...}}` template
     # leftovers are always a failure regardless of format (Pitfall 2/3).
     case "$fmt" in
-        gtk-css|hypr-vars|kitty-kv|css-literal) enforce_emptiness=1 ;;
+        gtk-css|hypr-vars|kitty-kv|css-literal|env-kv) enforce_emptiness=1 ;;
         *) enforce_emptiness=0 ;;
     esac
 

@@ -11,7 +11,8 @@
     { "name": "yazi.toml", "format": "toml" },
     { "name": "vscodium.json", "format": "json" },
     { "name": "gtk-3.0-settings.ini", "format": "ini-kv" },
-    { "name": "gtk-4.0-settings.ini", "format": "ini-kv" }
+    { "name": "gtk-4.0-settings.ini", "format": "ini-kv" },
+    { "name": "fzf-colors.conf", "format": "env-kv" }
   ],
   "state_metadata_files": ["current-theme", "mode"]
 }

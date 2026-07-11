@@ -61,3 +61,8 @@ output_path = "~/.local/state/theme/gtk-4.0-colors.css"
 [templates.walker]
 input_path = "~/.config/matugen/templates/walker-style.css"
 output_path = "~/.local/state/theme/walker-style.css"
+
+# ── fzf color fragment (THM-04/D-15, wallpaper-picker.sh) ──
+[templates.fzf]
+input_path = "~/.config/matugen/templates/fzf-colors.conf"
+output_path = "~/.local/state/theme/fzf-colors.conf"
