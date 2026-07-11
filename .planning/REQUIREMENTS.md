@@ -57,7 +57,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 ### Theming Expansion
 
 - [x] **THM-01**: Theme pipeline supports light mode — both dark-hardcoded chokepoints fixed (`lib/gtk.sh` gsettings + `gtk-3.0/settings.ini`), mode auto-detected from palette lightness, contract/parity gates extended with a light fixture
-- [ ] **THM-02**: Additional popular static presets shipped, including light themes (e.g. catppuccin-latte), as palette JSONs through the existing pipeline
+- [x] **THM-02**: Additional popular static presets shipped, including light themes (e.g. catppuccin-latte), as palette JSONs through the existing pipeline
 - [ ] **THM-03**: Wallpapers are organized per-theme; with a static theme active the picker restricts choices to that theme's set, with Material You any wallpaper is allowed
 - [ ] **THM-04**: Wallpaper picker redesigned to Omarchy-level aesthetics
 - [ ] **THM-05**: Zen browser follows theme switches (matugen-rendered userChrome.css into the resolved profile; restart-based reload like other GTK3-class surfaces)
@@ -98,7 +98,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FIX-03 | Phase 4 | Complete |
 | DEBT-01 | Phase 4 | Complete |
 | THM-01 | Phase 5 | Complete |
-| THM-02 | Phase 5 | Pending |
+| THM-02 | Phase 5 | Complete |
 | THM-03 | Phase 5 | Pending |
 | THM-04 | Phase 5 | Pending |
 | WLOG-01 | Phase 6 | Pending |

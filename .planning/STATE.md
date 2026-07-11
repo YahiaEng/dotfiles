@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 05
 current_phase_name: light-mode-pipeline-theme-presets
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-07-11T22:37:07.099Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-07-11T22:54:10.971Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 20
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-11)
 ## Current Position
 
 Phase: 05 (light-mode-pipeline-theme-presets) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 05 execution started
 
@@ -71,6 +71,7 @@ Last activity: 2026-07-11 — Phase 05 execution started
 | Phase 04 P05 | 10min | 2 tasks | 2 files |
 | Phase 04 P06 | 8min | 2 tasks | 1 files |
 | Phase 05 P01 | 20min | 3 tasks | 10 files |
+| Phase 05 P02 | 30min | 3 tasks | 54 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 04-06]: FIX-02 UAT gap closed: hyprlock ENTER-first input drop fixed with general:ignore_empty_input = true (blocks empty-buffer PAM submits) plus input-field:check_text visible checking cue for the remaining wrong-password window; both options pre-verified against installed hyprlock 0.9.5 binary schema via strings
 - [Phase 05-01]: gtk.sh becomes the single mode-aware owner of GTK_THEME propagation; uwsm/env's static export was removed to eliminate the second hardcode site (THM-01)
 - [Phase 05-01]: settings.ini mode-sensitive lines rendered via shell printf in generate.sh rather than a matugen template, since matugen has no mode-conditional templating primitive
+- [Phase ?]: [Phase 05-02]: 9 dark Omarchy presets transcribed with primary/secondary/tertiary/error/outline sourced directly from upstream colors.toml ANSI slots; container/variant roles computed via a documented background/foreground blend formula
+- [Phase ?]: [Phase 05-02]: hackerman and vantablack have no red hue upstream — error mapped to each theme's highest-contrast attention accent instead of inventing a literal red
+- [Phase ?]: [Phase 05-02]: theme-parity/theme-stress-test/theme-switch.sh all converted to dynamic palettes/*.json glob enumeration, permanently closing RESEARCH Pitfall 2
+- [Phase ?]: [Phase 05-02]: legacy themes/ stow package deleted (D-04) after reconfirming zero repo-wide references; stow.sh PACKAGES array and live ~/.config/themes symlink cleaned up
 
 ### Quick Tasks Completed
 
@@ -126,6 +131,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T22:37:07.094Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-07-11T22:54:10.966Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
