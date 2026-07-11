@@ -152,3 +152,7 @@ Per config `human_verify_mode: end-of-phase`, the blocking Task 4 checkpoint is 
 - `git diff --stat`: `wlogout/.config/wlogout/style.css` unchanged; no CSS/icon/asset files touched (D-16 prohibition) → **PASS**
 - `bash -n` clean on powermenu.sh and install.sh → **PASS**
 - `pacman -Si hyprshutdown` → `extra/hyprshutdown 0.1.1-3` (official repo, no AUR checkpoint required) → **PASS**
+
+## Self-Check: PASSED
+
+All key files exist on disk; task commits `2e34f4d` (Task 1 diagnosis) and `c6a3a4b` (Task 3 fix) verified in git log; no unintended file deletions in either commit.

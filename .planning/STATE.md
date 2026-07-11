@@ -2,17 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 4
-status: ready-to-execute
+current_phase: 04
+current_phase_name: reliability-fixes-tech-debt
+status: executing
 stopped_at: Phase 4 planned (4 plans, 2 waves)
-last_updated: "2026-07-09T12:50:00.000Z"
-last_activity: 2026-07-09
-last_activity_desc: Phase 4 planned — 4 plans in 2 waves, checker passed
+last_updated: "2026-07-11T13:06:13.209Z"
+last_activity: 2026-07-11
+last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -23,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-09)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** v2.0 Desktop Expansion roadmapped (Phases 4-8, 32 requirements). Next: `/gsd-plan-phase 4`.
+**Current focus:** Phase 04 — reliability-fixes-tech-debt
 
 ## Current Position
 
-Phase: Phase 4 — Reliability Fixes & Tech Debt (planned)
-Plan: 4 plans in 2 waves (04-01..04-04)
+Phase: 04 (reliability-fixes-tech-debt) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-09 — Phase 4 planned (4 plans, 2 waves; plan-checker passed, 29/29 coverage)
+Last activity: 2026-07-11 — Phase 04 execution started
 
 ## Performance Metrics
 
@@ -62,12 +63,17 @@ Last activity: 2026-07-09 — Phase 4 planned (4 plans, 2 waves; plan-checker pa
 | Phase 03 P02 | 10min | 3 tasks | 2 files |
 | Phase 03 P03 | 55min+continuation | 2 tasks | 2 files |
 | Phase 03 P04 | 20min | 3 tasks | 3 files |
+| Phase 04 P01 | 50min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decision log was cleared at milestone close (2026-07-09) — full history lives in `.planning/milestones/v1.0-phases/` summaries, `.planning/RETROSPECTIVE.md`, and git history of this file.
+
+- [Phase 04-01]: FIX-01: Shutdown/Reboot fixed with hyprshutdown --post-cmd (official extra repo) — graceful compositor exit before systemd power transition; --vt omitted (needs passwordless chvt sudoers rule, targets exit-to-greeter path)
+- [Phase 04-01]: Suspend/Hibernate stay bare systemctl (D-14 audit: they resume into the same session); wleave replacement branch did not fire (wlogout binary not implicated)
+- [Phase 04-01]: hyprshutdown added to install.sh PACMAN_PKGS alongside rsync (DEBT-01) — reproducibility constraint
 
 ### Quick Tasks Completed
 
@@ -105,7 +111,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T12:50:00.000Z
+Last session: 2026-07-11T13:05:13.126Z
 Stopped at: Phase 4 planned (4 plans, 2 waves)
 Resume file: .planning/phases/04-reliability-fixes-tech-debt/04-01-PLAN.md
 

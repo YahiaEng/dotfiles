@@ -40,10 +40,10 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   3. Opening a new kitty terminal feels instant — startup is profiled before/after and the regression is gone.
   4. A fresh `install.sh` run installs rsync explicitly (listed in PACMAN_PKGS), so theme-engine's commit step never relies on a transitive dependency.
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 **Wave 1**
 
-- [ ] 04-01-PLAN.md — FIX-01 wlogout shutdown/reboot hang: diagnose (keyboard-vs-mouse, journalctl/coredumpctl), apply uwsm-correct session actions; DEBT-01 rsync in PACMAN_PKGS [wave 1]
+- [x] 04-01-PLAN.md — FIX-01 wlogout shutdown/reboot hang: diagnose (keyboard-vs-mouse, journalctl/coredumpctl), apply uwsm-correct session actions; DEBT-01 rsync in PACMAN_PKGS [wave 1]
 - [ ] 04-02-PLAN.md — FIX-02 hyprlock first-keystroke drop: confirm #423 grace double-unlock signature, apply grace=0, lockout-recovery procedure [wave 1]
 - [ ] 04-03-PLAN.md — FIX-03 profile kitty/shell startup (zprof/hyperfine/fastfetch --stat), optimize zsh (local oh-my-posh, lazy nvm/bun, zinit turbo, fastfetch trim) [wave 1]
 
@@ -121,7 +121,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 1. Root-Cause Fix & Consolidated Theme Engine | v1.0 | 3/3 | Complete | 2026-07-07 |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | v1.0 | 2/2 | Complete | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
-| 4. Reliability Fixes & Tech Debt | v2.0 | 0/4 | Not started | - |
+| 4. Reliability Fixes & Tech Debt | v2.0 | 1/4 | In Progress|  |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 0/TBD | Not started | - |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 0/TBD | Not started | - |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
