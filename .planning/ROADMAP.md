@@ -73,9 +73,17 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **UI hint**: yes
 
 Plans:
+**Wave 1**
+
 - [ ] 05-01-PLAN.md — Light-mode pipeline core: mode.sh detection (D-06), materialyou-light (D-05), mode-aware gtk.sh + rendered settings.ini symlinks (D-07/D-08), uwsm GTK_THEME hardcode removed [wave 1]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 05-02-PLAN.md — Preset expansion: 9 Omarchy dark + 5 canonical light palette JSONs, dynamic parity/stress gates with light+dark fixtures, dynamic theme picker, themes/ package deleted (D-01..D-04) [wave 2]
 - [ ] 05-03-PLAN.md — Wallpaper sets: folder renames to 1:1 palette names (D-09/D-10), theme-apply wallpaper auto-set with per-theme last-used memory (D-11/D-12) [wave 2]
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 05-04-PLAN.md — Picker redesign: kitty-graphics previews + active marker (D-13/D-14), pipeline-themed fzf colors (D-15), theme restriction with Ctrl-A + fall-open (D-16), visual checkpoint [wave 3]
 
 ### Phase 6: Themed Surfaces & Utility Suite

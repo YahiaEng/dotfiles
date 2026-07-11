@@ -4,9 +4,9 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 5
 current_phase_name: Light Mode Pipeline & Theme Presets
-status: ready-to-plan
-stopped_at: Phase 5 context gathered
-last_updated: "2026-07-11T20:20:21.290Z"
+status: executing
+stopped_at: Phase 5 UI-SPEC approved
+last_updated: "2026-07-11T22:25:09.418Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-11)
 
 Phase: 5 — Light Mode Pipeline & Theme Presets
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-07-11 — Phase 04 complete, transitioned to Phase 5
 
 ## Performance Metrics
@@ -123,6 +123,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T20:20:21.284Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-light-mode-pipeline-theme-presets/05-CONTEXT.md
+Last session: 2026-07-11T20:42:21.450Z
+Stopped at: Phase 5 UI-SPEC approved
+Resume file: .planning/phases/05-light-mode-pipeline-theme-presets/05-UI-SPEC.md
