@@ -59,6 +59,13 @@ fi
 # (git-clean invariant).
 mkdir -p "$HOME/.config/fish/functions" "$HOME/.config/fish/conf.d" "$HOME/.config/fish/completions"
 
+# THM-01/D-08: pre-create the gtk-3.0/gtk-4.0 config dirs as real
+# directories, same rationale as the fish dirs above — settings.ini is now
+# a rendered state-dir target symlinked in by commit.sh (never stow-
+# tracked content), and it must land in a real directory, never inside the
+# repo via a folded stow symlink.
+mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
+
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
