@@ -28,7 +28,7 @@ source "$LIB_DIR/gtk.sh"
 source "$LIB_DIR/reload.sh"
 
 usage() {
-    echo "Usage: theme-apply <materialyou|preset-name>" >&2
+    echo "Usage: theme-apply <materialyou|materialyou-light|preset-name>" >&2
     echo "Available presets:" >&2
     for f in "$PALETTES_DIR"/*.json; do
         [[ -f "$f" ]] && echo "  - $(basename "$f" .json)" >&2
@@ -46,7 +46,7 @@ NAME="$1"
 # filenames before it is ever interpolated into a filesystem path. Reject
 # unknown names outright rather than building "$PALETTES_DIR/$NAME.json"
 # from unvalidated input.
-if [[ "$NAME" != "materialyou" ]]; then
+if [[ "$NAME" != "materialyou" && "$NAME" != "materialyou-light" ]]; then
     if [[ ! -f "$PALETTES_DIR/$NAME.json" ]]; then
         notify-send -a "Theme Switcher" "Error" \
             "Unknown theme: ${NAME}. Desktop left unchanged." \
