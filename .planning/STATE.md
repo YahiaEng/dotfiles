@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 04
 current_phase_name: reliability-fixes-tech-debt
-status: executing
+status: verifying
 stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-07-11T13:41:54.104Z"
+last_updated: "2026-07-11T16:41:56.334Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 0
+  completed_plans: 4
+  percent: 20
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 
 Phase: 04 (reliability-fixes-tech-debt) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-11 — Phase 04 execution started
 
 ## Performance Metrics
@@ -66,6 +66,7 @@ Last activity: 2026-07-11 — Phase 04 execution started
 | Phase 04 P01 | 50min | 3 tasks | 4 files |
 | Phase 04 P02 | 19min | 3 tasks | 2 files |
 | Phase 04 P03 | 7min | 3 tasks | 2 files |
+| Phase 04 P04 | 25min | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 04-02]: FIX-02 root cause revised: hyprlock 0.9.5 silently rejects grace/no_fade_in/no_fade_out/fail_transition — grace was never active (#423 ruled out); real cause is the startup window before the lock surface has keyboard focus; fixed via schema migration + immediate_render + fadeIn disabled
 - [Phase 04-02]: Lockout-recovery procedure (second TTY + pkill hyprlock) written before any lock test — reusable by Phase 6 LOCK-01
 - [Phase 04-03]: FIX-03 root cause was nvm synchronous sourcing (53.5% cumulative shell-init time, zprof-confirmed) plus oh-my-posh remote GitHub fetch (~214ms) - fixed via nvm/bun lazy-load shim + local theme vendor; shell-init reduced 641ms -> 96ms (-85%), well under the ~400ms D-21 target; fastfetch/disk/gpu/zinit turbo NOT touched - evidence showed none were meaningful cost centers
+- [Phase 04-04]: FIX-03 closed with fish adoption (D-08 user decision): fish 32.7ms vs optimized zsh 95.5ms warm (~2.9x) at full D-10 parity; switch is kitty.conf-only (shell fish, no chsh) + install.sh PACMAN_PKGS + stow.sh; zshell retained as TTY/fallback shell (D-11); fisher+nvm.fish human-approved at package-legitimacy gate and self-bootstrapped for fresh-install reproducibility
 
 ### Quick Tasks Completed
 
@@ -116,10 +118,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T13:41:54.099Z
+Last session: 2026-07-11T16:41:22.241Z
 Stopped at: Completed 04-03-PLAN.md
 Resume file: 
 
-## Operator Next Steps
+None
 
 - Execute Phase 4 with /gsd-execute-phase 4

@@ -20,7 +20,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 ### v2.0 Desktop Expansion (Phases 4-8)
 
-- [ ] **Phase 4: Reliability Fixes & Tech Debt** - Root-cause and fix the wlogout shutdown hang, hyprlock first-keystroke drop, and kitty slow startup, then close the rsync install.sh carry-over
+- [x] **Phase 4: Reliability Fixes & Tech Debt** - Root-cause and fix the wlogout shutdown hang, hyprlock first-keystroke drop, and kitty slow startup, then close the rsync install.sh carry-over (completed 2026-07-11)
 - [ ] **Phase 5: Light Mode Pipeline & Theme Presets** - Extend the theme pipeline to light mode, ship more presets (incl. light), and organize per-theme wallpapers behind a redesigned picker
 - [ ] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite
 - [ ] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet
@@ -40,7 +40,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   3. Opening a new kitty terminal feels instant — startup is profiled before/after and the regression is gone.
   4. A fresh `install.sh` run installs rsync explicitly (listed in PACMAN_PKGS), so theme-engine's commit step never relies on a transitive dependency.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 **Wave 1**
 
 - [x] 04-01-PLAN.md — FIX-01 wlogout shutdown/reboot hang: diagnose (keyboard-vs-mouse, journalctl/coredumpctl), apply uwsm-correct session actions; DEBT-01 rsync in PACMAN_PKGS [wave 1]
@@ -49,7 +49,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-04-PLAN.md — FIX-03 benchmark optimized zsh vs fish, user decision, optional full fish adoption via kitty.conf/install.sh/stow [wave 2]
+- [x] 04-04-PLAN.md — FIX-03 benchmark optimized zsh vs fish, user decision, optional full fish adoption via kitty.conf/install.sh/stow [wave 2]
 
 ### Phase 5: Light Mode Pipeline & Theme Presets
 
@@ -121,7 +121,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 1. Root-Cause Fix & Consolidated Theme Engine | v1.0 | 3/3 | Complete | 2026-07-07 |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | v1.0 | 2/2 | Complete | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
-| 4. Reliability Fixes & Tech Debt | v2.0 | 3/4 | In Progress|  |
+| 4. Reliability Fixes & Tech Debt | v2.0 | 4/4 | Complete   | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 0/TBD | Not started | - |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 0/TBD | Not started | - |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
