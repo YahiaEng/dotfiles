@@ -66,7 +66,7 @@ coverage:
         status: pass
     human_judgment: false
 
-duration: TBD
+duration: 7min
 completed: 2026-07-11
 status: complete
 ---
@@ -77,10 +77,11 @@ status: complete
 
 ## Performance
 
-- **Duration:** TBD
+- **Duration:** 7 min
 - **Started:** 2026-07-11T13:32:55Z
+- **Completed:** 2026-07-11T13:40:08Z
 - **Tasks:** 3
-- **Files modified:** 3 (zshell/.zshrc, zshell/.config/oh-my-posh/catppuccin.omp.json [new], fastfetch/.config/fastfetch/config.jsonc [inspected, unchanged])
+- **Files modified:** 2 (zshell/.zshrc modified, zshell/.config/oh-my-posh/catppuccin.omp.json created; fastfetch/.config/fastfetch/config.jsonc inspected but left unchanged per evidence)
 
 ## Baseline (before)
 
@@ -207,11 +208,11 @@ Combined, these two evidence-driven fixes (614ms of measured cost) closely match
 
 ## Task Commits
 
-1. **Task 1: Capture the startup profiling baseline** - (see below)
-2. **Task 2: Apply the profile-driven optimizations** - (see below)
-3. **Task 3: Re-measure and prove the regression is gone** - (see below)
+1. **Task 1: Capture the startup profiling baseline** - `37a94f5` (docs)
+2. **Task 2: Apply the profile-driven optimizations to .zshrc and fastfetch** - `627440d` (fix)
+3. **Task 3: Re-measure and prove the regression is gone** - `46ed53b` (docs)
 
-**Plan metadata:** (see below)
+**Plan metadata:** (this commit)
 
 ## Files Created/Modified
 - `zshell/.config/oh-my-posh/catppuccin.omp.json` - Vendored local copy of the catppuccin oh-my-posh theme (new file)
@@ -255,3 +256,12 @@ None - no external service configuration required. (Note: `hyperfine` itself is 
 ---
 *Phase: 04-reliability-fixes-tech-debt*
 *Completed: 2026-07-11*
+
+## Self-Check: PASSED
+
+- FOUND: `zshell/.config/oh-my-posh/catppuccin.omp.json`
+- FOUND: `zshell/.zshrc`
+- FOUND: `.planning/phases/04-reliability-fixes-tech-debt/04-03-SUMMARY.md`
+- FOUND commit: `37a94f5` (Task 1 baseline)
+- FOUND commit: `627440d` (Task 2 fixes)
+- FOUND commit: `46ed53b` (Task 3 before/after)
