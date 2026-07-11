@@ -117,3 +117,11 @@ None - no external service configuration required.
 ---
 *Phase: 04-reliability-fixes-tech-debt*
 *Completed: 2026-07-11*
+
+## Self-Check: PASSED
+
+- FOUND: hypr/.config/hypr/hyprlock.conf
+- FOUND: .planning/phases/04-reliability-fixes-tech-debt/04-06-SUMMARY.md
+- FOUND commit: 520f6a7
+- FOUND commit: 069c2ab
+- FOUND commit: ac50805
