@@ -34,6 +34,16 @@ set -gx BUN_INSTALL $HOME/.bun
 # package self-sufficient on a fresh system.)
 fish_add_path -g $HOME/.cargo/bin $HOME/.local/bin $BUN_INSTALL/bin $HOME/.spicetify
 
+# ── Plugin bootstrap (analog: .zshrc's zinit self-clone) ─
+# On a fresh system, install fisher + the plugins pinned in fish_plugins
+# (nvm.fish) on the first interactive shell — keeps the fresh-install path
+# reproducible via install.sh + stow, no manual host-only step (project
+# reproducibility constraint). No-op once fisher.fish exists.
+if status is-interactive; and not test -e $__fish_config_dir/functions/fisher.fish
+    curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
+    and fisher update
+end
+
 if status is-interactive
     # ── Aliases (parity with .zshrc) ─────────────────
     alias ls 'ls -lah --color'
