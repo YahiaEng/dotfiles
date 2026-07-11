@@ -24,6 +24,8 @@ source "$LIB_DIR/generate.sh"
 source "$LIB_DIR/commit.sh"
 # shellcheck source=lib/gtk.sh
 source "$LIB_DIR/gtk.sh"
+# shellcheck source=lib/wallpaper.sh
+source "$LIB_DIR/wallpaper.sh"
 # shellcheck source=lib/reload.sh
 source "$LIB_DIR/reload.sh"
 
@@ -78,6 +80,11 @@ fi
 
 # Only reached on a fully successful render — atomic commit (D-14).
 theme_engine_commit "$NAME" "$TMP_DIR"
+
+# Static-preset wallpaper auto-set (D-11/D-12) — after commit succeeds,
+# before reload, so the desktop lands wallpaper + colors together. No-op
+# for both Material You names; a failed render never reaches this line.
+theme_engine_wallpaper_autoset "$NAME"
 
 # Single reload owner (D-04) — runs once, only after commit succeeds.
 theme_engine_reload
