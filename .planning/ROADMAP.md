@@ -40,7 +40,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   3. Opening a new kitty terminal feels instant — startup is profiled before/after and the regression is gone.
   4. A fresh `install.sh` run installs rsync explicitly (listed in PACMAN_PKGS), so theme-engine's commit step never relies on a transitive dependency.
 
-**Plans**: 4/4 plans complete
+**Plans**: 5 plans (4 complete + 1 gap-closure)
 **Wave 1**
 
 - [x] 04-01-PLAN.md — FIX-01 wlogout shutdown/reboot hang: diagnose (keyboard-vs-mouse, journalctl/coredumpctl), apply uwsm-correct session actions; DEBT-01 rsync in PACMAN_PKGS [wave 1]
@@ -50,6 +50,10 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 04-04-PLAN.md — FIX-03 benchmark optimized zsh vs fish, user decision, optional full fish adoption via kitty.conf/install.sh/stow [wave 2]
+
+**Gap closure** *(verification found fish node tooling non-functional — CR-01)*
+
+- [ ] 04-05-PLAN.md — FIX-03 gap: fix fish nvm activation (explicit `nvm use` in config.fish; conf.d loads before config.fish) + document one-time `nvm install v24.18.0` provisioning [wave 1]
 
 ### Phase 5: Light Mode Pipeline & Theme Presets
 
