@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 04
 current_phase_name: reliability-fixes-tech-debt
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-07-11T17:23:44.649Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-07-11T17:32:44.994Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 5
+  completed_plans: 5
   percent: 20
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 04 (reliability-fixes-tech-debt) — EXECUTING
-Plan: 4 of 4
+Plan: 2 of 5
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 04 execution started
 
@@ -67,6 +67,7 @@ Last activity: 2026-07-11 — Phase 04 execution started
 | Phase 04 P02 | 19min | 3 tasks | 2 files |
 | Phase 04 P03 | 7min | 3 tasks | 2 files |
 | Phase 04 P04 | 25min | 4 tasks | 6 files |
+| Phase 04 P05 | 10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 04-02]: Lockout-recovery procedure (second TTY + pkill hyprlock) written before any lock test — reusable by Phase 6 LOCK-01
 - [Phase 04-03]: FIX-03 root cause was nvm synchronous sourcing (53.5% cumulative shell-init time, zprof-confirmed) plus oh-my-posh remote GitHub fetch (~214ms) - fixed via nvm/bun lazy-load shim + local theme vendor; shell-init reduced 641ms -> 96ms (-85%), well under the ~400ms D-21 target; fastfetch/disk/gpu/zinit turbo NOT touched - evidence showed none were meaningful cost centers
 - [Phase 04-04]: FIX-03 closed with fish adoption (D-08 user decision): fish 32.7ms vs optimized zsh 95.5ms warm (~2.9x) at full D-10 parity; switch is kitty.conf-only (shell fish, no chsh) + install.sh PACMAN_PKGS + stow.sh; zshell retained as TTY/fallback shell (D-11); fisher+nvm.fish human-approved at package-legitimacy gate and self-bootstrapped for fresh-install reproducibility
+- [Phase 04-05]: FIX-03 gap closure — fish's own conf.d/nvm.fish activation guard runs before config.fish sets nvm_default_version, so fresh shells silently skipped node activation; fixed with an explicit guarded nvm use --silent inside status is-interactive (04-REVIEW.md CR-01), plus install.sh Next steps now documents the one-time nvm install v24.18.0 provisioning
 
 ### Quick Tasks Completed
 
@@ -118,8 +120,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T16:41:22.241Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-07-11T17:32:40.008Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: 
 
 None
