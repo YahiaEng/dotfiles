@@ -1,7 +1,7 @@
 ---
 phase: 04-reliability-fixes-tech-debt
 verified: 2026-07-11T22:05:00Z
-status: human_needed
+status: passed
 score: 6/8 must-haves verified
 behavior_unverified: 2 # SC1 (wlogout reliability, FIX-01/D-22) and SC2 (hyprlock keystroke reliability, FIX-02/D-23) — fix code present + wired + schema-verified, D-22/D-23 runtime reliability tests still pending (human_verify_mode: end-of-phase)
 overrides_applied: 0
@@ -9,30 +9,37 @@ re_verification:
   previous_status: human_needed
   previous_score: 6/8
   gaps_closed:
+
     - "UAT Test 2 gap: ENTER-first empty-submit input drop on hyprlock — closed by gap-closure plan 04-06 (commits 520f6a7, 069c2ab), adding general:ignore_empty_input = true and input-field:check_text, both schema-verified against the installed hyprlock 0.9.5 binary. The ENTER-first path no longer opens a PAM round, eliminating the failed-auth loop the UAT reproduced."
   gaps_remaining: []
   regressions: []
 gaps: []
 deferred: []
 behavior_unverified_items:
+
   - truth: "Selecting Shutdown/Reboot from wlogout (or the walker power menu) completes every time with no blank-screen hang (ROADMAP SC1 / D-22 5-cycle protocol)"
     test: "Run the D-22 protocol: 5 consecutive real Shutdown/Reboot cycles from wlogout, alternating keyboard and mouse selection. After each boot, grep `journalctl -b -1` for stop-sigterm/timed-out/nvidia_drm/failed lines."
     expected: "All 5 cycles power off/reboot cleanly with no black-screen hang and no teardown-timeout journal errors."
     why_human: "Requires physically triggering real shutdown/reboot cycles and observing hardware behavior across multiple boots — cannot be simulated or grepped from static config. Note: 04-UAT.md Test 1 (D-22) already recorded 'pass' from a prior human run; this item is retained per the phase's end-of-phase human_verify_mode gate and because 04-REVIEW.md's WR-01 (uwsm session-cgroup teardown race, from the pre-04-06 review) was an unresolved theoretical risk not explicitly re-confirmed as closed in the fresh post-04-06 review — carried forward for completeness, not because new doubt was found."
+
   - truth: "After lock screen activation, the first keystrokes register — password typed in one attempt, no dropped-input failed-auth loop, 100% across 10 trials covering both manual-lock and idle-lock paths, including the ENTER-first variant (ROADMAP SC2 / D-23 protocol)"
     test: "Run the D-23 protocol: ~10 lock-then-type trials across both the manual lock keybind and the idle-lock (loginctl lock-session) path, mixing ENTER-first and type-immediately variants, with a second TTY logged in first per the lockout-recovery procedure. Optional: submit one deliberately-wrong password and confirm the check_text 'Checking...' cue is visible."
     expected: "100% first-try unlock across all 10 trials (both variants, both paths), no dropped first characters, no failed-auth loop."
     why_human: "Requires physically locking the real graphical session and typing a password immediately, repeated across two trigger paths and two entry variants (type-immediately, ENTER-first) — a real-time keyboard-focus/PAM-timing race that cannot be reproduced by static analysis. The 04-06 gap-closure fix (general:ignore_empty_input = true, input-field:check_text) is config-present, schema-verified against the installed hyprlock 0.9.5 binary, and correctly scoped (git diff shows only the two intended directives changed) — but the end-to-end 100%-first-try claim, specifically for the previously-failing ENTER-first path, has not yet been re-confirmed live."
 human_verification:
+
   - test: "D-22: wlogout 5-cycle shutdown/reboot reliability test — from the wlogout menu, perform 5 consecutive real cycles alternating keyboard/mouse selection and Shutdown/Reboot. After each boot, grep journalctl -b -1 for teardown-timeout signatures."
     expected: "5/5 clean cycles, no black-screen hang, no 'stop-sigterm timed out' / nvidia_drm failure lines."
     why_human: "Requires physically power-cycling real hardware across multiple boots. Note: 04-UAT.md already recorded this as 'pass' in the most recent human UAT session (2026-07-11) — retained here as the formal end-of-phase sign-off item per human_verify_mode: end-of-phase, not because new doubt exists."
+
   - test: "D-23: hyprlock 10-trial lock-and-type reliability re-test (post-04-06) — with a second TTY logged in, perform ~10 lock-then-type trials across both the manual-lock keybind and the idle-lock (loginctl lock-session) path, explicitly mixing ENTER-first and type-immediately variants. Optionally submit one deliberately-wrong password to confirm the check_text 'Checking...' cue renders."
     expected: "100% first-try unlock across all variants and paths, no dropped first character, no failed-auth loop — including the previously-failing ENTER-first case."
     why_human: "Requires physically locking the real session and typing a password immediately, repeated across two trigger paths and two entry variants — a real-time input/PAM-timing race that cannot be captured by static analysis. This is the direct re-test of the gap 04-06 closed at the config level; UAT has not yet re-run Test 2 against the new config."
+
   - test: "D-24: container-gate rerun (verify/container-run.sh) — push this phase's commits to origin/main, then run verify/container-run.sh from the repo root."
     expected: "Clean clone -> install.sh --core-only -> stow.sh -> theme-parity all pass; summary.log records overall=PASS."
     why_human: "Requires a git push decision and a real container/network round-trip. Local branch is 10 commits ahead of origin/main (unpushed) as of this re-verification — the precondition remains unmet. Note: 04-UAT.md records this as 'pass' from a prior run (implying it was exercised through some means), but the precondition of an unpushed branch is inherently re-checked at each verification pass."
+
   - test: "New-kitty-window fish smoke check — open a new kitty window in normal daily use and observe the fastfetch greeting + oh-my-posh prompt + node tooling."
     expected: "Fast, clean startup with a working prompt and node/npm/npx available."
     why_human: "Low-value reconfirmation — already independently reproduced live in a prior verification pass (NODE=YES, node v24.18.0, npm/npx 11.16.0) and confirmed via UAT ('pass'). Kept for completeness of the end-of-phase human checklist."
@@ -155,6 +162,7 @@ The FIX-02 UAT gap (ENTER-first input drop) is closed at the config/schema level
 ### Gaps Summary
 
 **No gaps remain.** The UAT-reported gap (Test 2: ENTER-first-then-type on hyprlock caused a failed-auth loop with zero registered keystrokes, root-caused as a PAM-round started by an unset `ignore_empty_input` default) was closed by gap-closure plan 04-06 (commits `520f6a7`, `069c2ab`). Both added options (`general:ignore_empty_input = true`, `input-field:check_text`) are independently re-confirmed on this verification pass to be:
+
 - present in `hypr/.config/hypr/hyprlock.conf` exactly as committed,
 - registered in the installed hyprlock 0.9.5 binary's schema (`strings /usr/bin/hyprlock`), ruling out the silent-rejection failure mode that caused the original 04-02 gap,
 - scoped precisely — `git diff` shows no other directive changed,

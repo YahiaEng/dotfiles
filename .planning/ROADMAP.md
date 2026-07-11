@@ -126,7 +126,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 1. Root-Cause Fix & Consolidated Theme Engine | v1.0 | 3/3 | Complete | 2026-07-07 |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | v1.0 | 2/2 | Complete | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
-| 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete   | 2026-07-11 |
+| 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 0/TBD | Not started | - |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 0/TBD | Not started | - |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |

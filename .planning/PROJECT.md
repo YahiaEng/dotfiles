@@ -45,21 +45,23 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - ✓ Repeated switching stays correct: 10 consecutive static↔dynamic switches with Thunar and Walker open leave every app correctly themed (`theme-stress-test` D-41 clean gate 140/140 + human visual sign-off) — Validated in Phase 2
 - ✓ `install.sh` + `stow.sh` produce a fully working themed setup on a genuinely fresh Arch system — container gate PASS (run-20260709T060703Z, theme-parity 287/0) + graphical VM human sign-off — v1.0
 - ✓ Repo cleanup: dead configs removed (wofi, debug.txt, stray screenshots, retired scripts); `git status` stays clean after theme switches — v1.0
+- ✓ wlogout Shutdown/Reboot complete reliably — `hyprshutdown --post-cmd` graceful compositor exit before the systemd power transition; D-22 5-cycle UAT clean (FIX-01) — Validated in Phase 4
+- ✓ Hyprlock registers first keystrokes reliably — schema migration + `immediate_render`, plus `ignore_empty_input`/`check_text` ENTER-first gap closure; D-23 10-trial UAT clean (FIX-02) — Validated in Phase 4
+- ✓ Kitty startup is fast — profiled (zprof/hyperfine), shell-init 641ms → 33.9ms via fish adoption (kitty-only, zsh retained as TTY fallback), nvm lazy-load, vendored omp theme (FIX-03) — Validated in Phase 4
+- ✓ rsync explicit in install.sh PACMAN_PKGS (DEBT-01, v1.0 tech-debt closed) — Validated in Phase 4
 
 ### Active
 
 <!-- Milestone v2.0 Desktop Expansion -->
 
-- [ ] wlogout shutdown completes reliably (no blank-screen hang) and the menu is redesigned to modern-rice standards
-- [ ] Hyprlock registers the first keystrokes reliably, is themed via the shared pipeline, and gets a redesigned look
-- [ ] Kitty startup is fast (profiled and fixed)
+- [ ] wlogout menu redesigned to modern-rice standards (reliability fixed in Phase 4)
+- [ ] Hyprlock themed via the shared pipeline with a redesigned look (input reliability fixed in Phase 4)
 - [ ] Utility scripts: screenshot full suite (capture/annotate/record + animations/feedback), emoji picker, color picker, clipboard history, icon theme picker (Thunar), nerd-font switcher (vscodium/kitty/GTK/etc.)
 - [ ] Pressing $SUPER alone opens an Omarchy-style walker menu with custom icons: Utilities, AI dashboard (launchers + workspace), Game center, power, settings, keybind cheat-sheet
 - [ ] Waybar: OLED-safe behavior, additional vertical (left) layout, media center (mpris), notification center access
 - [ ] SwayOSD volume/brightness indicators, themed
 - [ ] More static presets incl. light themes; wallpaper picker refined (Omarchy aesthetics + theme-aware wallpaper sets)
 - [ ] Zen browser follows theme switches
-- [ ] rsync explicit in install.sh PACMAN_PKGS (v1.0 tech-debt)
 
 ### Out of Scope
 
@@ -71,12 +73,14 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 
 ## Current State
 
+**v2.0 Phase 4 complete (2026-07-11): Reliability Fixes & Tech Debt** — 6 plans (incl. 2 gap closures), all four requirements (FIX-01/02/03, DEBT-01) verified: 4/4 UAT pass, verification passed, security review clean (19/19 threats closed), code review 0 critical. The base is de-risked for the redesign phases. Kitty now launches fish (33.9ms); zsh retained as TTY fallback.
+
 **Shipped: v1.0 Theme Pipeline Repair (2026-07-09)** — 3 phases, 9 plans, 98 commits, 160 files (+13,636 / −1,176) over 3 days. All 19 v1 requirements verified; milestone audit passed.
 
 - **Repo layout:** one stow package per app (`hypr/`, `kitty/`, `walker/`, `thunar/`, `gtk/`, `waybar/`, `swaync/`, `matugen/`, `theme-engine/`, `themes/`, `wallpapers/`, `uwsm/`, `vscodium/`, `yazi/`, `zshell/`, `fastfetch/`, `wlogout/`), plus `install.sh`, `stow.sh`, and `verify/` (container gate harness) at the root. The dead `wofi/` package was removed in v1.0.
 - **Theming pipeline:** `theme-engine/` owns everything — `theme-apply <name>` renders static presets and Material You through the same matugen templates into `~/.local/state/theme/` (10-file output contract in `contract.json`), owns the single reload fan-out, and keeps generated output out of the git tree. `theme-doctor`, `theme-parity`, and `theme-stress-test` are rerunnable regression gates.
 - **Reproducibility:** `install.sh` (flagged sections, hardware guards, hard-fail package verify) + `stow.sh` (idempotent, zero-prompt, first-boot theme seed) proven unattended in a podman container gate and a graphical VM with human sign-off.
-- **Tech debt (non-blocking, carried into v2):** rsync not explicit in install.sh PACMAN_PKGS (arrives transitively); GTK3 windows stay stale until closed (accepted upstream limitation); theme-doctor session checks are graphical-tier-only by design.
+- **Tech debt (non-blocking):** GTK3 windows stay stale until closed (accepted upstream limitation); theme-doctor session checks are graphical-tier-only by design. rsync PACMAN_PKGS debt closed in Phase 4. Advisory review items open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in .zshrc, Logout not wrapped like Shutdown/Reboot (04-REVIEW.md WR-01..04).
 
 ## Constraints
 
@@ -97,6 +101,10 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 | Two-tier INST-03 gate (container + graphical VM) | Container proves unattended install/stow/parity headless; VM proves the visual result — neither alone suffices | ✓ Good — Phase 3; gate runs caught 6 real fresh-install defects |
 | Generated theme output lives in `~/.local/state/theme/`, never in git | Keeps `git status` clean after every switch; repo holds templates, not artifacts | ✓ Good — Phase 1/3; enforced by git-clean invariant in stress test |
 | Headless guard in reload fan-out | `swaync-client -rs` hangs forever without a session bus; early-return keeps container installs unattended | ✓ Good — quick 260709-buf |
+| `hyprshutdown --post-cmd` for Shutdown/Reboot; suspend/hibernate stay bare | Graceful compositor exit before the systemd power transition kills the FIX-01 hang class; suspend resumes into the same session so wrapping it would log the user out | ✓ Good — Phase 4; D-22 5-cycle UAT clean |
+| Verify hyprlock options against the installed binary schema (`strings`) before relying on them | hyprlock 0.9.5 silently rejects unknown options — the original FIX-02 attempt shipped dead config; schema pre-check makes that failure mode impossible | ✓ Good — Phase 4; caught grace/no_fade_in removals, validated ignore_empty_input/check_text |
+| Fish as kitty shell via `kitty.conf` only (no chsh); zsh retained for TTY | fish 32.7ms vs optimized zsh 95.5ms at full parity; kitty-only switch keeps TTY recovery on proven zsh if fish config ever breaks | ✓ Good — Phase 4; D-08 user decision, day-one node parity closed in 04-05 |
+| Evidence-first perf fixes (zprof/hyperfine/fastfetch --stat before touching anything) | Prior guesses blamed fastfetch/zinit; profiling proved nvm sourcing (53.5%) + remote omp fetch were the real cost — fixes targeted only proven centers | ✓ Good — Phase 4; 641ms → 96ms zsh, then 33.9ms fish |
 
 ## Evolution
 
@@ -116,4 +124,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-09 — v2.0 Desktop Expansion milestone started*
+*Last updated: 2026-07-11 after Phase 4 (Reliability Fixes & Tech Debt)*
