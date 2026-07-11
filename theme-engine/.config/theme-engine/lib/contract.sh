@@ -64,6 +64,12 @@ contract_extract_names() {
         kitty-kv)
             grep -oP '^[A-Za-z0-9_]+(?=\s)' "$path" 2>/dev/null | sort -u
             ;;
+        ini-kv)
+            # THM-01/D-08: settings.ini key=value lines, skipping [section]
+            # headers, blank lines, and comment lines — mirrors the
+            # structure/error-handling of the kitty-kv branch above.
+            grep -oP '^[A-Za-z0-9_-]+(?==)' "$path" 2>/dev/null | sort -u
+            ;;
         toml)
             python3 - "$path" <<'PYEOF'
 import tomllib, sys
@@ -142,6 +148,11 @@ contract_extract_values() {
             ;;
         kitty-kv)
             awk '$1 !~ /^#/ && NF >= 2 { print $1"\t"$2 }' "$path" 2>/dev/null
+            ;;
+        ini-kv)
+            # THM-01/D-08: key<TAB>value pairs, same skip rules as the name
+            # extractor above (section headers/blanks/comments never match).
+            sed -nE 's/^([A-Za-z0-9_-]+)=(.*)$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         toml)
             python3 - "$path" <<'PYEOF'

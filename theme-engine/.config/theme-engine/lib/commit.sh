@@ -76,4 +76,25 @@ theme_engine_commit() {
 
     mkdir -p "$HOME/.config/yazi"
     ln -sf "$STATE_DIR/yazi.toml" "$HOME/.config/yazi/theme.toml"
+
+    # THM-01/D-08: settings.ini is now a rendered contract target — wire the
+    # same idempotent symlink idiom as walker/yazi above. Guard: if the gtk
+    # config dir is itself a symlink (stow dir-folded into the repo — the
+    # pre-migration state), skip wiring and warn instead of writing through
+    # the fold into the repo tree (would break the git-clean invariant).
+    # stow.sh's mkdir pre-create (Task 3) unfolds these dirs; this guard
+    # keeps commit.sh safe regardless of ordering.
+    if [[ -L "$HOME/.config/gtk-3.0" ]]; then
+        echo "commit.sh: ~/.config/gtk-3.0 is a folded stow symlink — skipping settings.ini wiring (re-run stow.sh to unfold it)" >&2
+    else
+        mkdir -p "$HOME/.config/gtk-3.0"
+        ln -sf "$STATE_DIR/gtk-3.0-settings.ini" "$HOME/.config/gtk-3.0/settings.ini"
+    fi
+
+    if [[ -L "$HOME/.config/gtk-4.0" ]]; then
+        echo "commit.sh: ~/.config/gtk-4.0 is a folded stow symlink — skipping settings.ini wiring (re-run stow.sh to unfold it)" >&2
+    else
+        mkdir -p "$HOME/.config/gtk-4.0"
+        ln -sf "$STATE_DIR/gtk-4.0-settings.ini" "$HOME/.config/gtk-4.0/settings.ini"
+    fi
 }

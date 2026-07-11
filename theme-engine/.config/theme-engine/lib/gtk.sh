@@ -1,27 +1,40 @@
 #!/usr/bin/env bash
 # theme-engine/lib/gtk.sh — gsettings toggle + GTK theme env propagation
-# (D-13/PIPE-05)
+# (D-13/PIPE-05, THM-01 mode-aware)
 #
-# GTK_THEME's single source of truth is uwsm/.config/uwsm/env (D-13). This
-# script only PROPAGATES the already-exported value into the running
-# systemd/dbus activation environment for apps started mid-session — it
-# never hardcodes/re-exports a literal theme name itself.
+# gtk.sh is the single mode-aware owner of GTK_THEME propagation (supersedes
+# the uwsm/env single-source design — D-07 requires this value to flip with
+# mode, and CONTEXT integration notes forbid a second hardcode site; the one
+# remaining site is the mode branch below). Mode is read from the committed
+# state-dir marker (written by generate.sh during render, before commit —
+# atomic render-then-commit invariant), never recomputed here.
 
 # theme_engine_gtk_reload
 theme_engine_gtk_reload() {
-    # Propagate whatever GTK_THEME is already set to in this shell's
-    # environment (inherited from uwsm/env at session start) — no
-    # hardcoded value assigned here (PIPE-05).
-    if [[ -n "${GTK_THEME:-}" ]]; then
-        systemctl --user import-environment GTK_THEME 2>/dev/null || true
-        dbus-update-activation-environment --systemd GTK_THEME 2>/dev/null || true
+    # THM-01: read the committed mode marker, graceful degradation to
+    # "dark" (the pre-existing behavior) on pre-migration state where the
+    # marker doesn't exist yet.
+    local mode
+    mode="$(cat "$HOME/.local/state/theme/mode" 2>/dev/null || echo "dark")"
+
+    local color_scheme="prefer-dark"
+    local gtk3_theme="adw-gtk3-dark"
+    if [[ "$mode" == "light" ]]; then
+        color_scheme="prefer-light"
+        gtk3_theme="adw-gtk3"
     fi
 
+    # Mode-correct dynamic GTK_THEME propagation — no inherited/stale value,
+    # no second hardcode site (D-07).
+    export GTK_THEME="$gtk3_theme"
+    systemctl --user set-environment GTK_THEME="$gtk3_theme" 2>/dev/null || true
+    dbus-update-activation-environment --systemd GTK_THEME 2>/dev/null || true
+
     # gsettings toggle — works when xdg-desktop-portal-gtk is running.
-    gsettings set org.gnome.desktop.interface color-scheme "prefer-dark" 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface color-scheme "$color_scheme" 2>/dev/null || true
     gsettings set org.gnome.desktop.interface gtk-theme "" 2>/dev/null || true
     sleep 0.1
-    gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk3-dark" 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface gtk-theme "$gtk3_theme" 2>/dev/null || true
 
     # ── GTK4/libadwaita accent color (THEME-03/D-17, dark-only ceiling) ──
     # GTK4/libadwaita apps read color-scheme + accent-color live from
