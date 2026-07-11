@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 04-reliability-fixes-tech-debt
 source: [04-VERIFICATION.md]
 started: 2026-07-11T17:48:07Z
@@ -46,5 +46,11 @@ blocked: 0
   reason: "User reported: If I start typing the password immediately, hyprlock works just fine. But if I try to press 'ENTER' key and then type my password, it fails authentication and no characters get typed inside the password input box."
   severity: major
   test: 2
-  artifacts: []  # Filled by diagnosis
-  missing: []    # Filled by diagnosis
+  root_cause: "hyprlock 0.9.5 discards (does not queue) all keyboard input while a PAM verification is in flight, and ENTER on the empty password field starts such a verification because general:ignore_empty_input defaults to 0 and is unset in this repo's hyprlock.conf. The empty-password round fails in pam_unix and libpam's ~2s failure delay keeps input blocked for ~2-3s — exactly while the user types their real password; characters are dropped with zero visual feedback, and the next ENTER re-submits empty and restarts the blocked window (the failed-auth loop). Journal confirms pam_unix(hyprlock:auth) failures ~1s after each lock during UAT trials. pam_faillock (deny=3) counts these failures — hardening concern, though no lockout fired."
+  artifacts:
+    - path: "hypr/.config/hypr/hyprlock.conf"
+      issue: "general{} block lacks ignore_empty_input = true — the only config-level guard against the empty-submit trigger; the drop-while-verifying behavior itself is upstream hyprlock design"
+  missing:
+    - "Add ignore_empty_input = true to the general{} block of hypr/.config/hypr/hyprlock.conf so ENTER on an empty buffer is ignored outright (no PAM round, no ~2-3s blocked window, no faillock tally growth)"
+    - "Optionally add a visible 'checking' cue (check text/color) so any future in-flight verification isn't a silent dead keyboard"
+  debug_session: .planning/debug/hyprlock-enter-first-input-drop.md
