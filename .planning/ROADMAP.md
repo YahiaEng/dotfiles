@@ -40,7 +40,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   3. Opening a new kitty terminal feels instant — startup is profiled before/after and the regression is gone.
   4. A fresh `install.sh` run installs rsync explicitly (listed in PACMAN_PKGS), so theme-engine's commit step never relies on a transitive dependency.
 
-**Plans**: 6 plans (5 complete, 1 gap-closure pending)
+**Plans**: 6/6 plans complete
 **Wave 1**
 
 - [x] 04-01-PLAN.md — FIX-01 wlogout shutdown/reboot hang: diagnose (keyboard-vs-mouse, journalctl/coredumpctl), apply uwsm-correct session actions; DEBT-01 rsync in PACMAN_PKGS [wave 1]
@@ -54,7 +54,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Gap closure** *(verification found fish node tooling non-functional — CR-01)*
 
 - [x] 04-05-PLAN.md — FIX-03 gap: fix fish nvm activation (explicit `nvm use` in config.fish; conf.d loads before config.fish) + document one-time `nvm install v24.18.0` provisioning [wave 1]
-- [ ] 04-06-PLAN.md — FIX-02 gap: hyprlock ENTER-first empty-submit input drop — add `general:ignore_empty_input = true` + input-field `check_text` cue (UAT Test 2 / D-23) [wave 1]
+- [x] 04-06-PLAN.md — FIX-02 gap: hyprlock ENTER-first empty-submit input drop — add `general:ignore_empty_input = true` + input-field `check_text` cue (UAT Test 2 / D-23) [wave 1]
 
 ### Phase 5: Light Mode Pipeline & Theme Presets
 
@@ -126,7 +126,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 | 1. Root-Cause Fix & Consolidated Theme Engine | v1.0 | 3/3 | Complete | 2026-07-07 |
 | 2. Static ↔ Dynamic Parity & Switch Reliability | v1.0 | 2/2 | Complete | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
-| 4. Reliability Fixes & Tech Debt | v2.0 | 5/5 | Complete   | 2026-07-11 |
+| 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete   | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 0/TBD | Not started | - |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 0/TBD | Not started | - |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
