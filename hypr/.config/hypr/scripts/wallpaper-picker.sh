@@ -18,6 +18,13 @@ CURRENT_LINK="$WALLPAPER_DIR/current.jpg"
 STATE_FILE="$HOME/.local/state/theme/current-theme"
 PREVIOUS_FILE="$HOME/.cache/wallpaper-picker-previous"
 
+# ── Pipeline-themed fzf colors (THM-04/D-15) ─────────
+# Best-effort source of the engine-rendered fragment; the current
+# catppuccin-mocha hex values survive only as ${VAR:-fallback} defaults
+# below (fresh-install graceful degradation before the first theme-apply).
+# shellcheck source=/dev/null
+source "$HOME/.local/state/theme/fzf-colors.conf" 2>/dev/null || true
+
 # ── Ensure directory exists ──────────────────────────
 mkdir -p "$WALLPAPER_DIR"
 
@@ -41,25 +48,51 @@ if [[ -z "$IMAGES" ]]; then
 fi
 
 # ── Preview script (written to tmp) ─────────────────
+# THM-04/D-13/D-14: pixel-perfect preview via the kitty graphics protocol,
+# reusing fzf's own upstream fzf-preview.sh technique verbatim (RESEARCH
+# Pattern 4) rather than re-deriving the kitten icat invocation — the
+# trailing `sed '$d'` + ANSI-reset pair is the exact fix fzf's maintainers
+# ship for the "stale image on scroll" / "reset code confuses fzf's line
+# count" artifacts. chafa -f kitty (same protocol) is the fallback when
+# kitten is unavailable; the original block-symbols chafa call is the last
+# resort for non-kitty-graphics terminals.
 PREVIEW_SCRIPT=$(mktemp /tmp/wp-preview-XXXXXX.sh)
 cat > "$PREVIEW_SCRIPT" << 'PREVIEW'
 #!/usr/bin/env bash
 FILE="$HOME/Pictures/Wallpapers/$1"
 [[ ! -f "$FILE" ]] && exit 0
 
-# Get preview pane dimensions from fzf
+# Get preview pane dimensions from fzf — reserve 2 rows for the metadata
+# line printed below the image.
 COLS=${FZF_PREVIEW_COLUMNS:-40}
 LINES=${FZF_PREVIEW_LINES:-20}
+IMG_LINES=$((LINES - 2))
+[[ $IMG_LINES -lt 1 ]] && IMG_LINES=1
 
-# Show image with chafa
-chafa --size="${COLS}x${LINES}" \
-      --animate=off \
-      --center=on \
-      --color-space=din99d \
-      --symbols=block+border+space \
-      "$FILE" 2>/dev/null
+if [[ -n "$KITTY_WINDOW_ID" ]] && command -v kitten &>/dev/null; then
+    # Primary: kitty graphics protocol via kitten icat (verbatim fzf
+    # upstream pattern — RESEARCH.md Pattern 4).
+    kitten icat --clear --transfer-mode=memory --unicode-placeholder \
+        --stdin=no --place="${COLS}x${IMG_LINES}@0x0" "$FILE" 2>/dev/null \
+        | sed '$d' | sed $'$s/$/\e[m/'
+elif command -v chafa &>/dev/null && chafa --help 2>/dev/null | grep -q 'kitty'; then
+    # Fallback 1: chafa's own kitty-graphics-protocol output format — same
+    # pixel-perfect protocol, different tool.
+    chafa --format=kitty --size="${COLS}x${IMG_LINES}" \
+          --animate=off --center=on \
+          "$FILE" 2>/dev/null
+else
+    # Fallback 2 (last resort): character-block-art rendering.
+    chafa --size="${COLS}x${IMG_LINES}" \
+          --animate=off \
+          --center=on \
+          --color-space=din99d \
+          --symbols=block+border+space \
+          "$FILE" 2>/dev/null
+fi
 
-# Print filename and dimensions below preview
+# Print filename and dimensions below preview (single ANSI-bold emphasis
+# convention, UI-SPEC Typography).
 echo ""
 DIMS=$(identify -format "%wx%h" "$FILE" 2>/dev/null || echo "unknown")
 SIZE=$(du -h "$FILE" 2>/dev/null | cut -f1)
@@ -93,9 +126,9 @@ SELECTED=$(echo "$IMAGES" | fzf \
     --prompt "  " \
     --pointer "▶" \
     --marker "●" \
-    --color="bg:-1,bg+:#313244,fg:#cdd6f4,fg+:#cba6f7,hl:#f5c2e7,hl+:#f5c2e7" \
-    --color="info:#94e2d5,prompt:#cba6f7,pointer:#f5c2e7,marker:#f5c2e7,spinner:#94e2d5" \
-    --color="header:#a6adc8,border:#585b70,gutter:-1" \
+    --color="bg:${FZF_COLOR_BG:--1},bg+:${FZF_COLOR_BG_PLUS:-#313244},fg:${FZF_COLOR_FG:-#cdd6f4},fg+:${FZF_COLOR_FG_PLUS:-#cba6f7},hl:${FZF_COLOR_HL:-#f5c2e7},hl+:${FZF_COLOR_HL_PLUS:-#f5c2e7}" \
+    --color="info:${FZF_COLOR_INFO:-#94e2d5},prompt:${FZF_COLOR_PROMPT:-#cba6f7},pointer:${FZF_COLOR_POINTER:-#f5c2e7},marker:${FZF_COLOR_MARKER:-#f5c2e7},spinner:${FZF_COLOR_SPINNER:-#94e2d5}" \
+    --color="header:${FZF_COLOR_HEADER:-#a6adc8},border:${FZF_COLOR_BORDER:-#585b70},gutter:-1" \
     --border rounded \
     --margin 1,2 \
     --padding 1 \
