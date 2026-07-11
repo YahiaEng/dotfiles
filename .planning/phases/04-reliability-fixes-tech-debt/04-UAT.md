@@ -1,22 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 04-reliability-fixes-tech-debt
 source: [04-VERIFICATION.md]
 started: 2026-07-11T17:48:07Z
-updated: 2026-07-11T18:58:35Z
+updated: 2026-07-11T19:03:34Z
 ---
 
 ## Current Test
 
-number: 2
-name: D-23 hyprlock 10-trial lock-and-type reliability re-test (post-04-06)
-expected: |
-  100% first-try unlock across ~10 trials mixing ENTER-first and type-immediately
-  variants on both the manual-lock keybind and idle-lock (loginctl lock-session)
-  paths — no dropped first character, no failed-auth loop, including the
-  previously-failing ENTER-first case. Optional: submit one deliberately-wrong
-  password and confirm the check_text 'Checking...' cue renders.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -26,8 +18,8 @@ result: pass
 
 ### 2. D-23 hyprlock 10-trial lock-and-type reliability re-test (post-04-06)
 expected: With a second TTY logged in first (lockout-recovery escape hatch), perform ~10 lock-then-type trials across both the manual-lock keybind and the idle-lock (`loginctl lock-session`) path, explicitly mixing ENTER-first and type-immediately variants. Expected: 100% first-try unlock, no dropped first character, no failed-auth loop — including the previously-failing ENTER-first case. Optional: submit one deliberately-wrong password and confirm the check_text 'Checking...' cue renders.
-result: [pending]
-history: "2026-07-11 first run: issue — ENTER-first-then-type caused failed auth with zero registered keystrokes (severity: major). Root-caused and fixed by gap-closure plan 04-06 (commits 520f6a7, 069c2ab); re-test required against the new config."
+result: pass
+history: "2026-07-11 first run: issue — ENTER-first-then-type caused failed auth with zero registered keystrokes (severity: major). Root-caused and fixed by gap-closure plan 04-06 (commits 520f6a7, 069c2ab); re-test passed 2026-07-11."
 
 ### 3. D-24 container-gate rerun (verify/container-run.sh)
 expected: Push this phase's commits to origin/main, then run `verify/container-run.sh` from the repo root. Expected: clean clone -> install.sh --core-only -> stow.sh -> theme-parity all pass; summary.log records overall=PASS. (Precondition: local main is ~37 commits ahead of origin/main — push required first.)
@@ -40,9 +32,9 @@ result: pass
 ## Summary
 
 total: 4
-passed: 3
+passed: 4
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
