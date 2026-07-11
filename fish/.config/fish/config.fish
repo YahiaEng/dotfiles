@@ -18,9 +18,12 @@ end
 # ── Node tooling: nvm.fish (fisher plugin, human-approved) ─
 # nvm.fish uses the same version-dir layout as bash/zsh nvm's
 # $NVM_DIR/versions/node, so pointing nvm_data there reuses the already
-# installed Node versions (no re-download). Activation is PATH-prepend
-# only — structurally equivalent to zsh's D-04 lazy-load (no synchronous
-# nvm.sh sourcing ever happens in fish).
+# installed Node versions (no re-download). fish sources conf.d/nvm.fish
+# (the plugin's own auto-activation guard) BEFORE this file, so by the time
+# nvm_default_version is set below, the guard has already run and found it
+# unset — it silently skips activation and never re-checks. config.fish
+# must therefore activate the default version itself (see the explicit
+# `nvm use --silent` call inside the `status is-interactive` block below).
 set -g nvm_data $HOME/.config/nvm/versions/node
 set -g nvm_default_version v24.18.0
 
@@ -45,6 +48,17 @@ if status is-interactive; and not test -e $__fish_config_dir/functions/fisher.fi
 end
 
 if status is-interactive
+    # ── Node tooling activation (closes CR-01) ───────
+    # conf.d/nvm.fish's own auto-activation guard already ran before
+    # nvm_default_version was set (see comment above), so it no-ops on a
+    # fresh shell. Activate explicitly here instead: no-op when nvm.fish
+    # isn't bootstrapped yet (`functions -q nvm`) and no-op when a version
+    # is already active (`not set -q nvm_current_version`, e.g. inherited
+    # from a parent shell). No `set -U` universals — not stow-reproducible.
+    if not set -q nvm_current_version; and functions -q nvm
+        nvm use --silent $nvm_default_version
+    end
+
     # ── Aliases (parity with .zshrc) ─────────────────
     alias ls 'ls -lah --color'
     alias vim nvim
