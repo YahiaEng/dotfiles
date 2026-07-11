@@ -309,3 +309,9 @@ actually active, which is impossible via config in hyprlock 0.9.5.
 ## Known Stubs
 
 None — no placeholder values or unwired surfaces introduced.
+
+## Self-Check: PASSED
+
+- 04-02-SUMMARY.md exists; hyprlock.conf modified as documented
+- Task commits verified in git log: 37c2dd9 (Task 1), 2e31123 (Task 3)
+- No unexpected file deletions in any task commit

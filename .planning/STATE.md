@@ -6,14 +6,14 @@ current_phase: 04
 current_phase_name: reliability-fixes-tech-debt
 status: executing
 stopped_at: Phase 4 planned (4 plans, 2 waves)
-last_updated: "2026-07-11T13:06:13.209Z"
+last_updated: "2026-07-11T13:31:17.276Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-09)
 ## Current Position
 
 Phase: 04 (reliability-fixes-tech-debt) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 04 execution started
 
@@ -64,6 +64,7 @@ Last activity: 2026-07-11 — Phase 04 execution started
 | Phase 03 P03 | 55min+continuation | 2 tasks | 2 files |
 | Phase 03 P04 | 20min | 3 tasks | 3 files |
 | Phase 04 P01 | 50min | 3 tasks | 4 files |
+| Phase 04 P02 | 19min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 04-01]: FIX-01: Shutdown/Reboot fixed with hyprshutdown --post-cmd (official extra repo) — graceful compositor exit before systemd power transition; --vt omitted (needs passwordless chvt sudoers rule, targets exit-to-greeter path)
 - [Phase 04-01]: Suspend/Hibernate stay bare systemctl (D-14 audit: they resume into the same session); wleave replacement branch did not fire (wlogout binary not implicated)
 - [Phase 04-01]: hyprshutdown added to install.sh PACMAN_PKGS alongside rsync (DEBT-01) — reproducibility constraint
+- [Phase 04-02]: FIX-02 root cause revised: hyprlock 0.9.5 silently rejects grace/no_fade_in/no_fade_out/fail_transition — grace was never active (#423 ruled out); real cause is the startup window before the lock surface has keyboard focus; fixed via schema migration + immediate_render + fadeIn disabled
+- [Phase 04-02]: Lockout-recovery procedure (second TTY + pkill hyprlock) written before any lock test — reusable by Phase 6 LOCK-01
 
 ### Quick Tasks Completed
 
@@ -111,9 +114,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T13:05:13.126Z
-Stopped at: Phase 4 planned (4 plans, 2 waves)
-Resume file: .planning/phases/04-reliability-fixes-tech-debt/04-01-PLAN.md
+Last session: 2026-07-11T13:30:52.013Z
+Stopped at: Plan 04-02 paused at human-verify checkpoint (Task 2/4 — hyprlock grace=5 keystroke-drop reproduction test); 04-01 complete
+Resume file: .planning/phases/04-reliability-fixes-tech-debt/04-02-PLAN.md
 
 ## Operator Next Steps
 
