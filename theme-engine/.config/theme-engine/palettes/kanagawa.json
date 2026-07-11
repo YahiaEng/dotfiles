@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "image": "",
+    "primary": { "default": { "color": "#7e9cd8" } },
+    "on_primary": { "default": { "color": "#1f1f28" } },
+    "primary_container": { "default": { "color": "#3b3b3e" } },
+    "on_primary_container": { "default": { "color": "#dcd7ba" } },
+    "secondary": { "default": { "color": "#c0a36e" } },
+    "on_secondary": { "default": { "color": "#1f1f28" } },
+    "secondary_container": { "default": { "color": "#3b3b3e" } },
+    "on_secondary_container": { "default": { "color": "#c0a36e" } },
+    "tertiary": { "default": { "color": "#957fb8" } },
+    "on_tertiary": { "default": { "color": "#1f1f28" } },
+    "tertiary_container": { "default": { "color": "#5a4f70" } },
+    "surface": { "default": { "color": "#1f1f28" } },
+    "on_surface": { "default": { "color": "#dcd7ba" } },
+    "surface_variant": { "default": { "color": "#3b3b3e" } },
+    "on_surface_variant": { "default": { "color": "#a3a08e" } },
+    "background": { "default": { "color": "#1f1f28" } },
+    "on_background": { "default": { "color": "#dcd7ba" } },
+    "outline": { "default": { "color": "#727169" } },
+    "error": { "default": { "color": "#c34043" } },
+    "on_error": { "default": { "color": "#1f1f28" } }
+  }
+}
