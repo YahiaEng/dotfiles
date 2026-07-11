@@ -1,41 +1,49 @@
 ---
 phase: 04-reliability-fixes-tech-debt
-verified: 2026-07-11T19:58:00Z
-status: gaps_found
-score: 5/8 must-haves verified
-behavior_unverified: 2 # SC1 (wlogout reliability) and SC2 (hyprlock keystroke reliability) — fix code present + wired, but the D-22/D-23 runtime reliability tests are still pending (human_verify_mode: end-of-phase)
+verified: 2026-07-11T21:10:00Z
+status: human_needed
+score: 6/8 must-haves verified
+behavior_unverified: 2 # SC1 (wlogout reliability) and SC2 (hyprlock keystroke reliability) — fix code present + wired, D-22/D-23 runtime reliability tests still pending (human_verify_mode: end-of-phase); unchanged since initial verification
 overrides_applied: 0
-gaps:
-  - truth: "If fish is selected, fish reaches day-one parity: working node tooling (04-04-PLAN.md must_have, D-10)"
-    status: failed
-    reason: "fish sources conf.d/*.fish (including nvm.fish's auto-activation) BEFORE config.fish runs. config.fish sets nvm_data/nvm_default_version at lines 24-25, but by then nvm.fish's conf.d guard (`if status is-interactive && set --query nvm_default_version && ! set --query nvm_current_version`) has already evaluated false and skipped activation. No explicit `nvm use` call exists afterward. Reproduced live in this verification session in a clean-environment fish shell: node/npm/npx are absent even though nvm_default_version is correctly set. This is Critical finding CR-01 in 04-REVIEW.md (committed af17f9a) and remains unfixed as of the phase's most recent commit."
-    artifacts:
-      - path: "fish/.config/fish/config.fish"
-        issue: "Lines 24-25 (`set -g nvm_data ...`, `set -g nvm_default_version v24.18.0`) run after nvm.fish's conf.d auto-activation already ran and no-op'd; nothing in config.fish explicitly calls `nvm use` afterward to activate the default version."
-    missing:
-      - "Add an explicit `if not set -q nvm_current_version; and functions -q nvm; nvm use --silent $nvm_default_version; end` block inside config.fish's status is-interactive section (per 04-REVIEW.md CR-01's proposed fix), or move nvm_data/nvm_default_version into a stowed conf.d/00-nvm-env.fish snippet that sorts before nvm.fish's own conf.d file so nvm.fish's own activation guard sees the vars in time."
-      - "Separately: nothing in install.sh provisions Node v24.18.0 into ~/.config/nvm/versions/node on a genuinely fresh machine, so even the fixed activation would silently no-op until a one-time `nvm install v24.18.0` — worth a line in setup docs."
+re_verification:
+  previous_status: gaps_found
+  previous_score: 5/8
+  gaps_closed:
+    - "If fish is selected, fish reaches day-one parity: working node tooling (04-04-PLAN.md must_have, D-10) — CR-01 closed by gap-closure plan 04-05 (commits a9d9653, 58b672d, 3f8f30e)"
+  gaps_remaining: []
+  regressions: []
+gaps: []
 deferred: []
 behavior_unverified_items:
   - truth: "Selecting Shutdown/Reboot from wlogout (or the walker power menu) completes every time with no blank-screen hang (ROADMAP SC1 / D-22 5-cycle protocol)"
     test: "Run the D-22 protocol: 5 consecutive real Shutdown/Reboot cycles from wlogout, alternating keyboard and mouse selection. After each boot, grep `journalctl -b -1` for stop-sigterm/timed-out/nvidia_drm/failed lines."
     expected: "All 5 cycles power off/reboot cleanly with no black-screen hang and no teardown-timeout journal errors."
-    why_human: "Requires physically triggering real shutdown/reboot cycles and observing hardware behavior across multiple boots — cannot be simulated or grepped from static config. Additionally, 04-REVIEW.md's WR-01 raises an unresolved theoretical risk that `hyprshutdown`'s forked/daemonized process does not escape the uwsm session cgroup, so systemd tearing down the session on `Hyprland` exit could race and kill `hyprshutdown` before its `--post-cmd` runs — the fix's code is present and wired, but whether it actually survives the uwsm teardown path has not been demonstrated on this hardware."
+    why_human: "Requires physically triggering real shutdown/reboot cycles and observing hardware behavior across multiple boots — cannot be simulated or grepped from static config. 04-REVIEW.md's WR-01 (carried forward, unchanged by the 04-05 gap-closure work) raises an unresolved theoretical risk that hyprshutdown's forked process does not escape the uwsm session cgroup, so systemd tearing down the session on Hyprland exit could race and kill hyprshutdown before its --post-cmd runs — the fix's code is present and wired, but survival under real uwsm teardown has not been demonstrated on this hardware."
   - truth: "After lock screen activation, the first keystrokes register — password typed in one attempt, no dropped-input failed-auth loop, 100% across 10 trials covering both manual-lock and idle-lock paths (ROADMAP SC2 / D-23 protocol)"
     test: "Run the D-23 protocol: ~10 lock-then-immediately-type trials across both the manual lock keybind and the idle-lock (loginctl lock-session) path, with a second TTY logged in first per the lockout-recovery procedure."
     expected: "100% first-try unlock across all 10 trials, no dropped first characters, no failed-auth loop."
-    why_human: "Requires physically locking the real graphical session and typing a password immediately, repeated across two trigger paths — this is a real-time keyboard-focus race that cannot be reproduced by static analysis. The applied mitigation (`immediate_render` + `animation = fadeIn, 0`) shrinks the startup window in which keystrokes are lost but does not structurally guarantee zero loss; only the live 10-trial test settles it."
-gaps_closed: []
-gaps_remaining: []
-regressions: []
+    why_human: "Requires physically locking the real graphical session and typing a password immediately, repeated across two trigger paths — a real-time keyboard-focus race that cannot be reproduced by static analysis. Unchanged since initial verification; the applied mitigation (immediate_render + animation fadeIn,0) shrinks the startup window in which keystrokes are lost but does not structurally guarantee zero loss."
+human_verification:
+  - test: "D-22: wlogout 5-cycle shutdown/reboot reliability test — from the wlogout menu, perform 5 consecutive real cycles alternating keyboard/mouse selection and Shutdown/Reboot. After each boot, grep journalctl -b -1 for teardown-timeout signatures."
+    expected: "5/5 clean cycles, no black-screen hang, no 'stop-sigterm timed out' / nvidia_drm failure lines."
+    why_human: "Requires physically power-cycling real hardware across multiple boots; also settles WR-01's open question of whether hyprshutdown actually survives uwsm's session-cgroup teardown."
+  - test: "D-23: hyprlock 10-trial lock-and-type reliability test — with a second TTY logged in, perform ~10 lock-then-immediately-type trials across both the manual-lock keybind and the idle-lock (loginctl lock-session) path."
+    expected: "100% first-try unlock, no dropped first character, no failed-auth loop."
+    why_human: "Requires physically locking the real session and typing a password immediately, repeated across two trigger paths — a real-time input race that cannot be captured by static analysis."
+  - test: "D-24: container-gate rerun (verify/container-run.sh) — push this phase's commits to origin/main, then run verify/container-run.sh from the repo root."
+    expected: "Clean clone -> install.sh --core-only -> stow.sh -> theme-parity all pass; summary.log records overall=PASS."
+    why_human: "Requires a git push decision and a real container/network round-trip. Local branch is still 37 commits ahead of origin/main (unpushed) as of this re-verification — the precondition remains legitimately unmet, same as the initial verification run."
+  - test: "New-kitty-window fish smoke check — open a new kitty window in normal daily use and observe the fastfetch greeting + oh-my-posh prompt + node tooling."
+    expected: "Fast, clean startup with a working prompt and node/npm/npx available."
+    why_human: "Low-value reconfirmation — this verification already independently reproduced the fix live (NODE=YES, node v24.18.0, npm/npx 11.16.0) via the exact clean-env probe. Kept for completeness of the end-of-phase human checklist, not because new information is expected."
 ---
 
 # Phase 4: Reliability Fixes & Tech Debt Verification Report
 
 **Phase Goal:** The three known reliability/performance defects are root-caused and fixed, and the v1 tech-debt carry-over is closed — de-risking the base before any redesign layers on top.
-**Verified:** 2026-07-11T19:58:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-07-11T21:10:00Z
+**Status:** human_needed
+**Re-verification:** Yes — after gap closure (plan 04-05, commits a9d9653, 58b672d, 3f8f30e)
 
 ## Goal Achievement
 
@@ -43,91 +51,92 @@ regressions: []
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Shutdown/Reboot from wlogout complete every time with no blank-screen hang; root cause diagnosed (keyboard-vs-mouse, journalctl/coredumpctl) and documented, not patched around (ROADMAP SC1 / FIX-01) | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | `wlogout/.config/wlogout/layout` and `hypr/.config/hypr/scripts/powermenu.sh` confirmed rewritten to `hyprshutdown --post-cmd 'systemctl poweroff\|reboot'` (read directly, matches SUMMARY). Diagnosis is thoroughly documented in 04-01-SUMMARY.md (journalctl -b -1/-2/-3 grep, coredumpctl, lspci NVIDIA confirmation, Hyprland version cross-check) with an honest "intermittent / not reproducible on demand" final disposition — this is genuine root-cause-over-patch-around work, not fabricated. However the D-22 5-cycle reliability test is still pending (human_verify_mode: end-of-phase, per 04-01-SUMMARY.md "Verification status ... pending"), and 04-REVIEW.md's WR-01 raises an unresolved, plausible risk (hyprshutdown forking does not escape the uwsm session cgroup; systemd could kill it before `--post-cmd` runs) that the code fix has not yet been proven to survive on real hardware. |
-| 2 | After lock activation, the very first keystrokes register — password typed in one attempt, no dropped-input failed-auth loop (ROADMAP SC2 / FIX-02) | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | `hypr/.config/hypr/hyprlock.conf` confirmed migrated to the hyprlock 0.9.5 schema (`grace`/`no_fade_in`/`no_fade_out`/`fail_transition` removed, `general.immediate_render = true`, `animations { animation = fadeIn, 0 }` added) — read directly, matches 04-02-SUMMARY.md. Root cause was honestly revised mid-phase from the plan's #423 hypothesis to a real, evidence-captured cause (silently-invalid config options + startup keyboard-focus race) — a strong example of following evidence over the plan. But the D-23 10-trial lock-and-type protocol is explicitly recorded as PENDING in 04-02-SUMMARY.md ("Status: PENDING human 10-trial protocol") — the fix's actual reliability (100% first-try unlock) is unconfirmed. |
-| 3 | Opening a new kitty terminal feels instant — startup profiled before/after, regression gone (ROADMAP SC3 / FIX-03) | ✓ VERIFIED | Independently re-measured in this verification session: `hyperfine --warmup 2 --min-runs 5 'zsh -i -c exit' 'fish -i -c exit'` → zsh 97.4ms ± 2.0ms, fish 33.9ms ± 1.1ms (fish ~2.87x faster) — closely matches 04-03/04-04-SUMMARY.md's recorded numbers (95.5ms/32.7ms) and the original 641ms pre-fix baseline. `zshell/.zshrc` confirmed to lazy-load nvm (`lazy_load_nvm` function, line 111) and to source oh-my-posh from a local vendored path (`$HOME/.config/oh-my-posh/catppuccin.omp.json`, line 46, no http(s) URL) — both read directly, not just claimed. This truth is genuinely and behaviorally verified, not just present-and-wired. |
-| 4 | A fresh install.sh run installs rsync explicitly (listed in PACMAN_PKGS) (ROADMAP SC4 / DEBT-01) | ✓ VERIFIED | `install.sh` PACMAN_PKGS contains an uncommented `rsync` line (read directly, line ~90, under `# Utilities`). Confirmed it flows through `VERIFY_PKGS=("${PACMAN_PKGS[@]}" ...)` → `verify_packages` hard-fail gate (install.sh:403-407). `theme-engine/.config/theme-engine/lib/commit.sh` confirmed to call `rsync -a --delete` unconditionally (line 53) — the key link (install.sh rsync entry → verify_packages gate → commit.sh's rsync call) holds end to end. |
-| 5 | All six wlogout actions audited against the uwsm session model; shutdown/reboot no longer bare `systemctl` (04-01-PLAN.md must_have) | ✓ VERIFIED | Direct read of `wlogout/.config/wlogout/layout`: Lock=`uwsm app -- hyprlock`, Logout=`uwsm stop` (already correct), Suspend/Hibernate=bare `systemctl` (audited, intentionally left per D-14 same-session-resume rationale), Shutdown/Reboot=`hyprshutdown --post-cmd ...` (fixed). All 6 keybind entries and text labels present and unchanged. `powermenu.sh` carries the identical class fix in its Reboot/Shutdown case branches. |
-| 6 | Lockout-recovery procedure (second TTY + `pkill hyprlock`) written before any hyprlock test (04-02-PLAN.md must_have, D-20) | ✓ VERIFIED | 04-02-SUMMARY.md contains a complete, step-numbered "Lockout-Recovery Procedure" section naming the second-TTY login (`Ctrl+Alt+F2`) and the `pkill hyprlock` escape hatch, written in Task 1 before the Task 2 checkpoint reproduced the drop. |
-| 7 | Optimized zsh and fish benchmarked side-by-side with a documented trade-off, user decision recorded, and — since fish won — the switch wired declaratively (kitty.conf `shell fish`, install.sh PACMAN_PKGS, stow.sh PACKAGES) with zshell retained as fallback and no chsh added (04-04-PLAN.md must_haves) | ✓ VERIFIED | `kitty/.config/kitty/kitty.conf` confirmed to contain `shell fish` (line 9) with `repaint_delay`/`input_delay`/`sync_to_monitor` untouched. `install.sh` confirmed to list `fish` under a `# Shell` PACMAN_PKGS group. `stow.sh` confirmed to list both `fish` and `zshell` in PACKAGES, with the pre-existing `sudo chsh -s "$(which zsh)"` line unchanged (no fish chsh added) — `git grep chsh` shows only that one zsh line. |
-| 8 | If fish is selected, fish reaches day-one parity: vendored oh-my-posh prompt, fzf, zoxide, trimmed fastfetch greeting, **working node tooling** (04-04-PLAN.md must_have, D-10) | ✗ FAILED | Prompt/fzf/zoxide/fastfetch parity items are all present and correctly wired in `fish/.config/fish/config.fish` (read directly). **Node tooling is not working on a fresh shell** — reproduced live in this verification session: `env -i HOME=$HOME USER=$USER TERM=xterm PATH=/usr/bin:/bin fish -i -c 'type -q node; ...'` → `NODE=NO` even though `nvm_default_version` is correctly set to `v24.18.0`. This is 04-REVIEW.md's Critical finding CR-01, confirmed still unresolved in the current HEAD (`af17f9a`, the most recent commit, is the review report itself — no follow-up fix commit exists). See gap below. |
+| 1 | Shutdown/Reboot from wlogout complete every time with no blank-screen hang; root cause diagnosed and documented, not patched around (ROADMAP SC1 / FIX-01) | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Unchanged since initial verification. `wlogout/.config/wlogout/layout` and `hypr/.config/hypr/scripts/powermenu.sh` re-confirmed on this run to still use `hyprshutdown --post-cmd 'systemctl poweroff\|reboot'` for Shutdown/Reboot (direct read). D-22 5-cycle hardware test remains pending; 04-REVIEW.md's WR-01 (uwsm session-cgroup teardown race) is unresolved and explicitly carried forward in the post-gap-closure re-review (f6463e7). |
+| 2 | After lock activation, the very first keystrokes register — password typed in one attempt, no dropped-input failed-auth loop (ROADMAP SC2 / FIX-02) | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Unchanged since initial verification. `hypr/.config/hypr/hyprlock.conf` re-confirmed to carry `immediate_render = true` and `animation = fadeIn, 0`. D-23 10-trial lock-and-type reliability protocol remains pending. |
+| 3 | Opening a new kitty terminal feels instant — startup profiled before/after, regression gone (ROADMAP SC3 / FIX-03) | ✓ VERIFIED | Quick regression check: `kitty/.config/kitty/kitty.conf` still has `shell fish` (line 9); the fish/zsh startup optimizations (lazy nvm in zsh, vendored oh-my-posh, fish adoption) are unchanged by the gap-closure plan, which touched only config.fish's interactive block and one install.sh doc line. Independently re-measured in the initial verification pass (97.4ms zsh / 33.9ms fish vs. 641ms pre-fix baseline); this run's addition (an `if`-guarded `nvm use --silent` call in an already-interactive block) is a negligible, one-shot cost and does not reintroduce the original blocking synchronous network-init regression. |
+| 4 | A fresh install.sh run installs rsync explicitly (listed in PACMAN_PKGS) (ROADMAP SC4 / DEBT-01) | ✓ VERIFIED | Quick regression check: `install.sh` PACMAN_PKGS still contains an uncommented `rsync` line (line 90), flowing through the `verify_packages` hard-fail gate. Untouched by the gap-closure plan. |
+| 5 | All six wlogout actions audited against the uwsm session model; shutdown/reboot no longer bare `systemctl` (04-01-PLAN.md must_have) | ✓ VERIFIED | Quick regression check: direct read confirms Lock=`uwsm app -- hyprlock`, Logout=`uwsm stop`, Suspend/Hibernate=bare `systemctl` (intentional per D-14), Shutdown/Reboot=`hyprshutdown --post-cmd ...`. Unchanged. |
+| 6 | Lockout-recovery procedure (second TTY + `pkill hyprlock`) written before any hyprlock test (04-02-PLAN.md must_have, D-20) | ✓ VERIFIED | Quick regression check: 04-02-SUMMARY.md still contains the documented procedure. Unchanged, not touched by gap-closure plan. |
+| 7 | Optimized zsh and fish benchmarked side-by-side, user decision recorded, switch wired declaratively (kitty.conf `shell fish`, install.sh PACMAN_PKGS, stow.sh PACKAGES) with zshell retained as fallback and no chsh added (04-04-PLAN.md must_haves) | ✓ VERIFIED | Quick regression check: `kitty.conf` `shell fish` present; `install.sh` still lists `fish` under `# Shell` PACMAN_PKGS; `stow.sh` PACKAGES still includes both `fish` and `gtk`/etc. with `zshell` retained; `git grep chsh` still shows only the pre-existing zsh chsh line. Unchanged. |
+| 8 | If fish is selected, fish reaches day-one parity: vendored oh-my-posh prompt, fzf, zoxide, trimmed fastfetch greeting, **working node tooling** (04-04-PLAN.md must_have, D-10) | ✓ VERIFIED (gap closed) | **Re-verified live in this session** — the previously-failing clean-env probe now passes: `env -i HOME="$HOME" USER="$USER" TERM=xterm PATH=/usr/bin:/bin fish -i -c 'type -q node; and echo NODE=YES; or echo NODE=NO'` → `NODE=YES` (was `NODE=NO`). Extended probe confirms `$nvm_current_version` = `v24.18.0`, and `node --version` / `npm --version` / `npx --version` all report `v24.18.0` / `11.16.0` / `11.16.0` respectively. `fish/.config/fish/config.fish` lines 50-60 confirmed to contain the guarded `if not set -q nvm_current_version; and functions -q nvm` block calling `nvm use --silent $nvm_default_version`, exactly as committed in `a9d9653`. `fish -n config.fish` and `bash -n install.sh` both exit 0. Prompt/fzf/zoxide/fastfetch parity items remain present and correctly wired (unchanged from initial verification). |
 
-**Score:** 5/8 truths verified (2 present + wired but behaviorally unverified pending human reliability tests, 1 failed)
+**Score:** 6/8 truths verified (2 present + wired but behaviorally unverified pending human reliability tests, 0 failed)
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `wlogout/.config/wlogout/layout` | uwsm-correct Shutdown/Reboot actions, all 6 labels/keybinds intact | ✓ VERIFIED | Read directly — matches SUMMARY exactly |
-| `hypr/.config/hypr/scripts/powermenu.sh` | Same class fix as layout | ✓ VERIFIED | Read directly — Reboot/Shutdown use hyprshutdown |
-| `hypr/.config/hypr/hyprlock.conf` | grace-related dead options removed, immediate_render + fadeIn=0 added, typography/color untouched | ✓ VERIFIED | Read directly — 3 label font_size values (96/22/18) intact, `source = ~/.local/state/theme/hyprland.conf` present |
-| `install.sh` | rsync + hyprshutdown + fish in PACMAN_PKGS | ✓ VERIFIED | All three present, flow through `verify_packages` gate |
-| `stow.sh` | fish added to PACKAGES, zshell retained, chsh unchanged | ✓ VERIFIED | Confirmed directly |
-| `kitty/.config/kitty/kitty.conf` | `shell fish` directive, rendering knobs untouched | ✓ VERIFIED | Confirmed directly |
-| `fish/.config/fish/config.fish` | Day-one parity config | ⚠️ STUB (node tooling) | Prompt/fzf/zoxide/fastfetch wired; node-tooling activation logic present but non-functional (CR-01) |
-| `zshell/.zshrc` | Local oh-my-posh, lazy nvm/bun | ✓ VERIFIED | Confirmed directly, matches SUMMARY |
-| `zshell/.config/oh-my-posh/catppuccin.omp.json` | Valid vendored theme JSON | ✓ VERIFIED | `jq .` parses cleanly |
-| `04-01-SUMMARY.md` / `04-02-SUMMARY.md` / `04-03-SUMMARY.md` / `04-04-SUMMARY.md` | Root-cause write-ups + verification records | ✓ VERIFIED | All exist, all contain the required diagnosis/evidence sections |
+| `fish/.config/fish/config.fish` | Explicit guarded `nvm use --silent` activation block; corrected comment | ✓ VERIFIED | Direct read: lines 18-26 comment rewritten to accurately describe conf.d-before-config.fish ordering; lines 50-60 add the guarded activation block exactly as specified in 04-05-PLAN.md's acceptance criteria. `fish -n` exits 0. Node tooling now functional (see Truth 8). |
+| `install.sh` | Documents one-time `nvm install v24.18.0` provisioning step | ✓ VERIFIED | Direct read: lines 410-415 "Next steps" block now includes a numbered step 2 with the literal string `nvm install v24.18.0`; subsequent steps renumbered. `bash -n install.sh` exits 0. `git diff` confirms only added echo lines — no new PACMAN_PKGS/AUR_PKGS/functions/network calls. |
+| `.planning/phases/04-reliability-fixes-tech-debt/04-05-SUMMARY.md` | Gap-closure summary with before/after probe evidence | ✓ VERIFIED | Exists, contains before (`NODE=NO`) / after (`NODE=YES`, `v24.18.0`) evidence, task commits (`a9d9653`, `58b672d`), self-check PASSED. |
+| `wlogout/.config/wlogout/layout` | uwsm-correct Shutdown/Reboot actions, all 6 labels/keybinds intact | ✓ VERIFIED (regression check) | Re-confirmed unchanged since initial verification. |
+| `hypr/.config/hypr/scripts/powermenu.sh` | Same class fix as layout | ✓ VERIFIED (regression check) | Re-confirmed unchanged. |
+| `hypr/.config/hypr/hyprlock.conf` | grace-related dead options removed, immediate_render + fadeIn=0 added | ✓ VERIFIED (regression check) | Re-confirmed unchanged. |
+| `install.sh` (rsync/hyprshutdown/fish entries) | rsync + hyprshutdown + fish in PACMAN_PKGS | ✓ VERIFIED (regression check) | Re-confirmed unchanged, plus the new Node-provisioning doc line. |
+| `stow.sh` | fish added to PACKAGES, zshell retained, chsh unchanged | ✓ VERIFIED (regression check) | Re-confirmed unchanged. |
+| `kitty/.config/kitty/kitty.conf` | `shell fish` directive, rendering knobs untouched | ✓ VERIFIED (regression check) | Re-confirmed unchanged. |
+| `zshell/.zshrc` | Local oh-my-posh, lazy nvm/bun | ✓ VERIFIED (regression check) | Untouched by gap-closure plan. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| wlogout layout action string | uwsm/hyprshutdown session teardown | `hyprshutdown --post-cmd 'systemctl poweroff\|reboot'` | ⚠️ PARTIAL | Wired correctly in config; runtime survival under uwsm's session cgroup teardown is the exact concern raised by 04-REVIEW.md WR-01 and not yet proven by the pending D-22 test |
-| install.sh PACMAN_PKGS rsync entry | theme-engine/lib/commit.sh rsync call | `VERIFY_PKGS` hard-fail gate | ✓ WIRED | Confirmed end-to-end via direct read of both files |
-| hyprlock.conf general{} | PAM auth keystroke input path | `immediate_render` + `animation fadeIn,0` | ⚠️ PARTIAL | Config wired correctly; whether the startup race is actually closed is the exact subject of the pending D-23 test |
-| kitty.conf shell directive | fish config.fish parity init | `shell fish` | ✓ WIRED | Confirmed — but the node-tooling portion of the parity init does not deliver its intended effect (see Truth #8) |
-| install.sh PACMAN_PKGS fish | stow.sh PACKAGES fish | `fish/.config/fish/config.fish` | ✓ WIRED | Confirmed directly |
+| `config.fish` `nvm_default_version` (v24.18.0) | Explicit `nvm use --silent` activation | `status is-interactive` block, guarded by `functions -q nvm` + `not set -q nvm_current_version` | ✓ WIRED | Live probe end-to-end confirms: variable set at line 28 → guarded activation at lines 58-60 → `node`/`npm`/`npx` on PATH in a clean-env shell. |
+| `install.sh` "Next steps" output | `nvm install v24.18.0` documented step | Literal string in echo block | ✓ WIRED | Confirmed present; corresponding `~/.config/nvm/versions/node/v24.18.0` directory verified to exist on this machine (the provisioning target the doc line describes). |
+| wlogout layout action string | uwsm/hyprshutdown session teardown | `hyprshutdown --post-cmd 'systemctl poweroff\|reboot'` | ⚠️ PARTIAL | Unchanged since initial verification — config wired correctly, runtime survival under uwsm teardown is WR-01's still-open concern, D-22 test still pending. |
+| `hyprlock.conf` `general{}` | PAM auth keystroke input path | `immediate_render` + `animation fadeIn,0` | ⚠️ PARTIAL | Unchanged — config wired correctly, D-23 test still pending. |
+| `install.sh` PACMAN_PKGS `fish` | `stow.sh` PACKAGES `fish` | `fish/.config/fish/config.fish` | ✓ WIRED | Unchanged since initial verification. |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| kitty/shell startup is measurably faster than the pre-fix baseline | `hyperfine --warmup 2 --min-runs 5 'zsh -i -c exit' 'fish -i -c exit'` | zsh 97.4ms ± 2.0ms; fish 33.9ms ± 1.1ms (fish ~2.87x faster); both dramatically below the original 641.3ms unoptimized baseline | ✓ PASS |
-| fish shell configs and JSON are syntactically valid | `fish -n config.fish`; `zsh -n .zshrc`; `jq . catppuccin.omp.json`; `bash -n install.sh stow.sh` | All exit 0 | ✓ PASS |
-| fish provides working node tooling on a fresh interactive shell (D-10 parity claim) | `env -i HOME=$HOME USER=$USER TERM=xterm PATH=/usr/bin:/bin fish -i -c 'type -q node; and echo NODE=YES; or echo NODE=NO'` | `NODE=NO` (nvm_default_version correctly set, but node never activated) | ✗ FAIL |
-| hyprshutdown binary is installed and functional as a CLI | `hyprshutdown --help` | v0.1.1, `--post-cmd` flag present | ✓ PASS (binary exists; end-to-end teardown survival is the pending human item, not this check) |
+| fish provides working node tooling on a fresh interactive shell (D-10 parity claim, CR-01 fix) | `env -i HOME="$HOME" USER="$USER" TERM=xterm PATH=/usr/bin:/bin fish -i -c 'type -q node; and echo NODE=YES; or echo NODE=NO'` | `NODE=YES` (was `NODE=NO` before the fix) | ✓ PASS |
+| nvm auto-activates the pinned default version | `env -i HOME="$HOME" ... fish -i -c 'echo $nvm_current_version'` | `v24.18.0` | ✓ PASS |
+| node/npm/npx binaries actually run, not just `type -q` | `env -i HOME="$HOME" ... fish -i -c 'node --version; npm --version; npx --version'` | `v24.18.0` / `11.16.0` / `11.16.0` | ✓ PASS |
+| fish and install.sh configs remain syntactically valid after the gap-closure edits | `fish -n fish/.config/fish/config.fish && bash -n install.sh` | Both exit 0 | ✓ PASS |
+| No new debt markers introduced in the two touched files | `grep -n -E "TBD\|FIXME\|XXX\|TODO\|HACK\|PLACEHOLDER" fish/.config/fish/config.fish install.sh` | No matches | ✓ PASS |
 
 ### Probe Execution
 
 | Probe | Command | Result | Status |
 |-------|---------|--------|--------|
-| `verify/container-run.sh` (D-24 container gate, explicitly declared in 04-01-PLAN.md/SUMMARY.md) | `bash verify/container-run.sh` | NOT RUN — this harness performs a genuine `git clone` of `github.com/yahiaeng/dotfiles` and requires the phase's commits to be pushed first. `git status` shows the local branch is 30 commits ahead of `origin/main` (unpushed) — running it now would either fail immediately or test stale remote state, not this phase's changes. 04-01-SUMMARY.md itself documents this exact precondition ("these commits must be pushed ... before the rerun tests them") and defers it to end-of-phase human verification. | SKIPPED (documented precondition unmet — legitimately deferred, not silently omitted) |
+| `verify/container-run.sh` (D-24 container gate) | `bash verify/container-run.sh` | NOT RUN — precondition still unmet: `git status -sb` shows local `main` is 37 commits ahead of `origin/main` (unpushed). Same legitimately-deferred precondition as the initial verification run; unchanged by the gap-closure plan. | SKIPPED (documented precondition unmet) |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|-------------|--------------|--------|----------|
-| FIX-01 | 04-01 | wlogout shutdown hang root-caused and fixed | ⚠️ PARTIAL | Diagnosis + class fix present and wired; 5-cycle reliability confirmation (D-22) and WR-01's uwsm-cgroup-survival concern remain open |
-| FIX-02 | 04-02 | Hyprlock first-keystroke drop root-caused and fixed | ⚠️ PARTIAL | Diagnosis + mitigation present and wired; 10-trial reliability confirmation (D-23) remains open |
-| FIX-03 | 04-03, 04-04 | Kitty startup fast, profiled before/after | ✓ SATISFIED | Independently re-measured; regression conclusively eliminated (641ms → 97ms optimized-zsh → 34ms fish) |
-| DEBT-01 | 04-01 | rsync explicit in install.sh PACMAN_PKGS | ✓ SATISFIED | Confirmed present and gated |
+| FIX-01 | 04-01 | wlogout shutdown hang root-caused and fixed | ⚠️ PARTIAL | Diagnosis + class fix present and wired; D-22 5-cycle reliability confirmation and WR-01's uwsm-cgroup-survival concern remain open (unchanged since initial verification). |
+| FIX-02 | 04-02 | Hyprlock first-keystroke drop root-caused and fixed | ⚠️ PARTIAL | Diagnosis + mitigation present and wired; D-23 10-trial reliability confirmation remains open (unchanged). |
+| FIX-03 | 04-03, 04-04, 04-05 | Kitty/shell startup fast, profiled before/after; fish day-one parity including node tooling | ✓ SATISFIED | Startup regression conclusively eliminated (previously verified); the fish node-tooling parity gap (CR-01) is now closed and independently re-verified live in this session. |
+| DEBT-01 | 04-01 | rsync explicit in install.sh PACMAN_PKGS | ✓ SATISFIED | Confirmed present and gated (regression check). |
 
-No orphaned requirements — all four IDs declared across plans match REQUIREMENTS.md's Phase 4 traceability row exactly.
+No orphaned requirements — all four IDs declared across the five plans (04-01 through 04-05) match REQUIREMENTS.md's Phase 4 traceability row exactly.
 
-**Note:** REQUIREMENTS.md currently marks all four of FIX-01/FIX-02/FIX-03/DEBT-01 as `[x]` complete and the traceability table as "Complete" — this verification finds FIX-01 and FIX-02 not yet behaviorally confirmed (pending human tests) and surfaces a functional regression (fish node tooling) introduced by the FIX-03 work. These checkboxes should not be treated as gated sign-off; they reflect the executor's self-report, not verified reliability outcomes.
+**Note:** REQUIREMENTS.md marks all four of FIX-01/FIX-02/FIX-03/DEBT-01 as `[x]` complete and the traceability table as "Complete." This verification independently confirms DEBT-01 and (now, post-gap-closure) FIX-03 as fully satisfied. FIX-01 and FIX-02 still have their core reliability claims ("completes every time" / "100% first-try") resting on pending human hardware tests (D-22/D-23) that the phase's own `human_verify_mode: end-of-phase` setting deliberately defers — this is expected process, not a defect, and should not be read as a silent downgrade of the checkbox state, but the phase is not fully closed until those two human tests run.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `fish/.config/fish/config.fish` | 24-25 vs conf.d/nvm.fish | Node-tooling activation ordering bug (CR-01) | 🛑 Blocker | Every fresh fish shell has no `node`/`npm`/`npx` on PATH — see gap above |
-| `wlogout/.config/wlogout/layout`, `hypr/.config/hypr/scripts/powermenu.sh` | action strings | Unverified survival of `hyprshutdown` under uwsm session-cgroup teardown (WR-01) | ⚠️ Warning | The exact failure class FIX-01 targeted could still occur under load; only the pending D-22 hardware test settles it |
-| `zshell/.zshrc` | 123 | `. "$HOME/.local/share/../bin/env"` has no existence guard (unlike the guarded nvm lines 4 lines above); `install.sh` never installs `uv` | ⚠️ Warning | Fresh installs print a `no such file or directory` error on every interactive shell start — pre-existing, not introduced by this phase, but sits in a file this phase rewrote for startup quality |
-| `fish/.config/fish/config.fish` | 43 | `curl -sL ... \| source` (fisher bootstrap) has no `--fail`/`-f`; failed HTTP responses get sourced as fish code | ⚠️ Warning | Noisy failure mode on network issues; re-attempts (with a network round-trip) on every shell start until it succeeds |
-| `install.sh` | PACMAN_PKGS | `neovim` never installed despite `alias vim nvim` in both `.zshrc` and `config.fish` | ℹ️ Info | `vim` is broken on a fresh install in both shells (pre-existing, duplicated into the new fish package) |
-| `zshell/.zshrc` | 60 | `HISTDUP=erase` is not a real zsh option (no-op) | ℹ️ Info | Cosmetic — dedup is actually handled by `setopt hist_ignore_all_dups` |
+| `wlogout/.config/wlogout/layout`, `hypr/.config/hypr/scripts/powermenu.sh` | action strings | Unverified survival of `hyprshutdown` under uwsm session-cgroup teardown (WR-01, carried forward) | ⚠️ Warning | The exact failure class FIX-01 targeted could still occur under load; only the pending D-22 hardware test settles it. Unchanged since initial verification. |
+| `fish/.config/fish/config.fish` | 58-60 | New finding (04-REVIEW.md WR-04, surfaced by the 04-05 re-review): `nvm use --silent` only suppresses the success-path stdout message — the not-installed error path is unguarded stderr. On a genuinely fresh machine, between running `install.sh`/`stow.sh` and running the documented one-time `nvm install v24.18.0` step, every interactive fish shell prints `nvm: Can't use Node "v24.18.0", version must be installed first` to stderr (possibly twice on the very first shell, per the reviewer's fisher-bootstrap-timing analysis) | ⚠️ Warning | Cosmetic/self-resolving — disappears permanently once the documented provisioning step is run — but degrades the fresh-install first impression this phase targeted, and reads like a broken config rather than a pending setup step. Does not affect this already-provisioned machine (confirmed `NODE=YES` above) and does not violate 04-05-PLAN.md's literal must-have wording ("no-op when nvm.fish is absent or a version is already active" — the not-yet-installed case was not one of the two enumerated no-op conditions). Reviewer's suggested fix (`test -d $nvm_data/$nvm_default_version` guard) is a good candidate for a small follow-up but is not required to close CR-01 as scoped. |
+| `zshell/.zshrc` | 123 | `. "$HOME/.local/share/../bin/env"` has no existence guard; `install.sh` never installs `uv` (carried forward) | ⚠️ Warning | Pre-existing, not introduced by this phase or the gap-closure plan. |
+| `fish/.config/fish/config.fish` | 46 | `curl -sL ... \| source` (fisher bootstrap) has no `--fail`/`-f` (carried forward) | ⚠️ Warning | Unchanged since initial verification. |
+| `install.sh` | PACMAN_PKGS | `neovim` never installed despite `alias vim nvim` in both shells (carried forward) | ℹ️ Info | Pre-existing. |
+| `zshell/.zshrc` | 60 | `HISTDUP=erase` is not a real zsh option (no-op) (carried forward) | ℹ️ Info | Cosmetic. |
 
-All items above were independently confirmed by direct file reads during this verification, not merely carried over from 04-REVIEW.md's claims.
+No 🛑 Blockers found. No unresolved `TBD`/`FIXME`/`XXX` debt markers in the two files touched by this gap-closure plan (`fish/.config/fish/config.fish`, `install.sh`) — confirmed by direct grep. All items above were independently confirmed by direct file reads and live probes during this re-verification, cross-checked against the post-gap-closure `04-REVIEW.md` (commit `f6463e7`).
 
 ### Human Verification Required
 
-The following items are recorded as pending in the phase's own SUMMARY.md files under `human_verify_mode: end-of-phase` and remain unresolved at verification time (informational — status is `gaps_found` due to the CR-01 blocker above, not `human_needed`, but these still gate final sign-off before the phase can be considered fully closed):
+The CR-01 gap is closed, so the phase is no longer `gaps_found`. The following items remain pending under the phase's own `human_verify_mode: end-of-phase` setting and now gate final sign-off (status is `human_needed`, not `passed`):
 
 1. **D-22: wlogout 5-cycle shutdown/reboot reliability test**
    - **Test:** From the wlogout menu, perform 5 consecutive real cycles alternating keyboard/mouse selection and Shutdown/Reboot. After each boot, grep `journalctl -b -1` for teardown-timeout signatures.
    - **Expected:** 5/5 clean cycles, no black-screen hang, no `stop-sigterm timed out` / `nvidia_drm` failure lines.
-   - **Why human:** Requires physically power-cycling real hardware across multiple boots; additionally settles WR-01's open question of whether `hyprshutdown` actually survives uwsm's session-cgroup teardown.
+   - **Why human:** Requires physically power-cycling real hardware across multiple boots; also settles WR-01's open question of whether `hyprshutdown` actually survives uwsm's session-cgroup teardown.
 
 2. **D-23: hyprlock 10-trial lock-and-type reliability test**
    - **Test:** With a second TTY logged in, perform ~10 lock→immediately-type trials across both the manual-lock keybind and the idle-lock (`loginctl lock-session`) path.
@@ -137,17 +146,22 @@ The following items are recorded as pending in the phase's own SUMMARY.md files 
 3. **D-24: container-gate rerun (`verify/container-run.sh`)**
    - **Test:** Push this phase's commits to `origin/main`, then run `verify/container-run.sh` from the repo root.
    - **Expected:** Clean clone → `install.sh --core-only` → `stow.sh` → theme-parity all pass; `summary.log` records `overall=PASS`.
-   - **Why human:** Requires a `git push` decision and a real container/network round-trip; explicitly deferred by 04-01-SUMMARY.md pending the push.
+   - **Why human:** Requires a `git push` decision and a real container/network round-trip. Local branch is 37 commits ahead of `origin/main` (unpushed) as of this re-verification — same legitimately-deferred precondition as the initial run.
 
 4. **New-kitty-window fish smoke check**
    - **Test:** Open a new kitty window in normal daily use and observe the fastfetch greeting + oh-my-posh prompt + node tooling.
-   - **Expected:** Fast, clean startup with a working prompt.
-   - **Why human/already-known-partial:** The prompt/fastfetch/speed portion of this check will pass (independently verified above); this verification has already established via direct reproduction that `node`/`npm` will NOT be available — the human check would only reconfirm the already-identified CR-01 gap, not surface new information.
+   - **Expected:** Fast, clean startup with a working prompt and node/npm/npx available.
+   - **Why human/low-value:** This verification already independently reproduced the fix live via the exact clean-env probe (`NODE=YES`, `node v24.18.0`, `npm`/`npx 11.16.0`). Retained for the end-of-phase checklist's completeness, not because new information is expected.
 
 ### Gaps Summary
 
-Three of the four ROADMAP success criteria (SC1 wlogout, SC2 hyprlock, SC3 kitty speed, SC4 rsync) have solid diagnosis-and-fix work behind them, and SC3/SC4 are independently confirmed working right now. SC1 and SC2, however, still have their core reliability claims ("completes every time" / "100% first-try") sitting on pending human tests that this phase's own `human_verify_mode: end-of-phase` setting deliberately deferred — that is expected process, not a defect, but it means those two success criteria are not yet behaviorally proven.
+**No gaps remain.** The single gap identified in the initial verification (CR-01: fish never activated the default Node version because `conf.d/nvm.fish`'s auto-activation guard runs before `config.fish` sets `nvm_default_version`) was closed by gap-closure plan 04-05 (commits `a9d9653`, `58b672d`, `3f8f30e`) and is independently re-verified live in this session: a clean-environment fish shell now reports `NODE=YES`, `nvm_current_version=v24.18.0`, and functional `node`/`npm`/`npx` binaries — the exact reproduction that previously failed now passes.
 
-The one confirmed defect blocking a clean pass is CR-01 from 04-REVIEW.md: Plan 04-04 adopted fish as kitty's default interactive shell, and its own must_haves.truths explicitly requires "working node tooling" as part of day-one parity (D-10). That claim is false as shipped — reproduced live in this verification with a clean-environment fish launch showing `node` absent from PATH despite `nvm_default_version` being correctly set. The root cause is a load-order bug: fish sources `conf.d/nvm.fish` (the plugin's auto-activation) before `config.fish` sets the variables the activation guard checks. This is a new, real regression introduced by this phase's own scope (switching the default interactive shell), not a carry-over from before the phase — it directly undermines "de-risking the base before any redesign layers on top," since a user opening a fresh terminal now has no `node`/`npm`/`npx` until they manually work around it.
+The re-review that followed the gap closure (04-REVIEW.md, commit `f6463e7`) surfaced one new non-blocking Warning (WR-04): on a genuinely fresh machine, before the documented `nvm install v24.18.0` step is run, every interactive fish shell prints an stderr error from `nvm use --silent` because `--silent` only suppresses the success message, not the not-installed error. This is cosmetic and self-resolving (disappears permanently once the one-time provisioning step is run), does not affect this already-provisioned machine, and does not violate 04-05-PLAN.md's literal must-have wording — it is recorded above as a Warning anti-pattern for potential future cleanup, not as a blocking gap.
 
-This is a single, well-isolated, non-architectural fix (see `missing:` in the gap entry above) — it does not require re-opening the shell-speed work, which stands independently verified.
+FIX-03 and DEBT-01 are now both fully satisfied and independently confirmed. FIX-01 and FIX-02's root-cause diagnosis and code fixes remain solid and correctly wired, but their core reliability claims ("completes every time" / "100% first-try, 10/10") still rest on the phase's own deliberately-deferred D-22/D-23 hardware reliability tests, plus the D-24 container-gate rerun once commits are pushed. These are the phase's remaining human-verification items, not defects — status is `human_needed`.
+
+---
+
+*Verified: 2026-07-11T21:10:00Z*
+*Verifier: Claude (gsd-verifier)*
