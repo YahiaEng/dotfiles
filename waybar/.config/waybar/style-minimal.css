@@ -2,7 +2,6 @@
 @import url("../../.local/state/theme/waybar-font.css");
 
 * {
-    font-family: "FiraCode Nerd Font", "Font Awesome 6 Free";
     font-size: 13px;
     min-height: 0;
     border: none;

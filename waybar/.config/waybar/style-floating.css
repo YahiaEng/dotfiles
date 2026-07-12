@@ -2,7 +2,6 @@
 @import url("../../.local/state/theme/waybar-font.css");
 
 * {
-    font-family: "FiraCode Nerd Font", "Fira Code", "monospace";
     font-size: 13px;
     min-height: 10px;
 	border: none;

@@ -44,11 +44,11 @@ theme_engine_render_font_files() {
         "$font_name" "$font_name" "$font_name" "$font_name" > "$out_dir/kitty-font.conf"
 
     # waybar: @import'd by the three style-*.css files' second @import line
-    # (added in Task 2) — placed after the colors @import, so this rule's
-    # font-family wins over each stylesheet's own hardcoded `* { }` literal
-    # (later CSS rule of equal specificity wins). Font Awesome fallback kept
-    # so waybar's icon-font module glyphs keep resolving regardless of the
-    # chosen nerd-font family.
+    # (added in Task 2) — waybar-font.css is the SOLE owner of waybar's
+    # font-family (the per-stylesheet `* { }` literal was removed in gap
+    # plan 06-10/CR-01), so import ordering is no longer load-bearing here.
+    # Font Awesome fallback kept so waybar's icon-font module glyphs keep
+    # resolving regardless of the chosen nerd-font family.
     printf '* {\n    font-family: "%s", "Font Awesome 6 Free";\n}\n' \
         "$font_name" > "$out_dir/waybar-font.css"
 }
