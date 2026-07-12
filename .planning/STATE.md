@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
-stopped_at: Completed 06-11-PLAN.md
-last_updated: "2026-07-12T19:45:18.524Z"
+stopped_at: Completed 06-13-PLAN.md
+last_updated: "2026-07-12T23:02:18.173Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 24
+  completed_plans: 24
   percent: 60
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 4 of 12
+Plan: 2 of 13
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 06 execution started
 
@@ -88,6 +88,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 06 P10 | 8min | 3 tasks | 11 files |
 | Phase 06 P11 | 5min | 2 tasks | 5 files |
 | Phase 06 P12 | 8min | 2 tasks | 3 files |
+| Phase 06 P13 | 5min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-10]: Wrapper scripts (icon-theme-switch.sh, font-switch.sh) replicate wallpaper-switch.sh's exact uwsm app -- kitty shape rather than inventing a new launcher pattern
 - [Phase ?]: 06-11: gpu-screen-recorder region flag corrected to -w region -region <geom>; capture-region/window/full.sh gained hyprshot/satty command -v guards; color-picker.sh success-path cleanup converted to an if-block (set -e exit-status fix class)
 - [Phase 06]: Phase 06-12: hyprlock-colors.conf renders both an rgba()-wrapped $on_surface_variant and a bare $on_surface_variant_hex from the same source color, since hyprlock's pango span foreground= needs a raw hex escaped by ## while other keys need rgba()
+- [Phase 06-13]: swayosd-server launched via exec-once = uwsm app -- swayosd-server, placed after hypridle and before theme-init — Restores the OSD-01 regression: swayosd-client had no server to talk to on a fresh install
+- [Phase 06-13]: swayosd-libinput-backend.service enabled on the system bus (sudo systemctl enable --now) instead of --user, non-silenced failure report — Packaged extra/swayosd unit only exists as a root system service; --user enable always silently no-op'd
+- [Phase 06-13]: reload.sh theme-switch restarts swayosd-server itself, not the libinput backend — style.css is only read at swayosd-server startup; the libinput backend has no CSS to reload (06-REVIEW.md WR-01)
 
 ### Quick Tasks Completed
 
@@ -184,6 +188,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T19:44:45.390Z
-Stopped at: Completed 06-11-PLAN.md
+Last session: 2026-07-12T23:02:18.167Z
+Stopped at: Completed 06-13-PLAN.md
 Resume file: None

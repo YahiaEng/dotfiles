@@ -22,7 +22,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 - [x] **Phase 4: Reliability Fixes & Tech Debt** - Root-cause and fix the wlogout shutdown hang, hyprlock first-keystroke drop, and kitty slow startup, then close the rsync install.sh carry-over (completed 2026-07-11)
 - [x] **Phase 5: Light Mode Pipeline & Theme Presets** - Extend the theme pipeline to light mode, ship more presets (incl. light), and organize per-theme wallpapers behind a redesigned picker (completed 2026-07-11)
-- [ ] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite (12/12 plans executed — verification found 1 gap: OSD-01 swayosd-server launch, closure pending)
+- [x] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite (12/12 plans executed — verification found 1 gap: OSD-01 swayosd-server launch, closure pending) (completed 2026-07-12)
 - [ ] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet
 - [ ] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access
 
@@ -103,7 +103,7 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: 13 plans (12 complete, 1 gap-closure pending — 06-13 closes OSD-01)
+**Plans**: 13/13 plans complete
 **UI hint**: yes
 
 Plans:
@@ -136,7 +136,7 @@ Plans:
 
 **Gap closure round 2** *(re-verification found 1 blocker — OSD-01/Truth #3: swayosd-server never launched, libinput backend on wrong bus)*
 
-- [ ] 06-13-PLAN.md — OSD-01: launch swayosd-server in autostart.conf; install.sh enables swayosd-libinput-backend on system bus (sudo, non-silenced); reload.sh restarts swayosd-server not the wrong-bus backend (OSD-01) [wave 1]
+- [x] 06-13-PLAN.md — OSD-01: launch swayosd-server in autostart.conf; install.sh enables swayosd-libinput-backend on system bus (sudo, non-silenced); reload.sh restarts swayosd-server not the wrong-bus backend (OSD-01) [wave 1]
 
 ### Phase 7: Super-Key Menu
 
@@ -178,6 +178,6 @@ Plans:
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
-| 6. Themed Surfaces & Utility Suite | v2.0 | 12/12 | Gaps found | - |
+| 6. Themed Surfaces & Utility Suite | v2.0 | 13/13 | Complete   | 2026-07-12 |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
