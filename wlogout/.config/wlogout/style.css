@@ -1,23 +1,22 @@
 @import url("../../.local/state/theme/wlogout.css");
 
-/* ── Full-screen overlay ───────────────────────────── */
+/* ── Full-screen dim scrim, desktop stays visible behind the bar (D-09) ── */
 window {
     background-color: rgba(0, 0, 0, 0.6);
     font-family: "FiraCode Nerd Font";
     color: @on_surface;
 }
 
-/* ── Button grid ───────────────────────────────────── */
+/* ── Compact horizontal center bar of glyph buttons ───────────────────── */
 button {
     background-color: @background;
     color: @on_surface;
     border: 3px solid @outline;
     border-radius: 20px;
-    margin: 10px;
+    min-width: 72px;
+    min-height: 72px;
+    margin: 0 8px;
     padding: 10px;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 30%;
     box-shadow: none;
     text-shadow: none;
     transition: all 0.3s cubic-bezier(0.55, 0, 0.28, 1.68);
@@ -26,7 +25,6 @@ button {
 button:hover {
     background-color: @primary_container;
     border-color: @primary;
-    background-size: 40%;
 }
 
 button:focus {
@@ -34,10 +32,53 @@ button:focus {
     border-color: @primary;
 }
 
-/* ── Individual button icons + hover accents ───────── */
+/* ── Nerd Font glyph rendering (D-10) — literal font, not the UTIL-05 axis ── */
+button label {
+    font-family: "FiraCode Nerd Font";
+    font-size: 28px;
+}
+
+/* ── Action name reveal on hover/focus (HUD label, not a permanent tile caption) ── */
+button::after {
+    font-family: "FiraCode Nerd Font";
+    font-size: 0px;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+button:hover::after,
+button:focus::after {
+    font-size: 14px;
+    opacity: 1;
+}
+
+#lock::after {
+    content: "Lock";
+}
+
+#logout::after {
+    content: "Logout";
+}
+
+#suspend::after {
+    content: "Suspend";
+}
+
+#hibernate::after {
+    content: "Hibernate";
+}
+
+#shutdown::after {
+    content: "Shutdown";
+}
+
+#reboot::after {
+    content: "Reboot";
+}
+
+/* ── Per-action accent borders + hover colors (preserved unchanged) ──── */
 
 #lock {
-    background-image: url("icons/lock.svg");
     border-color: @primary;
 }
 #lock:hover {
@@ -47,7 +88,6 @@ button:focus {
 }
 
 #logout {
-    background-image: url("icons/logout.svg");
     border-color: @secondary;
 }
 #logout:hover {
@@ -57,7 +97,6 @@ button:focus {
 }
 
 #suspend {
-    background-image: url("icons/suspend.svg");
     border-color: @tertiary;
 }
 #suspend:hover {
@@ -67,7 +106,6 @@ button:focus {
 }
 
 #hibernate {
-    background-image: url("icons/hibernate.svg");
     border-color: @on_surface_variant;
 }
 #hibernate:hover {
@@ -77,7 +115,6 @@ button:focus {
 }
 
 #shutdown {
-    background-image: url("icons/shutdown.svg");
     border-color: @error;
 }
 #shutdown:hover {
@@ -87,7 +124,6 @@ button:focus {
 }
 
 #reboot {
-    background-image: url("icons/reboot.svg");
     border-color: @tertiary;
 }
 #reboot:hover {
