@@ -136,6 +136,23 @@ PACMAN_PKGS=(
     gtk3
     adw-gtk-theme
 
+    # Screenshots, screen recording, OSD, utilities (D-03/D-16/D-18/D-23 —
+    # all 13 confirmed official `extra` repo per RESEARCH Package
+    # Legitimacy Audit, none are AUR)
+    hyprshot
+    satty
+    gpu-screen-recorder
+    swayosd
+    hyprpicker
+    wtype
+    ddcutil
+    papirus-icon-theme
+    ttf-jetbrains-mono-nerd
+    ttf-cascadia-code-nerd
+    ttf-hack-nerd
+    ttf-iosevka-nerd
+    ttf-meslo-nerd
+
     # Personal
     zip
     unzip
@@ -202,6 +219,13 @@ AUR_PKGS=(
     discord
     1password
     octopi
+
+    # Icon themes (D-16 — human package-legitimacy checkpoint approved;
+    # colloid-icon-theme-git note: the plain colloid-icon-theme name does
+    # NOT exist on AUR, only the -git suffix does)
+    tela-icon-theme
+    colloid-icon-theme-git
+    papirus-folders
 )
 
 # ── section_core_rice ─────────────────────────────────
@@ -297,6 +321,12 @@ section_core_rice() {
     # ── Enable dbus-broker (recommended for uwsm) ───────
     echo "Enabling dbus-broker for uwsm..."
     systemctl --user enable --now dbus-broker.service 2>/dev/null || true
+
+    # ── Enable swayosd libinput backend (D-23) ──────────
+    # Listens for hardware key events (volume/brightness/caps-lock) directly
+    # via libinput, so the caps-lock OSD works without any Hyprland keybind.
+    echo "Enabling swayosd-libinput-backend for OSD..."
+    systemctl --user enable --now swayosd-libinput-backend.service 2>/dev/null || true
     echo ""
 }
 
