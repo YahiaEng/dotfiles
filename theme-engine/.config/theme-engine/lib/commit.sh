@@ -55,8 +55,15 @@ theme_engine_commit() {
     # state dir with rendered files but no current-theme, and a crash
     # between the rsync and the rewrite lost it permanently. Excluding
     # both keeps the old value visible until the atomic replace below.
+    #
+    # D-19/UTIL-04 (06-07): icon-theme is a third engine-owned root-level
+    # state file, same bug class (WR-02/CR-01) — it holds the theme-
+    # orthogonal icon-theme-picker pick, is never part of the rendered
+    # tree, and must survive every switch's --delete or the picker's
+    # persistence would be silently wiped on the very next theme-apply.
     rsync -a --delete --exclude=logs/ --exclude=last-wallpaper/ \
         --exclude=current-theme --exclude=.last-render-error.log \
+        --exclude=icon-theme \
         "$rendered_dir"/ "$STATE_DIR"/
 
     # rsync -a syncs the destination directory's own mode from the source

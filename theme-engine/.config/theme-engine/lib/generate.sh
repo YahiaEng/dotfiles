@@ -97,17 +97,26 @@ theme_engine_render_gtk_settings() {
         gtk3_theme_name="adw-gtk3"
     fi
 
+    # D-19/UTIL-04/Pitfall 6: icon-theme is a theme-orthogonal state axis,
+    # not a mode-derived value — read it here (same function that owns every
+    # other GTK-signal write) so a later theme switch never silently reverts
+    # a user's icon-theme pick back to the old hardcoded "Adwaita" literal.
+    # commit.sh excludes this state file from its rsync --delete so it
+    # survives every switch (D-19 pattern, same shape as last-wallpaper/).
+    local icon_theme
+    icon_theme="$(cat "$HOME/.local/state/theme/icon-theme" 2>/dev/null || echo Adwaita)"
+
     local out_dir="$tmp$STATE_DIR"
     mkdir -p "$out_dir"
 
-    # gtk-3.0: mode-driven lines first, then the four static lines copied
-    # verbatim from the current stowed file (D-07: icon/cursor/font untouched
-    # by mode).
-    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-theme-name=%s\ngtk-icon-theme-name=Adwaita\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=FiraCode Nerd Font 11\n' \
-        "$dark_theme_flag" "$gtk3_theme_name" > "$out_dir/gtk-3.0-settings.ini"
+    # gtk-3.0: mode-driven lines first, then the three remaining static
+    # lines copied verbatim from the current stowed file (D-07: cursor/font
+    # untouched by mode).
+    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-theme-name=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=FiraCode Nerd Font 11\n' \
+        "$dark_theme_flag" "$gtk3_theme_name" "$icon_theme" > "$out_dir/gtk-3.0-settings.ini"
 
     # gtk-4.0: same key set minus gtk-theme-name (GTK4 does not use it,
     # matching the current stowed gtk-4.0/settings.ini).
-    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-icon-theme-name=Adwaita\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=FiraCode Nerd Font 11\n' \
-        "$dark_theme_flag" > "$out_dir/gtk-4.0-settings.ini"
+    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=FiraCode Nerd Font 11\n' \
+        "$dark_theme_flag" "$icon_theme" > "$out_dir/gtk-4.0-settings.ini"
 }
