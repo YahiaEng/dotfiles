@@ -1,4 +1,5 @@
 @import url("../../.local/state/theme/waybar.css");
+@import url("../../.local/state/theme/waybar-font.css");
 
 * {
     font-family: "FiraCode Nerd Font", "Font Awesome 6 Free";
