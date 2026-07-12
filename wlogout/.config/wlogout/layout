@@ -1,6 +1,6 @@
 {"label": "lock", "action": "uwsm app -- hyprlock", "text": "", "keybind": "l"}
-{"label": "logout", "action": "uwsm stop", "text": "", "keybind": "e"}
+{"label": "logout", "action": "cliphist wipe; uwsm stop", "text": "", "keybind": "e"}
 {"label": "suspend", "action": "systemctl suspend", "text": "", "keybind": "u"}
 {"label": "hibernate", "action": "systemctl hibernate", "text": "", "keybind": "h"}
-{"label": "shutdown", "action": "hyprshutdown --post-cmd 'systemctl poweroff'", "text": "", "keybind": "s"}
-{"label": "reboot", "action": "hyprshutdown --post-cmd 'systemctl reboot'", "text": "", "keybind": "r"}
+{"label": "shutdown", "action": "cliphist wipe; hyprshutdown --post-cmd 'systemctl poweroff'", "text": "", "keybind": "s"}
+{"label": "reboot", "action": "cliphist wipe; hyprshutdown --post-cmd 'systemctl reboot'", "text": "", "keybind": "r"}
