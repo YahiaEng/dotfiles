@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
-status: executing
+status: verifying
 stopped_at: Completed 06-07-PLAN.md
-last_updated: "2026-07-12T17:48:48.428Z"
+last_updated: "2026-07-12T18:03:12.412Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 20
-  completed_plans: 19
-  percent: 40
+  completed_plans: 20
+  percent: 60
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
 Plan: 9 of 9
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-12 — Phase 06 execution started
 
 ## Performance Metrics
@@ -84,6 +84,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 06 P06 | 10min | 3 tasks | 3 files |
 | Phase 06 P07 | 12min | 3 tasks | 4 files |
 | Phase 06 P08 | 22min | 3 tasks | 9 files |
+| Phase 06 P09 | 12min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Phase 06-08]: Nerd Font glyph codepoints for the specimen preview (home/folder/git-branch/terminal/gear) verified present in the installed FiraCode Nerd Font cmap via direct TTF cmap-table parsing, not an unverified cheat-sheet copy
 - [Phase ?]: [Phase 06-08]: fc-match -f '%{file}' used to resolve fontconfig family names to file paths for ImageMagick text rendering, since IM's own -font lookup only resolves internal type.xml aliases, not raw fontconfig family strings
 - [Phase ?]: [Phase 06-08]: Symbols Nerd Font excluded from the font picker's enumerated set (Rule 2 defensive filter) - glyph-only supplemental font with no letterforms
+- [Phase ?]: [Phase 06-09]: walker --dmenu -s symbols source-verified non-functional (dmenu is stdin-only, ignores -s/-m); emoji-picker.sh uses a self-contained curated glyph list through the same walker --dmenu pattern theme-switch.sh already proves, with an exact-line validation gate before wtype
+- [Phase ?]: [Phase 06-09]: cliphist wipe joined with ';' not '&&' in wlogout actions so a wipe failure can never block shutdown/reboot/logout
+- [Phase ?]: [Phase 06-09]: Super+Shift+C added as the manual clipboard-wipe entry since UI-SPEC's 4-chord table left Super+C itself off-limits to edit
 
 ### Quick Tasks Completed
 
@@ -173,6 +177,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T17:48:09.723Z
+Last session: 2026-07-12T18:02:45.196Z
 Stopped at: Completed 06-07-PLAN.md
 Resume file: None

@@ -28,7 +28,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 
 - [x] **UTIL-01**: User can pick emoji from a simple, modern picker (walker + elephant-symbols) and have it inserted/copied
 - [x] **UTIL-02**: User can pick any color from the screen (hyprpicker) and get it copied in usable format (hex)
-- [ ] **UTIL-03**: User can view recent clipboard history and re-copy any item (walker + elephant-clipboard), with a size cap and wipe policy from day one (no unbounded plaintext secrets)
+- [x] **UTIL-03**: User can view recent clipboard history and re-copy any item (walker + elephant-clipboard), with a size cap and wipe policy from day one (no unbounded plaintext secrets)
 - [x] **UTIL-04**: User can select from installed icon themes and apply them to Thunar/GTK live (apply-only; a couple of quality icon themes bundled in install.sh)
 - [x] **UTIL-05**: User can switch nerd fonts across kitty, vscodium, GTK, and waybar from one picker (nerd fonts only, enumerated from installed ttf-*-nerd packages)
 
@@ -110,7 +110,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHOT-03 | Phase 6 | Complete |
 | UTIL-01 | Phase 6 | Complete |
 | UTIL-02 | Phase 6 | Complete |
-| UTIL-03 | Phase 6 | Pending |
+| UTIL-03 | Phase 6 | Complete |
 | UTIL-04 | Phase 6 | Complete |
 | UTIL-05 | Phase 6 | Complete |
 | MENU-01 | Phase 7 | Pending |
