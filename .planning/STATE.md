@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-07-12T16:22:38.885Z"
+stopped_at: Completed 06-04-PLAN.md
+last_updated: "2026-07-12T17:01:03.069Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 14
+  completed_plans: 15
   percent: 40
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 06 execution started
 
@@ -79,6 +79,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 06 P01 | 15min | 2 tasks | 2 files |
 | Phase 06 P02 | 15min | 3 tasks | 7 files |
 | Phase 06 P03 | 12min | 3 tasks | 2 files |
+| Phase 06 P04 | 33min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-02]: zen-userchrome.css chrome selectors (#nav-bar/#TabsToolbar/#sidebar-box/#urlbar-background/.tabbrowser-tab[selected]) authored fresh, strictly scoped to D-27 chrome-colors-only
 - [Phase 06]: Nerd Font glyph codepoints (wlogout) resolved via fc-query cmap inspection of the installed font, not an unverified cheat-sheet copy — UI-SPEC and RESEARCH.md both explicitly declined to hardcode an unverified codepoint
 - [Phase 06]: wlogout layout reformatted to one-JSON-object-per-line (NDJSON) to satisfy the plan's line-oriented verification, parser accepts both formats identically — Rule 3 blocking-issue auto-fix
+- [Phase 06-04]: hyprlock $image never rendered by 06-02 target; background wired to theme-init/wallpaper.sh-owned current.jpg symlink (D-19), not a template var
+- [Phase 06-04]: Avatar (D-12 themed-initial circle) dropped entirely per user rejection at live-lock checkpoint
+- [Phase 06-04]: Clock switched to hyprlock's native $TIME12 (12-hour) substitution per user checkpoint request; failed-attempts counter rendered as bracket-fallback $ATTEMPTS[] so it's invisible at zero attempts
+- [Phase 06-04]: hyprlang cannot parse literal {{ }} in a label text value (silently falls back to hyprlock's built-in 'Sample Text' default) — playerctl now-playing rebuilt as a brace-free sh -c concatenation
 
 ### Quick Tasks Completed
 
@@ -153,6 +158,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T16:22:38.879Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-07-12T17:01:03.064Z
+Stopped at: Completed 06-04-PLAN.md
 Resume file: None
