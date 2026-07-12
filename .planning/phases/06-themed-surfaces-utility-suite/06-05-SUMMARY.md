@@ -199,3 +199,17 @@ None — no external service configuration required. Once `install.sh` runs (06-
 ---
 *Phase: 06-themed-surfaces-utility-suite*
 *Completed: 2026-07-12*
+
+## Self-Check: PASSED
+
+- FOUND: hypr/.config/hypr/scripts/capture-region.sh
+- FOUND: hypr/.config/hypr/scripts/capture-window.sh
+- FOUND: hypr/.config/hypr/scripts/capture-full.sh
+- FOUND: hypr/.config/hypr/scripts/record-toggle.sh
+- FOUND: hypr/.config/hypr/scripts/gif-export.sh
+- FOUND: .planning/phases/06-themed-surfaces-utility-suite/06-05-SUMMARY.md
+- CONFIRMED DELETED: hypr/.config/hypr/scripts/screenshot.sh
+- FOUND commit: e81aaaa (Task 1)
+- FOUND commit: 31d2352 (Task 2)
+- FOUND commit: 6999ae4 (Task 3)
+- FOUND commit: cc3307d (SUMMARY.md)
