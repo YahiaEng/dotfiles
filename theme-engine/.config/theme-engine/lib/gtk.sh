@@ -47,6 +47,13 @@ theme_engine_gtk_reload() {
     # is the realistic ceiling, not a gap (THEME-03).
     theme_engine_gtk4_accent
 
+    # ── Icon-theme axis (UTIL-04/D-16/D-17/D-19) ───────────────────────
+    # Theme-orthogonal — applies whatever the icon-theme state file holds
+    # (generate.sh already rendered it into settings.ini for GTK3's
+    # restart-based reload above/below; this call is the GTK4 live-gsettings
+    # path plus the Papirus/Tela/Colloid folder-accent tracking).
+    theme_engine_apply_icon_theme
+
     # GTK3 apps cannot hot-reload CSS — restart the background Thunar
     # daemon so the CSS baseline is fresh for the next window (D-15).
     #
@@ -246,4 +253,164 @@ PYEOF
 )
     [[ -n "$accent" ]] || return 0
     gsettings set org.gnome.desktop.interface accent-color "$accent" 2>/dev/null || true
+}
+
+# theme_engine_apply_icon_theme — best-effort icon-theme axis apply
+# (UTIL-04, D-16/D-17). Reads the theme-orthogonal icon-theme state file
+# (generate.sh already folded it into settings.ini for GTK3's restart-based
+# reload; this is the live GTK4 gsettings path) and, for the two icon sets
+# that support palette-tracked folder/variant accents, tracks the current
+# palette's primary hue:
+#   - Papirus (or Papirus-Dark/-Light): one theme name, folders recolored
+#     in place via `papirus-folders -C <named-color> -t <variant>` (D-17).
+#   - Tela/Colloid: N separately-baked full theme-name variants, no
+#     folder-recolor tool — nearest-hue variant is a full icon-theme
+#     name swap instead (Pitfall 3), scoped to whatever variants are
+#     actually installed (never a hardcoded variant list).
+# Adwaita/anything else: plain gsettings icon-theme write, no accent
+# tracking. Never blocks/fails theme_engine_gtk_reload (same best-effort,
+# return-0-on-any-error discipline as theme_engine_gtk4_accent above).
+theme_engine_apply_icon_theme() {
+    local icon_theme
+    icon_theme="$(cat "$HOME/.local/state/theme/icon-theme" 2>/dev/null || echo Adwaita)"
+    [[ -z "$icon_theme" || "$icon_theme" == "Adwaita" ]] && return 0
+
+    local colors_file="$HOME/.local/state/theme/gtk-4.0-colors.css"
+    local hex=""
+    if [[ -f "$colors_file" ]]; then
+        hex=$(grep -m1 '@define-color primary ' "$colors_file" 2>/dev/null | grep -oE '#[0-9a-fA-F]{6}')
+    fi
+
+    case "$icon_theme" in
+        Papirus|Papirus-Dark|Papirus-Light)
+            # Name itself never changes — folders are recolored in place.
+            gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
+            if [[ -n "$hex" ]] && command -v papirus-folders >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+                local color
+                color="$(theme_engine_nearest_papirus_color "$hex")"
+                [[ -n "$color" ]] && papirus-folders -C "$color" -t "$icon_theme" 2>/dev/null || true
+            fi
+            ;;
+        Tela*|Colloid*)
+            # Pitfall 3: no folder-recolor tool — nearest-hue variant is a
+            # full theme-name swap among whatever "<base>-*" directories
+            # are actually installed (real enumeration, never a hardcoded
+            # variant list — Open Question 1).
+            local base="${icon_theme%%-*}"
+            local nearest="$icon_theme"
+            if [[ -n "$hex" ]] && command -v python3 >/dev/null 2>&1; then
+                local found
+                found="$(theme_engine_nearest_icon_variant "$base" "$hex")"
+                [[ -n "$found" ]] && nearest="$found"
+            fi
+            gsettings set org.gnome.desktop.interface icon-theme "$nearest" 2>/dev/null || true
+            ;;
+        *)
+            gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
+            ;;
+    esac
+
+    return 0
+}
+
+# theme_engine_nearest_papirus_color <hex> — maps an arbitrary palette hex
+# to the nearest member of papirus-folders' fixed named-color enum (D-17;
+# RESEARCH.md Standard Stack, verified against
+# github.com/PapirusDevelopmentTeam/papirus-folders). Same hue-bucket
+# idiom as theme_engine_gtk4_accent above, swapped to the wider 23-name
+# enum (excludes the cat-* Catppuccin extras — not needed here).
+theme_engine_nearest_papirus_color() {
+    local hex="$1"
+    python3 - "$hex" <<'PYEOF' 2>/dev/null
+import colorsys, sys
+hexv = sys.argv[1].lstrip('#')
+r, g, b = (int(hexv[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+h, l, s = colorsys.rgb_to_hls(r, g, b)
+deg = h * 360
+if s < 0.12:
+    if l > 0.85:
+        print("white")
+    elif l < 0.15:
+        print("black")
+    else:
+        print("grey")
+elif deg < 10 or deg >= 350:
+    print("red")
+elif deg < 22:
+    print("carmine-red")
+elif deg < 34:
+    print("deeporange")
+elif deg < 44:
+    print("orange")
+elif deg < 52:
+    print("bright-orange")
+elif deg < 60:
+    print("paleorange")
+elif deg < 68:
+    print("palebrown")
+elif deg < 78:
+    print("brown")
+elif deg < 100:
+    print("yellow")
+elif deg < 130:
+    print("oxidgreen")
+elif deg < 155:
+    print("green")
+elif deg < 175:
+    print("teal")
+elif deg < 195:
+    print("cyan")
+elif deg < 215:
+    print("breeze")
+elif deg < 235:
+    print("nordic")
+elif deg < 250:
+    print("blue")
+elif deg < 265:
+    print("indigo")
+elif deg < 285:
+    print("violet")
+elif deg < 305:
+    print("magenta")
+else:
+    print("pink")
+PYEOF
+}
+
+# theme_engine_nearest_icon_variant <base> <hex> — Tela/Colloid nearest-
+# fixed-variant lookup (Pitfall 3). Enumerates whatever "<base>-*"
+# (and bare "<base>") index.theme directories are ACTUALLY installed
+# under /usr/share/icons and ~/.local/share/icons (Security Domain V5 —
+# real enumeration, never a hardcoded variant list — Open Question 1),
+# computes the ideal hue-bucket color name via the same enum as
+# theme_engine_nearest_papirus_color, then picks the installed variant
+# whose color-suffix matches (exact match preferred; otherwise the first
+# installed variant, so the swap always resolves to something real).
+theme_engine_nearest_icon_variant() {
+    local base="$1"
+    local hex="$2"
+
+    local dir installed=()
+    for dir in /usr/share/icons "$HOME/.local/share/icons"; do
+        [[ -d "$dir" ]] || continue
+        while IFS= read -r -d '' found; do
+            installed+=("$(basename "$found")")
+        done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d \
+            \( -iname "${base}" -o -iname "${base}-*" \) \
+            -exec test -e {}/index.theme \; -print0 2>/dev/null)
+    done
+
+    [[ ${#installed[@]} -gt 0 ]] || return 0
+
+    local ideal
+    ideal="$(theme_engine_nearest_papirus_color "$hex")"
+
+    local candidate
+    for candidate in "${installed[@]}"; do
+        [[ "$candidate" == "${base}-${ideal}" ]] && { printf '%s\n' "$candidate"; return 0; }
+    done
+
+    # No exact color match among installed variants — fall back to the
+    # first one found rather than leaving the swap unresolved.
+    printf '%s\n' "${installed[0]}"
 }
