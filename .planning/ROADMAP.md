@@ -69,7 +69,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   4. With a static theme active, the wallpaper picker offers only that theme's wallpaper set; with Material You active, any wallpaper is allowed.
   5. The redesigned wallpaper picker presents wallpapers with Omarchy-level polish (thumbnails/layout), not the old bare list.
 
-**Plans**: 4/4 plans complete
+**Plans**: 4/5 plans complete (1 gap-closure plan)
 **UI hint**: yes
 
 Plans:
@@ -85,6 +85,10 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 05-04-PLAN.md — Picker redesign: kitty-graphics previews + active marker (D-13/D-14), pipeline-themed fzf colors (D-15), theme restriction with Ctrl-A + fall-open (D-16), visual checkpoint [wave 3]
+
+**Gap closure** *(UAT Test 4 / review WR-04 — walker Esc-cancel fires an error toast)*
+
+- [ ] 05-05-PLAN.md — Three-way walker exit-code branch (130 cancel → silent, other nonzero → toast+exit 1) in theme-switch.sh (WR-04) and waybar-switch.sh (same set -e trap); committed hermetic exit-code checker [wave 1]
 
 ### Phase 6: Themed Surfaces & Utility Suite
 
