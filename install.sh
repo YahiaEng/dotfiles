@@ -325,8 +325,13 @@ section_core_rice() {
     # ── Enable swayosd libinput backend (D-23) ──────────
     # Listens for hardware key events (volume/brightness/caps-lock) directly
     # via libinput, so the caps-lock OSD works without any Hyprland keybind.
+    # This is a system (root) unit — the packaged extra/swayosd unit ships
+    # ONLY at /usr/lib/systemd/system/ with its own polkit policy + udev
+    # rules — so it must be enabled on the system bus via sudo, not --user
+    # (06-REVIEW.md CR-02: `systemctl --user` fails with "Unit does not
+    # exist" against this unit).
     echo "Enabling swayosd-libinput-backend for OSD..."
-    systemctl --user enable --now swayosd-libinput-backend.service 2>/dev/null || true
+    sudo systemctl enable --now swayosd-libinput-backend.service || echo "  ⚠ swayosd-libinput-backend enable failed" >&2
     echo ""
 }
 
