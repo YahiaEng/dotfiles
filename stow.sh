@@ -24,6 +24,7 @@ PACKAGES=(
     kitty
     matugen
     swaync
+    swayosd
     theme-engine
     thunar
     uwsm
