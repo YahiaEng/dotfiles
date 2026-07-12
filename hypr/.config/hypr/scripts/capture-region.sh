@@ -25,8 +25,9 @@
 #                              copy+save+exit — satty owns save+copy (D-02)
 #   --disable-notifications : suppress satty's own generic GNotification
 #                              so this script's notify-send (matching the
-#                              pre-existing screenshot.sh wording/icon,
-#                              06-UI-SPEC Copywriting Contract) is the
+#                              pre-existing bare grim/slurp notification
+#                              wording/icon, 06-UI-SPEC Copywriting
+#                              Contract) is the
 #                              only notification the user sees
 set -euo pipefail
 

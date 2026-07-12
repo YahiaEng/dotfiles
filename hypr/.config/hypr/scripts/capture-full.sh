@@ -8,7 +8,8 @@
 # the CURRENT=1 path in hyprshot's begin_grab() (grab_active_output) which
 # skips slurp entirely and captures the monitor holding the active
 # workspace — a true one-keypress "full screen" capture, matching the
-# instant behavior of the old bare screenshot.sh's "full" mode.
+# instant behavior of the old bare grim/slurp full-screen mode this
+# script replaces.
 set -euo pipefail
 
 SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
