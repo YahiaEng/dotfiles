@@ -5,16 +5,16 @@ milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
-stopped_at: Completed 06-07-PLAN.md
-last_updated: "2026-07-12T19:29:43.756Z"
+stopped_at: Completed 06-10-PLAN.md
+last_updated: "2026-07-12T19:39:04.493Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 20
-  completed_plans: 20
-  percent: 60
+  completed_phases: 2
+  total_plans: 23
+  completed_plans: 21
+  percent: 40
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 9 of 9
+Plan: 2 of 12
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 06 execution started
 
@@ -85,6 +85,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 06 P07 | 12min | 3 tasks | 4 files |
 | Phase 06 P08 | 22min | 3 tasks | 9 files |
 | Phase 06 P09 | 12min | 3 tasks | 6 files |
+| Phase 06 P10 | 8min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Phase 06-09]: walker --dmenu -s symbols source-verified non-functional (dmenu is stdin-only, ignores -s/-m); emoji-picker.sh uses a self-contained curated glyph list through the same walker --dmenu pattern theme-switch.sh already proves, with an exact-line validation gate before wtype
 - [Phase ?]: [Phase 06-09]: cliphist wipe joined with ';' not '&&' in wlogout actions so a wipe failure can never block shutdown/reboot/logout
 - [Phase ?]: [Phase 06-09]: Super+Shift+C added as the manual clipboard-wipe entry since UI-SPEC's 4-chord table left Super+C itself off-limits to edit
+- [Phase 06-10]: Font render targets (kitty-font.conf, waybar-font.css) placed in a new presence_only_files array, kept out of contract.json's files array, since they carry no color-declaration content theme-parity's parity extractors require
+- [Phase 06-10]: Wrapper scripts (icon-theme-switch.sh, font-switch.sh) replicate wallpaper-switch.sh's exact uwsm app -- kitty shape rather than inventing a new launcher pattern
 
 ### Quick Tasks Completed
 
@@ -177,6 +180,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T18:02:45.196Z
-Stopped at: Completed 06-07-PLAN.md
+Last session: 2026-07-12T19:39:04.487Z
+Stopped at: Completed 06-10-PLAN.md
 Resume file: None
