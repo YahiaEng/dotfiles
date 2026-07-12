@@ -12,7 +12,11 @@
     { "name": "vscodium.json", "format": "json" },
     { "name": "gtk-3.0-settings.ini", "format": "ini-kv" },
     { "name": "gtk-4.0-settings.ini", "format": "ini-kv" },
-    { "name": "fzf-colors.conf", "format": "env-kv" }
+    { "name": "fzf-colors.conf", "format": "env-kv" },
+    { "name": "hyprlock.conf", "format": "hypr-vars" },
+    { "name": "swayosd.css", "format": "gtk-css" },
+    { "name": "zen-userchrome.css", "format": "css-literal" },
+    { "name": "satty.toml", "format": "toml" }
   ],
   "state_metadata_files": ["current-theme", "mode"]
 }

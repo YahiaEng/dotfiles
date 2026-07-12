@@ -66,3 +66,23 @@ output_path = "~/.local/state/theme/walker-style.css"
 [templates.fzf]
 input_path = "~/.config/matugen/templates/fzf-colors.conf"
 output_path = "~/.local/state/theme/fzf-colors.conf"
+
+# ── Hyprlock colors (LOCK-01/D-30, dedicated target) ────
+[templates.hyprlock]
+input_path = "~/.config/matugen/templates/hyprlock-colors.conf"
+output_path = "~/.local/state/theme/hyprlock.conf"
+
+# ── SwayOSD colors (OSD-01/D-24) ─────────────────────
+[templates.swayosd]
+input_path = "~/.config/matugen/templates/swayosd-colors.css"
+output_path = "~/.local/state/theme/swayosd.css"
+
+# ── Zen browser chrome colors (THM-05/D-27) ──────────
+[templates.zen]
+input_path = "~/.config/matugen/templates/zen-userchrome.css"
+output_path = "~/.local/state/theme/zen-userchrome.css"
+
+# ── Satty annotation colors (SHOT-02/D-31) ───────────
+[templates.satty]
+input_path = "~/.config/matugen/templates/satty-colors.toml"
+output_path = "~/.local/state/theme/satty.toml"

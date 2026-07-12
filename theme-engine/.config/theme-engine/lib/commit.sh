@@ -82,6 +82,19 @@ theme_engine_commit() {
     mkdir -p "$HOME/.config/yazi"
     ln -sf "$STATE_DIR/yazi.toml" "$HOME/.config/yazi/theme.toml"
 
+    # SHOT-02/D-30: satty has no @import/include mechanism either — wire its
+    # config path directly to the rendered satty.toml via the same idempotent
+    # `ln -sf` idiom as walker/yazi above. Guard: if ~/.config/satty is
+    # itself a folded stow symlink (pre-migration state), skip and warn
+    # instead of writing through the fold into the repo tree (same posture
+    # as the gtk-3.0/gtk-4.0 guards below).
+    if [[ -L "$HOME/.config/satty" ]]; then
+        echo "commit.sh: ~/.config/satty is a folded stow symlink — skipping satty.toml wiring (re-run stow.sh to unfold it)" >&2
+    else
+        mkdir -p "$HOME/.config/satty"
+        ln -sf "$STATE_DIR/satty.toml" "$HOME/.config/satty/config.toml"
+    fi
+
     # THM-01/D-08: settings.ini is now a rendered contract target — wire the
     # same idempotent symlink idiom as walker/yazi above. Guard: if the gtk
     # config dir is itself a symlink (stow dir-folded into the repo — the
