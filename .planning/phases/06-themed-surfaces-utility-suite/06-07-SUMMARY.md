@@ -135,3 +135,9 @@ None required for this plan's own deliverables. Carried forward from earlier pha
 ## Next Phase Readiness
 
 UTIL-04 (icon theme picker) is functionally complete and independently verified end-to-end at the script-logic level. Live-UI and live-papirus-folders/Tela/Colloid-variant-swap behavior need a human pass in a graphical session with the AUR packages installed — flagged in `coverage` above as `human_judgment: true` items for the phase's UAT pass, not blockers to proceeding.
+
+## Self-Check: PASSED
+
+All created/modified files and all four task/summary commit hashes verified present on disk and in git log:
+- `hypr/.config/hypr/scripts/icon-theme-picker.sh`, `theme-engine/.config/theme-engine/lib/{generate,commit,gtk}.sh`, `.planning/phases/06-themed-surfaces-utility-suite/06-07-SUMMARY.md` — all FOUND
+- `4c98f8b`, `92c3a8e`, `1715852`, `6b4823d` — all FOUND
