@@ -103,7 +103,7 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: 12/12 plans complete
+**Plans**: 13 plans (12 complete, 1 gap-closure pending — 06-13 closes OSD-01)
 **UI hint**: yes
 
 Plans:
@@ -133,6 +133,10 @@ Plans:
 - [x] 06-10-PLAN.md — CR-02 picker keybinds get floating-kitty wrappers + windowrules; CR-01 remove waybar font-family literal (waybar-font.css sole owner); WR-07 theme-doctor presence-checks font fragments (UTIL-04/UTIL-05) [wave 1]
 - [x] 06-11-PLAN.md — CR-03 record-toggle region flag (`-w region -region`); WR-06 capture-*.sh missing-tool guards; WR-05 color-picker success-exit fix (SHOT-03) [wave 1]
 - [x] 06-12-PLAN.md — CR-04 install.sh cleanup uses $AUR_HELPER (yay-safe); WR-01 hyprlock placeholder color via render target (LOCK-01 caveat) [wave 1]
+
+**Gap closure round 2** *(re-verification found 1 blocker — OSD-01/Truth #3: swayosd-server never launched, libinput backend on wrong bus)*
+
+- [ ] 06-13-PLAN.md — OSD-01: launch swayosd-server in autostart.conf; install.sh enables swayosd-libinput-backend on system bus (sudo, non-silenced); reload.sh restarts swayosd-server not the wrong-bus backend (OSD-01) [wave 1]
 
 ### Phase 7: Super-Key Menu
 
