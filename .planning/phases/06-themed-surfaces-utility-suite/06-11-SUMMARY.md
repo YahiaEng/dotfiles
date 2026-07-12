@@ -137,3 +137,7 @@ None - no external service configuration required.
 ---
 *Phase: 06-themed-surfaces-utility-suite*
 *Completed: 2026-07-12*
+
+## Self-Check: PASSED
+
+All modified files and commit hashes verified present (files: record-toggle.sh, capture-region.sh, capture-window.sh, capture-full.sh, color-picker.sh, 06-11-SUMMARY.md; commits: 14d9ba5, 70ca724, b3ea4b7).
