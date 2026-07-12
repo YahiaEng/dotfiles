@@ -174,7 +174,7 @@ start_recording() {
     local capture_args=()
     case "$target" in
         monitor:*) capture_args=(-w "${target#monitor:}") ;;
-        region:*) capture_args=(-w "${target#region:}") ;;
+        region:*) capture_args=(-w region -region "${target#region:}") ;;
     esac
 
     local audio_args=()
