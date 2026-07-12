@@ -128,3 +128,12 @@ None - no external service configuration required. All packages install automati
 ---
 *Phase: 06-themed-surfaces-utility-suite*
 *Completed: 2026-07-12*
+
+## Self-Check: PASSED
+
+- FOUND: install.sh
+- FOUND: stow.sh
+- FOUND: .planning/phases/06-themed-surfaces-utility-suite/06-01-SUMMARY.md
+- FOUND: f5247cf (Task 2 commit)
+- FOUND: ebb1166 (Task 3 commit)
+- FOUND: 734c5fd (SUMMARY.md commit)
