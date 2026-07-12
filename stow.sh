@@ -90,7 +90,14 @@ echo "full" > "$HOME/.cache/current-waybar-layout"
 # Pitfall 6/D-59: a non-root `chsh` prompts for the invoking user's login
 # password via PAM, breaking the strictly-zero-prompts requirement. A
 # root-privileged shell change bypasses that PAM prompt entirely.
-sudo chsh -s "$(which zsh)" "$USER"
+# WR-03: guarded — the shell change is cosmetic relative to the first-boot
+# theme seed below, so a missing zsh or a failed sudo/chsh must never abort
+# the script under set -e before that seed runs.
+if command -v zsh >/dev/null 2>&1; then
+    sudo chsh -s "$(command -v zsh)" "$USER" || echo "  ⚠ chsh failed — change shell manually" >&2
+else
+    echo "  ⚠ zsh not installed — skipping shell change" >&2
+fi
 
 # ── Seed first-boot theme baseline (D-60/WR-07) ──────
 # Run theme-apply once now that theme-engine is stowed, so
