@@ -15,7 +15,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 
 ### Redesigns
 
-- [ ] **WLOG-01**: wlogout fully redesigned to modern-rice standards — sharp assets (no low-res/stretched images), sleek layout, themed via the shared pipeline
+- [x] **WLOG-01**: wlogout fully redesigned to modern-rice standards — sharp assets (no low-res/stretched images), sleek layout, themed via the shared pipeline
 - [x] **LOCK-01**: Hyprlock redesigned with a modern look, colors sourced from the shared theme pipeline (already wired to `~/.local/state/theme/hyprland.conf`), with a documented lockout-recovery procedure used during testing
 
 ### Screenshot Suite
@@ -101,7 +101,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | THM-02 | Phase 5 | Complete |
 | THM-03 | Phase 5 | Complete |
 | THM-04 | Phase 5 | Complete |
-| WLOG-01 | Phase 6 | Pending |
+| WLOG-01 | Phase 6 | Complete |
 | LOCK-01 | Phase 6 | Complete |
 | OSD-01 | Phase 6 | Complete |
 | THM-05 | Phase 6 | Complete |

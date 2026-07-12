@@ -6,14 +6,14 @@ current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
 stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-07-12T16:14:58.169Z"
+last_updated: "2026-07-12T16:22:08.066Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 13
+  completed_plans: 14
   percent: 40
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 06 execution started
 
@@ -78,6 +78,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 05 P05 | 3min | 3 tasks | 3 files |
 | Phase 06 P01 | 15min | 2 tasks | 2 files |
 | Phase 06 P02 | 15min | 3 tasks | 7 files |
+| Phase 06 P03 | 12min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-02]: satty palette entries use {{colors.KEY.default.hex}}ff (# prefix) not hex_stripped+ff — satty's hex_color Rust crate requires a leading # on RRGGBBAA values, verified against live upstream github.com/gabm/Satty config.toml
 - [Phase 06-02]: satty [general] keys sourced from live upstream config.toml since satty isn't installed locally yet; install deferred to a later plan
 - [Phase 06-02]: zen-userchrome.css chrome selectors (#nav-bar/#TabsToolbar/#sidebar-box/#urlbar-background/.tabbrowser-tab[selected]) authored fresh, strictly scoped to D-27 chrome-colors-only
+- [Phase 06]: Nerd Font glyph codepoints (wlogout) resolved via fc-query cmap inspection of the installed font, not an unverified cheat-sheet copy — UI-SPEC and RESEARCH.md both explicitly declined to hardcode an unverified codepoint
+- [Phase 06]: wlogout layout reformatted to one-JSON-object-per-line (NDJSON) to satisfy the plan's line-oriented verification, parser accepts both formats identically — Rule 3 blocking-issue auto-fix
 
 ### Quick Tasks Completed
 
@@ -150,6 +153,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T16:13:57.595Z
+Last session: 2026-07-12T16:22:08.060Z
 Stopped at: Completed 06-01-PLAN.md
 Resume file: None
