@@ -283,17 +283,17 @@ section_core_rice() {
     echo ""
     echo "Removing unused packages and clearing cache..."
     # Pitfall 4: a fresh install has zero orphans, so the old unquoted
-    # command substitution passed directly to paru -R ran it against an
-    # empty string and aborted the script under set -e. Array-collect +
+    # command substitution passed directly to $AUR_HELPER -R ran it against
+    # an empty string and aborted the script under set -e. Array-collect +
     # count-guard: zero orphans is a no-op, multiple orphans expand
     # correctly, and the removal never prompts (--noconfirm).
     mapfile -t ORPHANS < <(pacman -Qtdq || true)
     if (( ${#ORPHANS[@]} > 0 )); then
-        paru -R --noconfirm "${ORPHANS[@]}"
+        "$AUR_HELPER" -R --noconfirm "${ORPHANS[@]}"
     fi
-    # paru -Sc prompts "remove all other packages from cache? [Y/n]" without
-    # --noconfirm — same D-59 zero-prompt violation class as the -Syu above.
-    paru -Sc --noconfirm
+    # $AUR_HELPER -Sc prompts "remove all other packages from cache? [Y/n]"
+    # without --noconfirm — same D-59 zero-prompt violation class as the -Syu above.
+    "$AUR_HELPER" -Sc --noconfirm
 
     echo ""
     echo "╔══════════════════════════════════════════╗"
