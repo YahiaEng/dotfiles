@@ -4,16 +4,16 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 05
 current_phase_name: light-mode-pipeline-theme-presets
-status: verifying
+status: executing
 stopped_at: Completed 05-04-PLAN.md (Phase 05 fully executed — checkpoint approved)
-last_updated: "2026-07-11T23:36:37.167Z"
-last_activity: 2026-07-11
+last_updated: "2026-07-12T01:05:00.351Z"
+last_activity: 2026-07-12
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 11
+  completed_plans: 11
   percent: 40
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-11)
 ## Current Position
 
 Phase: 05 (light-mode-pipeline-theme-presets) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-07-11 — Phase 05 execution started
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-07-12 — Phase 05 execution started
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Last activity: 2026-07-11 — Phase 05 execution started
 | Phase 05 P02 | 30min | 3 tasks | 54 files |
 | Phase 05 P03 | 10min | 2 tasks | 15 files |
 | Phase 05 P04 | 10min | 4 tasks | 6 files |
+| Phase 05 P05 | 3min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 05]: [Phase 05-04]: fzf-colors.conf added as the 13th pipeline contract file (env-kv format) — locked 60/30/10 slot mapping per UI-SPEC, BG's -1 literal is an intentional exemption from the zero-literal-hex rule
 - [Phase 05]: [Phase 05-04]: WALLPAPER_DIR_REAL resolved-symlink base established as the pattern for comparing paths against ~/Pictures (a stow symlink into the repo) — fixes active-wallpaper marker detection
 - [Phase 05]: [Phase 05-04]: Post-selection theme-apply re-run always passes the exact active dynamic variant name (materialyou or materialyou-light), never hardcoded (D-05)
+- [Phase 05-05]: walker 2.16.2 cancel exit code (130) trusted as sole cancel signal (fzf/skim 128+SIGINT convention); || rc=$? capture keeps set -euo pipefail satisfied
+- [Phase 05-05]: powermenu.sh intentionally left unchanged (no set -e, existing empty-output cancel check already correct)
 
 ### Quick Tasks Completed
 
@@ -137,6 +140,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T23:36:37.161Z
+Last session: 2026-07-12T01:04:32.399Z
 Stopped at: Completed 05-04-PLAN.md (Phase 05 fully executed — checkpoint approved)
 Resume file: None

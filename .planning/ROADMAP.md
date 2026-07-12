@@ -69,7 +69,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   4. With a static theme active, the wallpaper picker offers only that theme's wallpaper set; with Material You active, any wallpaper is allowed.
   5. The redesigned wallpaper picker presents wallpapers with Omarchy-level polish (thumbnails/layout), not the old bare list.
 
-**Plans**: 4/5 plans complete (1 gap-closure plan)
+**Plans**: 5/5 plans complete
 **UI hint**: yes
 
 Plans:
@@ -88,7 +88,7 @@ Plans:
 
 **Gap closure** *(UAT Test 4 / review WR-04 — walker Esc-cancel fires an error toast)*
 
-- [ ] 05-05-PLAN.md — Three-way walker exit-code branch (130 cancel → silent, other nonzero → toast+exit 1) in theme-switch.sh (WR-04) and waybar-switch.sh (same set -e trap); committed hermetic exit-code checker [wave 1]
+- [x] 05-05-PLAN.md — Three-way walker exit-code branch (130 cancel → silent, other nonzero → toast+exit 1) in theme-switch.sh (WR-04) and waybar-switch.sh (same set -e trap); committed hermetic exit-code checker [wave 1]
 
 ### Phase 6: Themed Surfaces & Utility Suite
 
@@ -145,7 +145,7 @@ Plans:
 | 2. Static ↔ Dynamic Parity & Switch Reliability | v1.0 | 2/2 | Complete | 2026-07-07 |
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
-| 5. Light Mode Pipeline & Theme Presets | v2.0 | 4/4 | Complete   | 2026-07-11 |
+| 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete   | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 0/TBD | Not started | - |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
