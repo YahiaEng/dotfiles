@@ -41,13 +41,22 @@ NAMES+=("materialyou" "materialyou-light")
 DISPLAYS+=("Material You (Dynamic)" "Material You Light (Dynamic)")
 
 # WR-04: distinguish a hard walker failure (nonzero exit — walker not
-# running/installed, dead elephant socket) from a genuine user cancel
-# (empty selection). Failure notifies and exits 1; cancel keeps exit 0.
-if ! SELECTED=$(printf '%s\n' "${DISPLAYS[@]}" | walker --dmenu --placeholder "Select Theme"); then
+# running/installed, dead elephant socket) from a genuine user cancel.
+# walker 2.16.2's real cancel semantics (Esc / click-outside / Return on
+# an empty line) are exit status 130 with NO stdout — never exit 0 +
+# empty output (debug session: .planning/debug/theme-switch-esc-cancel-error-toast.md,
+# source-verified against walker v2.16.2 src/ui/window.rs + src/main.rs).
+# `|| rc=$?` captures the pipeline's exit code without tripping
+# `set -euo pipefail` on a bare command-substitution assignment.
+rc=0
+SELECTED=$(printf '%s\n' "${DISPLAYS[@]}" | walker --dmenu --placeholder "Select Theme") || rc=$?
+if (( rc == 130 )); then
+    exit 0   # user cancel — walker's own 128+SIGINT convention
+elif (( rc != 0 )); then
     notify-send -a "Theme Switcher" "Error" "walker dmenu failed" -i dialog-error 2>/dev/null || true
-    exit 1
+    exit 1   # hard failure: not installed (127), elephant dead (1), crash
 fi
-[[ -z "$SELECTED" ]] && exit 0   # genuine user cancel
+[[ -z "$SELECTED" ]] && exit 0   # defensive; walker never returns 0+empty, but harmless
 
 THEME=""
 for i in "${!DISPLAYS[@]}"; do
