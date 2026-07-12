@@ -142,3 +142,7 @@ None - no external service configuration required.
 ---
 *Phase: 06-themed-surfaces-utility-suite*
 *Completed: 2026-07-12*
+
+## Self-Check: PASSED
+
+All 9 created/modified files found on disk; all 4 commit hashes (7a4c8cc, b351057, 8706656, af2b75e) found in git log.
