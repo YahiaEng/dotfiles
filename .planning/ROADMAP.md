@@ -103,7 +103,7 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: 4/9 plans executed
+**Plans**: 5/9 plans executed
 **UI hint**: yes
 
 Plans:
@@ -116,7 +116,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1)*
 
 - [x] 06-04-PLAN.md — hyprlock redesign: info-rich lock (avatar/now-playing/battery/capslock/failed-attempts), dedicated target, FIX-02 preserved, lockout-recovery checkpoint (LOCK-01) [wave 2]
-- [ ] 06-05-PLAN.md — Screenshot suite: hyprshot→satty capture, gpu-screen-recorder + audio picker, GIF export, Print-key family, old screenshot.sh deleted (SHOT-01/02/03) [wave 2]
+- [x] 06-05-PLAN.md — Screenshot suite: hyprshot→satty capture, gpu-screen-recorder + audio picker, GIF export, Print-key family, old screenshot.sh deleted (SHOT-01/02/03) [wave 2]
 - [ ] 06-07-PLAN.md — Icon-theme axis: fzf-in-kitty picker, state-driven gtk-icon-theme-name, papirus-folders/variant swap, Pitfall-6 fix (UTIL-04) [wave 2]
 
 **Wave 3** *(blocked on Wave 2)*
@@ -168,6 +168,6 @@ Plans:
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
-| 6. Themed Surfaces & Utility Suite | v2.0 | 4/9 | In Progress|  |
+| 6. Themed Surfaces & Utility Suite | v2.0 | 5/9 | In Progress|  |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |

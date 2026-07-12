@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
-stopped_at: Completed 06-04-PLAN.md
-last_updated: "2026-07-12T17:01:03.069Z"
+stopped_at: Completed 06-05-PLAN.md
+last_updated: "2026-07-12T17:14:09.064Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 15
+  completed_plans: 16
   percent: 40
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 06 execution started
 
@@ -80,6 +80,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 06 P02 | 15min | 3 tasks | 7 files |
 | Phase 06 P03 | 12min | 3 tasks | 2 files |
 | Phase 06 P04 | 33min | 2 tasks | 1 files |
+| Phase 06 P05 | 30min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-04]: Avatar (D-12 themed-initial circle) dropped entirely per user rejection at live-lock checkpoint
 - [Phase 06-04]: Clock switched to hyprlock's native $TIME12 (12-hour) substitution per user checkpoint request; failed-attempts counter rendered as bracket-fallback $ATTEMPTS[] so it's invisible at zero attempts
 - [Phase 06-04]: hyprlang cannot parse literal {{ }} in a label text value (silently falls back to hyprlock's built-in 'Sample Text' default) — playerctl now-playing rebuilt as a brace-free sh -c concatenation
+- [Phase 06-05]: hyprshot/satty CLI flags verified against live upstream source (Gustash/Hyprshot, gabm/Satty cli/src/command_line.rs) since neither binary is installed locally yet — same approach 06-02 used for satty's config schema
+- [Phase 06-05]: capture-full.sh uses hyprshot -m output -m active (instant, no click) for full-screen; capture-window.sh uses plain -m window (click-to-select); satty runs with --disable-notifications and each capture script fires its own notify-send reusing the pre-existing screenshot.sh wording/icon, only when the output file exists
+- [Phase 06-05]: record-toggle.sh's gpu-screen-recorder invocation, slurp region/monitor picker, and SIGINT-bounded-poll stop adapted near-verbatim from the live Omarchy reference (basecamp/omarchy bin/omarchy-capture-screenrecording), fetched this session
 
 ### Quick Tasks Completed
 
@@ -158,6 +162,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T17:01:03.064Z
-Stopped at: Completed 06-04-PLAN.md
+Last session: 2026-07-12T17:14:09.058Z
+Stopped at: Completed 06-05-PLAN.md
 Resume file: None
