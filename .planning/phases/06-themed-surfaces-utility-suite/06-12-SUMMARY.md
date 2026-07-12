@@ -119,3 +119,7 @@ None - no external service configuration required.
 ---
 *Phase: 06-themed-surfaces-utility-suite*
 *Completed: 2026-07-12*
+
+## Self-Check: PASSED
+
+All modified files confirmed present on disk; all task and metadata commit hashes (`d761046`, `7eefcde`) confirmed in git log.
