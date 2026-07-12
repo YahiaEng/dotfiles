@@ -1,14 +1,21 @@
 ---
-status: diagnosed
+status: testing
 phase: 05-light-mode-pipeline-theme-presets
-source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md]
+source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md, 05-05-SUMMARY.md, 05-VERIFICATION.md]
 started: 2026-07-12T03:10:00Z
-updated: 2026-07-12T03:25:00Z
+updated: 2026-07-12T09:30:00Z
 ---
 
 ## Current Test
 
-[testing complete]
+number: 4
+name: Theme switcher cancel vs failure (post WR-04 fix — live re-test)
+expected: |
+  Press the real theme-switcher keybind and press Esc with no selection, in the
+  live desktop session. The walker dmenu closes silently — no "Error: walker
+  dmenu failed" notify-send toast appears. Selecting a theme afterward still
+  applies it normally.
+awaiting: user response
 
 ## Tests
 
@@ -29,8 +36,8 @@ coverage_id: VERIFICATION gap / CR-01
 
 ### 4. Theme switcher cancel vs failure (post WR-04 fix)
 expected: Open the theme switcher keybind and press Esc without selecting anything. It closes silently — no error notification (cancel is not treated as failure). Selecting a theme still applies it normally.
-result: issue
-reported: "An error notifications still appears"
+result: [pending]
+previous_result: "issue — 'An error notifications still appears' (2026-07-12T03:25Z, pre-fix); root-caused to walker 2.16.2 exiting 130 on cancel; fixed by gap-closure plan 05-05 (commits 1f154c7/200e7e0/21b9e42, hermetic checker 10/10 against stubbed walker). This live re-test against the real walker binary is the only remaining confirmation."
 severity: major
 coverage_id: WR-04
 
@@ -122,15 +129,17 @@ coverage_id: 05-04 D1
 
 total: 18
 passed: 17
-issues: 1
-pending: 0
+issues: 0
+pending: 1
 skipped: 0
 blocked: 0
 
 ## Gaps
 
 - truth: "Pressing Esc in the theme switcher closes it silently — no error notification; cancel is not treated as failure"
-  status: failed
+  status: resolved
+  resolution: "Closed by gap-closure plan 05-05 (commits 1f154c7/200e7e0/21b9e42): three-way exit-code branch in theme-switch.sh and waybar-switch.sh (130 = silent cancel, other nonzero = toast + exit 1, 0 = normal flow) plus committed hermetic checker (10/10 passing). Live human confirmation against the real walker binary tracked as Test 4 (pending)."
+  previous_status: failed
   reason: "User reported: An error notifications still appears"
   severity: major
   test: 4
