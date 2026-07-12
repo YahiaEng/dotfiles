@@ -54,4 +54,6 @@ fi
 
 notify-send -a "Color Picker" "Color Copied" "$HEX copied to clipboard" -i "$ICON" -t 2500 2>/dev/null || true
 
-[[ "$ICON" != "color-picker" ]] && rm -f "$ICON"
+if [[ "$ICON" != "color-picker" ]]; then
+    rm -f "$ICON"
+fi

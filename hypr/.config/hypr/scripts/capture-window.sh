@@ -9,6 +9,13 @@
 # UX (raw.githubusercontent.com/Gustash/Hyprshot/main/hyprshot).
 set -euo pipefail
 
+for tool in hyprshot satty; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        notify-send -a "Screenshot" "Error" "$tool not installed" -i dialog-error -t 6000 2>/dev/null || true
+        exit 1
+    fi
+done
+
 SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
 mkdir -p "$SCREENSHOT_DIR"
 
