@@ -17,9 +17,20 @@ LAYOUT_LIST="📏 Minimal — Clock + Workspaces
 🏝️ Floating — Island-style modules"
 
 # ── Show walker menu ───────────────────────────────────
-SELECTED=$(echo "$LAYOUT_LIST" | walker --dmenu --placeholder "Waybar Layout")
+# WR-04: walker 2.16.2 signals Esc / click-outside / Return-on-empty
+# cancel via exit status 130 with no stdout (128+SIGINT convention), never
+# exit 0 + empty output. `|| rc=$?` captures the exit code without
+# tripping `set -euo pipefail` on a bare command-substitution assignment.
+rc=0
+SELECTED=$(echo "$LAYOUT_LIST" | walker --dmenu --placeholder "Waybar Layout") || rc=$?
+if (( rc == 130 )); then
+    exit 0   # user cancel
+elif (( rc != 0 )); then
+    notify-send -a "Waybar Switcher" "Error" "walker dmenu failed" -i dialog-error 2>/dev/null || true
+    exit 1   # hard failure: not installed (127), elephant dead (1), crash
+fi
 
-[[ -z "$SELECTED" ]] && exit 0
+[[ -z "$SELECTED" ]] && exit 0   # defensive; walker never returns 0+empty, but harmless
 
 # ── Map selection to layout name ─────────────────────
 case "$SELECTED" in
