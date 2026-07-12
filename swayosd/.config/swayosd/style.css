@@ -1,0 +1,47 @@
+@import url("../../.local/state/theme/swayosd.css");
+
+/* OSD-01/D-24: SwayOSD bottom-center rounded pill.
+   Anchor position (bottom-center) + margin-from-edge (64px) are SwayOSD's
+   own built-in layer-shell behavior, not CSS-configurable (06-UI-SPEC.md
+   "SwayOSD" spacing table) — this file only themes colors + the
+   pill/track/fill structure via the @define-color names imported above. */
+
+window {
+    background: transparent;
+}
+
+/* Pill fill — dominant 60%: background @ 0.85 alpha (06-UI-SPEC Color) */
+#container {
+    background-color: alpha(@background, 0.85);
+    margin: 16px;
+    padding: 16px;
+    border-radius: 999px;
+}
+
+/* Icon + label — on_background, never an accent color (06-UI-SPEC) */
+image {
+    color: @on_background;
+    -gtk-icon-transform: scale(1.2);
+}
+
+label {
+    color: @on_background;
+    font-family: "FiraCode Nerd Font";
+    font-size: 16px;
+}
+
+/* Progress track — secondary 30%: surface_variant @ 0.6 alpha, upstream
+   default 6px min-height kept (Deviation Request, 06-UI-SPEC Spacing) */
+progressbar,
+progressbar > trough {
+    min-height: 6px;
+    border-radius: 999px;
+    background-color: alpha(@surface_variant, 0.6);
+}
+
+/* Progress fill — accent 10%: primary only */
+progressbar > trough > progress {
+    min-height: 6px;
+    border-radius: 999px;
+    background-color: @primary;
+}
