@@ -103,7 +103,7 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: 7/9 plans executed
+**Plans**: 8/9 plans executed
 **UI hint**: yes
 
 Plans:
@@ -122,7 +122,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2)*
 
 - [x] 06-06-PLAN.md — SwayOSD + Zen surfaces: bottom-center pill on media keys, reload.sh swayosd+zen fan-out, Zen userChrome self-heal notify-only (OSD-01, THM-05) [wave 3]
-- [ ] 06-08-PLAN.md — Font axis: lib/font.sh render, kitty/vscodium/GTK/waybar wire-up, fzf-in-kitty font switcher (UTIL-05) [wave 3]
+- [x] 06-08-PLAN.md — Font axis: lib/font.sh render, kitty/vscodium/GTK/waybar wire-up, fzf-in-kitty font switcher (UTIL-05) [wave 3]
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -168,6 +168,6 @@ Plans:
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
-| 6. Themed Surfaces & Utility Suite | v2.0 | 7/9 | In Progress|  |
+| 6. Themed Surfaces & Utility Suite | v2.0 | 8/9 | In Progress|  |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
