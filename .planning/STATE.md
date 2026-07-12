@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 05
-current_phase_name: light-mode-pipeline-theme-presets
-status: executing
-stopped_at: Completed 05-04-PLAN.md (Phase 05 fully executed — checkpoint approved)
-last_updated: "2026-07-12T01:05:00.351Z"
+current_phase: 6
+current_phase_name: Themed Surfaces & Utility Suite
+status: ready_to_plan
+stopped_at: Phase 05 complete (18/18 UAT pass, security clean), ready to plan Phase 6
+last_updated: "2026-07-12T09:41:16.003Z"
 last_activity: 2026-07-12
-last_activity_desc: Phase 05 execution started
+last_activity_desc: Phase 05 complete, transitioned to Phase 6
 progress:
   total_phases: 5
   completed_phases: 2
@@ -21,23 +21,23 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-11)
+See: .planning/PROJECT.md (updated 2026-07-12)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 05 — light-mode-pipeline-theme-presets
+**Current focus:** Phase 6 — Themed Surfaces & Utility Suite
 
 ## Current Position
 
-Phase: 05 (light-mode-pipeline-theme-presets) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
-Last activity: 2026-07-12 — Phase 05 execution started
+Phase: 6 — Themed Surfaces & Utility Suite
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-12 — Phase 05 complete, transitioned to Phase 6
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 11
+- Total plans completed: 16
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -48,6 +48,7 @@ Last activity: 2026-07-12 — Phase 05 execution started
 | 01 | 3 | - | - |
 | 02 | 2 | - | - |
 | 04 | 6 | - | - |
+| 05 | 5 | - | - |
 
 **Recent Trend:**
 
@@ -124,7 +125,7 @@ None yet.
 
 Research flags to resolve during phase planning (from research/SUMMARY.md):
 
-- **Phase 5 / Phase 6:** Zen browser profile-path resolution (native vs flatpak, "profile doesn't exist yet" chicken-and-egg) — research spike before THM-05 planning.
+- **Phase 6:** Zen browser profile-path resolution (native vs flatpak, "profile doesn't exist yet" chicken-and-egg) — research spike before THM-05 planning.
 - **Phase 8:** OLED auto-hide mechanism (hypridle availability, idle integration, pixel-shift feasibility) — research spike before BAR-01/BAR-02 planning.
 - **Phase 7:** elephant/walker version skew silently breaks custom menus — pin walker + elephant-* together and health-gate before shipping MENU-01.
 - **Phase 6:** hyprlock lockout-recovery discipline (second TTY logged in) and clipboard size-cap/wipe policy are launch requirements, not follow-ups.
@@ -140,6 +141,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T01:04:32.399Z
-Stopped at: Completed 05-04-PLAN.md (Phase 05 fully executed — checkpoint approved)
+Last session: 2026-07-12T09:41:00Z
+Stopped at: Phase 05 complete, ready to plan Phase 6
 Resume file: None

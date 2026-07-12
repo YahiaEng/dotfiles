@@ -1,7 +1,7 @@
 ---
 phase: 05-light-mode-pipeline-theme-presets
 verified: 2026-07-12T09:23:21Z
-status: human_needed
+status: passed
 score: 22/22 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
@@ -9,10 +9,12 @@ re_verification:
   previous_status: gaps_found
   previous_score: 17/18
   gaps_closed:
+
     - "theme-apply of a static preset auto-sets the wallpaper: last-used for that theme if recorded, else first in the folder (CR-01) — verified fixed and re-tested live"
   gaps_remaining: []
   regressions: []
 human_verification:
+
   - test: "Press the real theme-switcher keybind (Super+Shift+T or equivalent), press Esc with no selection, in the live desktop session"
     expected: "The walker dmenu closes silently — no 'Error: walker dmenu failed' notify-send toast appears. Selecting a theme afterward still applies it normally."
     why_human: "The automated checker (test-walker-dmenu-cancel.sh, 10/10 passing) proves theme-switch.sh's and waybar-switch.sh's exit-code branch logic is correct against a STUBBED walker binary that is scripted to return exit 130. It does not, and cannot, confirm that the real walker 2.16.2 binary running in this live uwsm/Hyprland session actually emits exit 130 (vs. some other code, e.g. if a future walker/elephant update changes cancel semantics). The 05-05 plan's own <verification> section and 05-05-SUMMARY.md's 'Next Phase Readiness' section both explicitly defer this exact live confirmation to 'a UAT re-run performed outside this plan' — and 05-UAT.md (git log: last touched at commit b70eee9, before the 05-05 gap-closure commits 1f154c7/200e7e0/21b9e42) was never updated to record that re-run. This is the one remaining unresolved item from the phase's own paper trail, not a new finding."

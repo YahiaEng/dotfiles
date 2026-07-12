@@ -49,6 +49,10 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - ✓ Hyprlock registers first keystrokes reliably — schema migration + `immediate_render`, plus `ignore_empty_input`/`check_text` ENTER-first gap closure; D-23 10-trial UAT clean (FIX-02) — Validated in Phase 4
 - ✓ Kitty startup is fast — profiled (zprof/hyperfine), shell-init 641ms → 33.9ms via fish adoption (kitty-only, zsh retained as TTY fallback), nvm lazy-load, vendored omp theme (FIX-03) — Validated in Phase 4
 - ✓ rsync explicit in install.sh PACMAN_PKGS (DEBT-01, v1.0 tech-debt closed) — Validated in Phase 4
+- ✓ Light-mode pipeline: light presets re-theme the whole desktop (mode-aware `gtk.sh`, rendered settings.ini symlinks, `materialyou-light`), mode auto-detected from palette lightness 20/20 (THM-01/THM-02) — Validated in Phase 5
+- ✓ Expanded preset lineup: 22 theme targets (15 dark incl. 9 Omarchy transcriptions + 5 canonical light + 2 Material You variants), all through one pipeline with light+dark parity fixtures (THM-03) — Validated in Phase 5
+- ✓ Theme-aware wallpaper sets: folders 1:1 with palette names, auto-set on theme-apply with per-theme last-used memory; picker restricted per static theme with Ctrl-A browse-all (THM-04) — Validated in Phase 5
+- ✓ Redesigned wallpaper picker: kitty-graphics previews, active marker, metadata line, pipeline-themed fzf colors (13th contract file) — Validated in Phase 5
 
 ### Active
 
@@ -60,7 +64,6 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - [ ] Pressing $SUPER alone opens an Omarchy-style walker menu with custom icons: Utilities, AI dashboard (launchers + workspace), Game center, power, settings, keybind cheat-sheet
 - [ ] Waybar: OLED-safe behavior, additional vertical (left) layout, media center (mpris), notification center access
 - [ ] SwayOSD volume/brightness indicators, themed
-- [ ] More static presets incl. light themes; wallpaper picker refined (Omarchy aesthetics + theme-aware wallpaper sets)
 - [ ] Zen browser follows theme switches
 
 ### Out of Scope
@@ -72,6 +75,8 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - Re-theme on every wallpaper auto-cycle — latency/flicker cost; re-theme only on explicit user action
 
 ## Current State
+
+**v2.0 Phase 5 complete (2026-07-12): Light Mode Pipeline & Theme Presets** — 5 plans (incl. 1 gap closure), all four requirements (THM-01..04) verified: 18/18 UAT pass, verification passed, security review clean (14/14 threats closed). The pipeline is now fully mode-aware: 20 palette JSONs + 2 Material You variants render through one pipeline with light+dark parity fixtures (theme-parity 22 targets, 1190 checks, 0 failed); wallpaper sets are theme-scoped with a redesigned kitty-graphics picker; the legacy `themes/` stow package is deleted.
 
 **v2.0 Phase 4 complete (2026-07-11): Reliability Fixes & Tech Debt** — 6 plans (incl. 2 gap closures), all four requirements (FIX-01/02/03, DEBT-01) verified: 4/4 UAT pass, verification passed, security review clean (19/19 threats closed), code review 0 critical. The base is de-risked for the redesign phases. Kitty now launches fish (33.9ms); zsh retained as TTY fallback.
 
@@ -105,6 +110,10 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 | Verify hyprlock options against the installed binary schema (`strings`) before relying on them | hyprlock 0.9.5 silently rejects unknown options — the original FIX-02 attempt shipped dead config; schema pre-check makes that failure mode impossible | ✓ Good — Phase 4; caught grace/no_fade_in removals, validated ignore_empty_input/check_text |
 | Fish as kitty shell via `kitty.conf` only (no chsh); zsh retained for TTY | fish 32.7ms vs optimized zsh 95.5ms at full parity; kitty-only switch keeps TTY recovery on proven zsh if fish config ever breaks | ✓ Good — Phase 4; D-08 user decision, day-one node parity closed in 04-05 |
 | Evidence-first perf fixes (zprof/hyperfine/fastfetch --stat before touching anything) | Prior guesses blamed fastfetch/zinit; profiling proved nvm sourcing (53.5%) + remote omp fetch were the real cost — fixes targeted only proven centers | ✓ Good — Phase 4; 641ms → 96ms zsh, then 33.9ms fish |
+| Theme mode auto-detected from palette lightness (no override key) | A manual light/dark flag per palette would drift; background-luminance detection classified all 20 palettes correctly | ✓ Good — Phase 5; 20/20, D-06 |
+| Dynamic `palettes/*.json` enumeration everywhere (no hardcoded theme lists) | theme-parity, stress test, and picker all drifted when presets were added; glob enumeration closes RESEARCH Pitfall 2 permanently | ✓ Good — Phase 5; adding a preset is now one JSON file |
+| Wallpaper folders 1:1 with palette basenames, per-theme last-used state file | No mapping file to maintain; empty folders fall open to keep-current so new presets need no wallpapers up front | ✓ Good — Phase 5; D-09/D-11/D-12 |
+| walker exit code 130 trusted as sole cancel signal in dmenu callers | walker 2.16.2 signals Esc via 128+SIGINT, never 0+empty; three-way branch (130 silent, other nonzero loud, 0 proceed) keeps hard failures visible | ✓ Good — Phase 5 gap closure; source-verified + hermetic checker 10/10 |
 
 ## Evolution
 
@@ -124,4 +133,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-11 after Phase 4 (Reliability Fixes & Tech Debt)*
+*Last updated: 2026-07-12 after Phase 5 (Light Mode Pipeline & Theme Presets)*
