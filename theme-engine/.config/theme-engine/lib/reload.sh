@@ -63,15 +63,32 @@ theme_engine_reload() {
     #    the engine just committed to the state dir.
     theme_engine_reload_vscodium
 
-    # ── SwayOSD (OSD-01/D-24): style.css @imports the state-dir palette
-    #    and is re-read at the next OSD trigger — no explicit style-reload
-    #    call needed. Only restart the libinput backend (caps-lock OSD)
-    #    when the server is actually present, so a fresh/no-swayosd
-    #    machine never spawns a spurious systemctl call. Bounded via
-    #    timeout so a stuck systemd user manager can't hang the switch
-    #    (T-06-11).
+    # ── SwayOSD (OSD-01/D-24, corrected WR-01): style.css is only read
+    #    at startup (GTK apps have no live CSS reload API — same class of
+    #    limitation as Walker/GTK3 elsewhere in this engine), so a theme
+    #    switch must restart swayosd-server itself (the user-owned process
+    #    that performs the volume change AND renders the pill) — NOT the
+    #    system-bus libinput backend, which only forwards raw hardware key
+    #    events and has no CSS to reload. Guarded by the existing
+    #    `pgrep -x swayosd-server` check so a fresh/no-swayosd or headless
+    #    machine never spawns a spurious kill/relaunch (parity/container
+    #    gate stays a no-op here). Mirrors the walker kill-then-detached-
+    #    relaunch idiom above, minus walker's D-Bus bus-name and elephant
+    #    health gates — swayosd-server has neither.
     if pgrep -x swayosd-server >/dev/null 2>&1; then
-        timeout 5 systemctl --user restart swayosd-libinput-backend.service >/dev/null 2>&1 || true
+        pkill -x swayosd-server 2>/dev/null || true
+
+        # set -e-safe increment (see theme_engine_reload_walker note above
+        # for why the terser post-increment form is unsafe under set -e):
+        # osd_waited=$(( osd_waited + 1 )) is the only safe form here.
+        local osd_waited=0
+        while pgrep -x swayosd-server >/dev/null 2>&1 && (( osd_waited < 20 )); do
+            sleep 0.1
+            osd_waited=$(( osd_waited + 1 ))
+        done
+
+        setsid uwsm app -- swayosd-server >/dev/null 2>&1 </dev/null &
+        disown
     fi
 
     # ── Zen browser (THM-05/D-26/D-27/D-28): lazy profile self-heal +
