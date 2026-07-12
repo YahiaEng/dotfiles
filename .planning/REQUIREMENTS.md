@@ -20,17 +20,17 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 
 ### Screenshot Suite
 
-- [ ] **SHOT-01**: User can capture region/window/full-screen screenshots with smooth animations and clear feedback (freeze, save + copy, notification)
-- [ ] **SHOT-02**: User can annotate captures (arrows, text, shapes, blur) before saving/copying
-- [ ] **SHOT-03**: User can record the screen or a region to video, with GIF export
+- [x] **SHOT-01**: User can capture region/window/full-screen screenshots with smooth animations and clear feedback (freeze, save + copy, notification)
+- [x] **SHOT-02**: User can annotate captures (arrows, text, shapes, blur) before saving/copying
+- [x] **SHOT-03**: User can record the screen or a region to video, with GIF export
 
 ### Utility Scripts
 
-- [ ] **UTIL-01**: User can pick emoji from a simple, modern picker (walker + elephant-symbols) and have it inserted/copied
-- [ ] **UTIL-02**: User can pick any color from the screen (hyprpicker) and get it copied in usable format (hex)
+- [x] **UTIL-01**: User can pick emoji from a simple, modern picker (walker + elephant-symbols) and have it inserted/copied
+- [x] **UTIL-02**: User can pick any color from the screen (hyprpicker) and get it copied in usable format (hex)
 - [ ] **UTIL-03**: User can view recent clipboard history and re-copy any item (walker + elephant-clipboard), with a size cap and wipe policy from day one (no unbounded plaintext secrets)
-- [ ] **UTIL-04**: User can select from installed icon themes and apply them to Thunar/GTK live (apply-only; a couple of quality icon themes bundled in install.sh)
-- [ ] **UTIL-05**: User can switch nerd fonts across kitty, vscodium, GTK, and waybar from one picker (nerd fonts only, enumerated from installed ttf-*-nerd packages)
+- [x] **UTIL-04**: User can select from installed icon themes and apply them to Thunar/GTK live (apply-only; a couple of quality icon themes bundled in install.sh)
+- [x] **UTIL-05**: User can switch nerd fonts across kitty, vscodium, GTK, and waybar from one picker (nerd fonts only, enumerated from installed ttf-*-nerd packages)
 
 ### Super-Key Menu
 
@@ -52,7 +52,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 
 ### OSD
 
-- [ ] **OSD-01**: SwayOSD volume/brightness/caps-lock indicators bound to media keys, themed via the shared pipeline (new matugen template + contract.json entry)
+- [x] **OSD-01**: SwayOSD volume/brightness/caps-lock indicators bound to media keys, themed via the shared pipeline (new matugen template + contract.json entry)
 
 ### Theming Expansion
 
@@ -103,16 +103,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | THM-04 | Phase 5 | Complete |
 | WLOG-01 | Phase 6 | Pending |
 | LOCK-01 | Phase 6 | Pending |
-| OSD-01 | Phase 6 | Pending |
+| OSD-01 | Phase 6 | Complete |
 | THM-05 | Phase 6 | Pending |
-| SHOT-01 | Phase 6 | Pending |
-| SHOT-02 | Phase 6 | Pending |
-| SHOT-03 | Phase 6 | Pending |
-| UTIL-01 | Phase 6 | Pending |
-| UTIL-02 | Phase 6 | Pending |
+| SHOT-01 | Phase 6 | Complete |
+| SHOT-02 | Phase 6 | Complete |
+| SHOT-03 | Phase 6 | Complete |
+| UTIL-01 | Phase 6 | Complete |
+| UTIL-02 | Phase 6 | Complete |
 | UTIL-03 | Phase 6 | Pending |
-| UTIL-04 | Phase 6 | Pending |
-| UTIL-05 | Phase 6 | Pending |
+| UTIL-04 | Phase 6 | Complete |
+| UTIL-05 | Phase 6 | Complete |
 | MENU-01 | Phase 7 | Pending |
 | MENU-02 | Phase 7 | Pending |
 | MENU-03 | Phase 7 | Pending |
