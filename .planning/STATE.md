@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
-stopped_at: Completed 06-06-PLAN.md
-last_updated: "2026-07-12T17:23:07.046Z"
+stopped_at: Completed 06-07-PLAN.md
+last_updated: "2026-07-12T17:37:36.688Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
   percent: 40
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 7 of 9
+Plan: 8 of 9
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 06 execution started
 
@@ -82,6 +82,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 06 P04 | 33min | 2 tasks | 1 files |
 | Phase 06 P05 | 30min | 3 tasks | 7 files |
 | Phase 06 P06 | 10min | 3 tasks | 3 files |
+| Phase 06 P07 | 12min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-06]: D-25 descope exercised: ddcutil not installed / no DDC monitor detected — brightness-via-DDC skipped per pre-authorized fallback, brightnessctl binds kept unchanged
 - [Phase 06-06]: Zen profile resolution parses installs.ini first (single-section, unconditional Default=), falls back to profiles.ini [General]/ProfileN Default=1; resolved path validated as a real existing subdirectory of ~/.zen before any symlink/write (T-06-10)
 - [Phase 06-06]: Fixed an awk double-flush bug in the Zen profiles.ini fallback parser (exit inside a function skipped the state reset, causing END's flush to re-print) — caught via functional testing against synthetic installs.ini/profiles.ini fixtures before commit
+- [Phase 06-07]: Icon-theme picker enumerates real installed themes via an index.theme/Directories= directory scan, not a hardcoded Papirus/Tela/Colloid allowlist
+- [Phase 06-07]: theme_engine_nearest_icon_variant enumerates actual installed <base>-* directories at runtime (no hardcoded Tela/Colloid variant list); papirus-folders/tela/colloid remain uninstalled on this dev machine, all new gtk.sh paths validated via best-effort no-op behavior
 
 ### Quick Tasks Completed
 
@@ -166,6 +169,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T17:23:07.041Z
-Stopped at: Completed 06-06-PLAN.md
+Last session: 2026-07-12T17:37:36.682Z
+Stopped at: Completed 06-07-PLAN.md
 Resume file: None
