@@ -103,8 +103,30 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: TBD
+**Plans**: 9 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 06-01-PLAN.md — Packages & reproducibility: install.sh PACMAN/AUR arrays (13 official + 3 AUR-gated) + swayosd libinput service + stow.sh swayosd package [wave 1]
+- [ ] 06-02-PLAN.md — Themed render-target registration: 4 matugen templates (hyprlock/swayosd/zen/satty) + config.toml + contract.json 13→17 + commit.sh satty symlink [wave 1]
+- [ ] 06-03-PLAN.md — wlogout redesign: center-bar HUD with Nerd Font glyphs, SVG icons deleted (WLOG-01) [wave 1]
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 06-04-PLAN.md — hyprlock redesign: info-rich lock (avatar/now-playing/battery/capslock/failed-attempts), dedicated target, FIX-02 preserved, lockout-recovery checkpoint (LOCK-01) [wave 2]
+- [ ] 06-05-PLAN.md — Screenshot suite: hyprshot→satty capture, gpu-screen-recorder + audio picker, GIF export, Print-key family, old screenshot.sh deleted (SHOT-01/02/03) [wave 2]
+- [ ] 06-07-PLAN.md — Icon-theme axis: fzf-in-kitty picker, state-driven gtk-icon-theme-name, papirus-folders/variant swap, Pitfall-6 fix (UTIL-04) [wave 2]
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 06-06-PLAN.md — SwayOSD + Zen surfaces: bottom-center pill on media keys, reload.sh swayosd+zen fan-out, Zen userChrome self-heal notify-only (OSD-01, THM-05) [wave 3]
+- [ ] 06-08-PLAN.md — Font axis: lib/font.sh render, kitty/vscodium/GTK/waybar wire-up, fzf-in-kitty font switcher (UTIL-05) [wave 3]
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 06-09-PLAN.md — Utility pickers: emoji (wtype+copy), color (hyprpicker+swatch), clipboard cap+wipe policy, X/Z utility chords (UTIL-01/02/03) [wave 4]
 
 ### Phase 7: Super-Key Menu
 
