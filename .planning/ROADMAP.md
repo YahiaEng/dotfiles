@@ -103,14 +103,14 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: 1/9 plans executed
+**Plans**: 2/9 plans executed
 **UI hint**: yes
 
 Plans:
 **Wave 1**
 
 - [x] 06-01-PLAN.md — Packages & reproducibility: install.sh PACMAN/AUR arrays (13 official + 3 AUR-gated) + swayosd libinput service + stow.sh swayosd package [wave 1]
-- [ ] 06-02-PLAN.md — Themed render-target registration: 4 matugen templates (hyprlock/swayosd/zen/satty) + config.toml + contract.json 13→17 + commit.sh satty symlink [wave 1]
+- [x] 06-02-PLAN.md — Themed render-target registration: 4 matugen templates (hyprlock/swayosd/zen/satty) + config.toml + contract.json 13→17 + commit.sh satty symlink [wave 1]
 - [ ] 06-03-PLAN.md — wlogout redesign: center-bar HUD with Nerd Font glyphs, SVG icons deleted (WLOG-01) [wave 1]
 
 **Wave 2** *(blocked on Wave 1)*
@@ -168,6 +168,6 @@ Plans:
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
-| 6. Themed Surfaces & Utility Suite | v2.0 | 1/9 | In Progress|  |
+| 6. Themed Surfaces & Utility Suite | v2.0 | 2/9 | In Progress|  |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |

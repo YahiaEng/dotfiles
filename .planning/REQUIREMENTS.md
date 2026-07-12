@@ -16,7 +16,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 ### Redesigns
 
 - [ ] **WLOG-01**: wlogout fully redesigned to modern-rice standards — sharp assets (no low-res/stretched images), sleek layout, themed via the shared pipeline
-- [ ] **LOCK-01**: Hyprlock redesigned with a modern look, colors sourced from the shared theme pipeline (already wired to `~/.local/state/theme/hyprland.conf`), with a documented lockout-recovery procedure used during testing
+- [x] **LOCK-01**: Hyprlock redesigned with a modern look, colors sourced from the shared theme pipeline (already wired to `~/.local/state/theme/hyprland.conf`), with a documented lockout-recovery procedure used during testing
 
 ### Screenshot Suite
 
@@ -60,7 +60,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 - [x] **THM-02**: Additional popular static presets shipped, including light themes (e.g. catppuccin-latte), as palette JSONs through the existing pipeline
 - [x] **THM-03**: Wallpapers are organized per-theme; with a static theme active the picker restricts choices to that theme's set, with Material You any wallpaper is allowed
 - [x] **THM-04**: Wallpaper picker redesigned to Omarchy-level aesthetics
-- [ ] **THM-05**: Zen browser follows theme switches (matugen-rendered userChrome.css into the resolved profile; restart-based reload like other GTK3-class surfaces)
+- [x] **THM-05**: Zen browser follows theme switches (matugen-rendered userChrome.css into the resolved profile; restart-based reload like other GTK3-class surfaces)
 
 ### Tech Debt
 
@@ -102,9 +102,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | THM-03 | Phase 5 | Complete |
 | THM-04 | Phase 5 | Complete |
 | WLOG-01 | Phase 6 | Pending |
-| LOCK-01 | Phase 6 | Pending |
+| LOCK-01 | Phase 6 | Complete |
 | OSD-01 | Phase 6 | Complete |
-| THM-05 | Phase 6 | Pending |
+| THM-05 | Phase 6 | Complete |
 | SHOT-01 | Phase 6 | Complete |
 | SHOT-02 | Phase 6 | Complete |
 | SHOT-03 | Phase 6 | Complete |
