@@ -62,6 +62,105 @@ theme_engine_reload() {
     #    so this step no longer branches on mode — always merge whatever
     #    the engine just committed to the state dir.
     theme_engine_reload_vscodium
+
+    # ── SwayOSD (OSD-01/D-24): style.css @imports the state-dir palette
+    #    and is re-read at the next OSD trigger — no explicit style-reload
+    #    call needed. Only restart the libinput backend (caps-lock OSD)
+    #    when the server is actually present, so a fresh/no-swayosd
+    #    machine never spawns a spurious systemctl call. Bounded via
+    #    timeout so a stuck systemd user manager can't hang the switch
+    #    (T-06-11).
+    if pgrep -x swayosd-server >/dev/null 2>&1; then
+        timeout 5 systemctl --user restart swayosd-libinput-backend.service >/dev/null 2>&1 || true
+    fi
+
+    # ── Zen browser (THM-05/D-26/D-27/D-28): lazy profile self-heal +
+    #    notify-only reload — never kills the browser.
+    theme_engine_reload_zen
+}
+
+theme_engine_reload_zen() {
+    local zen_root="$HOME/.zen"
+
+    # D-26: lazy self-heal — ~/.zen doesn't exist until Zen has launched
+    # at least once. Skip silently (logged, non-fatal) so a machine that
+    # has never run Zen never gets a false-alarm toast on every switch.
+    if [[ ! -d "$zen_root" ]]; then
+        echo "theme_engine_reload_zen: ~/.zen not present — skipping (Zen not yet launched)"
+        return 0
+    fi
+
+    local zen_real profile_rel=""
+    zen_real=$(realpath -m -- "$zen_root")
+
+    # ── Pitfall 5: installs.ini is the authoritative "which profile does
+    #    THIS install use" answer on modern Firefox-family browsers —
+    #    read it first. Single-user desktop: exactly one install-hash
+    #    section is expected, take its Default= unconditionally if so.
+    if [[ -f "$zen_root/installs.ini" ]]; then
+        local install_sections
+        install_sections=$(grep -c '^\[' "$zen_root/installs.ini" 2>/dev/null || echo 0)
+        if [[ "$install_sections" -eq 1 ]]; then
+            profile_rel=$(awk '/^Default=/{ sub(/^Default=/, ""); print; exit }' "$zen_root/installs.ini")
+        fi
+    fi
+
+    # ── Pitfall 5 fallback: legacy profiles.ini — try [General] Default=
+    #    first, then any [ProfileN] section flagged Default=1 (its Path=).
+    if [[ -z "$profile_rel" && -f "$zen_root/profiles.ini" ]]; then
+        profile_rel=$(awk '
+            /^\[General\]/ { in_general=1; next }
+            /^\[/ { in_general=0 }
+            in_general && /^Default=/ { sub(/^Default=/,""); print; exit }
+        ' "$zen_root/profiles.ini")
+
+        if [[ -z "$profile_rel" ]]; then
+            profile_rel=$(awk '
+                function flush() { if (!found && def == 1 && path != "") { print path; found=1 } }
+                /^\[Profile/ { flush(); path=""; def=0; next }
+                /^\[/ { flush(); path=""; def=0; next }
+                /^Path=/ { sub(/^Path=/,""); path=$0 }
+                /^Default=1/ { def=1 }
+                END { flush() }
+            ' "$zen_root/profiles.ini")
+        fi
+    fi
+
+    if [[ -z "$profile_rel" ]]; then
+        echo "theme_engine_reload_zen: could not resolve a default profile from installs.ini/profiles.ini — skipping"
+        return 0
+    fi
+
+    # ── Security Domain V5/T-06-10: validate the resolved path is a real,
+    #    existing subdirectory of ~/.zen before ever using it as a
+    #    symlink/write target — never trust the ini value blindly.
+    local profile_dir
+    profile_dir=$(realpath -m -- "$zen_root/$profile_rel")
+    if [[ "$profile_dir" != "$zen_real"/* || ! -d "$profile_dir" ]]; then
+        echo "theme_engine_reload_zen: resolved profile path '$profile_dir' is not a valid existing subdirectory of ~/.zen — skipping"
+        return 0
+    fi
+
+    # ── Self-heal: symlink userChrome.css into the profile's chrome/ dir
+    #    (idempotent, D-26 first-time auto-wire) and defensively write the
+    #    legacy stylesheets pref (Pitfall 4 — harmless on versions that
+    #    ignore it, required on versions that still honor it).
+    mkdir -p "$profile_dir/chrome"
+    ln -sf "$STATE_DIR/zen-userchrome.css" "$profile_dir/chrome/userChrome.css"
+
+    local user_js="$profile_dir/user.js"
+    local pref_line='user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
+    if [[ ! -f "$user_js" ]] || ! grep -qF "$pref_line" "$user_js" 2>/dev/null; then
+        printf '%s\n' "$pref_line" >> "$user_js"
+    fi
+
+    # ── D-28: notify-only, NEVER kill/restart Zen — matches the accepted
+    #    GTK3 stale-until-closed posture. Silent if Zen isn't running.
+    if pgrep -x zen-bin >/dev/null 2>&1; then
+        notify-send -a "Zen Browser" "Theme Updated" "Restart Zen to apply the new theme" -i web-browser -t 3000 2>/dev/null || true
+    fi
+
+    return 0
 }
 
 theme_engine_reload_walker() {
