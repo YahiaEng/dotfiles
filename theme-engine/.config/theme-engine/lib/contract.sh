@@ -23,6 +23,16 @@ contract_files() {
     jq -r '.files[].name' "$CONTRACT_JSON"
 }
 
+# contract_presence_only_files
+# Emits the ordered list of theme-invariant font render targets that get a
+# presence-only check (existence, not color-contract parity) — these are
+# fragments (kitty-font.conf, waybar-font.css) with no color-declaration
+# content, so they are deliberately excluded from the `files` array that
+# theme-parity's name-set/semantic-value parity consumes (WR-07/06-10).
+contract_presence_only_files() {
+    jq -r '(.presence_only_files // [])[]' "$CONTRACT_JSON"
+}
+
 # contract_format <name>
 # Emits the format tag for a contract file (gtk-css | hypr-vars | kitty-kv |
 # toml | json | css-literal).

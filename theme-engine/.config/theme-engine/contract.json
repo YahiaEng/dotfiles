@@ -18,5 +18,6 @@
     { "name": "zen-userchrome.css", "format": "css-literal" },
     { "name": "satty.toml", "format": "toml" }
   ],
-  "state_metadata_files": ["current-theme", "mode"]
+  "state_metadata_files": ["current-theme", "mode"],
+  "presence_only_files": ["kitty-font.conf", "waybar-font.css"]
 }

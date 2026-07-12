@@ -60,6 +60,19 @@ else
     done <<< "$CONTRACT_FILE_LIST"
 fi
 
+# WR-07: theme-invariant font render targets (kitty-font.conf,
+# waybar-font.css) get a presence-only check — they are excluded from the
+# color-contract `files` array above (theme-parity's parity checks require
+# color-declaration content these font fragments do not have).
+PRESENCE_ONLY_FILE_LIST="$(contract_presence_only_files)"
+if [[ -n "$PRESENCE_ONLY_FILE_LIST" ]]; then
+    while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        [[ -f "$STATE_DIR/$f" ]]
+        check "$STATE_DIR/$f exists" "$?"
+    done <<< "$PRESENCE_ONLY_FILE_LIST"
+fi
+
 # ── walker/yazi wiring symlinks point at the state dir ─────
 [[ -L "$HOME/.config/walker/themes/rice/style.css" ]] \
     && [[ "$(readlink -f "$HOME/.config/walker/themes/rice/style.css")" == "$STATE_DIR/walker-style.css" ]]
