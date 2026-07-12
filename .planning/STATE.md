@@ -4,9 +4,9 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 6
 current_phase_name: Themed Surfaces & Utility Suite
-status: ready_to_plan
-stopped_at: Phase 6 context gathered
-last_updated: "2026-07-12T13:55:40.606Z"
+status: executing
+stopped_at: Phase 6 UI-SPEC approved
+last_updated: "2026-07-12T15:50:24.103Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 05 complete, transitioned to Phase 6
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 
 Phase: 6 — Themed Surfaces & Utility Suite
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-07-12 — Phase 05 complete, transitioned to Phase 6
 
 ## Performance Metrics
@@ -141,6 +141,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T13:55:40.601Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-themed-surfaces-utility-suite/06-CONTEXT.md
+Last session: 2026-07-12T14:31:22.330Z
+Stopped at: Phase 6 UI-SPEC approved
+Resume file: .planning/phases/06-themed-surfaces-utility-suite/06-UI-SPEC.md
