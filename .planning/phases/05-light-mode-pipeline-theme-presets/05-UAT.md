@@ -1,21 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 05-light-mode-pipeline-theme-presets
 source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md, 05-05-SUMMARY.md, 05-VERIFICATION.md]
 started: 2026-07-12T03:10:00Z
-updated: 2026-07-12T09:30:00Z
+updated: 2026-07-12T09:36:54Z
 ---
 
 ## Current Test
 
-number: 4
-name: Theme switcher cancel vs failure (post WR-04 fix — live re-test)
-expected: |
-  Press the real theme-switcher keybind and press Esc with no selection, in the
-  live desktop session. The walker dmenu closes silently — no "Error: walker
-  dmenu failed" notify-send toast appears. Selecting a theme afterward still
-  applies it normally.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -36,7 +29,7 @@ coverage_id: VERIFICATION gap / CR-01
 
 ### 4. Theme switcher cancel vs failure (post WR-04 fix)
 expected: Open the theme switcher keybind and press Esc without selecting anything. It closes silently — no error notification (cancel is not treated as failure). Selecting a theme still applies it normally.
-result: [pending]
+result: pass
 previous_result: "issue — 'An error notifications still appears' (2026-07-12T03:25Z, pre-fix); root-caused to walker 2.16.2 exiting 130 on cancel; fixed by gap-closure plan 05-05 (commits 1f154c7/200e7e0/21b9e42, hermetic checker 10/10 against stubbed walker). This live re-test against the real walker binary is the only remaining confirmation."
 severity: major
 coverage_id: WR-04
@@ -128,9 +121,9 @@ coverage_id: 05-04 D1
 ## Summary
 
 total: 18
-passed: 17
+passed: 18
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
