@@ -5,6 +5,8 @@
 # ║   the rendering + reload (D-01/PIPE-01).               ║
 # ╚══════════════════════════════════════════════════════╝
 
+set -euo pipefail
+
 PALETTES_DIR="$HOME/.config/theme-engine/palettes"
 
 # Security Domain V5 (T-05-06) — the picker list is built from the ACTUAL
@@ -38,9 +40,14 @@ done
 NAMES+=("materialyou" "materialyou-light")
 DISPLAYS+=("Material You (Dynamic)" "Material You Light (Dynamic)")
 
-THEME_LIST="$(printf '%s\n' "${DISPLAYS[@]}")"
-SELECTED=$(echo "$THEME_LIST" | walker --dmenu --placeholder "Select Theme")
-[[ -z "$SELECTED" ]] && exit 0
+# WR-04: distinguish a hard walker failure (nonzero exit — walker not
+# running/installed, dead elephant socket) from a genuine user cancel
+# (empty selection). Failure notifies and exits 1; cancel keeps exit 0.
+if ! SELECTED=$(printf '%s\n' "${DISPLAYS[@]}" | walker --dmenu --placeholder "Select Theme"); then
+    notify-send -a "Theme Switcher" "Error" "walker dmenu failed" -i dialog-error 2>/dev/null || true
+    exit 1
+fi
+[[ -z "$SELECTED" ]] && exit 0   # genuine user cancel
 
 THEME=""
 for i in "${!DISPLAYS[@]}"; do
