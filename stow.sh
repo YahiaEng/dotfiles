@@ -84,7 +84,9 @@ chmod +x "$HOME/.config/hypr/scripts/"*.sh 2>/dev/null || true
 # falls back to catppuccin automatically when no state exists yet (D-10),
 # so no pre-seed is needed here.
 mkdir -p "$HOME/.cache"
-echo "full" > "$HOME/.cache/current-waybar-layout"
+# WR-05: seed only when absent — stow.sh is re-runnable, and an
+# unconditional write clobbers the user's currently selected layout.
+[[ -f "$HOME/.cache/current-waybar-layout" ]] || echo "full" > "$HOME/.cache/current-waybar-layout"
 
 # ── Switch to zshell ─────────────────────────────────
 # Pitfall 6/D-59: a non-root `chsh` prompts for the invoking user's login
