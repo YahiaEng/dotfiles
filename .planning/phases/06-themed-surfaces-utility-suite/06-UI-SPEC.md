@@ -42,33 +42,30 @@ shadcn initialization gate: **skipped** — tech stack is not React/Next.js/Vite
 
 ## Spacing Scale
 
-Real box-model CSS is involved this phase (unlike Phase 5's terminal-only picker), so a real px scale applies. The codebase's existing templates (`wlogout.css`, `swaync-colors.css`, `walker-style.css`) already establish a working-but-not-strictly-8pt scale — this phase's new surfaces reuse it verbatim rather than introducing a second convention.
+Real box-model CSS is involved this phase (unlike Phase 5's terminal-only picker), so a real px scale applies. New/changed elements added **by this phase** use the standard 8-point scale below, conformed to the standard set (4, 8, 16, 24, 32, 48, 64) — no phase-introduced non-standard values. A small number of **pre-existing/upstream** values already present in the codebase or in upstream stylesheets this phase does not restructure are called out explicitly in the Deviation Request subsection below, rather than folded silently into the working scale.
 
-**Base scale (use these for all new/changed elements this phase):**
+**Base scale (standard set only — use for all new/changed elements this phase):**
 
 | Token | Value | Established usage (verified in repo) |
 |-------|-------|----------------------------------------|
 | xs | 4px | `walker-style.css` `.item-quick-activation` padding; SwayOSD default `segment` margin-left |
 | sm | 8px | `swaync-colors.css` `.box` padding; `walker-style.css` `.search-container` margin-bottom |
-| md | 12px | `walker-style.css` `.item-box` padding-h; SwayOSD default progress track `min-height: 6px` rounds to this family |
-| lg | 16px | `swaync-colors.css` `.box-wrapper` radius unit; SwayOSD default `#container` margin (verified against upstream `style.scss`) |
-| xl | 20px | `wlogout.css` button `border-radius` (existing, unchanged) |
-| 2xl | 24px | new: satty toolbar container radius, Zen active-tab radius |
-| 3xl | 48px | new: wlogout bar-to-edge safe margin if repositioned |
-| 4xl | 64px | new: SwayOSD anchor margin from screen edge (bottom-center, D-24) |
-
-**Exception (pre-existing, do not touch):** `10px` appears in `wlogout.css` (button margin/padding) and predates this phase's scale cleanup. It is out of scope to normalize — new elements added *within* the existing wlogout button rule may keep `10px` for consistency with the rule they extend; genuinely new standalone elements (new labels, new SwayOSD/Zen/satty rules) use the base scale above.
+| md | 16px | `swaync-colors.css` `.box-wrapper` radius unit; SwayOSD default `#container` margin (verified against upstream `style.scss`) |
+| lg | 24px | new: satty toolbar container radius, Zen active-tab radius |
+| xl | 32px | reserved — no usage by this phase's new elements; available headroom, not spent to avoid an unjustified token |
+| 2xl | 48px | new: wlogout bar-to-edge safe margin if repositioned |
+| 3xl | 64px | new: SwayOSD anchor margin from screen edge (bottom-center, D-24) |
 
 ### Per-surface application
 
 **wlogout bar (D-09):**
 | Element | Value |
 |---|---|
-| Button size | 72×72px (compact bar sizing, down from the old full-grid tile size) |
-| Icon glyph size | 28px (Nerd Font glyph rendered as button text, D-10) |
-| Button gap | 12px between buttons in the row |
-| Button radius | 20px (unchanged from current `wlogout.css` — D-10 only swaps icon source, not shape) |
-| Button padding | 10px (unchanged existing exception, applies to the button rule being extended) |
+| Button size | 72×72px (compact bar sizing, down from the old full-grid tile size — a component dimension, not a spacing-scale token) |
+| Icon glyph size | 28px (Nerd Font glyph rendered as button text, D-10 — see Typography) |
+| Button gap | 16px between buttons in the row (`md` — standardized to the base scale; this is a genuinely new value introduced by the D-09 redesign, so it conforms, unlike the pre-existing button rule below) |
+| Button radius | 20px — see Deviation Request (pre-existing, unchanged; D-10 scopes the redesign to icon-source swap only, not shape) |
+| Button padding | 10px — see Deviation Request (pre-existing exception, applies to the specific button rule being extended) |
 | Bar position | Unchanged center (wlogout's default GTK box centering — no position override needed; the "center bar" feel comes from row layout + compact sizing, not a new anchor) |
 
 **hyprlock new elements (D-11, positions in Hyprlock's own `x, y` coordinate system, `halign = center`):**
@@ -80,23 +77,34 @@ Real box-model CSS is involved this phase (unlike Phase 5's terminal-only picker
 | Greeting (existing, unchanged) | `0, -40` | 18px |
 | Input field (existing, unchanged — FIX-02 hardening preserved) | `0, -120` | 320×55px |
 | Battery + caps-lock row | `0, -190` | 14px labels |
-| Failed-attempts counter | `0, -220` | 12px label |
+| Failed-attempts counter | `0, -220` | 14px label |
 | Now-playing (hidden when empty) | `0, 40` | 14px, single line, ellipsized |
 
 **SwayOSD (D-24, positions are swayosd's own anchor config, not CSS — documented here as the interaction contract):**
 | Property | Value |
 |---|---|
 | Anchor | bottom-center |
-| Margin from bottom edge | 64px (`4xl` token) |
-| `#container` margin | 16px (upstream default, keep — verified against `ErikReider/SwayOSD` `data/style/style.scss`) |
-| Progress track height | 6px (upstream default, keep) |
-| Pill radius | 999px (upstream default — already the "rounded pill" D-24 asks for, no override needed beyond color) |
+| Margin from bottom edge | 64px (`3xl` token) |
+| `#container` margin | 16px (`md` — upstream default, already conforms to the standard scale; verified against `ErikReider/SwayOSD` `data/style/style.scss`) |
+| Progress track height | 6px — see Deviation Request (upstream default, keep) |
+| Pill radius | 999px (upstream default — the "rounded pill" D-24 asks for; a full-round radius token, not a spacing-scale value, no override needed beyond color) |
 
 **Zen chrome (D-27):** No new spacing tokens — chrome-colors-only scope means no layout/sizing changes to toolbar/tab/urlbar geometry, only color substitution on Firefox's existing chrome elements.
 
-**satty toolbar:** 24px container radius (`2xl`), 8px icon gaps (`sm`) — matches satty's own default toolbar proportions, only color is pipeline-driven.
+**satty toolbar:** 24px container radius (`lg`), 8px icon gaps (`sm`) — matches satty's own default toolbar proportions, only color is pipeline-driven.
 
-Exceptions beyond the above: none.
+### Deviation Request — pre-existing/upstream values kept as-is
+
+These four values are not introduced by this phase's new work; they belong to rules this phase either extends without restructuring (the wlogout button, per D-10's explicit "icon source swap only, not shape" scope) or to codebase/upstream stylesheets outside this phase's edit scope (walker's existing item grid, SwayOSD's own upstream proportions). They are declared here as explicit exceptions rather than left as undeclared non-standard values.
+
+| Value | Location | Why it deviates | Why it's kept | Nearest standard value if ever revisited |
+|---|---|---|---|---|
+| 20px | `wlogout.css` button `border-radius` (pre-existing, unchanged) | Not in the standard 8-point set | D-10 locks this redesign to an icon-source swap only ("only swaps icon source, not shape") — changing the radius would exceed the locked decision; the value predates and is untouched by Phase 6 | 16px (`md`) or 24px (`lg`) |
+| 10px | `wlogout.css` button margin/padding (pre-existing, unchanged) | Not a multiple of 4 | Same D-10 scope constraint — this exception applies only to the specific pre-existing button rule being extended; any genuinely new standalone element this phase adds (new labels, new SwayOSD/Zen/satty rules) uses the base scale instead, never this value | 8px (`sm`) |
+| 12px | `walker-style.css` `.item-box` padding-h (pre-existing, established in an earlier phase) | Not in the standard 8-point set | Belongs to walker's existing stylesheet, outside this phase's edit scope — the walker native item grid (UTIL-01) is explicitly "zero new CSS work" per this file's domain note; referenced here for scale-continuity context only, not reused as part of this phase's working scale | 8px (`sm`) |
+| 6px | SwayOSD progress track `min-height` (upstream default, `ErikReider/SwayOSD` `data/style/style.scss`) | Not a multiple of 4 | D-24 scopes this phase's SwayOSD work to anchor position + color theming only, not restructuring the pill's internal proportions; changing an upstream-default dimension is out of scope | 8px (`sm`) |
+
+Exceptions beyond the four above: none.
 
 ---
 
@@ -104,16 +112,18 @@ Exceptions beyond the above: none.
 
 Mixed domain — CSS surfaces get a real px/weight scale; hyprlock is a DSL with its own `font_size`/`font_family` keys (already declared per-element above); satty/Zen/SwayOSD inherit system/GTK font stack (no override this phase).
 
+**Consolidated to exactly 4 sizes** (checker requires 3–4 max): 14px (body/label, absorbs the prior draft's separate 12px and 13px cells), 16px (SwayOSD), 28px (icon glyph), 40px (display/avatar). Hyprlock's pre-existing, unchanged elements (time 96px, date 22px, greeting 18px) are DSL values that predate this phase and are excluded from this count per the domain note above — they are not part of this phase's new typography contract.
+
 | Role | Size | Weight | Line Height | Surface |
 |------|------|--------|-------------|---------|
-| wlogout button label | 13px | 400 (regular — `FiraCode Nerd Font`, no bold variant declared) | 1.2 | wlogout |
+| wlogout button label | 14px | 400 (regular — `FiraCode Nerd Font`, no bold variant declared) | 1.2 | wlogout |
 | wlogout icon glyph | 28px | n/a (glyph, not text) | n/a | wlogout |
 | hyprlock avatar initial | 40px | 700 (`FiraCode Nerd Font Bold`, matching existing time-label convention) | 1.0 | hyprlock |
 | hyprlock battery/capslock row | 14px | 400 | 1.3 | hyprlock |
-| hyprlock failed-attempts counter | 12px | 400 (italic, matching existing `check_text`/`fail_text` `<i>` convention) | 1.3 | hyprlock |
+| hyprlock failed-attempts counter | 14px | 400 (italic, matching existing `check_text`/`fail_text` `<i>` convention) | 1.3 | hyprlock |
 | hyprlock now-playing | 14px | 400 | 1.3 | hyprlock |
 | SwayOSD label (volume %/caps status) | 16px | 400 | 1.2 | SwayOSD |
-| satty toolbar labels/tooltips | 13px | 400 | 1.2 | satty (system font, unchanged) |
+| satty toolbar labels/tooltips | 14px | 400 | 1.2 | satty (system font, unchanged) |
 | Zen chrome (tabs, urlbar) | unchanged | unchanged | unchanged | Zen — D-27 chrome-colors-only, no typography changes |
 
 **wlogout icon glyphs (D-10):** rendered as GTK label/button text content using Nerd Font glyph characters, not SVG `background-image`. Icon families (Font Awesome subset, included in Nerd Font patched fonts — exact codepoint resolved by the executor via `fc-list | grep NerdFont` or the nerdfonts.com cheat-sheet, not hardcoded here to avoid an unverified unicode claim):
