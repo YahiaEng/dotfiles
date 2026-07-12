@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
-stopped_at: Completed 06-05-PLAN.md
-last_updated: "2026-07-12T17:14:09.064Z"
+stopped_at: Completed 06-06-PLAN.md
+last_updated: "2026-07-12T17:23:07.046Z"
 last_activity: 2026-07-12
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 16
+  completed_plans: 17
   percent: 40
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 6 of 9
+Plan: 7 of 9
 Status: Ready to execute
 Last activity: 2026-07-12 — Phase 06 execution started
 
@@ -81,6 +81,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 06 P03 | 12min | 3 tasks | 2 files |
 | Phase 06 P04 | 33min | 2 tasks | 1 files |
 | Phase 06 P05 | 30min | 3 tasks | 7 files |
+| Phase 06 P06 | 10min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-05]: hyprshot/satty CLI flags verified against live upstream source (Gustash/Hyprshot, gabm/Satty cli/src/command_line.rs) since neither binary is installed locally yet — same approach 06-02 used for satty's config schema
 - [Phase 06-05]: capture-full.sh uses hyprshot -m output -m active (instant, no click) for full-screen; capture-window.sh uses plain -m window (click-to-select); satty runs with --disable-notifications and each capture script fires its own notify-send reusing the pre-existing screenshot.sh wording/icon, only when the output file exists
 - [Phase 06-05]: record-toggle.sh's gpu-screen-recorder invocation, slurp region/monitor picker, and SIGINT-bounded-poll stop adapted near-verbatim from the live Omarchy reference (basecamp/omarchy bin/omarchy-capture-screenrecording), fetched this session
+- [Phase 06-06]: D-25 descope exercised: ddcutil not installed / no DDC monitor detected — brightness-via-DDC skipped per pre-authorized fallback, brightnessctl binds kept unchanged
+- [Phase 06-06]: Zen profile resolution parses installs.ini first (single-section, unconditional Default=), falls back to profiles.ini [General]/ProfileN Default=1; resolved path validated as a real existing subdirectory of ~/.zen before any symlink/write (T-06-10)
+- [Phase 06-06]: Fixed an awk double-flush bug in the Zen profiles.ini fallback parser (exit inside a function skipped the state reset, causing END's flush to re-print) — caught via functional testing against synthetic installs.ini/profiles.ini fixtures before commit
 
 ### Quick Tasks Completed
 
@@ -162,6 +166,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T17:14:09.058Z
-Stopped at: Completed 06-05-PLAN.md
+Last session: 2026-07-12T17:23:07.041Z
+Stopped at: Completed 06-06-PLAN.md
 Resume file: None
