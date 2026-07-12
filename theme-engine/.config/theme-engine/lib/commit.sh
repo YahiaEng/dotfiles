@@ -38,10 +38,15 @@ theme_engine_commit() {
     # regression-log history on the very next real theme switch.
     # Reproduced empirically this round: a 2-switch theme-stress-test run
     # had its own in-progress log file deleted out from under it after
-    # switch #1's commit. logs/ is the only engine-owned, non-render-
-    # contract subdirectory that must survive a commit; excluding it by
-    # name is the minimal, correct fix (no new process/sync logic
-    # invented).
+    # switch #1's commit. Excluding engine-owned paths by name is the
+    # minimal, correct fix (no new process/sync logic invented).
+    #
+    # CR-01 (same bug class, third occurrence): last-wallpaper/ is a
+    # second engine-owned subdirectory (D-11 per-theme last-wallpaper
+    # memory, written by lib/wallpaper.sh and wallpaper-picker.sh) that is
+    # never part of the rendered tree — without the exclude, --delete
+    # wiped every recorded pick on each theme switch, silently defeating
+    # the feature end-to-end.
     #
     # WR-02: current-theme and .last-render-error.log are engine-owned
     # ROOT-LEVEL files that are also not part of the rendered tree — a
@@ -50,8 +55,8 @@ theme_engine_commit() {
     # state dir with rendered files but no current-theme, and a crash
     # between the rsync and the rewrite lost it permanently. Excluding
     # both keeps the old value visible until the atomic replace below.
-    rsync -a --delete --exclude=logs/ --exclude=current-theme \
-        --exclude=.last-render-error.log \
+    rsync -a --delete --exclude=logs/ --exclude=last-wallpaper/ \
+        --exclude=current-theme --exclude=.last-render-error.log \
         "$rendered_dir"/ "$STATE_DIR"/
 
     # rsync -a syncs the destination directory's own mode from the source
