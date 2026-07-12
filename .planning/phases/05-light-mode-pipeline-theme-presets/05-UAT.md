@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 05-light-mode-pipeline-theme-presets
 source: [05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md]
 started: 2026-07-12T03:10:00Z
@@ -134,7 +134,10 @@ blocked: 0
   reason: "User reported: An error notifications still appears"
   severity: major
   test: 4
-  root_cause: ""     # Filled by diagnosis
-  artifacts: []      # Filled by diagnosis
-  missing: []        # Filled by diagnosis
-  debug_session: ""  # Filled by diagnosis
+  root_cause: "Commit eac9263 (WR-04) assumes walker dmenu signals user-cancel as exit 0 + empty output. Walker 2.16.2 instead exits 130 on Esc with no output (verified in v2.16.2 tagged source: ACTION_CLOSE -> quit -> 'CNCLD' -> set_exit_status(130) in service mode, which is the live path on this machine). Every Esc therefore fires the `if ! SELECTED=$(...)` failure branch and its notify-send toast; the `[[ -z \"$SELECTED\" ]] && exit 0` cancel check is unreachable for real cancels. pipefail/SIGPIPE hypothesis eliminated (22-line input fits pipe buffer; printf exits 0 first). Hard failures use distinct codes: 127 binary missing, 1 elephant dead."
+  artifacts:
+    - path: "hypr/.config/hypr/scripts/theme-switch.sh"
+      issue: "Lines 46-50: error branch keyed on any nonzero pipeline exit; cannot distinguish walker's cancel status 130 from hard failure"
+  missing:
+    - "Capture the pipeline exit code set-e-safely (SELECTED=$(... | walker --dmenu ...) || rc=$?) and branch three ways: rc==130 -> silent exit 0 (cancel); other nonzero -> notify-send error + exit 1 (WR-04 intent preserved for 127/1/crash); rc==0 -> proceed, keeping the defensive empty-output check"
+  debug_session: .planning/debug/theme-switch-esc-cancel-error-toast.md
