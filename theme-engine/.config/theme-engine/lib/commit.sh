@@ -61,9 +61,15 @@ theme_engine_commit() {
     # orthogonal icon-theme-picker pick, is never part of the rendered
     # tree, and must survive every switch's --delete or the picker's
     # persistence would be silently wiped on the very next theme-apply.
+    #
+    # D-19/UTIL-05 (06-08): font-choice is a fourth engine-owned root-level
+    # state file, same bug class again — holds the theme-orthogonal
+    # font-switcher pick. kitty-font.conf/waybar-font.css ARE part of the
+    # rendered tree (lib/font.sh writes them every run) and are therefore
+    # NOT excluded — only the root-level state file itself is.
     rsync -a --delete --exclude=logs/ --exclude=last-wallpaper/ \
         --exclude=current-theme --exclude=.last-render-error.log \
-        --exclude=icon-theme \
+        --exclude=icon-theme --exclude=font-choice \
         "$rendered_dir"/ "$STATE_DIR"/
 
     # rsync -a syncs the destination directory's own mode from the source

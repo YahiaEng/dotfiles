@@ -21,6 +21,13 @@ GENERATE_LOG="${THEME_ENGINE_RENDER_LOG:-$HOME/.local/state/theme/.last-render-e
 # shellcheck source=lib/mode.sh
 source "$LIB_DIR/mode.sh"
 
+# UTIL-05/D-19: font is a theme-orthogonal state axis (same shape as
+# wallpaper.sh's last-wallpaper/ precedent) — lib/font.sh owns its own
+# render path (kitty-font.conf, waybar-font.css) and the read helper this
+# file's own theme_engine_render_gtk_settings uses for gtk-font-name below.
+# shellcheck source=lib/font.sh
+source "$LIB_DIR/font.sh"
+
 # theme_engine_generate <name> <tmp_dir>
 # name: "materialyou" or a validated static preset name (theme-apply already
 #       checked palettes/$name.json exists before calling this).
@@ -76,6 +83,11 @@ theme_engine_generate() {
 
     theme_engine_render_gtk_settings "$mode" "$tmp"
 
+    # UTIL-05/D-19: font-choice is re-rendered on EVERY run regardless of
+    # which theme/mode is active (independent axis, same call-site shape as
+    # the gtk-settings render right above it).
+    theme_engine_render_font_files "$tmp"
+
     return 0
 }
 
@@ -106,17 +118,27 @@ theme_engine_render_gtk_settings() {
     local icon_theme
     icon_theme="$(cat "$HOME/.local/state/theme/icon-theme" 2>/dev/null || echo Adwaita)"
 
+    # UTIL-05/D-19/Pitfall 6: font is a second theme-orthogonal state axis,
+    # same discipline as icon_theme directly above — read here (this SAME
+    # function that owns every other GTK-signal write) so a later theme
+    # switch never silently reverts a user's font pick back to the old
+    # hardcoded "FiraCode Nerd Font 11" literal. lib/font.sh's read helper
+    # (backed by ~/.local/state/theme/font-choice) is the single source of
+    # truth for the default fallback value.
+    local font_name
+    font_name="$(theme_engine_read_font)"
+
     local out_dir="$tmp$STATE_DIR"
     mkdir -p "$out_dir"
 
     # gtk-3.0: mode-driven lines first, then the three remaining static
     # lines copied verbatim from the current stowed file (D-07: cursor/font
     # untouched by mode).
-    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-theme-name=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=FiraCode Nerd Font 11\n' \
-        "$dark_theme_flag" "$gtk3_theme_name" "$icon_theme" > "$out_dir/gtk-3.0-settings.ini"
+    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-theme-name=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=%s 11\n' \
+        "$dark_theme_flag" "$gtk3_theme_name" "$icon_theme" "$font_name" > "$out_dir/gtk-3.0-settings.ini"
 
     # gtk-4.0: same key set minus gtk-theme-name (GTK4 does not use it,
     # matching the current stowed gtk-4.0/settings.ini).
-    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=FiraCode Nerd Font 11\n' \
-        "$dark_theme_flag" "$icon_theme" > "$out_dir/gtk-4.0-settings.ini"
+    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=%s 11\n' \
+        "$dark_theme_flag" "$icon_theme" "$font_name" > "$out_dir/gtk-4.0-settings.ini"
 }
