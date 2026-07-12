@@ -122,3 +122,14 @@ OSD-01 is now closed at the source level (all three defects from 06-VERIFICATION
 ---
 *Phase: 06-themed-surfaces-utility-suite*
 *Completed: 2026-07-13*
+
+## Self-Check: PASSED
+
+- FOUND: hypr/.config/hypr/config/autostart.conf
+- FOUND: install.sh
+- FOUND: theme-engine/.config/theme-engine/lib/reload.sh
+- FOUND: .planning/phases/06-themed-surfaces-utility-suite/06-13-SUMMARY.md
+- FOUND commit: 0170973
+- FOUND commit: 60df627
+- FOUND commit: 409f612
+- FOUND commit: 8546a25
