@@ -166,11 +166,15 @@ fi
 # kitten is unavailable; the original block-symbols chafa call is the last
 # resort for non-kitty-graphics terminals.
 PREVIEW_SCRIPT=$(mktemp /tmp/wp-preview-XXXXXX.sh)
-cat > "$PREVIEW_SCRIPT" << 'PREVIEW'
-#!/usr/bin/env bash
+# WR-02: interpolate the single WALLPAPER_DIR constant into the generated
+# script's prologue (printf %q — safe against spaces/metachars) so the
+# quoted heredoc body below references it instead of hardcoding a second
+# divergent copy of the path (same discipline as the ENUM heredoc above).
+printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\n' "$WALLPAPER_DIR" > "$PREVIEW_SCRIPT"
+cat >> "$PREVIEW_SCRIPT" << 'PREVIEW'
 ENTRY="$1"
 ENTRY="${ENTRY% ●}"
-FILE="$HOME/Pictures/Wallpapers/$ENTRY"
+FILE="$WALLPAPER_DIR/$ENTRY"
 [[ ! -f "$FILE" ]] && exit 0
 
 # Get preview pane dimensions from fzf — reserve 2 rows for the metadata
@@ -209,7 +213,7 @@ echo ""
 DIMS=$(identify -format "%wx%h" "$FILE" 2>/dev/null || echo "unknown")
 SIZE=$(du -h "$FILE" 2>/dev/null | cut -f1)
 ACTIVE_MARK=""
-CURRENT_LINK="$HOME/Pictures/Wallpapers/current.jpg"
+CURRENT_LINK="$WALLPAPER_DIR/current.jpg"
 if [[ -f "$CURRENT_LINK" ]]; then
     # Compare fully-resolved (readlink -f) targets on both sides — WALLPAPER_DIR
     # itself may sit behind a stow-managed directory symlink, so resolving only
@@ -228,11 +232,12 @@ chmod +x "$PREVIEW_SCRIPT"
 # preview script above. Second arg selects the transition (default: the
 # focus-navigate wipe; "random" for the Ctrl-R random-transition binding).
 LIVE_SCRIPT=$(mktemp /tmp/wp-live-XXXXXX.sh)
-cat > "$LIVE_SCRIPT" << 'LIVE'
-#!/usr/bin/env bash
+# WR-02: same interpolated-prologue pattern as PREVIEW_SCRIPT above.
+printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\n' "$WALLPAPER_DIR" > "$LIVE_SCRIPT"
+cat >> "$LIVE_SCRIPT" << 'LIVE'
 ENTRY="$1"
 ENTRY="${ENTRY% ●}"
-FILE="$HOME/Pictures/Wallpapers/$ENTRY"
+FILE="$WALLPAPER_DIR/$ENTRY"
 [[ ! -f "$FILE" ]] && exit 0
 if [[ "${2:-}" == "random" ]]; then
     awww img "$FILE" \
