@@ -152,6 +152,14 @@ PACMAN_PKGS=(
     ttf-hack-nerd
     ttf-iosevka-nerd
     ttf-meslo-nerd
+    # vlc + vlc-plugins-all (SHOT-03): Arch's vlc 3.0.23_2 packaging split codec
+    # plugins out of the base `vlc` package into `vlc-plugins-*`, so a fresh
+    # install of `vlc` alone cannot decode gpu-screen-recorder output.
+    vlc
+    vlc-plugins-all
+    # xdg-user-dirs: provides `xdg-user-dir` and creates ~/Pictures so
+    # screenshot-dir resolution is deterministic on a fresh install.
+    xdg-user-dirs
 
     # Personal
     zip
