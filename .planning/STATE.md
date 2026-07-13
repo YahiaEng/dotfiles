@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 07
 current_phase_name: super-key-menu
 status: executing
-stopped_at: Phase 07-04 COMPLETE (checkpoint approved, no regressions); ready to plan/execute 07-05
-last_updated: "2026-07-13T17:29:27.250Z"
+stopped_at: Phase 07-05 COMPLETE (menu tree shipped, stow-parity gap root-caused and closed with a self-healing guard; human re-tested and approved). Ready to plan/execute 07-06.
+last_updated: "2026-07-13T17:57:04.408Z"
 last_activity: 2026-07-13
-last_activity_desc: Phase 07-04 complete — MENU-01 delivered, super-tap menu bind + launcher relocation, final regression-sweep checkpoint approved
+last_activity_desc: Phase 07-05 complete — menu tree (root/Utilities/Screenshot/Settings) delivered; stow-parity gap root-caused and permanently closed with a self-healing guard in elephant-restart.sh
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 38
-  completed_plans: 34
+  completed_plans: 35
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 07 (super-key-menu) — EXECUTING
-Plan: 2 of 8
-Status: 07-04 complete; ready for 07-05
-Last activity: 2026-07-13 — Phase 07-04 complete (MENU-01 delivered)
+Plan: 3 of 8
+Status: 07-05 complete; ready for 07-06
+Last activity: 2026-07-13 — Phase 07-05 complete (menu tree delivered, stow-parity guard shipped)
 
 ## Performance Metrics
 
@@ -98,6 +98,7 @@ Last activity: 2026-07-13 — Phase 07-04 complete (MENU-01 delivered)
 | Phase 06 P19 | 20min | 3 tasks | 1 files |
 | Phase 07 P03 | 11min | 2 tasks | 1 files |
 | Phase 07 P04 | 35min+sweep | 2 tasks | 1 files |
+| Phase 07 P05 | 55min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -183,6 +184,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 07-04]: Tasks 1-2 executed and committed (e2362c1, 05828ee): SUPER_L tap-only `bindr` menu bind added additively then proven live (see D-02 entry above); old SUPER_L press-bind removed and app launcher relocated to Super+Space (D-01); Super+R left byte-identical. `hyprctl binds -j` shows zero press-binds/one release-bind on SUPER_L; keybind-doctor 8/0, 77 declared binds (baseline 76).
 - [Phase 07-04]: PLAN COMPLETE. Final blocking checkpoint (full ~48-bind human regression sweep, ROADMAP success criterion #1's human half) APPROVED by the human — "no regressions" across the full sweep (new binds, core/menus/clipboard/utility/focus/move/resize/workspace/scratchpad/mouse/non-Super binds, and a final green keybind-doctor run). Orchestrator-verified final state: SUPER_L press-binds=0, release-binds=1; Super+Space -> exec walker registered; Super+R -> walker -m runner unchanged; Super+Escape -> pkill walker intact; keybind-doctor 8/0, 77/77 declared binds registered, 77/77 description parity; git diff --exit-code install.sh vs 7c831dd clean (no input-layer package added). MENU-01 and ROADMAP success criterion #1 fully delivered.
 - [Phase 07-04]: PLAN COMPLETE: MENU-01/ROADMAP criterion #1 delivered — Super-tap menu bind + Super+Space launcher relocation, final regression-sweep checkpoint approved with zero regressions
+- [Phase 07-05]: STOW-PARITY finding (durable): adding a file to an already-stowed stow package is a silent no-op until stow is re-run; ~/.config/elephant/menus/ holds file-level symlinks (folded because the dir pre-existed), so utilities.toml/screenshot.toml/settings.toml were invisible to elephant while every repo-side gate passed green. Closed permanently with a self-healing stow-parity guard in elephant-restart.sh, proven live via fault injection. Applies to any stow package gaining a new file.
+- [Phase 07-05]: Corrected a false interim theory (never committed to any tracked file) that only parentless menus register as top-level elephant providers -- false; once genuinely stowed, all four menus:* providers registered despite three declaring a parent key. Original acceptance criterion was correct; the deployment was wrong.
+- [Phase 07-05]: Bluetooth/Display settings entries re-verified live during closeout: blueman and nwg-displays ARE installed on this dev machine and both launch successfully via the exact uwsm app -- action string in settings.toml, correcting a stale checkpoint note claiming they do nothing due to missing packages.
 
 ### Quick Tasks Completed
 
@@ -226,6 +230,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T17:28:29.868Z
-Stopped at: Phase 07-04 COMPLETE — checkpoint approved, no regressions; MENU-01 delivered
+Last session: 2026-07-13T17:57:04.402Z
+Stopped at: Phase 07-05 COMPLETE (menu tree shipped, stow-parity gap root-caused and closed with a self-healing guard; human re-tested and approved). Ready to plan/execute 07-06.
 Resume file: None
