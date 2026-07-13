@@ -295,7 +295,10 @@ theme_engine_apply_icon_theme() {
             # Pitfall 3: no folder-recolor tool — nearest-hue variant is a
             # full theme-name swap among whatever "<base>-*" directories
             # are actually installed (real enumeration, never a hardcoded
-            # variant list — Open Question 1).
+            # variant list — Open Question 1). An exact hue match swaps the
+            # name; anything else leaves the user's pick untouched, so this
+            # stays in lockstep with the settings.ini value generate.sh
+            # writes from the same state file.
             local base="${icon_theme%%-*}"
             local nearest="$icon_theme"
             if [[ -n "$hex" ]] && command -v python3 >/dev/null 2>&1; then
@@ -383,9 +386,17 @@ PYEOF
 # under /usr/share/icons and ~/.local/share/icons (Security Domain V5 —
 # real enumeration, never a hardcoded variant list — Open Question 1),
 # computes the ideal hue-bucket color name via the same enum as
-# theme_engine_nearest_papirus_color, then picks the installed variant
-# whose color-suffix matches (exact match preferred; otherwise the first
-# installed variant, so the swap always resolves to something real).
+# theme_engine_nearest_papirus_color, then returns the installed variant
+# whose color-suffix matches exactly.
+#
+# Emits NOTHING when there is no exact match. The papirus-folders enum this
+# borrows (carmine-red, oxidgreen, breeze, nordic, …) does not share a
+# vocabulary with Tela/Colloid's variant names (Tela-blue, Tela-nord, …), so
+# a miss is the common case, not the edge case. Returning an arbitrary
+# installed variant here would silently override the user's explicit pick on
+# every theme switch — and desync gsettings from the settings.ini value
+# generate.sh writes, leaving GTK3 (Thunar) and GTK4 on different icon
+# themes. Empty output means "no substitution"; the caller keeps the pick.
 theme_engine_nearest_icon_variant() {
     local base="$1"
     local hex="$2"
@@ -402,6 +413,10 @@ theme_engine_nearest_icon_variant() {
 
     [[ ${#installed[@]} -gt 0 ]] || return 0
 
+    # Deterministic order — find(1) returns directory order, which varies
+    # across runs and machines.
+    mapfile -t installed < <(printf '%s\n' "${installed[@]}" | sort -u)
+
     local ideal
     ideal="$(theme_engine_nearest_papirus_color "$hex")"
 
@@ -410,7 +425,5 @@ theme_engine_nearest_icon_variant() {
         [[ "$candidate" == "${base}-${ideal}" ]] && { printf '%s\n' "$candidate"; return 0; }
     done
 
-    # No exact color match among installed variants — fall back to the
-    # first one found rather than leaving the swap unresolved.
-    printf '%s\n' "${installed[0]}"
+    return 0
 }
