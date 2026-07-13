@@ -40,7 +40,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 - [x] **MENU-04**: Game center submenu with launchers (Steam etc.)
 - [x] **MENU-05**: Power menu entry (lock/logout/suspend/reboot/shutdown)
 - [x] **MENU-06**: Settings menu entry (theme switch, wallpaper, network, etc.)
-- [ ] **MENU-07**: Keybind cheat-sheet — searchable reference generated from keybinds.conf
+- [x] **MENU-07**: Keybind cheat-sheet — searchable reference generated from keybinds.conf
 
 ### Waybar Evolution
 
@@ -119,7 +119,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MENU-04 | Phase 7 | Complete |
 | MENU-05 | Phase 7 | Complete |
 | MENU-06 | Phase 7 | Complete |
-| MENU-07 | Phase 7 | Pending |
+| MENU-07 | Phase 7 | Complete |
 | BAR-01 | Phase 8 | Pending |
 | BAR-02 | Phase 8 | Pending |
 | BAR-03 | Phase 8 | Pending |

@@ -23,7 +23,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 4: Reliability Fixes & Tech Debt** - Root-cause and fix the wlogout shutdown hang, hyprlock first-keystroke drop, and kitty slow startup, then close the rsync install.sh carry-over (completed 2026-07-11)
 - [x] **Phase 5: Light Mode Pipeline & Theme Presets** - Extend the theme pipeline to light mode, ship more presets (incl. light), and organize per-theme wallpapers behind a redesigned picker (completed 2026-07-11)
 - [x] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite (19/19 plans executed, verification passed, UAT passed, 53/53 threats closed) (completed 2026-07-13)
-- [ ] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet
+- [x] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet (completed 2026-07-13)
 - [ ] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access
 - [ ] **Phase 9: wlogout to wleave Migration** - Replace wlogout with wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class, with no regression to the Phase 6 center-bar design
 
@@ -164,7 +164,7 @@ Plans:
   4. The AI dashboard opens a submenu of AI app launchers plus a dedicated pre-configured Hyprland AI workspace, and the Game center opens a launcher submenu (Steam etc.).
   5. A searchable keybind cheat-sheet generated from keybinds.conf is reachable from the menu.
 
-**Plans**: 7/8 plans executed
+**Plans**: 8/8 plans complete
 **UI hint**: yes
 
 Plans:
@@ -186,7 +186,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 07-08-PLAN.md — Keybind cheat-sheet: one shared display-only parser (V5 control), walker searchable list + kitty "View all" table, live-parsed on every open (MENU-07) [wave 4, depends on 07-02, 07-04, 07-05]
+- [x] 07-08-PLAN.md — Keybind cheat-sheet: one shared display-only parser (V5 control), walker searchable list + kitty "View all" table, live-parsed on every open (MENU-07) [wave 4, depends on 07-02, 07-04, 07-05]
 
 ### Phase 8: Waybar Evolution
 
@@ -213,7 +213,7 @@ Plans:
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
-| 7. Super-Key Menu | v2.0 | 7/8 | In Progress|  |
+| 7. Super-Key Menu | v2.0 | 8/8 | Complete   | 2026-07-13 |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
