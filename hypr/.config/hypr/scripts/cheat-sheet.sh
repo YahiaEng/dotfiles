@@ -17,8 +17,18 @@ source "$SCRIPT_DIR/cheat-sheet-parser.sh"
 
 VIEW_ALL_LABEL="View all keybinds ›"
 
-ROWS=()
-CHORDS=()
+# D-29's bridge to the second surface, PINNED FIRST so it is always the row
+# under the cursor when the list opens (and still reachable by typing "view").
+#
+# ROWS and CHORDS are INDEX-PARALLEL — the clipboard lookup below finds a row in
+# ROWS and reads the chord at the same index in CHORDS. So the pinned row needs a
+# placeholder in CHORDS too; prepending to ROWS alone would shift every chord by
+# one and copy the WRONG keybind. The placeholder is never read (selecting the
+# pinned row short-circuits into the kitty card before the lookup runs), but the
+# arrays must stay aligned regardless.
+ROWS=("$VIEW_ALL_LABEL")
+CHORDS=("")
+
 while IFS=$'\t' read -r _section chord desc; do
     # Row format locked by UI-SPEC: "{Chord} — {Description}", description
     # text reused VERBATIM from keybinds.conf (never paraphrased) — the
@@ -27,9 +37,6 @@ while IFS=$'\t' read -r _section chord desc; do
     ROWS+=("${chord} — ${desc}")
     CHORDS+=("$chord")
 done < <(cheat_sheet_parse_binds)
-
-# D-29's bridge to the second surface.
-ROWS+=("$VIEW_ALL_LABEL")
 
 # Phase 5's 05-05 cancel-toast regression: walker 2.16.2's real cancel
 # signal is exit 130 with no stdout — trusted as the sole cancel signal
