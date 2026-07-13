@@ -5,8 +5,8 @@ milestone_name: Desktop Expansion
 current_phase: 09
 current_phase_name: wlogout to wleave Migration
 status: planning
-stopped_at: Phase 8 context gathered
-last_updated: "2026-07-13T21:47:00.660Z"
+stopped_at: Phase 8 UI-SPEC approved
+last_updated: "2026-07-13T22:21:11.143Z"
 last_activity: 2026-07-13
 last_activity_desc: Phase 07 complete, transitioned to Phase 09
 progress:
@@ -231,6 +231,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T21:47:00.653Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-waybar-evolution/08-CONTEXT.md
+Last session: 2026-07-13T22:21:11.136Z
+Stopped at: Phase 8 UI-SPEC approved
+Resume file: .planning/phases/08-waybar-evolution/08-UI-SPEC.md

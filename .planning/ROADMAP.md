@@ -213,7 +213,7 @@ Plans:
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
-| 7. Super-Key Menu | v2.0 | 8/8 | Complete   | 2026-07-13 |
+| 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
@@ -222,7 +222,7 @@ Plans:
 **Goal**: Replace wlogout with wleave (GTK4) as the power menu, eliminating the GTK3 whole-stylesheet-discard failure class that produced the WLOG-01 blocker, and moving onto an actively-maintained tool — with no regression to the Phase 6 center-bar design.
 **Requirements**: WLOG-01 (re-delivered on a new engine)
 **Depends on:** Phase 8
-**Plans:** TBD
+**Plans:** 8/8 plans complete
 
 **Why this phase exists** (decided 2026-07-13, after Phase 6's wlogout work):
 
