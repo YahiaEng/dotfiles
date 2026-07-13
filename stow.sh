@@ -90,6 +90,14 @@ mkdir -p "$HOME/.cache"
 # unconditional write clobbers the user's currently selected layout.
 [[ -f "$HOME/.cache/current-waybar-layout" ]] || echo "full" > "$HOME/.cache/current-waybar-layout"
 
+# D-27/D-28: seed-only-when-absent (same idiom as above) — guarantees the
+# gaming-mode state file exists on a fresh install so gaming-mode-toggle.sh
+# never has to handle a missing-file case on first read. This is NOT the
+# D-28 session reset (that's the unconditional autostart.conf exec-once
+# hook) — re-running stow.sh mid-session must never clobber an active
+# toggle's state.
+[[ -f "$HOME/.cache/gaming-mode" ]] || echo "off" > "$HOME/.cache/gaming-mode"
+
 # ── Switch to zshell ─────────────────────────────────
 # Pitfall 6/D-59: a non-root `chsh` prompts for the invoking user's login
 # password via PAM, breaking the strictly-zero-prompts requirement. A
