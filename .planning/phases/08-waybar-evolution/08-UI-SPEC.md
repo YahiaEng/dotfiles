@@ -64,10 +64,12 @@ The refactor (D-31/33/34) is explicitly behavior-preserving — no padding/margi
 |---|---|---|
 | Column width | 48px | icon-glyph box (`24px`) + `12px` padding each side — matches the existing horizontal bars' `40px` height order of magnitude, keeping visual weight consistent across layouts |
 | Module vertical gap (stacked modules) | 8px (`sm`) | matches existing `#cpu`/`#memory` `margin: 4px 1px` order of magnitude without inheriting the odd `1px` (that value stays scoped to the horizontal modules it already applies to, per D-31's "redefine in full, don't partial-patch" `include` rule) |
-| Column-edge margin (flush-left, D-14) | 6px | matches the existing bars' `margin-left: 10px`/`margin-top: 6px` bar-level convention closely enough to read as one family; exact value is a bar-level `margin-left` key, not a CSS rule |
+| Column-edge margin (flush-left, D-14) | 8px (`sm`) | on-scale value; at a 48px column width, 4px reads as an accidental gap while 8px reads as a deliberate flush-left inset — 8px it is. Applied as the bar-level `margin-left` key, not a CSS rule |
 | Icon glyph box | 24×24px | consistent glyph-box size for every module in the column (workspaces, volume, network, battery, notification, media trigger, cpu/mem/temp, tray, power) |
 
 **eww media popup (new, D-18..25):**
+
+**Focal point:** the **220×220px album art** — it is the largest element, sits at the top of the popup, and is the only image on the surface; everything else (title/artist, transport row, seek bar, volume, player switcher) is a descending hierarchy beneath it. Do not let any control compete with it for first-glance attention (no full-width accent-filled buttons, no oversized play glyph above 20px).
 
 | Element | Value | Rationale |
 |---|---|---|
@@ -75,13 +77,15 @@ The refactor (D-31/33/34) is explicitly behavior-preserving — no padding/margi
 | Popup padding | 16px (`md`) | outer content padding |
 | Album art size | 220×220px, 16px radius | "full-fat" per D-21 — deliberately larger than swaync's now-deleted 96px mpris widget, since this IS the dedicated media surface |
 | Control row gap | 8px (`sm`) between prev/play-pause/next buttons | |
-| Seek-bar track height | 6px | matches SwayOSD's existing progress-track convention (`06-UI-SPEC.md`), keeping "progress track" visual language consistent across the desktop |
-| Seek-bar thumb diameter | 14px | |
+| Seek-bar track height | 8px (`sm`) | on-scale. Deliberately **not** copying SwayOSD's 6px — that value is an explicitly-declared upstream deviation in `06-UI-SPEC.md` scoped to SwayOSD's own stylesheet; eww's seek bar is a newly-authored element, so it conforms to the scale |
+| Seek-bar thumb diameter | 16px (`md`) | on-scale; 2× the track height, so the thumb reads clearly as a grabbable handle on a draggable seek bar (D-21) |
 | Section gap (art → transport → seek → volume → switcher) | 16px (`md`) | |
 | Player-switcher row height | 32px, 8px horizontal padding | matches SwayOSD/wlogout's established compact-row sizing |
 | Popup corner radius | 16px | matches swaync's `.control-center` radius (`06-CONTEXT.md`/live `style.css`), keeping the two "panel-class" surfaces visually related |
 
 **swaync panel rework (D-27/28/30):**
+
+**Focal point:** the **notification list** stays the focal point — it occupies the largest vertical area and is what the panel is *for*. The new control widgets (volume slider, backlight slider, 3-button toggle grid) are a compact secondary band pinned above it, sized and colored to read as supporting controls, never as the panel's headline. Vertical order top→bottom: title + Clear All → DND → volume slider → backlight slider → toggle grid → notification list.
 
 | Element | Value | Rationale |
 |---|---|---|
@@ -100,6 +104,16 @@ The refactor (D-31/33/34) is explicitly behavior-preserving — no padding/margi
 | Mechanism | `margin-left`/`margin-top` micro-adjustment via the same owner-CSS-file + SIGUSR2-reload pattern already used for idle-dim (reuse, not a new mechanism) | Must not reflow any window (D-09 kill criterion #2) — since idle-dim already proves CSS-only property changes on a mapped `window#waybar` don't reflow tiled windows, jitter should inherit that same safety property; if it doesn't, kill it |
 
 If any kill criterion fires, BAR-02 closes as **descoped with evidence** in `08-VERIFICATION.md` (D-10) — not silently dropped. The standing hypothesis (D-01's auto-hide + D-06's low-luminance styling already remove most of the exposure) should be stated and evaluated explicitly, not assumed.
+
+### Scope note — values that are NOT spacing-scale tokens
+
+Every **layout spacing value** declared anywhere in this file (padding, margin, gap, element width/height, radius) is a multiple of 4 — verified by sweep. Three classes of value in this file are deliberately not on the 8-point grid because they are not spacing at all:
+
+| Value class | Values used | Why it's not a spacing token |
+|---|---|---|
+| Border widths | 1px, 2px, 3px | Stroke weights, not layout spacing — a 4px border would be a design defect, not grid compliance (and 3px is a *pre-existing* value this phase is actively thinning to 1px, see OLED Styling Deltas) |
+| Font sizes | 12px, 13px, 16px, 20px | Governed by the Typography contract's 4-size scale, not the spacing scale |
+| Pixel-shift displacement | 2px (BAR-02) | A burn-in mitigation offset whose entire design goal is sub-perceptibility — snapping it to the 4px grid would defeat its only kill criterion. It moves the bar; it does not space anything |
 
 Exceptions beyond the above: none.
 
