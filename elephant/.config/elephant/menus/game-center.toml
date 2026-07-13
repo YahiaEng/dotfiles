@@ -12,7 +12,25 @@ parent = "main"
 
 [[entries]]
 text = "  Steam"
-actions = { "open" = "uwsm app -- gamemoderun mangohud steam" }
+# D-26 DEVIATION (live-proven, 2026-07-13): Steam is deliberately NOT
+# wrapped in `gamemoderun mangohud`. Both tools work by LD_PRELOADing a
+# library into the target, and Steam's launcher is a shell script that
+# spawns a whole process tree — bash, the reaper, srt-logger, and
+# `steamwebhelper` (a Chromium/CEF process). The preloads propagate into
+# EVERY child: gamemoded registers /usr/bin/bash and dozens of transient
+# PIDs as "games", and MangoHud injects a Vulkan/GL overlay into Steam's
+# own CEF UI processes. The result is a hard startup failure — reported
+# live as "Steam encountered an unexpected error during startup (0x03008)",
+# and reproduced by A/B test: wrapped -> a "Steam :: Unexpected Transport
+# Error" dialog and no usable client; plain -> a healthy "Sign in to Steam"
+# window with steamwebhelper alive. Lutris is NOT affected (verified: it
+# launches fine wrapped), so its wrapper below is kept as D-26 specifies.
+#
+# D-26's INTENT (per-launch, never global) is preserved. The correct
+# application point for Steam is PER-GAME — which is strictly MORE
+# per-launch than wrapping the client: set a game's Launch Options in
+# Steam to `gamemoderun mangohud %command%`.
+actions = { "open" = "uwsm app -- steam" }
 
 [[entries]]
 text = "  Lutris"
