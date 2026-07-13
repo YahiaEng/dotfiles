@@ -111,19 +111,22 @@ _cs_keycap() {
             "(tap)")               g='tap' ;;
             *)                     g="$tok" ;;
         esac
+        # NO background fill. Reverse video (`\033[7m`) borrows the foreground
+        # colour as a fill and so always renders a maximum-contrast block that
+        # glares; a soft surface fill was still a visible slab. The quietest
+        # form that stays legible is plain type: the key itself in BOLD ACCENT,
+        # keys joined by a DIM "+". Colour still comes from palette indices
+        # (slot 3), so this re-themes with kitty and hardcodes no hex.
+        #
+        # CAP_PLAIN mirrors CAP_COLOR character-for-character and is the ONLY
+        # thing ever measured — the escapes in CAP_COLOR must never reach the
+        # width maths or every box border shifts.
         if [[ -n "$CAP_PLAIN" ]]; then
-            CAP_PLAIN+=' '
-            CAP_COLOR+=' '
+            CAP_PLAIN+=' + '
+            CAP_COLOR+=$'\033[2m'" + "$'\033[0m'
         fi
-        # The chip is a SOFT surface fill, not reverse video. `\033[7m` inverts
-        # fg/bg, which produces a full-contrast block that glares on a dark
-        # theme. Instead: background = palette slot 0 (the theme's subtle
-        # surface — #313244 under catppuccin), glyph = slot 3 (accent). Both
-        # are palette indices, so the chip still re-themes with kitty and never
-        # hardcodes a hex. Visible width is unchanged (" g "), so the border
-        # alignment maths is untouched.
-        CAP_PLAIN+=" $g "
-        CAP_COLOR+=$'\033[48;5;0m\033[38;5;3m'" $g "$'\033[0m'
+        CAP_PLAIN+="$g"
+        CAP_COLOR+=$'\033[1;38;5;3m'"$g"$'\033[0m'
     done
 }
 
