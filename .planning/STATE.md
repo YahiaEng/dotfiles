@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 09
-current_phase_name: wlogout to wleave Migration
-status: planning
-stopped_at: Phase 8 UI-SPEC approved
-last_updated: "2026-07-13T22:21:11.143Z"
-last_activity: 2026-07-13
-last_activity_desc: Phase 07 complete, transitioned to Phase 09
+current_phase: 08
+current_phase_name: Waybar Evolution
+status: Ready to execute
+stopped_at: Phase 8 planned — 10 plans across 4 waves
+last_updated: "2026-07-14T02:45:00.000Z"
+last_activity: 2026-07-14
+last_activity_desc: Phase 08 planned (10 plans, 4 waves); BAR-01..BAR-05 and all 37 decisions covered
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 38
+  total_plans: 48
   completed_plans: 38
   percent: 67
 ---
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-12)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 07 — super-key-menu
+**Current focus:** Phase 08 — waybar-evolution
 
 ## Current Position
 
-Phase: 09 — wlogout to wleave Migration
-Plan: Not started
-Status: 07-05 complete; ready for 07-06
-Last activity: 2026-07-13 — Phase 07 complete, transitioned to Phase 09
+Phase: 08 — Waybar Evolution
+Plan: 10 plans across 4 waves (08-01 … 08-10) — none executed yet
+Status: Planned; ready to execute
+Last activity: 2026-07-14 — Phase 08 planned (BAR-01..BAR-05 + all 37 decisions covered; plan-checker 0 blockers)
 
 ## Performance Metrics
 
