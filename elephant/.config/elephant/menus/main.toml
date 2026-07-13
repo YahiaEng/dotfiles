@@ -23,9 +23,9 @@ submenu = "game-center"
 
 [[entries]]
 text = "  Keybinds"
-# Forward reference (deliberate, not a bug): cheat-sheet.sh is authored by
-# plan 07-08. Wired here now so main.toml has exactly one owner for the
-# root menu; 07-08 lands the script this action points at.
+# 07-08 landed cheat-sheet.sh — the forward reference authored in 07-05 is
+# now resolved (D-29: a walker searchable list; picking "View all
+# keybinds ›" from inside it opens the kitty table surface).
 actions = { "open" = "~/.config/hypr/scripts/cheat-sheet.sh" }
 
 [[entries]]
