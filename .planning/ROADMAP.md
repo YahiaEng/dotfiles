@@ -164,7 +164,7 @@ Plans:
   4. The AI dashboard opens a submenu of AI app launchers plus a dedicated pre-configured Hyprland AI workspace, and the Game center opens a launcher submenu (Steam etc.).
   5. A searchable keybind cheat-sheet generated from keybinds.conf is reachable from the menu.
 
-**Plans**: 5/8 plans executed
+**Plans**: 6/8 plans executed
 **UI hint**: yes
 
 Plans:
@@ -181,7 +181,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 07-06-PLAN.md — AI dashboard: Zen web-app windowrules (title-regex; Zen collapses all WM_CLASS to `zen`), idempotent `ai-workspace.sh` (D-24), 7-entry submenu (MENU-03) [wave 3, depends on 07-03, 07-05]
+- [x] 07-06-PLAN.md — AI dashboard: Zen web-app windowrules (title-regex; Zen collapses all WM_CLASS to `zen`), idempotent `ai-workspace.sh` (D-24), 7-entry submenu (MENU-03) [wave 3, depends on 07-03, 07-05]
 - [ ] 07-07-PLAN.md — Game center: 4 launchers + runtime-only reversible gaming-mode toggle, session reset-to-OFF (D-28 forecloses the never-locks failure mode) (MENU-04) [wave 3, depends on 07-03, 07-05]
 
 **Wave 4** *(blocked on Wave 3)*
@@ -213,7 +213,7 @@ Plans:
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
-| 7. Super-Key Menu | v2.0 | 5/8 | In Progress|  |
+| 7. Super-Key Menu | v2.0 | 6/8 | In Progress|  |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
