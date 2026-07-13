@@ -91,6 +91,18 @@ Both headline risks resolve to a **GO with a native, package-free mechanism**, v
 
 **Primary recommendation:** Ship the tap-only bind as a plain hyprlang `bindr` (no third-party package), ship the menu tree as `elephant-menus` TOML files consumed by walker's existing `[providers]`/`[sets]` mechanism (a new `[sets.menu]` block scoped to `providers = ["menus:main"]`, mirroring the already-working `[sets.runner]` pattern), and correct two assumptions baked into CONTEXT.md before planning: **`protonup-qt` is AUR-only** (not official-repo, contradicting D-25/D-33's assumption), and **Zen gives every window the same WM_CLASS regardless of URL** (D-21's "dedicated windowrule class per AI app" needs a title-regex fallback, not class matching).
 
+> ### ⛔ CORRECTION — the `[sets]` half of the recommendation above is WRONG. Disproved by 07-01's D-05 spike.
+>
+> **This document repeatedly asserts that `walker -s <name>` set-scoping "already works" in this repo (see the walker row in Core, and Open Question 1). That claim was inferred from the presence of a `[sets.runner]` block in `walker/.config/walker/config.toml` — it was never executed. It is false.**
+>
+> Proven live against walker 2.16.2 (reproduced 5× by the 07-01 executor, then independently re-confirmed by the orchestrator with PID evidence):
+>
+> - **`walker -s <set>` panics the walker gapplication-service and kills it** (`can't find specified set`, `src/data.rs:566`). It fails against the shipped `[sets.runner]` block too — so **`walker -s runner`, bound to `Super+R` in production today, is already broken.** (Plan 07-02 repoints it; plan 07-01 deletes the dead block.)
+> - **The `menus` provider itself is fine — GO.** Submenus, drill-down, leaf actions and Nerd Font glyph-as-text all work. D-05's `--dmenu` fallback is NOT needed.
+> - **Use exclusive-provider mode instead:** `walker -m menus:main` (verified: registers via `elephant listproviders`, renders, and leaves the service alive). `walker -m runner` is the working Super+R equivalent.
+>
+> Everywhere below that says `[sets.menu]`, `walker -s menu`, or `providers = [...]` allowlist, read `walker -m menus:<name>` with no allowlist. **Open Question 1 is therefore MOOT** — `-m` targets a provider directly and has no set to enumerate. Open Question 2 (back-nav) is answered: **Esc goes back exactly one level; a second Esc closes.** The lesson is the phase's own D-05 lesson, applied to research rather than to a plan: *a config block existing in a file is not evidence that the code path works.*
+
 ## Architectural Responsibility Map
 
 | Capability | Primary Tier | Secondary Tier | Rationale |
@@ -112,7 +124,7 @@ Both headline risks resolve to a **GO with a native, package-free mechanism**, v
 | Hyprland | 0.55.4 (`hyprctl version`) | Compositor; owns tap-only bind via `bindr` | Already the project's compositor; `bindr`+default-shadow is Hyprland's own documented mechanism, zero new dependency |
 | elephant | 2.21.0 (`elephant version` / `pacman -Qi`) | Backend data/menu daemon behind walker | Already running (`exec-once = uwsm app -- elephant`), already the walker backend for every other provider in this repo |
 | elephant-menus | 2.21.0 (`pacman -Qi elephant-menus`) | The `menus` provider plugin (`/usr/lib/elephant/menus.so`) | Already installed since 2026-07-09 per `pacman -Qi` install date; simply unconfigured (`~/.config/elephant/` doesn't exist yet) |
-| walker | 2.16.2 (`walker --version`) | GTK4 frontend, renders elephant's menu items via `[providers]`/`[sets]` | Already the project's launcher; `walker -s <name>` set-scoping is the exact mechanism already used for `$app_launcher_drun` (`walker -s runner`) |
+| walker | 2.16.2 (`walker --version`) | GTK4 frontend, renders elephant's menu items via `[providers]` + exclusive-provider mode (`-m`) | Already the project's launcher. ⛔ **CORRECTED:** the original claim here — that `walker -s <name>` set-scoping "is the exact mechanism already used for `$app_launcher_drun` (`walker -s runner`)" — is FALSE. `-s` panics this binary and kills the service, including on the shipped `[sets.runner]` block, meaning Super+R is already broken. Use `-m <provider>` (verified working). See the correction block above. |
 
 ### Supporting (new packages this phase)
 
@@ -401,15 +413,18 @@ echo "keybind-doctor: $PASS passed, $FAIL failed"
 
 ## Open Questions
 
-1. **Does walker's `-s <set>` scoping survive a `ProviderUpdated` broadcast to a DIFFERENT provider (e.g. `menus:utilities`) than the set's declared `providers = ["menus:main"]`?**
-   - What we know: `elephant`'s `Activate()` sends `handlers.ProviderUpdated <- "menus:<submenu>"` on drill-down, and walker's `[sets.runner]`-style scoping is confirmed to work for the single-provider case (`walker -s runner` already ships and works in this repo today).
-   - What's unclear: whether a `[sets.menu]` locked to `providers = ["menus:main"]` still receives and renders results from `menus:utilities` after a submenu transition, or whether the set's provider allowlist needs to be broadened (e.g. `providers = ["menus:main","menus:utilities","menus:screenshot", …]` listing every menu file by name) for drill-down to actually display.
-   - Recommendation: this is the FIRST thing the D-05 spike must empirically prove, before any submenu content is authored — a two-file main→child test menu (deliberately not this phase's real content) validates the wiring cheaply.
+**Both were closed empirically by 07-01's D-05 spike. Answers recorded below; the original text is kept for provenance.**
 
-2. **Does the `menus:parent` back-navigation action bind to Esc/Backspace automatically, or does it require a walker-side keybind/modifier config this research didn't locate?**
-   - What we know: the `menus` provider's `State()` function returns `Actions: []string{ActionGoParent}` when a menu has a `Parent` set — this is elephant's half of the contract.
-   - What's unclear: walker's own consumption of provider `State()` actions (which UI gesture triggers them) wasn't found in the parts of the source tree fetched this session (elephant-menus' own repo does not contain walker's GTK4 frontend code — that's a separate `abenz1267/walker` repository not fetched in this session).
-   - Recommendation: spike this specifically — open a two-level test menu, confirm empirically whether Esc naturally goes up one level (matching D-06's contract) or whether the plan needs an explicit walker keybind config addition.
+1. ~~**Does walker's `-s <set>` scoping survive a `ProviderUpdated` broadcast to a DIFFERENT provider (e.g. `menus:utilities`) than the set's declared `providers = ["menus:main"]`?**~~
+   - **✅ CLOSED — MOOT, and the premise was false.** The spike found that `walker -s <set>` **panics walker 2.16.2 and kills the gapplication-service** (`can't find specified set`, `src/data.rs:566`) — including against the shipped `[sets.runner]` block. The "what we know" line below was wrong: `walker -s runner` does **not** "already ship and work in this repo today"; it was never executed, only read out of a config file. **Super+R is broken in production as a result.**
+   - **Resolution:** the phase uses exclusive-provider mode — `walker -m menus:main` — which has **no set and no provider allowlist**, so the question of broadening it does not arise. Drill-down to `menus:utilities` was confirmed working under `-m`. `walker -m runner` fixes Super+R (plan 07-02).
+   - ~~What we know: `elephant`'s `Activate()` sends `handlers.ProviderUpdated <- "menus:<submenu>"` on drill-down, and walker's `[sets.runner]`-style scoping is confirmed to work for the single-provider case (`walker -s runner` already ships and works in this repo today).~~ ← **this last clause is the false inference that produced the wrong design.**
+   - ~~What's unclear: whether a `[sets.menu]` locked to `providers = ["menus:main"]` still receives and renders results from `menus:utilities` after a submenu transition, or whether the set's provider allowlist needs to be broadened.~~
+
+2. ~~**Does the `menus:parent` back-navigation action bind to Esc/Backspace automatically, or does it require a walker-side keybind/modifier config this research didn't locate?**~~
+   - **✅ CLOSED — Esc, automatically. No walker keybind config needed.** The spike drove a live two-level menu and observed: **Esc goes back exactly one level** (child → root); a **second Esc closes the menu** entirely. This matches 07-UI-SPEC's D-06 contract precisely, for free.
+   - ~~What we know: the `menus` provider's `State()` function returns `Actions: []string{ActionGoParent}` when a menu has a `Parent` set — this is elephant's half of the contract.~~
+   - ~~What's unclear: walker's own consumption of provider `State()` actions (which UI gesture triggers them) wasn't found in the parts of the source tree fetched this session.~~
 
 ## Environment Availability
 

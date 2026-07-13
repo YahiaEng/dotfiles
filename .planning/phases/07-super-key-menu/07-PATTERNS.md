@@ -10,7 +10,7 @@
 |--------------------|------|-----------|-----------------|----------------|
 | `elephant/.config/elephant/menus/main.toml` (NEW stow pkg) | config (menu tree) | transform | none in-repo — RESEARCH.md's own live-verified README schema is authoritative | no analog |
 | `elephant/.config/elephant/menus/{utilities,screenshot,settings,ai-dashboard,game-center}.toml` (NEW) | config (menu tree) | transform | same as `main.toml` | no analog |
-| `walker/.config/walker/config.toml` (EDIT — add `[sets.menu]`) | config | transform | itself, `[sets.runner]` block | exact |
+| `walker/.config/walker/config.toml` (EDIT — add `[placeholders]` row for `menus`; DELETE dead `[sets.runner]`) | config | transform | itself, `[placeholders]` table (lines 10-12) | exact |
 | `hypr/.config/hypr/config/keybinds.conf` (EDIT — tap bind, kill-bind, Super+Space, back-filled comments) | config (DSL) | transform | itself (existing bind blocks + comment convention) | exact |
 | `hypr/.config/hypr/config/autostart.conf` (EDIT — gaming-mode reset-to-OFF hook) | config | event-driven | itself (existing `exec-once` fan-out lines) | exact |
 | `hypr/.config/hypr/config/windowrules.conf` (EDIT — Zen AI web-app title-regex rules, floating picker rules) | config (DSL) | transform | itself (existing `windowrule { name = wallpaper-picker ... }` blocks) | exact |
@@ -62,21 +62,17 @@ parent = "main"                # enables menus:parent back-navigation
 
 ### `walker/.config/walker/config.toml` (EDIT)
 
-**Analog:** itself — the existing `[sets.runner]` block (lines 50-52), already proven live via `walker -s runner` (`$app_launcher_drun` in `keybinds.conf`):
-```toml
-[sets.runner]
-providers = ["runner"]
-placeholder = { input = "Run command...", list = "No matches" }
-```
-**New block to add** (source: RESEARCH.md Code Examples):
-```toml
-[sets.menu]
-providers = ["menus:main"]
-placeholder = { input = "Menu", list = "No entries" }
-```
-**Open Question 1 (RESEARCH.md) not yet resolved:** whether `providers = ["menus:main"]` alone survives a `ProviderUpdated` broadcast to `menus:utilities` after drill-down, or whether every submenu name needs listing (`["menus:main","menus:utilities","menus:screenshot", ...]`). The D-05 spike (two-file test menu) must answer this BEFORE the real six-submenu content is authored — treat the `providers` array's exact contents as unresolved until spiked, not as a copy-paste-and-move-on step.
-
-`menus` is already present in `[providers] default` (line 20) and in `theme-doctor`'s provider-parity exception list (see below) — no change needed there.
+> ### ⛔ CORRECTED by 07-01's D-05 spike — do NOT follow the struck-through guidance below.
+>
+> ~~**Analog:** itself — the existing `[sets.runner]` block (lines 50-52), already proven live via `walker -s runner`~~ — **this "already proven live" claim was false.** It was inferred from the block's presence in the config file; it was never run. **`walker -s <set>` panics walker 2.16.2 and kills the gapplication-service** (`can't find specified set`, `src/data.rs:566`), including on `[sets.runner]` itself — so `Super+R` is broken in production today.
+>
+> **There is NO `[sets.menu]` block to add.** The phase uses exclusive-provider mode: `walker -m menus:main`. It needs no set and no `providers` allowlist, so **RESEARCH Open Question 1 is moot**.
+>
+> **The two actual edits to this file** (07-01 Task 3):
+> 1. Add a row to the EXISTING `[placeholders]` table (lines 10-12, keyed by provider) carrying 07-UI-SPEC's locked root copy `{ input = "Search or select...", list = "No entries" }`. Verify the exact key form (`"menus"` vs `"menus:main"`) against the running binary.
+> 2. **Delete** the dead `[sets.runner]` block and its banner, leaving a comment saying why — it is a live trap, not merely unused.
+>
+> `menus` is already present in `[providers] default` (line 20) and in `theme-doctor`'s provider-parity exception list (see below) — no change needed there.
 
 ---
 
@@ -96,9 +92,12 @@ bind = $mainMod, Escape, exec, pkill walker
 bind = $mainMod, SUPER_L, exec, $app_launcher
 
 # ── ADD ──
-bind = $mainMod, SPACE, exec, $app_launcher              # D-01 relocated launcher
-bindr = $mainMod, SUPER_L, exec, uwsm app -- walker -s menu   # D-02 tap-only menu
+bind = $mainMod, SPACE, exec, $app_launcher                        # D-01 relocated launcher
+bindr = $mainMod, SUPER_L, exec, uwsm app -- walker -m menus:main  # D-02 tap-only menu
 ```
+**Note the `-m`, not `-s`.** `walker -s menu` (the originally-planned command) panics walker 2.16.2 and kills the launcher service — a bare Super tap would kill walker on every press. See the correction block above.
+
+**Also in this file (07-02):** line 13's `$app_launcher_drun = walker -s runner` is the same broken flag and must be repointed to `walker -m runner` — that is the pre-existing `Super+R` bug the spike uncovered.
 Do NOT write `bindr = , SUPER_L, ...` (empty modifier field) — RESEARCH.md Pitfall 1 documents this as a well-known non-working footgun (GH issue #6946); always the target-modmask form `bindr = $mainMod, SUPER_L, ...`.
 
 **3. Back-filled `# comment` descriptions (D-30) — every bind that lacks one.** The file already has the convention half-applied — compare line 40 (`bind = $mainMod, T, exec, ... # Switch theme`) against line 91 (`bind = $mainMod, left, movefocus, l` — no comment). D-30 requires closing this gap on EVERY line, including movefocus/movewindow/resize/workspace/media-key blocks (lines 91-167) which currently have zero comments. Copy the exact trailing-comment style already used in the Utilities block (lines 79-82, e.g. `# Emoji picker`) — short, present-tense, no period.
