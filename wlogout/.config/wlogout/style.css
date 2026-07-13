@@ -38,43 +38,11 @@ button label {
     font-size: 28px;
 }
 
-/* ── Action name reveal on hover/focus (HUD label, not a permanent tile caption) ── */
-button::after {
-    font-family: "FiraCode Nerd Font";
-    font-size: 0px;
-    opacity: 0;
-    transition: all 0.2s ease;
-}
-
-button:hover::after,
-button:focus::after {
-    font-size: 14px;
-    opacity: 1;
-}
-
-#lock::after {
-    content: "Lock";
-}
-
-#logout::after {
-    content: "Logout";
-}
-
-#suspend::after {
-    content: "Suspend";
-}
-
-#hibernate::after {
-    content: "Hibernate";
-}
-
-#shutdown::after {
-    content: "Shutdown";
-}
-
-#reboot::after {
-    content: "Reboot";
-}
+/* ── No hover-label reveal: GTK3 has no generated-content pseudo-element
+   support (and no matching content property), so a second text slot for a
+   hover label doesn't exist here. Affordance instead comes from the
+   per-action accent borders below, the hover/focus colour inversion, and
+   the keybind letters already set per action in layout (D-09/D-10). ── */
 
 /* ── Per-action accent borders + hover colors (preserved unchanged) ──── */
 
