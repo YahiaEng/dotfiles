@@ -52,19 +52,44 @@ fi
 # D-22: aichat reaches ollama via its OpenAI-compatible endpoint. Seeded
 # once, idempotently — created only if absent, never overwritten (a user's
 # own aichat config, e.g. for other providers, must survive re-picks).
+#
+# The schema below is live-verified against aichat 0.30.0 + ollama 0.31.2
+# (07-07 closeout). Two things that are NOT obvious and were originally
+# wrong here, both proven by running the binary rather than reading docs:
+#
+#   1. `model:` must be a fully-qualified `<client>:<model>` reference. The
+#      bare client name (`model: ollama`) makes aichat exit with
+#      "Error: Unknown chat model 'ollama'" — i.e. the menu entry would open
+#      a kitty window with a dead TUI, the exact D-22/D-23 failure mode.
+#   2. An `openai-compatible` client does NOT auto-discover models from the
+#      endpoint — the `models:` list must be declared explicitly, or aichat
+#      resolves no model at all.
+#
+# The ollama tag is STRIPPED (`llama3.2:latest` -> `llama3.2`): aichat splits
+# its `<client>:<model>` reference on the colon and cannot parse a model name
+# that itself contains one — `model: ollama:llama3.2:latest` drops aichat into
+# its interactive first-run wizard and hangs forever (verified both quoted and
+# unquoted). Consequence: a model pulled under an explicit non-default tag
+# (e.g. `qwen2.5:7b`) is not addressable through this seed. That is a known,
+# accepted limitation — edit config.yaml by hand; this script never overwrites
+# an existing one.
+FIRST_MODEL=$(printf '%s\n' "$MODEL_ROWS" | awk 'NR==1 {print $1}' | cut -d: -f1)
+
 AICHAT_CONFIG_DIR="$HOME/.config/aichat"
 AICHAT_CONFIG="$AICHAT_CONFIG_DIR/config.yaml"
 if [[ ! -f "$AICHAT_CONFIG" ]]; then
     mkdir -p "$AICHAT_CONFIG_DIR"
-    cat > "$AICHAT_CONFIG" <<'EOF'
+    cat > "$AICHAT_CONFIG" <<EOF
 # Seeded by ai-local-models.sh (D-22, plan 07-06) — points aichat at
 # ollama's local OpenAI-compatible endpoint. Edit freely; this file is only
 # ever created if it does not already exist, never overwritten.
-model: ollama
+model: ollama:$FIRST_MODEL
 clients:
   - type: openai-compatible
     name: ollama
     api_base: http://localhost:11434/v1
+    models:
+      - name: $FIRST_MODEL
 EOF
 fi
 
