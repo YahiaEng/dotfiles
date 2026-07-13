@@ -116,7 +116,8 @@ theme_engine_reload_zen() {
     #    section is expected, take its Default= unconditionally if so.
     if [[ -f "$zen_root/installs.ini" ]]; then
         local install_sections
-        install_sections=$(grep -c '^\[' "$zen_root/installs.ini" 2>/dev/null || echo 0)
+        install_sections=$(grep -c '^\[' "$zen_root/installs.ini" 2>/dev/null) || true
+        install_sections=${install_sections:-0}
         if [[ "$install_sections" -eq 1 ]]; then
             profile_rel=$(awk '/^Default=/{ sub(/^Default=/, ""); print; exit }' "$zen_root/installs.ini")
         fi
