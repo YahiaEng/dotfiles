@@ -6,14 +6,14 @@ current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
 stopped_at: Completed 06-14-PLAN.md
-last_updated: "2026-07-13T04:13:16.237Z"
+last_updated: "2026-07-13T04:16:34.374Z"
 last_activity: 2026-07-13
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 30
-  completed_plans: 28
+  completed_plans: 29
   percent: 40
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 3 of 19
+Plan: 4 of 19
 Status: Ready to execute
 Last activity: 2026-07-13 — Phase 06 execution started
 
@@ -93,6 +93,7 @@ Last activity: 2026-07-13 — Phase 06 execution started
 | Phase 06 P15 | 1min | 1 tasks | 1 files |
 | Phase 06 P16 | 5min | 3 tasks | 2 files |
 | Phase 06 P17 | 20min | 3 tasks | 5 files |
+| Phase 06 P18 | 8min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -161,6 +162,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Phase 06-16]: WLOG-01 blocker closed — six wlogout glyphs populated (D-10 codepoints) and 8 GTK3-invalid ::after/content rulesets deleted (D-09 dropped per locked structural decision); GTK3's Gtk.CssProvider.to_string() unconditionally expands border-radius shorthand into longhand properties on serialization
 - [Phase 06-17]: WR-01's fix routes hyprpicker stdout into the notify-send error path (sanitize preserved); success path adds tail -n1 + six-hex-digit format guard before wl-copy
 - [Phase 06-17]: WR-05's plan verify-block test harness (bash-script stubs via shebang) always reports cmdline as 'bash <path> <args>', never '<script-name> <args>' -- confirmed the actual fix correct independently via exec -a argv[0] control
+- [Phase ?]: [Phase 06-18]: WR-03 fixed with the documented two-step grep -c capture + parameter-expansion default, replacing the || echo 0 idiom that produced a two-line 0\n0 string and an arithmetic syntax error under set -e
+- [Phase ?]: [Phase 06-18]: WR-06 fixed with --exclude=walker-relaunch.log added to commit.sh's rsync --delete, closing the sixth occurrence of the engine-owned-root-level-file bug class
 
 ### Quick Tasks Completed
 
@@ -198,6 +201,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T04:12:18.885Z
+Last session: 2026-07-13T04:16:11.999Z
 Stopped at: Completed 06-14-PLAN.md
 Resume file: None
