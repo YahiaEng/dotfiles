@@ -67,9 +67,19 @@ theme_engine_commit() {
     # font-switcher pick. kitty-font.conf/waybar-font.css ARE part of the
     # rendered tree (lib/font.sh writes them every run) and are therefore
     # NOT excluded — only the root-level state file itself is.
+    #
+    # WR-06 (06-18, sixth occurrence of this bug class): walker-relaunch.log
+    # is a fifth engine-owned root-level state file, written by reload.sh's
+    # walker-relaunch path (theme_engine_reload_walker) and never part of
+    # the rendered tree matugen produces. Without the exclusion, every theme
+    # commit destroys the previous run's walker diagnostics — including when
+    # the new run never reaches the walker step (a render/commit crash or a
+    # headless-guard early return), leaving the failure notification
+    # pointing the user at a log a later switch already wiped.
     rsync -a --delete --exclude=logs/ --exclude=last-wallpaper/ \
         --exclude=current-theme --exclude=.last-render-error.log \
         --exclude=icon-theme --exclude=font-choice \
+        --exclude=walker-relaunch.log \
         "$rendered_dir"/ "$STATE_DIR"/
 
     # rsync -a syncs the destination directory's own mode from the source
