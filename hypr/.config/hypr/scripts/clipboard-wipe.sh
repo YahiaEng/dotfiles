@@ -9,7 +9,14 @@ set -euo pipefail
 
 COUNT=0
 if command -v cliphist >/dev/null 2>&1; then
-    COUNT=$(cliphist list 2>/dev/null | wc -l | tr -d '[:space:]')
+    # WR-02: `cliphist list` exits 1 ("please store something first") on an
+    # empty/fresh db — which is also the state left after a successful
+    # wipe. Under set -e that non-zero pipeline would kill the script
+    # before the confirm dialog ever renders; `|| true` neutralises
+    # pipefail's propagation while wc's output is still captured, and the
+    # parameter expansion defaults an empty capture to 0.
+    COUNT=$(cliphist list 2>/dev/null | wc -l | tr -d '[:space:]' || true)
+    COUNT=${COUNT:-0}
 fi
 
 # UI-SPEC Copywriting Contract: destructive confirm, default focus = No —

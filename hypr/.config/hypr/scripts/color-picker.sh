@@ -21,9 +21,13 @@ fi
 ERR_FILE=$(mktemp /tmp/color-picker-err-XXXXXX)
 trap 'rm -f "$ERR_FILE"' EXIT
 
-HEX=""
-if ! HEX=$(hyprpicker -a -f hex 2>"$ERR_FILE"); then
-    ERR=$(sanitize <"$ERR_FILE")
+OUT=""
+if ! OUT=$(hyprpicker -a -f hex 2>"$ERR_FILE"); then
+    # WR-01: hyprpicker only logs to stdout (upstream Log.cpp), never
+    # stderr — classify failure by the COMBINED stream content, not by
+    # empty stderr alone, or every genuine failure silently takes the
+    # cancel path.
+    ERR=$(printf '%s\n%s' "$(cat "$ERR_FILE")" "$OUT" | sanitize)
     if [[ -z "$ERR" ]]; then
         exit 0 # user cancelled (Esc) — hyprpicker exits nonzero silently
     fi
@@ -31,8 +35,12 @@ if ! HEX=$(hyprpicker -a -f hex 2>"$ERR_FILE"); then
     exit 1
 fi
 
-HEX="$(printf '%s' "$HEX" | tr -d '[:space:]')"
-[[ -z "$HEX" ]] && exit 0
+# WR-01 secondary: a compositor that emits WARN lines to stdout during a
+# successful pick would otherwise concatenate them into HEX — take only
+# the last line before stripping whitespace, then require a genuine
+# six-hex-digit colour before it is ever handed to wl-copy.
+HEX=$(printf '%s\n' "$OUT" | tail -n1 | tr -d '[:space:]')
+[[ "$HEX" =~ ^#?[0-9a-fA-F]{6}$ ]] || exit 1
 
 printf '%s' "$HEX" | wl-copy
 
