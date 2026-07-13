@@ -174,6 +174,22 @@ PACMAN_PKGS=(
     github-cli
     vault
     terraform
+
+    # ── Game center + AI dashboard (D-25/D-33 — 8 confirmed official
+    # extra/multilib repo per RESEARCH Package Legitimacy Audit, none
+    # are AUR). aichat chosen over AUR-only oterm for D-22 (official
+    # repo, Rust, multi-provider, speaks Ollama's OpenAI-compatible
+    # endpoint at localhost:11434/v1). blueman chosen over AUR-only
+    # overskride for D-18 (official repo; windowrules.conf already
+    # carries a float-blueman rule for the blueman-manager class).
+    steam       # multilib — see the multilib enablement step above
+    lutris
+    ollama
+    aichat
+    gamemode
+    mangohud
+    nwg-displays
+    blueman
 )
 
 # ── Official repo packages (hardware — NVIDIA GPU only) ─
@@ -234,6 +250,13 @@ AUR_PKGS=(
     tela-icon-theme
     colloid-icon-theme-git
     papirus-folders
+
+    # Game center (D-33 — human package-legitimacy checkpoint approved
+    # 2026-07-13). protonup-qt is AUR-only — this corrects CONTEXT.md
+    # D-25's assumption that it was an official-repo package; do not
+    # "fix" it back into PACMAN_PKGS, it does not exist there.
+    heroic-games-launcher-bin
+    protonup-qt
 )
 
 # ── section_core_rice ─────────────────────────────────
@@ -377,6 +400,20 @@ section_core_rice() {
     # exist" against this unit).
     echo "Enabling swayosd-libinput-backend for OSD..."
     sudo systemctl enable --now swayosd-libinput-backend.service || echo "  ⚠ swayosd-libinput-backend enable failed" >&2
+
+    # ── Enable ollama (D-23) ─────────────────────────────
+    # Install + enable only — NO model pull here. A multi-GB model
+    # download would wreck the unattended container gate and fresh-install
+    # time (D-23/D-34); model acquisition is a manual user step, surfaced
+    # by the UI-SPEC's "No Model Installed" notification (plan 07-06).
+    # Default bind is 127.0.0.1:11434 (loopback-only) — this script
+    # deliberately never overrides the daemon's listen-address env var;
+    # exposing it to 0.0.0.0 would open an unauthenticated inference API
+    # to the LAN (T-07-09). Non-fatal/non-silenced, matching the swayosd
+    # precedent above, so the container gate (systemd not PID 1) stays
+    # green without hiding a real failure on bare metal.
+    echo "Enabling ollama..."
+    sudo systemctl enable --now ollama.service || echo "  ⚠ ollama enable failed" >&2
     echo ""
 }
 
