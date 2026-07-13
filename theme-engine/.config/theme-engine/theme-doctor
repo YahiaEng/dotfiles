@@ -36,10 +36,18 @@ echo ""
 pacman -Q adw-gtk-theme >/dev/null 2>&1
 check "adw-gtk-theme package installed" "$?"
 
-# ── gsettings resolves to the expected adw theme ───────────
+# ── gsettings resolves to the mode-correct adw theme ───────
+# Read the committed mode marker — the same source of truth gtk.sh uses to
+# decide between adw-gtk3-dark and adw-gtk3. Hardcoding the dark name here
+# made this check FAIL on every one of Phase 05's six light presets, i.e. on
+# a perfectly healthy desktop.
+DOCTOR_MODE=$(cat "$STATE_DIR/mode" 2>/dev/null || echo "dark")
+EXPECTED_GTK_THEME="adw-gtk3-dark"
+[[ "$DOCTOR_MODE" == "light" ]] && EXPECTED_GTK_THEME="adw-gtk3"
+
 GTK_THEME_VALUE=$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | tr -d "'")
-[[ "$GTK_THEME_VALUE" == "adw-gtk3-dark" ]]
-check "gsettings gtk-theme = adw-gtk3-dark (got: ${GTK_THEME_VALUE:-<unset>})" "$?"
+[[ "$GTK_THEME_VALUE" == "$EXPECTED_GTK_THEME" ]]
+check "gsettings gtk-theme = $EXPECTED_GTK_THEME (mode=$DOCTOR_MODE, got: ${GTK_THEME_VALUE:-<unset>})" "$?"
 
 # ── state-dir contract present ──────────────────────────────
 [[ -f "$STATE_DIR/current-theme" ]]
@@ -230,19 +238,19 @@ for path in paths:
     provider = Gtk.CssProvider()
     fatal = []
 
-    if major == "3":
-        # gtk-css-provider-error-quark code 4 == deprecation (non-fatal,
-        # provider retained); any other code means GTK discarded the
-        # whole sheet — the exact WLOG-01/CR-01 failure signature. GTK4's
-        # CssProvider exposes no equivalent "parsing-error" signal in
-        # this binding (verified: zero signals on the GType), so GTK4
-        # relies on the non-empty-provider check alone below, which
-        # still catches a fully-discarded sheet.
-        def _on_error(_provider, _section, error, _fatal=fatal):
-            if error.code != 4:
-                _fatal.append(error.message)
+    # gtk-css-provider-error-quark code 4 == deprecation (non-fatal, provider
+    # retained); any other code is a real parse error.
+    #
+    # Both GTK3 and GTK4 expose "parsing-error" — connect it in both. GTK4 is
+    # the branch that NEEDS it: unlike GTK3 (which discards the whole sheet on
+    # a bad rule — the WLOG-01 signature), GTK4 skips the offending rule and
+    # keeps the rest, so the non-empty-provider check below can never fire for
+    # it. Without this signal the GTK4 sheets get no detection at all.
+    def _on_error(_provider, _section, error, _fatal=fatal):
+        if error.code != 4:
+            _fatal.append(error.message)
 
-        provider.connect("parsing-error", _on_error)
+    provider.connect("parsing-error", _on_error)
 
     try:
         provider.load_from_path(path)
