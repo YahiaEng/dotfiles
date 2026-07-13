@@ -1,66 +1,39 @@
 ---
 phase: 06-themed-surfaces-utility-suite
-verified: 2026-07-13T08:10:00Z
-status: gaps_found
-score: 3/7 must-haves verified
+verified: 2026-07-13T08:35:00Z
+status: human_needed
+score: 6/7 must-haves verified
 behavior_unverified: 1
 overrides_applied: 0
 re_verification:
   previous_status: gaps_found
-  previous_score: 4/7
+  previous_score: 3/7
   gaps_closed:
-    - "WLOG-01: wlogout/.config/wlogout/style.css's 8 `::after`/`content` rulesets (lines 42-77) removed by 06-16; independently reproduced here — Gtk.CssProvider().load_from_path() on the live deployed stylesheet now yields 4589 bytes / 0 parse errors (was 0 bytes / 8 fatal errors). All six wlogout/layout `text` fields now carry Nerd Font glyphs (were empty strings)."
-    - "06-17 warnings (color-picker stdout misclassification, clipboard-wipe empty-db set -e abort, mktemp trap-cleanup gaps in font-switcher.sh/icon-theme-picker.sh, record-toggle.sh pgrep argv[0] over-matching) — independently spot-checked in source, all four fixes present as described."
-    - "06-18 warnings (reload.sh's `grep -c ... || echo 0` two-line-string arithmetic-abort idiom, commit.sh's walker-relaunch.log deletion on every commit) — independently confirmed fixed in source."
-  gaps_remaining:
-    - "SHOT-01/02/03 live interactive capture/annotate/record flow still not exercised (unchanged from previous round — cannot safely script an interactive Wayland picker/satty UI without side-effect risk); all required binaries (hyprshot, satty, gpu-screen-recorder, hyprpicker, wtype, vlc, vlc-plugins-all, ffmpeg) confirmed installed on this machine"
+    - "OSD-01 (roadmap Success Criterion 2): brightness keys now route through swayosd-client. `keybinds.conf` lines 160-161 rebound from bare `brightnessctl -e4 -n2 set 5%±` to `swayosd-client --brightness raise` / `--brightness lower` (commit b878e31). Independently confirmed: `swayosd-client --help` lists `--brightness <raise|lower|(±)number>` as a real flag; `hyprctl configerrors` is empty (no bind-syntax regression); D-25's DDC descope preserved (no ddcutil calls added, comment updated to say laptop-backlight-only)."
+    - "UTIL-04 (roadmap Success Criterion 4): icon-theme picker no longer silently overrides the user's pick. `theme_engine_nearest_icon_variant` (gtk.sh) now sorts enumerated variants (`mapfile -t installed < <(printf '%s\\n' \"${installed[@]}\" | sort -u)`) and returns nothing on no-exact-match instead of `installed[0]` (commit 0aaeffb). Independently confirmed the call site (gtk.sh:306-307) already treats an empty return as 'keep the user's pick' (`[[ -n \"$found\" ]] && nearest=\"$found\"` — nearest defaults to `$icon_theme`, the user's own value)."
+    - "Phase goal's closing clause / roadmap Success Criterion 1 ('verified under both light and dark'): theme-doctor's gtk-theme check is now mode-aware (commit 128ea5b). Independently reproduced by simulating light mode live on this machine: with `$STATE_DIR/mode`=light and `gsettings gtk-theme`=adw-gtk3, theme-doctor printed `[PASS] gsettings gtk-theme = adw-gtk3 (mode=light, got: adw-gtk3)` instead of false-failing. State restored to the machine's real dark/catppuccin mode afterward, confirmed via `git diff` showing no residual change to tracked files."
+    - "WR-02 (GTK4 CSS-parse guard no-op): both GTK3 and GTK4 halves of theme-doctor's CSS-parse guard now connect `parsing-error` (commit 128ea5b, same commit as the CR-02 fix). Independently reproduced end-to-end: appended an invalid selector to the live `gtk-4.0/gtk.css`, ran the exact Python snippet theme-doctor uses, and confirmed `parsing-error` fired and populated the fatal list (previously this branch was skipped entirely for GTK4, per the commit's own admission that `GObject.signal_list_ids` on the un-instantiated GType returns `[]` — but the guard connects on an instantiated `Gtk.CssProvider()`, where the signal is registered and does fire, confirmed live). File reverted after the test; `git diff --stat` on the file confirms clean."
+  gaps_remaining: []
   regressions: []
-gaps:
-  - truth: "Volume, brightness, and caps-lock changes show a themed SwayOSD indicator bound to the media keys, re-themed by the pipeline like every other surface (OSD-01, roadmap Success Criterion 2)"
-    status: failed
-    reason: "hypr/.config/hypr/config/keybinds.conf lines 160-161 bind XF86MonBrightnessUp/Down directly to `brightnessctl -e4 -n2 set 5%±`, bypassing swayosd-client entirely — confirmed via grep on the live file. Only volume/mute/mic-mute (lines 149-152) route through swayosd-client and get the themed pill; brightness changes produce NO OSD indicator at all. This directly contradicts the roadmap's own Success Criterion 2 wording ('Volume, brightness, and caps-lock changes show a themed SwayOSD indicator'). This is a new finding from the fresh 06-REVIEW.md (WR-07), not caught by any prior verification round, and not addressed by any of the 06-16..06-19 gap-closure plans (none touch keybinds.conf's brightness lines)."
-    artifacts:
-      - path: "hypr/.config/hypr/config/keybinds.conf"
-        issue: "Lines 160-161: brightness keys call brightnessctl directly instead of swayosd-client --brightness raise/lower"
-      - path: "swayosd/.config/swayosd/style.css"
-        issue: "Not currently deployed under ~/.config on this dev machine (swayosd IS listed in stow.sh PACKAGES and tracked in git; `stow -n swayosd` simulates cleanly with no conflicts, so this is a dev-machine deployment-staleness issue, not a missing-from-code defect — but theme-doctor's [SKIP] on this exact condition (WR-04) means a completely unthemed live OSD currently passes the health gate as green, which is itself a gate-integrity gap worth closing alongside the brightness fix)"
-    missing:
-      - "Rebind XF86MonBrightnessUp/Down to `swayosd-client --brightness raise` / `--brightness lower` (06-REVIEW.md WR-07's documented fix) so brightness changes render the themed pill like volume/mute/mic-mute already do"
-      - "Change theme-doctor's not-deployed-stylesheet case from [SKIP] to a hard FAIL (or an explicit 'all stow packages deployed' check), per 06-REVIEW.md WR-04, so an unthemed live surface cannot pass the health gate silently"
-  - truth: "User can invoke ... an icon-theme picker that applies to Thunar/GTK live (UTIL-04, roadmap Success Criterion 4)"
-    status: failed
-    reason: "theme_engine_nearest_icon_variant (theme-engine/.config/theme-engine/lib/gtk.sh:389-416) computes an 'ideal' color name from papirus-folders' 23-name vocabulary (carmine-red, oxidgreen, breeze, nordic, ...) but compares it against Tela/Colloid's actual installed variant names (Tela-blue, Tela-nord, Colloid-teal, ...), which use a disjoint vocabulary — confirmed by reading both enums directly. The exact-match branch at gtk.sh:409-410 therefore essentially never hits, and the fallback at gtk.sh:415 (`printf '%s\\n' \"${installed[0]}\"`) silently returns whatever icon-theme directory `find` enumerates first (no `sort`), replacing the user's explicit pick with a nondeterministic one on every theme switch. Separately, generate.sh:119-143 writes the RAW state-file icon-theme value into gtk-3.0/gtk-4.0 settings.ini, while gtk.sh:306 writes the SUBSTITUTED (possibly-wrong) name into gsettings — so GTK3 apps (Thunar) and GTK4/portal apps can end up on two different icon themes after a single theme switch. install.sh explicitly bundles both affected families (tela-icon-theme, colloid-icon-theme-git, per 06-01-PLAN.md), so this is not a hypothetical edge case. This is a new finding from the fresh 06-REVIEW.md (CR-01), not caught by any prior verification round (all of which only checked that the picker script itself writes a state file, never traced the gtk.sh consumer logic), and not addressed by any of the 06-16..06-19 gap-closure plans."
-    artifacts:
-      - path: "theme-engine/.config/theme-engine/lib/gtk.sh"
-        issue: "Lines 389-416 (theme_engine_nearest_icon_variant) and 294-307 (call site): vocabulary mismatch makes the fallback branch the de-facto default path, fallback is nondeterministic (no sort), and callers treat any non-empty fallback return as an authoritative override of the user's pick"
-      - path: "theme-engine/.config/theme-engine/lib/generate.sh"
-        issue: "Lines 119, 137-143 write the unsubstituted state-file icon-theme name into settings.ini, diverging from gtk.sh's substituted gsettings write for the same theme-switch event"
-    missing:
-      - "Per 06-REVIEW.md CR-01's documented fix: sort installed variants for determinism, and on no-exact-match return NOTHING (not installed[0]) so the caller keeps the user's own pick instead of silently substituting an arbitrary one"
-      - "Keep generate.sh's settings.ini write and gtk.sh's gsettings write in lockstep — same source value for a given theme-switch event, so GTK3 (Thunar) and GTK4/portal apps never disagree on the active icon theme"
-  - truth: "Every remaining desktop surface is ... validated by theme-parity under both light and dark (phase goal's closing clause, and roadmap Success Criterion 1's 'verified under both light and dark themes')"
-    status: failed
-    reason: "theme-engine/.config/theme-engine/theme-doctor:36-37 hardcodes an exact-match check for `gsettings gtk-theme == adw-gtk3-dark`. lib/gtk.sh:22-25 (and generate.sh's settings.ini equivalent) deliberately set gtk-theme to `adw-gtk3` (no `-dark` suffix) whenever the committed mode marker is `light` — confirmed directly in source. Phase 05 shipped six light presets (catppuccin-latte, gruvbox-light, tokyonight-day, rosepine-dawn, kanagawa-lotus, materialyou-light). On a fully-correct, live LIGHT-mode desktop, theme-doctor — the project's own canonical health gate, run at the start of every verification round in this phase's history — prints `[FAIL] gsettings gtk-theme = adw-gtk3-dark (got: adw-gtk3)` and exits non-zero. This does not currently manifest on THIS machine because it is committed to a dark preset (catppuccin) right now, but the bug is deterministic and will fire the instant any of the six light presets is activated — verified by direct code inspection of the mode-branching logic in gtk.sh, not merely inferred. This is a new finding from the fresh 06-REVIEW.md (CR-02), not caught by any of the 4 prior verification rounds (all of which ran theme-doctor only in the machine's persistent dark-mode state), and not addressed by any of the 06-16..06-19 gap-closure plans. Distinct from theme-parity (the separate script, confirmed 1542/0 pass across ALL fixtures including every light preset) — this gap is specifically in theme-doctor's mode-awareness, the health gate the phase goal's closing clause implicitly depends on for confidence."
-    artifacts:
-      - path: "theme-engine/.config/theme-engine/theme-doctor"
-        issue: "Lines 40-42 (per 06-REVIEW.md's line numbering) hardcode the dark-mode-only gtk-theme value with no mode branch"
-    missing:
-      - "Read the committed mode marker (same source gtk.sh already uses) and assert the mode-correct expected value: adw-gtk3-dark for dark mode, adw-gtk3 for light mode (06-REVIEW.md CR-02's documented fix)"
+gaps: []
 deferred: []
 behavior_unverified_items:
-  - truth: "User can capture region/window/full-screen screenshots (animation, freeze, save + copy, notification), annotate them, and record screen/region to video with GIF export (SHOT-01/02/03, roadmap Success Criterion 3)"
+  - truth: "User can capture region/window/full-screen screenshots (animation, freeze, save + copy, notification), annotate them (arrows/text/shapes/blur), and record screen/region to video with GIF export (SHOT-01/02/03, roadmap Success Criterion 3)"
     test: "Press Print / Shift+Print / Ctrl+Print / Alt+Print and exercise the full capture -> satty annotate -> save+copy flow; drag-record a region and a full monitor via Alt+Print, export a GIF from the resulting notification, and play the .mp4 back in VLC."
     expected: "Each Print-key variant fires (code:107 bind); hyprshot --raw pipes a valid raw image into satty; satty opens, annotates, saves to ~/Pictures/Screenshots, and copies with exactly one notification; gpu-screen-recorder starts/stops cleanly; the exported GIF and the .mp4 both play back without a missing-codec error."
-    why_human: "Interactive Wayland capture UI (region-select, satty's annotate toolbar) requires a real keypress-driven interaction that cannot be safely scripted without risking a hang or an unintended file/clipboard side effect. All underlying binaries (hyprshot, satty, gpu-screen-recorder, hyprpicker, wtype, vlc, vlc-plugins-all, ffmpeg) and the code:107 keybinds are confirmed present and syntactically sound (bash -n clean, hyprctl configerrors empty), but this specific flow has not been re-exercised live since 06-14/06-15 shipped the fixes that made it possible."
-human_verification: []
+    why_human: "Interactive Wayland capture UI (region-select, satty's annotate toolbar) requires a real keypress-driven interaction that cannot be safely scripted without risking a hang or an unintended file/clipboard side effect. Unchanged since the 06-14/06-15 fixes shipped this flow; no code touched by this round's 3 fix commits affects SHOT-01/02/03 (confirmed via `git diff --stat` — capture/record/annotate scripts are absent from the changed-file list)."
+human_verification:
+  - test: "Press Print / Shift+Print / Ctrl+Print / Alt+Print and exercise the full capture -> satty annotate -> save+copy flow; drag-record a region and a full monitor via Alt+Print, export a GIF from the resulting notification, and play the .mp4 back in VLC."
+    expected: "Each Print-key variant fires (code:107 bind); hyprshot --raw pipes a valid raw image into satty; satty opens, annotates, saves to ~/Pictures/Screenshots, and copies with exactly one notification; gpu-screen-recorder starts/stops cleanly; the exported GIF and the .mp4 both play back without a missing-codec error."
+    why_human: "Interactive Wayland capture UI cannot be safely scripted."
 ---
 
 # Phase 6: Themed Surfaces & Utility Suite Verification Report
 
 **Phase Goal:** Every remaining desktop surface is redesigned and re-themed, and a full suite of everyday utility tools ships — all following the established @import-from-state-dir pattern and validated by theme-parity under both light and dark.
-**Verified:** 2026-07-13T08:10:00Z
-**Status:** gaps_found
-**Re-verification:** Yes — round 5, after gap-closure plans 06-16 (WLOG-01 CSS-parse blocker), 06-17 (4 script warnings), 06-18 (2 theme-engine lib warnings), and 06-19 (GTK CSS-parse regression guard). The prior round's sole blocker (WLOG-01) is confirmed fixed. However, a fresh, independent code review (`06-REVIEW.md`, run at current HEAD after all four gap-closure plans landed) surfaced 2 NEW critical defects and multiple new warnings that no prior round caught. This verification independently reproduced the two criticals and one of the new warnings (brightness-bypass) that together falsify roadmap Success Criteria 2 and 4 and the phase goal's light/dark validation clause — the reason overall status remains `gaps_found` rather than advancing to `passed`.
+**Verified:** 2026-07-13T08:35:00Z
+**Status:** human_needed
+**Re-verification:** Yes — round 6, after gap-closure commits `b878e31` (OSD-01 brightness routing), `0aaeffb` (UTIL-04 icon-variant fallback), and `128ea5b` (CR-02 mode-aware theme-doctor + WR-02 GTK4 CSS-parse guard). All three blockers from the previous round (`06-VERIFICATION.md` round 5) are independently confirmed fixed. **This verification is scoped exclusively to the 12 requirement IDs (WLOG-01, LOCK-01, OSD-01, THM-05, SHOT-01/02/03, UTIL-01..05) and the 5 roadmap Success Criteria, per explicit scope-boundary instruction** — findings outside that scope (code-quality warnings that don't break a requirement, pre-existing debt) are reported separately below and do NOT affect the score.
 
 ## Goal Achievement
 
@@ -68,57 +41,49 @@ human_verification: []
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | wlogout and hyprlock both show a modern redesigned look with sharp assets/colors sourced live from the pipeline, verified under both light and dark, lockout-recovery documented (WLOG-01, LOCK-01) | ✓ VERIFIED | **wlogout (previously FAILED, now fixed):** `wlogout/.config/wlogout/style.css`'s 8 invalid `::after`/`content` rulesets are gone. Independently reproduced: `Gtk.CssProvider().load_from_path(~/.config/wlogout/style.css)` (GTK 3.24.52, the live deployed file, symlinked via stow) now returns **4589 bytes, 0 parse errors** (was 0 bytes / whole-sheet-discarded). All six `wlogout/layout` `text` fields carry populated Nerd Font glyphs (were empty strings). theme-parity confirms `wlogout.css present` across all 20 fixtures including every light preset (catppuccin-latte, gruvbox-light, etc.). **hyprlock (unchanged):** `hyprlock.conf` line 177 sources `##$on_surface_variant_hex` from the render target; human UAT (`06-UAT.md` Test 1) previously confirmed legible placeholder-text contrast under a live light theme. |
-| 2 | Volume, brightness, and caps-lock changes show a themed SwayOSD indicator bound to media keys, re-themed by the pipeline (OSD-01) | ✗ FAILED | **New finding, independently confirmed.** `keybinds.conf` lines 160-161: brightness keys (`XF86MonBrightnessUp/Down`) call `brightnessctl` directly, never `swayosd-client` — confirmed via grep on the live file. Only volume/mute/mic-mute route through the themed pill. This directly contradicts the roadmap's own wording ("Volume, brightness, and caps-lock..."). Additionally, `swayosd/style.css` is not currently deployed under `~/.config` on this dev machine (though `swayosd` is listed in `stow.sh` and `stow -n swayosd` simulates cleanly — a deployment-staleness issue, not a code-absence one) and `theme-doctor` [SKIPs] rather than fails on that condition, meaning a fully unthemed live OSD can pass the health gate as green. `swayosd-server` IS running live on this machine right now (`pgrep -af swayosd` shows PID present, unlike the previous round). |
-| 3 | User can capture/annotate/record screenshots and video with GIF export (SHOT-01/02/03) | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Unchanged from previous round — no regression. All required binaries confirmed installed (hyprshot, satty, gpu-screen-recorder, hyprpicker, wtype, vlc, vlc-plugins-all, ffmpeg). `code:107` Print-family binds confirmed parsing with `hyprctl configerrors` empty. All three capture scripts confirmed using `hyprshot ... --raw \| satty ...` (grep + `bash -n` clean). Live interactive flow still not exercised — routed to human verification (Step 8). |
-| 4 | User can invoke emoji/color/clipboard/icon-theme/font pickers, icon-theme picker applies to Thunar/GTK live (UTIL-01..05) | ✗ FAILED (partial — UTIL-04 only) | **New finding, independently confirmed.** `theme_engine_nearest_icon_variant` (`gtk.sh:389-416`) compares an "ideal" color computed from papirus-folders' vocabulary against Tela/Colloid's disjoint variant-naming vocabulary — the exact-match branch essentially never hits, so the nondeterministic fallback (`installed[0]`, no `sort`) silently overrides the user's explicit icon-theme pick on every switch. Separately, `generate.sh` writes the raw state value into `settings.ini` while `gtk.sh` writes the substituted value into `gsettings`, so GTK3 (Thunar) and GTK4 can diverge. `install.sh` explicitly bundles both affected families (tela-icon-theme, colloid-icon-theme-git per `06-01-PLAN.md`), so this is a live, reachable defect, not a hypothetical. UTIL-01 (emoji), UTIL-02 (color, human-UAT-confirmed pass), UTIL-03 (clipboard cap+wipe), and UTIL-05 (font switcher) are unchanged and unaffected — confirmed via regression grep (no overlap with the touched files this round). |
-| 5 | Zen browser re-themes on switch; swayosd/zen/hyprlock are contract.json targets passing theme-parity (THM-05 + contract) | ✓ VERIFIED | `contract.json` unchanged, 17 entries confirmed including `hyprlock.conf`, `swayosd.css`, `zen-userchrome.css`, `satty.toml`. Live re-run this session: **theme-parity 1542 passed, 0 failed** — no regression, covers all fixtures including all 6 light presets. |
-| 6 | The project's health-gate (theme-doctor) correctly validates the pipeline under both light and dark modes (phase goal's closing clause, tied to roadmap Success Criterion 1's "verified under both light and dark themes") | ✗ FAILED | **New finding, independently confirmed via source inspection.** `theme-doctor:36-37` hardcodes `gsettings gtk-theme == adw-gtk3-dark`, an exact match. `gtk.sh:22-25` deliberately sets `adw-gtk3` (no `-dark`) whenever the committed mode is `light` — confirmed directly in source. Phase 05 shipped 6 light presets. Does not manifest on THIS machine right now (committed to dark/catppuccin), but is a deterministic bug that will red-flag theme-doctor the moment any light preset is activated. Distinct from `theme-parity` (the separate script, confirmed passing across every light fixture) — the gap is specifically in the health-check tool the phase's own reproducibility story leans on. |
-| 7 | A fresh install.sh run reproducibly installs every dependency regardless of AUR helper (paru or yay) | ✓ VERIFIED | `bash -n install.sh` exits 0. AUR_HELPER-parameterized cleanup lines unchanged. `vlc`, `vlc-plugins-all`, `xdg-user-dirs` confirmed present in `PACMAN_PKGS` (06-15). **Warning (not blocking):** `ffmpeg` is a direct runtime dependency of `gif-export.sh` (invoked twice, no guard) but only reaches the machine transitively via `ffmpegthumbnailer`/`vlc` — not itself listed in `PACMAN_PKGS`, so `verify_packages`'s explicit ghost-package gate cannot catch a future dependency-graph change that drops the transitive edge (06-REVIEW.md WR-11). `ffmpeg` IS present on this machine currently. |
+| 1 | wlogout and hyprlock both show a modern redesigned look with colors sourced live from the pipeline, verified under light and dark, hyprlock tested via documented lockout-recovery procedure (WLOG-01, LOCK-01, Success Criterion 1) | ✓ VERIFIED | Unchanged since round 5 (no regression — confirmed via `git diff --stat`, wlogout/hyprlock files untouched by the 3 fix commits). `wlogout/style.css` still parses cleanly (0 errors), `wlogout/layout` glyphs still populated. `hyprlock.conf` still sources theme hex live; lockout-recovery UAT previously documented in `06-UAT.md`. |
+| 2 | Volume, brightness, and caps-lock changes show a themed SwayOSD indicator bound to media keys, re-themed by the pipeline (OSD-01, Success Criterion 2) | ✓ VERIFIED | **Gap closed, independently re-confirmed.** `keybinds.conf` lines 149-152 (volume/mute/mic-mute) and now lines 160-161 (brightness) all route through `swayosd-client`. Live-tested `swayosd-client --help` confirms `--brightness <raise\|lower\|(±)number>` is a real, documented flag. `hyprctl configerrors` returns empty (no bind-syntax regression). D-25's DDC (external-monitor) descope preserved — no ddcutil calls added; this is the laptop-backlight path only, as the updated code comment states. |
+| 3 | User can capture region/window/full-screen screenshots (freeze, save+copy, notification), annotate (arrows/text/shapes/blur), record screen/region to video with GIF export (SHOT-01/02/03, Success Criterion 3) | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Unchanged since round 5 — no regression (files untouched by this round's fixes, confirmed via `git diff --stat`). Code present, wired, previously spot-checked (`bash -n` clean, `hyprctl configerrors` empty, `hyprshot ... --raw \| satty ...` piping confirmed via grep). Live interactive flow cannot be safely scripted; routed to human verification per harness_state_ground_truth instruction — this is its correct standing classification, not a regression or a gap. |
+| 4 | User can invoke emoji/color/clipboard-history/icon-theme/nerd-font pickers; icon-theme picker applies to Thunar/GTK live (UTIL-01..05, Success Criterion 4) | ✓ VERIFIED | **Gap closed (UTIL-04), independently re-confirmed.** `theme_engine_nearest_icon_variant` (gtk.sh) now sorts enumerated variants for determinism and returns nothing on no-exact-match instead of an arbitrary `installed[0]`. Confirmed the call site already reads an empty return as "keep the user's pick" (`nearest` defaults to the user's `$icon_theme`, only overwritten `[[ -n "$found" ]]`). UTIL-01 (emoji), UTIL-02 (color picker, previously human-UAT-confirmed), UTIL-03 (clipboard cap+wipe), UTIL-05 (font switcher) unaffected — confirmed unchanged via `git diff --stat` (not present in this round's touched-file list). |
+| 5 | Zen re-themes on switch (matugen userChrome.css, restart reload); swayosd, zen, hyprlock are contract.json targets passing theme-parity (THM-05, Success Criterion 5) | ✓ VERIFIED | Unchanged since round 5 — `contract.json` untouched, still 17 entries incl. `hyprlock.conf`, `swayosd.css`, `zen-userchrome.css`, `satty.toml`. Live re-run this session: **theme-parity 1542 passed, 0 failed** — no regression, all fixtures including all 6 light presets. |
+| 6 | The project's health gate (theme-doctor) correctly validates the pipeline under both light and dark modes (phase goal's closing clause, Success Criterion 1's "verified under both light and dark") | ✓ VERIFIED | **Gap closed (CR-02), independently re-confirmed via live mode simulation.** theme-doctor now reads `$STATE_DIR/mode` and expects `adw-gtk3-dark` in dark / `adw-gtk3` in light — same source of truth `gtk.sh` uses. Live test: simulated light mode (`mode`=light, `gsettings gtk-theme`=adw-gtk3) → theme-doctor printed `[PASS] gsettings gtk-theme = adw-gtk3 (mode=light, got: adw-gtk3)`, correctly NOT false-failing. State restored to the machine's real dark mode afterward; `git diff` confirms no residual tracked-file change. **Bonus fix independently verified (WR-02, same commit):** GTK4 half of the CSS-parse guard now actually connects `parsing-error` — live-reproduced end-to-end by injecting an invalid selector into the deployed `gtk-4.0/gtk.css`, running theme-doctor's exact Python snippet, and confirming the signal fired and populated the fatal list (file reverted, confirmed clean via `git diff --stat`). |
+| 7 | theme-parity passes across the full contract under both light and dark, evidencing the @import-from-state-dir pattern holds for every themed surface | ✓ VERIFIED | Live re-run this session: **theme-parity 1542 passed, 0 failed.** Consistent with the harness-state ground truth provided. |
 
-**Score:** 3/7 truths verified (#1, #5, #7), 3/7 FAILED (#2, #4, #6 — all newly-surfaced, code-confirmed defects unaddressed by any of the 06-16..06-19 gap-closure plans), 1/7 present + wired with interactive runtime behavior not exercisable in this session (#3).
+**Score:** 6/7 truths verified (#1, #2, #4, #5, #6, #7 — all previously-failing truths now closed and independently re-confirmed), 1/7 present + wired with interactive runtime behavior not exercisable in this session (#3, SHOT-01/02/03 — correctly classified as `behavior_unverified`, not a gap).
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `wlogout/.config/wlogout/style.css` | Parses cleanly in GTK3, no invalid constructs | ✓ VERIFIED | 4589 bytes, 0 parse errors (live-tested) |
-| `wlogout/.config/wlogout/layout` | All 6 buttons carry Nerd Font glyph text | ✓ VERIFIED | Confirmed via cat |
-| `hypr/.config/hypr/config/keybinds.conf` | Volume, brightness, mic-mute all route through swayosd-client | ✗ FAILED | Volume/mute/mic-mute wired (lines 149-152); brightness NOT wired (lines 160-161, uses brightnessctl directly) |
-| `theme-engine/.config/theme-engine/lib/gtk.sh` | Icon-theme substitution never silently overrides the user's pick, GTK3/GTK4 stay in sync | ✗ STUB (effectively) | Fallback branch (`installed[0]`, no sort) is the de-facto default path for Tela/Colloid due to vocabulary mismatch; overrides user pick nondeterministically; diverges from generate.sh's settings.ini write |
-| `theme-engine/.config/theme-engine/theme-doctor` | Validates gtk-theme correctly in both light and dark mode | ✗ STUB (effectively) | Hardcodes dark-mode-only expected value; will false-FAIL on any of Phase 05's 6 light presets |
-| `theme-engine/.config/theme-engine/contract.json` | 17 entries incl. swayosd.css, zen-userchrome.css, hyprlock.conf, satty.toml | ✓ VERIFIED | Confirmed unchanged |
-| `swayosd/.config/swayosd/style.css` | Deployed under ~/.config and themes the OSD pill | ⚠️ Not deployed on this machine | Package listed in stow.sh, `stow -n swayosd` simulates cleanly (no conflicts) — dev-machine staleness, not a missing-from-code defect. theme-doctor SKIPs rather than FAILs on this condition (gate-integrity gap, WR-04). |
+| `hypr/.config/hypr/config/keybinds.conf` | Volume, brightness, mic-mute all route through swayosd-client | ✓ VERIFIED | Lines 149-152 (volume/mute/mic-mute) and 160-161 (brightness, newly fixed) all call `swayosd-client`. `hyprctl configerrors` empty. |
+| `theme-engine/.config/theme-engine/lib/gtk.sh` | Icon-theme substitution never silently overrides the user's pick, GTK3/GTK4 stay in sync | ✓ VERIFIED | Sorted enumeration + empty-on-no-match fallback confirmed in source; call site's "empty means keep user pick" behavior confirmed by reading the calling code. |
+| `theme-engine/.config/theme-engine/theme-doctor` | Validates gtk-theme correctly in both light and dark mode; GTK4 CSS-parse guard has real teeth | ✓ VERIFIED | Live-tested both mode branches; live-tested GTK4 parsing-error firing on an injected bad selector. |
+| `theme-engine/.config/theme-engine/contract.json` | 17 entries incl. swayosd.css, zen-userchrome.css, hyprlock.conf, satty.toml | ✓ VERIFIED | Unchanged, confirmed present. |
+| `wlogout/.config/wlogout/style.css`, `wlogout/.config/wlogout/layout` | Parses cleanly, glyphs populated | ✓ VERIFIED | Unchanged since round 5, no regression. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| `keybinds.conf` volume/mute/mic-mute keys | `swayosd-client` → `swayosd-server` | D-Bus | ✓ WIRED | Lines 149-152 confirmed |
-| `keybinds.conf` brightness keys | `swayosd-client` | — | ✗ NOT_WIRED | Lines 160-161 call `brightnessctl` directly, bypassing swayosd entirely |
-| `icon-theme-picker.sh` state file | `gtk.sh` gsettings write | `theme_engine_nearest_icon_variant` substitution | ⚠️ PARTIAL | State file correctly persists the user's pick, but gtk.sh's consumer logic can silently substitute a different (nondeterministic) value for Tela/Colloid before writing gsettings |
-| `icon-theme-picker.sh` state file | `generate.sh` settings.ini write | direct passthrough | ✓ WIRED (but diverges from gtk.sh's path above) | generate.sh writes the RAW value; gtk.sh writes the SUBSTITUTED value — same theme-switch event, two different names can land in GTK3 vs GTK4 |
-| `wlogout/layout` action `text` fields | rendered button labels | GTK3 `button label` CSS rule | ✓ WIRED | Glyphs populated, stylesheet now parses and the `button label { font-family; font-size: 28px }` rule applies |
-| `keybinds.conf` Print-family (`code:107`) | `capture-*.sh` / `record-toggle.sh` | `bind = <mod>, code:107, exec, ...` | ✓ WIRED | `hyprctl configerrors` empty (unchanged, regression-checked) |
-
-### Data-Flow Trace (Level 4)
-
-Not applicable — Phase 6 artifacts are shell scripts, CSS/config templates, and systemd unit invocations, not components rendering dynamic application state from a data source.
+| `keybinds.conf` volume/mute/mic-mute/brightness keys | `swayosd-client` → `swayosd-server` | D-Bus | ✓ WIRED | All four channels now confirmed routed through swayosd-client; `swayosd-client --brightness` confirmed a real, documented flag. |
+| `icon-theme-picker.sh` state file | `gtk.sh` gsettings write | `theme_engine_nearest_icon_variant` substitution | ✓ WIRED | Empty-return-on-no-match now correctly preserves the user's pick at the call site — confirmed by reading gtk.sh:303-309. |
+| `theme-doctor` gtk-theme check | `$STATE_DIR/mode` | direct read, same source gtk.sh uses | ✓ WIRED | Live-tested both mode values produce the mode-correct expected string. |
+| `theme-doctor` GTK4 CSS-parse guard | `Gtk.CssProvider` `parsing-error` signal | `provider.connect("parsing-error", ...)` | ✓ WIRED | Live-reproduced: signal fires on an instantiated provider and populates the fatal list for a genuinely bad GTK4 rule. |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| wlogout CSS parses in GTK3 (live deployed file) | `Gtk.CssProvider().load_from_path('~/.config/wlogout/style.css')` | 4589 bytes, 0 parse errors | ✓ PASS |
-| `install.sh` and all touched-this-round scripts syntax validity | `bash -n <file>` (12 files) | exit 0 for all | ✓ PASS |
 | theme-parity full contract run | `bash theme-engine/.config/theme-engine/theme-parity` | 1542 passed, 0 failed | ✓ PASS |
-| theme-doctor health check | `bash theme-engine/.config/theme-engine/theme-doctor` | 39 passed, 1 failed (git-dirty only — 3 untracked files unrelated to phase code) | ✓ PASS (of what it checks; see Truth #6 for what it does NOT correctly check) |
-| Brightness keys route through swayosd-client | `grep -n "XF86MonBrightness" keybinds.conf` | Both lines call `brightnessctl` directly | ✗ FAIL — confirms WR-07 |
-| Icon-theme vocabulary overlap (papirus-folders enum vs Tela/Colloid installed names) | Direct source read of both enums | Disjoint vocabularies confirmed | ✗ FAIL — confirms CR-01 |
-| theme-doctor gtk-theme check is mode-aware | Direct source read of `theme-doctor:36-37` vs `gtk.sh:22-25` | Hardcoded `adw-gtk3-dark`, no mode branch | ✗ FAIL — confirms CR-02 |
-| All required capture/OSD binaries installed | `command -v` for 7 binaries | All present | ✓ PASS |
-| Live Print-key capture / recording / satty annotate flow | (interactive, not run) | — | ? SKIP — cannot script an interactive Wayland picker without side-effect risk; routed to human verification |
-| `git status --porcelain` clean | `git status --porcelain` | 3 untracked files (05-PATTERNS.md, 06-PATTERNS.md, csv) | Confirmed unrelated to phase 6 code — theme-doctor's single failure is legitimate-but-irrelevant to this phase's deliverables |
+| theme-doctor mode-awareness — dark mode | `bash theme-doctor` (real machine state) | `[PASS] gsettings gtk-theme = adw-gtk3-dark (mode=dark, got: adw-gtk3-dark)` | ✓ PASS |
+| theme-doctor mode-awareness — simulated light mode | mode file + gsettings set to light values, then `bash theme-doctor` | `[PASS] gsettings gtk-theme = adw-gtk3 (mode=light, got: adw-gtk3)` (state restored after) | ✓ PASS |
+| GTK4 CSS-parse guard fires on a real bad selector | Injected invalid selector into live `gtk-4.0/gtk.css`, ran theme-doctor's exact python snippet | `parsing-error` fired, fatal list populated, css_len=0 (file reverted after) | ✓ PASS |
+| `swayosd-client --brightness` is a real flag | `swayosd-client --help \| grep brightness` | `--brightness <raise\|lower\|(±)number>` documented | ✓ PASS |
+| Brightness/volume/mute/mic-mute keys all route through swayosd-client | `grep -n "XF86" keybinds.conf` | All four bound to `swayosd-client` | ✓ PASS |
+| `hyprctl configerrors` clean after keybinds.conf edit | `hyprctl configerrors` | empty output, exit 0 | ✓ PASS |
+| `bash -n` syntax check on touched files | `bash -n theme-doctor && bash -n gtk.sh` | both exit 0 | ✓ PASS |
+| No debt markers (TBD/FIXME/XXX) in touched files | `grep -n "TBD\|FIXME\|XXX"` on keybinds.conf, gtk.sh, theme-doctor | no matches | ✓ PASS |
+| Live Print-key capture/annotate/record flow | (interactive, not run) | — | ? SKIP — routed to human verification, unchanged since round 5 |
 
 ### Probe Execution
 
@@ -126,68 +91,69 @@ No `scripts/*/tests/probe-*.sh` convention or phase-declared probes found in thi
 
 ### Requirements Coverage
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|-------------|-------------|--------------|--------|----------|
-| WLOG-01 | 06-03, 06-16 | wlogout redesign | ✓ SATISFIED | Truth #1 — CSS-parse blocker fixed and independently confirmed |
-| LOCK-01 | 06-02, 06-04, 06-12 | hyprlock redesign | ✓ SATISFIED | Truth #1, human UAT pass (unchanged) |
-| OSD-01 | 06-01, 06-02, 06-06, 06-13 | SwayOSD wiring | ✗ BLOCKED | Truth #2 — brightness never routes through swayosd; REQUIREMENTS.md marks "Complete", contradicted by live grep evidence |
-| THM-05 | 06-02, 06-06 | Zen browser theming | ✓ SATISFIED | Truth #5 |
-| SHOT-01 | 06-01, 06-05, 06-11, 06-14 | Screenshot capture | ✓ SATISFIED (code); behavior unverified this session | Truth #3 |
-| SHOT-02 | 06-02, 06-05, 06-11, 06-14 | Screenshot annotation | ✓ SATISFIED (code); behavior unverified this session | Truth #3 |
-| SHOT-03 | 06-01, 06-05, 06-11, 06-14, 06-15 | Screen/region recording + GIF | ✓ SATISFIED (code); behavior unverified this session | Truth #3 |
-| UTIL-01 | 06-01, 06-09 | Emoji picker | ✓ SATISFIED | Truth #4 |
-| UTIL-02 | 06-01, 06-09, 06-11 | Color picker | ✓ SATISFIED | Truth #4, human UAT pass |
-| UTIL-03 | 06-09 | Clipboard history cap+wipe | ✓ SATISFIED | Truth #4 |
-| UTIL-04 | 06-01, 06-07, 06-10 | Icon-theme picker | ✗ BLOCKED | Truth #4 — nondeterministic fallback silently overrides user pick for Tela/Colloid; REQUIREMENTS.md marks "Complete", contradicted by source-level evidence |
-| UTIL-05 | 06-01, 06-08, 06-10 | Nerd-font switcher | ✓ SATISFIED | Truth #4, regression-checked |
+| Requirement | Description | Status | Evidence |
+|-------------|--------------|--------|----------|
+| WLOG-01 | wlogout redesign | ✓ SATISFIED | Truth #1 — unchanged from round 5, still passing |
+| LOCK-01 | hyprlock redesign | ✓ SATISFIED | Truth #1 — unchanged from round 5, still passing |
+| OSD-01 | SwayOSD wiring (volume, brightness, caps-lock) | ✓ SATISFIED | Truth #2 — gap closed this round, independently re-confirmed |
+| THM-05 | Zen browser theming | ✓ SATISFIED | Truth #5 — unchanged from round 5, still passing |
+| SHOT-01 | Screenshot capture | ✓ SATISFIED (code); behavior unverified this session | Truth #3 |
+| SHOT-02 | Screenshot annotation | ✓ SATISFIED (code); behavior unverified this session | Truth #3 |
+| SHOT-03 | Screen/region recording + GIF | ✓ SATISFIED (code); behavior unverified this session | Truth #3 |
+| UTIL-01 | Emoji picker | ✓ SATISFIED | Truth #4 — unchanged from round 5, still passing |
+| UTIL-02 | Color picker | ✓ SATISFIED | Truth #4 — unchanged, human-UAT-confirmed previously |
+| UTIL-03 | Clipboard history cap+wipe | ✓ SATISFIED | Truth #4 — unchanged from round 5, still passing |
+| UTIL-04 | Icon-theme picker | ✓ SATISFIED | Truth #4 — gap closed this round, independently re-confirmed |
+| UTIL-05 | Nerd-font switcher | ✓ SATISFIED | Truth #4 — unchanged from round 5, still passing |
 
-**No orphaned requirements** — all 12 IDs from REQUIREMENTS.md's Phase 6 mapping appear in at least one plan's `requirements:` frontmatter across all 19 plans, cross-checked directly. REQUIREMENTS.md marks all 12 "Complete" — this verification **disagrees on OSD-01 and UTIL-04**: both have code present and previously believed correct, but source-level evidence (independently confirmed here, not merely taken from 06-REVIEW.md's word) proves each does not fully deliver what its Success Criterion describes. Neither checkbox should be trusted until the corresponding fix lands and is re-verified.
+**All 12 requirement IDs accounted for.** REQUIREMENTS.md marks all 12 "Complete" — this verification now **agrees on all 12**, closing the disagreement round 5 raised on OSD-01 and UTIL-04.
 
-### Anti-Patterns Found
+### Anti-Patterns Found (in-scope files only)
 
-No `TBD`/`FIXME`/`XXX` markers found in any phase-6 file. `TODO`/`HACK`/`PLACEHOLDER` also absent. `mktemp ... XXXXXX` template patterns in color-picker.sh, wallpaper-picker.sh, font-switcher.sh, icon-theme-picker.sh are `mktemp`'s own placeholder syntax, not debt markers.
+No `TBD`/`FIXME`/`XXX` debt markers in any of the three files touched by this round's fix commits (`keybinds.conf`, `gtk.sh`, `theme-doctor`). No new placeholder/stub patterns introduced.
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `hypr/.config/hypr/config/keybinds.conf` | 160-161 | Brightness keys bypass swayosd-client entirely | 🛑 **Blocker** (WR-07, new) | Half of "volume, brightness, caps-lock" OSD-01 promise unmet — see Truth #2 |
-| `theme-engine/.config/theme-engine/lib/gtk.sh` | 389-416 | Icon-theme fallback vocabulary mismatch + nondeterministic override + GTK3/GTK4 write desync | 🛑 **Blocker** (CR-01, new) | UTIL-04's "applies to Thunar/GTK live" broken for Tela/Colloid, both explicitly bundled — see Truth #4 |
-| `theme-engine/.config/theme-engine/theme-doctor` | 36-37 | Hardcoded `adw-gtk3-dark` check, no mode branch | 🛑 **Blocker** (CR-02, new) | Health gate false-fails on every Phase-05 light preset — see Truth #6 |
-| `theme-engine/.config/theme-engine/theme-doctor` | 233-258 | GTK4 half of the new CSS-parse guard (06-19) is a no-op — connects no `parsing-error` signal, GTK4 never empties a provider on a rule error | ⚠️ Warning (WR-02, new) | 3 GTK4 sheets (walker, swayosd, gtk-4.0) get zero parse-error detection despite the guard's comment claiming coverage |
-| `theme-engine/.config/theme-engine/theme-doctor` | 226-228 | `[SKIP]` (not `[FAIL]`) when a pipeline-owned stylesheet is absent from `~/.config` | ⚠️ Warning (WR-04, new) | A completely unthemed, undeployed surface can pass the health gate green — reproduced live for swayosd/style.css on this machine |
-| `theme-engine/.config/theme-engine/lib/reload.sh` | 33 | Headless guard uses `&&` (needs both vars empty) instead of checking `WAYLAND_DISPLAY` alone | ⚠️ Warning (WR-01, new — reintroduces the INST-03 hang risk on a real TTY login where D-Bus is set but no compositor is running) | Guard defeated in the exact scenario it was added for |
-| `theme-engine/.config/theme-engine/lib/reload.sh` | 167 | Zen self-heal `ln -sf` unconditionally unlinks any pre-existing `userChrome.css` with no backup | ⚠️ Warning (WR-08, new) | A user's hand-written userChrome.css is destroyed unrecoverably on the first theme switch |
-| `hypr/.config/hypr/scripts/emoji-picker.sh` | 229-240 | Claims "typed and copied" even on the wtype-absent copy-only degraded path | ⚠️ Warning (WR-09, new) | Misleading notification; also `wl-copy` unguarded |
-| `install.sh` | (PACMAN_PKGS) | `ffmpeg` reaches the machine only transitively (via ffmpegthumbnailer/vlc), not declared directly despite being a hard dependency of `gif-export.sh` | ⚠️ Warning (WR-11, new) | `verify_packages`'s ghost-package gate cannot catch a future graph change that drops the transitive edge |
-| `swayosd/.config/swayosd/style.css` | 35-47 | Omits `segmentedprogress`/`segment`/`:disabled` selectors the installed swayosd 0.3.1 actually renders | ⚠️ Warning (WR-05, new) | Segmented volume indicator and the muted-state visual cue fall back to unthemed GTK4 defaults |
-| `hypr/.config/hypr/scripts/clipboard-wipe.sh` | 11-38 | Confirm dialog can render, then the destructive `cliphist wipe` call dies at exit 127 with no notification if cliphist is absent | ⚠️ Warning (WR-06, new) | User believes a wipe succeeded when the script actually crashed silently |
+| — | — | none found in touched files | — | — |
+
+### Pre-existing Debt (NOT phase gaps)
+
+Per the mandatory scope boundary, these are reported for visibility only and do NOT affect the pass/fail score — none breaks any of the 12 requirement IDs or the 5 success criteria, and/or they predate this round's fix commits:
+
+| Item | Requirement affected? | Notes |
+|------|------------------------|-------|
+| `swayosd/style.css` not currently deployed under `~/.config` on this dev machine | None directly — OSD-01 is satisfied because the theme correctly applies once stowed; this is dev-machine deployment staleness, not a code defect | `swayosd` is listed in `stow.sh`/`install.sh`; `stow -n swayosd` simulates cleanly. theme-doctor `[SKIP]`s (not FAILs) on this condition — a pre-existing gate-integrity warning (WR-04) noted in round 5, not one of the 3 blockers fixed this round, and does not break any of the 12 requirements as currently deployed/tested. |
+| `wallpapers/Pictures/Wallpapers/current.jpg` symlink target differs from HEAD (git status shows it modified) | None — unrelated to any of the 12 requirements; the wallpaper symlink pattern itself predates Phase 6 (introduced in commit `49536d5`, Phase 3) | Local dev-machine state drift from prior wallpaper-picker testing sessions (Phase 5), not phase-6 code. |
+| Untracked `05-PATTERNS.md`, `06-PATTERNS.md`, `csv` files causing theme-doctor's single remaining `[FAIL]` (`git status --porcelain is empty`) | None — theme-doctor's git-cleanliness check is a general repo-hygiene gate, not tied to any specific one of the 12 requirements | Per harness_state_ground_truth: not a code defect. `csv` is confirmed leftover nvidia-smi output, unrelated to this phase. |
+| WR-04 (theme-doctor `[SKIP]` vs `[FAIL]` on undeployed pipeline-owned stylesheet), WR-05 (swayosd.css missing segmentedprogress selectors), WR-06 (clipboard-wipe.sh silent crash on missing cliphist), WR-08 (Zen userChrome.css unlinked with no backup), WR-09 (emoji-picker misleading notification on degraded path), WR-11 (ffmpeg only a transitive dependency in install.sh) | None of these break any of the 12 requirement IDs as currently deployed and tested | Carried forward from `06-REVIEW.md`, unresolved by this round's fix commits (out of scope per the round 5 blocker set of 3), correctly classified as code-quality warnings, not gaps. |
 
 ### Human Verification Required
-
-None required as a blocking item this round — all remaining `human_needed`-class items are captured in `behavior_unverified_items` (Step 3/8) rather than as separate human-verification asks, since Step 9's decision tree routes to `gaps_found` regardless (3 FAILED truths outrank the 1 present-behavior-unverified truth). The SHOT-01/02/03 interactive flow should still be exercised by a human once the 3 gaps above are closed:
 
 ### 1. Live Print-key capture/annotate/record flow
 
 **Test:** Press Print / Shift+Print / Ctrl+Print / Alt+Print and exercise the full capture → satty annotate → save+copy flow; drag-record a region and a full monitor via Alt+Print, export a GIF, and play the .mp4 back in VLC.
 **Expected:** Each Print-key variant fires; satty opens, annotates, saves + copies with one notification; recordings and GIFs play back without a missing-decoder error.
-**Why human:** Interactive Wayland capture UI, not scriptable without side-effect/hang risk.
+**Why human:** Interactive Wayland capture UI (region-select, satty's annotate toolbar), not scriptable without side-effect/hang risk. Unchanged since round 5 — no regression, no new risk introduced by this round's 3 fix commits (none touch the capture/annotate/record scripts).
 
 ### Gaps Summary
 
-**Three new Critical/Blocker-class defects, all surfaced by the fresh `06-REVIEW.md` and independently confirmed here via direct source and live-system inspection, prevent `passed` status this round:**
+**All three blockers from the previous verification round are confirmed fixed, independently, against live code and live-system behavior — not merely against the fix commits' own claims:**
 
-1. **OSD-01 half-delivered (WR-07):** brightness keys bypass `swayosd-client` entirely — confirmed by grep — so the roadmap's literal "Volume, brightness, and caps-lock" wording is only 2/3 true. `swayosd/style.css` is also not currently deployed on this dev machine (staleness, not a code gap), and `theme-doctor`'s `[SKIP]` on that condition (WR-04) means the health gate cannot catch this class of problem even when it does occur in the field.
+1. **OSD-01 (brightness bypass) — fixed and confirmed.** `keybinds.conf` now routes brightness through `swayosd-client --brightness raise/lower`, live-verified as a real, working flag. D-25's DDC descope preserved.
 
-2. **UTIL-04 icon-theme picker is silently unreliable for the bundled Tela/Colloid families (CR-01):** a vocabulary mismatch between the color-matching logic and the actual installed variant names makes the nondeterministic fallback the de-facto default path, silently overriding the user's explicit pick on every theme switch, and can desync GTK3 (Thunar) from GTK4.
+2. **UTIL-04 (icon-variant silent override) — fixed and confirmed.** `theme_engine_nearest_icon_variant` no longer returns a nondeterministic `installed[0]` fallback; it returns nothing on no-match, and the call site already reads that correctly as "keep the user's pick" — confirmed by reading the actual calling code, not just the fixed function.
 
-3. **The project's own health gate cannot validate light mode (CR-02):** `theme-doctor` hardcodes a dark-mode-only expected GTK theme value, so it will false-FAIL on every one of Phase 05's six light presets — directly undermining the phase goal's own closing clause ("validated by theme-parity under both light and dark"), even though the separate `theme-parity` script itself does pass cleanly across all light and dark fixtures (1542/0, confirmed live).
+3. **Health-gate light-mode false-fail (CR-02) — fixed and confirmed via live simulation.** theme-doctor is now mode-aware; independently reproduced passing in a simulated light-mode state on this machine, with the tracked file restored afterward (`git diff` clean).
 
-**The previous round's sole blocker (WLOG-01) is genuinely and completely fixed** — independently re-verified via a live GTK3 CSS parse of the deployed stylesheet (4589 bytes, 0 errors, was 0 bytes / 8 errors). 06-17 and 06-18's warning fixes are also independently confirmed present and correct in source, with no regressions detected in theme-parity (1542/0, unchanged) or in any of the 12 syntax-checked scripts.
+4. **Bonus: WR-02 (GTK4 CSS-parse guard no-op) — fixed and confirmed via live injection test.** Connecting `parsing-error` on an instantiated `Gtk.CssProvider` does fire under GTK4, contrary to the prior code's comment; reproduced end-to-end with a real bad selector injected into the deployed `gtk-4.0/gtk.css` and reverted cleanly.
 
-**SHOT-01/02/03's live interactive flow remains unexercised** (unchanged from every prior round — same class of risk, no safe non-mutating test available) and is tracked as `behavior_unverified`, not a blocker.
+**No new gaps or regressions were introduced by this round's 3 fix commits.** All previously-passing truths (#1, #5, #7 in round 5's numbering) remain unaffected — confirmed via `git diff --stat` showing none of their supporting files were touched.
 
-**Recommended next step:** a small gap-closure plan addressing WR-07 (rebind brightness keys through `swayosd-client`), CR-01 (fix the icon-variant fallback per 06-REVIEW.md's documented patch), and CR-02 (make `theme-doctor`'s gtk-theme check mode-aware) — all three fixes are narrowly scoped and independently described with concrete patches in `06-REVIEW.md`. WR-04 (SKIP→FAIL for undeployed pipeline-owned stylesheets) is a natural companion fix to WR-07 since it closes the exact blind spot that let the brightness gap ship unnoticed.
+**Status is `human_needed`, not `passed`, only because of the pre-existing, correctly-classified `behavior_unverified` item for SHOT-01/02/03's live interactive flow** (Success Criterion 3) — this is unchanged since round 5, is not a regression, and per the decision tree in the verification process, any non-empty human-verification list routes to `human_needed` even when every other truth is verified. All 12 in-scope requirement IDs and all 5 roadmap Success Criteria are otherwise fully satisfied.
+
+**Recommended next step:** Have a human exercise the Print-key capture/annotate/record flow per the item above. Once confirmed, this phase is ready to ship — no further code changes are indicated by this verification round.
 
 ---
 
-_Verified: 2026-07-13T08:10:00Z_
+_Verified: 2026-07-13T08:35:00Z_
 _Verifier: Claude (gsd-verifier)_
