@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 06
-current_phase_name: themed-surfaces-utility-suite
-status: executing
-stopped_at: Completed 06-19-PLAN.md
-last_updated: "2026-07-13T04:25:55.781Z"
+current_phase: 07
+current_phase_name: super-key-menu
+status: ready_to_plan
+stopped_at: Phase 06 complete — UAT passed, security SECURED
+last_updated: "2026-07-13T09:20:00.000Z"
 last_activity: 2026-07-13
-last_activity_desc: Phase 06 execution started
+last_activity_desc: Phase 06 complete, transitioned to Phase 07
 progress:
-  total_phases: 5
-  completed_phases: 3
-  total_plans: 30
-  completed_plans: 30
-  percent: 60
+  total_phases: 6
+  completed_phases: 4
+  total_plans: 49
+  completed_plans: 49
+  percent: 67
 ---
 
 # Project State
@@ -24,20 +24,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-12)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 06 — themed-surfaces-utility-suite
+**Current focus:** Phase 07 — Super-Key Menu
 
 ## Current Position
 
-Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 5 of 19
-Status: Ready to execute
-Last activity: 2026-07-13 — Phase 06 execution started
+Phase: 07 — Super-Key Menu
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-13 — Phase 06 complete, transitioned to Phase 07
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 16
+- Total plans completed: 35
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -49,6 +49,7 @@ Last activity: 2026-07-13 — Phase 06 execution started
 | 02 | 2 | - | - |
 | 04 | 6 | - | - |
 | 05 | 5 | - | - |
+| 06 | 19 | - | - |
 
 **Recent Trend:**
 
@@ -191,10 +192,14 @@ None yet.
 
 Research flags to resolve during phase planning (from research/SUMMARY.md):
 
-- **Phase 6:** Zen browser profile-path resolution (native vs flatpak, "profile doesn't exist yet" chicken-and-egg) — research spike before THM-05 planning.
 - **Phase 8:** OLED auto-hide mechanism (hypridle availability, idle integration, pixel-shift feasibility) — research spike before BAR-01/BAR-02 planning.
 - **Phase 7:** elephant/walker version skew silently breaks custom menus — pin walker + elephant-* together and health-gate before shipping MENU-01.
-- **Phase 6:** hyprlock lockout-recovery discipline (second TTY logged in) and clipboard size-cap/wipe policy are launch requirements, not follow-ups.
+- **Phase 9:** GTK3 discards an entire stylesheet on one invalid rule (the WLOG-01 failure class). Every automated gate in Phase 6 passed while wlogout was visibly broken — Phase 9 needs a render-and-look check, not just a parse check.
+
+Resolved in Phase 6:
+
+- ~~Zen browser profile-path resolution~~ — closed: installs.ini-first parser with profiles.ini fallback, path validated as a real subdir of ~/.zen (06-06).
+- ~~hyprlock lockout-recovery discipline and clipboard size-cap/wipe policy~~ — closed: both shipped in-phase (recovery procedure documented and UAT'd; 100-item cap + session-end/manual wipe).
 
 ## Deferred Items
 
@@ -207,6 +212,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T04:25:55.775Z
-Stopped at: Completed 06-19-PLAN.md
+Last session: 2026-07-13T09:20:00.000Z
+Stopped at: Phase 06 complete (UAT 2/2 passed, verification passed, security SECURED 53/53) — ready to plan Phase 07
 Resume file: None

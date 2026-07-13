@@ -22,9 +22,10 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 - [x] **Phase 4: Reliability Fixes & Tech Debt** - Root-cause and fix the wlogout shutdown hang, hyprlock first-keystroke drop, and kitty slow startup, then close the rsync install.sh carry-over (completed 2026-07-11)
 - [x] **Phase 5: Light Mode Pipeline & Theme Presets** - Extend the theme pipeline to light mode, ship more presets (incl. light), and organize per-theme wallpapers behind a redesigned picker (completed 2026-07-11)
-- [x] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite (12/12 plans executed — verification found 1 gap: OSD-01 swayosd-server launch, closure pending) (completed 2026-07-12)
+- [x] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite (19/19 plans executed, verification passed, UAT passed, 53/53 threats closed) (completed 2026-07-13)
 - [ ] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet
 - [ ] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access
+- [ ] **Phase 9: wlogout to wleave Migration** - Replace wlogout with wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class, with no regression to the Phase 6 center-bar design
 
 ## Phase Details
 
@@ -190,16 +191,17 @@ Plans:
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
-| 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete   | 2026-07-13 |
+| 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
+| 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
 ### Phase 9: wlogout to wleave Migration
 
 **Goal**: Replace wlogout with wleave (GTK4) as the power menu, eliminating the GTK3 whole-stylesheet-discard failure class that produced the WLOG-01 blocker, and moving onto an actively-maintained tool — with no regression to the Phase 6 center-bar design.
 **Requirements**: WLOG-01 (re-delivered on a new engine)
 **Depends on:** Phase 8
-**Plans:** 0 plans
+**Plans:** TBD
 
 **Why this phase exists** (decided 2026-07-13, after Phase 6's wlogout work):
 

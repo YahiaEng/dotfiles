@@ -53,18 +53,21 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - ✓ Expanded preset lineup: 22 theme targets (15 dark incl. 9 Omarchy transcriptions + 5 canonical light + 2 Material You variants), all through one pipeline with light+dark parity fixtures (THM-03) — Validated in Phase 5
 - ✓ Theme-aware wallpaper sets: folders 1:1 with palette names, auto-set on theme-apply with per-theme last-used memory; picker restricted per static theme with Ctrl-A browse-all (THM-04) — Validated in Phase 5
 - ✓ Redesigned wallpaper picker: kitty-graphics previews, active marker, metadata line, pipeline-themed fzf colors (13th contract file) — Validated in Phase 5
+- ✓ wlogout redesigned as a compact centre bar with Nerd Font glyphs, colors live from the pipeline (WLOG-01) — Validated in Phase 6
+- ✓ Hyprlock redesigned and pipeline-themed: native $TIME12 clock, now-playing/battery labels, `hyprlock-colors.conf` render target (LOCK-01) — Validated in Phase 6
+- ✓ SwayOSD volume/brightness/caps-lock indicators, themed and bound to media keys (server autostarted, libinput backend enabled system-wide) (OSD-01) — Validated in Phase 6
+- ✓ Zen browser follows theme switches via matugen `userChrome.css` + profile-path resolution (THM-05) — Validated in Phase 6
+- ✓ Screenshot suite: region/window/full capture → satty annotate → save+copy, plus region/monitor recording with GIF export and audio-consent picker (SHOT-01/02/03) — Validated in Phase 6
+- ✓ Utility pickers: emoji, color, clipboard history (100-item cap + session-end/manual wipe), icon-theme (live to Thunar/GTK), nerd-font switcher (UTIL-01..05) — Validated in Phase 6
+- ✓ Theme-doctor CSS-parse regression guard: 6 GTK3 + 3 GTK4 surfaces asserted non-empty provider + zero fatal errors, proven to fail on a poisoned sheet — Validated in Phase 6
 
 ### Active
 
 <!-- Milestone v2.0 Desktop Expansion -->
 
-- [ ] wlogout menu redesigned to modern-rice standards (reliability fixed in Phase 4)
-- [ ] Hyprlock themed via the shared pipeline with a redesigned look (input reliability fixed in Phase 4)
-- [ ] Utility scripts: screenshot full suite (capture/annotate/record + animations/feedback), emoji picker, color picker, clipboard history, icon theme picker (Thunar), nerd-font switcher (vscodium/kitty/GTK/etc.)
 - [ ] Pressing $SUPER alone opens an Omarchy-style walker menu with custom icons: Utilities, AI dashboard (launchers + workspace), Game center, power, settings, keybind cheat-sheet
 - [ ] Waybar: OLED-safe behavior, additional vertical (left) layout, media center (mpris), notification center access
-- [ ] SwayOSD volume/brightness indicators, themed
-- [ ] Zen browser follows theme switches
+- [ ] Migrate wlogout → wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class (Phase 9; WLOG-01 re-delivered on a new engine)
 
 ### Out of Scope
 
@@ -133,4 +136,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-12 after Phase 5 (Light Mode Pipeline & Theme Presets)*
+*Last updated: 2026-07-13 after Phase 6 (Themed Surfaces & Utility Suite)*
