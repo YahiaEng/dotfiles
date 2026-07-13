@@ -164,13 +164,13 @@ Plans:
   4. The AI dashboard opens a submenu of AI app launchers plus a dedicated pre-configured Hyprland AI workspace, and the Game center opens a launcher submenu (Steam etc.).
   5. A searchable keybind cheat-sheet generated from keybinds.conf is reachable from the menu.
 
-**Plans**: 8 plans
+**Plans**: 1/8 plans executed
 **UI hint**: yes
 
 Plans:
 **Wave 1**
 
-- [ ] 07-01-PLAN.md — Menu engine: D-05 spike of the elephant `menus` provider (closes RESEARCH Open Q1/Q2), new `elephant/` stow package, `elephant-restart.sh`, walker `[sets.menu]` (MENU-01) [wave 1]
+- [x] 07-01-PLAN.md — Menu engine: D-05 spike of the elephant `menus` provider (closes RESEARCH Open Q1/Q2), new `elephant/` stow package, `elephant-restart.sh`, walker `[sets.menu]` (MENU-01) [wave 1]
 - [ ] 07-02-PLAN.md — Keybind safety foundation: D-03 kill-bind proven in isolation FIRST, D-30 description back-fill on every bind, `keybind-doctor` rerunnable regression gate (D-04) (MENU-01/MENU-07) [wave 1]
 - [ ] 07-03-PLAN.md — Reproducibility: 8 official + 2 human-gated AUR packages, idempotent multilib enablement for Steam (new territory), ollama enabled with no model pull, container gate green (MENU-03/MENU-04) [wave 1]
 
@@ -213,7 +213,7 @@ Plans:
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
-| 7. Super-Key Menu | v2.0 | 0/8 | Planned | - |
+| 7. Super-Key Menu | v2.0 | 1/8 | In Progress|  |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 

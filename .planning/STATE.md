@@ -5,8 +5,8 @@ milestone_name: Desktop Expansion
 current_phase: 07
 current_phase_name: super-key-menu
 status: executing
-stopped_at: Phase 7 UI-SPEC approved
-last_updated: "2026-07-13T14:43:17.771Z"
+stopped_at: Phase 07-01 Tasks 2-3 complete and committed; blocking checkpoint (menu engine live render) pending human verification
+last_updated: "2026-07-13T15:30:32.048Z"
 last_activity: 2026-07-13
 last_activity_desc: Phase 07 execution started
 progress:
@@ -171,6 +171,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Phase 06-18]: WR-03 fixed with the documented two-step grep -c capture + parameter-expansion default, replacing the || echo 0 idiom that produced a two-line 0\n0 string and an arithmetic syntax error under set -e
 - [Phase ?]: [Phase 06-18]: WR-06 fixed with --exclude=walker-relaunch.log added to commit.sh's rsync --delete, closing the sixth occurrence of the engine-owned-root-level-file bug class
 - [Phase 06-19]: GTK CSS-parse regression guard added to theme-doctor: 6 GTK3 + 3 GTK4 surfaces asserted zero fatal errors AND a non-empty Gtk.CssProvider — the exact non-empty-provider check catches a stylesheet GTK discards wholesale (WLOG-01/CR-01's failure mode), proven with a synthetic regression that reproduces the discard on a poisoned copy and confirms it fails — Four prior verification rounds grep-checked only the @import line and missed that GTK3 discards an entire stylesheet on a single invalid pseudo-class; GTK4 exposes no parsing-error signal via PyGObject on this install (verified empirically), so its coverage relies on the non-empty-provider check alone, which the plan itself designates as the load-bearing assertion
+- [Phase 07-01]: Tasks 2-3 executed: elephant/ stow package + elephant-restart.sh + walker placeholders menus:main wiring; dead sets.runner deleted. Key finding: placeholder key must be the QUALIFIED provider id (menus:main), not the bare provider name, verified by screenshot.
 
 ### Quick Tasks Completed
 
@@ -201,6 +202,7 @@ Resolved in Phase 6:
 - ~~Zen browser profile-path resolution~~ — closed: installs.ini-first parser with profiles.ini fallback, path validated as a real subdir of ~/.zen (06-06).
 - ~~hyprlock lockout-recovery discipline and clipboard size-cap/wipe policy~~ — closed: both shipped in-phase (recovery procedure documented and UAT'd; 100-item cap + session-end/manual wipe).
 - ~~Phase 7 Plan 01 (D-05 spike) BLOCKED after Task 1: walker 2.16.2's '-s <name>' GUI-mode invocation panics and aborts the walker daemon~~ — **RESOLVED 2026-07-13 (decision taken, plans amended in 117edc9).** Adopted `-m/--provider` exclusive-provider mode across the phase; `walker -m menus:main` and `walker -m runner` both verified to render and leave the service alive (PID before/after). The D-05 spike stands GO: elephant's `menus` provider expresses submenus, drill-down, Esc-back-nav (exactly one level) and glyph-as-text — no `--dmenu` fallback needed. **Two durable findings kept:** (1) `walker -s <set>` / `[sets.*]` is a dead mechanism on walker 2.16.2 (panic, `src/data.rs:566`) — do not reintroduce it; (2) it fails on the shipped `[sets.runner]` block too, so **`Super+R` was already broken in production** — a pre-existing bug, fixed in 07-02 Task 1b, not caused by this phase. Root cause of the bad design: 07-RESEARCH.md claimed `walker -s runner` "already ships and works" based on reading the config file, never running it — the phase's own "verify against the installed binary" lesson, unapplied to the research itself.
+- Phase 07-01 checkpoint (blocking human-verify: 'Verify the menu engine renders live') is PENDING. Tasks 1-3 done and committed (4f2becb, 6f4e4b2, 117edc9, 7adc2a2, e9c3a24, 238095a). All checkpoint verification steps already mechanically exercised this session; awaiting human sign-off before plan 07-01 is marked complete and 07-02 proceeds.
 
 ## Deferred Items
 
@@ -213,6 +215,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T14:43:17.765Z
-Stopped at: Phase 7 UI-SPEC approved
-Resume file: .planning/phases/07-super-key-menu/07-UI-SPEC.md
+Last session: 2026-07-13T15:30:32.041Z
+Stopped at: Phase 07-01 Tasks 2-3 complete and committed; blocking checkpoint (menu engine live render) pending human verification
+Resume file: .planning/phases/07-super-key-menu/07-01-PLAN.md
