@@ -115,8 +115,15 @@ _cs_keycap() {
             CAP_PLAIN+=' '
             CAP_COLOR+=' '
         fi
+        # The chip is a SOFT surface fill, not reverse video. `\033[7m` inverts
+        # fg/bg, which produces a full-contrast block that glares on a dark
+        # theme. Instead: background = palette slot 0 (the theme's subtle
+        # surface — #313244 under catppuccin), glyph = slot 3 (accent). Both
+        # are palette indices, so the chip still re-themes with kitty and never
+        # hardcodes a hex. Visible width is unchanged (" g "), so the border
+        # alignment maths is untouched.
         CAP_PLAIN+=" $g "
-        CAP_COLOR+=$'\033[7m'" $g "$'\033[0m'
+        CAP_COLOR+=$'\033[48;5;0m\033[38;5;3m'" $g "$'\033[0m'
     done
 }
 
