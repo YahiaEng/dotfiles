@@ -41,7 +41,7 @@ key-decisions:
 patterns-established:
   - "Never trust a config-file key/block's presence as evidence it renders correctly — verify with a screenshot of the actual running window, twice if the first key form fails (menus vs menus:main)."
 
-requirements-completed: []  # MENU-01 (tap-bind + regression sweep) is NOT completed by this plan — that's 07-04. This plan lays the elephant/walker menu-engine foundation only. Checkpoint (human-verify) is still pending — do not mark requirements complete until the human approves.
+requirements-completed: []  # MENU-01 (tap-bind + regression sweep) is NOT completed by this plan — that's 07-04. This plan lays the elephant/walker menu-engine foundation only. Checkpoint (human-verify): APPROVED by the user 2026-07-13.
 
 coverage:
   - id: D1
@@ -88,8 +88,8 @@ status: blocked
 ## Performance
 
 - **Duration:** ~30 min (Task 1, session 1, 2026-07-13T14:11–14:41Z) + ~35 min (Tasks 2-3, this continuation session, 2026-07-13T~14:52–15:27Z)
-- **Completed:** 2026-07-13 (Tasks 1-3); checkpoint task still pending human sign-off
-- **Tasks:** 3 of 4 executed (Task 1 spike, Task 2 stow package, Task 3 restart script + walker wiring); Task 4 (checkpoint) awaiting human
+- **Completed:** 2026-07-13 (all 4 tasks; checkpoint APPROVED by user)
+- **Tasks:** 4 of 4 (Task 1 spike, Task 2 stow package, Task 3 restart script + walker wiring, Task 4 checkpoint APPROVED)
 - **Files modified:** 4 total across Tasks 2-3 — `elephant/.config/elephant/menus/main.toml` (new), `stow.sh` (modified), `hypr/.config/hypr/scripts/elephant-restart.sh` (new), `walker/.config/walker/config.toml` (modified). Task 1's spike artifacts were fully cleaned up (net zero diff), as the plan required.
 
 ## What Happened
@@ -182,7 +182,7 @@ See Finding 3 (Task 1, prior session, resolved) and the two auto-fixed deviation
 2. **Task 2: Create the elephant stow package** — `e9c3a24` (feat: elephant stow package + stow.sh registration) — found already committed at the start of this continuation session
 3. **Task 3: elephant-restart.sh + walker config wiring** — `238095a` (feat: elephant-restart.sh, menus placeholder wired, dead [sets.*] removed) — this session
 
-**Plan metadata:** this commit (docs: extend SUMMARY to cover Tasks 1-3, update STATE/ROADMAP) — see below; plan is NOT yet complete, checkpoint pending.
+**Plan metadata:** this commit (docs: extend SUMMARY to cover Tasks 1-3, update STATE/ROADMAP) — see below; checkpoint subsequently APPROVED by the user — plan complete.
 
 ## Files Created/Modified
 
@@ -197,7 +197,7 @@ None — no external service configuration required.
 
 ## Next Phase Readiness
 
-**Tasks 1-3 are functionally complete and independently verified against the live binaries.** The plan's final task — a `gate="blocking"` human-verify checkpoint — is still pending. Per this plan's `autonomous: false` status and the checkpoint protocol, this executor STOPS here and returns a structured checkpoint message rather than self-approving.
+**Tasks 1-3 are functionally complete and independently verified against the live binaries.** The plan's final task — a `gate="blocking"` human-verify checkpoint — was presented to the user and **APPROVED on 2026-07-13**. The user confirmed live: `elephant-restart.sh` exits 0, `walker -m menus:main` renders the locked placeholder + Power entry with a real glyph (no tofu), theming matches the normal launcher, the entry opens wlogout, and the walker service survives. **Plan 07-01 is COMPLETE (4/4 tasks).**
 
 Everything the checkpoint's `<how-to-verify>` steps ask the human to confirm has already been mechanically exercised once this session (restart script, `walker -m menus:main`, glyph rendering, theming parity, Esc-survives-service) — the human pass is a second, independent confirmation layer, not a first look. `theme-engine/.config/theme-engine/contract.json` is confirmed byte-identical to `HEAD` (D-08 holds). `theme-parity` was not re-run this session (no theme-affecting files were touched) but nothing in this plan's diff touches any contract-tracked file, so it is not expected to be affected.
 
@@ -205,7 +205,7 @@ Once the human approves the checkpoint, this plan (07-01) is fully done and 07-0
 
 ---
 *Phase: 07-super-key-menu*
-*Completed: 2026-07-13 (Tasks 1-3; checkpoint pending)*
+*Completed: 2026-07-13 (all 4 tasks; checkpoint approved)*
 
 ## Self-Check: PASSED
 
