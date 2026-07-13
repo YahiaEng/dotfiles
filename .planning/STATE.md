@@ -5,16 +5,16 @@ milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
-stopped_at: Completed 06-13-PLAN.md
-last_updated: "2026-07-12T23:02:18.173Z"
-last_activity: 2026-07-12
+stopped_at: Completed 06-14-PLAN.md
+last_updated: "2026-07-13T00:40:16.077Z"
+last_activity: 2026-07-13
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 24
-  completed_plans: 24
-  percent: 60
+  completed_phases: 2
+  total_plans: 26
+  completed_plans: 25
+  percent: 40
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 2 of 13
+Plan: 2 of 15
 Status: Ready to execute
-Last activity: 2026-07-12 — Phase 06 execution started
+Last activity: 2026-07-13 — Phase 06 execution started
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Last activity: 2026-07-12 — Phase 06 execution started
 | Phase 06 P11 | 5min | 2 tasks | 5 files |
 | Phase 06 P12 | 8min | 2 tasks | 3 files |
 | Phase 06 P13 | 5min | 3 tasks | 3 files |
+| Phase 06 P14 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-13]: swayosd-server launched via exec-once = uwsm app -- swayosd-server, placed after hypridle and before theme-init — Restores the OSD-01 regression: swayosd-client had no server to talk to on a fresh install
 - [Phase 06-13]: swayosd-libinput-backend.service enabled on the system bus (sudo systemctl enable --now) instead of --user, non-silenced failure report — Packaged extra/swayosd unit only exists as a root system service; --user enable always silently no-op'd
 - [Phase 06-13]: reload.sh theme-switch restarts swayosd-server itself, not the libinput backend — style.css is only read at swayosd-server startup; the libinput backend has no CSS to reload (06-REVIEW.md WR-01)
+- [Phase 06-14]: Print-family binds rebound to code:107 (physical keycode) instead of the Print keysym — deterministically fixes ALT+Print (us XKB keymap resolves Alt+PrtSc to Sys_Req, not Print) and is robust to keyboards with non-standard PrtSc keysym mapping
+- [Phase 06-14]: hyprshot invocations switched from -r to --raw in all three capture scripts — hyprshot 1.3.0's getopt optstring declares -r as argument-required while the handler treats it as boolean, so only the long form parses cleanly
 
 ### Quick Tasks Completed
 
@@ -188,6 +191,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-12T23:02:18.167Z
-Stopped at: Completed 06-13-PLAN.md
+Last session: 2026-07-13T00:40:16.070Z
+Stopped at: Completed 06-14-PLAN.md
 Resume file: None
