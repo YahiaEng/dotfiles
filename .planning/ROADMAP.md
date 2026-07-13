@@ -103,7 +103,7 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: 15/15 plans complete
+**Plans**: 15/19 plans complete (4 gap-closure plans added — round 4)
 **UI hint**: yes
 
 Plans:
@@ -142,6 +142,13 @@ Plans:
 
 - [x] 06-14-PLAN.md — Print-key family rebound by keycode (`code:107`, fixes Alt→Sys_Req miss); capture-{region,full,window}.sh switch broken `-r` → `--raw` (hyprshot getopt bug), restoring the satty save flow to ~/Pictures/Screenshots (SHOT-01/02/03) [wave 1]
 - [x] 06-15-PLAN.md — install.sh reproducibility: add vlc + vlc-plugins-all (gpu-screen-recorder codecs) + xdg-user-dirs to PACMAN_PKGS (SHOT-03) [wave 1]
+
+**Gap closure round 4** *(round-4 verification + fresh code review: 1 blocker (CR-01, WLOG-01 — wlogout renders completely unthemed) + 6 carried warnings; blocker survived 4 rounds because every round grep-checked instead of parsing)*
+
+- [ ] 06-16-PLAN.md — WLOG-01 blocker, both defects: delete the 8 GTK3-invalid generated-content rulesets that make GTK discard the ENTIRE wlogout stylesheet, AND populate the six `layout` `text` fields with Nerd Font glyphs (D-10 was only half-implemented — SVGs deleted, glyphs never added). D-09 hover-label deliberately dropped: GTK3 has no generated content and wlogout gives each button one text slot, so D-09 and D-10 are mutually exclusive (WLOG-01) [wave 1]
+- [ ] 06-17-PLAN.md — Utility-script warnings: WR-01 color-picker classifies failures by stdout (hyprpicker never writes stderr) so real failures stop taking the silent-cancel path; WR-02 clipboard-wipe survives an empty cliphist db under `set -e`; WR-04 trap-based mktemp cleanup in both fzf pickers; WR-05 record-toggle's pgrep/pkill bounded to argv[0] so sibling GSR binaries can't invert the toggle or be killed (UTIL-02/03/04/05, SHOT-03) [wave 1]
+- [ ] 06-18-PLAN.md — Theme-engine warnings: WR-03 remove the `|| echo 0` idiom whose two-line `0\n0` turns the Zen installs.ini `-eq` test into an arithmetic abort; WR-06 add `--exclude=walker-relaunch.log` to commit.sh's rsync `--delete` (6th recurrence of this bug class) (THM-05) [wave 1]
+- [ ] 06-19-PLAN.md — Regression guard: theme-doctor runs all 9 pipeline-owned GTK stylesheets (6 GTK3 + 3 GTK4) through a REAL GTK CSS parser, asserting a non-empty provider (the discard signature a grep can't see) and zero fatal errors; headless-safe, deprecation-tolerant, and proven to fail on a poisoned sheet (WLOG-01) [wave 2, depends on 06-16]
 
 ### Phase 7: Super-Key Menu
 
