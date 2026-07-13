@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 07
 current_phase_name: super-key-menu
 status: executing
-stopped_at: Phase 07-04 Tasks 1-2 complete and committed; blocking checkpoint (full keybind regression sweep) pending human verification
-last_updated: "2026-07-13T20:22:00.000Z"
+stopped_at: Phase 07-04 COMPLETE (checkpoint approved, no regressions); ready to plan/execute 07-05
+last_updated: "2026-07-13T17:29:27.250Z"
 last_activity: 2026-07-13
-last_activity_desc: Phase 07 execution started
+last_activity_desc: Phase 07-04 complete — MENU-01 delivered, super-tap menu bind + launcher relocation, final regression-sweep checkpoint approved
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 38
-  completed_plans: 33
+  completed_plans: 34
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 07 (super-key-menu) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 07
-Last activity: 2026-07-13 — Phase 07 execution started
+Plan: 2 of 8
+Status: 07-04 complete; ready for 07-05
+Last activity: 2026-07-13 — Phase 07-04 complete (MENU-01 delivered)
 
 ## Performance Metrics
 
@@ -97,6 +97,7 @@ Last activity: 2026-07-13 — Phase 07 execution started
 | Phase 06 P18 | 8min | 2 tasks | 2 files |
 | Phase 06 P19 | 20min | 3 tasks | 1 files |
 | Phase 07 P03 | 11min | 2 tasks | 1 files |
+| Phase 07 P04 | 35min+sweep | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -179,7 +180,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 07-03]: Container-gate D-34 proof deferred (not faked) — origin/main is 202 commits behind local HEAD and predates this phase entirely; pushing to the public remote requires explicit human authorization per this repo's own established precedent (Phase 3's 03-04, Phase 4's 04-VERIFICATION)
 - [Phase 07-04]: `wtype` root cause found — it CAN deliver text/key events to whatever client holds keyboard focus (confirmed via `WAYLAND_DEBUG`: it creates a `zwp_virtual_keyboard_v1` and successfully sends `.key()` events), but a prior agent's probe was typing into the Claude Code kitty TUI's own input box rather than a shell, which swallowed the marker-file test with no visible effect. The genuinely useful, narrower finding: `wtype -M logo -k 2 -m logo` (Super+2) did NOT switch workspace — wtype constructs its own virtual XKB keymap per invocation, and Hyprland does not track that virtual modifier state for bind matching, so wtype cannot drive Hyprland's bind matcher for modifier-combo binds. wtype is therefore unusable for proving Super-combo shadowing behaviour, and is unsafe for unattended use on a live desktop since it types into whatever window currently has focus (which may be the operator's own terminal).
 - [Phase 07-04]: D-02 / RESEARCH Assumption A2 (default bind-shadowing on Hyprland 0.55.4) CLOSED by live human keypress, not automation. Five tests performed by the human against the live compositor: Super+Return (terminal opened, menu did NOT open on release), Super+1 (workspace switched, menu did NOT open), Super+Q (window closed, menu did NOT open), Super+T (theme switcher opened, menu did NOT open), bare Super tap x2 (menu opened both times). This is the phase's highest-impact assumption, now discharged.
-- [Phase 07-04]: Tasks 1-2 executed and committed (e2362c1, 05828ee): SUPER_L tap-only `bindr` menu bind added additively then proven live (see D-02 entry above); old SUPER_L press-bind removed and app launcher relocated to Super+Space (D-01); Super+R left byte-identical. `hyprctl binds -j` shows zero press-binds/one release-bind on SUPER_L; keybind-doctor 8/0, 77 declared binds (baseline 76). Final blocking checkpoint (full ~48-bind human regression sweep) pending human approval.
+- [Phase 07-04]: Tasks 1-2 executed and committed (e2362c1, 05828ee): SUPER_L tap-only `bindr` menu bind added additively then proven live (see D-02 entry above); old SUPER_L press-bind removed and app launcher relocated to Super+Space (D-01); Super+R left byte-identical. `hyprctl binds -j` shows zero press-binds/one release-bind on SUPER_L; keybind-doctor 8/0, 77 declared binds (baseline 76).
+- [Phase 07-04]: PLAN COMPLETE. Final blocking checkpoint (full ~48-bind human regression sweep, ROADMAP success criterion #1's human half) APPROVED by the human — "no regressions" across the full sweep (new binds, core/menus/clipboard/utility/focus/move/resize/workspace/scratchpad/mouse/non-Super binds, and a final green keybind-doctor run). Orchestrator-verified final state: SUPER_L press-binds=0, release-binds=1; Super+Space -> exec walker registered; Super+R -> walker -m runner unchanged; Super+Escape -> pkill walker intact; keybind-doctor 8/0, 77/77 declared binds registered, 77/77 description parity; git diff --exit-code install.sh vs 7c831dd clean (no input-layer package added). MENU-01 and ROADMAP success criterion #1 fully delivered.
+- [Phase 07-04]: PLAN COMPLETE: MENU-01/ROADMAP criterion #1 delivered — Super-tap menu bind + Super+Space launcher relocation, final regression-sweep checkpoint approved with zero regressions
 
 ### Quick Tasks Completed
 
@@ -211,7 +214,6 @@ Resolved in Phase 6:
 - ~~hyprlock lockout-recovery discipline and clipboard size-cap/wipe policy~~ — closed: both shipped in-phase (recovery procedure documented and UAT'd; 100-item cap + session-end/manual wipe).
 - ~~Phase 7 Plan 01 (D-05 spike) BLOCKED after Task 1: walker 2.16.2's '-s <name>' GUI-mode invocation panics and aborts the walker daemon~~ — **RESOLVED 2026-07-13 (decision taken, plans amended in 117edc9).** Adopted `-m/--provider` exclusive-provider mode across the phase; `walker -m menus:main` and `walker -m runner` both verified to render and leave the service alive (PID before/after). The D-05 spike stands GO: elephant's `menus` provider expresses submenus, drill-down, Esc-back-nav (exactly one level) and glyph-as-text — no `--dmenu` fallback needed. **Two durable findings kept:** (1) `walker -s <set>` / `[sets.*]` is a dead mechanism on walker 2.16.2 (panic, `src/data.rs:566`) — do not reintroduce it; (2) it fails on the shipped `[sets.runner]` block too, so **`Super+R` was already broken in production** — a pre-existing bug, fixed in 07-02 Task 1b, not caused by this phase. Root cause of the bad design: 07-RESEARCH.md claimed `walker -s runner` "already ships and works" based on reading the config file, never running it — the phase's own "verify against the installed binary" lesson, unapplied to the research itself.
 - Phase 7: D-34 container-gate proof (verify/container-run.sh) for plan 07-03 is open pending human push authorization — origin/main is 202 commits behind local HEAD (predates Phase 5). Human must: (1) authorize git push origin main, (2) re-run verify/container-run.sh and confirm overall=PASS with all 10 new packages + multilib showing [OK].
-- Phase 07-04 checkpoint ('Full keybind regression sweep — human half of ROADMAP criterion #1') is PENDING. Tasks 1-2 done and committed (e2362c1, 05828ee). D-02/Assumption A2 already closed by five live human keypress tests this session (all PASS); `keybind-doctor` green (8/0, 77 declared binds); `hyprctl binds -j` confirms zero press-binds/one release-bind on SUPER_L. Awaiting the human's full ~48-bind regression sweep and explicit "approved" (or "REVERT") resume signal before plan 07-04 is marked complete.
 
 ## Deferred Items
 
@@ -224,6 +226,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T20:22:00.000Z
-Stopped at: Phase 07-04 Tasks 1-2 complete and committed; blocking checkpoint (full keybind regression sweep) pending human verification
-Resume file: .planning/phases/07-super-key-menu/07-04-PLAN.md
+Last session: 2026-07-13T17:28:29.868Z
+Stopped at: Phase 07-04 COMPLETE — checkpoint approved, no regressions; MENU-01 delivered
+Resume file: None

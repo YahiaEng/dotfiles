@@ -60,25 +60,28 @@ coverage:
     human_judgment: false
   - id: D4
     description: "Final blocking checkpoint: full ~48-bind human regression sweep (ROADMAP success criterion #1's human half, D-04) presented to the human"
-    verification: []
+    verification:
+      - kind: manual_procedural
+        ref: "Human performed the full sweep and gave the resume signal 'approved — no regressions.' Orchestrator cross-check confirmed: hyprctl binds -j shows SUPER_L press-binds=0, release-binds=1 (uwsm app -- walker -m menus:main); Super+SPACE -> exec walker registered; Super+R -> walker -m runner unchanged (D-01); Super+Escape -> pkill walker kill-bind intact (D-03); keybind-doctor 8 passed/0 failed, 77/77 declared binds registered, description parity 77/77; git diff --exit-code install.sh vs 7c831dd clean (no input-layer package added, D-02)."
+        status: pass
     human_judgment: true
-    rationale: "This is the plan's own gate=\"blocking\" human-verify checkpoint — by design this executor must not self-approve it. Awaiting the human's explicit resume signal ('approved' or 'REVERT')."
+    rationale: "This is the plan's own gate=\"blocking\" human-verify checkpoint — by design this executor must not self-approve it. The human performed the full ~48-bind sweep and gave the explicit resume signal 'approved' with a note of zero regressions. This satisfies ROADMAP success criterion #1's human half in full."
 
 # Metrics
-duration: ~35min (this continuation session, Tasks 1 commit + Task 2)
+duration: ~35min (Tasks 1-2) + human regression sweep + closeout
 completed: 2026-07-13
-status: blocked
+status: complete
 ---
 
 # Phase 7 Plan 04: Super-Tap Menu Rebind Summary
 
-**Bare Super tap now opens the main menu exclusively; the app launcher moved to Super+Space; D-02/Assumption A2 (default bind-shadowing on Hyprland 0.55.4) closed by live human keypress across five tests, with zero regressions — Task 1 and Task 2 complete, final human regression-sweep checkpoint pending.**
+**Bare Super tap now opens the main menu exclusively; the app launcher moved to Super+Space; D-02/Assumption A2 (default bind-shadowing on Hyprland 0.55.4) closed by live human keypress across five tests; the human's full ~48-bind regression sweep found zero regressions — PLAN COMPLETE, MENU-01 fully delivered.**
 
 ## Performance
 
-- **Duration:** ~35 min (this continuation session — committing Task 1's already-live change, then executing Task 2)
-- **Completed:** 2026-07-13 (Tasks 1 and 2 of the plan; the plan's two `checkpoint:human-verify` tasks bracket them — the opening safety checkpoint was already approved in a prior session, the closing regression-sweep checkpoint is pending)
-- **Tasks:** 2 of 2 auto tasks
+- **Duration:** ~35 min (Tasks 1-2, prior continuation session) + human regression sweep + closeout (this session)
+- **Completed:** 2026-07-13 (all 2 auto tasks and both `checkpoint:human-verify` tasks — the opening safety checkpoint and the closing regression-sweep checkpoint are both approved)
+- **Tasks:** 2 of 2 auto tasks + 2 of 2 checkpoints, all complete
 - **Files modified:** 1 — `hypr/.config/hypr/config/keybinds.conf` (edited across 2 commits)
 
 ## Accomplishments
@@ -100,8 +103,11 @@ Each task was committed atomically:
 
 1. **Task 1: Add the tap bind additively and prove the shadowing claim by live keypress** — `e2362c1` (feat)
 2. **Task 2: Remove the old press-bind and relocate the launcher to Super+Space (D-01)** — `05828ee` (feat)
+3. **Interim SUMMARY + STATE.md corrections** — `2908f0f` (docs)
 
-**Plan metadata:** this commit (docs: interim summary; final checkpoint pending)
+**Checkpoint 3 (final blocking checkpoint — full ~48-bind human regression sweep):** APPROVED. The human performed the sweep described in the plan's `<how-to-verify>` (all new binds, core/menus/clipboard/utility/focus/move/resize/workspace/scratchpad/mouse binds, non-Super binds, and a final `keybind-doctor` run) and gave the resume signal "approved — no regressions." No task-editing commit accompanies this checkpoint (`checkpoint:human-verify` tasks edit no files); this plan's closeout docs commit is recorded below.
+
+**Plan metadata:** this closeout commit (docs: final SUMMARY completion, STATE.md, ROADMAP.md)
 
 _Note: Task 1's file edit and live `hyprctl reload` were performed and verified live in a prior continuation session; this session's job was to commit that already-proven change (with the human's five test outcomes as evidence) and then execute Task 2._
 
@@ -130,15 +136,19 @@ None — no external service configuration required.
 
 ## Next Phase Readiness
 
-**Tasks 1 and 2 are complete, committed, and verified live against the installed Hyprland 0.55.4 / walker 2.16.2 binaries.** `hyprctl binds -j` confirms the target bind topology on `SUPER_L` (zero press-binds, exactly one release-bind); `keybind-doctor` is green (8 passed, 0 failed, 77 declared binds, up from the 76-bind baseline); `git diff --exit-code install.sh` succeeds, confirming D-02's "no input-layer package" constraint held.
+**Plan 07-04 is COMPLETE.** All three tasks (Task 1, Task 2, and the final `checkpoint:human-verify` gate) are done. `hyprctl binds -j` confirms the target bind topology on `SUPER_L` (zero press-binds, exactly one release-bind — `uwsm app -- walker -m menus:main`); `Super+SPACE` -> `exec walker` (relocated launcher) is registered; `Super+R` -> `walker -m runner` is unchanged (D-01); `Super+Escape` -> `pkill walker` kill-bind is intact (D-03). `keybind-doctor` is green: 8 passed, 0 failed, 77/77 declared binds registered, 77/77 description parity. `git diff --exit-code install.sh` vs `7c831dd` is clean, confirming D-02's "no input-layer package" constraint held throughout.
 
-**This plan's final task is a `checkpoint:human-verify` with `gate="blocking"` — the full ~48-bind human regression sweep (ROADMAP success criterion #1's human half, D-04).** Per the checkpoint protocol, this executor does NOT self-approve it. It has been returned to the orchestrator as a structured checkpoint. Once the human approves it (or reports "REVERT" if any combo misbehaves), plan 07-04 is complete and MENU-01 is fully delivered.
+**The final checkpoint (full ~48-bind human regression sweep, ROADMAP success criterion #1's human half) was APPROVED by the human** with an explicit "no regressions" report, after performing every step in the plan's `<how-to-verify>` (new binds, the full core/menus/clipboard/utility/focus/move/resize/workspace/scratchpad/mouse/non-Super sweep, and a final `keybind-doctor` confirmation).
+
+**MENU-01 and ROADMAP success criterion #1 are both fully delivered.** Both halves of D-04's regression gate (scripted `keybind-doctor` + human sweep) passed. D-02/RESEARCH Assumption A2 is closed by live human keypress evidence (recorded above), not static analysis. Zero new packages were added. Phase 07-super-key-menu can proceed to its next plan (07-05) whenever the orchestrator is ready.
+
+**Durable finding carried forward (corrected):** `wtype` can deliver key/text events to whatever client currently holds keyboard focus (confirmed via `WAYLAND_DEBUG` — it creates a `zwp_virtual_keyboard_v1` and sends real `.key()` events), but it CANNOT be used to prove Hyprland modifier-combo bind behavior: it constructs its own virtual XKB keymap per invocation, and Hyprland does not track that virtual modifier state for bind matching (`wtype -M logo -k 2 -m logo` did not switch workspace). A prior session's "zero observable effect" finding was a mistargeted probe — text was delivered into the operator's own Claude Code TUI input box, not a shell, so no marker file was ever going to appear. Any future modifier-combo bind proof (in this phase or later ones) requires a real human keypress, and `wtype` should be treated as unsafe for unattended use since it always types into whatever window currently has focus.
 
 ---
 *Phase: 07-super-key-menu*
-*Completed: 2026-07-13 (Tasks 1-2 of 2 auto tasks; final blocking checkpoint pending)*
+*Completed: 2026-07-13 (all tasks and both checkpoints complete — PLAN COMPLETE)*
 
 ## Self-Check: PASSED
 
 All claimed files verified present on disk: `hypr/.config/hypr/config/keybinds.conf`.
-All claimed commits verified present in `git log --oneline --all`: `e2362c1`, `05828ee`.
+All claimed commits verified present in `git log --oneline --all`: `e2362c1`, `05828ee`, `2908f0f`.

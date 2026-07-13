@@ -164,7 +164,7 @@ Plans:
   4. The AI dashboard opens a submenu of AI app launchers plus a dedicated pre-configured Hyprland AI workspace, and the Game center opens a launcher submenu (Steam etc.).
   5. A searchable keybind cheat-sheet generated from keybinds.conf is reachable from the menu.
 
-**Plans**: 3/8 plans executed
+**Plans**: 4/8 plans executed
 **UI hint**: yes
 
 Plans:
@@ -176,7 +176,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 07-04-PLAN.md — Headline risk: additive `bindr` Super-tap bind, live-keypress shadowing proof (closes Assumption A2), launcher relocated to Super+Space, full regression sweep (MENU-01) [wave 2, depends on 07-01, 07-02]
+- [x] 07-04-PLAN.md — Headline risk: additive `bindr` Super-tap bind, live-keypress shadowing proof (closes Assumption A2), launcher relocated to Super+Space, full regression sweep (MENU-01) [wave 2, depends on 07-01, 07-02]
 - [ ] 07-05-PLAN.md — Core menu tree: 6-entry root (Power last), Utilities + Screenshot submenus, 9-entry Settings, `nmtui-launch.sh`, `powermenu.sh` DELETED (D-20) (MENU-02/MENU-05/MENU-06) [wave 2, depends on 07-01]
 
 **Wave 3** *(blocked on Wave 2)*
@@ -213,7 +213,7 @@ Plans:
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
-| 7. Super-Key Menu | v2.0 | 3/8 | In Progress|  |
+| 7. Super-Key Menu | v2.0 | 4/8 | In Progress|  |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
