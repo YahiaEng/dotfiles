@@ -54,8 +54,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │       ├── wallpaper-switch.sh         # Walker wallpaper picker + matugen
 │       ├── waybar-launch.sh            # Launches waybar with saved layout
 │       ├── theme-init.sh               # Restores theme on login
-│       ├── screenshot.sh               # grim + slurp screenshots
-│       └── powermenu.sh                # Lock/logout/reboot/shutdown
+│       └── screenshot.sh               # grim + slurp screenshots
 │
 ├── waybar/.config/waybar/
 │   ├── config-minimal.jsonc            # Workspaces + clock

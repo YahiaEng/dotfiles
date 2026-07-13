@@ -1,0 +1,24 @@
+name = "utilities"
+name_pretty = "Utilities"
+parent = "main"
+
+# D-12: four concepts — Screenshot nests its four capture variants.
+# D-13: icon-theme picker and font switcher live in Settings, not here
+# (do vs configure split) — do NOT add them to this file.
+
+[[entries]]
+text = "  Screenshot"
+submenu = "screenshot"
+
+[[entries]]
+text = "  Emoji"
+actions = { "open" = "~/.config/hypr/scripts/emoji-picker.sh" }
+
+[[entries]]
+text = "  Colour picker"
+actions = { "open" = "~/.config/hypr/scripts/color-picker.sh" }
+
+[[entries]]
+text = "  Clipboard"
+# Reuses the exact Super+C pipeline verbatim (keybinds.conf).
+actions = { "open" = "cliphist list | walker --dmenu | cliphist decode | wl-copy" }

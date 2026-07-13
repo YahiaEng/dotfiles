@@ -1,0 +1,21 @@
+name = "screenshot"
+name_pretty = "Screenshot"
+parent = "utilities"
+
+# D-12: four capture variants, existing Phase 6 scripts unchanged.
+
+[[entries]]
+text = "  Region"
+actions = { "open" = "~/.config/hypr/scripts/capture-region.sh" }
+
+[[entries]]
+text = "  Window"
+actions = { "open" = "~/.config/hypr/scripts/capture-window.sh" }
+
+[[entries]]
+text = "  Full screen"
+actions = { "open" = "~/.config/hypr/scripts/capture-full.sh" }
+
+[[entries]]
+text = "  Record toggle"
+actions = { "open" = "~/.config/hypr/scripts/record-toggle.sh" }

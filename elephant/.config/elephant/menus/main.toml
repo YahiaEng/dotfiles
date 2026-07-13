@@ -1,6 +1,35 @@
 name = "main"
 name_pretty = "Menu"
 
+# D-10: root is exactly the six requirement groups, task-frequency order,
+# Power LAST (destructive, must not sit under the default cursor position).
+# No pinned flat quick-actions mixed in (D-10 explicitly rejects them).
+
 [[entries]]
-text = " Power"
+text = "  Utilities"
+submenu = "utilities"
+
+[[entries]]
+text = "  Settings"
+submenu = "settings"
+
+[[entries]]
+text = "  AI Dashboard"
+submenu = "ai-dashboard"
+
+[[entries]]
+text = "  Game Center"
+submenu = "game-center"
+
+[[entries]]
+text = "  Keybinds"
+# Forward reference (deliberate, not a bug): cheat-sheet.sh is authored by
+# plan 07-08. Wired here now so main.toml has exactly one owner for the
+# root menu; 07-08 lands the script this action points at.
+actions = { "open" = "~/.config/hypr/scripts/cheat-sheet.sh" }
+
+[[entries]]
+text = "  Power"
+# D-19: delegates to the ONE existing power surface (same as Super+Shift+Q).
+# D-09: shell script, invoked bare — never uwsm app --.
 actions = { "open" = "~/.config/hypr/scripts/wlogout.sh" }
