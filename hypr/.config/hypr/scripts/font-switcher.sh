@@ -42,7 +42,17 @@ ACTIVE_FONT=$(cat "$FONT_STATE" 2>/dev/null || echo "FiraCode Nerd Font")
 # ttf-nerd-fonts-symbols with no letterforms — selecting it as a text/code
 # font would render every surface as tofu, an obviously broken choice no
 # user would intentionally want from this picker.
+# WR-04: initialize all three mktemp-artifact vars before the first
+# mktemp, then install one EXIT trap covering all three — safe on any
+# abort path (failing enumeration, a later mktemp failing, SIGTERM/SIGHUP
+# from the floating kitty window closing), matching the sibling idiom
+# color-picker.sh/gif-export.sh already use. Installing a second on-exit
+# handler here would silently replace this one, so only one is ever set.
+ENUM_SCRIPT=""
+PREVIEW_SCRIPT=""
+CACHE_DIR=""
 ENUM_SCRIPT=$(mktemp /tmp/font-enum-XXXXXX.sh)
+trap 'rm -f "$ENUM_SCRIPT" "$PREVIEW_SCRIPT"; rm -rf "$CACHE_DIR"' EXIT
 printf '#!/usr/bin/env bash\nACTIVE_MARKER=%q\n' "$ACTIVE_MARKER" > "$ENUM_SCRIPT"
 cat >> "$ENUM_SCRIPT" << 'ENUM'
 ACTIVE="$1"
@@ -65,7 +75,6 @@ FONT_COUNT=$(printf '%s\n' "$FONTS" | grep -c . || true)
 # Should not occur given D-18's bundled 7-font floor (FiraCode/FiraMono
 # already installed plus the 5-pack from install.sh) — defensive copy only.
 if [[ "$FONT_COUNT" -eq 0 ]]; then
-    rm -f "$ENUM_SCRIPT"
     echo "No nerd fonts detected — reinstall via install.sh"
     echo ""
     echo "Press any key to exit..."
@@ -164,10 +173,6 @@ SELECTED=$(echo "$FONTS" | fzf \
     --no-scrollbar \
     --cycle \
     --reverse) || true
-
-# ── Cleanup ──────────────────────────────────────────
-rm -f "$PREVIEW_SCRIPT" "$ENUM_SCRIPT"
-rm -rf "$CACHE_DIR"
 
 # ── Handle cancellation ───────────────────────────────
 if [[ -z "$SELECTED" ]]; then

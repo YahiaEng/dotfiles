@@ -36,7 +36,17 @@ ACTIVE_ICON=$(cat "$ICON_STATE" 2>/dev/null || echo "Adwaita")
 # like Bibata, which have no Directories= key, and the non-selectable
 # hicolor/default fallback buckets) — never trust raw interpolation, same
 # discipline as wallpaper-picker.sh's ENUM_SCRIPT/lib/wallpaper.sh.
+# WR-04: initialize all three mktemp-artifact vars before the first
+# mktemp, then install one EXIT trap covering all three — safe on any
+# abort path (failing enumeration, a later mktemp failing, SIGTERM/SIGHUP
+# from the floating kitty window closing), matching the sibling idiom
+# color-picker.sh/gif-export.sh already use. Installing a second on-exit
+# handler here would silently replace this one, so only one is ever set.
+ENUM_SCRIPT=""
+PREVIEW_SCRIPT=""
+CACHE_DIR=""
 ENUM_SCRIPT=$(mktemp /tmp/icon-enum-XXXXXX.sh)
+trap 'rm -f "$ENUM_SCRIPT" "$PREVIEW_SCRIPT"; rm -rf "$CACHE_DIR"' EXIT
 printf '#!/usr/bin/env bash\nACTIVE_MARKER=%q\n' "$ACTIVE_MARKER" > "$ENUM_SCRIPT"
 cat >> "$ENUM_SCRIPT" << 'ENUM'
 ACTIVE="$1"
@@ -68,7 +78,6 @@ THEME_COUNT=$(printf '%s\n' "$THEMES" | grep -c . || true)
 
 # ── Empty state (UI-SPEC Copywriting): only Adwaita installed ────────
 if [[ "$THEME_COUNT" -le 1 ]]; then
-    rm -f "$ENUM_SCRIPT"
     echo "No extra icon themes installed"
     echo "Run install.sh to add Papirus, Tela, or Colloid."
     echo ""
@@ -171,10 +180,6 @@ SELECTED=$(echo "$THEMES" | fzf \
     --no-scrollbar \
     --cycle \
     --reverse) || true
-
-# ── Cleanup ──────────────────────────────────────────
-rm -f "$PREVIEW_SCRIPT" "$ENUM_SCRIPT"
-rm -rf "$CACHE_DIR"
 
 # ── Handle cancellation ───────────────────────────────
 if [[ -z "$SELECTED" ]]; then
