@@ -102,3 +102,9 @@ None - no external service configuration required. On the next fresh `install.sh
 ---
 *Phase: 06-themed-surfaces-utility-suite*
 *Completed: 2026-07-13*
+
+## Self-Check: PASSED
+
+- FOUND: install.sh contains vlc, vlc-plugins-all, xdg-user-dirs entries
+- FOUND: commit 0e1e097 (Task 1)
+- FOUND: .planning/phases/06-themed-surfaces-utility-suite/06-15-SUMMARY.md

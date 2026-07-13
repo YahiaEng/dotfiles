@@ -6,15 +6,15 @@ current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
 stopped_at: Completed 06-14-PLAN.md
-last_updated: "2026-07-13T00:40:16.077Z"
+last_updated: "2026-07-13T00:43:16.096Z"
 last_activity: 2026-07-13
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 26
-  completed_plans: 25
-  percent: 40
+  completed_plans: 26
+  percent: 60
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 2 of 15
+Plan: 3 of 15
 Status: Ready to execute
 Last activity: 2026-07-13 — Phase 06 execution started
 
@@ -90,6 +90,7 @@ Last activity: 2026-07-13 — Phase 06 execution started
 | Phase 06 P12 | 8min | 2 tasks | 3 files |
 | Phase 06 P13 | 5min | 3 tasks | 3 files |
 | Phase 06 P14 | 3min | 2 tasks | 4 files |
+| Phase 06 P15 | 1min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-13]: reload.sh theme-switch restarts swayosd-server itself, not the libinput backend — style.css is only read at swayosd-server startup; the libinput backend has no CSS to reload (06-REVIEW.md WR-01)
 - [Phase 06-14]: Print-family binds rebound to code:107 (physical keycode) instead of the Print keysym — deterministically fixes ALT+Print (us XKB keymap resolves Alt+PrtSc to Sys_Req, not Print) and is robust to keyboards with non-standard PrtSc keysym mapping
 - [Phase 06-14]: hyprshot invocations switched from -r to --raw in all three capture scripts — hyprshot 1.3.0's getopt optstring declares -r as argument-required while the handler treats it as boolean, so only the long form parses cleanly
+- [Phase 06]: [Phase 06-15]: vlc + vlc-plugins-all and xdg-user-dirs added to install.sh PACMAN_PKGS (official extra/core repo packages, not AUR) — closes SHOT-03 UAT gap where fresh installs had no codec able to decode gpu-screen-recorder output
 
 ### Quick Tasks Completed
 
@@ -191,6 +193,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T00:40:16.070Z
+Last session: 2026-07-13T00:42:48.722Z
 Stopped at: Completed 06-14-PLAN.md
 Resume file: None

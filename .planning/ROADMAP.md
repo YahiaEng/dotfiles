@@ -103,7 +103,7 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: 14/15 plans executed
+**Plans**: 15/15 plans complete
 **UI hint**: yes
 
 Plans:
@@ -141,7 +141,7 @@ Plans:
 **Gap closure round 3** *(UAT Test 2 found 3 diagnosed gaps in the Print-key screenshot/recording suite)*
 
 - [x] 06-14-PLAN.md — Print-key family rebound by keycode (`code:107`, fixes Alt→Sys_Req miss); capture-{region,full,window}.sh switch broken `-r` → `--raw` (hyprshot getopt bug), restoring the satty save flow to ~/Pictures/Screenshots (SHOT-01/02/03) [wave 1]
-- [ ] 06-15-PLAN.md — install.sh reproducibility: add vlc + vlc-plugins-all (gpu-screen-recorder codecs) + xdg-user-dirs to PACMAN_PKGS (SHOT-03) [wave 1]
+- [x] 06-15-PLAN.md — install.sh reproducibility: add vlc + vlc-plugins-all (gpu-screen-recorder codecs) + xdg-user-dirs to PACMAN_PKGS (SHOT-03) [wave 1]
 
 ### Phase 7: Super-Key Menu
 
@@ -183,6 +183,6 @@ Plans:
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
-| 6. Themed Surfaces & Utility Suite | v2.0 | 14/15 | In Progress|  |
+| 6. Themed Surfaces & Utility Suite | v2.0 | 15/15 | Complete   | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
