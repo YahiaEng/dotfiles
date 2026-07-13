@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║              KEYBIND-DOCTOR (D-04)                    ║
+# ║  Rerunnable regression gate: cross-checks             ║
+# ║  keybinds.conf against the compositor's ACTUAL         ║
+# ║  registered state (hyprctl binds -j), never the file   ║
+# ║  alone. Report-only — never mutates state (no          ║
+# ║  hyprctl reload/keyword, no writes to keybinds.conf).  ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Usage: keybind-doctor [path-to-keybinds.conf]
+#   Defaults to ~/.config/hypr/config/keybinds.conf. An explicit path is
+#   accepted so this gate can be pointed at a throwaway copy for a
+#   regression self-test (a gate that cannot fail is not a gate).
+
+set -uo pipefail
+
+KEYBINDS_CONF="${1:-$HOME/.config/hypr/config/keybinds.conf}"
+
+PASS=0
+FAIL=0
+
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        printf '  [PASS] %s\n' "$desc"
+        PASS=$((PASS + 1))
+    else
+        printf '  [FAIL] %s\n' "$desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+echo "keybind-doctor — Hyprland keybind regression gate"
+echo ""
+
+if [[ ! -f "$KEYBINDS_CONF" ]]; then
+    printf '  [FAIL] %s not found\n' "$KEYBINDS_CONF"
+    FAIL=$((FAIL + 1))
+    echo ""
+    echo "Summary: ${PASS} passed, ${FAIL} failed"
+    exit 1
+fi
+
+# ── modmask resolution (never hardcode SUPER — read $mainMod from the
+#    file's own declaration, same discipline as theme-doctor's contract
+#    sourcing) ─────────────────────────────────────────────────────────
+_kbd_mod_bit() {
+    case "$1" in
+        SUPER) printf '%s' 64 ;;
+        SHIFT) printf '%s' 1 ;;
+        CAPS) printf '%s' 2 ;;
+        CTRL | CONTROL) printf '%s' 4 ;;
+        ALT) printf '%s' 8 ;;
+        MOD2) printf '%s' 16 ;;
+        MOD3) printf '%s' 32 ;;
+        MOD5) printf '%s' 128 ;;
+        *) printf '%s' 0 ;;
+    esac
+}
+
+# shellcheck disable=SC2016 # intentional: literal $ in the grep -P pattern, not shell expansion
+MAINMOD_VALUE=$(grep -oP '^\s*\$mainMod\s*=\s*\K.*' "$KEYBINDS_CONF" | head -1 | tr -d '[:space:]')
+check "\$mainMod resolved from keybinds.conf (got: ${MAINMOD_VALUE:-<unset>})" "$([[ -n "$MAINMOD_VALUE" ]] && echo 0 || echo 1)"
+MAINMOD_VALUE="${MAINMOD_VALUE:-SUPER}"
+
+_kbd_modmask() {
+    # $1 = raw mods field, e.g. "$mainMod SHIFT", "ALT", "" — every parsed
+    # field here is handled as display/arithmetic-only text, never fed to
+    # a shell-command-interpretation builtin (V5 input-validation control).
+    local field="$1" total=0 tok
+    field="${field//\$mainMod/$MAINMOD_VALUE}"
+    total=0
+    for tok in $field; do
+        total=$((total + $(_kbd_mod_bit "$tok")))
+    done
+    printf '%s' "$total"
+}
+
+# ── Parse every declared bind*/=... line into a comparable tuple:
+#    modmask|key|keycode|release  ───────────────────────────────────────
+DECLARED_TUPLES=()
+DECLARED_RAWLINES=()
+DESC_TOTAL=0
+DESC_MISSING=0
+LINE_NO=0
+
+while IFS= read -r line; do
+    LINE_NO=$((LINE_NO + 1))
+    if [[ "$line" =~ ^[[:space:]]*(bind[a-z]*)[[:space:]]*=[[:space:]]*([^,]*),[[:space:]]*([^,]*), ]]; then
+        btype="${BASH_REMATCH[1]}"
+        modsfield="${BASH_REMATCH[2]}"
+        keyfield="${BASH_REMATCH[3]}"
+        # trim surrounding whitespace
+        keyfield="${keyfield#"${keyfield%%[![:space:]]*}"}"
+        keyfield="${keyfield%"${keyfield##*[![:space:]]}"}"
+
+        DESC_TOTAL=$((DESC_TOTAL + 1))
+        if [[ "$line" != *'#'* ]]; then
+            DESC_MISSING=$((DESC_MISSING + 1))
+            printf '    missing description: keybinds.conf:%d\n' "$LINE_NO" >&2
+        fi
+
+        release=false
+        [[ "$btype" == *r* ]] && release=true
+
+        modmask=$(_kbd_modmask "$modsfield")
+
+        keyname="$keyfield"
+        keycode=0
+        if [[ "$keyfield" =~ ^code:([0-9]+)$ ]]; then
+            keyname=""
+            keycode="${BASH_REMATCH[1]}"
+        fi
+
+        DECLARED_TUPLES+=("${modmask}|${keyname}|${keycode}|${release}")
+        DECLARED_RAWLINES+=("keybinds.conf:${LINE_NO}: ${line}")
+    fi
+done <"$KEYBINDS_CONF"
+
+# ── Description parity (D-30) — pure static parse, no hyprctl needed ───
+check "description parity (D-30): all ${DESC_TOTAL} declared binds carry a trailing '#' description (missing: ${DESC_MISSING})" "$([[ $DESC_MISSING -eq 0 ]] && echo 0 || echo 1)"
+
+# ── Static guard for the D-05 `walker -s` bug class (Task 1b). This is a
+#    STATIC GREP ONLY — it proves the known-broken flag string is absent
+#    from the file, NOT that the exec'd command won't crash at runtime.
+#    `walker -s <set>` *registers* fine in hyprctl binds -j; only the
+#    exec'd process panics (src/data.rs:566). A report-only doctor that
+#    never invokes exec targets cannot catch that class by design. ──────
+if grep -q 'walker -s' "$KEYBINDS_CONF"; then
+    check "static grep: no 'walker -s <set>' invocation in keybinds.conf (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)" "1"
+else
+    check "static grep: no 'walker -s <set>' invocation in keybinds.conf (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)" "0"
+fi
+
+# ── Cross-check against the compositor's ACTUAL registered state ───────
+if command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+    LIVE_JSON=$(hyprctl binds -j 2>/dev/null)
+
+    if [[ -z "$LIVE_JSON" ]]; then
+        check "hyprctl binds -j returned data" "1"
+    else
+        check "hyprctl binds -j returned data" "0"
+
+        LIVE_TUPLES=$(printf '%s' "$LIVE_JSON" | jq -r '.[] | "\(.modmask)|\(.key)|\(.keycode)|\(.release)"')
+
+        # 1. Declared-vs-registered: every declared tuple must be live.
+        MISSING_COUNT=0
+        i=0
+        for t in "${DECLARED_TUPLES[@]}"; do
+            if ! grep -qxF "$t" <<<"$LIVE_TUPLES"; then
+                MISSING_COUNT=$((MISSING_COUNT + 1))
+                printf '    not registered: %s\n' "${DECLARED_RAWLINES[$i]}" >&2
+            fi
+            i=$((i + 1))
+        done
+        check "declared-vs-registered: all ${#DECLARED_TUPLES[@]} declared binds appear in hyprctl binds -j (missing: ${MISSING_COUNT})" "$([[ $MISSING_COUNT -eq 0 ]] && echo 0 || echo 1)"
+
+        # 2. Shadowing/duplication: two DIFFERENT dispatcher targets must
+        #    never share the same (modmask,key,keycode,release) tuple.
+        SHADOW_REPORT=$(printf '%s' "$LIVE_JSON" | jq -r '
+            group_by([.modmask, .key, .keycode, .release])
+            | map(select(length > 1))
+            | map(select((map("\(.dispatcher):\(.arg)") | unique | length) > 1))
+            | map("modmask=\(.[0].modmask) key=\(.[0].key) keycode=\(.[0].keycode) release=\(.[0].release) targets=[" + (map("\(.dispatcher):\(.arg)") | unique | join(", ")) + "]")
+            | .[]
+        ')
+        SHADOW_COUNT=0
+        if [[ -n "$SHADOW_REPORT" ]]; then
+            SHADOW_COUNT=$(printf '%s\n' "$SHADOW_REPORT" | grep -c '.')
+            printf '%s\n' "$SHADOW_REPORT" | sed 's/^/    shadowed: /' >&2
+        fi
+        check "no shadowing: zero (modmask,key,release) tuples shared by two different dispatcher targets (found: ${SHADOW_COUNT})" "$([[ $SHADOW_COUNT -eq 0 ]] && echo 0 || echo 1)"
+
+        # 3. Release-bind inventory — informational, always reports what
+        #    IS registered (proves the tap-bind lands correctly once
+        #    07-04 ships it, and that no OTHER bind accidentally became
+        #    release-triggered). Not a pass/fail signal by itself.
+        RELEASE_KEYS=$(printf '%s' "$LIVE_JSON" | jq -r '.[] | select(.release == true) | .key')
+        RELEASE_COUNT=$(printf '%s' "$LIVE_JSON" | jq -r '[.[] | select(.release == true)] | length')
+        check "release-bind inventory recorded (${RELEASE_COUNT} release-triggered bind(s) registered)" "0"
+        if [[ "$RELEASE_COUNT" -gt 0 ]]; then
+            printf '%s\n' "$RELEASE_KEYS" | sed 's/^/    release-bind key: /'
+        fi
+
+        # 4. Kill-bind presence (D-03) — must fail loudly if a future
+        #    phase ever deletes the escape hatch.
+        KILLBIND_COUNT=$(printf '%s' "$LIVE_JSON" | jq -r '[.[] | select(.modmask == 64 and .key == "Escape" and .dispatcher == "exec" and .arg == "pkill walker")] | length')
+        check "D-03 kill-bind present and registered (Super+Escape -> pkill walker)" "$([[ "$KILLBIND_COUNT" -ge 1 ]] && echo 0 || echo 1)"
+    fi
+else
+    echo "  [SKIP] keybind cross-check against hyprctl binds -j (hyprctl or jq not found)"
+fi
+
+echo ""
+echo "Summary: ${PASS} passed, ${FAIL} failed"
+[[ "$FAIL" -eq 0 ]]
+exit $?
