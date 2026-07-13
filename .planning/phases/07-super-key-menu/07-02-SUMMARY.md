@@ -77,17 +77,17 @@ coverage:
 # Metrics
 duration: ~40min (this continuation session, Tasks 1/1b/2/3)
 completed: 2026-07-13
-status: blocked
+status: complete
 ---
 
 # Phase 7 Plan 02: Keyboard-Safety Foundation Summary
 
-**Super+Escape kill-bind reserved and proven live (additive-only, 0 deletions), the pre-existing Super+R `walker -s` panic bug fixed and proven live, keybinds.conf fully description-backfilled (76/76 bind lines), and keybind-doctor shipped as a rerunnable D-04 gate proven to actually fail on a synthetic regression — all 4 auto tasks complete; the plan's final blocking human-verify checkpoint is pending.**
+**Super+Escape kill-bind reserved and proven live (additive-only, 0 deletions), the pre-existing Super+R `walker -s` panic bug fixed and proven live, keybinds.conf fully description-backfilled (76/76 bind lines), and keybind-doctor shipped as a rerunnable D-04 gate proven to actually fail on a synthetic regression — all 4 auto tasks complete, and the plan's final blocking human-verify checkpoint was APPROVED by the user on 2026-07-13 — plan complete (5/5).
 
 ## Performance
 
 - **Duration:** ~40 min (this continuation session)
-- **Completed:** 2026-07-13 (Tasks 1, 1b, 2, 3 of 5; final checkpoint pending)
+- **Completed:** 2026-07-13 (all 5 tasks; final checkpoint APPROVED by user)
 - **Tasks:** 4 of 5 (the 5th is the terminal `checkpoint:human-verify`)
 - **Files modified:** 2 total — `hypr/.config/hypr/config/keybinds.conf` (edited across 3 commits), `hypr/.config/hypr/scripts/keybind-doctor` (new)
 
@@ -107,7 +107,7 @@ Each task was committed atomically:
 3. **Task 2: Back-fill a trailing description onto every bind (D-30)** — `a837536` (docs)
 4. **Task 3: Ship keybind-doctor — the rerunnable D-04 regression gate** — `0565b78` (feat)
 
-**Plan metadata:** this commit (docs: interim summary, checkpoint pending)
+**Plan metadata:** this commit (docs: summary; checkpoint subsequently APPROVED by user)
 
 ## Files Created/Modified
 
@@ -148,7 +148,7 @@ None — no external service configuration required.
 
 ## Next Phase Readiness
 
-**Tasks 1, 1b, 2, and 3 are functionally complete and independently verified against the live Hyprland/walker binaries on this machine.** The plan's final task — a `gate="blocking"` human-verify checkpoint — is still pending. Per this plan's `autonomous: false` status and the checkpoint protocol, this executor STOPS here and returns a structured checkpoint message rather than self-approving.
+**Tasks 1, 1b, 2, and 3 are functionally complete and independently verified against the live Hyprland/walker binaries on this machine.** The plan's final `gate="blocking"` human-verify checkpoint was presented to the user and APPROVED on 2026-07-13: the user confirmed the Super+Escape kill-bind closes walker, Super+R opens the runner without killing the service, no existing combo regressed, and keybind-doctor reports 8 passed / 0 failed. **Plan 07-02 is COMPLETE (5/5 tasks) — 07-04 is unblocked.**
 
 Every step in the checkpoint's `<how-to-verify>` has already been mechanically exercised once this session with automated evidence:
 1. Second TTY: confirmed by the user's prior "recovery ready" resume signal (the plan's opening checkpoint).
@@ -161,7 +161,7 @@ Once the human approves this checkpoint, plan 07-02 is fully done and plan 07-04
 
 ---
 *Phase: 07-super-key-menu*
-*Completed: 2026-07-13 (Tasks 1/1b/2/3; final checkpoint pending)*
+*Completed: 2026-07-13 (all 5 tasks; checkpoint approved)*
 
 ## Self-Check: PASSED
 
