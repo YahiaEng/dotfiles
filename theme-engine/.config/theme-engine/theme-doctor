@@ -167,6 +167,122 @@ else
     echo "  [SKIP] elephant/walker provider parity ($WALKER_CONFIG or elephant not found)"
 fi
 
+# ── GTK CSS-parse regression guard (WLOG-01, CR-01 permanent fix) ──────
+# Runs every GTK-consumed stylesheet the theme pipeline owns through a
+# REAL GTK CssProvider parse. Four prior verification rounds all reported
+# PASS while wlogout's stylesheet was silently discarded in full by GTK3
+# — a grep for the `@import` line cannot see that. The load-bearing
+# signal here is an EMPTY provider, not merely a parse error: on GTK
+# 3.24.52 a single generated-content ruleset makes GTK throw away the
+# WHOLE stylesheet (0 bytes), not just the offending rule. A deprecation
+# (GTK3 GError domain gtk-css-provider-error-quark code 4 — e.g.
+# style-floating.css's unitless border-radius, IN-02/deferred) is
+# non-fatal and must still PASS. Deployed paths only ($HOME/.config/...)
+# — the stow files' relative @import only resolves from there, never
+# from the repo copy. GTK3 and GTK4 cannot share a python3 process
+# (gi.require_version conflict), so this runs as two separate
+# invocations. Never calls Gtk.init() — CssProvider needs no display,
+# and init() would require one, breaking the headless verify gate.
+GTK3_CSS_SHEETS=(
+    "$HOME/.config/wlogout/style.css"
+    "$HOME/.config/waybar/style-full.css"
+    "$HOME/.config/waybar/style-minimal.css"
+    "$HOME/.config/waybar/style-floating.css"
+    "$HOME/.config/gtk-3.0/gtk.css"
+    "$HOME/.config/swaync/style.css"
+)
+GTK4_CSS_SHEETS=(
+    "$HOME/.config/gtk-4.0/gtk.css"
+    "$HOME/.config/swayosd/style.css"
+    "$HOME/.config/walker/themes/rice/style.css"
+)
+
+_theme_doctor_css_parse() {
+    # $1 = GTK major version ("3" or "4"), rest = deployed stylesheet
+    # paths. Prints one "STATUS<TAB>path-fragment<TAB>reason" line per
+    # sheet. stderr redirected to swallow GTK's own noisy Gtk-WARNING
+    # chatter — the structured stdout lines are the signal.
+    local major="$1"
+    shift
+    python3 - "$major" "$@" <<'PYEOF' 2>/dev/null
+import os
+import sys
+
+major = sys.argv[1]
+paths = sys.argv[2:]
+
+import gi
+gi.require_version("Gtk", major + ".0")
+from gi.repository import Gtk
+
+home_config = os.path.join(os.path.expanduser("~"), ".config")
+
+for path in paths:
+    try:
+        frag = os.path.relpath(path, home_config)
+    except ValueError:
+        frag = path
+
+    if not os.path.isfile(path):
+        print(f"SKIP\t{frag}\tnot deployed under ~/.config — run stow.sh")
+        continue
+
+    provider = Gtk.CssProvider()
+    fatal = []
+
+    if major == "3":
+        # gtk-css-provider-error-quark code 4 == deprecation (non-fatal,
+        # provider retained); any other code means GTK discarded the
+        # whole sheet — the exact WLOG-01/CR-01 failure signature. GTK4's
+        # CssProvider exposes no equivalent "parsing-error" signal in
+        # this binding (verified: zero signals on the GType), so GTK4
+        # relies on the non-empty-provider check alone below, which
+        # still catches a fully-discarded sheet.
+        def _on_error(_provider, _section, error, _fatal=fatal):
+            if error.code != 4:
+                _fatal.append(error.message)
+
+        provider.connect("parsing-error", _on_error)
+
+    try:
+        provider.load_from_path(path)
+    except Exception as exc:  # the first fatal GError also raises here
+        fatal.append(str(exc))
+
+    css = provider.to_string()
+    if fatal:
+        print(f"FAIL\t{frag}\tfatal parse error: {fatal[0]}")
+    elif not css:
+        print(f"FAIL\t{frag}\tprovider is EMPTY — stylesheet discarded")
+    else:
+        print(f"PASS\t{frag}\t{len(css)} bytes")
+PYEOF
+}
+
+if python3 -c "import gi" >/dev/null 2>&1; then
+    while IFS=$'\t' read -r status frag detail; do
+        [[ -z "$status" ]] && continue
+        desc="CSS-parse: $frag ($detail)"
+        case "$status" in
+            SKIP) echo "  [SKIP] $desc" ;;
+            PASS) check "$desc" "0" ;;
+            *)    check "$desc" "1" ;;
+        esac
+    done < <(_theme_doctor_css_parse 3 "${GTK3_CSS_SHEETS[@]}")
+
+    while IFS=$'\t' read -r status frag detail; do
+        [[ -z "$status" ]] && continue
+        desc="CSS-parse: $frag ($detail)"
+        case "$status" in
+            SKIP) echo "  [SKIP] $desc" ;;
+            PASS) check "$desc" "0" ;;
+            *)    check "$desc" "1" ;;
+        esac
+    done < <(_theme_doctor_css_parse 4 "${GTK4_CSS_SHEETS[@]}")
+else
+    echo "  [SKIP] GTK CSS-parse guard (python-gobject / gi not available)"
+fi
+
 # ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
 #    switch. Guarded-skip mirrors the stow-conflict check above — this must
 #    degrade gracefully, not FAIL, when git or the repo itself is absent
