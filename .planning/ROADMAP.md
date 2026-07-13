@@ -138,6 +138,11 @@ Plans:
 
 - [x] 06-13-PLAN.md — OSD-01: launch swayosd-server in autostart.conf; install.sh enables swayosd-libinput-backend on system bus (sudo, non-silenced); reload.sh restarts swayosd-server not the wrong-bus backend (OSD-01) [wave 1]
 
+**Gap closure round 3** *(UAT Test 2 found 3 diagnosed gaps in the Print-key screenshot/recording suite)*
+
+- [ ] 06-14-PLAN.md — Print-key family rebound by keycode (`code:107`, fixes Alt→Sys_Req miss); capture-{region,full,window}.sh switch broken `-r` → `--raw` (hyprshot getopt bug), restoring the satty save flow to ~/Pictures/Screenshots (SHOT-01/02/03) [wave 1]
+- [ ] 06-15-PLAN.md — install.sh reproducibility: add vlc + vlc-plugins-all (gpu-screen-recorder codecs) + xdg-user-dirs to PACMAN_PKGS (SHOT-03) [wave 1]
+
 ### Phase 7: Super-Key Menu
 
 **Goal**: Tapping $SUPER alone opens an Omarchy-style walker menu that wraps the new utilities and system actions into a coherent hierarchical menu — without breaking any existing keybind.
