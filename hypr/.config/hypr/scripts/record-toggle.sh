@@ -30,10 +30,14 @@ RECORDING_FILE="$RUNTIME_DIR/record-toggle-filename"
 LOG_FILE="$RUNTIME_DIR/record-toggle.log"
 
 # Status probe for Phase 8's future waybar recording indicator: while a
-# recording is active, `pgrep -f "^gpu-screen-recorder"` is truthy — no
-# other state file needed for a simple running/not-running check.
+# recording is active, `pgrep -f "^gpu-screen-recorder "` (note the
+# trailing space, bounding the match to argv[0]) is truthy — no other
+# state file needed for a simple running/not-running check. WR-05: the
+# unbounded prefix `^gpu-screen-recorder` also matched sibling binaries
+# (gpu-screen-recorder-ui/-gtk/-notification); the trailing space is safe
+# because this script always invokes the recorder with arguments.
 recording_active() {
-    pgrep -f "^gpu-screen-recorder" >/dev/null 2>&1
+    pgrep -f "^gpu-screen-recorder " >/dev/null 2>&1
 }
 
 # Security Domain T-06-09: truncate + strip control chars before any
@@ -43,17 +47,17 @@ sanitize() {
 }
 
 stop_recording() {
-    pkill -SIGINT -f "^gpu-screen-recorder" 2>/dev/null || true
+    pkill -SIGINT -f "^gpu-screen-recorder " 2>/dev/null || true
 
     # Bounded 5s poll then SIGKILL — mirrors this repo's existing
     # reload.sh/gtk.sh bounded-poll idiom.
     local count=0
-    while pgrep -f "^gpu-screen-recorder" >/dev/null 2>&1 && ((count < 50)); do
+    while pgrep -f "^gpu-screen-recorder " >/dev/null 2>&1 && ((count < 50)); do
         sleep 0.1
         count=$((count + 1))
     done
-    if pgrep -f "^gpu-screen-recorder" >/dev/null 2>&1; then
-        pkill -9 -f "^gpu-screen-recorder" 2>/dev/null || true
+    if pgrep -f "^gpu-screen-recorder " >/dev/null 2>&1; then
+        pkill -9 -f "^gpu-screen-recorder " 2>/dev/null || true
     fi
 
     local filename
