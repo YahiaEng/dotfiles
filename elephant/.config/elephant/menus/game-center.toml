@@ -1,0 +1,46 @@
+name = "game-center"
+name_pretty = "Game Center"
+parent = "main"
+
+# D-25: four launchers, all installed by 07-03 (Steam via the multilib
+# enablement that plan added; Heroic/ProtonUp-Qt human-verified AUR).
+# D-09 two-class convention: GUI apps via `uwsm app --`; the toggle
+# script is invoked bare (it is not a GUI app).
+# D-26: gamemode/mangohud are PER-LAUNCH wrappers on Steam/Lutris'
+# launch commands only — never global toggle state (never set by
+# gaming-mode-toggle.sh, which owns none of these two tools).
+
+[[entries]]
+text = "  Steam"
+actions = { "open" = "uwsm app -- gamemoderun mangohud steam" }
+
+[[entries]]
+text = "  Lutris"
+actions = { "open" = "uwsm app -- gamemoderun mangohud lutris" }
+
+[[entries]]
+text = "  Heroic"
+actions = { "open" = "uwsm app -- heroic" }
+
+[[entries]]
+text = "  ProtonUp-Qt"
+actions = { "open" = "uwsm app -- protonup-qt" }
+
+# D-27/T-07-24: state-reflecting ON/OFF label DESCOPED — see
+# 07-07-SUMMARY.md "Game Center label descope" for the full reasoning.
+# Short version: elephant 2.21.0's `menus` provider only re-reads a TOML
+# file's entries at daemon startup (LoadMenus() runs once); the one
+# genuinely dynamic mechanism found (a Lua-scripted menu file whose
+# GetEntries() re-runs per query when `Cache` is unset) would replace
+# this entire declarative TOML with a new, first-use-in-this-repo
+# mechanism and was judged out of this task's scope. The remaining
+# alternative — having this script rewrite ITS OWN git-tracked text on
+# every toggle — was rejected because it violates this repo's
+# project-wide git-clean invariant (generated/runtime state never lives
+# in a tracked file). Text is therefore NEUTRAL ("Gaming mode", no
+# ON/OFF suffix) so it never asserts a state it cannot keep truthful —
+# actual state is truthfully surfaced by the toggle's own notification
+# (which fires fresh every time) and by ~/.cache/gaming-mode.
+[[entries]]
+text = "  Gaming mode"
+actions = { "open" = "~/.config/hypr/scripts/gaming-mode-toggle.sh" }
