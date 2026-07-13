@@ -98,6 +98,10 @@ Last activity: 2026-07-13 — Phase 06 execution started
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 9 added: wlogout to wleave Migration (GTK4) — decided 2026-07-13 after Phase 6's wlogout redesign; driver is GTK3's whole-stylesheet-discard failure class (WLOG-01), NOT the blur limitation, which is compositor-global and unfixable by any layer-shell client.
+
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decision log was cleared at milestone close (2026-07-09) — full history lives in `.planning/milestones/v1.0-phases/` summaries, `.planning/RETROSPECTIVE.md`, and git history of this file.

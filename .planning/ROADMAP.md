@@ -193,3 +193,28 @@ Plans:
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete   | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
+
+### Phase 9: wlogout to wleave Migration
+
+**Goal**: Replace wlogout with wleave (GTK4) as the power menu, eliminating the GTK3 whole-stylesheet-discard failure class that produced the WLOG-01 blocker, and moving onto an actively-maintained tool — with no regression to the Phase 6 center-bar design.
+**Requirements**: WLOG-01 (re-delivered on a new engine)
+**Depends on:** Phase 8
+**Plans:** 0 plans
+
+**Why this phase exists** (decided 2026-07-13, after Phase 6's wlogout work):
+
+- **The real driver is the failure class, not the blur.** Verified live on this machine: GTK3 discards an *entire* stylesheet on a single invalid rule, whereas GTK4 skips the offending rule and retains the rest. WLOG-01 — six unstyled buttons — was exactly this: eight invalid `::after`/`content` rules nuked the whole sheet. On GTK4 that bug is structurally impossible. wleave 0.7.1 is GTK4 (`gtk4-layer-shell`, `libadwaita`); wlogout is GTK3 and largely unmaintained.
+- **This phase will NOT fix wlogout's blur limitation.** Blur *strength* is `decoration:blur` in hyprland.conf, which is global. Hyprland 0.55.4's layerrule set (blur, blurpopups, ignorealpha, ignorezero, dimaround, xray, animation, order, abovelock) has no size/passes rule, so no layer-shell client — wlogout or wleave — can have its own blur strength. Do not plan this phase expecting to gain that.
+
+**Carry these Phase 6 findings into planning — all three cost a cycle to discover:**
+
+1. GTK applies `min-width`/`min-height` to the **content box**; padding and border are *added*. A "72px" button with 10px padding and a 3px border is **98px** on screen. Size the layer-shell window to the outer box or the buttons get clipped. `scripts/wlogout.sh` derives this rather than hardcoding it — carry that forward.
+2. GTK does **not** vertically centre text inside a button label, and CSS has no `valign`. Phase 6 measured a +14.5px offset and corrected it with `margin-bottom: 16px` on the label. Re-measure on GTK4 — it may not be needed, and must not be copied blindly.
+3. Every automated gate in Phase 6 (CSS parse, shellcheck, code review, theme-doctor) passed while the surface was visibly broken on screen. **This phase needs a render-and-look check, not just a parse check.**
+
+**Migration surface** (touch-points inventoried during Phase 6):
+`wlogout/` stow package, `matugen` render target + `contract.json` entry, `theme-doctor`'s CSS-sheet list, the layout file format, `layerrule` namespace (`logout_dialog` → wleave's), `scripts/wlogout.sh`, keybinds, `install.sh`, `stow.sh`.
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 9 to break down)
