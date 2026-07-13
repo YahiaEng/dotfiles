@@ -5,8 +5,8 @@ milestone_name: Desktop Expansion
 current_phase: 07
 current_phase_name: super-key-menu
 status: executing
-stopped_at: Phase 07-02 Tasks 1/1b/2/3 complete and committed; blocking checkpoint (verify kill-bind, description backfill, green gate) pending human verification
-last_updated: "2026-07-13T16:43:33.434Z"
+stopped_at: Phase 07-04 Tasks 1-2 complete and committed; blocking checkpoint (full keybind regression sweep) pending human verification
+last_updated: "2026-07-13T20:22:00.000Z"
 last_activity: 2026-07-13
 last_activity_desc: Phase 07 execution started
 progress:
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 07 (super-key-menu) — EXECUTING
-Plan: 4 of 8
-Status: Ready to execute
+Plan: 1 of 8
+Status: Executing Phase 07
 Last activity: 2026-07-13 — Phase 07 execution started
 
 ## Performance Metrics
@@ -177,6 +177,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 07-03]: Idempotent multilib enablement added to install.sh (D-25) — new territory, zero prior pacman.conf handling; check-before-write with sed N-join uncomment anchored to the two-line stanza (never a blanket #Include uncomment); proven against synthetic pacman.conf fixtures, not the live file
 - [Phase 07-03]: 10 packages wired into install.sh (D-33): 8 official-repo (steam+multilib, lutris, ollama, aichat, gamemode, mangohud, nwg-displays, blueman) and 2 human-verified AUR (heroic-games-launcher-bin, protonup-qt — AUR-only, correcting CONTEXT.md D-25's assumption); ollama enabled non-fatally, no model pull, no OLLAMA_HOST override
 - [Phase 07-03]: Container-gate D-34 proof deferred (not faked) — origin/main is 202 commits behind local HEAD and predates this phase entirely; pushing to the public remote requires explicit human authorization per this repo's own established precedent (Phase 3's 03-04, Phase 4's 04-VERIFICATION)
+- [Phase 07-04]: `wtype` root cause found — it CAN deliver text/key events to whatever client holds keyboard focus (confirmed via `WAYLAND_DEBUG`: it creates a `zwp_virtual_keyboard_v1` and successfully sends `.key()` events), but a prior agent's probe was typing into the Claude Code kitty TUI's own input box rather than a shell, which swallowed the marker-file test with no visible effect. The genuinely useful, narrower finding: `wtype -M logo -k 2 -m logo` (Super+2) did NOT switch workspace — wtype constructs its own virtual XKB keymap per invocation, and Hyprland does not track that virtual modifier state for bind matching, so wtype cannot drive Hyprland's bind matcher for modifier-combo binds. wtype is therefore unusable for proving Super-combo shadowing behaviour, and is unsafe for unattended use on a live desktop since it types into whatever window currently has focus (which may be the operator's own terminal).
+- [Phase 07-04]: D-02 / RESEARCH Assumption A2 (default bind-shadowing on Hyprland 0.55.4) CLOSED by live human keypress, not automation. Five tests performed by the human against the live compositor: Super+Return (terminal opened, menu did NOT open on release), Super+1 (workspace switched, menu did NOT open), Super+Q (window closed, menu did NOT open), Super+T (theme switcher opened, menu did NOT open), bare Super tap x2 (menu opened both times). This is the phase's highest-impact assumption, now discharged.
+- [Phase 07-04]: Tasks 1-2 executed and committed (e2362c1, 05828ee): SUPER_L tap-only `bindr` menu bind added additively then proven live (see D-02 entry above); old SUPER_L press-bind removed and app launcher relocated to Super+Space (D-01); Super+R left byte-identical. `hyprctl binds -j` shows zero press-binds/one release-bind on SUPER_L; keybind-doctor 8/0, 77 declared binds (baseline 76). Final blocking checkpoint (full ~48-bind human regression sweep) pending human approval.
 
 ### Quick Tasks Completed
 
@@ -207,9 +210,8 @@ Resolved in Phase 6:
 - ~~Zen browser profile-path resolution~~ — closed: installs.ini-first parser with profiles.ini fallback, path validated as a real subdir of ~/.zen (06-06).
 - ~~hyprlock lockout-recovery discipline and clipboard size-cap/wipe policy~~ — closed: both shipped in-phase (recovery procedure documented and UAT'd; 100-item cap + session-end/manual wipe).
 - ~~Phase 7 Plan 01 (D-05 spike) BLOCKED after Task 1: walker 2.16.2's '-s <name>' GUI-mode invocation panics and aborts the walker daemon~~ — **RESOLVED 2026-07-13 (decision taken, plans amended in 117edc9).** Adopted `-m/--provider` exclusive-provider mode across the phase; `walker -m menus:main` and `walker -m runner` both verified to render and leave the service alive (PID before/after). The D-05 spike stands GO: elephant's `menus` provider expresses submenus, drill-down, Esc-back-nav (exactly one level) and glyph-as-text — no `--dmenu` fallback needed. **Two durable findings kept:** (1) `walker -s <set>` / `[sets.*]` is a dead mechanism on walker 2.16.2 (panic, `src/data.rs:566`) — do not reintroduce it; (2) it fails on the shipped `[sets.runner]` block too, so **`Super+R` was already broken in production** — a pre-existing bug, fixed in 07-02 Task 1b, not caused by this phase. Root cause of the bad design: 07-RESEARCH.md claimed `walker -s runner` "already ships and works" based on reading the config file, never running it — the phase's own "verify against the installed binary" lesson, unapplied to the research itself.
-- Phase 07-01 checkpoint (blocking human-verify: 'Verify the menu engine renders live') is PENDING. Tasks 1-3 done and committed (4f2becb, 6f4e4b2, 117edc9, 7adc2a2, e9c3a24, 238095a). All checkpoint verification steps already mechanically exercised this session; awaiting human sign-off before plan 07-01 is marked complete and 07-02 proceeds.
-- Phase 07-02 checkpoint ('Verify the kill-bind, the backfill, and the green gate') is PENDING. Tasks 1/1b/2/3 done and committed (413042c, b8530a7, a837536, 0565b78, 59b5227). All checkpoint verification steps already mechanically exercised this session (kill-bind proven live via hyprctl dispatch, Super+R fix proven live, keybind-doctor green 8/0, description parity 76/76); awaiting human sign-off before plan 07-02 is marked complete and 07-04 (SUPER_L tap-bind rebind) proceeds.
 - Phase 7: D-34 container-gate proof (verify/container-run.sh) for plan 07-03 is open pending human push authorization — origin/main is 202 commits behind local HEAD (predates Phase 5). Human must: (1) authorize git push origin main, (2) re-run verify/container-run.sh and confirm overall=PASS with all 10 new packages + multilib showing [OK].
+- Phase 07-04 checkpoint ('Full keybind regression sweep — human half of ROADMAP criterion #1') is PENDING. Tasks 1-2 done and committed (e2362c1, 05828ee). D-02/Assumption A2 already closed by five live human keypress tests this session (all PASS); `keybind-doctor` green (8/0, 77 declared binds); `hyprctl binds -j` confirms zero press-binds/one release-bind on SUPER_L. Awaiting the human's full ~48-bind regression sweep and explicit "approved" (or "REVERT") resume signal before plan 07-04 is marked complete.
 
 ## Deferred Items
 
@@ -222,6 +224,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T16:43:33.428Z
-Stopped at: Phase 07-02 Tasks 1/1b/2/3 complete and committed; blocking checkpoint (verify kill-bind, description backfill, green gate) pending human verification
-Resume file: .planning/phases/07-super-key-menu/07-02-PLAN.md
+Last session: 2026-07-13T20:22:00.000Z
+Stopped at: Phase 07-04 Tasks 1-2 complete and committed; blocking checkpoint (full keybind regression sweep) pending human verification
+Resume file: .planning/phases/07-super-key-menu/07-04-PLAN.md
