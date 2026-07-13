@@ -164,8 +164,29 @@ Plans:
   4. The AI dashboard opens a submenu of AI app launchers plus a dedicated pre-configured Hyprland AI workspace, and the Game center opens a launcher submenu (Steam etc.).
   5. A searchable keybind cheat-sheet generated from keybinds.conf is reachable from the menu.
 
-**Plans**: TBD
+**Plans**: 8 plans
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 07-01-PLAN.md — Menu engine: D-05 spike of the elephant `menus` provider (closes RESEARCH Open Q1/Q2), new `elephant/` stow package, `elephant-restart.sh`, walker `[sets.menu]` (MENU-01) [wave 1]
+- [ ] 07-02-PLAN.md — Keybind safety foundation: D-03 kill-bind proven in isolation FIRST, D-30 description back-fill on every bind, `keybind-doctor` rerunnable regression gate (D-04) (MENU-01/MENU-07) [wave 1]
+- [ ] 07-03-PLAN.md — Reproducibility: 8 official + 2 human-gated AUR packages, idempotent multilib enablement for Steam (new territory), ollama enabled with no model pull, container gate green (MENU-03/MENU-04) [wave 1]
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 07-04-PLAN.md — Headline risk: additive `bindr` Super-tap bind, live-keypress shadowing proof (closes Assumption A2), launcher relocated to Super+Space, full regression sweep (MENU-01) [wave 2, depends on 07-01, 07-02]
+- [ ] 07-05-PLAN.md — Core menu tree: 6-entry root (Power last), Utilities + Screenshot submenus, 9-entry Settings, `nmtui-launch.sh`, `powermenu.sh` DELETED (D-20) (MENU-02/MENU-05/MENU-06) [wave 2, depends on 07-01]
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 07-06-PLAN.md — AI dashboard: Zen web-app windowrules (title-regex; Zen collapses all WM_CLASS to `zen`), idempotent `ai-workspace.sh` (D-24), 7-entry submenu (MENU-03) [wave 3, depends on 07-03, 07-05]
+- [ ] 07-07-PLAN.md — Game center: 4 launchers + runtime-only reversible gaming-mode toggle, session reset-to-OFF (D-28 forecloses the never-locks failure mode) (MENU-04) [wave 3, depends on 07-03, 07-05]
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 07-08-PLAN.md — Keybind cheat-sheet: one shared display-only parser (V5 control), walker searchable list + kitty "View all" table, live-parsed on every open (MENU-07) [wave 4, depends on 07-02, 07-04, 07-05]
 
 ### Phase 8: Waybar Evolution
 
@@ -192,7 +213,7 @@ Plans:
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
-| 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
+| 7. Super-Key Menu | v2.0 | 0/8 | Planned | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
