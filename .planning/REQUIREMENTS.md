@@ -36,7 +36,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 
 - [x] **MENU-01**: Tapping $SUPER alone opens the main walker menu (Omarchy-style, custom icons), while ALL existing $SUPER+key combos keep working — verified by a keybind regression sweep
 - [x] **MENU-02**: Utilities submenu invokes the utility scripts (screenshot, emoji, color picker, clipboard, icon theme, font switcher)
-- [ ] **MENU-03**: AI dashboard entry — submenu of AI app launchers plus a dedicated pre-configured Hyprland AI workspace
+- [x] **MENU-03**: AI dashboard entry — submenu of AI app launchers plus a dedicated pre-configured Hyprland AI workspace
 - [ ] **MENU-04**: Game center submenu with launchers (Steam etc.)
 - [x] **MENU-05**: Power menu entry (lock/logout/suspend/reboot/shutdown)
 - [x] **MENU-06**: Settings menu entry (theme switch, wallpaper, network, etc.)
@@ -115,7 +115,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UTIL-05 | Phase 6 | Complete |
 | MENU-01 | Phase 7 | Complete |
 | MENU-02 | Phase 7 | Complete |
-| MENU-03 | Phase 7 | In Progress — packages landed (07-03); AI dashboard menu pending (07-06) |
+| MENU-03 | Phase 7 | Complete |
 | MENU-04 | Phase 7 | In Progress — packages landed (07-03); Game Center menu pending (07-07) |
 | MENU-05 | Phase 7 | Complete |
 | MENU-06 | Phase 7 | Complete |
