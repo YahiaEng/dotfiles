@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 07
-current_phase_name: super-key-menu
-status: executing
-stopped_at: Phase 07-05 COMPLETE (menu tree shipped, stow-parity gap root-caused and closed with a self-healing guard; human re-tested and approved). Ready to plan/execute 07-06.
-last_updated: "2026-07-13T17:57:04.408Z"
+current_phase: 08
+current_phase_name: waybar-evolution
+status: planning
+stopped_at: Phase 07 COMPLETE (8/8 plans, verification 7/7 passed, MENU-01..MENU-07 all delivered). Ready to discuss/plan Phase 08 (Waybar Evolution).
+last_updated: "2026-07-13T21:13:08.389Z"
 last_activity: 2026-07-13
-last_activity_desc: Phase 07-05 complete — menu tree (root/Utilities/Screenshot/Settings) delivered; stow-parity gap root-caused and permanently closed with a self-healing guard in elephant-restart.sh
+last_activity_desc: Phase 07 complete — Super-Key Menu delivered; next is Phase 08 (Waybar Evolution)
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 38
-  completed_plans: 35
-  percent: 50
+  completed_plans: 38
+  percent: 67
 ---
 
 # Project State
@@ -28,16 +28,16 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 
 ## Current Position
 
-Phase: 07 (super-key-menu) — EXECUTING
-Plan: 3 of 8
+Phase: 09 — wlogout to wleave Migration
+Plan: Not started
 Status: 07-05 complete; ready for 07-06
-Last activity: 2026-07-13 — Phase 07-05 complete (menu tree delivered, stow-parity guard shipped)
+Last activity: 2026-07-13 — Phase 07 complete, transitioned to Phase 09
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 35
+- Total plans completed: 43
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -50,6 +50,7 @@ Last activity: 2026-07-13 — Phase 07-05 complete (menu tree delivered, stow-pa
 | 04 | 6 | - | - |
 | 05 | 5 | - | - |
 | 06 | 19 | - | - |
+| 07 | 8 | - | - |
 
 **Recent Trend:**
 
