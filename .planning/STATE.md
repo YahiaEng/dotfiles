@@ -5,16 +5,16 @@ milestone_name: Desktop Expansion
 current_phase: 06
 current_phase_name: themed-surfaces-utility-suite
 status: executing
-stopped_at: Completed 06-14-PLAN.md
-last_updated: "2026-07-13T04:16:34.374Z"
+stopped_at: Completed 06-19-PLAN.md
+last_updated: "2026-07-13T04:25:55.781Z"
 last_activity: 2026-07-13
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 30
-  completed_plans: 29
-  percent: 40
+  completed_plans: 30
+  percent: 60
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 06 (themed-surfaces-utility-suite) — EXECUTING
-Plan: 4 of 19
+Plan: 5 of 19
 Status: Ready to execute
 Last activity: 2026-07-13 — Phase 06 execution started
 
@@ -94,6 +94,7 @@ Last activity: 2026-07-13 — Phase 06 execution started
 | Phase 06 P16 | 5min | 3 tasks | 2 files |
 | Phase 06 P17 | 20min | 3 tasks | 5 files |
 | Phase 06 P18 | 8min | 2 tasks | 2 files |
+| Phase 06 P19 | 20min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-17]: WR-05's plan verify-block test harness (bash-script stubs via shebang) always reports cmdline as 'bash <path> <args>', never '<script-name> <args>' -- confirmed the actual fix correct independently via exec -a argv[0] control
 - [Phase ?]: [Phase 06-18]: WR-03 fixed with the documented two-step grep -c capture + parameter-expansion default, replacing the || echo 0 idiom that produced a two-line 0\n0 string and an arithmetic syntax error under set -e
 - [Phase ?]: [Phase 06-18]: WR-06 fixed with --exclude=walker-relaunch.log added to commit.sh's rsync --delete, closing the sixth occurrence of the engine-owned-root-level-file bug class
+- [Phase 06-19]: GTK CSS-parse regression guard added to theme-doctor: 6 GTK3 + 3 GTK4 surfaces asserted zero fatal errors AND a non-empty Gtk.CssProvider — the exact non-empty-provider check catches a stylesheet GTK discards wholesale (WLOG-01/CR-01's failure mode), proven with a synthetic regression that reproduces the discard on a poisoned copy and confirms it fails — Four prior verification rounds grep-checked only the @import line and missed that GTK3 discards an entire stylesheet on a single invalid pseudo-class; GTK4 exposes no parsing-error signal via PyGObject on this install (verified empirically), so its coverage relies on the non-empty-provider check alone, which the plan itself designates as the load-bearing assertion
 
 ### Quick Tasks Completed
 
@@ -201,6 +203,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T04:16:11.999Z
-Stopped at: Completed 06-14-PLAN.md
+Last session: 2026-07-13T04:25:55.775Z
+Stopped at: Completed 06-19-PLAN.md
 Resume file: None

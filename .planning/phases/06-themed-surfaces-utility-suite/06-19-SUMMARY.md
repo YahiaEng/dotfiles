@@ -146,3 +146,10 @@ None - no external service configuration required. `theme-doctor` is stow-symlin
 ---
 *Phase: 06-themed-surfaces-utility-suite*
 *Completed: 2026-07-13*
+
+## Self-Check: PASSED
+
+- FOUND: theme-engine/.config/theme-engine/theme-doctor
+- FOUND: .planning/phases/06-themed-surfaces-utility-suite/06-19-SUMMARY.md
+- FOUND commit: 7b829bb
+- FOUND commit: b3e1b9f

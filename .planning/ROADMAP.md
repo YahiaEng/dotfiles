@@ -103,7 +103,7 @@ Plans:
   4. The user can invoke an emoji picker, a screen color picker (hex copied), a clipboard-history picker (with a size cap and wipe policy from day one so no unbounded plaintext secrets), an icon-theme picker (applies to Thunar/GTK live), and a nerd-font switcher (kitty/vscodium/GTK/waybar).
   5. Zen browser re-themes on theme switch (matugen-rendered userChrome.css, restart-based reload), and every new themed surface (swayosd, zen, hyprlock) is a contract.json target that passes theme-parity.
 
-**Plans**: 18/19 plans executed
+**Plans**: 19/19 plans complete
 **UI hint**: yes
 
 Plans:
@@ -148,7 +148,7 @@ Plans:
 - [x] 06-16-PLAN.md — WLOG-01 blocker, both defects: delete the 8 GTK3-invalid generated-content rulesets that make GTK discard the ENTIRE wlogout stylesheet, AND populate the six `layout` `text` fields with Nerd Font glyphs (D-10 was only half-implemented — SVGs deleted, glyphs never added). D-09 hover-label deliberately dropped: GTK3 has no generated content and wlogout gives each button one text slot, so D-09 and D-10 are mutually exclusive (WLOG-01) [wave 1]
 - [x] 06-17-PLAN.md — Utility-script warnings: WR-01 color-picker classifies failures by stdout (hyprpicker never writes stderr) so real failures stop taking the silent-cancel path; WR-02 clipboard-wipe survives an empty cliphist db under `set -e`; WR-04 trap-based mktemp cleanup in both fzf pickers; WR-05 record-toggle's pgrep/pkill bounded to argv[0] so sibling GSR binaries can't invert the toggle or be killed (UTIL-02/03/04/05, SHOT-03) [wave 1]
 - [x] 06-18-PLAN.md — Theme-engine warnings: WR-03 remove the `|| echo 0` idiom whose two-line `0\n0` turns the Zen installs.ini `-eq` test into an arithmetic abort; WR-06 add `--exclude=walker-relaunch.log` to commit.sh's rsync `--delete` (6th recurrence of this bug class) (THM-05) [wave 1]
-- [ ] 06-19-PLAN.md — Regression guard: theme-doctor runs all 9 pipeline-owned GTK stylesheets (6 GTK3 + 3 GTK4) through a REAL GTK CSS parser, asserting a non-empty provider (the discard signature a grep can't see) and zero fatal errors; headless-safe, deprecation-tolerant, and proven to fail on a poisoned sheet (WLOG-01) [wave 2, depends on 06-16]
+- [x] 06-19-PLAN.md — Regression guard: theme-doctor runs all 9 pipeline-owned GTK stylesheets (6 GTK3 + 3 GTK4) through a REAL GTK CSS parser, asserting a non-empty provider (the discard signature a grep can't see) and zero fatal errors; headless-safe, deprecation-tolerant, and proven to fail on a poisoned sheet (WLOG-01) [wave 2, depends on 06-16]
 
 ### Phase 7: Super-Key Menu
 
@@ -190,6 +190,6 @@ Plans:
 | 3. Repo Cleanup & Fresh-Install Reproducibility | v1.0 | 4/4 | Complete | 2026-07-08 |
 | 4. Reliability Fixes & Tech Debt | v2.0 | 6/6 | Complete    | 2026-07-11 |
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
-| 6. Themed Surfaces & Utility Suite | v2.0 | 18/19 | In Progress|  |
+| 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete   | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 0/TBD | Not started | - |
 | 8. Waybar Evolution | v2.0 | 0/TBD | Not started | - |
