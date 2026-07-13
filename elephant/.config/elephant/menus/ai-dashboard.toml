@@ -1,0 +1,58 @@
+name = "ai-dashboard"
+name_pretty = "AI Dashboard"
+parent = "main"
+
+# D-21: three launcher classes — Zen web-app windows (Claude/ChatGPT/Gemini/
+# Perplexity), Claude Code (CLI agent in kitty), and local models (ollama +
+# aichat TUI in kitty) — plus the D-24 idempotent AI Workspace entry.
+#
+# The four Zen entries below invoke ai-webapp-launch.sh rather than a bare
+# `uwsm app -- zen-browser ...` command. This is a deliberate deviation from
+# the originally-planned direct command: windowrules.conf's "AI Dashboard
+# web-app windows" comment documents why a windowrule cannot place these
+# windows (Zen's page title is not yet loaded at window-map time), so
+# placement is done by switching to the `name:ai` workspace BEFORE
+# launching — that logic lives in the script, which itself invokes
+# `uwsm app -- zen-browser` internally (D-09 is preserved one level down,
+# exactly like settings.toml's nmtui-launch.sh entry already does).
+#
+# MOZ_APP_REMOTINGNAME is intentionally NOT set anywhere below — RESEARCH
+# Assumption A1 was tested live against this Zen build and closed: the env
+# var has no effect (Zen is single-instance and never re-reads its own
+# environment for a second --new-window call). A no-op env var in a shipped
+# command would be cargo-cult and mislead the next reader.
+[[entries]]
+text = "  Claude"
+actions = { "open" = "~/.config/hypr/scripts/ai-webapp-launch.sh https://claude.ai" }
+
+[[entries]]
+text = "  ChatGPT"
+actions = { "open" = "~/.config/hypr/scripts/ai-webapp-launch.sh https://chatgpt.com" }
+
+[[entries]]
+text = "  Gemini"
+actions = { "open" = "~/.config/hypr/scripts/ai-webapp-launch.sh https://gemini.google.com" }
+
+[[entries]]
+text = "  Perplexity"
+actions = { "open" = "~/.config/hypr/scripts/ai-webapp-launch.sh https://perplexity.ai" }
+
+[[entries]]
+text = "  Claude Code"
+# D-09: a straight uwsm app -- launch, no extra logic needed. The class
+# matches windowrules.conf's ai-claude-code rule (workspace = name:ai) —
+# picking this entry directly also lands on the AI workspace, for free.
+actions = { "open" = "uwsm app -- kitty --class ai-claude-code --title \"Claude Code\" -- claude" }
+
+[[entries]]
+text = "  Local models"
+# D-22/D-23: ollama/aichat presence + no-model-installed checks and the
+# aichat config seed are non-trivial, so they live in ai-local-models.sh
+# (shared with ai-workspace.sh) rather than a one-line TOML action string.
+actions = { "open" = "~/.config/hypr/scripts/ai-local-models.sh" }
+
+[[entries]]
+text = "  AI Workspace"
+# D-24: idempotent named-workspace launcher — a shell script, invoked bare
+# (D-09's two-class convention), never uwsm app --.
+actions = { "open" = "~/.config/hypr/scripts/ai-workspace.sh" }
