@@ -156,5 +156,15 @@ None - no external service configuration required. However, **D-34's container-g
 - No blocking regressions introduced: Tasks 1-2's `bash -n` / `shellcheck -S error` checks both pass cleanly
 
 ---
+
+## Self-Check: PASSED
+
+- FOUND: install.sh
+- FOUND: .planning/phases/07-super-key-menu/07-03-SUMMARY.md
+- FOUND: commit 5840340 (Task 1)
+- FOUND: commit 046e351 (Task 2)
+- FOUND: commit bcc6a95 (SUMMARY)
+
+---
 *Phase: 07-super-key-menu*
 *Completed: 2026-07-13*

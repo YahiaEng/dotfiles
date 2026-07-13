@@ -6,14 +6,14 @@ current_phase: 07
 current_phase_name: super-key-menu
 status: executing
 stopped_at: Phase 07-02 Tasks 1/1b/2/3 complete and committed; blocking checkpoint (verify kill-bind, description backfill, green gate) pending human verification
-last_updated: "2026-07-13T16:19:40.591Z"
+last_updated: "2026-07-13T16:43:33.434Z"
 last_activity: 2026-07-13
 last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 38
-  completed_plans: 32
+  completed_plans: 33
   percent: 50
 ---
 
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 07 (super-key-menu) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 07
+Plan: 4 of 8
+Status: Ready to execute
 Last activity: 2026-07-13 — Phase 07 execution started
 
 ## Performance Metrics
@@ -96,6 +96,7 @@ Last activity: 2026-07-13 — Phase 07 execution started
 | Phase 06 P17 | 20min | 3 tasks | 5 files |
 | Phase 06 P18 | 8min | 2 tasks | 2 files |
 | Phase 06 P19 | 20min | 3 tasks | 1 files |
+| Phase 07 P03 | 11min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 06-19]: GTK CSS-parse regression guard added to theme-doctor: 6 GTK3 + 3 GTK4 surfaces asserted zero fatal errors AND a non-empty Gtk.CssProvider — the exact non-empty-provider check catches a stylesheet GTK discards wholesale (WLOG-01/CR-01's failure mode), proven with a synthetic regression that reproduces the discard on a poisoned copy and confirms it fails — Four prior verification rounds grep-checked only the @import line and missed that GTK3 discards an entire stylesheet on a single invalid pseudo-class; GTK4 exposes no parsing-error signal via PyGObject on this install (verified empirically), so its coverage relies on the non-empty-provider check alone, which the plan itself designates as the load-bearing assertion
 - [Phase 07-01]: Tasks 2-3 executed: elephant/ stow package + elephant-restart.sh + walker placeholders menus:main wiring; dead sets.runner deleted. Key finding: placeholder key must be the QUALIFIED provider id (menus:main), not the bare provider name, verified by screenshot.
 - [Phase 07-02]: Tasks 1/1b/2/3 executed and committed: D-03 kill-bind (Super+Escape -> pkill walker) reserved additive-only and proven live via hyprctl dispatch; pre-existing Super+R bug fixed (walker -s runner panics, src/data.rs:566, exit 134 -- repointed to walker -m runner, proven to exit cleanly 130 on Esc-dismiss via wtype); keybinds.conf fully description-backfilled (76/76 bind lines, D-30); keybind-doctor shipped as a rerunnable D-04 gate, proven to actually fail on a synthetic regression. Final blocking checkpoint pending human approval.
+- [Phase 07-03]: Idempotent multilib enablement added to install.sh (D-25) — new territory, zero prior pacman.conf handling; check-before-write with sed N-join uncomment anchored to the two-line stanza (never a blanket #Include uncomment); proven against synthetic pacman.conf fixtures, not the live file
+- [Phase 07-03]: 10 packages wired into install.sh (D-33): 8 official-repo (steam+multilib, lutris, ollama, aichat, gamemode, mangohud, nwg-displays, blueman) and 2 human-verified AUR (heroic-games-launcher-bin, protonup-qt — AUR-only, correcting CONTEXT.md D-25's assumption); ollama enabled non-fatally, no model pull, no OLLAMA_HOST override
+- [Phase 07-03]: Container-gate D-34 proof deferred (not faked) — origin/main is 202 commits behind local HEAD and predates this phase entirely; pushing to the public remote requires explicit human authorization per this repo's own established precedent (Phase 3's 03-04, Phase 4's 04-VERIFICATION)
 
 ### Quick Tasks Completed
 
@@ -205,6 +209,7 @@ Resolved in Phase 6:
 - ~~Phase 7 Plan 01 (D-05 spike) BLOCKED after Task 1: walker 2.16.2's '-s <name>' GUI-mode invocation panics and aborts the walker daemon~~ — **RESOLVED 2026-07-13 (decision taken, plans amended in 117edc9).** Adopted `-m/--provider` exclusive-provider mode across the phase; `walker -m menus:main` and `walker -m runner` both verified to render and leave the service alive (PID before/after). The D-05 spike stands GO: elephant's `menus` provider expresses submenus, drill-down, Esc-back-nav (exactly one level) and glyph-as-text — no `--dmenu` fallback needed. **Two durable findings kept:** (1) `walker -s <set>` / `[sets.*]` is a dead mechanism on walker 2.16.2 (panic, `src/data.rs:566`) — do not reintroduce it; (2) it fails on the shipped `[sets.runner]` block too, so **`Super+R` was already broken in production** — a pre-existing bug, fixed in 07-02 Task 1b, not caused by this phase. Root cause of the bad design: 07-RESEARCH.md claimed `walker -s runner` "already ships and works" based on reading the config file, never running it — the phase's own "verify against the installed binary" lesson, unapplied to the research itself.
 - Phase 07-01 checkpoint (blocking human-verify: 'Verify the menu engine renders live') is PENDING. Tasks 1-3 done and committed (4f2becb, 6f4e4b2, 117edc9, 7adc2a2, e9c3a24, 238095a). All checkpoint verification steps already mechanically exercised this session; awaiting human sign-off before plan 07-01 is marked complete and 07-02 proceeds.
 - Phase 07-02 checkpoint ('Verify the kill-bind, the backfill, and the green gate') is PENDING. Tasks 1/1b/2/3 done and committed (413042c, b8530a7, a837536, 0565b78, 59b5227). All checkpoint verification steps already mechanically exercised this session (kill-bind proven live via hyprctl dispatch, Super+R fix proven live, keybind-doctor green 8/0, description parity 76/76); awaiting human sign-off before plan 07-02 is marked complete and 07-04 (SUPER_L tap-bind rebind) proceeds.
+- Phase 7: D-34 container-gate proof (verify/container-run.sh) for plan 07-03 is open pending human push authorization — origin/main is 202 commits behind local HEAD (predates Phase 5). Human must: (1) authorize git push origin main, (2) re-run verify/container-run.sh and confirm overall=PASS with all 10 new packages + multilib showing [OK].
 
 ## Deferred Items
 
@@ -217,6 +222,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T16:19:40.584Z
+Last session: 2026-07-13T16:43:33.428Z
 Stopped at: Phase 07-02 Tasks 1/1b/2/3 complete and committed; blocking checkpoint (verify kill-bind, description backfill, green gate) pending human verification
 Resume file: .planning/phases/07-super-key-menu/07-02-PLAN.md
