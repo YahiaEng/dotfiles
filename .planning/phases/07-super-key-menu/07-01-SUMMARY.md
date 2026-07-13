@@ -73,17 +73,17 @@ coverage:
         ref: "This session's screenshots (not committed, host-local, deleted after review): confirmed \"menus\" key renders EMPTY placeholder (bug), \"menus:main\" key renders \"Search or select...\" correctly; Power glyph renders as a real power icon; Esc closes window, pgrep -x walker still returns a PID afterward"
         status: pass
     human_judgment: true
-    rationale: "Visual theming parity and glyph legibility require human/screenshot judgment — this is also exactly the substance of the plan's own checkpoint task (\"Verify the menu engine renders live\"), which is still PENDING human sign-off as of this SUMMARY. D4's automated pre-checks all pass; the checkpoint is the final human confirmation layer on top of this same evidence."
+    rationale: "Visual theming parity and glyph legibility require human/screenshot judgment — this is also exactly the substance of the plan's own checkpoint task (\"Verify the menu engine renders live\"), which the user APPROVED on 2026-07-13 after independently confirming the live render. D4's automated pre-checks all pass; the checkpoint is the final human confirmation layer on top of this same evidence."
 
 # Metrics
 duration: ~30min (Task 1, prior session) + ~35min (Tasks 2-3, this continuation session)
 completed: 2026-07-13
-status: blocked
+status: complete
 ---
 
 # Phase 7 Plan 01: Elephant Menu Engine Foundation Summary
 
-**D-05 spike proved the elephant `menus` provider works end-to-end (submenus/actions/glyphs/back-nav all GO), disproved `walker -s`/`[sets.*]` as a live-service-killing bug on walker 2.16.2, and — after the user's architectural decision to adopt `-m` exclusive-provider mode — Tasks 2-3 shipped a stow-managed `elephant/` menu package, `elephant-restart.sh`, and a `walker -m menus:main` invocation that correctly renders 07-UI-SPEC's locked placeholder copy, with the exact `[placeholders]` key form (`"menus:main"`, not `"menus"`) verified by screenshot rather than assumed. The plan's final task is a blocking human-verify checkpoint, still pending.**
+**D-05 spike proved the elephant `menus` provider works end-to-end (submenus/actions/glyphs/back-nav all GO), disproved `walker -s`/`[sets.*]` as a live-service-killing bug on walker 2.16.2, and — after the user's architectural decision to adopt `-m` exclusive-provider mode — Tasks 2-3 shipped a stow-managed `elephant/` menu package, `elephant-restart.sh`, and a `walker -m menus:main` invocation that correctly renders 07-UI-SPEC's locked placeholder copy, with the exact `[placeholders]` key form (`"menus:main"`, not `"menus"`) verified by screenshot rather than assumed. The plan's final blocking human-verify checkpoint was APPROVED by the user on 2026-07-13 — plan complete (4/4 tasks).**
 
 ## Performance
 
