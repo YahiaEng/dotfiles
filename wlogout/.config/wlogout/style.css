@@ -1,8 +1,12 @@
 @import url("../../.local/state/theme/wlogout.css");
 
-/* ── Full-screen dim scrim, desktop stays visible behind the bar (D-09) ── */
+/* ── Full-screen dim scrim, desktop stays visible behind the bar (D-09) ──
+   Paired with `layerrule = blur on, match:namespace logout_dialog`. The blur
+   STRENGTH lives in hyprland.conf's global `decoration:blur` block — Hyprland
+   has no per-layer blur-size rule — so this alpha is the only wlogout-local
+   knob on how much of the desktop reads through. ── */
 window {
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.45);
     font-family: "FiraCode Nerd Font";
     color: @on_surface;
 }
@@ -40,10 +44,17 @@ button:focus {
     border-color: @primary;
 }
 
-/* ── Nerd Font glyph rendering (D-10) — literal font, not the UTIL-05 axis ── */
+/* ── Nerd Font glyph rendering (D-10) — literal font, not the UTIL-05 axis ──
+   margin-bottom is an optical-centering correction, not spacing. GTK does not
+   vertically centre the text inside the button's label, and CSS3 has no valign
+   to say so — measured against a render, the glyph sits 14.5px BELOW the
+   content-box centre on every button. Shrinking the label from the bottom
+   shifts the text up ~1px per 1px; 16px (`md`) lands it within half a pixel of
+   true centre. Re-measure if font-size or button padding changes. ── */
 button label {
     font-family: "FiraCode Nerd Font";
     font-size: 28px;
+    margin-bottom: 16px;
 }
 
 /* ── No hover-label reveal: GTK3 has no generated-content pseudo-element

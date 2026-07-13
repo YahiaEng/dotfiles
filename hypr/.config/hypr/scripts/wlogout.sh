@@ -19,12 +19,21 @@ if pgrep -x wlogout >/dev/null 2>&1; then
     exit 0
 fi
 
-BTN=72   # button edge, px      (06-UI-SPEC: Button size 72x72)
-GAP=16   # gap between buttons  (06-UI-SPEC: `md`)
-COLS=6   # one row of six actions
+# These MUST stay in sync with wlogout/style.css. GTK3 applies min-width /
+# min-height to the CONTENT box, then ADDS padding and border on top -- so the
+# button's real on-screen size is CONTENT + 2*PAD + 2*BORDER, not CONTENT.
+# Sizing the window to CONTENT alone (the first attempt at this fix) made the
+# buttons overflow the window and get clipped at the bottom, which is what
+# pushed the glyphs off-centre. Derive the outer size instead of hardcoding it.
+CONTENT=72   # style.css: button { min-width / min-height }
+PAD=10       # style.css: button { padding }
+BORDER=3     # style.css: button { border-width }
+GAP=16       # gap between buttons (06-UI-SPEC `md`) -> --column-spacing
+COLS=6       # one row of six actions
 
-BAR_W=$(( COLS * BTN + (COLS - 1) * GAP ))   # 6*72 + 5*16 = 512
-BAR_H=$BTN                                   # 72
+BTN=$(( CONTENT + 2 * PAD + 2 * BORDER ))    # 72 + 20 + 6 = 98 on screen
+BAR_W=$(( COLS * BTN + (COLS - 1) * GAP ))   # 6*98 + 5*16 = 668
+BAR_H=$BTN                                   # 98
 
 # Layer-shell margins are in LOGICAL px, so divide pixel size by scale.
 MON_W=""; MON_H=""
