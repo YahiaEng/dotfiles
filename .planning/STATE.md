@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 07
-current_phase_name: Super-Key Menu
+current_phase_name: super-key-menu
 status: executing
 stopped_at: Phase 7 UI-SPEC approved
-last_updated: "2026-07-13T13:59:01.973Z"
+last_updated: "2026-07-13T14:43:17.771Z"
 last_activity: 2026-07-13
-last_activity_desc: Phase 06 complete, transitioned to Phase 07
+last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 30
-  completed_plans: 30
+  total_plans: 38
+  completed_plans: 31
   percent: 50
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-12)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 07 — Super-Key Menu
+**Current focus:** Phase 07 — super-key-menu
 
 ## Current Position
 
-Phase: 07 — Super-Key Menu
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-13 — Phase 06 complete, transitioned to Phase 07
+Phase: 07 (super-key-menu) — EXECUTING
+Plan: 1 of 8
+Status: Executing Phase 07
+Last activity: 2026-07-13 — Phase 07 execution started
 
 ## Performance Metrics
 
@@ -200,6 +200,7 @@ Resolved in Phase 6:
 
 - ~~Zen browser profile-path resolution~~ — closed: installs.ini-first parser with profiles.ini fallback, path validated as a real subdir of ~/.zen (06-06).
 - ~~hyprlock lockout-recovery discipline and clipboard size-cap/wipe policy~~ — closed: both shipped in-phase (recovery procedure documented and UAT'd; 100-item cap + session-end/manual wipe).
+- Phase 7 Plan 01 (D-05 spike) BLOCKED after Task 1: walker 2.16.2's '-s <name>' GUI-mode invocation panics and aborts the walker daemon (reproduced 5x, including on the pre-existing untouched [sets.runner] block already bound to Super+R in production). The elephant menus provider itself is proven fully working (submenus/actions/glyphs/Esc-back-nav all confirmed live via 'walker -m menus'). Task 3/07-04/RESEARCH.md all assume 'walker -s menu' as the invocation mechanism -- this is now falsified. Needs an architectural decision (likely: switch to '-m menus:main' exclusive-provider mode) before Tasks 2-4 of 07-01 or any of plans 07-02..07-08 can proceed. See .planning/phases/07-super-key-menu/07-01-SUMMARY.md.
 
 ## Deferred Items
 
@@ -212,6 +213,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T10:03:09.358Z
+Last session: 2026-07-13T14:43:17.765Z
 Stopped at: Phase 7 UI-SPEC approved
 Resume file: .planning/phases/07-super-key-menu/07-UI-SPEC.md
