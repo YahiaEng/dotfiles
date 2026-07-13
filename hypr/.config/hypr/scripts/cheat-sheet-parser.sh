@@ -87,6 +87,31 @@ _cheat_sheet_key_name() {
     printf '%s' "$k"
 }
 
+# _cheat_sheet_clean_section <raw-banner-text>
+# Display-only cleanup of a "# ── Section ──" banner. keybinds.conf's banners
+# double as developer annotations and carry planning metadata that has no
+# business on a user-facing cheat-sheet ("Escape hatch (D-03)", "Utilities
+# (D-32 — freed X/Z family, MENU-07 cheat-sheet source)").
+#
+# A trailing parenthetical is dropped ONLY when it looks like planning noise:
+# it contains a decision/requirement ID (D-03, MENU-07) or is a multi-clause
+# note (contains a comma). A short descriptive parenthetical is KEPT, because
+# it is information the reader actually wants — "Special workspace
+# (scratchpad)" must not become "Special workspace".
+#
+# keybinds.conf itself is never modified; this is presentation, not a rewrite.
+_cheat_sheet_clean_section() {
+    local s="$1"
+    if [[ "$s" =~ ^(.*[^[:space:]])[[:space:]]*\((.*)\)[[:space:]]*$ ]]; then
+        local head="${BASH_REMATCH[1]}" inner="${BASH_REMATCH[2]}"
+        if [[ "$inner" =~ [A-Z]+-[0-9]+ || "$inner" == *,* ]]; then
+            printf '%s' "$head"
+            return
+        fi
+    fi
+    printf '%s' "$s"
+}
+
 # cheat_sheet_parse_binds [path-to-keybinds.conf]
 # Parses the given (or default) keybinds.conf LIVE on every call — no
 # caching anywhere (D-31). Emits one line per declared bind*/= line: three
@@ -121,6 +146,7 @@ cheat_sheet_parse_binds() {
             local candidate
             candidate=$(printf '%s' "$line" | sed -E 's/^#[[:space:]]*//; s/─+[[:space:]]*$//; s/^─+[[:space:]]*//')
             candidate=$(_cheat_sheet_trim "$candidate")
+            candidate=$(_cheat_sheet_clean_section "$candidate")
             [[ -n "$candidate" ]] && section="$candidate"
             continue
         fi
