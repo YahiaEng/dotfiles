@@ -7,7 +7,16 @@ window {
     color: @on_surface;
 }
 
-/* ── Compact horizontal center bar of glyph buttons ───────────────────── */
+/* ── Compact horizontal center bar of glyph buttons ─────────────────────
+   The 72x72 button size is enforced by the WINDOW geometry, not here:
+   wlogout stretches every button to fill its grid cell, so min-width/
+   min-height are only a floor and cannot shrink anything. scripts/wlogout.sh
+   sizes the layer-shell window to exactly 6*72 + 5*16 = 512 x 72px, which is
+   what makes each cell land on 72x72.
+
+   No `margin` here on purpose — the 16px gap comes from wlogout's
+   --column-spacing. Setting both would double the gap and shrink each button
+   inside its own cell. ── */
 button {
     background-color: @background;
     color: @on_surface;
@@ -15,7 +24,6 @@ button {
     border-radius: 20px;
     min-width: 72px;
     min-height: 72px;
-    margin: 0 8px;
     padding: 10px;
     box-shadow: none;
     text-shadow: none;
