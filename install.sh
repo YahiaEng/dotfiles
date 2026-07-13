@@ -281,6 +281,43 @@ section_core_rice() {
     echo "Using AUR helper: $AUR_HELPER"
     echo ""
 
+    # ── Enable multilib repo (D-25, RESEARCH.md Pitfall 2) ───────────
+    # Steam (below, PACMAN_PKGS) lives in the [multilib] repo, which Arch
+    # ships commented-out by default. This repo had ZERO pre-existing
+    # pacman.conf-editing code before this block (`grep -n
+    # "multilib\|pacman.conf" install.sh` returned no matches). This dev
+    # machine ALREADY has [multilib] enabled by hand, which is exactly
+    # what silently masked this gap during local testing — a genuinely
+    # fresh system would fail at the `steam` install line without this
+    # step. Idempotent by design (safe to re-run against an already-
+    # enabled pacman.conf). Do NOT delete this as "redundant" just
+    # because it happens to be a no-op on this particular machine.
+    echo "Ensuring [multilib] repo is enabled..."
+    if grep -q '^\[multilib\]' /etc/pacman.conf; then
+        echo "  [multilib] already enabled — skipping."
+    elif grep -q '^#\[multilib\]' /etc/pacman.conf; then
+        # Uncomment BOTH the header and its immediately-following Include
+        # line together, anchored specifically to the multilib stanza (N
+        # joins the two lines into one pattern space before substituting)
+        # — never a blanket #Include uncomment, which would also enable
+        # any other commented repo (e.g. [testing]/[multilib-testing]).
+        sudo sed -i \
+            '/^#\[multilib\]$/{N;s/^#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist$/[multilib]\nInclude = \/etc\/pacman.d\/mirrorlist/}' \
+            /etc/pacman.conf
+        echo "  Uncommented [multilib] in /etc/pacman.conf."
+    else
+        # Neither an active nor a commented [multilib] section exists at
+        # all — append the standard two-line stanza.
+        printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' | sudo tee -a /etc/pacman.conf >/dev/null
+        echo "  Appended [multilib] to /etc/pacman.conf."
+    fi
+    # Sync the newly (or already) enabled repo's database before any
+    # package that lives there (steam) is installed — without this,
+    # `pacman -S steam` still fails with "target not found" even though
+    # the repo section itself is now active.
+    sudo pacman -Sy --noconfirm
+    echo ""
+
     echo "Installing pacman packages..."
     sudo pacman -Sy --needed --noconfirm "${PACMAN_PKGS[@]}"
 
