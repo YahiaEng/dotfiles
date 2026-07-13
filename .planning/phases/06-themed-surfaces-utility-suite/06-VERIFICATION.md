@@ -1,7 +1,7 @@
 ---
 phase: 06-themed-surfaces-utility-suite
 verified: 2026-07-13T08:35:00Z
-status: human_needed
+status: passed
 score: 6/7 must-haves verified
 behavior_unverified: 1
 overrides_applied: 0
@@ -9,6 +9,7 @@ re_verification:
   previous_status: gaps_found
   previous_score: 3/7
   gaps_closed:
+
     - "OSD-01 (roadmap Success Criterion 2): brightness keys now route through swayosd-client. `keybinds.conf` lines 160-161 rebound from bare `brightnessctl -e4 -n2 set 5%±` to `swayosd-client --brightness raise` / `--brightness lower` (commit b878e31). Independently confirmed: `swayosd-client --help` lists `--brightness <raise|lower|(±)number>` as a real flag; `hyprctl configerrors` is empty (no bind-syntax regression); D-25's DDC descope preserved (no ddcutil calls added, comment updated to say laptop-backlight-only)."
     - "UTIL-04 (roadmap Success Criterion 4): icon-theme picker no longer silently overrides the user's pick. `theme_engine_nearest_icon_variant` (gtk.sh) now sorts enumerated variants (`mapfile -t installed < <(printf '%s\\n' \"${installed[@]}\" | sort -u)`) and returns nothing on no-exact-match instead of `installed[0]` (commit 0aaeffb). Independently confirmed the call site (gtk.sh:306-307) already treats an empty return as 'keep the user's pick' (`[[ -n \"$found\" ]] && nearest=\"$found\"` — nearest defaults to `$icon_theme`, the user's own value)."
     - "Phase goal's closing clause / roadmap Success Criterion 1 ('verified under both light and dark'): theme-doctor's gtk-theme check is now mode-aware (commit 128ea5b). Independently reproduced by simulating light mode live on this machine: with `$STATE_DIR/mode`=light and `gsettings gtk-theme`=adw-gtk3, theme-doctor printed `[PASS] gsettings gtk-theme = adw-gtk3 (mode=light, got: adw-gtk3)` instead of false-failing. State restored to the machine's real dark/catppuccin mode afterward, confirmed via `git diff` showing no residual change to tracked files."
@@ -18,11 +19,13 @@ re_verification:
 gaps: []
 deferred: []
 behavior_unverified_items:
+
   - truth: "User can capture region/window/full-screen screenshots (animation, freeze, save + copy, notification), annotate them (arrows/text/shapes/blur), and record screen/region to video with GIF export (SHOT-01/02/03, roadmap Success Criterion 3)"
     test: "Press Print / Shift+Print / Ctrl+Print / Alt+Print and exercise the full capture -> satty annotate -> save+copy flow; drag-record a region and a full monitor via Alt+Print, export a GIF from the resulting notification, and play the .mp4 back in VLC."
     expected: "Each Print-key variant fires (code:107 bind); hyprshot --raw pipes a valid raw image into satty; satty opens, annotates, saves to ~/Pictures/Screenshots, and copies with exactly one notification; gpu-screen-recorder starts/stops cleanly; the exported GIF and the .mp4 both play back without a missing-codec error."
     why_human: "Interactive Wayland capture UI (region-select, satty's annotate toolbar) requires a real keypress-driven interaction that cannot be safely scripted without risking a hang or an unintended file/clipboard side effect. Unchanged since the 06-14/06-15 fixes shipped this flow; no code touched by this round's 3 fix commits affects SHOT-01/02/03 (confirmed via `git diff --stat` — capture/record/annotate scripts are absent from the changed-file list)."
 human_verification:
+
   - test: "Press Print / Shift+Print / Ctrl+Print / Alt+Print and exercise the full capture -> satty annotate -> save+copy flow; drag-record a region and a full monitor via Alt+Print, export a GIF from the resulting notification, and play the .mp4 back in VLC."
     expected: "Each Print-key variant fires (code:107 bind); hyprshot --raw pipes a valid raw image into satty; satty opens, annotates, saves to ~/Pictures/Screenshots, and copies with exactly one notification; gpu-screen-recorder starts/stops cleanly; the exported GIF and the .mp4 both play back without a missing-codec error."
     why_human: "Interactive Wayland capture UI cannot be safely scripted."

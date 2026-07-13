@@ -1,24 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 06-themed-surfaces-utility-suite
 source: [06-VERIFICATION.md]
 started: 2026-07-13T05:10:00Z
-updated: 2026-07-13T05:10:00Z
+updated: 2026-07-13T12:20:00Z
 ---
 
 ## Current Test
 
-number: 1
-name: Capture / annotate / record suite end-to-end (SHOT-01/02/03)
-expected: |
-  Each Print-key variant fires (bound by physical keycode 107, not the Print
-  keysym). hyprshot --raw pipes a valid raw image into satty; satty opens,
-  you can annotate (arrows / text / shapes / blur), and save+copy produces
-  the file in ~/Pictures/Screenshots with exactly one notification.
-  Alt+Print starts and stops a recording (both a drag-selected region and a
-  full monitor). The resulting .mp4 plays in VLC with no missing-codec error,
-  and the GIF export action on the notification produces a playable GIF.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -33,14 +23,25 @@ expected: |
   the saved file lands in ~/Pictures/Screenshots (NOT the home directory) with
   one notification; recordings start/stop cleanly; the .mp4 plays in VLC
   without installing anything by hand; the exported GIF plays.
-result: [pending]
+result: pass
+
+### 2. wlogout redesign renders as the agreed compact centre bar (WLOG-01 / D-09)
+test: |
+  Trigger the power menu (wlogout). Look at the bar itself, the glyphs, and the
+  blurred backdrop behind it.
+expected: |
+  wlogout opens as a compact horizontal bar centred on screen (not a full-screen
+  grid of huge tiles); each button is a 72x72 tile with a 28px glyph centred
+  inside it and 16px gaps between buttons; the desktop behind it is blurred with
+  a light scrim; colours come from the active theme.
+result: pass
 
 ## Summary
 
-total: 1
-passed: 0
+total: 2
+passed: 2
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
