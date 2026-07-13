@@ -281,9 +281,47 @@ if [[ "${1:-}" == "--render" ]]; then
     exit 0
 fi
 
+# _cs_font_size
+# Scale the card's type to the display instead of hardcoding a size — a fixed
+# font_size that reads fine at 1440p is unusably small on a 4K panel.
+#
+# Derived from the FOCUSED monitor's LOGICAL height (physical height ÷ scale),
+# because that is what actually determines how large a point-sized glyph looks:
+# a 2160px monitor at scale 2 presents as 1080 logical px and must NOT get 4K's
+# type size. Clamped to a sane 12–22 so a freak resolution can't produce a
+# comically large or unreadable card.
+#
+# Growing the font is safe here precisely because render_table computes its
+# column count from the real terminal width: a bigger font simply yields fewer
+# panel columns (4 -> 3 -> 2), never a broken or clipped grid.
+#
+# Falls back to 13 if hyprctl/jq are unavailable or report nothing — never an
+# empty value, which kitty would reject.
+_cs_font_size() {
+    local h="" scale="" logical fs
+    if command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+        read -r h scale < <(
+            hyprctl monitors -j 2>/dev/null |
+                jq -r '[.[] | select(.focused)] | first | "\(.height) \(.scale)"' 2>/dev/null
+        ) || true
+    fi
+    if [[ -z "$h" || "$h" == "null" ]]; then
+        printf '13'
+        return
+    fi
+    logical=$(awk -v h="$h" -v s="$scale" 'BEGIN { if (s + 0 <= 0) s = 1; printf "%d", h / s }')
+    fs=$(awk -v l="$logical" 'BEGIN {
+        f = int(l / 100)
+        if (f < 12) f = 12
+        if (f > 22) f = 22
+        print f
+    }')
+    printf '%s' "$fs"
+}
+
 exec uwsm app -- kitty \
     --class "cheat-sheet" \
     --title "Keybinds" \
     -o background_opacity=0.85 \
-    -o font_size=10 \
+    -o font_size="$(_cs_font_size)" \
     -- "$SCRIPT_REAL" --render
