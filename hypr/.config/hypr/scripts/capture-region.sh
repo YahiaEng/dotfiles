@@ -8,10 +8,19 @@
 # RESEARCH.md Assumption A2 / Pattern 4):
 #   -m region  : interactive slurp region selection
 #   -z         : freeze screen contents during selection (D-01)
-#   -r         : write raw PPM image data to stdout — hyprshot's own
+#   --raw      : write raw PPM image data to stdout — hyprshot's own
 #                save_geometry() returns immediately in RAW mode, before
 #                its own send_notification() call, so no duplicate
-#                hyprshot notification ever fires
+#                hyprshot notification ever fires. The long form is
+#                required: hyprshot 1.3.0's getopt optstring declares
+#                the short option `r:` (argument-required) while the
+#                handler treats it as a boolean flag, so `-r` errors out
+#                of getopt parsing and is silently dropped — hyprshot
+#                then falls back to its own non-raw save path (writes a
+#                PNG straight to hyprshot's own SAVEDIR and nothing to
+#                stdout), leaving satty with empty stdin (06-14 gap
+#                closure, verified against the installed hyprshot 1.3.0
+#                in .planning/debug/screenshot-script-errors.md).
 #
 # satty flags verified against the live upstream CLI definition
 # (raw.githubusercontent.com/gabm/Satty/main/cli/src/command_line.rs —
@@ -44,7 +53,7 @@ mkdir -p "$SCREENSHOT_DIR"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 FILENAME="$SCREENSHOT_DIR/screenshot_${TIMESTAMP}.png"
 
-hyprshot -m region -z -r | satty --filename - --output-filename "$FILENAME" --disable-notifications
+hyprshot -m region -z --raw | satty --filename - --output-filename "$FILENAME" --disable-notifications
 
 # satty owns save+copy (D-02); only notify if a file actually landed —
 # Escape/window-close exits satty without saving and must stay silent.

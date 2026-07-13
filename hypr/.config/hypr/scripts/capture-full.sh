@@ -4,7 +4,10 @@
 # D-01/D-02/D-05).
 #
 # Same hyprshot / satty flag verification as capture-region.sh (see that
-# file's header comment for full sourcing). `-m output -m active` takes
+# file's header comment for full sourcing, including the --raw long-form
+# requirement: hyprshot 1.3.0's getopt optstring declares the short `-r`
+# as argument-required while the handler treats it as boolean, so only
+# the long form parses cleanly — 06-14 gap closure). `-m output -m active` takes
 # the CURRENT=1 path in hyprshot's begin_grab() (grab_active_output) which
 # skips slurp entirely and captures the monitor holding the active
 # workspace — a true one-keypress "full screen" capture, matching the
@@ -25,7 +28,7 @@ mkdir -p "$SCREENSHOT_DIR"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 FILENAME="$SCREENSHOT_DIR/screenshot_${TIMESTAMP}.png"
 
-hyprshot -m output -m active -z -r | satty --filename - --output-filename "$FILENAME" --disable-notifications
+hyprshot -m output -m active -z --raw | satty --filename - --output-filename "$FILENAME" --disable-notifications
 
 # satty owns save+copy (D-02); only notify if a file actually landed —
 # Escape/window-close exits satty without saving and must stay silent.
