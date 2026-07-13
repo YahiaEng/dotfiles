@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 08
-current_phase_name: waybar-evolution
+current_phase: 09
+current_phase_name: wlogout to wleave Migration
 status: planning
-stopped_at: Phase 07 COMPLETE (8/8 plans, verification 7/7 passed, MENU-01..MENU-07 all delivered). Ready to discuss/plan Phase 08 (Waybar Evolution).
-last_updated: "2026-07-13T21:13:08.389Z"
+stopped_at: Phase 8 context gathered
+last_updated: "2026-07-13T21:47:00.660Z"
 last_activity: 2026-07-13
-last_activity_desc: Phase 07 complete — Super-Key Menu delivered; next is Phase 08 (Waybar Evolution)
+last_activity_desc: Phase 07 complete, transitioned to Phase 09
 progress:
   total_phases: 6
   completed_phases: 4
@@ -231,6 +231,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T17:57:04.402Z
-Stopped at: Phase 07-05 COMPLETE (menu tree shipped, stow-parity gap root-caused and closed with a self-healing guard; human re-tested and approved). Ready to plan/execute 07-06.
-Resume file: None
+Last session: 2026-07-13T21:47:00.653Z
+Stopped at: Phase 8 context gathered
+Resume file: .planning/phases/08-waybar-evolution/08-CONTEXT.md
