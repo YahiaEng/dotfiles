@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "UAT Test 2 (06-themed-surfaces-utility-suite): screenshot scripts save to ~ instead of ~/Pictures/screenshots; terminal run prints 'getopt: option requires an argument -- r' and 'Error: Unrecognized image file format' (twice)"
 created: 2026-07-13T00:00:00Z
 updated: 2026-07-13T00:00:00Z

@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "The 'Print' family shortcuts do not work on my keyboard. I tried running all the recording/screenshot scripts through terminal, they worked (with some issues)."
 created: 2026-07-13T00:00:00Z
 updated: 2026-07-13T00:45:00Z
