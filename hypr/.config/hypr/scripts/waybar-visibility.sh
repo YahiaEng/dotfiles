@@ -44,11 +44,18 @@
 # ── State model ──────────────────────────────────────────────────────
 # Per-source intent files: ~/.cache/waybar-visibility.d/<source>, one per
 # source (idle/fullscreen/gaming), each holding the literal string "hide"
-# or "show". Written with the atomic tmp+mv idiom (gaming-mode-toggle.sh's
-# _write_state, copied verbatim in spirit) — the sources can legitimately
-# write concurrently (a fullscreen event and an idle timeout landing in
-# the same instant is a real possibility, not theoretical), so a torn
-# read must never be possible. A missing intent file means "show" — the
+# or "show". The four actors can legitimately fire concurrently (a
+# fullscreen event and an idle timeout landing in the same instant is a
+# real possibility, not theoretical), so this owner serializes the ENTIRE
+# read-modify-write — read intents, compute, write CSS + signal, record
+# .actuated — under a single process-wide advisory lock (flock on
+# .owner.lock, blocking; see _acquire_lock / main below), the same idiom
+# media-popup-open.sh uses. Only one invocation is ever inside the
+# compute→actuate critical section at a time, so the lost-update / torn-
+# publish class (WR-01) cannot occur. Every individual file publish is
+# ALSO atomic on its own — written to a UNIQUE mktemp'd temp in the same
+# directory, then mv'd into place (belt-and-suspenders: no two writers
+# ever share a fixed .tmp path). A missing intent file means "show" — the
 # safe default, a bar you can see (T-08-17: any file content other than
 # the literal "hide" is also treated as "show", never executed or
 # interpolated anywhere).
@@ -94,12 +101,34 @@ IDLE_DIM_OPACITY="0.05"
 INTENT_DIR="$HOME/.cache/waybar-visibility.d"
 OVERRIDE_FILE="$INTENT_DIR/.override"
 ACTUATED_FILE="$INTENT_DIR/.actuated"
+LOCK_FILE="$INTENT_DIR/.owner.lock"
 VISIBILITY_CSS="$HOME/.local/state/theme/waybar-visibility.css"
 
-# ── Atomic single-line intent write (gaming-mode-toggle.sh idiom) ────
+# ── Serialize the whole read-modify-write (WR-01) ────────────────────
+# A BLOCKING flock (never -n: an event must be processed, never dropped)
+# held for the duration of every verb, so two actors firing close
+# together run their compute→actuate strictly one after the other rather
+# than interleaving a lost update or a torn publish. fd 8 stays open for
+# the process lifetime; the lock releases automatically on exit. If flock
+# is somehow unavailable the RMW still runs (unlocked) — the unique-temp
+# writes keep each individual publish atomic, degrading to the old
+# behaviour rather than failing closed and freezing the bar.
+_acquire_lock() {
+    exec 8>"$LOCK_FILE" || return 0
+    flock 8 2>/dev/null || true
+}
+
+# ── Atomic single-line writes (unique-temp + mv, WR-01) ──────────────
+# Every publish writes to a UNIQUE mktemp'd temp in the target's own
+# directory (never a fixed `.tmp` shared across concurrent callers) and
+# then mv's it into place — a same-filesystem atomic rename. Combined
+# with the process-wide flock main() holds, a torn or lost publish is
+# impossible even when four actors fire in the same instant.
 _write_intent() {
     local source="$1" value="$2"
-    printf '%s\n' "$value" > "$INTENT_DIR/$source.tmp" && mv "$INTENT_DIR/$source.tmp" "$INTENT_DIR/$source"
+    local tmp
+    tmp="$(mktemp "$INTENT_DIR/.$source.XXXXXX")"
+    printf '%s\n' "$value" > "$tmp" && mv -f "$tmp" "$INTENT_DIR/$source"
 }
 
 _read_intent() {
@@ -109,25 +138,33 @@ _read_intent() {
 
 _write_override() {
     local value="$1" base_at_set="$2"
-    printf '%s\n%s\n' "$value" "$base_at_set" > "$OVERRIDE_FILE.tmp" && mv "$OVERRIDE_FILE.tmp" "$OVERRIDE_FILE"
+    local tmp
+    tmp="$(mktemp "$INTENT_DIR/.override.XXXXXX")"
+    printf '%s\n%s\n' "$value" "$base_at_set" > "$tmp" && mv -f "$tmp" "$OVERRIDE_FILE"
 }
 
 _write_actuated() {
     local target="$1"
-    printf '%s\n' "$target" > "$ACTUATED_FILE.tmp" && mv "$ACTUATED_FILE.tmp" "$ACTUATED_FILE"
+    local tmp
+    tmp="$(mktemp "$INTENT_DIR/.actuated.XXXXXX")"
+    printf '%s\n' "$target" > "$tmp" && mv -f "$tmp" "$ACTUATED_FILE"
 }
 
-# _write_css <content> — atomic tmp+mv (T-08-16). content is always a
-# fixed literal assembled in this script, never interpolated from any
-# external input — an empty string truncates (reveal), a non-empty
-# string is the idle-dim rule (hide).
+# _write_css <content> — atomic unique-temp+mv (T-08-16). content is
+# always a fixed literal assembled in this script, never interpolated
+# from any external input — an empty string truncates (reveal), a
+# non-empty string is the idle-dim rule (hide).
 _write_css() {
     local content="$1"
+    local dir tmp
+    dir="$(dirname "$VISIBILITY_CSS")"
+    tmp="$(mktemp "$dir/.waybar-visibility.css.XXXXXX")"
     if [[ -n "$content" ]]; then
-        printf '%s\n' "$content" > "$VISIBILITY_CSS.tmp" && mv "$VISIBILITY_CSS.tmp" "$VISIBILITY_CSS"
+        printf '%s\n' "$content" > "$tmp"
     else
-        : > "$VISIBILITY_CSS.tmp" && mv "$VISIBILITY_CSS.tmp" "$VISIBILITY_CSS"
+        : > "$tmp"
     fi
+    mv -f "$tmp" "$VISIBILITY_CSS"
 }
 
 # ── Compute the current state ────────────────────────────────────────
@@ -247,6 +284,11 @@ _cmd_keybind_toggle() {
 main() {
     mkdir -p "$INTENT_DIR"
     mkdir -p "$(dirname "$VISIBILITY_CSS")"
+    # WR-01: take the owner lock BEFORE reading any intent, so the entire
+    # compute→actuate critical section is serialized against the other
+    # three actors. Must follow `mkdir -p "$INTENT_DIR"` (the lock file
+    # lives inside it).
+    _acquire_lock
     # First-run guarantee (D-06/Task 1): the CSS file must always exist —
     # every style-*.css @imports it, and an unresolvable @import makes
     # GTK3 discard the WHOLE stylesheet. stow.sh seeds it too, but this
