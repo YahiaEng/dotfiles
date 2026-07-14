@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
-stopped_at: Completed 08-07-PLAN.md (eww media popup + hardened mpris helpers)
-last_updated: "2026-07-14T13:24:38.656Z"
+stopped_at: Completed 08-09-PLAN.md
+last_updated: "2026-07-14T13:55:29.130Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 48
-  completed_plans: 45
+  completed_plans: 46
   percent: 67
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 08 (waybar-evolution) — EXECUTING
-Plan: 8 of 10
+Plan: 9 of 10
 Status: Ready to execute
 Last activity: 2026-07-14 — Phase 08 execution started
 
@@ -107,6 +107,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 08 P07 | ~3h | 3 tasks | 7 files |
 | Phase 08 P04 | 28min | 2 tasks | 5 files |
 | Phase 08 P05 | 30min | 4 tasks | 9 files |
+| Phase 08 P09 | 30min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -215,6 +216,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 08-05]: Discovered modules.jsonc's mpris/pulseaudio/cpu/memory/temperature glyph fields are empty/broken repo-wide since the first commit (pre-existing, out of scope); substituted real cmap-verified glyphs only in config-vertical.jsonc's own redefinitions since a glyph-only column format would otherwise render those widgets invisible
 - [Phase 08-05]: custom/notification tooltip flipped false->true in config-vertical.jsonc since it is a return-type:json module whose exec (swaync-client -swb) already emits a live tooltip field -- that is D-13's dropped-detail channel here, not a static tooltip-format
 - [Phase 08-05]: theme-doctor's D-17 gate proven to fail on purpose via self-test (throwaway 5th layout referencing a non-palette colour token) before being trusted; 4th hardcoded waybar-sheet list replaced with a nullglob-guarded style-*.css glob
+- [Phase ?]: Brightness widget uses generic slider + brightnessctl -c backlight (not native backlight widget) — device-agnostic, avoids host-only state (08-09)
+- [Phase ?]: Theme toggle in swaync panel is a picker launcher, not a boolean flip — active state is a read-back of theme mode, never a guess (08-09, D-28)
+- [Phase ?]: swaync wraps every command/update-command/cmd_getter/cmd_setter value in its own shell invocation internally — never embed a literal double-quote in these config values; use case-pattern matching instead (08-09)
 
 ### Quick Tasks Completed
 
@@ -259,6 +263,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T13:24:38.649Z
-Stopped at: Completed 08-07-PLAN.md (eww media popup + hardened mpris helpers)
-Resume file: .planning/phases/08-waybar-evolution/08-UI-SPEC.md
+Last session: 2026-07-14T13:55:29.124Z
+Stopped at: Completed 08-09-PLAN.md
+Resume file: None
