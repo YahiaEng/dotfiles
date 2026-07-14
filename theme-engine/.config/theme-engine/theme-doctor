@@ -191,14 +191,25 @@ fi
 # (gi.require_version conflict), so this runs as two separate
 # invocations. Never calls Gtk.init() — CssProvider needs no display,
 # and init() would require one, breaking the headless verify gate.
+#    D-31/D-32's disk-truth principle, applied here per RESEARCH's own
+#    finding: this array used to hardcode the waybar layout stylesheets
+#    one by one — the same copy-paste-drift pattern already killed in
+#    waybar-switch.sh/waybar-launch.sh (D-32), sitting in a 4th place. A
+#    5th waybar layout must be covered by this guard with zero edit to
+#    this script, so the waybar entries are discovered by glob and
+#    appended to the non-waybar sheets, which stay explicit (they are
+#    not a family and have no enumeration to derive). Guarded with
+#    nullglob so an unstowed waybar package degrades to the per-sheet
+#    SKIP below, never an unexpanded literal pattern handed to the parser.
 GTK3_CSS_SHEETS=(
     "$HOME/.config/wlogout/style.css"
-    "$HOME/.config/waybar/style-full.css"
-    "$HOME/.config/waybar/style-minimal.css"
-    "$HOME/.config/waybar/style-floating.css"
     "$HOME/.config/gtk-3.0/gtk.css"
     "$HOME/.config/swaync/style.css"
 )
+shopt -s nullglob
+WAYBAR_STYLE_SHEETS=("$HOME/.config/waybar"/style-*.css)
+shopt -u nullglob
+GTK3_CSS_SHEETS+=("${WAYBAR_STYLE_SHEETS[@]}")
 GTK4_CSS_SHEETS=(
     "$HOME/.config/gtk-4.0/gtk.css"
     "$HOME/.config/swayosd/style.css"
@@ -289,6 +300,175 @@ if python3 -c "import gi" >/dev/null 2>&1; then
     done < <(_theme_doctor_css_parse 4 "${GTK4_CSS_SHEETS[@]}")
 else
     echo "  [SKIP] GTK CSS-parse guard (python-gobject / gi not available)"
+fi
+
+# ── D-17: per-module CSS reachability + colour-resolution gate ─────────
+# Folds D-17's "full module re-test" into a rerunnable, mechanical check
+# instead of a human eyeballing four bars under N palettes. For every
+# deployed waybar config-*.jsonc, resolves the layout's REAL module list
+# through waybar-equivalence-check --resolve (08-01's one JSONC/include
+# parser — no second one is written here), flattens that layout's own
+# stylesheet through the same live GTK3 CssProvider used by the CSS-parse
+# guard above, and asserts:
+#   1. every module has a reachable CSS rule (word-boundary match on its
+#      waybar-assigned widget id) — the "silently unstyled module" half
+#      of the Phase-1 battery/backlight bug;
+#   2. every @token the flattened sheet references is @define-color'd
+#      somewhere in that same flattened output — the load-bearing half.
+#      Verified live during planning (GTK 3.24.52): a rule referencing an
+#      UNDEFINED named colour raises NO parsing-error and yields a
+#      NON-EMPTY provider — the exact blind spot the guard above cannot
+#      see, because its only two signals (fatal error, empty provider)
+#      are both silent for this failure class.
+# Never calls Gtk.init() (CssProvider needs no display — same headless-
+# safe discipline as _theme_doctor_css_parse above). Degrades to [SKIP],
+# never [FAIL], on any missing optional dependency (python3-gi absent,
+# waybar-equivalence-check absent, waybar package not stowed) — P7 D-34's
+# "container gate stays green and unattended" invariant.
+WAYBAR_EQUIV_CHECK="$HOME/.config/hypr/scripts/waybar-equivalence-check"
+WAYBAR_DIR_FOR_GATE="$HOME/.config/waybar"
+
+_theme_doctor_module_gate() {
+    python3 - "$WAYBAR_EQUIV_CHECK" "$WAYBAR_DIR_FOR_GATE" <<'PYEOF' 2>/dev/null
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+
+equiv_check = sys.argv[1]
+waybar_dir = sys.argv[2]
+
+if not os.path.isfile(equiv_check):
+    print("SKIP\t(all layouts)\twaybar-equivalence-check not found under ~/.config/hypr/scripts — cannot resolve configs")
+    sys.exit(0)
+
+configs = sorted(glob.glob(os.path.join(waybar_dir, "config-*.jsonc")))
+if not configs:
+    print(f"SKIP\t(all layouts)\tno config-*.jsonc found under {waybar_dir} — run stow.sh")
+    sys.exit(0)
+
+try:
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+except Exception as exc:
+    print(f"SKIP\t(all layouts)\tpython3-gi not available: {exc}")
+    sys.exit(0)
+
+# CSS at-rule keywords that share the "@ident" shape with a named-colour
+# reference but are never a colour token — excluded from Assertion 2.
+AT_RULE_KEYWORDS = {"import", "define-color", "media", "keyframes", "supports", "charset"}
+
+
+def module_to_id(name):
+    """waybar's own widget-id assignment rule: a compositor-namespaced
+    module (hyprland/*, sway/*, river/*, wlr/*) is identified by its LAST
+    segment; every other slash-bearing name replaces '/' with '-'; a bare
+    name is its own id."""
+    if "/" in name:
+        prefix = name.split("/")[0]
+        if prefix in ("hyprland", "sway", "river", "wlr"):
+            return "#" + name.split("/")[-1]
+        return "#" + name.replace("/", "-")
+    return "#" + name
+
+
+for config_path in configs:
+    layout = os.path.basename(config_path)[len("config-"):-len(".jsonc")]
+    style_path = os.path.join(waybar_dir, f"style-{layout}.css")
+
+    if not os.path.isfile(style_path):
+        print(f"SKIP\t{layout}\tstyle-{layout}.css not deployed under {waybar_dir}")
+        continue
+
+    try:
+        resolved_proc = subprocess.run(
+            [equiv_check, "--resolve", config_path],
+            capture_output=True, text=True, timeout=10,
+        )
+    except Exception as exc:
+        print(f"SKIP\t{layout}\twaybar-equivalence-check --resolve failed to run: {exc}")
+        continue
+
+    if resolved_proc.returncode != 0:
+        print(f"SKIP\t{layout}\twaybar-equivalence-check --resolve exited {resolved_proc.returncode}")
+        continue
+
+    try:
+        resolved = json.loads(resolved_proc.stdout)
+    except Exception as exc:
+        print(f"SKIP\t{layout}\tcould not parse --resolve JSON output: {exc}")
+        continue
+
+    modules = []
+    for arr_key in ("modules-left", "modules-center", "modules-right"):
+        modules += resolved.get(arr_key, []) or []
+
+    provider = Gtk.CssProvider()
+    fatal = []
+
+    def _on_error(_provider, _section, error, _fatal=fatal):
+        if error.code != 4:
+            _fatal.append(error.message)
+
+    provider.connect("parsing-error", _on_error)
+    try:
+        provider.load_from_path(style_path)
+    except Exception as exc:
+        fatal.append(str(exc))
+    css = provider.to_string()
+
+    if fatal or not css:
+        print(f"SKIP\t{layout}\tstylesheet failed to parse or is empty — already reported by the CSS-parse guard above")
+        continue
+
+    # Gate self-check (once per layout, cheap): the flattening primitive
+    # this whole gate relies on must actually have inlined the @import
+    # chain. If either signal is missing, the flattening assumption this
+    # gate depends on is false for this run — fail loudly rather than
+    # silently passing on an unflattened (and therefore untested) sheet.
+    if "@define-color" not in css:
+        print(f"FAIL\t{layout}\tflattened stylesheet has no @define-color — @import chain did not inline as expected")
+        continue
+
+    # Assertion 1 — rule reachability, word-boundary matched so "#cpu"
+    # cannot be satisfied by a "#cpu-foo" rule.
+    for mod in modules:
+        widget_id = module_to_id(mod)
+        pattern = re.compile(re.escape(widget_id) + r"(?![-\w])")
+        if pattern.search(css):
+            print(f"PASS\t{layout}\treachable: {mod} -> {widget_id}")
+        else:
+            print(f"FAIL\t{layout}\tno reachable CSS rule for module '{mod}' (widget id {widget_id})")
+
+    # Assertion 2 — colour resolution (HARD FAIL). Every @token the
+    # flattened sheet references must be declared by an @define-color
+    # somewhere in that same flattened output.
+    referenced = set(re.findall(r"@([A-Za-z_][A-Za-z0-9_-]*)", css))
+    referenced -= AT_RULE_KEYWORDS
+    defined = set(re.findall(r"@define-color\s+([A-Za-z_][A-Za-z0-9_-]*)", css))
+    unresolved = sorted(referenced - defined)
+    if unresolved:
+        print(f"FAIL\t{layout}\tunresolved colour token(s): {', '.join(unresolved)}")
+    else:
+        print(f"PASS\t{layout}\tall {len(referenced)} referenced colour token(s) resolved")
+PYEOF
+}
+
+if python3 -c "import gi" >/dev/null 2>&1; then
+    while IFS=$'\t' read -r status layout detail; do
+        [[ -z "$status" ]] && continue
+        desc="D-17 module-gate: $layout ($detail)"
+        case "$status" in
+            SKIP) echo "  [SKIP] $desc" ;;
+            PASS) check "$desc" "0" ;;
+            *)    check "$desc" "1" ;;
+        esac
+    done < <(_theme_doctor_module_gate)
+else
+    echo "  [SKIP] D-17 module-gate (python-gobject / gi not available)"
 fi
 
 # ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
