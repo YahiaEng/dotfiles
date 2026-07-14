@@ -111,6 +111,16 @@ mkdir -p "$HOME/.cache"
 # toggle's state.
 [[ -f "$HOME/.cache/gaming-mode" ]] || echo "off" > "$HOME/.cache/gaming-mode"
 
+# BAR-01/D-03/D-06: seed the visibility owner's exclusive CSS override
+# file empty, same seed-only-when-absent idiom as above — every
+# style-{full,minimal,floating}.css @imports this file LAST, and an
+# unresolvable @import makes GTK3 discard the WHOLE stylesheet. Never
+# unconditional: waybar-visibility.sh (the sole writer) may have a live
+# idle-dim rule in here already on a stow.sh re-run, and clobbering it
+# would desync the owner's actuated state from what's on screen.
+mkdir -p "$HOME/.local/state/theme"
+[[ -f "$HOME/.local/state/theme/waybar-visibility.css" ]] || : > "$HOME/.local/state/theme/waybar-visibility.css"
+
 # ── Switch to zshell ─────────────────────────────────
 # Pitfall 6/D-59: a non-root `chsh` prompts for the invoking user's login
 # password via PAM, breaking the strictly-zero-prompts requirement. A

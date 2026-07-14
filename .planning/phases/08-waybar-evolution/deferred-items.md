@@ -1,0 +1,58 @@
+# Deferred Items — Phase 08 (waybar-evolution)
+
+Out-of-scope discoveries logged during plan execution, per the executor's
+SCOPE BOUNDARY rule (only auto-fix issues directly caused by the current
+task's changes; pre-existing unrelated issues are logged here, not fixed).
+
+## 08-06: theme-doctor's "git status --porcelain is empty" check fails due to pre-existing dirty files
+
+**Found during:** 08-06, Task 5 verification (`theme-doctor` run).
+
+**Not caused by 08-06.** These three paths were already dirty/untracked at
+the start of this execution session, before any 08-06 task touched the
+repo:
+
+- `wallpapers/Pictures/Wallpapers/current.jpg` (modified, tracked)
+- `.planning/phases/07-super-key-menu/07-VERIFICATION.md` (untracked)
+- `csv` (untracked, repo root)
+
+None of these are `files_modified` in 08-06's plan, and none were touched
+by any 08-06 task. `theme-doctor`'s git-clean check
+(`theme-engine/.config/theme-engine/theme-doctor` line ~301) requires the
+**entire** `dotfiles` repo tree to have zero `git status --porcelain`
+output — a single unrelated dirty file anywhere in the repo fails this one
+check regardless of what the theme pipeline itself is doing correctly.
+
+**Not fixed** — out of scope for 08-06. All 40 other theme-doctor checks
+pass, including the new `eww.scss` contract-file-existence check this plan
+adds. Whoever picks up phase 07's verification doc or the stray `csv`
+file/wallpaper change should re-run `theme-doctor` afterward to confirm
+this single check clears once the tree is genuinely clean.
+
+## 08-03: `stow.sh` aborts early on a pre-existing vscodium conflict, before reaching the new waybar-visibility.css seed line
+
+**Found during:** 08-03, Task 1 verification (`./stow.sh` run).
+
+**Not caused by 08-03.** `~/.config/VSCodium/User/settings.json` is a real
+file on this host (not a stow symlink), so `stow --restow vscodium`
+reports "cannot stow ... since neither a link nor a directory and --adopt
+not specified" and exits non-zero. Under `stow.sh`'s `set -euo pipefail`,
+this aborts the whole script mid-loop — the exact same pre-existing issue
+08-01-SUMMARY already documented ("stow.sh aborted early on a pre-existing,
+unrelated vscodium conflict (not caused by this plan)").
+
+**Consequence for this plan:** the new seed line added to `stow.sh`
+(`~/.local/state/theme/waybar-visibility.css`, seed-only-when-absent) is
+never reached by a live `./stow.sh` run on this host, since `vscodium` is
+stowed before `waybar`'s cache-init section runs. Verified correct
+behavior instead by running the exact seed snippet in isolation against
+the real `$HOME` (mkdir -p + create-if-absent), confirming: (1) the file
+is created when absent, (2) a second run with a non-empty dim rule already
+present leaves the content untouched (seed-only-when-absent, not clobber).
+See `08-03-SUMMARY.md` for the verification transcript.
+
+**Not fixed** — fixing the vscodium settings.json ownership conflict is
+out of scope for 08-03 (waybar-only plan) and not in its `files_modified`
+list. Whoever resolves the 08-06-logged vscodium/dirty-tree item should
+also confirm a full `./stow.sh` run reaches and passes the waybar cache-init
+section end-to-end.

@@ -20,9 +20,12 @@
 }
 
 #workspaces button.active {
-    color: @on_primary;
-    background: @primary;
-    border-bottom-color: @secondary;
+    /* D-06: filled, fully-lit pill -> outline/underline treatment. Same
+       accent hue, zero filled high-luminance area — the second named
+       OLED trim target alongside window#waybar's border above. */
+    background: transparent;
+    color: @primary;
+    border-bottom: 2px solid @primary;
 }
 
 #workspaces button:hover {
