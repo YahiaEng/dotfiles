@@ -200,7 +200,7 @@ Plans:
   3. A media center integrating mpris players (Spotify, browser/YouTube) is accessible from waybar, in the form factor chosen per modern-rice research.
   4. A waybar button opens the swaync notification center overlay to view, clear, and interact with notifications.
 
-**Plans**: 2/10 plans executed
+**Plans**: 3/10 plans executed
 **UI hint**: yes
 
 Plans:
@@ -208,7 +208,7 @@ Plans:
 
 - [x] 08-01-PLAN.md — Shared-include refactor: `modules.jsonc` + `waybar-modules.css` become the single definition site for every module; `waybar-equivalence-check` drift gate proves the refactor is behaviour-identical (BAR-01/BAR-03/BAR-05) [wave 1]
 - [x] 08-02-PLAN.md — Dynamic layout enumeration: `waybar-switch.sh` / `waybar-launch.sh` glob `config-*.jsonc` instead of a hardcoded enum, so a new layout needs zero script edits (BAR-03) [wave 1]
-- [ ] 08-06-PLAN.md — eww onboarding: blocking human AUR legitimacy gate, `eww/` stow package, `eww-colors.scss` + `[templates.eww]`, `contract.json` 17→18 with a new `scss-kv` parser, skeleton popup proving the palette lands (BAR-04) [wave 1, **autonomous: false**]
+- [x] 08-06-PLAN.md — eww onboarding: blocking human AUR legitimacy gate, `eww/` stow package, `eww-colors.scss` + `[templates.eww]`, `contract.json` 17→18 with a new `scss-kv` parser, skeleton popup proving the palette lands (BAR-04) [wave 1, **autonomous: false**]
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -237,7 +237,7 @@ Plans:
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
-| 8. Waybar Evolution | v2.0 | 2/10 | In Progress|  |
+| 8. Waybar Evolution | v2.0 | 3/10 | In Progress|  |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
 ### Phase 9: wlogout to wleave Migration
