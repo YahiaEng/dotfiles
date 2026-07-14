@@ -48,10 +48,28 @@
 /* ── Foreground ───────────────────────────────────────────────────── */
 /* Primary text/glyph colour. */
 @define-color fg @on_surface;
-/* Inactive workspaces, idle glyphs. */
-@define-color fg-dim @outline;
-/* Secondary text (e.g. window title). */
-@define-color fg-mute alpha(@on_surface, 0.55);
+/* Inactive workspaces, idle glyphs — dimmed but still LEGIBLE text.
+   08-12 gap-closure fix: this was bound to @outline, which is M3's
+   border/divider role — deliberately low-contrast against @surface
+   because it is meant to draw a hairline, not render text. On
+   catppuccin-latte (@outline #acb0be on @surface #eff1f5) that measured
+   1.06-1.71:1, i.e. invisible. @on_surface_variant is the correct M3
+   role for "de-emphasised but readable" content and measures
+   2.16-5.56:1 depending on the wallpaper composited under bar-surface
+   (see 08-12-SUMMARY.md for the full contrast matrix) — always a large
+   improvement over @outline, and >=3:1 (WCAG AA for de-emphasised
+   glyphs) whenever the wallpaper is theme-appropriate for the active
+   preset (light wallpaper behind a light preset, dark behind dark). */
+@define-color fg-dim @on_surface_variant;
+/* Secondary text (e.g. window title, mpris paused/backgrounded state).
+   08-12 gap-closure fix: was alpha(@on_surface, 0.55) — MD's "disabled"
+   emphasis level (~38-55%), not "medium emphasis" (~74-87%), and it
+   compounds with bar-surface's OWN 0.55 alpha (two translucency layers
+   stacked), crushing contrast to as low as 1.5:1 on light presets.
+   0.80 aligns with MD3 medium-emphasis convention and measures >=3.9:1
+   on catppuccin-latte and >=4.7:1 on tokyonight against a theme-
+   appropriate wallpaper. */
+@define-color fg-mute alpha(@on_surface, 0.80);
 
 /* ── State — chroma lives here, and NOWHERE else ─────────────────────
    The active workspace, and only the active workspace, plus genuinely-
