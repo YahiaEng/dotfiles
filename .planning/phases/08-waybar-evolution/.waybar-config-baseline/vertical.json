@@ -1,0 +1,204 @@
+{
+  "battery": {
+    "format": "{icon}",
+    "format-charging": "\uf1e6",
+    "format-icons": [
+      "\uf244",
+      "\uf243",
+      "\uf242",
+      "\uf241",
+      "\uf240"
+    ],
+    "format-plugged": "\uf1e6",
+    "states": {
+      "critical": 20,
+      "good": 95,
+      "warning": 30
+    },
+    "tooltip-format": "{capacity}% \u2014 {time}"
+  },
+  "clock": {
+    "actions": {
+      "on-click-right": "mode",
+      "on-scroll-down": "shift_down",
+      "on-scroll-up": "shift_up"
+    },
+    "calendar": {
+      "format": {
+        "days": "<span color='#cdd6f4'>{}</span>",
+        "months": "<span color='#cba6f7'><b>{}</b></span>",
+        "today": "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>",
+        "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
+        "weeks": "<span color='#585b70'>W{}</span>"
+      },
+      "mode": "month",
+      "mode-mon-col": 3,
+      "on-scroll": 1,
+      "weeks-pos": "left"
+    },
+    "format": "{:%H\n%M}",
+    "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>"
+  },
+  "cpu": {
+    "format": "\uf2db\n<small>{usage}%</small>",
+    "interval": 2,
+    "tooltip": true
+  },
+  "custom/gaming-mode": {
+    "exec": "if [ \"$(cat $HOME/.cache/gaming-mode 2>/dev/null)\" = \"on\" ]; then echo '{\"alt\":\"on\",\"class\":\"on\",\"tooltip\":\"Gaming Mode: ON\"}'; else echo '{\"alt\":\"off\",\"class\":\"off\",\"tooltip\":\"Gaming Mode: OFF\"}'; fi",
+    "format": "{icon}",
+    "format-icons": {
+      "off": "\udb80\udeb5",
+      "on": "\udb80\udeb4"
+    },
+    "interval": 2,
+    "return-type": "json"
+  },
+  "custom/notification": {
+    "escape": true,
+    "exec": "swaync-client -swb",
+    "exec-if": "which swaync-client",
+    "format": "{icon}",
+    "format-icons": {
+      "dnd-inhibited-none": "\udb80\udc9b",
+      "dnd-inhibited-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
+      "dnd-none": "\udb80\udc9b",
+      "dnd-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
+      "inhibited-none": "\udb80\udc9c",
+      "inhibited-notification": "\udb80\udc9a<span foreground='red'><sup></sup></span>",
+      "none": "\udb80\udc9c",
+      "notification": "\udb80\udc9a<span foreground='red'><sup></sup></span>"
+    },
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "return-type": "json",
+    "tooltip": true
+  },
+  "custom/power": {
+    "format": "\u23fb",
+    "on-click": "~/.config/hypr/scripts/wlogout.sh",
+    "tooltip-format": "Power Menu"
+  },
+  "hyprland/workspaces": {
+    "format": "{icon}",
+    "format-icons": {
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9",
+      "active": "\udb85\udcfb",
+      "default": "\uea71",
+      "urgent": "\udb85\udcfb"
+    },
+    "on-click": "activate",
+    "persistent-workspaces": {
+      "*": 5
+    },
+    "sort-by-number": true
+  },
+  "layer": "top",
+  "margin-bottom": 8,
+  "margin-left": 8,
+  "margin-top": 8,
+  "memory": {
+    "format": "\uf0c9\n<small>{percentage}%</small>",
+    "interval": 5,
+    "tooltip-format": "{used:.1f}G / {total:.1f}G"
+  },
+  "modules-center": [
+    "clock",
+    "mpris"
+  ],
+  "modules-left": [
+    "hyprland/workspaces"
+  ],
+  "modules-right": [
+    "cpu",
+    "memory",
+    "temperature",
+    "pulseaudio",
+    "network",
+    "battery",
+    "custom/gaming-mode",
+    "custom/notification",
+    "tray",
+    "custom/power"
+  ],
+  "mpris": {
+    "format": "{player_icon}",
+    "format-paused": "{status_icon}",
+    "format-stopped": "",
+    "on-click": "playerctl play-pause",
+    "on-click-right": "playerctl next",
+    "on-scroll-down": "playerctl volume 0.05-",
+    "on-scroll-up": "playerctl volume 0.05+",
+    "player-icons": {
+      "chromium": "\uf268",
+      "default": "\uf001",
+      "firefox": "\uf269",
+      "mpv": "\u25b6",
+      "spotify": "\uf1bc"
+    },
+    "status-icons": {
+      "paused": "\uf04c",
+      "stopped": ""
+    },
+    "tooltip-format": "{player}: {artist} \u2014 {title}\n{album}\n{position} / {length}"
+  },
+  "network": {
+    "format-disconnected": "\udb82\udd2e",
+    "format-ethernet": "\udb80\udf79",
+    "format-icons": [
+      "\udb82\udd2f",
+      "\udb82\udd1f",
+      "\udb82\udd22",
+      "\udb82\udd25",
+      "\udb82\udd28"
+    ],
+    "format-wifi": "{icon}",
+    "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n{essid}",
+    "tooltip-format-disconnected": "Disconnected!",
+    "tooltip-format-ethernet": "\udb81\udd52 {bandwidthUpBytes} / \udb80\uddda {bandwidthDownBytes}",
+    "tooltip-format-wifi": "\udb81\udd52 {bandwidthUpBytes} / \udb80\uddda {bandwidthDownBytes}"
+  },
+  "on-sigusr1": "hide",
+  "on-sigusr2": "reload",
+  "position": "left",
+  "pulseaudio": {
+    "format": "{icon}",
+    "format-icons": {
+      "default": [
+        "\uf026",
+        "\uf027",
+        "\uf028"
+      ]
+    },
+    "format-muted": "\uf026",
+    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "on-click-right": "pavucontrol",
+    "tooltip-format": "{volume}% \u2014 {desc}"
+  },
+  "spacing": 0,
+  "temperature": {
+    "critical-threshold": 80,
+    "format": "{icon}\n<small>{temperatureC}\u00b0C</small>",
+    "format-icons": [
+      "\uf2cb",
+      "\uf2ca",
+      "\uf2c9",
+      "\uf2c8",
+      "\uf2c7"
+    ],
+    "tooltip": true
+  },
+  "tray": {
+    "icon-size": 18,
+    "spacing": 8
+  },
+  "width": 48
+}
