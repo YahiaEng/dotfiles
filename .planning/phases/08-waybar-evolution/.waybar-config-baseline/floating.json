@@ -60,7 +60,7 @@
     },
     "interval": 30,
     "max-length": 30,
-    "on-click": "playerctl play-pause",
+    "on-click": "~/.config/hypr/scripts/media-popup-open.sh",
     "on-scroll-down": "playerctl previous",
     "on-scroll-up": "playerctl next",
     "return-type": "json"

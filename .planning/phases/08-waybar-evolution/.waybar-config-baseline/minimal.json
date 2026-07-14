@@ -94,7 +94,7 @@
     "format-paused": "{status_icon}  {title}",
     "format-stopped": "",
     "max-length": 30,
-    "on-click": "playerctl play-pause",
+    "on-click": "~/.config/hypr/scripts/media-popup-open.sh",
     "on-click-right": "playerctl next",
     "on-scroll-down": "playerctl volume 0.05-",
     "on-scroll-up": "playerctl volume 0.05+",
