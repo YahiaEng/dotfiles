@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 08
 current_phase_name: waybar-evolution
-status: verifying
-stopped_at: Completed 08-10-PLAN.md
-last_updated: "2026-07-14T20:06:58.561Z"
+status: executing
+stopped_at: Completed 08-11-PLAN.md
+last_updated: "2026-07-14T21:44:09.020Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 48
-  completed_plans: 48
-  percent: 83
+  completed_phases: 4
+  total_plans: 53
+  completed_plans: 49
+  percent: 67
 ---
 
 # Project State
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 08 (waybar-evolution) — EXECUTING
-Plan: 10 of 10
-Status: Phase complete — ready for verification
+Plan: 2 of 15
+Status: Ready to execute
 Last activity: 2026-07-14 — Phase 08 execution started
 
 ## Performance Metrics
@@ -110,6 +110,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 08 P09 | 30min | 3 tasks | 2 files |
 | Phase 08 P08 | 20min | 2 tasks | 8 files |
 | Phase 08-waybar-evolution P10 | 23min | 3 tasks | 3 files |
+| Phase 08 P11 | 35min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -225,6 +226,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: config-floating.jsonc needed zero direct edit: custom/media is a single shared modules.jsonc definition (D-31), referenced not redefined by floating, so the on-click fix reaches it by inheritance
 - [Phase 08-waybar-evolution]: BAR-02 closed as DESCOPED (D-10): waybar's only owner-driven CSS actuation signal (SIGUSR2/reload) produces a real, measured, reproducible visual flash and transient window reflow on every invocation, mechanism-independent, killing D-09 kill criteria #1 and #2 before the 2px displacement question is reached.
 - [Phase 08-waybar-evolution]: Exposure-ratio standing-hypothesis measurement reported UNMEASURED (187 real samples, 15.53 min, 100% visible) rather than fabricated/extrapolated -- session fell short of the plan's own >=60-min/>=720-sample validity floor.
+- [Phase ?]: 08-11: bar-surface derives from @surface via alpha(), not a non-existent surface_container token (CORRECTION 1 verified: grep -rl surface_container palettes/ returns nothing)
+- [Phase ?]: 08-11: waybar-design-lint CHECK E treats player-icons/status-icons/format-icons entries as unconditional glyph slots but format*-scalar templates as exempt from blank (only a leading 2+-space run fails) — the only design letting mpris.format-stopped/status-icons.stopped stay legitimately empty while still catching cpu/memory/clock/network/pulseaudio's actual bugs
+- [Phase ?]: 08-11: config-minimal.jsonc's own mpris redefinition also repaired (deviation) since whole-key first-defined-wins means modules.jsonc's glyph fix never reaches it, and the plan's success_criteria requires zero empty glyphs across every config-*.jsonc
 
 ### Quick Tasks Completed
 
@@ -269,6 +273,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T20:06:58.554Z
-Stopped at: Completed 08-10-PLAN.md
+Last session: 2026-07-14T21:44:09.014Z
+Stopped at: Completed 08-11-PLAN.md
 Resume file: None

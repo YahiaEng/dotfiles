@@ -215,3 +215,7 @@ No blockers. `waybar-equivalence-check` (a *different*, content-diff gate agains
 ---
 *Phase: 08-waybar-evolution*
 *Completed: 2026-07-15*
+
+## Self-Check: PASSED
+
+All 6 claimed files verified present on disk (`hypr/.config/hypr/scripts/waybar-design-lint`, `waybar/.config/waybar/theme.css`, `waybar/.config/waybar/modules.jsonc`, `waybar/.config/waybar/config-vertical.jsonc`, `waybar/.config/waybar/config-minimal.jsonc`, this SUMMARY.md). All 4 claimed commit hashes (`4e0af2e`, `3b89773`, `41f67c7`, `8ae9c75`) verified present in `git log --oneline --all`.
