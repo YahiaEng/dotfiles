@@ -1,0 +1,26 @@
+// eww.scss — media-popup skeleton stylesheet (BAR-04/D-18..25)
+//
+// Imports the matugen-rendered palette from the state dir, mirroring
+// waybar's relative-path @import convention (style-full.css -> ../../
+// .local/state/theme/waybar.css). Zero hex literals below — every color
+// is a $-variable from the imported palette (D-19).
+@import "../../.local/state/theme/eww.scss";
+
+* {
+    font-family: "FiraCode Nerd Font";
+}
+
+.popup {
+    background-color: $background;
+    border: 1px solid $primary;
+    padding: 16px;
+    border-radius: 16px;
+    min-width: 300px;
+}
+
+.popup-label {
+    color: $on_surface;
+    background-color: $surface_variant;
+    border-radius: 8px;
+    padding: 8px;
+}

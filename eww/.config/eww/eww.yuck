@@ -1,0 +1,29 @@
+; eww.yuck — media-popup skeleton (BAR-04/D-18..25)
+;
+; This is a SKELETON only: proves the theme pipeline reaches eww end-to-end
+; (D-19). The full media widgets (album art, transport row, seek bar, volume
+; slider, player switcher) are 08-07's job (D-21) — do not add them here.
+;
+; Window name `media-popup` is FROZEN — 08-07/08-08 are already written
+; against exactly this name.
+;
+; `x`/`y` are REQUIRED expected-args (not `?x`/`?y`). Empirically verified
+; (Task 3/5, eww 0.6.0-1, upstream commit d87c2fd): eww's optional-window-arg
+; handling has a real bug in this version — `get_local_window_variables` in
+; crates/eww/src/window_arguments.rs bails with "variables  unexpectedly
+; defined" (an EMPTY name) whenever an optional expected-arg is not
+; explicitly supplied, because its final `local_variables.len() !=
+; window_def.expected_args.len()` check does not account for the optional
+; case at all. There is no working bare-`eww open media-popup` path in this
+; build — every caller (08-08's open wrapper, this file's own verification)
+; MUST always pass both `--arg x=<int> --arg y=<int>`. 08-08's wrapper must
+; compute its own fallback coordinate (e.g. hyprctl cursorpos, else a fixed
+; top-right pixel offset per D-23) BEFORE calling `eww open`, rather than
+; relying on eww to supply a default.
+(defwindow media-popup [x y]
+  :monitor 0
+  :geometry (geometry :x "${x}" :y "${y}" :width "300" :height "120" :anchor "top right")
+  :stacking "overlay"
+  :unfocus-close true
+  (box :class "popup" :orientation "v" :space-evenly false
+    (label :class "popup-label" :text "media-popup skeleton")))

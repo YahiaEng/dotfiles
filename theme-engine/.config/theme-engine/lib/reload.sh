@@ -91,6 +91,23 @@ theme_engine_reload() {
         disown
     fi
 
+    # ── eww (BAR-04/D-19/D-25): unlike Walker/SwayOSD, eww's own `reload`
+    #    subcommand re-parses BOTH the yuck config AND the SCSS/CSS
+    #    stylesheet live (verified directly against the installed 0.6.0
+    #    binary's source, crates/eww/src/app.rs — DaemonCommand::
+    #    ReloadConfigAndCss calls both config::read_from_eww_paths and
+    #    self.load_css) — no kill+relaunch fallback is needed here, unlike
+    #    the GTK3-has-no-live-CSS-reload limitation that forces Walker and
+    #    SwayOSD into a restart. Doubly guarded so a fresh install, a
+    #    headless container-gate run, or a session where the popup has
+    #    never been opened all stay a clean no-op (D-25 — eww has no
+    #    reason to be running when nothing is playing): only act if the
+    #    binary exists AND its daemon is actually alive (`pgrep -x eww`,
+    #    the exact process name confirmed in Task 3).
+    if command -v eww >/dev/null 2>&1 && pgrep -x eww >/dev/null 2>&1; then
+        eww reload >/dev/null 2>&1 || true
+    fi
+
     # ── Zen browser (THM-05/D-26/D-27/D-28): lazy profile self-heal +
     #    notify-only reload — never kills the browser.
     theme_engine_reload_zen
