@@ -24,7 +24,7 @@
     // (theme-engine/lib/reload.sh), so this costs nothing new.
     "on-sigusr2": "reload"
 
-    // Included by every config-{full,minimal,floating}.jsonc's `include`
+    // Included by every config-{full,athena,floating,vertical}.jsonc's `include`
     // array. Under waybar's first-defined-wins semantics, no layout
     // defines these keys itself, so this file's values apply to all of
     // them uniformly — declared once, not four times (D-31's shared-

@@ -113,7 +113,7 @@ mkdir -p "$HOME/.cache"
 
 # BAR-01/D-03/D-06: seed the visibility owner's exclusive CSS override
 # file empty, same seed-only-when-absent idiom as above — every
-# style-{full,minimal,floating}.css @imports this file LAST, and an
+# style-{full,athena,floating,vertical}.css @imports this file LAST, and an
 # unresolvable @import makes GTK3 discard the WHOLE stylesheet. Never
 # unconditional: waybar-visibility.sh (the sole writer) may have a live
 # idle-dim rule in here already on a stow.sh re-run, and clobbering it

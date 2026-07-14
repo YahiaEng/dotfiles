@@ -30,8 +30,13 @@
    treatment is a deliberate, phase-wide (not per-layout) change per the
    plan's own acceptance criteria ("all THREE layout stylesheets set
    window#waybar background/border-bottom to the same trimmed values") —
-   floating gains the same subtle panel background as full/minimal
-   rather than staying an exception. */
+   floating gains the same subtle panel background as full/vertical
+   rather than staying an exception. (The layout formerly named
+   "minimal" was scrapped and rebuilt from scratch as "athena" in
+   08-16 — athena deliberately has NO window#waybar panel at all,
+   transparent window + discrete per-group capsules instead, so it is
+   no longer part of this full/vertical/floating panel-background
+   comparison.) */
 window#waybar {
 	background: alpha(@background, 0.90);
 	border-bottom: 1px solid alpha(@primary, 0.4);

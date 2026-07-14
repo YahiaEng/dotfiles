@@ -1,5 +1,5 @@
 /* ── Shared module rules — translucent-island design system (08-12) ───
-   Imported by every style-{full,minimal,floating,vertical}.css AFTER
+   Imported by every style-{full,athena,floating,vertical}.css AFTER
    the theme imports. window#waybar and the "*" reset stay layout-owned
    (never here). This is the binding contract 08-13/08-14 inherit
    verbatim (08-12-PLAN.md <design_system>):
@@ -173,11 +173,15 @@
    catppuccin-latte and tokyonight (full layout): #custom-theme already
    carries `color: @fg;` below and the U+F042 glyph renders with full
    contrast in both presets — the rule was never actually dropped. Every
-   other module ID referenced by config-full.jsonc/config-minimal.jsonc
-   was grepped against this file; all resolve to a rule here. (The
-   handful of genuinely-uncovered IDs — backlight, custom/launcher,
-   custom/media, custom/updates, custom/wallpaper — belong exclusively to
-   config-floating.jsonc, out of this plan's scope / owned by 08-13.) */
+   other module ID referenced by config-full.jsonc was grepped against
+   this file; all resolve to a rule here. (The handful of genuinely-
+   uncovered IDs — backlight, custom/launcher, custom/media,
+   custom/updates, custom/wallpaper — belong exclusively to
+   config-floating.jsonc, out of this plan's scope / owned by 08-13.
+   config-minimal.jsonc no longer exists — scrapped and rebuilt from
+   scratch as config-athena.jsonc in 08-16, which does not import this
+   shared file's #custom-theme/#custom-waybar-layout rules at all: it
+   styles those IDs itself in style-athena.css's own capsule system.) */
 #custom-theme,
 #custom-waybar-layout {
     padding: 0 8px;
