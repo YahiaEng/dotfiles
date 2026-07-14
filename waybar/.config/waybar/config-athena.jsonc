@@ -1,0 +1,323 @@
+{
+    // ╔══════════════════════════════════════════════════════╗
+    // ║   ATHENA — scrapped-and-rebuilt 'minimal' (08-16)     ║
+    // ║   Reproduces the Athena reference waybar's SHAPE      ║
+    // ║   (github.com/haikal-hakim/athena/tree/main/.config/  ║
+    // ║   waybar) — discrete rounded capsules, live-window    ║
+    // ║   workspace icons, hover-expand drawers, an           ║
+    // ║   app-launcher drawer — expressed entirely through    ║
+    // ║   this repo's theme.css alias layer (08-athena-DESIGN ║
+    // ║   .md is the binding contract). No colour is defined  ║
+    // ║   in this file; every glyph below is cmap-verified    ║
+    // ║   against FiraCode Nerd Font per the 08-11 discipline.║
+    // ╚══════════════════════════════════════════════════════╝
+    "include": ["modules.jsonc", "bar-common.jsonc"],
+
+    "layer": "top",
+    "position": "top",
+    "height": 40,
+    "margin-top": 6,
+    "margin-left": 10,
+    "margin-right": 10,
+    "spacing": 0,
+
+    // ── Rule 4 arrangement ───────────────────────────────────────────
+    "modules-left": ["group/apps", "group/storage", "group/system"],
+    "modules-center": ["hyprland/workspaces", "idle_inhibitor"],
+    "modules-right": [
+        "group/audio",
+        "group/connections",
+        "clock",
+        "group/tray",
+        "custom/gaming-mode",
+        "custom/power"
+    ],
+
+    // ── Groups/drawers (Athena's modules/groups.jsonc, adapted) ──────
+    "group/apps": {
+        "orientation": "horizontal",
+        "drawer": {
+            "transition-duration": 500,
+            "transition-left-to-right": true
+        },
+        "modules": [
+            "custom/app-launcher",
+            "custom/app-zen",
+            "custom/app-spotify",
+            "custom/app-discord",
+            "custom/app-steam",
+            "custom/app-lutris",
+            "custom/app-obsidian",
+            "custom/app-codium"
+        ]
+    },
+    "group/storage": {
+        "orientation": "horizontal",
+        "modules": ["disk", "memory"]
+    },
+    "group/system": {
+        "orientation": "horizontal",
+        "modules": ["temperature", "cpu"]
+    },
+    "group/audio": {
+        "orientation": "horizontal",
+        "drawer": {
+            "transition-duration": 650,
+            "transition-left-to-right": false
+        },
+        "modules": ["pulseaudio", "pulseaudio/slider", "pulseaudio#microphone"]
+    },
+    "group/connections": {
+        "orientation": "horizontal",
+        "drawer": {
+            "transition-duration": 500,
+            "transition-left-to-right": false
+        },
+        "modules": ["network", "bluetooth"]
+    },
+    // Settings buttons (custom/theme, custom/waybar-layout) folded into
+    // the tray drawer alongside this repo's existing swaync-wired
+    // custom/notification (= Athena's custom/tray-arrow role) and tray
+    // — both already canonically defined + cmap-verified in
+    // modules.jsonc, referenced here by name, not redefined (D-31).
+    "group/tray": {
+        "orientation": "horizontal",
+        "drawer": {
+            "transition-duration": 500,
+            "transition-left-to-right": false
+        },
+        "modules": ["custom/notification", "tray", "custom/theme", "custom/waybar-layout"]
+    },
+
+    // ── App-launcher drawer members — uwsm app -- <target>.desktop ───
+    // Collapsed glyph: md-apps (U+F003B).
+    "custom/app-launcher": {
+        "format": "󰀻",
+        "tooltip": false
+    },
+    "custom/app-zen": {
+        // fa-firefox (U+F269) — no dedicated Zen glyph exists in this
+        // font; Zen is Firefox-based, so the Firefox-family icon is the
+        // closest cmap-verified representation. Distinct from the
+        // window-rewrite "firefox" key's seti-firefox glyph below.
+        "format": "",
+        "tooltip-format": "Zen Browser",
+        "tooltip": false,
+        "on-click": "uwsm app -- zen.desktop"
+    },
+    "custom/app-spotify": {
+        "format": "",
+        "tooltip-format": "Spotify",
+        "tooltip": false,
+        "on-click": "uwsm app -- spotify.desktop"
+    },
+    "custom/app-discord": {
+        "format": "",
+        "tooltip-format": "Discord",
+        "tooltip": false,
+        "on-click": "uwsm app -- discord.desktop"
+    },
+    "custom/app-steam": {
+        "format": "",
+        "tooltip-format": "Steam",
+        "tooltip": false,
+        "on-click": "uwsm app -- steam.desktop"
+    },
+    "custom/app-lutris": {
+        "format": "",
+        "tooltip-format": "Lutris",
+        "tooltip": false,
+        "on-click": "uwsm app -- net.lutris.Lutris.desktop"
+    },
+    "custom/app-obsidian": {
+        "format": "󰹕",
+        "tooltip-format": "Obsidian",
+        "tooltip": false,
+        "on-click": "uwsm app -- obsidian.desktop"
+    },
+    "custom/app-codium": {
+        "format": "󰨞",
+        "tooltip-format": "VSCodium",
+        "tooltip": false,
+        "on-click": "uwsm app -- codium.desktop"
+    },
+
+    // ── Workspaces — Athena's {icon} {windows} + live window-rewrite ─
+    "hyprland/workspaces": {
+        "format": "{icon} {windows}",
+        "on-click": "activate",
+        "sort-by-number": true,
+        "persistent-workspaces": {
+            "*": 5
+        },
+        "all-outputs": true,
+        // md-ghost (U+F02A0) — same glyph used below as the default
+        // format-icons class, so an unmapped window still reads as
+        // "this repo's default workspace glyph", not a foreign class.
+        "window-rewrite-default": "󰊠",
+        "window-rewrite": {
+            "kitty": "󰆍",
+            "firefox": "",
+            "zen": "",
+            "codium": "󰨞",
+            "VSCodium": "󰨞",
+            "discord": "",
+            "spotify": "",
+            "obsidian": "󰹕",
+            "net.lutris.Lutris": "",
+            "steam": "",
+            "thunar": "",
+            "yazi": "󰇥"
+        },
+        "format-icons": {
+            "active": "󰮯",
+            "default": "󰊠",
+            "urgent": "󰧵",
+            "empty": ""
+        }
+    },
+
+    "idle_inhibitor": {
+        "format": "{icon}",
+        "format-icons": {
+            "activated": "󰛨",
+            "deactivated": "󰛩"
+        },
+        "tooltip-format-activated": "System Focused",
+        "tooltip-format-deactivated": "Normal Mode"
+    },
+
+    // ── Storage/system pills — icon-only at rest, click reveals the ──
+    // ── value via format-alt (Athena's reveal-on-click behaviour, the ─
+    // ── same "actions": {"on-click": "mode"} idiom modules.jsonc's own
+    // clock module already uses). No "disk" module exists canonically
+    // anywhere in this repo yet — defined fresh here, athena-owned.
+    "disk": {
+        "tooltip": false,
+        "interval": 3600,
+        "path": "/",
+        // md-database_cog (U+F164B)
+        "format": "󱙋",
+        "format-alt": "󱙋 <span size='11pt'>{used}</span>",
+        "states": {
+            "warning": 80,
+            "critical": 90
+        },
+        "actions": {
+            "on-click": "mode"
+        }
+    },
+    // Athena-specific redefinition of memory: icon-only at rest (the
+    // modules.jsonc canonical version is always-on-text; this layout's
+    // storage pill wants Athena's collapsed-glyph/click-reveal shape).
+    "memory": {
+        "tooltip": false,
+        "interval": 5,
+        // md-memory (U+F035B)
+        "format": "󰍛",
+        "format-alt": "󰍛 <span size='11pt'>{used:.1f}G</span>",
+        "states": {
+            "warning": 75,
+            "critical": 85
+        },
+        "actions": {
+            "on-click": "mode"
+        }
+    },
+    "cpu": {
+        "tooltip": false,
+        "interval": 2,
+        // md-cpu_64_bit (U+F0EE0)
+        "format": "󰻠",
+        "format-alt": "󰻠 <span size='11pt'>{usage}%</span>",
+        "states": {
+            "warning": 75,
+            "critical": 90
+        },
+        "actions": {
+            "on-click": "mode"
+        }
+    },
+    // No thermal-zone override: this machine only has acpitz zones
+    // (0/1), the same default modules.jsonc's own temperature module
+    // already relies on — verified live, not copied from Athena's
+    // zone 8 blindly (design_system Rule 4 / plan Task 2 instruction).
+    "temperature": {
+        "tooltip": false,
+        "interval": 10,
+        "critical-threshold": 80,
+        "format": "{icon}",
+        "format-alt": "{icon} <span size='11pt'>{temperatureC}°C</span>",
+        // fa-thermometer_empty/_half/_full (U+F2CB/F2C9/F2C7) — the
+        // same 3-of-5-step family already cmap-verified in 08-11.
+        "format-icons": ["", "", ""]
+    },
+
+    // ── Audio drawer — icon-only pulseaudio + slider + mic toggle ────
+    "pulseaudio": {
+        "format": "{icon}",
+        // fa-volume_xmark (U+EEE8) — distinct from the volume-ramp
+        // icons below, matches Athena's own muted/ramp distinction.
+        "format-muted": "",
+        "format-icons": {
+            "headphone": "󰋋",
+            "headset": "󰋋",
+            "hands-free": "󰋋",
+            "default": ["", "", ""]
+        },
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-click-right": "pavucontrol",
+        "tooltip-format": "Output: {volume}%"
+    },
+    "pulseaudio/slider": {
+        "min": 0,
+        "max": 100,
+        "orientation": "horizontal"
+    },
+    "pulseaudio#microphone": {
+        "format": "{format_source}",
+        "format-source": "",
+        "format-source-muted": ""
+    },
+
+    // ── Connections drawer — network + bluetooth ──────────────────────
+    "network": {
+        "format-wifi": "{icon}",
+        // md-ethernet (U+F0200)
+        "format-ethernet": "󰈀",
+        // md-wifi_strength_off_outline (U+F092E) — same glyph already
+        // cmap-verified for this exact concept in modules.jsonc (08-11).
+        "format-disconnected": "󰤮",
+        // md-wifi_off (U+F05AA)
+        "format-disabled": "󰖪",
+        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+        "tooltip-format-disconnected": "No Connection",
+        "tooltip-format-disabled": "Wi-Fi is OFF",
+        "tooltip-format-wifi": "󱄙  {essid} ({signalStrength}%)\n\n󰐻  Freq: {frequency}GHz\n  {bandwidthDownBytes}     {bandwidthUpBytes}",
+        "tooltip-format-ethernet": "󰈀  {ifname} (Connected)\n  {bandwidthDownBytes}     {bandwidthUpBytes}",
+        "on-click": "nm-applet --indicator",
+        "on-click-right": "pkill nm-applet"
+    },
+    "bluetooth": {
+        "format": "󰂯",
+        "format-connected": "󰂱",
+        "format-disabled": "󰂲",
+        "tooltip-format": "{controller_alias} {status}",
+        "tooltip-format-connected": "󰐻  {num_connections} Connected:\n{device_enumerate}",
+        "tooltip-format-enumerate-connected-battery": "󰂱  {device_alias} (󰠠  {device_battery_percentage}%)",
+        "on-click": "blueman-manager",
+        "on-click-right": "rfkill toggle bluetooth"
+    },
+
+    "tray": {
+        "icon-size": 16,
+        "spacing": 10
+    }
+
+    // clock, custom/notification, custom/theme, custom/waybar-layout,
+    // custom/gaming-mode, custom/power all reused verbatim from
+    // modules.jsonc (D-31) — no athena-specific change needed.
+    // Battery and power-profiles-daemon are dropped entirely
+    // (desktop / inactive, design_system Rule 4) — neither is
+    // referenced anywhere in this file.
+}
