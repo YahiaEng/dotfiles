@@ -1,187 +1,211 @@
-/* ── Shared module rules (D-31) ────────────────────────────────────────
-   Imported by every style-{full,minimal,floating}.css AFTER the theme
-   imports. Copied verbatim from style-full.css — these are the module
-   selectors used by two or more layouts today. window#waybar and the "*"
-   reset stay layout-owned (never here) so plan 08-03's OLED trim has a
-   single place per layout to land. Each layout sheet may still override
-   individual properties via normal CSS cascade (later rule wins at the
-   property level) — see 08-RESEARCH.md Verdict 3's CSS-side asymmetry
-   note. */
+/* ── Shared module rules — translucent-island design system (08-12) ───
+   Imported by every style-{full,minimal,floating,vertical}.css AFTER
+   the theme imports. window#waybar and the "*" reset stay layout-owned
+   (never here). This is the binding contract 08-13/08-14 inherit
+   verbatim (08-12-PLAN.md <design_system>):
 
-/* ── Workspaces ────────────────────────────────────── */
+     Rule 1 — window is transparent (layout-owned, not here).
+     Rule 2 — one neutral surface (bar-surface). Modules carry NO
+               background fill by default — bare glyphs/text on the
+               shared island. No per-module accent hues.
+     Rule 3 — chroma encodes state, nothing else: the active workspace
+               (the one resting accent-filled element), warning/
+               critical thresholds, gaming-mode on, mpris actually
+               playing, and the power button on hover only (never at
+               rest — it must not read as a permanently-lit red pill).
+     Rule 4 — one radius scale: 14px island / 10px segment / 6px
+               workspace button.
+     Rule 6 — 14px min-width floor on #workspaces button (GTK collapses
+               a zero-padding button below its natural size otherwise).
+     Rule 7 — glyph-only modules get 16px font-size; text-bearing
+               modules inherit the 13px body size.
+     Rule 8 — role names only. Every colour below is a theme.css alias
+               (bar-surface / fg / fg-dim / fg-mute / accent / warn /
+               danger / on-* ) — zero raw palette tokens. */
+
+/* ── Workspaces ─────────────────────────────────────────────────────── */
 #workspaces button {
-    padding: 0 8px;
-    color: @outline;
+    padding: 0 6px;
+    min-width: 14px;
+    color: @fg-dim;
     background: transparent;
-    border-radius: 10px;
-    border-bottom: 3px solid transparent;
+    border-radius: 6px;
     margin: 4px 2px;
     transition: all 0.3s ease;
 }
 
+#workspaces button.occupied {
+    color: @fg;
+}
+
 #workspaces button.active {
-    /* D-06: filled, fully-lit pill -> outline/underline treatment. Same
-       accent hue, zero filled high-luminance area — the second named
-       OLED trim target alongside window#waybar's border above. */
-    background: transparent;
-    color: @primary;
-    border-bottom: 2px solid @primary;
+    /* The ONE accent-filled element in a resting bar — the focal
+       point 08-03's transparent 2px underline drained away. */
+    background: @accent;
+    color: @on-accent;
+}
+
+#workspaces button.urgent {
+    background: @danger;
+    color: @on-danger;
 }
 
 #workspaces button:hover {
-    background: @primary_container;
-    color: @on_primary_container;
-    border-bottom-color: @primary;
+    background: @bar-surface-hover;
+    color: @fg;
 }
 
-/* ── Window title ──────────────────────────────────── */
+/* ── Window title ───────────────────────────────────────────────────── */
 #window {
     padding: 0 12px;
-    color: @secondary;
+    color: @fg-mute;
     font-style: italic;
 }
 
-/* ── Clock ─────────────────────────────────────────── */
+/* ── Clock ──────────────────────────────────────────────────────────── */
 #clock {
     padding: 0 14px;
-    color: @primary;
+    color: @fg;
     font-weight: bold;
-    font-size: 14px;
 }
 
-/* ── System modules ────────────────────────────────── */
+/* ── System modules — bare glyphs, no fill, no per-module hue ────────── */
 #cpu,
 #memory,
 #temperature,
 #pulseaudio,
 #network {
-    padding: 0 10px;
+    padding: 0 8px;
     margin: 4px 1px;
-    border-radius: 10px;
-    background: @surface_variant;
-    transition: all 0.3s ease;
-    border-bottom: 2px solid transparent;
+    color: @fg;
 }
 
-#cpu {
-    color: @tertiary;
-    border-bottom-color: @tertiary;
-}
-#memory {
-    color: @secondary;
-    border-bottom-color: @secondary;
-}
-#temperature {
-    color: @primary;
-    border-bottom-color: @primary;
-}
-#temperature.critical {
-    color: @error;
-    background: @error;
-    color: @on_error;
-}
-#pulseaudio {
-    color: @tertiary;
-    border-bottom-color: @tertiary;
-}
-#network {
-    color: @secondary;
-    border-bottom-color: @secondary;
+/* ── State (temperature/battery thresholds) ────────────────────────────
+   Chroma appears here and NOWHERE else among the system modules. */
+#temperature.critical,
+#battery.critical:not(.charging) {
+    color: @danger;
 }
 
-#cpu:hover,
-#memory:hover,
-#temperature:hover,
-#pulseaudio:hover,
-#network:hover {
-    background: @primary_container;
-    color: @on_primary_container;
+#battery.warning {
+    color: @warn;
 }
 
-/* ── MPRIS (now playing) ───────────────────────────── */
+#battery.critical:not(.charging) {
+    animation-name: battery-blink;
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes battery-blink {
+    to {
+        color: @fg;
+    }
+}
+
+#battery {
+    padding: 0 8px;
+    margin: 4px 1px;
+    color: @fg;
+}
+
+#battery.charging,
+#battery.plugged {
+    color: @fg;
+}
+
+/* ── MPRIS (now playing) ────────────────────────────────────────────────
+   @fg at rest; @accent only while genuinely playing — Rule 3's second
+   resting-chroma exception besides the active workspace. */
 #mpris {
     padding: 0 12px;
-    color: @secondary;
-    font-style: italic;
-    border-left: 3px solid @secondary;
     margin-left: 4px;
+    color: @fg;
+}
+
+#mpris.playing {
+    color: @accent;
 }
 
 #mpris.paused {
-    color: @outline;
-    border-left-color: @outline;
+    color: @fg-dim;
 }
 
 #mpris.stopped {
+    /* Fully collapsed so a stopped player leaves no hole in the bar. */
     color: transparent;
-    border: none;
     padding: 0;
     margin: 0;
 }
 
-/* ── Notification bell ─────────────────────────────── */
+/* ── Notification bell ──────────────────────────────────────────────── */
 #custom-notification {
-    padding: 0 10px;
+    padding: 0 8px;
     margin: 4px 2px;
-    border-radius: 10px;
-    color: @secondary;
-    background: @secondary_container;
-    font-size: 15px;
-    transition: all 0.3s ease;
+    color: @fg;
+    transition: background 0.3s ease;
 }
 
 #custom-notification:hover {
-    background: @secondary;
-    color: @on_secondary;
+    background: @bar-surface-hover;
+    border-radius: 10px;
 }
 
-/* ── Gaming-mode indicator (D-35) ──────────────────── */
+/* ── Gaming-mode indicator (D-35) ──────────────────────────────────────
+   The one module-level state chroma outside workspace/mpris/battery. */
 #custom-gaming-mode {
     padding: 0 8px;
     margin: 4px 2px;
-    border-radius: 10px;
-    color: @outline;
-    background: transparent;
-    transition: all 0.3s ease;
+    color: @fg-dim;
+    transition: color 0.3s ease;
 }
 
 #custom-gaming-mode.on {
-    color: @primary;
+    color: @accent;
 }
 
-/* ── Custom modules ────────────────────────────────── */
+/* ── Custom buttons — bare glyphs, no fill ──────────────────────────── */
 #custom-theme,
 #custom-waybar-layout {
     padding: 0 8px;
     margin: 4px 2px;
-    border-radius: 10px;
-    color: @on_primary;
-    background: @primary;
-    transition: all 0.3s ease;
+    color: @fg;
+    transition: background 0.3s ease;
 }
 
 #custom-theme:hover,
 #custom-waybar-layout:hover {
-    background: @tertiary;
-    color: @on_tertiary;
+    background: @bar-surface-hover;
+    border-radius: 10px;
 }
 
 #custom-power {
     padding: 0 12px;
     margin: 4px 4px 4px 2px;
-    border-radius: 10px;
-    background: @error;
-    color: @on_error;
-    font-size: 16px;
+    color: @fg;
     transition: all 0.3s ease;
 }
 
 #custom-power:hover {
-    background: @on_error;
-    color: @error;
+    /* Transient hover state only — the power button is never a
+       permanently-lit red pill at rest. */
+    color: @danger;
+    background: @bar-surface-hover;
+    border-radius: 10px;
 }
 
-/* ── Tray ──────────────────────────────────────────── */
+/* ── Glyph-only modules — 16px, larger than 13px body text (Rule 7) ──── */
+#custom-theme,
+#custom-waybar-layout,
+#custom-power,
+#custom-notification,
+#custom-gaming-mode {
+    font-size: 16px;
+}
+
+/* ── Tray ────────────────────────────────────────────────────────────── */
 #tray {
     padding: 0 8px;
 }
@@ -194,13 +218,13 @@
     -gtk-icon-effect: highlight;
 }
 
-/* ── Tooltip ───────────────────────────────────────── */
+/* ── Tooltip — matches the island, chroma-free (Rule 3) ───────────────── */
 tooltip {
-    background: @surface;
-    border: 2px solid @primary;
+    background: @bar-surface;
+    border: 1px solid @fg-dim;
     border-radius: 10px;
 }
 
 tooltip label {
-    color: @on_surface;
+    color: @fg;
 }
