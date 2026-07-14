@@ -60,7 +60,14 @@
         "on-click-right": "playerctl next",
         "on-scroll-up": "playerctl volume 0.05+",
         "on-scroll-down": "playerctl volume 0.05-",
-        "tooltip-format": "{player}: {artist} — {title}\n{album}\n{position} / {length}"
+        // WR-03: waybar's built-in mpris renders tooltip-format through
+        // Pango markup with no per-field escape (the `escape` option only
+        // covers custom/* modules), so attacker-controlled {artist}/{title}/
+        // {album} could inject/break markup. Show only non-metadata fields
+        // (player identity, status, position/length). The inline `format`
+        // still surfaces the track; the popup (media-status.sh, jq --arg)
+        // is the safe full-detail view.
+        "tooltip-format": "{player} — {status}\n{position} / {length}"
     },
 
     "clock": {

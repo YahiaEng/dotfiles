@@ -72,7 +72,9 @@
         "on-click-right": "playerctl next",
         "on-scroll-up": "playerctl volume 0.05+",
         "on-scroll-down": "playerctl volume 0.05-",
-        "tooltip-format": "{player}: {artist} — {title}\n{album}\n{position} / {length}"
+        // WR-03: no attacker-controlled metadata in the built-in mpris
+        // tooltip (Pango-markup, unescaped) — non-metadata fields only.
+        "tooltip-format": "{player} — {status}\n{position} / {length}"
     },
 
     // Glyph fix (deviation, recorded in SUMMARY): canonical pulseaudio's

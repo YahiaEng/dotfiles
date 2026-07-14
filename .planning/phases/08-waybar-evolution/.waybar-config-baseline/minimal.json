@@ -109,7 +109,7 @@
       "paused": "",
       "stopped": ""
     },
-    "tooltip-format": "{player}: {artist} \u2014 {title}\n{album}\n{position} / {length}"
+    "tooltip-format": "{player} \u2014 {status}\n{position} / {length}"
   },
   "on-sigusr1": "hide",
   "on-sigusr2": "reload",
