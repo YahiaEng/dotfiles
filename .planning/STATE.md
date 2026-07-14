@@ -6,14 +6,14 @@ current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
 stopped_at: Completed 08-09-PLAN.md
-last_updated: "2026-07-14T13:55:29.130Z"
+last_updated: "2026-07-14T14:19:31.615Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 48
-  completed_plans: 46
+  completed_plans: 47
   percent: 67
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 08 (waybar-evolution) — EXECUTING
-Plan: 9 of 10
+Plan: 10 of 10
 Status: Ready to execute
 Last activity: 2026-07-14 — Phase 08 execution started
 
@@ -108,6 +108,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 08 P04 | 28min | 2 tasks | 5 files |
 | Phase 08 P05 | 30min | 4 tasks | 9 files |
 | Phase 08 P09 | 30min | 3 tasks | 2 files |
+| Phase 08 P08 | 20min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -219,6 +220,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: Brightness widget uses generic slider + brightnessctl -c backlight (not native backlight widget) — device-agnostic, avoids host-only state (08-09)
 - [Phase ?]: Theme toggle in swaync panel is a picker launcher, not a boolean flip — active state is a read-back of theme mode, never a guess (08-09, D-28)
 - [Phase ?]: swaync wraps every command/update-command/cmd_getter/cmd_setter value in its own shell invocation internally — never embed a literal double-quote in these config values; use case-pattern matching instead (08-09)
+- [Phase ?]: ANCHOR_MODE ships as fixed (D-23 pre-authorised fallback): every DRM connector was hardware-disconnected this session, making cursor-anchored placement unverifiable; flip to cursor and re-verify once a monitor is attached — D-23 pre-authorises taking the fallback without debate when cursor-anchoring can't be trusted; being unable to verify at all is at least as strong a trigger as an observed jitter
+- [Phase ?]: config-floating.jsonc needed zero direct edit: custom/media is a single shared modules.jsonc definition (D-31), referenced not redefined by floating, so the on-click fix reaches it by inheritance
 
 ### Quick Tasks Completed
 
@@ -263,6 +266,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T13:55:29.124Z
+Last session: 2026-07-14T14:18:40.419Z
 Stopped at: Completed 08-09-PLAN.md
 Resume file: None

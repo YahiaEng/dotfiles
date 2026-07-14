@@ -76,3 +76,21 @@ second, older media surface living in 08-01/08-05/08-08's file territory —
 to `media-popup`) should delete `config-floating.jsonc:52`'s
 `custom/media-player` module and `media-player.py` under "one surface per
 job," so the phase ends with exactly one media surface, not two.
+
+**08-08 resolution (superseded, documented for the record):** the actual
+`08-08-PLAN.md` (written after this note, with fuller context) explicitly
+overrides this suggestion: its `<critical_finding>` and acceptance criteria
+require touching **only** `custom/media`'s `on-click` key in floating —
+`exec` (`media-player.py`), `format`, `format-icons`, `escape`,
+`max-length`, `interval`, `return-type`, and the scroll bindings must stay
+byte-identical. Rationale (not stated explicitly in 08-08-PLAN.md but
+consistent with D-22): floating has no `mpris` module at all, so deleting
+`custom/media`/`media-player.py` outright would leave floating with **no**
+media segment whatsoever, breaking BAR-04's "accessible from every layout"
+requirement for that one layout. 08-08 therefore re-points `on-click` on
+the existing `custom/media` module (which turned out to be a single
+shared `modules.jsonc` definition, referenced — not privately copied — by
+floating; see `08-08-SUMMARY.md`'s Step A finding) rather than deleting it.
+`media-player.py` remains in place, now polled for its glyph/text output
+only — the popup opener button became the click target, matching every
+other layout's `mpris` segment.

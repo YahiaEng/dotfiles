@@ -200,7 +200,7 @@ Plans:
   3. A media center integrating mpris players (Spotify, browser/YouTube) is accessible from waybar, in the form factor chosen per modern-rice research.
   4. A waybar button opens the swaync notification center overlay to view, clear, and interact with notifications.
 
-**Plans**: 8/10 plans executed
+**Plans**: 9/10 plans executed
 **UI hint**: yes
 
 Plans:
@@ -223,7 +223,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 08-08-PLAN.md — Wire the popup to the bar: the media segment's `on-click` re-points to a cursor-anchored, monitor-clamped opener (fixed-position fallback pre-authorised) (BAR-04) [wave 4, depends on 08-05, 08-07]
+- [x] 08-08-PLAN.md — Wire the popup to the bar: the media segment's `on-click` re-points to a cursor-anchored, monitor-clamped opener (fixed-position fallback pre-authorised) (BAR-04) [wave 4, depends on 08-05, 08-07]
 - [ ] 08-10-PLAN.md — BAR-02 pixel-shift: timeboxed spike against D-09's kill criteria, then either ship the jitter as a tunable in the visibility owner or close BAR-02 as **descoped with evidence** (BAR-02) [wave 4, depends on 08-03, 08-04]
 
 ## Progress
@@ -237,7 +237,7 @@ Plans:
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
-| 8. Waybar Evolution | v2.0 | 8/10 | In Progress|  |
+| 8. Waybar Evolution | v2.0 | 9/10 | In Progress|  |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
 ### Phase 9: wlogout to wleave Migration
