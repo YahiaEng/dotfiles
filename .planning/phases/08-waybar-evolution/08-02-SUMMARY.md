@@ -136,3 +136,7 @@ None - no external service configuration required.
 ---
 *Phase: 08-waybar-evolution*
 *Completed: 2026-07-14*
+
+## Self-Check: PASSED
+
+All 3 claimed files verified present on disk; all 3 commit hashes (`fb23e78`, `4c11e3e`, `5adab9c`) verified present in `git log --oneline --all`.
