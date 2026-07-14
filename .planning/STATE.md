@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 08
-current_phase_name: Waybar Evolution
-status: Ready to execute
+current_phase_name: waybar-evolution
+status: executing
 stopped_at: Phase 8 planned — 10 plans across 4 waves
-last_updated: "2026-07-14T02:45:00.000Z"
+last_updated: "2026-07-14T00:23:06.471Z"
 last_activity: 2026-07-14
-last_activity_desc: Phase 08 planned (10 plans, 4 waves); BAR-01..BAR-05 and all 37 decisions covered
+last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 48
-  completed_plans: 38
+  completed_plans: 39
   percent: 67
 ---
 
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 
 ## Current Position
 
-Phase: 08 — Waybar Evolution
-Plan: 10 plans across 4 waves (08-01 … 08-10) — none executed yet
-Status: Planned; ready to execute
-Last activity: 2026-07-14 — Phase 08 planned (BAR-01..BAR-05 + all 37 decisions covered; plan-checker 0 blockers)
+Phase: 08 (waybar-evolution) — EXECUTING
+Plan: 2 of 10
+Status: Ready to execute
+Last activity: 2026-07-14 — Phase 08 execution started
 
 ## Performance Metrics
 
@@ -100,6 +100,7 @@ Last activity: 2026-07-14 — Phase 08 planned (BAR-01..BAR-05 + all 37 decision
 | Phase 07 P03 | 11min | 2 tasks | 1 files |
 | Phase 07 P04 | 35min+sweep | 2 tasks | 1 files |
 | Phase 07 P05 | 55min | 2 tasks | 9 files |
+| Phase 08 P01 | 17min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -188,6 +189,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 07-05]: STOW-PARITY finding (durable): adding a file to an already-stowed stow package is a silent no-op until stow is re-run; ~/.config/elephant/menus/ holds file-level symlinks (folded because the dir pre-existed), so utilities.toml/screenshot.toml/settings.toml were invisible to elephant while every repo-side gate passed green. Closed permanently with a self-healing stow-parity guard in elephant-restart.sh, proven live via fault injection. Applies to any stow package gaining a new file.
 - [Phase 07-05]: Corrected a false interim theory (never committed to any tracked file) that only parentless menus register as top-level elephant providers -- false; once genuinely stowed, all four menus:* providers registered despite three declaring a parent key. Original acceptance criterion was correct; the deployment was wrong.
 - [Phase 07-05]: Bluetooth/Display settings entries re-verified live during closeout: blueman and nwg-displays ARE installed on this dev machine and both launch successfully via the exact uwsm app -- action string in settings.toml, correcting a stale checkpoint note claiming they do nothing due to missing packages.
+- [Phase 08-01]: Adopted bare relative waybar include path form ("include": ["modules.jsonc"]) after empirically verifying all three candidate forms resolve against installed waybar 0.15.0
+- [Phase 08-01]: waybar-equivalence-check's effective-config = layout's own keys union shared keys actually referenced by its modules-left/-center/-right arrays, so unused shared module defs don't count as gate failures
+- [Phase 08-01]: Deliberately did not mark BAR-01/BAR-03/BAR-05 complete — this plan is the enabling refactor only, actual features ship in later plans in this phase
 
 ### Quick Tasks Completed
 
@@ -231,6 +235,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T22:21:11.136Z
+Last session: 2026-07-14T00:22:36.829Z
 Stopped at: Phase 8 UI-SPEC approved
 Resume file: .planning/phases/08-waybar-evolution/08-UI-SPEC.md
