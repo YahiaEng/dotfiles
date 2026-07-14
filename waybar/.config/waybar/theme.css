@@ -80,3 +80,31 @@
 @define-color warn @tertiary;
 @define-color danger @error;
 @define-color on-danger @on_error;
+
+/* ── Capsule/drawer roles — 08-16 (athena rebuild) ───────────────────
+   The 'athena' layout has no single translucent island (bar-surface
+   above); every module GROUP is its own discrete raised pill instead.
+   The palette has no surface_container token (CORRECTION 1, still
+   true), so the capsule surface is built on @surface_variant — the
+   only distinctly-raised neutral token this palette has — exactly the
+   same derivation bar-surface above uses for @surface. */
+/* Raised capsule surface. Alpha tuned to read as a discrete pill
+   against the wallpaper while staying in the house translucent style
+   — this is the value to tune first at the athena checkpoint if a
+   capsule reads as too flat/too opaque. */
+@define-color capsule alpha(@surface_variant, 0.85);
+/* Default capsule glyph/text colour. @on_surface_variant, NOT @outline
+   — @outline is M3's low-contrast hairline/divider role and was the
+   08-12 illegibility bug (see fg-dim above); @on_surface_variant is
+   the correct "de-emphasised but legible" role for text on a
+   surface_variant-derived fill. */
+@define-color capsule-fg @on_surface_variant;
+/* Hover surface for drawer/app-launcher members — same base token,
+   higher alpha than the resting capsule so hover reads as a visible
+   state change without introducing a second surface token. */
+@define-color capsule-hover alpha(@surface_variant, 0.95);
+/* Slider trough (pulseaudio/slider in the audio drawer). Built on the
+   raw @outline token (a real palette member, unlike surface_container)
+   at partial alpha — a neutral, low-emphasis track that is visibly
+   distinct from both @capsule and @accent (the highlight/knob). */
+@define-color capsule-track alpha(@outline, 0.5);
