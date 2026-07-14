@@ -35,6 +35,16 @@
     "interval": 15,
     "max-length": 10
   },
+  "custom/gaming-mode": {
+    "exec": "if [ \"$(cat $HOME/.cache/gaming-mode 2>/dev/null)\" = \"on\" ]; then echo '{\"alt\":\"on\",\"class\":\"on\",\"tooltip\":\"Gaming Mode: ON\"}'; else echo '{\"alt\":\"off\",\"class\":\"off\",\"tooltip\":\"Gaming Mode: OFF\"}'; fi",
+    "format": "{icon}",
+    "format-icons": {
+      "off": "\udb80\udeb5",
+      "on": "\udb80\udeb4"
+    },
+    "interval": 2,
+    "return-type": "json"
+  },
   "custom/launcher": {
     "format": "\uf303 ",
     "on-click": "walker",
@@ -54,6 +64,26 @@
     "on-scroll-down": "playerctl previous",
     "on-scroll-up": "playerctl next",
     "return-type": "json"
+  },
+  "custom/notification": {
+    "escape": true,
+    "exec": "swaync-client -swb",
+    "exec-if": "which swaync-client",
+    "format": "{icon} {}",
+    "format-icons": {
+      "dnd-inhibited-none": "\udb80\udc9b",
+      "dnd-inhibited-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
+      "dnd-none": "\udb80\udc9b",
+      "dnd-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
+      "inhibited-none": "\udb80\udc9c",
+      "inhibited-notification": "\udb80\udc9a<span foreground='red'><sup></sup></span>",
+      "none": "\udb80\udc9c",
+      "notification": "\udb80\udc9a<span foreground='red'><sup></sup></span>"
+    },
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "return-type": "json",
+    "tooltip": false
   },
   "custom/power": {
     "format": "\uf011 ",
@@ -115,6 +145,8 @@
     "clock",
     "backlight",
     "battery",
+    "custom/gaming-mode",
+    "custom/notification",
     "custom/power"
   ],
   "network": {

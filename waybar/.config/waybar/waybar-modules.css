@@ -135,6 +135,20 @@
     color: @on_secondary;
 }
 
+/* ── Gaming-mode indicator (D-35) ──────────────────── */
+#custom-gaming-mode {
+    padding: 0 8px;
+    margin: 4px 2px;
+    border-radius: 10px;
+    color: @outline;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+#custom-gaming-mode.on {
+    color: @primary;
+}
+
 /* ── Custom modules ────────────────────────────────── */
 #custom-theme,
 #custom-waybar-layout {

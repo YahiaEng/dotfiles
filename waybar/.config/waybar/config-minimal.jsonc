@@ -11,7 +11,7 @@
 
     "modules-left": ["hyprland/workspaces"],
     "modules-center": ["mpris", "clock"],
-    "modules-right": ["custom/notification", "tray"],
+    "modules-right": ["custom/gaming-mode", "custom/notification", "tray"],
 
     // ── Full redefinitions (this layout's definition wins over the ─────
     // ── shared one — waybar include is whole-key first-defined-wins, ───

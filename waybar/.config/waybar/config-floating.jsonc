@@ -23,6 +23,8 @@
         "clock",
         "backlight",
         "battery",
+        "custom/gaming-mode",
+        "custom/notification",
         "custom/power"
     ],
 

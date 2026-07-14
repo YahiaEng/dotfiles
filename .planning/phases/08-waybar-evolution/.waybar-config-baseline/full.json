@@ -27,6 +27,16 @@
     "interval": 2,
     "tooltip": true
   },
+  "custom/gaming-mode": {
+    "exec": "if [ \"$(cat $HOME/.cache/gaming-mode 2>/dev/null)\" = \"on\" ]; then echo '{\"alt\":\"on\",\"class\":\"on\",\"tooltip\":\"Gaming Mode: ON\"}'; else echo '{\"alt\":\"off\",\"class\":\"off\",\"tooltip\":\"Gaming Mode: OFF\"}'; fi",
+    "format": "{icon}",
+    "format-icons": {
+      "off": "\udb80\udeb5",
+      "on": "\udb80\udeb4"
+    },
+    "interval": 2,
+    "return-type": "json"
+  },
   "custom/notification": {
     "escape": true,
     "exec": "swaync-client -swb",
@@ -116,6 +126,7 @@
     "custom/theme",
     "custom/waybar-layout",
     "tray",
+    "custom/gaming-mode",
     "custom/notification",
     "custom/power"
   ],

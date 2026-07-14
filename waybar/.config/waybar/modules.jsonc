@@ -135,6 +135,37 @@
         "on-click": "~/.config/hypr/scripts/waybar-switch.sh"
     },
 
+    "custom/gaming-mode": {
+        // D-35: read-only consumer of the SAME state file
+        // gaming-mode-toggle.sh (Phase 7) owns — never a second copy of
+        // the on/off logic. Compare-and-map, never echo: the file's
+        // bytes are compared against the literal "on" on the left-hand
+        // side of a test and NEVER interpolated into the emitted JSON
+        // payload (T-08-20/T-08-21 — waybar renders "tooltip" as Pango
+        // markup, so echoing untrusted bytes through would be an
+        // injection primitive). An unexpected/missing state-file value
+        // fails safe to OFF, matching gaming-mode-toggle.sh's own
+        // _read_state default.
+        //
+        // Glyph substitution (deviation, recorded in SUMMARY): the
+        // UI-SPEC/plan's candidate codepoints U+F04FE/U+F04FF are
+        // PRESENT in the installed FiraCodeNerdFont-Regular.ttf cmap at
+        // 1.00-cell width, but resolve to "md-target"/"md-taxi" glyphs on
+        // this exact font build — not a controller icon at all. Per the
+        // plan's own fallback instruction, substituted the pre-checked
+        // same-family replacement pair: U+F02B4 (nf-md-google_controller,
+        // ON) / U+F02B5 (nf-md-google_controller_off, OFF) — both
+        // verified present with hmtx advance == M's advance (1.00 cell).
+        "return-type": "json",
+        "interval": 2,
+        "exec": "if [ \"$(cat $HOME/.cache/gaming-mode 2>/dev/null)\" = \"on\" ]; then echo '{\"alt\":\"on\",\"class\":\"on\",\"tooltip\":\"Gaming Mode: ON\"}'; else echo '{\"alt\":\"off\",\"class\":\"off\",\"tooltip\":\"Gaming Mode: OFF\"}'; fi",
+        "format": "{icon}",
+        "format-icons": {
+            "on": "󰊴",
+            "off": "󰊵"
+        }
+    },
+
     "custom/notification": {
         "tooltip": false,
         "format": "{icon} {}",

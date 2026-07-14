@@ -26,6 +26,7 @@
         "custom/theme",
         "custom/waybar-layout",
         "tray",
+        "custom/gaming-mode",
         "custom/notification",
         "custom/power"
     ]
