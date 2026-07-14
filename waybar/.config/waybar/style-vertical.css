@@ -1,0 +1,132 @@
+@import url("../../.local/state/theme/waybar.css");
+@import url("../../.local/state/theme/waybar-font.css");
+@import url("waybar-modules.css");
+/* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so
+   its idle-dim rule wins the cascade. stow.sh seeds this file empty if
+   absent; waybar-visibility.sh (08-03) also creates it on first run —
+   the file must always exist, or GTK3 discards this WHOLE stylesheet
+   (an unresolvable @import is not a soft warning here). */
+@import url("../../.local/state/theme/waybar-visibility.css");
+
+/* planner-discipline-allow: font-family */
+/* Phase 6 CR-01: the rendered font fragment (../../.local/state/theme/
+   waybar-font.css, imported above) owns the typeface declaration
+   EXCLUSIVELY. This sheet never declares one. */
+
+* {
+    /* Every module in this column is a glyph — 20px IS the body size
+       here (UI-SPEC's glyph-emphasis size), not the horizontal bars'
+       13px. The <small>-wrapped stacked values in cpu/memory/temperature
+       scale down from this automatically via Pango — no rule needed. */
+    font-size: 20px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: alpha(@background, 0.90);
+    color: @on_surface;
+    border-radius: 14px;
+    /* D-06's OLED trim, same as the other three layouts, but rotated to
+       the column's OUTWARD-facing edge: for a left-anchored bar that is
+       the RIGHT edge, not the bottom. Same token, same 1px weight, same
+       0.4 alpha — only the geometry rotates. */
+    border-right: 1px solid alpha(@primary, 0.4);
+    border-bottom: none;
+    /* D-07 zero-risk bonus, applied here for the same reason 08-03
+       applied it to the other three layouts: the idle-dim path only
+       ever changes this element's opacity via a style-provider reload,
+       never unmapping it, so a CSS transition can genuinely apply. */
+    transition: opacity 0.3s ease;
+}
+
+/* ── Glyph box + module gap (UI-SPEC binding: 48px column, 24x24 glyph ──
+   box, 12px side padding, 8px inter-module gap). One grouped selector
+   over every module id this layout lists, so there is a single place to
+   change the geometry. Property-level overrides on the shared rules from
+   waybar-modules.css — CSS cascade is later-wins per property, which is
+   strictly more granular than the JSONC include's whole-key rule, so
+   individual properties are overridden here rather than whole blocks
+   redeclared (08-01 Task 3's established CSS-side pattern). ────────────── */
+/* custom/gaming-mode is deliberately NOT listed in this group (and has
+   no rule anywhere in this file): its shared waybar-modules.css pill
+   (padding 0 8px, no filled background) is already a compact icon-only
+   treatment good enough for the column, and D-31's CSS payoff is that a
+   module the vertical layout doesn't otherwise touch needs zero new CSS
+   here — exactly like the JSONC side leaving it unreferenced by name. */
+#workspaces button,
+#clock,
+#mpris,
+#cpu,
+#memory,
+#temperature,
+#pulseaudio,
+#network,
+#battery,
+#custom-notification,
+#tray,
+#custom-power {
+    min-width: 24px;
+    padding: 4px 12px;
+    /* The shared sheet's horizontal margins (4px 1px / 4px 2px / etc.)
+       are meaningless in a column and would stop modules centering in
+       the 48px track — zeroed here. Adjacent 4px top/bottom margins
+       compose to the UI-SPEC's binding 8px inter-module gap. */
+    margin: 4px 0;
+}
+
+/* ── Workspaces: shared rule's border-bottom reads as an underline in a
+   column — rotated to a left border. Background stays transparent (do
+   NOT reintroduce the filled pill 08-03's OLED trim just removed). ──── */
+#workspaces button {
+    border-bottom: none;
+    border-left: 2px solid transparent;
+}
+
+#workspaces button.active {
+    background: transparent;
+    border-bottom: none;
+    border-left: 2px solid @primary;
+}
+
+/* ── System modules: same border-bottom -> border-left rotation, same
+   accent tokens, @surface_variant background untouched. ─────────────── */
+#cpu,
+#memory,
+#temperature,
+#pulseaudio,
+#network {
+    border-bottom: none;
+    border-left: 2px solid transparent;
+}
+
+#cpu {
+    border-left-color: @tertiary;
+}
+#memory {
+    border-left-color: @secondary;
+}
+#temperature {
+    border-left-color: @primary;
+}
+#pulseaudio {
+    border-left-color: @tertiary;
+}
+#network {
+    border-left-color: @secondary;
+}
+
+/* ── Clock: two stacked lines of digits must fit inside the 48px column
+   — the shared rule's larger heading size is overridden down to the
+   UI-SPEC's 16px on-scale choice, centred. ───────────────────────────── */
+#clock {
+    font-size: 16px;
+    padding: 4px 0;
+}
+
+/* ── Tray: icons stack in the column rather than running off it — ─────
+   geometry only, no colour change. ───────────────────────────────────── */
+#tray {
+    padding: 4px 0;
+}
