@@ -18,7 +18,7 @@
     "control-center-margin-right": 10,
     "control-center-margin-left": 0,
     "notification-window-width": 380,
-    "control-center-width": 380,
+    "control-center-width": 420,
     "keyboard-shortcuts": true,
     "image-visibility": "when-available",
     "transition-time": 200,
@@ -26,23 +26,57 @@
     "hide-on-action": true,
     "script-fail-notify": true,
     "widgets": [
-        "dnd",
-        "mpris",
         "title",
+        "dnd",
+        "volume",
+        "slider",
+        "buttons-grid",
         "notifications"
     ],
     "widget-config": {
-        "dnd": {
-            "text": "Do not disturb"
-        },
-        "mpris": {
-            "image-size": 96,
-            "image-radius": 12
-        },
         "title": {
             "text": "Notifications",
             "clear-all-button": true,
             "button-text": "Clear All"
+        },
+        "dnd": {
+            "text": "Do not disturb"
+        },
+        "volume": {
+            "label": "Volume"
+        },
+        "slider": {
+            "label": "Brightness",
+            "cmd_setter": "brightnessctl -c backlight set $value% -q",
+            "cmd_getter": "sh -c 'v=$(brightnessctl -c backlight -m 2>/dev/null | cut -d, -f4 | tr -d %); case \"$v\" in \"\"|*[!0-9]*) echo 0 ;; *) echo \"$v\" ;; esac'",
+            "min": 5,
+            "max": 100
+        },
+        "buttons-grid": {
+            "buttons-per-row": 3,
+            "actions": [
+                {
+                    "label": "󰊴",
+                    "type": "toggle",
+                    "command": "sh -c '~/.config/hypr/scripts/gaming-mode-toggle.sh'",
+                    "update-command": "sh -c 'v=$(cat ~/.cache/gaming-mode 2>/dev/null || echo off); [ \"$v\" = \"on\" ] && echo true || echo false'"
+                },
+                {
+                    "label": "󰂛",
+                    "type": "toggle",
+                    "command": "sh -c '[ \"$SWAYNC_TOGGLE_STATE\" = \"true\" ] && swaync-client -dn || swaync-client -df'",
+                    "update-command": "swaync-client -D"
+                },
+                {
+                    "label": "",
+                    "type": "toggle",
+                    "command": "sh -c '~/.config/hypr/scripts/theme-switch.sh'",
+                    "update-command": "sh -c 'v=$(cat ~/.local/state/theme/mode 2>/dev/null || echo dark); [ \"$v\" = \"light\" ] && echo true || echo false'"
+                }
+            ]
+        },
+        "notifications": {
+            "vexpand": true
         }
     }
 }
