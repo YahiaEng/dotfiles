@@ -200,10 +200,13 @@ Plans:
   3. A media center integrating mpris players (Spotify, browser/YouTube) is accessible from waybar, in the form factor chosen per modern-rice research.
   4. A waybar button opens the swaync notification center overlay to view, clear, and interact with notifications.
 
-**Plans**: 11/15 plans executed
+**Plans**: 12/16 plans executed
 **UI hint**: yes
 
 Plans:
+
+- [ ] 08-16-PLAN.md
+
 **Wave 1**
 
 - [x] 08-01-PLAN.md — Shared-include refactor: `modules.jsonc` + `waybar-modules.css` become the single definition site for every module; `waybar-equivalence-check` drift gate proves the refactor is behaviour-identical (BAR-01/BAR-03/BAR-05) [wave 1]
@@ -236,7 +239,7 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 08-12-PLAN.md — The design system: `waybar-modules.css` rewritten as ONE neutral surface with chroma reserved for state, plus `style-full.css`/`style-minimal.css` as transparent-window islands. Establishes the contract layouts 13/14 inherit (BAR-01) [wave 2, depends on 08-11, **autonomous: false**]
+- [x] 08-12-PLAN.md — The design system: `waybar-modules.css` rewritten as ONE neutral surface with chroma reserved for state, plus `style-full.css`/`style-minimal.css` as transparent-window islands. Establishes the contract layouts 13/14 inherit (BAR-01) [wave 2, depends on 08-11, **autonomous: false**]
 
 **Wave 3** *(blocked on Wave 2 — 13 and 14 run in parallel)*
 
@@ -258,7 +261,7 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
-| 8. Waybar Evolution | v2.0 | 11/15 | In Progress|  |
+| 8. Waybar Evolution | v2.0 | 12/16 | In Progress|  |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
 ### Phase 9: wlogout to wleave Migration

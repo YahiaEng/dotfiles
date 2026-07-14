@@ -6,7 +6,7 @@ current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
 stopped_at: Completed 08-11-PLAN.md
-last_updated: "2026-07-14T21:44:09.020Z"
+last_updated: "2026-07-14T22:47:19.710Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
@@ -229,6 +229,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 08-11: bar-surface derives from @surface via alpha(), not a non-existent surface_container token (CORRECTION 1 verified: grep -rl surface_container palettes/ returns nothing)
 - [Phase ?]: 08-11: waybar-design-lint CHECK E treats player-icons/status-icons/format-icons entries as unconditional glyph slots but format*-scalar templates as exempt from blank (only a leading 2+-space run fails) — the only design letting mpris.format-stopped/status-icons.stopped stay legitimately empty while still catching cpu/memory/clock/network/pulseaudio's actual bugs
 - [Phase ?]: 08-11: config-minimal.jsonc's own mpris redefinition also repaired (deviation) since whole-key first-defined-wins means modules.jsonc's glyph fix never reaches it, and the plan's success_criteria requires zero empty glyphs across every config-*.jsonc
+- [Phase ?]: 08-12: 'full' waybar translucent-island redesign APPROVED by user on sight and locked as the design-system contract for 08-13/08-14. 'minimal' layout to be scrapped and rebuilt from scratch as a genuinely different design (separate brainstorm).
 
 ### Quick Tasks Completed
 
