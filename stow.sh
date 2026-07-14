@@ -18,6 +18,7 @@ cd "$DOTFILES_DIR"
 # ── Stow packages ───────────────────────────────────
 PACKAGES=(
     elephant
+    eww
     fastfetch
     fish
     gtk
