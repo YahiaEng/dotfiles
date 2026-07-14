@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
-stopped_at: Phase 8 planned — 10 plans across 4 waves
-last_updated: "2026-07-14T10:47:11.630Z"
+stopped_at: Completed 08-03-PLAN.md (waybar OLED trim + visibility owner)
+last_updated: "2026-07-14T11:12:06.375Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 48
-  completed_plans: 41
+  completed_plans: 42
   percent: 67
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 08 (waybar-evolution) — EXECUTING
-Plan: 4 of 10
+Plan: 5 of 10
 Status: Ready to execute
 Last activity: 2026-07-14 — Phase 08 execution started
 
@@ -103,6 +103,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 08 P01 | 17min | 3 tasks | 10 files |
 | Phase 08 P02 | ~10min | 2 tasks | 2 files |
 | Phase 08 P06 | 50min | 6 tasks | 9 files |
+| Phase 08 P03 | 23min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -198,6 +199,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: eww (stable, AUR) approved after D-36 human legitimacy gate 2026-07-14; eww-git permanently refused
 - [Phase ?]: eww reload subcommand re-reads both yuck and SCSS live -- no kill+relaunch fallback needed
 - [Phase ?]: Container-tier D-36 rerun deferred: origin/main 255 commits behind local HEAD, predates this phase -- requires human-authorized git push before rerun (precedent: 04-01, 07-03)
+- [Phase 08]: UI-SPEC's window#waybar.idle-dimmed selector reworked to file-presence-is-state (no class ever gets added to waybar's own window)
+- [Phase 08]: Two-element waybar include array verified working on 0.15.0 -- bar-common.jsonc added as a second include entry alongside modules.jsonc
+- [Phase 08]: Fixed a real gap in waybar-equivalence-check: bar-level scalar keys pulled purely via a new include were invisible to the gate; now always counted
 
 ### Quick Tasks Completed
 
@@ -242,6 +246,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T10:46:36.749Z
-Stopped at: Phase 8 UI-SPEC approved
+Last session: 2026-07-14T11:12:06.369Z
+Stopped at: Completed 08-03-PLAN.md (waybar OLED trim + visibility owner)
 Resume file: .planning/phases/08-waybar-evolution/08-UI-SPEC.md
