@@ -1,0 +1,335 @@
+@import url("theme.css");
+@import url("../../.local/state/theme/waybar-font.css");
+@import url("waybar-modules.css");
+/* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so
+   its idle-dim rule wins the cascade. stow.sh seeds this file empty if
+   absent; waybar-visibility.sh (Task 2) also creates it on first run —
+   the file must always exist, or GTK3 discards this WHOLE stylesheet
+   (an unresolvable @import is not a soft warning here). */
+@import url("../../.local/state/theme/waybar-visibility.css");
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║   ATHENA — discrete-capsule design (08-16 rebuild)     ║
+   ║  Unlike style-full.css's single translucent island,   ║
+   ║  athena has NO window#waybar > box wrapper at all —    ║
+   ║  the window is bare-transparent and every top-level    ║
+   ║  module GROUP is its own discrete raised capsule       ║
+   ║  (@capsule, theme.css). This is Athena's actual shape: ║
+   ║  distinct pills floating directly on the wallpaper,    ║
+   ║  not modules sitting inside one shared slab.            ║
+   ║  Every colour below is a theme.css role name — zero    ║
+   ║  raw palette tokens, zero literal hex (CHECK B/D).      ║
+   ╚══════════════════════════════════════════════════════╝ */
+
+* {
+    font-size: 13px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    /* CHECK C — the window itself is ALWAYS transparent; capsules
+       below carry 100% of the visible surface (design_system Rule 2:
+       "the capsules, not the window, carry surface"). */
+    background: transparent;
+    color: @capsule-fg;
+    transition: opacity 0.3s ease;
+}
+
+/* ── Capsule system — one shared pill treatment for every top-level ──
+   ── group + the workspaces/idle_inhibitor/clock singles ─────────────
+   Selectors use waybar's REAL widget-id convention for a "group/X"
+   module: "#group-X" — NOT the bare "#X" Athena's own upstream CSS
+   uses (that convention does not hold on this repo's deployed waybar;
+   verified live via theme-doctor's D-17 module-gate, the same
+   module_to_id() rule already proven correct for every other layout
+   in this repo: prefix "group" is not a compositor namespace like
+   hyprland/sway/river/wlr, so it falls to the generic '/' -> '-'
+   rule). hyprland/workspaces IS a compositor-namespaced module
+   (-> "#workspaces", prefix dropped); idle_inhibitor/clock are bare
+   module names already. */
+#group-apps,
+#group-storage,
+#group-system,
+#workspaces,
+#idle_inhibitor,
+#group-audio,
+#group-connections,
+#clock,
+#group-tray-group {
+    background: @capsule;
+    border-radius: 20px;
+    margin: 4px 5px;
+    color: @capsule-fg;
+}
+
+/* ── App drawer ────────────────────────────────────────────────────── */
+#group-apps {
+    padding: 6px 6px;
+}
+
+#custom-app-launcher {
+    padding: 0 10px;
+    color: @accent;
+}
+
+#custom-app-zen,
+#custom-app-spotify,
+#custom-app-discord,
+#custom-app-steam,
+#custom-app-lutris,
+#custom-app-obsidian,
+#custom-app-codium {
+    padding: 0 10px;
+    margin: 0 1px;
+    color: @capsule-fg;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+#custom-app-zen:hover,
+#custom-app-spotify:hover,
+#custom-app-discord:hover,
+#custom-app-steam:hover,
+#custom-app-lutris:hover,
+#custom-app-obsidian:hover,
+#custom-app-codium:hover {
+    background: @capsule-hover;
+    color: @accent;
+}
+
+/* ── Storage / system pills ───────────────────────────────────────── */
+#group-storage,
+#group-system {
+    padding: 6px 6px;
+}
+
+#disk,
+#memory,
+#cpu,
+#temperature {
+    padding: 0 8px;
+}
+
+/* ── State — chroma appears here and NOWHERE else among these pills ── */
+#cpu.warning,
+#memory.warning,
+#disk.warning {
+    color: @warn;
+}
+
+#cpu.critical,
+#memory.critical,
+#disk.critical,
+#temperature.critical {
+    color: @danger;
+}
+
+/* ── Workspaces — the capsule contains the buttons directly (no ──────
+   ── inner #workspaces background — that's the shared rule above) ──── */
+#workspaces {
+    padding: 6px 6px;
+}
+
+#workspaces button {
+    min-width: 32px;
+    padding: 0 8px;
+    margin: 0 2px;
+    background: transparent;
+    border-radius: 16px;
+    color: @capsule-fg;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+#workspaces button.active {
+    /* The ONE resting accent-filled element in the whole bar
+       (design_system Rule 3). */
+    padding: 0 14px;
+    background: @accent;
+    color: @on-accent;
+}
+
+#workspaces button.urgent {
+    color: @danger;
+}
+
+#workspaces button.empty {
+    color: @capsule-fg;
+    opacity: 0.6;
+}
+
+#workspaces button:hover {
+    background: @capsule-hover;
+    color: @capsule-fg;
+}
+
+#workspaces button.active:hover {
+    background: @accent;
+    color: @on-accent;
+}
+
+/* ── idle_inhibitor ────────────────────────────────────────────────── */
+#idle_inhibitor {
+    padding: 6px 10px;
+}
+
+#idle_inhibitor.activated {
+    color: @accent;
+}
+
+/* ── Audio drawer ──────────────────────────────────────────────────── */
+#group-audio {
+    padding: 6px 6px;
+}
+
+/* "pulseaudio#microphone" (config-athena.jsonc) — waybar's "#name"
+   module-instancing suffix selects via the bare suffix name alone
+   ("#microphone"), not "pulseaudio.microphone" or a double-hash
+   selector (neither is valid CSS, and the former is not how waybar
+   resolves the widget's CSS name for a suffixed module instance). */
+#pulseaudio,
+#microphone {
+    padding: 0 8px;
+}
+
+/* Slider alias (theme.css) keeps this file role-name-only — no raw
+   palette token, per Task 3's own instruction not to name one here. */
+#pulseaudio-slider {
+    padding: 0 4px;
+    background: transparent;
+}
+
+#pulseaudio-slider trough {
+    min-height: 8px;
+    min-width: 70px;
+    border-radius: 8px;
+    background: @capsule-track;
+}
+
+#pulseaudio-slider highlight {
+    min-height: 8px;
+    border-radius: 8px;
+    background: @accent;
+}
+
+#pulseaudio-slider slider {
+    min-height: 12px;
+    min-width: 12px;
+    margin: -3px 0;
+    border-radius: 100%;
+    background: @accent;
+}
+
+/* ── Connections drawer ───────────────────────────────────────────── */
+#group-connections {
+    padding: 6px 6px;
+}
+
+#network,
+#bluetooth {
+    padding: 0 8px;
+}
+
+#network.disabled {
+    color: @danger;
+}
+
+/* ── Clock pill ────────────────────────────────────────────────────── */
+#clock {
+    padding: 6px 14px;
+    font-weight: bold;
+}
+
+/* ── Tray drawer — notification bell + tray + folded settings ────────
+   #group-tray-group is the outer capsule (shared rule block above);
+   #tray itself is the nested systray widget and keeps
+   waybar-modules.css's own padding (never redefined here — D-31/D-33,
+   and the reason this group is named tray-group rather than tray, see
+   config-athena.jsonc comment — avoids the #tray id collision that
+   naming it plain "group/tray" would have caused). */
+#group-tray-group {
+    padding: 6px 6px;
+}
+
+#custom-notification {
+    padding: 0 8px;
+    color: @capsule-fg;
+}
+
+#custom-theme,
+#custom-waybar-layout {
+    padding: 0 8px;
+    color: @capsule-fg;
+    border-radius: 16px;
+    transition: background 0.3s ease;
+}
+
+#custom-theme:hover,
+#custom-waybar-layout:hover {
+    background: @capsule-hover;
+}
+
+/* ── gaming-mode + power (right-end, outside any capsule — bare ──────
+   ── glyphs, matching the rest of the phase's "state chroma only" ──── */
+#custom-gaming-mode {
+    padding: 0 8px;
+    margin: 4px 2px;
+    color: @capsule-fg;
+}
+
+#custom-gaming-mode.on {
+    color: @accent;
+}
+
+#custom-power {
+    padding: 0 12px;
+    margin: 4px 4px 4px 2px;
+    color: @capsule-fg;
+    transition: all 0.3s ease;
+}
+
+#custom-power:hover {
+    /* Transient hover state only — never a permanently-lit red pill
+       at rest (design_system Rule 3 / waybar-modules.css convention). */
+    color: @danger;
+    background: @capsule-hover;
+    border-radius: 10px;
+}
+
+/* ── Glyph-only modules — larger than 13px body text, matching the ───
+   ── rest of the phase's glyph-only sizing convention ─────────────── */
+#custom-app-launcher,
+#custom-app-zen,
+#custom-app-spotify,
+#custom-app-discord,
+#custom-app-steam,
+#custom-app-lutris,
+#custom-app-obsidian,
+#custom-app-codium,
+#custom-theme,
+#custom-waybar-layout,
+#custom-power,
+#custom-notification,
+#custom-gaming-mode,
+#idle_inhibitor,
+#disk,
+#memory,
+#cpu,
+#temperature,
+#pulseaudio,
+#network,
+#bluetooth {
+    font-size: 16px;
+}
+
+/* ── Tooltip — matches the capsule, chroma-free ───────────────────── */
+tooltip {
+    background: @capsule;
+    border: 1px solid @capsule-fg;
+    border-radius: 10px;
+}
+
+tooltip label {
+    color: @capsule-fg;
+}

@@ -28,7 +28,7 @@
         "group/audio",
         "group/connections",
         "clock",
-        "group/tray",
+        "group/tray-group",
         "custom/gaming-mode",
         "custom/power"
     ],
@@ -80,7 +80,12 @@
     // custom/notification (= Athena's custom/tray-arrow role) and tray
     // — both already canonically defined + cmap-verified in
     // modules.jsonc, referenced here by name, not redefined (D-31).
-    "group/tray": {
+    // Named "group/tray-group" (not "group/tray", Athena's own naming
+    // convention) so waybar's group-widget CSS id (#tray-group) never
+    // collides with the nested systray widget's own CSS id (#tray) —
+    // two same-named GTK nodes in one tree would let a #tray rule
+    // apply to both the outer capsule and the inner tray icons.
+    "group/tray-group": {
         "orientation": "horizontal",
         "drawer": {
             "transition-duration": 500,
