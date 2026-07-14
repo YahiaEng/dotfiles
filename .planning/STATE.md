@@ -6,14 +6,14 @@ current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
 stopped_at: Completed 08-07-PLAN.md (eww media popup + hardened mpris helpers)
-last_updated: "2026-07-14T12:50:34.837Z"
+last_updated: "2026-07-14T13:24:38.656Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 48
-  completed_plans: 44
+  completed_plans: 45
   percent: 67
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 08 (waybar-evolution) — EXECUTING
-Plan: 7 of 10
+Plan: 8 of 10
 Status: Ready to execute
 Last activity: 2026-07-14 — Phase 08 execution started
 
@@ -106,6 +106,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 08 P03 | 23min | 2 tasks | 13 files |
 | Phase 08 P07 | ~3h | 3 tasks | 7 files |
 | Phase 08 P04 | 28min | 2 tasks | 5 files |
+| Phase 08 P05 | 30min | 4 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -210,6 +211,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 08-04]: Idle timeout set to 120s (D-05): shorter than the 300s dim listener so idle-hide fires during the actual OLED scenario (a static bar lit for hours)
 - [Phase 08-04]: gaming_mode_off() declares BOTH gaming show AND idle show -- the D-05 SIGSTOP interaction fix, since hypridle cannot self-clear a stale idle-hide while frozen
 - [Phase 08-04]: Fullscreen event format (fullscreen>>1/fullscreen>>0) empirically confirmed live before wiring waybar-fullscreen-watch.sh (Assumption A6 closed)
+- [Phase 08-05]: Gaming-mode glyph U+F04FE/U+F04FF present but resolve to md-target/md-taxi on this font, not a controller icon; substituted the plan's own pre-checked fallback pair U+F02B4/U+F02B5 (nf-md-google_controller/_off)
+- [Phase 08-05]: Discovered modules.jsonc's mpris/pulseaudio/cpu/memory/temperature glyph fields are empty/broken repo-wide since the first commit (pre-existing, out of scope); substituted real cmap-verified glyphs only in config-vertical.jsonc's own redefinitions since a glyph-only column format would otherwise render those widgets invisible
+- [Phase 08-05]: custom/notification tooltip flipped false->true in config-vertical.jsonc since it is a return-type:json module whose exec (swaync-client -swb) already emits a live tooltip field -- that is D-13's dropped-detail channel here, not a static tooltip-format
+- [Phase 08-05]: theme-doctor's D-17 gate proven to fail on purpose via self-test (throwaway 5th layout referencing a non-palette colour token) before being trusted; 4th hardcoded waybar-sheet list replaced with a nullglob-guarded style-*.css glob
 
 ### Quick Tasks Completed
 
@@ -254,6 +259,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T12:49:31.566Z
+Last session: 2026-07-14T13:24:38.649Z
 Stopped at: Completed 08-07-PLAN.md (eww media popup + hardened mpris helpers)
 Resume file: .planning/phases/08-waybar-evolution/08-UI-SPEC.md
