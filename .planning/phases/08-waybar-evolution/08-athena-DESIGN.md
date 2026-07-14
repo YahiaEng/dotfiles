@@ -59,9 +59,19 @@ the phase's scale).
 
 **Left**
 - **App drawer** (`group/apps`, `drawer`, reveal-on-hover): collapsed = a launcher glyph;
-  expanded = kitty · codium · zen-browser · thunar · obsidian · spotify · discord.
-  Neutral glyphs, `@accent` on hover. Each `on-click` = `uwsm app -- <app>` matching the
-  session pipeline.
+  expanded, in order = zen-browser · spotify · discord · steam · lutris · obsidian · codium.
+  Neutral glyphs, `@accent` on hover. Each `on-click` = `uwsm app -- <target>` (matching the
+  session pipeline), targets confirmed present 2026-07-15:
+  - zen-browser → `zen.desktop`
+  - spotify → `spotify.desktop`
+  - discord → `discord.desktop`
+  - steam → `steam.desktop`
+  - lutris → `net.lutris.Lutris.desktop`
+  - obsidian → `obsidian.desktop`
+  - codium → `codium.desktop`
+  Glyphs must be cmap-verified against FiraCode Nerd Font per the 08-11 discipline
+  (no empty/unrendered glyph fields). (No terminal/file-manager in the drawer — user's
+  chosen set is browser + games/media + editor.)
 - **Storage pill** (`group/storage`): disk + memory.
 - **System pill** (`group/system`): temperature + cpu.
 
