@@ -16,7 +16,8 @@
     { "name": "hyprlock.conf", "format": "hypr-vars" },
     { "name": "swayosd.css", "format": "gtk-css" },
     { "name": "zen-userchrome.css", "format": "css-literal" },
-    { "name": "satty.toml", "format": "toml" }
+    { "name": "satty.toml", "format": "toml" },
+    { "name": "eww.scss", "format": "scss-kv" }
   ],
   "state_metadata_files": ["current-theme", "mode"],
   "presence_only_files": ["kitty-font.conf", "waybar-font.css"]

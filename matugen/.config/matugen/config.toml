@@ -86,3 +86,8 @@ output_path = "~/.local/state/theme/zen-userchrome.css"
 [templates.satty]
 input_path = "~/.config/matugen/templates/satty-colors.toml"
 output_path = "~/.local/state/theme/satty.toml"
+
+# ── eww media-popup colors (BAR-04/D-19) ─────────────
+[templates.eww]
+input_path = "~/.config/matugen/templates/eww-colors.scss"
+output_path = "~/.local/state/theme/eww.scss"
