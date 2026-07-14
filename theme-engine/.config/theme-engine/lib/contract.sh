@@ -89,7 +89,12 @@ contract_extract_names() {
             # BAR-04/D-19: eww.scss SCSS `$name: value;` declaration lines —
             # skip `//` comments and blanks, extract the bare $-prefixed
             # variable name (without the leading '$').
-            grep -oP '^\$\K[a-z_]+(?=:)' "$path" 2>/dev/null | sort -u
+            # WR-02: allow digits/uppercase after the first character
+            # ($surface2, $primaryContainer) — same false-pass class WR-05
+            # fixed for hypr-vars. A digit/uppercase-bearing variable that
+            # silently vanishes from BOTH name and value extraction makes
+            # theme-parity pass on a broken render.
+            grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_]*(?=:)' "$path" 2>/dev/null | sort -u
             ;;
         toml)
             python3 - "$path" <<'PYEOF'
@@ -186,7 +191,9 @@ contract_extract_values() {
             # BAR-04/D-19: eww.scss `$name: value;` declaration lines —
             # emit name<TAB>value pairs, name without the leading '$', value
             # trimmed of surrounding whitespace and the terminating ';'.
-            sed -nE 's/^\$([a-z_]+):[[:space:]]*([^;]+);.*$/\1\t\2/p' "$path" 2>/dev/null
+            # WR-02: keep in lockstep with the name extractor above — digits
+            # and uppercase allowed after the first character.
+            sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_]*):[[:space:]]*([^;]+);.*$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         toml)
             python3 - "$path" <<'PYEOF'
