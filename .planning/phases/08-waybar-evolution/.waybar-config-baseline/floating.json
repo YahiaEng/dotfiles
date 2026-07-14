@@ -135,6 +135,8 @@
     "tooltip-format-ethernet": "\udb81\udd52 {bandwidthUpBytes} / \udb80\uddda {bandwidthDownBytes}",
     "tooltip-format-wifi": "\udb81\udd52 {bandwidthUpBytes} / \udb80\uddda {bandwidthDownBytes}"
   },
+  "on-sigusr1": "hide",
+  "on-sigusr2": "reload",
   "position": "top",
   "pulseaudio": {
     "format": "{icon} {volume}%",

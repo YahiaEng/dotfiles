@@ -147,6 +147,8 @@
     "format-wifi": "  {signalStrength}%",
     "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n{essid}"
   },
+  "on-sigusr1": "hide",
+  "on-sigusr2": "reload",
   "position": "top",
   "pulseaudio": {
     "format": "{icon}  {volume}%",

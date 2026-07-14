@@ -1,5 +1,5 @@
 {
-    "include": ["modules.jsonc"],
+    "include": ["modules.jsonc", "bar-common.jsonc"],
 
     "layer": "top",
     "position": "top",

@@ -185,7 +185,29 @@ if __name__ == '__main__':
     for arr_key in ('modules-left', 'modules-center', 'modules-right'):
         used |= set(resolved.get(arr_key, []) or [])
 
-    effective = {k: v for k, v in resolved.items() if k in own_keys or k in used}
+    # Deviation, fix (Rule 1 — plan 08-03): the "unused shared definition
+    # is inert JSON" rationale above is true ONLY for module *definitions*
+    # (dict-valued entries like "clock"/"custom/notification" — waybar
+    # never instantiates a widget for one that no modules-*/array names).
+    # It does NOT hold for bar-level scalar/array config (on-sigusr1,
+    # on-sigusr2, layer, spacing, ...) pulled in purely via a shared
+    # include like bar-common.jsonc: those always affect the running bar
+    # regardless of whether any layout "uses" them by name, because
+    # there's no name to use — they're not modules. Before this fix, a
+    # bar-level key introduced solely through a new include (no layout
+    # ever redeclares it directly) was silently dropped from "effective"
+    # entirely (neither in own_keys nor in used), so the gate could never
+    # detect it changing, appearing, or disappearing — defeating D-34's
+    # "live drift detector" purpose for exactly this class of change.
+    # Module definitions are always JSON objects in this repo's schema;
+    # bar-level keys are always scalars or arrays-of-strings — so a
+    # dict-vs-non-dict check cleanly separates the two without needing a
+    # hardcoded list of waybar(5)'s bar-level key names (D-31: no
+    # preprocessor, keep this simple).
+    effective = {
+        k: v for k, v in resolved.items()
+        if k in own_keys or k in used or not isinstance(v, dict)
+    }
     print(json.dumps(effective, sort_keys=True, indent=2))
 PYEOF
 }
