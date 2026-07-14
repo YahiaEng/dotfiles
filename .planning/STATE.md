@@ -6,7 +6,7 @@ current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
 stopped_at: Phase 8 planned — 10 plans across 4 waves
-last_updated: "2026-07-14T00:23:06.471Z"
+last_updated: "2026-07-14T00:28:36.850Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 08 (waybar-evolution) — EXECUTING
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
 Last activity: 2026-07-14 — Phase 08 execution started
 
@@ -101,6 +101,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 07 P04 | 35min+sweep | 2 tasks | 1 files |
 | Phase 07 P05 | 55min | 2 tasks | 9 files |
 | Phase 08 P01 | 17min | 3 tasks | 10 files |
+| Phase 08 P02 | ~10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -192,6 +193,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 08-01]: Adopted bare relative waybar include path form ("include": ["modules.jsonc"]) after empirically verifying all three candidate forms resolve against installed waybar 0.15.0
 - [Phase 08-01]: waybar-equivalence-check's effective-config = layout's own keys union shared keys actually referenced by its modules-left/-center/-right arrays, so unused shared module defs don't count as gate failures
 - [Phase 08-01]: Deliberately did not mark BAR-01/BAR-03/BAR-05 complete — this plan is the enabling refactor only, actual features ship in later plans in this phase
+- [Phase 08]: D-32 dynamic layout enumeration applied to waybar-switch.sh/waybar-launch.sh (Phase 5 palette precedent); full remains D-16 hardcoded fallback
 
 ### Quick Tasks Completed
 
@@ -235,6 +237,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T00:22:36.829Z
+Last session: 2026-07-14T00:27:47.170Z
 Stopped at: Phase 8 UI-SPEC approved
 Resume file: .planning/phases/08-waybar-evolution/08-UI-SPEC.md
