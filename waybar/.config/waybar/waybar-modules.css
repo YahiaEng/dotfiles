@@ -167,6 +167,17 @@
 }
 
 /* ── Custom buttons — bare glyphs, no fill ──────────────────────────── */
+/* 08-12 checkpoint audit: the rejected round reported "#custom-theme
+   glyph missing/transparent, no colour rule at all." Re-verified against
+   the committed source (97ee5ad) and live screenshots on both
+   catppuccin-latte and tokyonight (full layout): #custom-theme already
+   carries `color: @fg;` below and the U+F042 glyph renders with full
+   contrast in both presets — the rule was never actually dropped. Every
+   other module ID referenced by config-full.jsonc/config-minimal.jsonc
+   was grepped against this file; all resolve to a rule here. (The
+   handful of genuinely-uncovered IDs — backlight, custom/launcher,
+   custom/media, custom/updates, custom/wallpaper — belong exclusively to
+   config-floating.jsonc, out of this plan's scope / owned by 08-13.) */
 #custom-theme,
 #custom-waybar-layout {
     padding: 0 8px;
