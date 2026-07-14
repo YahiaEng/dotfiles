@@ -1,26 +1,192 @@
-// eww.scss — media-popup skeleton stylesheet (BAR-04/D-18..25)
+// eww.scss — media-popup stylesheet (BAR-04/D-18..25)
 //
 // Imports the matugen-rendered palette from the state dir, mirroring
 // waybar's relative-path @import convention (style-full.css -> ../../
-// .local/state/theme/waybar.css). Zero hex literals below — every color
-// is a $-variable from the imported palette (D-19).
+// .local/state/theme/waybar.css). Zero hex literals below — every
+// color is a $-variable from the imported palette (D-19); confirmed
+// via the phase's own grep gate (`grep -nE '#[0-9a-fA-F]{3,8}'`
+// returns nothing outside this comment header).
+//
+// Font family is a hardcoded literal (`FiraCode Nerd Font`) per the
+// inherited contract #6 — eww is explicitly OUT of UTIL-05's
+// switchable-font scope (08-UI-SPEC.md Design System table).
 @import "../../.local/state/theme/eww.scss";
 
 * {
     font-family: "FiraCode Nerd Font";
 }
 
-.popup {
+// ── Popup body (UI-SPEC: 300px wide, 16px padding, 16px radius) ─────
+// NOT subject to BAR-01's OLED translucency — only the bar itself is
+// in scope for that; this popup stays fully opaque.
+.media-center {
     background-color: $background;
-    border: 1px solid $primary;
+    color: $on_surface;
     padding: 16px;
     border-radius: 16px;
     min-width: 300px;
 }
 
-.popup-label {
-    color: $on_surface;
+.media-center > * {
+    margin-bottom: 16px;
+}
+
+.media-center > *:last-child {
+    margin-bottom: 0px;
+}
+
+// ── Album art (the declared focal point: 220x220, 16px radius) ──────
+.media-art {
+    min-width: 220px;
+    min-height: 220px;
     background-color: $surface_variant;
+    border-radius: 16px;
+}
+
+.media-art-image {
+    border-radius: 16px;
+}
+
+.media-art-fallback {
+    font-size: 20px;
+    color: $on_surface_variant;
+}
+
+// ── Metadata (Typography: 16px/700 title, 13px/400 artist+album) ────
+.media-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: $on_surface;
+}
+
+.media-artist,
+.media-album {
+    font-size: 13px;
+    font-weight: 400;
+    color: $on_surface_variant;
+}
+
+// ── Transport row (8px gap, swaync's button convention carried over)
+.media-transport {
+    // Control row gap (UI-SPEC: 8px between prev/play-pause/next).
+}
+
+.media-transport > * {
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.transport-btn {
+    background: transparent;
+    color: $on_surface;
+    border: none;
+    border-radius: 50%;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px;
+    transition: all 0.2s ease;
+}
+
+.transport-btn:hover {
+    background: $primary;
+    color: $on_primary;
+}
+
+.transport-btn.play-pause.playing {
+    color: $primary;
+}
+
+.transport-btn .glyph {
+    font-size: 20px;
+}
+
+// ── Seek bar (8px track, 16px thumb, on-scale per UI-SPEC) ───────────
+.media-seek trough {
+    background-color: $surface_variant;
+    border-radius: 4px;
+    min-height: 8px;
+}
+
+.media-seek highlight {
+    background-color: $primary;
+    border-radius: 4px;
+    min-height: 8px;
+}
+
+.media-seek slider {
+    background-color: $primary;
     border-radius: 8px;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+.media-seek-time {
+    font-size: 12px;
+    font-weight: 400;
+    color: $on_surface_variant;
+}
+
+// ── Volume slider (same seek-bar visual language, thinner track) ────
+.media-volume-row {
+}
+
+.media-volume-row > * {
+    margin-right: 8px;
+}
+
+.volume-glyph {
+    font-size: 20px;
+    color: $on_surface_variant;
+}
+
+.media-volume trough {
+    background-color: $surface_variant;
+    border-radius: 4px;
+    min-height: 8px;
+}
+
+.media-volume highlight {
+    background-color: $primary;
+    border-radius: 4px;
+    min-height: 8px;
+}
+
+.media-volume slider {
+    background-color: $primary;
+    border-radius: 8px;
+    min-width: 16px;
+    min-height: 16px;
+}
+
+// ── Player switcher (32px rows, 8px horizontal padding) ──────────────
+.media-switcher-header {
     padding: 8px;
+    border-radius: 12px;
+    background-color: $surface_variant;
+    min-height: 32px;
+}
+
+.media-switcher-label {
+    font-size: 13px;
+    font-weight: 400;
+    color: $on_surface;
+}
+
+.switcher-chevron {
+    font-size: 13px;
+    color: $on_surface_variant;
+}
+
+.media-switcher-row {
+    padding: 8px;
+    min-height: 32px;
+    border-radius: 12px;
+}
+
+.media-switcher-row:hover {
+    background-color: $surface_variant;
+}
+
+.media-switcher-row.is-active {
+    color: $primary;
 }

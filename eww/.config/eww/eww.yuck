@@ -1,29 +1,140 @@
-; eww.yuck — media-popup skeleton (BAR-04/D-18..25)
+; eww.yuck — media-popup (BAR-04/D-18..25)
 ;
-; This is a SKELETON only: proves the theme pipeline reaches eww end-to-end
-; (D-19). The full media widgets (album art, transport row, seek bar, volume
-; slider, player switcher) are 08-07's job (D-21) — do not add them here.
+; Full-fat media center per D-21: album art, title/artist/album, a
+; prev/play-pause/next transport row, a draggable seek bar, a volume
+; slider, and an explicit player switcher. D-25: there is NO "nothing
+; playing" placeholder anywhere below — the whole `media-center` body
+; is `:visible` ONLY while `media.status` is non-empty; 08-08 never
+; even calls `eww open` when `media-players.sh active` exits 1.
 ;
-; Window name `media-popup` is FROZEN — 08-07/08-08 are already written
-; against exactly this name.
+; SECURITY (T-08-07-01/02, see 08-07-PLAN.md <threat_model>): every
+; :onclick/:onchange command string below interpolates ONLY a
+; `_valid_id`-validated player id (`media.player` / `player.id`, both
+; sourced exclusively from media-players.sh) or eww's own numeric `{}`
+; slider substitution. No metadata field (title/artist/album/art) ever
+; appears inside a command string — grep-verified, see 08-07-SUMMARY.
 ;
-; `x`/`y` are REQUIRED expected-args (not `?x`/`?y`). Empirically verified
-; (Task 3/5, eww 0.6.0-1, upstream commit d87c2fd): eww's optional-window-arg
-; handling has a real bug in this version — `get_local_window_variables` in
-; crates/eww/src/window_arguments.rs bails with "variables  unexpectedly
-; defined" (an EMPTY name) whenever an optional expected-arg is not
-; explicitly supplied, because its final `local_variables.len() !=
-; window_def.expected_args.len()` check does not account for the optional
-; case at all. There is no working bare-`eww open media-popup` path in this
-; build — every caller (08-08's open wrapper, this file's own verification)
-; MUST always pass both `--arg x=<int> --arg y=<int>`. 08-08's wrapper must
-; compute its own fallback coordinate (e.g. hyprctl cursorpos, else a fixed
-; top-right pixel offset per D-23) BEFORE calling `eww open`, rather than
-; relying on eww to supply a default.
+; Window name `media-popup` and its `[x y]` REQUIRED expected-args are
+; FROZEN (08-06-SUMMARY.md) — 08-08 depends on both verbatim. There is
+; no working bare `eww open media-popup` in this build (a real bug in
+; eww 0.6.0's optional-expected-arg handling) — every caller MUST pass
+; both `--arg x=<int> --arg y=<int>`.
+;
+; eww CLI/widget facts pinned this session against the INSTALLED
+; eww 0.6.0 binary (RESEARCH Pitfall 4) — see 08-07-SUMMARY.md's
+; "Pinned eww CLI/widget facts" section for the full list and the
+; verification method used for each:
+;   - `scale` has NO `:draggable` property (GTK Scale is draggable by
+;     mouse unconditionally; the property doesn't exist and eww warns
+;     "Unknown attribute draggable" if you try it) — use `:active` to
+;     gate interactivity instead (confirmed accepted).
+;   - `defpoll`/`deflisten` are LAZILY evaluated: a variable's script
+;     only runs while at least one currently-open window references
+;     it. `media_players` and `media` therefore only run while
+;     `media-popup` itself is open — no extra `:run-while` gate needed
+;     (RESEARCH Assumption A5, closed).
+;   - `label :text` does NOT parse Pango markup by default (confirmed
+;     via a live screenshot of a `<b>bold</b> & "quoted"` fixture
+;     rendering as literal characters) — closes T-08-07-06 with no jq
+;     escaping step required.
+;   - `{EWW_CMD}`/`{EWW_CONFIG_DIR}`/`{EWW_EXECUTABLE}` are magic YUCK
+;     variables interpolated by the yuck parser itself (confirmed:
+;     `{EWW_CMD}` expands to `"/usr/bin/eww" --config "<config-dir>"`)
+;     — NOT shell environment variables exported to spawned scripts.
+;   - The `{}` onchange substitution on `scale` is a raw textual
+;     replacement performed BEFORE the command string reaches the
+;     shell — it cannot be wrapped in a yuck arithmetic expression
+;     inline (e.g. there is no way to write "divide {} by 100" in the
+;     command string itself). The seek/volume scales below are
+;     therefore built to operate directly in their target unit
+;     (absolute seconds 0..media.length; fractional 0..1 mpris volume)
+;     so no conversion is ever needed — see 08-07-SUMMARY.md for the
+;     full reasoning.
+;   - Division (`/`) is floating point; `round(x, 0)` and `%` both
+;     work and are used below for the mm:ss position readout, done
+;     entirely in yuck arithmetic (never by shelling out).
+
+(deflisten media
+  :initial "{\"player\":\"\",\"label\":\"\",\"status\":\"\",\"title\":\"\",\"artist\":\"\",\"album\":\"\",\"art\":\"\",\"position\":0,\"length\":0,\"volume\":-1,\"can_seek\":false}"
+  "~/.config/hypr/scripts/media-status.sh watch")
+
+(defpoll media_players
+  :interval "5s"
+  :initial "[]"
+  "~/.config/hypr/scripts/media-players.sh list")
+
+(defvar media_switcher false)
+
+(defwidget media-center []
+  (box :class "media-center" :orientation "v" :space-evenly false :visible {media.status != ""}
+    (box :class "media-art"
+      ; `image :path` is evaluated even while `:visible` is false (a
+      ; real eww behaviour: GTK still tries to load the path on every
+      ; `media` update), so an empty `media.art` string must never
+      ; reach `:path` directly -- it logs a GTK
+      ; "Failed to open file '': No such file or directory" error on
+      ; EVERY tick otherwise (confirmed live against the real daemon
+      ; this session). Falling back to a bundled 1x1 transparent PNG
+      ; keeps the path always resolvable with zero visible effect.
+      (image :class "media-art-image"
+        :path {media.art != "" ? media.art : EWW_CONFIG_DIR + "/assets/blank.png"}
+        :image-width 220 :image-height 220
+        :visible {media.art != ""})
+      (label :class "media-art-fallback" :text "" :visible {media.art == ""}))
+
+    (box :class "media-meta" :orientation "v" :space-evenly false :halign "start"
+      (label :class "media-title" :halign "start" :limit-width 30 :text {media.title})
+      (label :class "media-artist" :halign "start" :limit-width 34 :text {media.artist})
+      (label :class "media-album" :halign "start" :limit-width 34 :text {media.album}))
+
+    (box :class "media-transport" :orientation "h" :space-evenly false :halign "center"
+      (button :class "transport-btn"
+        :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} previous"
+        (label :class "glyph" :text ""))
+      (button :class "transport-btn play-pause ${media.status == "Playing" ? "playing" : ""}"
+        :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} play-pause"
+        (label :class "glyph" :text {media.status == "Playing" ? "" : ""}))
+      (button :class "transport-btn"
+        :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} next"
+        (label :class "glyph" :text "")))
+
+    (box :class "media-seek-row" :orientation "v" :space-evenly false :visible {media.length > 0}
+      (scale :class "media-seek" :orientation "h"
+        :min 0 :max {media.length > 0 ? media.length : 1} :value {media.position}
+        :active {media.length > 0}
+        :onchange "~/.config/hypr/scripts/media-players.sh cmd {media.player} seek {}")
+      (label :class "media-seek-time" :halign "start"
+        :text "${round((media.position - media.position % 60) / 60, 0)}:${(media.position % 60) < 10 ? "0" : ""}${media.position % 60} / ${round((media.length - media.length % 60) / 60, 0)}:${(media.length % 60) < 10 ? "0" : ""}${media.length % 60}"))
+
+    (box :class "media-volume-row" :orientation "h" :space-evenly false :visible {media.volume >= 0}
+      (label :class "glyph volume-glyph" :text "")
+      (scale :class "media-volume" :orientation "h"
+        :min 0 :max 1 :value {media.volume >= 0 ? media.volume : 0}
+        :onchange "~/.config/hypr/scripts/media-players.sh cmd {media.player} volume {}"))
+
+    (box :class "media-switcher" :orientation "v" :space-evenly false
+      ; `box` has NO `:onclick` property in this eww build (confirmed
+      ; live: it silently parses but logs "Unknown attribute onclick"
+      ; and the handler never fires) -- `eventbox` is the widget that
+      ; actually wires a click handler onto an otherwise-inert
+      ; container.
+      (eventbox :onclick "{EWW_CMD} update media_switcher={!media_switcher}"
+        (box :class "media-switcher-header" :orientation "h" :space-evenly false
+          (label :class "media-switcher-label" :halign "start" :hexpand true :limit-width 24
+            :text {media.label})
+          (label :class "glyph switcher-chevron" :text "")))
+      (box :class "media-switcher-list" :orientation "v" :space-evenly false :visible {media_switcher}
+        (for player in media_players
+          (eventbox :onclick "~/.config/hypr/scripts/media-players.sh select {player.id} && {EWW_CMD} update media_switcher=false"
+            (box :class "media-switcher-row ${player.active ? "is-active" : ""}"
+              :orientation "h" :space-evenly false
+              (label :halign "start" :hexpand true :limit-width 24 :text {player.label}))))))))
+
 (defwindow media-popup [x y]
   :monitor 0
-  :geometry (geometry :x "${x}" :y "${y}" :width "300" :height "120" :anchor "top right")
+  :geometry (geometry :x "${x}" :y "${y}" :width "300" :height "560" :anchor "top right")
   :stacking "overlay"
   :unfocus-close true
-  (box :class "popup" :orientation "v" :space-evenly false
-    (label :class "popup-label" :text "media-popup skeleton")))
+  :focusable true
+  :onkeypressed "{EWW_CMD} close media-popup"
+  (media-center))
