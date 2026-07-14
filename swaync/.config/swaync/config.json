@@ -48,7 +48,7 @@
         "slider": {
             "label": "Brightness",
             "cmd_setter": "brightnessctl -c backlight set $value% -q",
-            "cmd_getter": "sh -c 'v=$(brightnessctl -c backlight -m 2>/dev/null | cut -d, -f4 | tr -d %); case \"$v\" in \"\"|*[!0-9]*) echo 0 ;; *) echo \"$v\" ;; esac'",
+            "cmd_getter": "v=$(brightnessctl -c backlight -m 2>/dev/null | cut -d, -f4 | tr -d %); case $v in ''|*[!0-9]*) echo 0 ;; *) echo $v ;; esac",
             "min": 5,
             "max": 100
         },
@@ -58,20 +58,20 @@
                 {
                     "label": "󰊴",
                     "type": "toggle",
-                    "command": "sh -c '~/.config/hypr/scripts/gaming-mode-toggle.sh'",
-                    "update-command": "sh -c 'v=$(cat ~/.cache/gaming-mode 2>/dev/null || echo off); [ \"$v\" = \"on\" ] && echo true || echo false'"
+                    "command": "~/.config/hypr/scripts/gaming-mode-toggle.sh",
+                    "update-command": "v=$(cat ~/.cache/gaming-mode 2>/dev/null || echo off); case $v in on) echo true ;; *) echo false ;; esac"
                 },
                 {
                     "label": "󰂛",
                     "type": "toggle",
-                    "command": "sh -c '[ \"$SWAYNC_TOGGLE_STATE\" = \"true\" ] && swaync-client -dn || swaync-client -df'",
+                    "command": "case $SWAYNC_TOGGLE_STATE in true) swaync-client -dn ;; *) swaync-client -df ;; esac",
                     "update-command": "swaync-client -D"
                 },
                 {
                     "label": "",
                     "type": "toggle",
-                    "command": "sh -c '~/.config/hypr/scripts/theme-switch.sh'",
-                    "update-command": "sh -c 'v=$(cat ~/.local/state/theme/mode 2>/dev/null || echo dark); [ \"$v\" = \"light\" ] && echo true || echo false'"
+                    "command": "~/.config/hypr/scripts/theme-switch.sh",
+                    "update-command": "v=$(cat ~/.local/state/theme/mode 2>/dev/null || echo dark); case $v in light) echo true ;; *) echo false ;; esac"
                 }
             ]
         },
