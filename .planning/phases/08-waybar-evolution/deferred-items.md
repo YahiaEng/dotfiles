@@ -94,3 +94,47 @@ floating; see `08-08-SUMMARY.md`'s Step A finding) rather than deleting it.
 `media-player.py` remains in place, now polled for its glyph/text output
 only — the popup opener button became the click target, matching every
 other layout's `mpris` segment.
+
+## 08-16: `custom/notification`'s `format` string mixes manual and automatic argument indexing — waybar 0.15.0 rejects it
+
+**Found during:** 08-16, Task 3 live-verification (waybar launched against a
+real Wayland output, actual runtime log — not `theme-doctor`, which only
+CSS-parse-tests and never evaluates `exec`/`format` string interpolation).
+
+**Not caused by 08-16.** `modules.jsonc`'s `custom/notification` module
+(defined before this plan, unmodified by any 08-16 task) sets:
+
+```jsonc
+"custom/notification": {
+    "format": "{icon} {}",
+    ...
+}
+```
+
+`{icon}` is a manual/named placeholder; the bare `{}` is an automatic
+positional placeholder. Waybar 0.15.0 logs, at runtime, on every
+`exec`-triggered update of this module:
+
+```
+[error] custom/notification: mixing manual and automatic argument indexing
+is no longer supported; try replacing "{}" with "{text}" in your format
+specifier
+```
+
+This is a real, reproducible functional defect (confirmed live: `swaync-client
+-swb` returns valid JSON with a `text` field, and the module IS wired
+correctly — the bug is purely the `format` string's placeholder syntax) that
+affects **every** layout using `custom/notification` (full, floating,
+vertical, and now athena's tray drawer alike), not something introduced by
+this plan.
+
+**Not fixed** — `modules.jsonc` is not in 08-16's `files_modified` list, and
+per SCOPE BOUNDARY only issues directly caused by this plan's own changes are
+auto-fixed inline. The one-line fix (replace `"{icon} {}"` with
+`"{icon} {text}"` in `modules.jsonc`'s `custom/notification.format`) is
+trivial and shared-file-scoped — whoever next touches `modules.jsonc` (or a
+dedicated small fix plan) should apply it and re-verify via a live waybar
+launch (not just `theme-doctor`/`waybar-design-lint`, neither of which
+evaluates format-string interpolation at runtime — this is exactly the kind
+of gap the 08-16 checkpoint's "green gate suite is not sufficient" framing
+warns about).
