@@ -38,18 +38,25 @@
     },
 
     "mpris": {
+        // Glyph fix (deviation, recorded in SUMMARY — not in this plan's
+        // files_modified list but required by 08-11-PLAN.md's own
+        // success_criteria: "Zero empty/whitespace-only glyph fields
+        // across modules.jsonc and every config-*.jsonc"). This layout
+        // fully redefines mpris (whole-key first-defined-wins), so
+        // modules.jsonc's fix alone would not reach it — same
+        // cmap-verified glyphs applied here verbatim.
         "format": "{player_icon}  {title}",
         "format-paused": "{status_icon}  {title}",
         "format-stopped": "",
         "player-icons": {
-            "default": "",
-            "spotify": "",
-            "firefox": "",
-            "chromium": "",
+            "default": "",
+            "spotify": "",
+            "firefox": "",
+            "chromium": "",
             "mpv": "▶"
         },
         "status-icons": {
-            "paused": "",
+            "paused": "",
             "stopped": ""
         },
         "max-length": 30,

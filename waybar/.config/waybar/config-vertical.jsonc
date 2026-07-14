@@ -171,12 +171,15 @@
             "mode-mon-col": 3,
             "weeks-pos": "left",
             "on-scroll": 1,
+            // Hardcoded Catppuccin hex removed (Task 2, same fix as
+            // modules.jsonc's identical block) — see modules.jsonc's
+            // clock.calendar.format comment for the full rationale.
             "format": {
-                "months":   "<span color='#cba6f7'><b>{}</b></span>",
-                "days":     "<span color='#cdd6f4'>{}</span>",
-                "weeks":    "<span color='#585b70'>W{}</span>",
-                "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
-                "today":    "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>"
+                "months":   "<b>{}</b>",
+                "days":     "{}",
+                "weeks":    "W{}",
+                "weekdays": "<b>{}</b>",
+                "today":    "<u><b>{}</b></u>"
             }
         },
         "actions": {

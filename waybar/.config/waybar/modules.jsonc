@@ -45,14 +45,14 @@
         "format-paused": "{status_icon}  {artist} — {title}",
         "format-stopped": "",
         "player-icons": {
-            "default": "",
-            "spotify": "",
-            "firefox": "",
-            "chromium": "",
+            "default": "",
+            "spotify": "",
+            "firefox": "",
+            "chromium": "",
             "mpv": "▶"
         },
         "status-icons": {
-            "paused": "",
+            "paused": "",
             "stopped": ""
         },
         "max-length": 40,
@@ -71,20 +71,31 @@
     },
 
     "clock": {
-        "format": "  {:%H:%M}",
-        "format-alt": "  {:%A, %B %d, %Y}",
+        // Glyph fix (Task 2, cmap-verified — see 08-11-SUMMARY.md table):
+        // U+F017 -> fa-clock_o. Restores the icon deleted from this field
+        // (fingerprint: 2 leading spaces with nothing before them) and
+        // trims the separator to exactly one space (separator hygiene).
+        "format": " {:%H:%M}",
+        "format-alt": " {:%A, %B %d, %Y}",
         "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>",
         "calendar": {
             "mode": "month",
             "mode-mon-col": 3,
             "weeks-pos": "left",
             "on-scroll": 1,
+            // Hardcoded Catppuccin hex removed (was a core no-hardcoded-
+            // hex violation, and rendered dark-purple-on-dark on every
+            // light preset). Pango span `foreground=` cannot reference a
+            // GTK named colour, so the hierarchy is now expressed with
+            // weight/underline markup instead — the tooltip label
+            // inherits `color: @fg` from CSS and is correct in both
+            // light and dark with zero pipeline change.
             "format": {
-                "months":   "<span color='#cba6f7'><b>{}</b></span>",
-                "days":     "<span color='#cdd6f4'>{}</span>",
-                "weeks":    "<span color='#585b70'>W{}</span>",
-                "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
-                "today":    "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>"
+                "months":   "<b>{}</b>",
+                "days":     "{}",
+                "weeks":    "W{}",
+                "weekdays": "<b>{}</b>",
+                "today":    "<u><b>{}</b></u>"
             }
         },
         "actions": {
@@ -95,13 +106,17 @@
     },
 
     "cpu": {
-        "format": "  {usage}%",
+        // Glyph fix: U+F2DB -> fa-microchip (cmap-verified; already live
+        // in config-floating.jsonc, promoted upstream here per plan).
+        "format": " {usage}%",
         "interval": 2,
         "tooltip": true
     },
 
     "memory": {
-        "format": "  {percentage}%",
+        // Glyph fix: U+F0C9 -> fa-reorder (cmap-verified; promoted
+        // upstream from config-floating.jsonc).
+        "format": " {percentage}%",
         "interval": 5,
         "tooltip-format": "{used:.1f}G / {total:.1f}G"
     },
@@ -109,35 +124,59 @@
     "temperature": {
         "critical-threshold": 80,
         "format": "{icon} {temperatureC}°C",
-        "format-icons": ["", "", "", "", ""],
+        // Glyph fix: 5-step fa-thermometer ramp (cmap-verified; promoted
+        // upstream from config-vertical.jsonc, 08-05's original fix):
+        // U+F2CB fa-thermometer_empty, U+F2CA fa-thermometer_quarter,
+        // U+F2C9 fa-thermometer_half, U+F2C8 fa-thermometer_three_quarters,
+        // U+F2C7 fa-thermometer_full.
+        "format-icons": ["", "", "", "", ""],
         "tooltip": true
     },
 
     "pulseaudio": {
         "format": "{icon}  {volume}%",
-        "format-muted": "  muted",
+        // Glyph fix: U+F026 -> fa-volume_off (cmap-verified). Restores
+        // the icon deleted from this field, single-space separator.
+        "format-muted": " muted",
         "format-icons": {
-            "default": ["", "", ""]
+            // Glyph fix: U+F026/F027/F028 -> fa-volume_off/_low/_up
+            // (cmap-verified; promoted upstream from config-floating.jsonc).
+            "default": ["", "", ""]
         },
         "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
         "on-click-right": "pavucontrol"
     },
 
     "network": {
-        "format-wifi": "  {signalStrength}%",
-        "format-ethernet": "  {ifname}",
-        "format-disconnected": "  offline",
+        // Glyph fix: {icon} now resolves against the 5-step wifi ramp
+        // below (cmap-verified; promoted upstream from config-vertical/
+        // config-floating.jsonc, 08-05's original fix) instead of a
+        // deleted static icon (fingerprint: 2 leading spaces). ethernet/
+        // disconnected restored to single literal glyphs, single-space
+        // separator (separator hygiene).
+        "format-wifi": "{icon} {signalStrength}%",
+        "format-ethernet": "9 {ifname}",
+        "format-disconnected": "e offline",
+        "format-icons": ["f", "f", "2", "5", "8"],
         "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n{essid}"
     },
 
     "custom/theme": {
-        "format": " ",
+        // Glyph fix: U+F042 -> fa-circle_half_stroke (fa-adjust; cmap-
+        // verified — see 08-11-SUMMARY.md table). This module's format
+        // was a single space with no glyph at all (currently one of the
+        // two most-clickable buttons on the bar rendering invisible).
+        // Half-filled-circle is the established dark/light theme-toggle
+        // icon convention.
+        "format": "",
         "tooltip-format": "Switch Theme",
         "on-click": "~/.config/hypr/scripts/theme-switch.sh"
     },
 
     "custom/waybar-layout": {
-        "format": " ",
+        // Glyph fix: U+F009 -> fa-th_large (cmap-verified). Same bug as
+        // custom/theme above (single-space format, invisible button).
+        "format": "",
         "tooltip-format": "Switch Waybar Layout",
         "on-click": "~/.config/hypr/scripts/waybar-switch.sh"
     },
@@ -195,7 +234,9 @@
     },
 
     "custom/power": {
-        "format": "⏻",
+        // Glyph fix: U+23FB (plain Unicode power symbol, not a Nerd Font
+        // glyph) replaced with U+F011 -> fa-power_off (cmap-verified).
+        "format": "",
         "tooltip-format": "Power Menu",
         "on-click": "~/.config/hypr/scripts/wlogout.sh"
     },
