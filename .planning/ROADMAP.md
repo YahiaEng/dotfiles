@@ -200,7 +200,7 @@ Plans:
   3. A media center integrating mpris players (Spotify, browser/YouTube) is accessible from waybar, in the form factor chosen per modern-rice research.
   4. A waybar button opens the swaync notification center overlay to view, clear, and interact with notifications.
 
-**Plans**: 5/10 plans executed
+**Plans**: 6/10 plans executed
 **UI hint**: yes
 
 Plans:
@@ -217,7 +217,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 08-04-PLAN.md — Idle + fullscreen auto-hide actors (hypridle listener, Hyprland socket2 watcher), gaming-mode re-pointed off its raw SIGUSR1 toggle, reveal keybind (BAR-01) [wave 3, depends on 08-03]
+- [x] 08-04-PLAN.md — Idle + fullscreen auto-hide actors (hypridle listener, Hyprland socket2 watcher), gaming-mode re-pointed off its raw SIGUSR1 toggle, reveal keybind (BAR-01) [wave 3, depends on 08-03]
 - [ ] 08-05-PLAN.md — Vertical (left) layout authored through the shared includes + `custom/gaming-mode` indicator + bell parity; D-17's "full module re-test" folded into `theme-doctor` as a rerunnable colour-resolution gate (BAR-03/BAR-05) [wave 3, depends on 08-02, 08-03]
 - [ ] 08-09-PLAN.md — swaync becomes the notification centre: mpris widget deleted, volume/brightness sliders + a 3-toggle grid that calls the SAME scripts and state files as the Super-key menu (BAR-05) [wave 3, depends on 08-07]
 
@@ -237,7 +237,7 @@ Plans:
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
-| 8. Waybar Evolution | v2.0 | 5/10 | In Progress|  |
+| 8. Waybar Evolution | v2.0 | 6/10 | In Progress|  |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
 ### Phase 9: wlogout to wleave Migration

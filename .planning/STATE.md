@@ -6,14 +6,14 @@ current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
 stopped_at: Completed 08-07-PLAN.md (eww media popup + hardened mpris helpers)
-last_updated: "2026-07-14T12:23:46.750Z"
+last_updated: "2026-07-14T12:50:34.837Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 48
-  completed_plans: 43
+  completed_plans: 44
   percent: 67
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 08 (waybar-evolution) — EXECUTING
-Plan: 6 of 10
+Plan: 7 of 10
 Status: Ready to execute
 Last activity: 2026-07-14 — Phase 08 execution started
 
@@ -105,6 +105,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 08 P06 | 50min | 6 tasks | 9 files |
 | Phase 08 P03 | 23min | 2 tasks | 13 files |
 | Phase 08 P07 | ~3h | 3 tasks | 7 files |
+| Phase 08 P04 | 28min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -206,6 +207,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 08]: Seek/volume scales use native units (absolute seconds / fractional 0-1) since eww onchange {} substitution is raw text, not a yuck-evaluable expression
 - [Phase 08]: can_seek derived as length>0 heuristic - no direct playerctl CLI surface for MPRIS CanSeek
 - [Phase 08]: media-popup onkeypressed closes on any keypress, not Escape-filtered - safe simplification since popup has no text-input controls
+- [Phase 08-04]: Idle timeout set to 120s (D-05): shorter than the 300s dim listener so idle-hide fires during the actual OLED scenario (a static bar lit for hours)
+- [Phase 08-04]: gaming_mode_off() declares BOTH gaming show AND idle show -- the D-05 SIGSTOP interaction fix, since hypridle cannot self-clear a stale idle-hide while frozen
+- [Phase 08-04]: Fullscreen event format (fullscreen>>1/fullscreen>>0) empirically confirmed live before wiring waybar-fullscreen-watch.sh (Assumption A6 closed)
 
 ### Quick Tasks Completed
 
@@ -250,6 +254,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T12:23:46.743Z
+Last session: 2026-07-14T12:49:31.566Z
 Stopped at: Completed 08-07-PLAN.md (eww media popup + hardened mpris helpers)
 Resume file: .planning/phases/08-waybar-evolution/08-UI-SPEC.md
