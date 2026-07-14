@@ -56,3 +56,23 @@ out of scope for 08-03 (waybar-only plan) and not in its `files_modified`
 list. Whoever resolves the 08-06-logged vscodium/dirty-tree item should
 also confirm a full `./stow.sh` run reaches and passes the waybar cache-init
 section end-to-end.
+
+## 08-07: orphaned `media-player.py` + `config-floating.jsonc:52` duplicate media surface
+
+**Found during:** 08-07, `<inherited_contracts>` review (explicitly flagged as
+"informational, not this plan's work" by the plan itself).
+
+**Not caused by 08-07.** `waybar/.config/waybar/config-floating.jsonc:52`
+still runs a `custom/media-player` module backed by the orphaned upstream
+sample script `hypr/.config/hypr/scripts/media-player.py`. This is a
+second, older media surface living in 08-01/08-05/08-08's file territory —
+08-07 built the real, hardened media center (`media-*.sh` + the
+`media-popup` eww window) as an independent implementation, per D-24's
+"not a port" instruction, and deliberately did not touch waybar configs or
+`media-player.py`.
+
+**Not fixed** — out of scope for 08-07 (no waybar config in this plan's
+`files_modified`). Whoever executes 08-08 (wiring the `mpris` bar segment
+to `media-popup`) should delete `config-floating.jsonc:52`'s
+`custom/media-player` module and `media-player.py` under "one surface per
+job," so the phase ends with exactly one media surface, not two.
