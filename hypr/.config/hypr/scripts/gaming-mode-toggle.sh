@@ -31,12 +31,16 @@ set -euo pipefail
 STATE_FILE="$HOME/.cache/gaming-mode"
 THEME_HYPRLAND_CONF="$HOME/.local/state/theme/hyprland.conf"
 
-# ── Thin, single-call, re-pointable waybar-hide abstraction (D-26). ─────
-# Phase 8 reworks waybar entirely (OLED auto-hide, vertical layout) and
-# must be able to RE-POINT this one call rather than tear out a bespoke
-# hide mechanism. Body is intentionally a single pkill line.
+# ── Re-pointed waybar-visibility call (D-03 / P7 D-26). ─────────────────
+# This IS the re-point Phase 7 left this thin one-liner for -- waybar
+# visibility is now owned exclusively by waybar-visibility.sh (the D-03
+# owner). This script must never signal waybar directly again (no raw
+# pkill -SIGUSR1/-SIGUSR2 waybar anywhere below). It declares an intent
+# ("gaming wants it hidden/shown"); the owner computes the resulting
+# state against the other actors (idle, fullscreen, keybind).
 _gaming_waybar_toggle() {
-    pkill -SIGUSR1 waybar 2>/dev/null || true
+    local state="$1" # hide|show
+    ~/.config/hypr/scripts/waybar-visibility.sh gaming "$state" 2>/dev/null || true
 }
 
 # theme_engine-style atomic state write (commit.sh's temp-file + mv idiom)
@@ -84,8 +88,8 @@ gaming_mode_on() {
     #    session's exec-once spawns a brand-new hypridle process, D-28).
     pkill -STOP -x hypridle 2>/dev/null || true
 
-    # ── Hide waybar via the single re-pointable call.
-    _gaming_waybar_toggle
+    # ── Hide waybar: declare the gaming intent to the visibility owner.
+    _gaming_waybar_toggle hide
 
     _write_state "on"
 
@@ -138,8 +142,23 @@ gaming_mode_off() {
     # ── Un-inhibit idle/lock.
     pkill -CONT -x hypridle 2>/dev/null || true
 
-    # ── Un-hide waybar via the same single re-pointable call.
-    _gaming_waybar_toggle
+    # ── Un-hide waybar: declare the gaming intent cleared.
+    _gaming_waybar_toggle show
+
+    # ── Stale-idle fix (D-05 SIGSTOP interaction). gaming_mode_on()
+    #    freezes hypridle (pkill -STOP above), so an idle-hide/dim intent
+    #    that was already in effect when gaming mode engaged can never be
+    #    cleared by hypridle's own on-resume -- that process cannot run
+    #    while stopped. During gaming this is harmless (the gaming=hide
+    #    intent dominates under D-01's OR-union regardless), but declaring
+    #    ONLY "gaming show" here would leave that stale idle=hide intent
+    #    standing, and the bar would return dimmed instead of normal.
+    #    Toggling gaming mode off IS user input -- by D-02's own rule any
+    #    input clears idle-hide -- so this is gaming-mode correctly
+    #    reporting that input occurred, not reaching into another actor's
+    #    concern. Do NOT remove this second call as "redundant": without
+    #    it, gaming-mode-OFF can return a dimmed bar.
+    ~/.config/hypr/scripts/waybar-visibility.sh idle show 2>/dev/null || true
 
     _write_state "off"
 
