@@ -1,4 +1,4 @@
-@import url("../../.local/state/theme/waybar.css");
+@import url("theme.css");
 @import url("../../.local/state/theme/waybar-font.css");
 @import url("waybar-modules.css");
 /* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so
@@ -16,13 +16,21 @@
 }
 
 window#waybar {
-    background: alpha(@background, 0.90);
-    color: @on_surface;
-    border-radius: 14px;
-    border-bottom: 1px solid alpha(@primary, 0.4);
-    /* D-07 zero-risk bonus — see style-full.css's identical comment for
-       the live-verified rationale. */
+    /* 08-12: the window is ALWAYS transparent (design_system Rule 1) —
+       see style-full.css's identical comment for the live-verified
+       idle-dim transition rationale. */
+    background: transparent;
+    color: @fg;
     transition: opacity 0.3s ease;
+}
+
+window#waybar > box {
+    /* The translucent island — same treatment as style-full.css
+       (design_system Rule 2, one shared design language). */
+    background: @bar-surface;
+    border-radius: 14px;
+    margin: 6px;
+    padding: 0 4px;
 }
 
 /* #workspaces button, #clock, #mpris, #custom-notification and #tray >

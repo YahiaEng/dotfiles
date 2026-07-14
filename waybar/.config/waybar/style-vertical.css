@@ -1,4 +1,13 @@
-@import url("../../.local/state/theme/waybar.css");
+/* 08-12 (Rule 1 auto-fix, blocking regression): waybar-modules.css now
+   speaks in theme.css role names only (bar-surface/fg/accent/...). This
+   layout's own rules below are untouched (still raw tokens, still an
+   opaque window — that visual redesign is 08-14's job, not this
+   plan's), but the import MUST resolve theme.css's role aliases or
+   every shared module rule (workspace buttons, mpris, custom-power, ...)
+   silently loses its colour. theme.css itself @imports the rendered
+   waybar.css transitively, so this is a drop-in replacement — zero
+   raw-token references below lose their resolution. */
+@import url("theme.css");
 @import url("../../.local/state/theme/waybar-font.css");
 @import url("waybar-modules.css");
 /* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so

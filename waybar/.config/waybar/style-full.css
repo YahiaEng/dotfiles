@@ -1,4 +1,4 @@
-@import url("../../.local/state/theme/waybar.css");
+@import url("theme.css");
 @import url("../../.local/state/theme/waybar-font.css");
 @import url("waybar-modules.css");
 /* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so
@@ -16,10 +16,13 @@
 }
 
 window#waybar {
-    background: alpha(@background, 0.90);
-    color: @on_surface;
-    border-radius: 14px;
-    border-bottom: 1px solid alpha(@primary, 0.4);
+    /* 08-12: the window is ALWAYS transparent (design_system Rule 1).
+       08-03 painted alpha(@background, 0.90) directly onto the window
+       in every layout — that opaque slab behind every module is
+       exactly what the user reported. The visible surface now lives
+       one level in, on window#waybar > box below. */
+    background: transparent;
+    color: @fg;
     /* D-07 zero-risk bonus: the idle-dim path (Task 2) only ever changes
        this element's opacity via a style-provider reload, never
        unmapping it — so unlike the true-hide path (which has no
@@ -30,6 +33,17 @@ window#waybar {
        a genuine bonus, not a task dependency; instant remains the
        committed/acceptable behavior either way. */
     transition: opacity 0.3s ease;
+}
+
+window#waybar > box {
+    /* The translucent island — the ONE neutral surface the whole
+       design rests on (design_system Rule 2). Margin keeps the 14px
+       radius from being clipped flush to the screen edge, where it
+       would read as no radius at all. */
+    background: @bar-surface;
+    border-radius: 14px;
+    margin: 6px;
+    padding: 0 4px;
 }
 
 /* Every module rule this layout needs lives in waybar-modules.css with

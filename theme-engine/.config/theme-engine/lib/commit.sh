@@ -76,10 +76,26 @@ theme_engine_commit() {
     # the new run never reaches the walker step (a render/commit crash or a
     # headless-guard early return), leaving the failure notification
     # pointing the user at a log a later switch already wiped.
+    #
+    # 08-12 (seventh occurrence of this bug class, found live while
+    # verifying this plan's own checkpoint screenshots): waybar-visibility.css
+    # is a sixth engine-owned root-level state file, written only by
+    # waybar-visibility.sh in response to idle/fullscreen/gaming events (and
+    # seeded empty once by stow.sh) — never part of the rendered tree. It is
+    # imported LAST by every style-*.css specifically so its idle-dim rule
+    # wins the cascade (08-11/08-12 design_system). Without this exclusion,
+    # every theme-apply deleted it, the next waybar reload hit an
+    # unresolvable @import, GTK3 discarded the ENTIRE stylesheet, and waybar
+    # exited outright (reproduced live: "Hyprland IPC stopping..." in
+    # waybar's own log immediately after the failed import) — the exact
+    # WLOG-01 failure class this whole gap-closure plan exists to prevent,
+    # and it would have hit the human at the very checkpoint this plan asks
+    # them to run theme-apply live against.
     rsync -a --delete --exclude=logs/ --exclude=last-wallpaper/ \
         --exclude=current-theme --exclude=.last-render-error.log \
         --exclude=icon-theme --exclude=font-choice \
         --exclude=walker-relaunch.log \
+        --exclude=waybar-visibility.css \
         "$rendered_dir"/ "$STATE_DIR"/
 
     # rsync -a syncs the destination directory's own mode from the source
