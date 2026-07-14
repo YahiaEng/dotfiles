@@ -1,0 +1,181 @@
+{
+  "clock": {
+    "actions": {
+      "on-click-right": "mode",
+      "on-scroll-down": "shift_down",
+      "on-scroll-up": "shift_up"
+    },
+    "calendar": {
+      "format": {
+        "days": "<span color='#cdd6f4'>{}</span>",
+        "months": "<span color='#cba6f7'><b>{}</b></span>",
+        "today": "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>",
+        "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
+        "weeks": "<span color='#585b70'>W{}</span>"
+      },
+      "mode": "month",
+      "mode-mon-col": 3,
+      "on-scroll": 1,
+      "weeks-pos": "left"
+    },
+    "format": "  {:%H:%M}",
+    "format-alt": "  {:%A, %B %d, %Y}",
+    "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>"
+  },
+  "cpu": {
+    "format": "  {usage}%",
+    "interval": 2,
+    "tooltip": true
+  },
+  "custom/notification": {
+    "escape": true,
+    "exec": "swaync-client -swb",
+    "exec-if": "which swaync-client",
+    "format": "{icon} {}",
+    "format-icons": {
+      "dnd-inhibited-none": "\udb80\udc9b",
+      "dnd-inhibited-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
+      "dnd-none": "\udb80\udc9b",
+      "dnd-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
+      "inhibited-none": "\udb80\udc9c",
+      "inhibited-notification": "\udb80\udc9a<span foreground='red'><sup></sup></span>",
+      "none": "\udb80\udc9c",
+      "notification": "\udb80\udc9a<span foreground='red'><sup></sup></span>"
+    },
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "return-type": "json",
+    "tooltip": false
+  },
+  "custom/power": {
+    "format": "\u23fb",
+    "on-click": "~/.config/hypr/scripts/wlogout.sh",
+    "tooltip-format": "Power Menu"
+  },
+  "custom/theme": {
+    "format": " ",
+    "on-click": "~/.config/hypr/scripts/theme-switch.sh",
+    "tooltip-format": "Switch Theme"
+  },
+  "custom/waybar-layout": {
+    "format": " ",
+    "on-click": "~/.config/hypr/scripts/waybar-switch.sh",
+    "tooltip-format": "Switch Waybar Layout"
+  },
+  "height": 40,
+  "hyprland/window": {
+    "format": "{}",
+    "max-length": 40,
+    "separate-outputs": true
+  },
+  "hyprland/workspaces": {
+    "format": "{icon}",
+    "format-icons": {
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9",
+      "active": "\udb85\udcfb",
+      "default": "\uea71",
+      "urgent": "\udb85\udcfb"
+    },
+    "on-click": "activate",
+    "persistent-workspaces": {
+      "*": 5
+    },
+    "sort-by-number": true
+  },
+  "layer": "top",
+  "margin-left": 10,
+  "margin-right": 10,
+  "margin-top": 6,
+  "memory": {
+    "format": "  {percentage}%",
+    "interval": 5,
+    "tooltip-format": "{used:.1f}G / {total:.1f}G"
+  },
+  "modules-center": [
+    "mpris",
+    "clock"
+  ],
+  "modules-left": [
+    "hyprland/workspaces",
+    "hyprland/window"
+  ],
+  "modules-right": [
+    "cpu",
+    "memory",
+    "temperature",
+    "pulseaudio",
+    "network",
+    "custom/theme",
+    "custom/waybar-layout",
+    "tray",
+    "custom/notification",
+    "custom/power"
+  ],
+  "mpris": {
+    "format": "{player_icon}  {artist} \u2014 {title}",
+    "format-paused": "{status_icon}  {artist} \u2014 {title}",
+    "format-stopped": "",
+    "max-length": 40,
+    "on-click": "playerctl play-pause",
+    "on-click-right": "playerctl next",
+    "on-scroll-down": "playerctl volume 0.05-",
+    "on-scroll-up": "playerctl volume 0.05+",
+    "player-icons": {
+      "chromium": "",
+      "default": "",
+      "firefox": "",
+      "mpv": "\u25b6",
+      "spotify": ""
+    },
+    "status-icons": {
+      "paused": "",
+      "stopped": ""
+    },
+    "tooltip-format": "{player}: {artist} \u2014 {title}\n{album}\n{position} / {length}"
+  },
+  "network": {
+    "format-disconnected": "  offline",
+    "format-ethernet": "  {ifname}",
+    "format-wifi": "  {signalStrength}%",
+    "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n{essid}"
+  },
+  "position": "top",
+  "pulseaudio": {
+    "format": "{icon}  {volume}%",
+    "format-icons": {
+      "default": [
+        "",
+        "",
+        ""
+      ]
+    },
+    "format-muted": "  muted",
+    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "on-click-right": "pavucontrol"
+  },
+  "spacing": 0,
+  "temperature": {
+    "critical-threshold": 80,
+    "format": "{icon} {temperatureC}\u00b0C",
+    "format-icons": [
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "tooltip": true
+  },
+  "tray": {
+    "icon-size": 18,
+    "spacing": 8
+  }
+}

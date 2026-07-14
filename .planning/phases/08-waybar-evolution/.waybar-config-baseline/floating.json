@@ -1,0 +1,159 @@
+{
+  "backlight": {
+    "format": "\uf0eb {}%",
+    "interval": 1,
+    "on-scroll-down": "light -U 5",
+    "on-scroll-up": "light -A 5",
+    "tooltip": false
+  },
+  "battery": {
+    "format": "{icon}  {capacity}%",
+    "format-alt": "{time} {icon}",
+    "format-charging": "\uf1e6 {capacity}%",
+    "format-icons": [
+      "\uf244",
+      "\uf243",
+      "\uf242",
+      "\uf241",
+      "\uf240"
+    ],
+    "format-plugged": "\uf1e6 {capacity}%",
+    "states": {
+      "critical": 20,
+      "good": 95,
+      "warning": 30
+    }
+  },
+  "clock": {
+    "format": "{:%d %B \uf017 %I:%M%p}",
+    "format-alt": "{:%d/%m/%Y \uf017 %T}",
+    "interval": 1,
+    "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+  },
+  "cpu": {
+    "format": "\uf2db {}%",
+    "interval": 15,
+    "max-length": 10
+  },
+  "custom/launcher": {
+    "format": "\uf303 ",
+    "on-click": "walker",
+    "on-click-right": "killall walker"
+  },
+  "custom/media": {
+    "escape": true,
+    "exec": "python ~/.config/hypr/scripts/media-player.py 2> /dev/null",
+    "format": "{icon} {}",
+    "format-icons": {
+      "default": "\uf001 ",
+      "spotify": "\uf1bc "
+    },
+    "interval": 30,
+    "max-length": 30,
+    "on-click": "playerctl play-pause",
+    "on-scroll-down": "playerctl previous",
+    "on-scroll-up": "playerctl next",
+    "return-type": "json"
+  },
+  "custom/power": {
+    "format": "\uf011 ",
+    "on-click": "bash ~/.config/hypr/scripts/wlogout.sh"
+  },
+  "custom/updates": {
+    "exec": "checkupdates | wc -l",
+    "exec-if": "[[ $(checkupdates | wc -l) != 0 ]]",
+    "format": "{} Update(s)",
+    "interval": 15,
+    "on-click": "kitty -e paru -Syu && notify-send 'The system has been updated' "
+  },
+  "custom/wallpaper": {
+    "format": "\uf03e ",
+    "on-click": "bash ~/.config/hypr/scripts/wallpaper-switch.sh"
+  },
+  "hyprland/workspaces": {
+    "format": "{icon}",
+    "format-icons": {
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9"
+    },
+    "on-click": "activate",
+    "on-scroll-down": "hyprctl dispatch workspace e-1",
+    "on-scroll-up": "hyprctl dispatch workspace e+1",
+    "persistent-workspaces": {
+      "*": 6
+    },
+    "sort-by-number": true
+  },
+  "layer": "top",
+  "memory": {
+    "format": "\uf0c9 {}%",
+    "interval": 30,
+    "max-length": 10
+  },
+  "modules-center": [
+    "hyprland/workspaces"
+  ],
+  "modules-left": [
+    "custom/launcher",
+    "cpu",
+    "memory",
+    "custom/media",
+    "tray"
+  ],
+  "modules-right": [
+    "custom/updates",
+    "custom/wallpaper",
+    "network",
+    "pulseaudio",
+    "clock",
+    "backlight",
+    "battery",
+    "custom/power"
+  ],
+  "network": {
+    "format": "{ifname}",
+    "format-disconnected": "\udb82\udd2e",
+    "format-ethernet": "{bandwidthTotalBytes} \udb80\udf79",
+    "format-icons": [
+      "\udb82\udd2f",
+      "\udb82\udd1f",
+      "\udb82\udd22",
+      "\udb82\udd25",
+      "\udb82\udd28"
+    ],
+    "format-wifi": "{essid} ({signalStrength}%) {icon}",
+    "max-length": 30,
+    "tooltip-format": "{ifname}",
+    "tooltip-format-disconnected": "Disconnected!",
+    "tooltip-format-ethernet": "\udb81\udd52 {bandwidthUpBytes} / \udb80\uddda {bandwidthDownBytes}",
+    "tooltip-format-wifi": "\udb81\udd52 {bandwidthUpBytes} / \udb80\uddda {bandwidthDownBytes}"
+  },
+  "position": "top",
+  "pulseaudio": {
+    "format": "{icon} {volume}%",
+    "format-icons": {
+      "default": [
+        "\uf026",
+        "\uf027",
+        "\uf028"
+      ]
+    },
+    "format-muted": "{icon} {volume}%",
+    "on-click": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
+    "scroll-step": 5,
+    "tooltip": false
+  },
+  "spacing": "4",
+  "tray": {
+    "icon-size": 18,
+    "icon-theme": "Papirus-Dark",
+    "spacing": 10
+  }
+}
