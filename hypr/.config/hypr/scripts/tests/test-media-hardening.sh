@@ -255,6 +255,30 @@ ok=1
 [[ ! -s "$CURL_LOG" ]] && ok=0
 check "media-art-resolve.sh http://127.0.0.1: host guard fires before any network call" "$ok"
 
+# ── Check 9b (CR-01): literal-encoding SSRF bypasses of the loopback/
+# internal denylist — each hostile URL must be blocked BEFORE any fetch.
+# IPv6-bracket loopback/unique-local, decimal-integer IP, and hex-encoded
+# loopback all previously slipped past the naive `%%:*` host extraction.
+CR01_BYPASSES=(
+    'http://[::1]/x.png'          # IPv6 loopback via bracket literal
+    'http://[fd00::1]/x.png'      # IPv6 unique-local (fc00::/7)
+    'http://2130706433/x.png'     # decimal-integer form of 127.0.0.1
+    'https://0x7f.0.0.1/x.png'    # hex-encoded loopback octet
+    'http://[::ffff:127.0.0.1]/x.png'  # IPv4-mapped loopback
+)
+for bypass in "${CR01_BYPASSES[@]}"; do
+    : > "$CURL_LOG"
+    "$MEDIA_ART_RESOLVE" "$bypass" >/dev/null 2>&1
+    rc=$?
+    ok=1
+    [[ $rc -ne 0 ]] && ok=0
+    check "media-art-resolve.sh $bypass: exits non-zero (SSRF bypass blocked)" "$ok"
+
+    ok=1
+    [[ ! -s "$CURL_LOG" ]] && ok=0
+    check "media-art-resolve.sh $bypass: host guard fires before any network call" "$ok"
+done
+
 # ── Check 10: two distinct https artUrls -> two distinct cache files
 : > "$CURL_LOG"
 out_a="$("$MEDIA_ART_RESOLVE" 'https://example.invalid/a.png' 2>/dev/null || true)"

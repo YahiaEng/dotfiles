@@ -115,17 +115,89 @@ cache_path="$CACHE_DIR/$url_hash"
 # Best-effort SSRF guard (syntactic only, not DNS-rebinding-proof —
 # documented residual risk, T-08-07-04): reject the obvious internal
 # targets by extracting the host portion via bash parameter expansion.
+#
+# CR-01: the host extraction and denylist below must survive the literal
+# encodings a hostile mpris:artUrl can use to smuggle an internal target
+# past a naive dotted-decimal denylist:
+#   http://[::1]/         -> IPv6 bracket literal (a bare `%%:*` cut would
+#                            truncate the address to "[" and never match)
+#   http://2130706433/    -> bare-integer form of 127.0.0.1
+#   http://[fd00::1]/     -> IPv6 unique-local (fc00::/7)
+#   https://0x7f.0.0.1/   -> hex-encoded loopback octet
+# The posture is allowlist-the-shapes-we-can-reason-about, deny the rest:
+# a normal DNS name or a range-checked dotted-decimal IPv4 is allowed;
+# every other numeric/hex/bracketed encoding is refused.
 host_port="${url#*://}"
 host_port="${host_port%%/*}"
-host="${host_port%%:*}"
+
+# Strip an [IPv6] bracket literal to its inner address WITHOUT cutting at
+# the first colon (which would truncate a `[::1]` host to "["). Otherwise
+# strip a trailing :port from an ordinary host.
+if [[ "$host_port" == \[*\]* ]]; then
+    host="${host_port#\[}"
+    host="${host%%\]*}"
+    is_ipv6_literal=1
+else
+    host="${host_port%%:*}"
+    is_ipv6_literal=0
+fi
+# Lowercase for consistent hex / IPv6 hextet comparisons.
+host="${host,,}"
+
 case "$host" in
-    localhost | 127.* | ::1 | 0.0.0.0 | 169.254.* | 10.* | 192.168.*)
+    localhost | 0.0.0.0)
+        exit 3
+        ;;
+    # IPv4 dotted-decimal internal ranges.
+    127.* | 10.* | 192.168.* | 169.254.*)
         exit 3
         ;;
     172.1[6-9].* | 172.2[0-9].* | 172.3[01].*)
         exit 3
         ;;
+    # IPv6: loopback (::1), IPv4-mapped loopback (::ffff:127.*),
+    # unique-local fc00::/7 (first hextet fc../fd..), link-local fe80::/10
+    # (first hextet fe8./fe9./fea./feb.). Host here always contains a ':'
+    # for these, so an ordinary (colon-free) DNS name can never match.
+    ::1 | ::ffff:127.* | fc*:* | fd*:* | fe8*:* | fe9*:* | fea*:* | feb*:*)
+        exit 3
+        ;;
 esac
+
+# Non-bracketed hosts only: reject numeric/hex IPv4 encodings that dodge
+# the dotted-decimal denylist above. Bracketed literals were already
+# range-matched (and public IPv6 is intentionally allowed).
+if [[ "$is_ipv6_literal" -eq 0 ]]; then
+    # 0x / hex-encoded octet(s) — e.g. 0x7f.0.0.1, 0x7f000001, 0.0x7f.0.1.
+    case "$host" in
+        0x* | *.0x*)
+            exit 3
+            ;;
+    esac
+    # A host with no ASCII letter is a numeric IP form. The only numeric
+    # shape trusted is a dotted-decimal quad with four in-range, non-octal
+    # octets; every other numeric encoding (bare integer like 2130706433,
+    # octal-looking octets, short forms) is refused.
+    if [[ "$host" != *[a-z]* ]]; then
+        if [[ "$host" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]]; then
+            octet_o1="${BASH_REMATCH[1]}"
+            octet_o2="${BASH_REMATCH[2]}"
+            octet_o3="${BASH_REMATCH[3]}"
+            octet_o4="${BASH_REMATCH[4]}"
+            for octet in "$octet_o1" "$octet_o2" "$octet_o3" "$octet_o4"; do
+                # Leading-zero octet = octal-looking -> refuse.
+                if [[ "$octet" != "0" && "$octet" == 0* ]]; then
+                    exit 3
+                fi
+                if (( 10#$octet > 255 )); then
+                    exit 3
+                fi
+            done
+        else
+            exit 3
+        fi
+    fi
+fi
 
 # Cache hit: an existing regular file (never a symlink — unlink and
 # treat as a miss) that still passes the image mime gate.
