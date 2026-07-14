@@ -1,4 +1,6 @@
 {
+    "include": ["modules.jsonc"],
+
     "layer": "top",
     "position": "top",
     "height": 36,
@@ -11,6 +13,9 @@
     "modules-center": ["mpris", "clock"],
     "modules-right": ["custom/notification", "tray"],
 
+    // ── Full redefinitions (this layout's definition wins over the ─────
+    // ── shared one — waybar include is whole-key first-defined-wins, ───
+    // ── never a partial patch) ──────────────────────────────────────────
     "hyprland/workspaces": {
         "format": "{icon}",
         "format-icons": {
@@ -53,51 +58,6 @@
         "on-scroll-up": "playerctl volume 0.05+",
         "on-scroll-down": "playerctl volume 0.05-",
         "tooltip-format": "{player}: {artist} — {title}\n{album}\n{position} / {length}"
-    },
-
-    "clock": {
-        "format": "  {:%H:%M}",
-        "format-alt": "  {:%A, %B %d, %Y}",
-        "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>",
-        "calendar": {
-            "mode": "month",
-            "mode-mon-col": 3,
-            "weeks-pos": "left",
-            "on-scroll": 1,
-            "format": {
-                "months":   "<span color='#cba6f7'><b>{}</b></span>",
-                "days":     "<span color='#cdd6f4'>{}</span>",
-                "weeks":    "<span color='#585b70'>W{}</span>",
-                "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
-                "today":    "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>"
-            }
-        },
-        "actions": {
-            "on-click-right": "mode",
-            "on-scroll-up": "shift_up",
-            "on-scroll-down": "shift_down"
-        }
-    },
-
-    "custom/notification": {
-        "tooltip": false,
-        "format": "{icon} {}",
-        "format-icons": {
-            "notification": "󰂚<span foreground='red'><sup></sup></span>",
-            "none": "󰂜",
-            "dnd-notification": "󰂛<span foreground='red'><sup></sup></span>",
-            "dnd-none": "󰂛",
-            "inhibited-notification": "󰂚<span foreground='red'><sup></sup></span>",
-            "inhibited-none": "󰂜",
-            "dnd-inhibited-notification": "󰂛<span foreground='red'><sup></sup></span>",
-            "dnd-inhibited-none": "󰂛"
-        },
-        "return-type": "json",
-        "exec-if": "which swaync-client",
-        "exec": "swaync-client -swb",
-        "on-click": "swaync-client -t -sw",
-        "on-click-right": "swaync-client -d -sw",
-        "escape": true
     },
 
     "tray": {

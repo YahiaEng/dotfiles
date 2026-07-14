@@ -164,10 +164,29 @@ if __name__ == '__main__':
     target = sys.argv[1]
     try:
         resolved = resolve_config(target)
+        with open(target, 'r', encoding='utf-8') as fh:
+            own_data = json.loads(strip_jsonc_comments(fh.read()))
+        own_keys = {k for k in own_data.keys() if k != 'include'}
     except Exception as exc:  # noqa: BLE001 - report and fail, never silently pass
         print(f"waybar-equivalence-check: failed to resolve {target}: {exc}", file=sys.stderr)
         sys.exit(1)
-    print(json.dumps(resolved, sort_keys=True, indent=2))
+
+    # "Effective config" = every key the including file defines directly
+    # (bar-level options, plus any module it fully redefines itself) PLUS
+    # any module key pulled in purely via include that is actually
+    # referenced by modules-left/-center/-right. A shared module
+    # definition nobody on this layout lists is inert JSON — waybar never
+    # instantiates a widget for it — so it must not count as an effective
+    # behavior difference between the pre-refactor standalone file (which
+    # never had unused module keys lying around) and the post-refactor
+    # include-composed one (where modules.jsonc legitimately holds
+    # definitions other layouts use).
+    used = set()
+    for arr_key in ('modules-left', 'modules-center', 'modules-right'):
+        used |= set(resolved.get(arr_key, []) or [])
+
+    effective = {k: v for k, v in resolved.items() if k in own_keys or k in used}
+    print(json.dumps(effective, sort_keys=True, indent=2))
 PYEOF
 }
 

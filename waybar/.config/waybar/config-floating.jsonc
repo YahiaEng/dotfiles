@@ -1,18 +1,21 @@
 {
-	"layer": "top",
+    "include": ["modules.jsonc"],
+
+    "layer": "top",
     "position": "top",
     "spacing": "4",
-	"modules-left": [
+
+    "modules-left": [
         "custom/launcher",
         "cpu",
         "memory",
         "custom/media",
         "tray"
     ],
-	"modules-center": [
+    "modules-center": [
         "hyprland/workspaces"
     ],
-	"modules-right": [
+    "modules-right": [
         "custom/updates",
         "custom/wallpaper",
         "network",
@@ -23,44 +26,59 @@
         "custom/power"
     ],
 
-/* ── Left modules ──────────────────────────────────── */
-    "custom/launcher":{
-        "format": " ",
-        "on-click": "walker",
-        "on-click-right": "killall walker"
-    },    
+    /* ── Full redefinitions (this layout's own definition wins over the
+       shared one — waybar include is whole-key first-defined-wins, never
+       a partial patch). custom/notification is still NOT in modules-right
+       above — that is the live D-26 parity bug this plan deliberately
+       does not touch; plan 08-09 adds it. ────────────────────────────── */
+
     "cpu": {
         "interval": 15,
-        "format": " {}%",
+        "format": "\uf2db {}%",
         "max-length": 10
     },
     "memory": {
         "interval": 30,
-        "format": " {}%",
+        "format": "\uf0c9 {}%",
         "max-length": 10
     },
-    "custom/media": {
-        "format": "{icon} {}",
+    "pulseaudio": {
+        "tooltip": false,
+        "scroll-step": 5,
+        "format": "{icon} {volume}%",
+        "format-muted": "{icon} {volume}%",
+        "on-click": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
         "format-icons": {
-            "spotify": " ",
-            "default": " "
-        },
-        "escape": true,
-        "max-length": 30,
-        "interval": 30,
-        "return-type": "json",        
-        "exec": "python ~/.config/hypr/scripts/media-player.py 2> /dev/null",
-        "on-click": "playerctl play-pause",
-        "on-scroll-up": "playerctl next",
-        "on-scroll-down": "playerctl previous"
+            "default": ["\uf026", "\uf027", "\uf028"]
+        }
     },
-	"tray":{
+    "network": {
+        "format": "{ifname}",
+        "format-wifi": "{essid} ({signalStrength}%) {icon}",
+        "format-ethernet": "{bandwidthTotalBytes} 󰍹",
+        "format-disconnected": "󰤮",
+        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+        "tooltip-format": "{ifname}",
+        "tooltip-format-wifi": "󰕒 {bandwidthUpBytes} / 󰇚 {bandwidthDownBytes}",
+        "tooltip-format-ethernet": "󰕒 {bandwidthUpBytes} / 󰇚 {bandwidthDownBytes}",
+        "tooltip-format-disconnected": "Disconnected!",
+        "max-length": 30
+    },
+    "clock": {
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+        "format": "{:%d %B \uf017 %I:%M%p}",
+        "format-alt": "{:%d/%m/%Y \uf017 %T}",
+        "interval": 1
+    },
+    "tray": {
         "icon-theme": "Papirus-Dark",
-		"icon-size":18,
-		"spacing": 10
-	},
-
-/* ── Center Modules ────────────────────────────────── */
+        "icon-size": 18,
+        "spacing": 10
+    },
+    "custom/power": {
+        "format": "\uf011 ",
+        "on-click": "bash ~/.config/hypr/scripts/wlogout.sh"
+    },
     "hyprland/workspaces": {
         "format": "{icon}",
         "format-icons": {
@@ -81,69 +99,5 @@
         "persistent-workspaces": {
             "*": 6
         }
-    },
-
-/* ── Right Modules ─────────────────────────────────── */
-    "custom/updates":{
-        "format": "{} Update(s)",
-        "exec": "checkupdates | wc -l",
-        "exec-if": "[[ $(checkupdates | wc -l) != 0 ]]",
-        "interval": 15,
-        "on-click": "kitty -e paru -Syu && notify-send 'The system has been updated' "
-    },
-    "custom/wallpaper":{
-        "format":" ",
-        "on-click": "bash ~/.config/hypr/scripts/wallpaper-switch.sh"
-    },
-	"pulseaudio": {
-		"tooltip": false,
-		"scroll-step": 5,
-		"format": "{icon} {volume}%",
-		"format-muted": "{icon} {volume}%",
-		"on-click":"pactl set-sink-mute @DEFAULT_SINK@ toggle",
-		"format-icons": {
-			"default": ["", "", ""]
-		}
-	},
-    "clock": {
-		"tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
-		"format": "{:%d %B  %I:%M%p}",
-		"format-alt": "{:%d/%m/%Y  %T}",
-		"interval": 1
-    },
-    "backlight": {
-		"tooltip": false,
-		"format": " {}%",
-		"interval":1,
-        "on-scroll-up": "light -A 5",
-		"on-scroll-down": "light -U 5"
-	},
-    "battery": {
-        "states": {
-            "good": 95,
-            "warning": 30,
-            "critical": 20
-        },
-        "format": "{icon}  {capacity}%",
-        "format-charging": " {capacity}%",
-        "format-plugged": " {capacity}%",
-        "format-alt": "{time} {icon}",
-        "format-icons": ["", "", "", "", ""]
-    },
-    "custom/power":{
-        "format": " ",
-        "on-click": "bash ~/.config/hypr/scripts/wlogout.sh"
-    },
-    "network": {
-        "format": "{ifname}",
-        "format-wifi": "{essid} ({signalStrength}%) {icon}",
-        "format-ethernet": "{bandwidthTotalBytes} 󰍹",
-        "format-disconnected": "󰤮",
-        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
-        "tooltip-format": "{ifname}",
-        "tooltip-format-wifi": "󰕒 {bandwidthUpBytes} / 󰇚 {bandwidthDownBytes}",
-        "tooltip-format-ethernet": "󰕒 {bandwidthUpBytes} / 󰇚 {bandwidthDownBytes}",
-        "tooltip-format-disconnected": "Disconnected!",
-        "max-length": 30
     }
 }
