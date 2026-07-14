@@ -20,6 +20,9 @@ window#waybar {
     color: @on_surface;
     border-radius: 14px;
     border-bottom: 1px solid alpha(@primary, 0.4);
+    /* D-07 zero-risk bonus — see style-full.css's identical comment for
+       the live-verified rationale. */
+    transition: opacity 0.3s ease;
 }
 
 /* #workspaces button, #clock, #mpris, #custom-notification and #tray >
