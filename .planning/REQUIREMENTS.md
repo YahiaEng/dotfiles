@@ -45,7 +45,7 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 ### Waybar Evolution
 
 - [x] **BAR-01**: Waybar has OLED-safe behavior — auto-hide when idle/unneeded plus translucent minimal styling
-- [ ] **BAR-02**: Pixel-shift mitigation attempted for static bar elements (best-effort; no reference implementation exists — descope with evidence if infeasible)
+- [x] **BAR-02**: Pixel-shift mitigation attempted for static bar elements (best-effort; no reference implementation exists — descope with evidence if infeasible)
 - [x] **BAR-03**: An additional vertical (left) waybar layout exists and works with theme switching
 - [x] **BAR-04**: Media center accessible from waybar integrating mpris players (Spotify, browser/YouTube) — form factor per modern-rice research
 - [x] **BAR-05**: Notification center opens from a waybar button (swaync overlay: view, clear, interact with notifications)
@@ -121,7 +121,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MENU-06 | Phase 7 | Complete |
 | MENU-07 | Phase 7 | Complete |
 | BAR-01 | Phase 8 | Complete |
-| BAR-02 | Phase 8 | Pending |
+| BAR-02 | Phase 8 | Complete |
 | BAR-03 | Phase 8 | Complete |
 | BAR-04 | Phase 8 | Complete |
 | BAR-05 | Phase 8 | Complete |

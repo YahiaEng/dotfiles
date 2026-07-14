@@ -24,7 +24,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 5: Light Mode Pipeline & Theme Presets** - Extend the theme pipeline to light mode, ship more presets (incl. light), and organize per-theme wallpapers behind a redesigned picker (completed 2026-07-11)
 - [x] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite (19/19 plans executed, verification passed, UAT passed, 53/53 threats closed) (completed 2026-07-13)
 - [x] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet (completed 2026-07-13)
-- [ ] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access
+- [x] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access (completed 2026-07-14)
 - [ ] **Phase 9: wlogout to wleave Migration** - Replace wlogout with wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class, with no regression to the Phase 6 center-bar design
 
 ## Phase Details
@@ -200,7 +200,7 @@ Plans:
   3. A media center integrating mpris players (Spotify, browser/YouTube) is accessible from waybar, in the form factor chosen per modern-rice research.
   4. A waybar button opens the swaync notification center overlay to view, clear, and interact with notifications.
 
-**Plans**: 9/10 plans executed
+**Plans**: 10/10 plans complete
 **UI hint**: yes
 
 Plans:
@@ -224,7 +224,7 @@ Plans:
 **Wave 4** *(blocked on Wave 3)*
 
 - [x] 08-08-PLAN.md — Wire the popup to the bar: the media segment's `on-click` re-points to a cursor-anchored, monitor-clamped opener (fixed-position fallback pre-authorised) (BAR-04) [wave 4, depends on 08-05, 08-07]
-- [ ] 08-10-PLAN.md — BAR-02 pixel-shift: timeboxed spike against D-09's kill criteria, then either ship the jitter as a tunable in the visibility owner or close BAR-02 as **descoped with evidence** (BAR-02) [wave 4, depends on 08-03, 08-04]
+- [x] 08-10-PLAN.md — BAR-02 pixel-shift: timeboxed spike against D-09's kill criteria, then either ship the jitter as a tunable in the visibility owner or close BAR-02 as **descoped with evidence** (BAR-02) [wave 4, depends on 08-03, 08-04]
 
 ## Progress
 
@@ -237,7 +237,7 @@ Plans:
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
-| 8. Waybar Evolution | v2.0 | 9/10 | In Progress|  |
+| 8. Waybar Evolution | v2.0 | 10/10 | Complete   | 2026-07-14 |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
 ### Phase 9: wlogout to wleave Migration

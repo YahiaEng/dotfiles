@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 08
 current_phase_name: waybar-evolution
-status: executing
-stopped_at: Completed 08-09-PLAN.md
-last_updated: "2026-07-14T14:19:31.615Z"
+status: verifying
+stopped_at: Completed 08-10-PLAN.md
+last_updated: "2026-07-14T20:06:58.561Z"
 last_activity: 2026-07-14
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 48
-  completed_plans: 47
-  percent: 67
+  completed_plans: 48
+  percent: 83
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 
 Phase: 08 (waybar-evolution) — EXECUTING
 Plan: 10 of 10
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-14 — Phase 08 execution started
 
 ## Performance Metrics
@@ -109,6 +109,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 08 P05 | 30min | 4 tasks | 9 files |
 | Phase 08 P09 | 30min | 3 tasks | 2 files |
 | Phase 08 P08 | 20min | 2 tasks | 8 files |
+| Phase 08-waybar-evolution P10 | 23min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -222,6 +223,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: swaync wraps every command/update-command/cmd_getter/cmd_setter value in its own shell invocation internally — never embed a literal double-quote in these config values; use case-pattern matching instead (08-09)
 - [Phase ?]: ANCHOR_MODE ships as fixed (D-23 pre-authorised fallback): every DRM connector was hardware-disconnected this session, making cursor-anchored placement unverifiable; flip to cursor and re-verify once a monitor is attached — D-23 pre-authorises taking the fallback without debate when cursor-anchoring can't be trusted; being unable to verify at all is at least as strong a trigger as an observed jitter
 - [Phase ?]: config-floating.jsonc needed zero direct edit: custom/media is a single shared modules.jsonc definition (D-31), referenced not redefined by floating, so the on-click fix reaches it by inheritance
+- [Phase 08-waybar-evolution]: BAR-02 closed as DESCOPED (D-10): waybar's only owner-driven CSS actuation signal (SIGUSR2/reload) produces a real, measured, reproducible visual flash and transient window reflow on every invocation, mechanism-independent, killing D-09 kill criteria #1 and #2 before the 2px displacement question is reached.
+- [Phase 08-waybar-evolution]: Exposure-ratio standing-hypothesis measurement reported UNMEASURED (187 real samples, 15.53 min, 100% visible) rather than fabricated/extrapolated -- session fell short of the plan's own >=60-min/>=720-sample validity floor.
 
 ### Quick Tasks Completed
 
@@ -266,6 +269,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T14:18:40.419Z
-Stopped at: Completed 08-09-PLAN.md
+Last session: 2026-07-14T20:06:58.554Z
+Stopped at: Completed 08-10-PLAN.md
 Resume file: None
