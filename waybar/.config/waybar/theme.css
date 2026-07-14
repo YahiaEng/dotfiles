@@ -1,0 +1,64 @@
+/* ╔══════════════════════════════════════════════════════╗
+   ║              THEME.CSS — SEMANTIC ALIAS LAYER          ║
+   ║  08-11 (gap closure). ALIAS-BOUNDARY RULE (enforced by  ║
+   ║  waybar-design-lint CHECK B, mechanically — not by      ║
+   ║  convention alone):                                     ║
+   ║                                                          ║
+   ║    This file is the ONLY waybar stylesheet permitted to ║
+   ║    name a raw matugen palette token (@primary, @surface, ║
+   ║    @on_error, ...). Every other waybar .css speaks in    ║
+   ║    ROLE NAMES ONLY (@bar-surface, @fg, @accent, ...).    ║
+   ║                                                          ║
+   ║    A role name must NEVER be added below without a real  ║
+   ║    matugen token behind it — see CORRECTION 1 in         ║
+   ║    08-11-PLAN.md: the palette has exactly 19 tokens, and ║
+   ║    there is NO `surface_container` token in any of the   ║
+   ║    22 palette JSONs. Any role that implies a token that  ║
+   ║    doesn't exist re-introduces the exact WLOG-01 failure ║
+   ║    class this file exists to prevent (GTK3 discards the  ║
+   ║    ENTIRE stylesheet on one unresolvable @color).         ║
+   ╚══════════════════════════════════════════════════════╝ */
+
+/* The rendered 19-token file — matugen's output, one @import chain,
+   never duplicated. This is the single source every role alias below
+   derives from. */
+@import url("../../.local/state/theme/waybar.css");
+
+/* ── Geometry scale (NOT expressible as a GTK named colour — documented ─
+   ── here as the single source of truth; layout sheets follow by hand) ──
+   Radius:  14px bar corners / 10px segment corners / 6px workspace-
+            button corners.
+   Font:    13px body text / 16px glyph-only module / 18px vertical-
+            column glyph.
+   Floors:  14px workspace-button min-width. */
+
+/* ── Surfaces — the translucent island ───────────────────────────────
+   The one neutral surface the whole design rests on. Derived from
+   @surface via alpha() rather than hardcoded, so it is automatically
+   correct in light and dark with no branching. Built from @surface
+   (the neutral surface token) per CORRECTION 1 — NOT from a
+   surface_container token, which does not exist in this palette. */
+@define-color bar-surface alpha(@surface, 0.55);
+/* Interactive feedback (hover) — same surface, higher opacity. */
+@define-color bar-surface-hover alpha(@surface, 0.78);
+/* The rare segment that genuinely needs to sit proud of the island.
+   Use sparingly — the default for a segment is NO fill. */
+@define-color seg-surface alpha(@surface_variant, 0.40);
+
+/* ── Foreground ───────────────────────────────────────────────────── */
+/* Primary text/glyph colour. */
+@define-color fg @on_surface;
+/* Inactive workspaces, idle glyphs. */
+@define-color fg-dim @outline;
+/* Secondary text (e.g. window title). */
+@define-color fg-mute alpha(@on_surface, 0.55);
+
+/* ── State — chroma lives here, and NOWHERE else ─────────────────────
+   The active workspace, and only the active workspace, plus genuinely-
+   active module states, carry hue. Everything else stays neutral
+   (fg/fg-dim/fg-mute/bar-surface above). */
+@define-color accent @primary;
+@define-color on-accent @on_primary;
+@define-color warn @tertiary;
+@define-color danger @error;
+@define-color on-danger @on_error;
