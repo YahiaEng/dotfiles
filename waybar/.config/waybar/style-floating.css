@@ -1,5 +1,6 @@
 @import url("../../.local/state/theme/waybar.css");
 @import url("../../.local/state/theme/waybar-font.css");
+@import url("waybar-modules.css");
 
 * {
     font-size: 13px;
@@ -40,28 +41,52 @@ window#waybar.hidden {
 	background: @primary_container;
 }
 
+/* waybar-modules.css's shared "system modules" group rule (#cpu, #memory,
+   #temperature, #pulseaudio, #network) sets padding/margin/border-radius/
+   background/transition/border-bottom as one block, plus per-module
+   color/border-bottom-color, plus a shared :hover background swap.
+   Floating's own look predates that shared rule and never had a visible
+   bottom border, a margin-right, or hover feedback on these modules — the
+   overrides below cancel exactly those leaking properties so floating's
+   rendered result stays byte-for-byte what it was pre-refactor (D-33).
+   Everything floating already set explicitly (margin-top/-left/-bottom,
+   padding-left/-right, border-radius, transition, color, background)
+   already wins over the shared rule via normal cascade order and needs
+   no extra override. */
 #cpu {
 	margin-top: 6px;
 	margin-left: 8px;
+	margin-right: 0;
 	padding-left: 10px;
 	margin-bottom: 0px;
 	padding-right: 10px;
 	border-radius: 10px;
+	border-bottom: none;
 	transition: none;
 	color: @on_primary;
 	background: @primary;
+}
+#cpu:hover {
+	background: @primary;
+	color: @on_primary;
 }
 
 #memory {
 	margin-top: 6px;
 	margin-left: 8px;
+	margin-right: 0;
 	padding-left: 10px;
 	margin-bottom: 0px;
 	padding-right: 10px;
 	border-radius: 10px;
+	border-bottom: none;
 	transition: none;
 	color: @on_tertiary;
 	background: @tertiary;
+}
+#memory:hover {
+	background: @tertiary;
+	color: @on_tertiary;
 }
 
 #custom-media {
@@ -87,6 +112,13 @@ window#waybar.hidden {
 	color: @on_secondary_container;
 	background: @secondary_container;
 }
+/* waybar-modules.css's #tray > .passive/.needs-attention icon-dim effects
+   are new to floating (it never styled these) — neutralized for the same
+   zero-behavior-change reason as above. */
+#tray > .passive,
+#tray > .needs-attention {
+	-gtk-icon-effect: none;
+}
 
 /* ── Center Modules ────────────────────────────────── */
 #workspaces {
@@ -99,8 +131,13 @@ window#waybar.hidden {
 	transition: none;
 }
 
-/* For all workspace buttons */
+/* For all workspace buttons. waybar-modules.css's shared #workspaces
+   button rule adds padding/margin/border-bottom floating never had —
+   cancelled below (see the #cpu comment above for the same rationale). */
 #workspaces button {
+	padding: 0;
+	margin: 0;
+	border-bottom: none;
 	transition: none;
 	color: @primary;
 	background: transparent;
@@ -108,8 +145,10 @@ window#waybar.hidden {
 	border-radius: 2px;
 }
 
-/* Currently active workspace */
+/* Currently active workspace. Shared rule's background: @primary would
+   otherwise leak in since floating never set a background here. */
 #workspaces button.active {
+	background: transparent;
 	color: @tertiary;
     border-top: 2px solid @tertiary;
     border-bottom: 2px solid @tertiary;
@@ -123,8 +162,10 @@ window#waybar.hidden {
 	font-size: 4px;
 }
 
-/* Hovered workspace */
+/* Hovered workspace. Shared rule's background: @primary_container would
+   otherwise leak in since floating never set a hover background. */
 #workspaces button:hover {
+	background: transparent;
 	transition: none;
 	box-shadow: inherit;
 	text-shadow: inherit;
@@ -165,13 +206,19 @@ window#waybar.hidden {
 #pulseaudio {
 	margin-top: 6px;
 	margin-left: 8px;
+	margin-right: 0;
 	padding-left: 10px;
 	padding-right: 10px;
 	margin-bottom: 0px;
 	border-radius: 10px;
+	border-bottom: none;
 	transition: none;
 	color: @on_tertiary;
 	background: @tertiary;
+}
+#pulseaudio:hover {
+	background: @tertiary;
+	color: @on_tertiary;
 }
 
 #clock {
@@ -182,6 +229,8 @@ window#waybar.hidden {
 	margin-bottom: 0px;
 	border-radius: 10px;
 	transition: none;
+	font-weight: normal;
+	font-size: 13px;
 	color: @on_background;
 	background: @background;
 }
@@ -245,15 +294,25 @@ window#waybar.hidden {
 	color: @on_error;
 	background: @error;
 }
+#custom-power:hover {
+	background: @error;
+	color: @on_error;
+}
 
 #network {
 	margin-top: 6px;
 	margin-left: 8px;
+	margin-right: 0;
 	padding-left: 10px;
 	padding-right: 10px;
 	margin-bottom: 0px;
 	border-radius: 10px;
+	border-bottom: none;
 	transition: none;
 	color: @on_secondary_container;
 	background: @secondary_container;
+}
+#network:hover {
+	background: @secondary_container;
+	color: @on_secondary_container;
 }

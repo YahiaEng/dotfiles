@@ -1,5 +1,6 @@
 @import url("../../.local/state/theme/waybar.css");
 @import url("../../.local/state/theme/waybar-font.css");
+@import url("waybar-modules.css");
 
 * {
     font-size: 13px;
@@ -15,87 +16,13 @@ window#waybar {
     border-bottom: 3px solid @primary;
 }
 
-#workspaces button {
-    padding: 0 8px;
-    color: @outline;
-    background: transparent;
-    border-radius: 10px;
-    border-bottom: 3px solid transparent;
-    margin: 4px 2px;
-    transition: all 0.3s ease;
-}
-
-#workspaces button.active {
-    color: @on_primary;
-    background: @primary;
-    border-bottom-color: @secondary;
-}
-
-#workspaces button:hover {
-    background: @primary_container;
-    color: @on_primary_container;
-    border-bottom-color: @primary;
-}
-
-#clock {
-    padding: 0 14px;
-    color: @primary;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-/* ── MPRIS (now playing) ───────────────────────────── */
-#mpris {
-    padding: 0 12px;
-    color: @secondary;
-    font-style: italic;
-    border-left: 3px solid @secondary;
-    margin-left: 4px;
-}
-
-#mpris.paused {
-    color: @outline;
-    border-left-color: @outline;
-}
-
-#mpris.stopped {
-    color: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
-}
-
-/* ── Notification bell ─────────────────────────────── */
-#custom-notification {
-    padding: 0 10px;
-    color: @secondary;
-    background: @secondary_container;
-    border-radius: 10px;
-    margin: 4px 2px;
-    font-size: 15px;
-    transition: all 0.3s ease;
-}
-
-#custom-notification:hover {
-    background: @secondary;
-    color: @on_secondary;
-}
-
-#tray {
-    padding: 0 8px;
-}
-
-#tray > .passive {
-    -gtk-icon-effect: dim;
-}
-
-/* ── Tooltip (calendar dropdown) ───────────────────── */
-tooltip {
-    background: @surface;
-    border: 2px solid @primary;
-    border-radius: 10px;
-}
-
-tooltip label {
-    color: @on_surface;
+/* #workspaces button, #clock, #mpris, #custom-notification and #tray >
+   .passive were already byte-identical to style-full.css's rules pre-
+   refactor, so they need no override here — waybar-modules.css supplies
+   the exact same values. The one genuinely new addition the shared file
+   brings in is #tray > .needs-attention (full has it, minimal never
+   did); neutralized below so minimal's tray keeps its exact prior
+   (unstyled) needs-attention behavior — D-33 zero-behavior-change. */
+#tray > .needs-attention {
+    -gtk-icon-effect: none;
 }

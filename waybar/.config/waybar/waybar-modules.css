@@ -1,0 +1,189 @@
+/* ── Shared module rules (D-31) ────────────────────────────────────────
+   Imported by every style-{full,minimal,floating}.css AFTER the theme
+   imports. Copied verbatim from style-full.css — these are the module
+   selectors used by two or more layouts today. window#waybar and the "*"
+   reset stay layout-owned (never here) so plan 08-03's OLED trim has a
+   single place per layout to land. Each layout sheet may still override
+   individual properties via normal CSS cascade (later rule wins at the
+   property level) — see 08-RESEARCH.md Verdict 3's CSS-side asymmetry
+   note. */
+
+/* ── Workspaces ────────────────────────────────────── */
+#workspaces button {
+    padding: 0 8px;
+    color: @outline;
+    background: transparent;
+    border-radius: 10px;
+    border-bottom: 3px solid transparent;
+    margin: 4px 2px;
+    transition: all 0.3s ease;
+}
+
+#workspaces button.active {
+    color: @on_primary;
+    background: @primary;
+    border-bottom-color: @secondary;
+}
+
+#workspaces button:hover {
+    background: @primary_container;
+    color: @on_primary_container;
+    border-bottom-color: @primary;
+}
+
+/* ── Window title ──────────────────────────────────── */
+#window {
+    padding: 0 12px;
+    color: @secondary;
+    font-style: italic;
+}
+
+/* ── Clock ─────────────────────────────────────────── */
+#clock {
+    padding: 0 14px;
+    color: @primary;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* ── System modules ────────────────────────────────── */
+#cpu,
+#memory,
+#temperature,
+#pulseaudio,
+#network {
+    padding: 0 10px;
+    margin: 4px 1px;
+    border-radius: 10px;
+    background: @surface_variant;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+}
+
+#cpu {
+    color: @tertiary;
+    border-bottom-color: @tertiary;
+}
+#memory {
+    color: @secondary;
+    border-bottom-color: @secondary;
+}
+#temperature {
+    color: @primary;
+    border-bottom-color: @primary;
+}
+#temperature.critical {
+    color: @error;
+    background: @error;
+    color: @on_error;
+}
+#pulseaudio {
+    color: @tertiary;
+    border-bottom-color: @tertiary;
+}
+#network {
+    color: @secondary;
+    border-bottom-color: @secondary;
+}
+
+#cpu:hover,
+#memory:hover,
+#temperature:hover,
+#pulseaudio:hover,
+#network:hover {
+    background: @primary_container;
+    color: @on_primary_container;
+}
+
+/* ── MPRIS (now playing) ───────────────────────────── */
+#mpris {
+    padding: 0 12px;
+    color: @secondary;
+    font-style: italic;
+    border-left: 3px solid @secondary;
+    margin-left: 4px;
+}
+
+#mpris.paused {
+    color: @outline;
+    border-left-color: @outline;
+}
+
+#mpris.stopped {
+    color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* ── Notification bell ─────────────────────────────── */
+#custom-notification {
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 10px;
+    color: @secondary;
+    background: @secondary_container;
+    font-size: 15px;
+    transition: all 0.3s ease;
+}
+
+#custom-notification:hover {
+    background: @secondary;
+    color: @on_secondary;
+}
+
+/* ── Custom modules ────────────────────────────────── */
+#custom-theme,
+#custom-waybar-layout {
+    padding: 0 8px;
+    margin: 4px 2px;
+    border-radius: 10px;
+    color: @on_primary;
+    background: @primary;
+    transition: all 0.3s ease;
+}
+
+#custom-theme:hover,
+#custom-waybar-layout:hover {
+    background: @tertiary;
+    color: @on_tertiary;
+}
+
+#custom-power {
+    padding: 0 12px;
+    margin: 4px 4px 4px 2px;
+    border-radius: 10px;
+    background: @error;
+    color: @on_error;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+#custom-power:hover {
+    background: @on_error;
+    color: @error;
+}
+
+/* ── Tray ──────────────────────────────────────────── */
+#tray {
+    padding: 0 8px;
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
+
+/* ── Tooltip ───────────────────────────────────────── */
+tooltip {
+    background: @surface;
+    border: 2px solid @primary;
+    border-radius: 10px;
+}
+
+tooltip label {
+    color: @on_surface;
+}
