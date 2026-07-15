@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 10
 current_phase_name: ags-media-applet
 status: executing
-stopped_at: Completed 10-04-PLAN.md (garuda restyle + cava underlay, human-approved)
-last_updated: "2026-07-15T15:07:57.800Z"
+stopped_at: Completed 10-05-PLAN.md (matugen theming + CSS hot-reload, MEDIA-03, live-verified)
+last_updated: "2026-07-15T15:30:18.785Z"
 last_activity: 2026-07-15
 last_activity_desc: Completed 10-03 (live MPRIS controls, human-approved)
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 60
-  completed_plans: 58
+  completed_plans: 59
   percent: 71
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 10 (ags-media-applet) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-07-15 — Completed 10-03 (live MPRIS controls, human-approved)
 
@@ -115,6 +115,7 @@ Last activity: 2026-07-15 — Completed 10-03 (live MPRIS controls, human-approv
 | Phase 10 P02 | multi-session | 3 tasks | 6 files |
 | Phase 10 P03 | multi-session (3 gate rounds) | 3 tasks | 2 files |
 | Phase 10 P04 | multi-session | 3 tasks | 6 files |
+| Phase 10 P05 | 30 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -255,6 +256,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 10]: Un-ellipsized Gtk.Label min-width = full text; in a halign=FILL box (can't shrink below widest child) a long title overflows a fixed-width card and de-centers sibling rows. Fix: ellipsize (Pango.EllipsizeMode.END + maxWidthChars) to cap min-width so the box collapses to card width and centered rows center.
 - [Phase 10]: Gate Gtk.Image on a real non-empty file path via a With-bound accessor; GTK's fallback broken-image icon ignores pixelSize/widthRequest and overflows its allocation. Fall back to a neutral rgba placeholder box; real album art renders correctly with no further change.
 - [Phase 10]: Deviation [Rule 3]: ran stow ags to create the ~/.config/ags symlink (cava CONFIG resolves via GLib.get_home_dir()/.config/ags, not the --directory flag). Idempotent GNU stow op; only a symlink created, no repo files changed.
+- [Phase 10-05]: No post_hook in matugen config.toml for AGS — reload.sh (D-04 sole owner) gets a guarded ags request -i media reload-css block instead — config.toml and reload.sh both explicitly lock reload.sh as the sole reload-fan-out owner; a post_hook would violate that already-established architecture
+- [Phase 10-05]: AGS style.scss @import is 4 levels deep (not eww's 2) and reload-css must realpath-resolve the stowed symlink before invoking sass — AGS's Go bundler collapses the ~/.config/ags symlink to the real repo path before compiling scss, unlike eww's daemon which preserves it; the runtime sass subprocess for hot-reload must match that same resolution or the @import silently fails
 
 ### Quick Tasks Completed
 
@@ -299,6 +302,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T15:07:57.792Z
-Stopped at: Completed 10-04-PLAN.md (garuda restyle + cava underlay, human-approved)
+Last session: 2026-07-15T15:30:18.777Z
+Stopped at: Completed 10-05-PLAN.md (matugen theming + CSS hot-reload, MEDIA-03, live-verified)
 Resume file: None
