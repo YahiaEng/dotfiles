@@ -101,7 +101,7 @@ export default function MediaWindow() {
           $type="overlay"
           class="cava-layer"
           hexpand
-          heightRequest={170}
+          heightRequest={130}
           halign={Gtk.Align.FILL}
           valign={Gtk.Align.START}
         >
@@ -115,19 +115,19 @@ export default function MediaWindow() {
         <box
           $type="overlay"
           class="media-thumb"
-          widthRequest={92}
-          heightRequest={92}
+          widthRequest={76}
+          heightRequest={76}
           overflow={Gtk.Overflow.HIDDEN}
           halign={Gtk.Align.CENTER}
           valign={Gtk.Align.START}
-          marginTop={38}
+          marginTop={22}
         >
           <With value={artPath}>
             {(path) =>
               path ? (
                 <image
                   file={path}
-                  pixelSize={92}
+                  pixelSize={76}
                   hexpand
                   vexpand
                   halign={Gtk.Align.FILL}
@@ -151,7 +151,7 @@ export default function MediaWindow() {
           $type="overlay"
           class="media-controls"
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={12}
+          spacing={8}
           hexpand
           halign={Gtk.Align.FILL}
           valign={Gtk.Align.END}
@@ -164,7 +164,7 @@ export default function MediaWindow() {
               justify={Gtk.Justification.CENTER}
               xalign={0.5}
               ellipsize={Pango.EllipsizeMode.END}
-              maxWidthChars={26}
+              maxWidthChars={32}
               label={media.as((m) => (m.title ? m.title : "Nothing playing"))}
             />
             <label
@@ -172,7 +172,7 @@ export default function MediaWindow() {
               halign={Gtk.Align.CENTER}
               xalign={0.5}
               ellipsize={Pango.EllipsizeMode.END}
-              maxWidthChars={30}
+              maxWidthChars={36}
               label={media.as((m) => m.artist)}
             />
           </box>
@@ -207,7 +207,7 @@ export default function MediaWindow() {
                   class="media-seek"
                   orientation={Gtk.Orientation.HORIZONTAL}
                   drawValue={false}
-                  widthRequest={260}
+                  widthRequest={320}
                   halign={Gtk.Align.CENTER}
                   min={0}
                   max={seekLength.as((l) => (l > 0 ? l : 1))}
@@ -233,7 +233,7 @@ export default function MediaWindow() {
               orientation={Gtk.Orientation.HORIZONTAL}
               drawValue={false}
               valign={Gtk.Align.CENTER}
-              widthRequest={160}
+              widthRequest={190}
               min={0}
               max={1}
               value={media.as((m) => (m.volume >= 0 ? m.volume : 0))}

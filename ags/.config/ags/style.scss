@@ -34,8 +34,8 @@
 }
 
 .media-card {
-  min-width: 360px;
-  min-height: 480px;
+  min-width: 460px;
+  min-height: 360px;
   border-radius: 28px;
   // A translucent card border gives the Hyprland `ags-media` blur layerrule
   // a crisp edge to frost against — mirrors eww.scss's border convention.
@@ -46,22 +46,39 @@
   // Rendered large and centered inside the clipped overlay so it reads as
   // a "cover" background; opacity keeps it from overpowering the controls
   // and gives the compositor blur something translucent to show through.
-  opacity: 0.55;
+  // Lowered alongside .media-scrim/.media-art-placeholder (10-06c): this is
+  // the FIRST layer drawn (the overlay's main child) and its own alpha
+  // compounds with the scrim's on top of it — left at the old 0.55 it alone
+  // pushed the composited surface to ~0.7+ alpha, defeating the frost no
+  // matter how translucent the scrim was made.
+  opacity: 0.32;
 }
 
+// Card's base background layer. Kept deliberately low-alpha — frost
+// intensity is inversely proportional to this value — so the Hyprland
+// `ags-media` blur layerrule (windowrules.conf) shows clearly through the
+// cava/thumbnail zone. Paired with a matching low `ignore_alpha` threshold
+// on that layerrule (kept just below this value) so the region stays both
+// blurred AND clickable rather than falling through to fully transparent/
+// click-through.
 .media-scrim {
-  background-color: rgba($background, 0.42);
+  background-color: rgba($background, 0.25);
 }
 
 // Shown instead of Gtk.Image whenever no art path has resolved yet — avoids
 // ever handing Gtk.Image an empty/invalid file (its fallback "broken image"
 // icon does not respect pixelSize/widthRequest and can overflow its box).
 .media-art-placeholder {
-  background-color: rgba($surface_variant, 0.55);
+  // Same rationale as .media-bg-art above: this is what actually renders
+  // in the (common) no-mpris-art-url case — e.g. browser/YouTube players
+  // that don't expose a local art file — so it needs to be just as
+  // translucent as the real-art path for the frost to read consistently
+  // regardless of which player is active.
+  background-color: rgba($surface_variant, 0.3);
 }
 
 .cava-layer {
-  padding: 0 18px 18px 18px;
+  padding: 0 16px 10px 16px;
 }
 
 .cava-bar {
@@ -77,7 +94,7 @@
 }
 
 .media-controls {
-  padding: 18px 22px 22px 22px;
+  padding: 14px 24px 18px 24px;
   background-color: rgba($surface, 0.7);
   border-radius: 0 0 28px 28px;
 }
@@ -95,7 +112,7 @@
   color: $on_surface_variant;
 }
 
-.media-transport { margin-top: 4px; }
+.media-transport { margin-top: 2px; }
 
 // All three transport buttons are identically sized circles (equal
 // min-width == min-height with a pill radius). Previously prev/next were
@@ -139,7 +156,7 @@
 
 .media-volume-row { margin-top: 2px; }
 
-.media-switcher { margin-top: 4px; }
+.media-switcher { margin-top: 2px; }
 
 .switcher-btn {
   padding: 4px 12px;
