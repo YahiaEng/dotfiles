@@ -43,6 +43,7 @@
       "on": "\udb80\udeb4"
     },
     "interval": 2,
+    "on-click": "~/.config/hypr/scripts/gaming-mode-toggle.sh",
     "return-type": "json"
   },
   "custom/launcher": {
@@ -69,7 +70,7 @@
     "escape": true,
     "exec": "swaync-client -swb",
     "exec-if": "which swaync-client",
-    "format": "{icon} {}",
+    "format": "{icon} {text}",
     "format-icons": {
       "dnd-inhibited-none": "\udb80\udc9b",
       "dnd-inhibited-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",

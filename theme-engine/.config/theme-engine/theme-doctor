@@ -471,6 +471,27 @@ else
     echo "  [SKIP] D-17 module-gate (python-gobject / gi not available)"
 fi
 
+# ── waybar-design-lint fold (08-15) ───────────────────────────────────
+# The design/token gate (transparent window, role-names-only, no literal
+# hex, no empty glyphs, token resolution) that would have caught the 08-12
+# UAT failure now runs on EVERY theme-doctor invocation, not only when
+# someone remembers the standalone script — that "green gates, broken bar"
+# gap is exactly what this phase closes. Each of its per-check results is
+# surfaced as a theme-doctor line and folds into the pass/fail tally.
+# Guarded-skip mirrors the other waybar sections: an unstowed waybar
+# package degrades to SKIP, never a hard FAIL.
+WAYBAR_DESIGN_LINT="$HOME/.config/hypr/scripts/waybar-design-lint"
+if [[ -x "$WAYBAR_DESIGN_LINT" ]]; then
+    while IFS= read -r _dl_line; do
+        case "$_dl_line" in
+            *"[PASS]"*) check "design-lint: ${_dl_line#*\[PASS\] }" "0" ;;
+            *"[FAIL]"*) check "design-lint: ${_dl_line#*\[FAIL\] }" "1" ;;
+        esac
+    done < <("$WAYBAR_DESIGN_LINT" 2>/dev/null)
+else
+    echo "  [SKIP] waybar-design-lint ($WAYBAR_DESIGN_LINT not found or not executable)"
+fi
+
 # ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
 #    switch. Guarded-skip mirrors the stow-conflict check above — this must
 #    degrade gracefully, not FAIL, when git or the repo itself is absent

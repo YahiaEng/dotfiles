@@ -7,23 +7,23 @@
     },
     "calendar": {
       "format": {
-        "days": "<span color='#cdd6f4'>{}</span>",
-        "months": "<span color='#cba6f7'><b>{}</b></span>",
-        "today": "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>",
-        "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
-        "weeks": "<span color='#585b70'>W{}</span>"
+        "days": "{}",
+        "months": "<b>{}</b>",
+        "today": "<u><b>{}</b></u>",
+        "weekdays": "<b>{}</b>",
+        "weeks": "W{}"
       },
       "mode": "month",
       "mode-mon-col": 3,
       "on-scroll": 1,
       "weeks-pos": "left"
     },
-    "format": "  {:%H:%M}",
-    "format-alt": "  {:%A, %B %d, %Y}",
+    "format": "\uf017 {:%H:%M}",
+    "format-alt": "\uf017 {:%A, %B %d, %Y}",
     "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>"
   },
   "cpu": {
-    "format": "  {usage}%",
+    "format": "\uf2db {usage}%",
     "interval": 2,
     "tooltip": true
   },
@@ -35,13 +35,14 @@
       "on": "\udb80\udeb4"
     },
     "interval": 2,
+    "on-click": "~/.config/hypr/scripts/gaming-mode-toggle.sh",
     "return-type": "json"
   },
   "custom/notification": {
     "escape": true,
     "exec": "swaync-client -swb",
     "exec-if": "which swaync-client",
-    "format": "{icon} {}",
+    "format": "{icon} {text}",
     "format-icons": {
       "dnd-inhibited-none": "\udb80\udc9b",
       "dnd-inhibited-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
@@ -58,17 +59,17 @@
     "tooltip": false
   },
   "custom/power": {
-    "format": "\u23fb",
+    "format": "\uf011",
     "on-click": "~/.config/hypr/scripts/wlogout.sh",
     "tooltip-format": "Power Menu"
   },
   "custom/theme": {
-    "format": " ",
+    "format": "\uf042",
     "on-click": "~/.config/hypr/scripts/theme-switch.sh",
     "tooltip-format": "Switch Theme"
   },
   "custom/waybar-layout": {
-    "format": " ",
+    "format": "\uf009",
     "on-click": "~/.config/hypr/scripts/waybar-switch.sh",
     "tooltip-format": "Switch Waybar Layout"
   },
@@ -105,7 +106,7 @@
   "margin-right": 10,
   "margin-top": 6,
   "memory": {
-    "format": "  {percentage}%",
+    "format": "\uf0c9 {percentage}%",
     "interval": 5,
     "tooltip-format": "{used:.1f}G / {total:.1f}G"
   },
@@ -140,22 +141,29 @@
     "on-scroll-down": "playerctl volume 0.05-",
     "on-scroll-up": "playerctl volume 0.05+",
     "player-icons": {
-      "chromium": "",
-      "default": "",
-      "firefox": "",
+      "chromium": "\uf268",
+      "default": "\uf001",
+      "firefox": "\uf269",
       "mpv": "\u25b6",
-      "spotify": ""
+      "spotify": "\uf1bc"
     },
     "status-icons": {
-      "paused": "",
+      "paused": "\uf04c",
       "stopped": ""
     },
     "tooltip-format": "{player} \u2014 {status}\n{position} / {length}"
   },
   "network": {
-    "format-disconnected": "  offline",
-    "format-ethernet": "  {ifname}",
-    "format-wifi": "  {signalStrength}%",
+    "format-disconnected": "\uf092e offline",
+    "format-ethernet": "\uf0379 {ifname}",
+    "format-icons": [
+      "\uf092f",
+      "\uf091f",
+      "\uf0922",
+      "\uf0925",
+      "\uf0928"
+    ],
+    "format-wifi": "{icon} {signalStrength}%",
     "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n{essid}"
   },
   "on-sigusr1": "hide",
@@ -165,12 +173,12 @@
     "format": "{icon}  {volume}%",
     "format-icons": {
       "default": [
-        "",
-        "",
-        ""
+        "\uf026",
+        "\uf027",
+        "\uf028"
       ]
     },
-    "format-muted": "  muted",
+    "format-muted": "\uf026 muted",
     "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
     "on-click-right": "pavucontrol"
   },
@@ -179,11 +187,11 @@
     "critical-threshold": 80,
     "format": "{icon} {temperatureC}\u00b0C",
     "format-icons": [
-      "",
-      "",
-      "",
-      "",
-      ""
+      "\uf2cb",
+      "\uf2ca",
+      "\uf2c9",
+      "\uf2c8",
+      "\uf2c7"
     ],
     "tooltip": true
   },

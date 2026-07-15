@@ -1,0 +1,383 @@
+{
+  "bluetooth": {
+    "format": "\udb80\udcaf",
+    "format-connected": "\udb80\udcb1",
+    "format-disabled": "\udb80\udcb2",
+    "on-click": "blueman-manager",
+    "on-click-right": "rfkill toggle bluetooth",
+    "tooltip-format": "{controller_alias} {status}",
+    "tooltip-format-connected": "\udb81\udc3b  {num_connections} Connected:\n{device_enumerate}",
+    "tooltip-format-enumerate-connected-battery": "\udb80\udcb1  {device_alias} (\udb82\udc20  {device_battery_percentage}%)"
+  },
+  "clock": {
+    "actions": {
+      "on-click-right": "mode",
+      "on-scroll-down": "shift_down",
+      "on-scroll-up": "shift_up"
+    },
+    "calendar": {
+      "format": {
+        "days": "{}",
+        "months": "<b>{}</b>",
+        "today": "<u><b>{}</b></u>",
+        "weekdays": "<b>{}</b>",
+        "weeks": "W{}"
+      },
+      "mode": "month",
+      "mode-mon-col": 3,
+      "on-scroll": 1,
+      "weeks-pos": "left"
+    },
+    "format": "\uf017 {:%H:%M}",
+    "format-alt": "\uf017 {:%A, %B %d, %Y}",
+    "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>"
+  },
+  "cpu": {
+    "actions": {
+      "on-click": "mode"
+    },
+    "format": "\udb83\udee0",
+    "format-alt": "\udb83\udee0 <span size='11pt'>{usage}%</span>",
+    "interval": 2,
+    "states": {
+      "critical": 90,
+      "warning": 75
+    },
+    "tooltip": false
+  },
+  "custom/app-codium": {
+    "format": "\udb82\ude1e",
+    "on-click": "uwsm app -- codium.desktop",
+    "tooltip": false,
+    "tooltip-format": "VSCodium"
+  },
+  "custom/app-discord": {
+    "format": "\uf1ff",
+    "on-click": "uwsm app -- discord.desktop",
+    "tooltip": false,
+    "tooltip-format": "Discord"
+  },
+  "custom/app-launcher": {
+    "format": "\udb80\udc3b",
+    "tooltip": false
+  },
+  "custom/app-lutris": {
+    "format": "\uf11b",
+    "on-click": "uwsm app -- net.lutris.Lutris.desktop",
+    "tooltip": false,
+    "tooltip-format": "Lutris"
+  },
+  "custom/app-obsidian": {
+    "format": "\udb83\ude55",
+    "on-click": "uwsm app -- obsidian.desktop",
+    "tooltip": false,
+    "tooltip-format": "Obsidian"
+  },
+  "custom/app-spotify": {
+    "format": "\uf1bc",
+    "on-click": "uwsm app -- spotify.desktop",
+    "tooltip": false,
+    "tooltip-format": "Spotify"
+  },
+  "custom/app-steam": {
+    "format": "\uf1b6",
+    "on-click": "uwsm app -- steam.desktop",
+    "tooltip": false,
+    "tooltip-format": "Steam"
+  },
+  "custom/app-zen": {
+    "format": "\uf269",
+    "on-click": "uwsm app -- zen.desktop",
+    "tooltip": false,
+    "tooltip-format": "Zen Browser"
+  },
+  "custom/gaming-mode": {
+    "exec": "if [ \"$(cat $HOME/.cache/gaming-mode 2>/dev/null)\" = \"on\" ]; then echo '{\"alt\":\"on\",\"class\":\"on\",\"tooltip\":\"Gaming Mode: ON\"}'; else echo '{\"alt\":\"off\",\"class\":\"off\",\"tooltip\":\"Gaming Mode: OFF\"}'; fi",
+    "format": "{icon}",
+    "format-icons": {
+      "off": "\udb80\udeb5",
+      "on": "\udb80\udeb4"
+    },
+    "interval": 2,
+    "on-click": "~/.config/hypr/scripts/gaming-mode-toggle.sh",
+    "return-type": "json"
+  },
+  "custom/media": {
+    "escape": true,
+    "exec": "python ~/.config/hypr/scripts/media-player.py 2> /dev/null",
+    "format": "{icon} {}",
+    "format-icons": {
+      "default": "\uf001 ",
+      "spotify": "\uf1bc "
+    },
+    "interval": 30,
+    "max-length": 30,
+    "on-click": "~/.config/hypr/scripts/media-popup-open.sh",
+    "on-scroll-down": "playerctl previous",
+    "on-scroll-up": "playerctl next",
+    "return-type": "json"
+  },
+  "custom/notification": {
+    "escape": true,
+    "exec": "swaync-client -swb",
+    "exec-if": "which swaync-client",
+    "format": "{icon} {text}",
+    "format-icons": {
+      "dnd-inhibited-none": "\udb80\udc9b",
+      "dnd-inhibited-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
+      "dnd-none": "\udb80\udc9b",
+      "dnd-notification": "\udb80\udc9b<span foreground='red'><sup></sup></span>",
+      "inhibited-none": "\udb80\udc9c",
+      "inhibited-notification": "\udb80\udc9a<span foreground='red'><sup></sup></span>",
+      "none": "\udb80\udc9c",
+      "notification": "\udb80\udc9a<span foreground='red'><sup></sup></span>"
+    },
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "return-type": "json",
+    "tooltip": false
+  },
+  "custom/power": {
+    "format": "\uf011",
+    "on-click": "~/.config/hypr/scripts/wlogout.sh",
+    "tooltip-format": "Power Menu"
+  },
+  "custom/settings": {
+    "format": "\uf013",
+    "tooltip": false
+  },
+  "custom/updates": {
+    "exec": "checkupdates | wc -l",
+    "exec-if": "[ $(checkupdates 2>/dev/null | wc -l) -gt 0 ]",
+    "format": "\udb81\udeb0 {}",
+    "interval": 900,
+    "on-click": "kitty -e paru -Syu",
+    "tooltip-format": "{} update(s) available"
+  },
+  "disk": {
+    "actions": {
+      "on-click": "mode"
+    },
+    "format": "\udb85\ude4b",
+    "format-alt": "\udb85\ude4b <span size='11pt'>{used}</span>",
+    "interval": 3600,
+    "path": "/",
+    "states": {
+      "critical": 90,
+      "warning": 80
+    },
+    "tooltip": false
+  },
+  "group/apps": {
+    "drawer": {
+      "transition-duration": 500,
+      "transition-left-to-right": true
+    },
+    "modules": [
+      "custom/app-launcher",
+      "custom/app-zen",
+      "custom/app-spotify",
+      "custom/app-discord",
+      "custom/app-steam",
+      "custom/app-lutris",
+      "custom/app-obsidian",
+      "custom/app-codium"
+    ],
+    "orientation": "horizontal"
+  },
+  "group/audio": {
+    "drawer": {
+      "transition-duration": 650,
+      "transition-left-to-right": false
+    },
+    "modules": [
+      "pulseaudio",
+      "pulseaudio/slider",
+      "pulseaudio#microphone"
+    ],
+    "orientation": "horizontal"
+  },
+  "group/connections": {
+    "drawer": {
+      "transition-duration": 500,
+      "transition-left-to-right": false
+    },
+    "modules": [
+      "network",
+      "bluetooth"
+    ],
+    "orientation": "horizontal"
+  },
+  "group/settings": {
+    "drawer": {
+      "transition-duration": 500,
+      "transition-left-to-right": false
+    },
+    "modules": [
+      "custom/settings",
+      "custom/theme",
+      "custom/waybar-layout",
+      "custom/font",
+      "custom/icon-theme",
+      "custom/wallpaper"
+    ],
+    "orientation": "horizontal"
+  },
+  "group/storage": {
+    "modules": [
+      "disk",
+      "memory"
+    ],
+    "orientation": "horizontal"
+  },
+  "group/system": {
+    "modules": [
+      "temperature",
+      "cpu"
+    ],
+    "orientation": "horizontal"
+  },
+  "height": 40,
+  "hyprland/workspaces": {
+    "all-outputs": true,
+    "format": "{icon} {windows}",
+    "format-icons": {
+      "active": "\udb82\udfaf",
+      "default": "\udb80\udea0",
+      "empty": "\uf444",
+      "urgent": "\udb82\uddf5"
+    },
+    "on-click": "activate",
+    "persistent-workspaces": {
+      "*": 5
+    },
+    "sort-by-number": true,
+    "window-rewrite": {
+      "VSCodium": "\udb82\ude1e",
+      "codium": "\udb82\ude1e",
+      "discord": "\uf1ff",
+      "firefox": "\ue658",
+      "kitty": "\udb80\udd8d",
+      "net.lutris.Lutris": "\uf11b",
+      "obsidian": "\udb83\ude55",
+      "spotify": "\uf1bc",
+      "steam": "\uf1b6",
+      "thunar": "\uf07b",
+      "yazi": "\udb80\udde5",
+      "zen": "\uf269"
+    },
+    "window-rewrite-default": "\udb80\udea0"
+  },
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "format-icons": {
+      "activated": "\udb81\udee8",
+      "deactivated": "\udb81\udee9"
+    },
+    "tooltip-format-activated": "System Focused",
+    "tooltip-format-deactivated": "Normal Mode"
+  },
+  "layer": "top",
+  "margin-left": 10,
+  "margin-right": 10,
+  "margin-top": 6,
+  "memory": {
+    "actions": {
+      "on-click": "mode"
+    },
+    "format": "\udb80\udf5b",
+    "format-alt": "\udb80\udf5b <span size='11pt'>{used:.1f}G</span>",
+    "interval": 5,
+    "states": {
+      "critical": 85,
+      "warning": 75
+    },
+    "tooltip": false
+  },
+  "modules-center": [
+    "hyprland/workspaces",
+    "idle_inhibitor"
+  ],
+  "modules-left": [
+    "group/apps",
+    "group/storage",
+    "group/system",
+    "custom/updates"
+  ],
+  "modules-right": [
+    "custom/media",
+    "group/audio",
+    "group/connections",
+    "clock",
+    "custom/gaming-mode",
+    "custom/notification",
+    "group/settings",
+    "custom/power"
+  ],
+  "network": {
+    "format-disabled": "\udb81\uddaa",
+    "format-disconnected": "\udb82\udd2e",
+    "format-ethernet": "\udb80\ude00",
+    "format-icons": [
+      "\udb82\udd2f",
+      "\udb82\udd1f",
+      "\udb82\udd22",
+      "\udb82\udd25",
+      "\udb82\udd28"
+    ],
+    "format-wifi": "{icon}",
+    "on-click": "nm-applet --indicator",
+    "on-click-right": "pkill nm-applet",
+    "tooltip-format-disabled": "Wi-Fi is OFF",
+    "tooltip-format-disconnected": "No Connection",
+    "tooltip-format-ethernet": "\udb80\ude00  {ifname} (Connected)\n\uf019  {bandwidthDownBytes}   \uf093  {bandwidthUpBytes}",
+    "tooltip-format-wifi": "\udb84\udd19  {essid} ({signalStrength}%)\n\n\udb81\udc3b  Freq: {frequency}GHz\n\uf019  {bandwidthDownBytes}   \uf093  {bandwidthUpBytes}"
+  },
+  "on-sigusr1": "hide",
+  "on-sigusr2": "reload",
+  "position": "top",
+  "pulseaudio": {
+    "format": "{icon}",
+    "format-icons": {
+      "default": [
+        "\uf026",
+        "\uf027",
+        "\uf028"
+      ],
+      "hands-free": "\udb80\udecb",
+      "headphone": "\udb80\udecb",
+      "headset": "\udb80\udecb"
+    },
+    "format-muted": "\ueee8",
+    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "on-click-right": "pavucontrol",
+    "tooltip-format": "Output: {volume}%"
+  },
+  "pulseaudio#microphone": {
+    "format": "{format_source}",
+    "format-source": "\uf130",
+    "format-source-muted": "\uf131"
+  },
+  "pulseaudio/slider": {
+    "max": 100,
+    "min": 0,
+    "orientation": "horizontal"
+  },
+  "spacing": 0,
+  "temperature": {
+    "critical-threshold": 80,
+    "format": "{icon}",
+    "format-alt": "{icon} <span size='11pt'>{temperatureC}\u00b0C</span>",
+    "format-icons": [
+      "\uf2cb",
+      "\uf2c9",
+      "\uf2c7"
+    ],
+    "interval": 10,
+    "tooltip": false
+  },
+  "tray": {
+    "icon-size": 16,
+    "spacing": 10
+  }
+}

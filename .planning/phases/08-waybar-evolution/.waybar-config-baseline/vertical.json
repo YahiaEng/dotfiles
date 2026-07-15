@@ -25,11 +25,11 @@
     },
     "calendar": {
       "format": {
-        "days": "<span color='#cdd6f4'>{}</span>",
-        "months": "<span color='#cba6f7'><b>{}</b></span>",
-        "today": "<span color='#1e1e2e' background='#cba6f7'><b> {} </b></span>",
-        "weekdays": "<span color='#f5c2e7'><b>{}</b></span>",
-        "weeks": "<span color='#585b70'>W{}</span>"
+        "days": "{}",
+        "months": "<b>{}</b>",
+        "today": "<u><b>{}</b></u>",
+        "weekdays": "<b>{}</b>",
+        "weeks": "W{}"
       },
       "mode": "month",
       "mode-mon-col": 3,
@@ -40,9 +40,11 @@
     "tooltip-format": "<tt><big>{:%B %Y}</big>\n\n{calendar}</tt>"
   },
   "cpu": {
-    "format": "\uf2db\n<small>{usage}%</small>",
+    "format": "\uf2db",
     "interval": 2,
-    "tooltip": true
+    "on-click": "uwsm app -- kitty -e htop",
+    "tooltip": true,
+    "tooltip-format": "CPU: {usage}%"
   },
   "custom/gaming-mode": {
     "exec": "if [ \"$(cat $HOME/.cache/gaming-mode 2>/dev/null)\" = \"on\" ]; then echo '{\"alt\":\"on\",\"class\":\"on\",\"tooltip\":\"Gaming Mode: ON\"}'; else echo '{\"alt\":\"off\",\"class\":\"off\",\"tooltip\":\"Gaming Mode: OFF\"}'; fi",
@@ -52,6 +54,7 @@
       "on": "\udb80\udeb4"
     },
     "interval": 2,
+    "on-click": "~/.config/hypr/scripts/gaming-mode-toggle.sh",
     "return-type": "json"
   },
   "custom/notification": {
@@ -75,9 +78,20 @@
     "tooltip": true
   },
   "custom/power": {
-    "format": "\u23fb",
+    "format": "\uf011",
     "on-click": "~/.config/hypr/scripts/wlogout.sh",
     "tooltip-format": "Power Menu"
+  },
+  "group/audio": {
+    "drawer": {
+      "transition-duration": 400,
+      "transition-left-to-right": true
+    },
+    "modules": [
+      "pulseaudio",
+      "pulseaudio/slider"
+    ],
+    "orientation": "vertical"
   },
   "hyprland/workspaces": {
     "format": "{icon}",
@@ -102,27 +116,28 @@
     "sort-by-number": true
   },
   "layer": "top",
-  "margin-bottom": 8,
-  "margin-left": 8,
-  "margin-top": 8,
+  "margin-bottom": 0,
+  "margin-left": 0,
+  "margin-top": 0,
   "memory": {
-    "format": "\uf0c9\n<small>{percentage}%</small>",
+    "format": "\uf0c9",
     "interval": 5,
-    "tooltip-format": "{used:.1f}G / {total:.1f}G"
+    "on-click": "uwsm app -- kitty -e htop",
+    "tooltip-format": "RAM: {used:.1f}G / {total:.1f}G"
   },
   "modules-center": [
-    "clock",
     "mpris"
   ],
   "modules-left": [
+    "clock",
     "hyprland/workspaces"
   ],
   "modules-right": [
     "cpu",
     "memory",
     "temperature",
-    "pulseaudio",
     "network",
+    "group/audio",
     "battery",
     "custom/gaming-mode",
     "custom/notification",
@@ -183,10 +198,15 @@
     "on-click-right": "pavucontrol",
     "tooltip-format": "{volume}% \u2014 {desc}"
   },
+  "pulseaudio/slider": {
+    "max": 100,
+    "min": 0,
+    "orientation": "vertical"
+  },
   "spacing": 0,
   "temperature": {
     "critical-threshold": 80,
-    "format": "{icon}\n<small>{temperatureC}\u00b0C</small>",
+    "format": "{icon}",
     "format-icons": [
       "\uf2cb",
       "\uf2ca",
@@ -194,11 +214,13 @@
       "\uf2c8",
       "\uf2c7"
     ],
-    "tooltip": true
+    "on-click": "uwsm app -- kitty -e htop",
+    "tooltip": true,
+    "tooltip-format": "Temp: {temperatureC}\u00b0C"
   },
   "tray": {
     "icon-size": 18,
     "spacing": 8
   },
-  "width": 48
+  "width": 44
 }
