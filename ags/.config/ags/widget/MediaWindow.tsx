@@ -1,6 +1,7 @@
 import app from "ags/gtk4/app"
 import { Astal, Gdk, Gtk } from "ags/gtk4"
 import Graphene from "gi://Graphene"
+import Pango from "gi://Pango"
 import { With, For } from "ags"
 import { media, players, seekable, seekLength, cmd, seek, setVolume, selectPlayer } from "../lib/media"
 import Cava from "./Cava"
@@ -133,24 +134,39 @@ export default function MediaWindow() {
           </With>
         </box>
 
+        {/* Fixed-width, card-centered control column. widthRequest pins it
+            to the card's inner width and halign=CENTER anchors it dead-
+            center in the overlay, so every child row (each halign=CENTER)
+            has EQUAL left/right gaps to the card edge. CRITICAL: the title
+            MUST be ellipsized (below) — an un-ellipsized Gtk.Label has a
+            minimum width equal to its full text, which would force this
+            box wider than the card and break the centering of every row. */}
         <box
           $type="overlay"
           class="media-controls"
           orientation={Gtk.Orientation.VERTICAL}
           spacing={12}
+          hexpand
           halign={Gtk.Align.FILL}
           valign={Gtk.Align.END}
         >
           {/* Metadata row: title/artist (art now lives in the underlay) */}
-          <box class="media-meta" spacing={12} orientation={Gtk.Orientation.VERTICAL} halign={Gtk.Align.CENTER}>
+          <box class="media-meta" spacing={2} orientation={Gtk.Orientation.VERTICAL} halign={Gtk.Align.CENTER}>
             <label
               class="media-title"
               halign={Gtk.Align.CENTER}
+              justify={Gtk.Justification.CENTER}
+              xalign={0.5}
+              ellipsize={Pango.EllipsizeMode.END}
+              maxWidthChars={26}
               label={media.as((m) => (m.title ? m.title : "Nothing playing"))}
             />
             <label
               class="media-artist"
               halign={Gtk.Align.CENTER}
+              xalign={0.5}
+              ellipsize={Pango.EllipsizeMode.END}
+              maxWidthChars={30}
               label={media.as((m) => m.artist)}
             />
           </box>
@@ -186,6 +202,7 @@ export default function MediaWindow() {
                   orientation={Gtk.Orientation.HORIZONTAL}
                   drawValue={false}
                   widthRequest={260}
+                  halign={Gtk.Align.CENTER}
                   min={0}
                   max={seekLength.as((l) => (l > 0 ? l : 1))}
                   value={media.as((m) => m.position)}
@@ -197,7 +214,7 @@ export default function MediaWindow() {
                   }}
                 />
               ) : (
-                <label class="media-seek-disabled" label="Not seekable" />
+                <label class="media-seek-disabled" halign={Gtk.Align.CENTER} label="Not seekable" />
               )
             }
           </With>
