@@ -23,7 +23,19 @@ import GLib from "gi://GLib"
 // resulting CSS text with `reset: true` so `app.reset_css()` first removes
 // the stale provider before the new one is added (confirmed via
 // `App.apply_css` -> `if (reset) this.reset_css()`).
-const STYLE_ENTRY = `${GLib.get_home_dir()}/.config/ags/style.scss`
+//
+// Live-reproduced bug: passing the STOWED symlink path
+// (~/.config/ags/style.scss) straight to our own `sass` subprocess makes
+// `@import "../../../../.local/state/theme/ags.scss"` fail ("Can't find
+// stylesheet to import") — plain `sass` resolves relative imports against
+// the path AS GIVEN and does NOT collapse the symlink the way AGS's own
+// Go bundler does at bundle time (see style.scss's header comment for the
+// full asymmetry). Fix: resolve the symlink to its real on-disk path via
+// `realpath` ONCE at module load (the stow target doesn't change during a
+// running session) and feed `sass` THAT path, matching AGS's own bundler
+// resolution exactly so the same @import line works both times.
+const STYLE_LINK = `${GLib.get_home_dir()}/.config/ags/style.scss`
+const STYLE_ENTRY = exec(["realpath", STYLE_LINK])
 const PALETTE_STATE = `${GLib.get_home_dir()}/.local/state/theme/ags.scss`
 
 function reloadCss() {
