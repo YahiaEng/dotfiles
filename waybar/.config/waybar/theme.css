@@ -128,3 +128,24 @@
 @define-color fill-updates-fg @on_tertiary;
 @define-color fill-notification @primary;
 @define-color fill-notification-fg @on_primary;
+
+/* ── Floating layout's colourful chip palette (08-13) ─────────────────
+   Each waybar is its own design flow (user direction, 2026-07-15).
+   Unlike athena's neutral capsules or full's single island, floating's
+   identity is a row of VIVID per-module filled pills — a full rainbow,
+   deliberately. These map that rainbow to role names so the layout stays
+   raw-token-free (CHECK B); each is a {fill, on-fill} M3 pair, so every
+   pill's glyph is guaranteed-contrast on every preset. `-neutral` is the
+   quiet anchor pill (clock) among the colour. */
+@define-color float-a @primary;
+@define-color float-a-fg @on_primary;
+@define-color float-b @tertiary;
+@define-color float-b-fg @on_tertiary;
+@define-color float-c @secondary;
+@define-color float-c-fg @on_secondary;
+@define-color float-d @secondary_container;
+@define-color float-d-fg @on_secondary_container;
+@define-color float-e @primary_container;
+@define-color float-e-fg @on_primary_container;
+@define-color float-neutral @surface;
+@define-color float-neutral-fg @on_surface;
