@@ -59,24 +59,25 @@ window {
   // and gives the compositor blur something translucent to show through.
   // This is the FIRST layer drawn (the overlay's main child) and its alpha
   // COMPOUNDS with .media-scrim's on top of it (composited alpha over a
-  // transparent base = 1-(1-a1)*(1-a2)) — left at the old 0.55 it alone
-  // pushed the composited surface north of 0.8, defeating the frost no
-  // matter how translucent the scrim was made. Kept moderate here so the
-  // combined card + scrim lands in the ~0.55-0.75 target band (see
-  // .media-scrim below for the full budget).
-  opacity: 0.35;
+  // transparent base = 1-(1-a1)*(1-a2)). 10-06d WEAKENED this pass: the
+  // prior 0.35/0.55 pair composited to ~0.71, reading as a heavy opaque
+  // frost with the background barely recognizable. Dropped to 0.20 here so
+  // the combined card + scrim lands in the ~0.40-0.48 target band (see
+  // .media-scrim below for the full budget) — a gentle blur, not a solid
+  // panel.
+  opacity: 0.20;
 }
 
 // Card's base background layer, layered ON TOP of .media-bg-art (which is
-// already translucent at 0.35). Composited together — 1-(1-0.35)*(1-0.55)
-// ~= 0.71 — the effective card background alpha lands in the ~0.55-0.75
-// target band: translucent enough for the Hyprland `ags-media` blur
-// layerrule to read the desktop through clearly (real frosted glass), but
-// comfortably ABOVE that layerrule's `ignore_alpha` threshold (0.5, shared
-// default — windowrules.conf) so the card stays blurred+clickable rather
-// than falling below the cutoff into raw unblurred transparency.
+// now translucent at 0.20). Composited together — 1-(1-0.20)*(1-0.30)
+// ~= 0.44 — the effective card background alpha lands in the ~0.40-0.48
+// target band: light enough that the desktop behind the card stays
+// recognizable through a gentle blur, while remaining ABOVE this
+// layerrule's `ignore_alpha` threshold (lowered to 0.25 alongside this
+// change — windowrules.conf) so the card still gets blurred rather than
+// falling below the cutoff into raw unblurred transparency.
 .media-scrim {
-  background-color: rgba($background, 0.55);
+  background-color: rgba($background, 0.30);
 }
 
 // Shown instead of Gtk.Image whenever no art path has resolved yet — avoids
@@ -87,8 +88,9 @@ window {
   // in the (common) no-mpris-art-url case — e.g. browser/YouTube players
   // that don't expose a local art file — so it needs to be just as
   // translucent as the real-art path for the frost to read consistently
-  // regardless of which player is active.
-  background-color: rgba($surface_variant, 0.35);
+  // regardless of which player is active. Tracks .media-bg-art's 10-06d
+  // drop to 0.20.
+  background-color: rgba($surface_variant, 0.20);
 }
 
 .cava-layer {
