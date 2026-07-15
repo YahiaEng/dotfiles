@@ -5,16 +5,16 @@ milestone_name: Desktop Expansion
 current_phase: 10
 current_phase_name: ags-media-applet
 status: executing
-stopped_at: Completed 10-05-PLAN.md (matugen theming + CSS hot-reload, MEDIA-03, live-verified)
-last_updated: "2026-07-15T15:30:18.785Z"
+stopped_at: Completed 10-06-PLAN.md (live integration + eww retirement, MEDIA-01/MEDIA-04, human-approved) — 6/6 plans complete, phase pending verification
+last_updated: "2026-07-15T19:45:00.000Z"
 last_activity: 2026-07-15
-last_activity_desc: Completed 10-03 (live MPRIS controls, human-approved)
+last_activity_desc: Completed 10-06 (live integration + eww retirement, human-approved)
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 60
-  completed_plans: 59
-  percent: 71
+  completed_plans: 60
+  percent: 72
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 
 ## Current Position
 
-Phase: 10 (ags-media-applet) — EXECUTING
+Phase: 10 (ags-media-applet) — 6 of 6 plans complete — phase pending verification
 Plan: 6 of 6
-Status: Ready to execute
-Last activity: 2026-07-15 — Completed 10-03 (live MPRIS controls, human-approved)
+Status: All plans executed; awaiting phase-level verification
+Last activity: 2026-07-15 — Completed 10-06 (live integration + eww retirement, human-approved)
 
 ## Performance Metrics
 
@@ -116,6 +116,7 @@ Last activity: 2026-07-15 — Completed 10-03 (live MPRIS controls, human-approv
 | Phase 10 P03 | multi-session (3 gate rounds) | 3 tasks | 2 files |
 | Phase 10 P04 | multi-session | 3 tasks | 6 files |
 | Phase 10 P05 | 30 min | 3 tasks | 6 files |
+| Phase 10 P06 | multi-session (3-task gate) | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -257,6 +258,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 10]: Gate Gtk.Image on a real non-empty file path via a With-bound accessor; GTK's fallback broken-image icon ignores pixelSize/widthRequest and overflows its allocation. Fall back to a neutral rgba placeholder box; real album art renders correctly with no further change.
 - [Phase 10]: Deviation [Rule 3]: ran stow ags to create the ~/.config/ags symlink (cava CONFIG resolves via GLib.get_home_dir()/.config/ags, not the --directory flag). Idempotent GNU stow op; only a symlink created, no repo files changed.
 - [Phase 10-05]: No post_hook in matugen config.toml for AGS — reload.sh (D-04 sole owner) gets a guarded ags request -i media reload-css block instead — config.toml and reload.sh both explicitly lock reload.sh as the sole reload-fan-out owner; a post_hook would violate that already-established architecture
+- [Phase 10-06]: PLAN COMPLETE — MEDIA-01/MEDIA-04 human-approved end-to-end: waybar media on-click repointed to `ags request -i media toggle-media` (all 3 sites), AGS daemon autostarted, eww media popup FULLY retired (consumer check found no other eww user — defwindows/scripts/daemon-autostart/[templates.eww] all removed, package left installed). Live gate directed a design change from full-screen-centered to a top-anchored waybar popup (marginTop=54, ~462x362 card).
+- [Phase 10-06]: DURABLE FINDING — GTK4 windows paint an OPAQUE default background (libadwaita @window_bg_color); any Hyprland layer-shell blur rule needs an explicit `window { background-color: transparent; }` in the app's own stylesheet or the blur is a silent no-op with nothing translucent to frost.
+- [Phase 10-06]: DURABLE FINDING — GTK4 Gtk.Scale internals (trough / trough highlight / slider nodes) are NOT palette-driven by default; they silently fall back to libadwaita's system accent color unless explicitly styled per-selector with the app's own theme vars, so sliders can look themed-adjacent while actually ignoring every theme switch.
 - [Phase 10-05]: AGS style.scss @import is 4 levels deep (not eww's 2) and reload-css must realpath-resolve the stowed symlink before invoking sass — AGS's Go bundler collapses the ~/.config/ags symlink to the real repo path before compiling scss, unlike eww's daemon which preserves it; the runtime sass subprocess for hot-reload must match that same resolution or the @import silently fails
 
 ### Quick Tasks Completed
@@ -302,6 +306,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T15:30:18.777Z
-Stopped at: Completed 10-05-PLAN.md (matugen theming + CSS hot-reload, MEDIA-03, live-verified)
+Last session: 2026-07-15T19:45:00.000Z
+Stopped at: Completed 10-06-PLAN.md (live integration + eww retirement, MEDIA-01/MEDIA-04, human-approved) — 6/6 plans complete, phase pending verification
 Resume file: None
