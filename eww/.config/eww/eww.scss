@@ -1,11 +1,20 @@
-// eww.scss — media-popup stylesheet (BAR-04/D-18..25)
+// eww.scss — media-popup stylesheet (BAR-04/D-18..25; 08-16 island restyle)
 //
 // Imports the matugen-rendered palette from the state dir, mirroring
 // waybar's relative-path @import convention (style-full.css -> ../../
 // .local/state/theme/waybar.css). Zero hex literals below — every
-// color is a $-variable from the imported palette (D-19); confirmed
-// via the phase's own grep gate (`grep -nE '#[0-9a-fA-F]{3,8}'`
-// returns nothing outside this comment header).
+// color is a $-variable from the imported palette (D-19), composited
+// through rgba()/mix() (grass SCSS, eww's compiler) for the translucent
+// look; confirmed via the phase's own grep gate (`grep -nE
+// '#[0-9a-fA-F]{3,8}'` returns nothing outside this comment header).
+//
+// 08-16 checkpoint restyle: the user reported the popup "looks so bland".
+// Rebuilt to the translucent-island / capsule language established for
+// the athena waybar in 08-12/08-16 — a single translucent surface panel
+// with discrete raised cards for art / metadata / transport / sliders /
+// switcher, accent reserved for the active/interactive elements. Every
+// section mirrors a waybar capsule so the popup reads as part of the same
+// system, not a foreign opaque box.
 //
 // Font family is a hardcoded literal (`FiraCode Nerd Font`) per the
 // inherited contract #6 — eww is explicitly OUT of UTIL-05's
@@ -16,14 +25,16 @@
     font-family: "FiraCode Nerd Font";
 }
 
-// ── Popup body (UI-SPEC: 300px wide, 16px padding, 16px radius) ─────
-// NOT subject to BAR-01's OLED translucency — only the bar itself is
-// in scope for that; this popup stays fully opaque.
+// ── Popup body — the translucent island ────────────────────────────────
+// A single raised surface panel (rgba over $surface) with a hairline
+// outline, echoing the athena capsule surface. Rounded 20px to match the
+// waybar pill radius.
 .media-center {
-    background-color: $background;
+    background-color: rgba($surface, 0.86);
     color: $on_surface;
-    padding: 16px;
-    border-radius: 16px;
+    padding: 18px;
+    border: 1px solid rgba($outline, 0.35);
+    border-radius: 20px;
     min-width: 300px;
 }
 
@@ -39,7 +50,7 @@
 .media-art {
     min-width: 220px;
     min-height: 220px;
-    background-color: $surface_variant;
+    background-color: rgba($surface_variant, 0.6);
     border-radius: 16px;
 }
 
@@ -48,8 +59,8 @@
 }
 
 .media-art-fallback {
-    font-size: 20px;
-    color: $on_surface_variant;
+    font-size: 48px;
+    color: rgba($on_surface_variant, 0.7);
 }
 
 // ── Metadata (Typography: 16px/700 title, 13px/400 artist+album) ────
@@ -66,56 +77,60 @@
     color: $on_surface_variant;
 }
 
-// ── Transport row (8px gap, swaync's button convention carried over)
-.media-transport {
-    // Control row gap (UI-SPEC: 8px between prev/play-pause/next).
-}
-
+// ── Transport row — circular capsule buttons, accent on hover/play ─────
 .media-transport > * {
-    margin-left: 4px;
-    margin-right: 4px;
+    margin-left: 6px;
+    margin-right: 6px;
 }
 
 .transport-btn {
-    background: transparent;
+    background-color: rgba($surface_variant, 0.55);
     color: $on_surface;
     border: none;
     border-radius: 50%;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 40px;
+    min-height: 40px;
     padding: 4px;
     transition: all 0.2s ease;
 }
 
 .transport-btn:hover {
-    background: $primary;
+    background-color: $primary;
     color: $on_primary;
 }
 
-.transport-btn.play-pause.playing {
-    color: $primary;
+// The play/pause button reads as the primary action at rest (accent fill).
+.transport-btn.play-pause {
+    background-color: $primary;
+    color: $on_primary;
+    min-width: 48px;
+    min-height: 48px;
+}
+
+.transport-btn.play-pause:hover {
+    background-color: mix($primary, $on_surface, 85%);
 }
 
 .transport-btn .glyph {
     font-size: 20px;
 }
 
-// ── Seek bar (8px track, 16px thumb, on-scale per UI-SPEC) ───────────
+// ── Seek bar (8px track, 16px thumb) ────────────────────────────────────
 .media-seek trough {
-    background-color: $surface_variant;
-    border-radius: 4px;
+    background-color: rgba($outline, 0.5);
+    border-radius: 6px;
     min-height: 8px;
 }
 
 .media-seek highlight {
     background-color: $primary;
-    border-radius: 4px;
+    border-radius: 6px;
     min-height: 8px;
 }
 
 .media-seek slider {
     background-color: $primary;
-    border-radius: 8px;
+    border-radius: 50%;
     min-width: 16px;
     min-height: 16px;
 }
@@ -126,43 +141,40 @@
     color: $on_surface_variant;
 }
 
-// ── Volume slider (same seek-bar visual language, thinner track) ────
-.media-volume-row {
-}
-
+// ── Volume slider (same visual language, thinner track) ────────────────
 .media-volume-row > * {
-    margin-right: 8px;
+    margin-right: 10px;
 }
 
 .volume-glyph {
-    font-size: 20px;
-    color: $on_surface_variant;
+    font-size: 18px;
+    color: $tertiary;
 }
 
 .media-volume trough {
-    background-color: $surface_variant;
-    border-radius: 4px;
-    min-height: 8px;
+    background-color: rgba($outline, 0.5);
+    border-radius: 5px;
+    min-height: 7px;
 }
 
 .media-volume highlight {
-    background-color: $primary;
-    border-radius: 4px;
-    min-height: 8px;
+    background-color: $tertiary;
+    border-radius: 5px;
+    min-height: 7px;
 }
 
 .media-volume slider {
-    background-color: $primary;
-    border-radius: 8px;
-    min-width: 16px;
-    min-height: 16px;
+    background-color: $tertiary;
+    border-radius: 50%;
+    min-width: 14px;
+    min-height: 14px;
 }
 
-// ── Player switcher (32px rows, 8px horizontal padding) ──────────────
+// ── Player switcher — raised card header, accent on the active row ─────
 .media-switcher-header {
-    padding: 8px;
-    border-radius: 12px;
-    background-color: $surface_variant;
+    padding: 10px;
+    border-radius: 14px;
+    background-color: rgba($surface_variant, 0.6);
     min-height: 32px;
 }
 
@@ -178,13 +190,14 @@
 }
 
 .media-switcher-row {
-    padding: 8px;
+    padding: 10px;
     min-height: 32px;
     border-radius: 12px;
+    transition: background-color 0.2s ease;
 }
 
 .media-switcher-row:hover {
-    background-color: $surface_variant;
+    background-color: rgba($surface_variant, 0.6);
 }
 
 .media-switcher-row.is-active {
