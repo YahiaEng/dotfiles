@@ -1,9 +1,18 @@
 ---
-status: diagnosed
+status: resolved
 phase: 08-waybar-evolution
 source: [08-VERIFICATION.md]
 started: 2026-07-14T20:55:00Z
-updated: 2026-07-14T23:59:00Z
+updated: 2026-07-15T13:00:00Z
+resolved: 2026-07-15
+resolved_by: [08-11, 08-12, 08-13, 08-14, 08-16, 08-15]
+resolution: >
+  All four layouts redesigned as their own design flows (full=island,
+  athena=capsules, floating=rainbow, vertical=saatvik333 column) and each
+  approved by the user on sight under light + dark. Final cross-layout sweep
+  (08-15) approved under dark, light, and dynamic (materialyou). Every
+  sub-issue closed; regression class now guarded by waybar-design-lint folded
+  into theme-doctor. Verbatim final verdict: "approved".
 ---
 
 ## Current Test
@@ -39,8 +48,10 @@ blocked: 0
 
 ## Gaps
 
-- truth: "All 4 waybar layouts (full/minimal/floating/vertical) render with correct glyphs, correct palette-token colours, no opaque dark backing, and a visually coherent design under both light and dark presets"
-  status: failed
+- truth: "All 4 waybar layouts (full/athena/floating/vertical) render with correct glyphs, correct palette-token colours, no opaque dark backing, and a visually coherent design under both light and dark presets"
+  status: resolved
+  resolved: 2026-07-15
+  resolution: "Every sub-issue closed and confirmed by the user, not a gate. full=translucent island; minimal scrapped and rebuilt as athena (discrete capsules, filled-but-fewer); floating=colourful per-module pills over a transparent bar (slab + compressed-workspaces fixed); vertical=solid saatvik333-style column (big boxes + bad colour scheme gone). Final four-layout sweep approved under dark + light + dynamic. Regression class guarded: waybar-design-lint (transparent window / role-names / no-hex / no-empty-glyph / token-resolution) folded into theme-doctor. Verbatim: 'approved'."
   reason: "User reported: Complete failure. The design looks terrible and modules are missing. There is now a dark bar behind all modules when it shouldn't. The workspace module of 'floating' looks compressed and smaller than before. Both 'minimal' and 'full' are an eyesore and need a complete redesign. The new 'vertical' is also awful, big button boxes, terrible color scheme. Use the top rated waybar configurations/rices on github as inspiration and fix the design"
   severity: blocker
   test: 1

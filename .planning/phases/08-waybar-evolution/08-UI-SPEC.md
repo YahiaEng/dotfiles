@@ -1,11 +1,17 @@
 ---
 phase: 8
 slug: waybar-evolution
-status: draft
+status: shipped
 shadcn_initialized: false
 preset: none
 created: 2026-07-14
+updated: 2026-07-15
 ---
+
+> **Status: SHIPPED (2026-07-15).** This contract was rewritten in 08-15 to record the design
+> that actually shipped — a per-layout design system — after the original OLED "styling trim"
+> was rejected by the user on sight and replaced. The eww and swaync sections below are
+> unchanged from the draft; the redesign did not touch those surfaces.
 
 # Phase 8 — UI Design Contract
 
@@ -13,8 +19,12 @@ created: 2026-07-14
 
 **Domain note:** Not a web/component-library UI. This phase spans **five distinct visual/interaction surfaces**, all driven by the same bash/matugen pipeline established in Phases 1–6, plus one brand-new toolkit:
 
-1. **waybar (existing 3 bars)** — OLED-safe luminance trim (BAR-01/D-06) + a behavior-preserving shared-include refactor (D-31/33/34). **No redesign** — this is a styling *trim*, not a new visual identity.
-2. **waybar (new 4th layout: vertical/left)** — new JSONC composition + CSS, zero new render target (BAR-03).
+1. **waybar (4 layouts: `full`, `athena`, `floating`, `vertical`)** — a full visual **redesign**. The original BAR-01/D-06 approach (an OLED "styling *trim*": a translucent `window#waybar` slab + a transparent-underline active workspace) **was tried, shipped, and rejected by the user on sight** ("a complete failure… an eyesore"). It was replaced with a per-layout design system (see **Design System → Waybar layouts**). Each layout is now **its own design flow** — they share the `theme.css` role-alias layer and the `waybar-design-lint` gate, not one visual identity:
+   - `full` — a single translucent island (`bar-surface`), bare neutral glyphs, chroma for state only.
+   - `athena` — discrete rounded per-group capsules; colour is "filled, but fewer" (only clock/updates/notification carry a solid fill).
+   - `floating` — a full rainbow of vivid per-module pills over a transparent bar.
+   - `vertical` — a solid gapless left column of bare glyphs with a semantic + derived-hue colour scheme (mimics saatvik333/niri-dotfiles).
+2. **waybar (4th layout: vertical/left)** — new JSONC composition + CSS, zero new render target (BAR-03).
 3. **eww media popup** — brand-new component, brand-new render target, GTK3-based (BAR-04/D-18..25).
 4. **swaync control-center panel** — widget rework: `mpris` removed, `slider`/`volume`/`backlight`/`buttons-grid` added (BAR-05/D-27..30).
 5. **Visibility owner behavior** — a new interaction/state-machine layer with a real visual consequence (idle-dim, fullscreen/gaming unmap) but no new CSS surface of its own beyond one owner-written override file.
@@ -62,7 +72,7 @@ The refactor (D-31/33/34) is explicitly behavior-preserving — no padding/margi
 
 | Element | Value | Rationale |
 |---|---|---|
-| Column width | 48px | icon-glyph box (`24px`) + `12px` padding each side — matches the existing horizontal bars' `40px` height order of magnitude, keeping visual weight consistent across layouts |
+| Column width | **~44px, observed (not set)** | waybar's `width` key is **advisory** — the column sizes to its widest child, so width is content-driven, not config-driven. Measured ~44px live in plan 14 (16px glyphs + horizontal padding that also widens the hover/click hit target). `config-vertical.jsonc` carries `width: 44` as a hint only; margins are 0 (flush, full-height, gapless). |
 | Module vertical gap (stacked modules) | 8px (`sm`) | matches existing `#cpu`/`#memory` `margin: 4px 1px` order of magnitude without inheriting the odd `1px` (that value stays scoped to the horizontal modules it already applies to, per D-31's "redefine in full, don't partial-patch" `include` rule) |
 | Column-edge margin (flush-left, D-14) | 8px (`sm`) | on-scale value; at a 48px column width, 4px reads as an accidental gap while 8px reads as a deliberate flush-left inset — 8px it is. Applied as the bar-level `margin-left` key, not a CSS rule |
 | Icon glyph box | 24×24px | consistent glyph-box size for every module in the column (workspaces, volume, network, battery, notification, media trigger, cpu/mem/temp, tray, power) |
@@ -147,9 +157,17 @@ Mixed domain — waybar/eww/swaync are all real CSS surfaces (unlike a DSL like 
 
 ## Color
 
-### 1. Palette schema — unchanged
+### 1. Palette schema — the 19 real tokens, and the trap
 
-Reuses the exact 19-key schema verbatim (verified live against `waybar-colors.css`/`swaync-colors.css` templates, both currently render the same 19 `@define-color` keys). No new palette keys.
+The rendered `waybar.css` contains **exactly these 19 `@define-color` tokens**, no more:
+
+`primary, on_primary, primary_container, on_primary_container, secondary, on_secondary, secondary_container, on_secondary_container, tertiary, on_tertiary, surface, on_surface, surface_variant, on_surface_variant, background, on_background, outline, error, on_error`.
+
+**There is NO `surface_container` token** (and no `surface-container` / `surfaceContainer` under any spelling). This is the single most dangerous misconception in this phase's artifacts — `08-UAT.md`'s design_direction prescribed one, and naming a token that doesn't exist makes **GTK3 discard the entire stylesheet** (the WLOG-01 failure class). Where the design wanted a "raised" surface it is derived from `surface_variant` via `alpha()`, never from a nonexistent container token. <!-- planner-discipline-allow: surface-container -->
+
+**The `theme.css` alias layer** is the documented indirection: it is the **one** file permitted to name a raw palette token, and it maps them to role names (`@fg`, `@accent`, `@warn`, `@danger`, `@bar-surface`, `@capsule`, `@float-*`, `@fill-*`, `@column`, `@vhue-*`, …). Every other waybar stylesheet speaks role names only — mechanically enforced by `waybar-design-lint` CHECK B. Derived hues are produced with GTK CSS `mix()` inside `theme.css` (e.g. `@vhue-purple = mix(@primary, @error, 0.4)`), verified to load without a sheet discard.
+
+**Glyph verification is by GLYPH NAME, not presence (binding).** A Nerd Font codepoint must be confirmed to resolve to the *intended glyph name* in the installed `FiraCode Nerd Font` cmap — never accepted merely because the codepoint is present. Concrete burn from this phase: **U+F04FE is present in the cmap but resolves to `md-target`, not a game controller** — shipping it on presence alone would have put the wrong icon on the gaming-mode indicator. The same applies to private-use-area glyphs typed through an editor: several were silently stored as empty strings and had to be written by codepoint.
 
 ### 2. Per-surface 60/30/10 mapping
 
@@ -162,16 +180,23 @@ Reuses the exact 19-key schema verbatim (verified live against `waybar-colors.cs
 | Accent (10%) | `primary` | **Reserved for:** active-workspace indicator (now an outline/underline, not a filled pill — see deltas below), clock text, custom-theme/custom-waybar-layout buttons (existing, unchanged), vertical layout's active-workspace glyph, media-trigger glyph while playing |
 | Destructive | `error` | **Reserved for:** `#temperature.critical` state (existing, unchanged), `#custom-power` (existing repurposing of the error role for the shutdown action — pre-existing Phase 6 pattern, not newly introduced) |
 
-### OLED Styling Deltas (D-06 — exact before/after, no true-black, every value still a palette token)
+### Waybar design system (as shipped — supersedes the rejected OLED trim)
 
-| Element | Before (current, verified) | After (this phase) |
+The OLED "styling trim" above (a translucent `window#waybar` slab + a transparent-underline active workspace) shipped and was **rejected by the user on sight**. The shipped design is a set of shared rules (`waybar-modules.css` + the `theme.css` alias layer) that each layout composes into its own identity. Binding rules, enforced mechanically by `waybar-design-lint` (folded into `theme-doctor`, 08-15):
+
+| Rule | As shipped | Gate |
 |---|---|---|
-| `window#waybar` background | `background: @background;` (fully opaque) | `background: alpha(@background, 0.90);` — translucent, still the palette token, never a black literal |
-| `window#waybar` border-bottom | `border-bottom: 3px solid @primary;` (high-luminance solid) | `border-bottom: 1px solid alpha(@primary, 0.4);` — thinned and dimmed, not removed (keeps the bar's visual signature, satisfies "doesn't fight the theme") |
-| `#workspaces button.active` | `background: @primary; color: @on_primary;` (filled pill — the other D-06-named trim target) | `background: transparent; color: @primary; border-bottom: 2px solid @primary;` — outline/underline treatment, same accent hue, zero filled high-luminance area |
-| Idle-dim state (new — the visibility owner's CSS-dim path, see Interaction Contract) | n/a | `window#waybar.idle-dimmed { opacity: 0.05; }` — **not a color change**; pure opacity, so it introduces zero new palette usage and is exempt from the 60/30/10 accounting above |
+| Transparent window | `window#waybar { background: transparent; }` on **every** layout — no bar-wide slab. The surface lives on the inner `window#waybar > box` (full/vertical), on `.modules-*`… (n/a — floating uses per-module pills), or on discrete per-group capsules (athena). | design-lint CHECK C |
+| One neutral surface, derived not hardcoded | The house neutral is `@bar-surface = alpha(@surface, 0.55)` — built with `alpha()` from a **real** palette token, so it is automatically correct in light and dark with no branching. athena's `@capsule` and vertical's `@column` follow the same `alpha()`-from-a-real-token derivation. | — |
+| Chroma is layout-owned | `full` reserves colour for state only; `athena` adds three solid-fill pills; `floating` is a full per-module rainbow; `vertical` a semantic + derived-hue scheme. Each is its own design flow — there is **no** single phase-wide colour contract. | — |
+| Role names only | Every `style-*.css` names **only** `theme.css` role aliases (`@bar-surface`, `@fg`, `@accent`, `@warn`, `@danger`, `@capsule`, `@float-*`, `@fill-*`, `@column`, `@vhue-*`…) — never a raw palette token. `theme.css` is the **one** file allowed to name raw tokens. | design-lint CHECK B |
+| No literal hex | Zero `#rrggbb` in any waybar `.css`/`.jsonc`. | design-lint CHECK D |
+| No empty glyphs | No blank/whitespace-only glyph field in any `config-*.jsonc`. | design-lint CHECK E |
+| Radius / geometry scale | 14px island · ~18–20px capsule · 10px segment · 6–8px workspace button. `* { min-height: 0; border: none; border-radius: 0; }` reset on every sheet (a global `font-size` on `*` is forbidden — it inflated the old vertical's "big button boxes"). | — |
+| Workspace-button floor | `min-width` floor (≥14px) so GTK doesn't collapse a zero-padding button below its natural size. | — |
+| Derived hues | GTK CSS `mix()` **is** supported in `@define-color` (verified: no sheet discard) — used to derive `@vhue-purple`/`@vhue-teal` from role colours where Material You's ~4 native hues cluster. | — |
 
-**Vertical layout** inherits this exact same mapping — it is composed from the same shared module definitions (D-31), so no separate color table is needed; the only vertical-specific color note is the gaming-mode glyph's ON/OFF color swap (`@primary` when ON, `@outline` when OFF — mirrors the Phase 7 Super-key menu's own ON/OFF glyph-and-color-swap convention for the same feature, MENU-04, so the two surfaces reading the same state file also *look* consistent, reinforcing D-28's anti-drift intent even though D-28 itself only mandates shared logic, not shared visuals).
+Idle-dim remains a pure-opacity change on `window#waybar` written to the owner-exclusive `waybar-visibility.css` (imported last) — not a colour change, exempt from the 60/30/10 accounting.
 
 **eww media popup (new surface, D-18..25):**
 
@@ -284,11 +309,11 @@ No CSS/component third-party registries are used anywhere in this phase — ever
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS — 4 layouts approved by the user on sight (08-12/13/14/16), light + dark
+- [x] Dimension 3 Color: PASS — role-names-only + no-hex + token-resolution enforced by design-lint (in theme-doctor)
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS — eww human-gated at install (D-36)
 
-**Approval:** pending
+**Approval:** shipped — pending the 08-15 final four-layout human sweep (light + dark + dynamic).

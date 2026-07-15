@@ -4,11 +4,11 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 08
 current_phase_name: waybar-evolution
-status: executing
-stopped_at: Completed 08-14-PLAN.md (vertical approved — all 4 layouts done)
-last_updated: "2026-07-15T12:50:00.000Z"
+status: phase-complete
+stopped_at: Phase 08 COMPLETE — 08-15 close-out approved (final 4-layout sweep, dark+light+dynamic)
+last_updated: "2026-07-15T13:05:00.000Z"
 last_activity: 2026-07-15
-last_activity_desc: 08-14 vertical rebuilt as saatvik333-style left column; lint 32/0
+last_activity_desc: Phase 08 closed — gate folded into theme-doctor, baseline re-captured, UI-SPEC rewritten, UAT gap resolved
 progress:
   total_phases: 6
   completed_phases: 4
@@ -283,6 +283,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T12:50:00.000Z
-Stopped at: Completed 08-14-PLAN.md — vertical approved on sight (light+dark). All 4 layouts (full/athena/floating/vertical) now approved and lint-clean (32/0). Remaining in Phase 08: 08-15 (close-out — fold waybar-design-lint into theme-doctor, re-capture drift baseline, rewrite 08-UI-SPEC to what shipped, final human sweep of all 4 layouts across light/dark/dynamic).
+Last session: 2026-07-15T13:05:00.000Z
+Stopped at: PHASE 08 COMPLETE (16/16 plans). All 4 layouts redesigned per-flow and user-approved; 08-15 close-out approved (final sweep dark+light+dynamic). waybar-design-lint folded into theme-doctor; equivalence baseline re-captured 4/0; 08-UI-SPEC rewritten to shipped design; 08-UAT gap resolved. NEXT: Phase 09 (wlogout -> wleave GTK4 migration) — not started. Parked non-blocking follow-ups: light-preset wallpapers, eww popup-open liveness gate.
 Resume file: None

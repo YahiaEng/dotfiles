@@ -24,7 +24,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 5: Light Mode Pipeline & Theme Presets** - Extend the theme pipeline to light mode, ship more presets (incl. light), and organize per-theme wallpapers behind a redesigned picker (completed 2026-07-11)
 - [x] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite (19/19 plans executed, verification passed, UAT passed, 53/53 threats closed) (completed 2026-07-13)
 - [x] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet (completed 2026-07-13)
-- [x] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access (completed 2026-07-14)
+- [x] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access; all 4 layouts redesigned per-flow after UAT and user-approved (completed 2026-07-15)
 - [ ] **Phase 9: wlogout to wleave Migration** - Replace wlogout with wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class, with no regression to the Phase 6 center-bar design
 
 ## Phase Details
@@ -243,12 +243,12 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 
 **Wave 3** *(blocked on Wave 2 — 13 and 14 run in parallel)*
 
-- [ ] 08-13-PLAN.md — Floating: three translucent capsules over a genuinely invisible bar; fixes the opaque slab and the collapsed workspace buttons (BAR-01) [wave 3, depends on 08-12, **autonomous: false**]
-- [ ] 08-14-PLAN.md — Vertical: bare-glyph column, module boxes and the 5-hue stripe rainbow deleted, detail moved to tooltips; content-driven column width observed and recorded (BAR-03) [wave 3, depends on 08-12, **autonomous: false**]
+- [x] 08-13-PLAN.md — Floating: three translucent capsules over a genuinely invisible bar; fixes the opaque slab and the collapsed workspace buttons (BAR-01) [wave 3, depends on 08-12, **autonomous: false**]
+- [x] 08-14-PLAN.md — Vertical: bare-glyph column, module boxes and the 5-hue stripe rainbow deleted, detail moved to tooltips; content-driven column width observed and recorded (BAR-03) [wave 3, depends on 08-12, **autonomous: false**]
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 08-15-PLAN.md — Close out: `waybar-design-lint` folded into `theme-doctor` so it cannot be forgotten, drift baseline re-captured, `08-UI-SPEC.md` rewritten to the design that shipped, and a final human sweep of all 4 layouts across light, dark and dynamic themes (BAR-01/BAR-03/BAR-05) [wave 4, depends on 08-13, 08-14, **autonomous: false**]
+- [x] 08-15-PLAN.md — Close out: `waybar-design-lint` folded into `theme-doctor` so it cannot be forgotten, drift baseline re-captured, `08-UI-SPEC.md` rewritten to the design that shipped, and a final human sweep of all 4 layouts across light, dark and dynamic themes (BAR-01/BAR-03/BAR-05) [wave 4, depends on 08-13, 08-14, **autonomous: false**]
 
 ## Progress
 
@@ -261,7 +261,7 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 | 5. Light Mode Pipeline & Theme Presets | v2.0 | 5/5 | Complete    | 2026-07-11 |
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
-| 8. Waybar Evolution | v2.0 | 12/16 | In Progress|  |
+| 8. Waybar Evolution | v2.0 | 16/16 | Complete    | 2026-07-15 |
 | 9. wlogout to wleave Migration | v2.0 | 0/TBD | Not started | - |
 
 ### Phase 9: wlogout to wleave Migration
