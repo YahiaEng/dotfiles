@@ -97,20 +97,34 @@
 
 .media-transport { margin-top: 4px; }
 
+// All three transport buttons are identically sized circles (equal
+// min-width == min-height with a pill radius). Previously prev/next were
+// 36px and only play-pause 46px, which rendered prev/next as squished
+// smaller ellipses next to the larger main button; now every button is
+// the same 46px circle, and play-pause is distinguished by color only.
 .transport-btn {
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 46px;
+  min-height: 46px;
   padding: 0;
   border-radius: 999px;
   background-color: rgba($surface_variant, 0.55);
   color: $on_surface;
+  font-size: 15px;
 }
 
 .transport-btn-main {
-  min-width: 46px;
-  min-height: 46px;
   background-color: $primary;
   color: $on_primary;
+}
+
+// Volume speaker glyph: matched to the transport glyph size/weight, its
+// color to the surface foreground, and vertically centered against the
+// slider (valign CENTER on the row + label) so it no longer floats
+// oversized/misaligned as the old emoji codepoint did.
+.volume-glyph {
+  font-size: 15px;
+  color: $on_surface;
+  margin-right: 2px;
 }
 
 .media-seek, .media-volume {

@@ -1,12 +1,9 @@
 import app from "ags/gtk4/app"
 import { Astal, Gdk, Gtk } from "ags/gtk4"
-import Graphene from "gi://Graphene"
 import Pango from "gi://Pango"
 import { With, For } from "ags"
 import { media, players, seekable, seekLength, cmd, seek, setVolume, selectPlayer } from "../lib/media"
 import Cava from "./Cava"
-
-const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
 
 // Nerd Font / Unicode transport + volume glyphs — MUST be written by
 // codepoint, never pasted (recurring project gotcha: PUA glyphs typed
@@ -15,18 +12,14 @@ const GLYPH_PREV = String.fromCodePoint(0x23ee) // ⏮
 const GLYPH_NEXT = String.fromCodePoint(0x23ed) // ⏭
 const GLYPH_PLAY = String.fromCodePoint(0x25b6) // ▶
 const GLYPH_PAUSE = String.fromCodePoint(0x23f8) // ⏸
-const GLYPH_VOLUME = String.fromCodePoint(0x1f50a) // 🔊
-
-// Hide the window when the click lands outside the card's bounds.
-function onClickOutside(x: number, y: number, win: Astal.Window, card: Gtk.Widget) {
-  const [ok, rect] = card.compute_bounds(win)
-  if (!ok) return
-  if (!rect.contains_point(new Graphene.Point({ x, y }))) win.hide()
-}
+// U+F028 nf-fa-volume_up — a Nerd Font speaker glyph verified present in
+// the installed FiraCodeNerdFont (waybar's pulseaudio module renders the
+// F026/F027/F028 ramp). Replaces U+1F50A 🔊, a color-emoji codepoint that
+// rendered oversized/misaligned and mismatched the monochrome UI.
+const GLYPH_VOLUME = String.fromCodePoint(0xf028) //
 
 export default function MediaWindow() {
   let win: Astal.Window
-  let card: Gtk.Widget
 
   // Derived art-path accessor, reused by both the background layer and the
   // thumbnail. GTK's fallback "broken image" icon for an empty/invalid file
@@ -38,12 +31,27 @@ export default function MediaWindow() {
 
   return (
     <window
-      $={(self) => (win = self)}
+      $={(self) => {
+        win = self
+        // CLICK-AWAY via focus loss. The window is now a small card-sized
+        // top-center popup, so the old full-screen GestureClick approach
+        // (which relied on the window covering the whole screen to catch
+        // outside clicks) no longer works. Instead: keymode ON_DEMAND lets
+        // this layer surface hold keyboard focus while the user drags its
+        // OWN sliders / clicks its OWN buttons (focus stays inside this
+        // toplevel, so is-active stays true — no spurious close). Clicking
+        // any OTHER surface deactivates this toplevel, firing
+        // notify::is-active -> hide. Esc and the waybar toggle also close.
+        self.connect("notify::is-active", () => {
+          if (!self.is_active && self.visible) self.hide()
+        })
+      }}
       name="media"
       namespace="ags-media"
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
-      anchor={TOP | BOTTOM | LEFT | RIGHT}
+      anchor={Astal.WindowAnchor.TOP}
+      marginTop={54}
       exclusivity={Astal.Exclusivity.IGNORE}
       layer={Astal.Layer.TOP}
       application={app}
@@ -51,7 +59,6 @@ export default function MediaWindow() {
       <Gtk.EventControllerKey
         onKeyPressed={(_c, keyval) => { if (keyval === Gdk.KEY_Escape) win.hide() }}
       />
-      <Gtk.GestureClick onPressed={(_c, _n, x, y) => onClickOutside(x, y, win, card)} />
 
       {/* Garuda/HyprPanel underlay: a Gtk.Overlay stack —
           [0] blurred-art background (main child, sizes the card)
@@ -61,10 +68,9 @@ export default function MediaWindow() {
           [3] centered album-art thumbnail (overlay)
           [4] meta/transport/sliders/switcher panel (overlay, top) */}
       <overlay
-        $={(self) => (card = self)}
         class="media-card"
         halign={Gtk.Align.CENTER}
-        valign={Gtk.Align.CENTER}
+        valign={Gtk.Align.START}
         overflow={Gtk.Overflow.HIDDEN}
       >
         <With value={artPath}>
@@ -220,12 +226,13 @@ export default function MediaWindow() {
           </With>
 
           {/* Volume row — same change-value-only pattern as the seek slider. */}
-          <box class="media-volume-row" spacing={8} halign={Gtk.Align.CENTER}>
-            <label label={GLYPH_VOLUME} />
+          <box class="media-volume-row" spacing={8} halign={Gtk.Align.CENTER} valign={Gtk.Align.CENTER}>
+            <label class="volume-glyph" valign={Gtk.Align.CENTER} label={GLYPH_VOLUME} />
             <slider
               class="media-volume"
               orientation={Gtk.Orientation.HORIZONTAL}
               drawValue={false}
+              valign={Gtk.Align.CENTER}
               widthRequest={160}
               min={0}
               max={1}
