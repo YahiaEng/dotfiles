@@ -2,7 +2,7 @@ import app from "ags/gtk4/app"
 import { Astal, Gdk, Gtk } from "ags/gtk4"
 import Graphene from "gi://Graphene"
 import { With, For } from "ags"
-import { media, players, cmd, seek, setVolume, selectPlayer } from "../lib/media"
+import { media, players, seekable, seekLength, cmd, seek, setVolume, selectPlayer } from "../lib/media"
 
 const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
 
@@ -84,21 +84,25 @@ export default function MediaWindow() {
           </button>
         </box>
 
-        {/* Seek row — gated on length > 0 (can_seek heuristic).
-            `change-value` fires only for user-driven drag/click/scroll (never
-            for our programmatic `value` accessor updates), so binding both
-            `onChangeValue={seek}` and a live `value` accessor here does NOT
-            create a seek-on-every-tick feedback loop. */}
-        <With value={media.as((m) => m.length > 0)}>
-          {(seekable) =>
-            seekable ? (
+        {/* Seek row — gated on the PER-TRACK LATCHED `seekable` accessor,
+            not the live `media.length > 0`. Firefox/YouTube drops
+            `mpris:length` transiently (notably right after a seek), so
+            gating on the raw length made the slider vanish after one seek;
+            the latch in lib/media.ts holds seekability steady per track.
+            `change-value` fires only for user-driven drag/click/scroll
+            (never for our programmatic `value` accessor updates), so
+            binding both `onChangeValue={seek}` and a live `value` accessor
+            here does NOT create a seek-on-every-tick feedback loop. */}
+        <With value={seekable}>
+          {(isSeekable) =>
+            isSeekable ? (
               <slider
                 class="media-seek"
                 orientation={Gtk.Orientation.HORIZONTAL}
                 drawValue={false}
                 widthRequest={260}
                 min={0}
-                max={media.as((m) => (m.length > 0 ? m.length : 1))}
+                max={seekLength.as((l) => (l > 0 ? l : 1))}
                 value={media.as((m) => m.position)}
                 step={1}
                 page={10}
