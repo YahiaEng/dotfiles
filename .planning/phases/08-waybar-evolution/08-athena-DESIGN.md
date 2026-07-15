@@ -31,6 +31,17 @@ This spec is the approved output of a brainstorming session. It replaces `minima
    discrete rounded capsules, live-window workspace icons, hover-expand drawers — but
    route all colour through the alias layer. Chroma reserved for state; active workspace
    is the sole accent at rest.
+   > **AMENDED at the 08-16 visual checkpoint (user direction, 2026-07-15).** Decision 2's
+   > "chroma reserved for state" is superseded: the user asked for "more theme colours".
+   > Two attempts and a measured contrast matrix (08-16-SUMMARY.md) established that a
+   > coloured GLYPH on a translucent neutral capsule is illegible on light presets
+   > (~2–3:1; green ~2:1) and cannot be tuned above that. The locked resolution is
+   > **"filled, but fewer"**: exactly three pills carry colour, as a SOLID FILL with the
+   > glyph in the guaranteed-contrast M3 `on_X` role — **clock** (`@secondary`), the
+   > **updates** alert (`@tertiary`), and the **notification** alert (`@primary`, and only
+   > while unread). Every other pill stays neutral (`@capsule`/`@capsule-fg`) with chroma
+   > still reserved for state (warn/critical, active workspace, launcher glyphs at
+   > `@accent`). Filled-pill roles live in `theme.css` as `@fill-*`/`@fill-*-fg`.
 3. **Keep the app-launcher drawer, themed, wired to the user's apps** (not Athena's).
 4. **Rename** `config-minimal.jsonc` → `config-athena.jsonc`,
    `style-minimal.css` → `style-athena.css`. The layout switcher (08-02) globs

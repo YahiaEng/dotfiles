@@ -4,7 +4,15 @@ created: 2026-07-15
 severity: high
 source: 08-12 UAT checkpoint (user-reported)
 affects_plans: [08-06, 08-07, 08-08]
-status: pending
+status: resolved
+resolved: 2026-07-15
+resolved_by: 08-16
+resolution: >
+  Fixes 1 (daemon in autostart.conf) and 2 (eww.scss restyled to the
+  translucent-island language) shipped in 08-16. Verified live: `eww
+  active-windows` shows `media-popup` opens on the media-segment click.
+  Fix 3 (a gate asserting the popup actually opens) remains OPEN — no
+  automated gate yet covers daemon-liveness / popup-open.
 ---
 
 # eww media popup is bland and does not function

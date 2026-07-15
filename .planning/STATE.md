@@ -5,10 +5,10 @@ milestone_name: Desktop Expansion
 current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
-stopped_at: Completed 08-11-PLAN.md
-last_updated: "2026-07-14T22:47:19.710Z"
-last_activity: 2026-07-14
-last_activity_desc: Phase 08 execution started
+stopped_at: Completed 08-16-PLAN.md (athena approved on sight)
+last_updated: "2026-07-15T11:45:00.000Z"
+last_activity: 2026-07-15
+last_activity_desc: 08-16 athena layout rebuilt + iterated to user approval
 progress:
   total_phases: 6
   completed_phases: 4
@@ -230,6 +230,11 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 08-11: waybar-design-lint CHECK E treats player-icons/status-icons/format-icons entries as unconditional glyph slots but format*-scalar templates as exempt from blank (only a leading 2+-space run fails) — the only design letting mpris.format-stopped/status-icons.stopped stay legitimately empty while still catching cpu/memory/clock/network/pulseaudio's actual bugs
 - [Phase ?]: 08-11: config-minimal.jsonc's own mpris redefinition also repaired (deviation) since whole-key first-defined-wins means modules.jsonc's glyph fix never reaches it, and the plan's success_criteria requires zero empty glyphs across every config-*.jsonc
 - [Phase ?]: 08-12: 'full' waybar translucent-island redesign APPROVED by user on sight and locked as the design-system contract for 08-13/08-14. 'minimal' layout to be scrapped and rebuilt from scratch as a genuinely different design (separate brainstorm).
+- [Phase 08-16]: 'athena' layout (rebuilds/renames 'minimal') APPROVED by user on sight under light+dark over three checkpoint rounds. Discrete capsules, hover-drawers, app-launcher + settings drawers, live-window workspace icons.
+- [Phase 08-16]: Colour DESIGN Rule 2 amended per user: "filled, but fewer" — coloured glyph on a translucent neutral pill is illegible on light presets (measured ~2-3:1, green ~2:1, unfixable by hue-tuning); only 3 pills carry colour as a SOLID FILL with M3 on_X glyph (clock=@secondary, updates=@tertiary, notification=@primary/only-while-unread). Rest neutral, chroma=state only.
+- [Phase 08-16]: Root-cause: PUA Nerd Font glyphs typed via the edit tool were stored as EMPTY strings; an empty drawer HANDLE glyph makes waybar collapse the whole group to zero width (the "missing settings gear"). Fix: write real codepoints as UTF-8. lint CHECK E does not catch a truly-empty "" (only whitespace) — latent gap.
+- [Phase 08-16]: eww media popup revived — root cause was the eww daemon never being started (absent from autostart.conf), not the widget/opener. Added `uwsm app -- eww daemon` + restyled eww.scss to the island language. Closes the eww-media-popup-dead todo (its 3rd ask, a popup-open gate, still open).
+- [Phase 08-16]: gaming-mode had NO keybind and NO on-click anywhere — a display-only indicator wired to nothing. Added on-click -> gaming-mode-toggle.sh (still a read-only state-file consumer). Pre-existing custom/notification "{}"+"{icon}" fmt bug fixed ({}->{text}) since the bell became a prominent standalone module. tray removed from athena (duplicated the connections drawer).
 
 ### Quick Tasks Completed
 
@@ -274,6 +279,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T21:44:09.014Z
-Stopped at: Completed 08-11-PLAN.md
+Last session: 2026-07-15T11:45:00.000Z
+Stopped at: Completed 08-16-PLAN.md — athena layout approved on sight (light+dark). Remaining in Phase 08: 08-13 (floating redesign), 08-14 (vertical redesign), 08-15 (close-out). floating/vertical still fail lint CHECK B/C (their 08-13/08-14 redesign scope).
 Resume file: None
