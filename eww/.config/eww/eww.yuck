@@ -88,17 +88,15 @@
       (label :class "media-album" :halign "start" :limit-width 34 :text {media.album}))
 
     (box :class "media-transport" :orientation "h" :space-evenly false :halign "center"
-      (button :class "transport-btn"
-        :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} previous"
-        (label :class "glyph" :text ""))
-      (button :class "transport-btn play-pause ${media.status == "Playing" ? "playing" : ""}"
-        :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} play-pause"
-        (label :class "glyph" :text {media.status == "Playing" ? "" : ""}))
-      (button :class "transport-btn"
-        :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} next"
-        (label :class "glyph" :text "")))
-
-    (box :class "media-seek-row" :orientation "v" :space-evenly false :visible {media.length > 0}
+      (eventbox :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} previous"
+        (box :class "transport-btn" :halign "center" :valign "center"
+          (label :class "glyph" :text "")))
+      (eventbox :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} play-pause"
+        (box :class "transport-btn play-pause ${media.status == "Playing" ? "playing" : ""}" :halign "center" :valign "center"
+          (label :class "glyph" :text {media.status == "Playing" ? "" : ""})))
+      (eventbox :onclick "~/.config/hypr/scripts/media-players.sh cmd {media.player} next"
+        (box :class "transport-btn" :halign "center" :valign "center"
+          (label :class "glyph" :text ""))))    (box :class "media-seek-row" :orientation "v" :space-evenly false :visible {media.length > 0}
       (scale :class "media-seek" :orientation "h"
         :min 0 :max {media.length > 0 ? media.length : 1} :value {media.position}
         :active {media.length > 0}
@@ -130,11 +128,34 @@
               :orientation "h" :space-evenly false
               (label :halign "start" :hexpand true :limit-width 24 :text {player.label}))))))))
 
+; Full-screen transparent backdrop — the reliable click-away-close on
+; Hyprland. `:unfocus-close`/`:onkeypressed` need the popup to hold
+; keyboard focus, which Hyprland does NOT grant a layer-shell surface on
+; open (verified: activewindow stays on the prior window). So a backdrop
+; eventbox behind the popup captures any click OUTSIDE the popup and closes
+; both. `:focusable false` so it never steals focus; sits on the `fg` layer
+; BELOW the popup's `overlay`, so popup clicks reach the popup, not this.
+(defwindow media-backdrop []
+  :monitor 0
+  :geometry (geometry :width "100%" :height "100%")
+  :stacking "fg"
+  :focusable false
+  (eventbox :onclick "bash ~/.config/hypr/scripts/media-popup-close.sh"
+    (box :class "media-backdrop" :hexpand true :vexpand true)))
+
+; :focusable false — the popup needs POINTER input only (button clicks),
+; not keyboard. On Hyprland, an overlay layer with `:focusable true`
+; (on-demand keyboard interactivity) does NOT reliably receive pointer
+; events until the compositor focuses it, which it won't auto-do — that is
+; why buttons "did nothing" and click-away never fired. `:focusable false`
+; (keyboard-interactivity: none) still receives pointer on wlroots, so the
+; transport/seek/volume/switcher controls work. Close is handled by the
+; backdrop (click-away) and the media-segment toggle — neither needs
+; keyboard focus, so `:unfocus-close`/`:onkeypressed` are dropped.
 (defwindow media-popup [x y]
+  :namespace "eww-media-popup"
   :monitor 0
   :geometry (geometry :x "${x}" :y "${y}" :width "300" :height "560" :anchor "top right")
   :stacking "overlay"
-  :unfocus-close true
-  :focusable true
-  :onkeypressed "{EWW_CMD} close media-popup"
+  :focusable false
   (media-center))

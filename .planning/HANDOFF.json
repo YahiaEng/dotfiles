@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-15T10:44:28.465Z",
+  "phase": "08",
+  "phase_name": "waybar-evolution",
+  "phase_dir": ".planning/phases/08-waybar-evolution",
+  "plan": "post-phase gap-closure (eww media popup + swaync control center)",
+  "task": 5,
+  "total_tasks": 6,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "swaync: theme-switch toggle glyph (was empty label) -> md-theme-light-dark; needs full config reload not -rs", "status": "done", "commit": "uncommitted"},
+    {"id": 2, "name": "swaync: fade animation snappier (transition-time 200 -> 130)", "status": "done", "commit": "uncommitted"},
+    {"id": 3, "name": "swaync: translucent control-center + widgets so the existing blur layerrule frosts; subtle border; single-box notifications (collapsed .notification-group/.notification-background)", "status": "done", "commit": "uncommitted"},
+    {"id": 4, "name": "eww: click-away close via full-screen backdrop window (Hyprland never focuses the popup so unfocus-close/Esc cannot fire); backdrop needs a non-zero scrim bg or it is click-through; media-segment click also toggles-close. eww blur layerrule added (namespace eww-media-popup)", "status": "done", "commit": "uncommitted"},
+    {"id": 5, "name": "eww: transport controls converted from GTK button -> eventbox>box>label (buttons did not fire on the layer surface; eventbox fires on raw pointer). Play/pause glyph fixed.", "status": "in_progress", "progress": "code done + renders correctly; awaiting USER live-test of whether prev/play-pause/next now actually respond, and whether the seek/volume scale widgets drag"}
+  ],
+  "remaining_tasks": [
+    {"id": 6, "name": "cava audio-visualizer integration into the eww media center (user: 'boring, liven it up with cava'). cava is in official extra repo (0.10.7) — needs install + a cava->eww bridge (raw output config + deflisten/poll script) + a bars defwidget + styling. NOT STARTED — best done fresh (context-heavy).", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "Cannot verify eww pointer interaction from the agent side — no click-injection tool (ydotool/wlrctl/wtype-pointer) available; wlrctl is AUR-only. Interaction fixes must be user-tested.", "type": "technical", "workaround": "Screenshots confirm rendering; user confirms clicks. media-segment-toggle close is verified working as a guaranteed dismiss path."}
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {"action": "Test the eww media popup: do prev/play-pause/next respond now? Do the seek/volume sliders drag?", "context": "The eventbox conversion (task 5) is the fix for 'cannot interact'; if scales still don't drag they likely need the same button->eventbox-equivalent handling.", "blocking": true},
+    {"action": "Decide whether to install cava (official extra repo) for the visualizer feature", "context": "Task 6 requires it.", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "eww popup uses :focusable false + a scrim backdrop + button->eventbox, NOT :unfocus-close/:onkeypressed", "rationale": "Hyprland 0.55.4 does not give an eww overlay layer keyboard focus on open, so focus-dependent close never fires; GTK buttons need a focus-grab that fails on the layer surface, while eventboxes fire on raw pointer; a fully-transparent backdrop is treated as click-through so it needs a faint scrim.", "phase": "08"},
+    {"decision": "swaync config.json changes (toggle label) require `swaync-client --reload-config` / restart, not just `swaync-client -rs` (which is CSS-only)", "rationale": "The theme glyph looked 'still missing' after -rs because the label lives in config.json.", "phase": "08"},
+    {"decision": "swaync blur = translucent .control-center + widgets (alpha) so the pre-existing `blur, swaync-control-center` layerrule has something to frost; the rule + namespace were already correct", "rationale": "The layer was opaque so blur had no effect; the fix is translucency, not the rule.", "phase": "08"}
+  ],
+  "uncommitted_files": [
+    "swaync/.config/swaync/config.json",
+    "swaync/.config/swaync/style.css",
+    "eww/.config/eww/eww.yuck",
+    "eww/.config/eww/eww.scss",
+    "hypr/.config/hypr/config/windowrules.conf",
+    "hypr/.config/hypr/scripts/media-popup-open.sh",
+    "hypr/.config/hypr/scripts/media-popup-close.sh (new)"
+  ],
+  "next_action": "Ask the user the result of the eww transport-button live test. If buttons now work: fix the seek/volume scale widgets if they don't drag, then start the cava integration (install cava from extra, build cava->eww bridge + bars widget + styling). If buttons still don't work: the eventbox theory is wrong — investigate Hyprland layer pointer routing / try opening the popup differently.",
+  "context_notes": "This session RESUMED then completed all of Phase 08 (08-16 athena, 08-13 floating, 08-14 vertical, 08-15 close-out — all committed & user-approved). Then started post-phase gap-closure on the two 'dead/ugly' surfaces (eww media popup, swaync control center) from the pending todos. All swaync fixes are done+verified. eww: click-away now works (user confirmed), interaction (transport buttons) just converted to eventboxes and awaiting user test. cava not started. IMPORTANT recurring gotcha this whole phase: PUA Nerd Font glyphs typed via the edit tool get stored as EMPTY strings — always write glyphs by codepoint via python chr(), or verify with a cmap/parse check. Also: `str.replace` on JSON/yuck matches ALL occurrences (bit me twice — injected content into the wrong module). Unrelated pre-existing strays (csv, current.jpg, 07-VERIFICATION.md) are intentionally left uncommitted."
+}

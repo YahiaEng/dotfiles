@@ -2,8 +2,12 @@
 
 /* ── Control center ────────────────────────────────── */
 .control-center {
-    background: @background;
-    border: 3px solid @primary;
+    /* Translucent so the `blur, swaync-control-center` layerrule frosts the
+       desktop through it (was fully opaque @background — the "intrusive, no
+       blur" bug). Alpha >= the 0.5 ignore_alpha threshold so blur applies.
+       Border thinned from an intrusive 3px chroma slab to a subtle hairline. */
+    background: alpha(@background, 0.72);
+    border: 1px solid alpha(@primary, 0.25);
     border-radius: 16px;
     padding: 10px;
     font-family: "FiraCode Nerd Font";
@@ -59,7 +63,7 @@
 .widget-volume,
 .widget-slider,
 .widget-buttons-grid {
-    background: @surface_variant;
+    background: alpha(@surface_variant, 0.45);
     border-radius: 12px;
     padding: 12px;
     margin: 6px 8px;
@@ -111,14 +115,29 @@
     color: @on_primary;
 }
 
-/* ── Notifications ─────────────────────────────────── */
-.notification-row {
+/* ── Notifications — ONE box per notification (08-15 fix) ─────────────
+   The old sheet painted a background + border at TWO DOM levels
+   (.notification here AND .notification-row .notification-background
+   .notification below), producing two stacked, offset boxes with two
+   borders. Fix: the box lives on .notification ONLY; the wrapper nodes
+   (.notification-row, .notification-background) are kept inert so nothing
+   paints a second box behind it. */
+.notification-row,
+.notification-background,
+.notification-group,
+.notification-group.normal,
+.notification-group.low,
+.notification-group.critical,
+.notification-group:focus {
     outline: none;
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .notification {
-    background: @surface_variant;
-    border: 2px solid @outline;
+    background: alpha(@surface_variant, 0.6);
+    border: 1px solid alpha(@outline, 0.6);
     border-radius: 12px;
     margin: 4px 6px;
     padding: 0;
@@ -166,13 +185,6 @@
     color: @error;
 }
 
-/* ── Notification window (floating) ────────────────── */
-.notification-row .notification-background .notification {
-    background: @background;
-    border: 2px solid @primary;
-    border-radius: 14px;
-}
-
 /* ── Critical notification ─────────────────────────── */
 .critical .notification {
     border-color: @error;
@@ -199,10 +211,4 @@
 .notification-action:hover {
     background: @secondary;
     color: @on_secondary;
-}
-
-/* ── Empty state ───────────────────────────────────── */
-.control-center .notification-row .notification-background .notification {
-    background: transparent;
-    border: none;
 }

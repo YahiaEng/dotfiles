@@ -21,7 +21,7 @@
     "control-center-width": 420,
     "keyboard-shortcuts": true,
     "image-visibility": "when-available",
-    "transition-time": 200,
+    "transition-time": 130,
     "hide-on-clear": false,
     "hide-on-action": true,
     "script-fail-notify": true,
@@ -68,7 +68,7 @@
                     "update-command": "swaync-client -D"
                 },
                 {
-                    "label": "",
+                    "label": "󰔎",
                     "type": "toggle",
                     "command": "~/.config/hypr/scripts/theme-switch.sh",
                     "update-command": "v=$(cat ~/.local/state/theme/mode 2>/dev/null || echo dark); case $v in light) echo true ;; *) echo false ;; esac"

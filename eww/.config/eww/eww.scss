@@ -25,12 +25,25 @@
     font-family: "FiraCode Nerd Font";
 }
 
+// Full-screen click-away backdrop (see eww.yuck media-backdrop). It carries
+// a faint scrim rather than being fully transparent: a fully-transparent
+// gtk-layer-shell surface can be treated as having no input region (clicks
+// pass through), so click-away silently fails. The near-invisible tint
+// guarantees an input region AND doubles as a subtle modal dim behind the
+// popup.
+.media-backdrop {
+    background-color: rgba($background, 0.15);
+}
+
 // ── Popup body — the translucent island ────────────────────────────────
 // A single raised surface panel (rgba over $surface) with a hairline
 // outline, echoing the athena capsule surface. Rounded 20px to match the
 // waybar pill radius.
 .media-center {
-    background-color: rgba($surface, 0.86);
+    // Translucent so the Hyprland `blur, eww-media-popup` layerrule frosts
+    // the desktop through it (08-15). Alpha stays >= the 0.5 ignore_alpha
+    // threshold so the blur pass actually applies to this surface.
+    background-color: rgba($surface, 0.72);
     color: $on_surface;
     padding: 18px;
     border: 1px solid rgba($outline, 0.35);

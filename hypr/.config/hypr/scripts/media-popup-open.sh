@@ -154,7 +154,9 @@ _abs_to_anchor_offset_y() {
 _open_eww() {
     local eww_x="$1" eww_y="$2"
     _is_int "$eww_x" && _is_int "$eww_y" || return 1
-    eww open --toggle "$WINDOW_NAME" --arg "x=${eww_x}" --arg "y=${eww_y}" >/dev/null 2>&1 || true
+    # Open the click-away backdrop first (behind the popup), then the popup.
+    eww open media-backdrop >/dev/null 2>&1 || true
+    eww open "$WINDOW_NAME" --arg "x=${eww_x}" --arg "y=${eww_y}" >/dev/null 2>&1 || true
 }
 
 # Prints "mon_x mon_y logical_w logical_h" for the monitor whose
@@ -261,6 +263,15 @@ _try_fixed_mode() {
     # "zero new moving parts" framing for this fallback).
     _open_eww "$FIXED_OFFSET" "$FIXED_OFFSET"
 }
+
+# ── Toggle ───────────────────────────────────────────────────────
+# If the popup is already open, this click means "close" — tear down
+# BOTH the popup and its backdrop and exit. Handled here (rather than
+# `eww open --toggle`) so the backdrop is never orphaned open.
+if eww active-windows 2>/dev/null | grep -q '^media-popup:'; then
+    eww close media-popup media-backdrop >/dev/null 2>&1 || true
+    exit 0
+fi
 
 # ── Dispatch ─────────────────────────────────────────────────────
 # Never send waybar a hide/reload signal from here — 08-03 is the
