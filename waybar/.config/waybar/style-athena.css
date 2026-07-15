@@ -52,12 +52,14 @@ window#waybar {
 #group-apps,
 #group-storage,
 #group-system,
+#custom-updates,
 #workspaces,
 #idle_inhibitor,
+#custom-media,
 #group-audio,
 #group-connections,
 #clock,
-#group-tray-group {
+#group-settings {
     background: @capsule;
     border-radius: 20px;
     margin: 4px 5px;
@@ -112,7 +114,8 @@ window#waybar {
     padding: 0 8px;
 }
 
-/* ── State — chroma appears here and NOWHERE else among these pills ── */
+/* ── State — storage/system glyphs are neutral (@capsule-fg, inherited);
+   ── colour appears only on warn/critical (attention), nowhere at rest. */
 #cpu.warning,
 #memory.warning,
 #disk.warning {
@@ -124,6 +127,16 @@ window#waybar {
 #disk.critical,
 #temperature.critical {
     color: @danger;
+}
+
+/* ── System-updates — a FILLED alert pill (08-16 "filled, but fewer").
+   Only present when updates exist (exec-if); a solid hue fill + on-colour
+   glyph so the "N updates" reads crisply on every theme, light included. */
+#custom-updates {
+    padding: 0 12px;
+    background: @fill-updates;
+    color: @fill-updates-fg;
+    font-weight: bold;
 }
 
 /* ── Workspaces — the capsule contains the buttons directly (no ──────
@@ -169,9 +182,20 @@ window#waybar {
     color: @on-accent;
 }
 
-/* ── idle_inhibitor ────────────────────────────────────────────────── */
+/* ── idle_inhibitor ("focus mode") ─────────────────────────────────────
+   08-16 checkpoint fix: the pill read as off-centre because its padding
+   was asymmetric (6px 10px) and it carried no min-width, so the lone
+   glyph floated left inside an oval. Symmetric padding + a min-width +
+   centred content make it a balanced round pill. Toggle is waybar's
+   native idle_inhibitor click (activated<->deactivated). */
 #idle_inhibitor {
-    padding: 6px 10px;
+    padding: 0 12px;
+    min-width: 20px;
+}
+
+#idle_inhibitor label {
+    /* centre the single glyph within the pill */
+    padding: 0;
 }
 
 #idle_inhibitor.activated {
@@ -191,6 +215,11 @@ window#waybar {
 #pulseaudio,
 #microphone {
     padding: 0 8px;
+}
+
+/* ── Media pill (eww now-playing opener) — neutral capsule, 08-16 ─────── */
+#custom-media {
+    padding: 0 12px;
 }
 
 /* Slider alias (theme.css) keeps this file role-name-only — no raw
@@ -235,39 +264,72 @@ window#waybar {
     color: @danger;
 }
 
-/* ── Clock pill ────────────────────────────────────────────────────── */
+/* ── Clock — a FILLED pill (08-16 "filled, but fewer"). The most-read
+   element on the bar; a solid hue fill + on-colour text keeps it crisp
+   on every preset. Overrides the neutral @capsule background from the
+   shared rule above (later source, equal specificity). */
 #clock {
     padding: 6px 14px;
     font-weight: bold;
+    background: @fill-clock;
+    color: @fill-clock-fg;
 }
 
-/* ── Tray drawer — notification bell + tray + folded settings ────────
-   #group-tray-group is the outer capsule (shared rule block above);
-   #tray itself is the nested systray widget and keeps
-   waybar-modules.css's own padding (never redefined here — D-31/D-33,
-   and the reason this group is named tray-group rather than tray, see
-   config-athena.jsonc comment — avoids the #tray id collision that
-   naming it plain "group/tray" would have caused). */
-#group-tray-group {
+/* ── Settings drawer (08-16 checkpoint) ──────────────────────────────
+   #group-settings is the outer capsule (shared rule above); a gear
+   launcher (#custom-settings) collapses the drawer, which expands to the
+   five switch axes. Members styled as neutral drawer items that highlight
+   in the accent on hover, matching the app drawer's convention. */
+#group-settings {
     padding: 6px 6px;
 }
 
-#custom-notification {
-    padding: 0 8px;
-    color: @capsule-fg;
+#custom-settings {
+    padding: 0 10px;
+    color: @accent;
 }
 
 #custom-theme,
-#custom-waybar-layout {
-    padding: 0 8px;
+#custom-waybar-layout,
+#custom-font,
+#custom-icon-theme,
+#custom-wallpaper {
+    padding: 0 10px;
+    margin: 0 1px;
     color: @capsule-fg;
     border-radius: 16px;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 #custom-theme:hover,
-#custom-waybar-layout:hover {
+#custom-waybar-layout:hover,
+#custom-font:hover,
+#custom-icon-theme:hover,
+#custom-wallpaper:hover {
     background: @capsule-hover;
+    color: @accent;
+}
+
+/* ── Notification bell — standalone alert module next to power (08-16).
+   Calm (neutral bare glyph) when there is nothing; becomes a FILLED alert
+   pill only while swaync reports unread/DND notifications ("filled, but
+   fewer" — colour signals an actual alert, not decoration). The .*
+   classes are swaync-client -swb's own class field (same keys as the
+   module's format-icons). */
+#custom-notification {
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 14px;
+    color: @capsule-fg;
+    transition: all 0.3s ease;
+}
+
+#custom-notification.notification,
+#custom-notification.dnd-notification,
+#custom-notification.inhibited-notification,
+#custom-notification.dnd-inhibited-notification {
+    background: @fill-notification;
+    color: @fill-notification-fg;
 }
 
 /* ── gaming-mode + power (right-end, outside any capsule — bare ──────
@@ -307,8 +369,14 @@ window#waybar {
 #custom-app-lutris,
 #custom-app-obsidian,
 #custom-app-codium,
+#custom-settings,
 #custom-theme,
 #custom-waybar-layout,
+#custom-font,
+#custom-icon-theme,
+#custom-wallpaper,
+#custom-media,
+#custom-updates,
 #custom-power,
 #custom-notification,
 #custom-gaming-mode,

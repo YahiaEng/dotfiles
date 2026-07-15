@@ -21,15 +21,29 @@
     "margin-right": 10,
     "spacing": 0,
 
-    // ── Rule 4 arrangement ───────────────────────────────────────────
-    "modules-left": ["group/apps", "group/storage", "group/system"],
+    // ── Rule 4 arrangement (08-16 checkpoint iteration) ───────────────
+    // custom/updates sits beside the storage/system pills and only
+    // appears when `checkupdates` reports >0 (its own exec-if hides it
+    // otherwise). custom/media (eww popup opener) sits beside the audio
+    // group. The settings drawer (theme/waybar/font/icons/wallpaper)
+    // replaces the old tray-folded settings buttons. custom/notification
+    // is now a standalone module next to custom/power (was buried in the
+    // tray drawer).
+    "modules-left": ["group/apps", "group/storage", "group/system", "custom/updates"],
     "modules-center": ["hyprland/workspaces", "idle_inhibitor"],
+    // 08-16 checkpoint iter 2: `tray` removed — its nm-applet/blueman
+    // icons visually duplicated the network+bluetooth already in
+    // group/connections (user: "duplicate bluetooth/network next to
+    // gaming mode, remove it"). group/settings moved to sit directly
+    // left of custom/power (user request).
     "modules-right": [
+        "custom/media",
         "group/audio",
         "group/connections",
         "clock",
-        "group/tray-group",
         "custom/gaming-mode",
+        "custom/notification",
+        "group/settings",
         "custom/power"
     ],
 
@@ -75,23 +89,52 @@
         },
         "modules": ["network", "bluetooth"]
     },
-    // Settings buttons (custom/theme, custom/waybar-layout) folded into
-    // the tray drawer alongside this repo's existing swaync-wired
-    // custom/notification (= Athena's custom/tray-arrow role) and tray
-    // — both already canonically defined + cmap-verified in
-    // modules.jsonc, referenced here by name, not redefined (D-31).
-    // Named "group/tray-group" (not "group/tray", Athena's own naming
-    // convention) so waybar's group-widget CSS id (#tray-group) never
-    // collides with the nested systray widget's own CSS id (#tray) —
-    // two same-named GTK nodes in one tree would let a #tray rule
-    // apply to both the outer capsule and the inner tray icons.
-    "group/tray-group": {
+    // ── Settings drawer (08-16 checkpoint) ──────────────────────────
+    // The 08-12/first-athena build folded custom/theme + custom/waybar-
+    // layout into the TRAY drawer, where they were invisible until the
+    // tray capsule was hovered (the "settings glyph is missing" the user
+    // reported). They now live in a dedicated, discoverable settings
+    // drawer behind a gear launcher, expanded to the full five switch
+    // axes the repo owns: theme, waybar layout, font, icons, wallpaper —
+    // every one an existing script (theme-switch / waybar-switch /
+    // font-switch / icon-theme-switch / wallpaper-switch). custom/theme,
+    // custom/waybar-layout, custom/font, custom/icon-theme, custom/
+    // wallpaper are all canonically defined in modules.jsonc (D-31),
+    // referenced here by name. Collapsed glyph U+F013 -> fa-gear.
+    "group/settings": {
         "orientation": "horizontal",
         "drawer": {
             "transition-duration": 500,
             "transition-left-to-right": false
         },
-        "modules": ["custom/notification", "tray", "custom/theme", "custom/waybar-layout"]
+        "modules": [
+            "custom/settings",
+            "custom/theme",
+            "custom/waybar-layout",
+            "custom/font",
+            "custom/icon-theme",
+            "custom/wallpaper"
+        ]
+    },
+    "custom/settings": {
+        "format": "",
+        "tooltip": false
+    },
+
+    // Athena redefinition of custom/updates (modules.jsonc's canonical
+    // form is the verbose "{} Update(s)" text; this glyph-first shape
+    // fits athena's icon-centric pills). exec/exec-if/on-click inherit
+    // from the canonical def via whole-key first-defined-wins? No —
+    // whole-key means this WHOLE object replaces it, so exec/exec-if are
+    // restated here. Glyph U+F06B0 -> md-update. Only appears when
+    // checkupdates reports >0.
+    "custom/updates": {
+        "format": "󰚰 {}",
+        "exec": "checkupdates | wc -l",
+        "exec-if": "[ $(checkupdates 2>/dev/null | wc -l) -gt 0 ]",
+        "interval": 900,
+        "tooltip-format": "{} update(s) available",
+        "on-click": "kitty -e paru -Syu"
     },
 
     // ── App-launcher drawer members — uwsm app -- <target>.desktop ───

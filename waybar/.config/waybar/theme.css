@@ -108,3 +108,23 @@
    at partial alpha — a neutral, low-emphasis track that is visibly
    distinct from both @capsule and @accent (the highlight/knob). */
 @define-color capsule-track alpha(@outline, 0.5);
+
+/* ── Filled-pill accent hues — 08-16 checkpoint ("filled, but fewer") ──
+   At the athena checkpoint the user asked for "more theme colors" but the
+   first attempt (colouring GLYPHS on the translucent neutral capsule) was
+   illegible on light presets — a coloured glyph on a light see-through
+   pill measures only ~2-3:1 (green ~2:1), a hard limit no hue-tuning
+   fixes (full contrast matrix in 08-16-SUMMARY). The resolution: only
+   THREE pills carry colour, and they carry it as a SOLID FILL with the
+   glyph in the guaranteed-contrast M3 on_X role (6.6:1 / 4.4:1 on
+   catppuccin-latte) — clock, the updates alert, and the notification
+   alert. Every other pill stays neutral (@capsule/@capsule-fg) with
+   colour reserved for state (@warn/@danger, @accent on the active
+   workspace + launcher glyphs). Three distinct hues so the filled trio
+   never repeats a colour side by side. */
+@define-color fill-clock @secondary;
+@define-color fill-clock-fg @on_secondary;
+@define-color fill-updates @tertiary;
+@define-color fill-updates-fg @on_tertiary;
+@define-color fill-notification @primary;
+@define-color fill-notification-fg @on_primary;

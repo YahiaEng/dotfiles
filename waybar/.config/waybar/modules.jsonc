@@ -209,12 +209,27 @@
         "format-icons": {
             "on": "󰊴",
             "off": "󰊵"
-        }
+        },
+        // 08-16 checkpoint fix: the module was a display-only indicator
+        // wired to nothing — no keybind and no on-click existed anywhere,
+        // so gaming mode could not be toggled at all. on-click now invokes
+        // the SAME gaming-mode-toggle.sh (D-35 owner); the module stays a
+        // read-only consumer of the state file it renders (never a second
+        // copy of the on/off logic — the toggle script owns that).
+        "on-click": "~/.config/hypr/scripts/gaming-mode-toggle.sh"
     },
 
     "custom/notification": {
         "tooltip": false,
-        "format": "{icon} {}",
+        // 08-16 fix: waybar's fmt upgrade rejects mixing a named field
+        // ({icon}) with an automatic index ({}) in one format string
+        // ("mixing manual and automatic argument indexing is no longer
+        // supported"). This was logged as a deferred pre-existing bug
+        // while custom/notification was buried in athena's tray drawer;
+        // now that it's a prominent standalone bell next to power (user
+        // request), it must render — {} -> {text} per waybar's own
+        // recommendation (text = swaync's unread count from `-swb`).
+        "format": "{icon} {text}",
         "format-icons": {
             "notification": "󰂚<span foreground='red'><sup></sup></span>",
             "none": "󰂜",
@@ -282,6 +297,23 @@
     "custom/wallpaper": {
         "format": "\uf03e ",
         "on-click": "bash ~/.config/hypr/scripts/wallpaper-switch.sh"
+    },
+
+    // \u2500\u2500 Settings-drawer switchers \u2014 08-16 (athena settings group) \u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // Theme and waybar-layout switchers already live above (custom/theme,
+    // custom/waybar-layout); these two complete the five-way settings
+    // drawer (theme / waybar / font / icons / wallpaper). Glyphs
+    // cmap-verified against FiraCodeNerdFont-Regular.ttf: U+F031 -> fa-font,
+    // U+F1FC -> fa-paintbrush.
+    "custom/font": {
+        "format": "",
+        "tooltip-format": "Change Font",
+        "on-click": "~/.config/hypr/scripts/font-switch.sh"
+    },
+    "custom/icon-theme": {
+        "format": "",
+        "tooltip-format": "Change Icons",
+        "on-click": "~/.config/hypr/scripts/icon-theme-switch.sh"
     },
 
     "backlight": {
