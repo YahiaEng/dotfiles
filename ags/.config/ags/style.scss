@@ -33,6 +33,17 @@
   outline: none;
 }
 
+// GTK4 windows paint an OPAQUE theme background by default (libadwaita's
+// @window_bg_color) — this was silently defeating every translucency value
+// tuned below: no matter how low .media-scrim/.media-bg-art alpha went, the
+// base window surface behind them was fully opaque, so the Hyprland
+// `ags-media` blur layerrule had nothing translucent to blur through and
+// the card rendered as a flat solid panel. Only one window exists in this
+// AGS app (MediaWindow), so a global reset is safe and scoped in effect.
+window {
+  background-color: transparent;
+}
+
 .media-card {
   min-width: 460px;
   min-height: 360px;
