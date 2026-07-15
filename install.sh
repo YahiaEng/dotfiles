@@ -190,6 +190,11 @@ PACMAN_PKGS=(
     mangohud
     nwg-displays
     blueman
+
+    # AGS media applet (MEDIA-04) — official extra repo audio visualizer,
+    # the underlay cava feeds into the AGS v3 media applet (see AUR_PKGS
+    # for aylurs-gtk-shell, the AGS toolkit itself).
+    cava
 )
 
 # ── Official repo packages (hardware — NVIDIA GPU only) ─
@@ -266,6 +271,12 @@ AUR_PKGS=(
     # package was explicitly refused (lower adoption, non-reproducible
     # builds) and must never be added.
     eww
+
+    # AGS media applet (MEDIA-04) — aylurs-gtk-shell is the well-known
+    # upstream AGS v3 (GTK4) toolkit; AUR-only (no official-repo
+    # alternative). gjs is pulled in automatically as its dependency —
+    # do not add gjs separately here.
+    aylurs-gtk-shell
 )
 
 # ── section_core_rice ─────────────────────────────────
