@@ -6,15 +6,15 @@ current_phase: 10
 current_phase_name: ags-media-applet
 status: executing
 stopped_at: Completed 10-02-PLAN.md (input-viability gate human-approved)
-last_updated: "2026-07-15T13:15:34.437Z"
+last_updated: "2026-07-15T16:50:00.000Z"
 last_activity: 2026-07-15
-last_activity_desc: Phase 10 execution started
+last_activity_desc: Completed 10-03 (live MPRIS controls, human-approved)
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 60
-  completed_plans: 56
-  percent: 71
+  completed_plans: 57
+  percent: 72
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 10 (ags-media-applet) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
-Last activity: 2026-07-15 — Phase 10 execution started
+Last activity: 2026-07-15 — Completed 10-03 (live MPRIS controls, human-approved)
 
 ## Performance Metrics
 
@@ -113,6 +113,7 @@ Last activity: 2026-07-15 — Phase 10 execution started
 | Phase 08 P11 | 35min | 3 tasks | 5 files |
 | Phase 10 P01 | 6min | 2 tasks | 1 files |
 | Phase 10 P02 | multi-session | 3 tasks | 6 files |
+| Phase 10 P03 | multi-session (3 gate rounds) | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -246,6 +247,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 10-02]: Working AGS request form is `ags request -i media toggle-media` — the bare `ags request toggle-media` fails (targets default instance 'ags'). 10-06 waybar on-click MUST use -i media.
 - [Phase 10-02]: AGS 3.1.0 reactive/JSX primitives pinned (load-bearing for 10-03/04/05): createState/createBinding/createComputed/createMemo/createEffect/createConnection/createExternal/createSettings + With/For/This from 'ags'; createPoll from 'ags/time'; subprocess/exec/execAsync from 'ags/process'; monitorFile from 'ags/file'; Astal/Gtk/Gdk from 'ags/gtk4'; app from 'ags/gtk4/app'.
 - [Phase 10-02]: dart-sass required — AGS bundler shells out to sass to compile style.scss; human-authorized install (official extra repo, Provides: sass), added to install.sh PACMAN_PKGS (1181c73); launch AGS with /usr/bin on PATH. Input-viability gate PASSED (human click printed AGS TEST BUTTON CLICKED; click-away + Esc work) — MEDIA-01 delivered.
+- [Phase 10-03]: DURABLE FINDING — Firefox/YouTube mpris:length is UNRELIABLE: intermittently absent even mid-track (20/20 empty samples while status=Playing), and a Set-position/seek re-emits metadata WITHOUT length until the next play-state change. Backend faithfully maps missing length to length:0/can_seek:false (not the culprit). Mitigation: per-track seekability LATCH in lib/media.ts (seekable/seekLength accessors) — hold seekability + last-known-good length keyed on player+title+artist, reset only on real track change or stop. General pattern for any unreliable per-track MPRIS field. Plus a synchronous startup seed via media-status.sh once so the seek slider reflects real length/position on first open (the watch subprocess hasn't emitted yet at open).
+- [Phase 10-03]: seek/volume sliders use Astal.Slider onChangeValue (Gtk.Range user-drag-only signal) NOT the doc's onValueChanged — onValueChanged would fire on every ~1Hz programmatic position update bound to `value`, causing a seek-on-every-tick feedback loop (Rule 1 bug prevention).
+- [Phase 10-03]: LESSON — raw NUL (0x00) bytes slipped into a track-key separator via the edit tooling, flagging the TS source binary in git (runtime-harmless but corrupt/unreviewable). Same edit-tool artifact class as the recurring PUA-glyph-empties-to-"" issue (08-16/08-11). Use plain visible separators; verify committed source blobs have zero NUL bytes (git cat-file -p | tr -cd '\000' | wc -c). Fixed to [player,title,artist].join(" :: ").
+- [Phase 10-03]: PLAN COMPLETE — MEDIA-01 interactive controls human-approved: transport/volume/switcher + seek (repeated drags AND correct first-drag baseline) all drive live MPRIS playback. Three MPRIS backend scripts reused byte-unchanged; all backend calls argv-form, only _valid_id ids + numeric slider values passed. Commits 8ce59e8/0242f10/9984f87/8a06eee/a189f5d.
 
 ### Quick Tasks Completed
 
@@ -290,6 +295,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T13:15:34.430Z
-Stopped at: Completed 10-02-PLAN.md (input-viability gate human-approved)
+Last session: 2026-07-15T16:50:00.000Z
+Stopped at: Completed 10-03-PLAN.md (live MPRIS controls human-approved)
 Resume file: None
