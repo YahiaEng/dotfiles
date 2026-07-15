@@ -56,7 +56,7 @@
             "stopped": ""
         },
         "max-length": 40,
-        "on-click": "~/.config/hypr/scripts/media-popup-open.sh",
+        "on-click": "ags request -i media toggle-media",
         "on-click-right": "playerctl next",
         "on-scroll-up": "playerctl volume 0.05+",
         "on-scroll-down": "playerctl volume 0.05-",
@@ -275,7 +275,7 @@
         "interval": 30,
         "return-type": "json",
         "exec": "python ~/.config/hypr/scripts/media-player.py 2> /dev/null",
-        "on-click": "~/.config/hypr/scripts/media-popup-open.sh",
+        "on-click": "ags request -i media toggle-media",
         "on-scroll-up": "playerctl next",
         "on-scroll-down": "playerctl previous"
     },
