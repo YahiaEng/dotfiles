@@ -1,33 +1,53 @@
 {
     "include": ["modules.jsonc", "bar-common.jsonc"],
 
-    // ── Bar geometry (D-11/D-14/D-15, UI-SPEC Vertical Layout table) ────
+    // ── Bar geometry — 08-14 mimics saatvik333/niri-dotfiles: a clean
+    // ── solid column FLUSH to the left edge, full height (gapless), not a
+    // ── floating island. margins 0 (reference is "gapless minimal");
+    // ── width is content-driven (waybar's width key is advisory).
     "layer": "top",
     "position": "left",
-    "width": 48,
-    "margin-left": 8,
-    "margin-top": 8,
-    "margin-bottom": 8,
+    "width": 44,
+    "margin-left": 0,
+    "margin-top": 0,
+    "margin-bottom": 0,
     "spacing": 0,
-    // NO "output" key (D-15) — draws on every monitor, exactly like the
-    // other three layouts. NO "margin-right" — flush-left column (D-14).
-    // The fixed hide/reload signal contract is inherited from
-    // bar-common.jsonc, not redeclared here (08-03's owner contract).
+    // NO "output" key (D-15) — draws on every monitor. The fixed
+    // hide/reload signal contract is inherited from bar-common.jsonc.
 
-    "modules-left": ["hyprland/workspaces"],
-    "modules-center": ["clock", "mpris"],
+    // Arrangement mirrors the reference's flow: clock + workspaces at the
+    // top, mpris in the middle, system/status glyphs at the bottom.
+    "modules-left": ["clock", "hyprland/workspaces"],
+    "modules-center": ["mpris"],
     "modules-right": [
         "cpu",
         "memory",
         "temperature",
-        "pulseaudio",
         "network",
+        "group/audio",
         "battery",
         "custom/gaming-mode",
         "custom/notification",
         "tray",
         "custom/power"
     ],
+
+    // Audio slider drawer (reference's group/audio): the volume glyph
+    // reveals a vertical slider on hover. pulseaudio + pulseaudio/slider
+    // both defined below.
+    "group/audio": {
+        "orientation": "vertical",
+        "drawer": {
+            "transition-duration": 400,
+            "transition-left-to-right": true
+        },
+        "modules": ["pulseaudio", "pulseaudio/slider"]
+    },
+    "pulseaudio/slider": {
+        "min": 0,
+        "max": 100,
+        "orientation": "vertical"
+    },
 
     // ── Full redefinitions (whole-key, first-defined-wins — never a ────
     // ── partial patch; see 08-01-SUMMARY.md / 08-CONTEXT.md D-31). ─────
@@ -198,15 +218,18 @@
     // own already-live cpu/memory glyphs (fa-microchip / fa-reorder)
     // instead of the empty "canonical" ones.
     "cpu": {
-        "format": "\n<small>{usage}%</small>",
+        "format": "",
         "interval": 2,
-        "tooltip": true
+        "tooltip": true,
+        "tooltip-format": "CPU: {usage}%",
+        "on-click": "uwsm app -- kitty -e htop"
     },
 
     "memory": {
-        "format": "\n<small>{percentage}%</small>",
+        "format": "",
         "interval": 5,
-        "tooltip-format": "{used:.1f}G / {total:.1f}G"
+        "tooltip-format": "RAM: {used:.1f}G / {total:.1f}G",
+        "on-click": "uwsm app -- kitty -e htop"
     },
 
     // Glyph fix (deviation): canonical temperature's format-icons array
@@ -218,7 +241,9 @@
     // independent of which icon is showing.
     "temperature": {
         "critical-threshold": 80,
-        "format": "{icon}\n<small>{temperatureC}°C</small>",
+        "format": "{icon}",
+        "tooltip-format": "Temp: {temperatureC}°C",
+        "on-click": "uwsm app -- kitty -e htop",
         "format-icons": ["", "", "", "", ""],
         "tooltip": true
     }

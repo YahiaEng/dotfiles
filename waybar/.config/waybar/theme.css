@@ -149,3 +149,24 @@
 @define-color float-e-fg @on_primary_container;
 @define-color float-neutral @surface;
 @define-color float-neutral-fg @on_surface;
+
+/* ── Vertical column (08-14) — mimics saatvik333/niri-dotfiles ─────────
+   Its own design flow: a clean near-solid surface strip down the left
+   edge, bare glyphs (@fg), colour used SEMANTICALLY only — @accent on
+   clock/active-workspace/wifi/plugged, @warn (green) on ethernet/
+   charging, @danger (red) on disconnected/critical. @column is the solid
+   column surface (near-opaque @surface — the reference's solid
+   `@background` column, kept faintly translucent for the house style). */
+@define-color column alpha(@surface, 0.92);
+/* A second accent hue (secondary) so the vertical column can spread
+   colour across more glyphs than @accent/@warn/@danger alone — the user
+   wanted "more colour" than the reference's mostly-neutral scheme. */
+@define-color accent-2 @secondary;
+/* Derived hues — the Material You palette gives only ~4 native hues
+   (primary/secondary/tertiary/error), and primary+secondary often cluster
+   in one hue family (both blue on e.g. tokyonight), so the column read as
+   "the same two colours". mix() blends role colours into extra DISTINCT
+   hues (purple = blue+red, teal = cyan+green), all still 100%
+   theme-derived — no raw literal, tracks every preset. */
+@define-color vhue-purple mix(@primary, @error, 0.4);
+@define-color vhue-teal mix(@secondary, @tertiary, 0.5);

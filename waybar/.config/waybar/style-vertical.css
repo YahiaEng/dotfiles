@@ -1,141 +1,228 @@
-/* 08-12 (Rule 1 auto-fix, blocking regression): waybar-modules.css now
-   speaks in theme.css role names only (bar-surface/fg/accent/...). This
-   layout's own rules below are untouched (still raw tokens, still an
-   opaque window — that visual redesign is 08-14's job, not this
-   plan's), but the import MUST resolve theme.css's role aliases or
-   every shared module rule (workspace buttons, mpris, custom-power, ...)
-   silently loses its colour. theme.css itself @imports the rendered
-   waybar.css transitively, so this is a drop-in replacement — zero
-   raw-token references below lose their resolution. */
+/* ╔══════════════════════════════════════════════════════╗
+   ║   VERTICAL — clean left column (08-14 rebuild)         ║
+   ║  Its OWN design flow, mimicking saatvik333/niri-       ║
+   ║  dotfiles: a solid, near-full-opacity surface strip    ║
+   ║  flush down the LEFT edge; every module a BARE GLYPH   ║
+   ║  (no boxes, no fills) with generous vertical spacing   ║
+   ║  and a hover-fade; colour used SEMANTICALLY only —     ║
+   ║  @accent on clock / active workspace / wifi / plugged, ║
+   ║  @warn (green) on ethernet / charging, @danger (red)   ║
+   ║  on disconnected / critical. This replaces the old     ║
+   ║  "big button boxes + 5-hue stripe rainbow". Every      ║
+   ║  colour routes through theme.css role names (CHECK B). ║
+   ╚══════════════════════════════════════════════════════╝ */
 @import url("theme.css");
 @import url("../../.local/state/theme/waybar-font.css");
 @import url("waybar-modules.css");
-/* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so
-   its idle-dim rule wins the cascade. stow.sh seeds this file empty if
-   absent; waybar-visibility.sh (08-03) also creates it on first run —
-   the file must always exist, or GTK3 discards this WHOLE stylesheet
-   (an unresolvable @import is not a soft warning here). */
+/* Owner-exclusive visibility CSS, imported LAST; an unresolvable @import
+   here makes GTK3 discard the whole sheet. */
 @import url("../../.local/state/theme/waybar-visibility.css");
 
-/* planner-discipline-allow: font-family */
-/* Phase 6 CR-01: the rendered font fragment (../../.local/state/theme/
-   waybar-font.css, imported above) owns the typeface declaration
-   EXCLUSIVELY. This sheet never declares one. */
-
+/* NOTE: font-size is set per-module below (16px glyphs), never globally —
+   a global `* { font-size: 20px }` was the root of the old "big button
+   boxes" (it inflated padding-sensitive containers, not just glyphs). */
 * {
-    /* Every module in this column is a glyph — 20px IS the body size
-       here (UI-SPEC's glyph-emphasis size), not the horizontal bars'
-       13px. The <small>-wrapped stacked values in cpu/memory/temperature
-       scale down from this automatically via Pango — no rule needed. */
-    font-size: 20px;
+    font-size: 13px;
     min-height: 0;
     border: none;
     border-radius: 0;
 }
 
 window#waybar {
-    background: alpha(@background, 0.90);
-    color: @on_surface;
-    border-radius: 14px;
-    /* D-06's OLED trim, same as the other three layouts, but rotated to
-       the column's OUTWARD-facing edge: for a left-anchored bar that is
-       the RIGHT edge, not the bottom. Same token, same 1px weight, same
-       0.4 alpha — only the geometry rotates. */
-    border-right: 1px solid alpha(@primary, 0.4);
-    border-bottom: none;
-    /* D-07 zero-risk bonus, applied here for the same reason 08-03
-       applied it to the other three layouts: the idle-dim path only
-       ever changes this element's opacity via a style-provider reload,
-       never unmapping it, so a CSS transition can genuinely apply. */
+    background: transparent;
+    color: @fg;
     transition: opacity 0.3s ease;
 }
 
-/* ── Glyph box + module gap (UI-SPEC binding: 48px column, 24x24 glyph ──
-   box, 12px side padding, 8px inter-module gap). One grouped selector
-   over every module id this layout lists, so there is a single place to
-   change the geometry. Property-level overrides on the shared rules from
-   waybar-modules.css — CSS cascade is later-wins per property, which is
-   strictly more granular than the JSONC include's whole-key rule, so
-   individual properties are overridden here rather than whole blocks
-   redeclared (08-01 Task 3's established CSS-side pattern). ────────────── */
-/* custom/gaming-mode is deliberately NOT listed in this group (and has
-   no rule anywhere in this file): its shared waybar-modules.css pill
-   (padding 0 8px, no filled background) is already a compact icon-only
-   treatment good enough for the column, and D-31's CSS payoff is that a
-   module the vertical layout doesn't otherwise touch needs zero new CSS
-   here — exactly like the JSONC side leaving it unreferenced by name. */
-#workspaces button,
+/* The column: a clean near-solid surface strip flush to the left edge
+   (config sets margins 0 → full height). No radius, no border — the
+   reference is gapless/borderless. */
+window#waybar > box {
+    background: @column;
+    padding: 8px 0;
+}
+
+/* ── Bare-glyph modules — vertical breathing room only, NO fill, NO ────
+   ── min-width, NO border. 16px glyphs. Hover fades to 0.5 (reference). */
 #clock,
 #mpris,
 #cpu,
 #memory,
 #temperature,
-#pulseaudio,
 #network,
+#pulseaudio,
 #battery,
+#custom-gaming-mode,
 #custom-notification,
 #tray,
 #custom-power {
-    min-width: 24px;
-    padding: 4px 12px;
-    /* The shared sheet's horizontal margins (4px 1px / 4px 2px / etc.)
-       are meaningless in a column and would stop modules centering in
-       the 48px track — zeroed here. Adjacent 4px top/bottom margins
-       compose to the UI-SPEC's binding 8px inter-module gap. */
-    margin: 4px 0;
+    color: @fg;
+    /* Horizontal padding fills the column so the WHOLE row is the hover/
+       click target — not just the ~16px glyph (the old `9px 0` left dead
+       space on both sides where hover/click did nothing). */
+    padding: 9px 13px;
+    font-size: 16px;
+    transition: opacity 0.2s ease;
 }
 
-/* ── Workspaces: shared rule's border-bottom reads as an underline in a
-   column — rotated to a left border. Background stays transparent (do
-   NOT reintroduce the filled pill 08-03's OLED trim just removed). ──── */
+/* ── Colour scheme — per-glyph theme hues (user: "more variety"). Six
+   distinct hues spread across the column so no two neighbours share and
+   the blue/cyan clustering is broken up: blue @accent, cyan @accent-2,
+   green @warn, red @danger, plus derived purple/teal. State classes
+   (network/battery/temp.critical) still override on top. ─────────────── */
+#cpu {
+    color: @vhue-teal;
+}
+#memory {
+    color: @warn;
+}
+#temperature {
+    color: @vhue-purple;
+}
+#network {
+    color: @accent-2;
+}
+#pulseaudio {
+    color: @accent;
+}
+#custom-gaming-mode {
+    color: @vhue-teal;
+}
+#custom-notification {
+    color: @vhue-purple;
+}
+#custom-power {
+    color: @danger;
+}
+
+#clock:hover,
+#mpris:hover,
+#cpu:hover,
+#memory:hover,
+#temperature:hover,
+#network:hover,
+#pulseaudio:hover,
+#battery:hover,
+#custom-gaming-mode:hover,
+#custom-notification:hover,
+#custom-power:hover {
+    opacity: 0.5;
+}
+
+/* ── Workspaces — bare coloured glyphs, NO box (reference). Active is
+   ── carried by glyph colour alone (an accent-filled pill is a heavy blob
+   ── in a narrow column). ─────────────────────────────────────────────── */
+#workspaces {
+    padding: 6px 0;
+}
+
 #workspaces button {
-    border-bottom: none;
-    border-left: 2px solid transparent;
+    padding: 6px 0;
+    margin: 0;
+    min-width: 0;
+    border-radius: 0;
+    color: @fg-dim;
+    background: transparent;
+    transition: opacity 0.2s ease;
 }
 
 #workspaces button.active {
+    /* colour-only active state — override the shared sheet's @accent
+       FILL (a heavy blob in a narrow column; the reference carries active
+       by glyph colour alone). */
     background: transparent;
-    border-bottom: none;
-    border-left: 2px solid @primary;
+    color: @accent;
 }
 
-/* ── System modules: same border-bottom -> border-left rotation, same
-   accent tokens, @surface_variant background untouched. ─────────────── */
-#cpu,
-#memory,
-#temperature,
-#pulseaudio,
-#network {
-    border-bottom: none;
-    border-left: 2px solid transparent;
+#workspaces button.urgent {
+    background: transparent;
+    color: @danger;
 }
 
-#cpu {
-    border-left-color: @tertiary;
-}
-#memory {
-    border-left-color: @secondary;
-}
-#temperature {
-    border-left-color: @primary;
-}
-#pulseaudio {
-    border-left-color: @tertiary;
-}
-#network {
-    border-left-color: @secondary;
+#workspaces button:hover {
+    opacity: 0.5;
 }
 
-/* ── Clock: two stacked lines of digits must fit inside the 48px column
-   — the shared rule's larger heading size is overridden down to the
-   UI-SPEC's 16px on-scale choice, centred. ───────────────────────────── */
+/* ── Clock — the one text element: HH over MM, stacked and centred, in
+   ── the accent (reference's clock = @color4). Smaller so two digit rows
+   ── fit the narrow column without widening it. ──────────────────────── */
 #clock {
-    font-size: 16px;
-    padding: 4px 0;
+    color: @accent;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 12px 6px;
 }
 
-/* ── Tray: icons stack in the column rather than running off it — ─────
-   geometry only, no colour change. ───────────────────────────────────── */
-#tray {
-    padding: 4px 0;
+/* ── Semantic state colour (reference's network / battery states) ─────── */
+#network.wifi {
+    color: @accent;
+}
+#network.ethernet {
+    color: @warn;
+}
+#network.disconnected,
+#network.disabled {
+    color: @danger;
+}
+
+#battery.charging,
+#battery.plugged {
+    color: @accent;
+}
+#battery.warning {
+    color: @warn;
+}
+#battery.critical {
+    color: @danger;
+}
+
+#custom-gaming-mode.on {
+    color: @accent;
+}
+#mpris.playing {
+    color: @accent;
+}
+
+/* Power — neutral at rest, red on hover (never a resting red glyph). */
+#custom-power:hover {
+    color: @danger;
+    opacity: 1;
+}
+
+/* ── Audio slider (group/audio vertical drawer — reference signature) ───
+   The volume glyph reveals a vertical slider on hover. */
+#group-audio {
+    padding: 0;
+}
+
+#pulseaudio-slider {
+    padding: 8px 4px;
+    min-height: 80px;
+}
+
+#pulseaudio-slider trough {
+    min-width: 8px;
+    border-radius: 8px;
+    background: @capsule-track;
+}
+
+#pulseaudio-slider highlight {
+    min-width: 8px;
+    border-radius: 8px;
+    background: @accent;
+}
+
+#pulseaudio-slider slider {
+    background: transparent;
+}
+
+/* ── Tooltip — matches the column, chroma-free (reference) ────────────── */
+tooltip {
+    background: @column;
+    border: 1px solid @fg-dim;
+    border-radius: 10px;
+}
+
+tooltip label {
+    color: @fg;
 }
