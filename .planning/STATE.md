@@ -5,16 +5,16 @@ milestone_name: Desktop Expansion
 current_phase: 10
 current_phase_name: ags-media-applet
 status: executing
-stopped_at: Completed 10-02-PLAN.md (input-viability gate human-approved)
-last_updated: "2026-07-15T16:50:00.000Z"
+stopped_at: Completed 10-04-PLAN.md (garuda restyle + cava underlay, human-approved)
+last_updated: "2026-07-15T15:07:57.800Z"
 last_activity: 2026-07-15
 last_activity_desc: Completed 10-03 (live MPRIS controls, human-approved)
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 60
-  completed_plans: 57
-  percent: 72
+  completed_plans: 58
+  percent: 71
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 10 (ags-media-applet) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-07-15 — Completed 10-03 (live MPRIS controls, human-approved)
 
@@ -114,6 +114,7 @@ Last activity: 2026-07-15 — Completed 10-03 (live MPRIS controls, human-approv
 | Phase 10 P01 | 6min | 2 tasks | 1 files |
 | Phase 10 P02 | multi-session | 3 tasks | 6 files |
 | Phase 10 P03 | multi-session (3 gate rounds) | 3 tasks | 2 files |
+| Phase 10 P04 | multi-session | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -251,6 +252,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 10-03]: seek/volume sliders use Astal.Slider onChangeValue (Gtk.Range user-drag-only signal) NOT the doc's onValueChanged — onValueChanged would fire on every ~1Hz programmatic position update bound to `value`, causing a seek-on-every-tick feedback loop (Rule 1 bug prevention).
 - [Phase 10-03]: LESSON — raw NUL (0x00) bytes slipped into a track-key separator via the edit tooling, flagging the TS source binary in git (runtime-harmless but corrupt/unreviewable). Same edit-tool artifact class as the recurring PUA-glyph-empties-to-"" issue (08-16/08-11). Use plain visible separators; verify committed source blobs have zero NUL bytes (git cat-file -p | tr -cd '\000' | wc -c). Fixed to [player,title,artist].join(" :: ").
 - [Phase 10-03]: PLAN COMPLETE — MEDIA-01 interactive controls human-approved: transport/volume/switcher + seek (repeated drags AND correct first-drag baseline) all drive live MPRIS playback. Three MPRIS backend scripts reused byte-unchanged; all backend calls argv-form, only _valid_id ids + numeric slider values passed. Commits 8ce59e8/0242f10/9984f87/8a06eee/a189f5d.
+- [Phase 10]: Un-ellipsized Gtk.Label min-width = full text; in a halign=FILL box (can't shrink below widest child) a long title overflows a fixed-width card and de-centers sibling rows. Fix: ellipsize (Pango.EllipsizeMode.END + maxWidthChars) to cap min-width so the box collapses to card width and centered rows center.
+- [Phase 10]: Gate Gtk.Image on a real non-empty file path via a With-bound accessor; GTK's fallback broken-image icon ignores pixelSize/widthRequest and overflows its allocation. Fall back to a neutral rgba placeholder box; real album art renders correctly with no further change.
+- [Phase 10]: Deviation [Rule 3]: ran stow ags to create the ~/.config/ags symlink (cava CONFIG resolves via GLib.get_home_dir()/.config/ags, not the --directory flag). Idempotent GNU stow op; only a symlink created, no repo files changed.
 
 ### Quick Tasks Completed
 
@@ -295,6 +299,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T16:50:00.000Z
-Stopped at: Completed 10-03-PLAN.md (live MPRIS controls human-approved)
+Last session: 2026-07-15T15:07:57.792Z
+Stopped at: Completed 10-04-PLAN.md (garuda restyle + cava underlay, human-approved)
 Resume file: None
