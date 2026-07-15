@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 10
 current_phase_name: ags-media-applet
 status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-07-15T12:53:36.270Z"
+stopped_at: Completed 10-02-PLAN.md (input-viability gate human-approved)
+last_updated: "2026-07-15T13:15:34.437Z"
 last_activity: 2026-07-15
 last_activity_desc: Phase 10 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 60
-  completed_plans: 55
+  completed_plans: 56
   percent: 71
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 10 (ags-media-applet) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-07-15 — Phase 10 execution started
 
@@ -112,6 +112,7 @@ Last activity: 2026-07-15 — Phase 10 execution started
 | Phase 08-waybar-evolution P10 | 23min | 3 tasks | 3 files |
 | Phase 08 P11 | 35min | 3 tasks | 5 files |
 | Phase 10 P01 | 6min | 2 tasks | 1 files |
+| Phase 10 P02 | multi-session | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -242,6 +243,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 08-14]: vertical rebuilt as its own design flow mimicking github.com/saatvik333/niri-dotfiles (user-supplied reference): solid gapless flush-left column, bare glyphs, icon-only cpu/mem/temp (detail->tooltip) with htop on-click, group/audio vertical slider drawer, clock stacked HH/MM at top. Column width observed ~44px (closes deferred UAT width question). ALL 4 layouts now pass lint (32/0).
 - [Phase 08-14]: DURABLE FINDING — GTK CSS mix() IS supported in @define-color (verified via theme-doctor non-empty-provider, no WLOG-01 discard). Used to DERIVE extra distinct hues (@vhue-purple=mix(primary,error), @vhue-teal=mix(secondary,tertiary)) since Material You gives only ~4 native hues and primary+secondary cluster in one family. Full-row hover/click hit-area needs horizontal padding on vertical-bar glyph modules (glyph-only width leaves dead space).
 - [Phase 10-01]: Task 2 install step run as verify-only no-op — cava/aylurs-gtk-shell/gjs were already installed and verified on this machine; running sudo pacman/paru in this non-interactive context would have hung indefinitely — Orchestrator pre-verified package versions directly; read-only ags/cava/gjs version checks satisfy Task 2 acceptance criteria without a destructive/interactive reinstall
+- [Phase 10-02]: Working AGS request form is `ags request -i media toggle-media` — the bare `ags request toggle-media` fails (targets default instance 'ags'). 10-06 waybar on-click MUST use -i media.
+- [Phase 10-02]: AGS 3.1.0 reactive/JSX primitives pinned (load-bearing for 10-03/04/05): createState/createBinding/createComputed/createMemo/createEffect/createConnection/createExternal/createSettings + With/For/This from 'ags'; createPoll from 'ags/time'; subprocess/exec/execAsync from 'ags/process'; monitorFile from 'ags/file'; Astal/Gtk/Gdk from 'ags/gtk4'; app from 'ags/gtk4/app'.
+- [Phase 10-02]: dart-sass required — AGS bundler shells out to sass to compile style.scss; human-authorized install (official extra repo, Provides: sass), added to install.sh PACMAN_PKGS (1181c73); launch AGS with /usr/bin on PATH. Input-viability gate PASSED (human click printed AGS TEST BUTTON CLICKED; click-away + Esc work) — MEDIA-01 delivered.
 
 ### Quick Tasks Completed
 
@@ -286,6 +290,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T12:53:36.263Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-07-15T13:15:34.430Z
+Stopped at: Completed 10-02-PLAN.md (input-viability gate human-approved)
 Resume file: None
