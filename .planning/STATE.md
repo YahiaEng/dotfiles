@@ -5,10 +5,10 @@ milestone_name: Desktop Expansion
 current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
-stopped_at: Completed 08-13-PLAN.md (floating approved on sight)
-last_updated: "2026-07-15T12:05:00.000Z"
+stopped_at: Completed 08-14-PLAN.md (vertical approved — all 4 layouts done)
+last_updated: "2026-07-15T12:50:00.000Z"
 last_activity: 2026-07-15
-last_activity_desc: 08-13 floating rebuilt — colourful identity restored, bugs fixed
+last_activity_desc: 08-14 vertical rebuilt as saatvik333-style left column; lint 32/0
 progress:
   total_phases: 6
   completed_phases: 4
@@ -237,6 +237,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 08-16]: gaming-mode had NO keybind and NO on-click anywhere — a display-only indicator wired to nothing. Added on-click -> gaming-mode-toggle.sh (still a read-only state-file consumer). Pre-existing custom/notification "{}"+"{icon}" fmt bug fixed ({}->{text}) since the bell became a prominent standalone module. tray removed from athena (duplicated the connections drawer).
 - [Phase 08-13]: DURABLE DESIGN DECISION — each waybar layout is its OWN design flow, NOT bound to one shared colour contract (user direction). full=single island; athena=neutral capsules + filled-but-fewer; floating=full per-module rainbow; vertical=TBD. "filled, but fewer" is athena-only. The 08-12 design_system binds only opt-in layouts.
 - [Phase 08-13]: floating rebuilt — colourful per-module-pill identity RESTORED (first austere/3-capsule attempt rejected by user), fixing only the two reported bugs (opaque slab -> transparent window; 4px/zero-padding workspaces -> legible). Rainbow routed through new theme.css @float-* chip palette ({fill,on-fill} M3 pairs) so CHECK B passes. Phase lint now 30/2 (only vertical fails, 08-14 scope).
+- [Phase 08-14]: vertical rebuilt as its own design flow mimicking github.com/saatvik333/niri-dotfiles (user-supplied reference): solid gapless flush-left column, bare glyphs, icon-only cpu/mem/temp (detail->tooltip) with htop on-click, group/audio vertical slider drawer, clock stacked HH/MM at top. Column width observed ~44px (closes deferred UAT width question). ALL 4 layouts now pass lint (32/0).
+- [Phase 08-14]: DURABLE FINDING — GTK CSS mix() IS supported in @define-color (verified via theme-doctor non-empty-provider, no WLOG-01 discard). Used to DERIVE extra distinct hues (@vhue-purple=mix(primary,error), @vhue-teal=mix(secondary,tertiary)) since Material You gives only ~4 native hues and primary+secondary cluster in one family. Full-row hover/click hit-area needs horizontal padding on vertical-bar glyph modules (glyph-only width leaves dead space).
 
 ### Quick Tasks Completed
 
@@ -281,6 +283,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T12:05:00.000Z
-Stopped at: Completed 08-13-PLAN.md — floating approved on sight (light+dark). Remaining in Phase 08: 08-14 (vertical redesign — its own design flow, still fails lint CHECK B/C), 08-15 (close-out).
+Last session: 2026-07-15T12:50:00.000Z
+Stopped at: Completed 08-14-PLAN.md — vertical approved on sight (light+dark). All 4 layouts (full/athena/floating/vertical) now approved and lint-clean (32/0). Remaining in Phase 08: 08-15 (close-out — fold waybar-design-lint into theme-doctor, re-capture drift baseline, rewrite 08-UI-SPEC to what shipped, final human sweep of all 4 layouts across light/dark/dynamic).
 Resume file: None
