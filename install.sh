@@ -193,8 +193,11 @@ PACMAN_PKGS=(
 
     # AGS media applet (MEDIA-04) — official extra repo audio visualizer,
     # the underlay cava feeds into the AGS v3 media applet (see AUR_PKGS
-    # for aylurs-gtk-shell, the AGS toolkit itself).
+    # for aylurs-gtk-shell, the AGS toolkit itself). dart-sass provides the
+    # `sass` binary AGS invokes at load to compile the applet's style.scss —
+    # without it `ags run` aborts with "executable sass not found".
     cava
+    dart-sass
 )
 
 # ── Official repo packages (hardware — NVIDIA GPU only) ─
