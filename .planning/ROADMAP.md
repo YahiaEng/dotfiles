@@ -26,6 +26,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet (completed 2026-07-13)
 - [x] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access; all 4 layouts redesigned per-flow after UAT and user-approved (completed 2026-07-15)
 - [ ] **Phase 9: wlogout to wleave Migration** - Replace wlogout with wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class, with no regression to the Phase 6 center-bar design
+- [ ] **Phase 10: AGS Media Applet** - Replace the confirmed-dead eww media popup with a standalone AGS v3 (GTK4) centered media card (transport/seek/volume/switcher + cava audio-reactive underlay, garuda style), reusing the existing MPRIS backend, themed via matugen
 
 ## Phase Details
 
@@ -288,3 +289,15 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 Plans:
 
 - [ ] TBD (run /gsd-plan-phase 9 to break down)
+
+### Phase 10: AGS Media Applet
+
+**Goal:** Clicking the waybar media segment opens a centered, matugen-themed, cava-animated media card whose transport/seek/volume/switcher controls actually respond to input — replacing the eww media popup, which was confirmed unable to deliver pointer input on this eww 0.6.0 / Hyprland 0.55.4 build. Reproducible via install.sh + stow.
+**Requirements**: MEDIA-01 (working interactive media card), MEDIA-02 (cava underlay), MEDIA-03 (matugen theming + hot reload), MEDIA-04 (reproducible install)
+**Depends on:** Phase 8 (waybar media segment + MPRIS backend scripts). Independent of Phase 9.
+**Approved artifacts:** spec `docs/superpowers/specs/2026-07-15-ags-media-applet-design.md`; implementation plan `docs/superpowers/plans/2026-07-15-ags-media-applet.md`
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 10 to break down)

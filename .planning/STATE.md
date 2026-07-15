@@ -117,6 +117,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 ### Roadmap Evolution
 
 - Phase 9 added: wlogout to wleave Migration (GTK4) — decided 2026-07-13 after Phase 6's wlogout redesign; driver is GTK3's whole-stylesheet-discard failure class (WLOG-01), NOT the blur limitation, which is compositor-global and unfixable by any layer-shell client.
+- Phase 10 added: AGS Media Applet — decided 2026-07-15 after the Phase 08 eww media popup was proven unable to deliver pointer input to its widgets on this eww 0.6.0 / Hyprland 0.55.4 build (debug session resolved-by-redesign: `.planning/debug/resolved/eww-media-popup-clicks-dead.md`). Replace with a standalone AGS v3 (GTK4) media applet, keeping waybar/swaync/matugen. User rejected a full HyprPanel bar takeover in favor of a contained applet. Approved spec + plan live in `docs/superpowers/`.
 
 ### Decisions
 
