@@ -5,10 +5,10 @@ milestone_name: Desktop Expansion
 current_phase: 08
 current_phase_name: waybar-evolution
 status: executing
-stopped_at: Completed 08-16-PLAN.md (athena approved on sight)
-last_updated: "2026-07-15T11:45:00.000Z"
+stopped_at: Completed 08-13-PLAN.md (floating approved on sight)
+last_updated: "2026-07-15T12:05:00.000Z"
 last_activity: 2026-07-15
-last_activity_desc: 08-16 athena layout rebuilt + iterated to user approval
+last_activity_desc: 08-13 floating rebuilt — colourful identity restored, bugs fixed
 progress:
   total_phases: 6
   completed_phases: 4
@@ -235,6 +235,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 08-16]: Root-cause: PUA Nerd Font glyphs typed via the edit tool were stored as EMPTY strings; an empty drawer HANDLE glyph makes waybar collapse the whole group to zero width (the "missing settings gear"). Fix: write real codepoints as UTF-8. lint CHECK E does not catch a truly-empty "" (only whitespace) — latent gap.
 - [Phase 08-16]: eww media popup revived — root cause was the eww daemon never being started (absent from autostart.conf), not the widget/opener. Added `uwsm app -- eww daemon` + restyled eww.scss to the island language. Closes the eww-media-popup-dead todo (its 3rd ask, a popup-open gate, still open).
 - [Phase 08-16]: gaming-mode had NO keybind and NO on-click anywhere — a display-only indicator wired to nothing. Added on-click -> gaming-mode-toggle.sh (still a read-only state-file consumer). Pre-existing custom/notification "{}"+"{icon}" fmt bug fixed ({}->{text}) since the bell became a prominent standalone module. tray removed from athena (duplicated the connections drawer).
+- [Phase 08-13]: DURABLE DESIGN DECISION — each waybar layout is its OWN design flow, NOT bound to one shared colour contract (user direction). full=single island; athena=neutral capsules + filled-but-fewer; floating=full per-module rainbow; vertical=TBD. "filled, but fewer" is athena-only. The 08-12 design_system binds only opt-in layouts.
+- [Phase 08-13]: floating rebuilt — colourful per-module-pill identity RESTORED (first austere/3-capsule attempt rejected by user), fixing only the two reported bugs (opaque slab -> transparent window; 4px/zero-padding workspaces -> legible). Rainbow routed through new theme.css @float-* chip palette ({fill,on-fill} M3 pairs) so CHECK B passes. Phase lint now 30/2 (only vertical fails, 08-14 scope).
 
 ### Quick Tasks Completed
 
@@ -279,6 +281,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T11:45:00.000Z
-Stopped at: Completed 08-16-PLAN.md — athena layout approved on sight (light+dark). Remaining in Phase 08: 08-13 (floating redesign), 08-14 (vertical redesign), 08-15 (close-out). floating/vertical still fail lint CHECK B/C (their 08-13/08-14 redesign scope).
+Last session: 2026-07-15T12:05:00.000Z
+Stopped at: Completed 08-13-PLAN.md — floating approved on sight (light+dark). Remaining in Phase 08: 08-14 (vertical redesign — its own design flow, still fails lint CHECK B/C), 08-15 (close-out).
 Resume file: None
