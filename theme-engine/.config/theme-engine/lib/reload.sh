@@ -134,6 +134,24 @@ theme_engine_reload() {
         eww reload >/dev/null 2>&1 || true
     fi
 
+    # ── AGS media applet (MEDIA-03, 10-05): CSS-only hot reload — the
+    #    `media` instance's own reload-css requestHandler recompiles
+    #    style.scss (which @imports ~/.local/state/theme/ags.scss, just
+    #    committed above) via `sass` and re-applies it with
+    #    app.apply_css(css, true); no process restart needed (unlike
+    #    Walker/SwayOSD's GTK3 no-live-CSS-reload limitation — AGS is
+    #    GTK4 and owns its own CssProvider). `ags list` prints one
+    #    registered instance name per line with no separator, so anchor
+    #    the match to the exact literal "media" token via a line-exact
+    #    grep rather than a substring match. Guarded so a machine where
+    #    the applet was never opened (D-25-style: no reason to run when
+    #    nothing is playing) stays a clean no-op. Doubly guarded (`||
+    #    true`) since a stale/half-dead instance answering `ags list` but
+    #    not `ags request` must never abort this fan-out.
+    if command -v ags >/dev/null 2>&1 && ags list 2>/dev/null | grep -qx 'media'; then
+        ags request -i media reload-css 2>/dev/null || true
+    fi
+
     # ── Zen browser (THM-05/D-26/D-27/D-28): lazy profile self-heal +
     #    notify-only reload — never kills the browser.
     theme_engine_reload_zen
