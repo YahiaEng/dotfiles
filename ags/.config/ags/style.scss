@@ -165,6 +165,34 @@ window {
   border-radius: 999px;
 }
 
+// GTK4 Gtk.Scale (what <slider> renders as) draws its unfilled track via
+// `trough`, its filled portion via `trough > highlight`, and its
+// draggable knob via `slider` — none of which the min-height/border-radius
+// rule above touches. Left unstyled, GTK falls back to libadwaita's
+// default `@accent_color` (sourced from GtkSettings, NOT this applet's
+// matugen palette), so the volume/seek fill silently never recolored on
+// a theme switch (10-06 bug). Explicit palette-driven rules here make
+// both sliders' fill/knob track $primary like every other accent surface
+// in this card.
+.media-seek trough, .media-volume trough {
+  min-height: 6px;
+  border-radius: 999px;
+  background-color: rgba($surface_variant, 0.5);
+}
+
+.media-seek trough highlight, .media-volume trough highlight {
+  min-height: 6px;
+  border-radius: 999px;
+  background-color: $primary;
+}
+
+.media-seek slider, .media-volume slider {
+  min-width: 14px;
+  min-height: 14px;
+  border-radius: 999px;
+  background-color: $primary;
+}
+
 .media-seek-disabled {
   font-size: 11px;
   color: $on_surface_variant;
