@@ -1,6 +1,30 @@
-// Garuda/HyprPanel underlay card (10-04). Temporary neutral rgba() values
-// ONLY — zero hex literals. 10-05 swaps these for matugen-generated palette
-// vars via @import; this task must not introduce any `#`-hex color.
+// Garuda/HyprPanel underlay card (10-04 layout; 10-05 theming).
+//
+// Imports the matugen-rendered palette from the state dir. UNLIKE eww/
+// waybar, AGS's Go bundler resolves `--directory`/CWD through
+// filepath.EvalSymlinks (or equivalent getcwd(2) real-path behavior)
+// BEFORE compiling scss — confirmed empirically: even invoking `ags run
+// --directory ~/.config/ags` (the stowed symlink), the sass compiler
+// error surfaced the REAL underlying repo path
+// (.../dotfiles/ags/.config/ags/style.scss), not the symlinked one. So,
+// unlike eww.scss's `../../.local/state/theme/eww.scss` (2 levels, correct
+// against the STOWED ~/.config/eww/ path only because eww's own daemon
+// does NOT collapse the symlink), this import path is 4 levels — correct
+// against this repo's REAL on-disk location (~/dotfiles/ags/.config/ags/,
+// i.e. exactly 1 directory below $HOME). If this repo is ever cloned to a
+// path with a different depth from $HOME, this import (and ONLY this one
+// — every other app's theme @import is symlink-stable) breaks; documented
+// in 10-05-SUMMARY.md as a known AGS-specific fragility, not present
+// elsewhere in this engine's theming pipeline.
+//
+// ZERO `#` hex literals below — every color is a $-variable from the
+// imported palette (confirmed via `grep -vE '^[[:space:]]*//' style.scss |
+// grep -Ec '#[0-9a-fA-F]{3,8}'` -> 0). Elevation box-shadows are the one
+// deliberate exception left as neutral black (rgba(0,0,0,alpha), no `#`,
+// no palette var) — Material elevation shadows represent physical light
+// occlusion, not a themed surface color, matching Material Design's own
+// convention of theme-independent shadow color.
+@import "../../../../.local/state/theme/ags.scss";
 
 // General hygiene: GTK4 draws a default `:focus-visible` outline around
 // whichever widget grabs keyboard focus (the window's ON_DEMAND keymode
@@ -14,8 +38,8 @@
   min-height: 480px;
   border-radius: 28px;
   // A translucent card border gives the Hyprland `ags-media` blur layerrule
-  // a crisp edge to frost against.
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  // a crisp edge to frost against — mirrors eww.scss's border convention.
+  border: 1px solid rgba($outline, 0.35);
 }
 
 .media-bg-art {
@@ -26,14 +50,14 @@
 }
 
 .media-scrim {
-  background-color: rgba(10, 10, 16, 0.42);
+  background-color: rgba($background, 0.42);
 }
 
 // Shown instead of Gtk.Image whenever no art path has resolved yet — avoids
 // ever handing Gtk.Image an empty/invalid file (its fallback "broken image"
 // icon does not respect pixelSize/widthRequest and can overflow its box).
 .media-art-placeholder {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: rgba($surface_variant, 0.55);
 }
 
 .cava-layer {
@@ -43,18 +67,18 @@
 .cava-bar {
   min-width: 6px;
   border-radius: 4px 4px 0 0;
-  background-color: rgba(200, 200, 255, 0.55);
+  background-color: rgba($primary, 0.7);
 }
 
 .media-thumb {
   border-radius: 18px;
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: rgba($surface, 0.35);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
 }
 
 .media-controls {
   padding: 18px 22px 22px 22px;
-  background-color: rgba(15, 15, 22, 0.38);
+  background-color: rgba($surface, 0.7);
   border-radius: 0 0 28px 28px;
 }
 
@@ -63,12 +87,12 @@
 .media-title {
   font-weight: 700;
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.96);
+  color: $on_surface;
 }
 
 .media-artist {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.68);
+  color: $on_surface_variant;
 }
 
 .media-transport { margin-top: 4px; }
@@ -78,14 +102,15 @@
   min-height: 36px;
   padding: 0;
   border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.92);
+  background-color: rgba($surface_variant, 0.55);
+  color: $on_surface;
 }
 
 .transport-btn-main {
   min-width: 46px;
   min-height: 46px;
-  background-color: rgba(255, 255, 255, 0.22);
+  background-color: $primary;
+  color: $on_primary;
 }
 
 .media-seek, .media-volume {
@@ -95,7 +120,7 @@
 
 .media-seek-disabled {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.45);
+  color: $on_surface_variant;
 }
 
 .media-volume-row { margin-top: 2px; }
@@ -105,12 +130,12 @@
 .switcher-btn {
   padding: 4px 12px;
   border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.10);
-  color: rgba(255, 255, 255, 0.80);
+  background-color: rgba($surface_variant, 0.5);
+  color: $on_surface_variant;
   font-size: 11px;
 }
 
 .switcher-btn-active {
-  background-color: rgba(255, 255, 255, 0.28);
-  color: rgba(255, 255, 255, 1.0);
+  background-color: rgba($primary, 0.85);
+  color: $on_primary;
 }

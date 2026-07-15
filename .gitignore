@@ -29,3 +29,8 @@ wallpapers/Pictures/Screenshots/
 # container-run.sh runtime logs (03-04) — machine-readable evidence written
 # per invocation under verify/logs/run-<timestamp>/, never repo content.
 verify/logs/
+
+# AGS generated GObject-introspection TypeScript defs (10-05) — `ags types`
+# regenerates this on demand from whatever GI typelibs are installed on the
+# machine; equivalent to a node_modules/@types cache, never repo content.
+ags/.config/ags/@girs/
