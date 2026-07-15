@@ -296,11 +296,11 @@ Plans:
 **Requirements**: MEDIA-01 (working interactive media card), MEDIA-02 (cava underlay), MEDIA-03 (matugen theming + hot reload), MEDIA-04 (reproducible install)
 **Depends on:** Phase 8 (waybar media segment + MPRIS backend scripts). Independent of Phase 9.
 **Approved artifacts:** spec `docs/superpowers/specs/2026-07-15-ags-media-applet-design.md`; implementation plan `docs/superpowers/plans/2026-07-15-ags-media-applet.md`
-**Plans:** 6 plans (strictly sequential — each wave depends on the last; no parallelism)
+**Plans:** 1/6 plans executed
 
 Plans:
 
-- [ ] 10-01-PLAN.md — Dependencies + install.sh: aylurs-gtk-shell (AUR/paru) + cava (extra/pacman) installed and registered (MEDIA-04) [wave 1, autonomous]
+- [x] 10-01-PLAN.md — Dependencies + install.sh: aylurs-gtk-shell (AUR/paru) + cava (extra/pacman) installed and registered (MEDIA-04) [wave 1, autonomous]
 - [ ] 10-02-PLAN.md — AGS scaffold + centered clickable window; **HARD FAIL-FAST input-viability gate** (test button click STOPs the phase if dead) (MEDIA-01) [wave 2, depends on 10-01, autonomous: false]
 - [ ] 10-03-PLAN.md — Live MPRIS binding + transport/seek/volume/switcher, reusing media-status/players/art-resolve.sh unchanged (MEDIA-01) [wave 3, depends on 10-02, autonomous: false]
 - [ ] 10-04-PLAN.md — Garuda visual restyle + cava audio-reactive underlay + Hyprland ags-media blur layerrule (MEDIA-02) [wave 4, depends on 10-03, autonomous: false]

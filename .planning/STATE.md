@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 08
-current_phase_name: waybar-evolution
-status: phase-complete
-stopped_at: Phase 08 COMPLETE — 08-15 close-out approved (final 4-layout sweep, dark+light+dynamic)
-last_updated: "2026-07-15T13:05:00.000Z"
+current_phase: 10
+current_phase_name: ags-media-applet
+status: executing
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-07-15T12:53:36.270Z"
 last_activity: 2026-07-15
-last_activity_desc: Phase 08 closed — gate folded into theme-doctor, baseline re-captured, UI-SPEC rewritten, UAT gap resolved
+last_activity_desc: Phase 10 execution started
 progress:
-  total_phases: 6
-  completed_phases: 4
-  total_plans: 53
-  completed_plans: 49
-  percent: 67
+  total_phases: 7
+  completed_phases: 5
+  total_plans: 60
+  completed_plans: 55
+  percent: 71
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-12)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 08 — waybar-evolution
+**Current focus:** Phase 10 — ags-media-applet
 
 ## Current Position
 
-Phase: 08 (waybar-evolution) — EXECUTING
-Plan: 2 of 15
+Phase: 10 (ags-media-applet) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-07-14 — Phase 08 execution started
+Last activity: 2026-07-15 — Phase 10 execution started
 
 ## Performance Metrics
 
@@ -111,6 +111,7 @@ Last activity: 2026-07-14 — Phase 08 execution started
 | Phase 08 P08 | 20min | 2 tasks | 8 files |
 | Phase 08-waybar-evolution P10 | 23min | 3 tasks | 3 files |
 | Phase 08 P11 | 35min | 3 tasks | 5 files |
+| Phase 10 P01 | 6min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -240,6 +241,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 08-13]: floating rebuilt — colourful per-module-pill identity RESTORED (first austere/3-capsule attempt rejected by user), fixing only the two reported bugs (opaque slab -> transparent window; 4px/zero-padding workspaces -> legible). Rainbow routed through new theme.css @float-* chip palette ({fill,on-fill} M3 pairs) so CHECK B passes. Phase lint now 30/2 (only vertical fails, 08-14 scope).
 - [Phase 08-14]: vertical rebuilt as its own design flow mimicking github.com/saatvik333/niri-dotfiles (user-supplied reference): solid gapless flush-left column, bare glyphs, icon-only cpu/mem/temp (detail->tooltip) with htop on-click, group/audio vertical slider drawer, clock stacked HH/MM at top. Column width observed ~44px (closes deferred UAT width question). ALL 4 layouts now pass lint (32/0).
 - [Phase 08-14]: DURABLE FINDING — GTK CSS mix() IS supported in @define-color (verified via theme-doctor non-empty-provider, no WLOG-01 discard). Used to DERIVE extra distinct hues (@vhue-purple=mix(primary,error), @vhue-teal=mix(secondary,tertiary)) since Material You gives only ~4 native hues and primary+secondary cluster in one family. Full-row hover/click hit-area needs horizontal padding on vertical-bar glyph modules (glyph-only width leaves dead space).
+- [Phase 10-01]: Task 2 install step run as verify-only no-op — cava/aylurs-gtk-shell/gjs were already installed and verified on this machine; running sudo pacman/paru in this non-interactive context would have hung indefinitely — Orchestrator pre-verified package versions directly; read-only ags/cava/gjs version checks satisfy Task 2 acceptance criteria without a destructive/interactive reinstall
 
 ### Quick Tasks Completed
 
@@ -284,6 +286,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-15T13:05:00.000Z
-Stopped at: PHASE 08 COMPLETE (16/16 plans). All 4 layouts redesigned per-flow and user-approved; 08-15 close-out approved (final sweep dark+light+dynamic). waybar-design-lint folded into theme-doctor; equivalence baseline re-captured 4/0; 08-UI-SPEC rewritten to shipped design; 08-UAT gap resolved. NEXT: Phase 09 (wlogout -> wleave GTK4 migration) — not started. Parked non-blocking follow-ups: light-preset wallpapers, eww popup-open liveness gate.
+Last session: 2026-07-15T12:53:36.263Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
