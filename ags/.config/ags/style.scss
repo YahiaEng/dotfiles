@@ -1,8 +1,116 @@
+// Garuda/HyprPanel underlay card (10-04). Temporary neutral rgba() values
+// ONLY — zero hex literals. 10-05 swaps these for matugen-generated palette
+// vars via @import; this task must not introduce any `#`-hex color.
+
+// General hygiene: GTK4 draws a default `:focus-visible` outline around
+// whichever widget grabs keyboard focus (the window's ON_DEMAND keymode
+// grabs focus on open). Not part of the garuda design; suppress globally.
+* {
+  outline: none;
+}
+
 .media-card {
   min-width: 360px;
-  min-height: 200px;
-  padding: 24px;
-  background-color: rgba(20, 20, 30, 0.92);
-  border-radius: 20px;
+  min-height: 480px;
+  border-radius: 28px;
+  // A translucent card border gives the Hyprland `ags-media` blur layerrule
+  // a crisp edge to frost against.
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
-.test-btn { padding: 12px 20px; border-radius: 12px; }
+
+.media-bg-art {
+  // Rendered large and centered inside the clipped overlay so it reads as
+  // a "cover" background; opacity keeps it from overpowering the controls
+  // and gives the compositor blur something translucent to show through.
+  opacity: 0.55;
+}
+
+.media-scrim {
+  background-color: rgba(10, 10, 16, 0.42);
+}
+
+// Shown instead of Gtk.Image whenever no art path has resolved yet — avoids
+// ever handing Gtk.Image an empty/invalid file (its fallback "broken image"
+// icon does not respect pixelSize/widthRequest and can overflow its box).
+.media-art-placeholder {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.cava-layer {
+  padding: 0 18px 18px 18px;
+}
+
+.cava-bar {
+  min-width: 6px;
+  border-radius: 4px 4px 0 0;
+  background-color: rgba(200, 200, 255, 0.55);
+}
+
+.media-thumb {
+  border-radius: 18px;
+  background-color: rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+.media-controls {
+  padding: 18px 22px 22px 22px;
+  background-color: rgba(15, 15, 22, 0.38);
+  border-radius: 0 0 28px 28px;
+}
+
+.media-meta { margin-bottom: 2px; }
+
+.media-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.media-artist {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.media-transport { margin-top: 4px; }
+
+.transport-btn {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.transport-btn-main {
+  min-width: 46px;
+  min-height: 46px;
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+.media-seek, .media-volume {
+  min-height: 6px;
+  border-radius: 999px;
+}
+
+.media-seek-disabled {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.media-volume-row { margin-top: 2px; }
+
+.media-switcher { margin-top: 4px; }
+
+.switcher-btn {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.80);
+  font-size: 11px;
+}
+
+.switcher-btn-active {
+  background-color: rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 1.0);
+}

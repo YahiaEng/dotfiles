@@ -5,7 +5,7 @@ import { bars } from "../lib/cava"
 // reactively bound heightRequest, avoids recreating 24 widgets every frame
 // (which a <For> over the raw array would do at ~60fps).
 const BAR_COUNT = 24
-const MAX_BAR_HEIGHT = 140
+const MAX_BAR_HEIGHT = 130
 const MIN_BAR_HEIGHT = 3
 const BAR_INDICES = Array.from({ length: BAR_COUNT }, (_, i) => i)
 
