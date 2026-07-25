@@ -270,7 +270,7 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 **Goal**: Replace wlogout with wleave (GTK4) as the power menu, eliminating the GTK3 whole-stylesheet-discard failure class that produced the WLOG-01 blocker, and moving onto an actively-maintained tool — with no regression to the Phase 6 center-bar design.
 **Requirements**: WLOG-01 (re-delivered on a new engine)
 **Depends on:** Phase 8
-**Plans:** 8/8 plans complete
+**Plans:** 4 plans
 
 **Why this phase exists** (decided 2026-07-13, after Phase 6's wlogout work):
 
@@ -288,7 +288,10 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 9 to break down)
+- [ ] 09-01-PLAN.md — Pre-flight: AUR package-legitimacy gate + install, installed-config-surface probe, glyph cmap re-verification, M3 container-role dry-run (wave 1)
+- [ ] 09-02-PLAN.md — Atomic cutover: tracer wires keybind→layout→stylesheet→matugen→layerrule end-to-end, then entry points + reproducibility, then GTK3 retirement + gate-list moves (wave 2)
+- [ ] 09-03-PLAN.md — Visual design build-out: six-hue capsule identity, hover/focus feedback, entrance stagger + exit-tier attempt + blur retune (wave 3)
+- [ ] 09-04-PLAN.md — Render-and-look gate: five-view grim evidence, blocking human approval on sight, live power-action UAT, deviation recording (wave 4)
 
 ### Phase 10: AGS Media Applet
 
