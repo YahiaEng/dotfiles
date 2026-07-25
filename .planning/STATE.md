@@ -1,37 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Desktop Expansion
-status: Awaiting next milestone
-stopped_at: Milestone v2.0 Desktop Expansion closed and archived (7 phases, 64 plans)
-last_updated: "2026-07-25T19:45:00.000Z"
-last_activity: 2026-07-25
-last_activity_desc: Milestone v2.0 completed and archived
+milestone: v3.0
+milestone_name: Quickshell Foundation & Motion Language
+status: planning
+last_updated: "2026-07-25T21:30:07.499Z"
+last_activity: 2026-07-26
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 64
-  completed_plans: 64
-  percent: 100
-current_phase: null
-current_phase_name: null
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-25)
+See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Planning next milestone (v3.0) — run `/gsd-new-milestone`
+**Current focus:** v3.0 Quickshell Foundation & Motion Language — defining requirements
 
 ## Current Position
 
-Phase: Milestone v2.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-25 — Completed quick task 260725-vu6: finished the eww retirement (theme-parity 22 failed → 0)
+Status: Defining requirements
+Last activity: 2026-07-26 — Milestone v3.0 started
 
 ## Performance Metrics
 

@@ -10,15 +10,29 @@ On top of that foundation sits a full desktop: 22 theme targets across dark, lig
 
 One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
 
-## Current Milestone: none — v2.0 shipped, v3.0 not yet defined
+## Current Milestone: v3.0 Quickshell Foundation & Motion Language
 
-**Last shipped:** v2.0 Desktop Expansion (2026-07-25) — 7 phases, 64 plans, 444 commits over 16 days. Every v2.0 goal landed: the three reliability bugs were root-caused and fixed, light mode reached the whole pipeline, every remaining surface was re-themed, and the utility suite, Super-key menu, waybar rebuild, wleave migration and AGS media applet all shipped and were verified.
+**Goal:** Establish Quickshell as the shell toolkit and a spring-based motion language shared by every surface, then ship the net-new widgets a top-tier rice has and this one does not — without retiring anything that works today.
 
-Run `/gsd-new-milestone` to scope v3.0.
+**Target features:**
+- Quickshell viability gate — human-clicked proof on Hyprland 0.56.0 (layer-shell, pointer input, focus, multi-monitor, hot reload) before anything is built on the toolkit
+- Unified design-token pipeline — colour *and* motion from one source, rendered to QML, GTK4 CSS and Hyprland bezier targets; spring physics (mass/stiffness/damping) is the source of truth, fitted curves are a compile target
+- Motion retrofit — the language applied across Hyprland, waybar, swaync, walker, SwayOSD, wleave and the AGS media card
+- Dashboard drawer — calendar, weather, system resources, media controls, quick-toggle grid; the first real QML surface
+- Audio + connectivity panels — per-app volume mixer, wifi picker, bluetooth manager (displacing pavucontrol / nm-connection-editor / blueman from the daily workflow)
+- Workspace overview — full-screen live window thumbnails; **research-gated** on the hyprexpo / `hyprland-toplevel-export-v1` plugin question
+- Ambient extras — animated wallpaper, dynamic-cursors; explicitly the first thing cut if the milestone runs long
 
-**Carried into v3.0 as candidate scope** (deferred from v2.0, see `milestones/v2.0-REQUIREMENTS.md`):
+**Scope boundary — no retirements in v3.0.** waybar, swaync, SwayOSD, wleave, walker/elephant and the AGS media card all keep working throughout. QML only ever *adds* surfaces this milestone. Migrating and retiring the existing shell is v4.0, decomposed deliberately so that no milestone leaves the desktop unusable.
+
+**Phase numbering** continues from v2.0's Phase 10 — v3.0 starts at Phase 11.
+
+**Carried in as candidate scope** (deferred from v2.0, see `milestones/v2.0-REQUIREMENTS.md`):
 - **ICON-BROWSE** — browse and install *new* icon themes from within the picker (repo/AUR discovery); v2.0 shipped apply-only
-- **POLISH-01** — one cohesive animation/easing language across Hyprland, waybar, walker, swaync and OSD, now that all the surfaces exist
+- **POLISH-01** — subsumed by this milestone's motion language, which supersedes it
+- `keybind-doctor`'s `hyprctl binds -j` parsing fix for Hyprland 0.56.0
+- Phase 4 advisory review items `04-REVIEW.md` WR-01..04
+- The container-tier reproducibility rerun (D-34/D-36), unblocked by the v2.0 push
 
 ## Requirements
 
@@ -68,10 +82,15 @@ Run `/gsd-new-milestone` to scope v3.0.
 
 ### Active
 
-<!-- No active milestone. Run /gsd-new-milestone to scope v3.0. -->
+<!-- Current scope. Building toward these. REQ-IDs assigned in REQUIREMENTS.md. -->
 
-_Empty — v2.0 shipped 2026-07-25. Candidate v3.0 scope is listed under
-"Current Milestone" above (ICON-BROWSE, POLISH-01)._
+- [ ] Quickshell proven viable on this Hyprland build before any feature is built on it
+- [ ] One token source renders colour + motion to QML, GTK4 CSS and Hyprland bezier without drift
+- [ ] Every existing surface animates with the shared spring-derived motion language
+- [ ] A dashboard drawer surfaces calendar, weather, resources, media and quick toggles
+- [ ] Per-app volume mixing, wifi and bluetooth are handled by themed in-shell panels
+- [ ] A full-screen workspace overview shows live window thumbnails (research-gated)
+- [ ] Ambient extras: animated wallpaper and dynamic cursors (cut candidate)
 
 ### Out of Scope
 
@@ -80,7 +99,9 @@ _Empty — v2.0 shipped 2026-07-25. Candidate v3.0 scope is listed under
 - Custom AI assistant widgets/sidebars — the AI dashboard shipped as launchers + a workspace, not built-in assistant UI
 - Full palette theming of *third-party* GTK4/libadwaita apps — structurally unsupported upstream; dark/light + accent is the documented ceiling (validated in v1.0). **Scope narrowed after v2.0:** this never applied to GTK4 surfaces this repo authors itself — Phase 9's wleave and Phase 10's AGS applet both take the full matugen palette through their own stylesheets.
 - Re-theme on every wallpaper auto-cycle — latency/flicker cost; re-theme only on explicit user action
-- Quickshell/QML custom shell rewrite — contradicts "extend, don't rewrite"; end-4/Caelestia patterns stay aspirational (carried from v2.0 requirements)
+- ~~Quickshell/QML custom shell rewrite — contradicts "extend, don't rewrite"; end-4/Caelestia patterns stay aspirational~~ — **REVERSED 2026-07-26 at v3.0 scoping.** Deliberate decision, not drift: the end-4/Caelestia surfaces the project actually wants (shaped/cutout surfaces, spring-physics panels, a full-screen overview) are structurally unreachable from GTK4 CSS, and Phase 8's own BAR-02 evidence artifact already proved waybar's CSS/SIGUSR2 model cannot actuate them. The "extend, don't rewrite" principle is preserved by *decomposing* the rewrite instead of abandoning it: v3.0 adds QML surfaces only and retires nothing, so the working desktop is never put at risk; migration of existing surfaces is deferred to v4.0. Superseded by the v3.0 milestone goal above.
+- **Retiring any existing surface during v3.0** — waybar, swaync, SwayOSD, wleave, walker/elephant and the AGS media card all stay live this milestone. Retirement without accumulated QML mileage is how the eww mistake happened; v4.0 owns migration.
+- Rebuilding walker/elephant in QML — deferred, undecided. Phase 7 invested 8 plans in the menu tree as elephant TOML providers; whether shell consistency justifies rebuilding fuzzy search, app indexing, clipboard and calc providers is a v4.0+ question.
 - Full GUI settings app — the settings menu launches existing tools; no custom settings UI (carried from v2.0 requirements)
 - Gaming-mode session switching — the game center is a launcher submenu, not a session manager (carried from v2.0 requirements)
 - eww as a widget toolkit — retired in Phase 10 after its popup was proven unable to deliver pointer input on this eww 0.6.0 / Hyprland 0.55.4 build; AGS v3 (GTK4) is the widget toolkit going forward
@@ -138,6 +159,9 @@ _Empty — v2.0 shipped 2026-07-25. Candidate v3.0 scope is listed under
 | Fail-fast input-viability gate before building on an unproven toolkit | eww's popup was confirmed unable to deliver pointer input on this build only after a full feature was built on it. Phase 10 put a human-clicked test button at plan 2 with authority to STOP the phase | ✓ Good — Phase 10; gate passed on first click and de-risked the remaining four plans |
 | Consumer-check before retiring a toolkit | eww was removed only after grepping every defwindow, script, autostart entry, matugen template and layerrule for live consumers | ⚠ Revisit — Phase 10; the check missed two inert `eww-media-popup` layerrules still in `windowrules.conf` |
 | New stow packages must register in `stow.sh` in the same commit that creates them | `ags/` was fully populated but unregistered, so the applet only worked on this host via a manual `stow ags`; a fresh clone would not have reproduced it | ✓ Good — caught by Phase 10 verification and fixed in the same commit; matches the precedent set by eww, elephant and swayosd |
+| Adopt Quickshell as the shell toolkit, reversing the v2.0 Out-of-Scope entry | The surfaces the project wants are structurally unreachable from GTK4 CSS — Phase 8's BAR-02 evidence already proved waybar's only actuation path cannot deliver them. Reversing explicitly, with the rewrite decomposed so v3.0 retires nothing, beats either abandoning the goal or letting scope drift into a rewrite unannounced | — Pending (v3.0 Phase 11 viability gate decides) |
+| Spring physics is the motion source of truth; CSS/Hyprland curves are a compile target | QML does springs natively, GTK4 CSS and Hyprland `bezier =` cannot. Storing mass/stiffness/damping once and emitting fitted curves per target keeps one motion language across three renderers instead of two drifting families — the same one-source/many-targets shape `contract.json` already uses for colour | — Pending (v3.0 Phase 12) |
+| v3.0 adds QML surfaces but retires nothing | Retiring a toolkit before accumulating mileage on its replacement is exactly the eww failure. Additive-first keeps the working desktop intact while QML expertise builds, and defers every retirement risk to v4.0 | — Pending |
 
 ## Evolution
 
@@ -157,4 +181,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after v2.0 Desktop Expansion milestone*
+*Last updated: 2026-07-26 after scoping the v3.0 Quickshell Foundation & Motion Language milestone*
