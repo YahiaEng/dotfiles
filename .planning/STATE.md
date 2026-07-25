@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Desktop Expansion
 current_phase: 09
 current_phase_name: wlogout-to-wleave-migration
-status: executing
-stopped_at: Completed 09-03-PLAN.md
-last_updated: "2026-07-25T16:52:13.836Z"
+status: verifying
+stopped_at: Completed 09-04-PLAN.md — phase 09-wlogout-to-wleave-migration fully closed (all 4 plans complete)
+last_updated: "2026-07-25T18:56:23.667Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 64
-  completed_plans: 63
-  percent: 86
+  completed_plans: 64
+  percent: 100
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 
 Phase: 09 (wlogout-to-wleave-migration) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-25 — Phase 09 execution started
 
 ## Performance Metrics
@@ -125,6 +125,7 @@ Last activity: 2026-07-25 — Phase 09 execution started
 | Phase 09 P01 | 55min | 3 tasks | 0 files |
 | Phase 09 P02 | ~50min | 3 tasks | 20 files |
 | Phase 09 P03 | ~25min | 2 tasks | 3 files |
+| Phase 09 P04 | 35min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -281,6 +282,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: D-08 resolved as option-b (icon+text split): glyph moved to wleave's native icon field (upstream's shipped SVGs), text carries the hover-revealed action name, superseding D-09's codepoint convention for this surface
 - [Phase ?]: Icon vertical centring closed empirically: margin-top:16px on button picture corrects an 8.0px above-centre offset caused by the hover-reveal label's reserved layout space, re-measured live at 0.0px residual
 - [Phase ?]: RESEARCH Assumption A2 resolved LIVE: the compositor's global layers animation DOES fire on wleave's client-initiated synchronous hide (Tier 1 exit achieved), confirmed via a 6-frame rapid grim capture across a real dismissal
+- [Phase ?]: 09-04: D-14 render gate closed on nine human-approved items; all three entry points confirmed (command-string-executed + layer-verified, Super+Shift+Q literal-keypress-verified); all six power-action strings byte-parity-confirmed against Phase-4-audited strings; logout deliberately unexecuted per human direction; hyprlock crash logged as independently-evidenced deferred item; D-22 recorded NOT-APPLICABLE (single-output test env)
 
 ### Quick Tasks Completed
 
@@ -327,6 +329,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T16:52:13.821Z
-Stopped at: Completed 09-03-PLAN.md
+Last session: 2026-07-25T18:56:23.652Z
+Stopped at: Completed 09-04-PLAN.md — phase 09-wlogout-to-wleave-migration fully closed (all 4 plans complete)
 Resume file: None

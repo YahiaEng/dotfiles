@@ -263,14 +263,14 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
 | 8. Waybar Evolution | v2.0 | 16/16 | Complete    | 2026-07-15 |
-| 9. wlogout to wleave Migration | v2.0 | 3/4 | In Progress|  |
+| 9. wlogout to wleave Migration | v2.0 | 4/4 | In Progress|  |
 
 ### Phase 9: wlogout to wleave Migration
 
 **Goal**: Replace wlogout with wleave (GTK4) as the power menu, eliminating the GTK3 whole-stylesheet-discard failure class that produced the WLOG-01 blocker, and moving onto an actively-maintained tool — with no regression to the Phase 6 center-bar design.
 **Requirements**: WLOG-01 (re-delivered on a new engine)
 **Depends on:** Phase 8
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans executed
 
 **Why this phase exists** (decided 2026-07-13, after Phase 6's wlogout work):
 
@@ -301,7 +301,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 09-04-PLAN.md — Render-and-look gate: five-view grim evidence, blocking human approval on sight, live power-action UAT, deviation recording (wave 4)
+- [x] 09-04-PLAN.md — Render-and-look gate: five-view grim evidence, blocking human approval on sight, live power-action UAT, deviation recording (wave 4)
 
 ### Phase 10: AGS Media Applet
 

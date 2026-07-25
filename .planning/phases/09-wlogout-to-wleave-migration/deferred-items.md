@@ -126,3 +126,26 @@ non-zero exit, not any wleave-specific failure.
 the unrelated dirty-tree files; logged here and in `.planning/WINDOWS.md`
 for future triage as a distinct, separate cleanup (retiring eww fully out
 of `contract.json`/`theme-doctor`/`theme-stress-test`).
+
+## 4. hyprlock crashed (SIGABRT) during 09-04's live lock spot-check
+
+**Found during:** 09-04, Task 2 render-gate live testing (human-performed).
+
+**Symptom:** `hyprlock` crashed with SIGABRT at some point during the
+human's live testing session in this render gate.
+
+**Evidence of independence from this phase:** `coredumpctl list hyprlock`
+shows coredumps only at `2026-04-02` (one, pre-dates this entire phase)
+and `2026-07-12` (five, also pre-dates this phase's first commit) — **zero
+coredumps dated 2026-07-25**, the day of this render gate. The lock
+action string in `wleave/.config/wleave/layout.json` (`uwsm app --
+hyprlock`) is byte-identical to the Phase-4-audited string this phase
+never touched (see 09-CONTEXT.md D-17). The human also independently
+confirmed the lock action working correctly earlier in this same gate
+(Task 2, item 13 of the render-gate approval record).
+
+**Action taken:** none — this phase does not modify `hyprlock.conf`, the
+lock action string, or any hyprlock invocation path; chasing a hyprlock
+stability issue is out of this plan's declared scope (wlogout → wleave
+migration, `wleave/`+`windowrules.conf` only). Logged here and in
+`.planning/WINDOWS.md` (entry 7) for separate future triage.
