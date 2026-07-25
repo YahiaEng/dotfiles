@@ -3,11 +3,12 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 11
-status: planned
+current_phase_name: quickshell-viability-gate
+status: executing
 stopped_at: Phase 11 planned
-last_updated: "2026-07-25T23:50:18.000Z"
+last_updated: "2026-07-25T23:56:14.758Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 11 planned — 5 plans in 5 serial waves, 7/7 requirements and 21/21 decisions covered
+last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 7
   completed_phases: 0
@@ -23,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** v3.0 Quickshell Foundation & Motion Language — Phase 11 planned, ready to execute
+**Current focus:** Phase 11 — quickshell-viability-gate
 
 ## Current Position
 
-Phase: 11 — Quickshell Viability Gate (planned, not started)
-Plan: — (5 plans, waves 1-5)
-Status: Ready to execute; awaiting `/gsd-execute-phase 11`
+Phase: 11 (quickshell-viability-gate) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 11
 Progress: [--------------------] 0/7 phases
-Last activity: 2026-07-26 — Phase 11 planned: 5 plans in 5 serial waves, 7/7 requirements and 21/21 decisions covered
+Last activity: 2026-07-26 — Phase 11 execution started
 
 ## Performance Metrics
 
@@ -200,6 +201,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - ~~Zen browser profile-path resolution~~ — closed: installs.ini-first parser with profiles.ini fallback, path validated as a real subdir of ~/.zen (06-06).
 - ~~hyprlock lockout-recovery discipline and clipboard size-cap/wipe policy~~ — closed: both shipped in-phase (recovery procedure documented and UAT'd; 100-item cap + session-end/manual wipe).
 - ~~Phase 7 Plan 01 (D-05 spike) BLOCKED: walker 2.16.2's `-s <name>` GUI-mode invocation panics and aborts the walker daemon~~ — **RESOLVED 2026-07-13** (plans amended in 117edc9). Adopted `-m/--provider` exclusive-provider mode. **Two durable findings kept:** (1) `walker -s <set>` / `[sets.*]` is a dead mechanism on walker 2.16.2 (panic, `src/data.rs:566`) — do not reintroduce it; (2) it failed on the shipped `[sets.runner]` block too, so **`Super+R` was already broken in production** — pre-existing, fixed in 07-02 Task 1b. Root cause of the bad design: 07-RESEARCH.md claimed `walker -s runner` "already ships and works" based on reading the config file, never running it — the project's own "verify against the installed binary" rule, unapplied to the research itself.
+- Phase 11 Plan 01 Task 1 blocked: sudo pacman -S --needed quickshell requires an interactive password; no operator responded in this executor session. Halted before any install/edit. Also noted: hyprctl monitors -j currently reports only a 'FALLBACK' 1920x1080 output, not the expected physical DP-1 — operator should confirm the physical monitor is connected before performing Task 3's human gate.
 
 ## Deferred Items
 
