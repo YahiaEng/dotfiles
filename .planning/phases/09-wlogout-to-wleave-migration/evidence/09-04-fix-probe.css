@@ -1,0 +1,35 @@
+/* High-contrast diagnostic probe for the 09-04 dual-highlight fix.
+   Not the real stylesheet — swaps in maximally distinct solid colors so the
+   suppression mechanism can be judged unambiguously against ANY desktop
+   backdrop, the same technique 09-03's D-08 decision proof used
+   (tint-proof.png / restlayout-proof.png). Green = rest/suppressed.
+   Red = genuine hover/focus interaction state. */
+window {
+    background-color: rgba(0, 0, 0, 0.40);
+}
+window > box {
+    background-color: transparent;
+}
+button {
+    min-width: 62px;
+    min-height: 62px;
+    padding: 16px;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 24px;
+    background-color: #00aa00;
+    border-color: #003300;
+    box-shadow: none;
+}
+button:hover,
+button:focus {
+    background-color: #ff0000;
+    border-color: #ffff00;
+    box-shadow: 0 0 14px 3px #ff0000;
+}
+/* The exact fix mechanism under test, generic (no id) form */
+box:hover button:focus:not(:hover) {
+    background-color: #00aa00;
+    border-color: #003300;
+    box-shadow: none;
+}

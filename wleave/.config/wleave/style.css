@@ -270,6 +270,101 @@ button#shutdown:focus {
     box-shadow: 0 0 10px 1px alpha(@error, 0.45);
 }
 
+/* ── Single-highlight enforcement (09-04 render-gate defect fix) ────────
+   REPORTED DEFECT: keyboard focus (Tab/keybind letter) on one capsule
+   plus real mouse hover on a DIFFERENT capsule rendered BOTH capsules in
+   full interaction state simultaneously — two capsules glowing/growing
+   at once. Root cause: the paired `:hover`/`:focus` rules above are each
+   evaluated independently per-button; nothing ever asked "is a DIFFERENT
+   button also currently hovered?" before applying a button's own
+   `:focus` styling.
+
+   FIX MECHANISM: GTK propagates the `:hover` pseudo-class state UP the
+   ancestor chain exactly like web CSS — hovering any button also marks
+   its container `box` nodes (GtkCenterBox, the buttons-row GtkBox — both
+   share CSS node name `box`, D-01 finding) as `:hover`. That lets a rule
+   on a DIFFERENT button detect "something in this row is hovered" via a
+   plain descendant combinator, no `:has()`/sibling-selector needed:
+
+       box:hover button#ID:focus:not(:hover) { ...rest-state values... }
+
+   `:not(:hover)` on the button itself excludes the actually-hovered
+   button (so real hover always still wins on the button under the
+   pointer) — this only reverts a button that is focus-but-not-hovered
+   while some OTHER button in the row has the pointer.
+
+   SPECIFICITY, not source order, is what makes this win (GTK4 CSS has
+   no `!important`): `box:hover button#lock:focus:not(:hover)` carries
+   the SAME id-tier (1, from `#lock`) as the existing
+   `button#lock:hover, button#lock:focus` rule above, but a HIGHER
+   class/pseudo-class tier (:hover + :focus + :not(:hover)'s inner
+   :hover = 3, vs that rule's 1) — id-tier ties, class-tier decides, this
+   rule wins. Each per-id block below therefore repeats background-color/
+   border-color/box-shadow so it competes at the SAME id-tier as the
+   rule it must beat; a bare `button:focus` fallback without the `#id`
+   would lose outright on the id-tier alone. The shared `transform`/
+   label-reveal overrides below have no id in ANY competing rule, so a
+   single non-id `box:hover button:focus:not(:hover)` selector is enough
+   there.
+
+   VERIFIED: this stylesheet is accepted with zero GTK CSS parse errors
+   (checked live via `wleave -C` stderr — see 09-04-SUMMARY.md). Keyboard-
+   focus-only interaction (no mouse hover in play) is confirmed
+   unaffected — `box:hover` never matches when nothing is hovered, so
+   normal Tab navigation renders exactly as it did before this rule was
+   added (re-verified live via `wtype -k Tab`, see evidence). The
+   specificity mechanics themselves (a focused-but-unhovered button
+   reverting to rest colors) were verified live with the gating condition
+   forced permanently true on a scratch probe stylesheet — seeing the
+   override actually apply. What remains UNVERIFIED IN THIS ENVIRONMENT
+   is the literal simultaneous real-mouse-hover-elsewhere-plus-keyboard-
+   focus-elsewhere condition itself: no synthetic pointer-motion tool
+   here (`ydotool` absent; `hyprctl dispatch movecursor` does not emit a
+   `wl_pointer` event this client processes, established twice already in
+   09-03/09-04) can drive real hover, so the exact two-input scenario
+   needs a human's own mouse+keyboard on the live desktop to close the
+   loop — see 09-04-SUMMARY.md. ── */
+box:hover button#lock:focus:not(:hover) {
+    background-color: alpha(@primary_container, 0.55);
+    border-color: alpha(@primary, 0.82);
+    box-shadow: none;
+}
+box:hover button#logout:focus:not(:hover) {
+    background-color: alpha(@secondary_container, 0.55);
+    border-color: alpha(@secondary, 0.82);
+    box-shadow: none;
+}
+box:hover button#suspend:focus:not(:hover) {
+    background-color: alpha(@tertiary_container, 0.55);
+    border-color: alpha(@tertiary, 0.82);
+    box-shadow: none;
+}
+box:hover button#hibernate:focus:not(:hover) {
+    background-color: alpha(@vhue-teal-container, 0.55);
+    border-color: alpha(@vhue-teal, 0.82);
+    box-shadow: none;
+}
+box:hover button#reboot:focus:not(:hover) {
+    background-color: alpha(@vhue-purple-container, 0.55);
+    border-color: alpha(@vhue-purple, 0.82);
+    box-shadow: none;
+}
+box:hover button#shutdown:focus:not(:hover) {
+    background-color: alpha(@error_container, 0.55);
+    border-color: alpha(@error, 0.82);
+    box-shadow: none;
+}
+/* Shared overrides: neither competing rule (the base entrance/scale
+   transform, the label reveal) carries an id, so one non-id selector
+   each is sufficient to out-specify them (see comment above). */
+box:hover button:focus:not(:hover) {
+    transform: scale(1);
+}
+box:hover button:focus:not(:hover) label.action-name {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
 /* ── Nerd Font glyph rendering — SUPERSEDED (09-03, D-08 option-b) ─────
    09-02 rendered the glyph as `text` (Nerd Font codepoint) via this
    `button label` rule at font-size 36px, positioned by layout.json's
