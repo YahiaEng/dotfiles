@@ -85,17 +85,6 @@ contract_extract_names() {
             # skip blanks/comments, extract the bare NAME token before '='.
             grep -oP '^[A-Za-z0-9_]+(?==)' "$path" 2>/dev/null | sort -u
             ;;
-        scss-kv)
-            # BAR-04/D-19: eww.scss SCSS `$name: value;` declaration lines —
-            # skip `//` comments and blanks, extract the bare $-prefixed
-            # variable name (without the leading '$').
-            # WR-02: allow digits/uppercase after the first character
-            # ($surface2, $primaryContainer) — same false-pass class WR-05
-            # fixed for hypr-vars. A digit/uppercase-bearing variable that
-            # silently vanishes from BOTH name and value extraction makes
-            # theme-parity pass on a broken render.
-            grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_]*(?=:)' "$path" 2>/dev/null | sort -u
-            ;;
         toml)
             python3 - "$path" <<'PYEOF'
 import tomllib, sys
@@ -186,14 +175,6 @@ contract_extract_values() {
             # FZF_COLOR_BG is a non-color token and does not match the
             # color regex in theme-parity's Layer 3 — it passes untouched).
             sed -nE 's/^([A-Za-z0-9_]+)="?([^"]*)"?$/\1\t\2/p' "$path" 2>/dev/null
-            ;;
-        scss-kv)
-            # BAR-04/D-19: eww.scss `$name: value;` declaration lines —
-            # emit name<TAB>value pairs, name without the leading '$', value
-            # trimmed of surrounding whitespace and the terminating ';'.
-            # WR-02: keep in lockstep with the name extractor above — digits
-            # and uppercase allowed after the first character.
-            sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_]*):[[:space:]]*([^;]+);.*$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         toml)
             python3 - "$path" <<'PYEOF'
