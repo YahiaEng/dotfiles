@@ -171,7 +171,12 @@ None yet.
 
 1. **`keybind-doctor`'s `hyprctl binds -j` JSON parsing is broken on Hyprland 0.56.0.** Pre-existing, surfaced during Phase 9, unrelated to that phase's changes.
 2. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** still open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot.
-3. **`theme-doctor`'s `git status --porcelain is empty` check is red on this host** — caused by uncommitted working-tree changes (wallpaper set edits, `monitors.conf`, a deleted `.planning/HANDOFF.json`, an untracked `csv`), not by any pipeline defect. `theme-stress-test` inherits the failure through its strict `theme-doctor exit 0` gate, so the stress harness cannot produce a clean run until the tree is committed or reverted. Decide what to do with those changes early in v3.0.
+_(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.0 scoping; see Resolved below.)_
+
+**Resolved during v3.0 scoping (2026-07-26):**
+
+- ~~**`theme-doctor`'s `git status --porcelain is empty` check red from uncommitted working-tree changes**~~ — **closed.** The 52 entries were first snapshotted onto backup branch `v1` (`6b30204`), then committed to `main` in four logical commits: 42 new wallpapers + theme-folder reorganization (`50162e6`), the `Unknown-1` monitor fallback (`91482df`), the consumed `HANDOFF.json` (`4144761`), and a stray `nvidia-smi` `csv` leftover deleted after confirming it was recoverable from `v1`.
+- **All three core regression gates are now green for the first time this milestone:** `theme-doctor` **136 passed / 0 failed, exit 0** (was 135/2 at v2.0 close); `theme-parity` **1542 passed / 0 failed, exit 0** (was 1542/22). `theme-stress-test` is unblocked — its strict `theme-doctor exit 0` gate now passes — but has not yet been run, since it switches themes ten times against the live desktop.
 
 **Resolved by quick task 260725-vu6 (2026-07-25):**
 
@@ -217,4 +222,6 @@ Resume file: None
 ## Operator Next Steps
 
 - Plan Phase 11 with `/gsd-plan-phase 11`
-- Before Phase 11 closes, note blocker 3 below: the working tree must be committed or reverted for `theme-doctor`'s git-clean check (and therefore `theme-stress-test`) to go green again
+- Backup branch `v1` (`6b30204`) holds the pre-v3.0 snapshot of the rice. It is **local only** — push it to `origin` for off-machine safety before Quickshell work begins.
+- All three regression gates are green as of 2026-07-26 (`theme-doctor` 136/0, `theme-parity` 1542/0, both exit 0), so any failure appearing during Phase 11 is a genuine regression, not inherited noise.
+- `theme-stress-test` is unblocked but unrun — worth one clean pass before Phase 12 starts depending on the gates.
