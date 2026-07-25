@@ -463,30 +463,51 @@ button:focus label.action-name {
 /* ═══════════════════════════════════════════════════════════════════
    09-03/09-04: ENTRANCE STAGGER (D-10 — USER-DIRECTED BUDGET OVERRIDE)
    ═══════════════════════════════════════════════════════════════════
-   ── 09-04 THIRD render-gate report: "the entrance is still too fast" ──
-   This is the third consecutive report of the same defect across two
-   prior fix iterations (the 08-16-style dual-highlight fix and the
-   compositor popin/fade double-animation fix, both 09-04). Neither was
-   an entrance-TIMING bug — both were real, separate defects that are
-   now fixed and re-confirmed unaffected by this change. The human was
-   told explicitly, after the second fix still read as too fast, that
-   the remaining lever is D-10's own <350ms budget, and chose to
-   override it rather than accept a fix that could not actually slow
-   the animation down. THIS IS A RECORDED SPEC DEVIATION, not a
-   plan-conformant result — see 09-04-SUMMARY.md's Deviations section.
-   Do not "helpfully" re-clamp this back under 350ms in a future edit
-   without a fresh explicit instruction to do so.
+   ── 09-04 FOURTH render-gate report: "the pop-in feels too sudden and
+   jittery" (per-capsule OWN animation, not the stagger between capsules —
+   the cascade speed itself was separately APPROVED at this same gate) ──
+   Root-caused, not re-tuned by feel: the previous
+   `cubic-bezier(0.55, 0, 0.28, 1.68)` curve is an overshoot/"back-out"
+   easing — its final control point (y=1.68) drives the interpolated
+   value past 1.0 before settling back. Applied to `scale(0.9 → 1)`, each
+   capsule scaled PAST its final size and recoiled — that recoil is the
+   reported jitter. The same curve's leading control point (0.55, 0) is
+   also an ease-IN (a dead start then a snap of acceleration), which
+   reads as "sudden". At the previous 200ms duration there was no room
+   for the overshoot to resolve smoothly, so it read as a snap rather
+   than a spring.
 
-   New numbers (user-specified): 90ms stagger offset per capsule (was
-   35ms), ~200ms per-capsule transition (was 170ms). Left-to-right
-   cascade: Lock 0ms, Log Out 90ms, Suspend 180ms, Hibernate 270ms,
-   Reboot 360ms, Shut Down 450ms; last capsule's OWN animation ends at
-   450+200=650ms, and the perceived full envelope (including the
-   compositor's own `layerrule = animation fade` cross-fade, which is
-   NOT part of this budget — see the windowrules.conf comment above)
-   reads as ~700ms end to end. Re-derive this arithmetic (and the six
-   delays below) if `animation-duration` or the stagger offset ever
-   change again.
+   FIX: swapped to `md3_decel` (`cubic-bezier(0.05, 0.7, 0.1, 1)`) — a
+   pure decelerate curve, y never exceeds 1, so there is no overshoot to
+   recoil from. This is the EXACT bezier this repo's own
+   `hypr/.config/hypr/config/animations.conf` already defines and uses
+   for `layers`/`fadeSwitch`/`fadeDim` (md3_decel, 0.05 0.7 0.1 1) — reusing
+   it here keeps the CSS entrance on the same motion-language convention
+   as the compositor-level animations already in this repo, rather than
+   inventing a fourth easing curve for one keyframe. Also softened the
+   travel distance (`translateY(10px) scale(0.9)` → `translateY(6px)
+   scale(0.96)`): a smaller move covers less ground and inherently reads
+   calmer, and a decelerate curve arriving from a nearer starting point
+   has less distance over which to look sluggish.
+
+   Per-capsule duration lengthened 200ms → 300ms so the decelerate curve
+   has room to read as smooth rather than clipped. To pay for the extra
+   100ms without lengthening the overall ~700ms envelope the human
+   already approved at this gate, the stagger was trimmed 90ms → 80ms.
+   Left-to-right cascade: Lock 0ms, Log Out 80ms, Suspend 160ms,
+   Hibernate 240ms, Reboot 320ms, Shut Down 400ms; last capsule's OWN
+   animation ends at 400+300=700ms — the identical ~700ms own-animation
+   settle already approved (previously 450+200=650ms settle plus the
+   compositor's own `layerrule = animation fade` cross-fade reading as
+   ~700ms perceived; now the settle arithmetic lands on 700ms directly).
+   Re-derive this arithmetic (and the six delays below) if
+   `animation-duration` or the stagger offset ever change again.
+
+   THIS REMAINS THE SAME RECORDED D-10 SPEC DEVIATION as before (still
+   ~2x D-10's original <350ms ceiling) — this edit does not touch that
+   deviation, only the per-capsule curve/duration/stagger inside it. Do
+   not "helpfully" re-clamp this back under 350ms in a future edit
+   without a fresh explicit instruction to do so.
 
    D-10's NON-NEGOTIABLE clause is untouched by this change: the power
    action still fires immediately on click (`delay-command-ms` stays at
@@ -494,7 +515,11 @@ button:focus label.action-name {
    09-02) — that clause governs the exit/action path, not the entrance,
    and no exit-animation mechanism delays any shell command. The exit
    fade itself (Tier 1, compositor-level, established 09-03/09-04) is
-   also untouched — only the entrance keyframe timing below changed.
+   also untouched — only the entrance keyframe timing below changed. The
+   hover transform at `button:hover, button:focus` (its own springy
+   `cubic-bezier(0.55, 0, 0.28, 1.68)`, ~line 230) is ALSO untouched —
+   the human explicitly likes that overshoot on hover ("button glows and
+   grows larger"); only the entrance keyframe's curve changes here.
 
    RESPONSIVENESS DURING THE SLOWER ENTRANCE (verified, not assumed):
    nothing in this stylesheet or in layout.json sets `pointer-events`,
@@ -522,7 +547,7 @@ button:focus label.action-name {
 @keyframes capsule-entrance {
     from {
         opacity: 0;
-        transform: translateY(10px) scale(0.9);
+        transform: translateY(6px) scale(0.96);
     }
     to {
         opacity: 1;
@@ -531,18 +556,19 @@ button:focus label.action-name {
 }
 button {
     animation-name: capsule-entrance;
-    animation-duration: 200ms;
-    animation-timing-function: cubic-bezier(0.55, 0, 0.28, 1.68);
+    animation-duration: 300ms;
+    animation-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1); /* md3_decel */
     animation-fill-mode: backwards;
 }
 button#lock      { animation-delay: 0ms; }
-button#logout    { animation-delay: 90ms; }
-button#suspend   { animation-delay: 180ms; }
-button#hibernate { animation-delay: 270ms; }
-button#reboot    { animation-delay: 360ms; }
-button#shutdown  { animation-delay: 450ms; }
-/* Budget: max(delay) 450ms + duration 200ms = 650ms own-animation settle,
-   ~700ms perceived full envelope with the compositor cross-fade — a
-   DELIBERATE ~2x override of D-10's original <350ms ceiling, per the
-   user's explicit direction at the 09-04 render gate (third report of
-   the entrance reading as imperceptibly fast). See 09-04-SUMMARY.md. */
+button#logout    { animation-delay: 80ms; }
+button#suspend   { animation-delay: 160ms; }
+button#hibernate { animation-delay: 240ms; }
+button#reboot    { animation-delay: 320ms; }
+button#shutdown  { animation-delay: 400ms; }
+/* Budget: max(delay) 400ms + duration 300ms = 700ms own-animation settle —
+   the SAME ~700ms envelope already approved at the 09-04 render gate
+   (previously 450ms+200ms=650ms settle plus the compositor cross-fade
+   reading as ~700ms perceived; the 300ms decelerate duration now reaches
+   700ms directly). Still a DELIBERATE ~2x override of D-10's original
+   <350ms ceiling, per the user's explicit direction. See 09-04-SUMMARY.md. */
