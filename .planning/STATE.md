@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 10
-current_phase_name: ags-media-applet
-status: verifying
-stopped_at: Phase 9 UI-SPEC approved
-last_updated: "2026-07-25T14:28:23.194Z"
-last_activity: 2026-07-15
-last_activity_desc: Phase 10 complete
+current_phase: 09
+current_phase_name: wlogout-to-wleave-migration
+status: executing
+stopped_at: "Completed 09-01-PLAN.md (pre-flight verification: wleave installed, config surface probed, M3 container-role dry-run)"
+last_updated: "2026-07-25T15:38:43.426Z"
+last_activity: 2026-07-25
+last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 60
-  completed_plans: 60
+  total_plans: 64
+  completed_plans: 61
   percent: 86
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-12)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 10 — ags-media-applet
+**Current focus:** Phase 09 — wlogout-to-wleave-migration
 
 ## Current Position
 
-Phase: 10 of 6 (ags-media-applet)
-Plan: Not started
-Status: All plans executed; awaiting phase-level verification
-Last activity: 2026-07-15 — Phase 10 complete
+Phase: 09 (wlogout-to-wleave-migration) — EXECUTING
+Plan: 2 of 4
+Status: Ready to execute
+Last activity: 2026-07-25 — Phase 09 execution started
 
 ## Performance Metrics
 
@@ -118,6 +118,11 @@ Last activity: 2026-07-15 — Phase 10 complete
 | Phase 10 P04 | multi-session | 3 tasks | 6 files |
 | Phase 10 P05 | 30 min | 3 tasks | 6 files |
 | Phase 10 P06 | multi-session (3-task gate) | 3 tasks | 10 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 09 P01 | 55min | 3 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -263,6 +268,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase 10-06]: DURABLE FINDING — GTK4 windows paint an OPAQUE default background (libadwaita @window_bg_color); any Hyprland layer-shell blur rule needs an explicit `window { background-color: transparent; }` in the app's own stylesheet or the blur is a silent no-op with nothing translucent to frost.
 - [Phase 10-06]: DURABLE FINDING — GTK4 Gtk.Scale internals (trough / trough highlight / slider nodes) are NOT palette-driven by default; they silently fall back to libadwaita's system accent color unless explicitly styled per-selector with the app's own theme vars, so sliders can look themed-adjacent while actually ignoring every theme switch.
 - [Phase 10-05]: AGS style.scss @import is 4 levels deep (not eww's 2) and reload-css must realpath-resolve the stowed symlink before invoking sass — AGS's Go bundler collapses the ~/.config/ags symlink to the real repo path before compiling scss, unlike eww's daemon which preserves it; the runtime sass subprocess for hot-reload must match that same resolution or the @import silently fails
+- [Phase ?]: [Phase 09-01]: Task 1 (AUR wleave 0.7.1-1 install) discharged by human at their own terminal; re-verified read-only (pacman -Q wleave -> 0.7.1-1, command -v wleave resolves).
+- [Phase ?]: [Phase 09-01]: wleave 0.7.1 man pages document only per-button layout keys and CLI flags -- top-level wrapped JSON keys (buttons-per-row, margin, etc.) are unconfirmed as JSON keys by installed docs; 09-02 should pass them as CLI flags to the wleave invocation instead.
+- [Phase ?]: [Phase 09-01]: D-08 finding -- wleave 0.7.1 has no free second text slot distinct from 'text' for a hover-revealed action name; label.keybind is a single-character keybind hint only. 09-03 must plan a CSS-only hover affordance instead.
+- [Phase ?]: [Phase 09-01]: BLOCKING -- matugen hard-fails resolving on_tertiary_container/error_container/on_error_container for all 20 static presets (uniformly missing from palette JSON files); Material You dark+light both resolve all four roles correctly. 09-02 must add the 3 missing keys to all 20 palette JSON files before committing the new wleave-colors.css template.
 
 ### Quick Tasks Completed
 
@@ -307,6 +316,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T14:28:23.173Z
-Stopped at: Phase 9 UI-SPEC approved
-Resume file: /home/aorus/dotfiles/.planning/phases/09-wlogout-to-wleave-migration/09-UI-SPEC.md
+Last session: 2026-07-25T15:38:43.410Z
+Stopped at: Completed 09-01-PLAN.md (pre-flight verification: wleave installed, config surface probed, M3 container-role dry-run)
+Resume file: None
