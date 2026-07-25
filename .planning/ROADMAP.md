@@ -25,7 +25,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [x] **Phase 6: Themed Surfaces & Utility Suite** - Redesign and re-theme wlogout, hyprlock, SwayOSD and Zen, and ship the full screenshot + emoji/color/clipboard/icon/font utility suite (19/19 plans executed, verification passed, UAT passed, 53/53 threats closed) (completed 2026-07-13)
 - [x] **Phase 7: Super-Key Menu** - $SUPER-tap opens an Omarchy-style walker menu wrapping utilities, power, settings, AI dashboard, game center, and a searchable keybind cheat-sheet (completed 2026-07-13)
 - [x] **Phase 8: Waybar Evolution** - OLED-safe waybar with an additional vertical layout, mpris media center, and one-click notification-center access; all 4 layouts redesigned per-flow after UAT and user-approved (completed 2026-07-15)
-- [ ] **Phase 9: wlogout to wleave Migration** - Replace wlogout with wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class, with no regression to the Phase 6 center-bar design
+- [x] **Phase 9: wlogout to wleave Migration** - Replace wlogout with wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class, with no regression to the Phase 6 center-bar design (completed 2026-07-25)
 - [x] **Phase 10: AGS Media Applet** - Replace the confirmed-dead eww media popup with a standalone AGS v3 (GTK4) centered media card (transport/seek/volume/switcher + cava audio-reactive underlay, garuda style), reusing the existing MPRIS backend, themed via matugen (completed 2026-07-15)
 
 ## Phase Details
@@ -263,14 +263,14 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 | 6. Themed Surfaces & Utility Suite | v2.0 | 19/19 | Complete    | 2026-07-13 |
 | 7. Super-Key Menu | v2.0 | 8/8 | Complete    | 2026-07-13 |
 | 8. Waybar Evolution | v2.0 | 16/16 | Complete    | 2026-07-15 |
-| 9. wlogout to wleave Migration | v2.0 | 4/4 | In Progress|  |
+| 9. wlogout to wleave Migration | v2.0 | 4/4 | Complete    | 2026-07-25 |
 
 ### Phase 9: wlogout to wleave Migration
 
 **Goal**: Replace wlogout with wleave (GTK4) as the power menu, eliminating the GTK3 whole-stylesheet-discard failure class that produced the WLOG-01 blocker, and moving onto an actively-maintained tool — with no regression to the Phase 6 center-bar design.
 **Requirements**: WLOG-01 (re-delivered on a new engine)
 **Depends on:** Phase 8
-**Plans:** 4/4 plans executed
+**Plans:** 4/4 plans complete
 
 **Why this phase exists** (decided 2026-07-13, after Phase 6's wlogout work):
 
