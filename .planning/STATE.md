@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 09
 current_phase_name: wlogout-to-wleave-migration
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-07-25T16:13:57.886Z"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-07-25T16:52:13.836Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 64
-  completed_plans: 62
+  completed_plans: 63
   percent: 86
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 09 (wlogout-to-wleave-migration) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-25 — Phase 09 execution started
 
@@ -124,6 +124,7 @@ Last activity: 2026-07-25 — Phase 09 execution started
 |------|----------|-------|-------|
 | Phase 09 P01 | 55min | 3 tasks | 0 files |
 | Phase 09 P02 | ~50min | 3 tasks | 20 files |
+| Phase 09 P03 | ~25min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -277,6 +278,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: version-info footer suppressed via layout.json's native no-version-info key (CSS display:none confirmed unsupported on this GTK4 install)
 - [Phase ?]: 09-01's D-08 conclusion corrected: wleave DOES have a native per-button second text slot (label.action-name via button#<label>) for 09-03 to use
 - [Phase ?]: wlogout retirement is repo/config-only (D-11): package directory deleted, binary stays installed on the machine
+- [Phase ?]: D-08 resolved as option-b (icon+text split): glyph moved to wleave's native icon field (upstream's shipped SVGs), text carries the hover-revealed action name, superseding D-09's codepoint convention for this surface
+- [Phase ?]: Icon vertical centring closed empirically: margin-top:16px on button picture corrects an 8.0px above-centre offset caused by the hover-reveal label's reserved layout space, re-measured live at 0.0px residual
+- [Phase ?]: RESEARCH Assumption A2 resolved LIVE: the compositor's global layers animation DOES fire on wleave's client-initiated synchronous hide (Tier 1 exit achieved), confirmed via a 6-frame rapid grim capture across a real dismissal
 
 ### Quick Tasks Completed
 
@@ -323,6 +327,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T16:13:51.717Z
-Stopped at: Completed 09-02-PLAN.md
+Last session: 2026-07-25T16:52:13.821Z
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None
