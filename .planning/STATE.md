@@ -5,15 +5,15 @@ milestone_name: Desktop Expansion
 current_phase: 09
 current_phase_name: wlogout-to-wleave-migration
 status: executing
-stopped_at: "Completed 09-01-PLAN.md (pre-flight verification: wleave installed, config surface probed, M3 container-role dry-run)"
-last_updated: "2026-07-25T15:38:43.426Z"
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-07-25T16:13:57.886Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 64
-  completed_plans: 61
+  completed_plans: 62
   percent: 86
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 ## Current Position
 
 Phase: 09 (wlogout-to-wleave-migration) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-25 — Phase 09 execution started
 
@@ -123,6 +123,7 @@ Last activity: 2026-07-25 — Phase 09 execution started
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 09 P01 | 55min | 3 tasks | 0 files |
+| Phase 09 P02 | ~50min | 3 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -272,6 +273,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Phase 09-01]: wleave 0.7.1 man pages document only per-button layout keys and CLI flags -- top-level wrapped JSON keys (buttons-per-row, margin, etc.) are unconfirmed as JSON keys by installed docs; 09-02 should pass them as CLI flags to the wleave invocation instead.
 - [Phase ?]: [Phase 09-01]: D-08 finding -- wleave 0.7.1 has no free second text slot distinct from 'text' for a hover-revealed action name; label.keybind is a single-character keybind hint only. 09-03 must plan a CSS-only hover affordance instead.
 - [Phase ?]: [Phase 09-01]: BLOCKING -- matugen hard-fails resolving on_tertiary_container/error_container/on_error_container for all 20 static presets (uniformly missing from palette JSON files); Material You dark+light both resolve all four roles correctly. 09-02 must add the 3 missing keys to all 20 palette JSON files before committing the new wleave-colors.css template.
+- [Phase ?]: wleave's GtkCenterBox content wrapper doesn't vertically expand — scrim painted on window directly, not window > box
+- [Phase ?]: version-info footer suppressed via layout.json's native no-version-info key (CSS display:none confirmed unsupported on this GTK4 install)
+- [Phase ?]: 09-01's D-08 conclusion corrected: wleave DOES have a native per-button second text slot (label.action-name via button#<label>) for 09-03 to use
+- [Phase ?]: wlogout retirement is repo/config-only (D-11): package directory deleted, binary stays installed on the machine
 
 ### Quick Tasks Completed
 
@@ -304,6 +309,8 @@ Resolved in Phase 6:
 - ~~Phase 7 Plan 01 (D-05 spike) BLOCKED after Task 1: walker 2.16.2's '-s <name>' GUI-mode invocation panics and aborts the walker daemon~~ — **RESOLVED 2026-07-13 (decision taken, plans amended in 117edc9).** Adopted `-m/--provider` exclusive-provider mode across the phase; `walker -m menus:main` and `walker -m runner` both verified to render and leave the service alive (PID before/after). The D-05 spike stands GO: elephant's `menus` provider expresses submenus, drill-down, Esc-back-nav (exactly one level) and glyph-as-text — no `--dmenu` fallback needed. **Two durable findings kept:** (1) `walker -s <set>` / `[sets.*]` is a dead mechanism on walker 2.16.2 (panic, `src/data.rs:566`) — do not reintroduce it; (2) it fails on the shipped `[sets.runner]` block too, so **`Super+R` was already broken in production** — a pre-existing bug, fixed in 07-02 Task 1b, not caused by this phase. Root cause of the bad design: 07-RESEARCH.md claimed `walker -s runner` "already ships and works" based on reading the config file, never running it — the phase's own "verify against the installed binary" lesson, unapplied to the research itself.
 - Phase 7: D-34 container-gate proof (verify/container-run.sh) for plan 07-03 is open pending human push authorization — origin/main is 202 commits behind local HEAD (predates Phase 5). Human must: (1) authorize git push origin main, (2) re-run verify/container-run.sh and confirm overall=PASS with all 10 new packages + multilib showing [OK].
 - 08-06: container gate (verify/container-run.sh) cannot produce eww-inclusive D-36 evidence until origin/main is updated -- requires human authorization to git push origin main (255 commits behind), then rerun the gate
+- keybind-doctor's hyprctl binds -j JSON parsing broken on Hyprland 0.56.0 (pre-existing, unrelated to phase 09)
+- theme-doctor/theme-stress-test blocked by orphaned eww.scss contract.json entry from phase 08-06/10-06's incomplete eww retirement (pre-existing, unrelated to phase 09)
 
 ## Deferred Items
 
@@ -316,6 +323,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T15:38:43.410Z
-Stopped at: Completed 09-01-PLAN.md (pre-flight verification: wleave installed, config surface probed, M3 container-role dry-run)
+Last session: 2026-07-25T16:13:51.717Z
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
