@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 2
+open_count: 5
 waived_count: 0
 fixed_count: 0
-total_count: 2
-last_updated: 2026-07-25T16:10:45.954Z
+total_count: 5
+last_updated: 2026-07-25T16:49:50.541Z
 ---
 
 # Broken Windows Ledger
@@ -17,6 +17,9 @@ last_updated: 2026-07-25T16:10:45.954Z
 |----|-------|------|------|------|-------------|--------|--------|-------------|-------------|
 | 1 | 09 | unrun-verify | theme-engine/.config/theme-engine/contract.json |  | theme-doctor/theme-stress-test blocked by orphaned eww.scss entry (phase 08-06/10-06 incomplete retirement) — unrelated to wlogout->wleave, see 09-02 deferred-items.md item 3 | open |  | 2026-07-25T16:10:45.874Z |  |
 | 2 | 09 | deviation | hypr/.config/hypr/scripts/keybind-doctor |  | keybind-doctor's hyprctl binds -j JSON parsing broken on Hyprland 0.56.0 (pre-existing, all 78 binds affected uniformly) — see 09-02 deferred-items.md item 1 | open |  | 2026-07-25T16:10:45.954Z |  |
+| 3 | 09 | unrun-verify | wleave/.config/wleave/style.css |  | D-10 entrance-vs-hover interaction (hovering during the ~350ms entrance stagger window) was not exercised live in this session — tooling available (hyprctl dispatch movecursor / wtype) could not reliably land a synthetic pointer/focus event inside that short window. Structural mitigation (entrance transform on the base rule, hover/focus scale on a separate paired selector, animation-fill-mode:backwards) is in place per plan, but not confirmed by a live capture. | open |  | 2026-07-25T16:49:50.384Z |  |
+| 4 | 09 | deviation | .planning/phases/09-wlogout-to-wleave-migration/09-03-SUMMARY.md |  | 09-03 hover evidence (09-03-hover-dark.png) was captured via keyboard focus (wtype Tab), not literal mouse hover — hyprctl dispatch movecursor warps the compositor cursor position without emitting a wl_pointer motion/enter event this GTK4 client processes, confirmed by a live jiggle test that produced no :hover activation despite a correct hyprctl cursorpos. Since :hover and :focus are byte-identical paired CSS selectors in this stylesheet, the focus-driven capture proves the same code path, but the specific input modality (real mouse hover) remains unconfirmed live. | open |  | 2026-07-25T16:49:50.463Z |  |
+| 5 | 09 | deviation | wleave/.config/wleave/layout.json |  | Icon glyph size is the SVG's natural/shrink-fit size under the icon+label vertical stack (empirically ~27-29px at the tuned margin), not forced to the UI-SPEC's literal 36px Display-role token — that token assumed the retired text-glyph delivery mechanism. Visually consistent and legible per the 09-03 evidence captures; not explicitly re-pinned to a fixed pixel size. | open |  | 2026-07-25T16:49:50.541Z |  |
 
 ````json
 [
@@ -42,6 +45,42 @@ last_updated: 2026-07-25T16:10:45.954Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-07-25T16:10:45.954Z",
+    "resolved_at": null
+  },
+  {
+    "id": 3,
+    "kind": "unrun-verify",
+    "phase": "09",
+    "file": "wleave/.config/wleave/style.css",
+    "line": null,
+    "description": "D-10 entrance-vs-hover interaction (hovering during the ~350ms entrance stagger window) was not exercised live in this session — tooling available (hyprctl dispatch movecursor / wtype) could not reliably land a synthetic pointer/focus event inside that short window. Structural mitigation (entrance transform on the base rule, hover/focus scale on a separate paired selector, animation-fill-mode:backwards) is in place per plan, but not confirmed by a live capture.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-07-25T16:49:50.384Z",
+    "resolved_at": null
+  },
+  {
+    "id": 4,
+    "kind": "deviation",
+    "phase": "09",
+    "file": ".planning/phases/09-wlogout-to-wleave-migration/09-03-SUMMARY.md",
+    "line": null,
+    "description": "09-03 hover evidence (09-03-hover-dark.png) was captured via keyboard focus (wtype Tab), not literal mouse hover — hyprctl dispatch movecursor warps the compositor cursor position without emitting a wl_pointer motion/enter event this GTK4 client processes, confirmed by a live jiggle test that produced no :hover activation despite a correct hyprctl cursorpos. Since :hover and :focus are byte-identical paired CSS selectors in this stylesheet, the focus-driven capture proves the same code path, but the specific input modality (real mouse hover) remains unconfirmed live.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-07-25T16:49:50.463Z",
+    "resolved_at": null
+  },
+  {
+    "id": 5,
+    "kind": "deviation",
+    "phase": "09",
+    "file": "wleave/.config/wleave/layout.json",
+    "line": null,
+    "description": "Icon glyph size is the SVG's natural/shrink-fit size under the icon+label vertical stack (empirically ~27-29px at the tuned margin), not forced to the UI-SPEC's literal 36px Display-role token — that token assumed the retired text-glyph delivery mechanism. Visually consistent and legible per the 09-03 evidence captures; not explicitly re-pinned to a fixed pixel size.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-07-25T16:49:50.541Z",
     "resolved_at": null
   }
 ]
