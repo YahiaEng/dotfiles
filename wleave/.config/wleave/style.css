@@ -1,0 +1,90 @@
+@import url("../../.local/state/theme/wleave.css");
+
+/* ── Full-screen dim scrim on `window` itself (D-01/D-07) ─────────────
+   GTK4 windows paint an OPAQUE libadwaita window background by default,
+   which silently defeats a blur layerrule by leaving nothing translucent
+   to frost (the 10-06 durable finding; see ags/style.scss for the same
+   fix applied to the AGS media applet). The rgba value below both
+   overrides that opaque default AND is the scrim itself in one step.
+
+   0.40 black is a hardcoded literal, a deliberate, documented exception
+   to this repo's zero-literal-colour convention: it means the dim
+   survives a total palette-resolution failure. A broken stylesheet still
+   yields dimmed-desktop-plus-unstyled-capsules, never a blank or
+   invisible surface.
+
+   The scrim is painted on `window`, not on the content wrapper box, on
+   the strength of a live empirical finding against the installed 0.7.1
+   binary: wleave's content wrapper is a GtkCenterBox (CSS node name
+   `box`), and it does NOT vertically expand to fill the window by
+   default — a `window > box` (or bare `box`) rule only paints the
+   button row's own height, not the full screen, leaving the rest of the
+   desktop undimmed. `window` itself is always sized to the full
+   layer-shell surface (confirmed via `hyprctl -j layers` reporting the
+   full monitor extent), so it is the only selector that reliably
+   produces a full-screen dim. ── */
+window {
+    background-color: rgba(0, 0, 0, 0.40);
+    font-family: "FiraCode Nerd Font";
+}
+
+/* Direct-child combinator, not a bare `box` selector: wleave's content
+   wrapper (GtkCenterBox) shares the CSS node name `box` with the nested
+   buttons-row GtkBox, so a bare `box` selector would double the dim on
+   the wrapper. Kept fully transparent so it never draws a visible seam
+   or a second darkening layer on top of the window's own scrim. ── */
+window > box {
+    background-color: transparent;
+}
+
+/* ── Capsule geometry (D-02/D-05) ──────────────────────────────────────
+   GTK applies min-width/min-height to the CONTENT box, then ADDS padding
+   and border on top — so the 96px outer capsule size is derived, not
+   hardcoded: 62px content + 2*16px padding + 2*1px border = 96px.
+   Re-measure this comment's arithmetic if any of the three inputs below
+   change, so a later padding tweak forces a recompute instead of
+   silently clipping.
+
+   The 24px inter-capsule gap (D-02) is NOT set here. wleave 0.7.1 has a
+   native `column-spacing` layout-config key (confirmed live against the
+   installed binary, config-mode log: "column-spacing" specified from
+   config: Px(24.0)) — layout.json sets `"column-spacing": 24` and this
+   stylesheet adds NO CSS margin, so exactly one gap mechanism is active.
+   Applying both would double the gap (the Phase 6 double-gap bug class,
+   reappearing in a new engine).
+
+   The 96px CONTENT size is a floor, not a guarantee: wleave's button grid
+   stretches every button to fill its cell (the exact same failure class
+   the retired engine's own wrapper-script comment described, on a
+   different binary) — confirmed live: with no `button-aspect-ratio` or
+   `margin` config, six buttons rendered as ~237px-tall stretched pills,
+   not compact capsules. Fixed natively, no wrapper-script geometry math:
+   layout.json's `"button-aspect-ratio": 1.0` keeps every button square,
+   and `"margin": "36.4%"` (a percentage inset, not a hardcoded pixel
+   value, so it scales with whatever monitor is attached rather than
+   clipping or floating wrong on a different resolution) narrows the
+   available row width to ~696px on this machine's display — the exact
+   6*96+5*24 target — confirmed live via screenshot. ── */
+button {
+    min-width: 62px;
+    min-height: 62px;
+    padding: 16px;
+    border: 1px solid @outline;
+    border-radius: 24px;
+    background-color: alpha(@surface, 0.35);
+    box-shadow: none;
+    text-shadow: none;
+}
+
+/* ── Nerd Font glyph rendering ──────────────────────────────────────────
+   Vertical centring comes from layout.json's per-button `height: 0.5`
+   field (an alignment fraction, not a pixel size — wleave defaults it to
+   0.9, near the bottom, which reproduces Phase 6's exact GTK3 symptom
+   through a completely different mechanism). No bottom-margin label
+   correction here: that was a GTK3-only optical fix with no equivalent
+   effect on this engine. ── */
+button label {
+    font-family: "FiraCode Nerd Font";
+    font-size: 36px;
+    color: @on_surface;
+}

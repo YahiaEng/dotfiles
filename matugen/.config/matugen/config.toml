@@ -42,10 +42,10 @@ output_path = "~/.local/state/theme/yazi.toml"
 input_path = "~/.config/matugen/templates/vscodium-colors.json"
 output_path = "~/.local/state/theme/vscodium.json"
 
-# ── Wlogout colors ──────────────────────────────────
-[templates.wlogout]
-input_path = "~/.config/matugen/templates/wlogout-colors.css"
-output_path = "~/.local/state/theme/wlogout.css"
+# ── Wleave colors (power menu, GTK4) ─────────────────
+[templates.wleave]
+input_path = "~/.config/matugen/templates/wleave-colors.css"
+output_path = "~/.local/state/theme/wleave.css"
 
 # ── GTK 3.0 colors ─────────────────────────────────
 [templates.gtk3]

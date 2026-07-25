@@ -1,0 +1,52 @@
+{
+  "buttons-per-row": "6",
+  "close-on-lost-focus": false,
+  "show-keybinds": false,
+  "column-spacing": 24,
+  "button-aspect-ratio": 1.0,
+  "margin": "36.4%",
+  "buttons": [
+    {
+      "label": "lock",
+      "action": "uwsm app -- hyprlock",
+      "text": "",
+      "keybind": "l",
+      "height": 0.5
+    },
+    {
+      "label": "logout",
+      "action": "cliphist wipe; uwsm stop",
+      "text": "",
+      "keybind": "e",
+      "height": 0.5
+    },
+    {
+      "label": "suspend",
+      "action": "systemctl suspend",
+      "text": "",
+      "keybind": "u",
+      "height": 0.5
+    },
+    {
+      "label": "hibernate",
+      "action": "systemctl hibernate",
+      "text": "",
+      "keybind": "h",
+      "height": 0.5
+    },
+    {
+      "label": "reboot",
+      "action": "cliphist wipe; hyprshutdown --post-cmd 'systemctl reboot'",
+      "text": "",
+      "keybind": "r",
+      "height": 0.5
+    },
+    {
+      "label": "shutdown",
+      "action": "cliphist wipe; hyprshutdown --post-cmd 'systemctl poweroff'",
+      "text": "",
+      "keybind": "s",
+      "height": 0.5
+    }
+  ]
+}

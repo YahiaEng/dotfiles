@@ -12,6 +12,7 @@
     "tertiary": { "default": { "color": "#b48ead" } },
     "on_tertiary": { "default": { "color": "#2e3440" } },
     "tertiary_container": { "default": { "color": "#6b6076" } },
+    "on_tertiary_container": { "default": { "color": "#eceff4" } },
     "surface": { "default": { "color": "#2e3440" } },
     "on_surface": { "default": { "color": "#eceff4" } },
     "surface_variant": { "default": { "color": "#3b4252" } },
@@ -20,6 +21,8 @@
     "on_background": { "default": { "color": "#eceff4" } },
     "outline": { "default": { "color": "#4c566a" } },
     "error": { "default": { "color": "#bf616a" } },
-    "on_error": { "default": { "color": "#2e3440" } }
+    "on_error": { "default": { "color": "#2e3440" } },
+    "error_container": { "default": { "color": "#764a55" } },
+    "on_error_container": { "default": { "color": "#eceff4" } }
   }
 }
