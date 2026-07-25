@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-status: planning
-last_updated: "2026-07-25T21:30:07.499Z"
+status: roadmap_ready
+last_updated: "2026-07-26T00:00:00.000Z"
 last_activity: 2026-07-26
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** v3.0 Quickshell Foundation & Motion Language — defining requirements
+**Current focus:** v3.0 Quickshell Foundation & Motion Language — roadmap created, Phase 11 ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 11 — Quickshell Viability Gate (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-07-26 — Milestone v3.0 started
+Status: Roadmap created; awaiting `/gsd-plan-phase 11`
+Progress: [--------------------] 0/7 phases
+Last activity: 2026-07-26 — v3.0 roadmap created, Phases 11-17, 38/38 requirements mapped
 
 ## Performance Metrics
 
@@ -129,6 +130,14 @@ Last activity: 2026-07-26 — Milestone v3.0 started
 ### Roadmap Evolution
 
 - Phase 9 added: wlogout to wleave Migration (GTK4) — decided 2026-07-13 after Phase 6's wlogout redesign; driver is GTK3's whole-stylesheet-discard failure class (WLOG-01), NOT the blur limitation, which is compositor-global and unfixable by any layer-shell client.
+- v3.0 roadmapped 2026-07-26: Phases 11-17, continuing numbering from v2.0's Phase 10. 38 requirements mapped 1:1 to phases, no orphans, no duplicates.
+  - **11 Quickshell Viability Gate** (QS-01..06, MAINT-01) — STOP authority; also runs the workspace-overview screencopy feasibility probe early, per ARCHITECTURE Correction 2.
+  - **12 Unified Design-Token Pipeline** (TOKEN-01..06) — colour + MD3 motion to QML/GTK4 CSS/Hyprland; TOKEN-06 (springs) is a stretch that blocks nothing.
+  - **13 Motion Retrofit & Existing-Surface Sweep** (MOTION-01..03, MAINT-02, MAINT-03) and **14 Dashboard Drawer** (DASH-01..08) are **independent branches, both gated only on 12** — not serially dependent on each other (ARCHITECTURE Correction 1). 13 runs first as risk reduction, not as a dependency.
+  - **15 Audio + Connectivity Panels** (PANEL-01..06) — depends on 14; carries the milestone's highest D-Bus conflict risk.
+  - **16 Workspace Overview** (OVER-01..04) — protocol question is settled (`ScreencopyView` + `hyprland-toplevel-export-v1`, no plugin); the real open risk is live multi-window screencopy *performance*, which OVER-04 makes a measured requirement with a documented fallback.
+  - **17 Ambient Extras** (AMB-01..02) — explicitly the first phase to cut.
+  - MAINT placement rationale and coverage proof live in REQUIREMENTS.md's Traceability section.
 - Phase 10 added: AGS Media Applet — decided 2026-07-15 after the Phase 08 eww media popup was proven unable to deliver pointer input to its widgets on this eww 0.6.0 / Hyprland 0.55.4 build (debug session resolved-by-redesign: `.planning/debug/resolved/eww-media-popup-clicks-dead.md`). Replace with a standalone AGS v3 (GTK4) media applet, keeping waybar/swaync/matugen. User rejected a full HyprPanel bar takeover in favor of a contained applet. Approved spec + plan live in `docs/superpowers/`.
 
 ### Decisions
@@ -201,10 +210,11 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-25T19:45:00.000Z
-Stopped at: Milestone v2.0 Desktop Expansion closed, archived and tagged
+Last session: 2026-07-26
+Stopped at: v3.0 roadmap created (Phases 11-17); REQUIREMENTS.md traceability populated 38/38
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan Phase 11 with `/gsd-plan-phase 11`
+- Before Phase 11 closes, note blocker 3 below: the working tree must be committed or reverted for `theme-doctor`'s git-clean check (and therefore `theme-stress-test`) to go green again

@@ -124,21 +124,60 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QS-01..06 | TBD | Pending |
-| TOKEN-01..06 | TBD | Pending |
-| MOTION-01..03 | TBD | Pending |
-| DASH-01..08 | TBD | Pending |
-| PANEL-01..06 | TBD | Pending |
-| OVER-01..04 | TBD | Pending |
-| AMB-01..02 | TBD | Pending |
-| MAINT-01..03 | TBD | Pending |
+| QS-01 | Phase 11 — Quickshell Viability Gate | Pending |
+| QS-02 | Phase 11 — Quickshell Viability Gate | Pending |
+| QS-03 | Phase 11 — Quickshell Viability Gate | Pending |
+| QS-04 | Phase 11 — Quickshell Viability Gate | Pending |
+| QS-05 | Phase 11 — Quickshell Viability Gate | Pending |
+| QS-06 | Phase 11 — Quickshell Viability Gate | Pending |
+| TOKEN-01 | Phase 12 — Unified Design-Token Pipeline | Pending |
+| TOKEN-02 | Phase 12 — Unified Design-Token Pipeline | Pending |
+| TOKEN-03 | Phase 12 — Unified Design-Token Pipeline | Pending |
+| TOKEN-04 | Phase 12 — Unified Design-Token Pipeline | Pending |
+| TOKEN-05 | Phase 12 — Unified Design-Token Pipeline | Pending |
+| TOKEN-06 | Phase 12 — Unified Design-Token Pipeline *(stretch — blocks nothing)* | Pending |
+| MOTION-01 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Pending |
+| MOTION-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Pending |
+| MOTION-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Pending |
+| DASH-01 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-02 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-03 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-04 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-05 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-06 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-07 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-08 | Phase 14 — Dashboard Drawer | Pending |
+| PANEL-01 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-02 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-03 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-04 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-05 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-06 | Phase 15 — Audio + Connectivity Panels | Pending |
+| OVER-01 | Phase 16 — Workspace Overview | Pending |
+| OVER-02 | Phase 16 — Workspace Overview | Pending |
+| OVER-03 | Phase 16 — Workspace Overview | Pending |
+| OVER-04 | Phase 16 — Workspace Overview | Pending |
+| AMB-01 | Phase 17 — Ambient Extras | Pending |
+| AMB-02 | Phase 17 — Ambient Extras | Pending |
+| MAINT-01 | Phase 11 — Quickshell Viability Gate *(instrument for QS-05's bind-collision proof)* | Pending |
+| MAINT-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Pending |
+| MAINT-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Pending |
 
 **Coverage:**
 - v3.0 requirements: 38 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 38 ⚠️
+- Mapped to phases: 38
+- Unmapped: 0 ✓
+- Duplicates (a requirement in more than one phase): 0 ✓
+
+**Per-phase counts:** Phase 11: 7 · Phase 12: 6 · Phase 13: 5 · Phase 14: 8 · Phase 15: 6 · Phase 16: 4 · Phase 17: 2 = 38
+
+**Placement notes:**
+- **MAINT-01 → Phase 11.** QS-05 requires proving no duplicated global keybind across two independent registration mechanisms (Hyprland `bind =` and Quickshell `GlobalShortcut`). `keybind-doctor` is the instrument for that proof and is currently broken on Hyprland 0.56.0; Phases 14 and 16 each add a new global keybind, so the detector must work before then.
+- **MAINT-02 / MAINT-03 → Phase 13.** Phase 13 is the milestone's existing-surface sweep and already opens wleave (WR-04's Logout-wrapping target) and the walker-driven picker family. A standalone maintenance phase of three unrelated single-item fixes is the thin-phase shape the coarse granularity setting exists to prevent.
+- **TOKEN-06 blocks nothing.** No phase and no requirement depends on it; dropping it changes no other phase's scope.
+- **OVER-04 stays in Phase 16.** Phase 11 runs the screencopy *feasibility probe* (permission mechanics, a first live multi-window capture) so Phase 16's scope is decided early; the measured frame/CPU budget and documented fallback remain Phase 16's requirement.
 
 ---
 
 *Requirements defined: 2026-07-26*
-*Last updated: 2026-07-26 after v3.0 milestone scoping*
+*Last updated: 2026-07-26 after v3.0 roadmap creation (Phases 11-17, 38/38 requirements mapped)*
