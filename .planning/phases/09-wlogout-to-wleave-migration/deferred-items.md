@@ -72,3 +72,57 @@ files.
 **Action taken:** none to the repo files (they are valid); noted here so
 09-04 or a future plan-review doesn't mistake this for a real config
 break.
+
+## 3. `theme-doctor` / `theme-stress-test` blocked by an orphaned `eww.scss` contract entry (pre-existing, unrelated phase)
+
+**Found during:** 09-02, Task 3 full gate sweep.
+
+**Symptom:** `theme-doctor` exits 1 (not 0) with exactly 2 failures:
+`[FAIL] /home/aorus/.local/state/theme/eww.scss exists` and `[FAIL] git
+status --porcelain is empty`. `theme-stress-test` then aborts on switch
+#1 because it strictly requires `theme-doctor` to pass (D-66) before
+continuing.
+
+**Root cause — `eww.scss`:** `theme-engine/.config/theme-engine/contract.json`
+still lists an `eww.scss` / `scss-kv` render target, added in phase 08-06
+(`feat(08-06): make eww a first-class theme-pipeline render target`). Per
+this repo's own comment in `matugen/.config/matugen/config.toml` ("The eww
+media-popup colors template (BAR-04/D-19) was removed 10-06: the eww media
+popup was retired... so its matugen template is no longer generated"),
+phase 10-06 retired eww and stopped generating `eww.scss`, but never
+removed the now-dead `contract.json` entry (nor the corresponding
+`theme-doctor` presence check / `theme-stress-test` awareness of it) —
+an incomplete retirement from a different, already-completed phase, wholly
+unrelated to this phase's wlogout → wleave migration. `git log` confirms
+`contract.json`'s `eww.scss` entry predates this phase.
+
+**Root cause — `git status --porcelain is empty`:** the repo working tree
+carries a large volume of pre-existing, unrelated pending changes (new
+wallpaper files, a modified `hypr/.config/hypr/config/monitors.conf` this
+plan's own constraints explicitly forbid touching, deleted
+`.planning/HANDOFF.json` etc.) that predate this session and are out of
+this phase's scope to stage or resolve.
+
+**Why not fixed here:** `contract.json` IS one of Task 3's declared files,
+but retiring eww's dead entry is a distinct architectural decision (a
+different tool's incomplete retirement from phase 08-06/10-06) that this
+plan's touch-point ledger (18 items, all wlogout/wleave-specific) does not
+cover — fixing it would be scope creep into another phase's unfinished
+cleanup, not a byproduct of this plan's own changes. Per the deviation
+rules' Scope Boundary, this is logged rather than fixed.
+
+**Verification that wleave itself is unaffected:** every wleave-specific
+line in `theme-doctor`'s output passed — `CSS-parse: wleave/style.css
+(2343 bytes)`, the `wleave` GTK4-sheet is listed (not SKIP), and every
+`custom/power` module-gate check resolved. `theme-parity`'s 22 failures
+are 100% `eww.scss`-scoped (`grep -c eww.scss` on its FAIL lines == 22 ==
+total FAIL count) and it still exits 0. `keybind-doctor` still exits 0
+despite its own unrelated pre-existing jq/JSON issue (see item 1 above).
+`theme-stress-test`'s precondition block and switch #1's `theme-apply`
+step both passed before the abort; the abort itself is `theme-doctor`'s
+non-zero exit, not any wleave-specific failure.
+
+**Action taken:** none to `eww.scss`/`contract.json`'s eww entry or to
+the unrelated dirty-tree files; logged here and in `.planning/WINDOWS.md`
+for future triage as a distinct, separate cleanup (retiring eww fully out
+of `contract.json`/`theme-doctor`/`theme-stress-test`).

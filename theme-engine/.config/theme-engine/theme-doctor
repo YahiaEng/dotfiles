@@ -178,8 +178,9 @@ fi
 # ── GTK CSS-parse regression guard (WLOG-01, CR-01 permanent fix) ──────
 # Runs every GTK-consumed stylesheet the theme pipeline owns through a
 # REAL GTK CssProvider parse. Four prior verification rounds all reported
-# PASS while wlogout's stylesheet was silently discarded in full by GTK3
-# — a grep for the `@import` line cannot see that. The load-bearing
+# PASS while the retired GTK3 power-menu engine's stylesheet was silently
+# discarded in full by GTK3 — a grep for the `@import` line cannot see
+# that. The load-bearing
 # signal here is an EMPTY provider, not merely a parse error: on GTK
 # 3.24.52 a single generated-content ruleset makes GTK throw away the
 # WHOLE stylesheet (0 bytes), not just the offending rule. A deprecation
@@ -202,7 +203,6 @@ fi
 #    nullglob so an unstowed waybar package degrades to the per-sheet
 #    SKIP below, never an unexpanded literal pattern handed to the parser.
 GTK3_CSS_SHEETS=(
-    "$HOME/.config/wlogout/style.css"
     "$HOME/.config/gtk-3.0/gtk.css"
     "$HOME/.config/swaync/style.css"
 )
@@ -214,6 +214,7 @@ GTK4_CSS_SHEETS=(
     "$HOME/.config/gtk-4.0/gtk.css"
     "$HOME/.config/swayosd/style.css"
     "$HOME/.config/walker/themes/rice/style.css"
+    "$HOME/.config/wleave/style.css"
 )
 
 _theme_doctor_css_parse() {

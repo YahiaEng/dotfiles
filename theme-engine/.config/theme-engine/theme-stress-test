@@ -283,12 +283,12 @@ sentinel_present_in_file() {
 
 # Representative set of state-dir files for the per-switch sentinel check
 # (D-36) — spans both format families that actually carry a literal
-# "primary"-named/keyed value (gtk-css: waybar.css/swaync.css/wlogout.css;
+# "primary"-named/keyed value (gtk-css: waybar.css/swaync.css/wleave.css;
 # hypr-vars: hyprland.conf — REQUIRED, Pitfall 1's exact target) plus two
 # files where the primary VALUE appears under a different key name
 # (gtk-4.0-colors.css's accent_color; kitty.conf's color4/color12/cursor) —
 # confirming the sentinel is checked by value, not by name, across formats.
-REPRESENTATIVE_FILES=(hyprland.conf waybar.css swaync.css wlogout.css gtk-4.0-colors.css kitty.conf)
+REPRESENTATIVE_FILES=(hyprland.conf waybar.css swaync.css wleave.css gtk-4.0-colors.css kitty.conf)
 
 echo "theme-stress-test — ${SWITCHES}-switch reliability run (gap=${GAP}s) — ${TIMESTAMP}"
 echo ""

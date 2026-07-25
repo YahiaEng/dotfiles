@@ -4,7 +4,7 @@
 
 **Arch + Hyprland Dotfiles**
 
-Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow and installed on fresh systems via a custom `install.sh`. The centerpiece is a dynamic theming system: custom scripts switch between static pre-configured themes and matugen-generated (wallpaper-driven) themes, propagating colors to every desktop component — Hyprland, kitty, waybar, swaync, walker, thunar, GTK apps, wlogout.
+Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow and installed on fresh systems via a custom `install.sh`. The centerpiece is a dynamic theming system: custom scripts switch between static pre-configured themes and matugen-generated (wallpaper-driven) themes, propagating colors to every desktop component — Hyprland, kitty, waybar, swaync, walker, thunar, GTK apps, wleave.
 
 **Core Value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
 
@@ -70,7 +70,7 @@ Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow an
 | matugen | pywal / wpgtk | Only if you need Python-ecosystem template hooks or `pywal`'s specific 16-color terminal palette algorithm; both are less actively maintained for Wayland/GTK4 in 2025/2026 and don't have matugen's Material You algorithm or first-class Hyprland templates. Not recommended here — would mean redoing the whole pipeline for no functional gain. |
 | GSettings/dconf (already in place) | xsettingsd | Never on this stack — see "What NOT to Use." |
 | Waybar built-in `mpris` module | Custom `playerctl`-backed script module | When the desired now-playing UI needs a popover/expanded panel beyond a single bar segment's inline text — otherwise the built-in module is strictly less code to maintain. |
-| swayosd | Custom `wob`/`wlogout`-style OSD scripts | Only if you specifically want a minimalist single-bar OSD (`wob`) instead of the fuller GTK popup swayosd provides; swayosd is the more actively developed and more themeable (full CSS) option and already integrates cleanly with the matugen named-color pattern used elsewhere in this repo. |
+| swayosd | Custom `wob`-style OSD scripts | Only if you specifically want a minimalist single-bar OSD (`wob`) instead of the fuller GTK popup swayosd provides; swayosd is the more actively developed and more themeable (full CSS) option and already integrates cleanly with the matugen named-color pattern used elsewhere in this repo. |
 | nwg-look (diagnostic only) | lxappearance | lxappearance is an X11/Xwayland tool that requires workarounds under wlroots compositors and writes to `settings.ini` rather than GSettings — do not use it for diagnosing this repo's Wayland-native theming pipeline. |
 
 ## What NOT to Use
