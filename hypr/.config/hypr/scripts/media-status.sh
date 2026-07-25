@@ -4,8 +4,9 @@
 # ║  HARD CONSTRAINT: every string field originates in a    ║
 # ║  third-party player and is emitted through `jq --arg`   ║
 # ║  — never through string concatenation, never into a     ║
-# ║  shell command. This is the eww `deflisten` payload     ║
-# ║  contract; one JSON object per line, always.            ║
+# ║  shell command. `watch`'s stdout is read line-by-line    ║
+# ║  by the AGS media applet (ags/lib/media.ts, STATUS_SH);  ║
+# ║  one JSON object per line, always.                       ║
 # ╚══════════════════════════════════════════════════════╝
 #
 # CLI:

@@ -1,15 +1,12 @@
 // Garuda/HyprPanel underlay card (10-04 layout; 10-05 theming).
 //
-// Imports the matugen-rendered palette from the state dir. UNLIKE eww/
-// waybar, AGS's Go bundler resolves `--directory`/CWD through
-// filepath.EvalSymlinks (or equivalent getcwd(2) real-path behavior)
-// BEFORE compiling scss — confirmed empirically: even invoking `ags run
-// --directory ~/.config/ags` (the stowed symlink), the sass compiler
-// error surfaced the REAL underlying repo path
-// (.../dotfiles/ags/.config/ags/style.scss), not the symlinked one. So,
-// unlike eww.scss's `../../.local/state/theme/eww.scss` (2 levels, correct
-// against the STOWED ~/.config/eww/ path only because eww's own daemon
-// does NOT collapse the symlink), this import path is 4 levels — correct
+// Imports the matugen-rendered palette from the state dir. AGS's Go
+// bundler resolves `--directory`/CWD through filepath.EvalSymlinks (or
+// equivalent getcwd(2) real-path behavior) BEFORE compiling scss —
+// confirmed empirically: even invoking `ags run --directory
+// ~/.config/ags` (the stowed symlink), the sass compiler error surfaced
+// the REAL underlying repo path (.../dotfiles/ags/.config/ags/style.scss),
+// not the symlinked one. So this import path is 4 levels — correct
 // against this repo's REAL on-disk location (~/dotfiles/ags/.config/ags/,
 // i.e. exactly 1 directory below $HOME). If this repo is ever cloned to a
 // path with a different depth from $HOME, this import (and ONLY this one
@@ -49,7 +46,7 @@ window {
   min-height: 360px;
   border-radius: 28px;
   // A translucent card border gives the Hyprland `ags-media` blur layerrule
-  // a crisp edge to frost against — mirrors eww.scss's border convention.
+  // a crisp edge to frost against.
   border: 1px solid rgba($outline, 0.35);
 }
 

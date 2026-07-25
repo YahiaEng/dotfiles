@@ -67,9 +67,9 @@
     // into a glyph-ONLY format would render this widget invisible for
     // every player except mpv. Substituted cmap-verified glyphs: music/
     // spotify already live in this same file's custom/media definition;
-    // pause (fa-pause, U+F04C) already live in this SAME phase's
-    // eww.yuck (08-07) playing-state icon; firefox/chromium are newly
-    // cmap-verified against the installed FiraCodeNerdFont-Regular.ttf
+    // pause (fa-pause, U+F04C) already live as this SAME phase's
+    // playing-state icon; firefox/chromium are newly cmap-verified
+    // against the installed FiraCodeNerdFont-Regular.ttf
     // (1.00-cell, recorded in SUMMARY). "stopped" status-icon is left
     // empty, matching canonical — format-stopped is itself "" and never
     // invokes {status_icon}.

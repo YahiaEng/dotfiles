@@ -88,14 +88,12 @@ input_path = "~/.config/matugen/templates/satty-colors.toml"
 output_path = "~/.local/state/theme/satty.toml"
 
 # ── AGS media applet colors (MEDIA-03, 10-05) ────────
-# The eww media-popup colors template (BAR-04/D-19) was removed 10-06:
-# the eww media popup was retired (consumer check confirmed no other
-# eww user), so its matugen template is no longer generated. ags below
-# is its replacement.
+# No template renders a media-popup state file any more — the AGS media
+# applet below is the only media-widget colors consumer.
 # No post_hook here — reload.sh is the sole reload-fan-out owner (D-04,
 # see the header comment above); the ags reload-css request is sent from
-# theme_engine_reload() in theme-engine/lib/reload.sh, mirroring the eww
-# `pgrep -x eww && eww reload` pattern.
+# theme_engine_reload() in theme-engine/lib/reload.sh on its own terms
+# (no kill/relaunch — AGS recompiles and re-applies its CSS live).
 [templates.ags]
 input_path = "~/.config/matugen/templates/ags-colors.scss"
 output_path = "~/.local/state/theme/ags.scss"

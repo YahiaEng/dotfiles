@@ -24,8 +24,8 @@
     // ── Rule 4 arrangement (08-16 checkpoint iteration) ───────────────
     // custom/updates sits beside the storage/system pills and only
     // appears when `checkupdates` reports >0 (its own exec-if hides it
-    // otherwise). custom/media (eww popup opener) sits beside the audio
-    // group. The settings drawer (theme/waybar/font/icons/wallpaper)
+    // otherwise). custom/media (AGS media applet opener) sits beside the
+    // audio group. The settings drawer (theme/waybar/font/icons/wallpaper)
     // replaces the old tray-folded settings buttons. custom/notification
     // is now a standalone module next to custom/power (was buried in the
     // tray drawer).
