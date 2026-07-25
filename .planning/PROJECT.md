@@ -33,7 +33,7 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - ✓ `install.sh` installs packages and applies dotfiles on fresh Arch — existing (needs re-verification)
 - ✓ Theme switching updates kitty and Hyprland (borders etc.) — existing
 - ✓ Matugen dynamic theme generation from wallpaper — existing (partial propagation)
-- ✓ Walker application launcher, swaync notifications, waybar bar, thunar + yazi file managers, wlogout — existing
+- ✓ Walker application launcher, swaync notifications, waybar bar, thunar + yazi file managers, wleave power menu — existing (power menu migrated wlogout → wleave in Phase 9)
 - ✓ Walker follows theme switches (hardened restart + elephant health gate, widget-tree-correct CSS) — Validated in Phase 1
 - ✓ Thunar follows theme switches (adw-gtk-theme installed, deferred daemon-restart watcher) — Validated in Phase 1
 - ✓ GTK apps follow theme switches (GTK3 named-color palette; GTK4 dark + accent ceiling documented) — Validated in Phase 1
@@ -79,13 +79,15 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 
 ## Current State
 
+**v2.0 Phase 9 complete (2026-07-25): wlogout to wleave Migration** — 4 plans, WLOG-01 re-delivered on a new engine; verification passed 6/6 must-haves. The power menu moved from wlogout (GTK3) to wleave 0.7.1-1 (GTK4) in an atomic cutover, eliminating the GTK3 whole-stylesheet-discard failure class that caused WLOG-01: GTK4 drops only the offending rule instead of the entire sheet, so six-unstyled-buttons is now structurally impossible. Six per-hue capsules render on a `gtk4-layer-shell` surface with hover/focus reveal of action names via wleave's native `icon`+`text` split, an md3_decel entrance cascade, and a compositor-layerrule fade exit. All three entry points (Super+Shift+Q, waybar power button, elephant Power menu) repointed; `wlogout/` stow package deleted. All 20 static palettes gained the three missing M3 container-role keys (`on_tertiary_container`, `error_container`, `on_error_container`) that had been silently breaking matugen renders. Closed on a human render gate across four review rounds — which caught a real GTK4 bug an overshoot easing curve was triggering (42 `Gsk`/`Pango`/`GObject` CRITICAL assertion failures per open), not merely a styling preference.
+
 **v2.0 Phase 5 complete (2026-07-12): Light Mode Pipeline & Theme Presets** — 5 plans (incl. 1 gap closure), all four requirements (THM-01..04) verified: 18/18 UAT pass, verification passed, security review clean (14/14 threats closed). The pipeline is now fully mode-aware: 20 palette JSONs + 2 Material You variants render through one pipeline with light+dark parity fixtures (theme-parity 22 targets, 1190 checks, 0 failed); wallpaper sets are theme-scoped with a redesigned kitty-graphics picker; the legacy `themes/` stow package is deleted.
 
 **v2.0 Phase 4 complete (2026-07-11): Reliability Fixes & Tech Debt** — 6 plans (incl. 2 gap closures), all four requirements (FIX-01/02/03, DEBT-01) verified: 4/4 UAT pass, verification passed, security review clean (19/19 threats closed), code review 0 critical. The base is de-risked for the redesign phases. Kitty now launches fish (33.9ms); zsh retained as TTY fallback.
 
 **Shipped: v1.0 Theme Pipeline Repair (2026-07-09)** — 3 phases, 9 plans, 98 commits, 160 files (+13,636 / −1,176) over 3 days. All 19 v1 requirements verified; milestone audit passed.
 
-- **Repo layout:** one stow package per app (`hypr/`, `kitty/`, `walker/`, `thunar/`, `gtk/`, `waybar/`, `swaync/`, `matugen/`, `theme-engine/`, `themes/`, `wallpapers/`, `uwsm/`, `vscodium/`, `yazi/`, `zshell/`, `fastfetch/`, `wlogout/`), plus `install.sh`, `stow.sh`, and `verify/` (container gate harness) at the root. The dead `wofi/` package was removed in v1.0.
+- **Repo layout:** one stow package per app (`hypr/`, `kitty/`, `walker/`, `thunar/`, `gtk/`, `waybar/`, `swaync/`, `matugen/`, `theme-engine/`, `themes/`, `wallpapers/`, `uwsm/`, `vscodium/`, `yazi/`, `zshell/`, `fastfetch/`, `wleave/`), plus `install.sh`, `stow.sh`, and `verify/` (container gate harness) at the root. The dead `wofi/` package was removed in v1.0; `wlogout/` was deleted in Phase 9 when the power menu moved to `wleave/`.
 - **Theming pipeline:** `theme-engine/` owns everything — `theme-apply <name>` renders static presets and Material You through the same matugen templates into `~/.local/state/theme/` (10-file output contract in `contract.json`), owns the single reload fan-out, and keeps generated output out of the git tree. `theme-doctor`, `theme-parity`, and `theme-stress-test` are rerunnable regression gates.
 - **Reproducibility:** `install.sh` (flagged sections, hardware guards, hard-fail package verify) + `stow.sh` (idempotent, zero-prompt, first-boot theme seed) proven unattended in a podman container gate and a graphical VM with human sign-off.
 - **Tech debt (non-blocking):** GTK3 windows stay stale until closed (accepted upstream limitation); theme-doctor session checks are graphical-tier-only by design. rsync PACMAN_PKGS debt closed in Phase 4. Advisory review items open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in .zshrc, Logout not wrapped like Shutdown/Reboot (04-REVIEW.md WR-01..04).
@@ -136,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-13 after Phase 6 (Themed Surfaces & Utility Suite)*
+*Last updated: 2026-07-25 after Phase 9 (wlogout to wleave Migration)*
