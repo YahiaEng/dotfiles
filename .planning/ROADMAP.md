@@ -84,7 +84,12 @@ MAINT-01..03 are small, thematically unrelated carry-ins. They are folded into p
   5. The workspace-overview feasibility question is answered on this build before Phases 12-15 build around it: a live multi-window `ScreencopyView` capture is exercised, and the exact `PERMISSION_TYPE_SCREENCOPY` mechanics and `ecosystem.conf` stanza are recorded — so Phase 16's scope is a decision, not a discovery. (OVER-04's measured budget and documented fallback remain Phase 16's requirement; this is the feasibility probe that de-risks it.)
 **Open questions owned**: (1) Does `FileView`/`JsonAdapter` property propagation truly need zero `reload.sh` involvement? (5) Hyprland `PERMISSION_TYPE_SCREENCOPY` mechanics and the exact `ecosystem.conf` stanza — investigated here, relied on by Phase 16.
 **Owns**: The viability gate itself (the eww failure class in QML clothing) and same-commit stow registration.
-**Plans**: TBD
+**Plans**: 5 plans (waves 1-5, strictly serial — every plan manipulates the same live compositor session)
+- [ ] 11-01-PLAN.md — Tracer: install quickshell, ship the `quickshell/` package registered in one commit, prove human click/type/click-outside-dismiss (QS-01, QS-02; STOP authority)
+- [ ] 11-02-PLAN.md — Repair `keybind-doctor` via plain-text parsing, cross-check Quickshell-claimed chords, prove the collision check fails on a poisoned fixture (MAINT-01)
+- [ ] 11-03-PLAN.md — `quickshell-doctor`: the rerunnable layer-shell / D-Bus / single-owner coexistence gate (QS-05, QS-06)
+- [ ] 11-04-PLAN.md — Durability: headless-output hotplug, hot reload, `FileView`/`JsonAdapter` propagation, suspend/resume (QS-03, QS-04)
+- [ ] 11-05-PLAN.md — Screencopy feasibility probe, criterion-5 amendment, and the phase verdict (QS-02, QS-05)
 
 ### Phase 12: Unified Design-Token Pipeline
 **Goal**: One token source renders colour and motion to QML, GTK4 CSS and Hyprland without drift, and the gates refuse any surface that hand-rolls its own values.
