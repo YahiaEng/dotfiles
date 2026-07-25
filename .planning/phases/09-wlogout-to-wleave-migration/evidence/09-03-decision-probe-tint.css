@@ -1,0 +1,29 @@
+/* TINT TEST — deliberately garish, maximally distinguishable hues.
+ * Question: does the stylesheet's `color` reach the SVG glyph loaded via `icon`?
+ * If YES: six differently-coloured glyphs. If NO: six identically-coloured glyphs.
+ * Labels are populated to simultaneously prove the `text` slot is free when `icon` carries the graphic. */
+
+window {
+    background-color: rgba(12, 12, 12, 0.85);
+}
+
+button {
+    border: 2px solid currentColor;
+    border-radius: 16px;
+    background-color: rgba(255, 255, 255, 0.06);
+    padding: 10px;
+}
+
+button label.action-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Six unmistakable hues, set via plain `color` (not --view-fg-color),
+ * to test the most direct CSS -> glyph path. */
+button#lock      { color: #ff0000; }  /* pure red    */
+button#logout    { color: #ff9900; }  /* orange      */
+button#suspend   { color: #ffff00; }  /* yellow      */
+button#hibernate { color: #00ff00; }  /* pure green  */
+button#reboot    { color: #00ccff; }  /* cyan        */
+button#shutdown  { color: #ff00ff; }  /* magenta     */

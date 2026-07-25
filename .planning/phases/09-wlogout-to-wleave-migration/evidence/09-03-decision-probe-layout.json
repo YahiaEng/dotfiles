@@ -1,0 +1,17 @@
+{
+  "buttons-per-row": "6",
+  "close-on-lost-focus": false,
+  "show-keybinds": false,
+  "column-spacing": 24,
+  "button-aspect-ratio": 1.0,
+  "margin": "36.4%",
+  "no-version-info": true,
+  "buttons": [
+    { "label": "lock",      "action": "true", "text": "Lock",      "keybind": "l", "icon": "/usr/share/wleave/icons/lock.svg" },
+    { "label": "logout",    "action": "true", "text": "Log Out",   "keybind": "e", "icon": "/usr/share/wleave/icons/logout.svg" },
+    { "label": "suspend",   "action": "true", "text": "Suspend",   "keybind": "u", "icon": "/usr/share/wleave/icons/suspend.svg" },
+    { "label": "hibernate", "action": "true", "text": "Hibernate", "keybind": "h", "icon": "/usr/share/wleave/icons/hibernate.svg" },
+    { "label": "reboot",    "action": "true", "text": "Reboot",    "keybind": "r", "icon": "/usr/share/wleave/icons/reboot.svg" },
+    { "label": "shutdown",  "action": "true", "text": "Shut Down", "keybind": "s", "icon": "/usr/share/wleave/icons/shutdown.svg" }
+  ]
+}

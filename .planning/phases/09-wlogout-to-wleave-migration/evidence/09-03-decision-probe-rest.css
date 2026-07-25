@@ -1,0 +1,35 @@
+/* REST-STATE TEST — the remaining option-B unknown.
+ * Hide label.action-name with opacity:0 (09-02 proved display:none is a no-op here).
+ * Question: does the hidden label still consume layout space and push the glyph off-centre?
+ * Capsule 3 (suspend) is given a visible label as an in-frame control for comparison. */
+
+window {
+    background-color: rgba(12, 12, 12, 0.85);
+}
+
+button {
+    border: 2px solid currentColor;
+    border-radius: 16px;
+    background-color: rgba(255, 255, 255, 0.06);
+    padding: 10px;
+}
+
+/* rest state: label present in the tree but not painted */
+button label.action-name {
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+}
+
+/* control: suspend keeps its label visible, so any vertical offset between
+ * capsule 3's glyph and its neighbours' glyphs is the layout-space answer. */
+button#suspend label.action-name {
+    opacity: 1;
+}
+
+button#lock      { color: #ff0000; }
+button#logout    { color: #ff9900; }
+button#suspend   { color: #ffff00; }
+button#hibernate { color: #00ff00; }
+button#reboot    { color: #00ccff; }
+button#shutdown  { color: #ff00ff; }
