@@ -1,6 +1,6 @@
 # Research Summary: v3.0 Quickshell Foundation & Motion Language
 
-**Project:** Personal Arch + Hyprland dotfiles — adding a Quickshell/QML shell layer and a spring-physics motion pipeline
+**Project:** Personal Arch + Hyprland dotfiles — adding a Quickshell/QML shell layer and a shared cross-toolkit motion pipeline
 **Domain:** Cross-toolkit motion system + QML shell composition on an existing, mature Hyprland 0.56.0 rice
 **Researched:** 2026-07-26
 **Confidence:** HIGH for stack (verified against this machine via `pacman -Si`, direct repo inspection); MEDIUM for features (source-read two flagship rices, end-4 and Caelestia); MEDIUM-HIGH for architecture (direct precedent in existing AGS pattern + deepwiki of reference rices); MEDIUM for pitfalls (mostly local verification, some web-sourced behavioral claims flagged for local testing)
@@ -9,9 +9,16 @@
 
 This milestone adds a native QML/Quickshell shell layer to an existing Hyprland desktop that keeps every existing surface (waybar, swaync, SwayOSD, wleave, walker/elephant, AGS) running throughout. **The single most impactful correction from research: Quickshell 0.3.0 is now in Arch's official `extra` repo (not AUR-only), eliminating the reproducibility risk that would have been the biggest blocker; simply `pacman -S quickshell` and its Qt6 dependencies, both of which are already installed on this machine from AGS.**
 
-The recommended approach is **additive-only coexistence**: build new QML surfaces (dashboard drawer, audio/wifi/bluetooth panels, workspace overview, ambient wallpaper) alongside existing GTK/Hyprland/bash surfaces, reusing their backing data (MPRIS, PipeWire, NetworkManager, BlueZ) rather than reimplementing. The motion system departs from both reference rices (which use Material Design 3 Expressive tokens, duration+bezier, not literal spring physics) — this project pursues spring-mass-stiffness-damping as the source of truth, compiled to fitted cubic-beziers for Hyprland and sampled keyframes for GTK4 CSS, with full native physics passthrough to QML. This is a step *beyond* the flagship references, not parity with them, and requires explicit validation that the fitted-curve approach delivers perceptual gains over the proven MD3-token baseline.
+The recommended approach is **additive-only coexistence**: build new QML surfaces (dashboard drawer, audio/wifi/bluetooth panels, workspace overview, ambient wallpaper) alongside existing GTK/Hyprland/bash surfaces, reusing their backing data (MPRIS, PipeWire, NetworkManager, BlueZ) rather than reimplementing.
 
-**Key risk:** the hyprexpo plugin (a source-compiled Hyprland plugin with version-coupling fragility) is rejected in favor of Quickshell's native `ScreencopyView` + Hyprland's built-in `hyprland-toplevel-export-v1` protocol for the workspace overview — zero additional packages, no compiler toolchain, no rebuild-on-upgrade debt. Three researchers independently converged on this finding. The motion pipeline's fitting step (spring to cubic-bezier) is lossy by design — single-point overshoot can be captured, but multi-oscillation/ring-down behavior cannot — requiring a human side-by-side render gate per retrofitted surface to validate the fidelity loss is acceptable.
+**Motion scope — CORRECTED 2026-07-26 by user decision, supersedes any spring-first framing elsewhere in this document.** Research source-read both flagship rices and found **neither end-4 nor Caelestia uses QML `SpringAnimation` or literal spring physics** — both ship Material Design 3 Expressive named duration+bezier tokens. Milestone scope was therefore corrected to:
+
+- **Baseline (Phase 12, required):** MD3 Expressive duration + bezier tokens, rendered to all three targets — QML, GTK4 CSS, Hyprland. This is the proven path, matches both references, and extends the `md3_decel` vocabulary wleave already uses. **No spring-fitting spike is on the critical path.**
+- **Stretch (attempted only after the baseline pipeline works, QML surfaces only):** spring-mass-stiffness-damping passthrough to native `SpringAnimation`. Additive; **blocks no other phase**, and may be dropped without affecting the milestone.
+
+Any statement in this document or the underlying research files describing spring physics as "the source of truth" reflects the pre-correction scope and is superseded by this section.
+
+**Key risk:** the hyprexpo plugin (a source-compiled Hyprland plugin with version-coupling fragility) is rejected in favor of Quickshell's native `ScreencopyView` + Hyprland's built-in `hyprland-toplevel-export-v1` protocol for the workspace overview — zero additional packages, no compiler toolchain, no rebuild-on-upgrade debt. Three researchers independently converged on this finding. Residual risks that replace it: live multi-window screencopy **performance** on 0.56.0, and Hyprland's Permissions system possibly gating screencopy (exact `ecosystem.conf` stanza unverified). Separately, if the optional spring stretch is attempted, its fitting step is lossy by design — single-point overshoot can be captured, multi-oscillation/ring-down cannot — so it needs a human side-by-side render gate before adoption. The MD3 baseline carries no such fidelity risk.
 
 ---
 
@@ -21,7 +28,7 @@ The recommended approach is **additive-only coexistence**: build new QML surface
 
 **Core:** Quickshell 0.3.0-2 from Arch `extra` (official package, not AUR), Qt6 base/declarative/svg/wayland (all already installed), plus existing services already running on this machine: PipeWire/WirePlumber (audio), NetworkManager 1.58 (wifi), BlueZ 5.87 (bluetooth), hyprland-protocols (built into Hyprland 0.56.0). **No hyprexpo plugin.** Instead, `hyprland-toplevel-export-v1` (a Wayland protocol the compositor natively implements) + Quickshell's `ScreencopyView`/`ToplevelManager` built-in types, confirmed working in end-4 and a third-party quickshell-overview reference implementation.
 
-**Supporting:** matugen (already deployed for color theming) extends with new QML/GTK4 motion templates. A new `theme-engine/lib/motion.sh` Python-backed build step samples spring curves and fits beziers (Hyprland-target only) — one render target per surface, consumed live from `~/.local/state/theme/`, never copied, matching this repo's existing contract-and-render pattern. This is mechanically identical to color rendering (all three targets consume from the same source manifest) but differs in frequency (motion tokens are hand-authored, theme-invariant; colors are wallpaper-driven, re-rendered per theme switch).
+**Supporting:** matugen (already deployed for color theming) extends with new QML/GTK4 motion templates. A new `theme-engine/lib/motion.sh` build step emits the MD3 duration+bezier token set to all three targets — one render target per surface, consumed live from `~/.local/state/theme/`, never copied, matching this repo's existing contract-and-render pattern. Python-backed spring sampling and least-squares bezier fitting are needed ONLY for the optional spring stretch, not for the baseline. This is mechanically identical to color rendering (all three targets consume from the same source manifest) but differs in frequency (motion tokens are hand-authored, theme-invariant; colors are wallpaper-driven, re-rendered per theme switch).
 
 **Confidence:** HIGH for Quickshell's official-repo status and Qt6 deps (verified locally). MEDIUM for the exact matugen template shapes and motion.sh implementation (confirmed as the right architectural pattern, but Python-based fitting algo is new code this repo hasn't written yet). LOW for whether Quickshell's `JsonAdapter` auto-propagates property changes through bindings with zero explicit reload code (Quickshell docs claim it does; must verify empirically in Phase 11).
 
@@ -32,7 +39,7 @@ The recommended approach is **additive-only coexistence**: build new QML surface
 - Bluetooth panel: device list + connect/disconnect + "Details" escape hatch to blueman
 - Wifi panel: scan/list/connect + password prompt + "Details" escape hatch to nm-connection-editor
 - Per-app volume mixer: native Pipewire service + icon lookup from walker/elephant
-- Motion language: MD3-Expressive tokens (proven fallback) + spring-physics source of truth (differentiator)
+- Motion language: MD3-Expressive duration+bezier tokens rendered to all three targets (spring physics is a Phase-12 stretch on QML only, not a launch requirement — see the corrected Motion scope in the Executive Summary)
 
 **Should have (v3.0 stretch):**
 - Workspace overview: click-to-focus grid with live thumbnails via `ScreencopyView`
