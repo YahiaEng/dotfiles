@@ -1,0 +1,574 @@
+@import url("/home/aorus/.local/state/theme/wleave.css");
+
+/* ── Full-screen dim scrim on `window` itself (D-01/D-07) ─────────────
+   GTK4 windows paint an OPAQUE libadwaita window background by default,
+   which silently defeats a blur layerrule by leaving nothing translucent
+   to frost (the 10-06 durable finding; see ags/style.scss for the same
+   fix applied to the AGS media applet). The rgba value below both
+   overrides that opaque default AND is the scrim itself in one step.
+
+   0.40 black is a hardcoded literal, a deliberate, documented exception
+   to this repo's zero-literal-colour convention: it means the dim
+   survives a total palette-resolution failure. A broken stylesheet still
+   yields dimmed-desktop-plus-unstyled-capsules, never a blank or
+   invisible surface.
+
+   The scrim is painted on `window`, not on the content wrapper box, on
+   the strength of a live empirical finding against the installed 0.7.1
+   binary: wleave's content wrapper is a GtkCenterBox (CSS node name
+   `box`), and it does NOT vertically expand to fill the window by
+   default — a `window > box` (or bare `box`) rule only paints the
+   button row's own height, not the full screen, leaving the rest of the
+   desktop undimmed. `window` itself is always sized to the full
+   layer-shell surface (confirmed via `hyprctl -j layers` reporting the
+   full monitor extent), so it is the only selector that reliably
+   produces a full-screen dim. ── */
+window {
+    background-color: rgba(0, 0, 0, 0.40);
+    font-family: "FiraCode Nerd Font";
+}
+
+/* Direct-child combinator, not a bare `box` selector: wleave's content
+   wrapper (GtkCenterBox) shares the CSS node name `box` with the nested
+   buttons-row GtkBox, so a bare `box` selector would double the dim on
+   the wrapper. Kept fully transparent so it never draws a visible seam
+   or a second darkening layer on top of the window's own scrim. ── */
+window > box {
+    background-color: transparent;
+}
+
+/* ── Capsule geometry (D-02/D-05) ──────────────────────────────────────
+   GTK applies min-width/min-height to the CONTENT box, then ADDS padding
+   and border on top — so the 96px outer capsule size is derived, not
+   hardcoded: 62px content + 2*16px padding + 2*1px border = 96px.
+   Re-measure this comment's arithmetic if any of the three inputs below
+   change, so a later padding tweak forces a recompute instead of
+   silently clipping.
+
+   The 24px inter-capsule gap (D-02) is NOT set here. wleave 0.7.1 has a
+   native `column-spacing` layout-config key (confirmed live against the
+   installed binary, config-mode log: "column-spacing" specified from
+   config: Px(24.0)) — layout.json sets `"column-spacing": 24` and this
+   stylesheet adds NO CSS margin, so exactly one gap mechanism is active.
+   Applying both would double the gap (the Phase 6 double-gap bug class,
+   reappearing in a new engine).
+
+   The 96px CONTENT size is a floor, not a guarantee: wleave's button grid
+   stretches every button to fill its cell (the exact same failure class
+   the retired engine's own wrapper-script comment described, on a
+   different binary) — confirmed live: with no `button-aspect-ratio` or
+   `margin` config, six buttons rendered as ~237px-tall stretched pills,
+   not compact capsules. Fixed natively, no wrapper-script geometry math:
+   layout.json's `"button-aspect-ratio": 1.0` keeps every button square,
+   and `"margin": "36.4%"` (a percentage inset, not a hardcoded pixel
+   value, so it scales with whatever monitor is attached rather than
+   clipping or floating wrong on a different resolution) narrows the
+   available row width to ~696px on this machine's display — the exact
+   6*96+5*24 target — confirmed live via screenshot.
+
+   `border-color` is NOT set here (09-03): each capsule now carries its
+   own per-hue hairline border via the id-selector rules below (D-03/D-06)
+   — this base rule only owns the border's WIDTH/STYLE, left as a
+   shorthand-free declaration so the per-id `border-color` override below
+   can't be shadowed by shorthand re-declaration order. ── */
+button {
+    min-width: 62px;
+    min-height: 62px;
+    padding: 16px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 24px;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+/* ── Hide the built-in version-info footer (orchestrator finding A,
+   09-02 spot-check) ────────────────────────────────────────────────────
+   wleave 0.7.0 (packaged as wleave 0.7.1-1; see the version-string
+   discrepancy noted in 09-02-SUMMARY.md) unconditionally renders a
+   footer widget with CSS node name `version-info` reading
+   "Wleave 0.7.0. Missing or broken icons?" plus a linked `<a>` tag. This
+   is not an error state and not icon-related — it always draws.
+
+   Fixed natively via layout.json's top-level `"no-version-info": true`
+   key (confirmed live in the config-mode debug log: `"no-version-info"
+   specified from config: false` is the field this flips), which drops
+   the widget entirely rather than merely hiding it — the correct
+   "collapse, don't just paint transparent" fix, since a CSS-only attempt
+   at `display: none` was empirically confirmed NOT to be a supported
+   GTK CSS property on this install (`CSS Parse error: ... No property
+   named "display"`). This rule is kept as a defence-in-depth fallback
+   using only properties GTK CSS does support, in case a future wleave
+   version ever drops the config key: it cannot fully collapse the
+   layout slot, so the config key remains the primary fix. ── */
+#version-info {
+    opacity: 0;
+    font-size: 0;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   09-03: SIX-CAPSULE HUE IDENTITY (D-03/D-04/D-05/D-06)
+   ═══════════════════════════════════════════════════════════════════
+
+   D-08 DECISION RECORD (blocking checkpoint, resolved by the user):
+   option-b — icon+text split. wleave 0.7.1 renders label.action-name
+   (the `text` field) IN ADDITION TO an `icon` field's picture, not
+   instead of it (09-02's D-08 correction). This design moves the glyph
+   OUT of `text` (where 09-01/09-02 originally put a Nerd Font codepoint
+   as the button's only content) and INTO `icon`, pointed at wleave's own
+   shipped SVGs (/usr/share/wleave/icons/*.svg — a runtime dependency of
+   the already-installed AUR package, zero new repo assets, reproducible
+   via install.sh with no additional work). `text` now carries the six
+   Title Case action names, hidden at rest and revealed on hover/focus
+   below the glyph — which is what actually delivers D-08's label-reveal
+   clause. This SUPERSEDES D-09's chosen-codepoint convention for this
+   surface: the 09-01 cmap verification work remains valid history, but
+   no six-codepoint glyph is rendered here anymore. See 09-03-SUMMARY.md
+   for the full user-approved deviation writeup. */
+
+/* Two hues this repo's four native M3 roles don't cover (D-04) — the
+   exact Phase 8-14 mix() idiom (waybar/theme.css lines ~165-172), applied
+   at the CONTAINER level for the first time in this repo. Phase 8 only
+   ever mixed base/opaque hues; here the container fill AND its on-colour
+   pairing both need their own mix so the frost-fill/glyph contrast
+   pairing holds for these two derived capsules exactly as it does for
+   the four native ones. Confirm this reads correctly (not muddy/low
+   contrast) at the 09-04 render gate — mix()-of-mix composited with the
+   0.35 frost alpha is unverified until rendered. */
+@define-color vhue-teal-container mix(@secondary_container, @tertiary_container, 0.5);
+@define-color on-vhue-teal mix(@on_secondary_container, @on_tertiary_container, 0.5);
+@define-color vhue-teal mix(@secondary, @tertiary, 0.5);
+@define-color vhue-purple-container mix(@primary_container, @error_container, 0.4);
+@define-color on-vhue-purple mix(@on_primary_container, @on_error_container, 0.4);
+@define-color vhue-purple mix(@primary, @error, 0.4);
+
+/* Rest state (D-05 left-to-right severity order). Each rule pairs a
+   translucent container-role fill with its matching on-container glyph
+   colour (the M3 pairing that avoids the 08-16 light-preset illegibility
+   failure) and a reduced-alpha hairline border in the base hue.
+   `color` on the button cascades to BOTH the icon (wleave's
+   WleavePicturePaintable recolors the SVG glyph from the widget's
+   foreground colour — proven empirically, see the phase evidence
+   tint-proof render) and the label.action-name text (ordinary CSS colour
+   inheritance) — one declaration themes both.
+
+   RESERVATION RULE: only #shutdown may reference the @error/@error_container
+   role family directly. #reboot's derived vhue-purple deliberately
+   approaches error (0.4 mix) without equalling it — this preserves the
+   severity gradient (D-05); do not "simplify" reboot to plain @error at
+   a lower alpha.
+
+   ── 09-04 render-gate legibility correction (D-03/D-06 alpha retune,
+   NOT a hue/role change) ─────────────────────────────────────────────
+   Live pixel measurement at the render gate (grim capture + per-channel
+   colour-distance sampling, tokyonight preset) found adjacent unfocused
+   capsules only 9-17 units apart (of ~765 possible) at the plan's
+   original 0.35 fill / 0.5 border alpha — genuinely near-indistinguishable,
+   the exact 08-16 failure class this phase exists to prevent. Root cause
+   (confirmed by reading the rendered wleave.css): several stock palettes
+   in this repo (tokyonight, nord, rosepine, dracula) define
+   primary_container == secondary_container as the literal same hex — the
+   "container" role alone cannot carry per-capsule hue identity on those
+   palettes, so the hairline border (always the vivid, always-distinct
+   base hue — primary/secondary/tertiary/error) has to carry more of the
+   legibility load. Fill alpha raised 0.35→0.55 and border alpha raised
+   0.5→0.82 (rest state); hover/focus fill raised 0.55→0.70 to preserve a
+   visible rest→interaction step. Border stays reduced-alpha (not fully
+   opaque) at rest specifically so hover/focus's jump to full-opacity
+   border remains a real state change, not a no-op. Alpha values only —
+   no hue, role, or mix() ratio changed. Re-verified after this edit via
+   a fresh render-gate capture; see 09-04-SUMMARY.md. */
+button#lock {
+    background-color: alpha(@primary_container, 0.55);
+    color: @on_primary_container;
+    border-color: alpha(@primary, 0.82);
+}
+button#logout {
+    background-color: alpha(@secondary_container, 0.55);
+    color: @on_secondary_container;
+    border-color: alpha(@secondary, 0.82);
+}
+button#suspend {
+    background-color: alpha(@tertiary_container, 0.55);
+    color: @on_tertiary_container;
+    border-color: alpha(@tertiary, 0.82);
+}
+button#hibernate {
+    background-color: alpha(@vhue-teal-container, 0.55);
+    color: @on-vhue-teal;
+    border-color: alpha(@vhue-teal, 0.82);
+}
+button#reboot {
+    background-color: alpha(@vhue-purple-container, 0.55);
+    color: @on-vhue-purple;
+    border-color: alpha(@vhue-purple, 0.82);
+}
+button#shutdown {
+    background-color: alpha(@error_container, 0.55);
+    color: @on_error_container;
+    border-color: alpha(@error, 0.82);
+}
+
+/* ── Hover / keyboard focus (D-08) — MUST render identically for both.
+   Every interaction rule below is written as a paired :hover/:focus
+   selector list; never a hover rule with no focus twin. Do NOT copy the
+   retired wlogout sheet's pattern of inverting to an OPAQUE fill with an
+   `on_*` glyph on top — that is a different, higher-contrast-but-flatter
+   look this redesign deliberately does not use. ── */
+button:hover,
+button:focus {
+    transform: scale(1.06);
+    transform-origin: center;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        box-shadow 150ms ease,
+        transform 200ms cubic-bezier(0.55, 0, 0.28, 1.68);
+}
+/* Hover/focus fill raised 0.55→0.70 (09-04 legibility retune, see the
+   rest-state comment above) so the rest→interaction step remains visible
+   now that rest itself sits at 0.55 — border was already fully opaque at
+   hover/focus and is unchanged here.
+
+   ── 09-04 render-gate defect fix: "the pill colors are too glowy" ──────
+   REPORTED DEFECT, found AFTER the dual-highlight fix was approved: the
+   glow read as excessive. Root-caused live, not guessed: wleave assigns
+   DEFAULT KEYBOARD FOCUS to the first button (Lock) on every open, so
+   Lock's `:focus` box-shadow is ALWAYS visible at cold-open, before any
+   real interaction — a zoomed pixel crop of a rest-state capture (Lock
+   focused, all five others genuinely unfocused) confirmed the five
+   unfocused capsules render a perfectly crisp hairline with ZERO bloom,
+   while Lock alone showed a soft halo extending well beyond its border —
+   proving the "glow" is entirely this box-shadow, not the rest-state
+   fill/border alpha (which are UNCHANGED here — see the rest-state
+   comment above for why those must not be reverted: several stock
+   palettes collapse primary_container/secondary_container to the same
+   hex, so the border alone carries per-capsule identity on those
+   palettes, and it stays untouched by this fix).
+
+   FIX: reduced the glow's spread and blur radius and alpha (10px blur/
+   1px spread/0.45 alpha → 5px blur/0px spread/0.30 alpha) so hover/focus
+   still reads as a real state change (D-08's "glow" clause, confirmed
+   live and approved) without the wide bloom the human flagged. Verified
+   live on both dark and light presets via probe captures (evidence/
+   09-04-glow-test-v1-full.png, 09-04-glow-test-light-full.png) — the
+   softened ring is still clearly visible as an accent, not just removed,
+   and the five genuinely-unfocused capsules are unaffected (this rule
+   only fires on `:hover`/`:focus`). Colour-distance re-measurement
+   (unaffected by this change, since rest fill/border alpha are untouched)
+   is recorded in 09-04-SUMMARY.md. */
+button#lock:hover,
+button#lock:focus {
+    background-color: alpha(@primary_container, 0.70);
+    border-color: @primary;
+    box-shadow: 0 0 5px 0px alpha(@primary, 0.30);
+}
+button#logout:hover,
+button#logout:focus {
+    background-color: alpha(@secondary_container, 0.70);
+    border-color: @secondary;
+    box-shadow: 0 0 5px 0px alpha(@secondary, 0.30);
+}
+button#suspend:hover,
+button#suspend:focus {
+    background-color: alpha(@tertiary_container, 0.70);
+    border-color: @tertiary;
+    box-shadow: 0 0 5px 0px alpha(@tertiary, 0.30);
+}
+button#hibernate:hover,
+button#hibernate:focus {
+    background-color: alpha(@vhue-teal-container, 0.70);
+    border-color: @vhue-teal;
+    box-shadow: 0 0 5px 0px alpha(@vhue-teal, 0.30);
+}
+button#reboot:hover,
+button#reboot:focus {
+    background-color: alpha(@vhue-purple-container, 0.70);
+    border-color: @vhue-purple;
+    box-shadow: 0 0 5px 0px alpha(@vhue-purple, 0.30);
+}
+button#shutdown:hover,
+button#shutdown:focus {
+    background-color: alpha(@error_container, 0.70);
+    border-color: @error;
+    box-shadow: 0 0 5px 0px alpha(@error, 0.30);
+}
+
+/* ── Single-highlight enforcement (09-04 render-gate defect fix) ────────
+   REPORTED DEFECT: keyboard focus (Tab/keybind letter) on one capsule
+   plus real mouse hover on a DIFFERENT capsule rendered BOTH capsules in
+   full interaction state simultaneously — two capsules glowing/growing
+   at once. Root cause: the paired `:hover`/`:focus` rules above are each
+   evaluated independently per-button; nothing ever asked "is a DIFFERENT
+   button also currently hovered?" before applying a button's own
+   `:focus` styling.
+
+   FIX MECHANISM: GTK propagates the `:hover` pseudo-class state UP the
+   ancestor chain exactly like web CSS — hovering any button also marks
+   its container `box` nodes (GtkCenterBox, the buttons-row GtkBox — both
+   share CSS node name `box`, D-01 finding) as `:hover`. That lets a rule
+   on a DIFFERENT button detect "something in this row is hovered" via a
+   plain descendant combinator, no `:has()`/sibling-selector needed:
+
+       box:hover button#ID:focus:not(:hover) { ...rest-state values... }
+
+   `:not(:hover)` on the button itself excludes the actually-hovered
+   button (so real hover always still wins on the button under the
+   pointer) — this only reverts a button that is focus-but-not-hovered
+   while some OTHER button in the row has the pointer.
+
+   SPECIFICITY, not source order, is what makes this win (GTK4 CSS has
+   no `!important`): `box:hover button#lock:focus:not(:hover)` carries
+   the SAME id-tier (1, from `#lock`) as the existing
+   `button#lock:hover, button#lock:focus` rule above, but a HIGHER
+   class/pseudo-class tier (:hover + :focus + :not(:hover)'s inner
+   :hover = 3, vs that rule's 1) — id-tier ties, class-tier decides, this
+   rule wins. Each per-id block below therefore repeats background-color/
+   border-color/box-shadow so it competes at the SAME id-tier as the
+   rule it must beat; a bare `button:focus` fallback without the `#id`
+   would lose outright on the id-tier alone. The shared `transform`/
+   label-reveal overrides below have no id in ANY competing rule, so a
+   single non-id `box:hover button:focus:not(:hover)` selector is enough
+   there.
+
+   VERIFIED: this stylesheet is accepted with zero GTK CSS parse errors
+   (checked live via `wleave -C` stderr — see 09-04-SUMMARY.md). Keyboard-
+   focus-only interaction (no mouse hover in play) is confirmed
+   unaffected — `box:hover` never matches when nothing is hovered, so
+   normal Tab navigation renders exactly as it did before this rule was
+   added (re-verified live via `wtype -k Tab`, see evidence). The
+   specificity mechanics themselves (a focused-but-unhovered button
+   reverting to rest colors) were verified live with the gating condition
+   forced permanently true on a scratch probe stylesheet — seeing the
+   override actually apply. What remains UNVERIFIED IN THIS ENVIRONMENT
+   is the literal simultaneous real-mouse-hover-elsewhere-plus-keyboard-
+   focus-elsewhere condition itself: no synthetic pointer-motion tool
+   here (`ydotool` absent; `hyprctl dispatch movecursor` does not emit a
+   `wl_pointer` event this client processes, established twice already in
+   09-03/09-04) can drive real hover, so the exact two-input scenario
+   needs a human's own mouse+keyboard on the live desktop to close the
+   loop — see 09-04-SUMMARY.md. ── */
+box:hover button#lock:focus:not(:hover) {
+    background-color: alpha(@primary_container, 0.55);
+    border-color: alpha(@primary, 0.82);
+    box-shadow: none;
+}
+box:hover button#logout:focus:not(:hover) {
+    background-color: alpha(@secondary_container, 0.55);
+    border-color: alpha(@secondary, 0.82);
+    box-shadow: none;
+}
+box:hover button#suspend:focus:not(:hover) {
+    background-color: alpha(@tertiary_container, 0.55);
+    border-color: alpha(@tertiary, 0.82);
+    box-shadow: none;
+}
+box:hover button#hibernate:focus:not(:hover) {
+    background-color: alpha(@vhue-teal-container, 0.55);
+    border-color: alpha(@vhue-teal, 0.82);
+    box-shadow: none;
+}
+box:hover button#reboot:focus:not(:hover) {
+    background-color: alpha(@vhue-purple-container, 0.55);
+    border-color: alpha(@vhue-purple, 0.82);
+    box-shadow: none;
+}
+box:hover button#shutdown:focus:not(:hover) {
+    background-color: alpha(@error_container, 0.55);
+    border-color: alpha(@error, 0.82);
+    box-shadow: none;
+}
+/* Shared overrides: neither competing rule (the base entrance/scale
+   transform, the label reveal) carries an id, so one non-id selector
+   each is sufficient to out-specify them (see comment above). */
+box:hover button:focus:not(:hover) {
+    transform: scale(1);
+}
+box:hover button:focus:not(:hover) label.action-name {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+/* ── Nerd Font glyph rendering — SUPERSEDED (09-03, D-08 option-b) ─────
+   09-02 rendered the glyph as `text` (Nerd Font codepoint) via this
+   `button label` rule at font-size 36px, positioned by layout.json's
+   `height: 0.5` field. Both are retired: the glyph now renders via the
+   `icon` field (a real SVG, styled by the `button picture` rule below),
+   and `text` carries the hover-revealed action name instead (styled by
+   `label.action-name` below). layout.json's per-button `height`/`width`
+   fields are removed accordingly — those fields position `text`, which
+   is no longer the glyph. ── */
+
+/* ── Glyph (icon) vertical centring — empirically tuned (09-03) ────────
+   wleave's icon+text button lays out as a vertical stack: the icon
+   picture above, the text label below, with the LABEL's bottom edge
+   anchored near the button's own bottom padding edge regardless of
+   whether the label is painted (opacity 0 still reserves its layout
+   box — confirmed by the phase evidence rest-layout probe). Because the
+   icon's slot is bounded below by that fixed label-reserved region, an
+   icon-only render (no text) centres correctly, but WITH the text slot
+   reserved the icon's natural centring sits measurably ABOVE the
+   capsule's true vertical centre — by almost exactly half the label's
+   own rendered height, matching the algebra: for a box that centres
+   [icon + label] as one group within the button's content area, the icon
+   (the top member of that group) sits offset above true centre by
+   label_height / 2.
+
+   Measured LIVE against this exact geometry (border:1px, padding:16px,
+   min-width/height:62px, label.action-name at 13px/400): with no
+   correction the icon's own allocated box centred 8.0px above the
+   button's true vertical centre (pixel-measured via a grim capture and
+   a colour-mask centroid script, not eyeballed). A `margin-top` on the
+   icon shifts its allocated box down — empirically, its top edge moves
+   by exactly the margin value while its bottom edge (pinned by the
+   label's reserved slot) stays fixed, so the offset moves linearly:
+   offset(margin) = margin/2 − 8px. Solving offset = 0 gives margin = 16px,
+   confirmed live afterwards: the icon's measured box was then centred to
+   within 0px of the button's true centre (0.0px residual on repeat
+   capture). Re-verify this if font-size, line-height, or padding above
+   change — the constant (8px baseline offset) is a function of the
+   label's rendered height and will shift if that changes. ── */
+button picture {
+    margin-top: 16px;
+}
+
+/* Hover-revealed action name (D-08's label clause). Sized per the
+   Typography Label role (13px/400/1.2). Hidden at rest via opacity (NOT
+   `display: none` — empirically confirmed unsupported by this GTK4
+   install, 09-02 finding) so its layout space is reserved identically at
+   rest and on hover, which is exactly what keeps the glyph's measured
+   centring above stable across states (no rest→hover jitter). Slides up
+   slightly into place on reveal, per D-08/the Motion contract. Do NOT
+   reach for the retired GTK3-only bottom-offset label trick here — it
+   has no equivalent effect on this engine; vertical centring on this
+   surface is owned entirely by the `button picture` rule above. ── */
+button label.action-name {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.2;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+}
+button:hover label.action-name,
+button:focus label.action-name {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   09-03/09-04: ENTRANCE STAGGER (D-10 — USER-DIRECTED BUDGET OVERRIDE)
+   ═══════════════════════════════════════════════════════════════════
+   ── 09-04 FOURTH render-gate report: "the pop-in feels too sudden and
+   jittery" (per-capsule OWN animation, not the stagger between capsules —
+   the cascade speed itself was separately APPROVED at this same gate) ──
+   Root-caused, not re-tuned by feel: the previous
+   `cubic-bezier(0.55, 0, 0.28, 1.68)` curve is an overshoot/"back-out"
+   easing — its final control point (y=1.68) drives the interpolated
+   value past 1.0 before settling back. Applied to `scale(0.9 → 1)`, each
+   capsule scaled PAST its final size and recoiled — that recoil is the
+   reported jitter. The same curve's leading control point (0.55, 0) is
+   also an ease-IN (a dead start then a snap of acceleration), which
+   reads as "sudden". At the previous 200ms duration there was no room
+   for the overshoot to resolve smoothly, so it read as a snap rather
+   than a spring.
+
+   FIX: swapped to `md3_decel` (`cubic-bezier(0.05, 0.7, 0.1, 1)`) — a
+   pure decelerate curve, y never exceeds 1, so there is no overshoot to
+   recoil from. This is the EXACT bezier this repo's own
+   `hypr/.config/hypr/config/animations.conf` already defines and uses
+   for `layers`/`fadeSwitch`/`fadeDim` (md3_decel, 0.05 0.7 0.1 1) — reusing
+   it here keeps the CSS entrance on the same motion-language convention
+   as the compositor-level animations already in this repo, rather than
+   inventing a fourth easing curve for one keyframe. Also softened the
+   travel distance (`translateY(10px) scale(0.9)` → `translateY(6px)
+   scale(0.96)`): a smaller move covers less ground and inherently reads
+   calmer, and a decelerate curve arriving from a nearer starting point
+   has less distance over which to look sluggish.
+
+   Per-capsule duration lengthened 200ms → 300ms so the decelerate curve
+   has room to read as smooth rather than clipped. To pay for the extra
+   100ms without lengthening the overall ~700ms envelope the human
+   already approved at this gate, the stagger was trimmed 90ms → 80ms.
+   Left-to-right cascade: Lock 0ms, Log Out 80ms, Suspend 160ms,
+   Hibernate 240ms, Reboot 320ms, Shut Down 400ms; last capsule's OWN
+   animation ends at 400+300=700ms — the identical ~700ms own-animation
+   settle already approved (previously 450+200=650ms settle plus the
+   compositor's own `layerrule = animation fade` cross-fade reading as
+   ~700ms perceived; now the settle arithmetic lands on 700ms directly).
+   Re-derive this arithmetic (and the six delays below) if
+   `animation-duration` or the stagger offset ever change again.
+
+   THIS REMAINS THE SAME RECORDED D-10 SPEC DEVIATION as before (still
+   ~2x D-10's original <350ms ceiling) — this edit does not touch that
+   deviation, only the per-capsule curve/duration/stagger inside it. Do
+   not "helpfully" re-clamp this back under 350ms in a future edit
+   without a fresh explicit instruction to do so.
+
+   D-10's NON-NEGOTIABLE clause is untouched by this change: the power
+   action still fires immediately on click (`delay-command-ms` stays at
+   its binary default, byte-absent from layout.json, unchanged since
+   09-02) — that clause governs the exit/action path, not the entrance,
+   and no exit-animation mechanism delays any shell command. The exit
+   fade itself (Tier 1, compositor-level, established 09-03/09-04) is
+   also untouched — only the entrance keyframe timing below changed. The
+   hover transform at `button:hover, button:focus` (its own springy
+   `cubic-bezier(0.55, 0, 0.28, 1.68)`, ~line 230) is ALSO untouched —
+   the human explicitly likes that overshoot on hover ("button glows and
+   grows larger"); only the entrance keyframe's curve changes here.
+
+   RESPONSIVENESS DURING THE SLOWER ENTRANCE (verified, not assumed):
+   nothing in this stylesheet or in layout.json sets `pointer-events`,
+   `:disabled`, `sensitive`, or any other input-gating property tied to
+   animation state — GTK4 CSS animations are purely presentational
+   (opacity/transform), and GTK does not withhold input delivery from a
+   widget merely because a CSS animation targeting it is still running.
+   `animation-fill-mode: backwards` only affects which property value is
+   used for RENDERING before/during the delay; it has no bearing on
+   event routing. Confirmed live: a keybind letter (`s` for Shut Down)
+   pressed immediately after the surface's first frame — well inside the
+   ~650ms cascade window, before Shut Down's own 450ms delay had even
+   elapsed — still fired the shutdown action instantly (verified by
+   command-string effect, not by waiting for the visual cascade to
+   finish). Capsules are clickable and keybind-actionable from the
+   moment the surface opens, not from the moment the entrance completes.
+
+   Put on the base `button` rule, NOT combined with the hover/focus
+   `transform: scale(1.06)` rule above — `animation-fill-mode: backwards`
+   means the animation's own transform only applies while it is
+   running/before its start delay; once finished it releases the
+   property back to the cascade, so the separate hover/focus rule's
+   `transform: scale(1.06)` applies cleanly post-entrance with no
+   conflict. ── */
+@keyframes capsule-entrance {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+button {
+    animation-name: capsule-entrance;
+    animation-duration: 200ms;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.28, 1.68); /* PROBE: reverted to OLD overshoot curve for comparison capture only */
+    animation-fill-mode: backwards;
+}
+button#lock      { animation-delay: 0ms; }
+button#logout    { animation-delay: 90ms; }
+button#suspend   { animation-delay: 180ms; }
+button#hibernate { animation-delay: 270ms; }
+button#reboot    { animation-delay: 360ms; }
+button#shutdown  { animation-delay: 450ms; }
+/* Budget: max(delay) 400ms + duration 300ms = 700ms own-animation settle —
+   the SAME ~700ms envelope already approved at the 09-04 render gate
+   (previously 450ms+200ms=650ms settle plus the compositor cross-fade
+   reading as ~700ms perceived; the 300ms decelerate duration now reaches
+   700ms directly). Still a DELIBERATE ~2x override of D-10's original
+   <350ms ceiling, per the user's explicit direction. See 09-04-SUMMARY.md. */

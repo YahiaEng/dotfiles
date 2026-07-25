@@ -1,0 +1,107 @@
+09-04 entrance jitter fix — capsule-width-over-time measurement
+================================================================
+
+Method: rapid grim -g "910,650 140x140" captures of the Lock capsule
+(0ms stagger delay, so its own animation starts immediately on open),
+polling `hyprctl -j layers` for the wleave namespace to appear before
+starting the t=0 clock (process-launch-to-first-paint latency measured
+separately at ~465ms on this machine and is NOT part of the animation
+budget). Per-frame capsule width measured as the horizontal span (on a
+50px-tall band centred on the capsule) of pixels whose colour distance
+from a per-frame background-corner reference exceeds 45 (isolates the
+capsule's border+fill+glow footprint from the surrounding scrim).
+
+NEW curve (deployed): cubic-bezier(0.05, 0.7, 0.1, 1) "md3_decel",
+300ms duration, translateY(6px) scale(0.96) -> translateY(0) scale(1)
+--------------------------------------------------------------------
+frame   t(ms)   width(px)
+  02      47       28   (growing)
+  03      72       96
+  04      96       96
+  05     119       96
+  ...    (stable 96px, frames 03-13, t=72-312ms — inside the 300ms
+          entrance window; the curve's y-value never exceeds 1, so no
+          intermediate frame ever measures ABOVE 96px)
+  14     336      102   (entrance ends ~300ms; hover/focus's own
+                         `transform: scale(1.06)` cleanly takes over
+                         per `animation-fill-mode: backwards` releasing
+                         the property — 96 * 1.06 = 101.76 ~ 102px,
+                         Lock has default keyboard focus at open)
+  15-20  361-482   102-108  (glow box-shadow bloom from the SEPARATE
+                             hover/focus rule softly extends the
+                             detected footprint a further few px — not
+                             part of the entrance keyframe, not overshoot)
+
+Width sequence is MONOTONICALLY NON-DECREASING throughout: 0 -> 28 ->
+96 (holds flat for the whole 300ms entrance) -> 102 (focus scale-up,
+a real and separate state change, not a recoil) -> 102-108 (glow
+bloom). No frame at any sampled timepoint measures a width GREATER
+than a later frame's settled value. No overshoot, no recoil.
+
+CRITICAL/assertion log lines during this run: 0 (grep -c CRITICAL
+wleave-newrun.log == 0, confirmed on two independent runs).
+
+OLD curve (reverted probe, evidence/09-04-entrance-probe-OLD-overshoot.css):
+cubic-bezier(0.55, 0, 0.28, 1.68), 200ms duration, translateY(10px)
+scale(0.9) -> translateY(0) scale(1)
+--------------------------------------------------------------------
+frame   t(ms)   width(px)
+  01-07   24-169   140  (FULL CROP — a render-glitch artefact, not a
+                         real capsule reading; see criticals below)
+  08      194       84  (degraded/partial)
+  09      216        0  (capsule undetectable — visually confirmed
+                         vanished, see 09-04-entrance-jitterfix-OLD-*
+                         and the full-frame captures in this session)
+  10      241      106  (OVERSHOOT PEAK — 106px, i.e. ~10px / ~10%
+                         LARGER than the eventual settled 96px base,
+                         and even larger than the focus-scaled 102px
+                         target it is overshooting past)
+  11      264      106
+  12      290      105
+  13      313      104
+  14      338      104
+  15      362      103
+  16      386      103
+  17      410      103
+  18      434      103
+  19      459      102
+  20      483      102  (RECOILED down to the same 102px settled value
+                         the new curve reaches cleanly, but only after
+                         first overshooting to 106 and monotonically
+                         DECAYING back down across ~240ms — this decay
+                         is the measured, pixel-level signature of the
+                         reported "jitter")
+
+CRITICAL/assertion log lines during this run: 42 matches (grep -c
+CRITICAL wleave-oldrun3.log), reproduced on TWO separate runs of the
+old curve (wleave-oldrun2.log before an @import path fix, and
+wleave-oldrun3.log after — both show the same failure independent of
+the import fix). Representative lines (full log saved as
+09-04-entrance-jitterfix-OLD-critical-errors.log):
+
+  Gsk-CRITICAL **: gsk_gpu_node_processor_blur_op: assertion
+    'intermediate != NULL' failed
+  Pango-CRITICAL **: pango_font_map_reload_font: assertion
+    'scale > 0' failed
+  GLib-GObject-CRITICAL **: g_object_ref / g_object_unref: assertion
+    'G_IS_OBJECT (object)' failed
+
+These fire at the exact moment (per log timestamps, ~150-190ms after
+launch — the point where the 1.68 overshoot control point drives the
+interpolated scale value past 1.0) the old curve's transform pushes
+scale beyond its target. This is concrete evidence beyond the human's
+subjective "jittery" report: the overshoot doesn't just look wrong, it
+transiently breaks GTK4's blur backdrop compositing and Pango's font
+scale computation on THIS install. The NEW md3_decel curve produces
+ZERO such assertions across two independent runs, because it never
+drives the interpolated value past 1.0.
+
+Conclusion
+----------
+The old curve's width trace shows a clear rise-past-final-then-decay
+pattern (140 glitch -> 0 vanish -> 106 overshoot peak -> monotonic
+decay to 102 over ~240ms), while the new curve's width trace is
+monotonically non-decreasing at every sampled frame with zero
+render-pipeline assertion failures. This is the fix for "the pop-in
+feels too sudden and jittery" demonstrated at the pixel level, not
+just asserted from re-reading the bezier definition.

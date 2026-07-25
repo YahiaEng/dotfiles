@@ -1,0 +1,109 @@
+[32m INFO[0m [2mwleave::config[0m[2m:[0m Reading options from: /home/aorus/.config/wleave/layout.json
+[32m INFO[0m [2mwleave::config[0m[2m:[0m Using the JSON layout format.
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "service" specified from config: false
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "button-layout" specified from config: Grid
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "margin-top" specified from config: None
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "margin-bottom" specified from config: None
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "margin-left" specified from config: None
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "margin-right" specified from config: None
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "margin" specified from config: Margin(Percentage(0.364))
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "protocol" specified from config: LayerShell
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "column-spacing" specified from config: Px(24.0)
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "row-spacing" specified from config: Px(8.0)
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "button-aspect-ratio" specified from config: Some(Float(1.0))
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "show-keybinds" specified from config: false
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "close-on-lost-focus" specified from config: false
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "buttons-per-row" specified from config: PerRow(6)
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "no-version-info" specified from config: true
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "delay-command-ms" specified from config: 100
+[32m INFO[0m [2mwleave::config[0m[2m:[0m "css" file specified from args: "/home/aorus/dotfiles/.planning/phases/09-wlogout-to-wleave-migration/evidence/09-04-entrance-probe-OLD-overshoot.css"
+
+(wleave:26797): Adwaita-WARNING **: 21:43:14.851: Using GtkSettings:gtk-application-prefer-dark-theme with libadwaita is unsupported. Please use AdwStyleManager:color-scheme instead.
+
+(wleave:26797): Gtk-WARNING **: 21:43:15.069: Trying to measure GtkBox 0x563742574860 for width of 62, but it needs at least 72
+
+(wleave:26797): Gtk-WARNING **: 21:43:15.069: Trying to measure GtkBox 0x5637425708b0 for width of 62, but it needs at least 72
+
+(wleave:26797): Gsk-CRITICAL **: 21:43:15.177: gsk_gpu_node_processor_blur_op: assertion 'intermediate != NULL' failed
+
+(wleave:26797): Pango-CRITICAL **: 21:43:15.177: pango_font_map_reload_font: assertion 'scale > 0' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): Pango-CRITICAL **: 21:43:15.177: pango_font_map_reload_font: assertion 'scale > 0' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): Pango-CRITICAL **: 21:43:15.177: pango_font_map_reload_font: assertion 'scale > 0' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): Pango-CRITICAL **: 21:43:15.177: pango_font_map_reload_font: assertion 'scale > 0' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.177: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): Gsk-CRITICAL **: 21:43:15.184: gsk_gpu_node_processor_blur_op: assertion 'intermediate != NULL' failed
+
+(wleave:26797): Pango-CRITICAL **: 21:43:15.184: pango_font_map_reload_font: assertion 'scale > 0' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): Pango-CRITICAL **: 21:43:15.184: pango_font_map_reload_font: assertion 'scale > 0' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): Pango-CRITICAL **: 21:43:15.184: pango_font_map_reload_font: assertion 'scale > 0' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): Pango-CRITICAL **: 21:43:15.184: pango_font_map_reload_font: assertion 'scale > 0' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.184: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.185: g_object_ref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.185: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.201: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.201: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.201: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
+
+(wleave:26797): GLib-GObject-CRITICAL **: 21:43:15.201: g_object_unref: assertion 'G_IS_OBJECT (object)' failed
