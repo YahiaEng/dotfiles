@@ -232,42 +232,70 @@ button:focus {
 /* Hover/focus fill raised 0.55→0.70 (09-04 legibility retune, see the
    rest-state comment above) so the rest→interaction step remains visible
    now that rest itself sits at 0.55 — border was already fully opaque at
-   hover/focus and is unchanged here. */
+   hover/focus and is unchanged here.
+
+   ── 09-04 render-gate defect fix: "the pill colors are too glowy" ──────
+   REPORTED DEFECT, found AFTER the dual-highlight fix was approved: the
+   glow read as excessive. Root-caused live, not guessed: wleave assigns
+   DEFAULT KEYBOARD FOCUS to the first button (Lock) on every open, so
+   Lock's `:focus` box-shadow is ALWAYS visible at cold-open, before any
+   real interaction — a zoomed pixel crop of a rest-state capture (Lock
+   focused, all five others genuinely unfocused) confirmed the five
+   unfocused capsules render a perfectly crisp hairline with ZERO bloom,
+   while Lock alone showed a soft halo extending well beyond its border —
+   proving the "glow" is entirely this box-shadow, not the rest-state
+   fill/border alpha (which are UNCHANGED here — see the rest-state
+   comment above for why those must not be reverted: several stock
+   palettes collapse primary_container/secondary_container to the same
+   hex, so the border alone carries per-capsule identity on those
+   palettes, and it stays untouched by this fix).
+
+   FIX: reduced the glow's spread and blur radius and alpha (10px blur/
+   1px spread/0.45 alpha → 5px blur/0px spread/0.30 alpha) so hover/focus
+   still reads as a real state change (D-08's "glow" clause, confirmed
+   live and approved) without the wide bloom the human flagged. Verified
+   live on both dark and light presets via probe captures (evidence/
+   09-04-glow-test-v1-full.png, 09-04-glow-test-light-full.png) — the
+   softened ring is still clearly visible as an accent, not just removed,
+   and the five genuinely-unfocused capsules are unaffected (this rule
+   only fires on `:hover`/`:focus`). Colour-distance re-measurement
+   (unaffected by this change, since rest fill/border alpha are untouched)
+   is recorded in 09-04-SUMMARY.md. */
 button#lock:hover,
 button#lock:focus {
     background-color: alpha(@primary_container, 0.70);
     border-color: @primary;
-    box-shadow: 0 0 10px 1px alpha(@primary, 0.45);
+    box-shadow: 0 0 5px 0px alpha(@primary, 0.30);
 }
 button#logout:hover,
 button#logout:focus {
     background-color: alpha(@secondary_container, 0.70);
     border-color: @secondary;
-    box-shadow: 0 0 10px 1px alpha(@secondary, 0.45);
+    box-shadow: 0 0 5px 0px alpha(@secondary, 0.30);
 }
 button#suspend:hover,
 button#suspend:focus {
     background-color: alpha(@tertiary_container, 0.70);
     border-color: @tertiary;
-    box-shadow: 0 0 10px 1px alpha(@tertiary, 0.45);
+    box-shadow: 0 0 5px 0px alpha(@tertiary, 0.30);
 }
 button#hibernate:hover,
 button#hibernate:focus {
     background-color: alpha(@vhue-teal-container, 0.70);
     border-color: @vhue-teal;
-    box-shadow: 0 0 10px 1px alpha(@vhue-teal, 0.45);
+    box-shadow: 0 0 5px 0px alpha(@vhue-teal, 0.30);
 }
 button#reboot:hover,
 button#reboot:focus {
     background-color: alpha(@vhue-purple-container, 0.70);
     border-color: @vhue-purple;
-    box-shadow: 0 0 10px 1px alpha(@vhue-purple, 0.45);
+    box-shadow: 0 0 5px 0px alpha(@vhue-purple, 0.30);
 }
 button#shutdown:hover,
 button#shutdown:focus {
     background-color: alpha(@error_container, 0.70);
     border-color: @error;
-    box-shadow: 0 0 10px 1px alpha(@error, 0.45);
+    box-shadow: 0 0 5px 0px alpha(@error, 0.30);
 }
 
 /* ── Single-highlight enforcement (09-04 render-gate defect fix) ────────
