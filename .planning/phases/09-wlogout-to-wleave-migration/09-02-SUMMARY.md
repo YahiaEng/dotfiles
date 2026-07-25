@@ -273,3 +273,12 @@ None — this plan makes no external service configuration changes. The one host
 ---
 *Phase: 09-wlogout-to-wleave-migration*
 *Completed: 2026-07-25*
+
+## Self-Check: PASSED
+
+All key files confirmed present on disk (wleave/.config/wleave/layout.json,
+wleave/.config/wleave/style.css, hypr/.config/hypr/scripts/wleave.sh,
+matugen/.config/matugen/templates/wleave-colors.css, deferred-items.md,
+.planning/WINDOWS.md, this SUMMARY.md, both evidence PNGs). wlogout/
+confirmed deleted. All four commits (7d0d98f, 4218659, 75ea48c, 51ebb11)
+confirmed present in git log.
