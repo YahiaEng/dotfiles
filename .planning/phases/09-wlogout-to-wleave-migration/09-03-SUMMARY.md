@@ -227,3 +227,11 @@ None — no external service configuration changes. All fixes and tuning were pe
 ---
 *Phase: 09-wlogout-to-wleave-migration*
 *Completed: 2026-07-25*
+
+## Self-Check: PASSED
+
+All key files confirmed present on disk (wleave/.config/wleave/style.css,
+wleave/.config/wleave/layout.json, hypr/.config/hypr/config/windowrules.conf,
+this SUMMARY.md, evidence/09-03-hover-dark.png, evidence/09-03-rest-dark.png,
+evidence/09-03-exit-frame-1.png, .planning/WINDOWS.md). All four commits
+(7691c03, 6807743, 9145667, 01df33a) confirmed present in git log.
