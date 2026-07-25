@@ -1,10 +1,34 @@
 ---
 phase: 08-waybar-evolution
 verified: 2026-07-14T20:50:00Z
-status: human_needed
+status: passed
+reverified: 2026-07-25
 score: 4/4 must-haves verified (BAR-02 legitimately descoped with evidence, not scored as a truth)
 behavior_unverified: 0
 overrides_applied: 0
+human_verification_status: resolved
+human_verification_resolution: >
+  All three human-verification items below are closed; this file's status was
+  simply never refreshed after the UAT loop completed a day later. Authority:
+  08-UAT.md (status: resolved, resolved 2026-07-15, resolved_by 08-11, 08-12,
+  08-13, 08-14, 08-15, 08-16), whose verbatim final user verdict is
+  "approved". Item 1 was answered directly — the initial pass came back a
+  blocker ("complete failure... needs a complete redesign"), all four layouts
+  were then rebuilt as their own design flows (full=island, athena=capsules,
+  floating=rainbow pills, vertical=saatvik333 column), each approved by the
+  user on sight under light + dark, with a final cross-layout sweep approved
+  under dark, light and dynamic (materialyou); the regression class is now
+  guarded mechanically by waybar-design-lint folded into theme-doctor. Items 2
+  and 3 were recorded `skipped` in the UAT because item 1's redesign
+  superseded them: item 2's 66px-vs-48px question is re-decided by the rebuilt
+  vertical layout rather than the geometry it replaced, and item 3 has since
+  been made moot outright — Phase 10 (10-06) retired the eww media popup, and
+  hypr/.config/hypr/scripts/media-popup-open.sh, the script whose ANCHOR_MODE
+  the item asked to test, no longer exists in the repo. All waybar layouts now
+  wire the media segment to `ags request -i media toggle-media`
+  (modules.jsonc:59,278 and config-vertical.jsonc:91), which is covered by
+  Phase 10's own verification (10-VERIFICATION.md, status: passed, 21/21).
+  Reconciled at v2.0 milestone close.
 human_verification:
   - test: "Visual/aesthetic pass across all 4 waybar layouts (full, minimal, floating, vertical) under at least one light preset and one dark preset — glyph rendering, colour correctness, translucency look-and-feel, tooltip appearance."
     expected: "Every module renders its intended glyph (no tofu/empty boxes), colours resolve to the intended palette tokens with no visible black/unstyled flashes, and the translucent OLED-safe styling reads as intended rather than merely 'technically non-opaque'."

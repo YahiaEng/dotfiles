@@ -50,6 +50,17 @@ Requirements for the Desktop Expansion milestone. Each maps to roadmap phases.
 - [x] **BAR-04**: Media center accessible from waybar integrating mpris players (Spotify, browser/YouTube) — form factor per modern-rice research
 - [x] **BAR-05**: Notification center opens from a waybar button (swaync overlay: view, clear, interact with notifications)
 
+### Media Applet
+
+Added 2026-07-15 with Phase 10, after BAR-04's eww popup was confirmed structurally
+unable to deliver pointer input on this eww 0.6.0 / Hyprland 0.55.4 build. Supersedes
+BAR-04's form factor; the waybar media segment and MPRIS backend scripts are unchanged.
+
+- [x] **MEDIA-01**: A centered media card opens from the waybar media segment and its transport/seek/volume/player-switcher controls actually respond to pointer input, driving real MPRIS playback
+- [x] **MEDIA-02**: A cava audio-reactive bar underlay renders behind the album-art thumbnail as part of the card's garuda/HyprPanel visual language
+- [x] **MEDIA-03**: The card is themed through the shared matugen pipeline (`[templates.ags]` + zero-hex stylesheet) and hot-reloads its CSS on theme switch
+- [x] **MEDIA-04**: The applet reproduces from scratch — `aylurs-gtk-shell` + `cava` declared in `install.sh`, and the `ags` package registered in `stow.sh`
+
 ### OSD
 
 - [x] **OSD-01**: SwayOSD volume/brightness/caps-lock indicators bound to media keys, themed via the shared pipeline (new matugen template + contract.json entry)
@@ -101,7 +112,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | THM-02 | Phase 5 | Complete |
 | THM-03 | Phase 5 | Complete |
 | THM-04 | Phase 5 | Complete |
-| WLOG-01 | Phase 6 | Complete |
+| WLOG-01 | Phase 6, re-delivered Phase 9 | Complete |
 | LOCK-01 | Phase 6 | Complete |
 | OSD-01 | Phase 6 | Complete |
 | THM-05 | Phase 6 | Complete |
@@ -125,12 +136,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BAR-03 | Phase 8 | Complete |
 | BAR-04 | Phase 8 | Complete |
 | BAR-05 | Phase 8 | Complete |
+| MEDIA-01 | Phase 10 | Complete |
+| MEDIA-02 | Phase 10 | Complete |
+| MEDIA-03 | Phase 10 | Complete |
+| MEDIA-04 | Phase 10 | Complete |
 
 **Coverage:**
 
-- v2 requirements: 32 total
-- Mapped to phases: 32 (Phases 4-8)
+- v2 requirements: 36 total
+- Mapped to phases: 36 (Phases 4-10)
 - Unmapped: 0
 
+**Phases added after the original definition:**
+
+- **Phase 9 (wlogout → wleave migration)** introduced no new requirement ID. It
+  re-delivers WLOG-01 on a new engine (GTK4 wleave), because the GTK3
+  whole-stylesheet-discard failure class that produced the original WLOG-01
+  blocker is structurally impossible on GTK4.
+- **Phase 10 (AGS media applet)** introduced MEDIA-01 through MEDIA-04, added
+  when BAR-04's eww popup was confirmed unable to deliver pointer input on this
+  eww 0.6.0 / Hyprland 0.55.4 build.
+
 ---
-*Requirements defined: 2026-07-09; traceability populated by roadmap 2026-07-09*
+*Requirements defined: 2026-07-09; traceability populated by roadmap 2026-07-09;
+Phase 9/10 coverage backfilled 2026-07-25 at v2.0 milestone close*
