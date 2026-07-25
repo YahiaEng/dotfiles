@@ -1,7 +1,7 @@
 ---
 phase: 9
 slug: wlogout-to-wleave-migration
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-25
@@ -298,18 +298,54 @@ The blocking human visual checkpoint must cover, with `grim` screenshot evidence
 
 ## UI Considerations
 
-Applicable state considerations resolved: 6 covered, 2 backstop (render-gate-only), 0 unresolved.
+Computed by `ui-consideration-probe.cjs` over six described surfaces, kind-confirmed by the user
+(the prose classifier under-covered: `interactive-control` was added to E1/E2, E4 retyped
+`static-content`, E6 retyped `media`), then resolved interactively.
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| rest state | six capsules | ✅ covered | Per-hue translucent frost fill + hairline border, fully specified in Color table above |
-| hover/keyboard-focus state | six capsules | ✅ covered | Identical rendering for hover and focus per D-08; tint/border/scale/label-reveal specified in Motion contract |
-| error (launch failure) | wleave binary missing or spawn fails | ✅ covered | notify-send copy locked in Copywriting Contract; `command -v` guard pattern reused from capture scripts (D-23) |
-| destructive action | shutdown, reboot | ✅ covered | Explicitly NO confirmation dialog (D-20) — severity-ordering + color identity is the mitigation; documented so it is never "fixed" into a dialog by mistake |
-| long text / overflow | capsule labels | ✅ covered | N/A by construction — six fixed, static, short (≤9 char) English labels; no dynamic/user-supplied text ever reaches this surface |
-| zero-one-many | capsule count | ✅ covered | Always exactly six; not a collection, no empty/partial states possible |
-| entrance/exit animation | six capsules, whole window | 🧪 backstop | Entrance is CSS-specifiable and testable; exit is the D-10 landmine — actual achieved tier (compositor animation / fast fade / abrupt cut) can only be confirmed at the D-14 render gate, not from source-reading alone |
-| multi-monitor | scrim + capsule placement | 🧪 backstop | D-22 landmine — single-output behavior is the pre-authorized target, but the deviation itself (and which monitor the compositor picks) must be observed live, not assumed |
+**Coverage: 24 applicable — 19 covered · 3 backstop · 2 dismissed · 0 unresolved.**
+
+Elements: **E1** six power-action capsules · **E2** full-screen scrim backdrop · **E3** hover/focus
+action-name label reveal · **E4** launch-failure notification · **E5** the wleave window as a whole
+surface · **E6** `wleave-colors.css` as a matugen-rendered asset.
+
+| # | Element | Category | Status | Resolution / Reason |
+|---|---------|----------|--------|---------------------|
+| 1 | E1 capsules | empty | 🧪 backstop | Render gate must show **exactly six** capsules. A missing or malformed `layout.json` must surface as the D-23 launch-failure notification, never as a silently empty scrim — the "did it even open?" failure. Not assertable from source-reading. |
+| 2 | E1 capsules | loading | ✅ covered | No async fetch on this surface. The D-10 entrance stagger (<350ms total) is the only transitional visual; no skeleton, spinner, or placeholder is rendered at any point. |
+| 3 | E1 capsules | error | ✅ covered | No in-surface error UI by contract — the D-23 `notify-send` is the entire error state (see Copywriting Contract). wleave either renders or it doesn't. |
+| 4 | E1 capsules | populated | ✅ covered | The rest state is the only populated state, fully specified in the six-capsule severity/hue table above (per-hue 0.35-alpha frost fill, 1px hairline border, `on_*_container` glyph). |
+| 5 | E1 capsules | **partial** | ✅ covered | **New failure mode introduced by this migration.** GTK3's failure was all-or-nothing (WLOG-01: one bad rule discarded the whole sheet). GTK4 recovers per-rule — it silently drops *only* the offending rule — so a partial-styling state GTK3 could never produce is now possible, and one capsule falling back to default GTK chrome reads as a near-miss rather than an obvious break. **Acceptance:** the D-14 render gate must confirm all six capsules carry their per-hue fill, border, *and* glyph color — not merely that "the menu looks styled." |
+| 6 | E1 capsules | overflow | ✅ covered | Row width is fixed and computable: 6×96px + 5×24px gap = **696px**, well inside any output this repo supports. No wrap, scroll, or clip path exists. |
+| 7 | E1 capsules | zero-one-many | ✅ covered | Always exactly six, always. Not a collection — the count is structural, not data-driven, so singular/plural and reflow variants cannot occur. |
+| 8 | E1 capsules | long-text | ✅ covered | Six fixed English labels (≤9 chars: Lock, Log Out, Suspend, Hibernate, Reboot, Shut Down). No dynamic or user-supplied text ever reaches this surface. |
+| 9 | E2 scrim | loading | ✅ covered | Static CSS background on the outer `GtkCenterBox`, painted in the first frame with the window. No progressive reveal. |
+| 10 | E2 scrim | **error** | ✅ covered | The scrim's `rgba(0, 0, 0, 0.40)` is a **hardcoded literal, not a matugen token** — so the dim survives a total palette-resolution failure. A broken `wleave-colors.css` therefore yields dimmed-desktop-plus-unstyled-capsules (visible, diagnosable), never a blank or invisible surface. |
+| 11 | E2 scrim | overflow | ✅ covered | Full-screen by `gtk4-layer-shell` anchoring; the scrim *is* the viewport. Nothing can exceed it. |
+| 12 | E2 scrim | long-text | ⊘ dismissed | The scrim renders no text at all — category not applicable. |
+| 13 | E3 label reveal | overflow | ✅ covered | Label sits below its capsule with unconstrained width. **Acceptance:** the D-14 hover screenshot must confirm the widest label ("Hibernate" / "Shut Down") does not visually collide with a neighbouring capsule across the 24px gap. |
+| 14 | E3 label reveal | long-text | ✅ covered | Fixed six-string label set; no interpolation, no truncation path needed. |
+| 15 | E4 notification | overflow | ✅ covered | One short fixed body string per failure mode; wrapping is swaync's responsibility, not this surface's. |
+| 16 | E4 notification | long-text | ✅ covered | Exactly two fixed bodies ("wleave is not installed" / "wleave failed to launch"). No interpolated paths or error text. |
+| 17 | E5 window | loading | ✅ covered | The D-10 entrance stagger is the whole of the in-flight state; the window is either absent or animating in. No intermediate chrome. |
+| 18 | E5 window | error | 🧪 backstop | **D-10 landmine.** Which exit tier is actually achieved — compositor `layerrule = animation`, fast whole-window fade, or abrupt cut — is unconfirmed (`09-RESEARCH.md` Assumption A2: wleave hides the window client-side and synchronously). Observable only at the live D-14 gate; the achieved tier must be recorded, and an abrupt cut recorded as a deviation rather than claimed as delivered. |
+| 19 | E5 window | overflow | 🧪 backstop | **D-22 landmine.** Single-output behaviour is the pre-authorized target (no per-output API on 0.7.1), but *which* monitor the compositor picks — and the confirmed fact that other monitors stay undimmed — must be observed live, not assumed from the focused-output convention. |
+| 20 | E5 window | long-text | ⊘ dismissed | No text is rendered at window level — category not applicable. |
+| 21 | E6 colors.css | empty | ✅ covered | The four never-before-rendered M3 container keys are the concrete empty-value risk. **Acceptance:** the pre-commit dry-run specified in the Color section must grep the rendered output for a literal `{{…}}` token or an empty hex value and find neither. |
+| 22 | E6 colors.css | loading | ✅ covered | wleave is spawn-per-open, so it always reads a fully-written stylesheet; there is no live-reload race to design for. Render-gate item 3 (theme switch, then reopen) exercises this path. |
+| 23 | E6 colors.css | error | ✅ covered | A key that fails to resolve drops exactly one GTK4 rule (the structural premise of this migration) — the affected capsule falls back to default chrome and is caught by row 5's all-six criterion. |
+| 24 | E6 colors.css | populated | ✅ covered | Both palettes are already mandatory render-gate evidence: item 1 (dark preset, cold open) and item 2 (light preset, cold open). |
+
+**Rest state, hover/focus state, and the no-confirmation-dialog contract** are not restated here —
+they live in the Color table, the Motion & Interaction Contract, and the Copywriting Contract
+respectively, and this section references rather than duplicates them.
+
+<!-- Status vocabulary (locked by probe-core projectTruths):
+     ✅ covered   → a plain truth string lifted into must_haves.truths
+     🧪 backstop  → a flat scalar { statement, verification: backstop }; at verify time, no explicit
+                    evidence → insufficient_spec → human_needed (never a silent pass, #1154)
+     ⚠ unresolved → an explicit planner assumption (surfaced, never silently dropped)
+     ⊘ dismissed  → category not applicable to this element; reason recorded above
+     Rows are REPLACED (not appended) on a probe re-run — idempotent. -->
 
 <!-- Status vocabulary (locked by probe-core projectTruths):
      ✅ covered   → a plain truth string lifted into must_haves.truths
@@ -335,11 +371,13 @@ process (Phase 4/6/8):
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED — gsd-ui-checker, 2026-07-25. 6/6 dimensions passed, zero blocking issues,
+zero revision iterations. UI-Consideration probe run post-verification: 24 applicable, 19 covered,
+3 backstop, 2 dismissed, 0 unresolved.
