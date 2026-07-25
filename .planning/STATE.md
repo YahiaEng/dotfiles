@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Desktop Expansion
-current_phase: 10
-current_phase_name: AGS Media Applet
-status: planning
+status: Awaiting next milestone
 stopped_at: Completed 09-04-PLAN.md — phase 09-wlogout-to-wleave-migration fully closed (all 4 plans complete)
-last_updated: "2026-07-25T19:12:48.130Z"
+last_updated: "2026-07-25T19:38:32.523Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 09 complete, transitioned to Phase 10
+last_activity_desc: Milestone v2.0 completed and archived
 progress:
   total_phases: 7
   completed_phases: 7
   total_plans: 64
   completed_plans: 64
   percent: 100
+current_phase: 10
+current_phase_name: AGS Media Applet
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 
 ## Current Position
 
-Phase: 10 — AGS Media Applet
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-25 — Phase 09 complete, transitioned to Phase 10
+Phase: Milestone v2.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-25 — Milestone v2.0 completed and archived
 
 ## Performance Metrics
 
@@ -333,3 +333,7 @@ Items acknowledged and carried forward from previous milestone close:
 Last session: 2026-07-25T18:56:23.652Z
 Stopped at: Completed 09-04-PLAN.md — phase 09-wlogout-to-wleave-migration fully closed (all 4 plans complete)
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

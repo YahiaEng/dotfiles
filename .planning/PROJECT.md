@@ -2,25 +2,23 @@
 
 ## What This Is
 
-Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow and installed on fresh systems via a custom `install.sh`. The centerpiece is a dynamic theming system: a consolidated `theme-engine` stow package with a single `theme-apply` entrypoint renders both static presets and matugen-generated (wallpaper-driven) themes through one pipeline into `~/.local/state/theme/`, propagating colors live to every desktop component — Hyprland, kitty, waybar, swaync, walker, thunar, GTK3/GTK4 apps, wlogout, yazi, vscodium. The whole setup reproduces unattended on a fresh Arch system (proven in a container gate + graphical VM).
+Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow and installed on fresh systems via a custom `install.sh`. The centerpiece is a dynamic theming system: a consolidated `theme-engine` stow package with a single `theme-apply` entrypoint renders both static presets and matugen-generated (wallpaper-driven) themes through one pipeline into `~/.local/state/theme/`, propagating colors live to every desktop component — Hyprland, kitty, waybar, swaync, walker, thunar, GTK3/GTK4 apps, wleave, SwayOSD, Zen, the AGS media applet, yazi, vscodium.
+
+On top of that foundation sits a full desktop: 22 theme targets across dark, light and Material You; a four-layout waybar; a $SUPER-tap walker menu wrapping utilities, power, settings, an AI dashboard, a game center and a keybind cheat-sheet; a screenshot/record suite; emoji, color, clipboard, icon-theme and font pickers; and an AGS v3 media card with a cava audio-reactive underlay. The whole setup reproduces unattended on a fresh Arch system (proven in a container gate + graphical VM).
 
 ## Core Value
 
 One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
 
-## Current Milestone: v2.0 Desktop Expansion
+## Current Milestone: none — v2.0 shipped, v3.0 not yet defined
 
-**Goal:** Evolve the repaired v1.0 theming foundation into a complete, modern rice — fix the remaining reliability bugs, add the missing desktop utilities and menus, and extend the theme pipeline to every remaining surface.
+**Last shipped:** v2.0 Desktop Expansion (2026-07-25) — 7 phases, 64 plans, 444 commits over 16 days. Every v2.0 goal landed: the three reliability bugs were root-caused and fixed, light mode reached the whole pipeline, every remaining surface was re-themed, and the utility suite, Super-key menu, waybar rebuild, wleave migration and AGS media applet all shipped and were verified.
 
-**Target features:**
-- Bug fixes: wlogout shutdown hang, hyprlock first-keystroke drops, kitty slow startup
-- Redesigns: wlogout (modern-rice standard), hyprlock (themed surface + new look), wallpaper picker (Omarchy-level aesthetics + theme-aware wallpaper restriction)
-- Utility scripts: screenshot full suite (capture/annotate/record), emoji picker, color picker, clipboard history, icon theme picker, nerd-font switcher
-- Super-key walker menu (Omarchy-style, custom icons): Utilities, AI dashboard (launcher submenu + dedicated workspace), Game center, power menu, settings menu, keybind cheat-sheet
-- Waybar: OLED-safe behavior (research auto-hide/transparency/pixel-shift), vertical (left) layout, media center (mpris — form per research), notification center access (swaync overlay)
-- SwayOSD volume/brightness indicators, themed via the shared pipeline
-- Theming expansion: more static presets incl. light themes; Zen browser follows theme switches
-- Tech-debt carry-over: rsync explicit in install.sh PACMAN_PKGS
+Run `/gsd-new-milestone` to scope v3.0.
+
+**Carried into v3.0 as candidate scope** (deferred from v2.0, see `milestones/v2.0-REQUIREMENTS.md`):
+- **ICON-BROWSE** — browse and install *new* icon themes from within the picker (repo/AUR discovery); v2.0 shipped apply-only
+- **POLISH-01** — one cohesive animation/easing language across Hyprland, waybar, walker, swaync and OSD, now that all the surfaces exist
 
 ## Requirements
 
@@ -60,37 +58,48 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - ✓ Screenshot suite: region/window/full capture → satty annotate → save+copy, plus region/monitor recording with GIF export and audio-consent picker (SHOT-01/02/03) — Validated in Phase 6
 - ✓ Utility pickers: emoji, color, clipboard history (100-item cap + session-end/manual wipe), icon-theme (live to Thunar/GTK), nerd-font switcher (UTIL-01..05) — Validated in Phase 6
 - ✓ Theme-doctor CSS-parse regression guard: 6 GTK3 + 3 GTK4 surfaces asserted non-empty provider + zero fatal errors, proven to fail on a poisoned sheet — Validated in Phase 6
+- ✓ $SUPER-tap opens an Omarchy-style walker menu — Utilities, AI dashboard (launchers + workspace), Game center, power, settings, searchable keybind cheat-sheet — as elephant TOML providers; app launcher moved to Super+Space, ~48-bind regression sweep clean (MENU-01..07) — Validated in Phase 7
+- ✓ Waybar OLED-safe: single-owner `waybar-visibility.sh` fed by hypridle, a Hyprland fullscreen socket2 watcher, gaming-mode and a keybind; translucent low-luminance styling (BAR-01) — Validated in Phase 8
+- ✓ Four waybar layouts (full/athena/floating/vertical) composed from one shared `modules.jsonc` + `waybar-modules.css`, each redesigned as its own design flow and user-approved on sight under light, dark and dynamic; guarded by `waybar-equivalence-check` + `waybar-design-lint` in theme-doctor (BAR-03) — Validated in Phase 8
+- ✓ Notification center opens from a waybar button (swaync overlay: view, clear, interact), with volume/brightness sliders and an anti-drift toggle grid sharing state with the Super-key menu (BAR-05) — Validated in Phase 8
+- ✓ BAR-02 pixel-shift mitigation descoped with a reproducible evidence artifact — waybar's only CSS-actuation path (SIGUSR2) measurably flashes and reflows, killing any CSS-based approach before the 2px question is reached — Validated in Phase 8
+- ✓ Power menu on wleave 0.7.1 (GTK4): six per-action hue capsules on `gtk4-layer-shell`, hover/focus name reveal, md3_decel entrance cascade, compositor-layerrule fade exit; GTK3 whole-stylesheet-discard failure class structurally eliminated, `wlogout/` package deleted (WLOG-01 re-delivered) — Validated in Phase 9
+- ✓ AGS v3 media card replaces the eww popup: working transport/seek/volume/player-switcher over the unchanged MPRIS bash backend, garuda-style blurred-art overlay with a cava audio-reactive underlay, matugen-themed with runtime `sass` + `apply_css` hot reload, reproducible via install.sh + stow (MEDIA-01..04) — Validated in Phase 10
 
 ### Active
 
-<!-- Milestone v2.0 Desktop Expansion -->
+<!-- No active milestone. Run /gsd-new-milestone to scope v3.0. -->
 
-- [ ] Pressing $SUPER alone opens an Omarchy-style walker menu with custom icons: Utilities, AI dashboard (launchers + workspace), Game center, power, settings, keybind cheat-sheet
-- [ ] Waybar: OLED-safe behavior, additional vertical (left) layout, media center (mpris), notification center access
-- [ ] Migrate wlogout → wleave (GTK4) to eliminate the GTK3 whole-stylesheet-discard failure class (Phase 9; WLOG-01 re-delivered on a new engine)
+_Empty — v2.0 shipped 2026-07-25. Candidate v3.0 scope is listed under
+"Current Milestone" above (ICON-BROWSE, POLISH-01)._
 
 ### Out of Scope
 
 - Wofi — abandoned in favor of walker; configs removed in v1.0
 - Supporting other distros/compositors — this is a personal Arch + Hyprland setup
-- Custom AI assistant widgets/sidebars — v2.0's AI dashboard is launchers + a workspace, not built-in assistant UI
-- Full GTK4/libadwaita palette theming — structurally unsupported upstream; dark/light + accent is the documented ceiling (validated in v1.0)
+- Custom AI assistant widgets/sidebars — the AI dashboard shipped as launchers + a workspace, not built-in assistant UI
+- Full palette theming of *third-party* GTK4/libadwaita apps — structurally unsupported upstream; dark/light + accent is the documented ceiling (validated in v1.0). **Scope narrowed after v2.0:** this never applied to GTK4 surfaces this repo authors itself — Phase 9's wleave and Phase 10's AGS applet both take the full matugen palette through their own stylesheets.
 - Re-theme on every wallpaper auto-cycle — latency/flicker cost; re-theme only on explicit user action
+- Quickshell/QML custom shell rewrite — contradicts "extend, don't rewrite"; end-4/Caelestia patterns stay aspirational (carried from v2.0 requirements)
+- Full GUI settings app — the settings menu launches existing tools; no custom settings UI (carried from v2.0 requirements)
+- Gaming-mode session switching — the game center is a launcher submenu, not a session manager (carried from v2.0 requirements)
+- eww as a widget toolkit — retired in Phase 10 after its popup was proven unable to deliver pointer input on this eww 0.6.0 / Hyprland 0.55.4 build; AGS v3 (GTK4) is the widget toolkit going forward
 
 ## Current State
 
-**v2.0 Phase 9 complete (2026-07-25): wlogout to wleave Migration** — 4 plans, WLOG-01 re-delivered on a new engine; verification passed 6/6 must-haves. The power menu moved from wlogout (GTK3) to wleave 0.7.1-1 (GTK4) in an atomic cutover, eliminating the GTK3 whole-stylesheet-discard failure class that caused WLOG-01: GTK4 drops only the offending rule instead of the entire sheet, so six-unstyled-buttons is now structurally impossible. Six per-hue capsules render on a `gtk4-layer-shell` surface with hover/focus reveal of action names via wleave's native `icon`+`text` split, an md3_decel entrance cascade, and a compositor-layerrule fade exit. All three entry points (Super+Shift+Q, waybar power button, elephant Power menu) repointed; `wlogout/` stow package deleted. All 20 static palettes gained the three missing M3 container-role keys (`on_tertiary_container`, `error_container`, `on_error_container`) that had been silently breaking matugen renders. Closed on a human render gate across four review rounds — which caught a real GTK4 bug an overshoot easing curve was triggering (42 `Gsk`/`Pango`/`GObject` CRITICAL assertion failures per open), not merely a styling preference.
-
-**v2.0 Phase 5 complete (2026-07-12): Light Mode Pipeline & Theme Presets** — 5 plans (incl. 1 gap closure), all four requirements (THM-01..04) verified: 18/18 UAT pass, verification passed, security review clean (14/14 threats closed). The pipeline is now fully mode-aware: 20 palette JSONs + 2 Material You variants render through one pipeline with light+dark parity fixtures (theme-parity 22 targets, 1190 checks, 0 failed); wallpaper sets are theme-scoped with a redesigned kitty-graphics picker; the legacy `themes/` stow package is deleted.
-
-**v2.0 Phase 4 complete (2026-07-11): Reliability Fixes & Tech Debt** — 6 plans (incl. 2 gap closures), all four requirements (FIX-01/02/03, DEBT-01) verified: 4/4 UAT pass, verification passed, security review clean (19/19 threats closed), code review 0 critical. The base is de-risked for the redesign phases. Kitty now launches fish (33.9ms); zsh retained as TTY fallback.
+**Shipped: v2.0 Desktop Expansion (2026-07-25)** — 7 phases (4-10), 64 plans, 444 commits, 488 files (+57,232 / −3,151) over 16 days. All 36 v2 requirements verified; every phase closed `verification_status: passed`; open-artifact audit clear at close.
 
 **Shipped: v1.0 Theme Pipeline Repair (2026-07-09)** — 3 phases, 9 plans, 98 commits, 160 files (+13,636 / −1,176) over 3 days. All 19 v1 requirements verified; milestone audit passed.
 
-- **Repo layout:** one stow package per app (`hypr/`, `kitty/`, `walker/`, `thunar/`, `gtk/`, `waybar/`, `swaync/`, `matugen/`, `theme-engine/`, `themes/`, `wallpapers/`, `uwsm/`, `vscodium/`, `yazi/`, `zshell/`, `fastfetch/`, `wleave/`), plus `install.sh`, `stow.sh`, and `verify/` (container gate harness) at the root. The dead `wofi/` package was removed in v1.0; `wlogout/` was deleted in Phase 9 when the power menu moved to `wleave/`.
-- **Theming pipeline:** `theme-engine/` owns everything — `theme-apply <name>` renders static presets and Material You through the same matugen templates into `~/.local/state/theme/` (10-file output contract in `contract.json`), owns the single reload fan-out, and keeps generated output out of the git tree. `theme-doctor`, `theme-parity`, and `theme-stress-test` are rerunnable regression gates.
+- **Repo layout:** one stow package per app (`ags/`, `hypr/`, `kitty/`, `walker/`, `elephant/`, `thunar/`, `gtk/`, `waybar/`, `swaync/`, `swayosd/`, `matugen/`, `theme-engine/`, `wallpapers/`, `uwsm/`, `vscodium/`, `yazi/`, `fish/`, `zshell/`, `fastfetch/`, `wleave/`), plus `install.sh`, `stow.sh`, and `verify/` (container gate harness) at the root. Removed along the way: `wofi/` (v1.0), `themes/` (Phase 5), `wlogout/` (Phase 9), and eww's media popup (Phase 10).
+- **Theming pipeline:** `theme-engine/` owns everything — `theme-apply <name>` renders static presets and Material You through the same matugen templates into `~/.local/state/theme/`, owns the single reload fan-out, and keeps generated output out of the git tree. 22 theme targets (15 dark, 5 light, 2 Material You), mode auto-detected from palette lightness. `theme-doctor`, `theme-parity`, `theme-stress-test`, `waybar-equivalence-check` and `waybar-design-lint` are rerunnable regression gates.
+- **Desktop surfaces:** four-layout waybar (full/athena/floating/vertical) with OLED-safe single-owner visibility; wleave power menu (GTK4); hyprlock; SwayOSD; swaync control center; AGS v3 media applet with cava underlay; Zen browser; $SUPER-tap walker/elephant menu tree; screenshot + emoji/color/clipboard/icon/font utility suite.
 - **Reproducibility:** `install.sh` (flagged sections, hardware guards, hard-fail package verify) + `stow.sh` (idempotent, zero-prompt, first-boot theme seed) proven unattended in a podman container gate and a graphical VM with human sign-off.
-- **Tech debt (non-blocking):** GTK3 windows stay stale until closed (accepted upstream limitation); theme-doctor session checks are graphical-tier-only by design. rsync PACMAN_PKGS debt closed in Phase 4. Advisory review items open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in .zshrc, Logout not wrapped like Shutdown/Reboot (04-REVIEW.md WR-01..04).
+- **Tech debt (non-blocking, carried into v3.0):**
+  - GTK3 windows stay stale until closed (accepted upstream limitation); theme-doctor session checks are graphical-tier-only by design.
+  - Advisory review items open from Phase 4 (`04-REVIEW.md` WR-01..04): fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot.
+  - Stale `eww-media-popup` layerrules remain in `hypr/.config/hypr/config/windowrules.conf` (lines 259, 272) after Phase 10 retired that window — inert (no client ever claims the namespace) but dead config.
+  - The container-tier D-34/D-36 reproducibility rerun has been deferred since Phase 7 pending push authorization; it is unblocked as of the v2.0 push.
 
 ## Constraints
 
@@ -119,6 +128,16 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 | Dynamic `palettes/*.json` enumeration everywhere (no hardcoded theme lists) | theme-parity, stress test, and picker all drifted when presets were added; glob enumeration closes RESEARCH Pitfall 2 permanently | ✓ Good — Phase 5; adding a preset is now one JSON file |
 | Wallpaper folders 1:1 with palette basenames, per-theme last-used state file | No mapping file to maintain; empty folders fall open to keep-current so new presets need no wallpapers up front | ✓ Good — Phase 5; D-09/D-11/D-12 |
 | walker exit code 130 trusted as sole cancel signal in dmenu callers | walker 2.16.2 signals Esc via 128+SIGINT, never 0+empty; three-way branch (130 silent, other nonzero loud, 0 proceed) keeps hard failures visible | ✓ Good — Phase 5 gap closure; source-verified + hermetic checker 10/10 |
+| Every themed surface consumes the palette via `@import` from `~/.local/state/theme/`, never a copied file | One render target per surface, zero hex literals in repo stylesheets; adding a surface is a template + contract entry, not a new copy path | ✓ Good — Phase 6; scaled cleanly to 22 targets and to wleave/AGS later |
+| Menus built as elephant TOML providers rather than a separate menu tool | Walker's own backend already enumerates providers; a second tool would need its own theming, keybinds and install path | ✓ Good — Phase 7; a stow-parity gap that hid three menus is now closed by a self-healing guard |
+| Bare $SUPER tap opens the menu; app launcher moved to Super+Space | Resolved default bind-shadowing on Hyprland 0.55.4 by live keypress testing rather than assumption | ✓ Good — Phase 7; ~48-bind regression sweep found zero regressions |
+| Four waybar layouts composed from one shared `modules.jsonc` + `waybar-modules.css` via include/@import | Four copy-pasted layout files drifted constantly; a mechanical resolved-config equivalence gate proves zero behavior change on every edit | ✓ Good — Phase 8; `waybar-equivalence-check` 4/4 |
+| BAR-02 pixel-shift descoped with a written evidence artifact instead of silently dropped | Waybar's only CSS-actuation path (SIGUSR2) measurably flashes and reflows — mechanism-independent, so it kills the approach before the 2px question is reached; the requirement itself permitted evidence-backed descope | ✓ Good — Phase 8; reproducible gate table + luminance measurement in `08-BAR-02-EVIDENCE.md` |
+| A human render-and-look gate is load-bearing, not a formality | Phase 6 and Phase 8 both shipped visibly broken surfaces through fully green automated gates (CSS parse, shellcheck, theme-doctor, token resolution). Machines prove tokens resolve; only a human judges whether it reads correctly | ✓ Good — adopted Phase 8, formalized Phase 9/10; caught a "complete failure" bar and a real GTK4 assertion-failure bug an easing curve was triggering |
+| Migrate to GTK4 for the failure class, not for a feature | GTK3 discards an entire stylesheet on one invalid rule; GTK4 drops only the offending rule. wleave was chosen because it makes WLOG-01 structurally impossible — explicitly *not* to gain per-surface blur, which Hyprland's layerrule set cannot provide to any client | ✓ Good — Phase 9; failure class eliminated, blur expectation correctly pre-empted |
+| Fail-fast input-viability gate before building on an unproven toolkit | eww's popup was confirmed unable to deliver pointer input on this build only after a full feature was built on it. Phase 10 put a human-clicked test button at plan 2 with authority to STOP the phase | ✓ Good — Phase 10; gate passed on first click and de-risked the remaining four plans |
+| Consumer-check before retiring a toolkit | eww was removed only after grepping every defwindow, script, autostart entry, matugen template and layerrule for live consumers | ⚠ Revisit — Phase 10; the check missed two inert `eww-media-popup` layerrules still in `windowrules.conf` |
+| New stow packages must register in `stow.sh` in the same commit that creates them | `ags/` was fully populated but unregistered, so the applet only worked on this host via a manual `stow ags`; a fresh clone would not have reproduced it | ✓ Good — caught by Phase 10 verification and fixed in the same commit; matches the precedent set by eww, elephant and swayosd |
 
 ## Evolution
 
@@ -138,4 +157,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after Phase 9 (wlogout to wleave Migration)*
+*Last updated: 2026-07-25 after v2.0 Desktop Expansion milestone*
