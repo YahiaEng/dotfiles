@@ -1,245 +1,389 @@
 # Feature Research
 
-**Domain:** Hyprland desktop "rice" utilities and menus — v2.0 Desktop Expansion for an existing static+matugen theme-engine
-**Researched:** 2026-07-09
-**Confidence:** LOW-MEDIUM (websearch only, no MCP docs/curated sources available this run; all claims tagged LOW per `classify-confidence`; cross-referenced across 3-5 independent rices per topic where possible — treat as directionally solid but verify exact CLI flags/versions before building)
+**Domain:** Quickshell/QML desktop-shell surfaces for a mature Arch + Hyprland rice (dashboard, audio/network/bluetooth panels, workspace overview, ambient wallpaper/cursor, spring-based motion language)
+**Researched:** 2026-07-26
+**Confidence:** HIGH for end-4/dots-hyprland and Caelestia (soramanew) — read directly from source: GitHub API directory listings + raw `.qml` file contents, not just README/blog summaries. MEDIUM for HyDE/ML4W/Omarchy/Aylur (websearch only, not source-read). LOW/uncorroborated claims are flagged inline.
 
-## Context
+## Method note (read this before the tables)
 
-This is a **subsequent milestone** on an already-working theme-engine (static presets + matugen Material You, one pipeline, 10 desktop surfaces). This research covers ONLY the seven NEW v2.0 feature areas — it assumes the existing theme propagation pipeline, does not re-litigate it, and treats every new feature's "themed" requirement as "render through the existing `theme-apply` → `~/.local/state/theme/` pipeline," not a new theming mechanism.
+For end-4/dots-hyprland and Caelestia I did not rely on DeepWiki summaries alone — I walked the actual repo trees via the GitHub API and read the raw QML source of the specific files that answer this milestone's questions (sidebar/dashboard composition, overview implementation, volume/wifi/bluetooth dialogs, and the animation token files). Every claim below tagged **[source-read]** was verified this way and is HIGH confidence. Claims tagged **[websearch]** came from search snippets/DeepWiki only and are MEDIUM or LOW confidence as noted.
 
-Five reference rices anchor the comparison, and they split into two architectural camps:
+Repos read directly:
+- `end-4/dots-hyprland`, path `dots/.config/quickshell/ii/` — the "ii" (Illogical Impulse) family, the default/flagship experience
+- `caelestia-dots/shell` — Caelestia's standalone Quickshell shell
 
-- **Bash + Walker + waybar/swaync/wlogout camp:** **Omarchy** (basecamp), **HyDE**. Utilities are shell scripts and Rofi/Walker dmenu pickers layered onto standard Wayland tools (grim/slurp/satty, cliphist, swayosd). This is architecturally identical to this project's stack — Omarchy and HyDE are the directly-portable reference points.
-- **Custom Quickshell/QML shell camp:** **end-4/dots-hyprland**, **Caelestia**. These abandoned waybar/rofi entirely for one unified QML "shell" process (bar+sidebar+dashboard+OSD+lock as one brain). Architecturally incompatible with this project's waybar-based stack without a full framework rewrite — useful only as a UX/animation aspiration, not a portable implementation pattern.
-- **GTK4 settings-app camp:** **ML4W** — keeps waybar/rofi but adds a GUI settings app on top. Relevant analog for the "settings menu" item.
+---
 
-Given this project's existing investment (waybar, swaync, walker+elephant, wlogout, hyprlock, matugen templates), **Omarchy and HyDE are the primary implementation references; end-4/Caelestia inform aspiration/UX only.**
+## Feature Area 1: Dashboard Drawer
 
-## Feature Landscape
+### What it actually contains
 
-### Table Stakes (Users Expect These)
+**end-4/dots-hyprland ("right sidebar")** — this project's closest analog to "dashboard drawer" **[source-read: `SidebarRightContent.qml`, `CenterWidgetGroup.qml`, `BottomWidgetGroup.qml`]**:
 
-Features any modern-rice user assumes exist. Missing them makes the desktop feel unfinished relative to 2025/2026 peers.
+Top-to-bottom column layout inside one panel:
+1. `SystemButtonRow` — a row of system buttons (settings launcher, etc.) at the very top
+2. `QuickSliders` — mic/volume/brightness sliders, conditionally shown per-slider from config (`sidebar.quickSliders.{showMic,showVolume,showBrightness}`)
+3. **Quick-toggle grid** — pluggable between two visual styles (`ClassicQuickPanel` or `AndroidQuickPanel`, user-configurable "panel family"); toggle grid entries include Wi-Fi, Bluetooth, Night Light — each toggle taps to flip state instantly, and has an expand affordance that opens a **dedicated dialog** (see Feature Area 2) rather than cramming detail into the grid itself
+4. `CenterWidgetGroup` — **is literally a `NotificationList`** (the notification center's list lives inside this dashboard, not a separate surface)
+5. `BottomWidgetGroup` — a **tabbed, collapsible** card: Calendar / To-Do / Timer(Pomodoro), navigated via a vertical "navigation rail" of icon buttons, Ctrl+PageUp/PageDown to cycle tabs, collapses to a one-line "date • N tasks" summary row
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Screenshot: region/window/full capture | Baseline OS function on every DE; Wayland has no native screenshot key | LOW | `grim` (capture) + `slurp` (region select) is the universal base layer across every rice researched. |
-| Screenshot annotate before save/share | Users expect to mark up a screenshot without opening a separate app | LOW-MED | `satty` is the current de-facto standard (actively maintained successor to `swappy`, "needs no ricing" — themes itself sanely by default). Omarchy pipes grim+slurp output directly into satty. |
-| Screen recording (region or full) | Table stakes once screenshot suite exists; users expect symmetric capture-video capability | MED | `wf-recorder`, optionally scoped to a `slurp`-selected region. GIF output is typically a post-process (`wf-recorder` to mp4/webm, then `ffmpeg`→gif) — no rice found with native GIF capture; treat GIF as a conversion step, not a separate capture mode. |
-| Clipboard history picker | Every modern rice ships one; losing copied text/images is a daily papercut | LOW | `cliphist` (Wayland-native, stores text+image blobs) piped into Walker dmenu; selection re-copied via `wl-copy`. This project already has Walker/elephant running — reuse it as the picker frontend rather than introducing rofi/wofi. |
-| Emoji picker | Common productivity utility, cheap to build, expected in any "complete" launcher-driven rice | LOW | Flat emoji-list text file + `awk`/grep filtering fed into a dmenu-style picker (Walker). Trivial script, no external daemon needed. |
-| Themed power menu with fast, reliable actions | A power menu that hangs or looks stock breaks the "polished rice" impression instantly — this project's own known bug (shutdown hang) is exactly this failure mode | LOW-MED (redesign) / MED (bug fix) | wlogout is the standard tool across every bash-based rice researched (Omarchy, HyDE, JaKooLit). Rendered via Wayland layer-shell as a full overlay; buttons-per-row (`-b N`) and theme-driven `style.css` are the standard customization surface. |
-| Themed lock screen | Same expectation as above; lock screen is the most-seen surface after the desktop itself | LOW-MED (redesign) / MED (bug fix, focus-timing) | `hyprlock` is the only real option in this ecosystem; every Omarchy theme explicitly styles `hyprlock.conf` alongside bar/terminal/launcher — treat it as a first-class themed surface, not a system dialog. |
-| Volume/brightness OSD | Un-themed default OSD (or none at all) reads as unfinished; hardware media keys must "just work" without a keybind | LOW | `swayosd` is the standard answer (GTK, plain-CSS themeable at `~/.config/swayosd/style.css`, already selected in this project's STACK.md). Its systemd `--user` service listens at the libinput level, so hardware keys work even before any Hyprland keybind is wired. |
-| Media/now-playing widget in the bar | Nearly every 2025/2026 rice screenshot includes a now-playing widget; its absence is conspicuous | LOW | Waybar's **built-in** `mpris` module (backed by `playerctld`) is the standard, lowest-maintenance answer — already the STACK.md recommendation. No rice was found hand-rolling this unless they want a richer popover (see Differentiators). |
-| Notification-center access from the bar | swaync running headless with no visible bar affordance is a common "forgot to finish it" gap | LOW | A waybar `custom` module (icon) that runs `swaync-client -t` (toggle control-center) on click — trivial, already the standard pattern for swaync+waybar pairings. |
-| Icon theme applied consistently to file manager | Stock/mismatched icons in Thunar next to a fully-themed desktop is the single most common "this rice isn't finished" tell | LOW (apply) / MED (build a picker+installer) | `gsettings set org.gnome.desktop.interface icon-theme <name>` is the live-update mechanism (same layer this project's GTK theming already correctly uses per CLAUDE.md). Papirus (official `extra` repo) and Tela (AUR) are the two most commonly bundled icon themes across rices. |
-| At least one light theme option | A rice that is "always dark" reads as incomplete/inflexible by 2025/2026 standards; light-theme users are a large, vocal minority | LOW (once static-preset pipeline exists — already does) | Not a new mechanism, just new preset content through the existing pipeline — this project's existing static-preset architecture already supports this; it's a content task, not an engineering task. |
-| Wallpaper picker with live preview | Blind wallpaper selection (filename list, no thumbnail) feels dated; every modern rice picker shows thumbnails | LOW-MED | Both Omarchy and HyDE pickers show visual/thumbnail previews, not text lists. |
+Separately, a **second, independent sidebar** (`sidebarLeft`) holds AI chat, an "Anime" easter-egg widget, and a screen translator — this is end-4's analog to this project's existing AI-dashboard walker menu, not part of the "dashboard" proper.
 
-### Differentiators (Competitive Advantage)
+**Caelestia (soramanew)** — genuinely swipeable tabs, not a single scroll **[source-read: `modules/dashboard/Content.qml`, `modules/dashboard/dash/*.qml`]**:
 
-Not required, but where a rice earns "wow" reactions and matches Omarchy/HyDE's actual polish ceiling.
+A horizontally-flickable `Flickable` with **4 tabs**, each independently toggleable in config (`Config.dashboard.show{Dashboard,Media,Performance,Weather}`):
+1. **Dashboard tab** — `Calendar`, `DateTime`, a small `Media` mini-player, `Resources` (CPU/mem/etc at a glance), `SmallWeather`, `User` (profile picture/name — has a `FileDialog` "face picker" to set your own avatar)
+2. **Media tab** — full media player: `CoverVisualiser`, `LyricList`/`LyricsAndSelector`/`LyricsInfo`, `BackgroundShapes` (ambient cover-art-derived shapes), `Details`
+3. **Performance tab** — `HeroCard`, `BatteryTank`, `MemoryCard`, `NetworkCard`, `StorageCard`
+4. **Weather tab** — full weather view (separate from the small dashboard-tab weather widget)
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Omarchy-style Super-key hierarchical menu with custom icons | Turns the launcher into a full command center (apps, style, setup, install, system) instead of "just app search" — this is Omarchy's single most recognizable UX signature | MED-HIGH | Omarchy implements this as ONE bash dispatcher script (`omarchy-menu`, ~636 lines) driving Walker in **dmenu mode** at a fixed width (295px) for a consistent sidebar look, not Walker's normal fuzzy-search UI. Icons are resolved by **name** (matched against the active GTK icon theme via a tool like `nwg-icon-picker`), not raw image files — this is the concrete, load-bearing implementation detail: custom menu icons are icon-theme lookups, so they re-theme for free when the icon theme changes. **Important divergence to flag for planning:** Omarchy binds this to `Super+Alt+Space`, not bare `Super` — bare `Super` is Hyprland's default modifier for window-management binds (move/resize/workspace-switch), so binding the menu to bare `Super`-tap (distinct from `Super`-hold-for-modifier) requires a tap-vs-hold keybind mechanism, which is a real implementation risk this repo's roadmap should size explicitly, not assume is trivial. |
-| Theme-scoped wallpaper sets (static preset restricts to matching wallpapers; matugen allows any) | Prevents the "picked a nice static preset, then broke it by setting a clashing wallpaper" failure mode that plagues naive wallpaper-picker+static-theme combos; directly matches this project's own explicit requirement | MED | Omarchy and HyDE both implement this: wallpapers live in **per-theme directories** (HyDE: `~/.config/hyde/themes/<Theme-Name>/wallpapers/`), and the wallpaper picker only lists the active theme's set. Community Omarchy add-ons (e.g. `omarchy-aether-wallpapers`) go further with per-theme favorite/save/cycle/deactivate management via Walker menus. For matugen/dynamic mode, both rices treat wallpaper as unrestricted (any image → regenerate palette), matching this project's stated requirement exactly. |
-| Vertical (left) waybar layout as a selectable variant | Distinct visual signature vs. the near-universal horizontal-top bar; several rices ship it as an alternate layout, not a replacement | MED | No rice was found with a turnkey "flip to vertical" toggle — it is standard practice to maintain vertical layout as a **second config file** (waybar supports multiple simultaneous bar instances via array-of-objects config, or a `-c`-selected alternate config) with CSS `writing-mode`/rotated-module adjustments, not a runtime CSS transform of the horizontal bar. Treat as "new config variant," not "new feature of the existing bar." |
-| OLED-safe waybar behavior (auto-hide, dimming, pixel-shift) | Protects an OLED panel from burn-in from a bar that is visible ~100% of uptime at fixed pixel positions — a real hardware-protection feature, not cosmetic | MED-HIGH | No reference rice ships this as a packaged feature — it's a research gap across the whole ecosystem, not just this project. Closest existing primitive: `hyproled`, a standalone Hyprland shader tool that can target a defined screen region (documented example targets the bar's rectangle) and disables/dims alternating pixels, plus a cron-driven periodic pixel-shift. Realistic v2.0 scope is smaller than "full pixel-shift": auto-hide-on-idle/unfocused + avoiding static full-brightness/white bar segments is the pragmatic, low-complexity version; true pixel-shift is a stretch goal. **Flag for PITFALLS/roadmap: this needs its own focused research spike before planning, not just this survey.** |
-| Rich now-playing widget (album art, popover/expanded panel, scrub bar) | Goes beyond waybar's inline-text mpris module toward the "mobile OS" media UX users see in end-4/Caelestia screenshots | MED-HIGH | This is exactly the reason end-4 and Caelestia **abandoned waybar** for Quickshell — a click-to-expand popover with album art is hard to do well inside waybar's `custom` module model (JSON `{text,tooltip,class}` output, not arbitrary widget trees). Realistic waybar-compatible version: a `custom` module scripted against `playerctl metadata`/`play-pause`/`next`/`previous` with `on-click`/`on-scroll` actions, format string showing artist–title (optionally scrolling text via a marquee helper script), NOT a full popover — that requires either a GTK popover companion process or accepting waybar's inline-text ceiling. Recommend scoping to "inline `custom` mpris module with icons + scroll actions," explicitly deferring popover/album-art as future/Quickshell-only territory, consistent with this project's existing "no framework rewrite" constraint. |
-| AI dashboard as launchers + dedicated workspace (not embedded assistant UI) | Matches the project's explicit scope choice (Out of Scope: "Custom AI assistant widgets/sidebars") while still giving a cohesive "AI space" | LOW-MED | end-4's approach (AI chat sidebar built into the shell) is explicitly the pattern this project is **choosing not to build**. The lighter-weight, waybar-compatible equivalent already matches what Omarchy-style menus do elsewhere: a Walker submenu of AI-tool launch commands bound to auto-move-to a dedicated Hyprland workspace on launch (`windowrulev2 workspace` + `exec` wrapper script) — this is a config/scripting task, not a UI-build task, and is the only approach consistent with the stack's "no custom AI UI" constraint. |
-| Game center menu (Steam/Gamescope launch shortcuts, not a full gaming-mode DE switch) | Matches modern-rice trend (Omarchy ships Steam-Deck-style gaming-mode tooling) without the complexity of a full mode-switch | MED | Omarchy's own ecosystem has multiple **third-party add-ons** for this (not core Omarchy), e.g. a Steam+Gamescope+MangoHud+GameMode installer/launcher wired into Hyprland keybinds with a TUI to pick resolution/overlay before launch. Recommend treating "Game center" as a Walker submenu of launch commands (Steam, Gamescope big-picture, per-game shortcuts) rather than attempting a full display-mode/session switch — that's a different, much larger feature (compositor-level Gamescope session swap) that is out of proportion to "menu item." |
-| Settings menu (GUI-editable waybar/theme config) | ML4W's core differentiator — makes config changes discoverable without hand-editing JSON/CSS | MED-HIGH | ML4W ships a dedicated GTK4 app for this; building an equivalent from scratch is a meaningfully larger scope item than the other menu entries. Realistic v2.0 scope: a Walker submenu of **shortcuts to open specific config files/directories** in the user's editor (matches Omarchy's own "Setup" menu pattern — it also just opens `hyprland.lua`/waybar/walker configs for direct editing, it is NOT a GUI settings app either), not a bespoke settings GUI. Recommend explicitly scoping down from ML4W's GUI-app pattern to Omarchy's "quick-open config files" pattern to stay proportionate. |
-| Keybind cheat-sheet menu item | Cheap, high-value discoverability feature; several rices auto-generate this from live compositor state rather than hand-maintaining a doc | LOW-MED | Omarchy's `omarchy-menu-keybindings` dynamically queries `hyprctl binds` rather than maintaining a static list — this is the correct pattern to copy: auto-generated from the live Hyprland config, so it can never drift out of sync with actual keybinds (a real risk with a hand-written cheat sheet). |
-| Zen browser follows theme switches | Extends the "one switch re-themes everything" core value to a major non-native-toolkit app — meaningfully raises the "everything matches" bar | MED | Zen is Firefox-based; theming is via `userChrome.css` and requires `toolkit.legacyUserProfileCustomizations.stylesheets = true` in `about:config` (one-time, per-profile manual toggle — cannot be scripted around, `install.sh` should just document/prompt for it). Community precedent (DankMaterialShell's matugen integration) confirms the standard pattern: generate a matugen-templated CSS file (using matugen's color-key output, same as this project's other templates) and symlink/copy it to the profile's `chrome/userChrome.css`. **Critical constraint confirmed by two independent sources: there is no hot-reload for `userChrome.css` in Zen (or Firefox) — the browser must be fully restarted to pick up new theme colors**, same restart-required category as this project's existing GTK3 apps, not a live-CSS-reload app like GTK4/waybar. Plan the reload fan-out accordingly (kill+relaunch, not SIGUSR-style signal). |
+Navigation: drag/flick horizontally between tabs (threshold-based — drag past 1/10 of a page width commits to the next/prev tab, else it springs back), plus a `Tabs.qml` header row of icon buttons for direct tap-to-jump.
 
-### Anti-Features (Commonly Requested, Often Problematic)
+The **quick-toggle grid is NOT on Caelestia's dashboard** — it lives in a separate "Utilities" drawer (`modules/utilities/cards/Toggles.qml`) alongside idle-inhibit and screen-recording cards. **[source-read]** Toggle IDs confirmed in source: `wifi`, `bluetooth`, `mic`, `settings` (closes utilities, opens dashboard/settings), `gameMode`, `dnd`, `vpn` (conditionally hidden unless a VPN provider is configured). Toggles auto-split into two rows once there are more than 6.
 
-Features that sound good but would create disproportionate complexity or break this project's existing constraints.
+Caelestia's `Shortcuts.qml` also has a `showall` shortcut that toggles **launcher + dashboard + osd + utilities together** as one bundle, and every panel-toggle shortcut is guarded by `if (hasFullscreen) return;` — panels refuse to open over a fullscreen client (games, video). **[source-read]**
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|------------------|-------------|
-| Replacing waybar/rofi/wlogout with a Quickshell/QML shell (end-4/Caelestia style) | Their screenshots/demos are the most visually impressive results in the ecosystem right now | Total architecture rewrite: bar+sidebar+lock+OSD become one QML/C++ process instead of independently themed apps; directly contradicts this project's explicit constraint ("fixes and extends the existing setup, not a rewrite") and would invalidate the entire v1.0 theme-engine investment (10 surfaces already wired through one matugen pipeline) | Keep waybar+swaync+wlogout+walker; borrow specific UX ideas (animation quality, media popover concept) as inspiration for waybar `custom` modules, not as a reason to swap frameworks |
-| Full custom GTK settings GUI app (ML4W Settings App equivalent) | "Settings menu" item in the requirements sounds like it implies a settings app | Building and maintaining a bespoke GTK4 app is a multi-week scope item on its own, orthogonal to "add a Walker menu item," and creates a second theming surface (a whole new app) to keep in sync with the existing pipeline | Walker submenu of "open this config file" shortcuts (Omarchy's actual "Setup" menu pattern) — zero new theming surface, near-zero new maintenance |
-| Full Steam-Deck-style gaming-mode session switch (Gamescope compositor swap) | Omarchy's ecosystem has flashy "gaming mode" demos | This is a compositor-session-level feature (swapping to a Gamescope session and back), an order of magnitude more complex than a menu entry, with its own failure modes (session switch hangs, GPU driver quirks) unrelated to this milestone's theming/UX goals | Game center as a Walker submenu of launch shortcuts (Steam, per-game commands) — no session switching |
-| True embedded AI assistant sidebar/chat UI | end-4's AiChat sidebar is a visible differentiator in that ecosystem | Explicitly out of scope per this project's own PROJECT.md ("Custom AI assistant widgets/sidebars" — Out of Scope); would also require choosing/maintaining an LLM-backend integration unrelated to desktop theming | Launchers-only AI dashboard: Walker submenu of external AI tool launch commands + auto-move to a dedicated workspace |
-| Full pixel-shift OLED anti-burn-in (continuous sub-pixel image movement) | It's the "correct" TV/monitor engineering answer to burn-in | No existing Hyprland/waybar tool does this cleanly for a status bar (found only a shader-based partial primitive, `hyproled`, not a turnkey solution); attempting to build true continuous pixel-shift for a waybar overlay is a disproportionate research+engineering spike relative to the milestone's other items | Auto-hide-on-idle/unfocused + avoiding static full-brightness/white segments in the bar CSS — captures most of the real-world risk reduction at a fraction of the complexity; treat true pixel-shift as a separate future spike if still wanted |
-| Native animated GIF screen recording | "Smooth animations/feedback" in the requirement reads as if GIF should be a first-class recording *mode* | No rice records directly to GIF — recording is always to video (`wf-recorder` → mp4/webm) with GIF as a separate `ffmpeg` conversion pass; building a "record straight to GIF" mode duplicates work for a strictly worse format (larger files, no audio) | Video recording via `wf-recorder`, with an optional post-hoc "convert last recording to GIF" script action, not a distinct capture mode |
-| Re-theme on every wallpaper auto-cycle | Feels like the "obviously right" behavior if wallpapers are already theme-scoped and cycling | Already explicitly rejected in this project's own PROJECT.md Out of Scope ("latency/flicker cost; re-theme only on explicit user action") — restating here because the new theme-aware wallpaper picker/cycling feature makes this temptation more likely to resurface during implementation | Wallpaper cycling changes the background image only; palette regeneration stays a deliberate, explicit user action (theme-apply / picker "apply" step) |
+### How it's invoked and dismissed
+
+- **end-4**: `SUPER+N` toggles the right sidebar (dashboard), `SUPER+A`/`SUPER+B`/`SUPER+O` all toggle the left (AI) sidebar — redundant binds exist because of prior bind-shadowing history, a pattern this project has already lived through (Phase 7's Super-tap resolution). Bound via Hyprland's own `dispatch global quickshell:<name>` mechanism — Quickshell registers named "global shortcuts" that Hyprland's built-in dispatcher calls directly; **no custom IPC socket script is needed for this**. **[source-read: `hypr/hyprland/keybinds.lua`]**
+- **Caelestia**: bound the same way, one `CustomShortcut` per panel name, resolved through a per-screen `ShellState`/`ScreenState` boolean (`screenState.dashboard = !screenState.dashboard`). **[source-read]**
+- **Modality**: both are **non-modal overlays** on `wlr-layer-shell`, not modal dialogs — they render on top of everything via layer-shell but do not block input to the rest of the desktop. Keyboard focus is grabbed **on-demand** only while open (end-4: `WlrKeyboardFocus.OnDemand`; Caelestia: `HyprlandFocusGrab` on interactive panels like launcher/session). Click-outside-to-dismiss is implemented via a focus-grab-dismissed callback (`GlobalFocusGrab.dismissed → close panel`), not a raw click listener. **[source-read]**
+- Neither flagship rice uses an edge-swipe/hover gesture as the *primary* way to open the dashboard — keybind is primary. Caelestia's bar config has a documented `showOnHover`/`dragThreshold: 20` pair for edge-based reveal, but this is corroborated only via a config-file grep, not a fully-traced code path — treat "hover-to-reveal" as a secondary, optional interaction (MEDIUM confidence), not the way most users open it day to day.
+
+### Table stakes vs differentiators vs anti-features
+
+| Category | Feature | Notes |
+|---|---|---|
+| Table stakes | Calendar widget | Present in both flagships; trivial complexity (QML `Calendar` bindable to date) |
+| Table stakes | Media mini-controls on the dashboard | Both flagships surface *some* media widget on the dashboard's landing view even though a full player exists elsewhere — this project already has an AGS media card (Phase 10, MEDIA-01..04); the QML dashboard should embed a **compact** version of the same MPRIS data, not rebuild a second media backend |
+| Table stakes | System resources at a glance | Both flagships show it (`Resources`/`Performance` tab); LOW complexity if you already have a stats-polling script |
+| Table stakes | Quick-toggle grid | Every serious rice has one; end-4 nests it in the dashboard, Caelestia keeps it in a separate "Utilities" drawer — **either placement is defensible**, this project already has a toggle grid in swaync (BAR-05) that should be the model to extend, not replace |
+| Differentiator | Weather widget | Both flagships have it, but it's the one dashboard widget that requires an external dependency (a weather API/service, network calls, API-key or geo-IP handling) — MEDIUM complexity, and the only dashboard widget with an ongoing external-service dependency risk |
+| Differentiator | Tabbed/swipeable multi-view dashboard (Caelestia's 4-tab model) | Materially richer than a single scrolling column; higher QML complexity (gesture-driven `Flickable` + threshold commit logic) but the flagship-tier UX differentiator |
+| Differentiator | Collapsible bottom card with nav-rail (end-4's Calendar/Todo/Timer tabs) | Good middle ground — tabbed richness without full swipe-gesture complexity |
+| Differentiator | Profile picture / "face" widget (Caelestia's `User.qml`) | Cosmetic personalization touch; trivial complexity, low priority |
+| Anti-feature | Duplicating the notification center inside the dashboard | end-4 does embed a `NotificationList` in its dashboard's `CenterWidgetGroup` — but this project already has a fully-shipped, themed swaync notification center (BAR-05, Phase 8) with its own toggle grid and sliders. Building a second notification list in QML creates two sources of truth for "what did I miss" and doubles the maintenance surface for zero net new capability. **Do not replicate this end-4 pattern here** — the dashboard drawer should link/defer to the existing swaync surface, not re-implement it |
+| Anti-feature | A second independent quick-toggle grid that duplicates swaync's existing toggle grid (BAR-05) | Two toggle grids with two states to keep in sync is exactly the "anti-drift toggle grid" problem BAR-05 already solved once — if the QML dashboard needs toggles, it should read/write the *same* backing state BAR-05 already established, not own a second copy |
+
+### Complexity and dependencies
+
+- Depends on: Phase 11 (Quickshell viability gate) and Phase 12 (token pipeline) as hard prerequisites — nothing here is buildable before those land, per the milestone's own phase ordering.
+- Calendar, quick-toggle grid, media mini-controls, system resources: **LOW-MEDIUM** each, mostly QML plumbing over data this project already has (MPRIS backend, existing toggle state, theming tokens).
+- Weather: **MEDIUM**, the only widget introducing a new external-service dependency (API key/network/rate-limit handling) — scope this as its own vertical slice so a flaky weather API can't block the rest of the drawer.
+- Full 4-tab swipeable model (Caelestia-style): **MEDIUM-HIGH** — worth deferring to "if time remains" rather than the MVP cut, given the milestone's own cut-candidate framing for ambient extras; a single-column dashboard (end-4-style) delivers most of the value at lower risk.
+
+---
+
+## Feature Area 2: Audio + Connectivity Panels (volume mixer, wifi, bluetooth)
+
+### What each surface actually contains
+
+**Per-app volume mixer — only end-4 has a real one. [source-read: `sidebarRight/volumeMixer/VolumeDialogContent.qml`, `VolumeMixerEntry.qml`]**
+
+- Built on **`Quickshell.Services.Pipewire`** — a Quickshell built-in QML module wrapping PipeWire directly; no custom D-Bus/PulseAudio binding needs to be hand-rolled.
+- Dialog layout: a scrollable list of `VolumeMixerEntry`, one per active PipeWire app-node (`Audio.outputAppNodes` / `Audio.inputAppNodes`), each entry = app icon (looked up by `application.icon-name` / `node.name` via the same icon-guessing logic as the app launcher) + click-icon-to-mute (desaturates the icon while muted) + (implied, cut off in the portion read) a per-app volume slider — plus a device-selector combobox at the bottom to change the **default** sink/source. Two identical dialogs exist: one for output apps (`isSink: true`), one for input/mic apps.
+- **Caelestia has no per-app mixer at all.** `[source-read: modules/bar/popouts/Audio.qml]` — its Audio popout is only: output-device radio list, input-device radio list, a master-volume slider (scroll-wheel adjustable), and an "Open settings" button that hands off to an external app. This is a deliberate, confirmed scope decision by a flagship rice, not an oversight — **strong signal that a minimal in-shell mixer commonly stops at "pick device + master volume" and per-app sliders are the differentiator, not table stakes.**
+
+**Wifi picker — both flagships converge on the same shape. [source-read: `wifiNetworks/WifiDialog.qml` (end-4), `bar/popouts/Network.qml` (Caelestia)]**
+
+- Scanning-in-progress indicator (indeterminate progress bar) while a scan runs
+- A list of visible networks (end-4: `Network.friendlyWifiNetworks`; Caelestia: `Nmcli.networks`, with a wireless/ethernet view toggle)
+- Tap a network → password dialog if secured (Caelestia has a dedicated `WirelessPassword.qml`; end-4's `WifiNetworkItem` presumably does the same, not fully read)
+- **Both have an explicit "Details"/"Open settings" button that shells out to an external app** (`Config.options.apps.network`) rather than reimplementing advanced settings in-shell — this is the load-bearing finding for scoping (see below)
+
+**Bluetooth manager — same shape again. [source-read: `bluetoothDevices/BluetoothDialog.qml` (end-4), `bar/popouts/Bluetooth.qml` (Caelestia)]**
+
+- Adapter enable/discovering toggles
+- Discovering-in-progress indicator
+- Device list (`BluetoothStatus.friendlyDeviceList` / `Bluetooth.defaultAdapter`)
+- Same **"Details" → external app (`Config.options.apps.bluetooth`)** escape hatch in end-4 for anything beyond connect/disconnect
+
+### What pavucontrol / nm-connection-editor / blueman provide that a minimal in-shell panel typically does NOT
+
+This is the single most important finding for honest scoping, and it is corroborated by the fact that **both reference flagship rices themselves keep an explicit escape hatch to these exact external tools** rather than trying to reach full parity in QML:
+
+- **pavucontrol** provides: per-**stream** port/profile switching (e.g. route one app to headphones while another stays on speakers), full device **profile** switching (analog stereo vs. surround/5.1, HDMI vs analog), per-device latency/loopback controls, and configuration-tab hardware controls beyond simple mute/volume. A minimal panel (as built by end-4) gets you per-app mute + presumably a volume slider + default-device selection — it does **not** get you per-stream output routing or hardware profile switching without extra work.
+- **nm-connection-editor** provides: full connection **editing** — static IP/gateway/DNS, VPN profiles (plugin-based, many VPN types), 802.1X enterprise authentication, hidden-SSID manual entry, connection priority/metric, proxy configuration, IPv6 settings. A minimal wifi picker (as built by both flagships) gets you "see networks, tap one, type a password" — it does **not** get you enterprise auth, static IP, or VPN profile management without falling back to the external tool.
+- **blueman-manager** provides: OBEX file-transfer send/receive, PIN-code/passkey pairing dialogs for devices requiring manual pairing confirmation, per-device **service** browsing (which Bluetooth profiles a device advertises), trust management, and audio-profile switching for Bluetooth audio devices. A minimal panel gets you scan/connect/disconnect/forget — it does **not** get you file transfer, PIN-pairing flows, or per-device service/profile inspection.
+
+**Recommendation for this project, following the flagship precedent exactly:** build the in-shell panels to the same intentionally-limited scope both references chose (device pick + basic list/toggle actions), and wire an explicit "Details"/"Advanced" button on each panel that launches the existing GUI app (pavucontrol / nm-connection-editor / blueman-manager) for anything beyond that. This is not a compromise invented for this project — it is the pattern the two best-regarded rices in the ecosystem both independently converged on.
+
+### Table stakes vs differentiators vs anti-features
+
+| Category | Feature | Notes |
+|---|---|---|
+| Table stakes | Wifi list + connect + password prompt | Both flagships; MEDIUM complexity — Quickshell has no confirmed built-in NetworkManager QML module the way it has one for Pipewire/Bluetooth, so this likely means D-Bus calls to NetworkManager directly or shelling out to `nmcli` (Caelestia's approach — its service is literally named `Nmcli`) |
+| Table stakes | Bluetooth device list + connect/pair/forget | Both flagships; **Quickshell does ship a built-in `Quickshell.Bluetooth` module** (`Bluetooth.defaultAdapter`, `BluetoothDevice`) confirmed in both codebases — LOW-MEDIUM complexity, most of the plumbing exists already |
+| Table stakes | Master volume + output/input device switch | Caelestia's floor-level scope; do at minimum |
+| Table stakes | Escape-hatch "Advanced" button to the real GUI app | Confirmed present in every panel of both flagships — treat as non-negotiable, not optional polish |
+| Differentiator | Per-app volume mixer with per-app mute/slider | Only end-4 has this; genuinely differentiating and directly named in this milestone's scope. Built on Quickshell's native Pipewire service — **complexity is lower than it sounds** because the hard integration work (Quickshell↔PipeWire binding) is already solved upstream |
+| Anti-feature | Full connection-editing (static IP, VPN profiles, 802.1X) in-shell | Neither flagship attempts this; both defer to nm-connection-editor. Building it would mean re-implementing a large fraction of NetworkManager's own GUI for a feature almost never used day-to-day |
+| Anti-feature | OBEX file transfer / PIN-pairing flows in-shell | Neither flagship attempts this; low-frequency use case, high implementation cost (file picker, transfer progress, PIN entry state machine) for rare payoff |
+| Anti-feature | Per-app audio **routing** (assign app X to output Y) beyond default-device switching | Not present in either flagship's per-app mixer (end-4's mixer controls mute + presumably volume, not per-app output routing) — resist scope creep toward pavucontrol's full per-stream-port matrix |
+
+### Complexity and dependencies
+
+- Bluetooth panel: **LOW-MEDIUM** — Quickshell ships `Quickshell.Bluetooth` natively (confirmed in both codebases), most binding work is already done upstream.
+- Per-app volume mixer: **MEDIUM** — Quickshell ships `Quickshell.Services.Pipewire` natively; the remaining work is UI + reusing this project's existing icon-lookup logic (walker/elephant already do app/icon indexing — reuse that instead of reinventing `AppSearch.guessIcon`).
+- Wifi panel: **MEDIUM-HIGH**, the one panel of the three without a confirmed Quickshell-native binding — expect either raw D-Bus-to-NetworkManager calls or `nmcli` shelling, both of which need scan-state polling and password-prompt state-machine work regardless of approach.
+- All three panels depend on the toggle-grid state model from Feature Area 1 (wifi/bluetooth toggles live in the quick-toggle grid; the panels are the "expand" targets of those same toggles) — build the toggle grid first, panels second.
+- All three should share one `WindowDialog`/`ToggleDialog` component pattern (end-4's approach: a generic dialog wrapper reused for Wifi/Bluetooth/NightLight/Volume) rather than four bespoke popup implementations — this is a reusability finding worth carrying into the requirements as an architectural constraint, not just a feature list item.
+
+---
+
+## Feature Area 3: Workspace Overview
+
+### What the surface actually contains
+
+**[source-read: `end-4/dots-hyprland`, `modules/ii/overview/{Overview,OverviewWidget,OverviewWindow,SearchBar}.qml`]** — this is the only one of the two flagships with a full-screen Exposé-style overview; **Caelestia does not have one** (see below).
+
+- **Layout**: a grid of workspace tiles, `rows` × `columns` configurable (`Config.options.overview.rows/columns`), grouped into pages of `rows*columns` workspaces at a time (`workspaceGroup`), each workspace tile shows its number and contains live thumbnails of every window on it, scaled by a single `Config.options.overview.scale` factor. Order can be bottom-up or right-to-left (`orderBottomUp`/`orderRightLeft` config flags).
+- **Live thumbnails**: each window is a `ScreencopyView` (Quickshell's built-in Wayland screencopy component) with `live: true`, `captureSource` bound to the Hyprland `toplevel` — i.e. genuinely live video-like previews, not periodically-refreshed screenshots. Compact windows below a size threshold switch to a smaller icon-only "compact mode" instead of trying to render a tiny live thumbnail.
+- **Interactions confirmed in source**:
+  - **Click a workspace tile** → `Hyprland.dispatch("hl.dsp.focus(...)")` + closes the overview (jump-to-workspace)
+  - **Drag a window thumbnail onto a different workspace tile** → implemented via Qt `DropArea`/drag machinery on both the window (drag source) and workspace tile (drop target), with a hover-highlight state (`hoveredWhileDragging`) on the target tile while dragging
+  - **Type while the overview is open** → live fuzzy-search over open windows (`SearchBar`/`SearchWidget`), auto-focuses the first match — the overview doubles as an Alt-Tab-style window switcher, not just a workspace grid
+  - Windows on a workspace other than the currently-focused monitor's are rendered at reduced opacity (0.4) as a visual "elsewhere" cue
+- **Invocation/dismissal**: `SUPER+Tab` toggles it (Hyprland global-dispatch mechanism, same as the dashboard). Runs on a dedicated `wlr-layer-shell` surface (`namespace: "quickshell:overview"`) with `keyboardFocus: OnDemand` while open, and uses the same `GlobalFocusGrab`/click-outside-dismiss pattern as the dashboard — **non-modal overlay, but keyboard-focus-grabbing while open**, consistent with the rest of the shell.
+
+**Caelestia does not implement a full-screen overview.** Its closest analog is `modules/windowinfo/WindowInfo.qml` **[source-read]** — a small hover-triggered preview popup anchored to a single window's taskbar icon (shows one window's live preview + details on hover), not an Exposé-style all-workspaces grid. Caelestia's bar instead shows small per-workspace window icons inline (`bar.workspaces.showWindows`, `maxWindowIcons: 5`) rather than a dedicated overview surface. **This means end-4 is the primary and effectively only flagship reference for this feature area** — treat Caelestia's absence of it as a data point that a full overview is a genuinely large, optional investment, not something every top-tier rice ships.
+
+### The research-gate question is answerable now, and the risk is lower than PROJECT.md assumes
+
+PROJECT.md frames this feature as **"research-gated on the hyprexpo / `hyprland-toplevel-export-v1` plugin question."** Source-reading end-4's actual implementation resolves this:
+
+- end-4's overview uses **`Quickshell.Wayland.ScreencopyView`** with a `Toplevel` capture source, and **`Quickshell.Wayland.ToplevelManager`** for window enumeration — both are Quickshell's own built-in QML types, confirmed against Quickshell's official docs (`quickshell.org/docs/.../Quickshell.Wayland/{ScreencopyView,ToplevelManager,Toplevel}`).
+- `ToplevelManager` uses the standard, cross-compositor **`zwlr-foreign-toplevel-management-v1`** Wayland protocol.
+- Live per-window screencopy (`ScreencopyView` with a `Toplevel` source) requires the compositor to support **`hyprland-toplevel-export-v1`** — but this is a **protocol Hyprland implements natively in the compositor itself**, not a separate plugin that needs `hyprpm` to install. It is architecturally unrelated to `hyprexpo` (which is a *different*, unrelated compositor-side Exposé effect plugin that end-4 does not use here at all).
+- Net effect: **building this feature in Quickshell needs zero extra Hyprland plugins and zero `hyprpm` dependency** — it is pure QML/Quickshell application code calling Wayland protocols Hyprland already ships. A standalone third-party repo (`Shanu-Kumawat/quickshell-overview`) exists purely to package this exact pattern as a reusable module, corroborating that this is a known, repeatable technique, not an end-4-only trick.
+- **This substantially de-risks the milestone's most uncertain feature.** The real remaining risk is not "does the protocol exist" (it does, confirmed) but ordinary QML/Quickshell implementation effort: drag-and-drop between workspace tiles, grid layout math, and the live-thumbnail performance characteristics under this project's actual Hyprland 0.56.0 build — which is exactly what the Phase 11 viability gate should be validating with a real `ScreencopyView` test, not a paper read of whether the protocol exists.
+
+### Table stakes vs differentiators vs anti-features
+
+| Category | Feature | Notes |
+|---|---|---|
+| Differentiator (not table stakes) | Full-screen live-thumbnail overview at all | Only one of the two flagships (end-4) has this; Caelestia deliberately doesn't. This is a genuine differentiator to build, not an assumed baseline — its absence in a rice does not read as "incomplete" the way a missing dashboard would |
+| Differentiator | Drag window between workspaces from the overview | Confirmed in end-4; meaningfully increases implementation complexity (drag source + drop target + hover state) over a click-only grid |
+| Differentiator | Type-to-search-and-jump while overview is open | Confirmed in end-4; turns the overview into a second app-switcher, arguably overlapping with this project's existing walker launcher — worth an explicit requirements decision on whether this duplication is wanted or should be left out to avoid two "type to find a window/app" surfaces |
+| Anti-feature (candidate) | Reduced-opacity cross-monitor windows, xwayland indicators, compact-mode icon fallback, per-corner-radius masking | All present in end-4's implementation as visual polish on top of the core grid; genuinely nice but each is separately-cuttable detail work, not part of a minimal viable overview |
+
+### Complexity and dependencies
+
+- Depends on: Phase 11 viability gate (must prove `ScreencopyView`/`ToplevelManager` actually deliver live frames performantly on this exact Hyprland 0.56.0 build — this is the concrete thing "research-gated" should mean now, not "does the Wayland protocol exist") and Phase 12 motion tokens (entrance/exit choreography, see Feature Area 5).
+- Grid layout + click-to-focus: **MEDIUM** — mostly layout math and Hyprland IPC calls this project already has experience with (existing `hyprctl`-based scripts).
+- Live thumbnails via `ScreencopyView`: **MEDIUM**, contingent entirely on the Phase 11 gate's performance findings (multiple simultaneous live Wayland screencopy streams is the one part of this feature with real unknowns left).
+- Drag-to-move-workspace: **MEDIUM-HIGH**, additive on top of the grid — sequence this as a follow-up slice after click-to-focus ships, not bundled into the first cut.
+- Type-to-search: **LOW-MEDIUM** technically, but see the anti-feature note above on overlap with walker — this is a scope decision, not just an effort estimate.
+
+---
+
+## Feature Area 4: Ambient Extras (animated wallpaper, dynamic cursors)
+
+### Animated/video wallpaper
+
+**[source-read: `end-4/dots-hyprland`, `modules/ii/background/Background.qml`]** and **[source-read: `caelestia-dots/shell`, `modules/background/Wallpaper.qml`]**
+
+- **end-4 supports video wallpapers** (`.mp4/.webm/.mkv/.avi/.mov` detected by extension), but the Quickshell layer itself does **not** render the live video frame-by-frame — it renders a **pre-generated static thumbnail** of the video (`Config.options.background.thumbnailPath`) as the actual QML background image, while a companion script directory (`scripts/videos/`, `scripts/thumbnails/`) exists for generating that thumbnail. The strong implication (consistent with community `mpvpaper` usage patterns confirmed via websearch — MEDIUM confidence, not directly source-read for the playback half) is that the *actual playing video* is rendered by a separate process (`mpvpaper`, layered beneath everything as the real Wayland-level wallpaper), and Quickshell's own background layer only needs a still frame for things like color-extraction, workspace-thumbnail backdrops, and parallax math — not for painting the moving picture itself.
+- end-4's background layer additionally implements: **parallax** (wallpaper shifts based on which workspace is focused, `parallax.workspaceZoom`/`autoVertical`/`vertical` config), and **hide-on-fullscreen** (`hideWhenFullscreen` — the background layer's `visible` binding checks for a fullscreen client on that monitor and hides itself), plus an opt-in "work safety" content-sensitivity check that blurs/hides the wallpaper based on filename keywords + network SSID keywords (a NSFW-wallpaper-at-work safeguard — cute but almost certainly out of scope for a personal single-user rig).
+- **Caelestia's wallpaper module only supports static images** (`CachingImage`, with a "wallpaper missing" empty-state and a file-picker to select one) — **no video/animated wallpaper support confirmed in source**. This is a second data point (alongside the missing overview) that Caelestia is the more conservative/minimal of the two flagships on ambient-extras-style features; end-4 is the reference for this specific feature.
+- `mpvpaper` itself (the actual video-wallpaper player, **[websearch, MEDIUM confidence]**) is a standalone wlroots-compatible tool (`mpvpaper OUTPUT /path/to/video`, or `'*'` for all outputs), commonly wrapped in a small systemd user service so it survives logout/login and can be paused (`mpvpaper-stop`) to save power/CPU when not visible — this project's existing pattern of dedicated systemd `--user` services (SwayOSD, cava) is a good precedent to follow rather than a raw exec.
+
+### Dynamic cursors
+
+**[websearch, MEDIUM-HIGH confidence — corroborated across the Hyprland wiki, hyprcursor standards doc, and the plugin's own repo]**
+
+- "Dynamic cursors" in the Hyprland ecosystem is not a Quickshell/QML feature at all — it is **`VirtCode/hypr-dynamic-cursors`**, a **Hyprland compositor plugin** (installed via `hyprpm`) that works on top of `hyprcursor` (Hyprland's own modern cursor-theme format, which itself supports true multi-frame animated cursors via per-size delayed image sequences — distinct from and more capable than legacy XCursor).
+- The plugin's actual effect: stretches/squishes the cursor shape based on movement velocity (a cartoon-style "squash and stretch" cue), plus a "shake to find" cursor-enlarge gesture similar to Windows/macOS.
+- **This is architecturally independent of everything else in this milestone** — it is rendered by the Hyprland compositor itself, not by Quickshell/QML, and has zero interaction with the token pipeline's QML/GTK4/Hyprland-bezier render targets. It is thematically on-brand ("physics-flavored motion") but mechanically unrelated work.
+- **Pitfall carried over from this project's own STACK research**: Hyprland plugins installed via `hyprpm` are ABI-coupled to the exact compositor build and can silently break on a Hyprland version bump, requiring a `hyprpm update`/rebuild. Treat this exactly like any other `hyprpm` plugin dependency this project already has to reason about — not free of the version-coupling risk just because it's visually minor.
+
+### Table stakes vs differentiators vs anti-features
+
+| Category | Feature | Notes |
+|---|---|---|
+| Differentiator | Video/animated wallpaper | Only end-4 confirmed to support it; genuinely visually striking but the actual video playback almost certainly lives outside Quickshell (a separate `mpvpaper` process) — the QML-side work is thumbnail generation + hide-on-fullscreen + optional parallax, not a video decoder |
+| Differentiator | Wallpaper parallax on workspace switch | A nice, comparatively cheap add-on once static/video wallpaper rendering exists — reuses workspace-change events this project's Hyprland config already fires |
+| Differentiator | Dynamic/squash-stretch cursor | Genuinely differentiating and visually distinctive, but note it is a **compositor plugin, not a shell feature** — lowest QML effort in the entire milestone (a hyprpm install + a few config lines), at the cost of a plugin-ABI coupling risk independent of everything else built this milestone |
+| Anti-feature | "Work safety" NSFW-wallpaper auto-blur | end-4 has this; there is no plausible reason for a personal single-user rig to need it, and it adds a keyword-matching content-sensitivity system for zero benefit here |
+| Anti-feature (scope discipline, not "bad idea") | Building video-wallpaper *playback* itself inside Quickshell/QML | Neither flagship renders live video through QML — both treat video wallpaper as an external-process concern and only touch a static derived thumbnail from QML. Attempting true in-QML video playback would be reinventing what `mpvpaper` already solves |
+
+### Complexity and dependencies
+
+- This entire feature area is explicitly the milestone's own designated first cut if time runs short (per PROJECT.md) — the research supports that framing: both sub-features are legitimately separable from the token pipeline and can be dropped without leaving anything half-built elsewhere.
+- Video wallpaper: **MEDIUM** (thumbnail-generation script + hide-on-fullscreen binding + systemd service wrapper for `mpvpaper`), independent of Quickshell's dashboard/overview work.
+- Dynamic cursor: **LOW** (hyprpm plugin install + config), fully independent of the Quickshell/motion-language track — could ship in any phase, or be cut entirely, without touching anything else.
+- Neither ambient extra depends on the token pipeline (Phase 12) the way the dashboard/overview/panels do — they're the most decoupled feature area in the milestone, which is exactly why they're the correct cut candidate.
+
+---
+
+## Feature Area 5: Spring-Based Motion Language
+
+### The central, milestone-relevant finding
+
+**Neither flagship reference rice actually uses QML's native `SpringAnimation` type or literal mass/stiffness/damping physics anywhere in their shared animation infrastructure. [source-read, HIGH confidence — verified independently in both codebases' core animation-token files]**
+
+- **end-4/dots-hyprland** (`modules/common/Appearance.qml`): defines a fixed table of **Material Design 3 Expressive motion tokens** — named duration+bezier-curve pairs such as `expressiveFastSpatial` (350ms), `expressiveDefaultSpatial` (500ms), `expressiveSlowSpatial` (650ms), `expressiveEffects` (200ms), plus MD3's standard `emphasized`/`emphasizedAccel`/`emphasizedDecel`/`standard`/`standardAccel`/`standardDecel` curves — each a literal cubic/multi-segment Bézier control-point array. Every animated property in the codebase (`Behavior on x/y/width/height/opacity`) uses `easing.type: Easing.BezierSpline` with `easing.bezierCurve: Appearance.animationCurves.<name>` — this is **fitted-curve, duration-based animation with named semantic tokens**, not physics simulation.
+- **Caelestia** (`components/Anim.qml`, `CAnim.qml`, `AnchorAnim.qml`): an independent implementation of the **exact same Material Design 3 Expressive Motion System** — a `NumberAnimation` subclass with an enum of named types (`FastSpatial`/`DefaultSpatial`/`SlowSpatial`/`FastEffects`/`DefaultEffects`/`SlowEffects`/`Standard*`/`Emphasized*`) mapping to the same category of duration+bezier-curve token pairs, pulled from a `Tokens.anim` config singleton. Also duration-based bezier curves, not `SpringAnimation`.
+- Both projects independently arrived at the **same underlying motion system (Google's Material Design 3 Expressive)** rather than at literal spring physics, despite one (Caelestia) explicitly branding itself as a "fluid, morphing shell." This is strong, cross-corroborated evidence that **"spring-like feel" in this ecosystem is achieved via carefully fitted Bézier duration tokens, not runtime mass/stiffness/damping simulation.**
+
+**Implication for this milestone's own stated design decision** ("spring physics is the source of truth; CSS/Hyprland curves are a compile target" — see PROJECT.md Key Decisions): this project is choosing to be **more ambitious than either flagship reference**, not merely catching up to them. That is a legitimate, deliberate choice — QML's `SpringAnimation` type does exist and is a real, usable primitive — but the roadmap should not assume "match the reference rices' motion quality" implies "they used springs, so we're just doing the same thing." The actual bar both flagships hit was: a small, curated set of named duration+curve tokens applied *consistently* everywhere, not the specific physics model. **The requirements should treat "spring source of truth, fitted-curve compile targets" as this project's own differentiator to validate on its own merits (does it look/feel better than MD3 Expressive tokens in practice?), not as replicating an already-proven pattern.** This is also a natural fallback: if the mass/stiffness/damping-to-bezier fitting pipeline proves harder than expected, landing on a hand-curated MD3-Expressive-style token set (duration + bezier per semantic category) is a proven, lower-risk substitute that both flagship rices demonstrate is sufficient to reach flagship-tier perceived quality.
+
+### How the reference rices actually choreograph entrance/exit and stagger
+
+**[source-read across multiple files in both codebases]**
+
+- **Single-scalar-drives-everything pattern (Caelestia, `modules/dashboard/Wrapper.qml`)**: the dashboard's entire entrance/exit is driven by **one** `offsetScale` property (0 = open, 1 = closed) with a single `Behavior on offsetScale { Anim {} }`. That one animated scalar simultaneously derives the panel's `anchors.topMargin` (slide off-screen above the top edge), `opacity` (fade), and `visible` (via `offsetScale < 1`). There is no separate slide animation and fade animation running independently and needing to be kept in sync — one curve, multiple derived properties, mathematically guaranteed to stay synchronized. This single-property technique, more than any specific curve shape, is very plausibly *the* actual source of the "polished, cohesive" feel — desynchronized slide/fade timings are a classic tell of amateur motion work, and this pattern makes that class of bug structurally impossible.
+- **Neighbor-panel reflow (Caelestia, `modules/drawers/Panels.qml`)**: panels don't just animate themselves — opening one panel (e.g. the session/power menu) reactively pushes a *neighboring* panel (e.g. the OSD) out of the way, because the neighbor's anchor margin is bound to `otherPanel.width * (1 - otherPanel.offsetScale)`. The whole drawer stack behaves like a connected physical system even though no single animation spans multiple panels — this is composition of independently-simple animated scalars into an emergent choreography.
+- **Asymmetric entrance vs exit curves (end-4, `Appearance.qml` `elementMoveEnter`/`elementMoveExit`)**: entrance uses `emphasizedDecel` (400ms, decelerating into place — a "settling" feel) while exit uses `emphasizedAccel` (200ms, faster and accelerating away). Exits are deliberately shorter and more linear/urgent; entrances are longer and more cushioned. This asymmetry (not a shared duration/curve for both directions) is a second concrete, source-verified technique behind "feels expensive."
+- **Sequential fade-out → swap → fade-in for content replacement (both codebases: end-4's `BottomWidgetGroup` tab switch `SequentialAnimation`; Caelestia's `AnimLoader`)**: switching tab content is never a hard cut or a simultaneous cross-fade — it's fade-current-out (fast), swap the underlying `Loader.source`/`sourceComponent`, fade-new-in (with a small position offset in end-4's version — the new tab content enters from a ±10px vertical offset with the entrance curve, compounding a slide+fade rather than a pure fade). This "exit, swap, entrance" sequencing (not a cross-fade) is the specific technique for tab/content switches, distinct from the panel-level open/close technique above.
+- **No literal per-item staggered-list-reveal animation was found in either codebase** in the files read (e.g. no `delay: index * N` pattern turned up in the dashboard/toggle-grid files examined). The "stagger" the milestone is asking about should probably be scoped as new/differentiating work rather than assumed present in the reference rices — if it's wanted (e.g. quick-toggle grid items cascading in one after another), that is going beyond what either flagship demonstrably does, which is worth flagging explicitly rather than assuming it's already a solved, copyable pattern.
+
+### Table stakes vs differentiators vs anti-features
+
+| Category | Feature | Notes |
+|---|---|---|
+| Table stakes | One consistent named-token set (duration+curve per semantic category) applied to every surface | Confirmed as the actual baseline both flagships hit — non-negotiable if the goal is "feels as good as end-4/Caelestia" |
+| Table stakes | Single-scalar entrance/exit driving position+opacity+visibility together | The concrete, source-confirmed technique behind "no desync" — should be an explicit architectural requirement (one `Behavior`, multiple bound derived properties), not left to each surface's author to reinvent per-panel |
+| Table stakes | Asymmetric entrance (slower, decelerating) vs exit (faster, accelerating) curves | Confirmed in end-4; a cheap, high-leverage rule to bake into the token pipeline from day one |
+| Differentiator | True spring physics (mass/stiffness/damping) as the actual source of truth, compiled to fitted Bézier curves for CSS/Hyprland targets | This project's own stated ambition — genuinely goes beyond what either flagship rice does; real, not yet proven, complexity — validate perceived-quality gain empirically rather than assuming it's a strict improvement over hand-tuned MD3-style tokens |
+| Differentiator | Reactive neighbor-panel reflow (opening one drawer visually displaces another) | A nice emergent-choreography touch confirmed in Caelestia; meaningfully increases coupling between panels' layout code, so scope this only once individual panels are stable |
+| Anti-feature (risk to flag, not "don't build") | Staggered per-item list-reveal animations | Not found as an established pattern in either flagship's actual source in the files examined — if the roadmap wants this, treat it as new ground, budget accordingly, and don't assume "the reference rices already solved this, just copy it" |
+| Anti-feature | Reinventing per-surface bespoke animation code instead of one shared token library | Both flagships centralize every duration/curve into one `Appearance`/`Tokens` singleton consumed everywhere — the anti-pattern to avoid is exactly what this milestone's "one token source" goal already guards against; reinforces that the existing Phase 12 plan is aimed at the right target |
+
+### Complexity and dependencies
+
+- This is squarely Phase 12's subject matter (token pipeline) and Phase 13's (motion retrofit across existing surfaces), and every other feature area in this document depends on it for its entrance/exit/stagger behavior — sequence it first, as the milestone plan already does.
+- Implementing the MD3-Expressive-style fallback (named duration+bezier tokens, no physics) is **LOW-MEDIUM** complexity and a proven, de-risked target — both flagship codebases are a working reference implementation of exactly this.
+- Implementing true mass/stiffness/damping-to-bezier-fitting as the source of truth is **MEDIUM-HIGH** complexity and unproven in this ecosystem specifically — no reference rice does this — treat it as this project's own R&D, with the MD3-token approach as an explicit, cheap fallback if the spring-fitting pipeline proves too costly relative to the payoff.
+- The single-scalar entrance/exit pattern and asymmetric entrance/exit curves are **near-zero marginal cost** architectural rules to adopt regardless of the spring-vs-bezier decision — bake them into whatever component library Phase 12 produces from the start, since retrofitting them onto already-built panels later is exactly the kind of rework this project has learned (via BAR-01/BAR-03's shared-module lesson) to avoid.
+
+---
 
 ## Feature Dependencies
 
 ```
-Icon theme picker (browse/install/apply)
-    └──requires──> GSettings icon-theme mechanism (already correct in this repo per CLAUDE.md)
-    └──enhances──> Super-menu custom icons (icon-name lookups resolve against whichever icon theme is active)
+Phase 11 (Quickshell viability gate)
+    └──requires──> [everything below]
 
-Theme-scoped wallpaper picker
-    └──requires──> Per-theme wallpaper directory convention (new: wallpapers/<theme-name>/ or equivalent registry)
-    └──requires──> Existing static-preset + matugen dual-mode pipeline (already exists — v1.0)
-    └──conflicts-with──> "re-theme on every cycle" anti-feature (cycling must NOT trigger theme-apply)
+Phase 12 (token pipeline: colour + motion)
+    └──requires──> Dashboard Drawer (entrance/exit/tab-switch motion)
+    └──requires──> Audio/Connectivity Panels (dialog open/close motion)
+    └──requires──> Workspace Overview (window-move, panel open/close motion)
+    └──requires──> Ambient Extras (parallax easing, if built)
 
-Super-key walker menu (Utilities/AI/Game/Power/Settings/Keybinds)
-    └──requires──> Walker dmenu-mode scripting pattern (new script layer, not new Walker config)
-    └──requires──> Icon-name-based custom icons ──requires──> Icon theme picker (so icons re-theme when icon theme changes)
-    └──requires──> Keybind tap-vs-hold handling if bound to bare $SUPER (new Hyprland binding mechanism, not assumed-trivial)
-    └──contains──> Keybind cheat-sheet ──requires──> live `hyprctl binds` query (no static doc to maintain)
-    └──contains──> Power menu entry ──requires──> wlogout hang fix (broken power action inside a new polished menu is worse than the old bug alone)
-    └──contains──> Settings menu entry ──requires──> config-file-shortcut convention (which files are "the" editable configs) — should reuse existing theme-engine's config locations
+Quick-toggle grid (Dashboard Drawer, Feature Area 1)
+    └──requires──> Per-app volume mixer / Wifi picker / Bluetooth manager (Feature Area 2)
+                       (panels are the "expand" targets of toggle-grid entries in both flagships)
 
-wlogout redesign
-    └──requires──> wlogout hang bug fix first (redesigning a broken shutdown path just re-skins the bug)
-    └──enhances──> Power menu entry inside Super-key menu
+Existing swaync toggle grid + notification center (BAR-05, already shipped)
+    └──conflicts with──> Re-implementing a second toggle grid / notification list inside the new QML dashboard
+                       (two sources of truth for the same state — extend BAR-05's state, don't fork it)
 
-Hyprlock redesign
-    └──requires──> Hyprlock first-keystroke bug fix first (same "don't skin a broken flow" logic as wlogout)
-    └──requires──> Existing theme-engine pipeline (new hyprlock.conf becomes a new render target, same 10-surface pattern already proven)
+Existing AGS v3 media card (MEDIA-01..04, already shipped)
+    └──enhances──> Dashboard Drawer's media mini-widget
+                       (QML dashboard should read the same MPRIS backend, not build a second one)
 
-SwayOSD themed indicators
-    └──requires──> Existing theme-engine pipeline (new matugen template target, same pattern as existing 10 surfaces)
-    └──independent-of──> everything else (low-risk, additive, no shared state with other v2.0 items)
+Workspace Overview: live thumbnails (ScreencopyView + ToplevelManager)
+    └──requires──> Phase 11 viability gate proving multi-window live screencopy performance on this Hyprland 0.56.0 build
+                       (NOT a hyprexpo/hyprpm-plugin dependency — resolved by this research to be a Quickshell-native, zero-plugin capability)
 
-Waybar media center (mpris)
-    └──requires──> playerctl (already installed per STACK.md)
-    └──enhances──> Waybar vertical-layout variant (must design mpris module to work in both orientations)
-    └──conflicts-with──> full popover/album-art UX (that requires abandoning waybar's custom-module JSON-output model — explicitly deferred, see Anti-Features)
+Workspace Overview: drag window between workspaces
+    └──enhances──> Workspace Overview: click-to-focus grid
+                       (build click-to-focus first, drag as a follow-up slice)
 
-Waybar OLED-safe behavior
-    └──independent-of──> vertical-layout variant, but should be designed to apply to BOTH layouts, not just the default horizontal one
-    └──flagged for a dedicated research spike (see Anti-Features + Differentiators notes) before phase planning
+Workspace Overview: type-to-search-and-jump
+    └──conflicts with (potentially)──> existing walker/elephant app+window search
+                       (explicit scope decision needed: is a second "type to find a window" surface wanted, or should this be left out)
 
-Zen browser theming
-    └──requires──> Existing matugen template pipeline (new render target using existing color keys)
-    └──requires──> One-time manual `about:config` toggle (cannot be scripted transparently — document as a documented `install.sh` step, not silent automation)
-    └──conflicts-with──> assuming live reload — reload fan-out must kill+relaunch Zen, not signal it
+Video/animated wallpaper (Ambient Extras)
+    └──requires──> external mpvpaper process + thumbnail-generation script
+                       (Quickshell/QML side only needs the derived static thumbnail, not video decoding)
 
-More static presets incl. light themes
-    └──requires──> Existing static-preset pipeline (already exists — v1.0, no new mechanism)
-    └──enhances──> Theme-scoped wallpaper picker (more presets = more per-theme wallpaper sets to curate)
+Dynamic cursor (Ambient Extras)
+    └──independent of──> everything else in this milestone
+                       (a Hyprland/hyprpm compositor plugin, not a Quickshell/QML feature; zero coupling to the token pipeline)
 ```
 
-### Dependency Notes
+### Dependency notes
 
-- **Both bug fixes (wlogout hang, hyprlock keystroke drop) must land before their respective redesigns.** This isn't just sequencing hygiene — the wlogout hang is specifically reported as an **input-event/focus-handoff bug triggered by mouse click** (keyboard-triggered logout already works), and the hyprlock issue is a **compositor-focus-acquisition timing gap**. Both are root-cause, not cosmetic, so a visual redesign done first would need to be redone/re-tested once the underlying input-handling fix lands (differently sized click targets, different focus-grab timing).
-- **Icon theme picker enhances the Super-menu, and both should land in a coherent order** (icon picker first, or at minimum designed together): Omarchy's confirmed pattern is that custom menu icons are icon-theme **name lookups**, not bundled image files — if the icon theme picker isn't in place first, the Super-menu's custom icons have nothing correct to resolve against and may need rework once icon theming exists.
-- **Settings menu entry should reuse the existing theme-engine's known config locations** rather than inventing a new "what counts as a setting" taxonomy — Omarchy's own "Setup" menu is just fast-access to edit known config files, which is directly compatible with this project's existing `theme-engine/` file layout.
-- **Waybar OLED-safe behavior and vertical-layout variant are independent but should not be designed in isolation** — an OLED mitigation (auto-hide, dim) implemented only against the default horizontal config would silently not apply once a user switches to the vertical variant, defeating the point of a hardware-protection feature.
-- **Zen browser theming's restart-required nature places it in the same reload-fan-out category as this project's existing GTK3 apps** (Thunar) — the existing `theme-apply` reload fan-out already has a "kill and relaunch" pattern for exactly this class of app (per CLAUDE.md: "GTK3 has no live CSS reload API"); Zen should be wired into that same pattern, not treated as a new reload mechanism.
+- **Everything requires Phase 11 and (for motion) Phase 12**: no feature area in this document is buildable in isolation from the milestone's own foundational phases — this matches PROJECT.md's stated phase ordering and this research finds no reason to deviate from it.
+- **Toggle grid before panels**: in both flagship rices, the wifi/bluetooth quick-toggle is the entry point into the fuller wifi/bluetooth dialog (tap toggles state, "expand"/long-press opens the dialog) — building the panels before the toggle grid exists means building UI with no natural entry point yet.
+- **Overview's real dependency is a performance question, not a plugin question**: this research changes the shape of the Phase-11-gate work for this specific feature — the gate should include an actual `ScreencopyView`-based multi-window live-thumbnail test, since that's the part with genuine remaining uncertainty, not a hyprexpo/hyprpm compatibility check.
+- **Ambient extras are the correctly-chosen cut candidate**: both sub-features here are the most architecturally decoupled from the rest of the milestone (no token-pipeline dependency the way panels/dashboard/overview have), which independently supports PROJECT.md's own framing of this area as "first thing cut if the milestone runs long."
 
 ## MVP Definition
 
-### Launch With (v1 of this milestone)
+### Launch With (v3.0 minimum, matches PROJECT.md's Active scope)
 
-The items with the clearest 1:1 mapping to this project's core value ("one switch re-themes everything, reproducible from scratch") and the lowest architectural risk:
+- [ ] Quickshell viability gate (layer-shell, pointer input, focus, multi-monitor, hot reload) — nothing else is buildable without this proof
+- [ ] Token pipeline emitting colour + a *first* motion system (start with MD3-Expressive-style named duration+bezier tokens as the proven baseline; treat spring-physics-as-source-of-truth as an enhancement layered on top once the baseline ships, not a blocking prerequisite for every other feature)
+- [ ] Motion retrofit of existing surfaces using that first motion system
+- [ ] Dashboard drawer: calendar + quick-toggle grid (reusing BAR-05's existing toggle state) + compact media widget (reusing the existing AGS/MPRIS backend) + system resources — the four widgets both flagships treat as baseline, explicitly *excluding* a second notification list
+- [ ] Bluetooth panel (device list + connect/disconnect/forget + "Details" escape hatch to blueman) — lowest-risk of the three connectivity panels given Quickshell's native `Quickshell.Bluetooth` module
+- [ ] Wifi panel (scan/list/connect/password prompt + "Details" escape hatch to nm-connection-editor)
+- [ ] Per-app volume mixer (leveraging Quickshell's native `Quickshell.Services.Pipewire`) + master volume/device switch
 
-- [ ] wlogout hang fix — root-cause bug, currently breaks a table-stakes surface
-- [ ] Hyprlock keystroke-drop fix — root-cause bug, currently breaks a table-stakes surface
-- [ ] Kitty startup speed fix — isolated, low-risk, high daily-friction payoff
-- [ ] wlogout redesign (post-fix) — table stakes for "modern rice" appearance
-- [ ] Hyprlock redesign (post-fix), themed via existing pipeline — table stakes
-- [ ] Screenshot suite (grim+slurp+satty capture/annotate, wf-recorder for video) — table stakes, low complexity, well-trodden pattern
-- [ ] Clipboard history (cliphist + Walker dmenu) — table stakes, low complexity, reuses existing Walker/elephant infrastructure
-- [ ] Emoji picker (Walker dmenu) — table stakes, trivial
-- [ ] SwayOSD themed indicators — table stakes, additive, no dependencies on anything else in this milestone
-- [ ] Waybar notification-center button (swaync-client -t) — table stakes, trivial
-- [ ] Waybar built-in mpris now-playing module (inline, not popover) — table stakes, low complexity, matches STACK.md recommendation
-- [ ] Icon theme picker (apply via GSettings) + at least Papirus bundled — table stakes for visual coherence, blocks Super-menu custom icons
+### Add After Validation (v3.0 stretch, still in scope but sequence-able second)
 
-### Add After Validation (v1.x within this milestone)
+- [ ] Workspace overview: click-to-focus grid with live thumbnails (contingent on the Phase 11 gate's screencopy-performance findings)
+- [ ] Weather widget (isolate as its own vertical slice given the external-API dependency)
+- [ ] Workspace overview: drag-window-between-workspaces (additive on top of click-to-focus)
+- [ ] Spring-physics-to-fitted-curve compile pipeline as the eventual motion source of truth, superseding the v1 MD3-style token baseline once validated
 
-Higher-complexity/higher-risk items that depend on the above landing cleanly first:
+### Future/Cut Candidate (explicitly named in PROJECT.md as first to cut)
 
-- [ ] Super-key walker menu (Utilities, keybind cheat-sheet, settings-as-config-shortcuts first — these are low-risk submenus)
-- [ ] Super-key menu: AI dashboard submenu (launchers + workspace) and Game center submenu (launch shortcuts) — same menu mechanism, just more entries, but worth sequencing after the menu framework itself is proven
-- [ ] Color picker script (hyprpicker-based, clipboard output)
-- [ ] More static presets incl. light themes — content work, low engineering risk, can land incrementally
-- [ ] Theme-aware wallpaper picker (per-theme directories/registry, thumbnail preview, static-restricts / matugen-unrestricted split)
-- [ ] Zen browser theming (matugen template + restart-based reload fan-out + documented one-time about:config toggle)
-- [ ] Waybar vertical (left) layout variant
-
-### Future Consideration (beyond this milestone, or explicit stretch)
-
-- [ ] Icon theme **browser/installer** (not just picker) — discovering and installing new icon themes (beyond bundling Papirus/Tela) is a bigger scope than "apply the active one"; land the picker first, revisit install/browse UX once real usage patterns are known
-- [ ] Nerd-font switcher across apps — no existing rice has a reference implementation; this is genuinely novel scope (enumerate installed Nerd Fonts, rewrite font references across kitty/vscodium/GTK/waybar configs, trigger appropriate reloads per-app) and deserves its own focused design pass rather than folding into this survey's assumptions
-- [ ] True OLED pixel-shift (beyond auto-hide/dim) — flagged above as needing a dedicated research spike; no turnkey solution exists in the ecosystem today
-- [ ] Rich mpris popover/album-art media widget — requires either a GTK companion process or abandoning waybar's JSON-output custom-module model; explicitly deferred as disproportionate to this milestone's "extend, don't rewrite" constraint
-- [ ] Full gaming-mode session switch (Gamescope) — explicitly out of proportion to "Game center menu item," see Anti-Features
+- [ ] Animated/video wallpaper
+- [ ] Dynamic cursor (hypr-dynamic-cursors plugin)
+- [ ] Overview type-to-search-and-jump (pending an explicit decision on overlap with walker)
+- [ ] Caelestia-style 4-tab swipeable dashboard (single-column dashboard delivers most value at lower risk)
+- [ ] Wallpaper parallax-on-workspace-switch, "work safety" content-sensitivity blur (the latter recommended as a permanent anti-feature, not just deferred)
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| wlogout hang fix | HIGH | MEDIUM | P1 |
-| Hyprlock keystroke-drop fix | HIGH | MEDIUM | P1 |
-| Kitty startup speedup | MEDIUM | LOW | P1 |
-| wlogout redesign | HIGH | LOW-MEDIUM | P1 |
-| Hyprlock redesign | HIGH | LOW-MEDIUM | P1 |
-| Screenshot suite (capture/annotate/record) | HIGH | MEDIUM | P1 |
-| Clipboard history | HIGH | LOW | P1 |
-| Emoji picker | MEDIUM | LOW | P1 |
-| SwayOSD themed indicators | MEDIUM | LOW | P1 |
-| Notification-center bar button | MEDIUM | LOW | P1 |
-| Waybar mpris now-playing (inline) | HIGH | LOW | P1 |
-| Icon theme picker (apply) | HIGH | LOW-MEDIUM | P1 |
-| Super-key menu (core: Utilities, keybinds, settings-shortcuts) | HIGH | MEDIUM-HIGH | P2 |
-| Super-key menu: AI dashboard + Game center submenus | MEDIUM | MEDIUM | P2 |
-| Color picker | MEDIUM | LOW | P2 |
-| More static presets + light themes | MEDIUM | LOW | P2 |
-| Theme-aware wallpaper picker | HIGH | MEDIUM | P2 |
-| Zen browser theming | MEDIUM | MEDIUM | P2 |
-| Waybar vertical layout variant | MEDIUM | MEDIUM | P2 |
-| OLED-safe waybar behavior (auto-hide/dim only) | MEDIUM | MEDIUM | P2 |
-| Icon theme browser/installer | LOW-MEDIUM | HIGH | P3 |
-| Nerd-font switcher | LOW-MEDIUM | HIGH | P3 |
-| True pixel-shift OLED mitigation | LOW | HIGH | P3 |
-| Rich mpris popover/album-art | LOW-MEDIUM | HIGH | P3 |
+| Dashboard: calendar + toggle grid + media + resources | HIGH | LOW-MEDIUM | P1 |
+| Bluetooth panel | HIGH | LOW-MEDIUM | P1 |
+| Wifi panel | HIGH | MEDIUM-HIGH | P1 |
+| Per-app volume mixer | HIGH | MEDIUM | P1 |
+| Motion language (MD3-style token baseline) | HIGH | LOW-MEDIUM | P1 |
+| Workspace overview (click-to-focus + live thumbnails) | HIGH | MEDIUM (contingent on Phase 11 gate) | P1-P2 |
+| Weather widget | MEDIUM | MEDIUM | P2 |
+| Overview drag-to-move | MEDIUM | MEDIUM-HIGH | P2 |
+| Spring-physics-as-source-of-truth compile pipeline | MEDIUM (unproven differentiator) | MEDIUM-HIGH | P2 |
+| Caelestia-style swipeable multi-tab dashboard | MEDIUM | MEDIUM-HIGH | P3 |
+| Overview type-to-search | LOW-MEDIUM (overlaps walker) | LOW-MEDIUM | P3 |
+| Animated/video wallpaper | MEDIUM (visually striking, low usage impact) | MEDIUM | P3 (explicit cut candidate) |
+| Dynamic cursor | LOW-MEDIUM (novelty) | LOW | P3 (explicit cut candidate) |
 
 **Priority key:**
-- P1: Bug fixes + table-stakes utilities with low/well-understood implementation cost — lowest-risk phase content
-- P2: Differentiators that depend on P1 groundwork or carry real design/scope risk worth sizing carefully
-- P3: Explicitly deferred — either no reference implementation exists in the researched ecosystem, or scope is disproportionate to this milestone
+- P1: Must have for v3.0 to meet its stated goal of shipping "the net-new widgets a top-tier rice has"
+- P2: Should have, sequence after P1 lands and Phase 11 gate findings are in
+- P3: Nice to have, matches PROJECT.md's own designated cut candidates
 
-## Competitor Feature Analysis
+## Competitor (Reference Rice) Feature Analysis
 
-| Feature | Omarchy | HyDE | end-4/Caelestia | ML4W | This Project's Approach |
-|---------|---------|------|------------------|------|--------------------------|
-| Super-key menu | Bash dispatcher + Walker dmenu, Super+Alt+Space, icon-name custom icons | Rofi-based, similar hierarchical pattern | N/A (full custom Quickshell shell instead) | N/A (traditional launcher, GUI settings app instead) | Follow Omarchy's script+Walker-dmenu+icon-name pattern (architecturally closest to existing stack); size the bare-$SUPER-tap keybind risk explicitly |
-| Wallpaper/theme scoping | Per-theme wallpaper dirs, Manage/cycle/deactivate via Walker | Per-theme wallpaper dirs, Rofi Theme Patcher | Wallpaper-driven Material You dynamic only (no static preset restriction concept found) | Waybar theme templates, not full-desktop wallpaper scoping | Adopt Omarchy/HyDE's per-theme-directory convention directly — matches this project's explicit static-restricts/matugen-unrestricted requirement |
-| Power menu / lock screen | wlogout (layer-shell overlay, theme-driven CSS) + themed hyprlock as first-class surface | Similar wlogout+hyprlock pairing | Custom QML lock/session modules (not portable) | Standard wlogout/hyprlock, GUI settings for waybar only | Keep wlogout+hyprlock; fix root-cause input bugs before redesign; theme via existing pipeline |
-| Media widget | Waybar built-in mpris module, icon/click-action enhancements only | Not deeply documented; assume similar waybar mpris pattern | Custom QML popover/dashboard media widget (mobile-OS-like) | Not a focus area | Waybar built-in mpris module for v1 of this milestone; defer popover/album-art as P3 |
-| Settings access | "Setup" menu = quick-open known config files (not a GUI app) | Similar config-file-shortcut pattern via menu | N/A (shell reconfigured via QML/JSON directly) | Dedicated GTK4 Settings App (GUI editing) | Follow Omarchy's lighter pattern (config-shortcut menu), not ML4W's GUI-app pattern — proportionate to scope |
-| OSD (volume/brightness) | SwayOSD, themed CSS | Not deeply documented; SwayOSD or equivalent assumed | Custom QML OSD module | Not a focus area | SwayOSD, plain-CSS themed via existing matugen template pattern (already this project's STACK.md choice) |
+| Feature | end-4/dots-hyprland | Caelestia (soramanew) | This project's plan |
+|---------|---------------------|------------------------|----------------------|
+| Dashboard structure | Single-column sidebar: sliders → toggle grid → notifications → tabbed calendar/todo/timer | 4-tab swipeable: Dashboard/Media/Performance/Weather | Start single-column (end-4 model, lower risk), defer swipeable multi-tab |
+| Quick-toggle grid location | Inside the dashboard sidebar | Separate "Utilities" drawer | Either is defensible; reuse this project's existing BAR-05 toggle state either way |
+| Per-app volume mixer | Yes, full per-app list + mute + device switch | No — device switch + master volume only | Build it (differentiator), on Quickshell's native Pipewire service |
+| Wifi/Bluetooth panels | Yes, both with explicit "Details" escape hatch to external GUI apps | Yes, both, similar shape | Match this scope exactly — device pick/connect + escape hatch, not full parity with pavucontrol/nm-connection-editor/blueman |
+| Full-screen workspace overview | Yes — grid, live thumbnails, click-focus, drag-to-move, type-to-search | No — only a per-window hover-preview popup | Build it (end-4 is the only usable reference); de-risked by confirming it needs zero extra Hyprland plugins |
+| Video/animated wallpaper | Yes (thumbnail-in-QML + external mpvpaper process) | No — static images only | Build if time allows; explicit cut candidate per PROJECT.md |
+| Dynamic cursor | Not found in either shell's own source (this is a separate Hyprland/hyprpm plugin, not part of either shell) | Not found | Independent hyprpm plugin install; near-zero QML cost, explicit cut candidate |
+| Motion system | Material Design 3 Expressive tokens (fitted Bézier + duration, NOT literal spring physics) | Same MD3 Expressive system, independently implemented | This project is choosing to go further (spring-physics source of truth) — treat as its own differentiator to validate, with the MD3-token approach as a proven fallback |
 
 ## Sources
 
-- websearch: "Omarchy Super key menu walker implementation custom icons structure" — confidence LOW
-- websearch: "Omarchy wallpaper picker theme-aware wallpapers implementation walker" — confidence LOW
-- websearch: "Omarchy wlogout power menu design and hyprlock configuration" — confidence LOW
-- websearch: "Hyprland rice screenshot utility suite grim slurp satty swappy hyprshot annotate record wf-recorder" — confidence LOW
-- websearch: "Hyprland waybar OLED burn-in mitigation pixel shift auto-hide vertical bar layout" — confidence LOW
-- websearch: "Hyprland waybar media center mpris now playing widget design Omarchy end-4 HyDE Caelestia ML4W" — confidence LOW
-- websearch: "Hyprland emoji picker color picker clipboard history cliphist rofi walker script" — confidence LOW
-- websearch: "Hyprland icon theme picker nerd font switcher rice script" — confidence LOW
-- websearch: "end-4 dots-hyprland ai sidebar game mode launcher menu design quickshell" — confidence LOW
-- websearch: "HyDE dotfiles wallpaper picker theme switching design rofi" — confidence LOW
-- websearch: "Caelestia dotfiles Hyprland quickshell design features" — confidence LOW
-- websearch: "ML4W dotfiles Hyprland settings app features waybar" — confidence LOW
-- websearch: "SwayOSD themed volume brightness indicator setup Hyprland rice CSS" — confidence LOW
-- websearch: "hyprlock first keystroke dropped ignored fix grace period" — confidence LOW
-- websearch: "wlogout shutdown hang blank screen stuck fix systemd" — confidence LOW
-- websearch: "wlogout hyprland shutdown command hangs screen frozen after selecting poweroff" — confidence LOW
-- websearch: "Omarchy game mode game center launcher menu design" — confidence LOW
-- websearch: "Omarchy screenshot capture tool satty annotate OCR share flow omarchy-cmd-screenshot" — confidence LOW
-- websearch: "Omarchy icon theme picker nwg-icon-picker install browse icons" — confidence LOW
-- websearch: "icon theme switcher GTK papirus tela install AUR icon pack picker script Linux" — confidence LOW
-- websearch: "Zen browser theme sync GTK theme userChrome.css matugen colors" — confidence LOW
-- websearch: "matugen zen-browser template userChrome.css material you generate" — confidence LOW
-- websearch: "GTK4 vertical waybar left layout module rotation Hyprland config" — confidence LOW
-- webfetch: deepwiki.com/basecamp/omarchy/3.1-omarchy-menu-system (Omarchy Super-key menu system detail) — confidence LOW
-- webfetch: github.com/hyprwm/hyprshutdown (graceful shutdown utility purpose/mechanism) — confidence LOW
+- **[source-read, HIGH]** `github.com/end-4/dots-hyprland` — repository tree walked via GitHub REST API (`/contents/...`) and raw file contents fetched directly from `raw.githubusercontent.com/end-4/dots-hyprland/master/...` for: `modules/common/Appearance.qml`, `modules/ii/{sidebarRight,sidebarLeft,overview,mediaControls,onScreenDisplay,dock,cheatsheet,background}/**`, `hypr/hyprland/keybinds.lua`
+- **[source-read, HIGH]** `github.com/caelestia-dots/shell` — repository tree walked via GitHub REST API and raw file contents fetched directly from `raw.githubusercontent.com/caelestia-dots/shell/main/...` for: `components/{Anim,CAnim,AnchorAnim,AnimLoader}.qml`, `modules/dashboard/**`, `modules/drawers/{Drawers,Panels}.qml`, `modules/Shortcuts.qml`, `modules/utilities/cards/Toggles.qml`, `modules/bar/popouts/{Audio,Network,Bluetooth}.qml`, `modules/windowinfo/WindowInfo.qml`, `modules/background/Wallpaper.qml`
+- **[websearch, MEDIUM]** Quickshell official docs (`quickshell.org/docs/.../types/Quickshell.Wayland/{ScreencopyView,ToplevelManager,Toplevel}`) — confirms `ScreencopyView`+`Toplevel` requires `hyprland-toplevel-export-v1`, `ToplevelManager` requires `zwlr-foreign-toplevel-management-v1`; corroborated by finding `Shanu-Kumawat/quickshell-overview` as an independent standalone implementation of the same pattern
+- **[websearch, LOW-MEDIUM]** `mpvpaper` (GhostNaN/mpvpaper) usage patterns, systemd-service wrapping conventions for video wallpaper
+- **[websearch, MEDIUM-HIGH]** Hyprland Wiki (`wiki.hypr.land/Hypr-Ecosystem/hyprcursor/`), Hyprland Standards (`standards.hyprland.org/hyprcursor/`), `VirtCode/hypr-dynamic-cursors` repo — confirms hyprcursor native animated-cursor support and the dynamic-cursors plugin's squash/stretch + shake-to-find behavior, and that it is a `hyprpm` compositor plugin independent of any Quickshell shell
+- **[websearch, LOW]** pavucontrol, nm-connection-editor, blueman-manager feature summaries (ArchWiki, DeepWiki, manpages, project docs) used to build the "what a minimal panel typically lacks" comparison — corroborated qualitatively by the fact that both flagship shells' own source code independently defers to these exact tools via a "Details"/"Open settings" button
+- **[websearch, LOW-MEDIUM]** HyDE, ML4W, Omarchy, Aylur/AGS mentions — surface-level only (DeepWiki/blog snippets, no source-read); one search result attributed an end-4-style "Overview" description to Omarchy that conflicts with this project's own existing STACK.md research (which characterizes Omarchy as Waybar-based) — treated as likely search-synthesis cross-contamination and given no weight; Omarchy, HyDE, ML4W and Aylur/AGS are noted here only as breadth context, not as sources for any specific claim above
 
 ---
-*Feature research for: Hyprland desktop rice utilities/menus (v2.0 Desktop Expansion)*
-*Researched: 2026-07-09*
+*Feature research for: Quickshell/QML shell surfaces + motion language, v3.0 milestone*
+*Researched: 2026-07-26*

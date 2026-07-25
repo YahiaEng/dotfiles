@@ -1,156 +1,162 @@
-# Project Research Summary: v2.0 Desktop Expansion
+# Research Summary: v3.0 Quickshell Foundation & Motion Language
 
-**Project:** Arch + Hyprland Dotfiles — Desktop Expansion
-**Domain:** Personal Wayland desktop rice (theme-driven utilities, menus, and desktop automation)
-**Researched:** 2026-07-09
-**Confidence:** MEDIUM-HIGH overall
+**Project:** Personal Arch + Hyprland dotfiles — adding a Quickshell/QML shell layer and a spring-physics motion pipeline
+**Domain:** Cross-toolkit motion system + QML shell composition on an existing, mature Hyprland 0.56.0 rice
+**Researched:** 2026-07-26
+**Confidence:** HIGH for stack (verified against this machine via `pacman -Si`, direct repo inspection); MEDIUM for features (source-read two flagship rices, end-4 and Caelestia); MEDIUM-HIGH for architecture (direct precedent in existing AGS pattern + deepwiki of reference rices); MEDIUM for pitfalls (mostly local verification, some web-sourced behavioral claims flagged for local testing)
 
 ## Executive Summary
 
-The v2.0 Desktop Expansion is a **disciplined, architecture-respecting extension** of an already-working v1.0 theme-engine that consolidates color propagation across 10 desktop surfaces. The research confirms that every major feature group (screenshot utilities, emoji/clipboard pickers, Omarchy-style Super-menu, waybar variants, light themes, Zen browser theming) integrates cleanly into the existing stow + matugen pipeline without architectural rewrite, **provided a strict sequencing discipline is followed**: bug fixes first, light-mode plumbing before light presets, menu framework before menu content, and isolated testing of integration points that have footguns (wlogout hang, hyprlock lockout, $SUPER-tap keybind interaction).
+This milestone adds a native QML/Quickshell shell layer to an existing Hyprland desktop that keeps every existing surface (waybar, swaync, SwayOSD, wleave, walker/elephant, AGS) running throughout. **The single most impactful correction from research: Quickshell 0.3.0 is now in Arch's official `extra` repo (not AUR-only), eliminating the reproducibility risk that would have been the biggest blocker; simply `pacman -S quickshell` and its Qt6 dependencies, both of which are already installed on this machine from AGS.**
 
-The research identifies six critical pitfalls — each with clear prevention strategies — that could derail phases if not actively managed. Stack choices are mature and verified (satty, wf-recorder, hyprpicker, swayosd all confirmed official-repo packages with clear integration patterns), and the feature set is well-scoped (table stakes only in MVP, explicit deferral of scope creep like popover media widgets).
+The recommended approach is **additive-only coexistence**: build new QML surfaces (dashboard drawer, audio/wifi/bluetooth panels, workspace overview, ambient wallpaper) alongside existing GTK/Hyprland/bash surfaces, reusing their backing data (MPRIS, PipeWire, NetworkManager, BlueZ) rather than reimplementing. The motion system departs from both reference rices (which use Material Design 3 Expressive tokens, duration+bezier, not literal spring physics) — this project pursues spring-mass-stiffness-damping as the source of truth, compiled to fitted cubic-beziers for Hyprland and sampled keyframes for GTK4 CSS, with full native physics passthrough to QML. This is a step *beyond* the flagship references, not parity with them, and requires explicit validation that the fitted-curve approach delivers perceptual gains over the proven MD3-token baseline.
 
-**Key recommendation:** Follow the suggested phase structure (Bug Fixes → Light/Dark Plumbing → Presets & Wallpapers → Surfaces & Utilities → Menu Framework → Menu Content → Waybar Evolution), with explicit research spikes for Zen browser profile-path resolution and OLED auto-hide behavior.
+**Key risk:** the hyprexpo plugin (a source-compiled Hyprland plugin with version-coupling fragility) is rejected in favor of Quickshell's native `ScreencopyView` + Hyprland's built-in `hyprland-toplevel-export-v1` protocol for the workspace overview — zero additional packages, no compiler toolchain, no rebuild-on-upgrade debt. Three researchers independently converged on this finding. The motion pipeline's fitting step (spring to cubic-bezier) is lossy by design — single-point overshoot can be captured, but multi-oscillation/ring-down behavior cannot — requiring a human side-by-side render gate per retrofitted surface to validate the fidelity loss is acceptable.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-**Six new core packages** (all official Arch except hyprpicker from AUR):
-- **satty** (0.21.1) — Screenshot annotation, GTK4 + libadwaita, consistent with existing walker stack
-- **wf-recorder** (0.6.0) — Screen/region video recording (mp4)
-- **gifski** (1.34.0) — High-quality GIF conversion from recorded video
-- **hyprpicker** (0.4.7, AUR) — Color picker, officially maintained by Hyprland org
-- **swayosd** (0.3.1) — Themed volume/brightness/caps-lock OSD, CSS-theming
-- **Nerd fonts** (ttf-jetbrains-mono-nerd, ttf-hack-nerd, ttf-cascadia-code-nerd) — Font family switcher pool
+**Core:** Quickshell 0.3.0-2 from Arch `extra` (official package, not AUR), Qt6 base/declarative/svg/wayland (all already installed), plus existing services already running on this machine: PipeWire/WirePlumber (audio), NetworkManager 1.58 (wifi), BlueZ 5.87 (bluetooth), hyprland-protocols (built into Hyprland 0.56.0). **No hyprexpo plugin.** Instead, `hyprland-toplevel-export-v1` (a Wayland protocol the compositor natively implements) + Quickshell's `ScreencopyView`/`ToplevelManager` built-in types, confirmed working in end-4 and a third-party quickshell-overview reference implementation.
 
-**Two existing packages already solve features:** `elephant-symbols` provides emoji picker; `elephant-clipboard` provides clipboard history — both already installed.
+**Supporting:** matugen (already deployed for color theming) extends with new QML/GTK4 motion templates. A new `theme-engine/lib/motion.sh` Python-backed build step samples spring curves and fits beziers (Hyprland-target only) — one render target per surface, consumed live from `~/.local/state/theme/`, never copied, matching this repo's existing contract-and-render pattern. This is mechanically identical to color rendering (all three targets consume from the same source manifest) but differs in frequency (motion tokens are hand-authored, theme-invariant; colors are wallpaper-driven, re-rendered per theme switch).
 
-**Critical finding:** The `themes/.config/themes/` directory is dead code (zero references in any script) — do not add new presets there. All live static-preset content lives in `theme-engine/.config/theme-engine/palettes/*.json`.
+**Confidence:** HIGH for Quickshell's official-repo status and Qt6 deps (verified locally). MEDIUM for the exact matugen template shapes and motion.sh implementation (confirmed as the right architectural pattern, but Python-based fitting algo is new code this repo hasn't written yet). LOW for whether Quickshell's `JsonAdapter` auto-propagates property changes through bindings with zero explicit reload code (Quickshell docs claim it does; must verify empirically in Phase 11).
 
 ### Expected Features
 
-**Table stakes (P1 — launch with MVP):**
-- Screenshot capture + annotation + recording (grim+slurp+satty+wf-recorder)
-- Clipboard history picker (walker+elephant-clipboard)
-- Emoji picker (walker+elephant-symbols)
-- SwayOSD themed indicators
-- Waybar notification-center button
-- Waybar built-in mpris now-playing module
-- Icon theme picker + Papirus bundled
+**Must have (v3.0 launch):**
+- Dashboard drawer: calendar + quick-toggle grid (reusing BAR-05) + compact media widget (AGS backend) + system resources
+- Bluetooth panel: device list + connect/disconnect + "Details" escape hatch to blueman
+- Wifi panel: scan/list/connect + password prompt + "Details" escape hatch to nm-connection-editor
+- Per-app volume mixer: native Pipewire service + icon lookup from walker/elephant
+- Motion language: MD3-Expressive tokens (proven fallback) + spring-physics source of truth (differentiator)
 
-**Differentiators (P2 — high-value features):**
-- Omarchy-style Super-key hierarchical menu with custom icons
-- Theme-scoped wallpaper picker (per-theme directories, static-restricts)
-- Zen browser theming (requires profile-path research spike)
-- Waybar vertical layout + OLED-safe behavior
+**Should have (v3.0 stretch):**
+- Workspace overview: click-to-focus grid with live thumbnails via `ScreencopyView`
+- Drag-to-move windows between workspaces
+- Weather widget (isolate as own vertical slice due to external API dependency)
 
-**Deferred out of scope:**
-- Quickshell/QML custom shell replacement
-- Full GUI settings app
-- Gaming-mode session switching
-- Popover/album-art media widget
+**Defer / cut candidate (Phase 17):**
+- Animated/video wallpaper
+- Dynamic cursor (hyprpm plugin)
+- Overview type-to-search
+- Caelestia-style 4-tab swipeable dashboard
 
 ### Architecture Approach
 
-The existing v1.0 theme-engine (**not being rewritten**) consists of: (1) thin trigger scripts (`theme-apply <name>`); (2) central `theme-engine/` with `generate.sh` → `commit.sh` → `reload.sh`; (3) `contract.json` as single source of truth for 10 output files; (4) stowed app configs that `@import`/`source`/symlink from state-dir.
-
-**New components integrate cleanly:**
-- New themed surfaces become new matugen template entries + contract entries
-- Utility scripts extend `hypr/.config/hypr/scripts/`
-- Super-menu uses walker's already-installed `menus` provider (elephant-menus)
-- Waybar vertical layout is a new config-pair only (no new matugen templates)
+Extend the existing theme-engine pattern to include motion tokens. One `quickshell/` stow package with `shell.qml` (entry point), `services/{Colors,Motion,Config,GlobalStates}.qml` (singletons), `modules/{Dashboard,AudioMixer,Connectivity,Overview}/`, and `components/`. Colors flow: matugen → `quickshell-colors.json` → `Colors.qml` singleton watching `~/.local/state/theme/` via `FileView`. Motion flow: hand-authored `motion-tokens.json` → `motion.sh` renders to three targets (QML passthrough, GTK4 keyframes, Hyprland bezier fit). QML surfaces bind from singletons; GTK/Hyprland consume compiled targets. New surfaces claim disjoint `WlrLayershell.namespace` entries, default to `exclusiveZone: 0` (overlay-only). D-Bus readers are read-only (multiple safe); writers coordinate with SwayOSD (hardware keys), swaync (notifications), playerctld (MPRIS).
 
 ### Critical Pitfalls & Prevention
 
-1. **wlogout/uwsm shutdown hang has multiple root causes** — Isolate via keyboard test, coredumpctl, journalctl inspection before redesign work. **Prevention:** Must diagnose before redesign; wrong fix trades one hang for another.
+1. **Quickshell input/focus failure (Pitfall 1, eww recurrence):** Phase 11 viability gate with human-clickable button, text field, outside-click dismiss. Must work on 0.56.0 before Phase 11 passes. Gate has STOP authority.
 
-2. **hyprlock redesign can lock you out** — New color-source paths or image references are crash triggers. **Prevention:** Keep second TTY logged in before every test; document recovery commands.
+2. **Layer-shell exclusive-zone conflicts (Pitfall 2):** New surfaces default to `exclusiveZone: 0`. Check `hyprctl layers -j` before adding any non-zero zones. Add `layer-doctor` assertion.
 
-3. **$SUPER-tap menu submap can break entire keybind set** — Exit bind without explicit escape key traps user. **Prevention:** Test exit bind first in isolation; full sweep of existing $SUPER+key bindings before shipping.
+3. **D-Bus double-handling (Pitfall 3):** MPRIS readers use same `playerctld` proxy; swaync stays sole notification daemon; SwayOSD owns hardware keys; QML panels call same APIs on click. Pre-flight: `busctl --user list | grep -c freedesktop.Notifications` must equal 1.
 
-4. **Light themes expose GTK3/GTK4 propagation split** — Portal broadcasts live-update GTK4 but not GTK3 (settings.ini). **Prevention:** Extend contract.json + theme-parity gate to include light fixture before shipping light presets.
+4. **Spring-to-bezier fidelity loss (Pitfall 6):** Single cubic-bezier cannot express multi-oscillation. QML gets native physics; GTK4 gets sampled keyframes or bezier fit; Hyprland gets bezier fit only. **Human side-by-side render gate per surface is mandatory.**
 
-5. **Clipboard history stores passwords/tokens plaintext** — Every clipboard entry (text+images) persists. **Prevention:** Size cap + wipe policy are launch requirements, not follow-up hardening.
+5. **Hyprexpo plugin ABI + install fragility (Pitfall 4):** Treat hyprexpo as optional. If built, make `install.sh` step non-fatal (warn), pin tested-compatible commit, provide `hyprland-toplevel-export-v1` fallback. No compiler toolchain requirement.
 
-6. **elephant/walker version skew silently breaks custom menus** — Private socket protocol, version mismatch produces blank items (not error). **Prevention:** Pin walker + all elephant-* packages together; add health-gate check to theme-doctor.
+---
 
 ## Implications for Roadmap
 
-### Suggested Phase Structure
+Sketched order is directionally correct (11 → 12 → 13 → 14 → 15 → 16 → 17). Two corrections:
 
-**Phase A: Bug Fixes** (wlogout hang, hyprlock keystroke-drop, kitty startup)
-- De-risks base before layering new features; isolated config/script changes, no new packages
-- Wlogout redesign/hyprlock theming deferred until fixes proven working
+**Correction 1:** Phases 13 and 14 are independent branches (both depend only on 12); could be parallelized if schedule demands, but keeping 13 before 14 is the right default (cheaper to validate motion-fitting on existing surfaces before building new QML UI).
 
-**Phase B: Light/Dark Mode Plumbing** (gtk.sh mode detection, settings.ini hardcode removal)
-- HARD DEPENDENCY before light presets can ship correctly
-- Auto-detect theme mode from rendered palette lightness
-- Extend contract.json + theme-parity to cover light-mode output
+**Correction 2:** Phase 16's **research question** (hyprexpo vs. protocol) should be investigated during/after Phase 11 (feasibility gate, not execution complexity). Keep the build at position 16, but resolve research early so roadmap can decide Phase 16's scope while Phases 12-15 are in flight.
 
-**Phase C: New Static Presets incl. Light Themes** (content work)
-- Depends on Phase B; add light-mode variants (catppuccin-latte, etc.) as new palette JSON files; zero architecture work
+### Phase Structure
 
-**Phase D: New Themed Surfaces & Utility Scripts Suite**
-- Independent; follows established patterns
-- SwayOSD (new template+contract), hyprlock redesign (modify), utilities (screenshot, emoji, clipboard, color picker, icon-theme, font switcher)
-- **Zen browser needs research spike:** profile-path resolution, native vs flatpak, graceful "profile doesn't exist yet"
+**Phase 11: Quickshell Viability Gate** — Throwaway `PanelWindow` with pointer/keyboard/focus/dismiss test. Human must click button, type field, dismiss via click-outside. Must pass on 0.56.0 before anything else. **Authority to STOP.**
 
-**Phase E: Wallpaper & Theme-Scoped Management**
-- Per-theme wallpaper subdirectories; picker respects theme restriction (static mode only; matugen unrestricted)
-- Depends on Phase C (meaningful once light presets exist)
+**Phase 12: Token Pipeline (Colour + Motion)** — Extend matugen with `quickshell-colors.json`. Create hand-authored `motion-tokens.json` (mass/stiffness/damping). Implement `motion.sh` render to three targets. Wire `Colors.qml` and `Motion.qml` singletons. Add `motion-lint` gate. Decide and document fidelity ceiling, reduced-motion knob.
 
-**Phase F: Walker Menu Framework** (HARD DEPENDENCY for Phase G)
-- Keybind repoint (bare $SUPER-tap → walker menu)
-- New elephant menus stow content
-- Full exit-bind test + existing $SUPER+key regression sweep
+**Phase 13: Motion Retrofit** — Apply tokens to waybar/swaync/wleave/walker/AGS/Hyprland. Human side-by-side render gate per surface (QML vs. fitted-curve). Multi-day dogfooding check for high-frequency surfaces.
 
-**Phase G: Menu Tree Content** (Utilities, Keybinds, Settings, AI Dashboard, Game Center, Power)
-- Depends on Phase F; populates menu with submenus wrapping Phase D utilities
+**Phase 14: Dashboard Drawer** — Calendar + toggle-grid (reusing BAR-05) + media widget (reusing AGS/MPRIS) + system resources. Establish single-scalar entrance/exit pattern. Register `quickshell` in `stow.sh`.
 
-**Phase H: Waybar Evolution** (vertical layout, media center, notification center, OLED-safe behavior)
-- Independent architecturally; moderate complexity
-- Vertical layout: new config-pair, full module re-test (not copy-paste)
-- **OLED auto-hide needs research spike:** hypridle availability, idle integration, pixel-shift feasibility
+**Phase 15: Audio + Connectivity Panels** — Bluetooth (LOW-MEDIUM), Wifi (MEDIUM-HIGH), per-app mixer (MEDIUM). One reusable dialog pattern. "Details" escape hatches to blueman/nm-connection-editor/pavucontrol.
+
+**Phase 16: Workspace Overview** — Click-to-focus grid with live thumbnails via `ScreencopyView`. Research `hyprland-toplevel-export-v1` permission system. If performance/permissions block, becomes next cut-candidate after 17.
+
+**Phase 17: Ambient Extras** — Video wallpaper (`mpvpaper` + thumbnails, low effort) and dynamic cursor (hyprpm plugin, lowest effort, plugin-ABI risk). **First thing cut if milestone runs long.** Can defer to v4.0.
 
 ### Phase Ordering Rationale
 
-- **Strict dependencies enforced:** Light plumbing before presets; menu framework before content; wallpaper restriction meaningful only after light presets exist
-- **Bug fixes first:** De-risks remaining work; redesigns deferred until underlying reliability proven
-- **New surfaces grouped together:** All follow proven @import-from-state-dir pattern; confirms pipeline extends cleanly before attempting more complex work
-- **Waybar independent:** Can run in parallel if desired, but requires careful testing of vertical module stacking and SIGUSR2 reload with multiple bars
+- Phase 11 is hard gate: everything depends on Quickshell working; cheap to retry if it fails, expensive to discover failure later
+- Phase 12 blocks 13-17: all require color/motion render targets
+- Phase 13 before 14: cheaper to validate motion-fitting on existing surfaces before building new QML UI
+- Phase 14/15/16 sequence: toggle grid before panels (panels expand toggles); coordinate D-Bus access before most complex panel
+- Phase 17 last: independent, correct place for cut-candidate
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Zen browser:** Profile-path resolution (native vs flatpak), graceful handling of "profile doesn't exist yet" (chicken-and-egg: profile needs Zen to be launched once first)
-- **OLED auto-hide:** No precedent in this repo's existing idle infrastructure; needs investigation of hypridle availability and mechanism
+**Phases needing deeper research during planning:**
+- **Phase 11:** `JsonAdapter` property-binding propagation; exact `WlrLayershell.keyboardFocus` + `mask` mechanics on 0.56.0
+- **Phase 12:** GTK4 CSS `linear(<stops>)` support (must test empirically; default: unsupported, single-bezier fallback)
+- **Phase 15:** `Quickshell.Networking` API completeness (D-Bus calls vs. `nmcli` wrapper)
+- **Phase 16:** Hyprland `PERMISSION_TYPE_SCREENCOPY` requirement and `noscreenshare` window-rule semantics
 
-Phases with standard patterns (skip deep research): bug fixes (well-documented upstream issues), light/dark plumbing (two code locations, proven pattern extension), presets (pure content addition), wallpaper dirs (filesystem-native), menu framework (direct Omarchy pattern), menu content (straightforward submenu definitions).
+**Phases with standard patterns (research-phase not needed):**
+- **Phase 13:** Motion retrofit is mechanical application of Phase 12 tokens
+- **Phase 14/15:** Dialog/panel patterns established in end-4/Caelestia, directly copyable
+- **Phase 17:** Both features use well-documented existing tools
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| **Stack** | **HIGH** | All core packages verified directly via `pacman -Si` on target machine; hyprpicker via AUR RPC. Version compatibility checked. |
-| **Features** | **MEDIUM** | Cross-referenced across 5 reference rices (Omarchy, HyDE, end-4, Caelestia, ML4W); corroborated multi-source but websearch-sourced. Some specifics need machine verification. |
-| **Architecture** | **HIGH** | Sourced from direct repository inspection; dead-code finding verified via grep. Two claims (elephant-menus format, Zen userChrome.css) need phase-level research. |
-| **Pitfalls** | **MEDIUM-HIGH** | Critical pitfalls corroborated across 2+ GitHub issues. Prevention strategies documented. |
+| Stack | HIGH | Quickshell 0.3.0-2 verified in Arch `extra` via `pacman -Si`; Qt6 deps all installed; supporting services confirmed; no hyprexpo needed |
+| Features | HIGH (flagship), MEDIUM (execution) | Both flagships source-read; complexity flagged where native bindings absent (wifi D-Bus) |
+| Architecture | MEDIUM-HIGH | Extends proven AGS pattern; Quickshell behavioral details are single-source, need empirical validation Phase 11 |
+| Pitfalls | MEDIUM | Hyprland 0.56.0 verified locally; plugin-ABI/D-Bus/fitting pitfalls web-sourced, need local testing |
 
-**Overall: MEDIUM-HIGH** — Roadmap is structurally sound and dependency-aware; execution risk manageable if research spikes (Zen profile, OLED auto-hide) completed before the relevant phase planning.
+**Overall: MEDIUM-HIGH**
+
+Stack and feature-shape solid; architecture extends proven patterns; main uncertainty is Quickshell behavioral details (Phase 11 settles) and GTK4 CSS `linear()` support (Phase 12 tests).
 
 ### Gaps to Address
 
-- **Zen profile-path resolution:** `profiles.ini` parsing, native vs flatpak, graceful "doesn't exist yet" — research spike required
-- **OLED auto-hide mechanism:** hypridle availability, idle integration — research spike required
-- **swayosd CSS hot-reload:** Behavior not verified on actual machine version; impacts reload.sh design
-- **elephant-menus format:** schema, icon-name vs absolute-path support — needs `elephant generatedoc` verification on-machine
-- **Waybar mpris module current state:** Confirm existing `media-player.py` role before media-center design
+1. **Quickshell's `JsonAdapter` auto-propagation:** Must verify empirically Phase 11 that file changes trigger property re-evaluation with zero explicit reload code
+2. **GTK4 CSS `linear()` easing:** Test empirically Phase 12 with throwaway CSS; default assumption: unsupported
+3. **NetworkManager D-Bus API in Quickshell:** Confirm `Quickshell.Networking` covers "list + connect + password" before Phase 15 commits to in-QML vs. `nmcli`
+4. **Hyprland screencopy permission system:** Verify permission grant + `noscreenshare` window-rule behavior before Phase 16
+5. **Spring-to-bezier fidelity perception:** Validate empirically Phase 13 during side-by-side render gate
+6. **Quickshell reduced-motion accessibility:** No precedent found; design knob Phase 12, validate Phase 13+
+
+---
 
 ## Sources
 
-- `.planning/research/STACK.md` — package names/versions verified via `pacman -Si`/`-Q` and AUR RPC on the target machine (HIGH); tool-choice comparisons via websearch (LOW-MEDIUM)
-- `.planning/research/FEATURES.md` — cross-referenced across Omarchy, HyDE, end-4/dots-hyprland, Caelestia, ML4W via websearch/DeepWiki/GitHub (LOW-MEDIUM)
-- `.planning/research/ARCHITECTURE.md` — direct repository inspection of theme-engine, contract.json, stowed configs (HIGH); elephant-menus schema and Zen theming via websearch (LOW)
-- `.planning/research/PITFALLS.md` — websearch, several findings corroborated by 2+ independent GitHub issues (LOW-MEDIUM)
+**PRIMARY (HIGH — direct system verification):**
+- This machine: `pacman -Si quickshell`, `pacman -Qi qt6-*`, `hyprctl version`
+- Repo inspection: `theme-engine/contract.json`, `ags/.config/ags/app.tsx`, `hypr/.config/hypr/config/animations.conf`, `stow.sh`
+
+**SECONDARY (MEDIUM — source-read reference projects):**
+- `end-4/dots-hyprland` (GitHub API + raw file fetch): QML dashboard/panels/overview implementation
+- `caelestia-dots/shell` (GitHub API + raw file fetch): QML animation system, singleton pattern
+- Quickshell official docs (`quickshell.org/docs`): config model, `FileView`/`JsonAdapter`, `PanelWindow`/`WlrLayershell`, native service modules
+
+**TERTIARY (MEDIUM, cross-checked 2+ sources):**
+- Hyprland wiki + standards: `hyprland-toplevel-export-v1` protocol, native support
+- `hyprwm/hyprland-plugins` repo + GitHub issues + forum reports: hyprexpo plugin-ABI coupling, reproducibility risk
+- CSS Easing + GTK docs + spring-physics articles: fidelity limits, CSS capabilities
+
+**TERTIARY (LOW, single source or inference):**
+- Quickshell GitHub issues, end-4 issues: behavioral details (hot-reload, multi-monitor, memory)
+- Hyprland permissions wiki + `hyprctl`: screencopy permission system
+- playerctl/bluez/NetworkManager D-Bus docs: multi-client behavior
+
+---
+
+*Research completed: 2026-07-26*
+*Ready for roadmap: yes*
+*Synthesized from: STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md*
