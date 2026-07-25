@@ -160,36 +160,57 @@ button {
    role family directly. #reboot's derived vhue-purple deliberately
    approaches error (0.4 mix) without equalling it — this preserves the
    severity gradient (D-05); do not "simplify" reboot to plain @error at
-   a lower alpha. */
+   a lower alpha.
+
+   ── 09-04 render-gate legibility correction (D-03/D-06 alpha retune,
+   NOT a hue/role change) ─────────────────────────────────────────────
+   Live pixel measurement at the render gate (grim capture + per-channel
+   colour-distance sampling, tokyonight preset) found adjacent unfocused
+   capsules only 9-17 units apart (of ~765 possible) at the plan's
+   original 0.35 fill / 0.5 border alpha — genuinely near-indistinguishable,
+   the exact 08-16 failure class this phase exists to prevent. Root cause
+   (confirmed by reading the rendered wleave.css): several stock palettes
+   in this repo (tokyonight, nord, rosepine, dracula) define
+   primary_container == secondary_container as the literal same hex — the
+   "container" role alone cannot carry per-capsule hue identity on those
+   palettes, so the hairline border (always the vivid, always-distinct
+   base hue — primary/secondary/tertiary/error) has to carry more of the
+   legibility load. Fill alpha raised 0.35→0.55 and border alpha raised
+   0.5→0.82 (rest state); hover/focus fill raised 0.55→0.70 to preserve a
+   visible rest→interaction step. Border stays reduced-alpha (not fully
+   opaque) at rest specifically so hover/focus's jump to full-opacity
+   border remains a real state change, not a no-op. Alpha values only —
+   no hue, role, or mix() ratio changed. Re-verified after this edit via
+   a fresh render-gate capture; see 09-04-SUMMARY.md. */
 button#lock {
-    background-color: alpha(@primary_container, 0.35);
+    background-color: alpha(@primary_container, 0.55);
     color: @on_primary_container;
-    border-color: alpha(@primary, 0.5);
+    border-color: alpha(@primary, 0.82);
 }
 button#logout {
-    background-color: alpha(@secondary_container, 0.35);
+    background-color: alpha(@secondary_container, 0.55);
     color: @on_secondary_container;
-    border-color: alpha(@secondary, 0.5);
+    border-color: alpha(@secondary, 0.82);
 }
 button#suspend {
-    background-color: alpha(@tertiary_container, 0.35);
+    background-color: alpha(@tertiary_container, 0.55);
     color: @on_tertiary_container;
-    border-color: alpha(@tertiary, 0.5);
+    border-color: alpha(@tertiary, 0.82);
 }
 button#hibernate {
-    background-color: alpha(@vhue-teal-container, 0.35);
+    background-color: alpha(@vhue-teal-container, 0.55);
     color: @on-vhue-teal;
-    border-color: alpha(@vhue-teal, 0.5);
+    border-color: alpha(@vhue-teal, 0.82);
 }
 button#reboot {
-    background-color: alpha(@vhue-purple-container, 0.35);
+    background-color: alpha(@vhue-purple-container, 0.55);
     color: @on-vhue-purple;
-    border-color: alpha(@vhue-purple, 0.5);
+    border-color: alpha(@vhue-purple, 0.82);
 }
 button#shutdown {
-    background-color: alpha(@error_container, 0.35);
+    background-color: alpha(@error_container, 0.55);
     color: @on_error_container;
-    border-color: alpha(@error, 0.5);
+    border-color: alpha(@error, 0.82);
 }
 
 /* ── Hover / keyboard focus (D-08) — MUST render identically for both.
@@ -208,39 +229,43 @@ button:focus {
         box-shadow 150ms ease,
         transform 200ms cubic-bezier(0.55, 0, 0.28, 1.68);
 }
+/* Hover/focus fill raised 0.55→0.70 (09-04 legibility retune, see the
+   rest-state comment above) so the rest→interaction step remains visible
+   now that rest itself sits at 0.55 — border was already fully opaque at
+   hover/focus and is unchanged here. */
 button#lock:hover,
 button#lock:focus {
-    background-color: alpha(@primary_container, 0.55);
+    background-color: alpha(@primary_container, 0.70);
     border-color: @primary;
     box-shadow: 0 0 10px 1px alpha(@primary, 0.45);
 }
 button#logout:hover,
 button#logout:focus {
-    background-color: alpha(@secondary_container, 0.55);
+    background-color: alpha(@secondary_container, 0.70);
     border-color: @secondary;
     box-shadow: 0 0 10px 1px alpha(@secondary, 0.45);
 }
 button#suspend:hover,
 button#suspend:focus {
-    background-color: alpha(@tertiary_container, 0.55);
+    background-color: alpha(@tertiary_container, 0.70);
     border-color: @tertiary;
     box-shadow: 0 0 10px 1px alpha(@tertiary, 0.45);
 }
 button#hibernate:hover,
 button#hibernate:focus {
-    background-color: alpha(@vhue-teal-container, 0.55);
+    background-color: alpha(@vhue-teal-container, 0.70);
     border-color: @vhue-teal;
     box-shadow: 0 0 10px 1px alpha(@vhue-teal, 0.45);
 }
 button#reboot:hover,
 button#reboot:focus {
-    background-color: alpha(@vhue-purple-container, 0.55);
+    background-color: alpha(@vhue-purple-container, 0.70);
     border-color: @vhue-purple;
     box-shadow: 0 0 10px 1px alpha(@vhue-purple, 0.45);
 }
 button#shutdown:hover,
 button#shutdown:focus {
-    background-color: alpha(@error_container, 0.55);
+    background-color: alpha(@error_container, 0.70);
     border-color: @error;
     box-shadow: 0 0 10px 1px alpha(@error, 0.45);
 }
