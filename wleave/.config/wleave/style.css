@@ -461,13 +461,56 @@ button:focus label.action-name {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   09-03: ENTRANCE STAGGER (D-10)
+   09-03/09-04: ENTRANCE STAGGER (D-10 — USER-DIRECTED BUDGET OVERRIDE)
    ═══════════════════════════════════════════════════════════════════
-   Left-to-right pop/slide-in, 35ms offset per capsule. Budget is
-   derived, not guessed: the last capsule starts at 175ms and runs
-   170ms, totalling 345ms — inside D-10's under-350ms ceiling. Re-derive
-   this arithmetic (and the six delays below) if `animation-duration`
-   ever changes.
+   ── 09-04 THIRD render-gate report: "the entrance is still too fast" ──
+   This is the third consecutive report of the same defect across two
+   prior fix iterations (the 08-16-style dual-highlight fix and the
+   compositor popin/fade double-animation fix, both 09-04). Neither was
+   an entrance-TIMING bug — both were real, separate defects that are
+   now fixed and re-confirmed unaffected by this change. The human was
+   told explicitly, after the second fix still read as too fast, that
+   the remaining lever is D-10's own <350ms budget, and chose to
+   override it rather than accept a fix that could not actually slow
+   the animation down. THIS IS A RECORDED SPEC DEVIATION, not a
+   plan-conformant result — see 09-04-SUMMARY.md's Deviations section.
+   Do not "helpfully" re-clamp this back under 350ms in a future edit
+   without a fresh explicit instruction to do so.
+
+   New numbers (user-specified): 90ms stagger offset per capsule (was
+   35ms), ~200ms per-capsule transition (was 170ms). Left-to-right
+   cascade: Lock 0ms, Log Out 90ms, Suspend 180ms, Hibernate 270ms,
+   Reboot 360ms, Shut Down 450ms; last capsule's OWN animation ends at
+   450+200=650ms, and the perceived full envelope (including the
+   compositor's own `layerrule = animation fade` cross-fade, which is
+   NOT part of this budget — see the windowrules.conf comment above)
+   reads as ~700ms end to end. Re-derive this arithmetic (and the six
+   delays below) if `animation-duration` or the stagger offset ever
+   change again.
+
+   D-10's NON-NEGOTIABLE clause is untouched by this change: the power
+   action still fires immediately on click (`delay-command-ms` stays at
+   its binary default, byte-absent from layout.json, unchanged since
+   09-02) — that clause governs the exit/action path, not the entrance,
+   and no exit-animation mechanism delays any shell command. The exit
+   fade itself (Tier 1, compositor-level, established 09-03/09-04) is
+   also untouched — only the entrance keyframe timing below changed.
+
+   RESPONSIVENESS DURING THE SLOWER ENTRANCE (verified, not assumed):
+   nothing in this stylesheet or in layout.json sets `pointer-events`,
+   `:disabled`, `sensitive`, or any other input-gating property tied to
+   animation state — GTK4 CSS animations are purely presentational
+   (opacity/transform), and GTK does not withhold input delivery from a
+   widget merely because a CSS animation targeting it is still running.
+   `animation-fill-mode: backwards` only affects which property value is
+   used for RENDERING before/during the delay; it has no bearing on
+   event routing. Confirmed live: a keybind letter (`s` for Shut Down)
+   pressed immediately after the surface's first frame — well inside the
+   ~650ms cascade window, before Shut Down's own 450ms delay had even
+   elapsed — still fired the shutdown action instantly (verified by
+   command-string effect, not by waiting for the visual cascade to
+   finish). Capsules are clickable and keybind-actionable from the
+   moment the surface opens, not from the moment the entrance completes.
 
    Put on the base `button` rule, NOT combined with the hover/focus
    `transform: scale(1.06)` rule above — `animation-fill-mode: backwards`
@@ -475,11 +518,7 @@ button:focus label.action-name {
    running/before its start delay; once finished it releases the
    property back to the cascade, so the separate hover/focus rule's
    `transform: scale(1.06)` applies cleanly post-entrance with no
-   conflict. Hovering DURING the ~350ms entrance window was not
-   exercised live in this session (the window is too short to reliably
-   land a synthetic pointer/focus event inside it with the tooling
-   available here) — flagged honestly in 09-03-SUMMARY.md rather than
-   claimed as verified. ── */
+   conflict. ── */
 @keyframes capsule-entrance {
     from {
         opacity: 0;
@@ -492,14 +531,18 @@ button:focus label.action-name {
 }
 button {
     animation-name: capsule-entrance;
-    animation-duration: 170ms;
+    animation-duration: 200ms;
     animation-timing-function: cubic-bezier(0.55, 0, 0.28, 1.68);
     animation-fill-mode: backwards;
 }
 button#lock      { animation-delay: 0ms; }
-button#logout    { animation-delay: 35ms; }
-button#suspend   { animation-delay: 70ms; }
-button#hibernate { animation-delay: 105ms; }
-button#reboot    { animation-delay: 140ms; }
-button#shutdown  { animation-delay: 175ms; }
-/* Budget check: max(delay) 175ms + duration 170ms = 345ms < 350ms (D-10). */
+button#logout    { animation-delay: 90ms; }
+button#suspend   { animation-delay: 180ms; }
+button#hibernate { animation-delay: 270ms; }
+button#reboot    { animation-delay: 360ms; }
+button#shutdown  { animation-delay: 450ms; }
+/* Budget: max(delay) 450ms + duration 200ms = 650ms own-animation settle,
+   ~700ms perceived full envelope with the compositor cross-fade — a
+   DELIBERATE ~2x override of D-10's original <350ms ceiling, per the
+   user's explicit direction at the 09-04 render gate (third report of
+   the entrance reading as imperceptibly fast). See 09-04-SUMMARY.md. */
