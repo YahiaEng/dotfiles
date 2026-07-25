@@ -76,6 +76,34 @@ button {
     text-shadow: none;
 }
 
+/* ── Hide the built-in version-info footer (orchestrator finding A,
+   09-02 spot-check) ────────────────────────────────────────────────────
+   wleave 0.7.0 (packaged as wleave 0.7.1-1; see the version-string
+   discrepancy noted in 09-02-SUMMARY.md) unconditionally renders a
+   footer widget with CSS node name `version-info` reading
+   "Wleave 0.7.0. Missing or broken icons?" plus a linked `<a>` tag. This
+   is not an error state and not icon-related — it always draws.
+
+   Fixed natively via layout.json's top-level `"no-version-info": true`
+   key (confirmed live in the config-mode debug log: `"no-version-info"
+   specified from config: false` is the field this flips), which drops
+   the widget entirely rather than merely hiding it — the correct
+   "collapse, don't just paint transparent" fix, since a CSS-only attempt
+   at `display: none` was empirically confirmed NOT to be a supported
+   GTK CSS property on this install (`CSS Parse error: ... No property
+   named "display"`). This rule is kept as a defence-in-depth fallback
+   using only properties GTK CSS does support, in case a future wleave
+   version ever drops the config key: it cannot fully collapse the
+   layout slot, so the config key remains the primary fix. ── */
+#version-info {
+    opacity: 0;
+    font-size: 0;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+}
+
 /* ── Nerd Font glyph rendering ──────────────────────────────────────────
    Vertical centring comes from layout.json's per-button `height: 0.5`
    field (an alignment fraction, not a pixel size — wleave defaults it to

@@ -32,4 +32,4 @@ actions = { "open" = "~/.config/hypr/scripts/cheat-sheet.sh" }
 text = "  Power"
 # D-19: delegates to the ONE existing power surface (same as Super+Shift+Q).
 # D-09: shell script, invoked bare — never uwsm app --.
-actions = { "open" = "~/.config/hypr/scripts/wlogout.sh" }
+actions = { "open" = "~/.config/hypr/scripts/wleave.sh" }

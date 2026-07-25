@@ -5,6 +5,7 @@
   "column-spacing": 24,
   "button-aspect-ratio": 1.0,
   "margin": "36.4%",
+  "no-version-info": true,
   "buttons": [
     {
       "label": "lock",

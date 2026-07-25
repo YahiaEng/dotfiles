@@ -35,7 +35,7 @@ PACKAGES=(
     walker
     wallpapers
     waybar
-    wlogout
+    wleave
     yazi
     zshell
 )

@@ -253,7 +253,7 @@
         // glyph) replaced with U+F011 -> fa-power_off (cmap-verified).
         "format": "",
         "tooltip-format": "Power Menu",
-        "on-click": "~/.config/hypr/scripts/wlogout.sh"
+        "on-click": "~/.config/hypr/scripts/wleave.sh"
     },
 
     "tray": {

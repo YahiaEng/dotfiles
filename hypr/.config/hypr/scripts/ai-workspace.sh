@@ -17,9 +17,10 @@
 # ONE set of windows, not two): query hyprctl clients BEFORE launching
 # anything. Only launch what's missing from the `name:ai` workspace. If the
 # query itself fails (no hyprctl/jq), fail CLOSED — switch workspace and
-# launch nothing, per the wlogout.sh guarded-query idiom (hyprctl -j +
-# jq, `|| true` fallback) — an empty workspace is recoverable, a doubled
-# one is not.
+# launch nothing, per the guarded hyprctl-plus-jq query idiom (query with
+# `|| true` so a compositor-query failure launches nothing rather than
+# risking a doubled window set) — an empty workspace is recoverable, a
+# doubled one is not.
 set -euo pipefail
 
 CLAUDE_CODE_CLASS="ai-claude-code"

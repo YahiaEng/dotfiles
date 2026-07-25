@@ -79,7 +79,7 @@
     },
     "custom/power": {
         "format": "\uf011 ",
-        "on-click": "bash ~/.config/hypr/scripts/wlogout.sh"
+        "on-click": "bash ~/.config/hypr/scripts/wleave.sh"
     },
     "hyprland/workspaces": {
         "format": "{icon}",

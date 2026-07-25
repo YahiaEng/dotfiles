@@ -230,7 +230,7 @@ AUR_PKGS=(
     bibata-cursor-theme
 
     # Logout menu (AUR-only; not in official repos)
-    wlogout
+    wleave
 
     # Z-shell
     zsh
