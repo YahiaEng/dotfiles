@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 Phase: Milestone v2.0 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-07-25 — Milestone v2.0 completed and archived
+Last activity: 2026-07-25 — Completed quick task 260725-vu6: finished the eww retirement (theme-parity 22 failed → 0)
 
 ## Performance Metrics
 
@@ -150,6 +150,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260709-a5i | Fix install.sh AUR conflict: remove dead alpm_octopi_utils | 2026-07-09 | 0ffa5d9 | [260709-a5i-fix-install-sh-aur-conflict-remove-dead-](./quick/260709-a5i-fix-install-sh-aur-conflict-remove-dead-/) |
 | 260709-buf | Fix theme reload headless hang + gate step timeout | 2026-07-09 | 1e747eb, 50ad696 | [260709-buf-fix-theme-reload-headless-hang-gate-step](./quick/260709-buf-fix-theme-reload-headless-hang-gate-step/) |
 | 260709-ciu | Make current.jpg wallpaper symlink relative (fresh-install materialyou fix) | 2026-07-09 | 49536d5 | [260709-ciu-fix-host-absolute-wallpaper-symlink-brea](./quick/260709-ciu-fix-host-absolute-wallpaper-symlink-brea/) |
+| 260725-vu6 | Complete the eww retirement: orphaned contract entry, stale layerrules, stow package, AUR dep, dead reload branch | 2026-07-25 | cd4a1b2, bb76d29, 090d531 | [260725-vu6-complete-the-eww-retirement-drop-orphane](./quick/260725-vu6-complete-the-eww-retirement-drop-orphane/) |
 
 ### Pending Todos
 
@@ -163,10 +164,15 @@ None yet.
 
 **Open — carried into v3.0:**
 
-1. **`theme-doctor` / `theme-parity` / `theme-stress-test` fail on an orphaned `eww.scss` contract entry.** `theme-engine/.config/theme-engine/contract.json:20` still declares `{ "name": "eww.scss", "format": "scss-kv" }`, but 10-06 removed the matugen template that rendered it — confirmed at milestone close: `~/.local/state/theme/eww.scss` does not exist. The project's three core regression gates are therefore red for a bookkeeping reason. Likely a one-line fix (drop the contract entry); it should be the first thing v3.0 closes, because every other gate result is untrustworthy until it is green.
-2. **`keybind-doctor`'s `hyprctl binds -j` JSON parsing is broken on Hyprland 0.56.0.** Pre-existing, surfaced during Phase 9, unrelated to that phase's changes.
-3. **Stale `eww-media-popup` layerrules** remain at `hypr/.config/hypr/config/windowrules.conf:259,272` after Phase 10 retired that window. Inert (no client claims the namespace) but dead config — clean up alongside item 1.
-4. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** still open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot.
+1. **`keybind-doctor`'s `hyprctl binds -j` JSON parsing is broken on Hyprland 0.56.0.** Pre-existing, surfaced during Phase 9, unrelated to that phase's changes.
+2. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** still open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot.
+3. **`theme-doctor`'s `git status --porcelain is empty` check is red on this host** — caused by uncommitted working-tree changes (wallpaper set edits, `monitors.conf`, a deleted `.planning/HANDOFF.json`, an untracked `csv`), not by any pipeline defect. `theme-stress-test` inherits the failure through its strict `theme-doctor exit 0` gate, so the stress harness cannot produce a clean run until the tree is committed or reverted. Decide what to do with those changes early in v3.0.
+
+**Resolved by quick task 260725-vu6 (2026-07-25):**
+
+- ~~**`theme-doctor` / `theme-parity` / `theme-stress-test` fail on an orphaned `eww.scss` contract entry**~~ — **closed.** Entry dropped from `contract.json` (18 → 17 files); `theme-parity` went 22 failed → **0 failed**, `theme-doctor` 2 failed → **1 failed** (the remaining one is the unrelated git-clean check, item 3 above). The now-dead `scss-kv` format branches in `lib/contract.sh` were removed with it — `eww.scss` was their only consumer.
+- ~~**Stale `eww-media-popup` layerrules** at `windowrules.conf:259,272`~~ — **closed.** Removed, along with the whole retired `eww/` stow package, its `stow.sh` registration and `~/.config/eww` pre-create, the `eww` AUR dependency in `install.sh`, and the dead `eww reload` branch in `lib/reload.sh`. This finishes the retirement Phase 10 left half-done and closes out the ⚠ Revisit on PROJECT.md's "Consumer-check before retiring a toolkit" decision.
+- **Deliberate residual:** `~/.cache/eww-media-player` and `~/.cache/eww-media-art` path literals remain in `hypr/.config/hypr/scripts/media-players.sh` and `media-art-resolve.sh`. They are live runtime-state paths read by `ags/lib/media.ts`; renaming them would silently reset the user's persisted player selection. Rename is a separate opt-in follow-up, not dead config.
 
 **Resolved at v2.0 milestone close (2026-07-25):**
 
