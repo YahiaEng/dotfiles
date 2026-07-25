@@ -266,15 +266,6 @@ AUR_PKGS=(
     heroic-games-launcher-bin
     protonup-qt
 
-    # Media center (BAR-04 / D-18 / D-36 — human package-legitimacy
-    # checkpoint approved 2026-07-14). eww is AUR-only — pacman -Ss eww
-    # returns nothing from core/extra, so there is no official-repo
-    # alternative; do not "fix" it into PACMAN_PKGS. Only the stable
-    # `eww` name is installed here — the git-suffixed variant of this
-    # package was explicitly refused (lower adoption, non-reproducible
-    # builds) and must never be added.
-    eww
-
     # AGS media applet (MEDIA-04) — aylurs-gtk-shell is the well-known
     # upstream AGS v3 (GTK4) toolkit; AUR-only (no official-repo
     # alternative). gjs is pulled in automatically as its dependency —

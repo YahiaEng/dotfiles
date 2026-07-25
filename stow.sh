@@ -19,7 +19,6 @@ cd "$DOTFILES_DIR"
 PACKAGES=(
     ags
     elephant
-    eww
     fastfetch
     fish
     gtk
@@ -68,18 +67,6 @@ mkdir -p "$HOME/.config/fish/functions" "$HOME/.config/fish/conf.d" "$HOME/.conf
 # tracked content), and it must land in a real directory, never inside the
 # repo via a folded stow symlink.
 mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
-
-# BAR-04/D-19: pre-create eww's config dir as a real directory, same
-# rationale as fish/gtk-3.0/gtk-4.0 above. Empirically, eww's SCSS @import
-# resolves its "../../" relative path lexically against the given config
-# path rather than a canonicalized realpath, so a folded stow symlink
-# (`~/.config/eww` -> the repo dir) does NOT actually break the import in
-# this eww version (Task 5, verified against installed 0.6.0). This
-# pre-create is kept anyway as defense-in-depth against a future eww
-# version canonicalizing that path (the exact class of upstream-version
-# assumption Task 3/5 warn against elsewhere in this plan) — it costs
-# nothing and matches the established repo-wide convention.
-mkdir -p "$HOME/.config/eww"
 
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
