@@ -64,14 +64,20 @@ window > box {
    value, so it scales with whatever monitor is attached rather than
    clipping or floating wrong on a different resolution) narrows the
    available row width to ~696px on this machine's display — the exact
-   6*96+5*24 target — confirmed live via screenshot. ── */
+   6*96+5*24 target — confirmed live via screenshot.
+
+   `border-color` is NOT set here (09-03): each capsule now carries its
+   own per-hue hairline border via the id-selector rules below (D-03/D-06)
+   — this base rule only owns the border's WIDTH/STYLE, left as a
+   shorthand-free declaration so the per-id `border-color` override below
+   can't be shadowed by shorthand re-declaration order. ── */
 button {
     min-width: 62px;
     min-height: 62px;
     padding: 16px;
-    border: 1px solid @outline;
+    border-width: 1px;
+    border-style: solid;
     border-radius: 24px;
-    background-color: alpha(@surface, 0.35);
     box-shadow: none;
     text-shadow: none;
 }
@@ -104,15 +110,204 @@ button {
     margin: 0;
 }
 
-/* ── Nerd Font glyph rendering ──────────────────────────────────────────
-   Vertical centring comes from layout.json's per-button `height: 0.5`
-   field (an alignment fraction, not a pixel size — wleave defaults it to
-   0.9, near the bottom, which reproduces Phase 6's exact GTK3 symptom
-   through a completely different mechanism). No bottom-margin label
-   correction here: that was a GTK3-only optical fix with no equivalent
-   effect on this engine. ── */
-button label {
-    font-family: "FiraCode Nerd Font";
-    font-size: 36px;
-    color: @on_surface;
+/* ═══════════════════════════════════════════════════════════════════
+   09-03: SIX-CAPSULE HUE IDENTITY (D-03/D-04/D-05/D-06)
+   ═══════════════════════════════════════════════════════════════════
+
+   D-08 DECISION RECORD (blocking checkpoint, resolved by the user):
+   option-b — icon+text split. wleave 0.7.1 renders label.action-name
+   (the `text` field) IN ADDITION TO an `icon` field's picture, not
+   instead of it (09-02's D-08 correction). This design moves the glyph
+   OUT of `text` (where 09-01/09-02 originally put a Nerd Font codepoint
+   as the button's only content) and INTO `icon`, pointed at wleave's own
+   shipped SVGs (/usr/share/wleave/icons/*.svg — a runtime dependency of
+   the already-installed AUR package, zero new repo assets, reproducible
+   via install.sh with no additional work). `text` now carries the six
+   Title Case action names, hidden at rest and revealed on hover/focus
+   below the glyph — which is what actually delivers D-08's label-reveal
+   clause. This SUPERSEDES D-09's chosen-codepoint convention for this
+   surface: the 09-01 cmap verification work remains valid history, but
+   no six-codepoint glyph is rendered here anymore. See 09-03-SUMMARY.md
+   for the full user-approved deviation writeup. */
+
+/* Two hues this repo's four native M3 roles don't cover (D-04) — the
+   exact Phase 8-14 mix() idiom (waybar/theme.css lines ~165-172), applied
+   at the CONTAINER level for the first time in this repo. Phase 8 only
+   ever mixed base/opaque hues; here the container fill AND its on-colour
+   pairing both need their own mix so the frost-fill/glyph contrast
+   pairing holds for these two derived capsules exactly as it does for
+   the four native ones. Confirm this reads correctly (not muddy/low
+   contrast) at the 09-04 render gate — mix()-of-mix composited with the
+   0.35 frost alpha is unverified until rendered. */
+@define-color vhue-teal-container mix(@secondary_container, @tertiary_container, 0.5);
+@define-color on-vhue-teal mix(@on_secondary_container, @on_tertiary_container, 0.5);
+@define-color vhue-teal mix(@secondary, @tertiary, 0.5);
+@define-color vhue-purple-container mix(@primary_container, @error_container, 0.4);
+@define-color on-vhue-purple mix(@on_primary_container, @on_error_container, 0.4);
+@define-color vhue-purple mix(@primary, @error, 0.4);
+
+/* Rest state (D-05 left-to-right severity order). Each rule pairs a
+   translucent container-role fill with its matching on-container glyph
+   colour (the M3 pairing that avoids the 08-16 light-preset illegibility
+   failure) and a reduced-alpha hairline border in the base hue.
+   `color` on the button cascades to BOTH the icon (wleave's
+   WleavePicturePaintable recolors the SVG glyph from the widget's
+   foreground colour — proven empirically, see the phase evidence
+   tint-proof render) and the label.action-name text (ordinary CSS colour
+   inheritance) — one declaration themes both.
+
+   RESERVATION RULE: only #shutdown may reference the @error/@error_container
+   role family directly. #reboot's derived vhue-purple deliberately
+   approaches error (0.4 mix) without equalling it — this preserves the
+   severity gradient (D-05); do not "simplify" reboot to plain @error at
+   a lower alpha. */
+button#lock {
+    background-color: alpha(@primary_container, 0.35);
+    color: @on_primary_container;
+    border-color: alpha(@primary, 0.5);
+}
+button#logout {
+    background-color: alpha(@secondary_container, 0.35);
+    color: @on_secondary_container;
+    border-color: alpha(@secondary, 0.5);
+}
+button#suspend {
+    background-color: alpha(@tertiary_container, 0.35);
+    color: @on_tertiary_container;
+    border-color: alpha(@tertiary, 0.5);
+}
+button#hibernate {
+    background-color: alpha(@vhue-teal-container, 0.35);
+    color: @on-vhue-teal;
+    border-color: alpha(@vhue-teal, 0.5);
+}
+button#reboot {
+    background-color: alpha(@vhue-purple-container, 0.35);
+    color: @on-vhue-purple;
+    border-color: alpha(@vhue-purple, 0.5);
+}
+button#shutdown {
+    background-color: alpha(@error_container, 0.35);
+    color: @on_error_container;
+    border-color: alpha(@error, 0.5);
+}
+
+/* ── Hover / keyboard focus (D-08) — MUST render identically for both.
+   Every interaction rule below is written as a paired :hover/:focus
+   selector list; never a hover rule with no focus twin. Do NOT copy the
+   retired wlogout sheet's pattern of inverting to an OPAQUE fill with an
+   `on_*` glyph on top — that is a different, higher-contrast-but-flatter
+   look this redesign deliberately does not use. ── */
+button:hover,
+button:focus {
+    transform: scale(1.06);
+    transform-origin: center;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        box-shadow 150ms ease,
+        transform 200ms cubic-bezier(0.55, 0, 0.28, 1.68);
+}
+button#lock:hover,
+button#lock:focus {
+    background-color: alpha(@primary_container, 0.55);
+    border-color: @primary;
+    box-shadow: 0 0 10px 1px alpha(@primary, 0.45);
+}
+button#logout:hover,
+button#logout:focus {
+    background-color: alpha(@secondary_container, 0.55);
+    border-color: @secondary;
+    box-shadow: 0 0 10px 1px alpha(@secondary, 0.45);
+}
+button#suspend:hover,
+button#suspend:focus {
+    background-color: alpha(@tertiary_container, 0.55);
+    border-color: @tertiary;
+    box-shadow: 0 0 10px 1px alpha(@tertiary, 0.45);
+}
+button#hibernate:hover,
+button#hibernate:focus {
+    background-color: alpha(@vhue-teal-container, 0.55);
+    border-color: @vhue-teal;
+    box-shadow: 0 0 10px 1px alpha(@vhue-teal, 0.45);
+}
+button#reboot:hover,
+button#reboot:focus {
+    background-color: alpha(@vhue-purple-container, 0.55);
+    border-color: @vhue-purple;
+    box-shadow: 0 0 10px 1px alpha(@vhue-purple, 0.45);
+}
+button#shutdown:hover,
+button#shutdown:focus {
+    background-color: alpha(@error_container, 0.55);
+    border-color: @error;
+    box-shadow: 0 0 10px 1px alpha(@error, 0.45);
+}
+
+/* ── Nerd Font glyph rendering — SUPERSEDED (09-03, D-08 option-b) ─────
+   09-02 rendered the glyph as `text` (Nerd Font codepoint) via this
+   `button label` rule at font-size 36px, positioned by layout.json's
+   `height: 0.5` field. Both are retired: the glyph now renders via the
+   `icon` field (a real SVG, styled by the `button picture` rule below),
+   and `text` carries the hover-revealed action name instead (styled by
+   `label.action-name` below). layout.json's per-button `height`/`width`
+   fields are removed accordingly — those fields position `text`, which
+   is no longer the glyph. ── */
+
+/* ── Glyph (icon) vertical centring — empirically tuned (09-03) ────────
+   wleave's icon+text button lays out as a vertical stack: the icon
+   picture above, the text label below, with the LABEL's bottom edge
+   anchored near the button's own bottom padding edge regardless of
+   whether the label is painted (opacity 0 still reserves its layout
+   box — confirmed by the phase evidence rest-layout probe). Because the
+   icon's slot is bounded below by that fixed label-reserved region, an
+   icon-only render (no text) centres correctly, but WITH the text slot
+   reserved the icon's natural centring sits measurably ABOVE the
+   capsule's true vertical centre — by almost exactly half the label's
+   own rendered height, matching the algebra: for a box that centres
+   [icon + label] as one group within the button's content area, the icon
+   (the top member of that group) sits offset above true centre by
+   label_height / 2.
+
+   Measured LIVE against this exact geometry (border:1px, padding:16px,
+   min-width/height:62px, label.action-name at 13px/400): with no
+   correction the icon's own allocated box centred 8.0px above the
+   button's true vertical centre (pixel-measured via a grim capture and
+   a colour-mask centroid script, not eyeballed). A `margin-top` on the
+   icon shifts its allocated box down — empirically, its top edge moves
+   by exactly the margin value while its bottom edge (pinned by the
+   label's reserved slot) stays fixed, so the offset moves linearly:
+   offset(margin) = margin/2 − 8px. Solving offset = 0 gives margin = 16px,
+   confirmed live afterwards: the icon's measured box was then centred to
+   within 0px of the button's true centre (0.0px residual on repeat
+   capture). Re-verify this if font-size, line-height, or padding above
+   change — the constant (8px baseline offset) is a function of the
+   label's rendered height and will shift if that changes. ── */
+button picture {
+    margin-top: 16px;
+}
+
+/* Hover-revealed action name (D-08's label clause). Sized per the
+   Typography Label role (13px/400/1.2). Hidden at rest via opacity (NOT
+   `display: none` — empirically confirmed unsupported by this GTK4
+   install, 09-02 finding) so its layout space is reserved identically at
+   rest and on hover, which is exactly what keeps the glyph's measured
+   centring above stable across states (no rest→hover jitter). Slides up
+   slightly into place on reveal, per D-08/the Motion contract. Do NOT
+   reach for the retired GTK3-only bottom-offset label trick here — it
+   has no equivalent effect on this engine; vertical centring on this
+   surface is owned entirely by the `button picture` rule above. ── */
+button label.action-name {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.2;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+}
+button:hover label.action-name,
+button:focus label.action-name {
+    opacity: 1;
+    transform: translateY(0);
 }

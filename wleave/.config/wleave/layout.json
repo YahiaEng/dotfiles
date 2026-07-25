@@ -10,44 +10,44 @@
     {
       "label": "lock",
       "action": "uwsm app -- hyprlock",
-      "text": "",
+      "text": "Lock",
       "keybind": "l",
-      "height": 0.5
+      "icon": "/usr/share/wleave/icons/lock.svg"
     },
     {
       "label": "logout",
       "action": "cliphist wipe; uwsm stop",
-      "text": "",
+      "text": "Log Out",
       "keybind": "e",
-      "height": 0.5
+      "icon": "/usr/share/wleave/icons/logout.svg"
     },
     {
       "label": "suspend",
       "action": "systemctl suspend",
-      "text": "",
+      "text": "Suspend",
       "keybind": "u",
-      "height": 0.5
+      "icon": "/usr/share/wleave/icons/suspend.svg"
     },
     {
       "label": "hibernate",
       "action": "systemctl hibernate",
-      "text": "",
+      "text": "Hibernate",
       "keybind": "h",
-      "height": 0.5
+      "icon": "/usr/share/wleave/icons/hibernate.svg"
     },
     {
       "label": "reboot",
       "action": "cliphist wipe; hyprshutdown --post-cmd 'systemctl reboot'",
-      "text": "",
+      "text": "Reboot",
       "keybind": "r",
-      "height": 0.5
+      "icon": "/usr/share/wleave/icons/reboot.svg"
     },
     {
       "label": "shutdown",
       "action": "cliphist wipe; hyprshutdown --post-cmd 'systemctl poweroff'",
-      "text": "",
+      "text": "Shut Down",
       "keybind": "s",
-      "height": 0.5
+      "icon": "/usr/share/wleave/icons/shutdown.svg"
     }
   ]
 }
