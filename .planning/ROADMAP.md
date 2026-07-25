@@ -287,10 +287,20 @@ UAT blocker: the user tested all 4 layouts live and called the design "a complet
 `wlogout/` stow package, `matugen` render target + `contract.json` entry, `theme-doctor`'s CSS-sheet list, the layout file format, `layerrule` namespace (`logout_dialog` → wleave's), `scripts/wlogout.sh`, keybinds, `install.sh`, `stow.sh`.
 
 Plans:
+**Wave 1**
 
 - [ ] 09-01-PLAN.md — Pre-flight: AUR package-legitimacy gate + install, installed-config-surface probe, glyph cmap re-verification, M3 container-role dry-run (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 09-02-PLAN.md — Atomic cutover: tracer wires keybind→layout→stylesheet→matugen→layerrule end-to-end, then entry points + reproducibility, then GTK3 retirement + gate-list moves (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 09-03-PLAN.md — Visual design build-out: six-hue capsule identity, hover/focus feedback, entrance stagger + exit-tier attempt + blur retune (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 09-04-PLAN.md — Render-and-look gate: five-view grim evidence, blocking human approval on sight, live power-action UAT, deviation recording (wave 4)
 
 ### Phase 10: AGS Media Applet
