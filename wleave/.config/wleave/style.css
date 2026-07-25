@@ -311,3 +311,47 @@ button:focus label.action-name {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   09-03: ENTRANCE STAGGER (D-10)
+   ═══════════════════════════════════════════════════════════════════
+   Left-to-right pop/slide-in, 35ms offset per capsule. Budget is
+   derived, not guessed: the last capsule starts at 175ms and runs
+   170ms, totalling 345ms — inside D-10's under-350ms ceiling. Re-derive
+   this arithmetic (and the six delays below) if `animation-duration`
+   ever changes.
+
+   Put on the base `button` rule, NOT combined with the hover/focus
+   `transform: scale(1.06)` rule above — `animation-fill-mode: backwards`
+   means the animation's own transform only applies while it is
+   running/before its start delay; once finished it releases the
+   property back to the cascade, so the separate hover/focus rule's
+   `transform: scale(1.06)` applies cleanly post-entrance with no
+   conflict. Hovering DURING the ~350ms entrance window was not
+   exercised live in this session (the window is too short to reliably
+   land a synthetic pointer/focus event inside it with the tooling
+   available here) — flagged honestly in 09-03-SUMMARY.md rather than
+   claimed as verified. ── */
+@keyframes capsule-entrance {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+button {
+    animation-name: capsule-entrance;
+    animation-duration: 170ms;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.28, 1.68);
+    animation-fill-mode: backwards;
+}
+button#lock      { animation-delay: 0ms; }
+button#logout    { animation-delay: 35ms; }
+button#suspend   { animation-delay: 70ms; }
+button#hibernate { animation-delay: 105ms; }
+button#reboot    { animation-delay: 140ms; }
+button#shutdown  { animation-delay: 175ms; }
+/* Budget check: max(delay) 175ms + duration 170ms = 345ms < 350ms (D-10). */
