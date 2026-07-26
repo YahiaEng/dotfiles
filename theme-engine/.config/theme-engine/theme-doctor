@@ -607,6 +607,30 @@ else
     echo "  [SKIP] waybar-design-lint ($WAYBAR_DESIGN_LINT not found or not executable)"
 fi
 
+# ── motion-lint fold (12-05, TOKEN-04) ──────────────────────────────────
+# Same "green gates, broken bar" gap the waybar-design-lint fold above
+# closes, applied to motion: TOKEN-04 requires theme-doctor ITSELF to fail
+# on a surface that hand-rolls a raw duration/easing value, not merely a
+# standalone script someone has to remember to run. Every PASS/FAIL line
+# folds into the tally exactly like the waybar-design-lint fold above.
+# [EXEMPT] and [WARN] lines are deliberately NOT folded — an exemption is
+# acknowledged debt, not a passing check, and counting it as a PASS would
+# make a gate that still sits over non-compliant surfaces read as green.
+# Guarded-skip mirrors the waybar-design-lint fold: an unstowed hypr
+# package degrades to SKIP, never a hard FAIL.
+MOTION_LINT="$HOME/.config/hypr/scripts/motion-lint"
+if [[ -x "$MOTION_LINT" ]]; then
+    while IFS= read -r _ml_line; do
+        case "$_ml_line" in
+            *"[PASS]"*) check "motion-lint: ${_ml_line#*\[PASS\] }" "0" ;;
+            *"[FAIL]"*) check "motion-lint: ${_ml_line#*\[FAIL\] }" "1" ;;
+            *)          echo "  $_ml_line" ;;
+        esac
+    done < <("$MOTION_LINT" 2>/dev/null)
+else
+    echo "  [SKIP] motion-lint ($MOTION_LINT not found or not executable)"
+fi
+
 # ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
 #    switch. Guarded-skip mirrors the stow-conflict check above — this must
 #    degrade gracefully, not FAIL, when git or the repo itself is absent

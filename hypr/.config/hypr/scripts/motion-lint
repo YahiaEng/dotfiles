@@ -190,14 +190,15 @@ echo ""
 #    so the comment strippers and reference/raw-value regexes are defined
 #    exactly once (waybar-design-lint's precedent). ───────────────────────
 _motion_lint_checks() {
-    python3 - "$STATE_DIR" "${ROOTS[@]}" <<'PYEOF'
+    python3 - "$STATE_DIR" "$FIXTURES_DIR" "${ROOTS[@]}" <<'PYEOF'
 import json
 import os
 import re
 import sys
 
 state_dir = sys.argv[1]
-roots = sys.argv[2:]
+fixtures_dir = os.path.realpath(sys.argv[2])
+roots = sys.argv[3:]
 
 results = []  # (tag, status, detail) — tag in {A, B, C, DEFS, EXEMPT, ABORT}
 
@@ -363,6 +364,24 @@ if not gtk_defs and not hypr_bezier_defs and not hypr_var_defs and not qml_defs:
     dump()
     sys.exit(0)
 
+# The fixtures directory lives at tests/motion-fixtures/, nested INSIDE
+# the real hypr config tree root (hypr/scripts/tests/...) — a default
+# run's recursive walk would otherwise pick up the deliberately-poisoned
+# fixtures as if they were real surfaces. Excluded only when no root the
+# caller passed is itself inside fixtures_dir, so a self-test/manual run
+# that deliberately points AT the fixtures (or a throwaway copy under it)
+# is unaffected — same code path, context-aware exclusion.
+exclude_fixtures = not any(
+    os.path.realpath(r) == fixtures_dir or os.path.realpath(r).startswith(fixtures_dir + os.sep)
+    for r in roots
+)
+
+
+def under_fixtures_dir(path):
+    real = os.path.realpath(path)
+    return real == fixtures_dir or real.startswith(fixtures_dir + os.sep)
+
+
 # ── Surface collection — recursive glob by extension under each root.
 #    Same function serves the real multi-root run and the single
 #    throwaway/fixture-dir run (D-28: "same code path"). ─────────────────
@@ -383,6 +402,8 @@ for root in roots:
     for dirpath, _dirnames, filenames in os.walk(root, followlinks=True):
         for fn in filenames:
             full = os.path.join(dirpath, fn)
+            if exclude_fixtures and under_fixtures_dir(full):
+                continue
             if fn.endswith('.css') or fn.endswith('.scss'):
                 surfaces['css'].append(full)
             elif fn.endswith('.conf'):
