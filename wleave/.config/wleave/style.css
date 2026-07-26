@@ -1,4 +1,12 @@
 @import url("../../.local/state/theme/wleave.css");
+@import url("../../.local/state/theme/gtk-4.0-motion.css");
+/* 12-07 (TOKEN-03/D-19): the motion import above declares
+   `:root { --motion-*: ...; }`. Binary-verified this plan (standing
+   constraint 2, live GTK 4.22.4 test via Gtk.Application + get_color(),
+   not assumed from the CSS spec): a `:root`-scoped custom property DOES
+   reach a `button` several levels down this window's widget tree — the
+   same live test confirmed a `window`-scoped declaration resolves
+   identically, so no fallback to emitting against `window` was needed. */
 
 /* ── Full-screen dim scrim on `window` itself (D-01/D-07) ─────────────
    GTK4 windows paint an OPAQUE libadwaita window background by default,
@@ -223,11 +231,25 @@ button:hover,
 button:focus {
     transform: scale(1.06);
     transform-origin: center;
-    transition:
-        background-color 150ms ease,
-        border-color 150ms ease,
-        box-shadow 150ms ease,
-        transform 200ms cubic-bezier(0.55, 0, 0.28, 1.68);
+    /* Longhand `transition-*` properties, NOT the `transition:` shorthand
+       (12-07, TOKEN-03/D-19; 12-RESEARCH.md Pattern 3/Pitfall 1,
+       binary-verified this GTK 4.22.4 build): the shorthand silently
+       collapses every comma-separated item into one raw, unresolved
+       string duplicated across all four longhands the instant ANY item
+       in the list contains a `var()` — a correctness requirement, not a
+       style preference, the moment the `transform` item below started
+       consuming a token. `background-color`/`border-color`/`box-shadow`
+       keep their literal `150ms`/`ease` values for now (pending Phase
+       13's existing-surface sweep); only the `transform` item's DURATION
+       becomes a token. Its TIMING FUNCTION — the overshoot spring — stays
+       the hand-authored `cubic-bezier(0.55, 0, 0.28, 1.68)` literal per
+       D-19's fence: the human explicitly approved this exact feel on
+       hover at a prior gate ("button glows and grows larger"), and D-19
+       scopes this plan's retrofit to the entrance and exit motion only,
+       never the hover interaction. */
+    transition-property:        background-color, border-color, box-shadow, transform;
+    transition-duration:        150ms, 150ms, 150ms, var(--motion-duration-standard);
+    transition-timing-function: ease, ease, ease, cubic-bezier(0.55, 0, 0.28, 1.68);
 }
 /* Hover/focus fill raised 0.55→0.70 (09-04 legibility retune, see the
    rest-state comment above) so the rest→interaction step remains visible
@@ -452,7 +474,16 @@ button label.action-name {
     line-height: 1.2;
     opacity: 0;
     transform: translateY(4px);
-    transition: opacity 150ms ease, transform 150ms ease;
+    /* Longhand `transition-*` properties, NOT the shorthand (12-07,
+       TOKEN-03/D-19; same Pitfall 1 correctness requirement as the
+       `button:hover, button:focus` rule above): both items now share one
+       token pair (the label-reveal/exit motion this phase maps to
+       `--motion-duration-emphasized-out` / `--motion-easing-emphasized-
+       accelerate`), so the shorthand's `var()`-triggered collapse would
+       corrupt both values even though they are identical today. */
+    transition-property:        opacity, transform;
+    transition-duration:        var(--motion-duration-emphasized-out), var(--motion-duration-emphasized-out);
+    transition-timing-function: var(--motion-easing-emphasized-accelerate), var(--motion-easing-emphasized-accelerate);
 }
 button:hover label.action-name,
 button:focus label.action-name {
@@ -479,29 +510,41 @@ button:focus label.action-name {
 
    FIX: swapped to `md3_decel` (`cubic-bezier(0.05, 0.7, 0.1, 1)`) — a
    pure decelerate curve, y never exceeds 1, so there is no overshoot to
-   recoil from. This is the EXACT bezier this repo's own
-   `hypr/.config/hypr/config/animations.conf` already defines and uses
-   for `layers`/`fadeSwitch`/`fadeDim` (md3_decel, 0.05 0.7 0.1 1) — reusing
-   it here keeps the CSS entrance on the same motion-language convention
-   as the compositor-level animations already in this repo, rather than
-   inventing a fourth easing curve for one keyframe. Also softened the
-   travel distance (`translateY(10px) scale(0.9)` → `translateY(6px)
-   scale(0.96)`): a smaller move covers less ground and inherently reads
-   calmer, and a decelerate curve arriving from a nearer starting point
-   has less distance over which to look sluggish.
+   recoil from. This is the SAME semantic decelerate pairing this repo's
+   own `hypr/.config/hypr/config/animations.conf` uses for
+   `layers`/`fadeSwitch`/`fadeDim` — but as of 12-07 (TOKEN-03/D-19) that
+   is no longer two independently hand-copied numbers someone has to
+   remember to keep in sync: this rule's `animation-duration`/
+   `animation-timing-function` below now resolve from
+   `--motion-duration-emphasized-in`/`--motion-easing-emphasized-
+   decelerate`, the SAME emitted pipeline values Hyprland's own
+   `hyprland-motion.conf` consumes for its `motion-emphasized-decelerate`
+   curve. The duration and the curve now travel together as one semantic
+   pair, not as two numbers copied by hand into two files — this is the
+   exact hand-copy drift class D-19 exists to eliminate on this surface.
+   Also softened the travel distance (`translateY(10px) scale(0.9)` →
+   `translateY(6px) scale(0.96)`): a smaller move covers less ground and
+   inherently reads calmer, and a decelerate curve arriving from a nearer
+   starting point has less distance over which to look sluggish.
 
-   Per-capsule duration lengthened 200ms → 300ms so the decelerate curve
-   has room to read as smooth rather than clipped. To pay for the extra
-   100ms without lengthening the overall ~700ms envelope the human
-   already approved at this gate, the stagger was trimmed 90ms → 80ms.
-   Left-to-right cascade: Lock 0ms, Log Out 80ms, Suspend 160ms,
-   Hibernate 240ms, Reboot 320ms, Shut Down 400ms; last capsule's OWN
-   animation ends at 400+300=700ms — the identical ~700ms own-animation
-   settle already approved (previously 450+200=650ms settle plus the
-   compositor's own `layerrule = animation fade` cross-fade reading as
-   ~700ms perceived; now the settle arithmetic lands on 700ms directly).
-   Re-derive this arithmetic (and the six delays below) if
-   `animation-duration` or the stagger offset ever change again.
+   Per-capsule duration was originally lengthened 200ms → 300ms (at
+   `normal` motion-scale) so the decelerate curve has room to read as
+   smooth rather than clipped; the stagger was trimmed 90ms → 80ms to pay
+   for that without lengthening the overall ~700ms envelope the human
+   approved at the 09-04 gate. That 300ms figure is now the `normal`-scale
+   RESOLVED VALUE of `--motion-duration-emphasized-in`, not a fixed
+   literal — the six `animation-delay` lines below stay fixed ms values
+   (the stagger is a composition decision, not a token; D-19 fences this
+   phase to the entrance/exit motion only), so the overall settle budget
+   (max delay + duration) is now a FUNCTION OF THE ACTIVE MOTION-SCALE
+   rather than a fixed figure: ~700ms at `normal`, proportionally shorter
+   at `reduced`, and no entrance animation at all at `off`. Left-to-right
+   cascade order is unchanged: Lock 0ms, Log Out 80ms, Suspend 160ms,
+   Hibernate 240ms, Reboot 320ms, Shut Down 400ms. Re-derive this
+   arithmetic (and the six delays below) if the stagger offset itself
+   ever changes — the per-capsule duration no longer needs a manual
+   re-derivation step, since it now follows whatever `motion.sh` emits
+   for the active scale.
 
    THIS REMAINS THE SAME RECORDED D-10 SPEC DEVIATION as before (still
    ~2x D-10's original <350ms ceiling) — this edit does not touch that
@@ -516,10 +559,12 @@ button:focus label.action-name {
    and no exit-animation mechanism delays any shell command. The exit
    fade itself (Tier 1, compositor-level, established 09-03/09-04) is
    also untouched — only the entrance keyframe timing below changed. The
-   hover transform at `button:hover, button:focus` (its own springy
-   `cubic-bezier(0.55, 0, 0.28, 1.68)`, ~line 230) is ALSO untouched —
+   hover transform at `button:hover, button:focus` (above) keeps its own
+   springy `cubic-bezier(0.55, 0, 0.28, 1.68)` VALUE unchanged (12-07
+   restructured that rule's shorthand into longhand for the unrelated
+   Pitfall 1 correctness reason, but did not touch the curve itself) —
    the human explicitly likes that overshoot on hover ("button glows and
-   grows larger"); only the entrance keyframe's curve changes here.
+   grows larger"); only the entrance keyframe's curve consumes a token.
 
    RESPONSIVENESS DURING THE SLOWER ENTRANCE (verified, not assumed):
    nothing in this stylesheet or in layout.json sets `pointer-events`,
@@ -556,8 +601,8 @@ button:focus label.action-name {
 }
 button {
     animation-name: capsule-entrance;
-    animation-duration: 300ms;
-    animation-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1); /* md3_decel */
+    animation-duration: var(--motion-duration-emphasized-in);
+    animation-timing-function: var(--motion-easing-emphasized-decelerate);
     animation-fill-mode: backwards;
 }
 button#lock      { animation-delay: 0ms; }
@@ -566,9 +611,14 @@ button#suspend   { animation-delay: 160ms; }
 button#hibernate { animation-delay: 240ms; }
 button#reboot    { animation-delay: 320ms; }
 button#shutdown  { animation-delay: 400ms; }
-/* Budget: max(delay) 400ms + duration 300ms = 700ms own-animation settle —
+/* Budget: max(delay) 400ms + duration (`--motion-duration-emphasized-in`,
+   300ms at `normal`) = ~700ms own-animation settle at `normal` scale —
    the SAME ~700ms envelope already approved at the 09-04 render gate
    (previously 450ms+200ms=650ms settle plus the compositor cross-fade
-   reading as ~700ms perceived; the 300ms decelerate duration now reaches
-   700ms directly). Still a DELIBERATE ~2x override of D-10's original
-   <350ms ceiling, per the user's explicit direction. See 09-04-SUMMARY.md. */
+   reading as ~700ms perceived; the 300ms decelerate duration reaches
+   700ms directly at `normal`). Still a DELIBERATE ~2x override of D-10's
+   original <350ms ceiling at `normal` scale, per the user's explicit
+   direction (see 09-04-SUMMARY.md) — `animation-delay` stays a fixed
+   literal per capsule (the stagger is a composition decision, not a
+   token; D-19), so at `reduced`/`off` motion-scale only the 300ms
+   duration term shrinks/vanishes, not the 0-400ms stagger spread. */
