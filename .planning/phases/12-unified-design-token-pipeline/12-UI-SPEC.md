@@ -1,7 +1,7 @@
 ---
 phase: 12
 slug: unified-design-token-pipeline
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-26
@@ -291,21 +291,80 @@ Phase 11's viability-gate ownership — this phase does not remove working instr
 
 ## UI Considerations
 
-Applicable state considerations resolved: 4 covered, 2 backstop, 0 unresolved (2 dismissed
-with reason, see below table — the token-inspector's swatch/semantic-pair sets are a fixed
-count per theme render, not a variable-size collection, so `zero-one-many` and `partial`
-do not apply to this surface; matugen either renders the complete 17-role palette or the
-render fails entirely per `contract.json`'s validation, so there is no partial-palette
-state in this pipeline).
+Produced by the UI-consideration probe (`ui-consideration-probe.cjs`) after checker
+approval, over the 7 surfaces this phase touches. Element kinds were classifier-proposed
+then human-confirmed: `E6` (lint/doctor output) and `E7` (Hyprland animation surface)
+classified as nothing on cue-match and were overridden to `list-collection + static-content`
+and `media` respectively; `E5`'s omission of `list-collection` was confirmed correct
+(wleave's button set is fixed by `layout.json`, not a variable collection).
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | token-inspector colour swatches | ✅ covered | Missing/malformed matugen key renders `#FF00FF` + `(unmapped)` caption — see Copywriting Contract |
-| loading | token-inspector colour swatches | ✅ covered | `FileView`/`JsonAdapter` initial read before the palette JSON exists takes the identical unmapped-token fallback path (local-disk read, no separate spinner state needed) |
-| error | motion-lint CLI output | ✅ covered | FAIL lines cite exact `{file}:{line}` plus the specific violation and remediation — see Copywriting Contract's two lint-failure rows |
-| populated | token-inspector colour swatches + semantic-pair rows | ✅ covered | Normal case: all 17 colour roles and the 3 wired semantic motion pairs render as one row each, header banner shows screen + active theme |
-| long-text | token-inspector header banner (theme name) | 🧪 backstop | Theme names vary in length (`catppuccin-mocha` vs a short static-preset name); banner must elide with ellipsis rather than wrap or push the panel width — needs a visual check against the actual longest theme name shipped in the repo |
-| overflow | token-inspector swatch grid | 🧪 backstop | 17 colour roles + 3 semantic-pair rows may exceed the current probe's fixed 360×260 footprint; panel must size from content (`Column`-driven `implicitWidth`/`implicitHeight`), not clip — needs a visual check that content-driven sizing stays within the output's bounds |
+**Coverage: 41 applicable — 20 covered, 7 backstop, 14 dismissed-with-reason, 0 unresolved.**
+
+### Surfaces probed
+
+| id | Surface | Element kinds |
+|----|---------|---------------|
+| E1 | Token-inspector colour-swatch grid (17 roles) | list-collection, interactive-control, static-content |
+| E2 | Token-inspector motion semantic-pair rows | list-collection |
+| E3 | Token-inspector header banner | static-content |
+| E4 | "Replay motion" control (+ optional Spring/MD3 toggle) | list-collection, interactive-control, static-content |
+| E5 | wleave GTK4 power menu (motion retrofit target) | nav, interactive-control, static-content |
+| E6 | motion-lint / theme-doctor terminal output | list-collection, static-content *(author override)* |
+| E7 | Hyprland compositor animation surface | media *(author override)* |
+
+### Covered — concrete truths the planner implements
+
+| Category | Element | Truth |
+|----------|---------|-------|
+| empty | E1 | A missing matugen key renders a `#FF00FF` chip with an `{token-name} (unmapped)` caption — never a blank or silently-defaulted swatch. |
+| loading | E1 | The `FileView`/`JsonAdapter` read before the palette JSON exists takes the identical unmapped-token fallback path. Local-disk read; no spinner state exists or is needed. |
+| error | E1 | Malformed palette content resolves to the same `#FF00FF` debug path, never a plausible-looking black or white default. |
+| populated | E1 | All 17 colour roles render as chip + `Label`-role caption, grouped, crossfading on theme switch via `Behavior on color`. |
+| partial | E1 | A truncated or unparseable palette read (possible mid-matugen-render) must not crash or blank the `Colours` Singleton: the `JsonAdapter` parse path has an explicit failure branch yielding the per-key `#FF00FF` fallback, and the subsequent watcher event self-heals. *(Confirmed downgrade from backstop — inspectable in source, no wired test required. See RESEARCH note below.)* |
+| long-text | E1 | Token-name captions are a fixed known set (longest: `onSecondaryContainer`); the `Label` role at 12px is sized against that known longest name, so no dynamic truncation logic is required. |
+| empty | E2 | A missing or semantic-pair-less `motion.json` renders one explicit row reading `no motion tokens loaded — check motion.json`, never an empty gap. |
+| loading | E2 | Same local-disk `FileView` read as E1; no in-flight state. |
+| error | E2 | An unresolvable easing or duration reference renders the row with the name plus `(undefined)`; the same condition is a motion-lint FAIL (Copywriting Contract, dangling-reference row). |
+| populated | E2 | Three rows — `standard`, `emphasized-in`, `emphasized-out` — each showing token name, resolved duration in ms, and resolved easing name. |
+| partial | E2 | A pair whose duration resolves but whose easing does not renders the resolved field and marks the unresolved one `(undefined)` — the row is never hidden. |
+| loading | E4 | "Replay motion" clicked mid-replay **restarts from frame 0** (`stop()` then `start()`) across all three pairs simultaneously. Not disabled, never a silent no-op — the surface exists for rapid repeat comparison at the render gate (D-16). |
+| long-text | E4 | Control labels are fixed literals (`Replay motion`, `Spring / MD3`); no dynamic text path exists. |
+| empty | E6 | A run that scans **zero** surfaces prints `FAIL — motion-lint scanned 0 surfaces; check the surface glob.` and exits non-zero. The assertion is `> 0`, **not** a fixed expected count (which would go stale as Phase 13 adds surfaces). The scanned count prints on **every** run, so a partial-glob miss is visible to a human. |
+| error | E6 | FAIL lines cite exact `{file}:{line}`, the specific violation, and the remediation — see the two lint-failure rows in the Copywriting Contract. |
+| populated | E6 | One PASS/FAIL/SKIP/WARN line per check, plus an `N passed / M failed` summary line and a matching exit code. |
+| zero-one-many | E6 | The summary line uses correct singular/plural (`1 check failed` vs `3 checks failed`). |
+| long-text | E6 | Long `{file}:{line}` paths print in full and are never truncated — a truncated path is unactionable. |
+| empty | E7 | At motion-scale `off`, `animations { enabled = false }`: the absence of animation is the intended state, not a defect, and `theme-doctor` must not report it as one. |
+| populated | E7 | At `normal`, a window open/close visibly animates with the emitted `motion-*` curves, verified by `hyprctl animations -j` readback plus a watched window. |
+
+### Backstop — lift into `must_haves.truths`; verified only by wired evidence
+
+| Category | Element | Statement | Verification |
+|----------|---------|-----------|--------------|
+| overflow | E1 | 17 colour roles plus the semantic-pair rows may exceed the current probe's fixed 360×260 footprint; the panel must size from content (`Column`-driven `implicitWidth`/`implicitHeight`) rather than clip. | backstop — visual check that content-driven sizing stays within the output's bounds |
+| overflow | E2 | The semantic-pair row count grows as Phase 13 wires further pairs; the section must not clip as rows are added. | backstop — same content-driven sizing check as E1 |
+| overflow | E3 | The header banner must not push panel width when screen name and theme name are both long. | backstop — visual check at the longest shipped theme name |
+| long-text | E3 | Theme names vary in length (`catppuccin-mocha` vs a short static-preset name); the banner must elide with an ellipsis rather than wrap or widen the panel. | backstop — visual check against the actual longest theme name in the repo |
+| error | E5 | GTK4 **silently drops** any declaration whose `var(--motion-*)` does not resolve, falling back to `0s` — wleave would render statically while looking correct, trading a correct hardcoded value for a silently absent one (strictly worse than the pre-retrofit status quo D-19 describes). motion-lint must parse the `:root` block, diff every `var(--motion-*)` usage against the definitions, and FAIL on a dangling reference. This is the GTK4 case of the dangling-reference FAIL already in the Copywriting Contract, and generalizes to the QML (`Motion.undefinedProp` → `undefined`) and Hyprland targets. | backstop — poisoned-surface test, same harness as success criterion 3 |
+| partial | E6 | A scan that aborts partway (unreadable file, permission error) must report the abort rather than silently reporting on the subset it managed to read — otherwise it fails open exactly where criterion 3 requires it to fail closed. | backstop — held-out test that makes one surface unreadable and asserts the run does not report success |
+| error | E7 | Hyprland may silently substitute a default curve for a malformed emitted bezier, with no visible failure. Every emitted curve must be confirmed to hold its generated values. | backstop — `hyprctl animations -j` readback, already mandated by roadmap success criterion 2 |
+
+### Dismissed — with reason
+
+| Category | Element | Reason |
+|----------|---------|--------|
+| zero-one-many | E1 | Swatch count is fixed at 17 by `contract.json`; there is no zero or one case. A palette with fewer keys is the `empty`/`partial` path, already covered. |
+| zero-one-many | E2 | Three wired pairs, fixed this phase; growth is Phase 13's concern and is covered by E2's `overflow` backstop. |
+| empty · error · populated · partial · overflow · zero-one-many | E4 | The `list-collection` classification is a cue artifact ("replay row", "variant"). A button is not a data collection: it has no zero-data, partial, or volume state. Its one fallible dependency (an undefined token) surfaces in E2's `error` row, and panel overflow is E1/E2's backstop — restating either here would duplicate a verify obligation. |
+| loading | E5 | GTK4 CSS is parsed synchronously at wleave startup; there is no in-flight load state. The real risk in this category is the dangling-var silent drop, resolved as E5's `error` backstop rather than duplicated into two obligations. |
+| overflow · long-text | E5 | wleave's layout and button labels are unchanged this phase — only motion values are retrofitted (D-19). Re-auditing its text metrics is Phase 13's scope. |
+| loading | E6 | Synchronous CLI; no in-flight state to display. |
+| overflow | E6 | Terminal scrollback handles it; the tool does not own a viewport. |
+| loading | E7 | Curves are applied at Hyprland config reload; there is no progressive load state to show. |
+
+### RESEARCH carry-over
+
+- **Does matugen write render targets atomically (temp + `rename()`), or in place?** Unchecked. If atomic, E1's `partial` consideration dissolves entirely. If not — and the one-frame magenta flicker is actually *observed* at the render gate — restructuring `contract.json`'s render targets to write-then-rename becomes a Phase 13 item with evidence behind it, rather than speculative work now. Standing constraint 2 applies: test the installed binary, do not assume.
 
 ---
 
@@ -322,11 +381,12 @@ phase.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED (gsd-ui-checker, 6/6, no revisions required, no recommendations)
+**UI-consideration probe:** 41 applicable — 20 covered, 7 backstop, 14 dismissed, 0 unresolved
