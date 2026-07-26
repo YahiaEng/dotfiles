@@ -19,6 +19,14 @@
 // screen's delegate is a summon/dismiss `LazyLoader` wrapping a
 // `PanelWindow`. `modules/qmldir` (12-01, extended 12-06 with
 // Colours/Motion) is what keeps this directory's type resolution stable.
+//
+// 12-08 (TOKEN-06, D-26, droppable stretch) adds a `Spring / MD3` toggle
+// beside the Replay row: the SAME three swatches gain a SpringAnimation
+// variant beside their existing bezier NumberAnimation, switchable in
+// place, so a human can judge native QML spring physics against the MD3
+// bezier baseline on the identical element/property/range. See the
+// comment beside `standardReplaySpringAnim` below for the property-naming
+// pitfall this variant has to avoid.
 import QtQml
 import QtQuick
 import QtQuick.Controls
@@ -60,6 +68,14 @@ Variants {
                 readonly property int spacingMd: 16
                 readonly property int spacingLg: 24
                 readonly property int spacingXl: 32
+
+                // TOKEN-06 (D-26): which replay variant is currently wired
+                // up — false plays the MD3 bezier baseline (unchanged from
+                // 12-06), true plays the SpringAnimation variant. Owned
+                // here (not Motion.*) because it is a diagnostic-surface
+                // toggle, not a token — motion-lint's CHECK A model must
+                // never see it as a dangling Motion.* reference.
+                property bool springMode: false
 
                 // ui:overflow/E1,E2,E3 backstop: size FROM CONTENT
                 // (panelColumn's own natural implicit size) rather than the
@@ -373,34 +389,78 @@ Variants {
                                 color: Colours.primary
                             }
 
-                            Button {
-                                id: replayButton
-                                text: "Replay motion"
-                                font.pixelSize: 14
-                                onClicked: {
-                                    // Pitfall 4 (12-RESEARCH.md): the base
-                                    // Animation type has NO `enabled`
-                                    // property — only Behavior does — so an
-                                    // imperatively-triggered animation must
-                                    // be gated at the TRIGGER, not via a
-                                    // property binding. Clicked mid-replay
-                                    // restarts from frame 0 across all
-                                    // three pairs simultaneously (stop()
-                                    // then start()) — never disabled, never
-                                    // a silent no-op (D-16/ui:loading E4).
-                                    // At motion-scale "off", the pairs stay
-                                    // stopped: no animation at all, which
-                                    // is the tested/expected posture, not a
-                                    // bug.
-                                    standardReplayAnim.stop();
-                                    emphasizedInReplayAnim.stop();
-                                    emphasizedOutReplayAnim.stop();
-                                    if (Motion.motionEnabled) {
-                                        standardReplayAnim.start();
-                                        emphasizedInReplayAnim.start();
-                                        emphasizedOutReplayAnim.start();
+                            Row {
+                                spacing: probeWindow.spacingSm
+
+                                Button {
+                                    id: replayButton
+                                    text: "Replay motion"
+                                    font.pixelSize: 14
+                                    onClicked: {
+                                        // Pitfall 4 (12-RESEARCH.md): the base
+                                        // Animation type has NO `enabled`
+                                        // property — only Behavior does — so an
+                                        // imperatively-triggered animation must
+                                        // be gated at the TRIGGER, not via a
+                                        // property binding. Clicked mid-replay
+                                        // restarts from frame 0 across all
+                                        // three pairs simultaneously (stop()
+                                        // then start()) — never disabled, never
+                                        // a silent no-op (D-16/ui:loading E4).
+                                        // At motion-scale "off", the pairs stay
+                                        // stopped: no animation at all, which
+                                        // is the tested/expected posture, not a
+                                        // bug.
+                                        //
+                                        // TOKEN-06 (D-26): one imperative gate,
+                                        // reused — the springMode branch below
+                                        // is still governed by the same single
+                                        // Motion.motionEnabled check, not a
+                                        // second gating mechanism.
+                                        standardReplayAnim.stop();
+                                        emphasizedInReplayAnim.stop();
+                                        emphasizedOutReplayAnim.stop();
+                                        standardReplaySpringAnim.stop();
+                                        emphasizedInReplaySpringAnim.stop();
+                                        emphasizedOutReplaySpringAnim.stop();
+                                        if (Motion.motionEnabled) {
+                                            if (probeWindow.springMode) {
+                                                standardReplaySpringAnim.start();
+                                                emphasizedInReplaySpringAnim.start();
+                                                emphasizedOutReplaySpringAnim.start();
+                                            } else {
+                                                standardReplayAnim.start();
+                                                emphasizedInReplayAnim.start();
+                                                emphasizedOutReplayAnim.start();
+                                            }
+                                        }
                                     }
                                 }
+
+                                // TOKEN-06 (D-26, droppable stretch, criterion
+                                // 5): switches the replay row in place between
+                                // the MD3 bezier baseline and the
+                                // SpringAnimation variant on the SAME three
+                                // swatches — no separate element, no separate
+                                // trigger. Deleting this Button and the
+                                // SpringAnimation declarations below restores
+                                // 12-06's inspector exactly (standing
+                                // constraint 5 droppability).
+                                Button {
+                                    id: springToggleButton
+                                    text: "Spring / MD3"
+                                    font.pixelSize: 14
+                                    onClicked: probeWindow.springMode = !probeWindow.springMode
+                                }
+                            }
+
+                            // Names which variant is currently wired to the
+                            // Replay button, per 12-UI-SPEC.md item 6.
+                            Label {
+                                id: springModeLabel
+                                text: "Playing: " + (probeWindow.springMode ? "Spring" : "MD3")
+                                font.pixelSize: 12
+                                color: Colours.onSurface
                             }
 
                             Row {
@@ -423,6 +483,58 @@ Variants {
                                             easing.type: Easing.BezierSpline
                                             easing.bezierCurve: Motion.standardEasing
                                         }
+                                        // TOKEN-06 (D-26) spring variant, same
+                                        // element/property/range as the bezier
+                                        // NumberAnimation above — the ONLY
+                                        // difference is the interpolation, so
+                                        // the human comparison is honest.
+                                        //
+                                        // Pitfall 5 (12-RESEARCH.md, binary-
+                                        // verified against the installed
+                                        // qt6-declarative 6.11.1-3): this
+                                        // QQuickSpringAnimation build exposes
+                                        // exactly `velocity`, `spring`,
+                                        // `damping`, `epsilon`, `modulus` and
+                                        // `mass` — nothing more. `spring` is
+                                        // its own name for the physical spring
+                                        // constant, and `damping` for the
+                                        // damping coefficient; there is no
+                                        // Compose-borrowed property for either
+                                        // a spring rate or a damping ratio on
+                                        // this type. Assigning a name QML does
+                                        // not recognise here is accepted
+                                        // silently — the property is simply
+                                        // missing, no warning, no error — and
+                                        // the animation then runs on defaults,
+                                        // which LOOKS like "springs are
+                                        // indistinguishable from bezier" for
+                                        // entirely the wrong reason. Because
+                                        // spring/damping/mass is a physical
+                                        // parameterisation and Compose's is a
+                                        // different one entirely, there is no
+                                        // 1:1 numeric port between the two —
+                                        // the values below are tuned by feel,
+                                        // not against a verified constant.
+                                        // 12-RESEARCH.md's Assumptions Log
+                                        // (A1) could not confirm Material 3
+                                        // Expressive's official spring
+                                        // constants from any primary source,
+                                        // so nobody should later "correct"
+                                        // these toward a number found on a
+                                        // blog — D-27's human render-and-look
+                                        // gate is the actual arbiter of feel
+                                        // here.
+                                        SpringAnimation {
+                                            id: standardReplaySpringAnim
+                                            target: standardReplaySwatch
+                                            property: "x"
+                                            running: false
+                                            from: 0
+                                            to: 80
+                                            spring: 300
+                                            damping: 20
+                                            mass: 1
+                                        }
                                     }
                                     Label { text: "standard"; font.pixelSize: 12; color: Colours.onSurface }
                                 }
@@ -444,6 +556,21 @@ Variants {
                                             easing.type: Easing.BezierSpline
                                             easing.bezierCurve: Motion.emphasizedInEasing
                                         }
+                                        // TOKEN-06 (D-26) spring variant — see
+                                        // the full property-naming/no-1:1-port
+                                        // rationale beside standardReplaySpringAnim
+                                        // above; identical reasoning applies here.
+                                        SpringAnimation {
+                                            id: emphasizedInReplaySpringAnim
+                                            target: emphasizedInReplaySwatch
+                                            property: "x"
+                                            running: false
+                                            from: 0
+                                            to: 80
+                                            spring: 300
+                                            damping: 20
+                                            mass: 1
+                                        }
                                     }
                                     Label { text: "emphasized-in"; font.pixelSize: 12; color: Colours.onSurface }
                                 }
@@ -464,6 +591,21 @@ Variants {
                                             duration: Motion.emphasizedOutDuration
                                             easing.type: Easing.BezierSpline
                                             easing.bezierCurve: Motion.emphasizedOutEasing
+                                        }
+                                        // TOKEN-06 (D-26) spring variant — see
+                                        // the full property-naming/no-1:1-port
+                                        // rationale beside standardReplaySpringAnim
+                                        // above; identical reasoning applies here.
+                                        SpringAnimation {
+                                            id: emphasizedOutReplaySpringAnim
+                                            target: emphasizedOutReplaySwatch
+                                            property: "x"
+                                            running: false
+                                            from: 0
+                                            to: 80
+                                            spring: 300
+                                            damping: 20
+                                            mass: 1
                                         }
                                     }
                                     Label { text: "emphasized-out"; font.pixelSize: 12; color: Colours.onSurface }
