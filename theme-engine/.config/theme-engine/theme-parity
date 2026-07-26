@@ -235,8 +235,16 @@ while IFS= read -r fname; do
     # leaf is not a contract violation, so only validate values that
     # actually look like a color for those two formats. `{{...}}` template
     # leftovers are always a failure regardless of format (Pitfall 2/3).
+    # TOKEN-03/12-RESEARCH Open Question 2: css-vars and hypr-motion (the
+    # two new motion format tags) and scss-vars (ags.scss, D-29 gap
+    # closure) join this set for the same reason the colour formats are
+    # here — every declared key in these formats is definitionally a
+    # value that must never render empty. An empty emitted duration,
+    # bezier control point, or SCSS colour variable is exactly as broken
+    # as an empty colour value (same silent-default-substitution risk
+    # D-02/D-09 already worry about).
     case "$fmt" in
-        gtk-css|hypr-vars|kitty-kv|css-literal|env-kv) enforce_emptiness=1 ;;
+        gtk-css|hypr-vars|kitty-kv|css-literal|env-kv|css-vars|hypr-motion|scss-vars) enforce_emptiness=1 ;;
         *) enforce_emptiness=0 ;;
     esac
 

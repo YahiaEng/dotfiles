@@ -16,7 +16,11 @@
     { "name": "hyprlock.conf", "format": "hypr-vars" },
     { "name": "swayosd.css", "format": "gtk-css" },
     { "name": "zen-userchrome.css", "format": "css-literal" },
-    { "name": "satty.toml", "format": "toml" }
+    { "name": "satty.toml", "format": "toml" },
+    { "name": "motion.json", "format": "json" },
+    { "name": "gtk-4.0-motion.css", "format": "css-vars" },
+    { "name": "hyprland-motion.conf", "format": "hypr-motion" },
+    { "name": "ags.scss", "format": "scss-vars" }
   ],
   "state_metadata_files": ["current-theme", "mode"],
   "presence_only_files": ["kitty-font.conf", "waybar-font.css"]

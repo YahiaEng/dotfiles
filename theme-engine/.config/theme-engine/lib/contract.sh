@@ -85,6 +85,32 @@ contract_extract_names() {
             # skip blanks/comments, extract the bare NAME token before '='.
             grep -oP '^[A-Za-z0-9_]+(?==)' "$path" 2>/dev/null | sort -u
             ;;
+        css-vars)
+            # TOKEN-03/12-RESEARCH Pitfall 3: gtk-css's @define-color regex
+            # never matches this file's `--name: value;` custom-property
+            # syntax (zero matches -> theme-parity's empty-reference-set
+            # guard would FAIL on the very first target) — a purpose-built
+            # extractor for CSS custom properties, not the colour-oriented
+            # sibling.
+            grep -oP '^\s*--\K[A-Za-z0-9_-]+(?=:)' "$path" 2>/dev/null | sort -u
+            ;;
+        hypr-motion)
+            # 12-RESEARCH Pitfall 3: hypr-vars's `^$name = value` regex
+            # never matches a `bezier = name, ...` curve line — this format
+            # is the UNION of every declared bezier curve name AND every
+            # top-level $name variable (WR-05: $motion_enabled is a real
+            # declared identifier here; omitting it would let it silently
+            # vanish from both name and value extraction).
+            { grep -oP '^\s*bezier = \K[A-Za-z0-9_-]+(?=,)' "$path" 2>/dev/null
+              grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_]*(?= =)' "$path" 2>/dev/null
+            } | sort -u
+            ;;
+        scss-vars)
+            # Same shape as the ags.scss AGS-applet target (Phase 10):
+            # `$name: value;` SCSS variable declarations — distinct from
+            # hypr-vars's `$name = value` (colon+semicolon, not `= `).
+            grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_]*(?=:)' "$path" 2>/dev/null | sort -u
+            ;;
         toml)
             python3 - "$path" <<'PYEOF'
 import tomllib, sys
@@ -175,6 +201,17 @@ contract_extract_values() {
             # FZF_COLOR_BG is a non-color token and does not match the
             # color regex in theme-parity's Layer 3 — it passes untouched).
             sed -nE 's/^([A-Za-z0-9_]+)="?([^"]*)"?$/\1\t\2/p' "$path" 2>/dev/null
+            ;;
+        css-vars)
+            sed -nE 's/^\s*--([A-Za-z0-9_-]+):\s*(.*);\s*$/\1\t\2/p' "$path" 2>/dev/null
+            ;;
+        hypr-motion)
+            { sed -nE 's/^\s*bezier = ([A-Za-z0-9_-]+), (.*)$/\1\t\2/p' "$path"
+              sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_]*) = (.*)$/\1\t\2/p' "$path"
+            } 2>/dev/null
+            ;;
+        scss-vars)
+            sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_]*):[[:space:]]*(.*);.*$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         toml)
             python3 - "$path" <<'PYEOF'
