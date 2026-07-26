@@ -114,6 +114,87 @@ else
     echo "  [SKIP] state-manifest gate (jq not found or $STATE_DIR does not exist)"
 fi
 
+# ── D-02b hyprctl animations readback (TOKEN-05/criterion 2) ──────────
+# The ONLY guard that catches a value Hyprland ACCEPTS and then silently
+# substitutes for a malformed one — this is NOT a presence check, and
+# must never be "simplified" into one later: a MISSING bezier is not
+# silent, Hyprland errors loudly with "no such bezier" at config parse
+# (binary-verified, 12-CONTEXT.md). The narrow risk this closes is
+# malformed control-point VALUES surviving into the compositor unnoticed.
+# For every `bezier = motion-<name>` line this repo emits, confirm
+# `hyprctl animations -j` element [1] reports the SAME four control
+# points. Degrades to a named [SKIP] — never [FAIL] — when hyprctl/jq are
+# unavailable, no compositor is running (the container gate has no
+# Hyprland), or the fragment has never been rendered/deployed.
+#
+# Speed-unit reconciliation (recorded here, not fixed here — see
+# 12-04-SUMMARY.md): hyprctl's readback reports `speed` as a float with
+# two decimals where the config source writes an integer; `speed = 0`
+# and `speed = -1` are hard "invalid speed" parse errors and fractional
+# values parse cleanly (both binary-verified this phase). The commonly
+# cited decisecond interpretation (1 unit = 100ms) is [CITED:
+# wiki.hypr.land] and was NOT independently binary-verified. This is not
+# this phase's problem to close: D-04 fences Phase 12 to emitting curves
+# only — no `speed` value is emitted anywhere in this codebase yet. Phase
+# 13 owns the 14 `animation =` assignment lines these curves get wired
+# into, and is therefore where the ms-to-speed conversion is written and
+# where the unit must be confirmed against the binary before use.
+HYPRLAND_MOTION_CONF="$STATE_DIR/hyprland-motion.conf"
+if command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 \
+    && [[ -f "$HYPRLAND_MOTION_CONF" ]] && ANIM_JSON="$(hyprctl animations -j 2>/dev/null)" \
+    && printf '%s' "$ANIM_JSON" | jq -e . >/dev/null 2>&1; then
+
+    DOCTOR_MOTION_SCALE="$(cat "$STATE_DIR/motion-scale" 2>/dev/null || echo normal)"
+    echo "  [INFO] motion-scale readback check running at preset: $DOCTOR_MOTION_SCALE"
+
+    CONFIRMED=0
+    MISMATCH=""
+    while IFS= read -r bline; do
+        # Deliberately loose value groups ([^,]+, not a numeric class): a
+        # non-numeric corrupted value must still reach the readback
+        # comparison below and be reported as a mismatch, not silently
+        # skipped by a regex that only matches well-formed floats — the
+        # whole point of a fail-first demonstration is exercising exactly
+        # the corrupted-value path.
+        if [[ "$bline" =~ ^[[:space:]]*bezier[[:space:]]*=[[:space:]]*(motion-[A-Za-z0-9_-]+)[[:space:]]*,[[:space:]]*([^,]+),[[:space:]]*([^,]+),[[:space:]]*([^,]+),[[:space:]]*([^,]+)[[:space:]]*$ ]]; then
+            cname="${BASH_REMATCH[1]}"
+            ex0="$(echo "${BASH_REMATCH[2]}" | xargs)"; ey0="$(echo "${BASH_REMATCH[3]}" | xargs)"
+            ex1="$(echo "${BASH_REMATCH[4]}" | xargs)"; ey1="$(echo "${BASH_REMATCH[5]}" | xargs)"
+
+            readback_row="$(printf '%s' "$ANIM_JSON" | jq -r --arg n "$cname" \
+                '.[1][]? | select(.name == $n) | "\(.X0)\t\(.Y0)\t\(.X1)\t\(.Y1)"' 2>/dev/null)"
+
+            if [[ -z "$readback_row" ]]; then
+                MISMATCH="$MISMATCH ${cname}(not-found-in-readback — Hyprland accepted the config but silently dropped this curve)"
+                continue
+            fi
+
+            IFS=$'\t' read -r rx0 ry0 rx1 ry1 <<< "$readback_row"
+            # jq's --argjson requires each side to already be a valid JSON
+            # number — a corrupted non-numeric emitted value fails THIS
+            # call (not the earlier regex), which is exactly the signal a
+            # malformed-value corruption should produce: a named mismatch,
+            # never a silent pass-through.
+            MATCH_OK="$(jq -n --argjson a "$ex0" --argjson b "$rx0" --argjson c "$ey0" \
+                --argjson d "$ry0" --argjson e "$ex1" --argjson f "$rx1" \
+                --argjson g "$ey1" --argjson h "$ry1" \
+                '(($a-$b)|fabs) < 0.001 and (($c-$d)|fabs) < 0.001 and (($e-$f)|fabs) < 0.001 and (($g-$h)|fabs) < 0.001' 2>/dev/null)"
+
+            if [[ "$MATCH_OK" == "true" ]]; then
+                CONFIRMED=$((CONFIRMED + 1))
+            else
+                MISMATCH="$MISMATCH ${cname}(emitted=${ex0},${ey0},${ex1},${ey1} readback=${rx0},${ry0},${rx1},${ry1})"
+            fi
+        fi
+    done < "$HYPRLAND_MOTION_CONF"
+
+    MISMATCH="$(echo "$MISMATCH" | xargs)"
+    [[ -z "$MISMATCH" && "$CONFIRMED" -gt 0 ]]
+    check "hyprctl animations readback: $CONFIRMED curve(s) confirmed matching emitted control points (mismatched: ${MISMATCH:-none})" "$?"
+else
+    echo "  [SKIP] hyprctl animations readback (hyprctl/jq unavailable, no compositor running, or $HYPRLAND_MOTION_CONF not deployed)"
+fi
+
 # ── walker/yazi wiring symlinks point at the state dir ─────
 [[ -L "$HOME/.config/walker/themes/rice/style.css" ]] \
     && [[ "$(readlink -f "$HOME/.config/walker/themes/rice/style.css")" == "$STATE_DIR/walker-style.css" ]]

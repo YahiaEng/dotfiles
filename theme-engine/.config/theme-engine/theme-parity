@@ -317,6 +317,56 @@ while IFS= read -r fname; do
     done
 done <<< "$CONTRACT_FILE_LIST"
 
+# ── Layer 4: motion byte-identity (D-31) ────────────────────────────────
+# Its own distinct layer, not folded into Layer 2's name-set comparison —
+# a name-set match says nothing about VALUE identity, and D-31's premise
+# is stronger: the three motion targets must be byte-identical across
+# EVERY palette, both modes, and both the static-preset and materialyou
+# render branches, all already rendered above at whatever motion-scale
+# the live state dir currently holds (fixed for the whole run, since
+# theme-parity never writes to $STATE_DIR/motion-scale itself). A hash
+# compare, not a structural walk — the strongest and cheapest option
+# simultaneously. This proves three things nothing else here guards: (1)
+# motion.sh is wired into BOTH render branches (static presets AND
+# materialyou/materialyou-light); (2) each emitted file is well-formed
+# (a hash never coincidentally matches a truncated/malformed file across
+# 22+ independent renders); (3) — the one nothing else proves — that no
+# motion token has accidentally been made to depend on a colour or on
+# light/dark mode, which is the premise D-01's whole one-source design
+# rests on. On failure, name which palette/mode diverged and print the
+# differing hashes.
+echo ""
+echo "-- Motion byte-identity (D-31) --"
+MOTION_BYTE_IDENTITY_FILES=(motion.json gtk-4.0-motion.css hyprland-motion.conf)
+DIRS_COMPARED=0
+for target in "${TARGETS[@]}"; do
+    [[ "${RENDER_OK[$target]}" == "1" ]] || continue
+    DIRS_COMPARED=$((DIRS_COMPARED + 1))
+done
+for mfile in "${MOTION_BYTE_IDENTITY_FILES[@]}"; do
+    ref_target=""
+    ref_hash=""
+    diverged=""
+    for target in "${TARGETS[@]}"; do
+        [[ "${RENDER_OK[$target]}" == "1" ]] || continue
+        mpath="${RENDERED_DIRS[$target]}/$mfile"
+        if [[ ! -f "$mpath" ]]; then
+            diverged="$diverged ${target}(missing)"
+            continue
+        fi
+        h="$(sha256sum "$mpath" | awk '{print $1}')"
+        if [[ -z "$ref_target" ]]; then
+            ref_target="$target"
+            ref_hash="$h"
+        elif [[ "$h" != "$ref_hash" ]]; then
+            diverged="$diverged ${target}(${h:0:12} vs ${ref_hash:0:12} from ${ref_target})"
+        fi
+    done
+    diverged="$(echo "$diverged" | xargs)"
+    [[ -z "$diverged" && -n "$ref_target" ]]
+    check "motion byte-identity: $mfile identical across $DIRS_COMPARED render dir(s) (diverged: ${diverged:-none})" "$?"
+done
+
 echo ""
 echo "Summary: ${PASS} passed, ${FAIL} failed"
 printf 'SUMMARY\t%s passed, %s failed\n' "$PASS" "$FAIL" >> "$LOG_FILE"
