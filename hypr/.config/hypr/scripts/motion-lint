@@ -1,0 +1,608 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║                  MOTION-LINT (12-05)                  ║
+# ║  Deny-by-default motion-token gate. Report-only —      ║
+# ║  never mutates any file. Exits nonzero if ANY check    ║
+# ║  FAILs.                                                ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# TOKEN-04 requires that a surface hand-rolling its own duration/easing value
+# fails a gate, and D-24 requires the gate to ALSO catch a token reference
+# that does not resolve — a raw-value check alone just teaches an author to
+# replace a literal with a reference, and a typo'd reference then satisfies
+# the lint while silently breaking the animation (two of the three render
+# targets fail *silently* on a dangling reference — see Pitfall 6/D-24).
+#
+#   CHECK A — reference resolution: every motion-token reference in every
+#             non-exempt scanned surface (a CSS `var(--motion-*)` usage, a
+#             QML `Motion.<property>` usage, or the curve name in a
+#             Hyprland `animation =` line) must resolve against the name
+#             set the pipeline actually emitted under
+#             ~/.local/state/theme/{gtk-4.0-motion.css,motion.json,
+#             hyprland-motion.conf}. This is the WLOG-01-style killer for
+#             motion, exactly `waybar-design-lint`'s CHECK A precedent.
+#   CHECK B — no raw values: no non-exempt surface may hand-roll a bare
+#             duration/easing literal instead of consuming a token. For
+#             CSS/QML this is a literal `Nms`/`Ns`/`cubic-bezier(...)`/CSS
+#             easing keyword outside a `var(...)`/`Motion.*` reference; for
+#             Hyprland it is a `bezier =` line defining a NEW curve under a
+#             non-`motion-`-prefixed name instead of consuming an emitted
+#             one (Hyprland has no `var()`-equivalent reference mechanism —
+#             a hand-authored curve IS the raw-value shape there).
+#   CHECK C — scanned-count floor: the run must scan more than zero
+#             surfaces; a fixed expected count would go stale the moment a
+#             later phase adds surfaces, so the assertion is `> 0`, with
+#             the actual count printed on every run so a partial-glob miss
+#             is visible to a human.
+#
+# Deny-by-default (D-23): every repo-authored GTK4 stylesheet, Hyprland
+# `.conf` fragment under the hypr config tree, and `.qml` file under the
+# quickshell config tree is scanned; there is no per-file opt-in registry,
+# so a brand-new Phase 14-17 surface is covered the moment its file exists.
+# A small, explicit EXEMPTIONS list (below) carries the debt this phase
+# deliberately does not close yet — every entry requires a non-empty
+# reason and prints an `[EXEMPT]` line on EVERY run, so that debt stays
+# visible rather than becoming an invisible, permanently-green gate over
+# non-compliant surfaces (this plan's prohibition).
+#
+# Usage:
+#   motion-lint [target-dir]
+#       No argument: scans the real deployed surface set (hypr config
+#       tree, quickshell config tree, and the known GTK app config dirs).
+#       With an argument: treats target-dir as ONE flat directory and
+#       recursively globs the same three extensions (.css/.scss, .conf,
+#       .qml) inside it — the same code path serves a throwaway/poisoned
+#       fixture directory as serves the real tree (keybind-doctor's D-18
+#       path-argument precedent: "a gate that cannot fail is not a gate").
+#
+#   motion-lint --self-test
+#       Runs this script against each of the nine committed fixtures under
+#       tests/motion-fixtures/ (one at a time, in isolation) and asserts
+#       the expected verdict: compliant fixtures exit 0, poisoned fixtures
+#       exit non-zero. Makes criterion 3's "proven to fail" property a
+#       permanent, rerunnable command rather than a one-time demonstration
+#       (D-28).
+#
+#   MOTION_LINT_STATE_DIR (env, optional)
+#       Overrides the definition-source directory (default
+#       ~/.local/state/theme). Exists so the "refuse to proceed on an
+#       empty definition set" guard can be exercised against a throwaway
+#       empty directory without touching live state.
+#
+# Never runs theme-apply, never edits anything — pure read-only analysis.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/tests/motion-fixtures"
+STATE_DIR="${MOTION_LINT_STATE_DIR:-$HOME/.local/state/theme}"
+
+PASS=0
+FAIL=0
+
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        printf '  [PASS] %s\n' "$desc"
+        PASS=$((PASS + 1))
+    else
+        printf '  [FAIL] %s\n' "$desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+run_self_test() {
+    local -a fixtures=(
+        "compliant-gtk4.css:0"
+        "poisoned-raw-gtk4.css:1"
+        "poisoned-dangling-gtk4.css:1"
+        "compliant-hypr.conf:0"
+        "poisoned-raw-hypr.conf:1"
+        "poisoned-dangling-hypr.conf:1"
+        "compliant-qml.qml:0"
+        "poisoned-raw-qml.qml:1"
+        "poisoned-dangling-qml.qml:1"
+    )
+    local st_pass=0 st_fail=0
+    local entry fname expect_nonzero src tmp out rc want_desc
+
+    echo "motion-lint --self-test — replaying the nine committed fixtures"
+    echo ""
+
+    for entry in "${fixtures[@]}"; do
+        fname="${entry%%:*}"
+        expect_nonzero="${entry##*:}"
+        src="$FIXTURES_DIR/$fname"
+
+        if [[ ! -f "$src" ]]; then
+            printf '  [FAIL] self-test: fixture missing: %s\n' "$src"
+            st_fail=$((st_fail + 1))
+            continue
+        fi
+
+        tmp="$(mktemp -d)"
+        cp -- "$src" "$tmp/$fname"
+        out="$("$0" "$tmp" 2>&1)"
+        rc=$?
+        rm -rf -- "$tmp"
+
+        if [[ "$expect_nonzero" == "0" ]]; then
+            want_desc="exit 0 (compliant)"
+        else
+            want_desc="a non-zero exit (poisoned)"
+        fi
+
+        if [[ "$expect_nonzero" == "0" && "$rc" -eq 0 ]] || [[ "$expect_nonzero" == "1" && "$rc" -ne 0 ]]; then
+            printf '  [PASS] self-test: %s -> %s as expected\n' "$fname" "$want_desc"
+            st_pass=$((st_pass + 1))
+        else
+            printf '  [FAIL] self-test: %s -> exited %d, expected %s\n' "$fname" "$rc" "$want_desc"
+            printf '         output:\n%s\n' "$(printf '%s\n' "$out" | sed 's/^/           /')"
+            st_fail=$((st_fail + 1))
+        fi
+    done
+
+    echo ""
+    printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+    [[ "$st_fail" -eq 0 ]]
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+    run_self_test
+    exit $?
+fi
+
+TARGET_DIR="${1:-}"
+
+if [[ -n "$TARGET_DIR" ]]; then
+    ROOTS=("$TARGET_DIR")
+else
+    # The known repo-authored surface families that could consume a motion
+    # token, one directory per family (D-23: deny-by-default, no per-file
+    # registry — any new file dropped into one of these directories is
+    # covered automatically). Same collection code below serves this list
+    # AND the single throwaway/fixture directory above.
+    ROOTS=(
+        "$HOME/.config/hypr"
+        "$HOME/.config/quickshell"
+        "$HOME/.config/waybar"
+        "$HOME/.config/swaync"
+        "$HOME/.config/swayosd"
+        "$HOME/.config/walker"
+        "$HOME/.config/wleave"
+        "$HOME/.config/gtk-4.0"
+        "$HOME/.config/ags"
+    )
+fi
+
+echo "motion-lint — motion-token deny-by-default gate"
+if [[ -n "$TARGET_DIR" ]]; then
+    echo "  target: $TARGET_DIR"
+else
+    echo "  target: real deployed surface set (${#ROOTS[@]} root dir(s))"
+fi
+echo "  definitions: $STATE_DIR"
+echo ""
+
+# ── Single python pass: definitions, exemptions, scanned-count and both
+#    checks, TAB-separated TAG/STATUS/detail lines on stdout. One process
+#    so the comment strippers and reference/raw-value regexes are defined
+#    exactly once (waybar-design-lint's precedent). ───────────────────────
+_motion_lint_checks() {
+    python3 - "$STATE_DIR" "${ROOTS[@]}" <<'PYEOF'
+import json
+import os
+import re
+import sys
+
+state_dir = sys.argv[1]
+roots = sys.argv[2:]
+
+results = []  # (tag, status, detail) — tag in {A, B, C, DEFS, EXEMPT, ABORT}
+
+
+def emit(tag, status, detail):
+    results.append((tag, status, detail))
+
+
+def dump():
+    for tag, status, detail in results:
+        print(f'{tag}\t{status}\t{detail}')
+
+
+# ── Comment strippers (newline-preserving, so line numbers stay accurate
+#    for the file:line citations UI-SPEC's Copywriting Contract mandates)
+def strip_block_comments(text):
+    out = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] == '/' and i + 1 < n and text[i + 1] == '*':
+            j = text.find('*/', i + 2)
+            end = n if j == -1 else j + 2
+            for ch in text[i:end]:
+                out.append('\n' if ch == '\n' else ' ')
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return ''.join(out)
+
+
+def strip_css_comments(text):
+    return strip_block_comments(text)
+
+
+def strip_qml_comments(text):
+    text = strip_block_comments(text)
+    lines = text.split('\n')
+    out = []
+    for line in lines:
+        idx = line.find('//')
+        out.append(line[:idx] if idx != -1 else line)
+    return '\n'.join(out)
+
+
+def strip_hash_comments(text):
+    lines = text.split('\n')
+    out = []
+    for line in lines:
+        idx = line.find('#')
+        out.append(line[:idx] if idx != -1 else line)
+    return '\n'.join(out)
+
+
+# ── Definition sets — built from the emitted render targets, never a
+#    hardcoded list (D-24/Pitfall 3-adjacent: reading the real output is
+#    what keeps the lint from drifting away from what the pipeline
+#    actually emits). ────────────────────────────────────────────────────
+def load_gtk_defs():
+    path = os.path.join(state_dir, 'gtk-4.0-motion.css')
+    defs = set()
+    if os.path.isfile(path):
+        try:
+            body = open(path, encoding='utf-8').read()
+        except OSError:
+            return defs
+        for m in re.finditer(r'^\s*--(motion-[A-Za-z0-9_-]+)\s*:', body, re.M):
+            defs.add(m.group(1))
+    return defs
+
+
+def load_hypr_defs():
+    path = os.path.join(state_dir, 'hyprland-motion.conf')
+    bezier_names = set()
+    var_names = set()
+    if os.path.isfile(path):
+        try:
+            body = open(path, encoding='utf-8').read()
+        except OSError:
+            return bezier_names, var_names
+        for m in re.finditer(r'^\s*bezier\s*=\s*([A-Za-z0-9_-]+)\s*,', body, re.M):
+            bezier_names.add(m.group(1))
+        for m in re.finditer(r'^\$([A-Za-z_][A-Za-z0-9_]*)\s*=', body, re.M):
+            var_names.add(m.group(1))
+    return bezier_names, var_names
+
+
+def load_qml_defs():
+    path = os.path.join(state_dir, 'motion.json')
+    defs = set()
+    if os.path.isfile(path):
+        try:
+            data = json.loads(open(path, encoding='utf-8').read())
+        except Exception:
+            return defs
+        for key in (data.get('semantic') or {}).keys():
+            camel = re.sub(r'-([a-z0-9])', lambda m: m.group(1).upper(), key)
+            defs.add(camel + 'Duration')
+            defs.add(camel + 'Easing')
+    return defs
+
+
+gtk_defs = load_gtk_defs()
+hypr_bezier_defs, hypr_var_defs = load_hypr_defs()
+qml_defs = load_qml_defs()
+
+# ── Exemption list (D-23) — path-glob -> required non-empty reason.
+#    Printed on EVERY run regardless of whether a matching file currently
+#    exists, so outstanding debt never goes invisible. Two reasons exist
+#    today: a GTK3 surface has no CSS custom-property mechanism at all
+#    (permanent, not a TODO); a GTK4-capable surface simply has not been
+#    retrofitted yet (temporary — wleave's own entry here is removed by
+#    plan 12-07 once it retrofits wleave; walker/ags/waybar/swaync/swayosd
+#    are Phase 13's designated existing-surface sweep). animations.conf's
+#    13 hand-authored `animation =` lines (D-04's explicit fence; the
+#    plan text's "14" was a miscount corrected in 12-04's own summary) are
+#    the same "not yet retrofitted" debt, on the Hyprland side.
+EXEMPTIONS = [
+    {'glob': 'waybar/*.css', 'regex': re.compile(r'(^|/)waybar/[^/]+\.css$'),
+     'reason': 'GTK3, no variable mechanism exists'},
+    {'glob': 'swaync/style.css', 'regex': re.compile(r'(^|/)swaync/style\.css$'),
+     'reason': 'GTK3, no variable mechanism exists'},
+    {'glob': 'swayosd/style.css', 'regex': re.compile(r'(^|/)swayosd/style\.css$'),
+     'reason': 'GTK3, no variable mechanism exists'},
+    {'glob': 'walker/**/style.css', 'regex': re.compile(r'(^|/)walker/.*/style\.css$'),
+     'reason': 'pending Phase 13 retrofit'},
+    {'glob': 'ags/*.scss', 'regex': re.compile(r'(^|/)ags/[^/]+\.scss$'),
+     'reason': 'pending Phase 13 retrofit'},
+    {'glob': 'wleave/style.css', 'regex': re.compile(r'(^|/)wleave/style\.css$'),
+     'reason': 'pending Phase 13 retrofit'},
+    {'glob': 'hypr/config/animations.conf', 'regex': re.compile(r'(^|/)hypr/config/animations\.conf$'),
+     'reason': 'pending Phase 13 retrofit'},
+]
+
+for ex in EXEMPTIONS:
+    if not ex['reason'].strip():
+        emit('EXEMPT', 'FAIL', f"{ex['glob']}: exemption entry has an empty reason (deny-by-default violation)")
+    else:
+        emit('EXEMPT', 'INFO', f"{ex['glob']} — {ex['reason']}")
+
+
+def path_is_exempt(path):
+    return any(ex['regex'].search(path) for ex in EXEMPTIONS)
+
+
+# ── Refuse to proceed on an empty definition set (mirrors theme-parity's
+#    empty-reference-name-set guard): with nothing to resolve against,
+#    every subsequent reference would look dangling, which is a vacuous
+#    failure mode, not a real one. ──────────────────────────────────────
+if not gtk_defs and not hypr_bezier_defs and not hypr_var_defs and not qml_defs:
+    emit('DEFS', 'FAIL',
+         f'zero motion definitions loaded from {state_dir} '
+         '(gtk-4.0-motion.css / hyprland-motion.conf / motion.json) — '
+         'refusing to run: an empty definition set would make every '
+         'reference look dangling')
+    dump()
+    sys.exit(0)
+
+# ── Surface collection — recursive glob by extension under each root.
+#    Same function serves the real multi-root run and the single
+#    throwaway/fixture-dir run (D-28: "same code path"). ─────────────────
+surfaces = {'css': [], 'conf': [], 'qml': []}
+for root in roots:
+    if not os.path.isdir(root):
+        continue
+    # followlinks=True: this repo is deployed via GNU stow, which symlinks
+    # whole subdirectories (e.g. ~/.config/hypr/config,
+    # ~/.config/quickshell/modules) as often as individual files. The
+    # default os.walk(followlinks=False) treats a symlinked directory as a
+    # leaf and never descends into it — silently dropping every file
+    # inside from the surface set, which is exactly the "partial-glob
+    # miss" CHECK C exists to make visible. Following symlinks here is
+    # safe: this whole tree is a single trusted repo checkout, not
+    # untrusted input, so there is no traversal-attack surface to guard
+    # against.
+    for dirpath, _dirnames, filenames in os.walk(root, followlinks=True):
+        for fn in filenames:
+            full = os.path.join(dirpath, fn)
+            if fn.endswith('.css') or fn.endswith('.scss'):
+                surfaces['css'].append(full)
+            elif fn.endswith('.conf'):
+                surfaces['conf'].append(full)
+            elif fn.endswith('.qml'):
+                surfaces['qml'].append(full)
+
+total_scanned = len(surfaces['css']) + len(surfaces['conf']) + len(surfaces['qml'])
+
+if total_scanned == 0:
+    emit('C', 'FAIL', 'motion-lint scanned 0 surfaces; check the surface glob.')
+else:
+    emit('C', 'PASS',
+         f'motion-lint scanned {total_scanned} surface(s) '
+         f'(css/scss={len(surfaces["css"])}, conf={len(surfaces["conf"])}, '
+         f'qml={len(surfaces["qml"])})')
+
+
+# ── CHECK A/B per surface type ──────────────────────────────────────────
+DURATION_RE = re.compile(r'\b\d+(?:\.\d+)?(?:ms|s)\b')
+CUBIC_BEZIER_RE = re.compile(r'\bcubic-bezier\([^)]*\)')
+EASING_KEYWORD_RE = re.compile(r'\b(ease-in-out|ease-in|ease-out|ease)\b')
+LINEAR_RE = re.compile(r'\blinear\b(?!-gradient)')
+VAR_MOTION_RE = re.compile(r'var\(\s*--(motion-[A-Za-z0-9_-]+)\s*\)')
+VAR_MASK_RE = re.compile(r'var\([^)]*\)')
+
+RAW_VALUE_MSG = (
+    "hand-rolls a raw duration/easing value instead of a motion token "
+    "('{val}'). Replace with a var(--motion-*) reference, a named bezier, "
+    "or a semantic property, then re-run."
+)
+DANGLING_MSG = (
+    "references undefined motion token '{name}' — no matching entry in "
+    "motion.json's semantic layer."
+)
+
+
+def check_css_surface(path):
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+
+    body = strip_css_comments(raw)
+    lines = body.split('\n')
+    a_hits = []
+    b_hits = []
+    for i, line in enumerate(lines, start=1):
+        for m in VAR_MOTION_RE.finditer(line):
+            name = m.group(1)
+            if name not in gtk_defs:
+                a_hits.append((i, name))
+        masked = VAR_MASK_RE.sub(lambda mm: 'V' * len(mm.group(0)), line)
+        for m in DURATION_RE.finditer(masked):
+            b_hits.append((i, m.group(0)))
+        for m in CUBIC_BEZIER_RE.finditer(masked):
+            b_hits.append((i, m.group(0)))
+        for m in EASING_KEYWORD_RE.finditer(masked):
+            b_hits.append((i, m.group(0)))
+        for m in LINEAR_RE.finditer(masked):
+            b_hits.append((i, m.group(0)))
+
+    if a_hits:
+        for i, name in a_hits:
+            emit('A', 'FAIL', f'{path}:{i} ' + DANGLING_MSG.format(name=f'--{name}'))
+    else:
+        emit('A', 'PASS', f'{path}: all motion token references resolve')
+
+    if b_hits:
+        for i, val in b_hits:
+            emit('B', 'FAIL', f'{path}:{i} ' + RAW_VALUE_MSG.format(val=val))
+    else:
+        emit('B', 'PASS', f'{path}: no raw duration/easing literals')
+
+    return True
+
+
+ANIMATION_LINE_RE = re.compile(
+    r'^\s*animation\s*=\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+)'
+)
+BEZIER_LINE_RE = re.compile(r'^\s*bezier\s*=\s*([A-Za-z0-9_-]+)\s*,')
+
+
+def check_hypr_surface(path):
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+
+    body = strip_hash_comments(raw)
+    lines = body.split('\n')
+    a_hits = []
+    b_hits = []
+    for i, line in enumerate(lines, start=1):
+        m = ANIMATION_LINE_RE.match(line)
+        if m:
+            curve = m.group(4).strip()
+            if curve and curve not in hypr_bezier_defs:
+                a_hits.append((i, curve))
+        m2 = BEZIER_LINE_RE.match(line)
+        if m2:
+            name = m2.group(1)
+            if not name.startswith('motion-'):
+                b_hits.append((i, f'bezier = {name}, ...'))
+
+    if a_hits:
+        for i, curve in a_hits:
+            emit('A', 'FAIL', f'{path}:{i} ' + DANGLING_MSG.format(name=curve))
+    else:
+        emit('A', 'PASS', f'{path}: all animation curve references resolve')
+
+    if b_hits:
+        for i, val in b_hits:
+            emit('B', 'FAIL', f'{path}:{i} ' + RAW_VALUE_MSG.format(val=val))
+    else:
+        emit('B', 'PASS', f'{path}: no hand-authored (non motion-*) bezier curves')
+
+    return True
+
+
+MOTION_PROP_RE = re.compile(r'Motion\.([A-Za-z][A-Za-z0-9]*)')
+QML_DURATION_RE = re.compile(r'\bduration\s*:\s*(\d+)\b')
+QML_LITERAL_BEZIER_RE = re.compile(r'easing\.bezierCurve\s*:\s*\[')
+
+
+def check_qml_surface(path):
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+
+    body = strip_qml_comments(raw)
+    lines = body.split('\n')
+    a_hits = []
+    b_hits = []
+    for i, line in enumerate(lines, start=1):
+        for m in MOTION_PROP_RE.finditer(line):
+            name = m.group(1)
+            if name not in qml_defs:
+                a_hits.append((i, name))
+        if 'Motion.' not in line:
+            m2 = QML_DURATION_RE.search(line)
+            if m2:
+                b_hits.append((i, f'duration: {m2.group(1)}'))
+            if QML_LITERAL_BEZIER_RE.search(line):
+                b_hits.append((i, 'easing.bezierCurve: [literal array]'))
+
+    if a_hits:
+        for i, name in a_hits:
+            emit('A', 'FAIL', f'{path}:{i} ' + DANGLING_MSG.format(name=f'Motion.{name}'))
+    else:
+        emit('A', 'PASS', f'{path}: all Motion.* references resolve')
+
+    if b_hits:
+        for i, val in b_hits:
+            emit('B', 'FAIL', f'{path}:{i} ' + RAW_VALUE_MSG.format(val=val))
+    else:
+        emit('B', 'PASS', f'{path}: no raw duration/easing literals')
+
+    return True
+
+
+all_surfaces = []
+for p in sorted(surfaces['css']):
+    all_surfaces.append(('css', p))
+for p in sorted(surfaces['conf']):
+    all_surfaces.append(('conf', p))
+for p in sorted(surfaces['qml']):
+    all_surfaces.append(('qml', p))
+
+for kind, path in all_surfaces:
+    if path_is_exempt(path):
+        continue
+    if kind == 'css':
+        ok = check_css_surface(path)
+    elif kind == 'conf':
+        ok = check_hypr_surface(path)
+    else:
+        ok = check_qml_surface(path)
+    if not ok:
+        break  # abort: do not report on the subset already read
+
+dump()
+PYEOF
+}
+
+while IFS=$'\t' read -r tag status detail; do
+    [[ -z "$tag" ]] && continue
+    case "$tag" in
+        EXEMPT)
+            case "$status" in
+                FAIL) check "exemption entry: $detail" "1" ;;
+                *)    printf '  [EXEMPT] %s\n' "$detail" ;;
+            esac
+            ;;
+        ABORT)
+            check "$detail" "1"
+            ;;
+        DEFS)
+            check "$detail" "1"
+            ;;
+        *)
+            case "$status" in
+                PASS) check "CHECK $tag: $detail" "0" ;;
+                FAIL) check "CHECK $tag: $detail" "1" ;;
+            esac
+            ;;
+    esac
+done < <(_motion_lint_checks)
+
+if [[ "$FAIL" -eq 1 ]]; then
+    FAIL_WORD="check failed"
+else
+    FAIL_WORD="checks failed"
+fi
+
+echo ""
+printf 'Summary: %d passed, %d %s\n' "$PASS" "$FAIL" "$FAIL_WORD"
+[[ "$FAIL" -eq 0 ]]
+exit $?
