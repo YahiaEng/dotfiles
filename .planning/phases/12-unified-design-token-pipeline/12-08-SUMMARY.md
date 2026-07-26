@@ -155,3 +155,12 @@ None - no external service configuration required.
 ---
 *Phase: 12-unified-design-token-pipeline*
 *Completed: 2026-07-27*
+
+## Self-Check: PASSED
+
+- FOUND: quickshell/.config/quickshell/modules/Probe.qml
+- FOUND: .planning/phases/12-unified-design-token-pipeline/12-MOTION-VERDICT.md
+- FOUND: .planning/phases/12-unified-design-token-pipeline/12-08-SUMMARY.md
+- FOUND commit: 1895d21 (Task 1)
+- FOUND commit: dc595b4 (Task 3)
+- FOUND commit: 2320252 (docs: SUMMARY)
