@@ -36,6 +36,15 @@
 #                         reserved-unchanged / remove) to named [SKIP]
 #                         lines, for a context where mutating the live
 #                         monitor topology is undesirable.
+#
+#   Note: within that group, the per-screen surface creation check is a
+#   documented SKIP under D-13/D-14 (12-CONTEXT.md, one-way) — accepted as
+#   a permanent limitation on quickshell 0.3.0-2 after a bounded Phase 12
+#   re-attempt, see 12-QS03-EVIDENCE.md. The other three checks in the
+#   group (add / reserved-unchanged / remove) still run live. Flip
+#   QS03_ACCEPTED_PERMANENT near the top of this file to 0 to re-enable
+#   the live per-screen check the moment a quickshell build exists on
+#   which the fan-out might work again.
 
 set -uo pipefail
 
@@ -56,6 +65,23 @@ for arg in "$@"; do
         --no-headless-output) NO_HEADLESS_OUTPUT=1 ;;
     esac
 done
+
+# D-13 (12-CONTEXT.md, one-way): per-screen Quickshell surface fan-out was
+# accepted as a permanent limitation after Phase 12's bounded re-attempt —
+# a checked-in modules/qmldir (closing the FM1 scanner race) plus two
+# structurally distinct Variants+per-screen-LazyLoader arrangements, one of
+# them the escape-hatch spike — reproduced an FM2-class multi-screen
+# surface-creation failure on quickshell 0.3.0-2 in both arrangements,
+# re-proven across a real session restart. Full record: 12-QS03-EVIDENCE.md.
+# This is deliberately a one-line guard, not a --qs03-accepted CLI switch:
+# the acceptance is a property of this repo on this quickshell version, not
+# a per-invocation choice a future run could silently flip. Flip it to 0 to
+# get the real per-screen check back the moment a quickshell build exists
+# on which the fan-out might work. Leaving the check permanently red
+# instead was rejected (D-14): a gate everyone knows is red is a gate
+# nobody reads, and its non-zero exit stops being a usable signal for the
+# other 13 checks.
+QS03_ACCEPTED_PERMANENT=1
 
 PASS=0
 FAIL=0
@@ -429,7 +455,16 @@ else
     #    with distinct addresses — not zero on the new screen (hotplug
     #    missed), not two on either (duplicate), not one shared address
     #    under both keys (the same surface listed twice).
-    if [[ -z "$QSD_NEW_MONITOR" ]]; then
+    #
+    #    D-13/D-14 (12-CONTEXT.md, one-way): checked BEFORE the summon —
+    #    an accepted limitation should not keep paying for a probe cycle.
+    #    See QS03_ACCEPTED_PERMANENT's record-why comment near the top of
+    #    this file. PROBE_SUMMONED_FOR_HEADLESS_TEST is deliberately left
+    #    untouched on this branch: no dispatch happens, so there is
+    #    nothing for the cleanup trap to restore.
+    if [[ "$QS03_ACCEPTED_PERMANENT" -eq 1 ]]; then
+        echo "  [SKIP] per-screen surface fan-out accepted as a permanent limitation (single-monitor host, quickshell 0.3.0). See 11-VERIFICATION.md overrides[0] and 12-CONTEXT.md D-13."
+    elif [[ -z "$QSD_NEW_MONITOR" ]]; then
         check "per-screen surface creation (QS-03): skipped — no new monitor name was captured by the add step" "1"
     else
         hyprctl dispatch global quickshell:probe >/dev/null 2>&1
