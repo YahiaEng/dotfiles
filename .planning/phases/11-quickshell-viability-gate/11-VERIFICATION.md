@@ -1,15 +1,28 @@
 ---
 phase: 11-quickshell-viability-gate
 verified: 2026-07-26T18:40:00Z
-status: human_needed
+status: passed
+status_note: "Canonicalized human_needed -> passed per the verify-work rule for a phase waiting only on human UAT with zero recorded issues. The two backstop truths that produced human_needed are accepted-as-unverified via overrides[1] and overrides[2] — see `closure` below. behavior_unverified stays 2: this phase passed WITH two disclosed unknowns, it did not verify them."
 score: 9/9 must-haves verified
 behavior_unverified: 2
-overrides_applied: 1
+overrides_applied: 3
 overrides:
   - must_have: "Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug (QS-03 / ROADMAP criterion 2)"
     reason: "D-10: only QS-02 carries STOP authority this phase, so QS-03's per-screen-mounting gap is a disclosed, non-blocking finding rather than a phase-goal blocker. A Variants-based fix was written in 11-04 and reverted after it introduced two independent live-daemon reliability regressions on quickshell 0.3.0 — an intermittent config-load race and a post-hotplug visibility break — and shipping that against the always-on autostart daemon was judged worse than the gap it closed. This host has exactly one physical monitor, so the defect has no present user-visible impact. The requirement is not dropped: ownership moves to Phase 12 (Unified Design-Token Pipeline), the first phase that needs a permanent non-summoned QML surface and therefore has to solve per-screen fan-out anyway — see the Phase 12 Requirements line and success criterion 6 in ROADMAP.md, and the QS-03 row in REQUIREMENTS.md traceability."
     accepted_by: "YahiaEng"
     accepted_at: "2026-07-26T12:07:57Z"
+  - must_have: "When two clients bind the same XF86Audio* key, which handler wins is deterministic and stable across sessions rather than racing (11-03 backstop truth)"
+    reason: "Accepted as UNVERIFIED, not as verified. Presented to the human as 11-UAT.md test 6 and explicitly skipped: exercising it means deliberately breaking a working keybind config and restarting the session twice. No automated check can reach it. It remains listed in behavior_unverified_items and is NOT graded as evidence of correct behaviour — this override closes phase 11 while carrying the unknown forward, rather than pretending it was tested. Relevant to Phases 14 and 16, which each add a new global keybind; re-open it there if a bind-resolution conflict ever surfaces."
+    accepted_by: "YahiaEng"
+    accepted_at: "2026-07-26T15:36:35Z"
+  - must_have: "With zero connected outputs, the shell process survives and re-creates its surfaces when an output returns (11-04 backstop truth)"
+    reason: "Accepted as UNVERIFIED, not as verified. Physically untestable on this host — it has exactly one physical monitor, and removing it kills the graphical session performing the test. Presented as 11-UAT.md test 7 and correctly skipped. Disclosed as deliberately untested since 11-QUICKSHELL-EVIDENCE.md's 'Findings and Caveats'. Remains in behavior_unverified_items and is NOT graded as evidence. Phase 12 needs multi-output test infrastructure for QS-03 criterion 6 anyway — that is the natural place to finally exercise this."
+    accepted_by: "YahiaEng"
+    accepted_at: "2026-07-26T15:36:35Z"
+closure:
+  closed_at: "2026-07-26T15:36:35Z"
+  closed_by: "YahiaEng"
+  basis: "Explicit human closure decision. Zero gaps and zero UAT issues; the residual human_needed status came solely from the two backstop truths above, both now accepted-as-unverified via overrides. Note the mechanical predicate `gsd-tools phase uat-passed 11 --require-verification` still reports the three skipped 11-UAT.md rows (tests 6, 7, 16) as non-passing — its allowlist is {passed, pass} with no accepted-unverified state. Those rows were deliberately NOT rewritten to `pass`, because tests 6 and 7 were never performed and test 16 is the overridden QS-03 gap; falsifying them to satisfy the checker would fabricate human attestation. The phase is closed on this recorded decision instead."
 re_verification:
   previous_status: gaps_found
   previous_score: 6/9
