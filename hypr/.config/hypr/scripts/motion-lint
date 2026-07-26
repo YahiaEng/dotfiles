@@ -240,9 +240,33 @@ def strip_qml_comments(text):
     text = strip_block_comments(text)
     lines = text.split('\n')
     out = []
+    # WR-03: `line.find('//')` had no awareness of string literals — a line
+    # placing a real `Motion.*` reference or a raw duration/bezier literal
+    # AFTER a `//`-containing string (e.g. `"https://example.com"`) on the
+    # same line would have that content silently deleted before either
+    # CHECK ever saw it. Track quote state char-by-char (with backslash-
+    # escape awareness) so a `//` inside an open `"..."`/'...' span is never
+    # mistaken for a comment start.
     for line in lines:
-        idx = line.find('//')
-        out.append(line[:idx] if idx != -1 else line)
+        in_string = None
+        cut = -1
+        i = 0
+        n = len(line)
+        while i < n:
+            ch = line[i]
+            if in_string:
+                if ch == '\\' and i + 1 < n:
+                    i += 2
+                    continue
+                if ch == in_string:
+                    in_string = None
+            elif ch in ('"', "'"):
+                in_string = ch
+            elif ch == '/' and i + 1 < n and line[i + 1] == '/':
+                cut = i
+                break
+            i += 1
+        out.append(line[:cut] if cut != -1 else line)
     return '\n'.join(out)
 
 
