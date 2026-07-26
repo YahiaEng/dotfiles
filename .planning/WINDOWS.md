@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 7
+open_count: 8
 waived_count: 0
 fixed_count: 0
-total_count: 7
-last_updated: 2026-07-25T18:53:00.893Z
+total_count: 8
+last_updated: 2026-07-26T20:29:08.850Z
 ---
 
 # Broken Windows Ledger
@@ -22,6 +22,7 @@ last_updated: 2026-07-25T18:53:00.893Z
 | 5 | 09 | deviation | wleave/.config/wleave/layout.json |  | Icon glyph size is the SVG's natural/shrink-fit size under the icon+label vertical stack (empirically ~27-29px at the tuned margin), not forced to the UI-SPEC's literal 36px Display-role token — that token assumed the retired text-glyph delivery mechanism. Visually consistent and legible per the 09-03 evidence captures; not explicitly re-pinned to a fixed pixel size. | open |  | 2026-07-25T16:49:50.541Z |  |
 | 6 | 09 | deviation | hypr/.config/hypr/scripts/wleave.sh |  | Fault-injection test (09-04): moving ~/.config/wleave/layout.json aside does NOT trigger the wrapper's launch-failure notify-send. wleave has its own packaged config fallback chain and silently loads /etc/wleave/layout.json (a large unstyled 3x2 grid, version-info footer visible) instead. This is not a silently-empty scrim (satisfies the UI-Consideration-1 backstop's core requirement) but it is a third, unenumerated outcome the wrapper script's command -v/kill -0 guards do not cover — wleave.sh has no check that the user's own layout.json exists. Not fixed in 09-04 (file not in this plan's declared files_modified); flagged for future triage. | open |  | 2026-07-25T17:10:45.472Z |  |
 | 7 | 09 | deviation | hypr/.config/hypr/hyprlock.conf |  | hyprlock crashed (SIGABRT) during 09-04 human render-gate testing of the lock action. Almost certainly independent of this phase: the only hyprlock coredumps on this machine are dated 2026-04-02 and 2026-07-12 (five SIGABRTs), none from the 2026-07-25 session; the lock action string (uwsm app -- hyprlock) is byte-identical to the Phase-4-audited string, unchanged by this phase; and the human independently confirmed lock working earlier in the same gate. Logged for separate triage, not chased in this phase. | open |  | 2026-07-25T18:53:00.893Z |  |
+| 8 | 12 | deviation | hypr/.config/hypr/config/animations.conf |  | Plan 12-04's acceptance criterion expected 'animation = ' count of 14; live file has 13 (pre-existing, unchanged by this plan; D-04 fence proven intact via before/after count equality) | open |  | 2026-07-26T20:29:08.850Z |  |
 
 ````json
 [
@@ -107,6 +108,18 @@ last_updated: 2026-07-25T18:53:00.893Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-07-25T18:53:00.893Z",
+    "resolved_at": null
+  },
+  {
+    "id": 8,
+    "kind": "deviation",
+    "phase": "12",
+    "file": "hypr/.config/hypr/config/animations.conf",
+    "line": null,
+    "description": "Plan 12-04's acceptance criterion expected 'animation = ' count of 14; live file has 13 (pre-existing, unchanged by this plan; D-04 fence proven intact via before/after count equality)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-07-26T20:29:08.850Z",
     "resolved_at": null
   }
 ]
