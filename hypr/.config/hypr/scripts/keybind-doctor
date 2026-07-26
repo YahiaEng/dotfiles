@@ -135,62 +135,172 @@ else
 fi
 
 # ── Cross-check against the compositor's ACTUAL registered state ───────
-if command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-    LIVE_JSON=$(hyprctl binds -j 2>/dev/null)
+#
+# D-14 record-why: this file used to feed the compositor's structured
+# bind query through a JSON filter here. That is now gone from every
+# executable line below, and must NOT be restored. The root cause is not
+# that the JSON failed to parse — it parses fine — the root cause is
+# that Hyprland 0.56.0's structured serializer for this query is
+# field-misaligned: verified directly on this build, it emits a boolean
+# where the integer modmask belongs, puts the modmask's real value into
+# the submap string instead, and emits an unquoted bareword where the
+# keycode belongs. A syntax-only repair (retrying the query, adding more
+# error handling around its filter) would have kept consuming this and
+# produced confidently WRONG duplicate-chord answers while looking like
+# it worked — strictly worse than the loud crash this file had before
+# this repair. A self-healing probe that tries the structured query
+# first and falls back to plain text only on a parse error was
+# considered and rejected: a future build where that query parses
+# cleanly but still misaligns fields would sail straight through such a
+# probe undetected.
+#
+# What this section parses instead: plain-text `hyprctl binds`, verified
+# field-correct across every declared bind block on this build. Blocks
+# are blank-line delimited; the FIRST line of each block is a variable
+# block-type token whose letters encode the bind's flags (a `bindel`
+# declaration in keybinds.conf surfaces here as `bindle` — letters
+# reordered — so this token is never treated as a fixed "bind" prefix).
+# The remaining 8 lines carry stable, correctly-ordered field labels:
+# modmask, submap, key, keycode, catchall, description, dispatcher, arg.
+# The shape-guard check below fails BY NAME if that shape ever moves,
+# instead of silently returning wrong tuples.
 
-    if [[ -z "$LIVE_JSON" ]]; then
-        check "hyprctl binds -j returned data" "1"
+if ! command -v hyprctl >/dev/null 2>&1; then
+    echo "  [SKIP] keybind cross-check against hyprctl binds (hyprctl not found)"
+else
+    LIVE_BINDS_RAW=$(hyprctl binds 2>/dev/null)
+
+    if [[ -z "$LIVE_BINDS_RAW" ]]; then
+        check "hyprctl binds returned data" "1"
     else
-        check "hyprctl binds -j returned data" "0"
+        check "hyprctl binds returned data" "0"
 
-        LIVE_TUPLES=$(printf '%s' "$LIVE_JSON" | jq -r '.[] | "\(.modmask)|\(.key)|\(.keycode)|\(.release)"')
+        # Parse blank-line-delimited blocks. Emits one record per output
+        # line, fields joined by ASCII Unit Separator (0x1f) — not a tab
+        # and not '|': `arg` values can and do contain a literal '|'
+        # (e.g. the cliphist pipe bind), and bash's `read` silently
+        # COLLAPSES adjacent tabs (tab is IFS-whitespace, so an empty
+        # `key` field — the code:NNN keycode binds always have one —
+        # vanishes and shifts every later field left by one). 0x1f is
+        # neither, so empty fields survive intact:
+        #   AWKERR<0x1f>message                          (named shape problem)
+        #   AWKTUPLE<0x1f>modmask<0x1f>key<0x1f>keycode<0x1f>release<0x1f>dispatcher<0x1f>arg
+        # then a trailing AWKBLOCKS<0x1f>count line.
+        US=$'\x1f'
+        PARSED=$(printf '%s' "$LIVE_BINDS_RAW" | awk -v RS="" -v FS="\n" -v US="$US" '
+            {
+                nblocks++
+                if (NF < 9) {
+                    print "AWKERR" US "block " nblocks " has " NF " lines (expected 9)"
+                    next
+                }
+                header = $1
+                if ($2 !~ /^\tmodmask: /)     { print "AWKERR" US "block " nblocks ": field 2 is not \"modmask: \" (got " $2 ")"; next }
+                if ($3 !~ /^\tsubmap: /)      { print "AWKERR" US "block " nblocks ": field 3 is not \"submap: \" (got " $3 ")"; next }
+                if ($4 !~ /^\tkey: /)         { print "AWKERR" US "block " nblocks ": field 4 is not \"key: \" (got " $4 ")"; next }
+                if ($5 !~ /^\tkeycode: /)     { print "AWKERR" US "block " nblocks ": field 5 is not \"keycode: \" (got " $5 ")"; next }
+                if ($6 !~ /^\tcatchall: /)    { print "AWKERR" US "block " nblocks ": field 6 is not \"catchall: \" (got " $6 ")"; next }
+                if ($7 !~ /^\tdescription: /) { print "AWKERR" US "block " nblocks ": field 7 is not \"description: \" (got " $7 ")"; next }
+                if ($8 !~ /^\tdispatcher: /)  { print "AWKERR" US "block " nblocks ": field 8 is not \"dispatcher: \" (got " $8 ")"; next }
+                if ($9 !~ /^\targ: /)         { print "AWKERR" US "block " nblocks ": field 9 is not \"arg: \" (got " $9 ")"; next }
+
+                modmask = $2; sub(/^\tmodmask: /, "", modmask)
+                key = $4; sub(/^\tkey: /, "", key)
+                keycode = $5; sub(/^\tkeycode: /, "", keycode)
+                dispatcher = $8; sub(/^\tdispatcher: /, "", dispatcher)
+                arg = $9; sub(/^\targ: /, "", arg)
+
+                release = (header ~ /r/) ? "true" : "false"
+
+                print "AWKTUPLE" US modmask US key US keycode US release US dispatcher US arg
+            }
+            END { print "AWKBLOCKS" US nblocks }
+        ')
+
+        declare -A LIVE_TUPLE_SET=()
+        declare -A TUPLE_TARGETS=()
+        declare -A TUPLE_UNIQ_COUNT=()
+        declare -A SEEN_PAIR=()
+        SHAPE_BAD=0
+        SHAPE_BLOCKS=0
+        RELEASE_KEYS=()
+        KILLBIND_COUNT=0
+
+        while IFS="$US" read -r awk_tag f1 f2 f3 f4 f5 f6; do
+            case "$awk_tag" in
+                AWKERR)
+                    SHAPE_BAD=$((SHAPE_BAD + 1))
+                    printf '    shape error: %s\n' "$f1" >&2
+                    ;;
+                AWKTUPLE)
+                    modmask="$f1"; key="$f2"; keycode="$f3"; release="$f4"; dispatcher="$f5"; arg="$f6"
+                    tuple="${modmask}|${key}|${keycode}|${release}"
+                    target="${dispatcher}:${arg}"
+                    LIVE_TUPLE_SET["$tuple"]=1
+                    pairkey="${tuple}"$'\x1e'"${target}"
+                    if [[ -z "${SEEN_PAIR[$pairkey]+x}" ]]; then
+                        SEEN_PAIR["$pairkey"]=1
+                        TUPLE_UNIQ_COUNT["$tuple"]=$(( ${TUPLE_UNIQ_COUNT[$tuple]:-0} + 1 ))
+                        if [[ -z "${TUPLE_TARGETS[$tuple]+x}" ]]; then
+                            TUPLE_TARGETS["$tuple"]="$target"
+                        else
+                            TUPLE_TARGETS["$tuple"]="${TUPLE_TARGETS[$tuple]}, ${target}"
+                        fi
+                    fi
+                    [[ "$release" == "true" ]] && RELEASE_KEYS+=("$key")
+                    if [[ "$modmask" == "64" && "$key" == "Escape" && "$dispatcher" == "exec" && "$arg" == "pkill walker" ]]; then
+                        KILLBIND_COUNT=$((KILLBIND_COUNT + 1))
+                    fi
+                    ;;
+                AWKBLOCKS)
+                    SHAPE_BLOCKS="$f1"
+                    ;;
+            esac
+        done <<<"$PARSED"
+
+        check "plain-text bind block shape guard: ${SHAPE_BLOCKS} block(s) parsed from hyprctl binds, each carrying the expected 8 field labels (modmask/submap/key/keycode/catchall/description/dispatcher/arg) in order (shape errors: ${SHAPE_BAD})" "$([[ "$SHAPE_BLOCKS" -ge 1 && "$SHAPE_BAD" -eq 0 ]] && echo 0 || echo 1)"
 
         # 1. Declared-vs-registered: every declared tuple must be live.
         MISSING_COUNT=0
         i=0
         for t in "${DECLARED_TUPLES[@]}"; do
-            if ! grep -qxF "$t" <<<"$LIVE_TUPLES"; then
+            if [[ -z "${LIVE_TUPLE_SET[$t]+x}" ]]; then
                 MISSING_COUNT=$((MISSING_COUNT + 1))
                 printf '    not registered: %s\n' "${DECLARED_RAWLINES[$i]}" >&2
             fi
             i=$((i + 1))
         done
-        check "declared-vs-registered: all ${#DECLARED_TUPLES[@]} declared binds appear in hyprctl binds -j (missing: ${MISSING_COUNT})" "$([[ $MISSING_COUNT -eq 0 ]] && echo 0 || echo 1)"
+        check "declared-vs-registered: all ${#DECLARED_TUPLES[@]} declared binds appear in hyprctl binds (missing: ${MISSING_COUNT})" "$([[ $MISSING_COUNT -eq 0 ]] && echo 0 || echo 1)"
 
         # 2. Shadowing/duplication: two DIFFERENT dispatcher targets must
         #    never share the same (modmask,key,keycode,release) tuple.
-        SHADOW_REPORT=$(printf '%s' "$LIVE_JSON" | jq -r '
-            group_by([.modmask, .key, .keycode, .release])
-            | map(select(length > 1))
-            | map(select((map("\(.dispatcher):\(.arg)") | unique | length) > 1))
-            | map("modmask=\(.[0].modmask) key=\(.[0].key) keycode=\(.[0].keycode) release=\(.[0].release) targets=[" + (map("\(.dispatcher):\(.arg)") | unique | join(", ")) + "]")
-            | .[]
-        ')
         SHADOW_COUNT=0
-        if [[ -n "$SHADOW_REPORT" ]]; then
-            SHADOW_COUNT=$(printf '%s\n' "$SHADOW_REPORT" | grep -c '.')
-            printf '%s\n' "$SHADOW_REPORT" | sed 's/^/    shadowed: /' >&2
+        SHADOW_LINES=()
+        for tuple in "${!TUPLE_UNIQ_COUNT[@]}"; do
+            if [[ "${TUPLE_UNIQ_COUNT[$tuple]}" -gt 1 ]]; then
+                SHADOW_COUNT=$((SHADOW_COUNT + 1))
+                IFS='|' read -r s_modmask s_key s_keycode s_release <<<"$tuple"
+                SHADOW_LINES+=("modmask=${s_modmask} key=${s_key} keycode=${s_keycode} release=${s_release} targets=[${TUPLE_TARGETS[$tuple]}]")
+            fi
+        done
+        if [[ "$SHADOW_COUNT" -gt 0 ]]; then
+            printf '    shadowed: %s\n' "${SHADOW_LINES[@]}" >&2
         fi
-        check "no shadowing: zero (modmask,key,release) tuples shared by two different dispatcher targets (found: ${SHADOW_COUNT})" "$([[ $SHADOW_COUNT -eq 0 ]] && echo 0 || echo 1)"
+        check "no shadowing: zero (modmask,key,keycode,release) tuples shared by two different dispatcher targets (found: ${SHADOW_COUNT})" "$([[ $SHADOW_COUNT -eq 0 ]] && echo 0 || echo 1)"
 
-        # 3. Release-bind inventory — informational, always reports what
-        #    IS registered (proves the tap-bind lands correctly once
-        #    07-04 ships it, and that no OTHER bind accidentally became
-        #    release-triggered). Not a pass/fail signal by itself.
-        RELEASE_KEYS=$(printf '%s' "$LIVE_JSON" | jq -r '.[] | select(.release == true) | .key')
-        RELEASE_COUNT=$(printf '%s' "$LIVE_JSON" | jq -r '[.[] | select(.release == true)] | length')
+        # 3. Release-bind inventory — informational, always reports how
+        #    many release-triggered binds are registered and lists their
+        #    keys; never a pass/fail signal on its own.
+        RELEASE_COUNT=${#RELEASE_KEYS[@]}
         check "release-bind inventory recorded (${RELEASE_COUNT} release-triggered bind(s) registered)" "0"
         if [[ "$RELEASE_COUNT" -gt 0 ]]; then
-            printf '%s\n' "$RELEASE_KEYS" | sed 's/^/    release-bind key: /'
+            printf '%s\n' "${RELEASE_KEYS[@]}" | sed 's/^/    release-bind key: /'
         fi
 
         # 4. Kill-bind presence (D-03) — must fail loudly if a future
         #    phase ever deletes the escape hatch.
-        KILLBIND_COUNT=$(printf '%s' "$LIVE_JSON" | jq -r '[.[] | select(.modmask == 64 and .key == "Escape" and .dispatcher == "exec" and .arg == "pkill walker")] | length')
         check "D-03 kill-bind present and registered (Super+Escape -> pkill walker)" "$([[ "$KILLBIND_COUNT" -ge 1 ]] && echo 0 || echo 1)"
     fi
-else
-    echo "  [SKIP] keybind cross-check against hyprctl binds -j (hyprctl or jq not found)"
 fi
 
 echo ""
