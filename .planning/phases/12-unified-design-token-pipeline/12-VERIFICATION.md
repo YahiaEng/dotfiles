@@ -1,21 +1,24 @@
 ---
 phase: 12-unified-design-token-pipeline
 verified: 2026-07-27T02:33:00Z
-status: human_needed
+status: passed
 score: 6/6 must-haves verified (criterion 6 is a documented, accepted Out-of-Scope permanent limitation, not a live gap; criterion 5 is a stretch satisfied by a recorded "no")
-behavior_unverified: 1
+behavior_unverified: 0
 overrides_applied: 0
 human_verification:
   - test: "Run the real, committed theme-engine/.config/theme-engine/theme-stress-test end to end (10 consecutive theme switches) now that its blocker (the untracked vscodium desktop-entry file) has been resolved by the .gitignore fix (604368e)"
     expected: "10/10 switches pass with zero failures, matching the scratch-copy proof already recorded in 12-06-SUMMARY.md (162 passed / 0 failed, PID unchanged across all 10 switches)"
     why_human: "This is a live-desktop mutation (10 real theme.apply cycles) that a verifier should not trigger unattended; WINDOWS.md entry #9 already discloses this honestly as open/unblocked-but-not-rerun. Criterion 1 (live re-colour) is independently already confirmed via the 12-06 D-27 human render-and-look gate (a real theme-apply catppuccin-latte crossfade observed live with the panel staying open) plus the scratch-copy 10/10 automated proof, so this item does not block criterion 1's substance — it is a formality re-confirmation of the exact committed script, not a first-time proof."
+    result: "RUN 2026-07-27T02:39Z — partial, and it did NOT pass identically as predicted. Switches 1-4 passed in full against the REAL committed script, including every D-17 live re-colour assertion (quickshell Colours.primary matched freshly-rendered palette.json each time) and PID-unchanged check (1218846 throughout). Switch #5 ('dracula') failed the D-66 strict theme-doctor gate. Root cause is PRE-EXISTING Phase 03 debt, not a Phase 12 defect: lib/wallpaper.sh:65 repoints the TRACKED symlink wallpapers/Pictures/Wallpapers/current.jpg on every static theme switch, which dirties the tree and trips theme-doctor's clean-tree invariant (90f73c2, phase 03-03) that theme-stress-test asserts after every switch (1a4ce30, phase 03-03). Confirmed by mechanism: switching back to catppuccin restored the committed symlink target and the tree went clean. Phase 12 never touched wallpaper.sh."
+    resolution: "Recorded, not fixed — user decision at phase close. WINDOWS.md #9 rewritten with the real root cause (its earlier 'expected to pass identically' prediction is explicitly corrected as wrong, and the prior scratch-copy 10/10 is noted as weaker evidence than it appeared, since it passed by bypassing exactly this check). Two concrete fix options recorded there, deferred to Phase 13 (the designated existing-surface sweep). Criterion 1 is UNAFFECTED and in fact better evidenced than before: it now has the 12-06 D-27 human render gate PLUS switches 1-4 of a real committed-script run. State restored: theme=catppuccin, tree clean, theme-doctor 180/0."
+    outcome: resolved_with_deferred_gap
 ---
 
 # Phase 12: Unified Design-Token Pipeline Verification Report
 
 **Phase Goal:** One token source renders colour and motion to QML, GTK4 CSS and Hyprland without drift, and the gates refuse any surface that hand-rolls its own values.
 **Verified:** 2026-07-27T02:33:00Z
-**Status:** human_needed
+**Status:** passed *(human verification item run 2026-07-27 — resolved with one deferred, pre-existing gap owned by Phase 13; see frontmatter `result`/`resolution` and WINDOWS.md #9)*
 **Re-verification:** No — initial verification.
 
 ## Goal Achievement
