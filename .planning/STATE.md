@@ -5,8 +5,8 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 12
 current_phase_name: unified-design-token-pipeline
 status: executing
-stopped_at: Reached 12-06 Task 3 checkpoint (D-27 blocking human render gate) — Tasks 1-2 committed, awaiting human verification
-last_updated: "2026-07-26T21:53:55.451Z"
+stopped_at: Completed 12-06-PLAN.md (matugen QML palette, Colours/Motion singletons, token inspector, D-17 live re-colour; D-27 human render gate APPROVED)
+last_updated: "2026-07-26T22:05:17.765Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 12 execution started
 progress:
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 12 (unified-design-token-pipeline) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
-Progress: [████████░░] 77%
+Progress: [█████████░] 85%
 Last activity: 2026-07-26 — Phase 12 execution started
 
 ## Performance Metrics
@@ -139,7 +139,7 @@ Last activity: 2026-07-26 — Phase 12 execution started
 | Phase 12 P02 | ~15min | 3 tasks | 5 files |
 | Phase 12 P04 | 45min | 3 tasks | 8 files |
 | Phase 12 P05 | 20min | 3 tasks | 11 files |
-| Phase 12 P06 | multi-session | 2 tasks | 8 files |
+| Phase 12 P06 | multi-session | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -186,7 +186,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 12-06: Colours.qml/Motion.qml need BOTH pragma Singleton and qmldir's singleton keyword to resolve bare TypeName.property access — corrects 12-RESEARCH.md Pattern 2, binary-verified
 - [Phase ?]: 12-06: a pragma-Singleton QML type cannot declare property X alongside property onX in the same object (Material You's role/onRole convention) — Qt's AOT singleton compiler misparses onX as a signal handler; fixed in Colours.qml via two sibling FileView/JsonAdapter pairs (base/on-roles)
 - [Phase ?]: 12-06: Motion.qml adopted motion-lint's shipped naming convention (Duration/Easing/motionEnabled) over UI-SPEC's Bezier-suffixed prose; Probe.qml reads motion-row presence/validity metadata via an independent raw parse rather than Motion.hasMotionTokens/Motion.pairs to keep motion-lint's CHECK A model intact
-- [Phase ?]: 12-06: Task 3 (D-27 blocking human render-and-look gate) not yet performed — plan reached a checkpoint, awaiting human verification of colour/motion mapping across theme switches
+- [Phase ?]: 12-06: Task 3 (D-27 blocking human render-and-look gate) APPROVED — all four judged groups pass (palette mapping + crossfade, motion tokens visibly distinct + mid-replay restart, reduced/off/normal gating, reads as an instrument). TOKEN-01/TOKEN-02 marked complete in REQUIREMENTS.md.
+- [Phase ?]: 12-06: plan 12-07 owes motion-lint no follow-up from this plan — the Motion.hasMotionTokens/Motion.pairs CHECK A collision was resolved entirely inside Probe.qml (independent raw motion.json parse for presence/validity metadata, never a Motion.xxx reference outside the six already-recognised names); motion-lint itself is byte-identical to how 12-05 left it. 12-07's own pre-existing wleave-exemption-removal obligation is separate and unaffected.
 
 ### Quick Tasks Completed
 
@@ -267,8 +268,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T21:53:55.441Z
-Stopped at: Reached 12-06 Task 3 checkpoint (D-27 blocking human render gate) — Tasks 1-2 committed, awaiting human verification
+Last session: 2026-07-26T22:05:17.754Z
+Stopped at: Completed 12-06-PLAN.md (matugen QML palette, Colours/Motion singletons, token inspector, D-17 live re-colour; D-27 human render gate APPROVED)
 Resume file: None
 
 ## Operator Next Steps
