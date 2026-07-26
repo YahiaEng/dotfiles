@@ -87,6 +87,17 @@ output_path = "~/.local/state/theme/zen-userchrome.css"
 input_path = "~/.config/matugen/templates/satty-colors.toml"
 output_path = "~/.local/state/theme/satty.toml"
 
+# ── QML palette (D-11/TOKEN-01, Colours.qml singleton) ──
+# JSON transport, never a generated QML document — Colours.qml's
+# FileView/JsonAdapter updates its properties IN PLACE on every
+# theme-apply, which is what lets the token inspector's swatches crossfade
+# on a theme switch instead of hard-cutting. No new format handler needed
+# on the theme-parity/contract.sh side: this reuses the existing generic
+# `json` extractor (see vscodium.json/motion.json above).
+[templates.qml]
+input_path = "~/.config/matugen/templates/qml-palette.json"
+output_path = "~/.local/state/theme/palette.json"
+
 # ── AGS media applet colors (MEDIA-03, 10-05) ────────
 # No template renders a media-popup state file any more — the AGS media
 # applet below is the only media-widget colors consumer.

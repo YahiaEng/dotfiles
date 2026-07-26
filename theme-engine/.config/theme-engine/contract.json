@@ -20,7 +20,8 @@
     { "name": "motion.json", "format": "json" },
     { "name": "gtk-4.0-motion.css", "format": "css-vars" },
     { "name": "hyprland-motion.conf", "format": "hypr-motion" },
-    { "name": "ags.scss", "format": "scss-vars" }
+    { "name": "ags.scss", "format": "scss-vars" },
+    { "name": "palette.json", "format": "json" }
   ],
   "state_metadata_files": ["current-theme", "mode"],
   "presence_only_files": ["kitty-font.conf", "waybar-font.css"],

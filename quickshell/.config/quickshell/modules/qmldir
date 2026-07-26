@@ -6,8 +6,11 @@
 # exactly this file — `module qs.modules` header plus one `Name Version
 # File.qml` line per local type). Any .qml type added to this directory that
 # is NOT declared below becomes unresolvable to `shell.qml`'s
-# `import "modules"` — Phase 13+ adding Colours.qml/Motion.qml here MUST add
-# a matching line in the same commit.
+# `import "modules"` — Phase 12-06 added Colours.qml/Motion.qml here in the
+# same commit that created them, per this file's own standing instruction.
+# Any FUTURE type added to this directory MUST do the same.
 module qs.modules
+Colours 1.0 Colours.qml
+Motion 1.0 Motion.qml
 Probe 1.0 Probe.qml
 ScreencopyProbe 1.0 ScreencopyProbe.qml
