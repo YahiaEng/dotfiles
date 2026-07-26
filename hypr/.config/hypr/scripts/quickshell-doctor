@@ -361,7 +361,17 @@ else
             mkdir -p "$STATE_DIR"
             if [[ -f "$BASELINE_FILE" ]] && jq -e '.volume_step_delta_raw != null' "$BASELINE_FILE" >/dev/null 2>&1; then
                 VOL_BASELINE=$(jq -r '.volume_step_delta_raw' "$BASELINE_FILE")
-                check "one-step-per-press volume probe: measured delta=${VOL_DELTA} raw units matches recorded baseline=${VOL_BASELINE} (a later doubling would show as drift here)" "$([[ "$VOL_DELTA" == "$VOL_BASELINE" ]] && echo 0 || echo 1)"
+                # Compare within a tolerance band, not by exact equality. This
+                # check exists to catch a *doubling* (two handlers firing per
+                # press, which reads ~2x baseline); raw PulseAudio units round
+                # differently depending on the sink's current level, so an
+                # exact match spuriously fails by a unit or two. A 10% band
+                # clears rounding while a doubling still misses by ~10x.
+                VOL_TOLERANCE=$(( VOL_BASELINE / 10 ))
+                (( VOL_TOLERANCE < 1 )) && VOL_TOLERANCE=1
+                VOL_DRIFT=$(( VOL_DELTA - VOL_BASELINE ))
+                (( VOL_DRIFT < 0 )) && VOL_DRIFT=$(( -VOL_DRIFT ))
+                check "one-step-per-press volume probe: measured delta=${VOL_DELTA} raw units is within tolerance of recorded baseline=${VOL_BASELINE} (drift: ${VOL_DRIFT}, tolerance: +/-${VOL_TOLERANCE}; a doubling would show as drift ~${VOL_BASELINE} here)" "$([[ "$VOL_DRIFT" -le "$VOL_TOLERANCE" ]] && echo 0 || echo 1)"
             else
                 BASELINE_JSON="{}"
                 [[ -f "$BASELINE_FILE" ]] && BASELINE_JSON=$(cat "$BASELINE_FILE")

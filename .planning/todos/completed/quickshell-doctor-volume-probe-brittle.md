@@ -3,8 +3,8 @@ id: quickshell-doctor-volume-probe-brittle
 created: 2026-07-26
 severity: low
 source: 12-01 Task 2 session-restart re-proof (post-login quickshell-doctor run)
-affects_plans: []
-status: pending
+affects_plans: [12-02]
+status: resolved
 ---
 
 # `quickshell-doctor`'s one-step-per-press volume probe is over-strict exact-match
@@ -37,3 +37,23 @@ different volume levels does not false-positive.
 **Why not fixed immediately:** out of scope for the plan that surfaced it (12-01, QS-03
 per-screen fan-out) — flagged per that plan's evidence record and deferred here for
 whoever next touches `quickshell-doctor` or a future audio/motion-adjacent phase.
+
+---
+
+## Resolved 2026-07-26 (Phase 12, orchestrator-scoped deviation)
+
+Fixed during Phase 12 execution, because it stopped being merely cosmetic: plan 12-02's
+must-have required `quickshell-doctor` to **exit 0** once the QS-03 per-screen check became
+a D-14 documented SKIP. This probe was the sole remaining failure, so D-14's whole purpose
+— a gate people actually read — was defeated by an unrelated off-by-one.
+
+Applied the tolerance band this todo suggested, sized at 10% of baseline rather than a fixed
+2 raw units, with a floor of 1 unit so tiny baselines cannot divide to a zero-width band:
+
+- rounding noise (baseline 3277, delta 3276 → drift 1, tolerance 327) → PASS
+- doubling (delta 6553 → drift 3276) → FAIL, missing the band by ~10x
+- halving (delta 1638 → drift 1639) → FAIL
+
+The check message now prints the measured drift and the tolerance, so the numbers stay
+visible instead of being hidden behind a pass. Verified live: `quickshell-doctor` reports
+`13 passed, 0 failed`, exit 0.
