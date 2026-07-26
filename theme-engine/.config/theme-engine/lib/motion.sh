@@ -211,10 +211,16 @@ theme_engine_render_motion_files() {
         echo "}"
     } > "$out_dir/hyprland-motion.conf"
 
-    # ── 2. GTK4 target: :root custom properties, longhand-consumed only
-    #    (Pattern 3) — one easing per DISTINCT easing an actual semantic
-    #    pair references, in first-reference order (never an easing no
-    #    semantic pair uses) ────────────────────────────────────────────
+    # ── 2. GTK4 target: :root custom properties. WR-02: emit EVERY declared
+    #    easing unconditionally, same as the Hyprland writer above
+    #    (`.easings | to_entries[]`) — the two writers must agree on which
+    #    easings exist (D-05/one-source-of-truth). Previously this only
+    #    emitted an easing actually referenced by a semantic pair, so a
+    #    declared-but-unreferenced easing (e.g. motion.json's "linear")
+    #    resolved fine from Hyprland's `motion-linear` bezier but produced
+    #    an unconditional motion-lint CHECK-A dangling-reference failure
+    #    the moment any CSS/QML surface reached for
+    #    `var(--motion-easing-linear)`. ───────────────────────────────────
     {
         echo ":root {"
         while IFS=$'\t' read -r token _easing ms _clamped; do
@@ -222,12 +228,8 @@ theme_engine_render_motion_files() {
             printf '  --motion-duration-%s: %sms;\n' "$token" "$ms"
         done <<< "$resolved"
         jq -r '
-            . as $root
-            | ($root.semantic | to_entries | map(.value.easing)) as $order
-            | $root.easings as $E
-            | (reduce $order[] as $e ([]; if index($e) then . else . + [$e] end)) as $uniq
-            | $uniq[] as $name
-            | "  --motion-easing-\($name): cubic-bezier(\($E[$name] | join(", ")));"
+            .easings | to_entries[] |
+            "  --motion-easing-\(.key): cubic-bezier(\(.value | join(", ")));"
         ' "$MOTION_JSON"
         echo "}"
     } > "$out_dir/gtk-4.0-motion.css"
