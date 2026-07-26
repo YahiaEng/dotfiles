@@ -317,12 +317,16 @@ qml_defs = load_qml_defs()
 #    exists, so outstanding debt never goes invisible. Two reasons exist
 #    today: a GTK3 surface has no CSS custom-property mechanism at all
 #    (permanent, not a TODO); a GTK4-capable surface simply has not been
-#    retrofitted yet (temporary — wleave's own entry here is removed by
-#    plan 12-07 once it retrofits wleave; walker/ags/waybar/swaync/swayosd
-#    are Phase 13's designated existing-surface sweep). animations.conf's
+#    retrofitted yet (temporary — walker/ags/waybar/swaync/swayosd are
+#    Phase 13's designated existing-surface sweep). animations.conf's
 #    13 hand-authored `animation =` lines (D-04's explicit fence; the
 #    plan text's "14" was a miscount corrected in 12-04's own summary) are
 #    the same "not yet retrofitted" debt, on the Hyprland side.
+#    wleave's own whole-file entry was REMOVED by plan 12-07 (TOKEN-03/
+#    D-19/D-23) once it retrofitted wleave's stylesheet onto emitted
+#    tokens — wleave/style.css is now covered by CHECK A and CHECK B like
+#    any other non-exempt surface (see LINE_EXEMPTIONS below for the one
+#    narrow carve-out D-19 still requires).
 EXEMPTIONS = [
     {'glob': 'waybar/*.css', 'regex': re.compile(r'(^|/)waybar/[^/]+\.css$'),
      'reason': 'GTK3, no variable mechanism exists'},
@@ -333,8 +337,6 @@ EXEMPTIONS = [
     {'glob': 'walker/**/style.css', 'regex': re.compile(r'(^|/)walker/.*/style\.css$'),
      'reason': 'pending Phase 13 retrofit'},
     {'glob': 'ags/*.scss', 'regex': re.compile(r'(^|/)ags/[^/]+\.scss$'),
-     'reason': 'pending Phase 13 retrofit'},
-    {'glob': 'wleave/style.css', 'regex': re.compile(r'(^|/)wleave/style\.css$'),
      'reason': 'pending Phase 13 retrofit'},
     {'glob': 'hypr/config/animations.conf', 'regex': re.compile(r'(^|/)hypr/config/animations\.conf$'),
      'reason': 'pending Phase 13 retrofit'},
@@ -349,6 +351,41 @@ for ex in EXEMPTIONS:
 
 def path_is_exempt(path):
     return any(ex['regex'].search(path) for ex in EXEMPTIONS)
+
+
+# ── Line-scoped exemptions (D-23 sibling mechanism, added 12-07) — a
+#    narrower carve-out than a whole-file EXEMPTIONS entry: covers exactly
+#    one CSS rule inside a file that is otherwise fully non-exempt.
+#    Printed once per declared entry regardless of whether it currently
+#    matches anything, same visibility discipline as EXEMPTIONS. Exists
+#    because wleave's `button:hover, button:focus` rule intentionally
+#    keeps its overshoot timing function AND its three still-literal
+#    `150ms ease` transitions (12-07 Task 1's D-19-fenced retrofit tokenizes
+#    only the `transform` item's duration) while the REST of the same
+#    file (the motion import, `capsule-entrance`, the label-reveal exit
+#    transition) is fully token-driven — a whole-file EXEMPTIONS entry
+#    here would silently re-exempt those retrofitted rules too, exactly
+#    the silencing D-23/this plan's sibling prohibition forbids.
+LINE_EXEMPTIONS = [
+    {'label': 'wleave/style.css button:hover,button:focus rule',
+     'regex': re.compile(r'(^|/)wleave/style\.css$'),
+     'start': 230, 'end': 253,
+     'reason': "D-19 fence: hover/focus keeps its hand-authored overshoot "
+               "timing function (human-approved feel at a prior gate, "
+               "\"button glows and grows larger\") plus its three still-"
+               "literal 150ms/ease transitions (pending Phase 13); only "
+               "the transform item's duration was tokenized this plan"},
+]
+
+for lx in LINE_EXEMPTIONS:
+    if not lx['reason'].strip():
+        emit('EXEMPT', 'FAIL', f"{lx['label']}: line-exemption entry has an empty reason (deny-by-default violation)")
+    else:
+        emit('EXEMPT', 'INFO', f"{lx['label']} (lines {lx['start']}-{lx['end']}) — {lx['reason']}")
+
+
+def line_is_exempt(path, line_no):
+    return any(lx['regex'].search(path) and lx['start'] <= line_no <= lx['end'] for lx in LINE_EXEMPTIONS)
 
 
 # ── Refuse to proceed on an empty definition set (mirrors theme-parity's
@@ -429,6 +466,19 @@ EASING_KEYWORD_RE = re.compile(r'\b(ease-in-out|ease-in|ease-out|ease)\b')
 LINEAR_RE = re.compile(r'\blinear\b(?!-gradient)')
 VAR_MOTION_RE = re.compile(r'var\(\s*--(motion-[A-Za-z0-9_-]+)\s*\)')
 VAR_MASK_RE = re.compile(r'var\([^)]*\)')
+# `animation-delay`/`transition-delay` are STAGGER/CHOREOGRAPHY values, not
+# the duration/easing values this pipeline emits tokens for at all — there
+# is no `--motion-delay-*` custom property anywhere in motion.json's data
+# model, so CHECK B's "replace with a var(--motion-*) reference" message
+# would be actively wrong pointed at one (added 12-07, found live against
+# wleave's six per-capsule `animation-delay` lines: D-23's deny-by-default
+# scan cannot tell "this raw ms value has a token that should replace it"
+# from "this raw ms value has no token because none was ever meant to
+# exist" without this carve-out — a lint-design gap, not a wleave defect).
+# search, not match+anchor: wleave writes these as one-line rules
+# (`button#lock { animation-delay: 0ms; }`), so the property name never
+# sits at column 0.
+DELAY_PROPERTY_RE = re.compile(r'(?:animation|transition)-delay\s*:', re.I)
 
 RAW_VALUE_MSG = (
     "hand-rolls a raw duration/easing value instead of a motion token "
@@ -459,6 +509,8 @@ def check_css_surface(path):
             name = m.group(1)
             if name not in gtk_defs:
                 a_hits.append((i, name))
+        if DELAY_PROPERTY_RE.search(line) or line_is_exempt(path, i):
+            continue
         masked = VAR_MASK_RE.sub(lambda mm: 'V' * len(mm.group(0)), line)
         for m in DURATION_RE.finditer(masked):
             b_hits.append((i, m.group(0)))
