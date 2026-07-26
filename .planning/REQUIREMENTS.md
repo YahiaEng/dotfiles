@@ -69,7 +69,7 @@
 
 ### Carried-In Maintenance (MAINT)
 
-- [ ] **MAINT-01**: `keybind-doctor` correctly parses `hyprctl binds -j` on Hyprland 0.56.0
+- [ ] **MAINT-01**: `keybind-doctor` correctly parses `hyprctl binds` plain-text output on Hyprland 0.56.0 (amended in Phase 11 per D-15 — see 11-QUICKSHELL-EVIDENCE.md)
 - [ ] **MAINT-02**: Phase 4 advisory items closed — fisher bootstrap `curl` gains `-f`, nvm first-run error noise silenced on fresh installs, uv env source guarded in `.zshrc`, Logout wrapped like Shutdown/Reboot
 - [ ] **MAINT-03**: The icon-theme picker browses and installs *new* icon themes from the repos/AUR, not only applying already-installed ones (ICON-BROWSE)
 

@@ -24,7 +24,7 @@ as roadmapped; Phases 12-17 stand; the registration commit set (`1aea012`) stays
 | QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | — | PENDING (plan 03/04) |
 | QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `hyprctl layers -j` / `monitors -j` diff, `quickshell-doctor` | hyprctl, quickshell-doctor | Baseline (pre-Quickshell): `monitors -j` reserved `[0,46,0,0]` on DP-1; `layers -j` level 3 empty; `globalshortcuts` reports `none`. Post-Task 2/Task 3: `globalshortcuts` reports `quickshell:probe`; `reserved` unchanged at `[0,46,0,0]`; level 3 empty while headless, exactly one `quickshell-probe` entry while summoned. Full `quickshell-doctor` mechanical gate (busctl owner check etc.) is plan 03's scope | PARTIAL — record-and-continue (D-10); autostart/coexistence sub-checks this plan can observe all PASS, full gate lands in plan 03 |
 | QS-06 | No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner | `busctl --user list` single-owner check | busctl, quickshell-doctor | — | PENDING (plan 03) |
-| MAINT-01 | `keybind-doctor` correctly cross-checks Quickshell-claimed shortcuts against Hyprland's registered set (amended per D-15 to plain-text `hyprctl binds` parsing) | Poisoned-fixture proof (D-18) | keybind-doctor | — | PENDING (plan 02) |
+| MAINT-01 | `keybind-doctor` correctly cross-checks Quickshell-claimed shortcuts against Hyprland's registered set (amended per D-15 to plain-text `hyprctl binds` parsing) | Poisoned-fixture proof (D-18) | keybind-doctor | Real config: 13 passed, 0 failed, exit 0. Poisoned fixture: 12 passed, 1 failed (chord collision, named), exit 1. Full transcripts below | **PASS** — 2026-07-26 |
 
 ## Verified binary contract (2026-07-26)
 
@@ -211,10 +211,164 @@ resolved — `card1-DP-1` now reports `connected` and Hyprland reports a single 
 `DP-1`, at 2560x1440 with `reserved=[0,46,0,0]` and `focused=true`, as captured above. Task
 3's screen-name check read `DP-1`, confirmed — see the Dated gate log below.
 
+## MAINT-01 — proven-to-fail collision detection
+
+D-18: a collision detector that never fires is indistinguishable from a broken one. Both
+runs below were captured back-to-back on 2026-07-26 against `hypr/.config/hypr/scripts/
+keybind-doctor` as amended in this plan.
+
+### Record-why: why structured `hyprctl binds -j` parsing was abandoned (D-14)
+
+Hyprland 0.56.0's structured (`-j`) serializer for the bind query is **field-misaligned,
+not merely malformed** — verified directly on this build. Its JSON parses without error,
+but the values are shifted relative to their keys: `"modmask": false` where the integer
+modmask belongs, the modmask's actual value (e.g. `"64"`) sitting inside the `submap`
+string instead, and an unquoted bareword (e.g. `Return`) where the keycode belongs. A
+syntax-only repair — retrying the call, wrapping it in more error handling — would have
+kept consuming this and produced confidently **wrong** duplicate-chord answers while
+looking like it worked. That is strictly worse than the loud `jq` parse-error crash
+`keybind-doctor` had before this repair, which at least made the breakage visible.
+
+A self-healing "auto-switch-back" probe (try the structured query first, fall back to
+plain text only if it fails to parse) was discussed and **deliberately rejected**: a future
+Hyprland build where the structured query parses cleanly but still misaligns fields would
+sail straight through such a probe completely undetected, silently reintroducing wrong
+data. Do not restore structured parsing for this reason.
+
+What `keybind-doctor` parses instead: the plain-text `hyprctl binds` output, verified
+field-correct across all 79 declared bind blocks on this exact build (Hyprland 0.56.0,
+commit `36b2e0cfe0c6094dbc47bd42a437431315bb3087`) — `modmask:`, `submap:`, `key:`,
+`keycode:`, `catchall:`, `description:`, `dispatcher:`, `arg:` all line up correctly. The
+one wrinkle: each block's first line is a variable block-type token whose letters encode
+the bind's flags, not a constant `"bind"` prefix — a `bindel = ...` declaration in
+`keybinds.conf` surfaces here as `bindle` (letters reordered). `keybind-doctor`'s new
+shape-guard check fails by name if this layout ever moves.
+
+### D-17 gap record: Quickshell 0.3.0 has no GlobalShortcut runtime-introspection API
+
+Per `11-RESEARCH.md` (citing quickshell.org/docs/v0.3.0/types/Quickshell.Hyprland/
+GlobalShortcut/), Quickshell 0.3.0 exposes no call to read back which `GlobalShortcut`s it
+has registered. `keybind-doctor` therefore treats `quickshell/.config/quickshell/
+shortcuts.json` as the **declared** side (what Quickshell claims to own) and cross-checks
+it against `hyprctl globalshortcuts` — Hyprland's own live registry of what actually got
+claimed — as the **live** side. This gets D-16's intended benefit (live introspection)
+under D-17's fallback mechanism (a declared manifest), because the compositor, not
+Quickshell, is what actually exposes a queryable registry.
+
+**`hyprctl globalshortcuts` raw output, verbatim (2026-07-26, quickshell pid running,
+`Super+Shift+G` chord registered):**
+
+```
+$ hyprctl globalshortcuts
+quickshell:probe ->
+```
+
+(Trailing space after `->` — the registered shortcut's `description` field is empty. An
+empty registry would print the literal word `none`, as captured in the pre-Quickshell
+baseline above.)
+
+### Run 1 — poisoned fixture (must FAIL)
+
+Fixture: the real `keybinds.conf` copied to a throwaway temp file (`mktemp -d`, never
+committed — deleted immediately after this proof), with exactly one line appended:
+`bind = $mainMod SHIFT, G, exec, kitty # deliberate collision fixture` — a chord the
+Quickshell manifest already owns (`quickshell:probe`, `SUPER SHIFT`+`G`), bound instead to
+an ordinary `exec` dispatcher.
+
+```
+$ hypr/.config/hypr/scripts/keybind-doctor "$D/poison.conf"
+keybind-doctor — Hyprland keybind regression gate
+
+  [PASS] $mainMod resolved from keybinds.conf (got: SUPER)
+  [PASS] description parity (D-30): all 80 declared binds carry a trailing '#' description (missing: 0)
+  [PASS] static grep: no 'walker -s <set>' invocation in keybinds.conf (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)
+  [PASS] hyprctl binds returned data
+  [PASS] plain-text bind block shape guard: 79 block(s) parsed from hyprctl binds, each carrying the expected 8 field labels (modmask/submap/key/keycode/catchall/description/dispatcher/arg) in order (shape errors: 0)
+  [PASS] declared-vs-registered: all 80 declared binds appear in hyprctl binds (missing: 0)
+  [PASS] no shadowing: zero (modmask,key,keycode,release) tuples shared by two different dispatcher targets (found: 0)
+  [PASS] release-bind inventory recorded (1 release-triggered bind(s) registered)
+    release-bind key: SUPER_L
+  [PASS] D-03 kill-bind present and registered (Super+Escape -> pkill walker)
+  [PASS] quickshell manifest schema: /home/aorus/.config/quickshell/shortcuts.json is a JSON array whose entries each carry non-empty appid/name/chord.mods/chord.key
+  [PASS] no duplicate appid+name in quickshell manifest (a duplicate pair can crash Quickshell rather than reject cleanly — RESEARCH.md Pitfall 4; found: 0)
+  [PASS] quickshell shortcut registered: every manifest entry's appid:name appears in hyprctl globalshortcuts (unregistered: 0, registry shape errors: 0)
+    chord collision: keybinds.conf:204: bind = $mainMod SHIFT, G, exec, kitty # deliberate collision fixture collides with quickshell manifest entry quickshell:probe
+  [FAIL] quickshell chord collision: zero Hyprland-declared binds claim a chord the manifest already owns without going through the matching global dispatcher (found: 1)
+
+Summary: 12 passed, 1 failed
+$ echo $?
+1
+```
+
+The `chord collision` check names both the offending fixture line (`keybinds.conf:204:
+bind = $mainMod SHIFT, G, exec, kitty ...`) and the manifest entry it collides with
+(`quickshell:probe`) exactly as designed. `declared-vs-registered` still reports
+`missing: 0` — expected, not a bug: the fixture's `(modmask,key,keycode,release)` tuple
+is already live-registered by the *real* `global, quickshell:probe` bind, so the tuple
+itself is present; only the exact `dispatcher:arg` combination differs, which is precisely
+what the purely-static chord-collision check (not the live-state-dependent
+declared-vs-registered check) is designed to catch.
+
+**Environmental note (Rule 1 bug fix, in-scope):** `hypr/.config/hypr/config/
+keybinds.conf` had no trailing newline. Appending a fixture line via `printf ... >>` onto
+a file with no trailing newline concatenates the new line onto the file's last existing
+line instead of starting a new one, silently producing a non-bind line (`windowrule = ...
+scroll_touchpad 1.5bind = ...`) that the parser correctly ignores — making the collision
+check falsely appear to pass. This would have quietly broken the *exact* self-test
+mechanism this file's own header describes ("an explicit path is accepted so this gate can
+be pointed at a throwaway copy for a regression self-test"). Fixed by adding the missing
+trailing newline to `keybinds.conf` (whitespace-only change, no bind semantics affected) —
+committed alongside this plan's `keybind-doctor` changes.
+
+### Run 2 — real config, immediately afterward (must PASS)
+
+```
+$ hypr/.config/hypr/scripts/keybind-doctor
+keybind-doctor — Hyprland keybind regression gate
+
+  [PASS] $mainMod resolved from keybinds.conf (got: SUPER)
+  [PASS] description parity (D-30): all 79 declared binds carry a trailing '#' description (missing: 0)
+  [PASS] static grep: no 'walker -s <set>' invocation in keybinds.conf (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)
+  [PASS] hyprctl binds returned data
+  [PASS] plain-text bind block shape guard: 79 block(s) parsed from hyprctl binds, each carrying the expected 8 field labels (modmask/submap/key/keycode/catchall/description/dispatcher/arg) in order (shape errors: 0)
+  [PASS] declared-vs-registered: all 79 declared binds appear in hyprctl binds (missing: 0)
+  [PASS] no shadowing: zero (modmask,key,keycode,release) tuples shared by two different dispatcher targets (found: 0)
+  [PASS] release-bind inventory recorded (1 release-triggered bind(s) registered)
+    release-bind key: SUPER_L
+  [PASS] D-03 kill-bind present and registered (Super+Escape -> pkill walker)
+  [PASS] quickshell manifest schema: /home/aorus/.config/quickshell/shortcuts.json is a JSON array whose entries each carry non-empty appid/name/chord.mods/chord.key
+  [PASS] no duplicate appid+name in quickshell manifest (a duplicate pair can crash Quickshell rather than reject cleanly — RESEARCH.md Pitfall 4; found: 0)
+  [PASS] quickshell shortcut registered: every manifest entry's appid:name appears in hyprctl globalshortcuts (unregistered: 0, registry shape errors: 0)
+  [PASS] quickshell chord collision: zero Hyprland-declared binds claim a chord the manifest already owns without going through the matching global dispatcher (found: 0)
+
+Summary: 13 passed, 0 failed
+$ echo $?
+0
+```
+
+**Verdict: proven-to-fail, then proven-to-pass.** The temp fixture directory was deleted
+immediately after Run 1 and is not present anywhere in this repo (`git status --porcelain`
+stays clean of any `keybinds`-named file outside `hypr/.config/hypr/config/`).
+
 ## Dated gate log
 
 Appended to across Phase 11's plans (01-05) and by later phases (14-16) per D-05. Each
 entry carries the date, the sub-criterion, and the raw observed result.
+
+### 2026-07-26 — 11-02 (MAINT-01 keybind-doctor repair + Quickshell shortcut cross-check)
+
+- **[PASS] Plain-text bind parser repair (D-14):** structured `hyprctl binds -j` and every
+  `jq` filter over it removed from every executable line; plain-text parser verified
+  field-correct across 79 blocks; shape guard added and passing.
+- **[PASS] Quickshell shortcut cross-check (D-16/D-17):** manifest schema, no
+  duplicate appid+name, live-registry registered check, and chord collision all added and
+  passing against the real manifest and real config (13/13 checks green, exit 0).
+- **[PASS] D-18 proven-to-fail proof:** poisoned fixture failed on the named
+  `chord collision` check (exit 1, 12 passed/1 failed); real config passed immediately
+  after (exit 0, 13 passed/0 failed).
+- **ROADMAP/REQUIREMENTS amended per D-15:** criterion 4's structured-parsing and
+  exclusive-zone-via-layers-query clauses replaced with the mechanisms this build actually
+  delivers (`hyprctl binds` plain text; `hyprctl monitors -j`'s `reserved` array).
 
 ### 2026-07-26 — 11-01 Task 3 (QS-02 human input-viability gate)
 
