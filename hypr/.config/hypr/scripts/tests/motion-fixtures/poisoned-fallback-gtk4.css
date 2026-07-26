@@ -1,0 +1,20 @@
+/* motion-lint fixture (12-05, CR-01 fix, D-28).
+ * Locks the CR-01 bypass shut: a `var(--motion-*, <raw-value>)` CSS
+ * fallback is a raw-value violation in its own right (a fallback
+ * duplicates/contradicts the token — this repo's zero-duplicate-value
+ * principle) and must ALSO still be checked for reference resolution.
+ * Before the CR-01 fix, VAR_MOTION_RE anchored on a bare `var(--name)`
+ * only, so the trailing `, <fallback>` made the whole reference invisible
+ * to CHECK A, and VAR_MASK_RE's greedy `[^)]*` mask swallowed the
+ * fallback's raw literal away from CHECK B before DURATION_RE/
+ * CUBIC_BEZIER_RE ever saw it — both checks passed vacuously. Never
+ * loaded by any live surface — motion-lint self-test fixture only.
+ */
+button:hover,
+button:focus {
+  transform: scale(1.06);
+  transform-origin: center;
+  transition-property:        background-color, border-color, box-shadow, transform;
+  transition-duration:        var(--motion-duration-standard, 200ms); /* CORRUPTED: fallback hides a raw 200ms from CHECK B */
+  transition-timing-function: var(--motion-easing-nonexistent, cubic-bezier(0.1,0.2,0.3,0.4)); /* CORRUPTED: dangling name behind a fallback must still fail CHECK A */
+}

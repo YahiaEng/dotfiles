@@ -56,7 +56,7 @@
 #       path-argument precedent: "a gate that cannot fail is not a gate").
 #
 #   motion-lint --self-test
-#       Runs this script against each of the nine committed fixtures under
+#       Runs this script against each of the ten committed fixtures under
 #       tests/motion-fixtures/ (one at a time, in isolation) and asserts
 #       the expected verdict: compliant fixtures exit 0, poisoned fixtures
 #       exit non-zero. Makes criterion 3's "proven to fail" property a
@@ -97,6 +97,7 @@ run_self_test() {
         "compliant-gtk4.css:0"
         "poisoned-raw-gtk4.css:1"
         "poisoned-dangling-gtk4.css:1"
+        "poisoned-fallback-gtk4.css:1"
         "compliant-hypr.conf:0"
         "poisoned-raw-hypr.conf:1"
         "poisoned-dangling-hypr.conf:1"
@@ -107,7 +108,7 @@ run_self_test() {
     local st_pass=0 st_fail=0
     local entry fname expect_nonzero src tmp out rc want_desc
 
-    echo "motion-lint --self-test — replaying the nine committed fixtures"
+    echo "motion-lint --self-test — replaying the ten committed fixtures"
     echo ""
 
     for entry in "${fixtures[@]}"; do
@@ -464,8 +465,25 @@ DURATION_RE = re.compile(r'\b\d+(?:\.\d+)?(?:ms|s)\b')
 CUBIC_BEZIER_RE = re.compile(r'\bcubic-bezier\([^)]*\)')
 EASING_KEYWORD_RE = re.compile(r'\b(ease-in-out|ease-in|ease-out|ease)\b')
 LINEAR_RE = re.compile(r'\blinear\b(?!-gradient)')
-VAR_MOTION_RE = re.compile(r'var\(\s*--(motion-[A-Za-z0-9_-]+)\s*\)')
-VAR_MASK_RE = re.compile(r'var\([^)]*\)')
+# Matches BOTH the bare form `var(--motion-foo)` and the CSS-fallback form
+# `var(--motion-foo, ...)` — the trailing `)` or `,` alternation is what
+# CR-01 fixes: the prior version anchored on `)` only, so a fallback's `,`
+# made the whole reference invisible to CHECK A (never validated for
+# resolution at all).
+VAR_MOTION_RE = re.compile(r'var\(\s*--(motion-[A-Za-z0-9_-]+)\s*(?:\)|,)')
+# A `var(--motion-*, ...)` WITH a fallback argument is itself a CHECK B
+# raw-value violation (D-19/zero-duplicate-value: a fallback duplicates or
+# contradicts the token) — flagged in check_css_surface before masking.
+VAR_MOTION_FALLBACK_RE = re.compile(r'var\(\s*--(motion-[A-Za-z0-9_-]+)\s*,')
+# One-level-of-nesting-aware mask: `[^)]*` used to stop at the FIRST `)`,
+# which for a fallback like `var(--x, cubic-bezier(0.1,0.2,0.3,0.4))`
+# matched only up through the bezier's own closing paren — leaving the
+# real outer `)` (and everything after the fallback's mask start) unmasked
+# and, worse, erasing the raw literal from CHECK B before DURATION_RE ever
+# saw it (CR-01). This version matches either a non-paren run or one fully
+# balanced `(...)` span, repeated, so it correctly finds the true outer
+# closing paren for both the bare and one-level-nested fallback forms.
+VAR_MASK_RE = re.compile(r'var\((?:[^()]|\([^()]*\))*\)')
 # `animation-delay`/`transition-delay` are STAGGER/CHOREOGRAPHY values, not
 # the duration/easing values this pipeline emits tokens for at all — there
 # is no `--motion-delay-*` custom property anywhere in motion.json's data
@@ -511,6 +529,9 @@ def check_css_surface(path):
                 a_hits.append((i, name))
         if DELAY_PROPERTY_RE.search(line) or line_is_exempt(path, i):
             continue
+        for m in VAR_MOTION_FALLBACK_RE.finditer(line):
+            b_hits.append((i, f'var(--{m.group(1)}, ...) — fallback value on '
+                               'a motion token reference is itself a raw-value violation'))
         masked = VAR_MASK_RE.sub(lambda mm: 'V' * len(mm.group(0)), line)
         for m in DURATION_RE.finditer(masked):
             b_hits.append((i, m.group(0)))
