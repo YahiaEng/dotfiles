@@ -394,7 +394,19 @@ def path_is_exempt(path):
 LINE_EXEMPTIONS = [
     {'label': 'wleave/style.css button:hover,button:focus rule',
      'regex': re.compile(r'(^|/)wleave/style\.css$'),
-     'start': 230, 'end': 253,
+     # WR-04: content anchors, not hardcoded line numbers. The prior
+     # `'start': 230, 'end': 253` had no tie to the actual rule it was
+     # meant to cover — any edit ABOVE that range (a new comment, an
+     # inserted rule, even one blank line) silently shifts every
+     # subsequent line number, so the exemption would then cover the
+     # wrong span. Resolved per-run below (after the real matching file,
+     # if any, is known) by locating the `button:hover,` / `button:focus
+     # {` open pair and the next bare `}` close — a moved/renamed rule
+     # then fails loud (EXEMPT FAIL) instead of silently mis-scoping.
+     'anchor_start': re.compile(r'^\s*button:hover\s*,\s*$'),
+     'anchor_focus': re.compile(r'^\s*button:focus\s*\{'),
+     'anchor_end': re.compile(r'^\s*\}\s*$'),
+     'start': None, 'end': None,
      'reason': "D-19 fence: hover/focus keeps its hand-authored overshoot "
                "timing function (human-approved feel at a prior gate, "
                "\"button glows and grows larger\") plus its three still-"
@@ -405,12 +417,18 @@ LINE_EXEMPTIONS = [
 for lx in LINE_EXEMPTIONS:
     if not lx['reason'].strip():
         emit('EXEMPT', 'FAIL', f"{lx['label']}: line-exemption entry has an empty reason (deny-by-default violation)")
-    else:
-        emit('EXEMPT', 'INFO', f"{lx['label']} (lines {lx['start']}-{lx['end']}) — {lx['reason']}")
+    # The resolved-range INFO/FAIL line is emitted later, once the actual
+    # matching file (if any) in this run's surface set is known — see
+    # "Resolve LINE_EXEMPTIONS content anchors" below.
 
 
 def line_is_exempt(path, line_no):
-    return any(lx['regex'].search(path) and lx['start'] <= line_no <= lx['end'] for lx in LINE_EXEMPTIONS)
+    return any(
+        lx['regex'].search(path)
+        and lx.get('start') is not None and lx.get('end') is not None
+        and lx['start'] <= line_no <= lx['end']
+        for lx in LINE_EXEMPTIONS
+    )
 
 
 # ── Refuse to proceed on an empty definition set (mirrors theme-parity's
@@ -472,6 +490,51 @@ for root in roots:
                 surfaces['conf'].append(full)
             elif fn.endswith('.qml'):
                 surfaces['qml'].append(full)
+
+# ── Resolve LINE_EXEMPTIONS content anchors (WR-04) — must happen after
+#    surfaces are collected, since resolving a content anchor requires
+#    reading the actual matching file's text. Reason-emptiness was already
+#    checked above (structural, file-independent); this pass emits the
+#    per-run EXEMPT INFO/FAIL line carrying the actual (or FAILED-to-
+#    resolve) span. ──────────────────────────────────────────────────────
+all_scanned_paths = surfaces['css'] + surfaces['conf'] + surfaces['qml']
+for lx in LINE_EXEMPTIONS:
+    if not lx['reason'].strip():
+        continue  # already emitted FAIL above; don't also print a range
+    match_path = next((p for p in all_scanned_paths if lx['regex'].search(p)), None)
+    if match_path is None:
+        emit('EXEMPT', 'INFO',
+             f"{lx['label']} — {lx['reason']} (no matching file in this "
+             "run's surface set; anchor not verified this run)")
+        continue
+    try:
+        raw = open(match_path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('EXEMPT', 'FAIL', f"{lx['label']}: {match_path} unreadable ({exc})")
+        continue
+    lx_lines = strip_css_comments(raw).split('\n')
+    start_idx = next((idx for idx, ln in enumerate(lx_lines) if lx['anchor_start'].search(ln)), None)
+    focus_idx = None
+    if start_idx is not None:
+        focus_idx = next(
+            (idx for idx in range(start_idx, min(start_idx + 3, len(lx_lines)))
+             if lx['anchor_focus'].search(lx_lines[idx])),
+            None)
+    end_idx = None
+    if focus_idx is not None:
+        end_idx = next(
+            (idx for idx in range(focus_idx, len(lx_lines)) if lx['anchor_end'].search(lx_lines[idx])),
+            None)
+    if start_idx is None or focus_idx is None or end_idx is None:
+        emit('EXEMPT', 'FAIL',
+             f"{lx['label']}: content anchor not found in {match_path} — "
+             "the exemption's intended rule may have moved, been renamed, "
+             "or been removed; update the anchor or delete this exemption "
+             "entry rather than leaving it mis-scoped")
+        continue
+    lx['start'] = start_idx + 1  # 1-indexed, inclusive
+    lx['end'] = end_idx + 1
+    emit('EXEMPT', 'INFO', f"{lx['label']} (lines {lx['start']}-{lx['end']}) — {lx['reason']}")
 
 total_scanned = len(surfaces['css']) + len(surfaces['conf']) + len(surfaces['qml'])
 
