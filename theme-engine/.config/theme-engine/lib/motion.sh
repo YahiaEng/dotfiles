@@ -146,7 +146,15 @@ theme_engine_render_motion_files() {
     fi
 
     multiplier="$(jq -r --arg s "$scale" '.scales[$s].multiplier // empty' "$MOTION_JSON")"
-    animations_enabled="$(jq -r --arg s "$scale" '.scales[$s].animations_enabled // empty' "$MOTION_JSON")"
+    # D-08/D-20 fix: `// empty` treats JSON `false` as absent (jq's `//`
+    # alternative operator falls through on both null AND false), which
+    # silently broke the "off" preset — its whole point is
+    # animations_enabled == false. `has()` distinguishes "key present and
+    # false" from "key genuinely missing", which `// empty` cannot.
+    animations_enabled="$(jq -r --arg s "$scale" '
+        if (.scales[$s] // {} | has("animations_enabled"))
+        then (.scales[$s].animations_enabled | tostring)
+        else empty end' "$MOTION_JSON")"
     floor_ms="$(jq -r '.floor_ms // empty' "$MOTION_JSON")"
 
     if [[ -z "$multiplier" || -z "$animations_enabled" || -z "$floor_ms" ]]; then

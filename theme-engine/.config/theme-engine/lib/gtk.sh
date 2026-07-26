@@ -36,6 +36,29 @@ theme_engine_gtk_reload() {
     sleep 0.1
     gsettings set org.gnome.desktop.interface gtk-theme "$gtk3_theme" 2>/dev/null || true
 
+    # ── D-06/D-08/D-20: motion-scale's system-wide reduced-motion signal ──
+    # TOKEN-05 says "across every surface" — without this line, the axis
+    # would only affect the handful of surfaces this repo authors itself,
+    # which is a false accessibility claim rather than a partial
+    # implementation. org.gnome.desktop.interface enable-animations is read
+    # LIVE (no restart) through the portal by every third-party GTK3/GTK4
+    # and libadwaita application, exactly the surfaces this repo's own
+    # motion tokens cannot reach. theme_engine_read_motion_scale is already
+    # in scope here: theme-apply sources lib/generate.sh (which sources
+    # lib/motion.sh) before lib/gtk.sh, so the function exists in this
+    # process by the time theme_engine_gtk_reload runs. The mapping is
+    # total over the closed four-preset set — "off" is the only preset
+    # that disables at the toolkit level (D-08); every other preset
+    # (including "reduced", which SCALES durations rather than removing
+    # them) leaves animations enabled, so no default branch can silently
+    # leave this key stale. This is the block's only writer for this key —
+    # no other line in the pipeline touches enable-animations.
+    local motion_scale enable_animations
+    motion_scale="$(theme_engine_read_motion_scale 2>/dev/null || echo normal)"
+    enable_animations="true"
+    [[ "$motion_scale" == "off" ]] && enable_animations="false"
+    gsettings set org.gnome.desktop.interface enable-animations "$enable_animations" 2>/dev/null || true
+
     # ── GTK4/libadwaita accent color (THEME-03/D-17, dark-only ceiling) ──
     # GTK4/libadwaita apps read color-scheme + accent-color live from
     # org.gnome.desktop.interface via the portal (GNOME47+ accent key,
