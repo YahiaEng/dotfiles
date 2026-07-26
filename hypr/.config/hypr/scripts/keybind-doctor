@@ -303,6 +303,129 @@ else
     fi
 fi
 
+# ── D-16/D-17: cross-check Quickshell-claimed global shortcuts ─────────
+# Quickshell 0.3.0 exposes no GlobalShortcut runtime-introspection API
+# (verified: quickshell.org/docs/v0.3.0/types/Quickshell.Hyprland/
+# GlobalShortcut/ documents no read-back call) — this is the D-17 gap
+# record. So the manifest at SHORTCUTS_MANIFEST is the DECLARED side
+# (what Quickshell claims to own) and `hyprctl globalshortcuts` is the
+# LIVE side (Hyprland's own registry of what actually got claimed). This
+# section compares the two, same discipline as the bind cross-check
+# above: parse what the compositor actually emits, and name a shape
+# problem instead of silently matching nothing. It also checks the
+# manifest for a same-appid+same-name duplicate on its own, independent
+# of anything live — RESEARCH.md Pitfall 4: that pairing can crash
+# Quickshell at startup with no log line pointing at the cause.
+#
+# The second positional argument extends this file's existing
+# self-test hook (KEYBINDS_CONF above) to the manifest side, without
+# changing the first argument's meaning.
+SHORTCUTS_MANIFEST="${2:-$HOME/.config/quickshell/shortcuts.json}"
+
+if [[ ! -f "$SHORTCUTS_MANIFEST" ]]; then
+    echo "  [SKIP] quickshell shortcut cross-check ($SHORTCUTS_MANIFEST not found)"
+elif ! command -v jq >/dev/null 2>&1; then
+    echo "  [SKIP] quickshell shortcut cross-check (jq not found)"
+elif ! command -v hyprctl >/dev/null 2>&1; then
+    echo "  [SKIP] quickshell shortcut cross-check (hyprctl not found)"
+else
+    # 1. Manifest schema: valid JSON array, every entry non-empty on the
+    #    fields the checks below depend on.
+    MANIFEST_SCHEMA_OK=1
+    if jq empty "$SHORTCUTS_MANIFEST" >/dev/null 2>&1 && [[ "$(jq -r 'type' "$SHORTCUTS_MANIFEST" 2>/dev/null)" == "array" ]]; then
+        BAD_ENTRIES=$(jq -r '[.[] | select((.appid // "") == "" or (.name // "") == "" or (.chord.mods // "") == "" or (.chord.key // "") == "")] | length' "$SHORTCUTS_MANIFEST" 2>/dev/null)
+        [[ "$BAD_ENTRIES" == "0" ]] && MANIFEST_SCHEMA_OK=0
+    fi
+    check "quickshell manifest schema: ${SHORTCUTS_MANIFEST} is a JSON array whose entries each carry non-empty appid/name/chord.mods/chord.key" "$MANIFEST_SCHEMA_OK"
+
+    if [[ "$MANIFEST_SCHEMA_OK" -ne 0 ]]; then
+        echo "  [SKIP] quickshell duplicate/registered/collision checks (manifest failed the schema check above)"
+    else
+        # 2. No duplicate appid+name (RESEARCH.md Pitfall 4).
+        DUP_PAIRS=$(jq -r '.[] | "\(.appid):\(.name)"' "$SHORTCUTS_MANIFEST" | sort | uniq -d)
+        DUP_COUNT=0
+        if [[ -n "$DUP_PAIRS" ]]; then
+            DUP_COUNT=$(printf '%s\n' "$DUP_PAIRS" | grep -c '.')
+            printf '%s\n' "$DUP_PAIRS" | sed 's/^/    duplicate appid+name: /' >&2
+        fi
+        check "no duplicate appid+name in quickshell manifest (a duplicate pair can crash Quickshell rather than reject cleanly — RESEARCH.md Pitfall 4; found: ${DUP_COUNT})" "$([[ $DUP_COUNT -eq 0 ]] && echo 0 || echo 1)"
+
+        # Live global-shortcut registry, plain text (verified clean on
+        # this build: `<appid:name> -> <description>`, one per line; an
+        # empty registry prints the literal word "none"). A line that
+        # matches neither shape is a named shape failure, not a silent
+        # non-match.
+        GS_RAW=$(hyprctl globalshortcuts 2>/dev/null)
+        declare -A GS_LIVE_SET=()
+        GS_SHAPE_BAD=0
+        GS_TRIMMED="${GS_RAW#"${GS_RAW%%[![:space:]]*}"}"
+        GS_TRIMMED="${GS_TRIMMED%"${GS_TRIMMED##*[![:space:]]}"}"
+        if [[ -n "$GS_TRIMMED" && "$GS_TRIMMED" != "none" ]]; then
+            while IFS= read -r gline; do
+                [[ -z "$gline" ]] && continue
+                if [[ "$gline" =~ ^(.+)\ -\>\ (.*)$ ]]; then
+                    GS_LIVE_SET["${BASH_REMATCH[1]}"]=1
+                else
+                    GS_SHAPE_BAD=$((GS_SHAPE_BAD + 1))
+                    printf '    globalshortcuts shape error: unrecognised line: %s\n' "$gline" >&2
+                fi
+            done <<<"$GS_RAW"
+        fi
+
+        # 3. Registered: every manifest entry's appid:name must appear in
+        #    the live registry above.
+        UNREG_COUNT=0
+        while IFS="$US" read -r m_appid m_name; do
+            [[ -z "$m_appid" && -z "$m_name" ]] && continue
+            pair="${m_appid}:${m_name}"
+            if [[ -z "${GS_LIVE_SET[$pair]+x}" ]]; then
+                UNREG_COUNT=$((UNREG_COUNT + 1))
+                printf '    not registered in hyprctl globalshortcuts: %s\n' "$pair" >&2
+            fi
+        done < <(jq -r --arg us "$US" '.[] | [.appid, .name] | join($us)' "$SHORTCUTS_MANIFEST")
+        check "quickshell shortcut registered: every manifest entry's appid:name appears in hyprctl globalshortcuts (unregistered: ${UNREG_COUNT}, registry shape errors: ${GS_SHAPE_BAD})" "$([[ $UNREG_COUNT -eq 0 && $GS_SHAPE_BAD -eq 0 ]] && echo 0 || echo 1)"
+
+        # 4. Chord collision — purely static: reads only the file under
+        #    test plus the manifest, no live state, so a throwaway
+        #    fixture (never reloaded into the compositor) can still
+        #    fail on exactly this check.
+        COLLISION_COUNT=0
+        while IFS="$US" read -r m_appid m_name m_mods m_key; do
+            [[ -z "$m_appid" ]] && continue
+            m_modmask=$(_kbd_modmask "$m_mods")
+            i=0
+            for t in "${DECLARED_TUPLES[@]}"; do
+                IFS='|' read -r d_modmask d_key _ _ <<<"$t"
+                if [[ "$d_modmask" == "$m_modmask" && "$d_key" == "$m_key" ]]; then
+                    rawline="${DECLARED_RAWLINES[$i]}"
+                    bare="${rawline#*: }"
+                    if [[ "$bare" =~ ^[[:space:]]*bind[a-z]*[[:space:]]*=[[:space:]]*[^,]*,[[:space:]]*[^,]*,[[:space:]]*([^,]*)(,[[:space:]]*(.*))?$ ]]; then
+                        c_dispatcher="${BASH_REMATCH[1]}"
+                        c_argraw="${BASH_REMATCH[3]}"
+                    else
+                        c_dispatcher=""
+                        c_argraw=""
+                    fi
+                    c_dispatcher="${c_dispatcher%%#*}"
+                    c_dispatcher="${c_dispatcher#"${c_dispatcher%%[![:space:]]*}"}"
+                    c_dispatcher="${c_dispatcher%"${c_dispatcher##*[![:space:]]}"}"
+                    c_argraw="${c_argraw%%#*}"
+                    c_argraw="${c_argraw#"${c_argraw%%[![:space:]]*}"}"
+                    c_argraw="${c_argraw%"${c_argraw##*[![:space:]]}"}"
+                    if [[ "$c_dispatcher" == "global" && "$c_argraw" == "${m_appid}:${m_name}" ]]; then
+                        : # the manifest entry's own legitimate registration line
+                    else
+                        COLLISION_COUNT=$((COLLISION_COUNT + 1))
+                        printf '    chord collision: %s collides with quickshell manifest entry %s:%s\n' "$rawline" "$m_appid" "$m_name" >&2
+                    fi
+                fi
+                i=$((i + 1))
+            done
+        done < <(jq -r --arg us "$US" '.[] | [.appid, .name, .chord.mods, .chord.key] | join($us)' "$SHORTCUTS_MANIFEST")
+        check "quickshell chord collision: zero Hyprland-declared binds claim a chord the manifest already owns without going through the matching global dispatcher (found: ${COLLISION_COUNT})" "$([[ $COLLISION_COUNT -eq 0 ]] && echo 0 || echo 1)"
+    fi
+fi
+
 echo ""
 echo "Summary: ${PASS} passed, ${FAIL} failed"
 [[ "$FAIL" -eq 0 ]]
