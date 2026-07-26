@@ -5,8 +5,8 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 12
 current_phase_name: Unified Design-Token Pipeline
 status: planning
-stopped_at: Phase 11 closed — code review fixed, re-verified 9/9 passed, UAT 13/0, security SECURED. Phase 12 ready to plan.
-last_updated: "2026-07-26T15:44:27.167Z"
+stopped_at: Phase 12 context gathered
+last_updated: "2026-07-26T17:44:53.486Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 11 complete, transitioned to Phase 12
 progress:
@@ -246,9 +246,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T15:45:00Z
-Stopped at: Phase 11 closed and transitioned to Phase 12. Phase 12 carries QS-03 (criterion 6) plus TOKEN-01..06. Next: /gsd-plan-phase 12.
-Resume file: None
+Last session: 2026-07-26T17:44:53.477Z
+Stopped at: Phase 12 context gathered
+Resume file: .planning/phases/12-unified-design-token-pipeline/12-CONTEXT.md
 
 ## Operator Next Steps
 
