@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 11
 current_phase_name: quickshell-viability-gate
 status: executing
-stopped_at: Completed 11-01-PLAN.md — QS-02 PASS, v3.0 continues
-last_updated: "2026-07-26T08:23:52.814Z"
+stopped_at: Completed 11-02-PLAN.md — keybind-doctor repaired and extended, MAINT-01 PASS
+last_updated: "2026-07-26T08:50:27.861Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 11 (quickshell-viability-gate) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 Last activity: 2026-07-26 — Phase 11 execution started
 
 ## Performance Metrics
@@ -129,6 +129,7 @@ Last activity: 2026-07-26 — Phase 11 execution started
 | Phase 09 P03 | ~25min | 2 tasks | 3 files |
 | Phase 09 P04 | 35min | 3 tasks | 4 files |
 | Phase 11 P01 | multi-session | 3 tasks | 10 files |
+| Phase 11 P02 | 25min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
   the PROJECT.md Key Decisions table, and this file's git history.
 
 - [Phase ?]: QS-02 PASSED on first attempt under WlrKeyboardFocus.OnDemand — no Exclusive escalation needed; Phase 14's drawer inherits OnDemand as the default
+- [Phase ?]: keybind-doctor repaired: dropped hyprctl binds -j (field-misaligned on Hyprland 0.56.0, not malformed) for plain-text parsing with a named shape guard; extended to cross-check Quickshell GlobalShortcut manifest against hyprctl globalshortcuts (D-16/D-17); D-18 poisoned-fixture proof confirmed the collision check fires; ROADMAP/REQUIREMENTS wording amended per D-15
 
 ### Quick Tasks Completed
 
@@ -224,8 +226,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T08:23:52.805Z
-Stopped at: Completed 11-01-PLAN.md — QS-02 PASS, v3.0 continues
+Last session: 2026-07-26T08:50:27.852Z
+Stopped at: Completed 11-02-PLAN.md — keybind-doctor repaired and extended, MAINT-01 PASS
 Resume file: None
 
 ## Operator Next Steps

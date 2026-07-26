@@ -69,7 +69,7 @@
 
 ### Carried-In Maintenance (MAINT)
 
-- [ ] **MAINT-01**: `keybind-doctor` correctly parses `hyprctl binds` plain-text output on Hyprland 0.56.0 (amended in Phase 11 per D-15 — see 11-QUICKSHELL-EVIDENCE.md)
+- [x] **MAINT-01**: `keybind-doctor` correctly parses `hyprctl binds` plain-text output on Hyprland 0.56.0 (amended in Phase 11 per D-15 — see 11-QUICKSHELL-EVIDENCE.md)
 - [ ] **MAINT-02**: Phase 4 advisory items closed — fisher bootstrap `curl` gains `-f`, nvm first-run error noise silenced on fresh installs, uv env source guarded in `.zshrc`, Logout wrapped like Shutdown/Reboot
 - [ ] **MAINT-03**: The icon-theme picker browses and installs *new* icon themes from the repos/AUR, not only applying already-installed ones (ICON-BROWSE)
 
@@ -159,7 +159,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | OVER-04 | Phase 16 — Workspace Overview | Pending |
 | AMB-01 | Phase 17 — Ambient Extras | Pending |
 | AMB-02 | Phase 17 — Ambient Extras | Pending |
-| MAINT-01 | Phase 11 — Quickshell Viability Gate *(instrument for QS-05's bind-collision proof)* | Pending |
+| MAINT-01 | Phase 11 — Quickshell Viability Gate *(instrument for QS-05's bind-collision proof)* | Complete |
 | MAINT-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Pending |
 | MAINT-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Pending |
 
