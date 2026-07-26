@@ -23,19 +23,26 @@ import "modules"
 ShellRoot {
     id: root
 
-    LazyLoader {
-        id: probeLoader
-        active: false
-
-        Probe {
-            onDismissRequested: probeLoader.active = false
-        }
+    // QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — arrangement
+    // A, a Variants+LazyLoader fan-out declared here in shell.qml,
+    // reproduced 11-QUICKSHELL-EVIDENCE.md's FM2 post-hotplug visibility
+    // break verbatim and was reverted). The fan-out now lives entirely
+    // inside modules/Probe.qml (rooted at `Variants` instead of
+    // `PanelWindow`), so shell.qml touches the local `Probe` type exactly
+    // once, same as the pre-Phase-12 single-screen design. `probeInstance`
+    // exposes a shared `active` property and `dismissRequested` signal
+    // that Probe.qml's own per-screen delegates all bind to/emit.
+    Probe {
+        id: probeInstance
+        onDismissRequested: probeInstance.active = false
     }
 
     // Criterion-5 screencopy feasibility probe (11-05 Task 1), same
     // summon-via-LazyLoader mechanism as the probe above, second
     // GlobalShortcut/manifest entry proving D-17's declared-manifest
-    // mechanism scales to a second surface.
+    // mechanism scales to a second surface. Structurally untouched by
+    // this plan (QS-03 changes the probe's fan-out only) — kept on its
+    // original single-LazyLoader shape as a control.
     LazyLoader {
         id: screencopyProbeLoader
         active: false
@@ -49,7 +56,7 @@ ShellRoot {
         id: probeShortcut
         appid: "quickshell"
         name: "probe"
-        onPressed: probeLoader.active = !probeLoader.active
+        onPressed: probeInstance.active = !probeInstance.active
     }
 
     GlobalShortcut {

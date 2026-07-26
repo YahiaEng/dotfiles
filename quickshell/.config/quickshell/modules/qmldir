@@ -1,0 +1,13 @@
+# qmldir — explicit module manifest for quickshell/modules/ (D-12, closes FM1)
+#
+# Checking this file in disables Quickshell's directory-scanner synthesis for
+# this directory entirely (verified via `quickshell -p ... -v -v`: an
+# unmodified tree's `Scanning directory ".../modules"` trace synthesizes
+# exactly this file — `module qs.modules` header plus one `Name Version
+# File.qml` line per local type). Any .qml type added to this directory that
+# is NOT declared below becomes unresolvable to `shell.qml`'s
+# `import "modules"` — Phase 13+ adding Colours.qml/Motion.qml here MUST add
+# a matching line in the same commit.
+module qs.modules
+Probe 1.0 Probe.qml
+ScreencopyProbe 1.0 ScreencopyProbe.qml
