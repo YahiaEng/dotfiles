@@ -102,6 +102,12 @@ BRI_ORIG_RAW=""
 # never strand a stray virtual monitor registered on the session.
 HEADLESS_CREATED_NAME=""
 PROBE_SUMMONED_FOR_HEADLESS_TEST=0
+# T-11-REVIEWFIX (CR-03): armed with the currently-summoned manifest
+# surface immediately before dispatch, cleared immediately after dismiss
+# — same discipline as PROBE_SUMMONED_FOR_HEADLESS_TEST above, so an
+# interrupt mid-cycle of the reserved-space check can never strand a
+# manifest surface mounted on the user's screen.
+RESERVED_CHECK_SUMMONED=""
 CLEANED_UP=0
 # shellcheck disable=SC2329 # invoked indirectly via `trap` below, not a direct call
 _qsd_cleanup() {
@@ -120,6 +126,10 @@ _qsd_cleanup() {
     if [[ -n "$HEADLESS_CREATED_NAME" ]]; then
         hyprctl output remove "$HEADLESS_CREATED_NAME" >/dev/null 2>&1
         HEADLESS_CREATED_NAME=""
+    fi
+    if [[ -n "$RESERVED_CHECK_SUMMONED" ]]; then
+        hyprctl dispatch global "$RESERVED_CHECK_SUMMONED" >/dev/null 2>&1
+        RESERVED_CHECK_SUMMONED=""
     fi
 }
 # EXIT alone covers normal completion; INT/TERM additionally terminate
@@ -204,10 +214,12 @@ else
             continue
         fi
         PRE=$(hyprctl monitors -j | jq -c '[.[].reserved]')
+        RESERVED_CHECK_SUMMONED="${m_appid}:${m_name}"
         hyprctl dispatch global "${m_appid}:${m_name}" >/dev/null 2>&1
         sleep 0.3
         POST=$(hyprctl monitors -j | jq -c '[.[].reserved]')
         hyprctl dispatch global "${m_appid}:${m_name}" >/dev/null 2>&1
+        RESERVED_CHECK_SUMMONED=""
         sleep 0.3
         if [[ "$PRE" != "$POST" ]]; then
             ZONE_DIFF_BAD=$((ZONE_DIFF_BAD + 1))
