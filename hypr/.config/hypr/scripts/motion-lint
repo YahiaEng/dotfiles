@@ -298,6 +298,12 @@ def load_qml_defs():
             camel = re.sub(r'-([a-z0-9])', lambda m: m.group(1).upper(), key)
             defs.add(camel + 'Duration')
             defs.add(camel + 'Easing')
+        # motion.json's top-level `motion_enabled` boolean is the real
+        # global gate Pitfall 4 (12-RESEARCH.md) requires QML surfaces to
+        # bind Behavior.enabled to directly — a genuine Motion.* reference,
+        # not just the per-pair duration/easing properties above.
+        if 'motion_enabled' in data:
+            defs.add('motionEnabled')
     return defs
 
 

@@ -1,0 +1,33 @@
+/* motion-lint fixture (12-05, D-28).
+ * Derives from wleave/.config/wleave/style.css's hover/focus transition
+ * block (lines ~226-230) and its capsule-entrance keyframe (lines
+ * ~555-570), rewritten to GTK4's longhand transition-* form that
+ * 12-RESEARCH.md Pattern 3 verified resolves correctly for a var()-bearing
+ * comma list. Never loaded by any live surface — motion-lint self-test
+ * fixture only.
+ */
+button:hover,
+button:focus {
+  transform: scale(1.06);
+  transform-origin: center;
+  transition-property:        background-color, border-color, box-shadow, transform;
+  transition-duration:        var(--motion-duration-standard), var(--motion-duration-standard), var(--motion-duration-standard), var(--motion-duration-standard);
+  transition-timing-function: var(--motion-easing-standard), var(--motion-easing-standard), var(--motion-easing-standard), var(--motion-easing-standard);
+}
+
+@keyframes capsule-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+button {
+  animation-name: capsule-entrance;
+  animation-duration: var(--motion-duration-emphasized-in);
+  animation-timing-function: var(--motion-easing-emphasized-decelerate);
+  animation-fill-mode: backwards;
+}
