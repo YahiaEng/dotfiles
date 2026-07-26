@@ -159,3 +159,10 @@ None - no external service configuration required.
 ---
 *Phase: 12-unified-design-token-pipeline*
 *Completed: 2026-07-26*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/12-unified-design-token-pipeline/12-02-SUMMARY.md`
+- FOUND: `c9aac79` (Task 2 commit)
+- FOUND: `e3113bf` (Task 3 commit)
+- FOUND: `7039eac` (this summary's own commit, verified after the fact)
