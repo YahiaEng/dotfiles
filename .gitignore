@@ -34,3 +34,12 @@ verify/logs/
 # regenerates this on demand from whatever GI typelibs are installed on the
 # machine; equivalent to a node_modules/@types cache, never repo content.
 ags/.config/ags/@girs/
+
+# Desktop entries (stow-symlink side effect). vscodium/.local/share/applications/
+# is stow-symlinked to ~/.local/share/applications/, so any app that registers a
+# launcher (Steam, Lutris, installers) writes its .desktop straight into this repo
+# and trips theme-doctor's clean-tree gate. Ignore by default; the entries we
+# deliberately version are opted back in below.
+vscodium/.local/share/applications/*
+!vscodium/.local/share/applications/codium.desktop
+!vscodium/.local/share/applications/claude-code-url-handler.desktop
