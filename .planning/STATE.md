@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 12
 current_phase_name: unified-design-token-pipeline
 status: executing
-stopped_at: Completed 12-05-PLAN.md (motion-lint deny-by-default gate, 9 fixtures, theme-doctor fold)
-last_updated: "2026-07-26T20:56:15.235Z"
+stopped_at: Reached 12-06 Task 3 checkpoint (D-27 blocking human render gate) — Tasks 1-2 committed, awaiting human verification
+last_updated: "2026-07-26T21:53:55.451Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 13
-  completed_plans: 10
+  completed_plans: 11
   percent: 14
 ---
 
@@ -139,6 +139,7 @@ Last activity: 2026-07-26 — Phase 12 execution started
 | Phase 12 P02 | ~15min | 3 tasks | 5 files |
 | Phase 12 P04 | 45min | 3 tasks | 8 files |
 | Phase 12 P05 | 20min | 3 tasks | 11 files |
+| Phase 12 P06 | multi-session | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -182,6 +183,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 12-04: theme-doctor's hyprctl readback and theme-parity's D-31 byte-identity assertion both proven to fail before being trusted to pass; Hyprland silently DROPS a malformed bezier curve rather than clamping/erroring — the concrete observed failure mode
 - [Phase ?]: 12-05: motion-lint (waybar-design-lint shape + keybind-doctor path-argument precedent) folded into theme-doctor — CHECK A reference resolution, CHECK B raw-value refusal, CHECK C scanned-count floor, 7-entry exemption list, 9 committed compliant/poisoned fixtures with a --self-test mode
 - [Phase ?]: 12-05: fixed 3 Rule-1 bugs found live — os.walk() default not following stow's symlinked subdirectories silently dropped surfaces; QML definition set omitted motionEnabled (Pitfall 4); the default scan picked up the lint's own fixtures directory nested inside the hypr config tree
+- [Phase ?]: 12-06: Colours.qml/Motion.qml need BOTH pragma Singleton and qmldir's singleton keyword to resolve bare TypeName.property access — corrects 12-RESEARCH.md Pattern 2, binary-verified
+- [Phase ?]: 12-06: a pragma-Singleton QML type cannot declare property X alongside property onX in the same object (Material You's role/onRole convention) — Qt's AOT singleton compiler misparses onX as a signal handler; fixed in Colours.qml via two sibling FileView/JsonAdapter pairs (base/on-roles)
+- [Phase ?]: 12-06: Motion.qml adopted motion-lint's shipped naming convention (Duration/Easing/motionEnabled) over UI-SPEC's Bezier-suffixed prose; Probe.qml reads motion-row presence/validity metadata via an independent raw parse rather than Motion.hasMotionTokens/Motion.pairs to keep motion-lint's CHECK A model intact
+- [Phase ?]: 12-06: Task 3 (D-27 blocking human render-and-look gate) not yet performed — plan reached a checkpoint, awaiting human verification of colour/motion mapping across theme switches
 
 ### Quick Tasks Completed
 
@@ -262,8 +267,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T20:56:15.223Z
-Stopped at: Completed 12-05-PLAN.md (motion-lint deny-by-default gate, 9 fixtures, theme-doctor fold)
+Last session: 2026-07-26T21:53:55.441Z
+Stopped at: Reached 12-06 Task 3 checkpoint (D-27 blocking human render gate) — Tasks 1-2 committed, awaiting human verification
 Resume file: None
 
 ## Operator Next Steps

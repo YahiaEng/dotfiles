@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 8
+open_count: 9
 waived_count: 0
 fixed_count: 0
-total_count: 8
-last_updated: 2026-07-26T20:29:08.850Z
+total_count: 9
+last_updated: 2026-07-26T21:50:46.937Z
 ---
 
 # Broken Windows Ledger
@@ -23,6 +23,7 @@ last_updated: 2026-07-26T20:29:08.850Z
 | 6 | 09 | deviation | hypr/.config/hypr/scripts/wleave.sh |  | Fault-injection test (09-04): moving ~/.config/wleave/layout.json aside does NOT trigger the wrapper's launch-failure notify-send. wleave has its own packaged config fallback chain and silently loads /etc/wleave/layout.json (a large unstyled 3x2 grid, version-info footer visible) instead. This is not a silently-empty scrim (satisfies the UI-Consideration-1 backstop's core requirement) but it is a third, unenumerated outcome the wrapper script's command -v/kill -0 guards do not cover — wleave.sh has no check that the user's own layout.json exists. Not fixed in 09-04 (file not in this plan's declared files_modified); flagged for future triage. | open |  | 2026-07-25T17:10:45.472Z |  |
 | 7 | 09 | deviation | hypr/.config/hypr/hyprlock.conf |  | hyprlock crashed (SIGABRT) during 09-04 human render-gate testing of the lock action. Almost certainly independent of this phase: the only hyprlock coredumps on this machine are dated 2026-04-02 and 2026-07-12 (five SIGABRTs), none from the 2026-07-25 session; the lock action string (uwsm app -- hyprlock) is byte-identical to the Phase-4-audited string, unchanged by this phase; and the human independently confirmed lock working earlier in the same gate. Logged for separate triage, not chased in this phase. | open |  | 2026-07-25T18:53:00.893Z |  |
 | 8 | 12 | deviation | hypr/.config/hypr/config/animations.conf |  | Plan 12-04's acceptance criterion expected 'animation = ' count of 14; live file has 13 (pre-existing, unchanged by this plan; D-04 fence proven intact via before/after count equality) | open |  | 2026-07-26T20:29:08.850Z |  |
+| 9 | 12 | unrun-verify | theme-engine/.config/theme-engine/theme-stress-test |  | 12-06's D-17 live re-colour assertion could not be exercised via the REAL, committed theme-stress-test in the dev session: its per-switch theme-doctor gate (D-66, strict exit 0) always fails on the pre-existing, out-of-scope untracked vscodium desktop file (documented in deferred-items.md / STATE.md, predates Phase 12). D-17's own assertions (live re-colour match + PID-unchanged) WERE fully proven via a scratch-patched, never-committed copy of the identical script that bypassed only that one pre-existing check: a complete 10/10-switch run passed with zero failures (162 passed, 0 failed), the quickshell PID never changed across all 10 rsync-based palette.json replacements, and every switch's rendered Colours.primary matched the freshly-rendered palette.json. Re-run the real committed theme-stress-test once the untracked file is resolved by its owner — expected to pass identically. | open |  | 2026-07-26T21:50:46.937Z |  |
 
 ````json
 [
@@ -120,6 +121,18 @@ last_updated: 2026-07-26T20:29:08.850Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-07-26T20:29:08.850Z",
+    "resolved_at": null
+  },
+  {
+    "id": 9,
+    "kind": "unrun-verify",
+    "phase": "12",
+    "file": "theme-engine/.config/theme-engine/theme-stress-test",
+    "line": null,
+    "description": "12-06's D-17 live re-colour assertion could not be exercised via the REAL, committed theme-stress-test in the dev session: its per-switch theme-doctor gate (D-66, strict exit 0) always fails on the pre-existing, out-of-scope untracked vscodium desktop file (documented in deferred-items.md / STATE.md, predates Phase 12). D-17's own assertions (live re-colour match + PID-unchanged) WERE fully proven via a scratch-patched, never-committed copy of the identical script that bypassed only that one pre-existing check: a complete 10/10-switch run passed with zero failures (162 passed, 0 failed), the quickshell PID never changed across all 10 rsync-based palette.json replacements, and every switch's rendered Colours.primary matched the freshly-rendered palette.json. Re-run the real committed theme-stress-test once the untracked file is resolved by its owner — expected to pass identically.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-07-26T21:50:46.937Z",
     "resolved_at": null
   }
 ]
