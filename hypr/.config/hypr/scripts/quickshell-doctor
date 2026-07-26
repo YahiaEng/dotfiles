@@ -305,26 +305,40 @@ elif ! command -v pactl >/dev/null 2>&1 || ! pactl get-sink-volume @DEFAULT_SINK
 else
     ORIG_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
     mapfile -t VOL_ORIG_RAW < <(printf '%s' "$ORIG_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
-    # Arm the trap BEFORE the mutation below (T-11-11) — restoration is
-    # the trap's job alone from this point on; this script never calls
-    # _qsd_cleanup directly.
-    VOL_RESTORE_NEEDED=1
-
-    swayosd-client --output-volume raise >/dev/null 2>&1
-    sleep 0.3
-    NEW_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
-    mapfile -t VOL_NEW_RAW < <(printf '%s' "$NEW_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
-    VOL_DELTA=$((VOL_NEW_RAW[0] - VOL_ORIG_RAW[0]))
-
-    mkdir -p "$STATE_DIR"
-    if [[ -f "$BASELINE_FILE" ]] && jq -e '.volume_step_delta_raw != null' "$BASELINE_FILE" >/dev/null 2>&1; then
-        VOL_BASELINE=$(jq -r '.volume_step_delta_raw' "$BASELINE_FILE")
-        check "one-step-per-press volume probe: measured delta=${VOL_DELTA} raw units matches recorded baseline=${VOL_BASELINE} (a later doubling would show as drift here)" "$([[ "$VOL_DELTA" == "$VOL_BASELINE" ]] && echo 0 || echo 1)"
+    if [[ "${#VOL_ORIG_RAW[@]}" -eq 0 ]]; then
+        # T-11-REVIEWFIX (WR-01): pactl's output didn't match the expected
+        # numeric shape — bail out before the mutation below runs at all,
+        # since there is no validated baseline to restore to.
+        check "one-step-per-press volume probe: pactl get-sink-volume output did not match the expected numeric shape — skipping mutation" "1"
     else
-        BASELINE_JSON="{}"
-        [[ -f "$BASELINE_FILE" ]] && BASELINE_JSON=$(cat "$BASELINE_FILE")
-        printf '%s' "$BASELINE_JSON" | jq --argjson d "$VOL_DELTA" '.volume_step_delta_raw = $d' >"$BASELINE_FILE"
-        check "one-step-per-press volume probe: seeded baseline delta=${VOL_DELTA} raw units (first run — no prior baseline)" "0"
+        # Arm the trap BEFORE the mutation below (T-11-11) — restoration is
+        # the trap's job alone from this point on; this script never calls
+        # _qsd_cleanup directly.
+        VOL_RESTORE_NEEDED=1
+
+        swayosd-client --output-volume raise >/dev/null 2>&1
+        sleep 0.3
+        NEW_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
+        mapfile -t VOL_NEW_RAW < <(printf '%s' "$NEW_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
+        if [[ "${#VOL_NEW_RAW[@]}" -eq 0 ]]; then
+            # T-11-REVIEWFIX (WR-01): post-mutation read didn't match either
+            # — the trap above still restores VOL_ORIG_RAW, we just can't
+            # compute a delta against it.
+            check "one-step-per-press volume probe: pactl get-sink-volume output did not match the expected numeric shape after the raise (baseline still restorable via the trap)" "1"
+        else
+            VOL_DELTA=$((VOL_NEW_RAW[0] - VOL_ORIG_RAW[0]))
+
+            mkdir -p "$STATE_DIR"
+            if [[ -f "$BASELINE_FILE" ]] && jq -e '.volume_step_delta_raw != null' "$BASELINE_FILE" >/dev/null 2>&1; then
+                VOL_BASELINE=$(jq -r '.volume_step_delta_raw' "$BASELINE_FILE")
+                check "one-step-per-press volume probe: measured delta=${VOL_DELTA} raw units matches recorded baseline=${VOL_BASELINE} (a later doubling would show as drift here)" "$([[ "$VOL_DELTA" == "$VOL_BASELINE" ]] && echo 0 || echo 1)"
+            else
+                BASELINE_JSON="{}"
+                [[ -f "$BASELINE_FILE" ]] && BASELINE_JSON=$(cat "$BASELINE_FILE")
+                printf '%s' "$BASELINE_JSON" | jq --argjson d "$VOL_DELTA" '.volume_step_delta_raw = $d' >"$BASELINE_FILE"
+                check "one-step-per-press volume probe: seeded baseline delta=${VOL_DELTA} raw units (first run — no prior baseline)" "0"
+            fi
+        fi
     fi
 fi
 
