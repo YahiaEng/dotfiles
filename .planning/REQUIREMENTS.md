@@ -27,7 +27,7 @@
 - [x] **TOKEN-03**: A single motion-token definition (MD3 Expressive named duration + bezier pairs) renders to all three targets: QML, GTK4 CSS, and Hyprland
 - [x] **TOKEN-04**: `theme-doctor` fails if any surface hand-rolls a raw duration or easing curve instead of consuming a motion token
 - [x] **TOKEN-05**: A reduced-motion setting shortens or disables animation across every surface, QML and GTK alike
-- [ ] **TOKEN-06** *(stretch — blocks nothing)*: QML surfaces animate with native spring physics (mass/stiffness/damping) driven from the same token source, adopted only if a human side-by-side comparison judges it better than the MD3 baseline
+- [x] **TOKEN-06** *(stretch — blocks nothing)*: QML surfaces animate with native spring physics (mass/stiffness/damping) driven from the same token source, adopted only if a human side-by-side comparison judges it better than the MD3 baseline *(comparison run 2026-07-27 — verdict: not adopted, by human judgement — "MD3 is better. Spring is too fast." Per this requirement's own wording, a comparison that returns "no" satisfies it; see `12-MOTION-VERDICT.md`)*
 
 ### Motion Retrofit (MOTION)
 
@@ -136,7 +136,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TOKEN-03 | Phase 12 — Unified Design-Token Pipeline | Complete |
 | TOKEN-04 | Phase 12 — Unified Design-Token Pipeline | Complete |
 | TOKEN-05 | Phase 12 — Unified Design-Token Pipeline | Complete |
-| TOKEN-06 | Phase 12 — Unified Design-Token Pipeline *(stretch — blocks nothing)* | Pending |
+| TOKEN-06 | Phase 12 — Unified Design-Token Pipeline *(stretch — blocks nothing)* | Complete (not adopted, by human judgement — see `12-MOTION-VERDICT.md`) |
 | MOTION-01 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Pending |
 | MOTION-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Pending |
 | MOTION-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Pending |
