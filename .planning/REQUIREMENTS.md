@@ -15,7 +15,7 @@
 
 - [x] **QS-01**: `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package
 - [x] **QS-02**: A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface running on Hyprland 0.56.0 — proven on a throwaway `PanelWindow` **before any feature is built on the toolkit**, with authority to stop the milestone
-- [ ] **QS-03**: Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug
+- [ ] **QS-03**: Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug *(carried forward to Phase 12 — accepted for Phase 11 via a recorded override, see 11-VERIFICATION.md)*
 - [x] **QS-04**: Editing Quickshell config hot-reloads the running shell without a manual restart
 - [x] **QS-05**: The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind
 - [x] **QS-06**: No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner
@@ -126,7 +126,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 |-------------|-------|--------|
 | QS-01 | Phase 11 — Quickshell Viability Gate | Complete |
 | QS-02 | Phase 11 — Quickshell Viability Gate | Complete |
-| QS-03 | Phase 11 — Quickshell Viability Gate | Pending |
+| QS-03 | Phase 12 — Unified Design-Token Pipeline *(carried forward; accepted there via a recorded override)* | Deferred (carried forward from Phase 11) |
 | QS-04 | Phase 11 — Quickshell Viability Gate | Complete |
 | QS-05 | Phase 11 — Quickshell Viability Gate | Complete |
 | QS-06 | Phase 11 — Quickshell Viability Gate | Complete |
@@ -170,7 +170,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 - Unmapped: 0 ✓
 - Duplicates (a requirement in more than one phase): 0 ✓
 
-**Per-phase counts:** Phase 11: 7 · Phase 12: 6 · Phase 13: 5 · Phase 14: 8 · Phase 15: 6 · Phase 16: 4 · Phase 17: 2 = 38
+**Per-phase counts:** Phase 11: 6 · Phase 12: 7 · Phase 13: 5 · Phase 14: 8 · Phase 15: 6 · Phase 16: 4 · Phase 17: 2 = 38
 
 **Placement notes:**
 
@@ -178,8 +178,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 - **MAINT-02 / MAINT-03 → Phase 13.** Phase 13 is the milestone's existing-surface sweep and already opens wleave (WR-04's Logout-wrapping target) and the walker-driven picker family. A standalone maintenance phase of three unrelated single-item fixes is the thin-phase shape the coarse granularity setting exists to prevent.
 - **TOKEN-06 blocks nothing.** No phase and no requirement depends on it; dropping it changes no other phase's scope.
 - **OVER-04 stays in Phase 16.** Phase 11 runs the screencopy *feasibility probe* (permission mechanics, a first live multi-window capture) so Phase 16's scope is decided early; the measured frame/CPU budget and documented fallback remain Phase 16's requirement.
+- **QS-03 → Phase 12 (carried forward from Phase 11, 2026-07-26).** The gap was accepted for Phase 11 under D-10 via a recorded override in `11-VERIFICATION.md` rather than dropped. Phase 12 is the first phase that needs a permanent, non-summoned QML surface, so it has to solve per-screen fan-out anyway; it carries QS-03 as success criterion 6. The total stays 38 with no duplicate because the row moved rather than being copied.
 
 ---
 
 *Requirements defined: 2026-07-26*
-*Last updated: 2026-07-26 after v3.0 roadmap creation (Phases 11-17, 38/38 requirements mapped)*
+*Last updated: 2026-07-26 after v3.0 roadmap creation (Phases 11-17, 38/38 requirements mapped); QS-03 ownership moved Phase 11 -> Phase 12 after the Phase 11 acceptance override (2026-07-26)*
