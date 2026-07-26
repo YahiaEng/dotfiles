@@ -13,8 +13,8 @@
 
 ### Quickshell Foundation (QS)
 
-- [ ] **QS-01**: `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package
-- [ ] **QS-02**: A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface running on Hyprland 0.56.0 — proven on a throwaway `PanelWindow` **before any feature is built on the toolkit**, with authority to stop the milestone
+- [x] **QS-01**: `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package
+- [x] **QS-02**: A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface running on Hyprland 0.56.0 — proven on a throwaway `PanelWindow` **before any feature is built on the toolkit**, with authority to stop the milestone
 - [ ] **QS-03**: Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug
 - [ ] **QS-04**: Editing Quickshell config hot-reloads the running shell without a manual restart
 - [ ] **QS-05**: The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind
@@ -124,8 +124,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QS-01 | Phase 11 — Quickshell Viability Gate | Pending |
-| QS-02 | Phase 11 — Quickshell Viability Gate | Pending |
+| QS-01 | Phase 11 — Quickshell Viability Gate | Complete |
+| QS-02 | Phase 11 — Quickshell Viability Gate | Complete |
 | QS-03 | Phase 11 — Quickshell Viability Gate | Pending |
 | QS-04 | Phase 11 — Quickshell Viability Gate | Pending |
 | QS-05 | Phase 11 — Quickshell Viability Gate | Pending |
@@ -164,6 +164,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MAINT-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Pending |
 
 **Coverage:**
+
 - v3.0 requirements: 38 total
 - Mapped to phases: 38
 - Unmapped: 0 ✓
@@ -172,6 +173,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 **Per-phase counts:** Phase 11: 7 · Phase 12: 6 · Phase 13: 5 · Phase 14: 8 · Phase 15: 6 · Phase 16: 4 · Phase 17: 2 = 38
 
 **Placement notes:**
+
 - **MAINT-01 → Phase 11.** QS-05 requires proving no duplicated global keybind across two independent registration mechanisms (Hyprland `bind =` and Quickshell `GlobalShortcut`). `keybind-doctor` is the instrument for that proof and is currently broken on Hyprland 0.56.0; Phases 14 and 16 each add a new global keybind, so the detector must work before then.
 - **MAINT-02 / MAINT-03 → Phase 13.** Phase 13 is the milestone's existing-surface sweep and already opens wleave (WR-04's Logout-wrapping target) and the walker-driven picker family. A standalone maintenance phase of three unrelated single-item fixes is the thin-phase shape the coarse granularity setting exists to prevent.
 - **TOKEN-06 blocks nothing.** No phase and no requirement depends on it; dropping it changes no other phase's scope.
