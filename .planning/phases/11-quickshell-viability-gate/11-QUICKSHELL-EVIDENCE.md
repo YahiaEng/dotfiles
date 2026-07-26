@@ -20,8 +20,8 @@ as roadmapped; Phases 12-17 stand; the registration commit set (`1aea012`) stays
 |---|---|---|---|---|---|
 | QS-01 | `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package | `pacman -Qi quickshell`; `git show --stat` on the registration commit | pacman, git | Installed 0.3.0-2 from `extra`; commit `1aea012` contains `install.sh` + `stow.sh` + the whole `quickshell/` package + launcher + autostart + keybind together (D-11) | PASS |
 | QS-02 | A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface on Hyprland 0.56.0 | Human-clicked live test at the keyboard | `PanelWindow` probe, `HyprlandFocusGrab` | All three sub-criteria passed on first attempt under `WlrKeyboardFocus.OnDemand` — see Dated gate log below | **PASS** |
-| QS-03 | Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug | `hyprctl output create/remove headless` + probe summon on each output | hyprctl | — | PENDING (plan 04) |
-| QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | — | PENDING (plan 03/04) |
+| QS-03 | Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug | `hyprctl output create/remove headless` + probe summon on each output | hyprctl, `quickshell-doctor` | Hotplug mechanics (add/remove/reserved-space/PID/log-health) all PASS. Per-screen surface creation FAILS: the current single-`PanelWindow` probe only ever mounts on whichever screen existed at shell startup — a headless output added afterward gets zero surfaces, not its own. See "11-04 Task 1" below for the full finding and the fix attempts made and reverted | **PARTIAL — genuine defect found and recorded, not a stop-trigger (D-10)** — 2026-07-26 (plan 04, continues in plan 05/later) |
+| QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | (a) QML source hot-reload: **PASS**, verified mechanically (no human required — see "11-04 Task 2a" below). (b) `FileView`/`JsonAdapter` hand-edit propagation: requires a human watching the on-screen label — **PENDING**, handed to a checkpoint | **PARTIAL** — (a) PASS 2026-07-26 (plan 04); (b) PENDING human observation |
 | QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `quickshell-doctor` (full run, live desktop) | `hypr/.config/hypr/scripts/quickshell-doctor` | 10 checks run, 10 passed, 0 failed, exit 0. Namespace discipline: off-level 0, wrong-pid 0. Reserved-space summon-and-diff: `monitors -j`'s `reserved` array byte-identical before/during/after summoning every manifest surface (`[0,46,0,0]` throughout — see raw arrays below). `keybind-doctor` invoked as part of the run: exit 0, 13/13. See full verbatim transcript below | **PASS** — 2026-07-26 (plan 03) |
 | QS-06 | No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner | `quickshell-doctor` (busctl/hyprctl/pactl/brightnessctl checks) | busctl, hyprctl, pactl, brightnessctl, quickshell-doctor | `org.freedesktop.Notifications`: exactly 1 owner, named `swaync`. All 10 XF86Audio\*/XF86MonBrightness\* keys: exactly 1 registered handler each (Hyprland bind count + manifest count summed). Zero Quickshell components reference MPRIS (0 files under `~/.config/quickshell`). Volume one-step-per-press: measured delta 3277 raw units (of 65536), seeded as baseline on first run, matched exactly on every rerun since, sink volume byte-identical before/after (including under SIGINT mid-probe — see below). Brightness one-step-per-press: `[SKIP]` — `brightnessctl -l` lists only `leds`-class devices (`enp5s0-{0..3}::lan`, `input5::capslock/scrolllock/numlock`, `input11::mute`) and no `backlight`-class device on this host | **PASS** — 2026-07-26 (plan 03) |
 | MAINT-01 | `keybind-doctor` correctly cross-checks Quickshell-claimed shortcuts against Hyprland's registered set (amended per D-15 to plain-text `hyprctl binds` parsing) | Poisoned-fixture proof (D-18) | keybind-doctor | Real config: 13 passed, 0 failed, exit 0. Poisoned fixture: 12 passed, 1 failed (chord collision, named), exit 1. Full transcripts below | **PASS** — 2026-07-26 |
@@ -475,10 +475,191 @@ and immediately after the interrupted run returned — the volume-mutation trap 
 restored the sink correctly even though the script never reached its own volume-probe
 `check` line.
 
+## 11-04 Task 1 — headless-output hotplug (QS-03): mechanics PASS, per-screen mounting FAILS
+
+`quickshell-doctor` gained a fourth check group (`--no-headless-output`-gated) covering the
+full `hyprctl output create/remove headless` cycle. Three of its four checks are clean,
+repeatable PASSes; the fourth surfaces a genuine, previously-unproven QS-03 defect.
+
+### What PASSes, mechanically, every run
+
+```
+$ hypr/.config/hypr/scripts/quickshell-doctor
+  ...
+  [PASS] headless output add: monitor count increased by exactly one (before: 1, after: 2), new output name read from the monitor list (not assumed): HEADLESS-10
+  [FAIL] per-screen surface creation (QS-03): exactly one quickshell-probe surface under DP-1 (found: 1) and exactly one under HEADLESS-10 (found: 0), addresses distinct, not shared (shared: 0)
+  [PASS] reserved-space unchanged across the hotplug cycle (QS-03): every baseline monitor's reserved array is byte-identical after the new screen appeared (changed: 0)
+  [PASS] headless output remove (QS-03): monitor count back to baseline (1 == 1), DP-1 probe still creatable (found: 1), shell PID unchanged (185425 == 185425), no crash marker in launcher log (hits: 0)
+
+Summary: 13 passed, 1 failed
+```
+
+- **Add**: monitor count always increases by exactly one; the new output's name is read
+  back from `hyprctl monitors -j` (never assumed `HEADLESS-1` — the compositor increments
+  the numeric suffix across the whole session's lifetime, confirmed directly: the same
+  session produced `HEADLESS-1` through `HEADLESS-10` across this plan's testing).
+- **Reserved-space unchanged**: `monitors -j`'s `reserved` array for every baseline monitor
+  is byte-identical after the new screen appears — diffed, never compared against a
+  hardcoded literal.
+- **Remove**: monitor count returns to baseline, `DP-1`'s probe surface is still creatable
+  immediately afterward, the shell process keeps the exact same PID, and no crash/abort
+  marker lands in `~/.cache/quickshell.log` during the cycle.
+- **Cleanup discipline verified under SIGINT**: `timeout --signal=INT --preserve-status`
+  delivered mid-cycle (both immediately after "add" and immediately after "reserved-space
+  unchanged") left the monitor count back at baseline every time — the removal trap (armed
+  *before* the mutating `hyprctl output create headless` call, T-11-15) fires correctly on
+  `INT`, mirroring the volume/brightness probes' existing discipline.
+- **Pre-existing `HEADLESS*` guard verified**: with a `HEADLESS-7` output created by hand
+  before the run, all four checks in the group print `[SKIP] ... a monitor named HEADLESS*
+  already exists — not touching it`, and that pre-existing output is untouched and still
+  present after the run.
+- **`--no-headless-output` verified**: all four checks in the group downgrade to named
+  `[SKIP]` lines, and the overall run exits 0.
+
+### What FAILs, honestly and repeatably: per-screen surface creation
+
+The current `modules/Probe.qml` is a single `PanelWindow` with no per-screen fan-out
+mechanism (`shell.qml` wraps it in one `LazyLoader`, unchanged since 11-01). Verified
+directly, repeatedly, before any QML was touched this plan:
+
+```
+$ hyprctl output create headless          # -> HEADLESS-1
+$ hyprctl dispatch global quickshell:probe
+$ hyprctl layers -j | jq -c '.'
+{"DP-1":{"levels":{...,"3":[{"address":"0x...","namespace":"quickshell-probe",...}]}},
+ "HEADLESS-1":{"levels":{...,"3":[]}}}
+```
+
+`DP-1` (the screen that existed when the shell started) gets its `quickshell-probe`
+surface; the newly-hotplugged `HEADLESS-1` gets none. This is not a virtual-output quirk —
+it is a property of the QML architecture that would identically affect a real second
+physical monitor connected after the shell starts, since `PanelWindow` with no explicit
+`screen:` binding renders on whichever screen Quickshell assigned it at instantiation, not
+"every current and future screen." This is a real, previously-unproven QS-03 gap, not a
+test-harness artifact (D-10's "headless-output quirk" carve-out does not apply here).
+
+### Fix attempted and reverted — record-why (D-13's house rule, generalized)
+
+A `Variants { model: Quickshell.screens }` fan-out (the standard Quickshell pattern for
+per-monitor surfaces, confirmed to exist and to be correctly typed via this build's own
+installed `.qmltypes` files: `Quickshell/quickshell-core.qmltypes` documents `Variants`,
+`Quickshell.screens`, and `PanelWindow.screen` as a plain writable property) was
+implemented and tested extensively, in several arrangements:
+
+1. `Variants` in `shell.qml` wrapping the locally `import "modules"`-ed `Probe` type
+   directly (`delegate: Component { Probe { visible: root.probeActive; ... } }`).
+2. The same, with an additional lazy-loading layer between `Variants` and `Probe`
+   (Quickshell's own `LazyLoader`, and separately a plain QtQuick `Loader`), in both
+   nesting orders (`Variants` outer/loader inner, and loader outer/`Variants` inner).
+3. The per-screen `Variants` fan-out moved entirely inside `Probe.qml` itself (rooted at
+   `Variants` instead of `PanelWindow`), with `shell.qml` left touching the local `Probe`
+   type only once, exactly as in the original design.
+
+**Two independent, reproducible failure modes were found, not one:**
+
+- **Intermittent hard config-load failure.** `Failed to load configuration / caused by
+  @shell.qml[N:M]: Probe is not a type.` Verified directly with `quickshell -p ... -v -v`
+  in the foreground: the synthesized `modules/qmldir` this run's scanner produced was
+  completely empty (`Got intercept for ".../modules/qmldir" contains ""`), with no
+  preceding `Scanning directory ".../modules"` log line at all — vs. a successful run's
+  trace, which shows the scan happening and `Probe 1.0 Probe.qml` being registered before
+  `shell.qml`'s document compile reaches the `Probe` reference. Across repeated
+  clean-process restarts (`pkill -x quickshell` awaited to a clean `pgrep` miss, then
+  relaunched via the real `quickshell-launch.sh` autostart path), **byte-identical file
+  content loaded successfully in some restarts and failed in others** — one run of 10
+  consecutive restarts was clean, a following run of 6 consecutive restarts of the same
+  arrangement (2) failed 6/6. This points at a startup race in quickshell 0.3.0's own
+  directory-based local-type scanner, not a syntax error in the QML itself — not something
+  a QML source change alone can reliably close out.
+- **Post-hotplug visibility break.** In arrangement (1) using `visible: root.probeActive`
+  (rather than a lazy loader) to keep every screen's `Probe` object always-instantiated but
+  unmapped at rest: the probe worked correctly on `DP-1` alone, and correctly gained a
+  second, distinct-address instance on a headless output added afterward — but once a
+  second screen existed, **the shortcut stopped toggling any screen's visibility at all**,
+  including the previously-working `DP-1` instance, with no new warning or error logged.
+  Repeated shortcut presses after that point produced no surface on any screen.
+
+Both failure modes were reproduced multiple times, independently, in a live session with
+the always-on autostart daemon — never in a way that crashed the process, but in ways that
+left the probe unusable until a clean restart. Given standing constraint 5 ("do not
+casually kill the running quickshell daemon... if a test requires restarting it, restore
+it to a running state afterward and say so") and this phase's own house rule (record the
+limitation, take the workable path, do not chase an open-ended workaround — this is
+D-13's pattern, generalized beyond its original FileView scope), **the fix was reverted**.
+`modules/Probe.qml` and `shell.qml` are confirmed byte-identical to their pre-11-04-Task-1
+state (`git status --porcelain quickshell/` is empty), and the live daemon was restarted
+and reconfirmed working correctly (summon/dismiss, same PID, clean log) before this plan
+continued.
+
+**This is not a QS-02 failure and does not stop the milestone (D-10).** It is recorded as
+an open, non-blocking QS-03 gap: `quickshell-doctor`'s per-screen surface creation check
+now honestly FAILs (13 passed, 1 failed, exit 1) until a future plan either finds a
+reliable fix on a newer quickshell release, or invests a dedicated spike in the scanner
+race rather than the incidental time available inside this plan's Task 1.
+
+## 11-04 Task 2(a) — QML source hot-reload (QS-04, first half)
+
+Verified mechanically, no human required (this half of Task 2 has no `<human-check>` in
+the plan — only the `FileView`/`JsonAdapter` half does). With the shell running
+(`quickshell -p /home/aorus/.config/quickshell`, pid unchanged throughout), the probe
+summoned via `hyprctl dispatch global quickshell:probe`:
+
+```
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?]'   # before edit
+[{"address":"0x...","w":360,"h":260,...}]
+```
+
+`modules/Probe.qml`'s `implicitWidth: 360` was edited to `420` on disk (the stowed symlink
+target, the real repo file) while the shell stayed running — no restart, no `theme-apply`,
+no reload command of any kind:
+
+```
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?]'   # after edit, same PID
+[{"address":"0x...","w":420,"h":260,...}]
+```
+
+The running surface picked up the new width within the ~0.4s poll window (observed
+latency: immediate). The edit was then reverted to `360`, and the revert propagated the
+same way, confirmed by the surface's `w` returning to `360` with no restart. The shell
+process PID was identical across the whole sequence (edit, observe, revert, observe), and
+`git status --porcelain quickshell/` is empty after the revert
+(`diff` against the pre-edit file confirms byte-for-byte identity). No colour, hex literal
+or style value was introduced at any point (D-04 held throughout — confirmed via
+`grep -riE '#[0-9a-f]{3,8}\b' quickshell/.config/quickshell/`, no matches).
+
+**QML source hot-reload: PASS.** The `FileView`/`JsonAdapter` half of QS-04 (open question
+#1) requires a human watching the on-screen label change while a text editor writes
+`~/.local/state/quickshell/probe.json` — genuinely not mechanically provable, per the
+plan's own Task 2 action text, and is handed to a checkpoint rather than assumed.
+
 ## Dated gate log
 
 Appended to across Phase 11's plans (01-05) and by later phases (14-16) per D-05. Each
 entry carries the date, the sub-criterion, and the raw observed result.
+
+### 2026-07-26 — 11-04 Tasks 1 & 2a (QS-03 hotplug gate; QS-04 QML hot-reload)
+
+- **[PASS] QS-03 — headless output add/remove mechanics:** monitor count diffed against
+  baseline (never a hardcoded `HEADLESS-1` assumption — this session alone produced names
+  through `HEADLESS-10`), reserved-space byte-identical across the cycle, monitor count and
+  shell PID and launcher-log health all restored after removal. Verified clean under
+  `timeout --signal=INT` delivered mid-cycle (twice, at two different points) and against a
+  pre-existing `HEADLESS*` monitor (correctly `[SKIP]`ped and left untouched).
+- **[FAIL, honestly recorded] QS-03 — per-screen surface creation:** the current
+  single-`PanelWindow` probe design only mounts on whichever screen existed at shell
+  startup; a headless output added afterward gets zero surfaces. Real defect, not a
+  test-harness artifact. Fix attempted (`Variants` fan-out, multiple arrangements) and
+  reverted after finding two independent failure modes (intermittent config-load race;
+  post-hotplug visibility break) that risked the always-on daemon's stability. Not a
+  stop-trigger (D-10) — recorded as an open gap for a future plan.
+- **[PASS] QS-04(a) — QML source hot-reload:** editing `implicitWidth` on the live,
+  running shell propagated within ~0.4s with no restart and no `theme-apply` involvement;
+  the revert propagated the same way. Same PID throughout; `git status --porcelain
+  quickshell/` empty after revert.
+- **[PENDING] QS-04(b) — `FileView`/`JsonAdapter` hand-edit propagation:** requires a
+  human watching the on-screen label; handed to a checkpoint (see Task 2's `<human-check>`).
+- Live daemon confirmed restored to its known-good, single-instance state and running
+  (same shell ID, functioning summon/dismiss) before this plan's remaining tasks proceed.
 
 ### 2026-07-26 — 11-03 (quickshell-doctor: QS-05/QS-06 full mechanical gate)
 
