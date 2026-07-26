@@ -20,8 +20,8 @@ as roadmapped; Phases 12-17 stand; the registration commit set (`1aea012`) stays
 |---|---|---|---|---|---|
 | QS-01 | `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package | `pacman -Qi quickshell`; `git show --stat` on the registration commit | pacman, git | Installed 0.3.0-2 from `extra`; commit `1aea012` contains `install.sh` + `stow.sh` + the whole `quickshell/` package + launcher + autostart + keybind together (D-11) | PASS |
 | QS-02 | A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface on Hyprland 0.56.0 | Human-clicked live test at the keyboard | `PanelWindow` probe, `HyprlandFocusGrab` | All three sub-criteria passed on first attempt under `WlrKeyboardFocus.OnDemand` — see Dated gate log below | **PASS** |
-| QS-03 | Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug | `hyprctl output create/remove headless` + probe summon on each output | hyprctl, `quickshell-doctor` | Hotplug mechanics (add/remove/reserved-space/PID/log-health) all PASS. Per-screen surface creation FAILS: the current single-`PanelWindow` probe only ever mounts on whichever screen existed at shell startup — a headless output added afterward gets zero surfaces, not its own. See "11-04 Task 1" below for the full finding and the fix attempts made and reverted | **PARTIAL — genuine defect found and recorded, not a stop-trigger (D-10)** — 2026-07-26 (plan 04, continues in plan 05/later) |
-| QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | (a) QML source hot-reload: **PASS**, verified mechanically (no human required — see "11-04 Task 2a" below). (b) `FileView`/`JsonAdapter` hand-edit propagation: requires a human watching the on-screen label — **PENDING**, handed to a checkpoint | **PARTIAL** — (a) PASS 2026-07-26 (plan 04); (b) PENDING human observation |
+| QS-03 | Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug | `hyprctl output create/remove headless` + probe summon on each output | hyprctl, `quickshell-doctor` | Hotplug mechanics (add/remove/reserved-space/PID/log-health) all PASS. Suspend/resume PASS (same PID 185425 before and after, all three input tests re-passed, `reserved` unchanged, `quickshell:probe` still registered). Per-screen surface creation FAILS: the current single-`PanelWindow` probe only ever mounts on whichever screen existed at shell startup — a headless output added afterward gets zero surfaces, not its own; the per-screen label content sub-check (Task 3) could not be meaningfully performed for the same reason and was skipped, not passed. See "11-04 Task 1" and "Task 3" below | **OPEN — genuine per-screen-mounting defect remains; hotplug mechanics and suspend/resume both PASS; not a stop-trigger (D-10)** — 2026-07-26 (plan 04) |
+| QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | (a) QML source hot-reload: **PASS**, verified mechanically. (b) `FileView`/`JsonAdapter` hand-edit propagation: **PASS**, human-observed — label updated live to `hello` with zero `reload.sh`/`theme-apply` involvement; absent-file case correctly fell back to the JsonAdapter default (`unset`) with the shell staying alive. Empty-JSON-object case: **not observed** — the human did not test it; recorded as untested, not inferred | **PASS** — 2026-07-26 (plan 04). Open question #1 answered in the affirmative: no `reload.sh` fan-out hook needed (D-13's negative branch) |
 | QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `quickshell-doctor` (full run, live desktop) | `hypr/.config/hypr/scripts/quickshell-doctor` | 10 checks run, 10 passed, 0 failed, exit 0. Namespace discipline: off-level 0, wrong-pid 0. Reserved-space summon-and-diff: `monitors -j`'s `reserved` array byte-identical before/during/after summoning every manifest surface (`[0,46,0,0]` throughout — see raw arrays below). `keybind-doctor` invoked as part of the run: exit 0, 13/13. See full verbatim transcript below | **PASS** — 2026-07-26 (plan 03) |
 | QS-06 | No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner | `quickshell-doctor` (busctl/hyprctl/pactl/brightnessctl checks) | busctl, hyprctl, pactl, brightnessctl, quickshell-doctor | `org.freedesktop.Notifications`: exactly 1 owner, named `swaync`. All 10 XF86Audio\*/XF86MonBrightness\* keys: exactly 1 registered handler each (Hyprland bind count + manifest count summed). Zero Quickshell components reference MPRIS (0 files under `~/.config/quickshell`). Volume one-step-per-press: measured delta 3277 raw units (of 65536), seeded as baseline on first run, matched exactly on every rerun since, sink volume byte-identical before/after (including under SIGINT mid-probe — see below). Brightness one-step-per-press: `[SKIP]` — `brightnessctl -l` lists only `leds`-class devices (`enp5s0-{0..3}::lan`, `input5::capslock/scrolllock/numlock`, `input11::mute`) and no `backlight`-class device on this host | **PASS** — 2026-07-26 (plan 03) |
 | MAINT-01 | `keybind-doctor` correctly cross-checks Quickshell-claimed shortcuts against Hyprland's registered set (amended per D-15 to plain-text `hyprctl binds` parsing) | Poisoned-fixture proof (D-18) | keybind-doctor | Real config: 13 passed, 0 failed, exit 0. Poisoned fixture: 12 passed, 1 failed (chord collision, named), exit 1. Full transcripts below | **PASS** — 2026-07-26 |
@@ -631,6 +631,102 @@ or style value was introduced at any point (D-04 held throughout — confirmed v
 #1) requires a human watching the on-screen label change while a text editor writes
 `~/.local/state/quickshell/probe.json` — genuinely not mechanically provable, per the
 plan's own Task 2 action text, and is handed to a checkpoint rather than assumed.
+
+## 11-04 Task 2(b) — open question #1, answered: FileView/JsonAdapter needs zero reload.sh involvement
+
+Performed by the human operator at the keyboard of the live session, 2026-07-26.
+
+- **[PASS] Hand-edit propagation.** With the probe summoned on `DP-1`, hand-editing
+  `~/.local/state/quickshell/probe.json` in a real text editor (not a scripted rewrite) and
+  changing `label` to `hello` updated the probe's "State label:" text **live, on screen**,
+  with `theme-apply`/`lib/reload.sh` never invoked. This is the load-bearing observation
+  the whole task exists for — a human watching the actual rendered label, not a
+  mechanically-inferred proxy for it.
+- **[PASS] Absent-file fallback.** Deleting `probe.json` entirely reset the label to the
+  `JsonAdapter`'s declared default (`unset`); the shell stayed alive throughout
+  (`pgrep -x quickshell` unchanged PID). `~/.cache/quickshell.log` shows only the expected
+  `WARN scene: QML FileView at @modules/Probe.qml[54:5]: Read of
+  /home/aorus/.local/state/quickshell/probe.json failed: File does not exist.` — a graceful
+  degradation, not a crash or abort marker.
+- **[NOT OBSERVED] Empty-JSON-object case.** The plan's action text also calls for
+  recreating the file as `{}` and observing the result. This sub-case was **not tested** by
+  the human operator during this checkpoint. Recorded honestly as untested — not inferred,
+  not assumed to behave like the absent-file case just because that would be the reasonable
+  guess. `~/.local/state/quickshell/probe.json` is currently absent on this host (left in
+  the deleted state from the absent-file test above), so this remains open for whoever next
+  touches this probe to close out, dated, with a one-line addition to this section — it is
+  not a blocker for anything downstream.
+
+**Open question #1 answered in the affirmative:** `FileView`/`JsonAdapter` propagation
+requires **zero** `reload.sh` involvement on this quickshell 0.3.0 build. Per D-13's branch
+logic, this means `theme-engine/.config/theme-engine/lib/reload.sh` is **not** touched —
+`git diff --stat theme-engine/.config/theme-engine/lib/reload.sh` is empty, confirmed.
+Adding a quickshell reload step now, with nothing proven to need it, would be exactly the
+dead config D-13 warns against. `theme-doctor` was re-run after this finding and stays
+green (see Task 3 below for the exact count), confirming no regression from this plan
+touching zero theme-engine files.
+
+## 11-04 Task 3 — suspend/resume (D-08) and the per-screen label check
+
+Performed by the human operator, 2026-07-26, immediately following Task 2(b).
+
+**Per-screen label content (the human-observable half of QS-03) — SKIPPED, not passed.**
+Task 1 already proved mechanically that a headless output added after shell startup gets
+zero `quickshell-probe` surfaces — there is structurally nothing for a human to look at on
+a second screen with the current single-`PanelWindow` design, so this sub-check could not
+be meaningfully performed. It is recorded here as blocked-on-the-Task-1-finding, not as
+"PASS" and not silently omitted. Closing this out requires the QS-03 per-screen-mounting
+gap to be fixed first (see Task 1's record of the reverted `Variants` fix attempts) — a
+future plan's work, not a re-test this plan can perform differently.
+
+**Suspend/resume (D-08) — PASS.**
+
+- Pre-suspend PID: `185425`. Probe summoned; click ("Click me" counter incremented),
+  typed text (accepted into the field), and click-outside dismiss all confirmed working
+  before suspending.
+- `systemctl suspend` run; machine woken.
+- Post-resume PID: **`185425`** — identical to pre-suspend. `ps -o pid,etime,lstart -p
+  185425` showed an elapsed time (27:49 at check time) spanning the suspend window, i.e.
+  the same continuously-running process, not a fresh one restarted by some watchdog —
+  exactly the "suspend resumes into the same session" behavior `PROJECT.md`'s
+  `hyprshutdown --post-cmd` decision already establishes as the expected shape for this
+  host, extended here to Quickshell.
+- Probe re-summoned after resume; click, type, and click-outside-dismiss **all re-passed**,
+  human-attested, exactly as before suspend.
+- `hyprctl monitors -j | jq -c '[.[].reserved]'` = `[[0,46,0,0]]` — unchanged across the
+  whole cycle.
+- `hyprctl globalshortcuts` still lists `quickshell:probe` after resume — the global
+  shortcut registration survived the suspend/resume cycle intact. A registration that
+  did *not* survive would silently break every later phase's keybind relying on the same
+  mechanism, so this is a load-bearing check, not a formality.
+
+**The two edges this phase could not exercise, recorded as unverified rather than assumed:**
+
+- **Zero connected outputs.** Removing `DP-1` (this host's sole physical monitor) would
+  kill the graphical session outright, so whether the shell process survives and
+  re-creates its surfaces when an output returns from a fully-headless state is genuinely
+  untested here. Flagged in the plan's own `must_haves` as a `verification: backstop`
+  statement; stays backstop-only.
+- **Per-screen surface-creation ordering stability across restarts.** With only one screen
+  ever actually getting a surface (the Task 1 defect), there is no multi-screen ordering to
+  observe yet. Also a `verification: backstop` statement in the plan; revisit once the
+  per-screen mounting gap is closed.
+
+**Deferred, non-blocking (D-07):** a real second-display hotplug test with genuine
+DP/HDMI EDID negotiation is worth a dated line here if a second physical display becomes
+available during the milestone. This entire phase's QS-03 multi-monitor evidence — both
+the Task 1 mechanics and this task's suspend/resume — was gathered against a Hyprland
+**virtual headless output**, which exercises the compositor's monitor add/remove event
+path but **not** real DP/HDMI EDID negotiation. This caveat travels with every QS-03 claim
+in this artifact, per D-07.
+
+**Regression check:** `theme-doctor` re-run after this plan's tasks — **136 passed / 0
+failed, exit 0**, unchanged from the v3.0-scoping baseline. This plan touched zero
+`theme-engine/` files (`git diff --stat theme-engine/.config/theme-engine/` is empty), so
+this is confirmation of no incidental breakage, not a targeted regression test.
+`quickshell-doctor` was re-run one final time after the suspend/resume cycle: 13 passed, 1
+failed (the same, already-recorded per-screen-mounting gap), exit 1 — unchanged from
+Task 1, as expected.
 
 ## Dated gate log
 
