@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 12
-current_phase_name: Unified Design-Token Pipeline
+current_phase_name: unified-design-token-pipeline
 status: executing
-stopped_at: Phase 12 UI-SPEC approved
-last_updated: "2026-07-26T19:09:49.592Z"
+stopped_at: Completed 12-01-PLAN.md (QS-03 STOP branch)
+last_updated: "2026-07-26T19:39:12.612Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 11 complete, transitioned to Phase 12
+last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 13
-  completed_plans: 5
+  completed_plans: 6
   percent: 14
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 12 — Unified Design-Token Pipeline
+**Current focus:** Phase 12 — unified-design-token-pipeline
 
 ## Current Position
 
-Phase: 12 — Unified Design-Token Pipeline
-Plan: Not started
+Phase: 12 (unified-design-token-pipeline) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Progress: [██████████] 100%
-Last activity: 2026-07-26 — Phase 11 complete, transitioned to Phase 12
+Progress: [█████░░░░░] 46%
+Last activity: 2026-07-26 — Phase 12 execution started
 
 ## Performance Metrics
 
@@ -134,6 +134,7 @@ Last activity: 2026-07-26 — Phase 11 complete, transitioned to Phase 12
 | Phase 11 P03 | 25min | 3 tasks | 2 files |
 | Phase 11 P04 | multi-session | 3 tasks | 3 files |
 | Phase 11 P05 | multi-session | 3 tasks | 8 files |
+| Phase 12 P01 | multi-session | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: Phase 11 verdict: PASS. QS-02 (sole stop-trigger) passed; criterion 5 screencopy feasibility confirmed (human-attested multi-window capture); permissions.conf ships mechanism-verified but inert, live enforcement deferred to Phase 16 OVER-04
 - [Phase ?]: Second Quickshell GlobalShortcut costs one manifest entry + one keybind line (D-17 confirmed), but requires a process restart to register — QML hot-reload alone is insufficient for new GlobalShortcut registration
 - [Phase ?]: HyprlandFocusGrab is exclusive per-compositor on this build: two Quickshell surfaces cannot be shown simultaneously; disclosed, non-blocking, relevant to Phases 14/16
+- [Phase ?]: QS-03 STOP: both bounded arrangements (Variants+LazyLoader in shell.qml; Variants rooted in Probe.qml) reproduce an FM2-class multi-screen fan-out failure on quickshell 0.3.0-2; modules/qmldir permanently closes FM1 (scanner race), confirmed clean across two 10-restart proofs and a real session restart. QS-03 left open, un-marked-complete; D-13 permanent-limitation decision deferred to Plan 12-02's opening checkpoint.
+- [Phase ?]: quickshell-doctor's one-step-per-press volume-probe gate is over-strict exact-match on rounding-sensitive raw units (pre-existing, Phase 11, unrelated to 12-01) — filed as pending todo quickshell-doctor-volume-probe-brittle, not fixed
 
 ### Quick Tasks Completed
 
@@ -246,9 +249,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T18:03:10.680Z
-Stopped at: Phase 12 UI-SPEC approved
-Resume file: /home/aorus/dotfiles/.planning/phases/12-unified-design-token-pipeline/12-UI-SPEC.md
+Last session: 2026-07-26T19:39:12.599Z
+Stopped at: Completed 12-01-PLAN.md (QS-03 STOP branch)
+Resume file: None
 
 ## Operator Next Steps
 
