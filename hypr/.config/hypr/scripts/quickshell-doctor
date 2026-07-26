@@ -26,11 +26,16 @@
 # ([left,top,right,bottom] pixel counts). Do NOT "simplify" this file
 # back into a `layers -j` grep for that field — it isn't there.
 #
-# Usage: quickshell-doctor [--no-summon]
-#   --no-summon   Downgrade the transient summon-and-diff reserved-space
-#                 check to a named [SKIP] line, for a headless/CI
-#                 context where dispatching a GlobalShortcut has no
-#                 compositor to land on.
+# Usage: quickshell-doctor [--no-summon] [--no-headless-output]
+#   --no-summon           Downgrade the transient summon-and-diff
+#                         reserved-space check to a named [SKIP] line, for
+#                         a headless/CI context where dispatching a
+#                         GlobalShortcut has no compositor to land on.
+#   --no-headless-output  Downgrade the QS-03 headless-output hotplug
+#                         group (add / per-screen surface creation /
+#                         reserved-unchanged / remove) to named [SKIP]
+#                         lines, for a context where mutating the live
+#                         monitor topology is undesirable.
 
 set -uo pipefail
 
@@ -44,9 +49,11 @@ KEYBIND_DOCTOR="$SCRIPT_DIR/keybind-doctor"
 US=$'\x1f'
 
 NO_SUMMON=0
+NO_HEADLESS_OUTPUT=0
 for arg in "$@"; do
     case "$arg" in
         --no-summon) NO_SUMMON=1 ;;
+        --no-headless-output) NO_HEADLESS_OUTPUT=1 ;;
     esac
 done
 
@@ -87,6 +94,14 @@ VOL_RESTORE_NEEDED=0
 VOL_ORIG_RAW=()
 BRI_RESTORE_NEEDED=0
 BRI_ORIG_RAW=""
+# T-11-15 (QS-03 headless-output group, Task 1): armed BEFORE `hyprctl
+# output create headless` runs below, same discipline as the
+# volume/brightness probes above — never remove a headless output this
+# run did not itself create, and never call this cleanup directly
+# in-line; the trap alone restores state so an interrupt mid-cycle can
+# never strand a stray virtual monitor registered on the session.
+HEADLESS_CREATED_NAME=""
+PROBE_SUMMONED_FOR_HEADLESS_TEST=0
 CLEANED_UP=0
 # shellcheck disable=SC2329 # invoked indirectly via `trap` below, not a direct call
 _qsd_cleanup() {
@@ -97,6 +112,14 @@ _qsd_cleanup() {
     fi
     if [[ "$BRI_RESTORE_NEEDED" -eq 1 && -n "$BRI_ORIG_RAW" ]]; then
         brightnessctl set "$BRI_ORIG_RAW" >/dev/null 2>&1
+    fi
+    if [[ "$PROBE_SUMMONED_FOR_HEADLESS_TEST" -eq 1 ]]; then
+        hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+        PROBE_SUMMONED_FOR_HEADLESS_TEST=0
+    fi
+    if [[ -n "$HEADLESS_CREATED_NAME" ]]; then
+        hyprctl output remove "$HEADLESS_CREATED_NAME" >/dev/null 2>&1
+        HEADLESS_CREATED_NAME=""
     fi
 }
 # EXIT alone covers normal completion; INT/TERM additionally terminate
@@ -326,6 +349,111 @@ else
         printf '%s' "$BASELINE_JSON" | jq --argjson d "$BRI_DELTA" '.brightness_step_delta_raw = $d' >"$BASELINE_FILE"
         check "one-step-per-press brightness probe: seeded baseline delta=${BRI_DELTA} (first run — no prior baseline)" "0"
     fi
+fi
+
+# ── 12. Headless-output hotplug (QS-03, 11-04 Task 1) — the one
+#    invasive-but-self-restoring group in this file. The removal trap
+#    (T-11-15, above) is armed BEFORE the create call below runs, never
+#    removes an output this run did not itself create, and never fires
+#    inline — only via the EXIT/INT/TERM trap. Guarded by name: if a
+#    monitor whose name already starts with HEADLESS exists before this
+#    group runs, it is left completely untouched (someone may be using a
+#    virtual output for their own reasons) and the whole group [SKIP]s.
+if [[ "$NO_HEADLESS_OUTPUT" -eq 1 ]]; then
+    echo "  [SKIP] headless output add (QS-03): disabled by --no-headless-output"
+    echo "  [SKIP] per-screen surface creation (QS-03): disabled by --no-headless-output"
+    echo "  [SKIP] reserved-space unchanged across hotplug (QS-03): disabled by --no-headless-output"
+    echo "  [SKIP] headless output remove (QS-03): disabled by --no-headless-output"
+elif ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    echo "  [SKIP] headless output add (QS-03): hyprctl or jq not found"
+    echo "  [SKIP] per-screen surface creation (QS-03): hyprctl or jq not found"
+    echo "  [SKIP] reserved-space unchanged across hotplug (QS-03): hyprctl or jq not found"
+    echo "  [SKIP] headless output remove (QS-03): hyprctl or jq not found"
+elif printf '%s\n' "$(hyprctl monitors -j 2>/dev/null | jq -r '.[].name')" | grep -q '^HEADLESS'; then
+    echo "  [SKIP] headless output add (QS-03): a monitor named HEADLESS* already exists — not touching it"
+    echo "  [SKIP] per-screen surface creation (QS-03): a monitor named HEADLESS* already exists — not touching it"
+    echo "  [SKIP] reserved-space unchanged across hotplug (QS-03): a monitor named HEADLESS* already exists — not touching it"
+    echo "  [SKIP] headless output remove (QS-03): a monitor named HEADLESS* already exists — not touching it"
+else
+    # Baseline — bookkeeping only, not itself a check() call.
+    QSD_BASELINE_NAMES=$(hyprctl monitors -j | jq -r '.[].name')
+    QSD_BASELINE_COUNT=$(printf '%s\n' "$QSD_BASELINE_NAMES" | grep -c .)
+    QSD_BASELINE_RESERVED=$(hyprctl monitors -j | jq -c '[.[] | {name, reserved}] | sort_by(.name)')
+
+    # ── Add ── never assume a specific fixed name for the new output
+    #    (Hyprland increments the numeric suffix across the session's
+    #    lifetime, so it is not always the first one): read the actual
+    #    name back from the monitor list, diffed against baseline.
+    hyprctl output create headless >/dev/null 2>&1
+    sleep 0.3
+    QSD_AFTER_ADD_NAMES=$(hyprctl monitors -j | jq -r '.[].name')
+    QSD_AFTER_ADD_COUNT=$(printf '%s\n' "$QSD_AFTER_ADD_NAMES" | grep -c .)
+    QSD_NEW_MONITOR=$(comm -13 <(printf '%s\n' "$QSD_BASELINE_NAMES" | sort) <(printf '%s\n' "$QSD_AFTER_ADD_NAMES" | sort) | head -1)
+    [[ -n "$QSD_NEW_MONITOR" ]] && HEADLESS_CREATED_NAME="$QSD_NEW_MONITOR"
+    check "headless output add: monitor count increased by exactly one (before: ${QSD_BASELINE_COUNT}, after: ${QSD_AFTER_ADD_COUNT}), new output name read from the monitor list (not assumed): ${QSD_NEW_MONITOR:-<none>}" \
+        "$([[ "$QSD_AFTER_ADD_COUNT" -eq $((QSD_BASELINE_COUNT + 1)) && -n "$QSD_NEW_MONITOR" ]] && echo 0 || echo 1)"
+
+    # ── Per-screen surface creation ── summon the probe and assert
+    #    hyprctl layers -j carries exactly one quickshell-probe entry
+    #    under DP-1's key AND exactly one under the new monitor's key,
+    #    with distinct addresses — not zero on the new screen (hotplug
+    #    missed), not two on either (duplicate), not one shared address
+    #    under both keys (the same surface listed twice).
+    if [[ -z "$QSD_NEW_MONITOR" ]]; then
+        check "per-screen surface creation (QS-03): skipped — no new monitor name was captured by the add step" "1"
+    else
+        hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+        PROBE_SUMMONED_FOR_HEADLESS_TEST=1
+        sleep 0.4
+        QSD_LAYERS_AFTER=$(hyprctl layers -j 2>/dev/null)
+        QSD_DP1_ADDRS=$(printf '%s' "$QSD_LAYERS_AFTER" | jq -r '(."DP-1".levels["3"] // [])[] | select(.namespace=="quickshell-probe") | .address' 2>/dev/null)
+        QSD_NEW_ADDRS=$(printf '%s' "$QSD_LAYERS_AFTER" | jq -r --arg m "$QSD_NEW_MONITOR" '(.[$m].levels["3"] // [])[] | select(.namespace=="quickshell-probe") | .address' 2>/dev/null)
+        QSD_DP1_COUNT=$(printf '%s\n' "$QSD_DP1_ADDRS" | grep -c . 2>/dev/null || true); QSD_DP1_COUNT=${QSD_DP1_COUNT:-0}
+        QSD_NEW_COUNT=$(printf '%s\n' "$QSD_NEW_ADDRS" | grep -c . 2>/dev/null || true); QSD_NEW_COUNT=${QSD_NEW_COUNT:-0}
+        QSD_SHARED_ADDR=0
+        if [[ -n "$QSD_DP1_ADDRS" && -n "$QSD_NEW_ADDRS" ]] \
+            && comm -12 <(printf '%s\n' "$QSD_DP1_ADDRS" | sort) <(printf '%s\n' "$QSD_NEW_ADDRS" | sort) | grep -q .; then
+            QSD_SHARED_ADDR=1
+        fi
+        check "per-screen surface creation (QS-03): exactly one quickshell-probe surface under DP-1 (found: ${QSD_DP1_COUNT}) and exactly one under ${QSD_NEW_MONITOR} (found: ${QSD_NEW_COUNT}), addresses distinct, not shared (shared: ${QSD_SHARED_ADDR})" \
+            "$([[ "$QSD_DP1_COUNT" -eq 1 && "$QSD_NEW_COUNT" -eq 1 && "$QSD_SHARED_ADDR" -eq 0 ]] && echo 0 || echo 1)"
+
+        hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+        PROBE_SUMMONED_FOR_HEADLESS_TEST=0
+        sleep 0.2
+    fi
+
+    # ── Reserved unchanged ── diff, never a hardcoded literal — every
+    #    monitor present at baseline must show a byte-identical reserved
+    #    array now that a new screen exists.
+    QSD_AFTER_RESERVED_BASELINE_SUBSET=$(hyprctl monitors -j | jq -c --argjson base "$QSD_BASELINE_RESERVED" \
+        '[.[] | select(.name as $n | ($base | map(.name) | index($n)) != null) | {name, reserved}] | sort_by(.name)')
+    QSD_RESERVED_DIFF=0
+    [[ "$QSD_BASELINE_RESERVED" != "$QSD_AFTER_RESERVED_BASELINE_SUBSET" ]] && QSD_RESERVED_DIFF=1
+    check "reserved-space unchanged across the hotplug cycle (QS-03): every baseline monitor's reserved array is byte-identical after the new screen appeared (changed: ${QSD_RESERVED_DIFF})" \
+        "$([[ "$QSD_RESERVED_DIFF" -eq 0 ]] && echo 0 || echo 1)"
+
+    # ── Remove ── dismiss, remove the headless output, assert the
+    #    monitor count returns to baseline, DP-1's probe is still
+    #    creatable, the shell process kept the same PID, and no
+    #    crash/abort marker landed in the launcher log during the cycle.
+    QSD_PRE_REMOVE_PID=$(pgrep -x quickshell | head -1)
+    hyprctl output remove "$QSD_NEW_MONITOR" >/dev/null 2>&1
+    HEADLESS_CREATED_NAME=""
+    sleep 0.3
+    QSD_AFTER_REMOVE_COUNT=$(hyprctl monitors -j | jq length)
+    QSD_POST_REMOVE_PID=$(pgrep -x quickshell | head -1)
+
+    hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    sleep 0.3
+    QSD_DP1_STILL_WORKS=$(hyprctl layers -j 2>/dev/null | jq -r '(."DP-1".levels["3"] // [])[] | select(.namespace=="quickshell-probe") | .address' | grep -c . 2>/dev/null || true)
+    QSD_DP1_STILL_WORKS=${QSD_DP1_STILL_WORKS:-0}
+    hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    sleep 0.2
+
+    QSD_CRASH_HITS=$(tail -n 30 "$LAUNCHER_LOG" 2>/dev/null | grep -ciE 'fatal|panic|segmentation fault|core dumped|\babort(ed)?\b')
+    check "headless output remove (QS-03): monitor count back to baseline (${QSD_AFTER_REMOVE_COUNT} == ${QSD_BASELINE_COUNT}), DP-1 probe still creatable (found: ${QSD_DP1_STILL_WORKS}), shell PID unchanged (${QSD_PRE_REMOVE_PID:-<none>} == ${QSD_POST_REMOVE_PID:-<none>}), no crash marker in launcher log (hits: ${QSD_CRASH_HITS})" \
+        "$([[ "$QSD_AFTER_REMOVE_COUNT" -eq "$QSD_BASELINE_COUNT" && "$QSD_DP1_STILL_WORKS" -eq 1 && -n "$QSD_PRE_REMOVE_PID" && "$QSD_PRE_REMOVE_PID" == "$QSD_POST_REMOVE_PID" && "$QSD_CRASH_HITS" -eq 0 ]] && echo 0 || echo 1)"
 fi
 
 echo ""
