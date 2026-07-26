@@ -8,6 +8,9 @@
 
 STATE_DIR="$HOME/.local/state/theme"
 
+# shellcheck source=lib/contract.sh
+source "$LIB_DIR/contract.sh"
+
 # theme_engine_commit <name> <tmp_dir>
 theme_engine_commit() {
     local name="$1"
@@ -28,8 +31,8 @@ theme_engine_commit() {
     # Atomic replace: state dir contents only change here, in one step,
     # after a fully successful render (D-14).
     #
-    # Deviation (fix, Plan 02-02 Task 2, D-40): --exclude=logs/ is
-    # required. Without it, a bare `rsync -a --delete` treats
+    # Deviation (fix, Plan 02-02 Task 2, D-40): excluding the logs
+    # directory is required. Without it, a bare `rsync -a --delete` treats
     # $STATE_DIR/logs/ (added in Plan 02-01 by theme-parity, D-45) as an
     # extraneous destination path not present in $rendered_dir (matugen
     # never renders a logs/ subdirectory — it is not part of the output
@@ -91,12 +94,41 @@ theme_engine_commit() {
     # WLOG-01 failure class this whole gap-closure plan exists to prevent,
     # and it would have hit the human at the very checkpoint this plan asks
     # them to run theme-apply live against.
-    rsync -a --delete --exclude=logs/ --exclude=last-wallpaper/ \
-        --exclude=current-theme --exclude=.last-render-error.log \
-        --exclude=icon-theme --exclude=font-choice \
-        --exclude=walker-relaunch.log \
-        --exclude=waybar-visibility.css \
-        "$rendered_dir"/ "$STATE_DIR"/
+    #
+    # TOKEN-03/D-29 (12-03, eighth occurrence — where the MECHANISM changes,
+    # not just the count): motion-scale is a seventh engine-owned root-level
+    # state file, holding the motion-scale-picker's pick (written by a
+    # future motion-switch.sh, read by lib/motion.sh) and never part of the
+    # rendered tree. Eight hand-added --exclude flags that must each be
+    # individually remembered on every future engine-owned file IS the bug
+    # class, not any one miss — this rsync call and theme-doctor's new
+    # state-manifest gate below now both read contract.json's
+    # engine_owned_files array instead, so adding a ninth file fixes both
+    # consumers at once and they cannot drift, the same reason contract.json
+    # already works for the matugen-rendered targets (D-30).
+    local engine_owned
+    engine_owned="$(contract_engine_owned_files)"
+    if [[ -z "$engine_owned" ]]; then
+        # An unreadable/empty array (jq missing, contract.json broken) must
+        # never fall through to a bare `rsync --delete` with zero
+        # exclusions — that IS the data-loss event this whole comment block
+        # documents. Abort the commit; the previous state dir is left
+        # completely untouched, which is the safe direction.
+        echo "commit.sh: engine_owned_files is empty or unreadable (jq missing or contract.json broken) — aborting commit rather than rsync --delete with no exclusions" >&2
+        return 1
+    fi
+
+    local -a exclude_flags=()
+    while IFS= read -r entry; do
+        [[ -z "$entry" ]] && continue
+        # A trailing-slash-less --exclude matches BOTH a file and a
+        # directory of that name (verified empirically) — the historical
+        # trailing slash on logs/ and last-wallpaper/ was documentation,
+        # never load-bearing, so the array can hold bare names uniformly.
+        exclude_flags+=(--exclude="$entry")
+    done <<< "$engine_owned"
+
+    rsync -a --delete "${exclude_flags[@]}" "$rendered_dir"/ "$STATE_DIR"/
 
     # rsync -a syncs the destination directory's own mode from the source
     # (matugen creates $rendered_dir with the process umask, typically

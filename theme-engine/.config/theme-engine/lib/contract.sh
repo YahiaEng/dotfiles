@@ -33,6 +33,25 @@ contract_presence_only_files() {
     jq -r '(.presence_only_files // [])[]' "$CONTRACT_JSON"
 }
 
+# contract_state_metadata_files
+# Emits the ordered list of state-dir metadata files (current-theme, mode)
+# that get a bare existence check, not format-dispatched parity.
+contract_state_metadata_files() {
+    jq -r '(.state_metadata_files // [])[]' "$CONTRACT_JSON"
+}
+
+# contract_engine_owned_files
+# Emits the ordered list of engine-owned root-level state paths (D-29) —
+# files/directories written by something OTHER than a matugen render pass
+# (motion-switch, wallpaper.sh, icon/font pickers, theme-parity's own log
+# dir, ...) that must survive commit.sh's rsync --delete. Single source for
+# BOTH commit.sh's --exclude flags and theme-doctor's state-manifest gate:
+# reading the same array means the two consumers cannot drift (the bug
+# class commit.sh's own comment block documents eight times over).
+contract_engine_owned_files() {
+    jq -r '(.engine_owned_files // [])[]' "$CONTRACT_JSON"
+}
+
 # contract_format <name>
 # Emits the format tag for a contract file (gtk-css | hypr-vars | kitty-kv |
 # toml | json | css-literal).

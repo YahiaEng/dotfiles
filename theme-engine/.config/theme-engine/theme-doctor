@@ -81,6 +81,39 @@ if [[ -n "$PRESENCE_ONLY_FILE_LIST" ]]; then
     done <<< "$PRESENCE_ONLY_FILE_LIST"
 fi
 
+# ── D-29 state-manifest gate: every entry directly under $STATE_DIR is
+#    accounted for by contract.json — a files[].name, a
+#    state_metadata_files entry, a presence_only_files entry, or a
+#    declared engine_owned_files path. An unaccounted file is exactly the
+#    silent-drift/data-loss bug class the engine_owned_files array exists
+#    to close (D-29) — this converts it from something discovered weeks
+#    later into an immediate, actionable gate failure that names the
+#    file. Degrades to a named [SKIP], never [FAIL], when jq is
+#    unavailable or $STATE_DIR doesn't exist yet (fresh install before the
+#    first theme-apply) — same discipline as every other guarded check in
+#    this file.
+if command -v jq >/dev/null 2>&1 && [[ -d "$STATE_DIR" ]]; then
+    KNOWN_STATE_ENTRIES="$( { contract_files; contract_presence_only_files; contract_state_metadata_files; contract_engine_owned_files; } 2>/dev/null | sort -u)"
+    if [[ -z "$KNOWN_STATE_ENTRIES" ]]; then
+        check "state-manifest: contract.json's declared file lists are readable (jq present, file non-empty)" "1"
+    else
+        UNACCOUNTED=""
+        EXAMINED=0
+        while IFS= read -r entry; do
+            [[ -z "$entry" ]] && continue
+            EXAMINED=$((EXAMINED + 1))
+            if ! printf '%s\n' "$KNOWN_STATE_ENTRIES" | grep -qx "$entry"; then
+                UNACCOUNTED="$UNACCOUNTED $entry"
+            fi
+        done < <(find "$STATE_DIR" -mindepth 1 -maxdepth 1 -printf '%f\n' 2>/dev/null)
+        UNACCOUNTED="$(echo "$UNACCOUNTED" | xargs)"
+        [[ -z "$UNACCOUNTED" ]]
+        check "state-manifest: all $EXAMINED entries under $STATE_DIR accounted for (unaccounted: ${UNACCOUNTED:-none})" "$?"
+    fi
+else
+    echo "  [SKIP] state-manifest gate (jq not found or $STATE_DIR does not exist)"
+fi
+
 # ── walker/yazi wiring symlinks point at the state dir ─────
 [[ -L "$HOME/.config/walker/themes/rice/style.css" ]] \
     && [[ "$(readlink -f "$HOME/.config/walker/themes/rice/style.css")" == "$STATE_DIR/walker-style.css" ]]

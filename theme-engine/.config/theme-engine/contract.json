@@ -23,5 +23,16 @@
     { "name": "ags.scss", "format": "scss-vars" }
   ],
   "state_metadata_files": ["current-theme", "mode"],
-  "presence_only_files": ["kitty-font.conf", "waybar-font.css"]
+  "presence_only_files": ["kitty-font.conf", "waybar-font.css"],
+  "engine_owned_files": [
+    "logs",
+    "last-wallpaper",
+    "current-theme",
+    ".last-render-error.log",
+    "icon-theme",
+    "font-choice",
+    "walker-relaunch.log",
+    "waybar-visibility.css",
+    "motion-scale"
+  ]
 }
