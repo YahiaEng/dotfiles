@@ -1,0 +1,8 @@
+[
+  {
+    "appid": "quickshell",
+    "name": "probe",
+    "chord": { "mods": "SUPER SHIFT", "key": "G" },
+    "description": "Summon the Quickshell instrumentation probe (QS-02 viability gate)"
+  }
+]

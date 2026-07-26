@@ -130,6 +130,12 @@ PACMAN_PKGS=(
     qt5-wayland
     qt6-wayland
 
+    # Quickshell (QS-01: official extra repo, not AUR — the only new line;
+    # pacman's own resolver pulls the whole Qt6 declarative/SVG stack and
+    # its stack-trace runtime dependency automatically, verified against
+    # 11-QUICKSHELL-EVIDENCE.md's captured `pacman -Si` Depends On closure)
+    quickshell
+
     # Misc
     libnotify
     python-gobject

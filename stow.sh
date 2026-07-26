@@ -25,6 +25,7 @@ PACKAGES=(
     hypr
     kitty
     matugen
+    quickshell
     swaync
     swayosd
     theme-engine
@@ -67,6 +68,15 @@ mkdir -p "$HOME/.config/fish/functions" "$HOME/.config/fish/conf.d" "$HOME/.conf
 # tracked content), and it must land in a real directory, never inside the
 # repo via a folded stow symlink.
 mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
+
+# D-19: pre-create ~/.config/quickshell as a real directory, same
+# rationale as fish/gtk-3.0/gtk-4.0 above — a genuinely fresh target keeps
+# quickshell/ eligible for stow's whole-directory fold (a single symlink
+# at ~/.config/quickshell), but this repo's convention (and the phase 11
+# tracer's own verification) expects per-file symlinks
+# (~/.config/quickshell/shell.qml itself resolving as a symlink), so the
+# parent must already exist as a real directory before stow runs.
+mkdir -p "$HOME/.config/quickshell"
 
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
