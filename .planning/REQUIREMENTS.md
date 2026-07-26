@@ -17,8 +17,8 @@
 - [x] **QS-02**: A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface running on Hyprland 0.56.0 — proven on a throwaway `PanelWindow` **before any feature is built on the toolkit**, with authority to stop the milestone
 - [ ] **QS-03**: Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug
 - [ ] **QS-04**: Editing Quickshell config hot-reloads the running shell without a manual restart
-- [ ] **QS-05**: The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind
-- [ ] **QS-06**: No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner
+- [x] **QS-05**: The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind
+- [x] **QS-06**: No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner
 
 ### Design Token Pipeline (TOKEN)
 
@@ -128,8 +128,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | QS-02 | Phase 11 — Quickshell Viability Gate | Complete |
 | QS-03 | Phase 11 — Quickshell Viability Gate | Pending |
 | QS-04 | Phase 11 — Quickshell Viability Gate | Pending |
-| QS-05 | Phase 11 — Quickshell Viability Gate | Pending |
-| QS-06 | Phase 11 — Quickshell Viability Gate | Pending |
+| QS-05 | Phase 11 — Quickshell Viability Gate | Complete |
+| QS-06 | Phase 11 — Quickshell Viability Gate | Complete |
 | TOKEN-01 | Phase 12 — Unified Design-Token Pipeline | Pending |
 | TOKEN-02 | Phase 12 — Unified Design-Token Pipeline | Pending |
 | TOKEN-03 | Phase 12 — Unified Design-Token Pipeline | Pending |
