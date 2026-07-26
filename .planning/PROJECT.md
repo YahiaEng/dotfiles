@@ -109,6 +109,8 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 
 ## Current State
 
+**In progress: v3.0 Quickshell Foundation & Motion Language** — Phase 11 (Quickshell viability gate) and **Phase 12 (Unified Design-Token Pipeline, complete 2026-07-27)** done. Phase 12 landed the one-source token pipeline: `theme-engine/motion.json` is the single hand-authored motion source, `lib/motion.sh` renders it to QML, GTK4 CSS and Hyprland in one `theme-apply` run, `motion-switch.sh` gives it a runtime normal/reduced/off axis, and `motion-lint` (folded into `theme-doctor`) refuses any surface hand-rolling a raw or dangling motion value. Quickshell gained live `Colours`/`Motion` singletons reading `~/.local/state/theme/` plus a token inspector. TOKEN-01..05 complete; TOKEN-06 satisfied by a recorded "not adopted" verdict; QS-03 dropped to Out of Scope under D-13. Gates at close: `theme-doctor` 180/0, `theme-parity` 1985/0, `motion-lint` 37/0 (+10/0 self-test), `quickshell-doctor` 13/0.
+
 **Shipped: v2.0 Desktop Expansion (2026-07-25)** — 7 phases (4-10), 64 plans, 444 commits, 488 files (+57,232 / −3,151) over 16 days. All 36 v2 requirements verified; every phase closed `verification_status: passed`; open-artifact audit clear at close.
 
 **Shipped: v1.0 Theme Pipeline Repair (2026-07-09)** — 3 phases, 9 plans, 98 commits, 160 files (+13,636 / −1,176) over 3 days. All 19 v1 requirements verified; milestone audit passed.
@@ -122,6 +124,7 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
   - Advisory review items open from Phase 4 (`04-REVIEW.md` WR-01..04): fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot.
   - Stale `eww-media-popup` layerrules remain in `hypr/.config/hypr/config/windowrules.conf` (lines 259, 272) after Phase 10 retired that window — inert (no client ever claims the namespace) but dead config.
   - The container-tier D-34/D-36 reproducibility rerun has been deferred since Phase 7 pending push authorization; it is unblocked as of the v2.0 push.
+  - `theme-stress-test` cannot reach a full 10/10 run while `wallpapers/Pictures/Wallpapers/current.jpg` is a tracked symlink: `lib/wallpaper.sh:65` repoints it on every static theme switch, dirtying the tree and tripping `theme-doctor`'s clean-tree invariant (both checks date to phase 03-03). Found by actually running the committed harness at Phase 12 close — switches 1-4 passed, #5 (`dracula`) failed. Root cause and two fix options in WINDOWS.md #9; owned by Phase 13.
 
 ## Constraints
 
@@ -183,4 +186,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-26 after scoping the v3.0 Quickshell Foundation & Motion Language milestone*
+*Last updated: 2026-07-27 after Phase 12 (Unified Design-Token Pipeline) completed*
