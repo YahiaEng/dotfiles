@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 11
 current_phase_name: quickshell-viability-gate
 status: executing
-stopped_at: Completed 11-03-PLAN.md — quickshell-doctor built, QS-05/QS-06 PASS
-last_updated: "2026-07-26T09:06:48.414Z"
+stopped_at: Completed 11-04-PLAN.md — QS-04 closed, QS-03 hotplug gate built with an honestly-recorded open per-screen-mounting gap, suspend/resume proven
+last_updated: "2026-07-26T11:01:24.515Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 11 (quickshell-viability-gate) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 Last activity: 2026-07-26 — Phase 11 execution started
 
 ## Performance Metrics
@@ -131,6 +131,7 @@ Last activity: 2026-07-26 — Phase 11 execution started
 | Phase 11 P01 | multi-session | 3 tasks | 10 files |
 | Phase 11 P02 | 25min | 3 tasks | 4 files |
 | Phase 11 P03 | 25min | 3 tasks | 2 files |
+| Phase 11 P04 | multi-session | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -158,6 +159,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: QS-02 PASSED on first attempt under WlrKeyboardFocus.OnDemand — no Exclusive escalation needed; Phase 14's drawer inherits OnDemand as the default
 - [Phase ?]: keybind-doctor repaired: dropped hyprctl binds -j (field-misaligned on Hyprland 0.56.0, not malformed) for plain-text parsing with a named shape guard; extended to cross-check Quickshell GlobalShortcut manifest against hyprctl globalshortcuts (D-16/D-17); D-18 poisoned-fixture proof confirmed the collision check fires; ROADMAP/REQUIREMENTS wording amended per D-15
 - [Phase ?]: quickshell-doctor established: before/during/after diff for hyprctl monitors -j reserved array (never a hardcoded literal); trap-armed-before-mutation restore pattern for volume/brightness probes; QS-05/QS-06 both PASS
+- [Phase ?]: QS-03 per-screen mounting fix (Variants-based) attempted and reverted after two independent live-daemon reliability regressions; recorded as an open, non-blocking gap per D-10
+- [Phase ?]: QS-04 open question #1 answered affirmatively: FileView/JsonAdapter needs zero reload.sh involvement; lib/reload.sh left untouched (D-13 negative branch)
 
 ### Quick Tasks Completed
 
@@ -211,6 +214,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - ~~hyprlock lockout-recovery discipline and clipboard size-cap/wipe policy~~ — closed: both shipped in-phase (recovery procedure documented and UAT'd; 100-item cap + session-end/manual wipe).
 - ~~Phase 7 Plan 01 (D-05 spike) BLOCKED: walker 2.16.2's `-s <name>` GUI-mode invocation panics and aborts the walker daemon~~ — **RESOLVED 2026-07-13** (plans amended in 117edc9). Adopted `-m/--provider` exclusive-provider mode. **Two durable findings kept:** (1) `walker -s <set>` / `[sets.*]` is a dead mechanism on walker 2.16.2 (panic, `src/data.rs:566`) — do not reintroduce it; (2) it failed on the shipped `[sets.runner]` block too, so **`Super+R` was already broken in production** — pre-existing, fixed in 07-02 Task 1b. Root cause of the bad design: 07-RESEARCH.md claimed `walker -s runner` "already ships and works" based on reading the config file, never running it — the project's own "verify against the installed binary" rule, unapplied to the research itself.
 - Phase 11 Plan 01 Task 1 blocked: sudo pacman -S --needed quickshell requires an interactive password; no operator responded in this executor session. Halted before any install/edit. Also noted: hyprctl monitors -j currently reports only a 'FALLBACK' 1920x1080 output, not the expected physical DP-1 — operator should confirm the physical monitor is connected before performing Task 3's human gate.
+- QS-03 per-screen mounting gap (Phase 11, 11-04): headless output added after shell startup gets zero probe surfaces — genuine, mechanically-verified defect. Variants-based fix attempted and reverted (two independent reliability regressions on this quickshell 0.3.0 build). Not a stop-trigger (D-10); open for a future plan.
 
 ## Deferred Items
 
@@ -230,8 +234,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T09:06:48.406Z
-Stopped at: Completed 11-03-PLAN.md — quickshell-doctor built, QS-05/QS-06 PASS
+Last session: 2026-07-26T11:01:24.501Z
+Stopped at: Completed 11-04-PLAN.md — QS-04 closed, QS-03 hotplug gate built with an honestly-recorded open per-screen-mounting gap, suspend/resume proven
 Resume file: None
 
 ## Operator Next Steps

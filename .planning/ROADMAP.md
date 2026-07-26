@@ -87,7 +87,7 @@ MAINT-01..03 are small, thematically unrelated carry-ins. They are folded into p
 
 **Open questions owned**: (1) Does `FileView`/`JsonAdapter` property propagation truly need zero `reload.sh` involvement? (5) Hyprland `PERMISSION_TYPE_SCREENCOPY` mechanics and the exact `ecosystem.conf` stanza — investigated here, relied on by Phase 16.
 **Owns**: The viability gate itself (the eww failure class in QML clothing) and same-commit stow registration.
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 **Wave 1**
 
 - [x] 11-01-PLAN.md — Tracer: install quickshell, ship the `quickshell/` package registered in one commit, prove human click/type/click-outside-dismiss (QS-01, QS-02; STOP authority)
@@ -102,7 +102,7 @@ MAINT-01..03 are small, thematically unrelated carry-ins. They are folded into p
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 11-04-PLAN.md — Durability: headless-output hotplug, hot reload, `FileView`/`JsonAdapter` propagation, suspend/resume (QS-03, QS-04)
+- [x] 11-04-PLAN.md — Durability: headless-output hotplug, hot reload, `FileView`/`JsonAdapter` propagation, suspend/resume (QS-03, QS-04)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -225,7 +225,7 @@ MAINT-01..03 are small, thematically unrelated carry-ins. They are folded into p
 | 8. Waybar Evolution | v2.0 | 16/16 | Complete | 2026-07-15 |
 | 9. wlogout to wleave Migration | v2.0 | 4/4 | Complete | 2026-07-25 |
 | 10. AGS Media Applet | v2.0 | 6/6 | Complete | 2026-07-15 |
-| 11. Quickshell Viability Gate | v3.0 | 3/5 | In Progress|  |
+| 11. Quickshell Viability Gate | v3.0 | 4/5 | In Progress|  |
 | 12. Unified Design-Token Pipeline | v3.0 | 0/TBD | Not started | - |
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 0/TBD | Not started | - |
 | 14. Dashboard Drawer | v3.0 | 0/TBD | Not started | - |
