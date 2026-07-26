@@ -4,17 +4,17 @@ milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 11
 current_phase_name: quickshell-viability-gate
-status: executing
-stopped_at: Completed 11-04-PLAN.md — QS-04 closed, QS-03 hotplug gate built with an honestly-recorded open per-screen-mounting gap, suspend/resume proven
-last_updated: "2026-07-26T11:01:24.515Z"
+status: verifying
+stopped_at: Completed 11-05-PLAN.md — Phase 11 verdict PASS, screencopy feasibility confirmed, permissions.conf shipped inert
+last_updated: "2026-07-26T11:37:38.503Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 11 execution started
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 0
+  completed_plans: 5
+  percent: 14
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 Phase: 11 (quickshell-viability-gate) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
-Progress: [████████░░] 80%
+Status: Phase complete — ready for verification
+Progress: [██████████] 100%
 Last activity: 2026-07-26 — Phase 11 execution started
 
 ## Performance Metrics
@@ -132,6 +132,7 @@ Last activity: 2026-07-26 — Phase 11 execution started
 | Phase 11 P02 | 25min | 3 tasks | 4 files |
 | Phase 11 P03 | 25min | 3 tasks | 2 files |
 | Phase 11 P04 | multi-session | 3 tasks | 3 files |
+| Phase 11 P05 | multi-session | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -161,6 +162,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: quickshell-doctor established: before/during/after diff for hyprctl monitors -j reserved array (never a hardcoded literal); trap-armed-before-mutation restore pattern for volume/brightness probes; QS-05/QS-06 both PASS
 - [Phase ?]: QS-03 per-screen mounting fix (Variants-based) attempted and reverted after two independent live-daemon reliability regressions; recorded as an open, non-blocking gap per D-10
 - [Phase ?]: QS-04 open question #1 answered affirmatively: FileView/JsonAdapter needs zero reload.sh involvement; lib/reload.sh left untouched (D-13 negative branch)
+- [Phase ?]: Phase 11 verdict: PASS. QS-02 (sole stop-trigger) passed; criterion 5 screencopy feasibility confirmed (human-attested multi-window capture); permissions.conf ships mechanism-verified but inert, live enforcement deferred to Phase 16 OVER-04
+- [Phase ?]: Second Quickshell GlobalShortcut costs one manifest entry + one keybind line (D-17 confirmed), but requires a process restart to register — QML hot-reload alone is insufficient for new GlobalShortcut registration
+- [Phase ?]: HyprlandFocusGrab is exclusive per-compositor on this build: two Quickshell surfaces cannot be shown simultaneously; disclosed, non-blocking, relevant to Phases 14/16
 
 ### Quick Tasks Completed
 
@@ -234,8 +238,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T11:01:24.501Z
-Stopped at: Completed 11-04-PLAN.md — QS-04 closed, QS-03 hotplug gate built with an honestly-recorded open per-screen-mounting gap, suspend/resume proven
+Last session: 2026-07-26T11:37:38.494Z
+Stopped at: Completed 11-05-PLAN.md — Phase 11 verdict PASS, screencopy feasibility confirmed, permissions.conf shipped inert
 Resume file: None
 
 ## Operator Next Steps
