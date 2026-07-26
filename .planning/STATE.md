@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 12
 current_phase_name: unified-design-token-pipeline
 status: executing
-stopped_at: Completed 12-01-PLAN.md (QS-03 STOP branch)
-last_updated: "2026-07-26T19:39:12.612Z"
+stopped_at: Completed 12-03-PLAN.md (motion pipeline spine + D-29 gate)
+last_updated: "2026-07-26T20:00:36.683Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 13
-  completed_plans: 6
+  completed_plans: 7
   percent: 14
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 12 (unified-design-token-pipeline) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
-Progress: [█████░░░░░] 46%
+Progress: [█████░░░░░] 54%
 Last activity: 2026-07-26 — Phase 12 execution started
 
 ## Performance Metrics
@@ -135,6 +135,7 @@ Last activity: 2026-07-26 — Phase 12 execution started
 | Phase 11 P04 | multi-session | 3 tasks | 3 files |
 | Phase 11 P05 | multi-session | 3 tasks | 8 files |
 | Phase 12 P01 | multi-session | 2 tasks | 5 files |
+| Phase 12 P03 | 40min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -169,6 +170,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: HyprlandFocusGrab is exclusive per-compositor on this build: two Quickshell surfaces cannot be shown simultaneously; disclosed, non-blocking, relevant to Phases 14/16
 - [Phase ?]: QS-03 STOP: both bounded arrangements (Variants+LazyLoader in shell.qml; Variants rooted in Probe.qml) reproduce an FM2-class multi-screen fan-out failure on quickshell 0.3.0-2; modules/qmldir permanently closes FM1 (scanner race), confirmed clean across two 10-restart proofs and a real session restart. QS-03 left open, un-marked-complete; D-13 permanent-limitation decision deferred to Plan 12-02's opening checkpoint.
 - [Phase ?]: quickshell-doctor's one-step-per-press volume-probe gate is over-strict exact-match on rounding-sensitive raw units (pre-existing, Phase 11, unrelated to 12-01) — filed as pending todo quickshell-doctor-volume-probe-brittle, not fixed
+- [Phase ?]: 12-03: motion.json's floor_ms lives as data, not a shell constant, so the multiplier table and floor retune together as a data edit
+- [Phase ?]: 12-03: engine_owned_files array now drives BOTH commit.sh's rsync excludes and theme-doctor's new D-29 state-manifest gate — closed a bug class that had drifted 8 times; ags.scss (Phase 10 AGS applet) was a pre-existing contract.json gap closed alongside it with a new scss-vars format
 
 ### Quick Tasks Completed
 
@@ -249,8 +252,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T19:39:12.599Z
-Stopped at: Completed 12-01-PLAN.md (QS-03 STOP branch)
+Last session: 2026-07-26T20:00:36.673Z
+Stopped at: Completed 12-03-PLAN.md (motion pipeline spine + D-29 gate)
 Resume file: None
 
 ## Operator Next Steps
