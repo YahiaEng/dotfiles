@@ -28,6 +28,14 @@ source "$LIB_DIR/mode.sh"
 # shellcheck source=lib/font.sh
 source "$LIB_DIR/font.sh"
 
+# TOKEN-03/D-01: motion is the THIRD theme-orthogonal state axis (after
+# icon-theme and font-choice) — lib/motion.sh owns its own render path
+# (motion.json, gtk-4.0-motion.css, hyprland-motion.conf) and its own
+# render-time validation pass (D-02(a)/D-09), same call-site shape as
+# font.sh directly above.
+# shellcheck source=lib/motion.sh
+source "$LIB_DIR/motion.sh"
+
 # theme_engine_generate <name> <tmp_dir>
 # name: "materialyou" or a validated static preset name (theme-apply already
 #       checked palettes/$name.json exists before calling this).
@@ -87,6 +95,15 @@ theme_engine_generate() {
     # which theme/mode is active (independent axis, same call-site shape as
     # the gtk-settings render right above it).
     theme_engine_render_font_files "$tmp"
+
+    # TOKEN-03/D-01: motion is the third theme-orthogonal axis, re-rendered
+    # on EVERY run regardless of which theme/mode is active — same shape as
+    # the font-choice render right above it. Its return is propagated (not
+    # swallowed): a failed motion render must fail the whole generate step,
+    # since the emitted hyprland-motion.conf fragment is one Hyprland will
+    # parse, and theme-apply already routes a non-zero return here into
+    # .last-render-error.log while leaving the desktop unchanged.
+    theme_engine_render_motion_files "$tmp" || return 1
 
     return 0
 }

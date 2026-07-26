@@ -1,0 +1,39 @@
+{
+  "_comment": "Sole source for every duration and control-point number the theme-engine emits (D-05). Every consumer resolves a semantic name — never a copied/inlined literal. The 'motion-' prefix on emitted Hyprland curve names is a deliberate collision guard against animations.conf's 12 hand-authored beziers (D-04: additive only, nothing rewired this phase).",
+  "durations": {
+    "short1": 50,
+    "short2": 100,
+    "short3": 150,
+    "short4": 200,
+    "medium1": 250,
+    "medium2": 300,
+    "medium3": 350,
+    "medium4": 400,
+    "long1": 450,
+    "long2": 500,
+    "long3": 550,
+    "long4": 600,
+    "extra-long1": 700,
+    "extra-long2": 800,
+    "extra-long3": 900,
+    "extra-long4": 1000
+  },
+  "easings": {
+    "standard": [0.2, 0, 0, 1],
+    "emphasized-decelerate": [0.05, 0.7, 0.1, 1],
+    "emphasized-accelerate": [0.3, 0, 0.8, 0.15],
+    "linear": [1, 1, 1, 1]
+  },
+  "semantic": {
+    "standard": { "duration": "short4", "easing": "standard" },
+    "emphasized-in": { "duration": "medium2", "easing": "emphasized-decelerate" },
+    "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" }
+  },
+  "scales": {
+    "off": { "multiplier": 1.0, "animations_enabled": false },
+    "reduced": { "multiplier": 0.5, "animations_enabled": true },
+    "normal": { "multiplier": 1.0, "animations_enabled": true },
+    "lively": { "multiplier": 1.25, "animations_enabled": true }
+  },
+  "floor_ms": 40
+}
