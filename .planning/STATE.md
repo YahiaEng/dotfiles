@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 12
 current_phase_name: unified-design-token-pipeline
 status: executing
-stopped_at: Completed 12-04-PLAN.md (motion-scale CLI + Hyprland D-22 wiring + hyprctl readback/D-31 byte-identity gates)
-last_updated: "2026-07-26T20:29:52.773Z"
+stopped_at: Completed 12-05-PLAN.md (motion-lint deny-by-default gate, 9 fixtures, theme-doctor fold)
+last_updated: "2026-07-26T20:56:15.235Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 13
-  completed_plans: 9
+  completed_plans: 10
   percent: 14
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 12 (unified-design-token-pipeline) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
-Progress: [███████░░░] 69%
+Progress: [████████░░] 77%
 Last activity: 2026-07-26 — Phase 12 execution started
 
 ## Performance Metrics
@@ -138,6 +138,7 @@ Last activity: 2026-07-26 — Phase 12 execution started
 | Phase 12 P03 | 40min | 3 tasks | 8 files |
 | Phase 12 P02 | ~15min | 3 tasks | 5 files |
 | Phase 12 P04 | 45min | 3 tasks | 8 files |
+| Phase 12 P05 | 20min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -179,6 +180,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 12-04: motion-scale CLI + GSettings enable-animations wired; fixed jq `// empty` bug in motion.sh that silently broke the 'off' preset (JSON false treated as absent)
 - [Phase ?]: 12-04: hyprland.conf sources hyprland-motion.conf before config/animations.conf (D-22); stow.sh seeds motion-scale + rendered motion files by invoking motion.sh's renderer, never a stub (D-30)
 - [Phase ?]: 12-04: theme-doctor's hyprctl readback and theme-parity's D-31 byte-identity assertion both proven to fail before being trusted to pass; Hyprland silently DROPS a malformed bezier curve rather than clamping/erroring — the concrete observed failure mode
+- [Phase ?]: 12-05: motion-lint (waybar-design-lint shape + keybind-doctor path-argument precedent) folded into theme-doctor — CHECK A reference resolution, CHECK B raw-value refusal, CHECK C scanned-count floor, 7-entry exemption list, 9 committed compliant/poisoned fixtures with a --self-test mode
+- [Phase ?]: 12-05: fixed 3 Rule-1 bugs found live — os.walk() default not following stow's symlinked subdirectories silently dropped surfaces; QML definition set omitted motionEnabled (Pitfall 4); the default scan picked up the lint's own fixtures directory nested inside the hypr config tree
 
 ### Quick Tasks Completed
 
@@ -259,8 +262,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T20:29:52.762Z
-Stopped at: Completed 12-04-PLAN.md (motion-scale CLI + Hyprland D-22 wiring + hyprctl readback/D-31 byte-identity gates)
+Last session: 2026-07-26T20:56:15.223Z
+Stopped at: Completed 12-05-PLAN.md (motion-lint deny-by-default gate, 9 fixtures, theme-doctor fold)
 Resume file: None
 
 ## Operator Next Steps
