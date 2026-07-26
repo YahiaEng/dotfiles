@@ -7,17 +7,22 @@
 
 # Phase 11: Quickshell Viability Gate — Evidence
 
-**Verdict:** PENDING (QS-02 human gate not yet run — see Task 3)
+Verdict: PASS
+
+QS-02's human-clicked gate passed on 2026-07-26 (11-01 Task 3): pointer click, keyboard
+input (including non-ASCII), and click-outside dismiss all worked on the first live test,
+under `WlrKeyboardFocus.OnDemand` — no escalation to `Exclusive` was needed. v3.0 continues
+as roadmapped; Phases 12-17 stand; the registration commit set (`1aea012`) stays.
 
 ## Gate table
 
 | Gate | Criterion (verbatim) | Method | Instrument | Raw result | PASS/FAIL |
 |---|---|---|---|---|---|
-| QS-01 | `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package | `pacman -Qi quickshell`; `git show --stat` on the registration commit | pacman, git | Installed 0.3.0-2 from `extra`; registration commit lands in Task 2 (`install.sh` + `stow.sh` + `quickshell/` package together) | PENDING (Task 2) |
-| QS-02 | A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface on Hyprland 0.56.0 | Human-clicked live test at the keyboard | `PanelWindow` probe, `HyprlandFocusGrab` | — | PENDING (Task 3) |
+| QS-01 | `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package | `pacman -Qi quickshell`; `git show --stat` on the registration commit | pacman, git | Installed 0.3.0-2 from `extra`; commit `1aea012` contains `install.sh` + `stow.sh` + the whole `quickshell/` package + launcher + autostart + keybind together (D-11) | PASS |
+| QS-02 | A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface on Hyprland 0.56.0 | Human-clicked live test at the keyboard | `PanelWindow` probe, `HyprlandFocusGrab` | All three sub-criteria passed on first attempt under `WlrKeyboardFocus.OnDemand` — see Dated gate log below | **PASS** |
 | QS-03 | Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug | `hyprctl output create/remove headless` + probe summon on each output | hyprctl | — | PENDING (plan 04) |
 | QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | — | PENDING (plan 03/04) |
-| QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `hyprctl layers -j` / `monitors -j` diff, `quickshell-doctor` | hyprctl, quickshell-doctor | Baseline (pre-Quickshell): `monitors -j` reserved `[0,46,0,0]` on DP-1; `layers -j` level 3 empty; `globalshortcuts` reports `none` | PENDING (Task 2/plan 03) |
+| QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `hyprctl layers -j` / `monitors -j` diff, `quickshell-doctor` | hyprctl, quickshell-doctor | Baseline (pre-Quickshell): `monitors -j` reserved `[0,46,0,0]` on DP-1; `layers -j` level 3 empty; `globalshortcuts` reports `none`. Post-Task 2/Task 3: `globalshortcuts` reports `quickshell:probe`; `reserved` unchanged at `[0,46,0,0]`; level 3 empty while headless, exactly one `quickshell-probe` entry while summoned. Full `quickshell-doctor` mechanical gate (busctl owner check etc.) is plan 03's scope | PARTIAL — record-and-continue (D-10); autostart/coexistence sub-checks this plan can observe all PASS, full gate lands in plan 03 |
 | QS-06 | No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner | `busctl --user list` single-owner check | busctl, quickshell-doctor | — | PENDING (plan 03) |
 | MAINT-01 | `keybind-doctor` correctly cross-checks Quickshell-claimed shortcuts against Hyprland's registered set (amended per D-15 to plain-text `hyprctl binds` parsing) | Poisoned-fixture proof (D-18) | keybind-doctor | — | PENDING (plan 02) |
 
@@ -204,14 +209,47 @@ cross-check is measured against. Any later non-`none` output that contains `quic
 headless `FALLBACK` 1920x1080 output with all DRM connectors disconnected. That has been
 resolved — `card1-DP-1` now reports `connected` and Hyprland reports a single real monitor,
 `DP-1`, at 2560x1440 with `reserved=[0,46,0,0]` and `focused=true`, as captured above. Task
-3's screen-name check should read `DP-1`.
+3's screen-name check read `DP-1`, confirmed — see the Dated gate log below.
 
 ## Dated gate log
 
 Appended to across Phase 11's plans (01-05) and by later phases (14-16) per D-05. Each
 entry carries the date, the sub-criterion, and the raw observed result.
 
-(No entries yet — QS-02's human gate is Task 3 of this plan.)
+### 2026-07-26 — 11-01 Task 3 (QS-02 human input-viability gate)
+
+Performed by the operator at the keyboard of the live Hyprland 0.56.0 session on `DP-1`,
+against quickshell pid `305053` (`quickshell -p /home/aorus/.config/quickshell`), summoned
+via `Super+Shift+G`. **All five sub-criteria PASS, human-attested:**
+
+- **[PASS] Pointer:** clicking "Click me" incremented the visible counter; reached 4 after
+  four clicks, as instructed.
+- **[PASS] Keyboard:** typed input, including non-ASCII characters, appeared correctly in
+  the text field in the order typed, with no mojibake and no dropped accents — under
+  `WlrKeyboardFocus.OnDemand` (no escalation to `Exclusive` needed).
+- **[PASS] Click-outside dismiss:** clicking anywhere outside the panel cleared
+  `HyprlandFocusGrab` and hid the panel (`onCleared` -> `dismissRequested()` ->
+  `probeLoader.active = false`).
+- **[PASS] Screen-name check:** the panel's screen label read `DP-1`, matching the sole
+  physical monitor on this host.
+- **[PASS] Absent-state-file default:** `~/.local/state/quickshell/probe.json` was absent
+  throughout; the state label rendered the `JsonAdapter`'s declared default (`unset`); the
+  shell process did not crash (`WARN scene: ... File does not exist` logged, process stayed
+  alive — orchestrator-verified pid `305053` still running).
+
+**Supporting mechanical facts, observed live immediately before the gate was handed over**
+(orchestrator-verified, used here as raw observed results rather than re-derived):
+- `hyprctl layers -j | jq '[.[].levels["3"][]] | length'` = `0` while headless.
+- `hyprctl globalshortcuts` reports `quickshell:probe` (baseline was the literal `none`).
+- `hyprctl monitors -j | jq -c '[.[].reserved]'` = `[[0,46,0,0]]` — unchanged, zero
+  exclusive zone claimed by Quickshell.
+- Stow symlinks live: `~/.config/quickshell/{shell.qml,modules,shortcuts.json}` all resolve
+  into the repo.
+- D-11 satisfied: `install.sh` and `stow.sh` are both inside commit `1aea012`, the same
+  commit that created the `quickshell/` package.
+
+**Verdict: PASS.** v3.0 continues as roadmapped. No escalation to `WlrKeyboardFocus.Exclusive`
+recorded — `OnDemand` is the standing convention Phase 14's drawer inherits.
 
 ## Reproduce
 
