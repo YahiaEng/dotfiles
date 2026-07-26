@@ -53,7 +53,7 @@ PanelWindow {
     // rather than crashing.
     FileView {
         id: probeState
-        path: "/home/aorus/.local/state/quickshell/probe.json"
+        path: Quickshell.env("HOME") + "/.local/state/quickshell/probe.json"
         watchChanges: true
         onFileChanged: reload()
         onAdapterUpdated: writeAdapter()
