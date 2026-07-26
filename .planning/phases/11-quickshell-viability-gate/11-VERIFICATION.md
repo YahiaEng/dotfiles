@@ -4,7 +4,7 @@ verified: 2026-07-26T11:49:32Z
 status: gaps_found
 score: 6/9 must-haves verified
 behavior_unverified: 2
-overrides_applied: 0
+overrides_applied: 1
 gaps:
   - truth: "Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug (QS-03 / ROADMAP criterion 2)"
     status: failed
@@ -39,6 +39,11 @@ behavior_unverified_items:
     test: "Remove every monitor (impossible to test safely on a single-monitor host without killing the session) and confirm the quickshell process stays alive and remounts surfaces when an output returns"
     expected: "quickshell process survives with 0 outputs and re-creates its surface(s) when an output reappears"
     why_human: "Deliberately never exercised — this host has exactly one physical monitor, and removing it would kill the graphical session running the verification itself. Disclosed as untested in 11-QUICKSHELL-EVIDENCE.md 'Findings and Caveats'"
+overrides:
+  - must_have: "Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug (QS-03 / ROADMAP criterion 2)"
+    reason: "D-10: only QS-02 carries STOP authority this phase, so QS-03's per-screen-mounting gap is a disclosed, non-blocking finding rather than a phase-goal blocker. A Variants-based fix was written in 11-04 and reverted after it introduced two independent live-daemon reliability regressions on quickshell 0.3.0 — an intermittent config-load race and a post-hotplug visibility break — and shipping that against the always-on autostart daemon was judged worse than the gap it closed. This host has exactly one physical monitor, so the defect has no present user-visible impact. The requirement is not dropped: ownership moves to Phase 12 (Unified Design-Token Pipeline), the first phase that needs a permanent non-summoned QML surface and therefore has to solve per-screen fan-out anyway — see the Phase 12 Requirements line and success criterion 6 in ROADMAP.md, and the QS-03 row in REQUIREMENTS.md traceability."
+    accepted_by: "YahiaEng"
+    accepted_at: "2026-07-26T12:07:57Z"
 ---
 
 # Phase 11: Quickshell Viability Gate Verification Report
@@ -200,3 +205,34 @@ No such override is suggested for the three code-review findings (CR-01/02/03) �
 
 _Verified: 2026-07-26T11:49:32Z_
 _Verifier: Claude (gsd-verifier)_
+
+## Addendum — 2026-07-26 (post-verification)
+
+This section was appended after the verification pass above. Everything above it is
+unmodified and remains accurate as of its own `2026-07-26T11:49:32Z` timestamp.
+
+**Gap 1 (QS-03, per-screen mounting) — ACCEPTED, not fixed.** Recorded as a formal override
+in this file's frontmatter (`overrides[0]`), accepted by YahiaEng at 2026-07-26T12:07:57Z
+under D-10. Ownership of QS-03 moves from Phase 11 to **Phase 12 — Unified Design-Token
+Pipeline**, which now carries it in its ROADMAP `Requirements` line and in a dedicated,
+mechanically-testable success criterion 6. REQUIREMENTS.md's traceability row for QS-03 was
+repointed to Phase 12 in the same change. This directly answers the verifier's objection
+that the gap "is not deferred to any later phase in the traceability table, so it currently
+has no owner" — it has one now.
+
+**Gaps 2 and 3 (CR-01 / CR-02 / CR-03) — FIXED and committed.** All three were resolved
+after this report was written; see `11-REVIEW-FIX.md` (`status: all_fixed`, 5/5 in-scope
+findings, `2026-07-26T12:02:52Z`):
+
+| Finding | Fix | Commit |
+|---|---|---|
+| CR-01 | `Probe.qml` hardcoded home path replaced with `Quickshell.env("HOME")` | `74ec933` |
+| CR-02 | Headless-remove step's probe summon armed via `PROBE_SUMMONED_FOR_HEADLESS_TEST` + trap cleanup | `1945a81` |
+| CR-03 | Reserved-space manifest summon loop armed via new `RESERVED_CHECK_SUMMONED` + `_qsd_cleanup` branch | `3ec4661` |
+| WR-01 | Volume-probe regex extraction validated before arithmetic | `2529894` |
+| WR-02 | MPRIS-writer check narrowed from bare substring to actual API surface | `9978851` |
+
+**Frontmatter `status` and `score` are deliberately unchanged** at `gaps_found` / `6/9`.
+This report is a signed point-in-time artifact; flipping its verdict without re-running
+verification would assert a re-verification that never happened. Re-run
+`/gsd-verify-phase 11` to produce an authoritative updated verdict.
