@@ -9,10 +9,41 @@
 
 Verdict: PASS
 
-QS-02's human-clicked gate passed on 2026-07-26 (11-01 Task 3): pointer click, keyboard
-input (including non-ASCII), and click-outside dismiss all worked on the first live test,
-under `WlrKeyboardFocus.OnDemand` — no escalation to `Exclusive` was needed. v3.0 continues
-as roadmapped; Phases 12-17 stand; the registration commit set (`1aea012`) stays.
+Quickshell is proven viable on this exact Hyprland 0.56.0 build. QS-02's human-clicked gate
+— pointer click, keyboard input (including non-ASCII), and click-outside dismiss — passed on
+first attempt (11-01 Task 3), under `WlrKeyboardFocus.OnDemand`, no escalation needed. That
+is this phase's sole stop-trigger (D-10), and it passed cleanly. v3.0 continues as
+roadmapped; Phases 12-17 stand; the registration commit set (`1aea012`) stays. Criterion 5's
+workspace-overview feasibility question is also answered (11-05): a live multi-window
+`ScreencopyView` capture renders real content, and the screencopy permission mechanics are
+recorded as binary-verified fact — so Phase 16's scope is a decision, not a discovery.
+
+### Which gate fired — decisive result vs. record-and-continue findings
+
+Only **QS-02** carried authority to stop the milestone (D-10), and it PASSED on the first
+live attempt — no escalation of the gate ever fired. Everything else this phase recorded is
+a **record-and-continue finding**, not a near-miss failure, and none of it changes the
+verdict above:
+
+- **QS-03's per-screen-mounting gap** (11-04) is a genuine, disclosed, non-blocking defect —
+  explicitly carved out by D-10 as "headless-output/multi-surface quirk, not a stop-trigger."
+  It stays open for a future plan.
+- **QS-04's precision correction** (11-05): QML source hot-reload and `FileView`/
+  `JsonAdapter` propagation both PASS as originally recorded; a *new* finding this plan
+  surfaced is that hot-reload does not extend to registering a brand-new `GlobalShortcut` —
+  a restart is required. This narrows what QS-04's PASS was ever shown to cover; it does not
+  reverse it.
+- **The `HyprlandFocusGrab` mutual-exclusion finding** (11-05) and **the volume-probe
+  rounding false-positive** (known gate defect, unchanged since 11-03/11-04) are both
+  disclosed limitations of the current implementation/gate script, not evidence against
+  viability.
+- **Live screencopy enforcement** (criterion 5, Step B) was deliberately never exercised —
+  a scoped, human-approved decision, not a failed test. The mechanism and every consumer
+  path are verified; live enforcement itself is explicitly deferred to Phase 16 (OVER-04).
+
+None of the above required, or came close to requiring, the D-09 rescope-to-GTK4/AGS
+fallback. The milestone's foundational assumption — that Quickshell can deliver real
+pointer/keyboard input on a layer-shell surface on this exact Hyprland build — is proven.
 
 ## Gate table
 
@@ -21,8 +52,8 @@ as roadmapped; Phases 12-17 stand; the registration commit set (`1aea012`) stays
 | QS-01 | `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package | `pacman -Qi quickshell`; `git show --stat` on the registration commit | pacman, git | Installed 0.3.0-2 from `extra`; commit `1aea012` contains `install.sh` + `stow.sh` + the whole `quickshell/` package + launcher + autostart + keybind together (D-11) | PASS |
 | QS-02 | A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface on Hyprland 0.56.0 | Human-clicked live test at the keyboard | `PanelWindow` probe, `HyprlandFocusGrab` | All three sub-criteria passed on first attempt under `WlrKeyboardFocus.OnDemand` — see Dated gate log below | **PASS** |
 | QS-03 | Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug | `hyprctl output create/remove headless` + probe summon on each output | hyprctl, `quickshell-doctor` | Hotplug mechanics (add/remove/reserved-space/PID/log-health) all PASS. Suspend/resume PASS (same PID 185425 before and after, all three input tests re-passed, `reserved` unchanged, `quickshell:probe` still registered). Per-screen surface creation FAILS: the current single-`PanelWindow` probe only ever mounts on whichever screen existed at shell startup — a headless output added afterward gets zero surfaces, not its own; the per-screen label content sub-check (Task 3) could not be meaningfully performed for the same reason and was skipped, not passed. See "11-04 Task 1" and "Task 3" below | **OPEN — genuine per-screen-mounting defect remains; hotplug mechanics and suspend/resume both PASS; not a stop-trigger (D-10)** — 2026-07-26 (plan 04) |
-| QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | (a) QML source hot-reload: **PASS**, verified mechanically. (b) `FileView`/`JsonAdapter` hand-edit propagation: **PASS**, human-observed — label updated live to `hello` with zero `reload.sh`/`theme-apply` involvement; absent-file case correctly fell back to the JsonAdapter default (`unset`) with the shell staying alive. Empty-JSON-object case: **not observed** — the human did not test it; recorded as untested, not inferred | **PASS** — 2026-07-26 (plan 04). Open question #1 answered in the affirmative: no `reload.sh` fan-out hook needed (D-13's negative branch) |
-| QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `quickshell-doctor` (full run, live desktop) | `hypr/.config/hypr/scripts/quickshell-doctor` | 10 checks run, 10 passed, 0 failed, exit 0. Namespace discipline: off-level 0, wrong-pid 0. Reserved-space summon-and-diff: `monitors -j`'s `reserved` array byte-identical before/during/after summoning every manifest surface (`[0,46,0,0]` throughout — see raw arrays below). `keybind-doctor` invoked as part of the run: exit 0, 13/13. See full verbatim transcript below | **PASS** — 2026-07-26 (plan 03) |
+| QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | (a) QML source hot-reload: **PASS**, verified mechanically. (b) `FileView`/`JsonAdapter` hand-edit propagation: **PASS**, human-observed — label updated live to `hello` with zero `reload.sh`/`theme-apply` involvement; absent-file case correctly fell back to the JsonAdapter default (`unset`) with the shell staying alive. Empty-JSON-object case: **not observed** — the human did not test it; recorded as untested, not inferred. **Precision correction (11-05):** source-level hot-reload does NOT extend to registering a brand-new `GlobalShortcut` — adding a second shortcut and letting the file hot-reload left it unregistered in `hyprctl globalshortcuts` until a clean process restart; this was untested before 11-05 since only one shortcut existed | **PASS** — 2026-07-26 (plan 04), scope-narrowed 2026-07-26 (plan 05). Open question #1 answered in the affirmative: no `reload.sh` fan-out hook needed (D-13's negative branch) |
+| QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `quickshell-doctor` (full run, live desktop) | `hypr/.config/hypr/scripts/quickshell-doctor` | 10 checks run, 10 passed, 0 failed, exit 0. Namespace discipline: off-level 0, wrong-pid 0. Reserved-space summon-and-diff: `monitors -j`'s `reserved` array byte-identical before/during/after summoning every manifest surface (`[0,46,0,0]` throughout — see raw arrays below). `keybind-doctor` invoked as part of the run: exit 0, 13/13. **Manifest-scaling proof (11-05):** a second Quickshell-owned chord (`quickshell:screencopy-probe`) was added at the cost of exactly one `shortcuts.json` entry + one `keybinds.conf` line, exactly as D-17 claimed; `keybind-doctor` re-run 13/13, zero collisions; the two surfaces cannot be shown *simultaneously* (`HyprlandFocusGrab` exclusivity, disclosed, non-blocking) but each functions correctly individually. See full verbatim transcript below | **PASS** — 2026-07-26 (plan 03), extended 2026-07-26 (plan 05) |
 | QS-06 | No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner | `quickshell-doctor` (busctl/hyprctl/pactl/brightnessctl checks) | busctl, hyprctl, pactl, brightnessctl, quickshell-doctor | `org.freedesktop.Notifications`: exactly 1 owner, named `swaync`. All 10 XF86Audio\*/XF86MonBrightness\* keys: exactly 1 registered handler each (Hyprland bind count + manifest count summed). Zero Quickshell components reference MPRIS (0 files under `~/.config/quickshell`). Volume one-step-per-press: measured delta 3277 raw units (of 65536), seeded as baseline on first run, matched exactly on every rerun since, sink volume byte-identical before/after (including under SIGINT mid-probe — see below). Brightness one-step-per-press: `[SKIP]` — `brightnessctl -l` lists only `leds`-class devices (`enp5s0-{0..3}::lan`, `input5::capslock/scrolllock/numlock`, `input11::mute`) and no `backlight`-class device on this host | **PASS** — 2026-07-26 (plan 03) |
 | MAINT-01 | `keybind-doctor` correctly cross-checks Quickshell-claimed shortcuts against Hyprland's registered set (amended per D-15 to plain-text `hyprctl binds` parsing) | Poisoned-fixture proof (D-18) | keybind-doctor | Real config: 13 passed, 0 failed, exit 0. Poisoned fixture: 12 passed, 1 failed (chord collision, named), exit 1. Full transcripts below | **PASS** — 2026-07-26 |
 
@@ -728,10 +759,318 @@ this is confirmation of no incidental breakage, not a targeted regression test.
 failed (the same, already-recorded per-screen-mounting gap), exit 1 — unchanged from
 Task 1, as expected.
 
+## 11-05 Task 1 — screencopy probe surface: the manifest-scaling proof, plus two new findings
+
+A second summonable surface (`modules/ScreencopyProbe.qml`, namespace `quickshell-
+screencopy-probe`, `Super+Shift+K`) was added to test D-17's own claim: that the declared
+manifest mechanism (`shortcuts.json` + `keybind-doctor`'s cross-check) scales to a second
+Quickshell-owned chord at the cost of one manifest entry and one keybind line.
+
+**The cost claim holds, exactly as stated.** Adding the second chord required:
+- one new entry in `quickshell/.config/quickshell/shortcuts.json`
+- one new `bind = ... global, quickshell:screencopy-probe` line in `keybinds.conf`
+- one new `GlobalShortcut { appid: "quickshell"; name: "screencopy-probe" }` declaration in
+  `shell.qml`
+
+`keybind-doctor` re-run after the addition: **13 passed, 0 failed, exit 0** — both manifest
+entries registered, zero collisions. `quickshell-doctor`'s reserved-space-unclaimed check
+(which summons each manifest entry sequentially, not simultaneously) passed for both
+entries; the two pre-existing failures already on record (QS-03's per-screen gap, and the
+volume-probe rounding drift — see "Known Gate Defects" below) are unchanged in count and
+identity from the 11-04 baseline — this plan introduced zero new gate regressions.
+
+**Finding 1 (a genuine partial limit on QS-04's hot-reload claim, not previously proven):**
+editing `shell.qml` to add the new `GlobalShortcut` and having Quickshell's own file-watcher
+hot-reload the change (confirmed via `~/.cache/quickshell.log`: two clean "Reloading
+configuration... Configuration Loaded" cycles, no errors) did **not** register
+`quickshell:screencopy-probe` with the compositor — `hyprctl globalshortcuts` continued to
+list only `quickshell:probe` afterward. Only a clean `quickshell` process restart (`pkill -x
+quickshell` + relaunch via `quickshell-launch.sh`, same restart pattern already used
+repeatedly in 11-04) caused the new shortcut to appear in `hyprctl globalshortcuts`. QS-04's
+PASS (11-04) proved QML *source* hot-reload and `FileView`/`JsonAdapter` propagation — it
+did not test adding a brand-new top-level `GlobalShortcut`, because only one existed at the
+time. State this precisely: **source-level hot-reload works; new `GlobalShortcut`
+registration does not hot-reload and requires a process restart.** This is a real,
+previously-unproven constraint for Phases 14 and 16, both of which add further global
+shortcuts.
+
+**Finding 2 (genuine, disclosed, non-blocking — not a QS-02/D-10 stop-trigger):** the two
+Quickshell surfaces cannot be shown **simultaneously**. `HyprlandFocusGrab`'s underlying
+`hyprland_focus_grab_v1` protocol grant appears to be exclusive per-compositor on this
+build: activating the second surface's `HyprlandFocusGrab` implicitly clears the first's
+grab, firing its `onCleared -> dismissRequested()` and tearing down its `LazyLoader`.
+Verified directly, in both orders:
+
+```
+$ hyprctl dispatch global quickshell:probe          # summon probe alone
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?.namespace]'
+["quickshell-probe"]
+$ hyprctl dispatch global quickshell:screencopy-probe   # summon screencopy-probe too
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?.namespace]'
+["quickshell-screencopy-probe"]        # probe disappeared, not both shown
+```
+
+```
+$ hyprctl dispatch global quickshell:screencopy-probe   # reverse order: screencopy-probe first
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?.namespace]'
+["quickshell-screencopy-probe"]
+$ hyprctl dispatch global quickshell:probe              # then probe
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?.namespace]'
+["quickshell-probe"]                    # screencopy-probe disappeared instead — order-independent
+```
+
+Both `Probe.qml` and `ScreencopyProbe.qml` use the identical, documented, correct
+`HyprlandFocusGrab` pattern (`windows: [ownWindow]`, `active: true`) — this is not a QML
+authoring bug in either file, and no fix was attempted (per D-13's generalized house rule:
+record the limitation, do not chase an open-ended workaround for something outside this
+plan's actual requirements). It does not affect anything this plan actually needed to prove
+(the manifest-scaling cost, or criterion 5's feasibility question — the screencopy probe was
+tested alone). It is directly relevant to Phases 14 and 16, both of which will add further
+summonable surfaces that may need to coexist.
+
+## Criterion 5 — screencopy feasibility (D-12)
+
+### Step A — human-attested multi-window capture: PASS
+
+Performed by the human operator at the keyboard, 2026-07-26, with Hyprland's screencopy
+enforcement at its true default (unrestricted — no `permissions.conf` existed yet at the
+moment of this test). Four visibly-distinct real windows were open: **a terminal, a
+browser, a file manager, and VSCodium.** `Super+Shift+K` summoned the screencopy probe.
+Human-reported result, verbatim: **"tiles show real readable windows"** — **"all of them
+(terminal, browser, file manager, vscode)"**. Not blank, not black, not placeholder tiles —
+genuine live capture content, across four concurrent windows simultaneously (the multi-
+window requirement criterion 5 itself names). This is the load-bearing result the whole
+probe exists to produce: **the `ScreencopyView` protocol path works on this build.**
+
+### Verified mechanism (from the installed Hyprland 0.56.0 binary, not documentation)
+
+`strings /usr/bin/Hyprland` (commit `36b2e0cfe0c6094dbc47bd42a437431315bb3087`) embeds
+Hyprland's own example config, including this literal, verbatim warning:
+
+```
+Please note permission changes here require a Hyprland restart and are not applied
+on-the-fly, for security reasons
+```
+
+and this exact reference block (Hyprland's own shipped `hl.permission(...)` Lua-config
+example, extracted directly from the binary):
+
+```
+----- PERMISSIONS -----
+-- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Permissions/
+-- Please note permission changes here require a Hyprland restart and are not applied on-the-fly
+-- for security reasons
+-- hl.config({
+--   ecosystem = {
+--     enforce_permissions = true,
+--   },
+-- })
+-- hl.permission("/usr/(bin|local/bin)/grim", "screencopy", "allow")
+-- hl.permission("/usr/(lib|libexec|lib64)/xdg-desktop-portal-hyprland", "screencopy", "allow")
+-- hl.permission("/usr/(bin|local/bin)/hyprpm", "plugin", "allow")
+```
+
+This directly confirms, at HIGH confidence (binary-verified, not WebSearch-sourced):
+- the registered config-var name: `ecosystem:enforce_permissions`
+- the permission TYPE string for screen capture: exactly `screencopy` (lowercase)
+- the mode value used: `allow`
+- **the restart-not-reload requirement**, resolving RESEARCH.md Assumption A3 from
+  `[CITED, WebSearch, not independently reproduced]` to directly binary-verified fact
+
+The classic (non-Lua) hyprlang equivalent this repo actually uses —
+`permission = <path>, <type>, <mode>` plus an `ecosystem { enforce_permissions = ... }`
+category block — was written into `hypr/.config/hypr/config/permissions.conf`, sourced from
+`hyprland.conf`, and accepted by `hyprctl reload` without any parse error (config-syntax
+acceptance only; see "What was deliberately not tested" below for what this does and does
+not prove).
+
+### Consumer identification — every client traced to its real binary, not assumed
+
+| Client | Path used in `permission =` | How verified |
+|---|---|---|
+| Quickshell (this probe) | `/usr/bin/quickshell` | `pacman -Ql quickshell \| grep '/bin/'` (already captured in "Verified binary contract" above) |
+| grim | `/usr/bin/grim` | `pacman -Ql grim`; confirmed via `strings /usr/bin/grim` to link `zwlr_screencopy_manager_v1`/`zwlr_screencopy_frame_v1` directly. `hyprshot` (bound to all four screenshot keybinds) is a bash wrapper script — `grep -n grim /usr/bin/hyprshot` shows it calls `grim -g "$geometry"` itself; `hyprshot`'s own binary path would be the wrong identifier since hyprshot issues no screencopy protocol calls of its own |
+| hyprpicker | `/usr/bin/hyprpicker` | **Not named in this plan's own text — found during this task's own consumer enumeration (Rule 2).** `strings /usr/bin/hyprpicker` shows `zwlr_screencopy_manager_v1`, `zwlr_screencopy_frame_v1`, and the literal string `"zwlr_screencopy_v1 not supported, can't proceed"` — a genuine, direct screencopy consumer, bound to the Super+X color-picker keybind and used internally by `record-toggle.sh`'s freeze-preview |
+| xdg-desktop-portal-hyprland | `/usr/lib/xdg-desktop-portal-hyprland` | `pgrep -af xdg-desktop-portal` against the live, running process — confirmed this is the actual backend binary (not `/usr/bin/hyprland-share-picker`, a separate picker-UI helper in the same package). `hyprland.portal`'s `Interfaces=` line lists `ScreenCast`, and its `DBusName=org.freedesktop.impl.portal.desktop.hyprland` is the service this exact running process registers |
+
+**Checked and deliberately excluded:**
+- `slurp` — `strings /usr/bin/slurp` shows zero `screencopy` protocol references; it is a
+  pure region-selection overlay (outputs `"X,Y WxH"` text only). The actual freeze/capture
+  in every script that uses slurp is performed by a separate tool (grim or hyprpicker, both
+  already listed above).
+- `gpu-screen-recorder` (SHOT-03, `record-toggle.sh`) — `strings` on its binary shows no
+  direct `screencopy` protocol reference; it most likely captures via KMS/DRM
+  (`gsr-kms-server`, shipped in the same package) or the portal's own `ScreenCast` path
+  (already covered by the portal entry above) rather than `wlr-screencopy` directly. **This
+  was NOT independently confirmed live under enforcement** — outside this plan's
+  `<human-check>` scope. Flagged honestly as unconfirmed, not guessed at; verify before
+  Phase 16 relies on it if screen recording is ever exercised under enforcement.
+
+### What was deliberately NOT tested, and why (human decision, 2026-07-26)
+
+Per this plan's own Task 2 design, verifying live enforcement requires setting
+`enforce_permissions = true` and performing a **full Hyprland restart** (confirmed above:
+grants are read once at startup, `hyprctl reload` does not apply them). The human operator
+was asked to perform this restart-and-test sequence and **explicitly declined**, for a
+concrete, verified reason: this machine's interactive session executing this very plan runs
+as a **child process of the Hyprland compositor itself**
+(`Hyprland(974) → kitty(2216) → fish(2220) → claude(2368)`) — restarting Hyprland would have
+terminated the session performing the verification, with no guarantee of a clean resume.
+
+The human's accepted rationale: criterion 5 requires the permission **mechanics** to be
+recorded as verified fact (the keyword syntax, the type/mode strings, the restart
+requirement, the exact consumer paths) — all of which the binary-`strings` work above
+already established at HIGH confidence, without needing a live restart. **Live enforcement
+proof — that `enforce_permissions = true` actually admits exactly these clients and denies
+everyone else — is explicitly OVER-04's requirement in Phase 16**, which will need its own
+non-interactive-session-safe restart plan (e.g. a display-manager-driven relogin, or testing
+from a second machine/session) rather than inheriting this plan's constraint.
+
+**Consequence, recorded plainly:** `hypr/.config/hypr/config/permissions.conf` ships with
+`enforce_permissions = false` — mechanism-verified and consumer-verified, but with live
+enforcement never exercised in Phase 11. This is a deliberate, disclosed scope boundary, not
+an oversight.
+
+**No frame-rate, CPU or memory measurement of screencopy was performed or recorded at any
+point in this plan** (Step A's four-window capture was a content-correctness check only,
+with no timing instrumentation of any kind) — that budget remains OVER-04's requirement in
+Phase 16, per D-12, and was deliberately not pulled forward here.
+
+## Known Gate Defects (disclosed, out of scope for this plan)
+
+Both items below are pre-existing as of 11-04 and are **not** files this plan's
+`files_modified` includes — neither was touched, per this plan's own scope boundary.
+
+- **`quickshell-doctor`'s one-step-per-press volume probe: false positive.** The check
+  asserts *exact* equality between a freshly-measured volume-step delta and a pinned
+  baseline (`~/.local/state/quickshell/doctor-baseline.json`, `volume_step_delta_raw:
+  3277`). Measured delta during this plan's runs was consistently **3276** — a 0.03%
+  rounding drift (a percentage-to-raw-unit conversion that tracks the ambient volume level,
+  not a behavioral change), reproduced identically across three consecutive runs. The
+  check's own stated intent is to catch a *doubling* (~6554), which this plainly is not.
+  A later rerun in this same plan (after Task 2's file writes, no restart) measured
+  delta=3277 — exactly matching the baseline again — confirming this was ambient-volume
+  rounding drift, not a persistent regression. Recorded here as a known gate defect for a
+  future gap-closure pass — not fixed in this plan, and not evidence of a QS-06 regression.
+- **QS-03's per-screen-mounting gap** (11-04 Task 1, already fully documented above) stays
+  open. No work was done on it in this plan; it remains an honestly-disclosed, non-blocking
+  finding per D-10.
+
+Because of the volume-probe rounding drift and the QS-03 gap, `quickshell-doctor` ran as
+low as 12 passed/2 failed during this plan's own work whenever the rounding drift showed;
+a clean rerun after Task 2's changes settled at **13 passed, 1 failed** — QS-03's
+per-screen-mounting gap as the sole, already-disclosed, non-blocking failure, with the
+volume probe back at its baseline. Either count is expected and unchanged by this plan's
+own work, not a new regression introduced by 11-05.
+
+## Findings and Caveats (consolidated)
+
+Everything this phase recorded rather than resolved, gathered in one place for a reader who
+has none of the rest of this artifact's context. None of these are stop-triggers (only QS-02
+carried that authority, per D-10, and it passed) — each is a genuine, disclosed limitation or
+open item that a later phase should read before building on top of it.
+
+- **Virtual-output caveat (D-07).** Every QS-03 multi-monitor claim in this artifact —
+  hotplug add/remove mechanics, reserved-space behavior, and the per-screen-mounting gap —
+  was gathered against a Hyprland **virtual headless output** (`hyprctl output create
+  headless`), which exercises the compositor's monitor add/remove event path but **not**
+  real DP/HDMI EDID negotiation. This host has exactly one physical monitor. A real
+  second-display hotplug test is worth a dated addition here if a second physical display
+  ever becomes available; not a blocker.
+- **Structured `hyprctl binds -j` parsing abandoned (D-14).** Hyprland 0.56.0's JSON
+  serializer for the bind query is field-misaligned, not merely malformed — it would have
+  produced confidently *wrong* duplicate-chord answers while looking like it worked.
+  `keybind-doctor` now parses plain-text `hyprctl binds` output instead, with a named
+  shape-guard that fails loudly if that text format's own shape ever moves. A self-healing
+  auto-switch-back probe was considered and deliberately rejected (a future build that
+  parses cleanly but still misaligns fields would sail through undetected).
+- **No Quickshell 0.3.0 GlobalShortcut introspection API (D-17).** Quickshell exposes no
+  runtime call to read back which shortcuts it has registered. `keybind-doctor` therefore
+  treats `shortcuts.json` as the declared side and `hyprctl globalshortcuts` (Hyprland's own
+  live registry) as the actual side, cross-checking the two — this gets D-16's intended
+  benefit (live introspection) through D-17's fallback mechanism, because the compositor,
+  not Quickshell, is what exposes a queryable registry. Extended in 11-05: a second
+  registered shortcut proved this fallback mechanism scales at the cost of one manifest
+  entry plus one keybind line — but also surfaced that a **process restart**, not just a
+  hot-reload, is required for a new `GlobalShortcut` to actually register.
+- **Open question #1, answered affirmatively.** `FileView`/`JsonAdapter` property
+  propagation needs **zero** `reload.sh` involvement on this quickshell 0.3.0 build —
+  human-observed live: a hand-edited JSON file updated the on-screen label with no
+  `theme-apply`/`reload.sh` call of any kind. Per D-13's negative branch, `lib/reload.sh`
+  was left untouched — confirmed via an empty `git diff --stat` on that file. One sub-case
+  (recreating the state file as an empty `{}` object) was never observed and stays open,
+  non-blocking, for whoever next touches this probe.
+- **Brightness criterion skipped, not passed (QS-06).** `brightnessctl -l` on this host
+  lists only `leds`-class devices (LAN activity, capslock/scrolllock/numlock, mute) — no
+  `backlight`-class device exists. The check detects device *class*, not mere command
+  presence, specifically so it never mistakes a capslock LED for a backlight. A laptop or a
+  backlight-capable external monitor would exercise this check; this desktop host cannot.
+- **Screencopy restart requirement (criterion 5, D-12).** Confirmed directly from the
+  installed Hyprland 0.56.0 binary via `strings` (not documentation): permission grants are
+  read once at compositor startup; `hyprctl reload` never applies a permission change. Live
+  enforcement itself was deliberately not exercised in this phase (see "Criterion 5" above)
+  — the mechanism and every consumer path are verified; Phase 16 (OVER-04) owns the live
+  enforcement proof.
+- **Zero-outputs and surface-ordering edges (QS-03), left unverified.** Removing this
+  host's sole physical monitor would kill the graphical session outright, so whether the
+  shell process survives and re-creates its surfaces from a fully-headless state is
+  genuinely untested. Per-screen surface-creation ordering stability across restarts is
+  also unobserved, since only one screen currently ever gets a surface (the Task 1 defect).
+  Both remain `verification: backstop` items in the phase's own must-haves.
+- **`gpu-screen-recorder`'s screencopy path, unconfirmed (criterion 5).** `strings` on its
+  binary shows no direct `screencopy` protocol reference; it most likely uses KMS/DRM
+  capture or the portal's own `ScreenCast` path rather than `wlr-screencopy` directly, but
+  this was not independently confirmed live under enforcement — out of this plan's
+  `<human-check>` scope, flagged rather than guessed at.
+- **`HyprlandFocusGrab` mutual exclusion (11-05, new).** Two Quickshell-summoned surfaces
+  cannot be shown simultaneously on this build — activating a second surface's focus grab
+  implicitly clears the first's. Relevant to Phases 14 and 16, both of which add further
+  summonable surfaces.
+- **`quickshell-doctor` volume-probe false positive (known gate defect).** Exact-equality
+  check against a pinned baseline currently fails on a 0.03% rounding drift (delta=3276 vs
+  baseline=3277), not a real doubling. Recorded for a future gap-closure pass; not fixed
+  here (`quickshell-doctor` is outside this plan's `files_modified`).
+
+**No frame-rate, CPU, or memory measurement of screencopy was performed or recorded
+anywhere in this phase** — that budget is OVER-04's requirement in Phase 16 and was
+deliberately not pulled forward (D-12).
+
 ## Dated gate log
 
 Appended to across Phase 11's plans (01-05) and by later phases (14-16) per D-05. Each
 entry carries the date, the sub-criterion, and the raw observed result.
+
+### 2026-07-26 — 11-05 Tasks 1-2 (screencopy probe, manifest-scaling proof, criterion 5)
+
+- **[PASS] QS-05 — manifest scaling proof:** a second Quickshell-owned chord
+  (`quickshell:screencopy-probe`) cost exactly one `shortcuts.json` entry and one
+  `keybinds.conf` line, confirming D-17's claimed benefit. `keybind-doctor` 13/13, exit 0.
+- **[Finding, non-blocking] QS-04 precision correction:** QML source hot-reload works for
+  property/content changes (already proven in 11-04); it does **not** extend to registering
+  a brand-new `GlobalShortcut` with the compositor — a clean process restart was required.
+  Not previously tested since only one shortcut existed before this plan.
+- **[Finding, non-blocking] HyprlandFocusGrab exclusivity:** the two Quickshell surfaces
+  cannot be shown simultaneously — activating the second surface's focus grab implicitly
+  clears the first's. Verified in both summon orders. Relevant to Phases 14/16.
+- **[PASS] Criterion 5, Step A — human-attested multi-window capture:** four real windows
+  (terminal, browser, file manager, VSCodium) all rendered as real, readable content via
+  `Super+Shift+K`. Workspace overview is feasible on this build.
+- **[Verified, HIGH confidence] Screencopy permission mechanics:** `strings` against the
+  installed `/usr/bin/Hyprland` binary directly confirmed the `ecosystem:enforce_permissions`
+  var, the `screencopy`/`allow` type-mode strings, and the exact restart-not-reload warning
+  text — resolving RESEARCH.md's `[ASSUMED — LOW confidence]` tag on this mechanism to
+  directly binary-verified fact.
+- **[Deliberately skipped, human decision]** Live enforcement (`enforce_permissions = true`)
+  was NOT restart-tested — this session runs as a child process of the compositor being
+  restarted, and the human explicitly chose not to risk terminating the verification
+  session itself. `permissions.conf` ships inert (`enforce_permissions = false`);
+  mechanism + consumer-identification are verified, live enforcement is not — Phase 16
+  (OVER-04) owns that proof.
+- **[Known, disclosed, unchanged]** `quickshell-doctor`'s volume-probe false positive
+  (delta=3276 vs pinned baseline=3277) and QS-03's per-screen-mounting gap both remain
+  exactly as recorded in 11-04 — neither is new, neither was touched (out of this plan's
+  scope), `quickshell-doctor` exits 1 (12 passed/2 failed) for these two pre-existing
+  reasons only.
 
 ### 2026-07-26 — 11-04 Tasks 1 & 2a (QS-03 hotplug gate; QS-04 QML hot-reload)
 
@@ -849,3 +1188,16 @@ recorded — `OnDemand` is the standing convention Phase 14's drawer inherits.
   `hyprctl dispatch global quickshell:probe` (toggle summons/dismisses)
 - Single-owner D-Bus check: `busctl --user list | grep org.freedesktop.Notifications`
 - Baseline file (out of git, D-20): `cat ~/.local/state/quickshell/doctor-baseline.json`
+- Screencopy permission mechanism (criterion 5, verified against the binary, not docs):
+  `strings /usr/bin/Hyprland | grep -B5 -A15 "Please note permission changes here require a Hyprland restart"`
+- Screencopy consumer identification: `pacman -Ql grim | grep bin/`; `strings /usr/bin/grim | grep -i screencopy`;
+  `strings /usr/bin/hyprpicker | grep -i screencopy`; `strings /usr/bin/slurp | grep -i screencopy` (expect no match);
+  `pgrep -af xdg-desktop-portal` (identifies the real running portal backend binary)
+- `permissions.conf` acceptance checks: `grep -c permissions.conf hypr/.config/hypr/hyprland.conf`;
+  `grep -E '^permission' hypr/.config/hypr/config/permissions.conf | grep -cE '\*|\?|\[|\|'` (expect 0);
+  `grep -ril 'ecosystem\.conf' hypr/ quickshell/` (expect no matches — the imagined standalone file
+  is never referenced as a real path)
+- Second-shortcut manifest scaling proof: `jq length quickshell/.config/quickshell/shortcuts.json`
+  (expect 2); `hyprctl globalshortcuts | grep screencopy-probe` (requires a clean `quickshell`
+  process restart after editing `shell.qml` — see "11-05 Task 1" above; QML hot-reload alone is
+  not sufficient for new `GlobalShortcut` registration)
