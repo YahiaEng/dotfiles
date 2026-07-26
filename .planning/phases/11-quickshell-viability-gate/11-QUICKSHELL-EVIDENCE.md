@@ -22,8 +22,8 @@ as roadmapped; Phases 12-17 stand; the registration commit set (`1aea012`) stays
 | QS-02 | A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface on Hyprland 0.56.0 | Human-clicked live test at the keyboard | `PanelWindow` probe, `HyprlandFocusGrab` | All three sub-criteria passed on first attempt under `WlrKeyboardFocus.OnDemand` — see Dated gate log below | **PASS** |
 | QS-03 | Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug | `hyprctl output create/remove headless` + probe summon on each output | hyprctl | — | PENDING (plan 04) |
 | QS-04 | Editing Quickshell config hot-reloads the running shell without a manual restart | `FileView`/`JsonAdapter`/`watchChanges` live hand-edit test | Text editor + probe label | — | PENDING (plan 03/04) |
-| QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `hyprctl layers -j` / `monitors -j` diff, `quickshell-doctor` | hyprctl, quickshell-doctor | Baseline (pre-Quickshell): `monitors -j` reserved `[0,46,0,0]` on DP-1; `layers -j` level 3 empty; `globalshortcuts` reports `none`. Post-Task 2/Task 3: `globalshortcuts` reports `quickshell:probe`; `reserved` unchanged at `[0,46,0,0]`; level 3 empty while headless, exactly one `quickshell-probe` entry while summoned. Full `quickshell-doctor` mechanical gate (busctl owner check etc.) is plan 03's scope | PARTIAL — record-and-continue (D-10); autostart/coexistence sub-checks this plan can observe all PASS, full gate lands in plan 03 |
-| QS-06 | No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner | `busctl --user list` single-owner check | busctl, quickshell-doctor | — | PENDING (plan 03) |
+| QS-05 | The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind | `quickshell-doctor` (full run, live desktop) | `hypr/.config/hypr/scripts/quickshell-doctor` | 10 checks run, 10 passed, 0 failed, exit 0. Namespace discipline: off-level 0, wrong-pid 0. Reserved-space summon-and-diff: `monitors -j`'s `reserved` array byte-identical before/during/after summoning every manifest surface (`[0,46,0,0]` throughout — see raw arrays below). `keybind-doctor` invoked as part of the run: exit 0, 13/13. See full verbatim transcript below | **PASS** — 2026-07-26 (plan 03) |
+| QS-06 | No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner | `quickshell-doctor` (busctl/hyprctl/pactl/brightnessctl checks) | busctl, hyprctl, pactl, brightnessctl, quickshell-doctor | `org.freedesktop.Notifications`: exactly 1 owner, named `swaync`. All 10 XF86Audio\*/XF86MonBrightness\* keys: exactly 1 registered handler each (Hyprland bind count + manifest count summed). Zero Quickshell components reference MPRIS (0 files under `~/.config/quickshell`). Volume one-step-per-press: measured delta 3277 raw units (of 65536), seeded as baseline on first run, matched exactly on every rerun since, sink volume byte-identical before/after (including under SIGINT mid-probe — see below). Brightness one-step-per-press: `[SKIP]` — `brightnessctl -l` lists only `leds`-class devices (`enp5s0-{0..3}::lan`, `input5::capslock/scrolllock/numlock`, `input11::mute`) and no `backlight`-class device on this host | **PASS** — 2026-07-26 (plan 03) |
 | MAINT-01 | `keybind-doctor` correctly cross-checks Quickshell-claimed shortcuts against Hyprland's registered set (amended per D-15 to plain-text `hyprctl binds` parsing) | Poisoned-fixture proof (D-18) | keybind-doctor | Real config: 13 passed, 0 failed, exit 0. Poisoned fixture: 12 passed, 1 failed (chord collision, named), exit 1. Full transcripts below | **PASS** — 2026-07-26 |
 
 ## Verified binary contract (2026-07-26)
@@ -350,10 +350,160 @@ $ echo $?
 immediately after Run 1 and is not present anywhere in this repo (`git status --porcelain`
 stays clean of any `keybinds`-named file outside `hypr/.config/hypr/config/`).
 
+## 11-03 — quickshell-doctor (QS-05/QS-06 mechanical coexistence gate)
+
+`hypr/.config/hypr/scripts/quickshell-doctor` is the repo's seventh rerunnable gate
+script, alongside `theme-doctor`, `theme-parity`, `theme-stress-test`, `keybind-doctor`,
+`waybar-equivalence-check` and `waybar-design-lint`. It follows their shared house style
+(`set -uo pipefail`, `check()`, `[PASS]`/`[FAIL]`, `Summary: N passed, N failed`,
+`[[ "$FAIL" -eq 0 ]]; exit $?`) and lives in `hypr/.config/hypr/scripts/`, not inside the
+`quickshell/` package it grades.
+
+### Correction 1: `hyprctl layers -j` carries no reserved-space field on this build
+
+Directly re-verified for this plan (same finding as plan 01/02's baseline): `hyprctl
+layers -j` groups clients by shell-layer level (`"levels"` keys `"0"`-`"3"` =
+background/bottom/top/overlay), and no client entry carries any reserved-space or anchor
+field — only `address/x/y/w/h/alpha/namespace/pid`. A check written to grep this query for
+such a field would report PASS whether Quickshell actually reserves screen space or not.
+`quickshell-doctor`'s header comment records this explicitly so a future maintainer does
+not "simplify" the check back into a `layers -j` grep. The real reserved-space accounting
+lives on `hyprctl monitors -j`'s `reserved` array, and the check is a **before/during/after
+diff**, never an equality against a hardcoded literal (`grep -c '0,46,0,0\|0, 46, 0, 0'
+quickshell-doctor` returns 0 — the actual value never appears in the script).
+
+**Raw pre-summon / during-summon / post-dismiss readings, captured back-to-back:**
+
+```
+$ hyprctl monitors -j | jq -c '[.[] | {name, reserved}]'   # pre-summon
+[{"name":"DP-1","reserved":[0,46,0,0]}]
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?]'          # pre-summon
+[]
+
+$ hyprctl dispatch global quickshell:probe                  # summon
+ok
+$ hyprctl monitors -j | jq -c '[.[] | {name, reserved}]'   # during summon
+[{"name":"DP-1","reserved":[0,46,0,0]}]
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?]'          # during summon
+[{"address":"0x55e124081070","x":1100,"y":613,"w":360,"h":260,"alpha":1,"namespace":"quickshell-probe","pid":1011}]
+
+$ hyprctl dispatch global quickshell:probe                  # dismiss
+ok
+$ hyprctl monitors -j | jq -c '[.[] | {name, reserved}]'   # post-dismiss
+[{"name":"DP-1","reserved":[0,46,0,0]}]
+$ hyprctl layers -j | jq -c '[.[].levels["3"][]?]'          # post-dismiss
+[]
+```
+
+`reserved` is byte-identical across all three readings — Quickshell claims zero reserved
+space summoning its one manifest surface, confirming QS-05's layout-shift criterion
+mechanically rather than by literal comparison.
+
+### Correction 2: the brightness criterion is `[SKIP]`, not PASS
+
+`brightnessctl -l` on this host lists only `leds`-class devices
+(`enp5s0-0::lan`..`enp5s0-3::lan`, `input5::capslock`, `input5::scrolllock`,
+`input5::numlock`, `input11::mute`) — **no `backlight`-class device exists**. The check
+detects the device *class*, not mere command presence, specifically so it does not try to
+raise the capslock LED as a stand-in for a backlight. A laptop or a backlight-capable
+external monitor would exercise this check; this desktop host cannot. Recorded here rather
+than silently passed, per D-10's "no check silently passes when its instrument is missing"
+rule.
+
+### Full verbatim run (live desktop, shell up, 2026-07-26)
+
+```
+$ hypr/.config/hypr/scripts/quickshell-doctor
+quickshell-doctor — Quickshell coexistence gate (QS-05/QS-06)
+
+  [PASS] quickshell binary present on PATH
+  [PASS] quickshell shell process alive (matches the launcher's exec'd invocation)
+  [PASS] launcher log's last startup line (/home/aorus/.cache/quickshell.log:14) has no crash/abort marker after it
+  [PASS] namespace discipline (D-21): every quickshell-* layer namespace sits at level 3 (overlay) and belongs to the shell's own PID (off-level: 0, wrong-pid: 0)
+  [PASS] reserved-space stays unclaimed (D-21): summoning every manifest surface leaves monitors -j's reserved array byte-identical (changed: 0)
+  [PASS] keybind-doctor clean (MAINT-01 bind-collision proof, exit 0)
+  [PASS] single org.freedesktop.Notifications owner, and it is swaync (count: 1, owner: swaync)
+  [PASS] single handler per hardware key: all 10 XF86Audio*/XF86MonBrightness* keys have exactly one registered handler (bad: 0)
+    per-key counts: XF86AudioRaiseVolume=1 XF86AudioLowerVolume=1 XF86AudioMute=1 XF86AudioMicMute=1 XF86MonBrightnessUp=1 XF86MonBrightnessDown=1 XF86AudioNext=1 XF86AudioPause=1 XF86AudioPlay=1 XF86AudioPrev=1
+  [PASS] zero Quickshell MPRIS writers (found in 0 file(s) under /home/aorus/.config/quickshell)
+  [PASS] one-step-per-press volume probe: measured delta=3277 raw units matches recorded baseline=3277 (a later doubling would show as drift here)
+  [SKIP] one-step-per-press brightness probe (no backlight-class device — brightnessctl -l lists only leds-class devices on this host)
+
+Summary: 10 passed, 0 failed
+$ echo $?
+0
+```
+
+`pactl get-sink-volume @DEFAULT_SINK@` reported the identical raw values (front-left
+36044, front-right 36044, 55%, -15.58 dB) before and after this run.
+
+### Volume probe: baselined, not hardcoded
+
+First run seeded `~/.local/state/quickshell/doctor-baseline.json` (D-20, out of git):
+
+```json
+{
+  "volume_step_delta_raw": 3277
+}
+```
+
+`3277` is one `swayosd-client --output-volume raise` step measured directly on this
+host's sink (raw scale 0-65536, so ~5%) — not a hardcoded constant this repo owns. Every
+subsequent run compares its own freshly-measured delta against this recorded value; a
+future doubling (the actual double-handling symptom QS-06 guards against) would show up
+as a mismatch here, not as a silent pass.
+
+### SIGINT mid-probe: the trap fires on INT, not only on EXIT (T-11-11)
+
+`kill -INT` sent directly to a backgrounded job's own PID is silently ignored by bash's
+job-control disposition (`SIGINT` is set `SIG_IGN` for background children unless the
+signal reaches the process through its controlling terminal) — this is a bash/job-control
+property independent of the trap's own correctness, and was ruled out by delivering the
+signal properly via `timeout --signal=INT`, which does not go through that job-control
+path:
+
+```
+$ timeout --signal=INT --preserve-status 1.18 hypr/.config/hypr/scripts/quickshell-doctor
+[... 9 checks printed, script interrupted mid-volume-probe before the check line or Summary print ...]
+$ echo $?
+130
+```
+
+`pactl get-sink-volume @DEFAULT_SINK@` reported the identical raw values before the run
+and immediately after the interrupted run returned — the volume-mutation trap (armed
+*before* the `swayosd-client --output-volume raise` call, per T-11-11) fired on `INT` and
+restored the sink correctly even though the script never reached its own volume-probe
+`check` line.
+
 ## Dated gate log
 
 Appended to across Phase 11's plans (01-05) and by later phases (14-16) per D-05. Each
 entry carries the date, the sub-criterion, and the raw observed result.
+
+### 2026-07-26 — 11-03 (quickshell-doctor: QS-05/QS-06 full mechanical gate)
+
+- **[PASS] QS-05 — namespace discipline (D-21):** every `quickshell-*` layer namespace
+  sits at level 3 (overlay) and belongs to the shell's own PID (off-level: 0, wrong-pid: 0).
+- **[PASS] QS-05 — reserved-space stays unclaimed:** `monitors -j`'s `reserved` array
+  (`[0,46,0,0]`, all waybar's) is byte-identical before, during and after summoning every
+  manifest surface — diffed, never compared against a hardcoded literal.
+- **[PASS] QS-05 — keybind-doctor wired in:** invoked as part of the run, exit 0, 13/13.
+- **[PASS] QS-06 — single Notifications owner:** `busctl --user list` reports exactly one
+  owner, named `swaync`.
+- **[PASS] QS-06 — single handler per hardware key:** all 10 XF86Audio\*/
+  XF86MonBrightness\* keys resolve to exactly 1 registered handler (Hyprland bind count +
+  Quickshell manifest count summed).
+- **[PASS] QS-06 — zero Quickshell MPRIS writers:** 0 files under `~/.config/quickshell`
+  reference MPRIS.
+- **[PASS] QS-06 — one-step-per-press volume probe:** seeded baseline delta = 3277 raw
+  units on first run; every subsequent run matches it exactly; sink volume byte-identical
+  before/after, including under a SIGINT delivered mid-probe (trap fires on INT, not only
+  EXIT — T-11-11).
+- **[SKIP, honestly recorded] QS-06 — brightness probe:** no `backlight`-class device on
+  this host (`brightnessctl -l` lists only `leds`-class devices).
+- **Full gate:** 10 checks run, 10 passed, 0 failed, exit 0. `git status --porcelain`
+  empty immediately after every run (baseline file lives under
+  `~/.local/state/quickshell/`, out of git per D-20).
 
 ### 2026-07-26 — 11-02 (MAINT-01 keybind-doctor repair + Quickshell shortcut cross-check)
 
@@ -413,3 +563,12 @@ recorded — `OnDemand` is the standing convention Phase 14's drawer inherits.
 - Hyprland baseline: `hyprctl version`; `hyprctl monitors -j | jq -c '[.[] | {name, reserved, focused}]'`;
   `hyprctl globalshortcuts`; `hyprctl layers -j | jq -c '[.[].levels["3"][]?]'` — all run
   live against the session on this host, 2026-07-26, before any Quickshell process existed.
+- `quickshell-doctor` (full mechanical gate, QS-05/QS-06): `hypr/.config/hypr/scripts/quickshell-doctor`
+- `quickshell-doctor` (headless/CI-safe, no compositor summon): `hypr/.config/hypr/scripts/quickshell-doctor --no-summon`
+- `keybind-doctor` (MAINT-01, invoked standalone or as part of the doctor's own run): `hypr/.config/hypr/scripts/keybind-doctor`
+- Reserved-space raw check, run manually alongside a manual summon/dismiss:
+  `hyprctl monitors -j | jq -c '[.[] | {name, reserved}]'` and
+  `hyprctl layers -j | jq -c '[.[].levels["3"][]?]'`, before and after
+  `hyprctl dispatch global quickshell:probe` (toggle summons/dismisses)
+- Single-owner D-Bus check: `busctl --user list | grep org.freedesktop.Notifications`
+- Baseline file (out of git, D-20): `cat ~/.local/state/quickshell/doctor-baseline.json`
