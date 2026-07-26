@@ -290,6 +290,66 @@ sentinel_present_in_file() {
 # confirming the sentinel is checked by value, not by name, across formats.
 REPRESENTATIVE_FILES=(hyprland.conf waybar.css swaync.css wleave.css gtk-4.0-colors.css kitty.conf)
 
+# ── D-17: live re-colour assertion (12-06, TOKEN-02) ────────────────────
+# Proves criterion 1 — a theme switch re-colours a LIVE Quickshell surface
+# without restarting the daemon — holds on EVERY one of the 10 switches,
+# not only the first. This lives inside the switch loop rather than a
+# one-off smoke test for exactly one reason: commit.sh's rsync replace
+# (lib/commit.sh:94, `rsync -a --delete`, no `--inplace`) changes
+# palette.json's inode on every switch, and a path-based file watcher that
+# detaches on replace would pass switch 1 and silently stop working from
+# switch 2 onward — a class of bug a single-switch test cannot see by
+# construction. Reaches the rendered value without a human or a
+# screenshot: the token inspector's `probeAdapter.observedPrimary`
+# (Probe.qml) mirrors `Colours.primary` through the SAME FileView/
+# JsonAdapter write path Phase 11 already proved live
+# (`~/.local/state/quickshell/probe.json`).
+#
+# Guarded like every other optional check in this file's family: degrades
+# to a named SKIP, never a FAIL, without a running quickshell daemon.
+QUICKSHELL_PROBE_JSON="$HOME/.local/state/quickshell/probe.json"
+QUICKSHELL_PID_AT_START=""
+QUICKSHELL_D17_ENABLED=0
+QUICKSHELL_PROBE_WAS_OPEN_AT_START=0
+QUICKSHELL_PROBE_WE_SUMMONED=0
+
+check_quickshell_process() {
+    pgrep -x quickshell >/dev/null 2>&1
+}
+
+# quickshell_probe_open
+# True if the quickshell-probe overlay surface currently exists on ANY
+# screen — never a hardcoded monitor name (this host's monitor count/name
+# must stay free to change without editing this file, same discipline as
+# quickshell-doctor's own reserved-space check).
+quickshell_probe_open() {
+    command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 || return 1
+    hyprctl layers -j 2>/dev/null | jq -e '
+        [.[] | (.levels."3" // [])[] | select(.namespace == "quickshell-probe")] | length > 0
+    ' >/dev/null 2>&1
+}
+
+# quickshell_probe_ensure_open
+# Summons the probe if it is not already open. `HyprlandFocusGrab` can be
+# cleared by unrelated focus/window activity elsewhere in the reload
+# fan-out — observed live during this plan's own verification (a
+# pre-existing Phase 11 dismiss mechanism, not something this check
+# introduces or depends on being absent). Re-summoning makes the
+# per-switch propagation assertion resilient to that, while the separate
+# PID-unchanged assertion below is what actually proves the daemon itself
+# was never restarted — the two assertions are deliberately independent.
+quickshell_probe_ensure_open() {
+    quickshell_probe_open && return 0
+    hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    QUICKSHELL_PROBE_WE_SUMMONED=1
+    local waited=0
+    while ! quickshell_probe_open && (( waited < 30 )); do
+        sleep 0.1
+        waited=$((waited + 1))
+    done
+    quickshell_probe_open
+}
+
 echo "theme-stress-test — ${SWITCHES}-switch reliability run (gap=${GAP}s) — ${TIMESTAMP}"
 echo ""
 
@@ -323,6 +383,22 @@ check_or_abort "precondition: elephant process running" "$rc"
 
 if check_elephant_listproviders; then rc=0; else rc=1; fi
 check_or_abort "precondition: elephant listproviders responds" "$rc"
+
+# D-17 setup — guarded, report-only (never aborts the run on its own):
+# with a quickshell daemon present, capture its PID (the PID-unchanged
+# assertion's baseline) and summon the token inspector once up front so
+# its FileView/JsonAdapter write path is live before the first switch.
+if check_quickshell_process; then
+    QUICKSHELL_D17_ENABLED=1
+    QUICKSHELL_PID_AT_START="$(pgrep -x quickshell | head -1)"
+    if quickshell_probe_open; then
+        QUICKSHELL_PROBE_WAS_OPEN_AT_START=1
+    fi
+    quickshell_probe_ensure_open >/dev/null 2>&1
+    echo "  [INFO] D-17 live re-colour assertion enabled (quickshell pid ${QUICKSHELL_PID_AT_START})"
+else
+    echo "  [SKIP] D-17 live re-colour assertion (quickshell daemon not running)"
+fi
 
 # ── Build the alternating switch sequence (D-31/D-33) ───────────────────
 # Odd positions: next static preset from the rotation, in order. Even
@@ -392,6 +468,39 @@ for (( i = 1; i <= SWITCHES; i++ )); do
     if check_elephant_listproviders; then rc=0; else rc=1; fi
     check_or_abort "switch #${i}: elephant listproviders responds" "$rc"
 
+    # (d) D-17: live re-colour — quickshell's rendered Colours.primary
+    #     tracks palette.json's freshly-rendered primary on THIS switch,
+    #     and the daemon PID never changed (no restart occurred). Guarded:
+    #     skipped entirely (no FAIL) when D-17 setup found no daemon.
+    if [[ "$QUICKSHELL_D17_ENABLED" -eq 1 ]]; then
+        quickshell_probe_ensure_open >/dev/null 2>&1
+
+        expected_primary_norm=""
+        expected_primary_raw="$(jq -r '.primary // empty' "$STATE_DIR/palette.json" 2>/dev/null)"
+        if ! expected_primary_norm="$(contract_normalize_color "$expected_primary_raw" 2>/dev/null)"; then
+            expected_primary_norm=""
+        fi
+
+        observed_norm=""
+        waited=0
+        while (( waited < 50 )); do
+            observed_raw="$(jq -r '.observedPrimary // empty' "$QUICKSHELL_PROBE_JSON" 2>/dev/null)"
+            if norm_try="$(contract_normalize_color "$observed_raw" 2>/dev/null)"; then
+                observed_norm="$norm_try"
+                [[ "$observed_norm" == "$expected_primary_norm" ]] && break
+            fi
+            sleep 0.1
+            waited=$((waited + 1))
+        done
+
+        if [[ -n "$expected_primary_norm" && "$observed_norm" == "$expected_primary_norm" ]]; then rc=0; else rc=1; fi
+        check_or_abort "switch #${i}: D-17 live re-colour — quickshell's Colours.primary (${observed_norm:-<none>}) matches palette.json's primary (${expected_primary_norm:-<none>})" "$rc"
+
+        quickshell_pid_now="$(pgrep -x quickshell | head -1)"
+        if [[ -n "$QUICKSHELL_PID_AT_START" && "$quickshell_pid_now" == "$QUICKSHELL_PID_AT_START" ]]; then rc=0; else rc=1; fi
+        check_or_abort "switch #${i}: quickshell daemon PID unchanged (${QUICKSHELL_PID_AT_START} == ${quickshell_pid_now:-<none>})" "$rc"
+    fi
+
     if (( i < SWITCHES )); then
         echo "  (settling ${GAP}s before next switch...)"
         sleep "$GAP"
@@ -418,6 +527,22 @@ check_or_abort "postcondition: elephant process still running" "$rc"
 
 if check_elephant_listproviders; then rc=0; else rc=1; fi
 check_or_abort "postcondition: elephant listproviders still responds" "$rc"
+
+if [[ "$QUICKSHELL_D17_ENABLED" -eq 1 ]]; then
+    if check_quickshell_process; then rc=0; else rc=1; fi
+    check_or_abort "postcondition: quickshell daemon still running" "$rc"
+
+    quickshell_pid_final="$(pgrep -x quickshell | head -1)"
+    if [[ -n "$QUICKSHELL_PID_AT_START" && "$quickshell_pid_final" == "$QUICKSHELL_PID_AT_START" ]]; then rc=0; else rc=1; fi
+    check_or_abort "postcondition: quickshell daemon PID never changed across the whole run (${QUICKSHELL_PID_AT_START} == ${quickshell_pid_final:-<none>})" "$rc"
+
+    # Restore the probe to whatever open/closed state it was in before this
+    # run started — never leave a surface open (or closed) that this
+    # script itself did not put there.
+    if [[ "$QUICKSHELL_PROBE_WE_SUMMONED" -eq 1 && "$QUICKSHELL_PROBE_WAS_OPEN_AT_START" -eq 0 ]]; then
+        hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    fi
+fi
 
 echo ""
 echo "Summary: ${PASS} passed, ${FAIL} failed"

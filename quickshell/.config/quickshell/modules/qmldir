@@ -9,8 +9,16 @@
 # `import "modules"` — Phase 12-06 added Colours.qml/Motion.qml here in the
 # same commit that created them, per this file's own standing instruction.
 # Any FUTURE type added to this directory MUST do the same.
+#
+# Colours/Motion are marked `singleton` here (12-06, binary-verified) — this
+# corrects an earlier assumption (12-RESEARCH.md Pattern 2) that Quickshell's
+# `Singleton` root type needs neither `pragma Singleton` nor a qmldir
+# `singleton` declaration. Empirically it needs BOTH: without the qmldir
+# keyword, bare `Colours.primary`-style access resolves to `undefined`
+# forever (the object is never constructed). Colours.qml/Motion.qml each
+# carry a matching `pragma Singleton` line for the same reason.
 module qs.modules
-Colours 1.0 Colours.qml
-Motion 1.0 Motion.qml
+singleton Colours 1.0 Colours.qml
+singleton Motion 1.0 Motion.qml
 Probe 1.0 Probe.qml
 ScreencopyProbe 1.0 ScreencopyProbe.qml

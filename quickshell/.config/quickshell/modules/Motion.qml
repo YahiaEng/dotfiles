@@ -26,6 +26,15 @@
 // shape or its data. Not this plan's file to fix: motion-lint is owned by
 // 12-05/12-07 (scope_boundary) — this divergence is recorded here AND in
 // 12-06-SUMMARY.md's Deviations section for 12-07 to see.
+//
+// `pragma Singleton` + qmldir's `singleton` keyword are both required for
+// bare `Motion.motionEnabled`-style access to resolve at all — see
+// Colours.qml's header comment for the binary-verified finding (corrects
+// 12-RESEARCH.md Pattern 2). Unlike Colours.qml, this file has no "X"/"onX"
+// property-name pairs, so it does not need Colours.qml's split-adapter
+// workaround for the separate "cannot assign a value to a signal" compiler
+// bug that pairing triggers.
+pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -41,7 +50,8 @@ Singleton {
 
     property bool loadHealthy: true
 
-    readonly property FileView motionFile: FileView {
+    FileView {
+        id: motionFile
         path: Quickshell.env("HOME") + "/.local/state/theme/motion.json"
         watchChanges: true
         printErrors: true

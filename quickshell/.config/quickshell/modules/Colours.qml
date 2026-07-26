@@ -1,42 +1,69 @@
 // Colours.qml — Quickshell.Singleton exposing the live Material You palette
-// (D-11, TOKEN-01). No `pragma Singleton` and no extra qmldir markup is
-// needed: Quickshell's own `Singleton` root type is exported as
-// `Quickshell/Singleton 0.0` by the installed qmltypes (12-RESEARCH.md
-// Pattern 2, [VERIFIED]) and already does the work.
+// (D-11, TOKEN-01).
+//
+// pragma Singleton + qmldir's `singleton` keyword ARE both required — this
+// corrects 12-RESEARCH.md Pattern 2's claim that neither is needed. Binary
+// verification (this plan, Task 1, standing constraint 2) found the
+// opposite: WITHOUT the qmldir `singleton` keyword, `Colours.primary`-style
+// bare-type-name property access resolves to `undefined` FOREVER — the
+// object is never even constructed (proven with a `Component.onCompleted`
+// that never fires and a repeating Timer that never sees a value change).
+// `Quickshell/Singleton 0.0`'s export only affects RELOAD PROPAGATION
+// behaviour, not classic QML singleton addressing.
+//
+// SECOND finding, also binary-verified this plan: a `pragma Singleton`
+// QML type CANNOT declare a property named "X" and a property named "onX"
+// (Material You's own `role`/`onRole` naming convention) in the SAME
+// object — Qt's singleton AOT compiler misparses the "onX" declaration as
+// a signal-handler binding for a same-named signal and fails with "Cannot
+// assign a value to a signal (expecting a script to be run)", even though
+// it is written as an ordinary `property string onX: ...` declaration.
+// Reproduced with a minimal 2-property QtObject (`primary` + `onPrimary`
+// alone, nothing else) — this is a genuine compiler limitation, not a
+// mistake in this file's syntax. Fix: split into two sibling
+// FileView/JsonAdapter pairs — `base` (role names) and `onRoles` (paired
+// "on"-role names) — so no single object ever holds both members of an
+// X/onX pair; the outer Singleton's `readonly property alias` layer (which
+// DOES hold both on the same object) is unaffected, proven safe in the
+// same verification pass.
 //
 // Read-only consumer of matugen's `[templates.qml]` render target
 // (~/.local/state/theme/palette.json, contract.json-listed, format "json").
 // commit.sh's atomic rsync is the SOLE writer of $STATE_DIR — this file
-// deliberately omits `onAdapterUpdated: writeAdapter()` so it can never
-// become a second writer (T-12-21 mitigation). Probe.qml's own
-// FileView/JsonAdapter, on its own separate `~/.local/state/quickshell/`
-// path, is unrelated and keeps its write-back for its own instrument.
+// deliberately omits `onAdapterUpdated: writeAdapter()` on both FileViews
+// so it can never become a second writer (T-12-21 mitigation). Probe.qml's
+// own FileView/JsonAdapter, on its own separate
+// `~/.local/state/quickshell/` path, is unrelated and keeps its write-back
+// for its own instrument.
 //
 // Fallback contract (D-11/UI-SPEC "Color" section, ui:empty|error|partial
 // E1): every property below defaults to debug magenta (#FF00FF) — never a
 // silent black/white default. A missing key stays at its declared default
 // because JsonAdapter only overwrites a property when the matching JSON key
-// is present with a compatible type; a key absent from a truncated or
-// mid-render read simply never overwrites its property, so the last-good
-// (or, before any successful parse, the declared magenta) value holds.
-// Malformed JSON content is the same story one level up: FileView's
-// `loadFailed` signal only carries FILE-level errors (not found/permission/
-// not-a-file — verified against the installed
+// is present with a compatible type. Malformed JSON content takes the same
+// path: FileView's `loadFailed` signal only carries FILE-level errors (not
+// found/permission/not-a-file — verified against the installed
 // Quickshell.Io/quickshell-io.qmltypes; there is no "invalid JSON" enum
 // value), so a syntactically-broken file is diagnosed by an explicit
-// `printErrors: true` + `onLoadFailed` branch below rather than left to
-// implicit adapter behaviour — inspectable in source, per the plan's own
-// instruction, even though the actual per-key value recovery is the same
-// "never overwritten" mechanism as the missing-key case above. Both paths
-// were proven live against this palette.json during this plan's Task 1
-// verification (see 12-06-SUMMARY.md).
+// `printErrors: true` + `onLoadFailed` branch on both FileViews below
+// rather than left to implicit adapter behaviour — inspectable in source.
+// Empirically observed live (this plan's Task 1 verification, see
+// 12-06-SUMMARY.md): on the FIRST read before palette.json has loaded, a
+// bound consumer briefly sees the declared magenta default, then the real
+// value the instant the async read completes — a one-frame fallback flash,
+// not a bug, and the direct answer to 12-UI-SPEC.md's RESEARCH carry-over
+// question about matugen's write atomicity (moot: this flash is about the
+// FIRST-EVER read racing FileView's own async load, not about matugen's
+// write mechanism, which commit.sh's atomic rsync already makes moot for
+// every read after the first).
 //
 // D-18: no quickshell step exists anywhere in theme-apply's reload fan-out
 // (grep lib/reload.sh — zero hits), and none should ever be added here for
 // symmetry with the other nine themed surfaces. This singleton's
-// FileView/JsonAdapter already re-colours the live surface by updating its
-// properties IN PLACE; a reload would rebuild the PanelWindow and destroy
-// the crossfade D-11 was chosen to enable.
+// FileViews/JsonAdapters already re-colour the live surface by updating
+// their properties IN PLACE; a reload would rebuild the PanelWindow and
+// destroy the crossfade D-11 was chosen to enable.
+pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -44,7 +71,7 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // Set false only on a FILE-level load failure (see loadFailed above) —
+    // Set false only on a FILE-level load failure (see loadFailed below) —
     // an explicit, inspectable flag rather than relying purely on
     // JsonAdapter's implicit per-key fallback. Not currently surfaced in
     // the UI beyond the magenta/(unmapped) captions themselves, which are
@@ -53,7 +80,10 @@ Singleton {
     // to touch this file to add it.
     property bool loadHealthy: true
 
-    readonly property FileView paletteFile: FileView {
+    // ── "base" role names — never "on"-prefixed, so this object can never
+    //    collide with the compiler bug described above. ──────────────────
+    FileView {
+        id: baseFile
         path: Quickshell.env("HOME") + "/.local/state/theme/palette.json"
         watchChanges: true
         printErrors: true
@@ -66,51 +96,74 @@ Singleton {
         }
 
         JsonAdapter {
-            id: palette
+            id: base
             property string primary: "#FF00FF"
-            property string onPrimary: "#FF00FF"
             property string primaryContainer: "#FF00FF"
-            property string onPrimaryContainer: "#FF00FF"
             property string secondary: "#FF00FF"
-            property string onSecondary: "#FF00FF"
             property string secondaryContainer: "#FF00FF"
-            property string onSecondaryContainer: "#FF00FF"
             property string tertiary: "#FF00FF"
-            property string onTertiary: "#FF00FF"
             property string surface: "#FF00FF"
-            property string onSurface: "#FF00FF"
             property string surfaceVariant: "#FF00FF"
-            property string onSurfaceVariant: "#FF00FF"
             property string background: "#FF00FF"
-            property string onBackground: "#FF00FF"
             property string outline: "#FF00FF"
             property string error: "#FF00FF"
+        }
+    }
+
+    // ── "on" role names — a SEPARATE FileView/JsonAdapter pair reading the
+    //    SAME palette.json path, so no object ever holds both a role and
+    //    its "on"-paired counterpart. ────────────────────────────────────
+    FileView {
+        id: onFile
+        path: Quickshell.env("HOME") + "/.local/state/theme/palette.json"
+        watchChanges: true
+        printErrors: true
+        onFileChanged: {
+            root.loadHealthy = true;
+            reload();
+        }
+        onLoadFailed: (error) => {
+            root.loadHealthy = false;
+        }
+
+        JsonAdapter {
+            id: onRoles
+            property string onPrimary: "#FF00FF"
+            property string onPrimaryContainer: "#FF00FF"
+            property string onSecondary: "#FF00FF"
+            property string onSecondaryContainer: "#FF00FF"
+            property string onTertiary: "#FF00FF"
+            property string onSurface: "#FF00FF"
+            property string onSurfaceVariant: "#FF00FF"
+            property string onBackground: "#FF00FF"
             property string onError: "#FF00FF"
         }
     }
 
     // One readonly alias per role (D-11's 19-key QML palette contract) so
-    // consumers write `Colours.primary` — never reach into `palette`
-    // directly.
-    readonly property alias primary: palette.primary
-    readonly property alias onPrimary: palette.onPrimary
-    readonly property alias primaryContainer: palette.primaryContainer
-    readonly property alias onPrimaryContainer: palette.onPrimaryContainer
-    readonly property alias secondary: palette.secondary
-    readonly property alias onSecondary: palette.onSecondary
-    readonly property alias secondaryContainer: palette.secondaryContainer
-    readonly property alias onSecondaryContainer: palette.onSecondaryContainer
-    readonly property alias tertiary: palette.tertiary
-    readonly property alias onTertiary: palette.onTertiary
-    readonly property alias surface: palette.surface
-    readonly property alias onSurface: palette.onSurface
-    readonly property alias surfaceVariant: palette.surfaceVariant
-    readonly property alias onSurfaceVariant: palette.onSurfaceVariant
-    readonly property alias background: palette.background
-    readonly property alias onBackground: palette.onBackground
-    readonly property alias outline: palette.outline
-    readonly property alias error: palette.error
-    readonly property alias onError: palette.onError
+    // consumers write `Colours.primary` — never reach into `base`/`onRoles`
+    // directly. Both an X and its onX alias coexist here safely (verified):
+    // the compiler bug above is specific to the underlying STORAGE object,
+    // not to this alias layer.
+    readonly property alias primary: base.primary
+    readonly property alias onPrimary: onRoles.onPrimary
+    readonly property alias primaryContainer: base.primaryContainer
+    readonly property alias onPrimaryContainer: onRoles.onPrimaryContainer
+    readonly property alias secondary: base.secondary
+    readonly property alias onSecondary: onRoles.onSecondary
+    readonly property alias secondaryContainer: base.secondaryContainer
+    readonly property alias onSecondaryContainer: onRoles.onSecondaryContainer
+    readonly property alias tertiary: base.tertiary
+    readonly property alias onTertiary: onRoles.onTertiary
+    readonly property alias surface: base.surface
+    readonly property alias onSurface: onRoles.onSurface
+    readonly property alias surfaceVariant: base.surfaceVariant
+    readonly property alias onSurfaceVariant: onRoles.onSurfaceVariant
+    readonly property alias background: base.background
+    readonly property alias onBackground: onRoles.onBackground
+    readonly property alias outline: base.outline
+    readonly property alias error: base.error
+    readonly property alias onError: onRoles.onError
 
     // Ordered {name, hex} list for the token inspector's swatch repeater
     // (D-15) — the ONE definition of "every colour role", never

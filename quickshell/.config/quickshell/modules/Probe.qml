@@ -1,33 +1,24 @@
-// Probe.qml — the QS-02 human input-viability instrumentation panel (D-03)
+// Probe.qml — the token inspector (12-06, D-10/D-15). Started life in
+// Phase 11 as the QS-02 human input-viability instrumentation panel; this
+// plan graduates it into the surface that carries TOKEN-01/TOKEN-02
+// criterion 1 by styling it FULLY from Colours/Motion while keeping its
+// content diagnostic (D-15) — every element is captioned with the exact
+// token it consumes, so a fully-coloured panel still reads as an
+// instrument, never a shipped surface.
 //
-// One panel, four instruments, nothing more:
-//   1. a button whose click increments a counter
-//   2. a text field that accepts typed characters
-//   3. a label bound through FileView/JsonAdapter to a hand-editable JSON
-//      file (~/.local/state/quickshell/probe.json)
-//   4. a label showing the name of the screen it is rendering on
+// Content, top to bottom (12-UI-SPEC.md "Token Inspector — Surface
+// Contract"): header banner, Colour Roles grid (19 roles — see the
+// Colours.qml "17 vs 19" note below), Motion — Semantic Pairs, Replay,
+// then Phase 11's four original instruments UNCHANGED underneath (counter
+// button, text field, hand-edited JSON state label, screen label) — this
+// phase does not remove working instrumentation.
 //
-// Deliberately unstyled (D-04): QtQuick defaults only, no authored colour
-// of any kind. This ugliness is intentional — the probe must never be
-// mistakable for a shipped surface (Phase 12 owns the QML render-target
-// format).
-//
-// QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — attempted after
-// arrangement A reproduced 11-QUICKSHELL-EVIDENCE.md's FM2 post-hotplug
-// visibility break: creating a headless output while shell.qml's
-// Variants+LazyLoader was active on DP-1 silently blanked every screen's
-// surface, permanently, verified directly with hyprctl layers -j staying
-// empty across four subsequent shortcut toggles). This file's root type is
-// now `Variants` instead of `PanelWindow`; shell.qml touches the local
-// `Probe` type exactly once (no wrapping LazyLoader there any more — the
-// summon/dismiss LazyLoader now lives per-screen, inside this file's
-// delegate, same as arrangement A). `modules/qmldir` (checked in this same
-// plan) is the new variable versus 11-04's own attempt at this exact
-// shape: an explicit qmldir disables Quickshell's directory-scanner
-// synthesis for modules/ entirely (verified via `-v -v` trace: "Found
-// qmldir file, qmldir synthesization will be disabled for directory"),
-// closing FM1 (the intermittent "Probe is not a type" config-load race)
-// regardless of which arrangement owns the per-screen fan-out.
+// QS-03 per-screen fan-out (D-12, Phase 12 arrangement B, unchanged by this
+// plan — 12-06 only rewrites the delegate's CONTENT, not the fan-out
+// structure): root type is `Variants` over `Quickshell.screens`, each
+// screen's delegate is a summon/dismiss `LazyLoader` wrapping a
+// `PanelWindow`. `modules/qmldir` (12-01, extended 12-06 with
+// Colours/Motion) is what keeps this directory's type resolution stable.
 import QtQml
 import QtQuick
 import QtQuick.Controls
@@ -41,9 +32,7 @@ Variants {
 
     // Summon/dismiss state shared across every screen's delegate — not
     // per-screen — so Super+Shift+G toggles every currently-known screen
-    // at once. shell.qml's GlobalShortcut flips this property directly;
-    // this is the same LazyLoader-per-screen summon shape as arrangement
-    // A, just declared inside this file's delegate instead of shell.qml.
+    // at once (unchanged from 12-01).
     property bool active: false
 
     // Emitted when any screen's HyprlandFocusGrab clears (click-outside
@@ -57,33 +46,42 @@ Variants {
         LazyLoader {
             // Variants sets `modelData` as an initial property on the
             // delegate root object (not merely a context property for
-            // non-Item roots like LazyLoader) — declare it explicitly so
-            // Quickshell has somewhere to put it.
+            // non-Item roots like LazyLoader) — declare it explicitly.
             required property var modelData
             active: probeVariants.active
 
             PanelWindow {
                 id: probeWindow
 
-                implicitWidth: 360
-                implicitHeight: 260
+                // ── Spacing scale (12-UI-SPEC.md, replaces the inherited
+                //    ad hoc spacing: 12 / spacing: 8) ────────────────────
+                readonly property int spacingXs: 4
+                readonly property int spacingSm: 8
+                readonly property int spacingMd: 16
+                readonly property int spacingLg: 24
+                readonly property int spacingXl: 32
+
+                // ui:overflow/E1,E2,E3 backstop: size FROM CONTENT
+                // (panelColumn's own natural implicit size) rather than the
+                // inherited fixed 360x260 footprint, which 19 colour roles
+                // plus 3 motion rows plus a replay section will exceed.
+                // panelColumn is positioned (not anchor-filled) below, so
+                // this is not a circular binding.
+                implicitWidth: panelColumn.implicitWidth + spacingLg * 2
+                implicitHeight: panelColumn.implicitHeight + spacingLg * 2
 
                 // Binds this delegate's own screen from modelData — hotplug
                 // order can never change which surface lands on which
-                // output (QS-03/ordering).
+                // output (QS-03/ordering, unchanged from 12-01).
                 screen: modelData
 
                 // D-21: overlay layer, distinct namespace, zero exclusive zone.
                 WlrLayershell.layer: WlrLayer.Overlay
                 WlrLayershell.namespace: "quickshell-probe"
-                // Explicit keyboardFocus set directly, deliberately not via the
-                // window's convenience boolean alias — the docs don't state the exact
-                // enum that shorthand maps to, and QS-02 lives or dies on keyboard
-                // focus working (RESEARCH.md Anti-Patterns).
                 WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
                 exclusiveZone: 0
 
-                // ── Click-outside dismiss (D-03) ─────────────────────
+                // ── Click-outside dismiss (unchanged from Phase 11) ────
                 HyprlandFocusGrab {
                     id: grab
                     windows: [ probeWindow ]
@@ -91,10 +89,90 @@ Variants {
                     onCleared: probeVariants.dismissRequested()
                 }
 
-                // ── Hand-edited JSON state (D-03/D-20/QS-04) ─────────
-                // Own state directory, never ~/.local/state/theme/. Absent file or
-                // absent key renders the JsonAdapter's declared default ("unset")
-                // rather than crashing.
+                // ── Header banner data sources — plain-text state files,
+                //    not JSON, so a bare FileView (no JsonAdapter) reading
+                //    its own .text() is the right tool (12-UI-SPEC.md
+                //    "Token Inspector — Surface Contract" item 1). ───────
+                FileView {
+                    id: currentThemeFile
+                    path: Quickshell.env("HOME") + "/.local/state/theme/current-theme"
+                    watchChanges: true
+                    onFileChanged: reload()
+                }
+                FileView {
+                    id: modeFile
+                    path: Quickshell.env("HOME") + "/.local/state/theme/mode"
+                    watchChanges: true
+                    onFileChanged: reload()
+                }
+                readonly property string currentThemeName: (currentThemeFile.text() || "").trim() || "unknown"
+                readonly property string currentModeName: (modeFile.text() || "").trim() || "unknown"
+
+                // ── Motion row diagnostics — a SEPARATE, independent raw
+                //    read of motion.json, deliberately NOT routed through
+                //    `Motion.*` (motion-lint's `load_qml_defs()` only
+                //    recognises `<key>Duration`/`<key>Easing`/
+                //    `motionEnabled` as valid `Motion.*` references — see
+                //    Motion.qml's header comment; any OTHER `Motion.xxx`
+                //    name, e.g. a hypothetical `Motion.hasMotionTokens` or
+                //    `Motion.pairs`, is a motion-lint CHECK-A dangling
+                //    reference, binary-verified this plan by hitting it
+                //    live). This read supplies ONLY presence/validity
+                //    booleans for the UI's empty/partial markup below —
+                //    every actual duration/easing VALUE the rows display
+                //    still comes exclusively from the six allowed
+                //    `Motion.*` properties, so D-01's "no number written
+                //    twice" principle holds; this is metadata, not a
+                //    second source of truth for the numbers themselves.
+                FileView {
+                    id: motionRawFile
+                    path: Quickshell.env("HOME") + "/.local/state/theme/motion.json"
+                    watchChanges: true
+                    onFileChanged: reload()
+                }
+                readonly property var motionRawSemantic: {
+                    var txt = motionRawFile.text();
+                    if (!txt) return null;
+                    try {
+                        var data = JSON.parse(txt);
+                        return data.semantic || null;
+                    } catch (e) {
+                        return null;
+                    }
+                }
+                readonly property bool hasMotionTokensLocal: !!(motionRawSemantic && Object.keys(motionRawSemantic).length > 0)
+
+                function motionRowData(key, easingDisplayName, duration, easing) {
+                    var entry = motionRawSemantic ? motionRawSemantic[key] : null;
+                    var durationValid = !!entry && typeof entry.duration_ms === "number" && entry.duration_ms > 0;
+                    var easingValid = !!entry && Array.isArray(entry.bezier) && entry.bezier.length === 6;
+                    return {
+                        name: key,
+                        easingName: easingDisplayName,
+                        duration: duration,
+                        easing: easing,
+                        durationValid: durationValid,
+                        easingValid: easingValid
+                    };
+                }
+
+                // D-25's fixed three semantic pairs, hardcoded here (not
+                // discovered) since only these three are wired to anything
+                // real this phase — every VALUE still reads live from the
+                // allowed `Motion.*` properties; only the pair NAMES/
+                // easing-display-names are literals, matching D-25's own
+                // "trimmed semantic layer" fencing.
+                readonly property var motionRows: [
+                    motionRowData("standard", "standard", Motion.standardDuration, Motion.standardEasing),
+                    motionRowData("emphasized-in", "emphasized-decelerate", Motion.emphasizedInDuration, Motion.emphasizedInEasing),
+                    motionRowData("emphasized-out", "emphasized-accelerate", Motion.emphasizedOutDuration, Motion.emphasizedOutEasing)
+                ]
+
+                // ── Hand-edited JSON state (Phase 11 instrument, D-03/D-20
+                //    /QS-04, UNCHANGED) plus D-17's live re-colour mirror
+                //    (observedPrimary) — same adapter, same write path, so
+                //    theme-stress-test can assert live re-colour off disk
+                //    without a human or a screenshot. ────────────────────
                 FileView {
                     id: probeState
                     path: Quickshell.env("HOME") + "/.local/state/quickshell/probe.json"
@@ -105,43 +183,331 @@ Variants {
                     JsonAdapter {
                         id: probeAdapter
                         property string label: "unset"
+                        // D-17: kept in lock-step with whatever
+                        // Colours.primary currently resolves to via the
+                        // Binding below — a script reading probe.json off
+                        // disk sees the SAME value the swatch is painted
+                        // with, not a second, possibly-stale source.
+                        property string observedPrimary: ""
+                    }
+                }
+                // A declarative `Binding` here would be WRONG (binary-
+                // verified, Task 2): JsonAdapter's own file-load imperatively
+                // sets each declared property from the persisted JSON on
+                // every read, which QML's "assigning breaks the binding"
+                // rule then permanently detaches — the swatch's live colour
+                // would silently stop mirroring into probe.json the moment
+                // probe.json is ever re-read with its own historical
+                // "observedPrimary" value. Imperative re-assignment on every
+                // change (mirroring how `probeAdapter.label` is already a
+                // plain read/write property, never a Binding target) has no
+                // such conflict.
+                Component.onCompleted: probeAdapter.observedPrimary = Colours.primary
+                Connections {
+                    target: Colours
+                    function onPrimaryChanged() {
+                        probeAdapter.observedPrimary = Colours.primary;
                     }
                 }
 
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 12
-
-                    Row {
-                        spacing: 8
-
-                        Button {
-                            id: counterButton
-                            text: "Click me"
-                            onClicked: counterLabel.count += 1
+                Rectangle {
+                    id: panelBackground
+                    anchors.fill: parent
+                    color: Colours.surface
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
                         }
+                    }
 
+                    Column {
+                        id: panelColumn
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.margins: probeWindow.spacingLg
+                        spacing: probeWindow.spacingXl
+
+                        // ── 1. Header banner (Display, 22px/600) ────────
                         Label {
-                            id: counterLabel
-                            property int count: 0
-                            text: "Count: " + count
-                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Screen: " + (probeWindow.screen ? probeWindow.screen.name : "unknown")
+                                + " · Theme: " + probeWindow.currentThemeName
+                                + " (" + probeWindow.currentModeName + ")"
+                            width: 400
+                            elide: Text.ElideRight
+                            font.pixelSize: 22
+                            font.weight: Font.DemiBold
+                            color: Colours.primary
+                            Behavior on color {
+                                enabled: Motion.motionEnabled
+                                ColorAnimation { duration: Motion.standardDuration }
+                            }
                         }
-                    }
 
-                    TextField {
-                        id: probeTextField
-                        placeholderText: "Type here"
-                    }
+                        // ── 2. Colour Roles (Heading, 18px/600) ─────────
+                        Column {
+                            spacing: probeWindow.spacingSm
 
-                    Label {
-                        id: stateLabel
-                        text: "State label: " + probeAdapter.label
-                    }
+                            Label {
+                                text: "Colour Roles"
+                                font.pixelSize: 18
+                                font.weight: Font.DemiBold
+                                color: Colours.primary
+                            }
 
-                    Label {
-                        id: screenLabel
-                        text: "Screen: " + (probeWindow.screen ? probeWindow.screen.name : "unknown")
+                            Grid {
+                                id: swatchGrid
+                                columns: 5
+                                spacing: probeWindow.spacingSm
+
+                                Repeater {
+                                    id: swatchRepeater
+                                    model: Colours.roles
+
+                                    delegate: Column {
+                                        id: swatchCell
+                                        required property var modelData
+                                        spacing: probeWindow.spacingXs
+                                        readonly property bool unmapped: modelData.hex.toUpperCase() === "#FF00FF"
+
+                                        Rectangle {
+                                            width: 40
+                                            height: 40
+                                            radius: 6
+                                            color: swatchCell.modelData.hex
+                                            border.width: 1
+                                            border.color: Colours.outline
+                                            Behavior on color {
+                                                enabled: Motion.motionEnabled
+                                                ColorAnimation {
+                                                    duration: Motion.standardDuration
+                                                    easing.type: Easing.BezierSpline
+                                                    easing.bezierCurve: Motion.standardEasing
+                                                }
+                                            }
+                                        }
+
+                                        Label {
+                                            // Copywriting Contract: "{token-name} (unmapped)"
+                                            // — the debug-magenta sentinel IS the detection
+                                            // signal (there is no separate success flag).
+                                            text: swatchCell.unmapped
+                                                ? (swatchCell.modelData.name + " (unmapped)")
+                                                : swatchCell.modelData.name
+                                            font.pixelSize: 12
+                                            font.weight: Font.Normal
+                                            color: swatchCell.unmapped ? Colours.error : Colours.onSurface
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ── 3. Motion — Semantic Pairs ──────────────────
+                        Column {
+                            spacing: probeWindow.spacingSm
+
+                            Label {
+                                text: "Motion — Semantic Pairs"
+                                font.pixelSize: 18
+                                font.weight: Font.DemiBold
+                                color: Colours.primary
+                            }
+
+                            // ui:empty/E2: a missing/empty semantic layer
+                            // renders ONE explicit row, never a gap.
+                            Label {
+                                visible: !probeWindow.hasMotionTokensLocal
+                                text: "no motion tokens loaded — check motion.json"
+                                font.pixelSize: 14
+                                color: Colours.onSurface
+                            }
+
+                            Column {
+                                visible: probeWindow.hasMotionTokensLocal
+                                spacing: probeWindow.spacingXs
+
+                                Repeater {
+                                    model: probeWindow.hasMotionTokensLocal ? probeWindow.motionRows : []
+
+                                    delegate: Row {
+                                        required property var modelData
+                                        spacing: probeWindow.spacingMd
+
+                                        Label {
+                                            text: modelData.name
+                                            width: 140
+                                            font.pixelSize: 14
+                                            color: Colours.onSurface
+                                        }
+                                        // ui:error/E2 + ui:partial/E2: each
+                                        // field is marked independently —
+                                        // the row is never hidden, even if
+                                        // only one of the two is broken.
+                                        Label {
+                                            text: modelData.durationValid ? (modelData.duration + "ms") : "(undefined)"
+                                            width: 70
+                                            font.pixelSize: 14
+                                            color: modelData.durationValid ? Colours.onSurface : Colours.error
+                                        }
+                                        Label {
+                                            text: modelData.easingValid ? modelData.easingName : "(undefined)"
+                                            font.pixelSize: 14
+                                            color: modelData.easingValid ? Colours.onSurface : Colours.error
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ── 4. Replay ────────────────────────────────────
+                        Column {
+                            spacing: probeWindow.spacingSm
+
+                            Label {
+                                text: "Replay"
+                                font.pixelSize: 18
+                                font.weight: Font.DemiBold
+                                color: Colours.primary
+                            }
+
+                            Button {
+                                id: replayButton
+                                text: "Replay motion"
+                                font.pixelSize: 14
+                                onClicked: {
+                                    // Pitfall 4 (12-RESEARCH.md): the base
+                                    // Animation type has NO `enabled`
+                                    // property — only Behavior does — so an
+                                    // imperatively-triggered animation must
+                                    // be gated at the TRIGGER, not via a
+                                    // property binding. Clicked mid-replay
+                                    // restarts from frame 0 across all
+                                    // three pairs simultaneously (stop()
+                                    // then start()) — never disabled, never
+                                    // a silent no-op (D-16/ui:loading E4).
+                                    // At motion-scale "off", the pairs stay
+                                    // stopped: no animation at all, which
+                                    // is the tested/expected posture, not a
+                                    // bug.
+                                    standardReplayAnim.stop();
+                                    emphasizedInReplayAnim.stop();
+                                    emphasizedOutReplayAnim.stop();
+                                    if (Motion.motionEnabled) {
+                                        standardReplayAnim.start();
+                                        emphasizedInReplayAnim.start();
+                                        emphasizedOutReplayAnim.start();
+                                    }
+                                }
+                            }
+
+                            Row {
+                                spacing: probeWindow.spacingLg
+
+                                Column {
+                                    spacing: probeWindow.spacingXs
+                                    Rectangle {
+                                        id: standardReplaySwatch
+                                        width: 24
+                                        height: 24
+                                        radius: 12
+                                        color: Colours.tertiary
+                                        NumberAnimation on x {
+                                            id: standardReplayAnim
+                                            running: false
+                                            from: 0
+                                            to: 80
+                                            duration: Motion.standardDuration
+                                            easing.type: Easing.BezierSpline
+                                            easing.bezierCurve: Motion.standardEasing
+                                        }
+                                    }
+                                    Label { text: "standard"; font.pixelSize: 12; color: Colours.onSurface }
+                                }
+
+                                Column {
+                                    spacing: probeWindow.spacingXs
+                                    Rectangle {
+                                        id: emphasizedInReplaySwatch
+                                        width: 24
+                                        height: 24
+                                        radius: 12
+                                        color: Colours.tertiary
+                                        NumberAnimation on x {
+                                            id: emphasizedInReplayAnim
+                                            running: false
+                                            from: 0
+                                            to: 80
+                                            duration: Motion.emphasizedInDuration
+                                            easing.type: Easing.BezierSpline
+                                            easing.bezierCurve: Motion.emphasizedInEasing
+                                        }
+                                    }
+                                    Label { text: "emphasized-in"; font.pixelSize: 12; color: Colours.onSurface }
+                                }
+
+                                Column {
+                                    spacing: probeWindow.spacingXs
+                                    Rectangle {
+                                        id: emphasizedOutReplaySwatch
+                                        width: 24
+                                        height: 24
+                                        radius: 12
+                                        color: Colours.tertiary
+                                        NumberAnimation on x {
+                                            id: emphasizedOutReplayAnim
+                                            running: false
+                                            from: 0
+                                            to: 80
+                                            duration: Motion.emphasizedOutDuration
+                                            easing.type: Easing.BezierSpline
+                                            easing.bezierCurve: Motion.emphasizedOutEasing
+                                        }
+                                    }
+                                    Label { text: "emphasized-out"; font.pixelSize: 12; color: Colours.onSurface }
+                                }
+                            }
+                        }
+
+                        // ── Phase 11 instruments (QS-02 proof surface) —
+                        //    UNCHANGED underneath everything above. ───────
+                        Column {
+                            spacing: probeWindow.spacingMd
+
+                            Row {
+                                spacing: probeWindow.spacingSm
+
+                                Button {
+                                    id: counterButton
+                                    text: "Click me"
+                                    onClicked: counterLabel.count += 1
+                                }
+
+                                Label {
+                                    id: counterLabel
+                                    property int count: 0
+                                    text: "Count: " + count
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            TextField {
+                                id: probeTextField
+                                placeholderText: "Type here"
+                            }
+
+                            Label {
+                                id: stateLabel
+                                text: "State label: " + probeAdapter.label
+                            }
+
+                            Label {
+                                id: screenLabel
+                                text: "Screen: " + (probeWindow.screen ? probeWindow.screen.name : "unknown")
+                            }
+                        }
                     }
                 }
             }
