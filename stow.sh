@@ -81,7 +81,20 @@ mkdir -p "$HOME/.config/quickshell"
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
-        stow --restow "$pkg" --target="$HOME" 2>&1 | sed 's/^/    /'
+        # CR-02: under `set -euo pipefail`, a stow conflict on ANY package
+        # here (non-zero exit propagating through the `| sed` pipe) would
+        # abort the WHOLE script before ever reaching the motion-file seed
+        # below — silently skipping the one seed step this file's own
+        # comments call the most critical, "must fail loudly, not silently"
+        # write. `if ! ... ; then` short-circuits set -e's abort for just
+        # this one pipeline so one package's conflict doesn't take down
+        # every later package (and the motion seed) with it; re-running
+        # stow.sh after resolving the conflict is the existing, documented
+        # recovery path (WR-05: seed only when absent — stow.sh is
+        # re-runnable).
+        if ! stow --restow "$pkg" --target="$HOME" 2>&1 | sed 's/^/    /'; then
+            echo "  ⚠ stow failed for $pkg — continuing with remaining packages" >&2
+        fi
     else
         echo "  ⚠ Skipping: $pkg (directory not found)"
     fi
