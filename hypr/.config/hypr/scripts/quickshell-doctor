@@ -1,0 +1,334 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║            QUICKSHELL-DOCTOR (D-05)                   ║
+# ║  Rerunnable coexistence gate: proves the Quickshell    ║
+# ║  shell root stays alive, claims no reserved screen     ║
+# ║  space, sits on its own quickshell-* overlay namespace, ║
+# ║  and shares every event source (D-Bus ownership,       ║
+# ║  hardware keys, volume/brightness step, MPRIS) with     ║
+# ║  waybar, swaync, SwayOSD, wleave, AGS and walker        ║
+# ║  without a second handler ever appearing. Report-only  ║
+# ║  apart from one documented transient exception (the     ║
+# ║  volume/brightness step probes below), which restore    ║
+# ║  what they change via a trap installed before either    ║
+# ║  probe's first mutation runs (T-11-11).                 ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Record-why (D-14-style correction, for this file's own design): on
+# Hyprland 0.56.0, `hyprctl layers -j` carries NO reserved-space field at
+# all — verified directly (11-RESEARCH.md Pitfall 1). Its "levels" keys
+# 0-3 are shell-layer levels (background/bottom/top/overlay), not screen
+# edges, and no such per-client field appears anywhere in its output. A
+# check written to grep that query for such a field would report PASS
+# whether Quickshell actually reserves space or not — a check that
+# cannot fail is not a check. The real reserved-space accounting is
+# visible on `hyprctl monitors -j`'s `reserved` array
+# ([left,top,right,bottom] pixel counts). Do NOT "simplify" this file
+# back into a `layers -j` grep for that field — it isn't there.
+#
+# Usage: quickshell-doctor [--no-summon]
+#   --no-summon   Downgrade the transient summon-and-diff reserved-space
+#                 check to a named [SKIP] line, for a headless/CI
+#                 context where dispatching a GlobalShortcut has no
+#                 compositor to land on.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+SHORTCUTS_MANIFEST="$HOME/.config/quickshell/shortcuts.json"
+QUICKSHELL_CONFIG_DIR="$HOME/.config/quickshell"
+LAUNCHER_LOG="$HOME/.cache/quickshell.log"
+STATE_DIR="$HOME/.local/state/quickshell"
+BASELINE_FILE="$STATE_DIR/doctor-baseline.json"
+KEYBIND_DOCTOR="$SCRIPT_DIR/keybind-doctor"
+US=$'\x1f'
+
+NO_SUMMON=0
+for arg in "$@"; do
+    case "$arg" in
+        --no-summon) NO_SUMMON=1 ;;
+    esac
+done
+
+PASS=0
+FAIL=0
+
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        printf '  [PASS] %s\n' "$desc"
+        PASS=$((PASS + 1))
+    else
+        printf '  [FAIL] %s\n' "$desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# V5 input-validation control (matches keybind-doctor's own discipline,
+# its comment at lines 69-71): every value parsed from the manifest is
+# handled as display/comparison-only text. Before any manifest-derived
+# appid/name reaches a `hyprctl dispatch` argv element, it is checked
+# against this strict allowlist — never shell-command-interpreted, never
+# passed through a constructed shell string (T-11-10).
+_qsd_valid_token() {
+    [[ "$1" =~ ^[A-Za-z0-9_-]+$ ]]
+}
+
+echo "quickshell-doctor — Quickshell coexistence gate (QS-05/QS-06)"
+echo ""
+
+# ── T-11-11: install the restore trap BEFORE either mutating probe
+#    below runs. Restoration is the trap's job alone — never call the
+#    cleanup function directly inline — so an interrupt between
+#    mutate-and-restore can never strand the user's volume/brightness at
+#    a raised level. ─────────────────────────────────────────────────
+VOL_RESTORE_NEEDED=0
+VOL_ORIG_RAW=()
+BRI_RESTORE_NEEDED=0
+BRI_ORIG_RAW=""
+CLEANED_UP=0
+# shellcheck disable=SC2329 # invoked indirectly via `trap` below, not a direct call
+_qsd_cleanup() {
+    [[ "$CLEANED_UP" -eq 1 ]] && return
+    CLEANED_UP=1
+    if [[ "$VOL_RESTORE_NEEDED" -eq 1 && "${#VOL_ORIG_RAW[@]}" -gt 0 ]]; then
+        pactl set-sink-volume @DEFAULT_SINK@ "${VOL_ORIG_RAW[@]}" >/dev/null 2>&1
+    fi
+    if [[ "$BRI_RESTORE_NEEDED" -eq 1 && -n "$BRI_ORIG_RAW" ]]; then
+        brightnessctl set "$BRI_ORIG_RAW" >/dev/null 2>&1
+    fi
+}
+# EXIT alone covers normal completion; INT/TERM additionally terminate
+# the script immediately after restoring (a signal handler that
+# silently keeps running defeats the point of interrupting it) — the
+# guard above keeps a subsequent EXIT-trap firing from double-restoring.
+trap _qsd_cleanup EXIT
+trap '_qsd_cleanup; exit 130' INT
+trap '_qsd_cleanup; exit 143' TERM
+
+# ── 1. Binary present ────────────────────────────────────────────────
+command -v quickshell >/dev/null 2>&1
+check "quickshell binary present on PATH" "$?"
+
+# ── 2. Shell process alive (D-06) — a headless root that renders
+#    nothing is also invisible when it fails to start or dies, so this
+#    is the load-bearing liveness proof. ─────────────────────────────
+pgrep -f 'quickshell -p' >/dev/null 2>&1
+check "quickshell shell process alive (matches the launcher's exec'd invocation)" "$?"
+
+# ── 3. Launcher log healthy ──────────────────────────────────────────
+if [[ ! -f "$LAUNCHER_LOG" ]]; then
+    check "launcher log exists with a healthy last startup ($LAUNCHER_LOG)" "1"
+else
+    LAST_START_LINE_NO=$(grep -n 'quickshell-launch\.sh: starting' "$LAUNCHER_LOG" | tail -1 | cut -d: -f1)
+    if [[ -z "$LAST_START_LINE_NO" ]]; then
+        check "launcher log exists with a healthy last startup ($LAUNCHER_LOG)" "1"
+        echo "    no 'quickshell-launch.sh: starting' line found in $LAUNCHER_LOG" >&2
+    else
+        TAIL_SINCE_START=$(tail -n +"$LAST_START_LINE_NO" "$LAUNCHER_LOG")
+        CRASH_HITS=$(printf '%s\n' "$TAIL_SINCE_START" | grep -ciE 'fatal|panic|segmentation fault|core dumped|\babort(ed)?\b')
+        check "launcher log's last startup line ($LAUNCHER_LOG:$LAST_START_LINE_NO) has no crash/abort marker after it" "$([[ "$CRASH_HITS" -eq 0 ]] && echo 0 || echo 1)"
+        if [[ "$CRASH_HITS" -gt 0 ]]; then
+            echo "    last lines since startup:" >&2
+            printf '%s\n' "$TAIL_SINCE_START" | tail -10 | sed 's/^/    /' >&2
+        fi
+    fi
+fi
+
+# ── 4. Namespace discipline (D-21) — every quickshell-* layer namespace
+#    must sit at level 3 (overlay) and belong to the shell's own PID.
+#    This is what stops the class of stale-namespace residue that left
+#    two inert eww-media-popup layerrules behind. ────────────────────
+if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    echo "  [SKIP] namespace discipline (D-21): hyprctl or jq not found"
+else
+    SHELL_PIDS=" $(pgrep -f 'quickshell -p' | tr '\n' ' ') "
+    LAYERS_JSON=$(hyprctl layers -j 2>/dev/null)
+    OFF_LEVEL_COUNT=$(printf '%s' "$LAYERS_JSON" | jq -r '
+        [.[].levels | to_entries[] | select(.key != "3") | .value[] | select(.namespace | startswith("quickshell-"))] | length
+    ')
+    WRONG_PID_COUNT=0
+    while IFS= read -r pid; do
+        [[ -z "$pid" ]] && continue
+        case "$SHELL_PIDS" in
+            *" $pid "*) ;;
+            *) WRONG_PID_COUNT=$((WRONG_PID_COUNT + 1)) ;;
+        esac
+    done < <(printf '%s' "$LAYERS_JSON" | jq -r '.[].levels["3"][]? | select(.namespace | startswith("quickshell-")) | .pid')
+    check "namespace discipline (D-21): every quickshell-* layer namespace sits at level 3 (overlay) and belongs to the shell's own PID (off-level: ${OFF_LEVEL_COUNT}, wrong-pid: ${WRONG_PID_COUNT})" "$([[ "$OFF_LEVEL_COUNT" -eq 0 && "$WRONG_PID_COUNT" -eq 0 ]] && echo 0 || echo 1)"
+fi
+
+# ── 5. Reserved-space stays unclaimed (D-21), by diff not by literal —
+#    summon every manifest surface, re-read monitors -j's reserved
+#    array, assert byte-identical, then dismiss again. Never assert
+#    equality against a hardcoded value: waybar's height, this host's
+#    monitor name and the monitor count must all be free to change
+#    without editing this file. ───────────────────────────────────────
+if [[ "$NO_SUMMON" -eq 1 ]]; then
+    echo "  [SKIP] reserved-space stays unclaimed (D-21): summon-and-diff disabled by --no-summon"
+elif ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    echo "  [SKIP] reserved-space stays unclaimed (D-21): hyprctl or jq not found"
+elif [[ ! -f "$SHORTCUTS_MANIFEST" ]]; then
+    echo "  [SKIP] reserved-space stays unclaimed (D-21): manifest not found ($SHORTCUTS_MANIFEST)"
+else
+    ZONE_DIFF_BAD=0
+    while IFS="$US" read -r m_appid m_name; do
+        [[ -z "$m_appid" ]] && continue
+        if ! _qsd_valid_token "$m_appid" || ! _qsd_valid_token "$m_name"; then
+            ZONE_DIFF_BAD=$((ZONE_DIFF_BAD + 1))
+            printf '    manifest entry failed the strict appid/name allowlist — refusing to dispatch: appid=%q name=%q\n' "$m_appid" "$m_name" >&2
+            continue
+        fi
+        PRE=$(hyprctl monitors -j | jq -c '[.[].reserved]')
+        hyprctl dispatch global "${m_appid}:${m_name}" >/dev/null 2>&1
+        sleep 0.3
+        POST=$(hyprctl monitors -j | jq -c '[.[].reserved]')
+        hyprctl dispatch global "${m_appid}:${m_name}" >/dev/null 2>&1
+        sleep 0.3
+        if [[ "$PRE" != "$POST" ]]; then
+            ZONE_DIFF_BAD=$((ZONE_DIFF_BAD + 1))
+            printf '    reserved array changed summoning %s:%s — before=%s after=%s\n' "$m_appid" "$m_name" "$PRE" "$POST" >&2
+        fi
+    done < <(jq -r --arg us "$US" '.[] | [.appid, .name] | join($us)' "$SHORTCUTS_MANIFEST")
+    check "reserved-space stays unclaimed (D-21): summoning every manifest surface leaves monitors -j's reserved array byte-identical (changed: ${ZONE_DIFF_BAD})" "$([[ "$ZONE_DIFF_BAD" -eq 0 ]] && echo 0 || echo 1)"
+fi
+
+# ── 6. keybind-doctor clean — the MAINT-01 half of QS-05's
+#    bind-collision proof, wired in so it cannot rot separately. ─────
+if [[ -x "$KEYBIND_DOCTOR" ]]; then
+    KBD_OUTPUT=$("$KEYBIND_DOCTOR" 2>&1)
+    KBD_EXIT=$?
+    check "keybind-doctor clean (MAINT-01 bind-collision proof, exit ${KBD_EXIT})" "$([[ "$KBD_EXIT" -eq 0 ]] && echo 0 || echo 1)"
+    if [[ "$KBD_EXIT" -ne 0 ]]; then
+        printf '%s\n' "$KBD_OUTPUT" | tail -5 | sed 's/^/    /' >&2
+    fi
+else
+    check "keybind-doctor clean (MAINT-01 bind-collision proof)" "1"
+    echo "    keybind-doctor not found or not executable at $KEYBIND_DOCTOR" >&2
+fi
+
+# ── 7. Single org.freedesktop.Notifications owner (QS-06) — assert
+#    EXACTLY one: zero is as much a failure as two (zero means the
+#    notification daemon died). ──────────────────────────────────────
+if ! command -v busctl >/dev/null 2>&1; then
+    echo "  [SKIP] single org.freedesktop.Notifications owner (busctl not found)"
+else
+    NOTIF_LINES=$(busctl --user list 2>/dev/null | grep 'org\.freedesktop\.Notifications' || true)
+    NOTIF_COUNT=$(printf '%s\n' "$NOTIF_LINES" | grep -c '.')
+    NOTIF_OWNER=$(printf '%s\n' "$NOTIF_LINES" | awk '{print $3}' | head -1)
+    check "single org.freedesktop.Notifications owner, and it is swaync (count: ${NOTIF_COUNT}, owner: ${NOTIF_OWNER:-<none>})" "$([[ "$NOTIF_COUNT" -eq 1 && "$NOTIF_OWNER" == "swaync" ]] && echo 0 || echo 1)"
+fi
+
+# ── 8. Single handler per hardware key (QS-06) — count registered
+#    handlers across BOTH registration mechanisms: Hyprland's own binds
+#    plus any manifest entry whose chord.key names the same key. ─────
+if ! command -v hyprctl >/dev/null 2>&1; then
+    echo "  [SKIP] single handler per hardware key (hyprctl not found)"
+else
+    XF86_KEYS=(XF86AudioRaiseVolume XF86AudioLowerVolume XF86AudioMute XF86AudioMicMute XF86MonBrightnessUp XF86MonBrightnessDown XF86AudioNext XF86AudioPause XF86AudioPlay XF86AudioPrev)
+    BINDS_RAW=$(hyprctl binds 2>/dev/null)
+    KEY_BAD=0
+    KEY_REPORT=""
+    for xk in "${XF86_KEYS[@]}"; do
+        HYPR_COUNT=$(printf '%s\n' "$BINDS_RAW" | grep -c "	key: ${xk}\$")
+        MANIFEST_COUNT=0
+        if [[ -f "$SHORTCUTS_MANIFEST" ]] && command -v jq >/dev/null 2>&1; then
+            MANIFEST_COUNT=$(jq -r --arg k "$xk" '[.[] | select(.chord.key == $k)] | length' "$SHORTCUTS_MANIFEST" 2>/dev/null)
+            [[ -z "$MANIFEST_COUNT" ]] && MANIFEST_COUNT=0
+        fi
+        TOTAL=$((HYPR_COUNT + MANIFEST_COUNT))
+        KEY_REPORT="${KEY_REPORT}${xk}=${TOTAL} "
+        [[ "$TOTAL" -ne 1 ]] && KEY_BAD=$((KEY_BAD + 1))
+    done
+    check "single handler per hardware key: all 10 XF86Audio*/XF86MonBrightness* keys have exactly one registered handler (bad: ${KEY_BAD})" "$([[ "$KEY_BAD" -eq 0 ]] && echo 0 || echo 1)"
+    echo "    per-key counts: ${KEY_REPORT}"
+fi
+
+# ── 9. No Quickshell MPRIS writer (QS-06 / standing constraint 4) —
+#    Phase 11 ships no media widget so this asserts a zero that must
+#    stay zero; a third *reader* of MPRIS is safe, a third uncoordinated
+#    *writer* is not. ─────────────────────────────────────────────────
+if [[ -d "$QUICKSHELL_CONFIG_DIR" ]]; then
+    MPRIS_HITS=0
+    while IFS= read -r f; do
+        grep -qi 'mpris' "$f" 2>/dev/null && MPRIS_HITS=$((MPRIS_HITS + 1))
+    done < <(find -L "$QUICKSHELL_CONFIG_DIR" -type f 2>/dev/null)
+    check "zero Quickshell MPRIS writers (found in ${MPRIS_HITS} file(s) under $QUICKSHELL_CONFIG_DIR)" "$([[ "$MPRIS_HITS" -eq 0 ]] && echo 0 || echo 1)"
+else
+    echo "  [SKIP] no Quickshell MPRIS writer check ($QUICKSHELL_CONFIG_DIR not found)"
+fi
+
+# ── 10. One step per press — volume (QS-06), measured, transient,
+#    self-restoring. The one deliberate mutation in this gate. Never
+#    let a missing instrument produce a silent [PASS]: skip cleanly
+#    when swayosd-client is absent or pactl reports no default sink. ──
+if ! command -v swayosd-client >/dev/null 2>&1; then
+    echo "  [SKIP] one-step-per-press volume probe (swayosd-client not found)"
+elif ! command -v pactl >/dev/null 2>&1 || ! pactl get-sink-volume @DEFAULT_SINK@ >/dev/null 2>&1; then
+    echo "  [SKIP] one-step-per-press volume probe (pactl reports no default sink)"
+else
+    ORIG_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
+    mapfile -t VOL_ORIG_RAW < <(printf '%s' "$ORIG_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
+    # Arm the trap BEFORE the mutation below (T-11-11) — restoration is
+    # the trap's job alone from this point on; this script never calls
+    # _qsd_cleanup directly.
+    VOL_RESTORE_NEEDED=1
+
+    swayosd-client --output-volume raise >/dev/null 2>&1
+    sleep 0.3
+    NEW_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
+    mapfile -t VOL_NEW_RAW < <(printf '%s' "$NEW_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
+    VOL_DELTA=$((VOL_NEW_RAW[0] - VOL_ORIG_RAW[0]))
+
+    mkdir -p "$STATE_DIR"
+    if [[ -f "$BASELINE_FILE" ]] && jq -e '.volume_step_delta_raw != null' "$BASELINE_FILE" >/dev/null 2>&1; then
+        VOL_BASELINE=$(jq -r '.volume_step_delta_raw' "$BASELINE_FILE")
+        check "one-step-per-press volume probe: measured delta=${VOL_DELTA} raw units matches recorded baseline=${VOL_BASELINE} (a later doubling would show as drift here)" "$([[ "$VOL_DELTA" == "$VOL_BASELINE" ]] && echo 0 || echo 1)"
+    else
+        BASELINE_JSON="{}"
+        [[ -f "$BASELINE_FILE" ]] && BASELINE_JSON=$(cat "$BASELINE_FILE")
+        printf '%s' "$BASELINE_JSON" | jq --argjson d "$VOL_DELTA" '.volume_step_delta_raw = $d' >"$BASELINE_FILE"
+        check "one-step-per-press volume probe: seeded baseline delta=${VOL_DELTA} raw units (first run — no prior baseline)" "0"
+    fi
+fi
+
+# ── 11. One step per press — brightness (QS-06). Same shape, guarded on
+#    a real backlight-class device existing. Detect the CLASS, not mere
+#    command presence, or this would try to raise the capslock LED. ───
+BRI_HAS_BACKLIGHT=0
+if command -v brightnessctl >/dev/null 2>&1 && brightnessctl -l 2>/dev/null | grep -q "class 'backlight'"; then
+    BRI_HAS_BACKLIGHT=1
+fi
+
+if ! command -v swayosd-client >/dev/null 2>&1; then
+    echo "  [SKIP] one-step-per-press brightness probe (swayosd-client not found)"
+elif [[ "$BRI_HAS_BACKLIGHT" -eq 0 ]]; then
+    echo "  [SKIP] one-step-per-press brightness probe (no backlight-class device — brightnessctl -l lists only leds-class devices on this host)"
+else
+    BRI_ORIG_RAW=$(brightnessctl get)
+    # Arm the trap BEFORE the mutation below (T-11-11), same discipline
+    # as the volume probe above.
+    BRI_RESTORE_NEEDED=1
+
+    swayosd-client --brightness raise >/dev/null 2>&1
+    sleep 0.3
+    BRI_NEW=$(brightnessctl get)
+    BRI_DELTA=$((BRI_NEW - BRI_ORIG_RAW))
+
+    mkdir -p "$STATE_DIR"
+    if [[ -f "$BASELINE_FILE" ]] && jq -e '.brightness_step_delta_raw != null' "$BASELINE_FILE" >/dev/null 2>&1; then
+        BRI_BASELINE=$(jq -r '.brightness_step_delta_raw' "$BASELINE_FILE")
+        check "one-step-per-press brightness probe: measured delta=${BRI_DELTA} matches recorded baseline=${BRI_BASELINE}" "$([[ "$BRI_DELTA" == "$BRI_BASELINE" ]] && echo 0 || echo 1)"
+    else
+        BASELINE_JSON="{}"
+        [[ -f "$BASELINE_FILE" ]] && BASELINE_JSON=$(cat "$BASELINE_FILE")
+        printf '%s' "$BASELINE_JSON" | jq --argjson d "$BRI_DELTA" '.brightness_step_delta_raw = $d' >"$BASELINE_FILE"
+        check "one-step-per-press brightness probe: seeded baseline delta=${BRI_DELTA} (first run — no prior baseline)" "0"
+    fi
+fi
+
+echo ""
+echo "Summary: ${PASS} passed, ${FAIL} failed"
+[[ "$FAIL" -eq 0 ]]
+exit $?
