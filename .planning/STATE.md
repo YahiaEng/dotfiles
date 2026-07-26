@@ -4,17 +4,17 @@ milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 12
 current_phase_name: unified-design-token-pipeline
-status: executing
-stopped_at: Completed 12-07-PLAN.md (wleave motion retrofit; D-27 human render gate APPROVED)
-last_updated: "2026-07-26T22:38:57.065Z"
+status: verifying
+stopped_at: "Completed 12-08-PLAN.md (TOKEN-06 spring-vs-MD3 verdict: not adopted; Phase 12 all requirements resolved, ready for verification)"
+last_updated: "2026-07-26T22:57:38.562Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 13
-  completed_plans: 12
-  percent: 14
+  completed_plans: 13
+  percent: 29
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 Phase: 12 (unified-design-token-pipeline) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
-Progress: [█████████░] 92%
+Status: Phase complete — ready for verification
+Progress: [██████████] 100%
 Last activity: 2026-07-26 — Phase 12 execution started
 
 ## Performance Metrics
@@ -141,6 +141,7 @@ Last activity: 2026-07-26 — Phase 12 execution started
 | Phase 12 P05 | 20min | 3 tasks | 11 files |
 | Phase 12 P06 | multi-session | 3 tasks | 8 files |
 | Phase 12 P07 | multi-session | 3 tasks | 2 files |
+| Phase 12 P08 | ~40min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -192,6 +193,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 12-07: wleave retrofitted onto emitted motion tokens (longhand transition-*/animation-*, Pitfall 1-safe); binary-verified GTK4 :root custom properties reach a window's descendant nodes, no motion.sh change needed
 - [Phase ?]: 12-07: motion-lint's wleave whole-file exemption removed; added a narrower LINE_EXEMPTIONS mechanism for its D-19-fenced hover rule, and a global DELAY_PROPERTY_RE carve-out (animation-delay/transition-delay are not motion-token debt, no --motion-delay-* token exists in this pipeline)
 - [Phase ?]: 12-07: D-27 human render gate on wleave APPROVED, no feel regression against Phase 9; theme-doctor now 180/0 fully clean (orchestrator resolved the pre-existing untracked vscodium file via .gitignore, unrelated to this plan)
+- [Phase ?]: 12-08: TOKEN-06 verdict — MD3 bezier retained, spring physics NOT adopted ('MD3 is better. Spring is too fast'), framed as a tuning-parameter rejection (unsourced spring:300/damping:20/mass:1) not a mechanism rejection; a future revisit stays open if a primary source for MD3 Expressive's spring constants ever surfaces. Spring/MD3 toggle kept permanently in Probe.qml as a comparison instrument. Phase 12 now closes with all six TOKEN requirements resolved.
 
 ### Quick Tasks Completed
 
@@ -272,8 +274,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T22:38:57.055Z
-Stopped at: Completed 12-07-PLAN.md (wleave motion retrofit; D-27 human render gate APPROVED)
+Last session: 2026-07-26T22:57:38.551Z
+Stopped at: Completed 12-08-PLAN.md (TOKEN-06 spring-vs-MD3 verdict: not adopted; Phase 12 all requirements resolved, ready for verification)
 Resume file: None
 
 ## Operator Next Steps
