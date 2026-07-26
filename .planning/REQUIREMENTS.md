@@ -15,7 +15,7 @@
 
 - [x] **QS-01**: `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package
 - [x] **QS-02**: A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface running on Hyprland 0.56.0 — proven on a throwaway `PanelWindow` **before any feature is built on the toolkit**, with authority to stop the milestone
-- [ ] **QS-03**: Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug *(carried forward to Phase 12 — accepted for Phase 11 via a recorded override, see 11-VERIFICATION.md)*
+- [x] **QS-03**: Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug *(carried forward to Phase 12 — accepted for Phase 11 via a recorded override, see 11-VERIFICATION.md)*
 - [x] **QS-04**: Editing Quickshell config hot-reloads the running shell without a manual restart
 - [x] **QS-05**: The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind
 - [x] **QS-06**: No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner

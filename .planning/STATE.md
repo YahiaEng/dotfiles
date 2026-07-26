@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-current_phase: 11
-current_phase_name: quickshell-viability-gate
-status: verifying
-stopped_at: Completed 11-05-PLAN.md — Phase 11 verdict PASS, screencopy feasibility confirmed, permissions.conf shipped inert
-last_updated: "2026-07-26T11:37:38.503Z"
+current_phase: 12
+current_phase_name: Unified Design-Token Pipeline
+status: planning
+stopped_at: Phase 11 closed — code review fixed, re-verified 9/9 passed, UAT 13/0, security SECURED. Phase 12 ready to plan.
+last_updated: "2026-07-26T15:44:27.167Z"
 last_activity: 2026-07-26
-last_activity_desc: "Completed quick task 260726-l0y: QS-03 acceptance override recorded, ownership moved to Phase 12"
+last_activity_desc: Phase 11 complete, transitioned to Phase 12
 progress:
   total_phases: 7
   completed_phases: 1
@@ -24,21 +24,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 11 — quickshell-viability-gate
+**Current focus:** Phase 12 — Unified Design-Token Pipeline
 
 ## Current Position
 
-Phase: 11 (quickshell-viability-gate) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
+Phase: 12 — Unified Design-Token Pipeline
+Plan: Not started
+Status: Ready to plan
 Progress: [██████████] 100%
-Last activity: 2026-07-26 — Completed quick task 260726-l0y: QS-03 acceptance override recorded, ownership moved to Phase 12
+Last activity: 2026-07-26 — Phase 11 complete, transitioned to Phase 12
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 64
+- Total plans completed: 58
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -54,6 +54,7 @@ Last activity: 2026-07-26 — Completed quick task 260726-l0y: QS-03 acceptance 
 | 07 | 8 | - | - |
 | 10 | 6 | - | - |
 | 09 | 4 | - | - |
+| 11 | 5 | - | - |
 
 **Recent Trend:**
 
@@ -188,12 +189,18 @@ None yet.
 
 **Open — carried into v3.0:**
 
-1. **`keybind-doctor`'s `hyprctl binds -j` JSON parsing is broken on Hyprland 0.56.0.** Pre-existing, surfaced during Phase 9, unrelated to that phase's changes.
-2. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** still open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot.
-3. **QS-03 per-screen mounting gap (Phase 11, 11-04 Task 1, 2026-07-26).** The current `modules/Probe.qml` single-`PanelWindow` design only mounts on whichever screen existed at shell startup — a monitor hotplugged afterward gets zero probe surfaces, not its own. Real, mechanically-verified defect (`quickshell-doctor`'s new per-screen check FAILs honestly: 13 passed, 1 failed). A `Variants`-based fix was attempted and reverted after finding two independent reliability failures on this quickshell 0.3.0 build (an intermittent config-load race and a post-hotplug visibility break) — not safe to ship against the always-on autostart daemon. Not a stop-trigger (D-10); full findings in `11-QUICKSHELL-EVIDENCE.md`. **Owner assigned 2026-07-26 (quick task 260726-l0y):** accepted for Phase 11 via a recorded override in `11-VERIFICATION.md` frontmatter (`overrides[0]`, accepted by YahiaEng), with QS-03 carried forward to **Phase 12** — now on its ROADMAP `Requirements` line and its success criterion 6. No longer unowned.
-4. **11-04 paused at a human-required checkpoint (2026-07-26).** Task 1 (QS-03 hotplug gate) and Task 2(a) (QML hot-reload) are complete and committed. Task 2(b) (`FileView`/`JsonAdapter` hand-edit — watching the on-screen label) and Task 3 (suspend/resume cycle, click/type/dismiss re-test, per-screen label check) genuinely require a human at the keyboard/screen and cannot be performed or simulated by the executor. Resume by completing 11-04's remaining tasks once the human has performed the steps in the checkpoint request.
+1. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** still open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot. → Owned by Phase 13 (MAINT-02).
+2. **QS-03 per-screen mounting gap.** The shell root mounts one `LazyLoader` per `GlobalShortcut`, not one surface per `Quickshell.screens` entry, so an output hotplugged after startup gets no surface. Real, mechanically-verified defect — `quickshell-doctor` reports 13 passed / 1 failed on exactly this check. A `Variants`-based fix was written in 11-04 and reverted after two independent live-daemon reliability regressions on quickshell 0.3.0 (intermittent config-load race, post-hotplug visibility break). **Closed for Phase 11** via a recorded override in `11-VERIFICATION.md` (`overrides[0]`, accepted by YahiaEng 2026-07-26); **now owned by Phase 12** as its success criterion 6. Not unowned, not forgotten — but still an open defect until Phase 12 closes it.
+3. **Two Phase 11 backstop truths accepted as UNVERIFIED (2026-07-26).** Recorded as `overrides[1]`/`overrides[2]` in `11-VERIFICATION.md` and carried in `behavior_unverified_items`. Neither is evidence of correct behaviour — both are known unknowns:
+   - *XF86 duplicate-key handler determinism* — never exercised; testing it means deliberately breaking a working keybind config and restarting the session twice. Relevant to Phases 14 and 16, which each add a global keybind. Re-open if a bind-resolution conflict ever surfaces.
+   - *Zero-output survival* — physically untestable on this single-monitor host. Phase 12 needs multi-output test infrastructure for QS-03 anyway; that is the natural place to finally exercise it.
 
 _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.0 scoping; see Resolved below.)_
+
+**Resolved in Phase 11 (2026-07-26):**
+
+- **`keybind-doctor`'s `hyprctl binds -j` JSON parsing broken on Hyprland 0.56.0** — repaired in 11-02 by dropping `-j`/`jq` entirely for plain-text parsing (0.56.0's structured serializer for that query is field-misaligned, not merely malformed). Now 13 passed / 0 failed, exit 0, with a named shape-guard check and a proven-to-fail poisoned-fixture self-test.
+- **11-04's human-required checkpoint** — the outstanding items (`FileView`/`JsonAdapter` hand-edit propagation; suspend/resume cycle with click/type/dismiss re-test) were performed and passed as tests 3 and 4 of `11-UAT.md`.
 
 **Resolved during v3.0 scoping (2026-07-26):**
 
@@ -239,8 +246,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T11:37:38.494Z
-Stopped at: Completed 11-05-PLAN.md — Phase 11 verdict PASS, screencopy feasibility confirmed, permissions.conf shipped inert
+Last session: 2026-07-26T15:45:00Z
+Stopped at: Phase 11 closed and transitioned to Phase 12. Phase 12 carries QS-03 (criterion 6) plus TOKEN-01..06. Next: /gsd-plan-phase 12.
 Resume file: None
 
 ## Operator Next Steps
