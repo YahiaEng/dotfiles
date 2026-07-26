@@ -105,6 +105,7 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - Full GUI settings app — the settings menu launches existing tools; no custom settings UI (carried from v2.0 requirements)
 - Gaming-mode session switching — the game center is a launcher submenu, not a session manager (carried from v2.0 requirements)
 - eww as a widget toolkit — retired in Phase 10 after its popup was proven unable to deliver pointer input on this eww 0.6.0 / Hyprland 0.55.4 build; AGS v3 (GTK4) is the widget toolkit going forward
+- **QS-03 — per-screen Quickshell surface fan-out (rendering correctly across every connected monitor, including one hotplugged after startup)** — **accepted as a permanent limitation, 2026-07-26 (D-13, one-way).** The fan-out was re-attempted in Phase 12 with a checked-in `qmldir` (closing the FM1 scanner race) and a per-screen `LazyLoader` under `Variants`, tried in two structurally distinct arrangements under an explicit bounded budget plus an escape-hatch spike — all recorded in `12-QS03-EVIDENCE.md`. Both arrangements reproduced an FM2-class multi-screen surface-creation failure on quickshell 0.3.0-2, re-proven across a real session restart. quickshell 0.3.0-2 is the latest version in the official `extra` repo, so "wait for upstream" was not an available option. The host has one physical monitor (`DP-1`), so the fan-out is unexercised in daily use. **Consequence: Phase 16's full-screen per-monitor overview inherits a shell root that cannot fan out and must solve this itself.**
 
 ## Current State
 

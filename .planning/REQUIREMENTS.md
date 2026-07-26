@@ -15,7 +15,7 @@
 
 - [x] **QS-01**: `install.sh` installs Quickshell and its Qt6 dependencies from the official Arch `extra` repo, and `stow.sh` deploys the `quickshell/` package — both registered in the same commit that creates the package
 - [x] **QS-02**: A human can click a button, type into a text field, and dismiss by clicking outside on a Quickshell layer-shell surface running on Hyprland 0.56.0 — proven on a throwaway `PanelWindow` **before any feature is built on the toolkit**, with authority to stop the milestone
-- [x] **QS-03**: Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug *(carried forward to Phase 12 — accepted for Phase 11 via a recorded override, see 11-VERIFICATION.md)*
+- [x] **QS-03**: Quickshell surfaces render correctly across all connected monitors and survive monitor hotplug *(Out of Scope as of Phase 12, 2026-07-26 — accepted as a permanent limitation under D-13 after a bounded re-attempt; see `12-CONTEXT.md` D-13 and `12-QS03-EVIDENCE.md`)*
 - [x] **QS-04**: Editing Quickshell config hot-reloads the running shell without a manual restart
 - [x] **QS-05**: The Quickshell shell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no layer-namespace collision, no exclusive-zone layout shift, and no duplicated global keybind
 - [x] **QS-06**: No two processes double-handle the same event source — MPRIS, PipeWire, hardware media/brightness keys and `org.freedesktop.Notifications` each retain a single owner
@@ -115,6 +115,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | "Work safety" NSFW-wallpaper auto-blur | end-4 has it; no plausible use on a personal single-user machine |
 | Rebuilding walker/elephant in QML | Deferred and undecided. Phase 7 invested 8 plans in the elephant TOML menu tree; whether shell consistency justifies rebuilding fuzzy search, app indexing, clipboard and calc providers is a v4.0+ question |
 | Quickshell/QML shell rewrite as an *all-at-once* migration | The v2.0 Out-of-Scope entry forbidding a rewrite is reversed (see PROJECT.md), but only in decomposed form. A single big-bang migration remains out of scope |
+| **QS-03** — per-screen Quickshell surface fan-out (rendering correctly across all connected monitors, surviving hotplug) | **Dropped 2026-07-26 (D-13, one-way).** Phase 12 re-attempted the fan-out with a bounded, targeted fix — a checked-in `qmldir` closing the FM1 scanner race, plus a `Variants`+per-screen `LazyLoader` retried under an explicit budget with a spike as escape hatch — and both structurally distinct arrangements reproduced an FM2-class multiplicity failure on quickshell 0.3.0-2, re-proven across a real session restart. quickshell 0.3.0-2 is the latest version in the official `extra` repo, so "wait for upstream" was not an available option. The host has one physical monitor (`DP-1`), so the fan-out is unexercised in daily use. Full record: `12-QS03-EVIDENCE.md`. **Consequence:** Phase 16's full-screen per-monitor overview inherits a shell root that cannot fan out and must solve this itself. |
 
 ---
 
@@ -126,7 +127,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 |-------------|-------|--------|
 | QS-01 | Phase 11 — Quickshell Viability Gate | Complete |
 | QS-02 | Phase 11 — Quickshell Viability Gate | Complete |
-| QS-03 | Phase 12 — Unified Design-Token Pipeline *(carried forward; accepted there via a recorded override)* | Deferred (carried forward from Phase 11) |
+| QS-03 | Phase 12 — Unified Design-Token Pipeline *(dropped 2026-07-26, D-13 one-way)* | Out of Scope (dropped by Phase 12 — see `12-QS03-EVIDENCE.md`) |
 | QS-04 | Phase 11 — Quickshell Viability Gate | Complete |
 | QS-05 | Phase 11 — Quickshell Viability Gate | Complete |
 | QS-06 | Phase 11 — Quickshell Viability Gate | Complete |
@@ -165,12 +166,12 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 **Coverage:**
 
-- v3.0 requirements: 38 total
-- Mapped to phases: 38
+- v3.0 requirements: 38 defined, 37 active (QS-03 dropped to Out of Scope 2026-07-26 — see reason below and `12-QS03-EVIDENCE.md`)
+- Mapped to phases: 37
 - Unmapped: 0 ✓
 - Duplicates (a requirement in more than one phase): 0 ✓
 
-**Per-phase counts:** Phase 11: 6 · Phase 12: 7 · Phase 13: 5 · Phase 14: 8 · Phase 15: 6 · Phase 16: 4 · Phase 17: 2 = 38
+**Per-phase counts:** Phase 11: 6 · Phase 12: 6 *(was 7 — QS-03 dropped 2026-07-26)* · Phase 13: 5 · Phase 14: 8 · Phase 15: 6 · Phase 16: 4 · Phase 17: 2 = 37
 
 **Placement notes:**
 
@@ -178,9 +179,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 - **MAINT-02 / MAINT-03 → Phase 13.** Phase 13 is the milestone's existing-surface sweep and already opens wleave (WR-04's Logout-wrapping target) and the walker-driven picker family. A standalone maintenance phase of three unrelated single-item fixes is the thin-phase shape the coarse granularity setting exists to prevent.
 - **TOKEN-06 blocks nothing.** No phase and no requirement depends on it; dropping it changes no other phase's scope.
 - **OVER-04 stays in Phase 16.** Phase 11 runs the screencopy *feasibility probe* (permission mechanics, a first live multi-window capture) so Phase 16's scope is decided early; the measured frame/CPU budget and documented fallback remain Phase 16's requirement.
-- **QS-03 → Phase 12 (carried forward from Phase 11, 2026-07-26).** The gap was accepted for Phase 11 under D-10 via a recorded override in `11-VERIFICATION.md` rather than dropped. Phase 12 is the first phase that needs a permanent, non-summoned QML surface, so it has to solve per-screen fan-out anyway; it carries QS-03 as success criterion 6. The total stays 38 with no duplicate because the row moved rather than being copied.
+- **QS-03 → Phase 12 (carried forward from Phase 11, 2026-07-26), then dropped by Phase 12 (2026-07-26, D-13, one-way).** The gap was accepted for Phase 11 under D-10 via a recorded override in `11-VERIFICATION.md` rather than dropped. Phase 12 is the first phase that needed a permanent, non-summoned QML surface, so it had to attempt per-screen fan-out anyway; it carried QS-03 as success criterion 6. Phase 12 re-attempted the fan-out with a bounded, targeted fix (checked-in `qmldir` plus `Variants`+`LazyLoader`, two structurally distinct arrangements, one spike) and both reproduced an FM2-class multiplicity failure on quickshell 0.3.0-2, re-proven across a real session restart — see `12-QS03-EVIDENCE.md`. Per D-13, QS-03 is now formally Out of Scope rather than carried a second time; the active requirement total drops from 38 to 37 with no duplicate, since the row moved rather than being copied.
 
 ---
 
 *Requirements defined: 2026-07-26*
-*Last updated: 2026-07-26 after v3.0 roadmap creation (Phases 11-17, 38/38 requirements mapped); QS-03 ownership moved Phase 11 -> Phase 12 after the Phase 11 acceptance override (2026-07-26)*
+*Last updated: 2026-07-26 after Phase 12's D-13 decision dropped QS-03 to Out of Scope (37/37 active requirements mapped, 38 ever defined); QS-03 ownership moved Phase 11 -> Phase 12 after the Phase 11 acceptance override (2026-07-26), then dropped by Phase 12 the same day after a bounded re-attempt failed (see `12-QS03-EVIDENCE.md`)*
