@@ -3,9 +3,14 @@
 **Branch reached: STOP.** Budget clause hit: Stage A exhausted (both permitted arrangements
 tried, one 10-restart proof run each, both failed the per-screen surface creation check on
 the identical failure signature) plus one Stage B escape-hatch diagnostic, which confirmed
-rather than resolved the failure. `quickshell-doctor` summary line, unchanged from the
-pre-task baseline: **`Summary: 13 passed, 1 failed`**, exit 1, with the single failure being
-`per-screen surface creation (QS-03)`. No other check regressed.
+rather than resolved the failure. In-session `quickshell-doctor` summary line, unchanged
+from the pre-task baseline: **`Summary: 13 passed, 1 failed`**, exit 1, with the single
+failure being `per-screen surface creation (QS-03)`. **Post-session-restart (Task 2, Part 3
+below), `quickshell-doctor` reads `Summary: 12 passed, 2 failed`** — the QS-03 failure
+persists unchanged (and with a stronger DP-1-also-vanishes signature), plus one additional
+failure (`one-step-per-press volume probe`) that is pre-existing, unrelated to this plan,
+and not a regression — see Part 3 for the full evidence. No check this plan is responsible
+for regressed.
 
 This plan deliberately does not cross the D-13 one-way door — that decision belongs to
 Plan 12-02's opening `checkpoint:decision`, which reads this record.
@@ -197,14 +202,91 @@ open-endedly hunt a workaround.**
   monitor this host has in daily use, and is the more contained of the two failed
   arrangements (shell.qml touches `Probe` exactly once, matching the pre-Phase-12 design's
   shape).
-- `quickshell-doctor` final state: **`Summary: 13 passed, 1 failed`, exit 1** — identical
-  to the pre-task baseline, with the sole failure still `per-screen surface creation
-  (QS-03)`. No other check regressed. `git status --porcelain quickshell/` shows only the
-  intended `qmldir` addition plus the arrangement-B modifications to `shell.qml` and
-  `Probe.qml` — nothing half-applied.
+- `quickshell-doctor` in-session final state: **`Summary: 13 passed, 1 failed`, exit 1** —
+  identical to the pre-task baseline, with the sole failure still `per-screen surface
+  creation (QS-03)`. No other check regressed. `git status --porcelain quickshell/` shows
+  only the intended `qmldir` addition plus the arrangement-B modifications to `shell.qml`
+  and `Probe.qml` — nothing half-applied.
+- `quickshell-doctor` post-session-restart (Task 2, Part 3 below): **`Summary: 12 passed,
+  2 failed`, exit 1**, reproduced identically on three consecutive runs — QS-03 still the
+  expected failure (with a stronger DP-1-also-vanishes signature), plus one pre-existing,
+  unrelated `one-step-per-press volume probe` failure not introduced by this plan (see
+  Part 3(b) — filed as a pending todo, not fixed here).
 - Daemon left running and healthy: `pgrep -x quickshell` returns a PID, `hyprctl dispatch
   global quickshell:probe` on `DP-1` alone still creates exactly one surface and a second
   press destroys it, launcher log has no crash/abort marker.
+
+## Part 3 — Session-restart re-proof (Task 2, against the always-on autostart daemon)
+
+Performed against a real Hyprland session logout/login, not merely an in-session
+`pkill`/relaunch (the in-session loop in Part 1/2 above proves FM1 is closed across process
+restarts; this proves it holds across a real session boundary too, per the roadmap's fixed
+proof protocol).
+
+**1. Session restart confirmed real.** Post-login daemon PID 1003 — a low PID consistent
+with a fresh boot, distinct from the 3164822 PID this plan's Task 1 work left running.
+`~/.cache/quickshell.log` shows three `quickshell-launch.sh` startups (22:24:06, 22:25:16,
+22:31:03), the last one via the real `autostart.conf` path at login, not a manual relaunch.
+
+**2. Log clean — FM1 stays closed across a real session restart.** No `is not a type` and
+no `Failed to load configuration` anywhere after the login timestamp; `INFO: Configuration
+Loaded` present on all three launches. Only warnings present: the expected
+`FileView ... Read of /home/aorus/.local/state/quickshell/probe.json failed: File does not
+exist` (missing state file — known/expected pre-token-pipeline, Probe.qml's declared
+`JsonAdapter` default of `"unset"` covers it) and one benign `qt.qpa.services`
+portal-registration warning, unrelated to this plan.
+
+**3. `quickshell-doctor` post-restart: `Summary: 12 passed, 2 failed`, exit 1** —
+reproduced identically on three consecutive runs. Two failures, one expected and one
+pre-existing/unrelated:
+
+**(a) `per-screen surface creation (QS-03)` — the expected STOP-branch failure, with a
+stronger signature than the in-session runs recorded:**
+```
+[FAIL] per-screen surface creation (QS-03): exactly one quickshell-probe surface under
+  DP-1 (found: 0) and exactly one under HEADLESS-N (found: 0), addresses distinct,
+  not shared (shared: 0)
+```
+`DP-1` itself reads `found: 0` here (this plan's own in-session runs, Part 2 above, also
+recorded `found: 0` on `DP-1` in the final restored-to-baseline check — this is the same
+observation, now additionally confirmed fresh across a real session boundary, not an
+artifact of this plan's own prior toggling). Once a second screen exists, the FIRST
+screen's surface is also absent, not merely the new screen failing to gain one. The
+immediately following check confirms single-screen operation is unaffected:
+`headless output remove (QS-03): ... DP-1 probe still creatable (found: 1)`. This
+DP-1-also-vanishes detail materially strengthens the Part 2 conclusion: the failure is a
+general `Variants`+`PanelWindow` multiplicity limitation on this quickshell 0.3.0-2
+build — not a partial/one-sided hotplug gap, and not specific to the newly-added screen.
+
+**(b) `one-step-per-press volume probe` — PRE-EXISTING, UNRELATED TO THIS PLAN, NOT
+FIXED HERE:**
+```
+[FAIL] one-step-per-press volume probe: measured delta=3276 raw units matches
+  recorded baseline=3277
+```
+Evidence this is out of scope for 12-01: `quickshell-doctor` was last modified by Phase 11
+commits (9978851, 2529894, 1945a81, 3ec4661, 9b15171); this plan's commit `288e780` touched
+only `Probe.qml`, `shell.qml`, `qmldir`, and this evidence doc — nothing audio-related. The
+check (`quickshell-doctor` line ~338) is `[[ "$VOL_DELTA" == "$VOL_BASELINE" ]]` — exact
+string equality on raw PulseAudio units against a recorded baseline
+(`~/.local/state/quickshell/doctor-baseline.json` → `{"volume_step_delta_raw": 3277}`).
+The check's own stated purpose is catching a doubling regression (which would read
+≈6553); a 1-unit delta (3276 vs 3277) is percentage→raw rounding drift at a different
+current volume level, not a real one-step-per-press regression. The gate is over-strict
+for what it actually tests — logged below as a noted-but-out-of-scope observation and
+filed as a pending todo (`.planning/todos/pending/quickshell-doctor-volume-probe-brittle.md`),
+not fixed in this plan.
+
+**4. Summon/dismiss toggle: PASS.** Super+Shift+G summons the probe panel on `DP-1`; a
+second press dismisses it — confirmed post-session-restart. `keybind-doctor` also passes
+with zero bind collisions, and the doctor's own programmatic single-screen summon checks
+pass (12 of the 13 non-QS-03 checks unaffected).
+
+**Branch confirmed: STOP, with the exact same failure signature the in-session proof
+recorded** (`per-screen surface creation (QS-03)` FAILing, everything else — aside from
+the unrelated pre-existing volume-probe brittleness — unaffected). Task 2's re-proof
+requirement is satisfied: the STOP branch holds across a real session restart, not only a
+foreground/in-session test run.
 
 ## Consequence for Plan 12-02
 
