@@ -32,10 +32,30 @@ ShellRoot {
         }
     }
 
+    // Criterion-5 screencopy feasibility probe (11-05 Task 1), same
+    // summon-via-LazyLoader mechanism as the probe above, second
+    // GlobalShortcut/manifest entry proving D-17's declared-manifest
+    // mechanism scales to a second surface.
+    LazyLoader {
+        id: screencopyProbeLoader
+        active: false
+
+        ScreencopyProbe {
+            onDismissRequested: screencopyProbeLoader.active = false
+        }
+    }
+
     GlobalShortcut {
         id: probeShortcut
         appid: "quickshell"
         name: "probe"
         onPressed: probeLoader.active = !probeLoader.active
+    }
+
+    GlobalShortcut {
+        id: screencopyProbeShortcut
+        appid: "quickshell"
+        name: "screencopy-probe"
+        onPressed: screencopyProbeLoader.active = !screencopyProbeLoader.active
     }
 }

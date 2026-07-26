@@ -4,5 +4,11 @@
     "name": "probe",
     "chord": { "mods": "SUPER SHIFT", "key": "G" },
     "description": "Summon the Quickshell instrumentation probe (QS-02 viability gate)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "screencopy-probe",
+    "chord": { "mods": "SUPER SHIFT", "key": "K" },
+    "description": "Summon the Quickshell screencopy feasibility probe (criterion 5)"
   }
 ]
