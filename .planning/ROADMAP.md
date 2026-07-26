@@ -125,7 +125,7 @@ MAINT-01..03 are small, thematically unrelated carry-ins. They are folded into p
 
 **Open questions owned**: (2) GTK4 CSS `linear(<stops>)` easing support — test empirically, default assumption is unsupported and keyframes are the safe fallback. (3) Hyprland 0.56.0 `bezier =` vs Lua `hl.curve(...)` — verify against the installed binary. (6) Quickshell reduced-motion — no ecosystem precedent exists anywhere; design it from scratch.
 **Owns**: Token-schema decisions, the fidelity ceiling, the reduced-motion axis, and the generator safeguards against malformed emitted curves. Also owns the carried-forward QS-03 per-screen surface fan-out.
-**Plans**: 2/8 plans executed
+**Plans**: 3/8 plans executed
 **UI hint**: yes
 
 Plan ordering is fixed by 12-CONTEXT.md D-32: QS-03 first (it and the inspector both modify `shell.qml` and `modules/Probe.qml`), then the token foundation, then the Hyprland target and readback, then the lint (which needs targets to exist), then wleave's retrofit with its own human gate, and TOKEN-06's verdict last.
@@ -136,7 +136,7 @@ Plan ordering is fixed by 12-CONTEXT.md D-32: QS-03 first (it and the inspector 
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 12-02-PLAN.md — D-13 one-way decision gate and, on acceptance, the QS-03 Out-of-Scope amendment plus `quickshell-doctor`'s documented SKIP — conditional, no-ops if QS-03 closed green (QS-03)
+- [x] 12-02-PLAN.md — D-13 one-way decision gate and, on acceptance, the QS-03 Out-of-Scope amendment plus `quickshell-doctor`'s documented SKIP — conditional, no-ops if QS-03 closed green (QS-03)
 - [x] 12-03-PLAN.md — Tracer: `motion.json` source, `lib/motion.sh` emitter, three render targets, two new `contract.sh` extractors, and `engine_owned_files` driving both the rsync exclusions and a state-manifest gate (TOKEN-03)
 
 **Wave 3** *(blocked on Wave 2)*
@@ -256,7 +256,7 @@ Plan ordering is fixed by 12-CONTEXT.md D-32: QS-03 first (it and the inspector 
 | 9. wlogout to wleave Migration | v2.0 | 4/4 | Complete | 2026-07-25 |
 | 10. AGS Media Applet | v2.0 | 6/6 | Complete | 2026-07-15 |
 | 11. Quickshell Viability Gate | v3.0 | 5/5 | Complete    | 2026-07-26 |
-| 12. Unified Design-Token Pipeline | v3.0 | 2/8 | In Progress|  |
+| 12. Unified Design-Token Pipeline | v3.0 | 3/8 | In Progress|  |
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 0/TBD | Not started | - |
 | 14. Dashboard Drawer | v3.0 | 0/TBD | Not started | - |
 | 15. Audio + Connectivity Panels | v3.0 | 0/TBD | Not started | - |

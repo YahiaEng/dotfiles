@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 12
 current_phase_name: unified-design-token-pipeline
 status: executing
-stopped_at: Completed 12-03-PLAN.md (motion pipeline spine + D-29 gate)
-last_updated: "2026-07-26T20:00:36.683Z"
+stopped_at: Completed 12-02-PLAN.md (D-13 accept-permanent — QS-03 dropped, quickshell-doctor SKIP)
+last_updated: "2026-07-26T20:11:17.432Z"
 last_activity: 2026-07-26
 last_activity_desc: Phase 12 execution started
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 13
-  completed_plans: 7
+  completed_plans: 8
   percent: 14
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 12 (unified-design-token-pipeline) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
-Progress: [█████░░░░░] 54%
+Progress: [██████░░░░] 62%
 Last activity: 2026-07-26 — Phase 12 execution started
 
 ## Performance Metrics
@@ -136,6 +136,7 @@ Last activity: 2026-07-26 — Phase 12 execution started
 | Phase 11 P05 | multi-session | 3 tasks | 8 files |
 | Phase 12 P01 | multi-session | 2 tasks | 5 files |
 | Phase 12 P03 | 40min | 3 tasks | 8 files |
+| Phase 12 P02 | ~15min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: quickshell-doctor's one-step-per-press volume-probe gate is over-strict exact-match on rounding-sensitive raw units (pre-existing, Phase 11, unrelated to 12-01) — filed as pending todo quickshell-doctor-volume-probe-brittle, not fixed
 - [Phase ?]: 12-03: motion.json's floor_ms lives as data, not a shell constant, so the multiplier table and floor retune together as a data edit
 - [Phase ?]: 12-03: engine_owned_files array now drives BOTH commit.sh's rsync excludes and theme-doctor's new D-29 state-manifest gate — closed a bug class that had drifted 8 times; ags.scss (Phase 10 AGS applet) was a pre-existing contract.json gap closed alongside it with a new scss-vars format
+- [Phase ?]: 12-02: D-13 resolved accept-permanent — QS-03 (per-screen Quickshell fan-out) dropped to Out of Scope in REQUIREMENTS.md/PROJECT.md/ROADMAP.md; quickshell-doctor's per-screen check converted to a documented D-14 SKIP (QS03_ACCEPTED_PERMANENT guard), reversibility verified live
+- [Phase ?]: 12-02: quickshell-doctor still exits 1 (12 passed, 1 failed) — the remaining FAIL is a pre-existing, unrelated volume-probe gate brittleness (filed in 12-01), left unfixed per scope discipline
 
 ### Quick Tasks Completed
 
@@ -252,8 +255,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T20:00:36.673Z
-Stopped at: Completed 12-03-PLAN.md (motion pipeline spine + D-29 gate)
+Last session: 2026-07-26T20:11:17.422Z
+Stopped at: Completed 12-02-PLAN.md (D-13 accept-permanent — QS-03 dropped, quickshell-doctor SKIP)
 Resume file: None
 
 ## Operator Next Steps
