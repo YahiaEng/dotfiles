@@ -83,11 +83,11 @@ MAINT-01..03 are small, thematically unrelated carry-ins. They are folded into p
   2. A Quickshell surface renders correctly on every connected monitor, survives a monitor hotplug and one suspend/resume cycle, hot-reloads on a config edit without a manual restart, and picks up a hand-edited JSON change through `FileView`/`JsonAdapter` with zero `reload.sh` involvement.
   3. `install.sh` installs quickshell and its Qt6 dependencies from the official Arch `extra` repo and `stow.sh` deploys the `quickshell/` package on a clean checkout — both registered in the same commit that creates the package.
   4. Quickshell autostarts with the session and runs alongside waybar, swaync, SwayOSD, wleave, AGS and walker with no visible layout shift: `hyprctl layers -j` confirms namespace identity with no unexpected second claimant at a given layer level, `hyprctl monitors -j`'s `reserved` array carries the actual exclusive-zone reservation and shows no unattributed change after Quickshell autostarts (amended in Phase 11 per D-15 — see 11-QUICKSHELL-EVIDENCE.md), `busctl --user list` shows exactly one `org.freedesktop.Notifications` owner (swaync), volume and brightness keys still move exactly one step per press, and a repaired `keybind-doctor` parses `hyprctl binds` plain-text output on 0.56.0 (amended in Phase 11 per D-15 — see 11-QUICKSHELL-EVIDENCE.md) and reports zero duplicate chords across Hyprland config and Quickshell global shortcuts.
-  5. The workspace-overview feasibility question is answered on this build before Phases 12-15 build around it: a live multi-window `ScreencopyView` capture is exercised, and the exact `PERMISSION_TYPE_SCREENCOPY` mechanics and `ecosystem.conf` stanza are recorded — so Phase 16's scope is a decision, not a discovery. (OVER-04's measured budget and documented fallback remain Phase 16's requirement; this is the feasibility probe that de-risks it.)
+  5. The workspace-overview feasibility question is answered on this build before Phases 12-15 build around it: a live multi-window `ScreencopyView` capture renders real window content (human-attested, four concurrent windows), and Hyprland's screencopy permission mechanism — a `permission = <path>, screencopy, allow` keyword plus an `ecosystem { enforce_permissions = ... }` category block, both plain sourced-`.conf` syntax, verified directly against the installed Hyprland 0.56.0 binary rather than documentation — is recorded as verified fact (see 11-QUICKSHELL-EVIDENCE.md, amended in Phase 11 per D-15). Phase 16's scope is now a decision, not a discovery. (OVER-04's measured budget, its documented fallback, and the live-enforcement proof itself all remain Phase 16's own requirement — this plan verified the mechanism and every consumer path, not live enforcement.)
 
-**Open questions owned**: (1) Does `FileView`/`JsonAdapter` property propagation truly need zero `reload.sh` involvement? (5) Hyprland `PERMISSION_TYPE_SCREENCOPY` mechanics and the exact `ecosystem.conf` stanza — investigated here, relied on by Phase 16.
+**Open questions owned**: (1) Does `FileView`/`JsonAdapter` property propagation truly need zero `reload.sh` involvement? (5) Hyprland's screencopy permission mechanism (the `permission =`/`ecosystem {}` syntax, binary-verified) — investigated and answered here (see 11-QUICKSHELL-EVIDENCE.md); Phase 16 still owns the live-enforcement proof.
 **Owns**: The viability gate itself (the eww failure class in QML clothing) and same-commit stow registration.
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 **Wave 1**
 
 - [x] 11-01-PLAN.md — Tracer: install quickshell, ship the `quickshell/` package registered in one commit, prove human click/type/click-outside-dismiss (QS-01, QS-02; STOP authority)
@@ -106,7 +106,7 @@ MAINT-01..03 are small, thematically unrelated carry-ins. They are folded into p
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 11-05-PLAN.md — Screencopy feasibility probe, criterion-5 amendment, and the phase verdict (QS-02, QS-05)
+- [x] 11-05-PLAN.md — Screencopy feasibility probe, criterion-5 amendment, and the phase verdict (QS-02, QS-05)
 
 ### Phase 12: Unified Design-Token Pipeline
 
