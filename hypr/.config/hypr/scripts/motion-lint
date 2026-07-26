@@ -497,6 +497,13 @@ VAR_MASK_RE = re.compile(r'var\((?:[^()]|\([^()]*\))*\)')
 # (`button#lock { animation-delay: 0ms; }`), so the property name never
 # sits at column 0.
 DELAY_PROPERTY_RE = re.compile(r'(?:animation|transition)-delay\s*:', re.I)
+# WR-01: the declaration's own VALUE span (property name through the next
+# `;`, or end-of-line if unterminated) — used to blank out only that
+# declaration before CHECK B's raw-value scan, so a delay carve-out cannot
+# also hide an unrelated raw literal that happens to share the same line
+# (the old code's `continue` skipped the WHOLE line's CHECK B on a mere
+# DELAY_PROPERTY_RE.search hit, not just that declaration's value).
+DELAY_DECL_RE = re.compile(r'(?:animation|transition)-delay\s*:[^;]*;?', re.I)
 
 RAW_VALUE_MSG = (
     "hand-rolls a raw duration/easing value instead of a motion token "
@@ -527,12 +534,19 @@ def check_css_surface(path):
             name = m.group(1)
             if name not in gtk_defs:
                 a_hits.append((i, name))
-        if DELAY_PROPERTY_RE.search(line) or line_is_exempt(path, i):
+        if line_is_exempt(path, i):
             continue
-        for m in VAR_MOTION_FALLBACK_RE.finditer(line):
+        # WR-01: blank out ONLY the delay declaration's own value span
+        # (not the whole line) before scanning for raw literals — a line
+        # combining a legitimate animation-delay:/transition-delay: value
+        # with an unrelated raw literal must still fail CHECK B for that
+        # other literal.
+        scan_line = DELAY_DECL_RE.sub(lambda mm: ' ' * len(mm.group(0)), line) \
+            if DELAY_PROPERTY_RE.search(line) else line
+        for m in VAR_MOTION_FALLBACK_RE.finditer(scan_line):
             b_hits.append((i, f'var(--{m.group(1)}, ...) — fallback value on '
                                'a motion token reference is itself a raw-value violation'))
-        masked = VAR_MASK_RE.sub(lambda mm: 'V' * len(mm.group(0)), line)
+        masked = VAR_MASK_RE.sub(lambda mm: 'V' * len(mm.group(0)), scan_line)
         for m in DURATION_RE.finditer(masked):
             b_hits.append((i, m.group(0)))
         for m in CUBIC_BEZIER_RE.finditer(masked):
@@ -626,12 +640,18 @@ def check_qml_surface(path):
             name = m.group(1)
             if name not in qml_defs:
                 a_hits.append((i, name))
-        if 'Motion.' not in line:
-            m2 = QML_DURATION_RE.search(line)
-            if m2:
-                b_hits.append((i, f'duration: {m2.group(1)}'))
-            if QML_LITERAL_BEZIER_RE.search(line):
-                b_hits.append((i, 'easing.bezierCurve: [literal array]'))
+        # WR-01: mask only the matched `Motion.xxx` token span(s), not the
+        # whole line — gating the raw-literal scan on mere substring
+        # presence of "Motion." anywhere on the line let a legitimate
+        # Motion.* reference sharing a line with an unrelated raw literal
+        # (e.g. a future `duration: 200 /* fallback while Motion.foo loads
+        # */`-shaped line) escape CHECK B entirely.
+        scan_line = MOTION_PROP_RE.sub(lambda mm: 'M' * len(mm.group(0)), line)
+        m2 = QML_DURATION_RE.search(scan_line)
+        if m2:
+            b_hits.append((i, f'duration: {m2.group(1)}'))
+        if QML_LITERAL_BEZIER_RE.search(scan_line):
+            b_hits.append((i, 'easing.bezierCurve: [literal array]'))
 
     if a_hits:
         for i, name in a_hits:
