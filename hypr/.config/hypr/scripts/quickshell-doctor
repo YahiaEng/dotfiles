@@ -286,8 +286,12 @@ fi
 #    *writer* is not. ─────────────────────────────────────────────────
 if [[ -d "$QUICKSHELL_CONFIG_DIR" ]]; then
     MPRIS_HITS=0
+    # T-11-REVIEWFIX (WR-02): match an actual MPRIS API surface — the
+    # service import line or a QML `Mpris*` type instantiation — not a
+    # bare case-insensitive substring of the word, which would also flip
+    # on prose (e.g. a doc comment merely mentioning "MPRIS").
     while IFS= read -r f; do
-        grep -qi 'mpris' "$f" 2>/dev/null && MPRIS_HITS=$((MPRIS_HITS + 1))
+        grep -qE 'import[[:space:]]+Quickshell\.Services\.Mpris|\bMpris[A-Za-z]*[[:space:]]*\{' "$f" 2>/dev/null && MPRIS_HITS=$((MPRIS_HITS + 1))
     done < <(find -L "$QUICKSHELL_CONFIG_DIR" -type f 2>/dev/null)
     check "zero Quickshell MPRIS writers (found in ${MPRIS_HITS} file(s) under $QUICKSHELL_CONFIG_DIR)" "$([[ "$MPRIS_HITS" -eq 0 ]] && echo 0 || echo 1)"
 else
