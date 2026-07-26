@@ -8,7 +8,7 @@ status: verifying
 stopped_at: Completed 11-05-PLAN.md — Phase 11 verdict PASS, screencopy feasibility confirmed, permissions.conf shipped inert
 last_updated: "2026-07-26T11:37:38.503Z"
 last_activity: 2026-07-26
-last_activity_desc: Phase 11 execution started
+last_activity_desc: "Completed quick task 260726-l0y: QS-03 acceptance override recorded, ownership moved to Phase 12"
 progress:
   total_phases: 7
   completed_phases: 1
@@ -32,7 +32,7 @@ Phase: 11 (quickshell-viability-gate) — EXECUTING
 Plan: 5 of 5
 Status: Phase complete — ready for verification
 Progress: [██████████] 100%
-Last activity: 2026-07-26 — Phase 11 execution started
+Last activity: 2026-07-26 — Completed quick task 260726-l0y: QS-03 acceptance override recorded, ownership moved to Phase 12
 
 ## Performance Metrics
 
@@ -174,6 +174,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260709-buf | Fix theme reload headless hang + gate step timeout | 2026-07-09 | 1e747eb, 50ad696 | [260709-buf-fix-theme-reload-headless-hang-gate-step](./quick/260709-buf-fix-theme-reload-headless-hang-gate-step/) |
 | 260709-ciu | Make current.jpg wallpaper symlink relative (fresh-install materialyou fix) | 2026-07-09 | 49536d5 | [260709-ciu-fix-host-absolute-wallpaper-symlink-brea](./quick/260709-ciu-fix-host-absolute-wallpaper-symlink-brea/) |
 | 260725-vu6 | Complete the eww retirement: orphaned contract entry, stale layerrules, stow package, AUR dep, dead reload branch | 2026-07-25 | cd4a1b2, bb76d29, 090d531 | [260725-vu6-complete-the-eww-retirement-drop-orphane](./quick/260725-vu6-complete-the-eww-retirement-drop-orphane/) |
+| 260726-l0y | Record the QS-03 acceptance override in 11-VERIFICATION.md and reassign QS-03 ownership from Phase 11 to Phase 12 | 2026-07-26 | 4d5a532, 1d92ba6, f727649 | [260726-l0y-record-the-qs-03-acceptance-override-in-](./quick/260726-l0y-record-the-qs-03-acceptance-override-in-/) |
 
 ### Pending Todos
 
@@ -189,7 +190,7 @@ None yet.
 
 1. **`keybind-doctor`'s `hyprctl binds -j` JSON parsing is broken on Hyprland 0.56.0.** Pre-existing, surfaced during Phase 9, unrelated to that phase's changes.
 2. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** still open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot.
-3. **QS-03 per-screen mounting gap (Phase 11, 11-04 Task 1, 2026-07-26).** The current `modules/Probe.qml` single-`PanelWindow` design only mounts on whichever screen existed at shell startup — a monitor hotplugged afterward gets zero probe surfaces, not its own. Real, mechanically-verified defect (`quickshell-doctor`'s new per-screen check FAILs honestly: 13 passed, 1 failed). A `Variants`-based fix was attempted and reverted after finding two independent reliability failures on this quickshell 0.3.0 build (an intermittent config-load race and a post-hotplug visibility break) — not safe to ship against the always-on autostart daemon. Not a stop-trigger (D-10); full findings in `11-QUICKSHELL-EVIDENCE.md`. Open for a future plan.
+3. **QS-03 per-screen mounting gap (Phase 11, 11-04 Task 1, 2026-07-26).** The current `modules/Probe.qml` single-`PanelWindow` design only mounts on whichever screen existed at shell startup — a monitor hotplugged afterward gets zero probe surfaces, not its own. Real, mechanically-verified defect (`quickshell-doctor`'s new per-screen check FAILs honestly: 13 passed, 1 failed). A `Variants`-based fix was attempted and reverted after finding two independent reliability failures on this quickshell 0.3.0 build (an intermittent config-load race and a post-hotplug visibility break) — not safe to ship against the always-on autostart daemon. Not a stop-trigger (D-10); full findings in `11-QUICKSHELL-EVIDENCE.md`. **Owner assigned 2026-07-26 (quick task 260726-l0y):** accepted for Phase 11 via a recorded override in `11-VERIFICATION.md` frontmatter (`overrides[0]`, accepted by YahiaEng), with QS-03 carried forward to **Phase 12** — now on its ROADMAP `Requirements` line and its success criterion 6. No longer unowned.
 4. **11-04 paused at a human-required checkpoint (2026-07-26).** Task 1 (QS-03 hotplug gate) and Task 2(a) (QML hot-reload) are complete and committed. Task 2(b) (`FileView`/`JsonAdapter` hand-edit — watching the on-screen label) and Task 3 (suspend/resume cycle, click/type/dismiss re-test, per-screen label check) genuinely require a human at the keyboard/screen and cannot be performed or simulated by the executor. Resume by completing 11-04's remaining tasks once the human has performed the steps in the checkpoint request.
 
 _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.0 scoping; see Resolved below.)_
