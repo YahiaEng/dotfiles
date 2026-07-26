@@ -119,6 +119,55 @@ mkdir -p "$HOME/.cache"
 mkdir -p "$HOME/.local/state/theme"
 [[ -f "$HOME/.local/state/theme/waybar-visibility.css" ]] || : > "$HOME/.local/state/theme/waybar-visibility.css"
 
+# D-06/D-07: seed the motion-scale axis to its default, same seed-only-
+# when-absent idiom as above — an absent file already reads as "normal"
+# through theme_engine_read_motion_scale's closed case, but a fresh
+# install should have the file present rather than relying on every
+# reader's fallback branch being exercised correctly on day one.
+[[ -f "$HOME/.local/state/theme/motion-scale" ]] || echo "normal" > "$HOME/.local/state/theme/motion-scale"
+
+# D-30: seed the three rendered motion files by INVOKING motion.sh's own
+# renderer — never a hand-authored stub. A stub is a second source of
+# truth that goes stale the instant Phase 13 points Hyprland's
+# `animation =` assignment lines at generated curves; D-30's whole point
+# is that motion.json stays the ONLY place these numbers are written.
+# This is the one seed among all the ones in this file whose absence is
+# worst: a missing hyprland-motion.conf is a hard `source=` globbing
+# error, and an absent/never-rendered motion-scale leaves $motion_enabled
+# undefined in animations.conf ("cannot parse as an int") — both are
+# config-parse failures that keep Hyprland from starting at all, debugged
+# from a TTY, not a graceful degrade. The unconditional `|| true` guard on
+# the surrounding block still applies (this must never abort stow.sh under
+# set -e), but unlike the other seeds here, a failure here is loud, not
+# silent — WR-07's "first impression is a themed desktop" only holds if
+# this succeeds.
+if [[ ! -f "$HOME/.local/state/theme/hyprland-motion.conf" ]] || \
+   [[ ! -f "$HOME/.local/state/theme/gtk-4.0-motion.css" ]] || \
+   [[ ! -f "$HOME/.local/state/theme/motion.json" ]]; then
+    MOTION_LIB="$DOTFILES_DIR/theme-engine/.config/theme-engine/lib/motion.sh"
+    if [[ -f "$MOTION_LIB" ]]; then
+        (
+            set -uo pipefail
+            STATE_DIR="$HOME/.local/state/theme"
+            # shellcheck source=theme-engine/.config/theme-engine/lib/motion.sh
+            source "$MOTION_LIB"
+            SEED_TMP="$(mktemp -d)"
+            trap 'rm -rf "$SEED_TMP"' EXIT
+            if theme_engine_render_motion_files "$SEED_TMP"; then
+                mkdir -p "$STATE_DIR"
+                for mf in motion.json gtk-4.0-motion.css hyprland-motion.conf; do
+                    [[ -f "$SEED_TMP$STATE_DIR/$mf" ]] && cp "$SEED_TMP$STATE_DIR/$mf" "$STATE_DIR/$mf"
+                done
+            else
+                echo "  ⚠ motion.sh seed render failed — a fresh install's first Hyprland start WILL fail until theme-apply runs successfully first" >&2
+                exit 1
+            fi
+        ) || echo "  ⚠ motion-file seed did not complete — see error above; Hyprland will NOT start until this is resolved (run theme-apply manually)" >&2
+    else
+        echo "  ⚠ $MOTION_LIB not found — skipping motion-file seed; Hyprland will NOT start without these files" >&2
+    fi
+fi
+
 # ── Switch to zshell ─────────────────────────────────
 # Pitfall 6/D-59: a non-root `chsh` prompts for the invoking user's login
 # password via PAM, breaking the strictly-zero-prompts requirement. A
