@@ -457,10 +457,12 @@ else
     QSD_POST_REMOVE_PID=$(pgrep -x quickshell | head -1)
 
     hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    PROBE_SUMMONED_FOR_HEADLESS_TEST=1
     sleep 0.3
     QSD_DP1_STILL_WORKS=$(hyprctl layers -j 2>/dev/null | jq -r '(."DP-1".levels["3"] // [])[] | select(.namespace=="quickshell-probe") | .address' | grep -c . 2>/dev/null || true)
     QSD_DP1_STILL_WORKS=${QSD_DP1_STILL_WORKS:-0}
     hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    PROBE_SUMMONED_FOR_HEADLESS_TEST=0
     sleep 0.2
 
     QSD_CRASH_HITS=$(tail -n 30 "$LAUNCHER_LOG" 2>/dev/null | grep -ciE 'fatal|panic|segmentation fault|core dumped|\babort(ed)?\b')
