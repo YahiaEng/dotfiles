@@ -244,7 +244,11 @@ theme_engine_gtk4_accent() {
     command -v python3 >/dev/null 2>&1 || return 0
 
     local hex
-    hex=$(grep -m1 '@define-color accent_color ' "$colors_file" 2>/dev/null | grep -oE '#[0-9a-fA-F]{6}')
+    # `|| true`: under theme-apply's `set -euo pipefail` a no-match grep exits
+    # 1 and aborts the WHOLE script at this assignment, skipping every reload
+    # step after it. The `[[ -n "$hex" ]]` guard below is the intended
+    # empty-result path and only works if the assignment is allowed to survive.
+    hex=$(grep -m1 '@define-color accent_color ' "$colors_file" 2>/dev/null | grep -oE '#[0-9a-fA-F]{6}' || true)
     [[ -n "$hex" ]] || return 0
 
     local accent
@@ -301,7 +305,16 @@ theme_engine_apply_icon_theme() {
     local colors_file="$HOME/.local/state/theme/gtk-4.0-colors.css"
     local hex=""
     if [[ -f "$colors_file" ]]; then
-        hex=$(grep -m1 '@define-color primary ' "$colors_file" 2>/dev/null | grep -oE '#[0-9a-fA-F]{6}')
+        # `accent_color`, not `primary`: gtk-4.0-colors.css is emitted with
+        # libadwaita's named-color vocabulary (accent_color, window_bg_color,
+        # …). `@define-color primary` is the MATUGEN template convention used
+        # by the swaync/waybar/wleave/swayosd sheets — it never appears in
+        # this file, so the old name matched nothing on every run.
+        # `|| true` for the same reason as theme_engine_gtk4_accent above:
+        # a no-match grep under `set -euo pipefail` aborted theme-apply here,
+        # so the gsettings icon-theme write below (and every reload step after
+        # it) never ran once a non-Adwaita icon theme was selected.
+        hex=$(grep -m1 '@define-color accent_color ' "$colors_file" 2>/dev/null | grep -oE '#[0-9a-fA-F]{6}' || true)
     fi
 
     case "$icon_theme" in
