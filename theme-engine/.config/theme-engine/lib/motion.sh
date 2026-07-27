@@ -29,15 +29,6 @@ MOTION_JSON="$HOME/.config/theme-engine/motion.json"
 # against a stopwatch rather than trusting a readback). 1 speed unit = 100ms.
 MOTION_HYPR_SPEED_DIVISOR_DS=100
 
-# T-13-01/D-21: the A/B curve-set comparison toggle's state file. Same
-# theme-orthogonal shape as MOTION_STATE_FILE above, but selects which
-# `curve_sets` entry (motion.json) feeds the six feel-changing Hyprland
-# slots (windows-in/out/move, fade-in/out, workspaces) rather than the
-# scale multiplier. Temporary — removed in plan 13-07 alongside
-# motion.json's `curve_sets` object.
-MOTION_CURVES_FILE="$HOME/.local/state/theme/motion-curves"
-MOTION_CURVES_DEFAULT="md3"
-
 # theme_engine_read_motion_scale
 # Echoes the current motion-scale state value, defaulting to "normal" when
 # the axis has never been set OR holds an unrecognised value. D-21 requires
@@ -50,22 +41,6 @@ theme_engine_read_motion_scale() {
     case "$v" in
         off|reduced|normal|lively) echo "$v" ;;
         *) echo "$MOTION_DEFAULT" ;;
-    esac
-}
-
-# theme_engine_read_motion_curves
-# Echoes the current curve-set (D-21's A/B toggle) state value, defaulting
-# to "md3" when the axis has never been set OR holds an unrecognised value.
-# Identical closed-`case` shape to theme_engine_read_motion_scale above —
-# this value flows into $motion_curve_* variables inside a file Hyprland's
-# config parser consumes (T-13-01), so an out-of-set value must never pass
-# through unvalidated.
-theme_engine_read_motion_curves() {
-    local v
-    v="$(cat "$MOTION_CURVES_FILE" 2>/dev/null || echo "$MOTION_CURVES_DEFAULT")"
-    case "$v" in
-        md3|legacy) echo "$v" ;;
-        *) echo "$MOTION_CURVES_DEFAULT" ;;
     esac
 }
 
@@ -154,9 +129,11 @@ theme_engine_validate_motion_values() {
         return 1
     fi
 
-    # 13-01 Task 3G: extend validation to the two new top-level categories
-    # (indicators, curve_sets) added alongside the D-21 A/B toggle — same
-    # validate-before-any-write discipline, same diagnose-to-stderr shape.
+    # 13-01 Task 3G: extend validation to the new .indicators top-level
+    # category — same validate-before-any-write discipline, same
+    # diagnose-to-stderr shape. (The sibling A/B curve-comparison category
+    # and its validation were removed in plan 13-07 alongside the D-21
+    # toggle.)
     local bad_indicators
     bad_indicators="$(jq -r '
         .easings as $E
@@ -169,25 +146,6 @@ theme_engine_validate_motion_values() {
         | .key' "$MOTION_JSON" 2>/dev/null)"
     if [[ -n "$bad_indicators" ]]; then
         echo "motion.sh: indicator(s) with a non-positive/non-finite duration_ms or an unresolvable easing: $bad_indicators" >&2
-        return 1
-    fi
-
-    local bad_curve_sets
-    bad_curve_sets="$(jq -r '
-        .easings as $E
-        | (.curve_sets // {}) | to_entries[]
-        | .key as $set | .value as $slots
-        | ($slots | to_entries[] | select($E[.value] == null) | "\($set).\(.key) -> \(.value)")
-    ' "$MOTION_JSON" 2>/dev/null)"
-    if [[ -n "$bad_curve_sets" ]]; then
-        echo "motion.sh: curve_sets slot(s) reference a non-existent easing: $bad_curve_sets" >&2
-        return 1
-    fi
-
-    local active_curves
-    active_curves="$(theme_engine_read_motion_curves)"
-    if ! jq -e --arg c "$active_curves" '(.curve_sets // {}) | has($c)' "$MOTION_JSON" >/dev/null 2>&1; then
-        echo "motion.sh: active motion-curves value '$active_curves' does not name a real curve_sets key in motion.json" >&2
         return 1
     fi
 
@@ -265,12 +223,12 @@ theme_engine_render_motion_files() {
     local out_dir="$tmp$STATE_DIR"
     mkdir -p "$out_dir"
 
-    # 13-01 Task 3H: the active curve-set (D-21 A/B toggle) and the three new
-    # TSVs it/the semantic-scale resolution feed into the Hyprland writer's
-    # new $motion_speed_*/$motion_curve_* families below.
-    local active_curves
-    active_curves="$(theme_engine_read_motion_curves)"
-
+    # 13-01 Task 3H: the two TSVs the semantic-scale resolution feeds into
+    # the Hyprland writer's $motion_speed_* families below. (The sibling
+    # per-slot curve variable family, driven by the D-21 A/B
+    # curve-comparison toggle, was removed in plan 13-07 — the six
+    # feel-changing slots now reference their settled curve names as
+    # literals in animations.conf instead.)
     local speed_semantic
     speed_semantic="$(jq -r --argjson mult "$multiplier" --argjson floor "$floor_ms" '
         .durations as $D
@@ -292,18 +250,13 @@ theme_engine_render_motion_files() {
         | @tsv
     ' "$MOTION_JSON")"
 
-    local curve_vars
-    curve_vars="$(jq -r --arg c "$active_curves" '
-        (.curve_sets[$c] // {}) | to_entries[]
-        | "\(.key | gsub("-"; "_"))\t\(.value)"
-    ' "$MOTION_JSON")"
-
     # ── 1. Hyprland target: $motion_enabled first as a top-level assignment,
-    #    then the new $motion_speed_*/$motion_speed_indicator_*/
-    #    $motion_curve_* families (Task 3H), then an animations {} block
-    #    holding ONLY bezier = lines (D-22: no `enabled =` key here —
-    #    animations.conf owns that; D-04: no `animation =` line either —
-    #    Phase 12 fences to curves only) ───────────────────────────────────
+    #    then the $motion_speed_*/$motion_speed_indicator_* families
+    #    (Task 3H; the sibling per-slot curve variable family was removed
+    #    in plan 13-07), then an animations {} block holding ONLY
+    #    bezier = lines (D-22: no `enabled =` key here — animations.conf
+    #    owns that; D-04: no `animation =` line either — Phase 12 fences
+    #    to curves only) ─────────────────────────────────────────────────
     {
         # shellcheck disable=SC2016 # intentional: literal $ for Hyprland's variable syntax, not shell expansion
         printf '$motion_enabled = %s\n' "$animations_enabled"
@@ -314,7 +267,7 @@ theme_engine_render_motion_files() {
         # away (e.g. 150ms -> 1.50, not 1).
         #
         # Loop variables below are deliberately prefixed per-loop
-        # (sem_/ind_/curve_) rather than sharing generic names like
+        # (sem_/ind_) rather than sharing generic names like
         # `name`/`ms`/`slot` — none of these `read -r` loops declares
         # `local`, and because bash's `local` is dynamically scoped, an
         # unlocalized loop variable silently overwrites an identically
@@ -340,14 +293,6 @@ theme_engine_render_motion_files() {
             printf '$motion_speed_indicator_%s = %s\n' "$ind_name" \
                 "$(awk -v ms="$ind_ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
         done <<< "$speed_indicators"
-
-        # $motion_curve_<slot> — one per slot in the ACTIVE curve_sets set
-        # (D-21 A/B toggle), resolved through theme_engine_read_motion_curves.
-        while IFS=$'\t' read -r curve_slot curve_easing; do
-            [[ -z "$curve_slot" ]] && continue
-            # shellcheck disable=SC2016
-            printf '$motion_curve_%s = motion-%s\n' "$curve_slot" "$curve_easing"
-        done <<< "$curve_vars"
 
         echo "animations {"
         jq -r '.easings | to_entries[] |
