@@ -133,3 +133,75 @@ you're touching for your own reasons; log, don't fix, everything else).
   fixed loop (different source TSV, separate block) and no live collision
   was demonstrated for them; noted here for whoever next touches this
   function.
+
+## Between-plans (13-04/13-05 gap): EXIT-trap signal gap — repo-wide sweep
+
+- **Found during:** 13-04 Task 3 checkpoint forensics (root cause in
+  `icon-theme-picker.sh`, fixed there in commit `5dfd9fd`, write-up in
+  `7b386d0`); this entry records the follow-up sweep of the four sibling
+  scripts identified as sharing the same trap shape.
+- **Root cause (repo-wide):** bash only overrides a signal's default
+  disposition for a signal it has an explicit `trap` on. A `trap '...' EXIT`
+  does NOT install a `HUP` handler — a real pty hangup (closing the window
+  a script is running in) terminates the process via the kernel's default
+  action and bypasses bash's EXIT-trap machinery entirely, so cleanup
+  registered only on `EXIT` silently never runs. Synthetic signal tests
+  (`kill -HUP`, `timeout -s TERM`) do NOT reproduce this — only a real pty
+  hangup does, which is why it survived until a real window-close was
+  tested.
+- **Fixed:** `font-switcher.sh` — same interactive fzf-in-floating-kitty
+  class as `icon-theme-picker.sh` (launched via `font-switch.sh`'s
+  `uwsm app -- kitty --class font-switcher ... -- font-switcher.sh`), so a
+  real pty hangup on window close is directly reachable. Reproduced live
+  with the real launcher and a real `hyprctl dispatch closewindow`: the
+  unfixed script left `ENUM_SCRIPT`/`PREVIEW_SCRIPT`/`CACHE_DIR`
+  (`/tmp/font-enum-*.sh`, `/tmp/font-preview-*.sh`,
+  `/tmp/font-preview-cache-*/`) orphaned on disk every time. Applied the
+  same `for _sig in HUP INT TERM; do trap "exit 1" "$_sig"; done` idiom and
+  comment block `icon-theme-picker.sh` uses, re-verified against the real
+  edited file with the same real launch/close cycle: artifacts confirmed
+  gone.
+- **Deliberately skipped, with reasoning (not silently):**
+  - `color-picker.sh` — bound directly via Hyprland's `exec` dispatcher
+    (`keybinds.conf`) and via elephant's menu `open` action
+    (`elephant/.config/elephant/menus/utilities.toml`), never inside a
+    terminal emulator. Confirmed live: launching it the real way and
+    inspecting the running `hyprpicker` process shows `TT ?` (no
+    controlling terminal at all) and no corresponding Hyprland client
+    window — there is no pty to hang up, so the SIGHUP-on-window-close
+    mechanism this bug class depends on cannot occur here. The EXIT trap
+    here only removes `$ERR_FILE`, a single scratch file, on the only
+    exit paths that actually exist for this process (normal completion or
+    a directly-sent signal to the exec'd process itself, both of which
+    DO already fire bash's EXIT trap since there's no separate pty layer
+    involved).
+  - `gif-export.sh` — invoked exclusively as
+    `~/.config/hypr/scripts/gif-export.sh "$filename" &` inside an
+    already-backgrounded, disowned subshell from `record-toggle.sh`'s
+    notification-action click handler (swaync). No terminal wrapper
+    anywhere in the repo launches it (grepped for any `kitty --class`
+    invocation of it — none found). No controlling pty exists for this
+    process, so the gap is unreachable.
+  - `media-art-resolve.sh` — invoked as a plain subprocess call from
+    `media-status.sh`'s `once`/`watch`/`position` modes, itself a
+    background polling loop consumed by AGS's `deflisten` (no terminal,
+    no window, no user-facing pty at all). No invocation site anywhere in
+    the repo wraps it in a terminal emulator. Unreachable for the same
+    reason as `gif-export.sh`.
+  - All three skip decisions rest on the same falsifiable fact: the
+    process has no controlling terminal (`ps -o tty` shows `?`), and
+    SIGHUP-from-window-close is specifically a pty-hangup signal — there
+    is no pty in these processes' ancestry for a window close to hang up.
+    Trap-cost-is-free bias was considered and rejected here because these
+    scripts have nothing analogous to "close" — adding the trap would be
+    genuinely dead code, not defense in depth, since the signal path it
+    guards against cannot exist in their invocation shape today.
+- **Verification method:** real launcher + real `hyprctl dispatch
+  closewindow` for the fixed script (font-switcher.sh), confirmed leaked
+  before and clean after, both against the actual committed files, not a
+  synthetic `kill`/`timeout` stand-in. Gates re-checked unchanged after the
+  fix: `theme-doctor` 185/1, `theme-parity` 2163/0, `motion-lint` 41/0 (all
+  at the same baseline recorded before this fix).
+- **Owner:** resolved — no further action needed unless one of the three
+  skipped scripts is later re-wired to run inside a terminal emulator, at
+  which point this same trap idiom should be added at that time.
