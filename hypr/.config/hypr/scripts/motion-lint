@@ -343,8 +343,9 @@ qml_defs = load_qml_defs()
 #    exists, so outstanding debt never goes invisible. Two reasons exist
 #    today: a GTK3 surface has no CSS custom-property mechanism at all
 #    (permanent, not a TODO); a GTK4-capable surface simply has not been
-#    retrofitted yet (temporary — walker/ags/waybar/swaync/swayosd are
-#    Phase 13's designated existing-surface sweep).
+#    retrofitted yet (temporary — walker/ags/waybar are Phase 13's
+#    designated existing-surface sweep; swaync was retrofitted by plan
+#    13-02 via the sass-precompile mechanism and is no longer exempt).
 #    wleave's own whole-file entry was REMOVED by plan 12-07 (TOKEN-03/
 #    D-19/D-23) once it retrofitted wleave's stylesheet onto emitted
 #    tokens — wleave/style.css is now covered by CHECK A and CHECK B like
@@ -355,10 +356,17 @@ qml_defs = load_qml_defs()
 #    onto $motion_speed_*/$motion_curve_*/motion-* tokens emitted by
 #    hyprland-motion.conf — the file is now covered by CHECK A/B like any
 #    other non-exempt Hyprland surface (see check_hypr_surface below).
+#    swaync/style.css's whole-file entry was REMOVED by plan 13-02
+#    (MOTION-02/D-01/D-34) once it converted the file to style.scss and
+#    tokenized all six transitions onto the sass-compiled _motion.scss
+#    partial — the renamed .scss source is picked up by this script's
+#    existing .css/.scss glob with no code change, and is now covered by
+#    CHECK A/B like any other non-exempt CSS/SCSS surface (see
+#    check_css_surface below). swayosd/style.css stays exempt (D-02: zero
+#    motion literals, motion is entirely compositor-delivered) — it was
+#    never a candidate for this conversion.
 EXEMPTIONS = [
     {'glob': 'waybar/*.css', 'regex': re.compile(r'(^|/)waybar/[^/]+\.css$'),
-     'reason': 'GTK3, no variable mechanism exists'},
-    {'glob': 'swaync/style.css', 'regex': re.compile(r'(^|/)swaync/style\.css$'),
      'reason': 'GTK3, no variable mechanism exists'},
     {'glob': 'swayosd/style.css', 'regex': re.compile(r'(^|/)swayosd/style\.css$'),
      'reason': 'GTK3, no variable mechanism exists'},

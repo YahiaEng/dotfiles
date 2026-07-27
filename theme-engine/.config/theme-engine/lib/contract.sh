@@ -128,7 +128,15 @@ contract_extract_names() {
             # Same shape as the ags.scss AGS-applet target (Phase 10):
             # `$name: value;` SCSS variable declarations — distinct from
             # hypr-vars's `$name = value` (colon+semicolon, not `= `).
-            grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_]*(?=:)' "$path" 2>/dev/null | sort -u
+            # 13-02: WR-05-class fix — ags.scss (this format's only prior
+            # consumer) exclusively uses underscored names, so the char
+            # class never needed a hyphen until _motion.scss's
+            # $motion-duration-<token>-shaped names hit it and vanished
+            # from extraction entirely (a false-pass generator, same bug
+            # class as WR-05's hypr-vars digit fix below). SCSS identifiers
+            # allow hyphens natively; widening the class is a no-op for
+            # every existing underscore-only consumer.
+            grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_-]*(?=:)' "$path" 2>/dev/null | sort -u
             ;;
         toml)
             python3 - "$path" <<'PYEOF'
@@ -175,6 +183,45 @@ PYEOF
                 }
                 /\}/ { sel = "" }
             ' "$path" 2>/dev/null | sort -u
+            ;;
+        gtk-css-motion)
+            # 13-02/D-35: a sass-compiled GTK3 stylesheet that bakes in
+            # motion but only ever @import's colour (D-03) — never a
+            # @define-color declaration (the `gtk-css` extractor's whole
+            # premise) and never a literal hex/rgba value (the
+            # `css-literal` extractor's whole premise). Both were tried
+            # against the real compiled sheet and both returned a genuinely
+            # empty/failed extraction (proven, not assumed — see
+            # 13-02-SUMMARY.md), which is exactly the vacuous-comparison
+            # case theme-parity's empty-reference-set guard exists to
+            # refuse. This format's actual declared content IS the set of
+            # cubic-bezier(...) motion values baked into
+            # transition:/animation: declarations, plus the colour
+            # @import line — the two things D-35 needs this contract entry
+            # to prove non-vacuously: the sheet is non-empty/non-truncated,
+            # and it still imports colour live. Same selector-tracking
+            # shape as css-literal's structural stand-in directly above,
+            # filtered to declarations that actually carry a
+            # cubic-bezier(...), plus one synthetic "@import" name when
+            # the colour import line is present.
+            {
+                awk '
+                    /\{/ {
+                        sel = $0
+                        gsub(/[[:space:]]*\{.*/, "", sel)
+                        gsub(/^[[:space:]]+|[[:space:]]+$/, "", sel)
+                        next
+                    }
+                    /cubic-bezier\(/ && sel != "" {
+                        prop = $0
+                        gsub(/:.*/, "", prop)
+                        gsub(/^[[:space:]]+|[[:space:]]+$/, "", prop)
+                        if (prop != "") print sel " " prop
+                    }
+                    /\}/ { sel = "" }
+                ' "$path" 2>/dev/null | sort -u
+                grep -qE '^\s*@import\s+url\(' "$path" 2>/dev/null && echo "@import"
+            }
             ;;
         *)
             # CR-01: an unknown/typo format tag must be loud — a silent
@@ -230,7 +277,10 @@ contract_extract_values() {
             } 2>/dev/null
             ;;
         scss-vars)
-            sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_]*):[[:space:]]*(.*);.*$/\1\t\2/p' "$path" 2>/dev/null
+            # 13-02: same hyphen-widening fix as the name extractor above —
+            # kept in lockstep so name/value extraction can never disagree
+            # about which variables exist (WR-05's stated failure mode).
+            sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_-]*):[[:space:]]*(.*);.*$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         toml)
             python3 - "$path" <<'PYEOF'
@@ -262,6 +312,38 @@ PYEOF
             ;;
         css-literal)
             grep -oP '#[0-9a-fA-F]{6}|rgba\([^)]*\)' "$path" 2>/dev/null | awk '{print NR"\t"$0}'
+            ;;
+        gtk-css-motion)
+            # 13-02/D-35: kept in lockstep with the name extractor above —
+            # same selector-tracking shape, same cubic-bezier(...) filter,
+            # value is the declaration's own value span (e.g.
+            # "all 200ms cubic-bezier(0.2, 0, 0, 1)"), plus the colour
+            # @import's URL string as the "@import" key's value so a
+            # template-leftover or malformed path is caught the same way
+            # any other declared value is (WR-01's global {{ scan already
+            # covers leftovers independently of format; this is the
+            # per-key well-formedness pass theme-parity's Layer 3 runs).
+            {
+                awk '
+                    /\{/ {
+                        sel = $0
+                        gsub(/[[:space:]]*\{.*/, "", sel)
+                        gsub(/^[[:space:]]+|[[:space:]]+$/, "", sel)
+                        next
+                    }
+                    /cubic-bezier\(/ && sel != "" {
+                        prop = $0
+                        gsub(/:.*/, "", prop)
+                        gsub(/^[[:space:]]+|[[:space:]]+$/, "", prop)
+                        val = $0
+                        sub(/^[^:]*:[[:space:]]*/, "", val)
+                        gsub(/;[[:space:]]*$/, "", val)
+                        if (prop != "") print sel " " prop "\t" val
+                    }
+                    /\}/ { sel = "" }
+                ' "$path" 2>/dev/null
+                sed -nE 's/^\s*@import\s+url\(([^)]*)\)\s*;?\s*$/@import\t\1/p' "$path" 2>/dev/null
+            }
             ;;
         *)
             # CR-01: an unknown/typo format tag must be loud — a silent

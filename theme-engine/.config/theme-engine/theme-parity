@@ -335,9 +335,18 @@ done <<< "$CONTRACT_FILE_LIST"
 # light/dark mode, which is the premise D-01's whole one-source design
 # rests on. On failure, name which palette/mode diverged and print the
 # differing hashes.
+#
+# 13-02/D-35: _motion.scss and swaync-style.css join this walk — the sass
+# partial and its compiled sheet both bake in motion and only ever
+# @import colour (D-03), so they are theme-independent by the same D-31
+# premise the three original motion targets rest on. Their identity here
+# is also the ONLY thing that proves the sass compile step
+# (theme_engine_compile_gtk3_stylesheets) is wired into BOTH the
+# static-preset and materialyou render branches — nothing else checks
+# that.
 echo ""
 echo "-- Motion byte-identity (D-31) --"
-MOTION_BYTE_IDENTITY_FILES=(motion.json gtk-4.0-motion.css hyprland-motion.conf)
+MOTION_BYTE_IDENTITY_FILES=(motion.json gtk-4.0-motion.css hyprland-motion.conf _motion.scss swaync-style.css)
 DIRS_COMPARED=0
 for target in "${TARGETS[@]}"; do
     [[ "${RENDER_OK[$target]}" == "1" ]] || continue

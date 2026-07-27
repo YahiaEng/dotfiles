@@ -78,6 +78,20 @@ mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
 # parent must already exist as a real directory before stow runs.
 mkdir -p "$HOME/.config/quickshell"
 
+# 13-02: pre-create swaync.service's systemd drop-in directory as a REAL
+# directory — a stow/systemd interaction discovered empirically this plan,
+# not a style preference: systemd 261 silently ignores an entire .d
+# drop-in directory when it is itself a symlink (verified directly —
+# `systemctl --user show swaync.service -p DropInPaths` stayed EMPTY with
+# stow's normal whole-directory fold in place, and only became non-empty
+# once the parent existed as a real directory before stow ran). Same
+# pre-create-before-stow idiom as fish/gtk-3.0/gtk-4.0/quickshell above:
+# with the real directory already present, stow descends into it and
+# symlinks only override.conf, which systemd DOES trust. Any FUTURE
+# stowed systemd unit/drop-in in this repo needs the same treatment — see
+# 13-02-SUMMARY.md for the full DropInPaths= empty-vs-populated evidence.
+mkdir -p "$HOME/.config/systemd/user/swaync.service.d"
+
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
@@ -178,6 +192,45 @@ if [[ ! -f "$HOME/.local/state/theme/hyprland-motion.conf" ]] || \
         ) || echo "  ⚠ motion-file seed did not complete — see error above; Hyprland will NOT start until this is resolved (run theme-apply manually)" >&2
     else
         echo "  ⚠ $MOTION_LIB not found — skipping motion-file seed; Hyprland will NOT start without these files" >&2
+    fi
+fi
+
+# D-01/D-05/13-02: seed the sass-compiled GTK3 stylesheet(s) by INVOKING
+# the real renderer AND the real compiler — never a hand-authored/
+# pre-compiled stub. Mirrors the motion-file seed block immediately above,
+# same rationale: after swaync's conversion, the file swaync-launch.sh
+# points at only exists if sass actually ran — today it is a stow symlink
+# present the instant stow.sh runs; after this plan it is a generated
+# artifact that must be rendered. Never committing a pre-compiled default
+# sheet would make it a second source of truth that goes stale the moment
+# a swaync/*.scss edit lands (this repo's most-enforced invariant).
+# Deliberately NOT given line 135's `|| true` tolerance (D-05 explicit):
+# a silently unstyled desktop with no error to search for is worse than a
+# failed install, so a failure here prints a loud, specific message and
+# leaves a non-zero trail rather than degrading quietly.
+if [[ ! -f "$HOME/.local/state/theme/_motion.scss" ]] || \
+   [[ ! -f "$HOME/.local/state/theme/swaync-style.css" ]]; then
+    MOTION_LIB="$DOTFILES_DIR/theme-engine/.config/theme-engine/lib/motion.sh"
+    if [[ -f "$MOTION_LIB" ]]; then
+        (
+            set -uo pipefail
+            STATE_DIR="$HOME/.local/state/theme"
+            # shellcheck source=theme-engine/.config/theme-engine/lib/motion.sh
+            source "$MOTION_LIB"
+            SEED_TMP="$(mktemp -d)"
+            trap 'rm -rf "$SEED_TMP"' EXIT
+            if theme_engine_render_motion_files "$SEED_TMP" && theme_engine_compile_gtk3_stylesheets "$SEED_TMP"; then
+                mkdir -p "$STATE_DIR"
+                for mf in _motion.scss swaync-style.css; do
+                    [[ -f "$SEED_TMP$STATE_DIR/$mf" ]] && cp "$SEED_TMP$STATE_DIR/$mf" "$STATE_DIR/$mf"
+                done
+            else
+                echo "  ⚠ GTK3 sass-compile seed failed — swaync will start UNSTYLED (or fail to start, depending on the failure) until theme-apply runs successfully first" >&2
+                exit 1
+            fi
+        ) || echo "  ⚠ GTK3 sass-compile seed did not complete — see error above; run theme-apply manually to resolve" >&2
+    else
+        echo "  ⚠ $MOTION_LIB not found — skipping GTK3 sass-compile seed; swaync will start unstyled without these files" >&2
     fi
 fi
 
