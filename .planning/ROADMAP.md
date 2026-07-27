@@ -170,8 +170,32 @@ Plan ordering is fixed by 12-CONTEXT.md D-32: QS-03 first (it and the inspector 
   5. The icon-theme picker lists icon themes that are not yet installed, installs the chosen one from the repos or AUR, and applies it live to Thunar and GTK apps.
 
 **Owns**: Retrofit-time regression (a curve reverting to a Hyprland default without an error) and the perceptual gates that mechanical checks cannot replace.
-**Plans**: TBD
+**Plans**: 7 plans
 **UI hint**: yes
+
+Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESEARCH.md) before the Hyprland retrofit, the Hyprland retrofit + A/B toggle FIRST so D-18's soak clock starts in plan 1 and accrues while the rest proceeds on files it does not touch, the sass mechanism before the waybar/swaync conversions, the wallpaper-pointer untrack before the 10/10 stress test, and the stress test + `motion-lint --no-pending` + the soak verdict as closing gates. D-17's three per-plan render gates (Hyprland, waybar, swaync) override `config.json`'s end-of-phase human-verify mode.
+
+**Wave 1**
+
+- [ ] 13-01-PLAN.md — Tracer: full MD3 easing scale, tokenized `animations.conf` with `layersIn`/`layersOut`, dead-curve and dead-layerrule removal, and the temporary A/B toggle — starts the soak (MOTION-01, MOTION-03)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 13-02-PLAN.md — The sass precompile mechanism proven end-to-end on swaync: `_motion.scss` partial, compile inside `theme_engine_generate`, contract/parity/seed wiring — blocking human render gate (MOTION-02, MOTION-03)
+- [ ] 13-03-PLAN.md — MAINT-02: the four Phase 4 advisory items, each proven by fault injection, with the logout teardown question settled by measurement (MAINT-02)
+- [ ] 13-04-PLAN.md — MAINT-03: Ctrl-A browse inside the existing icon picker, fetch-and-extract previews, repo/AUR install feeding the existing apply pipeline (MAINT-03)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 13-05-PLAN.md — All six waybar stylesheets converted to sass and launched from their compiled sheets; launcher, contract, parity and lint wiring — blocking human render gate (MOTION-02, MOTION-03)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 13-06-PLAN.md — Untrack, ignore and seed the wallpaper pointer; the D-32 exemption end state; `motion-lint --no-pending`; ledger reconciliation (MOTION-01, MOTION-02)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 13-07-PLAN.md — Per-motion soak verdict, retune-and-re-soak inside the vocabulary, A/B toggle removal, and the three closing gates (MOTION-01, MOTION-02, MOTION-03)
 
 ### Phase 14: Dashboard Drawer
 
