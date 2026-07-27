@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13
-current_phase_name: Motion Retrofit & Existing-Surface Sweep
+current_phase_name: motion-retrofit-existing-surface-sweep
 status: executing
-stopped_at: Phase 13 context gathered
-last_updated: "2026-07-27T02:01:58.744Z"
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-07-27T03:44:10.889Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 12 complete, transitioned to Phase 13
+last_activity_desc: Phase 13 execution started
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 20
-  completed_plans: 13
+  completed_plans: 14
   percent: 29
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 12 — unified-design-token-pipeline
+**Current focus:** Phase 13 — motion-retrofit-existing-surface-sweep
 
 ## Current Position
 
-Phase: 13 — Motion Retrofit & Existing-Surface Sweep
-Plan: Not started
+Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
-Progress: [██████████] 100%
-Last activity: 2026-07-27 — Phase 12 complete, transitioned to Phase 13
+Progress: [███████░░░] 70%
+Last activity: 2026-07-27 — Phase 13 execution started
 
 ## Performance Metrics
 
@@ -143,6 +143,7 @@ Last activity: 2026-07-27 — Phase 12 complete, transitioned to Phase 13
 | Phase 12 P06 | multi-session | 3 tasks | 8 files |
 | Phase 12 P07 | multi-session | 3 tasks | 2 files |
 | Phase 12 P08 | ~40min | 3 tasks | 4 files |
+| Phase 13 P01 | multi-session | 5 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -195,6 +196,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 12-07: motion-lint's wleave whole-file exemption removed; added a narrower LINE_EXEMPTIONS mechanism for its D-19-fenced hover rule, and a global DELAY_PROPERTY_RE carve-out (animation-delay/transition-delay are not motion-token debt, no --motion-delay-* token exists in this pipeline)
 - [Phase ?]: 12-07: D-27 human render gate on wleave APPROVED, no feel regression against Phase 9; theme-doctor now 180/0 fully clean (orchestrator resolved the pre-existing untracked vscodium file via .gitignore, unrelated to this plan)
 - [Phase ?]: 12-08: TOKEN-06 verdict — MD3 bezier retained, spring physics NOT adopted ('MD3 is better. Spring is too fast'), framed as a tuning-parameter rejection (unsourced spring:300/damping:20/mass:1) not a mechanism rejection; a future revisit stays open if a primary source for MD3 Expressive's spring constants ever surfaces. Spring/MD3 toggle kept permanently in Probe.qml as a comparison instrument. Phase 12 now closes with all six TOKEN requirements resolved.
+- [Phase ?]: 13-01: Task 1 (D-09/D-12 one-way door) proceed-md3-pure selected — MD3 default vocabulary confirmed, x-* character curves retained only as the A/B legacy set
+- [Phase ?]: 13-01: D-13 confirmed — Hyprland animation speed unit is deciseconds (divisor 100), verified by timing speed 500 at ~50s wall-clock
+- [Phase ?]: 13-01: D-17 Hyprland render gate APPROVED — checks 1/2/4/5 passed by direct visual judgment (2/4 re-judged under an 8x lively-multiplier instrument); check 3 closed on revised mechanical evidence. D-19 soak clock started 2026-07-27T03:40:53Z
+- [Phase ?]: 13-01: D-06 boundary correction — layer-surface entrance (walker/swaync/wleave) is compositor-owned (proven); exit is client-owned on all three, proven via animation-disabled control; follow-up scoped to Phase 14
 
 ### Quick Tasks Completed
 
@@ -275,9 +280,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-27T00:46:48.816Z
-Stopped at: Phase 13 context gathered
-Resume file: .planning/phases/13-motion-retrofit-existing-surface-sweep/13-CONTEXT.md
+Last session: 2026-07-27T03:44:10.879Z
+Stopped at: Completed 13-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
