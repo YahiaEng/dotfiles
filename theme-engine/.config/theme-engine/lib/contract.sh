@@ -204,6 +204,24 @@ PYEOF
             # filtered to declarations that actually carry a
             # cubic-bezier(...), plus one synthetic "@import" name when
             # the colour import line is present.
+            #
+            # 13-05 Rule-1 fix (found by the real checker, not assumed):
+            # `grep -q ... && echo` as the LAST command in this compound
+            # group made the whole extractor's exit status depend on
+            # whether an @import line happened to exist — a file with
+            # motion but no colour @import (waybar-modules.css, an
+            # included partial by design, never a standalone sheet) made
+            # `grep -q` fail with no match, and `&&` short-circuited
+            # without ever reaching `echo`, so THAT failing exit status
+            # became the function's own return value even though the awk
+            # pass above had already emitted real, non-empty names on
+            # stdout. theme-parity's Layer 2 captures this function's
+            # exit status (by design, to catch a genuinely broken
+            # extractor) and treated the false failure as "name
+            # extraction did not succeed". An `if` with no `else` always
+            # exits 0 regardless of whether its condition matched —
+            # exactly the fix, verified against the real file before and
+            # after.
             {
                 awk '
                     /\{/ {
@@ -220,7 +238,10 @@ PYEOF
                     }
                     /\}/ { sel = "" }
                 ' "$path" 2>/dev/null | sort -u
-                grep -qE '^\s*@import\s+url\(' "$path" 2>/dev/null && echo "@import"
+                if grep -qE '^\s*@import\s+url\(' "$path" 2>/dev/null; then
+                    echo "@import"
+                fi
+                true
             }
             ;;
         *)

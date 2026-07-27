@@ -365,9 +365,16 @@ qml_defs = load_qml_defs()
 #    check_css_surface below). swayosd/style.css stays exempt (D-02: zero
 #    motion literals, motion is entirely compositor-delivered) — it was
 #    never a candidate for this conversion.
+#    waybar/*.css's whole-file entry was REMOVED by plan 13-05
+#    (MOTION-02/D-01) once it converted all six waybar stylesheets to
+#    sass (theme.scss, style-{full,athena,floating,vertical}.scss,
+#    waybar-modules.scss) and tokenized every transition/animation-
+#    duration/animation-timing-function declaration onto the same
+#    sass-compiled _motion.scss partial swaync consumes — the renamed
+#    .scss sources are picked up by this script's existing .css/.scss
+#    glob with no code change, and are now covered by CHECK A/B like any
+#    other non-exempt CSS/SCSS surface (see check_css_surface below).
 EXEMPTIONS = [
-    {'glob': 'waybar/*.css', 'regex': re.compile(r'(^|/)waybar/[^/]+\.css$'),
-     'reason': 'GTK3, no variable mechanism exists'},
     {'glob': 'swayosd/style.css', 'regex': re.compile(r'(^|/)swayosd/style\.css$'),
      'reason': 'GTK3, no variable mechanism exists'},
     {'glob': 'walker/**/style.css', 'regex': re.compile(r'(^|/)walker/.*/style\.css$'),

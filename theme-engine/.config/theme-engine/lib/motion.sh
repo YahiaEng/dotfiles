@@ -469,9 +469,19 @@ theme_engine_render_motion_scss() {
 # GTK3_SCSS_TARGETS — "<abs-source-path>:<output-name>" pairs consumed by
 # theme_engine_compile_gtk3_stylesheets below (D-01/D-04). An array rather
 # than inline invocations so plan 13-05 appends six waybar rows without
-# restructuring that function. Seeded with exactly one row this plan.
+# restructuring that function. Seeded with exactly one row in 13-02;
+# 13-05 appends the six waybar rows below — pure data edit, the compile
+# function itself is unchanged (D-18 soak-integrity note: this file also
+# emits the Hyprland motion target the 13-01 soak measures, and this
+# array is the only thing this plan changes in it).
 GTK3_SCSS_TARGETS=(
     "$HOME/.config/swaync/style.scss:swaync-style.css"
+    "$HOME/.config/waybar/theme.scss:waybar-theme.css"
+    "$HOME/.config/waybar/waybar-modules.scss:waybar-modules.css"
+    "$HOME/.config/waybar/style-full.scss:waybar-style-full.css"
+    "$HOME/.config/waybar/style-athena.scss:waybar-style-athena.css"
+    "$HOME/.config/waybar/style-floating.scss:waybar-style-floating.css"
+    "$HOME/.config/waybar/style-vertical.scss:waybar-style-vertical.css"
 )
 
 # theme_engine_compile_gtk3_stylesheets <tmp_dir>

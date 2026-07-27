@@ -195,21 +195,41 @@ if [[ ! -f "$HOME/.local/state/theme/hyprland-motion.conf" ]] || \
     fi
 fi
 
-# D-01/D-05/13-02: seed the sass-compiled GTK3 stylesheet(s) by INVOKING
-# the real renderer AND the real compiler — never a hand-authored/
-# pre-compiled stub. Mirrors the motion-file seed block immediately above,
-# same rationale: after swaync's conversion, the file swaync-launch.sh
-# points at only exists if sass actually ran — today it is a stow symlink
-# present the instant stow.sh runs; after this plan it is a generated
-# artifact that must be rendered. Never committing a pre-compiled default
-# sheet would make it a second source of truth that goes stale the moment
-# a swaync/*.scss edit lands (this repo's most-enforced invariant).
+# D-01/D-05/13-02/13-05: seed the sass-compiled GTK3 stylesheet(s) by
+# INVOKING the real renderer AND the real compiler — never a
+# hand-authored/pre-compiled stub. Mirrors the motion-file seed block
+# immediately above, same rationale: after swaync's AND waybar's
+# conversion, the files swaync-launch.sh/waybar-launch.sh point at only
+# exist if sass actually ran — today they are stow symlinks present the
+# instant stow.sh runs; after these plans they are generated artifacts
+# that must be rendered. Never committing a pre-compiled default sheet
+# would make it a second source of truth that goes stale the moment a
+# swaync/*.scss or waybar/*.scss edit lands (this repo's most-enforced
+# invariant). 13-05 extends the seed list from swaync's two outputs to
+# all seven compiled sheets (the sass partial + swaync's one sheet + all
+# six waybar sheets) — same seed mechanism, same all-or-nothing check
+# (all seven must already exist or the whole seed re-runs), because a bar
+# that starts with five sheets present and one missing is exactly the
+# "unstyled bar with no error to search for" D-05 forbids.
 # Deliberately NOT given line 135's `|| true` tolerance (D-05 explicit):
 # a silently unstyled desktop with no error to search for is worse than a
 # failed install, so a failure here prints a loud, specific message and
 # leaves a non-zero trail rather than degrading quietly.
-if [[ ! -f "$HOME/.local/state/theme/_motion.scss" ]] || \
-   [[ ! -f "$HOME/.local/state/theme/swaync-style.css" ]]; then
+GTK3_SASS_SEED_FILES=(
+    _motion.scss
+    swaync-style.css
+    waybar-theme.css
+    waybar-modules.css
+    waybar-style-full.css
+    waybar-style-athena.css
+    waybar-style-floating.css
+    waybar-style-vertical.css
+)
+GTK3_SASS_SEED_MISSING=0
+for _sf in "${GTK3_SASS_SEED_FILES[@]}"; do
+    [[ -f "$HOME/.local/state/theme/$_sf" ]] || GTK3_SASS_SEED_MISSING=1
+done
+if [[ "$GTK3_SASS_SEED_MISSING" == "1" ]]; then
     MOTION_LIB="$DOTFILES_DIR/theme-engine/.config/theme-engine/lib/motion.sh"
     if [[ -f "$MOTION_LIB" ]]; then
         (
@@ -221,16 +241,18 @@ if [[ ! -f "$HOME/.local/state/theme/_motion.scss" ]] || \
             trap 'rm -rf "$SEED_TMP"' EXIT
             if theme_engine_render_motion_files "$SEED_TMP" && theme_engine_compile_gtk3_stylesheets "$SEED_TMP"; then
                 mkdir -p "$STATE_DIR"
-                for mf in _motion.scss swaync-style.css; do
+                for mf in _motion.scss swaync-style.css waybar-theme.css waybar-modules.css \
+                          waybar-style-full.css waybar-style-athena.css \
+                          waybar-style-floating.css waybar-style-vertical.css; do
                     [[ -f "$SEED_TMP$STATE_DIR/$mf" ]] && cp "$SEED_TMP$STATE_DIR/$mf" "$STATE_DIR/$mf"
                 done
             else
-                echo "  ⚠ GTK3 sass-compile seed failed — swaync will start UNSTYLED (or fail to start, depending on the failure) until theme-apply runs successfully first" >&2
+                echo "  ⚠ GTK3 sass-compile seed failed — swaync/waybar will start UNSTYLED (or fail to start, depending on the failure) until theme-apply runs successfully first" >&2
                 exit 1
             fi
         ) || echo "  ⚠ GTK3 sass-compile seed did not complete — see error above; run theme-apply manually to resolve" >&2
     else
-        echo "  ⚠ $MOTION_LIB not found — skipping GTK3 sass-compile seed; swaync will start unstyled without these files" >&2
+        echo "  ⚠ $MOTION_LIB not found — skipping GTK3 sass-compile seed; swaync/waybar will start unstyled without these files" >&2
     fi
 fi
 

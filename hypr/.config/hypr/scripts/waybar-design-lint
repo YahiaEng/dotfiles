@@ -30,6 +30,17 @@
 #             2+-space fingerprint of a glyph that was deleted and left
 #             its separator space behind.
 #
+# 13-05: waybar's six stylesheets are now sass sources (.scss), compiled
+# into $STATE_DIR before GTK3 ever sees them. CHECK A (token resolution)
+# now runs against the COMPILED state-dir sheets — that's what actually
+# reaches GTK3, and teaching the regex about sass would be strictly more
+# work for no more correctness (13-RESEARCH.md's own recommendation).
+# CHECK B (alias boundary), CHECK C (transparent window) and CHECK D (no
+# literal hex) stay on the .scss sources, with their globs updated to
+# .scss and AT_RULE_KEYWORDS extended with the sass directives these
+# files now carry (`@use`, at minimum) so a sass directive is never
+# misreported as an unresolved/raw colour token.
+#
 # Usage:
 #   waybar-design-lint [waybar-dir]
 #       Defaults to ~/.config/waybar. Never runs waybar, never edits
@@ -38,7 +49,8 @@
 set -uo pipefail
 
 WAYBAR_DIR="${1:-$HOME/.config/waybar}"
-RENDERED_WAYBAR_CSS="$HOME/.local/state/theme/waybar.css"
+STATE_DIR="$HOME/.local/state/theme"
+RENDERED_WAYBAR_CSS="$STATE_DIR/waybar.css"
 
 PASS=0
 FAIL=0
@@ -69,7 +81,7 @@ fi
 #    lines on stdout. One process so token/glyph parsing logic (comment
 #    strippers, JSONC scanner) is defined exactly once. ───────────────────
 _waybar_design_lint_checks() {
-    python3 - "$WAYBAR_DIR" "$RENDERED_WAYBAR_CSS" <<'PYEOF'
+    python3 - "$WAYBAR_DIR" "$RENDERED_WAYBAR_CSS" "$STATE_DIR" <<'PYEOF'
 import glob
 import json
 import os
@@ -78,6 +90,7 @@ import sys
 
 waybar_dir = sys.argv[1]
 rendered_css = sys.argv[2]
+state_dir = sys.argv[3]
 
 # ── Comment strippers ───────────────────────────────────────────────────
 
@@ -137,6 +150,18 @@ def strip_jsonc_comments(text):
 
 AT_RULE_KEYWORDS = {"import", "define-color", "media", "keyframes", "supports", "charset", "font-face"}
 
+# 13-05: sass at-rule directives that now appear in the repo-authored
+# .scss sources (CHECK B/C/D). `@use` is the one this plan's own pattern
+# requires (the _motion.scss partial load); the rest are extended
+# defensively so a future edit introducing any other sass at-rule is
+# never misreported by CHECK A/B as an unresolved/raw colour token.
+SASS_AT_RULE_KEYWORDS = {
+    "use", "forward", "mixin", "include", "function", "return",
+    "if", "else", "each", "for", "while", "extend", "content",
+    "warn", "error", "debug", "at-root",
+}
+AT_RULE_KEYWORDS |= SASS_AT_RULE_KEYWORDS
+
 results = []  # (check_letter, status, detail)
 
 
@@ -145,8 +170,19 @@ def emit(letter, status, detail):
 
 
 def rel(path):
+    """Path relative to the .scss SOURCE dir — used by CHECK B/C/D, which
+    stay on the repo-authored sources (13-05)."""
     try:
         return os.path.relpath(path, waybar_dir)
+    except ValueError:
+        return path
+
+
+def rel_state(path):
+    """Path relative to the COMPILED state-dir output — used by CHECK A,
+    which runs against what actually reaches GTK3 (13-05)."""
+    try:
+        return os.path.relpath(path, state_dir)
     except ValueError:
         return path
 
@@ -162,52 +198,67 @@ if os.path.isfile(rendered_css):
 else:
     emit('A', 'FAIL', f'rendered waybar.css not found at {rendered_css} — cannot resolve any token')
 
-theme_css_path = os.path.join(waybar_dir, 'theme.css')
+# 13-05: theme.css -> theme.scss (repo source, CHECK B's alias-boundary
+# exemption identity) vs waybar-theme.css (COMPILED output, CHECK A's
+# token-resolution input) — two different files now, deliberately.
+theme_scss_path = os.path.join(waybar_dir, 'theme.scss')
+theme_compiled_path = os.path.join(state_dir, 'waybar-theme.css')
 theme_defined = set()
-if os.path.isfile(theme_css_path):
-    theme_body = strip_css_comments(open(theme_css_path, encoding='utf-8').read())
+if os.path.isfile(theme_compiled_path):
+    theme_body = strip_css_comments(open(theme_compiled_path, encoding='utf-8').read())
     theme_defined = set(re.findall(r'@define-color\s+([A-Za-z_][A-Za-z0-9_-]*)', theme_body))
 
 defined_all = real_tokens | theme_defined
 
-# ── CSS files in scope for CHECK A/B/C ─────────────────────────────────
-css_files = sorted(glob.glob(os.path.join(waybar_dir, 'style-*.css')))
-modules_css = os.path.join(waybar_dir, 'waybar-modules.css')
+# ── Compiled sheets in scope for CHECK A (13-05: state-dir, not repo) ──
+compiled_files = sorted(glob.glob(os.path.join(state_dir, 'waybar-style-*.css')))
+compiled_modules = os.path.join(state_dir, 'waybar-modules.css')
+if os.path.isfile(compiled_modules):
+    compiled_files.append(compiled_modules)
+if os.path.isfile(theme_compiled_path):
+    compiled_files.append(theme_compiled_path)
+
+if not compiled_files:
+    emit('A', 'FAIL', f'no waybar-style-*.css / waybar-modules.css / waybar-theme.css found under {state_dir} — run theme-apply')
+
+# ── CSS/SCSS sources in scope for CHECK B/C/D (13-05: .scss, not .css) ──
+css_files = sorted(glob.glob(os.path.join(waybar_dir, 'style-*.scss')))
+modules_css = os.path.join(waybar_dir, 'waybar-modules.scss')
 if os.path.isfile(modules_css):
     css_files.append(modules_css)
-if os.path.isfile(theme_css_path):
-    css_files.append(theme_css_path)
+if os.path.isfile(theme_scss_path):
+    css_files.append(theme_scss_path)
 
 if not css_files:
-    emit('A', 'FAIL', f'no style-*.css / waybar-modules.css / theme.css found under {waybar_dir}')
+    emit('B', 'FAIL', f'no style-*.scss / waybar-modules.scss / theme.scss found under {waybar_dir}')
 
-# ── CHECK A — token resolution ─────────────────────────────────────────
-for f in css_files:
+# ── CHECK A — token resolution (COMPILED sheets — 13-05) ───────────────
+for f in compiled_files:
     body = strip_css_comments(open(f, encoding='utf-8').read())
     refs = set(re.findall(r'@([A-Za-z_][A-Za-z0-9_-]*)', body)) - AT_RULE_KEYWORDS
     unresolved = sorted(refs - defined_all)
     if unresolved:
-        emit('A', 'FAIL', f'{rel(f)}: unresolved colour token(s): {", ".join(unresolved)}')
+        emit('A', 'FAIL', f'{rel_state(f)}: unresolved colour token(s): {", ".join(unresolved)}')
     else:
-        emit('A', 'PASS', f'{rel(f)}: all referenced token(s) resolve ({len(refs)} ref(s))')
+        emit('A', 'PASS', f'{rel_state(f)}: all referenced token(s) resolve ({len(refs)} ref(s))')
 
-# ── CHECK B — alias boundary (theme.css is the only exemption) ────────
-theme_css_real = os.path.realpath(theme_css_path) if os.path.isfile(theme_css_path) else None
+# ── CHECK B — alias boundary (theme.scss is the only exemption, 13-05) ─
+theme_scss_real = os.path.realpath(theme_scss_path) if os.path.isfile(theme_scss_path) else None
 for f in css_files:
-    if theme_css_real and os.path.realpath(f) == theme_css_real:
+    if theme_scss_real and os.path.realpath(f) == theme_scss_real:
         continue
     body = strip_css_comments(open(f, encoding='utf-8').read())
     refs = set(re.findall(r'@([A-Za-z_][A-Za-z0-9_-]*)', body)) - AT_RULE_KEYWORDS
     raw_hits = sorted(refs & real_tokens)
     if raw_hits:
-        emit('B', 'FAIL', f'{rel(f)}: references raw palette token(s) outside theme.css: {", ".join(raw_hits)}')
+        emit('B', 'FAIL', f'{rel(f)}: references raw palette token(s) outside theme.scss: {", ".join(raw_hits)}')
     else:
         emit('B', 'PASS', f'{rel(f)}: no raw palette tokens referenced')
 
-# ── CHECK C — transparent window#waybar ────────────────────────────────
-style_files = sorted(glob.glob(os.path.join(waybar_dir, 'style-*.css')))
+# ── CHECK C — transparent window#waybar (13-05: .scss sources) ────────
+style_files = sorted(glob.glob(os.path.join(waybar_dir, 'style-*.scss')))
 if not style_files:
-    emit('C', 'FAIL', f'no style-*.css found under {waybar_dir}')
+    emit('C', 'FAIL', f'no style-*.scss found under {waybar_dir}')
 for f in style_files:
     body = strip_css_comments(open(f, encoding='utf-8').read())
     m = re.search(r'window#waybar\s*\{([^}]*)\}', body)
@@ -225,15 +276,15 @@ for f in style_files:
     else:
         emit('C', 'FAIL', f"{rel(f)}: window#waybar background is '{last_bg}', not transparent")
 
-# ── CHECK D — no literal hex (css + jsonc, comments stripped) ─────────
+# ── CHECK D — no literal hex (scss + jsonc, comments stripped, 13-05) ──
 hex_re = re.compile(r'#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b')
-d_targets = sorted(glob.glob(os.path.join(waybar_dir, '*.css'))) + \
+d_targets = sorted(glob.glob(os.path.join(waybar_dir, '*.scss'))) + \
     sorted(glob.glob(os.path.join(waybar_dir, '*.jsonc')))
 if not d_targets:
-    emit('D', 'FAIL', f'no .css/.jsonc files found under {waybar_dir}')
+    emit('D', 'FAIL', f'no .scss/.jsonc files found under {waybar_dir}')
 for f in d_targets:
     raw = open(f, encoding='utf-8').read()
-    body = strip_css_comments(raw) if f.endswith('.css') else strip_jsonc_comments(raw)
+    body = strip_css_comments(raw) if f.endswith('.scss') else strip_jsonc_comments(raw)
     hits = hex_re.findall(body)
     if hits:
         emit('D', 'FAIL', f'{rel(f)}: literal hex colour(s) found: {", ".join(sorted(set(hits)))}')

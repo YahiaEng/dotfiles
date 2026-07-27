@@ -325,8 +325,13 @@ GTK3_CSS_SHEETS=(
     # named.
     "$STATE_DIR/swaync-style.css"
 )
+# 13-05: waybar/style-*.css no longer exists either (all six converted to
+# sass-authored .scss) — the compiled sheets in the state dir are what
+# actually reach GTK3, so the glob is repointed there. nullglob guard
+# preserved (an unstowed/un-rendered waybar package degrades to the
+# per-sheet SKIP below, never an unexpanded literal pattern).
 shopt -s nullglob
-WAYBAR_STYLE_SHEETS=("$HOME/.config/waybar"/style-*.css)
+WAYBAR_STYLE_SHEETS=("$STATE_DIR"/waybar-style-*.css)
 shopt -u nullglob
 GTK3_CSS_SHEETS+=("${WAYBAR_STYLE_SHEETS[@]}")
 GTK4_CSS_SHEETS=(
@@ -449,7 +454,11 @@ WAYBAR_EQUIV_CHECK="$HOME/.config/hypr/scripts/waybar-equivalence-check"
 WAYBAR_DIR_FOR_GATE="$HOME/.config/waybar"
 
 _theme_doctor_module_gate() {
-    python3 - "$WAYBAR_EQUIV_CHECK" "$WAYBAR_DIR_FOR_GATE" <<'PYEOF' 2>/dev/null
+    # 13-05: configs stay repo-stowed (waybar_dir); the per-layout STYLE
+    # PATH the resolver flattens must point at the COMPILED state-dir
+    # sheet now (style-<layout>.css no longer exists as a repo file at
+    # all — the six sources are .scss, compiled into $STATE_DIR).
+    python3 - "$WAYBAR_EQUIV_CHECK" "$WAYBAR_DIR_FOR_GATE" "$STATE_DIR" <<'PYEOF' 2>/dev/null
 import glob
 import json
 import os
@@ -459,6 +468,7 @@ import sys
 
 equiv_check = sys.argv[1]
 waybar_dir = sys.argv[2]
+state_dir = sys.argv[3]
 
 if not os.path.isfile(equiv_check):
     print("SKIP\t(all layouts)\twaybar-equivalence-check not found under ~/.config/hypr/scripts — cannot resolve configs")
@@ -497,10 +507,10 @@ def module_to_id(name):
 
 for config_path in configs:
     layout = os.path.basename(config_path)[len("config-"):-len(".jsonc")]
-    style_path = os.path.join(waybar_dir, f"style-{layout}.css")
+    style_path = os.path.join(state_dir, f"waybar-style-{layout}.css")
 
     if not os.path.isfile(style_path):
-        print(f"SKIP\t{layout}\tstyle-{layout}.css not deployed under {waybar_dir}")
+        print(f"SKIP\t{layout}\twaybar-style-{layout}.css not deployed under {state_dir} — run theme-apply")
         continue
 
     try:

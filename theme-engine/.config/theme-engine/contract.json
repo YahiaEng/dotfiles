@@ -23,7 +23,13 @@
     { "name": "ags.scss", "format": "scss-vars" },
     { "name": "palette.json", "format": "json" },
     { "name": "_motion.scss", "format": "scss-vars" },
-    { "name": "swaync-style.css", "format": "gtk-css-motion" }
+    { "name": "swaync-style.css", "format": "gtk-css-motion" },
+    { "name": "waybar-theme.css", "format": "gtk-css-motion" },
+    { "name": "waybar-modules.css", "format": "gtk-css-motion" },
+    { "name": "waybar-style-full.css", "format": "gtk-css-motion" },
+    { "name": "waybar-style-athena.css", "format": "gtk-css-motion" },
+    { "name": "waybar-style-floating.css", "format": "gtk-css-motion" },
+    { "name": "waybar-style-vertical.css", "format": "gtk-css-motion" }
   ],
   "state_metadata_files": ["current-theme", "mode"],
   "presence_only_files": ["kitty-font.conf", "waybar-font.css"],
