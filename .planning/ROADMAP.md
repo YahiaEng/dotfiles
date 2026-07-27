@@ -46,7 +46,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 
 - [x] **Phase 11: Quickshell Viability Gate** - Prove pointer, keyboard, focus, multi-monitor, hot reload and coexistence on Hyprland 0.56.0 — with authority to stop the milestone (completed 2026-07-26)
 - [x] **Phase 12: Unified Design-Token Pipeline** - One source emits colour and MD3 motion tokens to QML, GTK4 CSS and Hyprland, guarded by a motion lint gate (completed 2026-07-27)
-- [ ] **Phase 13: Motion Retrofit & Existing-Surface Sweep** - Apply the motion language to every surface that already exists, and close the carried-in debt on those same surfaces
+- [x] **Phase 13: Motion Retrofit & Existing-Surface Sweep** - Apply the motion language to every surface that already exists, and close the carried-in debt on those same surfaces (completed 2026-07-28)
 - [ ] **Phase 14: Dashboard Drawer** - The first real QML surface: a four-tab swipeable drawer sharing state with what already ships
 - [ ] **Phase 15: Audio + Connectivity Panels** - Per-app mixer, wifi picker and bluetooth manager from one shared dialog component
 - [ ] **Phase 16: Workspace Overview** - Full-screen live-thumbnail workspace grid with click-to-focus and drag-between-workspaces
@@ -281,7 +281,7 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
 | 10. AGS Media Applet | v2.0 | 6/6 | Complete | 2026-07-15 |
 | 11. Quickshell Viability Gate | v3.0 | 5/5 | Complete    | 2026-07-26 |
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
-| 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | In Progress|  |
+| 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | Complete    | 2026-07-28 |
 | 14. Dashboard Drawer | v3.0 | 0/TBD | Not started | - |
 | 15. Audio + Connectivity Panels | v3.0 | 0/TBD | Not started | - |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |

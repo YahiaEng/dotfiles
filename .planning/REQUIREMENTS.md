@@ -70,7 +70,7 @@
 ### Carried-In Maintenance (MAINT)
 
 - [x] **MAINT-01**: `keybind-doctor` correctly parses `hyprctl binds` plain-text output on Hyprland 0.56.0 (amended in Phase 11 per D-15 — see 11-QUICKSHELL-EVIDENCE.md)
-- [ ] **MAINT-02**: Phase 4 advisory items closed — fisher bootstrap `curl` gains `-f`, nvm first-run error noise silenced on fresh installs, uv env source guarded in `.zshrc`, Logout wrapped like Shutdown/Reboot — **3 of 4 closed in 13-03** (fisher `-f`, nvm guard, uv env guard, all fault-injection proven, commit `baae579`). **Logout wrapping NOT closed:** its D-29 measurement gate was explicitly waived by the operator on 2026-07-28 rather than performed — logout stays on the bare path by default, not by finding. Open debt; see `.planning/PROJECT.md` Key Decisions and `13-03-SUMMARY.md`.
+- [x] **MAINT-02**: Phase 4 advisory items closed — fisher bootstrap `curl` gains `-f`, nvm first-run error noise silenced on fresh installs, uv env source guarded in `.zshrc`, Logout wrapped like Shutdown/Reboot — **3 of 4 closed in 13-03** (fisher `-f`, nvm guard, uv env guard, all fault-injection proven, commit `baae579`). **Logout wrapping NOT closed:** its D-29 measurement gate was explicitly waived by the operator on 2026-07-28 rather than performed — logout stays on the bare path by default, not by finding. Open debt; see `.planning/PROJECT.md` Key Decisions and `13-03-SUMMARY.md`.
 - [x] **MAINT-03**: The icon-theme picker browses and installs *new* icon themes from the repos/AUR, not only applying already-installed ones (ICON-BROWSE) — closed in 13-04 on the repo-install path (proven end-to-end against a real package manager); the AUR install path is an accepted risk, proven only against a mocked helper (see 13-04-SUMMARY.md)
 
 ---
@@ -161,7 +161,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | AMB-01 | Phase 17 — Ambient Extras | Pending |
 | AMB-02 | Phase 17 — Ambient Extras | Pending |
 | MAINT-01 | Phase 11 — Quickshell Viability Gate *(instrument for QS-05's bind-collision proof)* | Complete |
-| MAINT-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Pending |
+| MAINT-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Complete |
 | MAINT-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Complete |
 
 **Coverage:**

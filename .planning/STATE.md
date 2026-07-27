@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-current_phase: 13
-current_phase_name: motion-retrofit-existing-surface-sweep
-status: executing
+current_phase: 14
+current_phase_name: Dashboard Drawer
+status: planning
 stopped_at: Completed 13-07-PLAN.md (D-19/D-20 soak gate waived; A/B toggle removed; closing gates green; ledger entry 9 closed)
-last_updated: "2026-07-27T22:38:01.834Z"
+last_updated: "2026-07-27T22:40:52.262Z"
 last_activity: 2026-07-28
-last_activity_desc: "13-07 CLOSED: the D-19/D-20 soak gate was reached and explicitly WAIVED by the operator (relayed via the orchestrator) rather than passed — measured distinct-session count is 1 of a floor of 3 (single unbroken Hyprland process/boot spanning and predating the soak window), zero A/B flips performed, all 13 per-motion verdicts recorded NOT ASSESSED in 13-MOTION-SOAK-VERDICT.md, never 'keep'. The D-21 A/B curve-comparison toggle was still removed in full (unconditional, not waived): motion.json's curve_sets object and the five non-adopted x-* easings gone, motion-switch.sh's --curves flag gone, lib/motion.sh's curve reader/emission/validation gone; animations.conf's six feel-changing slots now hold literal MD3 curve names, verified live via hyprctl animations -j. Closing gates all genuinely green: theme-stress-test completed its first-ever full 10/10 run this milestone (162 passed, 0 failed, exit 0, tree clean after), motion-lint --no-pending exit 0, all 8 gate scripts exit 0 (theme-doctor 206/0, theme-parity 2697/0, motion-lint 53/0, waybar-design-lint 32/0, waybar-equivalence-check 0/0, keybind-doctor 13/0, quickshell-doctor 13/0, motion-lint --self-test 11/0). WINDOWS.md entry 9 closed citing the 10/10 run; open_count is 6 (entry 10 remains legitimately open, out of scope, same discrepancy class as 13-06). All 7 phase-13 plans (13-01 through 13-07) now have a SUMMARY.md on disk, including 13-03 which closed concurrently under its own WR-04 waiver. Phase 13 is NOT marked complete by this plan — that decision belongs to the orchestrator."
+last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 7
   completed_phases: 3
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 ## Current Position
 
-Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING (all 7 plans have a SUMMARY.md; phase completion is the orchestrator's call, not yet made)
-Plan: 13-01 through 13-07 all complete — 13-03 closed under an explicit operator waiver (WR-04's D-29 measurement NOT PERFORMED, open debt carried forward — see PROJECT.md Key Decisions and 13-03-SUMMARY.md); 13-07 closed under a separate explicit operator waiver (D-19/D-20 soak gate NOT PERFORMED — measured session count 1 of floor 3, zero A/B flips, all 13 motions NOT ASSESSED — see 13-MOTION-SOAK-VERDICT.md)
-Status: Both of Phase 13's blocking human-verify gates that could not be mechanically satisfied (13-03's WR-04 teardown measurement, 13-07's D-19/D-20 soak) closed via explicit, separately-recorded operator waivers rather than passing evidence. Every mechanical/code task in both plans was completed and verified for real (13-03's WR-01/02/03 fault-injection; 13-07's A/B toggle removal + all closing gates including the first-ever full 10/10 theme-stress-test run this milestone). MAINT-02 and the D-19/D-20 soak-depth aspect of MOTION-03 remain open debt, not resolved by evidence — carried forward per each plan's own SUMMARY.
+Phase: 14 — Dashboard Drawer
+Plan: Not started
+Status: Ready to plan
 Progress: [██████████] 7 of 7 plans (phase-scoped; milestone-wide is 20/20)
-Last activity: 2026-07-28 — 13-07 CLOSED: D-19/D-20 soak gate waived by explicit operator decision (not passed); A/B curve-comparison toggle fully removed regardless (unconditional prohibition, not waived); theme-stress-test ran to completion for the first time this milestone (10/10, 162/0, exit 0); all 8 gate scripts green; WINDOWS.md entry 9 closed. 13-03 closed concurrently under its own separate waiver (WR-04's D-29 teardown measurement NOT PERFORMED). Phase 13 now has all 7 plans complete but is NOT marked phase-complete by this plan — the orchestrator owns that decision and must weigh the two carried-forward waivers (MAINT-02's WR-04, MOTION-03's soak-depth gap) before doing so.
+Last activity: 2026-07-28 — Phase 13 complete, transitioned to Phase 14
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 66
+- Total plans completed: 73
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -56,6 +56,7 @@ Last activity: 2026-07-28 — 13-07 CLOSED: D-19/D-20 soak gate waived by explic
 | 09 | 4 | - | - |
 | 11 | 5 | - | - |
 | 12 | 8 | - | - |
+| 13 | 7 | - | - |
 
 **Recent Trend:**
 
