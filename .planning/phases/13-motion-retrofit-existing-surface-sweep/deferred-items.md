@@ -50,12 +50,15 @@ you're touching for your own reasons; log, don't fix, everything else).
   `contract.json`'s `engine_owned_files` array, one line, same shape as the
   `motion-scale` entry immediately above it. Falsifiable the same way it was
   found: write the file, run `theme-apply`, confirm it survives.
-- **Owner:** unassigned — surfaced here rather than in a specific plan's
-  `files_modified` list since no remaining Phase 13 plan currently touches
-  `contract.json`'s `engine_owned_files` for an unrelated reason. Candidate
-  for a quick task, or for plan 13-07 (which already touches `motion.json`'s
-  `curve_sets` removal and is a natural place to notice the toggle one more
-  time before it's deleted).
+- **Owner:** plan 13-07, per operator decision (reassigned from unassigned
+  during the between-plans 13-02/13-03 fix pass) — 13-07 already touches
+  `motion.json`'s `curve_sets` removal and is a natural place to notice the
+  toggle one more time before it's deleted.
+  **Accepted tradeoff (operator-approved):** the D-21 A/B toggle remains
+  non-persistent for the duration of the D-19 soak window. This is
+  acceptable only because the soak is pinned at `md3` (identical to the
+  read-default) — any `--curves legacy` comparison attempted before 13-07
+  will silently revert after one render.
 
 ## 13-02: unlocalized `read -r name` loop in `lib/motion.sh` silently clobbers `theme_engine_generate`'s `name` parameter (found while proving the D-31 poisoned-fixture test)
 
@@ -115,3 +118,18 @@ you're touching for your own reasons; log, don't fix, everything else).
 - **Owner:** unassigned — candidate for whichever plan next touches
   `lib/motion.sh`'s indicator emitters (13-05 already touches
   `GTK3_SCSS_TARGETS` in the same file) or a quick task.
+- **Resolved:** fixed in commit `aa4c425` (between-plans fix, 13-02/13-03
+  gap) by renaming the loop variable to `ind_name`/`ind_ms` (not merely
+  adding `local`, per the suggested-fix note above), plus the same rename
+  applied to the two immediate sibling loops in the same Hyprland-writer
+  block (`sem_token`/`sem_ms`, `curve_slot`/`curve_easing`), which shared
+  the identical unlocalized generic-name shape. Verified falsifiably: the
+  clobber was reproduced (empty `$name`) before the fix and confirmed
+  resolved after, with the full rendered motion output tree byte-identical
+  before/after. The WARN-pass loop (`token`/`clamped_flag`, reading
+  `$resolved`) and the GTK4 `:root` writer loop (`token`/`ms`, also reading
+  `$resolved`) in the same function have the same unlocalized generic-name
+  shape but were left untouched — they are not immediate neighbours of the
+  fixed loop (different source TSV, separate block) and no live collision
+  was demonstrated for them; noted here for whoever next touches this
+  function.
