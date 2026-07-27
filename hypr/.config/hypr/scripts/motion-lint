@@ -56,8 +56,8 @@
 #       path-argument precedent: "a gate that cannot fail is not a gate").
 #
 #   motion-lint --self-test
-#       Runs this script against each of the ten committed fixtures under
-#       tests/motion-fixtures/ (one at a time, in isolation) and asserts
+#       Runs this script against each of the eleven committed fixtures
+#       under tests/motion-fixtures/ (one at a time, in isolation) and asserts
 #       the expected verdict: compliant fixtures exit 0, poisoned fixtures
 #       exit non-zero. Makes criterion 3's "proven to fail" property a
 #       permanent, rerunnable command rather than a one-time demonstration
@@ -100,6 +100,7 @@ run_self_test() {
         "poisoned-fallback-gtk4.css:1"
         "compliant-hypr.conf:0"
         "poisoned-raw-hypr.conf:1"
+        "poisoned-raw-speed-hypr.conf:1"
         "poisoned-dangling-hypr.conf:1"
         "compliant-qml.qml:0"
         "poisoned-raw-qml.qml:1"
@@ -108,7 +109,7 @@ run_self_test() {
     local st_pass=0 st_fail=0
     local entry fname expect_nonzero src tmp out rc want_desc
 
-    echo "motion-lint --self-test — replaying the ten committed fixtures"
+    echo "motion-lint --self-test — replaying the eleven committed fixtures"
     echo ""
 
     for entry in "${fixtures[@]}"; do
@@ -343,15 +344,17 @@ qml_defs = load_qml_defs()
 #    today: a GTK3 surface has no CSS custom-property mechanism at all
 #    (permanent, not a TODO); a GTK4-capable surface simply has not been
 #    retrofitted yet (temporary — walker/ags/waybar/swaync/swayosd are
-#    Phase 13's designated existing-surface sweep). animations.conf's
-#    13 hand-authored `animation =` lines (D-04's explicit fence; the
-#    plan text's "14" was a miscount corrected in 12-04's own summary) are
-#    the same "not yet retrofitted" debt, on the Hyprland side.
+#    Phase 13's designated existing-surface sweep).
 #    wleave's own whole-file entry was REMOVED by plan 12-07 (TOKEN-03/
 #    D-19/D-23) once it retrofitted wleave's stylesheet onto emitted
 #    tokens — wleave/style.css is now covered by CHECK A and CHECK B like
 #    any other non-exempt surface (see LINE_EXEMPTIONS below for the one
 #    narrow carve-out D-19 still requires).
+#    hypr/config/animations.conf's whole-file entry was REMOVED by plan
+#    13-01 (MOTION-01/D-32) once it retrofitted every `animation =` line
+#    onto $motion_speed_*/$motion_curve_*/motion-* tokens emitted by
+#    hyprland-motion.conf — the file is now covered by CHECK A/B like any
+#    other non-exempt Hyprland surface (see check_hypr_surface below).
 EXEMPTIONS = [
     {'glob': 'waybar/*.css', 'regex': re.compile(r'(^|/)waybar/[^/]+\.css$'),
      'reason': 'GTK3, no variable mechanism exists'},
@@ -362,8 +365,6 @@ EXEMPTIONS = [
     {'glob': 'walker/**/style.css', 'regex': re.compile(r'(^|/)walker/.*/style\.css$'),
      'reason': 'pending Phase 13 retrofit'},
     {'glob': 'ags/*.scss', 'regex': re.compile(r'(^|/)ags/[^/]+\.scss$'),
-     'reason': 'pending Phase 13 retrofit'},
-    {'glob': 'hypr/config/animations.conf', 'regex': re.compile(r'(^|/)hypr/config/animations\.conf$'),
      'reason': 'pending Phase 13 retrofit'},
 ]
 
@@ -662,6 +663,12 @@ ANIMATION_LINE_RE = re.compile(
     r'^\s*animation\s*=\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+)'
 )
 BEZIER_LINE_RE = re.compile(r'^\s*bezier\s*=\s*([A-Za-z0-9_-]+)\s*,')
+# 13-01 Task 4: an `animation =` line's SPEED (group 3) and CURVE (group 4)
+# fields may now reference an engine-emitted `$motion_speed_*`/
+# `$motion_curve_*` hyprlang variable instead of a literal number/bezier
+# name — this is the "new reference shape" load_hypr_defs's pre-existing
+# var_names collection (Phase 12, unwired until now) exists to resolve.
+HYPR_VAR_REF_RE = re.compile(r'^\$([A-Za-z_][A-Za-z0-9_]*)$')
 
 
 def check_hypr_surface(path):
@@ -680,8 +687,27 @@ def check_hypr_surface(path):
     for i, line in enumerate(lines, start=1):
         m = ANIMATION_LINE_RE.match(line)
         if m:
+            speed = m.group(3).strip()
             curve = m.group(4).strip()
-            if curve and curve not in hypr_bezier_defs:
+
+            var_match = HYPR_VAR_REF_RE.match(speed)
+            if var_match:
+                if var_match.group(1) not in hypr_var_defs:
+                    a_hits.append((i, speed))
+            elif speed:
+                # CHECK B: a raw numeric speed literal instead of a
+                # $motion_speed_* token — the Hyprland-side equivalent of
+                # CSS's bare `Nms`/`Ns` raw-value violation (no `var()`
+                # mechanism exists here, so a hand-authored number IS the
+                # raw-value shape, same posture as the bezier-declaration
+                # check below).
+                b_hits.append((i, f'animation speed {speed!r} (not a $motion_speed_* token)'))
+
+            var_match = HYPR_VAR_REF_RE.match(curve)
+            if var_match:
+                if var_match.group(1) not in hypr_var_defs:
+                    a_hits.append((i, curve))
+            elif curve and curve not in hypr_bezier_defs:
                 a_hits.append((i, curve))
         m2 = BEZIER_LINE_RE.match(line)
         if m2:
@@ -693,13 +719,13 @@ def check_hypr_surface(path):
         for i, curve in a_hits:
             emit('A', 'FAIL', f'{path}:{i} ' + DANGLING_MSG.format(name=curve))
     else:
-        emit('A', 'PASS', f'{path}: all animation curve references resolve')
+        emit('A', 'PASS', f'{path}: all animation speed/curve references resolve')
 
     if b_hits:
         for i, val in b_hits:
             emit('B', 'FAIL', f'{path}:{i} ' + RAW_VALUE_MSG.format(val=val))
     else:
-        emit('B', 'PASS', f'{path}: no hand-authored (non motion-*) bezier curves')
+        emit('B', 'PASS', f'{path}: no hand-authored (non motion-*) bezier curves or raw speed literals')
 
     return True
 
