@@ -409,23 +409,157 @@ if [[ -z "$SELECTED" ]]; then
     exit 0
 fi
 
-# Strip the active-theme marker suffix before any use (same discipline as
-# wallpaper-picker.sh).
+# Strip the active-theme/installed marker suffix before any use (same
+# discipline as wallpaper-picker.sh) — applies to both legacy plain
+# names and tab-separated catalogue lines, since `%` strips a literal
+# suffix regardless of what precedes it.
 SELECTED="${SELECTED% ●}"
 
-# ── Validate against the real enumerated set (Security Domain V5 /
-# T-06-12) — defense in depth: the fzf return must resolve to one of the
-# entries the enumeration script actually found, never free text, before
-# any gsettings/path use. ────────────────────────────────────────────
-VALID=0
-while IFS= read -r entry; do
-    entry="${entry% ●}"
-    [[ "$entry" == "$SELECTED" ]] && { VALID=1; break; }
-done <<< "$THEMES"
+if [[ "$SELECTED" == *$'\t'* ]]; then
+    # ══════════════════════════════════════════════════
+    # Catalogue selection (D-26/D-27/D-28) — install path
+    # ══════════════════════════════════════════════════
+    IFS=$'\t' read -r SEL_SRC SEL_PKG SEL_DESC <<< "$SELECTED"
 
-if [[ "$VALID" -ne 1 ]]; then
-    echo "icon-theme-picker: selected entry did not resolve to an enumerated icon theme: $SELECTED" >&2
-    exit 1
+    # Defense in depth: package names use a fixed, safe charset — reject
+    # anything else before any further processing.
+    if [[ ! "$SEL_PKG" =~ ^[a-zA-Z0-9@._+-]+$ ]]; then
+        echo "icon-theme-picker: malformed package name in selection" >&2
+        exit 1
+    fi
+
+    # ── Validate against the real enumerated set (Security Domain V5 /
+    # T-13-19) — defense in depth: the fzf return must resolve to a line
+    # the catalogue script actually emitted, never free text, before any
+    # package-manager invocation. The catalogue is re-derived the same
+    # way Ctrl-A produced it (fzf's own internal reload() output is not
+    # otherwise observable from this script) and iterated exactly like
+    # the installed-list VALID loop above. ────────────────────────────
+    CATALOG_NOW=$("$CATALOG_SCRIPT" 2>/dev/null || true)
+    VALID=0
+    while IFS= read -r entry; do
+        entry="${entry% ●}"
+        [[ "$entry" == "$SELECTED" ]] && { VALID=1; break; }
+    done <<< "$CATALOG_NOW"
+
+    if [[ "$VALID" -ne 1 ]]; then
+        echo "icon-theme-picker: selected catalogue entry did not resolve to an enumerated entry: $SEL_PKG" >&2
+        exit 1
+    fi
+
+    if [[ "$SEL_SRC" != "repo" && "$SEL_SRC" != "aur" ]]; then
+        echo "icon-theme-picker: not a selectable catalogue entry" >&2
+        exit 1
+    fi
+
+    ALREADY_INSTALLED=0
+    pacman -Q "$SEL_PKG" &>/dev/null && ALREADY_INSTALLED=1
+
+    if [[ "$ALREADY_INSTALLED" -eq 1 ]]; then
+        RESOLVED_THEME=$(pacman -Ql "$SEL_PKG" 2>/dev/null \
+            | grep -oE 'usr/share/icons/[^/]+/index\.theme$' \
+            | sed -E 's#usr/share/icons/([^/]+)/index\.theme#\1#' \
+            | sort -u | head -1)
+        if [[ -z "$RESOLVED_THEME" ]]; then
+            echo "icon-theme-picker: $SEL_PKG is already installed but ships no recognisable icon-theme directory" >&2
+            exit 1
+        fi
+    else
+        # Confirm the package is real in the authoritative database
+        # before ever building an install command — never a bespoke
+        # legitimacy heuristic, the package manager's own exit code is
+        # authoritative (Don't Hand-Roll / T-13-19).
+        if [[ "$SEL_SRC" == "repo" ]]; then
+            if ! pacman -Si "$SEL_PKG" &>/dev/null; then
+                echo "icon-theme-picker: $SEL_PKG did not resolve to a real repo package" >&2
+                exit 1
+            fi
+        else
+            if [[ -z "$AUR_HELPER" ]]; then
+                echo "icon-theme-picker: no AUR helper available to install $SEL_PKG" >&2
+                exit 1
+            fi
+            if ! "$AUR_HELPER" -Si "$SEL_PKG" &>/dev/null; then
+                echo "icon-theme-picker: $SEL_PKG did not resolve to a real AUR package" >&2
+                exit 1
+            fi
+        fi
+
+        # Snapshot before the install so the newly-appeared directory can
+        # be diffed out afterward (package name != theme directory name,
+        # <assumption_delta_decision>).
+        BEFORE=$("$ENUM_SCRIPT" "$ACTIVE_ICON")
+
+        echo ""
+        echo "Installing $SEL_PKG — $SEL_DESC — from $SEL_SRC. Review the prompts below:"
+        echo ""
+        # T-13-15/D-27: prompts and build output stream normally in this
+        # real floating terminal. Never an auto-confirm flag on either
+        # path — a silent install of an arbitrary user-chosen build
+        # recipe would be the actual security regression here.
+        INSTALL_OK=1
+        if [[ "$SEL_SRC" == "repo" ]]; then
+            sudo pacman -S --needed "$SEL_PKG" || INSTALL_OK=0
+        else
+            "$AUR_HELPER" -S "$SEL_PKG" || INSTALL_OK=0
+        fi
+
+        if [[ "$INSTALL_OK" -ne 1 ]]; then
+            echo "icon-theme-picker: install of $SEL_PKG failed or was cancelled — no changes made" >&2
+            exit 1
+        fi
+
+        AFTER=$("$ENUM_SCRIPT" "$ACTIVE_ICON")
+        NEW_DIRS=$(comm -13 \
+            <(printf '%s\n' "$BEFORE" | sed 's/ ●$//' | sort -u) \
+            <(printf '%s\n' "$AFTER" | sed 's/ ●$//' | sort -u))
+        NEW_COUNT=$(printf '%s\n' "$NEW_DIRS" | grep -c . || true)
+
+        if [[ "$NEW_COUNT" -eq 0 ]]; then
+            echo "icon-theme-picker: $SEL_PKG installed but no new icon-theme directory was detected — leaving the current theme applied" >&2
+            exit 0
+        elif [[ "$NEW_COUNT" -eq 1 ]]; then
+            RESOLVED_THEME="$NEW_DIRS"
+        else
+            # More than one directory appeared (e.g. light/dark variants)
+            # — re-present just those, using the same preview pipeline,
+            # rather than silently picking one.
+            RESOLVED_THEME=$(printf '%s\n' "$NEW_DIRS" | fzf \
+                --preview "$PREVIEW_SCRIPT {}" \
+                --preview-window "right,60%,border-left" \
+                --header " 🎨 $SEL_PKG shipped multiple icon themes — choose one  │  Enter confirm  │  Esc skip" \
+                --header-first \
+                --prompt "  " \
+                --pointer "▶" \
+                --border rounded \
+                --margin 1,2 \
+                --padding 1 \
+                --no-scrollbar \
+                --cycle \
+                --reverse) || true
+            if [[ -z "$RESOLVED_THEME" ]]; then
+                echo "icon-theme-picker: $SEL_PKG installed but no theme directory was chosen — leaving the current theme applied" >&2
+                exit 0
+            fi
+        fi
+    fi
+
+    SELECTED="$RESOLVED_THEME"
+else
+    # ── Legacy installed-theme selection — today's behaviour byte-for-
+    # byte (Security Domain V5 / T-06-12): the fzf return must resolve to
+    # one of the entries the enumeration script actually found, never
+    # free text, before any gsettings/path use. ──────────────────────
+    VALID=0
+    while IFS= read -r entry; do
+        entry="${entry% ●}"
+        [[ "$entry" == "$SELECTED" ]] && { VALID=1; break; }
+    done <<< "$THEMES"
+
+    if [[ "$VALID" -ne 1 ]]; then
+        echo "icon-theme-picker: selected entry did not resolve to an enumerated icon theme: $SELECTED" >&2
+        exit 1
+    fi
 fi
 
 # ── Persist as a theme-orthogonal state axis (Pitfall 6/D-19) ────────
