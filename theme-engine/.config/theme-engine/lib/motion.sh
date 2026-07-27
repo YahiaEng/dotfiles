@@ -391,5 +391,122 @@ theme_engine_render_motion_files() {
           }
     ' > "$out_dir/motion.json"
 
+    # ── 4. GTK3 target: a sass PARTIAL (leading underscore — D-01/T-13-06).
+    #    GTK3 3.24.52 has no CSS custom-property mechanism at all, so unlike
+    #    the GTK4 :root writer above (which every GTK4/QML surface can read
+    #    live via var()), this fourth target is consumed at COMPILE time by
+    #    theme_engine_compile_gtk3_stylesheets (called right after this
+    #    function returns, from theme_engine_generate) via `@use "motion" as
+    #    m;` with --load-path pointed at this same tmp tree. Called from
+    #    inside THIS function (not a separate top-level call site in
+    #    generate.sh) specifically so it reuses $resolved/$multiplier/
+    #    $floor_ms/$MOTION_JSON already computed above — bash's dynamic
+    #    scoping makes every one of those visible here with no re-validation
+    #    and no risk of the two writers ever disagreeing about a value.
+    theme_engine_render_motion_scss "$out_dir"
+
+    return 0
+}
+
+# theme_engine_render_motion_scss <out_dir>
+# Writes $out_dir/_motion.scss — the sass partial GTK3 surfaces consume via
+# `@use "motion" as m;` (D-01). Deliberately called from INSIDE
+# theme_engine_render_motion_files (see call site above) so it shares that
+# function's already-validated $resolved/$multiplier/$floor_ms/$MOTION_JSON
+# locals via bash's dynamic scoping — same TSV-driven loop shape as the GTK4
+# :root writer immediately above it in this file, same unconditional
+# `.easings | to_entries[]` emit so the two writers can never disagree about
+# which easings exist (D-05/one-source-of-truth), same multiplier/floor
+# clamp on indicator durations as the semantic pairs so `reduced`/`lively`
+# reach GTK3 indicators too.
+theme_engine_render_motion_scss() {
+    local out_dir="$1"
+
+    {
+        # $motion-duration-<token> — one per .semantic entry (SCSS
+        # identifiers allow hyphens natively, unlike Hyprland's
+        # $motion_speed_* variables, so no gsub("-","_") is needed here).
+        while IFS=$'\t' read -r token _easing ms _clamped; do
+            [[ -z "$token" ]] && continue
+            printf '$motion-duration-%s: %sms;\n' "$token" "$ms"
+        done <<< "$resolved"
+
+        # $motion-easing-<name> — every declared easing, unconditionally.
+        jq -r '
+            .easings | to_entries[] |
+            "$motion-easing-\(.key): cubic-bezier(\(.value | join(", ")));"
+        ' "$MOTION_JSON"
+
+        # $motion-indicator-<name>-duration / -easing — one pair per
+        # .indicators entry, scaled/clamped by the SAME multiplier/floor as
+        # the semantic pairs above.
+        jq -r --argjson mult "$multiplier" --argjson floor "$floor_ms" '
+            .easings as $E
+            | (.indicators // {}) | to_entries[]
+            | .key as $k | .value as $v
+            | ($v.duration_ms * $mult) as $scaled
+            | (if $scaled < $floor then $floor else $scaled end | floor) as $clamped
+            | ($E[$v.easing] | join(", ")) as $bez
+            | "$motion-indicator-\($k)-duration: \($clamped)ms;\n$motion-indicator-\($k)-easing: cubic-bezier(\($bez));"
+        ' "$MOTION_JSON"
+    } > "$out_dir/_motion.scss"
+
+    return 0
+}
+
+# GTK3_SCSS_TARGETS — "<abs-source-path>:<output-name>" pairs consumed by
+# theme_engine_compile_gtk3_stylesheets below (D-01/D-04). An array rather
+# than inline invocations so plan 13-05 appends six waybar rows without
+# restructuring that function. Seeded with exactly one row this plan.
+GTK3_SCSS_TARGETS=(
+    "$HOME/.config/swaync/style.scss:swaync-style.css"
+)
+
+# theme_engine_compile_gtk3_stylesheets <tmp_dir>
+# Compiles every GTK3_SCSS_TARGETS row's repo-authored .scss into the SAME
+# tmp render tree theme_engine_render_motion_files just wrote
+# $tmp$STATE_DIR/_motion.scss into (D-34: sass runs inside
+# theme_engine_generate, before commit.sh's atomic promote, so a failed
+# compile leaves the live state dir byte-unchanged). --load-path points at
+# $tmp$STATE_DIR specifically — never the live state dir — so a compile
+# always resolves against the partial THIS SAME run rendered, never a
+# stale one. Returns non-zero on the first failing compile; sass's stderr
+# is captured into GENERATE_LOG using the exact discipline generate.sh
+# already applies to matugen's stderr (T-13-08) — theme-apply's existing
+# head -c 200 | tr -d sanitization pass is what keeps it out of a
+# notification unsanitised, not this function.
+#
+# Three details are non-negotiable (T-13-06/WLOG-01, verified directly on
+# this machine — see 13-02-PLAN.md Task 2):
+#   --no-charset     a bare invocation emits a charset at-rule as line 1;
+#                     GTK3's CssProvider then discards the ENTIRE
+#                     stylesheet, not just that line, and does so silently.
+#   --no-source-map  suppresses a sourceMappingURL comment and a stray
+#                     .map file that would otherwise land in the state dir
+#                     on every compile and break the contract manifest.
+#   --load-path       must be $tmp$STATE_DIR (the tmp tree), never the live
+#                     state dir.
+theme_engine_compile_gtk3_stylesheets() {
+    local tmp="$1"
+    local out_dir="$tmp$STATE_DIR"
+    mkdir -p "$out_dir"
+
+    local row src out
+    for row in "${GTK3_SCSS_TARGETS[@]}"; do
+        src="${row%%:*}"
+        out="${row##*:}"
+
+        if [[ ! -f "$src" ]]; then
+            echo "motion.sh: GTK3 sass source not found: $src" >&2
+            return 1
+        fi
+
+        if ! sass --no-charset --no-source-map --load-path="$out_dir" \
+                "$src" "$out_dir/$out" 2>>"${GENERATE_LOG:-/dev/null}"; then
+            echo "motion.sh: sass compile failed for $src -> $out (see ${GENERATE_LOG:-stderr} for the compiler's diagnostic)" >&2
+            return 1
+        fi
+    done
+
     return 0
 }

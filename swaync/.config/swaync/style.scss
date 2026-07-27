@@ -1,4 +1,5 @@
-@import url("../../.local/state/theme/swaync.css");
+@use "motion" as m;
+@import url("swaync.css");
 
 /* ── Control center ────────────────────────────────── */
 .control-center {
@@ -6,8 +7,8 @@
        desktop through it (was fully opaque @background — the "intrusive, no
        blur" bug). Alpha >= the 0.5 ignore_alpha threshold so blur applies.
        Border thinned from an intrusive 3px chroma slab to a subtle hairline. */
-    background: alpha(@background, 0.72);
-    border: 1px solid alpha(@primary, 0.25);
+    background: #{"alpha(@background, 0.72)"};
+    border: 1px solid #{"alpha(@primary, 0.25)"};
     border-radius: 16px;
     padding: 10px;
     font-family: "FiraCode Nerd Font";
@@ -15,47 +16,47 @@
 
 /* ── Title widget ──────────────────────────────────── */
 .widget-title {
-    color: @primary;
+    color: #{"@primary"};
     font-size: 16px;
     font-weight: bold;
     margin: 6px 8px;
 }
 
 .widget-title > button {
-    background: @primary;
-    color: @on_primary;
+    background: #{"@primary"};
+    color: #{"@on_primary"};
     border: none;
     border-radius: 10px;
     padding: 4px 16px;
     font-size: 12px;
-    transition: all 0.2s ease;
+    transition: all #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 
 .widget-title > button:hover {
-    background: @secondary;
-    color: @on_secondary;
+    background: #{"@secondary"};
+    color: #{"@on_secondary"};
 }
 
 /* ── DND widget ────────────────────────────────────── */
 .widget-dnd {
     margin: 4px 8px;
-    color: @on_surface;
+    color: #{"@on_surface"};
     font-size: 13px;
 }
 
 .widget-dnd > switch {
     border-radius: 12px;
-    background: @surface_variant;
-    border: 2px solid @outline;
+    background: #{"@surface_variant"};
+    border: 2px solid #{"@outline"};
 }
 
 .widget-dnd > switch:checked {
-    background: @primary;
-    border-color: @primary;
+    background: #{"@primary"};
+    border-color: #{"@primary"};
 }
 
 .widget-dnd > switch slider {
-    background: @on_surface;
+    background: #{"@on_surface"};
     border-radius: 50%;
 }
 
@@ -63,7 +64,7 @@
 .widget-volume,
 .widget-slider,
 .widget-buttons-grid {
-    background: alpha(@surface_variant, 0.45);
+    background: #{"alpha(@surface_variant, 0.45)"};
     border-radius: 12px;
     padding: 12px;
     margin: 6px 8px;
@@ -71,48 +72,48 @@
 
 .widget-volume label,
 .widget-slider label {
-    color: @on_surface_variant;
+    color: #{"@on_surface_variant"};
     font-size: 13px;
 }
 
 .widget-volume scale trough,
 .widget-slider scale trough {
-    background: @outline;
+    background: #{"@outline"};
     border-radius: 8px;
 }
 
 .widget-volume scale trough highlight,
 .widget-slider scale trough highlight {
-    background: @primary;
+    background: #{"@primary"};
     border-radius: 8px;
 }
 
 .widget-volume scale trough slider,
 .widget-slider scale trough slider {
-    background: @primary;
+    background: #{"@primary"};
     border-radius: 50%;
-    transition: all 0.2s ease;
+    transition: all #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 
 .widget-buttons-grid flowboxchild > button {
     background: transparent;
-    color: @on_surface;
+    color: #{"@on_surface"};
     border: none;
     border-radius: 10px;
     font-size: 16px;
     padding: 8px;
-    transition: all 0.2s ease;
+    transition: all #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 
 .widget-buttons-grid flowboxchild > button:hover {
-    background: @primary;
-    color: @on_primary;
+    background: #{"@primary"};
+    color: #{"@on_primary"};
 }
 
 .widget-buttons-grid flowboxchild > button.toggle:checked,
 .widget-buttons-grid flowboxchild > button.active {
-    background: @primary;
-    color: @on_primary;
+    background: #{"@primary"};
+    color: #{"@on_primary"};
 }
 
 /* ── Notifications — ONE box per notification (08-15 fix) ─────────────
@@ -136,16 +137,16 @@
 }
 
 .notification {
-    background: alpha(@surface_variant, 0.6);
-    border: 1px solid alpha(@outline, 0.6);
+    background: #{"alpha(@surface_variant, 0.6)"};
+    border: 1px solid #{"alpha(@outline, 0.6)"};
     border-radius: 12px;
     margin: 4px 6px;
     padding: 0;
-    transition: all 0.2s ease;
+    transition: all #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 
 .notification:hover {
-    border-color: @primary;
+    border-color: #{"@primary"};
 }
 
 .notification-content {
@@ -153,62 +154,62 @@
 }
 
 .summary {
-    color: @primary;
+    color: #{"@primary"};
     font-size: 14px;
     font-weight: bold;
 }
 
 .time {
-    color: @tertiary;
+    color: #{"@tertiary"};
     font-size: 11px;
 }
 
 .body {
-    color: @on_surface_variant;
+    color: #{"@on_surface_variant"};
     font-size: 13px;
 }
 
 /* ── Close button ──────────────────────────────────── */
 .close-button {
-    background: @error;
-    color: @on_error;
+    background: #{"@error"};
+    color: #{"@on_error"};
     border: none;
     border-radius: 50%;
     min-width: 24px;
     min-height: 24px;
     margin: 6px;
-    transition: all 0.2s ease;
+    transition: all #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 
 .close-button:hover {
-    background: @on_error;
-    color: @error;
+    background: #{"@on_error"};
+    color: #{"@error"};
 }
 
 /* ── Critical notification ─────────────────────────── */
 .critical .notification {
-    border-color: @error;
+    border-color: #{"@error"};
     border-width: 3px;
 }
 
 /* ── Low priority ──────────────────────────────────── */
 .low .notification {
-    border-color: @surface_variant;
+    border-color: #{"@surface_variant"};
 }
 
 /* ── Actions ───────────────────────────────────────── */
 .notification-action {
-    background: @primary;
-    color: @on_primary;
+    background: #{"@primary"};
+    color: #{"@on_primary"};
     border: none;
     border-radius: 8px;
     margin: 4px 2px;
     padding: 4px 12px;
     font-size: 12px;
-    transition: all 0.2s ease;
+    transition: all #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 
 .notification-action:hover {
-    background: @secondary;
-    color: @on_secondary;
+    background: #{"@secondary"};
+    color: #{"@on_secondary"};
 }

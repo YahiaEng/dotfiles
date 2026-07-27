@@ -105,6 +105,16 @@ theme_engine_generate() {
     # .last-render-error.log while leaving the desktop unchanged.
     theme_engine_render_motion_files "$tmp" || return 1
 
+    # TOKEN-03/D-01/D-34: sass precompile of GTK3-consumed stylesheets — a
+    # fourth sibling writer, same shape and same propagated-never-swallowed
+    # discipline as motion_files right above it. Runs INSIDE
+    # theme_engine_generate, against the tmp tree, so a failed compile
+    # commits nothing and the atomic render-then-commit invariant holds
+    # unchanged (commit.sh only runs after this whole function returns 0).
+    # Must run AFTER theme_engine_render_motion_files: it consumes the
+    # _motion.scss partial that call just wrote into this same tmp tree.
+    theme_engine_compile_gtk3_stylesheets "$tmp" || return 1
+
     return 0
 }
 
