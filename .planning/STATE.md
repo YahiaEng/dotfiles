@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13
 current_phase_name: motion-retrofit-existing-surface-sweep
 status: executing
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-07-27T03:44:10.889Z"
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-07-27T12:55:35.403Z"
 last_activity: 2026-07-27
 last_activity_desc: Phase 13 execution started
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 20
-  completed_plans: 14
+  completed_plans: 15
   percent: 29
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
-Progress: [███████░░░] 70%
+Progress: [████████░░] 75%
 Last activity: 2026-07-27 — Phase 13 execution started
 
 ## Performance Metrics
@@ -144,6 +144,7 @@ Last activity: 2026-07-27 — Phase 13 execution started
 | Phase 12 P07 | multi-session | 3 tasks | 2 files |
 | Phase 12 P08 | ~40min | 3 tasks | 4 files |
 | Phase 13 P01 | multi-session | 5 tasks | 6 files |
+| Phase 13 P02 | multi-session | 4 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -200,6 +201,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13-01: D-13 confirmed — Hyprland animation speed unit is deciseconds (divisor 100), verified by timing speed 500 at ~50s wall-clock
 - [Phase ?]: 13-01: D-17 Hyprland render gate APPROVED — checks 1/2/4/5 passed by direct visual judgment (2/4 re-judged under an 8x lively-multiplier instrument); check 3 closed on revised mechanical evidence. D-19 soak clock started 2026-07-27T03:40:53Z
 - [Phase ?]: 13-01: D-06 boundary correction — layer-surface entrance (walker/swaync/wleave) is compositor-owned (proven); exit is client-owned on all three, proven via animation-disabled control; follow-up scoped to Phase 14
+- [Phase ?]: 13-02: sass precompile mechanism proven (theme_engine_render_motion_scss + theme_engine_compile_gtk3_stylesheets), swaync converted to style.scss and fully tokenized
+- [Phase ?]: 13-02: contract.json format-tag deviation — swaync-style.css registered as new gtk-css-motion (not the plan's gtk-css), scss-vars extractor widened to accept hyphens; both proven against the real theme-parity checker before being chosen
+- [Phase ?]: 13-02: found and fixed a D-Bus service-activation race this plan introduced (swaync.service can win against exec-once and load unstyled) via a stowed systemd drop-in, not a mask; discovered systemd 261 silently ignores a symlinked drop-in .d directory, fixed by pre-creating it real in stow.sh — durable finding for any future stowed systemd unit
+- [Phase ?]: 13-02: D-17 render gate APPROVED on revised evidence — only 2/5 checks visually confirmed; curve-shape fidelity closed on mechanical token-identity after proving swaync's transitions are colour/opacity-only with no visual instrument at any exaggeration (durable finding for 13-05's waybar gate)
 
 ### Quick Tasks Completed
 
@@ -280,8 +285,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-27T03:44:10.879Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-07-27T12:55:35.385Z
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

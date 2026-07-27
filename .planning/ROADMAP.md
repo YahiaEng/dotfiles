@@ -170,7 +170,7 @@ Plan ordering is fixed by 12-CONTEXT.md D-32: QS-03 first (it and the inspector 
   5. The icon-theme picker lists icon themes that are not yet installed, installs the chosen one from the repos or AUR, and applies it live to Thunar and GTK apps.
 
 **Owns**: Retrofit-time regression (a curve reverting to a Hyprland default without an error) and the perceptual gates that mechanical checks cannot replace.
-**Plans**: 1/7 plans executed
+**Plans**: 2/7 plans executed
 **UI hint**: yes
 
 Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESEARCH.md) before the Hyprland retrofit, the Hyprland retrofit + A/B toggle FIRST so D-18's soak clock starts in plan 1 and accrues while the rest proceeds on files it does not touch, the sass mechanism before the waybar/swaync conversions, the wallpaper-pointer untrack before the 10/10 stress test, and the stress test + `motion-lint --no-pending` + the soak verdict as closing gates. D-17's three per-plan render gates (Hyprland, waybar, swaync) override `config.json`'s end-of-phase human-verify mode.
@@ -181,7 +181,7 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 13-02-PLAN.md — The sass precompile mechanism proven end-to-end on swaync: `_motion.scss` partial, compile inside `theme_engine_generate`, contract/parity/seed wiring — blocking human render gate (MOTION-02, MOTION-03)
+- [x] 13-02-PLAN.md — The sass precompile mechanism proven end-to-end on swaync: `_motion.scss` partial, compile inside `theme_engine_generate`, contract/parity/seed wiring — blocking human render gate (MOTION-02, MOTION-03)
 - [ ] 13-03-PLAN.md — MAINT-02: the four Phase 4 advisory items, each proven by fault injection, with the logout teardown question settled by measurement (MAINT-02)
 - [ ] 13-04-PLAN.md — MAINT-03: Ctrl-A browse inside the existing icon picker, fetch-and-extract previews, repo/AUR install feeding the existing apply pipeline (MAINT-03)
 
@@ -281,7 +281,7 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
 | 10. AGS Media Applet | v2.0 | 6/6 | Complete | 2026-07-15 |
 | 11. Quickshell Viability Gate | v3.0 | 5/5 | Complete    | 2026-07-26 |
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
-| 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 1/7 | In Progress|  |
+| 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 2/7 | In Progress|  |
 | 14. Dashboard Drawer | v3.0 | 0/TBD | Not started | - |
 | 15. Audio + Connectivity Panels | v3.0 | 0/TBD | Not started | - |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |
