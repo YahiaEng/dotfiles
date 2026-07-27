@@ -5,8 +5,8 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13
 current_phase_name: Motion Retrofit & Existing-Surface Sweep
 status: planning
-stopped_at: "Completed 12-08-PLAN.md (TOKEN-06 spring-vs-MD3 verdict: not adopted; Phase 12 all requirements resolved, ready for verification)"
-last_updated: "2026-07-26T23:44:46.201Z"
+stopped_at: Phase 13 context gathered
+last_updated: "2026-07-27T00:46:48.826Z"
 last_activity: 2026-07-27
 last_activity_desc: Phase 12 complete, transitioned to Phase 13
 progress:
@@ -275,9 +275,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-26T22:57:38.551Z
-Stopped at: Completed 12-08-PLAN.md (TOKEN-06 spring-vs-MD3 verdict: not adopted; Phase 12 all requirements resolved, ready for verification)
-Resume file: None
+Last session: 2026-07-27T00:46:48.816Z
+Stopped at: Phase 13 context gathered
+Resume file: .planning/phases/13-motion-retrofit-existing-surface-sweep/13-CONTEXT.md
 
 ## Operator Next Steps
 
