@@ -5,16 +5,16 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13
 current_phase_name: motion-retrofit-existing-surface-sweep
 status: executing
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-07-27T12:55:35.403Z"
+stopped_at: Completed 13-04-PLAN.md (13-03 still open at 1/3 tasks)
+last_updated: "2026-07-27T20:55:00.000Z"
 last_activity: 2026-07-27
-last_activity_desc: Phase 13 execution started
+last_activity_desc: 13-04 closed — icon-picker browse/install gate passed, engine apply-abort fixed
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 20
-  completed_plans: 15
-  percent: 29
+  completed_plans: 16
+  percent: 31
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING
-Plan: 3 of 7
-Status: Ready to execute
-Progress: [████████░░] 75%
-Last activity: 2026-07-27 — Phase 13 execution started
+Plan: 13-01, 13-02, 13-04 complete — 13-03 open at 1/3 (blocked on operator-only teardown measurement); 13-05/06/07 not started
+Status: Wave 2 partially closed — 13-03 blocks wave close
+Progress: [█████░░░░░] 4 of 7 plans
+Last activity: 2026-07-27 — 13-04 closed; engine apply-abort (2ea4510) fixed, unblocking every theme-apply reload
 
 ## Performance Metrics
 
