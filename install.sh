@@ -6,6 +6,13 @@
 
 set -euo pipefail
 
+# Repo root, resolved from this script's own location so the system-file
+# installs in section_hardware work regardless of the caller's cwd. Files
+# under system/ target /etc and /usr/local, which are outside $HOME and
+# therefore deliberately NOT stow-managed — stow.sh's PACKAGES array is an
+# explicit list, so system/ is never stowed.
+REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
 # ── Flag parsing ─────────────────────────────────────
 # --core-only : run only section_core_rice (packages + AUR helper + core
 #               post-install tasks). Skips section_hardware and
@@ -456,6 +463,47 @@ section_hardware() {
     else
         echo "No NVIDIA GPU detected — skipping NVIDIA packages."
         NVIDIA_INSTALLED=false
+    fi
+
+    # ── DKMS integrity guard (2026-07-28 black-screen incident) ──
+    # A pacman -Syu installed kernel 7.1.5-arch1-1 but the upstream DKMS
+    # alpm hook never built nvidia-open-dkms for it, and nothing reported
+    # the gap. With no driver claiming the GPU, Hyprland rendered on
+    # simpledrm (the EFI framebuffer) and the kernel oopsed in
+    # drm_fb_memcpy — black screen after login, found only at next boot.
+    #
+    # Two independent defects, both reproduced by this script until now:
+    #
+    #  1. kernel-modules-hook (AUR_PKGS above) preserves each running
+    #     kernel's module tree across upgrades — genuinely useful — but
+    #     ships its reaper, linux-modules-cleanup.service, DISABLED. On the
+    #     affected machine 13 orphaned trees accumulated (6.8 GB).
+    #  2. /usr/share/libalpm/scripts/dkms builds its work list by globbing
+    #     every /usr/lib/modules/*/build/. The orphans were complete trees
+    #     WITH headers, so none were filtered — the list grew from 1 kernel
+    #     to 14, iterated in arbitrary hash order with no priority for the
+    #     live kernel, and died before reaching it.
+    #
+    # dkms-verify enumerates kernels by their package-written `pkgbase`
+    # marker instead of by directory glob, so orphans cannot starve it, and
+    # runs as a PostTransaction hook sorting after 70-dkms-install.
+    echo ""
+    echo "Installing DKMS verification hook..."
+    sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/dkms-verify" \
+        /usr/local/bin/dkms-verify
+    sudo install -Dm644 "$REPO_DIR/system/etc/pacman.d/hooks/99-dkms-verify.hook" \
+        /etc/pacman.d/hooks/99-dkms-verify.hook
+
+    # `enable` without --now: the reaper deletes module trees for kernels
+    # that are not running, which is a boot-time job, not a mid-install one.
+    # Guarded + non-fatal, matching the swayosd/ollama precedent above, so a
+    # machine without kernel-modules-hook installed still completes cleanly.
+    if systemctl cat linux-modules-cleanup.service &>/dev/null; then
+        echo "Enabling linux-modules-cleanup (reaps orphaned kernel module trees)..."
+        sudo systemctl enable linux-modules-cleanup.service \
+            || echo "  ⚠ linux-modules-cleanup enable failed" >&2
+    else
+        echo "kernel-modules-hook not installed — skipping module-tree reaper."
     fi
 
     echo ""
