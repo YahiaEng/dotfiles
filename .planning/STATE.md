@@ -32,7 +32,7 @@ Phase: 14 — Dashboard Drawer
 Plan: Not started
 Status: Ready to plan
 Progress: [██████████] 7 of 7 plans (phase-scoped; milestone-wide is 20/20)
-Last activity: 2026-07-28 — Phase 13 complete, transitioned to Phase 14
+Last activity: 2026-07-28 — Completed quick task 260728-3na: DKMS verification pacman hook + kernel-module reaper (2026-07-28 black-screen incident backstop)
 
 ## Performance Metrics
 
@@ -228,6 +228,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260709-ciu | Make current.jpg wallpaper symlink relative (fresh-install materialyou fix) | 2026-07-09 | 49536d5 | [260709-ciu-fix-host-absolute-wallpaper-symlink-brea](./quick/260709-ciu-fix-host-absolute-wallpaper-symlink-brea/) |
 | 260725-vu6 | Complete the eww retirement: orphaned contract entry, stale layerrules, stow package, AUR dep, dead reload branch | 2026-07-25 | cd4a1b2, bb76d29, 090d531 | [260725-vu6-complete-the-eww-retirement-drop-orphane](./quick/260725-vu6-complete-the-eww-retirement-drop-orphane/) |
 | 260726-l0y | Record the QS-03 acceptance override in 11-VERIFICATION.md and reassign QS-03 ownership from Phase 11 to Phase 12 | 2026-07-26 | 4d5a532, 1d92ba6, f727649 | [260726-l0y-record-the-qs-03-acceptance-override-in-](./quick/260726-l0y-record-the-qs-03-acceptance-override-in-/) |
+| 260728-3na | Add DKMS verification pacman hook and enable kernel module cleanup service (2026-07-28 black-screen incident backstop) | 2026-07-28 | 745ad22, 1868826 | [260728-3na-add-dkms-verification-pacman-hook-and-en](./quick/260728-3na-add-dkms-verification-pacman-hook-and-en/) |
 
 ### Pending Todos
 
