@@ -601,6 +601,29 @@ else
     echo "  [SKIP] D-17 module-gate (python-gobject / gi not available)"
 fi
 
+# ── Waybar entrypoint compiled-sheet reference guard (13-05 fix) ───────
+# Static, deterministic check that waybar's two entry-point scripts (the
+# autostart launcher and the Super+B interactive switcher) both reference
+# the COMPILED state-dir sheet naming convention (waybar-style-<slug>.css),
+# never the retired repo-stowed style-<slug>.css this plan's stylesheet
+# conversion removed. Found live during this plan: waybar-switch.sh (not
+# in 13-05's own files_modified) drifted onto the dead path and was only
+# caught by actually pressing the keybind, not by any automated gate —
+# this check turns that drift class into a gate failure instead of a
+# runtime surprise the next time either script is edited. Positive
+# assertion (contains the compiled-sheet substring), not a negative
+# blocklist of every possible dead-path spelling — cheaper to maintain
+# and cannot be defeated by a rephrased dead reference.
+for _ep_name in waybar-launch.sh waybar-switch.sh; do
+    _ep_path="$HOME/.config/hypr/scripts/$_ep_name"
+    if [[ -f "$_ep_path" ]]; then
+        grep -q 'waybar-style-' "$_ep_path"
+        check "waybar entrypoint guard: $_ep_name references the compiled waybar-style-<slug>.css convention" "$?"
+    else
+        echo "  [SKIP] waybar entrypoint guard: $_ep_name not deployed under ~/.config/hypr/scripts"
+    fi
+done
+
 # ── waybar-design-lint fold (08-15) ───────────────────────────────────
 # The design/token gate (transparent window, role-names-only, no literal
 # hex, no empty glyphs, token resolution) that would have caught the 08-12

@@ -2,14 +2,27 @@
 # ╔══════════════════════════════════════════════════════╗
 # ║           WAYBAR LAYOUT SWITCHER (walker)            ║
 # ║   Layouts are discovered from disk (D-32) — dropping  ║
-# ║   a config-<name>.jsonc + style-<name>.css pair here  ║
-# ║   makes it selectable with zero script edits.         ║
+# ║   a config-<name>.jsonc + a compiled waybar-style-    ║
+# ║   <name>.css sheet here makes it selectable with zero ║
+# ║   script edits.                                       ║
 # ╚══════════════════════════════════════════════════════╝
+#
+# 13-05 fix: waybar-switch.sh (bound to $mainMod,B — Super+B, not in this
+# plan's original files_modified) still pointed at the pre-conversion
+# repo-stowed style-<slug>.css, which no longer exists (all six waybar
+# stylesheets are now .scss, compiled into $STATE_DIR). Repointed at the
+# compiled state-dir sheet, mirroring waybar-launch.sh's own disk-truth
+# idiom (D-32/D-05) rather than inventing a second one — the actual
+# launch invocation below now DELEGATES to waybar-launch.sh itself, so
+# there is exactly one place in the repo that constructs the waybar
+# flags and one place that owns the missing-sheet degrade behavior.
 
 set -euo pipefail
 
 WAYBAR_DIR="$HOME/.config/waybar"
+STATE_DIR="$HOME/.local/state/theme"
 STATE_FILE="$HOME/.cache/current-waybar-layout"
+WAYBAR_LAUNCH="$HOME/.config/hypr/scripts/waybar-launch.sh"
 
 mkdir -p "$(dirname "$STATE_FILE")"
 
@@ -82,12 +95,17 @@ done
 
 [[ -z "$LAYOUT" ]] && exit 1
 
-# ── Guard: config without a matching stylesheet (T-08-14/T-08-15) ────
-# A config-<slug>.jsonc with no style-<slug>.css would launch an
-# unstyled bar — fail loudly instead of silently degrading.
-if [[ ! -f "$WAYBAR_DIR/config-${LAYOUT}.jsonc" || ! -f "$WAYBAR_DIR/style-${LAYOUT}.css" ]]; then
+# ── Guard: config without a matching COMPILED stylesheet (T-08-14/T-08-15,
+#    repointed 13-05) ─────────────────────────────────────────────────
+# A config-<slug>.jsonc with no compiled waybar-style-<slug>.css in the
+# state dir would launch an unstyled bar — fail loudly instead of
+# silently degrading, exactly the same both-files-must-exist check
+# waybar-launch.sh performs before trusting a saved layout (D-32/D-05) —
+# mirrored here, not reinvented, so the two scripts can never disagree
+# about what makes a layout valid.
+if [[ ! -f "$WAYBAR_DIR/config-${LAYOUT}.jsonc" || ! -f "$STATE_DIR/waybar-style-${LAYOUT}.css" ]]; then
     notify-send -a "Waybar Switcher" "Error" \
-        "Layout '${LAYOUT}' is missing its config or stylesheet" -i dialog-error 2>/dev/null || true
+        "Layout '${LAYOUT}' is missing its config or compiled stylesheet — run theme-apply" -i dialog-error 2>/dev/null || true
     exit 1
 fi
 
@@ -96,12 +114,20 @@ fi
 pkill waybar || true
 sleep 0.3
 
-# Launch waybar as a uwsm-managed scope unit
-uwsm app -- waybar -c "$WAYBAR_DIR/config-${LAYOUT}.jsonc" \
-       -s "$WAYBAR_DIR/style-${LAYOUT}.css" &
-
-# Save state
+# Save state BEFORE launching — waybar-launch.sh reads this same
+# $HOME/.cache/current-waybar-layout file (verified: identical path,
+# both scripts agree).
 echo "$LAYOUT" > "$STATE_FILE"
+
+# 13-05: delegate the actual invocation to waybar-launch.sh rather than
+# reconstructing the -c/-s flags here a second time — that script already
+# owns the compiled-sheet path construction AND the visible degrade-to-
+# config-only fallback if a compiled sheet is unexpectedly missing by the
+# time it runs (a defense-in-depth window between this guard and the
+# exec, however small). uwsm app -- wraps it as its own managed scope
+# unit, same as the guard above already confirmed is safe to launch and
+# the same wrapping autostart.conf uses for this exact script.
+uwsm app -- "$WAYBAR_LAUNCH" &
 
 notify-send -a "Waybar Switcher" "Layout Changed" \
     "Switched to ${LAYOUT} layout" \
