@@ -1,5 +1,7 @@
 {
   "_comment": "Sole source for every duration and control-point number the theme-engine emits (D-05). Every consumer resolves a semantic name — never a copied/inlined literal. The 'motion-' prefix on emitted Hyprland curve names is a deliberate collision guard against animations.conf's 12 hand-authored beziers (D-04: additive only, nothing rewired this phase).",
+  "_comment_x_easings": "D-11's pre-authorized non-MD3 extension lives in .easings under the 'x-' prefix (x-overshoot, x-overshoot-in, x-undershoot-out, x-smooth-in, x-smooth-out). These are NOT MD3 — every MD3 bezier control point is inside [0,1] (13-RESEARCH.md State of the Art) — and no default token references any of them. They are single-sourced here as (a) the temporary A/B toggle's 'legacy' curve_sets set and (b) the sole sanctioned landing spot for a future D-22 retune per D-12's one-way MD3-purity policy. Deleted in plan 13-07 unless a D-22 retune permanently adopts one. Kept as plain 4-number bezier entries (not a nested comment) so the WR-02 unconditional `.easings | to_entries[]` emit loop and the malformed-control-point validator both keep treating every `.easings` entry uniformly.",
+  "_comment_curve_sets": "D-21's temporary A/B comparison toggle, defined below in .curve_sets. Removed in plan 13-07 — not a permanent API. 'md3' is the default curve_sets (D-09/D-12 pure-MD3 default); 'legacy' maps the six feel-changing slots onto the pre-retrofit x-* character curves for soak comparison only, never as a reversion path. Kept as a top-level comment (not nested inside .curve_sets) so every .curve_sets key is uniformly a real set consumed by lib/motion.sh and motion-switch.sh's closed-set validation.",
   "durations": {
     "short1": 50,
     "short2": 100,
@@ -20,14 +22,50 @@
   },
   "easings": {
     "standard": [0.2, 0, 0, 1],
+    "standard-decelerate": [0, 0, 0, 1],
+    "standard-accelerate": [0.3, 0, 1, 1],
     "emphasized-decelerate": [0.05, 0.7, 0.1, 1],
     "emphasized-accelerate": [0.3, 0, 0.8, 0.15],
-    "linear": [1, 1, 1, 1]
+    "legacy": [0.4, 0, 0.2, 1],
+    "legacy-decelerate": [0, 0, 0.2, 1],
+    "legacy-accelerate": [0.4, 0, 1, 1],
+    "linear": [1, 1, 1, 1],
+    "css-linear": [0, 0, 1, 1],
+    "x-overshoot": [0.05, 0.9, 0.1, 1.05],
+    "x-overshoot-in": [0.1, 1.1, 0.1, 1.1],
+    "x-undershoot-out": [0.3, -0.3, 0, 1],
+    "x-smooth-in": [0.25, 1, 0.5, 1],
+    "x-smooth-out": [0.36, 0, 0.66, -0.56]
   },
   "semantic": {
     "standard": { "duration": "short4", "easing": "standard" },
     "emphasized-in": { "duration": "medium2", "easing": "emphasized-decelerate" },
-    "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" }
+    "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" },
+    "standard-slow": { "duration": "medium2", "easing": "standard" },
+    "ambient": { "duration": "extra-long4", "easing": "linear" }
+  },
+  "indicators": {
+    "blink-slow": { "duration_ms": 1000, "easing": "css-linear" },
+    "blink-fast": { "duration_ms": 500, "easing": "css-linear" },
+    "border-rotate": { "duration_ms": 10000, "easing": "linear" }
+  },
+  "curve_sets": {
+    "md3": {
+      "windows-in": "emphasized-decelerate",
+      "windows-out": "emphasized-accelerate",
+      "windows-move": "standard",
+      "fade-in": "standard-decelerate",
+      "fade-out": "standard-accelerate",
+      "workspaces": "emphasized-decelerate"
+    },
+    "legacy": {
+      "windows-in": "x-overshoot-in",
+      "windows-out": "x-undershoot-out",
+      "windows-move": "x-overshoot",
+      "fade-in": "x-smooth-in",
+      "fade-out": "x-smooth-out",
+      "workspaces": "x-overshoot"
+    }
   },
   "scales": {
     "off": { "multiplier": 1.0, "animations_enabled": false },

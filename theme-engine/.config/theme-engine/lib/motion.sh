@@ -23,6 +23,21 @@ MOTION_STATE_FILE="$HOME/.local/state/theme/motion-scale"
 MOTION_DEFAULT="normal"
 MOTION_JSON="$HOME/.config/theme-engine/motion.json"
 
+# D-13: Hyprland's animation `speed` unit, confirmed by a human-observed
+# extreme-value probe (13-01 Task 2 — `speed = 500` on a live `layers` slot
+# timed at ~50s, falsifying/confirming the wiki's documented ds claim
+# against a stopwatch rather than trusting a readback). 1 speed unit = 100ms.
+MOTION_HYPR_SPEED_DIVISOR_DS=100
+
+# T-13-01/D-21: the A/B curve-set comparison toggle's state file. Same
+# theme-orthogonal shape as MOTION_STATE_FILE above, but selects which
+# `curve_sets` entry (motion.json) feeds the six feel-changing Hyprland
+# slots (windows-in/out/move, fade-in/out, workspaces) rather than the
+# scale multiplier. Temporary — removed in plan 13-07 alongside
+# motion.json's `curve_sets` object.
+MOTION_CURVES_FILE="$HOME/.local/state/theme/motion-curves"
+MOTION_CURVES_DEFAULT="md3"
+
 # theme_engine_read_motion_scale
 # Echoes the current motion-scale state value, defaulting to "normal" when
 # the axis has never been set OR holds an unrecognised value. D-21 requires
@@ -35,6 +50,22 @@ theme_engine_read_motion_scale() {
     case "$v" in
         off|reduced|normal|lively) echo "$v" ;;
         *) echo "$MOTION_DEFAULT" ;;
+    esac
+}
+
+# theme_engine_read_motion_curves
+# Echoes the current curve-set (D-21's A/B toggle) state value, defaulting
+# to "md3" when the axis has never been set OR holds an unrecognised value.
+# Identical closed-`case` shape to theme_engine_read_motion_scale above —
+# this value flows into $motion_curve_* variables inside a file Hyprland's
+# config parser consumes (T-13-01), so an out-of-set value must never pass
+# through unvalidated.
+theme_engine_read_motion_curves() {
+    local v
+    v="$(cat "$MOTION_CURVES_FILE" 2>/dev/null || echo "$MOTION_CURVES_DEFAULT")"
+    case "$v" in
+        md3|legacy) echo "$v" ;;
+        *) echo "$MOTION_CURVES_DEFAULT" ;;
     esac
 }
 
@@ -123,6 +154,43 @@ theme_engine_validate_motion_values() {
         return 1
     fi
 
+    # 13-01 Task 3G: extend validation to the two new top-level categories
+    # (indicators, curve_sets) added alongside the D-21 A/B toggle — same
+    # validate-before-any-write discipline, same diagnose-to-stderr shape.
+    local bad_indicators
+    bad_indicators="$(jq -r '
+        .easings as $E
+        | (.indicators // {}) | to_entries[]
+        | select(
+            (.value.duration_ms | type != "number") or (.value.duration_ms | isnan)
+            or (.value.duration_ms | isinfinite) or (.value.duration_ms <= 0)
+            or (($E[.value.easing] // null) == null)
+          )
+        | .key' "$MOTION_JSON" 2>/dev/null)"
+    if [[ -n "$bad_indicators" ]]; then
+        echo "motion.sh: indicator(s) with a non-positive/non-finite duration_ms or an unresolvable easing: $bad_indicators" >&2
+        return 1
+    fi
+
+    local bad_curve_sets
+    bad_curve_sets="$(jq -r '
+        .easings as $E
+        | (.curve_sets // {}) | to_entries[]
+        | .key as $set | .value as $slots
+        | ($slots | to_entries[] | select($E[.value] == null) | "\($set).\(.key) -> \(.value)")
+    ' "$MOTION_JSON" 2>/dev/null)"
+    if [[ -n "$bad_curve_sets" ]]; then
+        echo "motion.sh: curve_sets slot(s) reference a non-existent easing: $bad_curve_sets" >&2
+        return 1
+    fi
+
+    local active_curves
+    active_curves="$(theme_engine_read_motion_curves)"
+    if ! jq -e --arg c "$active_curves" '(.curve_sets // {}) | has($c)' "$MOTION_JSON" >/dev/null 2>&1; then
+        echo "motion.sh: active motion-curves value '$active_curves' does not name a real curve_sets key in motion.json" >&2
+        return 1
+    fi
+
     return 0
 }
 
@@ -197,13 +265,78 @@ theme_engine_render_motion_files() {
     local out_dir="$tmp$STATE_DIR"
     mkdir -p "$out_dir"
 
+    # 13-01 Task 3H: the active curve-set (D-21 A/B toggle) and the three new
+    # TSVs it/the semantic-scale resolution feed into the Hyprland writer's
+    # new $motion_speed_*/$motion_curve_* families below.
+    local active_curves
+    active_curves="$(theme_engine_read_motion_curves)"
+
+    local speed_semantic
+    speed_semantic="$(jq -r --argjson mult "$multiplier" --argjson floor "$floor_ms" '
+        .durations as $D
+        | .semantic | to_entries[]
+        | .key as $k | .value as $v
+        | ($D[$v.duration] * $mult) as $scaled
+        | (if $scaled < $floor then $floor else $scaled end) as $clamped
+        | [($k | gsub("-"; "_")), (($clamped | floor) | tostring)]
+        | @tsv
+    ' "$MOTION_JSON")"
+
+    local speed_indicators
+    speed_indicators="$(jq -r --argjson mult "$multiplier" --argjson floor "$floor_ms" '
+        (.indicators // {}) | to_entries[]
+        | .key as $k | .value as $v
+        | ($v.duration_ms * $mult) as $scaled
+        | (if $scaled < $floor then $floor else $scaled end) as $clamped
+        | [($k | gsub("-"; "_")), (($clamped | floor) | tostring)]
+        | @tsv
+    ' "$MOTION_JSON")"
+
+    local curve_vars
+    curve_vars="$(jq -r --arg c "$active_curves" '
+        (.curve_sets[$c] // {}) | to_entries[]
+        | "\(.key | gsub("-"; "_"))\t\(.value)"
+    ' "$MOTION_JSON")"
+
     # ── 1. Hyprland target: $motion_enabled first as a top-level assignment,
-    #    then an animations {} block holding ONLY bezier = lines (D-22: no
-    #    `enabled =` key here — animations.conf owns that; D-04: no
-    #    `animation =` line either — Phase 12 fences to curves only) ───────
+    #    then the new $motion_speed_*/$motion_speed_indicator_*/
+    #    $motion_curve_* families (Task 3H), then an animations {} block
+    #    holding ONLY bezier = lines (D-22: no `enabled =` key here —
+    #    animations.conf owns that; D-04: no `animation =` line either —
+    #    Phase 12 fences to curves only) ───────────────────────────────────
     {
         # shellcheck disable=SC2016 # intentional: literal $ for Hyprland's variable syntax, not shell expansion
         printf '$motion_enabled = %s\n' "$animations_enabled"
+
+        # $motion_speed_<token> — one per .semantic entry, in Hyprland's
+        # decisecond speed unit (D-13, MOTION_HYPR_SPEED_DIVISOR_DS), two
+        # decimal places so a sub-100ms-per-unit remainder never truncates
+        # away (e.g. 150ms -> 1.50, not 1).
+        while IFS=$'\t' read -r token ms; do
+            [[ -z "$token" ]] && continue
+            # shellcheck disable=SC2016
+            printf '$motion_speed_%s = %s\n' "$token" \
+                "$(awk -v ms="$ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
+        done <<< "$speed_semantic"
+
+        # $motion_speed_indicator_<name> — one per .indicators entry, scaled
+        # by the SAME multiplier/floor as the semantic pairs so `reduced`
+        # and `lively` reach indicators too.
+        while IFS=$'\t' read -r name ms; do
+            [[ -z "$name" ]] && continue
+            # shellcheck disable=SC2016
+            printf '$motion_speed_indicator_%s = %s\n' "$name" \
+                "$(awk -v ms="$ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
+        done <<< "$speed_indicators"
+
+        # $motion_curve_<slot> — one per slot in the ACTIVE curve_sets set
+        # (D-21 A/B toggle), resolved through theme_engine_read_motion_curves.
+        while IFS=$'\t' read -r slot easing; do
+            [[ -z "$slot" ]] && continue
+            # shellcheck disable=SC2016
+            printf '$motion_curve_%s = motion-%s\n' "$slot" "$easing"
+        done <<< "$curve_vars"
+
         echo "animations {"
         jq -r '.easings | to_entries[] |
             "    bezier = motion-\(.key), \(.value[0]), \(.value[1]), \(.value[2]), \(.value[3])"' \
