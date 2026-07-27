@@ -321,3 +321,15 @@ None — no external service configuration required. The systemd drop-in is appl
 ---
 *Phase: 13-motion-retrofit-existing-surface-sweep*
 *Completed: 2026-07-27*
+
+## Self-Check: PASSED
+
+- FOUND: `hypr/.config/hypr/scripts/swaync-launch.sh`
+- FOUND: `swaync/.config/systemd/user/swaync.service.d/override.conf`
+- FOUND: `swaync/.config/swaync/style.scss`
+- FOUND: `theme-engine/.config/theme-engine/lib/contract.sh`
+- FOUND: `.planning/phases/13-motion-retrofit-existing-surface-sweep/13-02-SUMMARY.md`
+- FOUND: `.planning/phases/13-motion-retrofit-existing-surface-sweep/deferred-items.md`
+- FOUND: commit `4b11232` (Task 2)
+- FOUND: commit `3f4e567` (Task 3)
+- FOUND: commit `65b44f9` (SUMMARY + deferred-items.md)
