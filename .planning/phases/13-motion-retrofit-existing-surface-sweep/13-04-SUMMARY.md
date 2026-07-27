@@ -254,7 +254,8 @@ None — no external service configuration required.
 
 - MAINT-03 satisfied. The picker browses, installs and applies; the apply path is now genuinely functional for every GTK app, which it was not before `2ea4510`.
 - **`2ea4510` unblocks more than this plan.** Every `theme-apply` run was aborting before its GTK/walker/vscodium/swayosd reload steps whenever a non-Adwaita icon theme was set. Any prior phase's observation of "the reload didn't seem to fire" is worth re-reading in that light.
-- Gates at close: `motion-lint` 41 passed / 0 failed; `theme-doctor` 185 passed / 1 failed (exit 0) — the single failure is the known `git status --porcelain is empty` check, whose cause is the tracked `wallpapers/Pictures/Wallpapers/current.jpg` churn owned by plan 13-06.
+- Gates at close: `motion-lint` 41 passed / 0 failed (exit 0); `theme-doctor` 185 passed / **1 failed, exit 1**.
+- **One acceptance criterion is NOT met and is recorded as such:** the plan requires `~/.config/theme-engine/theme-doctor` to exit 0 at the end of the gate. It exits 1. The sole failing check is `git status --porcelain is empty`, and the sole dirty entry is `wallpapers/Pictures/Wallpapers/current.jpg` — the tracked wallpaper pointer that runtime code paths rewrite. That is precisely the defect **plan 13-06 exists to fix** ("the wallpaper pointer is no longer a tracked file that five runtime code paths rewrite"). 13-04 cannot satisfy this criterion from inside its own scope; it will be satisfied as a side effect of 13-06 and should be re-asserted at phase close in 13-07, which already gates on the clean-tree invariant.
 - 13-03 remains open at 1/3 tasks, blocked on its own operator-only measurement (see `13-03-CONTINUE-HERE.md`). Wave 2 does not close until it does.
 
 ---
