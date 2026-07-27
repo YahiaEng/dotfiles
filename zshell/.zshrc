@@ -120,4 +120,4 @@ done
 
 export PATH=$PATH:/home/aorus/.spicetify
 
-. "$HOME/.local/share/../bin/env"
+[ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"

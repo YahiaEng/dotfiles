@@ -43,8 +43,15 @@ fish_add_path -g $HOME/.cargo/bin $HOME/.local/bin $BUN_INSTALL/bin $HOME/.spice
 # reproducible via install.sh + stow, no manual host-only step (project
 # reproducibility constraint). No-op once fisher.fish exists.
 if status is-interactive; and not test -e $__fish_config_dir/functions/fisher.fish
-    curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
-    and fisher update
+    curl -fsSL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
+    # fish's pipeline $status reflects the LAST command (source), not curl —
+    # `curl -f | source` on a failed fetch sources empty input, which trivially
+    # succeeds, so a plain `and fisher update` would still fire and error with
+    # "Unknown command: fisher" (found live via fault injection, WR-01/D-30).
+    # $pipestatus[1] is curl's own exit code and is unaffected by that.
+    if test $pipestatus[1] -eq 0
+        fisher update
+    end
 end
 
 if status is-interactive
@@ -56,6 +63,7 @@ if status is-interactive
     # is already active (`not set -q nvm_current_version`, e.g. inherited
     # from a parent shell). No `set -U` universals — not stow-reproducible.
     if not set -q nvm_current_version; and functions -q nvm
+        and test -d $nvm_data/$nvm_default_version
         nvm use --silent $nvm_default_version
     end
 
