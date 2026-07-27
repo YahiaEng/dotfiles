@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13
 current_phase_name: motion-retrofit-existing-surface-sweep
 status: executing
-stopped_at: Completed 13-05-PLAN.md (waybar sass conversion, render gate approved)
-last_updated: "2026-07-27T21:46:11.658Z"
+stopped_at: Completed 13-06-PLAN.md (wallpaper pointer untrack D-23 + motion-lint D-32 exemption end state)
+last_updated: "2026-07-27T22:06:46.865Z"
 last_activity: 2026-07-28
-last_activity_desc: 13-05 CLOSED — waybar sass conversion + render gate approved by operator ("approved"); MOTION-02/MOTION-03 marked complete
+last_activity_desc: "13-06 CLOSED: current.jpg untracked/gitignored/seeded at install (D-23, operator-confirmed one-way door); motion-lint reached D-32's exemption end state with a new --no-pending assertion (proven able to fail and proven opt-in); D-18 soak integrity proven (state-dir manifest unchanged across both lint modes); WINDOWS.md entries 1/2/8 marked fixed (open_count 7, not the plan's stale literal 6 — entry 10, added by 13-01 after this plan's acceptance criterion was authored, is legitimately open and out of scope; see 13-06-SUMMARY.md Deviations). theme-doctor now exits 0 (206/0, up from 205/1 baseline), motion-lint 53/0, theme-parity 2697/0 — all three gates green, no regression. Phase 13 remains open — 13-03, 13-07 still outstanding."
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
   percent: 29
 ---
 
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING
-Plan: 13-01, 13-02, 13-04, 13-05 complete — 13-03 still open at 1/3 (blocked on operator-only teardown measurement); 13-06/07 not started
-Status: Wave 3 (13-05) was dispatched ahead of 13-03 by explicit operator override (no dep edge, no file overlap) and has now closed; 13-03 remains the sole open blocker on phase close alongside 13-06/07 not yet started
-Progress: [██████░░░░] 4 of 7 plans (phase-scoped; milestone-wide is 17/20)
-Last activity: 2026-07-28 — 13-05 CLOSED: waybar sass conversion (fd2656b, daffbfa, 423ac61), the out-of-scope waybar-switch.sh fix (242118a), and the D-17 waybar render gate approved by the operator ("approved"). MOTION-02 and MOTION-03 marked complete in REQUIREMENTS.md. Phase 13 remains open — 13-03, 13-06, 13-07 still outstanding.
+Plan: 13-01, 13-02, 13-04, 13-05, 13-06 complete — 13-03 still open at 1/3 (blocked on operator-only teardown measurement); 13-07 not started
+Status: Wave 3 (13-05) was dispatched ahead of 13-03 by explicit operator override (no dep edge, no file overlap) and has now closed; 13-06 (wallpaper pointer untrack D-23 + motion-lint D-32 exemption end state, operator-confirmed at its Task 1 blocking checkpoint) has also closed; 13-03 remains the sole open blocker on phase close alongside 13-07 not yet started
+Progress: [███████░░░] 5 of 7 plans (phase-scoped; milestone-wide is 18/20)
+Last activity: 2026-07-28 — 13-06 CLOSED: current.jpg untracked/gitignored/seeded at install (D-23, operator-confirmed one-way door); motion-lint reached D-32's exemption end state with a new --no-pending assertion (proven able to fail and proven opt-in); D-18 soak integrity proven (state-dir manifest unchanged across both lint modes); WINDOWS.md entries 1/2/8 marked fixed (open_count 7, not the plan's stale literal 6 — entry 10, added by 13-01 after this plan's acceptance criterion was authored, is legitimately open and out of scope; see 13-06-SUMMARY.md Deviations). theme-doctor now exits 0 (206/0, up from 205/1 baseline), motion-lint 53/0, theme-parity 2697/0 — all three gates green, no regression. Phase 13 remains open — 13-03, 13-07 still outstanding.
 
 ## Performance Metrics
 
@@ -146,6 +146,7 @@ Last activity: 2026-07-28 — 13-05 CLOSED: waybar sass conversion (fd2656b, daf
 | Phase 13 P01 | multi-session | 5 tasks | 6 files |
 | Phase 13 P02 | multi-session | 4 tasks | 12 files |
 | Phase 13 P05 | multi-session | 3 tasks | 14 files |
+| Phase 13 P06 | ~25min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -208,6 +209,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13-02: D-17 render gate APPROVED on revised evidence — only 2/5 checks visually confirmed; curve-shape fidelity closed on mechanical token-identity after proving swaync's transitions are colour/opacity-only with no visual instrument at any exaggeration (durable finding for 13-05's waybar gate)
 - [Phase ?]: 13-05: waybar sass conversion complete — all six stylesheets tokenized, D-09 athena feel-change applied, MOTION-03's third and final render gate (waybar) APPROVED by operator
 - [Phase ?]: 13-05: waybar-switch.sh (out-of-plan-scope entrypoint) found still pointing at pre-conversion stylesheet, repointed and made to delegate to waybar-launch.sh; new theme-doctor waybar-entrypoint guard added to prevent recurrence
+- [Phase ?]: 13-06: D-23 confirmed by operator at Task 1's blocking checkpoint — untrack-and-seed (not exempt-the-path); current.jpg untracked, gitignored, seeded at install; clean-tree invariant now TRUE not just unchecked
+- [Phase ?]: 13-06: motion-lint reached D-32 exemption end state (3 whole-file + 1 line-level entry, permanent reasons, structured pending:False fields); new --no-pending opt-in assertion proven able to fail and proven opt-in; D-18 soak integrity proven mechanically
+- [Phase ?]: 13-06: WINDOWS.md entries 1, 2, 8 marked fixed; open_count is 7 (not the plan's literal 6) because entry 10 (added by sibling plan 13-01 after this plan's acceptance criterion was authored) is legitimately open and out of scope — documented as a deviation rather than force-marked
 
 ### Quick Tasks Completed
 
@@ -288,8 +292,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-27T21:46:11.647Z
-Stopped at: Completed 13-05-PLAN.md (waybar sass conversion, render gate approved)
+Last session: 2026-07-27T22:06:46.854Z
+Stopped at: Completed 13-06-PLAN.md (wallpaper pointer untrack D-23 + motion-lint D-32 exemption end state)
 Resume file: None
 
 ## Operator Next Steps

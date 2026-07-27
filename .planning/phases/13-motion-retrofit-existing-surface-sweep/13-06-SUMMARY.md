@@ -167,3 +167,8 @@ None - no external service configuration required.
 ---
 *Phase: 13-motion-retrofit-existing-surface-sweep*
 *Completed: 2026-07-28*
+
+## Self-Check: PASSED
+
+- FOUND: `.gitignore`, `stow.sh`, `hypr/.config/hypr/scripts/motion-lint`, `.planning/WINDOWS.md`, this SUMMARY.md
+- FOUND commits: `ac5c067` (Task 2), `0ab2f74` (Task 3), `8a7ade0` (this SUMMARY)
