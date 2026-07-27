@@ -312,29 +312,41 @@ theme_engine_render_motion_files() {
         # decisecond speed unit (D-13, MOTION_HYPR_SPEED_DIVISOR_DS), two
         # decimal places so a sub-100ms-per-unit remainder never truncates
         # away (e.g. 150ms -> 1.50, not 1).
-        while IFS=$'\t' read -r token ms; do
-            [[ -z "$token" ]] && continue
+        #
+        # Loop variables below are deliberately prefixed per-loop
+        # (sem_/ind_/curve_) rather than sharing generic names like
+        # `name`/`ms`/`slot` — none of these `read -r` loops declares
+        # `local`, and because bash's `local` is dynamically scoped, an
+        # unlocalized loop variable silently overwrites an identically
+        # named `local` in ANY caller up the call stack still on the stack
+        # when this function runs (theme_engine_generate's own `local
+        # name="$1"`, called without a subshell, was clobbered by exactly
+        # this shape — see deferred-items.md's now-resolved entry). Renaming
+        # kills the whole collision class rather than relying on every
+        # future caller never reusing the identifier.
+        while IFS=$'\t' read -r sem_token sem_ms; do
+            [[ -z "$sem_token" ]] && continue
             # shellcheck disable=SC2016
-            printf '$motion_speed_%s = %s\n' "$token" \
-                "$(awk -v ms="$ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
+            printf '$motion_speed_%s = %s\n' "$sem_token" \
+                "$(awk -v ms="$sem_ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
         done <<< "$speed_semantic"
 
         # $motion_speed_indicator_<name> — one per .indicators entry, scaled
         # by the SAME multiplier/floor as the semantic pairs so `reduced`
         # and `lively` reach indicators too.
-        while IFS=$'\t' read -r name ms; do
-            [[ -z "$name" ]] && continue
+        while IFS=$'\t' read -r ind_name ind_ms; do
+            [[ -z "$ind_name" ]] && continue
             # shellcheck disable=SC2016
-            printf '$motion_speed_indicator_%s = %s\n' "$name" \
-                "$(awk -v ms="$ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
+            printf '$motion_speed_indicator_%s = %s\n' "$ind_name" \
+                "$(awk -v ms="$ind_ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
         done <<< "$speed_indicators"
 
         # $motion_curve_<slot> — one per slot in the ACTIVE curve_sets set
         # (D-21 A/B toggle), resolved through theme_engine_read_motion_curves.
-        while IFS=$'\t' read -r slot easing; do
-            [[ -z "$slot" ]] && continue
+        while IFS=$'\t' read -r curve_slot curve_easing; do
+            [[ -z "$curve_slot" ]] && continue
             # shellcheck disable=SC2016
-            printf '$motion_curve_%s = motion-%s\n' "$slot" "$easing"
+            printf '$motion_curve_%s = motion-%s\n' "$curve_slot" "$curve_easing"
         done <<< "$curve_vars"
 
         echo "animations {"
