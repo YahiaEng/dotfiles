@@ -6,7 +6,7 @@
    ║                                                          ║
    ║    This file is the ONLY waybar stylesheet permitted to ║
    ║    name a raw matugen palette token (@primary, @surface, ║
-   ║    @on_error, ...). Every other waybar .css speaks in    ║
+   ║    @on_error, ...). Every other waybar .scss speaks in   ║
    ║    ROLE NAMES ONLY (@bar-surface, @fg, @accent, ...).    ║
    ║                                                          ║
    ║    A role name must NEVER be added below without a real  ║
@@ -17,12 +17,27 @@
    ║    doesn't exist re-introduces the exact WLOG-01 failure ║
    ║    class this file exists to prevent (GTK3 discards the  ║
    ║    ENTIRE stylesheet on one unresolvable @color).         ║
+   ║                                                          ║
+   ║  13-05: converted to sass (git mv, history preserved).   ║
+   ║  This file carries ZERO motion declarations, so it needs ║
+   ║  no `@use "motion"` load — it converts anyway, purely so ║
+   ║  a lone .css beside five .scss siblings is not the        ║
+   ║  asymmetry a future editor "fixes" wrongly (D-04). Every  ║
+   ║  GTK-CSS @name colour-value reference below is wrapped   ║
+   ║  in #{"..."} interpolation (13-RESEARCH.md Pattern 1) —   ║
+   ║  Sass parses a leading @ in expression position as a      ║
+   ║  directive keyword and aborts the whole compile           ║
+   ║  otherwise. The escaped output is byte-identical to the   ║
+   ║  original GTK-CSS.                                        ║
    ╚══════════════════════════════════════════════════════╝ */
 
 /* The rendered 19-token file — matugen's output, one @import chain,
    never duplicated. This is the single source every role alias below
-   derives from. */
-@import url("../../.local/state/theme/waybar.css");
+   derives from. Compiled output lands as a flat sibling inside the
+   state dir alongside this file's own compiled output, so the path is
+   now the bare filename (13-RESEARCH.md Pitfall 3 — sass never
+   rewrites @import url() paths itself). */
+@import url("waybar.css");
 
 /* ── Geometry scale (NOT expressible as a GTK named colour — documented ─
    ── here as the single source of truth; layout sheets follow by hand) ──
@@ -38,16 +53,16 @@
    correct in light and dark with no branching. Built from @surface
    (the neutral surface token) per CORRECTION 1 — NOT from a
    surface_container token, which does not exist in this palette. */
-@define-color bar-surface alpha(@surface, 0.55);
+@define-color bar-surface #{"alpha(@surface, 0.55)"};
 /* Interactive feedback (hover) — same surface, higher opacity. */
-@define-color bar-surface-hover alpha(@surface, 0.78);
+@define-color bar-surface-hover #{"alpha(@surface, 0.78)"};
 /* The rare segment that genuinely needs to sit proud of the island.
    Use sparingly — the default for a segment is NO fill. */
-@define-color seg-surface alpha(@surface_variant, 0.40);
+@define-color seg-surface #{"alpha(@surface_variant, 0.40)"};
 
 /* ── Foreground ───────────────────────────────────────────────────── */
 /* Primary text/glyph colour. */
-@define-color fg @on_surface;
+@define-color fg #{"@on_surface"};
 /* Inactive workspaces, idle glyphs — dimmed but still LEGIBLE text.
    08-12 gap-closure fix: this was bound to @outline, which is M3's
    border/divider role — deliberately low-contrast against @surface
@@ -60,7 +75,7 @@
    improvement over @outline, and >=3:1 (WCAG AA for de-emphasised
    glyphs) whenever the wallpaper is theme-appropriate for the active
    preset (light wallpaper behind a light preset, dark behind dark). */
-@define-color fg-dim @on_surface_variant;
+@define-color fg-dim #{"@on_surface_variant"};
 /* Secondary text (e.g. window title, mpris paused/backgrounded state).
    08-12 gap-closure fix: was alpha(@on_surface, 0.55) — MD's "disabled"
    emphasis level (~38-55%), not "medium emphasis" (~74-87%), and it
@@ -69,17 +84,17 @@
    0.80 aligns with MD3 medium-emphasis convention and measures >=3.9:1
    on catppuccin-latte and >=4.7:1 on tokyonight against a theme-
    appropriate wallpaper. */
-@define-color fg-mute alpha(@on_surface, 0.80);
+@define-color fg-mute #{"alpha(@on_surface, 0.80)"};
 
 /* ── State — chroma lives here, and NOWHERE else ─────────────────────
    The active workspace, and only the active workspace, plus genuinely-
    active module states, carry hue. Everything else stays neutral
    (fg/fg-dim/fg-mute/bar-surface above). */
-@define-color accent @primary;
-@define-color on-accent @on_primary;
-@define-color warn @tertiary;
-@define-color danger @error;
-@define-color on-danger @on_error;
+@define-color accent #{"@primary"};
+@define-color on-accent #{"@on_primary"};
+@define-color warn #{"@tertiary"};
+@define-color danger #{"@error"};
+@define-color on-danger #{"@on_error"};
 
 /* ── Capsule/drawer roles — 08-16 (athena rebuild) ───────────────────
    The 'athena' layout has no single translucent island (bar-surface
@@ -92,22 +107,22 @@
    against the wallpaper while staying in the house translucent style
    — this is the value to tune first at the athena checkpoint if a
    capsule reads as too flat/too opaque. */
-@define-color capsule alpha(@surface_variant, 0.85);
+@define-color capsule #{"alpha(@surface_variant, 0.85)"};
 /* Default capsule glyph/text colour. @on_surface_variant, NOT @outline
    — @outline is M3's low-contrast hairline/divider role and was the
    08-12 illegibility bug (see fg-dim above); @on_surface_variant is
    the correct "de-emphasised but legible" role for text on a
    surface_variant-derived fill. */
-@define-color capsule-fg @on_surface_variant;
+@define-color capsule-fg #{"@on_surface_variant"};
 /* Hover surface for drawer/app-launcher members — same base token,
    higher alpha than the resting capsule so hover reads as a visible
    state change without introducing a second surface token. */
-@define-color capsule-hover alpha(@surface_variant, 0.95);
+@define-color capsule-hover #{"alpha(@surface_variant, 0.95)"};
 /* Slider trough (pulseaudio/slider in the audio drawer). Built on the
    raw @outline token (a real palette member, unlike surface_container)
    at partial alpha — a neutral, low-emphasis track that is visibly
    distinct from both @capsule and @accent (the highlight/knob). */
-@define-color capsule-track alpha(@outline, 0.5);
+@define-color capsule-track #{"alpha(@outline, 0.5)"};
 
 /* ── Filled-pill accent hues — 08-16 checkpoint ("filled, but fewer") ──
    At the athena checkpoint the user asked for "more theme colors" but the
@@ -122,12 +137,12 @@
    colour reserved for state (@warn/@danger, @accent on the active
    workspace + launcher glyphs). Three distinct hues so the filled trio
    never repeats a colour side by side. */
-@define-color fill-clock @secondary;
-@define-color fill-clock-fg @on_secondary;
-@define-color fill-updates @tertiary;
-@define-color fill-updates-fg @on_tertiary;
-@define-color fill-notification @primary;
-@define-color fill-notification-fg @on_primary;
+@define-color fill-clock #{"@secondary"};
+@define-color fill-clock-fg #{"@on_secondary"};
+@define-color fill-updates #{"@tertiary"};
+@define-color fill-updates-fg #{"@on_tertiary"};
+@define-color fill-notification #{"@primary"};
+@define-color fill-notification-fg #{"@on_primary"};
 
 /* ── Floating layout's colourful chip palette (08-13) ─────────────────
    Each waybar is its own design flow (user direction, 2026-07-15).
@@ -137,18 +152,18 @@
    raw-token-free (CHECK B); each is a {fill, on-fill} M3 pair, so every
    pill's glyph is guaranteed-contrast on every preset. `-neutral` is the
    quiet anchor pill (clock) among the colour. */
-@define-color float-a @primary;
-@define-color float-a-fg @on_primary;
-@define-color float-b @tertiary;
-@define-color float-b-fg @on_tertiary;
-@define-color float-c @secondary;
-@define-color float-c-fg @on_secondary;
-@define-color float-d @secondary_container;
-@define-color float-d-fg @on_secondary_container;
-@define-color float-e @primary_container;
-@define-color float-e-fg @on_primary_container;
-@define-color float-neutral @surface;
-@define-color float-neutral-fg @on_surface;
+@define-color float-a #{"@primary"};
+@define-color float-a-fg #{"@on_primary"};
+@define-color float-b #{"@tertiary"};
+@define-color float-b-fg #{"@on_tertiary"};
+@define-color float-c #{"@secondary"};
+@define-color float-c-fg #{"@on_secondary"};
+@define-color float-d #{"@secondary_container"};
+@define-color float-d-fg #{"@on_secondary_container"};
+@define-color float-e #{"@primary_container"};
+@define-color float-e-fg #{"@on_primary_container"};
+@define-color float-neutral #{"@surface"};
+@define-color float-neutral-fg #{"@on_surface"};
 
 /* ── Vertical column (08-14) — mimics saatvik333/niri-dotfiles ─────────
    Its own design flow: a clean near-solid surface strip down the left
@@ -157,16 +172,16 @@
    charging, @danger (red) on disconnected/critical. @column is the solid
    column surface (near-opaque @surface — the reference's solid
    `@background` column, kept faintly translucent for the house style). */
-@define-color column alpha(@surface, 0.92);
+@define-color column #{"alpha(@surface, 0.92)"};
 /* A second accent hue (secondary) so the vertical column can spread
    colour across more glyphs than @accent/@warn/@danger alone — the user
    wanted "more colour" than the reference's mostly-neutral scheme. */
-@define-color accent-2 @secondary;
+@define-color accent-2 #{"@secondary"};
 /* Derived hues — the Material You palette gives only ~4 native hues
    (primary/secondary/tertiary/error), and primary+secondary often cluster
    in one hue family (both blue on e.g. tokyonight), so the column read as
    "the same two colours". mix() blends role colours into extra DISTINCT
    hues (purple = blue+red, teal = cyan+green), all still 100%
    theme-derived — no raw literal, tracks every preset. */
-@define-color vhue-purple mix(@primary, @error, 0.4);
-@define-color vhue-teal mix(@secondary, @tertiary, 0.5);
+@define-color vhue-purple #{"mix(@primary, @error, 0.4)"};
+@define-color vhue-teal #{"mix(@secondary, @tertiary, 0.5)"};

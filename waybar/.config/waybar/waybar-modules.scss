@@ -1,5 +1,6 @@
+@use "motion" as m;
 /* ── Shared module rules — translucent-island design system (08-12) ───
-   Imported by every style-{full,athena,floating,vertical}.css AFTER
+   Imported by every style-{full,athena,floating,vertical}.scss AFTER
    the theme imports. window#waybar and the "*" reset stay layout-owned
    (never here). This is the binding contract 08-13/08-14 inherit
    verbatim (08-12-PLAN.md <design_system>):
@@ -27,45 +28,45 @@
 #workspaces button {
     padding: 0 6px;
     min-width: 14px;
-    color: @fg-dim;
+    color: #{"@fg-dim"};
     background: transparent;
     border-radius: 6px;
     margin: 4px 2px;
-    transition: all 0.3s ease;
+    transition: all #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #workspaces button.occupied {
-    color: @fg;
+    color: #{"@fg"};
 }
 
 #workspaces button.active {
     /* The ONE accent-filled element in a resting bar — the focal
        point 08-03's transparent 2px underline drained away. */
-    background: @accent;
-    color: @on-accent;
+    background: #{"@accent"};
+    color: #{"@on-accent"};
 }
 
 #workspaces button.urgent {
-    background: @danger;
-    color: @on-danger;
+    background: #{"@danger"};
+    color: #{"@on-danger"};
 }
 
 #workspaces button:hover {
-    background: @bar-surface-hover;
-    color: @fg;
+    background: #{"@bar-surface-hover"};
+    color: #{"@fg"};
 }
 
 /* ── Window title ───────────────────────────────────────────────────── */
 #window {
     padding: 0 12px;
-    color: @fg-mute;
+    color: #{"@fg-mute"};
     font-style: italic;
 }
 
 /* ── Clock ──────────────────────────────────────────────────────────── */
 #clock {
     padding: 0 14px;
-    color: @fg;
+    color: #{"@fg"};
     font-weight: bold;
 }
 
@@ -77,43 +78,46 @@
 #network {
     padding: 0 8px;
     margin: 4px 1px;
-    color: @fg;
+    color: #{"@fg"};
 }
 
 /* ── State (temperature/battery thresholds) ────────────────────────────
    Chroma appears here and NOWHERE else among the system modules. */
 #temperature.critical,
 #battery.critical:not(.charging) {
-    color: @danger;
+    color: #{"@danger"};
 }
 
 #battery.warning {
-    color: @warn;
+    color: #{"@warn"};
 }
 
 #battery.critical:not(.charging) {
     animation-name: battery-blink;
-    animation-duration: 1s;
-    animation-timing-function: linear;
+    /* 13-05: indicator category, not a transition — infinite alternating
+       state blink has no MD3 counterpart. Slow-blink pair (1000ms/linear),
+       unchanged cadence from the pre-conversion literal. */
+    animation-duration: #{m.$motion-indicator-blink-slow-duration};
+    animation-timing-function: #{m.$motion-indicator-blink-slow-easing};
     animation-iteration-count: infinite;
     animation-direction: alternate;
 }
 
 @keyframes battery-blink {
     to {
-        color: @fg;
+        color: #{"@fg"};
     }
 }
 
 #battery {
     padding: 0 8px;
     margin: 4px 1px;
-    color: @fg;
+    color: #{"@fg"};
 }
 
 #battery.charging,
 #battery.plugged {
-    color: @fg;
+    color: #{"@fg"};
 }
 
 /* ── MPRIS (now playing) ────────────────────────────────────────────────
@@ -122,15 +126,15 @@
 #mpris {
     padding: 0 12px;
     margin-left: 4px;
-    color: @fg;
+    color: #{"@fg"};
 }
 
 #mpris.playing {
-    color: @accent;
+    color: #{"@accent"};
 }
 
 #mpris.paused {
-    color: @fg-dim;
+    color: #{"@fg-dim"};
 }
 
 #mpris.stopped {
@@ -144,12 +148,12 @@
 #custom-notification {
     padding: 0 8px;
     margin: 4px 2px;
-    color: @fg;
-    transition: background 0.3s ease;
+    color: #{"@fg"};
+    transition: background #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #custom-notification:hover {
-    background: @bar-surface-hover;
+    background: #{"@bar-surface-hover"};
     border-radius: 10px;
 }
 
@@ -158,12 +162,12 @@
 #custom-gaming-mode {
     padding: 0 8px;
     margin: 4px 2px;
-    color: @fg-dim;
-    transition: color 0.3s ease;
+    color: #{"@fg-dim"};
+    transition: color #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #custom-gaming-mode.on {
-    color: @accent;
+    color: #{"@accent"};
 }
 
 /* ── Custom buttons — bare glyphs, no fill ──────────────────────────── */
@@ -181,33 +185,33 @@
    config-minimal.jsonc no longer exists — scrapped and rebuilt from
    scratch as config-athena.jsonc in 08-16, which does not import this
    shared file's #custom-theme/#custom-waybar-layout rules at all: it
-   styles those IDs itself in style-athena.css's own capsule system.) */
+   styles those IDs itself in style-athena.scss's own capsule system.) */
 #custom-theme,
 #custom-waybar-layout {
     padding: 0 8px;
     margin: 4px 2px;
-    color: @fg;
-    transition: background 0.3s ease;
+    color: #{"@fg"};
+    transition: background #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #custom-theme:hover,
 #custom-waybar-layout:hover {
-    background: @bar-surface-hover;
+    background: #{"@bar-surface-hover"};
     border-radius: 10px;
 }
 
 #custom-power {
     padding: 0 12px;
     margin: 4px 4px 4px 2px;
-    color: @fg;
-    transition: all 0.3s ease;
+    color: #{"@fg"};
+    transition: all #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #custom-power:hover {
     /* Transient hover state only — the power button is never a
        permanently-lit red pill at rest. */
-    color: @danger;
-    background: @bar-surface-hover;
+    color: #{"@danger"};
+    background: #{"@bar-surface-hover"};
     border-radius: 10px;
 }
 
@@ -235,11 +239,11 @@
 
 /* ── Tooltip — matches the island, chroma-free (Rule 3) ───────────────── */
 tooltip {
-    background: @bar-surface;
-    border: 1px solid @fg-dim;
+    background: #{"@bar-surface"};
+    border: 1px solid #{"@fg-dim"};
     border-radius: 10px;
 }
 
 tooltip label {
-    color: @fg;
+    color: #{"@fg"};
 }

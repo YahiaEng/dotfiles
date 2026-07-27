@@ -1,12 +1,13 @@
+@use "motion" as m;
 @import url("theme.css");
-@import url("../../.local/state/theme/waybar-font.css");
+@import url("waybar-font.css");
 @import url("waybar-modules.css");
 /* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so
    its idle-dim rule wins the cascade. stow.sh seeds this file empty if
    absent; waybar-visibility.sh (Task 2) also creates it on first run —
    the file must always exist, or GTK3 discards this WHOLE stylesheet
    (an unresolvable @import is not a soft warning here). */
-@import url("../../.local/state/theme/waybar-visibility.css");
+@import url("waybar-visibility.css");
 
 * {
     font-size: 13px;
@@ -22,7 +23,7 @@ window#waybar {
        exactly what the user reported. The visible surface now lives
        one level in, on window#waybar > box below. */
     background: transparent;
-    color: @fg;
+    color: #{"@fg"};
     /* D-07 zero-risk bonus: the idle-dim path (Task 2) only ever changes
        this element's opacity via a style-provider reload, never
        unmapping it — so unlike the true-hide path (which has no
@@ -31,8 +32,10 @@ window#waybar {
        during a real idle-hide, average pixel value over the crossfade
        progressed gradually across ~300ms rather than snapping) — this is
        a genuine bonus, not a task dependency; instant remains the
-       committed/acceptable behavior either way. */
-    transition: opacity 0.3s ease;
+       committed/acceptable behavior either way.
+       13-05: tokenized onto the shared slow-standard duration + MD3
+       standard curve (was a hand-authored 0.3s ease). */
+    transition: opacity #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 window#waybar > box {
@@ -40,7 +43,7 @@ window#waybar > box {
        design rests on (design_system Rule 2). Margin keeps the 14px
        radius from being clipped flush to the screen edge, where it
        would read as no radius at all. */
-    background: @bar-surface;
+    background: #{"@bar-surface"};
     border-radius: 14px;
     margin: 6px;
     padding: 0 4px;

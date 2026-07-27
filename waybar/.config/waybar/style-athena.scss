@@ -1,12 +1,13 @@
+@use "motion" as m;
 @import url("theme.css");
-@import url("../../.local/state/theme/waybar-font.css");
+@import url("waybar-font.css");
 @import url("waybar-modules.css");
 /* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so
    its idle-dim rule wins the cascade. stow.sh seeds this file empty if
    absent; waybar-visibility.sh (Task 2) also creates it on first run —
    the file must always exist, or GTK3 discards this WHOLE stylesheet
    (an unresolvable @import is not a soft warning here). */
-@import url("../../.local/state/theme/waybar-visibility.css");
+@import url("waybar-visibility.css");
 
 /* ╔══════════════════════════════════════════════════════╗
    ║   ATHENA — discrete-capsule design (08-16 rebuild)     ║
@@ -33,8 +34,8 @@ window#waybar {
        below carry 100% of the visible surface (design_system Rule 2:
        "the capsules, not the window, carry surface"). */
     background: transparent;
-    color: @capsule-fg;
-    transition: opacity 0.3s ease;
+    color: #{"@capsule-fg"};
+    transition: opacity #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 /* ── Capsule system — one shared pill treatment for every top-level ──
@@ -60,10 +61,10 @@ window#waybar {
 #group-connections,
 #clock,
 #group-settings {
-    background: @capsule;
+    background: #{"@capsule"};
     border-radius: 20px;
     margin: 4px 5px;
-    color: @capsule-fg;
+    color: #{"@capsule-fg"};
 }
 
 /* ── App drawer ────────────────────────────────────────────────────── */
@@ -73,7 +74,7 @@ window#waybar {
 
 #custom-app-launcher {
     padding: 0 10px;
-    color: @accent;
+    color: #{"@accent"};
 }
 
 #custom-app-zen,
@@ -85,9 +86,9 @@ window#waybar {
 #custom-app-codium {
     padding: 0 10px;
     margin: 0 1px;
-    color: @capsule-fg;
+    color: #{"@capsule-fg"};
     border-radius: 16px;
-    transition: all 0.3s ease;
+    transition: all #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #custom-app-zen:hover,
@@ -97,8 +98,8 @@ window#waybar {
 #custom-app-lutris:hover,
 #custom-app-obsidian:hover,
 #custom-app-codium:hover {
-    background: @capsule-hover;
-    color: @accent;
+    background: #{"@capsule-hover"};
+    color: #{"@accent"};
 }
 
 /* ── Storage / system pills ───────────────────────────────────────── */
@@ -119,14 +120,14 @@ window#waybar {
 #cpu.warning,
 #memory.warning,
 #disk.warning {
-    color: @warn;
+    color: #{"@warn"};
 }
 
 #cpu.critical,
 #memory.critical,
 #disk.critical,
 #temperature.critical {
-    color: @danger;
+    color: #{"@danger"};
 }
 
 /* ── System-updates — a FILLED alert pill (08-16 "filled, but fewer").
@@ -134,8 +135,8 @@ window#waybar {
    glyph so the "N updates" reads crisply on every theme, light included. */
 #custom-updates {
     padding: 0 12px;
-    background: @fill-updates;
-    color: @fill-updates-fg;
+    background: #{"@fill-updates"};
+    color: #{"@fill-updates-fg"};
     font-weight: bold;
 }
 
@@ -151,35 +152,39 @@ window#waybar {
     margin: 0 2px;
     background: transparent;
     border-radius: 16px;
-    color: @capsule-fg;
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    color: #{"@capsule-fg"};
+    /* 13-05 D-09: was `all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)` — a
+       hand-authored, non-MD3 timing function. This is the phase's one
+       deliberate waybar feel change: replaced with the MD3 standard curve
+       at the slow-standard duration, judged at this plan's render gate. */
+    transition: all #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #workspaces button.active {
     /* The ONE resting accent-filled element in the whole bar
        (design_system Rule 3). */
     padding: 0 14px;
-    background: @accent;
-    color: @on-accent;
+    background: #{"@accent"};
+    color: #{"@on-accent"};
 }
 
 #workspaces button.urgent {
-    color: @danger;
+    color: #{"@danger"};
 }
 
 #workspaces button.empty {
-    color: @capsule-fg;
+    color: #{"@capsule-fg"};
     opacity: 0.6;
 }
 
 #workspaces button:hover {
-    background: @capsule-hover;
-    color: @capsule-fg;
+    background: #{"@capsule-hover"};
+    color: #{"@capsule-fg"};
 }
 
 #workspaces button.active:hover {
-    background: @accent;
-    color: @on-accent;
+    background: #{"@accent"};
+    color: #{"@on-accent"};
 }
 
 /* ── idle_inhibitor ("focus mode") ─────────────────────────────────────
@@ -199,7 +204,7 @@ window#waybar {
 }
 
 #idle_inhibitor.activated {
-    color: @accent;
+    color: #{"@accent"};
 }
 
 /* ── Audio drawer ──────────────────────────────────────────────────── */
@@ -233,13 +238,13 @@ window#waybar {
     min-height: 8px;
     min-width: 70px;
     border-radius: 8px;
-    background: @capsule-track;
+    background: #{"@capsule-track"};
 }
 
 #pulseaudio-slider highlight {
     min-height: 8px;
     border-radius: 8px;
-    background: @accent;
+    background: #{"@accent"};
 }
 
 #pulseaudio-slider slider {
@@ -247,7 +252,7 @@ window#waybar {
     min-width: 12px;
     margin: -3px 0;
     border-radius: 100%;
-    background: @accent;
+    background: #{"@accent"};
 }
 
 /* ── Connections drawer ───────────────────────────────────────────── */
@@ -261,7 +266,7 @@ window#waybar {
 }
 
 #network.disabled {
-    color: @danger;
+    color: #{"@danger"};
 }
 
 /* ── Clock — a FILLED pill (08-16 "filled, but fewer"). The most-read
@@ -271,8 +276,8 @@ window#waybar {
 #clock {
     padding: 6px 14px;
     font-weight: bold;
-    background: @fill-clock;
-    color: @fill-clock-fg;
+    background: #{"@fill-clock"};
+    color: #{"@fill-clock-fg"};
 }
 
 /* ── Settings drawer (08-16 checkpoint) ──────────────────────────────
@@ -286,7 +291,7 @@ window#waybar {
 
 #custom-settings {
     padding: 0 10px;
-    color: @accent;
+    color: #{"@accent"};
 }
 
 #custom-theme,
@@ -296,9 +301,9 @@ window#waybar {
 #custom-wallpaper {
     padding: 0 10px;
     margin: 0 1px;
-    color: @capsule-fg;
+    color: #{"@capsule-fg"};
     border-radius: 16px;
-    transition: all 0.3s ease;
+    transition: all #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #custom-theme:hover,
@@ -306,8 +311,8 @@ window#waybar {
 #custom-font:hover,
 #custom-icon-theme:hover,
 #custom-wallpaper:hover {
-    background: @capsule-hover;
-    color: @accent;
+    background: #{"@capsule-hover"};
+    color: #{"@accent"};
 }
 
 /* ── Notification bell — standalone alert module next to power (08-16).
@@ -320,16 +325,16 @@ window#waybar {
     padding: 0 10px;
     margin: 4px 2px;
     border-radius: 14px;
-    color: @capsule-fg;
-    transition: all 0.3s ease;
+    color: #{"@capsule-fg"};
+    transition: all #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #custom-notification.notification,
 #custom-notification.dnd-notification,
 #custom-notification.inhibited-notification,
 #custom-notification.dnd-inhibited-notification {
-    background: @fill-notification;
-    color: @fill-notification-fg;
+    background: #{"@fill-notification"};
+    color: #{"@fill-notification-fg"};
 }
 
 /* ── gaming-mode + power (right-end, outside any capsule — bare ──────
@@ -337,25 +342,25 @@ window#waybar {
 #custom-gaming-mode {
     padding: 0 8px;
     margin: 4px 2px;
-    color: @capsule-fg;
+    color: #{"@capsule-fg"};
 }
 
 #custom-gaming-mode.on {
-    color: @accent;
+    color: #{"@accent"};
 }
 
 #custom-power {
     padding: 0 12px;
     margin: 4px 4px 4px 2px;
-    color: @capsule-fg;
-    transition: all 0.3s ease;
+    color: #{"@capsule-fg"};
+    transition: all #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 #custom-power:hover {
     /* Transient hover state only — never a permanently-lit red pill
        at rest (design_system Rule 3 / waybar-modules.css convention). */
-    color: @danger;
-    background: @capsule-hover;
+    color: #{"@danger"};
+    background: #{"@capsule-hover"};
     border-radius: 10px;
 }
 
@@ -393,11 +398,11 @@ window#waybar {
 
 /* ── Tooltip — matches the capsule, chroma-free ───────────────────── */
 tooltip {
-    background: @capsule;
-    border: 1px solid @capsule-fg;
+    background: #{"@capsule"};
+    border: 1px solid #{"@capsule-fg"};
     border-radius: 10px;
 }
 
 tooltip label {
-    color: @capsule-fg;
+    color: #{"@capsule-fg"};
 }

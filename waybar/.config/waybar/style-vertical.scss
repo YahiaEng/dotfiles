@@ -1,3 +1,4 @@
+@use "motion" as m;
 /* ╔══════════════════════════════════════════════════════╗
    ║   VERTICAL — clean left column (08-14 rebuild)         ║
    ║  Its OWN design flow, mimicking saatvik333/niri-       ║
@@ -12,11 +13,11 @@
    ║  colour routes through theme.css role names (CHECK B). ║
    ╚══════════════════════════════════════════════════════╝ */
 @import url("theme.css");
-@import url("../../.local/state/theme/waybar-font.css");
+@import url("waybar-font.css");
 @import url("waybar-modules.css");
 /* Owner-exclusive visibility CSS, imported LAST; an unresolvable @import
    here makes GTK3 discard the whole sheet. */
-@import url("../../.local/state/theme/waybar-visibility.css");
+@import url("waybar-visibility.css");
 
 /* NOTE: font-size is set per-module below (16px glyphs), never globally —
    a global `* { font-size: 20px }` was the root of the old "big button
@@ -30,15 +31,15 @@
 
 window#waybar {
     background: transparent;
-    color: @fg;
-    transition: opacity 0.3s ease;
+    color: #{"@fg"};
+    transition: opacity #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 /* The column: a clean near-solid surface strip flush to the left edge
    (config sets margins 0 → full height). No radius, no border — the
    reference is gapless/borderless. */
 window#waybar > box {
-    background: @column;
+    background: #{"@column"};
     padding: 8px 0;
 }
 
@@ -56,13 +57,13 @@ window#waybar > box {
 #custom-notification,
 #tray,
 #custom-power {
-    color: @fg;
+    color: #{"@fg"};
     /* Horizontal padding fills the column so the WHOLE row is the hover/
        click target — not just the ~16px glyph (the old `9px 0` left dead
        space on both sides where hover/click did nothing). */
     padding: 9px 13px;
     font-size: 16px;
-    transition: opacity 0.2s ease;
+    transition: opacity #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 
 /* ── Colour scheme — per-glyph theme hues (user: "more variety"). Six
@@ -71,28 +72,28 @@ window#waybar > box {
    green @warn, red @danger, plus derived purple/teal. State classes
    (network/battery/temp.critical) still override on top. ─────────────── */
 #cpu {
-    color: @vhue-teal;
+    color: #{"@vhue-teal"};
 }
 #memory {
-    color: @warn;
+    color: #{"@warn"};
 }
 #temperature {
-    color: @vhue-purple;
+    color: #{"@vhue-purple"};
 }
 #network {
-    color: @accent-2;
+    color: #{"@accent-2"};
 }
 #pulseaudio {
-    color: @accent;
+    color: #{"@accent"};
 }
 #custom-gaming-mode {
-    color: @vhue-teal;
+    color: #{"@vhue-teal"};
 }
 #custom-notification {
-    color: @vhue-purple;
+    color: #{"@vhue-purple"};
 }
 #custom-power {
-    color: @danger;
+    color: #{"@danger"};
 }
 
 #clock:hover,
@@ -121,9 +122,9 @@ window#waybar > box {
     margin: 0;
     min-width: 0;
     border-radius: 0;
-    color: @fg-dim;
+    color: #{"@fg-dim"};
     background: transparent;
-    transition: opacity 0.2s ease;
+    transition: opacity #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 
 #workspaces button.active {
@@ -131,12 +132,12 @@ window#waybar > box {
        FILL (a heavy blob in a narrow column; the reference carries active
        by glyph colour alone). */
     background: transparent;
-    color: @accent;
+    color: #{"@accent"};
 }
 
 #workspaces button.urgent {
     background: transparent;
-    color: @danger;
+    color: #{"@danger"};
 }
 
 #workspaces button:hover {
@@ -147,7 +148,7 @@ window#waybar > box {
    ── the accent (reference's clock = @color4). Smaller so two digit rows
    ── fit the narrow column without widening it. ──────────────────────── */
 #clock {
-    color: @accent;
+    color: #{"@accent"};
     font-size: 14px;
     font-weight: bold;
     padding: 12px 6px;
@@ -155,37 +156,37 @@ window#waybar > box {
 
 /* ── Semantic state colour (reference's network / battery states) ─────── */
 #network.wifi {
-    color: @accent;
+    color: #{"@accent"};
 }
 #network.ethernet {
-    color: @warn;
+    color: #{"@warn"};
 }
 #network.disconnected,
 #network.disabled {
-    color: @danger;
+    color: #{"@danger"};
 }
 
 #battery.charging,
 #battery.plugged {
-    color: @accent;
+    color: #{"@accent"};
 }
 #battery.warning {
-    color: @warn;
+    color: #{"@warn"};
 }
 #battery.critical {
-    color: @danger;
+    color: #{"@danger"};
 }
 
 #custom-gaming-mode.on {
-    color: @accent;
+    color: #{"@accent"};
 }
 #mpris.playing {
-    color: @accent;
+    color: #{"@accent"};
 }
 
 /* Power — neutral at rest, red on hover (never a resting red glyph). */
 #custom-power:hover {
-    color: @danger;
+    color: #{"@danger"};
     opacity: 1;
 }
 
@@ -203,13 +204,13 @@ window#waybar > box {
 #pulseaudio-slider trough {
     min-width: 8px;
     border-radius: 8px;
-    background: @capsule-track;
+    background: #{"@capsule-track"};
 }
 
 #pulseaudio-slider highlight {
     min-width: 8px;
     border-radius: 8px;
-    background: @accent;
+    background: #{"@accent"};
 }
 
 #pulseaudio-slider slider {
@@ -218,11 +219,11 @@ window#waybar > box {
 
 /* ── Tooltip — matches the column, chroma-free (reference) ────────────── */
 tooltip {
-    background: @column;
-    border: 1px solid @fg-dim;
+    background: #{"@column"};
+    border: 1px solid #{"@fg-dim"};
     border-radius: 10px;
 }
 
 tooltip label {
-    color: @fg;
+    color: #{"@fg"};
 }

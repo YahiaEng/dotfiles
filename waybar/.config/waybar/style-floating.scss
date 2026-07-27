@@ -1,3 +1,4 @@
+@use "motion" as m;
 /* ╔══════════════════════════════════════════════════════╗
    ║   FLOATING — colourful per-module pills (08-13 rebuild)║
    ║  Floating is its OWN design flow (user direction): a   ║
@@ -16,11 +17,11 @@
    ║  tokens, zero literal hex (CHECK B/D).                 ║
    ╚══════════════════════════════════════════════════════╝ */
 @import url("theme.css");
-@import url("../../.local/state/theme/waybar-font.css");
+@import url("waybar-font.css");
 @import url("waybar-modules.css");
 /* Owner-exclusive visibility override CSS, imported LAST so its idle-dim
    rule wins; an unresolvable @import here makes GTK3 discard the sheet. */
-@import url("../../.local/state/theme/waybar-visibility.css");
+@import url("waybar-visibility.css");
 
 * {
     font-size: 13px;
@@ -34,8 +35,8 @@
    is gone). */
 window#waybar {
     background: transparent;
-    color: @fg;
-    transition: opacity 0.3s ease;
+    color: #{"@fg"};
+    transition: opacity #{m.$motion-duration-standard-slow} #{m.$motion-easing-standard};
 }
 
 /* ── Shared pill geometry — every floating module is a discrete rounded
@@ -58,6 +59,7 @@ window#waybar {
     margin: 6px 3px;
     padding: 2px 10px;
     border-radius: 10px;
+    /* Deliberately no transition here — not a literal duration to tokenize. */
     transition: none;
 }
 
@@ -66,32 +68,32 @@ window#waybar {
     margin-left: 8px;
     padding-left: 12px;
     font-size: 18px;
-    color: @float-e-fg;
-    background: @float-e;
+    color: #{"@float-e-fg"};
+    background: #{"@float-e"};
 }
 #custom-power {
     margin-right: 8px;
     font-size: 16px;
-    color: @on-danger;
-    background: @danger;
+    color: #{"@on-danger"};
+    background: #{"@danger"};
 }
 
 /* ── Left cluster ────────────────────────────────────────────────────── */
 #cpu {
-    color: @float-a-fg;
-    background: @float-a;
+    color: #{"@float-a-fg"};
+    background: #{"@float-a"};
 }
 #memory {
-    color: @float-b-fg;
-    background: @float-b;
+    color: #{"@float-b-fg"};
+    background: #{"@float-b"};
 }
 #custom-media {
-    color: @float-c-fg;
-    background: @float-c;
+    color: #{"@float-c-fg"};
+    background: #{"@float-c"};
 }
 #tray {
-    color: @float-d-fg;
-    background: @float-d;
+    color: #{"@float-d-fg"};
+    background: #{"@float-d"};
 }
 #tray > .passive,
 #tray > .needs-attention {
@@ -106,7 +108,7 @@ window#waybar {
     margin: 6px 8px;
     padding: 2px 4px;
     border-radius: 12px;
-    background: @float-neutral;
+    background: #{"@float-neutral"};
 }
 #workspaces button {
     padding: 0 8px;
@@ -114,108 +116,111 @@ window#waybar {
     min-width: 20px;
     border-radius: 8px;
     font-size: 15px;
-    color: @float-a;
+    color: #{"@float-a"};
     background: transparent;
-    transition: all 0.2s ease;
+    transition: all #{m.$motion-duration-standard} #{m.$motion-easing-standard};
 }
 #workspaces button.occupied {
-    color: @float-neutral-fg;
+    color: #{"@float-neutral-fg"};
 }
 #workspaces button.active {
-    color: @on-accent;
-    background: @accent;
+    color: #{"@on-accent"};
+    background: #{"@accent"};
 }
 #workspaces button.urgent {
-    color: @on-danger;
-    background: @danger;
+    color: #{"@on-danger"};
+    background: #{"@danger"};
 }
 #workspaces button:hover {
-    color: @float-c-fg;
-    background: @float-c;
+    color: #{"@float-c-fg"};
+    background: #{"@float-c"};
 }
 
 /* ── Right cluster ───────────────────────────────────────────────────── */
 #custom-updates {
-    color: @float-a-fg;
-    background: @float-a;
+    color: #{"@float-a-fg"};
+    background: #{"@float-a"};
     font-weight: bold;
 }
 #custom-wallpaper {
-    color: @float-c-fg;
-    background: @float-c;
+    color: #{"@float-c-fg"};
+    background: #{"@float-c"};
 }
 #network {
-    color: @float-d-fg;
-    background: @float-d;
+    color: #{"@float-d-fg"};
+    background: #{"@float-d"};
 }
 #pulseaudio {
-    color: @float-b-fg;
-    background: @float-b;
+    color: #{"@float-b-fg"};
+    background: #{"@float-b"};
 }
 
 /* Clock — the quiet neutral anchor amid the colour. */
 #clock {
-    color: @float-neutral-fg;
-    background: @float-neutral;
+    color: #{"@float-neutral-fg"};
+    background: #{"@float-neutral"};
     font-weight: bold;
 }
 
 #backlight {
-    color: @float-c-fg;
-    background: @float-c;
+    color: #{"@float-c-fg"};
+    background: #{"@float-c"};
 }
 
 /* Battery (laptop only; harmless where absent). */
 #battery {
-    color: @float-c-fg;
-    background: @float-c;
+    color: #{"@float-c-fg"};
+    background: #{"@float-c"};
 }
 #battery.charging,
 #battery.plugged {
-    color: @float-b-fg;
-    background: @float-b;
+    color: #{"@float-b-fg"};
+    background: #{"@float-b"};
 }
 #battery.critical:not(.charging) {
-    color: @on-danger;
-    background: @danger;
+    color: #{"@on-danger"};
+    background: #{"@danger"};
     animation-name: float-battery-blink;
-    animation-duration: 0.5s;
-    animation-timing-function: linear;
+    /* 13-05: indicator category, not a transition — infinite alternating
+       state blink has no MD3 counterpart. Fast-blink pair (500ms/linear),
+       unchanged cadence from the pre-conversion literal. */
+    animation-duration: #{m.$motion-indicator-blink-fast-duration};
+    animation-timing-function: #{m.$motion-indicator-blink-fast-easing};
     animation-iteration-count: infinite;
     animation-direction: alternate;
 }
 @keyframes float-battery-blink {
     to {
-        color: @float-c-fg;
-        background: @float-c;
+        color: #{"@float-c-fg"};
+        background: #{"@float-c"};
     }
 }
 
 /* Gaming-mode — a coloured pill; brighter accent while active. */
 #custom-gaming-mode {
-    color: @float-e-fg;
-    background: @float-e;
+    color: #{"@float-e-fg"};
+    background: #{"@float-e"};
     font-size: 16px;
 }
 #custom-gaming-mode.on {
-    color: @on-accent;
-    background: @accent;
+    color: #{"@on-accent"};
+    background: #{"@accent"};
 }
 
 /* Notification bell — a coloured pill; the swaync red-dot markup in the
    glyph still signals unread on top of the fill. */
 #custom-notification {
-    color: @float-a-fg;
-    background: @float-a;
+    color: #{"@float-a-fg"};
+    background: #{"@float-a"};
     font-size: 16px;
 }
 
 /* ── Tooltip — matches the neutral anchor, chroma-free ─────────────────── */
 tooltip {
-    background: @float-neutral;
-    border: 1px solid @fg-dim;
+    background: #{"@float-neutral"};
+    border: 1px solid #{"@fg-dim"};
     border-radius: 10px;
 }
 tooltip label {
-    color: @float-neutral-fg;
+    color: #{"@float-neutral-fg"};
 }
