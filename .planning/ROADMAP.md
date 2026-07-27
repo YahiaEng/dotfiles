@@ -170,7 +170,7 @@ Plan ordering is fixed by 12-CONTEXT.md D-32: QS-03 first (it and the inspector 
   5. The icon-theme picker lists icon themes that are not yet installed, installs the chosen one from the repos or AUR, and applies it live to Thunar and GTK apps.
 
 **Owns**: Retrofit-time regression (a curve reverting to a Hyprland default without an error) and the perceptual gates that mechanical checks cannot replace.
-**Plans**: 6/7 plans executed
+**Plans**: 7/7 plans executed
 **UI hint**: yes
 
 Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESEARCH.md) before the Hyprland retrofit, the Hyprland retrofit + A/B toggle FIRST so D-18's soak clock starts in plan 1 and accrues while the rest proceeds on files it does not touch, the sass mechanism before the waybar/swaync conversions, the wallpaper-pointer untrack before the 10/10 stress test, and the stress test + `motion-lint --no-pending` + the soak verdict as closing gates. D-17's three per-plan render gates (Hyprland, waybar, swaync) override `config.json`'s end-of-phase human-verify mode.
@@ -195,7 +195,7 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 13-07-PLAN.md — Per-motion soak verdict, retune-and-re-soak inside the vocabulary, A/B toggle removal, and the three closing gates (MOTION-01, MOTION-02, MOTION-03)
+- [x] 13-07-PLAN.md — D-19/D-20 soak gate reached and **explicitly WAIVED by the operator, not passed** (measured session count 1 of floor 3, zero A/B flips, all 13 motions recorded NOT ASSESSED — see 13-MOTION-SOAK-VERDICT.md); the A/B toggle removal and all three closing gates (theme-stress-test 10/10, `motion-lint --no-pending`, full 8-script sweep) were unconditional and are genuinely green (MOTION-01, MOTION-02, MOTION-03)
 
 ### Phase 14: Dashboard Drawer
 
@@ -281,7 +281,7 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
 | 10. AGS Media Applet | v2.0 | 6/6 | Complete | 2026-07-15 |
 | 11. Quickshell Viability Gate | v3.0 | 5/5 | Complete    | 2026-07-26 |
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
-| 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 6/7 | In Progress|  |
+| 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | In Progress|  |
 | 14. Dashboard Drawer | v3.0 | 0/TBD | Not started | - |
 | 15. Audio + Connectivity Panels | v3.0 | 0/TBD | Not started | - |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |

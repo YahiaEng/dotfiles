@@ -5,16 +5,16 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13
 current_phase_name: motion-retrofit-existing-surface-sweep
 status: executing
-stopped_at: Completed 13-03-PLAN.md (WR-01/02/03 fault-injection proven; WR-04 NOT PERFORMED, waived by operator 2026-07-28, remains open debt)
-last_updated: "2026-07-27T22:22:33.408Z"
+stopped_at: Completed 13-07-PLAN.md (D-19/D-20 soak gate waived; A/B toggle removed; closing gates green; ledger entry 9 closed)
+last_updated: "2026-07-27T22:38:01.834Z"
 last_activity: 2026-07-28
-last_activity_desc: "13-03 CLOSED under an explicit operator waiver: WR-01/02/03 fault-injection proven (commit baae579, prior session); WR-04's blocking D-29 teardown measurement was NOT PERFORMED — waived by the operator on 2026-07-28 to close Phase 13, not resolved by evidence. Logout's action in wleave/.config/wleave/layout.json is left byte-unchanged (a conservative no-change default under the waiver, explicitly NOT the plan's evidence-backed Branch B). PROJECT.md's Key Decisions table records the waiver plainly: hazard neither confirmed nor falsified, reproduction steps preserved in 13-03-PLAN.md Task 2. MAINT-02 is NOT marked complete — only WR-01/02/03 of 4 are closed. theme-doctor 206/0, theme-parity 2697/0, motion-lint 53/0 all still green post-closeout, no regression. Phase 13 now has only 13-07 outstanding."
+last_activity_desc: "13-07 CLOSED: the D-19/D-20 soak gate was reached and explicitly WAIVED by the operator (relayed via the orchestrator) rather than passed — measured distinct-session count is 1 of a floor of 3 (single unbroken Hyprland process/boot spanning and predating the soak window), zero A/B flips performed, all 13 per-motion verdicts recorded NOT ASSESSED in 13-MOTION-SOAK-VERDICT.md, never 'keep'. The D-21 A/B curve-comparison toggle was still removed in full (unconditional, not waived): motion.json's curve_sets object and the five non-adopted x-* easings gone, motion-switch.sh's --curves flag gone, lib/motion.sh's curve reader/emission/validation gone; animations.conf's six feel-changing slots now hold literal MD3 curve names, verified live via hyprctl animations -j. Closing gates all genuinely green: theme-stress-test completed its first-ever full 10/10 run this milestone (162 passed, 0 failed, exit 0, tree clean after), motion-lint --no-pending exit 0, all 8 gate scripts exit 0 (theme-doctor 206/0, theme-parity 2697/0, motion-lint 53/0, waybar-design-lint 32/0, waybar-equivalence-check 0/0, keybind-doctor 13/0, quickshell-doctor 13/0, motion-lint --self-test 11/0). WINDOWS.md entry 9 closed citing the 10/10 run; open_count is 6 (entry 10 remains legitimately open, out of scope, same discrepancy class as 13-06). All 7 phase-13 plans (13-01 through 13-07) now have a SUMMARY.md on disk, including 13-03 which closed concurrently under its own WR-04 waiver. Phase 13 is NOT marked complete by this plan — that decision belongs to the orchestrator."
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 20
-  completed_plans: 19
-  percent: 29
+  completed_plans: 20
+  percent: 43
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 ## Current Position
 
-Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING
-Plan: 13-01, 13-02, 13-03, 13-04, 13-05, 13-06 complete — 13-03 closed under an explicit operator waiver (WR-04's D-29 measurement NOT PERFORMED, open debt carried forward — see PROJECT.md Key Decisions and 13-03-SUMMARY.md); 13-07 not started
-Status: 13-03 is now closed — WR-01/02/03 fault-injection proven (baae579), WR-04 waived by operator 2026-07-28 rather than measured; 13-07 remains the sole open plan blocking phase close
-Progress: [█████████░] 6 of 7 plans (phase-scoped; milestone-wide is 19/20)
-Last activity: 2026-07-28 — 13-03 CLOSED under an explicit operator waiver: WR-01/02/03 fault-injection proven (commit baae579, prior session); WR-04's blocking D-29 teardown measurement was NOT PERFORMED — waived by the operator on 2026-07-28 to close Phase 13, not resolved by evidence. Logout's action in wleave/.config/wleave/layout.json is left byte-unchanged (a conservative no-change default under the waiver, explicitly NOT the plan's evidence-backed Branch B). PROJECT.md's Key Decisions table records the waiver plainly: hazard neither confirmed nor falsified, reproduction steps preserved in 13-03-PLAN.md Task 2. MAINT-02 is NOT marked complete — only WR-01/02/03 of 4 are closed. theme-doctor 206/0, theme-parity 2697/0, motion-lint 53/0 all still green post-closeout, no regression. Phase 13 now has only 13-07 outstanding.
+Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING (all 7 plans have a SUMMARY.md; phase completion is the orchestrator's call, not yet made)
+Plan: 13-01 through 13-07 all complete — 13-03 closed under an explicit operator waiver (WR-04's D-29 measurement NOT PERFORMED, open debt carried forward — see PROJECT.md Key Decisions and 13-03-SUMMARY.md); 13-07 closed under a separate explicit operator waiver (D-19/D-20 soak gate NOT PERFORMED — measured session count 1 of floor 3, zero A/B flips, all 13 motions NOT ASSESSED — see 13-MOTION-SOAK-VERDICT.md)
+Status: Both of Phase 13's blocking human-verify gates that could not be mechanically satisfied (13-03's WR-04 teardown measurement, 13-07's D-19/D-20 soak) closed via explicit, separately-recorded operator waivers rather than passing evidence. Every mechanical/code task in both plans was completed and verified for real (13-03's WR-01/02/03 fault-injection; 13-07's A/B toggle removal + all closing gates including the first-ever full 10/10 theme-stress-test run this milestone). MAINT-02 and the D-19/D-20 soak-depth aspect of MOTION-03 remain open debt, not resolved by evidence — carried forward per each plan's own SUMMARY.
+Progress: [██████████] 7 of 7 plans (phase-scoped; milestone-wide is 20/20)
+Last activity: 2026-07-28 — 13-07 CLOSED: D-19/D-20 soak gate waived by explicit operator decision (not passed); A/B curve-comparison toggle fully removed regardless (unconditional prohibition, not waived); theme-stress-test ran to completion for the first time this milestone (10/10, 162/0, exit 0); all 8 gate scripts green; WINDOWS.md entry 9 closed. 13-03 closed concurrently under its own separate waiver (WR-04's D-29 teardown measurement NOT PERFORMED). Phase 13 now has all 7 plans complete but is NOT marked phase-complete by this plan — the orchestrator owns that decision and must weigh the two carried-forward waivers (MAINT-02's WR-04, MOTION-03's soak-depth gap) before doing so.
 
 ## Performance Metrics
 
@@ -147,6 +147,7 @@ Last activity: 2026-07-28 — 13-03 CLOSED under an explicit operator waiver: WR
 | Phase 13 P02 | multi-session | 4 tasks | 12 files |
 | Phase 13 P05 | multi-session | 3 tasks | 14 files |
 | Phase 13 P06 | ~25min | 2 tasks | 4 files |
+| Phase 13 P07 | ~90min | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -213,6 +214,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13-06: motion-lint reached D-32 exemption end state (3 whole-file + 1 line-level entry, permanent reasons, structured pending:False fields); new --no-pending opt-in assertion proven able to fail and proven opt-in; D-18 soak integrity proven mechanically
 - [Phase ?]: 13-06: WINDOWS.md entries 1, 2, 8 marked fixed; open_count is 7 (not the plan's literal 6) because entry 10 (added by sibling plan 13-01 after this plan's acceptance criterion was authored) is legitimately open and out of scope — documented as a deviation rather than force-marked
 - [Phase ?]: 13-03: WR-01/02/03 closed and fault-injection proven (baae579), including a live-found fish `$pipestatus[1]` vs ambient `$status` pipeline defect fixed alongside WR-01. WR-04's D-29 blocking teardown measurement was NOT PERFORMED — explicitly waived by operator on 2026-07-28 to close Phase 13, not resolved by evidence. `wleave/.config/wleave/layout.json` left byte-unchanged (conservative no-change default, explicitly NOT the plan's evidence-backed Branch B). PROJECT.md Key Decisions records the waiver; MAINT-02 stays unchecked pending WR-04's real closure by a future plan.
+- [Phase ?]: 13-07: D-19/D-20 soak gate WAIVED by explicit operator decision (measured session count 1 of floor 3, zero A/B flips) — not passed; per-motion verdicts all recorded NOT ASSESSED, not keep; the failure mode D-19/D-20 exist to catch remains unruled-out for all 13 motions
+- [Phase ?]: 13-07: D-21 A/B curve-comparison toggle removed completely (motion.json curve_sets + non-adopted x-* easings, motion-switch.sh --curves flag, lib/motion.sh curve reader/emission/validation) — the six feel-changing Hyprland slots now reference literal MD3 curve names; all four motion-scale presets (off/reduced/normal/lively) verified still working
+- [Phase ?]: 13-07: theme-stress-test run to completion for the first time this milestone — 10/10 consecutive switches, 162 passed 0 failed, exit 0, tree clean after; WINDOWS.md ledger entry 9 closed citing this run (open_count now 6, not the plan's stale literal 5, since entry 10 remains legitimately open/out-of-scope per the same documented-discrepancy pattern as 13-06)
 
 ### Quick Tasks Completed
 
@@ -293,8 +297,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-27T22:22:26.159Z
-Stopped at: Completed 13-03-PLAN.md (WR-01/02/03 fault-injection proven; WR-04 NOT PERFORMED, waived by operator 2026-07-28, remains open debt)
+Last session: 2026-07-27T22:36:27.498Z
+Stopped at: Completed 13-07-PLAN.md (D-19/D-20 soak gate waived; A/B toggle removed; closing gates green; ledger entry 9 closed)
 Resume file: None
 
 ## Operator Next Steps
