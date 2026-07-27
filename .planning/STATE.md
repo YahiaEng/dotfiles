@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13
 current_phase_name: motion-retrofit-existing-surface-sweep
 status: executing
-stopped_at: Completed 13-06-PLAN.md (wallpaper pointer untrack D-23 + motion-lint D-32 exemption end state)
-last_updated: "2026-07-27T22:06:46.865Z"
+stopped_at: Completed 13-03-PLAN.md (WR-01/02/03 fault-injection proven; WR-04 NOT PERFORMED, waived by operator 2026-07-28, remains open debt)
+last_updated: "2026-07-27T22:22:33.408Z"
 last_activity: 2026-07-28
-last_activity_desc: "13-06 CLOSED: current.jpg untracked/gitignored/seeded at install (D-23, operator-confirmed one-way door); motion-lint reached D-32's exemption end state with a new --no-pending assertion (proven able to fail and proven opt-in); D-18 soak integrity proven (state-dir manifest unchanged across both lint modes); WINDOWS.md entries 1/2/8 marked fixed (open_count 7, not the plan's stale literal 6 — entry 10, added by 13-01 after this plan's acceptance criterion was authored, is legitimately open and out of scope; see 13-06-SUMMARY.md Deviations). theme-doctor now exits 0 (206/0, up from 205/1 baseline), motion-lint 53/0, theme-parity 2697/0 — all three gates green, no regression. Phase 13 remains open — 13-03, 13-07 still outstanding."
+last_activity_desc: "13-03 CLOSED under an explicit operator waiver: WR-01/02/03 fault-injection proven (commit baae579, prior session); WR-04's blocking D-29 teardown measurement was NOT PERFORMED — waived by the operator on 2026-07-28 to close Phase 13, not resolved by evidence. Logout's action in wleave/.config/wleave/layout.json is left byte-unchanged (a conservative no-change default under the waiver, explicitly NOT the plan's evidence-backed Branch B). PROJECT.md's Key Decisions table records the waiver plainly: hazard neither confirmed nor falsified, reproduction steps preserved in 13-03-PLAN.md Task 2. MAINT-02 is NOT marked complete — only WR-01/02/03 of 4 are closed. theme-doctor 206/0, theme-parity 2697/0, motion-lint 53/0 all still green post-closeout, no regression. Phase 13 now has only 13-07 outstanding."
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 20
-  completed_plans: 18
+  completed_plans: 19
   percent: 29
 ---
 
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING
-Plan: 13-01, 13-02, 13-04, 13-05, 13-06 complete — 13-03 still open at 1/3 (blocked on operator-only teardown measurement); 13-07 not started
-Status: Wave 3 (13-05) was dispatched ahead of 13-03 by explicit operator override (no dep edge, no file overlap) and has now closed; 13-06 (wallpaper pointer untrack D-23 + motion-lint D-32 exemption end state, operator-confirmed at its Task 1 blocking checkpoint) has also closed; 13-03 remains the sole open blocker on phase close alongside 13-07 not yet started
-Progress: [███████░░░] 5 of 7 plans (phase-scoped; milestone-wide is 18/20)
-Last activity: 2026-07-28 — 13-06 CLOSED: current.jpg untracked/gitignored/seeded at install (D-23, operator-confirmed one-way door); motion-lint reached D-32's exemption end state with a new --no-pending assertion (proven able to fail and proven opt-in); D-18 soak integrity proven (state-dir manifest unchanged across both lint modes); WINDOWS.md entries 1/2/8 marked fixed (open_count 7, not the plan's stale literal 6 — entry 10, added by 13-01 after this plan's acceptance criterion was authored, is legitimately open and out of scope; see 13-06-SUMMARY.md Deviations). theme-doctor now exits 0 (206/0, up from 205/1 baseline), motion-lint 53/0, theme-parity 2697/0 — all three gates green, no regression. Phase 13 remains open — 13-03, 13-07 still outstanding.
+Plan: 13-01, 13-02, 13-03, 13-04, 13-05, 13-06 complete — 13-03 closed under an explicit operator waiver (WR-04's D-29 measurement NOT PERFORMED, open debt carried forward — see PROJECT.md Key Decisions and 13-03-SUMMARY.md); 13-07 not started
+Status: 13-03 is now closed — WR-01/02/03 fault-injection proven (baae579), WR-04 waived by operator 2026-07-28 rather than measured; 13-07 remains the sole open plan blocking phase close
+Progress: [█████████░] 6 of 7 plans (phase-scoped; milestone-wide is 19/20)
+Last activity: 2026-07-28 — 13-03 CLOSED under an explicit operator waiver: WR-01/02/03 fault-injection proven (commit baae579, prior session); WR-04's blocking D-29 teardown measurement was NOT PERFORMED — waived by the operator on 2026-07-28 to close Phase 13, not resolved by evidence. Logout's action in wleave/.config/wleave/layout.json is left byte-unchanged (a conservative no-change default under the waiver, explicitly NOT the plan's evidence-backed Branch B). PROJECT.md's Key Decisions table records the waiver plainly: hazard neither confirmed nor falsified, reproduction steps preserved in 13-03-PLAN.md Task 2. MAINT-02 is NOT marked complete — only WR-01/02/03 of 4 are closed. theme-doctor 206/0, theme-parity 2697/0, motion-lint 53/0 all still green post-closeout, no regression. Phase 13 now has only 13-07 outstanding.
 
 ## Performance Metrics
 
@@ -212,6 +212,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13-06: D-23 confirmed by operator at Task 1's blocking checkpoint — untrack-and-seed (not exempt-the-path); current.jpg untracked, gitignored, seeded at install; clean-tree invariant now TRUE not just unchecked
 - [Phase ?]: 13-06: motion-lint reached D-32 exemption end state (3 whole-file + 1 line-level entry, permanent reasons, structured pending:False fields); new --no-pending opt-in assertion proven able to fail and proven opt-in; D-18 soak integrity proven mechanically
 - [Phase ?]: 13-06: WINDOWS.md entries 1, 2, 8 marked fixed; open_count is 7 (not the plan's literal 6) because entry 10 (added by sibling plan 13-01 after this plan's acceptance criterion was authored) is legitimately open and out of scope — documented as a deviation rather than force-marked
+- [Phase ?]: 13-03: WR-01/02/03 closed and fault-injection proven (baae579), including a live-found fish `$pipestatus[1]` vs ambient `$status` pipeline defect fixed alongside WR-01. WR-04's D-29 blocking teardown measurement was NOT PERFORMED — explicitly waived by operator on 2026-07-28 to close Phase 13, not resolved by evidence. `wleave/.config/wleave/layout.json` left byte-unchanged (conservative no-change default, explicitly NOT the plan's evidence-backed Branch B). PROJECT.md Key Decisions records the waiver; MAINT-02 stays unchecked pending WR-04's real closure by a future plan.
 
 ### Quick Tasks Completed
 
@@ -235,7 +236,7 @@ None yet.
 
 **Open — carried into v3.0:**
 
-1. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** still open: fisher bootstrap curl lacks `-f`, nvm first-run error noise on fresh installs, unguarded uv env source in `.zshrc`, Logout not wrapped like Shutdown/Reboot. → Owned by Phase 13 (MAINT-02).
+1. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** — WR-01/02/03 now CLOSED (13-03, commit `baae579`, each fault-injection proven). **WR-04 (Logout teardown hazard) remains OPEN.** Its D-29 measurement gate was explicitly waived by the operator on 2026-07-28 to close Phase 13 — NOT PERFORMED, NOT falsified, NOT resolved. Logout stays on the bare path (`cliphist wipe; uwsm stop`) by default, not by finding. See `.planning/PROJECT.md` Key Decisions and `13-03-SUMMARY.md`. Reproduction steps remain verbatim in `13-03-PLAN.md` Task 2 for whoever picks this up. MAINT-02 stays unchecked in REQUIREMENTS.md pending WR-04's real closure. → Owned by Phase 13 (MAINT-02), partially closed.
 2. **QS-03 per-screen mounting gap.** The shell root mounts one `LazyLoader` per `GlobalShortcut`, not one surface per `Quickshell.screens` entry, so an output hotplugged after startup gets no surface. Real, mechanically-verified defect — `quickshell-doctor` reports 13 passed / 1 failed on exactly this check. A `Variants`-based fix was written in 11-04 and reverted after two independent live-daemon reliability regressions on quickshell 0.3.0 (intermittent config-load race, post-hotplug visibility break). **Closed for Phase 11** via a recorded override in `11-VERIFICATION.md` (`overrides[0]`, accepted by YahiaEng 2026-07-26); **now owned by Phase 12** as its success criterion 6. Not unowned, not forgotten — but still an open defect until Phase 12 closes it.
 3. **Two Phase 11 backstop truths accepted as UNVERIFIED (2026-07-26).** Recorded as `overrides[1]`/`overrides[2]` in `11-VERIFICATION.md` and carried in `behavior_unverified_items`. Neither is evidence of correct behaviour — both are known unknowns:
    - *XF86 duplicate-key handler determinism* — never exercised; testing it means deliberately breaking a working keybind config and restarting the session twice. Relevant to Phases 14 and 16, which each add a global keybind. Re-open if a bind-resolution conflict ever surfaces.
@@ -292,8 +293,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-27T22:06:46.854Z
-Stopped at: Completed 13-06-PLAN.md (wallpaper pointer untrack D-23 + motion-lint D-32 exemption end state)
+Last session: 2026-07-27T22:22:26.159Z
+Stopped at: Completed 13-03-PLAN.md (WR-01/02/03 fault-injection proven; WR-04 NOT PERFORMED, waived by operator 2026-07-28, remains open debt)
 Resume file: None
 
 ## Operator Next Steps
