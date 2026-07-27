@@ -32,8 +32,8 @@
 ### Motion Retrofit (MOTION)
 
 - [x] **MOTION-01**: Hyprland window, workspace and layer animations use the shared curve set rather than hand-tuned one-off beziers
-- [ ] **MOTION-02**: waybar, swaync, walker, SwayOSD, wleave and the AGS media card all animate from the shared motion tokens
-- [ ] **MOTION-03**: Every retrofitted surface passes a blocking human render-and-look gate before its plan closes
+- [x] **MOTION-02**: waybar, swaync, walker, SwayOSD, wleave and the AGS media card all animate from the shared motion tokens
+- [x] **MOTION-03**: Every retrofitted surface passes a blocking human render-and-look gate before its plan closes
 
 ### Dashboard Drawer (DASH)
 
@@ -138,8 +138,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TOKEN-05 | Phase 12 — Unified Design-Token Pipeline | Complete |
 | TOKEN-06 | Phase 12 — Unified Design-Token Pipeline *(stretch — blocks nothing)* | Complete (not adopted, by human judgement — see `12-MOTION-VERDICT.md`) |
 | MOTION-01 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Complete |
-| MOTION-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Pending |
-| MOTION-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Pending |
+| MOTION-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Complete |
+| MOTION-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Complete |
 | DASH-01 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-02 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-03 | Phase 14 — Dashboard Drawer | Pending |

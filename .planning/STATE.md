@@ -5,16 +5,16 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13
 current_phase_name: motion-retrofit-existing-surface-sweep
 status: executing
-stopped_at: Completed 13-04-PLAN.md (13-03 still open at 1/3 tasks)
-last_updated: "2026-07-27T20:55:00.000Z"
-last_activity: 2026-07-27
-last_activity_desc: 13-04 closed — icon-picker browse/install gate passed, engine apply-abort fixed
+stopped_at: Completed 13-05-PLAN.md (waybar sass conversion, render gate approved)
+last_updated: "2026-07-27T21:46:11.658Z"
+last_activity: 2026-07-28
+last_activity_desc: 13-05 CLOSED — waybar sass conversion + render gate approved by operator ("approved"); MOTION-02/MOTION-03 marked complete
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 20
-  completed_plans: 16
-  percent: 31
+  completed_plans: 17
+  percent: 29
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING
-Plan: 13-01, 13-02, 13-04 complete — 13-03 open at 1/3 (blocked on operator-only teardown measurement); 13-05/06/07 not started
-Status: Wave 2 partially closed — 13-03 blocks wave close
-Progress: [█████░░░░░] 4 of 7 plans
-Last activity: 2026-07-27 — 13-04 closed; engine apply-abort (2ea4510) fixed, unblocking every theme-apply reload
+Plan: 13-01, 13-02, 13-04, 13-05 complete — 13-03 still open at 1/3 (blocked on operator-only teardown measurement); 13-06/07 not started
+Status: Wave 3 (13-05) was dispatched ahead of 13-03 by explicit operator override (no dep edge, no file overlap) and has now closed; 13-03 remains the sole open blocker on phase close alongside 13-06/07 not yet started
+Progress: [█████████░] 85%
+Last activity: 2026-07-28 — 13-05 CLOSED: waybar sass conversion (fd2656b, daffbfa, 423ac61), the out-of-scope waybar-switch.sh fix (242118a), and the D-17 waybar render gate approved by the operator ("approved"). MOTION-02 and MOTION-03 marked complete in REQUIREMENTS.md. Phase 13 remains open — 13-03, 13-06, 13-07 still outstanding.
 
 ## Performance Metrics
 
@@ -145,6 +145,7 @@ Last activity: 2026-07-27 — 13-04 closed; engine apply-abort (2ea4510) fixed, 
 | Phase 12 P08 | ~40min | 3 tasks | 4 files |
 | Phase 13 P01 | multi-session | 5 tasks | 6 files |
 | Phase 13 P02 | multi-session | 4 tasks | 12 files |
+| Phase 13 P05 | multi-session | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -205,6 +206,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13-02: contract.json format-tag deviation — swaync-style.css registered as new gtk-css-motion (not the plan's gtk-css), scss-vars extractor widened to accept hyphens; both proven against the real theme-parity checker before being chosen
 - [Phase ?]: 13-02: found and fixed a D-Bus service-activation race this plan introduced (swaync.service can win against exec-once and load unstyled) via a stowed systemd drop-in, not a mask; discovered systemd 261 silently ignores a symlinked drop-in .d directory, fixed by pre-creating it real in stow.sh — durable finding for any future stowed systemd unit
 - [Phase ?]: 13-02: D-17 render gate APPROVED on revised evidence — only 2/5 checks visually confirmed; curve-shape fidelity closed on mechanical token-identity after proving swaync's transitions are colour/opacity-only with no visual instrument at any exaggeration (durable finding for 13-05's waybar gate)
+- [Phase ?]: 13-05: waybar sass conversion complete — all six stylesheets tokenized, D-09 athena feel-change applied, MOTION-03's third and final render gate (waybar) APPROVED by operator
+- [Phase ?]: 13-05: waybar-switch.sh (out-of-plan-scope entrypoint) found still pointing at pre-conversion stylesheet, repointed and made to delegate to waybar-launch.sh; new theme-doctor waybar-entrypoint guard added to prevent recurrence
 
 ### Quick Tasks Completed
 
@@ -285,8 +288,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-27T12:55:35.385Z
-Stopped at: Completed 13-02-PLAN.md
+Last session: 2026-07-27T21:46:11.647Z
+Stopped at: Completed 13-05-PLAN.md (waybar sass conversion, render gate approved)
 Resume file: None
 
 ## Operator Next Steps

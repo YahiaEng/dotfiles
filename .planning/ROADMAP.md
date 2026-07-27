@@ -170,7 +170,7 @@ Plan ordering is fixed by 12-CONTEXT.md D-32: QS-03 first (it and the inspector 
   5. The icon-theme picker lists icon themes that are not yet installed, installs the chosen one from the repos or AUR, and applies it live to Thunar and GTK apps.
 
 **Owns**: Retrofit-time regression (a curve reverting to a Hyprland default without an error) and the perceptual gates that mechanical checks cannot replace.
-**Plans**: 3/7 plans executed
+**Plans**: 4/7 plans executed
 **UI hint**: yes
 
 Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESEARCH.md) before the Hyprland retrofit, the Hyprland retrofit + A/B toggle FIRST so D-18's soak clock starts in plan 1 and accrues while the rest proceeds on files it does not touch, the sass mechanism before the waybar/swaync conversions, the wallpaper-pointer untrack before the 10/10 stress test, and the stress test + `motion-lint --no-pending` + the soak verdict as closing gates. D-17's three per-plan render gates (Hyprland, waybar, swaync) override `config.json`'s end-of-phase human-verify mode.
@@ -187,7 +187,7 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 13-05-PLAN.md — All six waybar stylesheets converted to sass and launched from their compiled sheets; launcher, contract, parity and lint wiring — blocking human render gate (MOTION-02, MOTION-03)
+- [x] 13-05-PLAN.md — All six waybar stylesheets converted to sass and launched from their compiled sheets; launcher, contract, parity and lint wiring — blocking human render gate (MOTION-02, MOTION-03)
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -281,7 +281,7 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
 | 10. AGS Media Applet | v2.0 | 6/6 | Complete | 2026-07-15 |
 | 11. Quickshell Viability Gate | v3.0 | 5/5 | Complete    | 2026-07-26 |
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
-| 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 3/7 | In Progress|  |
+| 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 4/7 | In Progress|  |
 | 14. Dashboard Drawer | v3.0 | 0/TBD | Not started | - |
 | 15. Audio + Connectivity Panels | v3.0 | 0/TBD | Not started | - |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |
