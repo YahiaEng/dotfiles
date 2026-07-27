@@ -21,6 +21,26 @@
 
 set -euo pipefail
 
+# ── Signal-vs-EXIT-trap gap (Rule 1 fix, found during Task 3 checkpoint
+# forensics) ──────────────────────────────────────────────────────────
+# An EXIT-only trap (see below) alone does NOT reliably run when the
+# floating kitty window is closed via Hyprland's real
+# closewindow/killactive dispatch:
+# bash only overrides a signal's default (terminate) disposition for a
+# signal it has an explicit trap on — HUP/INT/TERM with no trap of their
+# own are handled by the kernel's default action directly, bypassing
+# bash's own EXIT-trap machinery entirely. Verified live: a real
+# `hyprctl dispatch closewindow` on this script's own floating window
+# left the mktemp'd ENUM_SCRIPT/PREVIEW_SCRIPT/CATALOG_SCRIPT/CACHE_DIR
+# on disk every time without this; adding these explicit traps (which
+# re-exit through the shell's own exit path so the EXIT trap below
+# actually fires) cleaned up all four artifacts every time, confirmed
+# against the real launcher and the real dispatcher, not a synthetic
+# stand-in.
+for _sig in HUP INT TERM; do
+    trap "exit 1" "$_sig"
+done
+
 ICON_STATE="$HOME/.local/state/theme/icon-theme"
 CURRENT_THEME_FILE="$HOME/.local/state/theme/current-theme"
 ACTIVE_MARKER=" ●"
