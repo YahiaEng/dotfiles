@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 Phase: 13 (motion-retrofit-existing-surface-sweep) — EXECUTING
 Plan: 13-01, 13-02, 13-04, 13-05 complete — 13-03 still open at 1/3 (blocked on operator-only teardown measurement); 13-06/07 not started
 Status: Wave 3 (13-05) was dispatched ahead of 13-03 by explicit operator override (no dep edge, no file overlap) and has now closed; 13-03 remains the sole open blocker on phase close alongside 13-06/07 not yet started
-Progress: [█████████░] 85%
+Progress: [██████░░░░] 4 of 7 plans (phase-scoped; milestone-wide is 17/20)
 Last activity: 2026-07-28 — 13-05 CLOSED: waybar sass conversion (fd2656b, daffbfa, 423ac61), the out-of-scope waybar-switch.sh fix (242118a), and the D-17 waybar render gate approved by the operator ("approved"). MOTION-02 and MOTION-03 marked complete in REQUIREMENTS.md. Phase 13 remains open — 13-03, 13-06, 13-07 still outstanding.
 
 ## Performance Metrics
