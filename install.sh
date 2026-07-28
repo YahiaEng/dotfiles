@@ -214,11 +214,35 @@ PACMAN_PKGS=(
 )
 
 # ── Official repo packages (hardware — NVIDIA GPU only) ─
+# nvidia-open-dkms, NOT nvidia-dkms: Arch dropped the proprietary kernel
+# modules at driver 610 — `nvidia`, `nvidia-dkms` and `nvidia-lts` are gone
+# from the repos. nvidia-open-dkms declares Provides/Replaces on nvidia-dkms
+# so the old name still resolved, but it no longer says what it means.
+# Only the KERNEL modules are open; nvidia-utils (the userspace driver —
+# OpenGL/Vulkan/CUDA/NVENC) is the same proprietary blob either way. The open
+# modules require Turing or newer, since they offload hardware management to
+# the GPU's GSP coprocessor.
 NVIDIA_PKGS=(
-    nvidia-dkms
+    nvidia-open-dkms
     nvidia-utils
     libva-nvidia-driver
     egl-wayland
+)
+
+# ── Fallback kernel (hardware — boot resilience) ────────
+# A second bootable kernel, so a driver/kernel mismatch on the mainline kernel
+# is an inconvenience rather than an unusable system. On 2026-07-28 the
+# mainline kernel updated without its NVIDIA modules getting built and the
+# only recovery path was appending "3" at the bootloader to reach a console.
+#
+# linux-lts-headers is required because the driver is DKMS and must compile
+# against this kernel too. (It would be unnecessary under a prebuilt
+# nvidia-open-lts strategy — deliberately not what this repo uses; DKMS covers
+# every installed kernel from one package and is guarded by
+# kernel-module-verify.)
+FALLBACK_KERNEL_PKGS=(
+    linux-lts
+    linux-lts-headers
 )
 
 # ── AUR packages (core — always installed) ───────────
@@ -465,6 +489,20 @@ section_hardware() {
         NVIDIA_INSTALLED=false
     fi
 
+    # ── Fallback kernel (2026-07-28 black-screen incident) ──────
+    # Deliberately OUTSIDE the NVIDIA guard — a second bootable kernel is
+    # worth having whatever the GPU vendor.
+    #
+    # Ordering is load-bearing: this runs AFTER the NVIDIA block so the DKMS
+    # module is already registered when the LTS kernel lands, letting the alpm
+    # hook build for it in the same transaction chain; and BEFORE the limine
+    # block below so the regenerated limine.conf picks up the new entry.
+    # Verified on the reference host: installing linux-lts produced both the
+    # nvidia build for 6.18.40-2-lts and its own limine entry, unattended.
+    echo ""
+    echo "Installing fallback LTS kernel..."
+    sudo pacman -Sy --needed --noconfirm "${FALLBACK_KERNEL_PKGS[@]}"
+
     # ── DKMS integrity guard (2026-07-28 black-screen incident) ──
     # A pacman -Syu installed kernel 7.1.5-arch1-1 but the upstream DKMS
     # alpm hook never built nvidia-open-dkms for it, and nothing reported
@@ -594,10 +632,33 @@ fi
 # actually installed it (a --core-only run verifies the core set only —
 # D-65).
 VERIFY_PKGS=("${PACMAN_PKGS[@]}" "${AUR_PKGS[@]}")
-if [[ "$CORE_ONLY" != "true" && "$NVIDIA_INSTALLED" == "true" ]]; then
-    VERIFY_PKGS+=("${NVIDIA_PKGS[@]}")
+if [[ "$CORE_ONLY" != "true" ]]; then
+    VERIFY_PKGS+=("${FALLBACK_KERNEL_PKGS[@]}")
+    if [[ "$NVIDIA_INSTALLED" == "true" ]]; then
+        VERIFY_PKGS+=("${NVIDIA_PKGS[@]}")
+    fi
 fi
 verify_packages VERIFY_PKGS
+
+# ── Kernel module soundness gate (2026-07-28 incident) ──────
+# Packages being present is not the same as every installed kernel being able
+# to load its driver — that gap is exactly what caused the black screen. Run
+# the guard once here so a fresh install reports its own soundness BEFORE the
+# first reboot, while the operator is still watching.
+#
+# Non-fatal by design: this script runs under `set -euo pipefail`, so an
+# unguarded non-zero exit would abort AFTER everything is already installed,
+# turning a useful warning into a confusing failure. Same `|| echo "  ⚠ ..."`
+# precedent as the swayosd/ollama enables in section_core_rice.
+#
+# Skipped under --core-only: no hardware section ran, so there is no
+# kernel/driver work to check.
+if [[ "$CORE_ONLY" != "true" ]] && command -v kernel-module-verify &>/dev/null; then
+    echo ""
+    echo "Verifying kernel modules for all installed kernels..."
+    kernel-module-verify \
+        || echo "  ⚠ kernel module verification FAILED — see above before rebooting" >&2
+fi
 
 echo "Next steps:"
 echo "  1. Run './stow.sh' to set up symlinks"
