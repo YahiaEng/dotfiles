@@ -197,6 +197,35 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
 
 - [x] 13-07-PLAN.md — D-19/D-20 soak gate reached and **explicitly WAIVED by the operator, not passed** (measured session count 1 of floor 3, zero A/B flips, all 13 motions recorded NOT ASSESSED — see 13-MOTION-SOAK-VERDICT.md); the A/B toggle removal and all three closing gates (theme-stress-test 10/10, `motion-lint --no-pending`, full 8-script sweep) were unconditional and are genuinely green (MOTION-01, MOTION-02, MOTION-03)
 
+### Phase 13.1: Hyprland Lua Config Migration (INSERTED — urgent, upstream deadline)
+
+**Goal**: Move the Hyprland config off hyprlang to Lua before 0.57 removes `.conf` support, and convert the theme-engine's two Hyprland-format outputs from generated config *syntax* into generated *data* — while proving the resulting config is behaviourally identical.
+**Depends on**: Phase 12 (owns the design-token pipeline this rewrites the output contract of)
+**Requirements**: MAINT-04
+**Design spec**: `docs/superpowers/specs/2026-07-28-hyprland-lua-config-migration-design.md` (approved 2026-07-28)
+
+**Why inserted here** (not appended): Phases 14–17 all consume the design tokens this phase re-shapes. Migrating first avoids retrofitting four phases of surface. The deadline is on an upstream clock we do not control, and 0.56 is the last release where both formats load — meaning this is the last window in which the migration has a working fallback to roll back to.
+
+**Success Criteria** (what must be TRUE):
+
+  1. Hyprland starts from `hyprland.lua` with no `.conf` present in the load path, and the startup deprecation warning is gone.
+  2. `hypr-equivalence-check` reports an exact match between the pre-migration baseline (captured on `.conf` via `hyprctl -j getoption` / `binds` / `animations`) and the running Lua config — or every divergence is individually recorded as intended, with a reason.
+  3. Theme switching still re-themes the whole desktop in both static-preset and matugen dynamic modes, with the two Hyprland-format contract entries (`hyprland.conf` `hypr-vars` + `hyprland-motion.conf` `hypr-motion`) replaced by one `lua-table` entry.
+  4. `hyprlock` still themes correctly from its own hyprlang fragment — the two-emitter split is deliberate and stays.
+  5. The load-order hazard is gone: no config file depends on another being sourced first for a variable to exist, and a missing token degrades to a default rather than preventing the compositor from starting.
+  6. `motion-lint` has a Lua-aware path with fixtures, and its hyprlang path still guards the hyprlock output.
+  7. A fresh machine reproduces the Lua config through `install.sh` + `stow.sh`.
+
+**Owns**: The `lua-table` generated-token format and the "generated files are data, not executable config" convention that Phases 14–18 inherit.
+**Plans**: TBD
+**Rollback**: The legacy `.conf` tree stays on disk untouched until criterion 2 passes and the Lua config has soaked under normal use. Hyprland selects a format once at startup, so rollback at any point is renaming `hyprland.lua` plus a restart.
+
+**Known unknown carried into planning**: The actual Lua API is **unverified**. Wiki pages consulted during design confirmed the migration and the config location but not how options, keybinds, window rules, or nested blocks are expressed. Establishing it from the current wiki and `hl.meta.lua` stubs is the phase's research step, not an assumption to build on.
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 13.1 to break down)
+
 ### Phase 14: Dashboard Drawer
 
 **Goal**: The first real QML surface — a four-tab swipeable dashboard drawer that reads the state the desktop already owns instead of forking it.

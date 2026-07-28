@@ -72,6 +72,7 @@
 - [x] **MAINT-01**: `keybind-doctor` correctly parses `hyprctl binds` plain-text output on Hyprland 0.56.0 (amended in Phase 11 per D-15 — see 11-QUICKSHELL-EVIDENCE.md)
 - [ ] **MAINT-02**: Phase 4 advisory items closed — fisher bootstrap `curl` gains `-f`, nvm first-run error noise silenced on fresh installs, uv env source guarded in `.zshrc`, Logout wrapped like Shutdown/Reboot — **3 of 4 closed in 13-03** (fisher `-f`, nvm guard, uv env guard, all fault-injection proven, commit `baae579`). **Logout wrapping NOT closed:** its D-29 measurement gate was explicitly waived by the operator on 2026-07-28 rather than performed — logout stays on the bare path by default, not by finding. Open debt; see `.planning/PROJECT.md` Key Decisions and `13-03-SUMMARY.md`.
 - [x] **MAINT-03**: The icon-theme picker browses and installs *new* icon themes from the repos/AUR, not only applying already-installed ones (ICON-BROWSE) — closed in 13-04 on the repo-install path (proven end-to-end against a real package manager); the AUR install path is an accepted risk, proven only against a mocked helper (see 13-04-SUMMARY.md)
+- [ ] **MAINT-04**: The Hyprland config runs on Lua before 0.57 removes `.conf` support, with behavioural equivalence proven against a pre-migration `hyprctl` baseline, and the theme-engine's two Hyprland-format outputs collapsed into one generated `lua-table` data entry (added 2026-07-28 — upstream deadline, not discretionary; see `docs/superpowers/specs/2026-07-28-hyprland-lua-config-migration-design.md`)
 
 ---
 
@@ -163,20 +164,22 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MAINT-01 | Phase 11 — Quickshell Viability Gate *(instrument for QS-05's bind-collision proof)* | Complete |
 | MAINT-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Partial — 3 of 4 (WR-04 waived, open) |
 | MAINT-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Complete |
+| MAINT-04 | Phase 13.1 — Hyprland Lua Config Migration *(INSERTED 2026-07-28 — upstream deadline)* | Pending |
 
 **Coverage:**
 
-- v3.0 requirements: 38 defined, 37 active (QS-03 dropped to Out of Scope 2026-07-26 — see reason below and `12-QS03-EVIDENCE.md`)
-- Mapped to phases: 37
+- v3.0 requirements: 39 defined, 38 active (QS-03 dropped to Out of Scope 2026-07-26 — see reason below and `12-QS03-EVIDENCE.md`; MAINT-04 added 2026-07-28 with Phase 13.1)
+- Mapped to phases: 38
 - Unmapped: 0 ✓
 - Duplicates (a requirement in more than one phase): 0 ✓
 
-**Per-phase counts:** Phase 11: 6 · Phase 12: 6 *(was 7 — QS-03 dropped 2026-07-26)* · Phase 13: 5 · Phase 14: 8 · Phase 15: 6 · Phase 16: 4 · Phase 17: 2 = 37
+**Per-phase counts:** Phase 11: 6 · Phase 12: 6 *(was 7 — QS-03 dropped 2026-07-26)* · Phase 13: 5 · Phase 13.1: 1 *(added 2026-07-28)* · Phase 14: 8 · Phase 15: 6 · Phase 16: 4 · Phase 17: 2 = 38
 
 **Placement notes:**
 
 - **MAINT-01 → Phase 11.** QS-05 requires proving no duplicated global keybind across two independent registration mechanisms (Hyprland `bind =` and Quickshell `GlobalShortcut`). `keybind-doctor` is the instrument for that proof and is currently broken on Hyprland 0.56.0; Phases 14 and 16 each add a new global keybind, so the detector must work before then.
 - **MAINT-02 / MAINT-03 → Phase 13.** Phase 13 is the milestone's existing-surface sweep and already opens wleave (WR-04's Logout-wrapping target) and the walker-driven picker family. A standalone maintenance phase of three unrelated single-item fixes is the thin-phase shape the coarse granularity setting exists to prevent.
+- **MAINT-04 → Phase 13.1 (INSERTED 2026-07-28).** Not discretionary maintenance: Hyprland 0.57 removes `.conf` support entirely and hyprlang is replaced by Lua. Inserted as a decimal rather than appended because Phases 14–17 all consume the design tokens the migration re-shapes, so migrating first avoids retrofitting four phases of surface; and inserted rather than deferred because 0.56 is the last release that loads both formats — the only window in which the migration has a working fallback. Decimal numbering was chosen over renumbering 14–17 specifically to leave this traceability mapping intact.
 - **TOKEN-06 blocks nothing.** No phase and no requirement depends on it; dropping it changes no other phase's scope.
 - **OVER-04 stays in Phase 16.** Phase 11 runs the screencopy *feasibility probe* (permission mechanics, a first live multi-window capture) so Phase 16's scope is decided early; the measured frame/CPU budget and documented fallback remain Phase 16's requirement.
 - **QS-03 → Phase 12 (carried forward from Phase 11, 2026-07-26), then dropped by Phase 12 (2026-07-26, D-13, one-way).** The gap was accepted for Phase 11 under D-10 via a recorded override in `11-VERIFICATION.md` rather than dropped. Phase 12 is the first phase that needed a permanent, non-summoned QML surface, so it had to attempt per-screen fan-out anyway; it carried QS-03 as success criterion 6. Phase 12 re-attempted the fan-out with a bounded, targeted fix (checked-in `qmldir` plus `Variants`+`LazyLoader`, two structurally distinct arrangements, one spike) and both reproduced an FM2-class multiplicity failure on quickshell 0.3.0-2, re-proven across a real session restart — see `12-QS03-EVIDENCE.md`. Per D-13, QS-03 is now formally Out of Scope rather than carried a second time; the active requirement total drops from 38 to 37 with no duplicate, since the row moved rather than being copied.

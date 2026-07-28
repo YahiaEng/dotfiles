@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-current_phase: 14
-current_phase_name: Dashboard Drawer
+current_phase: "13.1"
+current_phase_name: Hyprland Lua Config Migration
 status: planning
-stopped_at: Completed 13-07-PLAN.md (D-19/D-20 soak gate waived; A/B toggle removed; closing gates green; ledger entry 9 closed)
-last_updated: "2026-07-27T22:40:52.262Z"
+stopped_at: "Phase 13.1 inserted (URGENT): Hyprland Lua config migration — 0.57 removes .conf support. Design spec approved at docs/superpowers/specs/2026-07-28-hyprland-lua-config-migration-design.md; not planned yet."
+last_updated: "2026-07-28T00:47:18.218Z"
 last_activity: 2026-07-28
-last_activity_desc: Phase 13 complete, transitioned to Phase 14
+last_activity_desc: "Completed quick task 260728-4f9: install.sh now reproduces the full incident fix set (LTS fallback, verification gate)"
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 3
   total_plans: 20
   completed_plans: 20
-  percent: 43
+  percent: 38
 ---
 
 # Project State
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 13 — motion-retrofit-existing-surface-sweep
+**Current focus:** Phase 13.1 — hyprland-lua-config-migration (INSERTED, urgent)
 
 ## Current Position
 
-Phase: 14 — Dashboard Drawer
+Phase: 13.1 — Hyprland Lua Config Migration (INSERTED)
 Plan: Not started
 Status: Ready to plan
-Progress: [██████████] 7 of 7 plans (phase-scoped; milestone-wide is 20/20)
-Last activity: 2026-07-28 — Completed quick task 260728-4f9: install.sh now reproduces the full incident fix set (LTS fallback, verification gate)
+Progress: [──────────] 0 of ? plans (phase-scoped; milestone-wide is 20/20)
+Last activity: 2026-07-28 — Inserted Phase 13.1 (Hyprland Lua config migration) ahead of Dashboard Drawer; design spec approved
 
 ## Performance Metrics
 
@@ -164,6 +164,7 @@ Last activity: 2026-07-28 — Completed quick task 260728-4f9: install.sh now re
   - **17 Ambient Extras** (AMB-01..02) — explicitly the first phase to cut.
   - MAINT placement rationale and coverage proof live in REQUIREMENTS.md's Traceability section.
 - Phase 10 added: AGS Media Applet — decided 2026-07-15 after the Phase 08 eww media popup was proven unable to deliver pointer input to its widgets on this eww 0.6.0 / Hyprland 0.55.4 build (debug session resolved-by-redesign: `.planning/debug/resolved/eww-media-popup-clicks-dead.md`). Replace with a standalone AGS v3 (GTK4) media applet, keeping waybar/swaync/matugen. User rejected a full HyprPanel bar takeover in favor of a contained applet. Approved spec + plan live in `docs/superpowers/`.
+- Phase 13.1 inserted after Phase 13: Hyprland Lua Config Migration — 0.57 removes .conf support; hyprlang replaced by Lua. Inserted before Dashboard Drawer because phases 14-17 all consume the design tokens this rewrites. (URGENT)
 
 ### Decisions
 
