@@ -69,4 +69,79 @@ hl.config({
         layout = "dwindle",
         allow_tearing = false,
     },
+
+    -- input block — hyprland.conf lines 38-45, reproduced exactly. No
+    -- token dependency (no colour/motion value in this block).
+    input = {
+        kb_layout = "us",
+        follow_mouse = 1,
+        sensitivity = 0,
+        touchpad = {
+            natural_scroll = true,
+        },
+    },
+
+    -- decoration block — hyprland.conf lines 48-74, reproduced exactly.
+    -- decoration:shadow:color's accepted Lua form was the one open
+    -- question this block carried (13.1-04 Task 1): the quoted-string
+    -- form (`"rgba(00000055)"`, byte-identical to the hyprlang literal)
+    -- was tried first and reads back correctly — see
+    -- 13.1-LUA-FINDINGS.md's "Option readback divergences" section.
+    decoration = {
+        rounding = 12,
+        active_opacity = 1.0,
+        inactive_opacity = 0.92,
+        fullscreen_opacity = 1.0,
+
+        blur = {
+            enabled = true,
+            size = 8,
+            passes = 3,
+            new_optimizations = true,
+            xray = true,
+            noise = 0.02,
+            contrast = 0.9,
+            brightness = 0.8,
+            vibrancy = 0.2,
+            vibrancy_darkness = 0.5,
+        },
+
+        shadow = {
+            enabled = true,
+            range = 20,
+            render_power = 3,
+            color = "rgba(00000055)",
+            offset = { 0, 4 },
+        },
+    },
+
+    -- dwindle block — hyprland.conf lines 77-82. `pseudotile` is
+    -- commented out in the hyprlang source (line 78) and stays unset
+    -- here — a commented line is not a value to port (CONTEXT.md
+    -- prohibition against enabling a behaviour hyprlang never enabled).
+    dwindle = {
+        preserve_split = true,
+        smart_split = false,
+        smart_resizing = true,
+    },
+
+    -- misc block — hyprland.conf lines 85-96. `vfr` is commented out
+    -- (line 95) and stays unset for the same reason as dwindle.pseudotile
+    -- above.
+    misc = {
+        force_default_wallpaper = 0,
+        disable_hyprland_logo = true,
+        disable_splash_rendering = true,
+        mouse_move_enables_dpms = true,
+        key_press_enables_dpms = true,
+        animate_manual_resizes = true,
+        animate_mouse_windowdragging = true,
+        enable_swallow = true,
+        swallow_regex = "^(kitty)$",
+    },
+
+    -- cursor block — hyprland.conf lines 99-101.
+    cursor = {
+        no_hardware_cursors = true,
+    },
 })
