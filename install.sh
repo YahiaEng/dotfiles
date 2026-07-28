@@ -484,15 +484,23 @@ section_hardware() {
     #     to 14, iterated in arbitrary hash order with no priority for the
     #     live kernel, and died before reaching it.
     #
-    # dkms-verify enumerates kernels by their package-written `pkgbase`
-    # marker instead of by directory glob, so orphans cannot starve it, and
-    # runs as a PostTransaction hook sorting after 70-dkms-install.
+    # kernel-module-verify enumerates kernels by their package-written
+    # `pkgbase` marker instead of by directory glob, so orphans cannot starve
+    # it, and runs as a PostTransaction hook sorting after 70-dkms-install.
+    #
+    # It checks BOTH module sources: DKMS registration, and — source-agnostic
+    # via `modinfo -k` — that each kernel can actually resolve its NVIDIA
+    # module. The second pass matters because Arch has dropped the proprietary
+    # kernel modules entirely (nvidia/nvidia-dkms/nvidia-lts are gone as of
+    # driver 610); the prebuilt survivors nvidia-open/nvidia-open-lts ship .ko
+    # files into usr/lib/modules/<exact-kver>/extramodules/ and register no
+    # DKMS module at all. A DKMS-only check passes vacuously on those systems.
     echo ""
-    echo "Installing DKMS verification hook..."
-    sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/dkms-verify" \
-        /usr/local/bin/dkms-verify
-    sudo install -Dm644 "$REPO_DIR/system/etc/pacman.d/hooks/99-dkms-verify.hook" \
-        /etc/pacman.d/hooks/99-dkms-verify.hook
+    echo "Installing kernel module verification hook..."
+    sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/kernel-module-verify" \
+        /usr/local/bin/kernel-module-verify
+    sudo install -Dm644 "$REPO_DIR/system/etc/pacman.d/hooks/99-kernel-module-verify.hook" \
+        /etc/pacman.d/hooks/99-kernel-module-verify.hook
 
     # `enable` without --now: the reaper deletes module trees for kernels
     # that are not running, which is a boot-time job, not a mid-install one.

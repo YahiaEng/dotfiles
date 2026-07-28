@@ -1,4 +1,4 @@
-# Verify every installed kernel has its DKMS modules built.
+# Verify every installed kernel can load its out-of-tree drivers.
 #
 # Backstop for the 2026-07-28 incident: kernel 7.1.5-arch1-1 was installed but
 # nvidia-open-dkms was never built for it, and nothing reported the gap. The
@@ -8,6 +8,12 @@
 # the state that hook left behind rather than racing it. Triggers mirror the
 # upstream install hook's, so it fires on exactly the transactions that can
 # break this: a kernel landing, or a DKMS module source changing.
+#
+# Deliberately NO `Depends = dkms`. The script's second pass covers prebuilt
+# module packages (nvidia-open / nvidia-open-lts), which are used on systems
+# with no DKMS installed at all — precisely the configuration that pass exists
+# to protect. Depending on dkms would reintroduce the blind spot at the hook
+# level.
 #
 # Failure here is advisory — pacman reports the non-zero exit but the
 # transaction has already completed. That is the point: the operator learns
@@ -21,7 +27,6 @@ Target = usr/lib/modules/*/modules.order
 Target = usr/src/*/dkms.conf
 
 [Action]
-Description = Verifying DKMS modules exist for all installed kernels
-Depends = dkms
+Description = Verifying kernel modules exist for all installed kernels
 When = PostTransaction
-Exec = /usr/local/bin/dkms-verify
+Exec = /usr/local/bin/kernel-module-verify

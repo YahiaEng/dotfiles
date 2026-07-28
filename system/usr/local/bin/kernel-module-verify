@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+# kernel-module-verify — fail loudly when an installed kernel cannot load its
+# out-of-tree drivers.
+#
+# Backstop for the 2026-07-28 black-screen incident: a pacman transaction
+# installed kernel 7.1.5-arch1-1 but nvidia-open-dkms was never built for it,
+# and nothing reported the gap. With no driver claiming the GPU, Hyprland
+# rendered on simpledrm (the EFI framebuffer) and the kernel oopsed in
+# drm_fb_memcpy — a black screen discovered only at the next boot.
+#
+# Runs as a PostTransaction pacman hook (99-kernel-module-verify.hook), sorting
+# after 70-dkms-install, so a broken kernel is reported BEFORE the reboot.
+#
+# Two independent passes:
+#
+#   1. DKMS registration — every registered DKMS module is built for every
+#      installed kernel.
+#   2. Driver presence (source-agnostic) — every installed kernel can actually
+#      resolve the NVIDIA module, whether it came from DKMS or from a prebuilt
+#      package (nvidia-open / nvidia-open-lts drop .ko files straight into
+#      usr/lib/modules/<kver>/extramodules/).
+#
+# Pass 2 exists because pass 1 alone passes VACUOUSLY on a prebuilt setup: with
+# no DKMS modules registered there is nothing for it to check, so it reports OK
+# on a system it is not protecting. The failure mode does not disappear without
+# DKMS — it changes shape, from "DKMS did not build" to "driver package not
+# rebuilt in lockstep with the kernel" (nvidia-open depends on plain `linux`
+# with no version constraint).
+#
+# Exit 0 = every installed kernel is covered.
+# Exit 1 = at least one is not; remedy commands are printed.
+
+# No `set -e`: every kernel must be checked so the operator sees the complete
+# picture in one pass, not just the first failure.
+set -uo pipefail
+
+MODULES_DIR=${MODULES_DIR:-/usr/lib/modules}
+SRC_DIR=${SRC_DIR:-/usr/src}
+
+# Modules that must resolve on every installed kernel, checked in pass 2. Kept
+# as a variable so the check can be extended (or narrowed in tests) without
+# touching the logic.
+CRITICAL_MODULES=${CRITICAL_MODULES:-nvidia}
+
+# Read a scalar assignment out of a dkms.conf without sourcing it.
+#
+# dkms.conf files contain command substitution — nvidia's MAKE[0] runs `nproc`
+# — and a PostTransaction hook running as root has no business executing them
+# just to read two strings. Handles optional single/double quoting.
+read_conf_var() {
+    sed -n -E "s/^[[:space:]]*$2=[\"']?([^\"']*)[\"']?[[:space:]]*\$/\1/p" "$1" | head -n1
+}
+
+missing_report=""
+missing_count=0
+checked_pairs=0
+
+# ── Enumerate INSTALLED kernels via their pkgbase marker ──────────────
+#
+# This is the crux of the original fix. `pkgbase` is written by the kernel
+# package itself, so only real, package-owned kernel trees carry it. Globbing
+# directories (what upstream's all_kver() effectively does) also matches trees
+# left behind by kernel-modules-hook after their package is gone — that is how
+# the build list grew from 1 kernel to 14 and the live kernel got starved.
+kernels=()
+kernel_pkgbases=()
+for pkgbase_file in "$MODULES_DIR"/*/pkgbase; do
+    [ -e "$pkgbase_file" ] || continue
+    kdir=${pkgbase_file%/pkgbase}
+    kernels+=("${kdir##*/}")
+    kernel_pkgbases+=("$(cat "$pkgbase_file" 2>/dev/null || echo linux)")
+done
+
+if [ ${#kernels[@]} -eq 0 ]; then
+    echo "kernel-module-verify: no package-owned kernels found under $MODULES_DIR — nothing to check." >&2
+    exit 0
+fi
+
+# ── Enumerate registered DKMS modules ─────────────────────────────────
+modules=()
+for conf in "$SRC_DIR"/*/dkms.conf; do
+    [ -e "$conf" ] || continue
+    name=$(read_conf_var "$conf" PACKAGE_NAME)
+    ver=$(read_conf_var "$conf" PACKAGE_VERSION)
+    [ -n "$name" ] && [ -n "$ver" ] || continue
+    modules+=("$name|$ver|$conf")
+done
+
+# ── Pass 1: every DKMS module built for every kernel ──────────────────
+for kver in "${kernels[@]}"; do
+    for entry in "${modules[@]}"; do
+        name=${entry%%|*}
+        rest=${entry#*|}
+        ver=${rest%%|*}
+        conf=${rest#*|}
+
+        # Honour BUILD_EXCLUSIVE_KERNEL exactly as the upstream alpm hook does,
+        # so a module that legitimately does not support this kernel is not
+        # reported as missing. Empty means "no constraint".
+        bek=$(read_conf_var "$conf" BUILD_EXCLUSIVE_KERNEL)
+        if [ -n "$bek" ] && ! [[ "$kver" =~ $bek ]]; then
+            continue
+        fi
+
+        checked_pairs=$((checked_pairs + 1))
+
+        # Match on OUTPUT TEXT, never on exit status.
+        #
+        # Verified on dkms 3.4.1: `dkms status -m nvidia -v <ver> -k <kernel
+        # that was never built>` exits 0 and prints "nvidia/<ver>: added".
+        # A check keyed off $? would pass silently and reproduce the very bug
+        # this script exists to catch. Requiring the kernel version in the
+        # matched line is what separates "added" (source registered, nothing
+        # built) from "installed" (modules on disk).
+        if ! dkms status -m "$name" -v "$ver" -k "$kver" 2>/dev/null \
+            | grep -q "^${name}/${ver}, ${kver}, .*: installed"; then
+            missing_count=$((missing_count + 1))
+            missing_report+="  kernel ${kver}  ←  DKMS module ${name}/${ver} not built"$'\n'
+            missing_report+="      sudo dkms install ${name}/${ver} -k ${kver}"$'\n'
+        fi
+    done
+done
+
+# ── Pass 2: critical drivers resolvable, whatever the source ──────────
+#
+# Only meaningful when the matching userspace is installed. Without
+# nvidia-utils there is no NVIDIA stack to be broken, and demanding the kernel
+# module would be wrong on a machine that simply has no NVIDIA GPU.
+nvidia_expected=false
+if command -v pacman >/dev/null 2>&1; then
+    pacman -Qq nvidia-utils >/dev/null 2>&1 && nvidia_expected=true
+else
+    # No pacman (unusual — container, chroot). Fall back to userspace presence.
+    [ -e /usr/lib/libnvidia-glcore.so ] && nvidia_expected=true
+fi
+
+if [ "$nvidia_expected" = true ]; then
+    for i in "${!kernels[@]}"; do
+        kver="${kernels[$i]}"
+        kpkgbase="${kernel_pkgbases[$i]}"
+
+        for mod in $CRITICAL_MODULES; do
+            checked_pairs=$((checked_pairs + 1))
+
+            # modinfo -k resolves updates/dkms/ and extramodules/ transparently,
+            # which is exactly the source-agnosticism pass 2 needs.
+            if modinfo -k "$kver" -F filename "$mod" >/dev/null 2>&1; then
+                continue
+            fi
+
+            # Distinguish "no .ko anywhere" from ".ko present but not indexed".
+            # A module missing from modules.dep is not loadable by udev, so a
+            # stale index is a real failure with a different remedy.
+            found_ko=$(find "$MODULES_DIR/$kver" -name "${mod}.ko*" -print -quit 2>/dev/null)
+
+            missing_count=$((missing_count + 1))
+            if [ -n "$found_ko" ]; then
+                missing_report+="  kernel ${kver}  ←  ${mod} present but not indexed"$'\n'
+                missing_report+="      (${found_ko})"$'\n'
+                missing_report+="      sudo depmod ${kver}"$'\n'
+                continue
+            fi
+
+            missing_report+="  kernel ${kver}  ←  ${mod} module missing entirely"$'\n'
+            if [ ${#modules[@]} -gt 0 ]; then
+                # DKMS is in play — offer the build for each registered module
+                # whose name matches the critical one.
+                for entry in "${modules[@]}"; do
+                    dname=${entry%%|*}
+                    drest=${entry#*|}
+                    dver=${drest%%|*}
+                    [ "$dname" = "$mod" ] || continue
+                    missing_report+="      sudo dkms install ${dname}/${dver} -k ${kver}"$'\n'
+                done
+            else
+                # Prebuilt setup — suggest the package matching this kernel's
+                # own pkgbase (linux → nvidia-open, linux-lts → nvidia-open-lts).
+                case "$kpkgbase" in
+                    linux)      suggest="nvidia-open" ;;
+                    linux-*)    suggest="nvidia-open-${kpkgbase#linux-}" ;;
+                    *)          suggest="the NVIDIA module package for ${kpkgbase}" ;;
+                esac
+                missing_report+="      sudo pacman -S ${suggest}"$'\n'
+            fi
+        done
+    done
+fi
+
+if [ "$missing_count" -eq 0 ]; then
+    echo "kernel-module-verify: OK — ${checked_pairs} check(s) passed across ${#kernels[@]} installed kernel(s)."
+    exit 0
+fi
+
+# Loud on stderr so it survives pacman's output and is not mistaken for noise.
+{
+    echo ""
+    echo "################################################################"
+    echo "##  KERNEL MODULE VERIFICATION FAILED — DO NOT REBOOT YET     ##"
+    echo "################################################################"
+    echo ""
+    echo "${missing_count} problem(s) found."
+    echo "Rebooting into an affected kernel may leave you without a"
+    echo "graphics driver — a black screen after login."
+    echo ""
+    printf '%s' "$missing_report"
+    echo "Then re-run: kernel-module-verify"
+    echo ""
+    echo "################################################################"
+    echo ""
+} >&2
+
+exit 1
