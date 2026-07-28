@@ -1,24 +1,29 @@
--- hypr/.config/hypr/hyprland.lua.disabled — top-level Lua config entry
--- point (Phase 13.1, D-01/D-02/D-06/D-13/T-13.1-07).
+-- hypr/.config/hypr/hyprland.lua — top-level Lua config entry point.
+-- This IS the live, load-bearing compositor entry point: Hyprland selects
+-- its config format at startup purely by whether hyprland.lua exists in
+-- the config root, and this repo's cutover (Phase 13.1, plan 13.1-08)
+-- already happened — the legacy hyprland.conf and its seven
+-- hyprlang config/*.conf siblings were deleted outright by the
+-- retirement plan (13.1-10). If this file is wrong, the machine does not
+-- boot. There is no `.disabled`-suffixed copy anywhere in this repo any
+-- more, and no hyprlang fallback path exists to catch a mistake here.
 --
--- The `.disabled` suffix is LOAD-BEARING: Hyprland selects its config
--- format at startup purely by whether hyprland.lua exists in the config
--- root — it does not read this file's contents to decide, so a partially-
--- ported entry point literally named hyprland.lua would silently take over
--- the very next real login. This file stays `.disabled` for the whole
--- phase; it is renamed to hyprland.lua ONLY at the cutover plan, after the
--- equivalence gate (D-08/D-10) passes and the ported config has survived a
--- soak under normal use (D-12).
+-- WR-03 (13.1-REVIEW.md gap-closure, 2026-07-28): this header previously
+-- described this file as the pre-cutover `hyprland.lua.disabled` staging
+-- copy — that state is now history, not a currently-enforced invariant.
+-- For that pre-cutover history (why the `.disabled` staging convention
+-- existed, and the rename-at-cutover process), see `13.1-08-SUMMARY.md`
+-- and `13.1-EQUIVALENCE-REPORT.md`; for safely test-driving a FUTURE
+-- change to this file without touching the live compositor, see
+-- `hypr/.config/hypr/scripts/hypr-lua-harness` (repaired post-cutover to
+-- accept an explicit `--entry <path>` argument, defaulting to this very
+-- file).
 --
--- As of plan 13.1-03 Task 2, this entry point reaches its FINAL require
--- shape: all seven config modules are required below, in the same
--- relative order hyprland.conf's own `source =` lines (lines 7-21) list
--- them. Four of the seven (animations/keybinds/windowrules/permissions)
--- are still placeholder modules (a header comment + `return {}`) pending
--- their own static-port plans (13.1-04, -05, -07) — requiring them now,
--- rather than adding the require line only when each module is filled,
--- is what lets every remaining plan in this phase land its content
--- without ever touching this file again.
+-- This entry point is at its FINAL require shape (reached at plan
+-- 13.1-03 Task 2, unchanged since): all seven config modules are
+-- required below, in the same relative order the retired hyprland.conf's
+-- own `source =` lines used to list them. Every one of the seven is now
+-- fully ported, live content — none are placeholder modules any more.
 --
 -- Ordering below is PRESENTATIONAL ONLY, not load-bearing the way
 -- hyprland.conf lines 11-16 warn hyprlang's own source order is (that
