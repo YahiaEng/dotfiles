@@ -995,10 +995,6 @@ run_self_test() {
         "poisoned-raw-gtk4.css:1"
         "poisoned-dangling-gtk4.css:1"
         "poisoned-fallback-gtk4.css:1"
-        "compliant-hypr.conf:0"
-        "poisoned-raw-hypr.conf:1"
-        "poisoned-raw-speed-hypr.conf:1"
-        "poisoned-dangling-hypr.conf:1"
         "compliant-qml.qml:0"
         "poisoned-raw-qml.qml:1"
         "poisoned-dangling-qml.qml:1"
@@ -1009,7 +1005,28 @@ run_self_test() {
     local st_pass=0 st_fail=0
     local entry fname expect_nonzero src tmp out rc want_desc
 
-    echo "motion-lint --self-test — replaying the fourteen committed fixtures"
+    # 13.1-10: the four hyprlang .conf fixtures (compliant-hypr.conf,
+    # poisoned-raw-hypr.conf, poisoned-raw-speed-hypr.conf,
+    # poisoned-dangling-hypr.conf) were removed from this list and deleted
+    # from tests/motion-fixtures/ once the operator resolved Task 2's
+    # one-way decision as retire-now. Their "compliant" expectation relied
+    # on load_hypr_defs() resolving references against the live
+    # $STATE_DIR/hyprland-motion.conf — the hyprlang emitter that produced
+    # that file is now permanently retired, so no hyprlang .conf file can
+    # ever satisfy CHECK A again, and a "compliant:0" fixture asserting
+    # otherwise would fail forever, by construction, for a reason that has
+    # nothing to do with whether the fixture is actually well-formed. The
+    # poisoned .conf siblings lost their test value the same way: with
+    # zero definitions ever available, every hyprlang .conf fixture now
+    # fails CHECK A regardless of being poisoned or compliant, so keeping
+    # only the poisoned entries would no longer be distinguishing anything
+    # — a vacuous pass, not a real assertion. CHECK A/B's .conf-format
+    # scan path itself (load_hypr_defs, motion-lint's CHECK C surface
+    # count) is left in place as defense-in-depth against a future
+    # accidental hyprlang .conf file (D-23 deny-by-default) — it already
+    # degrades gracefully via a printed [NOTE] when hyprland-motion.conf
+    # is absent, which is now the permanent, expected state.
+    echo "motion-lint --self-test — replaying the ten committed fixtures"
     echo ""
 
     for entry in "${fixtures[@]}"; do

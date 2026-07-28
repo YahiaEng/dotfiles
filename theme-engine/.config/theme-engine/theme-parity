@@ -360,8 +360,21 @@ done <<< "$CONTRACT_FILE_LIST"
 # swaync's two entries above.
 echo ""
 echo "-- Motion byte-identity (D-31) --"
+# 13.1-10: hyprland-motion.conf dropped from this set — the hyprlang
+# emitter that produced it was retired once the operator resolved Task 2's
+# one-way decision as retire-now (13.1-EQUIVALENCE-REPORT.md's "Decision
+# (Task 2)" section). Its Hyprland-side successor, hyprland-tokens.lua,
+# CANNOT join this array as a like-for-like replacement: this array proves
+# a file is theme-INDEPENDENT (identical bytes across a static-preset and
+# a materialyou render), but hyprland-tokens.lua merges colours (which do
+# vary by theme) together with motion (D-02/D-05's single-generated-file
+# design) — asserting its byte-identity across palettes would be asserting
+# something false by construction. This is a genuine, honestly-recorded
+# coverage change, not a silent gap: motion's byte-identity property is no
+# longer independently checkable on the Hyprland side post-merge; it
+# remains checkable (and checked) on every other target below.
 MOTION_BYTE_IDENTITY_FILES=(
-    motion.json gtk-4.0-motion.css hyprland-motion.conf
+    motion.json gtk-4.0-motion.css
     _motion.scss swaync-style.css
     waybar-theme.css waybar-modules.css
     waybar-style-full.css waybar-style-athena.css

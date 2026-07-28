@@ -12,20 +12,20 @@
 
 [config]
 
-# ── Hyprland colors ─────────────────────────────────
-[templates.hyprland]
-input_path = "~/.config/matugen/templates/hyprland-colors.conf"
-output_path = "~/.local/state/theme/hyprland.conf"
-
 # ── Hyprland colour token fragment (Lua-table pipeline, Phase 13.1) ──
-# Additive: hyprland-colors.conf above still feeds the D-12 rollback
-# target and must keep being produced. This fragment is consumed once by
-# theme_engine_render_hypr_tokens (theme-engine/lib/motion.sh), which
-# merges it into the single ~/.local/state/theme/hyprland-tokens.lua table
-# and deletes it from the tmp render tree before commit.sh promotes
-# anything — it never reaches the live state dir and carries no
-# contract.json entry of its own (D-02/D-05). No post_hook — lib/reload.sh
-# is the sole reload-fan-out owner (D-04).
+# 13.1-10: this is now the ONLY Hyprland-side colour template. The
+# hyprlang [templates.hyprland] block (hyprland-colors.conf ->
+# ~/.local/state/theme/hyprland.conf, the D-12 rollback target) was
+# retired alongside the static .conf tree once the operator resolved
+# Task 2's one-way decision as retire-now — see
+# 13.1-EQUIVALENCE-REPORT.md's "Decision (Task 2)" section. This fragment
+# is consumed once by theme_engine_render_hypr_tokens
+# (theme-engine/lib/motion.sh), which merges it into the single
+# ~/.local/state/theme/hyprland-tokens.lua table and deletes it from the
+# tmp render tree before commit.sh promotes anything — it never reaches
+# the live state dir and carries no contract.json entry of its own
+# (D-02/D-05). No post_hook — lib/reload.sh is the sole reload-fan-out
+# owner (D-04).
 [templates.hyprland_lua]
 input_path = "~/.config/matugen/templates/hyprland-colors.lua"
 output_path = "~/.local/state/theme/hyprland-colors.lua"

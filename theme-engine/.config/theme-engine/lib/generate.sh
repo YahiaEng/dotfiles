@@ -30,9 +30,10 @@ source "$LIB_DIR/font.sh"
 
 # TOKEN-03/D-01: motion is the THIRD theme-orthogonal state axis (after
 # icon-theme and font-choice) — lib/motion.sh owns its own render path
-# (motion.json, gtk-4.0-motion.css, hyprland-motion.conf) and its own
+# (motion.json, gtk-4.0-motion.css, hyprland-tokens.lua) and its own
 # render-time validation pass (D-02(a)/D-09), same call-site shape as
-# font.sh directly above.
+# font.sh directly above. (13.1-10: the sibling hyprland-motion.conf
+# hyprlang fragment this comment used to also name was retired.)
 # shellcheck source=lib/motion.sh
 source "$LIB_DIR/motion.sh"
 
@@ -100,9 +101,10 @@ theme_engine_generate() {
     # on EVERY run regardless of which theme/mode is active — same shape as
     # the font-choice render right above it. Its return is propagated (not
     # swallowed): a failed motion render must fail the whole generate step,
-    # since the emitted hyprland-motion.conf fragment is one Hyprland will
-    # parse, and theme-apply already routes a non-zero return here into
-    # .last-render-error.log while leaving the desktop unchanged.
+    # since the emitted hyprland-tokens.lua table is one Hyprland's
+    # `require()` will load, and theme-apply already routes a non-zero
+    # return here into .last-render-error.log while leaving the desktop
+    # unchanged.
     theme_engine_render_motion_files "$tmp" || return 1
 
     # TOKEN-03/D-01/D-34: sass precompile of GTK3-consumed stylesheets — a

@@ -1,6 +1,5 @@
 {
   "files": [
-    { "name": "hyprland.conf", "format": "hypr-vars", "exempt_keys": ["image"] },
     { "name": "waybar.css", "format": "gtk-css" },
     { "name": "kitty.conf", "format": "kitty-kv" },
     { "name": "swaync.css", "format": "gtk-css" },
@@ -19,7 +18,6 @@
     { "name": "satty.toml", "format": "toml" },
     { "name": "motion.json", "format": "json" },
     { "name": "gtk-4.0-motion.css", "format": "css-vars" },
-    { "name": "hyprland-motion.conf", "format": "hypr-motion" },
     { "name": "hyprland-tokens.lua", "format": "lua-table", "exempt_keys": ["colors.image"] },
     { "name": "ags.scss", "format": "scss-vars" },
     { "name": "palette.json", "format": "json" },

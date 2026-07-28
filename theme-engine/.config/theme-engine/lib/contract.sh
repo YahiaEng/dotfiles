@@ -113,17 +113,6 @@ contract_extract_names() {
             # sibling.
             grep -oP '^\s*--\K[A-Za-z0-9_-]+(?=:)' "$path" 2>/dev/null | sort -u
             ;;
-        hypr-motion)
-            # 12-RESEARCH Pitfall 3: hypr-vars's `^$name = value` regex
-            # never matches a `bezier = name, ...` curve line — this format
-            # is the UNION of every declared bezier curve name AND every
-            # top-level $name variable (WR-05: $motion_enabled is a real
-            # declared identifier here; omitting it would let it silently
-            # vanish from both name and value extraction).
-            { grep -oP '^\s*bezier = \K[A-Za-z0-9_-]+(?=,)' "$path" 2>/dev/null
-              grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_]*(?= =)' "$path" 2>/dev/null
-            } | sort -u
-            ;;
         scss-vars)
             # Same shape as the ags.scss AGS-applet target (Phase 10):
             # `$name: value;` SCSS variable declarations — distinct from
@@ -345,11 +334,6 @@ contract_extract_values() {
             ;;
         css-vars)
             sed -nE 's/^\s*--([A-Za-z0-9_-]+):\s*(.*);\s*$/\1\t\2/p' "$path" 2>/dev/null
-            ;;
-        hypr-motion)
-            { sed -nE 's/^\s*bezier = ([A-Za-z0-9_-]+), (.*)$/\1\t\2/p' "$path"
-              sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_]*) = (.*)$/\1\t\2/p' "$path"
-            } 2>/dev/null
             ;;
         scss-vars)
             # 13-02: same hyphen-widening fix as the name extractor above —

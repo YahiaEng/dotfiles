@@ -61,7 +61,15 @@ HYPRLAND_CONF="$HYPR_CONF_ROOT/hyprland.conf"
 HYPR_CONFIG_DIR="$HYPR_CONF_ROOT/config"
 
 # ── Config file set (dynamic — never a hardcoded list, D-08) ─────────────
-CONFIG_FILES=("$HYPRLAND_CONF")
+# 13.1-10: the legacy hyprlang tree these paths name was retired once the
+# operator resolved Task 2's one-way decision as retire-now. Both existence
+# checks below (previously only the *.conf glob was guarded; HYPRLAND_CONF
+# was appended unconditionally) are now guarded the same way, so
+# CONFIG_FILES is genuinely EMPTY post-retirement rather than containing a
+# path to a file that no longer exists — _derive_key_list below dispatches
+# on exactly that emptiness.
+CONFIG_FILES=()
+[[ -e "$HYPRLAND_CONF" ]] && CONFIG_FILES+=("$HYPRLAND_CONF")
 for f in "$HYPR_CONFIG_DIR"/*.conf; do
     [[ -e "$f" ]] || continue
     CONFIG_FILES+=("$f")
@@ -496,6 +504,26 @@ sys.exit(0)
 PYEOF
 }
 
+# ── _derive_key_list: the option-key source for _capture_snapshot below ──
+# Prefers parsing the live hyprlang config tree (D-08: dynamic, never
+# hardcoded) when CONFIG_FILES is non-empty — the exact pre-13.1-10
+# behavior, kept so a future re-snapshot against a hyprlang tree (e.g. a
+# different migration) still works unmodified. 13.1-10 retired that tree
+# once the operator resolved Task 2's one-way decision as retire-now, so
+# CONFIG_FILES is now empty in the common case — this falls back to the
+# committed baseline's own options.jsonl "option" field, the frozen
+# ground truth of exactly which keys this gate has always checked, immune
+# to the config tree's own retirement. Only affects --snapshot mode's
+# uncovered.txt/permissions and default check mode's live key discovery;
+# it never changes what the baseline itself records.
+_derive_key_list() {
+    if [[ "${#CONFIG_FILES[@]}" -gt 0 ]]; then
+        _parse_config_tree keys "${CONFIG_FILES[@]}"
+    else
+        jq -r '.option' "$BASELINE_DIR/options.jsonl" 2>/dev/null | sort -u
+    fi
+}
+
 # ── Shared capture routine: writes binds.json/animations.json/options.jsonl ─
 # ── into $1, and (only if $2 == 1) uncovered.txt too (D-16). Used by both  ─
 # ── --snapshot mode and the default check mode's live re-derivation, so   ─
@@ -508,7 +536,7 @@ _capture_snapshot() {
     hyprctl -j animations > "$outdir/animations.json" 2>/dev/null || return 1
 
     local -a _keys
-    mapfile -t _keys < <(_parse_config_tree keys "${CONFIG_FILES[@]}")
+    mapfile -t _keys < <(_derive_key_list)
 
     : > "$outdir/options.jsonl"
     if [[ "$write_uncovered" == "1" ]]; then
@@ -582,7 +610,7 @@ if [[ "$MODE" == "snapshot" ]]; then
     HYPRCTL_VERSION_LINE="$(hyprctl version 2>/dev/null | head -1)"
     GIT_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
     CAPTURE_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    KEY_COUNT="$(_parse_config_tree keys "${CONFIG_FILES[@]}" | grep -c . || true)"
+    KEY_COUNT="$(_derive_key_list | grep -c . || true)"
     BIND_COUNT="$(jq 'length' "$OUTDIR/binds.json" 2>/dev/null || echo 0)"
     OPT_COUNT="$(wc -l < "$OUTDIR/options.jsonl" | tr -d ' ')"
     UNCOVERED_COUNT="$(wc -l < "$OUTDIR/uncovered.txt" | tr -d ' ')"

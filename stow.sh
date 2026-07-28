@@ -153,23 +153,26 @@ mkdir -p "$HOME/.local/state/theme"
 # reader's fallback branch being exercised correctly on day one.
 [[ -f "$HOME/.local/state/theme/motion-scale" ]] || echo "normal" > "$HOME/.local/state/theme/motion-scale"
 
-# D-30: seed the three rendered motion files by INVOKING motion.sh's own
+# D-30: seed the rendered motion files by INVOKING motion.sh's own
 # renderer — never a hand-authored stub. A stub is a second source of
-# truth that goes stale the instant Phase 13 points Hyprland's
-# `animation =` assignment lines at generated curves; D-30's whole point
-# is that motion.json stays the ONLY place these numbers are written.
-# This is the one seed among all the ones in this file whose absence is
-# worst: a missing hyprland-motion.conf is a hard `source=` globbing
-# error, and an absent/never-rendered motion-scale leaves $motion_enabled
-# undefined in animations.conf ("cannot parse as an int") — both are
-# config-parse failures that keep Hyprland from starting at all, debugged
-# from a TTY, not a graceful degrade. The unconditional `|| true` guard on
-# the surrounding block still applies (this must never abort stow.sh under
+# truth that goes stale the instant a motion.json edit lands; D-30's whole
+# point is that motion.json stays the ONLY place these numbers are
+# written. This is the one seed among all the ones in this file whose
+# absence is worst: 13.1-10 retired the hyprlang hyprland-motion.conf
+# emitter (its old failure mode here was a hard `source=` globbing error),
+# so the failure being guarded against on the Hyprland side is now a
+# missing `require()` target for hyprland-tokens.lua — module-not-found
+# stops the compositor from starting at all, which is strictly HARDER to
+# recover from at a TTY than a missing hyprlang source glob ever was, not
+# easier. An absent/never-rendered motion-scale separately leaves
+# $motion_enabled undefined in animations.lua's own token read — also a
+# config-parse failure that keeps Hyprland from starting, debugged from a
+# TTY, not a graceful degrade. The unconditional `|| true` guard on the
+# surrounding block still applies (this must never abort stow.sh under
 # set -e), but unlike the other seeds here, a failure here is loud, not
 # silent — WR-07's "first impression is a themed desktop" only holds if
 # this succeeds.
-if [[ ! -f "$HOME/.local/state/theme/hyprland-motion.conf" ]] || \
-   [[ ! -f "$HOME/.local/state/theme/gtk-4.0-motion.css" ]] || \
+if [[ ! -f "$HOME/.local/state/theme/gtk-4.0-motion.css" ]] || \
    [[ ! -f "$HOME/.local/state/theme/motion.json" ]] || \
    [[ ! -f "$HOME/.local/state/theme/hyprland-tokens.lua" ]]; then
     MOTION_LIB="$DOTFILES_DIR/theme-engine/.config/theme-engine/lib/motion.sh"
@@ -185,12 +188,14 @@ if [[ ! -f "$HOME/.local/state/theme/hyprland-motion.conf" ]] || \
                 mkdir -p "$STATE_DIR"
                 # Phase 13.1/D-30: hyprland-tokens.lua joins this seed list
                 # — a missing require() target is a HARDER failure than a
-                # missing hyprlang `source=` glob (module-not-found stops
-                # the compositor from starting at all, not just this one
+                # missing hyprlang `source=` glob ever was (module-not-found
+                # stops the compositor from starting at all, not just one
                 # fragment), so it gets the identical loud-failure
-                # treatment as the three pre-existing motion targets, never
-                # a hand-authored stub.
-                for mf in motion.json gtk-4.0-motion.css hyprland-motion.conf hyprland-tokens.lua; do
+                # treatment as the other motion targets, never a
+                # hand-authored stub. 13.1-10 removed hyprland-motion.conf
+                # from this list — the hyprlang emitter that produced it no
+                # longer exists.
+                for mf in motion.json gtk-4.0-motion.css hyprland-tokens.lua; do
                     [[ -f "$SEED_TMP$STATE_DIR/$mf" ]] && cp "$SEED_TMP$STATE_DIR/$mf" "$STATE_DIR/$mf"
                 done
             else

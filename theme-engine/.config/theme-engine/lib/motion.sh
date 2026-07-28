@@ -153,13 +153,20 @@ theme_engine_validate_motion_values() {
 }
 
 # theme_engine_render_motion_files <tmp_dir>
-# Renders motion.json, gtk-4.0-motion.css and hyprland-motion.conf into the
+# Renders motion.json, gtk-4.0-motion.css and hyprland-tokens.lua into the
 # tmp render tree — same call shape as theme_engine_render_font_files. Reads
 # the motion-scale axis, resolves its multiplier/animations_enabled from
 # motion.json's OWN scales table (D-21 — the multiplier table lives in
-# data, not here), validates BEFORE any write, then emits all three targets
+# data, not here), validates BEFORE any write, then emits all targets
 # from one shared jq computation so they can never disagree with each
 # other or with the WARN pass below.
+#
+# 13.1-10: the hyprland-motion.conf (hyprlang) emitter that used to write
+# here alongside the Lua token merge was retired once the operator
+# resolved Task 2's one-way decision as retire-now — the merged
+# hyprland-tokens.lua table (theme_engine_render_hypr_tokens, below) is now
+# the sole Hyprland-side motion output. See
+# 13.1-EQUIVALENCE-REPORT.md's "Decision (Task 2)" section.
 theme_engine_render_motion_files() {
     local tmp="$1"
     local scale multiplier animations_enabled floor_ms
@@ -250,64 +257,19 @@ theme_engine_render_motion_files() {
         | @tsv
     ' "$MOTION_JSON")"
 
-    # ── 1. Hyprland target: $motion_enabled first as a top-level assignment,
-    #    then the $motion_speed_*/$motion_speed_indicator_* families
-    #    (Task 3H; the sibling per-slot curve variable family was removed
-    #    in plan 13-07), then an animations {} block holding ONLY
-    #    bezier = lines (D-22: no `enabled =` key here — animations.conf
-    #    owns that; D-04: no `animation =` line either — Phase 12 fences
-    #    to curves only) ─────────────────────────────────────────────────
-    {
-        # shellcheck disable=SC2016 # intentional: literal $ for Hyprland's variable syntax, not shell expansion
-        printf '$motion_enabled = %s\n' "$animations_enabled"
-
-        # $motion_speed_<token> — one per .semantic entry, in Hyprland's
-        # decisecond speed unit (D-13, MOTION_HYPR_SPEED_DIVISOR_DS), two
-        # decimal places so a sub-100ms-per-unit remainder never truncates
-        # away (e.g. 150ms -> 1.50, not 1).
-        #
-        # Loop variables below are deliberately prefixed per-loop
-        # (sem_/ind_) rather than sharing generic names like
-        # `name`/`ms`/`slot` — none of these `read -r` loops declares
-        # `local`, and because bash's `local` is dynamically scoped, an
-        # unlocalized loop variable silently overwrites an identically
-        # named `local` in ANY caller up the call stack still on the stack
-        # when this function runs (theme_engine_generate's own `local
-        # name="$1"`, called without a subshell, was clobbered by exactly
-        # this shape — see deferred-items.md's now-resolved entry). Renaming
-        # kills the whole collision class rather than relying on every
-        # future caller never reusing the identifier.
-        while IFS=$'\t' read -r sem_token sem_ms; do
-            [[ -z "$sem_token" ]] && continue
-            # shellcheck disable=SC2016
-            printf '$motion_speed_%s = %s\n' "$sem_token" \
-                "$(awk -v ms="$sem_ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
-        done <<< "$speed_semantic"
-
-        # $motion_speed_indicator_<name> — one per .indicators entry, scaled
-        # by the SAME multiplier/floor as the semantic pairs so `reduced`
-        # and `lively` reach indicators too.
-        while IFS=$'\t' read -r ind_name ind_ms; do
-            [[ -z "$ind_name" ]] && continue
-            # shellcheck disable=SC2016
-            printf '$motion_speed_indicator_%s = %s\n' "$ind_name" \
-                "$(awk -v ms="$ind_ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
-        done <<< "$speed_indicators"
-
-        echo "animations {"
-        jq -r '.easings | to_entries[] |
-            "    bezier = motion-\(.key), \(.value[0]), \(.value[1]), \(.value[2]), \(.value[3])"' \
-            "$MOTION_JSON"
-        echo "}"
-    } > "$out_dir/hyprland-motion.conf"
-
-    # ── 1b. Merged Lua token table (D-02/D-05, Phase 13.1): ONE generated
-    #    file carrying BOTH colours and motion as DATA, not executable
-    #    config syntax. Called here, right after the hyprland-motion.conf
-    #    write above (which stays — D-12 rollback target) and reuses this
-    #    function's already-validated $animations_enabled/$speed_semantic/
-    #    $speed_indicators/$MOTION_JSON locals via bash's dynamic scoping,
-    #    same pattern as theme_engine_render_motion_scss below. ───────────
+    # ── 1. Hyprland target: the merged Lua token table (D-02/D-05, Phase
+    #    13.1) — ONE generated file carrying BOTH colours and motion as
+    #    DATA, not executable config syntax. This is now the SOLE
+    #    Hyprland-side motion/colour output: the sibling hyprlang
+    #    hyprland-motion.conf emitter that used to write
+    #    $motion_enabled/$motion_speed_*/an `animations {}` bezier block
+    #    here was retired in 13.1-10 once the operator resolved Task 2's
+    #    one-way decision as retire-now (see
+    #    13.1-EQUIVALENCE-REPORT.md's "Decision (Task 2)" section). Reuses
+    #    this function's already-validated
+    #    $animations_enabled/$speed_semantic/$speed_indicators/$MOTION_JSON
+    #    locals via bash's dynamic scoping, same pattern as
+    #    theme_engine_render_motion_scss below. ─────────────────────────
     theme_engine_render_hypr_tokens "$out_dir" || return 1
 
     # ── 2. GTK4 target: :root custom properties. WR-02: emit EVERY declared
@@ -404,11 +366,12 @@ _hypr_lua_quote_string() {
 # EMPTY colors table, not a failure — the motion half is always populated
 # regardless, so the file itself is always written and is always valid Lua.
 #
-# Called from theme_engine_render_motion_files immediately after its
-# hyprland-motion.conf write (which stays — D-12 rollback target's input).
-# Deletes the consumed colour fragment from the tmp tree before returning
-# so it never reaches ~/.local/state/theme/ and never needs its own
-# contract.json entry.
+# Called from theme_engine_render_motion_files as its sole Hyprland-side
+# target (13.1-10: the sibling hyprland-motion.conf hyprlang emitter that
+# used to be written first was retired once Task 2's decision resolved
+# retire-now). Deletes the consumed colour fragment from the tmp tree
+# before returning so it never reaches ~/.local/state/theme/ and never
+# needs its own contract.json entry.
 theme_engine_render_hypr_tokens() {
     local out_dir="$1"
     local colors_fragment="$out_dir/hyprland-colors.lua"
@@ -418,7 +381,7 @@ theme_engine_render_hypr_tokens() {
         echo "-- Generated by theme-engine; do not edit manually (D-02/D-05)."
         echo "-- colors: matugen's hyprland-colors.lua fragment, merged here by"
         echo "-- theme_engine_render_hypr_tokens (theme-engine/lib/motion.sh)."
-        echo "-- motion: the SAME resolution hyprland-motion.conf/gtk-4.0-motion.css emit —"
+        echo "-- motion: the SAME resolution gtk-4.0-motion.css emits —"
         echo "-- the targets can never disagree about which values exist (D-05)."
         echo "return {"
         echo "    colors = {"
@@ -445,9 +408,10 @@ theme_engine_render_hypr_tokens() {
         # and one entry per $motion_speed_indicator_<ind_name> variable
         # (key name = indicator_<ind_name>, e.g.
         # $motion_speed_indicator_border_rotate -> speed.indicator_border_rotate).
-        # Reuses the SAME awk %.2f conversion and divisor as the
-        # hyprland-motion.conf writer above — the numbers must be
-        # byte-identical to what that file emits.
+        # Reuses the SAME awk %.2f conversion and divisor the retired
+        # hyprland-motion.conf writer used (13.1-10) — kept identical so
+        # this value never silently drifts from what that hyprlang emitter
+        # produced while it existed.
         while IFS=$'\t' read -r sem_token sem_ms; do
             [[ -z "$sem_token" ]] && continue
             printf '            %s = %s,\n' "$sem_token" \
@@ -462,8 +426,8 @@ theme_engine_render_hypr_tokens() {
         echo "        curves = {"
         # motion.curves.<key> — one entry per .easings key in $MOTION_JSON,
         # shaped { type = "bezier", points = { {x0,y0}, {x1,y1} } } from the
-        # SAME four floats the hyprland-motion.conf writer's
-        # `bezier = motion-<key>, x0, y0, x1, y1` line emits — structural
+        # SAME four floats the retired hyprland-motion.conf writer's (13.1-10)
+        # `bezier = motion-<key>, x0, y0, x1, y1` line used to emit — structural
         # change (nested points array), not a value change. Bracket-string
         # keys (never bare identifiers) because easing names carry hyphens
         # (e.g. "standard-decelerate"), which is not valid Lua identifier
