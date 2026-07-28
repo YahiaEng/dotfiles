@@ -32,7 +32,7 @@ Phase: 14 — Dashboard Drawer
 Plan: Not started
 Status: Ready to plan
 Progress: [██████████] 7 of 7 plans (phase-scoped; milestone-wide is 20/20)
-Last activity: 2026-07-28 — Completed quick task 260728-48c: generalized kernel-module-verify (covers DKMS + prebuilt module sources)
+Last activity: 2026-07-28 — Completed quick task 260728-4f9: install.sh now reproduces the full incident fix set (LTS fallback, verification gate)
 
 ## Performance Metrics
 
@@ -230,6 +230,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260726-l0y | Record the QS-03 acceptance override in 11-VERIFICATION.md and reassign QS-03 ownership from Phase 11 to Phase 12 | 2026-07-26 | 4d5a532, 1d92ba6, f727649 | [260726-l0y-record-the-qs-03-acceptance-override-in-](./quick/260726-l0y-record-the-qs-03-acceptance-override-in-/) |
 | 260728-3na | Add DKMS verification pacman hook and enable kernel module cleanup service (2026-07-28 black-screen incident backstop) | 2026-07-28 | 745ad22, 1868826 | [260728-3na-add-dkms-verification-pacman-hook-and-en](./quick/260728-3na-add-dkms-verification-pacman-hook-and-en/) |
 | 260728-48c | Generalize dkms-verify into kernel-module-verify — covers prebuilt (nvidia-open) and DKMS module sources, closing a vacuous-pass blind spot | 2026-07-28 | 27393b2 | [260728-48c-generalize-dkms-verify-into-kernel-modul](./quick/260728-48c-generalize-dkms-verify-into-kernel-modul/) |
+| 260728-4f9 | Make install.sh fully reproduce the 2026-07-28 incident fixes: LTS fallback kernel, nvidia-open-dkms name, post-install verification gate | 2026-07-28 | 6de97c7 | [260728-4f9-make-install-sh-fully-reproduce-the-2026](./quick/260728-4f9-make-install-sh-fully-reproduce-the-2026/) |
 
 ### Pending Todos
 
