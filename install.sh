@@ -96,6 +96,13 @@ PACMAN_PKGS=(
     psmisc
     rsync
     stow
+    # Phase 13.1/D-14: explicit dependency, not a transitive one — the
+    # theme-engine's lib/contract.sh lua-table extractor invokes `lua`
+    # directly (dofile()+walk) to parity-check hyprland-tokens.lua. `lua`
+    # was already present transitively via hyprland's own Depends On, but
+    # ROADMAP standing constraint 3 requires a runtime dependency this
+    # repo's own tooling calls be declared explicitly, not inherited.
+    lua
 
     # Audio
     pipewire

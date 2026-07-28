@@ -154,9 +154,32 @@ contract_extract_names() {
 local path = arg[1]
 local ok, data = pcall(dofile, path)
 if not ok or type(data) ~= "table" then os.exit(1) end
+-- 13.1-05: a Lua array (points = { {0.2, 0}, {0, 1} }) is just a table
+-- with sequential integer keys 1..n — pairs() cannot tell an array
+-- element apart from a genuine named key. Without this check, "1"/"2"
+-- would leak into the name set as if they were real declared keys, which
+-- the json/toml sibling branches never do (toml's Python walker only adds
+-- dict keys; list items are walked but never contribute a key of their
+-- own). is_array mirrors that distinction so array elements are still
+-- walked (for any nested named keys) but their own integer index is not.
+local function is_array(t)
+    local n = 0
+    for k in pairs(t) do
+        if type(k) ~= "number" or k % 1 ~= 0 or k < 1 then return false end
+        n = n + 1
+    end
+    for i = 1, n do
+        if t[i] == nil then return false end
+    end
+    return true
+end
 local names = {}
 local function walk(node)
     if type(node) ~= "table" then return end
+    if is_array(node) then
+        for _, v in ipairs(node) do walk(v) end
+        return
+    end
     for k, v in pairs(node) do
         names[tostring(k)] = true
         walk(v)
@@ -335,29 +358,58 @@ contract_extract_values() {
             sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_-]*):[[:space:]]*(.*);.*$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         lua-table)
-            # Phase 13.1/D-02/D-05: kept in lockstep with the name
-            # extractor above — same dofile()-then-walk shape, this time
+            # Phase 13.1/D-02/D-05, extended 13.1-05: kept in lockstep with
+            # the name extractor above — same dofile()-then-walk shape,
             # path-joined (matching the json branch's `paths(scalars) |
             # join(".")` convention, e.g. "colors.primary",
-            # "motion.curves.standard.type") and emitting ONLY string-typed
-            # leaf values (numeric motion durations/curve points are
-            # intentionally excluded, same as json's `select(.value | type
-            # == "string")` — this is why contract.json's exempt_keys for
-            # this entry is "colors.image", the dotted form this extractor
-            # actually emits, not the bare "image" the hypr-vars format
-            # would have used).
+            # "motion.curves.standard.type"). 13.1-05: EVERY leaf now emits
+            # a value line, not just strings — a skipped value is a value
+            # theme-parity's Layer 3 emptiness/leftover checks can never
+            # see, and this format's motion.speed.* numbers and
+            # motion.curves.*.points arrays are just as much "declared
+            # content that must never render empty" as any color string.
+            # is_array (same definition as the name extractor's) decides
+            # whether a table is a genuine leaf array (points = { {0.2,0},
+            # {0,1} }) to serialize whole, versus a map to keep recursing
+            # into by key. serialize() renders a leaf — scalar or nested
+            # array — as one deterministic textual token
+            # (e.g. "[[0.2,0],[0,1]]") so two renders of the same table are
+            # always byte-identical strings, comparable the same way any
+            # other value arm's plain string value already is.
             lua - "$path" <<'LUAEOF' 2>/dev/null
 local path = arg[1]
 local ok, data = pcall(dofile, path)
 if not ok or type(data) ~= "table" then os.exit(1) end
+local function is_array(t)
+    local n = 0
+    for k in pairs(t) do
+        if type(k) ~= "number" or k % 1 ~= 0 or k < 1 then return false end
+        n = n + 1
+    end
+    for i = 1, n do
+        if t[i] == nil then return false end
+    end
+    return true
+end
+local function serialize(node)
+    local t = type(node)
+    if t == "string" then return node end
+    if t == "number" or t == "boolean" then return tostring(node) end
+    if t == "table" and is_array(node) then
+        local parts = {}
+        for i, v in ipairs(node) do parts[i] = serialize(v) end
+        return "[" .. table.concat(parts, ",") .. "]"
+    end
+    return tostring(node)
+end
 local function walk(node, prefix)
-    if type(node) == "table" then
+    if type(node) == "table" and not is_array(node) then
         for k, v in pairs(node) do
             local np = (prefix == "") and tostring(k) or (prefix .. "." .. tostring(k))
             walk(v, np)
         end
-    elseif type(node) == "string" then
-        print(prefix .. "\t" .. node)
+    else
+        print(prefix .. "\t" .. serialize(node))
     end
 end
 walk(data, "")
