@@ -6,6 +6,49 @@ this task's changes).
 
 ## 1. `hyprctl keyword` is a silent no-op on the Lua-config-managed compositor
 
+**STATUS: RESOLVED — 13.1-10 continuation (commit `e5eba76`).** All 8
+`hyprctl keyword` call sites in `gaming-mode-toggle.sh` (4 in
+`gaming_mode_on`, 4 in `gaming_mode_off`'s restore path) retargeted to
+`hyprctl eval` with the equivalent `hl.config({...})` expression — the
+API the compositor's own error message names. Proven live on the real
+session, not asserted: exercised gaming-mode ON and OFF across two
+independent cycles, reading `decoration:blur:enabled`,
+`animations:enabled`, `decoration:shadow:enabled` and
+`decoration:rounding` back via `hyprctl -j getoption` at every stage.
+
+```
+PRE:  blur=true  animations=true  shadow=true  rounding=12
+ON  (cycle 1): blur=false animations=false shadow=false rounding=0
+OFF (cycle 1): blur=true  animations=true  shadow=true  rounding=12  (exact match)
+ON  (cycle 2): blur=false animations=false shadow=false rounding=0
+OFF (cycle 2): blur=true  animations=true  shadow=true  rounding=12  (exact match)
+```
+
+hypridle SIGSTOP/SIGCONT inhibit confirmed both cycles (`ps -o stat=`
+showed `Tl` while ON, `Sl` after OFF). waybar hide/restore confirmed via
+`waybar-visibility.sh`'s owned intent file
+(`~/.cache/waybar-visibility.d/gaming`: `hide` while ON, `show` after
+OFF) and its `.actuated` state file, with the live waybar process PID
+unchanged throughout (no relaunch) — both mechanisms untouched by this
+fix and independently confirmed still working.
+
+The restore path's 4 `hyprctl keyword "$key" "$v"` call sites (inside
+the `if [[ -n "$v" ]]` branches fed by `_restore_keyword`'s theme-token
+read-back) were also retargeted, for consistency, even though they
+remain provably dead code on this repo's layout (see the file's own
+FINDING comment — none of the four keys exist in the merged
+`hyprland-tokens.lua` token table, so `$v` is always empty and
+`need_reload` is always 1; the `hyprctl reload` fallback is what
+actually performs the restore in both cycles above). The
+COVERAGE.md-documented `hyprctl getoption` int/bool type-key divergence
+does **not** apply to this path: `$v` is never sourced from `hyprctl
+getoption` anywhere in this script — it comes from
+`contract_extract_values`'s lua-table extractor, which already
+`tostring()`s a Lua boolean leaf to the literal `"true"`/`"false"`, a
+value already shaped as a valid Lua literal safe to splice into
+`hl.config({... = $v})`. Checked directly, documented inline in the
+script.
+
 **Found during:** 13.1-09, Task 2 live verification of `gaming-mode-toggle.sh`
 ("exercise the gaming-mode toggle both on and off" — the task's own
 instruction).
