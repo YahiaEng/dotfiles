@@ -94,9 +94,26 @@
             "8": "8",
             "9": "9"
         },
+        // "on-click": "activate" is INERT for this module and is kept only
+        // because removing it changes nothing. The click dispatch is compiled
+        // into waybar's C++ (Workspace::handleClicked) as the legacy string
+        // `dispatch workspace <id>`, which a Lua-config-managed compositor
+        // rejects at parse time; waybar discards the IPC reply, so the click
+        // is silently dead. man 5 waybar-hyprland-workspaces documents no
+        // on-click key for this module, so THIS CANNOT BE FIXED FROM CONFIG —
+        // it needs waybar PR #5013, which postdates the 0.15.0 release.
+        // Accepted as scheduled debt: it dies with waybar when Quickshell
+        // takes over the bar (Quickshell uses the GlobalShortcut Wayland
+        // protocol and has no IPC dispatch strings at all).
+        //
+        // The SCROLL handlers below are different — they are shell-command
+        // strings in config, so they ARE fixable, and are fixed here. Note the
+        // escaping: outer single quotes keep the Lua expression as one shell
+        // argv entry, and the inner Lua string quotes are \" because this is
+        // a JSON string. Verified live from a shell.
         "on-click": "activate",
-        "on-scroll-up": "hyprctl dispatch workspace e+1",
-        "on-scroll-down": "hyprctl dispatch workspace e-1",
+        "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({workspace=\"e+1\"})'",
+        "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({workspace=\"e-1\"})'",
         "sort-by-number": true,
         "persistent-workspaces": {
             "*": 6

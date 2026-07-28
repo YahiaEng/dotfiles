@@ -55,4 +55,12 @@ else
     : # Cannot determine compositor state — fail closed, launch nothing.
 fi
 
-exec hyprctl dispatch workspace name:ai
+# 13.1 Lua cutover: the legacy string form `hyprctl dispatch workspace
+# name:ai` is textually wrapped into `return hl.dispatch(workspace name:ai)`
+# and evaluated as Lua SOURCE, which is a parse error — this exec was
+# silently dead (exit 7, and as the last command it also made the whole
+# script exit non-zero). Lua's call sugar only permits f"str" / f{table},
+# never `f name:ai`, so the payload cannot be rescued from the Lua side —
+# the call site must be retargeted. Same fix pattern as 13.1-09's
+# theme-engine/theme-stress-test. Verified live: switches to name:ai.
+exec hyprctl dispatch 'hl.dsp.focus({workspace="name:ai"})'

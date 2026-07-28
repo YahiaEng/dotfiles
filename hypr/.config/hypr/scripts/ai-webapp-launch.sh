@@ -25,5 +25,11 @@ set -euo pipefail
 
 URL="${1:?usage: ai-webapp-launch.sh <url>}"
 
-hyprctl dispatch workspace name:ai >/dev/null 2>&1 || true
+# 13.1 Lua cutover: the legacy string form `hyprctl dispatch workspace
+# name:ai` is now a Lua parse error and silently no-ops (see
+# hypridle.conf's header note for the full mechanism). That broke the
+# "switch to name:ai FIRST, then launch" ordering this whole script
+# depends on — the Zen window was landing on whatever workspace happened
+# to be active. Verified live: switches to name:ai.
+hyprctl dispatch 'hl.dsp.focus({workspace="name:ai"})' >/dev/null 2>&1 || true
 exec uwsm app -- zen-browser --new-window "$URL"
