@@ -51,6 +51,22 @@ theme_engine_reload() {
     fi
 
     # ── Signal-reloaded surface (D-21: flips in <1s) ──────────────
+    # 13.1-05: reconciled against the Lua config manager's measured
+    # re-read semantics, not left as an untested assumption (13.1-03's
+    # "Config re-read semantics" investigation, 13.1-LUA-FINDINGS.md,
+    # against installed Hyprland 0.56.1-2, commit
+    # 5c9377c15f85c50648f35ca5a213754f95b93ca0). Ten consecutive
+    # `hyprctl reload` calls against a nested Lua-booted instance left
+    # bind count (2 -> 2) and animation-leaf/bezier-curve counts
+    # (correctly-indexed measurement: 35/3 -> 35/3) unchanged — CONFIRMED
+    # NON-ACCUMULATING, independently corroborated by a window-rule
+    # replacement round producing a clean, uncontaminated result with no
+    # residual state from the prior rule. `hyprctl reload` fully clears
+    # and re-executes the Lua config from scratch each time, the same
+    # behaviour this line already relied on for the hyprlang parser.
+    # NEGATIVE BRANCH, recorded per D-13/plan precedent (STATE.md): no
+    # functional change required here — this line stays exactly as it
+    # already was for hyprlang.
     hyprctl reload >/dev/null 2>&1 || true
     pkill -SIGUSR2 waybar 2>/dev/null || true
     # BAR-01/D-03: on-sigusr2 is configured as `reload`, which (per
