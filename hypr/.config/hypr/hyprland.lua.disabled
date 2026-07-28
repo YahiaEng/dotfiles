@@ -10,28 +10,37 @@
 -- equivalence gate (D-08/D-10) passes and the ported config has survived a
 -- soak under normal use (D-12).
 --
--- ONLY this plan's slice is real here (Task 1 of 13.1-02): the defensive
--- token accessor, config/env.lua, and the `general` block — a byte-for-
--- byte reproduction of hyprland.conf lines 27-35, nothing added/removed/
--- retuned (CONTEXT.md prohibition). The remaining 8-file split
--- (monitors/autostart/animations/keybinds/windowrules/permissions) lands
--- in the later static-port plan(s), D-06.
+-- As of plan 13.1-03 Task 2, this entry point reaches its FINAL require
+-- shape: all seven config modules are required below, in the same
+-- relative order hyprland.conf's own `source =` lines (lines 7-21) list
+-- them. Four of the seven (animations/keybinds/windowrules/permissions)
+-- are still placeholder modules (a header comment + `return {}`) pending
+-- their own static-port plans (13.1-04, -05, -07) — requiring them now,
+-- rather than adding the require line only when each module is filled,
+-- is what lets every remaining plan in this phase land its content
+-- without ever touching this file again.
 --
--- require("config.autostart") is declared below AHEAD of its own target
--- existing — config/autostart.lua is created by that later static-port
--- plan, not this one. This is intentional, not a bug: hypr-lua-harness's
--- DEFAULT run mode (the one every acceptance criterion in this plan
--- exercises) always filters this EXACT line out of the copy it boots,
--- asserting that filtering removes precisely one line — so the harness's
--- own self-check is what keeps this file and the harness from silently
--- drifting apart (Layer 6), and the require() never actually executes
--- against a not-yet-ported module during this plan. `--with-autostart`
--- mode is intentionally unexercised until autostart.lua exists.
+-- Ordering below is PRESENTATIONAL ONLY, not load-bearing the way
+-- hyprland.conf lines 11-16 warn hyprlang's own source order is (that
+-- warning existed because animations.conf reads a hyprlang variable
+-- `env.conf`'s sibling motion fragment defines, and hyprlang variables
+-- are resolved at the point of use during a strictly sequential parse).
+-- Under Lua, no module reads a value a previously-loaded module happened
+-- to set — every module that needs the generated token table calls
+-- `require("lib.tokens").get()` itself (see `local tokens = ...` below,
+-- and `config/env.lua`'s own independent call is not needed since it has
+-- no token dependency). That property, not the require order, is what
+-- makes D-13 hold under Lua.
 
 local tokens = require("lib.tokens").get()
 
 require("config.env")
+require("config.monitors")
 require("config.autostart")
+require("config.animations")
+require("config.keybinds")
+require("config.windowrules")
+require("config.permissions")
 
 -- general block — hyprland.conf lines 27-35, reproduced exactly. Every
 -- colour comes from the generated token table with an `or` fallback to the
