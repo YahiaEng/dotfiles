@@ -49,8 +49,30 @@ hl.config({ animations = { enabled = motion_enabled } })
 -- registered, so a leaf below can skip cleanly (D-13) if the token table
 -- doesn't carry the curve it needs. Registered before any leaf references
 -- them.
+-- D-XX (13.1-08, operator decision): Lua 5.5 randomizes its string-hash
+-- seed PER PROCESS. Iterating tokens.motion.curves with a bare pairs()
+-- therefore registers curves in a DIFFERENT order on every fresh
+-- compositor start — proven live by running 5 separate `lua` processes
+-- over the real ~/.local/state/theme/hyprland-tokens.lua motion.curves
+-- table and observing 5 different orderings (a same-process,
+-- same-hash-seed repeated-reload test cannot detect this, and wrongly
+-- looked deterministic). Sorting the key set before iterating makes
+-- REGISTRATION deterministic across every fresh process. This does NOT
+-- make hypr-equivalence-check's animations.json curve array byte-order
+-- match the committed baseline (the baseline's own order came from the
+-- old theme-engine-emitted hyprlang fragment and is neither alphabetical
+-- nor declaration order) — the gate's curve-array comparison was made
+-- order-insensitive instead (see hypr-equivalence-check's
+-- _compare_animations_curves_as_set). Both fixes are required together.
+local names = {}
+for name in pairs(tokens.motion.curves) do
+    names[#names + 1] = name
+end
+table.sort(names)
+
 local registered_curves = {}
-for name, spec in pairs(tokens.motion.curves) do
+for _, name in ipairs(names) do
+    local spec = tokens.motion.curves[name]
     local curve_name = "motion-" .. name
     hl.curve(curve_name, spec)
     registered_curves[curve_name] = true

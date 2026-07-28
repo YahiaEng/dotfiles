@@ -374,6 +374,128 @@ sys.exit(0)
 PYEOF
 }
 
+# ── animations.json comparison (13.1-08, operator decision) ──────────────
+# ── `hyprctl -j animations` returns a 2-element wrapper [leaves, curves].  ─
+# ── Leaves (data[0], 35 records) determine runtime animation behaviour     ─
+# ── directly (leaf name, bezier reference, enabled, speed, style) and stay ─
+# ── BYTE-EXACT POSITIONAL — 13.1-03's empirical check found zero divergence─
+# ── class here, and loosening it would hide a real future regression.      ─
+# ── Curves (data[1]) get a SET comparison on the full tuple (name, X0, Y0, ─
+# ── X1, Y1) instead of positional diff -u. Reason: config/animations.lua's ─
+# ── curve registration iterates tokens.motion.curves with pairs() over a   ─
+# ── Lua hash table, and Lua 5.5 randomizes its string-hash seed PER        ─
+# ── PROCESS — proven live by running 5 separate `lua` processes over the   ─
+# ── real hyprland-tokens.lua motion.curves table and observing 5 different─
+# ── orderings. Sorted-key registration (also fixed in this same task) made─
+# ── registration order deterministic WITHIN a process, but the committed   ─
+# ── baseline's own curve order came from the old theme-engine-emitted      ─
+# ── hyprlang fragment and is neither alphabetical nor declaration order —  ─
+# ── so even deterministic-but-different orderings would never match it     ─
+# ── positionally. Curve IDENTITY is (name, control points); array POSITION ─
+# ── carries no compositor-observable meaning (Hyprland resolves a leaf's   ─
+# ── `bezier = "motion-X"` reference by NAME, not by array index). A        ─
+# ── changed control point, a missing curve, or an extra curve still FAILs  ─
+# ── and still names the offending curve — this is a normalization of       ─
+# ── ORDER only, not of VALUE.
+_compare_animations() {
+    local baseline="$1" live="$2"
+    python3 - "$baseline" "$live" <<'PYEOF'
+import json
+import sys
+
+baseline_path, live_path = sys.argv[1], sys.argv[2]
+
+
+def load(path):
+    try:
+        with open(path, 'r', encoding='utf-8') as fh:
+            data = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"{path}: cannot read/parse — {exc}", file=sys.stderr)
+        sys.exit(2)
+    if not isinstance(data, list) or len(data) != 2:
+        print(
+            f"{path}: expected a 2-element [leaves, curves] wrapper array, "
+            f"got {type(data).__name__} of length "
+            f"{len(data) if isinstance(data, list) else 'n/a'}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    leaves, curves = data[0], data[1]
+    if not isinstance(leaves, list) or not isinstance(curves, list):
+        print(f"{path}: leaves/curves elements must both be arrays", file=sys.stderr)
+        sys.exit(2)
+    return leaves, curves
+
+
+baseline_leaves, baseline_curves = load(baseline_path)
+live_leaves, live_curves = load(live_path)
+
+diffs = []
+
+# ── Leaves: byte-exact positional (unchanged strictness) ─────────────────
+if len(baseline_leaves) != len(live_leaves):
+    diffs.append(
+        f"leaf count mismatch: baseline={len(baseline_leaves)} live={len(live_leaves)}"
+    )
+for i, (b, l) in enumerate(zip(baseline_leaves, live_leaves)):
+    if b != l:
+        diffs.append(f"leaf record {i} (name={b.get('name')!r}): baseline={b!r} live={l!r}")
+
+# ── Curves: SET comparison on (name, X0, Y0, X1, Y1) ──────────────────────
+EXPECTED_CURVE_KEYS = {"name", "X0", "Y0", "X1", "Y1"}
+for label, curves in (("baseline", baseline_curves), ("live", live_curves)):
+    for c in curves:
+        extra_keys = set(c.keys()) - EXPECTED_CURVE_KEYS
+        if extra_keys:
+            print(
+                f"{label} curve record has unexpected field(s) {sorted(extra_keys)}: {c!r}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+
+def curve_tuple(c):
+    return (c.get('name'), c.get('X0'), c.get('Y0'), c.get('X1'), c.get('Y1'))
+
+
+baseline_tuples = [curve_tuple(c) for c in baseline_curves]
+live_tuples = [curve_tuple(c) for c in live_curves]
+
+if len(set(baseline_tuples)) != len(baseline_tuples):
+    print(
+        "baseline curves contain duplicate (name, X0, Y0, X1, Y1) tuples — "
+        "cannot compare as a set",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+if len(set(live_tuples)) != len(live_tuples):
+    print(
+        "live curves contain duplicate (name, X0, Y0, X1, Y1) tuples — "
+        "cannot compare as a set",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+baseline_set = set(baseline_tuples)
+live_set = set(live_tuples)
+
+missing = baseline_set - live_set
+added = live_set - baseline_set
+for t in sorted(missing, key=lambda x: (x[0] or '')):
+    diffs.append(f"- curve present in baseline only: {t}")
+for t in sorted(added, key=lambda x: (x[0] or '')):
+    diffs.append(f"+ curve present in live only: {t}")
+
+if diffs:
+    for d in diffs:
+        print(d)
+    sys.exit(1)
+
+sys.exit(0)
+PYEOF
+}
+
 # ── Shared capture routine: writes binds.json/animations.json/options.jsonl ─
 # ── into $1, and (only if $2 == 1) uncovered.txt too (D-16). Used by both  ─
 # ── --snapshot mode and the default check mode's live re-derivation, so   ─
@@ -569,6 +691,26 @@ for rf in binds.json animations.json options.jsonl; do
             PASS=$((PASS + 1))
         else
             echo "  [FAIL] $rf: differs from baseline (structural comparison)"
+            echo "$diff_out"
+            FAIL=$((FAIL + 1))
+        fi
+        continue
+    fi
+
+    if [[ "$rf" == "animations.json" ]]; then
+        # 13.1-08 (operator decision): leaves (data[0]) byte-exact
+        # positional, curves (data[1]) set-compared on (name, X0, Y0, X1,
+        # Y1) — see _compare_animations's header comment for the full
+        # rationale (Lua 5.5 per-process string-hash-seed randomization
+        # makes curve REGISTRATION order nondeterministic across fresh
+        # compositor starts, and the committed baseline's own order is
+        # neither alphabetical nor declaration order, so no registration
+        # order could ever match it positionally).
+        if diff_out="$(_compare_animations "$baseline_file" "$live_file")"; then
+            echo "  [PASS] $rf: matches baseline (leaves byte-exact positional, curves set-compared)"
+            PASS=$((PASS + 1))
+        else
+            echo "  [FAIL] $rf: differs from baseline (leaves byte-exact positional, curves set-compared)"
             echo "$diff_out"
             FAIL=$((FAIL + 1))
         fi
