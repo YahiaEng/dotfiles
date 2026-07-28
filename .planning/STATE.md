@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13.1
 current_phase_name: hyprland-lua-config-migration
 status: executing
-stopped_at: Completed 13.1-01-PLAN.md
-last_updated: "2026-07-28T02:26:28.406Z"
+stopped_at: Completed 13.1-02-PLAN.md
+last_updated: "2026-07-28T02:59:20.286Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 13.1 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 30
-  completed_plans: 21
+  completed_plans: 22
   percent: 38
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13.1 (hyprland-lua-config-migration) — EXECUTING
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
-Progress: [███████░░░] 70%
+Progress: [███████░░░] 73%
 Last activity: 2026-07-28 — Phase 13.1 execution started
 
 ## Performance Metrics
@@ -150,6 +150,7 @@ Last activity: 2026-07-28 — Phase 13.1 execution started
 | Phase 13 P06 | ~25min | 2 tasks | 4 files |
 | Phase 13 P07 | ~90min | 4 tasks | 6 files |
 | Phase 13.1 P01 | 25min | 2 tasks | 7 files |
+| Phase 13.1 P02 | 20min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -223,6 +224,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13.1-01: hypr-equivalence-check built and both D-10 failure branches proven live (altered baseline, absent baseline)
 - [Phase ?]: 13.1-01: pre-migration .hypr-baseline/ committed (80 binds, 46 option keys) from live hyprlang 0.56.1 session, commit touches no hypr config file (D-09)
 - [Phase ?]: 13.1-01: permission grants (4) have no getoption representation — synthesized into uncovered.txt with reason + named compensating check (13.1-06 review), rather than relying on a getoption failure to surface them
+- [Phase ?]: Task 2's D-13 degradation fault-injection and rollback proof were performed in the same session as Task 1 (findings written before Task 1's commit) but committed separately after checkpoint approval; the hyprctl getoption JSON key-name/type divergence found during Task 1 is handed off to plan 13.1-03, not fixed here
 
 ### Quick Tasks Completed
 
@@ -306,8 +308,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-28T02:26:28.395Z
-Stopped at: Completed 13.1-01-PLAN.md
+Last session: 2026-07-28T02:59:20.274Z
+Stopped at: Completed 13.1-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
