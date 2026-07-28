@@ -15,20 +15,29 @@
 #
 #   CHECK A — reference resolution: every motion-token reference in every
 #             non-exempt scanned surface (a CSS `var(--motion-*)` usage, a
-#             QML `Motion.<property>` usage, or the curve name in a
-#             Hyprland `animation =` line) must resolve against the name
-#             set the pipeline actually emitted under
+#             QML `Motion.<property>` usage, the curve name in a Hyprland
+#             `animation =` line, or a `tokens.motion.speed.<name>` /
+#             `tokens.motion.curves.<name>` access or `"motion-<name>"`
+#             bezier-argument literal in a Lua config module) must resolve
+#             against the name set the pipeline actually emitted under
 #             ~/.local/state/theme/{gtk-4.0-motion.css,motion.json,
-#             hyprland-motion.conf}. This is the WLOG-01-style killer for
-#             motion, exactly `waybar-design-lint`'s CHECK A precedent.
+#             hyprland-motion.conf,hyprland-tokens.lua}. This is the
+#             WLOG-01-style killer for motion, exactly
+#             `waybar-design-lint`'s CHECK A precedent.
 #   CHECK B — no raw values: no non-exempt surface may hand-roll a bare
 #             duration/easing literal instead of consuming a token. For
 #             CSS/QML this is a literal `Nms`/`Ns`/`cubic-bezier(...)`/CSS
 #             easing keyword outside a `var(...)`/`Motion.*` reference; for
-#             Hyprland it is a `bezier =` line defining a NEW curve under a
-#             non-`motion-`-prefixed name instead of consuming an emitted
-#             one (Hyprland has no `var()`-equivalent reference mechanism —
-#             a hand-authored curve IS the raw-value shape there).
+#             Hyprland `.conf` it is a `bezier =` line defining a NEW curve
+#             under a non-`motion-`-prefixed name instead of consuming an
+#             emitted one (Hyprland has no `var()`-equivalent reference
+#             mechanism — a hand-authored curve IS the raw-value shape
+#             there); for a Lua config module it is a bare numeric literal
+#             passed as an `hl.animation` call's `speed` field, or a
+#             numeric control-point array passed as an `hl.curve` call's
+#             `points` field — the same "a hand-authored value IS the
+#             raw-value shape" posture as the Hyprland `.conf` path, since
+#             Lua has no `var()`-equivalent reference mechanism either.
 #   CHECK C — scanned-count floor: the run must scan more than zero
 #             surfaces; a fixed expected count would go stale the moment a
 #             later phase adds surfaces, so the assertion is `> 0`, with
@@ -36,9 +45,11 @@
 #             is visible to a human.
 #
 # Deny-by-default (D-23): every repo-authored GTK4 stylesheet, Hyprland
-# `.conf` fragment under the hypr config tree, and `.qml` file under the
-# quickshell config tree is scanned; there is no per-file opt-in registry,
-# so a brand-new Phase 14-17 surface is covered the moment its file exists.
+# `.conf`/`.lua` fragment under the hypr config tree, and `.qml` file under
+# the quickshell config tree is scanned; there is no per-file opt-in
+# registry, so a brand-new Phase 14-17 surface (or a new `.lua` config
+# module added by Phase 13.1 itself) is covered the moment its file
+# exists.
 # A small, explicit EXEMPTIONS list (below) carries the debt this phase
 # deliberately does not close yet — every entry requires a non-empty
 # reason and prints an `[EXEMPT]` line on EVERY run, so that debt stays
@@ -50,13 +61,14 @@
 #       No argument: scans the real deployed surface set (hypr config
 #       tree, quickshell config tree, and the known GTK app config dirs).
 #       With an argument: treats target-dir as ONE flat directory and
-#       recursively globs the same three extensions (.css/.scss, .conf,
-#       .qml) inside it — the same code path serves a throwaway/poisoned
-#       fixture directory as serves the real tree (keybind-doctor's D-18
-#       path-argument precedent: "a gate that cannot fail is not a gate").
+#       recursively globs the same four extensions (.css/.scss, .conf,
+#       .qml, .lua) inside it — the same code path serves a
+#       throwaway/poisoned fixture directory as serves the real tree
+#       (keybind-doctor's D-18 path-argument precedent: "a gate that
+#       cannot fail is not a gate").
 #
 #   motion-lint --self-test
-#       Runs this script against each of the eleven committed fixtures
+#       Runs this script against each of the fourteen committed fixtures
 #       under tests/motion-fixtures/ (one at a time, in isolation) and asserts
 #       the expected verdict: compliant fixtures exit 0, poisoned fixtures
 #       exit non-zero. Makes criterion 3's "proven to fail" property a
@@ -112,6 +124,7 @@ _motion_lint_checks() {
 import json
 import os
 import re
+import subprocess
 import sys
 
 state_dir = sys.argv[1]
@@ -226,7 +239,78 @@ def load_hypr_defs():
             bezier_names.add(m.group(1))
         for m in re.finditer(r'^\$([A-Za-z_][A-Za-z0-9_]*)\s*=', body, re.M):
             var_names.add(m.group(1))
+    else:
+        # 13.1-06: this fragment is OPTIONAL now that hyprland-tokens.lua
+        # (load_lua_defs, below) carries the same speed/curve names for the
+        # Lua config surface — its absence becomes the NORMAL post-cutover
+        # state once the hyprlang emitter retires, and a lint that hard-
+        # fails on that account would be a self-inflicted outage. Printed
+        # (not silent) so the skip stays visible, same visibility
+        # discipline as an EXEMPT line.
+        emit('NOTE', 'INFO',
+             f'{path} absent — optional legacy hyprland-motion.conf '
+             'source skipped (normal state after the hyprlang emitter '
+             'retires; hyprland-tokens.lua remains the primary hypr '
+             'definition source going forward)')
     return bezier_names, var_names
+
+
+# Phase 13.1/13.1-06: hyprland-tokens.lua is a `return {...}` Lua table,
+# not JSON/hyprlang — parsed in its OWN language runtime (same
+# "load-native-format-then-walk-keys" shape lib/contract.sh's `lua-table`
+# extractor already established for this exact file) rather than regexed
+# as text, so a definition is only ever as good as what the pipeline
+# actually emits, never a guess about Lua table syntax.
+_LUA_DEFS_SCRIPT = """
+local path = arg[1]
+local ok, data = pcall(dofile, path)
+if not ok or type(data) ~= 'table' then os.exit(1) end
+local motion = data.motion
+if type(motion) ~= 'table' then os.exit(0) end
+local speed = motion.speed
+if type(speed) == 'table' then
+    for k in pairs(speed) do print('SPEED\\t' .. tostring(k)) end
+end
+local curves = motion.curves
+if type(curves) == 'table' then
+    for k in pairs(curves) do print('CURVE\\t' .. tostring(k)) end
+end
+"""
+
+
+def load_lua_defs():
+    path = os.path.join(state_dir, 'hyprland-tokens.lua')
+    speed_defs = set()   # bare tokens.motion.speed.<name> names
+    curve_defs = set()   # "motion-<name>" derived bezier-argument strings
+    curve_base_defs = set()  # bare tokens.motion.curves.<name> names
+    if not os.path.isfile(path):
+        emit('NOTE', 'INFO',
+             f'{path} absent — Lua token definition source skipped')
+        return speed_defs, curve_defs, curve_base_defs
+    try:
+        proc = subprocess.run(
+            ['lua', '-', path], input=_LUA_DEFS_SCRIPT,
+            capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: failed to run the lua interpreter for definition '
+             f'extraction ({exc})')
+        return speed_defs, curve_defs, curve_base_defs
+    if proc.returncode != 0:
+        emit('ABORT', 'FAIL',
+             f'{path}: lua definition extraction failed (dofile error) — '
+             f'{proc.stderr.strip()}')
+        return speed_defs, curve_defs, curve_base_defs
+    for line in proc.stdout.splitlines():
+        if '\t' not in line:
+            continue
+        tag, name = line.split('\t', 1)
+        if tag == 'SPEED':
+            speed_defs.add(name)
+        elif tag == 'CURVE':
+            curve_defs.add('motion-' + name)
+            curve_base_defs.add(name)
+    return speed_defs, curve_defs, curve_base_defs
 
 
 def load_qml_defs():
@@ -253,6 +337,7 @@ def load_qml_defs():
 gtk_defs = load_gtk_defs()
 hypr_bezier_defs, hypr_var_defs = load_hypr_defs()
 qml_defs = load_qml_defs()
+lua_speed_defs, lua_curve_defs, lua_curve_base_defs = load_lua_defs()
 
 # ── Exemption list (D-23/D-32) — path-glob -> required non-empty reason.
 #    Printed on EVERY run regardless of whether a matching file currently
@@ -408,12 +493,13 @@ def line_is_exempt(path, line_no):
 #    empty-reference-name-set guard): with nothing to resolve against,
 #    every subsequent reference would look dangling, which is a vacuous
 #    failure mode, not a real one. ──────────────────────────────────────
-if not gtk_defs and not hypr_bezier_defs and not hypr_var_defs and not qml_defs:
+if (not gtk_defs and not hypr_bezier_defs and not hypr_var_defs
+        and not qml_defs and not lua_speed_defs and not lua_curve_defs):
     emit('DEFS', 'FAIL',
          f'zero motion definitions loaded from {state_dir} '
-         '(gtk-4.0-motion.css / hyprland-motion.conf / motion.json) — '
-         'refusing to run: an empty definition set would make every '
-         'reference look dangling')
+         '(gtk-4.0-motion.css / hyprland-motion.conf / motion.json / '
+         'hyprland-tokens.lua) — refusing to run: an empty definition '
+         'set would make every reference look dangling')
     dump()
     sys.exit(0)
 
@@ -435,10 +521,29 @@ def under_fixtures_dir(path):
     return real == fixtures_dir or real.startswith(fixtures_dir + os.sep)
 
 
+# 13.1-06: ~/.config/hypr/state/tokens.lua is stow.sh's own symlink INTO
+# ~/.local/state/theme/hyprland-tokens.lua (D-13's require() mechanism) —
+# it lives physically inside the hypr config tree root, so the .lua glob
+# below (followlinks=True) would otherwise pick up the GENERATED token
+# table itself as if it were a repo-authored surface, and flag its own
+# literal `points = { {0.2, 0}, ... }` definitions as CHECK B raw-value
+# violations. This is the definition SOURCE, not a scannable surface — the
+# same distinction that already keeps gtk-4.0-motion.css/motion.json/
+# hyprland-motion.conf (which live under $STATE_DIR, never one of ROOTS)
+# out of the surface set; the Lua source needed an explicit path-realpath
+# exclusion because, unlike those three, it is reachable through a
+# followed symlink INSIDE a scanned root.
+lua_tokens_realpath = os.path.realpath(os.path.join(state_dir, 'hyprland-tokens.lua'))
+
+
+def is_lua_tokens_file(path):
+    return os.path.realpath(path) == lua_tokens_realpath
+
+
 # ── Surface collection — recursive glob by extension under each root.
 #    Same function serves the real multi-root run and the single
 #    throwaway/fixture-dir run (D-28: "same code path"). ─────────────────
-surfaces = {'css': [], 'conf': [], 'qml': []}
+surfaces = {'css': [], 'conf': [], 'qml': [], 'lua': []}
 for root in roots:
     if not os.path.isdir(root):
         continue
@@ -457,12 +562,16 @@ for root in roots:
             full = os.path.join(dirpath, fn)
             if exclude_fixtures and under_fixtures_dir(full):
                 continue
+            if fn.endswith('.lua') and is_lua_tokens_file(full):
+                continue
             if fn.endswith('.css') or fn.endswith('.scss'):
                 surfaces['css'].append(full)
             elif fn.endswith('.conf'):
                 surfaces['conf'].append(full)
             elif fn.endswith('.qml'):
                 surfaces['qml'].append(full)
+            elif fn.endswith('.lua'):
+                surfaces['lua'].append(full)
 
 # ── Resolve LINE_EXEMPTIONS content anchors (WR-04) — must happen after
 #    surfaces are collected, since resolving a content anchor requires
@@ -470,7 +579,7 @@ for root in roots:
 #    checked above (structural, file-independent); this pass emits the
 #    per-run EXEMPT INFO/FAIL line carrying the actual (or FAILED-to-
 #    resolve) span. ──────────────────────────────────────────────────────
-all_scanned_paths = surfaces['css'] + surfaces['conf'] + surfaces['qml']
+all_scanned_paths = surfaces['css'] + surfaces['conf'] + surfaces['qml'] + surfaces['lua']
 for lx in LINE_EXEMPTIONS:
     if not lx['reason'].strip():
         continue  # already emitted FAIL above; don't also print a range
@@ -509,7 +618,8 @@ for lx in LINE_EXEMPTIONS:
     lx['end'] = end_idx + 1
     emit('EXEMPT', 'INFO', f"{lx['label']} (lines {lx['start']}-{lx['end']}) — {lx['reason']}")
 
-total_scanned = len(surfaces['css']) + len(surfaces['conf']) + len(surfaces['qml'])
+total_scanned = (len(surfaces['css']) + len(surfaces['conf'])
+                 + len(surfaces['qml']) + len(surfaces['lua']))
 
 if total_scanned == 0:
     emit('C', 'FAIL', 'motion-lint scanned 0 surfaces; check the surface glob.')
@@ -517,7 +627,7 @@ else:
     emit('C', 'PASS',
          f'motion-lint scanned {total_scanned} surface(s) '
          f'(css/scss={len(surfaces["css"])}, conf={len(surfaces["conf"])}, '
-         f'qml={len(surfaces["qml"])})')
+         f'qml={len(surfaces["qml"])}, lua={len(surfaces["lua"])})')
 
 
 # ── CHECK A/B per surface type ──────────────────────────────────────────
@@ -702,6 +812,104 @@ def check_hypr_surface(path):
     return True
 
 
+# ── Lua surface (13.1-06) — a repo-authored `.lua` config module under the
+#    hypr config tree. Hyprland's Lua config manager has no `var()`-
+#    equivalent reference mechanism any more than hyprlang does, so the
+#    same posture as check_hypr_surface's bezier-declaration check applies:
+#    a hand-authored duration/control-point value IS the raw-value shape,
+#    and a token reference is whatever literal `tokens.motion.speed.<name>`
+#    / `tokens.motion.curves.<name>` access, or `"motion-<name>"`
+#    bezier-argument string literal, actually appears in the source text.
+def strip_lua_comments(text):
+    # Block comments (--[[ ... ]], simple form only — this repo's Lua
+    # config tree does not use the --[==[ level-padding form) collapsed to
+    # blank lines first, so line numbers stay accurate for file:line
+    # citations, same discipline as the CSS/QML strippers above.
+    text = re.sub(r'--\[\[.*?\]\]',
+                   lambda m: '\n' * m.group(0).count('\n'), text, flags=re.S)
+    lines = text.split('\n')
+    out = []
+    for line in lines:
+        in_string = None
+        cut = -1
+        i = 0
+        n = len(line)
+        while i < n:
+            ch = line[i]
+            if in_string:
+                if ch == '\\' and i + 1 < n:
+                    i += 2
+                    continue
+                if ch == in_string:
+                    in_string = None
+            elif ch in ('"', "'"):
+                in_string = ch
+            elif ch == '-' and i + 1 < n and line[i + 1] == '-':
+                cut = i
+                break
+            i += 1
+        out.append(line[:cut] if cut != -1 else line)
+    return '\n'.join(out)
+
+
+LUA_SPEED_TOKEN_REF_RE = re.compile(r'tokens\.motion\.speed\.([A-Za-z_][A-Za-z0-9_]*)')
+LUA_CURVE_TOKEN_DOT_REF_RE = re.compile(r'tokens\.motion\.curves\.([A-Za-z_][A-Za-z0-9_]*)')
+LUA_CURVE_TOKEN_BRACKET_REF_RE = re.compile(r'tokens\.motion\.curves\[\s*[\'"]([^\'"]+)[\'"]\s*\]')
+LUA_BEZIER_LITERAL_RE = re.compile(r'bezier\s*=\s*[\'"](motion-[A-Za-z0-9_-]+)[\'"]')
+LUA_SPEED_NUMERIC_RE = re.compile(r'speed\s*=\s*(-?\d+(?:\.\d+)?)\s*[,}]')
+LUA_POINTS_LITERAL_RE = re.compile(r'points\s*=\s*\{\s*\{\s*-?\d')
+
+
+def check_lua_surface(path):
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+
+    body = strip_lua_comments(raw)
+    lines = body.split('\n')
+    a_hits = []
+    b_hits = []
+    for i, line in enumerate(lines, start=1):
+        for m in LUA_SPEED_TOKEN_REF_RE.finditer(line):
+            name = m.group(1)
+            if name not in lua_speed_defs:
+                a_hits.append((i, f'tokens.motion.speed.{name}'))
+        for m in LUA_CURVE_TOKEN_DOT_REF_RE.finditer(line):
+            name = m.group(1)
+            if name not in lua_curve_base_defs:
+                a_hits.append((i, f'tokens.motion.curves.{name}'))
+        for m in LUA_CURVE_TOKEN_BRACKET_REF_RE.finditer(line):
+            name = m.group(1)
+            if name not in lua_curve_base_defs:
+                a_hits.append((i, f'tokens.motion.curves["{name}"]'))
+        for m in LUA_BEZIER_LITERAL_RE.finditer(line):
+            name = m.group(1)
+            if name not in lua_curve_defs:
+                a_hits.append((i, name))
+        for m in LUA_SPEED_NUMERIC_RE.finditer(line):
+            b_hits.append((i, f'speed = {m.group(1)}'))
+        if LUA_POINTS_LITERAL_RE.search(line):
+            b_hits.append((i, 'points = { {literal control-point numbers} }'))
+
+    if a_hits:
+        for i, name in a_hits:
+            emit('A', 'FAIL', f'{path}:{i} ' + DANGLING_MSG.format(name=name))
+    else:
+        emit('A', 'PASS', f'{path}: all token references resolve')
+
+    if b_hits:
+        for i, val in b_hits:
+            emit('B', 'FAIL', f'{path}:{i} ' + RAW_VALUE_MSG.format(val=val))
+    else:
+        emit('B', 'PASS', f'{path}: no raw duration/control-point literals')
+
+    return True
+
+
 MOTION_PROP_RE = re.compile(r'Motion\.([A-Za-z][A-Za-z0-9]*)')
 QML_DURATION_RE = re.compile(r'\bduration\s*:\s*(\d+)\b')
 QML_LITERAL_BEZIER_RE = re.compile(r'easing\.bezierCurve\s*:\s*\[')
@@ -760,6 +968,8 @@ for p in sorted(surfaces['conf']):
     all_surfaces.append(('conf', p))
 for p in sorted(surfaces['qml']):
     all_surfaces.append(('qml', p))
+for p in sorted(surfaces['lua']):
+    all_surfaces.append(('lua', p))
 
 for kind, path in all_surfaces:
     if path_is_exempt(path):
@@ -768,6 +978,8 @@ for kind, path in all_surfaces:
         ok = check_css_surface(path)
     elif kind == 'conf':
         ok = check_hypr_surface(path)
+    elif kind == 'lua':
+        ok = check_lua_surface(path)
     else:
         ok = check_qml_surface(path)
     if not ok:
@@ -790,11 +1002,14 @@ run_self_test() {
         "compliant-qml.qml:0"
         "poisoned-raw-qml.qml:1"
         "poisoned-dangling-qml.qml:1"
+        "compliant-hypr.lua:0"
+        "poisoned-raw-hypr.lua:1"
+        "poisoned-dangling-hypr.lua:1"
     )
     local st_pass=0 st_fail=0
     local entry fname expect_nonzero src tmp out rc want_desc
 
-    echo "motion-lint --self-test — replaying the eleven committed fixtures"
+    echo "motion-lint --self-test — replaying the fourteen committed fixtures"
     echo ""
 
     for entry in "${fixtures[@]}"; do
@@ -857,6 +1072,9 @@ if [[ "${1:-}" == "--no-pending" ]]; then
                     FAIL) check "exemption entry: $detail" "1" ;;
                     *)    printf '  [EXEMPT] %s\n' "$detail" ;;
                 esac
+                ;;
+            NOTE)
+                printf '  [NOTE] %s\n' "$detail"
                 ;;
             *)
                 case "$status" in
@@ -924,6 +1142,9 @@ while IFS=$'\t' read -r tag status detail; do
             ;;
         DEFS)
             check "$detail" "1"
+            ;;
+        NOTE)
+            printf '  [NOTE] %s\n' "$detail"
             ;;
         *)
             case "$status" in
