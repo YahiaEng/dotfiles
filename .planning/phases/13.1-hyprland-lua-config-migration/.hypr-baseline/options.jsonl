@@ -1,0 +1,46 @@
+{"option": "animations:enabled", "int": 1, "set": true }
+{"option": "cursor:no_hardware_cursors", "int": 1, "set": true }
+{"option": "decoration:active_opacity", "float": 1.000000, "set": true }
+{"option": "decoration:blur:brightness", "float": 0.800000, "set": true }
+{"option": "decoration:blur:contrast", "float": 0.900000, "set": true }
+{"option": "decoration:blur:enabled", "int": 1, "set": true }
+{"option": "decoration:blur:new_optimizations", "int": 1, "set": true }
+{"option": "decoration:blur:noise", "float": 0.020000, "set": true }
+{"option": "decoration:blur:passes", "int": 3, "set": true }
+{"option": "decoration:blur:size", "int": 8, "set": true }
+{"option": "decoration:blur:vibrancy", "float": 0.200000, "set": true }
+{"option": "decoration:blur:vibrancy_darkness", "float": 0.500000, "set": true }
+{"option": "decoration:blur:xray", "int": 1, "set": true }
+{"option": "decoration:fullscreen_opacity", "float": 1.000000, "set": true }
+{"option": "decoration:inactive_opacity", "float": 0.920000, "set": true }
+{"option": "decoration:rounding", "int": 12, "set": true }
+{"option": "decoration:shadow:color", "custom": "55000000 0deg", "set": true }
+{"option": "decoration:shadow:enabled", "int": 1, "set": true }
+{"option": "decoration:shadow:offset", "vec2": [0,4], "set": true }
+{"option": "decoration:shadow:range", "int": 20, "set": true }
+{"option": "decoration:shadow:render_power", "int": 3, "set": true }
+{"option": "dwindle:preserve_split", "int": 1, "set": true }
+{"option": "dwindle:smart_resizing", "int": 1, "set": true }
+{"option": "dwindle:smart_split", "int": 0, "set": true }
+{"option": "ecosystem:enforce_permissions", "int": 0, "set": true }
+{"option": "general:allow_tearing", "int": 0, "set": true }
+{"option": "general:border_size", "int": 3, "set": true }
+{"option": "general:col.active_border", "custom": "ffff79c6 ffbd93f9 ff8be9fd 45deg", "set": true }
+{"option": "general:col.inactive_border", "custom": "ff6272a4 0deg", "set": true }
+{"option": "general:gaps_in", "custom": "5 5 5 5", "set": true }
+{"option": "general:gaps_out", "custom": "10 10 10 10", "set": true }
+{"option": "general:layout", "str": "dwindle", "set": true }
+{"option": "input:follow_mouse", "int": 1, "set": true }
+{"option": "input:kb_layout", "str": "us", "set": true }
+{"option": "input:sensitivity", "float": 0.000000, "set": true }
+{"option": "input:touchpad:natural_scroll", "int": 1, "set": true }
+{"option": "misc:animate_manual_resizes", "int": 1, "set": true }
+{"option": "misc:animate_mouse_windowdragging", "int": 1, "set": true }
+{"option": "misc:disable_hyprland_logo", "int": 1, "set": true }
+{"option": "misc:disable_splash_rendering", "int": 1, "set": true }
+{"option": "misc:enable_swallow", "int": 1, "set": true }
+{"option": "misc:force_default_wallpaper", "int": 0, "set": true }
+{"option": "misc:key_press_enables_dpms", "int": 1, "set": true }
+{"option": "misc:mouse_move_enables_dpms", "int": 1, "set": true }
+{"option": "misc:swallow_regex", "str": "^(kitty)$", "set": true }
+{"option": "xwayland:force_zero_scaling", "int": 1, "set": true }
