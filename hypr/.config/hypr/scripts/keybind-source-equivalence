@@ -23,6 +23,16 @@
 #       that cannot fail is not a gate — same discipline as keybind-doctor
 #       accepting an explicit KEYBINDS_CONF argument).
 #
+#       RETIRED for the default (no-argument) invocation, WR-02
+#       (13.1-REVIEW.md): keybinds.conf was deleted in the 13.1-10
+#       Lua-migration retirement, so DEFAULT_CONF no longer exists on
+#       disk. Running this tool with no arguments now prints a clear
+#       explanation and exits 2 (not a traceback) — keybind-doctor is the
+#       live post-cutover equivalent gate against the real compositor.
+#       Explicit [conf-path] [lua-path] arguments (e.g. against a
+#       historical or deliberately-corrupted copy, as this tool's own
+#       self-test does) still run the real comparison exactly as before.
+#
 # Exit 0 only when every declared bind in keybinds.conf has a matching
 # (mods, key, dispatcher, arg) tuple parsed from keybinds.lua, and vice
 # versa (no extra/missing binds on either side). Any mismatch prints the
@@ -30,7 +40,8 @@
 # A dispatcher call this script's mapping table does not recognise is a
 # HARD FAIL (never a silent skip/pass) — an unrecognised shape means this
 # gate cannot vouch for that bind, which must never look the same as a
-# proven-equal bind.
+# proven-equal bind. A missing conf-path/lua-path input is a separate
+# hard failure (exit 2, see RETIRED note above), never a silent pass.
 
 import re
 import sys
@@ -436,6 +447,35 @@ def tuple_key(b):
 def main():
     conf_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CONF
     lua_path = Path(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_LUA
+
+    # WR-02 (13.1-REVIEW.md): keybinds.conf was deleted in the 13.1-10
+    # Lua-migration retirement, so the DEFAULT_CONF this tool's own
+    # documented no-argument usage points at no longer exists. Without
+    # this guard, open() below raised an unhandled FileNotFoundError and
+    # exited with a Python traceback instead of a clean report — the same
+    # discipline keybind-doctor and hypr-equivalence-check were already
+    # given explicit [[ ! -f ... ]] guards for when their own comparison
+    # sources were retired. This tool's whole purpose was proving
+    # keybinds.conf and keybinds.lua matched during the migration; with
+    # the conf side gone for good, the default invocation is retired
+    # (keybind-doctor is the live post-cutover equivalent gate), but an
+    # explicit [conf-path] [lua-path] self-test invocation against an
+    # existing corrupted copy must still work exactly as before.
+    for path, label in ((conf_path, "conf"), (lua_path, "lua")):
+        if not path.exists():
+            print(f"keybind-source-equivalence: {path} not found.")
+            if path == DEFAULT_CONF:
+                print(
+                    "keybinds.conf was deleted in the 13.1-10 Lua-migration "
+                    "retirement -- this tool's conf-vs-lua source comparison "
+                    "has no remaining conf-side input under the default "
+                    "no-argument invocation, and is retired for that use. "
+                    "keybind-doctor is the live equivalent gate against the "
+                    "real compositor. Pass explicit [conf-path] [lua-path] "
+                    "arguments to run this tool directly (e.g. a self-test "
+                    "against a historical or corrupted copy)."
+                )
+            return 2
 
     conf_binds, conf_errors = parse_conf(conf_path)
     lua_binds, lua_errors = parse_lua(lua_path)
