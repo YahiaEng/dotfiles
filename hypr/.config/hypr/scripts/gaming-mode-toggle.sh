@@ -13,23 +13,31 @@
 # unconditionally reset to "off" on every session start (D-28,
 # autostart.conf) — a stale ON state means the screen never locks.
 #
-# FINDING (documented, not a bug): D-26's OFF-path instruction is to read
-# the pre-toggle decoration/animation values back from the theme engine's
-# rendered `~/.local/state/theme/hyprland.conf` before falling back to
-# `hyprctl reload`. Empirically, that file contains ONLY matugen's color
-# variables ($primary, $secondary, ...) — rounding/blur/animations/shadow
-# are static values in the repo-owned hypr/.config/hypr/hyprland.conf and
-# config/animations.conf, which theme-apply never touches. The read-back
-# below is therefore expected to find nothing on THIS repo's layout, and
-# always falls through to `hyprctl reload` — which is exactly the
-# plan's own designated fallback and is provably correct here, since
-# `hyprctl reload` re-sources the exact same static config every time
-# (the values never vary by theme).
+# FINDING (documented, not a bug; re-stated 13.1-09 against the merged Lua
+# token file, same substance as before the migration): D-26's OFF-path
+# instruction is to read the pre-toggle decoration/animation values back
+# from the theme engine's rendered state before falling back to `hyprctl
+# reload`. The rendered state this script now reads,
+# `~/.local/state/theme/hyprland-tokens.lua`, contains ONLY a `colors`
+# table (the Material You palette) and a `motion` table (curve/speed
+# tokens) — rounding/blur/animations-enabled/shadow-enabled are static
+# values in the repo-owned hypr/.config/hypr/hyprland.lua and
+# config/animations.lua, which theme-apply never touches, exactly as
+# before this migration. The read-back below is therefore still expected
+# to find nothing on THIS repo's layout (no `decoration:*`/`animations:*`
+# key exists anywhere in the merged token table), and always falls
+# through to `hyprctl reload` — which is exactly the plan's own
+# designated fallback and is provably correct here, since `hyprctl
+# reload` re-sources the exact same static config every time (the values
+# never vary by theme).
 
 set -euo pipefail
 
 STATE_FILE="$HOME/.cache/gaming-mode"
-THEME_HYPRLAND_CONF="$HOME/.local/state/theme/hyprland.conf"
+THEME_TOKENS_LUA="$HOME/.local/state/theme/hyprland-tokens.lua"
+CONTRACT_LIB="$HOME/.config/theme-engine/lib/contract.sh"
+# shellcheck source=/dev/null
+[[ -r "$CONTRACT_LIB" ]] && source "$CONTRACT_LIB"
 
 # ── Re-pointed waybar-visibility call (D-03 / P7 D-26). ─────────────────
 # This IS the re-point Phase 7 left this thin one-liner for -- waybar
@@ -59,19 +67,34 @@ _read_state() {
 # engine's rendered state (D-26: never hardcode restore literals). Prints
 # the value if found, prints nothing otherwise (caller falls back to a
 # full `hyprctl reload`, see FINDING above).
+#
+# 13.1-09: reads the merged Lua token table (hyprland-tokens.lua) through
+# lib/contract.sh's `lua-table` value extractor (contract_extract_values,
+# 13.1-05) rather than hand-rolling a second reader for this format —
+# T-13.1-28: keeping one implementation of "how to read this format"
+# instead of three (contract.sh, theme-doctor, theme-parity already share
+# it; this file joining them means no fourth, divergent parser). The
+# extractor emits dot-joined key paths ("colors.primary",
+# "motion.speed.standard", ...) — this file's own $key argument is a
+# colon-joined hyprctl keyword path ("decoration:blur:enabled"), which
+# never matches any key in the colors/motion namespace (see FINDING
+# above) — same "always empty, always falls through" outcome as before
+# this retarget, now via the shared extractor instead of a hyprlang-
+# specific grep.
 _restore_keyword() {
     local key="$1"
-    local leaf="${key##*:}"
-    # Deviation, fix (Rule 1): under `set -euo pipefail`, a `grep -m1`
-    # that finds nothing exits 1, and pipefail propagates that as the
-    # whole pipeline's exit status even though the trailing `sed` exits 0
-    # — the same bug class theme-engine/lib/reload.sh's own comments
-    # document at length (e.g. the `(( counter++ ))` note). Since this
-    # function legitimately returns empty on a miss (the caller checks
-    # `[[ -n "$v" ]]`), the whole pipeline must never be allowed to fail
-    # the calling `v="$(...)"` assignment under `set -e`.
-    grep -m1 -E "^[[:space:]]*${leaf}[[:space:]]*=" "$THEME_HYPRLAND_CONF" 2>/dev/null \
-        | sed -E 's/^[^=]*=[[:space:]]*//' || true
+
+    declare -F contract_extract_values >/dev/null 2>&1 || return 0
+    [[ -f "$THEME_TOKENS_LUA" ]] || return 0
+
+    local k v
+    while IFS=$'\t' read -r k v; do
+        if [[ "$k" == "$key" ]]; then
+            printf '%s' "$v"
+            return 0
+        fi
+    done < <(contract_extract_values "hyprland-tokens.lua" "$THEME_TOKENS_LUA" 2>/dev/null)
+    return 0
 }
 
 gaming_mode_on() {
@@ -101,9 +124,9 @@ gaming_mode_off() {
     #    rendered state first (D-26); fall back to a full `hyprctl reload`
     #    (re-sources the compositor's whole on-disk config) for any value
     #    that isn't present there. On this repo's layout, none of these
-    #    four keys are ever in the rendered hyprland.conf (see FINDING
-    #    above), so this always exercises the reload fallback — which is
-    #    the plan's own designed, guaranteed-correct path.
+    #    four keys are ever in the merged hyprland-tokens.lua table (see
+    #    FINDING above), so this always exercises the reload fallback —
+    #    which is the plan's own designed, guaranteed-correct path.
     local need_reload=0
     local v
 

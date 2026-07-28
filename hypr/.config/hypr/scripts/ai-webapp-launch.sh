@@ -2,13 +2,13 @@
 # ╔══════════════════════════════════════════════════════╗
 # ║        AI DASHBOARD WEB-APP LAUNCHER (MENU-03)        ║
 # ║  Places a Zen AI web-app window on the reserved       ║
-# ║  `name:ai` workspace — see windowrules.conf for why    ║
+# ║  `name:ai` workspace — see windowrules.lua for why     ║
 # ║  this is NOT a windowrule (D-21).                      ║
 # ╚══════════════════════════════════════════════════════╝
 #
 # WHY A SCRIPT, NOT A WINDOWRULE (verified live, 2026-07-13 — see the "AI
 # Dashboard web-app windows" comment block in
-# hypr/.config/hypr/config/windowrules.conf for the full finding):
+# hypr/.config/hypr/config/windowrules.lua for the full finding):
 #   - Zen gives every window the identical class "zen" regardless of URL.
 #   - MOZ_APP_REMOTINGNAME does not change that on this build (RESEARCH
 #     Assumption A1, closed: no effect).

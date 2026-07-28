@@ -262,9 +262,9 @@ get_expected_sentinel_normalized() {
 
 # sentinel_present_in_file <expected-normalized-hex> <contract-filename>
 # Never a raw literal grep (Pitfall 1) — every extracted value is run
-# through contract_normalize_color before comparison, so hyprland.conf's
-# distinct rgba(RRGGBBAA)-no-comma format is checked on equal footing with
-# every @define-color / kitty-kv file.
+# through contract_normalize_color before comparison, so hyprland-tokens.lua's
+# (formerly hyprland.conf's) distinct rgba(RRGGBBAA)-no-comma format is
+# checked on equal footing with every @define-color / kitty-kv file.
 sentinel_present_in_file() {
     local expected="$1"
     local fname="$2"
@@ -284,11 +284,20 @@ sentinel_present_in_file() {
 # Representative set of state-dir files for the per-switch sentinel check
 # (D-36) — spans both format families that actually carry a literal
 # "primary"-named/keyed value (gtk-css: waybar.css/swaync.css/wleave.css;
-# hypr-vars: hyprland.conf — REQUIRED, Pitfall 1's exact target) plus two
-# files where the primary VALUE appears under a different key name
-# (gtk-4.0-colors.css's accent_color; kitty.conf's color4/color12/cursor) —
-# confirming the sentinel is checked by value, not by name, across formats.
-REPRESENTATIVE_FILES=(hyprland.conf waybar.css swaync.css wleave.css gtk-4.0-colors.css kitty.conf)
+# lua-table: hyprland-tokens.lua — REQUIRED, Pitfall 1's exact target,
+# swapped 13.1-09 for the retiring hyprland.conf hypr-vars fragment now
+# that contract.json's hyprland.conf entry is gone in the collapsed
+# contract) plus two files where the primary VALUE appears under a
+# different key name (gtk-4.0-colors.css's accent_color; kitty.conf's
+# color4/color12/cursor) — confirming the sentinel is checked by value,
+# not by name, across formats. `sentinel_present_in_file` and
+# `contract_extract_values` needed no code change for this swap: both
+# already dispatch purely off `contract_format`, and 13.1-05 already
+# added the `lua-table` extractor arm this file's own primary-color
+# lookup at line 257 (`jq -r '.colors.primary...'`, a DIFFERENT palette
+# source used only for the matugen-vs-rendered comparison, not this
+# array) never touches.
+REPRESENTATIVE_FILES=(hyprland-tokens.lua waybar.css swaync.css wleave.css gtk-4.0-colors.css kitty.conf)
 
 # ── D-17: live re-colour assertion (12-06, TOKEN-02) ────────────────────
 # Proves criterion 1 — a theme switch re-colours a LIVE Quickshell surface
@@ -340,7 +349,23 @@ quickshell_probe_open() {
 # was never restarted — the two assertions are deliberately independent.
 quickshell_probe_ensure_open() {
     quickshell_probe_open && return 0
-    hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    # 13.1-09 (Rule 3 — blocking fix, in-file, narrowly scoped): a
+    # Lua-config-managed compositor rejects the classic
+    # `hyprctl dispatch global quickshell:probe` string form outright
+    # ("')' expected near 'quickshell'" — it tries to parse the whole
+    # dispatch line as a Lua expression, per keybinds.lua's own header
+    # comment on this exact mechanism, confirmed live during 13.1-04).
+    # The probe therefore never opened on this Lua-cutover session, the
+    # wait loop below always timed out, and this function's un-guarded
+    # final `quickshell_probe_open` call tripped `set -e` — silently
+    # killing the whole run right after the elephant precondition, before
+    # a single switch or this task's own sentinel check ever executed.
+    # Confirmed live before applying: the bare string form fails with
+    # exactly that Lua parse error; `hl.dsp.global("quickshell:probe")`
+    # (the same Lua expression form keybinds.lua's own bind uses)
+    # succeeds and the probe layer surface appears in `hyprctl layers -j`
+    # immediately afterward.
+    hyprctl dispatch 'hl.dsp.global("quickshell:probe")' >/dev/null 2>&1
     QUICKSHELL_PROBE_WE_SUMMONED=1
     local waited=0
     while ! quickshell_probe_open && (( waited < 30 )); do
@@ -540,7 +565,10 @@ if [[ "$QUICKSHELL_D17_ENABLED" -eq 1 ]]; then
     # run started — never leave a surface open (or closed) that this
     # script itself did not put there.
     if [[ "$QUICKSHELL_PROBE_WE_SUMMONED" -eq 1 && "$QUICKSHELL_PROBE_WAS_OPEN_AT_START" -eq 0 ]]; then
-        hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+        # 13.1-09: same dispatch-syntax fix as quickshell_probe_ensure_open
+        # above — the classic string form is rejected outright on a
+        # Lua-config-managed compositor.
+        hyprctl dispatch 'hl.dsp.global("quickshell:probe")' >/dev/null 2>&1
     fi
 fi
 
