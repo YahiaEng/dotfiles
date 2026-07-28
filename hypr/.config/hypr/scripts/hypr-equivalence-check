@@ -187,6 +187,123 @@ if __name__ == '__main__':
 PYEOF
 }
 
+# ── Normalized options.jsonl comparison (13.1-03 Task 3, D-17/D-18) ──────
+# ── hyprctl -j getoption reports a DIFFERENT JSON type-key NAME, and for  ─
+# ── booleans a different type entirely, depending on whether the value   ─
+# ── was set by the hyprlang parser or the Lua config manager — found     ─
+# ── live during 13.1-02's Task 1 end-to-end proof (custom->css,          ─
+# ── custom->gradient, int->bool), for the SAME semantic value. A plain   ─
+# ── `diff -u` over options.jsonl would report a spurious FAIL for every  ─
+# ── such record once the full config is Lua — roughly 25-27 of this      ─
+# ── repo's 46 baseline records, measured against the committed baseline. ─
+# ── This comparison discards the type-key NAME entirely and compares     ─
+# ── only (option, normalized_value), folding booleans against integers   ─
+# ── (false==0, true==1) so {"int":0} and {"bool":false} compare EQUAL     ─
+# ── while {"int":0} vs {"bool":true} still FAILS. `set` semantics are    ─
+# ── preserved exactly as before (compared by direct equality, never      ─
+# ── normalized). binds.json and animations.json do NOT get this          ─
+# ── treatment — confirmed live in 13.1-03 Task 3 that neither suffers    ─
+# ── the same divergence class (animations.json: no divergence at all;    ─
+# ── binds.json: a DIFFERENT, more severe divergence — see COVERAGE.md).  ─
+# ── A genuine value difference still FAILs and still names the diverged  ─
+# ── key (D-10); malformed/ambiguous records (not exactly one type-key    ─
+# ── besides option/set) are a hard FAIL, never a silent skip.
+_compare_options_normalized() {
+    local baseline="$1" live="$2"
+    python3 - "$baseline" "$live" <<'PYEOF'
+import json
+import sys
+
+
+def load_jsonl(path):
+    records = {}
+    try:
+        fh = open(path, 'r', encoding='utf-8')
+    except OSError as exc:
+        print(f"{path}: cannot read — {exc}", file=sys.stderr)
+        sys.exit(2)
+    with fh:
+        for lineno, raw in enumerate(fh, 1):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                print(f"{path}:{lineno}: invalid JSON — {exc}", file=sys.stderr)
+                sys.exit(2)
+            option = obj.get('option')
+            if option is None:
+                print(f"{path}:{lineno}: record has no 'option' key: {raw}", file=sys.stderr)
+                sys.exit(2)
+            type_keys = [k for k in obj.keys() if k not in ('option', 'set')]
+            if len(type_keys) != 1:
+                print(
+                    f"{path}:{lineno}: expected exactly one type-key besides "
+                    f"option/set, found {type_keys}: {raw}",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
+            tk = type_keys[0]
+            raw_value = obj[tk]
+            # Boolean<->integer normalization ONLY — every other type
+            # (string, float, list/vec2) compares by its own JSON value,
+            # unchanged. This is the one fold explicitly authorized: a
+            # Lua `true`/`false` literal produces a genuine JSON boolean
+            # where hyprlang's own 0/1 int convention represents the same
+            # conceptual state.
+            norm_value = int(raw_value) if isinstance(raw_value, bool) else raw_value
+            records[option] = {
+                'type_key': tk,
+                'raw_value': raw_value,
+                'norm_value': norm_value,
+                'set': obj.get('set'),
+            }
+    return records
+
+
+baseline_path, live_path = sys.argv[1], sys.argv[2]
+baseline = load_jsonl(baseline_path)
+live = load_jsonl(live_path)
+
+all_keys = sorted(set(baseline) | set(live))
+
+diffs = []
+notes = []
+
+for key in all_keys:
+    b = baseline.get(key)
+    l = live.get(key)
+    if b is None:
+        diffs.append(f"+ {key}: present in live only ({l['type_key']}={l['raw_value']!r})")
+        continue
+    if l is None:
+        diffs.append(f"- {key}: present in baseline only ({b['type_key']}={b['raw_value']!r})")
+        continue
+    if b['norm_value'] != l['norm_value'] or b['set'] != l['set']:
+        diffs.append(
+            f"! {key}: baseline={b['type_key']}={b['raw_value']!r} set={b['set']} "
+            f"vs live={l['type_key']}={l['raw_value']!r} set={l['set']} "
+            f"(normalized: {b['norm_value']!r} vs {l['norm_value']!r})"
+        )
+    elif b['type_key'] != l['type_key']:
+        notes.append(
+            f". {key}: type-key differs but normalized value equal "
+            f"(baseline={b['type_key']!r} vs live={l['type_key']!r}, both -> {b['norm_value']!r})"
+        )
+
+for n in notes:
+    print(n)
+
+if diffs:
+    for d in diffs:
+        print(d)
+    sys.exit(1)
+
+sys.exit(0)
+PYEOF
+}
+
 # ── Shared capture routine: writes binds.json/animations.json/options.jsonl ─
 # ── into $1, and (only if $2 == 1) uncovered.txt too (D-16). Used by both  ─
 # ── --snapshot mode and the default check mode's live re-derivation, so   ─
@@ -351,6 +468,23 @@ for rf in binds.json animations.json options.jsonl; do
     if [[ ! -r "$baseline_file" ]]; then
         echo "  [FAIL] $rf: baseline file missing or unreadable — never a SKIP"
         FAIL=$((FAIL + 1))
+        continue
+    fi
+
+    if [[ "$rf" == "options.jsonl" ]]; then
+        # 13.1-03 Task 3: normalized comparison — see
+        # _compare_options_normalized's header comment for why only this
+        # file gets this treatment (binds.json/animations.json do not
+        # suffer the same divergence class — see COVERAGE.md).
+        if diff_out="$(_compare_options_normalized "$baseline_file" "$live_file")"; then
+            echo "  [PASS] $rf: matches baseline (normalized: type-key name discarded, bool<->int folded)"
+            [[ -n "$diff_out" ]] && echo "$diff_out"
+            PASS=$((PASS + 1))
+        else
+            echo "  [FAIL] $rf: differs from baseline (normalized comparison)"
+            echo "$diff_out"
+            FAIL=$((FAIL + 1))
+        fi
         continue
     fi
 
