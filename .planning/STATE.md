@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13.1
 current_phase_name: hyprland-lua-config-migration
 status: executing
-stopped_at: Completed 13.1-03-PLAN.md
-last_updated: "2026-07-28T03:28:11.059Z"
+stopped_at: Completed 13.1-04-PLAN.md
+last_updated: "2026-07-28T03:56:54.665Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 13.1 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 30
-  completed_plans: 23
+  completed_plans: 24
   percent: 38
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13.1 (hyprland-lua-config-migration) — EXECUTING
-Plan: 4 of 10
+Plan: 5 of 10
 Status: Ready to execute
-Progress: [████████░░] 77%
+Progress: [████████░░] 80%
 Last activity: 2026-07-28 — Phase 13.1 execution started
 
 ## Performance Metrics
@@ -152,6 +152,7 @@ Last activity: 2026-07-28 — Phase 13.1 execution started
 | Phase 13.1 P01 | 25min | 2 tasks | 7 files |
 | Phase 13.1 P02 | 20min | 2 tasks | 10 files |
 | Phase 13.1 P03 | ~25min | 3 tasks | 11 files |
+| Phase 13.1 P04 | ~90min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -230,6 +231,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13.1-03: hl.permission() — both positional-string and typed-table forms work on this binary; RESEARCH.md's apparent contradiction was never real
 - [Phase ?]: 13.1-03 Task 3 (authorized addition): normalized options.jsonl equivalence comparison (discard type-key name, fold bool<->int); binds.json found to suffer a WORSE, non-recoverable divergence (dispatcher/arg opaque for every Lua bind) and left byte-exact, flagged prominently for 13.1-08
 - [Phase ?]: 13.1-03: self-caught and corrected a Task 1 measurement bug — hyprctl -j animations returns a 2-element wrapper [leaves, curves], not a flat list; corrected re-measurement (35 leaves, 3 curves) still confirms non-accumulation
+- [Phase ?]: 13.1-04 Task 3 (authorized addition, reassigned from 13.1-08): binds equivalence proof split into a byte-exact structural half (hypr-equivalence-check) and a new source-level half (keybind-source-equivalence), both proven live and proven able to fail; {mouse=true} bind-option divergence left un-loosened as a real open item, not silently tolerated
+- [Phase ?]: 13.1-04: hl.dsp.window.resize/move validate argument shape live at config-load time (extends 13.1-03's field-validator discovery to dispatcher factories); multi-modifier Lua key strings need every modifier joined by its own ' + ' — hyprlang's space-separated convention fails to parse
 
 ### Quick Tasks Completed
 
@@ -313,8 +316,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-28T03:28:11.046Z
-Stopped at: Completed 13.1-03-PLAN.md
+Last session: 2026-07-28T03:56:54.654Z
+Stopped at: Completed 13.1-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
