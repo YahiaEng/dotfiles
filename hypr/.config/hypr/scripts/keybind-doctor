@@ -1,21 +1,30 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
 # ║              KEYBIND-DOCTOR (D-04)                    ║
-# ║  Rerunnable regression gate: cross-checks             ║
-# ║  keybinds.conf against the compositor's ACTUAL         ║
-# ║  registered state (hyprctl binds -j), never the file   ║
+# ║  Rerunnable regression gate: cross-checks              ║
+# ║  keybinds.lua against the compositor's ACTUAL          ║
+# ║  registered state (hyprctl binds), never the file      ║
 # ║  alone. Report-only — never mutates state (no          ║
-# ║  hyprctl reload/keyword, no writes to keybinds.conf).  ║
+# ║  hyprctl reload/keyword, no writes to keybinds.lua).   ║
 # ╚══════════════════════════════════════════════════════╝
 #
-# Usage: keybind-doctor [path-to-keybinds.conf]
-#   Defaults to ~/.config/hypr/config/keybinds.conf. An explicit path is
+# Usage: keybind-doctor [path-to-keybinds.lua]
+#   Defaults to ~/.config/hypr/config/keybinds.lua. An explicit path is
 #   accepted so this gate can be pointed at a throwaway copy for a
 #   regression self-test (a gate that cannot fail is not a gate).
+#
+# Phase 13.1/13.1-09: retargeted from keybinds.conf (hyprlang) to
+# keybinds.lua. This file NEVER falls back to reading keybinds.conf when
+# the Lua module is missing — a silent fallback would let the eventual
+# retirement of the hyprlang tree (13.1-10) break this gate without
+# anyone noticing (T-13.1-27). It never dynamically executes the parsed
+# Lua as code (no `lua`/`dofile` on it) — text-only parsing, same
+# discipline the pre-migration version held for keybinds.conf.
 
 set -uo pipefail
 
-KEYBINDS_CONF="${1:-$HOME/.config/hypr/config/keybinds.conf}"
+KEYBINDS_SRC="${1:-$HOME/.config/hypr/config/keybinds.lua}"
+SRC_LABEL="$(basename -- "$KEYBINDS_SRC")"
 
 PASS=0
 FAIL=0
@@ -35,17 +44,17 @@ check() {
 echo "keybind-doctor — Hyprland keybind regression gate"
 echo ""
 
-if [[ ! -f "$KEYBINDS_CONF" ]]; then
-    printf '  [FAIL] %s not found\n' "$KEYBINDS_CONF"
+if [[ ! -f "$KEYBINDS_SRC" ]]; then
+    printf '  [FAIL] %s not found\n' "$KEYBINDS_SRC"
     FAIL=$((FAIL + 1))
     echo ""
     echo "Summary: ${PASS} passed, ${FAIL} failed"
     exit 1
 fi
 
-# ── modmask resolution (never hardcode SUPER — read $mainMod from the
-#    file's own declaration, same discipline as theme-doctor's contract
-#    sourcing) ─────────────────────────────────────────────────────────
+# ── modmask resolution (never hardcode SUPER — read the `local mainMod`
+#    declaration from the file's own source, same discipline as
+#    theme-doctor's contract sourcing) ───────────────────────────────
 _kbd_mod_bit() {
     case "$1" in
         SUPER) printf '%s' 64 ;;
@@ -60,67 +69,228 @@ _kbd_mod_bit() {
     esac
 }
 
-# shellcheck disable=SC2016 # intentional: literal $ in the grep -P pattern, not shell expansion
-MAINMOD_VALUE=$(grep -oP '^\s*\$mainMod\s*=\s*\K.*' "$KEYBINDS_CONF" | head -1 | tr -d '[:space:]')
-check "\$mainMod resolved from keybinds.conf (got: ${MAINMOD_VALUE:-<unset>})" "$([[ -n "$MAINMOD_VALUE" ]] && echo 0 || echo 1)"
+# shellcheck disable=SC2016 # intentional: literal quote in the grep -P pattern, not shell expansion
+MAINMOD_VALUE=$(grep -oP '^\s*local\s+mainMod\s*=\s*"\K[^"]+' "$KEYBINDS_SRC" | head -1)
+check "mainMod resolved from ${SRC_LABEL} (got: ${MAINMOD_VALUE:-<unset>})" "$([[ -n "$MAINMOD_VALUE" ]] && echo 0 || echo 1)"
 MAINMOD_VALUE="${MAINMOD_VALUE:-SUPER}"
 
 _kbd_modmask() {
-    # $1 = raw mods field, e.g. "$mainMod SHIFT", "ALT", "" — every parsed
-    # field here is handled as display/arithmetic-only text, never fed to
-    # a shell-command-interpretation builtin (V5 input-validation control).
+    # $1 = space-separated modifier tokens (already resolved, no
+    # "mainMod" literal left in it) — every parsed field here is handled
+    # as display/arithmetic-only text, never fed to a shell-command-
+    # interpretation builtin (V5 input-validation control).
     local field="$1" total=0 tok
-    field="${field//\$mainMod/$MAINMOD_VALUE}"
-    total=0
     for tok in $field; do
         total=$((total + $(_kbd_mod_bit "$tok")))
     done
     printf '%s' "$total"
 }
 
-# ── Parse every declared bind*/=... line into a comparable tuple:
-#    modmask|key|keycode|release  ───────────────────────────────────────
+# ── Parse every hl.bind(...) call into a comparable tuple:
+#    modmask|key|keycode|release ────────────────────────────────────
+#
+# Lua bind lines aren't a regex-friendly `key = value, value, value`
+# shape like hyprlang's — they're a real (if simple) function call whose
+# key-string and options-table arguments can themselves contain quoted
+# text with embedded "--" (e.g. `hl.dsp.exec_cmd("uwsm app -- walker -m
+# menus:main")`, `"cliphist list | walker --dmenu | ..."`), which a
+# naive "find the first --" comment search would misidentify as the
+# trailing description. Parsing this correctly needs a real (quote- and
+# bracket-depth-aware) small tokenizer, not a regex — the same reasoning
+# that already pushed hypr-equivalence-check's config-tree/options
+# parsers into python3 rather than bash regex. This function is that
+# tokenizer: single pass, tracks whether it is inside a "..." string
+# (toggled on unescaped quotes) and the combined ( / { bracket depth, so
+# top-level commas (depth==1, the arguments directly inside the outer
+# hl.bind(...) call) are found correctly and nested commas (inside a
+# dispatcher's own argument table, e.g. resize({ x = ..., y = ... }))
+# are not mistaken for argument separators. The true trailing comment is
+# whatever follows the call's own closing paren (where depth returns to
+# 0) — never found by scanning for "--" itself, so a "--" embedded in a
+# quoted argument can never be mistaken for the description marker.
+#
+# A line that doesn't fit the expected shape (unbalanced brackets, an
+# unrecognised key-expression form, or neither 2 nor 3 top-level
+# arguments) is a NAMED shape error, never a silently wrong tuple — same
+# discipline as the plain-text bind-block parser below.
+_kbd_parse_lua_binds() {
+    local path="$1" mainmod="$2"
+    python3 - "$path" "$mainmod" <<'PYEOF'
+import re
+import sys
+
+US = "\x1f"
+path, mainmod = sys.argv[1], sys.argv[2]
+
+try:
+    with open(path, "r", encoding="utf-8") as fh:
+        lines = fh.readlines()
+except OSError as exc:
+    print(f"AWKERR{US}cannot read {path}: {exc}")
+    sys.exit(0)
+
+
+def scan_call(text):
+    """text starts with 'hl.bind('. Returns (args, trailer) where args is
+    the list of top-level (bracket-depth==1) comma-separated argument
+    substrings inside the outer call, and trailer is everything after
+    the call's own closing paren. Returns None on an unbalanced call."""
+    assert text.startswith("hl.bind(")
+    i = len("hl.bind(")
+    depth = 1  # already consumed the opening '('
+    in_string = False
+    arg_start = i
+    args = []
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if in_string:
+            if c == "\\":
+                i += 2
+                continue
+            if c == '"':
+                in_string = False
+            i += 1
+            continue
+        if c == '"':
+            in_string = True
+            i += 1
+            continue
+        if c in "({":
+            depth += 1
+            i += 1
+            continue
+        if c in ")}":
+            depth -= 1
+            if depth == 0:
+                args.append(text[arg_start:i])
+                return args, text[i + 1:]
+            i += 1
+            continue
+        if c == "," and depth == 1:
+            args.append(text[arg_start:i])
+            arg_start = i + 1
+            i += 1
+            continue
+        i += 1
+    return None  # never closed at depth 0 -- unbalanced
+
+
+for lineno, raw in enumerate(lines, 1):
+    stripped = raw.rstrip("\n")
+    lead = stripped.strip()
+    if not lead.startswith("hl.bind("):
+        continue
+
+    result = scan_call(lead)
+    if result is None:
+        print(f"AWKERR{US}line {lineno}: unbalanced hl.bind(...) call — cannot parse")
+        continue
+    args, trailer = result
+    if len(args) not in (2, 3):
+        print(f"AWKERR{US}line {lineno}: hl.bind(...) has {len(args)} top-level argument(s), expected 2 or 3")
+        continue
+
+    key_arg = args[0].strip()
+    dispatcher_arg = args[1].strip()
+    opts_arg = args[2].strip() if len(args) == 3 else ""
+
+    m = re.match(r'^mainMod\s*\.\.\s*"((?:[^"\\]|\\.)*)"$', key_arg)
+    if m:
+        full_key = mainmod + m.group(1)
+    else:
+        m2 = re.match(r'^"((?:[^"\\]|\\.)*)"$', key_arg)
+        if not m2:
+            print(f"AWKERR{US}line {lineno}: unrecognised key expression shape: {key_arg!r}")
+            continue
+        full_key = m2.group(1)
+
+    tokens = full_key.split(" + ")
+    key_token = tokens[-1]
+    mod_tokens = tokens[:-1]
+
+    release = "true" if re.search(r'\brelease\s*=\s*true\b', opts_arg) else "false"
+
+    global_m = re.match(r'^hl\.dsp\.global\(\s*"((?:[^"\\]|\\.)*)"\s*\)$', dispatcher_arg)
+    global_arg = global_m.group(1) if global_m else ""
+
+    trailer_stripped = trailer.strip()
+    has_desc = "1" if trailer_stripped.startswith("--") else "0"
+
+    fields = [
+        "AWKBIND", str(lineno), " ".join(mod_tokens), key_token,
+        has_desc, global_arg, release, dispatcher_arg, lead, full_key,
+    ]
+    print(US.join(fields))
+PYEOF
+}
+
 DECLARED_TUPLES=()
 DECLARED_RAWLINES=()
+DECLARED_GLOBAL_ARG=()
+DECLARED_DISPATCHER_EXPR=()
 DESC_TOTAL=0
 DESC_MISSING=0
-LINE_NO=0
+LUA_SHAPE_BAD=0
 
-while IFS= read -r line; do
-    LINE_NO=$((LINE_NO + 1))
-    if [[ "$line" =~ ^[[:space:]]*(bind[a-z]*)[[:space:]]*=[[:space:]]*([^,]*),[[:space:]]*([^,]*), ]]; then
-        btype="${BASH_REMATCH[1]}"
-        modsfield="${BASH_REMATCH[2]}"
-        keyfield="${BASH_REMATCH[3]}"
-        # trim surrounding whitespace
-        keyfield="${keyfield#"${keyfield%%[![:space:]]*}"}"
-        keyfield="${keyfield%"${keyfield##*[![:space:]]}"}"
+US=$'\x1f'
+while IFS="$US" read -r awk_tag f1 f2 f3 f4 f5 f6 f7 f8 f9; do
+    case "$awk_tag" in
+        AWKERR)
+            LUA_SHAPE_BAD=$((LUA_SHAPE_BAD + 1))
+            printf '    parse shape error: %s\n' "$f1" >&2
+            ;;
+        AWKBIND)
+            lineno="$f1" modsfield="$f2" keyfield="$f3" hasdesc="$f4" globalarg="$f5" release="$f6" dispexpr="$f7" rawline="$f8" fullkey="$f9"
 
-        DESC_TOTAL=$((DESC_TOTAL + 1))
-        if [[ "$line" != *'#'* ]]; then
-            DESC_MISSING=$((DESC_MISSING + 1))
-            printf '    missing description: keybinds.conf:%d\n' "$LINE_NO" >&2
-        fi
+            DESC_TOTAL=$((DESC_TOTAL + 1))
+            if [[ "$hasdesc" != "1" ]]; then
+                DESC_MISSING=$((DESC_MISSING + 1))
+                printf '    missing description: %s:%d\n' "$SRC_LABEL" "$lineno" >&2
+            fi
 
-        release=false
-        [[ "$btype" == *r* ]] && release=true
+            modmask=$(_kbd_modmask "$modsfield")
 
-        modmask=$(_kbd_modmask "$modsfield")
+            # Lua's own key-field serialization is confirmed live, not
+            # assumed, and it is narrower/odder than a simple "keycode
+            # always reads back 0" gap: a Lua-registered code:NNN bind's
+            # PLAIN-TEXT `hyprctl binds` key field is the FULL
+            # modifier-prefixed string (e.g. "SHIFT + code:107"), not
+            # the bare "code:107" — while every ordinary symbolic-key
+            # bind's key field IS stripped down to the bare key (e.g.
+            # "SUPER + SHIFT + Q" registers as modmask=65, key="Q", the
+            # modifier text never appearing in the key field at all).
+            # Both facts confirmed directly on this build during
+            # 13.1-09 (see this task's SUMMARY for the full evidence).
+            # keycode itself always reads 0 for a Lua-registered bind
+            # regardless of key shape (the already-documented
+            # 13.1-03/13.1-04 gap). None of this is loosened here — the
+            # tuple this doctor builds is simply made to match what the
+            # compositor ACTUALLY reports for each shape, which is the
+            # correct parse of this format, not a carve-out.
+            keycode=0
+            if [[ "$keyfield" =~ ^code:[0-9]+$ ]]; then
+                live_key="$fullkey"
+            else
+                live_key="$keyfield"
+            fi
 
-        keyname="$keyfield"
-        keycode=0
-        if [[ "$keyfield" =~ ^code:([0-9]+)$ ]]; then
-            keyname=""
-            keycode="${BASH_REMATCH[1]}"
-        fi
+            DECLARED_TUPLES+=("${modmask}|${live_key}|${keycode}|${release}")
+            DECLARED_RAWLINES+=("${SRC_LABEL}:${lineno}: ${rawline}")
+            DECLARED_GLOBAL_ARG+=("$globalarg")
+            DECLARED_DISPATCHER_EXPR+=("$dispexpr")
+            ;;
+    esac
+done < <(_kbd_parse_lua_binds "$KEYBINDS_SRC" "$MAINMOD_VALUE")
 
-        DECLARED_TUPLES+=("${modmask}|${keyname}|${keycode}|${release}")
-        DECLARED_RAWLINES+=("keybinds.conf:${LINE_NO}: ${line}")
-    fi
-done <"$KEYBINDS_CONF"
+# ── Declared-bind parse shape guard — a line matching hl.bind( that this
+#    tokenizer could not parse must fail BY NAME, never silently vanish
+#    from DECLARED_TUPLES (same discipline as the plain-text bind-block
+#    shape guard below). ──────────────────────────────────────────────
+check "declared-bind parse shape guard: ${DESC_TOTAL} hl.bind(...) line(s) parsed with a recognised shape from ${SRC_LABEL} (parse errors: ${LUA_SHAPE_BAD})" "$([[ "$LUA_SHAPE_BAD" -eq 0 ]] && echo 0 || echo 1)"
 
 # ── Description parity (D-30) — pure static parse, no hyprctl needed ───
-check "description parity (D-30): all ${DESC_TOTAL} declared binds carry a trailing '#' description (missing: ${DESC_MISSING})" "$([[ $DESC_MISSING -eq 0 ]] && echo 0 || echo 1)"
+check "description parity (D-30): all ${DESC_TOTAL} declared binds carry a trailing '--' description (missing: ${DESC_MISSING})" "$([[ $DESC_MISSING -eq 0 ]] && echo 0 || echo 1)"
 
 # ── Static guard for the D-05 `walker -s` bug class (Task 1b). This is a
 #    STATIC GREP ONLY — it proves the known-broken flag string is absent
@@ -128,10 +298,10 @@ check "description parity (D-30): all ${DESC_TOTAL} declared binds carry a trail
 #    `walker -s <set>` *registers* fine in hyprctl binds -j; only the
 #    exec'd process panics (src/data.rs:566). A report-only doctor that
 #    never invokes exec targets cannot catch that class by design. ──────
-if grep -q 'walker -s' "$KEYBINDS_CONF"; then
-    check "static grep: no 'walker -s <set>' invocation in keybinds.conf (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)" "1"
+if grep -q 'walker -s' "$KEYBINDS_SRC"; then
+    check "static grep: no 'walker -s <set>' invocation in ${SRC_LABEL} (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)" "1"
 else
-    check "static grep: no 'walker -s <set>' invocation in keybinds.conf (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)" "0"
+    check "static grep: no 'walker -s <set>' invocation in ${SRC_LABEL} (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)" "0"
 fi
 
 # ── Cross-check against the compositor's ACTUAL registered state ───────
@@ -158,12 +328,14 @@ fi
 # field-correct across every declared bind block on this build. Blocks
 # are blank-line delimited; the FIRST line of each block is a variable
 # block-type token whose letters encode the bind's flags (a `bindel`
-# declaration in keybinds.conf surfaces here as `bindle` — letters
-# reordered — so this token is never treated as a fixed "bind" prefix).
-# The remaining 8 lines carry stable, correctly-ordered field labels:
-# modmask, submap, key, keycode, catchall, description, dispatcher, arg.
-# The shape-guard check below fails BY NAME if that shape ever moves,
-# instead of silently returning wrong tuples.
+# declaration surfaces here as `bindle` — letters reordered — so this
+# token is never treated as a fixed "bind" prefix). The remaining 8 lines
+# carry stable, correctly-ordered field labels: modmask, submap, key,
+# keycode, catchall, description, dispatcher, arg. The shape-guard check
+# below fails BY NAME if that shape ever moves, instead of silently
+# returning wrong tuples. This section is UNCHANGED by the 13.1-09
+# retarget — it has never depended on the declared source's format, only
+# on the compositor's own live reply.
 
 if ! command -v hyprctl >/dev/null 2>&1; then
     echo "  [SKIP] keybind cross-check against hyprctl binds (hyprctl not found)"
@@ -180,13 +352,11 @@ else
         # and not '|': `arg` values can and do contain a literal '|'
         # (e.g. the cliphist pipe bind), and bash's `read` silently
         # COLLAPSES adjacent tabs (tab is IFS-whitespace, so an empty
-        # `key` field — the code:NNN keycode binds always have one —
-        # vanishes and shifts every later field left by one). 0x1f is
-        # neither, so empty fields survive intact:
+        # `key` field vanishes and shifts every later field left by
+        # one). 0x1f is neither, so empty fields survive intact:
         #   AWKERR<0x1f>message                          (named shape problem)
         #   AWKTUPLE<0x1f>modmask<0x1f>key<0x1f>keycode<0x1f>release<0x1f>dispatcher<0x1f>arg
         # then a trailing AWKBLOCKS<0x1f>count line.
-        US=$'\x1f'
         PARSED=$(printf '%s' "$LIVE_BINDS_RAW" | awk -v RS="" -v FS="\n" -v US="$US" '
             {
                 nblocks++
@@ -224,7 +394,7 @@ else
         SHAPE_BAD=0
         SHAPE_BLOCKS=0
         RELEASE_KEYS=()
-        KILLBIND_COUNT=0
+        KILLBIND_LIVE_FOUND=0
 
         while IFS="$US" read -r awk_tag f1 f2 f3 f4 f5 f6; do
             case "$awk_tag" in
@@ -248,8 +418,8 @@ else
                         fi
                     fi
                     [[ "$release" == "true" ]] && RELEASE_KEYS+=("$key")
-                    if [[ "$modmask" == "64" && "$key" == "Escape" && "$dispatcher" == "exec" && "$arg" == "pkill walker" ]]; then
-                        KILLBIND_COUNT=$((KILLBIND_COUNT + 1))
+                    if [[ "$modmask" == "64" && "$key" == "Escape" && "$keycode" == "0" && "$release" == "false" ]]; then
+                        KILLBIND_LIVE_FOUND=1
                     fi
                     ;;
                 AWKBLOCKS)
@@ -299,7 +469,35 @@ else
 
         # 4. Kill-bind presence (D-03) — must fail loudly if a future
         #    phase ever deletes the escape hatch.
-        check "D-03 kill-bind present and registered (Super+Escape -> pkill walker)" "$([[ "$KILLBIND_COUNT" -ge 1 ]] && echo 0 || echo 1)"
+        #
+        #    Split into a source-level half and a live half, the same
+        #    proof shape hypr-equivalence-check already established for
+        #    exactly this gap (COVERAGE.md "Binds equivalence: two-half
+        #    proof"): a Lua-registered bind's dispatcher/arg fields are
+        #    opaque at the compositor's live registry (dispatcher reads
+        #    back "__lua", arg an opaque internal index — confirmed live
+        #    on this build) — the pre-retarget check's exact-match
+        #    `dispatcher == "exec" && arg == "pkill walker"` can now
+        #    never fire for ANY Lua-registered bind, which is why it
+        #    started failing post-cutover (13.1-08's "11 passed, 2
+        #    failed" record). Neither half alone proves what this check
+        #    needs: the live half alone cannot show WHICH command a
+        #    chord runs (the opacity gap itself); the source half alone
+        #    cannot show the bind actually survived config load. Both
+        #    together is not a loosening — it is a different, and more
+        #    directly verifiable, form of the same proof.
+        KILLBIND_SOURCE_FOUND=0
+        i=0
+        for t in "${DECLARED_TUPLES[@]}"; do
+            IFS='|' read -r d_modmask d_key d_keycode d_release <<<"$t"
+            if [[ "$d_modmask" == "64" && "$d_key" == "Escape" && "$d_keycode" == "0" && "$d_release" == "false" ]]; then
+                if [[ "${DECLARED_DISPATCHER_EXPR[$i]}" == 'hl.dsp.exec_cmd("pkill walker")' ]]; then
+                    KILLBIND_SOURCE_FOUND=1
+                fi
+            fi
+            i=$((i + 1))
+        done
+        check "D-03 kill-bind present (source: ${SRC_LABEL} declares Super+Escape -> hl.dsp.exec_cmd(\"pkill walker\"): $([[ $KILLBIND_SOURCE_FOUND -eq 1 ]] && echo yes || echo no); live: that exact chord is registered: $([[ $KILLBIND_LIVE_FOUND -eq 1 ]] && echo yes || echo no))" "$([[ "$KILLBIND_SOURCE_FOUND" -eq 1 && "$KILLBIND_LIVE_FOUND" -eq 1 ]] && echo 0 || echo 1)"
     fi
 fi
 
@@ -318,7 +516,7 @@ fi
 # Quickshell at startup with no log line pointing at the cause.
 #
 # The second positional argument extends this file's existing
-# self-test hook (KEYBINDS_CONF above) to the manifest side, without
+# self-test hook (KEYBINDS_SRC above) to the manifest side, without
 # changing the first argument's meaning.
 SHORTCUTS_MANIFEST="${2:-$HOME/.config/quickshell/shortcuts.json}"
 
@@ -388,7 +586,12 @@ else
         # 4. Chord collision — purely static: reads only the file under
         #    test plus the manifest, no live state, so a throwaway
         #    fixture (never reloaded into the compositor) can still
-        #    fail on exactly this check.
+        #    fail on exactly this check. The declared side's "is this
+        #    bind legitimately the manifest's own `hl.dsp.global(...)`
+        #    registration" question is answered directly from
+        #    DECLARED_GLOBAL_ARG (captured once, at parse time, by
+        #    _kbd_parse_lua_binds) rather than re-parsing the raw line
+        #    text a second time here.
         COLLISION_COUNT=0
         while IFS="$US" read -r m_appid m_name m_mods m_key; do
             [[ -z "$m_appid" ]] && continue
@@ -398,21 +601,8 @@ else
                 IFS='|' read -r d_modmask d_key _ _ <<<"$t"
                 if [[ "$d_modmask" == "$m_modmask" && "$d_key" == "$m_key" ]]; then
                     rawline="${DECLARED_RAWLINES[$i]}"
-                    bare="${rawline#*: }"
-                    if [[ "$bare" =~ ^[[:space:]]*bind[a-z]*[[:space:]]*=[[:space:]]*[^,]*,[[:space:]]*[^,]*,[[:space:]]*([^,]*)(,[[:space:]]*(.*))?$ ]]; then
-                        c_dispatcher="${BASH_REMATCH[1]}"
-                        c_argraw="${BASH_REMATCH[3]}"
-                    else
-                        c_dispatcher=""
-                        c_argraw=""
-                    fi
-                    c_dispatcher="${c_dispatcher%%#*}"
-                    c_dispatcher="${c_dispatcher#"${c_dispatcher%%[![:space:]]*}"}"
-                    c_dispatcher="${c_dispatcher%"${c_dispatcher##*[![:space:]]}"}"
-                    c_argraw="${c_argraw%%#*}"
-                    c_argraw="${c_argraw#"${c_argraw%%[![:space:]]*}"}"
-                    c_argraw="${c_argraw%"${c_argraw##*[![:space:]]}"}"
-                    if [[ "$c_dispatcher" == "global" && "$c_argraw" == "${m_appid}:${m_name}" ]]; then
+                    c_global_arg="${DECLARED_GLOBAL_ARG[$i]}"
+                    if [[ -n "$c_global_arg" && "$c_global_arg" == "${m_appid}:${m_name}" ]]; then
                         : # the manifest entry's own legitimate registration line
                     else
                         COLLISION_COUNT=$((COLLISION_COUNT + 1))
