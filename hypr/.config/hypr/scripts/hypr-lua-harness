@@ -1,36 +1,55 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
 # ║              HYPR-LUA-HARNESS (Phase 13.1)            ║
-# ║  Nested-compositor harness for the hyprlang-to-Lua      ║
-# ║  config migration. Starts a throwaway nested Hyprland   ║
-# ║  instance booting hyprland.lua.disabled (copied in as   ║
-# ║  hyprland.lua, autostart filtered out by default),      ║
-# ║  forwards hyprctl calls to it, and stops it — WITHOUT    ║
-# ║  writing to ~/.config/hypr/ or the repository working    ║
-# ║  tree, and refusing to run at all when                   ║
-# ║  ~/.config/hypr/hyprland.lua already exists (that would   ║
-# ║  mean the live session is already on Lua).                ║
+# ║  Nested-compositor harness for safely test-driving a    ║
+# ║  Hyprland Lua config entry point (live or draft) WITHOUT ║
+# ║  touching the real live session (pid-owning compositor    ║
+# ║  the operator is actually using) or the repository        ║
+# ║  working tree.                                             ║
 # ╚══════════════════════════════════════════════════════╝
 #
-# Plans 13.1-03 through 13.1-08 all use this same tool — it is a real
-# committed tool, not throwaway scaffolding.
+# REPAIRED (13.1 gap-closure session, WR-01/13.1-REVIEW.md): originally
+# built during the hyprlang-to-Lua migration (plans 13.1-03 through
+# 13.1-08) around a `hyprland.lua.disabled` staging convention: the tool
+# refused to run whenever `~/.config/hypr/hyprland.lua` already existed
+# (meaning "the live session is already on Lua, this nested run isn't
+# what you think it is") and required a `.disabled`-suffixed copy of the
+# real entry point to boot from instead. The 13.1-10 cutover made both of
+# those assumptions permanently false: `hyprland.lua` is now ALWAYS the
+# live file (never `.disabled`), so the old guard could never again pass.
+#
+# Repaired rather than retired: this tool's actual job — boot a real,
+# isolated nested Hyprland instance from a chosen Lua entry point without
+# fighting the live session over layer namespaces/D-Bus names — has
+# ongoing value for testing FUTURE hyprland.lua/config/*.lua changes
+# before they ever touch the live compositor, independent of the
+# migration that originally motivated building it. The entry point is now
+# an explicit `--entry <path>` argument (default: the live
+# `~/.config/hypr/hyprland.lua` itself, since that IS the current
+# source of truth) instead of a hardcoded `.disabled`-suffix convention.
 #
 # Usage:
-#   hypr-lua-harness start [--with-autostart]
-#       Refuse (exit non-zero) if ~/.config/hypr/hyprland.lua exists.
-#       Otherwise: mktemp -d a throwaway root, symlink every entry of
-#       ~/.config/hypr/ into <root>/hypr/ EXCEPT hyprland.conf, write
-#       <root>/hypr/hyprland.lua as a copy of
-#       ~/.config/hypr/hyprland.lua.disabled with the
-#       require("config.autostart") line filtered out (unless
-#       --with-autostart was passed) — asserting exactly one line was
-#       removed — launch Hyprland nested under XDG_CONFIG_HOME=<root>,
-#       wait for it to appear in `hyprctl instances -j`, and print its
-#       instance signature. Autostart is excluded by default: a nested
-#       instance running this repo's exec-once lines would spawn a second
-#       waybar/swaync/walker/quickshell/wallpaper-daemon and fight the live
-#       session over layer namespaces and the org.freedesktop.Notifications
-#       bus name.
+#   hypr-lua-harness start [--with-autostart] [--entry <path>]
+#       Default --entry: ~/.config/hypr/hyprland.lua (the live entry
+#       point — the harness boots a nested, fully-isolated copy of it,
+#       it never reads FROM or writes TO the live compositor's own
+#       process). Pass an explicit --entry to test-drive a draft/modified
+#       copy before it is ever installed live. mktemp -d a throwaway
+#       root, symlink every entry of ~/.config/hypr/ into <root>/hypr/
+#       EXCEPT hyprland.conf and hyprland.lua itself (the entry point is
+#       always written explicitly below, never symlinked, so the
+#       autostart-filter step can edit it without risk of writing through
+#       a symlink into the real live file), write <root>/hypr/hyprland.lua
+#       from --entry with the require("config.autostart") line filtered
+#       out (unless --with-autostart was passed) — asserting exactly one
+#       line was removed — launch Hyprland nested under
+#       XDG_CONFIG_HOME=<root>, wait for it to appear in
+#       `hyprctl instances -j`, and print its instance signature.
+#       Autostart is excluded by default: a nested instance running this
+#       repo's exec-once lines would spawn a second
+#       waybar/swaync/walker/quickshell/wallpaper-daemon and fight the
+#       live session over layer namespaces and the
+#       org.freedesktop.Notifications bus name.
 #
 #   hypr-lua-harness hyprctl <args...>
 #       Forward to `hyprctl -i <signature> <args...>` against the running
@@ -45,7 +64,10 @@
 # This tool never writes to ~/.config/hypr/ and never writes into the
 # repository working tree — its only writes are the mktemp -d throwaway
 # root (removed by `stop`) and a small state file under $XDG_RUNTIME_DIR
-# recording which nested instance/root the running harness owns.
+# recording which nested instance/root the running harness owns. It also
+# never sends any dispatch/reload to the live compositor — the nested
+# instance is a fully separate Hyprland process with its own
+# HYPRLAND_INSTANCE_SIGNATURE, reached only via `hyprctl -i <signature>`.
 
 set -uo pipefail
 
@@ -53,7 +75,7 @@ HYPR_CONF_DIR="$HOME/.config/hypr"
 STATE_FILE="${XDG_RUNTIME_DIR:-/tmp}/hypr-lua-harness.state"
 
 usage() {
-    echo "Usage: hypr-lua-harness start [--with-autostart] | hyprctl <args...> | status | stop" >&2
+    echo "Usage: hypr-lua-harness start [--with-autostart] [--entry <path>] | hyprctl <args...> | status | stop" >&2
 }
 
 CMD="${1:-}"
@@ -62,24 +84,33 @@ CMD="${1:-}"
 case "$CMD" in
     start)
         WITH_AUTOSTART=0
-        [[ "${1:-}" == "--with-autostart" ]] && WITH_AUTOSTART=1
-
-        # T-13.1-07: the mere presence of hyprland.lua means the live
-        # session already selects Lua — a nested run under that condition
-        # is not what the caller thinks it is.
-        if [[ -e "$HYPR_CONF_DIR/hyprland.lua" ]]; then
-            echo "hypr-lua-harness: $HYPR_CONF_DIR/hyprland.lua already exists — refusing to start a nested instance (the live session appears to already be on Lua)" >&2
-            exit 1
-        fi
+        ENTRY_POINT="$HYPR_CONF_DIR/hyprland.lua"
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                --with-autostart)
+                    WITH_AUTOSTART=1
+                    shift
+                    ;;
+                --entry)
+                    [[ $# -ge 2 ]] || { echo "hypr-lua-harness: --entry requires a path argument" >&2; exit 1; }
+                    ENTRY_POINT="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "hypr-lua-harness: unrecognised argument: $1" >&2
+                    usage
+                    exit 1
+                    ;;
+            esac
+        done
 
         if [[ -f "$STATE_FILE" ]]; then
             echo "hypr-lua-harness: a harness instance already appears to be running (state file $STATE_FILE exists) — run 'stop' first, or remove the file if stale" >&2
             exit 1
         fi
 
-        DISABLED_ENTRY="$HYPR_CONF_DIR/hyprland.lua.disabled"
-        if [[ ! -f "$DISABLED_ENTRY" ]]; then
-            echo "hypr-lua-harness: $DISABLED_ENTRY not found" >&2
+        if [[ ! -f "$ENTRY_POINT" ]]; then
+            echo "hypr-lua-harness: entry point $ENTRY_POINT not found" >&2
             exit 1
         fi
 
@@ -91,13 +122,21 @@ case "$CMD" in
         mkdir -p "$ROOT/hypr"
 
         # Symlink every entry of the real config root into the throwaway
-        # root EXCEPT hyprland.conf — never write into or read a stale
-        # copy of the repo working tree; every other file (config/,
-        # scripts/, lib/, hyprland.lua.disabled, hyprlock.conf, ...) is
-        # reached live through these symlinks.
+        # root EXCEPT hyprland.conf and hyprland.lua itself — never write
+        # into or read a stale copy of the repo working tree, and never
+        # symlink the entry-point NAME (hyprland.lua) regardless of
+        # whether --entry points at the live file or a draft elsewhere:
+        # the autostart-filter write below always targets
+        # $ROOT/hypr/hyprland.lua directly, and if that path were still a
+        # symlink to the REAL live ~/.config/hypr/hyprland.lua, the `>`
+        # redirection would write straight through the symlink and
+        # corrupt the live file. Every other entry (config/, scripts/,
+        # lib/, hyprlock.conf, ...) is reached live through these
+        # symlinks.
         for entry in "$HYPR_CONF_DIR"/*; do
             base="$(basename "$entry")"
             [[ "$base" == "hyprland.conf" ]] && continue
+            [[ "$base" == "hyprland.lua" ]] && continue
             ln -s "$entry" "$ROOT/hypr/$base"
         done
 
@@ -107,17 +146,17 @@ case "$CMD" in
         # drifted copy. Anchored to line-start/end (^...$) so it matches
         # only the real CODE line, never an explanatory comment mentioning
         # the same string.
-        AUTOSTART_MATCHES="$(grep -cx 'require("config.autostart")' "$DISABLED_ENTRY" || true)"
+        AUTOSTART_MATCHES="$(grep -cx 'require("config.autostart")' "$ENTRY_POINT" || true)"
         if [[ "$AUTOSTART_MATCHES" != "1" ]]; then
-            echo "hypr-lua-harness: expected exactly ONE require(\"config.autostart\") line in $DISABLED_ENTRY, found $AUTOSTART_MATCHES — refusing to start (the harness entry point has drifted from the real one)" >&2
+            echo "hypr-lua-harness: expected exactly ONE require(\"config.autostart\") line in $ENTRY_POINT, found $AUTOSTART_MATCHES — refusing to start (the entry point has drifted from what this harness expects)" >&2
             rm -rf "$ROOT"
             exit 1
         fi
 
         if [[ "$WITH_AUTOSTART" == "1" ]]; then
-            cp "$DISABLED_ENTRY" "$ROOT/hypr/hyprland.lua"
+            cp "$ENTRY_POINT" "$ROOT/hypr/hyprland.lua"
         else
-            grep -vx 'require("config.autostart")' "$DISABLED_ENTRY" > "$ROOT/hypr/hyprland.lua"
+            grep -vx 'require("config.autostart")' "$ENTRY_POINT" > "$ROOT/hypr/hyprland.lua"
         fi
 
         LOG_FILE="$ROOT/nested-hyprland.log"
