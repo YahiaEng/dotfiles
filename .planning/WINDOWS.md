@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 7
+open_count: 9
 waived_count: 0
-fixed_count: 5
-total_count: 12
-last_updated: 2026-07-28T12:14:49.536Z
+fixed_count: 6
+total_count: 15
+last_updated: 2026-07-28T13:12:39.733Z
 ---
 
 # Broken Windows Ledger
@@ -27,6 +27,9 @@ last_updated: 2026-07-28T12:14:49.536Z
 | 10 | 13 | deviation | hypr/.config/hypr/config/animations.conf |  | D-06 boundary correction: layer-surface exits (walker/swaync/wleave) are client-owned, not compositor-owned; Check 3's original render-gate method had no valid instrument, closed on mechanical proof instead (13-01-SUMMARY.md) | open |  | 2026-07-27T03:43:43.806Z |  |
 | 11 | 13.1 | deviation | hypr/.config/hypr/config/windowrules.lua |  | hl.window_rule size field's percentage form (85% 85% / 70% 65%) registers with zero configerrors but has no runtime effect on installed Hyprland 0.56.1 Lua config manager; affects 6/30 rules (5 pickers + yazi-fm); see COVERAGE.md 'Window-rule size field' section and 13.1-07-SUMMARY.md | open |  | 2026-07-28T04:47:47.278Z |  |
 | 12 | 13.1 | deviation | hypr/.config/hypr/scripts/gaming-mode-toggle.sh |  | hyprctl keyword is a silent no-op on the Lua-config compositor (exit 0, no effect) - breaks gaming-mode-toggle's eye-candy on/off calls; see deferred-items.md item 1 | fixed |  | 2026-07-28T10:25:31.641Z | 2026-07-28T12:14:49.536Z |
+| 13 | 13.1 | deviation | hypr/.config/hypr/hypridle.conf |  | 13.1-09's consumer-retarget sweep was INCOMPLETE. That plan correctly identified the Lua-cutover dispatch break and fixed theme-engine/.config/theme-engine/theme-stress-test (lines 368/571, hl.dsp.global form), but it did not sweep the rest of the repo for the same pattern — it left 7 further legacy 'hyprctl dispatch <string>' call sites dead, plus ~8 more in quickshell-doctor (logged separately). Missed sites, all silently no-op under the Lua config manager (the compositor wraps the payload into 'return hl.dispatch(<payload>)' and evaluates it as Lua SOURCE, which is a parse error): hypridle.conf after_sleep_cmd/on-timeout(900)/on-resume(900) — the 15-minute display blank AND its resume were both dead; ai-workspace.sh:58 and ai-webapp-launch.sh:28 ('workspace name:ai' — the latter broke the switch-then-launch ordering the whole script depends on, so Zen AI windows were landing on the wrong workspace); config-floating.jsonc:98-99 waybar scroll. All 7 retargeted and verified 2026-07-28 in debug session waybar-workspace-click-dead. LESSON: 13.1-09 fixed the site it tripped over rather than grepping the repo for the pattern class; a 'hyprctl dispatch' grep would have caught all 15 at once. SHARPEST FORM OF THIS, confirmed from git history: commit e82f2bd (13.1-09) MODIFIED ai-webapp-launch.sh in that very commit — a comment-only edit repointing windowrules.conf to windowrules.lua — while the broken 'hyprctl dispatch workspace name:ai' sat two lines below the edited hunk; and THAT SAME COMMIT separately fixed the identical bug class in theme-stress-test as a declared 'Rule 3 blocking-issue fix'. So the pattern was recognised, fixed where it blocked the plan's own verification, and not generalised — not even within a file the plan was actively editing. The generalisable guard is a repo-wide grep for the withdrawn API whenever one instance of it is fixed. NOTE the dpms sites were NOT a mechanical transliteration — see that debug session: hl.dsp.dpms('on') is NOT 'turn on', the bare-string arg is ignored entirely and falls through to the eTogglableAction zero-default TOGGLE; only the table form {action=...} works, and under toggle semantics on-resume would have blanked the display on every wake. | fixed |  | 2026-07-28T13:12:15.497Z | 2026-07-28T13:12:39.733Z |
+| 14 | 13.1 | deviation | hypr/.config/hypr/scripts/quickshell-doctor |  | ~8 legacy 'hyprctl dispatch global <name>' call sites still on the withdrawn string form and therefore silently dead under the Lua config manager (same mechanism as WINDOWS #13). Missed by 13.1-09's sweep. DELIBERATELY DEFERRED by operator decision on 2026-07-28 when selecting Branch C in debug session waybar-workspace-click-dead: the operator chose plain C over 'C + quickshell-doctor', so this was left untouched rather than overlooked. Fix is mechanical and already patterned in-repo: 'hyprctl dispatch \\'hl.dsp.global("<name>")\\'' (see theme-stress-test:368/571). CAUTION when picking this up: quickshell-doctor must NOT be run casually to test the change — its headless-output add/remove test previously SEGV-crashed this compositor during a DP-1 hotplug. | open |  | 2026-07-28T13:12:31.315Z |  |
+| 15 | 13.1 | deviation | waybar/.config/waybar/config-floating.jsonc |  | ACCEPTED DEBT, NOT A BUG TO FIX HERE: waybar 0.15.0-2's hyprland/workspaces CLICK is permanently dead on the Lua-config compositor and is unreachable from config. The legacy dispatch strings ('dispatch workspace <id>', 'dispatch workspace name:', 'dispatch focusworkspaceoncurrentmonitor', 'dispatch togglespecialworkspace') are compiled into Workspace::handleClicked and the IPC error reply is discarded; 'man 5 waybar-hyprland-workspaces' documents no on-click key for this module, and the payloads are Lua SYNTAX errors so no Lua-side shim/metatable can rescue them. Upstream Waybar PR #5013 fixes it but postdates the 0.15.0 release, so no shipped Arch package carries it (refs: Waybar #5008/#5035, Hyprland discussion #14255). Operator rejected both upgrading to waybar-git (throwaway -git package in install.sh's reproducible path) and rolling back to hyprlang (would undo an equivalence-proven migration). RESOLUTION PATH: dies with waybar at the Quickshell cutover — Quickshell's QML uses the GlobalShortcut Wayland protocol and contains zero IPC dispatch string sites, so the bug class is removed structurally. The SCROLL handlers in this same file WERE fixable (config strings, not compiled in) and were fixed 2026-07-28. The inert 'on-click: activate' key is retained with an explanatory comment. | open |  | 2026-07-28T13:12:31.415Z |  |
 
 ````json
 [
@@ -173,6 +176,42 @@ last_updated: 2026-07-28T12:14:49.536Z
     "reason": "",
     "recorded_at": "2026-07-28T10:25:31.641Z",
     "resolved_at": "2026-07-28T12:14:49.536Z"
+  },
+  {
+    "id": 13,
+    "kind": "deviation",
+    "phase": "13.1",
+    "file": "hypr/.config/hypr/hypridle.conf",
+    "line": null,
+    "description": "13.1-09's consumer-retarget sweep was INCOMPLETE. That plan correctly identified the Lua-cutover dispatch break and fixed theme-engine/.config/theme-engine/theme-stress-test (lines 368/571, hl.dsp.global form), but it did not sweep the rest of the repo for the same pattern — it left 7 further legacy 'hyprctl dispatch <string>' call sites dead, plus ~8 more in quickshell-doctor (logged separately). Missed sites, all silently no-op under the Lua config manager (the compositor wraps the payload into 'return hl.dispatch(<payload>)' and evaluates it as Lua SOURCE, which is a parse error): hypridle.conf after_sleep_cmd/on-timeout(900)/on-resume(900) — the 15-minute display blank AND its resume were both dead; ai-workspace.sh:58 and ai-webapp-launch.sh:28 ('workspace name:ai' — the latter broke the switch-then-launch ordering the whole script depends on, so Zen AI windows were landing on the wrong workspace); config-floating.jsonc:98-99 waybar scroll. All 7 retargeted and verified 2026-07-28 in debug session waybar-workspace-click-dead. LESSON: 13.1-09 fixed the site it tripped over rather than grepping the repo for the pattern class; a 'hyprctl dispatch' grep would have caught all 15 at once. SHARPEST FORM OF THIS, confirmed from git history: commit e82f2bd (13.1-09) MODIFIED ai-webapp-launch.sh in that very commit — a comment-only edit repointing windowrules.conf to windowrules.lua — while the broken 'hyprctl dispatch workspace name:ai' sat two lines below the edited hunk; and THAT SAME COMMIT separately fixed the identical bug class in theme-stress-test as a declared 'Rule 3 blocking-issue fix'. So the pattern was recognised, fixed where it blocked the plan's own verification, and not generalised — not even within a file the plan was actively editing. The generalisable guard is a repo-wide grep for the withdrawn API whenever one instance of it is fixed. NOTE the dpms sites were NOT a mechanical transliteration — see that debug session: hl.dsp.dpms('on') is NOT 'turn on', the bare-string arg is ignored entirely and falls through to the eTogglableAction zero-default TOGGLE; only the table form {action=...} works, and under toggle semantics on-resume would have blanked the display on every wake.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-07-28T13:12:15.497Z",
+    "resolved_at": "2026-07-28T13:12:39.733Z"
+  },
+  {
+    "id": 14,
+    "kind": "deviation",
+    "phase": "13.1",
+    "file": "hypr/.config/hypr/scripts/quickshell-doctor",
+    "line": null,
+    "description": "~8 legacy 'hyprctl dispatch global <name>' call sites still on the withdrawn string form and therefore silently dead under the Lua config manager (same mechanism as WINDOWS #13). Missed by 13.1-09's sweep. DELIBERATELY DEFERRED by operator decision on 2026-07-28 when selecting Branch C in debug session waybar-workspace-click-dead: the operator chose plain C over 'C + quickshell-doctor', so this was left untouched rather than overlooked. Fix is mechanical and already patterned in-repo: 'hyprctl dispatch \\'hl.dsp.global(\"<name>\")\\'' (see theme-stress-test:368/571). CAUTION when picking this up: quickshell-doctor must NOT be run casually to test the change — its headless-output add/remove test previously SEGV-crashed this compositor during a DP-1 hotplug.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-07-28T13:12:31.315Z",
+    "resolved_at": null
+  },
+  {
+    "id": 15,
+    "kind": "deviation",
+    "phase": "13.1",
+    "file": "waybar/.config/waybar/config-floating.jsonc",
+    "line": null,
+    "description": "ACCEPTED DEBT, NOT A BUG TO FIX HERE: waybar 0.15.0-2's hyprland/workspaces CLICK is permanently dead on the Lua-config compositor and is unreachable from config. The legacy dispatch strings ('dispatch workspace <id>', 'dispatch workspace name:', 'dispatch focusworkspaceoncurrentmonitor', 'dispatch togglespecialworkspace') are compiled into Workspace::handleClicked and the IPC error reply is discarded; 'man 5 waybar-hyprland-workspaces' documents no on-click key for this module, and the payloads are Lua SYNTAX errors so no Lua-side shim/metatable can rescue them. Upstream Waybar PR #5013 fixes it but postdates the 0.15.0 release, so no shipped Arch package carries it (refs: Waybar #5008/#5035, Hyprland discussion #14255). Operator rejected both upgrading to waybar-git (throwaway -git package in install.sh's reproducible path) and rolling back to hyprlang (would undo an equivalence-proven migration). RESOLUTION PATH: dies with waybar at the Quickshell cutover — Quickshell's QML uses the GlobalShortcut Wayland protocol and contains zero IPC dispatch string sites, so the bug class is removed structurally. The SCROLL handlers in this same file WERE fixable (config strings, not compiled in) and were fixed 2026-07-28. The inert 'on-click: activate' key is retained with an explanatory comment.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-07-28T13:12:31.415Z",
+    "resolved_at": null
   }
 ]
 ````
