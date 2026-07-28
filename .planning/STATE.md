@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13.1
 current_phase_name: hyprland-lua-config-migration
 status: executing
-stopped_at: Completed 13.1-08-PLAN.md
-last_updated: "2026-07-28T09:54:51.197Z"
+stopped_at: Completed 13.1-09-PLAN.md
+last_updated: "2026-07-28T10:25:51.665Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 13.1 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 30
-  completed_plans: 28
+  completed_plans: 29
   percent: 38
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13.1 (hyprland-lua-config-migration) — EXECUTING
-Plan: 9 of 10
+Plan: 10 of 10
 Status: Ready to execute
-Progress: [█████████░] 93%
+Progress: [██████████] 97%
 Last activity: 2026-07-28 — Phase 13.1 execution started
 
 ## Performance Metrics
@@ -157,6 +157,7 @@ Last activity: 2026-07-28 — Phase 13.1 execution started
 | Phase 13.1 P06 | 25min | 2 tasks | 5 files |
 | Phase 13.1 P07 | 70min | 2 tasks | 6 files |
 | Phase 13.1 P08 | multi-session | 3 tasks | 6 files |
+| Phase 13.1 P09 | 40min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -246,6 +247,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13.1-07: kept window-rule size percentage strings byte-identical rather than substituting a mechanism, after discovering they have no runtime effect on this installed Hyprland 0.56.1 Lua config manager — documented as a handoff to 13.1-08 rather than silently patched
 - [Phase ?]: 13.1-08: operator decision — fixed curve-registration order nondeterminism both sides: sorted Lua-side pairs() iteration (deterministic across fresh processes, proven via 5 separate lua process runs) plus an order-insensitive set comparison for hypr-equivalence-check's animations.json curve array (sorted registration alone cannot match the baseline's own pre-existing order); leaf array stays byte-exact positional; gate proven not weakened via 8 fault injections
 - [Phase ?]: 13.1-08: live cutover to hyprland.lua complete — equivalence gate PASS on options.jsonl and animations.json, binds.json FAIL limited to the two documented bindm mouse-field records; theme-doctor 225/0, theme-parity 2785/0, motion-lint 71/0 all green; keybind-doctor 11/2 expected (deferred to 13.1-09); quickshell-doctor deliberately not re-run (prior SEGV correlation); hyprlock lock/unlock cycle explicitly deferred to the operator, not claimed passed; soak clock started 2026-07-28T09:27:19Z
+- [Phase ?]: 13.1-09: keybind-doctor's declared-vs-registered tuple no longer splits code:NNN into keyname/keycode — a Lua-registered code:NNN bind's plain-text hyprctl binds output retains the full mod-prefixed key string with keycode 0, confirmed live
+- [Phase ?]: 13.1-09: D-03 kill-bind check split into source-level (declared dispatcher expr) + live (chord registered) halves, matching hypr-equivalence-check's established structural/source-level split for the same dispatcher/arg opacity gap
+- [Phase ?]: 13.1-09: hyprctl keyword is a silent no-op on the Lua-config compositor — deliberately left unfixed (out of this task's scope) and logged to deferred-items.md; gaming-mode-toggle's eye-candy on/off is currently non-functional pending a future fix
 
 ### Quick Tasks Completed
 
@@ -329,8 +333,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-28T09:54:51.184Z
-Stopped at: Completed 13.1-08-PLAN.md
+Last session: 2026-07-28T10:25:51.653Z
+Stopped at: Completed 13.1-09-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
