@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13.1
 current_phase_name: hyprland-lua-config-migration
 status: executing
-stopped_at: Completed 13.1-04-PLAN.md
-last_updated: "2026-07-28T03:56:54.665Z"
+stopped_at: Completed 13.1-05-PLAN.md
+last_updated: "2026-07-28T04:11:10.118Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 13.1 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 30
-  completed_plans: 24
+  completed_plans: 25
   percent: 38
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13.1 (hyprland-lua-config-migration) — EXECUTING
-Plan: 5 of 10
+Plan: 6 of 10
 Status: Ready to execute
-Progress: [████████░░] 80%
+Progress: [████████░░] 83%
 Last activity: 2026-07-28 — Phase 13.1 execution started
 
 ## Performance Metrics
@@ -153,6 +153,7 @@ Last activity: 2026-07-28 — Phase 13.1 execution started
 | Phase 13.1 P02 | 20min | 2 tasks | 10 files |
 | Phase 13.1 P03 | ~25min | 3 tasks | 11 files |
 | Phase 13.1 P04 | ~90min | 3 tasks | 8 files |
+| Phase 13.1 P05 | ~30min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -233,6 +234,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13.1-03: self-caught and corrected a Task 1 measurement bug — hyprctl -j animations returns a 2-element wrapper [leaves, curves], not a flat list; corrected re-measurement (35 leaves, 3 curves) still confirms non-accumulation
 - [Phase ?]: 13.1-04 Task 3 (authorized addition, reassigned from 13.1-08): binds equivalence proof split into a byte-exact structural half (hypr-equivalence-check) and a new source-level half (keybind-source-equivalence), both proven live and proven able to fail; {mouse=true} bind-option divergence left un-loosened as a real open item, not silently tolerated
 - [Phase ?]: 13.1-04: hl.dsp.window.resize/move validate argument shape live at config-load time (extends 13.1-03's field-validator discovery to dispatcher factories); multi-modifier Lua key strings need every modifier joined by its own ' + ' — hyprlang's space-separated convention fails to parse
+- [Phase ?]: 13.1-05: lua-table extractor values arm was string-leaf-only since 13.1-02, silently skipping motion.speed.* numbers and motion.curves.*.points arrays (18 of 50 real leaf values); extended to full leaf coverage with a stable array-serialization ('[[0.2,0],[0,1]]'), closing a real theme-parity Layer 3 blind spot
+- [Phase ?]: 13.1-05: lua-table name extractor leaked Lua array-index keys ('1'/'2') into the name set (unlike toml/json siblings); fixed via is_array() array-vs-map disambiguation reused in both dispatch arms
+- [Phase ?]: 13.1-05: Task 1's literal 'corrupt live path, run theme-parity, expect FAIL' premise found false (theme-parity always re-renders fresh, never reads the live token path) — proven empirically then corrected by exercising theme-parity's own Layer 2 comparison mechanism directly, confirming it correctly fails and names a missing key
+- [Phase ?]: 13.1-05 Task 2: lib/reload.sh reconciled with 13.1-03's CONFIRMED NON-ACCUMULATING finding — negative branch, comment-only change; re-verified live against the real 80-bind entry point across dracula->nord->dracula (binds/leaves/curves stable, tokens correctly changed and restored); gaming-mode-toggle.sh's unrelated pre-existing hyprctl reload (Phase 8) confirmed out of scope per lib/reload.sh's own sole-owner scoping precedent
 
 ### Quick Tasks Completed
 
@@ -316,8 +321,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-28T03:56:54.654Z
-Stopped at: Completed 13.1-04-PLAN.md
+Last session: 2026-07-28T04:11:10.106Z
+Stopped at: Completed 13.1-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
