@@ -1,0 +1,63 @@
+-- hypr/.config/hypr/hyprland.lua.disabled — top-level Lua config entry
+-- point (Phase 13.1, D-01/D-02/D-06/D-13/T-13.1-07).
+--
+-- The `.disabled` suffix is LOAD-BEARING: Hyprland selects its config
+-- format at startup purely by whether hyprland.lua exists in the config
+-- root — it does not read this file's contents to decide, so a partially-
+-- ported entry point literally named hyprland.lua would silently take over
+-- the very next real login. This file stays `.disabled` for the whole
+-- phase; it is renamed to hyprland.lua ONLY at the cutover plan, after the
+-- equivalence gate (D-08/D-10) passes and the ported config has survived a
+-- soak under normal use (D-12).
+--
+-- ONLY this plan's slice is real here (Task 1 of 13.1-02): the defensive
+-- token accessor, config/env.lua, and the `general` block — a byte-for-
+-- byte reproduction of hyprland.conf lines 27-35, nothing added/removed/
+-- retuned (CONTEXT.md prohibition). The remaining 8-file split
+-- (monitors/autostart/animations/keybinds/windowrules/permissions) lands
+-- in the later static-port plan(s), D-06.
+--
+-- require("config.autostart") is declared below AHEAD of its own target
+-- existing — config/autostart.lua is created by that later static-port
+-- plan, not this one. This is intentional, not a bug: hypr-lua-harness's
+-- DEFAULT run mode (the one every acceptance criterion in this plan
+-- exercises) always filters this EXACT line out of the copy it boots,
+-- asserting that filtering removes precisely one line — so the harness's
+-- own self-check is what keeps this file and the harness from silently
+-- drifting apart (Layer 6), and the require() never actually executes
+-- against a not-yet-ported module during this plan. `--with-autostart`
+-- mode is intentionally unexercised until autostart.lua exists.
+
+local tokens = require("lib.tokens").get()
+
+require("config.env")
+require("config.autostart")
+
+-- general block — hyprland.conf lines 27-35, reproduced exactly. Every
+-- colour comes from the generated token table with an `or` fallback to the
+-- literal value the hyprlang emitter produces today for the currently
+-- applied theme (dracula, read from ~/.local/state/theme/hyprland.conf at
+-- authoring time) — this `or` is where D-13's "a missing token degrades to
+-- a default, never blocking compositor startup" guarantee actually lives;
+-- stow.sh's seed-by-invoking-the-real-renderer guarantee is the belt, this
+-- is the braces.
+hl.config({
+    general = {
+        gaps_in = 5,
+        gaps_out = 10,
+        border_size = 3,
+        col = {
+            active_border = {
+                colors = {
+                    tokens.colors.primary or "rgba(ff79c6ff)",
+                    tokens.colors.secondary or "rgba(bd93f9ff)",
+                    tokens.colors.tertiary or "rgba(8be9fdff)",
+                },
+                angle = 45,
+            },
+            inactive_border = tokens.colors.outline or "rgba(6272a4ff)",
+        },
+        layout = "dwindle",
+        allow_tearing = false,
+    },
+})

@@ -243,8 +243,14 @@ while IFS= read -r fname; do
     # bezier control point, or SCSS colour variable is exactly as broken
     # as an empty colour value (same silent-default-substitution risk
     # D-02/D-09 already worry about).
+    # Phase 13.1/D-02/D-05: lua-table (hyprland-tokens.lua) joins this set
+    # for the same reason hypr-vars/hypr-motion are here — every declared
+    # string leaf in the merged colour+motion table is definitionally a
+    # value that must never render empty, with the one intentional
+    # exception contract.json's exempt_keys ("colors.image") already
+    # carves out.
     case "$fmt" in
-        gtk-css|hypr-vars|kitty-kv|css-literal|env-kv|css-vars|hypr-motion|scss-vars) enforce_emptiness=1 ;;
+        gtk-css|hypr-vars|kitty-kv|css-literal|env-kv|css-vars|hypr-motion|scss-vars|lua-table) enforce_emptiness=1 ;;
         *) enforce_emptiness=0 ;;
     esac
 

@@ -170,7 +170,8 @@ mkdir -p "$HOME/.local/state/theme"
 # this succeeds.
 if [[ ! -f "$HOME/.local/state/theme/hyprland-motion.conf" ]] || \
    [[ ! -f "$HOME/.local/state/theme/gtk-4.0-motion.css" ]] || \
-   [[ ! -f "$HOME/.local/state/theme/motion.json" ]]; then
+   [[ ! -f "$HOME/.local/state/theme/motion.json" ]] || \
+   [[ ! -f "$HOME/.local/state/theme/hyprland-tokens.lua" ]]; then
     MOTION_LIB="$DOTFILES_DIR/theme-engine/.config/theme-engine/lib/motion.sh"
     if [[ -f "$MOTION_LIB" ]]; then
         (
@@ -182,7 +183,14 @@ if [[ ! -f "$HOME/.local/state/theme/hyprland-motion.conf" ]] || \
             trap 'rm -rf "$SEED_TMP"' EXIT
             if theme_engine_render_motion_files "$SEED_TMP"; then
                 mkdir -p "$STATE_DIR"
-                for mf in motion.json gtk-4.0-motion.css hyprland-motion.conf; do
+                # Phase 13.1/D-30: hyprland-tokens.lua joins this seed list
+                # — a missing require() target is a HARDER failure than a
+                # missing hyprlang `source=` glob (module-not-found stops
+                # the compositor from starting at all, not just this one
+                # fragment), so it gets the identical loud-failure
+                # treatment as the three pre-existing motion targets, never
+                # a hand-authored stub.
+                for mf in motion.json gtk-4.0-motion.css hyprland-motion.conf hyprland-tokens.lua; do
                     [[ -f "$SEED_TMP$STATE_DIR/$mf" ]] && cp "$SEED_TMP$STATE_DIR/$mf" "$STATE_DIR/$mf"
                 done
             else
@@ -194,6 +202,19 @@ if [[ ! -f "$HOME/.local/state/theme/hyprland-motion.conf" ]] || \
         echo "  ⚠ $MOTION_LIB not found — skipping motion-file seed; Hyprland will NOT start without these files" >&2
     fi
 fi
+
+# Phase 13.1/D-02/D-05: pre-create ~/.config/hypr/state/ as a REAL
+# directory (same "create it real so stow does not fold it" treatment as
+# fish/gtk-3.0/gtk-4.0/quickshell above) and wire
+# hypr/.config/hypr/state/tokens.lua as a RELATIVE symlink to the merged
+# token file the seed block immediately above this one just guaranteed
+# exists. Relative, never absolute — the same reproducibility rule that
+# made the wallpaper symlink relative in quick task 260709-ciu. Three
+# levels up from ~/.config/hypr/state/ is $HOME: state/ -> hypr/ ->
+# .config/ -> $HOME. Deliberately NOT added to the hypr/ stow package
+# itself — state/ is a host-side symlink target, not repo content.
+mkdir -p "$HOME/.config/hypr/state"
+ln -sf "../../../.local/state/theme/hyprland-tokens.lua" "$HOME/.config/hypr/state/tokens.lua"
 
 # D-01/D-05/13-02/13-05: seed the sass-compiled GTK3 stylesheet(s) by
 # INVOKING the real renderer AND the real compiler — never a

@@ -138,6 +138,37 @@ contract_extract_names() {
             # every existing underscore-only consumer.
             grep -oP '^\$\K[A-Za-z_][A-Za-z0-9_-]*(?=:)' "$path" 2>/dev/null | sort -u
             ;;
+        lua-table)
+            # Phase 13.1/D-02/D-05: hyprland-tokens.lua is a `return {...}`
+            # Lua table, not JSON/TOML — parse it in its OWN language
+            # runtime (same "load-native-format-then-walk-keys" shape as
+            # the toml branch immediately below, just in Lua instead of
+            # Python) and emit the sorted set of EVERY key name found in
+            # ANY table anywhere in the tree (matches the json branch's
+            # `.. | objects | keys[]` "flatten, don't qualify by parent"
+            # behaviour — a name-set comparison only needs the set to
+            # match, not a path). A dofile() failure (missing file,
+            # syntax error) exits 1 so callers see a real extraction
+            # failure, never a silent empty pass.
+            lua - "$path" <<'LUAEOF' 2>/dev/null
+local path = arg[1]
+local ok, data = pcall(dofile, path)
+if not ok or type(data) ~= "table" then os.exit(1) end
+local names = {}
+local function walk(node)
+    if type(node) ~= "table" then return end
+    for k, v in pairs(node) do
+        names[tostring(k)] = true
+        walk(v)
+    end
+end
+walk(data)
+local sorted = {}
+for k in pairs(names) do sorted[#sorted + 1] = k end
+table.sort(sorted)
+for _, k in ipairs(sorted) do print(k) end
+LUAEOF
+            ;;
         toml)
             python3 - "$path" <<'PYEOF'
 import tomllib, sys
@@ -302,6 +333,35 @@ contract_extract_values() {
             # kept in lockstep so name/value extraction can never disagree
             # about which variables exist (WR-05's stated failure mode).
             sed -nE 's/^\$([A-Za-z_][A-Za-z0-9_-]*):[[:space:]]*(.*);.*$/\1\t\2/p' "$path" 2>/dev/null
+            ;;
+        lua-table)
+            # Phase 13.1/D-02/D-05: kept in lockstep with the name
+            # extractor above — same dofile()-then-walk shape, this time
+            # path-joined (matching the json branch's `paths(scalars) |
+            # join(".")` convention, e.g. "colors.primary",
+            # "motion.curves.standard.type") and emitting ONLY string-typed
+            # leaf values (numeric motion durations/curve points are
+            # intentionally excluded, same as json's `select(.value | type
+            # == "string")` — this is why contract.json's exempt_keys for
+            # this entry is "colors.image", the dotted form this extractor
+            # actually emits, not the bare "image" the hypr-vars format
+            # would have used).
+            lua - "$path" <<'LUAEOF' 2>/dev/null
+local path = arg[1]
+local ok, data = pcall(dofile, path)
+if not ok or type(data) ~= "table" then os.exit(1) end
+local function walk(node, prefix)
+    if type(node) == "table" then
+        for k, v in pairs(node) do
+            local np = (prefix == "") and tostring(k) or (prefix .. "." .. tostring(k))
+            walk(v, np)
+        end
+    elseif type(node) == "string" then
+        print(prefix .. "\t" .. node)
+    end
+end
+walk(data, "")
+LUAEOF
             ;;
         toml)
             python3 - "$path" <<'PYEOF'
