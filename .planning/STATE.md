@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13.1
-current_phase_name: Hyprland Lua Config Migration
+current_phase_name: hyprland-lua-config-migration
 status: executing
-stopped_at: "Phase 13.1 inserted (URGENT): Hyprland Lua config migration — 0.57 removes .conf support. Design spec approved at docs/superpowers/specs/2026-07-28-hyprland-lua-config-migration-design.md; not planned yet."
-last_updated: "2026-07-28T02:10:19.566Z"
+stopped_at: Completed 13.1-01-PLAN.md
+last_updated: "2026-07-28T02:26:28.406Z"
 last_activity: 2026-07-28
-last_activity_desc: Inserted Phase 13.1 (Hyprland Lua config migration) ahead of Dashboard Drawer; design spec approved
+last_activity_desc: Phase 13.1 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 30
-  completed_plans: 20
+  completed_plans: 21
   percent: 38
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 13.1 — hyprland-lua-config-migration (INSERTED, urgent)
+**Current focus:** Phase 13.1 — hyprland-lua-config-migration
 
 ## Current Position
 
-Phase: 13.1 — Hyprland Lua Config Migration (INSERTED)
-Plan: Not started
+Phase: 13.1 (hyprland-lua-config-migration) — EXECUTING
+Plan: 2 of 10
 Status: Ready to execute
-Progress: [──────────] 0 of ? plans (phase-scoped; milestone-wide is 20/20)
-Last activity: 2026-07-28 — Inserted Phase 13.1 (Hyprland Lua config migration) ahead of Dashboard Drawer; design spec approved
+Progress: [███████░░░] 70%
+Last activity: 2026-07-28 — Phase 13.1 execution started
 
 ## Performance Metrics
 
@@ -149,6 +149,7 @@ Last activity: 2026-07-28 — Inserted Phase 13.1 (Hyprland Lua config migration
 | Phase 13 P05 | multi-session | 3 tasks | 14 files |
 | Phase 13 P06 | ~25min | 2 tasks | 4 files |
 | Phase 13 P07 | ~90min | 4 tasks | 6 files |
+| Phase 13.1 P01 | 25min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -219,6 +220,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13-07: D-19/D-20 soak gate WAIVED by explicit operator decision (measured session count 1 of floor 3, zero A/B flips) — not passed; per-motion verdicts all recorded NOT ASSESSED, not keep; the failure mode D-19/D-20 exist to catch remains unruled-out for all 13 motions
 - [Phase ?]: 13-07: D-21 A/B curve-comparison toggle removed completely (motion.json curve_sets + non-adopted x-* easings, motion-switch.sh --curves flag, lib/motion.sh curve reader/emission/validation) — the six feel-changing Hyprland slots now reference literal MD3 curve names; all four motion-scale presets (off/reduced/normal/lively) verified still working
 - [Phase ?]: 13-07: theme-stress-test run to completion for the first time this milestone — 10/10 consecutive switches, 162 passed 0 failed, exit 0, tree clean after; WINDOWS.md ledger entry 9 closed citing this run (open_count now 6, not the plan's stale literal 5, since entry 10 remains legitimately open/out-of-scope per the same documented-discrepancy pattern as 13-06)
+- [Phase ?]: 13.1-01: hypr-equivalence-check built and both D-10 failure branches proven live (altered baseline, absent baseline)
+- [Phase ?]: 13.1-01: pre-migration .hypr-baseline/ committed (80 binds, 46 option keys) from live hyprlang 0.56.1 session, commit touches no hypr config file (D-09)
+- [Phase ?]: 13.1-01: permission grants (4) have no getoption representation — synthesized into uncovered.txt with reason + named compensating check (13.1-06 review), rather than relying on a getoption failure to surface them
 
 ### Quick Tasks Completed
 
@@ -302,8 +306,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-27T22:36:27.498Z
-Stopped at: Completed 13-07-PLAN.md (D-19/D-20 soak gate waived; A/B toggle removed; closing gates green; ledger entry 9 closed)
+Last session: 2026-07-28T02:26:28.395Z
+Stopped at: Completed 13.1-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
