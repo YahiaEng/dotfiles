@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13.1
 current_phase_name: hyprland-lua-config-migration
 status: executing
-stopped_at: Completed 13.1-06-PLAN.md
-last_updated: "2026-07-28T04:28:09.779Z"
+stopped_at: Completed 13.1-07-PLAN.md
+last_updated: "2026-07-28T04:49:39.310Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 13.1 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 30
-  completed_plans: 26
+  completed_plans: 27
   percent: 38
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13.1 (hyprland-lua-config-migration) — EXECUTING
-Plan: 7 of 10
+Plan: 8 of 10
 Status: Ready to execute
-Progress: [█████████░] 87%
+Progress: [█████████░] 90%
 Last activity: 2026-07-28 — Phase 13.1 execution started
 
 ## Performance Metrics
@@ -155,6 +155,7 @@ Last activity: 2026-07-28 — Phase 13.1 execution started
 | Phase 13.1 P04 | ~90min | 3 tasks | 8 files |
 | Phase 13.1 P05 | ~30min | 2 tasks | 3 files |
 | Phase 13.1 P06 | 25min | 2 tasks | 5 files |
+| Phase 13.1 P07 | 70min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -241,6 +242,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13.1-05 Task 2: lib/reload.sh reconciled with 13.1-03's CONFIRMED NON-ACCUMULATING finding — negative branch, comment-only change; re-verified live against the real 80-bind entry point across dracula->nord->dracula (binds/leaves/curves stable, tokens correctly changed and restored); gaming-mode-toggle.sh's unrelated pre-existing hyprctl reload (Phase 8) confirmed out of scope per lib/reload.sh's own sole-owner scoping precedent
 - [Phase ?]: animations.lua uses 15 explicit literal-dotted-path if-guarded hl.animation() blocks (not a data-table loop) so motion-lint's Lua CHECK A can resolve every token reference via regex without a real Lua parser
 - [Phase ?]: motion-lint's Lua definition source (hyprland-tokens.lua) is loaded via the real lua interpreter (dofile+walk), reusing lib/contract.sh's established lua-table extraction pattern rather than regexing Lua syntax as text
+- [Phase ?]: 13.1-07: kept window-rule size percentage strings byte-identical rather than substituting a mechanism, after discovering they have no runtime effect on this installed Hyprland 0.56.1 Lua config manager — documented as a handoff to 13.1-08 rather than silently patched
 
 ### Quick Tasks Completed
 
@@ -324,8 +326,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-28T04:28:09.767Z
-Stopped at: Completed 13.1-06-PLAN.md
+Last session: 2026-07-28T04:49:39.294Z
+Stopped at: Completed 13.1-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
