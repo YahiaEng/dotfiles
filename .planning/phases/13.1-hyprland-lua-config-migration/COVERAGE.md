@@ -373,3 +373,22 @@ only), or (b) accept the regression as a known, documented cosmetic
 issue and file it for a later Hyprland-Lua-version bump to reassess. Not
 silently declaring green either way — this is now a named, tracked gap,
 not an assumption.
+
+**Correction (post-commit, caught by orchestrator spot-check, fixed in
+`fe73aa3`):** the "Disposition" paragraph above states the percentage
+strings were "kept byte-identical to `windowrules.conf`" as the plan's
+intent — that intent was correct, but the FIRST commit of this file
+(`46396de`) did not actually match it: the `yazi-fm` rule's `size` field
+was accidentally left set to `"70%w 65%h"`, one of the six experimental
+spellings tried during this very investigation, instead of the intended
+byte-identical `"70% 65%"`. This was not caught by this plan's own
+verification, because that verification compared regex patterns and
+property names/counts, never property VALUES. An orchestrator spot-check
+caught it; it is now fixed and a genuine property-value-level comparison
+(all 43 rules, 68 property-value pairs, parsed from both `.conf` and
+`.lua` and diffed positionally) confirms 0 remaining mismatches. The
+functional conclusion in this section — the `%` form is inert either
+way, on both the wrong and the corrected spelling — is unchanged by this
+fix; only the earlier "byte-identical" claim needed correcting, and it
+now genuinely holds. See `13.1-07-SUMMARY.md`'s "Correction" section for
+the full writeup.
