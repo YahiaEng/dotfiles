@@ -119,7 +119,7 @@ hl.window_rule({
     name = "yazi-fm",
     match = { class = [[^(yazi-fm)$]] },
     float = true,
-    size = "70%w 65%h",
+    size = "70% 65%",
     center = true,
     animation = "popin",
 })
