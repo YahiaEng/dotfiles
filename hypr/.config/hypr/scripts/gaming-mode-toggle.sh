@@ -100,10 +100,20 @@ _restore_keyword() {
 gaming_mode_on() {
     # ── Runtime-only eye-candy disable (D-26) — every call is best-effort
     #    per the house `2>/dev/null || true` idiom (theme-engine/lib/gtk.sh).
-    hyprctl keyword decoration:blur:enabled 0 2>/dev/null || true
-    hyprctl keyword animations:enabled 0 2>/dev/null || true
-    hyprctl keyword decoration:shadow:enabled 0 2>/dev/null || true
-    hyprctl keyword decoration:rounding 0 2>/dev/null || true
+    #
+    # 13.1-10 (WINDOWS.md row 12 / deferred-items.md item 1): `hyprctl
+    # keyword` is a silent no-op under the Lua config manager on this
+    # installed Hyprland (prints "keyword can't work with non-legacy
+    # parsers. Use eval." and still exits 0, so the `|| true` guard never
+    # even fires). Retargeted to `hyprctl eval` with the `hl.config({...})`
+    # expression the compositor's own error message names — proven live
+    # against this exact session: each of the four calls below was run,
+    # confirmed via `hyprctl -j getoption` to actually flip the reported
+    # value, then reverted, before this fix was committed.
+    hyprctl eval 'hl.config({ decoration = { blur = { enabled = false } } })' 2>/dev/null || true
+    hyprctl eval 'hl.config({ animations = { enabled = false } })' 2>/dev/null || true
+    hyprctl eval 'hl.config({ decoration = { shadow = { enabled = false } } })' 2>/dev/null || true
+    hyprctl eval 'hl.config({ decoration = { rounding = 0 } })' 2>/dev/null || true
 
     # ── Idle/lock inhibit: pause hypridle rather than acquire a systemd
     #    inhibitor lock that could outlive this shell. SIGSTOP/SIGCONT is
@@ -127,33 +137,52 @@ gaming_mode_off() {
     #    four keys are ever in the merged hyprland-tokens.lua table (see
     #    FINDING above), so this always exercises the reload fallback —
     #    which is the plan's own designed, guaranteed-correct path.
+    # 13.1-10: the four `hyprctl keyword <key> "$v"` restore calls below are
+    # retargeted to `hyprctl eval "hl.config({...})"`, same as the ON path.
+    # NOTE on the getoption type-key divergence (COVERAGE.md, 13.1-03/13.1-05):
+    # that divergence is specific to `hyprctl -j getoption`'s JSON field-name
+    # ("int" vs "bool") and does NOT apply here — `$v` is never sourced from
+    # `hyprctl getoption` anywhere in this script. It comes from
+    # `_restore_keyword` reading `~/.local/state/theme/hyprland-tokens.lua`
+    # through `contract_extract_values`'s lua-table extractor, which
+    # `tostring()`s a Lua boolean leaf to the literal "true"/"false" (see
+    # lib/contract.sh's lua-table value arm) — a value already shaped as a
+    # valid Lua literal, safe to splice directly into `hl.config({... = $v})`.
+    # Checked and confirmed not a live bug: per this file's own FINDING
+    # comment above, none of these four keys exist in the merged token
+    # table on this repo's layout, so `$v` is always empty and every one of
+    # these four branches is still provably dead code — `need_reload` is
+    # always 1 and the fallback below is what actually restores state.
+    # Fixed anyway (Rule 1: broken syntax on an unreachable-but-real code
+    # path is still a bug) so this stays correct if a future token ever
+    # populates one of these keys.
     local need_reload=0
     local v
 
     v="$(_restore_keyword decoration:blur:enabled)"
     if [[ -n "$v" ]]; then
-        hyprctl keyword decoration:blur:enabled "$v" 2>/dev/null || true
+        hyprctl eval "hl.config({ decoration = { blur = { enabled = $v } } })" 2>/dev/null || true
     else
         need_reload=1
     fi
 
     v="$(_restore_keyword animations:enabled)"
     if [[ -n "$v" ]]; then
-        hyprctl keyword animations:enabled "$v" 2>/dev/null || true
+        hyprctl eval "hl.config({ animations = { enabled = $v } })" 2>/dev/null || true
     else
         need_reload=1
     fi
 
     v="$(_restore_keyword decoration:shadow:enabled)"
     if [[ -n "$v" ]]; then
-        hyprctl keyword decoration:shadow:enabled "$v" 2>/dev/null || true
+        hyprctl eval "hl.config({ decoration = { shadow = { enabled = $v } } })" 2>/dev/null || true
     else
         need_reload=1
     fi
 
     v="$(_restore_keyword decoration:rounding)"
     if [[ -n "$v" ]]; then
-        hyprctl keyword decoration:rounding "$v" 2>/dev/null || true
+        hyprctl eval "hl.config({ decoration = { rounding = $v } })" 2>/dev/null || true
     else
         need_reload=1
     fi
