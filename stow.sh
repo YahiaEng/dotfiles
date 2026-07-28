@@ -92,6 +92,29 @@ mkdir -p "$HOME/.config/quickshell"
 # 13-02-SUMMARY.md for the full DropInPaths= empty-vs-populated evidence.
 mkdir -p "$HOME/.config/systemd/user/swaync.service.d"
 
+# 13.1-10: pre-create ~/.config/hypr as a REAL directory — a genuine,
+# previously-undiscovered fresh-machine reproducibility bug found live by
+# this task's own throwaway-home-directory reproduction proof (Criterion
+# 7), not a style preference. On a genuinely fresh machine (no prior
+# ~/.config/hypr at all), nothing existing prevented stow from folding
+# the ENTIRE hypr package into one whole-directory symlink
+# (~/.config/hypr -> dotfiles/hypr/.config/hypr) — which every real
+# development machine so far has accidentally avoided only because
+# ~/.config/hypr/state/ already existed as a real directory from a MUCH
+# earlier stow run, long before 13.1-02 introduced this line's own
+# `mkdir -p "$HOME/.config/hypr/state"` below. On a true first-ever run,
+# that later mkdir -p follows the fold and creates state/ (and the
+# tokens.lua symlink `ln -sf` right after it) INSIDE THE CLONED REPO
+# TREE instead of under the user's real config directory — a relative
+# symlink that then resolves to nothing usable and, worse, writes into
+# what should be a clean git checkout. Same pre-create-before-stow idiom
+# as fish/gtk-3.0/gtk-4.0/quickshell/systemd above: with the real
+# directory already present, stow descends into it and symlinks only its
+# individual top-level entries (config/, hyprland.lua, hyprlock.conf,
+# hypridle.conf, lib/, scripts/), leaving state/ to be created for real
+# right where this file's own later code already assumes it lives.
+mkdir -p "$HOME/.config/hypr"
+
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
