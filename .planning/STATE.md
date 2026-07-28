@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13.1
 current_phase_name: hyprland-lua-config-migration
 status: executing
-stopped_at: Completed 13.1-07-PLAN.md
-last_updated: "2026-07-28T04:49:39.310Z"
+stopped_at: Completed 13.1-08-PLAN.md
+last_updated: "2026-07-28T09:54:51.197Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 13.1 execution started
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 30
-  completed_plans: 27
+  completed_plans: 28
   percent: 38
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 13.1 (hyprland-lua-config-migration) — EXECUTING
-Plan: 8 of 10
+Plan: 9 of 10
 Status: Ready to execute
-Progress: [█████████░] 90%
+Progress: [█████████░] 93%
 Last activity: 2026-07-28 — Phase 13.1 execution started
 
 ## Performance Metrics
@@ -156,6 +156,7 @@ Last activity: 2026-07-28 — Phase 13.1 execution started
 | Phase 13.1 P05 | ~30min | 2 tasks | 3 files |
 | Phase 13.1 P06 | 25min | 2 tasks | 5 files |
 | Phase 13.1 P07 | 70min | 2 tasks | 6 files |
+| Phase 13.1 P08 | multi-session | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -243,6 +244,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: animations.lua uses 15 explicit literal-dotted-path if-guarded hl.animation() blocks (not a data-table loop) so motion-lint's Lua CHECK A can resolve every token reference via regex without a real Lua parser
 - [Phase ?]: motion-lint's Lua definition source (hyprland-tokens.lua) is loaded via the real lua interpreter (dofile+walk), reusing lib/contract.sh's established lua-table extraction pattern rather than regexing Lua syntax as text
 - [Phase ?]: 13.1-07: kept window-rule size percentage strings byte-identical rather than substituting a mechanism, after discovering they have no runtime effect on this installed Hyprland 0.56.1 Lua config manager — documented as a handoff to 13.1-08 rather than silently patched
+- [Phase ?]: 13.1-08: operator decision — fixed curve-registration order nondeterminism both sides: sorted Lua-side pairs() iteration (deterministic across fresh processes, proven via 5 separate lua process runs) plus an order-insensitive set comparison for hypr-equivalence-check's animations.json curve array (sorted registration alone cannot match the baseline's own pre-existing order); leaf array stays byte-exact positional; gate proven not weakened via 8 fault injections
+- [Phase ?]: 13.1-08: live cutover to hyprland.lua complete — equivalence gate PASS on options.jsonl and animations.json, binds.json FAIL limited to the two documented bindm mouse-field records; theme-doctor 225/0, theme-parity 2785/0, motion-lint 71/0 all green; keybind-doctor 11/2 expected (deferred to 13.1-09); quickshell-doctor deliberately not re-run (prior SEGV correlation); hyprlock lock/unlock cycle explicitly deferred to the operator, not claimed passed; soak clock started 2026-07-28T09:27:19Z
 
 ### Quick Tasks Completed
 
@@ -326,8 +329,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-28T04:49:39.294Z
-Stopped at: Completed 13.1-07-PLAN.md
+Last session: 2026-07-28T09:54:51.184Z
+Stopped at: Completed 13.1-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
