@@ -115,6 +115,33 @@ mkdir -p "$HOME/.config/systemd/user/swaync.service.d"
 # right where this file's own later code already assumes it lives.
 mkdir -p "$HOME/.config/hypr"
 
+# 13.1-10: pre-create ~/.local as a REAL directory — the SAME fold bug
+# just fixed for ~/.config/hypr above, found by the same reproduction run,
+# one level higher up the tree and with a wider blast radius: EVERY
+# theme-engine generated file lives under ~/.local/state/theme/, not just
+# the Hyprland ones. On a genuinely fresh machine, nothing existed at
+# ~/.local before this script ran, and the `vscodium` package (stowed
+# earlier in the PACKAGES loop below, before this file's later
+# `mkdir -p "$HOME/.local/state/theme"` line ever runs) ships a single
+# file at .local/share/applications/ — enough for stow to fold the ENTIRE
+# ~/.local into one whole-directory symlink pointing at
+# dotfiles/vscodium/.local, since nothing blocked the fold. Every real
+# development machine so far avoided this purely by accident: ~/.local
+# already held unrelated, long-pre-existing content (bin/, share/ from
+# years of ordinary system use) before this repo's packages were ever
+# stowed, so the fold never had a chance to happen. On a true first-ever
+# run, the later `mkdir -p "$HOME/.local/state/theme"` (and every
+# theme-apply run after it) follows that fold and writes the ENTIRE
+# theme-engine state directory INSIDE THE CLONED REPO TREE
+# (dotfiles/vscodium/.local/state/theme/) rather than under the user's
+# real state directory — directly contradicting this project's own core
+# value ("the whole setup reproduces from scratch with one script") and
+# the git-clean invariant theme-doctor's state-manifest gate exists to
+# protect. Pre-creating ~/.local here is sufficient: it only needs to
+# stop the TOP-LEVEL fold, so vscodium's own ~/.local/share/applications
+# entry is still free to fold one level down as before.
+mkdir -p "$HOME/.local"
+
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
