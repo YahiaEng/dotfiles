@@ -79,6 +79,7 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - ✓ BAR-02 pixel-shift mitigation descoped with a reproducible evidence artifact — waybar's only CSS-actuation path (SIGUSR2) measurably flashes and reflows, killing any CSS-based approach before the 2px question is reached — Validated in Phase 8
 - ✓ Power menu on wleave 0.7.1 (GTK4): six per-action hue capsules on `gtk4-layer-shell`, hover/focus name reveal, md3_decel entrance cascade, compositor-layerrule fade exit; GTK3 whole-stylesheet-discard failure class structurally eliminated, `wlogout/` package deleted (WLOG-01 re-delivered) — Validated in Phase 9
 - ✓ AGS v3 media card replaces the eww popup: working transport/seek/volume/player-switcher over the unchanged MPRIS bash backend, garuda-style blurred-art overlay with a cava audio-reactive underlay, matugen-themed with runtime `sass` + `apply_css` hot reload, reproducible via install.sh + stow (MEDIA-01..04) — Validated in Phase 10
+- ✓ The Hyprland config runs on Lua ahead of the 0.57 hyprlang removal: seven `config/*.lua` modules behind `hyprland.lua`, behavioural equivalence proven against a pre-migration `hyprctl` baseline via `hypr-equivalence-check`, and the theme-engine's two Hyprland-format outputs collapsed into one generated `lua-table` entry (contract 31→29). Legacy `.conf` tree retired; survived a cold boot (MAINT-04) — Validated in Phase 13.1
 
 ### Active
 
@@ -109,7 +110,11 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 
 ## Current State
 
-**In progress: v3.0 Quickshell Foundation & Motion Language** — Phase 11 (Quickshell viability gate) and **Phase 12 (Unified Design-Token Pipeline, complete 2026-07-27)** done. Phase 12 landed the one-source token pipeline: `theme-engine/motion.json` is the single hand-authored motion source, `lib/motion.sh` renders it to QML, GTK4 CSS and Hyprland in one `theme-apply` run, `motion-switch.sh` gives it a runtime normal/reduced/off axis, and `motion-lint` (folded into `theme-doctor`) refuses any surface hand-rolling a raw or dangling motion value. Quickshell gained live `Colours`/`Motion` singletons reading `~/.local/state/theme/` plus a token inspector. TOKEN-01..05 complete; TOKEN-06 satisfied by a recorded "not adopted" verdict; QS-03 dropped to Out of Scope under D-13. Gates at close: `theme-doctor` 180/0, `theme-parity` 1985/0, `motion-lint` 37/0 (+10/0 self-test), `quickshell-doctor` 13/0.
+**In progress: v3.0 Quickshell Foundation & Motion Language** — Phase 11 (Quickshell viability gate), Phase 12 (Unified Design-Token Pipeline), Phase 13 (Motion Retrofit & Existing-Surface Sweep) and **Phase 13.1 (Hyprland Lua Config Migration, complete 2026-07-28)** done.
+
+**Phase 13.1** moved the compositor off hyprlang ahead of its 0.57 removal, in 10 plans built around a falsifiable gate rather than a hand-diff: `hypr-equivalence-check` snapshots `hyprctl binds/animations/getoption` and diffs a live session against a committed pre-migration baseline. The cutover is proven (80/80 binds, `options.jsonl` and `animations.json` both PASS under a theme-matched run; the sole remaining diff is two documented `bindm` mouse-field records), survived a genuine cold boot, and the legacy `.conf` tree plus its emitters are retired — contract 31→29, one `lua-table` entry, hyprlock's own `hypr-vars` entry deliberately retained since it has a separate parser. Two Lua-only hazards were found and closed empirically rather than assumed: Lua 5.5 randomizes string-hash seeds so `pairs()` curve registration was non-deterministic per boot (now sorted), and `hl.dsp.dpms` ignores bare-string arguments and merely toggles (`{action="on"}` table form required). Gates at close: `theme-doctor` 206/0, `theme-parity` 2608/0, `motion-lint` 55/0 (+10/0 self-test), `keybind-doctor` 14/0, `theme-stress-test` 162/0. Known debt: waybar 0.15.0's compiled-in workspace-click dispatch is dead until Quickshell replaces it (upstream PR #5013 postdates the release), and `quickshell-doctor` retains 8 legacy dispatch sites.
+
+Phase 12 landed the one-source token pipeline: `theme-engine/motion.json` is the single hand-authored motion source, `lib/motion.sh` renders it to QML, GTK4 CSS and Hyprland in one `theme-apply` run, `motion-switch.sh` gives it a runtime normal/reduced/off axis, and `motion-lint` (folded into `theme-doctor`) refuses any surface hand-rolling a raw or dangling motion value. Quickshell gained live `Colours`/`Motion` singletons reading `~/.local/state/theme/` plus a token inspector. TOKEN-01..05 complete; TOKEN-06 satisfied by a recorded "not adopted" verdict; QS-03 dropped to Out of Scope under D-13. Gates at close: `theme-doctor` 180/0, `theme-parity` 1985/0, `motion-lint` 37/0 (+10/0 self-test), `quickshell-doctor` 13/0.
 
 **Shipped: v2.0 Desktop Expansion (2026-07-25)** — 7 phases (4-10), 64 plans, 444 commits, 488 files (+57,232 / −3,151) over 16 days. All 36 v2 requirements verified; every phase closed `verification_status: passed`; open-artifact audit clear at close.
 
@@ -187,4 +192,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-27 after Phase 12 (Unified Design-Token Pipeline) completed*
+*Last updated: 2026-07-28 after Phase 13.1 (Hyprland Lua Config Migration) completed*
