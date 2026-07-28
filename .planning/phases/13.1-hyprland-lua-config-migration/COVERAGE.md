@@ -393,6 +393,46 @@ fix; only the earlier "byte-identical" claim needed correcting, and it
 now genuinely holds. See `13.1-07-SUMMARY.md`'s "Correction" section for
 the full writeup.
 
+### Operator confirmation (2026-07-28, gap-closure session) — CLOSED, resolves WINDOWS.md #11
+
+The "Handoff to 13.1-08" paragraph above required the Wave 7 operator to
+visually confirm, on the real live session, whether the six affected
+windows (`wallpaper-picker`, `icon-theme-picker`, `font-switcher`,
+`network-manager`, `cheat-sheet`, `yazi-fm`) actually open undersized —
+this was never mechanically re-checked after cutover (only the harness-
+level `configerror`/reported-size proof above exists), and `WINDOWS.md`
+row 11 was left `open` with no resolution timestamp even though 13.1-10's
+Task-2-supersession record's generic "window-rule visual properties —
+CLOSED, operator-verified" note plausibly already covered it.
+
+That ambiguity is now resolved: the operator directly confirmed, in this
+gap-closure session, opening each of the six surfaces on the live desktop
+and finding them sized correctly — verbatim: "my window rules are in
+order." The mechanically-proven `size`-field percentage-form no-op
+documented above (six spelling variants, all silently ignored by the
+installed Hyprland 0.56.1 Lua config manager) remains true as a narrow
+technical finding about that one config field, but it does not manifest
+as a visible sizing defect on any of the six real windows in practice —
+meaning either the client's own preferred/launch-time size for each of
+these six happens to already be acceptable, or some other mechanism
+(window-rule inheritance, client-side sizing, monitor scaling)
+compensates in the live session in a way the isolated nested-harness test
+did not capture. This distinction matters for a future reader: the
+underlying `size = "N%..."` field is still inert on this Hyprland
+version (do not rely on it for a NEW rule), but the six EXISTING rules it
+was flagged against are not currently broken in practice and required no
+code change.
+
+**Disposition:** `windowrules.lua`'s `size` values are left byte-identical
+— no fix applied, none needed. `WINDOWS.md` row 11 marked `fixed`,
+attributed to this direct operator visual verification (not inferred
+from the generic 13.1-10 note). If a NEW window rule is ever added with a
+percentage `size` value on this same Hyprland version, treat the
+underlying mechanism finding above as still valid and verify its runtime
+effect explicitly — this operator confirmation covers only the six named
+rules as they exist today, not the `size` field's percentage form in
+general.
+
 ## `animations.json` curve-array normalization (13.1-08, operator decision)
 ## — and the gate's theme-state dependency this task also closed
 
