@@ -142,6 +142,44 @@ mkdir -p "$HOME/.config/hypr"
 # entry is still free to fold one level down as before.
 mkdir -p "$HOME/.local"
 
+# CR-01/13.1-REVIEW.md: pre-create ~/Pictures/{Wallpapers,Screenshots} as
+# REAL directories — the SAME fold-bug class just fixed for ~/.config/hypr
+# and ~/.local above, one more instance the code review caught that the
+# 13.1-10 reproduction pass didn't (that pass only exercised the `hypr`
+# and `vscodium` packages' own targets). The `wallpapers` package
+# (PACKAGES array above) ships wallpapers/Pictures/{Wallpapers/**,
+# Screenshots/}, and unlike every other package in this file, its target
+# (~/Pictures) is NOT nested under ~/.config or ~/.local — so it is not
+# covered by either of the two pre-creates above. On a genuinely fresh
+# machine, nothing existing prevents `stow --restow wallpapers` from
+# folding the ENTIRE ~/Pictures into one whole-directory symlink into the
+# repo the moment it is stowed; this file's own later wallpaper-pointer
+# seed (`mkdir -p "$HOME/Pictures/Wallpapers"` + `ln -sfr ...
+# current.jpg`, below) would then silently write inside the cloned repo
+# tree instead of under the user's real Pictures directory, and every
+# later wallpaper-switch/theme-apply write and every hyprshot/grim
+# screenshot would do the same from then on. Same
+# pre-create-before-stow idiom as fish/gtk-3.0/gtk-4.0/quickshell/
+# systemd/hypr/.local above: with both leaf directories already real,
+# stow descends into ~/Pictures/Wallpapers/<theme>/ and
+# ~/Pictures/Screenshots/ and symlinks only their individual file
+# entries, never the parent.
+#
+# Audit note (13.1 gap-closure session): every OTHER package in the
+# PACKAGES array below ships exclusively under ~/.config/<pkg>/... or
+# ~/.local/<pkg>/... (checked directly against each package's shipped
+# tree) — both of those roots are already guaranteed real directories by
+# the mkdir -p calls above (each uses `mkdir -p`, which creates every
+# missing parent, so ~/.config and ~/.local themselves are real before
+# this loop runs regardless of stow order). `wallpapers` is the ONLY
+# package whose shipped tree roots at something other than .config/ or
+# .local/ directly under $HOME, so it is the only remaining instance of
+# this bug class. vscodium's ~/.local/share/applications entry is still
+# free to fold one level below ~/.local (as the ~/.local comment above
+# already documents) — harmless, since nothing this script writes
+# targets ~/.local/share/ at runtime.
+mkdir -p "$HOME/Pictures/Wallpapers" "$HOME/Pictures/Screenshots"
+
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
