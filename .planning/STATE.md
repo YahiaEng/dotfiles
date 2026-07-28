@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-current_phase: "13.1"
+current_phase: 13.1
 current_phase_name: Hyprland Lua Config Migration
-status: planning
+status: executing
 stopped_at: "Phase 13.1 inserted (URGENT): Hyprland Lua config migration — 0.57 removes .conf support. Design spec approved at docs/superpowers/specs/2026-07-28-hyprland-lua-config-migration-design.md; not planned yet."
-last_updated: "2026-07-28T00:47:18.218Z"
+last_updated: "2026-07-28T02:10:19.566Z"
 last_activity: 2026-07-28
-last_activity_desc: "Completed quick task 260728-4f9: install.sh now reproduces the full incident fix set (LTS fallback, verification gate)"
+last_activity_desc: Inserted Phase 13.1 (Hyprland Lua config migration) ahead of Dashboard Drawer; design spec approved
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 20
+  total_plans: 30
   completed_plans: 20
   percent: 38
 ---
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 Phase: 13.1 — Hyprland Lua Config Migration (INSERTED)
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Progress: [──────────] 0 of ? plans (phase-scoped; milestone-wide is 20/20)
 Last activity: 2026-07-28 — Inserted Phase 13.1 (Hyprland Lua config migration) ahead of Dashboard Drawer; design spec approved
 
