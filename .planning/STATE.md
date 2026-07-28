@@ -4,17 +4,17 @@ milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 13.1
 current_phase_name: hyprland-lua-config-migration
-status: executing
-stopped_at: Completed 13.1-09-PLAN.md
-last_updated: "2026-07-28T10:25:51.665Z"
+status: verifying
+stopped_at: Completed 13.1-10-PLAN.md — Phase 13.1 complete (10/10 plans)
+last_updated: "2026-07-28T13:51:38.310Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 13.1 execution started
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 30
-  completed_plans: 29
-  percent: 38
+  completed_plans: 30
+  percent: 50
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 Phase: 13.1 (hyprland-lua-config-migration) — EXECUTING
 Plan: 10 of 10
-Status: Ready to execute
-Progress: [██████████] 97%
+Status: Phase complete — ready for verification
+Progress: [██████████] 100%
 Last activity: 2026-07-28 — Phase 13.1 execution started
 
 ## Performance Metrics
@@ -158,6 +158,7 @@ Last activity: 2026-07-28 — Phase 13.1 execution started
 | Phase 13.1 P07 | 70min | 2 tasks | 6 files |
 | Phase 13.1 P08 | multi-session | 3 tasks | 6 files |
 | Phase 13.1 P09 | 40min | 2 tasks | 5 files |
+| Phase 13.1 P10 | ~35min (continuation) | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -252,6 +253,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13.1-09: hyprctl keyword is a silent no-op on the Lua-config compositor — deliberately left unfixed (out of this task's scope) and logged to deferred-items.md; gaming-mode-toggle's eye-candy on/off is currently non-functional pending a future fix
 - [Phase ?]: 13.1-10 (continuation): Task 2's one-way retirement decision resolved `soak-longer`, NOT `retire-now` — Task 3 (delete the legacy hyprlang tree) was NOT executed; deferred to a future session, not cancelled. Reasoning recorded in full in `13.1-EQUIVALENCE-REPORT.md`'s "Decision (Task 2)" section: the machine has never been cold-booted onto the Lua config, the hyprlock lock/unlock cycle is still unverified as a full cycle, window-rule visual properties remain unconfirmed against the real desktop, and gaming mode was actively broken at decision time. Five concrete re-check items recorded before a future Task 2 attempt: cold boot, hyprlock full lock/unlock, gaming mode exercised for real, window-rule visuals confirmed live, and a `verify/container-run.sh` reproduction run. The dual-render pipeline (Lua + hyprlang) and the single-rename rollback both stay fully intact. Phase 13.1 remains at 9/10 plans, not marked complete.
 - [Phase ?]: 13.1-10 (continuation): closed the `hyprctl keyword` deferred item (commit `e5eba76`) — all 8 call sites in `gaming-mode-toggle.sh` retargeted from `hyprctl keyword` (silent no-op under the Lua config manager) to `hyprctl eval` with the equivalent `hl.config({...})` expression. Proven live across two independent ON/OFF cycles with `hyprctl getoption` readback at every stage: exact pre-toggle restore both cycles; hypridle SIGSTOP/SIGCONT inhibit and waybar hide/restore both confirmed unaffected. `deferred-items.md` item 1 marked RESOLVED; `WINDOWS.md` ledger id 12 marked fixed (open_count 8 -> 7).
+- [Phase ?]: 13.1-10: Task 2's one-way retirement decision re-resolved from soak-longer to retire-now once all five named re-check items closed (cold boot verified two ways, hyprlock lock/unlock and window-rule visuals operator-verified, gaming mode fix proven live, reproduction proven directly); original soak-longer record kept, superseded in place
+- [Phase ?]: 13.1-10: legacy hyprlang tree retired — hyprland.conf + 7 config/*.conf files deleted, contract.json collapsed to one lua-table entry (31->29 files), matugen/lib/motion.sh/lib/contract.sh emitters retired, hyprlock's two-emitter split kept fully intact and live-verified
+- [Phase ?]: 13.1-10: found and fixed two previously-undiscovered fresh-machine stow.sh reproducibility bugs (whole-directory fold of ~/.config/hypr and ~/.local on a genuinely empty $HOME) via Task 3's own required reproduction proof, run twice — first exposed the bugs, second (post-fix) clean
+- [Phase ?]: 13.1-10: three consumers broke as a direct consequence of the retirement and were fixed in the same change — hypr-equivalence-check's key discovery now falls back to the committed baseline when no hyprlang tree remains, theme-parity's D-31 array dropped hyprland-motion.conf (a genuine coverage change, not silently patched), motion-lint --self-test's 4 permanently-unpassable hyprlang fixtures retired (14->10)
 
 ### Quick Tasks Completed
 
@@ -278,7 +283,6 @@ None yet.
 
 **Open — carried into v3.0:**
 
-0. **Phase 13.1 Plan 10 Task 3 (retire the legacy hyprlang tree) deferred, not cancelled.** Task 2's blocking decision checkpoint was resolved `soak-longer` (2026-07-28 continuation), not `retire-now`. `hypr/.config/hypr/hyprland.conf` and the seven `hypr/.config/hypr/config/*.conf` files, the two Hyprland-format `contract.json` entries and their emitters, and the `hypr-motion` format branches all remain in place — the phase's one-way door stays open. Full reasoning and the five concrete re-check items (cold boot, hyprlock full lock/unlock cycle, gaming mode exercised for real, window-rule visuals confirmed live, a `verify/container-run.sh` reproduction run) are recorded in `13.1-EQUIVALENCE-REPORT.md`'s "Decision (Task 2)" section. Phase 13.1 stays at 9/10 plans, not complete. → Owned by a future Task 2 re-run.
 1. **Phase 4 advisory review items (`04-REVIEW.md` WR-01..04)** — WR-01/02/03 now CLOSED (13-03, commit `baae579`, each fault-injection proven). **WR-04 (Logout teardown hazard) remains OPEN.** Its D-29 measurement gate was explicitly waived by the operator on 2026-07-28 to close Phase 13 — NOT PERFORMED, NOT falsified, NOT resolved. Logout stays on the bare path (`cliphist wipe; uwsm stop`) by default, not by finding. See `.planning/PROJECT.md` Key Decisions and `13-03-SUMMARY.md`. Reproduction steps remain verbatim in `13-03-PLAN.md` Task 2 for whoever picks this up. MAINT-02 stays unchecked in REQUIREMENTS.md pending WR-04's real closure. → Owned by Phase 13 (MAINT-02), partially closed.
 2. **QS-03 per-screen mounting gap.** The shell root mounts one `LazyLoader` per `GlobalShortcut`, not one surface per `Quickshell.screens` entry, so an output hotplugged after startup gets no surface. Real, mechanically-verified defect — `quickshell-doctor` reports 13 passed / 1 failed on exactly this check. A `Variants`-based fix was written in 11-04 and reverted after two independent live-daemon reliability regressions on quickshell 0.3.0 (intermittent config-load race, post-hotplug visibility break). **Closed for Phase 11** via a recorded override in `11-VERIFICATION.md` (`overrides[0]`, accepted by YahiaEng 2026-07-26); **now owned by Phase 12** as its success criterion 6. Not unowned, not forgotten — but still an open defect until Phase 12 closes it.
 3. **Two Phase 11 backstop truths accepted as UNVERIFIED (2026-07-26).** Recorded as `overrides[1]`/`overrides[2]` in `11-VERIFICATION.md` and carried in `behavior_unverified_items`. Neither is evidence of correct behaviour — both are known unknowns:
@@ -286,6 +290,10 @@ None yet.
    - *Zero-output survival* — physically untestable on this single-monitor host. Phase 12 needs multi-output test infrastructure for QS-03 anyway; that is the natural place to finally exercise it.
 
 _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.0 scoping; see Resolved below.)_
+
+**Resolved by 13.1-10 (2026-07-28):**
+
+- ~~**Phase 13.1 Plan 10 Task 3 (retire the legacy hyprlang tree) deferred, not cancelled.**~~ — **closed.** Task 2's decision was re-resolved `retire-now` (superseding the `soak-longer` record, kept intact for provenance) once all five named re-check items closed: cold boot verified two ways (including independent orchestrator confirmation), hyprlock full lock/unlock and window-rule visuals operator-verified, gaming mode fix proven live, and reproduction proven directly rather than reported. `hypr/.config/hypr/hyprland.conf` and the seven `config/*.conf` files are deleted; `contract.json` collapsed to one `lua-table` entry (31→29 files); `hyprlock`'s two-emitter split is untouched and live-verified. Full evidence in `13.1-EQUIVALENCE-REPORT.md`'s "Decision (Task 2) — SUPERSEDED" and "Post-retirement" sections. Phase 13.1 is now 10/10 plans, complete. Two previously-undiscovered fresh-machine `stow.sh` reproducibility bugs (whole-directory fold of `~/.config/hypr` and `~/.local`) were found and fixed along the way — see `13.1-10-SUMMARY.md`.
 
 **Resolved in Phase 11 (2026-07-26):**
 
@@ -336,13 +344,13 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-28T10:25:51.653Z
-Stopped at: 13.1-10 continuation — Task 2 decision recorded (soak-longer, Task 3 NOT executed), hyprctl-keyword deferred item closed (commit e5eba76). Plan 10 remains incomplete; phase 13.1 stays at 9/10 plans. No SUMMARY.md written for plan 10.
-Resume file: 13.1-10-PLAN.md (Task 3, blocked on precondition "Task 2 resolved retire-now" — not currently met)
+Last session: 2026-07-28T13:51:38.297Z
+Stopped at: Completed 13.1-10-PLAN.md — Phase 13.1 complete (10/10 plans)
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 11 with `/gsd-plan-phase 11`
-- Backup branch `v1` (`6b30204`) holds the pre-v3.0 snapshot of the rice. It is **local only** — push it to `origin` for off-machine safety before Quickshell work begins.
-- All three regression gates are green as of 2026-07-26 (`theme-doctor` 136/0, `theme-parity` 1542/0, both exit 0), so any failure appearing during Phase 11 is a genuine regression, not inherited noise.
-- `theme-stress-test` is unblocked but unrun — worth one clean pass before Phase 12 starts depending on the gates.
+- Phase 13.1 (Hyprland Lua Config Migration) is complete — 10/10 plans, all gates green, the one-way retirement door closed. Plan Phase 14 (Dashboard Drawer) with `/gsd-plan-phase 14`.
+- Backup branch `v1` (`6b30204`) holds the pre-v3.0 snapshot of the rice. It is **local only** — push it to `origin` for off-machine safety.
+- All core regression gates are green as of this plan's close (`theme-doctor` 206/0, `theme-parity` 2608/0, `motion-lint` 55/0, `keybind-doctor` 14/0, `theme-stress-test` 162/0), so any failure appearing during Phase 14 is a genuine regression, not inherited noise.
+- This session's commits are local only (not yet pushed to `origin`) — push before relying on `verify/container-run.sh`'s real-remote clone for any future reproducibility check.

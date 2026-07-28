@@ -217,7 +217,7 @@ Plan ordering is fixed by 13-CONTEXT.md D-37: MD3 sourcing (delivered in 13-RESE
   7. A fresh machine reproduces the Lua config through `install.sh` + `stow.sh`.
 
 **Owns**: The `lua-table` generated-token format and the "generated files are data, not executable config" convention that Phases 14–18 inherit.
-**Plans**: 9/10 plans executed
+**Plans**: 10/10 plans executed
 **Rollback**: The legacy `.conf` tree stays on disk untouched until criterion 2 passes and the Lua config has soaked under normal use. Hyprland selects a format once at startup, so rollback at any point is renaming `hyprland.lua` plus a restart.
 
 **Known unknown carried into planning**: The actual Lua API is **unverified**. Wiki pages consulted during design confirmed the migration and the config location but not how options, keybinds, window rules, or nested blocks are expressed. Establishing it from the current wiki and `hl.meta.lua` stubs is the phase's research step, not an assumption to build on. *(Closed by research: the installed `hyprland` 0.56.1-2 package ships `/usr/share/hypr/hyprland.lua` and `/usr/share/hypr/stubs/hl.meta.lua`, which are authoritative for the whole `hl.*` surface. Three items remain unverifiable offline — the `hl.window_rule` property vocabulary, the `hl.permission` calling convention, and `hyprctl` config-re-read semantics — and are planned as explicit empirical spikes in `13.1-03`.)*
@@ -258,7 +258,7 @@ Plans:
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
-- [ ] 13.1-10-PLAN.md — Soak evidence, the one-way retirement decision, legacy removal and fresh-machine reproduction
+- [x] 13.1-10-PLAN.md — Soak evidence, the one-way retirement decision, legacy removal and fresh-machine reproduction
 
 ### Phase 14: Dashboard Drawer
 
