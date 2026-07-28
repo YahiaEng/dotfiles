@@ -1,0 +1,370 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║        HYPR-EQUIVALENCE-CHECK (D-08/D-09/D-10/D-16)   ║
+# ║  Rerunnable equivalence gate for the hyprlang-to-Lua   ║
+# ║  config migration (Phase 13.1). Modelled directly on   ║
+# ║  waybar-equivalence-check's shape: a --snapshot mode    ║
+# ║  that captures ground truth once, and a default check  ║
+# ║  mode that re-derives current state and diffs it.      ║
+# ║  Report-only — never mutates compositor state, never    ║
+# ║  writes under hypr/.config/hypr/, never runs            ║
+# ║  theme-apply.                                           ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Unlike waybar's config, which resolves statically from files on disk,
+# Hyprland's *effective* config is only observable at runtime. This tool's
+# "resolve" step is therefore a live `hyprctl -j` invocation, not a static
+# parse — snapshot mode is meaningfully coupled to *which config format is
+# currently booted* and MUST run before any config file is edited (D-09).
+#
+# Usage:
+#   hypr-equivalence-check --snapshot <outdir>
+#       Capture ONLY, never compare. Writes binds.json (hyprctl -j binds),
+#       animations.json (hyprctl -j animations), options.jsonl (one
+#       `hyprctl -j getoption <key>` JSON record per option key actually
+#       set across the 8 hyprlang config files), uncovered.txt (D-16: every
+#       set key/declaration this gate cannot introspect, with a reason and
+#       a named compensating check), and MANIFEST.md.
+#
+#   hypr-equivalence-check --uncovered
+#       Print the committed baseline's uncovered.txt and exit 0 — a
+#       convenience reader so the D-16 coverage limits are visible without
+#       opening the file directly.
+#
+#   hypr-equivalence-check [--baseline <dir>]
+#       Default check mode. Re-derives binds/animations/options live and
+#       diffs each against the committed baseline (or the directory named
+#       by --baseline). Exits 0 ONLY when the divergence count is exactly
+#       zero. D-10 deviation from the waybar analog: an absent, empty, or
+#       unreadable baseline is a FAIL, never a SKIP, and never exit 0.
+#
+# This script only ever reads via `hyprctl -j getoption`, `-j binds`,
+# `-j animations`, and `hyprctl version`. It never uses a state-mutating
+# hyprctl verb, never runs theme-apply, and its only writes are into a
+# --snapshot output directory or mktemp files cleaned up by the EXIT trap.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "$REPO_ROOT" ]]; then
+    # Fallback if this ever runs outside a git checkout of the dotfiles repo:
+    # hypr/.config/hypr/scripts -> repo root is 4 levels up.
+    REPO_ROOT="$(cd -- "$SCRIPT_DIR/../../../.." &>/dev/null && pwd)"
+fi
+
+DEFAULT_BASELINE_DIR="$REPO_ROOT/.planning/phases/13.1-hyprland-lua-config-migration/.hypr-baseline"
+BASELINE_DIR="$DEFAULT_BASELINE_DIR"
+
+HYPR_CONF_ROOT="$REPO_ROOT/hypr/.config/hypr"
+HYPRLAND_CONF="$HYPR_CONF_ROOT/hyprland.conf"
+HYPR_CONFIG_DIR="$HYPR_CONF_ROOT/config"
+
+# ── Config file set (dynamic — never a hardcoded list, D-08) ─────────────
+CONFIG_FILES=("$HYPRLAND_CONF")
+for f in "$HYPR_CONFIG_DIR"/*.conf; do
+    [[ -e "$f" ]] || continue
+    CONFIG_FILES+=("$f")
+done
+
+# ── Mode dispatch ──────────────────────────────────────────────────────
+MODE="check"
+OUTDIR=""
+
+case "${1:-}" in
+    --snapshot)
+        MODE="snapshot"
+        OUTDIR="${2:?hypr-equivalence-check --snapshot requires an output directory}"
+        ;;
+    --uncovered)
+        MODE="uncovered"
+        ;;
+    --baseline)
+        BASELINE_DIR="${2:?hypr-equivalence-check --baseline requires a directory}"
+        MODE="check"
+        ;;
+    "")
+        MODE="check"
+        ;;
+    *)
+        echo "hypr-equivalence-check: unknown argument '${1:-}'" >&2
+        echo "Usage: hypr-equivalence-check [--snapshot <outdir>|--uncovered|--baseline <dir>]" >&2
+        exit 1
+        ;;
+esac
+
+# ── Key/permission-grant extractor: parses the 8 hyprlang config files at ─
+# ── run time (never a hardcoded option-key list) by tracking brace-nested ─
+# ── blocks and joining `block:block:key` the same way `hyprctl getoption`  ─
+# ── addresses them. Declaration keywords (bind*, env, monitor, exec-once,  ─
+# ── windowrule[v2 line/block], layerrule, permission, animation, bezier)  ─
+# ── are never option keys — they're covered by binds.json/animations.json ─
+# ── or (permission grants) have no getoption representation at all.       ─
+_parse_config_tree() {
+    local mode="$1"
+    shift
+    python3 - "$mode" "$@" <<'PYEOF'
+import re
+import sys
+
+DECL_KEYWORDS = {
+    "bind", "binde", "bindel", "bindl", "bindm", "bindr",
+    "env", "monitor", "exec-once", "windowrule", "layerrule",
+    "permission", "animation", "bezier",
+}
+
+BLOCK_OPEN_RE = re.compile(r'^([A-Za-z_][A-Za-z0-9_.:-]*)\s*\{\s*(?:#.*)?$')
+ASSIGN_RE = re.compile(r'^([A-Za-z_][A-Za-z0-9_.:-]*)\s*=\s*(.*)$')
+SOURCE_RE = re.compile(r'^source\s*=')
+
+
+def parse_file(path, keys, permission_grants):
+    stack = []  # list of (name, skip_bool)
+    try:
+        with open(path, 'r', encoding='utf-8') as fh:
+            lines = fh.readlines()
+    except OSError as exc:
+        print(f"hypr-equivalence-check: cannot read {path}: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        if line == '}':
+            if stack:
+                stack.pop()
+            continue
+        if line.startswith('$'):
+            continue
+        if SOURCE_RE.match(line):
+            continue
+
+        m = BLOCK_OPEN_RE.match(line)
+        if m:
+            name = m.group(1)
+            parent_skip = stack[-1][1] if stack else False
+            skip = parent_skip or (name in DECL_KEYWORDS)
+            stack.append((name, skip))
+            continue
+
+        m = ASSIGN_RE.match(line)
+        if m:
+            key, val = m.group(1), m.group(2)
+            in_skip = stack[-1][1] if stack else False
+            if key in DECL_KEYWORDS or in_skip:
+                if key == 'permission' and not in_skip:
+                    permission_grants.append(val.strip())
+                continue
+            prefix = ':'.join(n for n, _ in stack)
+            full_key = f"{prefix}:{key}" if prefix else key
+            keys.add(full_key)
+            continue
+        # Anything else (unrecognized line shape) is silently ignored —
+        # comments/blanks/variables/source are already handled above.
+
+
+def main():
+    mode = sys.argv[1]
+    paths = sys.argv[2:]
+    keys = set()
+    permission_grants = []
+    for p in paths:
+        parse_file(p, keys, permission_grants)
+    if mode == 'keys':
+        for k in sorted(keys):
+            print(k)
+    elif mode == 'permissions':
+        for g in permission_grants:
+            print(g)
+    else:
+        print(f"hypr-equivalence-check: unknown parse mode {mode}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
+PYEOF
+}
+
+# ── Shared capture routine: writes binds.json/animations.json/options.jsonl ─
+# ── into $1, and (only if $2 == 1) uncovered.txt too (D-16). Used by both  ─
+# ── --snapshot mode and the default check mode's live re-derivation, so   ─
+# ── the two modes can never drift apart on key-extraction logic.          ─
+_capture_snapshot() {
+    local outdir="$1" write_uncovered="$2"
+    mkdir -p "$outdir"
+
+    hyprctl -j binds > "$outdir/binds.json" 2>/dev/null || return 1
+    hyprctl -j animations > "$outdir/animations.json" 2>/dev/null || return 1
+
+    local -a _keys
+    mapfile -t _keys < <(_parse_config_tree keys "${CONFIG_FILES[@]}")
+
+    : > "$outdir/options.jsonl"
+    if [[ "$write_uncovered" == "1" ]]; then
+        : > "$outdir/uncovered.txt"
+    fi
+
+    local key out rc set_val
+    for key in "${_keys[@]}"; do
+        [[ -z "$key" ]] && continue
+        out="$(hyprctl -j getoption "$key" 2>/dev/null)"
+        rc=$?
+        if [[ $rc -ne 0 ]]; then
+            [[ "$write_uncovered" == "1" ]] && printf '%s\t%s\n' "$key" "hyprctl getoption exited non-zero ($rc)" >> "$outdir/uncovered.txt"
+            continue
+        fi
+        if ! printf '%s' "$out" | jq -e . >/dev/null 2>&1; then
+            [[ "$write_uncovered" == "1" ]] && printf '%s\t%s\n' "$key" "getoption returned no JSON record (raw: ${out:-<empty>})" >> "$outdir/uncovered.txt"
+            continue
+        fi
+        set_val="$(printf '%s' "$out" | jq -r '.set // empty')"
+        if [[ "$set_val" == "false" ]]; then
+            [[ "$write_uncovered" == "1" ]] && printf '%s\t%s\n' "$key" "getoption record present but set:false" >> "$outdir/uncovered.txt"
+            continue
+        fi
+        printf '%s\n' "$out" >> "$outdir/options.jsonl"
+    done
+
+    if [[ "$write_uncovered" == "1" ]]; then
+        local -a _grants
+        mapfile -t _grants < <(_parse_config_tree permissions "${CONFIG_FILES[@]}")
+        local grant
+        for grant in "${_grants[@]}"; do
+            [[ -z "$grant" ]] && continue
+            printf 'permission-grant:%s\t%s\n' "$grant" \
+                "permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-06" \
+                >> "$outdir/uncovered.txt"
+        done
+    fi
+
+    return 0
+}
+
+# ── --uncovered: convenience reader over the committed baseline ──────────
+if [[ "$MODE" == "uncovered" ]]; then
+    if [[ ! -f "$BASELINE_DIR/uncovered.txt" ]]; then
+        echo "hypr-equivalence-check: no uncovered.txt found at $BASELINE_DIR" >&2
+        exit 1
+    fi
+    cat "$BASELINE_DIR/uncovered.txt"
+    exit 0
+fi
+
+# ── --snapshot: capture ground truth, no comparison ───────────────────────
+if [[ "$MODE" == "snapshot" ]]; then
+    if ! command -v hyprctl &>/dev/null; then
+        echo "hypr-equivalence-check: hyprctl not found in PATH" >&2
+        exit 1
+    fi
+    if ! command -v jq &>/dev/null; then
+        echo "hypr-equivalence-check: jq not found in PATH" >&2
+        exit 1
+    fi
+
+    mkdir -p "$OUTDIR"
+
+    if ! _capture_snapshot "$OUTDIR" 1; then
+        echo "  [FAIL] snapshot capture failed (hyprctl -j binds/animations against a live compositor required)" >&2
+        exit 1
+    fi
+
+    HYPRCTL_VERSION_LINE="$(hyprctl version 2>/dev/null | head -1)"
+    GIT_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    CAPTURE_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    KEY_COUNT="$(_parse_config_tree keys "${CONFIG_FILES[@]}" | grep -c . || true)"
+    BIND_COUNT="$(jq 'length' "$OUTDIR/binds.json" 2>/dev/null || echo 0)"
+    OPT_COUNT="$(wc -l < "$OUTDIR/options.jsonl" | tr -d ' ')"
+    UNCOVERED_COUNT="$(wc -l < "$OUTDIR/uncovered.txt" | tr -d ' ')"
+
+    {
+        echo "# hypr-equivalence-check baseline manifest"
+        echo ""
+        echo "- hyprctl version: $HYPRCTL_VERSION_LINE"
+        echo "- config format at capture time: hyprlang (.conf) — pre-migration (D-09)"
+        echo "- git commit: $GIT_COMMIT"
+        echo "- capture timestamp (UTC): $CAPTURE_TS"
+        echo "- option keys extracted (parsed from the 8 config files at run time, not hardcoded): $KEY_COUNT"
+        echo "- binds.json bind count: $BIND_COUNT"
+        echo "- options.jsonl record count: $OPT_COUNT"
+        echo "- uncovered.txt entry count: $UNCOVERED_COUNT"
+        echo ""
+        echo "## Documented coverage limits (D-16)"
+        echo ""
+        if [[ "$UNCOVERED_COUNT" -gt 0 ]]; then
+            echo "One line per key/declaration this gate cannot (or structurally does not) introspect"
+            echo "via \`hyprctl getoption\`, with the reason and its named compensating check:"
+            echo ""
+            while IFS=$'\t' read -r k reason; do
+                [[ -z "$k" ]] && continue
+                echo "- \`$k\` — $reason"
+            done < "$OUTDIR/uncovered.txt"
+        else
+            echo "No entries — every extracted option key resolved via \`hyprctl getoption\`."
+        fi
+    } > "$OUTDIR/MANIFEST.md"
+
+    echo "  [OK] snapshot written to $OUTDIR"
+    exit 0
+fi
+
+# ── Default: check mode — live re-derive, diff against baseline ──────────
+PASS=0
+FAIL=0
+
+echo "hypr-equivalence-check — baseline: $BASELINE_DIR"
+echo ""
+
+if [[ ! -d "$BASELINE_DIR" ]] || [[ -z "$(ls -A "$BASELINE_DIR" 2>/dev/null)" ]]; then
+    echo "  [FAIL] baseline directory is absent or empty ($BASELINE_DIR) — never counted as a PASS or a SKIP"
+    FAIL=$((FAIL + 1))
+    echo ""
+    echo "PASS: $PASS  FAIL: $FAIL"
+    exit 1
+fi
+
+TMP_FILES=()
+cleanup() {
+    local t
+    for t in "${TMP_FILES[@]}"; do
+        rm -rf "$t"
+    done
+}
+trap cleanup EXIT
+
+TMPDIR_LIVE="$(mktemp -d)"
+TMP_FILES+=("$TMPDIR_LIVE")
+
+if ! _capture_snapshot "$TMPDIR_LIVE" 0; then
+    echo "  [FAIL] live hyprctl capture failed — is Hyprland running?"
+    FAIL=$((FAIL + 1))
+    echo ""
+    echo "PASS: $PASS  FAIL: $FAIL"
+    exit 1
+fi
+
+for rf in binds.json animations.json options.jsonl; do
+    baseline_file="$BASELINE_DIR/$rf"
+    live_file="$TMPDIR_LIVE/$rf"
+
+    if [[ ! -r "$baseline_file" ]]; then
+        echo "  [FAIL] $rf: baseline file missing or unreadable — never a SKIP"
+        FAIL=$((FAIL + 1))
+        continue
+    fi
+
+    if diff_out="$(diff -u "$baseline_file" "$live_file")"; then
+        echo "  [PASS] $rf: matches baseline"
+        PASS=$((PASS + 1))
+    else
+        echo "  [FAIL] $rf: differs from baseline"
+        echo "$diff_out"
+        FAIL=$((FAIL + 1))
+    fi
+done
+
+echo ""
+echo "PASS: $PASS  FAIL: $FAIL"
+[[ "$FAIL" -eq 0 ]]
+exit $?
