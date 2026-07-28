@@ -14,10 +14,10 @@
 One line per key/declaration this gate cannot (or structurally does not) introspect
 via `hyprctl getoption`/`hyprctl -j binds`, with the reason and its named compensating check:
 
-- `permission-grant:/usr/bin/quickshell, screencopy, allow` — permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-06
-- `permission-grant:/usr/bin/grim, screencopy, allow` — permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-06
-- `permission-grant:/usr/bin/hyprpicker, screencopy, allow` — permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-06
-- `permission-grant:/usr/lib/xdg-desktop-portal-hyprland, screencopy, allow` — permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-06
+- `permission-grant:/usr/bin/quickshell, screencopy, allow` — permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-07
+- `permission-grant:/usr/bin/grim, screencopy, allow` — permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-07
+- `permission-grant:/usr/bin/hyprpicker, screencopy, allow` — permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-07
+- `permission-grant:/usr/lib/xdg-desktop-portal-hyprland, screencopy, allow` — permission grants are read once at Hyprland startup and are not exposed via hyprctl getoption — no per-grant introspection key exists; compensating check: recorded side-by-side textual review in plan 13.1-07
 - `binds.json:dispatcher` — opaque (`"__lua"`) for every Lua-registered bind; compensating check: `keybind-source-equivalence` (13.1-04 Task 3)
 - `binds.json:arg` — opaque (internal index) for every Lua-registered bind; compensating check: `keybind-source-equivalence` (13.1-04 Task 3)
 - `binds.json:keycode` (code:NNN binds only) — reads back 0, not the real keycode; compensating check: physical keypress at end-of-phase human verification
