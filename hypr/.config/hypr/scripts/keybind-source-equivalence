@@ -1,0 +1,492 @@
+#!/usr/bin/env python3
+# ╔══════════════════════════════════════════════════════╗
+# ║       KEYBIND-SOURCE-EQUIVALENCE (Phase 13.1)          ║
+# ║  Command-attachment half of the binds equivalence      ║
+# ║  proof (13.1-04 Task 3, authorized scope addition).     ║
+# ║  `hyprctl -j binds` cannot introspect a Lua-registered  ║
+# ║  bind's dispatcher/arg (COVERAGE.md's "binds.json       ║
+# ║  opacity" finding), so this script proves the same      ║
+# ║  thing keybind-doctor's own cross-check proves for the  ║
+# ║  structural fields — but at the SOURCE level: it         ║
+# ║  extracts (mods, key, dispatcher, arg) from              ║
+# ║  keybinds.conf and from the ported keybinds.lua by       ║
+# ║  static parsing (never by reloading a compositor), and   ║
+# ║  diffs the two sets. Report-only — never mutates either   ║
+# ║  file, never runs hyprctl.                                ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Usage:
+#   keybind-source-equivalence [conf-path] [lua-path]
+#       Defaults to the real hypr/.config/hypr/config/{keybinds.conf,keybinds.lua}
+#       relative to the repo root. Explicit paths let this gate be pointed
+#       at a throwaway poisoned copy for a regression self-test (a gate
+#       that cannot fail is not a gate — same discipline as keybind-doctor
+#       accepting an explicit KEYBINDS_CONF argument).
+#
+# Exit 0 only when every declared bind in keybinds.conf has a matching
+# (mods, key, dispatcher, arg) tuple parsed from keybinds.lua, and vice
+# versa (no extra/missing binds on either side). Any mismatch prints the
+# offending bind by index and both sides' parsed tuple, then exits 1.
+# A dispatcher call this script's mapping table does not recognise is a
+# HARD FAIL (never a silent skip/pass) — an unrecognised shape means this
+# gate cannot vouch for that bind, which must never look the same as a
+# proven-equal bind.
+
+import re
+import sys
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[3] if (SCRIPT_DIR.parents[3] / ".git").exists() else None
+if REPO_ROOT is None:
+    # Fallback: hypr/.config/hypr/scripts -> repo root is 4 levels up.
+    REPO_ROOT = SCRIPT_DIR.parent.parent.parent.parent
+
+DEFAULT_CONF = REPO_ROOT / "hypr/.config/hypr/config/keybinds.conf"
+DEFAULT_LUA = REPO_ROOT / "hypr/.config/hypr/config/keybinds.lua"
+
+MOD_BITS = {
+    "SUPER": 64, "SHIFT": 1, "CAPS": 2, "CTRL": 4, "CONTROL": 4,
+    "ALT": 8, "MOD2": 16, "MOD3": 32, "MOD5": 128,
+}
+
+
+def mods_to_modmask(tokens):
+    total = 0
+    for tok in tokens:
+        total += MOD_BITS.get(tok, 0)
+    return total
+
+
+# ───────────────────────── keybinds.conf side ─────────────────────────
+# Reuses keybind-doctor's own parsing APPROACH (regex over declaration
+# lines, $variable resolution before mod/key extraction, comment
+# stripping) rather than reinventing a different one — see
+# hypr/.config/hypr/scripts/keybind-doctor's own header comment for the
+# precedent. Never retargets keybind-doctor itself (that script's own
+# `#`-description-parity and hyprctl cross-checks are unrelated to this
+# gate and are left untouched).
+
+BIND_LINE_RE = re.compile(r'^(bind[a-z]*)\s*=\s*(.*)$')
+VAR_LINE_RE = re.compile(r'^\$(\w+)\s*=\s*(.*)$')
+
+
+def strip_comment(line):
+    idx = line.find('#')
+    return line if idx == -1 else line[:idx]
+
+
+def resolve_vars(text, variables):
+    # Longest-name-first so "$app_launcher_drun" is never corrupted by an
+    # earlier blind replace of the shorter "$app_launcher" prefix.
+    for name in sorted(variables, key=len, reverse=True):
+        text = text.replace(f"${name}", variables[name])
+    return text
+
+
+def parse_conf(path):
+    variables = {}
+    binds = []
+    errors = []
+    with open(path, encoding="utf-8") as fh:
+        for lineno, raw in enumerate(fh, 1):
+            line = strip_comment(raw).rstrip("\n")
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            m = VAR_LINE_RE.match(stripped)
+            if m:
+                variables[m.group(1)] = m.group(2).strip()
+                continue
+
+            m = BIND_LINE_RE.match(stripped)
+            if not m:
+                continue  # not a bind declaration (windowrule, etc.)
+
+            btype = m.group(1)
+            rest = m.group(2)
+            parts = [p.strip() for p in rest.split(",")]
+            if len(parts) < 3:
+                errors.append(f"{path}:{lineno}: malformed bind line (fewer than 3 comma-separated fields): {stripped!r}")
+                continue
+
+            mods_field = resolve_vars(parts[0], variables)
+            key_field = resolve_vars(parts[1], variables)
+            dispatcher = parts[2].strip()
+            arg = resolve_vars(",".join(parts[3:]).strip(), variables) if len(parts) > 3 else ""
+
+            # bindm's declared "dispatcher" token (movewindow/resizewindow)
+            # is hyprlang's OWN sub-argument of the real "mouse" dispatcher
+            # — confirmed against the committed baseline
+            # (.hypr-baseline/binds.json's two bindm records both show
+            # "dispatcher": "mouse", "arg": "movewindow"/"resizewindow",
+            # never "dispatcher": "movewindow"). This transformation is a
+            # hyprlang-internal registration fact, not a Lua-side
+            # authoring choice, so both extraction sides must agree on it.
+            if btype == "bindm":
+                dispatcher, arg = "mouse", dispatcher
+
+            modmask = mods_to_modmask(mods_field.split())
+            binds.append({
+                "line": lineno,
+                "modmask": modmask,
+                "key": key_field,
+                "dispatcher": dispatcher,
+                "arg": arg,
+                "raw": stripped,
+            })
+    return binds, errors
+
+
+# ───────────────────────── keybinds.lua side ──────────────────────────
+
+LOCAL_RE = re.compile(r'^local\s+(\w+)\s*=\s*(.+?)\s*$')
+BIND_CALL_RE = re.compile(r'hl\.bind\(')
+
+
+def strip_lua_comment(line):
+    # A plain `line.find("--")` is WRONG here: several string literals in
+    # this file contain a genuine "--" as shell-command text (e.g.
+    # `"uwsm app -- kitty.desktop"`), and naively truncating at the first
+    # "--" would cut the literal itself, not just a trailing comment.
+    # Must track quote state so a "--" inside a quoted string is never
+    # treated as a comment start.
+    quote = None
+    i = 0
+    n = len(line)
+    while i < n:
+        ch = line[i]
+        if quote:
+            if ch == "\\" and i + 1 < n:
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+            i += 1
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+            i += 1
+            continue
+        if ch == "-" and i + 1 < n and line[i + 1] == "-":
+            return line[:i]
+        i += 1
+    return line
+
+
+def lua_string_literal(text):
+    """Return the content of a single Lua-quoted string literal, or None."""
+    text = text.strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in ("'", '"'):
+        return text[1:-1]
+    return None
+
+
+def find_matching_paren(s, open_idx):
+    """Given s[open_idx] == '(', return the index of its matching ')'."""
+    depth = 0
+    for i in range(open_idx, len(s)):
+        if s[i] in "([{":
+            depth += 1
+        elif s[i] in ")]}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return -1
+
+
+def split_top_level(s):
+    """Split s on top-level commas, respecting (), {}, and quotes."""
+    parts = []
+    depth = 0
+    quote = None
+    current = []
+    for ch in s:
+        if quote:
+            current.append(ch)
+            if ch == quote:
+                quote = None
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+            current.append(ch)
+            continue
+        if ch in "([{":
+            depth += 1
+            current.append(ch)
+            continue
+        if ch in ")]}":
+            depth -= 1
+            current.append(ch)
+            continue
+        if ch == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+            continue
+        current.append(ch)
+    if current:
+        parts.append("".join(current).strip())
+    return parts
+
+
+def resolve_key_expr(expr, locals_map):
+    """Resolve a Lua key-string expression (a `..`-joined chain of quoted
+    literals and local-variable references) into the literal string."""
+    terms = [t.strip() for t in expr.split("..")]
+    resolved = []
+    for t in terms:
+        lit = lua_string_literal(t)
+        if lit is not None:
+            resolved.append(lit)
+            continue
+        if t in locals_map:
+            resolved.append(locals_map[t])
+            continue
+        return None  # unresolvable term — caller treats as a hard error
+    return "".join(resolved)
+
+
+def resolve_arg_expr(expr, locals_map):
+    """Resolve a single Lua expression used as an hl.dsp.exec_cmd(...)
+    argument: either a quoted literal or a bare local-variable reference."""
+    lit = lua_string_literal(expr)
+    if lit is not None:
+        return lit
+    expr = expr.strip()
+    if expr in locals_map:
+        return locals_map[expr]
+    return None
+
+
+TABLE_FIELD_RE = re.compile(r'(\w+)\s*=\s*("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|-?\d+(?:\.\d+)?|true|false)')
+
+
+def parse_table_fields(table_expr):
+    """Parse a `{ k = v, ... }` Lua table literal into {k: raw_v_string}."""
+    inner = table_expr.strip()
+    if inner.startswith("{"):
+        inner = inner[1:]
+    if inner.endswith("}"):
+        inner = inner[:-1]
+    fields = {}
+    for m in TABLE_FIELD_RE.finditer(inner):
+        key, raw = m.group(1), m.group(2)
+        fields[key] = raw
+    return fields
+
+
+def field_value(raw):
+    lit = lua_string_literal(raw)
+    if lit is not None:
+        return lit
+    return raw  # numeric/bool literal, kept as its literal text
+
+
+def resolve_dispatcher_expr(expr, locals_map):
+    """Map a Lua dispatcher-factory call expression back to the
+    (dispatcher, arg) tuple hyprlang's own baseline shows for the
+    equivalent construct. Returns None if the shape is not recognised —
+    the caller treats that as a hard failure, never a silent pass."""
+    expr = expr.strip()
+
+    m = re.match(r'^hl\.dsp\.exec_cmd\((.+)\)$', expr)
+    if m:
+        val = resolve_arg_expr(m.group(1), locals_map)
+        return ("exec", val) if val is not None else None
+
+    if expr == "hl.dsp.window.kill()":
+        return ("killactive", "")
+
+    if re.match(r'^hl\.dsp\.window\.float\(\s*\{\s*action\s*=\s*"toggle"\s*\}\s*\)$', expr):
+        return ("togglefloating", "")
+
+    m = re.match(r'^hl\.dsp\.window\.fullscreen\((\d+)\)$', expr)
+    if m:
+        return ("fullscreen", m.group(1))
+
+    if expr == "hl.dsp.window.pseudo()":
+        return ("pseudo", "")
+
+    m = re.match(r'^hl\.dsp\.focus\((\{.*\})\)$', expr)
+    if m:
+        fields = parse_table_fields(m.group(1))
+        if "direction" in fields:
+            return ("movefocus", field_value(fields["direction"]))
+        if "workspace" in fields:
+            return ("workspace", field_value(fields["workspace"]))
+        return None
+
+    m = re.match(r'^hl\.dsp\.window\.move\((\{.*\})\)$', expr)
+    if m:
+        fields = parse_table_fields(m.group(1))
+        if "direction" in fields:
+            return ("movewindow", field_value(fields["direction"]))
+        if "workspace" in fields:
+            return ("movetoworkspace", field_value(fields["workspace"]))
+        return None
+
+    if expr == "hl.dsp.window.drag()":
+        # bindm's dispatcher/arg transformation (see parse_conf's own
+        # comment) — the .conf side normalizes bindm's "movewindow" token
+        # to dispatcher="mouse", arg="movewindow"; this Lua form must
+        # produce the identical pair to compare equal.
+        return ("mouse", "movewindow")
+
+    if expr == "hl.dsp.window.resize()":
+        return ("mouse", "resizewindow")
+
+    m = re.match(r'^hl\.dsp\.window\.resize\(\s*\{\s*x\s*=\s*(-?\d+)\s*,\s*y\s*=\s*(-?\d+)\s*,\s*relative\s*=\s*true\s*\}\s*\)$', expr)
+    if m:
+        return ("resizeactive", f"{m.group(1)} {m.group(2)}")
+
+    m = re.match(r'^hl\.dsp\.workspace\.toggle_special\((.+)\)$', expr)
+    if m:
+        val = lua_string_literal(m.group(1))
+        return ("togglespecialworkspace", val) if val is not None else None
+
+    m = re.match(r'^hl\.dsp\.global\((.+)\)$', expr)
+    if m:
+        val = lua_string_literal(m.group(1))
+        return ("global", val) if val is not None else None
+
+    return None
+
+
+def parse_lua(path):
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+
+    # Strip comments line-by-line first (keeps line numbers stable for
+    # error reporting), then re-join for the bracket-matching call scan.
+    lines = [strip_lua_comment(line) for line in text.split("\n")]
+    cleaned = "\n".join(lines)
+
+    locals_map = {}
+    for lineno, line in enumerate(lines, 1):
+        m = LOCAL_RE.match(line.strip())
+        if m:
+            name, rhs = m.group(1), m.group(2)
+            lit = lua_string_literal(rhs)
+            if lit is not None:
+                locals_map[name] = lit
+            # non-string locals (none exist in this file) are simply not
+            # added — any reference to one later fails to resolve, which
+            # is a correct hard failure, not a silent wrong answer.
+
+    binds = []
+    errors = []
+    pos = 0
+    while True:
+        idx = cleaned.find("hl.bind(", pos)
+        if idx == -1:
+            break
+        open_paren = idx + len("hl.bind")
+        close_paren = find_matching_paren(cleaned, open_paren)
+        if close_paren == -1:
+            lineno = cleaned.count("\n", 0, idx) + 1
+            errors.append(f"{path}:{lineno}: unbalanced parens in hl.bind(...) call")
+            pos = idx + 1
+            continue
+        inner = cleaned[open_paren + 1:close_paren]
+        lineno = cleaned.count("\n", 0, idx) + 1
+        args = split_top_level(inner)
+        if len(args) < 2:
+            errors.append(f"{path}:{lineno}: hl.bind(...) call has fewer than 2 top-level arguments: {inner!r}")
+            pos = close_paren + 1
+            continue
+
+        key_expr, dispatcher_expr = args[0], args[1]
+        key_str = resolve_key_expr(key_expr, locals_map)
+        if key_str is None:
+            errors.append(f"{path}:{lineno}: could not resolve key-string expression: {key_expr!r}")
+            pos = close_paren + 1
+            continue
+
+        dispatch = resolve_dispatcher_expr(dispatcher_expr, locals_map)
+        if dispatch is None:
+            errors.append(f"{path}:{lineno}: unrecognised dispatcher-call shape (not in this script's mapping table): {dispatcher_expr!r}")
+            pos = close_paren + 1
+            continue
+        dispatcher, arg = dispatch
+
+        segments = [s.strip() for s in key_str.split(" + ")]
+        mods, key = segments[:-1], segments[-1]
+        modmask = mods_to_modmask(mods)
+
+        binds.append({
+            "line": lineno,
+            "modmask": modmask,
+            "key": key,
+            "dispatcher": dispatcher,
+            "arg": arg,
+            "raw": cleaned[idx:close_paren + 1],
+        })
+        pos = close_paren + 1
+
+    return binds, errors
+
+
+# ──────────────────────────────── main ─────────────────────────────────
+
+def tuple_key(b):
+    return (b["modmask"], b["key"], b["dispatcher"], b["arg"])
+
+
+def main():
+    conf_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CONF
+    lua_path = Path(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_LUA
+
+    conf_binds, conf_errors = parse_conf(conf_path)
+    lua_binds, lua_errors = parse_lua(lua_path)
+
+    fail = False
+
+    if conf_errors or lua_errors:
+        for e in conf_errors:
+            print(f"! parse error (conf): {e}")
+        for e in lua_errors:
+            print(f"! parse error (lua): {e}")
+        fail = True
+
+    conf_set = {}
+    for b in conf_binds:
+        conf_set.setdefault(tuple_key(b), []).append(b)
+    lua_set = {}
+    for b in lua_binds:
+        lua_set.setdefault(tuple_key(b), []).append(b)
+
+    if len(conf_binds) != len(lua_binds):
+        print(f"! bind count mismatch: keybinds.conf declares {len(conf_binds)}, keybinds.lua registers {len(lua_binds)}")
+        fail = True
+
+    for key, occurrences in conf_set.items():
+        lua_occurrences = lua_set.get(key, [])
+        if len(lua_occurrences) < len(occurrences):
+            for b in occurrences[len(lua_occurrences):]:
+                print(f"! present in keybinds.conf only ({conf_path}:{b['line']}): {b['raw']}")
+                print(f"    tuple: modmask={key[0]} key={key[1]!r} dispatcher={key[2]!r} arg={key[3]!r}")
+            fail = True
+
+    for key, occurrences in lua_set.items():
+        conf_occurrences = conf_set.get(key, [])
+        if len(occurrences) < len(conf_occurrences):
+            continue  # already reported above as conf-only
+        if len(occurrences) > len(conf_occurrences):
+            for b in occurrences[len(conf_occurrences):]:
+                print(f"! present in keybinds.lua only ({lua_path}:{b['line']}): {b['raw']}")
+                print(f"    tuple: modmask={key[0]} key={key[1]!r} dispatcher={key[2]!r} arg={key[3]!r}")
+            fail = True
+
+    if fail:
+        print(f"\nFAIL: keybinds.conf ({len(conf_binds)} binds, {len(conf_errors)} parse errors) vs "
+              f"keybinds.lua ({len(lua_binds)} binds, {len(lua_errors)} parse errors)")
+        return 1
+
+    print(f"PASS: all {len(conf_binds)} binds match on (mods, key, dispatcher, arg) between "
+          f"{conf_path.name} and {lua_path.name}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -122,28 +122,188 @@ This is not a discoverable-and-foldable cosmetic difference like
 `custom`→`css` — there is no computable mapping from the opaque index
 `"5"` back to the true command string through `hyprctl -j binds` alone (a
 Lua dispatcher is a closure/dispatcher-object reference, not a
-string-serializable value the C++ layer can introspect). **Per this
-task's own instruction ("if they do not [suffer the same class], leave
-them byte-exact and say so explicitly"), `binds.json` comparison is left
-byte-exact — unchanged code.** This is flagged here prominently because
-the consequence is more severe than what `options.jsonl` faced: **after
-the Wave 7 cutover (plan 13.1-08), `hypr-equivalence-check`'s
-`binds.json` section will FAIL on the `dispatcher`/`arg` line for
-literally every one of this repo's ~80 binds — a 100% false-positive
-rate on those two fields, not a 25-27/46 fraction.** This makes a raw
-`binds.json` FAIL, by itself, **uninformative** post-cutover: it will
-fire regardless of whether the port is correct. The Wave 7 operator MUST
-NOT treat a `binds.json` FAIL as a real regression signal at that point
-without manually diffing to confirm every differing line is confined to
-the expected `dispatcher: "__lua"` / opaque-`arg` substitution on an
-otherwise-identical `key`/`keycode`/`modmask`/flag set, with no other
-field changed. **This is a genuine, newly-discovered gap this task did
-not have the authorized scope to close** (closing it would mean either
-inventing an unproven stable-index-to-command mapping, or adding a
-functional test that actually invokes representative binds and observes
-their effects rather than relying on JSON introspection) — assigned to
-plan `13.1-08` (the live cutover plan), which already owns the equivalence
-gate's final pre-flip run and is the natural place to decide how to
-handle it (e.g. exempting `dispatcher`/`arg` into `uncovered.txt` with a
-compensating functional smoke-test, mirroring the D-16 permission-grant
-pattern already established in this file).
+string-serializable value the C++ layer can introspect). At the time
+13.1-03 wrote this section, `binds.json` comparison was left byte-exact
+(unchanged code) and the gap was handed to plan `13.1-08`. **13.1-04
+Task 3 (a second authorized scope addition, reassigned from 13.1-08 by
+the orchestrator — see the section immediately below) closes this gap
+early, before the Wave 7 flip inherits a 100%-false-positive-rate binds
+gate.**
+
+## Binds equivalence: two-half proof (13.1-04 Task 3 — authorized scope
+## addition)
+
+**Why reassigned here, not left for 13.1-08:** (a) 13.1-04 is the plan
+that ports all 80 binds, and the plan that ports them should carry the
+proof they are right; (b) 13.1-08 is the live-cutover plan — designing
+verification machinery mid-flip is the wrong time; (c) 13.1-09 (which
+retargets `keybind-doctor`) runs AFTER the flip and so cannot serve as
+pre-flip verification. Full rationale in `13.1-04-PLAN.md`'s authorized
+scope addition.
+
+Because `hyprctl -j binds` cannot introspect a Lua bind's `dispatcher`/
+`arg` (the finding above), the binds equivalence proof is split into two
+independently-provable halves:
+
+### Half 1 — structural (compositor-level, all 80 binds, byte-exact)
+
+`hypr-equivalence-check`'s `binds.json` comparison now runs
+`_compare_binds_structural` (not a raw `diff -u`): every field EXCEPT
+`dispatcher`/`arg` is compared byte-exact, per-record, in order. A
+dropped bind, a wrong modmask, a wrong key, a changed flag, or a changed
+submap still FAILs and still names the offending bind by index + key.
+The only narrow, explicitly-named tolerance is `keycode` for the four
+`code:NNN` physical-keycode binds (baseline `107`, live `0` — the
+separate, already-documented 13.1-03/13.1-04 serialization gap; every
+OTHER bind's `keycode` must still match exactly, including the 76
+symbolic binds whose baseline `keycode` is `0`).
+
+**Proven live against a real Lua-booted binds.json** (not just the
+trivial live-hyprlang-vs-baseline case, which would never exercise the
+new code path): `_compare_binds_structural` run directly against the
+committed baseline and a `hypr-lua-harness`-captured Lua `binds.json`
+produced exactly **two** FAILs, both on the SAME already-tracked field:
+
+```
+! record 68 (key='mouse:272' keycode=0 arg='movewindow'): field 'mouse' baseline=True live=False
+! record 69 (key='mouse:273' keycode=0 arg='resizewindow'): field 'mouse' baseline=True live=False
+```
+
+Every other structural field on all 80 records matched exactly.
+
+**D-10 fault-injection proof (the check can fail, and names the offending
+bind):** run directly against two deliberately corrupted copies of the
+committed baseline itself:
+
+```
+# modmask altered on one record
+! record 0 (key='Return' keycode=0 arg='uwsm app -- kitty.desktop'): field 'modmask' baseline=64 live=999
+exit=1
+
+# a bind dropped (shifts every subsequent record by one — the check
+# correctly reports the count mismatch AND names every resulting
+# positional field disagreement, rather than silently passing)
+! bind count mismatch: baseline=80 live=79
+... (79 further named field disagreements)
+exit=1
+
+# control: baseline vs itself (unaltered)
+exit=0
+```
+
+This `mouse` divergence (documented below) is deliberately **NOT** given a
+`keycode`-style carve-out — the task's own instruction was explicit ("no
+loosening"), and unlike `keycode` (a well-understood, narrowly-scoped
+serialization artifact confirmed not to indicate a functional problem),
+whether `{mouse=true}` actually has any runtime effect is **NOT
+MECHANICALLY VERIFIABLE** with tooling available in this environment (see
+below). A real, currently-failing check on an unresolved question is the
+correct, honest outcome here — silently tolerating it would defeat the
+"no loosening" instruction's purpose.
+
+### Half 2 — command-attachment (source-level, deterministic)
+
+`hypr/.config/hypr/scripts/keybind-source-equivalence` statically parses
+`(mods, key, dispatcher, arg)` out of BOTH `keybinds.conf` (hyprlang) and
+`keybinds.lua` (the port), using the same parsing APPROACH `keybind-doctor`
+already established (regex over declaration lines, `$variable`
+resolution before mod/key extraction) — never retargeting
+`keybind-doctor` itself. The Lua side resolves `local` string variables,
+`..`-concatenated key-string expressions, and a mapping table from every
+`hl.dsp.*` dispatcher-factory call shape this repo uses back to the
+`(dispatcher, arg)` pair `hyprctl -j binds` shows for the hyprlang
+equivalent — including `bindm`'s own internal transformation (hyprlang
+registers a `bindm = ..., movewindow` line as `dispatcher: "mouse", arg:
+"movewindow"`, confirmed against the committed baseline; the Lua side's
+`hl.dsp.window.drag()` is mapped to the same `("mouse", "movewindow")`
+pair for a fair comparison). An unrecognised dispatcher-call shape is a
+**hard failure**, never a silent pass — this gate cannot vouch for a bind
+shape it does not recognise.
+
+**Proven live:**
+
+```
+$ hypr/.config/hypr/scripts/keybind-source-equivalence
+PASS: all 80 binds match on (mods, key, dispatcher, arg) between keybinds.conf and keybinds.lua
+```
+
+**Proven able to fail (self-test, per this task's own instruction — "a
+gate that cannot fail is not a gate"):** run three times against a
+deliberately corrupted copy of `keybinds.lua`, each time confirming the
+gate FAILs and names the exact offending bind:
+
+1. **Changed `exec` arg** (`theme-switch.sh` → `CORRUPTED.sh`): FAIL,
+   correctly reports the `T` bind present-with-different-arg on both
+   sides.
+2. **Dropped bind** (the `N` / notification-toggle bind deleted
+   entirely): FAIL, correctly reports both a bind-count mismatch
+   (80 vs 79) and the missing `N` bind by name.
+3. **Dropped modifier** (`SUPER + SHIFT + Q` → `SUPER + Q`): FAIL,
+   correctly reports the `modmask=65` tuple missing and a spurious
+   `modmask=64` tuple present instead.
+
+All three runs used explicit path arguments (`keybind-source-equivalence
+<conf-path> <corrupted-lua-path>`), mirroring `keybind-doctor`'s own
+explicit-path self-test convention — the real repo files were never
+mutated during this proof.
+
+### What a green `hypr-equivalence-check` binds result DOES and DOES NOT
+### prove — read this before trusting it (Wave 7 operator)
+
+| Claim | Proven by | Proven how |
+|---|---|---|
+| All 80 binds are present, none dropped, none added | Half 1 (structural) + Half 2 (source-level, bind-count check) | Both independently assert count == 80 |
+| Every bind's modmask/key/submap/flags match the pre-migration original | Half 1 (structural) | Byte-exact `hyprctl -j binds` comparison, live |
+| Every bind's dispatcher+argument TEXT matches the pre-migration original | Half 2 (source-level) | Static parse + tuple diff, proven able to fail |
+| The four `code:NNN` binds' `keycode` field will read `0`, not `107`, post-cutover — this is expected, not a regression | Documented tolerance in Half 1 | 13.1-03 finding, narrowly carved out |
+| The two `bindm` binds' `mouse` field will read `false`, not `true`, post-cutover — Half 1 legitimately FAILs on this | Documented, NOT resolved | See "Open item" below |
+| A Lua-registered dispatcher call ACTUALLY FIRES THE SAME RUNTIME BEHAVIOUR as the hyprlang original (not just the same source text) | **NOT proven by either half** | Half 2 proves source-level intent, not runtime execution. 13.1-04 Task 2 separately proved several dispatcher shapes behaviourally via `hyprctl dispatch` against a real client (fullscreen, resize, float, kill, move-focus) — see `13.1-LUA-FINDINGS.md`. This coverage is real but partial, and does not extend to every one of the 80 binds. |
+| Destructive/irreversible binds behave identically | **NOT proven by any automated check** | See "Irreversible/destructive binds" below — requires manual confirmation |
+
+**Open item — `{mouse=true}` bind option:** the vendor-example shape
+(`/usr/share/hypr/hyprland.lua` lines 290-291) is used verbatim for both
+`bindm` ports, but `HL.BindOptions` does not list `mouse` as a member,
+`hl.bind`'s opts table has no field validator, and no evdev/uinput
+mouse-button injection tool was available in this environment to
+behaviourally confirm drag-move/drag-resize actually work. This is a
+real, currently-failing structural-check outcome on exactly two records
+(`mouse:272`/`mouse:273`) — the Wave 7 operator should expect
+`hypr-equivalence-check` to report this specific FAIL and should NOT
+treat it as a new regression; it is the same open item this task itself
+could not close, carried forward with a physical compensating check
+below.
+
+### Irreversible/destructive binds requiring manual functional
+### confirmation (not provable by source-level equality)
+
+Source-level equality proves the bind's TEXT matches; it does not prove
+the command still BEHAVES identically once dispatched through the Lua
+closure mechanism. The following binds are not trivially undoable if
+something is subtly wrong, and MUST be physically exercised by the Wave 7
+operator before trusting the cutover, beyond what any automated gate
+checks:
+
+- **`Super+Shift+Q`** → `wleave.sh` — opens the power menu, the gateway
+  to shutdown/reboot/logout. The bind itself is reversible (closing the
+  menu), but a malfunction here is the path to an actually irreversible
+  session-ending action.
+- **`Super+Q`** → `killactive` — closes the focused window immediately,
+  with no confirmation; potential data loss in an application with
+  unsaved state.
+- **`Super+L`** → `hyprlock` — locks the screen. Reversible via password
+  entry under normal operation, but this repo has prior incident history
+  with hyprlock option regressions (`04-REVIEW.md` FIX-02) — a
+  misconfigured lock screen is a session lockout risk, not merely a
+  cosmetic bug.
+- **`Super+Shift+C`** → `clipboard-wipe.sh` — destructively wipes
+  clipboard history (the script itself carries a default-No confirmation
+  per D-15, but the confirmation prompt firing correctly through a
+  Lua-dispatched `exec` call has not been independently verified here).
+
+None of these are exempted from any automated check above — they are
+covered by both halves of the binds proof like every other bind. This
+list exists because, for these four specifically, a subtle runtime
+divergence that both halves miss (source-text-correct but
+behaviourally-wrong) has a materially worse worst case than for the other
+76 binds, so they warrant deliberate manual confirmation rather than
+being folded silently into the general "press every bind once" sweep.

@@ -304,6 +304,76 @@ sys.exit(0)
 PYEOF
 }
 
+# ── Structural (non-dispatcher/arg) binds.json comparison (13.1-04 Task 3, ─
+# ── authorized scope addition — D-16/T-13.1-12/T-13.1-13) ─────────────────
+# ── `hyprctl -j binds` cannot introspect a Lua-registered bind's command:  ─
+# ── every Lua bind reads back `dispatcher: "__lua"` and an opaque small-   ─
+# ── integer `arg` (an internal closure index), never the real dispatcher   ─
+# ── name/argument text a hyprlang-sourced capture shows (found live in     ─
+# ── 13.1-03 Task 3; see COVERAGE.md's "binds.json opacity" section for the ─
+# ── full finding). A byte-exact `diff -u` over the whole record would      ─
+# ── therefore FAIL on `dispatcher`/`arg` for every one of this repo's ~80  ─
+# ── binds after the Wave 7 Lua cutover — a 100% false-positive rate on     ─
+# ── exactly those two fields, making a raw binds.json FAIL uninformative   ─
+# ── post-cutover. This function keeps the check meaningful by comparing    ─
+# ── STRUCTURAL fields byte-exact — every field except `dispatcher`/`arg` — ─
+# ── while `dispatcher`/`arg` themselves are proven separately, at the      ─
+# ── source level, by keybind-source-equivalence (D-16 entries below).      ─
+# ── This is NOT a loosening of the structural fields: a dropped bind, a    ─
+# ── wrong modmask, a wrong key/keycode, a changed flag, or a changed       ─
+# ── submap still FAILs and still names the offending bind by index+key.    ─
+_compare_binds_structural() {
+    local baseline="$1" live="$2"
+    python3 - "$baseline" "$live" <<'PYEOF'
+import json
+import sys
+
+# Every hyprctl -j binds field EXCEPT dispatcher/arg (opaque for Lua binds —
+# see this function's header comment above). Field set confirmed identical
+# between a hyprlang-sourced and a Lua-sourced capture in 13.1-03 Task 3.
+STRUCTURAL_FIELDS = [
+    "locked", "mouse", "release", "repeat", "longPress", "non_consuming",
+    "auto_consuming", "has_description", "modmask", "submap",
+    "submap_universal", "key", "catch_all", "description",
+    "allow_input_capture",
+]
+# keycode gets its own, narrower rule (see below): baseline reports the
+# real physical keycode (e.g. 107) for a code:NNN bind; a Lua-registered
+# code:NNN bind's keycode field reads back 0 — a documented, separate
+# serialization gap (13.1-03/13.1-04), not part of this task's authorized
+# scope to close. Every OTHER bind (baseline keycode 0) must still match
+# exactly — this rule only forgives the specific 107-vs-0 shape.
+
+baseline_path, live_path = sys.argv[1], sys.argv[2]
+baseline = json.load(open(baseline_path))
+live = json.load(open(live_path))
+
+diffs = []
+
+if len(baseline) != len(live):
+    diffs.append(f"bind count mismatch: baseline={len(baseline)} live={len(live)}")
+
+for i, (b, l) in enumerate(zip(baseline, live)):
+    label = f"record {i} (key={b.get('key')!r} keycode={b.get('keycode')!r} arg={b.get('arg')!r})"
+    for field in STRUCTURAL_FIELDS:
+        if b.get(field) != l.get(field):
+            diffs.append(f"{label}: field '{field}' baseline={b.get(field)!r} live={l.get(field)!r}")
+    bk, lk = b.get("keycode"), l.get("keycode")
+    if bk != lk:
+        if bk == 107 and lk == 0:
+            pass  # documented keycode-serialization gap, not a real divergence
+        else:
+            diffs.append(f"{label}: field 'keycode' baseline={bk!r} live={lk!r} (UNEXPECTED — not the documented 107-vs-0 gap)")
+
+if diffs:
+    for d in diffs:
+        print(f"! {d}")
+    sys.exit(1)
+
+sys.exit(0)
+PYEOF
+}
+
 # ── Shared capture routine: writes binds.json/animations.json/options.jsonl ─
 # ── into $1, and (only if $2 == 1) uncovered.txt too (D-16). Used by both  ─
 # ── --snapshot mode and the default check mode's live re-derivation, so   ─
@@ -482,6 +552,23 @@ for rf in binds.json animations.json options.jsonl; do
             PASS=$((PASS + 1))
         else
             echo "  [FAIL] $rf: differs from baseline (normalized comparison)"
+            echo "$diff_out"
+            FAIL=$((FAIL + 1))
+        fi
+        continue
+    fi
+
+    if [[ "$rf" == "binds.json" ]]; then
+        # 13.1-04 Task 3 (authorized scope addition): structural-only
+        # comparison — every field except dispatcher/arg, which are opaque
+        # for Lua binds (see _compare_binds_structural's header comment
+        # and COVERAGE.md). dispatcher/arg equivalence is proven
+        # separately, at the source level, by keybind-source-equivalence.
+        if diff_out="$(_compare_binds_structural "$baseline_file" "$live_file")"; then
+            echo "  [PASS] $rf: matches baseline on every structural field (dispatcher/arg excluded — proven separately by keybind-source-equivalence)"
+            PASS=$((PASS + 1))
+        else
+            echo "  [FAIL] $rf: differs from baseline (structural comparison)"
             echo "$diff_out"
             FAIL=$((FAIL + 1))
         fi
