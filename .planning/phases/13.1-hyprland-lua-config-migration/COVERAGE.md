@@ -392,3 +392,96 @@ way, on both the wrong and the corrected spelling — is unchanged by this
 fix; only the earlier "byte-identical" claim needed correcting, and it
 now genuinely holds. See `13.1-07-SUMMARY.md`'s "Correction" section for
 the full writeup.
+
+## `animations.json` curve-array normalization (13.1-08, operator decision)
+## — and the gate's theme-state dependency this task also closed
+
+### Curve-array set comparison and its one named assumption
+
+`hypr-equivalence-check`'s `animations.json` comparison was, until this
+task, a byte-exact `diff -u` over the whole `[leaves, curves]` wrapper
+array — left that way in `13.1-03` because no divergence class was found
+at the time (see "binds.json and animations.json — checked, NOT the same
+class" above). A real divergence class was found live during this plan's
+own Task 3 diagnostic work, in the ORDER curves are reported, not their
+content: `config/animations.lua` registers each curve with `hl.curve()`
+inside a `pairs()` loop over `tokens.motion.curves`, a Lua hash table —
+and Lua 5.5 randomizes its string-hash seed **per process**. Proven live
+by running 5 separate `lua` processes over the real
+`~/.local/state/theme/hyprland-tokens.lua` motion-curves table with a bare
+`pairs()` loop: 5 different orderings, every time. A prior diagnostic
+session in this same plan concluded the opposite ("deterministic, not
+flapping") from a test that issued 3 `hyprctl` calls and a reload inside
+the SAME running compositor process — same Lua hash seed throughout,
+structurally incapable of observing per-process randomization. That
+conclusion was disproven and corrected in this task.
+
+**The fix has two parts, both required:**
+
+1. `config/animations.lua` now sorts the curve-name keys
+   (`table.sort()`) before iterating, so curve *registration* — the
+   sequence of `hl.curve()` calls — is deterministic regardless of which
+   process runs it. Proven stable across 5 separate fresh `lua`
+   processes post-fix.
+2. `hypr-equivalence-check`'s `animations.json` comparison now treats the
+   curve array (`data[1]`) as a SET keyed on the full tuple `(name, X0,
+   Y0, X1, Y1)`, discarding array position entirely, while the animation
+   LEAF array (`data[0]`, 35 records) stays byte-exact positional,
+   unchanged. **Sorted registration alone does not make the gate pass**:
+   even after the sort fix, `hyprctl -j animations`'s own reported curve
+   order is stable *within one compositor process* but is neither
+   alphabetical nor equal to the committed baseline's order (which itself
+   came from the old theme-engine-emitted hyprlang fragment, predating
+   this migration entirely) — Hyprland's own internal curve storage is
+   not proven to preserve Lua-side registration order, and the committed
+   baseline was never going to match any single canonical ordering. Both
+   fixes were required together; verified live.
+
+**Named assumption, not a proof (same posture as the `options.jsonl`
+normalization above):** this comparison asserts that a bezier curve's
+*identity* is fully determined by `(name, X0, Y0, X1, Y1)`, and that its
+position within the JSON array carries no compositor-observable meaning.
+This is a mechanism fact about Hyprland, not a guess — every `animation =`
+leaf and every `hl.animation()` call references a curve by its `bezier`
+NAME string, never by index, so two curve arrays containing the same set
+of `(name, X0, Y0, X1, Y1)` tuples in different orders are behaviourally
+indistinguishable to the compositor. This is a narrower and more directly
+verifiable assumption than the `options.jsonl` normalization's
+`custom`↔`gradient` backend-equivalence claim, because the reference
+mechanism (`bezier = "<name>"`) is documented and directly observable in
+every animation leaf record already captured by this same gate.
+
+**Not weakened — proven able to fail** (fault-injected against both the
+standalone comparison function and the real CLI entry point, using an
+actually tampered copy of the committed baseline): a changed control point
+on any curve still FAILs and names the exact tuple; a missing curve still
+FAILs; an extra curve still FAILs; a changed leaf still FAILs
+(leaves remain positional); a reordered-only curve array now correctly
+PASSes. Full evidence in `13.1-EQUIVALENCE-REPORT.md`'s "Curve-ordering
+fix applied before this run" section.
+
+### The gate's theme-state dependency (a trap this task paid for directly)
+
+`.hypr-baseline/` was captured under the `dracula` theme (`13.1-01`). Every
+value-bearing comparison this gate performs — `options.jsonl`'s
+`col.active_border`/`col.inactive_border`/every colour-derived key, and
+now `animations.json`'s curve control points indirectly via the token
+pipeline — is theme-scoped. **Running the gate while the live theme is set
+to anything other than `dracula` produces spurious `col.active_border`/
+`col.inactive_border` (and any other colour-token-derived key) FAILs that
+are colour-drift noise, not Lua-vs-hyprlang divergence.** This cost a
+diagnostic cycle earlier in this same plan (Task 3 work was performed once
+under a mismatched `catppuccin` live theme before this was recognised) and
+is recorded here so `13.1-09`'s soak-window operator does not repeat it:
+
+- **Before running `hypr-equivalence-check`:** confirm/apply the `dracula`
+  theme (`theme-apply dracula` or equivalent) so the live token values
+  match the committed baseline's own capture-time values.
+- **After the gate run:** restore whatever theme was live before running
+  it (this plan restores to `catppuccin`, the theme that was live
+  immediately prior).
+- This is a property of the gate's design (it diffs live state against a
+  theme-scoped static capture), not a bug — but it is unrecorded anywhere
+  else in this phase's documentation, and an operator who runs the gate
+  under the wrong theme will see a plausible-looking but entirely false
+  regression report.
