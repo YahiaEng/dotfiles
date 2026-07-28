@@ -307,3 +307,69 @@ divergence that both halves miss (source-text-correct but
 behaviourally-wrong) has a materially worse worst case than for the other
 76 binds, so they warrant deliberate manual confirmation rather than
 being folded silently into the general "press every bind once" sweep.
+
+## Window-rule `size` field: percentage form does not apply (13.1-07 Task 1
+## — genuine functional gap, not a verification-channel limitation)
+
+Every prior "NOT MECHANICALLY VERIFIABLE" entry in this document and in
+`13.1-LUA-FINDINGS.md` is a case where the underlying feature is believed
+to work but no `hyprctl` JSON surface exists to observe it. This entry is
+different in kind: the runtime channel DOES exist (`hyprctl clients -j`'s
+`.size` field), it WAS observed, and it shows the feature does not take
+effect.
+
+**Finding:** `hl.window_rule({..., size = "<N>% <N>%"})` registers with
+zero `configerrors` on this installed Hyprland 0.56.1 Lua config manager,
+but has **no runtime effect** — a matching window opens at its own
+client-preferred size (e.g. plain kitty's built-in default, or whatever
+`initial_window_width`/`height` the launch script sets) instead of the
+requested percentage of the monitor. Six variant spellings were tried live
+against a nested `hypr-lua-harness` instance, isolating the cause to the
+literal `%` character: `"70% 65%"`, `"70%,65%"`, `{ "70%", "65%" }`,
+`{ w = "70%", h = "65%" }`, `"70%w 65%h"`, and a mixed token
+`"70% 333"` — **all six** fell back to the client's own size with zero
+`configerrors`. By contrast, the plain-pixel string form
+(`size = "444 333"`) and even a malformed non-percent string
+(`size = "0.7 0.65"`, which the parser silently truncated to `[1, 0]` via
+naive integer conversion rather than treating as a fraction) both
+**visibly changed** the client's reported size — proving the `size` field
+mechanism itself is live and that the pixel-string path works correctly;
+only the `%`-suffixed token is rejected outright, with the whole field
+silently ignored rather than partially applied or erroring.
+
+**Affected rules (6 of 30 in `windowrules.lua`):** `wallpaper-picker`,
+`icon-theme-picker`, `font-switcher`, `network-manager`, `cheat-sheet`
+(all `"85% 85%"`), and `yazi-fm` (`"70% 65%"`). Checked: none of these six
+rules' launcher scripts (`wallpaper-switch.sh`, `icon-theme-switch.sh`,
+the equivalent font/network/cheat-sheet launchers, and the `yazi-fm`
+keybind in `keybinds.lua`) pass an explicit `-o initial_window_width`/
+`initial_window_height` kitty override — every one of them relies
+entirely on the windowrule's `size` property, so this is not a
+lower-severity redundant safety net; it is the only sizing mechanism these
+six windows have.
+
+**Disposition (fix-attempt limit reached, Rule 3 exclusion does not
+apply, Rule 1 auto-fix scope does not cover an event-driven mechanism
+change):** the literal `"85% 85%"`/`"70% 65%"` strings are kept
+byte-identical to `windowrules.conf` in `windowrules.lua` — not rewritten
+into pixel values or an `hl.on("window.open", ...)` event-driven
+workaround, both of which would be a materially different implementation
+mechanism than the plan's declarative-rule scope authorizes without a
+human decision. This is a genuine, previously-undocumented regression
+relative to the currently-live hyprlang session (where this repo's own
+`.conf` comments and years of production use imply the percentage form
+does work) — **not** a cosmetic verification-channel gap like the
+`opacity`/`no_blur`/animation-style entries above.
+
+**Handoff to 13.1-08 (cutover plan):** before or immediately after
+flipping `hyprland.lua.disabled` live, the Wave 7 operator MUST visually
+confirm whether these six windows open at the intended
+85%/70%-of-monitor size. If the gap reproduces on the real session (not
+just the nested harness), 13.1-08 needs to either (a) implement a working
+compensating mechanism (most likely an `hl.on("window.open", ...)`
+listener that queries the matched window's monitor and issues an absolute
+resize, replacing the inert declarative `size` string for these six rules
+only), or (b) accept the regression as a known, documented cosmetic
+issue and file it for a later Hyprland-Lua-version bump to reassess. Not
+silently declaring green either way — this is now a named, tracked gap,
+not an assumption.
