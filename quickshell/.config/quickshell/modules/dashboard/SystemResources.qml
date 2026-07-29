@@ -94,6 +94,13 @@ Scope {
     // anything. D-36 is explicit that a rate is not a percentage.
     property real netRxRate: 0
     property real netTxRate: 0
+    // CPU temperature (Celsius) and current frequency (GHz) — render-gate
+    // round 2's Caelestia-look feedback ("more details"). Both are NaN
+    // until a real read lands; PerformanceTab.qml composes whichever of
+    // the two resolved into the CPU dial's detail line and silently omits
+    // whichever did not, rather than showing a broken half-string.
+    property real cpuTempCelsius: NaN
+    property real cpuFreqGHz: NaN
 
     // ── Per-metric D-41 state registers ─────────────────────────────────
     property string cpuState: "empty"
@@ -132,6 +139,13 @@ Scope {
 
     onDrawerOpenChanged: {
         root.resetBaselines();
+        if (root.drawerOpen && !root._hwmonDiscoveryDone) {
+            // One-shot hwmon path discovery, fired on the first real open
+            // only — never again afterwards, cached in `_cpuTempPath`
+            // (zero-idle doctrine: a day the drawer is never summoned
+            // spawns nothing).
+            hwmonDiscoveryProcess.running = true;
+        }
         if (!root.drawerOpen) {
             // Force the storage subprocess dead the instant the drawer
             // closes so an in-flight `df` read cannot outlive this surface
@@ -187,6 +201,76 @@ Scope {
         blockLoading: true
         blockAllReads: true
         printErrors: true
+    }
+
+    // CPU frequency (round 2 detail) — a fixed, stable sysfs path (every
+    // amd_pstate/intel_pstate/acpi-cpufreq-driven machine has a cpu0), so
+    // unlike the temperature sensor below this needs no discovery at all.
+    // kHz on read; converted to GHz where consumed.
+    FileView {
+        id: cpuFreqFile
+        path: "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"
+        preload: false
+        blockLoading: true
+        blockAllReads: true
+        // Quiet failure only: a machine with no cpufreq sysfs interface
+        // (a container, a VM) simply never populates cpuFreqGHz, and the
+        // CPU dial's detail line composes around its absence — not worth
+        // a log line every 2s on such a machine.
+        printErrors: false
+    }
+
+    // CPU temperature (round 2 detail) — unlike cpu0's cpufreq path, the
+    // hwmon device that reports package temperature (k10temp on this AMD
+    // machine) is NOT at a fixed index: hwmon numbering is assigned by
+    // driver-probe order, which varies across boots and across different
+    // machines (RESEARCH's own "don't hand-roll/don't guess a path"
+    // discipline applies here exactly as it did to the battery seam).
+    // Resolved ONCE via a fixed-argv `grep -l` over a bounded, literal
+    // candidate list (no shell, no interpolation, same T-14-20 discipline
+    // the storage subprocess follows) the first time the drawer opens, then
+    // cached forever in `_cpuTempPath` — a day the drawer is never summoned
+    // still spawns nothing (zero-idle doctrine).
+    readonly property var _hwmonNameCandidates: {
+        var arr = [];
+        for (var i = 0; i < 16; i++)
+            arr.push("/sys/class/hwmon/hwmon" + i + "/name");
+        return arr;
+    }
+    property bool _hwmonDiscoveryDone: false
+    property string _cpuTempPath: ""
+
+    Process {
+        id: hwmonDiscoveryProcess
+        running: false
+        command: ["grep", "-l", "k10temp"].concat(root._hwmonNameCandidates)
+        stdout: StdioCollector {
+            id: hwmonDiscoveryCollector
+            onStreamFinished: root._onHwmonDiscovered()
+        }
+    }
+
+    function _onHwmonDiscovered() {
+        root._hwmonDiscoveryDone = true;
+        hwmonDiscoveryProcess.running = false;
+        try {
+            var lines = (hwmonDiscoveryCollector.text || "").split("\n").filter(function (l) {
+                return l.trim() !== "";
+            });
+            if (lines.length > 0)
+                root._cpuTempPath = lines[0].trim().replace(/\/name$/, "/temp1_input");
+        } catch (e) {
+            root._cpuTempPath = "";
+        }
+    }
+
+    FileView {
+        id: cpuTempFile
+        path: root._cpuTempPath
+        preload: false
+        blockLoading: true
+        blockAllReads: true
+        printErrors: false
     }
 
     // ── The fast sampler (D-36, ~2s) ─────────────────────────────────────
@@ -373,6 +457,31 @@ Scope {
             }
         } catch (e) {
             root.networkState = "empty";
+        }
+
+        // ── CPU frequency + temperature (round 2 detail) ──
+        // Neither failure here touches `cpuState` — a missing/unreadable
+        // sensor is a quiet detail-line omission, not a reason to drop the
+        // CPU dial's own percentage figure to empty.
+        try {
+            cpuFreqFile.reload();
+            cpuFreqFile.waitForJob();
+            var khz = Number((cpuFreqFile.text() || "").trim());
+            if (isFinite(khz) && khz > 0)
+                root.cpuFreqGHz = khz / 1e6;
+        } catch (e) {
+            // leave the previous value standing
+        }
+        if (root._cpuTempPath !== "") {
+            try {
+                cpuTempFile.reload();
+                cpuTempFile.waitForJob();
+                var milliC = Number((cpuTempFile.text() || "").trim());
+                if (isFinite(milliC))
+                    root.cpuTempCelsius = milliC / 1000;
+            } catch (e) {
+                // leave the previous value standing
+            }
         }
     }
 

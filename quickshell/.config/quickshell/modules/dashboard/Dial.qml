@@ -73,6 +73,24 @@ Item {
     property int diameter: 120
     property real ringThickness: 12
 
+    // ── Per-ring theme colour + identity icon (render-gate round 2,
+    //    Caelestia-look feedback: "Rings should be different colors —
+    //    derived from the current theme — to add more life") ─────────────
+    // The CALLER picks which Material role this instance's ring/value-text/
+    // caption-icon carry (Colours.primary for CPU, .secondary for Memory,
+    // .tertiary for Storage, .error for Battery in PerformanceTab.qml) — the
+    // dial itself has no opinion, same discipline as `valueText`. Track arc
+    // stays the muted `Colours.surfaceVariant` regardless, so only the
+    // value arc (+ centre text + caption icon) carries the accent, exactly
+    // the "muted track, coloured progress" split the reference shell uses.
+    property color accentColor: Colours.primary
+    // Material Symbols ligature identifying the metric type (e.g. "memory",
+    // "storage") — shown beside the caption at every D-41 state, since it
+    // names WHAT the dial measures, not whether data arrived yet. Empty
+    // string omits the icon entirely (kept optional for 14-08's mini-dials,
+    // which may have no room for one).
+    property string icon: ""
+
     // D-41 empty branch — the caller's own glyph/copy.
     property string emptySymbol: "help"
     property string emptyText: "Unavailable"
@@ -144,7 +162,7 @@ Item {
         ShapePath {
             id: valueArc
             strokeWidth: root.ringThickness
-            strokeColor: Colours.primary
+            strokeColor: root.accentColor
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
 
@@ -182,7 +200,10 @@ Item {
         font.family: root.widgetState === "empty" ? root._symbolFontFamily : root._defaultFontFamily
         font.pixelSize: root._fontHeading
         font.weight: root._weightEmphasis
-        color: root.widgetState === "populated" ? Colours.onSurface : Colours.onSurfaceVariant
+        // Populated: the ring's own accent colour, not a neutral — this is
+        // round 2's "more life" feedback landing on the centre figure too,
+        // not just the arc. Pending/empty stay the subdued neutral.
+        color: root.widgetState === "populated" ? root.accentColor : Colours.onSurfaceVariant
         Behavior on color {
             enabled: Motion.motionEnabled
             ColorAnimation {
@@ -195,21 +216,40 @@ Item {
 
     // ── Caption + detail — below the ring, both height-reserved so
     //    switching between states never shifts the dial's own footprint or
-    //    anything laid out beneath it. ────────────────────────────────────
-    Text {
+    //    anything laid out beneath it. The caption is now an icon+label
+    //    row (round 2, Caelestia-look): the icon names WHAT this dial
+    //    measures and carries the same accent as the ring, at every D-41
+    //    state — only the caller's `emptyText`/`label` text beside it
+    //    changes with state, exactly as before. ─────────────────────────
+    Row {
         id: captionLine
         anchors.top: dialShape.bottom
         anchors.topMargin: root._spacingXs
         anchors.horizontalCenter: parent.horizontalCenter
-        height: Math.ceil(font.pixelSize * 1.5)
-        verticalAlignment: Text.AlignVCenter
-        // Empty replaces the caption with the caller's own quiet copy
-        // ("No battery" for the battery dial) — the ONLY D-41 branch that
-        // changes this line's text.
-        text: root.widgetState === "empty" ? root.emptyText : root.label
-        font.pixelSize: root._fontLabel
-        font.weight: root._weightBody
-        color: Colours.onSurfaceVariant
+        height: Math.ceil(root._fontLabel * 1.5)
+        spacing: root._spacingXs / 2
+
+        Text {
+            visible: root.icon !== ""
+            height: parent.height
+            verticalAlignment: Text.AlignVCenter
+            text: root.icon
+            font.family: root._symbolFontFamily
+            font.pixelSize: root._fontLabel
+            color: root.accentColor
+        }
+
+        Text {
+            height: parent.height
+            verticalAlignment: Text.AlignVCenter
+            // Empty replaces the caption with the caller's own quiet copy
+            // ("No battery" for the battery dial) — the ONLY D-41 branch
+            // that changes this text.
+            text: root.widgetState === "empty" ? root.emptyText : root.label
+            font.pixelSize: root._fontLabel
+            font.weight: root._weightBody
+            color: Colours.onSurfaceVariant
+        }
     }
 
     Text {

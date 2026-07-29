@@ -67,9 +67,12 @@ Item {
     // 14-UI-SPEC.md's Spacing Scale explicitly carves dial arc radius/
     // stroke width out of the 4px grid as dial-specific render-gate
     // discretion — these are a starting point to be judged at the render
-    // gate, not a locked value.
-    readonly property int dialDiameter: 176
-    readonly property real dialRingThickness: 14
+    // gate, not a locked value. Round 2 (render-gate feedback: "the fit is
+    // wrong, half of the panel is empty") grows both from round 1's
+    // 176/14 — the sanctioned adjustment knob D-06 names for exactly this
+    // complaint, rather than tightening the spacing scale itself.
+    readonly property int dialDiameter: 224
+    readonly property real dialRingThickness: 18
 
     // Network rate row — width reserved by MEASUREMENT, not hope. The
     // widest realistic rate string at this formatter's own unit stepping
@@ -99,18 +102,48 @@ Item {
         Grid {
             id: dialGrid
             columns: 2
-            rowSpacing: root.spacingLg
-            columnSpacing: root.spacingLg
+            // Round 2: spacingMd rather than spacingLg between the four
+            // dials — a denser cluster (still an already-named scale value,
+            // not an invented one) offsetting the diameter growth above, per
+            // the Caelestia reference's compact-gauge-cluster composition.
+            rowSpacing: root.spacingMd
+            columnSpacing: root.spacingMd
 
+            // Each dial's ring/centre-figure/caption-icon carries a
+            // DIFFERENT Material role, sourced from the live theme via
+            // `Colours` (never a literal) — round 2's "rings should be
+            // different colors... to add more life" feedback. Four rings,
+            // four of `Colours`' non-neutral roles: primary/secondary/
+            // tertiary/error are the only four this token set defines, so
+            // battery — the one dial this machine can never show populated
+            // — takes the fourth (`error`; thematically apt for a
+            // discharge-state readout, and re-tunable in one line if the
+            // gate objects).
             Dial {
                 id: cpuDial
                 diameter: root.dialDiameter
                 ringThickness: root.dialRingThickness
                 label: "CPU"
+                icon: "memory"
+                accentColor: Colours.primary
                 widgetState: root.hasReader ? root.systemResources.cpuState : "pending"
                 value: root.hasReader ? root.systemResources.cpuFraction : 0
                 valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.cpuFraction) : ""
-                detailText: ""
+                // Round 2 detail: temperature (k10temp, discovered once)
+                // and current frequency (cpu0's cpufreq, a fixed path),
+                // joined only from whichever resolved — neither is load-
+                // bearing for the dial's own populated/empty state.
+                detailText: {
+                    if (!root.hasReader)
+                        return "";
+                    var r = root.systemResources;
+                    var parts = [];
+                    if (isFinite(r.cpuFreqGHz))
+                        parts.push(r.cpuFreqGHz.toFixed(1) + " GHz");
+                    if (isFinite(r.cpuTempCelsius))
+                        parts.push(Math.round(r.cpuTempCelsius) + "°C");
+                    return parts.join(" · ");
+                }
                 emptySymbol: "help"
                 emptyText: "Unavailable"
             }
@@ -120,6 +153,8 @@ Item {
                 diameter: root.dialDiameter
                 ringThickness: root.dialRingThickness
                 label: "Memory"
+                icon: "developer_board"
+                accentColor: Colours.secondary
                 widgetState: root.hasReader ? root.systemResources.memoryState : "pending"
                 value: root.hasReader ? root.systemResources.memoryFraction : 0
                 valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.memoryFraction) : ""
@@ -136,6 +171,8 @@ Item {
                 diameter: root.dialDiameter
                 ringThickness: root.dialRingThickness
                 label: "Storage"
+                icon: "storage"
+                accentColor: Colours.tertiary
                 widgetState: root.hasReader ? root.systemResources.storageState : "pending"
                 value: root.hasReader ? root.systemResources.storageFraction : 0
                 valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.storageFraction) : ""
@@ -158,6 +195,8 @@ Item {
                 diameter: root.dialDiameter
                 ringThickness: root.dialRingThickness
                 label: "Battery"
+                icon: "battery_full"
+                accentColor: Colours.error
                 widgetState: root.hasReader ? root.systemResources.batteryState : "pending"
                 value: root.hasReader ? root.systemResources.batteryFraction : 0
                 valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.batteryFraction) : ""
@@ -172,7 +211,21 @@ Item {
         // readouts, not a fifth dial and not a normalised bar.
         Item {
             id: networkRow
-            width: contentColumn.width
+            // Round 2 fix (the real root cause behind "half the panel is
+            // empty"): this was `width: contentColumn.width` — but
+            // `contentColumn` anchors.fill's `root`, so that bound back to
+            // WHATEVER width the pager frame already happened to be (the
+            // PREVIOUS tab's width, since Dashboard.qml sizes the frame
+            // FROM this tab's own implicitWidth, which in turn was reading
+            // this same value back out of the current frame). A self-
+            // referential echo, not a real measurement — Performance's
+            // frame width could never actually shrink to its own content.
+            // `dialGrid.width` is the real, deterministic natural width of
+            // this tab's widest row (purely a function of `dialDiameter`/
+            // `columnSpacing`, never of the frame's own current size), so
+            // binding here instead breaks the loop and lets the frame
+            // genuinely fit the dial grid.
+            width: dialGrid.width
             height: Math.max(downloadCell.height, uploadCell.height)
 
             Column {
@@ -190,7 +243,11 @@ Item {
                         text: "arrow_downward"
                         font.family: root.symbolFontFamily
                         font.pixelSize: root.iconSizeMd
-                        color: Colours.primary
+                        // Round 2: distinct from both the CPU dial's
+                        // primary ring and the upload arrow below it, so
+                        // the rate row reads as its own coloured accent
+                        // rather than a re-use of the dial grid's palette.
+                        color: Colours.tertiary
                     }
 
                     // Fixed-width, right-aligned: the row must not reflow
@@ -234,7 +291,7 @@ Item {
                         text: "arrow_upward"
                         font.family: root.symbolFontFamily
                         font.pixelSize: root.iconSizeMd
-                        color: Colours.primary
+                        color: Colours.secondary
                     }
 
                     Text {
