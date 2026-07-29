@@ -16,6 +16,7 @@
 // Per D-01 this probe graduates into the permanent shell root rather than
 // being deleted — it is not scaffolding. Phase 14's dashboard drawer
 // mounts into this same root later.
+import QtQml
 import Quickshell
 import Quickshell.Hyprland
 import "modules"
@@ -66,6 +67,53 @@ ShellRoot {
         }
     }
 
+    // ── DASH-08 fullscreen refusal guard (D-11, Phase 14 Plan 01) ───────
+    // LIVE FINDING, not an assumption (three independent proofs this
+    // session on Hyprland 0.56.1): "maximize" (hl.dsp.window.fullscreen(1))
+    // and "true fullscreen" (hl.dsp.window.fullscreen(0)) are
+    // INDISTINGUISHABLE on this build. Both report
+    // fullscreen:2/fullscreenClient:2 in hyprctl -j clients/activewindow;
+    // both clear `hyprctl -j monitors`' reserved array to [0,0,0,0]; both
+    // emit the byte-identical "fullscreen>>1"/"closelayer>>waybar"
+    // "openlayer>>waybar" socket2 IPC event sequence (captured live via a
+    // raw socket read, not read from documentation). Reproduced across
+    // three separate windows (a tiled Zen window, a tiled kitty window,
+    // and a genuinely floating kitty window) — not a fluke of one client.
+    //
+    // Consequence: D-11's literal "maximized windows (bar visible) do not
+    // block" carve-out is NOT implementable on this build — Hyprland
+    // exposes no signal anywhere in its IPC surface to discriminate the
+    // two states, so this guard blocks on the only value Hyprland ever
+    // reports for either state (2). This is, ironically, the MOST faithful
+    // reading of D-11's own stated rationale ("matches waybar's existing
+    // fullscreen-withdraw behavior") — that existing waybar behavior,
+    // proven live this session, ALSO does not distinguish maximize from
+    // fullscreen. Flagged prominently in 14-01-SUMMARY.md for operator
+    // review at the phase's end-of-phase human verification; not silently
+    // absorbed.
+    //
+    // Fails OPEN, not closed (deliberate, D-11's own recorded assumption):
+    // optional chaining means a null/absent toplevel or missing field
+    // evaluates to false, so the drawer opens rather than becoming
+    // permanently unsummonable if the IPC read is ever momentarily
+    // unavailable — failing closed would sacrifice DASH-01 to protect
+    // DASH-08.
+    readonly property bool fullscreenBlocking: (Hyprland.activeToplevel?.lastIpcObject?.fullscreen ?? 0) === 2
+
+    // Hyprland.activeToplevel.lastIpcObject can lag the instant a
+    // fullscreen toggle fires; force a refresh on the compositor's own
+    // "fullscreen" socket2 event (event name confirmed live this session
+    // via a raw socket read — not assumed) so the guard reads current
+    // state at the moment Super+D is pressed.
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (event.name === "fullscreen") {
+                Hyprland.refreshToplevels();
+            }
+        }
+    }
+
     GlobalShortcut {
         id: probeShortcut
         appid: "quickshell"
@@ -84,6 +132,17 @@ ShellRoot {
         id: dashboardShortcut
         appid: "quickshell"
         name: "dashboard"
-        onPressed: dashboardLoader.active = !dashboardLoader.active
+        // An already-open drawer always closes, whatever is fullscreen
+        // behind it — the refusal guard must never trap a summoned drawer
+        // (D-11). Otherwise, only open when fullscreenBlocking is false;
+        // when blocked, do nothing at all — no notification, no sound, no
+        // visible acknowledgement (DASH-08's whole point).
+        onPressed: {
+            if (dashboardLoader.active) {
+                dashboardLoader.active = false;
+            } else if (!root.fullscreenBlocking) {
+                dashboardLoader.active = true;
+            }
+        }
     }
 }
