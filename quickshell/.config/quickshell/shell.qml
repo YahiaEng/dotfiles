@@ -20,9 +20,17 @@ import QtQml
 import Quickshell
 import Quickshell.Hyprland
 import "modules"
+import "modules/dashboard"
 
 ShellRoot {
     id: root
+
+    // Selected-tab memory (D-14, Phase 14 Plan 03): the dashboard drawer's
+    // LazyLoader destroys the surface on dismiss, so this is the only
+    // thing that outlives it — Dashboard.qml seeds its pager from this on
+    // summon and reports every change back via tabSelected. Session-level
+    // memory only (CONTEXT.md's discretion note); never persisted to disk.
+    property int dashboardTabIndex: 0
 
     // QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — arrangement
     // A, a Variants+LazyLoader fan-out declared here in shell.qml,
@@ -63,8 +71,32 @@ ShellRoot {
         active: false
 
         Dashboard {
+            initialTabIndex: root.dashboardTabIndex
+            mediaBackend: mediaBackendInstance
+            weatherBackend: weatherBackendInstance
             onDismissRequested: dashboardLoader.active = false
+            onTabSelected: (index) => root.dashboardTabIndex = index
         }
+    }
+
+    // Shared data backends (D-14, Phase 14 Plan 03) — mounted once at the
+    // shell root, siblings of dashboardLoader rather than inside it, so
+    // they warm-hold/settle independently of the drawer surface's own
+    // destroy-on-dismiss lifecycle. drawerOpen gates each backend's
+    // eventual timer/process so nothing runs while the drawer is closed
+    // (zero idle footprint, matching the tracer's own promise). Mounting
+    // both here — rather than letting 14-05/14-07 each mount their own —
+    // is the scope correction 14-03-PLAN.md records: it is what leaves
+    // those two plans exactly one file each to touch, so wave 3 can run in
+    // parallel.
+    MediaBackend {
+        id: mediaBackendInstance
+        drawerOpen: dashboardLoader.active
+    }
+
+    WeatherBackend {
+        id: weatherBackendInstance
+        drawerOpen: dashboardLoader.active
     }
 
     // ── DASH-08 fullscreen refusal guard (D-11, Phase 14 Plan 01) ───────

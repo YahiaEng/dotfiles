@@ -1,19 +1,19 @@
 // Dashboard.qml — the dashboard drawer's tracer surface (Phase 14 Plan 01,
-// DASH-01/DASH-08). This is the whole "Super+D summons the drawer" path's
-// production surface, not a prototype: the PanelWindow this file creates is
-// the one plans 14-03..14-09 build their tabs inside, `quickshell-dashboard`
+// DASH-01/DASH-08), now the pager host (Phase 14 Plan 03, DASH-02). This is
+// the whole "Super+D summons the drawer" path's production surface, not a
+// prototype: the PanelWindow this file creates is the one plans
+// 14-04..14-09 build their tab content inside, `quickshell-dashboard`
 // is the namespace Phases 15/16 inherit by naming their own surfaces
 // `quickshell-<surface>` (D-42), and the constants declared on this window
 // root are read by every later widget rather than re-declared.
 //
 // Layer posture, focus mechanics and dismiss wiring are reused VERBATIM from
-// ScreencopyProbe.qml/Probe.qml's QS-02-proven combination (WlrLayer.Overlay
-// + WlrKeyboardFocus.OnDemand + HyprlandFocusGrab bound to this window) —
-// this closes D-12's named research item with a live result, not a
-// prediction. Single instance, no per-screen `Variants` fan-out: QS-03's
-// per-screen mounting gap is an accepted permanent limitation on this
-// quickshell 0.3.0-2 build (D-13, PROJECT.md), and D-14 does not ask for a
-// multi-monitor summon here.
+// ScreencopyProbe.qml/Probe.qml's QS-02-proven combination (WlrKeyboardFocus.
+// OnDemand + HyprlandFocusGrab bound to this window) — this closes D-12's
+// named research item with a live result, not a prediction. Single instance,
+// no per-screen `Variants` fan-out: QS-03's per-screen mounting gap is an
+// accepted permanent limitation on this quickshell 0.3.0-2 build (D-13,
+// PROJECT.md), and D-14 does not ask for a multi-monitor summon here.
 //
 // Geometry (D-01/D-02/D-03/D-04): only anchors.top is set, so the compositor
 // centres the window horizontally; exclusiveZone 0 + ExclusionMode.Normal
@@ -23,11 +23,25 @@
 // computed value (D-02's ~40%x~60% ratio drifts slightly on this host's
 // 2560x1440 primary vs. the 2160x1440 reference; the pixel values are
 // honoured as written per 14-01-PLAN.md's flagged assumption).
+//
+// ── Pager (Plan 14-03, DASH-02, D-15..D-19) ────────────────────────────
+// A header `TabBar` synced one-way FROM a four-pane `SwipeView` — the
+// pager is the single source of truth for which tab is showing (D-16);
+// every header visual reads `pager.currentIndex`/`swipeProgress`, never a
+// `checked` state the header holds independently. `QtQuick.Controls`
+// (Basic style) is imported, deliberately NOT
+// `QtQuick.Controls.Material` — Qt's Material palette is not
+// `Colours.qml`, and this drawer's whole premise is that `Colours.qml` is
+// the only colour source, so every pager/header visual below is
+// overridden with a token-driven item instead of Qt's stock styling.
+// `import "dashboard"` resolves the nine types Plan 14-03's Task 1
+// registered in modules/dashboard/qmldir.
 import QtQuick
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import "dashboard"
 
 PanelWindow {
     id: dashboardWindow
@@ -90,6 +104,55 @@ PanelWindow {
     readonly property real drawerSurfaceOpacity: 0.78
     readonly property color surfaceBase: Colours.surface
 
+    // ── Pager & tab constants (D-15..D-19, Task 2) — declared beside the
+    //    constants above so wave-3/wave-4 plans read them from one place.
+    //    ─────────────────────────────────────────────────────────────────
+    readonly property int tabCount: 4
+    // D-15's fixed order: Dashboard, Media, Performance, Weather.
+    readonly property int tabIndexDashboard: 0
+    readonly property int tabIndexMedia: 1
+    readonly property int tabIndexPerformance: 2
+    readonly property int tabIndexWeather: 3
+    // MD3 primary-tab height for an icon-plus-label tab.
+    readonly property int tabBarHeight: 64
+    // MD3 primary-tab active-indicator thickness.
+    readonly property int tabIndicatorHeight: 3
+    readonly property int iconSizeMd: 24
+    // Exact installed family string per 14-02-SUMMARY.md's Material
+    // Symbols Rounded registration.
+    readonly property string symbolFontFamily: "Material Symbols Rounded"
+
+    // Continuous swipe position across the four tabs (0..tabCount-1) —
+    // derived from pagerList's own contentX/width so it tracks a drag AND
+    // an animated tap/arrow move for free, since both animate the same
+    // contentX. This is what lets the header indicator track the drag
+    // continuously instead of jumping on commit (D-16).
+    readonly property real swipeProgress: {
+        if (pagerList.width <= 0)
+            return 0;
+        var raw = pagerList.contentX / pagerList.width;
+        return Math.max(0, Math.min(dashboardWindow.tabCount - 1, raw));
+    }
+
+    // ── Shell-root tab memory + shared backend contract (D-14) ──────────
+    // Seeded once from shell.qml's own dashboardTabIndex on summon (an
+    // assignment in Component.onCompleted below, never a binding, so a
+    // user's swipe is never fought by the seed); tabSelected is emitted on
+    // every change so shell.qml can write the index back for the NEXT
+    // summon, since the LazyLoader destroys this surface on dismiss.
+    property int initialTabIndex: 0
+    readonly property alias currentTabIndex: pager.currentIndex
+    signal tabSelected(int index)
+
+    // Shared instances mounted once at the shell root (shell.qml) and
+    // passed in here — declaring them there (not in each wave-3 plan's own
+    // file) is what leaves 14-05/14-07 with exactly one file each to touch
+    // (see 14-03-PLAN.md's "Scope correction carried by this plan").
+    property var mediaBackend: null
+    property var weatherBackend: null
+
+    Component.onCompleted: pager.setCurrentIndex(dashboardWindow.initialTabIndex)
+
     // ── Background (D-03/D-07): the window's own footprint IS the drawer
     //    rectangle — bottom-only rounding, translucent over the compositor
     //    blur Task 2 turns on for this namespace, no scrim anywhere (D-08).
@@ -103,7 +166,7 @@ PanelWindow {
         color: Qt.rgba(dashboardWindow.surfaceBase.r, dashboardWindow.surfaceBase.g, dashboardWindow.surfaceBase.b, dashboardWindow.drawerSurfaceOpacity)
 
         // Probe.qml lines 229-240's exact shape — the Phase 12 theme-switch
-        // crossfade reaches the drawer too. Only the six allowed Motion.*
+        // crossfade reaches the drawer too. Only the seven allowed Motion.*
         // names may be read; motionScale/pairs are motion-lint CHECK A
         // dangling references on this build.
         Behavior on color {
@@ -114,6 +177,16 @@ PanelWindow {
                 easing.bezierCurve: Motion.standardEasing
             }
         }
+    }
+
+    // One shared resource reader for PerformanceTab's dials (14-06) and
+    // DashboardTab's resources strip (14-08) — mounted here, not at the
+    // shell root, since it is drawer content: destroy-on-dismiss stopping
+    // its polling is the correct lifetime (D-36 "polling only while the
+    // drawer is open"). drawerOpen tracks the window's own visibility.
+    SystemResources {
+        id: systemResources
+        drawerOpen: dashboardWindow.visible
     }
 
     // ── Dismiss wiring (D-12/D-13) — Probe.qml/ScreencopyProbe.qml's
@@ -128,7 +201,7 @@ PanelWindow {
         onCleared: dashboardWindow.dismissRequested()
     }
 
-    // ── Content root (D-10 Esc dismiss) ─────────────────────────────────
+    // ── Content root (D-10 Esc dismiss, D-18 clamped arrows) ────────────
     Item {
         id: content
         anchors.fill: parent
@@ -137,30 +210,316 @@ PanelWindow {
 
         Keys.onEscapePressed: dashboardWindow.dismissRequested()
 
-        // forceActiveFocus() is required for the key handler above to
+        // D-18: arrow keys are keyboard swipes — one spatial model for
+        // both inputs — so they route through the same setCurrentIndex
+        // the taps/drags do, clamped totally at both ends. At index 0 a
+        // Left press and at index 3 a Right press change nothing and wrap
+        // nothing.
+        Keys.onLeftPressed: pager.setCurrentIndex(Math.max(0, pager.currentIndex - 1))
+        Keys.onRightPressed: pager.setCurrentIndex(Math.min(dashboardWindow.tabCount - 1, pager.currentIndex + 1))
+
+        // forceActiveFocus() is required for the key handlers above to
         // actually receive events under WlrKeyboardFocus.OnDemand.
         Component.onCompleted: content.forceActiveFocus()
 
-        // ── Placeholder pane — Plan 14-03 replaces this wholesale with the
-        //    header TabBar and the four-pane SwipeView; nothing else may
-        //    consume it or grow around it. ─────────────────────────────────
-        Column {
-            anchors.centerIn: parent
-            spacing: dashboardWindow.spacingSm
+        // ── Header row (D-16) — the tab bar + active indicator ─────────
+        Item {
+            id: header
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: dashboardWindow.tabBarHeight
 
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "Dashboard"
-                font.pixelSize: dashboardWindow.fontHeading
-                font.weight: dashboardWindow.weightEmphasis
-                color: Colours.onSurface
+            // Fixed 4-entry model in D-15's order — labels stay short by
+            // construction (UI-SPEC dismisses long-text handling for the
+            // tab bar precisely because these are fixed and short).
+            // Ligature names resolve through Material Symbols' glyph
+            // lookup by text (D-28).
+            ListModel {
+                id: tabModel
+                ListElement { label: "Dashboard"; symbol: "dashboard" }
+                ListElement { label: "Media"; symbol: "music_note" }
+                ListElement { label: "Performance"; symbol: "speed" }
+                ListElement { label: "Weather"; symbol: "partly_cloudy_day" }
             }
 
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "tracer slice — Phase 14 Plan 01"
-                font.pixelSize: dashboardWindow.fontLabel
-                color: Colours.onSurface
+            TabBar {
+                id: tabBar
+                anchors.fill: parent
+                // One-way sync target (D-16): this binding holds until a
+                // TabButton click imperatively re-assigns currentIndex
+                // (Container's own internal click handling) — the
+                // Connections block below on `pager` re-asserts it on
+                // every pager change so the flow stays one-way for the
+                // surface's whole lifetime, not just until the first tap.
+                currentIndex: pager.currentIndex
+
+                background: Item {}
+
+                // RESEARCH/plan-mandated override: a plain non-flickable
+                // Row over control.contentModel, NOT the stock (Fusion
+                // style, on this build) ListView-based contentItem. A
+                // flickable header inside a horizontal pager is a second
+                // horizontal drag surface competing with the pager for the
+                // same gesture (the same collision class D-37 rejects for
+                // the weather hour strip) — and empirically, leaving the
+                // stock ListView-based contentItem in place while also
+                // binding each button's own width explicitly produced a
+                // genuine QML binding-loop warning (the ListView's own
+                // item-sizing fighting this file's width binding), not
+                // merely a cosmetic implicitWidth churn. Overriding
+                // contentItem removes both the gesture collision and the
+                // loop in one move. This also removes the stock header's
+                // own hardcoded highlightMoveDuration/Material.accentColor
+                // highlight, neither of which this drawer wants.
+                contentItem: Row {
+                    anchors.fill: parent
+                    Repeater {
+                        model: tabBar.contentModel
+                    }
+                }
+
+                // Populated via Repeater over tabModel rather than four
+                // static TabButton children — TabBar's own contentModel
+                // picks up Repeater-generated children the same as
+                // statically-declared ones (documented QQC2 pattern). This
+                // Repeater GENERATES the four TabButton objects (thus
+                // populating contentModel); the Row+Repeater above merely
+                // POSITIONS whatever contentModel already holds — two
+                // different Repeaters serving two different jobs.
+                Repeater {
+                    model: tabModel
+
+                    delegate: TabButton {
+                        id: tabButtonDelegate
+
+                        required property int index
+                        required property string label
+                        required property string symbol
+
+                        // Derived from `header.width` (the wrapping Item,
+                        // anchored directly to the content root), NOT
+                        // `tabBar.width` — binding to the control's own
+                        // width here would feed back into TabBar's
+                        // Control.implicitWidth (which reads
+                        // implicitContentWidth off this Row's own implicit
+                        // size, itself a function of every button's width)
+                        // and trip QML's binding-loop detector, even though
+                        // tabBar's actual `width` is fixed by its own
+                        // anchors.fill and never truly unstable. `header`
+                        // has no such feedback path.
+                        width: header.width / dashboardWindow.tabCount
+
+                        // No ripple rectangle paints an untokenised colour.
+                        background: Item {}
+
+                        contentItem: Column {
+                            spacing: dashboardWindow.spacingXs
+
+                            Text {
+                                id: iconGlyph
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: tabButtonDelegate.symbol
+                                font.family: dashboardWindow.symbolFontFamily
+                                font.pixelSize: dashboardWindow.iconSizeMd
+                                // D-25/D-26's outlined-to-filled lit-state
+                                // language, applied to tabs — 14-02-SUMMARY.md
+                                // recorded the fill-axis-renders verdict on
+                                // this build, so the FILL axis is bound (not
+                                // left static).
+                                property real iconFill: tabButtonDelegate.index === pager.currentIndex ? 1 : 0
+                                font.variableAxes: { "FILL": iconFill }
+                                Behavior on iconFill {
+                                    enabled: Motion.motionEnabled
+                                    NumberAnimation {
+                                        duration: Motion.standardDuration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Motion.standardEasing
+                                    }
+                                }
+                                // Colour reads the pager, never this
+                                // button's own `checked` state (D-16) — the
+                                // two can never disagree.
+                                color: tabButtonDelegate.index === pager.currentIndex ? Colours.onSurface : Colours.onSurfaceVariant
+                                Behavior on color {
+                                    enabled: Motion.motionEnabled
+                                    ColorAnimation {
+                                        duration: Motion.standardDuration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Motion.standardEasing
+                                    }
+                                }
+                            }
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: tabButtonDelegate.label
+                                font.pixelSize: dashboardWindow.fontLabel
+                                font.weight: dashboardWindow.weightBody
+                                color: tabButtonDelegate.index === pager.currentIndex ? Colours.onSurface : Colours.onSurfaceVariant
+                                Behavior on color {
+                                    enabled: Motion.motionEnabled
+                                    ColorAnimation {
+                                        duration: Motion.standardDuration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Motion.standardEasing
+                                    }
+                                }
+                            }
+                        }
+
+                        // D-16's direct tap-to-jump — animates over
+                        // Motion.standardDuration because it moves the
+                        // same contentX highlightMoveDuration animates.
+                        onClicked: pager.setCurrentIndex(tabButtonDelegate.index)
+                    }
+                }
+            }
+
+            // MD3 primary-tab active indicator (D-16) — its x is derived
+            // from swipeProgress alone, so it tracks the drag continuously
+            // rather than jumping on commit. No Behavior/animation on x:
+            // the value already moves with highlightMoveDuration's own
+            // animation of contentX: a second animation on top would make
+            // the indicator lag the content it reports.
+            Rectangle {
+                id: tabIndicator
+                height: dashboardWindow.tabIndicatorHeight
+                // header.width, not tabBar.width — same binding-loop
+                // avoidance rationale as the TabButton width above.
+                width: (header.width / dashboardWindow.tabCount) / 2
+                y: header.height - height
+                topLeftRadius: 4
+                topRightRadius: 4
+                bottomLeftRadius: 0
+                bottomRightRadius: 0
+                color: Colours.primary
+                x: {
+                    var cellWidth = header.width / dashboardWindow.tabCount;
+                    return cellWidth * dashboardWindow.swipeProgress + (cellWidth - width) / 2;
+                }
+            }
+        }
+
+        // Re-asserts the header's currentIndex on every pager change —
+        // TabBar writes its own currentIndex imperatively when a button is
+        // clicked (Container's internal click handling), which breaks a
+        // plain binding; this Connections block is what makes the one-way
+        // flow (pager holds selection, header reports it) hold for the
+        // surface's whole lifetime rather than until the first tap.
+        Connections {
+            target: pager
+            function onCurrentIndexChanged() {
+                tabBar.setCurrentIndex(pager.currentIndex);
+                dashboardWindow.tabSelected(pager.currentIndex);
+            }
+        }
+
+        // ── The pager (D-17/D-18, RESEARCH Pattern 3/4) ─────────────────
+        SwipeView {
+            id: pager
+            anchors.top: header.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            // Zero spacing so the contentItem's scroll offset maps to the
+            // tab index with no correction term (swipeProgress relies on
+            // this).
+            spacing: 0
+
+            // RESEARCH Pattern 4 (borrowed from Caelestia, not its pager
+            // mechanism): one Loader per tab, active only when it is the
+            // current tab, so an off-screen Performance/Weather tab runs
+            // no timers or fetches. asynchronous:false so a tab is present
+            // the instant the swipe reaches it.
+            Loader {
+                id: dashboardTabLoader
+                active: pager.currentIndex === dashboardWindow.tabIndexDashboard
+                asynchronous: false
+                sourceComponent: Component {
+                    DashboardTab {
+                        mediaBackend: dashboardWindow.mediaBackend
+                        systemResources: systemResources
+                        mediaTabIndex: dashboardWindow.tabIndexMedia
+                        performanceTabIndex: dashboardWindow.tabIndexPerformance
+                        // D-39/D-40's compact-widget → its-full-tab deep-link
+                        // convention, answered here once so 14-08 only has
+                        // to emit.
+                        onTabRequested: (index) => pager.setCurrentIndex(index)
+                    }
+                }
+            }
+
+            Loader {
+                id: mediaTabLoader
+                active: pager.currentIndex === dashboardWindow.tabIndexMedia
+                asynchronous: false
+                sourceComponent: Component {
+                    MediaTab {
+                        mediaBackend: dashboardWindow.mediaBackend
+                    }
+                }
+            }
+
+            Loader {
+                id: performanceTabLoader
+                active: pager.currentIndex === dashboardWindow.tabIndexPerformance
+                asynchronous: false
+                sourceComponent: Component {
+                    PerformanceTab {
+                        systemResources: systemResources
+                    }
+                }
+            }
+
+            Loader {
+                id: weatherTabLoader
+                active: pager.currentIndex === dashboardWindow.tabIndexWeather
+                asynchronous: false
+                sourceComponent: Component {
+                    WeatherTab {
+                        weatherBackend: dashboardWindow.weatherBackend
+                    }
+                }
+            }
+
+            // ── RESEARCH Pitfall 1 — the whole point of this override:
+            //    a custom ListView contentItem reproducing every property
+            //    the stock Basic SwipeView.qml sets, with three deliberate
+            //    differences (highlightMoveDuration bound to the motion
+            //    token instead of Qt's literal 250; keyNavigationEnabled
+            //    and focus both false so arrow keys and the content root's
+            //    Escape handler are unaffected). Ship the stock drag
+            //    physics with no custom threshold override — RESEARCH
+            //    assumption A5/Open Question 5 defer that judgement to
+            //    Task 3's render gate.
+            //
+            //    motion-lint's QML raw-value check is anchored on a
+            //    lowercase `duration:` and the camel-cased
+            //    `highlightMoveDuration` property name never matches it —
+            //    a future edit dropping this back to a literal would pass
+            //    every gate in the repo silently. This binding is a source
+            //    assertion for exactly that reason (see 14-03-PLAN.md's
+            //    acceptance criteria).
+            contentItem: ListView {
+                id: pagerList
+                model: pager.contentModel
+                interactive: pager.interactive
+                currentIndex: pager.currentIndex
+                focus: false
+
+                spacing: pager.spacing
+                orientation: pager.orientation
+                snapMode: ListView.SnapOneItem
+                boundsBehavior: Flickable.StopAtBounds
+
+                highlightRangeMode: ListView.StrictlyEnforceRange
+                preferredHighlightBegin: 0
+                preferredHighlightEnd: 0
+                highlightMoveDuration: Motion.standardDuration
+                maximumFlickVelocity: 4 * (pager.orientation === Qt.Horizontal ? width : height)
+
+                keyNavigationEnabled: false
             }
         }
     }
