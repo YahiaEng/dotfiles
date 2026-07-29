@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
 status: executing
-stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-07-29T12:41:33.788Z"
+stopped_at: Completed 14-03-PLAN.md
+last_updated: "2026-07-29T13:44:05.899Z"
 last_activity: 2026-07-29
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 39
-  completed_plans: 32
+  completed_plans: 33
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 14 (dashboard-drawer) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
-Progress: [████████░░] 82%
+Progress: [█████████░] 85%
 Last activity: 2026-07-29 — Phase 14 execution started
 
 ## Performance Metrics
@@ -162,6 +162,7 @@ Last activity: 2026-07-29 — Phase 14 execution started
 | Phase 13.1 P10 | ~35min (continuation) | 3 tasks | 10 files |
 | Phase 14 P01 | 35min | 3 tasks | 6 files |
 | Phase 14 P02 | multi-session | 4 tasks | 5 files |
+| Phase 14 P03 | multi-session | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -266,6 +267,11 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 14-02: A3 closed live (fill-axis-renders) - Qt 6.11.1 drives Material Symbols Rounded's FILL axis, proven via qml6 grabToImage with a non-zero-alpha guard and a negative control; found and fixed a Window-vs-Item root bug in the throwaway proof harness (bare Item root hangs grabToImage forever)
 - [Phase ?]: 14-02: stagger-offset D-21 motion token added to motion.json's semantic bucket, Motion.qml's _pairNames extended by APPEND (not insert) to avoid re-pointing the three pre-existing positional aliases; live quickshell -p probe confirmed all 8 alias values, all three pre-existing ones unchanged
 - [Phase ?]: 14-02: weather.json seeded flat/city-level/metric (Cairo centroid, D-30/D-31); both weather.json and weather-cache.json registered in contract.json's engine_owned_files in the same commit; state-manifest gate proven able to fail before being trusted to pass
+- [Phase ?]: 14-03: Render-gate round 2 (2026-07-29) APPROVED — per-tab dynamic proportions read right, resize animation smooth, indicator tracks correctly during resize
+- [Phase ?]: 14-03: Theme crossfade verified non-interactively by the executor (drawer held open via IPC, theme-apply nord->dracula run directly, screenshots + clean quickshell.log confirmed, original theme restored) since interactive testing steals the drawer's window focus
+- [Phase ?]: 14-03: Shell-root tab memory (drawer reopens on last tab shown) explicitly RATIFIED by the human as the intended D-14 feature, not a bug — keep as-is
+- [Phase ?]: 14-03: D-02/D-04's fixed uniform 850x860 frame superseded by user request at the render gate — per-tab dynamic proportions (Caelestia scheme), frame animates to each tab's advisory implicit size over Motion.standardDuration/standardEasing. Width stays shared across panes at any instant (SwipeView/Container structural constraint, not a choice) — flagged to and accepted by the user
+- [Phase ?]: 14-03: Per-tab placeholder implicitWidth/implicitHeight values are engineering estimates only — wave-3 plans (14-04..14-07) and wave-4 (14-08) must derive real sizes from real built content, not inherit these numbers as final
 
 ### Quick Tasks Completed
 
@@ -354,8 +360,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-29T12:41:33.774Z
-Stopped at: Completed 14-02-PLAN.md
+Last session: 2026-07-29T13:44:05.884Z
+Stopped at: Completed 14-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
