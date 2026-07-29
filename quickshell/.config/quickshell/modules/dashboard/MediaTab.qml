@@ -218,6 +218,51 @@
 //      partway down the tab rather than at its very bottom, means the
 //      downward case is still the common one, but the flip is unconditional
 //      logic, not a one-off patch for today's specific geometry.
+//
+// ── Render-gate round 5 fixes (2026-07-29) ───────────────────────────────
+// Round 4 was accepted on art clipping and pill placement, and rejected on
+// two remaining points:
+//
+//   1. **Dropdown open position.** "It opens to upper left corner of the
+//      album art" (functionality itself worked). Root cause: `_pillTopY`
+//      and `playerMenu.x` were built on `selectorPill.mapToItem(root, 0,
+//      0)` — `mapToItem()` is a plain function call whose internal geometry
+//      math is not tracked by QML's declarative dependency system, so a
+//      `readonly property` built on it evaluates once at binding-creation
+//      time (before the drawer's own per-tab animated resize and this
+//      column's layout ever settle) and never re-fires afterward — the
+//      menu rendered at wherever the pill WAS, near the item's origin.
+//      Fixed by replacing both with an explicit sum of the real ancestor
+//      chain's own `x`/`y` properties (`content` -> `artColumn` ->
+//      `playerSelector` -> `selectorPill`), every one of which IS a
+//      genuinely reactive QML property (anchoring and Column positioning
+//      both set them through the ordinary property system), so the sum
+//      re-evaluates correctly on every geometry change — first open, after
+//      a tab switch, after a drawer re-summon, mid-resize-animation, and
+//      after a player switch changes the pill's own width. See
+//      `playerSelector._pillTopX`/`_pillTopY` below; `menuOpensUpward`'s
+//      computed-direction logic from round 4 is unchanged, it now just
+//      receives correct inputs.
+//   2. **Play/pause transition jitter.** "No regressions, buttons work.
+//      However, the transition/animation between the play and pause
+//      symbols looks jittery and laggy." Root cause: the emphasized
+//      transport button's press-feedback `fillProgress` (driving Material
+//      Symbols' variable FILL axis) was animated via `Behavior on
+//      fillProgress { NumberAnimation { ... } }` — every frame of that
+//      animation reconstructs the `font.variableAxes` object, and Qt
+//      re-shapes the glyph's whole text layout on every such change, which
+//      is expensive enough at 60fps to visibly stutter. Fixed in two parts:
+//      `fillProgress` is now assigned instantly (no `Behavior`), so
+//      `font.variableAxes` only changes twice per press (down, up) rather
+//      than every frame; and the play/pause glyph swap itself — previously
+//      an untransitioned instant text-content change — is now a genuine
+//      crossfade between two `layer.enabled: true` Text items
+//      (`glyphStack`'s `glyphFrom`/`glyphTo`, inside `TransportButton`),
+//      each cached to its own GPU texture so the fade is a cheap
+//      opacity/scale blend rather than a per-frame reshape. The glyph
+//      string itself is still assigned only from the backend's `playing`
+//      predicate (D-22's truth-driven rule, untouched) — `glyphStack`
+//      purely animates the PRESENTATION of that already-truthful change.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Shapes
@@ -559,7 +604,27 @@ Item {
                 // list can still push the menu past the tab's own bottom
                 // edge, which is exactly the clipping-against-the-drawer
                 // case the round-4 feedback called out to check for.
-                readonly property real _pillTopY: selectorPill.mapToItem(root, 0, 0).y
+                //
+                // Round-5 fix: `Item.mapToItem()` is a plain function call —
+                // its internal geometry math reads the ancestor chain's
+                // transforms directly rather than through tracked QML
+                // property reads, so a binding built on it evaluates once
+                // at creation and never re-fires when an ancestor's
+                // position later changes (the drawer's own per-tab animated
+                // resize, or this column's height changing as bands
+                // show/hide). That is exactly why round 4's menu opened
+                // "in the upper-left corner of the album art" — it rendered
+                // at wherever the pill was BEFORE layout ever settled.
+                // Replaced with an explicit sum of the real ancestor
+                // chain's own `x`/`y` (content -> artColumn -> playerSelector
+                // -> selectorPill), each of which IS a genuinely reactive
+                // QML property — anchoring and Column positioning both set
+                // these through the ordinary property system, so summing
+                // them re-evaluates correctly on every geometry change,
+                // including mid-animation and after a player switch changes
+                // the pill's own width.
+                readonly property real _pillTopX: content.x + artColumn.x + playerSelector.x + selectorPill.x
+                readonly property real _pillTopY: content.y + artColumn.y + playerSelector.y + selectorPill.y
                 readonly property real _spaceBelow: root.height - (playerSelector._pillTopY + selectorPill.height) - root.spacingXs
                 readonly property bool menuOpensUpward: playerSelector._spaceBelow < playerMenu.height
 
@@ -642,7 +707,7 @@ Item {
                     z: 10
                     visible: opacity > 0
                     opacity: playerSelector.menuOpen ? 1 : 0
-                    x: selectorPill.mapToItem(root, 0, 0).x
+                    x: playerSelector._pillTopX
                     y: playerSelector.menuOpensUpward
                         ? (playerSelector._pillTopY - playerMenu.height - root.spacingXs)
                         : (playerSelector._pillTopY + selectorPill.height + root.spacingXs)
@@ -866,6 +931,14 @@ Item {
                 property bool pressedState: false
                 signal activated()
 
+                // Round-5 fix: drives the crossfade below whenever the
+                // caller reassigns `glyph` (the truth-driven play/pause
+                // swap) — see `glyphStack` inside `circle` for the actual
+                // animation. Guarded because this can fire during this
+                // component's own construction, before `glyphStack` exists.
+                onGlyphChanged: if (glyphStack)
+                    glyphStack._startMorph(glyph)
+
                 readonly property int diameter: emphasized ? root.transportEmphasizedSize : root.transportSize
                 width: pillShape ? root.transportPillWidth : diameter
                 height: diameter
@@ -874,16 +947,15 @@ Item {
                 // caller to the backend's playing predicate) reflects real
                 // state. This fillProgress is purely an instant MD3 press
                 // acknowledgment on the emphasized control, never a truth
-                // signal itself.
+                // signal itself — and, per the round-5 render-gate fix
+                // below, deliberately NOT animated via Behavior. Animating
+                // Material Symbols' FILL variable axis reconstructs the
+                // `font.variableAxes` object every animation frame, which
+                // forces Qt to re-shape the glyph's text layout every
+                // frame — the diagnosed cause of the "jittery and laggy"
+                // play/pause transition. The ripple below still supplies
+                // animated press feedback on cheap plain geometry.
                 property real fillProgress: (btn.emphasized && root.fillAxisAvailable && btn.pressedState) ? 1 : 0
-                Behavior on fillProgress {
-                    enabled: Motion.motionEnabled
-                    NumberAnimation {
-                        duration: Motion.standardDuration
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
-                    }
-                }
 
                 Rectangle {
                     id: circle
@@ -915,13 +987,82 @@ Item {
                         opacity: 0
                     }
 
-                    Text {
+                    // Round-5 fix: the play/pause glyph swap used to be an
+                    // instant text-content change with no transition — this
+                    // crossfades the outgoing and incoming glyphs on the
+                    // standard motion pair instead. Both Text items are
+                    // `layer.enabled: true`, so each is rendered to an
+                    // offscreen texture that only regenerates when its own
+                    // text/font/colour actually changes; the fade itself is
+                    // a cheap GPU opacity/scale blend of those two cached
+                    // textures every frame, never a font re-shape — the
+                    // exact cost the FILL-axis animation above was cut to
+                    // avoid.
+                    Item {
+                        id: glyphStack
                         anchors.centerIn: parent
-                        text: btn.glyph
-                        font.family: root.symbolFontFamily
-                        font.pixelSize: btn.emphasized ? root.iconSizeMd + 8 : root.iconSizeMd
-                        font.variableAxes: root.fillAxisAvailable ? { "FILL": btn.fillProgress } : ({})
-                        color: btn.emphasized ? Colours.onPrimary : Colours.onSurfaceVariant
+                        width: Math.max(glyphFrom.implicitWidth, glyphTo.implicitWidth)
+                        height: Math.max(glyphFrom.implicitHeight, glyphTo.implicitHeight)
+
+                        property string fromGlyph: btn.glyph
+                        property string toGlyph: btn.glyph
+                        property real morph: 1 // 0 = showing fromGlyph, 1 = showing toGlyph
+
+                        function _startMorph(newGlyph) {
+                            if (newGlyph === glyphStack.toGlyph)
+                                return;
+                            glyphStack.fromGlyph = glyphStack.toGlyph;
+                            glyphStack.toGlyph = newGlyph;
+                            if (Motion.motionEnabled) {
+                                morphAnim.stop();
+                                glyphStack.morph = 0;
+                                morphAnim.start();
+                            } else {
+                                glyphStack.morph = 1;
+                            }
+                        }
+
+                        NumberAnimation {
+                            id: morphAnim
+                            target: glyphStack
+                            property: "morph"
+                            from: 0
+                            to: 1
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+
+                        Component.onCompleted: {
+                            glyphStack.fromGlyph = btn.glyph;
+                            glyphStack.toGlyph = btn.glyph;
+                            glyphStack.morph = 1;
+                        }
+
+                        Text {
+                            id: glyphFrom
+                            anchors.centerIn: parent
+                            text: glyphStack.fromGlyph
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: btn.emphasized ? root.iconSizeMd + 8 : root.iconSizeMd
+                            font.variableAxes: root.fillAxisAvailable ? { "FILL": btn.fillProgress } : ({})
+                            color: btn.emphasized ? Colours.onPrimary : Colours.onSurfaceVariant
+                            opacity: 1 - glyphStack.morph
+                            scale: 1 - 0.12 * glyphStack.morph
+                            layer.enabled: true
+                        }
+                        Text {
+                            id: glyphTo
+                            anchors.centerIn: parent
+                            text: glyphStack.toGlyph
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: btn.emphasized ? root.iconSizeMd + 8 : root.iconSizeMd
+                            font.variableAxes: root.fillAxisAvailable ? { "FILL": btn.fillProgress } : ({})
+                            color: btn.emphasized ? Colours.onPrimary : Colours.onSurfaceVariant
+                            opacity: glyphStack.morph
+                            scale: 0.88 + 0.12 * glyphStack.morph
+                            layer.enabled: true
+                        }
                     }
 
                     MouseArea {
