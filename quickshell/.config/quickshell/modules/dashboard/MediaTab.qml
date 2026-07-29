@@ -81,8 +81,84 @@
 //     — the must_haves/artifacts table names chips explicitly and the
 //     redesign directive is about visual language, not swapping this
 //     already-decided widget shape.
+//     [SUPERSEDED round 3 below — the chip row itself was named as one of
+//     the two things that still look wrong.]
+//
+// ── Render-gate round 3 refinement (2026-07-29) ──────────────────────────
+// Round 2 was accepted as "a step in the right direction" but rejected as
+// not yet matching latest Caelestia, on two named points. Re-studied via a
+// FRESH shallow clone of github.com/caelestia-dots/shell (round 1's clone
+// was discarded) — the exact files read this round:
+// `modules/dashboard/media/CoverVisualiser.qml`,
+// `components/widgets/CoverArt.qml`, `modules/dashboard/media/Details.qml`,
+// `modules/dashboard/media/LyricsAndSelector.qml`,
+// `modules/dashboard/Media.qml`, `plugin/src/Caelestia/Config/
+// serviceconfig.hpp` (visualiserBars default = 60).
+//
+//   1. **Cover art — circular with a dotted ring.** Real Caelestia's cover
+//      (`CoverArt.qml`) is an M3 "Cookie12Sided" blob shape, not a plain
+//      circle, wrapped by `CoverVisualiser.qml`'s `Shape` of 60
+//      (`visualiserBars`) individual radial `ShapePath` bars — one per
+//      audio-frequency band read from `Audio.cava`, each bar's length a
+//      function of that band's live amplitude (`bar.value`), each
+//      permanently at least a `1e-2 * maxMagnitude` sliver even at silence.
+//      That "ring" is therefore an idle-state audio visualiser, not a
+//      decorative border, and its host M3Shapes cookie geometry has no
+//      equivalent in this repo (no `M3Shapes` import, no `Caelestia.Config`).
+//      The human's feedback asks for something rounder and dotted, closer
+//      to the ring's own idle silhouette than to the cookie-blob host shape
+//      underneath it — the art below is redrawn as a genuine circle
+//      (radius = half its diameter, not the round-corner-rectangle radius
+//      round 2 used) with a static dashed circle drawn around it via
+//      `QtQuick.Shapes`' `ShapePath`/`PathAngleArc` (`strokeStyle:
+//      ShapePath.DashLine`, `capStyle: ShapePath.RoundCap`), dash/gap tuned
+//      to land near 56 marks — close to upstream's 60-bar density at this
+//      radius. This repo has no cava/audio-analysis service anywhere in its
+//      backend (MediaBackend's whole read surface is media-status.sh /
+//      media-players.sh — no audio signal exists to sample), so the ring is
+//      deliberately static rather than amplitude-reactive: an honest
+//      approximation of the idle silhouette, not a fake live signal. For
+//      the same reason it is NOT wired as a seek/progress arc either — real
+//      Caelestia's ring answers to audio amplitude, never to track
+//      position, so doubling it as a progress indicator would not actually
+//      match upstream's behaviour. The straight seek slider below stays the
+//      one real seek control (this plan's own locked must_have). Colour is
+//      `Colours.outline` rather than Caelestia's literal `m3primary` tint —
+//      14-UI-SPEC.md's Color section reserves the primary/accent role for
+//      an enumerated list (tab indicator, lit toggle chips, active
+//      motion-scale segment, play/pause pressed state, calendar "today",
+//      pending-pulse) and explicitly forbids using it as "a general
+//      interactive-element default"; a decorative frame is exactly that
+//      general case, so `outline` — the role literally named for a frame —
+//      is the spec-compliant substitute for this tab's borrowed accent.
+//
+//   2. **The media-source pill, redesigned.** Real Caelestia's player
+//      switcher (`LyricsAndSelector.qml`) is not a row of always-visible
+//      chips at all: it is one compact `SplitButton` (`type:
+//      SplitButton.Tonal`) showing the active player's identity, opening a
+//      small checkmark menu of every player on tap
+//      (`Players.manualActive = item.modelData`) — exactly the "subtle
+//      SplitButton" this repo's render-gate feedback independently proposed
+//      before this file was re-checked against upstream, confirming the
+//      shape rather than guessing it. Round 2's always-visible full-width
+//      chip row is REPLACED by a single compact pill (an icon plus the
+//      active player's elided label, sized to content rather than the full
+//      row width) that opens a small anchored dropdown list of every
+//      player on tap. This is this file's own build of the same
+//      interaction on house tokens — no `Caelestia.Components`/
+//      `SplitButton` import exists here — not a transplanted control.
+//      Round 2's header note that "the player switcher stays chips ...
+//      the must_haves/artifacts table names chips explicitly" is
+//      SUPERSEDED: this round's human feedback explicitly rescinds that
+//      choice where it conflicts with looking right ("a minimal equivalent
+//      on house tokens is fine"). The underlying mechanism is unchanged —
+//      every row still calls `mediaBackend.selectPlayer(id)`, the same
+//      function round 1 and round 2 both dispatched through — so
+//      multi-player switching keeps working end to end; only the
+//      always-visible-row presentation is gone.
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Shapes
 import "../"
 
 Item {
@@ -123,11 +199,20 @@ Item {
     // and gets whatever width the drawer's own floor/content negotiation
     // (Dashboard.qml's activeContentWidth, D-02/D-04 superseded) leaves it.
     readonly property int artSize: 220
-    readonly property int artRadius: 28
-    readonly property int artBadgeSize: Math.round(root.artSize * 0.42)
+    // Round 3: `artSize` above is now the whole SLOT's bounding box (the
+    // layout anchor other bands measure against, unchanged from round 2);
+    // the circular art itself is `artCircleSize`, shrunk to leave room
+    // inside that same box for the dotted ring drawn around it — the
+    // slot's footprint against the rest of the layout does not move.
+    readonly property int ringGap: 8
+    readonly property int ringStrokeWidth: 3
+    readonly property int artCircleSize: root.artSize - (root.ringGap + root.ringStrokeWidth) * 2
+    readonly property real ringRadius: root.artCircleSize / 2 + root.ringGap
+    readonly property int artBadgeSize: Math.round(root.artCircleSize * 0.42)
     readonly property int detailsWidth: 340
     readonly property int controlRowHeight: 32
-    readonly property int chipRowHeight: 36
+    readonly property int playerSelectorHeight: 36
+    readonly property int playerMenuRowHeight: 32
     readonly property int timeLabelWidth: 36
     readonly property int transportSize: 44
     readonly property int transportEmphasizedSize: 60
@@ -189,10 +274,68 @@ Item {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
 
+            // Round 3: the static dotted ring, drawn once around the
+            // circular art below at `ringRadius` (the art's own radius
+            // plus `ringGap`) — see the redesign header for why this is a
+            // plain dashed circle rather than a live cava visualiser or a
+            // seek/progress arc. Declared before `artContainer` so it sits
+            // behind it in paint order, matching Caelestia's own
+            // Shape-then-CoverArt sibling order (the two never actually
+            // overlap since the ring's radius is strictly outside the
+            // art's own). Static geometry — repaints only on resize or a
+            // theme-driven colour change, never per frame while idle.
+            Shape {
+                id: artRing
+                anchors.fill: parent
+                asynchronous: true
+                preferredRendererType: Shape.CurveRenderer
+
+                ShapePath {
+                    id: artRingPath
+                    fillColor: "transparent"
+                    strokeColor: Colours.outline
+                    strokeWidth: root.ringStrokeWidth
+                    capStyle: ShapePath.RoundCap
+                    strokeStyle: ShapePath.DashLine
+                    // Dash length ~= strokeWidth (a round dot under
+                    // RoundCap), gap wide enough that each mark reads as
+                    // separate rather than a solid ring. At this radius the
+                    // pattern lands near 56 marks — close to upstream's
+                    // fixed 60-bar visualiser density (`visualiserBars`
+                    // default, `serviceconfig.hpp`) without depending on
+                    // any bar count this repo has no audio service to
+                    // supply.
+                    dashPattern: [1, 3]
+
+                    startX: artSlot.width / 2 + root.ringRadius
+                    startY: artSlot.height / 2
+
+                    PathAngleArc {
+                        centerX: artSlot.width / 2
+                        centerY: artSlot.height / 2
+                        radiusX: root.ringRadius
+                        radiusY: root.ringRadius
+                        startAngle: 0
+                        sweepAngle: 360
+                    }
+
+                    Behavior on strokeColor {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+                }
+            }
+
             Rectangle {
                 id: artContainer
-                anchors.fill: parent
-                radius: root.artRadius
+                anchors.centerIn: parent
+                width: root.artCircleSize
+                height: root.artCircleSize
+                radius: width / 2
                 clip: true
                 color: Colours.surfaceVariant
 
@@ -609,22 +752,44 @@ Item {
                 }
             }
 
-            // ── 6. Player-switcher chips — keeps its slot at 0/1/N players
-            component PlayerChip: Item {
-                id: chip
+            // ── 6. Player switcher — round 3 SplitButton-style pill ─────
+            // Replaces round 2's always-visible chip row (see the redesign
+            // header above for why). One compact pill sized to its own
+            // content, holding an icon plus the active player's elided
+            // label; tapping it opens a small anchored dropdown of every
+            // player, each row still dispatching the exact same
+            // `mediaBackend.selectPlayer(id)` call the old chips issued.
+            // The row keeps its slot at every player count: zero players
+            // shows the disabled "No players" pill, one shows it filled
+            // but non-interactive (nothing to switch to), several make it
+            // tappable.
+            Item {
+                id: playerSelector
+                width: parent.width
+                height: root.playerSelectorHeight
 
-                property string chipLabel: ""
-                property bool chipActive: false
-                signal activated()
+                readonly property var playerList: root.mediaBackend ? root.mediaBackend.players : []
+                readonly property var activeEntry: {
+                    const list = playerSelector.playerList;
+                    for (var i = 0; i < list.length; i++) {
+                        if (list[i] && list[i].active)
+                            return list[i];
+                    }
+                    return null;
+                }
+                readonly property bool hasChoice: playerSelector.playerList.length > 1
 
-                implicitWidth: label.implicitWidth + root.spacingMd * 2
-                implicitHeight: root.chipRowHeight
+                property bool menuOpen: false
 
                 Rectangle {
-                    id: chipBg
-                    anchors.fill: parent
+                    id: selectorPill
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: parent.height
+                    width: Math.min(root.detailsWidth, pillRow.implicitWidth + root.spacingMd * 2)
                     radius: height / 2
-                    color: chip.chipActive ? Colours.primary : Colours.surfaceVariant
+                    color: playerSelector.menuOpen ? Colours.primary : Colours.surfaceVariant
+                    opacity: playerSelector.playerList.length > 0 ? 1 : 0.5
                     Behavior on color {
                         enabled: Motion.motionEnabled
                         ColorAnimation {
@@ -634,36 +799,132 @@ Item {
                         }
                     }
 
-                    Text {
-                        id: label
+                    Row {
+                        id: pillRow
                         anchors.centerIn: parent
-                        text: chip.chipLabel
-                        elide: Text.ElideRight
-                        font.pixelSize: root.fontLabel
-                        color: chip.chipActive ? Colours.onPrimary : Colours.onSurfaceVariant
+                        spacing: root.spacingXs
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "graphic_eq"
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: root.fontLabel + 4
+                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
+                        }
+                        Text {
+                            id: selectorLabel
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: playerSelector.activeEntry ? (playerSelector.activeEntry.label || playerSelector.activeEntry.id || "") : "No players"
+                            elide: Text.ElideRight
+                            width: Math.min(implicitWidth, root.detailsWidth * 0.5)
+                            font.pixelSize: root.fontLabel
+                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: playerSelector.hasChoice
+                            text: playerSelector.menuOpen ? "expand_less" : "expand_more"
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: root.fontLabel + 4
+                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
+                        }
                     }
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled: !chip.chipActive
-                        onClicked: chip.activated()
+                        enabled: playerSelector.hasChoice
+                        onClicked: playerSelector.menuOpen = !playerSelector.menuOpen
                     }
                 }
-            }
 
-            Row {
-                id: playerChipRow
-                width: parent.width
-                height: root.chipRowHeight
-                spacing: root.spacingSm
+                // Click-away scrim — only present while the menu is open,
+                // so it never intercepts a click anywhere else in the tab
+                // otherwise. Raised above every other band but below the
+                // menu itself.
+                MouseArea {
+                    parent: root
+                    z: 9
+                    anchors.fill: parent
+                    visible: playerSelector.menuOpen
+                    enabled: playerSelector.menuOpen
+                    onClicked: playerSelector.menuOpen = false
+                }
 
-                Repeater {
-                    model: root.mediaBackend ? root.mediaBackend.players : []
-                    delegate: PlayerChip {
-                        height: playerChipRow.height
-                        chipLabel: modelData.label || modelData.id || ""
-                        chipActive: !!modelData.active
-                        onActivated: if (root.mediaBackend) root.mediaBackend.selectPlayer(modelData.id)
+                // The dropdown itself — reparented onto the tab's own root
+                // so it is never clipped by `detailsColumn`'s layout, then
+                // positioned absolutely under the pill via `mapToItem`.
+                Rectangle {
+                    id: playerMenu
+                    parent: root
+                    z: 10
+                    visible: opacity > 0
+                    opacity: playerSelector.menuOpen ? 1 : 0
+                    x: selectorPill.mapToItem(root, 0, 0).x
+                    y: selectorPill.mapToItem(root, 0, 0).y + selectorPill.height + root.spacingXs
+                    width: selectorPill.width
+                    height: menuColumn.height + root.spacingXs * 2
+                    radius: root.spacingSm
+                    color: Colours.surfaceVariant
+
+                    Behavior on opacity {
+                        enabled: Motion.motionEnabled
+                        NumberAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+
+                    Column {
+                        id: menuColumn
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: root.spacingXs
+                        spacing: 0
+
+                        Repeater {
+                            model: playerSelector.playerList
+                            delegate: Item {
+                                width: menuColumn.width
+                                height: root.playerMenuRowHeight
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: root.spacingSm
+                                    anchors.rightMargin: root.spacingSm
+                                    spacing: root.spacingXs
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: root.fontLabel + 4
+                                        visible: !!modelData.active
+                                        text: "check"
+                                        font.family: root.symbolFontFamily
+                                        font.pixelSize: root.fontLabel + 4
+                                        color: Colours.onSurface
+                                    }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: modelData.label || modelData.id || ""
+                                        elide: Text.ElideRight
+                                        width: menuColumn.width - root.spacingSm * 2 - (root.fontLabel + 4) - root.spacingXs
+                                        font.pixelSize: root.fontLabel
+                                        color: modelData.active ? Colours.onSurface : Colours.onSurfaceVariant
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: !modelData.active
+                                    onClicked: {
+                                        if (root.mediaBackend)
+                                            root.mediaBackend.selectPlayer(modelData.id);
+                                        playerSelector.menuOpen = false;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
