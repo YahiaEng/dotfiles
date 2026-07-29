@@ -4,7 +4,10 @@
 // mounted the quick-toggle footer beneath it. This plan fills the space
 // above that footer with D-38's identity-first single column: a clock/date
 // hero, a display-only calendar month grid, a compact media widget and a
-// CPU/Memory/Battery resources strip — in that fixed order.
+// resources strip — in that fixed order. Originally CPU/Memory/Battery
+// (this plan's own scope); round 3's render gate added a fourth Storage
+// dial (see the round-3 header note below) — see that note before
+// assuming this is still three dials.
 //
 // Root type Item, filled via anchors.fill: parent by the Loader Dashboard.qml
 // places it in — actual rendered geometry is UNCHANGED from every prior
@@ -126,6 +129,74 @@ import "../"
 //      files_modified) — see that file's own round-2 header note. Recorded
 //      here too since it is a deviation from this plan's ownership fence.
 // ────────────────────────────────────────────────────────────────────────
+//
+// ── Render-gate round 3 fixes (2026-07-30) ─────────────────────────────
+// Round 2 was APPROVED, including item 3's scope reversal (next/prev
+// transport stays permanently). Four more concrete points, fixed below:
+//
+//   1. Calendar — Friday theme-colored. This locale's own weekend
+//      convention (per the human's direct statement) treats FRIDAY as the
+//      weekend day, not Saturday/Sunday — matched on the JavaScript Date
+//      type's own `getDay() === 5` (0=Sunday..6=Saturday, the ECMA-262
+//      standard numbering; Friday is always index 5 regardless of locale,
+//      since `getDay()` numbers actual weekdays, not a locale's display
+//      order) rather than any hardcoded Saturday/Sunday assumption. Both
+//      the weekday header glyph ("Fri") and every Friday day-number cell
+//      (in-month and adjacent-month alike) take `Colours.tertiary` — not
+//      `primary`, which 14-UI-SPEC.md's Color section reserves to an
+//      enumerated list that does not include this. Today's own cell still
+//      wins over Friday when the two coincide (today is `primary`,
+//      reserved and unconditional).
+//
+//   2. Hero — current day number theme-colored. The date line under the
+//      time now renders as three text runs (prefix / day-number / suffix)
+//      instead of one opaque locale string, so only the day-of-month
+//      NUMBER itself can be tinted `Colours.tertiary` (matching Friday's
+//      own tertiary choice above and Storage's tertiary ring below — one
+//      consistent "notable, not primary" accent this round) without
+//      hardcoding the locale's own format structure: the split point is
+//      found by searching the already-locale-formatted string for the day
+//      number as a standalone digit token (word-bounded), never by
+//      assuming a fixed position — a locale whose long-date format omits
+//      the day as a bare number, or repeats the same digits inside a
+//      four-digit year with no separating punctuation, degrades quietly
+//      to the whole string in the un-tinted colour rather than mis-
+//      colouring an unrelated substring.
+//
+//   3. Media card — controls placement/stretch. The transport cluster
+//      moves back to a right-edge anchor (round 2 moved it to hug the
+//      text stack instead; the human's own round-3 wording, "move ... a
+//      bit to the right", asks for exactly the position round 2 moved
+//      away from) and every button grows — prev/next from 32px to 40px,
+//      play/pause from 40px to 56px, and the gap between all three from
+//      `spacingXs` to `spacingMd` — so the cluster itself now reads as a
+//      deliberate, generously-spaced control group rather than a small
+//      huddle of buttons.
+//
+//   4. Resources strip — spacing + a fourth dial. `dialSpacing` widens
+//      (`spacingXl` alone to `spacingXl + spacingMd`) and a Storage mini-
+//      dial joins CPU/Memory/Battery, reusing `SystemResources`'
+//      `storageFraction`/`storageUsedBytes`/`storageTotalBytes`/
+//      `storageState` — the SAME shared instance and the SAME `formatBytes`
+//      helper PerformanceTab.qml's own Storage dial already reads, never a
+//      second reader. Icon (`storage`) and accent (`Colours.tertiary`) are
+//      copied verbatim from PerformanceTab.qml's own per-ring convention
+//      (14-06 round 2: primary/secondary/tertiary/error across its four
+//      dials) so the mini strip reads as the same dial family, not a
+//      second dialect. NOTE — this is a deliberate reversal of
+//      14-08-PLAN.md's own explicit fence ("storage and network stay
+//      Performance-only... paying glance-rent for two more is exactly
+//      what D-39 rejected"), on the human's direct render-gate
+//      instruction this round — recorded here as a deviation, same
+//      precedent as round 2's transport-cluster reversal. Network is NOT
+//      added — the human asked only for storage.
+//
+// Still open from round 1, not yet explicitly answered by the human and
+// re-listed at every gate since: fit/width at the live 2560x1440 monitor
+// (D-02 assumed 2160x1440); the calendar's month-reset-on-rebuild
+// consequence's acceptability; and the compact widget/resources strip's
+// deep-link discoverability (no visual hint either card is tappable).
+// ────────────────────────────────────────────────────────────────────────
 
 Item {
     id: root
@@ -219,13 +290,14 @@ Item {
     // genuinely narrow text column so a long real title/artist actually
     // elides, rather than a wide band that never triggers it.
     readonly property int compactTextWidth: 220
-    // Round-2 fix — prev/next + play/pause transport cluster sizes (see
-    // file header point 3). Smaller than MediaTab's own 44/60px transport
-    // — this is still the glance-frequency compact widget, not the full
-    // player — but big enough to stay legible/tappable.
-    readonly property int compactTransportSize: 32
-    readonly property int compactPlayPauseSize: 40
-    readonly property int compactTransportSpacing: root.spacingXs
+    // Round-3 fix (see file header point 3) — prev/next + play/pause
+    // transport cluster sizes, grown from round 2's 32/40px and
+    // `spacingXs` gap ("move the media control buttons a bit to the
+    // right, and stretch them"). Bigger than round 2, still well inside
+    // the unchanged 72px `compactMediaHeight` band with room to spare.
+    readonly property int compactTransportSize: 40
+    readonly property int compactPlayPauseSize: 56
+    readonly property int compactTransportSpacing: root.spacingMd
 
     readonly property int miniDialDiameter: 44
     readonly property int miniRingThickness: 5
@@ -291,9 +363,40 @@ Item {
                 height: root.heroHeight
 
                 Column {
+                    id: heroTextColumn
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: root.spacingXs
+
+                    // Locale-derived long date format — same reasoning,
+                    // no hardcoded English month name. Kept as its own
+                    // property (rather than inline in a Text.text binding)
+                    // so the day-number split logic below reads from one
+                    // settled value.
+                    readonly property string dateFull: Qt.locale().toString(systemClock.date, Qt.locale().dateFormat(Locale.LongFormat))
+                    // Round-3 fix — "the current day number ... should also
+                    // be theme colored to make it easier to notice." The
+                    // day-of-month number, as plain decimal digits, never
+                    // the locale's own possibly-padded rendering of it.
+                    readonly property string dayNumberText: String(systemClock.date.getDate())
+                    // Locates the day number as a STANDALONE digit token
+                    // (word-bounded on both sides) inside the already
+                    // locale-formatted string, rather than assuming any
+                    // fixed position — every locale's long-date format puts
+                    // the day number somewhere different (leading, mid,
+                    // trailing), and this never hardcodes which. `-1` (not
+                    // found — an exotic locale that never renders the day
+                    // as a bare digit run, or a false-negative from the
+                    // boundary check) degrades quietly to the whole string
+                    // in one colour below, never a mis-highlighted
+                    // substring.
+                    readonly property int dayNumberIndex: {
+                        var re = new RegExp("(^|[^0-9])(" + heroTextColumn.dayNumberText + ")([^0-9]|$)");
+                        var m = heroTextColumn.dateFull.match(re);
+                        return m ? m.index + m[1].length : -1;
+                    }
+                    readonly property string datePrefix: heroTextColumn.dayNumberIndex >= 0 ? heroTextColumn.dateFull.substring(0, heroTextColumn.dayNumberIndex) : heroTextColumn.dateFull
+                    readonly property string dateSuffix: heroTextColumn.dayNumberIndex >= 0 ? heroTextColumn.dateFull.substring(heroTextColumn.dayNumberIndex + heroTextColumn.dayNumberText.length) : ""
 
                     Text {
                         id: timeLabel
@@ -305,14 +408,35 @@ Item {
                         font.weight: root.weightDisplay
                         color: Colours.onSurface
                     }
-                    Text {
+                    // Round-3 fix — three runs (prefix / day-number /
+                    // suffix) instead of one opaque Text, so only the
+                    // day-of-month NUMBER takes the tertiary accent
+                    // (matching Friday's own tertiary choice in the
+                    // calendar below and Storage's tertiary ring in the
+                    // resources strip — one consistent accent this round).
+                    Row {
                         id: dateLabel
-                        // Locale-derived long date format — same reasoning,
-                        // no hardcoded English month name.
-                        text: Qt.locale().toString(systemClock.date, Qt.locale().dateFormat(Locale.LongFormat))
-                        font.pixelSize: root.fontBody
-                        font.weight: root.weightBody
-                        color: Colours.onSurfaceVariant
+                        spacing: 0
+
+                        Text {
+                            text: heroTextColumn.datePrefix
+                            font.pixelSize: root.fontBody
+                            font.weight: root.weightBody
+                            color: Colours.onSurfaceVariant
+                        }
+                        Text {
+                            visible: heroTextColumn.dayNumberIndex >= 0
+                            text: heroTextColumn.dayNumberText
+                            font.pixelSize: root.fontBody
+                            font.weight: root.weightEmphasis
+                            color: Colours.tertiary
+                        }
+                        Text {
+                            text: heroTextColumn.dateSuffix
+                            font.pixelSize: root.fontBody
+                            font.weight: root.weightBody
+                            color: Colours.onSurfaceVariant
+                        }
                     }
                 }
             }
@@ -359,12 +483,22 @@ Item {
                 // own first day of the week — never assumed Monday or
                 // Sunday. dayNameIdx converts firstDayOfWeek's 0-6
                 // (Sun-based) numbering to dayName's 1-7 (Mon=1..Sun=7).
+                // Round-3 fix — each entry also carries `isFriday`: this
+                // locale's own weekend day (per the human's direct
+                // statement), matched on `dow === 5` — `dow` is the SAME
+                // 0=Sunday..6=Saturday ECMA-262 `Date.getDay()` numbering
+                // used below for `calendarDays`, so Friday is always index
+                // 5 regardless of the locale's own DISPLAY order (never a
+                // hardcoded Saturday/Sunday assumption).
                 readonly property var weekdayLabels: {
                     var arr = [];
                     for (var i = 0; i < 7; i++) {
                         var dow = (calendarCard.firstDayOfWeek + i) % 7;
                         var dayNameIdx = dow === 0 ? 7 : dow;
-                        arr.push(calendarCard.localeObj.dayName(dayNameIdx, Locale.ShortFormat));
+                        arr.push({
+                            text: calendarCard.localeObj.dayName(dayNameIdx, Locale.ShortFormat),
+                            isFriday: dow === 5
+                        });
                     }
                     return arr;
                 }
@@ -394,7 +528,13 @@ Item {
                             // year/month/day — never a cached value.
                             isToday: cellDate.getFullYear() === systemClock.date.getFullYear()
                                 && cellDate.getMonth() === systemClock.date.getMonth()
-                                && cellDate.getDate() === systemClock.date.getDate()
+                                && cellDate.getDate() === systemClock.date.getDate(),
+                            // Round-3 fix — this locale's own weekend day
+                            // (Friday, per the human's direct statement),
+                            // matched on the actual weekday regardless of
+                            // month/leading/trailing status, same `getDay()
+                            // === 5` numbering `weekdayLabels` above uses.
+                            isFriday: cellDate.getDay() === 5
                         });
                     }
                     return arr;
@@ -548,9 +688,11 @@ Item {
                                 height: weekdayRow.height
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
-                                text: modelData
+                                text: modelData.text
                                 font.pixelSize: root.fontLabel
-                                color: Colours.onSurfaceVariant
+                                // Round-3 fix — Friday (this locale's own
+                                // weekend day) takes the tertiary accent.
+                                color: modelData.isFriday ? Colours.tertiary : Colours.onSurfaceVariant
                             }
                         }
                     }
@@ -584,6 +726,12 @@ Item {
                             property int dayNumber: 1
                             property bool inMonth: true
                             property bool isToday: false
+                            // Round-3 fix — this locale's own weekend day
+                            // (Friday). Today's own primary highlight still
+                            // wins when the two coincide (see the Text
+                            // color branch below) — primary stays the one
+                            // reserved accent for "today" per 14-UI-SPEC.md.
+                            property bool isFriday: false
 
                             Rectangle {
                                 anchors.centerIn: parent
@@ -605,7 +753,13 @@ Item {
                                 anchors.centerIn: parent
                                 text: dayCell.dayNumber
                                 font.pixelSize: root.fontBody
+                                // Round-3 fix — Friday takes the tertiary
+                                // accent, but only when today's own primary
+                                // highlight does not already claim the cell
+                                // (today wins; primary is the one reserved
+                                // accent for it per 14-UI-SPEC.md).
                                 color: dayCell.isToday ? Colours.onPrimary
+                                    : dayCell.isFriday ? Colours.tertiary
                                     : dayCell.inMonth ? Colours.onSurface
                                     : Colours.onSurfaceVariant
                                 opacity: dayCell.inMonth ? 1 : 0.5
@@ -626,6 +780,7 @@ Item {
                                 dayNumber: modelData.day
                                 inMonth: modelData.inMonth
                                 isToday: modelData.isToday
+                                isFriday: modelData.isFriday
                                 cellWidth: calendarCard.cellWidth
                             }
                         }
@@ -922,33 +1077,38 @@ Item {
                     }
                 }
 
-                // ── 3. Transport cluster — round-2 fix (file header point
-                //      3): previous / play-pause / next, grouped together
-                //      and seated directly after the text stack rather
-                //      than one lone play/pause control anchored at the
-                //      card's far edge with a wide dead gap between it and
-                //      the text (the human's two complaints: the button
-                //      "looks awkward" and there is "lots of empty
-                //      unutilized space"). `previousTrack()`/
-                //      `nextTrack()` are the same two dispatches the Media
-                //      tab already exposes — no new backend capability
-                //      invented here. Play/pause's glyph is still read
-                //      from the backend's playing predicate and never
-                //      assigned by the press (D-22): a command that fails
-                //      or is refused leaves the button showing what the
-                //      player is actually doing. Each button carries its
-                //      own MouseArea declared as a later sibling than
-                //      `compactMedia`'s own background MouseArea (inside
-                //      DeepLinkSurface), so a press is consumed HERE and
-                //      never reaches the outer deep-link surface — the
-                //      same nested-target rule Task 2 proved on the single
-                //      play/pause control. Proven live by pressing each
-                //      button repeatedly and confirming the pager never
-                //      leaves the Dashboard tab. ───────────────────────
+                // ── 3. Transport cluster (round-2 built it, round-3
+                //      repositioned + enlarged it — see file header point
+                //      3): previous / play-pause / next, grouped together.
+                //      Round 2 seated this cluster directly after the text
+                //      stack; round 3's human feedback ("move the media
+                //      control buttons a bit to the right, and stretch
+                //      them") asks for the opposite direction — anchored
+                //      back to the card's own trailing edge, with every
+                //      button grown (see `compactTransportSize`/
+                //      `compactPlayPauseSize`/`compactTransportSpacing`
+                //      above) so the cluster itself reads as a deliberate,
+                //      generously-spaced control group rather than a small
+                //      huddle of buttons. `previousTrack()`/`nextTrack()`
+                //      are the same two dispatches the Media tab already
+                //      exposes — no new backend capability invented here.
+                //      Play/pause's glyph is still read from the backend's
+                //      playing predicate and never assigned by the press
+                //      (D-22): a command that fails or is refused leaves
+                //      the button showing what the player is actually
+                //      doing. Each button carries its own MouseArea
+                //      declared as a later sibling than `compactMedia`'s
+                //      own background MouseArea (inside DeepLinkSurface),
+                //      so a press is consumed HERE and never reaches the
+                //      outer deep-link surface — the same nested-target
+                //      rule Task 2 proved on the single play/pause
+                //      control. Proven live by pressing each button
+                //      repeatedly and confirming the pager never leaves
+                //      the Dashboard tab. ─────────────────────────────
                 Row {
                     id: compactTransportRow
-                    anchors.left: compactTextStack.right
-                    anchors.leftMargin: root.spacingXl
+                    anchors.right: parent.right
+                    anchors.rightMargin: root.compactMediaPadding
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: root.compactTransportSpacing
 
@@ -1049,14 +1209,17 @@ Item {
                 }
             }
 
-            // ── 4. The resources strip (D-39) ────────────────────────────
-            // Three mini-dials — CPU, Memory, Battery — instances of
-            // 14-06's own Dial type at a smaller diameter; no arc geometry
-            // is written here. Storage and network stay Performance-only.
+            // ── 4. The resources strip (D-39, round-3 revised) ───────────
+            // Four mini-dials — CPU, Memory, Storage, Battery — instances
+            // of 14-06's own Dial type at a smaller diameter; no arc
+            // geometry is written here. Network stays Performance-only.
             // Reads the ONE shared `systemResources` instance's published
             // fractions, per-metric state registers and shared formatters
             // — no second reader, no second poll timer, no metric
-            // re-derived here.
+            // re-derived here. Storage is a round-3 addition (see file
+            // header point 4) — a deliberate reversal of this plan's own
+            // "storage and network stay Performance-only" fence, on the
+            // human's direct render-gate instruction.
             DeepLinkSurface {
                 id: resourcesStrip
                 width: parent.width
@@ -1073,10 +1236,43 @@ Item {
                 // caption past this strip's own clipped right edge,
                 // truncating "No battery" to "No batter" (caught live,
                 // fixed here rather than left for the render gate to
-                // catch). A tight, centered cluster with generous side
-                // margin keeps every caption's overflow well inside the
-                // clip boundary regardless of which label is longest.
-                readonly property int dialSpacing: root.spacingXl
+                // catch). Round-3 fix — widened further ("space the dials
+                // more") from `spacingXl` alone to `spacingXl + spacingMd +
+                // spacingSm`; still a tight, centered cluster with
+                // generous side margin (the card is far wider than the
+                // four-dial cluster even at this spacing), so every
+                // caption's overflow stays well inside the clip boundary
+                // regardless of which label is longest.
+                readonly property int dialSpacing: root.spacingXl + root.spacingMd + root.spacingSm
+
+                // Round-3 bug found live (Rule 1 — auto-fixed): adding a
+                // populated Storage detail line right next to Memory's own
+                // populated detail line exposed that `Dial.qml`'s own
+                // `detailLine` Text (frozen sibling file, not ours to
+                // edit) publishes NO width constraint of its own — it just
+                // centers at its natural content width under the dial's
+                // diameter. At this strip's small `miniDialDiameter`
+                // (44px) two full "X.X GiB / Y.Y GiB" strings side by side
+                // are each far wider than the per-dial pitch and visibly
+                // collide/overlap. Shortens the string from the CALLER
+                // side instead (the only side this plan may touch):
+                // "<used>/<total> <unit>" when both figures share a unit
+                // suffix (the overwhelmingly common case — a
+                // used/total pair rarely straddles a GiB/TiB boundary),
+                // falling back to the full two-unit form only when they
+                // genuinely differ, which is meaningfully narrower than
+                // repeating the unit twice with " / " between.
+                function formatCompactUsedTotal(usedBytes, totalBytes) {
+                    if (!root.systemResources)
+                        return "";
+                    var usedStr = root.systemResources.formatBytes(usedBytes);
+                    var totalStr = root.systemResources.formatBytes(totalBytes);
+                    var usedParts = usedStr.split(" ");
+                    var totalParts = totalStr.split(" ");
+                    if (usedParts.length === 2 && totalParts.length === 2 && usedParts[1] === totalParts[1])
+                        return usedParts[0] + "/" + totalParts[0] + " " + totalParts[1];
+                    return usedStr + " / " + totalStr;
+                }
 
                 Row {
                     anchors.centerIn: parent
@@ -1105,10 +1301,40 @@ Item {
                         valueText: resourcesStrip.hasResources ? root.systemResources.formatPercent(root.systemResources.memoryFraction) : ""
                         // The one detail line worth having at glance size
                         // (plan's own call) — a used-of-total figure
-                        // through the shared byte formatter.
+                        // through the shared byte formatter, compacted
+                        // (round-3 fix, see `formatCompactUsedTotal` above)
+                        // so it doesn't collide with Storage's own detail
+                        // line at this strip's small dial pitch.
                         detailText: resourcesStrip.hasResources
-                            ? (root.systemResources.formatBytes(root.systemResources.memoryUsedBytes) + " / "
-                                + root.systemResources.formatBytes(root.systemResources.memoryTotalBytes))
+                            ? resourcesStrip.formatCompactUsedTotal(root.systemResources.memoryUsedBytes, root.systemResources.memoryTotalBytes)
+                            : ""
+                        emptySymbol: "help"
+                        emptyText: "Unavailable"
+                    }
+                    // Round-3 addition (file header point 4) — reads the
+                    // SAME `systemResources.storageFraction`/
+                    // `storageUsedBytes`/`storageTotalBytes`/`storageState`
+                    // PerformanceTab.qml's own Storage dial already reads;
+                    // icon (`storage`) and accent (`Colours.tertiary`) are
+                    // copied verbatim from that dial's own convention (14-06
+                    // round 2's primary/secondary/tertiary/error mapping)
+                    // so this mini strip reads as the same dial family.
+                    Dial {
+                        diameter: root.miniDialDiameter
+                        ringThickness: root.miniRingThickness
+                        label: "Storage"
+                        icon: "storage"
+                        accentColor: Colours.tertiary
+                        widgetState: resourcesStrip.hasResources ? root.systemResources.storageState : "pending"
+                        value: resourcesStrip.hasResources ? root.systemResources.storageFraction : 0
+                        valueText: resourcesStrip.hasResources ? root.systemResources.formatPercent(root.systemResources.storageFraction) : ""
+                        // Compacted the same way Memory's detail line is
+                        // (round-3 fix, `formatCompactUsedTotal` above) —
+                        // these two are the strip's only dials with a
+                        // populated detail line, seated right next to each
+                        // other.
+                        detailText: resourcesStrip.hasResources
+                            ? resourcesStrip.formatCompactUsedTotal(root.systemResources.storageUsedBytes, root.systemResources.storageTotalBytes)
                             : ""
                         emptySymbol: "help"
                         emptyText: "Unavailable"
@@ -1116,7 +1342,7 @@ Item {
                     // The strip's own partial state on this machine — no
                     // battery hardware, so this dial's empty branch is
                     // what actually renders, at the same footprint as the
-                    // other two (D-41).
+                    // other three (D-41).
                     Dial {
                         diameter: root.miniDialDiameter
                         ringThickness: root.miniRingThickness
