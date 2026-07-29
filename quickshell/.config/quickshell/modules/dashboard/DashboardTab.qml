@@ -70,17 +70,40 @@ Item {
     // with pager.setCurrentIndex(index).
     signal tabRequested(int index)
 
-    // ── D-41 empty branch — the only content this stub ever shows ──────
+    // 14-UI-SPEC.md's Spacing Scale "lg" (panel padding, 24px) — this file
+    // has no shared constants surface of its own (same mechanism gap
+    // QuickToggles.qml's header records), so it is declared locally here
+    // rather than left as a bare literal.
+    readonly property int panelPadding: 24
+
+    // ── D-41 empty branch — 14-08 replaces this with the real hero/
+    //    calendar/media/resources column; kept here so the tab honestly
+    //    shows one built widget (the footer below) and one quiet
+    //    placeholder for what is still coming. ──────────────────────────
     Column {
         anchors.centerIn: parent
+        anchors.verticalCenterOffset: -(toggles.height / 2)
         spacing: 8
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
-            text: "Dashboard\nNot built yet — plan 14-04"
+            text: "Dashboard\nNot built yet — plan 14-08"
             font.pixelSize: 16
             color: Colours.onSurfaceVariant
         }
+    }
+
+    // ── Toggle-block footer (D-38, 14-04) — the tab's base line. 14-08's
+    //    composition pass adds the clock hero, calendar, compact media
+    //    widget and resources strip in the space above this, already
+    //    mounted and already working. ─────────────────────────────────
+    QuickToggles {
+        id: toggles
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: root.panelPadding
+        height: implicitHeight
     }
 }

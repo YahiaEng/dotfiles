@@ -5,8 +5,16 @@
 // the lit state is a pure read of the exact same backend swaync's own
 // buttons-grid reads/execs (D-27) and is NEVER assigned by a press — a
 // failed/cancelled/hung backend leaves the chip on whatever the backend
-// actually holds. Task 3 adds the motion-scale segmented row beneath this
-// and mounts the whole block as the Dashboard tab's footer.
+// actually holds.
+//
+// Beneath the three chips, a full-width `Off | Reduced | Normal | Lively`
+// segmented row jumps the motion-scale axis directly — one press, exactly
+// one `theme-apply` re-render, no cycling transit through `off` (D-24).
+// D-23's sentence, restated here rather than left implicit: this control
+// has NO swaync counterpart — it is a one-way view of a state file — so it
+// sits OUTSIDE the DASH-07 mirror proof by construction. The asymmetry
+// between three mirrored chips and one unmirrored row is a recorded
+// decision, not a gap.
 //
 // ── Design constants — NOT read off `dashboardWindow` ───────────────────
 // Dashboard.qml's header comment states plans 14-03..14-08 should read its
@@ -51,6 +59,7 @@ Item {
 
     readonly property int chipHeight: 72
     readonly property int chipRadius: 16
+    readonly property int presetHeight: 48
 
     property string homeDir: Quickshell.env("HOME")
 
@@ -64,7 +73,7 @@ Item {
     readonly property var widgetStateVocabulary: ["populated", "pending", "empty"]
     readonly property string widgetState: pendingChip !== "" ? "pending" : "populated"
 
-    implicitHeight: chipsRow.height
+    implicitHeight: chipsRow.height + spacingSm + presetRow.height
     implicitWidth: 0 // no meaningful own width — the mounting parent (14-08) sizes this via anchors
 
     // ═══════════════════════════════════════════════════════════════════
@@ -506,6 +515,192 @@ Item {
                 chipName: modelData.name
                 chipLabel: modelData.label
                 chipGlyph: modelData.glyph
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Motion-scale segmented row (D-24) — full-width, direct jump, one
+    // press = exactly one theme-apply re-render. Sits OUTSIDE the DASH-07
+    // mirror proof by construction (D-23 — restated in the header comment
+    // and the SUMMARY): there is no swaync counterpart for this control,
+    // it is a one-way view of a state file.
+    // ═══════════════════════════════════════════════════════════════════
+
+    // The committed selection is a direct read of the state file — NOT of
+    // `Motion.motionScale`. That property exists at runtime, but
+    // motion-lint's `load_qml_defs()` (hypr/.config/hypr/scripts/motion-lint)
+    // only admits `<pairKey>Duration`/`<pairKey>Easing`/`motionEnabled` as
+    // valid `Motion.*` references — `Motion.motionScale` is a CHECK A
+    // dangling reference on this build even though it resolves at runtime.
+    // `Probe.qml` already documents this exact finding beside its own raw
+    // read of the same state file; this is the same precedent, not a new
+    // one. Bare `FileView`, change-watching on, same shape as the chips'
+    // own readers above.
+    FileView {
+        id: motionScaleFile
+        path: root.homeDir + "/.local/state/theme/motion-scale"
+        watchChanges: true
+        onFileChanged: reload()
+    }
+    readonly property string motionScaleRaw: (motionScaleFile.text() || "").trim()
+    // The closed four-value set `motion-switch.sh`'s own reader uses,
+    // falling through to its "normal" default on an absent/unrecognised
+    // value — asserted (not merely assumed) to equal
+    // `theme-engine/.config/theme-engine/motion.json`'s `.scales` object
+    // keys, read directly this plan: {"off","reduced","normal","lively"}.
+    readonly property var validMotionScales: ["off", "reduced", "normal", "lively"]
+    readonly property string motionScaleState: validMotionScales.indexOf(motionScaleRaw) !== -1 ? motionScaleRaw : "normal"
+
+    // Row-level pending model — the SAME truth-driven shape as the chips
+    // (a press never assigns the committed selection; only a real file
+    // change does), but its OWN separate, deliberately longer watchdog:
+    // D-24's whole premise is that a preset change costs a full
+    // multi-second `theme-apply` re-render, so the chips' ~3s would time
+    // out mid-flight and look like a failure every single time. Both
+    // constants are declared together (chipTimeoutMs above, this one
+    // below) so the asymmetry reads as a decision. Like the chips'
+    // watchdog, this is a backend timeout, NOT a motion token — riding the
+    // motion-scale axis would collapse it to zero at the `off` preset,
+    // which is precisely the preset most likely to be pressed.
+    property bool presetPending: false
+    readonly property int presetTimeoutMs: 8000
+
+    Timer {
+        id: presetWatchdogTimer
+        interval: root.presetTimeoutMs
+        repeat: false
+        onTriggered: root.presetPending = false
+    }
+    onMotionScaleStateChanged: if (root.presetPending) { root.presetPending = false; presetWatchdogTimer.stop(); }
+
+    // Fixed argv: the only computed element is the home-prefixed script
+    // path; the preset value always comes from `presetModel` below — a
+    // closed in-file list index-matched to the segments — never free text.
+    Process {
+        id: presetProcess
+        running: false
+        command: []
+    }
+    function pressPreset(value) {
+        if (root.presetPending)
+            return;
+        root.presetPending = true;
+        presetWatchdogTimer.restart();
+        presetProcess.command = [root.homeDir + "/.config/hypr/scripts/motion-switch.sh", value];
+        presetProcess.running = true;
+    }
+
+    readonly property var presetModel: [
+        { value: "off", label: "Off" },
+        { value: "reduced", label: "Reduced" },
+        { value: "normal", label: "Normal" },
+        { value: "lively", label: "Lively" }
+    ]
+
+    // One inline component — an MD3 segmented-button segment. A leading
+    // check glyph on the selected segment is the MD3 convention (discretion,
+    // recorded here): shown only when selected, Material Symbols "check".
+    component PresetSegment: Item {
+        id: segItem
+
+        property int segIndex: 0
+        property int segCount: 4
+        property string segValue: ""
+        property string segLabel: ""
+        readonly property bool selected: root.motionScaleState === segValue
+
+        Rectangle {
+            id: segFill
+            anchors.fill: parent
+            color: segItem.selected ? Colours.primary : "transparent"
+            // Only the outer corners round — the segments share ONE
+            // outline (presetOutline below) and read as one joined row,
+            // not three separate pills.
+            topLeftRadius: segItem.segIndex === 0 ? height / 2 : 0
+            bottomLeftRadius: segItem.segIndex === 0 ? height / 2 : 0
+            topRightRadius: segItem.segIndex === segItem.segCount - 1 ? height / 2 : 0
+            bottomRightRadius: segItem.segIndex === segItem.segCount - 1 ? height / 2 : 0
+            Behavior on color {
+                enabled: Motion.motionEnabled
+                ColorAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
+
+            Row {
+                anchors.centerIn: parent
+                spacing: root.spacingXs
+
+                Text {
+                    visible: segItem.selected
+                    text: "check"
+                    font.family: root.symbolFontFamily
+                    font.pixelSize: root.fontLabel + 2
+                    color: Colours.onPrimary
+                }
+                Text {
+                    text: segItem.segLabel
+                    font.pixelSize: root.fontLabel
+                    color: segItem.selected ? Colours.onPrimary : Colours.onSurfaceVariant
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                // The whole row — not just this segment — goes
+                // non-interactive while a preset press is pending
+                // (distinct from the chips, which disable only the one
+                // pending chip): a preset change is a single, deliberately
+                // long-running operation with no meaningful "different
+                // preset" click to allow mid-flight.
+                enabled: !root.presetPending
+                onClicked: root.pressPreset(segItem.segValue)
+            }
+        }
+    }
+
+    Item {
+        id: presetContainer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: chipsRow.bottom
+        anchors.topMargin: root.spacingSm
+        height: root.presetHeight
+
+        Rectangle {
+            id: presetOutline
+            anchors.fill: parent
+            radius: height / 2
+            color: "transparent"
+            border.width: 1
+            border.color: Colours.outline
+        }
+
+        Row {
+            id: presetRow
+            anchors.fill: parent
+
+            Repeater {
+                model: root.presetModel
+                delegate: PresetSegment {
+                    width: presetRow.width / root.presetModel.length
+                    height: presetRow.height
+                    segIndex: index
+                    segCount: root.presetModel.length
+                    segValue: modelData.value
+                    segLabel: modelData.label
+                }
             }
         }
     }
