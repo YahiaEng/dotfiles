@@ -29,6 +29,22 @@ MOTION_JSON="$HOME/.config/theme-engine/motion.json"
 # against a stopwatch rather than trusting a readback). 1 speed unit = 100ms.
 MOTION_HYPR_SPEED_DIVISOR_DS=100
 
+# 14-04 render-gate fix: Hyprland's `hl.animation()` rejects any `speed`
+# field above 100.00 — confirmed live via `hyprctl configerrors` after
+# switching to the `lively` motion-scale preset:
+# `hl.animation("borderangle"): field "speed": value 125.00 is more than
+# the maximum of 100.00`. `border-rotate`'s 10000ms duration_ms is already
+# at exactly this ceiling at the "normal" (1.0x) multiplier — D-09's
+# existing floor_ms clamp only protects the LOW end, so "lively"'s 1.25x
+# multiplier pushed it to 12500ms/speed 125.00 with nothing to catch it
+# before it reached a Hyprland-consumed field, a pre-existing gap in the
+# motion pipeline that this plan's segmented row was the first thing in
+# this repo to actually press. Mirrors D-09's WARN-never-fail posture: the
+# emitted speed is clamped to this ceiling (never dropped, never a hard
+# failure) and a WARN line records every clamp event through the same
+# GENERATE_LOG channel the floor clamp already uses.
+MOTION_HYPR_MAX_SPEED=100.00
+
 # theme_engine_read_motion_scale
 # Echoes the current motion-scale state value, defaulting to "normal" when
 # the axis has never been set OR holds an unrecognised value. D-21 requires
@@ -351,6 +367,30 @@ _hypr_lua_quote_string() {
     printf '"%s"' "$raw"
 }
 
+# _hypr_clamp_speed_ms <token> <ms>
+# Converts a resolved duration (ms) to Hyprland's `speed` unit
+# ($MOTION_HYPR_SPEED_DIVISOR_DS ms per unit) and ceiling-clamps it to
+# $MOTION_HYPR_MAX_SPEED before it ever reaches hyprland-tokens.lua —
+# `hl.animation()` hard-rejects a speed field above that value (D-09-style
+# fix, see $MOTION_HYPR_MAX_SPEED's header comment for the live
+# `hyprctl configerrors` observation that found this). Mirrors the floor
+# clamp's WARN-never-fail posture: a clamp event logs one line through
+# $GENERATE_LOG (same sanitization discipline as every other warning this
+# file already emits) and the render still completes.
+_hypr_clamp_speed_ms() {
+    local token="$1" ms="$2"
+    local speed
+    speed="$(awk -v ms="$ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
+    if awk -v s="$speed" -v max="$MOTION_HYPR_MAX_SPEED" 'BEGIN{exit !(s > max)}'; then
+        local warn_msg
+        warn_msg="WARN — motion.speed.${token} (${speed}) exceeds Hyprland's ${MOTION_HYPR_MAX_SPEED} animation-speed ceiling; clamped to ${MOTION_HYPR_MAX_SPEED}."
+        warn_msg="$(printf '%s' "$warn_msg" | head -c 200 | tr -d '\000-\011\013\014\016-\037')"
+        printf '%s\n' "$warn_msg" >> "${GENERATE_LOG:-/dev/null}"
+        speed="$MOTION_HYPR_MAX_SPEED"
+    fi
+    printf '%s' "$speed"
+}
+
 # theme_engine_render_hypr_tokens <out_dir>
 # Merges the matugen-rendered colour fragment ($out_dir/hyprland-colors.lua,
 # written by the additive [templates.hyprland_lua] matugen target into this
@@ -411,16 +451,21 @@ theme_engine_render_hypr_tokens() {
         # Reuses the SAME awk %.2f conversion and divisor the retired
         # hyprland-motion.conf writer used (13.1-10) — kept identical so
         # this value never silently drifts from what that hyprlang emitter
-        # produced while it existed.
+        # produced while it existed. Ceiling-clamped to
+        # $MOTION_HYPR_MAX_SPEED (see that constant's header comment) since
+        # this is the only one of the four render targets whose consumer
+        # (Hyprland's `hl.animation()`) hard-rejects a speed above 100.00;
+        # GTK4/QML/SCSS keep the true unclamped ms value because they have
+        # no such ceiling.
         while IFS=$'\t' read -r sem_token sem_ms; do
             [[ -z "$sem_token" ]] && continue
             printf '            %s = %s,\n' "$sem_token" \
-                "$(awk -v ms="$sem_ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
+                "$(_hypr_clamp_speed_ms "$sem_token" "$sem_ms")"
         done <<< "$speed_semantic"
         while IFS=$'\t' read -r ind_name ind_ms; do
             [[ -z "$ind_name" ]] && continue
             printf '            indicator_%s = %s,\n' "$ind_name" \
-                "$(awk -v ms="$ind_ms" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%.2f", ms/d}')"
+                "$(_hypr_clamp_speed_ms "indicator_$ind_name" "$ind_ms")"
         done <<< "$speed_indicators"
         echo "        },"
         echo "        curves = {"
