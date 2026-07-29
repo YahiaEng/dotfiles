@@ -31,7 +31,28 @@
 // constants it needs, sourced from 14-UI-SPEC.md's Spacing Scale/Typography
 // tables and 14-02-SUMMARY.md's recorded font family — consolidating every
 // tab onto one shared constants surface is left to 14-08's composition pass.
+//
+// ── Round-2 fix, 14-08's render gate (2026-07-30) ────────────────────────
+// This file lives outside 14-08-PLAN.md's declared `files_modified`
+// (`DashboardTab.qml` only) — touched here as a render-gate-driven
+// deviation per that plan's own workflow rules, carried to the SUMMARY.
+// Feedback: "A fresh user will not know what their function is" — the
+// three toggle chips already carried an icon AND a label ("Gaming"/"DND"/
+// "Dark") beneath it, but "DND" is an unexplained acronym to a fresh user
+// and none of the six controls (3 chips + 4 motion-scale segments) stated
+// what a PRESS actually does, only what it's named. Fixed two ways,
+// without touching layout, sizing or the existing D-22 pending model:
+//   1. "DND" -> "Do Not Disturb" in the chip's own visible label (chip
+//      width comfortably fits it at this font size — no truncation).
+//   2. A `QtQuick.Controls` `ToolTip` (new import, same module MediaTab.qml
+//      already uses for its `Slider`s — no new styling surface) on every
+//      chip and every motion-scale segment, hover-revealed, stating in one
+//      short sentence what pressing that control actually does. This is
+//      "another mechanism consistent with the drawer's Material language"
+//      per the render-gate's own suggested wording, additive only — no
+//      existing visible text, color or animation changes.
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import "../"
@@ -339,9 +360,11 @@ Item {
     //    rather than swapping to a second "_off" glyph name), and a
     //    crescent moon for Dark. ────────────────────────────────────────
     readonly property var chipModel: [
-        { name: "gaming", label: "Gaming", glyph: "sports_esports" },
-        { name: "dnd", label: "DND", glyph: "do_not_disturb_on" },
-        { name: "dark", label: "Dark", glyph: "dark_mode" }
+        { name: "gaming", label: "Gaming", glyph: "sports_esports", tooltip: "Toggle gaming mode — disables idle timeout and notification popups while you play" },
+        // Round-2 fix: "DND" was an unexplained acronym to a fresh user —
+        // spelled out in the visible label itself, not just the tooltip.
+        { name: "dnd", label: "Do Not Disturb", glyph: "do_not_disturb_on", tooltip: "Toggle Do Not Disturb — silences notifications" },
+        { name: "dark", label: "Dark", glyph: "dark_mode", tooltip: "Open the theme picker to switch the desktop's colour palette" }
     ]
 
     // One inline component definition — all three chips are the same
@@ -353,6 +376,10 @@ Item {
         property string chipName: ""
         property string chipLabel: ""
         property string chipGlyph: ""
+        // Round-2 fix — a one-sentence hover explanation of what pressing
+        // this chip actually DOES, distinct from the always-visible
+        // icon+label pair above, which only says what it's named.
+        property string chipTooltip: ""
         readonly property bool lit: root.chipLitFor(chipName)
         readonly property bool pending: root.pendingChip === chipName
 
@@ -490,6 +517,12 @@ Item {
                 // so a double press produces no ripple and issues no
                 // second command.
                 enabled: !chipItem.pending
+                // Round-2 fix — hover-revealed tooltip explaining what the
+                // press DOES, additive to the always-visible icon+label.
+                hoverEnabled: true
+                ToolTip.visible: mouseArea.containsMouse && chipItem.chipTooltip !== ""
+                ToolTip.text: chipItem.chipTooltip
+                ToolTip.delay: 400
                 onPressed: (mouse) => {
                     if (!Motion.motionEnabled)
                         return;
@@ -544,6 +577,7 @@ Item {
                 chipName: modelData.name
                 chipLabel: modelData.label
                 chipGlyph: modelData.glyph
+                chipTooltip: modelData.tooltip
             }
         }
     }
@@ -621,10 +655,13 @@ Item {
     }
 
     readonly property var presetModel: [
-        { value: "off", label: "Off" },
-        { value: "reduced", label: "Reduced" },
-        { value: "normal", label: "Normal" },
-        { value: "lively", label: "Lively" }
+        // Round-2 fix — a one-sentence hover explanation of what this
+        // segment's animation level actually means, additive to the
+        // always-visible "Off"/"Reduced"/"Normal"/"Lively" label.
+        { value: "off", label: "Off", tooltip: "No animations anywhere in the desktop" },
+        { value: "reduced", label: "Reduced", tooltip: "Minimal, short animations" },
+        { value: "normal", label: "Normal", tooltip: "The default animation speed" },
+        { value: "lively", label: "Lively", tooltip: "Longer, more expressive animations" }
     ]
 
     // One inline component — an MD3 segmented-button segment. A leading
@@ -637,6 +674,8 @@ Item {
         property int segCount: 4
         property string segValue: ""
         property string segLabel: ""
+        // Round-2 fix — see presetModel's own comment above.
+        property string segTooltip: ""
         readonly property bool selected: root.motionScaleState === segValue
 
         Rectangle {
@@ -686,6 +725,7 @@ Item {
             }
 
             MouseArea {
+                id: presetMouseArea
                 anchors.fill: parent
                 // The whole row — not just this segment — goes
                 // non-interactive while a preset press is pending
@@ -694,6 +734,12 @@ Item {
                 // long-running operation with no meaningful "different
                 // preset" click to allow mid-flight.
                 enabled: !root.presetPending
+                // Round-2 fix — hover-revealed tooltip, same mechanism as
+                // the chips above.
+                hoverEnabled: true
+                ToolTip.visible: presetMouseArea.containsMouse && segItem.segTooltip !== ""
+                ToolTip.text: segItem.segTooltip
+                ToolTip.delay: 400
                 onClicked: root.pressPreset(segItem.segValue)
             }
         }
@@ -729,6 +775,7 @@ Item {
                     segCount: root.presetModel.length
                     segValue: modelData.value
                     segLabel: modelData.label
+                    segTooltip: modelData.tooltip
                 }
             }
         }
