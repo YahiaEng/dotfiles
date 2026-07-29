@@ -274,10 +274,10 @@ Plans:
   5. Flipping a dashboard quick-toggle changes swaync's existing toggle grid to match and vice versa, with no second source of truth for that state; and neither the dashboard nor any panel opens over a fullscreen client.
 
 **Owns**: The "overlay by default, zero exclusive zone" layer-shell convention that Phases 15 and 16 inherit, and the shared-state pattern for anything the desktop already tracks.
-**Plans**: 1/9 plans executed
+**Plans**: 2/9 plans executed
 
 - [x] 14-01-PLAN.md
-- [ ] 14-02-PLAN.md
+- [x] 14-02-PLAN.md
 - [ ] 14-03-PLAN.md
 - [ ] 14-04-PLAN.md
 - [ ] 14-05-PLAN.md
@@ -380,7 +380,7 @@ Plans:
 | 11. Quickshell Viability Gate | v3.0 | 5/5 | Complete    | 2026-07-26 |
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | Complete    | 2026-07-28 |
-| 14. Dashboard Drawer | v3.0 | 1/9 | In Progress|  |
+| 14. Dashboard Drawer | v3.0 | 2/9 | In Progress|  |
 | 15. Audio + Connectivity Panels | v3.0 | 0/TBD | Not started | - |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |
 | 17. Ambient Extras | v3.0 | 0/TBD | Not started | - |

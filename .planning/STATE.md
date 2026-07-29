@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
 status: executing
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-07-29T10:43:39.612Z"
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-07-29T12:41:33.788Z"
 last_activity: 2026-07-29
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 39
-  completed_plans: 31
+  completed_plans: 32
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 14 (dashboard-drawer) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
-Progress: [████████░░] 79%
+Progress: [████████░░] 82%
 Last activity: 2026-07-29 — Phase 14 execution started
 
 ## Performance Metrics
@@ -161,6 +161,7 @@ Last activity: 2026-07-29 — Phase 14 execution started
 | Phase 13.1 P09 | 40min | 2 tasks | 5 files |
 | Phase 13.1 P10 | ~35min (continuation) | 3 tasks | 10 files |
 | Phase 14 P01 | 35min | 3 tasks | 6 files |
+| Phase 14 P02 | multi-session | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -261,6 +262,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13.1-10: three consumers broke as a direct consequence of the retirement and were fixed in the same change — hypr-equivalence-check's key discovery now falls back to the committed baseline when no hyprlang tree remains, theme-parity's D-31 array dropped hyprland-motion.conf (a genuine coverage change, not silently patched), motion-lint --self-test's 4 permanently-unpassable hyprlang fixtures retired (14->10)
 - [Phase ?]: 14-01: A2 verdict settled live — the ^quickshell-.* family layer-rule regex DOES match on this Hyprland 0.56.1 build (grim A/B proof); both family and exact-match rules kept
 - [Phase ?]: 14-01: DASH-08 guard blocks BOTH maximize and true fullscreen (deviation from D-11's literal maximize carve-out) — live-proven Hyprland 0.56.1 exposes no signal anywhere in its IPC (client JSON, monitors reserved array, raw socket2 events) to distinguish the two states; flagged for operator review
+- [Phase ?]: 14-02: T-14-SC/A1 closed - human approve-aur on live AUR page (7 votes, not orphaned, PKGBUILD source= pulls from Google's own repo, package() installs only fonts); package installed by operator (agent sudo had no TTY)
+- [Phase ?]: 14-02: A3 closed live (fill-axis-renders) - Qt 6.11.1 drives Material Symbols Rounded's FILL axis, proven via qml6 grabToImage with a non-zero-alpha guard and a negative control; found and fixed a Window-vs-Item root bug in the throwaway proof harness (bare Item root hangs grabToImage forever)
+- [Phase ?]: 14-02: stagger-offset D-21 motion token added to motion.json's semantic bucket, Motion.qml's _pairNames extended by APPEND (not insert) to avoid re-pointing the three pre-existing positional aliases; live quickshell -p probe confirmed all 8 alias values, all three pre-existing ones unchanged
+- [Phase ?]: 14-02: weather.json seeded flat/city-level/metric (Cairo centroid, D-30/D-31); both weather.json and weather-cache.json registered in contract.json's engine_owned_files in the same commit; state-manifest gate proven able to fail before being trusted to pass
 
 ### Quick Tasks Completed
 
@@ -349,8 +354,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-29T10:43:39.598Z
-Stopped at: Completed 14-01-PLAN.md
+Last session: 2026-07-29T12:41:33.774Z
+Stopped at: Completed 14-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
