@@ -291,12 +291,53 @@ hl.layer_rule({ match = { namespace = "wleave" }, blur = true })
 -- Spike A). Compensating check: the wleave capsule-row fade at the
 -- end-of-phase human verification, same rapid-capture technique as above.
 hl.layer_rule({ match = { namespace = "wleave" }, animation = "fade" })
+-- Dashboard drawer character arm (D-20, Phase 14 Plan 01), exact-match
+-- ONLY — `slide` is the drawer's own character, never given the family
+-- regex, since Phases 15/16 choose their own animation per surface. No
+-- duration and no curve are written here: Hyprland treats a per-namespace
+-- layer rule as a style-only override, and the timing comes from
+-- animations.lua's token-driven layersIn/layersOut leaves (Phase 13
+-- verified fact) — D-20's whole point is that the drawer's open/close
+-- motion is already on the shared token axis without this file carrying a
+-- number.
+hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, animation = "slide" })
 -- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
 -- "ags-media" (10-02); targets ONLY this window, mirroring the other
 -- namespace-scoped blur rules above. Paired with the translucent
 -- .media-scrim / .media-controls backgrounds in ags/style.scss so the blur
 -- has something to frost through.
 hl.layer_rule({ match = { namespace = "ags-media" }, blur = true })
+
+-- ── quickshell-* family treatment (D-42, Phase 14 Plan 01, RESEARCH.md
+--    Assumption A2 / Open Question 2) ────────────────────────────────────
+-- D-42 buys: every future QML surface this project ships (Phase 15's
+-- panels, Phase 16's overview) inherits blur + the ignore_alpha floor
+-- automatically by naming its own layer-shell namespace
+-- "quickshell-<surface>" — nothing else to add, this rule pair is written
+-- once. The family regex below was UNVERIFIED against this installed
+-- Hyprland 0.56.1 build at authoring time; regex namespace matching on
+-- `hl.layer_rule` is documented Hyprland capability but fails OPEN if it
+-- does not actually match on this build (a non-matching regex silently
+-- treats zero surfaces rather than erroring) — so the per-surface
+-- exact-match fallback for quickshell-dashboard ships in this SAME commit
+-- as the immediately-available substitute, not as dead code.
+--
+-- A2 VERDICT (settled this task, live A/B, 2026-07-29): regex-matches —
+-- with only the family regex active (exact-match rules temporarily
+-- commented out), the desktop behind the summoned drawer read visibly
+-- blurred; with neither arm active it read unblurred. Both arms are kept:
+-- the exact rules are now a retained, documented redundancy rather than a
+-- required fallback. Full observation in 14-01-SUMMARY.md. Layer-rule
+-- effects carry no `hyprctl` projection on this build
+-- (13.1-LUA-FINDINGS.md Spike A, same precedent already recorded beside
+-- the wleave fade rule above) — the compensating check was this task's
+-- visual A/B, not a mechanical query. The family arm's blast radius
+-- newly covers the pre-existing quickshell-probe/quickshell-screencopy-probe
+-- namespaces too; both render opaque (D-04, deliberately unstyled), so
+-- blur/ignore_alpha are no-ops on them — confirmed visually unchanged in
+-- the same A/B session.
+hl.layer_rule({ match = { namespace = "^quickshell-.*" }, blur = true })
+hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, blur = true })
 
 hl.layer_rule({ match = { namespace = "walker" }, ignore_alpha = 0.5 })
 hl.layer_rule({ match = { namespace = "waybar" }, ignore_alpha = 0.5 })
@@ -343,3 +384,9 @@ hl.layer_rule({ match = { namespace = "ags-media" }, ignore_alpha = 0.25 })
 -- recomputed justification rather than the single-flat-fill reasoning it
 -- replaced — marked for a final look at the 09-04 render gate as always.
 hl.layer_rule({ match = { namespace = "wleave" }, ignore_alpha = 0.25 })
+-- quickshell-* family ignore_alpha floor (D-42, Phase 14 Plan 01) — see
+-- the family-treatment comment block above the blur arm for the full A2
+-- rationale and verdict; this pair mirrors it exactly for ignore_alpha,
+-- matching the 0.5 threshold the walker/waybar/swaync rules already use.
+hl.layer_rule({ match = { namespace = "^quickshell-.*" }, ignore_alpha = 0.5 })
+hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0.5 })
