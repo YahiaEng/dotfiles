@@ -1,0 +1,24 @@
+# qmldir — explicit module manifest for modules/dashboard/ (Phase 14 Plan 03)
+#
+# Checking this file in disables Quickshell's directory-scanner synthesis for
+# this directory (same finding as the parent modules/qmldir header) — any
+# .qml type added to this directory that is NOT declared below becomes
+# unresolvable to Dashboard.qml's `import "dashboard"`. A type MUST be
+# registered in the SAME commit that creates it.
+#
+# This manifest is owned by plan 14-03 and frozen for wave 3 (14-04..14-07):
+# a wave-3 plan needing an unlisted type here has found a 14-03 scope
+# correction, not a licence to edit this file. Nine types, none a singleton
+# — the two shell-root backends and the shared resource reader are mounted
+# once as ordinary instances by 14-03 (shell.qml / Dashboard.qml), which
+# keeps their lifetime explicit rather than ambient.
+module qs.modules.dashboard
+DashboardTab 1.0 DashboardTab.qml
+MediaTab 1.0 MediaTab.qml
+PerformanceTab 1.0 PerformanceTab.qml
+WeatherTab 1.0 WeatherTab.qml
+MediaBackend 1.0 MediaBackend.qml
+WeatherBackend 1.0 WeatherBackend.qml
+SystemResources 1.0 SystemResources.qml
+QuickToggles 1.0 QuickToggles.qml
+Dial 1.0 Dial.qml
