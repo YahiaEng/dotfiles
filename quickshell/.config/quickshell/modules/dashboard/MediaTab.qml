@@ -156,9 +156,72 @@
 //      function round 1 and round 2 both dispatched through — so
 //      multi-player switching keeps working end to end; only the
 //      always-visible-row presentation is gone.
+//
+// ── Render-gate round 4 fixes (2026-07-29) ───────────────────────────────
+// Round 3 was accepted on the ring's look but rejected on two concrete
+// points:
+//
+//   1. **Art clipping.** A `Rectangle` with `radius` and `clip: true`
+//      clips its children to the item's AXIS-ALIGNED BOUNDING BOX only —
+//      `clip` never follows the rounded shape `radius` paints. Round 3's
+//      square-filling `Image` (`PreserveAspectCrop`) therefore bled past
+//      the visual circle into the corners at every non-square aspect
+//      ratio, which is exactly what the human flagged ("the album art is
+//      clipping and out of bounds"). Fixed with `QtQuick.Effects`'
+//      `MultiEffect.maskEnabled`/`maskSource` (Qt 6.5+, confirmed present
+//      on this Qt 6.11.1 build via `QtQuick.Effects/plugins.qmltypes`),
+//      which genuinely masks the source image's alpha channel against a
+//      same-size circular `Rectangle` used purely as a mask shape
+//      (`visible: false`, never painted itself) — a true circular crop
+//      regardless of the source image's own aspect ratio.
+//
+//      Verified for real, in a resumed session, via a qml6 `grabToImage`
+//      harness (`Window`-rooted per the Phase 14-02 bare-`Item`-hangs
+//      finding) at three synthetic aspect ratios (wide 300x100, tall
+//      100x300, square 200x200) — and the first harness run caught a
+//      genuine bug the round-4 draft shipped uncommitted: with only
+//      `artImage.visible: false`, `artMaskedImage` painted NOTHING but
+//      `artBackground`'s own flat fill, at every aspect ratio, live-drawer
+//      confirmed too (a real Firefox MPRIS art path, grim screenshot of
+//      the summoned drawer, same flat circle). A corner-pixel-alpha-only
+//      assertion (this file's own earlier draft of the harness, and the
+//      interrupted session's resume plan) does NOT catch this failure
+//      mode — `artBackground` is itself already a `radius: width/2`
+//      circle, so the corners read transparent regardless of whether the
+//      masked image renders at all; the harness had to additionally
+//      assert the CENTER pixel matches the source image's own colour to
+//      catch it. Root cause: `MultiEffect.maskSource` reads its mask
+//      input's own scene-graph paint node for alpha data, and an
+//      invisible item with no `layer.enabled` produces no paint node at
+//      all — an empty mask, not a full one — so `artMaskedImage` had
+//      nothing to composite against. Fixed with one line,
+//      `layer.enabled: true` on `artMaskShape` (below) — verified against
+//      Qt's own shipped `QtQuick/Controls/FluentWinUI3/ProgressBar.qml`,
+//      whose `mask` Rectangle carries the identical
+//      `visible: false` + `layer.enabled: true` pairing. `artImage`
+//      itself needs no equivalent `layer.enabled` (MultiEffect's `source`
+//      property does not share this requirement — proven present without
+//      it across the same harness runs). Re-run after the fix: all three
+//      aspect ratios show the correct source colour at centre and
+//      transparent at all four corners; see 14-05-SUMMARY.md for the full
+//      harness listing and readings.
+//   2. **Source pill placement.** "I like this new source pill... I think
+//      it should be placed under the album/circular dotted frame." The
+//      `playerSelector` pill moves out of `detailsColumn` (where round 3
+//      left it, at the bottom of the type/seek/transport/volume stack) and
+//      into a new `artColumn` alongside `artSlot`, centred beneath it on
+//      the house `spacingSm` rhythm. Its dropdown menu's open direction is
+//      now computed rather than hardcoded downward: `menuOpensUpward`
+//      compares the space between the pill and the tab's own bottom edge
+//      against the menu's real height and flips the anchor above the pill
+//      when there is not enough room below — the pill's new position,
+//      partway down the tab rather than at its very bottom, means the
+//      downward case is still the common one, but the flip is unconditional
+//      logic, not a one-off patch for today's specific geometry.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Shapes
+import QtQuick.Effects
 import "../"
 
 Item {
@@ -264,15 +327,25 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: root.panelPadding
-        height: Math.max(artSlot.height, detailsColumn.height)
+        height: Math.max(artColumn.height, detailsColumn.height)
 
-        // ── 1. Cover art — fixed square, left column ────────────────────
-        Item {
-            id: artSlot
-            width: root.artSize
-            height: root.artSize
+        // ── Art column: the art slot plus, per round-4 feedback, the
+        //    player-source pill seated directly beneath it (see the file
+        //    header's round-4 section). Both children share this column's
+        //    fixed `artSize` width, so the pill's horizontal-centre
+        //    binding below reads as "centred under the art" rather than
+        //    an independent placement. ─────────────────────────────────
+        Column {
+            id: artColumn
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
+            spacing: root.spacingSm
+
+            // ── 1. Cover art — fixed square ──────────────────────────
+            Item {
+                id: artSlot
+                width: root.artSize
+                height: root.artSize
 
             // Round 3: the static dotted ring, drawn once around the
             // circular art below at `ringRadius` (the art's own radius
@@ -330,14 +403,23 @@ Item {
                 }
             }
 
-            Rectangle {
+            Item {
                 id: artContainer
                 anchors.centerIn: parent
                 width: root.artCircleSize
                 height: root.artCircleSize
-                radius: width / 2
-                clip: true
-                color: Colours.surfaceVariant
+
+                // Round-4 fix (see the file header): `clip: true` on a
+                // `radius`-rounded Rectangle only clips to the item's
+                // bounding BOX, never to the rounded shape — this plain
+                // background circle is now purely a colour fill behind the
+                // masked image below, not a clipping container.
+                Rectangle {
+                    id: artBackground
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: Colours.surfaceVariant
+                }
 
                 Image {
                     id: artImage
@@ -364,6 +446,55 @@ Item {
                     // disk.
                     cache: false
                     source: (root.mediaBackend && root.mediaBackend.artPath) ? ("file://" + root.mediaBackend.artPath) : ""
+                    // Rendered only through the `MultiEffect` below —
+                    // painting itself here too would double-draw an
+                    // unmasked square underneath the masked circle.
+                    visible: false
+                }
+
+                // Mask shape for `MultiEffect` below — never painted
+                // itself (`visible: false`), exists purely as the alpha
+                // source a circular mask is read from. Same size as the
+                // image it masks, so the crop is a true circle regardless
+                // of the source art's own aspect ratio.
+                //
+                // `layer.enabled: true` here is load-bearing, not
+                // decorative: an invisible item's own paint node is
+                // normally skipped by Qt Quick's scene graph entirely, and
+                // `MultiEffect.maskSource` reads that node's texture — an
+                // invisible mask shape with no `layer.enabled` therefore
+                // resolves to an EMPTY alpha texture, and `artMaskedImage`
+                // below renders nothing at all (proven live: the qml6
+                // `grabToImage` harness showed a flat `artBackground` fill
+                // with zero source-image pixels reaching the screen until
+                // this line was added; ships in Qt's own
+                // `QtQuick/Controls/FluentWinUI3/ProgressBar.qml`, whose
+                // `mask` Rectangle carries the identical
+                // `visible: false` + `layer.enabled: true` pairing for the
+                // same reason). `artImage` itself needs no equivalent
+                // `layer.enabled` — proven present without it in the same
+                // harness runs.
+                Rectangle {
+                    id: artMaskShape
+                    anchors.fill: parent
+                    radius: width / 2
+                    visible: false
+                    layer.enabled: true
+                }
+
+                MultiEffect {
+                    id: artMaskedImage
+                    anchors.fill: parent
+                    source: artImage
+                    maskEnabled: true
+                    maskSource: artMaskShape
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 1.0
+                    // Hidden until the image actually has pixels — masking
+                    // an empty/loading source would otherwise paint a flat
+                    // circle before Ready, double-showing against the
+                    // placeholder badge below.
+                    visible: artImage.status === Image.Ready
                 }
 
                 // Quiet placeholder — shows while loading, when the art
@@ -397,14 +528,201 @@ Item {
             }
         }
 
+            // ── Player-source pill — round-4 relocation (see the file
+            //    header). Seated directly under the art slot rather than
+            //    at the bottom of the details column: same fixed
+            //    `artSize` width as `artSlot` above, so the pill centres
+            //    itself under the art rather than under the whole tab.
+            Item {
+                id: playerSelector
+                width: root.artSize
+                height: root.playerSelectorHeight
+
+                readonly property var playerList: root.mediaBackend ? root.mediaBackend.players : []
+                readonly property var activeEntry: {
+                    const list = playerSelector.playerList;
+                    for (var i = 0; i < list.length; i++) {
+                        if (list[i] && list[i].active)
+                            return list[i];
+                    }
+                    return null;
+                }
+                readonly property bool hasChoice: playerSelector.playerList.length > 1
+
+                property bool menuOpen: false
+
+                // Round-4: the dropdown's open direction is now computed,
+                // not hardcoded downward — the pill's new position partway
+                // down the tab (rather than at its old spot, the very
+                // bottom of the details column) means there is usually
+                // room below, but a short details column or a long player
+                // list can still push the menu past the tab's own bottom
+                // edge, which is exactly the clipping-against-the-drawer
+                // case the round-4 feedback called out to check for.
+                readonly property real _pillTopY: selectorPill.mapToItem(root, 0, 0).y
+                readonly property real _spaceBelow: root.height - (playerSelector._pillTopY + selectorPill.height) - root.spacingXs
+                readonly property bool menuOpensUpward: playerSelector._spaceBelow < playerMenu.height
+
+                Rectangle {
+                    id: selectorPill
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: parent.height
+                    width: Math.min(root.artSize, pillRow.implicitWidth + root.spacingMd * 2)
+                    radius: height / 2
+                    color: playerSelector.menuOpen ? Colours.primary : Colours.surfaceVariant
+                    opacity: playerSelector.playerList.length > 0 ? 1 : 0.5
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+
+                    Row {
+                        id: pillRow
+                        anchors.centerIn: parent
+                        spacing: root.spacingXs
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "graphic_eq"
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: root.fontLabel + 4
+                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
+                        }
+                        Text {
+                            id: selectorLabel
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: playerSelector.activeEntry ? (playerSelector.activeEntry.label || playerSelector.activeEntry.id || "") : "No players"
+                            elide: Text.ElideRight
+                            width: Math.min(implicitWidth, root.artSize * 0.55)
+                            font.pixelSize: root.fontLabel
+                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: playerSelector.hasChoice
+                            text: playerSelector.menuOpen ? "expand_less" : "expand_more"
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: root.fontLabel + 4
+                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: playerSelector.hasChoice
+                        onClicked: playerSelector.menuOpen = !playerSelector.menuOpen
+                    }
+                }
+
+                // Click-away scrim — only present while the menu is open,
+                // so it never intercepts a click anywhere else in the tab
+                // otherwise. Raised above every other band but below the
+                // menu itself.
+                MouseArea {
+                    parent: root
+                    z: 9
+                    anchors.fill: parent
+                    visible: playerSelector.menuOpen
+                    enabled: playerSelector.menuOpen
+                    onClicked: playerSelector.menuOpen = false
+                }
+
+                // The dropdown itself — reparented onto the tab's own root
+                // so it is never clipped by `artColumn`'s own layout, then
+                // positioned absolutely under (or, per `menuOpensUpward`
+                // above, over) the pill via `mapToItem`.
+                Rectangle {
+                    id: playerMenu
+                    parent: root
+                    z: 10
+                    visible: opacity > 0
+                    opacity: playerSelector.menuOpen ? 1 : 0
+                    x: selectorPill.mapToItem(root, 0, 0).x
+                    y: playerSelector.menuOpensUpward
+                        ? (playerSelector._pillTopY - playerMenu.height - root.spacingXs)
+                        : (playerSelector._pillTopY + selectorPill.height + root.spacingXs)
+                    width: selectorPill.width
+                    height: menuColumn.height + root.spacingXs * 2
+                    radius: root.spacingSm
+                    color: Colours.surfaceVariant
+
+                    Behavior on opacity {
+                        enabled: Motion.motionEnabled
+                        NumberAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+
+                    Column {
+                        id: menuColumn
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: root.spacingXs
+                        spacing: 0
+
+                        Repeater {
+                            model: playerSelector.playerList
+                            delegate: Item {
+                                width: menuColumn.width
+                                height: root.playerMenuRowHeight
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: root.spacingSm
+                                    anchors.rightMargin: root.spacingSm
+                                    spacing: root.spacingXs
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: root.fontLabel + 4
+                                        visible: !!modelData.active
+                                        text: "check"
+                                        font.family: root.symbolFontFamily
+                                        font.pixelSize: root.fontLabel + 4
+                                        color: Colours.onSurface
+                                    }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: modelData.label || modelData.id || ""
+                                        elide: Text.ElideRight
+                                        width: menuColumn.width - root.spacingSm * 2 - (root.fontLabel + 4) - root.spacingXs
+                                        font.pixelSize: root.fontLabel
+                                        color: modelData.active ? Colours.onSurface : Colours.onSurfaceVariant
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: !modelData.active
+                                    onClicked: {
+                                        if (root.mediaBackend)
+                                            root.mediaBackend.selectPlayer(modelData.id);
+                                        playerSelector.menuOpen = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // ── 2-6. Details column — type stack, seek, transport, volume,
         //    switcher chips, all to the right of the art slot ───────────
         Column {
             id: detailsColumn
-            anchors.left: artSlot.right
+            anchors.left: artColumn.right
             anchors.leftMargin: root.sectionGap
             anchors.right: parent.right
-            anchors.verticalCenter: artSlot.verticalCenter
+            anchors.verticalCenter: artColumn.verticalCenter
             spacing: root.spacingMd
 
             // ── 2. Type stack — fixed height, per-field fallbacks ───────
@@ -752,182 +1070,6 @@ Item {
                 }
             }
 
-            // ── 6. Player switcher — round 3 SplitButton-style pill ─────
-            // Replaces round 2's always-visible chip row (see the redesign
-            // header above for why). One compact pill sized to its own
-            // content, holding an icon plus the active player's elided
-            // label; tapping it opens a small anchored dropdown of every
-            // player, each row still dispatching the exact same
-            // `mediaBackend.selectPlayer(id)` call the old chips issued.
-            // The row keeps its slot at every player count: zero players
-            // shows the disabled "No players" pill, one shows it filled
-            // but non-interactive (nothing to switch to), several make it
-            // tappable.
-            Item {
-                id: playerSelector
-                width: parent.width
-                height: root.playerSelectorHeight
-
-                readonly property var playerList: root.mediaBackend ? root.mediaBackend.players : []
-                readonly property var activeEntry: {
-                    const list = playerSelector.playerList;
-                    for (var i = 0; i < list.length; i++) {
-                        if (list[i] && list[i].active)
-                            return list[i];
-                    }
-                    return null;
-                }
-                readonly property bool hasChoice: playerSelector.playerList.length > 1
-
-                property bool menuOpen: false
-
-                Rectangle {
-                    id: selectorPill
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: parent.height
-                    width: Math.min(root.detailsWidth, pillRow.implicitWidth + root.spacingMd * 2)
-                    radius: height / 2
-                    color: playerSelector.menuOpen ? Colours.primary : Colours.surfaceVariant
-                    opacity: playerSelector.playerList.length > 0 ? 1 : 0.5
-                    Behavior on color {
-                        enabled: Motion.motionEnabled
-                        ColorAnimation {
-                            duration: Motion.standardDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.standardEasing
-                        }
-                    }
-
-                    Row {
-                        id: pillRow
-                        anchors.centerIn: parent
-                        spacing: root.spacingXs
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "graphic_eq"
-                            font.family: root.symbolFontFamily
-                            font.pixelSize: root.fontLabel + 4
-                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
-                        }
-                        Text {
-                            id: selectorLabel
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: playerSelector.activeEntry ? (playerSelector.activeEntry.label || playerSelector.activeEntry.id || "") : "No players"
-                            elide: Text.ElideRight
-                            width: Math.min(implicitWidth, root.detailsWidth * 0.5)
-                            font.pixelSize: root.fontLabel
-                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
-                        }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: playerSelector.hasChoice
-                            text: playerSelector.menuOpen ? "expand_less" : "expand_more"
-                            font.family: root.symbolFontFamily
-                            font.pixelSize: root.fontLabel + 4
-                            color: playerSelector.menuOpen ? Colours.onPrimary : Colours.onSurfaceVariant
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        enabled: playerSelector.hasChoice
-                        onClicked: playerSelector.menuOpen = !playerSelector.menuOpen
-                    }
-                }
-
-                // Click-away scrim — only present while the menu is open,
-                // so it never intercepts a click anywhere else in the tab
-                // otherwise. Raised above every other band but below the
-                // menu itself.
-                MouseArea {
-                    parent: root
-                    z: 9
-                    anchors.fill: parent
-                    visible: playerSelector.menuOpen
-                    enabled: playerSelector.menuOpen
-                    onClicked: playerSelector.menuOpen = false
-                }
-
-                // The dropdown itself — reparented onto the tab's own root
-                // so it is never clipped by `detailsColumn`'s layout, then
-                // positioned absolutely under the pill via `mapToItem`.
-                Rectangle {
-                    id: playerMenu
-                    parent: root
-                    z: 10
-                    visible: opacity > 0
-                    opacity: playerSelector.menuOpen ? 1 : 0
-                    x: selectorPill.mapToItem(root, 0, 0).x
-                    y: selectorPill.mapToItem(root, 0, 0).y + selectorPill.height + root.spacingXs
-                    width: selectorPill.width
-                    height: menuColumn.height + root.spacingXs * 2
-                    radius: root.spacingSm
-                    color: Colours.surfaceVariant
-
-                    Behavior on opacity {
-                        enabled: Motion.motionEnabled
-                        NumberAnimation {
-                            duration: Motion.standardDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.standardEasing
-                        }
-                    }
-
-                    Column {
-                        id: menuColumn
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.margins: root.spacingXs
-                        spacing: 0
-
-                        Repeater {
-                            model: playerSelector.playerList
-                            delegate: Item {
-                                width: menuColumn.width
-                                height: root.playerMenuRowHeight
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: root.spacingSm
-                                    anchors.rightMargin: root.spacingSm
-                                    spacing: root.spacingXs
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        width: root.fontLabel + 4
-                                        visible: !!modelData.active
-                                        text: "check"
-                                        font.family: root.symbolFontFamily
-                                        font.pixelSize: root.fontLabel + 4
-                                        color: Colours.onSurface
-                                    }
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: modelData.label || modelData.id || ""
-                                        elide: Text.ElideRight
-                                        width: menuColumn.width - root.spacingSm * 2 - (root.fontLabel + 4) - root.spacingXs
-                                        font.pixelSize: root.fontLabel
-                                        color: modelData.active ? Colours.onSurface : Colours.onSurfaceVariant
-                                    }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    enabled: !modelData.active
-                                    onClicked: {
-                                        if (root.mediaBackend)
-                                            root.mediaBackend.selectPlayer(modelData.id);
-                                        playerSelector.menuOpen = false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
