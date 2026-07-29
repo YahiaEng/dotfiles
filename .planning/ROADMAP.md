@@ -274,7 +274,26 @@ Plans:
   5. Flipping a dashboard quick-toggle changes swaync's existing toggle grid to match and vice versa, with no second source of truth for that state; and neither the dashboard nor any panel opens over a fullscreen client.
 
 **Owns**: The "overlay by default, zero exclusive zone" layer-shell convention that Phases 15 and 16 inherit, and the shared-state pattern for anything the desktop already tracks.
-**Plans**: TBD
+**Plans**: 9 plans in 5 waves
+
+**Wave 1** (parallel):
+- 14-01: TRACER — Super+D summons/dismisses the `quickshell-dashboard` overlay end-to-end (DASH-01, DASH-08)
+- 14-02: Foundations — Material Symbols font gate, stagger token, weather state seed (DASH-06)
+
+**Wave 2** *(blocked on Wave 1)*:
+- 14-03: Four-tab pager — TabBar + SwipeView, nine dashboard stubs, owns `modules/dashboard/qmldir` (DASH-02)
+
+**Wave 3** *(blocked on Wave 2; file-disjoint, parallel)*:
+- 14-04: Quick-toggle grid + motion-scale row + swaync flip (DASH-07)
+- 14-05: Media tab + shared MediaBackend (DASH-04)
+- 14-06: Performance tab + Dial component + resource reader (DASH-05)
+- 14-07: Weather tab + Open-Meteo backend + degradation (DASH-06)
+
+**Wave 4** *(blocked on 14-04/05/06)*:
+- 14-08: Dashboard tab composition + deep-link convention (DASH-03)
+
+**Wave 5** *(blocked on 14-08, 14-07)*:
+- 14-09: Entrance cascade + full gate sweep + phase-close render gate (all 8)
 **UI hint**: yes
 
 ### Phase 15: Audio + Connectivity Panels
