@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
-current_phase_name: Dashboard Drawer
+current_phase_name: dashboard-drawer
 status: executing
-stopped_at: Phase 14 UI-SPEC approved
-last_updated: "2026-07-29T05:08:44.420Z"
-last_activity: 2026-07-28
-last_activity_desc: Phase 13.1 complete, transitioned to Phase 14
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-07-29T10:43:39.612Z"
+last_activity: 2026-07-29
+last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 39
-  completed_plans: 30
+  completed_plans: 31
   percent: 50
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-26)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 13.1 — hyprland-lua-config-migration
+**Current focus:** Phase 14 — dashboard-drawer
 
 ## Current Position
 
-Phase: 14 — Dashboard Drawer
-Plan: Not started
+Phase: 14 (dashboard-drawer) — EXECUTING
+Plan: 2 of 9
 Status: Ready to execute
-Progress: [██████████] 100%
-Last activity: 2026-07-28 — Phase 13.1 complete, transitioned to Phase 14
+Progress: [████████░░] 79%
+Last activity: 2026-07-29 — Phase 14 execution started
 
 ## Performance Metrics
 
@@ -160,6 +160,7 @@ Last activity: 2026-07-28 — Phase 13.1 complete, transitioned to Phase 14
 | Phase 13.1 P08 | multi-session | 3 tasks | 6 files |
 | Phase 13.1 P09 | 40min | 2 tasks | 5 files |
 | Phase 13.1 P10 | ~35min (continuation) | 3 tasks | 10 files |
+| Phase 14 P01 | 35min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -258,6 +259,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 13.1-10: legacy hyprlang tree retired — hyprland.conf + 7 config/*.conf files deleted, contract.json collapsed to one lua-table entry (31->29 files), matugen/lib/motion.sh/lib/contract.sh emitters retired, hyprlock's two-emitter split kept fully intact and live-verified
 - [Phase ?]: 13.1-10: found and fixed two previously-undiscovered fresh-machine stow.sh reproducibility bugs (whole-directory fold of ~/.config/hypr and ~/.local on a genuinely empty $HOME) via Task 3's own required reproduction proof, run twice — first exposed the bugs, second (post-fix) clean
 - [Phase ?]: 13.1-10: three consumers broke as a direct consequence of the retirement and were fixed in the same change — hypr-equivalence-check's key discovery now falls back to the committed baseline when no hyprlang tree remains, theme-parity's D-31 array dropped hyprland-motion.conf (a genuine coverage change, not silently patched), motion-lint --self-test's 4 permanently-unpassable hyprlang fixtures retired (14->10)
+- [Phase ?]: 14-01: A2 verdict settled live — the ^quickshell-.* family layer-rule regex DOES match on this Hyprland 0.56.1 build (grim A/B proof); both family and exact-match rules kept
+- [Phase ?]: 14-01: DASH-08 guard blocks BOTH maximize and true fullscreen (deviation from D-11's literal maximize carve-out) — live-proven Hyprland 0.56.1 exposes no signal anywhere in its IPC (client JSON, monitors reserved array, raw socket2 events) to distinguish the two states; flagged for operator review
 
 ### Quick Tasks Completed
 
@@ -326,6 +329,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - ~~Phase 7 Plan 01 (D-05 spike) BLOCKED: walker 2.16.2's `-s <name>` GUI-mode invocation panics and aborts the walker daemon~~ — **RESOLVED 2026-07-13** (plans amended in 117edc9). Adopted `-m/--provider` exclusive-provider mode. **Two durable findings kept:** (1) `walker -s <set>` / `[sets.*]` is a dead mechanism on walker 2.16.2 (panic, `src/data.rs:566`) — do not reintroduce it; (2) it failed on the shipped `[sets.runner]` block too, so **`Super+R` was already broken in production** — pre-existing, fixed in 07-02 Task 1b. Root cause of the bad design: 07-RESEARCH.md claimed `walker -s runner` "already ships and works" based on reading the config file, never running it — the project's own "verify against the installed binary" rule, unapplied to the research itself.
 - Phase 11 Plan 01 Task 1 blocked: sudo pacman -S --needed quickshell requires an interactive password; no operator responded in this executor session. Halted before any install/edit. Also noted: hyprctl monitors -j currently reports only a 'FALLBACK' 1920x1080 output, not the expected physical DP-1 — operator should confirm the physical monitor is connected before performing Task 3's human gate.
 - QS-03 per-screen mounting gap (Phase 11, 11-04): headless output added after shell startup gets zero probe surfaces — genuine, mechanically-verified defect. Variants-based fix attempted and reverted (two independent reliability regressions on this quickshell 0.3.0 build). Not a stop-trigger (D-10); open for a future plan.
+- 14-01: Phase 14 plans 02-09's <automated> verify blocks carry the stale hyprctl dispatch global quickshell:<name> / hyprctl dispatch fullscreen N syntax, already known-broken since Phase 13.1 (13.1-09-SUMMARY.md) — use hyprctl dispatch 'hl.dsp.global("quickshell:<name>")' / hl.dsp.window.fullscreen(N) instead
 
 ## Deferred Items
 
@@ -345,9 +349,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-29T00:30:20.323Z
-Stopped at: Phase 14 UI-SPEC approved
-Resume file: .planning/phases/14-dashboard-drawer/14-UI-SPEC.md
+Last session: 2026-07-29T10:43:39.598Z
+Stopped at: Completed 14-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

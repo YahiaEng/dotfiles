@@ -274,26 +274,42 @@ Plans:
   5. Flipping a dashboard quick-toggle changes swaync's existing toggle grid to match and vice versa, with no second source of truth for that state; and neither the dashboard nor any panel opens over a fullscreen client.
 
 **Owns**: The "overlay by default, zero exclusive zone" layer-shell convention that Phases 15 and 16 inherit, and the shared-state pattern for anything the desktop already tracks.
-**Plans**: 9 plans in 5 waves
+**Plans**: 1/9 plans executed
+
+- [x] 14-01-PLAN.md
+- [ ] 14-02-PLAN.md
+- [ ] 14-03-PLAN.md
+- [ ] 14-04-PLAN.md
+- [ ] 14-05-PLAN.md
+- [ ] 14-06-PLAN.md
+- [ ] 14-07-PLAN.md
+- [ ] 14-08-PLAN.md
+- [ ] 14-09-PLAN.md
 
 **Wave 1** (parallel):
+
 - 14-01: TRACER — Super+D summons/dismisses the `quickshell-dashboard` overlay end-to-end (DASH-01, DASH-08)
 - 14-02: Foundations — Material Symbols font gate, stagger token, weather state seed (DASH-06)
 
 **Wave 2** *(blocked on Wave 1)*:
+
 - 14-03: Four-tab pager — TabBar + SwipeView, nine dashboard stubs, owns `modules/dashboard/qmldir` (DASH-02)
 
 **Wave 3** *(blocked on Wave 2; file-disjoint, parallel)*:
+
 - 14-04: Quick-toggle grid + motion-scale row + swaync flip (DASH-07)
 - 14-05: Media tab + shared MediaBackend (DASH-04)
 - 14-06: Performance tab + Dial component + resource reader (DASH-05)
 - 14-07: Weather tab + Open-Meteo backend + degradation (DASH-06)
 
 **Wave 4** *(blocked on 14-04/05/06)*:
+
 - 14-08: Dashboard tab composition + deep-link convention (DASH-03)
 
 **Wave 5** *(blocked on 14-08, 14-07)*:
+
 - 14-09: Entrance cascade + full gate sweep + phase-close render gate (all 8)
+
 **UI hint**: yes
 
 ### Phase 15: Audio + Connectivity Panels
@@ -364,7 +380,7 @@ Plans:
 | 11. Quickshell Viability Gate | v3.0 | 5/5 | Complete    | 2026-07-26 |
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | Complete    | 2026-07-28 |
-| 14. Dashboard Drawer | v3.0 | 0/TBD | Not started | - |
+| 14. Dashboard Drawer | v3.0 | 1/9 | In Progress|  |
 | 15. Audio + Connectivity Panels | v3.0 | 0/TBD | Not started | - |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |
 | 17. Ambient Extras | v3.0 | 0/TBD | Not started | - |

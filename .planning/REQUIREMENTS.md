@@ -37,14 +37,14 @@
 
 ### Dashboard Drawer (DASH)
 
-- [ ] **DASH-01**: A keybind opens the dashboard drawer; clicking outside dismisses it; it does not block input to the rest of the desktop
+- [x] **DASH-01**: A keybind opens the dashboard drawer; clicking outside dismisses it; it does not block input to the rest of the desktop
 - [ ] **DASH-02**: The dashboard presents four horizontally swipeable tabs with drag-threshold commit, plus a header row for direct tap-to-jump
 - [ ] **DASH-03**: The Dashboard tab shows a calendar, date/time, a compact media widget and system resources at a glance
 - [ ] **DASH-04**: The Media tab shows a full player with cover art, reading the existing MPRIS backend rather than a second media source
 - [ ] **DASH-05**: The Performance tab shows CPU, memory, network, storage and battery
 - [ ] **DASH-06**: The Weather tab shows current conditions and forecast, degrading gracefully when the weather service is unreachable
 - [ ] **DASH-07**: Dashboard quick-toggles read and write the **same** backing state as swaync's existing toggle grid (BAR-05) — no second source of truth
-- [ ] **DASH-08**: Dashboard and panels refuse to open over a fullscreen client
+- [x] **DASH-08**: Dashboard and panels refuse to open over a fullscreen client
 
 ### Audio + Connectivity Panels (PANEL)
 
@@ -141,14 +141,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MOTION-01 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Complete |
 | MOTION-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Complete |
 | MOTION-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Complete |
-| DASH-01 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-01 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-02 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-03 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-04 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-05 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-06 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-07 | Phase 14 — Dashboard Drawer | Pending |
-| DASH-08 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-08 | Phase 14 — Dashboard Drawer | Complete |
 | PANEL-01 | Phase 15 — Audio + Connectivity Panels | Pending |
 | PANEL-02 | Phase 15 — Audio + Connectivity Panels | Pending |
 | PANEL-03 | Phase 15 — Audio + Connectivity Panels | Pending |
