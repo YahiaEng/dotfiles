@@ -68,10 +68,10 @@
                     "update-command": "swaync-client -D"
                 },
                 {
-                    "label": "󰔎",
+                    "label": "󰖔",
                     "type": "toggle",
                     "command": "~/.config/hypr/scripts/theme-switch.sh",
-                    "update-command": "v=$(cat ~/.local/state/theme/mode 2>/dev/null || echo dark); case $v in light) echo true ;; *) echo false ;; esac"
+                    "update-command": "v=$(cat ~/.local/state/theme/mode 2>/dev/null || echo dark); case $v in dark) echo true ;; *) echo false ;; esac"
                 }
             ]
         },
