@@ -315,6 +315,16 @@ AUR_PKGS=(
     # alternative). gjs is pulled in automatically as its dependency —
     # do not add gjs separately here.
     aylurs-gtk-shell
+
+    # Material Symbols Rounded icon font (D-28 — human package-legitimacy
+    # checkpoint approved 2026-07-29, evidence in 14-02-SUMMARY.md: package
+    # base material-symbols-git, maintainer moetayuko/xiota, 7 votes/1.34
+    # popularity, not out-of-date, PKGBUILD source= pulls TTFs directly from
+    # Google's own github.com/google/material-design-icons, package()
+    # installs only .ttf files under /usr/share/fonts). This is an unpinned
+    # -git package verified by presence only, not by version — the same
+    # property walker and elephant already have in this array.
+    ttf-material-symbols-variable-git
 )
 
 # ── section_core_rice ─────────────────────────────────
