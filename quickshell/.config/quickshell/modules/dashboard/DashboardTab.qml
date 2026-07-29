@@ -75,11 +75,57 @@
 // on a glance surface this is arguably correct, and it is carried to the
 // render gate rather than assumed acceptable.
 import QtQuick
+import QtQuick.Shapes
+import QtQuick.Effects
 import Quickshell
 // Relative directory import to modules/ (parent) — the same mechanism
 // shell.qml's own `import "modules"` uses, resolving Colours/Motion off
 // that directory's checked-in qmldir.
 import "../"
+
+// ── Render-gate round 2 fixes (2026-07-30) ─────────────────────────────
+// Round 1 was NOT approved. Four concrete points, fixed below:
+//
+//   1. Calendar width — "lots of empty space to its sides." The month
+//      grid's per-cell WIDTH now derives from the calendar card's own real
+//      (wider-than-planned, D-02 superseded) width divided across 7
+//      columns (`calendarCard.cellWidth`), instead of sitting at the fixed
+//      `calendarCellSize` centered with large side margins. Per-row HEIGHT
+//      stays `calendarCellSize` unchanged, so Task 1's six-row D-05 budget
+//      arithmetic is untouched — only the horizontal fill changes.
+//
+//   2. Media card cover art — "the album art should use the same circular
+//      dotted look as the media panel." The compact art slot is redrawn
+//      against MediaTab.qml's own round-3/round-4 art treatment: a genuine
+//      circle (not a rounded square) with a static dashed ring drawn via
+//      QtQuick.Shapes, and a QtQuick.Effects MultiEffect alpha mask for a
+//      true circular crop (a plain `clip: true` Rectangle only clips to
+//      its bounding box, never to the rounded shape — 14-05's own
+//      round-4 finding, reused here rather than rediscovered). Scaled down
+//      for this compact card; `compactArtSize` stays the slot's outer
+//      bounding box so the band-height arithmetic is unaffected.
+//
+//   3. Media card transport — "play/pause looks awkward... add next/prev
+//      too." `previousTrack()`/`nextTrack()` are added alongside
+//      play/pause, grouped as one cluster seated directly after the
+//      title/artist stack (not stranded at the card's far edge with a
+//      wide dead gap after the text). NOTE — this is a deliberate reversal
+//      of 14-08-PLAN.md's own must_haves ("play/pause control and nothing
+//      else") and its explicit fence ("any transport verb on the compact
+//      widget beyond play/pause... adding them here deletes the reason
+//      the deep-link exists"). The render gate is the authoritative
+//      arbiter over a plan's frozen must_haves per this workflow's own
+//      rules, and the human's literal, direct instruction this round was
+//      to add both buttons — recorded here as a deviation carried to the
+//      NEXT gate round for explicit re-confirmation, not silently
+//      absorbed as if the plan always said this.
+//
+//   4. Quick-toggle footer affordance — the human's feedback ("a fresh
+//      user will not know what their function is") is fixed in
+//      QuickToggles.qml itself (14-04's file, outside this plan's declared
+//      files_modified) — see that file's own round-2 header note. Recorded
+//      here too since it is a deviation from this plan's ownership fence.
+// ────────────────────────────────────────────────────────────────────────
 
 Item {
     id: root
@@ -158,6 +204,14 @@ Item {
         + (6 * root.calendarCellSize) + root.calendarCardPadding * 2
 
     readonly property int compactArtSize: 56
+    // Round-2 fix — circular dotted-ring cover art (see file header). This
+    // stays the SLOT's outer bounding box, unchanged, so the band-height
+    // arithmetic Task 1 fixed still reads off it; the ring sits inside
+    // that same box rather than growing it.
+    readonly property int compactRingGap: 3
+    readonly property int compactRingStrokeWidth: 2
+    readonly property int compactArtCircleSize: root.compactArtSize - (root.compactRingGap + root.compactRingStrokeWidth) * 2
+    readonly property real compactRingRadius: root.compactArtCircleSize / 2 + root.compactRingGap
     readonly property int compactMediaPadding: root.spacingSm
     readonly property int compactMediaHeight: root.compactArtSize + root.compactMediaPadding * 2
     // Deliberately bounded, NOT bound to the band's actual stretched
@@ -165,6 +219,13 @@ Item {
     // genuinely narrow text column so a long real title/artist actually
     // elides, rather than a wide band that never triggers it.
     readonly property int compactTextWidth: 220
+    // Round-2 fix — prev/next + play/pause transport cluster sizes (see
+    // file header point 3). Smaller than MediaTab's own 44/60px transport
+    // — this is still the glance-frequency compact widget, not the full
+    // player — but big enough to stay legible/tappable.
+    readonly property int compactTransportSize: 32
+    readonly property int compactPlayPauseSize: 40
+    readonly property int compactTransportSpacing: root.spacingXs
 
     readonly property int miniDialDiameter: 44
     readonly property int miniRingThickness: 5
@@ -281,6 +342,16 @@ Item {
                 // numbering used just below. Two different conventions on
                 // the same type; confirmed rather than assumed.
                 readonly property int firstDayOfWeek: calendarCard.localeObj.firstDayOfWeek
+
+                // Round-2 fix (render gate) — the grid's per-cell WIDTH now
+                // fills the card's own real width instead of sitting at a
+                // fixed `calendarCellSize` centered with large side
+                // margins (the human's literal complaint: "lots of empty
+                // space to its sides"). Height per row stays
+                // `calendarCellSize` unchanged so the D-05 six-row budget
+                // Task 1 already fixed is untouched — only the horizontal
+                // dimension grows to use the tab's actual width.
+                readonly property real cellWidth: (calendarCard.width - root.calendarCardPadding * 2) / 7
 
                 readonly property string monthLabel: calendarCard.localeObj.monthName(calendarCard.viewMonth, Locale.LongFormat) + " " + calendarCard.viewYear
 
@@ -449,23 +520,31 @@ Item {
                     }
                 }
 
-                // ── Weekday header + day grid — centered at their own
-                //    natural width within the full-width card. ───────────
+                // ── Weekday header + day grid — filling the card's real
+                //    width, inset the same amount as the header row above
+                //    (round-2 fix; see file header point 1). ────────────
                 Column {
+                    // Round-2 fix — left/right-anchored to fill the card's
+                    // real width (matching calendarHeaderRow's own inset)
+                    // instead of centering at the grid's old fixed natural
+                    // width, which is what left the large side margins.
                     anchors.top: calendarHeaderRow.bottom
                     anchors.topMargin: root.spacingXs
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: root.calendarCardPadding
+                    anchors.rightMargin: root.calendarCardPadding
                     spacing: root.spacingXs
 
                     Row {
                         id: weekdayRow
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         height: root.calendarWeekdayRowHeight
 
                         Repeater {
                             model: calendarCard.weekdayLabels
                             delegate: Text {
-                                width: root.calendarCellSize
+                                width: calendarCard.cellWidth
                                 height: weekdayRow.height
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -478,7 +557,7 @@ Item {
 
                     Grid {
                         id: dayGrid
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width
                         columns: 7
 
                         // One inline component — three branches: a day in
@@ -488,7 +567,19 @@ Item {
                         // the accent colour in this card.
                         component DayCell: Item {
                             id: dayCell
-                            width: root.calendarCellSize
+                            // Round-2 fix — width now takes the
+                            // per-instance `cellWidth` (the card's real
+                            // width divided across 7 columns) instead of
+                            // the fixed `calendarCellSize`; height stays
+                            // `calendarCellSize` so the six-row budget is
+                            // unaffected — only the grid's horizontal fill
+                            // changes. The today circle below sizes off
+                            // `Math.min(width, height)`, so it stays the
+                            // same diameter it always was (bounded by the
+                            // unchanged height), just repositioned across
+                            // a wider cell.
+                            property real cellWidth: root.calendarCellSize
+                            width: dayCell.cellWidth
                             height: root.calendarCellSize
                             property int dayNumber: 1
                             property bool inMonth: true
@@ -535,10 +626,11 @@ Item {
                                 dayNumber: modelData.day
                                 inMonth: modelData.inMonth
                                 isToday: modelData.isToday
+                                cellWidth: calendarCard.cellWidth
                             }
                         }
                     }
-                }
+}
 
                 // Wheel handler scoped to this card alone — declared FIRST
                 // (paint order) so the header row's chevrons and the day
@@ -637,12 +729,13 @@ Item {
                 }
             }
 
-            // ── 3. The compact media widget (D-40) ───────────────────────
+            // ── 3. The compact media widget (D-40, round-2 revised) ──────
             // Reads the ONE shared `mediaBackend` instance's already-
             // derived display fields — no second instance, no process, no
             // MPRIS access, no fallback re-derived here. Art + a title/
-            // artist stack + one play/pause verb, and nothing else; every
-            // other part of the widget deep-links to the Media tab.
+            // artist stack + a play/pause + prev/next transport cluster
+            // (round-2 addition, see file header point 3); every other
+            // part of the widget still deep-links to the Media tab.
             DeepLinkSurface {
                 id: compactMedia
                 width: parent.width
@@ -653,14 +746,21 @@ Item {
                 readonly property bool isPopulated: compactMedia.mediaState === "populated"
                 readonly property bool isPending: compactMedia.mediaState === "pending"
 
-                // ── 1. Cover art — fixed square slot, drawer corner
-                //      radius, clipping on (D-40's own wording: a square
-                //      slot that crops rather than distorts non-square
-                //      art — the MediaTab's full circular MultiEffect mask
-                //      is a stricter requirement this compact slot does
-                //      not carry). The quiet placeholder shows in all
-                //      three non-ready cases: loading, empty art path, and
-                //      a load failure — one visual, zero layout shift. ───
+                // ── 1. Cover art — circular with a dotted ring (round-2
+                //      fix, see file header point 2): the same static
+                //      idle-silhouette look MediaTab.qml's own art slot
+                //      uses (14-05 rounds 3/4) — a genuine circle with a
+                //      static dashed ring drawn via QtQuick.Shapes, and a
+                //      QtQuick.Effects MultiEffect alpha mask for a true
+                //      circular crop (a plain `clip: true` Rectangle only
+                //      clips to its bounding box, never to the rounded
+                //      shape — 14-05's own round-4 finding). No
+                //      cava/audio-analysis service exists in this repo's
+                //      backend, so the ring is deliberately static, same
+                //      as the Media tab's own. The quiet placeholder still
+                //      shows in all three non-ready cases: loading, empty
+                //      art path, and a load failure — one visual, zero
+                //      layout shift. ───────────────────────────────────
                 Item {
                     id: compactArtSlot
                     anchors.left: parent.left
@@ -669,12 +769,57 @@ Item {
                     width: root.compactArtSize
                     height: root.compactArtSize
 
-                    Rectangle {
-                        id: compactArtBackground
+                    // Static dashed ring — declared first so it paints
+                    // behind the art circle (MediaTab.qml's own order).
+                    Shape {
+                        id: compactArtRing
                         anchors.fill: parent
-                        radius: root.cardRadius / 2
-                        color: Colours.surface
-                        clip: true
+                        asynchronous: true
+                        preferredRendererType: Shape.CurveRenderer
+
+                        ShapePath {
+                            fillColor: "transparent"
+                            strokeColor: Colours.outline
+                            strokeWidth: root.compactRingStrokeWidth
+                            capStyle: ShapePath.RoundCap
+                            strokeStyle: ShapePath.DashLine
+                            dashPattern: [1, 3]
+
+                            startX: compactArtSlot.width / 2 + root.compactRingRadius
+                            startY: compactArtSlot.height / 2
+
+                            PathAngleArc {
+                                centerX: compactArtSlot.width / 2
+                                centerY: compactArtSlot.height / 2
+                                radiusX: root.compactRingRadius
+                                radiusY: root.compactRingRadius
+                                startAngle: 0
+                                sweepAngle: 360
+                            }
+
+                            Behavior on strokeColor {
+                                enabled: Motion.motionEnabled
+                                ColorAnimation {
+                                    duration: Motion.standardDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Motion.standardEasing
+                                }
+                            }
+                        }
+                    }
+
+                    Item {
+                        id: compactArtContainer
+                        anchors.centerIn: parent
+                        width: root.compactArtCircleSize
+                        height: root.compactArtCircleSize
+
+                        Rectangle {
+                            id: compactArtBackground
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: Colours.surfaceVariant
+                        }
 
                         Image {
                             id: compactArtImage
@@ -690,6 +835,36 @@ Item {
                             // track's art under a reused path.
                             cache: false
                             source: (compactMedia.isPopulated && root.mediaBackend.artPath) ? ("file://" + root.mediaBackend.artPath) : ""
+                            // Rendered only through the MultiEffect mask
+                            // below — painting itself here too would
+                            // double-draw an unmasked square underneath
+                            // the masked circle (14-05 round-4 precedent).
+                            visible: false
+                        }
+
+                        // Mask shape for MultiEffect below — never painted
+                        // itself; `layer.enabled: true` is load-bearing
+                        // (14-05 round-4's own finding: an invisible item
+                        // with no layer.enabled produces no paint node at
+                        // all, so maskSource would read an empty alpha
+                        // texture and the masked image would render
+                        // nothing).
+                        Rectangle {
+                            id: compactArtMaskShape
+                            anchors.fill: parent
+                            radius: width / 2
+                            visible: false
+                            layer.enabled: true
+                        }
+
+                        MultiEffect {
+                            id: compactArtMaskedImage
+                            anchors.fill: parent
+                            source: compactArtImage
+                            maskEnabled: true
+                            maskSource: compactArtMaskShape
+                            maskThresholdMin: 0.5
+                            maskSpreadAtMin: 1.0
                             visible: compactArtImage.status === Image.Ready
                         }
 
@@ -699,19 +874,19 @@ Item {
                             visible: compactArtImage.status !== Image.Ready
                             text: "music_note"
                             font.family: root.symbolFontFamily
-                            font.pixelSize: root.compactArtSize * 0.5
+                            font.pixelSize: root.compactArtCircleSize * 0.42
                             color: Colours.onSurfaceVariant
                         }
                     }
                 }
 
-                // ── 2. Title/artist stack — deliberately bounded to
-                //      `compactTextWidth`, not the band's own stretched
-                //      width, so a genuinely long title/artist elides
-                //      rather than never triggering the compact-width
-                //      backstop. Both texts are set to plain text
-                //      explicitly (T-14-27): third-party player metadata
-                //      must never be interpreted as markup. ─────────────
+                // ── 2. Title/artist stack — unchanged from Task 2, still
+                //      deliberately bounded to `compactTextWidth`, not the
+                //      band's own stretched width, so a genuinely long
+                //      title/artist elides rather than never triggering
+                //      the compact-width backstop. Both texts are set to
+                //      plain text explicitly (T-14-27): third-party player
+                //      metadata must never be interpreted as markup. ────
                 Column {
                     id: compactTextStack
                     anchors.left: compactArtSlot.right
@@ -747,59 +922,129 @@ Item {
                     }
                 }
 
-                // ── 3. Play/pause — the one glance-frequency verb this
-                //      widget grants (D-40): no skip, no seek, no volume,
-                //      no player switcher. The glyph is read from the
-                //      backend's playing predicate and never assigned by
-                //      the press (D-22) — a command that fails or is
-                //      refused leaves the button showing what the player
-                //      is actually doing. ───────────────────────────────
-                Item {
-                    id: compactPlayPause
-                    anchors.right: parent.right
-                    anchors.rightMargin: root.compactMediaPadding
+                // ── 3. Transport cluster — round-2 fix (file header point
+                //      3): previous / play-pause / next, grouped together
+                //      and seated directly after the text stack rather
+                //      than one lone play/pause control anchored at the
+                //      card's far edge with a wide dead gap between it and
+                //      the text (the human's two complaints: the button
+                //      "looks awkward" and there is "lots of empty
+                //      unutilized space"). `previousTrack()`/
+                //      `nextTrack()` are the same two dispatches the Media
+                //      tab already exposes — no new backend capability
+                //      invented here. Play/pause's glyph is still read
+                //      from the backend's playing predicate and never
+                //      assigned by the press (D-22): a command that fails
+                //      or is refused leaves the button showing what the
+                //      player is actually doing. Each button carries its
+                //      own MouseArea declared as a later sibling than
+                //      `compactMedia`'s own background MouseArea (inside
+                //      DeepLinkSurface), so a press is consumed HERE and
+                //      never reaches the outer deep-link surface — the
+                //      same nested-target rule Task 2 proved on the single
+                //      play/pause control. Proven live by pressing each
+                //      button repeatedly and confirming the pager never
+                //      leaves the Dashboard tab. ───────────────────────
+                Row {
+                    id: compactTransportRow
+                    anchors.left: compactTextStack.right
+                    anchors.leftMargin: root.spacingXl
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 40
-                    height: 40
+                    spacing: root.compactTransportSpacing
 
-                    readonly property bool playing: compactMedia.isPopulated && root.mediaBackend.playing
+                    Item {
+                        id: compactPrevButton
+                        width: root.compactTransportSize
+                        height: root.compactTransportSize
+                        anchors.verticalCenter: parent.verticalCenter
 
-                    Rectangle {
-                        id: compactPlayPauseCircle
-                        anchors.fill: parent
-                        radius: width / 2
-                        color: compactMedia.isPopulated ? Colours.primary : Colours.surfaceVariant
-                        opacity: compactMedia.isPopulated ? 1 : 0.5
-                        Behavior on color {
-                            enabled: Motion.motionEnabled
-                            ColorAnimation {
-                                duration: Motion.standardDuration
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: Motion.standardEasing
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: Colours.surfaceVariant
+                            opacity: compactMedia.isPopulated ? 1 : 0.5
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "skip_previous"
+                                font.family: root.symbolFontFamily
+                                font.pixelSize: root.iconSizeMd - 4
+                                color: Colours.onSurfaceVariant
                             }
                         }
 
-                        Text {
-                            anchors.centerIn: parent
-                            text: compactPlayPause.playing ? "pause" : "play_arrow"
-                            font.family: root.symbolFontFamily
-                            font.pixelSize: root.iconSizeMd
-                            color: compactMedia.isPopulated ? Colours.onPrimary : Colours.onSurfaceVariant
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: compactMedia.isPopulated
+                            onClicked: root.mediaBackend.previousTrack()
                         }
                     }
 
-                    // The nested-target rule (D-40) — this MouseArea is a
-                    // later sibling than `compactMedia`'s own background
-                    // MouseArea (declared inside DeepLinkSurface, above),
-                    // so it paints on top and is checked first for input:
-                    // a press here is consumed HERE, never reaching the
-                    // outer deep-link surface beneath it. Proven live by
-                    // pressing repeatedly and confirming the pager never
-                    // leaves the Dashboard tab.
-                    MouseArea {
-                        anchors.fill: parent
-                        enabled: compactMedia.isPopulated
-                        onClicked: root.mediaBackend.playPause()
+                    Item {
+                        id: compactPlayPause
+                        width: root.compactPlayPauseSize
+                        height: root.compactPlayPauseSize
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        readonly property bool playing: compactMedia.isPopulated && root.mediaBackend.playing
+
+                        Rectangle {
+                            id: compactPlayPauseCircle
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: compactMedia.isPopulated ? Colours.primary : Colours.surfaceVariant
+                            opacity: compactMedia.isPopulated ? 1 : 0.5
+                            Behavior on color {
+                                enabled: Motion.motionEnabled
+                                ColorAnimation {
+                                    duration: Motion.standardDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Motion.standardEasing
+                                }
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: compactPlayPause.playing ? "pause" : "play_arrow"
+                                font.family: root.symbolFontFamily
+                                font.pixelSize: root.iconSizeMd
+                                color: compactMedia.isPopulated ? Colours.onPrimary : Colours.onSurfaceVariant
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: compactMedia.isPopulated
+                            onClicked: root.mediaBackend.playPause()
+                        }
+                    }
+
+                    Item {
+                        id: compactNextButton
+                        width: root.compactTransportSize
+                        height: root.compactTransportSize
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: Colours.surfaceVariant
+                            opacity: compactMedia.isPopulated ? 1 : 0.5
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "skip_next"
+                                font.family: root.symbolFontFamily
+                                font.pixelSize: root.iconSizeMd - 4
+                                color: Colours.onSurfaceVariant
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: compactMedia.isPopulated
+                            onClicked: root.mediaBackend.nextTrack()
+                        }
                     }
                 }
             }
