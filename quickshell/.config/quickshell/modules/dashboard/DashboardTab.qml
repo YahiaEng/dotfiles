@@ -3,10 +3,20 @@
 // media, resources strip, toggle footer).
 //
 // Root type Item, filled via anchors.fill: parent by the Loader Dashboard.qml
-// places it in — deliberately declares NO implicitWidth/implicitHeight of its
-// own: D-04 fixes the drawer frame at Dashboard.qml's drawerHeight, and a tab
-// publishing its own natural size is exactly how a pane starts driving the
-// drawer's height.
+// places it in — actual rendered geometry is UNCHANGED from Task 2 (still
+// anchors.fill: parent, so this item always matches whatever size its Loader
+// currently has, including mid-resize-animation).
+//
+// `implicitWidth`/`implicitHeight` below are D-04's "no implicit size"
+// prohibition DELIBERATELY REVERSED at this plan's render gate (checkpoint
+// feedback 2026-07-29, see 14-03-SUMMARY.md's Deviations): Dashboard.qml
+// reads these as an advisory hint to compute the drawer's own animated frame
+// target — a pure metadata read, independent of this item's actual rendered
+// size above. This is the single content-heaviest tab (clock/date hero +
+// calendar + compact media + resources strip + toggle footer stacked in one
+// column), so its placeholder footprint is the tallest of the four; 14-04
+// replaces these numbers with a value derived from its real column's own
+// natural size once built.
 //
 // D-41 widget-state register — every one of this phase's nine
 // modules/dashboard/ files carries this same three-name vocabulary
@@ -37,6 +47,12 @@ Item {
     id: root
 
     anchors.fill: parent
+
+    // Placeholder content-driven size hint (D-04 superseded) — read by
+    // Dashboard.qml's activeContentWidth/activeContentHeight, not by this
+    // item's own actual geometry above.
+    implicitWidth: 960
+    implicitHeight: 460
 
     // D-41: "populated" | "pending" | "empty" — the state vocabulary every
     // widget in this module carries. This stub is permanently "empty" until

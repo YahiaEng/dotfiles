@@ -15,14 +15,21 @@
 // accepted permanent limitation on this quickshell 0.3.0-2 build (D-13,
 // PROJECT.md), and D-14 does not ask for a multi-monitor summon here.
 //
-// Geometry (D-01/D-02/D-03/D-04): only anchors.top is set, so the compositor
-// centres the window horizontally; exclusiveZone 0 + ExclusionMode.Normal
-// mean the drawer reserves nothing but still respects waybar's own
-// reservation, landing flush below the bar with zero per-layout offset
-// logic. Width/height are locked at 850x860 — a token-level constant, not a
-// computed value (D-02's ~40%x~60% ratio drifts slightly on this host's
-// 2560x1440 primary vs. the 2160x1440 reference; the pixel values are
-// honoured as written per 14-01-PLAN.md's flagged assumption).
+// Geometry (D-01/D-02/D-03/D-04 — D-02/D-04 SUPERSEDED 2026-07-29 at this
+// plan's render gate, see 14-03-SUMMARY.md's Deviations): only anchors.top
+// is set, so the compositor centres the window horizontally; exclusiveZone 0
+// + ExclusionMode.Normal mean the drawer reserves nothing but still respects
+// waybar's own reservation, landing flush below the bar with zero
+// per-layout offset logic.
+//
+// D-02/D-04 originally locked one uniform 850x860 frame identical on every
+// tab. The render gate's human sign-off rejected that outright: the user
+// asked for a wider, shorter baseline AND genuine per-tab dynamic
+// proportions, following the Caelestia dashboard's content-driven sizing
+// convention (D-02's own text already flagged widening as "a one-constant
+// change" — this goes further and makes BOTH axes a function of whichever
+// tab is current, animated on a resize whenever the tab changes). See the
+// `drawerWidth`/`drawerHeight` block below for the mechanism.
 //
 // ── Pager (Plan 14-03, DASH-02, D-15..D-19) ────────────────────────────
 // A header `TabBar` synced one-way FROM a four-pane `SwipeView` — the
@@ -56,12 +63,80 @@ PanelWindow {
     // horizontally centres the window (D-01).
     anchors.top: true
 
-    // ── Locked geometry (D-02/D-04) — one constant per axis, read by
-    //    plans 14-03..14-08 rather than re-declared. ─────────────────────
-    readonly property int drawerWidth: 850
-    readonly property int drawerHeight: 860
+    // ── Dynamic per-tab geometry (D-02/D-04 SUPERSEDED, render-gate
+    //    checkpoint feedback 2026-07-29) ───────────────────────────────────
+    // `drawerMinWidth`/`drawerMinHeight` are floors, not targets: the
+    // header's four icon+label tabs need a minimum width regardless of tab
+    // content, and the frame should never collapse below a usable minimum
+    // even if some future tab's content turns out tiny.
+    readonly property int drawerMinWidth: 760
+    readonly property int drawerMinHeight: 420
+
+    // Reads whichever tab's Loader is currently active — RESEARCH Pattern 4
+    // guarantees exactly one of the four ever holds a live `item` at a time,
+    // so there is no ambiguity about which implicit size is "the" active
+    // one. Falls back to the floor before the very first Loader has
+    // settled. This is metadata-only: it never touches a tab item's own
+    // actual rendered geometry — every tab still fills whatever space its
+    // Loader gives it via anchors.fill: parent (unchanged from Task 2), so
+    // content always matches the frame exactly, including mid-resize.
+    // `implicitWidth`/`implicitHeight` on the four tab types is the D-04
+    // prohibition deliberately reversed: 14-04..14-07 will replace today's
+    // placeholder numbers with a value derived from each tab's own real
+    // layout once built.
+    readonly property real activeContentWidth: {
+        if (dashboardTabLoader.item) return dashboardTabLoader.item.implicitWidth;
+        if (mediaTabLoader.item) return mediaTabLoader.item.implicitWidth;
+        if (performanceTabLoader.item) return performanceTabLoader.item.implicitWidth;
+        if (weatherTabLoader.item) return weatherTabLoader.item.implicitWidth;
+        return drawerMinWidth;
+    }
+    readonly property real activeContentHeight: {
+        if (dashboardTabLoader.item) return dashboardTabLoader.item.implicitHeight;
+        if (mediaTabLoader.item) return mediaTabLoader.item.implicitHeight;
+        if (performanceTabLoader.item) return performanceTabLoader.item.implicitHeight;
+        if (weatherTabLoader.item) return weatherTabLoader.item.implicitHeight;
+        return drawerMinHeight - tabBarHeight;
+    }
+
+    // `content`'s anchors.margins (spacingLg on all four sides) plus the
+    // fixed tabBarHeight header are added back on top of the active tab's
+    // own desired content size to get the WHOLE window's target size — this
+    // is exactly why the pager (anchored top: header.bottom, bottom:
+    // parent.bottom, inside content) always ends up exactly
+    // activeContentHeight tall: window height minus 2*spacingLg minus
+    // tabBarHeight equals activeContentHeight by construction, and every
+    // header-derived measurement (tab button width, indicator geometry)
+    // already reads off `header.width` reactively, so nothing downstream
+    // needed a change to follow this resize.
+    readonly property real drawerWidth: Math.max(drawerMinWidth, activeContentWidth + spacingLg * 2)
+    readonly property real drawerHeight: Math.max(drawerMinHeight, tabBarHeight + activeContentHeight + spacingLg * 2)
     implicitWidth: drawerWidth
     implicitHeight: drawerHeight
+
+    // Animated on the SAME token pair, triggered by the SAME event
+    // (pager.currentIndex changing), as the pager's own highlightMoveDuration
+    // content transition below — so the frame and the content it holds
+    // settle together rather than reading as two separate motions. Respects
+    // the motion-scale axis exactly like every other Behavior in this file
+    // (off/reduced/normal/lively via Motion.motionEnabled/standardDuration/
+    // standardEasing).
+    Behavior on implicitWidth {
+        enabled: Motion.motionEnabled
+        NumberAnimation {
+            duration: Motion.standardDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Motion.standardEasing
+        }
+    }
+    Behavior on implicitHeight {
+        enabled: Motion.motionEnabled
+        NumberAnimation {
+            duration: Motion.standardDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Motion.standardEasing
+        }
+    }
 
     // Reserve nothing (D-03/D-08/D-43): the drawer holds zero exclusive
     // zone on any edge waybar reserves, but ExclusionMode.Normal means it
@@ -246,6 +321,26 @@ PanelWindow {
             TabBar {
                 id: tabBar
                 anchors.fill: parent
+
+                // Render-gate regression fix (checkpoint feedback
+                // 2026-07-29): once the frame's width/height became per-tab
+                // dynamic (see dashboardWindow's drawerWidth/drawerHeight
+                // above), `header.width` ticks every animation frame during
+                // a resize instead of staying a one-shot constant. Control's
+                // own default `implicitWidth` (Math.max(...,
+                // implicitContentWidth + padding)) reads back through this
+                // Row's/TabButton's own implicit-size machinery, and now
+                // that it re-evaluates every frame instead of once, Qt's
+                // binding-loop detector trips on it — a warning that never
+                // fired against the old static width. TabBar's implicitWidth
+                // is not consumed anywhere (actual geometry always comes
+                // from `anchors.fill: parent` above), so it is overridden
+                // here with a direct, non-cyclical mirror of `header.width`
+                // that never round-trips through the content machinery,
+                // eliminating the loop without changing anything visible.
+                implicitWidth: header.width
+                implicitHeight: dashboardWindow.tabBarHeight
+
                 // One-way sync target (D-16): this binding holds until a
                 // TabButton click imperatively re-assigns currentIndex
                 // (Container's own internal click handling) — the
