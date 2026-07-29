@@ -36,7 +36,8 @@
     "emphasized-in": { "duration": "medium2", "easing": "emphasized-decelerate" },
     "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" },
     "standard-slow": { "duration": "medium2", "easing": "standard" },
-    "ambient": { "duration": "extra-long4", "easing": "linear" }
+    "ambient": { "duration": "extra-long4", "easing": "linear" },
+    "stagger-offset": { "duration": "short1", "easing": "standard" }
   },
   "indicators": {
     "blink-slow": { "duration_ms": 1000, "easing": "css-linear" },

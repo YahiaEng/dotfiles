@@ -46,7 +46,14 @@ Singleton {
     // derived from the JSON, so a missing/empty motion.json still yields
     // three "(undefined)" rows (ui:error/E2) rather than a JS exception
     // walking an absent object.
-    readonly property var _pairNames: ["standard", "emphasized-in", "emphasized-out"]
+    //
+    // D-21's "stagger-offset" key (14-02) is APPENDED as the fourth entry.
+    // Append order is load-bearing, not stylistic: `pairs` is read
+    // POSITIONALLY by the six per-pair aliases below (pairs[0]/[1]/[2] for
+    // standard/emphasized-in/emphasized-out), so inserting a new key
+    // anywhere but the end re-points those existing aliases at the wrong
+    // semantic entry. Any future semantic key must be appended here too.
+    readonly property var _pairNames: ["standard", "emphasized-in", "emphasized-out", "stagger-offset"]
 
     property bool loadHealthy: true
 
@@ -129,4 +136,6 @@ Singleton {
     readonly property var emphasizedInEasing: pairs[1].easingValid ? pairs[1].easing : [0.05, 0.7, 0.1, 1, 1, 1]
     readonly property int emphasizedOutDuration: pairs[2].duration || 150
     readonly property var emphasizedOutEasing: pairs[2].easingValid ? pairs[2].easing : [0.3, 0, 0.8, 0.15, 1, 1]
+    readonly property int staggerOffsetDuration: pairs[3].duration || 50
+    readonly property var staggerOffsetEasing: pairs[3].easingValid ? pairs[3].easing : [0.2, 0, 0, 1, 1, 1]
 }
