@@ -42,8 +42,7 @@ the end-4/Caelestia convention was the deciding factor.
 - **D-01: Top drop-down, horizontally centered.** The Caelestia dashboard
   shape. Entrance/exit axis (vertical) never collides with tab-swipe axis
   (horizontal).
-- **D-02: Compact ~40% width (~850px), ~60% height (~860px), on the 2160x1440
-  primary.** Glanceable, reference-proportioned; single-column tab layouts
+- **D-02: Compact ~40% width (~850px), ~60% height (~860px), on the 2160x1440 primary.** Glanceable, reference-proportioned; single-column tab layouts
   minimize first-QML-surface design risk. Widening later is a token-level
   change.
 - **D-03: Flush to the top edge, bottom corners rounded only.** The drawer
@@ -58,8 +57,7 @@ the end-4/Caelestia convention was the deciding factor.
   incoherence; blur region, silhouette, and click-outside hit zone never move.
   Degraded/empty states keep the frame and show designed placeholders — this
   IS the DASH-06 grace story.
-- **D-05: No vertical scrolling anywhere — design-to-fit with ~10-15%
-  vertical slack** (font-axis guard; render gate judges across themes/fonts).
+- **D-05: No vertical scrolling anywhere — design-to-fit with ~10-15% vertical slack** (font-axis guard; render gate judges across themes/fonts).
   Nothing in the four tabs is unbounded (audited). Every drag therefore
   unambiguously means tab-swipe. Exemptions require a recorded reason
   (motion-lint exemption discipline); none of the four tabs qualifies.
@@ -82,11 +80,9 @@ the end-4/Caelestia convention was the deciding factor.
   `shortcuts.json` manifest entry + one Lua bind line. Known cost: new
   GlobalShortcuts need a Quickshell process restart to register (Phase 11
   finding).
-- **D-10: Dismissal set: Super+D toggles closed, Esc dismisses, click-outside
-  dismisses** (probe's `onPressed: active = !active` pattern + walker/wleave
+- **D-10 — Dismissal set: Super+D toggles closed, Esc dismisses, click-outside dismisses** (probe's `onPressed: active = !active` pattern + walker/wleave
   Esc convention).
-- **D-11: DASH-08 refusal is a silent no-op on TRUE fullscreen only;
-  maximized windows (bar visible) do not block.** No notification on refusal —
+- **D-11: DASH-08 refusal is a silent no-op on TRUE fullscreen only; maximized windows (bar visible) do not block.** No notification on refusal —
   feedback over fullscreen is the disturbance DASH-08 prevents. Matches
   waybar's existing fullscreen-withdraw behavior.
 - **D-12: Keyboard focus is grabbed on summon.** Arrows/Esc work with zero
@@ -95,30 +91,28 @@ the end-4/Caelestia convention was the deciding factor.
   Whether OnDemand alone grants focus on map or a `HyprlandFocusGrab` is
   required is a **named research item** (note: FocusGrab is
   compositor-exclusive on this build — Phase 11 finding).
-- **D-13: Coexistence = focus-loss dismiss only (deprecation principle
-  applied).** The drawer auto-dismisses whenever anything else takes focus —
+- **D-13: Coexistence = focus-loss dismiss only (deprecation principle applied).** The drawer auto-dismisses whenever anything else takes focus —
   a permanent, deprecated-blind rule written for the QML family (drawer vs
   Phase 15 panels). Zero edits to swaync/walker/wleave; the transient
   "CC already open + drawer summoned" visual overlap is tolerated for v3.0's
   lifetime. An optional `swaync-client -cp` one-liner on summon is recorded
   as available ONLY if the overlap annoys in practice (must not outlive
   swaync).
-- **D-14: Lifecycle: destroy on dismiss (probe LazyLoader pattern), with
-  selected-tab memory and data backends living at the shell root.** Zero idle
+- **D-14 — Lifecycle: destroy on dismiss (probe LazyLoader pattern), with selected-tab memory and data backends living at the shell root.** Zero idle
   footprint, `hyprctl layers` empty when dismissed, warm data + last-tab
   reopen. Per-tab lazy content is the standard answer if summon latency needs
   trimming.
 
 ### Tabs & navigation
 
-- **D-15: Tab order: Dashboard, Media, Performance, Weather** (roadmap order;
+- **D-15 — Tab order: Dashboard, Media, Performance, Weather** (roadmap order;
   Media adjacent to the Dashboard tab's media widget deep-link; Weather — the
   lowest-frequency tab — at the far end). If end-pair traversal ever dominates
   real use, the fix is reordering tabs, not changing topology.
 - **D-16: Header row at the top of the drawer** (bar → tabs → content chrome
   stack), **icon + label per tab** (MD3 primary-tabs idiom), active indicator
   tracks swipe progress.
-- **D-17: Swipe commit: ~1/3 distance OR quick flick** (framework-default
+- **D-17 — Swipe commit: ~1/3 distance OR quick flick** (framework-default
   pager physics — SwipeView-class), spring-back below threshold on motion
   tokens.
 - **D-18: Arrow keys cycle tabs; CLAMPED at both ends** (arrows = keyboard
@@ -131,7 +125,7 @@ the end-4/Caelestia convention was the deciding factor.
 
 ### Motion (this phase defines the in-surface vocabulary)
 
-- **D-20: Open/close animation: per-namespace layerrule `slide`** (wleave
+- **D-20 — Open/close animation: per-namespace layerrule `slide`** (wleave
   fade-rule precedent); duration/curve come from the global token-driven
   `layersIn`/`layersOut` entries — structurally enforced by Hyprland (style-only
   overrides, Phase 13 verified fact).
@@ -156,15 +150,13 @@ the end-4/Caelestia convention was the deciding factor.
 
 ### Quick-toggle grid (DASH-07)
 
-- **D-23: The grid = 3 swaync-mirrored chips (Gaming, DND, Dark) + the
-  motion-scale control.** The motion control is recorded as OUTSIDE the
+- **D-23: The grid = 3 swaync-mirrored chips (Gaming, DND, Dark) + the motion-scale control.** The motion control is recorded as OUTSIDE the
   DASH-07 mirror-proof (no swaync counterpart — a one-way state-file view; one
   sentence in verification docs prevents it reading as an unexplained
   asymmetry). Rejected: waybar-visibility chip (backwards ergonomics; overlaps
   gaming mode's own bar-hiding side effect), any toggle needing a new backend
   (Phase-15-shaped vertical slices).
-- **D-24: Motion-scale control is a full-width MD3 segmented row
-  `Off | Reduced | Normal | Lively` under the 3 chips** — REVISES the earlier
+- **D-24: Motion-scale control is a full-width MD3 segmented row `Off | Reduced | Normal | Lively` under the 3 chips** — REVISES the earlier
   "cycle chip" framing: every transition costs a full multi-second
   `theme-apply`, so direct-jump (one press = exactly one re-render) beats any
   cycle, and it deletes the accidental-`off`-transit footgun. Also the
@@ -175,16 +167,12 @@ the end-4/Caelestia convention was the deciding factor.
   with primary. Divergence from swaync's icon-only glyphs is intentional
   (shared truth, medium-appropriate costume). Chip order mirrors swaync:
   Gaming, DND, Dark (identical position = identical meaning across grids).
-- **D-26: Theme chip is named "Dark", lit tonal when dark mode is engaged
-  (reference lens — Android-QS convention verbatim; resting-lit tiles are the
-  Material You signature), AND swaync's config.json update-command flips its
-  boolean direction (one line: light→dark echo true) so both grids agree in
-  the DASH-07 side-by-side.** Flip the update-command and its icon/label
+- **D-26: Theme chip is named "Dark", lit tonal when dark mode is engaged (reference lens — Android-QS convention verbatim; resting-lit tiles are the Material You signature), AND swaync's config.json update-command flips its boolean direction (one line: light→dark echo true) so both grids agree in the DASH-07 side-by-side.** Flip the update-command and its icon/label
   TOGETHER or swaync lies in the other direction. The edited swaync grid gets
   re-judged free at the DASH-07 side-by-side gate.
   — **Reversibility:** reversible, but it re-opens a human-gated Phase 8
   surface — the one-line diff must be visible in review.
-- **D-27: The three mirrored toggles' backends (verified from config):**
+- **D-27 — The three mirrored toggles' backends (verified from config):**
   gaming = exec `gaming-mode-toggle.sh`, watch `~/.cache/gaming-mode`;
   DND = `swaync-client -dn/-df`, read via `swaync-client -D`, change-subscribe
   via `swaync-client --subscribe` (**named research-verify item** — the only
@@ -193,8 +181,7 @@ the end-4/Caelestia convention was the deciding factor.
 
 ### Iconography (QML-family decision)
 
-- **D-28: Material Symbols Rounded is the QML family's icon system, starting
-  with the drawer (reference lens — the end-4/Caelestia recipe).** Outlined →
+- **D-28: Material Symbols Rounded is the QML family's icon system, starting with the drawer (reference lens — the end-4/Caelestia recipe).** Outlined →
   filled variants power the chip lit-state language; purpose-built
   weather/metric/signal/transport sets serve Phases 14-16. New font dependency
   in `install.sh` (hard-fail package-verify class; AUR
@@ -207,7 +194,7 @@ the end-4/Caelestia convention was the deciding factor.
 
 ### Weather (DASH-06 — the only new external dependency)
 
-- **D-29: Provider: Open-Meteo.** Keyless + no registration (reproducibility
+- **D-29 — Provider: Open-Meteo.** Keyless + no registration (reproducibility
   is perfect: fresh install works the moment stow finishes; an API key would
   be uncommittable secret host-state). One JSON call returns current + hourly
   + daily; WMO codes map to Material Symbols. Data quality user-probed and
@@ -215,25 +202,24 @@ the end-4/Caelestia convention was the deciding factor.
   per location) — weakness is station-level current readings and alerts,
   neither in scope. **Fence: the fetch is isolated in one place so a provider
   swap stays a one-file change.**
-- **D-30: Location: a seeded state-file axis** (the theme/font/motion-scale
+- **D-30 — Location: a seeded state-file axis** (the theme/font/motion-scale
   idiom). Committed default is **CITY-LEVEL coordinates only** — the repo is
   public; precise home coords would be self-doxxing. `stow.sh` seeds it;
   refinements live in `~/.local/state/`, never git. GeoIP rejected (second
   wttr.in-class failure surface, VPN shows the exit node's weather with no
   cue, and a GeoIP seed inside install would poison the container gate with
   the datacenter's city).
-- **D-31: Units live in the same state file, metric-seeded (USER OVERRODE the
-  fixed-metric recommendation).** Consequences recorded: this is the
+- **D-31: Units live in the same state file, metric-seeded (USER OVERRODE the fixed-metric recommendation).** Consequences recorded: this is the
   pipeline's first multi-key state file (deliberate pattern deviation —
   validation must know it's intentional), and the QML formatting layer is
   unit-aware for temperature/wind/precipitation.
-- **D-32: Refresh: ~15-min TTL cache + fetch on summon only when stale**
+- **D-32 — Refresh: ~15-min TTL cache + fetch on summon only when stale**
   (render cached instantly, refresh in background; refresh timer runs only
   while the drawer is open; zero requests on days the drawer never opens —
   the zero-idle doctrine translated to networking). Last-good response
   persists to disk (survives daemon restart) and doubles as the DASH-06
   backbone.
-- **D-33: Degradation: calm stale-as-normal.** Stale renders identically to
+- **D-33 — Degradation: calm stale-as-normal.** Stale renders identically to
   fresh + a quiet "updated Nh ago" badge (appears ~1h, warning tone ~6h —
   thresholds are tunable discretion), anchored at the current-conditions
   block (the fast-decaying element; the date-keyed forecast stays
@@ -244,12 +230,12 @@ the end-4/Caelestia convention was the deciding factor.
 
 ### Tab content
 
-- **D-34: Calendar: display-only month grid** (today highlighted, chevron
+- **D-34 — Calendar: display-only month grid** (today highlighted, chevron
   month navigation per D-18's consequence) — exactly what end-4/Caelestia
   ship; pure QML date math, zero backend/state/deps. Events integration
   rejected (PIM slice: sync daemon + credentials = host-only state, no
   reference precedent, not in DASH-03). Todo widget = deferred idea.
-- **D-35: Media tab: Caelestia-style MD3 full player** — large cover art,
+- **D-35 — Media tab: Caelestia-style MD3 full player** — large cover art,
   type stack, seek slider (`position`/`length`/`can_seek`), Material Symbols
   transport, volume, player-switcher chips. Deliberate identity split from
   the garuda-style AGS card (ambient piece vs instrument — different dress
@@ -260,9 +246,7 @@ the end-4/Caelestia convention was the deciding factor.
   `media-players.sh` / the established playerctl paths (the sanctioned
   MPRIS-writer discipline). (2) The tab designs to the EXISTING payload
   contract — no `media-status.sh` extensions this phase.
-- **D-36: Performance tab: four MD3 circular dials (CPU, memory, storage,
-  battery — the percent-of-capacity species, the Caelestia/end-4 resource
-  look) + an honest network up/down rate row** (a rate is not a percentage —
+- **D-36: Performance tab: four MD3 circular dials (CPU, memory, storage, battery — the percent-of-capacity species, the Caelestia/end-4 resource look) + an honest network up/down rate row** (a rate is not a percentage —
   no fake normalization). Polling only while the drawer is open: ~1-2s for
   CPU/mem/network, ~30s for storage/battery (exact cadences = discretion).
   Pure `/proc`+`/sys` view — no new daemons; read mechanism (QML timer reads
@@ -270,27 +254,26 @@ the end-4/Caelestia convention was the deciding factor.
   researcher discretion. Light CPU smoothing (2-3 sample average) tuned at
   the render gate. Boundary: trends/history are btop's job — no sparkline
   creep later.
-- **D-37: Weather tab: the full Material stack** — current hero (large temp,
+- **D-37 — Weather tab: the full Material stack** — current hero (large temp,
   condition, feels-like/humidity/wind, age badge) + **fixed 8-column** hour
   strip (fixed-width, NOT scrollable — a horizontally scrollable strip inside
   a horizontal pager is the worst available gesture collision) + 5-day row.
   One Open-Meteo call feeds all three bands; fills the fixed canvas.
-- **D-38: Dashboard tab: identity-first single column** — clock/date hero →
+- **D-38 — Dashboard tab: identity-first single column** — clock/date hero →
   calendar → compact media → resources strip → toggle block as footer (the
   full-width segmented row closes the composition as the tab's base line).
   Android's tiles-first shade order rejected (phone thumb ergonomics; the
   shell references lead with identity). Two-column rejected (solves a
   vertical problem the stack doesn't have; would cramp the segmented row).
-- **D-39: Resources strip: CPU / Memory / Battery mini-dials** — the three
+- **D-39 — Resources strip: CPU / Memory / Battery mini-dials** — the three
   glance-timescale metrics as small versions of Performance's dials
   (cross-tab design rhyme); clicking jumps to the Performance tab. Storage
   and network stay Performance-only (no glance-rent).
-- **D-40: Compact media widget: art + title/artist + play-pause only;
-  clicking anywhere else deep-links to the Media tab.** Play/pause is the one
+- **D-40 — Compact media widget: art + title/artist + play-pause only; clicking anywhere else deep-links to the Media tab.** Play/pause is the one
   glance-frequency verb; skip/seek/volume live one keypress away. Together
   with D-39 this establishes the **compact-widget → its-full-tab deep-link
   convention**.
-- **D-41: Empty states: uniform in-place placeholders.** Every widget always
+- **D-41 — Empty states: uniform in-place placeholders.** Every widget always
   occupies its slot; empty = quiet Material Symbol + one line, controls
   present-but-disabled (reference pattern: placeholder disc + dimmed
   controls). Positions never move as a function of system state. No first-run
@@ -300,8 +283,7 @@ the end-4/Caelestia convention was the deciding factor.
 
 ### Namespace & inheritance (the "Owns" clause made concrete)
 
-- **D-42: Namespace scheme: `quickshell-<surface>`, drawer =
-  `quickshell-dashboard`.** The house treatment (blur + ignore_alpha) is
+- **D-42 — Namespace scheme: `quickshell-<surface>`, drawer = `quickshell-dashboard`.** The house treatment (blur + ignore_alpha) is
   written ONCE as a family-wide regex layerrule (`^quickshell-.*`) so Phases
   15/16 inherit it by following the naming scheme; per-surface character
   rules (the drawer's `slide`) layer on top as exact matches. **Regex
@@ -312,7 +294,7 @@ the end-4/Caelestia convention was the deciding factor.
   — **Reversibility:** costly — the namespace threads through layerrules,
   doctor checks, and DASH-01's `hyprctl layers` verification; renaming later
   touches all of them.
-- **D-43: Layer posture (locked by roadmap + Phase 11, restated):** overlay
+- **D-43 — Layer posture (locked by roadmap + Phase 11, restated):** overlay
   layer, zero exclusive zone on any edge waybar reserves,
   `WlrKeyboardFocus.OnDemand` baseline. `hyprctl layers -j` shows nothing
   drawer-related when dismissed (D-14's destroy semantics).

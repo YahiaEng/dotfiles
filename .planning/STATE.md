@@ -4,15 +4,15 @@ milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: Dashboard Drawer
-status: planning
-stopped_at: Phase 14 context gathered
-last_updated: "2026-07-28T23:58:39.618Z"
+status: executing
+stopped_at: Phase 14 UI-SPEC approved
+last_updated: "2026-07-29T05:08:44.420Z"
 last_activity: 2026-07-28
 last_activity_desc: Phase 13.1 complete, transitioned to Phase 14
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 30
+  total_plans: 39
   completed_plans: 30
   percent: 50
 ---
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 Phase: 14 — Dashboard Drawer
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Progress: [██████████] 100%
 Last activity: 2026-07-28 — Phase 13.1 complete, transitioned to Phase 14
 
@@ -345,9 +345,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-28T23:58:39.605Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-dashboard-drawer/14-CONTEXT.md
+Last session: 2026-07-29T00:30:20.323Z
+Stopped at: Phase 14 UI-SPEC approved
+Resume file: .planning/phases/14-dashboard-drawer/14-UI-SPEC.md
 
 ## Operator Next Steps
 
