@@ -63,6 +63,35 @@ PanelWindow {
     // horizontally centres the window (D-01).
     anchors.top: true
 
+    // ── Top margin (render-gate feedback 2026-07-29) ────────────────────
+    // Without this, the drawer's surface sits flush at y = waybar's
+    // reserved-zone bottom (0px gap) — measured directly via
+    // `hyprctl -j layers` at exactly the same y as
+    // swaync-control-center's own LAYER surface. But that surface is a
+    // full-screen transparent canvas; swaync's actual VISIBLE panel is
+    // inset from it by its own `control-center-margin-top: 10` (swaync/
+    // .config/swaync/config.json), landing its panel flush with where a
+    // REAL tiled Hyprland window starts (`hyprland.lua`'s
+    // `general.gaps_out: 10` inset from the reserved zone) — not flush
+    // with the bar itself. A drawer sitting at the bar's exact edge (this
+    // window's old behaviour) is therefore 10px CLOSER to the bar than
+    // either swaync's own panel or a real tiled window ever is — it
+    // visually occupies the bare gap strip between the bar and where
+    // window content actually begins, reading as "dropped in an awkward
+    // place between waybar and the window area" rather than "dropping
+    // from the top of the window area" the way swaync's control centre
+    // does. Mirrors swaync's own `control-center-margin-top` value
+    // directly (both numbers are hand-authored literals in their own
+    // component's config, not a shared token — same relationship swaync's
+    // JSON already has to `hyprland.lua`'s gaps_out) so the drawer's top
+    // edge lines up with swaync's and with where a real window starts,
+    // while `exclusiveZone: 0`/`ExclusionMode.Normal` below still keep
+    // waybar's own reserved zone completely untouched — this is a margin
+    // INSIDE the space Hyprland already leaves free for layer-shell
+    // surfaces, not a change to what any surface reserves.
+    readonly property int drawerTopMargin: 10
+    margins.top: dashboardWindow.drawerTopMargin
+
     // ── Dynamic per-tab geometry (D-02/D-04 SUPERSEDED, render-gate
     //    checkpoint feedback 2026-07-29) ───────────────────────────────────
     // `drawerMinWidth`/`drawerMinHeight` are floors, not targets: the
