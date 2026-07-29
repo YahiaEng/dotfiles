@@ -116,6 +116,7 @@ Item {
     readonly property int spacingXs: 4
     readonly property int spacingSm: 8
     readonly property int spacingMd: 16
+    readonly property int spacingXl: 32
     // Vertical gap between this column's four bands and the footer below
     // them — the "one band gap" the plan names distinctly from
     // panelPadding. Reuses the already-named "md" scale token (14-UI-SPEC's
@@ -560,35 +561,330 @@ Item {
                 }
             }
 
-            // ── 3. Compact media widget — reserved band, filled Task 2 ──
-            Rectangle {
-                id: compactMediaPlaceholder
-                width: parent.width
-                height: root.compactMediaHeight
+            // ── One reusable tap target, used twice (D-39/D-40) ──────────
+            // A rounded surface in the surface-variant role, a pointing-
+            // hand hover cursor, an MD3 state-layer ripple clipped to the
+            // container, and one deep-link on tap that emits THIS tab's
+            // own `tabRequested` signal with the named index — never a
+            // bare integer. Writing it once, used by both the compact
+            // media band and the resources strip below, is what makes
+            // this the deep-link convention Phase 15 inherits rather than
+            // two similar widgets.
+            component DeepLinkSurface: Rectangle {
+                id: linkSurface
                 radius: root.cardRadius
                 color: Colours.surfaceVariant
+                clip: true
 
-                Text {
-                    anchors.centerIn: parent
-                    text: "Compact media widget — Task 2"
-                    font.pixelSize: root.fontLabel
+                property int targetTabIndex: -1
+
+                Rectangle {
+                    id: linkRippleCircle
+                    width: 0
+                    height: 0
+                    radius: width / 2
                     color: Colours.onSurfaceVariant
+                    opacity: 0
+                }
+
+                // Declared here, FIRST in this component's own body, so
+                // any child added at instantiation (the art slot, the text
+                // stack, the play/pause control, the mini dials) paints on
+                // top of it and is checked first for input — exactly the
+                // nested-target rule the compact widget's play/pause
+                // control below depends on.
+                MouseArea {
+                    id: linkMouseArea
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onPressed: (mouse) => {
+                        if (!Motion.motionEnabled)
+                            return;
+                        var d = Math.max(linkSurface.width, linkSurface.height) * 2;
+                        linkRippleCircle.x = mouse.x - d / 2;
+                        linkRippleCircle.y = mouse.y - d / 2;
+                        linkRippleCircle.width = 0;
+                        linkRippleCircle.height = 0;
+                        linkRippleCircle.opacity = 0.1;
+                        linkRippleGrowAnim.stop();
+                        linkRippleFadeAnim.stop();
+                        linkRippleGrowAnim.to = d;
+                        linkRippleGrowAnim.start();
+                    }
+                    onClicked: {
+                        if (linkSurface.targetTabIndex >= 0)
+                            root.tabRequested(linkSurface.targetTabIndex);
+                    }
+
+                    NumberAnimation {
+                        id: linkRippleGrowAnim
+                        target: linkRippleCircle
+                        properties: "width,height"
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                        onFinished: linkRippleFadeAnim.start()
+                    }
+                    NumberAnimation {
+                        id: linkRippleFadeAnim
+                        target: linkRippleCircle
+                        property: "opacity"
+                        to: 0
+                        duration: Motion.emphasizedOutDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedOutEasing
+                    }
                 }
             }
 
-            // ── 4. Resources strip — reserved band, filled Task 2 ───────
-            Rectangle {
-                id: resourcesStripPlaceholder
+            // ── 3. The compact media widget (D-40) ───────────────────────
+            // Reads the ONE shared `mediaBackend` instance's already-
+            // derived display fields — no second instance, no process, no
+            // MPRIS access, no fallback re-derived here. Art + a title/
+            // artist stack + one play/pause verb, and nothing else; every
+            // other part of the widget deep-links to the Media tab.
+            DeepLinkSurface {
+                id: compactMedia
+                width: parent.width
+                height: root.compactMediaHeight
+                targetTabIndex: root.mediaTabIndex
+
+                readonly property string mediaState: root.mediaBackend ? root.mediaBackend.widgetState : "empty"
+                readonly property bool isPopulated: compactMedia.mediaState === "populated"
+                readonly property bool isPending: compactMedia.mediaState === "pending"
+
+                // ── 1. Cover art — fixed square slot, drawer corner
+                //      radius, clipping on (D-40's own wording: a square
+                //      slot that crops rather than distorts non-square
+                //      art — the MediaTab's full circular MultiEffect mask
+                //      is a stricter requirement this compact slot does
+                //      not carry). The quiet placeholder shows in all
+                //      three non-ready cases: loading, empty art path, and
+                //      a load failure — one visual, zero layout shift. ───
+                Item {
+                    id: compactArtSlot
+                    anchors.left: parent.left
+                    anchors.leftMargin: root.compactMediaPadding
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: root.compactArtSize
+                    height: root.compactArtSize
+
+                    Rectangle {
+                        id: compactArtBackground
+                        anchors.fill: parent
+                        radius: root.cardRadius / 2
+                        color: Colours.surface
+                        clip: true
+
+                        Image {
+                            id: compactArtImage
+                            anchors.fill: parent
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            // Same reasoning 14-05 recorded for the Media
+                            // tab's own art resolver: the http(s) cache
+                            // path is stable per-track, but the file://
+                            // branch passes the player's own path straight
+                            // through with no repo-owned cache guarantee —
+                            // caching here could show the previous
+                            // track's art under a reused path.
+                            cache: false
+                            source: (compactMedia.isPopulated && root.mediaBackend.artPath) ? ("file://" + root.mediaBackend.artPath) : ""
+                            visible: compactArtImage.status === Image.Ready
+                        }
+
+                        Text {
+                            id: compactArtPlaceholder
+                            anchors.centerIn: parent
+                            visible: compactArtImage.status !== Image.Ready
+                            text: "music_note"
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: root.compactArtSize * 0.5
+                            color: Colours.onSurfaceVariant
+                        }
+                    }
+                }
+
+                // ── 2. Title/artist stack — deliberately bounded to
+                //      `compactTextWidth`, not the band's own stretched
+                //      width, so a genuinely long title/artist elides
+                //      rather than never triggering the compact-width
+                //      backstop. Both texts are set to plain text
+                //      explicitly (T-14-27): third-party player metadata
+                //      must never be interpreted as markup. ─────────────
+                Column {
+                    id: compactTextStack
+                    anchors.left: compactArtSlot.right
+                    anchors.leftMargin: root.spacingSm
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: root.compactTextWidth
+                    spacing: root.spacingXs
+
+                    Text {
+                        id: compactTitle
+                        width: parent.width
+                        elide: Text.ElideRight
+                        textFormat: Text.PlainText
+                        text: compactMedia.isPopulated ? (root.mediaBackend.displayTitle || "")
+                            : (compactMedia.isPending ? "—" : "Nothing playing")
+                        font.pixelSize: root.fontBody
+                        font.weight: compactMedia.isPopulated ? root.weightEmphasis : root.weightBody
+                        color: compactMedia.isPopulated ? Colours.onSurface : Colours.onSurfaceVariant
+                    }
+                    // Structurally present at every state (default
+                    // visible: true) rather than toggled — an empty
+                    // `text` renders nothing but keeps its reserved line
+                    // height, which is D-41's "hidden without collapsing"
+                    // rule, not a Column exclusion.
+                    Text {
+                        id: compactArtist
+                        width: parent.width
+                        elide: Text.ElideRight
+                        textFormat: Text.PlainText
+                        text: (compactMedia.isPopulated && root.mediaBackend.displayArtist !== "") ? root.mediaBackend.displayArtist : ""
+                        font.pixelSize: root.fontLabel
+                        color: Colours.onSurfaceVariant
+                    }
+                }
+
+                // ── 3. Play/pause — the one glance-frequency verb this
+                //      widget grants (D-40): no skip, no seek, no volume,
+                //      no player switcher. The glyph is read from the
+                //      backend's playing predicate and never assigned by
+                //      the press (D-22) — a command that fails or is
+                //      refused leaves the button showing what the player
+                //      is actually doing. ───────────────────────────────
+                Item {
+                    id: compactPlayPause
+                    anchors.right: parent.right
+                    anchors.rightMargin: root.compactMediaPadding
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 40
+                    height: 40
+
+                    readonly property bool playing: compactMedia.isPopulated && root.mediaBackend.playing
+
+                    Rectangle {
+                        id: compactPlayPauseCircle
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: compactMedia.isPopulated ? Colours.primary : Colours.surfaceVariant
+                        opacity: compactMedia.isPopulated ? 1 : 0.5
+                        Behavior on color {
+                            enabled: Motion.motionEnabled
+                            ColorAnimation {
+                                duration: Motion.standardDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Motion.standardEasing
+                            }
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: compactPlayPause.playing ? "pause" : "play_arrow"
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: root.iconSizeMd
+                            color: compactMedia.isPopulated ? Colours.onPrimary : Colours.onSurfaceVariant
+                        }
+                    }
+
+                    // The nested-target rule (D-40) — this MouseArea is a
+                    // later sibling than `compactMedia`'s own background
+                    // MouseArea (declared inside DeepLinkSurface, above),
+                    // so it paints on top and is checked first for input:
+                    // a press here is consumed HERE, never reaching the
+                    // outer deep-link surface beneath it. Proven live by
+                    // pressing repeatedly and confirming the pager never
+                    // leaves the Dashboard tab.
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: compactMedia.isPopulated
+                        onClicked: root.mediaBackend.playPause()
+                    }
+                }
+            }
+
+            // ── 4. The resources strip (D-39) ────────────────────────────
+            // Three mini-dials — CPU, Memory, Battery — instances of
+            // 14-06's own Dial type at a smaller diameter; no arc geometry
+            // is written here. Storage and network stay Performance-only.
+            // Reads the ONE shared `systemResources` instance's published
+            // fractions, per-metric state registers and shared formatters
+            // — no second reader, no second poll timer, no metric
+            // re-derived here.
+            DeepLinkSurface {
+                id: resourcesStrip
                 width: parent.width
                 height: root.resourcesStripHeight
-                radius: root.cardRadius
-                color: Colours.surfaceVariant
+                targetTabIndex: root.performanceTabIndex
 
-                Text {
+                readonly property bool hasResources: root.systemResources !== null && root.systemResources !== undefined
+                // A fixed, modest gap rather than a computed edge-to-edge
+                // spread: Dial.qml's own caption Row centers icon+label
+                // text UNDER each dial's fixed diameter and can overflow
+                // that diameter on either side (its own frozen file, not
+                // ours to edit) — "Battery" is the widest label, and a
+                // wide computed spacing pushed the rightmost dial's
+                // caption past this strip's own clipped right edge,
+                // truncating "No battery" to "No batter" (caught live,
+                // fixed here rather than left for the render gate to
+                // catch). A tight, centered cluster with generous side
+                // margin keeps every caption's overflow well inside the
+                // clip boundary regardless of which label is longest.
+                readonly property int dialSpacing: root.spacingXl
+
+                Row {
                     anchors.centerIn: parent
-                    text: "Resources strip — Task 2"
-                    font.pixelSize: root.fontLabel
-                    color: Colours.onSurfaceVariant
+                    spacing: resourcesStrip.dialSpacing
+
+                    Dial {
+                        diameter: root.miniDialDiameter
+                        ringThickness: root.miniRingThickness
+                        label: "CPU"
+                        icon: "memory"
+                        accentColor: Colours.primary
+                        widgetState: resourcesStrip.hasResources ? root.systemResources.cpuState : "pending"
+                        value: resourcesStrip.hasResources ? root.systemResources.cpuFraction : 0
+                        valueText: resourcesStrip.hasResources ? root.systemResources.formatPercent(root.systemResources.cpuFraction) : ""
+                        emptySymbol: "help"
+                        emptyText: "Unavailable"
+                    }
+                    Dial {
+                        diameter: root.miniDialDiameter
+                        ringThickness: root.miniRingThickness
+                        label: "Memory"
+                        icon: "developer_board"
+                        accentColor: Colours.secondary
+                        widgetState: resourcesStrip.hasResources ? root.systemResources.memoryState : "pending"
+                        value: resourcesStrip.hasResources ? root.systemResources.memoryFraction : 0
+                        valueText: resourcesStrip.hasResources ? root.systemResources.formatPercent(root.systemResources.memoryFraction) : ""
+                        // The one detail line worth having at glance size
+                        // (plan's own call) — a used-of-total figure
+                        // through the shared byte formatter.
+                        detailText: resourcesStrip.hasResources
+                            ? (root.systemResources.formatBytes(root.systemResources.memoryUsedBytes) + " / "
+                                + root.systemResources.formatBytes(root.systemResources.memoryTotalBytes))
+                            : ""
+                        emptySymbol: "help"
+                        emptyText: "Unavailable"
+                    }
+                    // The strip's own partial state on this machine — no
+                    // battery hardware, so this dial's empty branch is
+                    // what actually renders, at the same footprint as the
+                    // other two (D-41).
+                    Dial {
+                        diameter: root.miniDialDiameter
+                        ringThickness: root.miniRingThickness
+                        label: "Battery"
+                        icon: "battery_full"
+                        accentColor: Colours.error
+                        widgetState: resourcesStrip.hasResources ? root.systemResources.batteryState : "pending"
+                        value: resourcesStrip.hasResources ? root.systemResources.batteryFraction : 0
+                        valueText: resourcesStrip.hasResources ? root.systemResources.formatPercent(root.systemResources.batteryFraction) : ""
+                        detailText: resourcesStrip.hasResources ? root.systemResources.batteryStateText : ""
+                        emptySymbol: "battery_unknown"
+                        emptyText: "No battery"
+                    }
                 }
             }
         }
