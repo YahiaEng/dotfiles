@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
 status: executing
-stopped_at: Completed 14-03-PLAN.md
-last_updated: "2026-07-29T13:44:05.899Z"
+stopped_at: Completed 14-04-PLAN.md
+last_updated: "2026-07-29T15:27:49.383Z"
 last_activity: 2026-07-29
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 39
-  completed_plans: 33
+  completed_plans: 34
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 14 (dashboard-drawer) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
-Progress: [█████████░] 85%
+Progress: [█████████░] 87%
 Last activity: 2026-07-29 — Phase 14 execution started
 
 ## Performance Metrics
@@ -163,6 +163,7 @@ Last activity: 2026-07-29 — Phase 14 execution started
 | Phase 14 P01 | 35min | 3 tasks | 6 files |
 | Phase 14 P02 | multi-session | 4 tasks | 5 files |
 | Phase 14 P03 | multi-session | 3 tasks | 13 files |
+| Phase 14 P04 | multi-session (2 gate rounds) | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -272,6 +273,12 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 14-03: Shell-root tab memory (drawer reopens on last tab shown) explicitly RATIFIED by the human as the intended D-14 feature, not a bug — keep as-is
 - [Phase ?]: 14-03: D-02/D-04's fixed uniform 850x860 frame superseded by user request at the render gate — per-tab dynamic proportions (Caelestia scheme), frame animates to each tab's advisory implicit size over Motion.standardDuration/standardEasing. Width stays shared across panes at any instant (SwipeView/Container structural constraint, not a choice) — flagged to and accepted by the user
 - [Phase ?]: 14-03: Per-tab placeholder implicitWidth/implicitHeight values are engineering estimates only — wave-3 plans (14-04..14-07) and wave-4 (14-08) must derive real sizes from real built content, not inherit these numbers as final
+- [Phase ?]: 14-04: D-26 flipped swaync's theme toggle direction+glyph together (2-line diff), so both grids light on dark off the shared mode file
+- [Phase ?]: 14-04: OQ1 closed - subscribe-emits-dnd (swaync-client --subscribe reliably emits DND changes on 0.12.6); poll fallback wired, never armed
+- [Phase ?]: 14-04: Round-1 render-gate fix - added a Hyprland animation speed ceiling clamp (100.00 max, WARN-and-clamp) to theme-engine/lib/motion.sh, mirroring the existing floor clamp; protects any future long-duration animation x high motion-scale multiplier
+- [Phase ?]: 14-04: Round-1 render-gate fix - Dark chip process switched from running:true to startDetached() so theme-switch.sh's walker picker survives drawer dismissal (this-plan regression, root-caused and reproduced)
+- [Phase ?]: 14-04: Round-1 render-gate fix, user-directed - drawer margins.top:10 added to Dashboard.qml (outside plan's declared files) so drawer top edge matches swaync's control-center-margin-top and Hyprland gaps_out (y=56, was y=46); affects 14-09 polish work on Dashboard.qml
+- [Phase ?]: 14-04: Round 2 render gate APPROVED (2026-07-29) - all three fixes confirmed: theme selection applies, lively preset clean, drop position correct
 
 ### Quick Tasks Completed
 
@@ -360,8 +367,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-29T13:44:05.884Z
-Stopped at: Completed 14-03-PLAN.md
+Last session: 2026-07-29T15:27:49.365Z
+Stopped at: Completed 14-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

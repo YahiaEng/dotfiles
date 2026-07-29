@@ -43,7 +43,7 @@
 - [ ] **DASH-04**: The Media tab shows a full player with cover art, reading the existing MPRIS backend rather than a second media source
 - [ ] **DASH-05**: The Performance tab shows CPU, memory, network, storage and battery
 - [x] **DASH-06**: The Weather tab shows current conditions and forecast, degrading gracefully when the weather service is unreachable
-- [ ] **DASH-07**: Dashboard quick-toggles read and write the **same** backing state as swaync's existing toggle grid (BAR-05) — no second source of truth
+- [x] **DASH-07**: Dashboard quick-toggles read and write the **same** backing state as swaync's existing toggle grid (BAR-05) — no second source of truth
 - [x] **DASH-08**: Dashboard and panels refuse to open over a fullscreen client
 
 ### Audio + Connectivity Panels (PANEL)
@@ -147,7 +147,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DASH-04 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-05 | Phase 14 — Dashboard Drawer | Pending |
 | DASH-06 | Phase 14 — Dashboard Drawer | Complete |
-| DASH-07 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-07 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-08 | Phase 14 — Dashboard Drawer | Complete |
 | PANEL-01 | Phase 15 — Audio + Connectivity Panels | Pending |
 | PANEL-02 | Phase 15 — Audio + Connectivity Panels | Pending |
