@@ -288,8 +288,23 @@ PanelWindow {
     // shell root, since it is drawer content: destroy-on-dismiss stopping
     // its polling is the correct lifetime (D-36 "polling only while the
     // drawer is open"). drawerOpen tracks the window's own visibility.
+    //
+    // Deliberately id'd `sharedSystemResources`, NOT `systemResources` (14-06
+    // deviation, live-found and fixed): both DashboardTab.qml and
+    // PerformanceTab.qml declare their own `property var systemResources`,
+    // and a same-named `systemResources: systemResources` binding below
+    // resolves its RHS to THAT tab's own not-yet-assigned property first
+    // (QML's innermost-scope-wins lookup, the same mechanism that lets
+    // `implicitHeight: implicitWidth` work) rather than reaching out to
+    // this id — a silent self-referencing no-op that leaves every tab's
+    // `systemResources` permanently null. Reproduced live: PerformanceTab's
+    // `hasReader` read `false` forever with the identically-named id, fixed
+    // by this rename with no other change. Neither tab's own property name
+    // changes — only this id, so 14-08's DashboardTab wiring (the other
+    // `systemResources: systemResources` site below) is fixed by the same
+    // rename rather than hitting the identical bug independently later.
     SystemResources {
-        id: systemResources
+        id: sharedSystemResources
         drawerOpen: dashboardWindow.visible
     }
 
@@ -563,7 +578,7 @@ PanelWindow {
                 sourceComponent: Component {
                     DashboardTab {
                         mediaBackend: dashboardWindow.mediaBackend
-                        systemResources: systemResources
+                        systemResources: sharedSystemResources
                         mediaTabIndex: dashboardWindow.tabIndexMedia
                         performanceTabIndex: dashboardWindow.tabIndexPerformance
                         // D-39/D-40's compact-widget → its-full-tab deep-link
@@ -591,7 +606,7 @@ PanelWindow {
                 asynchronous: false
                 sourceComponent: Component {
                     PerformanceTab {
-                        systemResources: systemResources
+                        systemResources: sharedSystemResources
                     }
                 }
             }

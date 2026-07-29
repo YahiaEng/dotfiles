@@ -1,23 +1,228 @@
-// Dial.qml — inert circular-dial stub (Phase 14 Plan 03, filled by Plan
-// 14-06, D-36/D-39: the percent-of-capacity circular gauge used by
-// Performance's four dials and Dashboard's resources strip — genuinely
-// custom QtQuick.Shapes/Canvas work, since no built-in circular-gauge
-// component exists anywhere in Qt/Quickshell — 14-RESEARCH.md's "Don't
-// Hand-Roll" table confirms this and flags it as real budgeted work, not a
-// missed built-in).
+// Dial.qml — the reusable circular-arc dial (Phase 14 Plan 06, D-36/D-39).
+// Filled from 14-03's inert stub. No built-in circular gauge exists anywhere
+// in Qt or Quickshell (14-RESEARCH.md's "Don't Hand-Roll" table flags this
+// explicitly, so nobody wastes time hunting for one) — this is genuine
+// custom `QtQuick.Shapes` geometry, written once here because the
+// Performance tab's four full-size dials and the Dashboard tab's three
+// mini-dials (14-08) are the same component at two sizes. That reuse is
+// D-39's cross-tab design rhyme, and it is why 14-08 writes no arc geometry
+// of its own.
 //
-// Root type Item. Not mounted by this plan — 14-06 uses this inside
-// PerformanceTab (and 14-08 inside DashboardTab's resources strip). May
-// declare its own implicit size once the arc geometry exists; left
-// completely unsized in stub form.
+// ── Design constants — NOT read off `dashboardWindow` ───────────────────
+// Same mechanism gap 14-05's MediaTab.qml already recorded in its own
+// header: a QML `id` is lexically scoped to the FILE that declares it, and
+// `Dial` is a separate registered component instantiated inside
+// PerformanceTab's object tree (itself instantiated inside Dashboard.qml's
+// `Loader`) — not textually nested inside `Dashboard.qml`, so a bare
+// `dashboardWindow.spacingXs`-style reference would not resolve. Per this
+// plan's own fallback instruction, this file declares its own copies of
+// exactly the constants it needs, sourced from 14-UI-SPEC.md's Spacing
+// Scale/Typography tables and 14-02-SUMMARY.md's recorded font family
+// verdict — consolidating every tab onto one shared constants surface is
+// left to 14-08's composition pass (consolidation note recorded again in
+// 14-06-SUMMARY.md for 14-08 to see).
 //
 // D-41 widget-state register — "populated" / "pending" / "empty" — carried
-// on every one of this phase's nine modules/dashboard/ files.
+// on every one of this phase's nine modules/dashboard/ files. This
+// component occupies IDENTICAL space in all three states: D-41's whole
+// point is that widget positions never move as a function of system state,
+// and a dial that shrinks when a metric is missing would break the tab's
+// grid layout on exactly the machine this is being built on (no battery).
 import QtQuick
+import QtQuick.Shapes
+import "../"
 
 Item {
     id: root
 
+    // ── Local design constants (see header note above) ─────────────────
+    readonly property int _spacingXs: 4
+    readonly property int _fontHeading: 20
+    readonly property int _fontLabel: 12
+    readonly property int _weightEmphasis: Font.DemiBold
+    readonly property int _weightBody: Font.Normal
+    readonly property string _symbolFontFamily: "Material Symbols Rounded"
+    readonly property string _defaultFontFamily: Qt.application.font.family
+
+    // ── Public API ───────────────────────────────────────────────────────
+    // What the arc sweeps to, 0..1. A `Behavior` below makes every change
+    // to this property glide on the standard motion pair rather than
+    // stepping — the caller (PerformanceTab) simply rebinds this to the
+    // reader's latest fraction every poll; the caller never animates it.
+    property real value: 0
+    Behavior on value {
+        enabled: Motion.motionEnabled
+        NumberAnimation {
+            duration: Motion.standardDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Motion.standardEasing
+        }
+    }
+
+    property string label: ""
+    // The large centre string — the CALLER formats it (e.g. through
+    // SystemResources' shared formatPercent), never this component, so the
+    // dial has no opinion about percentages versus rates.
+    property string valueText: ""
+    // The small secondary line under the caption — may be empty.
+    property string detailText: ""
+
+    // Geometry — one type serves both the Performance tab's full-size
+    // dials and the Dashboard tab's mini-dials (D-39) purely by varying
+    // these two.
+    property int diameter: 120
+    property real ringThickness: 12
+
+    // D-41 empty branch — the caller's own glyph/copy.
+    property string emptySymbol: "help"
+    property string emptyText: "Unavailable"
+
     // D-41: "populated" | "pending" | "empty"
     property string widgetState: "empty"
+
+    // The dial publishes an implicit size (unlike the tab shells, which
+    // must not — D-04 fixes the drawer frame) — a parent laying dials out
+    // in a Grid gets a correct natural size without hardcoding one. Plain
+    // `Item` does not auto-map `width`/`height` to `implicitWidth`/
+    // `implicitHeight` the way a `Control` would, so both are bound
+    // explicitly — without this a parent `Grid` would size every dial at
+    // its default 0x0.
+    implicitWidth: root.diameter
+    implicitHeight: root.diameter + root._spacingXs + captionLine.height + detailLine.height
+    width: implicitWidth
+    height: implicitHeight
+
+    // ── Geometry — the arc itself ────────────────────────────────────────
+    // `Shape.CurveRenderer` antialiases the arc without multisampling —
+    // the declarative shape path binds directly to `value` and repaints on
+    // its own; a `Canvas` would need an explicit repaint call on every
+    // sample (recorded render-gate-reversible choice, see this plan's
+    // `<reversibility>`).
+    Shape {
+        id: dialShape
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: root.diameter
+        height: root.diameter
+        preferredRendererType: Shape.CurveRenderer
+
+        // The track — a full sweep, always drawn in every D-41 state so
+        // the ring's footprint never changes.
+        ShapePath {
+            id: trackArc
+            strokeWidth: root.ringThickness
+            strokeColor: Colours.surfaceVariant
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+
+            Behavior on strokeColor {
+                enabled: Motion.motionEnabled
+                ColorAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
+
+            PathAngleArc {
+                centerX: dialShape.width / 2
+                centerY: dialShape.height / 2
+                radiusX: (root.diameter - root.ringThickness) / 2
+                radiusY: (root.diameter - root.ringThickness) / 2
+                startAngle: 0
+                sweepAngle: 360
+                moveToStart: true
+            }
+        }
+
+        // The value arc — starts at twelve o'clock (-90 degrees in this
+        // API's convention) and sweeps clockwise by `360 * value`. A
+        // sweep of 0 (pending/empty callers always pass `value: 0`) simply
+        // draws nothing, so no separate state gating is needed here — the
+        // D-41 branch logic lives entirely in what the caller feeds
+        // `value`, and in the centre/caption text below.
+        ShapePath {
+            id: valueArc
+            strokeWidth: root.ringThickness
+            strokeColor: Colours.primary
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+
+            Behavior on strokeColor {
+                enabled: Motion.motionEnabled
+                ColorAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
+
+            PathAngleArc {
+                centerX: dialShape.width / 2
+                centerY: dialShape.height / 2
+                radiusX: (root.diameter - root.ringThickness) / 2
+                radiusY: (root.diameter - root.ringThickness) / 2
+                startAngle: -90
+                sweepAngle: 360 * root.value
+                moveToStart: true
+            }
+        }
+    }
+
+    // ── Centre content — populated/pending/empty (D-41) ─────────────────
+    // Populated: the caller's own `valueText`, heading size, demi-bold, on-
+    // surface. Pending: a quiet em-dash — the slot keeps its exact size and
+    // position so nothing shifts when real data lands. Empty: the caller's
+    // `emptySymbol` Material Symbol ligature in place of a value.
+    Text {
+        id: centerText
+        anchors.centerIn: dialShape
+        text: root.widgetState === "populated" ? root.valueText
+            : root.widgetState === "pending" ? "—" : root.emptySymbol
+        font.family: root.widgetState === "empty" ? root._symbolFontFamily : root._defaultFontFamily
+        font.pixelSize: root._fontHeading
+        font.weight: root._weightEmphasis
+        color: root.widgetState === "populated" ? Colours.onSurface : Colours.onSurfaceVariant
+        Behavior on color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
+    }
+
+    // ── Caption + detail — below the ring, both height-reserved so
+    //    switching between states never shifts the dial's own footprint or
+    //    anything laid out beneath it. ────────────────────────────────────
+    Text {
+        id: captionLine
+        anchors.top: dialShape.bottom
+        anchors.topMargin: root._spacingXs
+        anchors.horizontalCenter: parent.horizontalCenter
+        height: Math.ceil(font.pixelSize * 1.5)
+        verticalAlignment: Text.AlignVCenter
+        // Empty replaces the caption with the caller's own quiet copy
+        // ("No battery" for the battery dial) — the ONLY D-41 branch that
+        // changes this line's text.
+        text: root.widgetState === "empty" ? root.emptyText : root.label
+        font.pixelSize: root._fontLabel
+        font.weight: root._weightBody
+        color: Colours.onSurfaceVariant
+    }
+
+    Text {
+        id: detailLine
+        anchors.top: captionLine.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        height: Math.ceil(font.pixelSize * 1.5)
+        verticalAlignment: Text.AlignVCenter
+        // Only populated ever shows a detail line — pending/empty leave it
+        // blank but still occupying its reserved height.
+        text: root.widgetState === "populated" ? root.detailText : ""
+        font.pixelSize: root._fontLabel
+        font.weight: root._weightBody
+        color: Colours.onSurfaceVariant
+    }
 }
