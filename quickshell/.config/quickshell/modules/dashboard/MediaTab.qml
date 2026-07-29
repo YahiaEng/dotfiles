@@ -263,6 +263,52 @@
 //      string itself is still assigned only from the backend's `playing`
 //      predicate (D-22's truth-driven rule, untouched) — `glyphStack`
 //      purely animates the PRESENTATION of that already-truthful change.
+//
+// ── Render-gate round 6 fix (2026-07-29) ─────────────────────────────────
+// Round 5 was accepted on the dropdown-position fix and REJECTED again on
+// play/pause: "No, still laggy." Round 5's diagnosis (FILL-axis reshape
+// cost) was real but incomplete — this round MEASURED rather than guessed
+// again, per the render-gate directive, and found the actual dominant
+// cause is backend latency, not render cost:
+//
+//   `btn.glyph` for the emphasized transport button was bound straight to
+//   `root.mediaBackend.playing`, which is itself derived from
+//   `media-status.sh watch`'s streamed payload. That script's `cmd_watch`
+//   loop is a 1Hz change-detect poll (`POLL_INTERVAL=1`, a `sleep 1`
+//   after every check) — deliberately chosen over a `playerctl -F`
+//   follower per its own header comment, for free re-targeting on player
+//   switch. Measured live on this machine: a parallel `media-status.sh
+//   watch` timestamp log against a `playerctl play-pause` issued at a
+//   known instant showed the changed `status` line landing 976ms later —
+//   essentially the full poll interval. Every one of round 5's render
+//   optimizations (instant `fillProgress`, the two-`Text`-item GPU
+//   crossfade) were sound and are KEPT unchanged, but they only ever
+//   controlled how cheaply the glyph swap PAINTS once `btn.glyph`
+//   actually changes value — and `btn.glyph` itself was arriving up to a
+//   second late relative to the click, a latency no render fix could ever
+//   hide. That is candidate (c) from this round's diagnosis directives
+//   (backend/MPRIS round-trip latency), confirmed by measurement rather
+//   than assumed.
+//
+//   Fixed with optimistic UI, entirely in this file's own presentation
+//   layer: `_pendingPlaying`/`_pendingPlayingValue`/`effectivePlaying`
+//   (declared near `seekDragging` above) latch the OPPOSITE of whatever
+//   is currently showing the instant the button is pressed
+//   (`requestPlayPause()`, now what `onActivated` calls instead of
+//   dispatching `mediaBackend.playPause()` directly), so the glyph swaps
+//   on the same frame as the click rather than waiting for the next poll
+//   tick. The prediction is bounded and self-correcting, never a
+//   permanent override: it drops the instant the real backend value
+//   arrives and agrees (the common case, ~1s later, no visible jump since
+//   the values already match by then), and it also drops on its own after
+//   `_pendingPlayingTimeoutMs` (2500ms — comfortably past the ~1s normal
+//   poll delay) if the backend never confirms, so a genuinely
+//   failed/refused play-pause command self-corrects back to whatever the
+//   player is actually doing rather than showing a permanently wrong
+//   glyph. `MediaBackend.qml` itself is UNCHANGED — its D-22 truth-driven
+//   rule ("none of these functions assigns any rendered state") still
+//   holds exactly as written; the prediction lives only in this tab's own
+//   rendering layer, and always reconciles with backend truth.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Shapes
@@ -361,6 +407,64 @@ Item {
     // while dragging, the slider stops following the incoming one-second
     // stream tick, and on release issues one seek through the backend.
     property bool seekDragging: false
+
+    // ── Round-6 fix: optimistic play/pause state (see file header) ──────
+    // Measured on this machine: `media-status.sh watch`'s change-detect
+    // poll (`cmd_watch`'s `sleep "$POLL_INTERVAL"`, POLL_INTERVAL=1)
+    // takes ~1000ms worst case between a `playerctl play-pause` actually
+    // landing and the watcher re-emitting the changed `status` field —
+    // confirmed live: a `playerctl play-pause` issued at T, watched
+    // against a parallel `media-status.sh watch` timestamp log, showed
+    // the "Paused" line arriving 976ms later. `btn.glyph` below used to
+    // bind straight to `root.mediaBackend.playing`, so the glyph itself
+    // was always up to ~1s behind the click — no amount of cheapening
+    // the CROSSFADE's render cost (round 5's fix, still correct and kept)
+    // could ever hide a source value that arrives late. This block is a
+    // bounded, self-correcting PREDICTION layered on top, entirely in
+    // this tab's own presentation code — `MediaBackend.qml`'s D-22
+    // truth-driven rule is untouched, it still never assigns any
+    // rendered state itself.
+    //
+    // On press, `_pendingPlaying` latches the OPPOSITE of whatever
+    // `effectivePlaying` currently reads and the glyph swaps on the same
+    // frame as the click. The latch is never a permanent override: the
+    // moment the real backend `playing` value arrives and agrees with
+    // the prediction, the latch drops and `effectivePlaying` is once
+    // again reading straight off backend truth (no visible change, since
+    // the values now match). If the backend's own poll never confirms
+    // the swap within `_pendingPlayingTimeoutMs` — a genuinely
+    // failed/refused command, as opposed to this machine's normal ~1s
+    // poll delay — the latch also drops on its own, falling back to
+    // whatever the backend actually reports, so a rejected command
+    // self-corrects rather than showing a permanently wrong glyph.
+    property bool _pendingPlaying: false
+    property bool _pendingPlayingValue: false
+    readonly property int _pendingPlayingTimeoutMs: 2500
+    readonly property bool backendPlaying: root.mediaBackend ? root.mediaBackend.playing : false
+    readonly property bool effectivePlaying: root._pendingPlaying ? root._pendingPlayingValue : root.backendPlaying
+
+    onBackendPlayingChanged: {
+        if (root._pendingPlaying && root.backendPlaying === root._pendingPlayingValue) {
+            root._pendingPlaying = false;
+            pendingPlayingTimer.stop();
+        }
+    }
+
+    function requestPlayPause() {
+        if (!root.mediaBackend)
+            return;
+        root._pendingPlayingValue = !root.effectivePlaying;
+        root._pendingPlaying = true;
+        pendingPlayingTimer.restart();
+        root.mediaBackend.playPause();
+    }
+
+    Timer {
+        id: pendingPlayingTimer
+        interval: root._pendingPlayingTimeoutMs
+        repeat: false
+        onTriggered: root._pendingPlaying = false
+    }
 
     // ── One layout, two content states — the whole of D-41 ──────────────
     // Art-left / details-right, per the redesign header above. Both
@@ -1130,11 +1234,14 @@ Item {
                     }
                     TransportButton {
                         anchors.verticalCenter: parent.verticalCenter
-                        glyph: (root.mediaBackend && root.mediaBackend.playing) ? "pause" : "play_arrow"
+                        // Round-6: reads the optimistic prediction, not the
+                        // raw backend value directly — see the file header
+                        // and `effectivePlaying`'s own definition above.
+                        glyph: root.effectivePlaying ? "pause" : "play_arrow"
                         emphasized: true
                         pillShape: true
                         controlEnabled: root.hasPlayer
-                        onActivated: if (root.mediaBackend) root.mediaBackend.playPause()
+                        onActivated: root.requestPlayPause()
                     }
                     TransportButton {
                         anchors.verticalCenter: parent.verticalCenter
