@@ -1,7 +1,7 @@
 ---
 phase: 14
 slug: dashboard-drawer
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-29
@@ -106,23 +106,58 @@ Accent reserved for: active tab indicator, lit toggle chips (Gaming/DND/Dark whe
 
 ## UI Considerations
 
-> DASH-01..08's async/empty/pending state coverage was already resolved in exhaustive detail during `/gsd-discuss-phase` (D-22, D-33, D-41 above) — this section cross-references those decisions under the probe's standard vocabulary rather than re-deriving them.
+> Post-verification `ui-consideration-probe` run (2026-07-29) over 6 surfaces (drawer chrome/tab bar, Dashboard tab, Media tab, Performance tab, Weather tab, toggle grid): 46 applicable considerations. Element kinds user-confirmed complete. Most resolutions cross-reference decisions already locked in `14-CONTEXT.md` (D-22, D-33, D-41 etc.); three gaps were newly specified by the user during the probe (marked **new**). Empty/error-state COPY lives in `## Copywriting Contract` above — rows here reference it rather than restating it.
 
-Applicable state considerations resolved: 9 covered, 2 backstop, 0 unresolved.
+Applicable: 46 — **27 covered, 4 backstop, 15 dismissed, 0 unresolved.**
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | Media tab (no active player) | ✅ covered | D-41: quiet Material Symbol + "Nothing playing" line, transport controls present-but-disabled, widget slot never disappears |
-| empty | Weather tab (no cache ever fetched) | ✅ covered | D-33: designed placeholder inside the intact fixed frame (D-04), not a blank/broken tab |
-| empty | Battery dial (no hardware, verified this machine) | ✅ covered | D-41 pattern applied to the one empty state that IS locally verifiable per 14-RESEARCH.md Pitfall 3 — "No battery" quiet placeholder |
-| pending | All 3 mirrored toggle chips + motion-scale row | ✅ covered | D-22: press acknowledges instantly (ripple + pending pulse), committed state renders only on confirmed backend change, chip disabled while pending |
-| stale/degraded | Weather current-conditions block | ✅ covered | D-33: calm stale-as-normal, "updated Nh ago" badge at current-conditions block only (forecast stays self-consistent), quiet→warning tone at ~1h/~6h thresholds |
-| error (malformed data) | Media JSON stream, Open-Meteo response, weather cache file | ✅ covered | 14-RESEARCH.md Security Domain V5: every `JSON.parse` wrapped in try/catch, default-safe fallback to last-good or empty-state — matches `Colours.qml`/`Motion.qml`'s existing fallback discipline |
-| overflow | Weather hour strip | ✅ covered | D-37: fixed 8-column, explicitly NOT scrollable — overflow is structurally impossible by design (only 8 of N hourly entries ever rendered) |
-| overflow | Calendar month grid | ✅ covered | D-34: pure display-only month grid, fixed 6-row-max layout is standard calendar geometry, no unbounded content |
-| long-text | Media track title/artist | 🧪 backstop | No explicit truncation rule recorded in CONTEXT.md — MD3 convention (single-line elide with `Text.ElideRight`) is the expected default; render gate must confirm a long real-world track/artist string doesn't break the fixed-height frame (D-04) |
-| zero-one-many | Toggle grid states (0/1/2/3 chips active simultaneously) | ✅ covered | D-25: each of the 3 chips is an independent boolean (Gaming/DND/Dark can be any combination); D-24's motion-scale row is a single-select segmented control, not additive — no combinatorial edge case beyond independent toggles |
-| long-text | Weather condition strings / forecast day labels | 🧪 backstop | WMO code → Material Symbol + short label mapping (14-RESEARCH.md's "Don't Hand-Roll" table) should stay short by construction (~30 fixed codes), but no explicit max-width/truncation rule was recorded — render gate should confirm no label overflows its fixed hour/day-row cell |
+### Covered (truth statements)
+
+| Category | Element(s) | Resolution |
+|----------|------------|------------|
+| empty | Media tab / Dashboard compact media widget (no active player) | D-41: quiet Material Symbol + "Nothing playing" line (see Copywriting Contract), transport present-but-disabled, widget slot never disappears |
+| empty | Weather tab (no cache ever fetched) | D-33: "Weather unavailable" designed placeholder inside the intact fixed frame (D-04), not a blank/broken tab |
+| empty | Battery dial (no hardware — verified this machine) | D-41 pattern, "No battery" quiet placeholder — the one locally verifiable empty state per 14-RESEARCH.md Pitfall 3 |
+| loading (pending) | 3 mirrored toggle chips + motion-scale row | D-22: instant press acknowledgment (ripple + pending pulse), committed state renders only on confirmed backend change, chip disabled while pending |
+| loading | Media cover art (async file/URL from MPRIS metadata) | **new:** art slot is fixed-size; quiet Material Symbol placeholder shows until art loads — zero layout shift |
+| loading | Weather first fetch in-flight | No-cache placeholder persists until data lands; with cache, last-good renders immediately with D-33's staleness badge — no spinner state exists |
+| loading | Dashboard tab local sources (calendar, resources, toggles) | Local/synchronous — render immediately or fall through to the quiet placeholder register; no skeleton/spinner |
+| error | Toggle backend change never confirms (script hangs/fails) | **new:** pending pulse times out (~3s) and the chip reverts quietly to the last backend-confirmed state — no error dialog, calm-failure register (D-33/D-41) |
+| error | Media JSON stream, Open-Meteo response, weather cache file (malformed) | 14-RESEARCH.md Security Domain V5: every `JSON.parse` in try/catch, default-safe fallback to last-good or empty state — matches `Colours.qml`/`Motion.qml` discipline |
+| error | Weather hard fetch failure past the stale-grace path | D-33 + Color section: `Colours.error` reserved for genuine failure only; routine staleness stays on the calm→warning badge |
+| error | Performance local script/kernel reads fail | Falls through to the quiet empty placeholder — never a scary error string (Copywriting Contract) |
+| stale/degraded | Weather current-conditions block | D-33: calm stale-as-normal, "Updated Nh ago" badge on current-conditions only, quiet→warning tone at ~1h/~6h thresholds |
+| partial | Media metadata partial fields (title w/o artist, no cover art — streams/browser players) | **new:** per-field fallback — missing art → placeholder icon in reserved slot; missing artist → line omitted without collapsing the fixed frame; missing title → player name; never raw empty strings |
+| partial | Weather response partially valid | V5 validation path: partial/malformed payload → last-good cache or empty state, never a half-rendered tab (forecast stays self-consistent per D-33) |
+| partial | Performance dials (battery absent, others present) | The battery-absent case IS the partial state — "No battery" placeholder while other dials render normally (D-41) |
+| populated | Drawer chrome / tab bar | D-15..D-19: fixed 4-tab order, icon+label header, indicator tracks swipe, geometry locked in Appendix |
+| populated | Dashboard tab | D-38: identity-first single column — hero → calendar → compact media → resources strip → toggle footer |
+| populated | Media tab | D-35: cover art, type stack, seek slider, Material Symbols transport, top-down priority |
+| populated | Performance tab | D-36: four MD3 circular dials + network rate row |
+| populated | Weather tab | D-37: current hero + fixed 8-column hour strip + 5-day row |
+| populated | Toggle grid | D-25/D-24: 3 uniform labeled MD3 tonal chips + single-select motion-scale segmented row |
+| overflow | Drawer frame (all tabs) | D-05: no vertical scrolling, ~10-15% vertical slack budget judged at the render gate across themes/fonts |
+| overflow | Weather hour strip | D-37: fixed 8-column, explicitly NOT scrollable — only 8 of N hourly entries ever rendered; overflow structurally impossible |
+| overflow | Calendar month grid | D-34: display-only month grid, fixed 6-row-max standard calendar geometry, no unbounded content |
+| overflow | Media tab content | Fixed-height frame (D-04) + single-line elide on text (see backstops) — no scrolling surface exists |
+| zero-one-many | Toggle grid (0/1/2/3 chips lit) | D-25: three independent booleans, any combination valid; D-24's row is single-select, not additive — no combinatorial edge beyond independent toggles |
+| zero-one-many | Weather forecast rows | Fixed counts by construction (8 hourly columns, 5 day cells) — never zero-or-variable-length |
+
+### Backstops (render-gate verification required)
+
+| Category | Element(s) | Statement | Verification |
+|----------|------------|-----------|--------------|
+| long-text | Media track title/artist (Media tab + Dashboard compact widget) | MD3 single-line elide (`Text.ElideRight`) is the expected default; no explicit truncation rule in CONTEXT.md | backstop — render gate confirms a long real-world track/artist string doesn't break the fixed-height frame (D-04) |
+| long-text | Weather condition strings / forecast day labels | WMO code → symbol + short label mapping (~30 fixed codes) stays short by construction; no max-width rule recorded | backstop — render gate confirms no label overflows its fixed hour/day-row cell |
+| long-text | Network rate values (Performance tab) | Rate text should use fixed-width formatting (e.g. `999.9 MB/s` worst case) so the row never reflows | backstop — render gate confirms the rate row holds width at max realistic values |
+| long-text | Dashboard compact media widget title | Same elide rule as the Media tab's backstop, at compact width | backstop — render gate confirms compact-width elide |
+
+### Dismissed (structurally inapplicable — reason recorded)
+
+- **Drawer chrome/tab bar** — empty/loading/error/partial/zero-one-many/long-text: static chrome; 4 fixed tabs with fixed short labels, no data dependency, renders synchronously.
+- **Dashboard tab** — zero-one-many: fixed widget composition, never a variable-length list.
+- **Performance tab** — loading (local `/proc`-class reads are synchronous/instant), overflow and zero-one-many (fixed 4-dial geometry).
+- **Weather tab** — zero-one-many: fixed 8-hour/5-day counts by design.
+- **Toggle grid** — empty (chips always render, D-05 audit), partial, overflow, long-text (fixed 3-chip layout, fixed short labels).
 
 ---
 
@@ -139,14 +174,14 @@ Not applicable — this is a QML/Quickshell project with no shadcn/component-reg
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: FLAG (non-blocking) — AUR `ttf-material-symbols-variable-git` is `[SUS — unverified]`; planner must insert a `checkpoint:human-verify` task before install (fallback: vendor the TTF)
 
-**Approval:** pending
+**Approval:** APPROVED by gsd-ui-checker, 2026-07-29 (5 PASS, 1 non-blocking FLAG)
 
 ---
 
