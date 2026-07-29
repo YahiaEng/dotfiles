@@ -1,20 +1,512 @@
-// QuickToggles.qml — inert toggle-grid stub (Phase 14 Plan 03, filled by
-// Plan 14-04, D-23..D-27: 3 swaync-mirrored chips — Gaming, DND, Dark —
-// plus the motion-scale segmented row).
+// QuickToggles.qml — the quick-toggle grid (Phase 14 Plan 04, D-22..D-27).
 //
-// Root type Item. Not mounted by this plan — 14-04 mounts this inside
-// DashboardTab as the tab's footer row (D-38). Left completely unsized and
-// content-free in stub form: nothing reaches for this type until 14-04
-// wires it in, so there is no drawer-frame sizing concern yet (D-04 only
-// bites once something is actually mounted).
+// Three swaync-mirrored chips (Gaming, DND, Dark) on D-22's truth-driven
+// pending model: press acknowledges instantly (ripple + pending pulse),
+// the lit state is a pure read of the exact same backend swaync's own
+// buttons-grid reads/execs (D-27) and is NEVER assigned by a press — a
+// failed/cancelled/hung backend leaves the chip on whatever the backend
+// actually holds. Task 3 adds the motion-scale segmented row beneath this
+// and mounts the whole block as the Dashboard tab's footer.
 //
-// D-41 widget-state register — "populated" / "pending" / "empty" — carried
-// on every one of this phase's nine modules/dashboard/ files.
+// ── Design constants — NOT read off `dashboardWindow` ───────────────────
+// Dashboard.qml's header comment states plans 14-03..14-08 should read its
+// spacing/type-scale/icon constants off `dashboardWindow` instead of
+// re-declaring them. That mechanism does not actually exist yet: `id`-based
+// lookup in QML is lexical to the declaring FILE, and `DashboardTab`/
+// `QuickToggles` are separate registered component types instantiated
+// inside `dashboardWindow`'s object tree, not textually nested inside
+// Dashboard.qml — so a bare `dashboardWindow.spacingLg` reference from this
+// file would not resolve (and 14-03's own tab stubs never demonstrated
+// reaching it either: `DashboardTab.qml`'s placeholder `Text` still hardcodes
+// `font.pixelSize: 16`, not a constant read off the root). Per 14-04-PLAN.md's
+// own fallback instruction, this file declares its own copies of exactly the
+// constants it needs, sourced from 14-UI-SPEC.md's Spacing Scale/Typography
+// tables and 14-02-SUMMARY.md's recorded font family — consolidating every
+// tab onto one shared constants surface is left to 14-08's composition pass.
 import QtQuick
+import Quickshell
+import Quickshell.Io
+import "../"
 
 Item {
     id: root
 
-    // D-41: "populated" | "pending" | "empty"
-    property string widgetState: "empty"
+    // ── Constants mirrored from 14-UI-SPEC.md / dashboardWindow (see header
+    //    comment above — this file cannot reach dashboardWindow's copies). ─
+    readonly property int spacingXs: 4
+    readonly property int spacingSm: 8
+    readonly property int spacingMd: 16
+    readonly property int fontLabel: 12
+    readonly property int iconSizeMd: 24
+    // Exact installed family string, per 14-02-SUMMARY.md's registration.
+    readonly property string symbolFontFamily: "Material Symbols Rounded"
+    // 14-02-SUMMARY.md's live-measured verdict: `fill-axis-renders` — Qt
+    // 6.11.1 genuinely drives this font's FILL variable axis on this build.
+    // Re-verified directly this plan (throwaway qml6 grabToImage proof,
+    // FILL:0 vs FILL:1 visually distinct outline-vs-filled glyphs) before
+    // being relied on below. If a future build ever regresses this, flip
+    // this one property to fix the lit-state language back to a static
+    // glyph weight — nothing else in this file needs to change.
+    readonly property bool fillAxisAvailable: true
+
+    readonly property int chipHeight: 72
+    readonly property int chipRadius: 16
+
+    property string homeDir: Quickshell.env("HOME")
+
+    // D-41 widget-state register — the shared three-name vocabulary every
+    // modules/dashboard/ file carries. "empty" is kept in the vocabulary
+    // list below purely for register consistency: it is structurally
+    // inapplicable to this widget (14-UI-SPEC.md's Dismissed section:
+    // "Toggle grid — empty: chips always render, D-05 audit") since every
+    // chip has a hard-coded default for a missing backend file, so
+    // `widgetState` itself never actually takes that value.
+    readonly property var widgetStateVocabulary: ["populated", "pending", "empty"]
+    readonly property string widgetState: pendingChip !== "" ? "pending" : "populated"
+
+    implicitHeight: chipsRow.height
+    implicitWidth: 0 // no meaningful own width — the mounting parent (14-08) sizes this via anchors
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Backend truth table (D-27) — verified against swaync/config.json's
+    // `buttons-grid.actions` (post Task-1 flip) directly in this plan's
+    // read_first pass. Each row below is a side-by-side comparison, kept
+    // here as the SUMMARY's source of truth for its own copy of this table:
+    //
+    //   Gaming — swaync: exec `gaming-mode-toggle.sh`,
+    //            read `cat ~/.cache/gaming-mode 2>/dev/null || echo off`,
+    //            lit iff value == "on".
+    //            QML: same script, same path, same "off" default, same
+    //            "on" lit test (gamingState below).
+    //   DND    — swaync: exec `swaync-client -dn`/`-df` (explicit on/off
+    //            pair, chosen by swaync's own prior toggle state), read
+    //            `swaync-client -D`.
+    //            QML: same explicit on/off pair chosen by the CURRENT
+    //            watched dndState (dnd-on when unlit, dnd-off when lit),
+    //            same read surface (subscribe stream + `-D` poll fallback,
+    //            see below) — never the single unconditional toggle verb.
+    //   Dark   — swaync (post Task-1 flip): exec `theme-switch.sh`,
+    //            read `cat ~/.local/state/theme/mode 2>/dev/null || echo dark`,
+    //            lit iff value == "dark".
+    //            QML: same script, same path, same "dark" default, same
+    //            "dark" lit test (darkState below). theme-switch.sh takes
+    //            no arguments and opens a walker palette picker — pressing
+    //            this chip launches walker, walker takes focus, D-13's
+    //            focus-loss rule dismisses the drawer, and the pending
+    //            affordance dies with the destroyed surface. This is
+    //            implemented exactly as D-27 specifies (verified from
+    //            config) rather than "improved" into a direct flip: no
+    //            such backend exists, and inventing one would be the
+    //            second source of truth DASH-07 forbids. Carried to the
+    //            render gate (Task 4) for the user to accept or reject.
+    // ═══════════════════════════════════════════════════════════════════
+
+    // ── Gaming state reader (bare FileView, Probe.qml's shape) ──────────
+    FileView {
+        id: gamingFile
+        path: root.homeDir + "/.cache/gaming-mode"
+        watchChanges: true
+        onFileChanged: reload()
+    }
+    readonly property string gamingRaw: (gamingFile.text() || "").trim()
+    readonly property bool gamingState: (gamingRaw.length > 0 ? gamingRaw : "off") === "on"
+
+    // ── Dark (theme mode) state reader — same shape ─────────────────────
+    FileView {
+        id: modeFile
+        path: root.homeDir + "/.local/state/theme/mode"
+        watchChanges: true
+        onFileChanged: reload()
+    }
+    readonly property string modeRaw: (modeFile.text() || "").trim()
+    readonly property bool darkState: (modeRaw.length > 0 ? modeRaw : "dark") === "dark"
+
+    // ── DND state — the one source with no file to watch. Long-form
+    //    `--subscribe` (not `-s`) so the process is unambiguously
+    //    identifiable by name for the zero-idle-footprint lifetime
+    //    assertion (D-14, T-14-16). Every line is one JSON object
+    //    (`{ "count", "dnd", "visible", "inhibited" }`, verified live this
+    //    plan by toggling DND while subscribed) parsed defensively — a
+    //    malformed/truncated line or a missing `dnd` field leaves the last
+    //    known value standing rather than reading as unlit (14-RESEARCH.md
+    //    Security Domain V5, matching Colours.qml/Motion.qml's discipline).
+    property bool dndState: false
+
+    // OQ1 verdict (14-RESEARCH.md Open Question 1 / D-27's named
+    // research-verify item): **subscribe-emits-dnd**. Live-observed this
+    // plan: `swaync-client --subscribe` was started, then DND was flipped
+    // via `swaync-client -dn`/`-df` from OUTSIDE any drawer instance, and
+    // the subscribe stream emitted a fresh `{"dnd":true,...}` /
+    // `{"dnd":false,...}` line for every flip with no polling involved.
+    // The polling fallback below is still wired (not merely described) in
+    // case a future swaync build or config regresses this, guarded by the
+    // grace flag so it never arms while subscribe is doing its job.
+    property bool dndSubscribeSeen: false
+
+    Process {
+        id: dndSubscribeProcess
+        running: true
+        command: ["swaync-client", "--subscribe"]
+        stdout: SplitParser {
+            onRead: (line) => {
+                try {
+                    const payload = JSON.parse(line);
+                    if (payload && typeof payload.dnd === "boolean") {
+                        root.dndState = payload.dnd;
+                        root.dndSubscribeSeen = true;
+                    }
+                } catch (e) {
+                    // malformed/truncated line — keep the last-good value
+                }
+            }
+        }
+    }
+
+    // One-shot grace window: if subscribe hasn't produced a single valid
+    // line by the time this fires, arm the poller. Deliberately an
+    // `interval:`-keyed Timer (not a `duration:`-keyed property) — see
+    // motion-lint's CHECK B regex, which only anchors on `duration\s*:`.
+    Timer {
+        id: dndSubscribeGraceTimer
+        interval: 4000
+        running: true
+        repeat: false
+        onTriggered: {
+            if (!root.dndSubscribeSeen)
+                dndPollTimer.running = true;
+        }
+    }
+
+    Process {
+        id: dndPollProcess
+        running: false
+        command: ["swaync-client", "-D"]
+        stdout: SplitParser {
+            onRead: (line) => {
+                const v = line.trim();
+                if (v === "true" || v === "false")
+                    root.dndState = (v === "true");
+            }
+        }
+    }
+
+    Timer {
+        id: dndPollTimer
+        interval: 2000
+        running: false
+        repeat: true
+        onTriggered: dndPollProcess.running = true
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // The pending model (D-22) — ONE property naming which chip (if any)
+    // is currently in flight. The lit state above is read-only and never
+    // assigned by a press; this is the whole of what makes drift between
+    // the two grids structurally impossible.
+    // ═══════════════════════════════════════════════════════════════════
+    property string pendingChip: "" // "" | "gaming" | "dnd" | "dark"
+
+    // Backend watchdog — NOT a motion token: a timeout riding the
+    // motion-scale axis would collapse to zero at `off` and revert a chip
+    // before any backend could ever answer. ~3s per 14-UI-SPEC.md's pending
+    // row. Declared as a Timer `interval`, deliberately not a `duration:`
+    // property, for the same motion-lint CHECK B reason noted above.
+    readonly property int chipTimeoutMs: 3000
+
+    Timer {
+        id: chipWatchdogTimer
+        interval: root.chipTimeoutMs
+        repeat: false
+        onTriggered: root.pendingChip = ""
+    }
+
+    onGamingStateChanged: if (root.pendingChip === "gaming") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
+    onDarkStateChanged: if (root.pendingChip === "dark") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
+    onDndStateChanged: if (root.pendingChip === "dnd") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
+
+    // ── Command construction (T-14-13) — every command below is a fixed
+    //    argv array. Its only computed element is the home-prefixed script
+    //    path; every other element is a double-quoted literal. No value
+    //    read from any state source or process output ever reaches a
+    //    command array, and nothing is handed to a shell interpreter. ─────
+    Process {
+        id: gamingProcess
+        running: false
+        command: [root.homeDir + "/.config/hypr/scripts/gaming-mode-toggle.sh"]
+    }
+    Process {
+        id: dndProcess
+        running: false
+        command: ["swaync-client", "-dn"]
+    }
+    Process {
+        id: darkProcess
+        running: false
+        command: [root.homeDir + "/.config/hypr/scripts/theme-switch.sh"]
+    }
+
+    function pressGaming() {
+        if (root.pendingChip !== "")
+            return;
+        root.pendingChip = "gaming";
+        chipWatchdogTimer.restart();
+        gamingProcess.running = true;
+    }
+
+    function pressDnd() {
+        if (root.pendingChip !== "")
+            return;
+        root.pendingChip = "dnd";
+        chipWatchdogTimer.restart();
+        // The explicit on/off pair, chosen by the CURRENT watched state —
+        // dnd-on when unlit, dnd-off when lit — never the single
+        // unconditional toggle verb (D-27's own phrasing).
+        dndProcess.command = root.dndState ? ["swaync-client", "-df"] : ["swaync-client", "-dn"];
+        dndProcess.running = true;
+    }
+
+    function pressDark() {
+        if (root.pendingChip !== "")
+            return;
+        root.pendingChip = "dark";
+        chipWatchdogTimer.restart();
+        darkProcess.running = true;
+    }
+
+    function chipLitFor(name) {
+        switch (name) {
+        case "gaming": return root.gamingState;
+        case "dnd": return root.dndState;
+        case "dark": return root.darkState;
+        }
+        return false;
+    }
+
+    function pressChipByName(name) {
+        switch (name) {
+        case "gaming": pressGaming(); break;
+        case "dnd": pressDnd(); break;
+        case "dark": pressDark(); break;
+        }
+    }
+
+    // ── Chips (D-25) — swaync's own order: Gaming, DND, Dark. Glyph picks
+    //    are discretion (all Material Symbols Rounded ligature names,
+    //    live-confirmed to render as real glyphs, not tofu, via a
+    //    throwaway qml6 grabToImage proof this plan): a game controller for
+    //    Gaming, a do-not-disturb circle for DND (the lit-direction glyph
+    //    semantics are explicitly discretion in CONTEXT — one static glyph
+    //    name is shown regardless of state, with FILL/colour carrying the
+    //    lit/unlit language, matching the Gaming/Dark chips' own treatment
+    //    rather than swapping to a second "_off" glyph name), and a
+    //    crescent moon for Dark. ────────────────────────────────────────
+    readonly property var chipModel: [
+        { name: "gaming", label: "Gaming", glyph: "sports_esports" },
+        { name: "dnd", label: "DND", glyph: "do_not_disturb_on" },
+        { name: "dark", label: "Dark", glyph: "dark_mode" }
+    ]
+
+    // One inline component definition — all three chips are the same
+    // object with different data (name/label/glyph), per the plan's own
+    // "one inline component defining a chip" instruction.
+    component ToggleChip: Item {
+        id: chipItem
+
+        property string chipName: ""
+        property string chipLabel: ""
+        property string chipGlyph: ""
+        readonly property bool lit: root.chipLitFor(chipName)
+        readonly property bool pending: root.pendingChip === chipName
+
+        // Smoothly interpolated 0..1 lit progress — drives both the
+        // container's tonal fill (via the Behavior below) and, when the
+        // FILL axis is available, the glyph's own outline-to-filled
+        // interpolation. Both effects ride the SAME standard motion pair
+        // (Probe.qml's Behavior-on-color shape) so they land together.
+        property real litProgress: lit ? 1 : 0
+        Behavior on litProgress {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
+
+        Rectangle {
+            id: container
+            anchors.fill: parent
+            radius: root.chipRadius
+            clip: true
+            color: chipItem.lit ? Colours.primary : Colours.surfaceVariant
+            Behavior on color {
+                enabled: Motion.motionEnabled
+                ColorAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
+
+            // ── MD3 state layer — ripple + pending pulse, both clipped to
+            //    the container's rounded shape. ─────────────────────────
+            Rectangle {
+                id: rippleCircle
+                width: 0
+                height: 0
+                radius: width / 2
+                color: chipItem.lit ? Colours.onPrimary : Colours.onSurfaceVariant
+                opacity: 0
+            }
+
+            Rectangle {
+                id: pendingPulseLayer
+                anchors.fill: parent
+                radius: parent.radius
+                color: chipItem.lit ? Colours.onPrimary : Colours.onSurfaceVariant
+                opacity: 0
+                visible: chipItem.pending
+
+                SequentialAnimation {
+                    id: pendingPulseAnim
+                    running: chipItem.pending && Motion.motionEnabled
+                    loops: Animation.Infinite
+                    NumberAnimation {
+                        target: pendingPulseLayer
+                        property: "opacity"
+                        from: 0.0
+                        to: 0.16
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                    NumberAnimation {
+                        target: pendingPulseLayer
+                        property: "opacity"
+                        from: 0.16
+                        to: 0.0
+                        duration: Motion.emphasizedOutDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedOutEasing
+                    }
+                }
+                // At `off` motion scale Motion.motionEnabled is false, so
+                // this whole animation never runs — the pending affordance
+                // at `off` is carried by the non-interactive appearance
+                // alone (see MouseArea.enabled below). A chip that looks
+                // identical pending and idle at `off` is intentional, not
+                // a bug: recorded here so the next reader finds this
+                // decision rather than re-discovering it.
+            }
+
+            Column {
+                anchors.centerIn: parent
+                spacing: root.spacingXs
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: chipItem.chipGlyph
+                    font.family: root.symbolFontFamily
+                    font.pixelSize: root.iconSizeMd
+                    // FILL-axis branch: 14-02 recorded `fill-axis-renders`
+                    // live on this build, so the glyph itself interpolates
+                    // outline->filled together with the container's tonal
+                    // fill above. If `root.fillAxisAvailable` were ever
+                    // false, this binding is skipped entirely and the
+                    // glyph stays at one static weight, relying on the
+                    // container fill alone for the lit-state language (the
+                    // alternative 14-02 handed forward).
+                    font.variableAxes: root.fillAxisAvailable ? { "FILL": chipItem.litProgress } : ({})
+                    color: chipItem.lit ? Colours.onPrimary : Colours.onSurfaceVariant
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: chipItem.chipLabel
+                    font.pixelSize: root.fontLabel
+                    color: chipItem.lit ? Colours.onPrimary : Colours.onSurfaceVariant
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+                }
+            }
+
+            MouseArea {
+                id: mouseArea
+                anchors.fill: parent
+                // The literal idempotency mechanism (D-22): a chip whose
+                // name matches the pending one is non-interactive — no
+                // press event reaches this MouseArea at all while pending,
+                // so a double press produces no ripple and issues no
+                // second command.
+                enabled: !chipItem.pending
+                onPressed: (mouse) => {
+                    if (!Motion.motionEnabled)
+                        return;
+                    const d = Math.max(container.width, container.height) * 2;
+                    rippleCircle.x = mouse.x - d / 2;
+                    rippleCircle.y = mouse.y - d / 2;
+                    rippleCircle.width = 0;
+                    rippleCircle.height = 0;
+                    rippleCircle.opacity = 0.16;
+                    rippleGrowAnim.stop();
+                    rippleFadeAnim.stop();
+                    rippleGrowAnim.to = d;
+                    rippleGrowAnim.start();
+                }
+                onClicked: root.pressChipByName(chipItem.chipName)
+
+                NumberAnimation {
+                    id: rippleGrowAnim
+                    target: rippleCircle
+                    properties: "width,height"
+                    duration: Motion.emphasizedInDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedInEasing
+                    onFinished: rippleFadeAnim.start()
+                }
+                NumberAnimation {
+                    id: rippleFadeAnim
+                    target: rippleCircle
+                    property: "opacity"
+                    to: 0
+                    duration: Motion.emphasizedOutDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedOutEasing
+                }
+            }
+        }
+    }
+
+    Row {
+        id: chipsRow
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: root.chipHeight
+        spacing: root.spacingSm
+
+        Repeater {
+            model: root.chipModel
+            delegate: ToggleChip {
+                width: (chipsRow.width - root.spacingSm * (root.chipModel.length - 1)) / root.chipModel.length
+                height: chipsRow.height
+                chipName: modelData.name
+                chipLabel: modelData.label
+                chipGlyph: modelData.glyph
+            }
+        }
+    }
 }
