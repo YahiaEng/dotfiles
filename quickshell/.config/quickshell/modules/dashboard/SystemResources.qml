@@ -4,8 +4,14 @@
 // contract, kept exactly where it left them.
 //
 // This is the ONE shared instance both PerformanceTab's four dials (this
-// plan) and DashboardTab's resources strip (14-08) read — mounted once
-// inside Dashboard.qml, `drawerOpen` bound to the window's own visibility.
+// plan) and DashboardTab's resources strip (14-08) read — mounted once in
+// shell.qml as a sibling of `dashboardLoader` (round-3 render-gate
+// correction, defect B: moved OUT of Dashboard.qml, which is destroyed and
+// rebuilt by the LazyLoader on every dismiss, so a warm cache of last-known
+// readings across a close/reopen needs a mount that survives that — same
+// reasoning shell.qml already applies to MediaBackend/WeatherBackend).
+// `drawerOpen` is bound to `dashboardLoader.active`, not to this file's own
+// lifetime, since this file's own lifetime no longer ends at dismiss.
 //
 // ── Cadences (D-36) ─────────────────────────────────────────────────────
 // CPU/memory/network sample every `fastPollInterval` (~2s); storage samples
@@ -23,11 +29,19 @@
 // Every timer's `running` and the storage `Process`'s `running` bind to (or
 // are forced by) `drawerOpen` alone — nothing here starts on its own, and
 // closing the drawer kills every in-flight read (T-14-19/T-14-20). Reopening
-// re-baselines through the `resetBaselines()` call below rather than
-// resuming from a stale sample: the first fast tick after a reset only
-// establishes baselines (no CPU figure, no rate published that tick); the
-// second tick publishes real values. That is what the "pending" register
-// value is for — it is not a decorative third word.
+// re-baselines through `_clearSamplingState()` rather than resuming from a
+// stale sample: the first fast sample after a reset only establishes
+// baselines (no CPU figure, no rate published that sample); the next one
+// (primed in ~400ms later — see round-3 note on `onDrawerOpenChanged`, not
+// left to wait for `fastTimer`'s own ~2s cadence) publishes real values.
+//
+// Round-3 warm-start addendum: only the reader's TRUE first-ever run
+// (Component.onCompleted, once per session) resets the D-41 registers and
+// published values to "pending"/zero. Every SUBSEQUENT re-summon leaves the
+// last-known values and registers standing (a warm cache) while the primed
+// samples above refresh them — so a repeat open reads instantly rather than
+// flashing back to pending. That is what "pending" is for on first run only;
+// it is not replayed on every open.
 //
 // ── Defensive parsing (Security V5, T-14-19) ────────────────────────────
 // Every kernel-text parse below is wrapped in try/catch with an explicit
@@ -119,15 +133,14 @@ Scope {
     property var _cpuSamples: []
     property var _netPrev: null // { rx, tx, ts }
 
-    // Clears every stored baseline and drops every per-metric register back
-    // to "pending" — called from Component.onCompleted and from
-    // onDrawerOpenChanged in BOTH directions, so the reader is equally
-    // clean whether it is torn down and rebuilt (a fresh instance) or
-    // merely gated (this one, mounted once at the drawer root).
+    // Clears every stored baseline AND drops every per-metric register back
+    // to "pending" — the full first-run reset. Called ONLY from
+    // Component.onCompleted, i.e. exactly once per session, since nothing is
+    // cached yet the very first time this reader exists. A re-summon later
+    // in the session does NOT call this — see `_clearSamplingState()` below
+    // and the round-3 warm-cache note on `onDrawerOpenChanged`.
     function resetBaselines() {
-        root._cpuPrevTotals = null;
-        root._cpuSamples = [];
-        root._netPrev = null;
+        root._clearSamplingState();
         root.cpuState = "pending";
         root.memoryState = "pending";
         root.networkState = "pending";
@@ -135,23 +148,80 @@ Scope {
         root.widgetState = "pending";
     }
 
+    // Round-3 render-gate defect B ("takes a few seconds for the readings
+    // to come in, CPU last — reads as clunky"). Clears ONLY the internal
+    // delta-tracking baselines that CPU/network correctness requires on
+    // every re-summon (the untouchable invariant: a rate/fraction must
+    // never be computed as an average smeared across the whole time the
+    // drawer sat closed) — and deliberately leaves every PUBLISHED metric
+    // and D-41 register standing exactly as it was. That is the warm
+    // cache: a repeat open shows last-known values instantly instead of
+    // flashing back to "pending"/"—", while a genuinely fresh sample is
+    // primed in behind it (see onDrawerOpenChanged) and glides onto screen
+    // via Dial.qml's existing motion-token Behavior once it lands.
+    function _clearSamplingState() {
+        root._cpuPrevTotals = null;
+        root._cpuSamples = [];
+        root._netPrev = null;
+    }
+
     Component.onCompleted: root.resetBaselines()
 
+    // Round-3 warm-start priming: a re-summon re-baselines the DELTA state
+    // (never the displayed values — see `_clearSamplingState()` above) and
+    // then immediately fires two samples rather than waiting for
+    // `fastTimer`'s own next tick, which would otherwise land a full
+    // `fastPollInterval` (~2s) later and, since CPU/network are delta-based,
+    // need a SECOND tick after that before their first real figure exists —
+    // "a few seconds, CPU last" was exactly this wait made visible.
+    //   Sample #1 (synchronous, below): establishes the fresh CPU/network
+    //     baseline (publishes nothing new for either — by design, see
+    //     `sampleFast()`) while ALSO publishing a live memory figure
+    //     immediately, since memory needs no delta at all.
+    //   Sample #2 (`primeTimer`, ~400ms later): a SHORT first delta window
+    //     — long enough for a real, if slightly noisy, CPU/network read,
+    //     short enough that first paint lands well under a second — after
+    //     which `fastTimer` (already running since the block below) takes
+    //     over on the normal ~2s cadence.
+    // First-EVER open (nothing cached yet) can still show dials filling in
+    // from empty — that is fine and expected. It is the repeat-open case
+    // this priming makes feel instant.
     onDrawerOpenChanged: {
-        root.resetBaselines();
-        if (root.drawerOpen && !root._hwmonDiscoveryDone) {
-            // One-shot hwmon path discovery, fired on the first real open
-            // only — never again afterwards, cached in `_cpuTempPath`
-            // (zero-idle doctrine: a day the drawer is never summoned
-            // spawns nothing).
-            hwmonDiscoveryProcess.running = true;
-        }
-        if (!root.drawerOpen) {
+        if (root.drawerOpen) {
+            root._clearSamplingState();
+            root.sampleFast();
+            primeTimer.restart();
+            if (!root._hwmonDiscoveryDone) {
+                // One-shot hwmon path discovery, fired on the first real
+                // open only — never again afterwards, cached in
+                // `_cpuTempPath` (zero-idle doctrine: a day the drawer is
+                // never summoned spawns nothing).
+                hwmonDiscoveryProcess.running = true;
+            }
+        } else {
             // Force the storage subprocess dead the instant the drawer
             // closes so an in-flight `df` read cannot outlive this surface
             // (T-14-20) — a torn-down consumer receiving a late collector
             // signal is a use-after-teardown hazard, not merely wasted work.
             storageProcess.running = false;
+            // The priming sample is single-shot and already guards itself
+            // on `drawerOpen` (see below), but stopping it here too means a
+            // rapid close-then-reopen never leaves a stale one-shot armed
+            // from the PREVIOUS open still pending.
+            primeTimer.stop();
+        }
+    }
+
+    // Round-3: the short first CPU/network delta window (300-500ms) named
+    // in the checkpoint — deliberately NOT `fastPollInterval`, which stays
+    // the steady-state ~2s cadence untouched below.
+    Timer {
+        id: primeTimer
+        interval: 400
+        repeat: false
+        onTriggered: {
+            if (root.drawerOpen)
+                root.sampleFast();
         }
     }
 

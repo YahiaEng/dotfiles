@@ -254,6 +254,11 @@ PanelWindow {
     // (see 14-03-PLAN.md's "Scope correction carried by this plan").
     property var mediaBackend: null
     property var weatherBackend: null
+    // Round-3 render-gate correction (14-06, defect B): moved here from a
+    // local instantiation below — see shell.qml's own `systemResourcesInstance`
+    // for why. Same passed-in-property shape as `mediaBackend`/`weatherBackend`
+    // immediately above.
+    property var systemResources: null
 
     Component.onCompleted: pager.setCurrentIndex(dashboardWindow.initialTabIndex)
 
@@ -284,29 +289,35 @@ PanelWindow {
     }
 
     // One shared resource reader for PerformanceTab's dials (14-06) and
-    // DashboardTab's resources strip (14-08) — mounted here, not at the
-    // shell root, since it is drawer content: destroy-on-dismiss stopping
-    // its polling is the correct lifetime (D-36 "polling only while the
-    // drawer is open"). drawerOpen tracks the window's own visibility.
+    // DashboardTab's resources strip (14-08).
     //
-    // Deliberately id'd `sharedSystemResources`, NOT `systemResources` (14-06
-    // deviation, live-found and fixed): both DashboardTab.qml and
-    // PerformanceTab.qml declare their own `property var systemResources`,
-    // and a same-named `systemResources: systemResources` binding below
-    // resolves its RHS to THAT tab's own not-yet-assigned property first
-    // (QML's innermost-scope-wins lookup, the same mechanism that lets
-    // `implicitHeight: implicitWidth` work) rather than reaching out to
-    // this id — a silent self-referencing no-op that leaves every tab's
-    // `systemResources` permanently null. Reproduced live: PerformanceTab's
-    // `hasReader` read `false` forever with the identically-named id, fixed
-    // by this rename with no other change. Neither tab's own property name
-    // changes — only this id, so 14-08's DashboardTab wiring (the other
-    // `systemResources: systemResources` site below) is fixed by the same
-    // rename rather than hitting the identical bug independently later.
-    SystemResources {
-        id: sharedSystemResources
-        drawerOpen: dashboardWindow.visible
-    }
+    // Round-3 render-gate correction (defect B, "warm cache across opens"):
+    // this used to be instantiated HERE, gated on `dashboardWindow.visible`
+    // — but this whole window is itself destroyed and rebuilt by shell.qml's
+    // LazyLoader on every dismiss (D-14), so an instance mounted here can
+    // never hold a "last known reading" across a close/reopen: there is no
+    // surviving instance to hold it in. The reader now lives in shell.qml,
+    // a sibling of `dashboardLoader` exactly like `MediaBackend`/
+    // `WeatherBackend` already are (for the identical reason, stated there),
+    // and is threaded in below as the `systemResources` property beside
+    // `mediaBackend`/`weatherBackend` — same passed-in-instance shape, no
+    // new pattern invented. `drawerOpen` still gates every timer/process in
+    // `SystemResources.qml` itself, so D-36's "polling only while the
+    // drawer is open" zero-idle doctrine is completely unaffected: only the
+    // VALUES now survive dismissal, not the polling.
+    //
+    // The previous local id was deliberately `sharedSystemResources`, NOT
+    // `systemResources` — both DashboardTab.qml and PerformanceTab.qml
+    // declare their own `property var systemResources`, and a same-named
+    // `systemResources: systemResources` binding below would resolve its RHS
+    // to THAT tab's own not-yet-assigned property first (QML's innermost-
+    // scope-wins lookup) rather than reaching out to an outer id — a silent
+    // self-referencing no-op (live-reproduced once already: PerformanceTab's
+    // `hasReader` read `false` forever until fixed). The same hazard applies
+    // to `dashboardWindow.systemResources` below just as much as it would to
+    // a same-named local id, which is why every reference below is written
+    // fully qualified as `dashboardWindow.systemResources`, never a bare
+    // `systemResources`.
 
     // ── Dismiss wiring (D-12/D-13) — Probe.qml/ScreencopyProbe.qml's
     //    existing, QS-02-proven combination reused verbatim: click-outside
@@ -578,7 +589,7 @@ PanelWindow {
                 sourceComponent: Component {
                     DashboardTab {
                         mediaBackend: dashboardWindow.mediaBackend
-                        systemResources: sharedSystemResources
+                        systemResources: dashboardWindow.systemResources
                         mediaTabIndex: dashboardWindow.tabIndexMedia
                         performanceTabIndex: dashboardWindow.tabIndexPerformance
                         // D-39/D-40's compact-widget → its-full-tab deep-link
@@ -606,7 +617,7 @@ PanelWindow {
                 asynchronous: false
                 sourceComponent: Component {
                     PerformanceTab {
-                        systemResources: sharedSystemResources
+                        systemResources: dashboardWindow.systemResources
                     }
                 }
             }

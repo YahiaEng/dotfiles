@@ -74,6 +74,7 @@ ShellRoot {
             initialTabIndex: root.dashboardTabIndex
             mediaBackend: mediaBackendInstance
             weatherBackend: weatherBackendInstance
+            systemResources: systemResourcesInstance
             onDismissRequested: dashboardLoader.active = false
             onTabSelected: (index) => root.dashboardTabIndex = index
         }
@@ -96,6 +97,23 @@ ShellRoot {
 
     WeatherBackend {
         id: weatherBackendInstance
+        drawerOpen: dashboardLoader.active
+    }
+
+    // Round-3 render-gate correction (14-06, defect B — "warm cache across
+    // opens"): moved here from inside Dashboard.qml for EXACTLY the reason
+    // this comment block already states for MediaBackend/WeatherBackend
+    // above — mounting inside the LazyLoader means the whole reader is
+    // destroyed and rebuilt on every dismiss, so "keep the last-known
+    // reading in memory across a close/reopen" is structurally impossible
+    // from in there: there is no "last known" once the instance holding it
+    // no longer exists. `drawerOpen` still gates every timer/process
+    // exactly as before (D-36's zero-idle doctrine is untouched — polling
+    // still stops dead on dismiss); only the VALUES now genuinely survive
+    // the dismiss-and-resummon cycle, the way MediaBackend/WeatherBackend's
+    // already do.
+    SystemResources {
+        id: systemResourcesInstance
         drawerOpen: dashboardLoader.active
     }
 

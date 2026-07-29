@@ -10,8 +10,10 @@
 // gate (see 14-03-SUMMARY.md's Deviations): Dashboard.qml reads them as an
 // advisory hint for the drawer's own animated frame target, decoupled from
 // this item's actual rendered size. They are now derived from this file's
-// own layout's real natural size (`contentColumn.implicitWidth/Height`),
-// replacing 14-03's placeholder 1000x360 estimate.
+// own layout's real natural size (`dialGrid`'s own width/height — see the
+// round-3 note further down for why this is bound directly to `dialGrid`
+// rather than to a layout container's rendered width), replacing 14-03's
+// placeholder 1000x360 estimate.
 //
 // ── Design constants — NOT read off `dashboardWindow` ───────────────────
 // Same mechanism gap 14-05's MediaTab.qml and this plan's Dial.qml both
@@ -88,65 +90,99 @@ Item {
 
     // Natural content size (D-04 reversed, see header) — the outer frame
     // target Dashboard.qml animates to, independent of whatever size this
-    // item is actually filling right now.
-    implicitWidth: contentColumn.implicitWidth + root.spacingLg * 2
-    implicitHeight: contentColumn.implicitHeight + root.spacingLg * 2
+    // item is actually filling right now. Deliberately bound to `dialGrid`'s
+    // OWN natural width/height below, never to `contentColumn`'s actual
+    // rendered width — see the round-3 note on `contentColumn` for why.
+    implicitWidth: dialGrid.width + root.spacingLg * 2
+    implicitHeight: dialGridRow.height + root.spacingLg + networkRowWrap.height + root.spacingLg * 2
 
-    Column {
+    // Round 3 (render-gate defect A: "crammed to the left side, leaving a
+    // lot of empty space to the right"). Root cause: `Dashboard.qml`'s
+    // `drawerMinWidth` floor (760) reserves room for the 4-tab header and is
+    // wider than this tab's own natural content (~560px at the current dial
+    // diameter) — so the frame is CORRECTLY wider than the grid needs, and
+    // the fix is to center this tab's own content within that width, not to
+    // request less of it. A `Column` pins every child's `x` at 0 itself
+    // (positioners manage position directly; anchoring a DIRECT Column
+    // child conflicts with that and QML warns/refuses it), which is why the
+    // grid and the rate row previously sat flush left no matter how wide
+    // the frame actually was. This is now a plain `Item` with each section
+    // wrapped one level down so IT can anchor-center within the wrapper —
+    // and the wrapper's `width` is `parent.width` (this tab's ACTUAL
+    // current rendered width, i.e. the frame Dashboard.qml is currently
+    // holding — 760 today, or wider still if the known backward-nav pager
+    // bug widens it, per round-3 checkpoint instructions: centered either
+    // way, never one-sided dead space).
+    //
+    // `implicitWidth`/`implicitHeight` above stay bound to `dialGrid`'s own
+    // NATURAL size (never to a wrapper's frame-derived `width`) precisely
+    // because they feed Dashboard.qml's fit-to-content sizing — binding a
+    // section's width back to the frame's own current width would
+    // reintroduce round 2's self-referential "frame can never shrink to its
+    // content" loop that the `dialGrid.width` fix (below, on `networkRow`)
+    // already broke once.
+    Item {
         id: contentColumn
         anchors.fill: parent
         anchors.margins: root.spacingLg
-        spacing: root.spacingLg
 
         // ── Section one — the dial grid ─────────────────────────────────
-        Grid {
-            id: dialGrid
-            columns: 2
-            // Round 2: spacingMd rather than spacingLg between the four
-            // dials — a denser cluster (still an already-named scale value,
-            // not an invented one) offsetting the diameter growth above, per
-            // the Caelestia reference's compact-gauge-cluster composition.
-            rowSpacing: root.spacingMd
-            columnSpacing: root.spacingMd
+        Item {
+            id: dialGridRow
+            anchors.top: parent.top
+            width: parent.width
+            height: dialGrid.height
 
-            // Each dial's ring/centre-figure/caption-icon carries a
-            // DIFFERENT Material role, sourced from the live theme via
-            // `Colours` (never a literal) — round 2's "rings should be
-            // different colors... to add more life" feedback. Four rings,
-            // four of `Colours`' non-neutral roles: primary/secondary/
-            // tertiary/error are the only four this token set defines, so
-            // battery — the one dial this machine can never show populated
-            // — takes the fourth (`error`; thematically apt for a
-            // discharge-state readout, and re-tunable in one line if the
-            // gate objects).
-            Dial {
-                id: cpuDial
-                diameter: root.dialDiameter
-                ringThickness: root.dialRingThickness
-                label: "CPU"
-                icon: "memory"
-                accentColor: Colours.primary
-                widgetState: root.hasReader ? root.systemResources.cpuState : "pending"
-                value: root.hasReader ? root.systemResources.cpuFraction : 0
-                valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.cpuFraction) : ""
-                // Round 2 detail: temperature (k10temp, discovered once)
-                // and current frequency (cpu0's cpufreq, a fixed path),
-                // joined only from whichever resolved — neither is load-
-                // bearing for the dial's own populated/empty state.
-                detailText: {
-                    if (!root.hasReader)
-                        return "";
-                    var r = root.systemResources;
-                    var parts = [];
-                    if (isFinite(r.cpuFreqGHz))
-                        parts.push(r.cpuFreqGHz.toFixed(1) + " GHz");
-                    if (isFinite(r.cpuTempCelsius))
-                        parts.push(Math.round(r.cpuTempCelsius) + "°C");
-                    return parts.join(" · ");
+            Grid {
+                id: dialGrid
+                anchors.horizontalCenter: parent.horizontalCenter
+                columns: 2
+                // Round 2: spacingMd rather than spacingLg between the four
+                // dials — a denser cluster (still an already-named scale
+                // value, not an invented one) offsetting the diameter
+                // growth above, per the Caelestia reference's compact-
+                // gauge-cluster composition.
+                rowSpacing: root.spacingMd
+                columnSpacing: root.spacingMd
+
+                // Each dial's ring/centre-figure/caption-icon carries a
+                // DIFFERENT Material role, sourced from the live theme via
+                // `Colours` (never a literal) — round 2's "rings should be
+                // different colors... to add more life" feedback. Four
+                // rings, four of `Colours`' non-neutral roles: primary/
+                // secondary/tertiary/error are the only four this token set
+                // defines, so battery — the one dial this machine can never
+                // show populated — takes the fourth (`error`; thematically
+                // apt for a discharge-state readout, and re-tunable in one
+                // line if the gate objects).
+                Dial {
+                    id: cpuDial
+                    diameter: root.dialDiameter
+                    ringThickness: root.dialRingThickness
+                    label: "CPU"
+                    icon: "memory"
+                    accentColor: Colours.primary
+                    widgetState: root.hasReader ? root.systemResources.cpuState : "pending"
+                    value: root.hasReader ? root.systemResources.cpuFraction : 0
+                    valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.cpuFraction) : ""
+                    // Round 2 detail: temperature (k10temp, discovered once)
+                    // and current frequency (cpu0's cpufreq, a fixed path),
+                    // joined only from whichever resolved — neither is load-
+                    // bearing for the dial's own populated/empty state.
+                    detailText: {
+                        if (!root.hasReader)
+                            return "";
+                        var r = root.systemResources;
+                        var parts = [];
+                        if (isFinite(r.cpuFreqGHz))
+                            parts.push(r.cpuFreqGHz.toFixed(1) + " GHz");
+                        if (isFinite(r.cpuTempCelsius))
+                            parts.push(Math.round(r.cpuTempCelsius) + "°C");
+                        return parts.join(" · ");
+                    }
+                    emptySymbol: "help"
+                    emptyText: "Unavailable"
                 }
-                emptySymbol: "help"
-                emptyText: "Unavailable"
-            }
 
             Dial {
                 id: memoryDial
@@ -204,13 +240,32 @@ Item {
                 emptySymbol: "battery_unknown"
                 emptyText: "No battery"
             }
-        }
+            } // dialGrid
+
+        } // dialGridRow
 
         // ── Section two — the honest network up/down rate row ───────────
         // D-36 is explicit that a rate is not a percentage: two labelled
         // readouts, not a fifth dial and not a normalised bar.
+        //
+        // Round 3 (defect A, continued): wrapped in `networkRowWrap`, whose
+        // `width` is `parent.width` (this tab's ACTUAL current rendered
+        // width) purely so `networkRow` itself — still sized off
+        // `dialGrid.width`, the round-2 fix, unchanged — can anchor-center
+        // within it rather than sit flush left. Same split as
+        // `dialGridRow`/`dialGrid` above: the wrapper carries the frame-
+        // derived width for centering, the inner item keeps the natural,
+        // content-derived width the round-2 fix already established.
         Item {
+            id: networkRowWrap
+            anchors.top: dialGridRow.bottom
+            anchors.topMargin: root.spacingLg
+            width: parent.width
+            height: networkRow.height
+
+            Item {
             id: networkRow
+            anchors.horizontalCenter: parent.horizontalCenter
             // Round 2 fix (the real root cause behind "half the panel is
             // empty"): this was `width: contentColumn.width` — but
             // `contentColumn` anchors.fill's `root`, so that bound back to
@@ -313,6 +368,7 @@ Item {
                     color: Colours.onSurfaceVariant
                 }
             }
-        }
+            } // networkRow
+        } // networkRowWrap
     }
 }
