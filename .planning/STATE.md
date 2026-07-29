@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
 status: executing
-stopped_at: Completed 14-04-PLAN.md
-last_updated: "2026-07-29T15:27:49.383Z"
+stopped_at: Completed 14-05-PLAN.md
+last_updated: "2026-07-29T18:08:52.759Z"
 last_activity: 2026-07-29
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 39
-  completed_plans: 34
+  completed_plans: 35
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 14 (dashboard-drawer) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
-Progress: [█████████░] 87%
+Progress: [█████████░] 90%
 Last activity: 2026-07-29 — Phase 14 execution started
 
 ## Performance Metrics
@@ -164,6 +164,7 @@ Last activity: 2026-07-29 — Phase 14 execution started
 | Phase 14 P02 | multi-session | 4 tasks | 5 files |
 | Phase 14 P03 | multi-session | 3 tasks | 13 files |
 | Phase 14 P04 | multi-session (2 gate rounds) | 4 tasks | 5 files |
+| Phase 14 P05 | multi-session (6 gate rounds) | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -281,6 +282,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 14-04: Round 2 render gate APPROVED (2026-07-29) - all three fixes confirmed: theme selection applies, lively preset clean, drop position correct
 - [Phase ?]: 14-05: Task 3 render gate round 1 REJECTED (2026-07-29) - human: "I am not a fan of the media tab design. Copy caelestia's look instead, it looks more aesthetically pleasing. Do this for the rest of the tabs if applicable." MediaTab.qml's visual layer (not MediaBackend.qml, not the mutator dispatch) redrawn against the real github.com/caelestia-dots/shell source (art-left/details-right split, heading-role title, secondary-tinted album, tonal transport buttons, pill play/pause, primaryContainer art-placeholder badge); shuffle/repeat/visualiser/BackgroundShapes/lyrics deliberately not transplanted (no backend/library support) — see MediaTab.qml header and 14-05-SUMMARY.md for the full adaptation record.
 - [Phase ?]: 14-05: **Standing phase-wide directive, ratified 2026-07-29** - every remaining Phase 14 tab/content plan (14-06 Performance, 14-07 Weather, 14-08 Dashboard composition, 14-09 polish) must follow the corresponding Caelestia shell (github.com/caelestia-dots/shell) design where an equivalent surface exists, adapted to this repo's Colours/Motion tokens and MPRIS/weather/resource backends — not transplanted verbatim, and never at the cost of an already-locked must_have or backend capability. Study the real Caelestia QML source (shallow clone) rather than a screenshot. This ratifies the project's existing end-4/Caelestia reference bias (see reference-shell-bias memory) as the explicit visual contract for phase 14's remaining surfaces.
+- [Phase ?]: 14-05: Six render-gate rounds closed the Media tab — round 6 measured a 976ms MPRIS poll-latency as the real play/pause perceived-lag cause and fixed it with a bounded optimistic-UI latch confined to MediaTab.qml (MediaBackend.qml's D-22 truth-driven rule untouched); house patterns established: optimistic-UI latch for slow/polled backends, MultiEffect mask + layer.enabled(mask) for circular crops, mapToItem() banned from declarative position bindings
 
 ### Quick Tasks Completed
 
@@ -369,8 +371,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-29T15:27:49.365Z
-Stopped at: Completed 14-04-PLAN.md
+Last session: 2026-07-29T18:08:52.740Z
+Stopped at: Completed 14-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
