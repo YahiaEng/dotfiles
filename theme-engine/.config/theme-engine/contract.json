@@ -41,6 +41,8 @@
     "font-choice",
     "walker-relaunch.log",
     "waybar-visibility.css",
-    "motion-scale"
+    "motion-scale",
+    "weather.json",
+    "weather-cache.json"
   ]
 }

@@ -241,6 +241,47 @@ mkdir -p "$HOME/.local/state/theme"
 # reader's fallback branch being exercised correctly on day one.
 [[ -f "$HOME/.local/state/theme/motion-scale" ]] || echo "normal" > "$HOME/.local/state/theme/motion-scale"
 
+# D-30/D-31: seed the weather location/units state axis, same seed-only-
+# when-absent idiom as above (state dir already created by the
+# waybar-visibility.css seed further up — no second mkdir -p needed here).
+# Every key is a top-level SCALAR — never a nested object. `JsonAdapter`
+# (Quickshell.Io) binds only top-level JSON keys to declared properties
+# (verified directly against the installed qmltypes, and already
+# documented in Motion.qml's own header, which is why THAT file receives
+# its `semantic` sub-object into a bare `var` and destructures by hand); a
+# nested `{location: {lat, lon}, units: {...}}` shape would bind nothing
+# and 14-07's weather widget would silently render its defaults forever
+# with no error anywhere (14-RESEARCH.md Pitfall 5). This is the
+# pipeline's first deliberately multi-key flat state file — read it as an
+# intentional pattern deviation, not drift.
+#
+# 30.04/31.24 is the Cairo city centroid at two decimal places, derived
+# from this host's Africa/Cairo system timezone — NOT this user's actual
+# home coordinates. Two decimals is deliberately city-level, not
+# street-level: the repo is public, and precise home coordinates
+# committed to git are self-doxxing (D-30). A GeoIP/ip-api.com-class
+# lookup is a REJECTED mechanism here, not a missing feature — do not
+# "improve" this seed into one (14-07 owns that prohibition). Refinements
+# to the actual seeded value belong in this file, in
+# ~/.local/state/theme/, which is never git-tracked, so they never reach
+# a public repo either.
+#
+# Metric-seeded per D-31 (the user chose this over a fixed-metric
+# recommendation specifically so the axis stays switchable): three
+# separate unit keys, one per quantity, because 14-07's formatting layer
+# is unit-aware for temperature, wind and precipitation independently.
+# No API key, token, secret or credential of any kind belongs in this
+# file — Open-Meteo (D-29) is keyless precisely so that stays true.
+[[ -f "$HOME/.local/state/theme/weather.json" ]] || cat > "$HOME/.local/state/theme/weather.json" <<'WEATHER_SEED_EOF'
+{
+  "lat": 30.04,
+  "lon": 31.24,
+  "units_temp": "metric",
+  "units_wind": "metric",
+  "units_precip": "metric"
+}
+WEATHER_SEED_EOF
+
 # D-30: seed the rendered motion files by INVOKING motion.sh's own
 # renderer — never a hand-authored stub. A stub is a second source of
 # truth that goes stale the instant a motion.json edit lands; D-30's whole
