@@ -175,6 +175,10 @@ hl.bind(mainMod .. " + SHIFT + G", hl.dsp.global("quickshell:probe")) -- Summon 
 -- entry in shortcuts.json. `K` verified free under every $mainMod
 -- combination across all existing binds.
 hl.bind(mainMod .. " + SHIFT + K", hl.dsp.global("quickshell:screencopy-probe")) -- Summon Quickshell screencopy probe (criterion 5)
+-- Dashboard drawer (Phase 14 tracer, D-09/DASH-01): `D` verified free under
+-- every existing modifier combination. Identifier below byte-matches
+-- shortcuts.json's appid:name pair — keybind-doctor's cross-check contract.
+hl.bind(mainMod .. " + D", hl.dsp.global("quickshell:dashboard")) -- Summon dashboard drawer (DASH-01)
 
 -- ── Notification center ──────────────────────────────
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("swaync-client -t -sw")) -- Toggle notification center

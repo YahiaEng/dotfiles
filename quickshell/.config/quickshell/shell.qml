@@ -52,6 +52,20 @@ ShellRoot {
         }
     }
 
+    // Dashboard drawer (Phase 14 tracer, D-09/D-14/DASH-01): the same
+    // summon-via-LazyLoader mechanism as the two probes above. Deactivating
+    // destroys the wl_surface rather than hiding it, so `hyprctl layers -j`
+    // goes empty on every dismissal path (D-14). Single instance — no
+    // per-screen Variants fan-out, per D-14/QS-03 (PROJECT.md D-13).
+    LazyLoader {
+        id: dashboardLoader
+        active: false
+
+        Dashboard {
+            onDismissRequested: dashboardLoader.active = false
+        }
+    }
+
     GlobalShortcut {
         id: probeShortcut
         appid: "quickshell"
@@ -64,5 +78,12 @@ ShellRoot {
         appid: "quickshell"
         name: "screencopy-probe"
         onPressed: screencopyProbeLoader.active = !screencopyProbeLoader.active
+    }
+
+    GlobalShortcut {
+        id: dashboardShortcut
+        appid: "quickshell"
+        name: "dashboard"
+        onPressed: dashboardLoader.active = !dashboardLoader.active
     }
 }

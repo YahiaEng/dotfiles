@@ -22,3 +22,4 @@ singleton Colours 1.0 Colours.qml
 singleton Motion 1.0 Motion.qml
 Probe 1.0 Probe.qml
 ScreencopyProbe 1.0 ScreencopyProbe.qml
+Dashboard 1.0 Dashboard.qml
