@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
 status: executing
-stopped_at: Completed 14-06-PLAN.md
-last_updated: "2026-07-29T20:38:31.344Z"
+stopped_at: Completed 14-08-PLAN.md
+last_updated: "2026-07-29T22:45:45.269Z"
 last_activity: 2026-07-29
 last_activity_desc: Phase 14 execution started
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 39
-  completed_plans: 36
+  completed_plans: 38
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 14 (dashboard-drawer) — EXECUTING
-Plan: 1 of 9
-Status: Executing Phase 14
-Progress: [█████████░] 90%
+Plan: 2 of 9
+Status: Ready to execute
+Progress: [██████████] 97%
 Last activity: 2026-07-29 — Phase 14 execution started
 
 ## Performance Metrics
@@ -165,6 +165,7 @@ Last activity: 2026-07-29 — Phase 14 execution started
 | Phase 14 P03 | multi-session | 3 tasks | 13 files |
 | Phase 14 P04 | multi-session (2 gate rounds) | 4 tasks | 5 files |
 | Phase 14 P05 | multi-session (6 gate rounds) | 3 tasks | 2 files |
+| Phase 14 P08 | 46min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -286,6 +287,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 14-06: Performance tab closed after three render-gate rounds (final live-verified 2026-07-29). Warm-instance-outside-LazyLoader ratified as the standing rule for drawer backends whose values must survive dismissal (third instance: SystemResources joins MediaBackend/WeatherBackend in shell.qml — a recorded frozen-file deviation following that file's own precedent). Per-ring theme roles: CPU=primary, Memory=secondary, Storage=tertiary, Battery=error.
 - [Phase ?]: 14-06: **Standing executor rule** — quickshell verification restarts MUST relaunch detached (`setsid uwsm app -- ~/.config/hypr/scripts/quickshell-launch.sh`); a shell-child restart died with the executor session and silently broke Super+D until the orchestrator relaunched it.
 - [Phase ?]: 14-06: Pre-existing backward-nav pager width bug (Left arrow wider→narrower tab leaves frame width stuck) logged in deferred-items.md — owned by 14-08/14-09 before phase close.
+- [Phase ?]: 14-08: two render-gate scope-fence reversals on direct human instruction — compact media transport gained previousTrack/nextTrack (was 'play/pause and nothing else'), and the resources strip gained a Storage mini-dial (was 'Performance-only'); both approved through round 3.
+- [Phase ?]: 14-08: three round-1 open judgments (2560x1440 fit/width, calendar month-reset acceptability, deep-link discoverability) were never explicitly answered across three render-gate rounds — carried forward as open items to 14-09/Phase 15, not settled.
 
 ### Quick Tasks Completed
 
@@ -374,8 +377,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-29T18:08:52.740Z
-Stopped at: Completed 14-06-PLAN.md
+Last session: 2026-07-29T22:45:45.254Z
+Stopped at: Completed 14-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

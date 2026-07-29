@@ -39,7 +39,7 @@
 
 - [x] **DASH-01**: A keybind opens the dashboard drawer; clicking outside dismisses it; it does not block input to the rest of the desktop
 - [x] **DASH-02**: The dashboard presents four horizontally swipeable tabs with drag-threshold commit, plus a header row for direct tap-to-jump
-- [ ] **DASH-03**: The Dashboard tab shows a calendar, date/time, a compact media widget and system resources at a glance
+- [x] **DASH-03**: The Dashboard tab shows a calendar, date/time, a compact media widget and system resources at a glance
 - [x] **DASH-04**: The Media tab shows a full player with cover art, reading the existing MPRIS backend rather than a second media source
 - [x] **DASH-05**: The Performance tab shows CPU, memory, network, storage and battery
 - [x] **DASH-06**: The Weather tab shows current conditions and forecast, degrading gracefully when the weather service is unreachable
@@ -143,7 +143,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MOTION-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep | Complete |
 | DASH-01 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-02 | Phase 14 — Dashboard Drawer | Complete |
-| DASH-03 | Phase 14 — Dashboard Drawer | Pending |
+| DASH-03 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-04 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-05 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-06 | Phase 14 — Dashboard Drawer | Complete |
