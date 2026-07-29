@@ -248,9 +248,33 @@ Item {
         running: false
         command: ["swaync-client", "-dn"]
     }
+    // ── Dark chip's process — startDetached(), not `running: true` ─────
+    // (render-gate regression fix, checkpoint feedback 2026-07-29):
+    // D-27's own assumption says pressing Dark launches walker, walker
+    // takes focus, and D-13's focus-loss rule dismisses THIS drawer. That
+    // dismissal destroys QuickToggles' whole item tree, including this
+    // `Process` — and a lifetime-bound `running: true` Process is killed
+    // when its QML object is destroyed (Quickshell.Io.Process ties the
+    // child's lifetime to the object unless explicitly detached). Killing
+    // theme-switch.sh's bash mid-flight does NOT kill walker itself (a
+    // grandchild, orphaned rather than terminated) — reproduced directly
+    // this plan by launching the script, SIGTERM-ing its direct-child PID
+    // ~0.6s later (mimicking the drawer's own destroy timing), and
+    // observing exactly the reported bug: walker's window stays open and
+    // visibly clickable, but selecting a palette does nothing at all,
+    // because the parent script that would have called `theme-apply` on
+    // walker's selection is already dead. `startDetached()` launches the
+    // same fixed argv fully independent of this object's lifetime, so the
+    // whole chain (walker -> theme-apply) survives the drawer's dismissal
+    // and completes normally — matching what D-27's own assumption
+    // actually promised (the mode file changes and the chip picks up the
+    // new state on next summon) rather than silently discarding it. The
+    // other three commands (`gamingProcess`/`dndProcess`/`presetProcess`)
+    // are unaffected: none of them launches a focus-stealing surface, so
+    // none of them can race the drawer's own destruction and `running:
+    // true`'s pending-state tracking is correct for all three.
     Process {
         id: darkProcess
-        running: false
         command: [root.homeDir + "/.config/hypr/scripts/theme-switch.sh"]
     }
 
@@ -279,7 +303,12 @@ Item {
             return;
         root.pendingChip = "dark";
         chipWatchdogTimer.restart();
-        darkProcess.running = true;
+        // startDetached() (see darkProcess's own header comment above) —
+        // NOT `darkProcess.running = true`. The drawer is expected to
+        // dismiss the instant walker takes focus (D-13), which would
+        // otherwise kill this process mid-flight before a palette could
+        // ever be chosen.
+        darkProcess.startDetached();
     }
 
     function chipLitFor(name) {
