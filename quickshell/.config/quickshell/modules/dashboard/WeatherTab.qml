@@ -54,14 +54,23 @@
 //
 // ── 14-09 Task 4 UPDATE — WeatherPalette + hover tooltips ────────────────
 // The Task 4 render-gate change request added condition-glyph colouring
-// (`WeatherPalette`, a documented D-11 exemption — see that file's own
-// header), a hover tooltip on every condition glyph (the house pattern
-// already established in `QuickToggles.qml`), and a small centred
-// separator between the hour strip and the five-day row. `QtQuick.Controls`
-// is now imported for `ToolTip`, the same module `QuickToggles.qml` and
-// `MediaTab.qml` already use for it — no new styling surface.
+// (`WeatherPalette`, a documented exemption to the repo-wide zero-hex/
+// duration-literal invariant — see that file's own header), a hover
+// tooltip on every condition glyph (the house pattern already established
+// in `QuickToggles.qml`), and a small centred separator between the hour
+// strip and the five-day row.
+//
+// ── 14-10 Task 1 UPDATE — the layered condition glyph ────────────────────
+// The three condition-glyph call sites (hero, hour cells, day cells) are
+// now instances of `ConditionGlyph` (`modules/dashboard/ConditionGlyph.qml`)
+// rather than a bare `Text` each carrying its own colour/tooltip logic. The
+// tooltip mechanism — and with it the only use of `QtQuick.Controls` this
+// file ever had — now lives inside `ConditionGlyph.qml`, so that import is
+// removed here; nothing in this file references `ToolTip` directly anymore.
+// Every resolved-colour expression, fill axis and symbol size at each site
+// is unchanged from what it was — see `ConditionGlyph`'s own header and
+// 14-10-SUMMARY.md for the full record.
 import QtQuick
-import QtQuick.Controls
 import "../"
 
 Item {
@@ -87,6 +96,17 @@ Item {
     readonly property string symbolFontFamily: Design.symbolFontFamily
     // 14-09 Task 4 — see Design.qml's own header for the full record.
     readonly property int tooltipDelayMs: Design.tooltipDelayMs
+
+    // 14-10 Task 1 — the three colours the layered condition-glyph experiment
+    // needs, read off WeatherPalette exactly once, here, and handed into all
+    // three ConditionGlyph instances below. This is what keeps the palette
+    // singleton's documented single-consumer scope intact: it is still
+    // consulted from exactly this one file, and now from exactly this one
+    // place within it (plus the two pre-existing sunrise/sunset call sites,
+    // unchanged by this task).
+    readonly property color weatherPaletteSun: WeatherPalette.sun
+    readonly property color weatherPaletteMoon: WeatherPalette.night
+    readonly property color weatherPaletteCloud: WeatherPalette.cloudLit
 
     // 14-09 Task 4 — the small centred divider between the hour strip and
     // the five-day row (D-05: geometry, not motion). Deliberately narrow
@@ -208,47 +228,31 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: root.spacingMd
 
-                        Text {
+                        ConditionGlyph {
                             id: heroConditionGlyph
                             anchors.verticalCenter: parent.verticalCenter
-                            text: root.showPlaceholder ? "" : (root.weatherBackend.current ? root.weatherBackend.current.symbol : "help")
-                            font.family: root.symbolFontFamily
-                            font.pixelSize: root.heroSymbolSize
+                            symbolName: root.showPlaceholder ? "" : (root.weatherBackend.current ? root.weatherBackend.current.symbol : "help")
+                            pixelSize: root.heroSymbolSize
                             // FILL axis: hero carries the filled weight when
                             // the installed build actually drives it
                             // (14-02-SUMMARY.md's fill-axis-renders verdict);
                             // small cell symbols below stay outlined either
                             // way, matching the reference shells' weight
-                            // relationship.
-                            font.variableAxes: ({
-                                "FILL": 1
-                            })
-                            // 14-09 Task 4: the condition glyph's own colour
-                            // (WeatherPalette, a documented D-11 exemption) —
+                            // relationship. Unchanged from before this task.
+                            baseFillAxis: 1
+                            // 14-10 Task 1: the same resolved-colour
+                            // expression this site always computed, moved
+                            // across verbatim as the revert-path colour —
                             // falls back to the themed Colours.primary for
                             // the placeholder/unrecognised-code case, same
                             // fallback discipline at every WeatherPalette
                             // call site in this file.
-                            readonly property color resolvedColor: (!root.showPlaceholder && root.weatherBackend.current) ? (WeatherPalette.forSymbol(root.weatherBackend.current.symbol) || Colours.primary) : Colours.primary
-                            color: heroConditionGlyph.resolvedColor
-                            Behavior on color {
-                                enabled: Motion.motionEnabled
-                                ColorAnimation {
-                                    duration: Motion.standardDuration
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Motion.standardEasing
-                                }
-                            }
-
-                            MouseArea {
-                                id: heroConditionMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                readonly property string conditionLabel: (!root.showPlaceholder && root.weatherBackend.current) ? root.weatherBackend.current.label : ""
-                                ToolTip.visible: heroConditionMouseArea.containsMouse && heroConditionMouseArea.conditionLabel !== ""
-                                ToolTip.text: heroConditionMouseArea.conditionLabel
-                                ToolTip.delay: root.tooltipDelayMs
-                            }
+                            singleToneColor: (!root.showPlaceholder && root.weatherBackend.current) ? (WeatherPalette.forSymbol(root.weatherBackend.current.symbol) || Colours.primary) : Colours.primary
+                            sunColor: root.weatherPaletteSun
+                            moonColor: root.weatherPaletteMoon
+                            cloudColor: root.weatherPaletteCloud
+                            conditionLabel: (!root.showPlaceholder && root.weatherBackend.current) ? root.weatherBackend.current.label : ""
+                            tooltipDelay: root.tooltipDelayMs
                         }
 
                         Column {
@@ -464,38 +468,23 @@ Item {
                                     color: Colours.onSurfaceVariant
                                 }
 
-                                Text {
+                                ConditionGlyph {
                                     id: hourCellGlyph
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    text: hourCell.entry ? hourCell.entry.symbol : "help"
-                                    font.family: root.symbolFontFamily
-                                    font.pixelSize: root.cellSymbolSize
-                                    font.variableAxes: ({
-                                        "FILL": 0
-                                    })
-                                    // 14-09 Task 4: condition-glyph colour
-                                    // (WeatherPalette, D-11 exemption) — the
-                                    // hour/temp labels beside it stay themed.
-                                    readonly property color resolvedColor: hourCell.entry ? (WeatherPalette.forSymbol(hourCell.entry.symbol) || Colours.onSurface) : Colours.onSurfaceVariant
-                                    color: hourCellGlyph.resolvedColor
-                                    Behavior on color {
-                                        enabled: Motion.motionEnabled
-                                        ColorAnimation {
-                                            duration: Motion.standardDuration
-                                            easing.type: Easing.BezierSpline
-                                            easing.bezierCurve: Motion.standardEasing
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: hourCellMouseArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        readonly property string conditionLabel: hourCell.entry ? hourCell.entry.label : ""
-                                        ToolTip.visible: hourCellMouseArea.containsMouse && hourCellMouseArea.conditionLabel !== ""
-                                        ToolTip.text: hourCellMouseArea.conditionLabel
-                                        ToolTip.delay: root.tooltipDelayMs
-                                    }
+                                    symbolName: hourCell.entry ? hourCell.entry.symbol : "help"
+                                    pixelSize: root.cellSymbolSize
+                                    baseFillAxis: 0
+                                    // 14-10 Task 1: the same resolved-colour
+                                    // expression this site always computed,
+                                    // moved across verbatim as the
+                                    // revert-path colour — the hour/temp
+                                    // labels beside it stay themed.
+                                    singleToneColor: hourCell.entry ? (WeatherPalette.forSymbol(hourCell.entry.symbol) || Colours.onSurface) : Colours.onSurfaceVariant
+                                    sunColor: root.weatherPaletteSun
+                                    moonColor: root.weatherPaletteMoon
+                                    cloudColor: root.weatherPaletteCloud
+                                    conditionLabel: hourCell.entry ? hourCell.entry.label : ""
+                                    tooltipDelay: root.tooltipDelayMs
                                 }
 
                                 Text {
@@ -566,38 +555,23 @@ Item {
                                     color: Colours.onSurface
                                 }
 
-                                Text {
+                                ConditionGlyph {
                                     id: dayCellGlyph
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    text: dayCell.entry ? dayCell.entry.symbol : "help"
-                                    font.family: root.symbolFontFamily
-                                    font.pixelSize: root.cellSymbolSize
-                                    font.variableAxes: ({
-                                        "FILL": 0
-                                    })
-                                    // 14-09 Task 4: condition-glyph colour
-                                    // (WeatherPalette, D-11 exemption) — the
-                                    // day/temp labels beside it stay themed.
-                                    readonly property color resolvedColor: dayCell.entry ? (WeatherPalette.forSymbol(dayCell.entry.symbol) || Colours.onSurface) : Colours.onSurfaceVariant
-                                    color: dayCellGlyph.resolvedColor
-                                    Behavior on color {
-                                        enabled: Motion.motionEnabled
-                                        ColorAnimation {
-                                            duration: Motion.standardDuration
-                                            easing.type: Easing.BezierSpline
-                                            easing.bezierCurve: Motion.standardEasing
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: dayCellMouseArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        readonly property string conditionLabel: dayCell.entry ? dayCell.entry.label : ""
-                                        ToolTip.visible: dayCellMouseArea.containsMouse && dayCellMouseArea.conditionLabel !== ""
-                                        ToolTip.text: dayCellMouseArea.conditionLabel
-                                        ToolTip.delay: root.tooltipDelayMs
-                                    }
+                                    symbolName: dayCell.entry ? dayCell.entry.symbol : "help"
+                                    pixelSize: root.cellSymbolSize
+                                    baseFillAxis: 0
+                                    // 14-10 Task 1: the same resolved-colour
+                                    // expression this site always computed,
+                                    // moved across verbatim as the
+                                    // revert-path colour — the day/temp
+                                    // labels beside it stay themed.
+                                    singleToneColor: dayCell.entry ? (WeatherPalette.forSymbol(dayCell.entry.symbol) || Colours.onSurface) : Colours.onSurfaceVariant
+                                    sunColor: root.weatherPaletteSun
+                                    moonColor: root.weatherPaletteMoon
+                                    cloudColor: root.weatherPaletteCloud
+                                    conditionLabel: dayCell.entry ? dayCell.entry.label : ""
+                                    tooltipDelay: root.tooltipDelayMs
                                 }
 
                                 Text {

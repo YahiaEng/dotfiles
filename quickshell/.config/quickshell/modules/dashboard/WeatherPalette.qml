@@ -1,10 +1,24 @@
-// WeatherPalette.qml — a deliberate, documented exemption to D-11's palette
-// contract (Phase 14 Plan 09, Task 4 render-gate change request).
+// WeatherPalette.qml — a deliberate, documented exemption to the repo-wide
+// zero-hex/duration-literal invariant's palette contract (Phase 14 Plan 09,
+// Task 4 render-gate change request).
+//
+// ── Citation correction (Phase 14 Plan 10, Task 1) ───────────────────────
+// This header and 14-09-SUMMARY.md both originally cited this exemption as
+// an exemption to "D-11's palette contract". That decision number is wrong:
+// in `14-CONTEXT.md`, D-11 is the DASH-08 fullscreen-refusal decision
+// ("refusal is a silent no-op on TRUE fullscreen only; maximized windows do
+// not block") — nothing to do with colour. The actual contract is the same
+// file's repo-wide invariant line, "Zero hex/duration literals in
+// repo-authored UI — everything through" the token singletons. 14-09 had
+// the number wrong; this plan corrects the citation here, in the file a
+// future reader will actually open, rather than only in a plan document.
+// Every word of the rationale below is otherwise unchanged.
 //
 // ── Why this file exists ─────────────────────────────────────────────────
-// D-11's contract is that every colour in this drawer is one of `Colours`'
-// 19 Material You roles — a value that moves with the active theme, never
-// an absolute. The Task 4 human render gate asked for something that
+// The zero-hex/duration-literal invariant's contract is that every colour in
+// this drawer is one of `Colours`' 19 Material You roles — a value that
+// moves with the active theme, never an absolute. The Task 4 human render
+// gate asked for something that
 // contract cannot express: weather condition glyphs (sun, cloud, rain,
 // snow, storm) and the sunrise/sunset glyphs coloured so they read apart
 // from each other at a glance — "yellow sun, white sunny clouds, grey/dark
