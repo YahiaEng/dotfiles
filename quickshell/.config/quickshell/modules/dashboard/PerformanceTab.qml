@@ -219,6 +219,43 @@ Item {
                 // before landing on the alternative (see 14-10-SUMMARY.md).
                 // Taking the recorded alternative: GPU shares `primary`
                 // with CPU.
+                // GPU — DASH-09 (14-10 Task 2). ALWAYS present, exactly like
+                // the battery dial below: on a machine with no NVIDIA adapter
+                // (or with the query binary absent, or reporting no devices,
+                // or exiting non-zero — all three land in the same reader-side
+                // `gpuState: "empty"`) this dial's empty branch is what renders,
+                // at the identical footprint the other four occupy. The five-
+                // across geometry and the 1040px frame are therefore never a
+                // function of GPU hardware (D-41). Identity icon `desktop_windows`
+                // and empty-state icon `desktop_access_disabled` were each
+                // confirmed rendering as real glyphs (not missing-glyph boxes)
+                // before this dial was written — see 14-10-SUMMARY.md — and
+                // `desktop_windows` matches the reference shell's own GPU-tile
+                // icon (Caelestia's `Performance.qml`, `gpuCard`).
+                //
+                // 14-10 Task 4 (render gate): the human set this row's order
+                // explicitly — GPU, CPU, Memory, Storage, Battery — so GPU
+                // leads. `Grid` lays out in declaration order, so this block's
+                // POSITION in the file IS the rendered order; moving a dial
+                // means moving its block, nothing else.
+                Dial {
+                    id: gpuDial
+                    diameter: root.dialDiameter
+                    ringThickness: root.dialRingThickness
+                    label: "GPU"
+                    icon: "desktop_windows"
+                    accentColor: Colours.outline
+                    widgetState: root.hasReader ? root.systemResources.gpuState : "pending"
+                    value: root.hasReader ? root.systemResources.gpuFraction : 0
+                    valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.gpuFraction) : ""
+                    detailText: root.hasReader
+                        ? (root.systemResources.formatBytes(root.systemResources.gpuUsedBytes) + " / "
+                            + root.systemResources.formatBytes(root.systemResources.gpuTotalBytes))
+                        : ""
+                    emptySymbol: "desktop_access_disabled"
+                    emptyText: "No GPU"
+                }
+
                 Dial {
                     id: cpuDial
                     diameter: root.dialDiameter
@@ -304,37 +341,6 @@ Item {
                 emptySymbol: "battery_unknown"
                 emptyText: "No battery"
             }
-
-            // GPU — DASH-09 (14-10 Task 2). ALWAYS present, exactly like
-            // the battery dial above: on a machine with no NVIDIA adapter
-            // (or with the query binary absent, or reporting no devices,
-            // or exiting non-zero — all three land in the same reader-side
-            // `gpuState: "empty"`) this dial's empty branch is what renders,
-            // at the identical footprint the other four occupy. The five-
-            // across geometry and the 1040px frame are therefore never a
-            // function of GPU hardware (D-41). Identity icon `desktop_windows`
-            // and empty-state icon `desktop_access_disabled` were each
-            // confirmed rendering as real glyphs (not missing-glyph boxes)
-            // before this dial was written — see 14-10-SUMMARY.md — and
-            // `desktop_windows` matches the reference shell's own GPU-tile
-            // icon (Caelestia's `Performance.qml`, `gpuCard`).
-            Dial {
-                id: gpuDial
-                diameter: root.dialDiameter
-                ringThickness: root.dialRingThickness
-                label: "GPU"
-                icon: "desktop_windows"
-                accentColor: Colours.primary
-                widgetState: root.hasReader ? root.systemResources.gpuState : "pending"
-                value: root.hasReader ? root.systemResources.gpuFraction : 0
-                valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.gpuFraction) : ""
-                detailText: root.hasReader
-                    ? (root.systemResources.formatBytes(root.systemResources.gpuUsedBytes) + " / "
-                        + root.systemResources.formatBytes(root.systemResources.gpuTotalBytes))
-                    : ""
-                emptySymbol: "desktop_access_disabled"
-                emptyText: "No GPU"
-            }
             } // dialGrid
 
         } // dialGridRow
@@ -378,9 +384,32 @@ Item {
             width: dialGrid.width
             height: Math.max(downloadCell.height, uploadCell.height)
 
-            Column {
+            // 14-10 Task 4 (render gate): the human asked for the rate pair to
+            // be centred and widened into the empty space this row used to
+            // leave. Previously both cells sat flush-left at their MEASURED
+            // MINIMUM (`rateCellWidth`, ~150px each), so the pair occupied
+            // roughly a third of the 944px row and the rest was dead space.
+            // Now the row splits into two equal halves that together span the
+            // full dial-grid width, each with its readout centred inside its
+            // own half — the pair reads as centred AND the space is consumed.
+            //
+            // The inner value `Text` keeps its FIXED `rateCellWidth`-derived
+            // width, so round 2's anti-reflow guarantee (the row must not
+            // shift as magnitudes change) is preserved exactly — the readout
+            // is re-centred, never re-measured. Each cell is an `Item` rather
+            // than a bare `Column` precisely so its content CAN be
+            // anchor-centred: a `Column` is a positioner and manages its own
+            // children's `x` directly, so anchoring inside one is the very
+            // conflict this file's `contentColumn` note already documents.
+            Item {
                 id: downloadCell
-                width: root.rateCellWidth
+                anchors.left: parent.left
+                width: (dialGrid.width - root.spacingMd) / 2
+                height: downloadColumn.height
+
+                Column {
+                id: downloadColumn
+                anchors.horizontalCenter: parent.horizontalCenter
                 spacing: root.spacingXs
 
                 Row {
@@ -423,13 +452,19 @@ Item {
                     font.weight: root.weightBody
                     color: Colours.onSurfaceVariant
                 }
+                } // downloadColumn
             }
 
-            Column {
+            Item {
                 id: uploadCell
                 anchors.left: downloadCell.right
                 anchors.leftMargin: root.spacingMd
-                width: root.rateCellWidth
+                width: (dialGrid.width - root.spacingMd) / 2
+                height: uploadColumn.height
+
+                Column {
+                id: uploadColumn
+                anchors.horizontalCenter: parent.horizontalCenter
                 spacing: root.spacingXs
 
                 Row {
@@ -462,6 +497,7 @@ Item {
                     font.weight: root.weightBody
                     color: Colours.onSurfaceVariant
                 }
+                } // uploadColumn
             }
             } // networkRow
         } // networkRowWrap
