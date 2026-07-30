@@ -5,10 +5,10 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
 status: executing
-stopped_at: Completed 14-08-PLAN.md
-last_updated: "2026-07-29T23:53:04.038Z"
+stopped_at: 14-09 Task 3 complete (gate sweep + phase-close evidence); Task 4 (blocking render gate) pending a fresh session
+last_updated: "2026-07-30T10:49:25.944Z"
 last_activity: 2026-07-30
-last_activity_desc: Phase 14 execution started
+last_activity_desc: Phase 14 execution resumed (wave continue)
 progress:
   total_phases: 8
   completed_phases: 4
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 14 (dashboard-drawer) — EXECUTING
-Plan: 1 of 9
+Plan: 9 of 9 (Tasks 1-3 complete, Task 4 blocking render gate pending)
 Status: Executing Phase 14
 Progress: [██████████] 97%
-Last activity: 2026-07-30 — Phase 14 execution started
+Last activity: 2026-07-30 — Phase 14 execution resumed (wave continue)
 
 ## Performance Metrics
 
@@ -358,6 +358,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - Phase 11 Plan 01 Task 1 blocked: sudo pacman -S --needed quickshell requires an interactive password; no operator responded in this executor session. Halted before any install/edit. Also noted: hyprctl monitors -j currently reports only a 'FALLBACK' 1920x1080 output, not the expected physical DP-1 — operator should confirm the physical monitor is connected before performing Task 3's human gate.
 - QS-03 per-screen mounting gap (Phase 11, 11-04): headless output added after shell startup gets zero probe surfaces — genuine, mechanically-verified defect. Variants-based fix attempted and reverted (two independent reliability regressions on this quickshell 0.3.0 build). Not a stop-trigger (D-10); open for a future plan.
 - 14-01: Phase 14 plans 02-09's <automated> verify blocks carry the stale hyprctl dispatch global quickshell:<name> / hyprctl dispatch fullscreen N syntax, already known-broken since Phase 13.1 (13.1-09-SUMMARY.md) — use hyprctl dispatch 'hl.dsp.global("quickshell:<name>")' / hl.dsp.window.fullscreen(N) instead
+- 14-09 Task 4: blocking human render gate (gate="blocking") not yet run — three of its eleven checks (2, 4, 5) are previously-deferred open judgments from 14-03/14-08 that must be answered explicitly. theme-stress-test's full 10/10 run also did not complete this session (git-clean transient from in-flight STATE.md) — re-run once the tree is clean. See 14-09-SUMMARY.md for full evidence.
 
 ## Deferred Items
 
@@ -377,9 +378,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-29T22:45:45.254Z
-Stopped at: Completed 14-08-PLAN.md
-Resume file: None
+Last session: 2026-07-30T10:49:25.826Z
+Stopped at: 14-09 Task 3 complete (gate sweep + phase-close evidence); Task 4 (blocking render gate) pending a fresh session
+Resume file: .planning/phases/14-dashboard-drawer/14-09-PLAN.md
 
 ## Operator Next Steps
 
