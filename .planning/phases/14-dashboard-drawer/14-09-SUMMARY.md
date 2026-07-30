@@ -244,13 +244,15 @@ Confirmed **met**, not merely assumed: `quickshell:dashboard` was live in `hyprc
 | `motion-lint` | 53 passed / 0 failed | 79 passed / 0 failed | PASS — grown by this phase's own new files, zero failed |
 | `motion-lint --self-test` | 11 passed / 0 failed | 10 passed / 0 failed | PASS — self-test fixture count is stable within tolerance, zero failed |
 | `motion-lint --no-pending` | 1 passed / 0 failed | 1 passed / 0 failed | PASS — zero pending exemptions; D-05's no-scroll rule needed none on any of the four tabs |
-| `theme-stress-test` | 10/10 switches, 162 passed / 0 failed | **ABORTED at switch 1/10** | NOT COMPLETED THIS SESSION — see note below |
+| `theme-stress-test` | 10/10 switches, 162 passed / 0 failed | 10/10 switches, 162 passed / 0 failed, exit 0 | PASS — completed on the second attempt after the tree was committed clean (see note below) |
 
 **`theme-doctor`'s one FAIL is `git status --porcelain is empty`.** Root cause, verified by `git diff`: `.planning/STATE.md` carries an in-flight orchestrator bookkeeping diff (`last_updated`/`last_activity_desc` timestamp fields) that predates this session and is owned by the orchestrator's own state machinery, not by any code this task touched. This is **not** the same failure Phase 13 recorded (Phase 13 closed with a genuinely clean tree, 206/0) — it is the expected, self-resolving mid-execution state of any in-progress plan, and it will read clean once this plan's own closing commits land. All 229 non-git-clean checks passed. Recorded honestly as a new-but-explained transient, not silently equated to a Phase 13 precedent it isn't.
 
 **`quickshell-doctor`'s one FAIL is `headless output remove (QS-03)`** — byte-identical in wording and cause to the exact failure `14-03-SUMMARY.md`'s Task 3 and `deferred-items.md` already recorded (headless-monitor-hotplug re-creatability, PROJECT.md's accepted-permanent QS-03 limitation, D-13). Confirmed the same class by re-reading the failure text: "monitor count back to baseline (1 == 1), DP-1 probe still creatable (found: 0), shell PID unchanged... no crash marker." This is the SAME named pre-existing failure, not new.
 
-**`theme-stress-test` did NOT complete this session — recorded as NOT PERFORMED (in full), not as passed.** It aborted at switch 1/10 on the identical `theme-doctor` strict-exit-0 git-clean gate described above (the stress test runs `theme-doctor` after every switch and hard-stops on any failure). The theme was left at `catppuccin` mid-abort; **restored to the pre-test value `gruvbox`** immediately after (`theme-apply gruvbox`, exit 0, confirmed via `~/.local/state/theme/current-theme`). Root cause is identical to `theme-doctor`'s own FAIL above — `STATE.md`'s in-flight bookkeeping diff, which is orchestrator-owned and cannot be committed by this task without prematurely advancing plan state ahead of Task 4's still-pending approval. **This is flagged as an open item for whoever resumes at Task 4 or closes this plan: the full 10-switch `theme-stress-test` must be re-run once the tree is genuinely clean (after this plan's final closing commit), and its counts recorded before the phase is considered closed.**
+**`theme-stress-test`: first attempt ABORTED, second attempt (after this task's own commit landed) completed clean.** First attempt aborted at switch 1/10 on the identical `theme-doctor` strict-exit-0 git-clean gate described above (the stress test runs `theme-doctor` after every switch and hard-stops on any failure); theme was left at `catppuccin` mid-abort and restored to the pre-test value `gruvbox` immediately after. Root cause was `STATE.md`'s in-flight bookkeeping diff plus this task's own not-yet-committed SUMMARY — both landed via this task's own Task-3 documentation commit (`22ec4c5`) and a follow-up STATE.md session-continuity commit (`857ac23`), after which the tree read genuinely clean (`git status --porcelain` empty, `theme-doctor` 230/0). The full stress test was then re-run to completion: **10/10 switches, 162 passed, 0 failed, exit 0**, `git status --porcelain` empty afterward — matching Phase 13's own recorded baseline exactly. The run's own designed final theme was `materialyou` (the last theme in its fixed 10-theme switch sequence); manually restored to the session's original `gruvbox` afterward (`theme-apply gruvbox`, exit 0) as a courtesy, since the stress test itself has no "restore original theme" step of its own (matching 13-07's own precedent of leaving the desktop on the run's last theme).
+
+**One correction made along the way, recorded because it materially affects reported project state:** the `gsd-tools state.record-session` call used to note this session's stopping point had a side effect of recomputing `progress.completed_phases`/`completed_plans`/`percent` from SUMMARY.md file *presence* on disk, ignoring this file's own `status: blocked` frontmatter — it briefly reported Phase 14 as 5/8 complete and this plan as done, which is false (Task 4 has not run). Manually reverted to the accurate pre-Task-4 values (4/38/50%) in the same STATE.md commit, and corrected a separately-stale "Plan: 1 of 9" position line to reflect that all nine plans have reached execution with only 14-09's Task 4 outstanding.
 
 `keybind-doctor` and `quickshell-doctor` were checked specifically for the two things Task 3 names by name:
 
@@ -375,13 +377,11 @@ Confirmed live in the same navigation pass used for the layer table above: stepp
 
 ### Deferred / Not Performed
 
-**`theme-stress-test`'s full 10/10 run — NOT COMPLETED this session.** Aborted at switch 1/10 on `theme-doctor`'s strict git-clean gate, root-caused to `.planning/STATE.md`'s in-flight orchestrator bookkeeping diff (pre-existing, out of this task's ownership) plus this task's own not-yet-committed SUMMARY. Theme restored to its pre-test value (`gruvbox`). **Flagged explicitly for whoever resumes this plan at Task 4 or closes it: re-run the full stress test once the tree is genuinely clean, and record its counts before treating the phase as closed.**
-
 **Three-reader visual identity (roadmap criterion 4's visual half) — deferred to Task 4**, as the plan itself directs; no track was playing during this session to observe.
 
 ---
 
-**Total deviations:** 2 auto-fixed bugs (prior session), 1 operational fix (this session, no source touched), 1 explicitly deferred verification item (stress-test full run) carried forward rather than silently dropped.
+**Total deviations:** 2 auto-fixed bugs (prior session), 1 operational fix (this session, no source touched — quickshell relaunch), 1 mechanical self-correction (STATE.md progress-recompute side effect, reverted), 0 items remaining deferred except the visual three-reader observation which is structurally Task 4's job, not this task's.
 
 ## Known Stubs
 
@@ -401,7 +401,7 @@ None — this task performed only live verification and one detached process res
 
 **Before Task 4 can be judged, confirm:**
 - Material Symbols Rounded renders (Task 4's own precondition) — **confirmed already, this session:** `ttf-material-symbols-variable-git 4.0.0.r166.g528cb964-1` installed, `fc-list` resolves `Material Symbols Rounded` at multiple weights. Precondition is met; Task 4 does not need to halt on it.
-- The full `theme-stress-test` run (deferred above) should be completed once the tree is clean, ideally before or alongside Task 4's approval, so the phase's closing evidence record is fully populated.
+- The full `theme-stress-test` run — **completed this session** (10/10, 162/0, exit 0) once the tree read clean after Task 3's own commits landed; nothing further needed here.
 
 **Once Task 4 is answered:**
 - If APPROVED, this plan's `state_updates` and `final_commit` steps (advance plan counter, record session, mark REQUIREMENTS.md items, commit STATE.md/ROADMAP.md/REQUIREMENTS.md/this SUMMARY together) still need to run — they were deliberately NOT run in this session, since running them ahead of Task 4's approval would falsely advance phase-completion state.
