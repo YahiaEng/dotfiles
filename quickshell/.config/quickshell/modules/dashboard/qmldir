@@ -17,7 +17,15 @@
 # commit that creates it: `Cascade`, D-21's summon-only entrance-cascade
 # runner. Also non-visual, also not a singleton — one ordinary instance,
 # mounted on Dashboard.qml's window root.
+#
+# 14-09 also adds an eleventh type and this manifest's FIRST singleton:
+# `Design`, the shared spacing/type constants four plans deferred. It
+# carries the `singleton` keyword below AND a `pragma Singleton` in its
+# source — the 12-06 finding is that BOTH are required, and that omitting
+# this keyword yields a type that is never constructed and reads
+# `undefined` forever with no load error to warn you.
 module qs.modules.dashboard
+singleton Design 1.0 Design.qml
 DashboardTab 1.0 DashboardTab.qml
 MediaTab 1.0 MediaTab.qml
 PerformanceTab 1.0 PerformanceTab.qml

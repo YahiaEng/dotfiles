@@ -188,19 +188,19 @@ PanelWindow {
     //    four-role type scale), declared exactly once here — plans
     //    14-03..14-08 read them off `dashboardWindow` instead of
     //    re-declaring their own. ──────────────────────────────────────────
-    readonly property int spacingXs: 4
-    readonly property int spacingSm: 8
-    readonly property int spacingMd: 16
-    readonly property int spacingLg: 24
-    readonly property int spacingXl: 32
+    readonly property int spacingXs: Design.spacingXs
+    readonly property int spacingSm: Design.spacingSm
+    readonly property int spacingMd: Design.spacingMd
+    readonly property int spacingLg: Design.spacingLg
+    readonly property int spacingXl: Design.spacingXl
 
-    readonly property int fontDisplay: 32
-    readonly property int fontHeading: 20
-    readonly property int fontBody: 16
-    readonly property int fontLabel: 12
-    readonly property int weightDisplay: Font.Medium
-    readonly property int weightEmphasis: Font.DemiBold
-    readonly property int weightBody: Font.Normal
+    readonly property int fontDisplay: Design.fontDisplay
+    readonly property int fontHeading: Design.fontHeading
+    readonly property int fontBody: Design.fontBody
+    readonly property int fontLabel: Design.fontLabel
+    readonly property int weightDisplay: Design.weightDisplay
+    readonly property int weightEmphasis: Design.weightEmphasis
+    readonly property int weightBody: Design.weightBody
     readonly property real lineHeightTight: 1.2
     readonly property real lineHeightNormal: 1.5
 
@@ -221,10 +221,10 @@ PanelWindow {
     readonly property int tabBarHeight: 64
     // MD3 primary-tab active-indicator thickness.
     readonly property int tabIndicatorHeight: 3
-    readonly property int iconSizeMd: 24
+    readonly property int iconSizeMd: Design.iconSizeMd
     // Exact installed family string per 14-02-SUMMARY.md's Material
     // Symbols Rounded registration.
-    readonly property string symbolFontFamily: "Material Symbols Rounded"
+    readonly property string symbolFontFamily: Design.symbolFontFamily
 
     // Continuous swipe position across the four tabs (0..tabCount-1) —
     // derived from pagerList's own contentX/width so it tracks a drag AND

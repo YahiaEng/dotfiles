@@ -43,14 +43,14 @@ Item {
     anchors.fill: parent
 
     // ── Local design constants (see header note above) ──────────────────
-    readonly property int spacingXs: 4
-    readonly property int spacingMd: 16
-    readonly property int spacingLg: 24
-    readonly property int fontBody: 16
-    readonly property int fontLabel: 12
-    readonly property int weightBody: Font.Normal
-    readonly property int iconSizeMd: 24
-    readonly property string symbolFontFamily: "Material Symbols Rounded"
+    readonly property int spacingXs: Design.spacingXs
+    readonly property int spacingMd: Design.spacingMd
+    readonly property int spacingLg: Design.spacingLg
+    readonly property int fontBody: Design.fontBody
+    readonly property int fontLabel: Design.fontLabel
+    readonly property int weightBody: Design.weightBody
+    readonly property int iconSizeMd: Design.iconSizeMd
+    readonly property string symbolFontFamily: Design.symbolFontFamily
 
     property var systemResources: null
 

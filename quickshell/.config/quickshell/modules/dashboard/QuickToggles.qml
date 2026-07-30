@@ -62,13 +62,13 @@ Item {
 
     // ── Constants mirrored from 14-UI-SPEC.md / dashboardWindow (see header
     //    comment above — this file cannot reach dashboardWindow's copies). ─
-    readonly property int spacingXs: 4
-    readonly property int spacingSm: 8
-    readonly property int spacingMd: 16
-    readonly property int fontLabel: 12
-    readonly property int iconSizeMd: 24
+    readonly property int spacingXs: Design.spacingXs
+    readonly property int spacingSm: Design.spacingSm
+    readonly property int spacingMd: Design.spacingMd
+    readonly property int fontLabel: Design.fontLabel
+    readonly property int iconSizeMd: Design.iconSizeMd
     // Exact installed family string, per 14-02-SUMMARY.md's registration.
-    readonly property string symbolFontFamily: "Material Symbols Rounded"
+    readonly property string symbolFontFamily: Design.symbolFontFamily
     // 14-02-SUMMARY.md's live-measured verdict: `fill-axis-renders` — Qt
     // 6.11.1 genuinely drives this font's FILL variable axis on this build.
     // Re-verified directly this plan (throwaway qml6 grabToImage proof,

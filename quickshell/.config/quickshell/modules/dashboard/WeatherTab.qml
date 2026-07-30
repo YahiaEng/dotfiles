@@ -50,21 +50,21 @@ Item {
     anchors.fill: parent
 
     // ── Local design constants (see header note above) ──────────────────
-    readonly property int spacingXs: 4
-    readonly property int spacingSm: 8
-    readonly property int spacingMd: 16
-    readonly property int spacingLg: 24
-    readonly property int fontDisplay: 32
-    readonly property int fontHeading: 20
-    readonly property int fontBody: 16
-    readonly property int fontLabel: 12
-    readonly property int weightDisplay: Font.Medium
-    readonly property int weightEmphasis: Font.DemiBold
-    readonly property int weightBody: Font.Normal
-    readonly property int iconSizeMd: 24
+    readonly property int spacingXs: Design.spacingXs
+    readonly property int spacingSm: Design.spacingSm
+    readonly property int spacingMd: Design.spacingMd
+    readonly property int spacingLg: Design.spacingLg
+    readonly property int fontDisplay: Design.fontDisplay
+    readonly property int fontHeading: Design.fontHeading
+    readonly property int fontBody: Design.fontBody
+    readonly property int fontLabel: Design.fontLabel
+    readonly property int weightDisplay: Design.weightDisplay
+    readonly property int weightEmphasis: Design.weightEmphasis
+    readonly property int weightBody: Design.weightBody
+    readonly property int iconSizeMd: Design.iconSizeMd
     readonly property int heroSymbolSize: 56
     readonly property int cellSymbolSize: 24
-    readonly property string symbolFontFamily: "Material Symbols Rounded"
+    readonly property string symbolFontFamily: Design.symbolFontFamily
 
     property var weatherBackend: null
     readonly property bool hasBackend: root.weatherBackend !== null && root.weatherBackend !== undefined
