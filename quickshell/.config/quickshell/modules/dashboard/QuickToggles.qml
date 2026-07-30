@@ -87,6 +87,9 @@ Item {
     // this one property to fix the lit-state language back to a static
     // glyph weight — nothing else in this file needs to change.
     readonly property bool fillAxisAvailable: true
+    // 14-09 Task 4: named extraction of the two bare `ToolTip.delay: 400`
+    // sites below — see Design.qml's own header note for the full record.
+    readonly property int tooltipDelayMs: Design.tooltipDelayMs
 
     readonly property int chipHeight: 72
     readonly property int chipRadius: 16
@@ -539,7 +542,7 @@ Item {
                 hoverEnabled: true
                 ToolTip.visible: mouseArea.containsMouse && chipItem.chipTooltip !== ""
                 ToolTip.text: chipItem.chipTooltip
-                ToolTip.delay: 400
+                ToolTip.delay: root.tooltipDelayMs
                 onPressed: (mouse) => {
                     if (!Motion.motionEnabled)
                         return;
@@ -756,7 +759,7 @@ Item {
                 hoverEnabled: true
                 ToolTip.visible: presetMouseArea.containsMouse && segItem.segTooltip !== ""
                 ToolTip.text: segItem.segTooltip
-                ToolTip.delay: 400
+                ToolTip.delay: root.tooltipDelayMs
                 onClicked: root.pressPreset(segItem.segValue)
             }
         }

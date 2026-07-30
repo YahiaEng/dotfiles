@@ -42,6 +42,19 @@
 // files: `fillAxisAvailable`. It is a per-file capability flag about what
 // the font build supports, not a design token with a contract row behind
 // it, and hoisting it would change what it means.
+//
+// ── 14-09 Task 4 addition: `tooltipDelayMs` ──────────────────────────────
+// `QuickToggles.qml` carried `ToolTip.delay: 400` as a bare literal at two
+// call sites, found at the Task 4 render-gate change request while adding
+// a third tooltip site to `WeatherTab.qml`. This is a fourth blind-spot
+// class motion-lint's CHECK B cannot see: `delay:` is a duration-shaped
+// property name exactly like `duration:`/`interval:`, but CHECK B's regex
+// is anchored on the literal string `duration` — see 14-09-SUMMARY.md's
+// Task 4 section for the verdict on whether the two pre-existing
+// `QuickToggles.qml` sites were in Task 2's original hand enumeration.
+// Named here (not left local to one file) because both `QuickToggles.qml`
+// and `WeatherTab.qml` need the identical value — pure name extraction, the
+// value (400) is unchanged from what both sites already used.
 pragma Singleton
 
 import QtQuick
@@ -72,4 +85,7 @@ Singleton {
     readonly property int weightBody: Font.Normal
 
     readonly property string symbolFontFamily: "Material Symbols Rounded"
+
+    // ── Tooltip delay — see the header note above for provenance ────────
+    readonly property int tooltipDelayMs: 400
 }

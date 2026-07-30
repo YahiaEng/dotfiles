@@ -51,7 +51,17 @@
 // `Design.*` instead of repeating a literal. The reasoning above about
 // id-based lexical scope was correct — it just did not apply to a
 // singleton, which is why the consolidation was possible after all.
+//
+// ── 14-09 Task 4 UPDATE — WeatherPalette + hover tooltips ────────────────
+// The Task 4 render-gate change request added condition-glyph colouring
+// (`WeatherPalette`, a documented D-11 exemption — see that file's own
+// header), a hover tooltip on every condition glyph (the house pattern
+// already established in `QuickToggles.qml`), and a small centred
+// separator between the hour strip and the five-day row. `QtQuick.Controls`
+// is now imported for `ToolTip`, the same module `QuickToggles.qml` and
+// `MediaTab.qml` already use for it — no new styling surface.
 import QtQuick
+import QtQuick.Controls
 import "../"
 
 Item {
@@ -75,6 +85,14 @@ Item {
     readonly property int heroSymbolSize: 56
     readonly property int cellSymbolSize: 24
     readonly property string symbolFontFamily: Design.symbolFontFamily
+    // 14-09 Task 4 — see Design.qml's own header for the full record.
+    readonly property int tooltipDelayMs: Design.tooltipDelayMs
+
+    // 14-09 Task 4 — the small centred divider between the hour strip and
+    // the five-day row (D-05: geometry, not motion). Deliberately narrow
+    // rather than a full-width rule, per the render-gate's own wording.
+    readonly property int separatorWidth: 96
+    readonly property int separatorHeight: 1
 
     property var weatherBackend: null
     readonly property bool hasBackend: root.weatherBackend !== null && root.weatherBackend !== undefined
@@ -141,7 +159,10 @@ Item {
     readonly property real naturalHeroWidth: 420
 
     implicitWidth: Math.max(root.naturalHeroWidth, root.naturalHourStripWidth, root.naturalDayRowWidth) + root.spacingLg * 2
-    implicitHeight: heroBand.height + root.spacingMd + hourStrip.height + root.spacingMd + dayRow.height + root.spacingLg * 2
+    // 14-09 Task 4: the separator's own height plus one more spacingMd gap
+    // (hourStrip -> separator -> dayRow, each edge spacingMd apart) folded
+    // into the same non-circular formula as before.
+    implicitHeight: heroBand.height + root.spacingMd + hourStrip.height + root.spacingMd + forecastSeparator.height + root.spacingMd + dayRow.height + root.spacingLg * 2
 
     // ── Content root (D-04: no scrolling surface, panel padding) ────────
     Item {
@@ -188,6 +209,7 @@ Item {
                         spacing: root.spacingMd
 
                         Text {
+                            id: heroConditionGlyph
                             anchors.verticalCenter: parent.verticalCenter
                             text: root.showPlaceholder ? "" : (root.weatherBackend.current ? root.weatherBackend.current.symbol : "help")
                             font.family: root.symbolFontFamily
@@ -201,7 +223,32 @@ Item {
                             font.variableAxes: ({
                                 "FILL": 1
                             })
-                            color: Colours.primary
+                            // 14-09 Task 4: the condition glyph's own colour
+                            // (WeatherPalette, a documented D-11 exemption) —
+                            // falls back to the themed Colours.primary for
+                            // the placeholder/unrecognised-code case, same
+                            // fallback discipline at every WeatherPalette
+                            // call site in this file.
+                            readonly property color resolvedColor: (!root.showPlaceholder && root.weatherBackend.current) ? (WeatherPalette.forSymbol(root.weatherBackend.current.symbol) || Colours.primary) : Colours.primary
+                            color: heroConditionGlyph.resolvedColor
+                            Behavior on color {
+                                enabled: Motion.motionEnabled
+                                ColorAnimation {
+                                    duration: Motion.standardDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Motion.standardEasing
+                                }
+                            }
+
+                            MouseArea {
+                                id: heroConditionMouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                readonly property string conditionLabel: (!root.showPlaceholder && root.weatherBackend.current) ? root.weatherBackend.current.label : ""
+                                ToolTip.visible: heroConditionMouseArea.containsMouse && heroConditionMouseArea.conditionLabel !== ""
+                                ToolTip.text: heroConditionMouseArea.conditionLabel
+                                ToolTip.delay: root.tooltipDelayMs
+                            }
                         }
 
                         Column {
@@ -294,7 +341,18 @@ Item {
                                 text: "wb_twilight"
                                 font.family: root.symbolFontFamily
                                 font.pixelSize: root.fontLabel + 4
-                                color: Colours.onSurfaceVariant
+                                // 14-09 Task 4: sunrise glyph colour
+                                // (WeatherPalette, D-11 exemption) — the
+                                // clock text beside it stays themed.
+                                color: WeatherPalette.sunrise
+                                Behavior on color {
+                                    enabled: Motion.motionEnabled
+                                    ColorAnimation {
+                                        duration: Motion.standardDuration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Motion.standardEasing
+                                    }
+                                }
                             }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -311,7 +369,18 @@ Item {
                                 text: "bedtime"
                                 font.family: root.symbolFontFamily
                                 font.pixelSize: root.fontLabel + 4
-                                color: Colours.onSurfaceVariant
+                                // 14-09 Task 4: sunset glyph colour
+                                // (WeatherPalette, D-11 exemption) — the
+                                // clock text beside it stays themed.
+                                color: WeatherPalette.sunset
+                                Behavior on color {
+                                    enabled: Motion.motionEnabled
+                                    ColorAnimation {
+                                        duration: Motion.standardDuration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Motion.standardEasing
+                                    }
+                                }
                             }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -396,6 +465,7 @@ Item {
                                 }
 
                                 Text {
+                                    id: hourCellGlyph
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: hourCell.entry ? hourCell.entry.symbol : "help"
                                     font.family: root.symbolFontFamily
@@ -403,7 +473,29 @@ Item {
                                     font.variableAxes: ({
                                         "FILL": 0
                                     })
-                                    color: hourCell.entry ? Colours.onSurface : Colours.onSurfaceVariant
+                                    // 14-09 Task 4: condition-glyph colour
+                                    // (WeatherPalette, D-11 exemption) — the
+                                    // hour/temp labels beside it stay themed.
+                                    readonly property color resolvedColor: hourCell.entry ? (WeatherPalette.forSymbol(hourCell.entry.symbol) || Colours.onSurface) : Colours.onSurfaceVariant
+                                    color: hourCellGlyph.resolvedColor
+                                    Behavior on color {
+                                        enabled: Motion.motionEnabled
+                                        ColorAnimation {
+                                            duration: Motion.standardDuration
+                                            easing.type: Easing.BezierSpline
+                                            easing.bezierCurve: Motion.standardEasing
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: hourCellMouseArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        readonly property string conditionLabel: hourCell.entry ? hourCell.entry.label : ""
+                                        ToolTip.visible: hourCellMouseArea.containsMouse && hourCellMouseArea.conditionLabel !== ""
+                                        ToolTip.text: hourCellMouseArea.conditionLabel
+                                        ToolTip.delay: root.tooltipDelayMs
+                                    }
                                 }
 
                                 Text {
@@ -420,9 +512,23 @@ Item {
             }
 
             // ── The five-day row (D-37) ──────────────────────────────────
+            // ── The centred separator (14-09 Task 4) — a small, themed
+            //    divider between today's forecast and the 5-day forecast,
+            //    not a full-width rule (D-05: geometry, not motion). ───────
+            Rectangle {
+                id: forecastSeparator
+                anchors.top: hourStrip.bottom
+                anchors.topMargin: root.spacingMd
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: root.separatorWidth
+                height: root.separatorHeight
+                radius: height / 2
+                color: Colours.outline
+            }
+
             Item {
                 id: dayRow
-                anchors.top: hourStrip.bottom
+                anchors.top: forecastSeparator.bottom
                 anchors.topMargin: root.spacingMd
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -461,6 +567,7 @@ Item {
                                 }
 
                                 Text {
+                                    id: dayCellGlyph
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: dayCell.entry ? dayCell.entry.symbol : "help"
                                     font.family: root.symbolFontFamily
@@ -468,7 +575,29 @@ Item {
                                     font.variableAxes: ({
                                         "FILL": 0
                                     })
-                                    color: dayCell.entry ? Colours.onSurface : Colours.onSurfaceVariant
+                                    // 14-09 Task 4: condition-glyph colour
+                                    // (WeatherPalette, D-11 exemption) — the
+                                    // day/temp labels beside it stay themed.
+                                    readonly property color resolvedColor: dayCell.entry ? (WeatherPalette.forSymbol(dayCell.entry.symbol) || Colours.onSurface) : Colours.onSurfaceVariant
+                                    color: dayCellGlyph.resolvedColor
+                                    Behavior on color {
+                                        enabled: Motion.motionEnabled
+                                        ColorAnimation {
+                                            duration: Motion.standardDuration
+                                            easing.type: Easing.BezierSpline
+                                            easing.bezierCurve: Motion.standardEasing
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: dayCellMouseArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        readonly property string conditionLabel: dayCell.entry ? dayCell.entry.label : ""
+                                        ToolTip.visible: dayCellMouseArea.containsMouse && dayCellMouseArea.conditionLabel !== ""
+                                        ToolTip.text: dayCellMouseArea.conditionLabel
+                                        ToolTip.delay: root.tooltipDelayMs
+                                    }
                                 }
 
                                 Text {

@@ -24,8 +24,14 @@
 # source — the 12-06 finding is that BOTH are required, and that omitting
 # this keyword yields a type that is never constructed and reads
 # `undefined` forever with no load error to warn you.
+#
+# 14-09 Task 4 (render-gate change request) adds a twelfth type and this
+# manifest's SECOND singleton: `WeatherPalette`, a deliberate, documented
+# exemption to D-11's palette contract — see the file's own header for the
+# full rationale. Same both-required discipline as `Design` above.
 module qs.modules.dashboard
 singleton Design 1.0 Design.qml
+singleton WeatherPalette 1.0 WeatherPalette.qml
 DashboardTab 1.0 DashboardTab.qml
 MediaTab 1.0 MediaTab.qml
 PerformanceTab 1.0 PerformanceTab.qml
