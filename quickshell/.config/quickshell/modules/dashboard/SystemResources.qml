@@ -69,6 +69,45 @@
 // on every one of this phase's nine modules/dashboard/ files, even the
 // non-visual backends, so the vocabulary is uniform across the whole
 // module surface.
+//
+// ── 14-10 Task 2 addition: the GPU metric ────────────────────────────────
+// A fifth reading, DASH-09. Unlike CPU/memory/network (a pseudo-file read)
+// and unlike storage (a subprocess, but polled only every ~30s), the GPU
+// figure comes from `nvidia-smi`, a subprocess spawn on a materially
+// shorter, human-perceptible cadence — so it gets its own decision, not a
+// silent reuse of an existing pattern:
+//   - Sampling shape: one-shot fixed-argv queries on their own named
+//     cadence (`gpuPollInterval`), copying the STORAGE metric's five
+//     properties exactly (fixed argv, no shell; timer running bound to
+//     drawerOpen; fire-on-start; collector guarded on drawerOpen; process
+//     forced dead on close) — never a long-lived streaming query, because
+//     this reader's whole subprocess idiom is a collector that fires once
+//     when the stream FINISHES, and a stream that never finishes never
+//     fires it. A rejected shape, not an unconsidered one.
+//   - The binary seam (`gpuQueryPath`) is declared WITHOUT `readonly`,
+//     unlike `dfPath` above — deliberately, because it is the one seam this
+//     plan's synthetic no-GPU verification substitutes, and only a non-
+//     readonly property can be. It follows `dfPath`'s SHAPE (a bare command
+//     name, consumed as element zero of a fixed argv array) and `batterySource`'s
+//     MUTABILITY (the one other seam a prior plan actually substituted a
+//     fault into).
+//   - Absent/non-NVIDIA hardware: the dial is ALWAYS PRESENT and renders
+//     the D-41 empty state — never omitted — because omission would make
+//     the drawer's WIDTH a function of GPU hardware (the fresh-Arch-install
+//     constraint, `.claude/CLAUDE.md`). All three failure shapes (binary
+//     absent, binary present reporting no devices, binary present exiting
+//     non-zero) land in the identical empty state via one shared handler,
+//     `_onGpuProbeFinished()`.
+//   - The one-shot presence probe (`gpuProbeProcess`) fires on the first
+//     real open only, exactly like `hwmonDiscoveryProcess` above, and
+//     determines `gpuAvailable` for the rest of the session — the sample
+//     timer's own `running` binding cannot fire before this answers and
+//     cannot fire while the drawer is closed.
+//   - In-flight overlap: `_gpuSampleInFlight` guards every tick. A tick
+//     that arrives while the previous query is still running is SKIPPED,
+//     never queued or restarted — the dial holds its last value and its
+//     state register does not move.
+// See 14-10-SUMMARY.md for the live proof of every one of these decisions.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -100,6 +139,18 @@ Scope {
     // so nothing but this source assertion was ever going to catch it.
     readonly property int primeSampleWindow: 400
     readonly property int cpuSampleWindow: 3
+    // GPU cadence (14-10 Task 2) — deliberately TWICE `fastPollInterval`,
+    // and the reason is the mechanism, not a preference: this is a
+    // subprocess spawn (`nvidia-smi`), materially heavier than the pseudo-
+    // file reads every other fast metric here uses, while storage's own
+    // subprocess gets 15x this cadence because filesystem usage changes far
+    // more slowly than GPU load. The dial's own value transition already
+    // smooths the arc between samples, and the drawer is a summoned overlay
+    // typically up for only seconds, so fire-on-start behaviour matters more
+    // to how live this reads than the steady-state period does. A starting
+    // point the gate may retune — named here precisely so retuning it is a
+    // one-word edit, not a hunt through this file.
+    readonly property int gpuPollInterval: 4000
 
     // ── Published metric properties — the ONLY surface any consumer (this
     //    phase's PerformanceTab, 14-08's resources strip) reads; the read
@@ -123,11 +174,24 @@ Scope {
     property real cpuTempCelsius: NaN
     property real cpuFreqGHz: NaN
 
+    // ── GPU metric (14-10 Task 2, DASH-09) — see the file header's own
+    //    "GPU metric" section for the full design record. `gpuAvailable`
+    //    is decided ONCE, by the one-shot probe, and never revisited by the
+    //    recurring sampler — a mid-session sample failure (in-flight skip,
+    //    a transient non-zero exit) leaves the last-known values standing
+    //    and does not flip this back to false. ───────────────────────────
+    property real gpuFraction: 0
+    property real gpuUsedBytes: 0
+    property real gpuTotalBytes: 0
+    property string gpuName: ""
+    property bool gpuAvailable: false
+
     // ── Per-metric D-41 state registers ─────────────────────────────────
     property string cpuState: "empty"
     property string memoryState: "empty"
     property string storageState: "empty"
     property string networkState: "empty"
+    property string gpuState: "empty"
     // batteryState is NOT declared here — it is a readonly computed
     // property further down (derived purely from batterySource, which is
     // push-notified rather than polled), so declaring a second, separately-
@@ -152,6 +216,15 @@ Scope {
         root.memoryState = "pending";
         root.networkState = "pending";
         root.storageState = "pending";
+        // GPU starts "pending" too, exactly like its four siblings — even
+        // though it may end this session's FIRST open at "empty" instead of
+        // "populated" (the one-shot probe hasn't run yet at this point,
+        // Component.onCompleted, so which of the two it will resolve to is
+        // not yet known). `gpuAvailable`/`_gpuProbeDone` are NOT reset here:
+        // this function runs exactly once per session (Component.onCompleted
+        // only) and their compiled-in defaults (false) are already correct
+        // at that point — see the file header's GPU section.
+        root.gpuState = "pending";
         root.widgetState = "pending";
     }
 
@@ -205,12 +278,25 @@ Scope {
                 // never summoned spawns nothing).
                 hwmonDiscoveryProcess.running = true;
             }
+            if (!root._gpuProbeDone) {
+                // One-shot GPU presence probe (14-10 Task 2) — same shape
+                // as hwmon discovery immediately above: fired on the first
+                // real open only, cached forever in `gpuAvailable`/
+                // `gpuName`. Not force-stopped in the closed branch below,
+                // for the same reason hwmon discovery isn't — a fixed-argv
+                // `nvidia-smi` query returns in well under a second.
+                gpuProbeProcess.running = true;
+            }
         } else {
             // Force the storage subprocess dead the instant the drawer
             // closes so an in-flight `df` read cannot outlive this surface
             // (T-14-20) — a torn-down consumer receiving a late collector
             // signal is a use-after-teardown hazard, not merely wasted work.
             storageProcess.running = false;
+            // Same reasoning, same discipline, for the GPU sample process
+            // (14-10 Task 2) — an in-flight `nvidia-smi` query must not
+            // outlive the drawer either.
+            gpuSampleProcess.running = false;
             // The priming sample is single-shot and already guards itself
             // on `drawerOpen` (see below), but stopping it here too means a
             // rapid close-then-reopen never leaves a stale one-shot armed
@@ -631,6 +717,179 @@ Scope {
             root.widgetState = "populated";
         } catch (e) {
             root.storageState = "empty";
+        }
+    }
+
+    // ── The GPU metric (14-10 Task 2, D-36 extended by the same reasoning
+    //    already applied to storage) — see the file header's own "GPU
+    //    metric" section for the full design record. ─────────────────────
+    // The binary seam. A bare command name (matching `dfPath`'s shape
+    // above), consumed as element zero of a fixed argv array — deliberately
+    // NOT `readonly` (matching `batterySource`'s mutability, not `dfPath`'s
+    // immutability): this is the one seam this plan's synthetic no-GPU
+    // verification substitutes, in-tree, with a hot reload between each
+    // case, and only a non-readonly property can be substituted this way.
+    // The absent `readonly` is LOAD-BEARING for verification, not an
+    // oversight — do not "tidy" it away.
+    property string gpuQueryPath: "nvidia-smi"
+
+    // One-shot presence probe state — parallels `_hwmonDiscoveryDone`/
+    // `_cpuTempPath` above exactly: fired on the first real open only,
+    // cached forever, so a session that never summons the drawer spawns
+    // nothing (zero-idle doctrine).
+    property bool _gpuProbeDone: false
+    // Tracks whether `onExited` has already fired for the CURRENT probe
+    // run, so `onRunningChanged`'s false-transition can tell "the process
+    // exited normally (already handled)" apart from "the process layer
+    // failed to start it (exited never fires for that case — confirmed
+    // live, see 14-10-SUMMARY.md's Task 1... Task 2 render evidence)".
+    property bool _gpuProbeExitSeen: false
+    // Same pattern, for the recurring sampler.
+    property bool _gpuSampleInFlight: false
+    property bool _gpuSampleExitSeen: false
+
+    Process {
+        id: gpuProbeProcess
+        running: false
+        // Name only — no numeric fields, no unit suffixes needed. The name
+        // is stable and wanted once; it is deliberately NOT re-requested on
+        // every sample (see the per-sample query below and the file header
+        // for why).
+        command: [root.gpuQueryPath, "--query-gpu=name", "--format=csv,noheader"]
+        stdout: StdioCollector {
+            id: gpuProbeCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._gpuProbeExitSeen = true;
+            root._onGpuProbeFinished(exitCode, gpuProbeCollector.text);
+        }
+        onRunningChanged: {
+            if (gpuProbeProcess.running) {
+                root._gpuProbeExitSeen = false;
+            } else if (!root._gpuProbeExitSeen) {
+                // The process layer failed to start it (binary missing at
+                // this path) — `onExited` never fires for this shape.
+                // Treated identically to "reports no devices"/"exits non-
+                // zero": DECISION 2's designed empty state, all three
+                // failure shapes landing in one place.
+                root._onGpuProbeFinished(-1, "");
+            }
+        }
+    }
+
+    // All three synthetic failure shapes this plan verifies converge here:
+    // binary absent (exitCode -1, sentinel from the branch above, no real
+    // process ever ran), binary present but reporting no devices (exitCode
+    // 0, empty/blank name line), binary present but exiting non-zero
+    // (exitCode != 0). Every one sets `gpuAvailable: false` and
+    // `gpuState: "empty"` — the designed placeholder, at identical
+    // footprint, never an omitted dial (DECISION 2).
+    function _onGpuProbeFinished(exitCode, text) {
+        root._gpuProbeDone = true;
+        var name = ((text || "").split("\n")[0] || "").trim();
+        if (exitCode === 0 && name !== "") {
+            root.gpuName = name;
+            root.gpuAvailable = true;
+            // gpuState stays "pending" (set by resetBaselines()) until the
+            // sample timer's own first tick — bound below on
+            // `drawerOpen && gpuAvailable`, fire-on-start — lands a real
+            // reading and flips it to "populated", mirroring how
+            // `cpuState` only flips once a real post-baseline value exists.
+        } else {
+            root.gpuAvailable = false;
+            root.gpuName = "";
+            root.gpuState = "empty";
+        }
+    }
+
+    // The recurring sampler. Cannot run before the probe has answered
+    // (`gpuAvailable`) and cannot run while the drawer is down
+    // (`drawerOpen`) — both conditions in one `running` binding, so no
+    // separate start/stop call site can drift out of sync with either.
+    Timer {
+        id: gpuSampleTimer
+        interval: root.gpuPollInterval
+        repeat: true
+        running: root.drawerOpen && root.gpuAvailable
+        triggeredOnStart: true
+        onTriggered: {
+            if (!root.drawerOpen || !root.gpuAvailable)
+                return;
+            if (root._gpuSampleInFlight) {
+                // In flight when the next tick fires: skip. Never queued,
+                // never a second process spawned. The dial holds its last
+                // value; `gpuState` does not move. Exercised deliberately
+                // against a scratch slow-answering stub — see
+                // 14-10-SUMMARY.md.
+                return;
+            }
+            root._gpuSampleInFlight = true;
+            root._gpuSampleExitSeen = false;
+            gpuSampleProcess.running = true;
+        }
+    }
+
+    Process {
+        id: gpuSampleProcess
+        running: false
+        // Numeric fields only, no unit suffixes (`nounits`) — the parse is
+        // numeric rather than string-peeling. No name field: unlike the
+        // numeric fields, a name could in principle contain the CSV
+        // separator this output format uses, mis-indexing every field
+        // after it — the name comes from the one-shot probe instead (see
+        // the file header).
+        command: [root.gpuQueryPath, "--query-gpu=utilization.gpu,memory.used,memory.total", "--format=csv,noheader,nounits"]
+        stdout: StdioCollector {
+            id: gpuSampleCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._gpuSampleExitSeen = true;
+            root._gpuSampleInFlight = false;
+            if (!root.drawerOpen)
+                return; // torn-down consumer guard, mirrors storage's own
+            if (exitCode === 0)
+                root._onGpuSampleFinished(gpuSampleCollector.text);
+            // A non-zero exit leaves the last-known values standing — a
+            // slow or failed sample is not a missing metric.
+        }
+        onRunningChanged: {
+            if (gpuSampleProcess.running) {
+                root._gpuSampleExitSeen = false;
+            } else if (!root._gpuSampleExitSeen) {
+                // Process layer failed to start this tick's query (or this
+                // Process was force-stopped on drawer close, see
+                // `onDrawerOpenChanged` above) — either way, release the
+                // in-flight guard so the NEXT open/tick is never
+                // permanently stuck skipping.
+                root._gpuSampleInFlight = false;
+            }
+        }
+    }
+
+    function _onGpuSampleFinished(text) {
+        try {
+            var line = (text || "").split("\n")[0] || "";
+            var parts = line.split(",").map(function (s) {
+                return s.trim();
+            });
+            if (parts.length < 3)
+                return;
+            var util = Number(parts[0]);
+            var usedMiB = Number(parts[1]);
+            var totalMiB = Number(parts[2]);
+            if (!isFinite(util) || !isFinite(usedMiB) || !isFinite(totalMiB) || totalMiB <= 0)
+                return;
+            // MiB (nvidia-smi's default memory unit even with `nounits`,
+            // which strips only the printed suffix, not the magnitude) ->
+            // bytes, so the shared byte formatter the other dials already
+            // use formats this identically.
+            root.gpuFraction = Math.max(0, Math.min(1, util / 100));
+            root.gpuUsedBytes = usedMiB * 1024 * 1024;
+            root.gpuTotalBytes = totalMiB * 1024 * 1024;
+            root.gpuState = "populated";
+            root.widgetState = "populated";
+        } catch (e) {
+            // leave previous values standing
         }
     }
 

@@ -1,7 +1,8 @@
-// PerformanceTab.qml — tab 2, filled (Phase 14 Plan 06, D-36, DASH-05): a
-// 2x2 grid of four MD3 circular dials (CPU, Memory, Storage, Battery) plus
-// an honest network up/down rate row — a rate is not a percentage, so it is
-// two labelled readouts, never a fifth dial and never a normalised bar.
+// PerformanceTab.qml — tab 2, filled (Phase 14 Plan 06, D-36, DASH-05),
+// grown to five (14-10 Task 2, DASH-09): one row of five MD3 circular
+// dials (CPU, Memory, Storage, Battery, GPU) plus an honest network
+// up/down rate row — a rate is not a percentage, so it stays two labelled
+// readouts, never a sixth dial and never a normalised bar.
 //
 // Root type Item, filled via anchors.fill: parent by the Loader Dashboard.qml
 // places it in — actual rendered geometry stays anchors.fill-driven,
@@ -101,15 +102,24 @@ Item {
     // tab's own desired content size"), not a bug this task introduced.
     // This plan's own predicted "992/38.8%" arithmetic missed that second
     // layer; the actual measured 1040/2560 = 40.6% lands EVEN CLOSER to
-    // D-02's original ~40% intent than the prediction did. Diameter kept
-    // at round 2's 224; ring thickness grown from 18 to 22 after a live
-    // side-by-side screenshot comparison — 18 was not wrong (it read
-    // cleanly), but 22 carries more visual weight matching the new row's
-    // extra horizontal breathing room, and reads better as a deliberate
-    // choice rather than an unchanged leftover (see 14-09-SUMMARY.md's
-    // Task 4 section for both screenshots).
-    readonly property int dialDiameter: 224
-    readonly property real dialRingThickness: 22
+    // D-02's original ~40% intent than the prediction did.
+    //
+    // ── 14-10 Task 2 UPDATE (a fifth dial: GPU usage, DASH-09) ───────────
+    // Five dials in one row now, not four — see `dialGrid`'s `columns`
+    // below. The human's own instruction was that the width must not
+    // increase, so the diameter is retuned down rather than the row simply
+    // growing: `deferred-items.md`'s carried-forward arithmetic (5d +
+    // 4*spacingMd = 944, the exact content width the four 224px dials
+    // already produced) closes at d=176, with ring thickness scaled down
+    // proportionally from 14-09's 22: 22 * (176/224) ~= 17. Both numbers
+    // are the carried-forward starting point, not re-derived here. The
+    // live drawer width (1040, per 14-09 Task 4's own finding about
+    // `Dashboard.qml`'s extra outer-chrome layer) is therefore UNCHANGED by
+    // this task — only the Performance frame's HEIGHT is expected to
+    // shrink, since the dial row's own footprint got shorter; see
+    // 14-10-SUMMARY.md for the measured live number.
+    readonly property int dialDiameter: 176
+    readonly property real dialRingThickness: 17
 
     // Network rate row — width reserved by MEASUREMENT, not hope. The
     // widest realistic rate string at this formatter's own unit stepping
@@ -171,10 +181,10 @@ Item {
             Grid {
                 id: dialGrid
                 anchors.horizontalCenter: parent.horizontalCenter
-                // 14-09 Task 4: one row of four, not a 2x2 grid — see
+                // 14-10 Task 2: one row of five, not four — see
                 // `dialDiameter`'s own header note above for the width
                 // arithmetic this converges on.
-                columns: 4
+                columns: 5
                 // Round 2: spacingMd rather than spacingLg between the four
                 // dials — a denser cluster (still an already-named scale
                 // value, not an invented one) offsetting the diameter
@@ -193,6 +203,22 @@ Item {
                 // show populated — takes the fourth (`error`; thematically
                 // apt for a discharge-state readout, and re-tunable in one
                 // line if the gate objects).
+                //
+                // 14-10 Task 2: the fifth dial (GPU) has no unused non-
+                // neutral role left to take. The plan's own recorded DEFAULT
+                // choice was `primaryContainer` (a real contract role,
+                // currently unused on this tab), with a recorded alternative
+                // — share `primary` with CPU, the two compute dials — if it
+                // read washed out as a ring stroke. It did, and more than
+                // "washed out": live-read against the running theme's own
+                // `palette.json`, `primaryContainer` (#44475a) is BYTE-
+                // IDENTICAL to `Colours.surfaceVariant` (#44475a), the
+                // track colour every dial's UNFILLED arc already uses — so
+                // the value arc was not merely subdued, it was invisible
+                // against its own track. Confirmed live via screenshot
+                // before landing on the alternative (see 14-10-SUMMARY.md).
+                // Taking the recorded alternative: GPU shares `primary`
+                // with CPU.
                 Dial {
                     id: cpuDial
                     diameter: root.dialDiameter
@@ -277,6 +303,37 @@ Item {
                 detailText: root.hasReader ? root.systemResources.batteryStateText : ""
                 emptySymbol: "battery_unknown"
                 emptyText: "No battery"
+            }
+
+            // GPU — DASH-09 (14-10 Task 2). ALWAYS present, exactly like
+            // the battery dial above: on a machine with no NVIDIA adapter
+            // (or with the query binary absent, or reporting no devices,
+            // or exiting non-zero — all three land in the same reader-side
+            // `gpuState: "empty"`) this dial's empty branch is what renders,
+            // at the identical footprint the other four occupy. The five-
+            // across geometry and the 1040px frame are therefore never a
+            // function of GPU hardware (D-41). Identity icon `desktop_windows`
+            // and empty-state icon `desktop_access_disabled` were each
+            // confirmed rendering as real glyphs (not missing-glyph boxes)
+            // before this dial was written — see 14-10-SUMMARY.md — and
+            // `desktop_windows` matches the reference shell's own GPU-tile
+            // icon (Caelestia's `Performance.qml`, `gpuCard`).
+            Dial {
+                id: gpuDial
+                diameter: root.dialDiameter
+                ringThickness: root.dialRingThickness
+                label: "GPU"
+                icon: "desktop_windows"
+                accentColor: Colours.primary
+                widgetState: root.hasReader ? root.systemResources.gpuState : "pending"
+                value: root.hasReader ? root.systemResources.gpuFraction : 0
+                valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.gpuFraction) : ""
+                detailText: root.hasReader
+                    ? (root.systemResources.formatBytes(root.systemResources.gpuUsedBytes) + " / "
+                        + root.systemResources.formatBytes(root.systemResources.gpuTotalBytes))
+                    : ""
+                emptySymbol: "desktop_access_disabled"
+                emptyText: "No GPU"
             }
             } // dialGrid
 
