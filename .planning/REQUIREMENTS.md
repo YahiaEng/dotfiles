@@ -45,6 +45,7 @@
 - [x] **DASH-06**: The Weather tab shows current conditions and forecast, degrading gracefully when the weather service is unreachable
 - [x] **DASH-07**: Dashboard quick-toggles read and write the **same** backing state as swaync's existing toggle grid (BAR-05) — no second source of truth
 - [x] **DASH-08**: Dashboard and panels refuse to open over a fullscreen client
+- [ ] **DASH-09**: The Performance tab shows GPU usage as a fifth dial, and occupies the same panel width as the four-dial layout it replaces *(added 2026-07-30 — NEW SCOPE arising from plan 14-09's phase-close render gate, at the human's explicit direction that it belongs to Phase 14 rather than a later phase. Not covered by DASH-05, whose text enumerates "CPU, memory, network, storage and battery" and whose decision D-36 names four dials; minted rather than folded into DASH-05 so a satisfied requirement's text never has to be read as covering a metric it excludes. Planned in `14-10-PLAN.md`. Includes the absent-hardware clause: on a machine with no NVIDIA adapter the dial renders D-41's designed empty placeholder at identical footprint rather than being omitted, so panel geometry is never a function of graphics hardware — the fresh-Arch-install constraint)*
 
 ### Audio + Connectivity Panels (PANEL)
 
@@ -149,6 +150,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DASH-06 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-07 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-08 | Phase 14 — Dashboard Drawer | Complete |
+| DASH-09 | Phase 14 — Dashboard Drawer *(MINTED 2026-07-30 — new scope from 14-09's render gate)* | Pending — planned in 14-10 |
 | PANEL-01 | Phase 15 — Audio + Connectivity Panels | Pending |
 | PANEL-02 | Phase 15 — Audio + Connectivity Panels | Pending |
 | PANEL-03 | Phase 15 — Audio + Connectivity Panels | Pending |
@@ -168,8 +170,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 **Coverage:**
 
-- v3.0 requirements: 39 defined, 38 active (QS-03 dropped to Out of Scope 2026-07-26 — see reason below and `12-QS03-EVIDENCE.md`; MAINT-04 added 2026-07-28 with Phase 13.1)
-- Mapped to phases: 38
+- v3.0 requirements: 40 defined, 39 active (QS-03 dropped to Out of Scope 2026-07-26 — see reason below and `12-QS03-EVIDENCE.md`; MAINT-04 added 2026-07-28 with Phase 13.1; DASH-09 minted 2026-07-30 into Phase 14 — see reason below)
+- Mapped to phases: 39
 - Unmapped: 0 ✓
 - Duplicates (a requirement in more than one phase): 0 ✓
 
@@ -180,6 +182,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 - **MAINT-01 → Phase 11.** QS-05 requires proving no duplicated global keybind across two independent registration mechanisms (Hyprland `bind =` and Quickshell `GlobalShortcut`). `keybind-doctor` is the instrument for that proof and is currently broken on Hyprland 0.56.0; Phases 14 and 16 each add a new global keybind, so the detector must work before then.
 - **MAINT-02 / MAINT-03 → Phase 13.** Phase 13 is the milestone's existing-surface sweep and already opens wleave (WR-04's Logout-wrapping target) and the walker-driven picker family. A standalone maintenance phase of three unrelated single-item fixes is the thin-phase shape the coarse granularity setting exists to prevent.
 - **MAINT-04 → Phase 13.1 (INSERTED 2026-07-28).** Not discretionary maintenance: Hyprland 0.57 removes `.conf` support entirely and hyprlang is replaced by Lua. Inserted as a decimal rather than appended because Phases 14–17 all consume the design tokens the migration re-shapes, so migrating first avoids retrofitting four phases of surface; and inserted rather than deferred because 0.56 is the last release that loads both formats — the only window in which the migration has a working fallback. Decimal numbering was chosen over renumbering 14–17 specifically to leave this traceability mapping intact.
+- **DASH-09 → Phase 14 (MINTED 2026-07-30).** New scope, not a clarification of DASH-05. The human asked for a GPU-usage dial at plan 14-09's phase-close render gate and directed explicitly that it belongs to Phase 14, executed now rather than deferred to a later phase; phase-level verification is held until `14-10-PLAN.md` closes. Minted as its own ID rather than folded into DASH-05 for one reason: DASH-05 is marked complete and its text enumerates five metrics that do not include GPU, so folding would leave a satisfied requirement whose wording excludes a metric visibly on the surface, with the only trace being prose inside one plan file. Appended as the next sequential DASH id rather than inserted, so the traceability mapping above stays intact. Left unchecked deliberately: it is planned, not built.
 - **TOKEN-06 blocks nothing.** No phase and no requirement depends on it; dropping it changes no other phase's scope.
 - **OVER-04 stays in Phase 16.** Phase 11 runs the screencopy *feasibility probe* (permission mechanics, a first live multi-window capture) so Phase 16's scope is decided early; the measured frame/CPU budget and documented fallback remain Phase 16's requirement.
 - **QS-03 → Phase 12 (carried forward from Phase 11, 2026-07-26), then dropped by Phase 12 (2026-07-26, D-13, one-way).** The gap was accepted for Phase 11 under D-10 via a recorded override in `11-VERIFICATION.md` rather than dropped. Phase 12 is the first phase that needed a permanent, non-summoned QML surface, so it had to attempt per-screen fan-out anyway; it carried QS-03 as success criterion 6. Phase 12 re-attempted the fan-out with a bounded, targeted fix (checked-in `qmldir` plus `Variants`+`LazyLoader`, two structurally distinct arrangements, one spike) and both reproduced an FM2-class multiplicity failure on quickshell 0.3.0-2, re-proven across a real session restart — see `12-QS03-EVIDENCE.md`. Per D-13, QS-03 is now formally Out of Scope rather than carried a second time; the active requirement total drops from 38 to 37 with no duplicate, since the row moved rather than being copied.
@@ -187,4 +190,4 @@ Which phases cover which requirements. Populated during roadmap creation.
 ---
 
 *Requirements defined: 2026-07-26*
-*Last updated: 2026-07-26 after Phase 12's D-13 decision dropped QS-03 to Out of Scope (37/37 active requirements mapped, 38 ever defined); QS-03 ownership moved Phase 11 -> Phase 12 after the Phase 11 acceptance override (2026-07-26), then dropped by Phase 12 the same day after a bounded re-attempt failed (see `12-QS03-EVIDENCE.md`)*
+*Last updated: 2026-07-30 — DASH-09 minted into Phase 14 as new scope from plan 14-09's render gate (39/39 active requirements mapped, 40 ever defined). Note on the counts: this line previously read "37/37 active, 38 ever defined" and was stale by one, because it was last touched 2026-07-26 and MAINT-04 was added 2026-07-28 without it being updated — the summary block above was current and this line was not. Both now agree at 40 defined / 39 active. Prior history: QS-03 ownership moved Phase 11 -> Phase 12 after the Phase 11 acceptance override (2026-07-26), then dropped to Out of Scope by Phase 12 the same day after a bounded re-attempt failed (see `12-QS03-EVIDENCE.md`); MAINT-04 inserted with Phase 13.1 (2026-07-28).*
