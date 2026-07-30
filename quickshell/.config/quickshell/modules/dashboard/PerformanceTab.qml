@@ -87,8 +87,29 @@ Item {
     // wrong, half of the panel is empty") grows both from round 1's
     // 176/14 — the sanctioned adjustment knob D-06 names for exactly this
     // complaint, rather than tightening the spacing scale itself.
+    //
+    // ── 14-09 Task 4 UPDATE (render-gate change request: "shorter and
+    //    wider, rings adjusted accordingly") ─────────────────────────────
+    // One row of four dials, not a 2x2 grid — see `dialGrid`'s `columns`
+    // below. `dialGrid.width` = 224*4 + spacingMd*3 = 944 — this tab's own
+    // `implicitWidth` (dialGrid.width + spacingLg*2) is 992, but the LIVE
+    // drawer width measures 1040, not 992: `Dashboard.qml`'s own
+    // `drawerWidth = activeContentWidth + spacingLg*2` adds the WINDOW's
+    // outer chrome margin on top of this tab's own already-self-padded
+    // `implicitWidth` — by design (see that file's own header comment: the
+    // outer `content` item's margin is "added back on top of the active
+    // tab's own desired content size"), not a bug this task introduced.
+    // This plan's own predicted "992/38.8%" arithmetic missed that second
+    // layer; the actual measured 1040/2560 = 40.6% lands EVEN CLOSER to
+    // D-02's original ~40% intent than the prediction did. Diameter kept
+    // at round 2's 224; ring thickness grown from 18 to 22 after a live
+    // side-by-side screenshot comparison — 18 was not wrong (it read
+    // cleanly), but 22 carries more visual weight matching the new row's
+    // extra horizontal breathing room, and reads better as a deliberate
+    // choice rather than an unchanged leftover (see 14-09-SUMMARY.md's
+    // Task 4 section for both screenshots).
     readonly property int dialDiameter: 224
-    readonly property real dialRingThickness: 18
+    readonly property real dialRingThickness: 22
 
     // Network rate row — width reserved by MEASUREMENT, not hope. The
     // widest realistic rate string at this formatter's own unit stepping
@@ -150,7 +171,10 @@ Item {
             Grid {
                 id: dialGrid
                 anchors.horizontalCenter: parent.horizontalCenter
-                columns: 2
+                // 14-09 Task 4: one row of four, not a 2x2 grid — see
+                // `dialDiameter`'s own header note above for the width
+                // arithmetic this converges on.
+                columns: 4
                 // Round 2: spacingMd rather than spacingLg between the four
                 // dials — a denser cluster (still an already-named scale
                 // value, not an invented one) offsetting the diameter
