@@ -4,17 +4,17 @@ milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
-status: executing
-stopped_at: 14-09 Task 3 complete (gate sweep + phase-close evidence); Task 4 (blocking render gate) pending a fresh session
-last_updated: "2026-07-30T10:49:25.944Z"
+status: verifying
+stopped_at: Completed 14-09-PLAN.md — Task 4 re-gate APPROVED, plan closed, Phase 14 (dashboard-drawer) ready for verification
+last_updated: "2026-07-30T12:20:54.421Z"
 last_activity: 2026-07-30
 last_activity_desc: Phase 14 execution resumed (wave continue)
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 39
-  completed_plans: 38
-  percent: 50
+  completed_plans: 39
+  percent: 63
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 Phase: 14 (dashboard-drawer) — EXECUTING
 Plan: 9 of 9 (Tasks 1-3 complete, Task 4 blocking render gate pending)
-Status: Executing Phase 14
-Progress: [██████████] 97%
+Status: Phase complete — ready for verification
+Progress: [██████████] 100%
 Last activity: 2026-07-30 — Phase 14 execution resumed (wave continue)
 
 ## Performance Metrics
@@ -166,6 +166,7 @@ Last activity: 2026-07-30 — Phase 14 execution resumed (wave continue)
 | Phase 14 P04 | multi-session (2 gate rounds) | 4 tasks | 5 files |
 | Phase 14 P05 | multi-session (6 gate rounds) | 3 tasks | 2 files |
 | Phase 14 P08 | 46min | 2 tasks | 2 files |
+| Phase 14 P09 | multi-session (4 sessions) | 4 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -289,6 +290,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 14-06: Pre-existing backward-nav pager width bug (Left arrow wider→narrower tab leaves frame width stuck) logged in deferred-items.md — owned by 14-08/14-09 before phase close.
 - [Phase ?]: 14-08: two render-gate scope-fence reversals on direct human instruction — compact media transport gained previousTrack/nextTrack (was 'play/pause and nothing else'), and the resources strip gained a Storage mini-dial (was 'Performance-only'); both approved through round 3.
 - [Phase ?]: 14-08: three round-1 open judgments (2560x1440 fit/width, calendar month-reset acceptability, deep-link discoverability) were never explicitly answered across three render-gate rounds — carried forward as open items to 14-09/Phase 15, not settled.
+- [Phase ?]: 14-09: Phase 14 CLOSED — Task 4's blocking render gate returned a CHANGE REQUEST on checks 4 (Performance width) and 9 (Weather), both actioned (WeatherPalette.qml D-11 exemption, hover tooltips, forecast separator, one-row-of-four Performance dials, retuned rings, Dial.qml consolidation fold-in), and APPROVED at the re-gate — all eleven checks signed off, all five ROADMAP criteria and DASH-01..08 closed
+- [Phase ?]: 14-09: backward-navigation pager-width bug (14-06) was re-tested and disproven for real once Performance's dial-layout change made the width axis non-floor (1040px) for the first time in the phase — forward/backward geometry correct, genuine animated intermediates captured, off/reduced collapse correct; superseded Task 3's earlier 'structurally moot' verdict, which was only true while every tab sat at the shared 760 floor
+- [Phase ?]: 14-09: two carried-forward requests from the re-gate approval recorded in deferred-items.md, not implemented in-plan — two-tone weather glyphs (font has no COLR/CPAL/SVG table; layered-glyph route recommended, own render gate required) and a fifth GPU dial on the Performance tab (nvidia-smi verified present; 176px/17px sizing arithmetic closes at the existing 1040px frame with no width change; needs its own plan — touches 14-06's SystemResources.qml, needs a subprocess-sampling design, and a D-41 no-GPU widget-state answer)
 
 ### Quick Tasks Completed
 
@@ -378,9 +382,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-30T10:49:25.826Z
-Stopped at: 14-09 Task 3 complete (gate sweep + phase-close evidence); Task 4 (blocking render gate) pending a fresh session
-Resume file: .planning/phases/14-dashboard-drawer/14-09-PLAN.md
+Last session: 2026-07-30T12:20:54.405Z
+Stopped at: Completed 14-09-PLAN.md — Task 4 re-gate APPROVED, plan closed, Phase 14 (dashboard-drawer) ready for verification
+Resume file: None
 
 ## Operator Next Steps
 
