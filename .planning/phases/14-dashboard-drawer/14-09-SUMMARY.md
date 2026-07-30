@@ -51,8 +51,8 @@ key-decisions:
   - "The D-21 cascade's motion-enabled/motion-scale plumbing was broken repo-wide until this plan's prerequisite fix (7850b7f): Motion.qml's JsonAdapter declared camelCase motionEnabled/motionScale, but lib/motion.sh emits snake_case motion_enabled/motion_scale — JsonAdapter binds top-level JSON keys by exact name, so neither key ever bound and 'off' was silently inert across the ENTIRE shell (~40 gate sites), not only the new cascade. Fixed by renaming the two internal binding names only; the public Motion.motionEnabled/motionScale aliases are byte-identical, so no consumer or motion-lint CHECK A name changed."
   - "quickshell-doctor's launcher-log-freshness check FAILed at the start of this task's sweep because the running quickshell process (uptime ~11h) had no 'starting' line left in its own truncated log — not a functional break (the dashboard shortcut was live and working throughout). Resolved operationally by a detached relaunch (setsid uwsm app -- quickshell-launch.sh, the standing 14-06 executor rule), which produced a fresh log and cleared the check with no source file touched."
   - "The three-reader media proof and the D-05 slack table both had to be reconstructed live in this task rather than literally 'collated' from four prior SUMMARYs, because 14-06/14-07/14-08's own SUMMARY.md files never recorded the numeric slack arithmetic their plans required — a documented historical gap, closed here with live measurement rather than left unfilled."
-  - "The backward-navigation pager-width bug 14-06 deferred to 14-08/14-09 (Left arrow from a wider to a narrower tab leaving the frame width stuck) is now structurally moot: since 14-04/14-08's consolidation onto drawerMinWidth=760 as a shared floor, every tab renders at the SAME width (760px) and only height varies per tab — there is no width to get stuck at. Confirmed live across a full four-tab Right-then-Left round trip. Not re-opened as a fix; recorded as an incidental resolution."
-  - "D-04's literal 'identical frame height on all four tabs' truth is stale text this plan does not re-litigate: 14-03's own render gate (round 2, human-approved) superseded it with per-tab dynamic proportions, ratified again through 14-04/14-06/14-08. This plan's Task 3 re-observation records the CURRENT per-tab heights (826/424/778/497) as the correct, already-ratified behavior, not as a defect against the original text."
+  - "CORRECTED (Task 4, this session — supersedes the entry as originally recorded by Task 3): the backward-navigation pager-width bug 14-06 deferred to 14-08/14-09 (Left arrow from a wider to a narrower tab leaving the frame width stuck) was recorded by Task 3 as 'structurally moot' on the reasoning that since 14-04/14-08's consolidation onto drawerMinWidth=760 as a shared floor, every tab rendered at the SAME width (760px) and only height varied per tab — there was no width to get stuck at. That was TRUE ONLY WHILE every tab sat at the 760 floor, and it was PROVISIONAL, not structural: Task 4's Performance change (one row of four dials) pushed that tab to 1040px, the first non-floor width in the whole phase, which made the width axis live for the first time and reopened the exact bug class Task 3 had declared moot. The bug class was then actually re-tested and disproven, not merely re-assumed away: forward `760/826 → 760/424 → 1040/498 → 760/514` and backward the exact reverse, no stuck width in either direction; a rapid mid-transition poll captured genuine animated intermediate values mid-swipe (`1040→1011→928→870→833→808→791→779→768→762→760` on `Behavior on implicitWidth`), collapsing correctly to a hard jump at `off` (zero intermediate samples) and tightening correctly at `reduced` (5 samples vs 8 at `normal`). Full detail in the Task 4 section (B2). Still not re-opened as a fix to `Dashboard.qml` itself — the pre-existing mechanism handles the now-live width axis correctly; recorded as a genuinely re-verified resolution, not an incidental one."
+  - "D-04's literal 'identical frame height on all four tabs' truth is stale text this plan does not re-litigate: 14-03's own render gate (round 2, human-approved) superseded it with per-tab dynamic proportions, ratified again through 14-04/14-06/14-08. This plan's Task 3 re-observation recorded the per-tab heights AS THEY STOOD AT THAT POINT (826/424/778/497) as the correct, already-ratified behavior, not as a defect against the original text. CORRECTED (Task 4, this session): those four numbers are Task 3's baseline, not the plan's final state — Task 4's Performance and Weather changes moved two of them. The current, live-measured per-tab dimensions at plan close are Dashboard 760x826, Media 760x424, Performance 1040x498, Weather 760x514 (see Task 4 sections B1/A4 and the C.4 table)."
   - "TASK 4 (this session, continuation): the human render gate returned a CHANGE REQUEST, not an approval — nine of eleven checks passed outright; check 4's width verdict and check 9 (Weather) each required changes, actioned in this session and detailed in the Task 4 section below. WeatherPalette.qml is a new, second documented D-11 exemption (Design.qml being the first kind of exemption in spirit, though Design.qml is not a colour exemption — WeatherPalette.qml is the first ABSOLUTE-colour exemption). Performance's drawer width goes non-floor for the first time in the phase (1040px, not 760), which reopened and re-proved the width-transition axis Task 3 had only ever observed at the floor. Dial.qml — named in Task 2's own file scope — was found to have been skipped by Task 2's actual consolidation commit and was folded in this session as a separate fix commit."
   - "Theme restoration self-correction: this session initially restored the desktop theme to 'catppuccin' after a legibility test, based on a stale ~/.cache/current-theme file (last modified 2026-07-06, not the live tracker). The live tracker is ~/.local/state/theme/current-theme, and Task 3's own SUMMARY record shows the prior session ended on 'gruvbox' — the actual original value. Caught before the phase-close gate sweep and corrected (theme-apply gruvbox); recorded here rather than silently left at the wrong value."
 
@@ -60,7 +60,7 @@ patterns-established:
   - "Singleton-based cross-submodule design-token sharing (Design.qml) — the mechanism Phase 15's panels should reach for instead of re-declaring local spacing/type constants per file."
   - "A second, narrower singleton (WeatherPalette.qml) as the sanctioned shape for a documented, scope-limited exemption to the Colours.qml palette contract — grep-verifiable, file-named, never a loosening of the contract itself."
 
-requirements-completed: []
+requirements-completed: [DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DASH-07, DASH-08]
 
 coverage:
   - id: D1
@@ -92,10 +92,10 @@ coverage:
     requirement: "DASH-01..08 (phase-close verification)"
     verification:
       - kind: other
-        ref: "Human returned a CHANGE REQUEST on checks 4 (Performance width) and 9 (Weather tab, four items) — nine checks passed outright. This session's Task 4 section documents both change requests actioned and re-verified."
-        status: partial
+        ref: "Human returned a CHANGE REQUEST on checks 4 (Performance width) and 9 (Weather tab, four items) at the first gate — nine checks (1,2,3,5,6,7,8,10,11) passed outright there. Both change requests were actioned and re-verified in this session (Task 4 section). At the RE-GATE, the human returned APPROVED, verbatim: 'Approved. And I already approved the dynamic width/height.' — closing checks 4 and 9, the last two of the eleven."
+        status: pass
     human_judgment: true
-    rationale: "Visual/feel judgment across the whole phase per ROADMAP standing constraint 1 — CHANGE REQUEST answered, changes made, RE-GATE PENDING. A human must sign off on the two changed surfaces (Weather, Performance) before the phase can close; the other nine checks are already signed off and are not being re-asked."
+    rationale: "Visual/feel judgment across the whole phase per ROADMAP standing constraint 1. All eleven checks are now signed off: nine at the first gate (1,2,3,5,6,7,8,10,11), and checks 4 and 9 at this re-gate after the requested Weather/Performance changes landed. The gate is closed, not auto-approved — a human returned an explicit APPROVED verdict at each stage."
   - id: D5
     description: "Task 4 change requests actioned: WeatherPalette.qml (D-11 exemption) + hover tooltips + centred separator on the Weather tab; one-row-of-four dial layout + retuned ring thickness on the Performance tab; the Dial.qml consolidation gap Task 2 missed, folded in; the width-transition axis re-tested now that Performance exceeds the 760 floor for the first time in the phase"
     requirement: "DASH-01..08 (phase-close verification)"
@@ -106,20 +106,20 @@ coverage:
     human_judgment: false
 
 # Metrics
-duration: multi-session (Tasks 1-2 in a prior interrupted session; Task 3 + this SUMMARY's first draft in a second session; Task 4's human gate + this session's change-request response + re-verification in a third continuation session)
+duration: multi-session (Tasks 1-2 in a prior interrupted session; Task 3 + this SUMMARY's first draft in a second session; Task 4's human gate + change-request response + re-verification in a third continuation session; the re-gate approval and phase-close bookkeeping — SUMMARY corrections, deferred-items capture, state/roadmap closure — in a fourth continuation session)
 completed: 2026-07-30
-status: blocked
+status: complete
 ---
 
 # Phase 14 Plan 09: Cascade, Consolidation, Gate Sweep & Phase-Close Evidence Summary
 
-**D-21's summon-only entrance cascade shipped and both its fences proven live; the four-plan-deferred design-constants consolidation landed on a shared `Design` singleton; ten repo-wide prohibition invariants each proven able to fail before being trusted to pass; the full phase-close gate sweep, three-reader delta proof, DASH-07 mirror and layer/fullscreen re-observations ran against all four populated tabs; and Task 4's blocking human render gate returned a CHANGE REQUEST on the Weather and Performance tabs — both actioned in this continuation session (a new `WeatherPalette.qml` D-11 exemption, hover tooltips, a forecast separator, a one-row Performance dial layout, retuned ring thickness, and the `Dial.qml` consolidation gap Task 2 missed) — with a focused re-gate on just those two surfaces still pending.**
+**D-21's summon-only entrance cascade shipped and both its fences proven live; the four-plan-deferred design-constants consolidation landed on a shared `Design` singleton; ten repo-wide prohibition invariants each proven able to fail before being trusted to pass; the full phase-close gate sweep, three-reader delta proof, DASH-07 mirror and layer/fullscreen re-observations ran against all four populated tabs; and Task 4's blocking human render gate returned a CHANGE REQUEST on the Weather and Performance tabs — both actioned (a new `WeatherPalette.qml` D-11 exemption, hover tooltips, a forecast separator, a one-row Performance dial layout, retuned ring thickness, and the `Dial.qml` consolidation gap Task 2 missed) and, at a focused re-gate on just those two surfaces, APPROVED. Phase 14 is closed.**
 
 ## Performance
 
-- **Duration:** Multi-session. Tasks 1-2 (cascade + consolidation) were executed and committed in a prior session that was interrupted before writing this SUMMARY. Task 3 (gate sweep + evidence) and this SUMMARY were completed in this continuation session, 2026-07-30.
-- **Tasks:** 4 declared (Task 1 auto, Task 2 auto, Task 3 auto, Task 4 checkpoint:human-verify, gate="blocking"). Tasks 1-3 complete; **Task 4 has NOT been run** — this session stops at its blocking checkpoint per the executor's continuation contract and returns structured checkpoint state to the orchestrator.
-- **Files modified:** 10 QML files (2 created, 8 modified) across Tasks 1-2; zero source files touched by Task 3 (verification-only).
+- **Duration:** Multi-session across four sessions — see `duration` in frontmatter for the full breakdown.
+- **Tasks:** 4 declared (Task 1 auto, Task 2 auto, Task 3 auto, Task 4 checkpoint:human-verify, gate="blocking"). All four complete. Task 4 returned a CHANGE REQUEST at its first gate (checks 4 and 9), both actioned, and returned APPROVED at the re-gate — all eleven checks now signed off. Plan closed.
+- **Files modified:** 11 QML files (3 created — `Cascade.qml`, `Design.qml`, `WeatherPalette.qml` — 8 modified) across Tasks 1, 2 and 4; zero source files touched by Task 3 (verification-only).
 
 ## Accomplishments
 
@@ -131,9 +131,10 @@ status: blocked
 
 1. **Task 1: D-21 summon-only entrance cascade** — `7850b7f` (fix: prerequisite Motion.qml snake_case binding fix) + `3a05c97` (feat: the cascade itself, both fences proven)
 2. **Task 2: Consolidation disposition + ten prohibition invariants** — `1388516` (refactor: Design.qml consolidation) + `87bba52` (fix: three named timer intervals, CHECK B blind-spot record)
-3. **Task 3: Gate sweep + phase-close evidence** — no source commit (verification-only); this SUMMARY is Task 3's recorded deliverable, committed alongside this plan's docs commit.
+3. **Task 3: Gate sweep + phase-close evidence** — no source commit (verification-only); this SUMMARY is Task 3's recorded deliverable, committed alongside this plan's docs commit (`22ec4c5`, `857ac23`, `0628624`).
+4. **Task 4: Render-gate change-request response** — `a480b4c` (Weather: WeatherPalette.qml, tooltips, separator), `5f5c478` (Performance: one-row dial layout, retuned ring thickness), `aaf2583` (Dial.qml consolidation fix), `2c9b4f0` (docs). Human returned APPROVED at the re-gate on both changed surfaces; no further source commit was needed to close the plan.
 
-**Plan metadata:** this SUMMARY.md, committed as `docs(14-09): record Task 3 gate sweep and phase-close evidence (Task 4 pending)`.
+**Plan metadata:** this SUMMARY.md, first committed as `docs(14-09): record Task 3 gate sweep and phase-close evidence (Task 4 pending)`, then updated across the Task 4 change-request and re-gate sessions, and closed by this session's own bookkeeping commit (SUMMARY corrections, deferred-items capture, STATE.md/ROADMAP.md closure).
 
 _Note on continuity:_ Tasks 1-2 were executed and committed by a session that ended before writing a SUMMARY. This document reconstructs their record from their commit messages (which carry the full recorded measurements verbatim — see "Task 1 — as recorded" and "Task 2 — as recorded" below) and from `git show`/`git diff` on the four commits, per this session's continuation instructions. Task 1/2 evidence below is **attributed to the prior session**, not freshly observed by this one.
 
@@ -366,6 +367,8 @@ All four tabs clear D-05's ≥10% slack floor; Dashboard (the richest tab) sits 
 
 Confirmed live in the same navigation pass used for the layer table above: stepping backward through all four tabs (`Left`×3 from Weather) produced the correct width (760, unchanged) and correct height at every step (778 → 424 → 826), with no stuck-width state at any point. 14-06's deferred bug is now moot — see key-decisions for the mechanism (drawerMinWidth consolidated to a shared 760 floor since 14-08, leaving no width axis to get stuck on).
 
+**Superseded note (Task 4, this session):** the "now moot" verdict above was correct only as far as it went — it is a provisional finding true while every tab sat at the shared 760 floor, not a structural one. Task 4's Performance change made the width axis live for the first time in the phase (1040px) and reopened this exact bug class; it was then actually re-tested and disproven rather than re-assumed moot. See the corrected key-decisions entry and Task 4 section B2 for the full re-test evidence (forward/backward geometry, animated intermediates, off/reduced collapse).
+
 **Note (Task 4, this session): the geometry table above and the D-05 slack table below it are Task 3's ORIGINAL baseline, taken before Task 4's human gate.** They are left unedited here as the historical record Task 3 actually produced. The Performance and Weather rows changed as a direct result of Task 4's change requests — see the Task 4 section immediately below for the current, live-measured numbers. Dashboard and Media are unchanged and their rows above still hold.
 
 ## Task 4 — Render-Gate Change Request Cycle (this session)
@@ -550,22 +553,20 @@ None new. This plan's own `<threat_model>` scopes its risk surface to verificati
 
 None — this task performed only live verification, live QML edits, one detached process restart, and transient wallpaper/theme/motion-scale mutations, all restored. No persistent configuration change.
 
-## Next Phase Readiness — NOT YET, focused re-gate pending
+## Next Phase Readiness — YES, Phase 14 is closed
 
-**This plan is NOT complete.** Task 4 (`checkpoint:human-verify`, `gate="blocking"`) was run and returned a CHANGE REQUEST, not an approval. Nine of eleven checks passed outright (1, 2, 3, 5, 6, 7, 8, 10, 11) and are not being re-asked. This session actioned both change requests — the Weather tab (condition-glyph colour via a new `WeatherPalette.qml` D-11 exemption, hover tooltips, a centred forecast separator) and the Performance tab (one row of four dials, retuned ring thickness, plus the `Dial.qml` consolidation gap folded in as a related fix) — and re-verified everything the plan's own gate sweep covers. Per ROADMAP standing constraint 1, the checkpoint still cannot be auto-approved under any circumstance; a human must sign off on the two changed surfaces specifically.
+**This plan is complete.** Task 4 (`checkpoint:human-verify`, `gate="blocking"`) returned a CHANGE REQUEST at its first gate on checks 4 (Performance width) and 9 (Weather tab, four items); nine of eleven checks passed outright there (1, 2, 3, 5, 6, 7, 8, 10, 11) and were not re-asked. Both change requests were actioned — the Weather tab (condition-glyph colour via a new `WeatherPalette.qml` D-11 exemption, hover tooltips, a centred forecast separator) and the Performance tab (one row of four dials, retuned ring thickness, plus the `Dial.qml` consolidation gap folded in as a related fix) — and re-verified against everything the plan's own gate sweep covers. At the re-gate, the human returned **APPROVED**, verbatim: *"Approved. And I already approved the dynamic width/height."* All eleven checks are now signed off.
 
-**Before the re-gate, confirmed this session:**
+**Confirmed across the change-request and re-gate sessions:**
 - Both change requests implemented, live-verified via screenshot and `hyprctl layers -j` geometry reads, and committed atomically (`a480b4c` Weather, `5f5c478` Performance, `aaf2583` Dial.qml).
 - The width-transition axis — reachable for the first time in the phase now that Performance exceeds the 760px floor — re-tested forward and backward, confirmed to animate correctly and collapse correctly at `off`/`reduced`, with no stuck-width state in either direction.
 - The zero-hex-literal invariant's collision with `WeatherPalette.qml` handled per T-14-30: narrowed by file name only, re-poisoned against a different file, proven to still fail before trusting the clean run.
-- The full 8-script-plus-stress-test gate sweep re-run clean against this session's own commits (see section C above) — zero new failures, the one pre-existing `quickshell-doctor` QS-03 failure is the same named item Task 3 recorded.
+- The full 8-script-plus-stress-test gate sweep re-run clean against the change-request session's own commits (see section C above) — zero new failures, the one pre-existing `quickshell-doctor` QS-03 failure is the same named item Task 3 recorded, and was re-confirmed unchanged at the re-gate sweep (`theme-doctor` 232/0, `motion-lint` 81/0, `--self-test` 10/0, `--no-pending` 1/0, `theme-parity` 2608/0, `keybind-doctor` 14/0, `quickshell-doctor` 12/1 pre-existing QS-03, `theme-stress-test` 10/10 switches, 162/0, exit 0).
 - A self-caught theme-restoration error (stale `~/.cache/current-theme` file) corrected before it could affect anything downstream.
 
-**What is NOT independently closed by this session** (carried into the re-gate, per this task's own instructions rather than silently claimed as done): the three-reader visual identity check (no track was playing) and the bright-wallpaper-directly-behind-the-drawer blur-legibility case for the new Weather colours (a live application window occupied that screen region during this session's test).
+**What was NOT independently closed by mechanical verification and instead rested on the human's own visual judgment at the gate:** the three-reader visual identity check (no track was playing during the executor's own sessions) and the bright-wallpaper-directly-behind-the-drawer blur-legibility case for the new Weather colours (a live application window occupied that screen region during the executor's own test). Both are covered by the human's overall APPROVED verdict, which per this plan's own `<resume-signal>` required explicit answers on checks 4 and 5 (given) alongside the general approval — recorded here as covered by the gate rather than re-asserted as independently proven.
 
-**Once the re-gate is answered:**
-- If APPROVED, this plan's `state_updates` and `final_commit` steps (advance plan counter, record session, mark REQUIREMENTS.md items, commit STATE.md/ROADMAP.md/REQUIREMENTS.md/this SUMMARY together) still need to run — deliberately NOT run in this session, since running them ahead of approval would falsely advance phase-completion state.
-- If further changes are requested, this plan re-enters as a continuation with Tasks 1-3 and this session's two change-request commits already complete and committed, and the re-gate's specific feedback as the new resume point.
+**This session's phase-close bookkeeping** (2026-07-30, fourth session): corrected two stale present-tense claims left over from Task 3's original (pre-Task-4) record — the backward-navigation width-bug "structurally moot" decision entry and the D-04 "current per-tab heights" decision entry, both of which Task 4's Performance/Weather changes falsified; captured two human-raised carried-forward requests (two-tone weather glyphs, a fifth GPU dial) in `deferred-items.md` with their verified technical findings; flipped this SUMMARY's frontmatter to `status: complete`; and ran the plan's own `state_updates` and `final_commit` steps. Phase 14 (DASH-01..08, all five ROADMAP criteria) is closed at the plan level. Phase-level verification and `phase.complete` are the orchestrator's to run next — not performed by this plan.
 
 ## Self-Check: PASSED
 
@@ -581,8 +582,11 @@ None — this task performed only live verification, live QML edits, one detache
 - FOUND: commit `a480b4c` in `git log --oneline --all` (Weather change request)
 - FOUND: commit `5f5c478` in `git log --oneline --all` (Performance change request)
 - FOUND: commit `aaf2583` in `git log --oneline --all` (Dial.qml consolidation fix)
+- FOUND: commit `2c9b4f0` in `git log --oneline --all` (Task 4 change-request docs)
+- FOUND: commit `22ec4c5` in `git log --oneline --all` (Task 3 gate sweep + evidence docs)
 - FOUND: `.planning/phases/14-dashboard-drawer/14-09-SUMMARY.md` (this file)
+- FOUND: `.planning/phases/14-dashboard-drawer/deferred-items.md` (Items A and B captured this session)
 
 ---
 *Phase: 14-dashboard-drawer*
-*Task 4 change-request response completed: 2026-07-30 — focused re-gate pending a fresh session*
+*Plan closed: 2026-07-30 — re-gate APPROVED by human ("Approved. And I already approved the dynamic width/height."); all eleven Task 4 checks signed off; phase-level verification left to the orchestrator*
