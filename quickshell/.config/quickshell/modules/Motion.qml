@@ -72,8 +72,20 @@ Singleton {
 
         JsonAdapter {
             id: motion
-            property bool motionEnabled: true
-            property string motionScale: "normal"
+            // These two MUST carry motion.json's own snake_case key names.
+            // JsonAdapter maps top-level JSON keys to declared properties by
+            // EXACT name — there is no snake_case-to-camelCase conversion
+            // (verified behaviourally in 14-09: with the state file at `off`
+            // and the rendered file carrying "motion_enabled": false, a
+            // camelCase `motionEnabled` property silently kept its `true`
+            // default and every motion gate in the shell stayed live). The
+            // `semantic` property below never showed the fault because its
+            // name already matches its key exactly, which is precisely what
+            // masked this for two phases. The public camelCase aliases below
+            // are what every consumer and motion-lint's CHECK A read; only
+            // the binding names change here.
+            property bool motion_enabled: true
+            property string motion_scale: "normal"
             // Raw nested object — JsonAdapter maps only TOP-LEVEL JSON keys
             // to declared properties (verified against the installed
             // Quickshell.Io/quickshell-io.qmltypes: no nested-path mapping
@@ -86,8 +98,8 @@ Singleton {
         }
     }
 
-    readonly property alias motionEnabled: motion.motionEnabled
-    readonly property alias motionScale: motion.motionScale
+    readonly property alias motionEnabled: motion.motion_enabled
+    readonly property alias motionScale: motion.motion_scale
 
     // True once ANY of this phase's three semantic names is present in the
     // rendered file. False for a missing-file or empty-semantic
