@@ -4,17 +4,17 @@ milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
-status: verifying
-stopped_at: Completed 14-09-PLAN.md — Task 4 re-gate APPROVED, plan closed, Phase 14 (dashboard-drawer) ready for verification
-last_updated: "2026-07-30T12:20:54.421Z"
+status: executing
+stopped_at: Completed 14-09-PLAN.md — render gate approved. Plan 14-10 added at human direction (two-tone weather glyphs, GPU dial, hypr-equivalence-check gap); phase verification held until it closes
+last_updated: "2026-07-30T12:50:00.178Z"
 last_activity: 2026-07-30
-last_activity_desc: Phase 14 execution resumed (wave continue)
+last_activity_desc: Phase 14 extended with plan 14-10; executing
 progress:
   total_phases: 8
-  completed_phases: 5
-  total_plans: 39
+  completed_phases: 4
+  total_plans: 40
   completed_plans: 39
-  percent: 63
+  percent: 50
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 14 (dashboard-drawer) — EXECUTING
-Plan: 9 of 9 (Tasks 1-3 complete, Task 4 blocking render gate pending)
-Status: Phase complete — ready for verification
-Progress: [██████████] 100%
-Last activity: 2026-07-30 — Phase 14 execution resumed (wave continue)
+Plan: 9 of 10 complete — 14-10 pending (wave 6)
+Status: Executing plan 14-10; phase verification held until it closes
+Progress: [█████████░] 90%
+Last activity: 2026-07-30 — Phase 14 extended with plan 14-10; executing
 
 ## Performance Metrics
 
