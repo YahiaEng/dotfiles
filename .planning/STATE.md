@@ -5,10 +5,10 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
 status: executing
-stopped_at: Completed 14-09-PLAN.md — render gate approved. Plan 14-10 added at human direction (two-tone weather glyphs, GPU dial, hypr-equivalence-check gap); phase verification held until it closes
-last_updated: "2026-07-30T12:50:00.178Z"
+stopped_at: 14-10-PLAN.md Tasks 1-3 complete (two-tone weather glyphs, fifth GPU dial, hypr-equivalence-check surgical re-baseline+fold) — Task 4's blocking human render gate reached and NOT self-approved; session ended with the desktop idle-locked (hypridle timeout during a long verification session), unlock required before the gate can be run
+last_updated: "2026-07-30T13:50:00.000Z"
 last_activity: 2026-07-30
-last_activity_desc: Phase 14 extended with plan 14-10; executing
+last_activity_desc: 14-10 Tasks 1-3 executed and committed; Task 4 checkpoint pending
 progress:
   total_phases: 8
   completed_phases: 4
@@ -293,6 +293,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 14-09: Phase 14 CLOSED — Task 4's blocking render gate returned a CHANGE REQUEST on checks 4 (Performance width) and 9 (Weather), both actioned (WeatherPalette.qml D-11 exemption, hover tooltips, forecast separator, one-row-of-four Performance dials, retuned rings, Dial.qml consolidation fold-in), and APPROVED at the re-gate — all eleven checks signed off, all five ROADMAP criteria and DASH-01..08 closed
 - [Phase ?]: 14-09: backward-navigation pager-width bug (14-06) was re-tested and disproven for real once Performance's dial-layout change made the width axis non-floor (1040px) for the first time in the phase — forward/backward geometry correct, genuine animated intermediates captured, off/reduced collapse correct; superseded Task 3's earlier 'structurally moot' verdict, which was only true while every tab sat at the shared 760 floor
 - [Phase ?]: 14-09: two carried-forward requests from the re-gate approval recorded in deferred-items.md, not implemented in-plan — two-tone weather glyphs (font has no COLR/CPAL/SVG table; layered-glyph route recommended, own render gate required) and a fifth GPU dial on the Performance tab (nvidia-smi verified present; 176px/17px sizing arithmetic closes at the existing 1040px frame with no width change; needs its own plan — touches 14-06's SystemResources.qml, needs a subprocess-sampling design, and a D-41 no-GPU widget-state answer)
+- [Phase ?]: 14-10 Task 1: `ConditionGlyph.qml` built (Text-rooted, overlay as a non-sizing child) for the two-tone weather-glyph experiment; Step Zero confirmed `wb_sunny`/`clear_night`/`cloud` all render as real glyphs (fontTools GSUB ligature lookup + qml6 grabToImage, with a fabricated-name negative control) — no fallback needed. `layeringEnabled` (the whole revert) exercised off-then-on live before any judgment, both states screenshotted. `WeatherPalette.qml`'s header citation corrected: the exemption is to 14-CONTEXT.md's zero-hex/duration-literal invariant line, not "D-11" (the DASH-08 fullscreen decision) — 14-09 had the number wrong. Frozen-file sha256 manifest (WeatherPalette.qml/Dial.qml/DashboardTab.qml) written immediately after that one-line fix, before any other edit. Weather frame confirmed live at 760x514, unchanged.
+- [Phase ?]: 14-10 Task 2: GPU dial added to Performance (DASH-09) — one-shot presence probe + one-shot fixed-argv sampler on its own 4s cadence (SystemResources.qml), in-flight skip proven via timestamped ps traces against a deliberately slow stub, all three no-GPU failure shapes (absent binary, present-no-devices, present-non-zero-exit) proven live via in-tree seam edits + hot reload + revert, converging on one designed empty state. Dial grid retuned to 5 columns at 176px/17px ring (14-09's carried-forward arithmetic). Accent role: plan's own recorded default `primaryContainer` was live-found byte-identical to `Colours.surfaceVariant` under the active theme (`#44475a` both) — an invisible arc, not merely washed out — so this landed on the plan's own recorded fallback, sharing `primary` with CPU. `Dial.qml`/`DashboardTab.qml` confirmed byte-unchanged via the Task 1 frozen manifest. Live-measured: Performance 1040x450 (width unchanged, height shorter as predicted), Dashboard 760x826 (unchanged).
+- [Phase ?]: 14-10 Task 3: `hypr-equivalence-check` repaired — MAINT-04's proof instrument was red for two independent reasons (stale baseline missing 14-01's SUPER+D dashboard chord; the pre-existing Phase-13.1 mouse-drag `mouse:true`-vs-`false` divergence). Bounded by an order-insensitive 15-field delta computed BEFORE any write (keycode/dispatcher/arg excluded, matching the gate's own exclusions); baseline amended SURGICALLY — one record inserted at live index 30, all 80 pre-existing records proven byte-identical, never re-snapshotted (a wholesale re-snapshot would have silently blessed the un-loosened mouse-field divergence). Mouse-field divergence given a narrow, poison-proven, explicitly PROVISIONAL forgiveness in the gate's own comparator — provisional on the human drag-move/drag-resize compensating check, which is NOT yet run (Task 3 is unattended-auto and cannot perform it; scheduled at this plan's own Task 4). Gate folded into `theme-doctor` in the established guarded-skip shape plus an extra live-session guard (proven live to SKIP with `HYPRLAND_INSTANCE_SIGNATURE` unset). A count-mismatch-gated diagnostic added ahead of the gate's positional bind diff (one inserted bind previously produced 65 reported lines, 2 real) — poison-proven to fire only on a count mismatch, never touching the verdict logic. Gate: 3/0, exit 0.
 
 ### Quick Tasks Completed
 
@@ -382,13 +385,15 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-07-30T12:20:54.405Z
-Stopped at: Completed 14-09-PLAN.md — Task 4 re-gate APPROVED, plan closed, Phase 14 (dashboard-drawer) ready for verification
-Resume file: None
+Last session: 2026-07-30T13:50:00.000Z
+Stopped at: 14-10-PLAN.md Tasks 1-3 complete and committed (`5fe30c6`, `14d4044`, `b541783`). Task 4 is a `gate="blocking"` human-verify checkpoint — reached, NOT self-approved, executor stopped and returned per its own operating constraint. **The desktop is currently idle-locked (hyprlock)** — a `hypridle` timeout fired partway through this session's live verification work, not a functional regression. Unlock the session (enter your password) before pressing Super+D to run Task 4.
+Resume file: `.planning/phases/14-dashboard-drawer/14-10-PLAN.md` (Task 4)
 
 ## Operator Next Steps
 
-- Phase 13.1 (Hyprland Lua Config Migration) is complete — 10/10 plans, all gates green, the one-way retirement door closed. Plan Phase 14 (Dashboard Drawer) with `/gsd-plan-phase 14`.
+- **Unlock the desktop first** (hyprlock is active) before doing anything else below.
+- **14-10 Task 4 is waiting on you.** Press Super+D and work through the five checks in `14-10-PLAN.md`'s Task 4 `<how-to-verify>` — check 1 (the layered weather glyph, a genuine comparison against the pre-existing single-tone glyph, revert already built and proven) and check 5 (drag-move/drag-resize a window — a real Phase-13.1-inherited question, not a formality: a "no" on either gesture is a genuine regression finding, not a preference) are the two load-bearing ones. See `<resume-signal>` in the plan for the three answers needed explicitly even on approval.
+- Phase 13.1 (Hyprland Lua Config Migration) is complete — 10/10 plans, all gates green, the one-way retirement door closed.
 - Backup branch `v1` (`6b30204`) holds the pre-v3.0 snapshot of the rice. It is **local only** — push it to `origin` for off-machine safety.
-- All core regression gates are green as of this plan's close (`theme-doctor` 206/0, `theme-parity` 2608/0, `motion-lint` 55/0, `keybind-doctor` 14/0, `theme-stress-test` 162/0), so any failure appearing during Phase 14 is a genuine regression, not inherited noise.
+- Gates as of 14-10 Task 3's close: `theme-doctor` 237/0, `theme-parity` 2608/0, `motion-lint` 83/0 (+10/0 self-test, +1/0 --no-pending), `keybind-doctor` 14/0, `waybar-design-lint` 32/0, `hypr-equivalence-check` 3/0 (newly folded into theme-doctor and into this list), `quickshell-doctor` 12/1 (the one FAIL is the same pre-existing QS-03 headless-hotplug limitation carried since Phase 11/14-03/14-09 — not new). `theme-stress-test`'s full 10-switch run was not re-run this session (not in Task 3's own literal verify block; 14-09's own 162/0 stands as the last full run).
 - This session's commits are local only (not yet pushed to `origin`) — push before relying on `verify/container-run.sh`'s real-remote clone for any future reproducibility check.
