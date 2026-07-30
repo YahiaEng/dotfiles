@@ -8,19 +8,26 @@
 // D-39's cross-tab design rhyme, and it is why 14-08 writes no arc geometry
 // of its own.
 //
-// ── Design constants — NOT read off `dashboardWindow` ───────────────────
-// Same mechanism gap 14-05's MediaTab.qml already recorded in its own
-// header: a QML `id` is lexically scoped to the FILE that declares it, and
-// `Dial` is a separate registered component instantiated inside
-// PerformanceTab's object tree (itself instantiated inside Dashboard.qml's
-// `Loader`) — not textually nested inside `Dashboard.qml`, so a bare
-// `dashboardWindow.spacingXs`-style reference would not resolve. Per this
-// plan's own fallback instruction, this file declares its own copies of
-// exactly the constants it needs, sourced from 14-UI-SPEC.md's Spacing
-// Scale/Typography tables and 14-02-SUMMARY.md's recorded font family
-// verdict — consolidating every tab onto one shared constants surface is
-// left to 14-08's composition pass (consolidation note recorded again in
-// 14-06-SUMMARY.md for 14-08 to see).
+// ── Design constants — consolidated onto `Design` (14-09 Task 4) ────────
+// Task 2 (14-09) built the shared `Design` singleton and listed THIS file
+// in its own `<files>` scope, but commit 1388516 touched six consumer
+// files and skipped this one — this file still declared seven local
+// literals, including the exact duplicated `"Material Symbols Rounded"`
+// font-family string the consolidation existed to remove. Found and closed
+// at the Task 4 render-gate change request; see 14-09-SUMMARY.md's Task 4
+// section for the before/after value table and the amended Task 2 scope
+// note (its "66 substitutions across 6 files" claim was accurate as far as
+// it went, but under-delivered against Task 2's own declared 7-file scope
+// — recorded honestly as a gap found and closed in this later session, not
+// as something the original session completed).
+//
+// Pure value-for-value: every property NAME below is unchanged (this is a
+// substitution, not a renaming pass — same discipline `Design.qml`'s own
+// header states), only each RHS now reads `Design.*` instead of repeating
+// the literal. `_defaultFontFamily` stays local: it is a genuine RUNTIME
+// CAPABILITY READ (`Qt.application.font.family`, whatever font Qt itself
+// resolves as the system default), not a design token with a contract row
+// behind it — there is nothing on `Design` for it to consolidate onto.
 //
 // D-41 widget-state register — "populated" / "pending" / "empty" — carried
 // on every one of this phase's nine modules/dashboard/ files. This
@@ -35,13 +42,16 @@ import "../"
 Item {
     id: root
 
-    // ── Local design constants (see header note above) ─────────────────
-    readonly property int _spacingXs: 4
-    readonly property int _fontHeading: 20
-    readonly property int _fontLabel: 12
-    readonly property int _weightEmphasis: Font.DemiBold
-    readonly property int _weightBody: Font.Normal
-    readonly property string _symbolFontFamily: "Material Symbols Rounded"
+    // ── Local design constants (see header note above) — names unchanged,
+    //    values now sourced from `Design`. ──────────────────────────────
+    readonly property int _spacingXs: Design.spacingXs
+    readonly property int _fontHeading: Design.fontHeading
+    readonly property int _fontLabel: Design.fontLabel
+    readonly property int _weightEmphasis: Design.weightEmphasis
+    readonly property int _weightBody: Design.weightBody
+    readonly property string _symbolFontFamily: Design.symbolFontFamily
+    // Runtime capability read, not a design token — stays local (see
+    // header note above).
     readonly property string _defaultFontFamily: Qt.application.font.family
 
     // ── Public API ───────────────────────────────────────────────────────
