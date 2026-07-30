@@ -74,6 +74,20 @@ decides, and writing an outcome before the gate has answered would be
 recording a result that has not happened. See `14-10-SUMMARY.md` for the
 outcome once the gate closes.
 
+**OUTCOME (2026-07-30, 14-10 Task 4 render gate): LAYERED KEPT — the
+experiment succeeded.** Asked the comparative question this item's own
+caveat demanded ("does the layered stack read BETTER than Material's single
+purpose-drawn composite glyph, yes or no"), the human answered yes and
+asked for it to stay. No tuning was requested — not sun size, cloud size,
+offset, or an outlined-vs-filled cloud. `layeringEnabled` therefore remains
+`true` and the built, exercised one-property revert is NOT taken; it stays
+in place as the documented fallback. The caveat this item recorded — that a
+hand-offset stack of two independent glyphs may read worse than a designed
+composite, especially in the small hour/day cells — did NOT materialise.
+Route 1 (layer two glyphs, keeping the icon font and `WeatherPalette`
+theming) is confirmed as the right choice; routes 2 (inline SVG/Shapes) and
+3 (a COLRv1 colour font) remain unnecessary and are not pursued.
+
 The human noticed the "sunny with clouds" glyph (`partly_cloudy_day` /
 `partly_cloudy_night`) renders entirely white and asked whether the sun
 could be yellow while the clouds stay white, within the same glyph.
@@ -117,6 +131,38 @@ above. Per Part D's own instruction this records the promotion only; the
 outcome line lands with this plan's closing documentation commit, after
 Task 4's render gate has answered — see `14-10-SUMMARY.md` for the full
 build record and live evidence in the meantime.
+
+**OUTCOME (2026-07-30, 14-10 Task 4 render gate): BUILT AND ACCEPTED, with
+two human-directed adjustments.** The sizing arithmetic this item recorded
+held exactly as predicted: five dials at `d=176` with ring thickness `17`,
+in the same 944px content / 1040px frame the four 224px dials produced —
+the human's verdict on the fit was "just right", not crammed, so neither
+knob was retuned. The `nvidia-smi` subprocess concern was answered with a
+dedicated `gpuPollInterval` of 4000ms (deliberately twice the 2000ms
+`fastPollInterval` used by the `/proc`-read metrics), sampling only while
+the drawer is open and never two samples at once. The D-41 no-GPU question
+was answered the way this item recommended — the battery dial's designed
+placeholder is the precedent, so the GPU dial is ALWAYS present and shows a
+"No GPU" empty state, keeping the panel width independent of graphics
+hardware.
+
+Two adjustments the gate itself produced, neither anticipated here:
+
+1. **Dial order.** The human set the row's sequence explicitly — GPU, CPU,
+   Memory, Storage, Battery — so the GPU dial leads rather than trailing.
+2. **Ring colour, twice revised.** Task 2 had already fallen back from the
+   planned `primaryContainer` (proven byte-identical to the dials' own
+   unfilled track colour `surfaceVariant` #44475a, so the value arc was
+   invisible, not merely subdued) to the recorded alternative of sharing
+   `primary` with CPU. The reorder in (1) then put those two identical pink
+   rings side by side, where they read as a duplicate rather than as a
+   compute pair. GPU moved again, to `Colours.outline` — the one remaining
+   contract role neither taken by another dial nor colliding with the
+   track. Rendered both ways and compared live at the gate; the human chose
+   the separation and asked to keep it. Root cause worth carrying forward:
+   this token set defines only four vivid non-neutral roles
+   (`primary`/`secondary`/`tertiary`/`error`) for what is now a five-dial
+   row, so a sixth dial would have no distinct role left at all.
 
 The human asked for a GPU-usage dial, explicitly requesting that the dial
 size shrink so it fits without cramming and without increasing panel

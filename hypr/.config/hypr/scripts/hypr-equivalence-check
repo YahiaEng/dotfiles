@@ -363,12 +363,25 @@ STRUCTURAL_FIELDS = [
 # baseline's own uncovered.txt since 13.1-04, which explicitly instructed:
 # "does NOT tolerate this divergence (no loosening)... legitimately FAILs on
 # these two records' mouse field until independently resolved." This rule is
-# that independent resolution — but it is PROVISIONAL, standing on the
-# human compensating check named in uncovered.txt (a physical drag-move and
-# drag-resize with the modifier plus left/right mouse button), run at this
-# plan's own Task 4 render gate. If either gesture fails, this forgiveness
-# is reverted in the same session and the divergence is recorded as a
-# genuine functional regression from the Lua migration. It forgives
+# that independent resolution.
+#
+# CONFIRMED 2026-07-30 (14-10 Task 4 render gate) — no longer provisional.
+# The compensating check this rule stood on has now been RUN by the human:
+# Super+left-drag MOVES a floating window and Super+right-drag RESIZES one,
+# both confirmed working. The divergence is therefore COSMETIC — a readback
+# gap in hyprctl's JSON surface, not a functional regression — and this
+# forgiveness is the correct resolution rather than a papering-over. The
+# question 13.1-04 opened and deliberately left this gate FAILING on is
+# closed.
+#
+# Corroborating evidence gathered at the same gate, recorded so a future
+# reader does not re-derive it: `SKeybind` (hyprland 0.56.1,
+# /usr/include/hyprland/src/managers/KeybindManager.hpp) carries THREE
+# distinct fields — `mouse`, `click` and `drag` — but `hyprctl binds -j`
+# serializes only `mouse`. `hl.dsp.window.drag()` plausibly sets `drag`
+# instead, which would explain a false `mouse:false` exactly. The config
+# form in keybinds.lua is also byte-identical to hyprland 0.56.1's OWN
+# bundled example config, and `hyprctl configerrors` is empty. It forgives
 # EXACTLY this one field on EXACTLY these two bind records — any OTHER
 # field differing on these records, or `mouse` differing on any OTHER
 # record, still FAILs below via STRUCTURAL_FIELDS' own blanket comparison
@@ -399,8 +412,8 @@ for i, (b, l) in enumerate(zip(baseline, live)):
     bm, lm = b.get("mouse"), l.get("mouse")
     if bm != lm:
         if b.get("key") in MOUSE_FORGIVEN_KEYS and bm is True and lm is False:
-            pass  # documented, PROVISIONAL mouse-field serialization gap — see
-                  # this function's header comment above
+            pass  # documented mouse-field serialization gap, CONFIRMED cosmetic
+                  # at 14-10 Task 4's render gate — see the header comment above
         else:
             diffs.append(f"{label}: field 'mouse' baseline={bm!r} live={lm!r} (UNEXPECTED — not the documented mouse:272/273 True-vs-False gap)")
 
