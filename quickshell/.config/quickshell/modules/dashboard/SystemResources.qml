@@ -92,6 +92,13 @@ Scope {
     //    is a source assertion (see acceptance criteria). ─────────────────
     readonly property int fastPollInterval: 2000
     readonly property int slowPollInterval: 30000
+    // The short first CPU/network delta window. Named here in 14-09 rather
+    // than left as a bare `interval: 400` on primeTimer — this block's own
+    // header promises no timer below carries a bare number, and round-3's
+    // primeTimer was quietly breaking that promise. motion-lint's CHECK B
+    // is anchored on a lowercase `duration:` and cannot see an `interval:`,
+    // so nothing but this source assertion was ever going to catch it.
+    readonly property int primeSampleWindow: 400
     readonly property int cpuSampleWindow: 3
 
     // ── Published metric properties — the ONLY surface any consumer (this
@@ -217,7 +224,7 @@ Scope {
     // the steady-state ~2s cadence untouched below.
     Timer {
         id: primeTimer
-        interval: 400
+        interval: root.primeSampleWindow
         repeat: false
         onTriggered: {
             if (root.drawerOpen)

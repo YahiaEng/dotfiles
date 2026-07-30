@@ -51,6 +51,16 @@
 //      "another mechanism consistent with the drawer's Material language"
 //      per the render-gate's own suggested wording, additive only — no
 //      existing visible text, color or animation changes.
+//
+// ── 14-09 UPDATE — the paragraph above is now historical ─────────────
+// The shared constants surface it says does not exist DOES exist as of
+// plan 14-09: `Design`, a `pragma Singleton` registered as
+// `singleton Design 1.0 Design.qml` in this directory's qmldir. The
+// local constant names below are unchanged and every call site still
+// reads them off `root`; only their right-hand sides now resolve to
+// `Design.*` instead of repeating a literal. The reasoning above about
+// id-based lexical scope was correct — it just did not apply to a
+// singleton, which is why the consolidation was possible after all.
 import QtQuick
 import QtQuick.Controls
 import Quickshell
@@ -198,7 +208,7 @@ Item {
     // motion-lint's CHECK B regex, which only anchors on `duration\s*:`.
     Timer {
         id: dndSubscribeGraceTimer
-        interval: 4000
+        interval: root.dndSubscribeGraceMs
         running: true
         repeat: false
         onTriggered: {
@@ -222,7 +232,7 @@ Item {
 
     Timer {
         id: dndPollTimer
-        interval: 2000
+        interval: root.dndPollIntervalMs
         running: false
         repeat: true
         onTriggered: dndPollProcess.running = true
@@ -242,6 +252,13 @@ Item {
     // row. Declared as a Timer `interval`, deliberately not a `duration:`
     // property, for the same motion-lint CHECK B reason noted above.
     readonly property int chipTimeoutMs: 3000
+    // 14-09: the two DND timers below carried bare `interval:` numbers.
+    // Their own comment correctly noted that motion-lint's CHECK B is
+    // anchored on `duration\s*:` and cannot see an `interval:` — but that
+    // is a statement about the linter's reach, not a licence for an
+    // anonymous literal. Named here, values unchanged.
+    readonly property int dndSubscribeGraceMs: 4000
+    readonly property int dndPollIntervalMs: 2000
 
     Timer {
         id: chipWatchdogTimer

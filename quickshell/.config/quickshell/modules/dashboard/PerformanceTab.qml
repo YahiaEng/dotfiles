@@ -34,6 +34,16 @@
 // null: the tab is instantiated by a lazy Loader and there is a moment
 // before the property arrives where an unguarded read would be a type
 // error in the log and a blank pane on screen.
+//
+// ── 14-09 UPDATE — the paragraph above is now historical ─────────────
+// The shared constants surface it says does not exist DOES exist as of
+// plan 14-09: `Design`, a `pragma Singleton` registered as
+// `singleton Design 1.0 Design.qml` in this directory's qmldir. The
+// local constant names below are unchanged and every call site still
+// reads them off `root`; only their right-hand sides now resolve to
+// `Design.*` instead of repeating a literal. The reasoning above about
+// id-based lexical scope was correct — it just did not apply to a
+// singleton, which is why the consolidation was possible after all.
 import QtQuick
 import "../"
 
