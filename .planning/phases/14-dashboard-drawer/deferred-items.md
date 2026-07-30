@@ -65,6 +65,15 @@ re-derive the findings.
 
 ### Item A — two-tone the composite weather glyphs
 
+**PROMOTED to `14-10-PLAN.md` (Task 3, 2026-07-30).** The promotion is
+recorded here now, at Task 3's own execution, because that fact is true the
+moment this plan exists and does not wait on anything else. The OUTCOME
+line — layered kept, tuned, or reverted to the single designed glyph — is
+NOT written here yet: it is precisely what Task 4's blocking render gate
+decides, and writing an outcome before the gate has answered would be
+recording a result that has not happened. See `14-10-SUMMARY.md` for the
+outcome once the gate closes.
+
 The human noticed the "sunny with clouds" glyph (`partly_cloudy_day` /
 `partly_cloudy_night`) renders entirely white and asked whether the sun
 could be yellow while the clouds stay white, within the same glyph.
@@ -101,6 +110,13 @@ Three routes, in recommended order:
    stack's existing icon-font convention.
 
 ### Item B — a fifth dial for GPU usage on the Performance tab
+
+**PROMOTED to `14-10-PLAN.md` (Task 2, 2026-07-30).** The promotion is
+recorded here now, at Task 3's own execution, in the same shape as Item A
+above. Per Part D's own instruction this records the promotion only; the
+outcome line lands with this plan's closing documentation commit, after
+Task 4's render gate has answered — see `14-10-SUMMARY.md` for the full
+build record and live evidence in the meantime.
 
 The human asked for a GPU-usage dial, explicitly requesting that the dial
 size shrink so it fits without cramming and without increasing panel

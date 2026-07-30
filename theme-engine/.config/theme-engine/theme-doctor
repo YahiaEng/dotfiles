@@ -669,6 +669,41 @@ else
     echo "  [SKIP] motion-lint ($MOTION_LINT not found or not executable)"
 fi
 
+# ── hypr-equivalence-check fold (14-10 Task 3, MAINT-04) ─────────────────
+# Same "green gates, broken bar" gap the two folds above close, now applied
+# to the Hyprland Lua-migration equivalence proof — this gate's own absence
+# from Phase 14's regression sweep is this task's reason for existing, and
+# folding it here is what makes that coverage gap structurally unable to
+# recur (nobody has to remember to run it standalone). Every PASS/FAIL line
+# folds into the tally exactly like the two folds above; any other line
+# (the ". <key>: type-key differs..." notes, or the leading baseline-path
+# line) is passed through unfolded, the same discipline motion-lint's
+# [EXEMPT]/[WARN] lines already use.
+#
+# UNLIKE the two folds above, which parse files on disk, this gate
+# RE-DERIVES LIVE COMPOSITOR STATE (`hyprctl -j binds/animations/
+# getoption`) — its own failure path for a failed live capture is a FAIL
+# with a non-zero exit, NEVER a SKIP (D-10; an absent/unreadable baseline
+# must never silently pass, and neither must an unreachable compositor). An
+# UNGUARDED fold would therefore turn the headless fresh-install container
+# gate red — no compositor exists there — regressing a shipped
+# requirement. So this fold carries an ADDITIONAL guard neither sibling
+# fold needs: a live Hyprland session, checked via
+# `HYPRLAND_INSTANCE_SIGNATURE`. Proven live with that signature unset (see
+# 14-10-SUMMARY.md): the new line reads SKIP, the tally is unchanged from a
+# normal run's non-session checks, and the exit status is unaffected.
+HYPR_EQUIVALENCE_CHECK="$HOME/.config/hypr/scripts/hypr-equivalence-check"
+if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] && [[ -x "$HYPR_EQUIVALENCE_CHECK" ]]; then
+    while IFS= read -r _hec_line; do
+        case "$_hec_line" in
+            *"[PASS]"*) check "hypr-equivalence-check: ${_hec_line#*\[PASS\] }" "0" ;;
+            *"[FAIL]"*) check "hypr-equivalence-check: ${_hec_line#*\[FAIL\] }" "1" ;;
+        esac
+    done < <("$HYPR_EQUIVALENCE_CHECK" 2>/dev/null)
+else
+    echo "  [SKIP] hypr-equivalence-check (no live Hyprland session — HYPRLAND_INSTANCE_SIGNATURE unset — or $HYPR_EQUIVALENCE_CHECK not found/executable)"
+fi
+
 # ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
 #    switch. Guarded-skip mirrors the stow-conflict check above — this must
 #    degrade gracefully, not FAIL, when git or the repo itself is absent
