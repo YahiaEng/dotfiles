@@ -82,6 +82,10 @@ Item {
     // own (D-33/D-41).
     readonly property bool showPlaceholder: !root.hasBackend || !root.weatherBackend.hasPayload
 
+    // ── D-21's cascade band list (Phase 14 Plan 09) — D-37 read order:
+    //    current hero, hour strip, day row.
+    readonly property var cascadeBands: [heroBand, hourStrip, dayRow]
+
     readonly property int hourColumns: root.hasBackend ? root.weatherBackend.hourColumns : 8
     readonly property int dayCells: 5
 

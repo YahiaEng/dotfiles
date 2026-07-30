@@ -332,6 +332,12 @@ Item {
     // panelPadding's own name for a different purpose.
     readonly property int sectionGap: root.panelPadding
 
+    // ── D-21's cascade band list (Phase 14 Plan 09) — D-35 read order:
+    //    art first, then the details column (type stack, seek, transport,
+    //    volume, player chips — all inside `detailsColumn`, so only the
+    //    column itself is a top-level band, never its own internals).
+    readonly property var cascadeBands: [artColumn, detailsColumn]
+
     readonly property int fontHeading: 20
     readonly property int fontBody: 16
     readonly property int fontLabel: 12

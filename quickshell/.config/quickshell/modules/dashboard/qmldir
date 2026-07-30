@@ -6,12 +6,17 @@
 # unresolvable to Dashboard.qml's `import "dashboard"`. A type MUST be
 # registered in the SAME commit that creates it.
 #
-# This manifest is owned by plan 14-03 and frozen for wave 3 (14-04..14-07):
-# a wave-3 plan needing an unlisted type here has found a 14-03 scope
+# This manifest was owned by plan 14-03 and frozen for wave 3 (14-04..14-07):
+# a wave-3 plan needing an unlisted type here found a 14-03 scope
 # correction, not a licence to edit this file. Nine types, none a singleton
 # — the two shell-root backends and the shared resource reader are mounted
 # once as ordinary instances by 14-03 (shell.qml / Dashboard.qml), which
 # keeps their lifetime explicit rather than ambient.
+#
+# Plan 14-09 (phase close) adds a tenth type, registered in the same
+# commit that creates it: `Cascade`, D-21's summon-only entrance-cascade
+# runner. Also non-visual, also not a singleton — one ordinary instance,
+# mounted on Dashboard.qml's window root.
 module qs.modules.dashboard
 DashboardTab 1.0 DashboardTab.qml
 MediaTab 1.0 MediaTab.qml
@@ -22,3 +27,4 @@ WeatherBackend 1.0 WeatherBackend.qml
 SystemResources 1.0 SystemResources.qml
 QuickToggles 1.0 QuickToggles.qml
 Dial 1.0 Dial.qml
+Cascade 1.0 Cascade.qml

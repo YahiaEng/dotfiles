@@ -228,6 +228,13 @@ Item {
         return "empty";
     }
 
+    // ── D-21's cascade band list (Phase 14 Plan 09) — D-38 read order:
+    //    hero, calendar, compact media, resources strip, toggle footer.
+    //    Top-level bands only, never the items inside them (cascading a
+    //    band's own internals turns a 550ms entrance into a shimmer).
+    //    Dashboard.qml's cascade runner reads this off the active pane.
+    readonly property var cascadeBands: [heroRow, calendarCard, compactMedia, resourcesStrip, toggles]
+
     // ── Design constants (see header — consolidation deferred) ──────────
     readonly property int panelPadding: 24 // 14-UI-SPEC.md Spacing Scale "lg"
     readonly property int spacingXs: 4

@@ -248,6 +248,54 @@ PanelWindow {
     readonly property alias currentTabIndex: pager.currentIndex
     signal tabSelected(int index)
 
+    // ── D-21's entrance cascade (Phase 14 Plan 09) ──────────────────────
+    // True for the surface's whole lifetime until consumed once — the
+    // drawer is destroyed on dismiss (D-14), so this is re-created true on
+    // every summon and the runner below consumes it exactly once. No
+    // second guard keyed on tab index or elapsed time: this one flag,
+    // cleared before any animation starts (Cascade.qml's own run()), is
+    // the entire tab-switch fence.
+    property bool cascadeArmed: true
+
+    readonly property Cascade entranceCascade: Cascade {}
+
+    // Wired off each pane's Loader.onLoaded below via Qt.callLater — NOT
+    // read synchronously inside onLoaded itself. `pager`'s default
+    // currentIndex is 0, so `dashboardTabLoader` (tab 0) always loads
+    // synchronously FIRST, during the window's own initial construction,
+    // BEFORE `Component.onCompleted` below reassigns `pager.currentIndex`
+    // to the remembered `initialTabIndex` — a live-reproduced race: acting
+    // inside `onLoaded` itself cascaded tab 0 even when the drawer reopened
+    // on a different remembered tab. Deferring the actual read to the next
+    // idle tick (`Qt.callLater`) lets `onCompleted`'s reassignment settle
+    // first, so this function always inspects `pager.currentIndex` at
+    // call time and reads whichever loader is active THEN — the pane
+    // that is actually showing, exactly what D-21 asks the cascade to
+    // animate. A later real tab switch also fires its own Loader's
+    // onLoaded (deferred the same way), but by then `cascadeArmed` (and
+    // the runner's own mirrored `armed`) is already false, so `run()` is
+    // a no-op — the fence, not a second branch of it.
+    function runCascadeForActivePane() {
+        var item = null;
+        if (pager.currentIndex === dashboardWindow.tabIndexDashboard)
+            item = dashboardTabLoader.item;
+        else if (pager.currentIndex === dashboardWindow.tabIndexMedia)
+            item = mediaTabLoader.item;
+        else if (pager.currentIndex === dashboardWindow.tabIndexPerformance)
+            item = performanceTabLoader.item;
+        else if (pager.currentIndex === dashboardWindow.tabIndexWeather)
+            item = weatherTabLoader.item;
+
+        if (!item || !item.cascadeBands)
+            return;
+
+        dashboardWindow.entranceCascade.tabIndex = pager.currentIndex;
+        dashboardWindow.entranceCascade.bands = item.cascadeBands;
+        dashboardWindow.entranceCascade.armed = dashboardWindow.cascadeArmed;
+        dashboardWindow.entranceCascade.run();
+        dashboardWindow.cascadeArmed = false;
+    }
+
     // Shared instances mounted once at the shell root (shell.qml) and
     // passed in here — declaring them there (not in each wave-3 plan's own
     // file) is what leaves 14-05/14-07 with exactly one file each to touch
@@ -598,6 +646,7 @@ PanelWindow {
                         onTabRequested: (index) => pager.setCurrentIndex(index)
                     }
                 }
+                onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
             }
 
             Loader {
@@ -609,6 +658,7 @@ PanelWindow {
                         mediaBackend: dashboardWindow.mediaBackend
                     }
                 }
+                onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
             }
 
             Loader {
@@ -620,6 +670,7 @@ PanelWindow {
                         systemResources: dashboardWindow.systemResources
                     }
                 }
+                onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
             }
 
             Loader {
@@ -631,6 +682,7 @@ PanelWindow {
                         weatherBackend: dashboardWindow.weatherBackend
                     }
                 }
+                onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
             }
 
             // ── RESEARCH Pitfall 1 — the whole point of this override:

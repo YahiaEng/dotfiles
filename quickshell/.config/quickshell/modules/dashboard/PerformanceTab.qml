@@ -65,6 +65,10 @@ Item {
     // internals.
     property string widgetState: root.hasReader ? root.systemResources.widgetState : "empty"
 
+    // ── D-21's cascade band list (Phase 14 Plan 09) — D-36 read order:
+    //    the dial grid, then the network rate row.
+    readonly property var cascadeBands: [dialGridRow, networkRowWrap]
+
     // ── Tab-root layout constants ────────────────────────────────────────
     // 14-UI-SPEC.md's Spacing Scale explicitly carves dial arc radius/
     // stroke width out of the 4px grid as dial-specific render-gate
