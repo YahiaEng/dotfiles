@@ -14,9 +14,11 @@ requires:
     provides: "The closing-sweep baseline (theme-doctor 206/0, theme-parity 2697/0, motion-lint 53/0, quickshell-doctor 13/0, keybind-doctor 13/0, theme-stress-test 162/0) this plan measures against"
 provides:
   - "Cascade.qml — the summon-only staggered entrance cascade on D-21's stagger token, both fences proven live"
-  - "Design.qml — the shared drawer design-constants singleton, consolidating 15 constants / 66 call sites across 6 files"
-  - "Ten repo-wide prohibition invariants, each proven able to fail (poisoned run) before being trusted to pass (clean run)"
+  - "Design.qml — the shared drawer design-constants singleton, consolidating 15 constants across all 7 declared files (66 + Dial.qml's own 6 call sites), plus a shared tooltipDelayMs constant"
+  - "WeatherPalette.qml — a second, deliberate documented exemption to D-11's palette contract, for weather condition and sunrise/sunset glyphs only"
+  - "Ten repo-wide prohibition invariants, each proven able to fail (poisoned run) before being trusted to pass (clean run) — one (hex-colour) re-proven after being deliberately narrowed by file name"
   - "The phase-close evidence record: gate sweep, three-reader delta proof, DASH-07 mirror, layer/fullscreen re-observations, D-05 slack table"
+  - "Task 4's render-gate change requests actioned: Weather tab (condition-glyph colour, hover tooltip, forecast separator) and Performance tab (one-row-of-four dial layout, retuned ring thickness)"
 affects: [phase-15, phase-16, phase-17]
 
 tech-stack:
@@ -25,11 +27,13 @@ tech-stack:
     - "Non-visual QtObject cascade runner reading only two motion-token pairs plus the motion-enabled flag, arming-flag-consumed-once-per-surface-lifetime as the sole re-entrancy guard"
     - "Singleton design-constants file (pragma Singleton + qmldir singleton keyword, both required per the 12-06 finding) as the cross-file constant-sharing mechanism for a Quickshell submodule"
     - "Poisoned-scratch-copy-then-clean-tree proof discipline applied to a full battery of ten repo-wide negative-grep invariants in one task"
+    - "A second, narrower absolute-colour singleton (WeatherPalette.qml) as a documented, file-scoped exemption to the Colours.qml palette contract — the pattern Phase 15/16 should reach for if a future surface needs the same class of exception, rather than loosening the contract itself"
 
 key-files:
   created:
     - quickshell/.config/quickshell/modules/dashboard/Cascade.qml
     - quickshell/.config/quickshell/modules/dashboard/Design.qml
+    - quickshell/.config/quickshell/modules/dashboard/WeatherPalette.qml
   modified:
     - quickshell/.config/quickshell/modules/dashboard/qmldir
     - quickshell/.config/quickshell/modules/Dashboard.qml
@@ -49,9 +53,12 @@ key-decisions:
   - "The three-reader media proof and the D-05 slack table both had to be reconstructed live in this task rather than literally 'collated' from four prior SUMMARYs, because 14-06/14-07/14-08's own SUMMARY.md files never recorded the numeric slack arithmetic their plans required — a documented historical gap, closed here with live measurement rather than left unfilled."
   - "The backward-navigation pager-width bug 14-06 deferred to 14-08/14-09 (Left arrow from a wider to a narrower tab leaving the frame width stuck) is now structurally moot: since 14-04/14-08's consolidation onto drawerMinWidth=760 as a shared floor, every tab renders at the SAME width (760px) and only height varies per tab — there is no width to get stuck at. Confirmed live across a full four-tab Right-then-Left round trip. Not re-opened as a fix; recorded as an incidental resolution."
   - "D-04's literal 'identical frame height on all four tabs' truth is stale text this plan does not re-litigate: 14-03's own render gate (round 2, human-approved) superseded it with per-tab dynamic proportions, ratified again through 14-04/14-06/14-08. This plan's Task 3 re-observation records the CURRENT per-tab heights (826/424/778/497) as the correct, already-ratified behavior, not as a defect against the original text."
+  - "TASK 4 (this session, continuation): the human render gate returned a CHANGE REQUEST, not an approval — nine of eleven checks passed outright; check 4's width verdict and check 9 (Weather) each required changes, actioned in this session and detailed in the Task 4 section below. WeatherPalette.qml is a new, second documented D-11 exemption (Design.qml being the first kind of exemption in spirit, though Design.qml is not a colour exemption — WeatherPalette.qml is the first ABSOLUTE-colour exemption). Performance's drawer width goes non-floor for the first time in the phase (1040px, not 760), which reopened and re-proved the width-transition axis Task 3 had only ever observed at the floor. Dial.qml — named in Task 2's own file scope — was found to have been skipped by Task 2's actual consolidation commit and was folded in this session as a separate fix commit."
+  - "Theme restoration self-correction: this session initially restored the desktop theme to 'catppuccin' after a legibility test, based on a stale ~/.cache/current-theme file (last modified 2026-07-06, not the live tracker). The live tracker is ~/.local/state/theme/current-theme, and Task 3's own SUMMARY record shows the prior session ended on 'gruvbox' — the actual original value. Caught before the phase-close gate sweep and corrected (theme-apply gruvbox); recorded here rather than silently left at the wrong value."
 
 patterns-established:
   - "Singleton-based cross-submodule design-token sharing (Design.qml) — the mechanism Phase 15's panels should reach for instead of re-declaring local spacing/type constants per file."
+  - "A second, narrower singleton (WeatherPalette.qml) as the sanctioned shape for a documented, scope-limited exemption to the Colours.qml palette contract — grep-verifiable, file-named, never a loosening of the contract itself."
 
 requirements-completed: []
 
@@ -83,19 +90,30 @@ coverage:
   - id: D4
     description: "Phase-close blocking human render gate across all four populated tabs, including the three explicitly-deferred open judgments (cascade feel, D-05 slack + drawer width at 2560px, drag threshold)"
     requirement: "DASH-01..08 (phase-close verification)"
-    verification: []
+    verification:
+      - kind: other
+        ref: "Human returned a CHANGE REQUEST on checks 4 (Performance width) and 9 (Weather tab, four items) — nine checks passed outright. This session's Task 4 section documents both change requests actioned and re-verified."
+        status: partial
     human_judgment: true
-    rationale: "Visual/feel judgment across the whole phase per ROADMAP standing constraint 1 — NOT YET RUN. This session stops at Task 4's blocking checkpoint per the sequential-executor continuation contract; a human must answer it before the phase can close."
+    rationale: "Visual/feel judgment across the whole phase per ROADMAP standing constraint 1 — CHANGE REQUEST answered, changes made, RE-GATE PENDING. A human must sign off on the two changed surfaces (Weather, Performance) before the phase can close; the other nine checks are already signed off and are not being re-asked."
+  - id: D5
+    description: "Task 4 change requests actioned: WeatherPalette.qml (D-11 exemption) + hover tooltips + centred separator on the Weather tab; one-row-of-four dial layout + retuned ring thickness on the Performance tab; the Dial.qml consolidation gap Task 2 missed, folded in; the width-transition axis re-tested now that Performance exceeds the 760 floor for the first time in the phase"
+    requirement: "DASH-01..08 (phase-close verification)"
+    verification:
+      - kind: other
+        ref: "Commits a480b4c (Weather), 5f5c478 (Performance), aaf2583 (Dial.qml). This SUMMARY's Task 4 section — live command output, screenshots and geometry readings for every change."
+        status: pass
+    human_judgment: false
 
 # Metrics
-duration: multi-session (Tasks 1-2 in a prior interrupted session; Task 3 + this SUMMARY in this continuation session; Task 4 not yet run)
+duration: multi-session (Tasks 1-2 in a prior interrupted session; Task 3 + this SUMMARY's first draft in a second session; Task 4's human gate + this session's change-request response + re-verification in a third continuation session)
 completed: 2026-07-30
 status: blocked
 ---
 
 # Phase 14 Plan 09: Cascade, Consolidation, Gate Sweep & Phase-Close Evidence Summary
 
-**D-21's summon-only entrance cascade shipped and both its fences proven live; the four-plan-deferred design-constants consolidation landed on a shared `Design` singleton; ten repo-wide prohibition invariants each proven able to fail before being trusted to pass; and the full phase-close gate sweep, three-reader delta proof, DASH-07 mirror and layer/fullscreen re-observations run against all four populated tabs — with Task 4's blocking human render gate still pending a fresh session's answer.**
+**D-21's summon-only entrance cascade shipped and both its fences proven live; the four-plan-deferred design-constants consolidation landed on a shared `Design` singleton; ten repo-wide prohibition invariants each proven able to fail before being trusted to pass; the full phase-close gate sweep, three-reader delta proof, DASH-07 mirror and layer/fullscreen re-observations ran against all four populated tabs; and Task 4's blocking human render gate returned a CHANGE REQUEST on the Weather and Performance tabs — both actioned in this continuation session (a new `WeatherPalette.qml` D-11 exemption, hover tooltips, a forecast separator, a one-row Performance dial layout, retuned ring thickness, and the `Dial.qml` consolidation gap Task 2 missed) — with a focused re-gate on just those two surfaces still pending.**
 
 ## Performance
 
@@ -348,6 +366,118 @@ All four tabs clear D-05's ≥10% slack floor; Dashboard (the richest tab) sits 
 
 Confirmed live in the same navigation pass used for the layer table above: stepping backward through all four tabs (`Left`×3 from Weather) produced the correct width (760, unchanged) and correct height at every step (778 → 424 → 826), with no stuck-width state at any point. 14-06's deferred bug is now moot — see key-decisions for the mechanism (drawerMinWidth consolidated to a shared 760 floor since 14-08, leaving no width axis to get stuck on).
 
+**Note (Task 4, this session): the geometry table above and the D-05 slack table below it are Task 3's ORIGINAL baseline, taken before Task 4's human gate.** They are left unedited here as the historical record Task 3 actually produced. The Performance and Weather rows changed as a direct result of Task 4's change requests — see the Task 4 section immediately below for the current, live-measured numbers. Dashboard and Media are unchanged and their rows above still hold.
+
+## Task 4 — Render-Gate Change Request Cycle (this session)
+
+### The human's verdict, verbatim in substance (carried from this session's own continuation brief)
+
+Checks 1, 2, 3, 5, 6, 7, 8, 10, 11 — **PASS**, not re-asked here. Two checks came back as change requests:
+
+- **Check 4 (D-05 slack + drawer-width verdict):** the dynamic per-tab sizing and the lopsided slack table are approved decisions, not defects. The width verdict was a change request: *"The performance tab should be shorter and wider and the metric rings adjusted accordingly."*
+- **Check 9 (Weather tab):** four items — (1) add a hover tooltip naming the condition, glyphs alone are hard to tell apart; (2) colour the weather condition glyphs; (3) colour the sunrise/sunset glyphs; (4) separate today's forecast from the 5-day forecast with a small centred line.
+
+Per this plan's own `<constraints>`, the other nine checks are not being re-litigated — this section covers only the two changed surfaces.
+
+### A. Weather tab
+
+**A1 — `WeatherPalette.qml`, a second documented D-11 exemption.** New singleton at `quickshell/.config/quickshell/modules/dashboard/WeatherPalette.qml`, carrying both `pragma Singleton` and the qmldir `singleton` keyword (the 12-06 finding, same discipline `Design.qml` already follows). The file's own header states the exemption and its rationale in full: discriminability across 8+ weather conditions at icon size cannot be built out of 19 harmonised, theme-relative Material You roles, and absolute colour genuinely IS the semantic in weather iconography — the same class of exception `Colours.error` already grants within the 19-role contract itself, extended here to a second, narrower case.
+
+Eight absolute colours: `sun #FFC107`, `cloudLit #ECEFF1`, `cloudRain #78909C`, `sunrise #FFD54F`, `sunset #7986CB` are the human-approved starting values, used verbatim, unchanged. `night #90A4AE`, `snow #E1F5FE`, `storm #546E7A` were added to cover `WeatherBackend.qml`'s full `_wmoTable` ligature-name set (16 distinct symbol names across day/night and every WMO code family) rather than leaving conditions unmapped — the task's own instruction was to read the backend and cover its real condition set, not invent one. One resolver, `forSymbol(name)`, keyed by symbol name (what `WeatherTab.qml` actually has at each render site — the tab never sees the raw WMO code) rather than by code; returns `null` for an unrecognised name so the caller falls back to its own themed `Colours.*` value.
+
+**Scope boundary held:** only the condition glyphs (hero + every hour/day cell) and the sunrise/sunset glyphs read `WeatherPalette.*`. Every other colour on the tab — all text, the staleness badge, the new separator — stays on `Colours.*`. Grep-verified: `WeatherPalette` appears in exactly one file outside its own declaration (`WeatherTab.qml`).
+
+**A2 — the invariant collision, handled explicitly (T-14-30 discipline).** Task 2's zero-hex-literal invariant (invariant 2) trips on `WeatherPalette.qml`'s 8 real hex values by construction — confirmed live: the OLD (unnarrowed) assertion now returns a count of 8, not 0. Narrowed by FILE NAME only — `WeatherPalette.qml` excluded by exact basename match, no pattern change, no directory exclusion, the assertion itself otherwise untouched. Then re-poisoned against a DIFFERENT file (a scratch copy of `MediaTab.qml` with an injected `"#123ABC"` literal) and confirmed the narrowed assertion still FAILS (count=1) before trusting its clean run. Clean run against the real tree (narrowed): count=0, PASS. Both runs recorded here, in that order, per the standing poisoned-then-clean discipline.
+
+The other nine invariants were re-run against the real tree with all of this session's new/changed files included — all nine still clean (zero MPRIS imports, zero raw duration/interval literals, zero `Motion.motionScale` references, zero scrolling view types, zero playerctl/ip-api.com references, reload.sh untouched with no Phase-14 commit against it). No regression from this session's edits.
+
+**A3 — hover tooltip, and the `delay:` blind-spot verdict.** Every condition glyph (hero, every hour-strip cell, every day-row cell) now carries a `MouseArea { hoverEnabled: true }` with `ToolTip.visible`/`ToolTip.text`/`ToolTip.delay`, copying `QuickToggles.qml`'s own established pattern (lines ~540/~757 as they stood before this session) exactly.
+
+The delay is a NAMED constant: `Design.tooltipDelayMs` (value 400, unchanged), consumed as `root.tooltipDelayMs` in both `WeatherTab.qml` and `QuickToggles.qml`. **Verdict on whether `QuickToggles.qml`'s two pre-existing bare `ToolTip.delay: 400` sites were in Task 2's original hand enumeration: they were NOT.** Confirmed by re-reading commit `87bba52`'s own message verbatim — its invariant-4 enumeration explicitly names three sites, all `interval:`-keyed (`dndSubscribeGraceTimer`, `dndPollTimer`, `SystemResources.qml`'s `primeTimer`), and its own prose scopes the class to `"every camel-cased duration-shaped property and every interval:"` — `ToolTip.delay` is neither camel-cased-duration-shaped nor an `interval:`, and is not mentioned anywhere in that commit. This is confirmed as a **fourth motion-lint CHECK B blind-spot class**, not a re-discovery of an already-covered one: `QML_DURATION_RE` (`hypr/.config/hypr/scripts/motion-lint` line 914) is anchored on the literal string `duration`, so `delay:` structurally escapes it exactly as `interval:` does. Both pre-existing `QuickToggles.qml` sites are now named (`root.tooltipDelayMs`), and the value (400) is unchanged from what they already used — pure name extraction.
+
+**A4 — the centred separator.** A `Rectangle` (`forecastSeparator`, `Colours.outline`, `radius: height/2`) between `hourStrip.bottom` and `dayRow.top`, `spacingMd` gaps on both sides, width 96px (a small, local, named geometry constant — deliberately narrow, not a full-width rule, per the request's own wording). `WeatherTab.qml`'s `implicitHeight` formula extended by the separator's own height (1px) plus one more `spacingMd` gap. Live-confirmed: the Weather frame grew from the Task 3 baseline 760×497 to **760×514** — exactly the predicted +17px (1 + 16).
+
+**A5 — cascade integrity.** `cascadeBands` left unchanged (`[heroBand, hourStrip, dayRow]`): the separator is decorative chrome between two cascaded bands, not a widget of its own, and D-21 cascades top-level content bands. Live-confirmed via the shell log after the geometry change: `cascade: run tab=3 bands=3` still fires correctly.
+
+**Live visual confirmation (screenshot):** sun glyph reads bright yellow; the "clear"/"partly cloudy" hour and day glyphs read light/white; the sunrise glyph (`wb_twilight`) reads yellow-orange; the sunset glyph (`bedtime`, a crescent moon) reads indigo; the separator is visible, thin and centred between the two forecast rows.
+
+**Blur-legibility test (D-07, this task's C.3 requirement) — PARTIAL, recorded honestly.** A bright wallpaper (`rosepine/1-funky-shapes.jpg`, average luminance 206/255, the second-brightest of the repo's committed wallpapers) was applied via `awww img` and the drawer re-screenshotted. The drawer's own translucent-over-blur surface in that screenshot still read dark because a live application window (not this session's doing) filled the exact screen region directly behind the drawer at the time, so the blur sampled that window's dark content rather than the wallpaper underneath it — discovering this required inspecting a corner of the screen away from the drawer, where the bright wallpaper was confirmed genuinely applied. Moving or closing that window to get a true "bright content directly behind the drawer" screenshot was judged too disruptive to the live desktop session for this task to do unilaterally. What IS confirmed: the chosen colours (`sun #FFC107`, `cloudRain #78909C`, `sunset #7986CB`, etc.) carry strong luminance separation from both the drawer's own dark translucent surface and from `Colours.onSurfaceVariant`-toned neighbouring text at every zoom level checked. **The bright-wallpaper-directly-behind case is not independently confirmed by this session and is carried forward as part of the pending re-gate** — this is exactly the kind of visual judgment call Task 4's own `<how-to-verify>` assigns to the human, not to the executor.
+
+### B. Performance tab
+
+**B1 — geometry.** `dialGrid.columns: 2 -> 4` (one row of four dials, not a 2×2 grid). Diameter kept at round 2's `224`; ring thickness grown `18 -> 22` after a live side-by-side screenshot comparison — 18 read cleanly (not literally "stretched or spindly"), but 22 carries visibly more weight matching the new row's extra horizontal breathing room, and was chosen as a deliberate improvement rather than leaving the value untouched when the human explicitly asked for the rings to be adjusted.
+
+**Live-measured drawer geometry: 1040×498** (Task 3's baseline was 760×778). The plan's own predicted arithmetic ("944 + spacingLg×2 = 992") undercounted one layer: `Dashboard.qml`'s `drawerWidth = activeContentWidth + spacingLg*2` adds the WINDOW's own outer `content` margin on top of the tab's own already-self-padded `implicitWidth` (`dialGrid.width + spacingLg*2` = 992) — this is `Dashboard.qml`'s documented, working design (its own header comment: the outer margin is "added back on top of the active tab's own desired content size"), verified self-consistent by the same mechanism that already produces every other tab's correct geometry, not a bug this task introduced. The REAL number, 1040, is 40.6% of the 2560px primary — closer to D-02's original ~40% intent than the plan's own 992/38.8% prediction.
+
+**B2 — the width axis, re-tested (not assumed moot).** Task 3's own "structurally moot" verdict on 14-06's backward-nav width bug only ever observed the floor-wins case (every tab at 760). Performance now exceeds the floor for the first time in the whole phase, reopening that bug class exactly as this plan's own instructions warned. Re-tested properly:
+
+| Direction | Sequence | Widths/heights |
+|---|---|---|
+| Forward | Dashboard→Media→Performance→Weather | 760/826 → 760/424 → **1040/498** → 760/514 |
+| Backward | Weather→Performance→Media→Dashboard | 760/514 → **1040/498** → 760/424 → 760/826 |
+
+No stuck width in either direction; Performance correctly reaches 1040 and every adjacent tab correctly returns to 760. A rapid mid-transition poll during a live Performance→Weather swipe captured genuine intermediate values (`1040→1011→928→870→833→808→791→779→768→762→760`, height climbing `498→...→514` in step) — the transition animates on `Behavior on implicitWidth`/`implicitHeight` (`Motion.standardDuration`), not a hard step. At `off` motion scale: instant jump, zero intermediate samples across 10 rapid polls. At `reduced`: animates but visibly tighter (5 intermediate samples vs 8 at `normal`), consistent with the halved duration. Motion scale restored to `normal` afterward and confirmed via the QuickToggles segmented row screenshot (`✓ Normal` shown selected).
+
+**B3 — `Dial.qml`'s missed consolidation, folded in.** Task 2's own `<files>` scope named seven files for the Design consolidation; commit `1388516` touched six and skipped `Dial.qml`. Found while retuning Performance's dial geometry (the file's own header still claimed consolidation was "left to 14-08's composition pass" — a sentence commit `87bba52` had already corrected across the other five headers but missed here). Before/after table, pure value-for-value, zero mismatches:
+
+| Property | Before | After |
+|---|---|---|
+| `_spacingXs` | `4` | `Design.spacingXs` (4) |
+| `_fontHeading` | `20` | `Design.fontHeading` (20) |
+| `_fontLabel` | `12` | `Design.fontLabel` (12) |
+| `_weightEmphasis` | `Font.DemiBold` | `Design.weightEmphasis` |
+| `_weightBody` | `Font.Normal` | `Design.weightBody` |
+| `_symbolFontFamily` | `"Material Symbols Rounded"` | `Design.symbolFontFamily` |
+
+`_defaultFontFamily` (`Qt.application.font.family`) stays local — a genuine runtime capability read (whatever font Qt itself resolves as the system default), not a design token with a `Design.*` counterpart. Property names unchanged (substitution, not a rename). Live-confirmed geometry byte-identical after the edit; `DashboardTab.qml`'s mini-dials (same `Dial.qml` component, smaller instance, unrelated tab) screenshot-confirmed rendering correctly.
+
+**Amending Task 2's own record:** its "66 substitutions across 6 files" claim (see commit `1388516` and this SUMMARY's Task 2 section above) is accurate as far as it goes, but under-delivered against Task 2's own declared 7-file scope. Recorded here honestly as a gap found and closed in THIS session, not as something the original Task 2 session completed — the Task 2 section above is left as the historical record of what that session actually did, not silently rewritten.
+
+**B4 — cascade + slack.** `cascadeBands` left unchanged (`[dialGridRow, networkRowWrap]`) — both ids still resolve to the same two widgets, just laid out differently inside them. Live-confirmed: `cascade: run tab=2 bands=2` still fires correctly after the geometry change.
+
+Performance's D-05 slack, re-measured against the same 796px available-height reference the original table used: live drawer height 498 = `tabBarHeight(64) + activeContentHeight + spacingLg*2(48)`, so `activeContentHeight = 386` (was 666). Slack = `796 - 386 = 410`, **51.5%** (was 130/16.3%). Weather's own content height similarly grew from 385 to `402` (514 - 64 - 48), slack `796 - 402 = 394`, **49.5%** (was 411/51.6% — a small decrease, consistent with the separator adding 17px of fixed content height). Both updated rows:
+
+| Tab | Content height | Available | Slack | Slack % |
+|---|---|---|---|---|
+| Performance (was 666/130/16.3%) | 386 | 796 | 410 | **51.5%** |
+| Weather (was 385/411/51.6%) | 402 | 796 | 394 | **49.5%** |
+
+Dashboard and Media are unchanged (714/82/10.3% and 312/484/60.8% respectively, per the original table above).
+
+### C. Re-verification
+
+**C.1 — full gate sweep, re-run after this session's commits landed (tree clean):**
+
+| Script | Task 3's own run | This session's run | Verdict |
+|---|---|---|---|
+| `theme-doctor` | 229 passed / 1 failed (git-clean transient, explained) | **232 passed / 0 failed** | PASS — tree genuinely clean this time |
+| `theme-parity` | 2608 passed / 0 failed | 2608 passed / 0 failed | PASS — identical |
+| `waybar-design-lint` | 32 passed / 0 failed | 32 passed / 0 failed | PASS — identical |
+| `waybar-equivalence-check` | 0/0 (all SKIP) | 0/0 (all SKIP) | PASS — identical, expected shape |
+| `keybind-doctor` | 14 passed / 0 failed | 14 passed / 0 failed | PASS — identical |
+| `quickshell-doctor` | 12 passed / 1 failed (QS-03, pre-existing) | 12 passed / 1 failed (same QS-03) | PASS — same named pre-existing failure |
+| `motion-lint` | 79 passed / 0 failed | **81 passed / 0 failed** | PASS — grown by this session's new files (WeatherPalette.qml + 2 modified files), zero failed |
+| `motion-lint --self-test` | 10 passed / 0 failed | 10 passed / 0 failed | PASS — identical |
+| `motion-lint --no-pending` | 1 passed / 0 failed | 1 passed / 0 failed | PASS — zero pending exemptions, unchanged |
+| `theme-stress-test` | 10/10 switches, 162/0, exit 0 | **10/10 switches, 162/0, exit 0** | PASS — identical shape, re-run clean below |
+
+`quickshell-doctor`'s namespace-discipline check re-confirmed: `[PASS] namespace discipline (D-21): every quickshell-* layer namespace sits at level 3 (overlay) and belongs to the shell's own PID`.
+
+**C.2 — `theme-stress-test`, re-run after this session's commits landed.** `git status --porcelain` empty before the run. Result: **10/10 switches, 162 passed, 0 failed, exit 0** — matching both Phase 13's baseline and Task 3's own re-run exactly. The run's own designed final theme was `materialyou` (last in its fixed 10-theme sequence, confirmed via `~/.local/state/theme/current-theme`).
+
+**Restoration, including a self-caught correction:** earlier in this session, after the D-07 blur-legibility screenshot test, this session restored the desktop theme to `catppuccin` based on `~/.cache/current-theme` — which turned out to be a STALE, unrelated file (last modified 2026-07-06, long before this phase). The live tracker is `~/.local/state/theme/current-theme`, and Task 3's own SUMMARY record (two separate sentences) states the prior session ended on `gruvbox`, the actual original value for this continuation. Caught before the gate sweep's own conclusions could be affected (theme identity does not affect the gate sweep's pass/fail counts) and corrected: `theme-apply gruvbox`, confirmed via the live tracker. Recorded here as a Rule-1 self-fix rather than silently left at the wrong value — see Deviations below.
+
+**C.3 — Weather colour legibility:** see section A above (partial confirmation; the bright-wallpaper-directly-behind-drawer case carried forward to the human re-gate, not independently closed by this session).
+
+**C.4 — geometry re-measured on all four tabs, forward-navigated, this session's final state:**
+
+| Tab | Width×Height | vs. Task 3 baseline |
+|---|---|---|
+| Dashboard | 760×826 | unchanged |
+| Media | 760×424 | unchanged |
+| Performance | **1040×498** | was 760×778 |
+| Weather | **760×514** | was 760×497 |
+
 ## Deviations from Plan
 
 ### Auto-fixed Issues
@@ -375,50 +505,84 @@ Confirmed live in the same navigation pass used for the layer table above: stepp
 - **Verification:** Fresh `starting` line present; `quickshell-doctor` re-run clean on this specific check (12 passed / 1 failed, the 1 being the unrelated pre-existing QS-03 item); dashboard shortcut confirmed still live post-restart.
 - **Committed in:** n/a (operational action, not a code change)
 
+**4. [Rule 2 - Missing critical functionality, Task 4, this session] `Dial.qml` skipped by Task 2's own declared consolidation scope**
+- **Found during:** B3, retuning Performance's dial geometry
+- **Issue:** `Dial.qml` was named in Task 2's `<files>` scope but commit `1388516` touched only six of the seven files, leaving `Dial.qml` with seven local literals (including the exact duplicated font-family string the consolidation existed to remove) and a header still claiming consolidation was "left to 14-08".
+- **Fix:** Pure value-for-value substitution onto `Design.*`, six of seven properties (see B3's before/after table); `_defaultFontFamily` correctly stays local (runtime capability read).
+- **Files modified:** `quickshell/.config/quickshell/modules/dashboard/Dial.qml`
+- **Verification:** Geometry byte-identical across all four tabs; DashboardTab's mini-dials screenshot-confirmed still rendering correctly; `motion-lint` 81/81.
+- **Committed in:** `aaf2583`
+
+**5. [Rule 1 - Bug, Task 4, this session] Stale `~/.cache/current-theme` used to determine the "original" theme for restoration**
+- **Found during:** C.2, before running the final `theme-stress-test`
+- **Issue:** After the D-07 blur-legibility screenshot test, this session read `~/.cache/current-theme` (reported `catppuccin`) and used it as the value to restore to — but that file's own mtime is 2026-07-06, weeks stale and disconnected from the live theme tracker. The real tracker, `~/.local/state/theme/current-theme`, and Task 3's own SUMMARY record both establish the actual original value as `gruvbox`.
+- **Fix:** `theme-apply gruvbox`, confirmed via the live tracker.
+- **Verification:** `~/.local/state/theme/current-theme` reads `gruvbox`; `git status --porcelain` empty (no repo state affected either way).
+- **Committed in:** n/a (operational correction, no source touched)
+
+**6. [Rule 3 - Blocking issue, Task 4, this session] Task 2's zero-hex-literal invariant collided with the new `WeatherPalette.qml`**
+- **Found during:** A2, immediately after creating `WeatherPalette.qml`
+- **Issue:** The invariant's own comment-stripped grep now returns 8 hex matches (WeatherPalette.qml's 8 absolute colours), which is an expected, approved collision (per this session's own instructions), not a bug — but per T-14-30 it could not simply be silenced.
+- **Fix:** Narrowed by exact file name (`WeatherPalette.qml` only) to exempt it; re-poisoned against a DIFFERENT file (`MediaTab.qml` scratch copy) and confirmed the narrowed assertion still fails before trusting its clean run.
+- **Files modified:** none tracked (invariant-runner logic, executed inline)
+- **Verification:** poisoned run (different file) → FAIL as required; clean run (real tree, narrowed) → PASS.
+- **Committed in:** n/a (invariant-runner logic, not a committed script — same class as deviation #2 above)
+
 ### Deferred / Not Performed
 
-**Three-reader visual identity (roadmap criterion 4's visual half) — deferred to Task 4**, as the plan itself directs; no track was playing during this session to observe.
+**Three-reader visual identity (roadmap criterion 4's visual half) — deferred to Task 4's human render gate**, as the plan itself directs; no track was playing during Task 3's session to observe. Still applicable — this session's change-request response did not re-open that check.
+
+**D-07 blur legibility with a bright wallpaper genuinely directly behind the drawer — not independently closed this session.** See section A ("Blur-legibility test") above: a live application window occupied the exact screen region behind the drawer at test time; moving/closing it was judged too disruptive to the user's live desktop for this task to do unilaterally. Carried forward as part of the pending re-gate rather than claimed as confirmed.
 
 ---
 
-**Total deviations:** 2 auto-fixed bugs (prior session), 1 operational fix (this session, no source touched — quickshell relaunch), 1 mechanical self-correction (STATE.md progress-recompute side effect, reverted), 0 items remaining deferred except the visual three-reader observation which is structurally Task 4's job, not this task's.
+**Total deviations:** 2 auto-fixed bugs (prior session), 1 operational fix (Task 3 session, no source touched — quickshell relaunch), 1 mechanical self-correction (STATE.md progress-recompute side effect, reverted, prior session), 1 Rule-2 fix (this session — `Dial.qml`'s missed consolidation), 1 Rule-1 self-correction (this session — stale theme-restoration file), 1 Rule-3 invariant-narrowing response (this session — `WeatherPalette.qml` vs. the hex-literal invariant). 2 items remain deferred/not-independently-closed: the visual three-reader observation and the bright-wallpaper-directly-behind-drawer legibility case, both explicitly the human render gate's job.
 
 ## Known Stubs
 
-None found. No hardcoded empty values, placeholder text, or unwired data sources were introduced by this plan — Cascade.qml and Design.qml are both pure infrastructure (an animation runner and a constants singleton), and no UI-facing content changed.
+None found. No hardcoded empty values, placeholder text, or unwired data sources were introduced by this plan — `Cascade.qml`, `Design.qml` and `WeatherPalette.qml` are all pure infrastructure (an animation runner and two constants singletons), and every UI-facing content change (Weather glyph colours/tooltips/separator, Performance's dial layout) is fully wired to live data with no placeholder branch.
 
 ## Threat Flags
 
-None. This plan's own `<threat_model>` scopes its risk surface to verification integrity (vacuous gates, unrecorded observations, source-identity spoofing) rather than new attack surface, and this task performed exactly the mitigations that threat register specifies: poisoned-then-clean proofs for every negative assertion (T-14-30), the observation-behind-every-claim discipline (T-14-31), and the mechanical source-identity pairing for the DASH-07 mirror (T-14-32). No new network endpoint, auth path, file-access pattern, or schema change was introduced.
+None new. This plan's own `<threat_model>` scopes its risk surface to verification integrity (vacuous gates, unrecorded observations, source-identity spoofing) rather than new attack surface, and this task performed exactly the mitigations that threat register specifies: poisoned-then-clean proofs for every negative assertion (T-14-30, including the newly-narrowed hex-literal invariant), the observation-behind-every-claim discipline (T-14-31), and the mechanical source-identity pairing for the DASH-07 mirror (T-14-32, unchanged this session). `WeatherPalette.qml` is a deliberate, narrow, documented exemption to T-14-34's consolidation-integrity concern (a new colour SOURCE, not a new network endpoint, auth path, file-access pattern, or schema change) — its own header states the exemption and scope boundary in the same place a reviewer would look for it, and A2's poisoned-then-clean re-proof is the mechanical evidence that the exemption did not quietly widen the class of files allowed to carry colour literals.
 
 ## User Setup Required
 
-None — this task performed only live verification and one detached process restart, no persistent configuration change.
+None — this task performed only live verification, live QML edits, one detached process restart, and transient wallpaper/theme/motion-scale mutations, all restored. No persistent configuration change.
 
-## Next Phase Readiness — NOT YET, Task 4 pending
+## Next Phase Readiness — NOT YET, focused re-gate pending
 
-**This plan is NOT complete.** Task 4 (`checkpoint:human-verify`, `gate="blocking"`) has not been run. Per ROADMAP standing constraint 1, this gate cannot be auto-approved under any circumstance, including auto-chain/auto-advance modes — it is the phase's only sign-off that sees all four tabs populated at once, and three of its eleven checks (2, 4, 5) are explicitly deferred, previously-unanswered judgments from 14-03/14-08's own render gates that must be answered even on approval.
+**This plan is NOT complete.** Task 4 (`checkpoint:human-verify`, `gate="blocking"`) was run and returned a CHANGE REQUEST, not an approval. Nine of eleven checks passed outright (1, 2, 3, 5, 6, 7, 8, 10, 11) and are not being re-asked. This session actioned both change requests — the Weather tab (condition-glyph colour via a new `WeatherPalette.qml` D-11 exemption, hover tooltips, a centred forecast separator) and the Performance tab (one row of four dials, retuned ring thickness, plus the `Dial.qml` consolidation gap folded in as a related fix) — and re-verified everything the plan's own gate sweep covers. Per ROADMAP standing constraint 1, the checkpoint still cannot be auto-approved under any circumstance; a human must sign off on the two changed surfaces specifically.
 
-**Before Task 4 can be judged, confirm:**
-- Material Symbols Rounded renders (Task 4's own precondition) — **confirmed already, this session:** `ttf-material-symbols-variable-git 4.0.0.r166.g528cb964-1` installed, `fc-list` resolves `Material Symbols Rounded` at multiple weights. Precondition is met; Task 4 does not need to halt on it.
-- The full `theme-stress-test` run — **completed this session** (10/10, 162/0, exit 0) once the tree read clean after Task 3's own commits landed; nothing further needed here.
+**Before the re-gate, confirmed this session:**
+- Both change requests implemented, live-verified via screenshot and `hyprctl layers -j` geometry reads, and committed atomically (`a480b4c` Weather, `5f5c478` Performance, `aaf2583` Dial.qml).
+- The width-transition axis — reachable for the first time in the phase now that Performance exceeds the 760px floor — re-tested forward and backward, confirmed to animate correctly and collapse correctly at `off`/`reduced`, with no stuck-width state in either direction.
+- The zero-hex-literal invariant's collision with `WeatherPalette.qml` handled per T-14-30: narrowed by file name only, re-poisoned against a different file, proven to still fail before trusting the clean run.
+- The full 8-script-plus-stress-test gate sweep re-run clean against this session's own commits (see section C above) — zero new failures, the one pre-existing `quickshell-doctor` QS-03 failure is the same named item Task 3 recorded.
+- A self-caught theme-restoration error (stale `~/.cache/current-theme` file) corrected before it could affect anything downstream.
 
-**Once Task 4 is answered:**
-- If APPROVED, this plan's `state_updates` and `final_commit` steps (advance plan counter, record session, mark REQUIREMENTS.md items, commit STATE.md/ROADMAP.md/REQUIREMENTS.md/this SUMMARY together) still need to run — they were deliberately NOT run in this session, since running them ahead of Task 4's approval would falsely advance phase-completion state.
-- If changes are requested, this plan re-enters as a continuation with Tasks 1-3 already complete and committed (per the table in this session's own continuation instructions) and Task 4's specific feedback as the new resume point.
+**What is NOT independently closed by this session** (carried into the re-gate, per this task's own instructions rather than silently claimed as done): the three-reader visual identity check (no track was playing) and the bright-wallpaper-directly-behind-the-drawer blur-legibility case for the new Weather colours (a live application window occupied that screen region during this session's test).
+
+**Once the re-gate is answered:**
+- If APPROVED, this plan's `state_updates` and `final_commit` steps (advance plan counter, record session, mark REQUIREMENTS.md items, commit STATE.md/ROADMAP.md/REQUIREMENTS.md/this SUMMARY together) still need to run — deliberately NOT run in this session, since running them ahead of approval would falsely advance phase-completion state.
+- If further changes are requested, this plan re-enters as a continuation with Tasks 1-3 and this session's two change-request commits already complete and committed, and the re-gate's specific feedback as the new resume point.
 
 ## Self-Check: PASSED
 
 - FOUND: `quickshell/.config/quickshell/modules/dashboard/Cascade.qml`
 - FOUND: `quickshell/.config/quickshell/modules/dashboard/Design.qml`
-- FOUND: `quickshell/.config/quickshell/modules/dashboard/qmldir` (both new types registered)
+- FOUND: `quickshell/.config/quickshell/modules/dashboard/WeatherPalette.qml`
+- FOUND: `quickshell/.config/quickshell/modules/dashboard/qmldir` (all three new types registered)
 - FOUND: `quickshell/.config/quickshell/modules/Motion.qml` (snake_case fix present)
 - FOUND: commit `7850b7f` in `git log --oneline --all`
 - FOUND: commit `3a05c97` in `git log --oneline --all`
 - FOUND: commit `1388516` in `git log --oneline --all`
 - FOUND: commit `87bba52` in `git log --oneline --all`
+- FOUND: commit `a480b4c` in `git log --oneline --all` (Weather change request)
+- FOUND: commit `5f5c478` in `git log --oneline --all` (Performance change request)
+- FOUND: commit `aaf2583` in `git log --oneline --all` (Dial.qml consolidation fix)
 - FOUND: `.planning/phases/14-dashboard-drawer/14-09-SUMMARY.md` (this file)
 
 ---
 *Phase: 14-dashboard-drawer*
-*Task 3 completed: 2026-07-30 — Task 4 pending a fresh session*
+*Task 4 change-request response completed: 2026-07-30 — focused re-gate pending a fresh session*
