@@ -264,7 +264,7 @@ Plans:
 
 **Goal**: The first real QML surface — a four-tab swipeable dashboard drawer that reads the state the desktop already owns instead of forking it.
 **Depends on**: Phase 12 (independent branch — does **not** depend on Phase 13)
-**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DASH-07, DASH-08
+**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DASH-07, DASH-08 *(plan 14-10 additionally repairs and folds in `hypr-equivalence-check`, which is **MAINT-04**'s proof instrument — ownership of MAINT-04 stays with Phase 13.1; the gate work is recorded here because that is where it lands)*
 **Success Criteria** (what must be TRUE):
 
   1. A keybind opens the dashboard drawer and a click outside dismisses it; the rest of the desktop stays interactive the whole time, and `hyprctl layers -j` shows the drawer holding zero exclusive zone on any edge waybar already reserves.
@@ -274,7 +274,7 @@ Plans:
   5. Flipping a dashboard quick-toggle changes swaync's existing toggle grid to match and vice versa, with no second source of truth for that state; and neither the dashboard nor any panel opens over a fullscreen client.
 
 **Owns**: The "overlay by default, zero exclusive zone" layer-shell convention that Phases 15 and 16 inherit, and the shared-state pattern for anything the desktop already tracks.
-**Plans**: 9/9 plans executed
+**Plans**: 9/10 plans executed
 
 - [x] 14-01-PLAN.md
 - [x] 14-02-PLAN.md
@@ -285,6 +285,7 @@ Plans:
 - [x] 14-07-PLAN.md
 - [x] 14-08-PLAN.md
 - [x] 14-09-PLAN.md
+- [ ] 14-10-PLAN.md — Two-tone composite weather glyphs (experiment, revert defined) + a fifth GPU dial at no cost in panel width + the `hypr-equivalence-check` coverage gap
 
 **Wave 1** (parallel):
 
@@ -309,6 +310,13 @@ Plans:
 **Wave 5** *(blocked on 14-08, 14-07)*:
 
 - 14-09: Entrance cascade + full gate sweep + phase-close render gate (all 8)
+
+**Wave 6** *(blocked on 14-09; added 2026-07-30 after 14-09's render-gate approval)*:
+
+- 14-10: Two features the human raised at 14-09's approval, plus one gate-coverage gap the phase's own regression sweep exposed — placed in Phase 14 by explicit human direction rather than deferred (DASH-05 *extension*, DASH-06, MAINT-04's proof instrument). Phase-level verification is held until this plan closes.
+  1. **Two-tone the two composite weather glyphs** — the installed icon font has no colour tables at all (verified with fontTools), so per-path colouring inside one glyph is structurally impossible; the approved route layers two glyphs. Planned as an **experiment** with a defined one-property revert to the single designed glyph and a **comparative** render-gate question.
+  2. **A fifth Performance dial: GPU usage** — five dials at 176 with a 17px ring reproduce the same 944px row content the four 224px dials produced, so the 1040px frame does not move. Two design questions settled in the plan rather than mid-edit: one-shot subprocess sampling on its own named slower cadence under the reader's zero-idle contract, and an always-present dial with a designed no-GPU placeholder (D-41), because omitting it would make panel width a function of graphics hardware.
+  3. **`hypr-equivalence-check` was absent from the phase's own sweep and is red** — diagnosed as *not* a regression (the one added bind is DASH-01's own Super+D chord; the baseline predates the phase). Bounded re-baseline behind an order-insensitive delta proof, folded into `theme-doctor` with a live-session guard so the headless fresh-install gate still passes, and the phantom-diff readability problem given a named disposition.
 
 **UI hint**: yes
 
