@@ -19,6 +19,7 @@
 import QtQml
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 import "modules"
 import "modules/dashboard"
 
@@ -147,12 +148,20 @@ ShellRoot {
         // 15-03 extends this with the wifi and bluetooth loaders.
     }
 
-    function openPanel(name) {
-        var targetLoader = null;
+    // Name-to-loader resolution, shared by openPanel() below and the
+    // shell-root IPC surface's toggle() verb (Phase 15 Plan 03, Task 1) —
+    // one mapping, two callers, rather than a second switch duplicated
+    // inside the handler. An unrecognised name resolves to null.
+    function panelLoaderFor(name) {
         if (name === "audio")
-            targetLoader = audioPanelLoader;
-        // 15-03 extends this resolution with "wifi"/"bluetooth". An
-        // unrecognised name resolves to null and does nothing at all.
+            return audioPanelLoader;
+        // 15-03 extends this resolution with "wifi"/"bluetooth".
+        return null;
+    }
+
+    function openPanel(name) {
+        var targetLoader = root.panelLoaderFor(name);
+        // An unrecognised name resolves to null and does nothing at all.
         if (!targetLoader)
             return;
 
@@ -217,6 +226,50 @@ ShellRoot {
             if (event.name === "fullscreen") {
                 Hyprland.refreshToplevels();
             }
+        }
+    }
+
+    // ── Shell-root IPC surface (Phase 15 Plan 03, Task 1) — the seam every
+    //    entry point that is not Super+A reaches a panel through. Both
+    //    verbs route their summon half through `openPanel()` above, so the
+    //    fullscreen refusal guard it owns is read in exactly one place;
+    //    neither verb reads that guard itself and neither writes a
+    //    loader's `active` property directly — `toggle()`'s close branch
+    //    defers to `closeAllPanels()`, the very function `openPanel()`'s
+    //    own already-open branch already calls. Neither return value is
+    //    ever surfaced as on-screen feedback — the refusal stays silent by
+    //    design.
+    IpcHandler {
+        id: panelIpc
+        target: "panel"
+
+        // Resolves the name, calls the guarded summon function above, and
+        // reports whether the panel's active state actually changed.
+        // Reading `targetLoader.active` before and after is a plain
+        // property read, never a direct write.
+        function open(name: string): string {
+            var targetLoader = root.panelLoaderFor(name);
+            if (!targetLoader)
+                return "";
+            var wasActive = targetLoader.active;
+            root.openPanel(name);
+            return (targetLoader.active !== wasActive) ? name : "";
+        }
+
+        // An already-open panel closes via `closeAllPanels()` rather than
+        // a direct `active` write here. Otherwise defers to `open()`
+        // above. Closing is deliberately ungated (D-11's own comment on
+        // this file), matching `dashboardShortcut`'s and
+        // `audioPanelShortcut`'s own close behaviour.
+        function toggle(name: string): string {
+            var targetLoader = root.panelLoaderFor(name);
+            if (!targetLoader)
+                return "";
+            if (targetLoader.active) {
+                root.closeAllPanels();
+                return name;
+            }
+            return panelIpc.open(name);
         }
     }
 
