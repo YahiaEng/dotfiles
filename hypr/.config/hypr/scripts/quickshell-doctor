@@ -108,6 +108,29 @@ _qsd_valid_token() {
     [[ "$1" =~ ^[A-Za-z0-9_-]+$ ]]
 }
 
+# _qsd_dispatch_global — summon/dismiss a Quickshell GlobalShortcut.
+#
+# Phase 13.1 migrated the compositor to the Lua config manager, which
+# parses a `hyprctl dispatch` argument as Lua source. The pre-migration
+# bare form (`hyprctl dispatch global quickshell:probe`) is no longer a
+# no-op-with-a-warning — it is a hard parse error:
+#
+#     hl.dispatch(global quickshell:probe)  ->  ')' expected near 'quickshell'
+#
+# Every call site here redirects to /dev/null, so the failure was silent:
+# the headless-remove check could never pass (nothing was ever summoned,
+# so the probe always read as absent), and the reserved-space check passed
+# VACUOUSLY for the same reason. Same bug class as 13.1-09's `hyprctl
+# keyword` finding, which that sweep fixed in gaming-mode-toggle.sh only.
+#
+# Callers MUST have already put the identifier through _qsd_valid_token,
+# whose allowlist ([A-Za-z0-9_-]+ per segment) is what makes embedding it
+# in a Lua double-quoted string safe — no quote or backslash can survive
+# it, so there is no Lua-string escape to construct (T-11-10 still holds).
+_qsd_dispatch_global() {
+    hyprctl dispatch "hl.dsp.global(\"$1\")" >/dev/null 2>&1
+}
+
 echo "quickshell-doctor — Quickshell coexistence gate (QS-05/QS-06)"
 echo ""
 
@@ -146,7 +169,7 @@ _qsd_cleanup() {
         brightnessctl set "$BRI_ORIG_RAW" >/dev/null 2>&1
     fi
     if [[ "$PROBE_SUMMONED_FOR_HEADLESS_TEST" -eq 1 ]]; then
-        hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+        _qsd_dispatch_global "quickshell:probe"
         PROBE_SUMMONED_FOR_HEADLESS_TEST=0
     fi
     if [[ -n "$HEADLESS_CREATED_NAME" ]]; then
@@ -154,7 +177,7 @@ _qsd_cleanup() {
         HEADLESS_CREATED_NAME=""
     fi
     if [[ -n "$RESERVED_CHECK_SUMMONED" ]]; then
-        hyprctl dispatch global "$RESERVED_CHECK_SUMMONED" >/dev/null 2>&1
+        _qsd_dispatch_global "$RESERVED_CHECK_SUMMONED"
         RESERVED_CHECK_SUMMONED=""
     fi
 }
@@ -241,10 +264,10 @@ else
         fi
         PRE=$(hyprctl monitors -j | jq -c '[.[].reserved]')
         RESERVED_CHECK_SUMMONED="${m_appid}:${m_name}"
-        hyprctl dispatch global "${m_appid}:${m_name}" >/dev/null 2>&1
+        _qsd_dispatch_global "${m_appid}:${m_name}"
         sleep 0.3
         POST=$(hyprctl monitors -j | jq -c '[.[].reserved]')
-        hyprctl dispatch global "${m_appid}:${m_name}" >/dev/null 2>&1
+        _qsd_dispatch_global "${m_appid}:${m_name}"
         RESERVED_CHECK_SUMMONED=""
         sleep 0.3
         if [[ "$PRE" != "$POST" ]]; then
@@ -477,7 +500,7 @@ else
     elif [[ -z "$QSD_NEW_MONITOR" ]]; then
         check "per-screen surface creation (QS-03): skipped — no new monitor name was captured by the add step" "1"
     else
-        hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+        _qsd_dispatch_global "quickshell:probe"
         PROBE_SUMMONED_FOR_HEADLESS_TEST=1
         sleep 0.4
         QSD_LAYERS_AFTER=$(hyprctl layers -j 2>/dev/null)
@@ -493,7 +516,7 @@ else
         check "per-screen surface creation (QS-03): exactly one quickshell-probe surface under DP-1 (found: ${QSD_DP1_COUNT}) and exactly one under ${QSD_NEW_MONITOR} (found: ${QSD_NEW_COUNT}), addresses distinct, not shared (shared: ${QSD_SHARED_ADDR})" \
             "$([[ "$QSD_DP1_COUNT" -eq 1 && "$QSD_NEW_COUNT" -eq 1 && "$QSD_SHARED_ADDR" -eq 0 ]] && echo 0 || echo 1)"
 
-        hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+        _qsd_dispatch_global "quickshell:probe"
         PROBE_SUMMONED_FOR_HEADLESS_TEST=0
         sleep 0.2
     fi
@@ -519,12 +542,12 @@ else
     QSD_AFTER_REMOVE_COUNT=$(hyprctl monitors -j | jq length)
     QSD_POST_REMOVE_PID=$(pgrep -x quickshell | head -1)
 
-    hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    _qsd_dispatch_global "quickshell:probe"
     PROBE_SUMMONED_FOR_HEADLESS_TEST=1
     sleep 0.3
     QSD_DP1_STILL_WORKS=$(hyprctl layers -j 2>/dev/null | jq -r '(."DP-1".levels["3"] // [])[] | select(.namespace=="quickshell-probe") | .address' | grep -c . 2>/dev/null || true)
     QSD_DP1_STILL_WORKS=${QSD_DP1_STILL_WORKS:-0}
-    hyprctl dispatch global quickshell:probe >/dev/null 2>&1
+    _qsd_dispatch_global "quickshell:probe"
     PROBE_SUMMONED_FOR_HEADLESS_TEST=0
     sleep 0.2
 
