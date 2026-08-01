@@ -33,5 +33,27 @@ if [[ ! -f "$CONFIG_DIR/shell.qml" ]]; then
     exit 0
 fi
 
+# ── Threaded scene-graph render loop ─────────────────────
+# Qt was auto-selecting the BASIC render loop here, which runs animation and
+# rendering together on the GUI thread. Measured with QSG_RENDER_TIMING=1 on
+# this host (DP-1, 2560x1440@165Hz) across a dashboard tab transition:
+#
+#   basic (Qt's own default):  ~16ms between frames  -> ~60fps
+#   threaded (this setting):   ~6ms  between frames  -> ~165fps
+#
+# The 6ms figure holds for BOTH the render thread's syncAndRender AND the GUI
+# thread's polishAndSync, so animations actually advance at the panel's rate
+# rather than merely being redrawn more often. Every drawer animation was
+# leaving roughly two thirds of this display's refresh rate unused.
+#
+# Reversible: comment out this one line to return to Qt's auto-selection. Kept
+# as an explicit export rather than a wrapper so `quickshell` still execs as
+# PID 1 of this script and the uwsm/systemd scope is unchanged.
+#
+# Worth watching on this NVIDIA + Wayland host: the threaded loop is the more
+# demanding of the two. One full session was exercised with no crash, abort or
+# tearing observed, but that is one session, not a soak.
+export QSG_RENDER_LOOP=threaded
+
 echo "quickshell-launch.sh: starting $(date -Is)" >>"$LOG"
 exec quickshell -p "$CONFIG_DIR" >>"$LOG" 2>&1
