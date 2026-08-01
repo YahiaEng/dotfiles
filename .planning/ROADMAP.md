@@ -264,7 +264,7 @@ Plans:
 
 **Goal**: The first real QML surface — a four-tab swipeable dashboard drawer that reads the state the desktop already owns instead of forking it.
 **Depends on**: Phase 12 (independent branch — does **not** depend on Phase 13)
-**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DASH-07, DASH-08, **DASH-09** *(DASH-09 minted 2026-07-30 — the Performance tab's GPU dial, new scope from 14-09's render gate at the human's explicit direction; planned in 14-10, not yet built. Plan 14-10 additionally repairs and folds in `hypr-equivalence-check`, which is **MAINT-04**'s proof instrument — ownership of MAINT-04 stays with Phase 13.1; the gate work is recorded here because that is where it lands)*
+**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DASH-07, DASH-08, **DASH-09**, **DASH-10** *(DASH-09 minted 2026-07-30 — the Performance tab's GPU dial, new scope from 14-09's render gate at the human's explicit direction; built in 14-10 and its render gate approved. DASH-10 minted 2026-08-01 — the drawer's animated gradient border matching Hyprland's own window border, new scope raised during this phase's UAT at the human's explicit direction; built, render gate outstanding as 14-UAT.md item 8. Plan 14-10 additionally repairs and folds in `hypr-equivalence-check`, which is **MAINT-04**'s proof instrument — ownership of MAINT-04 stays with Phase 13.1; the gate work is recorded here because that is where it lands)*
 **Success Criteria** (what must be TRUE):
 
   1. A keybind opens the dashboard drawer and a click outside dismisses it; the rest of the desktop stays interactive the whole time, and `hyprctl layers -j` shows the drawer holding zero exclusive zone on any edge waybar already reserves.

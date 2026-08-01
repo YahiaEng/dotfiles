@@ -72,12 +72,19 @@ result: [pending]
 
 why: Qt was auto-selecting the basic render loop, running animation on the GUI thread at ~60fps on this 165Hz panel. `QSG_RENDER_LOOP=threaded` measured a 16ms→6ms frame cadence on both the render thread and the GUI thread's polish phase (commit `2642e68`). The threaded loop is the more demanding option on an NVIDIA + Wayland host: one session was exercised clean, but this item exists because one session is not a soak. Revert is a single commented-out line in `quickshell-launch.sh`.
 
+### 8. Animated gradient border matches Hyprland's window border (DASH-10 — render gate)
+
+expected: The drawer carries a 3px gradient rim in the same pink→purple→cyan stops as a focused window's border, rotating continuously at visibly the same rate as Hyprland's own borders. It should read as the same treatment, not merely a similar one — put a focused window beside the open drawer and the two rims should stay in step rather than drifting apart. The rim follows the drawer's shape: square at the top corners, rounded at the bottom. Switching theme re-colours it along with everything else. Setting motion-scale to `off` leaves it a still gradient rather than a spinning one.
+result: [pending]
+
+why: New scope (DASH-10), minted during this UAT at your direction. Every value is a token or a live Hyprland setting rather than a taste call — stops are `Colours.primary`/`secondary`/`tertiary` (byte-identical to `general:col.active_border`), width tracks `general:border_size`, and the period is the same `border-rotate` token `borderangle` consumes, ceiling-clamped so the two stay in sync at non-default motion scales. Verified by screenshot that it renders, rotates and follows both corner styles; the *aesthetic* judgement and the side-by-side parity check are yours. Worth watching: this is the drawer's first continuously-running animation, so if it costs anything perceptible in GPU or battery while the drawer sits open, say so — it is gated behind one property (`active`) and a whole component, so it reverts cleanly.
+
 ## Summary
 
-total: 7
+total: 8
 passed: 0
 issues: 0
-pending: 7
+pending: 8
 skipped: 0
 blocked: 0
 
