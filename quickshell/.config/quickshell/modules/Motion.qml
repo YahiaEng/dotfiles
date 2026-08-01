@@ -95,6 +95,15 @@ Singleton {
             // own top-level JsonAdapter properties, since there is no such
             // top-level key for a value like "standardDuration" to bind to.
             property var semantic: ({})
+
+            // DASH-10: the `indicators` bucket, same raw-nested-object shape
+            // and same reason as `semantic` above — JsonAdapter maps only
+            // TOP-LEVEL keys, so this receives motion.json's `indicators`
+            // sub-object verbatim and the per-token fields are read out of it
+            // below. Emitted to this file by lib/motion.sh as of the drawer's
+            // animated gradient border, which needs the SAME `border-rotate`
+            // period Hyprland's `borderangle` runs at.
+            property var indicators: ({})
         }
     }
 
@@ -150,4 +159,26 @@ Singleton {
     readonly property var emphasizedOutEasing: pairs[2].easingValid ? pairs[2].easing : [0.3, 0, 0.8, 0.15, 1, 1]
     readonly property int staggerOffsetDuration: pairs[3].duration || 50
     readonly property var staggerOffsetEasing: pairs[3].easingValid ? pairs[3].easing : [0.2, 0, 0, 1, 1, 1]
+
+    // ── Indicator tokens (DASH-10) ──────────────────────────────────────
+    // Read from the `indicators` bucket, NOT from `pairs`. Deliberately not
+    // appended to `_pairNames`: that list is read POSITIONALLY by the aliases
+    // above and maps to `semantic`, so an indicator key there would both
+    // re-point nothing correctly and look up the wrong sub-object.
+    //
+    // These are continuous/looping animations rather than one-shot
+    // transitions, which is why they carry only a period. `border-rotate` is
+    // the one Hyprland also consumes (as `borderangle`); lib/motion.sh emits
+    // it here already multiplier-scaled, floor-clamped AND ceiling-clamped to
+    // Hyprland's own speed ceiling, so this number is what Hyprland is
+    // actually running — the drawer's border and every window border stay in
+    // step instead of drifting apart at non-default motion scales.
+    //
+    // Fallback 10000 matches motion.json's own authored value, so a missing
+    // or malformed indicators bucket degrades to the intended period rather
+    // than to an arbitrary one.
+    readonly property int borderRotateDuration: {
+        var e = motion.indicators && motion.indicators["border-rotate"];
+        return (e && typeof e.duration_ms === "number" && isFinite(e.duration_ms) && e.duration_ms > 0) ? e.duration_ms : 10000;
+    }
 }

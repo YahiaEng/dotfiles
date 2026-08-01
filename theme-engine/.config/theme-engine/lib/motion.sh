@@ -313,7 +313,28 @@ theme_engine_render_motion_files() {
 
     # ── 3. QML target: plain JSON — contract.sh's existing `json` handler
     #    already works generically, no new format branch needed ──────────
+    #
+    # `indicators` is emitted here as well as to the Hyprland target (DASH-10).
+    # It was previously Hyprland-only, so a QML surface had no way to read
+    # `border-rotate` at all — the drawer's animated gradient border needs the
+    # SAME rotation period Hyprland's `borderangle` uses, or the two visibly
+    # drift apart on screen.
+    #
+    # Indicators get the same multiplier and the same floor_ms clamp as the
+    # semantic pairs, PLUS the Hyprland speed ceiling ($hypr_ceiling_ms, the
+    # ms form of $MOTION_HYPR_MAX_SPEED). The ceiling matters because
+    # `border-rotate` sits at exactly 10000ms — the ceiling — at the 1.0x
+    # multiplier, so at `lively` (1.25x) the token resolves to 12500ms while
+    # Hyprland itself clamps to 10000ms. Emitting the unclamped number to QML
+    # would make the drawer's border rotate slower than every window border on
+    # screen. Applying the ceiling to the whole bucket is a deliberate no-op
+    # for the other two indicators (blink-slow 1000ms, blink-fast 500ms, both
+    # an order of magnitude below it) and keeps one rule rather than a
+    # per-token carve-out.
+    local hypr_ceiling_ms
+    hypr_ceiling_ms="$(awk -v s="$MOTION_HYPR_MAX_SPEED" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%d", s*d}')"
     jq -n --argjson mult "$multiplier" --argjson floor "$floor_ms" \
+        --argjson ceil "$hypr_ceiling_ms" \
         --arg scale "$scale" --argjson enabled "$animations_enabled" \
         --slurpfile src "$MOTION_JSON" '
         $src[0] as $m
@@ -326,6 +347,17 @@ theme_engine_render_motion_files() {
                 .value as $v
                 | ($D[$v.duration] * $mult) as $scaled
                 | (if $scaled < $floor then $floor else $scaled end | floor) as $clamped
+                | .value = {
+                    duration_ms: $clamped,
+                    easing: $v.easing,
+                    bezier: ($E[$v.easing] + [1, 1])
+                  }
+              )),
+            indicators: (($m.indicators // {}) | with_entries(
+                .value as $v
+                | ($v.duration_ms * $mult) as $scaled
+                | (if $scaled < $floor then $floor else $scaled end) as $floored
+                | (if $floored > $ceil then $ceil else $floored end | floor) as $clamped
                 | .value = {
                     duration_ms: $clamped,
                     easing: $v.easing,

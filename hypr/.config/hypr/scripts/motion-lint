@@ -331,6 +331,23 @@ def load_qml_defs():
         # not just the per-pair duration/easing properties above.
         if 'motion_enabled' in data:
             defs.add('motionEnabled')
+        # DASH-10: the `indicators` bucket (continuous/looping animations —
+        # blink-slow, blink-fast, border-rotate) became QML-readable when
+        # lib/motion.sh started emitting it into this same rendered file, so
+        # a QML surface may now legitimately reference e.g.
+        # `Motion.borderRotateDuration`. Derived from the rendered data for
+        # the same reason the semantic names above are — the allow-list must
+        # never carry a hardcoded token name that can drift from motion.json.
+        #
+        # Duration ONLY, deliberately: Motion.qml exposes a period for each
+        # indicator but no easing property (these loop linearly and carry no
+        # bezier), so adding a `...Easing` name here would allow-list a
+        # reference that does not resolve — CHECK A would then pass a
+        # genuinely dangling read. If indicator easings are ever exposed in
+        # Motion.qml, add them here in the same commit.
+        for key in (data.get('indicators') or {}).keys():
+            camel = re.sub(r'-([a-z0-9])', lambda m: m.group(1).upper(), key)
+            defs.add(camel + 'Duration')
     return defs
 
 
