@@ -73,6 +73,29 @@ PanelWindow {
     readonly property int panelTopMargin: 10
     readonly property int cornerRadius: 28
 
+    // ── D-15-09 fourth-state vocabulary — only `populated` and `empty` are
+    //    exercised this plan; `pending`/`failed` are declared in
+    //    `panelStates` and mapped in `stateColour()` but render nowhere
+    //    yet (15-04/05/06's job). `readonly` because this tracer never
+    //    needs to flip it — every panel this plan ships stays `populated`.
+    readonly property string bodyState: "populated"
+    // Generic placeholder copy/glyph, overridable per-instance by a later
+    // panel file (plain `property`, not `readonly`) so 15-04/05/06 can
+    // supply their own "no networks found" / "no paired devices" copy
+    // without restructuring this block — the mechanism is generic, only
+    // this plan's default text is.
+    property string emptyStateGlyph: "info"
+    property string emptyStateText: "Nothing to show"
+    // D-15-06's adjacency truth, made explicit rather than incidental: a
+    // 72px header band and a 40px Advanced button vertically centre to
+    // exactly 16px (Design.spacingMd) of non-interactive header band above
+    // the button's hit region. Anyone retuning headerHeight or the
+    // button's own height must re-derive this and keep it >= spacingMd, or
+    // a press aimed at the frame's top-right corner (where a close button
+    // would sit on another surface) can land on the Advanced button
+    // instead of doing nothing.
+    readonly property int advancedTopInset: (headerHeight - advancedButton.height) / 2
+
     function stateColour(state) {
         switch (state) {
         case "populated": return Colours.onSurface;
@@ -220,11 +243,31 @@ PanelWindow {
                 height: 40
                 width: advancedLabelText.implicitWidth + panelWindow.spacingLg * 2
 
+                // ── D-15-22 present-but-disabled treatment ───────────────
+                // When the target app is absent the button stays laid out
+                // at IDENTICAL geometry (never hidden, never collapsed —
+                // the header must not reflow based on host state): the
+                // fill/label drop to a disabled opacity, and the tooltip
+                // swaps to the reason text (UI-SPEC's "{App name} is not
+                // installed" copywriting row) instead of the normal
+                // wayfinding hint. The MouseArea itself is deliberately
+                // left `enabled: true` — a fully disabled MouseArea also
+                // stops receiving hover, which would make the reason
+                // UNREACHABLE by hover, directly contradicting UI-SPEC E7's
+                // "the reason is legible before the press, not after."
+                // "A press does nothing at all" is guaranteed instead by
+                // `launchAdvanced()`'s own early-return guard below — press
+                // suppression and hover-reachability are two different
+                // requirements and are satisfied by two different guards
+                // on purpose.
+                readonly property real disabledOpacity: 0.38
+
                 Rectangle {
                     id: advancedRect
                     anchors.fill: parent
                     radius: height / 2
                     color: Colours.surfaceVariant
+                    opacity: panelWindow.advancedAvailable ? 1 : advancedButton.disabledOpacity
                 }
                 Text {
                     id: advancedLabelText
@@ -232,11 +275,16 @@ PanelWindow {
                     text: panelWindow.advancedLabel
                     font.pixelSize: panelWindow.fontBody
                     color: Colours.onSurfaceVariant
+                    opacity: panelWindow.advancedAvailable ? 1 : advancedButton.disabledOpacity
                 }
                 MouseArea {
                     id: advancedMouseArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     onClicked: panelWindow.launchAdvanced()
+                    ToolTip.visible: advancedMouseArea.containsMouse
+                    ToolTip.text: panelWindow.advancedAvailable ? "Open " + panelWindow.advancedLabel.toLowerCase() + " settings" : panelWindow.advancedUnavailableReason
+                    ToolTip.delay: Design.tooltipDelayMs
                 }
             }
         }
@@ -257,6 +305,39 @@ PanelWindow {
                 id: bodyContent
                 width: bodyFlick.width
                 spacing: panelWindow.spacingMd
+            }
+        }
+
+        // ── D-15-09 empty-state placeholder — the D-41/D-15-26 case 4
+        //    "quiet Material Symbol plus one line" grammar, rendered only
+        //    when `bodyState` is `"empty"`. Only `populated` and `empty`
+        //    are exercised this plan; the audio panel's default is
+        //    `populated`, so this stays invisible in Task 1/2's own
+        //    render gate and is here purely as the shared mechanism
+        //    15-04/05/06 render into when a panel's list is genuinely
+        //    empty (wifi off, no paired devices, …). Anchored to the same
+        //    region as `bodyFlick` rather than living inside `bodyContent`
+        //    itself, since `bodyContent` is the panel-supplied `body` slot
+        //    — this placeholder is the frame's own fallback, not content a
+        //    panel file writes into. ─────────────────────────────────────
+        Column {
+            id: emptyStatePlaceholder
+            anchors.centerIn: bodyFlick
+            visible: panelWindow.bodyState === "empty"
+            spacing: panelWindow.spacingSm
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: panelWindow.emptyStateGlyph
+                font.family: panelWindow.symbolFontFamily
+                font.pixelSize: panelWindow.iconSizeMd
+                color: panelWindow.stateColour("empty")
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: panelWindow.emptyStateText
+                font.pixelSize: panelWindow.fontBody
+                color: panelWindow.stateColour("empty")
             }
         }
     }

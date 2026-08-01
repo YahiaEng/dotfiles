@@ -301,6 +301,14 @@ hl.layer_rule({ match = { namespace = "wleave" }, animation = "fade" })
 -- motion is already on the shared token axis without this file carrying a
 -- number.
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, animation = "slide" })
+-- Phase 15's standalone panels (D-15-02's accepted cost: destroy-then-
+-- summon is two animations rather than one morph, tuned here). Exact-match
+-- only, same reasoning as the drawer's own rule above — each panel picks
+-- its own character rather than inheriting the family regex. 15-03 adds
+-- the sibling rules for quickshell-wifi-panel and quickshell-bluetooth-
+-- panel; no blur or ignore_alpha rule is added here, the family-wide
+-- ^quickshell-.* pair below already covers this namespace (D-42/D-43).
+hl.layer_rule({ match = { namespace = "quickshell-audio-panel" }, animation = "slide" })
 -- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
 -- "ags-media" (10-02); targets ONLY this window, mirroring the other
 -- namespace-scoped blur rules above. Paired with the translucent
