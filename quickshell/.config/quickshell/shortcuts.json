@@ -16,5 +16,11 @@
     "name": "dashboard",
     "chord": { "mods": "SUPER", "key": "D" },
     "description": "Summon the dashboard drawer (DASH-01)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "audio-panel",
+    "chord": { "mods": "SUPER", "key": "A" },
+    "description": "Summon the audio mixer panel (PANEL-02)"
   }
 ]

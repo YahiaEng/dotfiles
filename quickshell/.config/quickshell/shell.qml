@@ -117,6 +117,62 @@ ShellRoot {
         drawerOpen: dashboardLoader.active
     }
 
+    // ── Audio panel (Phase 15 Plan 02 tracer, PANEL-02/PANEL-06) ─────────
+    // Same summon-via-LazyLoader mechanism as the dashboard drawer above.
+    // `AudioBackend`'s `panelOpen` gate is bound to this loader's own
+    // `active`, so the backend's `PwObjectTracker` — and therefore all
+    // PipeWire polling — tracks zero nodes while the panel is dismissed.
+    LazyLoader {
+        id: audioPanelLoader
+        active: false
+
+        AudioPanel {
+            backend: audioBackendInstance
+            onDismissRequested: audioPanelLoader.active = false
+        }
+    }
+
+    AudioBackend {
+        id: audioBackendInstance
+        panelOpen: audioPanelLoader.active
+    }
+
+    // ── Panel family — the single guarded summon path (PANEL-06, binding
+    //    correction over 15-PATTERNS.md's own wrong inline snippet: the
+    //    DASH-08 guard lives inside `openPanel(name)` and nowhere else, so
+    //    every summon path — this plan's Super+A, 15-07's tile chevron,
+    //    15-08's waybar IPC call — shares the one guard.) ─────────────────
+    function closeAllPanels() {
+        audioPanelLoader.active = false;
+        // 15-03 extends this with the wifi and bluetooth loaders.
+    }
+
+    function openPanel(name) {
+        var targetLoader = null;
+        if (name === "audio")
+            targetLoader = audioPanelLoader;
+        // 15-03 extends this resolution with "wifi"/"bluetooth". An
+        // unrecognised name resolves to null and does nothing at all.
+        if (!targetLoader)
+            return;
+
+        // An already-open panel always closes, whatever is fullscreen
+        // behind it — the refusal guard must never trap a summoned panel,
+        // mirroring dashboardShortcut's own existing rule.
+        if (targetLoader.active) {
+            root.closeAllPanels();
+            return;
+        }
+        // Otherwise, refuse entirely over a fullscreen/maximized client —
+        // no notification, no sound, no visible acknowledgement (DASH-08's
+        // whole point).
+        if (root.fullscreenBlocking)
+            return;
+
+        root.closeAllPanels();
+        targetLoader.active = true;
+    }
+
     // ── DASH-08 fullscreen refusal guard (D-11, Phase 14 Plan 01) ───────
     // LIVE FINDING, not an assumption (three independent proofs this
     // session on Hyprland 0.56.1): "maximize" (hl.dsp.window.fullscreen(1))
@@ -194,5 +250,24 @@ ShellRoot {
                 dashboardLoader.active = true;
             }
         }
+    }
+
+    // D-15-04 — the keybind asymmetry, one documented sentence: Super+A is
+    // the only panel keybind: of the three panels only the audio mixer
+    // displaces a daily-opened application (pavucontrol), the free
+    // plain-Super single letters on this host are A, G, H, J, K, M, O and
+    // U — W, B and V are all taken among 67 mainMod binds — so D-09's
+    // first-letter mnemonic convention can be honoured for exactly one of
+    // the three, and minting Super+Shift+W/Super+Shift+B for the other two
+    // would give three sibling panels built from one shared component
+    // visibly inconsistent chord shapes.
+    GlobalShortcut {
+        id: audioPanelShortcut
+        appid: "quickshell"
+        name: "audio-panel"
+        // Calls openPanel() and never touches audioPanelLoader.active
+        // directly — the DASH-08 guard lives inside openPanel() exactly
+        // once (binding correction over 15-PATTERNS.md).
+        onPressed: root.openPanel("audio")
     }
 }
