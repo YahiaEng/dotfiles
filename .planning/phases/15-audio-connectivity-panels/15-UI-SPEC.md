@@ -1,7 +1,7 @@
 ---
 phase: 15
 slug: audio-connectivity-panels
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-01
@@ -137,39 +137,80 @@ Every panel-level and row-level string this phase is known to need, resolved fro
 > and error-state COPY is defined above in `## Copywriting Contract` — rows below reference
 > those entries rather than restating the copy.
 
-**Elements classified:**
-- Audio per-app volume list — `list-collection`
-- Audio pinned control block (master volume, output/input device pickers, mic mute) — `form` + `interactive-control`
-- Wifi network list — `list-collection`
-- Wifi password entry row — `form`
-- Bluetooth device list — `list-collection`
-- Quick-toggle six-tile row — `interactive-control`
-- Advanced button (×3) — `interactive-control`
-- Panel header band — `static-content`
+**Elements classified** (engine-detected kinds, user-confirmed at the propose-then-confirm step):
 
-Applicable state considerations resolved: 15 covered, 4 backstop, 0 unresolved.
+| ID | Element | Element kinds |
+|----|---------|---------------|
+| E1 | Audio per-app volume list | `list-collection`, `media`, `interactive-control` |
+| E2 | Audio pinned control block (master volume, output/input device pickers, mic mute + input level) | `form`, `list-collection`, `interactive-control` |
+| E3 | Wifi network list | `list-collection`, `interactive-control` ⟵ *kind added at confirm; the classifier detected `list-collection` only, which had suppressed E3's `long-text` probe despite long SSIDs being a known gap* |
+| E4 | Wifi password entry row | `form`, `list-collection`, `interactive-control`, `static-content` |
+| E5 | Bluetooth device list | `list-collection`, `interactive-control` |
+| E6 | Quick-toggle six-tile row | `list-collection`, `interactive-control`, `static-content` |
+| E7 | Advanced button (×3) | `interactive-control`, `static-content` |
+| E8 | Panel header band | `static-content` ⟵ *narrowed at confirm from a spurious `media` + `interactive-control` over-detection; the band is chrome and the Advanced button is counted separately as E7* |
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | Audio per-app list | ✅ covered | Nothing-playing case renders the documented in-place placeholder while master/device/mic controls stay fully live — see Copywriting Contract "Audio: nothing playing" (D-15-26 case 4) |
-| empty | Wifi network list | 🧪 backstop | "No networks found" after a completed zero-result scan — not explicitly locked in CONTEXT.md; verification requires confirming this copy renders (not just that the list is empty) at the render gate |
-| empty | Bluetooth device list | 🧪 backstop | "No paired devices" with the "Add device" control as the only forward path — same backstop status as the wifi zero-result case |
-| loading | Wifi network list | ✅ covered | Indeterminate progress line pinned under the header for the panel's whole open lifetime while `scannerEnabled` is true — see Copywriting Contract "Wifi scan in-progress" (D-15-15) |
-| loading | Bluetooth device list | 🧪 backstop | Discovery-in-progress treatment after "Add device" is pressed is by analogy to D-15-15's wifi pattern (CONTEXT.md's Discretion section groups "exact scan cadence" for both panels together) but is not itself a locked decision — verify the same indeterminate-line treatment is actually applied to bluetooth discovery, not just wifi scan |
-| loading | Bluetooth pairing (single row) | ✅ covered | Spinner + real "Cancel" wired to `cancelPair()` — see Copywriting Contract "Bluetooth pairing in progress" (D-15-19) |
-| error | Wifi password row | ✅ covered | Row-scoped failed state renders `ConnectionFailReason`-mapped copy inline, field stays open for retry — see Copywriting Contract "Wifi row failure" (D-15-09, D-15-14) |
-| error | Bluetooth device row (pair/connect) | ✅ covered | Inferred failure via property-transition watching (`pairing:true→false` without `bonded`, `Connecting→Disconnected`) renders row-scoped copy — see Copywriting Contract "Bluetooth row failure" (RESEARCH.md Pitfall 2) |
-| error | Advanced button | ✅ covered | Target-app-absent renders present-but-disabled with a reason, never hidden — see Copywriting Contract "Advanced button, target app absent" (D-15-22) |
-| populated | Wifi network list | ✅ covered | Grouped, stable ordering (current → saved → rest), signal strength renders per-row but never drives sort — D-15-16 |
-| populated | Bluetooth device list | ✅ covered | Grouped, stable ordering (connected → paired → discovered) — D-15-18, deliberately asymmetric from wifi's grammar for the documented radio-contention reason |
-| populated | Audio per-app list | ✅ covered | Icon-as-mute + app name + slider, three-element row, muted state carried twice + tooltip — D-15-13 |
-| partial | Bluetooth device row (battery) | ✅ covered | Battery renders only when `batteryAvailable`; its absence is an ordinary (not degraded) empty case — D-15-19 |
-| partial | Wifi network row (signal strength absent) | 🧪 backstop | No locked decision for a network entry that reports no signal-strength value; recommend the same "ordinary absence, not degraded" treatment as bluetooth's battery case for consistency — verify at render gate |
-| overflow | Quick-toggle six-tile row | ✅ covered | "Do Not Disturb" wraps to two lines inside the 72px `chipHeight` and must not regress to "DND" — hard constraint, D-15-21 |
-| overflow | All three panel bodies | ✅ covered | Fixed panel height with a scrollable body is the D-05 scroll exemption, deliberately widened this phase to all three panels' unbounded content (audio streams / visible networks / paired+discovered devices) — D-15-07 |
-| zero-one-many | Wifi network list | ✅ covered | Grouping and row shape are count-invariant — no singular/plural copy branch needed since rows are named entities, not a count summary; zero handled by the empty-state backstop above |
-| zero-one-many | Bluetooth device list | ✅ covered | Same count-invariant grouping logic as wifi (D-15-18); zero handled by the empty-state backstop above |
-| long-text | App name / network SSID / device name | 🧪 backstop | No locked decision on truncation treatment for unusually long names; recommend single-line elide-right (`Text.ElideRight`) with the full name available via hover tooltip, reusing Phase 14's established tooltip mechanism (`Design.tooltipDelayMs`) — this is a spec gap, not a contradiction, and should be confirmed live at the render gate against a real long app/device name |
+**Coverage: 54 applicable considerations — 32 covered, 8 backstop, 14 dismissed, 0 unresolved.**
+
+Four considerations were resolved by direct user decision during the probe and are marked **NEW** below —
+they are not derivable from CONTEXT.md's D-15-xx decisions and are new locked contract, not restatement.
+
+| Category | Element | Status | Resolution / Reason |
+|----------|---------|--------|---------------------|
+| empty | E1 Audio per-app list | ✅ covered | "Nothing is playing" placeholder in the app-list region only; pinned master/device/mic controls stay fully live and interactive — see Copywriting Contract "Audio: nothing playing" (D-15-26 case 4, the one case explicitly NOT a degraded state) |
+| loading | E1 Audio per-app list | ✋ dismissed | PipeWire node enumeration is a synchronous read off the local socket at panel open — there is no async fetch to show progress for. Backend-unreachable is a distinct case, handled by this element's `error` row, not by a loading state. |
+| error | E1 Audio per-app list | ✅ covered **NEW** | PipeWire itself unreachable (service dead / socket unavailable) renders a **panel-level unfixable empty state** in D-15-26 case 2's grammar: names the cause, **no** Enable button, since nothing in the panel can fix it. The Advanced button stays available as the escape hatch. Deliberately NOT the D-15-26 case 4 treatment — live-looking sliders that silently do nothing are the failure mode this avoids. |
+| populated | E1 Audio per-app list | ✅ covered | Three-element row — icon-as-mute + app name + slider; muted state carried visually twice (icon dim + slash, muted slider track) plus a hover tooltip — D-15-13 |
+| partial | E1 Audio per-app list | 🧪 backstop | A stream whose PipeWire node reports no application name or no icon. Recommend falling back to the node's binary name, and to a generic Material Symbol when no icon resolves — ordinary absence, not degraded. Verify at render gate against a real anonymous stream. |
+| overflow | E1 Audio per-app list | ✅ covered | Fixed panel height with a scrollable body — the D-05 scroll exemption, deliberately widened this phase to all three panels' unbounded content — D-15-07 |
+| zero-one-many | E1 Audio per-app list | ✅ covered | Rows are named entities, not a count summary, so no singular/plural copy branch is needed; the zero case is the `empty` row above |
+| long-text | E1 Audio per-app list | ✅ covered **NEW** | Single-line `Text.ElideRight` with the full name in a hover tooltip, reusing Phase 14's existing tooltip mechanism (`Design.tooltipDelayMs`). Keeps every row one line so list rhythm stays uniform. |
+| empty | E2 Audio pinned control block | 🧪 backstop | No output device present at all (no sound card). Recommend the same unfixable-empty grammar as E1's `error` row rather than a live-but-inert slider — not a locked decision; verify at render gate. |
+| loading | E2 Audio pinned control block | ✋ dismissed | Same synchronous local enumeration as E1 — device lists are available at panel open, nothing to show progress for |
+| error | E2 Audio pinned control block | 🧪 backstop | A set-default-device call that does not take. Recommend D-15-09's row-scoped failed-state treatment scoped to the picker row, never panel-wide. Not a locked decision. |
+| populated | E2 Audio pinned control block | ✅ covered | Pinned block directly under the header, above the scrolling app list — D-15-10; it is the audio panel's **declared focal point** |
+| partial | E2 Audio pinned control block | ✅ covered | No input device present drops the mic controls. D-15-11 already pre-agrees dropping the input-level slider as the density fallback, so its absence is an ordinary case with an established treatment, not a new one. |
+| overflow | E2 Audio pinned control block | ✅ covered | Device pickers expand inline (D-15-12 — `QtQuick.Controls.Popup` is banned this phase) inside the scrollable body (D-15-07) |
+| zero-one-many | E2 Audio pinned control block | ✅ covered | Picker row shape is count-invariant; the single-device case renders the same row, just without alternatives to pick |
+| long-text | E2 Audio pinned control block | ✅ covered **NEW** | Elide-right + hover tooltip. Load-bearing here specifically: real ALSA/PipeWire device names ("Family 17h/19h HD Audio Controller Digital Stereo (HDMI 2)") routinely exceed the panel width. |
+| empty | E3 Wifi network list | 🧪 backstop | Three sub-cases, two locked and one not. Locked: soft-off and hardware-blocked have distinct copy with an Enable button only on the fixable one (D-15-26 cases 1 & 2). **Backstop:** "No networks found" after a completed zero-result scan — verification must confirm this copy actually renders, not merely that the list is empty. |
+| loading | E3 Wifi network list | ✅ covered | Indeterminate progress line pinned under the header for the panel's whole open lifetime while `scannerEnabled` is true — see Copywriting Contract "Wifi scan in-progress" (D-15-15) |
+| error | E3 Wifi network list | ✅ covered | Full `ConnectionFailReason` → copy mapping rendered row-scoped, password field stays open for retry — see Copywriting Contract "Wifi row failure" (D-15-09, D-15-14) |
+| populated | E3 Wifi network list | ✅ covered | Grouped stable ordering (current → saved → rest); signal strength renders per-row but never drives sort — D-15-16. The current-connection row is the wifi panel's **declared focal point**. |
+| partial | E3 Wifi network list | 🧪 backstop | A network entry reporting no signal-strength value. Recommend the same "ordinary absence, not degraded" treatment E5's battery case uses, for consistency — verify at render gate. |
+| overflow | E3 Wifi network list | ✅ covered | Fixed panel height, scrollable body — D-15-07 |
+| zero-one-many | E3 Wifi network list | ✅ covered | Grouping and row shape are count-invariant; zero is the `empty` row above |
+| long-text | E3 Wifi network list | ✅ covered **NEW** | Long SSID: elide-right + hover tooltip. *This row exists only because of the E3 kind correction — the classifier's `list-collection`-only tagging had suppressed it entirely.* |
+| empty | E4 Wifi password row | 🧪 backstop | The unfilled field's own state. Recommend "Connect" disabled until the field is non-empty — deliberately no minimum-length check, since WPA PSK length rules vary and a guessed floor would reject valid input. Not a locked decision. |
+| loading | E4 Wifi password row | ✅ covered **NEW** | Row-scoped spinner in place of the Connect verb **plus a real Cancel**, matching bluetooth pairing's in-flight grammar (D-15-19) so both connectivity panels read identically. The rest of the list stays interactive. **Implementation note for the planner:** this requires a NetworkManager deactivate/abort path that the panel does not otherwise need — it is strictly more wiring than a spinner alone, chosen for cross-panel consistency. |
+| error | E4 Wifi password row | ✅ covered | `ConnectionFailReason`-mapped copy inline on the row; the field stays open for retry (D-15-09) |
+| populated | E4 Wifi password row | ✅ covered | Masked password input + "Connect" — see Copywriting Contract |
+| partial | E4 Wifi password row | ✋ dismissed | A single-field form has no partial-data state — the field is either empty (the `empty` row above) or filled |
+| overflow | E4 Wifi password row | ✋ dismissed | Single-line masked field; a long passphrase scrolls within the field, which is the platform `TextInput` default and needs no contract |
+| zero-one-many | E4 Wifi password row | ✋ dismissed | Not a collection — exactly one field, always |
+| long-text | E4 Wifi password row | ✋ dismissed | Masked input renders dots, so glyph width is uniform and the visible-long-text problem cannot arise |
+| empty | E5 Bluetooth device list | 🧪 backstop | Locked: adapter-off and no-adapter have distinct copy, Enable button only on the fixable one (D-15-26 case 3 and its unfixable branch). **Backstop:** "No paired devices" with "Add device" as the only forward path — same backstop status as wifi's zero-result case. |
+| loading | E5 Bluetooth device list | 🧪 backstop | Locked: pairing shows a spinner + a real "Cancel" wired to `cancelPair()` (D-15-19 — the one operation whose wait is long enough to need a live escape hatch). **Backstop:** the discovery-in-progress treatment after "Add device" is pressed is by analogy to D-15-15's wifi pattern, not itself locked — verify the indeterminate-line treatment is actually applied to bluetooth discovery, not only to wifi scan. |
+| error | E5 Bluetooth device list | ✅ covered | Inferred failure via property-transition watching (`pairing: true→false` without `bonded` becoming true and not user-cancelled; `Connecting→Disconnected`) renders row-scoped copy — see Copywriting Contract "Bluetooth row failure" (RESEARCH.md Pitfall 2 — BlueZ exposes no native failure signal) |
+| populated | E5 Bluetooth device list | ✅ covered | Grouped stable ordering (connected → paired → discovered) — D-15-18, deliberately asymmetric from wifi's grammar for the documented radio-contention reason. The connected-devices group is the bluetooth panel's **declared focal point**. |
+| partial | E5 Bluetooth device list | ✅ covered | Battery renders only when `batteryAvailable`; its absence is an ordinary case, not a degraded one — D-15-19 |
+| overflow | E5 Bluetooth device list | ✅ covered | Fixed panel height, scrollable body — D-15-07 |
+| zero-one-many | E5 Bluetooth device list | ✅ covered | Same count-invariant grouping logic as wifi (D-15-18); zero is the `empty` row above |
+| long-text | E5 Bluetooth device list | ✅ covered **NEW** | Long device name: elide-right + hover tooltip |
+| empty | E6 Quick-toggle six-tile row | ✋ dismissed | Fixed set of six tiles (D-15-21) — the row can never be empty |
+| loading | E6 Quick-toggle six-tile row | ✅ covered | The `pending` state reuses `QuickToggles.qml`'s existing watchdog-timer chip treatment — D-15-09 is explicit that this is reused, not reinvented |
+| error | E6 Quick-toggle six-tile row | ✅ covered **NEW** | A toggle that does not take (e.g. an rfkill hard-block) reverts the tile to its true state after the existing watchdog window rather than sticking lit; the *reason* is named in the panel's empty state (D-15-26 case 2), not on the tile. Reuses Phase 14's pending/watchdog pattern — deliberately introduces **no fifth widget state** on top of the four D-15-09 just established. |
+| populated | E6 Quick-toggle six-tile row | ✅ covered | Lit state = the tile's verb is on; all three of Volume / Wi-Fi / Bluetooth sitting lit most of the time is intended, not a flaw — D-15-01 / D-26 |
+| partial | E6 Quick-toggle six-tile row | ✋ dismissed | Each tile's state is boolean — there is no partial-data case |
+| overflow | E6 Quick-toggle six-tile row | ✅ covered | "Do Not Disturb" wraps to two lines inside the 72px `chipHeight` and must **not** regress to "DND" — hard constraint, D-15-21, render-gate verified against the installed font |
+| zero-one-many | E6 Quick-toggle six-tile row | ✋ dismissed | Fixed count of six tiles |
+| long-text | E6 Quick-toggle six-tile row | ✅ covered | Same D-15-21 constraint as `overflow` — "Do Not Disturb" is the longest label and therefore the binding case |
+| loading | E7 Advanced button | ✋ dismissed | Launched via `startDetached()` — the panel does not wait on the child process and shows no progress for it |
+| error | E7 Advanced button | ✅ covered | Target app absent renders the button present-but-disabled with the reason "{App name} is not installed", never silently hidden — see Copywriting Contract (D-15-22) |
+| overflow | E7 Advanced button | ✋ dismissed | Fixed single-word label in a header band sized for it |
+| long-text | E7 Advanced button | ✋ dismissed | The label is the literal string "Advanced" in all three panels — no variable text |
+| overflow | E8 Panel header band | ✋ dismissed | Three fixed short titles ("Audio" / "Wi-Fi" / "Bluetooth") in a band sized from `Design.panelPadding` — no variable content |
+| long-text | E8 Panel header band | ✋ dismissed | Same — titles are literals, not data |
 
 ---
 
@@ -186,11 +227,18 @@ Not applicable — this project has no shadcn/npm component registry. All shared
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS — focal point declared per panel (revision 1)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS — two active weights (revision 1)
+- [x] Dimension 5 Spacing: PASS — `chipHeight` isolated as a component dimension (revision 1)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED (2026-08-01, gsd-ui-checker, after 1 revision — 6/6 dimensions pass, 0 blocking issues)
+
+**UI-consideration probe (Step 9.5):** run post-verification against 8 elements — 54 applicable
+considerations, 32 covered, 8 backstop, 14 dismissed, **0 unresolved**. Two element-kind corrections
+were applied at the propose-then-confirm step (E3 gained `interactive-control`, which raised its
+otherwise-suppressed `long-text` row; E8 was narrowed to `static-content`). Four considerations were
+resolved by direct user decision and are marked **NEW** in the table above — they are new locked
+contract, not restatement of CONTEXT.md.
