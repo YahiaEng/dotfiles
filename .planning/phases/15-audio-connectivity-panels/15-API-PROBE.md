@@ -84,7 +84,25 @@ A second real `AudioOutStream` node (Zen browser, id 87, also confirmed `type ==
 
 If a per-stream re-route alternative had been needed (it was not, for the output side): `PwNodeLinkTracker` exposes a `node` property and a live `linkGroups` list; `PwLinkGroup` exposes the per-link-group object a QML binding could iterate to redirect one stream's links individually. Both are present in the installed type surface (confirmed by direct qmltypes read, `quickshell-service-pipewire.qmltypes` lines 472-513 for `PwNodeLinkTracker`), so the escape hatch is real and available if the source-side asymmetry ever needs the same treatment PANEL-02's checkpoint considers for the general case.
 
-## Open Q1 — scannerEnabled cadence
+### Disposition
+
+**Decided 2026-08-02, by the human at Task 3's checkpoint: bounded re-probe of the input-side gap, then option (a) (accept and document, per side).** Option (b) (explicit per-stream re-route via `PwNodeLinkTracker`/`PwLinkGroup`) was considered and **rejected** — it is the standard remedy for a "moves new streams only" gap, and the output side provably has no such gap (it already moves everything live); building link-tracking machinery there fixes nothing. For the input side, the measured failure mode ("no observed effect at all") is a different shape than "new streams only," and there was no evidence link-tracking is its remedy — building it blind, before the cause was understood, was rejected as premature.
+
+**Bounded re-probe of the input-side gap (run before writing this disposition, per the human's condition that "no effect at all" not be shipped as an unexplained gap):** `harness_a2_reprobe.qml` tested the single discriminating question — did the write ever land on the QML binding, or was it silently rejected? — by reading `Pipewire.preferredDefaultAudioSource` back after the write, not just `Pipewire.defaultAudioSource` (the earlier A2 measurement only checked the latter). Result, reproduced against a same-mechanism sink control write in the same harness run:
+
+- `Pipewire.preferredDefaultAudioSource` (the write-target property itself) read back the **written value** (`70`, the target node) from t+1s through t+4s — the assignment stuck on the QML binding. This rules out "read-only / silently non-assignable at the binding layer."
+- `Pipewire.defaultAudioSource` (the read-only, actually-in-effect property) stayed at the **old value** (`69`) for the entire same window — the live default never moved.
+- The sink-side control write, performed identically in the same harness run, showed **both** properties converge on the new value (`45`) within 1s — confirming the harness/methodology is sound and the divergence is source-specific, not a re-probe artifact.
+
+**This discriminates cleanly: the write is accepted and ignored, not a harness or binding fault.** Quickshell's `preferredDefaultAudioSource` write reaches and updates the intended QML property; something downstream (wireplumber's session-manager policy, most plausibly — not independently confirmed, and this plan does not chase the root cause further, per the human's own time-box) does not act on it to change the actual default source, at least not within a multi-second window. This is a real, disclosed platform gap on this build — not an unexplained one.
+
+**What ships, per side:**
+
+- **Output:** `AudioBackend.preferredDefaultAudioSink` ships as a single property write. Document it as delivering full live re-route — the measured, stronger claim (moves already-playing streams, not just new ones, confirmed to persist past the writing process's lifetime).
+- **Input:** `AudioBackend.preferredDefaultAudioSource` ships as a single property write, matching the output side's implementation shape (no new `AudioBackend` surface, no link-tracking machinery). Documented claim: **the write is accepted by the binding but has not been shown to change the live default source on this build** — selecting a new input device updates the stored preference; whether or when it actually redirects capture is unverified beyond this plan's observation windows. This is a named, understood residual, not a silent gap.
+- **Carried forward to 15-04's render gate, explicitly:** 15-04 must re-verify input-device selection against a real recording/call application at its own render gate, and if the live default still does not follow the write there, the picker's input row must surface this honestly in its own copy (e.g. "may require reopening your recording app") rather than implying parity with the output row's instant, confirmed behaviour.
+
+
 
 **Verdict:** measured
 **Evidence:** `harness_openq1.qml`, a single continuous 95-second scan window followed by a 62-second post-stop quiet window, both against the real `wlan0` device, with every `networks.valuesChanged` emission timestamped and the full ordered network list logged at each emission.
