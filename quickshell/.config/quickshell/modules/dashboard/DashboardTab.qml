@@ -804,14 +804,30 @@ Item {
                     }
 }
 
-                // Wheel handler scoped to this card alone — declared FIRST
-                // (paint order) so the header row's chevrons and the day
-                // grid above still receive their own presses; a wheel
-                // event over any part of the card (including the plain
-                // Rectangle/Text cells, which install no handler of their
-                // own) falls through to this MouseArea's onWheel.
+                // Wheel handler scoped to this card alone: a wheel event over
+                // any part of the card (including the plain Rectangle/Text
+                // cells, which install no handler of their own) falls through
+                // to this MouseArea's onWheel.
+                //
+                // `acceptedButtons: Qt.NoButton` is load-bearing, not tidiness.
+                // This MouseArea anchors.fill's the whole card and is declared
+                // LAST among calendarCard's children, so QtQuick stacks it on
+                // top of the header row's prev/next chevrons. A MouseArea grabs
+                // presses for every button in acceptedButtons whether or not a
+                // handler is connected, so with the default (Qt.LeftButton) it
+                // swallowed every click meant for those chevrons and month
+                // navigation by click did nothing — only the wheel worked.
+                //
+                // An earlier comment here claimed this was "declared FIRST
+                // (paint order)" so the chevrons would still get their presses.
+                // It never was declared first, so that protection never existed.
+                // Ordering would have worked, but it is fragile — any sibling
+                // added after it silently re-breaks the chevrons. Qt.NoButton
+                // makes the MouseArea transparent to button presses outright,
+                // independent of declaration order, while onWheel still fires.
                 MouseArea {
                     anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
                     onWheel: (wheel) => {
                         calendarCard.wheelAccumulator += wheel.angleDelta.y;
                         if (calendarCard.wheelAccumulator >= calendarCard.wheelStepThreshold) {
