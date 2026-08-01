@@ -58,12 +58,26 @@ result: [pending]
 test: Play a track with a long title while the Dashboard tab's compact media widget is visible.
 why: 14-08 must_have tagged `verification: backstop`. No SUMMARY records this test against the compact (not full-player) widget specifically.
 
+### 6. Weather tab no longer compresses into place on entry (render gate — regression fix)
+
+expected: Switching Performance → Weather, the weather content is at its final width from the first frame; the frame closes around it. No visible squeezing-together of the 8 hour cells or 5 day cells during the transition. At rest the Weather tab looks exactly as before (frame 760x514, content 664px wide).
+result: [pending]
+
+why: Reported live as "visible jitter/lag switching to Weather that wasn't there before". Root-caused to the content being `anchors.fill: parent` and therefore re-laid-out on every frame of the resize — measured at 15 relayouts, 992px→712px. Introduced indirectly by 14-09 widening Performance (2×2 dial grid → one wide row), which flipped Weather's entry from a ~200px expansion into a ~280px compression. Fixed in commit `4135aeb`. One relayout remains at construction by design — see the commit message.
+
+### 7. Threaded render loop — smoothness and stability (render gate + soak)
+
+expected: All drawer animation is visibly smoother than before. No tearing, no flicker, no crash or disappearing surface across a normal session including theme switches, motion-scale changes, and repeated summon/dismiss.
+result: [pending]
+
+why: Qt was auto-selecting the basic render loop, running animation on the GUI thread at ~60fps on this 165Hz panel. `QSG_RENDER_LOOP=threaded` measured a 16ms→6ms frame cadence on both the render thread and the GUI thread's polish phase (commit `2642e68`). The threaded loop is the more demanding option on an NVIDIA + Wayland host: one session was exercised clean, but this item exists because one session is not a soak. Revert is a single commented-out line in `quickshell-launch.sh`.
+
 ## Summary
 
-total: 5
+total: 7
 passed: 0
 issues: 0
-pending: 5
+pending: 7
 skipped: 0
 blocked: 0
 
