@@ -26,14 +26,28 @@ PanelDialog {
     advancedUnavailableReason: "pavucontrol is not installed"
 
     // ── Master volume + mute — the ONLY body content this plan renders ──
+    // controlRowHeight mirrors MediaTab.qml's own constant (32px) — its
+    // volumeSlider is this row's proven analog, and the fix below restores
+    // the one thing that analog does that this row originally omitted: an
+    // explicit height so the Slider's implicitHeight (computed from a
+    // background/handle pair that never declare their own implicitHeight)
+    // does not collapse to 0. A Slider with height 0 lays out correctly
+    // (its width binding is unaffected) but draws nothing at all — caught
+    // live at Task 1's tracer-feedback gate via a real screenshot showing
+    // the mute glyph rendering next to empty space where the slider should
+    // be, root-caused with an isolated qml6 repro before this fix.
+    readonly property int controlRowHeight: 32
+
     Item {
         id: masterBlock
         width: parent.width
-        implicitHeight: masterRow.implicitHeight
+        height: masterRow.height
+        implicitHeight: masterRow.height
 
         Row {
             id: masterRow
             width: parent.width
+            height: root.controlRowHeight
             spacing: root.spacingMd
 
             Text {
@@ -62,6 +76,7 @@ PanelDialog {
                 id: masterVolumeSlider
                 anchors.verticalCenter: parent.verticalCenter
                 width: masterRow.width - muteGlyph.width - root.spacingMd
+                height: masterRow.height
                 from: 0
                 to: 1
                 // Always bound to backend.masterVolume, never a local copy
