@@ -50,10 +50,8 @@ recommendation once** (D-15-11).
 
 ### Entry points & placement
 
-- **D-15-01: Three new quick-toggle tiles — Volume, Wi-Fi, Bluetooth — as
-  split tiles: pressing the tile body performs the one obvious verb (mute /
-  wifi radio on-off / adapter on-off), a chevron affordance opens the full
-  panel** (reference lens — the Android quick-settings idiom both end-4 and
+- **D-15-01: Three new quick-toggle tiles — Volume, Wi-Fi, Bluetooth — as split tiles: pressing the tile body performs the one obvious verb (mute / wifi radio on-off / adapter on-off), a chevron affordance opens the full panel**
+  (reference lens — the Android quick-settings idiom both end-4 and
   Caelestia ship). This is what the roadmap's "expand targets of the
   dashboard's quick-toggle entries" phrase asked for; Phase 14's grid shipped
   only Gaming / Do Not Disturb / Dark plus the motion-scale row, so the entries
@@ -64,8 +62,8 @@ recommendation once** (D-15-11).
   adapter is on, Volume lit when unmuted. All three sitting lit most of the
   time is the intended look, not a flaw.
 
-- **D-15-02: Each panel is an independent layer surface with its own
-  LazyLoader and focus grab; opening one dismisses the drawer.** Decided by a
+- **D-15-02: Each panel is an independent layer surface with its own LazyLoader and focus grab; opening one dismisses the drawer.**
+  Decided by a
   verified platform constraint, not by preference:
   `hyprland_focus_grab_v1` is **exclusive per-compositor on this build**
   (11-QUICKSHELL-EVIDENCE.md Finding 2, verified in both orders,
@@ -85,8 +83,8 @@ recommendation once** (D-15-11).
   the namespace scheme, the doctor checks, the waybar rewiring and Phase 16's
   inheritance; switching to in-place later re-opens all of them.
 
-- **D-15-03: Panels anchor top-center at the drawer's width (~850px),
-  inheriting D-03 verbatim** — flush to the top edge, bottom corners rounded
+- **D-15-03: Panels anchor top-center at the drawer's width (~850px), inheriting D-03 verbatim**
+  — flush to the top edge, bottom corners rounded
   only, compositor places them below waybar's reservation with no per-layout
   offset logic. The panel appears exactly where the drawer was, so the
   destroy-then-summon reads as the surface changing contents rather than one
@@ -98,8 +96,8 @@ recommendation once** (D-15-11).
   content, so panels carry generous internal margins or a centered content
   column (render-gate tuning).
 
-- **D-15-04: `Super+A` summons the audio panel; wifi and bluetooth get no
-  dedicated keybind.** Verified free plain-Super single letters: **A, G, H, J,
+- **D-15-04: `Super+A` summons the audio panel; wifi and bluetooth get no dedicated keybind.**
+  Verified free plain-Super single letters: **A, G, H, J,
   K, M, O, U** — `W`, `B` and `V` are all taken (67 `mainMod` binds total), so
   D-09's first-letter mnemonic convention can only be honored for one of the
   three. Bound only where frequency justifies it: the mixer displaces the
@@ -131,9 +129,8 @@ recommendation once** (D-15-11).
 
 ### Shared panel frame (PANEL-06)
 
-- **D-15-06: One header band — panel icon + title on the left, a LABELED
-  "Advanced" button on the right; body fills everything below. No close
-  button.** Dismissal inherits D-10's set verbatim (Esc, click-outside,
+- **D-15-06: One header band — panel icon + title on the left, a LABELED "Advanced" button on the right; body fills everything below. No close button.**
+  Dismissal inherits D-10's set verbatim (Esc, click-outside,
   re-press the tile / `Super+A`) rather than inventing chrome the drawer
   deliberately doesn't have. Labeled-not-glyph is a direct application of
   Phase 14's render-gate lesson (*"A fresh user will not know what their
@@ -142,8 +139,8 @@ recommendation once** (D-15-11).
   failure. Known risk carried to the render gate: top-right adjacency invites
   close-button mis-clicks; mitigate with spacing and explicit text.
 
-- **D-15-07: One fixed height shared by all three panels, with a scrollable
-  body.** The truest reading of PANEL-06 — three panels that are literally the
+- **D-15-07: One fixed height shared by all three panels, with a scrollable body.**
+  The truest reading of PANEL-06 — three panels that are literally the
   same frame with different contents. **Decisive argument: a wifi scan
   populates progressively**, so a content-sized panel would grow under the
   cursor mid-scan, moving the blur region and click-outside hit zone — D-04's
@@ -169,8 +166,8 @@ recommendation once** (D-15-11).
   Insert treatment for list items arriving later from a live scan is
   discretion (including none).
 
-- **D-15-09: Failures render inline on the affected row — a recorded FOURTH
-  widget state.** D-41's vocabulary becomes **populated / pending / empty /
+- **D-15-09: Failures render inline on the affected row — a recorded FOURTH widget state.**
+  D-41's vocabulary becomes **populated / pending / empty /
   failed**. Phase 14 had no failure state: D-22 only promised that failed
   operations never display a *false* state, and the watchdog silently clears
   pending — adequate for local script execs, inadequate here where wrong
@@ -195,8 +192,7 @@ recommendation once** (D-15-11).
   shell whose drawer already taught swipe-between-views. Accepted cost: the
   pinned block shortens the app list's viewport.
 
-- **D-15-11: Full input symmetry — input device picker + input level slider +
-  mic mute, mirroring the output block. USER OVERRODE the recommendation**
+- **D-15-11: Full input symmetry — input device picker + input level slider + mic mute, mirroring the output block. USER OVERRODE the recommendation**
   (which was device selection + mic mute only, justified on mic-gain being
   set-once while mic-mute is moment-to-moment). This is the second recorded
   override in the project's history (cf. Phase 14 D-31, the units field).
@@ -258,8 +254,8 @@ recommendation once** (D-15-11).
   available. Known cost — scan churn — is answered structurally by D-15-16
   rather than by scanning less.
 
-- **D-15-16: List ordering is grouped and stable — current connection, then
-  saved, then the rest.** Signal strength renders as a per-row icon but
+- **D-15-16: List ordering is grouped and stable — current connection, then saved, then the rest.**
+  Signal strength renders as a per-row icon but
   **never drives the sort**, so ordinary fluctuation can never reorder rows;
   churn is eliminated structurally rather than by hysteresis tuning. New
   networks append to the bottom group instead of inserting mid-list. Prevents a
@@ -268,8 +264,8 @@ recommendation once** (D-15-11).
   sit below a weak far one, which reads as arbitrary until the grouping is
   noticed. Bluetooth mirrors this grammar (D-15-18).
 
-- **D-15-17: Panels expose the required actions plus wifi `forget`; everything
-  else lives behind Advanced.** Wifi: connect, disconnect, forget. Bluetooth:
+- **D-15-17: Panels expose the required actions plus wifi `forget`; everything else lives behind Advanced.**
+  Wifi: connect, disconnect, forget. Bluetooth:
   adapter toggle, connect, disconnect, forget (all required by criterion 3).
   Behind Advanced: autoconnect policy, static IP, DNS, VPN, codec selection,
   trusted-device policy. **Driving argument for including wifi forget despite
@@ -283,8 +279,8 @@ recommendation once** (D-15-11).
 
 ### Bluetooth flows
 
-- **D-15-18: Paired devices listed immediately with zero radio activity;
-  discovery is opt-in behind an explicit "Add device" control.** Grouping:
+- **D-15-18: Paired devices listed immediately with zero radio activity; discovery is opt-in behind an explicit "Add device" control.**
+  Grouping:
   **connected → paired → discovered**, mirroring wifi's current → saved → rest
   so both panels teach one list grammar. **This is a deliberate asymmetry with
   the wifi panel and must be recorded with its reason** or it reads as
@@ -309,8 +305,8 @@ recommendation once** (D-15-11).
 
 ### Dismissal, fit, robustness, coexistence
 
-- **D-15-20: Dismissing a panel always returns to the desktop, never to the
-  drawer.** One rule across the whole QML family: Esc and click-outside mean
+- **D-15-20: Dismissing a panel always returns to the desktop, never to the drawer.**
+  One rule across the whole QML family: Esc and click-outside mean
   *gone*, regardless of origin. No origin tracking at shell root, no
   conditional chrome, and no gesture with two outcomes based on invisible
   history. Mechanically forced context: grab exclusivity means the drawer was
@@ -333,16 +329,16 @@ recommendation once** (D-15-11).
   still one row) and must NOT regress to "DND"** — Phase 14's render gate
   explicitly rejected that acronym.
 
-- **D-15-22: An Advanced button whose target app is absent renders disabled
-  with the reason, never hidden.** Availability is checked cheaply up front, so
+- **D-15-22: An Advanced button whose target app is absent renders disabled with the reason, never hidden.**
+  Availability is checked cheaply up front, so
   the user learns before clicking rather than after. Reuses **D-41's
   present-but-disabled pattern** and the tooltip mechanism already on every
   Phase 14 control, and matches how the reference shells keep full-app links
   visible. Keeps PANEL-05 ("each panel carries an Advanced button")
   unconditionally true and verifiable rather than conditional on host state.
 
-- **D-15-23 (REQUIRED CORRECTION, not a preference): `install.sh` must install
-  `network-manager-applet`.** It provides `nm-connection-editor`, PANEL-05's
+- **D-15-23 (REQUIRED CORRECTION, not a preference): `install.sh` must install `network-manager-applet`.**
+  It provides `nm-connection-editor`, PANEL-05's
   wifi Advanced target. `pavucontrol` (install.sh:111) and `blueman`
   (install.sh:212) are both present; the third is not. All three binaries exist
   on **this** host (`network-manager-applet` 1.36.0-2) — i.e. it is host-only
@@ -369,8 +365,8 @@ recommendation once** (D-15-11).
   makes multiple writers safe here** — the panel renders actual backend state,
   so a change made by waybar's `wpctl` click or by SwayOSD shows up correctly.
 
-- **D-15-25: Criterion 5 is proven by extending `quickshell-doctor`, with a
-  proven-to-fail fixture.** New checks: the three panel namespaces conform to
+- **D-15-25: Criterion 5 is proven by extending `quickshell-doctor`, with a proven-to-fail fixture.**
+  New checks: the three panel namespaces conform to
   the `quickshell-*` prefix; `Super+A` registers exactly once (via
   `keybind-doctor`); no second `org.freedesktop.Notifications` owner appears
   while a panel is summoned; SwayOSD key ownership is byte-identical
