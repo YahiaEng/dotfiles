@@ -222,6 +222,14 @@ PanelWindow {
     readonly property real lineHeightNormal: 1.5
 
     readonly property int cornerRadius: 28
+
+    // DASH-10: Hyprland's own `general:border_size` (3 on this host, read via
+    // `hyprctl getoption general:border_size`). Named here rather than at the
+    // GradientBorder call site so the parity claim has one home — Hyprland's
+    // border width has no representation in the colour or motion pipelines,
+    // so unlike the gradient's stops and period there is no token to read it
+    // from. If Hyprland's border_size changes, this is the line to follow it.
+    readonly property int borderWidth: 3
     readonly property real drawerSurfaceOpacity: 0.78
     readonly property color surfaceBase: Colours.surface
 
@@ -351,6 +359,25 @@ PanelWindow {
                 easing.bezierCurve: Motion.standardEasing
             }
         }
+    }
+
+    // DASH-10 — the animated gradient rim, matching Hyprland's own window
+    // border so the drawer reads as part of the same desktop rather than as
+    // a foreign panel. Declared AFTER `background` so it paints on top of the
+    // surface, and BEFORE `content` so it never sits over the tab bar or a
+    // tab's own controls (a rim painted above `content` would also intercept
+    // nothing — it has no input handlers — but it would visually overlay the
+    // header's edge, which is not what a window border does).
+    //
+    // Radii are handed across from the same properties `background` uses, so
+    // the rim and the surface can never disagree about the drawer's shape.
+    GradientBorder {
+        anchors.fill: parent
+        borderWidth: dashboardWindow.borderWidth
+        topLeftRadius: 0
+        topRightRadius: 0
+        bottomLeftRadius: dashboardWindow.cornerRadius
+        bottomRightRadius: dashboardWindow.cornerRadius
     }
 
     // One shared resource reader for PerformanceTab's dials (14-06) and

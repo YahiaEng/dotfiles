@@ -35,6 +35,12 @@
 # Plan 14-10 Task 1 adds a thirteenth type, not a singleton: `ConditionGlyph`,
 # the single-or-layered weather condition glyph the two-tone experiment
 # needs. One ordinary instance per call site, exactly like `Dial`.
+#
+# DASH-10 adds a fourteenth type, not a singleton: `GradientBorder`, the
+# animated gradient rim that matches Hyprland's own window border. One
+# ordinary instance, mounted on Dashboard.qml's window root beside the
+# surface it outlines. Registered in the same commit that creates it, per
+# this manifest's own rule above.
 module qs.modules.dashboard
 singleton Design 1.0 Design.qml
 singleton WeatherPalette 1.0 WeatherPalette.qml
@@ -49,3 +55,4 @@ QuickToggles 1.0 QuickToggles.qml
 Dial 1.0 Dial.qml
 Cascade 1.0 Cascade.qml
 ConditionGlyph 1.0 ConditionGlyph.qml
+GradientBorder 1.0 GradientBorder.qml
