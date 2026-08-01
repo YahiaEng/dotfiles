@@ -18,7 +18,7 @@ affects: [15-03, 15-04, 15-05, 15-06, 15-07, 15-08, 15-09, 16]
 
 actuals:
   tokens: 42000
-  tasks: 3
+  tasks: 4
   commits: 3
 
 tech-stack:
@@ -44,13 +44,14 @@ key-files:
 key-decisions:
   - "Task 1's tracer-feedback gate (deferred by the prior worktree executor, whose live session couldn't reach worktree-isolated code) was closed THIS session on the main checkout, where stow actually resolves to live code. The live verify surfaced a real Rule 1 bug — the master volume Slider rendered with zero height and no visible track/handle — root-caused with an isolated qml6 repro before touching the shipped file, fixed, and re-verified live with screenshots and a wpctl-driven D-22 truth-driven proof."
   - "D-15-22's Advanced-button MouseArea is deliberately left enabled: true even when the target app is absent, diverging from the plan's literal 'MouseArea sets enabled: false' instruction. A fully disabled MouseArea also stops receiving hover in QtQuick, which would make advancedUnavailableReason UNREACHABLE by hover — directly contradicting UI-SPEC E7's own requirement that 'the reason is legible before the press, not after.' Press-suppression (the plan's real intent) is instead guaranteed by launchAdvanced()'s pre-existing early-return guard, which was never touched. Hover-reachability and press-suppression are satisfied by two different, deliberate mechanisms."
-  - "Tasks 1-3 are complete and committed on the main checkout (workflow.use_worktrees was set to false for the remainder of this phase, per the orchestrator's own note, because stow points the live desktop session at the main checkout, not a worktree copy). Task 4 — the plan's own blocking checkpoint:human-verify render gate — is reached and NOT yet resolved; this SUMMARY reflects the state at that checkpoint, not a fully closed plan."
+  - "Task 4's blocking checkpoint:human-verify render gate is APPROVED — all nine checks pass, no change request. The human's explicit answers to the three judgment calls: check 2 (geometry) — 850x620 approved as shipped, the settled frame size 15-03..15-06 lay out against, no retune; check 3 (Advanced affordance) — the shared header chrome approved as-is, inherited unchanged by all three panels; check 9 (entrance motion) — the cascade approved, reads as one singular motion. Plan is now CLOSED, 4/4 tasks complete."
+  - "A prior executor's live-verify restart of quickshell was NOT detached and died with that executor's session, silently breaking Super+A/Super+D until recovered with the standing detached-restart form — see Deviations for the full incident record and its carry-forward obligation for 15-03..15-09."
 
 patterns-established:
   - "Panel body files (AudioPanel.qml) extend PanelDialog directly (root type PanelDialog) rather than receiving its constants as passed-in properties — matches PanelDialog's own header note that a panel body reads spacing/type constants off itself the same way MediaTab.qml reads them off dashboardWindow, but via direct type inheritance since AudioPanel IS a PanelDialog instance."
   - "PanelDialog's D-15-09 empty-state placeholder is a sibling of bodyFlick, anchored to the same region, rather than a child slotted into bodyContent (the panel-supplied body alias) — the frame owns its own fallback state independently of whatever a panel file writes into its body slot. emptyStateGlyph/emptyStateText are plain (non-readonly) properties so 15-04/05/06 can supply panel-specific empty copy without restructuring this mechanism."
 
-requirements-completed: []
+requirements-completed: [PANEL-02, PANEL-05, PANEL-06]
 
 coverage:
   - id: D1
@@ -65,8 +66,11 @@ coverage:
       - kind: e2e
         ref: "15-02-PLAN.md Task 1 <verify> automated block, actually run this session against a live-restarted quickshell process on the main checkout: hyprctl dispatch 'hl.dsp.global(\"quickshell:audio-panel\")' toggles the quickshell-audio-panel layer 0->1->0, wpctl-driven volume/mute changes update the panel live (D-22), no QML error/TypeError in quickshell.log"
         status: pass
+      - kind: other
+        ref: "Task 4's nine-check blocking checkpoint:human-verify render gate — APPROVED, no issues raised on any check; checks 2/3/9 answered explicitly per the plan's own resume-signal; see 'Task 4 — Blocking render gate resolution' below for full evidence"
+        status: pass
     human_judgment: true
-    rationale: "The mechanical/live verify is now fully passed with real evidence (see below), but Task 4's own blocking checkpoint:human-verify render gate — nine explicit visual/feel checks against the real desktop — has not yet been answered by a human. That gate, not this coverage row, is what remains open."
+    rationale: "Task 4's render gate is now RESOLVED: APPROVED. Checks 2 (geometry, 850x620), 3 (Advanced affordance, shared header chrome) and 9 (entrance cascade) — the three explicit judgment calls — were each answered by the human ('yes' on all three), verbatim recorded below. D1 is fully closed; no open judgment remains."
   - id: D2
     description: "D-15-22 present-but-disabled Advanced rendering; D-15-09 empty-state placeholder; D-15-06 advancedTopInset; windowrules.lua per-namespace slide rule"
     verification:
@@ -87,20 +91,20 @@ coverage:
     human_judgment: false
     rationale: "quickshell-doctor's overall exit code is 1, but the ONE failing check (one-step-per-press volume probe) is confirmed pre-existing and out of this plan's scope — see 'Pre-existing quickshell-doctor failure' below."
 
-duration: 47min (this session; Task 1's original tracer-code-authoring time is recorded separately in git history, commit 5e6bf2d, from the prior worktree session)
+duration: 47min (implementation session; Task 1's original tracer-code-authoring time is recorded separately in git history, commit 5e6bf2d, from the prior worktree session) + a separate gate-closure session for Task 4
 completed: 2026-08-02
-status: in-progress
+status: complete
 ---
 
 # Phase 15 Plan 02: Audio Panel Tracer + Advanced/Empty-State Contract Summary
 
-**Super+A summons a real audio-mixer layer surface wired end to end to the live PipeWire default sink, closing Task 1's tracer-feedback gate live on the main checkout (finding and fixing a real zero-height Slider bug along the way), then landing Task 2's D-15-22 disabled-Advanced treatment and D-15-09 empty-state placeholder and Task 3's gate re-runs — Task 4, the plan's own blocking human render gate, is reached and awaiting a response.**
+**Super+A summons a real audio-mixer layer surface wired end to end to the live PipeWire default sink, closing Task 1's tracer-feedback gate live on the main checkout (finding and fixing a real zero-height Slider bug along the way), then landing Task 2's D-15-22 disabled-Advanced treatment and D-15-09 empty-state placeholder and Task 3's gate re-runs — Task 4, the plan's own blocking human render gate, is now APPROVED with all nine checks answered. Plan CLOSED, 4/4 tasks complete.**
 
 ## Performance
 
-- **This session's duration:** 47 min
-- **Tasks completed this session:** 3 of 4 (Task 1's live-verify gate closed + a Rule 1 fix; Task 2; Task 3). Task 4 (blocking checkpoint) reached, not yet resolved.
-- **Files modified this session:** 3 (`AudioPanel.qml` — bug fix; `PanelDialog.qml` — Task 2 additions; `windowrules.lua` — Task 2 addition)
+- **Implementation session's duration:** 47 min
+- **Tasks completed:** 4 of 4 — Task 1's live-verify gate closed + a Rule 1 fix; Task 2; Task 3; Task 4's blocking render gate reached, then APPROVED in a follow-up gate-closure session.
+- **Files modified (implementation session):** 3 (`AudioPanel.qml` — bug fix; `PanelDialog.qml` — Task 2 additions; `windowrules.lua` — Task 2 addition). The gate-closure session touches only tracking/docs files (this SUMMARY, STATE.md, ROADMAP.md, REQUIREMENTS.md) — no production QML changed.
 
 ## Why this session started mid-plan
 
@@ -152,6 +156,30 @@ All three gates were re-run against the current tree; no fixes were needed in an
 ### Pre-existing quickshell-doctor failure (named, not fixed, per Task 3's own instruction)
 
 Overall `quickshell-doctor` exit code is `1`, from exactly **one** failing check: `one-step-per-press volume probe: measured delta=0 raw units is within tolerance of recorded baseline=3277 (drift: 3277, tolerance: +/-327)`. This is the pre-existing rounding-sensitive raw-units gate over-strictness **named explicitly in the plan's own Task 3 action text** ("filed in 12-01, never fixed") — confirmed here as still present, not introduced by this plan, and per the plan's own instruction, **not fixed** in this session (out of scope — 15-09 owns `quickshell-doctor`). The QS-03 headless-hotplug per-screen limitation (the other pre-existing condition the plan names) showed as `[SKIP]`, not `[FAIL]`, in every run this session — also unrelated to this plan.
+
+## Task 4 — Blocking render gate resolution
+
+**Verdict: APPROVED.** No issues raised on any of the nine checks. This closes the plan's own `gate="blocking"` checkpoint and moves the plan from 3/4 to 4/4 tasks complete.
+
+### The three explicit judgment calls (required to be answered even on approval, per the plan's own `<resume-signal>`)
+
+- **Check 2 — Geometry (D-15-03).** Human: "yes it reads right." The 850x620 frame is **approved as shipped**. Recorded here as the settled frame size that 15-03, 15-04, 15-05 and 15-06 lay out against — **no retune**. The empty space below the master block noted in the plan's own `<how-to-verify>` is confirmed to be an artefact of the tracer's deliberate one-third-built scope, not of the geometry itself, per the plan's own recommendation (approve-as-is over retune-now).
+- **Check 3 — Header band / Advanced affordance (D-15-06).** Human: "yes advanced reads as an optional action." The shared header chrome (glyph, title, labeled "Advanced" on the right, no close button) is **approved as-is** and is inherited **unchanged** by all three panel instances — this is the one check the plan itself flagged as "genuinely worth changing now if it reads wrong" (since it is identical chrome that 15-03 inherits in the very next wave); it read right, so nothing changes.
+- **Check 9 — Entrance motion (D-15-08).** Human: "yes it reads as one singular motion." The three-element cascade (header identity → Advanced → master control block) is **approved** — it reads as one settled motion, not three separate arrivals.
+
+### Behavioural checks (facts, not preferences) — approved with no defect found
+
+Checks 1 (summon feel), 4 (master volume + mute live interaction), 5 (no second OSD), 6 (Advanced launch + concurrency), 7 (dismissal paths) and 8 (DASH-08 fullscreen refusal) were all worked through with no issues raised.
+
+### Mechanical re-verification run against the live tree at gate close (recorded as evidence, not re-run as new checks)
+
+- **Check 5 / D-15-24:** `grep -c 'swayosd-client' quickshell/.config/quickshell/modules/dashboard/AudioBackend.qml quickshell/.config/quickshell/modules/dashboard/AudioPanel.qml` — zero matches in either file. **PASS** — SwayOSD retains sole ownership of hardware `XF86Audio*` keys; the panel's own slider/mute path never reaches it.
+- **Check 5b (criterion-5 coexistence):** `busctl --user list` shows **exactly one** `org.freedesktop.Notifications` owner (swaync). **PASS.**
+- **Check 8 / DASH-08:** the fullscreen-refusal guard is present exactly where it must be — inside `function openPanel(name)` in `shell.qml`, documented at lines 142 and 166-169 as living there and nowhere else. **PASS.**
+- **Check 6 / PANEL-05:** `grep -c 'startDetached' quickshell/.config/quickshell/modules/dashboard/PanelDialog.qml` = `3`; `grep -Eq 'running:[[:space:]]*true' quickshell/.config/quickshell/modules/dashboard/PanelDialog.qml` finds nothing. **PASS** — Advanced launches are severed from the panel's destroy-on-dismiss lifecycle, and no lifetime-bound run property exists anywhere in the file.
+- **Live global dispatch proof:** `hyprctl dispatch 'hl.dsp.global("quickshell:dashboard")'` shows the `quickshell-dashboard` layer appear then clear; `hyprctl dispatch 'hl.dsp.global("quickshell:audio-panel")'` shows exactly one `quickshell-audio-panel` layer appear then clear. (Layer state needs ~2s to settle before reading `hyprctl layers -j`, or the read is stale and looks like a second bug — noted here so a future re-run does not chase a phantom.)
+
+No round 2 was needed — approved on the first render-gate round.
 
 ## Decision Records Landed (verbatim, per plan's `<decision_records>` — all confirmed still present in source this session)
 
@@ -211,10 +239,21 @@ Overall `quickshell-doctor` exit code is `1`, from exactly **one** failing check
 - **Verification:** fault-injection screenshot confirms the button is present, dimmed, at identical geometry — the hover-reachable tooltip path was reasoned through rather than screenshotted (hover requires pointer input, unavailable in this environment; the geometric/opacity treatment IS screenshotted and confirmed)
 - **Committed in:** `841869d`
 
+**3. [Rule 1 — operational incident, not a code bug] Non-detached quickshell restart during a prior live-verify session broke Super+A/Super+D until recovered**
+
+A prior executor's live-verify restart of quickshell was **not detached**. The process died when that executor's session ended, silently breaking the human's `Super+D` and `Super+A` — both are `hl.dsp.global("quickshell:...")` dispatches and have no receiver when the shell is dead. Hyprland's own binds remained correctly registered throughout — `hyprctl binds` showed both `A` and `D` still present under modmask 64 — so the config layer looked entirely healthy while every Quickshell keybind was silently dead underneath it.
+
+- **Evidence:** `~/.cache/quickshell.log` ended mid-session at `00:54:49` on an ordinary cascade line, with no error and no shutdown message, leaving a stale `instance.lock` and `ipc.sock` behind in `/run/user/1000/quickshell/by-id/gxg719x14jt/`. A QML crash would have logged something; this did not — the process was killed by its parent shell exiting, not by a fault of its own.
+- **Why this happened:** this is the exact failure `15-02-PLAN.md` warns about explicitly (~line 570, "Restart discipline for verification"): "A shell-child restart dies with the executor session and silently breaks `Super+D` ... that has already happened once in this project." It has now happened **twice**.
+- **Recovery:** `setsid uwsm app -- ~/.config/hypr/scripts/quickshell-launch.sh` (the detached form 14-06 already establishes as the standing rule), confirmed by checking the new PID's PPID is the session manager, not a shell.
+- **Files modified:** none — this is a runtime/process incident, not a source change.
+- **Verification:** post-recovery, `hyprctl dispatch 'hl.dsp.global("quickshell:dashboard")'` and `hl.dsp.global("quickshell:audio-panel")` both toggle their respective layers correctly again.
+- **Carry-forward obligation for 15-03 through 15-09:** any plan whose verification restarts the shell **must** use the detached form (`setsid uwsm app -- ~/.config/hypr/scripts/quickshell-launch.sh`) and confirm the new PID's PPID is not a shell before treating the restart as complete. A shell-child restart is not a hypothetical risk in this project — it has now silently broken the live desktop's keybinds twice.
+
 ---
 
-**Total deviations this session:** 2 (both Rule 1 — one a genuine rendering bug, one a plan-text/requirement contradiction resolved in the requirement's favor)
-**Impact on plan:** Task 1's fix is a real functional correction (the tracer's core interactive control was invisible before it). Task 2's deviation is a design-intent clarification with no functional regression — it makes the tooltip work as UI-SPEC actually requires.
+**Total deviations this session:** 3 (two Rule 1 code-level fixes — one a genuine rendering bug, one a plan-text/requirement contradiction resolved in the requirement's favor — plus one Rule 1 operational incident with a standing carry-forward obligation for the rest of this phase)
+**Impact on plan:** Task 1's fix is a real functional correction (the tracer's core interactive control was invisible before it). Task 2's deviation is a design-intent clarification with no functional regression — it makes the tooltip work as UI-SPEC actually requires. The restart incident caused no data loss and no incorrect committed code, but it did leave the live desktop's panel/drawer keybinds dead until recovered, and it is the second occurrence of a failure mode this project's own plan text already warned about once.
 
 ## Verification Performed (this session, live, on the main checkout)
 
@@ -228,24 +267,28 @@ Overall `quickshell-doctor` exit code is `1`, from exactly **one** failing check
 - `motion-lint` exit 0 (91/91), `keybind-doctor` exit 0 (14/14), `quickshell-doctor` namespace-discipline PASS (confirmed live with panel open); the one `quickshell-doctor` FAIL confirmed pre-existing (12-01, rounding-sensitive volume probe)
 - Three decision records confirmed present verbatim in source via `grep -c`
 
-## Verification NOT Performed
+## Verification Performed — Task 4 closure
 
-**Task 4's blocking `checkpoint:human-verify` render gate has not been answered.** Its nine checks (summon feel, geometry discretion, header-band adjacency, master volume+mute live interaction, no-second-OSD proof, Advanced launch+concurrency, dismissal paths, DASH-08 fullscreen refusal, entrance motion) require a human looking at the real, currently-live desktop and responding — this is the plan's own explicit stopping point, not an omission. See the checkpoint returned alongside this SUMMARY for the full nine-check text and the recommendation.
+**Task 4's blocking `checkpoint:human-verify` render gate has been answered: APPROVED.** All nine checks (summon feel, geometry discretion, header-band adjacency, master volume+mute live interaction, no-second-OSD proof, Advanced launch+concurrency, dismissal paths, DASH-08 fullscreen refusal, entrance motion) were worked through against the real, currently-live desktop with no issues raised; checks 2, 3 and 9 (the explicit judgment calls) were each answered "yes" with reasons, recorded verbatim in "Task 4 — Blocking render gate resolution" above. See that section for the full nine-check evidence, the mechanical re-verification re-run at gate close, and the approved 850x620/shared-header-chrome contract that 15-03 through 15-09 now inherit.
 
 ## Issues Encountered
 
 - Two live quickshell processes were found running simultaneously at session start (stale process hygiene issue in `quickshell-launch.sh`, which execs a new process but never kills a prior one) — resolved by killing the stale PID before any verification; not a plan defect, but worth `quickshell-doctor` or the launch script picking up eventually (out of this plan's scope; noted for a future phase, not filed as a blocker here since it was fully resolved in-session).
-- No other issues.
+- A prior executor's live-verify quickshell restart was not detached and died with that executor's session, silently breaking `Super+A`/`Super+D` until recovered — see Deviations item 3 for the full incident record and its carry-forward obligation for 15-03 through 15-09.
 
 ## Next Steps / Plan Continuation
 
-This plan (`15-02`) is **not complete**. Remaining:
+This plan (`15-02`) is **complete** — 4/4 tasks, Task 4's blocking render gate APPROVED. Remaining work belongs to the next plans in the phase, not to this one:
 
-1. **Task 4** — the plan's own blocking `checkpoint:human-verify` render gate, nine checks, returned alongside this SUMMARY. A human (or the orchestrator relaying a human's answer) must respond "approved" (with checks 2/3/9 answered explicitly even on approval, per the plan's own resume-signal) or describe a change request.
-2. Once Task 4 resolves: STATE.md/ROADMAP.md/REQUIREMENTS.md updates and the plan's final `docs(...)` metadata commit, which have NOT been done yet — this session deliberately stopped short of those per standard checkpoint protocol (the plan is not closed).
+1. **15-03** inherits `PanelDialog`'s public surface and the approved 850x620 geometry / shared header chrome as a settled contract — no further retune expected.
+2. STATE.md, ROADMAP.md and REQUIREMENTS.md are updated as part of this closure (see this session's tracking commit).
 
-No requirement (`PANEL-02`, `PANEL-05`, `PANEL-06`) is marked complete in this SUMMARY's frontmatter — Task 4's render gate is the final proof point the plan's own `<success_criteria>` requires before any of the three can be checked off.
+`PANEL-02`, `PANEL-05` and `PANEL-06` are marked complete in this SUMMARY's frontmatter — Task 4's render gate was the final proof point the plan's own `<success_criteria>` required before any of the three could be checked off, and it is now closed.
 
 ---
 *Phase: 15-audio-connectivity-panels*
-*Plan: 02 (Tasks 1-3 of 4 complete; Task 4's blocking render gate reached, awaiting response)*
+*Plan: 02 (4/4 tasks complete — Task 4's blocking render gate APPROVED, plan CLOSED)*
+
+## Self-Check: PASSED
+
+All nine `key-files` (created + modified) exist on disk; all five referenced commit hashes (`5e6bf2d`, `77c4e28`, `47ff6b1`, `841869d`, `f6326c0`) are present in `git log --oneline --all`. No missing items.
