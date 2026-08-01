@@ -52,13 +52,15 @@ Declared values (multiples of 4, reused verbatim from `Design.qml` — do not de
 | `Design.spacingXl` | 32px | Layout gaps — reserve for major panel-internal separations only (e.g. between the pinned audio block and the scrolling app list, if a visual break is wanted beyond a plain divider) |
 | `Design.panelPadding` | 24px | The header band's own internal padding (icon+title left, Advanced button right) — same constant Dashboard.qml's header uses, so the panel's header reads as the same object as the drawer's, just shorter-lived |
 
-**Panel-specific token (new, this phase):**
+Exceptions: none. If the render gate finds the pinned audio block (D-15-10) too dense at these values, the pre-agreed fallback (D-15-11) is to drop the input-level slider — not to introduce a new spacing value.
+
+### Component Dimensions
+
+Fixed sizes for specific components — not gap/spacing tokens, so declared separately from the Spacing Scale above and not subject to the 4/8/16/24/32/48/64 standard set.
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `chipHeight` (reused from `QuickToggles.qml:94`) | 72px | The six-across quick-toggle tile row height (D-15-21) — "Do Not Disturb" wraps to two lines inside this height without regressing to "DND" (hard constraint, verify at render gate against the installed font) |
-
-Exceptions: none. If the render gate finds the pinned audio block (D-15-10) too dense at these values, the pre-agreed fallback (D-15-11) is to drop the input-level slider — not to introduce a new spacing value.
+| `chipHeight` (`QuickToggles.qml:94`, verified live) | 72px | The six-across quick-toggle tile row height (D-15-21) — "Do Not Disturb" wraps to two lines inside this height without regressing to "DND" (hard constraint, verify at render gate against the installed font). This is a shipped Phase 14 production constant, not a new value: Phase 15's panel rows must align to the same tile rhythm as the dashboard quick-toggle chips they expand from (D-15-01's chevron-opens-panel relationship), so reusing 72px verbatim — rather than rounding to the 64px standard-scale neighbor — keeps the tile→panel transition visually continuous. Changing it to 64px would desynchronise Phase 15's panel-launching tiles from the Phase 14 tiles they visually descend from. |
 
 ---
 
@@ -71,7 +73,8 @@ Reused verbatim from `Design.qml` — no new sizes or weights for this phase. Li
 | Heading | `Design.fontHeading` = 20px | `Design.weightEmphasis` (DemiBold) | 1.2 | Panel header title ("Audio" / "Wi-Fi" / "Bluetooth") |
 | Body | `Design.fontBody` = 16px | `Design.weightBody` (Normal) | 1.5 | Per-app row app name, network SSID, device name, empty/off-state body line, "Advanced" button label |
 | Label | `Design.fontLabel` = 12px | `Design.weightBody` (Normal) | 1.4 | Row-scoped failure reason text (D-15-09), battery/address detail line in an expanded bluetooth row, tooltip copy |
-| Display | `Design.fontDisplay` = 32px | `Design.weightDisplay` (Medium) | 1.2 | Not expected in this phase's panels (reserved for drawer-level use, e.g. the clock) — declared here only for completeness; do not introduce a display-sized element in a panel without a documented reason |
+
+This phase's panels use exactly **two** weights in active scope — `weightBody` (Normal) and `weightEmphasis` (DemiBold). `Design.qml` also ships a third role, Display (32px / `weightDisplay`, Medium), for drawer-level use (e.g. the clock) — this phase's panels do not use it; do not introduce a display-sized element or a third weight in any panel without a documented reason.
 
 Icon font: Material Symbols Rounded at `Design.iconSizeMd` = 24px for every glyph this phase adds (tile icons, mute/unmute icon, chevrons, header panel icon, Enable-button icon if any) — the unanimous sibling-agreement convention from six Phase 14 files.
 
@@ -89,6 +92,11 @@ All values are live `Colours.<role>` aliases (Material You roles, matugen-driven
 | Destructive | `Colours.error` (fill/text) / `Colours.onError` (text on error fill) | **Reserved for exactly:** the Forget action (wifi network, bluetooth device — D-15-17/D-15-19's destructive-action separation) and the row-scoped failed-state text/icon (D-15-09's fourth widget state — "wrong password", "couldn't pair", etc.). Never used for the Disconnect verb, which is an ordinary reversible action, not destructive. |
 
 **Fourth widget-state note (D-15-09, extends Phase 14's D-41 three-state vocabulary to four):** `populated` uses the roles above normally; `pending` uses `Colours.primary` at reduced opacity or the existing watchdog-timer chip treatment (reuse QuickToggles.qml's pattern, do not invent a new one); `empty` uses `Colours.onSurfaceVariant` at the quiet Material-Symbol-plus-one-line treatment (D-41/D-15-26 verbatim); `failed` uses `Colours.error` scoped to the affected row only, never panel-wide.
+
+**Per-panel focal point (Dimension 2, Visuals):**
+- **Audio panel focal point:** the pinned control block (master volume + both device pickers) directly under the header — D-15-10 fixes it as the always-visible block above the scrolling app list specifically because it carries the highest-frequency controls; it is the first thing the eye should land on, not the app list below it.
+- **Wifi panel focal point:** the current-connection row at the top of the grouped list — D-15-16's ordering (current → saved → rest) puts "what am I connected to right now" first by construction, so that row is the panel's answer to "why did I open this."
+- **Bluetooth panel focal point:** the connected-devices group at the top of the list — D-15-18's ordering (connected → paired → discovered) mirrors wifi's same current-first logic; the daily case ("is my headset connected") resolves without scrolling or opening "Add device."
 
 ---
 
