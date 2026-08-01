@@ -335,7 +335,39 @@ Plans:
 
 **Open questions owned**: (4) `Quickshell.Networking` API completeness — decide native D-Bus binding vs an `nmcli` wrapper before committing the wifi panel's implementation.
 **Owns**: The milestone's highest D-Bus conflict risk — three new PipeWire / NetworkManager / BlueZ consumers arriving at once alongside existing owners.
-**Plans**: TBD
+**Plans**: 9 plans across 5 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 15-01-PLAN.md — Live API probe: `UntypedObjectModel` accessor shape, PipeWire node property keys, `request*`-vs-plain call path, `preferredDefaultAudioSink` write semantics; end-4/Caelestia source study. Emits `15-API-PROBE.md`, no production files
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 15-02-PLAN.md — TRACER: `Super+A` → guarded `openPanel()` → `PanelDialog` frame → `AudioPanel` master volume/mute on live PipeWire → Advanced launches pavucontrol detached → Esc/click-outside dismisses. Fixes the `PanelDialog` public surface all later plans inherit
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 15-03-PLAN.md — Wifi + bluetooth mounts as `PanelDialog` instances with real Advanced targets, the D-15-26 off/empty/no-hardware states, and the shell-root `IpcHandler` every remaining entry point calls
+
+**Wave 4** *(blocked on Wave 3; file-disjoint, parallel)*
+
+- [ ] 15-04-PLAN.md — Audio build-out: pinned control block (device pickers as inline expanding rows, input level, mic mute) over the scrolling per-app mixer list; four widget states
+- [ ] 15-05-PLAN.md — Wifi build-out: scan + progress line, grouped stable ordering, inline PSK row, `ConnectionFailReason` copy mapping, Forget with inline confirm, two-stage Esc
+- [ ] 15-06-PLAN.md — Bluetooth build-out: adapter toggle, grouped list, contextual-verb rows, chevron expansion, pairing spinner with a real Cancel, inferred-failure recipe, opt-in discovery
+- [ ] 15-07-PLAN.md — Quick-toggle grid becomes one row of six compact split tiles; body press performs the verb, chevron opens the panel
+- [ ] 15-08-PLAN.md — waybar click rewiring across all four configs; `install.sh` gains `network-manager-applet`
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 15-09-PLAN.md — Criterion-5 proof: four new `quickshell-doctor` checks with a poisoned fixture and `rfkill` fault injection; full gate sweep; phase-close render gate
+
+Cross-cutting constraints:
+
+- **No CLI wrapper where a native binding exists** — no panel reaches `nmcli` / `bluetoothctl` / `wpctl` / `pactl` for any read or write already exposed by `Quickshell.Networking` / `Quickshell.Bluetooth` / `Quickshell.Services.Pipewire` (15-02, restated 15-05, 15-06)
+- **No destructive action on a single press** — Forget always reveals an inline confirm first (15-05, 15-06)
+- **The DASH-08 fullscreen guard exists exactly once**, inside shell root's `openPanel()`; every summon path — `Super+A`, tile chevron, waybar IPC — routes through it (15-02, consumed 15-07, 15-08)
+
 **UI hint**: yes
 
 ### Phase 16: Workspace Overview
