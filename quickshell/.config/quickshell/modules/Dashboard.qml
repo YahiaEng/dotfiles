@@ -143,6 +143,23 @@ PanelWindow {
     implicitWidth: drawerWidth
     implicitHeight: drawerHeight
 
+    // The width a tab's own root WILL have once the frame settles, published
+    // for tabs that must lay their content out at the destination size rather
+    // than at whatever the frame happens to be mid-animation.
+    //
+    // `drawerWidth` is the un-animated TARGET (`implicitWidth` is the animated
+    // follower of it), and `activeContentWidth` switches to the incoming tab's
+    // hint the instant `currentIndex` changes — so this value is already
+    // correct on the transition's first frame. The `- spacingLg * 2` mirrors
+    // the `content` item's own margins, which is the single inset between this
+    // window and the pager the tab loaders sit in.
+    //
+    // Added for the Weather tab's entrance jitter; see WeatherTab.qml's
+    // `contentColumn` note for the failure it fixes. Any tab may opt in, but
+    // only WeatherTab does today — a tab that ignores it keeps the previous
+    // fill-the-animating-frame behaviour unchanged.
+    readonly property real settledPaneWidth: drawerWidth - spacingLg * 2
+
     // Animated on the SAME token pair, triggered by the SAME event
     // (pager.currentIndex changing), as the pager's own highlightMoveDuration
     // content transition below — so the frame and the content it holds
@@ -680,6 +697,7 @@ PanelWindow {
                 sourceComponent: Component {
                     WeatherTab {
                         weatherBackend: dashboardWindow.weatherBackend
+                        settledPaneWidth: dashboardWindow.settledPaneWidth
                     }
                 }
                 onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)

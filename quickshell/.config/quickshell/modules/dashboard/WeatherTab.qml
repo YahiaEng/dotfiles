@@ -3,9 +3,15 @@
 // scrollable, D-05) + 5-day row).
 //
 // Root type Item, filled via anchors.fill: parent by the Loader Dashboard.qml
-// places it in — actual rendered geometry is UNCHANGED from Task 2 (still
-// anchors.fill: parent, always matching whatever size its Loader currently
-// has, including mid-resize-animation).
+// places it in.
+//
+// NOTE — this comment used to end "always matching whatever size its Loader
+// currently has, including mid-resize-animation". That is no longer true of
+// the HORIZONTAL axis, and that exact behaviour turned out to be the cause of
+// the visible entrance jitter on this tab: see `contentColumn`'s own note
+// below. `root` itself still fills its Loader; the CONTENT inside it is now
+// pinned to this tab's natural width and centred. The vertical axis still
+// tracks the Loader mid-animation.
 //
 // `implicitWidth`/`implicitHeight` below are D-04's "no implicit size"
 // prohibition DELIBERATELY REVERSED at this plan's render gate (checkpoint
@@ -117,6 +123,13 @@ Item {
     property var weatherBackend: null
     readonly property bool hasBackend: root.weatherBackend !== null && root.weatherBackend !== undefined
 
+    // Published by Dashboard.qml: the width this tab's root WILL have once the
+    // frame settles, available correct on the transition's first frame because
+    // it derives from the un-animated target. 0 = not supplied, in which case
+    // `contentColumn` falls back to the previous fill-the-current-frame
+    // behaviour, so this file still renders standalone (qml6 probes, tests).
+    property real settledPaneWidth: 0
+
     // D-41: "populated" | "pending" | "empty" — mirrors the backend's own
     // aggregate self-report, same convention PerformanceTab.qml's
     // `hasReader`/`widgetState` pairing already established.
@@ -178,24 +191,72 @@ Item {
     readonly property real naturalDayRowWidth: root.dayCells * root.naturalDayCellWidth + (root.dayCells - 1) * root.spacingXs
     readonly property real naturalHeroWidth: 420
 
-    implicitWidth: Math.max(root.naturalHeroWidth, root.naturalHourStripWidth, root.naturalDayRowWidth) + root.spacingLg * 2
+    // The tab's own natural content width, independent of the frame. This is
+    // both the advisory hint Dashboard.qml animates the frame toward AND the
+    // width `contentColumn` is actually laid out at — see `contentColumn`'s
+    // own note for why the two must be the same number.
+    readonly property real naturalContentWidth: Math.max(root.naturalHeroWidth, root.naturalHourStripWidth, root.naturalDayRowWidth)
+
+    implicitWidth: root.naturalContentWidth + root.spacingLg * 2
     // 14-09 Task 4: the separator's own height plus one more spacingMd gap
     // (hourStrip -> separator -> dayRow, each edge spacingMd apart) folded
     // into the same non-circular formula as before.
     implicitHeight: heroBand.height + root.spacingMd + hourStrip.height + root.spacingMd + forecastSeparator.height + root.spacingMd + dayRow.height + root.spacingLg * 2
 
     // ── Content root (D-04: no scrolling surface, panel padding) ────────
+    //
+    // ── Width is PINNED, not stretched (weather-tab entrance jitter fix) ──
+    // This used to be `anchors.fill: parent` + `anchors.margins`, which made
+    // the content track the frame WHILE THE FRAME WAS ANIMATING. Because
+    // Dashboard.qml destroys and rebuilds this tab on every entry, the tab
+    // was constructed at the OUTGOING tab's width and then re-laid-out on
+    // every frame of the resize — measured live at 15 relayouts of the 8
+    // hour cells and 5 day cells, 992px -> 712px, entering from Performance.
+    // On screen that reads as the content visibly compressing into place.
+    //
+    // It became visible when 14-09 replaced Performance's 2x2 dial grid with
+    // a single wide row (~512px -> 992px of content, kept there by 14-10's
+    // five dials): Weather is index 3, so its only arrow-key predecessor is
+    // Performance, and that change flipped Weather's entry from a ~200px
+    // expansion into a ~280px compression. Nothing in this file changed —
+    // which is why the Weather tab's own history never explained it.
+    //
+    // Now the content is laid out ONCE, at the width it will have when the
+    // frame SETTLES (`root.settledPaneWidth`, published by Dashboard.qml off
+    // the un-animated target), and the animating frame simply closes around
+    // it. This is the same number the old fill-plus-margins produced at rest —
+    // 664px — so nothing about the settled layout changes; only the fifteen
+    // intermediate widths disappear.
+    //
+    // NOT pinned to `naturalContentWidth`: that is the natural MINIMUM (420px,
+    // driven by the hero band), and using it shrank the settled content from
+    // 664px to 420px — a real regression caught by measuring the fix rather
+    // than assuming it. The advisory `implicitWidth` and the laid-out width
+    // are different numbers, and only the former is the natural minimum.
+    //
+    // Safe without clipping: Dashboard.qml's `drawerMinWidth` (760) floors the
+    // frame, and this width is derived from that same frame target, so the
+    // content can never be wider than the frame carrying it.
+    //
+    // The VERTICAL axis deliberately still tracks the frame: the height delta
+    // is small, it was not part of the reported symptom, and changing one axis
+    // at a time keeps this reviewable.
     Item {
         id: contentColumn
-        anchors.fill: parent
-        anchors.margins: root.spacingLg
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: root.spacingLg
+        anchors.bottomMargin: root.spacingLg
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: root.settledPaneWidth > 0 ? root.settledPaneWidth - root.spacingLg * 2 : parent.width - root.spacingLg * 2
 
         // ── Populated bands (D-37) — hero, hour strip, day row ──────────
-        // Sizing note: `hourCellWidth`/`dayCellWidth` below are the REAL,
-        // render-time cell widths — derived from `contentColumn.width`
-        // (this tab's OWN CURRENT width, per 14-UI-SPEC.md's spacing
-        // exception formula) — never from the `natural*` measurements
-        // above, which exist solely to keep `implicitWidth` non-circular.
+        // Sizing note: `hourCellWidth`/`dayCellWidth` below are still the
+        // REAL, render-time cell widths derived from `contentColumn.width`
+        // per 14-UI-SPEC.md's spacing exception formula — that contract is
+        // unchanged. What changed is that `contentColumn.width` is now a
+        // constant rather than a value that moves every animation frame, so
+        // those cell widths resolve once instead of fifteen times per entry.
         Item {
             id: bandsWrap
             anchors.fill: parent
