@@ -179,6 +179,13 @@ hl.bind(mainMod .. " + SHIFT + K", hl.dsp.global("quickshell:screencopy-probe"))
 -- every existing modifier combination. Identifier below byte-matches
 -- shortcuts.json's appid:name pair — keybind-doctor's cross-check contract.
 hl.bind(mainMod .. " + D", hl.dsp.global("quickshell:dashboard")) -- Summon dashboard drawer (DASH-01)
+-- Audio panel (Phase 15 Plan 02 tracer, PANEL-02/PANEL-06): `A` verified
+-- free under every existing $mainMod combination. Identifier below
+-- byte-matches shortcuts.json's appid:name pair — keybind-doctor's
+-- cross-check contract. D-15-04: Super+A is the only panel keybind of the
+-- three this phase adds — see the D-15-04 comment above audioPanelShortcut
+-- in shell.qml for the full asymmetry rationale.
+hl.bind(mainMod .. " + A", hl.dsp.global("quickshell:audio-panel")) -- Summon audio mixer panel (PANEL-02)
 
 -- ── Notification center ──────────────────────────────
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("swaync-client -t -sw")) -- Toggle notification center
