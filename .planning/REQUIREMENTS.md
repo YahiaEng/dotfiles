@@ -51,11 +51,11 @@
 ### Audio + Connectivity Panels (PANEL)
 
 - [ ] **PANEL-01**: A per-app volume mixer lists active audio applications with a per-app volume slider and click-to-mute
-- [ ] **PANEL-02**: The audio panel selects the default output and input device and adjusts master volume
+- [x] **PANEL-02**: The audio panel selects the default output and input device and adjusts master volume
 - [ ] **PANEL-03**: The wifi panel scans, lists visible networks, connects, and prompts for a password on secured networks
 - [ ] **PANEL-04**: The bluetooth panel toggles the adapter, lists devices, and connects, disconnects or forgets them
-- [ ] **PANEL-05**: Each panel carries an "Advanced" button launching the real GUI app (pavucontrol / nm-connection-editor / blueman) for anything beyond its deliberately limited scope
-- [ ] **PANEL-06**: All panels are built from one shared dialog component rather than bespoke per-panel implementations
+- [x] **PANEL-05**: Each panel carries an "Advanced" button launching the real GUI app (pavucontrol / nm-connection-editor / blueman) for anything beyond its deliberately limited scope
+- [x] **PANEL-06**: All panels are built from one shared dialog component rather than bespoke per-panel implementations
 
 ### Workspace Overview (OVER)
 
@@ -154,11 +154,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DASH-09 | Phase 14 — Dashboard Drawer *(MINTED 2026-07-30 — new scope from 14-09's render gate)* | Complete — built in 14-10, render gate approved 2026-07-30 |
 | DASH-10 | Phase 14 — Dashboard Drawer *(MINTED 2026-08-01 — new scope arising during UAT)* | Built 2026-08-01 — render gate pending (14-UAT.md item 8) |
 | PANEL-01 | Phase 15 — Audio + Connectivity Panels | Pending |
-| PANEL-02 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-02 | Phase 15 — Audio + Connectivity Panels | Complete |
 | PANEL-03 | Phase 15 — Audio + Connectivity Panels | Pending |
 | PANEL-04 | Phase 15 — Audio + Connectivity Panels | Pending |
-| PANEL-05 | Phase 15 — Audio + Connectivity Panels | Pending |
-| PANEL-06 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-05 | Phase 15 — Audio + Connectivity Panels | Complete |
+| PANEL-06 | Phase 15 — Audio + Connectivity Panels | Complete |
 | OVER-01 | Phase 16 — Workspace Overview | Pending |
 | OVER-02 | Phase 16 — Workspace Overview | Pending |
 | OVER-03 | Phase 16 — Workspace Overview | Pending |
@@ -188,6 +188,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 - **DASH-10 → Phase 14 (MINTED 2026-08-01).** New scope, not a clarification of DASH-01. Raised by the human during Phase 14's UAT ("can you color the border of the drawer in the same alternating/shifting manner as hyprland window border"), with the explicit direction that it is part of the drawer's Phase 14 design rather than follow-up work. The scope concern — that Phase 14 was already at its UAT gate and no DASH id covered drawer chrome — was raised and overruled by the human, which is the decision recorded here. Minted as its own id rather than folded into DASH-01 for DASH-09's reason exactly: DASH-01 is satisfied and describes the summon/dismiss path, so folding would leave a satisfied requirement whose wording never mentioned the treatment. Appended as the next sequential DASH id so the traceability mapping above stays intact. Cost beyond the drawer itself: `lib/motion.sh` now emits the `indicators` motion-token bucket into the QML-facing rendered `motion.json` (it was Hyprland-only, so no QML surface could read `border-rotate`), `Motion.qml` exposes `borderRotateDuration`, and `motion-lint`'s QML allow-list derives indicator names from the rendered data. Left checked: built and live-verified by screenshot; the blocking human render gate is outstanding as `14-UAT.md` item 8.
 
 *(Checked 2026-08-01: built in `14-10-PLAN.md` Task 2 — one-shot `nvidia-smi` presence probe plus a fixed-argv sampler on its own 4s cadence, all three no-GPU failure shapes proven live, dial grid retuned to five columns at the recorded 176px/17px arithmetic with Performance measured at 1040x450, width unchanged. 14-10's blocking human render gate approved it. This line previously read "Left unchecked deliberately: it is planned, not built", which was true when written on 2026-07-30 and went stale when 14-10 closed.)*
+
 - **TOKEN-06 blocks nothing.** No phase and no requirement depends on it; dropping it changes no other phase's scope.
 - **OVER-04 stays in Phase 16.** Phase 11 runs the screencopy *feasibility probe* (permission mechanics, a first live multi-window capture) so Phase 16's scope is decided early; the measured frame/CPU budget and documented fallback remain Phase 16's requirement.
 - **QS-03 → Phase 12 (carried forward from Phase 11, 2026-07-26), then dropped by Phase 12 (2026-07-26, D-13, one-way).** The gap was accepted for Phase 11 under D-10 via a recorded override in `11-VERIFICATION.md` rather than dropped. Phase 12 is the first phase that needed a permanent, non-summoned QML surface, so it had to attempt per-screen fan-out anyway; it carried QS-03 as success criterion 6. Phase 12 re-attempted the fan-out with a bounded, targeted fix (checked-in `qmldir` plus `Variants`+`LazyLoader`, two structurally distinct arrangements, one spike) and both reproduced an FM2-class multiplicity failure on quickshell 0.3.0-2, re-proven across a real session restart — see `12-QS03-EVIDENCE.md`. Per D-13, QS-03 is now formally Out of Scope rather than carried a second time; the active requirement total drops from 38 to 37 with no duplicate, since the row moved rather than being copied.

@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Phase 15 UI-SPEC approved
-last_updated: "2026-08-01T20:23:50.028Z"
+stopped_at: Completed 15-02-PLAN.md (Task 4 render gate approved)
+last_updated: "2026-08-01T23:28:41.768Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 49
-  completed_plans: 40
+  completed_plans: 42
   percent: 63
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 1 of 9
-Status: Executing Phase 15
-Progress: [██████████] 100% executed, phase close gated on UAT
+Plan: 2 of 9
+Status: Ready to execute
+Progress: [█████████░] 86% executed, phase close gated on UAT
 Last activity: 2026-08-01 — Phase 15 execution started
 
 ## Performance Metrics
@@ -168,6 +168,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 14 P05 | multi-session (6 gate rounds) | 3 tasks | 2 files |
 | Phase 14 P08 | 46min | 2 tasks | 2 files |
 | Phase 14 P09 | multi-session (4 sessions) | 4 tasks | 11 files |
+| Phase 15 P02 | 47min + gate-closure session | 4 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -297,6 +298,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 14-10 Task 1: `ConditionGlyph.qml` built (Text-rooted, overlay as a non-sizing child) for the two-tone weather-glyph experiment; Step Zero confirmed `wb_sunny`/`clear_night`/`cloud` all render as real glyphs (fontTools GSUB ligature lookup + qml6 grabToImage, with a fabricated-name negative control) — no fallback needed. `layeringEnabled` (the whole revert) exercised off-then-on live before any judgment, both states screenshotted. `WeatherPalette.qml`'s header citation corrected: the exemption is to 14-CONTEXT.md's zero-hex/duration-literal invariant line, not "D-11" (the DASH-08 fullscreen decision) — 14-09 had the number wrong. Frozen-file sha256 manifest (WeatherPalette.qml/Dial.qml/DashboardTab.qml) written immediately after that one-line fix, before any other edit. Weather frame confirmed live at 760x514, unchanged.
 - [Phase ?]: 14-10 Task 2: GPU dial added to Performance (DASH-09) — one-shot presence probe + one-shot fixed-argv sampler on its own 4s cadence (SystemResources.qml), in-flight skip proven via timestamped ps traces against a deliberately slow stub, all three no-GPU failure shapes (absent binary, present-no-devices, present-non-zero-exit) proven live via in-tree seam edits + hot reload + revert, converging on one designed empty state. Dial grid retuned to 5 columns at 176px/17px ring (14-09's carried-forward arithmetic). Accent role: plan's own recorded default `primaryContainer` was live-found byte-identical to `Colours.surfaceVariant` under the active theme (`#44475a` both) — an invisible arc, not merely washed out — so this landed on the plan's own recorded fallback, sharing `primary` with CPU. `Dial.qml`/`DashboardTab.qml` confirmed byte-unchanged via the Task 1 frozen manifest. Live-measured: Performance 1040x450 (width unchanged, height shorter as predicted), Dashboard 760x826 (unchanged).
 - [Phase ?]: 14-10 Task 3: `hypr-equivalence-check` repaired — MAINT-04's proof instrument was red for two independent reasons (stale baseline missing 14-01's SUPER+D dashboard chord; the pre-existing Phase-13.1 mouse-drag `mouse:true`-vs-`false` divergence). Bounded by an order-insensitive 15-field delta computed BEFORE any write (keycode/dispatcher/arg excluded, matching the gate's own exclusions); baseline amended SURGICALLY — one record inserted at live index 30, all 80 pre-existing records proven byte-identical, never re-snapshotted (a wholesale re-snapshot would have silently blessed the un-loosened mouse-field divergence). Mouse-field divergence given a narrow, poison-proven, explicitly PROVISIONAL forgiveness in the gate's own comparator — provisional on the human drag-move/drag-resize compensating check, which is NOT yet run (Task 3 is unattended-auto and cannot perform it; scheduled at this plan's own Task 4). Gate folded into `theme-doctor` in the established guarded-skip shape plus an extra live-session guard (proven live to SKIP with `HYPRLAND_INSTANCE_SIGNATURE` unset). A count-mismatch-gated diagnostic added ahead of the gate's positional bind diff (one inserted bind previously produced 65 reported lines, 2 real) — poison-proven to fire only on a count mismatch, never touching the verdict logic. Gate: 3/0, exit 0.
+- [Phase ?]: 15-02: Task 4 blocking render gate APPROVED (round 1, no change request) — 850x620 frame geometry and the shared header/Advanced chrome are now the settled contract 15-03..15-06 lay out against; entrance cascade approved as one singular motion
+- [Phase ?]: 15-02: found (second occurrence) a non-detached quickshell restart silently breaking Super+A/Super+D until recovered via the standing detached-restart form — carried forward as a mandatory rule for every remaining 15-03..15-09 verification restart
 
 ### Quick Tasks Completed
 
@@ -367,6 +370,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - QS-03 per-screen mounting gap (Phase 11, 11-04): headless output added after shell startup gets zero probe surfaces — genuine, mechanically-verified defect. Variants-based fix attempted and reverted (two independent reliability regressions on this quickshell 0.3.0 build). Not a stop-trigger (D-10); open for a future plan.
 - 14-01: Phase 14 plans 02-09's <automated> verify blocks carry the stale hyprctl dispatch global quickshell:<name> / hyprctl dispatch fullscreen N syntax, already known-broken since Phase 13.1 (13.1-09-SUMMARY.md) — use hyprctl dispatch 'hl.dsp.global("quickshell:<name>")' / hl.dsp.window.fullscreen(N) instead
 - 14-09 Task 4: blocking human render gate (gate="blocking") not yet run — three of its eleven checks (2, 4, 5) are previously-deferred open judgments from 14-03/14-08 that must be answered explicitly. theme-stress-test's full 10/10 run also did not complete this session (git-clean transient from in-flight STATE.md) — re-run once the tree is clean. See 14-09-SUMMARY.md for full evidence.
+- 15-02: a prior executor's non-detached quickshell restart died with its session, silently breaking Super+A/Super+D until recovered (second occurrence of this failure mode) — **carried-forward rule, not an open blocker:** every remaining 15-03..15-09 verification restart must use `setsid uwsm app -- ~/.config/hypr/scripts/quickshell-launch.sh` and confirm the new PID's PPID is not a shell.
 
 ## Deferred Items
 
@@ -386,9 +390,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-01T19:03:46.711Z
-Stopped at: Phase 15 UI-SPEC approved
-Resume file: /home/aorus/dotfiles/.planning/phases/15-audio-connectivity-panels/15-UI-SPEC.md
+Last session: 2026-08-01T23:28:35.418Z
+Stopped at: Completed 15-02-PLAN.md (Task 4 render gate approved)
+Resume file: None
 
 ## Operator Next Steps
 
