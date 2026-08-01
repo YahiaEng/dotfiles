@@ -25,35 +25,44 @@
 //                 runs, so the drawer's rim and every window border on screen
 //                 stay in step at every motion-scale preset.
 //
-// HOW THE RIM IS DRAWN
-// QML's `Rectangle.border` takes a solid colour only — there is no gradient
-// border primitive, and `ShapePath` applies gradients to fill, never stroke.
-// The standard construction is therefore: draw the full gradient, then mask
-// it to a ring.
+// ── HOW THE RIM IS DRAWN, AND WHY NOT WITH A MASK ────────────────────────
+// The first implementation of this file drew the full gradient and masked it
+// to a ring with `MultiEffect` + a bordered `Rectangle` as the mask shape.
+// It worked, but the human reported the rounded bottom corners as visibly
+// pixelated, and measurement confirmed it: walking the corner arc, the first
+// non-background pixel jumped straight to the full rim colour with no
+// intermediate blend — a hard, binary edge.
 //
-// The usual cheap trick — a gradient rectangle with an opaque inset rectangle
-// on top — is NOT usable here: the drawer's surface is translucent (it sits
-// over a compositor blur), so an inset "cover" rectangle would let the
-// gradient show straight through the whole panel. Real alpha masking is
-// required, which is why this uses MultiEffect rather than two stacked rects.
+// Two fixes were tried against that design and BOTH failed, which is what
+// condemned the approach rather than the parameters:
+//   1. `layer.samples: 4` + `antialiasing: true` on the mask — no visible
+//      change. The mask's own rasterisation was not the bottleneck.
+//   2. `maskSpreadAtMin: 0.4` on the MultiEffect — far worse: it widened the
+//      mask threshold until the whole interior filled with gradient.
+// The mask path runs the shape through an offscreen texture and then applies
+// an alpha threshold, and a thresholded texture lookup cannot reproduce a
+// crisp analytic curve at a 3px stroke width.
 //
-// The mask is a `Rectangle` with a transparent fill and a coloured border —
-// a Rectangle's border IS the ring shape, so no hand-built path is needed and
-// per-corner radii come along for free.
+// So the rim is now real geometry: a `Shape` whose `ShapePath` contains TWO
+// closed rounded-rect subpaths — the outer edge and the inner edge — filled
+// with `ShapePath.OddEvenFill`. The odd-even rule leaves the interior (two
+// crossings) unfilled, so the fill lands exactly on the band between the two
+// paths. `Shape.CurveRenderer` then antialiases that band analytically rather
+// than by sampling a texture, which is the whole point.
 //
-// `visible: false` + `layer.enabled: true` on BOTH mask and source is
-// load-bearing, not tidiness. 14-05 lost a session to exactly this: a
-// MultiEffect mask input with no `layer.enabled` produces no scene-graph
-// paint node at all, which reads as an EMPTY mask rather than a full one, and
-// the effect composites nothing. See MediaTab.qml's `artMaskShape` for the
-// same pairing and the full write-up.
+// This also removes the reason the old design needed masking at all. The
+// cheap trick of a gradient rect under an opaque inset rect was never usable
+// here — the drawer's surface is translucent over a compositor blur, so an
+// inset "cover" would let the gradient show through the whole panel — but
+// with real ring geometry nothing is covering anything, so translucency
+// stops mattering.
 //
 // ROTATION
-// The gradient item is oversized to the bounding diagonal and centred, so
-// that at every angle its rotated footprint still covers all four corners of
-// the rim — a parent-sized gradient would sweep its own empty corners across
-// the border as it turned. It is clipped back to the rim's bounds by
-// `gradientSource`, so the oversize costs nothing on screen.
+// Nothing rotates geometrically. The gradient's own endpoints are swept
+// around the centre of the item, which rotates the gradient direction
+// without moving the ring. `LinearGradient` endpoints are item coordinates,
+// so they are placed on a circle of the item's half-diagonal to guarantee the
+// gradient spans the whole rim at every angle.
 //
 // The spin is gated on `Motion.motionEnabled`, so the `off` motion-scale
 // preset yields a still gradient rather than an animation that ignores the
@@ -61,7 +70,7 @@
 // on dismiss), so a continuously-running animation here does not violate the
 // zero-idle doctrine: nothing spins while the drawer is closed.
 import QtQuick
-import QtQuick.Effects
+import QtQuick.Shapes
 import "../"
 
 Item {
@@ -89,29 +98,75 @@ Item {
     // Lets a caller stop the spin without unloading the component.
     property bool active: true
 
-    // Rotating a WxH rectangle sweeps a circle of its diagonal; sizing the
-    // gradient to that guarantees full coverage at every angle.
-    readonly property real _diagonal: Math.ceil(Math.sqrt(width * width + height * height))
-
     property real angle: 0
 
-    // ── Source: the gradient, clipped back to the rim's own bounds so the
-    //    oversized rotating rectangle never inflates this item ────────────
-    Item {
-        id: gradientSource
+    // Half-diagonal: the radius the gradient endpoints ride on, so the
+    // gradient axis still spans the entire rim at every rotation angle.
+    readonly property real _halfDiagonal: Math.sqrt(width * width + height * height) / 2
+
+    readonly property real _radians: (root.startAngle + root.angle) * Math.PI / 180
+
+    // ── Ring path ───────────────────────────────────────────────────────
+    // One SVG path string holding two closed rounded-rect subpaths. Built in
+    // JS rather than from Path elements because this Qt build has no
+    // `PathRectangle` (checked against QtQuick/Shapes' own qmltypes), so the
+    // alternative is a fixed chain of PathLine/PathArc segments that cannot
+    // drop an arc when a corner radius is 0 — and this drawer has two square
+    // corners and two round ones.
+    function _roundedRect(x, y, w, h, tl, tr, br, bl) {
+        // Clamp so no pair of radii on an edge can exceed that edge's length,
+        // which would otherwise produce a self-crossing path.
+        var m = Math.min(w, h) / 2;
+        tl = Math.max(0, Math.min(tl, m));
+        tr = Math.max(0, Math.min(tr, m));
+        br = Math.max(0, Math.min(br, m));
+        bl = Math.max(0, Math.min(bl, m));
+        var p = "M " + (x + tl) + " " + y;
+        p += " L " + (x + w - tr) + " " + y;
+        if (tr > 0)
+            p += " A " + tr + " " + tr + " 0 0 1 " + (x + w) + " " + (y + tr);
+        p += " L " + (x + w) + " " + (y + h - br);
+        if (br > 0)
+            p += " A " + br + " " + br + " 0 0 1 " + (x + w - br) + " " + (y + h);
+        p += " L " + (x + bl) + " " + (y + h);
+        if (bl > 0)
+            p += " A " + bl + " " + bl + " 0 0 1 " + x + " " + (y + h - bl);
+        p += " L " + x + " " + (y + tl);
+        if (tl > 0)
+            p += " A " + tl + " " + tl + " 0 0 1 " + (x + tl) + " " + y;
+        return p + " Z";
+    }
+
+    readonly property string _ringPath: {
+        var bw = root.borderWidth;
+        // Inner radii shrink by the stroke width so the band keeps a constant
+        // thickness around the curve instead of pinching at the corners.
+        var outer = root._roundedRect(0, 0, root.width, root.height, root.topLeftRadius, root.topRightRadius, root.bottomRightRadius, root.bottomLeftRadius);
+        var inner = root._roundedRect(bw, bw, Math.max(0, root.width - bw * 2), Math.max(0, root.height - bw * 2), Math.max(0, root.topLeftRadius - bw), Math.max(0, root.topRightRadius - bw), Math.max(0, root.bottomRightRadius - bw), Math.max(0, root.bottomLeftRadius - bw));
+        return outer + " " + inner;
+    }
+
+    Shape {
         anchors.fill: parent
-        clip: true
-        visible: false
-        layer.enabled: true
+        // Analytic antialiasing — this is the property that fixes the
+        // pixelated corners the mask-based implementation could not.
+        preferredRendererType: Shape.CurveRenderer
 
-        Rectangle {
-            anchors.centerIn: parent
-            width: root._diagonal
-            height: root._diagonal
-            rotation: root.startAngle + root.angle
+        ShapePath {
+            // Odd-even leaves the interior unfilled, so the fill lands on the
+            // band between the two subpaths regardless of their winding.
+            fillRule: ShapePath.OddEvenFill
+            // Fill only: a stroke here would sit on BOTH subpath outlines and
+            // read as two hairlines rather than one solid rim.
+            strokeWidth: -1
+            strokeColor: "transparent"
 
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
+            fillGradient: LinearGradient {
+                x1: root.width / 2 - Math.cos(root._radians) * root._halfDiagonal
+                y1: root.height / 2 - Math.sin(root._radians) * root._halfDiagonal
+                x2: root.width / 2 + Math.cos(root._radians) * root._halfDiagonal
+                y2: root.height / 2 + Math.sin(root._radians) * root._halfDiagonal
+
                 GradientStop {
                     position: 0.0
                     color: Colours.primary
@@ -125,33 +180,11 @@ Item {
                     color: Colours.tertiary
                 }
             }
+
+            PathSvg {
+                path: root._ringPath
+            }
         }
-    }
-
-    // ── Mask: the ring ──────────────────────────────────────────────────
-    // `transparent` fill + opaque border are ALPHA-CHANNEL values, not design
-    // colours — this Rectangle is never painted (`visible: false`), it exists
-    // only as a mask shape, so it is deliberately not themed and is not a
-    // zero-hex-invariant exception.
-    Rectangle {
-        id: ringMask
-        anchors.fill: parent
-        visible: false
-        layer.enabled: true
-        color: "transparent"
-        topLeftRadius: root.topLeftRadius
-        topRightRadius: root.topRightRadius
-        bottomLeftRadius: root.bottomLeftRadius
-        bottomRightRadius: root.bottomRightRadius
-        border.width: root.borderWidth
-        border.color: "white"
-    }
-
-    MultiEffect {
-        anchors.fill: parent
-        source: gradientSource
-        maskEnabled: true
-        maskSource: ringMask
     }
 
     // Linear and looping, matching `borderangle`'s own `style=loop` and
