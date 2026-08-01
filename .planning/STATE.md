@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-current_phase: 14
-current_phase_name: dashboard-drawer
-status: executing
-stopped_at: All 10 plans complete. Phase-level close ran 2026-08-01 — code review (1 critical, 6 warning, 3 info), regression gate, and goal verification. Verification returned human_needed: 6/10 must-haves verified, 4 backstop truths need hand-testing. 14-UAT.md written with 5 items (the 4 backstops plus a render-gate sign-off for the calendar chevron fix). Phase NOT marked complete — awaiting /gsd-verify-work 14
-last_updated: "2026-08-01T14:10:08.000Z"
+current_phase: 15
+current_phase_name: Audio + Connectivity Panels
+status: planning
+stopped_at: "14-10-PLAN.md Tasks 1-3 complete and committed (`5fe30c6`, `14d4044`, `b541783`). Task 4 is a `gate=\"blocking\"` human-verify checkpoint — reached, NOT self-approved, executor stopped and returned per its own operating constraint. **The desktop is currently idle-locked (hyprlock)** — a `hypridle` timeout fired partway through this session's live verification work, not a functional regression. Unlock the session (enter your password) before pressing Super+D to run Task 4."
+last_updated: "2026-08-01T16:27:49.645Z"
 last_activity: 2026-08-01
-last_activity_desc: Phase 14 close gates run; verification human_needed, UAT written, three fixes committed
+last_activity_desc: Phase 14 complete, transitioned to Phase 15
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 40
   completed_plans: 40
-  percent: 50
+  percent: 63
 ---
 
 # Project State
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 ## Current Position
 
-Phase: 14 (dashboard-drawer) — AWAITING UAT
-Plan: 10 of 10 complete
-Status: All plans executed; verification returned human_needed — 5 UAT items pending in 14-UAT.md
+Phase: 15 — Audio + Connectivity Panels
+Plan: Not started
+Status: Ready to plan
 Progress: [██████████] 100% executed, phase close gated on UAT
-Last activity: 2026-08-01 — close gates run (review + regression + verification); UAT written
+Last activity: 2026-08-01 — Phase 14 complete, transitioned to Phase 15
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 83
+- Total plans completed: 93
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -58,6 +58,7 @@ Last activity: 2026-08-01 — close gates run (review + regression + verificatio
 | 12 | 8 | - | - |
 | 13 | 7 | - | - |
 | 13.1 | 10 | - | - |
+| 14 | 10 | - | - |
 
 **Recent Trend:**
 

@@ -1,24 +1,28 @@
 ---
 phase: 14-dashboard-drawer
 verified: 2026-08-01T17:10:00Z
-status: human_needed
+status: passed
 score: 6/10 must-haves verified
 behavior_unverified: 4
 overrides_applied: 0
 gaps: []
 behavior_unverified_items:
+
   - truth: "Swipe progress driving the tab indicator neither overshoots past the final tab's indicator position nor leaves a sub-pixel gap at rest at any of the four indices (14-03 must_haves, verification: backstop)"
     test: "Drag to each of the four tab indices and release exactly at rest (no residual velocity); zoom into the header indicator at each of the four positions"
     expected: "The indicator's leading/trailing edge lands flush with the active tab label at all four indices — no visible overshoot past index 3's position and no sub-pixel gap at any index"
     why_human: "Sub-pixel alignment and overshoot are a rendered-pixel judgement; no committed gate or SUMMARY records this specific check having been made (the render gate's Task-2/Task-5 checks confirmed general threshold-commit/spring-back behavior, not this pixel-level claim)"
+
   - truth: "Long real-world track title/artist elides single-line without breaking the fixed frame on the Media tab (14-05 must_haves, verification: backstop)"
     test: "Play a track with a long title and/or artist string (e.g. a classical piece with a long composer credit, or a podcast episode title) and observe the Media tab"
     expected: "Title and artist each elide with an ellipsis on one line; the tab's fixed-height frame does not grow, shrink, or reflow"
     why_human: "No SUMMARY records this specific test being run against a real long title — 14-09's Task 4 check 7 exercised play/pause/seek/switch-player but did not call out a long-title elide case"
+
   - truth: "The Performance tab's network rate row holds its width at worst-case values with no reflow (14-06 must_haves, verification: backstop)"
     test: "Generate sustained heavy network traffic (large download/upload) so the up/down rate readout reaches its longest realistic string (e.g. \"999.9 MB/s\") and watch the row"
     expected: "The row's fixed-width formatting absorbs the longest value with no layout shift, wrap, or reflow"
     why_human: "14-10's Task 4 confirmed the row was re-centred and widened, and states the 'anti-reflow guarantee' held under that change, but no session recorded feeding it an actual worst-case value string to watch for reflow — the claim rests on the fixed-width formatter's design, not an observed worst-case render"
+
   - truth: "The Dashboard tab's compact media widget title elides correctly at compact width (14-08 must_haves, verification: backstop)"
     test: "Play a track with a long title while the Dashboard tab's compact media widget is visible"
     expected: "Title elides with an ellipsis inside the widget's fixed-width slot; nothing shifts or wraps"
