@@ -516,13 +516,98 @@ PYEOF
 # ── changed control point, a missing curve, or an extra curve still FAILs  ─
 # ── and still names the offending curve — this is a normalization of       ─
 # ── ORDER only, not of VALUE.
+#
+# ── Motion-scale awareness (added after Phase 14's regression gate) ───────
+# ── The committed baseline was captured under the `normal` motion-scale    ─
+# ── preset (multiplier 1.0). Every animation leaf's `speed` is a RENDERED  ─
+# ── value — lib/motion.sh emits floor(duration_ms * multiplier), clamped   ─
+# ── to motion.json's floor_ms at the low end and to Hyprland's own 100.00  ─
+# ── speed ceiling at the high end — so ANY preset other than `normal`      ─
+# ── makes every overridden leaf diverge from the baseline by exactly that  ─
+# ── multiplier and the gate reports a whole-file FAIL. Observed live under ─
+# ── `lively` (1.25x): 2.0 -> 2.5, 3.0 -> 3.75, 1.5 -> 1.87, 10.0 -> 12.5.  ─
+# ── That is the renderer working correctly, not a migration divergence,    ─
+# ── and it dragged theme-doctor to exit 1 for any operator not sitting on  ─
+# ── `normal`.                                                              ─
+# ──                                                                        ─
+# ── The forgiveness is NARROW, in the same shape as the mouse-field one:   ─
+# ── a leaf is forgiven ONLY when `speed` is the sole differing field AND   ─
+# ── the live value equals the renderer's expected scaled value derived     ─
+# ── from the baseline. Every other field stays byte-exact positional, and  ─
+# ── a speed that is merely "different" (not the scaled value) still FAILs. ─
+# ── Under `normal` the multiplier is 1.0, so this reduces to the original  ─
+# ── byte-exact comparison and changes nothing.                             ─
+# ──                                                                        ─
+# ── The arithmetic below MIRRORS lib/motion.sh's emission (its jq          ─
+# ── `($D[$v.duration] * $mult)` -> floor clamp -> `| floor`, then the      ─
+# ── MOTION_HYPR_MAX_SPEED ceiling). motion.sh remains the source of truth; ─
+# ── if its rounding ever changes, this mirror must change with it.         ─
 _compare_animations() {
     local baseline="$1" live="$2"
-    python3 - "$baseline" "$live" <<'PYEOF'
+    local motion_json="$HOME/.config/theme-engine/motion.json"
+    local scale mult floor_ms
+
+    # Closed-set read, matching theme_engine_read_motion_scale's discipline:
+    # an unrecognised or absent value defaults to `normal`, never flows on raw.
+    scale="$(cat "$HOME/.local/state/theme/motion-scale" 2>/dev/null || echo normal)"
+    case "$scale" in
+        off|reduced|normal|lively) ;;
+        *) scale=normal ;;
+    esac
+    mult="$(jq -r --arg s "$scale" '.scales[$s].multiplier // 1' "$motion_json" 2>/dev/null || echo 1)"
+    floor_ms="$(jq -r '.floor_ms // 40' "$motion_json" 2>/dev/null || echo 40)"
+    [[ -n "$mult" && "$mult" != "null" ]] || mult=1
+    [[ -n "$floor_ms" && "$floor_ms" != "null" ]] || floor_ms=40
+
+    python3 - "$baseline" "$live" "$mult" "$floor_ms" "$scale" <<'PYEOF'
 import json
+import math
 import sys
 
 baseline_path, live_path = sys.argv[1], sys.argv[2]
+MULTIPLIER = float(sys.argv[3])
+FLOOR_MS = float(sys.argv[4])
+SCALE_NAME = sys.argv[5]
+
+# Hyprland rejects any animation `speed` above this (lib/motion.sh's
+# MOTION_HYPR_MAX_SPEED, 14-04 render-gate fix) — in milliseconds here.
+MAX_SPEED_MS = 10000.0
+
+
+def expected_scaled_speed(baseline_speed):
+    """Reproduce lib/motion.sh's emission for a baseline (multiplier-1.0) speed.
+
+    Baseline speed is in Hyprland deciseconds at 2dp, so its source duration in
+    ms is speed*100. Scale, clamp low to floor_ms, clamp high to the Hyprland
+    ceiling, truncate to whole ms (jq's `| floor`), convert back to deciseconds.
+    """
+    try:
+        baseline_ms = round(float(baseline_speed) * 100)
+    except (TypeError, ValueError):
+        return None
+    scaled = baseline_ms * MULTIPLIER
+    if scaled < FLOOR_MS:
+        scaled = FLOOR_MS
+    if scaled > MAX_SPEED_MS:
+        scaled = MAX_SPEED_MS
+    return math.floor(scaled) / 100.0
+
+
+def speed_is_scaled_equivalent(b, l):
+    """True when `speed` is the ONLY differing field and the live value is
+    exactly the renderer's scaled expectation for the baseline value."""
+    if set(b.keys()) != set(l.keys()):
+        return False
+    differing = [k for k in b if b[k] != l[k]]
+    if differing != ["speed"]:
+        return False
+    expected = expected_scaled_speed(b.get("speed"))
+    if expected is None:
+        return False
+    try:
+        return abs(float(l.get("speed")) - expected) < 0.005
+    except (TypeError, ValueError):
+        return False
 
 
 def load(path):
@@ -557,9 +642,29 @@ if len(baseline_leaves) != len(live_leaves):
     diffs.append(
         f"leaf count mismatch: baseline={len(baseline_leaves)} live={len(live_leaves)}"
     )
+scaled_forgiven = []
 for i, (b, l) in enumerate(zip(baseline_leaves, live_leaves)):
-    if b != l:
-        diffs.append(f"leaf record {i} (name={b.get('name')!r}): baseline={b!r} live={l!r}")
+    if b == l:
+        continue
+    if speed_is_scaled_equivalent(b, l):
+        scaled_forgiven.append(
+            f"leaf {b.get('name')!r}: speed {b.get('speed')} -> {l.get('speed')}"
+        )
+        continue
+    diffs.append(f"leaf record {i} (name={b.get('name')!r}): baseline={b!r} live={l!r}")
+
+# Never silent: forgiven leaves are always reported. These go to STDERR on
+# purpose — the caller captures stdout into $diff_out and only echoes it on
+# FAIL, so a stdout note would vanish on exactly the runs it needs to explain.
+if scaled_forgiven:
+    print(
+        f". motion-scale preset {SCALE_NAME!r} (multiplier {MULTIPLIER}): "
+        f"{len(scaled_forgiven)} leaf speed(s) match the renderer's scaled "
+        f"expectation from the multiplier-1.0 baseline — normalized, not ignored",
+        file=sys.stderr,
+    )
+    for line in scaled_forgiven:
+        print(f".   {line}", file=sys.stderr)
 
 # ── Curves: SET comparison on (name, X0, Y0, X1, Y1) ──────────────────────
 EXPECTED_CURVE_KEYS = {"name", "X0", "Y0", "X1", "Y1"}
