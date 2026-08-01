@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 14
 current_phase_name: dashboard-drawer
 status: executing
-stopped_at: 14-10-PLAN.md Tasks 1-3 complete (two-tone weather glyphs, fifth GPU dial, hypr-equivalence-check surgical re-baseline+fold) — Task 4's blocking human render gate reached and NOT self-approved; session ended with the desktop idle-locked (hypridle timeout during a long verification session), unlock required before the gate can be run
-last_updated: "2026-07-30T13:50:00.000Z"
-last_activity: 2026-07-30
-last_activity_desc: 14-10 Tasks 1-3 executed and committed; Task 4 checkpoint pending
+stopped_at: All 10 plans complete. Phase-level close ran 2026-08-01 — code review (1 critical, 6 warning, 3 info), regression gate, and goal verification. Verification returned human_needed: 6/10 must-haves verified, 4 backstop truths need hand-testing. 14-UAT.md written with 5 items (the 4 backstops plus a render-gate sign-off for the calendar chevron fix). Phase NOT marked complete — awaiting /gsd-verify-work 14
+last_updated: "2026-08-01T14:10:08.000Z"
+last_activity: 2026-08-01
+last_activity_desc: Phase 14 close gates run; verification human_needed, UAT written, three fixes committed
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 40
-  completed_plans: 39
+  completed_plans: 40
   percent: 50
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 ## Current Position
 
-Phase: 14 (dashboard-drawer) — EXECUTING
-Plan: 9 of 10 complete — 14-10 pending (wave 6)
-Status: Executing plan 14-10; phase verification held until it closes
-Progress: [█████████░] 90%
-Last activity: 2026-07-30 — Phase 14 extended with plan 14-10; executing
+Phase: 14 (dashboard-drawer) — AWAITING UAT
+Plan: 10 of 10 complete
+Status: All plans executed; verification returned human_needed — 5 UAT items pending in 14-UAT.md
+Progress: [██████████] 100% executed, phase close gated on UAT
+Last activity: 2026-08-01 — close gates run (review + regression + verification); UAT written
 
 ## Performance Metrics
 
