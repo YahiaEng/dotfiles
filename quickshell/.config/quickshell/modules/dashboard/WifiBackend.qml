@@ -333,11 +333,29 @@ Scope {
     //    device-switch truth-driven pattern (15-04-SUMMARY.md). ─────────
     property var connectingNetwork: null
 
+    // ── G-15-4 gap closure (15-13) — the disambiguator NetworkManager
+    //    cannot supply but the panel can ────────────────────────────────
+    // NM only knows it lacks a usable secret; it cannot know whether one
+    // was just handed to it and rejected. The panel knows, because
+    // `connect(network, psk)` receives that fact directly.
+    //
+    // PROHIBITION P3 — this is a BOOLEAN, recording only *whether* a
+    // passphrase was supplied. The passphrase itself is never stored: not
+    // assigned to a property, not appended to a collection, not captured
+    // in a surviving closure, not logged. `psk` stays used-and-discarded
+    // in `connect()` below, exactly as it already was.
+    //
+    // Cleared everywhere `connectingNetwork` is cleared — on success, on
+    // cancel, and on failure — so a later attempt can never read a stale
+    // value left by an earlier one.
+    property bool connectingSuppliedPsk: false
+
     // ── The four verbs — all take the network object, never an SSID. ────
     function connect(network, psk) {
         if (!network)
             return;
         root.connectingNetwork = network;
+        root.connectingSuppliedPsk = !!(psk && psk.length > 0);
         // The single native passphrase call site in the entire repository
         // (Prohibition P3's call-path half; verified exactly one grep hit
         // below). The parameter is used and discarded: not assigned to a
@@ -360,10 +378,12 @@ Scope {
     function cancelConnect(network) {
         if (!network) {
             root.connectingNetwork = null;
+            root.connectingSuppliedPsk = false;
             return false;
         }
         network.disconnect();
         root.connectingNetwork = null;
+        root.connectingSuppliedPsk = false;
         return true;
     }
 
@@ -398,11 +418,27 @@ Scope {
     //    prevent). The raw enum value is recorded in the SUMMARY when a
     //    failure is observed, so the mapping can be audited — never on
     //    screen. ────────────────────────────────────────────────────────
-    function failReasonText(reason) {
+    //
+    // G-15-4 (15-13) added the second parameter. It is OPTIONAL with a
+    // falsy default, so a one-argument call still yields the pre-existing
+    // string — the panel's own call site is updated deliberately in the
+    // same plan rather than changing meaning by accident.
+    function failReasonText(reason, suppliedPsk) {
         switch (reason) {
         case ConnectionFailReason.NoSecrets:
-            return "Password required";
+            // G-15-4: one reason, two meanings, and only the panel can
+            // tell them apart. A passphrase WAS supplied and the network
+            // still reports no usable secret => the one supplied was
+            // rejected, which the user experiences as a wrong password.
+            // No passphrase supplied => the network genuinely needs one.
+            // Getting this wrong re-labels a rejection as a first-time
+            // request and re-opens an empty field the user already filled.
+            return suppliedPsk ? "Wrong password" : "Password required";
         case ConnectionFailReason.WifiAuthTimeout:
+            // Kept mapped even though this host's NM/quickshell pairing
+            // may never emit it: an unreachable-today branch that becomes
+            // reachable on a different NM version is not dead code, it is
+            // the mapping staying complete.
             return "Wrong password";
         case ConnectionFailReason.WifiClientDisconnected:
         case ConnectionFailReason.WifiClientFailed:
@@ -431,14 +467,21 @@ Scope {
         target: root.connectingNetwork
 
         function onConnectedChanged() {
-            if (root.connectingNetwork && root.connectingNetwork.connected)
+            if (root.connectingNetwork && root.connectingNetwork.connected) {
                 root.connectingNetwork = null;
+                root.connectingSuppliedPsk = false;
+            }
         }
 
         function onConnectionFailed(reason) {
             var failedNetwork = root.connectingNetwork;
-            var text = root.failReasonText(reason);
+            // Captured BEFORE the clear below, the same way the failed
+            // network reference already is — otherwise the mapping reads
+            // a boolean this handler just reset (G-15-4, 15-13).
+            var suppliedPsk = root.connectingSuppliedPsk;
+            var text = root.failReasonText(reason, suppliedPsk);
             root.connectingNetwork = null;
+            root.connectingSuppliedPsk = false;
             root.connectFailed(failedNetwork, text);
         }
     }

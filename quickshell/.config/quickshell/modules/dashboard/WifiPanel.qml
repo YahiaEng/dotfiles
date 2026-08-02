@@ -242,11 +242,19 @@ PanelDialog {
             rowWatchdogTimer.stop();
             root.failedNetwork = network;
             root.failedText = reasonText;
-            // "Password required" is never spelled out here — the panel
+            // The no-secrets copy is never spelled out here — the panel
             // compares against the backend's own locked mapping output
             // rather than restating the string, so the five failure
             // strings live in exactly one place (WifiBackend.qml).
-            if (!wasExpanded && root.backend && reasonText === root.backend.failReasonText(ConnectionFailReason.NoSecrets))
+            //
+            // G-15-4 (15-13): the second argument is now passed
+            // EXPLICITLY as false, so this comparison means what it says —
+            // "the string the backend renders when NO passphrase was
+            // supplied". Without it, the same NoSecrets reason that now
+            // maps to the rejected-passphrase copy would still match here,
+            // and a rejected passphrase would re-open the field as though
+            // the user had never entered one.
+            if (!wasExpanded && root.backend && reasonText === root.backend.failReasonText(ConnectionFailReason.NoSecrets, false))
                 root.expandedNetwork = network;
         }
     }
