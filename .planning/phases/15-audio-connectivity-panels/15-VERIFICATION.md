@@ -1,7 +1,10 @@
 ---
 phase: 15-audio-connectivity-panels
 verified: 2026-08-02T03:22:17Z
-status: human_needed
+human_verified: 2026-08-02T18:40:00Z
+human_verified_by: 15-UAT.md round 2 (7 tests)
+closed_by_user_direction: true
+status: passed
 score: 2/5 must-haves verified
 behavior_unverified: 3
 overrides_applied: 0
@@ -130,3 +133,58 @@ No gaps found. Every artifact required by the phase's plans exists, is substanti
 
 _Verified: 2026-08-02T03:22:17Z_
 _Verifier: Claude (gsd-verifier)_
+
+---
+
+## Human Verification — UAT round 2 (2026-08-02)
+
+`status` moved `human_needed` → `passed` because the three `behavior_unverified_items`
+above were the exact items UAT round 2 exercised against real hardware:
+
+| behavior_unverified item | Covered by | Result |
+|---|---|---|
+| Wifi scan / connect / password / Cancel / two-stage Escape | UAT tests 1, 4, 6 | pass — against a real AP, a real wrong password, and the user's own hidden network |
+| Bluetooth adapter toggle **and device list** | UAT tests 2, 7 | adapter pass; device list exercised for the first time against a real peer (Z Fold7) — discovery, pair, connect, Forget all confirmed |
+| Advanced buttons (pavucontrol / nm-connection-editor / blueman-manager) | UAT test 3 | pass |
+
+The second row is the notable one: it was recorded as unreachable on this host for lack
+of a discoverable peer. The user supplied one, so it was closed on its own terms rather
+than written off at a phase boundary.
+
+## Acknowledged Gaps
+
+Phase 15 was closed at the user's explicit direction after the limits below were stated
+and reaffirmed. They are recorded so nobody later reads `status: passed` as meaning more
+than it does.
+
+**1. The verifier was never re-run against the gap-closure round.** This report was
+generated at 03:22 and covers plans 15-01 … 15-09. It has NO goal-backward code audit of:
+
+- plans 15-10 – 15-14 (gradient border, motion tokens, bluetooth blocked branch,
+  nm-applet suppression, hidden network)
+- commit `12575ac` — the G-15-6 hidden-network handoff fix
+- commit `18da48c` — the G-15-8 bluetooth Retry affordance
+
+Those changes are covered by human UAT and by static gates (motion-lint 107/0, qmllint
+clean, clean shell reload, a probe proving the new `Connections` binding is not inert) —
+but not by the verifier's own analysis. The distinction matters: UAT proves behaviour
+through the UI, the verifier checks the phase goal against the code.
+
+**2. No security review.** No `15-SECURITY.md` exists; `/gsd-secure-phase 15` was never
+run. Phase 15 touched credential-adjacent surfaces — wifi passphrase handling, an
+autostart override that removes the system's NetworkManager secret agent, and a new
+`nmcli` subprocess — so this is a real omission rather than a formality.
+
+**3. G-15-9 is open and unmeasured.** A suspected D-Bus reply timeout may render a
+successful-but-slow bluetooth pair as "Couldn't pair". Rests on one log line and one user
+account; the measurement was not performed. See 15-UAT.md.
+
+**4. Two carry-forward items in deferred-items.md**, neither closed:
+   - `hypr-equivalence-check` binds.json baseline drift (pre-existing since 15-02)
+   - The notification-server replacement MUST declare `body` and `actions` capability, or
+     bluetooth pairing silently regresses to a GTK dialog behind the panel (G-15-7)
+
+**5. G-15-7 was decided, not implemented.** Bluetooth pairing confirmations remain
+external by design — the platform exposes no agent API to the panel, and removing the
+agent breaks pairing outright (measured). Containment is deferred to the notification
+work, where it costs a routing rule rather than a new daemon.

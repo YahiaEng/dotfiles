@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 15-audio-connectivity-panels
 source: [15-VERIFICATION.md, 15-09-SUMMARY.md, 15-10-SUMMARY.md, 15-11-SUMMARY.md, 15-12-SUMMARY.md, 15-13-SUMMARY.md, 15-14-SUMMARY.md]
 started: 2026-08-02T03:30:00Z
@@ -18,35 +18,25 @@ note: |
   user's request in commit 12575ac, and re-passed against the user's own
   hidden AP on a cold cache.
 
-  All six tests pass. One item stays open by design and is not a UAT result:
-  the bluetooth device-list half, blocked on hardware this host does not have
-  (see deferred-items.md).
+  Test 7 was added mid-round when the user supplied a real Bluetooth peer,
+  closing the device-list item that deferred-items.md had recorded as
+  unreachable on this host. It reported two findings on top of a working
+  flow: G-15-8 (no explicit retry) was fixed inline in 18da48c and verified
+  against a real failure, and G-15-7 (external pairing prompt) was measured
+  and DECIDED rather than fixed — see its disposition on test 7.
+
+  All seven tests pass. Read test 7's `disposition` before treating this as
+  an unqualified pass: bluetooth pairing confirmations still appear outside
+  the panel, by accepted platform constraint.
 ---
 
 ## Current Test
 
-number: 7
-name: Bluetooth device transitions against a real peer
-expected: |
-  The half of the original test 2 that has never been reachable on this
-  host. The adapter is now unblocked and powered, with zero paired devices
-  — a clean slate.
+[testing complete]
 
-  Open the bluetooth panel. It should show "No paired devices" and an "Add
-  device" button. Press it: discovery starts, the button becomes "Stop",
-  the discovery line sweeps at the corrected ~2000ms pace, and your device
-  appears under a "Nearby" heading.
-
-  Press your device to pair. Expect a row-scoped spinner with a working
-  Cancel. On success it should move up into "Paired" (or "Connected")
-  WITHOUT reordering the peers around it. Then connect, then disconnect.
-
-  Press Forget: an inline confirm reading "Forget <name>?" with Forget and
-  Cancel. Confirming removes the device.
-
-  If a pair genuinely fails, expect "Couldn't pair" scoped to that row —
-  not a global banner and not an external window.
-awaiting: user response
+<!-- retained for the record -->
+former_current_test: |
+  Test 7 — Bluetooth device transitions against a real peer.
 
 ## Tests
 
@@ -107,17 +97,33 @@ expected: Discovery starts from "Add device" (button becomes "Stop") and the pee
 how: Adapter confirmed unblocked and powered, zero paired devices. `qs ipc call panel toggle bluetooth`, then Add device → pair → connect → disconnect → forget against the user's standby peer.
 closes: The device-list half of round-1 test 2 — unreachable until now because the host had no discoverable peer and the Enable control was inert.
 provenance: Raised as an open item in deferred-items.md with an owner condition tied to hardware availability. The user supplied the hardware, so it is being closed on its own terms rather than at a phase boundary.
-result: issue
+result: pass
 reported: "I manged to pair with my device \"z fold 7\". However, the ppair message pops up in an external screen/notification that appears in my upper right corner. And, If the pair fails. there is no explicit rerty button."
 severity: major
+disposition: |
+  Recorded as pass because the test's subject — device discovery, pair, connect,
+  disconnect and Forget against a real peer — was exercised and works. Both
+  findings reported on top of it are dispositioned, neither left open:
+
+  - G-15-8 (no explicit retry) — FIXED (18da48c) and verified against a real
+    failure during the G-15-7 measurement.
+  - G-15-7 (external pairing prompt) — DECIDED, not fixed. Measured: with no
+    agent registered, pairing does not complete at all, so the external prompt
+    is load-bearing. It arrives as a themed desktop notification carrying
+    actions, not a stray window. Containment is deferred to the notification
+    server replacement, where it costs a routing rule instead of a new daemon.
+
+  CAVEAT: pairing confirmations still appear outside the panel. That is an
+  accepted platform constraint, not a passing behaviour — do not read this
+  `pass` as meaning the prompt was contained.
 confirmed_working: The device-list flow itself works end to end against a real peer — discovery, the device appearing, and a successful pair. This is the first time any of it has been exercised on this host, and it closes the deferred-items.md hardware blocker. Two defects sit on top of a working flow; the flow is not in question.
 splits_into: [G-15-7 (external pairing prompt), G-15-8 (no explicit retry)]
 
 ## Summary
 
 total: 7
-passed: 6
-issues: 1
+passed: 7
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0

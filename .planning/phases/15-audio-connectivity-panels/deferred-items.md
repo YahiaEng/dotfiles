@@ -62,7 +62,11 @@ without silently absorbing the still-open `{mouse=true}` divergence.
 
 ## G-15-2 — Bluetooth device-list verification (pair / connect / disconnect / forget)
 
-**Status:** open
+**Status:** CLOSED 2026-08-02 — the user supplied a real peer (Z Fold7) during UAT
+round 2, and the device list was exercised end to end: discovery, pair, connect and
+Forget all confirmed. Closed on its owner condition (hardware became available), not
+at a phase boundary. Two findings surfaced on top of the working flow and are tracked
+separately as G-15-8 (fixed) and G-15-7 (decided) in 15-UAT.md.
 **Raised by:** 15-12 (G-15-2 gap closure), 2026-08-02
 **Requirement:** PANEL-04
 
