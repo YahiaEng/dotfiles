@@ -118,6 +118,49 @@ PanelDialog {
     // one mechanism wearing two hats.
     property var confirmForgetNetwork: null
 
+    // ═══════════════════════════════════════════════════════════════════
+    // G-15-4b gap closure (15-14) — hidden-network join.
+    //
+    // WHY THESE FOUR ARE DELIBERATELY *NOT* OBJECT-KEYED, and why that is
+    // not a relaxation of T-15-08:
+    //
+    // T-15-08 exists because two rows can share an SSID, so acting on a
+    // string could act on the wrong row. A hidden network has NO ROW and
+    // NO OBJECT to key against — that is the entire problem. Quickshell
+    // filters blank-SSID access points out of `wifiDevice.networks`
+    // entirely, so there is no receiver object to call any connect verb
+    // on. Measured on this host at one moment: `nmcli` saw 7 hidden access
+    // points while a quickshell probe reported a blank-SSID count of 0.
+    //
+    // So these four are a SEPARATE, parallel state machine that exists
+    // only for the window between "user typed a name" and "a real network
+    // object appeared". None of the object-keyed properties above may be
+    // reused for them, and nothing outside the hidden form may read or
+    // write them. The moment an object appears, this state is cleared and
+    // the existing object-keyed flow owns everything from there.
+    // ═══════════════════════════════════════════════════════════════════
+    property bool hiddenFormOpen: false
+    property string hiddenSsid: ""
+    property bool hiddenProbing: false
+    property string hiddenFailedText: ""
+
+    // Which SSID arrived via the hidden path, so the durability follow-up
+    // fires ONLY for those and never for an ordinary row's connect. A
+    // saved profile reads `802-11-wireless.hidden: no` by default
+    // (measured on this host's existing profile, 2026-08-02) — which is
+    // exactly why the follow-up is mandatory rather than optional: without
+    // it the network connects once and never reconnects on its own.
+    property string hiddenPendingSsid: ""
+
+    // Sized against the scan envelope this phase already measured: first
+    // results land 300ms–1.5s after a scan begins, and the list is still
+    // growing 4.5s later. Too short reports not-found for a network that
+    // was about to appear; too long leaves the user on a spinner. Not a
+    // motion token — a logic timeout, so `interval:`, never `duration:`
+    // (a duration token collapses to zero at the `off` motion scale),
+    // matching `rowWatchdogMs` above.
+    readonly property int hiddenProbeMs: 8000
+
     // Backend watchdog — a stranded pending row must not pulse forever if
     // NetworkManager never answers either way. Not a motion token (would
     // collapse to zero at the `off` motion scale): a `Timer` `interval:`,
@@ -129,7 +172,158 @@ PanelDialog {
         id: rowWatchdogTimer
         interval: root.rowWatchdogMs
         repeat: false
-        onTriggered: root.pendingNetwork = null
+        // 15-14: also clears the hidden pending state. This is
+        // BELT-AND-BRACES, not the primary mechanism — `hiddenProbeTimer`
+        // below owns the probe window. This branch covers the different
+        // case where a hidden-found network's own connect strands AFTER
+        // the handoff, at which point the probe timer is already stopped
+        // and only this one is still armed. The two are not redundant.
+        onTriggered: {
+            root.pendingNetwork = null;
+            root.hiddenPendingSsid = "";
+        }
+    }
+
+    // ── 15-14: the probe window (primary mechanism for the hidden form) ──
+    Timer {
+        id: hiddenProbeTimer
+        interval: root.hiddenProbeMs
+        repeat: false
+        onTriggered: {
+            if (!root.hiddenProbing)
+                return;
+            root.hiddenProbing = false;
+            // Honest about a real ambiguity this feature cannot resolve:
+            // with a non-broadcast network, a mistyped name and an
+            // out-of-range access point are genuinely indistinguishable
+            // from here. Asserting either cause would be a guess rendered
+            // as a fact. The field stays open and populated for
+            // correction — the same retry posture the password row takes.
+            root.hiddenFailedText = "No network answered to that name";
+        }
+    }
+
+    // All hidden state clears when the panel closes, so a dismissed panel
+    // leaves nothing stranded for the next open — the same discipline
+    // 15-11's rescan edge follows.
+    Connections {
+        target: root.backend
+        function onPanelOpenChanged() {
+            if (root.backend && !root.backend.panelOpen) {
+                root.clearHiddenForm();
+                root.hiddenPendingSsid = "";
+            }
+        }
+    }
+
+    // ── 15-14: hidden-form lifecycle ─────────────────────────────────────
+    function clearHiddenForm() {
+        // SSID, pending flag and failure copy clear TOGETHER, so reopening
+        // never shows the previous attempt's residue.
+        root.hiddenFormOpen = false;
+        root.hiddenSsid = "";
+        root.hiddenProbing = false;
+        root.hiddenFailedText = "";
+        hiddenProbeTimer.stop();
+    }
+
+    function openHiddenForm() {
+        // Mirrors how pressing Forget already clears the expanded row: two
+        // expansions of the same list must never be open at once.
+        root.collapseExpandedRow();
+        root.confirmForgetNetwork = null;
+        root.hiddenFailedText = "";
+        root.hiddenFormOpen = true;
+    }
+
+    function startHiddenProbe() {
+        if (root.hiddenSsid.length === 0)
+            return;
+        root.hiddenFailedText = "";
+        root.hiddenProbing = true;
+        // Assigned in ONE place. Every element is a literal except
+        // exactly one carrying the typed SSID — the array form is what
+        // makes an SSID containing spaces, quotes, a semicolon or a
+        // leading dash inert, because no shell ever parses it.
+        hiddenRescanProcess.command = ["nmcli", "device", "wifi", "rescan", "ssid", root.hiddenSsid];
+        hiddenRescanProcess.running = true;
+        hiddenProbeTimer.restart();
+    }
+
+    // The handoff — the whole point of this design. The typed SSID is used
+    // EXACTLY ONCE, here, to locate a real network object. Everything
+    // after this line is object-keyed, so this is not a relaxation of
+    // T-15-08. From the handoff on, the existing flow owns everything:
+    // the password row opens on a real row, `startConnect` runs the single
+    // native passphrase call, the pending pulse and Cancel work, and a
+    // failure renders through the mapping 15-13 corrected. There is no
+    // parallel connect path, no parallel pending glyph and no parallel
+    // failure text for the connected case anywhere in this file.
+    function tryHiddenHandoff() {
+        if (!root.hiddenProbing || root.hiddenSsid.length === 0 || !root.backend)
+            return;
+        // Both collections, saved first — a hidden network the user has
+        // joined before already has a profile and lands in `savedNetworks`.
+        var groups = [root.backend.savedNetworks, root.backend.otherNetworks];
+        for (var g = 0; g < groups.length; g++) {
+            var nets = groups[g];
+            if (!nets)
+                continue;
+            for (var i = 0; i < nets.length; i++) {
+                if (nets[i] && nets[i].name === root.hiddenSsid) {
+                    var found = nets[i];
+                    var ssid = root.hiddenSsid;
+                    hiddenProbeTimer.stop();
+                    root.clearHiddenForm();
+                    root.hiddenPendingSsid = ssid;
+                    root.expandedNetwork = found;
+                    return;
+                }
+            }
+        }
+    }
+
+    // ── 15-14 subprocess exception (Prohibition P1) ──────────────────────
+    // `Quickshell.Networking` structurally CANNOT express a hidden
+    // network: every connect verb is an instance method on a `Network`
+    // object, and blank-SSID access points are filtered out of
+    // `wifiDevice.networks` entirely, so there is no receiver to call
+    // anything on. `grep -i hidden` over the installed networking
+    // qmltypes returns zero hits; `NMSettings` is not a registered QML
+    // type and cannot be constructed; `connectWithSettings` is still an
+    // instance method needing the receiver that does not exist. A
+    // subprocess is therefore unavoidable — a first for this surface.
+    //
+    // It stays confined to THIS panel file. `WifiBackend.qml` remains
+    // subprocess-free and keeps the single native passphrase call site.
+    // NO SECRET is passed to either process below: the directed rescan
+    // carries only a name, and the durability follow-up carries only a
+    // profile field. The passphrase never leaves the native path.
+    Process {
+        id: hiddenRescanProcess
+        onExited: function (exitCode, exitStatus) {
+            // A directed rescan is a PROBE, not a query — measured on this
+            // host at exit 0 in ~16ms for both a present and an absent
+            // SSID. A non-answer is not an error, so the exit code is not
+            // rendered; the probe watchdog owns the not-found verdict.
+            root.tryHiddenHandoff();
+        }
+    }
+
+    // The durability follow-up. A profile created through this path reads
+    // `802-11-wireless.hidden: no` by default (measured), which means the
+    // network connects once and then never reconnects on its own. Same
+    // fixed-argv discipline, same no-shell rule, still no secret.
+    Process {
+        id: hiddenMarkProcess
+        onExited: function (exitCode, exitStatus) {
+            // A failure here is NOT a connection failure and must not
+            // render as one — the network is connected. But it must not be
+            // swallowed either: the user needs to learn it will not
+            // reconnect on its own.
+            if (exitCode !== 0)
+                root.hiddenFailedText = "Connected, but it may not reconnect on its own";
+        }
     }
 
     // ── Escape's first stage (D-15-14) ────────────────────────────────────
@@ -153,6 +347,19 @@ PanelDialog {
         }
         if (root.confirmForgetNetwork !== null) {
             root.confirmForgetNetwork = null;
+            return;
+        }
+        // 15-14: third stage, added BEFORE the dismiss and AFTER both
+        // existing branches. Ordering is the whole risk here — the user
+        // explicitly confirmed two-stage Escape working during UAT, and a
+        // regression there would be a new failure introduced by a feature
+        // nobody asked to change it. Neither branch above was reordered,
+        // merged or reworded. Like them, this is redundancy for the case
+        // where the form is open but its field does not hold active focus;
+        // the field's own `Keys.onEscapePressed` is what normally consumes
+        // the first press.
+        if (root.hiddenFormOpen) {
+            root.clearHiddenForm();
             return;
         }
         root.requestDismiss();
@@ -230,6 +437,16 @@ PanelDialog {
             root.pendingNetwork = null;
             root.expandedNetwork = null;
             rowWatchdogTimer.stop();
+            // 15-14 durability follow-up — fires ONLY for a network that
+            // arrived through the hidden path, never for an ordinary row's
+            // connect. Without it the profile keeps its measured default
+            // (`802-11-wireless.hidden: no`) and the network connects once
+            // and then never reconnects on its own.
+            if (root.hiddenPendingSsid.length > 0 && network && network.name === root.hiddenPendingSsid) {
+                hiddenMarkProcess.command = ["nmcli", "connection", "modify", root.hiddenPendingSsid, "802-11-wireless.hidden", "yes"];
+                hiddenMarkProcess.running = true;
+                root.hiddenPendingSsid = "";
+            }
         }
     }
 
@@ -1017,6 +1234,143 @@ PanelDialog {
                         emphasized: false
                     }
                 }
+            }
+
+            // ── 15-14 (G-15-4b) — hidden-network entry point. Two
+            //    mutually exclusive states at ONE fixed height, copying
+            //    the bluetooth discovery section's shape and its stated
+            //    reason: a section that changes height as it switches
+            //    state shoves the whole list under it, and this one sits
+            //    directly above the zero-result line. ───────────────────
+            Item {
+                id: hiddenSection
+                width: parent.width
+                height: root.controlRowHeight
+
+                // Idle — a single accent-toned label acting as the entry
+                // point, nothing more.
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !root.hiddenFormOpen
+                    text: "Join a hidden network"
+                    font.pixelSize: root.fontBody
+                    color: Colours.primary
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.openHiddenForm()
+                    }
+                }
+
+                // Open — the SSID field plus the search verb.
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width
+                    visible: root.hiddenFormOpen
+                    spacing: root.spacingSm
+
+                    TextField {
+                        id: hiddenSsidField
+                        width: parent.width - hiddenAction.width - root.spacingSm
+                        height: root.controlRowHeight
+                        placeholderText: "Network name"
+                        text: root.hiddenSsid
+                        font.pixelSize: root.fontBody
+                        color: Colours.onSurface
+                        // DELIBERATELY UNMASKED, unlike the passphrase
+                        // field: an SSID is not a secret, and masking it
+                        // would make a typo undetectable in exactly the
+                        // situation where a typo is indistinguishable from
+                        // an out-of-range access point. The passphrase
+                        // field's own masking is untouched.
+                        echoMode: TextInput.Normal
+                        // Same background, same height, same
+                        // focus-on-visible behaviour as the passphrase
+                        // field — reused verbatim so the two read as one
+                        // control family.
+                        background: Rectangle {
+                            radius: root.spacingXs
+                            color: Colours.surfaceVariant
+                        }
+                        onTextChanged: {
+                            root.hiddenSsid = hiddenSsidField.text;
+                            // A stale message must never sit under fresh
+                            // input.
+                            root.hiddenFailedText = "";
+                        }
+                        onAccepted: root.startHiddenProbe()
+                        // Consumed where the field holds active focus, so
+                        // the event never reaches the frame's content-root
+                        // handler and the panel stays open — the same
+                        // split the password row already documents. This
+                        // is the first-press-closes-the-form behaviour;
+                        // handleEscape()'s third branch is the redundancy.
+                        Keys.onEscapePressed: function (event) {
+                            root.clearHiddenForm();
+                            event.accepted = true;
+                        }
+                        onVisibleChanged: if (hiddenSsidField.visible)
+                            hiddenSsidField.forceActiveFocus()
+                    }
+
+                    Item {
+                        id: hiddenAction
+                        anchors.verticalCenter: parent.verticalCenter
+                        readonly property bool enabledNow: root.hiddenSsid.length > 0
+                        width: hiddenActionLabel.implicitWidth + root.spacingMd * 2
+                        height: root.controlRowHeight
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: height / 2
+                            color: root.hiddenProbing ? Colours.surfaceVariant : Colours.primary
+                            opacity: (root.hiddenProbing || hiddenAction.enabledNow) ? 1 : 0.38
+                        }
+                        Text {
+                            id: hiddenActionLabel
+                            anchors.centerIn: parent
+                            // No minimum length and no character-class
+                            // check — SSID rules are wider than any guess
+                            // worth hardcoding.
+                            text: root.hiddenProbing ? "Cancel" : "Search"
+                            font.pixelSize: root.fontBody
+                            color: root.hiddenProbing ? Colours.onSurface : Colours.onPrimary
+                            opacity: (root.hiddenProbing || hiddenAction.enabledNow) ? 1 : 0.38
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: root.hiddenProbing || hiddenAction.enabledNow
+                            onClicked: {
+                                if (root.hiddenProbing) {
+                                    // Clears the pending state and stops
+                                    // the probe watchdog. It deliberately
+                                    // does NOT kill the subprocess: a
+                                    // directed rescan is fire-and-forget
+                                    // with no side effect worth aborting
+                                    // (measured: exit 0 in ~16ms whether
+                                    // or not the name exists). Stated
+                                    // rather than left as an omission a
+                                    // reader would take for a bug.
+                                    root.hiddenProbing = false;
+                                    hiddenProbeTimer.stop();
+                                } else {
+                                    root.startHiddenProbe();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Form-scoped failure copy — never row-scoped, because there
+            // is no row to scope it to until the handoff succeeds.
+            Text {
+                visible: root.hiddenFailedText.length > 0
+                width: parent.width
+                text: root.hiddenFailedText
+                wrapMode: Text.WordWrap
+                font.pixelSize: root.fontLabel
+                color: Colours.error
             }
 
             // ── Zero-result state (backstop, UI-SPEC E3 `empty`'s
