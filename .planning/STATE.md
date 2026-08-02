@@ -2,43 +2,43 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-current_phase: 15
-current_phase_name: audio-connectivity-panels
-status: executing
-stopped_at: "Completed 15-11-PLAN.md (G-15-1 closed: wifi scan/bluetooth discovery sweep pace corrected, Rescan in-flight edge + acknowledgement added, D-15-15 amended)"
-last_updated: "2026-08-02T17:10:00.307Z"
+current_phase: 16
+current_phase_name: Workspace Overview
+status: planning
+stopped_at: "Phase 15 complete — 14/14 plans, UAT 7/7 against real hardware. Closed by operator direction with acknowledged gaps (no security review; verifier not re-run over the gap-closure round). See 15-VERIFICATION.md."
+last_updated: "2026-08-02T18:38:02.023Z"
 last_activity: 2026-08-02
-last_activity_desc: Phase 15 execution started
+last_activity_desc: Phase 15 complete, transitioned to Phase 16
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 54
-  completed_plans: 51
-  percent: 63
+  completed_plans: 54
+  percent: 75
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-26)
+See: .planning/PROJECT.md (updated 2026-08-02)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 15 — audio-connectivity-panels
+**Current focus:** Phase 16 — workspace-overview
 
 ## Current Position
 
-Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 3 of 14
-Status: Ready to execute
-Progress: [█████████░] 94% executed, phase close gated on UAT
-Last activity: 2026-08-02 — Phase 15 execution started
+Phase: 16 — Workspace Overview
+Plan: Not started
+Status: Ready to plan
+Progress: [████████░░] 75% — 6/8 phases complete, 54/54 plans executed
+Last activity: 2026-08-02 — Phase 15 complete, transitioned to Phase 16
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 93
+- Total plans completed: 107
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -59,6 +59,7 @@ Last activity: 2026-08-02 — Phase 15 execution started
 | 13 | 7 | - | - |
 | 13.1 | 10 | - | - |
 | 14 | 10 | - | - |
+| 15 | 14 | - | - |
 
 **Recent Trend:**
 
@@ -363,6 +364,11 @@ None yet.
    - *XF86 duplicate-key handler determinism* — never exercised; testing it means deliberately breaking a working keybind config and restarting the session twice. Relevant to Phases 14 and 16, which each add a global keybind. Re-open if a bind-resolution conflict ever surfaces.
    - *Zero-output survival* — physically untestable on this single-monitor host. Phase 12 needs multi-output test infrastructure for QS-03 anyway; that is the natural place to finally exercise it.
 
+4. **Phase 15 closed with acknowledged gaps (2026-08-02, operator direction).** `15-VERIFICATION.md` reads `status: passed` because UAT round 2 exercised exactly its three `behavior_unverified_items` against real hardware — but the verifier was never re-run over plans 15-10..15-14 or commits `12575ac`/`18da48c`, and **no security review exists** (`/gsd-secure-phase 15` never ran) despite the phase touching wifi passphrase handling, an autostart override that removes the system's NetworkManager secret agent, and a new `nmcli` subprocess. Full list in that file's `## Acknowledged Gaps`. → Not owned by any phase; pick up deliberately.
+5. **G-15-9 open and unmeasured.** A suspected D-Bus reply timeout may render a successful-but-slow bluetooth pair as "Couldn't pair". Rests on one log line plus one user account; the measurement (pair a fresh peer, wait 30-40s before confirming) was never performed. → `15-UAT.md`.
+6. **The notification-server replacement MUST declare `body` and `actions` capability.** blueman picks its presentation by querying the notification daemon; a server missing either capability silently demotes bluetooth pairing to a raw GTK dialog that sits *behind* the layer-shell panel — reintroducing the G-15-4 failure this milestone spent a plan removing for wifi, and presenting as a bluetooth bug rather than a notification bug. `Quickshell.Services.Notifications` exposes `actionsSupported` for exactly this. → Owned by whichever phase replaces swaync; recorded in `15-audio-connectivity-panels/deferred-items.md`.
+7. **`hypr-equivalence-check` binds.json baseline drift** — pre-existing since 15-02's Super+A keybind; needs the surgical one-record baseline insertion 14-10 used, not a wholesale re-snapshot. → `15-audio-connectivity-panels/deferred-items.md`.
+
 _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.0 scoping; see Resolved below.)_
 
 **Resolved by 13.1-10 (2026-07-28):**
@@ -422,15 +428,17 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T17:10:00.287Z
-Stopped at: Completed 15-11-PLAN.md (G-15-1 closed: wifi scan/bluetooth discovery sweep pace corrected, Rescan in-flight edge + acknowledgement added, D-15-15 amended)
+Last session: 2026-08-02T18:45:00Z
+Stopped at: Phase 15 complete, ready to plan Phase 16 — Workspace Overview
 Resume file: None
 
 ## Operator Next Steps
 
-- **Unlock the desktop first** (hyprlock is active) before doing anything else below.
-- **14-10 Task 4 is waiting on you.** Press Super+D and work through the five checks in `14-10-PLAN.md`'s Task 4 `<how-to-verify>` — check 1 (the layered weather glyph, a genuine comparison against the pre-existing single-tone glyph, revert already built and proven) and check 5 (drag-move/drag-resize a window — a real Phase-13.1-inherited question, not a formality: a "no" on either gesture is a genuine regression finding, not a preference) are the two load-bearing ones. See `<resume-signal>` in the plan for the three answers needed explicitly even on approval.
-- Phase 13.1 (Hyprland Lua Config Migration) is complete — 10/10 plans, all gates green, the one-way retirement door closed.
-- Backup branch `v1` (`6b30204`) holds the pre-v3.0 snapshot of the rice. It is **local only** — push it to `origin` for off-machine safety.
-- Gates as of 14-10 Task 3's close: `theme-doctor` 237/0, `theme-parity` 2608/0, `motion-lint` 83/0 (+10/0 self-test, +1/0 --no-pending), `keybind-doctor` 14/0, `waybar-design-lint` 32/0, `hypr-equivalence-check` 3/0 (newly folded into theme-doctor and into this list), `quickshell-doctor` 12/1 (the one FAIL is the same pre-existing QS-03 headless-hotplug limitation carried since Phase 11/14-03/14-09 — not new). `theme-stress-test`'s full 10-switch run was not re-run this session (not in Task 3's own literal verify block; 14-09's own 162/0 stands as the last full run).
-- This session's commits are local only (not yet pushed to `origin`) — push before relying on `verify/container-run.sh`'s real-remote clone for any future reproducibility check.
+- **Phase 15 is closed, but two items were consciously skipped and are not tracked by any phase.** If either matters, do it before Phase 16 buries it:
+  - `/gsd-secure-phase 15` — no `15-SECURITY.md` exists. The phase touched wifi passphrase handling, suppressed the system's NetworkManager secret agent via a stowed autostart override, and added an `nmcli` subprocess. This is the one skipped item with real security surface.
+  - `/gsd-execute-phase 15` — would regenerate execution verification over plans 15-10..15-14 and the two inline fix commits, which the current `15-VERIFICATION.md` does not cover.
+- **Re-pair your phone.** The Z Fold7 bond was deliberately removed to measure bluetooth pairing with no agent registered, and was not restored. While re-pairing, if you take 30+ seconds confirming on the phone, watch whether the row shows "Couldn't pair" while the bond completes anyway — that single observation closes G-15-9 for free.
+- **Two inline fixes shipped without plan/summary artifacts**, at your request: `12575ac` (hidden-network handoff race) and `18da48c` (bluetooth Retry affordance). Both are UAT-verified and committed; they are simply absent from Phase 15's artifact trail.
+- Backup branch `v1` (`6b30204`) holds the pre-v3.0 snapshot. Still **local only** — push it to `origin` for off-machine safety.
+- This session's commits are local only (not yet pushed to `origin`) — push before relying on `verify/container-run.sh`'s real-remote clone for any reproducibility check.
+- Gates as of Phase 15 close: `motion-lint` 107/0. Other gates were not re-run this session; `hypr-equivalence-check`'s `binds.json` sub-check is known-failing (blocker 7 above) and pre-dates this phase.
