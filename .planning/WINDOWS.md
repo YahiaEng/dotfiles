@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 15
+open_count: 16
 waived_count: 0
 fixed_count: 7
-total_count: 22
-last_updated: 2026-08-02T02:40:14.524Z
+total_count: 23
+last_updated: 2026-08-02T17:07:48.756Z
 ---
 
 # Broken Windows Ledger
@@ -37,6 +37,7 @@ last_updated: 2026-08-02T02:40:14.524Z
 | 20 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Chevron/tile-body click paths not literally exercised — no synthetic pointer tool on host; guarded summon function proven via IPC equivalent instead | open |  | 2026-08-02T02:40:09.329Z |  |
 | 21 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | E6 error-contract fault injection (rfkill-blocked toggle reverting to truth) not cleanly reproduced live — NetworkManager software radio switch succeeded independent of rfkill state; source-verified mechanism only | open |  | 2026-08-02T02:40:14.434Z |  |
 | 22 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Bluetooth tile external-toggle live-truth proof not run — session's rfkill soft-blocked bluetooth state intentionally left untouched per non-negotiable rule 3 | open |  | 2026-08-02T02:40:14.524Z |  |
+| 23 | 15 | deviation | quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml |  | pendingGlyph opacity pulse (WifiPanel.qml ~:574-595) and its BluetoothPanel.qml counterpart still bind one-shot emphasizedIn/OutDuration tokens as an infinite pulse period, inheriting the reduced-makes-it-faster inversion G-15-1 fixed for the sweep lines; deliberately left unchanged per 15-11's scope_fence (a pulse's message survives being fast, unlike a sweep's) | open |  | 2026-08-02T17:07:48.756Z |  |
 
 ````json
 [
@@ -302,6 +303,18 @@ last_updated: 2026-08-02T02:40:14.524Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-02T02:40:14.524Z",
+    "resolved_at": null
+  },
+  {
+    "id": 23,
+    "kind": "deviation",
+    "phase": "15",
+    "file": "quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml",
+    "line": null,
+    "description": "pendingGlyph opacity pulse (WifiPanel.qml ~:574-595) and its BluetoothPanel.qml counterpart still bind one-shot emphasizedIn/OutDuration tokens as an infinite pulse period, inheriting the reduced-makes-it-faster inversion G-15-1 fixed for the sweep lines; deliberately left unchanged per 15-11's scope_fence (a pulse's message survives being fast, unlike a sweep's)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-02T17:07:48.756Z",
     "resolved_at": null
   }
 ]

@@ -335,7 +335,7 @@ Plans:
 
 **Open questions owned**: (4) `Quickshell.Networking` API completeness — decide native D-Bus binding vs an `nmcli` wrapper before committing the wifi panel's implementation.
 **Owns**: The milestone's highest D-Bus conflict risk — three new PipeWire / NetworkManager / BlueZ consumers arriving at once alongside existing owners.
-**Plans**: 10/14 plans executed
+**Plans**: 11/14 plans executed
 
 Plans:
 **Wave 1**
@@ -367,7 +367,7 @@ Plans:
 **Wave 1** *(file-disjoint, parallel)*
 
 - [x] 15-10-PLAN.md — G-15-1b: the three panels gain the dashboard's animated gradient rim from one insertion in `PanelDialog`; `borderWidth` hoisted to `Design.qml` as the single Hyprland-parity home
-- [ ] 15-11-PLAN.md — G-15-1: a loop-period motion token made reachable and scale-safe (the `reduced` preset must stop being the fastest), both indeterminate sweeps rebound off it, a synthesised bounded rescan edge, a refresh control that acknowledges its own press, and D-15-15 amended in place
+- [x] 15-11-PLAN.md — G-15-1: a loop-period motion token made reachable and scale-safe (the `reduced` preset must stop being the fastest), both indeterminate sweeps rebound off it, a synthesised bounded rescan edge, a refresh control that acknowledges its own press, and D-15-15 amended in place
 
 **Wave 2** *(blocked on 15-11)*
 
@@ -440,7 +440,7 @@ Cross-cutting constraints:
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | Complete    | 2026-07-28 |
 | 14. Dashboard Drawer | v3.0 | 10/10 | Complete    | 2026-08-01 |
-| 15. Audio + Connectivity Panels | v3.0 | 10/14 | In Progress|  |
+| 15. Audio + Connectivity Panels | v3.0 | 11/14 | In Progress|  |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |
 | 17. Ambient Extras | v3.0 | 0/TBD | Not started | - |
 
