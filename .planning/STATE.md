@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Completed 15-05-PLAN.md (Tasks 1-3 done; Task 4 render gate recorded, not stopped on per batching instruction)
-last_updated: "2026-08-02T02:00:47.237Z"
+stopped_at: Completed 15-06-PLAN.md (bluetooth panel build-out)
+last_updated: "2026-08-02T02:22:21.881Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 49
-  completed_plans: 45
+  completed_plans: 46
   percent: 63
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
-Progress: [█████████░] 92% executed, phase close gated on UAT
+Progress: [█████████░] 94% executed, phase close gated on UAT
 Last activity: 2026-08-01 — Phase 15 execution started
 
 ## Performance Metrics
@@ -172,6 +172,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 15 P03 | multi-session | 4 tasks | 7 files |
 | Phase 15 P04 | multi-session | 4 tasks | 2 files |
 | Phase 15 P05 | 28min | 3 tasks | 2 files |
+| Phase 15 P06 | 35min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -312,6 +313,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 15-05: NoSecrets retry detection compares reasonText against backend.failReasonText(ConnectionFailReason.NoSecrets) rather than restating the locked string in the panel
 - [Phase ?]: 15-05: Success is per-row observed truth (NetworkRow.onIsConnectedNowChanged), not a generic connectingNetwork watcher, which would race the connectFailed signal
 - [Phase ?]: 15-05: Forget's inline confirm (confirmForgetNetwork) is a separate expansion from the password field (expandedNetwork) so Forget is reachable without opening the password row
+- [Phase ?]: 15-06: discovering is a plain read/write BluetoothAdapter property on this qmltypes build (0.3.0-2), not a start/stop method pair; BlueZ enforces per-D-Bus-sender StartDiscovery/StopDiscovery ownership (confirmed live)
 
 ### Quick Tasks Completed
 
@@ -403,8 +405,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T02:00:47.219Z
-Stopped at: Completed 15-05-PLAN.md (Tasks 1-3 done; Task 4 render gate recorded, not stopped on per batching instruction)
+Last session: 2026-08-02T02:22:21.862Z
+Stopped at: Completed 15-06-PLAN.md (bluetooth panel build-out)
 Resume file: None
 
 ## Operator Next Steps

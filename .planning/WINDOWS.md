@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 11
+open_count: 12
 waived_count: 0
 fixed_count: 7
-total_count: 18
-last_updated: 2026-08-02T01:58:16.101Z
+total_count: 19
+last_updated: 2026-08-02T02:21:50.326Z
 ---
 
 # Broken Windows Ledger
@@ -33,6 +33,7 @@ last_updated: 2026-08-02T01:58:16.101Z
 | 16 | 13.1 | deviation | hypr/.config/hypr/scripts/ai-webapp-launch.sh |  | WR-04 (13.1-REVIEW.md): the workspace-switch dispatch (`hyprctl dispatch 'hl.dsp.focus({workspace="name:ai"})'`) is `\|\| true`-guarded, silently discarding any failure of the one mechanism the script's own header says is the ONLY way to correctly place a Zen AI web-app window on `name:ai` — a failed switch lets the browser launch on whatever workspace is currently active with no error surfaced. Explicitly deferred, not fixed, per gap-closure task scope (out of scope: WR-04/WR-05). | open |  | 2026-07-28T17:16:00.000Z |  |
 | 17 | 13.1 | deviation | hypr/.config/hypr/scripts/ai-workspace.sh |  | WR-05 (13.1-REVIEW.md): the idempotency check's PRESENT comma-joined class list is tested with bash substring matching ([[ "$PRESENT" != *"$CLAUDE_CODE_CLASS"* ]]), not delimiter-aware exact matching — a window class that merely CONTAINS ai-claude-code/ai-local-models as a substring produces a false "already present" match and silently skips the launch, violating D-24 idempotency. Explicitly deferred, not fixed, per gap-closure task scope (out of scope: WR-04/WR-05). | open |  | 2026-07-28T17:16:00.000Z |  |
 | 18 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml |  | 15-05 Task 3: full password-connect, in-flight Cancel, real failure, and Forget-confirm proofs not run live — host has no synthetic pointer-input tool (15-API-PROBE Open Q2) and no real wifi passphrase was available; only single-press Escape-dismiss with nothing expanded was proven live | open |  | 2026-08-02T01:58:16.101Z |  |
+| 19 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/BluetoothPanel.qml |  | 15-06 Task 3: pairing failure, cancel-not-failure, connect failure/recovery, watchdog-fire, press-guard, adjacency, and all chevron/verb/Forget click proofs not run live — host has zero paired devices, zero discoverable peers within range (8s live scan empty), and no synthetic pointer-input tool; only the empty-state render and discovery's reactive/lifecycle-teardown-firing paths were proven live | open |  | 2026-08-02T02:21:50.326Z |  |
 
 ````json
 [
@@ -250,6 +251,18 @@ last_updated: 2026-08-02T01:58:16.101Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-02T01:58:16.101Z",
+    "resolved_at": null
+  },
+  {
+    "id": 19,
+    "kind": "unrun-verify",
+    "phase": "15",
+    "file": "quickshell/.config/quickshell/modules/dashboard/BluetoothPanel.qml",
+    "line": null,
+    "description": "15-06 Task 3: pairing failure, cancel-not-failure, connect failure/recovery, watchdog-fire, press-guard, adjacency, and all chevron/verb/Forget click proofs not run live — host has zero paired devices, zero discoverable peers within range (8s live scan empty), and no synthetic pointer-input tool; only the empty-state render and discovery's reactive/lifecycle-teardown-firing paths were proven live",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-02T02:21:50.326Z",
     "resolved_at": null
   }
 ]
