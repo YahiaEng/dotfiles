@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Completed 15-04-PLAN.md (Task 4 render gate approved after scoped hierarchy fix)
-last_updated: "2026-08-02T01:19:10.890Z"
+stopped_at: Completed 15-05-PLAN.md (Tasks 1-3 done; Task 4 render gate recorded, not stopped on per batching instruction)
+last_updated: "2026-08-02T02:00:47.237Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 49
-  completed_plans: 44
+  completed_plans: 45
   percent: 63
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
-Progress: [█████████░] 90% executed, phase close gated on UAT
+Progress: [█████████░] 92% executed, phase close gated on UAT
 Last activity: 2026-08-01 — Phase 15 execution started
 
 ## Performance Metrics
@@ -171,6 +171,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 15 P02 | 47min + gate-closure session | 4 tasks | 3 files |
 | Phase 15 P03 | multi-session | 4 tasks | 7 files |
 | Phase 15 P04 | multi-session | 4 tasks | 2 files |
+| Phase 15 P05 | 28min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -308,6 +309,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 15-04: Task 4 render gate CONDITIONALLY APPROVED then closed — check 1 (focal point, D-15-10) failed as shipped (five identical-weight sliders, no boundary marker); fixed with a Colours.outline divider + Applications section label between the pinned block and the app list, plus master-slider track/handle drawn heavier (8px/20px vs shared 4px/16px). Check 2 (density, D-15-11 fallback) passed and the fallback was explicitly declined — input level slider stays. This hierarchy is the pattern 15-05/15-06 must mirror.
 - [Phase ?]: 15-04: A2 disposition (carried from 15-01) shipped branch (a) accept-and-document — streamRouteNote discloses the input-side re-route residual under the input picker; PANEL-02 delivered without a per-stream re-route function.
 - [Phase ?]: 15-04: node identity/ordering keyed on the typed PwNodeIface.id (uint), never the untyped object.id map entry nor lexicographic sort, per 15-API-PROBE.md's A1(c) finding — the only guaranteed-unique per-stream identity on this build.
+- [Phase ?]: 15-05: NoSecrets retry detection compares reasonText against backend.failReasonText(ConnectionFailReason.NoSecrets) rather than restating the locked string in the panel
+- [Phase ?]: 15-05: Success is per-row observed truth (NetworkRow.onIsConnectedNowChanged), not a generic connectingNetwork watcher, which would race the connectFailed signal
+- [Phase ?]: 15-05: Forget's inline confirm (confirmForgetNetwork) is a separate expansion from the password field (expandedNetwork) so Forget is reachable without opening the password row
 
 ### Quick Tasks Completed
 
@@ -379,6 +383,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - 14-01: Phase 14 plans 02-09's <automated> verify blocks carry the stale hyprctl dispatch global quickshell:<name> / hyprctl dispatch fullscreen N syntax, already known-broken since Phase 13.1 (13.1-09-SUMMARY.md) — use hyprctl dispatch 'hl.dsp.global("quickshell:<name>")' / hl.dsp.window.fullscreen(N) instead
 - 14-09 Task 4: blocking human render gate (gate="blocking") not yet run — three of its eleven checks (2, 4, 5) are previously-deferred open judgments from 14-03/14-08 that must be answered explicitly. theme-stress-test's full 10/10 run also did not complete this session (git-clean transient from in-flight STATE.md) — re-run once the tree is clean. See 14-09-SUMMARY.md for full evidence.
 - 15-02: a prior executor's non-detached quickshell restart died with its session, silently breaking Super+A/Super+D until recovered (second occurrence of this failure mode) — **carried-forward rule, not an open blocker:** every remaining 15-03..15-09 verification restart must use `setsid uwsm app -- ~/.config/hypr/scripts/quickshell-launch.sh` and confirm the new PID's PPID is not a shell.
+- 15-05 Task 4 render gate: password-connect, in-flight Cancel abort effect, real failure copy, and Forget confirm not exercised live (no synthetic pointer tool on host, no real wifi passphrase) — see 15-05-SUMMARY.md 'Pending human sign-off' and WINDOWS.md entry #18
 
 ## Deferred Items
 
@@ -398,8 +403,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T01:19:10.864Z
-Stopped at: Completed 15-04-PLAN.md (Task 4 render gate approved after scoped hierarchy fix)
+Last session: 2026-08-02T02:00:47.219Z
+Stopped at: Completed 15-05-PLAN.md (Tasks 1-3 done; Task 4 render gate recorded, not stopped on per batching instruction)
 Resume file: None
 
 ## Operator Next Steps

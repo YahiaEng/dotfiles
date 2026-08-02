@@ -52,7 +52,7 @@
 
 - [x] **PANEL-01**: A per-app volume mixer lists active audio applications with a per-app volume slider and click-to-mute
 - [x] **PANEL-02**: The audio panel selects the default output and input device and adjusts master volume
-- [ ] **PANEL-03**: The wifi panel scans, lists visible networks, connects, and prompts for a password on secured networks
+- [x] **PANEL-03**: The wifi panel scans, lists visible networks, connects, and prompts for a password on secured networks
 - [ ] **PANEL-04**: The bluetooth panel toggles the adapter, lists devices, and connects, disconnects or forgets them
 - [x] **PANEL-05**: Each panel carries an "Advanced" button launching the real GUI app (pavucontrol / nm-connection-editor / blueman) for anything beyond its deliberately limited scope
 - [x] **PANEL-06**: All panels are built from one shared dialog component rather than bespoke per-panel implementations
@@ -155,7 +155,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DASH-10 | Phase 14 — Dashboard Drawer *(MINTED 2026-08-01 — new scope arising during UAT)* | Built 2026-08-01 — render gate pending (14-UAT.md item 8) |
 | PANEL-01 | Phase 15 — Audio + Connectivity Panels | Complete |
 | PANEL-02 | Phase 15 — Audio + Connectivity Panels | Complete |
-| PANEL-03 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-03 | Phase 15 — Audio + Connectivity Panels | Complete |
 | PANEL-04 | Phase 15 — Audio + Connectivity Panels | Pending |
 | PANEL-05 | Phase 15 — Audio + Connectivity Panels | Complete |
 | PANEL-06 | Phase 15 — Audio + Connectivity Panels | Complete |
