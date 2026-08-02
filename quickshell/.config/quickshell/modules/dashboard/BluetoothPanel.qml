@@ -629,17 +629,60 @@ PanelDialog {
                     // or the panel is dismissed; no auto-clear timer — a
                     // message that vanishes before it is read is exactly
                     // the failure the fourth state was minted to fix.
-                    Text {
-                        id: failedText
+                    //
+                    // G-15-8: the failure now carries an explicit Retry.
+                    // Retrying was ALWAYS possible — the row stayed
+                    // pressable and `handleRowPress()` already clears this
+                    // row's failure slot before re-invoking — but nothing
+                    // said so, so a failed row read as terminal. This adds
+                    // the affordance, not the capability: Retry calls the
+                    // exact same `handleRowPress()` the idle verb label
+                    // calls, so there is no second retry path to keep in
+                    // step with the first.
+                    //
+                    // The wifi panel needs no equivalent because its failed
+                    // row leaves the password field open with its Connect
+                    // pill already visible — the retry target is on screen
+                    // there. A bluetooth row has no such standing control,
+                    // which is the whole difference.
+                    Row {
+                        id: failedRow
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width
-                        horizontalAlignment: Text.AlignRight
-                        elide: Text.ElideRight
                         visible: deviceRow.isFailed
-                        text: root.failedReason
-                        font.pixelSize: root.fontLabel
-                        color: Colours.error
+                        spacing: root.spacingSm
+
+                        // Takes whatever the Retry label does not, so the
+                        // pair still honours `trailingRegion`'s fixed
+                        // width — the reason that region is fixed at all
+                        // is that switching states must never move the
+                        // rows above or below.
+                        Text {
+                            id: failedText
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(0, trailingRegion.width - retryLabelText.implicitWidth - root.spacingSm)
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideRight
+                            text: root.failedReason
+                            font.pixelSize: root.fontLabel
+                            color: Colours.error
+                        }
+
+                        // Styled as `verbLabelText` above, deliberately —
+                        // it occupies the same slot and means the same
+                        // thing (this row's call to action).
+                        Text {
+                            id: retryLabelText
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Retry"
+                            font.pixelSize: root.fontBody
+                            color: Colours.primary
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: root.handleRowPress(deviceRow.device)
+                            }
+                        }
                     }
                 }
 
