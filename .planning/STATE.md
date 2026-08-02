@@ -5,16 +5,16 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Completed 15-08-PLAN.md
-last_updated: "2026-08-02T02:49:52.637Z"
+stopped_at: Completed 15-09-PLAN.md (phase 15 close)
+last_updated: "2026-08-02T03:17:11.403Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 49
-  completed_plans: 48
-  percent: 63
+  completed_plans: 49
+  percent: 75
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 8 of 9
+Plan: 9 of 9
 Status: Ready to execute
-Progress: [██████████] 98% executed, phase close gated on UAT
+Progress: [██████████] 100% executed, phase close gated on UAT
 Last activity: 2026-08-01 — Phase 15 execution started
 
 ## Performance Metrics
@@ -175,6 +175,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 15 P06 | 35min | 2 tasks | 2 files |
 | Phase 15 P07 | 50min | 2 tasks | 4 files |
 | Phase 15 P08 | 25min | 2 tasks | 5 files |
+| Phase 15 P09 | 2h | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -322,6 +323,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 15-08: toggle over open as the waybar click verb, matching Super+A's D-10 summon-chord-toggles rule
 - [Phase ?]: 15-08: athena's network right-click (pkill nm-applet) removed outright rather than repurposed — no dead click left behind
 - [Phase ?]: 15-08: only network-manager-applet added to install.sh PACMAN_PKGS; networkmanager/nm-connection-editor left transitive per RESEARCH
+- [Phase ?]: quickshell-doctor's D-Bus identity model promoted to service participant (name-owner + client-consumer variants) with a structural guard; four new D-15-25 checks reuse the existing summon-and-diff mechanism; sixteen fixtures + --self-test prove each check can fail before trusted to pass
+- [Phase ?]: rfkill fault injection proved D-15-26's fixable wifi/bluetooth off-states against real hardware; SwayOSD server found down and restarted, confirmed to survive the full gate sweep
 
 ### Quick Tasks Completed
 
@@ -413,8 +416,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T02:49:52.617Z
-Stopped at: Completed 15-08-PLAN.md
+Last session: 2026-08-02T03:17:11.384Z
+Stopped at: Completed 15-09-PLAN.md (phase 15 close)
 Resume file: None
 
 ## Operator Next Steps
