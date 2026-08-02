@@ -124,6 +124,18 @@ Every panel-level and row-level string this phase is known to need, resolved fro
 | Bluetooth row failure (inferred, no native signal — Pitfall 2) | Pairing that ends without `bonded` becoming true, not user-cancelled: "Couldn't pair" — connect that reverts `Connecting→Disconnected`: "Couldn't connect" |
 | Bluetooth adapter-off empty state | Heading/line: "Bluetooth is off" — body: "Turn on Bluetooth to see nearby devices" + an "Enable" button (D-15-26 case 3 — fixable) |
 | Bluetooth no-adapter empty state | Heading/line: "No Bluetooth adapter" — body: "This device has no Bluetooth hardware" — **no button** (D-15-26 case 3's unfixable branch — states the absence plainly rather than implying a switch) |
+| Bluetooth rfkill-blocked empty state **(added by G-15-2, 2026-08-02)** | Heading/line: "Bluetooth is blocked" — body: "A software block is holding the radio off" — Enable button **present at identical geometry but dimmed to 0.38**, tooltip: "Run  rfkill unblock bluetooth  in a terminal to clear it" (D-15-26 case 3's *third* branch — fixable, but only from outside the panel). Copy must never name a package or imply a physical killswitch: both readings were disproven by G-15-2's diagnosis, and both are mechanically negative-greped against the panel source. |
+
+**D-15-26 amendment (G-15-2, 2026-08-02) — bluetooth now has THREE empty states, not two.** The
+new one is a genuinely third kind of case, and the distinction is the design content of this
+gap. The original vocabulary had only two treatments: **fixable in-panel** (an Enable button
+that works) and **unfixable** (no button at all). An rfkill soft-blocked adapter is neither —
+it is **fixable by the user, but only from outside the panel**. That is why it uniquely gets a
+present-but-disabled button carrying the remedy, rather than either existing treatment:
+hiding the button would misrepresent a clearable condition as permanent, and rendering a live
+button would offer a control that provably cannot work (the original bug, and a direct
+violation of D-15-26's own governing principle). Recorded explicitly because without it the
+next reader sees three treatments where the decision text names two, and reads it as drift.
 | Bluetooth discovery opt-in control | Button: "Add device" (D-15-18 — discovery is opt-in, never automatic, to protect an active A2DP stream's radio) |
 | Bluetooth device list, zero paired + discovery not started | Body: "No paired devices" + the "Add device" control remains the only path forward (backstop copy — not explicitly locked; verify at render gate) |
 | Audio: nothing playing | The pinned master volume, device pickers and mic controls stay fully live and interactive; only the app-list region shows a quiet in-place placeholder, e.g. "Nothing is playing" — **not** a degraded/disabled panel (D-15-26 case 4, the one case explicitly NOT treated as an off/error state) |
@@ -190,7 +202,7 @@ they are not derivable from CONTEXT.md's D-15-xx decisions and are new locked co
 | overflow | E4 Wifi password row | ✋ dismissed | Single-line masked field; a long passphrase scrolls within the field, which is the platform `TextInput` default and needs no contract |
 | zero-one-many | E4 Wifi password row | ✋ dismissed | Not a collection — exactly one field, always |
 | long-text | E4 Wifi password row | ✋ dismissed | Masked input renders dots, so glyph width is uniform and the visible-long-text problem cannot arise |
-| empty | E5 Bluetooth device list | 🧪 backstop | Locked: adapter-off and no-adapter have distinct copy, Enable button only on the fixable one (D-15-26 case 3 and its unfixable branch). **Backstop:** "No paired devices" with "Add device" as the only forward path — same backstop status as wifi's zero-result case. |
+| empty | E5 Bluetooth device list | 🧪 backstop | Locked: **three** sub-cases with distinct copy — adapter-off (Enable, live), no-adapter (no button), and, added by G-15-2, rfkill-blocked (Enable present but dimmed, remedy on hover). See the Copywriting Contract's three bluetooth empty-state rows. **Backstop:** "No paired devices" with "Add device" as the only forward path — same backstop status as wifi's zero-result case. |
 | loading | E5 Bluetooth device list | 🧪 backstop | Locked: pairing shows a spinner + a real "Cancel" wired to `cancelPair()` (D-15-19 — the one operation whose wait is long enough to need a live escape hatch). **Backstop:** the discovery-in-progress treatment after "Add device" is pressed is by analogy to D-15-15's wifi pattern, not itself locked — verify the indeterminate-line treatment is actually applied to bluetooth discovery, not only to wifi scan. **Note (G-15-1, 2026-08-02):** the discovery line's sweep is governed by the identical loop-period token as the wifi scan line (`Motion.ambientDuration`), so the two indeterminate lines are one shared treatment, not two that merely look alike. |
 | error | E5 Bluetooth device list | ✅ covered | Inferred failure via property-transition watching (`pairing: true→false` without `bonded` becoming true and not user-cancelled; `Connecting→Disconnected`) renders row-scoped copy — see Copywriting Contract "Bluetooth row failure" (RESEARCH.md Pitfall 2 — BlueZ exposes no native failure signal) |
 | populated | E5 Bluetooth device list | ✅ covered | Grouped stable ordering (connected → paired → discovered) — D-15-18, deliberately asymmetric from wifi's grammar for the documented radio-contention reason. The connected-devices group is the bluetooth panel's **declared focal point**. |

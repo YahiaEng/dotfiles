@@ -57,3 +57,28 @@ scope and files.
 proven-byte-identical insertion pattern 14-10 used for the Super+D chord) to
 add the Super+A `A`/modmask=64 record, without touching any other row and
 without silently absorbing the still-open `{mouse=true}` divergence.
+
+---
+
+## G-15-2 — Bluetooth device-list verification (pair / connect / disconnect / forget)
+
+**Status:** open
+**Raised by:** 15-12 (G-15-2 gap closure), 2026-08-02
+**Requirement:** PANEL-04
+
+UAT test 2's device-list half — pair, connect, disconnect and forget against a real
+peer — was never reachable, because the Enable button was inert on this host and the
+panel could never reach a populated state at all. It stays unverified even after this
+plan.
+
+**This fix unblocks the test; it does not perform it.** 15-12 makes the blocked adapter
+legible and stops the panel offering a control that cannot work, but the device-list
+paths remain source-verified only.
+
+The blocker is hardware, not code: this host has **zero paired devices and zero
+discoverable peers**, confirmed by a live 8-second scan. No amount of further work in
+this repo can close it.
+
+**Owner condition:** closes the first time a real discoverable Bluetooth peer (phone,
+headset, etc.) is available near the machine — **not** at a phase boundary. Do not mark
+it resolved because a milestone ended.
