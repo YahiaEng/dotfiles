@@ -70,10 +70,21 @@ PanelDialog {
     //    null-guarded even though `backend` is always set by shell.qml,
     //    matching WifiPanel.qml's own discipline. ─────────────────────
     readonly property bool noAdapterBranch: !(root.backend && root.backend.adapterPresent)
-    readonly property bool adapterOffBranch: !root.noAdapterBranch && !(root.backend && root.backend.adapterEnabled)
-    // 15-02's four-name vocabulary — both off branches are "empty", the
-    // real body slot is "populated". No fifth state name.
-    readonly property string panelState: (root.noAdapterBranch || root.adapterOffBranch) ? "empty" : "populated"
+    // ── G-15-2 gap closure (15-12) — the THIRD branch, and why the
+    //    evaluation order below is load-bearing ────────────────────────
+    // Order is: no-adapter (genuinely unfixable) FIRST, blocked SECOND,
+    // plain adapter-off LAST — and the last one must exclude BOTH of the
+    // two above it. Before this gap there was nothing between no-adapter
+    // and adapter-off, so an rfkill soft-blocked adapter fell straight
+    // through to the *fixable* off branch and rendered an Enable button
+    // that provably could not work. Get this order wrong (or drop the
+    // `!root.adapterBlockedBranch` term from `adapterOffBranch`) and the
+    // fix changes nothing — the host lands on the old branch again.
+    readonly property bool adapterBlockedBranch: !root.noAdapterBranch && !!(root.backend && root.backend.adapterBlocked)
+    readonly property bool adapterOffBranch: !root.noAdapterBranch && !root.adapterBlockedBranch && !(root.backend && root.backend.adapterEnabled)
+    // 15-02's four-name vocabulary — all three off branches are "empty",
+    // the real body slot is "populated". No fifth state name.
+    readonly property string panelState: (root.noAdapterBranch || root.adapterBlockedBranch || root.adapterOffBranch) ? "empty" : "populated"
 
     // The body area's own height, computed from the frame's own constants
     // rather than reaching into PanelDialog's private `bodyFlick` id (out
@@ -297,6 +308,97 @@ PanelDialog {
                         if (root.backend)
                             root.backend.setAdapterEnabled(true);
                     }
+                }
+            }
+        }
+    }
+
+    // ── Branch 3 (G-15-2, 15-12) — adapter present but rfkill
+    //    soft-blocked: fixable by the user, but OUTSIDE the panel ────────
+    // A third kind, distinct from both branches above: not "fixable
+    // in-panel" (branch 2's Enable, which works) and not "unfixable"
+    // (branch 1, no button at all). The block is clearable, just not by
+    // anything this panel is allowed to do — so the button stays present
+    // at identical geometry, dimmed, and carries the remedy on hover.
+    Item {
+        id: adapterBlockedBranchItem
+        width: parent.width
+        height: root.bodyAreaHeight
+        visible: root.adapterBlockedBranch
+
+        // Same value PanelDialog.qml's D-15-22 `advancedButton` uses for
+        // its own present-but-disabled control, hoisted to a named
+        // property here exactly as that one does rather than minting a
+        // second disabled-opacity number.
+        readonly property real disabledOpacity: 0.38
+
+        Column {
+            anchors.centerIn: parent
+            spacing: root.spacingSm
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "bluetooth_disabled"
+                font.family: root.symbolFontFamily
+                font.pixelSize: root.iconSizeMd
+                color: root.stateColour("empty")
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Bluetooth is blocked"
+                font.pixelSize: root.fontHeading
+                font.weight: root.weightEmphasis
+                color: root.stateColour("empty")
+            }
+            // Phrased so it can be read neither as something missing from
+            // the system (the hypothesis this gap disproved) nor as a
+            // physical killswitch — it must stay distinguishable at a
+            // glance from WifiPanel's own physical-killswitch line, which
+            // is a genuinely different situation with a different remedy.
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "A software block is holding the radio off"
+                font.pixelSize: root.fontBody
+                font.weight: root.weightBody
+                lineHeight: root.lineHeightNormal
+                color: root.stateColour("empty")
+            }
+
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: blockedEnableLabel.implicitWidth + root.spacingLg * 2
+                height: 40
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: height / 2
+                    color: Colours.primary
+                    opacity: adapterBlockedBranchItem.disabledOpacity
+                }
+                Text {
+                    id: blockedEnableLabel
+                    anchors.centerIn: parent
+                    text: "Enable"
+                    font.pixelSize: root.fontBody
+                    color: Colours.onPrimary
+                    opacity: adapterBlockedBranchItem.disabledOpacity
+                }
+                MouseArea {
+                    id: blockedEnableMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    // Deliberate, NOT an oversight: a disabled MouseArea
+                    // also stops receiving hover, which would make the
+                    // reason UNREACHABLE by hover — directly contradicting
+                    // UI-SPEC E7's "the reason is legible before the
+                    // press, not after". Press suppression is a different
+                    // guard for a different requirement, and lives in
+                    // BluetoothBackend.setAdapterEnabled()'s early return.
+                    enabled: true
+
+                    ToolTip.visible: blockedEnableMouseArea.containsMouse
+                    ToolTip.delay: Design.tooltipDelayMs
+                    ToolTip.text: "Run  rfkill unblock bluetooth  in a terminal to clear it"
                 }
             }
         }
@@ -864,5 +966,5 @@ PanelDialog {
 
     // Only the branch actually visible at mount time enters the cascade —
     // matches WifiPanel.qml's own single-array-literal shape.
-    bodyCascadeBands: root.noAdapterBranch ? [noAdapterBranchItem] : (root.adapterOffBranch ? [adapterOffBranchItem] : [listBodySlot])
+    bodyCascadeBands: root.noAdapterBranch ? [noAdapterBranchItem] : (root.adapterBlockedBranch ? [adapterBlockedBranchItem] : (root.adapterOffBranch ? [adapterOffBranchItem] : [listBodySlot]))
 }
