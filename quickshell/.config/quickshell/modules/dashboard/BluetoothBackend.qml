@@ -45,12 +45,57 @@ Scope {
     // criterion, not just an implementation nicety).
     readonly property bool adapterEnabled: root.adapter?.enabled ?? false
 
+    // ── G-15-2 gap closure (15-12) — why this file now reads the state
+    //    enum, having previously read only the bool ─────────────────────
+    // `adapterEnabled` collapses TWO distinct adapter states — `Disabled`
+    // and `Blocked` — into one indistinguishable `false`. An rfkill
+    // soft-blocked adapter (this host's own persistent state) and a plainly
+    // powered-off adapter read identically through that one bool, so the
+    // panel could not tell "press Enable and it will work" apart from
+    // "press Enable and BlueZ will refuse the write" — which is exactly
+    // what made the Enable button inert on this host. `15-API-PROBE.md:22`
+    // had already measured `state: Blocked` as the live distinguishing
+    // signal, before this panel was built, and it went unused.
+    //
+    // The installed qmltypes exposes `state` (readonly,
+    // `BluetoothAdapterState::Enum`, bindable, notify `stateChanged`)
+    // alongside `enabled` — enum values `[Disabled, Enabled, Enabling,
+    // Disabling, Blocked]`, `Blocked == 4`. A plain declarative binding on
+    // `adapter.state` picks up `stateChanged` with no manual `Connections`
+    // block — the same reactive mechanism `adapterEnabled` above already
+    // relies on for `enabledChanged`.
+    //
+    // Guarded by `adapterPresent` first, exactly as every other read of
+    // `adapter` in this file is (this property's own header note, above),
+    // with optional chaining as a second line of defence: an absent
+    // adapter yields `undefined !== Blocked`, i.e. `false`, rather than a
+    // binding error — the no-adapter branch keeps rendering with zero type
+    // errors in the log (D-15-26's own acceptance criterion, restated here
+    // because this property inherits it).
+    readonly property bool adapterBlocked: root.adapterPresent && (root.adapter?.state === BluetoothAdapterState.Blocked)
+
     // ── The only place in this repo that powers the adapter from QML —
     //    15-03's Enable button calls it, 15-07's Bluetooth tile will call
     //    the same function. Returns immediately when no adapter is
     //    present. ───────────────────────────────────────────────────────
+    //
+    // G-15-2 (15-12) added the `adapterBlocked` guard below. It fires ONLY
+    // on the power-ON path (`on === true`): a power-OFF request against a
+    // blocked adapter is already a no-op at the binding, so a symmetric
+    // guard on the off path would silently change 15-07's Bluetooth
+    // quick-toggle's behaviour, which calls this same function, for no
+    // reason tied to this gap. This is PRESS SUPPRESSION, not the
+    // affordance — the affordance (rendering Enable present-but-disabled
+    // with a reason) is 15-12's Task 2, in `BluetoothPanel.qml`. Both are
+    // required: this guard alone would leave a working-looking button that
+    // silently does nothing (the original bug); the disabled rendering
+    // alone, without this guard, would leave a hit region that still
+    // reaches the refusing binding and re-spams the log with "Cannot
+    // enable adapter because it is blocked by rfkill." on every press.
     function setAdapterEnabled(on) {
         if (!root.adapterPresent)
+            return;
+        if (on && root.adapterBlocked)
             return;
         root.adapter.enabled = on;
     }
