@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 15-audio-connectivity-panels
 source: [15-VERIFICATION.md, 15-09-SUMMARY.md, 15-10-SUMMARY.md, 15-11-SUMMARY.md, 15-12-SUMMARY.md, 15-13-SUMMARY.md, 15-14-SUMMARY.md]
 started: 2026-08-02T03:30:00Z
@@ -25,7 +25,28 @@ note: |
 
 ## Current Test
 
-[testing complete]
+number: 7
+name: Bluetooth device transitions against a real peer
+expected: |
+  The half of the original test 2 that has never been reachable on this
+  host. The adapter is now unblocked and powered, with zero paired devices
+  — a clean slate.
+
+  Open the bluetooth panel. It should show "No paired devices" and an "Add
+  device" button. Press it: discovery starts, the button becomes "Stop",
+  the discovery line sweeps at the corrected ~2000ms pace, and your device
+  appears under a "Nearby" heading.
+
+  Press your device to pair. Expect a row-scoped spinner with a working
+  Cancel. On success it should move up into "Paired" (or "Connected")
+  WITHOUT reordering the peers around it. Then connect, then disconnect.
+
+  Press Forget: an inline confirm reading "Forget <name>?" with Forget and
+  Cancel. Confirming removes the device.
+
+  If a pair genuinely fails, expect "Couldn't pair" scoped to that row —
+  not a global banner and not an external window.
+awaiting: user response
 
 ## Tests
 
@@ -81,11 +102,22 @@ resolved_by: "commit 12575ac (inline fix, no gap-closure plan) — retry the han
 retest: "Passed against the user's own hidden AP (`!ono^`) on a genuine cold cache — the diagnosis-session reveal had aged out beforehand."
 outcome: DIAGNOSED — and the obvious reading was wrong. Measured against the user's own hidden AP (`!ono^`), Route B's directed probe DOES reveal it and Quickshell DOES see it as an ordinary named Network object. The defect is a race inside the panel: tryHiddenHandoff() runs 16-30ms after the probe starts and is never retried, so it always searches a stale list. See gap G-15-6.
 
+### 7. Bluetooth device transitions against a real peer
+expected: Discovery starts from "Add device" (button becomes "Stop") and the peer appears under "Nearby". Pairing shows a row-scoped spinner with a working Cancel. Success moves the device into "Paired"/"Connected" without reordering peers. Connect and disconnect work. Forget requires the inline "Forget <name>?" confirm then removes the device. A genuine failure renders "Couldn't pair" scoped to that row.
+how: Adapter confirmed unblocked and powered, zero paired devices. `qs ipc call panel toggle bluetooth`, then Add device → pair → connect → disconnect → forget against the user's standby peer.
+closes: The device-list half of round-1 test 2 — unreachable until now because the host had no discoverable peer and the Enable control was inert.
+provenance: Raised as an open item in deferred-items.md with an owner condition tied to hardware availability. The user supplied the hardware, so it is being closed on its own terms rather than at a phase boundary.
+result: issue
+reported: "I manged to pair with my device \"z fold 7\". However, the ppair message pops up in an external screen/notification that appears in my upper right corner. And, If the pair fails. there is no explicit rerty button."
+severity: major
+confirmed_working: The device-list flow itself works end to end against a real peer — discovery, the device appearing, and a successful pair. This is the first time any of it has been exercised on this host, and it closes the deferred-items.md hardware blocker. Two defects sit on top of a working flow; the flow is not in question.
+splits_into: [G-15-7 (external pairing prompt), G-15-8 (no explicit retry)]
+
 ## Summary
 
-total: 6
+total: 7
 passed: 6
-issues: 0
+issues: 1
 pending: 0
 skipped: 0
 blocked: 0
@@ -163,6 +195,45 @@ availability, explicitly not to a phase or milestone boundary.
   resolved_by: "commit 12575ac (inline fix — user chose to skip formal gap-closure planning)"
   resolved_at: 2026-08-02
   retest_result: "pass — verified by the user against their own hidden AP on a cold cache"
+
+# ── Round 2, bluetooth device list (test 7) ──────────────────────────────────
+
+- gap_id: G-15-7
+  truth: "A pairing confirmation is presented inside the bluetooth panel, not as an external window or notification"
+  status: failed
+  reason: "User reported: the pair message pops up in an external screen/notification that appears in my upper right corner"
+  severity: major
+  test: 7
+  structural_twin_of: G-15-4
+  window_ownership: "CONFIRMED blueman-applet, PID 1013 — /usr/bin/python /usr/bin/blueman-applet, autostarted from /etc/xdg/autostart/blueman.desktop via the generated app-blueman@autostart.service (verified active/running), owning org.blueman.Applet on the session bus. It is the registered BlueZ agent and therefore owns every pairing prompt. blueman-tray (PID 1357) is a separate sibling process."
+  root_cause: "The panel structurally cannot intercept a pairing request. `Quickshell.Bluetooth`'s installed qmltypes contains ZERO occurrences of 'agent' — no Agent type, no AgentManager binding, no RequestConfirmation/RequestPasskey handler. Its full exposed surface is adapter/device properties plus the five verbs (pair, cancelPair, connect, disconnect, forget). BlueZ routes every pairing interaction to the registered org.bluez.Agent1, which is blueman-applet. This is the exact shape of G-15-4: another process owns the prompt, and no QML change can win it."
+  critical_asymmetry_vs_G_15_4: "The G-15-4 remedy MUST NOT be copied here. Suppressing nm-applet was safe because NetworkManager could still complete the connection from the passphrase the panel supplied natively — removing the agent removed only the prompt. Bluetooth is different: a Secure Simple Pairing confirmation (numeric comparison, which is what a modern phone like the reported Z Fold 7 uses) REQUIRES a registered agent to answer it. With blueman suppressed and no replacement, pairing would not become self-contained — it would stop working. Suppression alone converts a cosmetic containment problem into a functional regression."
+  must_measure_before_fixing:
+    - "What `device.pair()` actually does with NO agent registered — stop app-blueman@autostart.service, attempt one pair, observe whether BlueZ fails the request or completes without confirmation. Cheap and reversible (restart the unit), but it needs the user driving the pair, and it will interrupt a working setup, so schedule it deliberately."
+    - "Whether the already-paired Z Fold 7 re-pairs without confirmation (bonded devices skip the agent), which would make the measurement above need a fresh unpaired peer to be meaningful."
+  options:
+    - "A — accept the external prompt. Zero work, honest, and pairing keeps working. The panel is then not fully self-contained, which is the same standard G-15-4 was held to and failed."
+    - "B — own the agent. Register a BlueZ org.bluez.Agent1 the panel controls, from a small D-Bus process or Quickshell.DBus/Process, since Quickshell.Bluetooth cannot. This is the only route that genuinely contains the prompt. It is the heavier of the two and is the same option that was REJECTED for wifi in G-15-4 on cost grounds — rejecting it there and accepting it here needs a deliberate reason."
+    - "C — suppress blueman and register a NoInputNoOutput auto-accepting agent. Rejected on sight: it would silently auto-accept pairing requests, trading a cosmetic complaint for a real security regression."
+  artifacts:
+    - path: "quickshell/.config/quickshell/modules/dashboard/BluetoothBackend.qml"
+      issue: "The five verbs are native and correct; there is no agent seam to add one to, because the platform exposes none"
+    - path: "/etc/xdg/autostart/blueman.desktop"
+      issue: "The autostart entry that puts the agent on the bus. 15-13 deliberately left this sibling unit generated when it suppressed nm-applet — that scoping was correct then and is the thing to revisit now."
+  debug_session: ""
+
+- gap_id: G-15-8
+  truth: "After a failed pair, the user is given an explicit way to retry"
+  status: failed
+  reason: "User reported: if the pair fails, there is no explicit retry button"
+  severity: minor
+  test: 7
+  root_cause: "Retry EXISTS but is invisible. The row stays pressable after a failure, and `handleRowPress()` (BluetoothPanel.qml:126-133) deliberately clears `failedAddress`/`failedReason` before re-invoking `pressDevice()` — the retry path is implemented and its comment describes exactly that intent. What is missing is any affordance saying so: the row renders `failedText` ('Couldn't pair', error colour, no auto-clear) and nothing else changes, so a failed row looks terminal rather than re-pressable. This is a discoverability defect, not a missing capability."
+  note: "Cheapest honest fix is a retry affordance on the failed row rather than a new control elsewhere — the press target already exists and already does the right thing. Worth checking against WifiPanel's own failed-row treatment so the two panels teach the same idiom rather than diverging."
+  artifacts:
+    - path: "quickshell/.config/quickshell/modules/dashboard/BluetoothPanel.qml"
+      issue: "L126-133 handleRowPress() already implements retry-on-press and clears the failure slot; L631-645 failedText renders the failure with no accompanying retry affordance"
+  debug_session: ""
   reason: "User reported: Fail. It cannot detect my hidden network. I have one that I can test on if needed"
   severity: major
   test: 6
