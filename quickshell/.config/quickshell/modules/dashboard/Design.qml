@@ -37,6 +37,22 @@
 //                 independently agreed on and is MD3's standard 24dp icon
 //                 size. Its provenance is unanimous sibling agreement, not
 //                 a contract row, and the SUMMARY says so.
+// borderWidth     15-10 (G-15-1b gap closure): Hyprland's own
+//                 `general:border_size`, read live via `hyprctl getoption
+//                 general:border_size` (3 on this host). Not a token — it
+//                 has no representation in the colour or motion pipelines,
+//                 unlike GradientBorder's gradient stops and rotation
+//                 period, which ARE tokens — so this is a hand-carried
+//                 parity number. Hoisted here (rather than left as
+//                 Dashboard.qml's own literal, or duplicated a second time
+//                 in PanelDialog.qml) because Phase 15's PanelDialog.qml
+//                 now needs the identical value: a per-file literal in
+//                 each would be two homes for one parity claim, and this is
+//                 the only location both `Dashboard.qml` (`import
+//                 "dashboard"`) and `PanelDialog.qml` (`import "../"` plus
+//                 same-directory resolution) can already read. If
+//                 Hyprland's border_size changes, this is the line to
+//                 follow it.
 //
 // Deliberately NOT consolidated, though its name and value agree across two
 // files: `fillAxisAvailable`. It is a per-file capability flag about what
@@ -88,4 +104,7 @@ Singleton {
 
     // ── Tooltip delay — see the header note above for provenance ────────
     readonly property int tooltipDelayMs: 400
+
+    // ── Border width — see the provenance note above (15-10, G-15-1b) ───
+    readonly property int borderWidth: 3
 }

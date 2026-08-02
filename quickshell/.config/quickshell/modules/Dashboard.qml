@@ -231,12 +231,18 @@ PanelWindow {
     readonly property int cornerRadius: 28
 
     // DASH-10: Hyprland's own `general:border_size` (3 on this host, read via
-    // `hyprctl getoption general:border_size`). Named here rather than at the
-    // GradientBorder call site so the parity claim has one home — Hyprland's
-    // border width has no representation in the colour or motion pipelines,
-    // so unlike the gradient's stops and period there is no token to read it
-    // from. If Hyprland's border_size changes, this is the line to follow it.
-    readonly property int borderWidth: 3
+    // `hyprctl getoption general:border_size`). Hyprland's border width has
+    // no representation in the colour or motion pipelines, so unlike the
+    // gradient's stops and period there is no token to read it from.
+    //
+    // 15-10 (G-15-1b): the home moved to `Design.borderWidth`, not restated
+    // here. Phase 15's `PanelDialog.qml` — a second summonable-layer-surface
+    // consumer — now needs this identical parity number for its own
+    // GradientBorder instance; a bare literal in each of two files would be
+    // two homes for one claim, not one. `Design.qml` is the one place both
+    // this file (`import "dashboard"`) and `PanelDialog.qml` (`import "../"`)
+    // can already read. If Hyprland's border_size changes, follow it there.
+    readonly property int borderWidth: Design.borderWidth
     readonly property real drawerSurfaceOpacity: 0.78
     readonly property color surfaceBase: Colours.surface
 
