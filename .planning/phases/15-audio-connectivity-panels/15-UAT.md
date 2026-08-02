@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 15-audio-connectivity-panels
 source: [15-VERIFICATION.md, 15-09-SUMMARY.md, 15-10-SUMMARY.md, 15-11-SUMMARY.md, 15-12-SUMMARY.md, 15-13-SUMMARY.md, 15-14-SUMMARY.md]
 started: 2026-08-02T03:30:00Z
@@ -23,6 +23,7 @@ note: |
 ## Tests
 
 ### 1. Wifi scan pace and Rescan feedback
+
 expected: Scan progress line sweeps at a readable ~2000ms cycle. Pressing the refresh glyph gives immediate press feedback plus a persistent busy state (primary colour, animating, tooltip "Rescanning…") that clears when results land. Bluetooth's discovery line sweeps at the same corrected pace. The `reduced` motion preset must not be faster than `normal`.
 how: `qs ipc call panel toggle wifi` or the Wi-Fi tile chevron. Watch the sweep, then press Rescan and watch the glyph.
 closes_gap: G-15-1 (plan 15-11)
@@ -30,6 +31,7 @@ round1_reported: "Scan proggress line is moving too fast. Pressing on \"rescan\"
 result: pass
 
 ### 2. Bluetooth blocked-adapter state
+
 expected: This host's bluetooth radio is rfkill soft-blocked. The panel renders a third empty state — heading "Bluetooth is blocked", body "A software block is holding the radio off" — with an Enable button at normal geometry but visibly dimmed. Hovering it shows "Run  rfkill unblock bluetooth  in a terminal to clear it" — the real reason, never a missing package. Pressing it does nothing at all, while hover still reaches the tooltip. Running `rfkill unblock bluetooth` externally makes the panel re-render into the ordinary off-state with a working Enable, with no restart.
 how: `qs ipc call panel toggle bluetooth`. Hover the dimmed Enable, press it, then run `rfkill unblock bluetooth` in a terminal and watch the panel.
 closes_gap: G-15-2 (plan 15-12)
@@ -38,10 +40,12 @@ scope_note: The device-list half of the original test 2 (pair / connect / discon
 result: pass
 
 ### 3. Wifi and bluetooth Advanced buttons
+
 expected: nm-connection-editor and blueman-manager each open as a detached window that survives dismissing the panel.
 result: pass
 
 ### 4. Wrong wifi password stays inside the panel
+
 expected: A wrong passphrase produces NO external window at all — nm-applet's GTK secret dialog is gone, suppressed by a stowed autostart override. The failure renders as row-scoped copy inside the wifi panel naming a rejected passphrase, and the password row does NOT re-open as though nothing had been typed. A network that genuinely needs a passphrase you did not supply still reads "Password required" and still re-expands its row — the two cases stay distinguishable.
 how: Expand a secured network, deliberately mistype the passphrase, press Connect, and watch for any window appearing behind the panel.
 closes_gap: G-15-4 (plan 15-13)
@@ -50,6 +54,7 @@ already_confirmed: Connect with a real password succeeds; Cancel visibly aborts 
 result: pass
 
 ### 5. Animated gradient border on all three panels
+
 expected: Opening the audio, wifi or bluetooth panel shows the same animated gradient rim the dashboard drawer already has — same 3px thickness, tracing the same 28px bottom corners. It re-themes on a theme switch and stops rotating at the `off` motion scale, exactly as the drawer's rim does. The drawer's own rim must look unchanged.
 how: `qs ipc call panel toggle audio`, then wifi, then bluetooth. Compare against the dashboard drawer (Super+D).
 closes_gap: G-15-1b (plan 15-10)
@@ -57,6 +62,7 @@ round1_reported: "this is improtant for all panels not just wifi, they need to h
 result: pass
 
 ### 6. Join a hidden network
+
 expected: The wifi panel offers a "Join a hidden network" entry point sitting between the network list and the zero-result line, at a fixed height so opening it never shifts the rows around it. Typing an SSID and pressing "Search" runs a directed probe; while probing, the button reads "Cancel". If the access point answers, it materialises as a normal row and the ENTIRE existing flow takes over unchanged — password field, Connect, pending pulse, Cancel, row-scoped failure copy. If it does not answer within 8 seconds, a form-scoped message says so. Escape gains a third stage (closing the form) without disturbing the two you confirmed in round 1.
 how: Open the wifi panel, scroll to below the network list, press "Join a hidden network". Test with a real hidden SSID if you have one; otherwise type a nonsense SSID to confirm the not-found path and the Escape ordering.
 closes_gap: G-15-4b (plan 15-14)
@@ -146,9 +152,38 @@ remains unverified behind a hardware blocker tracked in deferred-items.md.
   prior_prediction: "15-14 shipped Route B (`nmcli device wifi rescan ssid <SSID>` → real Network object → existing flow) and explicitly recorded that it could NOT be proven, because no hidden SSID on this host was known and some APs do not answer directed probes. Route A was specified in advance as the documented fallback. This failure is that predicted branch being taken, not an unforeseen defect."
   measurement_now_possible: "The user has a real hidden network available to test against — the exact resource 15-14's Step Zero lacked. The blind spot that forced Route B to ship unproven is now closable by direct measurement."
   must_measure_before_fixing:
+
     - "Does `nmcli device wifi rescan ssid <SSID>` followed by `nmcli device wifi list` reveal the AP at all? This separates 'the AP does not answer directed probes' (Route B is dead, go Route A) from 'nmcli sees it but the panel's handoff never fires' (Route B is fine, the QML handoff is the bug)."
     - "If nmcli DOES reveal it: does the revealed AP appear in Quickshell's `wifiDevice.networks` with a non-blank SSID? Quickshell filters blank-SSID APs out entirely (15-14 measured 7 hidden APs in nmcli vs 0 in QML) — a revealed AP that stays blank-SSID to QML means the handoff can never find a receiver object regardless of probe success."
     - "Whether the panel's 8000ms probe watchdog is firing before the AP has time to materialise in QML's network list, which would produce this exact symptom even with a working probe."
   route_a_fallback_as_specified: "`nmcli device wifi connect <SSID> password <pw> hidden yes`, with the passphrase delivered via Process.stdinEnabled + write() against `nmcli --ask` so it never reaches argv (/proc/PID/cmdline is world-readable — Prohibition P3). Needs a new error mapping because nmcli returns exit codes + stderr rather than the ConnectionFailReason enum the panel's row-scoped copy is wired to."
-  artifacts: []  # Filled by diagnosis
-  missing: []    # Filled by diagnosis
+  root_cause: "A race in the panel's own handoff, NOT a Route B failure. `tryHiddenHandoff()` has exactly one caller — `hiddenRescanProcess.onExited` (WifiPanel.qml:309) — which fires 16-30ms after the probe process starts (measured three times: 30/16/16ms, matching 15-14's own ~16ms Step Zero figure). At that instant the scan has not completed and the network list is unchanged, so the search loop finds nothing and returns. It is never called again: no Connections block re-invokes it on a list change (WifiPanel's two blocks target onPanelOpenChanged:209 and onConnectFailed:454). The 8000ms hiddenProbeTimer then fires and renders 'No network answered to that name'. The watchdog owns the verdict; NOTHING owns the retry. This is deterministic — no hidden network can ever be found through this path, on any host, however well it answers."
+  route_b_proven_viable: "MEASURED AGAINST THE USER'S OWN HIDDEN AP (SSID `!ono^`). (1) `nmcli device wifi rescan ssid` reveals it — BSSID CC:BA:BD:95:84:B2 gains the name (and the old blank entry lingers alongside, so the reveal ADDS an entry rather than mutating one). (2) Quickshell sees it as an ordinary named Network object: a standalone probe shell using WifiBackend.qml:47-54's own DeviceType.Wifi accessor reported `total=14`, `ssid=[!ono^]`, `blank_ssid_count=0`. So tryHiddenHandoff()'s `nets[i].name === hiddenSsid` comparison WOULD match it. The mechanism 15-14 chose is correct and must NOT be replaced."
+  prediction_falsified: "15-14 pre-specified Route A as the fallback on the assumption that failure here would mean the AP does not answer directed probes. Measured false on this host. Switching to Route A would rebuild a working mechanism for no reason, and is strictly worse — it duplicates the connect verb, puts the passphrase on argv unless mitigated with Process.stdinEnabled + `nmcli --ask`, and needs a whole new error mapping because nmcli returns exit codes/stderr instead of the ConnectionFailReason enum the row-scoped copy is wired to."
+  artifacts:
+
+    - path: "quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml"
+      issue: "L309 — tryHiddenHandoff() called only from hiddenRescanProcess.onExited, 16-30ms after the probe starts, and never retried. This is the defect."
+
+    - path: "quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml"
+      issue: "L189-203 — hiddenProbeTimer's 8000ms ceiling is shorter than the measured reveal latency, so it would fire early even once the retry is fixed"
+
+    - path: "quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml"
+      issue: "L240-250 — startHiddenProbe() fires exactly ONE probe; a single probe was measured insufficient (12s of polling after one probe showed nothing; repeated probes revealed it)"
+
+    - path: "quickshell/.config/quickshell/modules/dashboard/WifiBackend.qml"
+      issue: "L244 — the existing Connections block on wifiDevice.networks is the house precedent for the missing retry trigger (15-11 used the same observable for its rescan edge). Not a defect — the reuse."
+  missing:
+
+    - "Re-invoke tryHiddenHandoff() on the real results-landed observable (wifiDevice.networks valuesChanged), gated on hiddenProbing — the trigger 15-11 already established"
+    - "Re-probe periodically during the in-flight window instead of probing once; the directed rescan is fire-and-forget, carries no secret and costs ~16ms"
+    - "Raise hiddenProbeMs above the measured reveal latency — still a logic timeout, so `interval:` and never a motion `duration:` (the existing comment is correct and must stay correct)"
+    - "Do NOT switch to Route A; keep it documented as the fallback it already is"
+    - "Confirm the lingering duplicate blank-SSID entry for the same BSSID does not leave a stale duplicate row in the panel's list after a successful hidden join"
+  eliminated:
+
+    - "'The AP does not answer directed probes' — FALSE, measured. It answers and NM surfaces the name."
+    - "'Quickshell filters the revealed AP as blank-SSID' — FALSE, measured. blank_ssid_count=0 and the SSID is present as an ordinary object."
+    - "'The SSID's punctuation (! and ^) breaks the argv or comparison path' — no evidence. The command is fixed-argv (WifiPanel.qml:248) so no shell parses it, and the name round-tripped through nmcli and QML intact."
+  residual_unknown: "Exact cold-cache reveal latency for a SINGLE probe was not pinned down — the revealed entry stayed in NM's scan cache for 180s+ without aging out, so the cold-start condition could not be re-created this session. The fix must therefore be robust to a long, variable reveal (retry on list change + periodic re-probe) rather than tuned to a specific number."
+  debug_session: ".planning/debug/wifi-hidden-network-not-detected.md"
