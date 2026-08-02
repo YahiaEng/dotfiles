@@ -118,6 +118,36 @@ Every panel-level and row-level string this phase is known to need, resolved fro
 | Wifi refresh control, rescan in flight | Tooltip swaps from the idle "Rescan" to "Rescanning…" while a rescan is in flight; the glyph also turns accent-toned and spins (G-15-1, new — the refresh control's own busy acknowledgement, since the pinned progress line above is a level that is already true before the press and cannot itself acknowledge one) |
 | Wifi network list, zero results after a completed scan | "No networks found" — refresh control remains visible (backstop copy — not explicitly locked in CONTEXT.md; verify at render gate) |
 | Wifi row failure (D-15-09, per `ConnectionFailReason`) | `NoSecrets` → "Password required"; `WifiAuthTimeout` → "Wrong password"; `WifiClientDisconnected` / `WifiClientFailed` → "Couldn't connect"; `WifiNetworkLost` → "Network out of range"; `Unknown` → "Couldn't connect" — rendered inline on the affected row, password field (if open) stays open for retry |
+
+**Wifi row failure amendment (G-15-4, 15-13, 2026-08-02) — the `NoSecrets` row above is
+superseded in place; every other mapping stands unchanged.**
+
+1. **The disambiguator is contract, not implementation detail.** `NoSecrets` maps to **two**
+   different strings depending on whether the panel supplied a passphrase on that attempt:
+   supplied-and-still-no-secret → **"Wrong password"**; none-supplied → **"Password
+   required"** (and only this second case re-opens the row's password field). NetworkManager
+   cannot make this distinction — it knows only that it lacks a usable secret. The panel can,
+   because it knows whether it just handed one over. The disambiguator is a plain boolean;
+   the passphrase itself is never stored (Prohibition P3).
+
+2. **The measured reason — NOT MEASURED THIS ROUND.** The plan required recording the raw
+   enum value reaching `connectionFailed` with no agent registered, so a future NM or
+   quickshell upgrade shows up as a change rather than being rediscovered as a bug. That
+   live measurement was **skipped** at the user's instruction to finish quickly, and this
+   row is therefore a **known gap in the contract**. The implementation is written to be
+   correct for either candidate (`NoSecrets` branches on the boolean; `WifiAuthTimeout`
+   stays mapped regardless), but the observed value and the failure latency relative to the
+   15000 ms row watchdog are both unrecorded. **If the failure lands at or past that
+   watchdog the row clears before the copy arrives and the copy is still unreachable** —
+   that possibility is untested.
+
+3. **Environmental precondition.** This mapping is only reachable because **no external
+   NetworkManager secret agent is registered on this host**. That is made true by the stowed
+   XDG override at `quickshell/.config/autostart/nm-applet.desktop` (15-13 Task 1). If that
+   file is removed, or `network-manager-applet`'s autostart is re-enabled by any other means,
+   nm-applet re-registers and answers `GetSecrets` with its own GTK dialog again — and no
+   panel-side change can win that z-order fight. The two are one decision; each file names
+   the other.
 | Bluetooth primary CTA (device row, contextual) | Row press label by state: "Pair" (unpaired) / "Connect" (paired, disconnected) / "Disconnect" (connected) — D-15-19, the row's press IS the CTA, no separate button |
 | Bluetooth destructive action | Chevron-expanded "Forget" — visually separated from the row's press action, `Colours.error`-toned, same confirm-before-commit treatment as wifi's Forget |
 | Bluetooth pairing in progress | Spinner + a real "Cancel" button wired to `cancelPair()` (D-15-19 — not a silent watchdog; the one operation where user-visible waiting is long enough to need a live escape hatch) |
