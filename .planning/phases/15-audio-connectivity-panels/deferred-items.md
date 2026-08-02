@@ -82,3 +82,47 @@ this repo can close it.
 **Owner condition:** closes the first time a real discoverable Bluetooth peer (phone,
 headset, etc.) is available near the machine — **not** at a phase boundary. Do not mark
 it resolved because a milestone ended.
+
+---
+
+## Notification-server replacement MUST declare `actions` and `body` capability
+
+**Status:** OPEN — a constraint on future work, not a defect in phase 15
+**Raised by:** G-15-7 investigation, 2026-08-02
+**Owner condition:** closes when the swaync replacement ships with the capability
+declared and a real bluetooth pairing verified against it.
+
+Bluetooth pairing confirmations reach the user as an ordinary desktop notification
+carrying actions — `BluezAgent._on_request_confirmation` (BluezAgent.py:200-216)
+raises `Notification(..., actions=actions, actions_cb=...)`. That is the modern-phone
+SSP numeric-comparison path, i.e. the normal case.
+
+blueman picks its presentation by interrogating whatever owns
+`org.freedesktop.Notifications`. From `blueman/gui/Notification.py:295`:
+
+```python
+if forced_fallback or 'body' not in caps or (actions and 'actions' not in caps):
+    klass = _NotificationDialog   # raw GTK dialog
+else:
+    klass = _NotificationBubble   # desktop notification
+```
+
+**So a replacement that does not declare BOTH `body` and `actions` in
+`GetCapabilities` silently demotes bluetooth pairing to an unthemed GTK dialog** —
+which, being an XDG toplevel, sits unconditionally *behind* any layer-shell overlay
+in Hyprland. That is precisely the G-15-4 failure this phase spent a plan removing
+for wifi, reintroduced through a different door.
+
+The failure mode is nasty because of where it surfaces: it would look like a
+bluetooth panel regression, and be debugged there, while the cause sits in the
+notification server.
+
+`Quickshell.Services.Notifications` exposes `actionsSupported` for exactly this, and
+also exposes per-notification `actions` plus `invoke` — so the replacement can not
+only avoid the regression but route the pairing confirmation into the bluetooth
+panel itself, which is what the user originally asked for in G-15-7. That is the
+cheap path to containment; building a `org.bluez.Agent1` D-Bus process is not.
+
+**Verification when that phase lands:** pair a real phone and confirm (a) no GTK
+dialog appears, (b) the confirmation renders through the new server with working
+Accept/Reject, (c) `GetCapabilities` lists `body` and `actions`.
