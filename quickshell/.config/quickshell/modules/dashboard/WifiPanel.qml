@@ -152,14 +152,23 @@ PanelDialog {
     // it the network connects once and never reconnects on its own.
     property string hiddenPendingSsid: ""
 
-    // Sized against the scan envelope this phase already measured: first
-    // results land 300ms–1.5s after a scan begins, and the list is still
-    // growing 4.5s later. Too short reports not-found for a network that
-    // was about to appear; too long leaves the user on a spinner. Not a
-    // motion token — a logic timeout, so `interval:`, never `duration:`
-    // (a duration token collapses to zero at the `off` motion scale),
-    // matching `rowWatchdogMs` above.
-    readonly property int hiddenProbeMs: 8000
+    // G-15-6: was 8000, sized against this phase's ORDINARY scan envelope
+    // (first results 300ms–1.5s, list still growing at 4.5s). A hidden AP's
+    // REVEAL is a different and much slower envelope: measured against a
+    // real hidden network, one directed probe followed by 12s of polling
+    // showed nothing, and the name appeared only after repeated probes.
+    // 8000 fired before the reveal could land, so the not-found verdict was
+    // reached while the answer was still on its way. Still a logic timeout,
+    // so `interval:`, never `duration:` (a duration token collapses to zero
+    // at the `off` motion scale), matching `rowWatchdogMs` above.
+    readonly property int hiddenProbeMs: 30000
+
+    // G-15-6: the directed rescan is fire-and-forget and carries NO secret
+    // — only a name — and the process exits in 16–30ms (measured 30/16/16).
+    // One probe was measured insufficient; repeating it during the window
+    // is what makes the reveal reliable rather than lucky. Cheap enough to
+    // repeat, and re-probing an already-revealed AP is harmless.
+    readonly property int hiddenReprobeMs: 4000
 
     // Backend watchdog — a stranded pending row must not pulse forever if
     // NetworkManager never answers either way. Not a motion token (would
@@ -200,6 +209,32 @@ PanelDialog {
             // as a fact. The field stays open and populated for
             // correction — the same retry posture the password row takes.
             root.hiddenFailedText = "No network answered to that name";
+            hiddenReprobeTimer.stop();
+        }
+    }
+
+    // ── G-15-6: the re-probe pulse ────────────────────────────────────────
+    // One directed probe is not enough. Measured against a real hidden AP,
+    // a single probe plus 12s of polling revealed nothing, while repeated
+    // probes revealed it. This repeats the SAME fixed-argv, secret-free
+    // command for as long as the probe window is open; `hiddenProbeTimer`
+    // still owns the not-found verdict and stops this on expiry.
+    Timer {
+        id: hiddenReprobeTimer
+        interval: root.hiddenReprobeMs
+        repeat: true
+        onTriggered: {
+            if (!root.hiddenProbing || root.hiddenSsid.length === 0) {
+                hiddenReprobeTimer.stop();
+                return;
+            }
+            // Never stack probes: if the previous one is somehow still
+            // running, skip this tick rather than reassigning `command`
+            // underneath a live process.
+            if (hiddenRescanProcess.running)
+                return;
+            hiddenRescanProcess.command = ["nmcli", "device", "wifi", "rescan", "ssid", root.hiddenSsid];
+            hiddenRescanProcess.running = true;
         }
     }
 
@@ -225,6 +260,7 @@ PanelDialog {
         root.hiddenProbing = false;
         root.hiddenFailedText = "";
         hiddenProbeTimer.stop();
+        hiddenReprobeTimer.stop();
     }
 
     function openHiddenForm() {
@@ -248,6 +284,7 @@ PanelDialog {
         hiddenRescanProcess.command = ["nmcli", "device", "wifi", "rescan", "ssid", root.hiddenSsid];
         hiddenRescanProcess.running = true;
         hiddenProbeTimer.restart();
+        hiddenReprobeTimer.restart();
     }
 
     // The handoff — the whole point of this design. The typed SSID is used
@@ -274,6 +311,7 @@ PanelDialog {
                     var found = nets[i];
                     var ssid = root.hiddenSsid;
                     hiddenProbeTimer.stop();
+                    hiddenReprobeTimer.stop();
                     root.clearHiddenForm();
                     root.hiddenPendingSsid = ssid;
                     root.expandedNetwork = found;
@@ -306,6 +344,28 @@ PanelDialog {
             // host at exit 0 in ~16ms for both a present and an absent
             // SSID. A non-answer is not an error, so the exit code is not
             // rendered; the probe watchdog owns the not-found verdict.
+            //
+            // G-15-6: this call is kept, but it is NOT the mechanism. The
+            // process exits 16–30ms after it starts, long before any scan
+            // result can land, so on its own it always searched a stale
+            // list and the feature could never find ANY hidden network on
+            // ANY host. The real trigger is the results-landed observable
+            // below; this remains only as the cheap first look.
+            root.tryHiddenHandoff();
+        }
+    }
+
+    // ── G-15-6: the trigger that actually finds the network ───────────────
+    // `wifiDevice.networks` changing is the one real "results landed"
+    // signal that exists — the same observable 15-11 used to clear the
+    // rescan edge (WifiBackend.qml:244). Re-running the handoff here is
+    // what closes the race: the reveal lands seconds after the probe
+    // process has already exited, and without this nothing ever looks
+    // again. `tryHiddenHandoff()` self-guards on `hiddenProbing`, so this
+    // is inert whenever the hidden form is not waiting on a probe.
+    Connections {
+        target: (root.backend && root.backend.wifiDevice) ? root.backend.wifiDevice.networks : null
+        function onValuesChanged() {
             root.tryHiddenHandoff();
         }
     }
@@ -1353,6 +1413,10 @@ PanelDialog {
                                     // reader would take for a bug.
                                     root.hiddenProbing = false;
                                     hiddenProbeTimer.stop();
+                                    // G-15-6: the re-probe pulse stops with
+                                    // the window it belongs to, or Cancel
+                                    // would leave it firing probes forever.
+                                    hiddenReprobeTimer.stop();
                                 } else {
                                     root.startHiddenProbe();
                                 }
