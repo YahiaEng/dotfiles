@@ -329,6 +329,7 @@ PanelDialog {
         width: parent.width
         implicitHeight: pinnedColumn.implicitHeight
         height: implicitHeight
+        visible: !root.panelUnreachable
 
         Column {
             id: pinnedColumn
@@ -584,16 +585,237 @@ PanelDialog {
         }
     }
 
-    // ── The scrolling per-app mixer list — Task 3 fills this region.
-    //    Claims the body viewport's remainder so bodyContent's total
-    //    height matches the viewport exactly and the OUTER Flickable
-    //    never has anything to scroll; this region gets its own inner
-    //    scroller instead (D-15-10 achieved without touching
-    //    PanelDialog.qml). ─────────────────────────────────────────────
+    // ── The PipeWire-unreachable state (E1 `error`, NEW locked contract) ─
+    // Single named producer, bound to the negation of the backend's
+    // readiness property. This is deliberately NOT the nothing-playing
+    // treatment: nothing-playing means the controls still work and there
+    // is simply nothing to mix, while unreachable means nothing in the
+    // panel can do anything — rendering live-looking sliders that
+    // silently do nothing is the exact failure this state exists to
+    // avoid. `PanelDialog.bodyState` shipped `readonly` (confirmed by
+    // reading PanelDialog.qml — see the file header's state-composition
+    // note), so this state is composed locally rather than bound onto the
+    // frame's own placeholder; `stateColour(state)` is still called for
+    // the palette mapping.
+    readonly property bool panelUnreachable: root.backend ? !root.backend.pipewireReady : false
+
+    readonly property int appRowLabelWidth: 168
+
+    // ── The scrolling per-app mixer list. Claims the body viewport's
+    //    remainder so bodyContent's total height matches the viewport
+    //    exactly and the OUTER Flickable never has anything to scroll;
+    //    this region gets its own inner scroller instead (D-15-10
+    //    achieved without touching PanelDialog.qml). Hidden entirely
+    //    (not merely emptied) when panelUnreachable holds, since that
+    //    state replaces the WHOLE body, pinned block included. ─────────
     Item {
         id: appListRegion
         width: parent.width
         height: Math.max(0, root.bodyViewportHeight - pinnedBlock.height - root.spacingMd)
+        visible: !root.panelUnreachable
+
+        // ── StreamRow — the D-15-13 three-element per-app row. `node` is
+        //    bound explicitly at the ListView delegate site below (the
+        //    established pattern in this file — DevicePickerRow's own API
+        //    takes explicit properties rather than relying on implicit
+        //    delegate context access inside the component body). ────────
+        component StreamRow: Item {
+            id: streamRow
+
+            property var node: null
+            readonly property bool muted: (streamRow.node && streamRow.node.audio) ? streamRow.node.audio.muted : false
+            readonly property real streamVolume: (streamRow.node && streamRow.node.audio) ? streamRow.node.audio.volume : 0
+
+            width: appListRegion.width
+            height: root.controlRowHeight
+
+            Row {
+                id: streamRowLayout
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: root.spacingSm
+
+                // 1. Icon-as-mute. The muted-speaker glyph in this icon
+                //    set IS the slashed form (D-15-13's slash treatment)
+                //    — no hand-drawn overlay is added on top of it.
+                Text {
+                    id: streamIconGlyph
+                    width: root.iconSizeMd
+                    horizontalAlignment: Text.AlignHCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    font.family: root.symbolFontFamily
+                    font.pixelSize: root.iconSizeMd
+                    text: streamRow.muted ? "volume_off" : (root.backend ? root.backend.streamIcon(streamRow.node) : "volume_up")
+                    color: streamRow.muted ? Colours.onSurfaceVariant : Colours.onSurface
+
+                    MouseArea {
+                        id: streamMuteArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            if (root.backend)
+                                root.backend.setStreamMuted(streamRow.node, !streamRow.muted);
+                        }
+                        ToolTip.visible: streamMuteArea.containsMouse
+                        ToolTip.text: streamRow.muted ? "Unmute" : "Mute"
+                        ToolTip.delay: Design.tooltipDelayMs
+                    }
+                }
+
+                // 2. Application name — one line, elided, full name on
+                //    hover (E1 long-text locked contract).
+                Text {
+                    id: streamLabelText
+                    width: root.appRowLabelWidth
+                    anchors.verticalCenter: parent.verticalCenter
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                    text: root.backend ? root.backend.streamLabel(streamRow.node) : ""
+                    font.pixelSize: root.fontBody
+                    color: Colours.onSurface
+
+                    MouseArea {
+                        id: streamLabelHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        ToolTip.visible: streamLabelHover.containsMouse
+                        ToolTip.text: root.backend ? root.backend.streamLabel(streamRow.node) : ""
+                        ToolTip.delay: Design.tooltipDelayMs
+                    }
+                }
+
+                // 3. Slider — fills the remaining width. Muted state
+                //    carried a THIRD way here (glyph + icon colour above,
+                //    now the track fill), comfortably exceeding D-15-13's
+                //    "carried twice", applying Phase 14's render-gate
+                //    remedy rather than repeating its mistake.
+                Slider {
+                    id: streamVolumeSlider
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: streamRowLayout.width - streamIconGlyph.width - streamLabelText.width - root.spacingSm * 2
+                    height: root.controlRowHeight
+                    from: 0
+                    to: 1
+                    value: streamRow.streamVolume
+                    onMoved: {
+                        if (root.backend)
+                            root.backend.setStreamVolume(streamRow.node, streamVolumeSlider.value);
+                    }
+
+                    background: Rectangle {
+                        x: streamVolumeSlider.leftPadding
+                        y: streamVolumeSlider.topPadding + streamVolumeSlider.availableHeight / 2 - height / 2
+                        width: streamVolumeSlider.availableWidth
+                        height: 4
+                        radius: 2
+                        color: Colours.surfaceVariant
+
+                        Rectangle {
+                            width: streamVolumeSlider.visualPosition * parent.width
+                            height: parent.height
+                            radius: parent.radius
+                            color: streamRow.muted ? Colours.onSurfaceVariant : Colours.primary
+                        }
+                    }
+                    handle: Rectangle {
+                        x: streamVolumeSlider.leftPadding + streamVolumeSlider.visualPosition * (streamVolumeSlider.availableWidth - width)
+                        y: streamVolumeSlider.topPadding + streamVolumeSlider.availableHeight / 2 - height / 2
+                        width: 16
+                        height: 16
+                        radius: 8
+                        color: streamRow.muted ? Colours.onSurfaceVariant : Colours.primary
+                    }
+                }
+            }
+        }
+
+        // ── The nothing-playing state (D-15-26 case 4, E1 `empty`) ──────
+        // Single named producer: true when the backend is reachable and
+        // its ordered stream list is empty. Confined to appListRegion —
+        // the pinned master row, both device pickers and the mic controls
+        // stay fully live and interactive. This is the ONE D-15-26 case
+        // explicitly NOT treated as an off/degraded state — nobody should
+        // later "fix" it into one.
+        readonly property bool nothingPlaying: root.backend ? (root.backend.pipewireReady && root.backend.streamNodes.length === 0) : false
+
+        ListView {
+            id: streamListView
+            anchors.fill: parent
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            spacing: root.spacingSm
+            visible: !appListRegion.nothingPlaying
+            model: root.backend ? root.backend.streamNodes : []
+            // Ordering comes from the backend's node-id-ascending list and
+            // is never re-sorted here by volume, name or activity — a row
+            // must never move because its own slider moved. Row identity
+            // is the node id via the backend's key function, never the
+            // application name — two concurrent streams from one
+            // application render as two independently-mutable rows. The
+            // delegate reads nothing from its own index.
+            delegate: StreamRow {
+                node: modelData
+            }
+        }
+
+        // Rendered whole, not staggered (D-15-08): staggering N
+        // asynchronously-arriving rows at D-21's offsets breaks the
+        // settled-under-700ms fence and is incoherent for items that
+        // arrive at different times anyway. appListRegion is deliberately
+        // NOT a cascade band (see bodyCascadeBands below).
+        Column {
+            id: nothingPlayingPlaceholder
+            anchors.centerIn: parent
+            visible: appListRegion.nothingPlaying
+            spacing: root.spacingSm
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.family: root.symbolFontFamily
+                font.pixelSize: root.iconSizeMd
+                text: "music_off"
+                color: root.stateColour("empty")
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.pixelSize: root.fontBody
+                color: root.stateColour("empty")
+                text: "Nothing is playing"
+            }
+        }
+    }
+
+    // ── The PipeWire-unreachable state (E1 `error`) — replaces the WHOLE
+    //    body (pinnedBlock + appListRegion together) with the D-15-26
+    //    case 2 unfixable-empty grammar: quiet symbol, one line naming
+    //    the cause, NO button of any kind. The header's Advanced button
+    //    stays available and untouched — it is the escape hatch, and the
+    //    frame owns it. ───────────────────────────────────────────────
+    Item {
+        id: panelUnreachablePlaceholder
+        width: parent.width
+        height: root.bodyViewportHeight
+        visible: root.panelUnreachable
+
+        Column {
+            anchors.centerIn: parent
+            spacing: root.spacingSm
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.family: root.symbolFontFamily
+                font.pixelSize: root.iconSizeMd
+                text: "sync_problem"
+                color: root.stateColour("empty")
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.pixelSize: root.fontBody
+                color: root.stateColour("empty")
+                text: "Audio isn't available — PipeWire isn't running"
+            }
+        }
     }
 
     bodyCascadeBands: [pinnedBlock]
