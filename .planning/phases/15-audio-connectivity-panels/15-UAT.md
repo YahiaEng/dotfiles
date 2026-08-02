@@ -71,7 +71,7 @@ unproven: Route B (directed probe) was never proven against a real hidden AP —
 result: issue
 reported: "Fail. It cannot detect my hidden network. I have one that I can test on if needed"
 severity: major
-outcome: Route B (directed probe) did not reveal the user's real hidden AP — exactly the failure mode 15-14 documented as the Route A fallback trigger. The user has a real hidden network available for measurement, which makes the previously-unprovable step directly testable.
+outcome: DIAGNOSED — and the obvious reading was wrong. Measured against the user's own hidden AP (`!ono^`), Route B's directed probe DOES reveal it and Quickshell DOES see it as an ordinary named Network object. The defect is a race inside the panel: tryHiddenHandoff() runs 16-30ms after the probe starts and is never retried, so it always searches a stale list. See gap G-15-6.
 
 ## Summary
 
@@ -83,7 +83,9 @@ skipped: 0
 blocked: 0
 
 note: Round 2 confirmed all five round-1 gap closures. The single remaining issue
-is test 6 — Route B's directed probe does not reveal the user's real hidden AP.
+is test 6, diagnosed as G-15-6 — a handoff race inside WifiPanel.qml, NOT the
+Route B failure it first looked like. Route B was measured viable against the
+user's own hidden AP, so the pre-specified Route A fallback must NOT be taken.
 Separately, the device-list half of bluetooth (pair/connect/disconnect/forget)
 remains unverified behind a hardware blocker tracked in deferred-items.md.
 
