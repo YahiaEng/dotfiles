@@ -5,8 +5,8 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 16
 current_phase_name: Workspace Overview
 status: planning
-stopped_at: Phase 16 context gathered
-last_updated: "2026-08-02T20:26:24.296Z"
+stopped_at: Phase 16 UI-SPEC approved
+last_updated: "2026-08-02T20:48:31.029Z"
 last_activity: 2026-08-02
 last_activity_desc: Phase 15 complete, transitioned to Phase 16
 progress:
@@ -428,9 +428,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T20:26:24.275Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-workspace-overview/16-CONTEXT.md
+Last session: 2026-08-02T20:48:31.000Z
+Stopped at: Phase 16 UI-SPEC approved
+Resume file: .planning/phases/16-workspace-overview/16-UI-SPEC.md
 
 ## Operator Next Steps
 
