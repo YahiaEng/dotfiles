@@ -5,16 +5,16 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Completed 15-09-PLAN.md (phase 15 close)
-last_updated: "2026-08-02T03:17:11.403Z"
-last_activity: 2026-08-01
+stopped_at: "Completed 15-10-PLAN.md (G-15-1b closed: panels gain the dashboard drawer's animated gradient border)"
+last_updated: "2026-08-02T16:45:04.906Z"
+last_activity: 2026-08-02
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
-  completed_phases: 6
-  total_plans: 49
-  completed_plans: 49
-  percent: 75
+  completed_phases: 5
+  total_plans: 54
+  completed_plans: 50
+  percent: 63
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 9 of 9
+Plan: 2 of 14
 Status: Ready to execute
-Progress: [██████████] 100% executed, phase close gated on UAT
-Last activity: 2026-08-01 — Phase 15 execution started
+Progress: [█████████░] 93% executed, phase close gated on UAT
+Last activity: 2026-08-02 — Phase 15 execution started
 
 ## Performance Metrics
 
@@ -176,6 +176,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 15 P07 | 50min | 2 tasks | 4 files |
 | Phase 15 P08 | 25min | 2 tasks | 5 files |
 | Phase 15 P09 | 2h | 3 tasks | 17 files |
+| Phase 15 P10 | ~45min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -325,6 +326,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 15-08: only network-manager-applet added to install.sh PACMAN_PKGS; networkmanager/nm-connection-editor left transitive per RESEARCH
 - [Phase ?]: quickshell-doctor's D-Bus identity model promoted to service participant (name-owner + client-consumer variants) with a structural guard; four new D-15-25 checks reuse the existing summon-and-diff mechanism; sixteen fixtures + --self-test prove each check can fail before trusted to pass
 - [Phase ?]: rfkill fault injection proved D-15-26's fixable wifi/bluetooth off-states against real hardware; SwayOSD server found down and restarted, confirmed to survive the full gate sweep
+- [Phase ?]: 15-10: Design.borderWidth is the single home for Hyprland's general:border_size parity number; PanelDialog.qml's GradientBorder negative control needed visible:false not active:false (active only gates rotation, not visibility); saturated-pixel threshold must be computed per-theme, not fixed (Nord's muted stops broke a flat 0.35 threshold)
 
 ### Quick Tasks Completed
 
@@ -416,8 +418,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T03:17:11.384Z
-Stopped at: Completed 15-09-PLAN.md (phase 15 close)
+Last session: 2026-08-02T16:45:04.887Z
+Stopped at: Completed 15-10-PLAN.md (G-15-1b closed: panels gain the dashboard drawer's animated gradient border)
 Resume file: None
 
 ## Operator Next Steps
