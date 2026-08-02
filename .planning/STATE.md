@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Completed 15-02-PLAN.md (Task 4 render gate approved)
-last_updated: "2026-08-01T23:28:41.768Z"
+stopped_at: Completed 15-03-PLAN.md (Task 4 render gate approved)
+last_updated: "2026-08-02T00:28:32.067Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 49
-  completed_plans: 42
+  completed_plans: 43
   percent: 63
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
-Progress: [█████████░] 86% executed, phase close gated on UAT
+Progress: [█████████░] 88% executed, phase close gated on UAT
 Last activity: 2026-08-01 — Phase 15 execution started
 
 ## Performance Metrics
@@ -169,6 +169,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 14 P08 | 46min | 2 tasks | 2 files |
 | Phase 14 P09 | multi-session (4 sessions) | 4 tasks | 11 files |
 | Phase 15 P02 | 47min + gate-closure session | 4 tasks | 3 files |
+| Phase 15 P03 | multi-session | 4 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -300,6 +301,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 14-10 Task 3: `hypr-equivalence-check` repaired — MAINT-04's proof instrument was red for two independent reasons (stale baseline missing 14-01's SUPER+D dashboard chord; the pre-existing Phase-13.1 mouse-drag `mouse:true`-vs-`false` divergence). Bounded by an order-insensitive 15-field delta computed BEFORE any write (keycode/dispatcher/arg excluded, matching the gate's own exclusions); baseline amended SURGICALLY — one record inserted at live index 30, all 80 pre-existing records proven byte-identical, never re-snapshotted (a wholesale re-snapshot would have silently blessed the un-loosened mouse-field divergence). Mouse-field divergence given a narrow, poison-proven, explicitly PROVISIONAL forgiveness in the gate's own comparator — provisional on the human drag-move/drag-resize compensating check, which is NOT yet run (Task 3 is unattended-auto and cannot perform it; scheduled at this plan's own Task 4). Gate folded into `theme-doctor` in the established guarded-skip shape plus an extra live-session guard (proven live to SKIP with `HYPRLAND_INSTANCE_SIGNATURE` unset). A count-mismatch-gated diagnostic added ahead of the gate's positional bind diff (one inserted bind previously produced 65 reported lines, 2 real) — poison-proven to fire only on a count mismatch, never touching the verdict logic. Gate: 3/0, exit 0.
 - [Phase ?]: 15-02: Task 4 blocking render gate APPROVED (round 1, no change request) — 850x620 frame geometry and the shared header/Advanced chrome are now the settled contract 15-03..15-06 lay out against; entrance cascade approved as one singular motion
 - [Phase ?]: 15-02: found (second occurrence) a non-detached quickshell restart silently breaking Super+A/Super+D until recovered via the standing detached-restart form — carried forward as a mandatory rule for every remaining 15-03..15-09 verification restart
+- [Phase ?]: 15-03: Task 4 blocking render gate APPROVED — all four D-15-26 off-state compositions pass; empty body slot accepted as deliberate 15-05/15-06 scope with an honest 'reads as broken' finding and a hard carry-forward that 15-08's waybar rewiring must not land before 15-05/15-06 fill the panel bodies (Wave 4 already sequenced 15-04->05->06->07->08 to guarantee this)
+- [Phase ?]: 15-03: PANEL-03/PANEL-04 deliberately left unmarked in REQUIREMENTS.md — this plan built real reachable wifi/bluetooth surfaces and D-15-26's off-state grammar, but the requirements' literal scan/list/connect text belongs to 15-05/15-06; PANEL-05/PANEL-06 (already complete) re-confirmed true of three panel instances
+- [Phase ?]: 15-03: found and worked around a quickshell file-watcher inotify break on inode replacement (Edit/Write tool rename-on-save stops hot reload) — every edit in Tasks 2-3 required a detached restart; carried forward as a standing verification note for 15-04..15-09
 
 ### Quick Tasks Completed
 
@@ -390,8 +394,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-01T23:28:35.418Z
-Stopped at: Completed 15-02-PLAN.md (Task 4 render gate approved)
+Last session: 2026-08-02T00:28:32.047Z
+Stopped at: Completed 15-03-PLAN.md (Task 4 render gate approved)
 Resume file: None
 
 ## Operator Next Steps

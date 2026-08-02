@@ -335,7 +335,7 @@ Plans:
 
 **Open questions owned**: (4) `Quickshell.Networking` API completeness — decide native D-Bus binding vs an `nmcli` wrapper before committing the wifi panel's implementation.
 **Owns**: The milestone's highest D-Bus conflict risk — three new PipeWire / NetworkManager / BlueZ consumers arriving at once alongside existing owners.
-**Plans**: 2/9 plans executed
+**Plans**: 3/9 plans executed
 
 Plans:
 **Wave 1**
@@ -348,7 +348,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 15-03-PLAN.md — Wifi + bluetooth mounts as `PanelDialog` instances with real Advanced targets, the D-15-26 off/empty/no-hardware states, and the shell-root `IpcHandler` every remaining entry point calls
+- [x] 15-03-PLAN.md — Wifi + bluetooth mounts as `PanelDialog` instances with real Advanced targets, the D-15-26 off/empty/no-hardware states, and the shell-root `IpcHandler` every remaining entry point calls
 
 **Wave 4** *(blocked on Wave 3; file-disjoint, parallel)*
 
@@ -421,7 +421,7 @@ Cross-cutting constraints:
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | Complete    | 2026-07-28 |
 | 14. Dashboard Drawer | v3.0 | 10/10 | Complete    | 2026-08-01 |
-| 15. Audio + Connectivity Panels | v3.0 | 2/9 | In Progress|  |
+| 15. Audio + Connectivity Panels | v3.0 | 3/9 | In Progress|  |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |
 | 17. Ambient Extras | v3.0 | 0/TBD | Not started | - |
 
