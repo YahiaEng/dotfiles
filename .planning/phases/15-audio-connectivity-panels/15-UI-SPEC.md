@@ -119,6 +119,28 @@ Every panel-level and row-level string this phase is known to need, resolved fro
 | Wifi network list, zero results after a completed scan | "No networks found" — refresh control remains visible (backstop copy — not explicitly locked in CONTEXT.md; verify at render gate) |
 | Wifi row failure (D-15-09, per `ConnectionFailReason`) | `NoSecrets` → "Password required"; `WifiAuthTimeout` → "Wrong password"; `WifiClientDisconnected` / `WifiClientFailed` → "Couldn't connect"; `WifiNetworkLost` → "Network out of range"; `Unknown` → "Couldn't connect" — rendered inline on the affected row, password field (if open) stays open for retry |
 
+
+**Hidden-network join (G-15-4b, 15-14, 2026-08-02) — NEW surface on E3.**
+
+| Element | Copy |
+|---------|------|
+| Entry point (idle) | "Join a hidden network" — a single accent-toned label between the grouped list and the zero-result line |
+| SSID field | placeholder "Network name" — **deliberately unmasked**, unlike the passphrase field: an SSID is not a secret, and masking it would make a typo undetectable in exactly the situation where a typo is indistinguishable from an out-of-range access point |
+| Verb | "Search" (enabled when the field is non-empty; no minimum length, no character-class check) → "Cancel" while a probe is in flight |
+| Not found | "No network answered to that name" — **deliberately does not assert a cause.** With a non-broadcast network a mistyped name and an out-of-range access point are genuinely indistinguishable from the panel, so naming either would render a guess as a fact. The field stays open and populated for correction. |
+| Durability failure | "Connected, but it may not reconnect on its own" — form-scoped, never row-scoped, and never rendered as a connection failure: the network *is* connected |
+
+**Architectural note.** This is the **only** subprocess-backed path on the networking surface,
+and the exception is forced rather than chosen: `Quickshell.Networking` has no way to express a
+hidden network (every connect verb is an instance method on a `Network` object, and blank-SSID
+access points are filtered out of `wifiDevice.networks` entirely — measured, 7 hidden APs to
+nmcli vs. a blank-SSID count of 0 in QML). It is confined to `WifiPanel.qml`; `WifiBackend.qml`
+stays subprocess-free and keeps the single native passphrase call site. **No secret is ever
+passed to a subprocess** — the probe carries only a name, the follow-up only a profile field.
+
+**Escape is now three-stage on this panel:** expanded row → forget-confirm → hidden form →
+dismiss. The first two are unchanged and were confirmed working during UAT.
+
 **Wifi row failure amendment (G-15-4, 15-13, 2026-08-02) — the `NoSecrets` row above is
 superseded in place; every other mapping stands unchanged.**
 
