@@ -315,6 +315,10 @@ hl.layer_rule({ match = { namespace = "quickshell-audio-panel" }, animation = "s
 -- No blur/ignore_alpha rule here either — the family pair below already
 -- covers it.
 hl.layer_rule({ match = { namespace = "quickshell-wifi-panel" }, animation = "slide" })
+-- 15-03's bluetooth panel — same discipline as the wifi rule immediately
+-- above; the third and final Phase 15 panel namespace. No blur/
+-- ignore_alpha rule here either — the family pair below already covers it.
+hl.layer_rule({ match = { namespace = "quickshell-bluetooth-panel" }, animation = "slide" })
 -- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
 -- "ags-media" (10-02); targets ONLY this window, mirroring the other
 -- namespace-scoped blur rules above. Paired with the translucent
