@@ -208,9 +208,10 @@ availability, explicitly not to a phase or milestone boundary.
   window_ownership: "CONFIRMED blueman-applet, PID 1013 — /usr/bin/python /usr/bin/blueman-applet, autostarted from /etc/xdg/autostart/blueman.desktop via the generated app-blueman@autostart.service (verified active/running), owning org.blueman.Applet on the session bus. It is the registered BlueZ agent and therefore owns every pairing prompt. blueman-tray (PID 1357) is a separate sibling process."
   root_cause: "The panel structurally cannot intercept a pairing request. `Quickshell.Bluetooth`'s installed qmltypes contains ZERO occurrences of 'agent' — no Agent type, no AgentManager binding, no RequestConfirmation/RequestPasskey handler. Its full exposed surface is adapter/device properties plus the five verbs (pair, cancelPair, connect, disconnect, forget). BlueZ routes every pairing interaction to the registered org.bluez.Agent1, which is blueman-applet. This is the exact shape of G-15-4: another process owns the prompt, and no QML change can win it."
   critical_asymmetry_vs_G_15_4: "The G-15-4 remedy MUST NOT be copied here. Suppressing nm-applet was safe because NetworkManager could still complete the connection from the passphrase the panel supplied natively — removing the agent removed only the prompt. Bluetooth is different: a Secure Simple Pairing confirmation (numeric comparison, which is what a modern phone like the reported Z Fold 7 uses) REQUIRES a registered agent to answer it. With blueman suppressed and no replacement, pairing would not become self-contained — it would stop working. Suppression alone converts a cosmetic containment problem into a functional regression."
-  must_measure_before_fixing:
-    - "What `device.pair()` actually does with NO agent registered — stop app-blueman@autostart.service, attempt one pair, observe whether BlueZ fails the request or completes without confirmation. Cheap and reversible (restart the unit), but it needs the user driving the pair, and it will interrupt a working setup, so schedule it deliberately."
-    - "Whether the already-paired Z Fold 7 re-pairs without confirmation (bonded devices skip the agent), which would make the measurement above need a fresh unpaired peer to be meaningful."
+  measured: "DONE 2026-08-02. Procedure: user Forgot the bonded Z Fold7 through the panel (Forget itself confirmed working); app-blueman@autostart.service stopped and verified inactive with zero blueman processes, zero bonds, and org.bluez.AgentManager1 present but unclaimed; user then drove one pair from the panel against a real peer."
+  measurement_result: "PAIRING DOES NOT COMPLETE WITHOUT AN AGENT. No external prompt appeared (as expected), and no bond was created — `bluetoothctl devices` is empty afterwards, the device is not even in the known list. The system journal shows BlueZ creating and tearing down the device object twice (21:22:04→08 and 21:22:21→23, 'unmanaged-link-not-init'), i.e. pairing started and was dropped both times. Notably quickshell logged NO error for this attempt: the whole log contains exactly one 'Failed to pair' WARN and it predates the measurement marker. So BlueZ does not return an error either — the pair silently never completes and the panel's own watchdog is what surfaces it."
+  conclusion: "The external prompt is LOAD-BEARING, not cosmetic. Option A ('accept it') is now grounded in a measured platform constraint rather than an assumption inherited from the wifi case, and option C (suppress + auto-accept agent) is doubly wrong — it would be both insecure AND the only thing standing between the user and a non-functional pair. Option B (own the agent) remains the sole containment route and is a genuine build, not a cheap one: it must fully replace blueman's agent, because a missing agent is not a degraded state here, it is a broken one."
+  decision: PENDING — user to choose between A (document the constraint) and B (build an agent), now on measured evidence.
   options:
     - "A — accept the external prompt. Zero work, honest, and pairing keeps working. The panel is then not fully self-contained, which is the same standard G-15-4 was held to and failed."
     - "B — own the agent. Register a BlueZ org.bluez.Agent1 the panel controls, from a small D-Bus process or Quickshell.DBus/Process, since Quickshell.Bluetooth cannot. This is the only route that genuinely contains the prompt. It is the heavier of the two and is the same option that was REJECTED for wifi in G-15-4 on cost grounds — rejecting it there and accepting it here needs a deliberate reason."
@@ -224,7 +225,10 @@ availability, explicitly not to a phase or milestone boundary.
 
 - gap_id: G-15-8
   truth: "After a failed pair, the user is given an explicit way to retry"
-  status: failed
+  status: resolved
+  resolved_by: "commit 18da48c (inline fix — user chose to fix without a gap-closure plan)"
+  resolved_at: 2026-08-02
+  retest_result: "pass — verified against a REAL failure, not a simulated one. The no-agent pair during the G-15-7 measurement failed genuinely, and the user confirmed the Retry label appeared on the failed row. This is stronger evidence than the planned retest would have produced."
   reason: "User reported: if the pair fails, there is no explicit retry button"
   severity: minor
   test: 7
@@ -233,6 +237,19 @@ availability, explicitly not to a phase or milestone boundary.
   artifacts:
     - path: "quickshell/.config/quickshell/modules/dashboard/BluetoothPanel.qml"
       issue: "L126-133 handleRowPress() already implements retry-on-press and clears the failure slot; L631-645 failedText renders the failure with no accompanying retry affordance"
+  debug_session: ""
+
+- gap_id: G-15-9
+  truth: "A pair the user completes successfully is never rendered as a failure"
+  status: open
+  severity: minor
+  test: 7
+  kind: suspected — NOT yet measured, recorded so it is not lost
+  observation: "The single 'Failed to pair' WARN in the log (quickshell.log:1919, from the user's FIRST pair attempt while blueman was still running) reads: 'Did not receive a reply. Possible causes include: ... the reply timeout expired ...'. The user's account matches — the first attempt failed, the retry succeeded."
+  hypothesis: "`device.pair()` is a D-Bus method call whose reply only arrives AFTER the human confirms on blueman's external prompt. A typical D-Bus reply timeout (~25s) is shorter than realistic confirm-on-phone time, so a pair the user is in the middle of completing can time out at the call layer. The panel's own `pairWatchdogMs` is 90000ms and is NOT the culprit — it is comfortably long enough."
+  why_not_asserted: "One log line and one user account. The library-level failure may not even reach the panel's `deviceActionFailed` seam (BluetoothBackend's own header notes the failure signal is INFERRED, since Quickshell.Bluetooth exposes none), so whether this renders as a user-visible false failure is unestablished."
+  to_measure: "Pair a fresh peer with blueman running and deliberately wait ~30-40s before confirming on the phone. Observe whether the row renders 'Couldn't pair' while the bond still completes in the background — the false-negative case."
+  coupling: "Moot if G-15-7 option B is taken — owning the agent removes the external round-trip that creates the delay."
   debug_session: ""
   reason: "User reported: Fail. It cannot detect my hidden network. I have one that I can test on if needed"
   severity: major
