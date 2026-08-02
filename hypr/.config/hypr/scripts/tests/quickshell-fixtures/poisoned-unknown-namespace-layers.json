@@ -1,0 +1,46 @@
+{
+"_provenance": "Derived from compliant-panel-layers.json (same live `hyprctl -j layers` capture) with exactly one defect introduced: quickshell-wifi-panel renamed to quickshell-settings-panel — a namespace matching the panel prefix/suffix pattern (quickshell-<word>-panel) but naming a panel that does not exist in QSD_PANEL_NAMES (audio/wifi/bluetooth). Target check: panel-namespace-conformance. Expected verdict: FAIL.",
+"DP-1": {
+    "levels": {
+
+        "0": [
+                {
+                    "address": "0x55ddad28ec80",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "awww-daemon",
+                    "pid": 990
+                }
+        ],
+        "1": [
+],
+        "2": [
+                {
+                    "address": "0x55ddac02b4f0",
+                    "x": 10,
+                    "y": 6,
+                    "w": 2540,
+                    "h": 40,
+                    "alpha": 1,
+                    "namespace": "waybar",
+                    "pid": 1342296
+                }
+        ],
+        "3": [
+                {
+                    "address": "0x55ddad212cf0",
+                    "x": 855,
+                    "y": 56,
+                    "w": 850,
+                    "h": 620,
+                    "alpha": 1,
+                    "namespace": "quickshell-settings-panel",
+                    "pid": 2982672
+                }
+        ]
+    }
+}
+}

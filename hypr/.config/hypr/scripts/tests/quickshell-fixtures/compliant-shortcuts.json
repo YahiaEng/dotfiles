@@ -1,0 +1,26 @@
+[
+  {
+    "appid": "quickshell",
+    "name": "probe",
+    "chord": { "mods": "SUPER SHIFT", "key": "G" },
+    "description": "Summon the Quickshell instrumentation probe (QS-02 viability gate)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "screencopy-probe",
+    "chord": { "mods": "SUPER SHIFT", "key": "K" },
+    "description": "Summon the Quickshell screencopy feasibility probe (criterion 5)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "dashboard",
+    "chord": { "mods": "SUPER", "key": "D" },
+    "description": "Summon the dashboard drawer (DASH-01)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "audio-panel",
+    "chord": { "mods": "SUPER", "key": "A" },
+    "description": "Summon the audio mixer panel (PANEL-02)"
+  }
+]

@@ -1,0 +1,103 @@
+# provenance: captured live 2026-08-02 via `hyprctl binds`, trimmed to
+# exactly the ten XF86Audio*/XF86MonBrightness* blocks (real tab-indented
+# shape, unmodified). Target check: panel-swayosd-key-ownership. Expected
+# verdict: PASS — every key's handler count is exactly 1.
+bindle
+	modmask: 0
+	submap:
+	key: XF86AudioRaiseVolume
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 150
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86AudioLowerVolume
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 152
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86AudioMute
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 154
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86AudioMicMute
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 156
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86MonBrightnessUp
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 158
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86MonBrightnessDown
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 160
+
+bindl
+	modmask: 0
+	submap:
+	key: XF86AudioNext
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 162
+
+bindl
+	modmask: 0
+	submap:
+	key: XF86AudioPause
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 164
+
+bindl
+	modmask: 0
+	submap:
+	key: XF86AudioPlay
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 166
+
+bindl
+	modmask: 0
+	submap:
+	key: XF86AudioPrev
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 168

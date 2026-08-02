@@ -1,0 +1,95 @@
+# provenance: derived from compliant-hyprctl-binds.txt (the real, live
+# 2026-08-02 `hyprctl binds` capture) with exactly one defect introduced:
+# the XF86AudioMute block removed entirely. Target check:
+# panel-swayosd-key-ownership. Expected verdict: FAIL — the mute key's
+# handler count is 0, not 1.
+bindle
+	modmask: 0
+	submap:
+	key: XF86AudioRaiseVolume
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 150
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86AudioLowerVolume
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 152
+
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86AudioMicMute
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 156
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86MonBrightnessUp
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 158
+
+bindle
+	modmask: 0
+	submap:
+	key: XF86MonBrightnessDown
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 160
+
+bindl
+	modmask: 0
+	submap:
+	key: XF86AudioNext
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 162
+
+bindl
+	modmask: 0
+	submap:
+	key: XF86AudioPause
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 164
+
+bindl
+	modmask: 0
+	submap:
+	key: XF86AudioPlay
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 166
+
+bindl
+	modmask: 0
+	submap:
+	key: XF86AudioPrev
+	keycode: 0
+	catchall: false
+	description:
+	dispatcher: __lua
+	arg: 168

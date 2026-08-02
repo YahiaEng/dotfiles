@@ -1,0 +1,8 @@
+NAME                                                                                     PID PROCESS         USER  CONNECTION    UNIT              SESSION DESCRIPTION
+:1.0                                                                                     809 systemd         aorus :1.0          user@1000.service -       -
+:1.1                                                                                     843 dbus-broker-lau aorus :1.1          user@1000.service -       -
+org.freedesktop.DBus                                                                     809 systemd         aorus -             user@1000.service -       -
+org.freedesktop.FileManager1                                                               - -               -     (activatable) -                 -       -
+org.freedesktop.Notifications                                                            994 swaync          aorus :1.49         user@1000.service -       -
+org.freedesktop.Notifications                                                          88123 rogue-notifd    aorus :1.99999      user@1000.service -       -
+org.freedesktop.ReserveDevice1.Audio0                                                    846 wireplumber     aorus :1.5          user@1000.service -       -

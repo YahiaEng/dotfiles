@@ -1,0 +1,46 @@
+{
+"_provenance": "Derived from compliant-panel-layers.json (same live `hyprctl -j layers` capture) with exactly one defect introduced: the quickshell-wifi-panel entry moved from level 3 (overlay) to level 2 (top), everything else byte-identical. Target check: panel-namespace-conformance. Expected verdict: FAIL (a panel namespace appearing at any level other than 3).",
+"DP-1": {
+    "levels": {
+
+        "0": [
+                {
+                    "address": "0x55ddad28ec80",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "awww-daemon",
+                    "pid": 990
+                }
+        ],
+        "1": [
+],
+        "2": [
+                {
+                    "address": "0x55ddac02b4f0",
+                    "x": 10,
+                    "y": 6,
+                    "w": 2540,
+                    "h": 40,
+                    "alpha": 1,
+                    "namespace": "waybar",
+                    "pid": 1342296
+                },
+                {
+                    "address": "0x55ddad212cf0",
+                    "x": 855,
+                    "y": 56,
+                    "w": 850,
+                    "h": 620,
+                    "alpha": 1,
+                    "namespace": "quickshell-wifi-panel",
+                    "pid": 2982672
+                }
+        ],
+        "3": [
+]
+    }
+}
+}
