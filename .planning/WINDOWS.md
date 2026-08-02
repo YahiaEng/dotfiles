@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 12
+open_count: 15
 waived_count: 0
 fixed_count: 7
-total_count: 19
-last_updated: 2026-08-02T02:21:50.326Z
+total_count: 22
+last_updated: 2026-08-02T02:40:14.524Z
 ---
 
 # Broken Windows Ledger
@@ -34,6 +34,9 @@ last_updated: 2026-08-02T02:21:50.326Z
 | 17 | 13.1 | deviation | hypr/.config/hypr/scripts/ai-workspace.sh |  | WR-05 (13.1-REVIEW.md): the idempotency check's PRESENT comma-joined class list is tested with bash substring matching ([[ "$PRESENT" != *"$CLAUDE_CODE_CLASS"* ]]), not delimiter-aware exact matching — a window class that merely CONTAINS ai-claude-code/ai-local-models as a substring produces a false "already present" match and silently skips the launch, violating D-24 idempotency. Explicitly deferred, not fixed, per gap-closure task scope (out of scope: WR-04/WR-05). | open |  | 2026-07-28T17:16:00.000Z |  |
 | 18 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml |  | 15-05 Task 3: full password-connect, in-flight Cancel, real failure, and Forget-confirm proofs not run live — host has no synthetic pointer-input tool (15-API-PROBE Open Q2) and no real wifi passphrase was available; only single-press Escape-dismiss with nothing expanded was proven live | open |  | 2026-08-02T01:58:16.101Z |  |
 | 19 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/BluetoothPanel.qml |  | 15-06 Task 3: pairing failure, cancel-not-failure, connect failure/recovery, watchdog-fire, press-guard, adjacency, and all chevron/verb/Forget click proofs not run live — host has zero paired devices, zero discoverable peers within range (8s live scan empty), and no synthetic pointer-input tool; only the empty-state render and discovery's reactive/lifecycle-teardown-firing paths were proven live | open |  | 2026-08-02T02:21:50.326Z |  |
+| 20 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Chevron/tile-body click paths not literally exercised — no synthetic pointer tool on host; guarded summon function proven via IPC equivalent instead | open |  | 2026-08-02T02:40:09.329Z |  |
+| 21 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | E6 error-contract fault injection (rfkill-blocked toggle reverting to truth) not cleanly reproduced live — NetworkManager software radio switch succeeded independent of rfkill state; source-verified mechanism only | open |  | 2026-08-02T02:40:14.434Z |  |
+| 22 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Bluetooth tile external-toggle live-truth proof not run — session's rfkill soft-blocked bluetooth state intentionally left untouched per non-negotiable rule 3 | open |  | 2026-08-02T02:40:14.524Z |  |
 
 ````json
 [
@@ -263,6 +266,42 @@ last_updated: 2026-08-02T02:21:50.326Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-02T02:21:50.326Z",
+    "resolved_at": null
+  },
+  {
+    "id": 20,
+    "kind": "unrun-verify",
+    "phase": "15",
+    "file": "quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml",
+    "line": null,
+    "description": "Chevron/tile-body click paths not literally exercised — no synthetic pointer tool on host; guarded summon function proven via IPC equivalent instead",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-02T02:40:09.329Z",
+    "resolved_at": null
+  },
+  {
+    "id": 21,
+    "kind": "unrun-verify",
+    "phase": "15",
+    "file": "quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml",
+    "line": null,
+    "description": "E6 error-contract fault injection (rfkill-blocked toggle reverting to truth) not cleanly reproduced live — NetworkManager software radio switch succeeded independent of rfkill state; source-verified mechanism only",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-02T02:40:14.434Z",
+    "resolved_at": null
+  },
+  {
+    "id": 22,
+    "kind": "unrun-verify",
+    "phase": "15",
+    "file": "quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml",
+    "line": null,
+    "description": "Bluetooth tile external-toggle live-truth proof not run — session's rfkill soft-blocked bluetooth state intentionally left untouched per non-negotiable rule 3",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-02T02:40:14.524Z",
     "resolved_at": null
   }
 ]

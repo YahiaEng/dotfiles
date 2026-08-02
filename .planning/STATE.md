@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Completed 15-06-PLAN.md (bluetooth panel build-out)
-last_updated: "2026-08-02T02:22:21.881Z"
+stopped_at: Completed 15-07-PLAN.md
+last_updated: "2026-08-02T02:40:35.795Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 49
-  completed_plans: 46
+  completed_plans: 47
   percent: 63
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 6 of 9
+Plan: 7 of 9
 Status: Ready to execute
-Progress: [█████████░] 94% executed, phase close gated on UAT
+Progress: [██████████] 96% executed, phase close gated on UAT
 Last activity: 2026-08-01 — Phase 15 execution started
 
 ## Performance Metrics
@@ -173,6 +173,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 15 P04 | multi-session | 4 tasks | 2 files |
 | Phase 15 P05 | 28min | 3 tasks | 2 files |
 | Phase 15 P06 | 35min | 2 tasks | 2 files |
+| Phase 15 P07 | 50min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -314,6 +315,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 15-05: Success is per-row observed truth (NetworkRow.onIsConnectedNowChanged), not a generic connectingNetwork watcher, which would race the connectFailed signal
 - [Phase ?]: 15-05: Forget's inline confirm (confirmForgetNetwork) is a separate expansion from the password field (expandedNetwork) so Forget is reachable without opening the password row
 - [Phase ?]: 15-06: discovering is a plain read/write BluetoothAdapter property on this qmltypes build (0.3.0-2), not a start/stop method pair; BlueZ enforces per-D-Bus-sender StartDiscovery/StopDiscovery ownership (confirmed live)
+- [Phase ?]: audioTruthNeeded gate widening required for the Volume tile (measured live) — dashboardLoader.active || audioPanelLoader.active; wifi/bluetooth needed no equivalent change (already ungated)
+- [Phase ?]: Six-tile quick-toggle grid ships at zero vertical growth (826px drawer height byte-identical before/after); Do Not Disturb label fits on one line at ~104px on this host's font, wrap machinery still in place per hard constraint
+- [Phase ?]: Chevron split affordance relays panelRequested(name) through QuickToggles -> DashboardTab -> Dashboard -> shell.qml into the single existing DASH-08-guarded openPanel(name); no second guard copy anywhere in the chain (grep + live IPC + fullscreen-refusal proof)
 
 ### Quick Tasks Completed
 
@@ -405,8 +409,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T02:22:21.862Z
-Stopped at: Completed 15-06-PLAN.md (bluetooth panel build-out)
+Last session: 2026-08-02T02:40:35.773Z
+Stopped at: Completed 15-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
