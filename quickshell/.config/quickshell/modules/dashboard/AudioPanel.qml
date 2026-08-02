@@ -37,6 +37,36 @@
 // constant, matching this plan's own arithmetic assumption exactly — no
 // correction needed). `bodyViewportHeight` below is derived from that
 // reading, not assumed blind.
+//
+// ── Task 4 render-gate fix — the pinned-block/list hierarchy (land
+//    verbatim for 15-05/15-06 to mirror) ────────────────────────────────
+// The render gate's check 1 (focal point, D-15-10) FAILED as shipped:
+// master volume, mic level and every per-app row drew an identical pink
+// track and handle at identical visual weight, so the panel read as a
+// stack of five interchangeable sliders. There was also no divider, no
+// section label and no other marker showing where the pinned block ends
+// and the scrolling app list begins — the mic caption text was the only
+// thing breaking the run. Two presentation-only moves fix it, neither
+// touching `AudioBackend.qml` nor any binding:
+//   1. `sectionDivider` — a `Colours.outline` hairline plus an
+//      "Applications" section label — renders between `pinnedBlock` and
+//      `appListRegion`, naming the boundary explicitly instead of leaving
+//      it to be inferred.
+//   2. `masterVolumeSlider`'s track and handle are drawn heavier than
+//      every other slider in the panel (8px/20px vs. the shared 4px/16px
+//      every other slider uses), so the pinned block's own primary
+//      control reads as primary rather than as the one slider that
+//      happened not to be near-full.
+// Check 2 (density, D-15-11's pre-authorized fallback) PASSED as shipped
+// and the fallback was explicitly DECLINED: the panel was judged not
+// cluttered — there is significant empty space below the per-app list —
+// so dropping the input level slider would cost PANEL-01 capability for
+// no readability gain. The input level slider stays.
+// This hierarchy — an explicit pinned/list boundary plus extra weight on
+// the pinned block's own primary control — is the pattern 15-05 (wifi
+// network list) and 15-06 (bluetooth device list) should mirror against
+// their own primary control and their own scrolling list, not an
+// audio-only special case.
 import QtQuick
 import QtQuick.Controls
 import "../"
@@ -394,12 +424,20 @@ PanelDialog {
                                 root.backend.setMasterVolume(masterVolumeSlider.value);
                         }
 
+                        // Track/handle are deliberately heavier than every
+                        // other slider in this panel (8px/20px here vs. the
+                        // shared 4px/16px the input-level slider and every
+                        // per-app row slider use) — the Task 4 render-gate
+                        // fix's weight differentiation, see the file
+                        // header's "Task 4 render-gate fix" note. This is
+                        // the pinned block's own primary control and reads
+                        // as primary regardless of its current value.
                         background: Rectangle {
                             x: masterVolumeSlider.leftPadding
                             y: masterVolumeSlider.topPadding + masterVolumeSlider.availableHeight / 2 - height / 2
                             width: masterVolumeSlider.availableWidth
-                            height: 4
-                            radius: 2
+                            height: 8
+                            radius: 4
                             color: Colours.surfaceVariant
 
                             Rectangle {
@@ -412,9 +450,9 @@ PanelDialog {
                         handle: Rectangle {
                             x: masterVolumeSlider.leftPadding + masterVolumeSlider.visualPosition * (masterVolumeSlider.availableWidth - width)
                             y: masterVolumeSlider.topPadding + masterVolumeSlider.availableHeight / 2 - height / 2
-                            width: 16
-                            height: 16
-                            radius: 8
+                            width: 20
+                            height: 20
+                            radius: 10
                             color: Colours.primary
                         }
                     }
@@ -601,17 +639,53 @@ PanelDialog {
 
     readonly property int appRowLabelWidth: 168
 
+    // ── sectionDivider — the Task 4 render-gate fix's boundary marker
+    //    between the pinned block and the scrolling app list (see the file
+    //    header's "Task 4 render-gate fix" note). A plain `Colours.outline`
+    //    hairline plus one `Design.fontLabel` heading, so the eye has an
+    //    explicit marker instead of inferring the boundary from the mic
+    //    caption alone. Hidden together with both the block and the list
+    //    under `panelUnreachable` — `Column`'s own invisible-child rule
+    //    (matching `pinnedBlock`/`appListRegion`'s existing pattern) means
+    //    an invisible `sectionDivider`'s height silently becomes 0 in the
+    //    shared `bodyContent` `Column` the frame owns, so no separate guard
+    //    is needed anywhere this item's height is read. ───────────────────
+    Column {
+        id: sectionDivider
+        width: parent.width
+        visible: !root.panelUnreachable
+        spacing: root.spacingXs
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: Colours.outline
+        }
+
+        Text {
+            text: "Applications"
+            font.pixelSize: root.fontLabel
+            font.weight: root.weightEmphasis
+            color: Colours.onSurfaceVariant
+        }
+    }
+
     // ── The scrolling per-app mixer list. Claims the body viewport's
     //    remainder so bodyContent's total height matches the viewport
     //    exactly and the OUTER Flickable never has anything to scroll;
     //    this region gets its own inner scroller instead (D-15-10
     //    achieved without touching PanelDialog.qml). Hidden entirely
     //    (not merely emptied) when panelUnreachable holds, since that
-    //    state replaces the WHOLE body, pinned block included. ─────────
+    //    state replaces the WHOLE body, pinned block included. `sectionDivider`
+    //    adds a second `spacingMd` gap in the shared `bodyContent` `Column`
+    //    (pinnedBlock -> sectionDivider -> appListRegion is now three
+    //    visible siblings, not two), so the remainder arithmetic below
+    //    subtracts `sectionDivider.height` and `spacingMd * 2` rather than
+    //    the single `spacingMd` it subtracted before this fix. ───────────
     Item {
         id: appListRegion
         width: parent.width
-        height: Math.max(0, root.bodyViewportHeight - pinnedBlock.height - root.spacingMd)
+        height: Math.max(0, root.bodyViewportHeight - pinnedBlock.height - sectionDivider.height - root.spacingMd * 2)
         visible: !root.panelUnreachable
 
         // ── StreamRow — the D-15-13 three-element per-app row. `node` is
