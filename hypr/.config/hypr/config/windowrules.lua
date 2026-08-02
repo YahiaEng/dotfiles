@@ -309,6 +309,12 @@ hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, animation = "sli
 -- panel; no blur or ignore_alpha rule is added here, the family-wide
 -- ^quickshell-.* pair below already covers this namespace (D-42/D-43).
 hl.layer_rule({ match = { namespace = "quickshell-audio-panel" }, animation = "slide" })
+-- 15-03's wifi panel — same D-20 exact-match discipline as the audio
+-- panel's own rule above. Style-only override: no duration, no curve,
+-- timing rides animations.lua's token-driven layersIn/layersOut leaves.
+-- No blur/ignore_alpha rule here either — the family pair below already
+-- covers it.
+hl.layer_rule({ match = { namespace = "quickshell-wifi-panel" }, animation = "slide" })
 -- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
 -- "ags-media" (10-02); targets ONLY this window, mirroring the other
 -- namespace-scoped blur rules above. Paired with the translucent

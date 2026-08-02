@@ -47,6 +47,10 @@
 # manifest's own standing rule: `PanelDialog`, the shared standalone-panel
 # frame every panel this phase and Phase 16 add is constructed FROM; and
 # `AudioPanel`/`AudioBackend`, the audio panel's body and PipeWire adapter.
+#
+# Phase 15 Plan 03 adds two more, same non-singleton, same-commit rule:
+# `WifiPanel`/`WifiBackend`, the wifi panel's body and NetworkManager
+# adapter, both instances of PanelDialog's shared frame (PANEL-06).
 module qs.modules.dashboard
 singleton Design 1.0 Design.qml
 singleton WeatherPalette 1.0 WeatherPalette.qml
@@ -65,3 +69,5 @@ GradientBorder 1.0 GradientBorder.qml
 PanelDialog 1.0 PanelDialog.qml
 AudioPanel 1.0 AudioPanel.qml
 AudioBackend 1.0 AudioBackend.qml
+WifiPanel 1.0 WifiPanel.qml
+WifiBackend 1.0 WifiBackend.qml

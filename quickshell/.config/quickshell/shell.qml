@@ -138,6 +138,26 @@ ShellRoot {
         panelOpen: audioPanelLoader.active
     }
 
+    // ── Wifi panel (Phase 15 Plan 03, PANEL-03/PANEL-06) ─────────────────
+    // Same summon-via-LazyLoader mechanism as the audio panel above.
+    // `WifiBackend`'s `panelOpen` gate is bound to this loader's own
+    // `active` — 15-05's scanner inherits the same zero-idle-on-dismiss
+    // gate without shell.qml needing to change again.
+    LazyLoader {
+        id: wifiPanelLoader
+        active: false
+
+        WifiPanel {
+            backend: wifiBackendInstance
+            onDismissRequested: wifiPanelLoader.active = false
+        }
+    }
+
+    WifiBackend {
+        id: wifiBackendInstance
+        panelOpen: wifiPanelLoader.active
+    }
+
     // ── Panel family — the single guarded summon path (PANEL-06, binding
     //    correction over 15-PATTERNS.md's own wrong inline snippet: the
     //    DASH-08 guard lives inside `openPanel(name)` and nowhere else, so
@@ -145,7 +165,8 @@ ShellRoot {
     //    15-08's waybar IPC call — shares the one guard.) ─────────────────
     function closeAllPanels() {
         audioPanelLoader.active = false;
-        // 15-03 extends this with the wifi and bluetooth loaders.
+        wifiPanelLoader.active = false;
+        // 15-03 Task 3 extends this with the bluetooth loader.
     }
 
     // Name-to-loader resolution, shared by openPanel() below and the
@@ -155,7 +176,9 @@ ShellRoot {
     function panelLoaderFor(name) {
         if (name === "audio")
             return audioPanelLoader;
-        // 15-03 extends this resolution with "wifi"/"bluetooth".
+        if (name === "wifi")
+            return wifiPanelLoader;
+        // 15-03 Task 3 extends this resolution with "bluetooth".
         return null;
     }
 
