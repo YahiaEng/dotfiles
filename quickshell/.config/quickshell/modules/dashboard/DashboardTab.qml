@@ -216,6 +216,11 @@ Item {
     // ── Property contract (14-03) — unchanged ───────────────────────────
     property var mediaBackend: null
     property var systemResources: null
+    // 15-07 — same passed-in-instance shape, threaded straight through to
+    // the toggle-block footer at the bottom of this file.
+    property var audioBackend: null
+    property var wifiBackend: null
+    property var bluetoothBackend: null
     property int mediaTabIndex: -1
     property int performanceTabIndex: -1
 
@@ -223,6 +228,10 @@ Item {
     // (Task 2) emit this with a named tab index; Dashboard.qml's Task 2
     // answers it with pager.setCurrentIndex(index).
     signal tabRequested(int index)
+    // 15-07 — the relay-middle half of the tile chevron's summon path,
+    // shaped exactly like tabRequested above. This tab inspects nothing,
+    // maps nothing, decides nothing — it forwards.
+    signal panelRequested(string name)
 
     // D-41: "populated" | "pending" | "empty" — this tab's own aggregate
     // self-report, comparisons written out explicitly (register
@@ -1402,6 +1411,16 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: root.panelPadding
+        // 15-07 — fully qualified `root.` on every right-hand side: this
+        // file and QuickToggles both declare `audioBackend`/`wifiBackend`/
+        // `bluetoothBackend`, so a bare RHS would resolve to QuickToggles'
+        // own not-yet-assigned property under QML's innermost-scope-wins
+        // lookup (the same live-reproduced shadowing bug Dashboard.qml's
+        // header records for `systemResources`).
+        audioBackend: root.audioBackend
+        wifiBackend: root.wifiBackend
+        bluetoothBackend: root.bluetoothBackend
+        onPanelRequested: (name) => root.panelRequested(name)
         height: implicitHeight
     }
 }

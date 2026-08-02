@@ -94,8 +94,24 @@ Item {
     readonly property int chipHeight: 72
     readonly property int chipRadius: 16
     readonly property int presetHeight: 48
+    // 15-07 — tile-geometry constants for the chevron split affordance and
+    // the six-across label wrap. Fixed component dimensions (15-UI-SPEC.md's
+    // sense of the term), not gap tokens, so named here rather than forced
+    // onto the 4/8/16/24/32 spacing scale.
+    readonly property int chevronHitSize: 32
+    readonly property int chevronGlyphSize: 16
+    readonly property int chipLabelInset: root.spacingXs
 
     property string homeDir: Quickshell.env("HOME")
+
+    // ── 15-07 backend seams — threaded in from DashboardTab on the same
+    //    path mediaBackend/systemResources already travel. Each of the
+    //    three new tiles reads truth from its own backend and never touches
+    //    a native networking/bluetooth/pipewire service module directly
+    //    (Prohibition P1 restated at the tile layer). ─────────────────────
+    property var audioBackend: null // AudioBackend instance — Volume tile's truth/writer
+    property var wifiBackend: null // WifiBackend instance — Wi-Fi tile's truth/writer
+    property var bluetoothBackend: null // BluetoothBackend instance — Bluetooth tile's truth/writer
 
     // D-41 widget-state register — the shared three-name vocabulary every
     // modules/dashboard/ file carries. "empty" is kept in the vocabulary
@@ -104,6 +120,15 @@ Item {
     // "Toggle grid — empty: chips always render, D-05 audit") since every
     // chip has a hard-coded default for a missing backend file, so
     // `widgetState` itself never actually takes that value.
+    //
+    // 15-07 update: D-15-09 has taken the family vocabulary to four names
+    // ("populated"/"pending"/"empty"/"error") while this widget still
+    // renders only two of them. "empty" remains structurally inapplicable
+    // for the reason above. The fourth ("error") is deliberately not
+    // rendered here either — E6's locked contract (see the comment beside
+    // `chipWatchdogTimer` above) routes a failed toggle back to the
+    // backend's true state rather than to a state of its own, so no fifth
+    // widget state is introduced and `widgetState` never takes that value.
     readonly property var widgetStateVocabulary: ["populated", "pending", "empty"]
     readonly property string widgetState: pendingChip !== "" ? "pending" : "populated"
 
@@ -241,13 +266,29 @@ Item {
         onTriggered: dndPollProcess.running = true
     }
 
+    // ── 15-07 truth mirrors — Volume/Wi-Fi/Bluetooth read straight off the
+    //    threaded-in backends, D-22's same pure-read discipline the three
+    //    chips above already hold: a press never assigns any of these three.
+    //    The two fallbacks below are DELIBERATELY asymmetric, not an
+    //    oversight: a missing audio backend falls back to *unmuted* (lit),
+    //    matching AudioBackend's own documented `false` mute fallback and
+    //    the fact that muted is the exceptional state; a missing wifi or
+    //    bluetooth backend falls back to *off* (unlit), because an unlit
+    //    connectivity tile understates capability rather than overstating
+    //    it, and a null backend there means the shell mount itself is
+    //    broken. Mirrors this file's existing habit of a hard-coded default
+    //    for a missing backend (`off` for Gaming, `dark` for Dark). ────────
+    readonly property bool volumeUnmuted: root.audioBackend ? !root.audioBackend.masterMuted : true
+    readonly property bool wifiRadioOn: root.wifiBackend ? root.wifiBackend.wifiEnabled : false
+    readonly property bool bluetoothAdapterOn: root.bluetoothBackend ? root.bluetoothBackend.adapterEnabled : false
+
     // ═══════════════════════════════════════════════════════════════════
     // The pending model (D-22) — ONE property naming which chip (if any)
     // is currently in flight. The lit state above is read-only and never
     // assigned by a press; this is the whole of what makes drift between
     // the two grids structurally impossible.
     // ═══════════════════════════════════════════════════════════════════
-    property string pendingChip: "" // "" | "gaming" | "dnd" | "dark"
+    property string pendingChip: "" // "" | "gaming" | "dnd" | "dark" | "volume" | "wifi" | "bluetooth"
 
     // Backend watchdog — NOT a motion token: a timeout riding the
     // motion-scale axis would collapse to zero at `off` and revert a chip
@@ -263,6 +304,16 @@ Item {
     readonly property int dndSubscribeGraceMs: 4000
     readonly property int dndPollIntervalMs: 2000
 
+    // ── E6 `error` contract (15-07 D-15-09) — a toggle that does not take
+    //    (an rfkill hard-block on the Wi-Fi radio is the named case) needs
+    //    NO new code and introduces NO fifth widget state: this single
+    //    shared watchdog already covers all six tiles, and the lit state
+    //    above is already a pure read a press never assigns. A refused
+    //    write simply never fires its `on<Truth>Changed` handler below, so
+    //    the pending marker rides out to `chipTimeoutMs` and clears itself,
+    //    leaving the tile showing whatever the backend actually holds. The
+    //    *reason* the toggle failed is named in that panel's own empty
+    //    state (D-15-26 case 2), never on the tile. ─────────────────────
     Timer {
         id: chipWatchdogTimer
         interval: root.chipTimeoutMs
@@ -273,6 +324,9 @@ Item {
     onGamingStateChanged: if (root.pendingChip === "gaming") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
     onDarkStateChanged: if (root.pendingChip === "dark") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
     onDndStateChanged: if (root.pendingChip === "dnd") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
+    onVolumeUnmutedChanged: if (root.pendingChip === "volume") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
+    onWifiRadioOnChanged: if (root.pendingChip === "wifi") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
+    onBluetoothAdapterOnChanged: if (root.pendingChip === "bluetooth") { root.pendingChip = ""; chipWatchdogTimer.stop(); }
 
     // ── Command construction (T-14-13) — every command below is a fixed
     //    argv array. Its only computed element is the home-prefixed script
@@ -352,11 +406,55 @@ Item {
         darkProcess.startDetached();
     }
 
+    // ── 15-07 press verbs — shaped exactly like pressGaming() above: return
+    //    early if any chip is pending, return early if the backend seam is
+    //    null, set the pending name, restart the shared watchdog, then call
+    //    the backend's own writer with the negation of the current truth.
+    //    The press NEVER assigns the tile's lit state (D-22) — that is the
+    //    whole reason drift between the tile and the real backend is
+    //    structurally impossible. ─────────────────────────────────────────
+    function pressVolume() {
+        if (root.pendingChip !== "")
+            return;
+        if (!root.audioBackend)
+            return;
+        root.pendingChip = "volume";
+        chipWatchdogTimer.restart();
+        // A PipeWire mute write settles immediately, so this tile's pending
+        // pulse will be almost invisible — that is correct, not a bug: the
+        // two connectivity verbs below take long enough for the pulse to
+        // actually read.
+        root.audioBackend.setMasterMuted(root.volumeUnmuted);
+    }
+
+    function pressWifi() {
+        if (root.pendingChip !== "")
+            return;
+        if (!root.wifiBackend)
+            return;
+        root.pendingChip = "wifi";
+        chipWatchdogTimer.restart();
+        root.wifiBackend.setWifiEnabled(!root.wifiRadioOn);
+    }
+
+    function pressBluetooth() {
+        if (root.pendingChip !== "")
+            return;
+        if (!root.bluetoothBackend)
+            return;
+        root.pendingChip = "bluetooth";
+        chipWatchdogTimer.restart();
+        root.bluetoothBackend.setAdapterEnabled(!root.bluetoothAdapterOn);
+    }
+
     function chipLitFor(name) {
         switch (name) {
         case "gaming": return root.gamingState;
         case "dnd": return root.dndState;
         case "dark": return root.darkState;
+        case "volume": return root.volumeUnmuted;
+        case "wifi": return root.wifiRadioOn;
+        case "bluetooth": return root.bluetoothAdapterOn;
         }
         return false;
     }
@@ -366,7 +464,42 @@ Item {
         case "gaming": pressGaming(); break;
         case "dnd": pressDnd(); break;
         case "dark": pressDark(); break;
+        case "volume": pressVolume(); break;
+        case "wifi": pressWifi(); break;
+        case "bluetooth": pressBluetooth(); break;
         }
+    }
+
+    // ── 15-07 chevron relay origin — the drawer-side half of the split
+    //    affordance's summon path. `panelRequested` is relayed unchanged by
+    //    DashboardTab.qml and Dashboard.qml up to shell.qml, whose handler
+    //    on the existing Dashboard {} instance is the ONLY place it becomes
+    //    a summon, by calling the single guarded openPanel(name) 15-02
+    //    wrote. `openPanel` here is a one-line hoist — no guard, no loader
+    //    lookup, no loader assignment — so ToggleChip has one named call
+    //    site instead of reaching for a signal directly. The name
+    //    deliberately echoes the shell-root function it eventually reaches;
+    //    they are different objects with different jobs — this one only
+    //    announces, the shell-root one is the only thing that decides, and
+    //    that is the whole of Flagged Assumption 2's resolution: the
+    //    deciding happens exactly once.
+    //
+    //    D-15-20 — dismissal always returns to the desktop, never to the
+    //    drawer. This is not a preference the tile path could have chosen
+    //    differently: `hyprland_focus_grab_v1` is exclusive per-compositor
+    //    on this build (11-QUICKSHELL-EVIDENCE Finding 2, verified in both
+    //    orders), so the panel's own grab implicitly clears the drawer's,
+    //    firing its `onCleared` and destroying the drawer's surface rather
+    //    than hiding it. "Returning" was therefore never mechanically
+    //    available — there is nothing left to return to. What survives is
+    //    D-14's selected-tab memory, which lives at shell root and outlives
+    //    both surfaces, so Super+D lands back on the Dashboard tab. The
+    //    return costs exactly one keypress. The Android-style back
+    //    affordance was rejected because it would reintroduce origin
+    //    tracking and the conditional navigation chrome D-10 refused.
+    signal panelRequested(string name)
+    function openPanel(name) {
+        root.panelRequested(name);
     }
 
     // ── Chips (D-25) — swaync's own order: Gaming, DND, Dark. Glyph picks
@@ -379,12 +512,37 @@ Item {
     //    lit/unlit language, matching the Gaming/Dark chips' own treatment
     //    rather than swapping to a second "_off" glyph name), and a
     //    crescent moon for Dark. ────────────────────────────────────────
+    // ── D-15-21 — zero vertical growth, and the corrected arithmetic. ────
+    // The grid goes from three tiles to six in ONE row (reference lens —
+    // end-4 and Caelestia both scale a toggle grid with more compact tiles,
+    // never with more rows). Zero vertical growth is the whole point:
+    // `chipHeight` stays 72, `implicitHeight` stays `chipsRow.height +
+    // spacingSm + presetRow.height`, so D-05's 10-15% slack is untouched,
+    // D-38's Dashboard-tab composition is unchanged and no other widget's
+    // render gate re-opens. Corrected arithmetic, derived from source
+    // rather than from D-15-03's "~850px" figure: the shipped drawer is
+    // 760px wide (`drawerMinWidth` is the floor and the Dashboard tab's
+    // `implicitWidth` of 448 does not reach it), so the tile row is 760 -
+    // 48 (`content` margins) - 48 (`DashboardTab` padding) = 664px, and six
+    // tiles at five 8px gaps is about 104px each, not ~125px. HARD
+    // CONSTRAINT: the Do Not Disturb label wraps to two lines inside the
+    // 72px height and must NEVER be shortened to an acronym — Phase 14's
+    // render gate explicitly rejected that acronym for exactly the reason
+    // recorded in this file's own round-2 header note above.
     readonly property var chipModel: [
-        { name: "gaming", label: "Gaming", glyph: "sports_esports", tooltip: "Toggle gaming mode — disables idle timeout and notification popups while you play" },
+        { name: "gaming", label: "Gaming", glyph: "sports_esports", tooltip: "Toggle gaming mode — disables idle timeout and notification popups while you play", panel: "", chevronTooltip: "" },
         // Round-2 fix: "DND" was an unexplained acronym to a fresh user —
         // spelled out in the visible label itself, not just the tooltip.
-        { name: "dnd", label: "Do Not Disturb", glyph: "do_not_disturb_on", tooltip: "Toggle Do Not Disturb — silences notifications" },
-        { name: "dark", label: "Dark", glyph: "dark_mode", tooltip: "Open the theme picker to switch the desktop's colour palette" }
+        { name: "dnd", label: "Do Not Disturb", glyph: "do_not_disturb_on", tooltip: "Toggle Do Not Disturb — silences notifications", panel: "", chevronTooltip: "" },
+        { name: "dark", label: "Dark", glyph: "dark_mode", tooltip: "Open the theme picker to switch the desktop's colour palette", panel: "", chevronTooltip: "" },
+        // 15-07 — the three new stateful tiles. `panel` is the name the
+        // chevron dispatches through the shell-root guarded summon; it is
+        // NOT the tile's own name (D-26 names a tile for the state that
+        // lights it, so "volume" — the panel it opens is "audio", 15-02's
+        // and 15-03's own namespace name — see <binding_corrections>).
+        { name: "volume", label: "Volume", glyph: "volume_up", tooltip: "Mute or unmute the default audio output — open the arrow for the full mixer", panel: "audio", chevronTooltip: "Open the audio mixer" },
+        { name: "wifi", label: "Wi-Fi", glyph: "wifi", tooltip: "Turn the Wi-Fi radio on or off — open the arrow for networks and saved connections", panel: "wifi", chevronTooltip: "Open the Wi-Fi panel" },
+        { name: "bluetooth", label: "Bluetooth", glyph: "bluetooth", tooltip: "Turn the Bluetooth adapter on or off — open the arrow for devices", panel: "bluetooth", chevronTooltip: "Open the Bluetooth panel" }
     ]
 
     // One inline component definition — all three chips are the same
@@ -400,6 +558,11 @@ Item {
         // this chip actually DOES, distinct from the always-visible
         // icon+label pair above, which only says what it's named.
         property string chipTooltip: ""
+        // 15-07 — the panel name the chevron dispatches, and its own hover
+        // copy. Both default to empty, matching the three Phase 14 chips
+        // (Gaming/DND/Dark), which carry no chevron at all.
+        property string chipPanel: ""
+        property string chipChevronTooltip: ""
         readonly property bool lit: root.chipLitFor(chipName)
         readonly property bool pending: root.pendingChip === chipName
 
@@ -516,6 +679,16 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: chipItem.chipLabel
                     font.pixelSize: root.fontLabel
+                    // 15-07 six-across fix: at ~104px per tile the label no
+                    // longer fits unwrapped. An explicit width (the tile's
+                    // own width less twice the named inset) lets it wrap
+                    // instead of being cut off by container's clip: true.
+                    // No elide mode — an elided label is exactly as
+                    // illegible as the acronym Prohibition P5 forbids.
+                    width: chipItem.width - root.chipLabelInset * 2
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
                     color: chipItem.lit ? Colours.onPrimary : Colours.onSurfaceVariant
                     Behavior on color {
                         enabled: Motion.motionEnabled
@@ -578,6 +751,57 @@ Item {
                     easing.bezierCurve: Motion.emphasizedOutEasing
                 }
             }
+
+            // ── 15-07 chevron split affordance — declared AFTER the body
+            //    MouseArea above so it sits above it in the stacking order.
+            //    Visible only when chipPanel is non-empty, so the three
+            //    Phase 14 chips (Gaming/DND/Dark) are untouched and keep a
+            //    single whole-tile hit region. Geometry check to hold: at a
+            //    ~104px-wide by 72px-tall tile the icon+label column is
+            //    centred and the two-line label occupies roughly the lower
+            //    half at nearly full width, while this hit region occupies
+            //    only the top-right chevronHitSize (32) square — they do
+            //    not overlap. Anyone changing chipHeight, chevronHitSize or
+            //    chipLabelInset has to re-derive that. ────────────────────
+            Text {
+                id: chevronGlyph
+                visible: chipItem.chipPanel !== ""
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: root.spacingXs
+                text: "chevron_right"
+                font.family: root.symbolFontFamily
+                font.pixelSize: root.chevronGlyphSize
+                color: chipItem.lit ? Colours.onPrimary : Colours.onSurfaceVariant
+                Behavior on color {
+                    enabled: Motion.motionEnabled
+                    ColorAnimation {
+                        duration: Motion.standardDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
+                    }
+                }
+            }
+
+            MouseArea {
+                id: chevronMouseArea
+                visible: chipItem.chipPanel !== ""
+                enabled: chipItem.chipPanel !== ""
+                anchors.top: parent.top
+                anchors.right: parent.right
+                width: root.chevronHitSize
+                height: root.chevronHitSize
+                hoverEnabled: true
+                ToolTip.visible: chevronMouseArea.containsMouse && chipItem.chipChevronTooltip !== ""
+                ToolTip.text: chipItem.chipChevronTooltip
+                ToolTip.delay: root.tooltipDelayMs
+                // Deliberately NOT disabled while a chip is pending — the
+                // opposite of the body MouseArea directly above, and stated
+                // here so the asymmetry reads as a decision: opening a
+                // panel is always a valid thing to want, and the pending
+                // marker dies with the drawer anyway.
+                onClicked: root.openPanel(chipItem.chipPanel)
+            }
         }
     }
 
@@ -598,6 +822,8 @@ Item {
                 chipLabel: modelData.label
                 chipGlyph: modelData.glyph
                 chipTooltip: modelData.tooltip
+                chipPanel: modelData.panel
+                chipChevronTooltip: modelData.chevronTooltip
             }
         }
     }

@@ -76,8 +76,18 @@ ShellRoot {
             mediaBackend: mediaBackendInstance
             weatherBackend: weatherBackendInstance
             systemResources: systemResourcesInstance
+            // 15-07 — the same three panel backends threaded into the
+            // drawer's quick-toggle grid so its Volume/Wi-Fi/Bluetooth
+            // tiles read live truth without touching a service singleton.
+            audioBackend: audioBackendInstance
+            wifiBackend: wifiBackendInstance
+            bluetoothBackend: bluetoothBackendInstance
             onDismissRequested: dashboardLoader.active = false
             onTabSelected: (index) => root.dashboardTabIndex = index
+            // 15-07 — the ONLY place panelRequested becomes a summon. No
+            // guard, no loader lookup here: openPanel() below owns both,
+            // exactly once (Flagged Assumption 2's resolution).
+            onPanelRequested: (name) => root.openPanel(name)
         }
     }
 
@@ -133,9 +143,27 @@ ShellRoot {
         }
     }
 
+    // 15-07 Task 1, branch B taken — measured live: with the drawer open
+    // and the audio panel closed, AudioBackend's PwObjectTracker (gated on
+    // `panelOpen` alone) tracks zero nodes, so `defaultSink.audio` stays
+    // null and the Volume tile's `masterMuted` read is frozen at its
+    // `false` fallback regardless of the real sink state — `wpctl
+    // set-mute @DEFAULT_AUDIO_SINK@ toggle` from a terminal did not move
+    // the tile. `audioTruthNeeded` widens the gate to "some summoned
+    // surface is reading live audio truth" — the drawer's Volume tile is
+    // the second such surface, alongside the audio panel itself. The wifi
+    // and bluetooth backends' gates are left untouched (see AudioBackend.qml
+    // vs WifiBackend.qml/BluetoothBackend.qml): those two already expose
+    // their enable-state as plain, ungated bindings onto their service
+    // singletons, and widening THEIR gates would start the scanner/
+    // discovery whenever the drawer is open, which D-15-15/D-15-18 forbid.
+    // This does not edit AudioBackend.qml itself — 15-02/15-04 own that
+    // file outright; it only changes which loaders feed its own gate.
+    readonly property bool audioTruthNeeded: dashboardLoader.active || audioPanelLoader.active
+
     AudioBackend {
         id: audioBackendInstance
-        panelOpen: audioPanelLoader.active
+        panelOpen: root.audioTruthNeeded
     }
 
     // ── Wifi panel (Phase 15 Plan 03, PANEL-03/PANEL-06) ─────────────────

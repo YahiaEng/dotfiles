@@ -58,6 +58,13 @@ PanelWindow {
     // deactivate itself, which destroys the wl_surface (D-14) rather than
     // merely hiding it.
     signal dismissRequested()
+    // 15-07 — the relay-up half of the tile chevron's summon path. The
+    // drawer inspects nothing and decides nothing here; it only forwards
+    // what dashboardTabLoader's own onPanelRequested handler re-emits.
+    // shell.qml's handler on this Dashboard {} instance is the ONLY place
+    // this becomes a summon (see <binding_corrections> / Flagged
+    // Assumption 2).
+    signal panelRequested(string name)
 
     // Only anchors.top — left/right/bottom stay false so the compositor
     // horizontally centres the window (D-01).
@@ -332,6 +339,12 @@ PanelWindow {
     // for why. Same passed-in-property shape as `mediaBackend`/`weatherBackend`
     // immediately above.
     property var systemResources: null
+    // 15-07 — the same passed-in-instance shape, threaded straight through
+    // to DashboardTab's own toggle-footer. This file never reads any of
+    // the three itself; it is the middle of the mount chain.
+    property var audioBackend: null
+    property var wifiBackend: null
+    property var bluetoothBackend: null
 
     Component.onCompleted: pager.setCurrentIndex(dashboardWindow.initialTabIndex)
 
@@ -682,12 +695,26 @@ PanelWindow {
                     DashboardTab {
                         mediaBackend: dashboardWindow.mediaBackend
                         systemResources: dashboardWindow.systemResources
+                        // 15-07 — fully qualified `dashboardWindow.` on every
+                        // right-hand side: DashboardTab declares identically
+                        // named properties, and a bare RHS here would resolve
+                        // to that tab's own not-yet-assigned property under
+                        // QML's innermost-scope-wins lookup (the live-
+                        // reproduced shadowing bug this file's own header
+                        // above records for systemResources).
+                        audioBackend: dashboardWindow.audioBackend
+                        wifiBackend: dashboardWindow.wifiBackend
+                        bluetoothBackend: dashboardWindow.bluetoothBackend
                         mediaTabIndex: dashboardWindow.tabIndexMedia
                         performanceTabIndex: dashboardWindow.tabIndexPerformance
                         // D-39/D-40's compact-widget → its-full-tab deep-link
                         // convention, answered here once so 14-08 only has
                         // to emit.
                         onTabRequested: (index) => pager.setCurrentIndex(index)
+                        // 15-07 — the exact analog for the tile chevron's
+                        // relay: a tab-level signal answered once at the
+                        // drawer level, forwarded unchanged.
+                        onPanelRequested: (name) => dashboardWindow.panelRequested(name)
                     }
                 }
                 onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
