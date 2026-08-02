@@ -152,6 +152,10 @@ PanelWindow {
     readonly property string symbolFontFamily: Design.symbolFontFamily
     readonly property color surfaceBase: Colours.surface
     readonly property real panelSurfaceOpacity: 0.78
+    // 15-10 (G-15-1b): Hyprland's border-width parity number, read from the
+    // one shared home (Design.qml) that Dashboard.qml's own GradientBorder
+    // consumer also reads — never restated as a second literal here.
+    readonly property int borderWidth: Design.borderWidth
 
     // ── Background (bottom-only rounding, D-15-03/D-03) ─────────────────
     Rectangle {
@@ -171,6 +175,26 @@ PanelWindow {
                 easing.bezierCurve: Motion.standardEasing
             }
         }
+    }
+
+    // ── Animated gradient rim (15-10, G-15-1b) — matches Hyprland's own
+    //    window border exactly as Dashboard.qml's own rim does, so all
+    //    three panels read as part of the same desktop rather than as
+    //    foreign surfaces. Declared AFTER `background` so it paints on top
+    //    of the translucent surface, and BEFORE `content` so it never
+    //    overlays the header band or the Advanced button — byte-for-byte
+    //    the same position Dashboard.qml:387 occupies relative to its own
+    //    background/content pair. Radii are handed across from the SAME
+    //    `panelWindow.cornerRadius` the `background` Rectangle above uses,
+    //    so the rim and the surface can never disagree about the frame's
+    //    shape.
+    GradientBorder {
+        anchors.fill: parent
+        borderWidth: panelWindow.borderWidth
+        topLeftRadius: 0
+        topRightRadius: 0
+        bottomLeftRadius: panelWindow.cornerRadius
+        bottomRightRadius: panelWindow.cornerRadius
     }
 
     // ── Dismissal (D-15-20): HyprlandFocusGrab clears the drawer's own
