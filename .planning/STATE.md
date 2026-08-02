@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Completed 15-07-PLAN.md
-last_updated: "2026-08-02T02:40:35.795Z"
+stopped_at: Completed 15-08-PLAN.md
+last_updated: "2026-08-02T02:49:52.637Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 49
-  completed_plans: 47
+  completed_plans: 48
   percent: 63
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 7 of 9
+Plan: 8 of 9
 Status: Ready to execute
-Progress: [██████████] 96% executed, phase close gated on UAT
+Progress: [██████████] 98% executed, phase close gated on UAT
 Last activity: 2026-08-01 — Phase 15 execution started
 
 ## Performance Metrics
@@ -174,6 +174,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 15 P05 | 28min | 3 tasks | 2 files |
 | Phase 15 P06 | 35min | 2 tasks | 2 files |
 | Phase 15 P07 | 50min | 2 tasks | 4 files |
+| Phase 15 P08 | 25min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -318,6 +319,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: audioTruthNeeded gate widening required for the Volume tile (measured live) — dashboardLoader.active || audioPanelLoader.active; wifi/bluetooth needed no equivalent change (already ungated)
 - [Phase ?]: Six-tile quick-toggle grid ships at zero vertical growth (826px drawer height byte-identical before/after); Do Not Disturb label fits on one line at ~104px on this host's font, wrap machinery still in place per hard constraint
 - [Phase ?]: Chevron split affordance relays panelRequested(name) through QuickToggles -> DashboardTab -> Dashboard -> shell.qml into the single existing DASH-08-guarded openPanel(name); no second guard copy anywhere in the chain (grep + live IPC + fullscreen-refusal proof)
+- [Phase ?]: 15-08: toggle over open as the waybar click verb, matching Super+A's D-10 summon-chord-toggles rule
+- [Phase ?]: 15-08: athena's network right-click (pkill nm-applet) removed outright rather than repurposed — no dead click left behind
+- [Phase ?]: 15-08: only network-manager-applet added to install.sh PACMAN_PKGS; networkmanager/nm-connection-editor left transitive per RESEARCH
 
 ### Quick Tasks Completed
 
@@ -409,8 +413,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T02:40:35.773Z
-Stopped at: Completed 15-07-PLAN.md
+Last session: 2026-08-02T02:49:52.617Z
+Stopped at: Completed 15-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
