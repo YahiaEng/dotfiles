@@ -36,8 +36,13 @@ Declared values — this repo's actual scale (`Design.qml`), **not** the templat
 | spacingXs | 4px | `Design.spacingXs` | Icon-to-label gaps inside a tile's denial/empty state |
 | spacingSm | 8px | `Design.spacingSm` | Workspace-number inset from a tile's top-left corner; monitor-badge inset from top-right |
 | spacingMd | 16px | `Design.spacingMd` | Default internal padding inside a tile's denial-state stack |
-| spacingLg | 24px | `Design.spacingLg`/`panelPadding` | Outer margin between the grid block and the screen edge (scrim padding) |
-| spacingXl | 32px | `Design.spacingXl` | Column gap and row gap between the ten numbered tiles; gap between the 5×2 block and the scratchpad tile |
+| spacingLg | 24px | `Design.spacingLg`/`panelPadding` | Outer margin between the grid block and the screen edge (scrim padding); **and** the column gap, row gap, and 5×2-block→scratchpad gap (see the fit arithmetic below) |
+| spacingXl | 32px | `Design.spacingXl` | *No consumer in this surface.* Originally specified for the tile gaps; the fit arithmetic below forced them down to `spacingLg`. Listed only so a future reader does not re-derive 32px gaps and re-break the fit. |
+
+**Grid fit arithmetic (load-bearing — the earlier draft did not close).** At `spacingXl` (32px) gaps the block measured 5×480 + 4×32 = **2528px**, which with a 24px scrim margin per side needed **2576px on a 2560px display** — 16px over per side. Resolved by dropping the tile gaps to `spacingLg` (24px):
+- Block width: 5×480 + 4×24 = **2496px**; + 2×24 margin = **2544px** ≤ 2560 ✓ (16px spare)
+- Block height: 2×270 + 24 = **564px**; + 24 gap + 169 scratchpad + 2×24 margin = **805px** ≤ 1440 ✓
+Any future change to tile width, gap, or border must re-run this arithmetic — it fits with 16px of horizontal slack, not comfortably.
 
 **Exceptions:** two new local constants this phase introduces (not hoisted to `Design.qml` — no other consumer needs them yet, mirroring `QuickToggles.qml`'s own precedent of a locally-scoped `chipRadius`):
 - `tileRadius: 12` — a workspace tile's corner radius. Neither existing radius token fits: `PanelDialog.cornerRadius` (28) is tuned for an 850×620 panel, `QuickToggles.chipRadius` (16) for a 72px chip; a 480×270 tile sits between them in proportion, and 12 keeps the radius at roughly the same *visual* weight relative to tile size as the chip's 16 has relative to its own.
@@ -94,20 +99,136 @@ All colours are `Colours.*` role references (`modules/Colours.qml`) — no hex, 
 
 ## UI Considerations
 
-Applicable state considerations resolved: 9 covered, 1 backstop, 0 unresolved.
+Produced by the `ui-consideration-probe` engine (8-category closed taxonomy × 9 declared surfaces), run after checker approval and resolved at a human gate on 2026-08-02.
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | Unoccupied workspace tile | ✅ covered | D-41 vocabulary (quiet Material Symbol `apps` + workspace number only, no invented chrome). See Copywriting Contract's empty-state row. |
-| loading/pending | Tile awaiting its first captured frame | ✅ covered | D-16-10 — self-resolving `pending` state, `Colours.primary` tint on the loading glyph, an ambient pulse using `Motion.ambientDuration` (the same corrected loop-period token G-15-1 fixed for wifi/bluetooth's indeterminate sweeps — reused, not reinvented). |
-| error | Per-window capture denial/failure; whole-grid permission catch | ✅ covered | D-16-10 — per-window: icon + real window title + one-line reason (`Colours.error`). Whole-grid: one surface-level message when *no* window anywhere captures, not fifteen repeats. Both spelled out in Copywriting Contract. |
-| populated | Live thumbnail composite inside a tile | ✅ covered | D-16-02/D-16-07 — real scaled `ScreencopyView` geometry at `tileWidth / monitorWidth` scale, `live: true` on every window first, no colour treatment layered over genuinely-live content. |
-| partial | Mixed capture states within one workspace tile (some windows live, one denied) | ✅ covered | Resolved structurally, not as a fourth composite state: each window is its own independent `ScreencopyView` carrying its own one of populated/pending/empty/failed. No separate "tile-level partial" treatment is needed or should be built. |
-| overflow | Overlapping floating windows drawn at real geometry inside a tile | ✅ covered | D-16-02 — explicit accepted cost, no decluttering pass. Positions must stay honest to `hyprctl clients`' real `at`/`size`, even when that means visual occlusion. |
-| zero-one-many | Windows per workspace tile (0 / 1 / many); connected monitors (1 vs 2+) | ✅ covered / 🧪 backstop | Windows-per-tile: D-16-01's fixed 10-slot grid plus D-16-02's real-geometry rendering handles 0/1/many uniformly — no special-casing needed, and D-16-16's keyboard model explicitly handles the 0-window case (Enter/Down on an empty tile has no window level to descend into; Enter immediately focuses the empty workspace and closes, mirroring D-16-20's click parity on empty tile area). Monitor count: the multi-monitor badge (D-16-04) is **structurally decided but functionally unexercised** on this host (one physical monitor, `DP-1`) — same situation `12-QS03-EVIDENCE.md` recorded for QS-03's own multi-monitor paths. `{ statement: "A monitor badge renders on every tile when 2+ displays are connected, using the same legibility-backing idiom as the workspace number", verification: backstop }`. |
-| long-text | Window title (denial-state) or per-tile monitor name overflowing tile width | ✅ covered | `Text.ElideRight`, the existing convention (`ScreencopyProbe.qml`'s own caption `Label` already elides this way; `PanelDialog`'s Advanced-button label pattern is the same idiom). |
-| overflow (drag) | Dropping outside every tile / a missed drop | ✅ covered | D-16-14 — cancels at zero cost, dragged snapshot animates back to its origin using `Motion.standardDuration`/`Motion.standardEasing`. |
-| scratchpad identity | The always-present 11th tile, empty vs occupied | ✅ covered | D-16-05 — always rendered regardless of occupancy (unlike the numbered tiles' own empty/occupied duality, this tile's *presence* never varies), so drag-in and drag-out both work symmetrically at every summon. |
+**Coverage: 66 applicable — 43 covered, 22 dismissed (reason recorded), 1 backstop, 0 unresolved.**
+
+Element kinds were confirmed, not taken from the heuristic classifier alone: the classifier under-classified **E1** (`list-collection` only → confirmed `list-collection` + `nav`) and **E2** (`media` only → confirmed `media` + `list-collection`). The E2 correction is what raised `partial`, `overflow`, and `zero-one-many` on an occupied tile — the three categories where this phase's real risk sits. Four considerations had no answer in `16-CONTEXT.md` and were decided by the human at this gate; they are marked **⬥ gate decision** below.
+
+### Declared surfaces
+
+| id | Surface | Confirmed kinds |
+|----|---------|-----------------|
+| E1 | The workspace grid (11 tiles) | list-collection, nav |
+| E2 | Occupied tile — live thumbnail composite | media, list-collection |
+| E3 | Unoccupied tile | list-collection, static-content |
+| E4 | Single window thumbnail (per-window capture states) | media, static-content |
+| E5 | Whole-grid screencopy permission catch | list-collection, media, static-content |
+| E6 | Drag / drop-target interaction | list-collection, media, interactive-control |
+| E7 | Keyboard selection + mode indicator | list-collection, nav, static-content |
+| E8 | Workspace number + monitor badge overlays | media, static-content |
+| E9 | Scratchpad tile | list-collection |
+
+### E1 — The workspace grid
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ⊘ dismissed | The collection has fixed cardinality: eleven tiles, always rendered (D-16-01/D-16-05). A grid with zero tiles cannot occur, so there is no empty state to design. |
+| loading | ✅ covered | Tile chrome renders immediately at summon; the row-level entrance cascade (D-16-24) runs Row 1 at t=0, Row 2 at t=`Motion.staggerOffsetDuration`, scratchpad at t=2× on `Motion.emphasizedInDuration`/`emphasizedInEasing`. Per-window capture pending states resolve independently *inside* already-visible tiles — the grid never waits on capture to appear. |
+| error | ✅ covered | Grid-level failure is the whole-grid catch (E5 / D-16-10), not a per-tile cascade. |
+| populated | ✅ covered | 5×2 numbered tiles at 480×270, `spacingLg` gaps, 2496×564 block centred with a `spacingLg` scrim margin, scratchpad beneath. See Grid geometry. |
+| partial | ✅ covered | Tiles are structurally independent; there is no grid-level partial treatment. A grid where some tiles have live content and others do not *is* the normal state, not a degraded one. |
+| overflow | ✅ covered **⬥ gate decision** | The earlier draft's 2528px block + 48px margin overflowed the 2560px display by 32px. Resolved by dropping tile gaps from `spacingXl` to `spacingLg`: block 2496px, total 2544px, 16px spare. Full arithmetic in the Spacing Scale section; it must be re-run on any tile/gap/border change. |
+| zero-one-many | ⊘ dismissed | Tile count is fixed at eleven by D-16-01 and never varies with content, so singular/plural layout and copy divergence cannot arise. |
+| long-text | ⊘ dismissed | Grid-level text is workspace numbers 1–10 — bounded at two characters. Variable-length text lives on E8 and is resolved there. |
+
+### E2 — Occupied tile (live thumbnail composite)
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | Zero windows on the workspace routes to E3's unoccupied-tile treatment (D-41 vocabulary); an occupied tile has no separate empty state. |
+| loading | ✅ covered | D-16-10 `pending`: `Colours.primary`-tinted loading glyph, ambient pulse on `Motion.ambientDuration` (the corrected loop-period token from G-15-1, reused not reinvented). Self-resolving — clears when the first frame lands. |
+| error | ✅ covered | Per-window failure treatment (E4), never a tile-wide error fill. |
+| populated | ✅ covered | D-16-02/D-16-07 — every window a live `ScreencopyView` at real `hyprctl clients` `at`/`size`, scaled `tileWidth / monitorWidth` = 0.1875. `live: true` on every window first. No colour treatment layered over genuinely live content. |
+| partial | ✅ covered | Resolved structurally rather than as a composite state: each window carries its own independent populated/pending/failed state, so a tile with two live windows and one denied needs no fourth "tile is partial" treatment and none should be built. |
+| overflow | ✅ covered | Two distinct overflows, both resolved. *Inside* the tile: overlapping floating windows render overlapping — D-16-02's explicit accepted cost, no decluttering pass, positions stay honest to reality even when occluding. *Past* the tile: `clip: true` crops a window whose real geometry extends beyond the tile bounds (see Grid geometry). |
+| zero-one-many | ✅ covered | 0 → E3's treatment. 1 and many render identically through the same real-geometry path with no special-casing — that uniformity is the point of D-16-02. The upper end of "many" is exactly what OVER-04's frame/CPU measurement gates, with D-16-07's pre-authorized fallback lever if the budget is missed. |
+
+### E3 — Unoccupied tile
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | D-41's vocabulary verbatim: quiet Material Symbol `apps` + the workspace number, on a `Colours.surfaceVariant` fill. No descriptive body text, no invented chrome. See Copywriting Contract. |
+| loading | ⊘ dismissed | No `ScreencopyView` is instantiated for a workspace with zero toplevels, so nothing is in flight — the tile renders its final state on the first frame. |
+| error | ⊘ dismissed | No capture is attempted, so no capture can fail. |
+| populated | ⊘ dismissed | "Populated" is by definition E2; an unoccupied tile that gained a window has become an occupied one. |
+| partial | ⊘ dismissed | Zero windows admits no partial state. |
+| overflow | ⊘ dismissed | Content is one glyph plus one two-character number, statically bounded well inside 480×270. |
+| zero-one-many | ✅ covered | This tile *is* the zero case, and it is handled without special-casing the layout: the tile keeps its full size and grid position whether or not it holds windows (D-16-01's spatial constancy). D-16-16 handles the keyboard consequence — Enter on an empty tile has no window level to descend into, so it focuses the workspace and closes, matching D-16-20's click parity. |
+| long-text | ⊘ dismissed | The only text is the workspace number, bounded to 1–10. |
+
+### E4 — Single window thumbnail
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | A genuinely blank window and a silently-denied capture are indistinguishable from `ScreencopyView.hasContent` alone. The copy therefore stays honest and refuses to claim a diagnosis: "Live preview unavailable" — see Copywriting Contract. Only `quickshell-doctor` (D-16-23) can tell the two apart, and it is the right place for that. |
+| loading | ✅ covered | D-16-10 `pending`, per-window and independent of every sibling. |
+| error | ✅ covered | D-16-10 `failed`: `Colours.error`, `visibility_off`, the window's real title (always known from Hyprland IPC regardless of capture success), one-line reason. |
+| populated | ✅ covered | Live `ScreencopyView` content, no overlay. |
+| overflow | ✅ covered **⬥ gate decision** | `clip: true` on the tile. A window at negative coordinates, larger than the monitor, or carrying stale geometry crops at the tile edge instead of painting over its neighbours — the real-geometry contract stays honest without letting one window corrupt the grid. |
+| long-text | ✅ covered | `Text.ElideRight` on the denial-state title — the repo's existing convention (`ScreencopyProbe.qml`'s caption `Label`, `PanelDialog`'s Advanced-button label). |
+
+### E5 — Whole-grid permission catch
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ⊘ dismissed | The message is either shown or absent, and absent is the happy path — there is no "catch with no content" state. |
+| loading | ✅ covered **⬥ gate decision** | State-driven with a ceiling: the catch is raised **only once every window's capture has settled into a terminal non-populated state and none succeeded** — never while any capture is still pending, so a merely slow grid never false-alarms. A timeout ceiling bounds the wait so a `ScreencopyView` that never settles cannot hide the message indefinitely, leaving the user with unexplained blank tiles. |
+| error | ⊘ dismissed | The catch is static local copy plus a glyph; it has no data source that could itself fail. |
+| populated | ⊘ dismissed | It is a message surface, not a content surface — no happy-path populated state exists. |
+| partial | ✅ covered | Explicitly *not* the catch's trigger. A mix of captured and denied windows uses per-window treatment (E4) only; the surface-level message fires solely when zero windows anywhere capture. This is the whole reason D-16-10 separates the two. |
+| overflow | ⊘ dismissed | One heading and one sentence of fixed copy, centred in a full-screen 2560×1440 container. |
+| zero-one-many | ⊘ dismissed | Exactly one instance ever exists, by design — replacing per-tile repetition with a single message is the decision itself. |
+| long-text | ⊘ dismissed | Fixed literal copy with no interpolation; its length is known at author time. |
+
+### E6 — Drag / drop-target
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | An unoccupied tile has no window thumbnail to lift, so drag is simply unavailable there. Click-to-focus and keyboard selection continue to work on it (D-16-20). |
+| loading | ✅ covered **⬥ gate decision** | Dragging a window whose capture has not yet landed stays permitted — the move is a Hyprland IPC action entirely independent of capture success, so blocking it would be an artificial restriction. The drag ghost falls back to the pending/denial placeholder chrome (icon + real title) instead of a blank `captureFrame()` snapshot. |
+| error | ✅ covered **⬥ gate decision** | A failed `hyprctl dispatch movetoworkspacesilent` produces no bespoke error UI. The grid is a live projection of Hyprland's own event stream, so a dispatch that fails simply never emits a move event and the window stays where it was — the surface self-corrects. D-16-14's cancel animation (`Motion.standardDuration`/`standardEasing`) is reused to snap the snapshot back, so the failure reads as a deliberate rejection rather than a dropped input. |
+| populated | ✅ covered | D-16-12/D-16-14 — still snapshot at drag start, 1.05× lift, soft drop shadow (~0.35 opacity, ~8px blur, MD3 elevation-3 weight), `Colours.primary` fill/border on the hovered drop target reusing `QuickToggles.qml`'s D-26 lit-tile treatment verbatim. |
+| partial | ⊘ dismissed | A drag is atomic — in flight or resolved. There is no partial-completion state to render. |
+| overflow | ✅ covered | Dropping outside every tile cancels at zero cost; the snapshot animates back to its origin on `Motion.standardDuration`/`standardEasing` (D-16-14). |
+| zero-one-many | ⊘ dismissed | Single-window drag only. OVER-03 specifies "a window thumbnail"; multi-select drag is out of scope for this phase and no multi-item drag layout is needed. |
+| long-text | ⊘ dismissed | The drag ghost carries no text beyond what the snapshot already contains. |
+
+### E7 — Keyboard selection + mode indicator
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | D-16-16 — Enter/Down on an empty tile has no window level to descend into, so Enter focuses that workspace and closes the overview immediately. |
+| loading | ✅ covered | Selection operates on Hyprland's workspace/toplevel model, not on capture state, so keyboard navigation is live from the first rendered frame and never waits on thumbnails. |
+| error | ✅ covered | Same independence: capture failure does not disable or alter keyboard navigation. A user can navigate and focus a workspace whose thumbnails are entirely blank. |
+| populated | ✅ covered | D-16-15/16/17 — `Colours.secondary` 2px selection ring at tile level, window-level ring within a tile, `Shift+1..0` moves the selected window, two-stage Esc per D-15-14's precedent. |
+| partial | ⊘ dismissed | Selection is a single index pair (tile, optional window); there is no partial selection state. |
+| overflow | ✅ covered **⬥ gate decision** | Edge behaviour is **linear wrap** across all eleven tiles: Right from tile 5 → tile 6, from tile 10 → scratchpad, from scratchpad → tile 1; Left reverses. Up/Down keep column-preserving 2D row movement. ⚠ Chosen over edge-stop despite D-16-03's spatial-constancy argument — see the recorded tension in the Keyboard model section, which the D-16-17 render gate is specifically directed to examine. |
+| zero-one-many | ⊘ dismissed | The selectable set is fixed at eleven tiles and never varies. |
+| long-text | ✅ covered | Mode-pill copy is bounded interpolation — `"Tiles"` or `"Workspace {N} windows"` where N is 1–10 or the scratchpad. `Design.fontLabel`, pill sizes to content. |
+
+### E8 — Workspace number + monitor badge overlays
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | 🧪 **backstop** | `{ statement: "A monitor badge renders on every tile when 2+ displays are connected, using the same legibility-backing idiom as the workspace number; on a single-display host no badge renders at all", verification: backstop }`. D-16-04's multi-monitor path is **structurally decided but functionally unexercised** on this host (one physical monitor, `DP-1`) — the same situation `12-QS03-EVIDENCE.md` recorded for QS-03's own multi-monitor paths. Verify time must confirm this with explicit evidence or route to `human_needed`; it must not silently pass. |
+| loading | ⊘ dismissed | Workspace id and monitor name come from Hyprland IPC, available synchronously at summon. No async load. |
+| error | ⊘ dismissed | Both values are always known from IPC whenever the overview can open at all; there is no failure mode to render. |
+| populated | ✅ covered | Number top-left, `spacingSm` inset, 20px DemiBold `Colours.onSurface`, on a `Colours.surface` ~0.6-alpha pill with radius = half its height and `spacingXs` padding. Badge top-right in the same idiom at `Design.fontLabel` on `Colours.surfaceVariant`. |
+| overflow | ✅ covered | The legibility-backing pill *is* the mitigation — both overlays sit over arbitrary live window imagery, and the translucent backing guarantees contrast without hiding the thumbnail beneath. |
+| long-text | ✅ covered | A long monitor connector name elides: badge capped at one third of tile width with `Text.ElideRight`, same convention as E4's title. |
+
+### E9 — Scratchpad tile
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | D-16-05 — rendered at every summon whether or not it holds windows. Empty shows the `inventory_2` glyph and its steady `Colours.tertiary` border only. |
+| loading | ✅ covered | Identical per-window `pending` treatment to the numbered tiles (D-16-10); no bespoke scratchpad path. |
+| error | ✅ covered | Identical per-window `failed` treatment (D-16-10). |
+| populated | ✅ covered | 300×169 (≈0.625× a numbered tile, still 16:9), centred below the 5×2 block with a `spacingLg` gap, `Colours.tertiary` steady border for identity. |
+| partial | ✅ covered | Same structural independence as E2 — each window carries its own state; no tile-level partial treatment. |
+| overflow | ✅ covered | Windows render at the scratchpad's own smaller scale (300/2560 ≈ 0.117), so a heavily-populated scratchpad renders very small windows. Accepted, consistent with D-16-02's no-declutter stance: the scratchpad is an identity and drop-target surface first, a legible preview second. |
+| zero-one-many | ✅ covered | Unlike the numbered tiles' empty/occupied duality, this tile's *presence* never varies with occupancy — which is exactly what lets drag-in and drag-out work symmetrically at every summon (D-16-05). |
 
 ---
 
@@ -118,8 +239,9 @@ Applicable state considerations resolved: 9 covered, 1 backstop, 0 unresolved.
 ### Grid geometry (D-16-01/D-16-02/D-16-03)
 - Host: single monitor, `DP-1`, 2560×1440 @ 164.999Hz, scale 1.0.
 - 10 numbered tiles, fixed 5 columns × 2 rows, always rendered. Tile size **480×270** (16:9, scale 0.1875 relative to the 2560×1440 monitor — `tileWidth / monitorWidth`, per D-16-02).
-- Column gap and row gap: `Design.spacingXl` (32px). Grid block: 5×480 + 4×32 = **2528px wide**, 2×270 + 1×32 = **572px tall**. Centered horizontally; vertical slack above/below reserved for the workspace-number overlay (drawn inside the tile, per the Typography section — no extra vertical space needed for it) and for the scratchpad tile beneath.
-- Scratchpad tile (11th, D-16-05): smaller than the numbered tiles to read as "distinct, lesser" without being illegible — recommend **300×169** (≈0.625× the numbered tile, still 16:9). Centered horizontally below the 5×2 block, `Design.spacingXl` (32px) gap above it.
+- Column gap and row gap: `Design.spacingLg` (24px). Grid block: 5×480 + 4×24 = **2496px wide**, 2×270 + 1×24 = **564px tall**. Centered horizontally with a `spacingLg` (24px) scrim margin per side, total **2544px** on the 2560px display — see the Spacing Scale section's fit arithmetic, which this number is load-bearing to. Vertical slack above/below reserved for the workspace-number overlay (drawn inside the tile, per the Typography section — no extra vertical space needed for it) and for the scratchpad tile beneath.
+- Scratchpad tile (11th, D-16-05): smaller than the numbered tiles to read as "distinct, lesser" without being illegible — recommend **300×169** (≈0.625× the numbered tile, still 16:9). Centered horizontally below the 5×2 block, `Design.spacingLg` (24px) gap above it.
+- **Tile clipping:** every tile sets `clip: true`. D-16-02 renders windows at real `hyprctl clients` geometry, so a window positioned partly offscreen, sized larger than the monitor, or carrying stale coordinates would otherwise paint outside its tile and over its neighbours. Clipping crops it at the tile edge — the geometry stays honest, the grid stays intact.
 - Tile corner radius: `tileRadius` = 12 (new local constant, not hoisted — see Spacing section). Tile outline width: `Design.borderWidth` (3px, reused token).
 
 ### Backdrop (D-16-06)
@@ -140,6 +262,7 @@ Reuse `PanelDialog.qml`'s exact `stateColour()` mapping — do not invent a seco
 - Cancel animation: `Motion.standardDuration`/`Motion.standardEasing` (the standard pair, not a bespoke curve) — snaps the snapshot back to its origin tile.
 
 ### Keyboard model (D-16-15/D-16-16/D-16-17)
+- **Edge behaviour — linear wrap across all 11 tiles (human decision at the UI-consideration gate, 2026-08-02).** Left/Right treat the eleven tiles as one sequence: Right from tile 5 continues to tile 6 (row 2, column 1), Right from tile 10 continues to the scratchpad, Right from the scratchpad returns to tile 1. Left reverses the same cycle. Up/Down keep their 2D, column-preserving meaning as a fast row jump (Down from row 1 → row 2 → scratchpad; Up reverses). ⚠ **Recorded tension:** this was chosen over edge-stop, which is what D-16-03's "the grid teaches itself because it mirrors the number row" argument implies — under linear wrap a single Right keypress can move the selection to a different row, so tile position and travel direction stop agreeing. The decision stands as made; **the render gate (D-16-17) should specifically look at whether the row-crossing jump reads as natural in the hand**, since that is the one place this could feel wrong, and edge-stop is a one-line fallback if it does.
 - Tile-level selection ring: `Colours.secondary`, thin outline (2px), never a fill — distinct from the drag highlight's `Colours.primary` fill so the two accents never carry the same meaning.
 - Mode indicator (discretion, provisional pending D-16-17's checkpoint): a small pill, `Design.fontLabel`, `Colours.surfaceVariant` background / `Colours.onSurfaceVariant` text, positioned top-center of the grid, reading either `"Tiles"` or `"Workspace {N} windows"` depending on selection depth — reusing the same segmented-pill visual language `QuickToggles.qml`'s `PresetSegment` already establishes (outline + tonal fill), not a new chrome idiom. **If the render gate finds this cluttered or the two levels confusing in the hand, fall back to Esc + number keys per D-16-17 — remove this pill and the window-level selection ring entirely, without a new decision.**
 
@@ -186,11 +309,13 @@ For the planner and executor — every token/pattern referenced above resolves t
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS — after one revision (the unused Display row was removed from the table; exactly 2 weights are now declared)
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED by gsd-ui-checker (6/6, one revision iteration, zero outstanding recommendations).
+
+**UI-consideration probe:** run post-approval — 66 applicable considerations, 43 covered / 22 dismissed with reason / 1 backstop / 0 unresolved. Four were decided at a human gate (grid fit arithmetic, tile clipping, whole-grid catch trigger, drag-failure handling, keyboard edge behaviour) and are marked ⬥ in the UI Considerations section. The single backstop (E8 multi-monitor badge) must be confirmed by explicit evidence at verify time or route to `human_needed` — it must not silently pass.
