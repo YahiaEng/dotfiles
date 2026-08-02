@@ -50,6 +50,13 @@
         "format": "{icon} {volume}%",
         "format-muted": "{icon} {volume}%",
         "on-click": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
+        // 15-08: this module had no right-click handler at all.
+        // Right-click now opens the shell-root audio panel through
+        // 15-03's single IpcHandler (target "panel", verb "toggle")
+        // (D-15-05, PANEL-05). Left-click mute is unchanged, including
+        // this layout's divergent pactl spelling (pre-existing,
+        // preserved rather than harmonised).
+        "on-click-right": "qs ipc call panel toggle audio",
         "format-icons": {
             "default": ["\uf026", "\uf027", "\uf028"]
         }
@@ -64,6 +71,11 @@
         "tooltip-format-wifi": "󰕒 {bandwidthUpBytes} / 󰇚 {bandwidthDownBytes}",
         "tooltip-format-ethernet": "󰕒 {bandwidthUpBytes} / 󰇚 {bandwidthDownBytes}",
         "tooltip-format-disconnected": "Disconnected!",
+        // 15-08: this module had no click handler at all. Left-click
+        // now opens the shell-root wifi panel through 15-03's single
+        // IpcHandler (target "panel", verb "toggle") (D-15-05,
+        // PANEL-03).
+        "on-click": "qs ipc call panel toggle wifi",
         "max-length": 30
     },
     "clock": {

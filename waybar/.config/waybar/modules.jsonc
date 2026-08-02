@@ -144,7 +144,12 @@
             "default": ["", "", ""]
         },
         "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
-        "on-click-right": "pavucontrol"
+        // 15-08: right-click used to launch the standalone mixer GUI.
+        // It now opens the shell-root audio panel through 15-03's single
+        // IpcHandler (target "panel", verb "toggle") instead — the mixer
+        // moves one level deeper, behind the panel's Advanced button
+        // (D-15-05, PANEL-05). Left-click mute is unchanged.
+        "on-click-right": "qs ipc call panel toggle audio"
     },
 
     "network": {
@@ -158,7 +163,14 @@
         "format-ethernet": "9 {ifname}",
         "format-disconnected": "e offline",
         "format-icons": ["f", "f", "2", "5", "8"],
-        "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n{essid}"
+        "tooltip-format": "{ifname}: {ipaddr}/{cidr}\n{essid}",
+        // 15-08: this module had no click handler at all in the canonical
+        // definition. Left-click now opens the shell-root wifi panel
+        // through 15-03's single IpcHandler (target "panel", verb
+        // "toggle") — this is the only place config-full.jsonc's network
+        // module gets a click, since that layout redefines neither
+        // module and inherits everything from here (D-31, PANEL-03).
+        "on-click": "qs ipc call panel toggle wifi"
     },
 
     "custom/theme": {
