@@ -5,8 +5,8 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 16
 current_phase_name: Workspace Overview
 status: planning
-stopped_at: "Phase 15 complete — 14/14 plans, UAT 7/7 against real hardware. Closed by operator direction with acknowledged gaps (no security review; verifier not re-run over the gap-closure round). See 15-VERIFICATION.md."
-last_updated: "2026-08-02T18:38:02.023Z"
+stopped_at: Phase 16 context gathered
+last_updated: "2026-08-02T20:26:24.296Z"
 last_activity: 2026-08-02
 last_activity_desc: Phase 15 complete, transitioned to Phase 16
 progress:
@@ -428,9 +428,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T18:45:00Z
-Stopped at: Phase 15 complete, ready to plan Phase 16 — Workspace Overview
-Resume file: None
+Last session: 2026-08-02T20:26:24.275Z
+Stopped at: Phase 16 context gathered
+Resume file: .planning/phases/16-workspace-overview/16-CONTEXT.md
 
 ## Operator Next Steps
 
