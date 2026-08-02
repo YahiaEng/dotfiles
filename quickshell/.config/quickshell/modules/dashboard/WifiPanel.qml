@@ -28,6 +28,7 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
+import Quickshell.Networking
 import "../"
 
 PanelDialog {
@@ -88,6 +89,167 @@ PanelDialog {
     // Matches AudioPanel.qml's own constant name and value — every
     // interactive row across the three panels shares one row-height token.
     readonly property int controlRowHeight: 32
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Task 3 additions (D-15-14/D-15-17/D-15-09) — the inline password row,
+    // in-flight Cancel, row-scoped failure copy and Forget's inline
+    // confirm. Every property below is keyed by the network OBJECT, never
+    // an SSID string (T-15-08) — two rows sharing an SSID must never act
+    // on each other.
+    // ═══════════════════════════════════════════════════════════════════
+
+    // Which row's password field is expanded (D-15-14). Set by a press on
+    // a passphrase-secured row, or by a `NoSecrets` failure on an open/
+    // unknown row that turned out to need one (Task 1's `securityKind`
+    // maps `Unknown` to "open" on purpose — this is what recovers it).
+    property var expandedNetwork: null
+    // The row-scoped copy of the backend's in-flight identity. Kept as its
+    // OWN property rather than binding straight to `backend.connectingNetwork`
+    // so the watchdog below can clear the panel's visual pending state
+    // without needing to reach into the backend's own truth-driven property.
+    property var pendingNetwork: null
+    // The row a rejected connection is scoped to (D-15-09) — never a
+    // panel-wide flag.
+    property var failedNetwork: null
+    property string failedText: ""
+    // Which row's inline "Forget X?" confirm is showing (P4) — deliberately
+    // a SEPARATE property from `expandedNetwork`: Forget's confirm and the
+    // password field are two independent expansions of the same row, not
+    // one mechanism wearing two hats.
+    property var confirmForgetNetwork: null
+
+    // Backend watchdog — a stranded pending row must not pulse forever if
+    // NetworkManager never answers either way. Not a motion token (would
+    // collapse to zero at the `off` motion scale): a `Timer` `interval:`,
+    // matching QuickToggles.qml's own `chipWatchdogTimer` shape, never
+    // `duration:` so it stays outside motion-lint CHECK B.
+    readonly property int rowWatchdogMs: 15000
+
+    Timer {
+        id: rowWatchdogTimer
+        interval: root.rowWatchdogMs
+        repeat: false
+        onTriggered: root.pendingNetwork = null
+    }
+
+    // ── Escape's first stage (D-15-14) ────────────────────────────────────
+    function collapseExpandedRow() {
+        root.expandedNetwork = null;
+        root.failedNetwork = null;
+        root.failedText = "";
+    }
+
+    // ── Belt-and-braces override of PanelDialog's `handleEscape()` (no
+    //    edit to that shared file — see its own header note inviting
+    //    exactly this override). The field's own `Keys.onEscapePressed`
+    //    already delivers the required two-stage behaviour by consuming
+    //    the first Escape before it ever reaches this function; this is
+    //    redundancy for the case where a row is expanded but the field
+    //    itself does not hold active focus. ─────────────────────────────
+    function handleEscape() {
+        if (root.expandedNetwork !== null) {
+            root.collapseExpandedRow();
+            return;
+        }
+        if (root.confirmForgetNetwork !== null) {
+            root.confirmForgetNetwork = null;
+            return;
+        }
+        root.requestDismiss();
+    }
+
+    // ── The row's press, by state (D-15-14) ───────────────────────────────
+    function rowVerbLabel(network) {
+        if (!network)
+            return "";
+        if (network.connected)
+            return "Disconnect";
+        if (root.backend && root.backend.securityKind(network) === "enterprise")
+            return "";
+        return "Connect";
+    }
+
+    function handleRowPress(network) {
+        if (!network || !root.backend)
+            return;
+        root.confirmForgetNetwork = null;
+        if (network.connected) {
+            // Ordinary reversible action — deliberately not error-toned
+            // (UI-SPEC Color table: Destructive is reserved for Forget and
+            // the failed-state text, never Disconnect).
+            root.backend.disconnect(network);
+            return;
+        }
+        var kind = root.backend.securityKind(network);
+        if (kind === "enterprise")
+            return; // P2: never offer a control that cannot work.
+        if (kind === "passphrase") {
+            root.expandedNetwork = network;
+            root.failedNetwork = null;
+            root.failedText = "";
+            return;
+        }
+        root.startConnect(network, "");
+    }
+
+    // ── In-flight (UI-SPEC E4 `loading`) ──────────────────────────────────
+    function startConnect(network, password) {
+        if (!network || !root.backend)
+            return;
+        root.pendingNetwork = network;
+        root.failedNetwork = null;
+        root.failedText = "";
+        rowWatchdogTimer.restart();
+        // The passphrase is read from the live control at press time by
+        // the caller and handed straight through — never copied into a
+        // property on this panel, never logged (this file has no
+        // diagnostic logging call at all).
+        root.backend.connect(network, password);
+    }
+
+    // Measured live in Task 3 (see SUMMARY): whichever teardown call
+    // actually aborts the pending activation, `cancelConnect()` is the
+    // panel's one call site for it either way, so the finding can be
+    // acted on in one place if it changes.
+    function handleCancel(network) {
+        if (!root.backend)
+            return;
+        root.backend.cancelConnect(network);
+        root.pendingNetwork = null;
+        rowWatchdogTimer.stop();
+    }
+
+    // Success is OBSERVED truth (a row's own `connected` becoming true),
+    // never the write merely returning — called from NetworkRow's own
+    // `onIsConnectedNowChanged` handler below, mirroring WifiBackend's own
+    // truth-driven pattern rather than guessing from the backend's
+    // `connectingNetwork` clearing (which also clears on failure, and
+    // would race `connectFailed` if used as a success signal here).
+    function markConnectedIfPending(network) {
+        if (root.pendingNetwork === network) {
+            root.pendingNetwork = null;
+            root.expandedNetwork = null;
+            rowWatchdogTimer.stop();
+        }
+    }
+
+    // ── Failure, row-scoped (D-15-09, UI-SPEC E3/E4 `error`) ──────────────
+    Connections {
+        target: root.backend
+        function onConnectFailed(network, reasonText) {
+            var wasExpanded = (root.expandedNetwork === network);
+            root.pendingNetwork = null;
+            rowWatchdogTimer.stop();
+            root.failedNetwork = network;
+            root.failedText = reasonText;
+            // "Password required" is never spelled out here — the panel
+            // compares against the backend's own locked mapping output
+            // rather than restating the string, so the five failure
+            // strings live in exactly one place (WifiBackend.qml).
+            if (!wasExpanded && root.backend && reasonText === root.backend.failReasonText(ConnectionFailReason.NoSecrets))
+                root.expandedNetwork = network;
+        }
+    }
 
     // ── strengthGlyph(network) — the never-sorting strength glyph
     //    (D-15-16: rendered per row, takes no part in ordering). Uses the
@@ -245,75 +407,398 @@ PanelDialog {
     // ── NetworkRow — one line, always (UI-SPEC E3 `zero-one-many`, count
     //    invariant, no singular/plural branch). Left to right: the
     //    never-sorting strength glyph, the elided SSID with its full-name
-    //    tooltip (E3 `long-text`, NEW locked contract). The current
-    //    connection's row alone carries `emphasized: true` — the
-    //    `Colours.surfaceVariant` fill the other groups do not carry,
-    //    mirroring 15-04's primary-control weight differentiation against
-    //    THIS panel's own focal point (UI-SPEC Dimension 2). Rows are
-    //    keyed by the network OBJECT (`network: modelData` bound at each
-    //    Repeater's delegate site) — two rows can legitimately carry the
-    //    same SSID and neither may act on the other. Task 3 adds the
-    //    trailing verb/expansion region; this task reserves no space for
-    //    it yet. ─────────────────────────────────────────────────────────
+    //    tooltip (E3 `long-text`, NEW locked contract), the trailing verb
+    //    region. The current connection's row alone carries
+    //    `emphasized: true` — the `Colours.surfaceVariant` fill the other
+    //    groups do not carry, mirroring 15-04's primary-control weight
+    //    differentiation against THIS panel's own focal point (UI-SPEC
+    //    Dimension 2). Rows are keyed by the network OBJECT (`network:
+    //    modelData` bound at each Repeater's delegate site) — two rows can
+    //    legitimately carry the same SSID and neither may act on the
+    //    other.
+    //
+    //    Task 3 additions below the collapsed row: the inline password
+    //    expansion (D-15-14), the enterprise no-op note, the row-scoped
+    //    failure line (D-15-09) and Forget's own inline confirm (P4) — two
+    //    independent expansions of the same row (`expandedNetwork` and
+    //    `confirmForgetNetwork` are separate root properties), not one
+    //    mechanism wearing two hats. The whole `Column` grows/shrinks its
+    //    own `implicitHeight` (mirroring AudioPanel.qml's DevicePickerRow
+    //    shape) — the list below shifts while a row is expanded, honest
+    //    and reversible, no popup, no floating overlay (D-15-14). ────────
     component NetworkRow: Item {
         id: networkRow
 
         property var network: null
         property bool emphasized: false
 
+        readonly property string kind: root.backend ? root.backend.securityKind(networkRow.network) : "open"
+        readonly property bool isConnectedNow: networkRow.network ? networkRow.network.connected : false
+        readonly property bool isKnownNetwork: networkRow.network ? networkRow.network.known : false
+        readonly property bool isExpanded: root.expandedNetwork === networkRow.network
+        readonly property bool isPendingRow: root.pendingNetwork === networkRow.network
+        readonly property bool isFailedRow: root.failedNetwork === networkRow.network
+        readonly property bool isConfirmingForget: root.confirmForgetNetwork === networkRow.network
+        // Groups 1+2 only (current + saved) per D-15-17 — `emphasized` is
+        // true only for the currentNetwork row, `isKnownNetwork` covers
+        // the saved group; otherNetworks is already known-false by
+        // construction (WifiBackend's own filter), so this OR is a safety
+        // net rather than load-bearing.
+        readonly property bool forgetEligible: networkRow.emphasized || networkRow.isKnownNetwork
+
         readonly property real strengthGlyphOpacity: root.strengthGlyph(networkRow.network)
         readonly property bool hasStrength: networkRow.strengthGlyphOpacity >= 0
 
         width: parent ? parent.width : 0
-        height: root.controlRowHeight
+        implicitHeight: rowColumn.implicitHeight
+        height: implicitHeight
 
-        Rectangle {
-            anchors.fill: parent
-            radius: root.spacingXs
-            color: networkRow.emphasized ? Colours.surfaceVariant : "transparent"
+        Behavior on implicitHeight {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
         }
 
-        Text {
-            id: strengthIcon
-            anchors.left: parent.left
-            anchors.leftMargin: root.spacingSm
-            anchors.verticalCenter: parent.verticalCenter
-            width: networkRow.hasStrength ? root.iconSizeMd : 0
-            visible: networkRow.hasStrength
-            horizontalAlignment: Text.AlignHCenter
-            font.family: root.symbolFontFamily
-            font.pixelSize: root.iconSizeMd
-            // "network_wifi" — verified present in the installed Material
-            // Symbols Rounded font's `post` table, the SAME ligature
-            // rendered at every bucket (see strengthGlyph()'s own header
-            // note for why opacity carries the bucket instead of a second
-            // glyph name).
-            text: "network_wifi"
-            opacity: networkRow.hasStrength ? networkRow.strengthGlyphOpacity : 1
-            color: Colours.onSurfaceVariant
-        }
+        onIsConnectedNowChanged: if (networkRow.isConnectedNow)
+            root.markConnectedIfPending(networkRow.network)
 
-        Text {
-            id: ssidText
-            anchors.left: strengthIcon.right
-            anchors.leftMargin: root.spacingSm
-            anchors.right: parent.right
-            anchors.rightMargin: root.spacingSm
-            anchors.verticalCenter: parent.verticalCenter
-            elide: Text.ElideRight
-            maximumLineCount: 1
-            text: networkRow.network ? networkRow.network.name : ""
-            font.pixelSize: root.fontBody
-            font.weight: root.weightBody
-            color: Colours.onSurface
+        Column {
+            id: rowColumn
+            width: parent.width
+            spacing: root.spacingXs
 
-            MouseArea {
-                id: ssidHoverArea
-                anchors.fill: parent
-                hoverEnabled: true
-                ToolTip.visible: ssidHoverArea.containsMouse
-                ToolTip.text: ssidText.text
-                ToolTip.delay: Design.tooltipDelayMs
+            Item {
+                id: collapsedRow
+                width: parent.width
+                height: root.controlRowHeight
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: root.spacingXs
+                    color: networkRow.emphasized ? Colours.surfaceVariant : "transparent"
+                }
+
+                // Full-row press target, declared first (underneath) so
+                // the more specific verb/cancel/forget MouseAreas declared
+                // below it in paint order take priority over their own
+                // small regions, while the rest of the row (glyph, blank
+                // space) falls through to this one — "pressing a row does
+                // the one obvious thing" without needing a hit target the
+                // size of the verb text alone.
+                MouseArea {
+                    id: rowPressArea
+                    anchors.fill: parent
+                    onClicked: root.handleRowPress(networkRow.network)
+                }
+
+                Text {
+                    id: strengthIcon
+                    anchors.left: parent.left
+                    anchors.leftMargin: root.spacingSm
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: networkRow.hasStrength ? root.iconSizeMd : 0
+                    visible: networkRow.hasStrength
+                    horizontalAlignment: Text.AlignHCenter
+                    font.family: root.symbolFontFamily
+                    font.pixelSize: root.iconSizeMd
+                    // "network_wifi" — verified present in the installed Material
+                    // Symbols Rounded font's `post` table, the SAME ligature
+                    // rendered at every bucket (see strengthGlyph()'s own header
+                    // note for why opacity carries the bucket instead of a second
+                    // glyph name).
+                    text: "network_wifi"
+                    opacity: networkRow.hasStrength ? networkRow.strengthGlyphOpacity : 1
+                    color: Colours.onSurfaceVariant
+                }
+
+                Text {
+                    id: ssidText
+                    anchors.left: strengthIcon.right
+                    anchors.leftMargin: root.spacingSm
+                    anchors.right: trailingActions.left
+                    anchors.rightMargin: root.spacingSm
+                    anchors.verticalCenter: parent.verticalCenter
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                    text: networkRow.network ? networkRow.network.name : ""
+                    font.pixelSize: root.fontBody
+                    font.weight: root.weightBody
+                    color: Colours.onSurface
+
+                    MouseArea {
+                        id: ssidHoverArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: root.handleRowPress(networkRow.network)
+                        ToolTip.visible: ssidHoverArea.containsMouse
+                        ToolTip.text: ssidText.text
+                        ToolTip.delay: Design.tooltipDelayMs
+                    }
+                }
+
+                // ── Trailing actions — the primary verb (or the pending
+                //    pulse plus a real Cancel) on the left, Forget
+                //    separated by `Design.spacingLg` on the right so a
+                //    press aimed at the reversible verb cannot land on the
+                //    irreversible one (D-15-17, P4). ─────────────────────
+                Row {
+                    id: trailingActions
+                    anchors.right: parent.right
+                    anchors.rightMargin: root.spacingSm
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: root.spacingSm
+
+                    Row {
+                        id: verbGroup
+                        spacing: root.spacingSm
+                        visible: networkRow.kind !== "enterprise"
+
+                        // The pending pulse — QuickToggles.qml's own
+                        // pending-pulse shape (the same emphasizedIn/Out
+                        // duration+easing pair), reused rather than a new
+                        // spinner primitive (UI-SPEC Color table: `pending`
+                        // reuses this pattern).
+                        Text {
+                            id: pendingGlyph
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: networkRow.isPendingRow
+                            font.family: root.symbolFontFamily
+                            font.pixelSize: root.iconSizeMd
+                            text: "sync"
+                            color: Colours.primary
+                            opacity: 0.4
+
+                            SequentialAnimation {
+                                running: networkRow.isPendingRow && Motion.motionEnabled
+                                loops: Animation.Infinite
+                                NumberAnimation {
+                                    target: pendingGlyph
+                                    property: "opacity"
+                                    from: 0.3
+                                    to: 1.0
+                                    duration: Motion.emphasizedInDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Motion.emphasizedInEasing
+                                }
+                                NumberAnimation {
+                                    target: pendingGlyph
+                                    property: "opacity"
+                                    from: 1.0
+                                    to: 0.3
+                                    duration: Motion.emphasizedOutDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Motion.emphasizedOutEasing
+                                }
+                            }
+                        }
+
+                        // "Connect" / "Disconnect" — Disconnect deliberately
+                        // NOT error-toned (UI-SPEC: Destructive is reserved
+                        // for Forget and the failed-state text alone; an
+                        // ordinary reversible action stays `Colours.primary`).
+                        Text {
+                            id: verbText
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: !networkRow.isPendingRow
+                            text: root.rowVerbLabel(networkRow.network)
+                            font.pixelSize: root.fontBody
+                            color: Colours.primary
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: root.handleRowPress(networkRow.network)
+                            }
+                        }
+
+                        // The real Cancel (UI-SPEC E4 `loading`, NEW locked
+                        // contract) — not a silent watchdog alone.
+                        Text {
+                            id: cancelText
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: networkRow.isPendingRow
+                            text: "Cancel"
+                            font.pixelSize: root.fontBody
+                            color: Colours.onSurfaceVariant
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: root.handleCancel(networkRow.network)
+                            }
+                        }
+                    }
+
+                    Item {
+                        id: forgetSpacer
+                        visible: networkRow.forgetEligible
+                        width: networkRow.forgetEligible ? Design.spacingLg : 0
+                        height: 1
+                    }
+
+                    Text {
+                        id: forgetText
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: networkRow.forgetEligible
+                        text: "Forget"
+                        font.pixelSize: root.fontBody
+                        color: Colours.error
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                root.expandedNetwork = null;
+                                root.confirmForgetNetwork = networkRow.network;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Enterprise — no field is offered because none could work
+            //    (P2): `connectWithPsk` carries one passphrase and
+            //    `connectWithSettings` is fenced out by D-15-17 as
+            //    Advanced's job. Static, never expands, the row's press
+            //    does nothing (handleRowPress() early-returns above). ────
+            Text {
+                id: enterpriseNote
+                width: parent.width
+                visible: networkRow.kind === "enterprise"
+                text: "Use Advanced to connect"
+                font.pixelSize: root.fontLabel
+                color: Colours.onSurfaceVariant
+            }
+
+            // ── The inline password row (D-15-14, UI-SPEC E4 `populated`).
+            //    No popup, no dialog, no navigation — the row itself grows.
+            Row {
+                id: passwordRow
+                width: parent.width
+                spacing: root.spacingSm
+                visible: networkRow.isExpanded
+
+                TextField {
+                    id: passwordField
+                    width: parent.width - connectAction.width - root.spacingSm
+                    height: root.controlRowHeight
+                    echoMode: TextInput.Password
+                    color: Colours.onSurface
+                    background: Rectangle {
+                        radius: root.spacingXs
+                        color: Colours.surfaceVariant
+                    }
+                    // First stage of two-stage Escape (D-15-14): consumed
+                    // here, where the field holds active focus, so the
+                    // event never reaches PanelDialog's content-root
+                    // handler and the panel stays open.
+                    Keys.onEscapePressed: function (event) {
+                        root.collapseExpandedRow();
+                        event.accepted = true;
+                    }
+                    // Phase 11's QS-02 gate proved a human can type into a
+                    // text field on a layer-shell surface under on-demand
+                    // keyboard focus — the enabling fact, not an assumption.
+                    onVisibleChanged: if (passwordField.visible)
+                        passwordField.forceActiveFocus()
+                }
+
+                // "Connect" — enabled exactly when non-empty. No minimum
+                // length and no character-class check: WPA passphrase
+                // rules vary and a guessed floor would reject valid input;
+                // NetworkManager is the validator (E4 `empty` backstop).
+                Item {
+                    id: connectAction
+                    width: connectLabel.implicitWidth + root.spacingMd * 2
+                    height: root.controlRowHeight
+
+                    readonly property bool enabledNow: passwordField.text.length > 0
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: height / 2
+                        color: Colours.primary
+                        opacity: connectAction.enabledNow ? 1 : 0.38
+                    }
+                    Text {
+                        id: connectLabel
+                        anchors.centerIn: parent
+                        text: "Connect"
+                        font.pixelSize: root.fontBody
+                        color: Colours.onPrimary
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: connectAction.enabledNow
+                        onClicked: {
+                            // Read at press time, handed straight through,
+                            // then discarded — never assigned to a
+                            // property on this panel, never logged
+                            // (Prohibition P3's residency half).
+                            var enteredPassword = passwordField.text;
+                            passwordField.text = "";
+                            root.startConnect(networkRow.network, enteredPassword);
+                        }
+                    }
+                }
+            }
+
+            // ── Row-scoped failure (D-15-09) — renders whether or not the
+            //    password row is expanded; the field (if open) stays open
+            //    and empty for the correction. ───────────────────────────
+            Text {
+                id: rowFailureText
+                width: parent.width
+                visible: networkRow.isFailedRow
+                text: root.failedText
+                font.pixelSize: root.fontLabel
+                color: Colours.error
+            }
+
+            // ── Forget's inline confirm (D-15-17, P4) — never a silent
+            //    one-press forget; only the confirming press calls
+            //    `backend.forget()`. Escape and collapsing the row both
+            //    cancel it (see `handleEscape()` above). ────────────────
+            Row {
+                id: forgetConfirmRow
+                width: parent.width
+                visible: networkRow.isConfirmingForget
+                spacing: root.spacingSm
+
+                Text {
+                    id: forgetConfirmLabel
+                    width: parent.width - forgetConfirmYes.implicitWidth - forgetConfirmNo.implicitWidth - root.spacingSm * 2
+                    text: "Forget " + (networkRow.network ? networkRow.network.name : "") + "?"
+                    font.pixelSize: root.fontLabel
+                    color: Colours.onSurface
+                    wrapMode: Text.WordWrap
+                }
+                Text {
+                    id: forgetConfirmYes
+                    text: "Forget"
+                    font.pixelSize: root.fontLabel
+                    font.weight: root.weightEmphasis
+                    color: Colours.error
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            root.backend.forget(networkRow.network);
+                            root.confirmForgetNetwork = null;
+                        }
+                    }
+                }
+                Text {
+                    id: forgetConfirmNo
+                    text: "Cancel"
+                    font.pixelSize: root.fontLabel
+                    color: Colours.onSurfaceVariant
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.confirmForgetNetwork = null
+                    }
+                }
             }
         }
     }
