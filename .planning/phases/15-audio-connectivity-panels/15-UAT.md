@@ -1,19 +1,26 @@
 ---
-status: diagnosed
+status: complete
 phase: 15-audio-connectivity-panels
 source: [15-VERIFICATION.md, 15-09-SUMMARY.md, 15-10-SUMMARY.md, 15-11-SUMMARY.md, 15-12-SUMMARY.md, 15-13-SUMMARY.md, 15-14-SUMMARY.md]
 started: 2026-08-02T03:30:00Z
-updated: 2026-08-02T17:38:50Z
+updated: 2026-08-02T18:10:00Z
 round: 2
 note: |
   Round 1 recorded issues on tests 1, 2 and 4. All five resulting gaps
-  (G-15-1, G-15-1b, G-15-2, G-15-4, G-15-4b) have been closed by executed
-  gap-closure plans 15-10 through 15-14 and reconciled below. Those three
-  tests are reset to [pending] for retest against the fixes; their round-1
-  reports are preserved verbatim as `round1_reported`. Tests 5 and 6 are new
-  checkpoints covering deliverables that did not exist in round 1.
-  The running shell (PID 4179371, started 20:31:33) post-dates every QML
-  edit in the round, so all fixes are live without a restart.
+  (G-15-1, G-15-1b, G-15-2, G-15-4, G-15-4b) were closed by executed
+  gap-closure plans 15-10 through 15-14, reconciled below, and retested in
+  round 2 — all five confirmed. Round-1 reports are preserved verbatim as
+  `round1_reported`. Tests 5 and 6 are new checkpoints covering deliverables
+  that did not exist in round 1.
+
+  Test 6 failed on first retest, was diagnosed as G-15-6 (a handoff race in
+  WifiPanel.qml — NOT the Route B failure it resembled), fixed inline at the
+  user's request in commit 12575ac, and re-passed against the user's own
+  hidden AP on a cold cache.
+
+  All six tests pass. One item stays open by design and is not a UAT result:
+  the bluetooth device-list half, blocked on hardware this host does not have
+  (see deferred-items.md).
 ---
 
 ## Current Test
@@ -68,26 +75,32 @@ how: Open the wifi panel, scroll to below the network list, press "Join a hidden
 closes_gap: G-15-4b (plan 15-14)
 round1_reported: "Also, add an option to add a hidden wifi network (a network has it's SSID broadcast turned off)"
 unproven: Route B (directed probe) was never proven against a real hidden AP — no hidden SSID on this host is known, and some APs do not answer directed probes. If it fails against a real hidden network, that is the documented Route A fallback trigger, not a regression.
-result: issue
-reported: "Fail. It cannot detect my hidden network. I have one that I can test on if needed"
-severity: major
+result: pass
+round2_reported: "Fail. It cannot detect my hidden network. I have one that I can test on if needed"
+resolved_by: "commit 12575ac (inline fix, no gap-closure plan) — retry the handoff on results-landed, re-probe while in flight, raise the window 8000 -> 30000ms"
+retest: "Passed against the user's own hidden AP (`!ono^`) on a genuine cold cache — the diagnosis-session reveal had aged out beforehand."
 outcome: DIAGNOSED — and the obvious reading was wrong. Measured against the user's own hidden AP (`!ono^`), Route B's directed probe DOES reveal it and Quickshell DOES see it as an ordinary named Network object. The defect is a race inside the panel: tryHiddenHandoff() runs 16-30ms after the probe starts and is never retried, so it always searches a stale list. See gap G-15-6.
 
 ## Summary
 
 total: 6
-passed: 5
-issues: 1
+passed: 6
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
 
-note: Round 2 confirmed all five round-1 gap closures. The single remaining issue
-is test 6, diagnosed as G-15-6 — a handoff race inside WifiPanel.qml, NOT the
-Route B failure it first looked like. Route B was measured viable against the
-user's own hidden AP, so the pre-specified Route A fallback must NOT be taken.
-Separately, the device-list half of bluetooth (pair/connect/disconnect/forget)
-remains unverified behind a hardware blocker tracked in deferred-items.md.
+note: Round 2 confirmed all five round-1 gap closures. Test 6 failed on first
+retest, was diagnosed as G-15-6 — a handoff race inside WifiPanel.qml, NOT the
+Route B failure it first looked like — fixed inline (12575ac) and re-passed
+against the user's own hidden AP on a cold cache. Route B was measured viable,
+so the pre-specified Route A fallback was correctly NOT taken.
+
+One item remains open and is deliberately NOT counted as a UAT result: the
+device-list half of bluetooth (pair / connect / disconnect / forget) is
+unverified behind a hardware blocker — this host has no discoverable peer.
+Tracked in deferred-items.md with an owner condition tied to hardware
+availability, explicitly not to a phase or milestone boundary.
 
 ## Gaps
 
@@ -146,7 +159,10 @@ remains unverified behind a hardware blocker tracked in deferred-items.md.
 
 - gap_id: G-15-6
   truth: "Typing a real hidden network's SSID into the panel's hidden-network form reveals it and hands off to the normal connect flow"
-  status: failed
+  status: resolved
+  resolved_by: "commit 12575ac (inline fix — user chose to skip formal gap-closure planning)"
+  resolved_at: 2026-08-02
+  retest_result: "pass — verified by the user against their own hidden AP on a cold cache"
   reason: "User reported: Fail. It cannot detect my hidden network. I have one that I can test on if needed"
   severity: major
   test: 6
