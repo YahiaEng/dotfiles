@@ -862,6 +862,15 @@ PanelDialog {
                         width: Motion.motionEnabled ? progressTrack.width * 0.3 : progressTrack.width
                         x: 0
 
+                        // G-15-1 RC1: both legs now bind the ambient LOOP
+                        // PERIOD token, never the one-shot enter/exit
+                        // transition durations (emphasizedIn/Out) this
+                        // infinite loop was misusing before — see
+                        // Motion.qml's ambientDuration header comment for
+                        // the full rationale. The two easings are left
+                        // exactly as they were (design_decisions_resolved
+                        // item 2): the accelerate-then-decelerate sweep
+                        // feel is deliberate and unrelated to the period.
                         SequentialAnimation {
                             running: (root.backend && root.backend.scanning) && Motion.motionEnabled
                             loops: Animation.Infinite
@@ -870,7 +879,7 @@ PanelDialog {
                                 property: "x"
                                 from: 0
                                 to: progressTrack.width - progressSegment.width
-                                duration: Motion.emphasizedInDuration
+                                duration: Motion.ambientDuration
                                 easing.type: Easing.BezierSpline
                                 easing.bezierCurve: Motion.emphasizedInEasing
                             }
@@ -879,7 +888,7 @@ PanelDialog {
                                 property: "x"
                                 from: progressTrack.width - progressSegment.width
                                 to: 0
-                                duration: Motion.emphasizedOutDuration
+                                duration: Motion.ambientDuration
                                 easing.type: Easing.BezierSpline
                                 easing.bezierCurve: Motion.emphasizedOutEasing
                             }
@@ -901,7 +910,33 @@ PanelDialog {
                     text: "refresh"
                     font.family: root.symbolFontFamily
                     font.pixelSize: root.iconSizeMd
-                    color: Colours.onSurfaceVariant
+                    // G-15-1 RC2b: accent while a rescan is in flight, the
+                    // existing muted role otherwise. Deliberately NOT
+                    // gated on Motion.motionEnabled — at the `off` motion
+                    // scale the rotation below never runs, but the glyph
+                    // must still say something true (busy), matching the
+                    // fallback voice the progress line above records for
+                    // its own static-bar case at `off`.
+                    color: (root.backend && root.backend.rescanInFlight) ? Colours.primary : Colours.onSurfaceVariant
+                    // Immediate, backend-independent press acknowledgement
+                    // — fires on the SAME FRAME as the press, deliberately
+                    // redundant with the backend's in-flight edge (which
+                    // can take a moment to arm): the control is never
+                    // silent even if that edge is slow to land.
+                    opacity: refreshMouseArea.pressed ? 0.6 : 1.0
+
+                    // The in-flight busy spin — gated on both the backend
+                    // edge AND Motion.motionEnabled (the same gating shape
+                    // the sweep above uses), period bound to the SAME
+                    // ambient loop token as the sweep so the control and
+                    // the line read as one instrument.
+                    RotationAnimation on rotation {
+                        running: (root.backend && root.backend.rescanInFlight) && Motion.motionEnabled
+                        loops: Animation.Infinite
+                        from: 0
+                        to: 360
+                        duration: Motion.ambientDuration
+                    }
 
                     MouseArea {
                         id: refreshMouseArea
@@ -909,7 +944,9 @@ PanelDialog {
                         hoverEnabled: true
                         onClicked: if (root.backend) root.backend.rescan()
                         ToolTip.visible: refreshMouseArea.containsMouse
-                        ToolTip.text: "Rescan"
+                        // Idle copy unchanged; in-flight copy is Task 3's
+                        // new Copywriting Contract row (D-15-15 amendment).
+                        ToolTip.text: (root.backend && root.backend.rescanInFlight) ? "Rescanning…" : "Rescan"
                         ToolTip.delay: Design.tooltipDelayMs
                     }
                 }

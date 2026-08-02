@@ -796,6 +796,15 @@ PanelDialog {
                             width: Motion.motionEnabled ? discoveryProgressTrack.width * 0.3 : discoveryProgressTrack.width
                             x: 0
 
+                            // G-15-1 RC1: same corrected treatment as
+                            // WifiPanel.qml's identical sweep idiom — both
+                            // legs bind the ambient LOOP PERIOD token
+                            // (never the one-shot emphasizedIn/Out
+                            // transition durations), easings unchanged.
+                            // Sharing the same loop-period token as the
+                            // wifi sweep means the two indeterminate lines
+                            // run at the same pace, not merely a similar
+                            // one.
                             SequentialAnimation {
                                 running: (root.backend && root.backend.discovering) && Motion.motionEnabled
                                 loops: Animation.Infinite
@@ -804,7 +813,7 @@ PanelDialog {
                                     property: "x"
                                     from: 0
                                     to: discoveryProgressTrack.width - discoveryProgressSegment.width
-                                    duration: Motion.emphasizedInDuration
+                                    duration: Motion.ambientDuration
                                     easing.type: Easing.BezierSpline
                                     easing.bezierCurve: Motion.emphasizedInEasing
                                 }
@@ -813,7 +822,7 @@ PanelDialog {
                                     property: "x"
                                     from: discoveryProgressTrack.width - discoveryProgressSegment.width
                                     to: 0
-                                    duration: Motion.emphasizedOutDuration
+                                    duration: Motion.ambientDuration
                                     easing.type: Easing.BezierSpline
                                     easing.bezierCurve: Motion.emphasizedOutEasing
                                 }

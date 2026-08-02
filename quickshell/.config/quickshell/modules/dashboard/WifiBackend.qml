@@ -100,6 +100,67 @@ Scope {
     // lifetime rather than pulsing per sweep — UI-SPEC E3's `loading` row.
     readonly property bool scanning: root.wifiDevice ? root.wifiDevice.scannerEnabled : false
 
+    // ── G-15-1 RC2a — a SYNTHESISED, BOUNDED in-flight EDGE ──────────────
+    // The platform exposes no per-scan-cycle signal at all (measured,
+    // see Measurement 2 below): `scanning` above is a LEVEL ("the scanner
+    // is armed"), never an EDGE ("a scan cycle just started"), because it
+    // reads back `scannerEnabled`, which the lifecycle Binding already
+    // forces true for the panel's whole open lifetime. `rescanInFlight` is
+    // a SEPARATE, ADDITIONAL bool the refresh control binds to — it does
+    // NOT replace `scanning`, whose level semantics stay locked (D-15-15,
+    // amended by this same plan's Task 3, not reopened).
+    //
+    // Two named `Timer` `interval:` constants (never `duration:` — a
+    // duration token would collapse to zero at the `off` motion scale, and
+    // these are logic timeouts, not motion, matching WifiPanel.qml's own
+    // `rowWatchdogMs` idiom):
+    //   - `rescanFloorMs` — the minimum legible on-screen window, so a
+    //     fast answer does not flash for one frame.
+    //   - `rescanCeilingMs` — the backstop watchdog for an answer that
+    //     never comes.
+    // Sized against Task 1's measured envelope (results land 300ms-1.5s
+    // after re-enable, the list is still growing 4.5s later): the floor is
+    // a few hundred ms, the ceiling a single-digit-second watchdog with
+    // comfortable headroom over the slowest observed growth.
+    readonly property int rescanFloorMs: 400
+    readonly property int rescanCeilingMs: 6000
+
+    // Published truth for the refresh control — bounded above by
+    // `rescanCeilingMs` regardless of what NetworkManager does, and
+    // cleared on results-landed (floor-elapsed), on the ceiling firing, or
+    // on panel close (below), so a dismissed panel never leaves a
+    // stranded flag behind for the next open.
+    property bool rescanInFlight: false
+    // Private: whether the live model has fired at least once since this
+    // rescan was armed. Read only by the two timers below.
+    property bool _rescanResultsSeen: false
+
+    Timer {
+        id: rescanFloorTimer
+        interval: root.rescanFloorMs
+        repeat: false
+        // The floor elapsing is one of the two ways the window can close
+        // (the other is the results-observer below, when it fires AFTER
+        // the floor already has). If results already landed before the
+        // floor's own elapse, close the window here; otherwise the
+        // results observer below closes it when they arrive.
+        onTriggered: {
+            if (root._rescanResultsSeen) {
+                root.rescanInFlight = false;
+                rescanCeilingTimer.stop();
+            }
+        }
+    }
+
+    Timer {
+        id: rescanCeilingTimer
+        interval: root.rescanCeilingMs
+        repeat: false
+        // The backstop: an answer that never comes must not pulse the
+        // refresh control forever.
+        onTriggered: root.rescanInFlight = false
+    }
+
     // ── rescan() — the refresh control's single call site. No explicit
     //    scan-trigger method exists on the object graph (measured, see
     //    Measurement 2 below); driving the scan flag false-then-true is
@@ -108,8 +169,23 @@ Scope {
     function rescan() {
         if (!root.wifiDevice)
             return;
+        root.rescanInFlight = true;
+        root._rescanResultsSeen = false;
+        rescanFloorTimer.restart();
+        rescanCeilingTimer.restart();
         root.wifiDevice.scannerEnabled = false;
         root.wifiDevice.scannerEnabled = true;
+    }
+
+    // A dismissed panel must never leave a stranded in-flight flag behind
+    // for the next open (T-15-11-02's mitigation).
+    onPanelOpenChanged: {
+        if (!root.panelOpen) {
+            root.rescanInFlight = false;
+            root._rescanResultsSeen = false;
+            rescanFloorTimer.stop();
+            rescanCeilingTimer.stop();
+        }
     }
 
     // ── D-15-16 first-seen ordering registry ──────────────────────────
@@ -168,6 +244,21 @@ Scope {
         target: (root.wifiDevice && root.wifiDevice.networks) ? root.wifiDevice.networks : null
         function onValuesChanged() {
             root._syncSeenOrder();
+            // G-15-1 RC2a: this is the one real "results landed" truth
+            // the platform exposes at all. If a rescan is in flight, mark
+            // results seen; if the floor window has ALREADY elapsed by
+            // now, close the in-flight window immediately (otherwise
+            // rescanFloorTimer's own handler closes it when the floor
+            // itself elapses). Between the two, the window is exactly
+            // max(rescanFloorMs, time-to-results), bounded above by
+            // rescanCeilingMs.
+            if (root.rescanInFlight) {
+                root._rescanResultsSeen = true;
+                if (!rescanFloorTimer.running) {
+                    root.rescanInFlight = false;
+                    rescanCeilingTimer.stop();
+                }
+            }
         }
     }
 
