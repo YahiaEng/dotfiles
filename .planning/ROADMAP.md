@@ -335,7 +335,7 @@ Plans:
 
 **Open questions owned**: (4) `Quickshell.Networking` API completeness — decide native D-Bus binding vs an `nmcli` wrapper before committing the wifi panel's implementation.
 **Owns**: The milestone's highest D-Bus conflict risk — three new PipeWire / NetworkManager / BlueZ consumers arriving at once alongside existing owners.
-**Plans**: 9/9 plans executed
+**Plans**: 14 plans (9 executed; 5 gap-closure plans added 2026-08-02 from UAT)
 
 Plans:
 **Wave 1**
@@ -361,6 +361,25 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 15-09-PLAN.md — Criterion-5 proof: four new `quickshell-doctor` checks with a poisoned fixture and `rfkill` fault injection; full gate sweep; phase-close render gate
+
+**Gap closure** *(added 2026-08-02 from `15-UAT.md`; five diagnosed gaps, each with a recorded root cause in `.planning/debug/`)*
+
+**Wave 1** *(file-disjoint, parallel)*
+
+- [ ] 15-10-PLAN.md — G-15-1b: the three panels gain the dashboard's animated gradient rim from one insertion in `PanelDialog`; `borderWidth` hoisted to `Design.qml` as the single Hyprland-parity home
+- [ ] 15-11-PLAN.md — G-15-1: a loop-period motion token made reachable and scale-safe (the `reduced` preset must stop being the fastest), both indeterminate sweeps rebound off it, a synthesised bounded rescan edge, a refresh control that acknowledges its own press, and D-15-15 amended in place
+
+**Wave 2** *(blocked on 15-11)*
+
+- [ ] 15-12-PLAN.md — G-15-2: bluetooth gains wifi's missing third branch over `BluetoothAdapterState.Blocked`; Enable renders present-but-disabled with a hover-legible reason naming the software block (never a missing package); `15-VERIFICATION.md`'s contradicted claim corrected
+
+**Wave 3** *(blocked on 15-11, 15-12)*
+
+- [ ] 15-13-PLAN.md — G-15-4: nm-applet's autostarted secret agent suppressed via a stowed `Hidden=true` override (package stays installed); the failure NetworkManager emits with no agent MEASURED, not assumed; row-scoped "Wrong password" made reachable
+
+**Wave 4** *(blocked on 15-13 — the hidden flow inherits the same activation behaviour)*
+
+- [ ] 15-14-PLAN.md — G-15-4b: join a hidden network via a directed probe that materialises a real `Network` object and hands off to the existing connect flow unchanged, plus the mandatory hidden-profile follow-up; Route A documented as fallback
 
 Cross-cutting constraints:
 
