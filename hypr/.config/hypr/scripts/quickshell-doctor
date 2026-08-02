@@ -26,7 +26,7 @@
 # ([left,top,right,bottom] pixel counts). Do NOT "simplify" this file
 # back into a `layers -j` grep for that field — it isn't there.
 #
-# Usage: quickshell-doctor [--no-summon] [--no-headless-output]
+# Usage: quickshell-doctor [--no-summon] [--no-headless-output] [--no-panel-checks] [--self-test]
 #   --no-summon           Downgrade the transient summon-and-diff
 #                         reserved-space check to a named [SKIP] line, for
 #                         a headless/CI context where dispatching a
@@ -36,35 +36,88 @@
 #                         reserved-unchanged / remove) to named [SKIP]
 #                         lines, for a context where mutating the live
 #                         monitor topology is undesirable.
+#   --no-panel-checks     Downgrade the four D-15-25 panel checks
+#                         (panel-namespace-conformance,
+#                         panel-shortcut-single-registration,
+#                         panel-notifications-single-owner,
+#                         panel-swayosd-key-ownership) to named [SKIP]
+#                         lines, for a headless/CI context with no
+#                         compositor to summon a panel into — the same
+#                         shape --no-summon already has for the
+#                         reserved-space check.
+#   --self-test            Replay every committed fixture under
+#                         tests/quickshell-fixtures/ through the seam its
+#                         target check reads, in isolation, and assert the
+#                         recorded verdict. Runs NO live check and performs
+#                         NO mutation of any kind (no summon, no volume
+#                         write, no radio mutation, no headless output) —
+#                         this path returns before any mutating group is
+#                         ever reached. Own tally, own exit code.
 #
-#   Note: within that group, the per-screen surface creation check is a
-#   documented SKIP under D-13/D-14 (12-CONTEXT.md, one-way) — accepted as
-#   a permanent limitation on quickshell 0.3.0-2 after a bounded Phase 12
-#   re-attempt, see 12-QS03-EVIDENCE.md. The other three checks in the
-#   group (add / reserved-unchanged / remove) still run live. Flip
-#   QS03_ACCEPTED_PERMANENT near the top of this file to 0 to re-enable
-#   the live per-screen check the moment a quickshell build exists on
-#   which the fan-out might work again.
+#   Note: within the headless-output group, the per-screen surface
+#   creation check is a documented SKIP under D-13/D-14 (12-CONTEXT.md,
+#   one-way) — accepted as a permanent limitation on quickshell 0.3.0-2
+#   after a bounded Phase 12 re-attempt, see 12-QS03-EVIDENCE.md. The
+#   other three checks in the group (add / reserved-unchanged / remove)
+#   still run live. Flip QS03_ACCEPTED_PERMANENT near the top of this file
+#   to 0 to re-enable the live per-screen check the moment a quickshell
+#   build exists on which the fan-out might work again.
+#
+#   D-15-25 (Phase 15 Plan 09): four new checks land on the SAME
+#   before/during/after summon-and-diff mechanism the reserved-space check
+#   above already established — no second verification mechanism is
+#   invented here. Their fixture-substitution seams
+#   (QSD_FIXTURE_BUSCTL_LIST / QSD_FIXTURE_HYPRCTL_BINDS /
+#   QSD_FIXTURE_LAYERS_JSON / QSD_FIXTURE_SHORTCUTS_MANIFEST /
+#   QSD_FIXTURE_KEYBINDS_LUA / QSD_FIXTURE_PANEL_QML_DIR) are inert on the
+#   live path: unset, every seam reads live state, and a plain invocation
+#   performs zero fixture reads. Only --self-test ever sets one, and it
+#   sets exactly one per replay.
 
 set -uo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 SHORTCUTS_MANIFEST="$HOME/.config/quickshell/shortcuts.json"
+KEYBINDS_LUA="$HOME/.config/hypr/config/keybinds.lua"
 QUICKSHELL_CONFIG_DIR="$HOME/.config/quickshell"
 LAUNCHER_LOG="$HOME/.cache/quickshell.log"
 STATE_DIR="$HOME/.local/state/quickshell"
 BASELINE_FILE="$STATE_DIR/doctor-baseline.json"
 KEYBIND_DOCTOR="$SCRIPT_DIR/keybind-doctor"
+FIXTURES_DIR="$SCRIPT_DIR/tests/quickshell-fixtures"
 US=$'\x1f'
 
 NO_SUMMON=0
 NO_HEADLESS_OUTPUT=0
+NO_PANEL_CHECKS=0
+SELF_TEST=0
 for arg in "$@"; do
     case "$arg" in
         --no-summon) NO_SUMMON=1 ;;
         --no-headless-output) NO_HEADLESS_OUTPUT=1 ;;
+        --no-panel-checks) NO_PANEL_CHECKS=1 ;;
+        --self-test) SELF_TEST=1 ;;
     esac
 done
+
+# D-15-25 hard-error guard, run at TRUE top level (not inside a `$(...)`
+# subshell, where `exit` would only terminate the subshell and silently
+# let the live path continue) — a QSD_FIXTURE_* variable left set in a
+# shell profile, CI environment, or copied invocation that names a
+# nonexistent path is a hard error before this script does anything
+# else, never a silent fall-through to live (T-15-08).
+for _qsd_fv in QSD_FIXTURE_BUSCTL_LIST QSD_FIXTURE_HYPRCTL_BINDS QSD_FIXTURE_LAYERS_JSON QSD_FIXTURE_SHORTCUTS_MANIFEST QSD_FIXTURE_KEYBINDS_LUA; do
+    _qsd_fv_val="${!_qsd_fv:-}"
+    if [[ -n "$_qsd_fv_val" && ! -f "$_qsd_fv_val" ]]; then
+        echo "FATAL: $_qsd_fv names a nonexistent file: $_qsd_fv_val" >&2
+        exit 1
+    fi
+done
+if [[ -n "${QSD_FIXTURE_PANEL_QML_DIR:-}" && ! -d "$QSD_FIXTURE_PANEL_QML_DIR" ]]; then
+    echo "FATAL: QSD_FIXTURE_PANEL_QML_DIR names a nonexistent directory: $QSD_FIXTURE_PANEL_QML_DIR" >&2
+    exit 1
+fi
+unset _qsd_fv _qsd_fv_val
 
 # D-13 (12-CONTEXT.md, one-way): per-screen Quickshell surface fan-out was
 # accepted as a permanent limitation after Phase 12's bounded re-attempt —
@@ -82,6 +135,48 @@ done
 # nobody reads, and its non-zero exit stops being a usable signal for the
 # other 13 checks.
 QS03_ACCEPTED_PERMANENT=1
+
+# ── D-15-25 identity-model promotion (Phase 15 Plan 09's own
+#    <assumption_delta_decision>, record-why in QS03_ACCEPTED_PERMANENT's
+#    established voice) — record-why, not a per-invocation choice.
+#
+#    Before Phase 15 this file knew exactly one D-Bus identity noun,
+#    OWNER, and asserted cardinality 1 on it (the single
+#    org.freedesktop.Notifications check below, and the per-key handler
+#    count check). Phase 15 introduced three participants that are
+#    emphatically NOT owners: the audio/wifi/bluetooth panels are
+#    unbounded CLIENTS of PipeWire, NetworkManager and BlueZ — D-15-24's
+#    own reasoning already draws this line ("the panels are additional
+#    consumers, not ownership claimants") but no instrument encoded it
+#    before this plan.
+#
+#    So the primary noun is promoted to SERVICE PARTICIPANT, with two
+#    demoted variants:
+#      - name-owner:      cardinality exactly 1, ASSERTED, poison-provable.
+#                          QSD_NAME_OWNERS below is this registry.
+#      - client-consumer: cardinality N, NEVER asserted exclusive — the
+#                          assertion is that no exclusivity assertion
+#                          exists at all. QSD_CLIENT_CONSUMERS below is
+#                          this registry.
+#
+#    A future editor MUST NOT assert cardinality 1 on anything in
+#    QSD_CLIENT_CONSUMERS — PipeWire/NetworkManager/BlueZ are many-client
+#    services by design, and a future check that "helpfully" asserts
+#    exclusivity over one of them will fail the moment two legitimate
+#    clients talk to it at once, which is that service's normal operating
+#    mode. _qsd_assert_client_consumer_not_owned below is the structural
+#    guard that makes this mistake fail the gate instead of shipping.
+declare -A QSD_NAME_OWNERS=(
+    ["org.freedesktop.Notifications"]="swaync"
+)
+declare -A QSD_CLIENT_CONSUMERS=(
+    ["PipeWire"]="Phase 15's audio panel joins pw-play/pw-cli/wpctl and waybar's own pulseaudio module as an additional PipeWire client — never the sole one, so cardinality is never asserted"
+    ["NetworkManager"]="Phase 15's wifi panel joins nm-applet/nmcli/nmtui as an additional NetworkManager client — never the sole one"
+    ["BlueZ"]="Phase 15's bluetooth panel joins bluetoothctl/blueman-manager as an additional BlueZ client — never the sole one"
+)
+QSD_PANEL_NAMES=(audio wifi bluetooth)
+QSD_PANEL_NAMESPACE_PREFIX="quickshell-"
+QSD_PANEL_NAMESPACE_SUFFIX="-panel"
 
 PASS=0
 FAIL=0
@@ -131,6 +226,601 @@ _qsd_dispatch_global() {
     hyprctl dispatch "hl.dsp.global(\"$1\")" >/dev/null 2>&1
 }
 
+# ── D-15-25 seam layer (T-15-08) — one function per observation source.
+#    Each returns LIVE output when its QSD_FIXTURE_* variable is unset,
+#    and the named fixture's content (or path) when it is set. Two
+#    discipline rules, both load-bearing:
+#      1. A seam variable naming a file/dir that does not exist is a HARD
+#         ERROR, never a silent fall-through to live — a typo'd self-test
+#         path must not quietly become a live run.
+#      2. No seam is ever consulted on the live path: with no QSD_FIXTURE_*
+#         variable set, every seam below performs zero fixture reads, and
+#         --self-test (below) is the ONLY caller that ever sets one — and
+#         it sets exactly one per replay, never two at once.
+_qsd_busctl_list() {
+    if [[ -n "${QSD_FIXTURE_BUSCTL_LIST:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_BUSCTL_LIST" ]] || { echo "FATAL: QSD_FIXTURE_BUSCTL_LIST names a nonexistent file: $QSD_FIXTURE_BUSCTL_LIST" >&2; exit 1; }
+        cat -- "$QSD_FIXTURE_BUSCTL_LIST"
+        return
+    fi
+    busctl --user list 2>/dev/null
+}
+
+_qsd_hyprctl_binds() {
+    if [[ -n "${QSD_FIXTURE_HYPRCTL_BINDS:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_HYPRCTL_BINDS" ]] || { echo "FATAL: QSD_FIXTURE_HYPRCTL_BINDS names a nonexistent file: $QSD_FIXTURE_HYPRCTL_BINDS" >&2; exit 1; }
+        cat -- "$QSD_FIXTURE_HYPRCTL_BINDS"
+        return
+    fi
+    hyprctl binds 2>/dev/null
+}
+
+_qsd_layers_json() {
+    if [[ -n "${QSD_FIXTURE_LAYERS_JSON:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_LAYERS_JSON" ]] || { echo "FATAL: QSD_FIXTURE_LAYERS_JSON names a nonexistent file: $QSD_FIXTURE_LAYERS_JSON" >&2; exit 1; }
+        cat -- "$QSD_FIXTURE_LAYERS_JSON"
+        return
+    fi
+    hyprctl layers -j 2>/dev/null
+}
+
+# Directory seam — the source-half scan target for panel-namespace-
+# conformance. Live: the real dashboard modules directory. Fixture: a
+# directory containing exactly the one panel-body fixture under test
+# (--self-test isolates each fixture into its own temp dir, motion-lint's
+# own per-fixture isolation pattern).
+_qsd_panel_qml_dir() {
+    if [[ -n "${QSD_FIXTURE_PANEL_QML_DIR:-}" ]]; then
+        [[ -d "$QSD_FIXTURE_PANEL_QML_DIR" ]] || { echo "FATAL: QSD_FIXTURE_PANEL_QML_DIR names a nonexistent directory: $QSD_FIXTURE_PANEL_QML_DIR" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_PANEL_QML_DIR"
+        return
+    fi
+    printf '%s' "$QUICKSHELL_CONFIG_DIR/modules/dashboard"
+}
+
+# Path seams (not content — keybind-doctor and jq both want a file path,
+# matching keybind-doctor's own documented two-argument hook).
+_qsd_shortcuts_manifest_path() {
+    if [[ -n "${QSD_FIXTURE_SHORTCUTS_MANIFEST:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_SHORTCUTS_MANIFEST" ]] || { echo "FATAL: QSD_FIXTURE_SHORTCUTS_MANIFEST names a nonexistent file: $QSD_FIXTURE_SHORTCUTS_MANIFEST" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_SHORTCUTS_MANIFEST"
+        return
+    fi
+    printf '%s' "$SHORTCUTS_MANIFEST"
+}
+
+_qsd_keybinds_lua_path() {
+    if [[ -n "${QSD_FIXTURE_KEYBINDS_LUA:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_KEYBINDS_LUA" ]] || { echo "FATAL: QSD_FIXTURE_KEYBINDS_LUA names a nonexistent file: $QSD_FIXTURE_KEYBINDS_LUA" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_KEYBINDS_LUA"
+        return
+    fi
+    printf '%s' "$KEYBINDS_LUA"
+}
+
+# ── D-15-25 identity-model functions ────────────────────────────────────
+# _qsd_name_owner_rows — the single reader for the name-owner variant.
+# Filters _qsd_busctl_list's output to the named bus, emits matching rows.
+_qsd_name_owner_rows() {
+    local busname="$1"
+    _qsd_busctl_list | grep -F -- "$busname" || true
+}
+
+# count+owner sample, "<count> <owner-or-none>" on one line — the shared
+# helper panel-notifications-single-owner (Task 1 Part E) samples three
+# times against, and the pre-existing single-owner check below refactors
+# onto as well (verdict unchanged, model underneath it promoted).
+_qsd_notif_sample() {
+    local rows count owner
+    rows=$(_qsd_name_owner_rows "org.freedesktop.Notifications")
+    count=$(printf '%s\n' "$rows" | grep -c '.')
+    owner=$(printf '%s\n' "$rows" | awk '{print $3}' | head -1)
+    printf '%s %s' "$count" "${owner:-<none>}"
+}
+
+# _qsd_assert_client_consumer_not_owned — the structural guard that makes
+# the promotion load-bearing rather than decorative: the two registries
+# must stay disjoint. Reports through check() as an ordinary gate line.
+_qsd_assert_client_consumer_not_owned() {
+    local bad=0 key
+    for key in "${!QSD_CLIENT_CONSUMERS[@]}"; do
+        if [[ -n "${QSD_NAME_OWNERS[$key]+x}" ]]; then
+            bad=$((bad + 1))
+        fi
+    done
+    check "service-participant model (D-15-25 promotion): no client-consumer registry key is also a name-owner registry key — asserting exclusivity over a many-client service is exactly the mistake this guard exists to catch (collisions: ${bad})" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
+}
+
+# ── D-15-25 shared data — the ten XF86 keys, hoisted so both the
+#    pre-existing check 8 (unchanged, own invocation, own verdict) and the
+#    new _qsd_xf86_ownership_table below read the same literal list rather
+#    than each maintaining its own copy.
+XF86_KEYS=(XF86AudioRaiseVolume XF86AudioLowerVolume XF86AudioMute XF86AudioMicMute XF86MonBrightnessUp XF86MonBrightnessDown XF86AudioNext XF86AudioPause XF86AudioPlay XF86AudioPrev)
+
+# _qsd_xf86_ownership_table — one deterministic, newline-free string of
+# key=count pairs in XF86_KEYS' fixed order, reading binds through
+# _qsd_hyprctl_binds and the manifest through its seam. Factored out of
+# check 8's own per-key computation (which keeps its own direct
+# invocation and its own verdict below — this function is a second
+# reader of the same logic, not a replacement).
+_qsd_xf86_ownership_table() {
+    local binds_raw manifest out="" xk hypr_count manifest_count total
+    binds_raw=$(_qsd_hyprctl_binds)
+    manifest=$(_qsd_shortcuts_manifest_path)
+    for xk in "${XF86_KEYS[@]}"; do
+        hypr_count=$(printf '%s\n' "$binds_raw" | grep -c "	key: ${xk}\$")
+        manifest_count=0
+        if [[ -f "$manifest" ]] && command -v jq >/dev/null 2>&1; then
+            manifest_count=$(jq -r --arg k "$xk" '[.[] | select(.chord.key == $k)] | length' "$manifest" 2>/dev/null)
+            [[ -z "$manifest_count" ]] && manifest_count=0
+        fi
+        total=$((hypr_count + manifest_count))
+        out="${out}${xk}=${total}${US}"
+    done
+    printf '%s' "$out"
+}
+
+# _qsd_swayosd_server_reachable — succeeds only when the OSD server is
+# actually answering on the session bus (name-owned, not merely that
+# swayosd-client is on PATH — the exact guard gap measured at planning
+# time: a dead server produced "measured delta=0 ... drift: 3277", a
+# failure blamed on tolerance rather than on the absent instrument).
+# Read-only: lists the bus, never round-trips a method call, so this
+# guard itself performs no mutation.
+_qsd_swayosd_server_reachable() {
+    command -v busctl >/dev/null 2>&1 || return 1
+    _qsd_busctl_list | grep -q 'org\.erikreider\.swayosd-server'
+}
+
+# _qsd_osd_activation_count — counts OSD-pill activations (namespace
+# "swayosd", confirmed live 2026-08-02 by polling `hyprctl layers -j`
+# every 50ms across a real swayosd-client raise with the server running:
+# a 258x96 layer at level 3 owned by the swayosd-server PID, namespace
+# literally "swayosd") across the window the given action command runs
+# in. Counts rising edges (absent -> present transitions), which is a
+# truer "activation count" than a bare presence flag when the pill can
+# blink more than once.
+_qsd_osd_activation_count() {
+    local action="$1" i hit prev=0 transitions=0
+    ( eval "$action" ) &
+    local action_pid=$!
+    for i in $(seq 1 24); do
+        hit=0
+        if _qsd_layers_json 2>/dev/null | jq -e '[.[]?.levels?["3"]?[]? | select(.namespace=="swayosd")] | length > 0' >/dev/null 2>&1; then
+            hit=1
+        fi
+        [[ "$hit" -eq 1 && "$prev" -eq 0 ]] && transitions=$((transitions + 1))
+        prev=$hit
+        sleep 0.05
+    done
+    wait "$action_pid" 2>/dev/null
+    printf '%s' "$transitions"
+}
+
+# ── D-15-25 summon/dismiss — drives 15-03's IPC contract
+#    (`qs ipc call panel open|toggle <name>`, confirmed live this session:
+#    `qs list` shows exactly one Instance, `qs ipc call panel open wifi`
+#    mounts `quickshell-wifi-panel` at level 3 within one second, owned by
+#    the shell's own PID) with the same V5 validation _qsd_dispatch_global
+#    already applies. PANEL_SUMMONED_NAME is set immediately before the
+#    summon and cleared immediately after the dismiss; the cleanup trap
+#    (T-11-11 discipline, extended below) dismisses a still-summoned panel
+#    on interrupt so a mid-cycle Ctrl-C can never strand a panel mounted
+#    on the user's screen.
+_qsd_summon_panel() {
+    local name="$1"
+    _qsd_valid_token "$name" || return 1
+    command -v qs >/dev/null 2>&1 || return 1
+    PANEL_SUMMONED_NAME="$name"
+    qs ipc call panel open "$name" >/dev/null 2>&1
+}
+
+_qsd_dismiss_panel() {
+    local name="$1"
+    _qsd_valid_token "$name" || return 1
+    command -v qs >/dev/null 2>&1 || return 1
+    qs ipc call panel toggle "$name" >/dev/null 2>&1
+    PANEL_SUMMONED_NAME=""
+}
+
+# ── D-15-25 panel-namespace-conformance helpers ─────────────────────────
+# Emits level<TAB>namespace<TAB>pid for every layer whose namespace is
+# panel-shaped (quickshell-<word>-panel), at ANY level — deliberately
+# broad so an off-level or unknown-namespace poison is still captured,
+# not filtered out before the assertion below ever sees it.
+_qsd_panel_layer_rows() {
+    printf '%s' "$1" | jq -r '
+        .[]? | .levels? // {} | to_entries[] | .key as $lvl | .value[]?
+        | select(.namespace | test("^quickshell-[a-z]+-panel$"))
+        | [$lvl, .namespace, .pid] | @tsv
+    ' 2>/dev/null
+}
+
+# Asserts a layers_json snapshot carries exactly expected_count
+# panel-shaped namespaces, all at level 3, all owned by a shell PID, all
+# named within QSD_PANEL_NAMES's derived set, and (when expected_ns is
+# given and expected_count is 1) that the one surviving namespace is
+# expected_ns. Prints a one-line "count=.. off-level=.. wrong-pid=..
+# unknown-ns=.." report and returns 0/1.
+_qsd_assert_panel_layers() {
+    local json="$1" expected_count="$2" expected_ns="${3:-}"
+    local lvl ns pid total=0 off_level=0 wrong_pid=0 unknown_ns=0 last_ns=""
+    local shell_pids=" $(pgrep -f 'quickshell -p' | tr '\n' ' ') "
+    while IFS=$'\t' read -r lvl ns pid; do
+        [[ -z "$lvl" ]] && continue
+        total=$((total + 1))
+        last_ns="$ns"
+        [[ "$lvl" != "3" ]] && off_level=$((off_level + 1))
+        case "$shell_pids" in
+            *" $pid "*) ;;
+            *) wrong_pid=$((wrong_pid + 1)) ;;
+        esac
+        local known=0 pn
+        for pn in "${QSD_PANEL_NAMES[@]}"; do
+            [[ "$ns" == "${QSD_PANEL_NAMESPACE_PREFIX}${pn}${QSD_PANEL_NAMESPACE_SUFFIX}" ]] && known=1
+        done
+        [[ "$known" -eq 0 ]] && unknown_ns=$((unknown_ns + 1))
+    done < <(_qsd_panel_layer_rows "$json")
+    local ns_ok=1
+    [[ -n "$expected_ns" && "$total" -eq 1 && "$last_ns" != "$expected_ns" ]] && ns_ok=0
+    printf 'count=%s off-level=%s wrong-pid=%s unknown-ns=%s' "$total" "$off_level" "$wrong_pid" "$unknown_ns"
+    [[ "$total" -eq "$expected_count" && "$off_level" -eq 0 && "$wrong_pid" -eq 0 && "$unknown_ns" -eq 0 && "$ns_ok" -eq 1 ]]
+}
+
+# Source half — no file under the panel QML directory (excluding
+# PanelDialog.qml itself, which legitimately owns WlrLayershell.namespace
+# as the shared frame) may set the layer namespace directly. Comments
+# stripped first (qml `//`) so a header note restating the fence is safe.
+_qsd_assert_panel_source() {
+    local dir="$1" f bad=0
+    while IFS= read -r f; do
+        [[ "$(basename -- "$f")" == "PanelDialog.qml" ]] && continue
+        if grep -vE '^\s*//' -- "$f" 2>/dev/null | grep -q 'WlrLayershell\.namespace'; then
+            bad=$((bad + 1))
+        fi
+    done < <(find -L "$dir" -maxdepth 1 -type f -name '*.qml' 2>/dev/null)
+    printf 'bad=%s' "$bad"
+    [[ "$bad" -eq 0 ]]
+}
+
+# ── D-15-25 check bodies — called once each, after check 9, before the
+#    volume probe (see run-order comment at that call site). Defined here
+#    (before the trap/checks 1-12 flow) so --self-test, which dispatches
+#    before the trap is even installed, can call them directly.
+_qsd_check_panel_namespace_conformance() {
+    if [[ "$NO_PANEL_CHECKS" -eq 1 ]]; then
+        echo "  [SKIP] panel-namespace-conformance (D-15-25): disabled by --no-panel-checks"
+        return
+    fi
+    if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1 || ! command -v qs >/dev/null 2>&1; then
+        echo "  [SKIP] panel-namespace-conformance (D-15-25): hyprctl, jq or qs not found"
+        return
+    fi
+    local overall_bad=0 report="" res rc name expected
+
+    res=$(_qsd_assert_panel_layers "$(_qsd_layers_json)" 0); rc=$?
+    [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
+    report+="pre[${res}] "
+
+    for name in "${QSD_PANEL_NAMES[@]}"; do
+        expected="${QSD_PANEL_NAMESPACE_PREFIX}${name}${QSD_PANEL_NAMESPACE_SUFFIX}"
+        _qsd_summon_panel "$name"
+        sleep 0.4
+        res=$(_qsd_assert_panel_layers "$(_qsd_layers_json)" 1 "$expected"); rc=$?
+        [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
+        report+="${name}-during[${res}] "
+        _qsd_dismiss_panel "$name"
+        sleep 0.3
+        res=$(_qsd_assert_panel_layers "$(_qsd_layers_json)" 0); rc=$?
+        [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
+        report+="${name}-after[${res}] "
+    done
+
+    # Cross-panel case — the mechanical closure of 15-03's at-most-one-
+    # panel edge truth: summon the first name, summon the second WITHOUT
+    # dismissing the first (openPanel()'s own closeAllPanels() call is
+    # what should tear the first one down — this proves that, it does not
+    # simulate it).
+    local first="${QSD_PANEL_NAMES[0]}" second="${QSD_PANEL_NAMES[1]}"
+    local expected2="${QSD_PANEL_NAMESPACE_PREFIX}${second}${QSD_PANEL_NAMESPACE_SUFFIX}"
+    _qsd_summon_panel "$first"
+    sleep 0.3
+    _qsd_summon_panel "$second"
+    sleep 0.4
+    res=$(_qsd_assert_panel_layers "$(_qsd_layers_json)" 1 "$expected2"); rc=$?
+    [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
+    report+="cross[${res}] "
+    _qsd_dismiss_panel "$second"
+    sleep 0.3
+    res=$(_qsd_assert_panel_layers "$(_qsd_layers_json)" 0); rc=$?
+    [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
+    report+="cross-after[${res}] "
+
+    res=$(_qsd_assert_panel_source "$(_qsd_panel_qml_dir)"); rc=$?
+    [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
+    report+="source[${res}]"
+
+    check "panel-namespace-conformance (D-15-25/D-21/PANEL-06, mechanically closes 15-03's at-most-one-panel / zero-when-none / last-writer-wins edge truths): ${report}" "$([[ "$overall_bad" -eq 0 ]] && echo 0 || echo 1)"
+}
+
+_qsd_check_panel_shortcut_single_registration() {
+    if [[ "$NO_PANEL_CHECKS" -eq 1 ]]; then
+        echo "  [SKIP] panel-shortcut-single-registration (D-15-25): disabled by --no-panel-checks"
+        return
+    fi
+    if ! command -v jq >/dev/null 2>&1 || ! command -v hyprctl >/dev/null 2>&1; then
+        echo "  [SKIP] panel-shortcut-single-registration (D-15-25): jq or hyprctl not found"
+        return
+    fi
+    local manifest keybinds kbd_out kbd_rc manifest_count=0 global_count=0 bind_count=0
+    manifest=$(_qsd_shortcuts_manifest_path)
+    keybinds=$(_qsd_keybinds_lua_path)
+    if [[ -x "$KEYBIND_DOCTOR" ]]; then
+        kbd_out=$("$KEYBIND_DOCTOR" "$keybinds" "$manifest" 2>&1)
+        kbd_rc=$?
+    else
+        kbd_out="keybind-doctor not found or not executable at $KEYBIND_DOCTOR"
+        kbd_rc=1
+    fi
+    if [[ -f "$manifest" ]]; then
+        manifest_count=$(jq -r '[.[] | select(.name=="audio-panel")] | length' "$manifest" 2>/dev/null)
+        [[ -z "$manifest_count" ]] && manifest_count=0
+    fi
+    global_count=$(hyprctl globalshortcuts 2>/dev/null | grep -c '^quickshell:audio-panel ->')
+    if [[ -f "$keybinds" ]]; then
+        bind_count=$(grep -vE '^\s*--' -- "$keybinds" | grep -c 'hl\.dsp\.global("quickshell:audio-panel")')
+    fi
+    local ok=0
+    [[ "$manifest_count" -eq 1 && "$global_count" -eq 1 && "$bind_count" -eq 1 && "$kbd_rc" -eq 0 ]] || ok=1
+    check "panel-shortcut-single-registration (D-15-04/MAINT-01, delegates to keybind-doctor): audio-panel registered manifest=${manifest_count} globalshortcuts=${global_count} hyprland-binds=${bind_count} times (all must be 1), keybind-doctor exit=${kbd_rc}" "$ok"
+    if [[ "$kbd_rc" -ne 0 ]]; then
+        printf '%s\n' "$kbd_out" | tail -8 | sed 's/^/    /' >&2
+    fi
+}
+
+_qsd_check_panel_notifications_single_owner() {
+    if [[ "$NO_PANEL_CHECKS" -eq 1 ]]; then
+        echo "  [SKIP] panel-notifications-single-owner (D-15-25): disabled by --no-panel-checks"
+        return
+    fi
+    if ! command -v busctl >/dev/null 2>&1 || ! command -v qs >/dev/null 2>&1; then
+        echo "  [SKIP] panel-notifications-single-owner (D-15-25): busctl or qs not found"
+        return
+    fi
+    local bad=0 report="" count owner expected="${QSD_NAME_OWNERS[org.freedesktop.Notifications]}" name
+
+    read -r count owner <<<"$(_qsd_notif_sample)"
+    report+="pre(count=${count},owner=${owner}) "
+    [[ "$count" -eq 1 && "$owner" == "$expected" ]] || bad=$((bad + 1))
+
+    for name in "${QSD_PANEL_NAMES[@]}"; do
+        _qsd_summon_panel "$name"
+        sleep 0.3
+        read -r count owner <<<"$(_qsd_notif_sample)"
+        report+="${name}(count=${count},owner=${owner}) "
+        [[ "$count" -eq 1 && "$owner" == "$expected" ]] || bad=$((bad + 1))
+        _qsd_dismiss_panel "$name"
+        sleep 0.2
+    done
+
+    read -r count owner <<<"$(_qsd_notif_sample)"
+    report+="post(count=${count},owner=${owner})"
+    [[ "$count" -eq 1 && "$owner" == "$expected" ]] || bad=$((bad + 1))
+
+    check "panel-notifications-single-owner (T-15-03, existing check invoked in the summoned context — no new mechanism): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
+}
+
+_qsd_check_panel_swayosd_key_ownership() {
+    if [[ "$NO_PANEL_CHECKS" -eq 1 ]]; then
+        echo "  [SKIP] panel-swayosd-key-ownership (D-15-25): disabled by --no-panel-checks"
+        return
+    fi
+    if ! command -v hyprctl >/dev/null 2>&1 || ! command -v qs >/dev/null 2>&1; then
+        echo "  [SKIP] panel-swayosd-key-ownership (D-15-25): hyprctl or qs not found"
+        return
+    fi
+    if ! _qsd_swayosd_server_reachable; then
+        echo "  [SKIP] panel-swayosd-key-ownership (D-15-24): SwayOSD server unreachable (org.erikreider.swayosd-server not on the session bus) — never a [FAIL] blaming the ownership table for a dead instrument"
+        return
+    fi
+
+    local bad=0 report="" pre during after name
+
+    pre=$(_qsd_xf86_ownership_table)
+    if printf '%s' "$pre" | grep -qE '=[02-9][0-9]*'"${US}"'|=0'"${US}"; then :; fi
+    for name in "${QSD_PANEL_NAMES[@]}"; do
+        _qsd_summon_panel "$name"
+        sleep 0.3
+        during=$(_qsd_xf86_ownership_table)
+        [[ "$during" != "$pre" ]] && bad=$((bad + 1))
+        _qsd_dismiss_panel "$name"
+        sleep 0.2
+    done
+    after=$(_qsd_xf86_ownership_table)
+    [[ "$after" != "$pre" ]] && bad=$((bad + 1))
+
+    local not_one=0 pair k v
+    IFS="$US" read -ra pairs <<<"$pre"
+    for pair in "${pairs[@]}"; do
+        [[ -z "$pair" ]] && continue
+        v="${pair##*=}"
+        [[ "$v" != "1" ]] && not_one=$((not_one + 1))
+    done
+    [[ "$not_one" -ne 0 ]] && bad=$((bad + 1))
+    report+="table-byte-identical=$([[ "$bad" -eq 0 ]] && echo yes || echo no) not-exactly-one-count=${not_one} "
+
+    # Differential OSD proof — arm the volume restore trap BEFORE either
+    # write, extending the existing T-11-11 trap rather than adding a
+    # second one (VOL_RESTORE_NEEDED/VOL_ORIG_RAW are declared below,
+    # ahead of this check's own call site).
+    local zero_count=0 one_count=0
+    if command -v pactl >/dev/null 2>&1 && pactl get-sink-volume @DEFAULT_SINK@ >/dev/null 2>&1; then
+        local orig_line
+        orig_line=$(pactl get-sink-volume @DEFAULT_SINK@)
+        mapfile -t VOL_ORIG_RAW < <(printf '%s' "$orig_line" | grep -oP '(?<=: )\d+(?=\s*/)')
+        if [[ "${#VOL_ORIG_RAW[@]}" -gt 0 ]]; then
+            VOL_RESTORE_NEEDED=1
+            # (i) direct PipeWire-node write — the same class of write the
+            # audio panel's backend performs, no OSD client in the path.
+            zero_count=$(_qsd_osd_activation_count "pactl set-sink-volume @DEFAULT_SINK@ +1%")
+            # (ii) the hardware-key path, exactly as the compositor bind
+            # invokes it (keybinds.lua: swayosd-client --output-volume raise).
+            one_count=$(_qsd_osd_activation_count "swayosd-client --output-volume raise")
+            pactl set-sink-volume @DEFAULT_SINK@ "${VOL_ORIG_RAW[@]}" >/dev/null 2>&1
+        fi
+    fi
+    [[ "$zero_count" -ne 0 || "$one_count" -ne 1 ]] && bad=$((bad + 1))
+    report+="osd-differential(pipewire-write=${zero_count},hw-key=${one_count},instrument=layer-namespace:swayosd) "
+
+    local src_bad=0
+    src_bad=$(grep -rlE 'swayosd-client' -- "$(_qsd_panel_qml_dir)" 2>/dev/null | grep -c '.')
+    [[ "$src_bad" -ne 0 ]] && bad=$((bad + 1))
+    report+="source-holds-by-construction(swayosd-client-refs=${src_bad})"
+
+    check "panel-swayosd-key-ownership (D-15-24, proven differentially): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
+}
+
+# ── D-15-25 --self-test — motion-lint's own fixture-replay shape
+#    (tests/motion-fixtures, lines 1009-1090), adapted for a LIVE
+#    observation gate rather than a static-scan one: each entry drives the
+#    seam directly (never a scan root), sets exactly one QSD_FIXTURE_*
+#    variable per replay, and asserts a narrow parse-and-assert verdict —
+#    it does NOT prove the live capture path is wired to the right
+#    command (that compensating proof is that all four checks also ran
+#    live in the normal invocation, and the two-panel/zero-panel cases
+#    were additionally observed live). Performs NO summon, NO volume
+#    write, NO radio mutation, NO headless output — structurally true,
+#    because this whole function returns before the trap/mutating groups
+#    below are ever reached.
+_qsd_self_test_assert_layers() {
+    local fixture="$1" expect_nonzero="$2" want_count="$3" want_ns="${4:-}"
+    local json rc
+    json=$(cat -- "$FIXTURES_DIR/$fixture")
+    _qsd_assert_panel_layers "$json" "$want_count" "$want_ns" >/dev/null 2>&1
+    rc=$?
+    if [[ "$expect_nonzero" == "0" && "$rc" -eq 0 ]]; then return 0; fi
+    if [[ "$expect_nonzero" == "1" && "$rc" -ne 0 ]]; then return 0; fi
+    return 1
+}
+
+run_self_test() {
+    echo "quickshell-doctor --self-test — replaying the committed quickshell-fixtures"
+    echo ""
+    local st_pass=0 st_fail=0
+    _qsd_st() {
+        local desc="$1" rc="$2"
+        if [[ "$rc" -eq 0 ]]; then
+            printf '  [PASS] self-test: %s\n' "$desc"
+            st_pass=$((st_pass + 1))
+        else
+            printf '  [FAIL] self-test: %s\n' "$desc"
+            st_fail=$((st_fail + 1))
+        fi
+    }
+
+    if [[ ! -d "$FIXTURES_DIR" ]]; then
+        _qsd_st "fixtures directory missing: $FIXTURES_DIR" 1
+        printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+        return 1
+    fi
+
+    # panel-namespace-conformance — layers half (4 fixtures). The
+    # compliant fixture is the DURING-summon shape (one panel, correct
+    # namespace, level 3, shell-owned pid) — a real 2026-08-02 capture
+    # taken while `qs ipc call panel open wifi` had the wifi panel
+    # summoned.
+    _qsd_self_test_assert_layers "compliant-panel-layers.json" 0 1 "quickshell-wifi-panel"
+    _qsd_st "compliant-panel-layers.json -> panel-namespace-conformance PASSES (one compliant panel namespace, live during-summon snapshot)" $?
+    _qsd_self_test_assert_layers "poisoned-offlevel-panel-layers.json" 1 0
+    _qsd_st "poisoned-offlevel-panel-layers.json -> panel-namespace-conformance FAILS (namespace off the overlay level)" $?
+    _qsd_self_test_assert_layers "poisoned-two-panel-layers.json" 1 0
+    _qsd_st "poisoned-two-panel-layers.json -> panel-namespace-conformance FAILS (two panel namespaces mounted at once)" $?
+    _qsd_self_test_assert_layers "poisoned-unknown-namespace-layers.json" 1 0
+    _qsd_st "poisoned-unknown-namespace-layers.json -> panel-namespace-conformance FAILS (panel-shaped namespace outside the expected set)" $?
+
+    # panel-namespace-conformance — source half (2 fixtures, isolated per-fixture tmpdir)
+    local tmpdir rc
+    tmpdir=$(mktemp -d)
+    cp -- "$FIXTURES_DIR/compliant-panel.qml" "$tmpdir/"
+    QSD_FIXTURE_PANEL_QML_DIR="$tmpdir" _qsd_assert_panel_source "$tmpdir" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "compliant-panel.qml -> panel-namespace-conformance source-half PASSES (no self-owned namespace)" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$tmpdir"
+    tmpdir=$(mktemp -d)
+    cp -- "$FIXTURES_DIR/poisoned-own-namespace-panel.qml" "$tmpdir/"
+    _qsd_assert_panel_source "$tmpdir" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "poisoned-own-namespace-panel.qml -> panel-namespace-conformance source-half FAILS (panel body sets its own WlrLayershell.namespace)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$tmpdir"
+
+    # panel-shortcut-single-registration (4 fixtures)
+    local mc
+    mc=$(jq -r '[.[] | select(.name=="audio-panel")] | length' "$FIXTURES_DIR/compliant-shortcuts.json" 2>/dev/null)
+    _qsd_st "compliant-shortcuts.json -> panel-shortcut-single-registration PASSES (audio-panel appears once, manifest half)" "$([[ "$mc" == "1" ]] && echo 0 || echo 1)"
+    mc=$(jq -r '[.[] | select(.name=="audio-panel")] | length' "$FIXTURES_DIR/poisoned-duplicate-shortcuts.json" 2>/dev/null)
+    _qsd_st "poisoned-duplicate-shortcuts.json -> panel-shortcut-single-registration FAILS (audio-panel declared twice)" "$([[ "$mc" != "1" ]] && echo 0 || echo 1)"
+    "$KEYBIND_DOCTOR" "$FIXTURES_DIR/compliant-keybinds.lua" "$SHORTCUTS_MANIFEST" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "compliant-keybinds.lua -> keybind-doctor's static chord-collision check clean (exit ${rc})" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    "$KEYBIND_DOCTOR" "$FIXTURES_DIR/poisoned-collision-keybinds.lua" "$SHORTCUTS_MANIFEST" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "poisoned-collision-keybinds.lua -> keybind-doctor's static chord-collision check FAILS (a second bind claims the audio-panel chord, exit ${rc})" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+
+    # panel-notifications-single-owner (3 fixtures)
+    local rows count owner
+    rows=$(cat -- "$FIXTURES_DIR/compliant-busctl-list.txt" | grep -F 'org.freedesktop.Notifications' || true)
+    count=$(printf '%s\n' "$rows" | grep -c '.')
+    owner=$(printf '%s\n' "$rows" | awk '{print $3}' | head -1)
+    _qsd_st "compliant-busctl-list.txt -> panel-notifications-single-owner PASSES (count=${count}, owner=${owner:-<none>})" "$([[ "$count" == "1" && "$owner" == "swaync" ]] && echo 0 || echo 1)"
+    rows=$(cat -- "$FIXTURES_DIR/poisoned-two-owner-busctl-list.txt" | grep -F 'org.freedesktop.Notifications' || true)
+    count=$(printf '%s\n' "$rows" | grep -c '.')
+    _qsd_st "poisoned-two-owner-busctl-list.txt -> panel-notifications-single-owner FAILS (count=${count}, expected 1)" "$([[ "$count" != "1" ]] && echo 0 || echo 1)"
+    rows=$(cat -- "$FIXTURES_DIR/poisoned-zero-owner-busctl-list.txt" | grep -F 'org.freedesktop.Notifications' || true)
+    count=$(printf '%s\n' "$rows" | grep -c '.')
+    _qsd_st "poisoned-zero-owner-busctl-list.txt -> panel-notifications-single-owner FAILS (count=${count}, a dead daemon is as much a failure as a second one)" "$([[ "$count" != "1" ]] && echo 0 || echo 1)"
+
+    # panel-swayosd-key-ownership (3 fixtures)
+    local table not_one=0 p v
+    table=$(QSD_FIXTURE_HYPRCTL_BINDS="$FIXTURES_DIR/compliant-hyprctl-binds.txt" _qsd_xf86_ownership_table)
+    IFS="$US" read -ra pairs <<<"$table"
+    for p in "${pairs[@]}"; do [[ -z "$p" ]] && continue; v="${p##*=}"; [[ "$v" != "1" ]] && not_one=$((not_one + 1)); done
+    _qsd_st "compliant-hyprctl-binds.txt -> panel-swayosd-key-ownership PASSES (not-exactly-one count=${not_one})" "$([[ "$not_one" -eq 0 ]] && echo 0 || echo 1)"
+    not_one=0
+    table=$(QSD_FIXTURE_HYPRCTL_BINDS="$FIXTURES_DIR/poisoned-duplicate-xf86-binds.txt" _qsd_xf86_ownership_table)
+    IFS="$US" read -ra pairs <<<"$table"
+    for p in "${pairs[@]}"; do [[ -z "$p" ]] && continue; v="${p##*=}"; [[ "$v" != "1" ]] && not_one=$((not_one + 1)); done
+    _qsd_st "poisoned-duplicate-xf86-binds.txt -> panel-swayosd-key-ownership FAILS (volume-raise key doubled, not-exactly-one count=${not_one})" "$([[ "$not_one" -ne 0 ]] && echo 0 || echo 1)"
+    not_one=0
+    table=$(QSD_FIXTURE_HYPRCTL_BINDS="$FIXTURES_DIR/poisoned-missing-xf86-binds.txt" _qsd_xf86_ownership_table)
+    IFS="$US" read -ra pairs <<<"$table"
+    for p in "${pairs[@]}"; do [[ -z "$p" ]] && continue; v="${p##*=}"; [[ "$v" != "1" ]] && not_one=$((not_one + 1)); done
+    _qsd_st "poisoned-missing-xf86-binds.txt -> panel-swayosd-key-ownership FAILS (mute key bound zero times, not-exactly-one count=${not_one})" "$([[ "$not_one" -ne 0 ]] && echo 0 || echo 1)"
+
+    # The promotion's own structural guard, replayed rather than only
+    # observed once: deliberately collide a client-consumer key into the
+    # name-owner registry, in a subshell so the real arrays are untouched.
+    (
+        declare -A QSD_NAME_OWNERS=(["org.freedesktop.Notifications"]="swaync" ["PipeWire"]="nobody")
+        declare -A QSD_CLIENT_CONSUMERS=(["PipeWire"]="collision fixture")
+        bad=0
+        for key in "${!QSD_CLIENT_CONSUMERS[@]}"; do
+            [[ -n "${QSD_NAME_OWNERS[$key]+x}" ]] && bad=$((bad + 1))
+        done
+        exit "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
+    )
+    rc=$?
+    _qsd_st "deliberate client-consumer/name-owner collision -> structural guard FAILS (bad=1 when PipeWire is placed in both registries)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+
+    echo ""
+    printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+    [[ "$st_fail" -eq 0 ]]
+}
+
+if [[ "$SELF_TEST" -eq 1 ]]; then
+    run_self_test
+    exit $?
+fi
+
 echo "quickshell-doctor — Quickshell coexistence gate (QS-05/QS-06)"
 echo ""
 
@@ -157,6 +847,20 @@ PROBE_SUMMONED_FOR_HEADLESS_TEST=0
 # interrupt mid-cycle of the reserved-space check can never strand a
 # manifest surface mounted on the user's screen.
 RESERVED_CHECK_SUMMONED=""
+# D-15-25 (Phase 15 Plan 09): PANEL_SUMMONED_NAME follows
+# RESERVED_CHECK_SUMMONED's exact discipline for the four new panel
+# checks' own summon/dismiss cycle — armed by _qsd_summon_panel
+# immediately before dispatch, cleared by _qsd_dismiss_panel immediately
+# after. RFKILL_RESTORE_NEEDED/RFKILL_ORIG_WIFI_SOFT/RFKILL_ORIG_BT_SOFT
+# are declared here for the same reason (T-11-11 discipline available to
+# any future rerun of the rfkill fault-injection procedure Task 2
+# performs) even though this run of quickshell-doctor itself never
+# mutates rfkill state — that injection is driven live, outside this
+# script, and is recorded in 15-09-SUMMARY.md.
+PANEL_SUMMONED_NAME=""
+RFKILL_RESTORE_NEEDED=0
+RFKILL_ORIG_WIFI_SOFT=""
+RFKILL_ORIG_BT_SOFT=""
 CLEANED_UP=0
 # shellcheck disable=SC2329 # invoked indirectly via `trap` below, not a direct call
 _qsd_cleanup() {
@@ -179,6 +883,15 @@ _qsd_cleanup() {
     if [[ -n "$RESERVED_CHECK_SUMMONED" ]]; then
         _qsd_dispatch_global "$RESERVED_CHECK_SUMMONED"
         RESERVED_CHECK_SUMMONED=""
+    fi
+    if [[ -n "$PANEL_SUMMONED_NAME" ]]; then
+        qs ipc call panel toggle "$PANEL_SUMMONED_NAME" >/dev/null 2>&1
+        PANEL_SUMMONED_NAME=""
+    fi
+    if [[ "$RFKILL_RESTORE_NEEDED" -eq 1 ]]; then
+        [[ -n "$RFKILL_ORIG_WIFI_SOFT" ]] && rfkill "$RFKILL_ORIG_WIFI_SOFT" wifi >/dev/null 2>&1
+        [[ -n "$RFKILL_ORIG_BT_SOFT" ]] && rfkill "$RFKILL_ORIG_BT_SOFT" bluetooth >/dev/null 2>&1
+        RFKILL_RESTORE_NEEDED=0
     fi
 }
 # EXIT alone covers normal completion; INT/TERM additionally terminate
@@ -298,11 +1011,14 @@ fi
 if ! command -v busctl >/dev/null 2>&1; then
     echo "  [SKIP] single org.freedesktop.Notifications owner (busctl not found)"
 else
-    NOTIF_LINES=$(busctl --user list 2>/dev/null | grep 'org\.freedesktop\.Notifications' || true)
-    NOTIF_COUNT=$(printf '%s\n' "$NOTIF_LINES" | grep -c '.')
-    NOTIF_OWNER=$(printf '%s\n' "$NOTIF_LINES" | awk '{print $3}' | head -1)
-    check "single org.freedesktop.Notifications owner, and it is swaync (count: ${NOTIF_COUNT}, owner: ${NOTIF_OWNER:-<none>})" "$([[ "$NOTIF_COUNT" -eq 1 && "$NOTIF_OWNER" == "swaync" ]] && echo 0 || echo 1)"
+    # D-15-25: refactored onto the name-owner variant's shared reader
+    # (_qsd_notif_sample / QSD_NAME_OWNERS). Check text, PASS/FAIL
+    # semantics and position all stay unchanged — this is a promotion of
+    # the model underneath the check, not a change to what it asserts.
+    read -r NOTIF_COUNT NOTIF_OWNER <<<"$(_qsd_notif_sample)"
+    check "single org.freedesktop.Notifications owner, and it is swaync (count: ${NOTIF_COUNT}, owner: ${NOTIF_OWNER})" "$([[ "$NOTIF_COUNT" -eq 1 && "$NOTIF_OWNER" == "${QSD_NAME_OWNERS[org.freedesktop.Notifications]}" ]] && echo 0 || echo 1)"
 fi
+_qsd_assert_client_consumer_not_owned
 
 # ── 8. Single handler per hardware key (QS-06) — count registered
 #    handlers across BOTH registration mechanisms: Hyprland's own binds
@@ -310,7 +1026,9 @@ fi
 if ! command -v hyprctl >/dev/null 2>&1; then
     echo "  [SKIP] single handler per hardware key (hyprctl not found)"
 else
-    XF86_KEYS=(XF86AudioRaiseVolume XF86AudioLowerVolume XF86AudioMute XF86AudioMicMute XF86MonBrightnessUp XF86MonBrightnessDown XF86AudioNext XF86AudioPause XF86AudioPlay XF86AudioPrev)
+    # D-15-25: XF86_KEYS is now the top-level shared constant (declared
+    # before checks 1-12 run) so this check and _qsd_xf86_ownership_table
+    # read the same literal list rather than each keeping its own copy.
     BINDS_RAW=$(hyprctl binds 2>/dev/null)
     KEY_BAD=0
     KEY_REPORT=""
@@ -347,14 +1065,31 @@ else
     echo "  [SKIP] no Quickshell MPRIS writer check ($QUICKSHELL_CONFIG_DIR not found)"
 fi
 
+# ── D-15-25 (Phase 15 Plan 09) — four new panel checks, placed here (after
+#    9, before the volume probe) so the file's existing reading order —
+#    liveness, namespaces, D-Bus, keys, invasive hotplug — is preserved
+#    and these sit with the D-Bus/key material they extend. All four are
+#    driven by the SAME before/during/after summon-and-diff mechanism the
+#    reserved-space check (5, above) already established. ───────────────
+_qsd_check_panel_namespace_conformance
+_qsd_check_panel_shortcut_single_registration
+_qsd_check_panel_notifications_single_owner
+_qsd_check_panel_swayosd_key_ownership
+
 # ── 10. One step per press — volume (QS-06), measured, transient,
 #    self-restoring. The one deliberate mutation in this gate. Never
 #    let a missing instrument produce a silent [PASS]: skip cleanly
-#    when swayosd-client is absent or pactl reports no default sink. ──
+#    when swayosd-client is absent, pactl reports no default sink, or
+#    (D-15-25 Part 2) the SwayOSD server itself is unreachable — the
+#    guard gap measured at planning time, where a dead server produced
+#    "measured delta=0 ... drift: 3277", a failure blamed on tolerance
+#    rather than on the absent instrument. ──────────────────────────────
 if ! command -v swayosd-client >/dev/null 2>&1; then
     echo "  [SKIP] one-step-per-press volume probe (swayosd-client not found)"
 elif ! command -v pactl >/dev/null 2>&1 || ! pactl get-sink-volume @DEFAULT_SINK@ >/dev/null 2>&1; then
     echo "  [SKIP] one-step-per-press volume probe (pactl reports no default sink)"
+elif ! _qsd_swayosd_server_reachable; then
+    echo "  [SKIP] one-step-per-press volume probe (D-15-25 guard: SwayOSD server unreachable — org.erikreider.swayosd-server not on the session bus, never a [FAIL] blaming tolerance drift for a dead instrument)"
 else
     ORIG_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
     mapfile -t VOL_ORIG_RAW < <(printf '%s' "$ORIG_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
