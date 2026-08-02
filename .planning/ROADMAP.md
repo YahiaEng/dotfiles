@@ -335,7 +335,7 @@ Plans:
 
 **Open questions owned**: (4) `Quickshell.Networking` API completeness — decide native D-Bus binding vs an `nmcli` wrapper before committing the wifi panel's implementation.
 **Owns**: The milestone's highest D-Bus conflict risk — three new PipeWire / NetworkManager / BlueZ consumers arriving at once alongside existing owners.
-**Plans**: 3/9 plans executed
+**Plans**: 4/9 plans executed
 
 Plans:
 **Wave 1**
@@ -352,7 +352,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3; file-disjoint, parallel)*
 
-- [ ] 15-04-PLAN.md — Audio build-out: pinned control block (device pickers as inline expanding rows, input level, mic mute) over the scrolling per-app mixer list; four widget states
+- [x] 15-04-PLAN.md — Audio build-out: pinned control block (device pickers as inline expanding rows, input level, mic mute) over the scrolling per-app mixer list; four widget states
 - [ ] 15-05-PLAN.md — Wifi build-out: scan + progress line, grouped stable ordering, inline PSK row, `ConnectionFailReason` copy mapping, Forget with inline confirm, two-stage Esc
 - [ ] 15-06-PLAN.md — Bluetooth build-out: adapter toggle, grouped list, contextual-verb rows, chevron expansion, pairing spinner with a real Cancel, inferred-failure recipe, opt-in discovery
 - [ ] 15-07-PLAN.md — Quick-toggle grid becomes one row of six compact split tiles; body press performs the verb, chevron opens the panel
@@ -421,7 +421,7 @@ Cross-cutting constraints:
 | 12. Unified Design-Token Pipeline | v3.0 | 8/8 | Complete    | 2026-07-27 |
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | Complete    | 2026-07-28 |
 | 14. Dashboard Drawer | v3.0 | 10/10 | Complete    | 2026-08-01 |
-| 15. Audio + Connectivity Panels | v3.0 | 3/9 | In Progress|  |
+| 15. Audio + Connectivity Panels | v3.0 | 4/9 | In Progress|  |
 | 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |
 | 17. Ambient Extras | v3.0 | 0/TBD | Not started | - |
 

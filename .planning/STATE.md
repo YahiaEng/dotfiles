@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 15
 current_phase_name: audio-connectivity-panels
 status: executing
-stopped_at: Completed 15-03-PLAN.md (Task 4 render gate approved)
-last_updated: "2026-08-02T00:28:32.067Z"
+stopped_at: Completed 15-04-PLAN.md (Task 4 render gate approved after scoped hierarchy fix)
+last_updated: "2026-08-02T01:19:10.890Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 15 execution started
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 49
-  completed_plans: 43
+  completed_plans: 44
   percent: 63
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 ## Current Position
 
 Phase: 15 (audio-connectivity-panels) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
-Progress: [█████████░] 88% executed, phase close gated on UAT
+Progress: [█████████░] 90% executed, phase close gated on UAT
 Last activity: 2026-08-01 — Phase 15 execution started
 
 ## Performance Metrics
@@ -170,6 +170,7 @@ Last activity: 2026-08-01 — Phase 15 execution started
 | Phase 14 P09 | multi-session (4 sessions) | 4 tasks | 11 files |
 | Phase 15 P02 | 47min + gate-closure session | 4 tasks | 3 files |
 | Phase 15 P03 | multi-session | 4 tasks | 7 files |
+| Phase 15 P04 | multi-session | 4 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -304,6 +305,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 15-03: Task 4 blocking render gate APPROVED — all four D-15-26 off-state compositions pass; empty body slot accepted as deliberate 15-05/15-06 scope with an honest 'reads as broken' finding and a hard carry-forward that 15-08's waybar rewiring must not land before 15-05/15-06 fill the panel bodies (Wave 4 already sequenced 15-04->05->06->07->08 to guarantee this)
 - [Phase ?]: 15-03: PANEL-03/PANEL-04 deliberately left unmarked in REQUIREMENTS.md — this plan built real reachable wifi/bluetooth surfaces and D-15-26's off-state grammar, but the requirements' literal scan/list/connect text belongs to 15-05/15-06; PANEL-05/PANEL-06 (already complete) re-confirmed true of three panel instances
 - [Phase ?]: 15-03: found and worked around a quickshell file-watcher inotify break on inode replacement (Edit/Write tool rename-on-save stops hot reload) — every edit in Tasks 2-3 required a detached restart; carried forward as a standing verification note for 15-04..15-09
+- [Phase ?]: 15-04: Task 4 render gate CONDITIONALLY APPROVED then closed — check 1 (focal point, D-15-10) failed as shipped (five identical-weight sliders, no boundary marker); fixed with a Colours.outline divider + Applications section label between the pinned block and the app list, plus master-slider track/handle drawn heavier (8px/20px vs shared 4px/16px). Check 2 (density, D-15-11 fallback) passed and the fallback was explicitly declined — input level slider stays. This hierarchy is the pattern 15-05/15-06 must mirror.
+- [Phase ?]: 15-04: A2 disposition (carried from 15-01) shipped branch (a) accept-and-document — streamRouteNote discloses the input-side re-route residual under the input picker; PANEL-02 delivered without a per-stream re-route function.
+- [Phase ?]: 15-04: node identity/ordering keyed on the typed PwNodeIface.id (uint), never the untyped object.id map entry nor lexicographic sort, per 15-API-PROBE.md's A1(c) finding — the only guaranteed-unique per-stream identity on this build.
 
 ### Quick Tasks Completed
 
@@ -394,8 +398,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T00:28:32.047Z
-Stopped at: Completed 15-03-PLAN.md (Task 4 render gate approved)
+Last session: 2026-08-02T01:19:10.864Z
+Stopped at: Completed 15-04-PLAN.md (Task 4 render gate approved after scoped hierarchy fix)
 Resume file: None
 
 ## Operator Next Steps

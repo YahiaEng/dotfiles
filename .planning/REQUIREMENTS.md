@@ -50,7 +50,7 @@
 
 ### Audio + Connectivity Panels (PANEL)
 
-- [ ] **PANEL-01**: A per-app volume mixer lists active audio applications with a per-app volume slider and click-to-mute
+- [x] **PANEL-01**: A per-app volume mixer lists active audio applications with a per-app volume slider and click-to-mute
 - [x] **PANEL-02**: The audio panel selects the default output and input device and adjusts master volume
 - [ ] **PANEL-03**: The wifi panel scans, lists visible networks, connects, and prompts for a password on secured networks
 - [ ] **PANEL-04**: The bluetooth panel toggles the adapter, lists devices, and connects, disconnects or forgets them
@@ -153,7 +153,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DASH-08 | Phase 14 — Dashboard Drawer | Complete |
 | DASH-09 | Phase 14 — Dashboard Drawer *(MINTED 2026-07-30 — new scope from 14-09's render gate)* | Complete — built in 14-10, render gate approved 2026-07-30 |
 | DASH-10 | Phase 14 — Dashboard Drawer *(MINTED 2026-08-01 — new scope arising during UAT)* | Built 2026-08-01 — render gate pending (14-UAT.md item 8) |
-| PANEL-01 | Phase 15 — Audio + Connectivity Panels | Pending |
+| PANEL-01 | Phase 15 — Audio + Connectivity Panels | Complete |
 | PANEL-02 | Phase 15 — Audio + Connectivity Panels | Complete |
 | PANEL-03 | Phase 15 — Audio + Connectivity Panels | Pending |
 | PANEL-04 | Phase 15 — Audio + Connectivity Panels | Pending |
