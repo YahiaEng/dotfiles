@@ -109,6 +109,11 @@ PACMAN_PKGS=(
     pipewire-pulse
     wireplumber
     pavucontrol
+    # Network management (D-15-23): official extra repo, not AUR. Provides
+    # the wifi panel's Advanced target — PANEL-05's third manager, alongside
+    # pavucontrol/blueman. Was host-only state (unlisted but already
+    # installed) — same failure class as the missing adw-gtk-theme package.
+    network-manager-applet
 
     # Fonts
     otf-firamono-nerd
