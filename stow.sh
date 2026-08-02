@@ -78,6 +78,16 @@ mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
 # parent must already exist as a real directory before stow runs.
 mkdir -p "$HOME/.config/quickshell"
 
+# 15-13 (G-15-4): pre-create ~/.config/autostart as a REAL directory. It does
+# not exist on a fresh machine, and the `quickshell` package is about to
+# become its ONLY occupant (nm-applet.desktop, the secret-agent suppression
+# override). Without this guard stow folds the whole directory into the repo
+# — after which any application that writes its own autostart entry writes
+# it into the cloned repo tree, silently turning user state into tracked
+# dotfiles. Same fold hazard as the quickshell guard above, different
+# consequence.
+mkdir -p "$HOME/.config/autostart"
+
 # 13-02: pre-create swaync.service's systemd drop-in directory as a REAL
 # directory — a stow/systemd interaction discovered empirically this plan,
 # not a style preference: systemd 261 silently ignores an entire .d
@@ -174,7 +184,19 @@ mkdir -p "$HOME/.local"
 # this loop runs regardless of stow order). `wallpapers` is the ONLY
 # package whose shipped tree roots at something other than .config/ or
 # .local/ directly under $HOME, so it is the only remaining instance of
-# this bug class. vscodium's ~/.local/share/applications entry is still
+# this bug class.
+#
+# Audit-note correction (15-13, G-15-4): the claim above is now narrower
+# than it reads. `quickshell` ships a SECOND tree outside its own
+# ~/.config/quickshell/ namespace — ~/.config/autostart/nm-applet.desktop,
+# the secret-agent suppression override. It is guarded by its own
+# `mkdir -p "$HOME/.config/autostart"` further up, so it is not an
+# instance of the fold bug; but "every OTHER package ships exclusively
+# under ~/.config/<pkg>/" is no longer literally true, and leaving a
+# now-false audit claim standing is exactly the failure this correction
+# prevents. Two exceptions, then: `wallpapers` (roots outside .config/)
+# and `quickshell` (a second .config/ subtree not named for the package).
+# vscodium's ~/.local/share/applications entry is still
 # free to fold one level below ~/.local (as the ~/.local comment above
 # already documents) — harmless, since nothing this script writes
 # targets ~/.local/share/ at runtime.

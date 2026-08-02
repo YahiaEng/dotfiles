@@ -113,6 +113,15 @@ PACMAN_PKGS=(
     # the wifi panel's Advanced target — PANEL-05's third manager, alongside
     # pavucontrol/blueman. Was host-only state (unlisted but already
     # installed) — same failure class as the missing adw-gtk-theme package.
+    #
+    # 15-13 (G-15-4): the package is DELIBERATELY RETAINED for
+    # nm-connection-editor, while its autostarted secret agent (nm-applet)
+    # is suppressed by the stowed XDG override at
+    # quickshell/.config/autostart/nm-applet.desktop. That agent owned the
+    # external GTK passphrase dialog that rendered behind the wifi panel;
+    # the wifi panel now supplies passphrases natively. Do NOT remove this
+    # package because that override exists — they are two halves of one
+    # decision, and each names the other so either end is discoverable.
     network-manager-applet
 
     # Fonts

@@ -1,0 +1,46 @@
+# ── G-15-4 gap closure (15-13) — suppress the autostarted NetworkManager
+#    secret agent. This file exists for that and nothing else. ──────────
+#
+# WHY THIS LIVES IN THE `quickshell` PACKAGE
+# The suppression exists *because* the quickshell wifi panel took over this
+# responsibility, so it belongs with the surface that owns the behaviour
+# rather than in a package minted just to hold it. It also needs no new
+# entry in stow.sh's PACKAGES array — one fewer place a fresh-machine
+# install can go wrong.
+#
+# THE PACKAGE STAYS INSTALLED, DELIBERATELY
+# `network-manager-applet` remains in install.sh's PACMAN_PKGS (added by
+# 15-08, D-15-23): it ships `nm-connection-editor`, which is the wifi
+# panel's Advanced target. Only the autostarted *agent* is suppressed, not
+# the package. Do not "clean up" the package because this file exists.
+#
+# EVIDENCE THAT THIS AGENT OWNED THE EXTERNAL DIALOG
+# nm-applet (PID 1018 during the UAT session) was the sole registered
+# NetworkManager secret agent for the whole boot — the only
+# agent-registration line present. On a wrong passphrase the supplicant
+# reports a 4-way handshake failure, NetworkManager logs
+# `psk mismatch reported by supplicant, asking for new key`, re-enters
+# `need-auth`, and issues GetSecrets to that registered agent, which
+# answers with its own GTK dialog. NetworkManager does NOT fail an
+# activation on a PSK mismatch — it re-asks. That dialog is another
+# process's XDG toplevel, and a layer-shell overlay sits unconditionally
+# above every XDG toplevel in Hyprland, so no QML change could ever have
+# won the z-order fight. Removing the agent is the only fix.
+#
+# WHY THE KEY BELOW WORKS
+# XDG autostart precedence is filename-keyed and
+# $XDG_CONFIG_HOME/autostart shadows /etc/xdg/autostart, so this filename
+# must match the system entry byte-for-byte. systemd-xdg-autostart-generator
+# honours `Hidden=true` per its own man page and generates no unit at all.
+#
+# NAMED CONSEQUENCE — READ BEFORE REMOVING THIS FILE
+# With this in place there is NO NetworkManager secret agent on this host.
+# Any non-quickshell NM client that needs a secret will FAIL rather than
+# prompt. That is the intended trade: the wifi panel supplies its own
+# passphrases natively, and a silent external prompt is precisely the bug
+# G-15-4 closed.
+[Desktop Entry]
+Type=Application
+Name=Network
+Exec=nm-applet
+Hidden=true
