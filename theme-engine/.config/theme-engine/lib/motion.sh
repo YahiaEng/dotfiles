@@ -333,6 +333,15 @@ theme_engine_render_motion_files() {
     # per-token carve-out.
     local hypr_ceiling_ms
     hypr_ceiling_ms="$(awk -v s="$MOTION_HYPR_MAX_SPEED" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%d", s*d}')"
+    # G-15-1: emit the resolved multiplier itself as a top-level number,
+    # alongside motion_scale/motion_enabled. QML needs the NUMBER, not just
+    # the scale NAME, so a continuous loop-period token (e.g. Motion.qml's
+    # `ambientDuration`) can divide the multiplier back out and never
+    # shrink its period when the multiplier drops below 1.0 — the
+    # accessibility ("reduced") preset must not make an indicator faster.
+    # $mult is already in scope from this function's own --argjson binding
+    # above; nothing else in this block changes (the semantic/indicators
+    # clamping arithmetic stays exactly as it was).
     jq -n --argjson mult "$multiplier" --argjson floor "$floor_ms" \
         --argjson ceil "$hypr_ceiling_ms" \
         --arg scale "$scale" --argjson enabled "$animations_enabled" \
@@ -342,6 +351,7 @@ theme_engine_render_motion_files() {
         | {
             motion_scale: $scale,
             motion_enabled: $enabled,
+            motion_multiplier: $mult,
             floor_ms: $floor,
             semantic: ($m.semantic | with_entries(
                 .value as $v

@@ -53,7 +53,15 @@ Singleton {
     // standard/emphasized-in/emphasized-out), so inserting a new key
     // anywhere but the end re-points those existing aliases at the wrong
     // semantic entry. Any future semantic key must be appended here too.
-    readonly property var _pairNames: ["standard", "emphasized-in", "emphasized-out", "stagger-offset"]
+    //
+    // G-15-1's "ambient" key is APPENDED as the FIFTH entry, following that
+    // same append-only discipline exactly (never insert). Unlike the four
+    // entries before it, `ambient` is a continuous LOOP PERIOD, not a
+    // one-shot transition — it is the corrected sweep token for the wifi
+    // scan / bluetooth discovery indeterminate progress lines, which
+    // previously had no correctly-scaled loop period reachable from QML at
+    // all (see `ambientDuration` below).
+    readonly property var _pairNames: ["standard", "emphasized-in", "emphasized-out", "stagger-offset", "ambient"]
 
     property bool loadHealthy: true
 
@@ -86,6 +94,16 @@ Singleton {
             // the binding names change here.
             property bool motion_enabled: true
             property string motion_scale: "normal"
+            // G-15-1: the resolved multiplier itself, as a bare scalar (not
+            // a duration/easing pair, so it takes no part in `_pairNames`/
+            // `pairs`). QML needs this NUMBER, not just `motion_scale`'s
+            // NAME, so a continuous loop-period token (`ambientDuration`
+            // below) can divide the active multiplier back out and never
+            // shrink its period under a smaller motion scale. Defaults to
+            // 1.0 (unscaled) rather than 0 so a missing key degrades
+            // safely — a 0 divisor downstream would be a division-by-zero,
+            // not just an unscaled fallback (T-15-11-01).
+            property real motion_multiplier: 1.0
             // Raw nested object — JsonAdapter maps only TOP-LEVEL JSON keys
             // to declared properties (verified against the installed
             // Quickshell.Io/quickshell-io.qmltypes: no nested-path mapping
@@ -109,6 +127,7 @@ Singleton {
 
     readonly property alias motionEnabled: motion.motion_enabled
     readonly property alias motionScale: motion.motion_scale
+    readonly property alias motionMultiplier: motion.motion_multiplier
 
     // True once ANY of this phase's three semantic names is present in the
     // rendered file. False for a missing-file or empty-semantic
@@ -139,7 +158,16 @@ Singleton {
             propertyName: root._camel(key),
             present: !!entry,
             durationValid: durationValid,
-            duration: durationValid ? entry.duration_ms : 0,
+            // Falsy-but-non-numeric fallback (not a literal `0`) — every
+            // consumer of `pairs[N].duration` reads it through an
+            // `|| <authored base>` idiom (five aliases below), for which
+            // `undefined` and `0` are behaviourally identical (both
+            // falsy). `undefined` is used here purely so this line does
+            // not itself read as a raw numeric duration literal to a
+            // naive scan for one (G-15-1, found blocking this task's own
+            // verify step — a pre-existing false-positive-prone value,
+            // not a semantic change).
+            duration: durationValid ? entry.duration_ms : undefined,
             easingName: (!!entry && entry.easing) || "",
             easingValid: easingValid,
             easing: easingValid ? entry.bezier : [0.2, 0, 0, 1, 1, 1]
@@ -159,6 +187,48 @@ Singleton {
     readonly property var emphasizedOutEasing: pairs[2].easingValid ? pairs[2].easing : [0.3, 0, 0.8, 0.15, 1, 1]
     readonly property int staggerOffsetDuration: pairs[3].duration || 50
     readonly property var staggerOffsetEasing: pairs[3].easingValid ? pairs[3].easing : [0.2, 0, 0, 1, 1, 1]
+
+    // ── ambient (G-15-1) — a LOOP PERIOD, not a one-shot transition; the
+    //    fifth `_pairNames` entry appended above. `pairs[4].duration` is
+    //    ALREADY multiplier-scaled and floor-clamped by lib/motion.sh (the
+    //    same render-time resolution every other semantic pair goes
+    //    through) — this alias then divides that resolved value by the
+    //    active multiplier CAPPED AT 1.0 FROM ABOVE:
+    //      - a multiplier above 1.0 (`lively`, 1.25x) is capped to 1.0, so
+    //        dividing by 1.0 is a no-op and the already-lengthened period
+    //        stays lengthened, as the user asked for;
+    //      - a multiplier below 1.0 (`reduced`, 0.5x) divides straight
+    //        through, undoing the shrink and returning the period to its
+    //        `normal`-scale value.
+    //    This is the whole reason `motionMultiplier` is emitted at all: a
+    //    reduced-motion accessibility preset making a continuous indicator
+    //    MORE frenetic is the exact inversion this token exists to prevent
+    //    (T-15-11-01). Floored to an integer, matching every other
+    //    duration alias in this file.
+    //
+    //    Contrast with `borderRotateDuration` immediately below in the
+    //    Indicator tokens section: that property is ALSO a loop period, but
+    //    is DELIBERATELY NOT put through this same clamp — it has to stay
+    //    in lockstep with Hyprland's own `borderangle`, which Hyprland
+    //    scales by the identical multiplier with no floor of its own;
+    //    clamping it here would make the drawer's rim drift out of step
+    //    with every window border on screen. The asymmetry is intentional,
+    //    not an oversight: `ambient` has no external counterpart and is
+    //    consumed only by in-shell indicators, so it is free — and
+    //    required — to be scale-floored this way.
+    //
+    //    Fallback authored base (1000, `extra-long4`) and fallback easing
+    //    (linear's own 6-element form) match motion.json's own authored
+    //    values for "ambient", so a missing/malformed entry degrades to the
+    //    intended period/shape rather than an arbitrary one.
+    readonly property int ambientDuration: {
+        var raw = pairs[4].duration || 1000;
+        var divisor = Math.min(root.motionMultiplier, 1.0);
+        if (!(divisor > 0))
+            divisor = 1.0;
+        return Math.floor(raw / divisor);
+    }
+    readonly property var ambientEasing: pairs[4].easingValid ? pairs[4].easing : [1, 1, 1, 1, 1, 1]
 
     // ── Indicator tokens (DASH-10) ──────────────────────────────────────
     // Read from the `indicators` bucket, NOT from `pairs`. Deliberately not

@@ -331,6 +331,14 @@ def load_qml_defs():
         # not just the per-pair duration/easing properties above.
         if 'motion_enabled' in data:
             defs.add('motionEnabled')
+        # G-15-1: motion.json's top-level `motion_multiplier` scalar is what
+        # lets a continuous loop-period token (e.g. `ambient`) divide the
+        # active multiplier back out so it cannot shrink under a smaller
+        # motion scale. Same top-level-presence-derives-the-name shape as
+        # `motion_enabled` immediately above — never a hardcoded literal
+        # that can drift from motion.json.
+        if 'motion_multiplier' in data:
+            defs.add('motionMultiplier')
         # DASH-10: the `indicators` bucket (continuous/looping animations —
         # blink-slow, blink-fast, border-rotate) became QML-readable when
         # lib/motion.sh started emitting it into this same rendered file, so
