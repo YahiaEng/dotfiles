@@ -418,7 +418,7 @@ Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mech
 
 **Wave 2** *(blocked on Wave 1; the two plans touch disjoint files and run in parallel)*
 
-- [ ] 16-03-PLAN.md — The fixed eleven-slot grid: ten numbered tiles at real scaled geometry, the always-present scratchpad tile, and the row-level entrance cascade (OVER-01)
+- [x] 16-03-PLAN.md — The fixed eleven-slot grid: ten numbered tiles at real scaled geometry, the always-present scratchpad tile, and the row-level entrance cascade (OVER-01)
 - [ ] 16-04-PLAN.md — Live screencopy enforcement proven with a real session restart, and seven new `quickshell-doctor` checks each with a poisoned fixture (OVER-01)
 
 **Wave 3** *(blocked on 16-03)*

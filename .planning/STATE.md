@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 16
 current_phase_name: workspace-overview
 status: executing
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-08-03T18:22:01.452Z"
+stopped_at: Completed 16-03-PLAN.md (grid and scratchpad)
+last_updated: "2026-08-03T18:40:18.192Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 62
-  completed_plans: 56
+  completed_plans: 57
   percent: 75
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 ## Current Position
 
 Phase: 16 (workspace-overview) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
-Progress: [█████████░] 90% — 6/8 phases complete, 54/54 plans executed
+Progress: [█████████░] 92% — 6/8 phases complete, 54/54 plans executed
 Last activity: 2026-08-03 — Phase 16 execution started
 
 ## Performance Metrics
@@ -181,6 +181,7 @@ Last activity: 2026-08-03 — Phase 16 execution started
 | Phase 15 P11 | ~40min | 3 tasks | 7 files |
 | Phase 16 P01 | 25min | 3 tasks | 3 files |
 | Phase 16 P02 | multi-session | 3 tasks | 8 files |
+| Phase 16-workspace-overview P03 | single-session | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -342,6 +343,11 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 16-02: Concurrent per-toplevel screencopy CONFIRMED WORKING (multiple simultaneous hasContent=true streams with distinct sourceSize), evidence-backed via a per-delegate measurement rather than assumed — closes the load-bearing open question under 16-03's eleven tiles and 16-08's fifteen-stream measurement
 - [Phase ?]: 16-02: quickshell-overview blur closed via exact-match blur=false layer rule (LayerRule's only blur field is boolean; decoration.blur.* intensity is global with no per-surface override). Operator directive: do not touch global blur again for the rest of Phase 16
 - [Phase ?]: 16-02: verification-methodology lesson — model-level IPC counts (windows=N) do not prove pixels are painted; two screenshot-verified fixes shipped false passes before a per-delegate numeric measurement found the real cause. Plan 16-04's D-16-23 check 6 (formal overview IPC status check) must assert something that would actually catch this defect class, not just non-zero counts
+- [Phase ?]: WindowThumbnail.qml is the single general representation of 'a window drawn small' — the ONLY ScreencopyView instantiation site in modules/overview/, with liveCapture as the variant property for D-16-07's fallback ladder and D-16-12's drag ghost
+- [Phase ?]: The 5x2 grid is a Column of two Rows, not a single Grid element, so each row is an independently addressable Cascade band
+- [Phase ?]: Cascade arming mirrors PanelDialog.qml's single-content Component.onCompleted shape, not Dashboard.qml's per-tab-switch shape — correct for a destroy-on-dismiss, one-content-per-summon surface
+- [Phase ?]: isScratchpad changes exactly three cosmetic properties (border, empty-glyph, identity content) and nothing else, keeping the scratchpad tile's code path identical to a numbered tile's for plan 16-06's symmetric drag-in/drag-out
+- [Phase ?]: The scratchpad's live window-move check was deferred to the Task 3 human render gate rather than reproduced via a selector-less hyprctl dispatch against the operator's real windows (live-system safety constraint 1)
 
 ### Quick Tasks Completed
 
@@ -438,8 +444,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-03T18:22:01.424Z
-Stopped at: Completed 16-02-PLAN.md
+Last session: 2026-08-03T18:40:18.170Z
+Stopped at: Completed 16-03-PLAN.md (grid and scratchpad)
 Resume file: None
 
 ## Operator Next Steps
