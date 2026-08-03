@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 16
 current_phase_name: workspace-overview
 status: executing
-stopped_at: Completed 16-03-PLAN.md (grid and scratchpad)
-last_updated: "2026-08-03T18:40:18.192Z"
+stopped_at: Completed 16-04-PLAN.md Tasks 1-2 (deferred Task 3 — see deferred-items.md item 0)
+last_updated: "2026-08-03T19:09:50.514Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 62
-  completed_plans: 57
+  completed_plans: 58
   percent: 75
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 ## Current Position
 
 Phase: 16 (workspace-overview) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
-Progress: [█████████░] 92% — 6/8 phases complete, 54/54 plans executed
+Progress: [█████████░] 94% — 6/8 phases complete, 54/54 plans executed
 Last activity: 2026-08-03 — Phase 16 execution started
 
 ## Performance Metrics
@@ -182,6 +182,7 @@ Last activity: 2026-08-03 — Phase 16 execution started
 | Phase 16 P01 | 25min | 3 tasks | 3 files |
 | Phase 16 P02 | multi-session | 3 tasks | 8 files |
 | Phase 16-workspace-overview P03 | single-session | 3 tasks | 4 files |
+| Phase 16 P04 | single session | 2 tasks | 22 files |
 
 ## Accumulated Context
 
@@ -348,6 +349,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: Cascade arming mirrors PanelDialog.qml's single-content Component.onCompleted shape, not Dashboard.qml's per-tab-switch shape — correct for a destroy-on-dismiss, one-content-per-summon surface
 - [Phase ?]: isScratchpad changes exactly three cosmetic properties (border, empty-glyph, identity content) and nothing else, keeping the scratchpad tile's code path identical to a numbered tile's for plan 16-06's symmetric drag-in/drag-out
 - [Phase ?]: The scratchpad's live window-move check was deferred to the Task 3 human render gate rather than reproduced via a selector-less hyprctl dispatch against the operator's real windows (live-system safety constraint 1)
+- [Phase ?]: 16-04: seven quickshell-doctor D-16-23 checks added (fixture-proven fallible); enforce_permissions=true committed in permissions.lua; Task 3 (real logout/login + five-consumer live proof) explicitly DEFERRED by operator decision, not completed — see deferred-items.md item 0; check 6 honestly assessed as covering blank-tile/permission-denial only, not the geometry-collapse defect class 16-02 hit twice
+- [Phase ?]: 16-04: Rule 3 fix — pre-existing D-15-25 panel-namespace-conformance self-test bug (pid-dependent fixture) fixed via explicit shell-pid override parameter; Rule 1 fix — hypr-equivalence-check options.jsonl baseline surgically amended for the intentional enforce_permissions value change
 
 ### Quick Tasks Completed
 
@@ -425,6 +428,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - 14-09 Task 4: blocking human render gate (gate="blocking") not yet run — three of its eleven checks (2, 4, 5) are previously-deferred open judgments from 14-03/14-08 that must be answered explicitly. theme-stress-test's full 10/10 run also did not complete this session (git-clean transient from in-flight STATE.md) — re-run once the tree is clean. See 14-09-SUMMARY.md for full evidence.
 - 15-02: a prior executor's non-detached quickshell restart died with its session, silently breaking Super+A/Super+D until recovered (second occurrence of this failure mode) — **carried-forward rule, not an open blocker:** every remaining 15-03..15-09 verification restart must use `setsid uwsm app -- ~/.config/hypr/scripts/quickshell-launch.sh` and confirm the new PID's PPID is not a shell.
 - 15-05 Task 4 render gate: password-connect, in-flight Cancel abort effect, real failure copy, and Forget confirm not exercised live (no synthetic pointer tool on host, no real wifi passphrase) — see 15-05-SUMMARY.md 'Pending human sign-off' and WINDOWS.md entry #18
+- 16-04 Task 3 (live enforcement session restart + five-consumer proof) deferred by operator decision to end of Phase 16 — see deferred-items.md item 0 for the full run-cold procedure; enforce_permissions=true ships committed but functionally unproven until this is closed
 
 ## Deferred Items
 
@@ -444,8 +448,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-03T18:40:18.170Z
-Stopped at: Completed 16-03-PLAN.md (grid and scratchpad)
+Last session: 2026-08-03T19:09:50.490Z
+Stopped at: Completed 16-04-PLAN.md Tasks 1-2 (deferred Task 3 — see deferred-items.md item 0)
 Resume file: None
 
 ## Operator Next Steps
