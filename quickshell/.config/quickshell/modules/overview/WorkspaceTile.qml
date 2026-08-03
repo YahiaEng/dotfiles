@@ -95,6 +95,22 @@ Item {
             ScreencopyView {
                 id: captureView
                 anchors.fill: parent
+                // Bug found at the Task 3 render gate (2026-08-03): with
+                // ONLY anchors.fill: parent set, ScreencopyView paints its
+                // captured buffer at native/source resolution and relies on
+                // an ancestor's clip:true to crop the overflow, rather than
+                // auto-scaling to its own item bounds — with 3+ windows open
+                // this made the largest/nearest window visually swallow the
+                // whole tile, looking exactly like "only shows the current
+                // window" even though windowRepeater.count and every
+                // delegate's own x/y/width/height were already correct
+                // (confirmed live via temporary diagnostic logging before
+                // this fix, not guessed). `constraintSize` — settable,
+                // present in the qmltypes specifically "for scaling the
+                // capture into a tile" (16-RESEARCH.md Q1) — is the property
+                // that actually controls the painted scale; reproduced live
+                // with 3 real, non-overlapping windows before shipping this.
+                constraintSize: Qt.size(windowDelegate.width, windowDelegate.height)
                 // HyprlandToplevel.wayland is exactly the object type
                 // ScreencopyView.captureSource accepts (16-CONTEXT.md's
                 // verified installed API surface) — no IPC text parsing.
