@@ -282,3 +282,21 @@ $ find quickshell/.config/quickshell -iname 'spike*'   # (no output)
 
 Task 1 recorded **SELECTOR-CONFIRMED** — the `selector-confirmed` option is
 available per Task 3's own option list.
+
+## DECISION — OVER-03 move mechanism
+
+**Selected: `selector-confirmed`.**
+
+The dispatch string plan 16-06's drop handler implements verbatim:
+
+```
+hl.dsp.window.move({workspace=<targetWorkspaceId>, window="address:" + draggedWindow.address, follow=false})
+```
+
+**Rationale:** live-verified with an isolated before/after probe matrix plus
+a control that proves the selector was necessary (not incidental — see
+"VERDICT — OVER-03 dispatch selector" above). One dispatch, no focus change,
+no restore step — D-16-13's "silent" requirement is honoured exactly as
+written, not approximated. The two fallback options (`activate-move-restore`,
+`record-divergence`) existed only for the case where no working selector was
+found on this build; that case did not occur, so neither is needed.
