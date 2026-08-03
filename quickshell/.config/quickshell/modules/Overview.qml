@@ -240,6 +240,9 @@ PanelWindow {
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 1)
                     onActivated: overviewWindow.activateTile(workspace)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
+                    onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
+                    onDragMoved: (globalPos) => overviewWindow.handleDragMoved(globalPos)
+                    onDragEnded: (globalPos) => overviewWindow.handleDragEnded(globalPos)
                 }
             }
         }
@@ -262,6 +265,9 @@ PanelWindow {
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 6)
                     onActivated: overviewWindow.activateTile(workspace)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
+                    onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
+                    onDragMoved: (globalPos) => overviewWindow.handleDragMoved(globalPos)
+                    onDragEnded: (globalPos) => overviewWindow.handleDragEnded(globalPos)
                 }
             }
         }
@@ -288,6 +294,74 @@ PanelWindow {
         workspace: overviewWindow.scratchpadWorkspace()
         onActivated: overviewWindow.activateTile(workspace)
         onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
+        onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
+        onDragMoved: (globalPos) => overviewWindow.handleDragMoved(globalPos)
+        onDragEnded: (globalPos) => overviewWindow.handleDragEnded(globalPos)
+    }
+
+    // ── D-16-12/D-16-13/D-16-14 drag session (Phase 16 Plan 06) ──────────
+    // Overview.qml owns this end-to-end — WorkspaceTile.qml and
+    // WindowThumbnail.qml only report gestures, they hold no session state
+    // of their own (see both files' own header notes).
+    property var dragToplevel: null
+    property bool dragActive: false
+    property point dragPos: Qt.point(0, 0)
+
+    DragGhost {
+        id: dragGhost
+    }
+
+    function handleDragStarted(toplevel, globalPos, sourceSize) {
+        overviewWindow.dragToplevel = toplevel;
+        overviewWindow.dragActive = true;
+        overviewWindow.dragPos = globalPos;
+        dragGhost.beginDrag(toplevel, globalPos, sourceSize);
+    }
+
+    function handleDragMoved(globalPos) {
+        overviewWindow.dragPos = globalPos;
+        dragGhost.moveTo(globalPos);
+    }
+
+    // Task 1's own shape: every release cancels — there is no drop-target
+    // resolution or move dispatch yet, only the ghost's own lifecycle.
+    // (Plan 16-06 Task 2 replaces this body with the real hit-test +
+    // dispatch-or-cancel logic; the session-teardown lines below stay
+    // shared via cancelDragSession().)
+    function handleDragEnded(globalPos) {
+        overviewWindow.cancelDragSession();
+    }
+
+    function cancelDragSession() {
+        dragGhost.cancelDrag();
+        overviewWindow.dragActive = false;
+        overviewWindow.dragToplevel = null;
+    }
+
+    // ── Mid-drag destruction guard (16-RESEARCH.md Open Question 4) ──────
+    // A window closing while its drag is in flight leaves a dangling
+    // toplevel reference — the destroyed WindowThumbnail delegate itself
+    // stops emitting dragMoved/dragEnded (it no longer exists), so nothing
+    // would otherwise ever clear this session. This binding stays live
+    // against `Hyprland.toplevels` the same way `workspaceForSlot()`
+    // already does (a JS loop inside a property binding tracks every
+    // property it reads as a dependency — WorkspaceTile.qml's own
+    // thumbnailsWithContent comment records this same pattern), so no
+    // manual per-toplevel signal wiring is needed.
+    readonly property bool dragToplevelStillExists: {
+        if (!overviewWindow.dragToplevel)
+            return false;
+        var list = Hyprland.toplevels.values;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] === overviewWindow.dragToplevel)
+                return true;
+        }
+        return false;
+    }
+
+    onDragToplevelStillExistsChanged: {
+        if (overviewWindow.dragActive && !overviewWindow.dragToplevelStillExists)
+            overviewWindow.cancelDragSession();
     }
 
     // D-16-23 check 6's `overview` IPC status verb reads these off the

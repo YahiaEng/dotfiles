@@ -15,6 +15,10 @@
 # it: `WindowThumbnail`, the single general representation of "a window
 # drawn small" (the assumption-delta promotion). It is now the only home of
 # `ScreencopyView` in this directory — see the file's own header.
+#
+# Plan 16-06 adds a third type, registered here in the same commit that
+# creates it: `DragGhost`, the cursor-following still snapshot (D-16-12).
 module qs.modules.overview
 WorkspaceTile 1.0 WorkspaceTile.qml
 WindowThumbnail 1.0 WindowThumbnail.qml
+DragGhost 1.0 DragGhost.qml

@@ -41,6 +41,19 @@
 // below is the load-bearing piece that makes that distinction possible at
 // all — not a defensive nicety layered on top of something that already
 // worked.
+//
+// ── Phase 16 Plan 06 (D-16-12/D-16-20): tap and drag both live here ──────
+// Click-to-activate (D-16-20, originally 16-05's externally-added
+// `MouseArea`) moves INTO this type alongside the new drag gesture, rather
+// than staying bolted on at the WorkspaceTile.qml delegate site. Reason:
+// `TapHandler` and `DragHandler` are Qt Quick Pointer Handlers, explicitly
+// designed to cooperate on the SAME item for exactly this tap-vs-drag
+// disambiguation (passive grab first, exclusive grab only once one
+// recognizer wins). A legacy `MouseArea` sitting above this item in
+// z-order — 16-05's own shape — grabs a press exclusively and would starve
+// any `DragHandler` declared inside this type of every event; the two
+// input models do not mix safely on the same gesture. Consolidating both
+// onto this type is what keeps them cooperating instead of racing.
 import QtQuick
 import Quickshell.Wayland
 import "../"
@@ -58,6 +71,28 @@ Item {
     // The variant switch documented above. Defaults true: D-16-07 says live
     // on every window first.
     property bool liveCapture: true
+
+    // D-16-20: a plain tap (no drag) focuses this window and its
+    // workspace — Overview.qml's activateWindow() does the actual
+    // activate()+dismiss, this type only reports the gesture.
+    signal activated()
+    // D-16-12: the three drag-lifecycle signals WorkspaceTile.qml relays
+    // upward to Overview.qml, which owns the drag session — this type
+    // reports the gesture and its own geometry, nothing more.
+    // `globalPos` is always a Window-relative (scene) point, comparable
+    // directly against another WindowThumbnail's own globalPos with no
+    // per-tile coordinate translation.
+    signal dragStarted(var toplevel, point globalPos, size sourceSize)
+    signal dragMoved(point globalPos)
+    signal dragEnded(point globalPos)
+
+    // While true, this thumbnail renders as a gap — the source tile shows
+    // the space the window came from, so the gesture reads as picking
+    // something up, not copying it. Opacity, not `visible: false`: hiding
+    // the whole Item mid-gesture would drop it out of the active pointer
+    // grab.
+    property bool beingDragged: false
+    opacity: root.beingDragged ? 0 : 1
 
     // Guard every lastIpcObject read — see the header note above for why
     // this guard exists and what it protects against (a toplevel whose IPC
@@ -92,6 +127,56 @@ Item {
     // instance's live hasContent without a second lookup path — the same
     // shape the tracer's inline delegate exposed via `captureView` alias.
     readonly property bool hasContent: captureView.hasContent
+
+    // Public single-shot capture trigger — DragGhost.qml's own inner
+    // WindowThumbnail instance (liveCapture:false) calls this once per
+    // drag to grab the still snapshot D-16-12 requires. This is the ONLY
+    // place `captureFrame()` is called anywhere in modules/overview/ —
+    // reusing this type's own capture path rather than a second one
+    // (D-16-11/16-04's single-capture-path gate).
+    function captureFrame() {
+        captureView.captureFrame();
+    }
+
+    // ── D-16-20 tap / D-16-12 drag — both Pointer Handlers, same item ────
+    TapHandler {
+        id: tapHandler
+        onTapped: root.activated()
+    }
+
+    DragHandler {
+        id: dragHandler
+        // Never reparents or repositions this item — its x/y/width/height
+        // stay driven entirely by the geometry bindings above. This
+        // handler is pure gesture recognition plus a cursor-position feed
+        // for DragGhost; it owns none of this item's own placement.
+        target: null
+
+        onActiveChanged: {
+            if (dragHandler.active) {
+                root.beingDragged = true;
+                // The tile's own on-screen origin, in scene coordinates —
+                // what DragGhost animates FROM on a cancel, not the
+                // cursor's own position.
+                var origin = root.mapToItem(null, 0, 0);
+                root.dragStarted(root.toplevel, origin, Qt.size(root.width, root.height));
+            } else {
+                root.beingDragged = false;
+                root.dragEnded(dragHandler.centroid.scenePosition);
+            }
+        }
+        onCentroidChanged: {
+            if (dragHandler.active)
+                root.dragMoved(dragHandler.centroid.scenePosition);
+        }
+    }
+
+    // The `Drag` attached property alongside `DragHandler` — 16-SPIKE-
+    // FINDINGS.md's DECLARATIVE-LOADS verdict cleared both together. No
+    // `DropArea` consumes this (drop-target resolution is Overview.qml's
+    // own geometric hit-test, not QtQuick's reparenting drag/drop), so
+    // this is metadata only, not a second event path.
+    Drag.active: dragHandler.active
 
     // ── D-16-10's three-state capture machine ────────────────────────────
     // `_everPopulated` is sticky in the direction that matters: once a real

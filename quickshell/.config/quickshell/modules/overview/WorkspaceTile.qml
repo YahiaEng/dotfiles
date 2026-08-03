@@ -63,6 +63,16 @@ Item {
     // handler can call straight into `toplevel.wayland.activate()`.
     signal windowActivated(var toplevel)
 
+    // Phase 16 Plan 06 (D-16-12): pure relay of WindowThumbnail's own
+    // three drag-lifecycle signals, added because Overview.qml's drag
+    // session owns the gesture end-to-end and needs it — the tile does
+    // NOT interpret these, only passes them up (see the delegate below and
+    // this file's header note on isScratchpad's symmetry: a drag crossing
+    // tile boundaries cannot be a tile-local concept).
+    signal dragStarted(var toplevel, point globalPos, size sourceSize)
+    signal dragMoved(point globalPos)
+    signal dragEnded(point globalPos)
+
     // D-16-02: a window positioned partly offscreen, sized larger than the
     // monitor, or carrying stale coordinates must crop at the tile edge
     // instead of painting over its neighbours.
@@ -102,19 +112,20 @@ Item {
     // render overlapping; that is D-16-02's explicit accepted cost and the
     // reason the positions stay honest.
     //
-    // D-16-20 click parity: each thumbnail gets its OWN click target,
-    // added as an additional child on this same delegate instantiation —
-    // Qt Quick paints same-z siblings in declaration order, so this
-    // MouseArea (declared after WindowThumbnail's own internal
-    // ScreencopyView child) always sits ABOVE the live capture. It is
-    // bounded to exactly this thumbnail's own real-geometry bounds
-    // (WindowThumbnail sets its own x/y/width/height from the window's
-    // actual scaled position), so it can never swallow a click that lands
-    // on the tile background BETWEEN windows — that click falls straight
-    // through to root's own whole-tile MouseArea above, which still means
-    // "focus this workspace and close". A thumbnail in the `failed` state
-    // stays clickable: the window exists and focusing it is valid even
-    // though its preview is missing.
+    // D-16-20 click parity: each thumbnail owns its OWN tap target now
+    // (Phase 16 Plan 06 moved this from an externally-added `MouseArea`
+    // into WindowThumbnail.qml's own `TapHandler`, alongside the new drag
+    // gesture — see that file's header note for why the two input models
+    // could not stay split across two files). Bounded to exactly this
+    // thumbnail's own real-geometry bounds (WindowThumbnail sets its own
+    // x/y/width/height from the window's actual scaled position), so a tap
+    // landing on the tile background BETWEEN windows still falls through
+    // to root's own whole-tile MouseArea above, which means "focus this
+    // workspace and close". A thumbnail in the `failed` state stays
+    // tappable: the window exists and focusing it is valid even though its
+    // preview is missing. An unoccupied tile has no thumbnail delegate at
+    // all (the Repeater's model is empty), so drag — like tap — is simply
+    // unavailable there; a structural consequence, not a guard.
     Repeater {
         id: windowRepeater
         model: root.workspace ? root.workspace.toplevels : null
@@ -125,14 +136,10 @@ Item {
             captureScale: root.captureScale
             monitor: root.monitor
 
-            signal activated()
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: thumbnailDelegate.activated()
-            }
-
             onActivated: root.windowActivated(thumbnailDelegate.toplevel)
+            onDragStarted: (draggedToplevel, globalPos, sourceSize) => root.dragStarted(draggedToplevel, globalPos, sourceSize)
+            onDragMoved: (globalPos) => root.dragMoved(globalPos)
+            onDragEnded: (globalPos) => root.dragEnded(globalPos)
         }
     }
 
