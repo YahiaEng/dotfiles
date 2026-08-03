@@ -199,3 +199,13 @@ None — no external service configuration required. The one open item (D5's liv
 ---
 *Phase: 16-workspace-overview*
 *Completed: 2026-08-03*
+
+## Self-Check: PASSED
+
+- FOUND: quickshell/.config/quickshell/modules/overview/WindowThumbnail.qml
+- FOUND: quickshell/.config/quickshell/modules/overview/WorkspaceTile.qml
+- FOUND: quickshell/.config/quickshell/modules/Overview.qml
+- FOUND: .planning/phases/16-workspace-overview/16-05-SUMMARY.md
+- FOUND: commit 4cdcc78 (Task 1)
+- FOUND: commit 7ee3635 (Task 2)
+- FOUND: commit 31e2de3 (SUMMARY)
