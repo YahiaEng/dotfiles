@@ -238,6 +238,7 @@ PanelWindow {
                     monitor: Hyprland.focusedMonitor
                     workspace: overviewWindow.workspaceForSlot(index + 1)
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 1)
+                    dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 1)
                     onActivated: overviewWindow.activateTile(workspace)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                     onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -263,6 +264,7 @@ PanelWindow {
                     monitor: Hyprland.focusedMonitor
                     workspace: overviewWindow.workspaceForSlot(index + 6)
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 6)
+                    dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 6)
                     onActivated: overviewWindow.activateTile(workspace)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                     onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -292,6 +294,7 @@ PanelWindow {
         captureScale: overviewWindow.scratchpadCaptureScale
         monitor: Hyprland.focusedMonitor
         workspace: overviewWindow.scratchpadWorkspace()
+        dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === "special:magic"
         onActivated: overviewWindow.activateTile(workspace)
         onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
         onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -306,6 +309,13 @@ PanelWindow {
     property var dragToplevel: null
     property bool dragActive: false
     property point dragPos: Qt.point(0, 0)
+    // The single tile currently under the cursor during a drag: an integer
+    // 1-10 for a numbered slot, the literal "special:magic" for the
+    // scratchpad, or null when the cursor is over the gap between tiles or
+    // outside the grid entirely. Every WorkspaceTile's own
+    // `dropTargetActive` above compares itself against this ONE value, so
+    // at most one tile is ever lit (Task 2's own acceptance bar).
+    property var dropTargetToken: null
 
     DragGhost {
         id: dragGhost
@@ -315,27 +325,146 @@ PanelWindow {
         overviewWindow.dragToplevel = toplevel;
         overviewWindow.dragActive = true;
         overviewWindow.dragPos = globalPos;
+        overviewWindow.dropTargetToken = overviewWindow.resolveDropToken(globalPos);
         dragGhost.beginDrag(toplevel, globalPos, sourceSize);
     }
 
     function handleDragMoved(globalPos) {
         overviewWindow.dragPos = globalPos;
+        overviewWindow.dropTargetToken = overviewWindow.resolveDropToken(globalPos);
         dragGhost.moveTo(globalPos);
     }
 
-    // Task 1's own shape: every release cancels — there is no drop-target
-    // resolution or move dispatch yet, only the ghost's own lifecycle.
-    // (Plan 16-06 Task 2 replaces this body with the real hit-test +
-    // dispatch-or-cancel logic; the session-teardown lines below stay
-    // shared via cancelDragSession().)
+    // The eleven {item, token} pairs drop resolution hit-tests against —
+    // built fresh per call rather than cached, since a drag is a rare,
+    // short-lived gesture and this is a plain array of already-existing
+    // item references, not new allocation-heavy work.
+    function dropCandidates() {
+        var list = [];
+        for (var i = 0; i < rowOneRepeater.count; i++)
+            list.push({
+                item: rowOneRepeater.itemAt(i),
+                token: i + 1
+            });
+        for (var i = 0; i < rowTwoRepeater.count; i++)
+            list.push({
+                item: rowTwoRepeater.itemAt(i),
+                token: i + 6
+            });
+        list.push({
+            item: scratchpadTile,
+            token: "special:magic"
+        });
+        return list;
+    }
+
+    // Geometric hit-test against each tile's own real on-screen bounds
+    // (`mapToItem(null, ...)` maps to scene/window coordinates — the SAME
+    // coordinate system `DragHandler.centroid.scenePosition` already uses,
+    // per WindowThumbnail.qml's own dragStarted/dragMoved payloads, so no
+    // further translation is needed here). The 24px gap between tiles
+    // belongs to no tile's bounds — resting there resolves to null, which
+    // is a property of the fixed-slot layout itself, not an arbitration
+    // rule this function has to encode.
+    function resolveDropToken(globalPos) {
+        var candidates = overviewWindow.dropCandidates();
+        for (var i = 0; i < candidates.length; i++) {
+            var tileItem = candidates[i].item;
+            if (!tileItem)
+                continue;
+            var topLeft = tileItem.mapToItem(null, 0, 0);
+            if (globalPos.x >= topLeft.x && globalPos.x < topLeft.x + tileItem.width
+                && globalPos.y >= topLeft.y && globalPos.y < topLeft.y + tileItem.height) {
+                return candidates[i].token;
+            }
+        }
+        return null;
+    }
+
+    // Whether `token` names the workspace `toplevel` is CURRENTLY on — the
+    // same-tile no-op check (dropping a window back where it came from).
+    function tokenMatchesWorkspace(token, workspace) {
+        if (!workspace)
+            return false;
+        if (token === "special:magic")
+            return workspace.name === "special:magic";
+        return workspace.id === token;
+    }
+
+    // 16-05-SUMMARY.md's confirmed root cause: HyprlandToplevel.address
+    // (QML) omits the "0x" prefix hyprctl clients -j's own address field
+    // carries. Normalising here, once, at the one call site that builds a
+    // dispatch string, is what keeps this correct — building the selector
+    // off the raw property anywhere else would silently target nothing
+    // (the exact trap 16-03's own SUMMARY mis-diagnosed before 16-05 found
+    // the real cause).
+    function normalizeAddress(address) {
+        if (!address)
+            return "";
+        return address.indexOf("0x") === 0 ? address : "0x" + address;
+    }
+
+    // T-16-25's mandatory guard: the address must match a strict
+    // hexadecimal shape and the workspace token must be an integer 1-10 or
+    // the exact scratchpad literal — checked here, at dispatch time, not
+    // merely at drag start (T-16-26), so a stale value re-validates at the
+    // moment it is actually used.
+    function isValidWorkspaceToken(token) {
+        if (token === "special:magic")
+            return true;
+        return typeof token === "number" && Number.isInteger(token) && token >= 1 && token <= 10;
+    }
+
+    // The one dispatch call site in this file — 16-SPIKE-FINDINGS.md's
+    // DECISION locked this string verbatim (`window=`, the `address:`
+    // prefix, `follow=false` for D-16-13's silence); this function
+    // implements it exactly, substituting only the two validated values
+    // below. No window title, appId or other client-supplied string is
+    // ever concatenated here (T-16-25) — the only interpolated values are
+    // the shape-checked address and the range-checked workspace token.
+    function dispatchWindowMove(toplevel, token) {
+        var addr = overviewWindow.normalizeAddress(toplevel.address);
+        var addrValid = /^0x[0-9a-fA-F]+$/.test(addr);
+        if (!addrValid || !overviewWindow.isValidWorkspaceToken(token)) {
+            console.warn("overview: refusing drop dispatch — invalid address or workspace token");
+            return false;
+        }
+        var wsLiteral = token === "special:magic" ? "\"special:magic\"" : String(token);
+        var moveExpr = "hl.dsp.window.move({workspace=" + wsLiteral + ", window=\"address:" + addr + "\", follow=false})";
+        Hyprland.dispatch(moveExpr);
+        return true;
+    }
+
+    // A drop on a valid target that is not the source tile moves the
+    // window silently and keeps the overview open (D-16-13) — the ghost
+    // hides immediately, nothing to animate back to. Everything else (no
+    // target, the source tile itself, or a validation failure) cancels at
+    // zero cost (D-16-14): the ghost snaps home and no dispatch happens.
+    // A failed dispatch gets no bespoke error UI (UI-SPEC E6 "error") — the
+    // grid is a live projection of Hyprland's own event stream, so a
+    // failed move simply never produces a move event and the window stays
+    // where it was; reusing the cancel path here is what makes that
+    // failure read as a deliberate rejection rather than a dropped input.
     function handleDragEnded(globalPos) {
-        overviewWindow.cancelDragSession();
+        var toplevel = overviewWindow.dragToplevel;
+        var token = overviewWindow.resolveDropToken(globalPos);
+        var isSourceTile = token !== null && toplevel && overviewWindow.tokenMatchesWorkspace(token, toplevel.workspace);
+
+        if (token !== null && !isSourceTile && toplevel && overviewWindow.dispatchWindowMove(toplevel, token)) {
+            dragGhost.completeDrag();
+            overviewWindow.dragActive = false;
+            overviewWindow.dragToplevel = null;
+            overviewWindow.dropTargetToken = null;
+        } else {
+            overviewWindow.cancelDragSession();
+        }
     }
 
     function cancelDragSession() {
         dragGhost.cancelDrag();
         overviewWindow.dragActive = false;
         overviewWindow.dragToplevel = null;
+        overviewWindow.dropTargetToken = null;
     }
 
     // ── Mid-drag destruction guard (16-RESEARCH.md Open Question 4) ──────

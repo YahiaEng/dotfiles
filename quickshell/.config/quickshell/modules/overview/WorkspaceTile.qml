@@ -88,13 +88,40 @@ Item {
     // two never disagree.
     readonly property bool occupied: windowRepeater.count > 0
 
+    // D-16-14 (Phase 16 Plan 06 Task 2): true for the ONE tile the cursor is
+    // currently over during a drag, driven by Overview.qml — this tile
+    // never decides for itself, it only renders whatever Overview.qml's
+    // own single hit-test result says. The primary role is reserved for
+    // this and nothing else in this surface (16-UI-SPEC.md "Color").
+    property bool dropTargetActive: false
+
     Rectangle {
         id: background
         anchors.fill: parent
         radius: root.tileRadius
-        color: root.occupied ? Colours.surface : Colours.surfaceVariant
+        // Same lit-tile treatment QuickToggles.qml's ToggleChip already
+        // ships (fill shifts to Colours.primary, Behavior on the standard
+        // motion pair) — reused verbatim rather than a second idiom
+        // invented for drags (D-16-14/D-26).
+        color: root.dropTargetActive ? Colours.primary : (root.occupied ? Colours.surface : Colours.surfaceVariant)
         border.width: Design.borderWidth
-        border.color: root.isScratchpad ? Colours.tertiary : Colours.outline
+        border.color: root.dropTargetActive ? Colours.primary : (root.isScratchpad ? Colours.tertiary : Colours.outline)
+        Behavior on color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
+        Behavior on border.color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
     }
 
     // Whole-tile click target BEHIND the thumbnails (D-16-20's "click a
