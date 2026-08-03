@@ -1,0 +1,22 @@
+{
+"_provenance": "Derived from compliant-overview-layers.json with exactly one defect: the quickshell-overview surface is owned by pid 999999, which the self-test caller's declared shell_pids (\"424242\", the same value used for the compliant fixture) does not include — simulating a rogue or leftover process somehow claiming the shell's own reserved namespace. Target check: overview-namespace-conformance. Expected verdict: FAIL (wrong-pid count 1).",
+"DP-1": {
+    "levels": {
+        "0": [],
+        "1": [],
+        "2": [],
+        "3": [
+                {
+                    "address": "0x55ddad212cf0",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "quickshell-overview",
+                    "pid": 999999
+                }
+        ]
+    }
+}
+}

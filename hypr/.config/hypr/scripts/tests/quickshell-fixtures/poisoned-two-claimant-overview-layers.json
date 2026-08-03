@@ -1,0 +1,32 @@
+{
+"_provenance": "Derived from compliant-overview-layers.json with exactly one defect: TWO surfaces both claim the quickshell-overview namespace at level 3 simultaneously (pids 424242 and 555555) — the exact second-claimant condition this check exists to catch (e.g. a stale surface that failed to tear down on dismiss, plus a freshly-summoned one). Target check: overview-namespace-conformance. Expected verdict: FAIL (count 2, exceeds the at-most-one ceiling).",
+"DP-1": {
+    "levels": {
+        "0": [],
+        "1": [],
+        "2": [],
+        "3": [
+                {
+                    "address": "0x55ddad212cf0",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "quickshell-overview",
+                    "pid": 424242
+                },
+                {
+                    "address": "0x55ddad9999aa",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "quickshell-overview",
+                    "pid": 555555
+                }
+        ]
+    }
+}
+}

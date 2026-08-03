@@ -1,0 +1,22 @@
+{
+"_provenance": "Derived from compliant-overview-layers.json with exactly one defect: the quickshell-overview surface sits at level 1 (bottom) instead of level 3 (overlay) — the same off-level defect class poisoned-offlevel-panel-layers.json proves for the panel family, applied here to the overview's own dedicated namespace. Target check: overview-namespace-conformance. Expected verdict: FAIL (off-level count 1).",
+"DP-1": {
+    "levels": {
+        "0": [],
+        "1": [
+                {
+                    "address": "0x55ddad212cf0",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "quickshell-overview",
+                    "pid": 424242
+                }
+        ],
+        "2": [],
+        "3": []
+    }
+}
+}

@@ -1,0 +1,1 @@
+active=true tiles=11 windows=3 withContent=0

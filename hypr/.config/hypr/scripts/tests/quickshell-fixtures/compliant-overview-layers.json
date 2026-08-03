@@ -1,0 +1,22 @@
+{
+"_provenance": "Synthetic fixture (Phase 16 Plan 04, D-16-23 check 1) modelled directly on the real compliant-panel-layers.json shape (Phase 15 Plan 09) — one quickshell-overview surface at level 3 (overlay), single claimant, pid 424242. _qsd_assert_overview_namespace takes its expected shell-pid list as an explicit parameter (not live pgrep), so this fixture's verdict never depends on which quickshell process happens to be running when --self-test executes — the self-test caller passes shell_pids=\"424242\" to match. Target check: overview-namespace-conformance. Expected verdict: PASS.",
+"DP-1": {
+    "levels": {
+        "0": [],
+        "1": [],
+        "2": [],
+        "3": [
+                {
+                    "address": "0x55ddad212cf0",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "quickshell-overview",
+                    "pid": 424242
+                }
+        ]
+    }
+}
+}

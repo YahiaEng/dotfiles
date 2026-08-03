@@ -1,0 +1,20 @@
+[
+  {
+    "appid": "quickshell",
+    "name": "probe",
+    "chord": { "mods": "SUPER SHIFT", "key": "G" },
+    "description": "Summon the Quickshell instrumentation probe (QS-02 viability gate)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "dashboard",
+    "chord": { "mods": "SUPER", "key": "D" },
+    "description": "Summon the dashboard drawer (DASH-01)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "bad name; rm -rf",
+    "chord": { "mods": "SUPER", "key": "O" },
+    "description": "POISON (D-16-23 check 3): a manifest entry whose name field fails _qsd_valid_token's strict [A-Za-z0-9_-]+ allowlist — proves reserved-array-manifest-coverage catches an entry that would otherwise silently fall out of the summon-and-diff (the real production loop's _qsd_valid_token guard would `continue` past it without ever diffing it)."
+  }
+]

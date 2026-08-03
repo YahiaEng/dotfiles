@@ -1,0 +1,20 @@
+[
+  {
+    "appid": "quickshell",
+    "name": "probe",
+    "chord": { "mods": "SUPER SHIFT", "key": "G" },
+    "description": "Summon the Quickshell instrumentation probe (QS-02 viability gate)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "dashboard",
+    "chord": { "mods": "SUPER", "key": "D" },
+    "description": "Summon the dashboard drawer (DASH-01)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "overview",
+    "chord": { "mods": "SUPER", "key": "O" },
+    "description": "Summon the workspace overview (OVER-01)"
+  }
+]

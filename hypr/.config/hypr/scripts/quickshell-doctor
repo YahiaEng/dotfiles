@@ -73,12 +73,25 @@
 #   live path: unset, every seam reads live state, and a plain invocation
 #   performs zero fixture reads. Only --self-test ever sets one, and it
 #   sets exactly one per replay.
+#
+#   D-16-23 (Phase 16 Plan 04): seven more checks land — overview namespace
+#   conformance, Super+O single registration, reserved-array manifest
+#   coverage (all three reuse the D-15-25 seams above, no new variable
+#   needed), plus four genuinely new seams:
+#   QSD_FIXTURE_HYPRCTL_GETOPTION (ecosystem:enforce_permissions runtime
+#   readback), QSD_FIXTURE_PERMISSIONS_LUA (the allow-list file),
+#   QSD_FIXTURE_OVERVIEW_STATUS (the `overview` IPC status verb's output),
+#   and QSD_FIXTURE_OVERVIEW_QML_DIR (the single-capture-path source scan
+#   root). Same two discipline rules as D-15-25's seams: a variable naming
+#   a nonexistent path is a hard FATAL, and none of the four is ever
+#   consulted on the live path unless explicitly set.
 
 set -uo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 SHORTCUTS_MANIFEST="$HOME/.config/quickshell/shortcuts.json"
 KEYBINDS_LUA="$HOME/.config/hypr/config/keybinds.lua"
+PERMISSIONS_LUA="$HOME/.config/hypr/config/permissions.lua"
 QUICKSHELL_CONFIG_DIR="$HOME/.config/quickshell"
 LAUNCHER_LOG="$HOME/.cache/quickshell.log"
 STATE_DIR="$HOME/.local/state/quickshell"
@@ -106,7 +119,7 @@ done
 # shell profile, CI environment, or copied invocation that names a
 # nonexistent path is a hard error before this script does anything
 # else, never a silent fall-through to live (T-15-08).
-for _qsd_fv in QSD_FIXTURE_BUSCTL_LIST QSD_FIXTURE_HYPRCTL_BINDS QSD_FIXTURE_LAYERS_JSON QSD_FIXTURE_SHORTCUTS_MANIFEST QSD_FIXTURE_KEYBINDS_LUA; do
+for _qsd_fv in QSD_FIXTURE_BUSCTL_LIST QSD_FIXTURE_HYPRCTL_BINDS QSD_FIXTURE_LAYERS_JSON QSD_FIXTURE_SHORTCUTS_MANIFEST QSD_FIXTURE_KEYBINDS_LUA QSD_FIXTURE_HYPRCTL_GETOPTION QSD_FIXTURE_PERMISSIONS_LUA QSD_FIXTURE_OVERVIEW_STATUS; do
     _qsd_fv_val="${!_qsd_fv:-}"
     if [[ -n "$_qsd_fv_val" && ! -f "$_qsd_fv_val" ]]; then
         echo "FATAL: $_qsd_fv names a nonexistent file: $_qsd_fv_val" >&2
@@ -115,6 +128,10 @@ for _qsd_fv in QSD_FIXTURE_BUSCTL_LIST QSD_FIXTURE_HYPRCTL_BINDS QSD_FIXTURE_LAY
 done
 if [[ -n "${QSD_FIXTURE_PANEL_QML_DIR:-}" && ! -d "$QSD_FIXTURE_PANEL_QML_DIR" ]]; then
     echo "FATAL: QSD_FIXTURE_PANEL_QML_DIR names a nonexistent directory: $QSD_FIXTURE_PANEL_QML_DIR" >&2
+    exit 1
+fi
+if [[ -n "${QSD_FIXTURE_OVERVIEW_QML_DIR:-}" && ! -d "$QSD_FIXTURE_OVERVIEW_QML_DIR" ]]; then
+    echo "FATAL: QSD_FIXTURE_OVERVIEW_QML_DIR names a nonexistent directory: $QSD_FIXTURE_OVERVIEW_QML_DIR" >&2
     exit 1
 fi
 unset _qsd_fv _qsd_fv_val
@@ -298,6 +315,46 @@ _qsd_keybinds_lua_path() {
     printf '%s' "$KEYBINDS_LUA"
 }
 
+# ── D-16-23 seam layer (T-15-08 discipline, extended) — four genuinely new
+#    seams. The other three D-16-23 checks (overview namespace, Super+O
+#    registration, reserved-array manifest coverage) reuse the D-15-25
+#    seams already above — no new variable for those three.
+_qsd_hyprctl_getoption_enforce() {
+    if [[ -n "${QSD_FIXTURE_HYPRCTL_GETOPTION:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_HYPRCTL_GETOPTION" ]] || { echo "FATAL: QSD_FIXTURE_HYPRCTL_GETOPTION names a nonexistent file: $QSD_FIXTURE_HYPRCTL_GETOPTION" >&2; exit 1; }
+        cat -- "$QSD_FIXTURE_HYPRCTL_GETOPTION"
+        return
+    fi
+    hyprctl getoption ecosystem:enforce_permissions 2>/dev/null
+}
+
+_qsd_permissions_lua_path() {
+    if [[ -n "${QSD_FIXTURE_PERMISSIONS_LUA:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_PERMISSIONS_LUA" ]] || { echo "FATAL: QSD_FIXTURE_PERMISSIONS_LUA names a nonexistent file: $QSD_FIXTURE_PERMISSIONS_LUA" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_PERMISSIONS_LUA"
+        return
+    fi
+    printf '%s' "$PERMISSIONS_LUA"
+}
+
+_qsd_overview_status() {
+    if [[ -n "${QSD_FIXTURE_OVERVIEW_STATUS:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_OVERVIEW_STATUS" ]] || { echo "FATAL: QSD_FIXTURE_OVERVIEW_STATUS names a nonexistent file: $QSD_FIXTURE_OVERVIEW_STATUS" >&2; exit 1; }
+        cat -- "$QSD_FIXTURE_OVERVIEW_STATUS"
+        return
+    fi
+    qs ipc call overview status 2>/dev/null
+}
+
+_qsd_overview_qml_dir() {
+    if [[ -n "${QSD_FIXTURE_OVERVIEW_QML_DIR:-}" ]]; then
+        [[ -d "$QSD_FIXTURE_OVERVIEW_QML_DIR" ]] || { echo "FATAL: QSD_FIXTURE_OVERVIEW_QML_DIR names a nonexistent directory: $QSD_FIXTURE_OVERVIEW_QML_DIR" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_OVERVIEW_QML_DIR"
+        return
+    fi
+    printf '%s' "$QUICKSHELL_CONFIG_DIR/modules/overview"
+}
+
 # ── D-15-25 identity-model functions ────────────────────────────────────
 # _qsd_name_owner_rows — the single reader for the name-owner variant.
 # Filters _qsd_busctl_list's output to the named bus, emits matching rows.
@@ -442,10 +499,29 @@ _qsd_panel_layer_rows() {
 # given and expected_count is 1) that the one surviving namespace is
 # expected_ns. Prints a one-line "count=.. off-level=.. wrong-pid=..
 # unknown-ns=.." report and returns 0/1.
+#
+# T-16-SELFTEST (Rule 3, found and fixed live while executing Phase 16
+# Plan 04's own D-16-23 checks — a genuine pre-existing bug, not caused by
+# this plan's changes, but one that blocked this plan's own --self-test
+# exit-0 acceptance criterion, so it is fixed here rather than only
+# logged): the 4th parameter is an OPTIONAL explicit shell-pid override.
+# Live call sites (below) never pass it, so behaviour there is unchanged —
+# real live pgrep output. --self-test's own replay (further down) now
+# passes the fixed pid baked into all four compliant/poisoned
+# *-panel-layers.json fixtures (2982672) instead of comparing against
+# whatever quickshell process happens to be running when --self-test
+# executes, which is what made the compliant fixture spuriously report
+# wrong-pid=1 and FAIL self-test on every host except the one it was
+# captured on.
 _qsd_assert_panel_layers() {
-    local json="$1" expected_count="$2" expected_ns="${3:-}"
+    local json="$1" expected_count="$2" expected_ns="${3:-}" shell_pids_override="${4:-}"
     local lvl ns pid total=0 off_level=0 wrong_pid=0 unknown_ns=0 last_ns=""
-    local shell_pids=" $(pgrep -f 'quickshell -p' | tr '\n' ' ') "
+    local shell_pids
+    if [[ -n "$shell_pids_override" ]]; then
+        shell_pids=" $shell_pids_override "
+    else
+        shell_pids=" $(pgrep -f 'quickshell -p' | tr '\n' ' ') "
+    fi
     while IFS=$'\t' read -r lvl ns pid; do
         [[ -z "$lvl" ]] && continue
         total=$((total + 1))
@@ -680,6 +756,270 @@ _qsd_check_panel_swayosd_key_ownership() {
     check "panel-swayosd-key-ownership (D-15-24, proven differentially): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
 }
 
+# ── D-16-23 (Phase 16 Plan 04) check bodies — seven checks closing the two
+#    risks this phase's ROADMAP entry owns: the permission silent-revert
+#    (checks 4/5) and the blank-tile failure (check 6), plus three more
+#    (checks 1/2/3 reuse-and-extend existing coexistence checks) and one
+#    deliberate addition beyond D-16-23's own six (check 7, the
+#    assumption-delta promotion recorded in 16-04-PLAN.md). Defined here —
+#    after the D-15-25 panel checks, before --self-test — so --self-test
+#    can call the pure assertion helpers directly without ever touching
+#    the trap/mutating groups below.
+
+# ── check 1: overview-namespace-conformance ─────────────────────────────
+# Distinct from check 4 (namespace discipline, family-wide): that check
+# asserts the ^quickshell-.* family rule; this one names quickshell-overview
+# specifically and its own second-claimant condition. shell_pids is an
+# explicit parameter (never live pgrep inside the assertion itself) so a
+# --self-test replay's verdict never depends on which quickshell process
+# happens to be running when the fixture was authored vs. when it is
+# replayed — the live call site below passes real pgrep output; --self-test
+# passes a fixed sentinel that matches (or deliberately does not match)
+# each fixture's own baked-in pid.
+_qsd_overview_namespace_rows() {
+    printf '%s' "$1" | jq -r '
+        .[]? | .levels? // {} | to_entries[] | .key as $lvl | .value[]?
+        | select(.namespace == "quickshell-overview")
+        | [$lvl, .namespace, .pid] | @tsv
+    ' 2>/dev/null
+}
+
+_qsd_assert_overview_namespace() {
+    local json="$1" shell_pids="$2"
+    local lvl ns pid count=0 off_level=0 wrong_pid=0
+    while IFS=$'\t' read -r lvl ns pid; do
+        [[ -z "$lvl" ]] && continue
+        count=$((count + 1))
+        [[ "$lvl" != "3" ]] && off_level=$((off_level + 1))
+        case " $shell_pids " in
+            *" $pid "*) ;;
+            *) wrong_pid=$((wrong_pid + 1)) ;;
+        esac
+    done < <(_qsd_overview_namespace_rows "$json")
+    printf 'count=%s off-level=%s wrong-pid=%s' "$count" "$off_level" "$wrong_pid"
+    [[ "$count" -le 1 && "$off_level" -eq 0 && "$wrong_pid" -eq 0 ]]
+}
+
+_qsd_check_overview_namespace_conformance() {
+    if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        echo "  [SKIP] overview-namespace-conformance (D-16-23 check 1): hyprctl or jq not found"
+        return
+    fi
+    local shell_pids res rc
+    shell_pids="$(pgrep -f 'quickshell -p' | tr '\n' ' ')"
+    res=$(_qsd_assert_overview_namespace "$(_qsd_layers_json)" "$shell_pids"); rc=$?
+    check "overview-namespace-conformance (D-16-23 check 1, names quickshell-overview specifically — distinct from the family-wide namespace discipline check above): ${res}" "$rc"
+}
+
+# ── check 2: overview-shortcut-single-registration ──────────────────────
+# Delegates to keybind-doctor (MAINT-01's own bind-collision proof) and
+# additionally asserts hyprctl globalshortcuts carries quickshell:overview
+# exactly once — a second registration is the exact collision class
+# MAINT-01's detector exists for, and Phases 14 and 16 each added a chord.
+_qsd_check_overview_shortcut_single_registration() {
+    if ! command -v jq >/dev/null 2>&1 || ! command -v hyprctl >/dev/null 2>&1; then
+        echo "  [SKIP] overview-shortcut-single-registration (D-16-23 check 2): jq or hyprctl not found"
+        return
+    fi
+    local manifest keybinds kbd_out kbd_rc manifest_count=0 global_count=0
+    manifest=$(_qsd_shortcuts_manifest_path)
+    keybinds=$(_qsd_keybinds_lua_path)
+    if [[ -x "$KEYBIND_DOCTOR" ]]; then
+        kbd_out=$("$KEYBIND_DOCTOR" "$keybinds" "$manifest" 2>&1)
+        kbd_rc=$?
+    else
+        kbd_out="keybind-doctor not found or not executable at $KEYBIND_DOCTOR"
+        kbd_rc=1
+    fi
+    if [[ -f "$manifest" ]]; then
+        manifest_count=$(jq -r '[.[] | select(.name=="overview")] | length' "$manifest" 2>/dev/null)
+        [[ -z "$manifest_count" ]] && manifest_count=0
+    fi
+    global_count=$(hyprctl globalshortcuts 2>/dev/null | grep -c '^quickshell:overview ->')
+    local ok=0
+    [[ "$manifest_count" -eq 1 && "$global_count" -eq 1 && "$kbd_rc" -eq 0 ]] || ok=1
+    check "overview-shortcut-single-registration (D-16-23 check 2, MAINT-01/keybind-doctor delegate): overview registered manifest=${manifest_count} globalshortcuts=${global_count} times (both must be 1), keybind-doctor exit=${kbd_rc}" "$ok"
+    if [[ "$kbd_rc" -ne 0 ]]; then
+        printf '%s\n' "$kbd_out" | tail -8 | sed 's/^/    /' >&2
+    fi
+}
+
+# ── check 3: reserved-array-manifest-coverage ───────────────────────────
+# The existing reserved-space summon-and-diff (check 5, above) already
+# iterates every shortcuts.json entry, so the overview's fifth manifest
+# entry is already in scope. This is the explicit structural guard that a
+# future manifest entry cannot silently fall out of that iteration: every
+# entry must pass the same _qsd_valid_token allowlist the live summon-and-
+# diff loop itself gates on before dispatching. Non-invasive (parses the
+# manifest only, no summon), so it runs unconditionally, not gated behind
+# --no-summon.
+_qsd_assert_manifest_coverage() {
+    local manifest="$1"
+    local total valid=0 m_appid m_name
+    total=$(jq -r 'length' "$manifest" 2>/dev/null)
+    [[ -z "$total" || "$total" == "null" ]] && total=0
+    while IFS="$US" read -r m_appid m_name; do
+        [[ -z "$m_appid" && -z "$m_name" ]] && continue
+        if _qsd_valid_token "$m_appid" && _qsd_valid_token "$m_name"; then
+            valid=$((valid + 1))
+        fi
+    done < <(jq -r --arg us "$US" '.[] | [(.appid // ""), (.name // "")] | join($us)' "$manifest" 2>/dev/null)
+    printf 'manifest-entries=%s validated=%s' "$total" "$valid"
+    [[ "$total" -gt 0 && "$valid" -eq "$total" ]]
+}
+
+_qsd_check_reserved_array_manifest_coverage() {
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "  [SKIP] reserved-array-manifest-coverage (D-16-23 check 3): jq not found"
+        return
+    fi
+    local manifest res rc
+    manifest=$(_qsd_shortcuts_manifest_path)
+    if [[ ! -f "$manifest" ]]; then
+        echo "  [SKIP] reserved-array-manifest-coverage (D-16-23 check 3): manifest not found ($manifest)"
+        return
+    fi
+    res=$(_qsd_assert_manifest_coverage "$manifest"); rc=$?
+    check "reserved-array-manifest-coverage (D-16-23 check 3, extends check 5's summon-and-diff): every manifest entry passes the same _qsd_valid_token allowlist check 5's dispatch loop gates on, so none can silently fall out of the diff — ${res}" "$rc"
+}
+
+# ── check 4: permissions-enforce-readback ───────────────────────────────
+# Guards D-16-09 against silent revert. ecosystem:enforce_permissions is
+# read ONCE at compositor startup and its failure mode is silence — reading
+# permissions.lua's own text is not evidence of anything at runtime, only
+# this readback is.
+_qsd_assert_enforce_permissions() {
+    printf '%s' "$1" | grep -qE '^bool:[[:space:]]*true[[:space:]]*$'
+}
+
+_qsd_check_permissions_enforce_readback() {
+    if ! command -v hyprctl >/dev/null 2>&1; then
+        echo "  [SKIP] permissions-enforce-readback (D-16-23 check 4): hyprctl not found"
+        return
+    fi
+    local raw rc
+    raw=$(_qsd_hyprctl_getoption_enforce)
+    _qsd_assert_enforce_permissions "$raw"
+    rc=$?
+    check "permissions-enforce-readback (D-16-23 check 4, guards D-16-09 against silent revert): hyprctl getoption ecosystem:enforce_permissions reports true at runtime (raw: $(printf '%s' "$raw" | tr '\n' ' '))" "$rc"
+}
+
+# ── check 5: permissions-allowlist-paths-resolve ────────────────────────
+# A package update moving grim or the portal binary breaks screenshots
+# under enforcement with no warning until a key is pressed. Also
+# mechanically asserts the T-11-20 discipline (no glob/alternation
+# metacharacter in any grant) rather than trusting it to review.
+_qsd_assert_permissions_allowlist() {
+    local file="$1" p total=0 missing=0 nonexec=0 pattern=0
+    while IFS= read -r p; do
+        [[ -z "$p" ]] && continue
+        total=$((total + 1))
+        case "$p" in
+            *['*?[|']*) pattern=$((pattern + 1)) ;;
+        esac
+        if [[ ! -e "$p" ]]; then
+            missing=$((missing + 1))
+        elif [[ ! -x "$p" ]]; then
+            nonexec=$((nonexec + 1))
+        fi
+    done < <(grep -oP 'binary\s*=\s*"\K[^"]+' -- "$file" 2>/dev/null)
+    printf 'grants=%s missing=%s non-executable=%s pattern=%s' "$total" "$missing" "$nonexec" "$pattern"
+    [[ "$total" -gt 0 && "$missing" -eq 0 && "$nonexec" -eq 0 && "$pattern" -eq 0 ]]
+}
+
+_qsd_check_permissions_allowlist_paths_resolve() {
+    local file res rc
+    file=$(_qsd_permissions_lua_path)
+    if [[ ! -f "$file" ]]; then
+        echo "  [SKIP] permissions-allowlist-paths-resolve (D-16-23 check 5): $file not found"
+        return
+    fi
+    res=$(_qsd_assert_permissions_allowlist "$file"); rc=$?
+    check "permissions-allowlist-paths-resolve (D-16-23 check 5, T-16-15/T-16-16 mitigation): every granted binary path resolves on disk, is executable, and uses no glob/alternation metacharacter (T-11-20) — ${res}" "$rc"
+}
+
+# ── check 6: overview-content-check ──────────────────────────────────────
+# D-16-10's whole-grid catch made machine-detectable: summons the overview,
+# reads the `overview` IPC status verb, requires withContent > 0 whenever
+# windows > 0 (never a tile-count assertion — D-16-01's count is fixed
+# elsewhere and this check must keep working as plan 16-03 lands eleven
+# tiles), then dismisses.
+#
+# Honest caveat (D-16-23, carried verbatim from 16-CONTEXT.md): the natural
+# poison — removing quickshell from the allow list — needs a compositor
+# restart, so it cannot be reproduced by a fixture. The practical
+# falsification committed here is a poisoned overview-status fixture
+# reporting windows>0 with withContent=0 (the exact false-pass shape
+# 16-02-SUMMARY.md's own history warns this check must catch — a bare
+# non-zero windows count is NOT sufficient). Separately, and consistent
+# with the same honest caveat: running this exact assertion against a
+# genuinely NOT-summoned overview (windows=0) is vacuously true by design
+# — the assertion is a conditional ("whenever windows>0"), not an
+# unconditional "must always have content" — so that path is not itself a
+# failure demonstration; the poisoned-blank-tiles fixture is.
+_qsd_assert_overview_content() {
+    local raw="$1" windows withcontent
+    windows=$(printf '%s' "$raw" | grep -oP 'windows=\K[0-9]+' | head -1)
+    withcontent=$(printf '%s' "$raw" | grep -oP 'withContent=\K[0-9]+' | head -1)
+    if [[ -z "$windows" || -z "$withcontent" ]]; then
+        printf 'windows=<unparsed> withContent=<unparsed>'
+        return 1
+    fi
+    printf 'windows=%s withContent=%s' "$windows" "$withcontent"
+    if [[ "$windows" -gt 0 ]]; then
+        [[ "$withcontent" -gt 0 ]]
+    else
+        return 0
+    fi
+}
+
+_qsd_check_overview_content() {
+    if ! command -v qs >/dev/null 2>&1; then
+        echo "  [SKIP] overview-content-check (D-16-23 check 6): qs not found"
+        return
+    fi
+    local raw report rc
+    qs ipc call overview toggle >/dev/null 2>&1
+    OVERVIEW_SUMMONED=1
+    sleep 0.4
+    raw=$(_qsd_overview_status)
+    report=$(_qsd_assert_overview_content "$raw"); rc=$?
+    qs ipc call overview toggle >/dev/null 2>&1
+    OVERVIEW_SUMMONED=0
+    sleep 0.2
+    check "overview-content-check (D-16-23 check 6, D-16-10's whole-grid catch): ${report} (raw='$(printf '%s' "$raw" | tr '\n' ' ')'). Honest caveat: the natural poison (removing quickshell from the allow list) needs a compositor restart; the practical falsification is the committed poisoned-blank-tiles-overview-status.txt fixture (windows>0, withContent=0), replayed by --self-test." "$rc"
+}
+
+# ── check 7: single-capture-path ─────────────────────────────────────────
+# Beyond D-16-23's own six, made deliberately and recorded as such (see
+# 16-04-SUMMARY.md): asserts the screencopy view type is instantiated in
+# exactly one file under modules/overview/, encoding the 16-03 assumption-
+# delta promotion (WindowThumbnail.qml is the ONLY ScreencopyView site) as
+# a standing gate rather than a convention a later plan can silently break
+# by forking the renderer.
+_qsd_assert_single_capture_path() {
+    local dir="$1" f matches=0 names=""
+    while IFS= read -r f; do
+        if grep -vE '^\s*//' -- "$f" 2>/dev/null | grep -qE 'ScreencopyView[[:space:]]*\{'; then
+            matches=$((matches + 1))
+            names="${names}$(basename -- "$f") "
+        fi
+    done < <(find -L "$dir" -maxdepth 1 -type f -name '*.qml' 2>/dev/null)
+    printf 'files-instantiating-ScreencopyView=%s (%s)' "$matches" "${names:-none}"
+    [[ "$matches" -eq 1 ]]
+}
+
+_qsd_check_single_capture_path() {
+    local dir res rc
+    dir=$(_qsd_overview_qml_dir)
+    if [[ ! -d "$dir" ]]; then
+        echo "  [SKIP] single-capture-path (D-16-23 check 7): $dir not found"
+        return
+    fi
+    res=$(_qsd_assert_single_capture_path "$dir"); rc=$?
+    check "single-capture-path (D-16-23 check 7, assumption-delta promotion beyond D-16-23's own six): exactly one ScreencopyView instantiation site under modules/overview/ — ${res}" "$rc"
+}
+
 # ── D-15-25 --self-test — motion-lint's own fixture-replay shape
 #    (tests/motion-fixtures, lines 1009-1090), adapted for a LIVE
 #    observation gate rather than a static-scan one: each entry drives the
@@ -696,7 +1036,11 @@ _qsd_self_test_assert_layers() {
     local fixture="$1" expect_nonzero="$2" want_count="$3" want_ns="${4:-}"
     local json rc
     json=$(cat -- "$FIXTURES_DIR/$fixture")
-    _qsd_assert_panel_layers "$json" "$want_count" "$want_ns" >/dev/null 2>&1
+    # T-16-SELFTEST: pass the fixed pid (2982672) baked into all four
+    # compliant/poisoned *-panel-layers.json fixtures, rather than letting
+    # _qsd_assert_panel_layers fall back to live pgrep — see that
+    # function's own header comment for the full record-why.
+    _qsd_assert_panel_layers "$json" "$want_count" "$want_ns" "2982672" >/dev/null 2>&1
     rc=$?
     if [[ "$expect_nonzero" == "0" && "$rc" -eq 0 ]]; then return 0; fi
     if [[ "$expect_nonzero" == "1" && "$rc" -ne 0 ]]; then return 0; fi
@@ -811,6 +1155,108 @@ run_self_test() {
     rc=$?
     _qsd_st "deliberate client-consumer/name-owner collision -> structural guard FAILS (bad=1 when PipeWire is placed in both registries)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
 
+    # ── D-16-23 (Phase 16 Plan 04) — seven new checks, each fixture-proven
+    #    able to fail before being trusted to pass.
+
+    # check 1: overview-namespace-conformance (4 fixtures). shell_pids is a
+    # fixed sentinel ("424242") shared by every fixture's own baked-in pid
+    # — never live pgrep — so the verdict cannot depend on which quickshell
+    # process happens to be running when --self-test executes.
+    local json
+    json=$(cat -- "$FIXTURES_DIR/compliant-overview-layers.json")
+    _qsd_assert_overview_namespace "$json" "424242" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "compliant-overview-layers.json -> overview-namespace-conformance (D-16-23 check 1: the overview namespace names quickshell-overview specifically) PASSES (one claimant, level 3, matching pid)" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    json=$(cat -- "$FIXTURES_DIR/poisoned-offlevel-overview-layers.json")
+    _qsd_assert_overview_namespace "$json" "424242" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "poisoned-offlevel-overview-layers.json -> overview-namespace-conformance FAILS (namespace off the overlay level)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+    json=$(cat -- "$FIXTURES_DIR/poisoned-two-claimant-overview-layers.json")
+    _qsd_assert_overview_namespace "$json" "424242 555555" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "poisoned-two-claimant-overview-layers.json -> overview-namespace-conformance FAILS (two surfaces claim the namespace at once)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+    json=$(cat -- "$FIXTURES_DIR/poisoned-wrongpid-overview-layers.json")
+    _qsd_assert_overview_namespace "$json" "424242" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "poisoned-wrongpid-overview-layers.json -> overview-namespace-conformance FAILS (namespace owned by a pid outside the declared shell-pid set)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+
+    # check 2: overview-shortcut-single-registration (4 fixtures: 2 manifest
+    # half, 2 keybind-doctor half — same shape as panel-shortcut-single-
+    # registration's own self-test above).
+    local mc
+    mc=$(jq -r '[.[] | select(.name=="overview")] | length' "$FIXTURES_DIR/compliant-overview-shortcuts.json" 2>/dev/null)
+    _qsd_st "compliant-overview-shortcuts.json -> overview-shortcut-single-registration PASSES (overview appears once, manifest half)" "$([[ "$mc" == "1" ]] && echo 0 || echo 1)"
+    mc=$(jq -r '[.[] | select(.name=="overview")] | length' "$FIXTURES_DIR/poisoned-duplicate-overview-shortcuts.json" 2>/dev/null)
+    _qsd_st "poisoned-duplicate-overview-shortcuts.json -> overview-shortcut-single-registration FAILS (overview declared twice)" "$([[ "$mc" != "1" ]] && echo 0 || echo 1)"
+    "$KEYBIND_DOCTOR" "$FIXTURES_DIR/compliant-overview-keybinds.lua" "$SHORTCUTS_MANIFEST" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "compliant-overview-keybinds.lua -> keybind-doctor's static chord-collision check clean (exit ${rc})" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    "$KEYBIND_DOCTOR" "$FIXTURES_DIR/poisoned-collision-overview-keybinds.lua" "$SHORTCUTS_MANIFEST" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "poisoned-collision-overview-keybinds.lua -> keybind-doctor's static chord-collision check FAILS (a second bind claims the Super+O chord, exit ${rc})" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+
+    # check 3: reserved-array-manifest-coverage (2 fixtures — reuses the
+    # existing compliant-shortcuts.json as its clean counterpart).
+    local res
+    res=$(_qsd_assert_manifest_coverage "$FIXTURES_DIR/compliant-shortcuts.json")
+    rc=$?
+    _qsd_st "compliant-shortcuts.json -> reserved-array-manifest-coverage PASSES (${res})" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    res=$(_qsd_assert_manifest_coverage "$FIXTURES_DIR/poisoned-invalid-token-shortcuts.json")
+    rc=$?
+    _qsd_st "poisoned-invalid-token-shortcuts.json -> reserved-array-manifest-coverage FAILS (${res}, an entry fails _qsd_valid_token and would silently fall out of the diff)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+
+    # check 4: permissions-enforce-readback (2 fixtures).
+    local raw
+    raw=$(cat -- "$FIXTURES_DIR/compliant-hyprctl-getoption-enforce.txt")
+    _qsd_assert_enforce_permissions "$raw"
+    rc=$?
+    _qsd_st "compliant-hyprctl-getoption-enforce.txt -> permissions-enforce-readback (D-16-23 check 4: hyprctl getoption ecosystem:enforce_permissions runtime readback) PASSES (bool: true)" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    raw=$(cat -- "$FIXTURES_DIR/poisoned-hyprctl-getoption-enforce.txt")
+    _qsd_assert_enforce_permissions "$raw"
+    rc=$?
+    _qsd_st "poisoned-hyprctl-getoption-enforce.txt -> permissions-enforce-readback FAILS (bool: false — the exact silent-revert D-16-09 guards against)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+
+    # check 5: permissions-allowlist-paths-resolve (3 fixtures).
+    res=$(_qsd_assert_permissions_allowlist "$FIXTURES_DIR/compliant-permissions.lua")
+    rc=$?
+    _qsd_st "compliant-permissions.lua -> permissions-allowlist-paths-resolve (D-16-23 check 5: every allow-listed screencopy binary path resolves on disk) PASSES (${res})" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    res=$(_qsd_assert_permissions_allowlist "$FIXTURES_DIR/poisoned-missing-binary-permissions.lua")
+    rc=$?
+    _qsd_st "poisoned-missing-binary-permissions.lua -> permissions-allowlist-paths-resolve FAILS (${res})" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+    res=$(_qsd_assert_permissions_allowlist "$FIXTURES_DIR/poisoned-pattern-binary-permissions.lua")
+    rc=$?
+    _qsd_st "poisoned-pattern-binary-permissions.lua -> permissions-allowlist-paths-resolve FAILS (${res}, T-11-20 alternation discipline)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+
+    # check 6: overview-content-check (2 fixtures — the practical
+    # falsification the honest caveat names: a poisoned status report
+    # showing real windows but zero painted content).
+    raw=$(cat -- "$FIXTURES_DIR/compliant-overview-status.txt")
+    _qsd_assert_overview_content "$raw" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "compliant-overview-status.txt -> overview-content-check PASSES (windows=3 withContent=3)" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    raw=$(cat -- "$FIXTURES_DIR/poisoned-blank-tiles-overview-status.txt")
+    _qsd_assert_overview_content "$raw" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "poisoned-blank-tiles-overview-status.txt -> overview-content-check FAILS (windows=3 withContent=0 — the exact false-pass shape 16-02's own history warns against)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+
+    # check 7: single-capture-path (2 fixtures, isolated per-scenario
+    # tmpdir — same isolation pattern as panel-namespace-conformance's
+    # source half above).
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    cp -- "$FIXTURES_DIR/compliant-window-thumbnail.qml" "$tmpdir/"
+    _qsd_assert_single_capture_path "$tmpdir" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "compliant-window-thumbnail.qml alone -> single capture path check (D-16-23 check 7) PASSES (exactly one ScreencopyView instantiation site)" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$tmpdir"
+    tmpdir=$(mktemp -d)
+    cp -- "$FIXTURES_DIR/compliant-window-thumbnail.qml" "$tmpdir/"
+    cp -- "$FIXTURES_DIR/poisoned-second-screencopyview.qml" "$tmpdir/"
+    _qsd_assert_single_capture_path "$tmpdir" >/dev/null 2>&1
+    rc=$?
+    _qsd_st "poisoned-second-screencopyview.qml added alongside -> single-capture-path FAILS (a second ScreencopyView instantiation site appeared)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$tmpdir"
+
     echo ""
     printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
     [[ "$st_fail" -eq 0 ]]
@@ -861,6 +1307,12 @@ PANEL_SUMMONED_NAME=""
 RFKILL_RESTORE_NEEDED=0
 RFKILL_ORIG_WIFI_SOFT=""
 RFKILL_ORIG_BT_SOFT=""
+# D-16-23 (Phase 16 Plan 04) check 6 — same T-11-11 discipline as
+# PANEL_SUMMONED_NAME above: set immediately before `qs ipc call overview
+# toggle` summons the surface, cleared immediately after the matching
+# dismiss toggle, so an interrupt mid-check can never strand the overview
+# mounted on the user's screen.
+OVERVIEW_SUMMONED=0
 CLEANED_UP=0
 # shellcheck disable=SC2329 # invoked indirectly via `trap` below, not a direct call
 _qsd_cleanup() {
@@ -887,6 +1339,10 @@ _qsd_cleanup() {
     if [[ -n "$PANEL_SUMMONED_NAME" ]]; then
         qs ipc call panel toggle "$PANEL_SUMMONED_NAME" >/dev/null 2>&1
         PANEL_SUMMONED_NAME=""
+    fi
+    if [[ "$OVERVIEW_SUMMONED" -eq 1 ]]; then
+        qs ipc call overview toggle >/dev/null 2>&1
+        OVERVIEW_SUMMONED=0
     fi
     if [[ "$RFKILL_RESTORE_NEEDED" -eq 1 ]]; then
         [[ -n "$RFKILL_ORIG_WIFI_SOFT" ]] && rfkill "$RFKILL_ORIG_WIFI_SOFT" wifi >/dev/null 2>&1
@@ -1290,6 +1746,21 @@ else
     check "headless output remove (QS-03): monitor count back to baseline (${QSD_AFTER_REMOVE_COUNT} == ${QSD_BASELINE_COUNT}), DP-1 probe still creatable (found: ${QSD_DP1_STILL_WORKS}), shell PID unchanged (${QSD_PRE_REMOVE_PID:-<none>} == ${QSD_POST_REMOVE_PID:-<none>}), no crash marker in launcher log (hits: ${QSD_CRASH_HITS})" \
         "$([[ "$QSD_AFTER_REMOVE_COUNT" -eq "$QSD_BASELINE_COUNT" && "$QSD_DP1_STILL_WORKS" -eq 1 && -n "$QSD_PRE_REMOVE_PID" && "$QSD_PRE_REMOVE_PID" == "$QSD_POST_REMOVE_PID" && "$QSD_CRASH_HITS" -eq 0 ]] && echo 0 || echo 1)"
 fi
+
+# ── D-16-23 (Phase 16 Plan 04) — seven checks closing the two risks this
+#    phase's ROADMAP entry owns (permission silent-revert, blank-tile
+#    failure), placed here after the pre-existing coexistence groups so
+#    this file's established reading order is preserved. Check 6 is the
+#    one deliberate mutation in this group (summon/dismiss the overview,
+#    self-restoring via the trap above, same discipline as the D-15-25
+#    panel checks and the reserved-space check further up).
+_qsd_check_overview_namespace_conformance
+_qsd_check_overview_shortcut_single_registration
+_qsd_check_reserved_array_manifest_coverage
+_qsd_check_permissions_enforce_readback
+_qsd_check_permissions_allowlist_paths_resolve
+_qsd_check_overview_content
+_qsd_check_single_capture_path
 
 echo ""
 echo "Summary: ${PASS} passed, ${FAIL} failed"

@@ -1,0 +1,3 @@
+option ecosystem:enforce_permissions
+bool: false
+set: true
