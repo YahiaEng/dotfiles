@@ -84,9 +84,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   position-to-number mapping breaks) and monitor-adaptive layout (hardware-
   dependent tile positions for zero benefit on a single 16:9 display).
 
-- **D-16-04: One surface on the focused monitor, showing every workspace
-  regardless of which monitor owns it. This is the recorded discharge of the
-  roadmap's QS-03 obligation.**
+- **D-16-04: One surface on the focused monitor, showing every workspace regardless of which monitor owns it. This is the recorded discharge of the roadmap's QS-03 obligation.**
   The roadmap states Phase 16 "inherits a shell root that cannot fan out and
   must solve this itself"; PROJECT.md marks QS-03 Out of Scope as a **one-way**
   decision backed by `12-QS03-EVIDENCE.md` (FM2 reproduced in two structurally
@@ -104,8 +102,8 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   — **Reversibility:** one-way in practice — reversing means re-opening D-13,
   which `12-QS03-EVIDENCE.md` closed with live evidence on quickshell 0.3.0-2.
 
-- **D-16-05: The scratchpad (`special:magic`) gets an always-present, visually
-  separated 11th tile.**
+- **D-16-05: The scratchpad gets an always-present, visually separated 11th tile.**
+  The scratchpad here is Hyprland's `special:magic` workspace.
   **This is a deliberate divergence from the end-4/Caelestia lens, taken with
   the reason recorded.** Both reference shells (and hyprexpo) grid over
   numbered workspaces only. But criterion 1 says "every open window appears as
@@ -124,9 +122,8 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   Accepted costs: a usually-empty tile, and the grid is no longer a clean
   rectangle.
 
-- **D-16-06: Translucent scrim inheriting the family `^quickshell-.*` blur —
-  and dropping that blur per-namespace is OVER-04's pre-authorized fallback
-  lever #1.**
+- **D-16-06: Translucent scrim inheriting the quickshell-family blur — and dropping that blur per-namespace is OVER-04's pre-authorized fallback lever #1.**
+  The family blur rule is the `^quickshell-.*` namespace layerrule.
   Consistency with the drawer and panels, zero new layerrule config, and
   dismissal reads as lifting a lens off a desktop that was there all along.
   **Named risk, quantified:** every prior consumer of that blur rule is a
@@ -142,8 +139,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
 
 ### Capture fidelity & OVER-04
 
-- **D-16-07: Live capture on every window first, with a pre-authorized
-  fallback ladder.**
+- **D-16-07: Live capture on every window first, with a pre-authorized fallback ladder.**
   `ScreencopyView.live = true` on every window. **This is the shape OVER-04's
   own wording asks for** — *"either stays inside it or ships the documented
   fallback instead — the measurement and the verdict are both recorded"* — i.e.
@@ -162,8 +158,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   OVER-04 exists to take, reducing the requirement from recording a *result*
   to recording a *choice*.
 
-- **D-16-08: The budget — 60fps floor, 165fps target, quickshell under half of
-  one CPU core, measured with 8+ windows across 3+ workspaces.**
+- **D-16-08: The budget — 60fps floor, 165fps target, quickshell under half of one CPU core, measured with 8+ windows across 3+ workspaces.**
   Below 60fps or above half a core triggers the ladder; landing between 60 and
   165 is **recorded as the result, not as a failure**. The window-count and
   workspace-spread conditions are part of the budget, not an afterthought — a
@@ -175,8 +170,8 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   by eye (makes OVER-04 a gate that cannot fail — the exact pattern this
   project's gate discipline refuses).
 
-- **D-16-09: Enable `ecosystem:enforce_permissions`, prove it with a real
-  logout, and leave it ON.**
+- **D-16-09: Enable live screencopy permission enforcement, prove it with a real logout, and leave it ON.**
+  The setting is `ecosystem:enforce_permissions`.
   This closes the proof Phase 11 explicitly deferred here (see
   `11-QUICKSHELL-EVIDENCE.md` §"What was deliberately NOT tested"). The
   mechanism, the type/mode strings, the restart-not-reload requirement and all
@@ -201,8 +196,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   restart, but note that any change here needs a full Hyprland restart, never
   `hyprctl reload`.
 
-- **D-16-10: An empty capture renders a pending state, then icon + title +
-  a one-line reason on genuine denial — plus a whole-grid catch.**
+- **D-16-10: An empty capture renders a pending state, then icon + title + a one-line reason on genuine denial — plus a whole-grid catch.**
   `ScreencopyView.hasContent` makes "did this produce a picture" a plain
   boolean, so empty is detectable rather than guessed. Three causes deserve
   different answers: first frame not yet arrived (momentary, self-resolving →
@@ -217,8 +211,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   just prettier) and leaving tiles blank (correct for Phase 11's probe;
   precisely what the "Owns" clause exists to prevent).
 
-- **D-16-11: The capture mode is baked in at build time, not runtime-
-  switchable.**
+- **D-16-11: The capture mode is baked in at build time, not runtime-switchable.**
   One code path, one tested behaviour, one recorded OVER-04 verdict — which is
   what the requirement asks for ("*the* documented fallback", singular; a menu
   of three modes is a different artifact). Avoids a second runtime state axis
@@ -238,8 +231,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
 
 ### Drag grammar (OVER-03)
 
-- **D-16-12: A still snapshot follows the cursor; the source tile shows the
-  gap.**
+- **D-16-12: A still snapshot follows the cursor; the source tile shows the gap.**
   One frame grabbed via `captureFrame()` at drag start, dragged as a static
   image with a slight scale-up and shadow. **Visually near-identical to
   dragging the live view** — the difference only shows if window content
@@ -254,7 +246,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   grabbed and what is held — which bites when several windows in a tile look
   alike).
 
-- **D-16-13: Drop moves the window *silently*; the overview stays open.**
+- **D-16-13: Drop moves the window SILENTLY; the overview stays open.**
   Establishes a clean two-verb grammar learnable in one use:
   **drag = organize, click = navigate.** Criterion 2 already assigns click the
   meaning "focus that workspace and close", which frees drop to mean something
@@ -266,8 +258,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   answers while giving "how do I do several moves" none.
   Accepted cost: one extra keypress to dismiss when finished.
 
-- **D-16-14: The hovered tile lights using D-26's existing lit-tile language;
-  a missed drop cancels and animates home.**
+- **D-16-14: The hovered tile lights using D-26's existing lit-tile language; a missed drop cancels and animates home.**
   Criterion 3 makes the highlight mandatory, so this is treatment only. Border
   and fill shift to the accent role — the same language D-26 established for
   the quick-toggle grid and Phase 15 reused for the Wi-Fi/Bluetooth tiles, so
@@ -314,10 +305,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   Accepted cost: two selection states plus a mode indicator that must be
   readable at a glance.
 
-- **D-16-17: PRE-AGREED FALLBACK, authorized at decision time — if the render
-  gate finds the mode indicator cluttered or the two levels confusing in the
-  hand, fall back to Esc + number keys (focus a workspace and close) WITHOUT a
-  new decision.**
+- **D-16-17: PRE-AGREED FALLBACK, authorized at decision time — if the render gate finds the mode indicator cluttered or the two levels confusing in the hand, fall back to Esc + number keys (focus a workspace and close) WITHOUT a new decision.**
   Same shape as D-15-11's pre-agreed fallback, which 15-CONTEXT.md names as
   "the pattern to repeat". Under the fallback, keyboard *moves* are lost;
   keyboard navigation to a workspace survives. The risk being hedged is
@@ -344,8 +332,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   `shortcuts.json` entry + one `keybinds.lua` line + a `keybind-doctor` re-run
   (11-05 and Phase 15 both walked this path).
 
-- **D-16-19: The overview is EXEMPT from DASH-08's fullscreen refusal guard —
-  and the exemption requires one documented sentence.**
+- **D-16-19: The overview is EXEMPT from DASH-08's fullscreen refusal guard — and the exemption requires one documented sentence.**
   The drawer and all three panels silently refuse to open over a fullscreen or
   maximized client (D-11). The overview does not, on a principled distinction:
   **the drawer and panels are informational/control surfaces where popping over
@@ -364,8 +351,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   unreachable.** Rejected degrade-while-fullscreen (a conditional path that
   only fires in a state awkward to reproduce and easy to leave untested).
 
-- **D-16-20: Clicking a window thumbnail focuses that window and its
-  workspace; clicking a tile's empty area focuses the workspace. Both close.**
+- **D-16-20: Clicking a window thumbnail focuses that window and its workspace; clicking a tile's empty area focuses the workspace. Both close.**
   Exact parity with D-16-16's keyboard model — Enter on a selected window does
   what clicking it does — so nothing must be learned or tested twice.
   Rejected treating the whole tile as one target (criterion 2 read literally,
@@ -389,8 +375,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   to fix a *genuinely dead* click, spent here to duplicate a one-key summon.
   Both alternatives recorded as deferred, not discarded.
 
-- **D-16-22: Criterion 5 is discharged by a dated running note spanning 3+
-  calendar days, opened with one structured pass.**
+- **D-16-22: Criterion 5 is discharged by a dated running note spanning 3+ calendar days, opened with one structured pass.**
   The first entry deliberately exercises drag, the keyboard model, opening over
   a fullscreen client, and thumbnails under a heavy window count. After that it
   is appended with whatever is noticed in ordinary use, with dates. Closure
@@ -408,8 +393,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
 
 ### Gate coverage & motion
 
-- **D-16-23: `quickshell-doctor` gains namespace + keybind + permission +
-  capture checks, with a poisoned fixture.**
+- **D-16-23: `quickshell-doctor` gains namespace + keybind + permission + capture checks, with a poisoned fixture.**
   Continues D-15-25's pattern and the house rule that *a gate must be proven
   able to fail before it is trusted to pass*. New checks:
   1. `quickshell-overview` conforms to the `quickshell-*` prefix at the right
@@ -435,8 +419,7 @@ authorized a pre-agreed fallback for it (D-16-17), continuing the pattern
   silent-revert and the blank-tile failure, the two risks this phase
   specifically owns, unguarded.
 
-- **D-16-24: Entrance cascades by ROW, not by tile — three steps, ~380ms —
-  with a `fade` layerrule rather than the panels' `slide`.**
+- **D-16-24: Entrance cascades by ROW, not by tile — three steps, ~380ms — with a `fade` layerrule rather than the panels' `slide`.**
   Row 1, then row 2, then the scratchpad tile. **Arithmetic is decisive:** at
   D-21's 30–50ms stagger, cascading all 11 tiles individually costs 330–550ms
   of offset *plus* each tile's own ~300ms animation, so the last tile finishes

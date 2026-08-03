@@ -403,8 +403,39 @@ Cross-cutting constraints:
   5. The overview carries a multi-day use note before it closes; the highest-frequency new surface in the milestone does not close on a single click-and-look.
 
 **Owns**: Live multi-window screencopy performance (the genuine open risk — the protocol question is settled: `ScreencopyView` + `hyprland-toplevel-export-v1`, native to Hyprland, no plugin, no `hyprpm`), and silently-denied screencopy permissions rendering blank tiles instead of erroring.
-**Plans**: TBD
+**Plans**: 8 plans
 **UI hint**: yes
+
+Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mechanism is the one genuinely unverified mechanism in the phase — this repo's Hyprland runs the Lua config, so `Hyprland.dispatch()` must send a Lua expression, and whether that dispatcher can target a *non-focused* window by address is unproven — so a Wave 0 spike settles it, with a human locking the answer, before any drag task is executable. Everything else expands out from one thin end-to-end slice (keybind → shell root → layer surface → workspace model → live capture → click-to-focus → dismiss), so an architectural dead end surfaces after one commit rather than after the grid, the drag grammar and the keyboard model are all committed. Per the project's standing constraint 1, four plans carry blocking human render gates, overriding `config.json`'s `human_verify_mode: end-of-phase` for this phase exactly as Phase 13's D-17 and Phases 14/15 recorded for theirs. **Criterion 5 cannot close on the day the phase is built** — D-16-22 discharges it with a dated running note requiring entries spanning three calendar days.
+
+**Wave 0**
+
+- [ ] 16-01-PLAN.md — Spike: the OVER-03 dispatch selector, keyboard focus posture, Qt drag on a layer-shell surface, and inactive-workspace capture — four recorded verdicts plus a locked move mechanism (OVER-01, OVER-03)
+
+**Wave 1** *(blocked on Wave 0)*
+
+- [ ] 16-02-PLAN.md — Tracer: `Super+O` end-to-end through every layer to live thumbnails of the focused workspace and back to the desktop, plus the `overview` IPC status verb (OVER-01, OVER-02)
+
+**Wave 2** *(blocked on Wave 1; the two plans touch disjoint files and run in parallel)*
+
+- [ ] 16-03-PLAN.md — The fixed eleven-slot grid: ten numbered tiles at real scaled geometry, the always-present scratchpad tile, and the row-level entrance cascade (OVER-01)
+- [ ] 16-04-PLAN.md — Live screencopy enforcement proven with a real session restart, and seven new `quickshell-doctor` checks each with a poisoned fixture (OVER-01)
+
+**Wave 3** *(blocked on 16-03)*
+
+- [ ] 16-05-PLAN.md — Honest capture states, the whole-grid permission catch, per-window click parity, and fault-injection proof that each degraded state renders (OVER-01, OVER-02)
+
+**Wave 4** *(blocked on 16-01 and 16-05)*
+
+- [ ] 16-06-PLAN.md — Drag-to-move: the still-snapshot ghost, the lit drop target, and the guarded silent move dispatch (OVER-03)
+
+**Wave 5** *(blocked on 16-06)*
+
+- [ ] 16-07-PLAN.md — Two-level keyboard model with linear wrap, `Shift+1..0` moves through the same guarded dispatch, and the pre-agreed fallback gate (OVER-02, OVER-03)
+
+**Wave 6** *(blocked on 16-04 and 16-07)*
+
+- [ ] 16-08-PLAN.md — The OVER-04 measurement, its verdict, the fallback-ladder disposition, and the opening structured pass of the multi-day use note (OVER-04)
 
 ### Phase 17: Ambient Extras
 
