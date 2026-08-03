@@ -321,10 +321,21 @@ hl.layer_rule({ match = { namespace = "quickshell-wifi-panel" }, animation = "sl
 hl.layer_rule({ match = { namespace = "quickshell-bluetooth-panel" }, animation = "slide" })
 -- Workspace overview (Phase 16 Plan 02 tracer, D-16-24) — `fade`, not the
 -- drawer's/panels' `slide`: a surface covering the whole screen has no edge
--- to slide in from. Exact-match only, same discipline as every rule above;
--- no blur/ignore_alpha rule here either — the family-wide `^quickshell-.*`
--- pair below already covers this namespace by name.
+-- to slide in from. Exact-match only, same discipline as every rule above.
 hl.layer_rule({ match = { namespace = "quickshell-overview" }, animation = "fade" })
+-- D-16-06 fallback lever #1, pulled at the Task 3 render gate (2026-08-03):
+-- the operator judged the family blur "too strong" on this surface.
+-- `LayerRule`'s only blur field is a boolean (`hl.meta.lua` line 551 —
+-- `blur?: boolean`); blur INTENSITY (`decoration.blur.size`/`.passes`/etc.)
+-- is a single GLOBAL compositor setting with no per-layer-rule strength
+-- override, so "turn it down" has exactly one real answer: off. Confirmed
+-- live before choosing this: dropping the scrim's own alpha below the
+-- family `ignore_alpha` floor (0.5, below) does NOT soften the blur — it
+-- silently disables it and reads as raw unblurred transparency (ags-media's
+-- own documented past mistake, reproduced firsthand). This exact-match rule
+-- overrides the family regex's `blur = true` for this namespace only —
+-- every other `quickshell-*` surface keeps the family blur unchanged.
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = false })
 -- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
 -- "ags-media" (10-02); targets ONLY this window, mirroring the other
 -- namespace-scoped blur rules above. Paired with the translucent

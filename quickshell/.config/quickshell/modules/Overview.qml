@@ -50,13 +50,42 @@ PanelWindow {
     exclusiveZone: 0
     color: "transparent"
 
-    // Full-bleed scrim (D-16-06) — Colours.surface at 0.55 alpha, lower
-    // than PanelDialog's 0.78 deliberately: the tiles are the content here,
-    // the scrim is context, not cover (16-UI-SPEC.md "Color" section).
+    // ── Render-gate deviation from 16-UI-SPEC.md (2026-08-03) ────────────
+    // UI-SPEC recommended 0.55 (already lower than PanelDialog's own
+    // panelSurfaceOpacity/drawerSurfaceOpacity of 0.78). At the Task 3
+    // render gate the operator judged the backdrop "too strong" even at
+    // 0.55. First attempt (recorded for the record, corrected before
+    // shipping): tried lowering ONLY this alpha to 0.35, on the assumption
+    // alpha was the sole surface-local lever available since blur strength
+    // is global. Screenshot-compared live against the original 0.55 and
+    // found this was WRONG — 0.35 sits below the family `^quickshell-.*`
+    // `ignore_alpha` floor (0.5, windowrules.lua), which does not soften the
+    // blur, it silently DISABLES it — the backdrop read as raw unblurred
+    // transparency (ags-media's own documented past mistake, reproduced
+    // firsthand rather than assumed). `LayerRule`'s only blur field is a
+    // boolean (`hl.meta.lua` line 551); blur intensity has no per-surface
+    // knob at all — "turn it down" has exactly one honest answer for this
+    // architecture: off. windowrules.lua now pulls D-16-06's own
+    // pre-authorized fallback lever #1 (`blur = false`, exact-match
+    // override on `quickshell-overview`) instead of chasing an alpha value
+    // that either does nothing (above 0.5) or breaks blur outright (below
+    // it). With blur off for this namespace, the `ignore_alpha` floor is
+    // moot here, so this alpha is free to read as a plain, deliberate tint
+    // rather than a frost — 0.45, screenshot-compared before shipping.
+    // Named as a property (not an anonymous literal) matching
+    // PanelDialog.qml/Dashboard.qml's own panelSurfaceOpacity/
+    // drawerSurfaceOpacity convention — a bare numeric opacity constant is
+    // established precedent in this repo, not a zero-hex/motion-lint
+    // violation (Design.qml carries no opacity token; neither sibling file
+    // sources this value from Colours/Design either).
+    readonly property real scrimOpacity: 0.45
+
+    // Full-bleed scrim (D-16-06) — the tiles are the content here, the
+    // scrim is context, not cover (16-UI-SPEC.md "Color" section).
     Rectangle {
         anchors.fill: parent
         color: Colours.surface
-        opacity: 0.55
+        opacity: overviewWindow.scrimOpacity
     }
 
     // The tracer's one tile — plan 16-03 replaces this single instance with
