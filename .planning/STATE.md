@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 16
 current_phase_name: workspace-overview
 status: executing
-stopped_at: Completed 16-04-PLAN.md Tasks 1-2 (deferred Task 3 — see deferred-items.md item 0)
-last_updated: "2026-08-03T19:09:50.514Z"
+stopped_at: Completed 16-05-PLAN.md
+last_updated: "2026-08-03T19:32:10.019Z"
 last_activity: 2026-08-03
 last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 62
-  completed_plans: 58
+  completed_plans: 59
   percent: 75
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 ## Current Position
 
 Phase: 16 (workspace-overview) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
-Progress: [█████████░] 94% — 6/8 phases complete, 54/54 plans executed
+Progress: [██████████] 95% — 6/8 phases complete, 54/54 plans executed
 Last activity: 2026-08-03 — Phase 16 execution started
 
 ## Performance Metrics
@@ -183,6 +183,7 @@ Last activity: 2026-08-03 — Phase 16 execution started
 | Phase 16 P02 | multi-session | 3 tasks | 8 files |
 | Phase 16-workspace-overview P03 | single-session | 3 tasks | 4 files |
 | Phase 16 P04 | single session | 2 tasks | 22 files |
+| Phase 16 P05 | single session | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -351,6 +352,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: The scratchpad's live window-move check was deferred to the Task 3 human render gate rather than reproduced via a selector-less hyprctl dispatch against the operator's real windows (live-system safety constraint 1)
 - [Phase ?]: 16-04: seven quickshell-doctor D-16-23 checks added (fixture-proven fallible); enforce_permissions=true committed in permissions.lua; Task 3 (real logout/login + five-consumer live proof) explicitly DEFERRED by operator decision, not completed — see deferred-items.md item 0; check 6 honestly assessed as covering blank-tile/permission-denial only, not the geometry-collapse defect class 16-02 hit twice
 - [Phase ?]: 16-04: Rule 3 fix — pre-existing D-15-25 panel-namespace-conformance self-test bug (pid-dependent fixture) fixed via explicit shell-pid override parameter; Rule 1 fix — hypr-equivalence-check options.jsonl baseline surgically amended for the intentional enforce_permissions value change
+- [Phase ?]: 16-05: WindowThumbnail.qml gains a three-state capture machine (populated/pending/failed) with settle timer sourced from Motion.ambientDuration, reusing PanelDialog.qml's exact state-colour mapping
+- [Phase ?]: 16-05: Overview.qml raises one whole-grid permission-denial message (gated on allSettled + zero withContent) instead of per-tile repetition, with a settle-ceiling safety timer
+- [Phase ?]: 16-05: window-level click parity closed — clicking a thumbnail calls toplevel.wayland.activate() (confirmed via qmltypes; HyprlandToplevel itself has no activate()) then dismisses
+- [Phase ?]: 16-05: confirmed HyprlandToplevel.address omits the 0x prefix hyprctl clients -j includes — a silent string-mismatch trap for any future address comparison (relevant to 16-06's drag-drop)
 
 ### Quick Tasks Completed
 
@@ -448,8 +453,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-03T19:09:50.490Z
-Stopped at: Completed 16-04-PLAN.md Tasks 1-2 (deferred Task 3 — see deferred-items.md item 0)
+Last session: 2026-08-03T19:32:09.990Z
+Stopped at: Completed 16-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
