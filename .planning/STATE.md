@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 16
-current_phase_name: Workspace Overview
+current_phase_name: workspace-overview
 status: executing
-stopped_at: Phase 16 UI-SPEC approved
-last_updated: "2026-08-03T05:28:02.110Z"
-last_activity: 2026-08-02
-last_activity_desc: Phase 15 complete, transitioned to Phase 16
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-08-03T15:20:29.011Z"
+last_activity: 2026-08-03
+last_activity_desc: Phase 16 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 62
-  completed_plans: 54
+  completed_plans: 55
   percent: 75
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 
 ## Current Position
 
-Phase: 16 — Workspace Overview
-Plan: Not started
+Phase: 16 (workspace-overview) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Progress: [████████░░] 75% — 6/8 phases complete, 54/54 plans executed
-Last activity: 2026-08-02 — Phase 15 complete, transitioned to Phase 16
+Progress: [█████████░] 89% — 6/8 phases complete, 54/54 plans executed
+Last activity: 2026-08-03 — Phase 16 execution started
 
 ## Performance Metrics
 
@@ -179,6 +179,7 @@ Last activity: 2026-08-02 — Phase 15 complete, transitioned to Phase 16
 | Phase 15 P09 | 2h | 3 tasks | 17 files |
 | Phase 15 P10 | ~45min | 3 tasks | 3 files |
 | Phase 15 P11 | ~40min | 3 tasks | 7 files |
+| Phase 16 P01 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -332,6 +333,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 15-11: ambientDuration divides the resolved value by the motion multiplier capped at 1.0 from above, so lively still lengthens the wifi/bluetooth sweep while reduced is divided back out to the normal-scale value — the accessibility preset can no longer be the fastest
 - [Phase ?]: 15-11: rescanInFlight is a new, additional bool on WifiBackend.qml (floor 400ms / ceiling watchdog 6000ms around wifiDevice.networks.valuesChanged) — scanning's pre-existing level semantics (D-15-15) stay untouched
 - [Phase ?]: 15-11: both sweep legs (wifi scan, bluetooth discovery) bind the SAME Motion.ambientDuration token, giving a ~2000ms full cycle at normal scale matching MD3's indeterminate-linear-indicator reference; the two pending-pulse sites are deliberately left with the old inversion (WINDOWS.md #23, open)
+- [Phase ?]: 16-01: OVER-03 move mechanism locked as selector-confirmed — hl.dsp.window.move({workspace=N, window="address:0x...", follow=false}) is the live-verified silent-move dispatch
+- [Phase ?]: 16-01: keyboard focus posture ships as WlrKeyboardFocus.OnDemand (no Exclusive escalation needed) — arrow keys reach the surface with zero prior click via forceActiveFocus() on Component.onCompleted
+- [Phase ?]: 16-01: standing rule — never issue a selector-less Hyprland dispatch (kill() etc); the last-active-window pointer survives a focus-to-empty-workspace transition even when hyprctl activewindow -j reports null (found via a live incident: an unselected kill() closed the real Zen browser instead of a throwaway client, recovered via session restore)
 
 ### Quick Tasks Completed
 
@@ -428,9 +432,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-02T20:48:31.000Z
-Stopped at: Phase 16 UI-SPEC approved
-Resume file: .planning/phases/16-workspace-overview/16-UI-SPEC.md
+Last session: 2026-08-03T15:20:28.988Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

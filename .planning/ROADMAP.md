@@ -403,14 +403,14 @@ Cross-cutting constraints:
   5. The overview carries a multi-day use note before it closes; the highest-frequency new surface in the milestone does not close on a single click-and-look.
 
 **Owns**: Live multi-window screencopy performance (the genuine open risk — the protocol question is settled: `ScreencopyView` + `hyprland-toplevel-export-v1`, native to Hyprland, no plugin, no `hyprpm`), and silently-denied screencopy permissions rendering blank tiles instead of erroring.
-**Plans**: 8 plans
+**Plans**: 1/8 plans executed
 **UI hint**: yes
 
 Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mechanism is the one genuinely unverified mechanism in the phase — this repo's Hyprland runs the Lua config, so `Hyprland.dispatch()` must send a Lua expression, and whether that dispatcher can target a *non-focused* window by address is unproven — so a Wave 0 spike settles it, with a human locking the answer, before any drag task is executable. Everything else expands out from one thin end-to-end slice (keybind → shell root → layer surface → workspace model → live capture → click-to-focus → dismiss), so an architectural dead end surfaces after one commit rather than after the grid, the drag grammar and the keyboard model are all committed. Per the project's standing constraint 1, four plans carry blocking human render gates, overriding `config.json`'s `human_verify_mode: end-of-phase` for this phase exactly as Phase 13's D-17 and Phases 14/15 recorded for theirs. **Criterion 5 cannot close on the day the phase is built** — D-16-22 discharges it with a dated running note requiring entries spanning three calendar days.
 
 **Wave 0**
 
-- [ ] 16-01-PLAN.md — Spike: the OVER-03 dispatch selector, keyboard focus posture, Qt drag on a layer-shell surface, and inactive-workspace capture — four recorded verdicts plus a locked move mechanism (OVER-01, OVER-03)
+- [x] 16-01-PLAN.md — Spike: the OVER-03 dispatch selector, keyboard focus posture, Qt drag on a layer-shell surface, and inactive-workspace capture — four recorded verdicts plus a locked move mechanism (OVER-01, OVER-03)
 
 **Wave 1** *(blocked on Wave 0)*
 
@@ -472,7 +472,7 @@ Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mech
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | Complete    | 2026-07-28 |
 | 14. Dashboard Drawer | v3.0 | 10/10 | Complete    | 2026-08-01 |
 | 15. Audio + Connectivity Panels | v3.0 | 14/14 | Complete    | 2026-08-02 |
-| 16. Workspace Overview | v3.0 | 0/TBD | Not started | - |
+| 16. Workspace Overview | v3.0 | 1/8 | In Progress|  |
 | 17. Ambient Extras | v3.0 | 0/TBD | Not started | - |
 
 **Totals:** 17 phases · 73 plans complete · 2 milestones shipped · v3.0 in progress (38 requirements across 7 phases)
