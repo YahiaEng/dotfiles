@@ -11,11 +11,16 @@
 // workspaces (or null, for a slot Hyprland does not yet know about)
 // without touching this type at all.
 //
-// `isScratchpad` is declared here but has no effect yet — plan 16-03 Task 2
-// wires it to change exactly three things (border colour, empty-state
-// glyph, identity overlay content) for D-16-05's eleventh tile. Declaring
-// the property now, unused, keeps this file's shape stable across the two
-// tasks rather than forcing a second rewrite of every conditional below.
+// `isScratchpad` (D-16-05, wired by Task 2) changes exactly three things
+// and nothing else: the border colour becomes Colours.tertiary (a steady,
+// non-animated identity colour distinct from both the drag accent and the
+// keyboard accent, so it never collides with an interactive state); the
+// empty-state glyph becomes `inventory_2` instead of `apps`; and the
+// identity overlay draws that same glyph instead of a numeral, since the
+// scratchpad has no number. Everything else — clipping, real geometry,
+// capture, click-to-focus, the occupied/unoccupied background split — is
+// the numbered tiles' code path, unchanged. That sameness is what makes
+// plan 16-06's drag-in and drag-out symmetric rather than a special case.
 //
 // Capture itself now lives entirely in WindowThumbnail.qml — this file
 // instantiates one per window and reads nothing off ScreencopyView directly.
@@ -69,7 +74,7 @@ Item {
         radius: root.tileRadius
         color: root.occupied ? Colours.surface : Colours.surfaceVariant
         border.width: Design.borderWidth
-        border.color: Colours.outline
+        border.color: root.isScratchpad ? Colours.tertiary : Colours.outline
     }
 
     // Whole-tile click target BEHIND the thumbnails (D-16-20's "click a
@@ -108,17 +113,18 @@ Item {
 
         Text {
             id: emptyGlyph
-            text: "apps"
+            text: root.isScratchpad ? "inventory_2" : "apps"
             font.family: Design.symbolFontFamily
             font.pixelSize: Design.iconSizeMd
             color: Colours.onSurfaceVariant
         }
     }
 
-    // Identity overlay: the workspace number, sitting on a
-    // legibility-backing pill because it draws over arbitrary live window
-    // imagery and must stay readable without hiding what is beneath it
-    // (16-UI-SPEC.md "Typography").
+    // Identity overlay: the workspace number for a numbered tile, or the
+    // scratchpad's own glyph in place of a numeral — the scratchpad has no
+    // number (D-16-05). Sits on a legibility-backing pill because it draws
+    // over arbitrary live window imagery and must stay readable without
+    // hiding what is beneath it (16-UI-SPEC.md "Typography").
     Rectangle {
         id: identityPill
         anchors {
@@ -135,7 +141,8 @@ Item {
         Text {
             id: identityLabel
             anchors.centerIn: parent
-            text: root.slotLabel
+            text: root.isScratchpad ? "inventory_2" : root.slotLabel
+            font.family: root.isScratchpad ? Design.symbolFontFamily : Qt.application.font.family
             font.pixelSize: Design.fontHeading
             font.weight: Design.weightEmphasis
             color: Colours.onSurface

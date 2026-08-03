@@ -1,14 +1,16 @@
 // Overview.qml — the full-screen workspace overview surface (Phase 16 Plan
-// 03, expanding the tracer's single tile into D-16-01's fixed ten-slot
-// numbered grid, OVER-01/OVER-02).
+// 03, expanding the tracer's single tile into D-16-01's fixed eleven-slot
+// grid, OVER-01/OVER-02).
 //
 // Ten WorkspaceTile instances in a fixed 5-column x 2-row arrangement
 // mirroring the number row (D-16-01/D-16-03) — every slot renders on every
 // summon, occupied or not, so a tile's screen position never moves between
-// summons. Plan 16-03 Task 2 adds the eleventh scratchpad tile and the
-// row-level entrance cascade; this task's own scope is the ten numbered
-// tiles and the fit arithmetic they must close (16-UI-SPEC.md "Grid
-// geometry" / "Spacing Scale").
+// summons — plus D-16-05's always-present, visually distinct eleventh
+// scratchpad tile beneath the block. The whole assembly enters on a
+// row-level cascade (D-16-24): row 1, row 2, scratchpad — three bands, not
+// eleven. The fit arithmetic (16-UI-SPEC.md "Grid geometry" / "Spacing
+// Scale") is load-bearing and re-run in the comments beside the grid block
+// below on any tile/gap/border change.
 //
 // Every layer between Super+O and live pixels is wired end-to-end here:
 // layer posture, scrim, focus grab, dismissal, click-to-focus-and-close,
@@ -53,6 +55,17 @@ PanelWindow {
     exclusiveZone: 0
     color: "transparent"
 
+    // ── D-16-24's row-level entrance cascade ──────────────────────────────
+    // Three bands, in order: row 1, row 2, the scratchpad — never per-tile.
+    // Reuses D-21's existing stagger token verbatim (Motion.staggerOffsetDuration
+    // / Motion.emphasizedInDuration / emphasizedInEasing) so motion.json does
+    // not grow and Phase 12's D-25 semantic-layer growth policy stays shut.
+    // Three bands at the stagger offset each lands the last band around
+    // 380ms, clearing D-21's 700ms fence with margin — cascading all eleven
+    // tiles individually would land between ~630ms and ~850ms and straddle
+    // it, which is exactly why this is row-level, not tile-level.
+    readonly property Cascade entranceCascade: Cascade {}
+
     // ── Render-gate defect, round 2 root cause (2026-08-03) ──────────────
     // Real root cause of "only shows the current window", confirmed with a
     // per-delegate IPC measurement (x/y/width/height/hasContent/sourceSize
@@ -70,7 +83,20 @@ PanelWindow {
     // broken: every delegate in that same measurement had hasContent=true
     // with correct, DISTINCT sourceSize values throughout — refuting the
     // "only one concurrent screencopy stream" hypothesis directly.
-    Component.onCompleted: Hyprland.refreshToplevels()
+    //
+    // Both refresh and cascade arming happen here, in the same
+    // Component.onCompleted block — QML permits exactly one handler per
+    // signal per object, and by the time overviewWindow's own onCompleted
+    // fires, every descendant referenced below (rowOne/rowTwo/scratchpadTile)
+    // is already constructed (Component.onCompleted fires bottom-up),
+    // mirroring PanelDialog.qml's own arming point rather than inventing a
+    // second trigger.
+    Component.onCompleted: {
+        Hyprland.refreshToplevels();
+        overviewWindow.entranceCascade.bands = [rowOne, rowTwo, scratchpadTile];
+        overviewWindow.entranceCascade.armed = true;
+        overviewWindow.entranceCascade.run();
+    }
 
     // ── Render-gate deviation from 16-UI-SPEC.md (2026-08-03) ────────────
     // UI-SPEC recommended 0.55 (already lower than PanelDialog's own
@@ -118,6 +144,14 @@ PanelWindow {
     // D-16-02, so a different monitor width still produces a correct scale.
     readonly property real captureScale: overviewWindow.tileWidth / Hyprland.focusedMonitor.width
 
+    // Scratchpad tile geometry (D-16-05): ~0.625x a numbered tile, still
+    // 16:9. Its own captureScale (not the numbered tiles' one reused) so
+    // its windows render at the scratchpad's own smaller scale rather than
+    // being scaled twice.
+    readonly property int scratchpadWidth: 300
+    readonly property int scratchpadHeight: 169
+    readonly property real scratchpadCaptureScale: overviewWindow.scratchpadWidth / Hyprland.focusedMonitor.width
+
     // Resolves a fixed slot id (1..10) against Hyprland's live workspace
     // list, or returns null for an id Hyprland does not yet know about.
     // Hyprland.workspaces itself is never padded — the ten SLOTS are the
@@ -134,6 +168,19 @@ PanelWindow {
 
     function isFocusedSlot(slotId) {
         return !!(Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.id === slotId);
+    }
+
+    // D-16-05: resolves the scratchpad workspace by the exact token
+    // keybinds.lua's Super+Shift+S bind uses ("special:magic"), or null
+    // when no window has ever been sent there yet — the tile's own
+    // position is permanently reserved either way (see below).
+    function scratchpadWorkspace() {
+        var list = Hyprland.workspaces.values;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].name === "special:magic")
+                return list[i];
+        }
+        return null;
     }
 
     // D-16-13/D-16-20: clicking a tile's empty area focuses that workspace
@@ -201,17 +248,39 @@ PanelWindow {
         }
     }
 
+    // The eleventh tile (D-16-05): always rendered, whatever the scratchpad
+    // holds. Position permanently reserved beneath the 5x2 block, so the
+    // ten numbered tiles never move — D-16-01's constancy is untouched.
+    // Everything but border colour, empty-state glyph and identity content
+    // (isScratchpad, wired in WorkspaceTile.qml) is the numbered tiles'
+    // own code path.
+    WorkspaceTile {
+        id: scratchpadTile
+        anchors {
+            top: gridBlock.bottom
+            horizontalCenter: gridBlock.horizontalCenter
+            topMargin: Design.spacingLg
+        }
+        width: overviewWindow.scratchpadWidth
+        height: overviewWindow.scratchpadHeight
+        isScratchpad: true
+        captureScale: overviewWindow.scratchpadCaptureScale
+        monitor: Hyprland.focusedMonitor
+        workspace: overviewWindow.scratchpadWorkspace()
+        onActivated: overviewWindow.activateTile(workspace)
+    }
+
     // D-16-23 check 6's `overview` IPC status verb reads these off the
-    // loaded Overview instance — summed across all ten tiles so the verb
-    // keeps reporting truthfully at ten tiles as it did at one.
-    readonly property int tileCount: 10
+    // loaded Overview instance — summed across all eleven tiles so the verb
+    // keeps reporting truthfully at eleven tiles as it did at one.
+    readonly property int tileCount: 11
     readonly property int thumbnailCount: {
         var n = 0;
         for (var i = 0; i < rowOneRepeater.count; i++)
             n += rowOneRepeater.itemAt(i).thumbnailCount;
         for (var i = 0; i < rowTwoRepeater.count; i++)
             n += rowTwoRepeater.itemAt(i).thumbnailCount;
-        return n;
+        return n + scratchpadTile.thumbnailCount;
     }
     readonly property int thumbnailsWithContent: {
         var n = 0;
@@ -219,7 +288,7 @@ PanelWindow {
             n += rowOneRepeater.itemAt(i).thumbnailsWithContent;
         for (var i = 0; i < rowTwoRepeater.count; i++)
             n += rowTwoRepeater.itemAt(i).thumbnailsWithContent;
-        return n;
+        return n + scratchpadTile.thumbnailsWithContent;
     }
 
     // ── Click-outside dismiss (D-10 dismissal set) — Dashboard.qml's
