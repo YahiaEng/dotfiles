@@ -192,6 +192,23 @@ PanelWindow {
         overviewWindow.dismissRequested();
     }
 
+    // D-16-20's other half (Phase 16 Plan 05 Task 2): clicking a SPECIFIC
+    // window thumbnail focuses that window and its workspace, then closes
+    // — exact parity with what Enter on a selected window will do in plan
+    // 16-07. `toplevel.wayland` is the generic
+    // Quickshell.Wayland.Toplevel (wlr-foreign-toplevel-management) handle
+    // — the same object ScreencopyView.captureSource already binds to —
+    // and its own activate() request is what "brings its workspace with
+    // it" (HyprlandToplevel itself exposes no activate() method; only
+    // HyprlandWorkspace and the generic wayland handle do, confirmed
+    // against the installed qmltypes). A thumbnail in the `failed` state
+    // reaches here identically — the window still exists.
+    function activateWindow(toplevel) {
+        if (toplevel && toplevel.wayland)
+            toplevel.wayland.activate();
+        overviewWindow.dismissRequested();
+    }
+
     // ── The fixed 5x2 numbered grid (D-16-01) ────────────────────────────
     // Block width: 5*480 + 4*24 = 2496px; height: 2*270 + 24 = 564px;
     // centred with a spacingLg (24px) scrim margin per side — 2544px total
@@ -222,6 +239,7 @@ PanelWindow {
                     workspace: overviewWindow.workspaceForSlot(index + 1)
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 1)
                     onActivated: overviewWindow.activateTile(workspace)
+                    onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                 }
             }
         }
@@ -243,6 +261,7 @@ PanelWindow {
                     workspace: overviewWindow.workspaceForSlot(index + 6)
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 6)
                     onActivated: overviewWindow.activateTile(workspace)
+                    onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                 }
             }
         }
@@ -268,6 +287,7 @@ PanelWindow {
         monitor: Hyprland.focusedMonitor
         workspace: overviewWindow.scratchpadWorkspace()
         onActivated: overviewWindow.activateTile(workspace)
+        onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
     }
 
     // D-16-23 check 6's `overview` IPC status verb reads these off the
@@ -289,6 +309,102 @@ PanelWindow {
         for (var i = 0; i < rowTwoRepeater.count; i++)
             n += rowTwoRepeater.itemAt(i).thumbnailsWithContent;
         return n + scratchpadTile.thumbnailsWithContent;
+    }
+
+    // ── D-16-10's whole-grid permission catch (Phase 16 Plan 05 Task 2) ──
+    // How many of the eleven tiles' thumbnails have reached a terminal
+    // (populated or failed) capture state — summed the same way
+    // thumbnailCount/thumbnailsWithContent already are above.
+    readonly property int thumbnailsSettled: {
+        var n = 0;
+        for (var i = 0; i < rowOneRepeater.count; i++)
+            n += rowOneRepeater.itemAt(i).thumbnailsSettled;
+        for (var i = 0; i < rowTwoRepeater.count; i++)
+            n += rowTwoRepeater.itemAt(i).thumbnailsSettled;
+        return n + scratchpadTile.thumbnailsSettled;
+    }
+
+    // A ceiling, not the normal path: forces `allSettled` true even if some
+    // capture's own settle timer (WindowThumbnail.qml,
+    // Motion.ambientDuration * 3) somehow never fires, so a genuinely stuck
+    // view cannot hide the catch below forever. In the ordinary case every
+    // thumbnail settles well before this fires — a multiple of the same
+    // token family, chosen with margin for eleven tiles' worth of
+    // independent timers to land, not a duplicate literal.
+    property bool settleCeilingReached: false
+
+    Timer {
+        id: settleCeilingTimer
+        interval: Motion.ambientDuration * 6
+        running: true
+        repeat: false
+        onTriggered: overviewWindow.settleCeilingReached = true
+    }
+
+    // Never true while anything in the grid is still pending — the term
+    // that stops a merely slow grid from false-alarming the catch below.
+    readonly property bool allSettled: overviewWindow.settleCeilingReached
+        || overviewWindow.thumbnailsSettled === overviewWindow.thumbnailCount
+
+    // Raised only once every capture in the grid has settled AND none of
+    // them produced content — that combination is a permission problem,
+    // not fifteen simultaneously-slow windows, so it is said ONCE here
+    // instead of on every tile. A mix of captured and denied windows never
+    // reaches this (thumbnailsWithContent > 0 in that case) — exactly what
+    // keeps UI-SPEC E5's partial case per-window-only.
+    readonly property bool wholeGridCatchVisible: overviewWindow.thumbnailCount > 0
+        && overviewWindow.allSettled
+        && overviewWindow.thumbnailsWithContent === 0
+
+    // Named property, matching PanelDialog.qml/this file's own
+    // `scrimOpacity` precedent for a bare numeric opacity constant — a
+    // bit darker than the base scrim so the message reads as sitting on
+    // its own layer above the (non-rendering) grid beneath it.
+    readonly property real catchScrimOpacity: 0.7
+
+    Rectangle {
+        id: wholeGridCatch
+        anchors.fill: parent
+        visible: overviewWindow.wholeGridCatchVisible
+        color: Colours.surface
+        opacity: overviewWindow.catchScrimOpacity
+
+        Column {
+            anchors.centerIn: parent
+            // Spans the same width as the numbered grid block, for visual
+            // symmetry, rather than an arbitrary new magic number.
+            width: gridBlock.width
+            spacing: Design.spacingSm
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.family: Design.symbolFontFamily
+                font.pixelSize: Design.iconSizeMd
+                text: "lock"
+                color: Colours.onSurface
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: Design.fontHeading
+                font.weight: Design.weightEmphasis
+                color: Colours.onSurface
+                text: "Can't show live thumbnails"
+            }
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                font.pixelSize: Design.fontLabel
+                color: Colours.onSurfaceVariant
+                // Leads with what the user sees, puts the mechanism second
+                // as a next step rather than a verdict (16-CONTEXT.md
+                // <specifics> — the plain-language standing instruction),
+                // and never claims certainty the surface cannot have
+                // (T-16-21's repudiation mitigation).
+                text: "Screen capture looks blocked for every window — check Hyprland's screencopy permission, then reopen the overview (Super+O)."
+            }
+        }
     }
 
     // ── Click-outside dismiss (D-10 dismissal set) — Dashboard.qml's

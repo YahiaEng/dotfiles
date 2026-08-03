@@ -51,7 +51,17 @@ Item {
     // threads the monitor through.
     property var monitor: Hyprland.focusedMonitor
 
+    // D-16-13/D-16-20: clicking a tile's empty area (behind every
+    // thumbnail) focuses this tile's own workspace and closes the
+    // overview.
     signal activated()
+    // D-16-20's other half, Phase 16 Plan 05 Task 2: clicking a SPECIFIC
+    // window thumbnail focuses that window (and its workspace) and closes
+    // the overview — exact parity with what Enter on a selected window
+    // will do in plan 16-07, so nothing is learned or tested twice. Carries
+    // the HyprlandToplevel itself (not just an address) so Overview.qml's
+    // handler can call straight into `toplevel.wayland.activate()`.
+    signal windowActivated(var toplevel)
 
     // D-16-02: a window positioned partly offscreen, sized larger than the
     // monitor, or carrying stale coordinates must crop at the tile edge
@@ -91,14 +101,38 @@ Item {
     // z-reordering, no decluttering pass. Overlapping floating windows
     // render overlapping; that is D-16-02's explicit accepted cost and the
     // reason the positions stay honest.
+    //
+    // D-16-20 click parity: each thumbnail gets its OWN click target,
+    // added as an additional child on this same delegate instantiation —
+    // Qt Quick paints same-z siblings in declaration order, so this
+    // MouseArea (declared after WindowThumbnail's own internal
+    // ScreencopyView child) always sits ABOVE the live capture. It is
+    // bounded to exactly this thumbnail's own real-geometry bounds
+    // (WindowThumbnail sets its own x/y/width/height from the window's
+    // actual scaled position), so it can never swallow a click that lands
+    // on the tile background BETWEEN windows — that click falls straight
+    // through to root's own whole-tile MouseArea above, which still means
+    // "focus this workspace and close". A thumbnail in the `failed` state
+    // stays clickable: the window exists and focusing it is valid even
+    // though its preview is missing.
     Repeater {
         id: windowRepeater
         model: root.workspace ? root.workspace.toplevels : null
 
         delegate: WindowThumbnail {
+            id: thumbnailDelegate
             toplevel: modelData
             captureScale: root.captureScale
             monitor: root.monitor
+
+            signal activated()
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: thumbnailDelegate.activated()
+            }
+
+            onActivated: root.windowActivated(thumbnailDelegate.toplevel)
         }
     }
 
@@ -201,6 +235,19 @@ Item {
         for (var i = 0; i < windowRepeater.count; i++) {
             var item = windowRepeater.itemAt(i);
             if (item && item.hasContent)
+                n++;
+        }
+        return n;
+    }
+    // Phase 16 Plan 05 Task 2: how many of this tile's thumbnails have
+    // reached a terminal (populated or failed) capture state — Overview.qml
+    // sums this across all eleven tiles to know when it is safe to
+    // evaluate the whole-grid catch at all.
+    readonly property int thumbnailsSettled: {
+        var n = 0;
+        for (var i = 0; i < windowRepeater.count; i++) {
+            var item = windowRepeater.itemAt(i);
+            if (item && item.settled)
                 n++;
         }
         return n;
