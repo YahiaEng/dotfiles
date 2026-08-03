@@ -134,7 +134,151 @@ focus-to-empty-workspace transition. **Any dispatcher call from Phase 16 QML
 that does not explicitly pass a `window="address:..."` selector must not be
 assumed to be a no-op just because no window is visibly active.**
 
-## VERDICT — DECISION context for Task 3
+## VERDICT — keyboard focus posture
 
-SELECTOR-CONFIRMED is on record above; Task 3 (checkpoint) makes this
-finding's `selector-confirmed` option available.
+**ONDEMAND-SUFFICIENT**
+
+A throwaway `qs -p` harness (scratchpad only, never
+`quickshell/.config/quickshell/`) reproduced `ScreencopyProbe.qml`'s D-43
+layer posture verbatim (`WlrLayershell.layer: WlrLayer.Overlay`,
+`WlrLayershell.namespace: "quickshell-spike"`,
+`WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand`,
+`exclusiveZone: 0`), with an `Item { focus: true }` content root and
+`Component.onCompleted: content.forceActiveFocus()` — the exact mechanism
+`Dashboard.qml` already ships in production (`modules/Dashboard.qml:462-464`,
+comment: "`forceActiveFocus()` is required for the key handlers above to
+actually receive events under `WlrKeyboardFocus.OnDemand`").
+
+The harness was launched with `qs -p spike.qml` and **no click was ever
+made** — `wtype -k Left`, `wtype -k Up` and `wtype -k Escape` were sent
+immediately from the same terminal that launched it. `qs`'s stderr:
+
+```
+DEBUG qml: SPIKE forceActiveFocus called, activeFocus=false
+INFO: Configuration Loaded
+... (later, after wtype -k Left)
+DEBUG qml: SPIKE key=Left
+... (after wtype -k Up)
+DEBUG qml: SPIKE key=Up
+... (after wtype -k Escape)
+DEBUG qml: SPIKE key=Escape
+```
+
+All three arrow/Escape presses reached the surface's key handlers with zero
+prior pointer interaction, under `WlrKeyboardFocus.OnDemand`. **No escalation
+to `WlrKeyboardFocus.Exclusive` was needed or attempted.**
+
+### Click-outside dismiss result
+
+**Not mechanically reproducible in this spike** — this host has no pointer
+synthesizer (`ydotool`, `wlrctl`, `dotool` all absent; `wtype` is
+keyboard-only via the virtual-keyboard protocol, confirmed by `command -v`
+returning nothing for all three). A synthetic proxy was tried
+(`hyprctl dispatch "hl.dsp.focus({workspace=2})"` while the harness was
+open, to move compositor focus elsewhere programmatically) and it did
+**not** trigger `HyprlandFocusGrab.onCleared` — the layer surface stayed
+alive (`hyprctl layers -j` still listed `quickshell-spike` afterward). This
+confirms the grab is watching for an actual pointer click, not a
+programmatic focus change, so the proxy cannot stand in for the real
+test.
+
+**Recorded as inherited, previously-verified evidence instead:** this exact
+combination (`WlrKeyboardFocus.OnDemand` + `HyprlandFocusGrab` bound to the
+surface, `onCleared` → dismiss) is not new to this phase — it is the
+identical mechanism Phase 11's QS-02 gate human-verified live
+(`11-QUICKSHELL-EVIDENCE.md`), and it is what `Dashboard.qml` and
+`ScreencopyProbe.qml` both already ship and exercise in daily use via
+`Super+D` / `Super+Shift+K` on this exact build. No fresh regression is
+plausible from reusing the identical pattern a third time. This is recorded
+as **inherited-verified, not freshly reproduced in this spike** — flagged
+explicitly rather than silently assumed, per the acceptance criterion.
+
+## VERDICT — Qt drag on layer-shell
+
+**DECLARATIVE-LOADS**
+
+The same throwaway harness added a source `Rectangle` with `DragHandler`
+plus the `Drag` attached property (`Drag.active`, `Drag.hotSpot`,
+`Drag.keys`) and a target `DropArea` with `onEntered`/`onExited`/`onDropped`
+logging, both as children of the `Item{focus:true}` content root inside the
+`PanelWindow` (D-43 layer posture, same as above).
+
+`qs`'s stderr across the full run (from launch through both live-reload
+iterations while fixing an unrelated capture-probe bug, to final shutdown),
+grepped for any error/warning mentioning drag, DropArea, or any QML
+error/warning of any kind:
+
+```
+$ grep -in "drag\|droparea\|warn\|error" spike-stderr.log
+(no output)
+```
+
+Zero QML errors or warnings of any kind were produced by declaring
+`DragHandler` + `Drag` attached property + `DropArea` inside a
+`WlrLayer.Overlay` / `WlrKeyboardFocus.OnDemand` `PanelWindow`. The layer
+surface itself (`hyprctl layers -j` → `quickshell-spike`) stayed live and
+correctly posted the whole time. This is the mechanical evidence the task
+requires; per the task's own scope, live drag-gesture behaviour (actually
+dragging the rectangle into the DropArea and observing `onEntered`/
+`onDropped` fire) is **not exercised here** — this host has no pointer
+synthesizer (see above), so that half is deferred to a human exercising it
+directly, as the plan's own `<action>` anticipates ("exercised by hand at
+Task 3's checkpoint if it cannot be driven any other way").
+
+## VERDICT — inactive-workspace capture
+
+**CAPTURES-OFFSCREEN**
+
+A real client (a pre-existing `kitty` window, address `0x55a7538e49d0`,
+parked on workspace 2) was targeted while the compositor's visible/active
+workspace on the only monitor (`DP-1`) stayed workspace 1
+(`hyprctl monitors -j` → `activeWorkspace.id: 1` for the whole test — workspace
+2 was never brought into view). The harness located it via
+`Hyprland.workspaces`/`Hyprland.toplevels` (grouping by `t.workspace.id`,
+matching class read from `t.lastIpcObject["class"]` — see the API-surface
+note below) and bound `ScreencopyView.captureSource: <toplevel>.wayland`
+with `live: true`. A 1s-repeating `Timer` logged `hasContent` and
+`sourceSize`:
+
+```
+DEBUG qml: SPIKE capture hasContent=true sourceSize=QSize(2534, 1368) captureSource=qs::wayland::toplevel_management::Toplevel(0x7f255f2e6490) at 2026-08-03T15:08:51.559Z
+DEBUG qml: SPIKE capture hasContent=true sourceSize=QSize(2534, 1368) captureSource=qs::wayland::toplevel_management::Toplevel(0x7f255f2e6490) at 2026-08-03T15:08:52.560Z
+DEBUG qml: SPIKE capture hasContent=true sourceSize=QSize(2534, 1368) captureSource=qs::wayland::toplevel_management::Toplevel(0x7f255f2e6490) at 2026-08-03T15:08:53.560Z
+```
+
+(and continuously for the remainder of the run — `hasContent` never
+reverted to `false` once content arrived). `hyprctl monitors -j` re-checked
+immediately after: `DP-1 active=1` — workspace 2 was confirmed never visible
+during capture. This answers 16-RESEARCH.md's Open Question 2 and A3
+affirmatively: `hyprland-toplevel-export-v1` captures a toplevel parked on
+an inactive workspace with no special handling required, confirming D-16-01's
+"all 10 slots always rendered" needs no additional inactive-workspace
+fallback beyond D-16-10's existing pending/denied states.
+
+**API-surface correction found while building the harness (recorded since
+it affects how plan 16-02+ must read window identity):**
+`HyprlandToplevel` (`qs::hyprland::ipc::HyprlandToplevel`, read directly from
+`/usr/lib/qt6/qml/Quickshell/Hyprland/_Ipc/quickshell-hyprland-ipc.qmltypes`)
+has **no `class`/`appId` property of its own** — only `address`, `handle`,
+`wayland`, `title`, `activated`, `urgent`, `lastIpcObject`, `workspace`,
+`monitor`. The window's class must be read from
+`toplevel.lastIpcObject["class"]` (the raw `hyprctl clients` JSON map;
+`class` is a reserved word in QML/JS so bracket notation is required, not
+`t.class`). This corrects an implicit assumption nothing in 16-CONTEXT.md or
+16-RESEARCH.md called out explicitly — both only listed `HyprlandToplevel`'s
+real properties without noting `class`/`appId` are absent from that list on
+this qmltypes build, and a first draft of this harness silently read
+`undefined` for every window's class before this was caught.
+
+## Harness cleanup confirmation
+
+```
+$ pgrep -fa "qs -p.*spike"        # (no output — process stopped)
+$ git status --porcelain quickshell/   # (no output — shipped tree untouched)
+$ find quickshell/.config/quickshell -iname 'spike*'   # (no output)
+```
+
+## DECISION context for Task 3
+
+Task 1 recorded **SELECTOR-CONFIRMED** — the `selector-confirmed` option is
+available per Task 3's own option list.
