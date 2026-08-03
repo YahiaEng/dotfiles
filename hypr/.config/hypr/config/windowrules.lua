@@ -319,6 +319,12 @@ hl.layer_rule({ match = { namespace = "quickshell-wifi-panel" }, animation = "sl
 -- above; the third and final Phase 15 panel namespace. No blur/
 -- ignore_alpha rule here either — the family pair below already covers it.
 hl.layer_rule({ match = { namespace = "quickshell-bluetooth-panel" }, animation = "slide" })
+-- Workspace overview (Phase 16 Plan 02 tracer, D-16-24) — `fade`, not the
+-- drawer's/panels' `slide`: a surface covering the whole screen has no edge
+-- to slide in from. Exact-match only, same discipline as every rule above;
+-- no blur/ignore_alpha rule here either — the family-wide `^quickshell-.*`
+-- pair below already covers this namespace by name.
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, animation = "fade" })
 -- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
 -- "ags-media" (10-02); targets ONLY this window, mirroring the other
 -- namespace-scoped blur rules above. Paired with the translucent

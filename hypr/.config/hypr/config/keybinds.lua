@@ -186,6 +186,15 @@ hl.bind(mainMod .. " + D", hl.dsp.global("quickshell:dashboard")) -- Summon dash
 -- three this phase adds — see the D-15-04 comment above audioPanelShortcut
 -- in shell.qml for the full asymmetry rationale.
 hl.bind(mainMod .. " + A", hl.dsp.global("quickshell:audio-panel")) -- Summon audio mixer panel (PANEL-02)
+-- Workspace overview (Phase 16 Plan 02 tracer, D-16-18/OVER-01): `O`
+-- verified free under every existing $mainMod combination. Identifier below
+-- byte-matches shortcuts.json's appid:name pair — keybind-doctor's
+-- cross-check contract. Toggle-on-press shape, same as screencopy-probe's
+-- own bind above — D-16-19 deliberately exempts the overview from the
+-- fullscreen refusal guard dashboardShortcut/audioPanelShortcut respect,
+-- so this bind (unlike those two) needs no such guard on the Quickshell
+-- side either.
+hl.bind(mainMod .. " + O", hl.dsp.global("quickshell:overview")) -- Summon workspace overview (OVER-01)
 
 -- ── Notification center ──────────────────────────────
 hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("swaync-client -t -sw")) -- Toggle notification center

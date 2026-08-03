@@ -207,6 +207,60 @@ ShellRoot {
         panelOpen: bluetoothPanelLoader.active
     }
 
+    // ── Workspace overview (Phase 16 Plan 02, the phase's tracer,
+    //    OVER-01/OVER-02) ────────────────────────────────────────────────
+    // Same summon-via-LazyLoader mechanism as the panels above — a
+    // full-screen surface this time, so there is no backend to gate: the
+    // ScreencopyView instances inside Overview.qml's tile are destroyed
+    // with the wl_surface itself on every dismissal path (D-14/D-32/D-36
+    // zero-idle doctrine), the same guarantee the panels get from backend
+    // gating by a different mechanism.
+    LazyLoader {
+        id: overviewLoader
+        active: false
+
+        Overview {
+            onDismissRequested: overviewLoader.active = false
+        }
+    }
+
+    // D-16-19: the overview is deliberately exempt from the
+    // `fullscreenBlocking` guard every other summonable surface here
+    // respects. The drawer and panels are informational/control surfaces
+    // where popping over a game is an interruption; the overview is a
+    // navigation surface, and navigation is what is needed most while
+    // trapped in a fullscreen app — `Super+2` already works while
+    // fullscreen, so refusing `Super+O` while allowing it would block the
+    // escape hatch while leaving the fire exit open.
+    function toggleOverview() {
+        overviewLoader.active = !overviewLoader.active;
+    }
+
+    // D-16-23 check 6's capture-check verb — the same `IpcHandler` pattern
+    // as `panelIpc` below (one handler, one target, functions only), so a
+    // blank grid is machine-detectable rather than dependent on someone
+    // noticing.
+    IpcHandler {
+        id: overviewIpc
+        target: "overview"
+
+        // Mirrors panelIpc.open()'s before/after read shape: a plain
+        // property read before and after the guarded toggle, never a
+        // direct write to overviewLoader.active from in here.
+        function toggle(): string {
+            var wasActive = overviewLoader.active;
+            root.toggleOverview();
+            return (overviewLoader.active !== wasActive) ? "overview" : "";
+        }
+
+        function status(): string {
+            if (!overviewLoader.active || !overviewLoader.item)
+                return "active=false tiles=0 windows=0 withContent=0";
+            var ov = overviewLoader.item;
+            return "active=true tiles=" + ov.tileCount + " windows=" + ov.thumbnailCount + " withContent=" + ov.thumbnailsWithContent;
+        }
+    }
+
     // ── Panel family — the single guarded summon path (PANEL-06, binding
     //    correction over 15-PATTERNS.md's own wrong inline snippet: the
     //    DASH-08 guard lives inside `openPanel(name)` and nowhere else, so
@@ -395,5 +449,18 @@ ShellRoot {
         // directly — the DASH-08 guard lives inside openPanel() exactly
         // once (binding correction over 15-PATTERNS.md).
         onPressed: root.openPanel("audio")
+    }
+
+    // D-16-18: `Super+O` sits beside `Super+D` (Dashboard) and `Super+A`
+    // (Audio), honouring D-09's first-letter mnemonic. `O` is confirmed
+    // free among this host's remaining plain-Super letters. Calls
+    // toggleOverview() directly (not openPanel()) — the overview is not a
+    // member of the guarded panel family and, per D-16-19, deliberately
+    // consults no fullscreen guard at all.
+    GlobalShortcut {
+        id: overviewShortcut
+        appid: "quickshell"
+        name: "overview"
+        onPressed: root.toggleOverview()
     }
 }

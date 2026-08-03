@@ -1,0 +1,14 @@
+# qmldir — module manifest for quickshell/modules/overview/ (Phase 16 Plan
+# 02, the phase's tracer).
+#
+# Carries the same standing instruction as the parent modules/qmldir: a type
+# added to this directory that is NOT declared below becomes unresolvable to
+# Overview.qml's `import "overview"`. Any FUTURE type added here MUST be
+# registered in the same commit that creates it.
+#
+# `~/.config/quickshell/modules` is already a whole-directory stow symlink
+# into this repo (-> quickshell/.config/quickshell/modules), so this new
+# subdirectory beneath it is live with no stow.sh change — standing
+# constraint 3 needs no new package registration this phase.
+module qs.modules.overview
+WorkspaceTile 1.0 WorkspaceTile.qml
