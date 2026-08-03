@@ -10,5 +10,11 @@
 # into this repo (-> quickshell/.config/quickshell/modules), so this new
 # subdirectory beneath it is live with no stow.sh change — standing
 # constraint 3 needs no new package registration this phase.
+#
+# Plan 16-03 adds a second type, registered in the same commit that creates
+# it: `WindowThumbnail`, the single general representation of "a window
+# drawn small" (the assumption-delta promotion). It is now the only home of
+# `ScreencopyView` in this directory — see the file's own header.
 module qs.modules.overview
 WorkspaceTile 1.0 WorkspaceTile.qml
+WindowThumbnail 1.0 WindowThumbnail.qml

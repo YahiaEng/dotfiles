@@ -1,16 +1,19 @@
 // Overview.qml — the full-screen workspace overview surface (Phase 16 Plan
-// 02, the phase's tracer, OVER-01/OVER-02).
+// 03, expanding the tracer's single tile into D-16-01's fixed ten-slot
+// numbered grid, OVER-01/OVER-02).
 //
-// ONE tile only — Hyprland.focusedWorkspace, centred. No grid, no drag, no
-// keyboard model: those are later plans expanding out from this proven
-// slice (16-02-PLAN.md's objective). Every layer between Super+O and live
-// pixels is wired end-to-end here: layer posture, scrim, focus grab,
-// dismissal, click-to-focus-and-close, and the `overview` IPC status verb.
+// Ten WorkspaceTile instances in a fixed 5-column x 2-row arrangement
+// mirroring the number row (D-16-01/D-16-03) — every slot renders on every
+// summon, occupied or not, so a tile's screen position never moves between
+// summons. Plan 16-03 Task 2 adds the eleventh scratchpad tile and the
+// row-level entrance cascade; this task's own scope is the ten numbered
+// tiles and the fit arithmetic they must close (16-UI-SPEC.md "Grid
+// geometry" / "Spacing Scale").
 //
-// This is not a prototype — WorkspaceTile.qml's `workspace` PROPERTY (not
-// an internal Hyprland.focusedWorkspace read) is exactly what lets plan
-// 16-03 instantiate eleven of these against D-16-01's fixed 5x2+scratchpad
-// grid without rewriting this type at all.
+// Every layer between Super+O and live pixels is wired end-to-end here:
+// layer posture, scrim, focus grab, dismissal, click-to-focus-and-close,
+// and the `overview` IPC status verb — all inherited unchanged from the
+// tracer (16-02).
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -107,34 +110,117 @@ PanelWindow {
         opacity: overviewWindow.scrimOpacity
     }
 
-    // The tracer's one tile — plan 16-03 replaces this single instance with
-    // a Repeater over D-16-01's fixed 10 slots + the scratchpad, reusing
-    // WorkspaceTile.qml unchanged.
-    WorkspaceTile {
-        id: tile
-        anchors.centerIn: parent
-        width: 480
-        height: 270
-        captureScale: 480 / Hyprland.focusedMonitor.width
-        workspace: Hyprland.focusedWorkspace
-        isFocusedWorkspace: true
+    // Fixed tile geometry (16-UI-SPEC.md "Grid geometry") — named constants
+    // so the fit arithmetic below reads as arithmetic, not magic numbers.
+    readonly property int tileWidth: 480
+    readonly property int tileHeight: 270
+    // 480 / 2560 = 0.1875 on this host — computed, not hardcoded, per
+    // D-16-02, so a different monitor width still produces a correct scale.
+    readonly property real captureScale: overviewWindow.tileWidth / Hyprland.focusedMonitor.width
 
-        // D-16-13/D-16-20 (tile-empty-area case only in this tracer):
-        // clicking focuses the workspace and closes the overview in the
-        // same gesture (OVER-02).
-        onActivated: {
-            if (tile.workspace)
-                tile.workspace.activate();
-            overviewWindow.dismissRequested();
+    // Resolves a fixed slot id (1..10) against Hyprland's live workspace
+    // list, or returns null for an id Hyprland does not yet know about.
+    // Hyprland.workspaces itself is never padded — the ten SLOTS are the
+    // fixed thing (D-16-01), the workspace behind each is what may be
+    // absent.
+    function workspaceForSlot(slotId) {
+        var list = Hyprland.workspaces.values;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].id === slotId)
+                return list[i];
+        }
+        return null;
+    }
+
+    function isFocusedSlot(slotId) {
+        return !!(Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.id === slotId);
+    }
+
+    // D-16-13/D-16-20: clicking a tile's empty area focuses that workspace
+    // and closes the overview in the same gesture (OVER-02). Shared by
+    // every numbered tile below rather than repeated ten times.
+    function activateTile(workspace) {
+        if (workspace)
+            workspace.activate();
+        overviewWindow.dismissRequested();
+    }
+
+    // ── The fixed 5x2 numbered grid (D-16-01) ────────────────────────────
+    // Block width: 5*480 + 4*24 = 2496px; height: 2*270 + 24 = 564px;
+    // centred with a spacingLg (24px) scrim margin per side — 2544px total
+    // on this 2560px display, 16px spare (16-UI-SPEC.md's load-bearing fit
+    // arithmetic). Any change to tile width, gap or border must re-run it.
+    // A Column of two Rows (not a single Grid) keeps each row independently
+    // addressable as its own entrance-cascade band — plan 16-03 Task 2
+    // wires that up without restructuring this container.
+    Column {
+        id: gridBlock
+        anchors.centerIn: parent
+        spacing: Design.spacingLg
+
+        Row {
+            id: rowOne
+            spacing: Design.spacingLg
+
+            Repeater {
+                id: rowOneRepeater
+                model: 5
+
+                delegate: WorkspaceTile {
+                    width: overviewWindow.tileWidth
+                    height: overviewWindow.tileHeight
+                    slotLabel: String(index + 1)
+                    captureScale: overviewWindow.captureScale
+                    monitor: Hyprland.focusedMonitor
+                    workspace: overviewWindow.workspaceForSlot(index + 1)
+                    isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 1)
+                    onActivated: overviewWindow.activateTile(workspace)
+                }
+            }
+        }
+
+        Row {
+            id: rowTwo
+            spacing: Design.spacingLg
+
+            Repeater {
+                id: rowTwoRepeater
+                model: 5
+
+                delegate: WorkspaceTile {
+                    width: overviewWindow.tileWidth
+                    height: overviewWindow.tileHeight
+                    slotLabel: String(index + 6)
+                    captureScale: overviewWindow.captureScale
+                    monitor: Hyprland.focusedMonitor
+                    workspace: overviewWindow.workspaceForSlot(index + 6)
+                    isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 6)
+                    onActivated: overviewWindow.activateTile(workspace)
+                }
+            }
         }
     }
 
     // D-16-23 check 6's `overview` IPC status verb reads these off the
-    // loaded Overview instance — this tracer sums exactly one tile's own
-    // counts, the same aggregation shape plan 16-03 reuses for eleven.
-    readonly property int tileCount: 1
-    readonly property int thumbnailCount: tile.thumbnailCount
-    readonly property int thumbnailsWithContent: tile.thumbnailsWithContent
+    // loaded Overview instance — summed across all ten tiles so the verb
+    // keeps reporting truthfully at ten tiles as it did at one.
+    readonly property int tileCount: 10
+    readonly property int thumbnailCount: {
+        var n = 0;
+        for (var i = 0; i < rowOneRepeater.count; i++)
+            n += rowOneRepeater.itemAt(i).thumbnailCount;
+        for (var i = 0; i < rowTwoRepeater.count; i++)
+            n += rowTwoRepeater.itemAt(i).thumbnailCount;
+        return n;
+    }
+    readonly property int thumbnailsWithContent: {
+        var n = 0;
+        for (var i = 0; i < rowOneRepeater.count; i++)
+            n += rowOneRepeater.itemAt(i).thumbnailsWithContent;
+        for (var i = 0; i < rowTwoRepeater.count; i++)
+            n += rowTwoRepeater.itemAt(i).thumbnailsWithContent;
+        return n;
+    }
 
     // ── Click-outside dismiss (D-10 dismissal set) — Dashboard.qml's
     //    proven click-outside/focus-loss combination, reused verbatim. ────
