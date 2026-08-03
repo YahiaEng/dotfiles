@@ -83,6 +83,16 @@ Item {
             // Guard every lastIpcObject read — a toplevel can exist before
             // its IPC object lands, and `at`/`size` can be individually
             // absent even once lastIpcObject itself is non-null.
+            // CONFIRMED root cause (2026-08-03, per-delegate IPC measurement
+            // — x/y/width/height/hasContent/sourceSize per window, not a
+            // screenshot): a toplevel created after Quickshell's initial
+            // sync starts with lastIpcObject = {} (empty, NOT null) and
+            // never spontaneously repopulates without an explicit
+            // Hyprland.refreshToplevels() call — proven by waiting 4+
+            // seconds inside one still-summoned session with zero change.
+            // This fallback was firing CORRECTLY on that empty object the
+            // whole time; the missing piece was Overview.qml's
+            // Component.onCompleted refresh call, not this guard.
             readonly property var ipc: modelData ? modelData.lastIpcObject : null
             readonly property var at: (ipc && ipc.at) ? ipc.at : [0, 0]
             readonly property var size: (ipc && ipc.size) ? ipc.size : [0, 0]

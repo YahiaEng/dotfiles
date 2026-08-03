@@ -50,6 +50,25 @@ PanelWindow {
     exclusiveZone: 0
     color: "transparent"
 
+    // ── Render-gate defect, round 2 root cause (2026-08-03) ──────────────
+    // Real root cause of "only shows the current window", confirmed with a
+    // per-delegate IPC measurement (x/y/width/height/hasContent/sourceSize
+    // per window), not screenshots: HyprlandToplevel.lastIpcObject starts as
+    // an EMPTY QVariantMap ({}, rawIpcHasKeys=0 — not null) for any window
+    // created after Quickshell's initial sync, and never spontaneously
+    // populates — proven by waiting 4+ seconds inside one still-summoned
+    // session with zero change. This is the SAME lag shell.qml's own
+    // fullscreenBlocking guard already documents and works around
+    // ("Hyprland.activeToplevel.lastIpcObject can lag... force a refresh").
+    // WorkspaceTile.qml's own `(ipc && ipc.at) ? ipc.at : [0,0]` guard was
+    // therefore firing CORRECTLY on an empty object and staying collapsed
+    // forever, not corrupting anything — the missing piece was ever asking
+    // Hyprland to repopulate it. Concurrent capture itself was never
+    // broken: every delegate in that same measurement had hasContent=true
+    // with correct, DISTINCT sourceSize values throughout — refuting the
+    // "only one concurrent screencopy stream" hypothesis directly.
+    Component.onCompleted: Hyprland.refreshToplevels()
+
     // ── Render-gate deviation from 16-UI-SPEC.md (2026-08-03) ────────────
     // UI-SPEC recommended 0.55 (already lower than PanelDialog's own
     // panelSurfaceOpacity/drawerSurfaceOpacity of 0.78). At the Task 3
