@@ -59,8 +59,8 @@
 
 ### Workspace Overview (OVER)
 
-- [ ] **OVER-01**: A keybind opens a full-screen grid of workspaces showing live thumbnails of every open window
-- [ ] **OVER-02**: Clicking a workspace tile focuses that workspace and closes the overview
+- [x] **OVER-01**: A keybind opens a full-screen grid of workspaces showing live thumbnails of every open window
+- [x] **OVER-02**: Clicking a workspace tile focuses that workspace and closes the overview
 - [ ] **OVER-03**: Dragging a window thumbnail onto another workspace tile moves that window, with a hover-highlight on the drop target
 - [ ] **OVER-04**: Live multi-window thumbnail performance is measured on Hyprland 0.56.0 and stays within an agreed frame/CPU budget, with a documented fallback if it does not
 
@@ -159,8 +159,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PANEL-04 | Phase 15 — Audio + Connectivity Panels | Complete |
 | PANEL-05 | Phase 15 — Audio + Connectivity Panels | Complete |
 | PANEL-06 | Phase 15 — Audio + Connectivity Panels | Complete |
-| OVER-01 | Phase 16 — Workspace Overview | Pending |
-| OVER-02 | Phase 16 — Workspace Overview | Pending |
+| OVER-01 | Phase 16 — Workspace Overview | Complete |
+| OVER-02 | Phase 16 — Workspace Overview | Complete |
 | OVER-03 | Phase 16 — Workspace Overview | Pending |
 | OVER-04 | Phase 16 — Workspace Overview | Pending |
 | AMB-01 | Phase 17 — Ambient Extras | Pending |
