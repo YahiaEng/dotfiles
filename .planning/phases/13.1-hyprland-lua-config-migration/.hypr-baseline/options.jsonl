@@ -22,7 +22,7 @@
 {"option": "dwindle:preserve_split", "int": 1, "set": true }
 {"option": "dwindle:smart_resizing", "int": 1, "set": true }
 {"option": "dwindle:smart_split", "int": 0, "set": true }
-{"option": "ecosystem:enforce_permissions", "int": 0, "set": true }
+{"option": "ecosystem:enforce_permissions", "int": 1, "set": true }
 {"option": "general:allow_tearing", "int": 0, "set": true }
 {"option": "general:border_size", "int": 3, "set": true }
 {"option": "general:col.active_border", "custom": "ffff79c6 ffbd93f9 ff8be9fd 45deg", "set": true }

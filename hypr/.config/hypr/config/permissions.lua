@@ -32,7 +32,7 @@
 -- mechanism is this ordinary required Lua module: one permission-grant
 -- call per client, plus the `ecosystem` option set via `hl.config`.
 --
--- WHAT IS AND ISN'T VERIFIED (read before Phase 16 relies on this file):
+-- WHAT IS AND ISN'T VERIFIED (read before relying on this file):
 --   - The MECHANISM (field names, type/mode strings, the
 --     restart-not-reload requirement) is verified directly against the
 --     installed binary, as above, and via the permission-grant calling-
@@ -43,22 +43,29 @@
 --     live enforcement test.
 --   - Live enforcement itself — that setting `enforce_permissions = true`
 --     actually admits these exact clients and denies everyone else — was
---     DELIBERATELY NOT exercised in Phase 11. Testing it requires a full
---     Hyprland restart, and this machine's operator session runs AS A
---     CHILD PROCESS of the compositor (`Hyprland -> kitty -> fish ->
---     claude`); the restart would have killed the verification session
---     itself. The human operator explicitly chose to skip the live
---     restart test rather than accept that risk (2026-07-26). Phase 16
---     (OVER-04) must perform the live enforcement proof itself before
---     depending on this file's allow list being correct in practice.
+--     DELIBERATELY NOT exercised in Phase 11 (2026-07-26, see git history
+--     for that phase's own record). Phase 16 Plan 04 (D-16-09, OVER-04)
+--     performed that proof: see 16-04-SUMMARY.md for the live restart,
+--     the runtime `hyprctl getoption` readback, and the pass/fail result
+--     for all five screencopy consumer paths.
 --
--- SHIPS INERT: `enforce_permissions` is `false` below, so none of the
--- above is active on this build. Phase 16 activates this file by
--- flipping the single value below to `true` and restarting Hyprland — no
--- other edit is required, but per the paragraph above, Phase 16 must
--- still verify live enforcement itself; this file only proves the
--- mechanism and the consumer list, not that the mechanism works
--- end-to-end.
+-- ENFORCEMENT ENABLED: 2026-08-03, Phase 16 Plan 04 (D-16-09). The single
+-- value below was flipped from `false` to `true` in this commit. Per the
+-- restart-not-reload note above, a full Hyprland restart (log out, log
+-- back in — never `hyprctl reload`) is required before this actually
+-- takes functional effect; that restart and the resulting five-consumer
+-- proof is this same plan's very next step (see 16-04-SUMMARY.md for the
+-- live result). No other edit was required here — the four grants below
+-- are unchanged from Phase 11's own consumer-identification work.
+--
+-- RECOVERY if the allow list turns out to be wrong (a legitimate
+-- screencopy consumer breaks): open this file, restore the
+-- `enforce_permissions` value below to its prior (unrestricted) setting,
+-- log out and log back in (NOT `hyprctl reload` — see the
+-- restart-not-reload note above; a reload does NOT apply a change here,
+-- confirmed live by this same plan). Every consumer works again
+-- immediately on the next session. Nothing is destroyed by getting the
+-- allow list wrong — this is a one-value, fully-reversible toggle.
 --
 -- T-11-20 / T-13.1-02 (Elevation of Privilege): every client identifier
 -- below is the EXACT absolute binary path, verified via
@@ -71,7 +78,7 @@
 -- CALL FORM only, never its path style — see 13.1-PERMISSION-REVIEW.md
 -- for the recorded proof that no path here was broadened.
 
-hl.config({ ecosystem = { enforce_permissions = false } })
+hl.config({ ecosystem = { enforce_permissions = true } })
 
 -- Quickshell — this repo's own screencopy probe (criterion 5, D-12).
 hl.permission({ binary = "/usr/bin/quickshell", type = "screencopy", mode = "allow" })
@@ -112,12 +119,15 @@ hl.permission({ binary = "/usr/lib/xdg-desktop-portal-hyprland", type = "screenc
 --     region-selection overlay (outputs "X,Y WxH" text); the actual
 --     freeze/capture in every script that uses it is done by a separate
 --     tool (grim or hyprpicker, both already allowed above).
---   - gpu-screen-recorder (record-toggle.sh, SHOT-03): `strings` on its
---     binary shows no direct `screencopy` protocol reference — it likely
---     captures via KMS/DRM (`gsr-kms-server`) or the portal's own
---     ScreenCast path (already covered by the portal entry above) rather
---     than the `wlr-screencopy` protocol directly, but this was NOT
---     independently confirmed live under enforcement in this plan (out
---     of this plan's <human-check> scope). Flagged, not guessed at —
---     verify before Phase 16 relies on it if screen recording is ever
---     exercised under enforcement.
+--   - gpu-screen-recorder (record-toggle.sh, SHOT-03, real binary path
+--     /usr/bin/gpu-screen-recorder): `strings` on its binary shows no
+--     direct `screencopy` protocol reference — it likely captures via
+--     KMS/DRM (`gsr-kms-server`) or the portal's own ScreenCast path
+--     (already covered by the portal entry above) rather than the
+--     `wlr-screencopy` protocol directly. Phase 11 flagged this, not
+--     guessed at it. Phase 16 Plan 04, Task 3 exercises it live under
+--     this now-enabled enforcement (the fifth of the five screencopy
+--     consumer paths that plan's human checkpoint proves) — see
+--     16-04-SUMMARY.md for the recorded pass/fail result. If it failed,
+--     a fifth grant for /usr/bin/gpu-screen-recorder was added below in
+--     the same exact-absolute-path shape as the four above.
