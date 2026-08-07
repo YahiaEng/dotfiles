@@ -5,16 +5,16 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 16
 current_phase_name: workspace-overview
 status: executing
-stopped_at: Completed 16-05-PLAN.md
-last_updated: "2026-08-03T19:32:10.019Z"
-last_activity: 2026-08-03
-last_activity_desc: Phase 16 execution started
+stopped_at: Completed 16-06-PLAN.md
+last_updated: "2026-08-07T18:10:00.000Z"
+last_activity: 2026-08-07
+last_activity_desc: 16-06 render gate approved, plan closed
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 62
-  completed_plans: 59
-  percent: 75
+  completed_plans: 60
+  percent: 77
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 ## Current Position
 
 Phase: 16 (workspace-overview) — EXECUTING
-Plan: 6 of 8
-Status: Ready to execute
-Progress: [██████████] 95% — 6/8 phases complete, 54/54 plans executed
-Last activity: 2026-08-03 — Phase 16 execution started
+Plan: 7 of 8
+Status: Ready to execute (16-06 closed; 16-07 next)
+Progress: [██████████] 97% — 6/8 phases complete, 60/62 plans executed
+Last activity: 2026-08-07 — 16-06 render gate approved, plan closed
 
 ## Performance Metrics
 
@@ -184,6 +184,7 @@ Last activity: 2026-08-03 — Phase 16 execution started
 | Phase 16-workspace-overview P03 | single-session | 3 tasks | 4 files |
 | Phase 16 P04 | single session | 2 tasks | 22 files |
 | Phase 16 P05 | single session | 3 tasks | 3 files |
+| Phase 16 P06 | two sessions (gate approved 2026-08-07) | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -356,6 +357,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 16-05: Overview.qml raises one whole-grid permission-denial message (gated on allSettled + zero withContent) instead of per-tile repetition, with a settle-ceiling safety timer
 - [Phase ?]: 16-05: window-level click parity closed — clicking a thumbnail calls toplevel.wayland.activate() (confirmed via qmltypes; HyprlandToplevel itself has no activate()) then dismisses
 - [Phase ?]: 16-05: confirmed HyprlandToplevel.address omits the 0x prefix hyprctl clients -j includes — a silent string-mismatch trap for any future address comparison (relevant to 16-06's drag-drop)
+- [Phase ?]: 16-06: OVER-03 closed — render gate APPROVED 2026-08-07, no change requests; drag ghost is a reused WindowThumbnail (liveCapture:false, one captureFrame() per drag), selector-confirmed dispatch implemented verbatim with follow=false so D-16-13's silence is delivered, not approximated
+- [Phase ?]: 16-06: the guarded move dispatch in Overview.qml (0x-normalised address shape-checked at dispatch time, workspace token validated 1..10/special:magic, no client text ever concatenated) is the seam 16-07's Shift+1..0 keyboard move MUST reuse, not re-derive
+- [Phase ?]: 16-06: every non-move outcome (same-tile no-op, gap release, validation failure, mid-drag toplevel destruction) funnels through one cancel path on the standard pair — no bespoke error UI; the two planner-assumed OVER-03 edges are implemented but carried into 16-USE-NOTE.md's first pass as assumptions, not derived criteria
 
 ### Quick Tasks Completed
 
@@ -453,8 +457,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-03T19:32:09.990Z
-Stopped at: Completed 16-05-PLAN.md
+Last session: 2026-08-07T18:10:00.000Z
+Stopped at: Completed 16-06-PLAN.md (render gate approved, plan closed)
 Resume file: None
 
 ## Operator Next Steps
