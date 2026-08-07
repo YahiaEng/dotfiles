@@ -95,6 +95,14 @@ Item {
     // this and nothing else in this surface (16-UI-SPEC.md "Color").
     property bool dropTargetActive: false
 
+    // D-16-15/D-16-16 (Phase 16 Plan 07): true for the ONE tile the
+    // keyboard selection is currently on, driven by Overview.qml the same
+    // way dropTargetActive is — this tile never decides for itself. The
+    // SECONDARY role is reserved for this and nothing else, so it never
+    // collides in meaning with dropTargetActive's PRIMARY fill (an
+    // outline reading "the keyboard is here", never "drop here").
+    property bool keyboardSelected: false
+
     Rectangle {
         id: background
         anchors.fill: parent
@@ -228,6 +236,22 @@ Item {
         border.width: Design.borderWidth
         border.color: Colours.outline
         visible: root.isFocusedWorkspace
+    }
+
+    // Keyboard selection ring (Phase 16 Plan 07, D-16-15/D-16-16): a thin
+    // SECONDARY-role OUTLINE, deliberately never a fill — the drag
+    // highlight's Colours.primary FILL above means "drop here"; this
+    // outline means "the keyboard is here". Both roles, plus the neutral
+    // focused-workspace ring above, stay individually readable even if all
+    // three land on the same tile at once (each is a distinct colour role
+    // at a distinct visual weight — fill vs. two concentric outlines).
+    Rectangle {
+        anchors.fill: parent
+        radius: root.tileRadius
+        color: "transparent"
+        border.width: Design.borderWidth
+        border.color: Colours.secondary
+        visible: root.keyboardSelected
     }
 
     // Monitor badge: only rendered when 2+ displays are connected. This

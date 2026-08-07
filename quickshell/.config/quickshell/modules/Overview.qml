@@ -96,6 +96,7 @@ PanelWindow {
         overviewWindow.entranceCascade.bands = [rowOne, rowTwo, scratchpadTile];
         overviewWindow.entranceCascade.armed = true;
         overviewWindow.entranceCascade.run();
+        overviewWindow.seedSelectedTile();
     }
 
     // ── Render-gate deviation from 16-UI-SPEC.md (2026-08-03) ────────────
@@ -209,6 +210,132 @@ PanelWindow {
         overviewWindow.dismissRequested();
     }
 
+    // ── D-16-15/D-16-16 keyboard selection state (Phase 16 Plan 07) ──────
+    // The whole selection is exactly one index pair: `selectedTile` (0-10,
+    // 0-4 row 1, 5-9 row 2, 10 the scratchpad — the SAME canonical order the
+    // 5x2 grid below already renders in) and `selectedWindow` (Task 2:
+    // negative when no window level is active, otherwise an index into the
+    // selected tile's own toplevel list). No third mode exists.
+    //
+    // ── THE BOUNDARY (D-16-15's hard boundary) ────────────────────────────
+    // No editable-text QML control of any kind, no filter property, no
+    // search state — arrows and modifiers only, on this file and every
+    // file it composes. This is deliberate, not an oversight: a place to
+    // type here would be a second "type to find a thing" surface competing
+    // with walker (REQUIREMENTS.md's OVER-05 exclusion). T-16-34 enforces
+    // this mechanically via the acceptance grep, not by convention alone —
+    // which is also why this note itself avoids spelling out the three
+    // banned type names literally.
+    property int selectedTile: 0
+    // Remembers the column (0-4) last occupied in row 1/row 2, so an Up
+    // press from the scratchpad — which has no column of its own — returns
+    // to the SAME column it left, honouring the "column-preserving" half of
+    // the 2D row movement below even across the scratchpad's one exception.
+    property int lastColumn: 0
+    onSelectedTileChanged: {
+        if (overviewWindow.selectedTile < 10)
+            overviewWindow.lastColumn = overviewWindow.selectedTile % 5;
+    }
+
+    // Resolves a fixed slot index (0-10, this file's own canonical order —
+    // see the property comment above) to the HyprlandWorkspace it names, or
+    // null. Slot 10 is always the scratchpad; slots 0-9 defer to
+    // workspaceForSlot()'s existing 1-10 id resolution, unchanged.
+    function slotWorkspace(index) {
+        return index === 10 ? overviewWindow.scratchpadWorkspace() : overviewWindow.workspaceForSlot(index + 1);
+    }
+
+    // The live toplevel list for a slot, or an empty array for an
+    // unoccupied/nonexistent workspace — never null, so every caller can
+    // read `.length` without its own null guard. `.values` is
+    // `UntypedObjectModel`'s own array snapshot (the same model
+    // WorkspaceTile.qml's windowRepeater already binds `.toplevels` to
+    // directly as a Repeater model); reading it here as a plain JS array is
+    // what lets arrow movement address "window N of this tile" by index.
+    function toplevelsForSlot(index) {
+        var ws = overviewWindow.slotWorkspace(index);
+        if (ws && ws.toplevels && ws.toplevels.values)
+            return ws.toplevels.values;
+        return [];
+    }
+
+    // ── Left/Right: linear wrap across all eleven tiles ───────────────────
+    // Chosen over edge-stop at the UI-consideration gate (16-UI-SPEC.md
+    // "Keyboard model") despite genuine tension with D-16-03's
+    // spatial-constancy argument — under wrap, a single Right from tile 5
+    // lands on tile 6 in the row below, so tile position and travel
+    // direction stop agreeing at the row boundary. Implemented as one
+    // source-visible modulo over the eleven-slot count, which is also
+    // what makes "Right eleven times returns to the start" provable by
+    // inspection rather than by trusting a loop. Edge-stop (clamping
+    // instead of wrapping) is the one-line fallback if Task 3's render
+    // gate finds the row-crossing jump reads as unnatural — replace the
+    // modulo with Math.max(0, Math.min(10, selectedTile + delta)).
+    function moveLinear(delta) {
+        overviewWindow.selectedTile = (overviewWindow.selectedTile + delta + 11) % 11;
+    }
+
+    // ── Up/Down: column-preserving 2D row movement, NOT part of the linear
+    // sequence above — a fast row jump. Down from row 1 goes to row 2 in
+    // the same column; Down from row 2 goes to the scratchpad; Up reverses,
+    // using lastColumn to return to the right column from the scratchpad's
+    // single columnless slot. Down from the scratchpad and Up from row 1
+    // are no-ops (nothing further in that direction).
+    function moveVertical(dy) {
+        if (overviewWindow.selectedTile === 10) {
+            if (dy < 0)
+                overviewWindow.selectedTile = 5 + overviewWindow.lastColumn;
+            return;
+        }
+        var col = overviewWindow.selectedTile % 5;
+        var row = Math.floor(overviewWindow.selectedTile / 5);
+        if (dy > 0)
+            overviewWindow.selectedTile = row === 0 ? col + 5 : 10;
+        else if (row === 1)
+            overviewWindow.selectedTile = col;
+    }
+
+    // Seeds selectedTile to the slot holding the currently-focused
+    // workspace on summon, falling back to slot 0 — the selection starts
+    // where the user already is rather than at an arbitrary corner.
+    function seedSelectedTile() {
+        var focused = Hyprland.focusedWorkspace;
+        if (focused) {
+            if (focused.name === "special:magic") {
+                overviewWindow.selectedTile = 10;
+                return;
+            }
+            if (focused.id >= 1 && focused.id <= 10) {
+                overviewWindow.selectedTile = focused.id - 1;
+                return;
+            }
+        }
+        overviewWindow.selectedTile = 0;
+    }
+
+    // Enter on a tile: a tile with windows descends to window-level
+    // selection (Task 2 wires the actual descent below this function);
+    // a tile with none — or a slot id Hyprland does not yet know about —
+    // activates the workspace and dismisses, exactly what clicking that
+    // tile's empty area does (D-16-13/D-16-20).
+    function handleEnter() {
+        var index = overviewWindow.selectedTile;
+        var tops = overviewWindow.toplevelsForSlot(index);
+        if (tops.length > 0)
+            return;
+        overviewWindow.activateTile(overviewWindow.slotWorkspace(index));
+    }
+
+    // Two-stage Esc, routed through one seam (D-16-16), following
+    // PanelDialog.qml/WifiPanel.qml's own handleEscape() precedent
+    // (D-15-14): a later stage is added by PREPENDING a branch before the
+    // dismiss, never by restructuring this function. Task 1 has no window
+    // level yet, so this is single-stage for now — Task 2 prepends the
+    // window-level back-out branch.
+    function handleEscape() {
+        overviewWindow.dismissRequested();
+    }
+
     // ── The fixed 5x2 numbered grid (D-16-01) ────────────────────────────
     // Block width: 5*480 + 4*24 = 2496px; height: 2*270 + 24 = 564px;
     // centred with a spacingLg (24px) scrim margin per side — 2544px total
@@ -239,6 +366,7 @@ PanelWindow {
                     workspace: overviewWindow.workspaceForSlot(index + 1)
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 1)
                     dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 1)
+                    keyboardSelected: overviewWindow.selectedTile === index
                     onActivated: overviewWindow.activateTile(workspace)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                     onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -265,6 +393,7 @@ PanelWindow {
                     workspace: overviewWindow.workspaceForSlot(index + 6)
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 6)
                     dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 6)
+                    keyboardSelected: overviewWindow.selectedTile === (index + 5)
                     onActivated: overviewWindow.activateTile(workspace)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                     onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -295,6 +424,7 @@ PanelWindow {
         monitor: Hyprland.focusedMonitor
         workspace: overviewWindow.scratchpadWorkspace()
         dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === "special:magic"
+        keyboardSelected: overviewWindow.selectedTile === 10
         onActivated: overviewWindow.activateTile(workspace)
         onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
         onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -619,13 +749,42 @@ PanelWindow {
         onCleared: overviewWindow.dismissRequested()
     }
 
-    // ── Content root (D-10 Esc dismiss) ──────────────────────────────────
+    // ── Content root (D-10 Esc dismiss; D-16-15/D-16-16 arrow/Enter nav) ──
     Item {
         id: content
         anchors.fill: parent
         focus: true
 
-        Keys.onEscapePressed: overviewWindow.dismissRequested()
+        Keys.onEscapePressed: overviewWindow.handleEscape()
+
+        // Arrows move the selection, Enter descends/activates — no other
+        // key is handled here (THE BOUNDARY, above: no text field of any
+        // kind exists on this surface for any key to feed).
+        Keys.onPressed: event => {
+            switch (event.key) {
+            case Qt.Key_Left:
+                overviewWindow.moveLinear(-1);
+                event.accepted = true;
+                break;
+            case Qt.Key_Right:
+                overviewWindow.moveLinear(1);
+                event.accepted = true;
+                break;
+            case Qt.Key_Up:
+                overviewWindow.moveVertical(-1);
+                event.accepted = true;
+                break;
+            case Qt.Key_Down:
+                overviewWindow.moveVertical(1);
+                event.accepted = true;
+                break;
+            case Qt.Key_Return:
+            case Qt.Key_Enter:
+                overviewWindow.handleEnter();
+                event.accepted = true;
+                break;
+            }
+        }
 
         // forceActiveFocus() is required for the key handler above to
         // actually receive events under WlrKeyboardFocus.OnDemand —
