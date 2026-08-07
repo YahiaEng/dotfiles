@@ -94,6 +94,14 @@ Item {
     property bool beingDragged: false
     opacity: root.beingDragged ? 0 : 1
 
+    // D-16-16 (Phase 16 Plan 07): true for the ONE window WorkspaceTile.qml's
+    // own selectedWindowIndex names within this tile — this type never
+    // decides for itself, only renders whatever its owner says, the same
+    // pattern dropTargetActive/keyboardSelected already establish one level
+    // up. Scaled-down twin of WorkspaceTile.qml's own keyboard-selection
+    // outline: SECONDARY role, thin OUTLINE, never a fill.
+    property bool keyboardSelected: false
+
     // Guard every lastIpcObject read — see the header note above for why
     // this guard exists and what it protects against (a toplevel whose IPC
     // object hasn't landed yet, or has landed but is missing at/size keys).
@@ -121,6 +129,19 @@ Item {
         constraintSize: Qt.size(root.width, root.height)
         captureSource: root.toplevel ? root.toplevel.wayland : null
         live: root.liveCapture
+    }
+
+    // Window-level keyboard selection outline — drawn over the capture
+    // view, scaled to this thumbnail's own (real-geometry) bounds rather
+    // than the tile's. No corner radius: unlike WorkspaceTile.qml's own
+    // tile ring, a window thumbnail has no rounded chrome of its own to
+    // match.
+    Rectangle {
+        anchors.fill: parent
+        color: "transparent"
+        border.width: Design.borderWidth
+        border.color: Colours.secondary
+        visible: root.keyboardSelected
     }
 
     // Exposed so WorkspaceTile.qml's aggregate counts can read this

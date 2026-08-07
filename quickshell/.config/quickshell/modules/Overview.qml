@@ -313,26 +313,160 @@ PanelWindow {
         overviewWindow.selectedTile = 0;
     }
 
-    // Enter on a tile: a tile with windows descends to window-level
-    // selection (Task 2 wires the actual descent below this function);
-    // a tile with none — or a slot id Hyprland does not yet know about —
-    // activates the workspace and dismisses, exactly what clicking that
-    // tile's empty area does (D-16-13/D-16-20).
-    function handleEnter() {
-        var index = overviewWindow.selectedTile;
-        var tops = overviewWindow.toplevelsForSlot(index);
-        if (tops.length > 0)
+    // ── Task 2 (D-16-16/D-16-20): window-level selection ──────────────────
+    // Negative when no window level is active; otherwise an index into
+    // `selectedTile`'s own toplevel list (model order — the same order
+    // WorkspaceTile.qml's windowRepeater already renders in). Together with
+    // selectedTile above, this is the WHOLE selection state — one index
+    // pair, no third mode.
+    property int selectedWindow: -1
+
+    // Arrow movement WITHIN the selected tile's windows — clamps at the
+    // ends rather than wrapping into a neighbouring tile, because crossing
+    // a tile boundary at window level is exactly the ambiguity D-16-16
+    // rejected a flat 2D field of windows over.
+    function moveWindowSelection(delta) {
+        var tops = overviewWindow.toplevelsForSlot(overviewWindow.selectedTile);
+        if (tops.length === 0) {
+            overviewWindow.selectedWindow = -1;
             return;
+        }
+        var next = overviewWindow.selectedWindow + delta;
+        overviewWindow.selectedWindow = Math.max(0, Math.min(tops.length - 1, next));
+    }
+
+    // Every directional key is gated on selectedWindow first: window level
+    // owns arrow input entirely while active (clamped, per above); tile
+    // level's own linear-wrap/row-jump movement only runs once it is not.
+    function handleLeft() {
+        if (overviewWindow.selectedWindow >= 0)
+            overviewWindow.moveWindowSelection(-1);
+        else
+            overviewWindow.moveLinear(-1);
+    }
+    function handleRight() {
+        if (overviewWindow.selectedWindow >= 0)
+            overviewWindow.moveWindowSelection(1);
+        else
+            overviewWindow.moveLinear(1);
+    }
+    function handleUp() {
+        if (overviewWindow.selectedWindow >= 0)
+            overviewWindow.moveWindowSelection(-1);
+        else
+            overviewWindow.moveVertical(-1);
+    }
+    // Down on tile level DESCENDS instead of jumping a row when the current
+    // tile has windows (D-16-16: "Enter (or Down) drops into a tile that
+    // has windows") — the row-jump only fires for an empty tile, where
+    // there is nothing to descend into.
+    function handleDown() {
+        if (overviewWindow.selectedWindow >= 0) {
+            overviewWindow.moveWindowSelection(1);
+            return;
+        }
+        var tops = overviewWindow.toplevelsForSlot(overviewWindow.selectedTile);
+        if (tops.length > 0) {
+            overviewWindow.selectedWindow = 0;
+            return;
+        }
+        overviewWindow.moveVertical(1);
+    }
+
+    // Enter: at window level, focuses the selected window and dismisses —
+    // exact parity with clicking that thumbnail (D-16-20), so nothing is
+    // learned or tested twice. At tile level, a tile with windows descends
+    // (selectedWindow = 0); a tile with none — or a slot id Hyprland does
+    // not yet know about — activates the workspace and dismisses, exactly
+    // what clicking that tile's empty area does (D-16-13/D-16-20).
+    function handleEnter() {
+        if (overviewWindow.selectedWindow >= 0) {
+            var tops = overviewWindow.toplevelsForSlot(overviewWindow.selectedTile);
+            var toplevel = tops[overviewWindow.selectedWindow];
+            if (toplevel)
+                overviewWindow.activateWindow(toplevel);
+            return;
+        }
+        var index = overviewWindow.selectedTile;
+        var tops2 = overviewWindow.toplevelsForSlot(index);
+        if (tops2.length > 0) {
+            overviewWindow.selectedWindow = 0;
+            return;
+        }
         overviewWindow.activateTile(overviewWindow.slotWorkspace(index));
     }
+
+    // Maps Shift+<number> to the workspace id the existing Super+Shift+N
+    // Hyprland binds already use (keybinds.lua lines 227-236) — 1-9 map to
+    // themselves, 0 maps to 10. Returns null for any other key so the
+    // caller can tell "not a workspace-number key" apart from "workspace 0",
+    // which does not exist.
+    function shiftNumberToWorkspaceId(key) {
+        if (key === Qt.Key_0)
+            return 10;
+        if (key >= Qt.Key_1 && key <= Qt.Key_9)
+            return key - Qt.Key_0;
+        return null;
+    }
+
+    // Shift+1..0: moves the WINDOW-level selected window to that workspace
+    // through plan 16-06's own guarded dispatchWindowMove() below — this is
+    // the only call site, reused, never re-derived (T-16-31's mitigation:
+    // the dispatch call-site count in this file stays unchanged from its
+    // post-16-06 value). With no window selected this is a no-op: a
+    // keystroke silently acting on something other than what is visibly
+    // selected (e.g. falling back to "the active window") is worse than a
+    // keystroke that does nothing (T-16-32).
+    function handleShiftMove(workspaceId) {
+        if (overviewWindow.selectedWindow < 0)
+            return;
+        var sourceTile = overviewWindow.selectedTile;
+        var tops = overviewWindow.toplevelsForSlot(sourceTile);
+        if (overviewWindow.selectedWindow >= tops.length)
+            return;
+        var toplevel = tops[overviewWindow.selectedWindow];
+        if (!toplevel)
+            return;
+        var moved = overviewWindow.dispatchWindowMove(toplevel, workspaceId);
+        if (!moved)
+            return;
+        // Keep the selection sensible: CLAMP WITHIN THE SOURCE TILE rather
+        // than following the window to its new tile. Hyprland.toplevels is
+        // a live, re-derived model (toplevelsForSlot() reads it fresh every
+        // call, never a snapshot) — the destination tile's own future index
+        // for this window is not knowable at the moment of dispatch, only
+        // after Hyprland's own event lands, so "follow" would mean guessing.
+        // Clamping to what remains in the SOURCE tile is answerable right
+        // now, from data already in hand.
+        var remaining = overviewWindow.toplevelsForSlot(sourceTile).length;
+        overviewWindow.selectedWindow = remaining > 0 ? Math.min(overviewWindow.selectedWindow, remaining - 1) : -1;
+    }
+
+    // ── Mode indicator copy (D-16-16/D-16-17, PROVISIONAL) ─────────────────
+    // Bounded interpolation only — the tile-level default label below, or
+    // "Workspace {label} windows" once descended, where label is 1-10 or
+    // the scratchpad naming itself instead of a
+    // number (T-16-33's accepted disclosure: a workspace number/name, never
+    // a window title or address). Marked provisional per D-16-17's
+    // pre-agreed fallback: if Task 3's render gate finds this cluttered,
+    // remove this pill and the window-level selection entirely — no new
+    // decision needed.
+    readonly property string modeIndicatorLabel: overviewWindow.selectedTile === 10 ? "scratchpad" : String(overviewWindow.selectedTile + 1)
+    readonly property string modeIndicatorText: overviewWindow.selectedWindow >= 0
+        ? `Workspace ${overviewWindow.modeIndicatorLabel} windows`
+        : "Tiles"
 
     // Two-stage Esc, routed through one seam (D-16-16), following
     // PanelDialog.qml/WifiPanel.qml's own handleEscape() precedent
     // (D-15-14): a later stage is added by PREPENDING a branch before the
-    // dismiss, never by restructuring this function. Task 1 has no window
-    // level yet, so this is single-stage for now — Task 2 prepends the
-    // window-level back-out branch.
+    // dismiss, never by restructuring this function. The first press backs
+    // out of window-level selection; the second (this function's own
+    // fallthrough) dismisses.
     function handleEscape() {
+        if (overviewWindow.selectedWindow >= 0) {
+            overviewWindow.selectedWindow = -1;
+            return;
+        }
         overviewWindow.dismissRequested();
     }
 
@@ -367,6 +501,7 @@ PanelWindow {
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 1)
                     dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 1)
                     keyboardSelected: overviewWindow.selectedTile === index
+                    selectedWindowIndex: overviewWindow.selectedTile === index ? overviewWindow.selectedWindow : -1
                     onActivated: overviewWindow.activateTile(workspace)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                     onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -394,6 +529,7 @@ PanelWindow {
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 6)
                     dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 6)
                     keyboardSelected: overviewWindow.selectedTile === (index + 5)
+                    selectedWindowIndex: overviewWindow.selectedTile === (index + 5) ? overviewWindow.selectedWindow : -1
                     onActivated: overviewWindow.activateTile(workspace)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                     onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -401,6 +537,39 @@ PanelWindow {
                     onDragEnded: (globalPos) => overviewWindow.handleDragEnded(globalPos)
                 }
             }
+        }
+    }
+
+    // ── Mode indicator (D-16-16/D-16-17, PROVISIONAL) ────────────────────
+    // Reuses QuickToggles.qml's segmented-pill visual language (a rounded
+    // shape with a tonal fill background, not a new chrome idiom) rather
+    // than minting a second pill convention beyond the identity/monitor
+    // pills WorkspaceTile.qml already draws. Sized to its own content —
+    // the copy is bounded interpolation (modeIndicatorText above), never
+    // free text. Sits above the grid, centred over it.
+    //
+    // This whole element is the render gate's fallback surface: if Task 3
+    // finds it clutter, delete this Rectangle (and the selectedWindow
+    // state above / keyboardSelected on WindowThumbnail) to take D-16-17's
+    // pre-agreed fallback — no new decision needed.
+    Rectangle {
+        id: modeIndicator
+        anchors {
+            bottom: gridBlock.top
+            horizontalCenter: gridBlock.horizontalCenter
+            bottomMargin: Design.spacingSm
+        }
+        width: modeIndicatorLabelText.implicitWidth + Design.spacingMd * 2
+        height: modeIndicatorLabelText.implicitHeight + Design.spacingXs * 2
+        radius: height / 2
+        color: Colours.surfaceVariant
+
+        Text {
+            id: modeIndicatorLabelText
+            anchors.centerIn: parent
+            text: overviewWindow.modeIndicatorText
+            font.pixelSize: Design.fontLabel
+            color: Colours.onSurfaceVariant
         }
     }
 
@@ -425,6 +594,7 @@ PanelWindow {
         workspace: overviewWindow.scratchpadWorkspace()
         dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === "special:magic"
         keyboardSelected: overviewWindow.selectedTile === 10
+        selectedWindowIndex: overviewWindow.selectedTile === 10 ? overviewWindow.selectedWindow : -1
         onActivated: overviewWindow.activateTile(workspace)
         onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
         onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
@@ -757,25 +927,35 @@ PanelWindow {
 
         Keys.onEscapePressed: overviewWindow.handleEscape()
 
-        // Arrows move the selection, Enter descends/activates — no other
-        // key is handled here (THE BOUNDARY, above: no text field of any
-        // kind exists on this surface for any key to feed).
+        // Arrows move the selection (tile level or window level, gated
+        // inside handleLeft/Right/Up/Down), Enter descends/activates,
+        // Shift+<number> moves the window-level selection — no other key
+        // is handled here (THE BOUNDARY, above: no text field of any kind
+        // exists on this surface for any key to feed).
         Keys.onPressed: event => {
+            if (event.modifiers & Qt.ShiftModifier) {
+                var workspaceId = overviewWindow.shiftNumberToWorkspaceId(event.key);
+                if (workspaceId !== null) {
+                    overviewWindow.handleShiftMove(workspaceId);
+                    event.accepted = true;
+                    return;
+                }
+            }
             switch (event.key) {
             case Qt.Key_Left:
-                overviewWindow.moveLinear(-1);
+                overviewWindow.handleLeft();
                 event.accepted = true;
                 break;
             case Qt.Key_Right:
-                overviewWindow.moveLinear(1);
+                overviewWindow.handleRight();
                 event.accepted = true;
                 break;
             case Qt.Key_Up:
-                overviewWindow.moveVertical(-1);
+                overviewWindow.handleUp();
                 event.accepted = true;
                 break;
             case Qt.Key_Down:
-                overviewWindow.moveVertical(1);
+                overviewWindow.handleDown();
                 event.accepted = true;
                 break;
             case Qt.Key_Return:

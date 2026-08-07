@@ -102,6 +102,12 @@ Item {
     // collides in meaning with dropTargetActive's PRIMARY fill (an
     // outline reading "the keyboard is here", never "drop here").
     property bool keyboardSelected: false
+    // Task 2: which of this tile's own windows (by windowRepeater index) is
+    // window-level selected, or -1 when no window level is active for this
+    // tile — Overview.qml drives this the same way, comparing its own
+    // selectedTile/selectedWindow pair against this tile's identity.
+    // Threaded straight to the WindowThumbnail delegate below.
+    property int selectedWindowIndex: -1
 
     Rectangle {
         id: background
@@ -170,6 +176,7 @@ Item {
             toplevel: modelData
             captureScale: root.captureScale
             monitor: root.monitor
+            keyboardSelected: index === root.selectedWindowIndex
 
             onActivated: root.windowActivated(thumbnailDelegate.toplevel)
             onDragStarted: (draggedToplevel, globalPos, sourceSize) => root.dragStarted(draggedToplevel, globalPos, sourceSize)
