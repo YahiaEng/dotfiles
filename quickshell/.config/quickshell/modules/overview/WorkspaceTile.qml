@@ -25,6 +25,14 @@
 // Capture itself now lives entirely in WindowThumbnail.qml — this file
 // instantiates one per window and reads nothing off ScreencopyView directly.
 import QtQuick
+// QtQuick.Shapes ships inside qt6-declarative, which quickshell already
+// requires — deliberately NOT Qt5Compat.GraphicalEffects, whose OpacityMask
+// would express the sweep ring below more directly but whose package
+// (qt6-5compat) install.sh does not provision. A fresh Arch system built
+// from install.sh + stow must render this surface, so the import has to come
+// from something already guaranteed present (PROJECT.md's reproducibility
+// constraint).
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Hyprland
 import "../"
@@ -108,6 +116,69 @@ Item {
     // selectedTile/selectedWindow pair against this tile's identity.
     // Threaded straight to the WindowThumbnail delegate below.
     property int selectedWindowIndex: -1
+
+    // ── Keyboard-selection sweep ring (16-07 render gate, round 2) ─────────
+    // A colour travelling continuously around the selected tile's edge.
+    // Chosen at the gate over a static outline: the two static rings were
+    // distinguishable but disliked, and the selection is the one thing on
+    // this surface the user is actively steering, so it earns the motion —
+    // the focused-workspace ring below stays deliberately quiet orientation.
+    //
+    // ── How it draws a ring without a mask ────────────────────────────────
+    // This is a SOLID rounded rectangle, not a donut: it is declared FIRST,
+    // so it renders beneath `background`, and `background` is opaque
+    // (Colours.surface / surfaceVariant) and covers the middle. Only the
+    // sweepRingWidth of overhang is ever visible, which is the rim. That is
+    // why no OpacityMask (and so no qt6-5compat dependency) is needed, and
+    // why the outer corners stay properly rounded — a `clip: true` container
+    // would have clipped them square.
+    //
+    // The overhang is negative margin into the 24px inter-tile gap, so a
+    // selected tile never displaces its neighbours — D-16-01's constancy is
+    // untouched.
+    readonly property int sweepRingWidth: Design.borderWidth
+    // Two accent roles a full turn apart, meeting at both ends so the loop
+    // has no visible seam where 1.0 wraps back to 0.0.
+    Shape {
+        id: sweepRing
+        anchors.fill: parent
+        anchors.margins: -root.sweepRingWidth
+        visible: root.keyboardSelected && Motion.motionEnabled
+        preferredRendererType: Shape.CurveRenderer
+        // Drives the conical gradient's angle. Held at 0 and not animated
+        // when motion is off — the static ring below takes over entirely in
+        // that case, so nothing here is left spinning invisibly.
+        property real sweepAngle: 0
+        NumberAnimation on sweepAngle {
+            running: sweepRing.visible
+            from: 0
+            to: 360
+            // ambientDuration is Motion.qml's LOOP-PERIOD token (G-15-1),
+            // the one semantic pair meant for a continuous cycle rather than
+            // a one-shot transition — already multiplier-scaled, so a
+            // `reduced` motion scale slows this without a second knob here.
+            duration: Motion.ambientDuration
+            loops: Animation.Infinite
+            easing.type: Easing.Linear
+        }
+        ShapePath {
+            // Negative disables the stroke entirely — the fill IS the ring.
+            strokeWidth: -1
+            fillGradient: ConicalGradient {
+                centerX: sweepRing.width / 2
+                centerY: sweepRing.height / 2
+                angle: sweepRing.sweepAngle
+                GradientStop { position: 0.0; color: Colours.primary }
+                GradientStop { position: 0.5; color: Colours.tertiary }
+                GradientStop { position: 1.0; color: Colours.primary }
+            }
+            PathRectangle {
+                width: sweepRing.width
+                height: sweepRing.height
+                radius: root.tileRadius + root.sweepRingWidth
+            }
+        }
+    }
 
     Rectangle {
         id: background
@@ -220,8 +291,16 @@ Item {
     // Qt.rgba(surfaceBase…, opacity) precedent, so the backing stays
     // translucent while the numeral above it is fully opaque. The pill is
     // also darkened a little, since it no longer dims its own text.
+    // ── Round 2: near-solid, after round 1 was still reported unreadable ───
+    // Round 1 moved the alpha off the item and into the colour, which stopped
+    // the NUMERAL being faded — necessary, but not sufficient. At 0.75 a
+    // bright thumbnail still shows through enough to drag the backing toward
+    // mid-grey, and mid-grey is where a Colours.onSurface numeral loses its
+    // contrast from BOTH directions. The backing now reads as its own chip
+    // rather than a tint over whatever happens to be behind it, and gains an
+    // outline so it stays a defined shape against a light window too.
     readonly property color pillBase: Colours.surface
-    readonly property real pillOpacity: 0.75
+    readonly property real pillOpacity: 0.94
 
     Rectangle {
         id: identityPill
@@ -234,6 +313,11 @@ Item {
         height: identityLabel.implicitHeight + Design.spacingXs * 2
         radius: height / 2
         color: Qt.rgba(root.pillBase.r, root.pillBase.g, root.pillBase.b, root.pillOpacity)
+        // Hairline, not Design.borderWidth (3) — this is a chip outline
+        // holding a shape, not a structural tile edge, and at 3px it would
+        // read as a second competing ring on a tile that already has two.
+        border.width: 1
+        border.color: Colours.outline
 
         Text {
             id: identityLabel
@@ -275,6 +359,13 @@ Item {
     // holds under EVERY generated palette including a monochrome one, and
     // insetting it keeps both rings visible at once instead of the thicker
     // one swallowing the thinner.
+    // ── Reduced-motion fallback for the sweep ring above ──────────────────
+    // Round 1 doubled this ring's width so weight, not hue, separated it from
+    // the focused-workspace ring — that separation was confirmed at the gate
+    // and is kept here verbatim. Round 2 then narrowed its ROLE: the sweep
+    // ring is the selection indicator whenever motion is on, and this draws
+    // only when it is off, so the two are never on screen together and
+    // `Motion.motionEnabled: false` still leaves the selection unmistakable.
     Rectangle {
         anchors.fill: parent
         anchors.margins: Design.borderWidth
@@ -282,7 +373,7 @@ Item {
         color: "transparent"
         border.width: Design.borderWidth * 2
         border.color: Colours.secondary
-        visible: root.keyboardSelected
+        visible: root.keyboardSelected && !Motion.motionEnabled
     }
 
     // Monitor badge: only rendered when 2+ displays are connected. This
