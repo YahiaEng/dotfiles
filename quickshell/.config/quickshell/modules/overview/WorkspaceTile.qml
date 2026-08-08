@@ -117,68 +117,7 @@ Item {
     // Threaded straight to the WindowThumbnail delegate below.
     property int selectedWindowIndex: -1
 
-    // ── Keyboard-selection sweep ring (16-07 render gate, round 2) ─────────
-    // A colour travelling continuously around the selected tile's edge.
-    // Chosen at the gate over a static outline: the two static rings were
-    // distinguishable but disliked, and the selection is the one thing on
-    // this surface the user is actively steering, so it earns the motion —
-    // the focused-workspace ring below stays deliberately quiet orientation.
-    //
-    // ── How it draws a ring without a mask ────────────────────────────────
-    // This is a SOLID rounded rectangle, not a donut: it is declared FIRST,
-    // so it renders beneath `background`, and `background` is opaque
-    // (Colours.surface / surfaceVariant) and covers the middle. Only the
-    // sweepRingWidth of overhang is ever visible, which is the rim. That is
-    // why no OpacityMask (and so no qt6-5compat dependency) is needed, and
-    // why the outer corners stay properly rounded — a `clip: true` container
-    // would have clipped them square.
-    //
-    // The overhang is negative margin into the 24px inter-tile gap, so a
-    // selected tile never displaces its neighbours — D-16-01's constancy is
-    // untouched.
     readonly property int sweepRingWidth: Design.borderWidth
-    // Two accent roles a full turn apart, meeting at both ends so the loop
-    // has no visible seam where 1.0 wraps back to 0.0.
-    Shape {
-        id: sweepRing
-        anchors.fill: parent
-        anchors.margins: -root.sweepRingWidth
-        visible: root.keyboardSelected && Motion.motionEnabled
-        preferredRendererType: Shape.CurveRenderer
-        // Drives the conical gradient's angle. Held at 0 and not animated
-        // when motion is off — the static ring below takes over entirely in
-        // that case, so nothing here is left spinning invisibly.
-        property real sweepAngle: 0
-        NumberAnimation on sweepAngle {
-            running: sweepRing.visible
-            from: 0
-            to: 360
-            // ambientDuration is Motion.qml's LOOP-PERIOD token (G-15-1),
-            // the one semantic pair meant for a continuous cycle rather than
-            // a one-shot transition — already multiplier-scaled, so a
-            // `reduced` motion scale slows this without a second knob here.
-            duration: Motion.ambientDuration
-            loops: Animation.Infinite
-            easing.type: Easing.Linear
-        }
-        ShapePath {
-            // Negative disables the stroke entirely — the fill IS the ring.
-            strokeWidth: -1
-            fillGradient: ConicalGradient {
-                centerX: sweepRing.width / 2
-                centerY: sweepRing.height / 2
-                angle: sweepRing.sweepAngle
-                GradientStop { position: 0.0; color: Colours.primary }
-                GradientStop { position: 0.5; color: Colours.tertiary }
-                GradientStop { position: 1.0; color: Colours.primary }
-            }
-            PathRectangle {
-                width: sweepRing.width
-                height: sweepRing.height
-                radius: root.tileRadius + root.sweepRingWidth
-            }
-        }
-    }
 
     Rectangle {
         id: background
@@ -359,6 +298,87 @@ Item {
     // holds under EVERY generated palette including a monochrome one, and
     // insetting it keeps both rings visible at once instead of the thicker
     // one swallowing the thinner.
+    // ── Keyboard-selection sweep ring (16-07 render gate, rounds 2-3) ──────
+    // A colour travelling continuously around the selected tile's edge.
+    // Chosen at the gate over a static outline: the two static rings were
+    // distinguishable but disliked, and the selection is the one thing on
+    // this surface the user is actively steering, so it earns the motion —
+    // the focused-workspace ring stays deliberately quiet orientation.
+    //
+    // ── Why this is a real donut and not a rim behind the background ──────
+    // Round 2 drew a SOLID rounded rect one ring-width larger than the tile,
+    // beneath the opaque `background`, so only the overhang showed. That is a
+    // legitimate technique and it does not work HERE: `root` sets
+    // `clip: true` (line ~87), which WindowThumbnail.qml explicitly depends
+    // on to crop thumbnails that overflow the tile, so the clip cannot be
+    // lifted. Every pixel of the overhang was therefore cropped, and the only
+    // sweep left visible was the notch at each corner where the background's
+    // radius pulls back inside the tile bounds — reported at the gate as
+    // "only the corners are visible".
+    //
+    // So the ring is built as a genuine annulus that lives ENTIRELY inside
+    // the tile: two concentric rounded rectangles in one ShapePath under
+    // OddEvenFill, which excludes the overlapping interior and leaves a band
+    // exactly sweepRingWidth wide. Nothing extends past `root`, so the clip
+    // never touches it, and the tile still cannot displace its neighbours.
+    Shape {
+        id: sweepRing
+        anchors.fill: parent
+        visible: root.keyboardSelected && Motion.motionEnabled
+        // The default triangulating renderer re-tessellates this two-subpath
+        // annulus as the gradient angle changes; CurveRenderer resolves the
+        // fill per-fragment instead, which is what keeps an animated gradient
+        // from shimmering along the band's inner edge.
+        preferredRendererType: Shape.CurveRenderer
+        // Drives the conical gradient's angle. Not animated when motion is
+        // off — the static ring below takes over entirely in that case, so
+        // nothing is left spinning invisibly.
+        property real sweepAngle: 0
+        NumberAnimation on sweepAngle {
+            running: sweepRing.visible
+            from: 0
+            to: 360
+            // ambientDuration is Motion.qml's LOOP-PERIOD token (G-15-1),
+            // the one semantic pair meant for a continuous cycle rather than
+            // a one-shot transition — already multiplier-scaled, so a
+            // `reduced` motion scale slows this without a second knob here.
+            duration: Motion.ambientDuration
+            loops: Animation.Infinite
+            easing.type: Easing.Linear
+        }
+        ShapePath {
+            // Negative disables the stroke entirely — the fill IS the ring.
+            strokeWidth: -1
+            // Excludes the inner rectangle from the outer one, making the
+            // band. Without this the shape fills solid and hides the tile.
+            fillRule: ShapePath.OddEvenFill
+            // Two accent roles half a turn apart, repeating the first at 1.0
+            // so the loop has no visible seam where the gradient wraps.
+            fillGradient: ConicalGradient {
+                centerX: sweepRing.width / 2
+                centerY: sweepRing.height / 2
+                angle: sweepRing.sweepAngle
+                GradientStop { position: 0.0; color: Colours.primary }
+                GradientStop { position: 0.5; color: Colours.tertiary }
+                GradientStop { position: 1.0; color: Colours.primary }
+            }
+            PathRectangle {
+                x: 0
+                y: 0
+                width: sweepRing.width
+                height: sweepRing.height
+                radius: root.tileRadius
+            }
+            PathRectangle {
+                x: root.sweepRingWidth
+                y: root.sweepRingWidth
+                width: sweepRing.width - root.sweepRingWidth * 2
+                height: sweepRing.height - root.sweepRingWidth * 2
+                radius: Math.max(0, root.tileRadius - root.sweepRingWidth)
+            }
+        }
+    }
+
     // ── Reduced-motion fallback for the sweep ring above ──────────────────
     // Round 1 doubled this ring's width so weight, not hue, separated it from
     // the focused-workspace ring — that separation was confirmed at the gate
