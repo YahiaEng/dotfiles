@@ -186,7 +186,7 @@ Item {
         // Occupied tiles are told apart by containing windows — the actual
         // signal — not by their backing.
         readonly property color tileBase: Colours.surface
-        readonly property real tileOpacity: 0.55
+        readonly property real tileOpacity: 0.40
         color: root.dropTargetActive
             ? Colours.primary
             : Qt.rgba(background.tileBase.r, background.tileBase.g, background.tileBase.b, background.tileOpacity)
