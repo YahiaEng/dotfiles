@@ -395,11 +395,56 @@ live = json.load(open(live_path))
 
 diffs = []
 
-if len(baseline) != len(live):
-    diffs.append(f"bind count mismatch: baseline={len(baseline)} live={len(live)}")
+# ── Identity-matched, NOT positional (fix for the phantom-tail defect) ────
+# This comparison used to walk `zip(baseline, live)` by array index. A single
+# inserted bind shifts every subsequent record, so one real addition
+# manufactured dozens of "differences" that were the same insertion echoing
+# down the array — measured live at 14-10 Task 3: 65 reported lines, exactly
+# 2 real. Two genuine findings hid inside sixty-three phantoms for as long as
+# this gate stayed red, which is exactly how a real mismatch goes unnoticed.
+#
+# Records are now paired by a stable identity and compared within the pair,
+# so an addition or removal is reported as ONE line naming that bind, and
+# every other record is still compared byte-exact on the structural fields.
+# This is strictly MORE sensitive than the positional form, not less: nothing
+# is forgiven that was not forgiven before, and a bind that moved position
+# without changing is no longer reported at all — because it did not change.
+#
+# `keycode` and `mouse` are excluded from the IDENTITY (both carry documented
+# serialization gaps that would stop a record pairing with itself) but are
+# still COMPARED inside each matched pair by their own narrow rules below.
+# Deliberately MINIMAL: what physically names a bind, and nothing else.
+# Every field kept out of the identity stays in STRUCTURAL_FIELDS and is
+# compared inside the matched pair, which is what makes a changed flag report
+# as "field 'locked' baseline=X live=Y" naming the bind, instead of
+# degrading into an unhelpful ADDED+REMOVED pair. Verified unique across both
+# the committed baseline and a live capture before being relied on; an
+# ambiguous identity is reported rather than guessed at (below).
+def _identity(b):
+    return (b.get("submap", ""), b.get("modmask"), b.get("key"))
 
-for i, (b, l) in enumerate(zip(baseline, live)):
-    label = f"record {i} (key={b.get('key')!r} keycode={b.get('keycode')!r} arg={b.get('arg')!r})"
+def _describe(b):
+    return f"modmask={b.get('modmask')!r} key={b.get('key')!r} keycode={b.get('keycode')!r}"
+
+base_by_id = {}
+live_by_id = {}
+for arr, target, name in ((baseline, base_by_id, "baseline"), (live, live_by_id, "live")):
+    for b in arr:
+        ident = _identity(b)
+        if ident in target:
+            # Ambiguous identity — refuse to guess. Falling back to a silent
+            # positional compare here would reintroduce the phantom tail.
+            diffs.append(f"duplicate bind identity in {name}: {_describe(b)} — cannot pair records unambiguously")
+        target[ident] = b
+
+for ident in live_by_id.keys() - base_by_id.keys():
+    diffs.append(f"bind ADDED (not in baseline): {_describe(live_by_id[ident])}")
+for ident in base_by_id.keys() - live_by_id.keys():
+    diffs.append(f"bind REMOVED (in baseline, not live): {_describe(base_by_id[ident])}")
+
+for ident in sorted(base_by_id.keys() & live_by_id.keys(), key=lambda t: tuple(str(x) for x in t)):
+    b, l = base_by_id[ident], live_by_id[ident]
+    label = f"bind ({_describe(b)})"
     for field in STRUCTURAL_FIELDS:
         if b.get(field) != l.get(field):
             diffs.append(f"{label}: field '{field}' baseline={b.get(field)!r} live={l.get(field)!r}")

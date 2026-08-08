@@ -150,10 +150,9 @@ four existing grants unchanged.
 
 ## 1. `hypr-equivalence-check`: `binds.json` diverges from the 13.1 baseline
 
-**STATUS: DIAGNOSED 2026-08-08, REASSIGNED to phase 13.1. Not fixable as
-originally prescribed — see `### CORRECTED DIAGNOSIS` at the end of this item.
-The original text below is left unchanged as the record of what was believed at
-the time.**
+**STATUS: RESOLVED 2026-08-08 — see `### CORRECTED DIAGNOSIS` and
+`### RESOLUTION` at the end of this item. The original text below is left
+unchanged as the record of what was believed at the time.**
 
 **Original status — OPEN, pre-existing, unrelated to this plan's changes.**
 
@@ -252,6 +251,58 @@ currently a permanent FAIL and therefore detects nothing. Any genuine keybind
 regression it was meant to catch is already invisible, and has been since the Lua
 migration. That is a real gap, but it is a pre-existing one that this phase neither
 caused nor widened.
+
+
+### RESOLUTION — 2026-08-08
+
+Fixed at the source: `_compare_binds_structural` in
+`hypr/.config/hypr/scripts/hypr-equivalence-check` now pairs records by a
+**stable identity** instead of walking `zip(baseline, live)` by array index.
+
+`hypr-equivalence-check` now exits **0 — PASS: 3, FAIL: 0**, green for the first
+time since the Lua migration.
+
+**What was actually broken.** Not the dispatcher opacity — the script already
+excluded `dispatcher`/`arg`. The comparison was **positional**, so a single
+inserted bind shifted every later record and manufactured dozens of differences
+that were one insertion echoing down the array. The script's own header documented
+the effect (14-10 Task 3: 65 reported lines, exactly 2 real) and worked around it
+with a diagnostic that printed the true delta but did not change the verdict. So
+the gate stayed red, and the two genuine findings stayed buried in sixty-three
+phantoms.
+
+**The fix.** Identity is `(submap, modmask, key)` — what physically names a bind,
+verified unique across both the committed baseline and a live capture before being
+relied on, with an ambiguous identity reported rather than guessed at. Every other
+field stays in `STRUCTURAL_FIELDS` and is compared **inside** the matched pair, so
+a changed flag reports as `field 'locked' baseline=True live=False` naming the
+bind, rather than degrading into an ADDED+REMOVED pair. `keycode` and `mouse` keep
+their existing narrow forgiveness rules unchanged.
+
+This is **more** sensitive than the positional form, not less: nothing is forgiven
+that was not forgiven before, and a bind that merely moved position is no longer
+reported — because it did not change.
+
+**Then the surgical amendment became possible**, which is what the original item
+wanted and could not have achieved. With identity matching, the two genuinely new
+binds — `Super+A` (audio panel, phase 15) and `Super+O` (overview, phase 16) — were
+appended to `.hypr-baseline/binds.json`, and **all 81 pre-existing records were
+proven byte-identical** by assertion before the write, exactly as 14-10's precedent
+requires. Baseline is now 83 records. No wholesale re-snapshot was performed.
+
+**Negative test — the gate can still fail.** A poisoned baseline copy carrying three
+independent regressions (a changed `modmask`, a dropped bind, a flipped `locked`
+flag) was rejected, each named precisely:
+
+```
+! bind ADDED (not in baseline): modmask=64 key='T' keycode=0
+! bind ADDED (not in baseline): modmask=64 key='O' keycode=0
+! bind REMOVED (in baseline, not live): modmask=65 key='O' keycode=0
+! bind (modmask=64 key='L' keycode=0): field 'locked' baseline=True live=False
+```
+
+A green gate that cannot go red is worth less than a red one, so this test is the
+part that matters.
 
 ## Inherited QML opacity fades the whole-grid capture-failure message
 

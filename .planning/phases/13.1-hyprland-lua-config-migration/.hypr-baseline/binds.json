@@ -1,5 +1,5 @@
 [
-{
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -18,8 +18,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "uwsm app -- kitty.desktop"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -38,8 +38,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "uwsm app -- thunar.desktop"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -58,8 +58,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "uwsm app -- kitty --class yazi-fm --title \"Yazi\" -- yazi"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -78,8 +78,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "uwsm app -- codium.desktop --enable-features=UseOzonePlatform --ozone-platform=wayland --log debug"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -98,8 +98,8 @@
     "allow_input_capture": false,
     "dispatcher": "killactive",
     "arg": ""
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -118,8 +118,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/wleave.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -138,8 +138,8 @@
     "allow_input_capture": false,
     "dispatcher": "togglefloating",
     "arg": ""
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -158,8 +158,8 @@
     "allow_input_capture": false,
     "dispatcher": "fullscreen",
     "arg": "0"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -178,8 +178,8 @@
     "allow_input_capture": false,
     "dispatcher": "fullscreen",
     "arg": "1"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -198,8 +198,8 @@
     "allow_input_capture": false,
     "dispatcher": "pseudo",
     "arg": ""
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -218,8 +218,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "walker"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -238,8 +238,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "walker -m runner"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": true,
@@ -258,8 +258,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "uwsm app -- walker -m menus:main"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -278,8 +278,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "pkill walker"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -298,8 +298,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/theme-switch.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -318,8 +318,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/waybar-switch.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -338,8 +338,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/waybar-visibility.sh keybind toggle"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -358,8 +358,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/wallpaper-switch.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -378,8 +378,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "cliphist list | walker --dmenu | cliphist decode | wl-copy"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -398,8 +398,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/clipboard-wipe.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -418,8 +418,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/capture-region.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -438,8 +438,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/capture-window.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -458,8 +458,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/capture-full.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -478,8 +478,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/record-toggle.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -498,8 +498,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/emoji-picker.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -518,8 +518,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/icon-theme-switch.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -538,8 +538,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/color-picker.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -558,8 +558,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "~/.config/hypr/scripts/font-switch.sh"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -578,8 +578,8 @@
     "allow_input_capture": false,
     "dispatcher": "global",
     "arg": "quickshell:probe"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -598,8 +598,8 @@
     "allow_input_capture": false,
     "dispatcher": "global",
     "arg": "quickshell:screencopy-probe"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -618,8 +618,8 @@
     "allow_input_capture": false,
     "dispatcher": "__lua",
     "arg": "66"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -638,8 +638,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "swaync-client -t -sw"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -658,8 +658,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "uwsm app -- hyprlock"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -678,8 +678,8 @@
     "allow_input_capture": false,
     "dispatcher": "movefocus",
     "arg": "l"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -698,8 +698,8 @@
     "allow_input_capture": false,
     "dispatcher": "movefocus",
     "arg": "r"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -718,8 +718,8 @@
     "allow_input_capture": false,
     "dispatcher": "movefocus",
     "arg": "u"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -738,8 +738,8 @@
     "allow_input_capture": false,
     "dispatcher": "movefocus",
     "arg": "d"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -758,8 +758,8 @@
     "allow_input_capture": false,
     "dispatcher": "movewindow",
     "arg": "l"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -778,8 +778,8 @@
     "allow_input_capture": false,
     "dispatcher": "movewindow",
     "arg": "r"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -798,8 +798,8 @@
     "allow_input_capture": false,
     "dispatcher": "movewindow",
     "arg": "u"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -818,8 +818,8 @@
     "allow_input_capture": false,
     "dispatcher": "movewindow",
     "arg": "d"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -838,8 +838,8 @@
     "allow_input_capture": false,
     "dispatcher": "resizeactive",
     "arg": "-30 0"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -858,8 +858,8 @@
     "allow_input_capture": false,
     "dispatcher": "resizeactive",
     "arg": "30 0"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -878,8 +878,8 @@
     "allow_input_capture": false,
     "dispatcher": "resizeactive",
     "arg": "0 -30"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -898,8 +898,8 @@
     "allow_input_capture": false,
     "dispatcher": "resizeactive",
     "arg": "0 30"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -918,8 +918,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "1"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -938,8 +938,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "2"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -958,8 +958,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "3"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -978,8 +978,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "4"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -998,8 +998,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "5"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1018,8 +1018,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "6"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1038,8 +1038,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "7"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1058,8 +1058,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "8"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1078,8 +1078,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "9"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1098,8 +1098,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "10"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1118,8 +1118,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "1"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1138,8 +1138,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "2"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1158,8 +1158,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "3"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1178,8 +1178,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "4"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1198,8 +1198,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "5"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1218,8 +1218,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "6"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1238,8 +1238,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "7"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1258,8 +1258,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "8"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1278,8 +1278,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "9"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1298,8 +1298,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "10"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1318,8 +1318,8 @@
     "allow_input_capture": false,
     "dispatcher": "togglespecialworkspace",
     "arg": "magic"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1338,8 +1338,8 @@
     "allow_input_capture": false,
     "dispatcher": "movetoworkspace",
     "arg": "special:magic"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1358,8 +1358,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "e+1"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": false,
     "release": false,
@@ -1378,8 +1378,8 @@
     "allow_input_capture": false,
     "dispatcher": "workspace",
     "arg": "e-1"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": true,
     "release": false,
@@ -1398,8 +1398,8 @@
     "allow_input_capture": false,
     "dispatcher": "mouse",
     "arg": "movewindow"
-},
-{
+  },
+  {
     "locked": false,
     "mouse": true,
     "release": false,
@@ -1418,8 +1418,8 @@
     "allow_input_capture": false,
     "dispatcher": "mouse",
     "arg": "resizewindow"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1438,8 +1438,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "swayosd-client --output-volume raise"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1458,8 +1458,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "swayosd-client --output-volume lower"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1478,8 +1478,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "swayosd-client --output-volume mute-toggle"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1498,8 +1498,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "swayosd-client --input-volume mute-toggle"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1518,8 +1518,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "swayosd-client --brightness raise"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1538,8 +1538,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "swayosd-client --brightness lower"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1558,8 +1558,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "playerctl next"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1578,8 +1578,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "playerctl play-pause"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1598,8 +1598,8 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "playerctl play-pause"
-},
-{
+  },
+  {
     "locked": true,
     "mouse": false,
     "release": false,
@@ -1618,4 +1618,45 @@
     "allow_input_capture": false,
     "dispatcher": "exec",
     "arg": "playerctl previous"
-}]
+  },
+  {
+    "locked": false,
+    "mouse": false,
+    "release": false,
+    "repeat": false,
+    "longPress": false,
+    "non_consuming": false,
+    "auto_consuming": false,
+    "has_description": false,
+    "modmask": 64,
+    "submap": "",
+    "submap_universal": "false",
+    "key": "A",
+    "keycode": 0,
+    "catch_all": false,
+    "description": "",
+    "allow_input_capture": false,
+    "dispatcher": "__lua",
+    "arg": "68"
+  },
+  {
+    "locked": false,
+    "mouse": false,
+    "release": false,
+    "repeat": false,
+    "longPress": false,
+    "non_consuming": false,
+    "auto_consuming": false,
+    "has_description": false,
+    "modmask": 64,
+    "submap": "",
+    "submap_universal": "false",
+    "key": "O",
+    "keycode": 0,
+    "catch_all": false,
+    "description": "",
+    "allow_input_capture": false,
+    "dispatcher": "__lua",
+    "arg": "70"
+  }
+]
