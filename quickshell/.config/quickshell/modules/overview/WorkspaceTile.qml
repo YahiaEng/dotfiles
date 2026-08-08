@@ -208,6 +208,21 @@ Item {
     // number (D-16-05). Sits on a legibility-backing pill because it draws
     // over arbitrary live window imagery and must stay readable without
     // hiding what is beneath it (16-UI-SPEC.md "Typography").
+    //
+    // ── Why the alpha moved into the colour (16-07 render gate, round 1) ──
+    // This was `color: Colours.surface` plus `opacity: 0.6` on the Rectangle.
+    // QML opacity applies to an item AND everything it parents, so the
+    // NUMERAL was being drawn at 60% too — the one element that had to stay
+    // legible was the one being faded, which is why the label read as hard to
+    // see on occupied tiles specifically (over an empty tile there is nothing
+    // behind it to lose the contrast fight with). Alpha now lives in the
+    // pill's own colour, following Dashboard.qml/PanelDialog.qml's existing
+    // Qt.rgba(surfaceBase…, opacity) precedent, so the backing stays
+    // translucent while the numeral above it is fully opaque. The pill is
+    // also darkened a little, since it no longer dims its own text.
+    readonly property color pillBase: Colours.surface
+    readonly property real pillOpacity: 0.75
+
     Rectangle {
         id: identityPill
         anchors {
@@ -218,8 +233,7 @@ Item {
         width: identityLabel.implicitWidth + Design.spacingXs * 2
         height: identityLabel.implicitHeight + Design.spacingXs * 2
         radius: height / 2
-        color: Colours.surface
-        opacity: 0.6
+        color: Qt.rgba(root.pillBase.r, root.pillBase.g, root.pillBase.b, root.pillOpacity)
 
         Text {
             id: identityLabel
@@ -245,18 +259,28 @@ Item {
         visible: root.isFocusedWorkspace
     }
 
-    // Keyboard selection ring (Phase 16 Plan 07, D-16-15/D-16-16): a thin
+    // Keyboard selection ring (Phase 16 Plan 07, D-16-15/D-16-16): a
     // SECONDARY-role OUTLINE, deliberately never a fill — the drag
     // highlight's Colours.primary FILL above means "drop here"; this
-    // outline means "the keyboard is here". Both roles, plus the neutral
-    // focused-workspace ring above, stay individually readable even if all
-    // three land on the same tile at once (each is a distinct colour role
-    // at a distinct visual weight — fill vs. two concentric outlines).
+    // outline means "the keyboard is here".
+    //
+    // ── Weight, not hue, is what separates it (16-07 render gate, round 1) ─
+    // The original claim above — that three distinct colour ROLES stay
+    // readable when they collide — did not survive being looked at: this
+    // ring and the focused-workspace ring were both exactly
+    // Design.borderWidth, so they differed by hue alone, and
+    // Colours.secondary against Colours.outline is not a reliable separation
+    // under a matugen palette the wallpaper chooses. Reported as "not
+    // distinct". Doubling the width makes the discriminator geometric, which
+    // holds under EVERY generated palette including a monochrome one, and
+    // insetting it keeps both rings visible at once instead of the thicker
+    // one swallowing the thinner.
     Rectangle {
         anchors.fill: parent
-        radius: root.tileRadius
+        anchors.margins: Design.borderWidth
+        radius: root.tileRadius - Design.borderWidth
         color: "transparent"
-        border.width: Design.borderWidth
+        border.width: Design.borderWidth * 2
         border.color: Colours.secondary
         visible: root.keyboardSelected
     }

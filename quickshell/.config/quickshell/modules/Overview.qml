@@ -137,6 +137,21 @@ PanelWindow {
         opacity: overviewWindow.scrimOpacity
     }
 
+    // ── Click-outside dismiss, the scrim half (16-07 render gate, round 1) ─
+    // The HyprlandFocusGrab below cannot deliver this on its own: it clears
+    // when focus moves to ANOTHER surface, and this surface is full-screen,
+    // so a click on empty space lands on the overview itself and the grab
+    // never fires. The panels and the drawer get click-outside free precisely
+    // because they are small and have a real outside; the overview has to
+    // spell it out. Declared here, before the grid, so it sits UNDERNEATH
+    // every tile — tiles keep their own click handling untouched and only
+    // genuinely empty space reaches this.
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        onClicked: overviewWindow.dismissRequested()
+    }
+
     // Fixed tile geometry (16-UI-SPEC.md "Grid geometry") — named constants
     // so the fit arithmetic below reads as arithmetic, not magic numbers.
     readonly property int tileWidth: 480
@@ -187,10 +202,43 @@ PanelWindow {
     // D-16-13/D-16-20: clicking a tile's empty area focuses that workspace
     // and closes the overview in the same gesture (OVER-02). Shared by
     // every numbered tile below rather than repeated ten times.
-    function activateTile(workspace) {
+    //
+    // ── Why slotIndex is needed as well (16-07 render gate, round 1) ──────
+    // `workspace` is null for a workspace that is EMPTY, because Hyprland
+    // does not create a workspace object until something lands on it — so
+    // workspaceForSlot() finds nothing and the old single-argument form
+    // silently dismissed without navigating anywhere. That defect was never
+    // keyboard-specific: clicking an empty tile took the same dead path, it
+    // just went unnoticed because 16-05's gate only exercised occupied
+    // tiles. The slot index is what survives a nonexistent workspace, so it
+    // is passed alongside the object and used as the fallback below.
+    function activateTile(workspace, slotIndex) {
         if (workspace)
             workspace.activate();
+        else if (slotIndex !== undefined && slotIndex !== null)
+            overviewWindow.dispatchWorkspaceFocus(slotIndex);
         overviewWindow.dismissRequested();
+    }
+
+    // Focuses a workspace Hyprland has no object for yet, by dispatching the
+    // SAME expressions keybinds.lua's own Super+N / Super+S binds use
+    // (`hl.dsp.focus({workspace=N})`, `hl.dsp.workspace.toggle_special`) —
+    // Hyprland creates the workspace on demand. Range-checked through
+    // isValidWorkspaceToken() before interpolation, exactly as
+    // dispatchWindowMove() does: the only value substituted here is an
+    // integer this file computed, never a client-supplied string (T-16-25).
+    function dispatchWorkspaceFocus(slotIndex) {
+        if (slotIndex === 10) {
+            Hyprland.dispatch("hl.dsp.workspace.toggle_special(\"magic\")");
+            return true;
+        }
+        var id = slotIndex + 1;
+        if (!overviewWindow.isValidWorkspaceToken(id)) {
+            console.warn("overview: refusing workspace focus — slot index out of range");
+            return false;
+        }
+        Hyprland.dispatch("hl.dsp.focus({workspace=" + String(id) + "})");
+        return true;
     }
 
     // D-16-20's other half (Phase 16 Plan 05 Task 2): clicking a SPECIFIC
@@ -356,18 +404,20 @@ PanelWindow {
         else
             overviewWindow.moveVertical(-1);
     }
-    // Down on tile level DESCENDS instead of jumping a row when the current
-    // tile has windows (D-16-16: "Enter (or Down) drops into a tile that
-    // has windows") — the row-jump only fires for an empty tile, where
-    // there is nothing to descend into.
+    // Down ALWAYS jumps a row at tile level — it never descends into a tile.
+    //
+    // ── Supersedes D-16-16's "Enter (or Down) drops into a tile" ──────────
+    // 16-07's render gate rejected the overloaded form: because Down
+    // descended whenever the current tile happened to hold windows, moving
+    // through the grid silently changed selection LEVEL, and the mode
+    // indicator flipping from "Tiles" to "Workspace N windows" was the only
+    // outward sign. Reported as a jarring label change; the label was
+    // reporting an unrequested level change correctly. Enter is now the one
+    // and only way down a level, which also makes Up/Down behave identically
+    // over empty and occupied tiles.
     function handleDown() {
         if (overviewWindow.selectedWindow >= 0) {
             overviewWindow.moveWindowSelection(1);
-            return;
-        }
-        var tops = overviewWindow.toplevelsForSlot(overviewWindow.selectedTile);
-        if (tops.length > 0) {
-            overviewWindow.selectedWindow = 0;
             return;
         }
         overviewWindow.moveVertical(1);
@@ -393,7 +443,7 @@ PanelWindow {
             overviewWindow.selectedWindow = 0;
             return;
         }
-        overviewWindow.activateTile(overviewWindow.slotWorkspace(index));
+        overviewWindow.activateTile(overviewWindow.slotWorkspace(index), index);
     }
 
     // Maps Shift+<number> to the workspace id the existing Super+Shift+N
@@ -401,11 +451,38 @@ PanelWindow {
     // themselves, 0 maps to 10. Returns null for any other key so the
     // caller can tell "not a workspace-number key" apart from "workspace 0",
     // which does not exist.
+    //
+    // ── Why the punctuation table exists (16-07 render gate, round 1) ─────
+    // Qt delivers the SHIFTED keysym, not the digit: with Shift held, `1`
+    // arrives as Qt.Key_Exclam and `2` as Qt.Key_At — Qt.Key_1..Qt.Key_9
+    // never match, which is why this returned null for every press and
+    // Shift+number appeared to do nothing at all. The digit branch below is
+    // kept (layouts and keypads that do report the digit still work), with
+    // the US-layout shifted row added as an explicit ordered table rather
+    // than arithmetic: these keysyms are NOT contiguous in Qt's enum, so
+    // `key >= Key_Exclam && key <= Key_ParenRight` would be wrong.
+    readonly property var shiftedNumberRow: [
+        Qt.Key_ParenRight,  // Shift+0 -> workspace 10
+        Qt.Key_Exclam,      // Shift+1
+        Qt.Key_At,          // Shift+2
+        Qt.Key_NumberSign,  // Shift+3
+        Qt.Key_Dollar,      // Shift+4
+        Qt.Key_Percent,     // Shift+5
+        Qt.Key_AsciiCircum, // Shift+6
+        Qt.Key_Ampersand,   // Shift+7
+        Qt.Key_Asterisk,    // Shift+8
+        Qt.Key_ParenLeft    // Shift+9
+    ]
     function shiftNumberToWorkspaceId(key) {
         if (key === Qt.Key_0)
             return 10;
         if (key >= Qt.Key_1 && key <= Qt.Key_9)
             return key - Qt.Key_0;
+        var shifted = overviewWindow.shiftedNumberRow.indexOf(key);
+        if (shifted === 0)
+            return 10;
+        if (shifted > 0)
+            return shifted;
         return null;
     }
 
@@ -452,9 +529,15 @@ PanelWindow {
     // remove this pill and the window-level selection entirely — no new
     // decision needed.
     readonly property string modeIndicatorLabel: overviewWindow.selectedTile === 10 ? "scratchpad" : String(overviewWindow.selectedTile + 1)
+    // Stable stem, appended suffix (16-07 render gate, round 1). The old
+    // copy replaced the WHOLE string on descent ("Tiles" -> "Workspace 3
+    // windows"), which read as the label glitching rather than as a level
+    // change. The workspace identity is now always present and never moves;
+    // descending only appends, so the eye tracks one added word instead of
+    // re-reading a new sentence.
     readonly property string modeIndicatorText: overviewWindow.selectedWindow >= 0
-        ? `Workspace ${overviewWindow.modeIndicatorLabel} windows`
-        : "Tiles"
+        ? `Workspace ${overviewWindow.modeIndicatorLabel} · windows`
+        : `Workspace ${overviewWindow.modeIndicatorLabel}`
 
     // Two-stage Esc, routed through one seam (D-16-16), following
     // PanelDialog.qml/WifiPanel.qml's own handleEscape() precedent
@@ -502,7 +585,7 @@ PanelWindow {
                     dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 1)
                     keyboardSelected: overviewWindow.selectedTile === index
                     selectedWindowIndex: overviewWindow.selectedTile === index ? overviewWindow.selectedWindow : -1
-                    onActivated: overviewWindow.activateTile(workspace)
+                    onActivated: overviewWindow.activateTile(workspace, index)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                     onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
                     onDragMoved: (globalPos) => overviewWindow.handleDragMoved(globalPos)
@@ -530,7 +613,7 @@ PanelWindow {
                     dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 6)
                     keyboardSelected: overviewWindow.selectedTile === (index + 5)
                     selectedWindowIndex: overviewWindow.selectedTile === (index + 5) ? overviewWindow.selectedWindow : -1
-                    onActivated: overviewWindow.activateTile(workspace)
+                    onActivated: overviewWindow.activateTile(workspace, index + 5)
                     onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
                     onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
                     onDragMoved: (globalPos) => overviewWindow.handleDragMoved(globalPos)
@@ -595,7 +678,7 @@ PanelWindow {
         dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === "special:magic"
         keyboardSelected: overviewWindow.selectedTile === 10
         selectedWindowIndex: overviewWindow.selectedTile === 10 ? overviewWindow.selectedWindow : -1
-        onActivated: overviewWindow.activateTile(workspace)
+        onActivated: overviewWindow.activateTile(workspace, 10)
         onWindowActivated: (toplevel) => overviewWindow.activateWindow(toplevel)
         onDragStarted: (toplevel, globalPos, sourceSize) => overviewWindow.handleDragStarted(toplevel, globalPos, sourceSize)
         onDragMoved: (globalPos) => overviewWindow.handleDragMoved(globalPos)
