@@ -142,3 +142,32 @@ baseline-amendment procedure 14-10 used — diff the live `hyprctl binds`
 structural output against `.hypr-baseline/binds.json`, insert the missing
 `Super+O` record at the correct position, and re-prove every other
 pre-existing record stays byte-identical (never a wholesale re-snapshot).
+
+---
+
+## Inherited QML opacity fades the whole-grid capture-failure message
+
+**Found:** 2026-08-08, plan 16-07 Task 3 render gate (round 1), while fixing
+the identically-shaped defect on `WorkspaceTile.qml`'s identity pill.
+
+**What:** `Overview.qml`'s `wholeGridCatch` sets `opacity:
+overviewWindow.catchScrimOpacity` (0.7) on the backing `Rectangle`. QML
+opacity applies to an item *and everything it parents*, so the `Column`
+inside it — the `lock` glyph, the "Can't show live thumbnails" heading, and
+the screencopy-permission guidance — is rendered at 70% as well. The one
+element that has to be readable is being dimmed by its own backing, which is
+exactly the bug this gate reported against the tile identity pill (fixed in
+72d04cd by moving the alpha into the pill's colour via `Qt.rgba`, following
+`Dashboard.qml`/`PanelDialog.qml`'s precedent).
+
+**Why deferred rather than fixed:** out of scope for 16-07, whose gate covers
+keyboard navigation. This surface belongs to plan 16-04's capture-failure
+work, and it is only reachable when *every* capture in the grid fails — a
+state the 16-07 gate never enters, so fixing it here would ship an unverified
+change to a surface this plan's render gate cannot look at.
+
+**Recommendation for whoever picks this up:** apply the same transform —
+drop `opacity` from the `Rectangle`, set `color: Qt.rgba(base.r, base.g,
+base.b, catchScrimOpacity)` instead — then re-enter the all-captures-failed
+state (revoke Hyprland's screencopy permission) to confirm the copy reads at
+full contrast against the dimmed grid behind it.
