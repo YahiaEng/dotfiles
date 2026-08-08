@@ -313,14 +313,20 @@ PanelWindow {
     // spatial-constancy argument — under wrap, a single Right from tile 5
     // lands on tile 6 in the row below, so tile position and travel
     // direction stop agreeing at the row boundary. Implemented as one
-    // source-visible modulo over the eleven-slot count, which is also
-    // what makes "Right eleven times returns to the start" provable by
-    // inspection rather than by trusting a loop. Edge-stop (clamping
-    // instead of wrapping) is the one-line fallback if Task 3's render
-    // gate finds the row-crossing jump reads as unnatural — replace the
-    // modulo with Math.max(0, Math.min(10, selectedTile + delta)).
+    // source-visible modulo over the eleven-slot count.
+    //
+    // ── Edge-stop taken at the Task 3 render gate, round 4 ────────────────
+    // The gate's pre-authorised one-line fallback, exercised exactly as the
+    // plan wrote it. Under the modulo, slot 0 (workspace 1) and slot 10 (the
+    // scratchpad) were adjacent, so one Left from workspace 1 jumped the
+    // selection from the top-left corner to the tile below the whole grid —
+    // the row-crossing tension the comment above anticipated, at its widest.
+    // Clamping makes Left/Right one straight line with real ends; the
+    // scratchpad is still one Down away from row 2, so nothing became
+    // unreachable. The mid-grid 5->6 row jump was judged fine at the gate
+    // and is unchanged.
     function moveLinear(delta) {
-        overviewWindow.selectedTile = (overviewWindow.selectedTile + delta + 11) % 11;
+        overviewWindow.selectedTile = Math.max(0, Math.min(10, overviewWindow.selectedTile + delta));
     }
 
     // ── Up/Down: column-preserving 2D row movement, NOT part of the linear

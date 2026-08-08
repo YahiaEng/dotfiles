@@ -118,6 +118,8 @@ Item {
     property int selectedWindowIndex: -1
 
     readonly property int sweepRingWidth: Design.borderWidth
+    // One revolution every 6 seconds (6 x the 1000ms ambient pulse period).
+    readonly property int sweepPeriodFactor: 6
 
     Rectangle {
         id: background
@@ -127,7 +129,36 @@ Item {
         // ships (fill shifts to Colours.primary, Behavior on the standard
         // motion pair) — reused verbatim rather than a second idiom
         // invented for drags (D-16-14/D-26).
-        color: root.dropTargetActive ? Colours.primary : (root.occupied ? Colours.surface : Colours.surfaceVariant)
+        // ── Empty tiles are glass, not fill (16-07 render gate, round 4) ──
+        // A solid Colours.surfaceVariant read as too aggressive: on a grid
+        // where most slots are usually empty, ten opaque slabs dominate a
+        // surface whose actual content is the few tiles that hold windows.
+        // Dropping to a low alpha lets the scrim (and the wallpaper under it)
+        // through, so an empty slot reads as an empty FRAME — present and
+        // targetable, but not competing with the occupied tiles beside it.
+        //
+        // ── This is translucency, NOT compositor frost — deliberately ─────
+        // Real frosting would need `blur = true` on the quickshell-overview
+        // layer rule, which windowrules.lua (~line 338) turns OFF for exactly
+        // this namespace: an earlier render gate judged the family blur too
+        // strong here, and Hyprland's blur strength is a single GLOBAL
+        // setting with no per-layer override, so "turn it down" has no
+        // expression other than off. Re-enabling it would re-open a decision
+        // already taken, on a knob that would also change every other blurred
+        // surface. What this does instead is legitimate on its own terms: the
+        // 0.45 scrim already sits between the tile and the wallpaper, so what
+        // shows through is muted rather than raw.
+        //
+        // Occupied tiles stay opaque — their fill is almost entirely covered
+        // by thumbnails anyway, and keeping it solid is what makes the
+        // occupied/empty distinction readable at a glance.
+        readonly property color emptyBase: Colours.surfaceVariant
+        readonly property real emptyOpacity: 0.32
+        color: root.dropTargetActive
+            ? Colours.primary
+            : (root.occupied
+                ? Colours.surface
+                : Qt.rgba(background.emptyBase.r, background.emptyBase.g, background.emptyBase.b, background.emptyOpacity))
         border.width: Design.borderWidth
         border.color: root.dropTargetActive ? Colours.primary : (root.isScratchpad ? Colours.tertiary : Colours.outline)
         Behavior on color {
@@ -342,7 +373,17 @@ Item {
             // the one semantic pair meant for a continuous cycle rather than
             // a one-shot transition — already multiplier-scaled, so a
             // `reduced` motion scale slows this without a second knob here.
-            duration: Motion.ambientDuration
+            //
+            // ── Why it is multiplied (16-07 render gate, round 4) ─────────
+            // The token resolves to extra-long4 (1000ms), which is a period
+            // for an ambient PULSE — one full 360-degree traversal per second
+            // reads as spinning, and was reported as too fast. The token
+            // stays the source of truth (a `reduced` scale still slows this
+            // proportionally, and retuning motion.json still moves it); the
+            // named factor below converts a pulse period into a drift period
+            // rather than hard-coding a duration that would drift out of
+            // sync with the rest of the motion system.
+            duration: Motion.ambientDuration * root.sweepPeriodFactor
             loops: Animation.Infinite
             easing.type: Easing.Linear
         }
