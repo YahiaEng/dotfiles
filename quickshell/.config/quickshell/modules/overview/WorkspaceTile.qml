@@ -129,41 +129,40 @@ Item {
         // ships (fill shifts to Colours.primary, Behavior on the standard
         // motion pair) — reused verbatim rather than a second idiom
         // invented for drags (D-16-14/D-26).
-        // ── Empty tiles are glass, not fill (16-07 render gate, round 4) ──
-        // A solid Colours.surfaceVariant read as too aggressive: on a grid
-        // where most slots are usually empty, ten opaque slabs dominate a
-        // surface whose actual content is the few tiles that hold windows.
-        // Dropping to a low alpha lets the scrim (and the wallpaper under it)
-        // through, so an empty slot reads as an empty FRAME — present and
-        // targetable, but not competing with the occupied tiles beside it.
+        // ── An empty tile has NO fill at all (16-07 render gate, round 6) ──
+        // Its interior is the frosted scrim, nothing else. This arrived in
+        // three steps and the middle one is worth keeping, because each was
+        // wrong for a different reason:
         //
-        // ── This alpha is HALF of the glass; the other half is compositor ─
-        // Round 4 shipped this alpha alone, with blur still disabled for the
-        // quickshell-overview layer, and it read as "still the same, no glass
-        // look" — correctly, because translucency under the blur cutoff is
-        // raw transparency, not frost (the failure ags-media 10-06c and
-        // wleave 09-03 both already recorded). Round 5 re-enabled
-        // `blur = true` for this namespace and lowered its `ignore_alpha` to
-        // 0.25 (windowrules.lua, ~line 338) so every region of this surface
-        // clears the cutoff. This value and that rule are a PAIR: raising
-        // this alpha toward opaque, or dropping the scrim and this together
-        // below 0.25, silently returns the unfrosted look.
+        //   round 4 — solid Colours.surfaceVariant dropped to 0.32 alpha.
+        //     Blur was still off for this layer at that point, and
+        //     translucency under a blur cutoff is raw transparency rather
+        //     than frost (ags-media 10-06c, wleave 09-03 both record it), so
+        //     it read as unchanged.
+        //   round 5 — blur restored for the quickshell-overview namespace
+        //     with ignore_alpha lowered to 0.25 (windowrules.lua ~line 338).
+        //     The frost was real but sat BEHIND a surfaceVariant tint, and a
+        //     tint over frost mostly reads as tint: "hard to notice alongside
+        //     the fill colour".
+        //   round 6 — the tint is gone. What is left is exactly the frosted
+        //     desktop inside a bordered frame, which is what "glassy" meant.
         //
-        // This is also the softening lever. Blur STRENGTH is global
-        // (decoration:blur:size/passes) with no per-layer override, so if the
-        // frost reads too strong, the answer is to raise this alpha and
-        // Overview.qml's scrimOpacity — never another boolean.
+        // ── The frost does NOT depend on this property any more ───────────
+        // With no fill, an empty tile's region composites to the scrim alone
+        // — Overview.qml's scrimOpacity, 0.45 — which clears the 0.25 cutoff
+        // on its own. That makes scrimOpacity the single value this surface's
+        // glass now hangs on: take it under 0.25 and every empty tile
+        // silently degrades to unblurred transparency, with nothing in this
+        // file to compensate. It is also the only softening lever left, since
+        // blur STRENGTH is global (decoration:blur:size/passes) with no
+        // per-layer override.
         //
         // Occupied tiles stay opaque — their fill is almost entirely covered
         // by thumbnails anyway, and keeping it solid is what makes the
         // occupied/empty distinction readable at a glance.
-        readonly property color emptyBase: Colours.surfaceVariant
-        readonly property real emptyOpacity: 0.32
         color: root.dropTargetActive
             ? Colours.primary
-            : (root.occupied
-                ? Colours.surface
-                : Qt.rgba(background.emptyBase.r, background.emptyBase.g, background.emptyBase.b, background.emptyOpacity))
+            : (root.occupied ? Colours.surface : "transparent")
         border.width: Design.borderWidth
         border.color: root.dropTargetActive ? Colours.primary : (root.isScratchpad ? Colours.tertiary : Colours.outline)
         Behavior on color {
