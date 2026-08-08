@@ -355,11 +355,10 @@ hl.layer_rule({ match = { namespace = "quickshell-overview" }, animation = "fade
 -- strong again, the lever is this surface's OWN alpha (Overview.qml's
 -- scrimOpacity and WorkspaceTile.qml's emptyOpacity), which is how both
 -- ags-media and wleave were tuned — not another boolean.
-hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = true })
--- Below the 0.45 scrim and the ~0.63 composited empty tile, so every region
--- of this surface stays above the cutoff and blurs consistently. Mirrors
--- wleave/ags-media's 0.25; overrides the family's 0.5 for this namespace.
-hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.25 })
+-- NOTE: this namespace's `blur` and `ignore_alpha` rules are NOT here. They
+-- are declared AFTER the `^quickshell-.*` family pair further down, because
+-- a namespace rule placed BEFORE the family regex does not win — see the
+-- ordering finding recorded at that site.
 -- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
 -- "ags-media" (10-02); targets ONLY this window, mirroring the other
 -- namespace-scoped blur rules above. Paired with the translucent
@@ -449,3 +448,32 @@ hl.layer_rule({ match = { namespace = "wleave" }, ignore_alpha = 0.25 })
 -- matching the 0.5 threshold the walker/waybar/swaync rules already use.
 hl.layer_rule({ match = { namespace = "^quickshell-.*" }, ignore_alpha = 0.5 })
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0.5 })
+
+-- ── quickshell-overview blur pair — DECLARED LAST, DELIBERATELY ──────────
+-- (plan 16-07 Task 3 render gate, round 8. Full rationale for WHY this
+-- surface is blurred at all lives with the animation rule far above.)
+--
+-- ORDERING FINDING (inferred from live behaviour, 2026-08-08): a namespace
+-- rule that CONTRADICTS the `^quickshell-.*` family regex loses when it is
+-- declared before the family. Both arms of this pair originally sat above
+-- the family and the ignore_alpha arm silently had no effect.
+--
+-- The evidence is two render-gate observations that bracket the threshold,
+-- with the namespace rule asking for 0.25 the whole time:
+--   round 5 — empty tile fill at 0.32 over the 0.45 scrim composites to
+--     1 - (1 - 0.45)(1 - 0.32) = ~0.63. Frosted.
+--   round 6 — fill removed, so the region is the bare 0.45 scrim.
+--     NOT frosted; read as raw transparency.
+-- A cutoff that passes 0.63 and fails 0.45 is 0.5 — the FAMILY value, not
+-- this namespace's 0.25. Hence: later declaration wins, so these go last.
+--
+-- Layer-rule effects carry no `hyprctl` projection on this build
+-- (13.1-LUA-FINDINGS.md Spike A), so this ordering cannot be asserted
+-- mechanically and was derived from the two observations above rather than
+-- read off the compositor. That is also why Overview.qml's scrimOpacity was
+-- raised to 0.55 in the same round: 0.55 clears 0.5 AND 0.25, so this
+-- surface frosts correctly even if the precedence inference is wrong. The
+-- two changes are belt and braces, not redundancy — remove either and the
+-- glass depends on an unverifiable claim.
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = true })
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.25 })

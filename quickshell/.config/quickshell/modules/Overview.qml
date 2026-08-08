@@ -127,7 +127,21 @@ PanelWindow {
     // established precedent in this repo, not a zero-hex/motion-lint
     // violation (Design.qml carries no opacity token; neither sibling file
     // sources this value from Colours/Design either).
-    readonly property real scrimOpacity: 0.45
+    // ── Load-bearing for the frost, not just for contrast (round 8) ───────
+    // Raised from 0.45. Since plan 16-07 round 6 removed the empty tiles'
+    // own fill, an empty tile's region composites to THIS value alone — it
+    // is the only thing keeping those pixels above the blur cutoff. At 0.45
+    // it sat just under the `^quickshell-.*` family's 0.5 ignore_alpha floor
+    // and every empty tile rendered as raw unblurred transparency. 0.55
+    // clears the family's 0.5 and this namespace's own 0.25 alike, so the
+    // glass survives whichever of the two the compositor actually applies —
+    // which matters because layer-rule effects have no `hyprctl` projection
+    // to check against (see windowrules.lua's ordering finding).
+    //
+    // Lowering this below 0.5 silently kills the frost on every empty tile.
+    // It is also still the softening lever if the frost reads too strong:
+    // RAISING it mutes the blur, since more scrim means less desktop through.
+    readonly property real scrimOpacity: 0.55
 
     // Full-bleed scrim (D-16-06) — the tiles are the content here, the
     // scrim is context, not cover (16-UI-SPEC.md "Color" section).

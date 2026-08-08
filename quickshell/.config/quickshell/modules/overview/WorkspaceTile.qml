@@ -157,13 +157,19 @@ Item {
         //
         // ── The frost does NOT depend on this property any more ───────────
         // With no fill, an empty tile's region composites to the scrim alone
-        // — Overview.qml's scrimOpacity, 0.45 — which clears the 0.25 cutoff
-        // on its own. That makes scrimOpacity the single value this surface's
-        // glass now hangs on: take it under 0.25 and every empty tile
-        // silently degrades to unblurred transparency, with nothing in this
-        // file to compensate. It is also the only softening lever left, since
-        // blur STRENGTH is global (decoration:blur:size/passes) with no
-        // per-layer override.
+        // — Overview.qml's scrimOpacity — so that one value is what keeps
+        // these pixels above the blur cutoff, and this file contributes
+        // nothing to it.
+        //
+        // Round 6 shipped that with the scrim at 0.45 and claimed it cleared
+        // the cutoff. It did not: the `^quickshell-.*` family's ignore_alpha
+        // floor is 0.5 and was overriding this namespace's own 0.25, so every
+        // empty tile rendered as raw unblurred transparency — reported at the
+        // gate as "transparent background and the frost is gone", one round
+        // after the same fill removal had been approved. Round 8 raised
+        // scrimOpacity to 0.55 and moved the namespace rules after the family
+        // pair (windowrules.lua). Do not re-derive the safe alpha from this
+        // file: the number lives there, with the arithmetic.
         //
         // Occupied tiles stay opaque — their fill is almost entirely covered
         // by thumbnails anyway, and keeping it solid is what makes the
