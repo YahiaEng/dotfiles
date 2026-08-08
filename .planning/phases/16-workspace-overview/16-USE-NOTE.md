@@ -7,9 +7,21 @@ is exactly what a high-frequency surface produces. So: one deliberate structured
 pass (the first entry below), then whatever ordinary use turns up, appended with
 dates.
 
-**Closing rule.** Entries must span **at least three calendar days**. Not three
-uses — three days. This is checkable rather than a judgement call, and it means the
-next phase waits. Plan 16-08 may close before this file does.
+**Closing rule — WAIVED by the operator, 2026-08-08.** The rule was: entries must
+span at least three calendar days, not three uses. The operator explicitly declined
+to hold the phase open for it ("skip criterion 5, I am not wasting this much time")
+and directed the phase closed the same day.
+
+**This is a waiver, not a satisfied criterion.** Criterion 5 exists because the
+overview is the milestone's highest-frequency new surface and the Phase 9 pattern —
+"looked fine at review, wrong in daily use" — is what high-frequency surfaces
+produce. What the waiver gives up is precisely the class of defect that only shows
+up after the novelty wears off: the mis-aim you stop noticing because you have
+learned to compensate, the keystroke you stop reaching for because it never worked.
+One structured pass cannot surface those, and this file now contains exactly one.
+
+The file is left open. Appending a dated line later costs nothing and still
+improves the record — the waiver removes the *blocking* property, not the note.
 
 **How to add an entry.** Append under a new `## YYYY-MM-DD` heading. Blunt is more
 useful than polished. "Kept mis-aiming the scratchpad drop" beats "drag ergonomics
@@ -54,5 +66,5 @@ forward:
 
 ---
 
-<!-- Append further dated entries below. Criterion 5 closes when the entries
-     span three calendar days — 2026-08-10 at the earliest. -->
+<!-- Append further dated entries below. The three-calendar-day rule was waived
+     on 2026-08-08; further entries are welcome but no longer gate the phase. -->

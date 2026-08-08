@@ -955,14 +955,23 @@ PanelWindow {
     // covers the whole surface, because a grid where every capture failed
     // has nothing worth seeing through to — unlike the ordinary case, which
     // deliberately ships no full-bleed scrim at all (round 12, above).
+    readonly property color catchBase: Colours.surface
     readonly property real catchScrimOpacity: 0.7
 
     Rectangle {
         id: wholeGridCatch
         anchors.fill: parent
         visible: overviewWindow.wholeGridCatchVisible
-        color: Colours.surface
-        opacity: overviewWindow.catchScrimOpacity
+        // ── Alpha in the COLOUR, not on the item (deferred-items #2) ──────
+        // `opacity` on a Rectangle applies to it AND everything it parents,
+        // so setting it here faded the Column below — the lock glyph, the
+        // heading and the permission guidance were all drawn at 70%. The one
+        // element that has to be readable was being dimmed by its own
+        // backing. Identical bug to the tile identity pill fixed in 72d04cd,
+        // and fixed the same way, following Dashboard.qml/PanelDialog.qml's
+        // Qt.rgba(surfaceBase…, opacity) precedent: the backing stays
+        // translucent, the message above it is fully opaque.
+        color: Qt.rgba(overviewWindow.catchBase.r, overviewWindow.catchBase.g, overviewWindow.catchBase.b, overviewWindow.catchScrimOpacity)
 
         Column {
             anchors.centerIn: parent

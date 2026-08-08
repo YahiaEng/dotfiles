@@ -49,7 +49,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 - [x] **Phase 13: Motion Retrofit & Existing-Surface Sweep** - Apply the motion language to every surface that already exists, and close the carried-in debt on those same surfaces (completed 2026-07-28)
 - [x] **Phase 14: Dashboard Drawer** - The first real QML surface: a four-tab swipeable drawer sharing state with what already ships (completed 2026-08-01)
 - [x] **Phase 15: Audio + Connectivity Panels** - Per-app mixer, wifi picker and bluetooth manager from one shared dialog component (completed 2026-08-02)
-- [ ] **Phase 16: Workspace Overview** - Full-screen live-thumbnail workspace grid with click-to-focus and drag-between-workspaces
+- [x] **Phase 16: Workspace Overview** - Full-screen live-thumbnail workspace grid with click-to-focus and drag-between-workspaces _(complete 2026-08-08; criterion 5's 3-day use note WAIVED by operator, not satisfied)_
 - [ ] **Phase 17: Ambient Extras** - Video wallpaper and dynamic cursors — explicitly the first phase to cut if the milestone runs long
 
 #### Standing constraints (apply to every v3.0 phase, not one phase's task)

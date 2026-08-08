@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-current_phase: 16
-current_phase_name: workspace-overview
-status: executing
-stopped_at: Completed 16-08-PLAN.md — phase held open by criterion 5
-last_updated: "2026-08-08T15:40:00.000Z"
+current_phase: 17
+current_phase_name: (next milestone phase — see ROADMAP)
+status: phase-complete
+stopped_at: Phase 16 complete (criterion 5 waived by operator)
+last_updated: "2026-08-08T16:20:00.000Z"
 last_activity: 2026-08-08
-last_activity_desc: 16-08 closed — OVER-04 INSIDE-BUDGET, no ladder rung
+last_activity_desc: Phase 16 closed — deferred items resolved, criterion 5 waived
 progress:
   total_phases: 8
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 62
   completed_plans: 62
-  percent: 79
+  percent: 88
 ---
 
 # Project State
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-02)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 16 — workspace-overview
+**Current focus:** Phase 16 complete — next phase per ROADMAP
 
 ## Current Position
 
-Phase: 16 (workspace-overview) — EXECUTING
+Phase: 16 (workspace-overview) — COMPLETE
 Plan: 8 of 8 — ALL PLANS EXECUTED
-Status: Phase 16 HELD OPEN by criterion 5 — 16-USE-NOTE.md must span 3 calendar days (earliest close 2026-08-10)
-Progress: [██████████] 100% of plans — 6/8 phases complete, 62/62 plans executed
-Last activity: 2026-08-08 — 16-08 closed, OVER-04 measured INSIDE-BUDGET, no ladder rung descended
+Status: COMPLETE — criterion 5 (3-day use note) WAIVED by operator 2026-08-08, not satisfied
+Progress: [██████████] 88% — 7/8 phases complete, 62/62 plans executed
+Last activity: 2026-08-08 — phase 16 closed, deferred items resolved or reassigned
 
 ## Performance Metrics
 

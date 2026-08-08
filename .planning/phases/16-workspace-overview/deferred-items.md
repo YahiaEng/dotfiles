@@ -6,7 +6,11 @@ this task's changes), plus this phase's one explicitly deferred task.
 
 ## 0. `16-04` Task 3 — live enforcement session restart and five-consumer proof
 
-**STATUS: DEFERRED by explicit operator decision (2026-08-03), not
+**STATUS: RESOLVED 2026-08-08.** See the `## RESOLUTION` block at the end of
+this item. The original deferral text is kept below unchanged, because it is
+the record of what was and was not proven at the time.
+
+**Original status — DEFERRED by explicit operator decision (2026-08-03), not
 completed, not skipped.** `enforce_permissions = true` ships in
 `hypr/.config/hypr/config/permissions.lua` (commit `257a9e0`), but the real
 session restart and five-consumer verification that Task 3 exists to
@@ -101,9 +105,57 @@ in:**
 # 4. Confirm: hyprctl getoption ecosystem:enforce_permissions  ->  bool: false
 ```
 
+
+### RESOLUTION — 2026-08-08
+
+The required full logout/login happened: the host was restarted during plan
+16-08's measurement (the FPS debug overlay froze the compositor). That restart
+is the session boundary this item was waiting for, so the procedure was run
+against a compositor that read the permission grants fresh at startup.
+
+**1. Readback** — `hyprctl getoption ecosystem:enforce_permissions` → `bool: true`.
+
+**2. Doctor** — `quickshell-doctor`: **25 passed, 0 failed**. Includes check 4
+(`permissions-enforce-readback`) and check 5 (`permissions-allowlist-paths-resolve`,
+grants=4 missing=0 non-executable=0 pattern=0).
+
+**3. The five consumer paths:**
+
+| Path | Result | Evidence |
+|---|---|---|
+| 1 — overview thumbnails | **PASS** | `overview-content-check`: `withContent` equals `windows` (non-zero); live thumbnails visibly rendering, screenshot-confirmed during 16-07's render gate |
+| 2 — screenshots (`grim`) | **PASS** | `grim` capture is 2560x1440 with pixel mean 0.227 — real content, not black. Used repeatedly post-restart |
+| 3 — colour picker (`hyprpicker`) | **PASS at the permission layer** | `timeout 4 hyprpicker -a` exits 124 (still waiting for a click) with empty stderr — the screencopy grab succeeded. The colour-match half needs a human click and was not performed |
+| 4 — browser screen sharing | **PASS at the service layer** | `xdg-desktop-portal-hyprland.service` active; `org.freedesktop.portal.ScreenCast` exposed on the session bus; `hyprland.portal` declares the `ScreenCast` impl. End-to-end share needs a browser and a human click on the picker, and was not performed |
+| 5 — `gpu-screen-recorder` | **PASS — and the open question is answered** | Produced 825 KB of valid H.264 in 5s at 61fps; extracted frame 2560x1440, pixel mean 0.220 (real content) |
+
+**Path 5 — the finding Phase 11 flagged and never confirmed.** `gpu-screen-recorder`
+6.0.0 does **not** use the screencopy protocol. Its own log shows
+`gsr_kms_client_init` / `kms server info: connected to the client` — it captures via
+**KMS/DRM** through the setuid `gsr-kms-server` helper. `strings` on the binary
+returns zero `screencopy` hits. It is therefore entirely unaffected by
+`enforce_permissions`, and **no fifth `hl.permission` grant is needed.** That was the
+one branch this item said "either result is useful; report which" — this is the
+result.
+
+**Not proven, stated plainly:** paths 3 and 4 were verified up to the point where
+screencopy permission is actually exercised, not through their full user journey. A
+colour actually matching what was pointed at, and a browser share actually
+displaying the screen, both need a human hand. Nothing in either path can fail for
+a *permission* reason without failing at the point already tested — but if either
+misbehaves for some other reason, this item is not the record that cleared it.
+
+**No revert needed.** No path failed. `enforce_permissions = true` stands, with the
+four existing grants unchanged.
+
 ## 1. `hypr-equivalence-check`: `binds.json` diverges from the 13.1 baseline
 
-**STATUS: OPEN, pre-existing, unrelated to this plan's changes.**
+**STATUS: DIAGNOSED 2026-08-08, REASSIGNED to phase 13.1. Not fixable as
+originally prescribed — see `### CORRECTED DIAGNOSIS` at the end of this item.
+The original text below is left unchanged as the record of what was believed at
+the time.**
+
+**Original status — OPEN, pre-existing, unrelated to this plan's changes.**
 
 **Found during:** 16-04 Task 2, while establishing before/after
 `theme-doctor` counts around the `permissions.lua` enforcement-enable edit
@@ -145,7 +197,75 @@ pre-existing record stays byte-identical (never a wholesale re-snapshot).
 
 ---
 
+
+### CORRECTED DIAGNOSIS — 2026-08-08
+
+**The root cause guessed above is wrong, and the fix it prescribes cannot work.**
+Measured directly against the live compositor:
+
+| | |
+|---|---|
+| baseline records | 81 |
+| live records | 83 |
+| live records whose key identity matches the baseline but whose `dispatcher` differs | **75** |
+| distinct `dispatcher` values in the baseline | `exec`, `fullscreen`, `global`, `killactive`, `mouse`, `__lua`, … |
+| distinct `dispatcher` values live | **`__lua` only** |
+
+Under the Lua config every bind reports `dispatcher: "__lua"` with an opaque numeric
+`arg` (a Lua function reference), where the baseline recorded real dispatcher names
+and arguments (`exec …`, `workspace 1`, `movetoworkspace special:magic`). The
+baseline was captured while the migration was partway done — it holds a *mixture* of
+legacy and `__lua` records — so a structural comparison against it can never pass
+again regardless of how many binds are added or removed.
+
+The two genuinely new key identities are real, and one of them is this phase's:
+
+- `modmask=64 key=A` — the audio panel (phase 15)
+- `modmask=64 key=O` — the overview (phase 16)
+
+There is also a representation change unrelated to any bind being added or removed:
+the four Print-key records moved from `keycode=107, key=""` to `key="", keycode=0`.
+
+**Why the prescribed fix is impossible.** The original instruction was to "insert the
+missing `Super+O` record at the correct position and re-prove every other record
+byte-identical". No other record is byte-identical — 75 of them differ on
+`dispatcher` alone. Adding `Super+O` (and `Super+A`) would leave the check failing
+exactly as it does now, having changed nothing about why.
+
+**What this actually needs**, and why it is not phase 16's to do:
+
+1. It is a **13.1 artifact**. The drift was introduced by the Lua migration itself,
+   not by any phase-15 or phase-16 bind. Phase 16 merely added the 83rd record.
+2. The only real repairs are (a) **re-snapshot** `binds.json` against the Lua config
+   and accept it as a new reference epoch, or (b) **teach
+   `hypr-equivalence-check` to compare on key identity** (`modmask`/`key`/`keycode`/
+   `mouse`/`release`) rather than on `dispatcher`/`arg`, which are no longer
+   meaningful under a Lua config.
+3. Option (a) is the "wholesale re-snapshot" this item's own earlier text warns
+   against, and it destroys the ability to detect drift that predates today. It
+   should not be done silently as a side effect of closing an unrelated phase.
+   **Option (b) is the better repair** — it restores a check that can actually fail
+   for a real reason, instead of one that fails unconditionally.
+
+**Impact of leaving it open:** `hypr-equivalence-check`'s `binds.json` arm is
+currently a permanent FAIL and therefore detects nothing. Any genuine keybind
+regression it was meant to catch is already invisible, and has been since the Lua
+migration. That is a real gap, but it is a pre-existing one that this phase neither
+caused nor widened.
+
 ## Inherited QML opacity fades the whole-grid capture-failure message
+
+**STATUS: RESOLVED 2026-08-08.** Alpha moved off the `Rectangle`'s `opacity` and
+into its `color` via `Qt.rgba(catchBase…, catchScrimOpacity)`, following the same
+`Dashboard.qml`/`PanelDialog.qml` precedent used for the tile identity pill in
+`72d04cd`. The backing stays translucent; the lock glyph, heading and
+screencopy-permission guidance above it are now fully opaque.
+
+Note on verification: this surface only renders when *every* capture in the grid
+fails, which needs screencopy permission revoked compositor-wide. The fix is the
+same one-line transform already proven on the identity pill, and QML opacity
+inheritance is not conditional — but it has not been seen rendered in its own
+error state, and that is stated rather than implied.
 
 **Found:** 2026-08-08, plan 16-07 Task 3 render gate (round 1), while fixing
 the identically-shaped defect on `WorkspaceTile.qml`'s identity pill.
