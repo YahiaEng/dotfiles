@@ -24,49 +24,33 @@ INSIDE-BUDGET on CPU (worst case 20.9% of one core during a sustained drag), FPS
 terms unmeasured. Live capture on all eleven tiles, frosted glass tiles over an
 untouched desktop, sweep-ring keyboard selection._
 
-### 1. Drag — four or five windows, including into and out of the scratchpad
+**Outcome: approved, no defects reported.**
 
-> Anything that made you hesitate, mis-aim, or repeat yourself?
+The operator ran the structured pass and approved the surface without raising
+anything on any of the eight points — drag (incl. scratchpad in and out),
+keyboard-only journeys, summoning over a fullscreen client, heavy window count,
+and the four closing-look questions.
 
-_(to fill in)_
+**Recorded honestly: no written per-point findings were captured.** "Approved with
+nothing raised" is what this entry attests, and it is deliberately not written up
+as eight individual passes with invented detail. That distinction matters for the
+next two entries, because it means this first pass establishes a clean baseline
+rather than a set of specific observations to compare against — anything ordinary
+use turns up over the coming days is new information, not a contradiction of
+something recorded here.
 
-### 2. Keyboard — the same journeys, no mouse
+Two areas where this entry is weaker evidence than it looks, worth carrying
+forward:
 
-> Arrows, Enter, Shift+number, Escape. Where did you have to think about which
-> level you were on?
-
-_(to fill in)_
-
-### 3. Over a fullscreen client
-
-> Escape hatch, or interruption?
-
-_(to fill in)_
-
-### 4. Under a heavy window count
-
-> Do thumbnails stay recognisable? Anything stutter? Does the grid stay readable?
-
-_(to fill in)_
-
-### Closing look — the surface as a whole
-
-**5. Does it read as one thing, or as several features stacked on a grid?**
-
-_(to fill in)_
-
-**6. Are the three highlights still tellable apart when more than one is on
-screen?** (keyboard sweep ring · drag target fill · current-workspace ring)
-
-_(to fill in)_
-
-**7. Anything on the grid you would rather not have there?**
-
-_(to fill in)_
-
-**8. Anything missing that you reached for and could not find?**
-
-_(to fill in)_
+- **Smoothness under load.** OVER-04's FPS floor and target are UNMEASURED (the
+  only instrument on this host froze the machine), so a human eye is currently the
+  *only* evidence the surface holds 60fps. A clean pass is real evidence, but it is
+  one session's worth, and stutter under a genuinely busy day is exactly the kind
+  of thing this note exists to catch later.
+- **The three-highlight collision (point 6)** only arises when a drag starts on a
+  keyboard-selected tile on the current workspace — a combination that does not
+  come up by accident. If it was not deliberately provoked, it is untested rather
+  than passed.
 
 ---
 

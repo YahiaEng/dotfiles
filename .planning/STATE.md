@@ -5,16 +5,16 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 16
 current_phase_name: workspace-overview
 status: executing
-stopped_at: Completed 16-07-PLAN.md
-last_updated: "2026-08-08T12:10:00.000Z"
+stopped_at: Completed 16-08-PLAN.md — phase held open by criterion 5
+last_updated: "2026-08-08T15:40:00.000Z"
 last_activity: 2026-08-08
-last_activity_desc: 16-07 closed — render gate approved after 13 rounds
+last_activity_desc: 16-08 closed — OVER-04 INSIDE-BUDGET, no ladder rung
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 62
-  completed_plans: 61
-  percent: 78
+  completed_plans: 62
+  percent: 79
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 ## Current Position
 
 Phase: 16 (workspace-overview) — EXECUTING
-Plan: 8 of 8
-Status: 16-07 closed (render gate approved); 16-08 is the last plan of the phase
-Progress: [██████████] 98% — 6/8 phases complete, 61/62 plans executed
-Last activity: 2026-08-08 — 16-07 keyboard navigation closed, render gate approved
+Plan: 8 of 8 — ALL PLANS EXECUTED
+Status: Phase 16 HELD OPEN by criterion 5 — 16-USE-NOTE.md must span 3 calendar days (earliest close 2026-08-10)
+Progress: [██████████] 100% of plans — 6/8 phases complete, 62/62 plans executed
+Last activity: 2026-08-08 — 16-08 closed, OVER-04 measured INSIDE-BUDGET, no ladder rung descended
 
 ## Performance Metrics
 
