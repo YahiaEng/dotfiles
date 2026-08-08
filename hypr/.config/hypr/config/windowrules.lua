@@ -475,22 +475,30 @@ hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0
 -- and harmless if the inference is wrong, since the value it sets is the
 -- same 0.5 the family would have supplied anyway.
 --
--- ── The threshold is 0.5 because it must SPLIT this surface (round 9) ────
--- Round 8 set 0.25 to put everything above the cutoff. That frosted the
--- empty tiles and also the bare backdrop, and at the global
--- decoration:blur:size 8 / passes 3 a blurred wallpaper collapses into
--- uniform mush — reported at the gate as the background being "completely
--- filled". The requirement is not "blur this surface", it is "frost the
--- empty tiles while the backdrop stays sharp", which needs the cutoff
--- BETWEEN the two alphas rather than under both:
+-- ⚠ ── EDITS HERE DO NOT TAKE EFFECT ON `hyprctl reload` ─────────────────
+-- Verified by screenshot A/B on 2026-08-08 (plan 16-07 render gate, round
+-- 10), and it is the single reason that gate burned five rounds:
 --
---   Overview.qml   scrimOpacity              = 0.45   (below -> sharp)
---   WorkspaceTile  scrim+fill composited     = ~0.615 (above -> frosted)
---   this threshold                           = 0.5
+--   hyprctl eval '<the rule below>'  -> frost appears immediately
+--   hyprctl reload                   -> frost disappears again
 --
--- An alpha cutoff cannot separate two regions that share an alpha, which is
--- why WorkspaceTile.qml's empty tiles carry their own fill again — see the
--- arithmetic there. These three numbers span two repo files and are only
--- correct as a set.
+-- This build runs the Lua (non-legacy) parser, which rejects `hyprctl
+-- keyword` outright ("keyword can't work with non-legacy parsers. Use
+-- eval.") and silently DROPS layer-rule changes on reload — no error, no
+-- warning, `hyprctl configerrors` clean. The family rules above work only
+-- because they were applied at compositor STARTUP.
+--
+-- So a layer-rule edit needs one of:
+--   * `hyprctl eval '<rule>'` to apply it to the running session, or
+--   * a full Hyprland restart / re-login.
+-- `hyprctl reload` is NOT sufficient and will look like the edit was wrong.
+-- Rounds 5-9 of that gate were spent tuning QML alphas against rules the
+-- compositor had never read; the alphas were never the problem.
+--
+-- Threshold 0.25 sits below every alpha this surface composites (the 0.45
+-- scrim and the ~0.615 empty tile alike), so the whole surface blurs
+-- consistently — the wleave/ags-media pattern. Verified visually at these
+-- values, not derived: screenshot with blur applied shows a frosted
+-- backdrop and readable glass tiles.
 hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = true })
-hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.5 })
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.25 })

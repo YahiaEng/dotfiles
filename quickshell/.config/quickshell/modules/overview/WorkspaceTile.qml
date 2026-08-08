@@ -155,32 +155,22 @@ Item {
         //   round 6 — the tint is gone. What is left is exactly the frosted
         //     desktop inside a bordered frame, which is what "glassy" meant.
         //
-        // ── The fill is what makes the tile frostable (round 9) ───────────
-        // Round 6 removed it entirely, on the gate's "remove the fill colour"
-        // — right about the colour, wrong about the alpha, and the two are
-        // not separable in a Rectangle. An alpha cutoff cannot distinguish
-        // two regions that have the SAME alpha, so with no fill an empty
-        // tile's interior became alpha-identical to the bare scrim and no
-        // threshold could frost one without the other. That produced round
-        // 6's "frost is gone" (cutoff above both) and then round 8's
-        // "completely filled" (cutoff below both, so the whole backdrop
-        // blurred into mush). Only a cutoff BETWEEN the two does what was
-        // asked, and that requires the tile to carry alpha of its own.
+        // ── The empty fill gives the tile DEPTH, not its frost ────────────
+        // The frost comes from the compositor blur; with ignore_alpha at
+        // 0.25 the 0.45 scrim already clears the cutoff on its own, so an
+        // empty tile would frost with no fill at all. This low-alpha fill
+        // exists only so an empty slot reads as a distinct pane of glass
+        // rather than a bare hole in the grid.
         //
-        // What was actually objected to was the HUE: the old fill was
-        // Colours.surfaceVariant, lighter and tinted, so it read as a solid
-        // block sitting on top of the frost. This fill is Colours.surface —
-        // the scrim's own colour — so it adds alpha without adding any
-        // colour cast. The tile reads as frosted glass, slightly deeper than
-        // the backdrop, rather than as a tinted panel.
+        // It is Colours.surface — the SCRIM's own colour — and not the
+        // Colours.surfaceVariant it used to be. That is the whole substance
+        // of the gate's "remove the fill colour": the objection was to the
+        // lighter, tinted variant reading as a solid block over the frost.
+        // Same-hue alpha adds depth without any colour cast.
         //
-        //   scrim 0.45, fill 0.30  ->  1 - (1 - 0.45)(1 - 0.30) = ~0.615
-        //   cutoff (windowrules.lua, this namespace) = 0.5
-        //   0.45 < 0.5 < 0.615  ->  backdrop sharp, empty tiles frosted.
-        //
-        // All three numbers are load-bearing and live in two repo files.
-        // Moving any one of them toward another collapses the ordering and
-        // silently returns one of the two failures above.
+        // Verified by screenshot at these values, after the compositor rule
+        // was actually applied — several earlier rounds "tuned" this number
+        // while blur was silently off, and none of those conclusions held.
         readonly property color emptyBase: Colours.surface
         readonly property real emptyOpacity: 0.30
         color: root.dropTargetActive

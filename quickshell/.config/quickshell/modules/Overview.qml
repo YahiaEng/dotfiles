@@ -127,22 +127,17 @@ PanelWindow {
     // established precedent in this repo, not a zero-hex/motion-lint
     // violation (Design.qml carries no opacity token; neither sibling file
     // sources this value from Colours/Design either).
-    // ── Deliberately BELOW the blur cutoff (round 9) ──────────────────────
-    // This value must stay under windowrules.lua's ignore_alpha for this
-    // namespace (0.5), and that is the whole point rather than an accident.
+    // Sits ABOVE windowrules.lua's 0.25 ignore_alpha for this namespace, so
+    // the backdrop blurs — that is the intended state, verified by
+    // screenshot rather than argued from arithmetic. Below 0.25 the frost
+    // silently dies; well above 0.45 the blurred wallpaper darkens toward
+    // uniform mush (0.55 was tried and read as a solid fill).
     //
-    // Round 8 raised it to 0.55 to lift it ABOVE the cutoff, which worked
-    // and was wrong: it put the bare backdrop above the threshold too, so
-    // the entire surface blurred, and at decoration:blur:size 8 / passes 3 a
-    // blurred wallpaper collapses into uniform mush — reported at the gate
-    // as the background being "completely filled".
-    //
-    // The cutoff has to sit BETWEEN this scrim and an empty tile's
-    // composited alpha, so the backdrop stays sharp while the tiles frost.
-    // That is only expressible if the tiles carry alpha of their own, which
-    // is why WorkspaceTile.qml's empty fill exists again — see the
-    // arithmetic there. Raising this above 0.5 re-mushes the backdrop;
-    // lowering it changes how much desktop reads through, which is safe.
+    // Note for anyone changing this and seeing no effect: a QML edit here
+    // reloads instantly, but the compositor rule it depends on does NOT
+    // reload with `hyprctl reload` on this build — see the warning at that
+    // rule. Verify the blur is actually applied before concluding a value
+    // here is wrong; that confusion cost the 16-07 render gate five rounds.
     readonly property real scrimOpacity: 0.45
 
     // Full-bleed scrim (D-16-06) — the tiles are the content here, the
