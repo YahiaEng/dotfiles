@@ -472,7 +472,7 @@ Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mech
 | 13. Motion Retrofit & Existing-Surface Sweep | v3.0 | 7/7 | Complete    | 2026-07-28 |
 | 14. Dashboard Drawer | v3.0 | 10/10 | Complete    | 2026-08-01 |
 | 15. Audio + Connectivity Panels | v3.0 | 14/14 | Complete    | 2026-08-02 |
-| 16. Workspace Overview | v3.0 | 5/8 | In Progress|  |
+| 16. Workspace Overview | v3.0 | 8/8 | Complete    | 2026-08-08 |
 | 17. Ambient Extras | v3.0 | 0/TBD | Not started | - |
 
 **Totals:** 17 phases · 73 plans complete · 2 milestones shipped · v3.0 in progress (38 requirements across 7 phases)

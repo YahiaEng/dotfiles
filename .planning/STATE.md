@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
-current_phase_name: (next milestone phase — see ROADMAP)
-status: phase-complete
-stopped_at: Phase 16 complete (criterion 5 waived by operator)
+current_phase_name: ambient-extras
+status: ready-to-discuss
+stopped_at: Phase 16 complete; Phase 17 not yet discussed or planned
 last_updated: "2026-08-08T16:20:00.000Z"
 last_activity: 2026-08-08
 last_activity_desc: Phase 16 closed — deferred items resolved, criterion 5 waived
@@ -24,13 +24,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-02)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 16 complete — next phase per ROADMAP
+**Current focus:** Phase 17 — ambient-extras (video wallpaper + dynamic cursors)
 
 ## Current Position
 
-Phase: 16 (workspace-overview) — COMPLETE
-Plan: 8 of 8 — ALL PLANS EXECUTED
-Status: COMPLETE — criterion 5 (3-day use note) WAIVED by operator 2026-08-08, not satisfied
+Phase: 17 (ambient-extras) — NOT STARTED (no discussion, no plans)
+Plan: none yet — Phase 17 needs /gsd-discuss-phase 17 first
+Status: Phase 16 closed (criterion 5 WAIVED, not satisfied). Phase 17 is the LAST phase of v3.0 and is designated the first to cut if the milestone runs long.
 Progress: [██████████] 88% — 7/8 phases complete, 62/62 plans executed
 Last activity: 2026-08-08 — phase 16 closed, deferred items resolved or reassigned
 
