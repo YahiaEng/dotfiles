@@ -155,28 +155,39 @@ Item {
         //   round 6 — the tint is gone. What is left is exactly the frosted
         //     desktop inside a bordered frame, which is what "glassy" meant.
         //
-        // ── The frost does NOT depend on this property any more ───────────
-        // With no fill, an empty tile's region composites to the scrim alone
-        // — Overview.qml's scrimOpacity — so that one value is what keeps
-        // these pixels above the blur cutoff, and this file contributes
-        // nothing to it.
+        // ── The fill is what makes the tile frostable (round 9) ───────────
+        // Round 6 removed it entirely, on the gate's "remove the fill colour"
+        // — right about the colour, wrong about the alpha, and the two are
+        // not separable in a Rectangle. An alpha cutoff cannot distinguish
+        // two regions that have the SAME alpha, so with no fill an empty
+        // tile's interior became alpha-identical to the bare scrim and no
+        // threshold could frost one without the other. That produced round
+        // 6's "frost is gone" (cutoff above both) and then round 8's
+        // "completely filled" (cutoff below both, so the whole backdrop
+        // blurred into mush). Only a cutoff BETWEEN the two does what was
+        // asked, and that requires the tile to carry alpha of its own.
         //
-        // Round 6 shipped that with the scrim at 0.45 and claimed it cleared
-        // the cutoff. It did not: the `^quickshell-.*` family's ignore_alpha
-        // floor is 0.5 and was overriding this namespace's own 0.25, so every
-        // empty tile rendered as raw unblurred transparency — reported at the
-        // gate as "transparent background and the frost is gone", one round
-        // after the same fill removal had been approved. Round 8 raised
-        // scrimOpacity to 0.55 and moved the namespace rules after the family
-        // pair (windowrules.lua). Do not re-derive the safe alpha from this
-        // file: the number lives there, with the arithmetic.
+        // What was actually objected to was the HUE: the old fill was
+        // Colours.surfaceVariant, lighter and tinted, so it read as a solid
+        // block sitting on top of the frost. This fill is Colours.surface —
+        // the scrim's own colour — so it adds alpha without adding any
+        // colour cast. The tile reads as frosted glass, slightly deeper than
+        // the backdrop, rather than as a tinted panel.
         //
-        // Occupied tiles stay opaque — their fill is almost entirely covered
-        // by thumbnails anyway, and keeping it solid is what makes the
-        // occupied/empty distinction readable at a glance.
+        //   scrim 0.45, fill 0.30  ->  1 - (1 - 0.45)(1 - 0.30) = ~0.615
+        //   cutoff (windowrules.lua, this namespace) = 0.5
+        //   0.45 < 0.5 < 0.615  ->  backdrop sharp, empty tiles frosted.
+        //
+        // All three numbers are load-bearing and live in two repo files.
+        // Moving any one of them toward another collapses the ordering and
+        // silently returns one of the two failures above.
+        readonly property color emptyBase: Colours.surface
+        readonly property real emptyOpacity: 0.30
         color: root.dropTargetActive
             ? Colours.primary
-            : (root.occupied ? Colours.surface : "transparent")
+            : (root.occupied
+                ? Colours.surface
+                : Qt.rgba(background.emptyBase.r, background.emptyBase.g, background.emptyBase.b, background.emptyOpacity))
         border.width: Design.borderWidth
         border.color: root.dropTargetActive ? Colours.primary : (root.isScratchpad ? Colours.tertiary : Colours.outline)
         Behavior on color {

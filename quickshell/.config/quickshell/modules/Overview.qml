@@ -127,21 +127,23 @@ PanelWindow {
     // established precedent in this repo, not a zero-hex/motion-lint
     // violation (Design.qml carries no opacity token; neither sibling file
     // sources this value from Colours/Design either).
-    // ── Load-bearing for the frost, not just for contrast (round 8) ───────
-    // Raised from 0.45. Since plan 16-07 round 6 removed the empty tiles'
-    // own fill, an empty tile's region composites to THIS value alone — it
-    // is the only thing keeping those pixels above the blur cutoff. At 0.45
-    // it sat just under the `^quickshell-.*` family's 0.5 ignore_alpha floor
-    // and every empty tile rendered as raw unblurred transparency. 0.55
-    // clears the family's 0.5 and this namespace's own 0.25 alike, so the
-    // glass survives whichever of the two the compositor actually applies —
-    // which matters because layer-rule effects have no `hyprctl` projection
-    // to check against (see windowrules.lua's ordering finding).
+    // ── Deliberately BELOW the blur cutoff (round 9) ──────────────────────
+    // This value must stay under windowrules.lua's ignore_alpha for this
+    // namespace (0.5), and that is the whole point rather than an accident.
     //
-    // Lowering this below 0.5 silently kills the frost on every empty tile.
-    // It is also still the softening lever if the frost reads too strong:
-    // RAISING it mutes the blur, since more scrim means less desktop through.
-    readonly property real scrimOpacity: 0.55
+    // Round 8 raised it to 0.55 to lift it ABOVE the cutoff, which worked
+    // and was wrong: it put the bare backdrop above the threshold too, so
+    // the entire surface blurred, and at decoration:blur:size 8 / passes 3 a
+    // blurred wallpaper collapses into uniform mush — reported at the gate
+    // as the background being "completely filled".
+    //
+    // The cutoff has to sit BETWEEN this scrim and an empty tile's
+    // composited alpha, so the backdrop stays sharp while the tiles frost.
+    // That is only expressible if the tiles carry alpha of their own, which
+    // is why WorkspaceTile.qml's empty fill exists again — see the
+    // arithmetic there. Raising this above 0.5 re-mushes the backdrop;
+    // lowering it changes how much desktop reads through, which is safe.
+    readonly property real scrimOpacity: 0.45
 
     // Full-bleed scrim (D-16-06) — the tiles are the content here, the
     // scrim is context, not cover (16-UI-SPEC.md "Color" section).

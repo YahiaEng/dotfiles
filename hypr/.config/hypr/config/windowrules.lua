@@ -470,10 +470,27 @@ hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0
 -- Layer-rule effects carry no `hyprctl` projection on this build
 -- (13.1-LUA-FINDINGS.md Spike A), so this ordering cannot be asserted
 -- mechanically and was derived from the two observations above rather than
--- read off the compositor. That is also why Overview.qml's scrimOpacity was
--- raised to 0.55 in the same round: 0.55 clears 0.5 AND 0.25, so this
--- surface frosts correctly even if the precedence inference is wrong. The
--- two changes are belt and braces, not redundancy — remove either and the
--- glass depends on an unverifiable claim.
+-- read off the compositor. Declaring last is therefore belt AND braces: it
+-- makes the threshold below authoritative under the inferred precedence,
+-- and harmless if the inference is wrong, since the value it sets is the
+-- same 0.5 the family would have supplied anyway.
+--
+-- ── The threshold is 0.5 because it must SPLIT this surface (round 9) ────
+-- Round 8 set 0.25 to put everything above the cutoff. That frosted the
+-- empty tiles and also the bare backdrop, and at the global
+-- decoration:blur:size 8 / passes 3 a blurred wallpaper collapses into
+-- uniform mush — reported at the gate as the background being "completely
+-- filled". The requirement is not "blur this surface", it is "frost the
+-- empty tiles while the backdrop stays sharp", which needs the cutoff
+-- BETWEEN the two alphas rather than under both:
+--
+--   Overview.qml   scrimOpacity              = 0.45   (below -> sharp)
+--   WorkspaceTile  scrim+fill composited     = ~0.615 (above -> frosted)
+--   this threshold                           = 0.5
+--
+-- An alpha cutoff cannot separate two regions that share an alpha, which is
+-- why WorkspaceTile.qml's empty tiles carry their own fill again — see the
+-- arithmetic there. These three numbers span two repo files and are only
+-- correct as a set.
 hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = true })
-hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.25 })
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.5 })
