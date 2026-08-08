@@ -117,7 +117,15 @@ Item {
     // Threaded straight to the WindowThumbnail delegate below.
     property int selectedWindowIndex: -1
 
-    readonly property int sweepRingWidth: Design.borderWidth
+    // Deliberately NOT Design.borderWidth (3, the structural tile edge). The
+    // sweep is a selection indicator competing with live window thumbnails
+    // for attention, and at the edge width it was reported as slightly hard
+    // to notice (16-07 render gate, round 7). Widened enough to register in
+    // peripheral vision, and no further — past roughly this the band starts
+    // eating the tile's rounded corner and reads as a frame rather than a
+    // moving highlight. The two gradient roles it draws from are already
+    // vivid and theme-adaptive, so width was the lever left.
+    readonly property int sweepRingWidth: 5
     // One revolution every 6 seconds (6 x the 1000ms ambient pulse period).
     readonly property int sweepPeriodFactor: 6
 
