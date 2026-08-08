@@ -171,13 +171,25 @@ Item {
         // Verified by screenshot at these values, after the compositor rule
         // was actually applied — several earlier rounds "tuned" this number
         // while blur was silently off, and none of those conclusions held.
-        readonly property color emptyBase: Colours.surface
-        readonly property real emptyOpacity: 0.30
+        // ── One frosted fill for every tile (16-07 gate, round 12) ────────
+        // Overview.qml's full-bleed scrim is gone, so this fill now does two
+        // jobs it used to share. It is the ONLY thing lifting a tile's
+        // composited alpha over windowrules.lua's 0.25 cutoff — outside the
+        // tiles the surface is alpha 0, which is exactly why the desktop is
+        // left untouched — and it is the ONLY thing separating a tile from
+        // whatever live window sits behind it, with no scrim helping.
+        //
+        // Hence higher than the old 0.30, and hence occupied and empty tiles
+        // now share it: with no scrim, an opaque occupied tile read as a
+        // solid card sitting beside translucent ones, which is the "looks
+        // like an application" grammar this gate has already rejected once.
+        // Occupied tiles are told apart by containing windows — the actual
+        // signal — not by their backing.
+        readonly property color tileBase: Colours.surface
+        readonly property real tileOpacity: 0.55
         color: root.dropTargetActive
             ? Colours.primary
-            : (root.occupied
-                ? Colours.surface
-                : Qt.rgba(background.emptyBase.r, background.emptyBase.g, background.emptyBase.b, background.emptyOpacity))
+            : Qt.rgba(background.tileBase.r, background.tileBase.g, background.tileBase.b, background.tileOpacity)
         // ── Hairline, not Design.borderWidth (16-07 gate, round 11) ───────
         // At the structural 3px this drew a hard card edge around all eleven
         // slots, and eleven uniform outlined cards in a fixed grid is the

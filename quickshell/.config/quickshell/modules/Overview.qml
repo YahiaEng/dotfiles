@@ -117,36 +117,26 @@ PanelWindow {
     // architecture: off. windowrules.lua now pulls D-16-06's own
     // pre-authorized fallback lever #1 (`blur = false`, exact-match
     // override on `quickshell-overview`) instead of chasing an alpha value
-    // that either does nothing (above 0.5) or breaks blur outright (below
-    // it). With blur off for this namespace, the `ignore_alpha` floor is
-    // moot here, so this alpha is free to read as a plain, deliberate tint
-    // rather than a frost — 0.45, screenshot-compared before shipping.
-    // Named as a property (not an anonymous literal) matching
-    // PanelDialog.qml/Dashboard.qml's own panelSurfaceOpacity/
-    // drawerSurfaceOpacity convention — a bare numeric opacity constant is
-    // established precedent in this repo, not a zero-hex/motion-lint
-    // violation (Design.qml carries no opacity token; neither sibling file
-    // sources this value from Colours/Design either).
-    // Sits ABOVE windowrules.lua's 0.25 ignore_alpha for this namespace, so
-    // the backdrop blurs — that is the intended state, verified by
-    // screenshot rather than argued from arithmetic. Below 0.25 the frost
-    // silently dies; well above 0.45 the blurred wallpaper darkens toward
-    // uniform mush (0.55 was tried and read as a solid fill).
+    // ── NO full-bleed scrim (16-07 render gate, round 12) ─────────────────
+    // Supersedes D-16-06's "the scrim is context, not cover". The gate's
+    // objection was that summoning the overview "overtakes the entire
+    // screen" — the whole desktop got the fill-and-frost treatment when only
+    // the tiles were meant to. That is what a full-bleed scrim does by
+    // definition, and no alpha value fixes it: any scrim above the blur
+    // cutoff frosts the entire screen, and any scrim below it stops the
+    // tiles frosting too (rounds 6-9 walked that whole range).
     //
-    // Note for anyone changing this and seeing no effect: a QML edit here
-    // reloads instantly, but the compositor rule it depends on does NOT
-    // reload with `hyprctl reload` on this build — see the warning at that
-    // rule. Verify the blur is actually applied before concluding a value
-    // here is wrong; that confusion cost the 16-07 render gate five rounds.
-    readonly property real scrimOpacity: 0.45
-
-    // Full-bleed scrim (D-16-06) — the tiles are the content here, the
-    // scrim is context, not cover (16-UI-SPEC.md "Color" section).
-    Rectangle {
-        anchors.fill: parent
-        color: Colours.surface
-        opacity: overviewWindow.scrimOpacity
-    }
+    // Removing it is what makes the compositor rule express the intent
+    // instead of fighting it. `ignore_alpha` skips blur wherever composited
+    // alpha falls under the threshold, so with nothing painted outside the
+    // tiles those regions sit at alpha 0, far below the 0.25 cutoff, and the
+    // desktop behind is left completely untouched — not dimmed, not blurred.
+    // The tiles carry their own alpha, clear the cutoff, and frost. The grid
+    // reads as floating panes of glass over a live desktop.
+    //
+    // Consequence worth knowing: tile legibility no longer has a scrim
+    // helping it. Each tile's own fill is now solely responsible for
+    // separating it from whatever is behind — see WorkspaceTile.qml.
 
     // ── Click-outside dismiss, the scrim half (16-07 render gate, round 1) ─
     // The HyprlandFocusGrab below cannot deliver this on its own: it clears
@@ -959,10 +949,12 @@ PanelWindow {
         && overviewWindow.allSettled
         && overviewWindow.thumbnailsWithContent === 0
 
-    // Named property, matching PanelDialog.qml/this file's own
-    // `scrimOpacity` precedent for a bare numeric opacity constant — a
-    // bit darker than the base scrim so the message reads as sitting on
-    // its own layer above the (non-rendering) grid beneath it.
+    // Named property, matching PanelDialog.qml/Dashboard.qml's own
+    // panelSurfaceOpacity/drawerSurfaceOpacity precedent for a bare numeric
+    // opacity constant. Heavy on purpose: this is the ONE case that still
+    // covers the whole surface, because a grid where every capture failed
+    // has nothing worth seeing through to — unlike the ordinary case, which
+    // deliberately ships no full-bleed scrim at all (round 12, above).
     readonly property real catchScrimOpacity: 0.7
 
     Rectangle {
