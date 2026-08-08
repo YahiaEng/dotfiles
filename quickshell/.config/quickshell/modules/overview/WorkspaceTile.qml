@@ -137,17 +137,22 @@ Item {
         // through, so an empty slot reads as an empty FRAME — present and
         // targetable, but not competing with the occupied tiles beside it.
         //
-        // ── This is translucency, NOT compositor frost — deliberately ─────
-        // Real frosting would need `blur = true` on the quickshell-overview
-        // layer rule, which windowrules.lua (~line 338) turns OFF for exactly
-        // this namespace: an earlier render gate judged the family blur too
-        // strong here, and Hyprland's blur strength is a single GLOBAL
-        // setting with no per-layer override, so "turn it down" has no
-        // expression other than off. Re-enabling it would re-open a decision
-        // already taken, on a knob that would also change every other blurred
-        // surface. What this does instead is legitimate on its own terms: the
-        // 0.45 scrim already sits between the tile and the wallpaper, so what
-        // shows through is muted rather than raw.
+        // ── This alpha is HALF of the glass; the other half is compositor ─
+        // Round 4 shipped this alpha alone, with blur still disabled for the
+        // quickshell-overview layer, and it read as "still the same, no glass
+        // look" — correctly, because translucency under the blur cutoff is
+        // raw transparency, not frost (the failure ags-media 10-06c and
+        // wleave 09-03 both already recorded). Round 5 re-enabled
+        // `blur = true` for this namespace and lowered its `ignore_alpha` to
+        // 0.25 (windowrules.lua, ~line 338) so every region of this surface
+        // clears the cutoff. This value and that rule are a PAIR: raising
+        // this alpha toward opaque, or dropping the scrim and this together
+        // below 0.25, silently returns the unfrosted look.
+        //
+        // This is also the softening lever. Blur STRENGTH is global
+        // (decoration:blur:size/passes) with no per-layer override, so if the
+        // frost reads too strong, the answer is to raise this alpha and
+        // Overview.qml's scrimOpacity — never another boolean.
         //
         // Occupied tiles stay opaque — their fill is almost entirely covered
         // by thumbnails anyway, and keeping it solid is what makes the

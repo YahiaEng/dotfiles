@@ -323,19 +323,43 @@ hl.layer_rule({ match = { namespace = "quickshell-bluetooth-panel" }, animation 
 -- drawer's/panels' `slide`: a surface covering the whole screen has no edge
 -- to slide in from. Exact-match only, same discipline as every rule above.
 hl.layer_rule({ match = { namespace = "quickshell-overview" }, animation = "fade" })
--- D-16-06 fallback lever #1, pulled at the Task 3 render gate (2026-08-03):
--- the operator judged the family blur "too strong" on this surface.
--- `LayerRule`'s only blur field is a boolean (`hl.meta.lua` line 551 —
--- `blur?: boolean`); blur INTENSITY (`decoration.blur.size`/`.passes`/etc.)
--- is a single GLOBAL compositor setting with no per-layer-rule strength
--- override, so "turn it down" has exactly one real answer: off. Confirmed
--- live before choosing this: dropping the scrim's own alpha below the
--- family `ignore_alpha` floor (0.5, below) does NOT soften the blur — it
--- silently disables it and reads as raw unblurred transparency (ags-media's
--- own documented past mistake, reproduced firsthand). This exact-match rule
--- overrides the family regex's `blur = true` for this namespace only —
--- every other `quickshell-*` surface keeps the family blur unchanged.
-hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = false })
+-- D-16-06 fallback lever #1 was pulled at the Task 3 render gate
+-- (2026-08-03): the operator judged the family blur "too strong" on this
+-- surface, and since `LayerRule`'s only blur field is a boolean
+-- (`hl.meta.lua` line 551 — `blur?: boolean`) while blur INTENSITY
+-- (`decoration.blur.size`/`.passes`/etc.) is a single GLOBAL compositor
+-- setting with no per-layer-rule strength override, "turn it down" had
+-- exactly one expression available at the time: off.
+--
+-- ── REVERSED at plan 16-07's Task 3 render gate, round 5 (2026-08-08) ────
+-- Same operator, later gate, different question. The 08-03 decision was
+-- taken while the tiles were OPAQUE, so blur bought this surface nothing
+-- and only cost strength. Plan 16-07 round 4 made the EMPTY tiles
+-- translucent to stop ten solid slabs dominating a grid whose real content
+-- is the few occupied tiles — and translucency without blur is precisely
+-- the failure mode this file already records twice (ags-media 10-06c,
+-- wleave 09-03): it reads as raw unblurred transparency, not frosted glass.
+-- Reported at the gate as "empty tiles are still the same, no glass look".
+-- Blur is what that request actually requires, so it goes back on.
+--
+-- The 08-03 note that dropping scrim alpha below the family floor does not
+-- soften blur but silently disables it stays TRUE and is the reason for the
+-- companion `ignore_alpha` rule below: Overview.qml's scrim is 0.45, under
+-- the family's 0.5 floor, so re-enabling blur alone would have frosted the
+-- translucent tiles (composited ~0.63) while leaving the bare scrim
+-- unblurred — a surface blurred in patches. The threshold is therefore set
+-- BELOW every alpha this surface composites, exactly as wleave's 09-03
+-- re-derivation does for the same reason.
+--
+-- Strength remains global and remains the known risk: if this reads too
+-- strong again, the lever is this surface's OWN alpha (Overview.qml's
+-- scrimOpacity and WorkspaceTile.qml's emptyOpacity), which is how both
+-- ags-media and wleave were tuned — not another boolean.
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = true })
+-- Below the 0.45 scrim and the ~0.63 composited empty tile, so every region
+-- of this surface stays above the cutoff and blurs consistently. Mirrors
+-- wleave/ags-media's 0.25; overrides the family's 0.5 for this namespace.
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.25 })
 -- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
 -- "ags-media" (10-02); targets ONLY this window, mirroring the other
 -- namespace-scoped blur rules above. Paired with the translucent
