@@ -5,8 +5,8 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
 current_phase_name: ambient-extras
 status: ready-to-discuss
-stopped_at: Phase 16 complete; Phase 17 not yet discussed or planned
-last_updated: "2026-08-08T16:20:00.000Z"
+stopped_at: Phase 17 context gathered
+last_updated: "2026-08-08T21:55:14.790Z"
 last_activity: 2026-08-08
 last_activity_desc: Phase 16 closed — deferred items resolved, criterion 5 waived
 progress:
@@ -457,9 +457,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-07T18:10:00.000Z
-Stopped at: Completed 16-06-PLAN.md (render gate approved, plan closed)
-Resume file: None
+Last session: 2026-08-08T21:55:14.768Z
+Stopped at: Phase 17 context gathered
+Resume file: .planning/phases/17-ambient-extras/17-CONTEXT.md
 
 ## Operator Next Steps
 
