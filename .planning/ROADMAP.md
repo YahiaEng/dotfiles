@@ -456,7 +456,7 @@ Plans:
 - [ ] 17-02-PLAN.md — Frame extraction, palette/lock-screen coupling via `current.jpg`, `contract.json` registration, and the precise T-05-07 validator widening (AMB-01)
 - [ ] 17-03-PLAN.md — Picker integration, the three suppression states, login/theme-switch wiring, and the blocking human render gate (AMB-01)
 - [ ] 17-04-PLAN.md — Guarded `hyprpm` install path proven by fault injection, plus the `cmake`/`cpio` toolchain gaps (AMB-02)
-- [ ] 17-05-PLAN.md — Guarded Lua plugin load, the dynamic-cursors config surface, and the three-site cursor-theme pin (AMB-02)
+- [ ] 17-05-PLAN.md — Guarded Lua plugin load, the dynamic-cursors config surface, and the cursor-theme pin across all five verified sites — two of which no source artifact named (AMB-02)
 - [ ] 17-06-PLAN.md — Criterion-3 cut sweep and phase close (AMB-01, AMB-02)
 
 ## Progress
