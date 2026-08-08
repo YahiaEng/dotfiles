@@ -449,7 +449,15 @@ Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mech
   3. If this phase is cut mid-flight, a consumer-check sweep runs at its close rather than being deferred to milestone close — `stow.sh`, `install.sh`, `windowrules.conf`, `contract.json` and QML imports carry no references to anything it started and did not finish.
 
 **Owns**: Additive scaffolding drift — the eww cleanup cost in the opposite direction, from an addition abandoned rather than a toolkit retired.
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Tracer: end-to-end live wallpaper, one path only — mpvpaper provisioned, the `live/` layout reproducing from `stow.sh`, the sole-owner `wallpaper-visibility.sh`, and the D-26 fullscreen-pause probe run against the installed binary (AMB-01)
+- [ ] 17-02-PLAN.md — Frame extraction, palette/lock-screen coupling via `current.jpg`, `contract.json` registration, and the precise T-05-07 validator widening (AMB-01)
+- [ ] 17-03-PLAN.md — Picker integration, the three suppression states, login/theme-switch wiring, and the blocking human render gate (AMB-01)
+- [ ] 17-04-PLAN.md — Guarded `hyprpm` install path proven by fault injection, plus the `cmake`/`cpio` toolchain gaps (AMB-02)
+- [ ] 17-05-PLAN.md — Guarded Lua plugin load, the dynamic-cursors config surface, and the three-site cursor-theme pin (AMB-02)
+- [ ] 17-06-PLAN.md — Criterion-3 cut sweep and phase close (AMB-01, AMB-02)
 
 ## Progress
 
