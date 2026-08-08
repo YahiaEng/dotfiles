@@ -178,7 +178,21 @@ Item {
             : (root.occupied
                 ? Colours.surface
                 : Qt.rgba(background.emptyBase.r, background.emptyBase.g, background.emptyBase.b, background.emptyOpacity))
-        border.width: Design.borderWidth
+        // ── Hairline, not Design.borderWidth (16-07 gate, round 11) ───────
+        // At the structural 3px this drew a hard card edge around all eleven
+        // slots, and eleven uniform outlined cards in a fixed grid is the
+        // visual grammar of an application window — which is precisely how
+        // the gate read the surface. A slot is a REGION, not a control, so
+        // it gets the lightest mark that still says where its bounds are;
+        // the floating window thumbnails inside carry the visual weight
+        // instead (see WindowThumbnail.qml's elevation).
+        //
+        // The drop target keeps its full-strength read through the FILL
+        // above (Colours.primary), not through this border, so softening
+        // here costs the drag no legibility. The keyboard sweep ring and the
+        // focused-workspace ring are separate rectangles further down and
+        // are likewise unaffected.
+        border.width: root.dropTargetActive ? Design.borderWidth : 1
         border.color: root.dropTargetActive ? Colours.primary : (root.isScratchpad ? Colours.tertiary : Colours.outline)
         Behavior on color {
             enabled: Motion.motionEnabled

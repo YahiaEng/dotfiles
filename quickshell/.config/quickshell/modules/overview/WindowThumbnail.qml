@@ -55,6 +55,7 @@
 // input models do not mix safely on the same gesture. Consolidating both
 // onto this type is what keeps them cooperating instead of racing.
 import QtQuick
+import QtQuick.Effects
 import Quickshell.Wayland
 import "../"
 import "../dashboard"
@@ -115,6 +116,52 @@ Item {
     y: (root.at[1] - root.monitorY) * root.captureScale
     width: Math.max(0, root.size[0] * root.captureScale)
     height: Math.max(0, root.size[1] * root.captureScale)
+
+    // ── Elevation, so a window reads as FLOATING (16-07 gate, round 11) ───
+    // The gate's verdict on the surface as a whole: "looks like an
+    // application being launched and not like floating windows". Two things
+    // caused that, and they are opposites — the tile chrome was loud (a 3px
+    // outline on every slot, since softened in WorkspaceTile.qml) while the
+    // windows themselves were flat, square and shadowless. Every overview
+    // this design references (Mission Control, GNOME Activities, Caelestia)
+    // inverts exactly that: near-invisible slots, window miniatures lifted
+    // off the backdrop. This is the lifting half.
+    //
+    // ── Why the shadow is cast by a plain rect, not by the capture ────────
+    // MultiEffect renders its SOURCE, so pointing it at the live
+    // ScreencopyView would re-run the effect every captured frame, once per
+    // window — and `liveCapture` defaults true for every thumbnail in the
+    // grid (DragGhost is the lone `liveCapture: false` user, which is why
+    // its own MultiEffect over live content is not a precedent for fifteen
+    // of them). A same-size rounded rectangle casts an identical silhouette
+    // for a fixed, one-off cost, because a shadow only depends on the
+    // source's SHAPE, never on its pixels.
+    //
+    // The capture itself is deliberately left square-cornered: rounding it
+    // needs a per-frame mask over live content, which is the cost this
+    // avoids. The rounded shadow softens the silhouette without it.
+    readonly property int shadowRadius: 6
+    Rectangle {
+        id: shadowSource
+        anchors.fill: parent
+        radius: root.shadowRadius
+        color: Colours.surface
+        visible: false
+    }
+    MultiEffect {
+        anchors.fill: shadowSource
+        source: shadowSource
+        shadowEnabled: true
+        // Heavier than DragGhost's 0.35 elevation-3: these sit on a blurred
+        // backdrop rather than over sharp desktop, and a light shadow simply
+        // disappears into the frost.
+        shadowColor: Qt.rgba(0, 0, 0, 0.5)
+        shadowOpacity: 0.5
+        shadowBlur: 0.7
+        shadowVerticalOffset: 3
+        shadowHorizontalOffset: 0
+        z: -1
+    }
 
     // The single home of ScreencopyView in modules/overview/ (Task 1's
     // acceptance criteria assert this count directory-wide).
