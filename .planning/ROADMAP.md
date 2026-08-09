@@ -449,12 +449,12 @@ Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mech
   3. If this phase is cut mid-flight, a consumer-check sweep runs at its close rather than being deferred to milestone close — `stow.sh`, `install.sh`, `windowrules.conf`, `contract.json` and QML imports carry no references to anything it started and did not finish.
 
 **Owns**: Additive scaffolding drift — the eww cleanup cost in the opposite direction, from an addition abandoned rather than a toolkit retired.
-**Plans**: 6 plans
+**Plans**: 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 17-01-PLAN.md — Tracer: end-to-end live wallpaper, one path only — mpvpaper provisioned, the `live/` layout reproducing from `stow.sh`, the sole-owner `wallpaper-visibility.sh`, and the D-26 fullscreen-pause probe run against the installed binary (AMB-01)
+- [x] 17-01-PLAN.md — Tracer: end-to-end live wallpaper, one path only — mpvpaper provisioned, the `live/` layout reproducing from `stow.sh`, the sole-owner `wallpaper-visibility.sh`, and the D-26 fullscreen-pause probe run against the installed binary (AMB-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -492,6 +492,6 @@ Plans:
 | 14. Dashboard Drawer | v3.0 | 10/10 | Complete    | 2026-08-01 |
 | 15. Audio + Connectivity Panels | v3.0 | 14/14 | Complete    | 2026-08-02 |
 | 16. Workspace Overview | v3.0 | 8/8 | Complete    | 2026-08-08 |
-| 17. Ambient Extras | v3.0 | 0/TBD | Not started | - |
+| 17. Ambient Extras | v3.0 | 1/6 | In Progress|  |
 
 **Totals:** 17 phases · 73 plans complete · 2 milestones shipped · v3.0 in progress (38 requirements across 7 phases)

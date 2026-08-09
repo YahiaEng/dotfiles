@@ -4,16 +4,16 @@ milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
 current_phase_name: ambient-extras
-status: ready-to-discuss
-stopped_at: Phase 17 context gathered
-last_updated: "2026-08-09T00:04:09.670Z"
-last_activity: 2026-08-08
-last_activity_desc: Phase 16 closed — deferred items resolved, criterion 5 waived
+status: executing
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-08-09T03:29:57.256Z"
+last_activity: 2026-08-09
+last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 68
-  completed_plans: 62
+  completed_plans: 63
   percent: 88
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-02)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 17 — ambient-extras (video wallpaper + dynamic cursors)
+**Current focus:** Phase 17 — ambient-extras
 
 ## Current Position
 
-Phase: 17 (ambient-extras) — NOT STARTED (no discussion, no plans)
-Plan: none yet — Phase 17 needs /gsd-discuss-phase 17 first
-Status: Phase 16 closed (criterion 5 WAIVED, not satisfied). Phase 17 is the LAST phase of v3.0 and is designated the first to cut if the milestone runs long.
-Progress: [██████████] 88% — 7/8 phases complete, 62/62 plans executed
-Last activity: 2026-08-08 — phase 16 closed, deferred items resolved or reassigned
+Phase: 17 (ambient-extras) — EXECUTING
+Plan: 2 of 6
+Status: Ready to execute
+Progress: [█████████░] 93% — 7/8 phases complete, 62/62 plans executed
+Last activity: 2026-08-09 — Phase 17 execution started
 
 ## Performance Metrics
 
@@ -185,6 +185,7 @@ Last activity: 2026-08-08 — phase 16 closed, deferred items resolved or reassi
 | Phase 16 P04 | single session | 2 tasks | 22 files |
 | Phase 16 P05 | single session | 3 tasks | 3 files |
 | Phase 16 P06 | two sessions (gate approved 2026-08-07) | 3 tasks | 5 files |
+| Phase 17 P01 | ~50min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -360,6 +361,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 16-06: OVER-03 closed — render gate APPROVED 2026-08-07, no change requests; drag ghost is a reused WindowThumbnail (liveCapture:false, one captureFrame() per drag), selector-confirmed dispatch implemented verbatim with follow=false so D-16-13's silence is delivered, not approximated
 - [Phase ?]: 16-06: the guarded move dispatch in Overview.qml (0x-normalised address shape-checked at dispatch time, workspace token validated 1..10/special:magic, no client text ever concatenated) is the seam 16-07's Shift+1..0 keyboard move MUST reuse, not re-derive
 - [Phase ?]: 16-06: every non-move outcome (same-tile no-op, gap release, validation failure, mid-drag toplevel destruction) funnels through one cancel path on the standard pair — no bespoke error UI; the two planner-assumed OVER-03 edges are implemented but carried into 16-USE-NOTE.md's first pass as assumptions, not derived criteria
+- [Phase ?]: 17-01: D-26 verdict PASS — -p -a full pauses on a real fullscreen toggle (log line + CPU drop to 0.00-0.50%) and resumes on release; D-27 watcher not built
+- [Phase ?]: 17-01: -a mode option-a (-a full) selected — a control probe proved -a max is a confirmed no-op on this compositor build (fullscreen(1)/'maximize' enters the same internal state as literal fullscreen, both caught by -a full alone)
+- [Phase ?]: 17-01: found and fixed two real process-lifecycle races live — a flock-fd inheritance deadlock (8>&- fix) and a SIGTERM-unresponsive CPU-heavy WebP decode leaving duplicate processes (SIGKILL escalation fix); also hardened all pgrep-based liveness checks to exclude zombie entries
 
 ### Quick Tasks Completed
 
@@ -457,9 +461,9 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-08T21:55:14.768Z
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-ambient-extras/17-CONTEXT.md
+Last session: 2026-08-09T03:29:57.233Z
+Stopped at: Completed 17-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
