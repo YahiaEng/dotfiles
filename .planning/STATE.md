@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
 current_phase_name: ambient-extras
 status: executing
-stopped_at: Completed 17-04-PLAN.md
-last_updated: "2026-08-09T04:12:18.051Z"
+stopped_at: Completed 17-03-PLAN.md
+last_updated: "2026-08-09T05:16:40.580Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 68
-  completed_plans: 65
+  completed_plans: 66
   percent: 88
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 ## Current Position
 
 Phase: 17 (ambient-extras) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
-Progress: [██████████] 96% — 7/8 phases complete, 62/62 plans executed
+Progress: [██████████] 97% — 7/8 phases complete, 62/62 plans executed
 Last activity: 2026-08-09 — Phase 17 execution started
 
 ## Performance Metrics
@@ -188,6 +188,7 @@ Last activity: 2026-08-09 — Phase 17 execution started
 | Phase 17 P01 | ~50min | 3 tasks | 4 files |
 | Phase 17 P02 | 35min | 3 tasks | 4 files |
 | Phase 17 P04 | ~40min | 4 tasks | 4 files |
+| Phase 17 P03 | ~50min+2 render-gate rounds | 5 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -369,6 +370,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 17-02: D-09 seek-offset default shipped as 3s; D-13 dead-entry fallback and D-03 live-only-theme fallback are distinct code paths (dead_live_entry flag); frame repair guard never mutates last-wallpaper/<name>
 - [Phase ?]: 17-04: Rule 1 live-found fix — Hyprland plugin-permission dialog was blocking hyprpm reload indefinitely (enforce_permissions on, no grant for hyprpm); closed with timeout bounds + a permissions.lua plugin-type grant for /usr/bin/hyprpm (grant requires a compositor restart to activate, not yet live)
 - [Phase ?]: 17-04: D-34 fault injection proved criterion 2 by executing the real shipped install.sh block (sentinel-extracted) — credential-unavailable path and isolated bad-URL hyprpm add both exit 0 with a stderr warning, zero pollution to the plugin's registered state
+- [Phase ?]: 17-03: theme_engine_wallpaper_sync_owner built as D-21's single owner-declaration path (login/theme-switch/manual-pick, one function, no second call site); both 17-02 handoffs closed (writer guard widened, active-marker regression fixed); D-28 gaming-mode-toggle.sh confirmed live not dead
+- [Phase ?]: 17-03 render gate round 1 FAILED steps 8/9 (lock screen stuck on stale still; motion-off swapped to stale still instead of stopping cleanly) — root-caused to hovering never persisting current.jpg/last-wallpaper (only confirm did), fixed in 87f539e (hover settle block now writes both, mirrored by Esc), round 2 APPROVED
 
 ### Quick Tasks Completed
 
@@ -466,8 +469,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-09T04:12:18.026Z
-Stopped at: Completed 17-04-PLAN.md
+Last session: 2026-08-09T05:16:40.554Z
+Stopped at: Completed 17-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
