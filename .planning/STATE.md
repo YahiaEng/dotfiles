@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
 current_phase_name: ambient-extras
 status: executing
-stopped_at: Completed 17-02-PLAN.md
-last_updated: "2026-08-09T03:42:08.450Z"
+stopped_at: Completed 17-04-PLAN.md
+last_updated: "2026-08-09T04:12:18.051Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 68
-  completed_plans: 64
+  completed_plans: 65
   percent: 88
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 ## Current Position
 
 Phase: 17 (ambient-extras) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
-Progress: [█████████░] 94% — 7/8 phases complete, 62/62 plans executed
+Progress: [██████████] 96% — 7/8 phases complete, 62/62 plans executed
 Last activity: 2026-08-09 — Phase 17 execution started
 
 ## Performance Metrics
@@ -187,6 +187,7 @@ Last activity: 2026-08-09 — Phase 17 execution started
 | Phase 16 P06 | two sessions (gate approved 2026-08-07) | 3 tasks | 5 files |
 | Phase 17 P01 | ~50min | 3 tasks | 4 files |
 | Phase 17 P02 | 35min | 3 tasks | 4 files |
+| Phase 17 P04 | ~40min | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -366,6 +367,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 17-01: -a mode option-a (-a full) selected — a control probe proved -a max is a confirmed no-op on this compositor build (fullscreen(1)/'maximize' enters the same internal state as literal fullscreen, both caught by -a full alone)
 - [Phase ?]: 17-01: found and fixed two real process-lifecycle races live — a flock-fd inheritance deadlock (8>&- fix) and a SIGTERM-unresponsive CPU-heavy WebP decode leaving duplicate processes (SIGKILL escalation fix); also hardened all pgrep-based liveness checks to exclude zombie entries
 - [Phase ?]: 17-02: D-09 seek-offset default shipped as 3s; D-13 dead-entry fallback and D-03 live-only-theme fallback are distinct code paths (dead_live_entry flag); frame repair guard never mutates last-wallpaper/<name>
+- [Phase ?]: 17-04: Rule 1 live-found fix — Hyprland plugin-permission dialog was blocking hyprpm reload indefinitely (enforce_permissions on, no grant for hyprpm); closed with timeout bounds + a permissions.lua plugin-type grant for /usr/bin/hyprpm (grant requires a compositor restart to activate, not yet live)
+- [Phase ?]: 17-04: D-34 fault injection proved criterion 2 by executing the real shipped install.sh block (sentinel-extracted) — credential-unavailable path and isolated bad-URL hyprpm add both exit 0 with a stderr warning, zero pollution to the plugin's registered state
 
 ### Quick Tasks Completed
 
@@ -463,8 +466,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-09T03:42:08.425Z
-Stopped at: Completed 17-02-PLAN.md
+Last session: 2026-08-09T04:12:18.026Z
+Stopped at: Completed 17-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

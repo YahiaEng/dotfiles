@@ -449,7 +449,7 @@ Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mech
   3. If this phase is cut mid-flight, a consumer-check sweep runs at its close rather than being deferred to milestone close — `stow.sh`, `install.sh`, `windowrules.conf`, `contract.json` and QML imports carry no references to anything it started and did not finish.
 
 **Owns**: Additive scaffolding drift — the eww cleanup cost in the opposite direction, from an addition abandoned rather than a toolkit retired.
-**Plans**: 2/6 plans executed
+**Plans**: 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -459,7 +459,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 17-02-PLAN.md — Frame extraction, palette/lock-screen coupling via `current.jpg`, `contract.json` registration, and the precise T-05-07 validator widening (AMB-01)
-- [ ] 17-04-PLAN.md — Guarded `hyprpm` install path proven by fault injection, plus the `cmake`/`cpio` toolchain gaps (AMB-02)
+- [x] 17-04-PLAN.md — Guarded `hyprpm` install path proven by fault injection, plus the `cmake`/`cpio` toolchain gaps (AMB-02)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -492,6 +492,6 @@ Plans:
 | 14. Dashboard Drawer | v3.0 | 10/10 | Complete    | 2026-08-01 |
 | 15. Audio + Connectivity Panels | v3.0 | 14/14 | Complete    | 2026-08-02 |
 | 16. Workspace Overview | v3.0 | 8/8 | Complete    | 2026-08-08 |
-| 17. Ambient Extras | v3.0 | 2/6 | In Progress|  |
+| 17. Ambient Extras | v3.0 | 3/6 | In Progress|  |
 
 **Totals:** 17 phases · 73 plans complete · 2 milestones shipped · v3.0 in progress (38 requirements across 7 phases)
