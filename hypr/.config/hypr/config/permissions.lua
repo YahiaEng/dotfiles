@@ -161,3 +161,38 @@ hl.permission({ binary = "/usr/lib/xdg-desktop-portal-hyprland", type = "screenc
 -- afterward, so this optional/best-effort dependency can never hang a
 -- login or an install re-run even if a grant is ever missing.
 hl.permission({ binary = "/usr/bin/hyprpm", type = "plugin", mode = "allow" })
+
+-- ── Hyprland self-load grant, EXPERIMENTAL — UNTESTED, PENDING RESTART
+-- (Phase 17 plan 05, D-35) ──────────────────────────────────────────────
+-- 17-05's guarded Lua module (hypr/.config/hypr/config/dynamic-cursors.lua)
+-- calls `hl.plugin.load()` directly from Lua config — a call that
+-- originates inside the compositor's own process, not from an external
+-- IPC client. Live nested-harness testing (17-05-SUMMARY.md, A2 finding)
+-- found that call never actually loads the plugin: every tested shape
+-- (bare path string, table form, path+bool, plugin name) returns without
+-- a Lua error and produces zero log output, and a deliberately
+-- nonexistent path behaves byte-identically to the real one — meaning
+-- the call never even reaches dlopen-level path validation. A raw
+-- `hyprctl plugin load <path>` probe against the same nested instance
+-- (not something this repo's own config calls, tested only to narrow the
+-- cause) returned "Hyprland IPC didn't respond in time" — the same
+-- symptom class as the documented hyprpm double-load hang, but on a
+-- FIRST load.
+--
+-- This grant tests one specific, unconfirmed theory: that a
+-- Lua-config-issued `hl.plugin.load()` is routed through the same
+-- DynamicPermissionManager confirm-dialog flow as an external IPC
+-- request, keyed to /usr/bin/Hyprland as the "requesting binary" rather
+-- than exempted as trusted config-time code — and that the confirm
+-- dialog silently fails to resolve in the tested (nested, headless-ish)
+-- environment, leaving the load permanently pending. If that theory is
+-- correct, this grant should let `hl.plugin.load()` complete after the
+-- next real compositor restart. IT HAS NOT BEEN TESTED — this session
+-- has no way to restart the live compositor (no TTY, no session control).
+-- Do not read this grant's presence as proof the declarative-load path
+-- works; 17-06 and any future verifier should treat this as an open
+-- item pending a real restart and a re-run of 17-05's nested-harness
+-- test, not a delivered capability. If a restart shows the theory wrong,
+-- remove this grant — it is reversible, matching this file's own
+-- "nothing destroyed by getting the allow list wrong" recovery note.
+hl.permission({ binary = "/usr/bin/Hyprland", type = "plugin", mode = "allow" })
