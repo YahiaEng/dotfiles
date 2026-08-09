@@ -19,11 +19,15 @@
 -- accept an explicit `--entry <path>` argument, defaulting to this very
 -- file).
 --
--- This entry point is at its FINAL require shape (reached at plan
--- 13.1-03 Task 2, unchanged since): all seven config modules are
--- required below, in the same relative order the retired hyprland.conf's
--- own `source =` lines used to list them. Every one of the seven is now
--- fully ported, live content — none are placeholder modules any more.
+-- This entry point required exactly seven config modules from plan
+-- 13.1-03 Task 2 through Phase 16's close, in the same relative order the
+-- retired hyprland.conf's own `source =` lines used to list them. Phase
+-- 17 plan 05 (D-35) added an eighth: config.dynamic-cursors, the guarded,
+-- optional load and config surface for the dynamic-cursors hyprpm
+-- plugin. It lives under config/ rather than being appended to
+-- autostart.lua, which carries a documented no-new-entries prohibition
+-- (D-15/D-35 — "no entry added, removed or reordered"). Every one of the
+-- eight is fully ported, live content — none are placeholder modules.
 --
 -- Ordering below is PRESENTATIONAL ONLY, not load-bearing the way
 -- hyprland.conf lines 11-16 warn hyprlang's own source order is (that
@@ -46,6 +50,7 @@ require("config.animations")
 require("config.keybinds")
 require("config.windowrules")
 require("config.permissions")
+require("config.dynamic-cursors")
 
 -- general block — hyprland.conf lines 27-35, reproduced exactly. Every
 -- colour comes from the generated token table with an `or` fallback to the

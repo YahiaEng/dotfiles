@@ -51,6 +51,31 @@
 # restart-not-reload rule) — the timeout bound is what protects every
 # login before that restart happens, and remains as defense in depth
 # afterward.
+#
+# [Rule 2 fix, found live during Phase 17 plan 05, Task 1] `hyprctl
+# plugin list | grep dynamic-cursors` is not the whole story any more.
+# 17-05 added a guarded Lua config module
+# (hypr/.config/hypr/config/dynamic-cursors.lua, D-35/D-36/D-37) that
+# applies the plugin's shake-to-find-off and mode config ONLY on a config
+# pass where the plugin is ALREADY loaded (upstream's mandatory
+# `if hl.plugin.dynamic_cursors then ... end` guard). That module's OWN
+# `hl.plugin.load()` call runs once, synchronously, at Hyprland's initial
+# config pass — BEFORE this script (an async, backgrounded autostart
+# entry) has had any chance to run. So on a completely normal login, by
+# the time this script's own `hyprpm reload` below actually loads the
+# plugin, Hyprland's Lua config has already finished its one pass with
+# the plugin not yet loaded, and dynamic-cursors.lua's config block never
+# ran. Without a follow-up compositor config reload, shake-to-find would
+# silently stay on upstream's default (ON) forever, defeating D-36's
+# entire purpose with nothing failing loudly anywhere — live-verified via
+# 17-05's nested-harness testing (17-05-SUMMARY.md has the full evidence
+# trail, including that `hl.plugin.load()` itself does not functionally
+# load the plugin on this installed Hyprland 0.56.2 build under any
+# tested call shape — this follow-up reload is what makes D-36/D-37
+# actually take effect regardless, via the SAME hyprpm-driven load this
+# script already performs). Fired only when this script's own load call
+# just changed the plugin's state from not-loaded to loaded — never on
+# the already-loaded hot path above, which must stay a fast no-op.
 
 if [[ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
     # No session, no work — same headless guard waybar-fullscreen-watch.sh
@@ -98,6 +123,11 @@ _rebuild() {
         timeout 15 hyprpm enable dynamic-cursors || true
         timeout 180 hyprpm update || true
         timeout 20 hyprpm reload || true
+        # Rule 2 fix (see header) — give dynamic-cursors.lua's guarded
+        # config block a config pass where the plugin is now loaded.
+        if hyprctl plugin list 2>/dev/null | grep -q 'dynamic-cursors'; then
+            timeout 10 hyprctl reload &>/dev/null || true
+        fi
     else
         _notify "Optional dynamic-cursors plugin needs a rebuild — run: hyprpm update && hyprpm reload"
     fi
@@ -135,6 +165,10 @@ if [[ -n "$recorded_hash" && -n "$live_commit" && "$recorded_hash" == "$live_com
     reload_out=$(timeout 20 hyprpm reload 2>&1) || true
     if printf '%s\n' "$reload_out" | grep -qiE 'outdated|mismatch'; then
         _notify "Dynamic cursors headers outdated — run: hyprpm update && hyprpm reload"
+    elif hyprctl plugin list 2>/dev/null | grep -q 'dynamic-cursors'; then
+        # Rule 2 fix (see header) — give dynamic-cursors.lua's guarded
+        # config block a config pass where the plugin is now loaded.
+        timeout 10 hyprctl reload &>/dev/null || true
     fi
 else
     # ABI mismatch (or undeterminable) — the build is stale after a
