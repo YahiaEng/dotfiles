@@ -43,6 +43,7 @@
     "waybar-visibility.css",
     "motion-scale",
     "weather.json",
-    "weather-cache.json"
+    "weather-cache.json",
+    "wallpaper-frames"
   ]
 }

@@ -13,6 +13,118 @@
 
 WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
 LAST_WALLPAPER_DIR="$HOME/.local/state/theme/last-wallpaper"
+# D-07: engine-owned frame directory (registered in contract.json below) —
+# the still frames extracted from live/ wallpapers, D-06/D-08's source of
+# truth for current.jpg whenever the recorded choice is live.
+FRAME_DIR="$HOME/.local/state/theme/wallpaper-frames"
+# D-09: fixed seek-offset default, Claude's discretion per CONTEXT.md.
+# Typical wallpaper loops open on a fade-in; the frame-0 fallback in
+# theme_engine_wallpaper_extract_frame already covers clips shorter than
+# this offset.
+FRAME_OFFSET_DEFAULT=3
+
+# theme_engine_wallpaper_is_live_ref <value>
+# The shape half of the D-12/T-05-07 widening (Security Domain V5). Returns
+# 0 for EXACTLY one form: `live/` followed by one path component that
+# contains no `/` and is neither `.` nor `..`. Returns nonzero for
+# everything else, including `live/a/b`, `live/`, `live`, `/etc/passwd`,
+# `../clip.mp4` and the empty string. Pure string test — no filesystem
+# access; the existence half (`-f`) stays paired at every call site, the
+# same way the pre-existing bare-filename branch pairs its own shape test
+# with `-f "$theme_dir/$recorded"`.
+#
+# This is a WIDENING of T-05-07's existing rejection of any `/`-bearing
+# recorded value — it must never be relaxed into a prefix test (e.g.
+# `[[ "$value" == live/* ]]`), which would admit traversal shapes like
+# `live/../../../../etc/passwd`. theme-doctor (Task 3) reuses this exact
+# function rather than re-implementing the regex, so the engine and the
+# doctor can never drift on what counts as a live ref.
+theme_engine_wallpaper_is_live_ref() {
+    local value="$1"
+    [[ "$value" =~ ^live/([^/]+)$ ]] || return 1
+    local component="${BASH_REMATCH[1]}"
+    [[ "$component" != "." && "$component" != ".." ]]
+}
+
+# theme_engine_wallpaper_frame_path <theme> <recorded>
+# Prints $FRAME_DIR/<theme>/<component>.png, where <component> is
+# <recorded> with the leading `live/` stripped. `.png` is APPENDED, never
+# substituted for the source extension, so `clip.mp4` and `clip.gif` in the
+# same folder cannot collide onto one frame path. Per-source frame paths
+# are also what makes D-08's absent-or-zero-byte check correct when the
+# *selection* changes: a different source is a different path, so a fresh
+# selection is naturally absent and re-extracts with no extra logic.
+theme_engine_wallpaper_frame_path() {
+    local theme="$1" recorded="$2"
+    local component="${recorded#live/}"
+    printf '%s\n' "$FRAME_DIR/$theme/$component.png"
+}
+
+# theme_engine_wallpaper_frame_offset <theme> <recorded>
+# D-09's per-video seek-offset override reader. Reads the first line of the
+# sidecar at the frame path with `.png` replaced by `.offset` — the
+# operator-editable override surface, which survives commit.sh's
+# `rsync --delete` because `wallpaper-frames` is engine-owned (D-07).
+# Accepts the value ONLY when it is digits with an optional dot and up to
+# three further digits, and is numerically no greater than 86400; prints
+# the accepted value, otherwise prints $FRAME_OFFSET_DEFAULT. This
+# validation is not cosmetic — the value becomes an `-ss` argument to
+# ffmpeg (T-17-07): the ffmpeg call is always a bash array expanded
+# "${cmd[@]}", never a shell string, so an accepted value can only ever
+# reach ffmpeg as one argv element regardless of its content, but a
+# malformed value (injection attempt, negative, scientific notation, an
+# out-of-range magnitude) must still never reach that argv position.
+theme_engine_wallpaper_frame_offset() {
+    local theme="$1" recorded="$2"
+    local frame_path offset_path value
+    frame_path="$(theme_engine_wallpaper_frame_path "$theme" "$recorded")"
+    offset_path="${frame_path%.png}.offset"
+    value=$(head -n1 "$offset_path" 2>/dev/null || true)
+
+    if [[ "$value" =~ ^[0-9]+(\.[0-9]{1,3})?$ ]] && awk -v v="$value" 'BEGIN { exit !(v <= 86400) }'; then
+        printf '%s\n' "$value"
+        return 0
+    fi
+
+    printf '%s\n' "$FRAME_OFFSET_DEFAULT"
+}
+
+# theme_engine_wallpaper_extract_frame <source> <dest> <offset>
+# The ffmpeg wrapper implementing D-08/D-09/D-10, with both RESEARCH-
+# reproduced silent-failure traps closed by construction:
+#
+# TRAP 1 (RESEARCH Pitfall 1): placing `-ss` BEFORE `-i` yields ZERO output
+# for animated WebP (ffmpeg 9.0's webp_anim demuxer reports `Duration: N/A`
+# — fast input-seeking has nothing to target) while still working for mp4
+# and gif. One command shape, no per-format branch: the offset flag sits
+# AFTER the input flag below, and this ordering is load-bearing, not
+# stylistic.
+#
+# TRAP 2 (RESEARCH Pitfall 2): ffmpeg exits 0 with NO output file on an
+# out-of-range seek. The success signal after each attempt is
+# `[[ -s "$dest" ]]` and NOTHING ELSE — the exit status of the ffmpeg
+# invocation itself is never consulted.
+#
+# Attempt 2 is D-09's frame-0 fallback: the same array without the offset
+# flag/value, run only when attempt 1 left no non-empty destination.
+# D-10 requires PNG at source resolution — no video-filter flag, no
+# output-size flag, no resizing of any kind, ever. Every invocation is a
+# bash array expanded "${cmd[@]}" — never a single string, never shell
+# evaluation.
+theme_engine_wallpaper_extract_frame() {
+    local source="$1" dest="$2" offset="$3"
+    mkdir -p "$(dirname -- "$dest")" 2>/dev/null || true
+
+    local -a cmd=(ffmpeg -y -i "$source" -ss "$offset" -frames:v 1 -update 1 "$dest")
+    "${cmd[@]}" &>/dev/null || true
+    if [[ -s "$dest" ]]; then
+        return 0
+    fi
+
+    local -a cmd_fallback=(ffmpeg -y -i "$source" -frames:v 1 -update 1 "$dest")
+    "${cmd_fallback[@]}" &>/dev/null || true
+    [[ -s "$dest" ]]
+}
 
 # theme_engine_wallpaper_autoset <name>
 theme_engine_wallpaper_autoset() {
