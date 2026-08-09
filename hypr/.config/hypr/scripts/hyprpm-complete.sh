@@ -31,6 +31,26 @@
 # URL (it takes no arguments at all). When cached credentials are
 # unavailable it notifies with the exact remedy and stops; it never
 # prompts and never retries.
+#
+# [Rule 1 fix, found live during Task 3's fault injection] `hyprpm
+# reload` (and, once credentials succeed, `hyprpm update`'s own implicit
+# load step) signals the LIVE compositor to load the plugin. On this
+# machine `ecosystem.enforce_permissions = true` (enabled Phase 16,
+# hypr/.config/hypr/config/permissions.lua) and no `plugin`-type grant
+# existed for hyprpm — every hyprpm call that reaches the compositor's
+# load path popped a REAL GUI `hyprland-dialog` ("...trying to load a
+# plugin... Allow/Deny") and BLOCKED THE PROCESS until a human clicked
+# it, live-reproduced: a bare `hyprpm reload` hung past a 120s bound with
+# no default action. This directly threatens this script's own "never
+# blocks" contract, so every hyprpm call below is now `timeout`-bounded —
+# belt-and-suspenders alongside the proper systemic fix (a `plugin`-type
+# grant for /usr/bin/hyprpm added to permissions.lua, matching
+# Hyprland's own shipped example verbatim: `/usr/share/hypr/hyprland.lua`
+# line 78 carries this exact commented-out line). That grant requires a
+# Hyprland restart to take effect (permissions.lua's own documented
+# restart-not-reload rule) — the timeout bound is what protects every
+# login before that restart happens, and remains as defense in depth
+# afterward.
 
 if [[ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
     # No session, no work — same headless guard waybar-fullscreen-watch.sh
@@ -73,11 +93,11 @@ _notify() {
 _rebuild() {
     if sudo -n true 2>/dev/null; then
         if ! hyprpm list 2>/dev/null | grep -q 'dynamic-cursors'; then
-            hyprpm add "$HYPRPM_PLUGIN_URL" || true
+            timeout 30 hyprpm add "$HYPRPM_PLUGIN_URL" || true
         fi
-        hyprpm enable dynamic-cursors || true
-        hyprpm update || true
-        hyprpm reload || true
+        timeout 15 hyprpm enable dynamic-cursors || true
+        timeout 180 hyprpm update || true
+        timeout 20 hyprpm reload || true
     else
         _notify "Optional dynamic-cursors plugin needs a rebuild — run: hyprpm update && hyprpm reload"
     fi
@@ -112,7 +132,7 @@ if [[ -n "$recorded_hash" && -n "$live_commit" && "$recorded_hash" == "$live_com
     # refusal is the backstop for the rarer library-only bump this leading
     # -commit comparison cannot see; catch that refusal and turn it into
     # the same remedy notification rather than failing silently.
-    reload_out=$(hyprpm reload 2>&1) || true
+    reload_out=$(timeout 20 hyprpm reload 2>&1) || true
     if printf '%s\n' "$reload_out" | grep -qiE 'outdated|mismatch'; then
         _notify "Dynamic cursors headers outdated — run: hyprpm update && hyprpm reload"
     fi

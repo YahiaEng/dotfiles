@@ -131,3 +131,33 @@ hl.permission({ binary = "/usr/lib/xdg-desktop-portal-hyprland", type = "screenc
 --     16-04-SUMMARY.md for the recorded pass/fail result. If it failed,
 --     a fifth grant for /usr/bin/gpu-screen-recorder was added below in
 --     the same exact-absolute-path shape as the four above.
+
+-- ── hyprpm plugin-load grant (Phase 17 plan 04, D-33/AMB-02) ──────────
+-- [Rule 1 fix, found live during this plan's Task 3 fault injection, NOT
+-- anticipated by 17-RESEARCH.md or 17-CONTEXT.md]: with
+-- ecosystem.enforce_permissions on and no `plugin`-type grant, hyprpm
+-- signalling the live compositor to load a plugin (via `hyprpm reload`,
+-- and via `hyprpm update`'s own implicit load step once it succeeds)
+-- pops a real GUI `hyprland-dialog` ("An application /usr/bin/hyprpm is
+-- trying to load a plugin... Allow/Deny") and BLOCKS the hyprpm process
+-- until a human clicks it — live-reproduced this session: a bare
+-- `hyprpm reload` hung past a 120s bound with no default action. This
+-- directly threatens AMB-02 criterion 2's "never blocks waiting for a
+-- confirmation" guarantee for both install.sh's guarded block (on a
+-- re-run against an already-live session) and hyprpm-complete.sh (every
+-- normal login once the plugin needs a (re)load).
+--
+-- This is the EXACT grant Hyprland's own shipped example names for this
+-- exact tool — /usr/share/hypr/hyprland.lua line 78 carries, commented
+-- out: `hl.permission("/usr/(bin|local/bin)/hyprpm", "plugin", "allow")`.
+-- This port keeps that example's CALL FORM only, not its regex path
+-- style, per this file's own established convention above (T-11-20).
+--
+-- Per this file's own documented rule, this grant is read once at
+-- compositor startup and needs a Hyprland restart (not `hyprctl reload`)
+-- to take effect — hyprpm-complete.sh and install.sh's guarded block
+-- both additionally bound every hyprpm invocation with `timeout` as
+-- defense in depth for the window before that restart, and permanently
+-- afterward, so this optional/best-effort dependency can never hang a
+-- login or an install re-run even if a grant is ever missing.
+hl.permission({ binary = "/usr/bin/hyprpm", type = "plugin", mode = "allow" })

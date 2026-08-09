@@ -587,10 +587,23 @@ section_core_rice() {
         # repository so a re-run of install.sh (expected to be
         # re-runnable) never emits a spurious warning here.
         if ! hyprpm list 2>/dev/null | grep -q 'dynamic-cursors'; then
-            hyprpm add "$HYPRPM_PLUGIN_URL" || echo "  ⚠ hyprpm add dynamic-cursors failed" >&2
+            timeout 30 hyprpm add "$HYPRPM_PLUGIN_URL" || echo "  ⚠ hyprpm add dynamic-cursors failed" >&2
         fi
-        hyprpm enable dynamic-cursors || echo "  ⚠ hyprpm enable dynamic-cursors failed" >&2
-        hyprpm update || echo "  ⚠ hyprpm update (dynamic-cursors) failed — see above" >&2
+        # [Rule 1 fix, found live in Task 3's fault injection] every hyprpm
+        # call below is timeout-bounded: if a live Hyprland session is
+        # already running (a re-run of install.sh against an existing
+        # desktop, not just a fresh headless install) and
+        # ecosystem.enforce_permissions is on with no `plugin`-type grant
+        # for hyprpm, hyprpm's own load step pops a real GUI Allow/Deny
+        # dialog and BLOCKS until a human clicks it — live-reproduced this
+        # session, a bare `hyprpm reload` hung past 120s with no default
+        # action. A timeout bound is what keeps this block's own "never
+        # blocks" promise true even when that dialog has no one to answer
+        # it; the systemic fix (a `plugin` grant for hyprpm) lives in
+        # hypr/.config/hypr/config/permissions.lua and requires a Hyprland
+        # restart to take effect, per that file's own documented rule.
+        timeout 15 hyprpm enable dynamic-cursors || echo "  ⚠ hyprpm enable dynamic-cursors failed" >&2
+        timeout 180 hyprpm update || echo "  ⚠ hyprpm update (dynamic-cursors) failed — see above" >&2
     fi
     # ── D-33: optional dynamic-cursors hyprpm block (AMB-02) — END ──
 }
