@@ -211,19 +211,34 @@ theme_engine_wallpaper_autoset() {
     [[ -n "$chosen" ]] || return 0
 
     if theme_engine_wallpaper_is_live_ref "$chosen"; then
-        # D-06/D-08: live choice — always re-extract at selection time (the
-        # repair-on-missing guard for a wiped state dir is Task 3's job).
-        # Repoint current.jpg at the FRAME, never the video — this is what
-        # makes the lock screen (hyprlock.conf:50) show a real frame in
-        # EVERY mode. D-05 needs no code here: a static preset renders its
-        # palette from palettes/$name.json and never reads current.jpg, so
-        # the frame reaches the lock screen everywhere while the palette
-        # stays coupled to current.jpg only through generate.sh's Material
-        # You branch.
+        # D-06/D-08: live choice — repoint current.jpg at the FRAME, never
+        # the video — this is what makes the lock screen
+        # (hyprlock.conf:50) show a real frame in EVERY mode. D-05 needs
+        # no code here: a static preset renders its palette from
+        # palettes/$name.json and never reads current.jpg, so the frame
+        # reaches the lock screen everywhere while the palette stays
+        # coupled to current.jpg only through generate.sh's Material You
+        # branch.
+        #
+        # 17-03 hardening (found during the AMB-01 render gate's own
+        # investigation, not the gate's root cause but a real gap this
+        # function shared with no other frame consumer in this file):
+        # re-extract ONLY when the frame is missing or empty — the SAME
+        # cache-warm check theme_engine_wallpaper_frame_repair and the
+        # picker's preview pane already use. autoset runs on EVERY
+        # theme-apply (including a motion-scale/idle/gaming-triggered
+        # re-render that changes nothing about the wallpaper choice
+        # itself), so re-extracting unconditionally wasted a full ffmpeg
+        # invocation on every one of those and left current.jpg dependent
+        # on that invocation succeeding every single time rather than
+        # only once.
         local frame offset
         frame="$(theme_engine_wallpaper_frame_path "$name" "$chosen")"
-        offset="$(theme_engine_wallpaper_frame_offset "$name" "$chosen")"
-        if theme_engine_wallpaper_extract_frame "$theme_dir/$chosen" "$frame" "$offset" && [[ -s "$frame" ]]; then
+        if [[ ! -s "$frame" ]]; then
+            offset="$(theme_engine_wallpaper_frame_offset "$name" "$chosen")"
+            theme_engine_wallpaper_extract_frame "$theme_dir/$chosen" "$frame" "$offset" || true
+        fi
+        if [[ -s "$frame" ]]; then
             ln -sfr "$frame" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
         fi
         # Extraction failed (or produced nothing): leave the existing

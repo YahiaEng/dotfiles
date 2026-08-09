@@ -86,6 +86,21 @@ mkdir -p "$WALLPAPER_DIR"
 PREVIOUS_WALLPAPER=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
 echo "$PREVIOUS_WALLPAPER" > "$PREVIOUS_FILE"
 
+# Bugfix (render gate round 2): a hover that survives the debounce now
+# also records itself into last-wallpaper/<theme> (below), mirroring
+# current.jpg — otherwise autoset() re-derives current.jpg from that
+# file on EVERY theme-apply (including a motion-scale/idle/gaming-
+# unrelated one, e.g. motion-switch.sh's own full render) and silently
+# reverts a hover-playing live wallpaper back to whatever was last
+# CONFIRMED, the instant anything triggers a re-render. Captured here,
+# at startup, before any hover can fire, so Esc can restore it exactly —
+# the same snapshot discipline PREVIOUS_WALLPAPER above already uses.
+PREVIOUS_THEME_FOR_SNAPSHOT=$(cat "$STATE_FILE" 2>/dev/null || echo "")
+PREVIOUS_LAST_WALLPAPER=""
+if [[ -n "$PREVIOUS_THEME_FOR_SNAPSHOT" && -f "$LAST_WALLPAPER_DIR/$PREVIOUS_THEME_FOR_SNAPSHOT" ]]; then
+    PREVIOUS_LAST_WALLPAPER=$(head -n1 "$LAST_WALLPAPER_DIR/$PREVIOUS_THEME_FOR_SNAPSHOT" 2>/dev/null || true)
+fi
+
 # D-20 (17-03 Task 3): snapshot the live-wallpaper owner's CURRENT state
 # immediately — before any hover can possibly fire — so the snapshot
 # describes the state the user arrived with, never a state a preview
@@ -404,8 +419,8 @@ chmod +x "$PREVIEW_SCRIPT"
 # never signals mpvpaper directly (D-14).
 LIVE_SCRIPT=$(mktemp /tmp/wp-live-XXXXXX.sh)
 # WR-02: same interpolated-prologue pattern as PREVIEW_SCRIPT above.
-printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\nACTIVE_MARKER=%q\nLIVE_MARKER=%q\nWALLPAPER_LIB=%q\nHOVER_TOKEN=%q\nWALLPAPER_OWNER=%q\n' \
-    "$WALLPAPER_DIR" "$ACTIVE_MARKER" "$LIVE_MARKER" "$WALLPAPER_LIB" "$HOVER_TOKEN" "$WALLPAPER_OWNER" > "$LIVE_SCRIPT"
+printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\nACTIVE_MARKER=%q\nLIVE_MARKER=%q\nWALLPAPER_LIB=%q\nHOVER_TOKEN=%q\nWALLPAPER_OWNER=%q\nLAST_WALLPAPER_DIR=%q\nCURRENT_THEME=%q\n' \
+    "$WALLPAPER_DIR" "$ACTIVE_MARKER" "$LIVE_MARKER" "$WALLPAPER_LIB" "$HOVER_TOKEN" "$WALLPAPER_OWNER" "$LAST_WALLPAPER_DIR" "$CURRENT_THEME" > "$LIVE_SCRIPT"
 declare -f wp_strip_markers >> "$LIVE_SCRIPT"
 printf '\n[[ -r "$WALLPAPER_LIB" ]] && source "$WALLPAPER_LIB"\n' >> "$LIVE_SCRIPT"
 cat >> "$LIVE_SCRIPT" << 'LIVE'
@@ -439,6 +454,45 @@ if [[ "$IS_LIVE" == "1" ]]; then
         sleep "$DEBOUNCE_SECS"
         CUR="$(cat "$HOVER_TOKEN" 2>/dev/null || true)"
         [[ "$CUR" == "$ENTRY" ]] || exit 0
+        # Bugfix (found live at the AMB-01 render gate, checkpoint round
+        # 2): hovering starts a REAL, PERSISTENT mpvpaper process on the
+        # real desktop — not a sandboxed preview — so it is visually
+        # indistinguishable from a confirmed selection. Without this,
+        # current.jpg stayed on whatever was last CONFIRMED (or the
+        # theme's default) for the entire time a hovered video was
+        # visibly playing, so any other consumer (hyprlock reading
+        # current.jpg directly; a later theme-apply run re-deriving
+        # current.jpg from last-wallpaper's still-recorded value once
+        # motion/gaming/idle stops the player) saw a stale, unrelated
+        # still rather than this video's own frame. Extract-through-
+        # library only (cache-warm, same convention as the preview pane
+        # and autoset) — never a second ffmpeg call site.
+        FRAME="$(theme_engine_wallpaper_frame_path "$THEME" "$REMAINDER")"
+        if [[ ! -s "$FRAME" ]]; then
+            OFFSET="$(theme_engine_wallpaper_frame_offset "$THEME" "$REMAINDER")"
+            theme_engine_wallpaper_extract_frame "$FILE" "$FRAME" "$OFFSET" || true
+        fi
+        [[ -s "$FRAME" ]] && ln -sfr "$FRAME" "$WALLPAPER_DIR/current.jpg" 2>/dev/null
+
+        # Bugfix, continued: current.jpg alone is not enough — autoset()
+        # (run by EVERY theme-apply, including motion-scale's own) never
+        # looks at current.jpg's current value, it re-derives it from
+        # last-wallpaper/<theme> every single time. Without ALSO
+        # recording the settled hover here, the very next unrelated
+        # theme-apply (e.g. motion-switch.sh off) would silently revert
+        # current.jpg right back to the STALE recorded value the instant
+        # it ran (found live: fixing current.jpg alone was NOT sufficient
+        # — motion-switch.sh off still reverted to the old still).
+        # In-theme only (Ctrl-A out-of-theme hovers are not recorded,
+        # matching confirm's own scoping rule at line ~600 below). Esc
+        # restores this exact file from PREVIOUS_LAST_WALLPAPER, captured
+        # at picker startup before any hover could fire (D-20).
+        if [[ "$THEME" == "$CURRENT_THEME" ]]; then
+            mkdir -p "$LAST_WALLPAPER_DIR" 2>/dev/null
+            printf '%s\n' "$REMAINDER" > "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" 2>/dev/null \
+                && mv -f "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" "$LAST_WALLPAPER_DIR/$CURRENT_THEME" 2>/dev/null
+        fi
+
         # T-17-11: argv ARRAY, expanded "${cmd[@]}" — never a constructed
         # string, never eval. The owner independently re-validates this
         # exact path (_validate_selection) before it ever reaches
@@ -522,13 +576,22 @@ if [[ -z "$SELECTED" ]]; then
     # Cancelled — restore the EXACT prior state through ONE restore
     # intent (D-20). The picker itself never starts or stops a player —
     # it decides only whether the STILL desktop preview also needs a
-    # repaint, and only when the prior state was NOT live (a live prior
-    # state needs no still repaint: current.jpg was never touched by
-    # hovering, and `restore` below brings the player back on its own).
+    # repaint, and only when the prior state was NOT live.
     PREVIOUS_WAS_LIVE=0
     if [[ -n "$PREVIOUS_WALLPAPER" && -n "${FRAME_DIR_REAL:-}" \
         && "$PREVIOUS_WALLPAPER" == "$FRAME_DIR_REAL"/* ]]; then
         PREVIOUS_WAS_LIVE=1
+    fi
+    # Bugfix (render gate round 2): a hovered live entry's settle block
+    # now repoints current.jpg to ITS OWN frame (see LIVE_SCRIPT above),
+    # so cancelling must restore current.jpg's symlink target itself —
+    # not just repaint the awww-daemon layer — or Esc could leave the
+    # lock-screen pointer on the rejected entry's frame. PREVIOUS_WALLPAPER
+    # was captured at picker startup as current.jpg's OWN target, so
+    # relinking to it restores exactly what was there before, whether it
+    # was a still or (already) a frame.
+    if [[ -n "$PREVIOUS_WALLPAPER" && -f "$PREVIOUS_WALLPAPER" ]]; then
+        ln -sfr "$PREVIOUS_WALLPAPER" "$CURRENT_LINK" 2>/dev/null || true
     fi
     if [[ "$PREVIOUS_WAS_LIVE" == "0" && -n "$PREVIOUS_WALLPAPER" && -f "$PREVIOUS_WALLPAPER" ]]; then
         awww img "$PREVIOUS_WALLPAPER" \
@@ -537,6 +600,21 @@ if [[ -z "$SELECTED" ]]; then
             --transition-fps 165 2>/dev/null
     fi
     [[ -x "$WALLPAPER_OWNER" ]] && "$WALLPAPER_OWNER" restore 2>/dev/null || true
+    # Bugfix, continued: a settled hover may have also written
+    # last-wallpaper/<theme> (see LIVE_SCRIPT above) — restore it to
+    # PREVIOUS_LAST_WALLPAPER, captured at startup before any hover could
+    # fire, or remove the file entirely when there was nothing recorded
+    # yet. D-20's "restore the exact prior state" now covers this file
+    # too, not just current.jpg and the owner's own process state.
+    if [[ -n "$PREVIOUS_THEME_FOR_SNAPSHOT" ]]; then
+        if [[ -n "$PREVIOUS_LAST_WALLPAPER" ]]; then
+            mkdir -p "$LAST_WALLPAPER_DIR" 2>/dev/null || true
+            printf '%s\n' "$PREVIOUS_LAST_WALLPAPER" > "$LAST_WALLPAPER_DIR/$PREVIOUS_THEME_FOR_SNAPSHOT.tmp" 2>/dev/null \
+                && mv -f "$LAST_WALLPAPER_DIR/$PREVIOUS_THEME_FOR_SNAPSHOT.tmp" "$LAST_WALLPAPER_DIR/$PREVIOUS_THEME_FOR_SNAPSHOT" 2>/dev/null
+        else
+            rm -f "$LAST_WALLPAPER_DIR/$PREVIOUS_THEME_FOR_SNAPSHOT" 2>/dev/null || true
+        fi
+    fi
     rm -f "$PREVIOUS_FILE"
     exit 0
 fi
