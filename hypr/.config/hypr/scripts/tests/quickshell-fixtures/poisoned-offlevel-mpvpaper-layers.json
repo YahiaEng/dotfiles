@@ -1,0 +1,46 @@
+{
+"_provenance": "Hand-edited from compliant-mpvpaper-layers.json (2026-08-09): the mpvpaper surface moved from level 0 (background) to level 3 (overlay) — the shell's own level. Target check: mpvpaper-layer-coexistence (17-03 Task 4). Expected verdict: FAIL (off-level, and it now collides with the overlay level mpvpaper must never appear at). pid stays the same fixed value as the compliant fixture.",
+"DP-1": {
+    "levels": {
+
+        "0": [
+                {
+                    "address": "0x55c91ca40630",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "awww-daemon",
+                    "pid": 3931
+                }
+        ],
+        "1": [
+],
+        "2": [
+                {
+                    "address": "0x55c919613750",
+                    "x": 10,
+                    "y": 6,
+                    "w": 2540,
+                    "h": 40,
+                    "alpha": 1,
+                    "namespace": "waybar",
+                    "pid": 3932
+                }
+        ],
+        "3": [
+                {
+                    "address": "0x55c919fdf7c0",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 1440,
+                    "alpha": 1,
+                    "namespace": "mpvpaper",
+                    "pid": 2982672
+                }
+        ]
+    }
+}
+}

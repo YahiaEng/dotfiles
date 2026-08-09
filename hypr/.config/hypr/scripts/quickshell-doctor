@@ -559,6 +559,49 @@ _qsd_assert_panel_source() {
     [[ "$bad" -eq 0 ]]
 }
 
+# ── 17-03 Task 4 (standing constraint #4) — mpvpaper layer-coexistence
+#    helpers. AMB-01's live wallpaper is not a Quickshell surface, but it
+#    shares the same layer-shell surface it must never collide with —
+#    this file's coexistence remit already covers exactly this kind of
+#    cross-process claim (see the D-15-25 panel helpers above). Emits
+#    level<TAB>namespace<TAB>pid for every layer whose namespace is
+#    EXACTLY the literal "mpvpaper" (RESEARCH.md §7: the namespace is a
+#    fixed literal set unconditionally in mpvpaper's create_output(),
+#    src/main.c:932-933 — never per-monitor, never derived from a flag),
+#    at ANY level — deliberately broad so an off-level poison is captured
+#    by the assertion below rather than filtered out before it is judged.
+_qsd_mpvpaper_layer_rows() {
+    printf '%s' "$1" | jq -r '
+        .[]? | .levels? // {} | to_entries[] | .key as $lvl | .value[]?
+        | select(.namespace == "mpvpaper")
+        | [$lvl, .namespace, .pid] | @tsv
+    ' 2>/dev/null
+}
+
+# Asserts a layers_json snapshot carries every mpvpaper-namespaced surface
+# at level 0 (background) and owned by a PID in the supplied mpvpaper PID
+# set. Prints a one-line "count=.. off-level=.. wrong-pid=.." report and
+# returns 0/1. The PID set is an EXPLICIT parameter, never a live `pgrep`
+# inside this function — same T-16-SELFTEST discipline
+# _qsd_assert_panel_layers already established: a committed fixture must
+# replay identically on any host, not only the one it was captured on.
+_qsd_assert_mpvpaper_layers() {
+    local json="$1" mpvpaper_pids="$2"
+    local lvl ns pid total=0 off_level=0 wrong_pid=0
+    local pid_set=" $mpvpaper_pids "
+    while IFS=$'\t' read -r lvl ns pid; do
+        [[ -z "$lvl" ]] && continue
+        total=$((total + 1))
+        [[ "$lvl" != "0" ]] && off_level=$((off_level + 1))
+        case "$pid_set" in
+            *" $pid "*) ;;
+            *) wrong_pid=$((wrong_pid + 1)) ;;
+        esac
+    done < <(_qsd_mpvpaper_layer_rows "$json")
+    printf 'count=%s off-level=%s wrong-pid=%s' "$total" "$off_level" "$wrong_pid"
+    [[ "$off_level" -eq 0 && "$wrong_pid" -eq 0 ]]
+}
+
 # ── D-15-25 check bodies — called once each, after check 9, before the
 #    volume probe (see run-order comment at that call site). Defined here
 #    (before the trap/checks 1-12 flow) so --self-test, which dispatches
@@ -809,6 +852,58 @@ _qsd_check_overview_namespace_conformance() {
     shell_pids="$(pgrep -f 'quickshell -p' | tr '\n' ' ')"
     res=$(_qsd_assert_overview_namespace "$(_qsd_layers_json)" "$shell_pids"); rc=$?
     check "overview-namespace-conformance (D-16-23 check 1, names quickshell-overview specifically — distinct from the family-wide namespace discipline check above): ${res}" "$rc"
+}
+
+# ── 17-03 Task 4 (standing constraint #4) — the mpvpaper live-wallpaper
+#    layer-coexistence gate. Report-only by construction: reads layers
+#    through the _qsd_layers_json seam and `pgrep`, summons nothing,
+#    mutates nothing, starts/stops no process.
+_qsd_check_mpvpaper_layer_coexistence() {
+    if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        echo "  [SKIP] mpvpaper-layer-coexistence (17-03 Task 4): hyprctl or jq not found"
+        return
+    fi
+    local json mpvpaper_pids surface_count res rc
+    json="$(_qsd_layers_json)"
+    mpvpaper_pids="$(pgrep -x mpvpaper 2>/dev/null | tr '\n' ' ')"
+    surface_count=$(_qsd_mpvpaper_layer_rows "$json" | grep -c . || true)
+    surface_count=${surface_count:-0}
+
+    # Common healthy case: a still-only desktop. Must never be a [FAIL] —
+    # this file's own header (lines 40-46) records what a gate that fires
+    # on a healthy desktop already cost this project once.
+    if [[ -z "$mpvpaper_pids" && "$surface_count" -eq 0 ]]; then
+        echo "  [SKIP] mpvpaper-layer-coexistence (17-03 Task 4): no live wallpaper is currently selected"
+        return
+    fi
+
+    res=$(_qsd_assert_mpvpaper_layers "$json" "$mpvpaper_pids"); rc=$?
+    # A player alive with NO layer surface at all is a real failure (a
+    # broken launch) — the assert above alone cannot detect this, since
+    # zero rows trivially satisfies "no off-level, no wrong-pid". The
+    # inverse (a stale surface with no live process) IS already caught by
+    # the assert's wrong-pid count, since an empty pid set matches no row.
+    if [[ -n "$mpvpaper_pids" && "$surface_count" -eq 0 ]]; then
+        rc=1
+    fi
+
+    # Coexistence, not just presence: no quickshell- namespaced layer may
+    # sit at level 0 (the background level this check asserts mpvpaper
+    # owns), and mpvpaper's own namespace must never appear at level 3
+    # (the shell's overlay level) — folded into the same report line so
+    # one line names everything examined.
+    local qs_at_bg mpv_at_overlay
+    qs_at_bg=$(printf '%s' "$json" | jq -r '
+        [.[]? | .levels? // {} | (.["0"] // [])[] | select(.namespace | startswith("quickshell-"))] | length
+    ' 2>/dev/null)
+    qs_at_bg=${qs_at_bg:-0}
+    mpv_at_overlay=$(printf '%s' "$json" | jq -r '
+        [.[]? | .levels? // {} | (.["3"] // [])[] | select(.namespace == "mpvpaper")] | length
+    ' 2>/dev/null)
+    mpv_at_overlay=${mpv_at_overlay:-0}
+    [[ "$qs_at_bg" != "0" || "$mpv_at_overlay" != "0" ]] && rc=1
+
+    check "mpvpaper-layer-coexistence (17-03 Task 4, standing constraint #4): the live-wallpaper layer surface sits on the background level under an mpvpaper-owned PID and never collides with a quickshell- surface at that level nor appears itself at the shell's overlay level 3 (${res}, quickshell-at-bg=${qs_at_bg}, mpvpaper-at-overlay=${mpv_at_overlay})" "$rc"
 }
 
 # ── check 2: overview-shortcut-single-registration ──────────────────────
@@ -1256,6 +1351,15 @@ run_self_test() {
     rc=$?
     _qsd_st "poisoned-second-screencopyview.qml added alongside -> single-capture-path FAILS (a second ScreencopyView instantiation site appeared)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
     rm -rf -- "$tmpdir"
+
+    # 17-03 Task 4 (standing constraint #4) — mpvpaper-layer-coexistence
+    # (2 fixtures). Fixed pid 2982672 baked into both, same T-16-SELFTEST
+    # discipline as the panel/overview fixtures above — never a live
+    # pgrep inside the replay.
+    res=$(_qsd_assert_mpvpaper_layers "$(cat -- "$FIXTURES_DIR/compliant-mpvpaper-layers.json")" "2982672"); rc=$?
+    _qsd_st "compliant-mpvpaper-layers.json -> mpvpaper-layer-coexistence PASSES (${res}, live during-playback snapshot)" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    res=$(_qsd_assert_mpvpaper_layers "$(cat -- "$FIXTURES_DIR/poisoned-offlevel-mpvpaper-layers.json")" "2982672"); rc=$?
+    _qsd_st "poisoned-offlevel-mpvpaper-layers.json -> mpvpaper-layer-coexistence FAILS (${res}, namespace moved to the overlay level)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
 
     echo ""
     printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
@@ -1755,6 +1859,11 @@ fi
 #    self-restoring via the trap above, same discipline as the D-15-25
 #    panel checks and the reserved-space check further up).
 _qsd_check_overview_namespace_conformance
+# 17-03 Task 4 (standing constraint #4) — not part of the D-16-23 group
+# (that group is overview-specific); placed here per the plan's own
+# placement instruction, immediately after the namespace-conformance
+# check this new check shares the most structural shape with.
+_qsd_check_mpvpaper_layer_coexistence
 _qsd_check_overview_shortcut_single_registration
 _qsd_check_reserved_array_manifest_coverage
 _qsd_check_permissions_enforce_readback
