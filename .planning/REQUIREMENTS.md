@@ -66,7 +66,7 @@
 
 ### Ambient Extras (AMB) — first to cut if the milestone runs long
 
-- [ ] **AMB-01**: A video wallpaper plays beneath the desktop and hides itself when a fullscreen client is focused
+- [x] **AMB-01**: A video wallpaper plays beneath the desktop and hides itself when a fullscreen client is focused
 - [ ] **AMB-02**: Dynamic cursors are installed as an **optional guarded** dependency — a missing, unbuilt or ABI-broken plugin degrades gracefully and never fails an unattended install
 
 ### Carried-In Maintenance (MAINT)
@@ -163,7 +163,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | OVER-02 | Phase 16 — Workspace Overview | Complete |
 | OVER-03 | Phase 16 — Workspace Overview | Pending |
 | OVER-04 | Phase 16 — Workspace Overview | Pending |
-| AMB-01 | Phase 17 — Ambient Extras | Pending |
+| AMB-01 | Phase 17 — Ambient Extras | Complete |
 | AMB-02 | Phase 17 — Ambient Extras | Pending |
 | MAINT-01 | Phase 11 — Quickshell Viability Gate *(instrument for QS-05's bind-collision proof)* | Complete |
 | MAINT-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Partial — 3 of 4 (WR-04 waived, open) |

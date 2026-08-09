@@ -5,15 +5,15 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
 current_phase_name: ambient-extras
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-08-09T03:29:57.256Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-08-09T03:42:08.450Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 8
   completed_phases: 7
   total_plans: 68
-  completed_plans: 63
+  completed_plans: 64
   percent: 88
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 ## Current Position
 
 Phase: 17 (ambient-extras) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
-Progress: [█████████░] 93% — 7/8 phases complete, 62/62 plans executed
+Progress: [█████████░] 94% — 7/8 phases complete, 62/62 plans executed
 Last activity: 2026-08-09 — Phase 17 execution started
 
 ## Performance Metrics
@@ -186,6 +186,7 @@ Last activity: 2026-08-09 — Phase 17 execution started
 | Phase 16 P05 | single session | 3 tasks | 3 files |
 | Phase 16 P06 | two sessions (gate approved 2026-08-07) | 3 tasks | 5 files |
 | Phase 17 P01 | ~50min | 3 tasks | 4 files |
+| Phase 17 P02 | 35min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -364,6 +365,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 17-01: D-26 verdict PASS — -p -a full pauses on a real fullscreen toggle (log line + CPU drop to 0.00-0.50%) and resumes on release; D-27 watcher not built
 - [Phase ?]: 17-01: -a mode option-a (-a full) selected — a control probe proved -a max is a confirmed no-op on this compositor build (fullscreen(1)/'maximize' enters the same internal state as literal fullscreen, both caught by -a full alone)
 - [Phase ?]: 17-01: found and fixed two real process-lifecycle races live — a flock-fd inheritance deadlock (8>&- fix) and a SIGTERM-unresponsive CPU-heavy WebP decode leaving duplicate processes (SIGKILL escalation fix); also hardened all pgrep-based liveness checks to exclude zombie entries
+- [Phase ?]: 17-02: D-09 seek-offset default shipped as 3s; D-13 dead-entry fallback and D-03 live-only-theme fallback are distinct code paths (dead_live_entry flag); frame repair guard never mutates last-wallpaper/<name>
 
 ### Quick Tasks Completed
 
@@ -461,8 +463,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-09T03:29:57.233Z
-Stopped at: Completed 17-01-PLAN.md
+Last session: 2026-08-09T03:42:08.425Z
+Stopped at: Completed 17-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
