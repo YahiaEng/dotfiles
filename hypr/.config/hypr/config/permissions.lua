@@ -162,37 +162,37 @@ hl.permission({ binary = "/usr/lib/xdg-desktop-portal-hyprland", type = "screenc
 -- login or an install re-run even if a grant is ever missing.
 hl.permission({ binary = "/usr/bin/hyprpm", type = "plugin", mode = "allow" })
 
--- ── Hyprland self-load grant, EXPERIMENTAL — UNTESTED, PENDING RESTART
--- (Phase 17 plan 05, D-35) ──────────────────────────────────────────────
--- 17-05's guarded Lua module (hypr/.config/hypr/config/dynamic-cursors.lua)
--- calls `hl.plugin.load()` directly from Lua config — a call that
--- originates inside the compositor's own process, not from an external
--- IPC client. Live nested-harness testing (17-05-SUMMARY.md, A2 finding)
--- found that call never actually loads the plugin: every tested shape
--- (bare path string, table form, path+bool, plugin name) returns without
--- a Lua error and produces zero log output, and a deliberately
--- nonexistent path behaves byte-identically to the real one — meaning
--- the call never even reaches dlopen-level path validation. A raw
--- `hyprctl plugin load <path>` probe against the same nested instance
--- (not something this repo's own config calls, tested only to narrow the
--- cause) returned "Hyprland IPC didn't respond in time" — the same
--- symptom class as the documented hyprpm double-load hang, but on a
--- FIRST load.
---
--- This grant tests one specific, unconfirmed theory: that a
--- Lua-config-issued `hl.plugin.load()` is routed through the same
--- DynamicPermissionManager confirm-dialog flow as an external IPC
--- request, keyed to /usr/bin/Hyprland as the "requesting binary" rather
--- than exempted as trusted config-time code — and that the confirm
--- dialog silently fails to resolve in the tested (nested, headless-ish)
--- environment, leaving the load permanently pending. If that theory is
--- correct, this grant should let `hl.plugin.load()` complete after the
--- next real compositor restart. IT HAS NOT BEEN TESTED — this session
--- has no way to restart the live compositor (no TTY, no session control).
--- Do not read this grant's presence as proof the declarative-load path
--- works; 17-06 and any future verifier should treat this as an open
--- item pending a real restart and a re-run of 17-05's nested-harness
--- test, not a delivered capability. If a restart shows the theory wrong,
--- remove this grant — it is reversible, matching this file's own
--- "nothing destroyed by getting the allow list wrong" recovery note.
-hl.permission({ binary = "/usr/bin/Hyprland", type = "plugin", mode = "allow" })
+-- ── Hyprland self-load grant — TESTED AND REVERTED (Phase 17 plan 05,
+-- D-35) ──────────────────────────────────────────────────────────────
+-- Was briefly added to test whether a Lua-config-issued
+-- `hl.plugin.load()` (hypr/.config/hypr/config/dynamic-cursors.lua) is
+-- routed through the same DynamicPermissionManager confirm-dialog flow
+-- as an external IPC request, keyed to /usr/bin/Hyprland as the
+-- "requesting binary". CONFIRMED, live, after a real restart: with this
+-- grant present, the user was prompted with a real Allow/Deny dialog for
+-- the dynamic-cursors plugin at login, and again when hypridle's
+-- `loginctl lock-session` triggered hyprlock (600s idle) — a genuine
+-- steady-state regression, a human clicking a permission dialog on every
+-- login and every idle-lock. Removed. The grant provided no offsetting
+-- benefit: `hl.plugin.load()` still does not actually load the plugin on
+-- this Hyprland build regardless of the grant (17-05-SUMMARY.md's A2
+-- finding — every tested call shape returns without error but never
+-- reaches dlopen-level validation; a nonexistent path behaves
+-- byte-identically to the real one). Root cause, reasoned from this
+-- evidence (not independently confirmed against the dialog's own literal
+-- text, which no log or journal entry captured on this build): on a real
+-- cold boot, dynamic-cursors.lua's own guard finds the plugin NOT yet
+-- loaded on the very first config pass (hyprpm-complete.sh's real load
+-- is async, from autostart, and hasn't run yet) and calls
+-- `hl.plugin.load()` for real — with this grant, that call could
+-- actually render a confirm dialog (it silently failed to render at all
+-- in every nested-harness test run without this grant); without a
+-- response, the request stays pending, and hyprlock's own session-lock
+-- surface appears to be the next point Hyprland has an opportunity to
+-- show it — the same single pending request, not a second one. The
+-- module's `pcall`-wrapped self-load attempt remains in place (harmless,
+-- silently inert without this grant, matching Task 1's own nested
+-- testing throughout); the real, working load path continues to be
+-- hyprpm via hyprpm-complete.sh, which already holds its own,
+-- unaffected /usr/bin/hyprpm grant above.
+-- hl.permission({ binary = "/usr/bin/Hyprland", type = "plugin", mode = "allow" })
