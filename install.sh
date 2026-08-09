@@ -302,9 +302,6 @@ AUR_PKGS=(
     elephant-websearch
     elephant-files
 
-    # Utils
-    bibata-cursor-theme
-
     # Logout menu (AUR-only; not in official repos)
     wleave
 
@@ -367,19 +364,48 @@ AUR_PKGS=(
     # it without this binary; libmpv arrives transitively.
     mpvpaper
 
-    # Cursor theme (D-32, package half — Phase 17 plan 04). Hard
-    # dependency: verify_packages() covers it automatically via the
-    # VERIFY_PKGS union below, same as every other AUR entry in this
+    # Cursor theme, hyprcursor half (D-32, package half — Phase 17 plan
+    # 04). Hard dependency: verify_packages() covers it automatically via
+    # the VERIFY_PKGS union below, same as every other AUR entry in this
     # array. Legitimacy audit (17-RESEARCH.md §"Package Legitimacy
     # Audit"): verdict OK, AUR first submitted 2024-03-14, last modified
     # 2024-03-24, 7 votes, upstream github.com/ndom91/rose-pine-hyprcursor,
     # already installed and verified on the reference host at
-    # v0.3.2.r0.d2c0e680-1. The cursor-theme *pin* that consumes this
-    # package (theme-engine/lib/generate.sh:166,171 and env.lua:9) lands
-    # in Phase 17 plan 05, deliberately out of the criterion-3 cut sweep's
-    # scope (17-06) — this entry and that pin must be removed together or
-    # not at all.
+    # v0.3.2.r0.d2c0e680-1. Consumed by env.lua's HYPRCURSOR_THEME
+    # (plan 05, option-c) — the pin and this entry must be removed
+    # together or not at all, out of the criterion-3 cut sweep's scope
+    # (17-06, D-38).
     rose-pine-hyprcursor
+
+    # Cursor theme, XCursor half (D-32, option-c — Phase 17 plan 05, human
+    # package-legitimacy checkpoint approved). Provides the XCursor-format
+    # sibling of rose-pine-hyprcursor directly above — both are the same
+    # BreezeX-remixed-to-Rose-Pine shape family (rose-pine-hyprcursor's
+    # own manifest.hl description names this), so native Wayland clients
+    # (via HYPRCURSOR_THEME) and XWayland/GTK clients (via XCURSOR_THEME
+    # and gtk-cursor-theme-name) render matching shapes and colors instead
+    # of two unrelated themes. Legitimacy audit (live, this session): AUR
+    # first submitted 2024-01-11, last modified 2024-01-12, 9 votes/1.38
+    # popularity, maintainer That1Calculator, not out-of-date; upstream
+    # github.com/rose-pine/cursors (renamed from .../cursor — GitHub's own
+    # repo-rename redirect, confirmed via the numeric repo ID, not a
+    # hijack), 184 stars, pushed 2026-06-24, not archived. PKGBUILD read
+    # line by line: downloads two pinned-sha256 upstream release assets
+    # and copies them verbatim into /usr/share/icons — no build step. The
+    # pinned sha256 was independently re-derived from the real upstream
+    # asset and matched exactly. Installed directory names are
+    # BreezeX-RosePine-Linux and BreezeX-RosePineDawn-Linux — NOT the
+    # package name; verified present on disk before this entry landed.
+    # Only the -Linux (dark) variant is consumed anywhere in this repo —
+    # the -Dawn (light) variant is NOT wired to theme mode (see
+    # generate.sh's own D-07 note: cursor is a mode-orthogonal axis
+    # already, matching font/icon-theme's existing pattern; wiring a
+    # light-mode cursor swap is a new capability this plan does not add).
+    # Replaces bibata-cursor-theme (D-32 supersedes it; nothing in this
+    # repo names Bibata-Modern-Classic any more after plan 05 — removed
+    # from AUR_PKGS in the same commit as this addition, not left as dead
+    # weight).
+    rose-pine-cursor
 )
 
 # ── section_core_rice ─────────────────────────────────

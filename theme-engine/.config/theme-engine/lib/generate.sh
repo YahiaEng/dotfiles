@@ -163,11 +163,20 @@ theme_engine_render_gtk_settings() {
     # gtk-3.0: mode-driven lines first, then the three remaining static
     # lines copied verbatim from the current stowed file (D-07: cursor/font
     # untouched by mode).
-    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-theme-name=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=%s 11\n' \
+    # D-32 (Phase 17 plan 05, option-c): cursor theme moved from
+    # Bibata-Modern-Classic to BreezeX-RosePine-Linux — the real installed
+    # directory name of the `rose-pine-cursor` AUR package (NOT the
+    # package name itself, confirmed by reading its PKGBUILD's package()
+    # function and verified present on disk before this edit landed). This
+    # is the XCursor-format half of the same BreezeX-remixed-to-Rose-Pine
+    # shape family as `rose-pine-hyprcursor` (see that package's own
+    # manifest.hl description) — the two are deliberately paired so every
+    # consumer, XCursor or hyprcursor, renders the same shapes and colors.
+    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-theme-name=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=BreezeX-RosePine-Linux\ngtk-cursor-theme-size=24\ngtk-font-name=%s 11\n' \
         "$dark_theme_flag" "$gtk3_theme_name" "$icon_theme" "$font_name" > "$out_dir/gtk-3.0-settings.ini"
 
     # gtk-4.0: same key set minus gtk-theme-name (GTK4 does not use it,
     # matching the current stowed gtk-4.0/settings.ini).
-    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=Bibata-Modern-Classic\ngtk-cursor-theme-size=24\ngtk-font-name=%s 11\n' \
+    printf '[Settings]\ngtk-application-prefer-dark-theme=%s\ngtk-icon-theme-name=%s\ngtk-cursor-theme-name=BreezeX-RosePine-Linux\ngtk-cursor-theme-size=24\ngtk-font-name=%s 11\n' \
         "$dark_theme_flag" "$icon_theme" "$font_name" > "$out_dir/gtk-4.0-settings.ini"
 }
