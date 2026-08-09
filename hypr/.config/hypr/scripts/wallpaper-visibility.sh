@@ -44,6 +44,20 @@
 #       exits 0. Read-only with respect to the player itself — never
 #       starts/stops it — but still runs the same _compute every other
 #       verb uses, including selection re-validation.
+#   wallpaper-visibility.sh snapshot
+#       D-20/17-03 Task 3: records the CURRENT (re-validated) selection
+#       state into a snapshot file for a later `restore`. Actuates
+#       nothing. When no selection is currently valid, records a fixed
+#       sentinel meaning "no live wallpaper was selected".
+#   wallpaper-visibility.sh restore
+#       D-20/17-03 Task 3: resolves the snapshot to exactly ONE action —
+#       when the stored value still passes _validate_selection it behaves
+#       as `select` on that path; in every other case (sentinel, missing
+#       file, or a path that no longer validates) it behaves as `clear`.
+#       Failing closed to `clear` is deliberate: a snapshot pointing at a
+#       file the user deleted mid-picker must end with NO player, never a
+#       stale one. This is D-20's "single restore intent" — callers never
+#       branch on live-versus-still to decide which verb to send.
 #
 # ── State model ──────────────────────────────────────────────────────
 # Per-source intent files: ~/.cache/wallpaper-visibility.d/<source>, one
@@ -107,6 +121,11 @@ INTENT_DIR="$HOME/.cache/wallpaper-visibility.d"
 LOCK_FILE="$INTENT_DIR/.owner.lock"
 ACTUATED_FILE="$INTENT_DIR/.actuated"
 SELECTION_FILE="$INTENT_DIR/.selection"
+SNAPSHOT_FILE="$INTENT_DIR/.snapshot"
+# Fixed sentinel meaning "no live wallpaper was selected" — distinct from
+# any real path, so a snapshot taken from a still-only state round-trips
+# correctly through `restore` (D-20).
+SNAPSHOT_SENTINEL="__none__"
 
 # D-02: the only directory a selection may ever resolve inside.
 WALLPAPERS_ROOT="$HOME/Pictures/Wallpapers"
@@ -152,6 +171,17 @@ _write_actuated() {
     local tmp
     tmp="$(mktemp "$INTENT_DIR/.actuated.XXXXXX")"
     printf '%s\n' "$target" >"$tmp" && mv -f "$tmp" "$ACTUATED_FILE"
+}
+
+_write_snapshot() {
+    local value="$1"
+    local tmp
+    tmp="$(mktemp "$INTENT_DIR/.snapshot.XXXXXX")"
+    printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$SNAPSHOT_FILE"
+}
+
+_read_snapshot() {
+    cat "$SNAPSHOT_FILE" 2>/dev/null || true
 }
 
 # ── T-17-01: the selection validator ─────────────────────────────────
@@ -379,6 +409,37 @@ _cmd_clear() {
     _actuate 0
 }
 
+# D-20/17-03 Task 3: records the CURRENTLY VALID selection (via _compute,
+# the same re-validation every other verb uses) — never the raw
+# .selection file content, so a snapshot never captures a value that was
+# about to be silently dropped anyway. Actuates nothing.
+_cmd_snapshot() {
+    _compute
+    if [[ -n "$SELECTION" ]]; then
+        _write_snapshot "$SELECTION"
+    else
+        _write_snapshot "$SNAPSHOT_SENTINEL"
+    fi
+}
+
+# D-20/17-03 Task 3: resolves to exactly ONE action. Fails CLOSED to
+# `clear` for the sentinel, a missing snapshot file, or a stored value
+# that no longer passes _validate_selection — reuses that SAME validator,
+# never a second path-shape test. A snapshot naming a file the user
+# deleted mid-picker must end with no player, never a stale one.
+_cmd_restore() {
+    local stored validated
+    stored="$(_read_snapshot)"
+    if [[ -n "$stored" && "$stored" != "$SNAPSHOT_SENTINEL" ]] \
+        && validated="$(_validate_selection "$stored")"; then
+        _write_selection "$validated"
+        _actuate 0
+    else
+        rm -f "$SELECTION_FILE" 2>/dev/null || true
+        _actuate 0
+    fi
+}
+
 main() {
     mkdir -p "$INTENT_DIR"
     # T-17-03: take the owner lock BEFORE reading any intent or
@@ -402,6 +463,12 @@ main() {
     clear)
         _cmd_clear
         ;;
+    snapshot)
+        _cmd_snapshot
+        ;;
+    restore)
+        _cmd_restore
+        ;;
     idle | gaming | motion)
         local state="${2:-}"
         if [[ "$state" != "hide" && "$state" != "show" ]]; then
@@ -415,7 +482,7 @@ main() {
         # T-08-05 discipline: reject BEFORE any path is ever built from
         # this value — <source> is only ever used inside the matched
         # branches above, never here.
-        echo "wallpaper-visibility.sh: unknown source/verb '$verb' (expected idle|gaming|motion|select|clear|reassert|status)" >&2
+        echo "wallpaper-visibility.sh: unknown source/verb '$verb' (expected idle|gaming|motion|select|clear|snapshot|restore|reassert|status)" >&2
         exit 1
         ;;
     esac

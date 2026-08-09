@@ -21,6 +21,11 @@ CURRENT_LINK="$WALLPAPER_DIR/current.jpg"
 STATE_FILE="$HOME/.local/state/theme/current-theme"
 PREVIOUS_FILE="$HOME/.cache/wallpaper-picker-previous"
 LAST_WALLPAPER_DIR="$HOME/.local/state/theme/last-wallpaper"
+# D-19/D-20 (17-03 Task 3): the hover debounce token file and the
+# live-wallpaper owner path — shared by the generated LIVE_SCRIPT and by
+# this script's own startup snapshot / cancellation restore / exit drain.
+HOVER_TOKEN="$HOME/.cache/wallpaper-picker-hover"
+WALLPAPER_OWNER="$HOME/.config/hypr/scripts/wallpaper-visibility.sh"
 IMG_MATCH=(-iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif")
 ACTIVE_MARKER=" ●"
 # D-17: distinct from ACTIVE_MARKER by construction ("this one moves" vs
@@ -80,6 +85,13 @@ mkdir -p "$WALLPAPER_DIR"
 # ── Save current wallpaper so we can restore on cancel
 PREVIOUS_WALLPAPER=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
 echo "$PREVIOUS_WALLPAPER" > "$PREVIOUS_FILE"
+
+# D-20 (17-03 Task 3): snapshot the live-wallpaper owner's CURRENT state
+# immediately — before any hover can possibly fire — so the snapshot
+# describes the state the user arrived with, never a state a preview
+# created. One owner call, best-effort (a fresh install without the
+# owner script yet stowed must never block the picker from opening).
+[[ -x "$WALLPAPER_OWNER" ]] && "$WALLPAPER_OWNER" snapshot 2>/dev/null || true
 
 # ── Human-readable theme display name (Copywriting Contract) ─────────
 # Special-cased families first (upstream branding uses characters/spacing
@@ -372,36 +384,84 @@ echo -e " \e[1m$ENTRY\e[0m  │  ${DIMS}  │  ${SIZE}${LIVE_BADGE}${ACTIVE_MARK
 PREVIEW
 chmod +x "$PREVIEW_SCRIPT"
 
-# ── Live preview script (awww on desktop) ────────────
-# THM-04/D-13 keeper feature: awww live-preview on navigate. Strips the
-# active-wallpaper marker suffix (D-14) before path use, exactly like the
-# preview script above. Second arg selects the transition (default: the
-# focus-navigate wipe; "random" for the Ctrl-R random-transition binding).
+# ── Live preview script (awww/mpvpaper-owner on desktop) ─────────────
+# THM-04/D-13 keeper feature: live-preview on navigate. Strips both
+# marker suffixes (D-14/D-17) before path use, exactly like the preview
+# script above. Second arg selects the transition (default: the
+# focus-navigate wipe; "random" for the Ctrl-R random-transition binding)
+# — meaningful only for a still (D-19: a video has no transition).
+#
+# D-19: a live entry is NOT dispatched to the owner on every navigation —
+# fzf's focus:execute-silent fires this on every keystroke, and a live
+# dispatch is a process spawn + a Wayland layer surface + decoder init
+# (unlike a still's awww call, which is only IPC to an already-running
+# daemon). The debounce below collapses a burst of navigation into at
+# most one dispatch: publish the entry into a token file SYNCHRONOUSLY
+# (ordered, cheap), then background a settle block that sleeps, re-reads
+# the token, and only proceeds if it still names THIS entry. The owner's
+# own blocking flock plus its bounded wait for the previous process to
+# exit is what serialises the kill of any prior instance — this script
+# never signals mpvpaper directly (D-14).
 LIVE_SCRIPT=$(mktemp /tmp/wp-live-XXXXXX.sh)
-# WR-02: same interpolated-prologue pattern as PREVIEW_SCRIPT above. Task
-# 1 changes only this shared prologue and the strip helper — the D-19
-# debounce and the live/still branch are Task 3's.
-printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\nACTIVE_MARKER=%q\nLIVE_MARKER=%q\nWALLPAPER_LIB=%q\n' \
-    "$WALLPAPER_DIR" "$ACTIVE_MARKER" "$LIVE_MARKER" "$WALLPAPER_LIB" > "$LIVE_SCRIPT"
+# WR-02: same interpolated-prologue pattern as PREVIEW_SCRIPT above.
+printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\nACTIVE_MARKER=%q\nLIVE_MARKER=%q\nWALLPAPER_LIB=%q\nHOVER_TOKEN=%q\nWALLPAPER_OWNER=%q\n' \
+    "$WALLPAPER_DIR" "$ACTIVE_MARKER" "$LIVE_MARKER" "$WALLPAPER_LIB" "$HOVER_TOKEN" "$WALLPAPER_OWNER" > "$LIVE_SCRIPT"
 declare -f wp_strip_markers >> "$LIVE_SCRIPT"
 printf '\n[[ -r "$WALLPAPER_LIB" ]] && source "$WALLPAPER_LIB"\n' >> "$LIVE_SCRIPT"
 cat >> "$LIVE_SCRIPT" << 'LIVE'
+# D-19: shipped debounce interval — recorded in the SUMMARY as the stated
+# baseline for a later retune (CONTEXT.md left this as Claude's
+# discretion, ~250ms named as a starting point, never locked).
+DEBOUNCE_SECS=0.25
+
 ENTRY="$1"
 ENTRY="$(wp_strip_markers "$ENTRY")"
 FILE="$WALLPAPER_DIR/$ENTRY"
 [[ ! -f "$FILE" ]] && exit 0
-if [[ "${2:-}" == "random" ]]; then
-    awww img "$FILE" \
-        --transition-type random \
-        --transition-duration 1 \
-        --transition-fps 165 2>/dev/null &
+
+THEME="${ENTRY%%/*}"
+REMAINDER="${ENTRY#*/}"
+IS_LIVE=0
+if [[ "$ENTRY" == */* ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \
+    && theme_engine_wallpaper_is_live_ref "$REMAINDER"; then
+    IS_LIVE=1
+fi
+
+if [[ "$IS_LIVE" == "1" ]]; then
+    # ctrl-r's random-transition binding is a still-image affordance —
+    # inert (a no-op) for a live entry, never dispatched to the owner.
+    [[ "${2:-}" == "random" ]] && exit 0
+
+    TOKEN_TMP="$(mktemp "${HOVER_TOKEN}.XXXXXX" 2>/dev/null)" || exit 0
+    printf '%s\n' "$ENTRY" > "$TOKEN_TMP" && mv -f "$TOKEN_TMP" "$HOVER_TOKEN"
+
+    (
+        sleep "$DEBOUNCE_SECS"
+        CUR="$(cat "$HOVER_TOKEN" 2>/dev/null || true)"
+        [[ "$CUR" == "$ENTRY" ]] || exit 0
+        # T-17-11: argv ARRAY, expanded "${cmd[@]}" — never a constructed
+        # string, never eval. The owner independently re-validates this
+        # exact path (_validate_selection) before it ever reaches
+        # mpvpaper's own argv — defence in depth, not a shared
+        # assumption with the IS_LIVE check above.
+        cmd=("$WALLPAPER_OWNER" select "$FILE")
+        "${cmd[@]}" >/dev/null 2>&1
+    ) &
+    disown
 else
-    awww img "$FILE" \
-        --transition-type wipe \
-        --transition-angle 30 \
-        --transition-duration 1 \
-        --transition-fps 165 \
-        --transition-step 90 2>/dev/null &
+    if [[ "${2:-}" == "random" ]]; then
+        awww img "$FILE" \
+            --transition-type random \
+            --transition-duration 1 \
+            --transition-fps 165 2>/dev/null &
+    else
+        awww img "$FILE" \
+            --transition-type wipe \
+            --transition-angle 30 \
+            --transition-duration 1 \
+            --transition-fps 165 \
+            --transition-step 90 2>/dev/null &
+    fi
 fi
 LIVE
 chmod +x "$LIVE_SCRIPT"
@@ -440,15 +500,43 @@ SELECTED=$(echo "$IMAGES" | fzf \
 # ── Cleanup ──────────────────────────────────────────
 rm -f "$PREVIEW_SCRIPT" "$LIVE_SCRIPT" "$ENUM_SCRIPT"
 
+# D-19 exit drain — closes the orphan window: a settle block can still be
+# in flight when fzf returns. Write a sentinel into the token file FIRST
+# (any in-flight settle block's re-read then fails its equality check and
+# exits without dispatching), sleep slightly longer than the debounce
+# interval, and only THEN does this script issue its own final intent
+# below (restore on cancel; the confirmed selection's own sync_owner call
+# on confirm). This ordering — never a bare heuristic delay — is what
+# makes the picker's own call always the LAST writer, so nothing this
+# script exits without accounting for can start a player afterward.
+if [[ -f "$HOVER_TOKEN" ]]; then
+    HOVER_DRAIN_TMP="$(mktemp "${HOVER_TOKEN}.XXXXXX" 2>/dev/null)" \
+        && printf '%s\n' "__drained__" > "$HOVER_DRAIN_TMP" 2>/dev/null \
+        && mv -f "$HOVER_DRAIN_TMP" "$HOVER_TOKEN" 2>/dev/null
+    sleep 0.35
+fi
+rm -f "$HOVER_TOKEN"
+
 # ── Handle selection or cancellation ─────────────────
 if [[ -z "$SELECTED" ]]; then
-    # Cancelled — restore previous wallpaper
-    if [[ -n "$PREVIOUS_WALLPAPER" && -f "$PREVIOUS_WALLPAPER" ]]; then
+    # Cancelled — restore the EXACT prior state through ONE restore
+    # intent (D-20). The picker itself never starts or stops a player —
+    # it decides only whether the STILL desktop preview also needs a
+    # repaint, and only when the prior state was NOT live (a live prior
+    # state needs no still repaint: current.jpg was never touched by
+    # hovering, and `restore` below brings the player back on its own).
+    PREVIOUS_WAS_LIVE=0
+    if [[ -n "$PREVIOUS_WALLPAPER" && -n "${FRAME_DIR_REAL:-}" \
+        && "$PREVIOUS_WALLPAPER" == "$FRAME_DIR_REAL"/* ]]; then
+        PREVIOUS_WAS_LIVE=1
+    fi
+    if [[ "$PREVIOUS_WAS_LIVE" == "0" && -n "$PREVIOUS_WALLPAPER" && -f "$PREVIOUS_WALLPAPER" ]]; then
         awww img "$PREVIOUS_WALLPAPER" \
             --transition-type center \
             --transition-duration 1 \
             --transition-fps 165 2>/dev/null
     fi
+    [[ -x "$WALLPAPER_OWNER" ]] && "$WALLPAPER_OWNER" restore 2>/dev/null || true
     rm -f "$PREVIOUS_FILE"
     exit 0
 fi
