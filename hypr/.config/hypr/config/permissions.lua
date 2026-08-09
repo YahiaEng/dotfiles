@@ -227,4 +227,77 @@ hl.permission({ binary = "/usr/bin/hyprpm", type = "plugin", mode = "allow" })
 -- "*-config-tool" grant added later) — anchored to `^config$` so it can
 -- only ever match the exact literal identity Hyprland uses for its own
 -- config-issued calls, nothing else.
-hl.permission({ binary = "^config$", type = "plugin", mode = "allow" })
+--
+-- TWO CANDIDATE GRANTS, DELIBERATELY BOTH PRESENT — read this before
+-- touching either. The header (DynamicPermissionManager.hpp) shows a
+-- config rule carries BOTH `m_binaryPath`/`m_binaryRegex` (built by
+-- `addConfigPermissionRule`) AND a separate `m_keyString`, and the
+-- plugin permission path is matched via
+-- `clientPermissionModeWithString(pid_t pid, const std::string& str,
+-- eDynamicPermissionType permission)`. Nothing in the header says
+-- whether `str` (and therefore what a config rule's regex is matched
+-- against) is the CALLER identity (`config`) or the PLUGIN PATH being
+-- loaded (`/var/cache/hyprpm/<user>/dynamic-cursors/dynamic-cursors.so`)
+-- — the dialog showed both strings, and the split between
+-- `m_binaryPath`/`m_binaryRegex` and `m_keyString` is exactly the shape
+-- that would exist if these were two different match targets. `^config$`
+-- above is one candidate; the grant directly below is the other. This is
+-- NOT two independent requirements — exactly one is expected to be the
+-- effective one, and the next real restart is what tells us which.
+-- Whichever one turns out NOT to matter should be removed once known,
+-- not left as permanent belt-and-suspenders.
+--
+-- The path-scoped grant below is also the TIGHTER of the two on its own
+-- terms, independent of which one turns out to match: `^config$` would
+-- authorize the config to load ANY plugin by ANY path, while this one
+-- authorizes exactly one specific `.so`. If it turns out to be the
+-- effective grant, prefer keeping this one and dropping `^config$` on
+-- that ground alone, even before considering which was "first tried".
+--
+-- The path embeds the username (`/var/cache/hyprpm/aorus/...` on this
+-- machine) — reproducibility (this repo's core constraint) forbids
+-- hardcoding it, matching dynamic-cursors.lua's own no-hardcoded-username
+-- acceptance criterion. `[^/]+` stands in for the username segment so
+-- this grant matches on a fresh install for any user, not just this one.
+--
+-- STOP — DO NOT ENABLE EITHER GRANT BELOW. NEITHER `^config$` NOR THE
+-- PATH-SCOPED GRANT IS SAFE ON THIS HYPRLAND BUILD (0.56.2, commit
+-- efb50993). This is no longer a "which caller identity matches"
+-- question — it is a fatal, reproducible compositor crash.
+--
+-- Both grants were briefly live together in this repo's working tree
+-- (never committed together — an editing mistake dropped the `^config$`
+-- line when this path-scoped grant was added, so only the path-scoped
+-- grant below was actually active during the test that follows; that
+-- accident turned into a useful natural isolation). Testing it in the
+-- nested harness (hypr-lua-harness, same technique as Task 1) produced
+-- TWO consecutive Hyprland SIGSEGV crashes (`coredumpctl`), not a
+-- config-parse error. The crashing thread's backtrace demangles to an
+-- unmistakable infinite mutual recursion in Hyprland's own C++:
+--   Config::Lua::CConfigManager::reload()
+--     -> Config::Lua::CConfigManager::handlePluginLoads()
+--       -> Config::Lua::CConfigManager::postConfigReload()
+--         -> Config::Lua::CConfigManager::reload()   [recurses]
+-- repeating until the C stack overflows (SIGSEGV, SI_KERNEL). This is a
+-- genuine Hyprland-level defect (or at minimum an unhandled edge case),
+-- not a mistake in this repo's Lua — it happens once the plugin
+-- permission request actually resolves to ALLOW and `handlePluginLoads`
+-- tries to act on it, which never happened in any earlier test (every
+-- earlier test left the request PENDING forever, silently, which is why
+-- this was never seen until a grant that actually matches was added).
+--
+-- Because only the path-scoped grant was active when this crash was
+-- captured, it is the stronger candidate for "the string a config rule's
+-- regex is actually matched against is the plugin PATH, not the caller
+-- label `config`" — but this is now moot: WHICHEVER grant resolves the
+-- request is what crashes the compositor. Do not re-test this by
+-- restarting the live session — a config-load-time crash there is a
+-- SIGSEGV of the user's entire desktop session, not a recoverable
+-- dialog. `hl.plugin.load()` stays exactly as safe as it has always
+-- been throughout this plan (silently pending, never loading, never
+-- crashing) specifically BECAUSE no grant here ever resolves it. That is
+-- now a deliberate safety property of this file, not an open question.
+-- See 17-05-SUMMARY.md for the full evidence and the corrected A2/D-35
+-- finding.
+-- hl.permission({ binary = "^config$", type = "plugin", mode = "allow" })
+-- hl.permission({ binary = "^/var/cache/hyprpm/[^/]+/dynamic-cursors/dynamic-cursors\\.so$", type = "plugin", mode = "allow" })
