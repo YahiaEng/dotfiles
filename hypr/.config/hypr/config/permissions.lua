@@ -196,3 +196,35 @@ hl.permission({ binary = "/usr/bin/hyprpm", type = "plugin", mode = "allow" })
 -- hyprpm via hyprpm-complete.sh, which already holds its own,
 -- unaffected /usr/bin/hyprpm grant above.
 -- hl.permission({ binary = "/usr/bin/Hyprland", type = "plugin", mode = "allow" })
+--
+-- CORRECTED DIAGNOSIS, same session: the grant above targeted the wrong
+-- caller identity. The dialog's own verbatim text, obtained directly
+-- from the user (never captured by any log or journal entry on this
+-- build): "An application config is trying to load a plugin
+-- /var/cache/hyprpm/aorus/dynamic-cursors/dynamic-cursors.so" — the
+-- caller identity is the literal string `config`, not a binary path at
+-- all. Confirmed against this machine's installed Hyprland dev headers
+-- (`/usr/include/hyprland/src/managers/permissions/
+-- DynamicPermissionManager.hpp`): `eSpecialPidTypes` defines
+-- `SPECIAL_PID_TYPE_CONFIG = -3` as a distinct caller class from a real
+-- process PID/binary path, `clientPermissionModeWithString(pid_t pid,
+-- const std::string& str, eDynamicPermissionType permission)` is
+-- documented "for plugins for now" (i.e. Lua-config-issued
+-- `hl.plugin.load()` calls are matched by STRING key, not by resolving a
+-- caller binary path at all), and `eDynamicPermissionAllowMode` includes
+-- `PERMISSION_RULE_ALLOW_MODE_PENDING, // popup is open` — the call
+-- doesn't fail or no-op, it PARKS awaiting an answer. This fully explains
+-- every symptom the earlier (wrong) `/usr/bin/Hyprland` grant attempt
+-- observed: `pcall` sees a normal return because C++ never raises past
+-- the pending promise, zero log output because nothing failed, and a
+-- nonexistent path behaves identically to a real one because the call
+-- never reaches path/dlopen validation — it's stopped at the permission
+-- gate before that. See 17-05-SUMMARY.md's corrected A2 finding.
+--
+-- `binaryPathRegex` is a real RE2 regex (re2::RE2 `m_binaryRegex`), so
+-- `config` un-anchored could incidentally match a hypothetical future
+-- binary path merely containing that substring (e.g. some
+-- "*-config-tool" grant added later) — anchored to `^config$` so it can
+-- only ever match the exact literal identity Hyprland uses for its own
+-- config-issued calls, nothing else.
+hl.permission({ binary = "^config$", type = "plugin", mode = "allow" })
