@@ -251,7 +251,18 @@ _mpvpaper_running() {
 
 # Bounded wait for mpvpaper to actually exit before a relaunch is
 # allowed to proceed — so a relaunch can never race a still-dying
-# process into two layer surfaces (T-17-03).
+# process into two layer surfaces (T-17-03). Escalates to SIGKILL if
+# the graceful SIGTERM window expires. Found live during this plan's
+# own Task 3 proof: a heavily CPU-loaded webp_anim decode (measured
+# 260-300% CPU — a real characteristic of animated-WebP playback, not
+# an anomaly) did NOT respond to plain SIGTERM within the original 2s
+# bound (confirmed independently: still alive 3s after a manual `kill
+# -TERM`), so the bounded wait timed out, gave up, and the caller
+# proceeded to launch a SECOND process — two real mpvpaper processes
+# and two `mpvpaper`-namespaced layer surfaces existed simultaneously.
+# A plain SIGTERM cannot be relied on to be prompt against a CPU-bound
+# decode; SIGKILL can neither be caught nor deferred by the target, and
+# was confirmed live to terminate the same stuck process within ~1s.
 _stop_player() {
     pkill -x mpvpaper 2>/dev/null || true
     local waited=0
@@ -259,6 +270,15 @@ _stop_player() {
         sleep 0.1
         waited=$((waited + 1))
     done
+
+    if _mpvpaper_running; then
+        pkill -9 -x mpvpaper 2>/dev/null || true
+        waited=0
+        while _mpvpaper_running && ((waited < 20)); do
+            sleep 0.1
+            waited=$((waited + 1))
+        done
+    fi
 }
 
 # ── Actuate the computed state ───────────────────────────────────────
