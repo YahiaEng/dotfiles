@@ -13,6 +13,8 @@ DOTFILES_DIR="$HOME/dotfiles"
 
 # shellcheck source=lib/contract.sh
 source "$SCRIPT_DIR/lib/contract.sh"
+# shellcheck source=lib/wallpaper.sh
+source "$SCRIPT_DIR/lib/wallpaper.sh"
 
 PASS=0
 FAIL=0
@@ -112,6 +114,37 @@ if command -v jq >/dev/null 2>&1 && [[ -d "$STATE_DIR" ]]; then
     fi
 else
     echo "  [SKIP] state-manifest gate (jq not found or $STATE_DIR does not exist)"
+fi
+
+# ── D-11: conditional live-wallpaper frame gate ─────────────────────────
+# Fires ONLY when the active theme's recorded choice actually names a
+# live/ entry — a still-only desktop (the common case) gets a single named
+# [SKIP], never a [FAIL]. This file's own comment at lines 40-46 already
+# documents what a gate that fires on a healthy desktop cost this project
+# once (Phase 05's light presets). Reuses
+# theme_engine_wallpaper_is_live_ref/theme_engine_wallpaper_frame_path
+# (Task 1) as the single source of truth for the live/ shape — never a
+# re-implemented regex — so this gate and the engine can never drift on
+# what counts as a live ref. Report-only: extracts, repairs and repoints
+# nothing (theme-doctor's own header, D-25).
+DOCTOR_LIVE_THEME=$(cat "$STATE_DIR/current-theme" 2>/dev/null || true)
+DOCTOR_LIVE_RECORDED=""
+if [[ -n "$DOCTOR_LIVE_THEME" && -f "$STATE_DIR/last-wallpaper/$DOCTOR_LIVE_THEME" ]]; then
+    DOCTOR_LIVE_RECORDED=$(head -n1 "$STATE_DIR/last-wallpaper/$DOCTOR_LIVE_THEME" 2>/dev/null || true)
+fi
+
+if [[ -n "$DOCTOR_LIVE_RECORDED" ]] && theme_engine_wallpaper_is_live_ref "$DOCTOR_LIVE_RECORDED"; then
+    DOCTOR_LIVE_FRAME="$(theme_engine_wallpaper_frame_path "$DOCTOR_LIVE_THEME" "$DOCTOR_LIVE_RECORDED")"
+
+    [[ -s "$DOCTOR_LIVE_FRAME" ]]
+    check "live-wallpaper frame: $DOCTOR_LIVE_FRAME exists and is non-empty" "$?"
+
+    DOCTOR_CURRENT_RESOLVED="$(readlink -f "$HOME/Pictures/Wallpapers/current.jpg" 2>/dev/null || true)"
+    DOCTOR_FRAME_RESOLVED="$(readlink -f "$DOCTOR_LIVE_FRAME" 2>/dev/null || true)"
+    [[ -n "$DOCTOR_CURRENT_RESOLVED" && "$DOCTOR_CURRENT_RESOLVED" == "$DOCTOR_FRAME_RESOLVED" ]]
+    check "live-wallpaper frame: current.jpg resolves to $DOCTOR_LIVE_FRAME" "$?"
+else
+    echo "  [SKIP] live-wallpaper frame gate (recorded choice for '${DOCTOR_LIVE_THEME:-<unknown>}' is not a live/ entry)"
 fi
 
 # ── D-02b hyprctl animations readback (TOKEN-05/criterion 2) ──────────

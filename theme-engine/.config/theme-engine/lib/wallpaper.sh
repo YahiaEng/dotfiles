@@ -267,3 +267,43 @@ theme_engine_wallpaper_autoset() {
 
     return 0
 }
+
+# theme_engine_wallpaper_frame_repair <name>
+# D-08's repair-on-missing guard — the hot-path cost is one cheap read plus
+# one string test for the overwhelmingly common still-preset case. Called
+# from theme-apply BEFORE theme_engine_generate (deliberate — see the call
+# site comment in theme-apply naming generate.sh:54 as the reason): a wiped
+# state directory must self-heal its frame and its current.jpg pointer
+# before generate.sh resolves current.jpg as the Material You palette
+# source, or a wipe would surface as a wrong palette and a dangling lock
+# screen with no gate catching it.
+#
+# NEVER mutates last-wallpaper/<name> — clearing a dead entry stays
+# theme_engine_wallpaper_autoset's job (D-13). This guard only ever
+# (re)creates the frame and, on success, repoints current.jpg at it. Every
+# step best-effort; returns 0 on every path, since theme-apply calls this
+# under `set -euo pipefail`.
+theme_engine_wallpaper_frame_repair() {
+    local name="$1"
+    local last_used_file="$LAST_WALLPAPER_DIR/$name"
+
+    [[ -f "$last_used_file" ]] || return 0
+    local recorded
+    recorded=$(head -n1 "$last_used_file" 2>/dev/null || true)
+    theme_engine_wallpaper_is_live_ref "$recorded" || return 0
+
+    local theme_dir="$WALLPAPER_DIR/$name"
+    [[ -f "$theme_dir/$recorded" ]] || return 0
+
+    local frame
+    frame="$(theme_engine_wallpaper_frame_path "$name" "$recorded")"
+    [[ -s "$frame" ]] && return 0
+
+    local offset
+    offset="$(theme_engine_wallpaper_frame_offset "$name" "$recorded")"
+    if theme_engine_wallpaper_extract_frame "$theme_dir/$recorded" "$frame" "$offset" && [[ -s "$frame" ]]; then
+        ln -sfr "$frame" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+    fi
+
+    return 0
+}
