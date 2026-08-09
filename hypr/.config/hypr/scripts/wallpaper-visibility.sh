@@ -224,13 +224,38 @@ _compute() {
     fi
 }
 
+# A bare `pgrep -x mpvpaper` is NOT a safe liveness/single-instance
+# check: a defunct (zombie) mpvpaper still matches by name — its comm
+# stays "mpvpaper" until its parent reaps it — but it is not running,
+# not decoding, and not rendering anything. Found live during this
+# plan's own proof: killing a standalone probe instance left a `Zsl`
+# zombie sitting alongside the owner's real `Ssl` process, which would
+# have made every pgrep-based check below unreliable (the single-
+# instance guard would think a launch is unnecessary, the stop-side
+# wait would spin its full bound against a process that can never
+# change state, and — worst — the post-launch registration wait would
+# return immediately on the STALE zombie match instead of actually
+# waiting for the NEW process to appear). Filters to processes whose
+# `ps -o stat=` does not start with `Z`.
+_mpvpaper_running() {
+    local pid stat
+    for pid in $(pgrep -x mpvpaper 2>/dev/null); do
+        stat="$(ps -o stat= -p "$pid" 2>/dev/null)"
+        case "$stat" in
+        Z*) continue ;;
+        *) return 0 ;;
+        esac
+    done
+    return 1
+}
+
 # Bounded wait for mpvpaper to actually exit before a relaunch is
 # allowed to proceed — so a relaunch can never race a still-dying
 # process into two layer surfaces (T-17-03).
 _stop_player() {
     pkill -x mpvpaper 2>/dev/null || true
     local waited=0
-    while pgrep -x mpvpaper >/dev/null 2>&1 && ((waited < 20)); do
+    while _mpvpaper_running && ((waited < 20)); do
         sleep 0.1
         waited=$((waited + 1))
     done
@@ -260,8 +285,9 @@ _actuate() {
     playing:*)
         local path="${TARGET#playing:}"
         # Stop first if anything is running — never let two mpvpaper
-        # processes (and two layer surfaces) exist at once.
-        if pgrep -x mpvpaper >/dev/null 2>&1; then
+        # processes (and two layer surfaces) exist at once. Zombie-
+        # excluding check (_mpvpaper_running) — see its own header.
+        if _mpvpaper_running; then
             _stop_player
         fi
         # Argv ARRAY, expanded "${cmd[@]}" — never a single string, never
@@ -292,13 +318,16 @@ _actuate() {
         # the same reason. The launch above is asynchronous (uwsm goes
         # through a systemd-run scope before the real mpvpaper binary
         # appears to `pgrep`); without this wait, a rapid CONSECUTIVE
-        # invocation's own "if pgrep -x mpvpaper" check above can run
+        # invocation's own `_mpvpaper_running` check above can run
         # before this one has finished starting, see nothing running, and
         # launch a SECOND process instead of recognising the first —
         # found live during this plan's own tracer proof running
-        # `reassert` twice back to back.
+        # `reassert` twice back to back. Zombie-excluding check
+        # (_mpvpaper_running) — a stale defunct entry from an EARLIER
+        # instance would otherwise satisfy a bare pgrep immediately,
+        # making this wait return before the NEW process is actually up.
         local waited=0
-        while ! pgrep -x mpvpaper >/dev/null 2>&1 && ((waited < 30)); do
+        while ! _mpvpaper_running && ((waited < 30)); do
             sleep 0.1
             waited=$((waited + 1))
         done
