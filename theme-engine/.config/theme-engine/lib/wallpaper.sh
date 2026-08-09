@@ -148,43 +148,115 @@ theme_engine_wallpaper_autoset() {
         ! -name "current.jpg" \
         -printf "%f\n" 2>/dev/null | sort)
 
-    # Empty/missing set — keep the current wallpaper untouched (D-12 never-
-    # a-dead-end semantics on the apply side).
-    [[ -n "$images" ]] || return 0
+    # D-03: separate, unfiltered live/ enumeration pass. Deliberately NEVER
+    # merged into $images — the still pool must stay pure, since it is
+    # D-13's fallback source and D-03 exists precisely to stop a stray
+    # still inside live/ leaking into the image pool. No -iname filter here
+    # (D-01 defines "live" by behaviour, not container; D-04 sends
+    # everything under live/ to one backend).
+    local live_entries
+    live_entries=$(find "$theme_dir/live" -maxdepth 1 -type f -printf 'live/%f\n' 2>/dev/null | sort)
+
+    # Empty/missing BOTH pools — keep the current wallpaper untouched (D-12
+    # never-a-dead-end semantics on the apply side). This early return used
+    # to fire on $images alone, which silently skipped a theme directory
+    # containing only live wallpapers and did nothing at all on a switch to
+    # it (D-03's live-only-theme fix).
+    [[ -n "$images" || -n "$live_entries" ]] || return 0
 
     # Candidate selection: prefer the recorded last-used file for this
-    # theme, validated as a bare filename that actually exists inside the
-    # theme's folder (T-05-07 mitigation — never interpolate untrusted
-    # state-file content into a path without validation).
-    local chosen=""
+    # theme. T-05-07, widened per D-12: admit either the pre-existing bare
+    # still-filename shape (unchanged) OR exactly one additional shape — a
+    # single-component live/ ref, validated by
+    # theme_engine_wallpaper_is_live_ref (Task 1's widened helper, never a
+    # prefix test). The existence test (-f) stays mandatory on BOTH
+    # branches — never interpolate untrusted state-file content into a
+    # path without validation.
+    local chosen="" dead_live_entry=0
     local last_used_file="$LAST_WALLPAPER_DIR/$name"
     if [[ -f "$last_used_file" ]]; then
         local recorded
         recorded=$(head -n1 "$last_used_file" 2>/dev/null || true)
-        if [[ -n "$recorded" && "$recorded" != */* && -f "$theme_dir/$recorded" ]]; then
+        if [[ -n "$recorded" ]] && \
+           { [[ "$recorded" != */* && -f "$theme_dir/$recorded" ]] || \
+             { theme_engine_wallpaper_is_live_ref "$recorded" && [[ -f "$theme_dir/$recorded" ]]; }; }; then
             chosen="$recorded"
+        elif [[ -n "$recorded" ]] && theme_engine_wallpaper_is_live_ref "$recorded"; then
+            # D-13: shape is a valid live ref but the file is gone — clear
+            # the dead entry (never mutates a still-shaped recorded value's
+            # own pre-existing silent-ignore behaviour) and remember that
+            # the live pool must NOT be used as this call's fallback below:
+            # D-13 falls back to the theme's first STILL, never to another
+            # live entry, when the recorded live pick has disappeared.
+            rm -f "$last_used_file" 2>/dev/null || true
+            dead_live_entry=1
         fi
     fi
 
-    # Fall back to the first image in the folder by sorted name (D-11).
+    # Fall back to the first still by sorted name (D-11/D-13). Only when
+    # there is truly no still AND this is not D-13's dead-live-entry path
+    # does a live-only theme fall back to its first live entry (D-03's
+    # live-only-theme fix) — D-13 itself never auto-selects a replacement
+    # live wallpaper for one that was just deleted; with no still to fall
+    # back to either, the caller falls through to the empty-chosen guard
+    # below and the current wallpaper is left untouched (never-a-dead-end).
     if [[ -z "$chosen" ]]; then
-        chosen=$(head -n1 <<< "$images")
+        if [[ -n "$images" ]]; then
+            chosen=$(head -n1 <<< "$images")
+        elif [[ "$dead_live_entry" -eq 0 && -n "$live_entries" ]]; then
+            chosen=$(head -n1 <<< "$live_entries")
+        fi
     fi
 
     [[ -n "$chosen" ]] || return 0
 
-    # Apply: repoint current.jpg at the chosen file.
-    ln -sfr "$theme_dir/$chosen" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+    if theme_engine_wallpaper_is_live_ref "$chosen"; then
+        # D-06/D-08: live choice — always re-extract at selection time (the
+        # repair-on-missing guard for a wiped state dir is Task 3's job).
+        # Repoint current.jpg at the FRAME, never the video — this is what
+        # makes the lock screen (hyprlock.conf:50) show a real frame in
+        # EVERY mode. D-05 needs no code here: a static preset renders its
+        # palette from palettes/$name.json and never reads current.jpg, so
+        # the frame reaches the lock screen everywhere while the palette
+        # stays coupled to current.jpg only through generate.sh's Material
+        # You branch.
+        local frame offset
+        frame="$(theme_engine_wallpaper_frame_path "$name" "$chosen")"
+        offset="$(theme_engine_wallpaper_frame_offset "$name" "$chosen")"
+        if theme_engine_wallpaper_extract_frame "$theme_dir/$chosen" "$frame" "$offset" && [[ -s "$frame" ]]; then
+            ln -sfr "$frame" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+        fi
+        # Extraction failed (or produced nothing): leave the existing
+        # current.jpg pointer completely untouched — current.jpg is the
+        # hyprlock background on every unlock, and a dangling pointer is a
+        # lock screen with no background (T-17-09).
 
-    # Best-effort live preview — only when a graphical session is present
-    # (same WAYLAND_DISPLAY/DBUS_SESSION_BUS_ADDRESS guard shape as
-    # reload.sh's headless guard) and awww is on PATH. The headless
-    # container gate must never hang here.
-    if [[ -n "${WAYLAND_DISPLAY:-}" || -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && command -v awww >/dev/null 2>&1; then
-        awww img "$theme_dir/$chosen" \
-            --transition-type center \
-            --transition-duration 1 \
-            --transition-fps 165 2>/dev/null || true
+        # Best-effort live preview — same graphical-session guard as the
+        # still branch below, headless container gate must never hang
+        # here. awww owns the static-image path (D-04); it is handed the
+        # extracted FRAME, never the source video, which awww cannot play.
+        if [[ -n "${WAYLAND_DISPLAY:-}" || -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] \
+            && command -v awww >/dev/null 2>&1 && [[ -s "$frame" ]]; then
+            awww img "$frame" \
+                --transition-type center \
+                --transition-duration 1 \
+                --transition-fps 165 2>/dev/null || true
+        fi
+    else
+        # Apply: repoint current.jpg at the chosen still file (unchanged
+        # pre-existing behaviour).
+        ln -sfr "$theme_dir/$chosen" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+
+        # Best-effort live preview — only when a graphical session is
+        # present (same WAYLAND_DISPLAY/DBUS_SESSION_BUS_ADDRESS guard
+        # shape as reload.sh's headless guard) and awww is on PATH. The
+        # headless container gate must never hang here.
+        if [[ -n "${WAYLAND_DISPLAY:-}" || -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] && command -v awww >/dev/null 2>&1; then
+            awww img "$theme_dir/$chosen" \
+                --transition-type center \
+                --transition-duration 1 \
+                --transition-fps 165 2>/dev/null || true
+        fi
     fi
 
     # Write-back: atomic temp-file + mv idiom (matches commit.sh's
