@@ -232,6 +232,24 @@ PACMAN_PKGS=(
     # without it `ags run` aborts with "executable sass not found".
     cava
     dart-sass
+
+    # ── hyprpm build toolchain (AMB-02/D-33 — Phase 17 plan 04) ──
+    # hyprpm is the optional build/load manager for the dynamic-cursors
+    # plugin below. Its own binary states its full requirement list
+    # verbatim: `strings /usr/bin/hyprpm | grep -i "Hyprpm requires"` ->
+    # "Hyprpm requires: cmake, cpio, pkg-config, git, g++, gcc"
+    # (17-RESEARCH.md Deep-Dive #4, verified against the installed
+    # hyprland 0.56.2-1 package this session). `pkg-config` is provided by
+    # `pkgconf`, `git` and `gcc`/`g++` are already present (gcc provides
+    # both), all conditionally-but-reliably declared elsewhere in this
+    # script — cmake and cpio were the two genuinely undeclared gaps,
+    # confirmed absent from the full PACMAN_PKGS array before this edit.
+    # cpio in particular was present on the reference host only
+    # transitively (via debugedit/dracut/virt-install) — exactly the
+    # host-only-state class the reproducibility constraint forbids, so it
+    # must be declared explicitly rather than relied upon.
+    cmake
+    cpio
 )
 
 # ── Official repo packages (hardware — NVIDIA GPU only) ─
@@ -348,6 +366,20 @@ AUR_PKGS=(
     # wallpaper in ~/Pictures/Wallpapers/<theme>/live/ has nothing to play
     # it without this binary; libmpv arrives transitively.
     mpvpaper
+
+    # Cursor theme (D-32, package half — Phase 17 plan 04). Hard
+    # dependency: verify_packages() covers it automatically via the
+    # VERIFY_PKGS union below, same as every other AUR entry in this
+    # array. Legitimacy audit (17-RESEARCH.md §"Package Legitimacy
+    # Audit"): verdict OK, AUR first submitted 2024-03-14, last modified
+    # 2024-03-24, 7 votes, upstream github.com/ndom91/rose-pine-hyprcursor,
+    # already installed and verified on the reference host at
+    # v0.3.2.r0.d2c0e680-1. The cursor-theme *pin* that consumes this
+    # package (theme-engine/lib/generate.sh:166,171 and env.lua:9) lands
+    # in Phase 17 plan 05, deliberately out of the criterion-3 cut sweep's
+    # scope (17-06) — this entry and that pin must be removed together or
+    # not at all.
+    rose-pine-hyprcursor
 )
 
 # ── section_core_rice ─────────────────────────────────
@@ -506,6 +538,61 @@ section_core_rice() {
     echo "Enabling ollama..."
     sudo systemctl enable --now ollama.service || echo "  ⚠ ollama enable failed" >&2
     echo ""
+
+    # ── D-33: optional dynamic-cursors hyprpm block (AMB-02) — BEGIN ──
+    # Phase 17 plan 04. hyprpm is the build/load manager for the optional
+    # `dynamic-cursors` plugin (D-32/D-35). This block is intentionally
+    # copied from the swayosd/ollama warn-and-continue guard shape two
+    # steps above (command-then-warn-on-stderr), NOT from
+    # verify_packages() below — that function's own comment states "No
+    # warn-and-continue path" and exists specifically to hard-fail on a
+    # missing REQUIRED package. Nothing in this block may ever be added
+    # to VERIFY_PKGS: doing so would convert an optional dependency into
+    # an install-abort and destroy AMB-02's criterion 2.
+    #
+    # Living inside section_core_rice is deliberate, not incidental: this
+    # is the exact section the `--core-only` container gate always runs,
+    # and a container has no compositor — so every failure path below is
+    # exercised on every gate run, not just once on a fresh desktop
+    # install. If hyprpm ever silently starts succeeding unattended here,
+    # that would be the surprise, not the routine warning.
+    #
+    # What this block does NOT do: it never widens sudo scope (no policy
+    # file, no NOPASSWD rule), and it never prompts — a hang is a worse
+    # failure than the abort criterion 2 already forbids (T-17-06,
+    # T-17-08). If credentials are unavailable it skips cleanly; the
+    # post-login completion helper (hyprpm-complete.sh) finishes the job
+    # once a real session exists (D-33's two-part design).
+    #
+    # HYPRPM_PLUGIN_URL is overridable from the environment SOLELY so
+    # D-34's fault injection (Phase 17 plan 04, Task 3) can exercise this
+    # literal shipped code path against a repository that cannot resolve,
+    # rather than a hand-copied paraphrase. The audited upstream URL
+    # below is the only value ever committed to this file (T-17-07).
+    HYPRPM_PLUGIN_URL="${HYPRPM_PLUGIN_URL:-https://github.com/virtcode/hypr-dynamic-cursors}"
+
+    # Non-interactive sudo credential check (RESEARCH.md A3, strengthened):
+    # hyprpm shells out to sudo internally for its root-owned state store
+    # at /var/cache/hyprpm/. A bare interactive `sudo -v` would still
+    # prompt for a password if the cached timestamp has expired — and a
+    # prompt in an unattended run is a hang, strictly worse than the
+    # abort criterion 2 forbids. `sudo -n -v` inside `if !` cannot trip
+    # `set -e`, and on failure this skips the plugin build entirely
+    # rather than risk blocking login.
+    if ! sudo -n -v 2>/dev/null; then
+        echo "  ⚠ dynamic-cursors: no cached sudo credentials — skipping optional plugin build (hypr/.config/hypr/scripts/hyprpm-complete.sh completes it after login)" >&2
+    else
+        echo "Registering hypr-dynamic-cursors plugin (optional)..."
+        # Guard registration behind a check for an already-registered
+        # repository so a re-run of install.sh (expected to be
+        # re-runnable) never emits a spurious warning here.
+        if ! hyprpm list 2>/dev/null | grep -q 'dynamic-cursors'; then
+            hyprpm add "$HYPRPM_PLUGIN_URL" || echo "  ⚠ hyprpm add dynamic-cursors failed" >&2
+        fi
+        hyprpm enable dynamic-cursors || echo "  ⚠ hyprpm enable dynamic-cursors failed" >&2
+        hyprpm update || echo "  ⚠ hyprpm update (dynamic-cursors) failed — see above" >&2
+    fi
+    # ── D-33: optional dynamic-cursors hyprpm block (AMB-02) — END ──
 }
 
 # ── section_hardware ──────────────────────────────────
