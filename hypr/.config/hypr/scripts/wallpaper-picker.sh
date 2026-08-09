@@ -468,19 +468,59 @@ if [[ ! -f "$FULL_PATH" ]]; then
     rm -f "$PREVIOUS_FILE"
     exit 1
 fi
-ln -sfr "$FULL_PATH" "$CURRENT_LINK"
+# D-06/D-18: is the confirmed selection live? Same shape test as the
+# preview pane and the writer guard below — the remainder after the
+# theme prefix satisfies theme_engine_wallpaper_is_live_ref.
+SEL_THEME="${SELECTED%%/*}"
+SEL_REMAINDER="${SELECTED#*/}"
+SEL_IS_LIVE=0
+if [[ "$SELECTED" == */* ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \
+    && theme_engine_wallpaper_is_live_ref "$SEL_REMAINDER"; then
+    SEL_IS_LIVE=1
+fi
 
-# Final animated set (in case live preview didn't fire)
-awww img "$FULL_PATH" \
-    --transition-type center \
-    --transition-duration 2 \
-    --transition-fps 165
+if [[ "$SEL_IS_LIVE" == "1" ]]; then
+    # Live selection (D-06/17-02 handoff (b)): current.jpg must point at
+    # the extracted FRAME, never the source video — awww cannot play
+    # video, and generate.sh's Material You branch would otherwise hand a
+    # video to the colour extractor. Resolve/extract ONLY through the
+    # sourced library functions — never a second ffmpeg call site here.
+    # On failure, leave current.jpg completely untouched and warn: never
+    # a dangling lock-screen pointer (T-17-09).
+    SEL_FRAME="$(theme_engine_wallpaper_frame_path "$SEL_THEME" "$SEL_REMAINDER")"
+    if [[ ! -s "$SEL_FRAME" ]]; then
+        SEL_OFFSET="$(theme_engine_wallpaper_frame_offset "$SEL_THEME" "$SEL_REMAINDER")"
+        theme_engine_wallpaper_extract_frame "$FULL_PATH" "$SEL_FRAME" "$SEL_OFFSET" || true
+    fi
+    if [[ -s "$SEL_FRAME" ]]; then
+        ln -sfr "$SEL_FRAME" "$CURRENT_LINK"
+        # awww owns the static-image path (D-04) — the frame, never the
+        # video, which awww cannot play.
+        awww img "$SEL_FRAME" \
+            --transition-type center \
+            --transition-duration 2 \
+            --transition-fps 165
+    else
+        echo "wallpaper-picker: no frame could be extracted for $SELECTED — lock-screen pointer left unchanged" >&2
+    fi
+else
+    ln -sfr "$FULL_PATH" "$CURRENT_LINK"
 
-# ── Post-selection branching (D-05/D-11/D-20) ────────
+    # Final animated set (in case live preview didn't fire)
+    awww img "$FULL_PATH" \
+        --transition-type center \
+        --transition-duration 2 \
+        --transition-fps 165
+fi
+
+# ── Post-selection branching (D-05/D-11/D-20/D-21) ───
 # In dynamic mode, wallpaper and palette must always match — re-run the
 # single shared engine entrypoint (theme-apply) with the exact active
 # variant name (never hardcode the dark variant), never reimplement
 # apply+reload here (this used to be a third duplication site, D-01).
+# theme-apply's own D-21 call site reaches the SAME sync_owner function
+# this branch calls directly below — do not add a second owner call
+# inside this branch.
 # In static mode, picking a wallpaper changes only the wallpaper, and —
 # when the selection lives inside the active theme's own folder — records
 # it as that theme's last-used wallpaper (D-11; Ctrl-A selections from
@@ -493,13 +533,30 @@ else
         "Set to $SELECTED" \
         -i preferences-desktop-wallpaper -t 2000
 
+    SYNC_REF=""
     if [[ -n "$CURRENT_THEME" && "$SELECTED" == "$CURRENT_THEME/"* ]]; then
         BARE_FILENAME="${SELECTED#"$CURRENT_THEME"/}"
-        if [[ "$BARE_FILENAME" != */* ]]; then
+        # T-17-12/D-12 writer half: WIDEN, never relax — the pre-existing
+        # no-slash branch stays byte-identical, and exactly one
+        # alternative branch is added, delegating to the SAME shape
+        # function 17-02's reader uses, so the writer and reader can
+        # never drift into accepting different shapes. Never a prefix
+        # test, never a fresh regex here.
+        if [[ "$BARE_FILENAME" != */* ]] || theme_engine_wallpaper_is_live_ref "$BARE_FILENAME"; then
             mkdir -p "$LAST_WALLPAPER_DIR" 2>/dev/null || true
             printf '%s\n' "$BARE_FILENAME" > "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" 2>/dev/null \
                 && mv "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" "$LAST_WALLPAPER_DIR/$CURRENT_THEME" 2>/dev/null || true
+            SYNC_REF="$BARE_FILENAME"
         fi
+    fi
+
+    # D-21: the ONE sync path — reach the owner through the SAME function
+    # theme-apply calls, exactly once. An empty SYNC_REF (an out-of-theme
+    # Ctrl-A pick, or a shape the guard above rejected) makes the owner
+    # `clear` — correct: picking a still from another theme must stop a
+    # playing video.
+    if declare -F theme_engine_wallpaper_sync_owner >/dev/null 2>&1; then
+        theme_engine_wallpaper_sync_owner "$CURRENT_THEME" "$SYNC_REF" || true
     fi
 fi
 

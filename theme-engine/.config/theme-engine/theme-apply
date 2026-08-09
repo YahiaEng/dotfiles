@@ -93,6 +93,18 @@ theme_engine_commit "$NAME" "$TMP_DIR"
 # for both Material You names; a failed render never reaches this line.
 theme_engine_wallpaper_autoset "$NAME"
 
+# D-21: the single owner-declaration path — login, theme switch and a
+# manual picker pick all reach the live-wallpaper owner through this ONE
+# function and no other call site. Placed AFTER autoset (autoset is what
+# may have just changed the recorded choice — D-13's dead-entry fallback
+# clears it, and the recorded value is what sync_owner reads) and BEFORE
+# reload (so the desktop lands wallpaper, colours and player together).
+# Deliberately NOT nested inside theme_engine_wallpaper_autoset's own
+# body: autoset returns early for both Material You names, so a call
+# nested inside it would silently never run in dynamic mode — exactly
+# the login-only-style breakage D-21 exists to prevent.
+theme_engine_wallpaper_sync_owner "$NAME" || true
+
 # Single reload owner (D-04) — runs once, only after commit succeeds.
 theme_engine_reload
 

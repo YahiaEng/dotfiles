@@ -307,3 +307,67 @@ theme_engine_wallpaper_frame_repair() {
 
     return 0
 }
+
+# theme_engine_wallpaper_sync_owner <theme> [ref]
+#
+# D-21's SINGLE owner-declaration path. This is the ONLY function in the
+# whole system that may invoke wallpaper-visibility.sh's `select`/`clear`
+# verbs on behalf of a theme switch, a login, or a manual picker
+# selection — login (theme-init.sh -> theme-apply), a theme switch
+# (theme-apply) and a manual pick (wallpaper-picker.sh) all call THIS
+# function and nothing else. Adding a second call site anywhere is
+# EXACTLY what D-21 forbids: it re-opens the "login-only code path"
+# failure class this decision exists to close. If this function's
+# behaviour ever needs to change, it changes here once, for all three
+# callers at once — never re-derive any part of it at a second site.
+#
+# Best-effort throughout (`|| true`, returns 0 on every path) — this
+# whole concern is cosmetic to a theme-apply run under
+# `set -euo pipefail` and must never change its exit code, exactly as
+# every other step in this library already requires of itself.
+theme_engine_wallpaper_sync_owner() {
+    local name="$1" ref="${2-}"
+    local have_ref=0
+    [[ $# -ge 2 ]] && have_ref=1
+
+    local owner="$HOME/.config/hypr/scripts/wallpaper-visibility.sh"
+    # A headless container or a fresh machine before stow must never fail
+    # here — return quietly rather than error.
+    [[ -x "$owner" ]] || return 0
+
+    # ── Reduced-motion intent FIRST, before any selection intent — a
+    # selection made under reduced motion must never briefly start a
+    # player and then immediately stop it. D-31 is a three-valued axis:
+    # only the literal "off" suppresses; "reduced", "normal", "lively"
+    # and a missing/unreadable file all show.
+    local motion_scale
+    motion_scale=$(cat "$HOME/.local/state/theme/motion-scale" 2>/dev/null || true)
+    if [[ "$motion_scale" == "off" ]]; then
+        "$owner" motion hide >/dev/null 2>&1 || true
+    else
+        "$owner" motion show >/dev/null 2>&1 || true
+    fi
+
+    # ── Selection: take ref from $2 when the caller supplied one
+    # (including the empty string, meaning "a wallpaper outside this
+    # theme, nothing to remember" — the picker's out-of-theme-pick case),
+    # otherwise read the first line of the theme's own recorded choice.
+    if [[ "$have_ref" -eq 0 ]]; then
+        ref=$(head -n1 "$LAST_WALLPAPER_DIR/$name" 2>/dev/null || true)
+    fi
+
+    if [[ -n "$ref" ]] && theme_engine_wallpaper_is_live_ref "$ref" \
+        && [[ -f "$WALLPAPER_DIR/$name/$ref" ]]; then
+        "$owner" select "$WALLPAPER_DIR/$name/$ref" >/dev/null 2>&1 || true
+    else
+        "$owner" clear >/dev/null 2>&1 || true
+    fi
+
+    # ── Reassert — mirrors reload.sh's own post-signal
+    # waybar-visibility.sh reassert call, so a theme switch can never
+    # leave the owner's actuated state desynced from the newly selected
+    # wallpaper.
+    "$owner" reassert >/dev/null 2>&1 || true
+
+    return 0
+}

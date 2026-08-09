@@ -3,11 +3,21 @@
 # ║              GAMING MODE TOGGLE (D-26/27/28)          ║
 # ║  Runtime-only, reversible. NEVER writes a Hyprland     ║
 # ║  config file — every compositor change goes through    ║
-# ║  `hyprctl keyword`. The theme-engine OWNS the on-disk   ║
-# ║  config files; a toggle that rewrote them would desync ║
-# ║  the pipeline (this is the single hardest constraint    ║
-# ║  in this script — see 07-07-PLAN.md D-26).             ║
+# ║  `hyprctl eval` (13.1-10 retarget; the Lua config       ║
+# ║  manager rejects `hyprctl keyword` as a silent no-op —  ║
+# ║  see WINDOWS.md #12 / deferred-items.md #1). The         ║
+# ║  theme-engine OWNS the on-disk config files; a toggle    ║
+# ║  that rewrote them would desync the pipeline (this is    ║
+# ║  the single hardest constraint in this script — see      ║
+# ║  07-07-PLAN.md D-26).                                    ║
 # ╚══════════════════════════════════════════════════════╝
+#
+# 17-03 correction (Task 2, D-28 flagged-assumption resolution): this file
+# is NOT silently dead as 17-CONTEXT.md's deferred section speculated —
+# lines below already use `hyprctl eval` with `hl.config({...})`, migrated
+# and live-verified by 13.1-10. Only THIS header comment still claimed the
+# pre-migration form; corrected here so a fourth reader does not repeat
+# the same stale-comment-driven "possibly silently dead" conclusion.
 #
 # State file: ~/.cache/gaming-mode ("on"/"off"), stow-seeded to "off" and
 # unconditionally reset to "off" on every session start (D-28,
@@ -51,6 +61,15 @@ _gaming_waybar_toggle() {
     ~/.config/hypr/scripts/waybar-visibility.sh gaming "$state" 2>/dev/null || true
 }
 
+# ── D-28: identical shape for the live-wallpaper owner. Declares an
+# intent ("gaming wants it hidden/shown"); wallpaper-visibility.sh (the
+# D-14 owner) computes the resulting state against the other actors
+# (idle, motion). This script must never start/stop mpvpaper directly.
+_gaming_wallpaper_toggle() {
+    local state="$1" # hide|show
+    ~/.config/hypr/scripts/wallpaper-visibility.sh gaming "$state" 2>/dev/null || true
+}
+
 # theme_engine-style atomic state write (commit.sh's temp-file + mv idiom)
 # — the menu entry reads this file while this script writes it, so a torn
 # read is a real possibility.
@@ -76,8 +95,9 @@ _read_state() {
 # it; this file joining them means no fourth, divergent parser). The
 # extractor emits dot-joined key paths ("colors.primary",
 # "motion.speed.standard", ...) — this file's own $key argument is a
-# colon-joined hyprctl keyword path ("decoration:blur:enabled"), which
-# never matches any key in the colors/motion namespace (see FINDING
+# colon-joined key path in the pre-13.1 `hyprctl keyword` shape
+# ("decoration:blur:enabled"), which never matches any key in the
+# colors/motion namespace (see FINDING
 # above) — same "always empty, always falls through" outcome as before
 # this retarget, now via the shared extractor instead of a hyprlang-
 # specific grep.
@@ -123,6 +143,10 @@ gaming_mode_on() {
 
     # ── Hide waybar: declare the gaming intent to the visibility owner.
     _gaming_waybar_toggle hide
+
+    # ── Stop the live wallpaper: declare the gaming intent to ITS
+    #    visibility owner (D-28). Mirrors the waybar call above exactly.
+    _gaming_wallpaper_toggle hide
 
     _write_state "on"
 
@@ -197,6 +221,10 @@ gaming_mode_off() {
     # ── Un-hide waybar: declare the gaming intent cleared.
     _gaming_waybar_toggle show
 
+    # ── Restore the live wallpaper: declare the gaming intent cleared on
+    #    ITS visibility owner too (D-28). Mirrors the waybar call above.
+    _gaming_wallpaper_toggle show
+
     # ── Stale-idle fix (D-05 SIGSTOP interaction). gaming_mode_on()
     #    freezes hypridle (pkill -STOP above), so an idle-hide/dim intent
     #    that was already in effect when gaming mode engaged can never be
@@ -211,6 +239,16 @@ gaming_mode_off() {
     #    concern. Do NOT remove this second call as "redundant": without
     #    it, gaming-mode-OFF can return a dimmed bar.
     ~/.config/hypr/scripts/waybar-visibility.sh idle show 2>/dev/null || true
+
+    # ── Same stale-idle fix, applied to the live wallpaper (D-28/17-03
+    #    Task 2e). gaming_mode_on()'s pkill -STOP -x hypridle above can
+    #    strand an idle=hide intent this owner declared before hypridle
+    #    was frozen — hypridle's own on-resume can never run to clear it
+    #    while stopped. Without this second call, turning gaming mode OFF
+    #    returns a STOPPED wallpaper (17-01/17-02 already proved this
+    #    exact shape for waybar; the wallpaper owner needs the identical
+    #    second call or the fix is only half-applied).
+    ~/.config/hypr/scripts/wallpaper-visibility.sh idle show 2>/dev/null || true
 
     _write_state "off"
 
