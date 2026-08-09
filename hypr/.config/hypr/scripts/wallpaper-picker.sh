@@ -23,6 +23,49 @@ PREVIOUS_FILE="$HOME/.cache/wallpaper-picker-previous"
 LAST_WALLPAPER_DIR="$HOME/.local/state/theme/last-wallpaper"
 IMG_MATCH=(-iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif")
 ACTIVE_MARKER=" ●"
+# D-17: distinct from ACTIVE_MARKER by construction ("this one moves" vs
+# "this one is active") — the two must never collide, since an entry can
+# carry both at once (a live active pick). Glyph is Claude's discretion
+# per CONTEXT.md.
+LIVE_MARKER=" ▶"
+
+# ── Source the theme-engine's wallpaper library (AMB-01/17-03 Task 1a) ──
+# Guarded source, following gaming-mode-toggle.sh:38-40's CONTRACT_LIB
+# idiom. This assigns WALLPAPER_DIR/LAST_WALLPAPER_DIR to the exact same
+# literals this file already defines above — a same-value collision, not
+# a conflict, and is exactly what this plan's "library constants match
+# the picker's" acceptance criterion (17-03-PLAN.md Task 1) asserts so a
+# future divergence introduced by editing only one file cannot land
+# silently. Gives us theme_engine_wallpaper_is_live_ref,
+# theme_engine_wallpaper_frame_path, theme_engine_wallpaper_frame_offset,
+# theme_engine_wallpaper_extract_frame and FRAME_DIR — the one source of
+# truth for the live/ shape test and the extraction command; 17-02
+# already applied this same rule when theme-doctor sourced this library
+# instead of re-implementing the regex, and nothing in THIS file may
+# re-derive either.
+WALLPAPER_LIB="$HOME/.config/theme-engine/lib/wallpaper.sh"
+# shellcheck source=/dev/null
+[[ -r "$WALLPAPER_LIB" ]] && source "$WALLPAPER_LIB"
+
+# ── One order-independent marker-strip helper (D-17) ────────────────
+# An entry can carry BOTH markers at once (a live active pick), so a
+# single open-coded trailing-active-marker strip is no longer sufficient
+# — this loops, stripping ACTIVE_MARKER then LIVE_MARKER off the tail,
+# until the value
+# stops changing, so the two-marker case strips regardless of order.
+# Defined ONCE here; emitted into the PREVIEW_SCRIPT/LIVE_SCRIPT
+# generated-script prologues below via `declare -f` (same definition,
+# never a second hand-copy).
+wp_strip_markers() {
+    local entry="$1" prev
+    while :; do
+        prev="$entry"
+        entry="${entry%"$ACTIVE_MARKER"}"
+        entry="${entry%"$LIVE_MARKER"}"
+        [[ "$entry" == "$prev" ]] && break
+    done
+    printf '%s' "$entry"
+}
 
 # ── Pipeline-themed fzf colors (THM-04/D-15) ─────────
 # Best-effort source of the engine-rendered fragment; the current
@@ -76,6 +119,15 @@ theme_display_name() {
 # that real path, not the literal $WALLPAPER_DIR string. Compare against the
 # resolved base so the active-marker prefix match actually succeeds.
 WALLPAPER_DIR_REAL=$(readlink -f "$WALLPAPER_DIR" 2>/dev/null || echo "$WALLPAPER_DIR")
+# Same resolution for the frame directory (D-06/D-18) — after a live pick,
+# current.jpg resolves under HERE, not under WALLPAPER_DIR_REAL (17-02
+# handoff (b)). FRAME_DIR comes from the sourced library; fall back to its
+# known literal if the source above failed (fresh-install degradation).
+FRAME_DIR_REAL=$(readlink -f "${FRAME_DIR:-$HOME/.local/state/theme/wallpaper-frames}" 2>/dev/null || echo "${FRAME_DIR:-$HOME/.local/state/theme/wallpaper-frames}")
+
+# ── Current theme (moved above ENUM_SCRIPT — the active-entry regression
+# fix (17-02 handoff (b)) needs it interpolated into the generated script) ──
+CURRENT_THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 
 ENUM_SCRIPT=$(mktemp /tmp/wp-enum-XXXXXX.sh)
 cat > "$ENUM_SCRIPT" << ENUM
@@ -83,13 +135,32 @@ cat > "$ENUM_SCRIPT" << ENUM
 MODE="\$1"
 WALLPAPER_DIR="$WALLPAPER_DIR"
 WALLPAPER_DIR_REAL="$WALLPAPER_DIR_REAL"
+FRAME_DIR_REAL="$FRAME_DIR_REAL"
+CURRENT_THEME="$CURRENT_THEME"
+LAST_WALLPAPER_DIR="$LAST_WALLPAPER_DIR"
 ACTIVE_MARKER="$ACTIVE_MARKER"
+LIVE_MARKER="$LIVE_MARKER"
+WALLPAPER_LIB="$WALLPAPER_LIB"
+# shellcheck source=/dev/null
+[[ -r "\$WALLPAPER_LIB" ]] && source "\$WALLPAPER_LIB"
 
 ACTIVE_RELPATH=""
 if [[ -f "\$WALLPAPER_DIR/current.jpg" ]]; then
     ACTIVE_TARGET=\$(readlink -f "\$WALLPAPER_DIR/current.jpg" 2>/dev/null || echo "")
     if [[ -n "\$ACTIVE_TARGET" && "\$ACTIVE_TARGET" == "\$WALLPAPER_DIR_REAL"/* ]]; then
         ACTIVE_RELPATH="\${ACTIVE_TARGET#"\$WALLPAPER_DIR_REAL"/}"
+    elif [[ -n "\$ACTIVE_TARGET" && -n "\$FRAME_DIR_REAL" && "\$ACTIVE_TARGET" == "\$FRAME_DIR_REAL"/* && -n "\$CURRENT_THEME" ]]; then
+        # 17-02 handoff (b): current.jpg resolves under the frame dir for a
+        # live choice. The recorded state is the authority here, never a
+        # reverse-derivation of the frame filename.
+        if [[ -f "\$LAST_WALLPAPER_DIR/\$CURRENT_THEME" ]]; then
+            RECORDED=\$(head -n1 "\$LAST_WALLPAPER_DIR/\$CURRENT_THEME" 2>/dev/null || true)
+            if [[ -n "\$RECORDED" ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \\
+                && theme_engine_wallpaper_is_live_ref "\$RECORDED" \\
+                && [[ -f "\$WALLPAPER_DIR/\$CURRENT_THEME/\$RECORDED" ]]; then
+                ACTIVE_RELPATH="\$CURRENT_THEME/\$RECORDED"
+            fi
+        fi
     fi
 fi
 
@@ -98,11 +169,18 @@ if [[ "\$MODE" == "full" ]]; then
         -type f \\( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \\) \\
         ! -name "current.jpg" \\
         -printf "%P\\n" 2>/dev/null | sort)
+    # D-03: separate, unfiltered live/ enumeration pass — no -iname test
+    # at all (D-01 defines "live" by folder, not extension), NEVER merged
+    # into \$LIST above.
+    LIVE_LIST=\$(find "\$WALLPAPER_DIR" -mindepth 3 -maxdepth 3 -type f -path '*/live/*' \\
+        -printf "%P\\n" 2>/dev/null | sort)
 else
     LIST=\$(find "\$WALLPAPER_DIR/\$MODE" -maxdepth 1 \\
         -type f \\( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \\) \\
         ! -name "current.jpg" \\
         -printf "%f\\n" 2>/dev/null | sort | sed "s|^|\$MODE/|")
+    LIVE_LIST=\$(find "\$WALLPAPER_DIR/\$MODE/live" -maxdepth 1 -type f \\
+        -printf "%f\\n" 2>/dev/null | sort | sed "s|^|\$MODE/live/|")
 fi
 
 while IFS= read -r line; do
@@ -113,11 +191,24 @@ while IFS= read -r line; do
         printf '%s\n' "\$line"
     fi
 done <<< "\$LIST"
+
+# Live entries are listed after the stills (D-17: grouped at the end,
+# discoverable) and always carry LIVE_MARKER; the active one carries
+# LIVE_MARKER FIRST then ACTIVE_MARKER (renders as "... ▶ ●" — matches
+# wp_strip_markers' stripping order, which peels ACTIVE_MARKER's suffix
+# before LIVE_MARKER's).
+while IFS= read -r line; do
+    [[ -z "\$line" ]] && continue
+    if [[ -n "\$ACTIVE_RELPATH" && "\$line" == "\$ACTIVE_RELPATH" ]]; then
+        printf '%s%s%s\n' "\$line" "\$LIVE_MARKER" "\$ACTIVE_MARKER"
+    else
+        printf '%s%s\n' "\$line" "\$LIVE_MARKER"
+    fi
+done <<< "\$LIVE_LIST"
 ENUM
 chmod +x "$ENUM_SCRIPT"
 
 # ── Mode selection (THM-03/D-16/D-12/D-05) ───────────
-CURRENT_THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 STANDARD_HEADER=" 🖼  Wallpaper Picker  │  ↑↓ browse  │  Enter confirm  │  Esc cancel"
 HEADER="$STANDARD_HEADER"
 MODE_ARG="full"
@@ -129,6 +220,13 @@ if [[ -n "$CURRENT_THEME" && "$CURRENT_THEME" != "materialyou" && "$CURRENT_THEM
     THEME_HAS_IMAGES=0
     if [[ -d "$THEME_FOLDER" ]]; then
         if find "$THEME_FOLDER" -maxdepth 1 -type f \( "${IMG_MATCH[@]}" \) ! -name "current.jpg" -print -quit 2>/dev/null | grep -q .; then
+            THEME_HAS_IMAGES=1
+        # D-03 live-only-theme fix: a theme whose wallpapers are ALL live
+        # must not fall through to the unrestricted full library — mirrors
+        # theme_engine_wallpaper_autoset's identical fix (17-02c); the
+        # picker and the engine must never disagree about whether a theme
+        # has wallpapers.
+        elif find "$THEME_FOLDER/live" -maxdepth 1 -type f -print -quit 2>/dev/null | grep -q .; then
             THEME_HAS_IMAGES=1
         fi
     fi
@@ -166,16 +264,59 @@ fi
 # kitten is unavailable; the original block-symbols chafa call is the last
 # resort for non-kitty-graphics terminals.
 PREVIEW_SCRIPT=$(mktemp /tmp/wp-preview-XXXXXX.sh)
-# WR-02: interpolate the single WALLPAPER_DIR constant into the generated
-# script's prologue (printf %q — safe against spaces/metachars) so the
-# quoted heredoc body below references it instead of hardcoding a second
-# divergent copy of the path (same discipline as the ENUM heredoc above).
-printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\n' "$WALLPAPER_DIR" > "$PREVIEW_SCRIPT"
+# WR-02: interpolate the shared constants into the generated script's
+# prologue (printf %q — safe against spaces/metachars) so the quoted
+# heredoc body below references them instead of hardcoding a second
+# divergent copy (same discipline as the ENUM heredoc above). D-18 adds
+# the library source (for is_live_ref/frame_path/frame_offset/
+# extract_frame) and `declare -f wp_strip_markers` — the SAME definition
+# emitted here and into LIVE_SCRIPT below, never a second hand-copy.
+printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\nACTIVE_MARKER=%q\nLIVE_MARKER=%q\nWALLPAPER_LIB=%q\n' \
+    "$WALLPAPER_DIR" "$ACTIVE_MARKER" "$LIVE_MARKER" "$WALLPAPER_LIB" > "$PREVIEW_SCRIPT"
+declare -f wp_strip_markers >> "$PREVIEW_SCRIPT"
+printf '\n[[ -r "$WALLPAPER_LIB" ]] && source "$WALLPAPER_LIB"\n' >> "$PREVIEW_SCRIPT"
 cat >> "$PREVIEW_SCRIPT" << 'PREVIEW'
 ENTRY="$1"
-ENTRY="${ENTRY% ●}"
+ENTRY="$(wp_strip_markers "$ENTRY")"
 FILE="$WALLPAPER_DIR/$ENTRY"
 [[ ! -f "$FILE" ]] && exit 0
+
+# D-18: a live entry's remainder (theme stripped) satisfies
+# theme_engine_wallpaper_is_live_ref — the SAME shape test the engine and
+# theme-doctor use, never re-derived here.
+THEME="${ENTRY%%/*}"
+REMAINDER="${ENTRY#*/}"
+IS_LIVE=0
+if [[ "$ENTRY" == */* ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \
+    && theme_engine_wallpaper_is_live_ref "$REMAINDER"; then
+    IS_LIVE=1
+fi
+
+RENDER_FILE="$FILE"
+if [[ "$IS_LIVE" == "1" ]]; then
+    # Extract-on-first-preview, cache warm (D-18): the exact frame that
+    # becomes the lock-screen background, produced ONLY through the
+    # library's functions — never a second ffmpeg invocation here (both
+    # RESEARCH-reproduced silent-failure traps stay closed inside 17-02's
+    # function, and re-deriving even one of them at a second call site
+    # would risk reproducing only one).
+    FRAME="$(theme_engine_wallpaper_frame_path "$THEME" "$REMAINDER")"
+    if [[ ! -s "$FRAME" ]]; then
+        OFFSET="$(theme_engine_wallpaper_frame_offset "$THEME" "$REMAINDER")"
+        theme_engine_wallpaper_extract_frame "$FILE" "$FRAME" "$OFFSET" || true
+    fi
+    if [[ -s "$FRAME" ]]; then
+        RENDER_FILE="$FRAME"
+    else
+        # Degrade visibly, never blankly, and never fall through to the
+        # graphics protocol with the source video (T-17-09-adjacent: the
+        # pane must never attempt to render a video through the kitty
+        # graphics protocol).
+        echo ""
+        echo " ${ENTRY}: no frame could be extracted"
+        exit 0
+    fi
+fi
 
 # Get preview pane dimensions from fzf — reserve 2 rows for the metadata
 # line printed below the image.
@@ -188,14 +329,14 @@ if [[ -n "$KITTY_WINDOW_ID" ]] && command -v kitten &>/dev/null; then
     # Primary: kitty graphics protocol via kitten icat (verbatim fzf
     # upstream pattern — RESEARCH.md Pattern 4).
     kitten icat --clear --transfer-mode=memory --unicode-placeholder \
-        --stdin=no --place="${COLS}x${IMG_LINES}@0x0" "$FILE" 2>/dev/null \
+        --stdin=no --place="${COLS}x${IMG_LINES}@0x0" "$RENDER_FILE" 2>/dev/null \
         | sed '$d' | sed $'$s/$/\e[m/'
 elif command -v chafa &>/dev/null && chafa --help 2>/dev/null | grep -q 'kitty'; then
     # Fallback 1: chafa's own kitty-graphics-protocol output format — same
     # pixel-perfect protocol, different tool.
     chafa --format=kitty --size="${COLS}x${IMG_LINES}" \
           --animate=off --center=on \
-          "$FILE" 2>/dev/null
+          "$RENDER_FILE" 2>/dev/null
 else
     # Fallback 2 (last resort): character-block-art rendering.
     chafa --size="${COLS}x${IMG_LINES}" \
@@ -203,26 +344,31 @@ else
           --center=on \
           --color-space=din99d \
           --symbols=block+border+space \
-          "$FILE" 2>/dev/null
+          "$RENDER_FILE" 2>/dev/null
 fi
 
 # Print filename and dimensions below preview (single ANSI-bold emphasis
-# convention, UI-SPEC Typography), plus an active indicator when the
-# previewed file is the currently active wallpaper.
+# convention, UI-SPEC Typography), plus a live badge and an active
+# indicator when the previewed file is the currently active wallpaper.
+# Dimensions come from the rendered frame; byte size stays the SOURCE
+# video's, which is what the picker's metadata line has always meant.
 echo ""
-DIMS=$(identify -format "%wx%h" "$FILE" 2>/dev/null || echo "unknown")
+DIMS=$(identify -format "%wx%h" "$RENDER_FILE" 2>/dev/null || echo "unknown")
 SIZE=$(du -h "$FILE" 2>/dev/null | cut -f1)
+LIVE_BADGE=""
+[[ "$IS_LIVE" == "1" ]] && LIVE_BADGE="  │  ▶ live"
 ACTIVE_MARK=""
 CURRENT_LINK="$WALLPAPER_DIR/current.jpg"
 if [[ -f "$CURRENT_LINK" ]]; then
     # Compare fully-resolved (readlink -f) targets on both sides — WALLPAPER_DIR
     # itself may sit behind a stow-managed directory symlink, so resolving only
-    # one side would never match.
+    # one side would never match. For a live entry this compares against the
+    # FRAME, never the video (17-02 handoff (b)'s regression, closed here too).
     ACTIVE_TARGET=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
-    FILE_TARGET=$(readlink -f "$FILE" 2>/dev/null || echo "")
+    FILE_TARGET=$(readlink -f "$RENDER_FILE" 2>/dev/null || echo "")
     [[ -n "$ACTIVE_TARGET" && "$ACTIVE_TARGET" == "$FILE_TARGET" ]] && ACTIVE_MARK="  │  ● active"
 fi
-echo -e " \e[1m$ENTRY\e[0m  │  ${DIMS}  │  ${SIZE}${ACTIVE_MARK}"
+echo -e " \e[1m$ENTRY\e[0m  │  ${DIMS}  │  ${SIZE}${LIVE_BADGE}${ACTIVE_MARK}"
 PREVIEW
 chmod +x "$PREVIEW_SCRIPT"
 
@@ -232,11 +378,16 @@ chmod +x "$PREVIEW_SCRIPT"
 # preview script above. Second arg selects the transition (default: the
 # focus-navigate wipe; "random" for the Ctrl-R random-transition binding).
 LIVE_SCRIPT=$(mktemp /tmp/wp-live-XXXXXX.sh)
-# WR-02: same interpolated-prologue pattern as PREVIEW_SCRIPT above.
-printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\n' "$WALLPAPER_DIR" > "$LIVE_SCRIPT"
+# WR-02: same interpolated-prologue pattern as PREVIEW_SCRIPT above. Task
+# 1 changes only this shared prologue and the strip helper — the D-19
+# debounce and the live/still branch are Task 3's.
+printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\nACTIVE_MARKER=%q\nLIVE_MARKER=%q\nWALLPAPER_LIB=%q\n' \
+    "$WALLPAPER_DIR" "$ACTIVE_MARKER" "$LIVE_MARKER" "$WALLPAPER_LIB" > "$LIVE_SCRIPT"
+declare -f wp_strip_markers >> "$LIVE_SCRIPT"
+printf '\n[[ -r "$WALLPAPER_LIB" ]] && source "$WALLPAPER_LIB"\n' >> "$LIVE_SCRIPT"
 cat >> "$LIVE_SCRIPT" << 'LIVE'
 ENTRY="$1"
-ENTRY="${ENTRY% ●}"
+ENTRY="$(wp_strip_markers "$ENTRY")"
 FILE="$WALLPAPER_DIR/$ENTRY"
 [[ ! -f "$FILE" ]] && exit 0
 if [[ "${2:-}" == "random" ]]; then
@@ -302,8 +453,9 @@ if [[ -z "$SELECTED" ]]; then
     exit 0
 fi
 
-# Strip the active-wallpaper marker suffix before any path use (D-14).
-SELECTED="${SELECTED% ●}"
+# Strip both marker suffixes before any path use (D-14/D-17), via the one
+# order-independent helper — never a second open-coded strip.
+SELECTED="$(wp_strip_markers "$SELECTED")"
 
 # ── Confirm selection ────────────────────────────────
 FULL_PATH="$WALLPAPER_DIR/$SELECTED"
