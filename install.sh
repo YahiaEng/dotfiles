@@ -339,6 +339,15 @@ AUR_PKGS=(
     # -git package verified by presence only, not by version — the same
     # property walker and elephant already have in this array.
     ttf-material-symbols-variable-git
+
+    # Live wallpaper player (D-23 — package-legitimacy audit in
+    # 17-RESEARCH.md §"Package Legitimacy Audit": verdict OK, AUR since
+    # 2020-09-10, last modified 2026-07-19, 19 votes/0.44 popularity,
+    # upstream github.com/GhostNaN/mpvpaper at 1561 stars, pushed
+    # 2026-07-25, not archived. Hard dependency — an animated/video
+    # wallpaper in ~/Pictures/Wallpapers/<theme>/live/ has nothing to play
+    # it without this binary; libmpv arrives transitively.
+    mpvpaper
 )
 
 # ── section_core_rice ─────────────────────────────────

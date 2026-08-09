@@ -33,6 +33,13 @@ wallpapers/Pictures/Wallpapers/current.jpg
 # Belt-and-suspenders alongside the .stow-local-ignore fold exclusion above.
 wallpapers/Pictures/Screenshots/
 
+# Live wallpapers (AMB-01/D-02) — video/animated-image files a user drops
+# into ~/Pictures/Wallpapers/<theme>/live/ to play as a live wallpaper.
+# User-side media, never repo content; large binaries must never land in
+# git history. stow.sh pre-creates the directory itself (real, not a repo
+# path) so the layout reproduces without ever needing to track a file here.
+wallpapers/Pictures/Wallpapers/*/live/
+
 # GSD research cache — ephemeral web-research cache written by the research
 # skill/tool, never meant to be tracked (CLEAN-02/D-50 git-clean invariant).
 .planning/research/.cache/

@@ -202,6 +202,27 @@ mkdir -p "$HOME/.local"
 # targets ~/.local/share/ at runtime.
 mkdir -p "$HOME/Pictures/Wallpapers" "$HOME/Pictures/Screenshots"
 
+# D-02/AMB-01: pre-create each theme's live/ directory as a REAL directory,
+# BEFORE the PACKAGES stow loop below — same fold-bug class documented at
+# length in the comment block just above (13.1-10/CR-01/G-15-4 precedent).
+# Video/animated wallpapers never ship inside the `wallpapers` stow package
+# (git must never carry large binaries), so nothing here would otherwise
+# create ~/Pictures/Wallpapers/<theme>/live/ on a fresh machine. If this
+# loop ran AFTER stowing `wallpapers`, and stow had already folded a theme
+# directory into a whole-directory symlink back into the repo (the same
+# hazard the comment above just walked through for ~/Pictures itself), the
+# mkdir here would write live/ INSIDE THE CLONED REPO TREE instead of under
+# the user's real Pictures directory. Placement before the loop is
+# load-bearing, not incidental. Enumerate the repo's own theme directories
+# so the layout always matches whatever presets are actually shipped —
+# same dynamic-enumeration convention as theme-parity/stress-test/picker
+# (05-P02, "no hardcoded theme lists").
+for theme_dir in "$DOTFILES_DIR"/wallpapers/Pictures/Wallpapers/*/; do
+    [[ -d "$theme_dir" ]] || continue
+    theme_name="$(basename "$theme_dir")"
+    mkdir -p "$HOME/Pictures/Wallpapers/$theme_name/live"
+done
+
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
