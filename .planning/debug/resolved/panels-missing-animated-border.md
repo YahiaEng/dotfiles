@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "this is important for all panels not just wifi, they need to have the same animated colored border as the rest of dashboard."
 created: 2026-08-02T08:00:00Z
-updated: 2026-08-02T08:50:00Z
+updated: 2026-08-10T00:00:00Z
 ---
 
 ## Current Focus
@@ -223,6 +223,21 @@ root_cause: >
   GradientBorder block — which sits between `background` and `content` in Dashboard.qml — was
   not carried across. This is a shared-component reuse omission, not a runtime fault: nothing
   errors, the component is simply never constructed for these three surfaces.
-fix: "[not applied — goal: find_root_cause_only]"
-verification: "[not applied — goal: find_root_cause_only]"
-files_changed: []
+fix: >
+  `GradientBorder` was instantiated inside `PanelDialog.qml` between `background` and
+  `content` in commit `4f48847` (`feat(15-10): instantiate GradientBorder inside
+  PanelDialog.qml`, 2026-08-02 19:35:30, +24 lines, that file only), landing at
+  `PanelDialog.qml:191`. All three panels inherit it from the shared frame with zero
+  call-site changes — exactly the reuse path this session's own experiments predicted
+  was unobstructed.
+verification: >
+  Two-part evidence. Static: `PanelDialog.qml:191` instantiates `GradientBorder`
+  between `background` and `content`, confirmed by direct source read. Live: operator
+  visually confirmed on 2026-08-10 that the audio, wifi and bluetooth panels all
+  render the glowing rim. Note: this session sat at `status: diagnosed` for eight days
+  after its own fix had already shipped, because the fix landed through the normal
+  Phase 15 plan track (15-10) rather than through this session, and nothing closed the
+  loop back to the frontmatter — that lag is the reusable lesson and belongs in the
+  record.
+files_changed:
+  - quickshell/.config/quickshell/modules/dashboard/PanelDialog.qml
