@@ -26,6 +26,13 @@ LAST_WALLPAPER_DIR="$HOME/.local/state/theme/last-wallpaper"
 # this script's own startup snapshot / cancellation restore / exit drain.
 HOVER_TOKEN="$HOME/.cache/wallpaper-picker-hover"
 WALLPAPER_OWNER="$HOME/.config/hypr/scripts/wallpaper-visibility.sh"
+# WR-02: set (best-effort touch) by LIVE_SCRIPT's settle block only after
+# a live entry's owner `select` call has actually succeeded this session
+# — read by the still branch below to know whether navigating to a still
+# needs to explicitly stop a real, still-playing mpvpaper process. Reset
+# at picker startup so a fresh session never inherits a stale marker.
+LIVE_SESSION_MARKER="$HOME/.cache/wallpaper-picker-live-session"
+rm -f "$LIVE_SESSION_MARKER"
 IMG_MATCH=(-iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif")
 ACTIVE_MARKER=" ●"
 # D-17: distinct from ACTIVE_MARKER by construction ("this one moves" vs
@@ -419,8 +426,8 @@ chmod +x "$PREVIEW_SCRIPT"
 # never signals mpvpaper directly (D-14).
 LIVE_SCRIPT=$(mktemp /tmp/wp-live-XXXXXX.sh)
 # WR-02: same interpolated-prologue pattern as PREVIEW_SCRIPT above.
-printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\nACTIVE_MARKER=%q\nLIVE_MARKER=%q\nWALLPAPER_LIB=%q\nHOVER_TOKEN=%q\nWALLPAPER_OWNER=%q\nLAST_WALLPAPER_DIR=%q\nCURRENT_THEME=%q\n' \
-    "$WALLPAPER_DIR" "$ACTIVE_MARKER" "$LIVE_MARKER" "$WALLPAPER_LIB" "$HOVER_TOKEN" "$WALLPAPER_OWNER" "$LAST_WALLPAPER_DIR" "$CURRENT_THEME" > "$LIVE_SCRIPT"
+printf '#!/usr/bin/env bash\nWALLPAPER_DIR=%q\nACTIVE_MARKER=%q\nLIVE_MARKER=%q\nWALLPAPER_LIB=%q\nHOVER_TOKEN=%q\nWALLPAPER_OWNER=%q\nLAST_WALLPAPER_DIR=%q\nCURRENT_THEME=%q\nLIVE_SESSION_MARKER=%q\n' \
+    "$WALLPAPER_DIR" "$ACTIVE_MARKER" "$LIVE_MARKER" "$WALLPAPER_LIB" "$HOVER_TOKEN" "$WALLPAPER_OWNER" "$LAST_WALLPAPER_DIR" "$CURRENT_THEME" "$LIVE_SESSION_MARKER" > "$LIVE_SCRIPT"
 declare -f wp_strip_markers >> "$LIVE_SCRIPT"
 printf '\n[[ -r "$WALLPAPER_LIB" ]] && source "$WALLPAPER_LIB"\n' >> "$LIVE_SCRIPT"
 cat >> "$LIVE_SCRIPT" << 'LIVE'
@@ -510,6 +517,13 @@ if [[ "$IS_LIVE" == "1" ]]; then
                 printf '%s\n' "$REMAINDER" > "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" 2>/dev/null \
                     && mv -f "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" "$LAST_WALLPAPER_DIR/$CURRENT_THEME" 2>/dev/null
             fi
+
+            # (code review WR-02): record that a live entry has actually
+            # started playing this session, so the still branch below
+            # knows it must explicitly stop it if the user navigates
+            # away — only set after the owner's own select confirmed
+            # success above, never merely on dispatch.
+            touch "$LIVE_SESSION_MARKER" 2>/dev/null || true
         fi
     ) &
     disown
@@ -526,6 +540,17 @@ else
             --transition-duration 1 \
             --transition-fps 165 \
             --transition-step 90 2>/dev/null &
+    fi
+    # (code review WR-02): the picker's own header advertises a live
+    # preview "as you navigate" — a live entry's owner-confirmed player
+    # from an earlier hover this session (LIVE_SESSION_MARKER) must not
+    # keep covering the desktop while a STILL is now being previewed.
+    # Best-effort, matching every other owner call's `|| true`/backgrounded
+    # discipline in this file; the owner's own idempotent no-op check
+    # (already-stopped target) makes repeat calls cheap.
+    if [[ -f "$LIVE_SESSION_MARKER" ]]; then
+        "$WALLPAPER_OWNER" clear >/dev/null 2>&1 &
+        disown
     fi
 fi
 LIVE
@@ -581,6 +606,10 @@ if [[ -f "$HOVER_TOKEN" ]]; then
     sleep 0.35
 fi
 rm -f "$HOVER_TOKEN"
+# (code review WR-02): session-scoped, not meant to outlive this run —
+# the next invocation's own startup `rm -f` already guards a fresh
+# session either way, this is just tidiness.
+rm -f "$LIVE_SESSION_MARKER"
 
 # ── Handle selection or cancellation ─────────────────
 if [[ -z "$SELECTED" ]]; then
