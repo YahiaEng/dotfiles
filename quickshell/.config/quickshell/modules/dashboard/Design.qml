@@ -107,4 +107,29 @@ Singleton {
 
     // ── Border width — see the provenance note above (15-10, G-15-1b) ───
     readonly property int borderWidth: 3
+
+    // ── Bar tokens (Phase 18 Plan 01) — provenance: 18-UI-SPEC.md
+    //    "## New Tokens". This is the tracer's minimum: only the four
+    //    tokens Bar.qml actually reads in this plan. The remaining
+    //    UI-SPEC bar tokens (barColumnWidth, hotZoneDepth, popoutDwellMs,
+    //    popoutDismissGraceMs, barReHideGraceMs, popoutHeaderHeight,
+    //    popoutCornerRadius, popoutMinWidth, popoutMaxWidth,
+    //    mediaTitleMaxChars, trayMaxExtent) belong to the later plans that
+    //    consume them — the standing rule for this phase is that each plan
+    //    appends only the tokens it actually reads, so no plan ships an
+    //    unconsumed constant.
+    //
+    //    barEdgeMargin (6) and barSideMargin (10) are the ONLY two values
+    //    in this phase exempt from the repo's 4px grid (spacingXs/Sm/Md/
+    //    Lg/Xl above are all multiples of 4). The exemption exists SOLELY
+    //    to reproduce config-athena.jsonc's `margin-top` and
+    //    `margin-left`/`margin-right` byte-for-byte (6 and 10
+    //    respectively), so the QML bar lands positionally identical to
+    //    the waybar layout it retires (D-18-38). No future token may cite
+    //    this exemption — it is a one-time parity requirement, not a
+    //    precedent.
+    readonly property int barHeight: 40
+    readonly property int barEdgeMargin: 6
+    readonly property int barSideMargin: 10
+    readonly property int barCapsuleRadius: barHeight / 2
 }

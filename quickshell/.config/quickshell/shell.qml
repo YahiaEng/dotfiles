@@ -128,6 +128,19 @@ ShellRoot {
         drawerOpen: dashboardLoader.active
     }
 
+    // ── QML bar (Phase 18 Plan 01 tracer, QBAR-01) ───────────────────────
+    // Mounted unconditionally, a direct ShellRoot child and sibling of the
+    // backend instances above — deliberately the FIRST surface in this
+    // file NOT behind a LazyLoader, NOT behind a GlobalShortcut, and NOT
+    // behind an IpcHandler, with no `active` property at all. Every prior
+    // surface here follows a summon-on-demand shape; this is the phase's
+    // named inversion of that shape (Bar.qml's own header comment repeats
+    // the same reasoning). The bar's visibility control arrives in 18-15
+    // as a `bar` IPC handler, not as a loader toggle.
+    Bar {
+        id: barInstance
+    }
+
     // ── Audio panel (Phase 15 Plan 02 tracer, PANEL-02/PANEL-06) ─────────
     // Same summon-via-LazyLoader mechanism as the dashboard drawer above.
     // `AudioBackend`'s `panelOpen` gate is bound to this loader's own
