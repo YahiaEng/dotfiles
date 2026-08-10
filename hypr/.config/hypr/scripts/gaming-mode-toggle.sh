@@ -183,29 +183,43 @@ gaming_mode_off() {
     local need_reload=0
     local v
 
+    # WR-05: $v is spliced directly into a live hyprctl eval Lua-source
+    # string below — provably dead today (see FINDING above: no
+    # decoration:*/animations:* key exists in the merged token table on
+    # this repo's layout, so $v is always empty and every branch here
+    # falls to need_reload=1), but validate its shape BEFORE the splice
+    # regardless, so a future token that populates one of these keys with
+    # anything other than a bare true/false can never reach hyprctl
+    # eval's Lua-source argv position. Bool-only shape check —
+    # contract_extract_values' lua-table arm only ever tostring()s a Lua
+    # boolean leaf here, never a number, so this never rejects a value
+    # this call site is meant to accept.
     v="$(_restore_keyword decoration:blur:enabled)"
-    if [[ -n "$v" ]]; then
+    if [[ "$v" =~ ^(true|false)$ ]]; then
         hyprctl eval "hl.config({ decoration = { blur = { enabled = $v } } })" 2>/dev/null || true
     else
         need_reload=1
     fi
 
     v="$(_restore_keyword animations:enabled)"
-    if [[ -n "$v" ]]; then
+    if [[ "$v" =~ ^(true|false)$ ]]; then
         hyprctl eval "hl.config({ animations = { enabled = $v } })" 2>/dev/null || true
     else
         need_reload=1
     fi
 
     v="$(_restore_keyword decoration:shadow:enabled)"
-    if [[ -n "$v" ]]; then
+    if [[ "$v" =~ ^(true|false)$ ]]; then
         hyprctl eval "hl.config({ decoration = { shadow = { enabled = $v } } })" 2>/dev/null || true
     else
         need_reload=1
     fi
 
+    # rounding is Lua-numeric, not boolean — same injection-surface
+    # concern, different accepted shape: digits only (no sign, no
+    # decimal — matches every rounding value Hyprland itself ever emits).
     v="$(_restore_keyword decoration:rounding)"
-    if [[ -n "$v" ]]; then
+    if [[ "$v" =~ ^[0-9]+$ ]]; then
         hyprctl eval "hl.config({ decoration = { rounding = $v } })" 2>/dev/null || true
     else
         need_reload=1
