@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-08-10T23:14:35.365Z"
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-08-10T23:36:48.356Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 2 of 20
+Plan: 3 of 20
 Status: Ready to execute
-Progress: [█░░░░░░░░░] 5%
+Progress: [█░░░░░░░░░] 10%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -193,6 +193,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 17 P05 | ~5h30m | 4 tasks | 9 files |
 | Phase 17 P06 | ~2h | 3 tasks | 5 files |
 | Phase 18 P01 | ~20min | 3 tasks | 5 files |
+| Phase 18 P02 | ~20min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -389,6 +390,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 17-05: self-corrected mid-plan wrong claim — reverting the two experimental permission grants (f4d2ff6) was reported as fixing the login/idle-lock dialog, but it only restored the starting no-grant/ASK state. Actual fix was removing the hl.plugin.load() call itself (537af08), the only one of three fully-determined states (no grant->dialog; matching grant->crash; no request->neither) that is safe. Corrected after the coordinator caught it by re-reading the committed tree.
 - [Phase ?]: 17-06 (Tasks 1-3): criterion-3 sweep clean (25 OK/0 FAIL/0 DRIFT/1 INFO, exit 0); AMB-01/AMB-02 marked Complete on evidence; D-35 declarative-load conclusively unsafe on this Hyprland build, mechanism substituted with hyprpm+hyprpm-complete.sh; D-38 accepted gap restated at true size (5 sites/8 declaration lines, was 3). Phase 17's final sign-off is a blocking checkpoint (Task 4), not yet approved as of this entry.
 - [Phase ?]: 18-01: exclusiveZone corrected to Design.barHeight alone (not + barEdgeMargin) — Hyprland's total reservation is margins.top + exclusiveZone, live-measured and fixed after the plan's own formula produced 52px/98px instead of 46px/92px
+- [Phase ?]: 18-02: GATE-01 baseline enumerated all four retired waybar layouts (66 unique WB-* criterion IDs), found and worked around a waybar-equivalence-check tool gap (group-member modules missing from --resolve output), and wired the GATE-01 recurrence protocol into ROADMAP.md Phases 19-21
 
 ### Quick Tasks Completed
 
@@ -516,8 +518,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-10T23:14:35.339Z
-Stopped at: Completed 18-01-PLAN.md
+Last session: 2026-08-10T23:36:48.340Z
+Stopped at: Completed 18-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

@@ -72,7 +72,7 @@
 
 ### GATE — Quality gates for a redesign-not-port migration
 
-- [ ] **GATE-01**: Before each surface is redesigned, its current behaviour is enumerated from the live config and written down as acceptance criteria — while the implementation being replaced still exists to be read
+- [x] **GATE-01**: Before each surface is redesigned, its current behaviour is enumerated from the live config and written down as acceptance criteria — while the implementation being replaced still exists to be read
 - [ ] **GATE-02**: Every phase passes a human render-and-look gate; no phase closes with its replacement judged worse than what it replaced, and no old package is deleted before that judgment
 - [ ] **GATE-03**: `quickshell-doctor` gains structural checks for each new surface, replacing the mechanical coverage that dies with `waybar-equivalence-check`
 - [ ] **GATE-04**: A hex-literal lint refuses any QML surface hard-coding a colour, mirroring `motion-lint`'s deny-by-default discipline
@@ -166,7 +166,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | RETIRE-07 | Phase 20 | Pending |
 | RETIRE-08 | Phase 21 | Pending |
 | RETIRE-09 | Phase 22 | Pending |
-| GATE-01 | Phase 18 | Pending |
+| GATE-01 | Phase 18 | Complete |
 | GATE-02 | Phase 18 | Pending |
 | GATE-03 | Phase 18 | Pending |
 | GATE-04 | Phase 18 | Pending |
