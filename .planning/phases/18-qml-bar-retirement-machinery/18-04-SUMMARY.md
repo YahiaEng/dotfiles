@@ -165,3 +165,7 @@ None - no external service configuration required.
 ---
 *Phase: 18-qml-bar-retirement-machinery*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+All claimed files exist (`.planning/PROJECT.md`, `.planning/MILESTONES.md`, `.planning/WINDOWS.md`, `.planning/debug/resolved/panels-missing-animated-border.md`, this SUMMARY.md; old path `.planning/debug/panels-missing-animated-border.md` confirmed gone). All claimed commit hashes (`57574f3`, `5ae712d`, `d5a27a8`, `600c347`, `4e2744e`) verified present in `git log --oneline --all`.
