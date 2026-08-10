@@ -472,34 +472,45 @@ if [[ "$IS_LIVE" == "1" ]]; then
             OFFSET="$(theme_engine_wallpaper_frame_offset "$THEME" "$REMAINDER")"
             theme_engine_wallpaper_extract_frame "$FILE" "$FRAME" "$OFFSET" || true
         fi
-        [[ -s "$FRAME" ]] && ln -sfr "$FRAME" "$WALLPAPER_DIR/current.jpg" 2>/dev/null
-
-        # Bugfix, continued: current.jpg alone is not enough — autoset()
-        # (run by EVERY theme-apply, including motion-scale's own) never
-        # looks at current.jpg's current value, it re-derives it from
-        # last-wallpaper/<theme> every single time. Without ALSO
-        # recording the settled hover here, the very next unrelated
-        # theme-apply (e.g. motion-switch.sh off) would silently revert
-        # current.jpg right back to the STALE recorded value the instant
-        # it ran (found live: fixing current.jpg alone was NOT sufficient
-        # — motion-switch.sh off still reverted to the old still).
-        # In-theme only (Ctrl-A out-of-theme hovers are not recorded,
-        # matching confirm's own scoping rule at line ~600 below). Esc
-        # restores this exact file from PREVIOUS_LAST_WALLPAPER, captured
-        # at picker startup before any hover could fire (D-20).
-        if [[ "$THEME" == "$CURRENT_THEME" ]]; then
-            mkdir -p "$LAST_WALLPAPER_DIR" 2>/dev/null
-            printf '%s\n' "$REMAINDER" > "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" 2>/dev/null \
-                && mv -f "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" "$LAST_WALLPAPER_DIR/$CURRENT_THEME" 2>/dev/null
-        fi
 
         # T-17-11: argv ARRAY, expanded "${cmd[@]}" — never a constructed
         # string, never eval. The owner independently re-validates this
         # exact path (_validate_selection) before it ever reaches
         # mpvpaper's own argv — defence in depth, not a shared
         # assumption with the IS_LIVE check above.
+        #
+        # WR-03: dispatch to the owner FIRST and gate every disk-visible
+        # write below on its own exit code. The settle block's own
+        # `[[ ! -f "$FILE" ]]` check above only ran at HOVER time, not at
+        # settle time — the owner's _validate_selection re-checks
+        # existence right before actuating, closing that TOCTOU window.
+        # Repointing current.jpg/recording last-wallpaper on a selection
+        # the owner itself rejected would leave both files pointing at a
+        # frame for a video nothing is actually playing.
         cmd=("$WALLPAPER_OWNER" select "$FILE")
-        "${cmd[@]}" >/dev/null 2>&1
+        if "${cmd[@]}" >/dev/null 2>&1; then
+            [[ -s "$FRAME" ]] && ln -sfr "$FRAME" "$WALLPAPER_DIR/current.jpg" 2>/dev/null
+
+            # Bugfix, continued: current.jpg alone is not enough —
+            # autoset() (run by EVERY theme-apply, including motion-
+            # scale's own) never looks at current.jpg's current value, it
+            # re-derives it from last-wallpaper/<theme> every single
+            # time. Without ALSO recording the settled hover here, the
+            # very next unrelated theme-apply (e.g. motion-switch.sh off)
+            # would silently revert current.jpg right back to the STALE
+            # recorded value the instant it ran (found live: fixing
+            # current.jpg alone was NOT sufficient — motion-switch.sh off
+            # still reverted to the old still). In-theme only (Ctrl-A
+            # out-of-theme hovers are not recorded, matching confirm's
+            # own scoping rule at line ~600 below). Esc restores this
+            # exact file from PREVIOUS_LAST_WALLPAPER, captured at picker
+            # startup before any hover could fire (D-20).
+            if [[ "$THEME" == "$CURRENT_THEME" ]]; then
+                mkdir -p "$LAST_WALLPAPER_DIR" 2>/dev/null
+                printf '%s\n' "$REMAINDER" > "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" 2>/dev/null \
+                    && mv -f "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" "$LAST_WALLPAPER_DIR/$CURRENT_THEME" 2>/dev/null
+            fi
+        fi
     ) &
     disown
 else
