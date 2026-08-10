@@ -50,7 +50,7 @@ Full details: [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md)
 - [x] **Phase 14: Dashboard Drawer** - The first real QML surface: a four-tab swipeable drawer sharing state with what already ships (completed 2026-08-01)
 - [x] **Phase 15: Audio + Connectivity Panels** - Per-app mixer, wifi picker and bluetooth manager from one shared dialog component (completed 2026-08-02)
 - [x] **Phase 16: Workspace Overview** - Full-screen live-thumbnail workspace grid with click-to-focus and drag-between-workspaces _(complete 2026-08-08; criterion 5's 3-day use note WAIVED by operator, not satisfied)_
-- [ ] **Phase 17: Ambient Extras** - Video wallpaper and dynamic cursors — explicitly the first phase to cut if the milestone runs long
+- [x] **Phase 17: Ambient Extras** - Video wallpaper and dynamic cursors — explicitly the first phase to cut if the milestone runs long
 
 #### Standing constraints (apply to every v3.0 phase, not one phase's task)
 
@@ -449,7 +449,7 @@ Plan ordering is tracer-first and is fixed by two facts. OVER-03's dispatch mech
   3. If this phase is cut mid-flight, a consumer-check sweep runs at its close rather than being deferred to milestone close — `stow.sh`, `install.sh`, `windowrules.conf`, `contract.json` and QML imports carry no references to anything it started and did not finish.
 
 **Owns**: Additive scaffolding drift — the eww cleanup cost in the opposite direction, from an addition abandoned rather than a toolkit retired.
-**Plans**: 5/6 plans executed
+**Plans**: 6/6 plans executed
 
 Plans:
 **Wave 1**
@@ -468,7 +468,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 17-06-PLAN.md — Criterion-3 cut sweep and phase close (AMB-01, AMB-02)
+- [x] 17-06-PLAN.md — Criterion-3 cut sweep and phase close (AMB-01, AMB-02)
 
 ## Progress
 
@@ -492,6 +492,6 @@ Plans:
 | 14. Dashboard Drawer | v3.0 | 10/10 | Complete    | 2026-08-01 |
 | 15. Audio + Connectivity Panels | v3.0 | 14/14 | Complete    | 2026-08-02 |
 | 16. Workspace Overview | v3.0 | 8/8 | Complete    | 2026-08-08 |
-| 17. Ambient Extras | v3.0 | 5/6 | In Progress|  |
+| 17. Ambient Extras | v3.0 | 6/6 | Complete    | 2026-08-10 |
 
-**Totals:** 17 phases · 73 plans complete · 2 milestones shipped · v3.0 in progress (38 requirements across 7 phases)
+**Totals:** 17 phases · 74 plans complete · 2 milestones shipped · v3.0 in progress (38 requirements across 7 phases)

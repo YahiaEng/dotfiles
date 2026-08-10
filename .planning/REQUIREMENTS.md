@@ -66,8 +66,8 @@
 
 ### Ambient Extras (AMB) — first to cut if the milestone runs long
 
-- [ ] **AMB-01**: A video wallpaper plays beneath the desktop and hides itself when a fullscreen client is focused
-- [ ] **AMB-02**: Dynamic cursors are installed as an **optional guarded** dependency — a missing, unbuilt or ABI-broken plugin degrades gracefully and never fails an unattended install
+- [x] **AMB-01**: A video wallpaper plays beneath the desktop and hides itself when a fullscreen client is focused *(closed 2026-08-10 — D-26 fullscreen-pause probe PASS (17-01, mpvpaper's own log line + a clean CPU drop to 0.00-0.50%) and the blocking human render-and-look gate APPROVED across two rounds, all 10 steps (17-03); a real hover-vs-persisted-state bug found by the gate's own round 1 was root-caused and fixed before round 2 approved. See `17-06-SUMMARY.md` for the full evidence chain.)*
+- [x] **AMB-02**: Dynamic cursors are installed as an **optional guarded** dependency — a missing, unbuilt or ABI-broken plugin degrades gracefully and never fails an unattended install *(closed 2026-08-10 — D-34 fault injection proved the guarded install exits 0 and warns under both a credentials-unavailable and a forced bad-URL clone failure (17-04), and the blocking degraded-cursor render gate confirmed the desktop keeps a working, undeformed cursor with the plugin unloaded and `hyprpm reload` restores it (17-04). D-36/D-37's mode/shake config live-verified via `getoption` after a real restart (17-05). D-35's stretch objective — loading the plugin declaratively from Lua config rather than via `hyprpm` — was tested exhaustively and found conclusively unsafe on this Hyprland build (permission dialog every login/lock, or a fatal SIGSEGV via infinite `CConfigManager::reload()` recursion, depending on grant state) and was correctly abandoned in favour of the proven-safe mechanism this requirement's own wording does not mandate a specific load path for. See `17-06-SUMMARY.md`.)*
 
 ### Carried-In Maintenance (MAINT)
 
@@ -163,8 +163,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | OVER-02 | Phase 16 — Workspace Overview | Complete |
 | OVER-03 | Phase 16 — Workspace Overview | Pending |
 | OVER-04 | Phase 16 — Workspace Overview | Pending |
-| AMB-01 | Phase 17 — Ambient Extras | Pending — 17-01, 17-02 done; 17-03, 17-06 outstanding |
-| AMB-02 | Phase 17 — Ambient Extras | Pending — 17-04 done; 17-05, 17-06 outstanding |
+| AMB-01 | Phase 17 — Ambient Extras | Complete — closed by 17-06's phase-close reconciliation, 2026-08-10 |
+| AMB-02 | Phase 17 — Ambient Extras | Complete — closed by 17-06's phase-close reconciliation, 2026-08-10 (D-35 stretch objective not delivered, on evidence — see 17-06-SUMMARY.md) |
 | MAINT-01 | Phase 11 — Quickshell Viability Gate *(instrument for QS-05's bind-collision proof)* | Complete |
 | MAINT-02 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Partial — 3 of 4 (WR-04 waived, open) |
 | MAINT-03 | Phase 13 — Motion Retrofit & Existing-Surface Sweep *(existing-surface debt, swept with the retrofit)* | Complete |

@@ -5,8 +5,8 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
 current_phase_name: ambient-extras
 status: executing
-stopped_at: Completed 17-05-PLAN.md
-last_updated: "2026-08-09T11:02:26.318Z"
+stopped_at: 17-06-PLAN.md Tasks 1-3 complete — awaiting blocking phase-close checkpoint sign-off
+last_updated: "2026-08-10T07:42:33.933Z"
 last_activity: 2026-08-09
 last_activity_desc: Phase 17 execution started
 progress:
@@ -30,9 +30,9 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 
 Phase: 17 (ambient-extras) — EXECUTING
 Plan: 6 of 6
-Status: Ready to execute
+Status: Sweep + report + requirement marking done (Tasks 1-3); blocking checkpoint (Task 4) awaiting human sign-off — see 17-SWEEP-REPORT.md
 Progress: [██████████] 99% — 7/8 phases complete, 62/62 plans executed
-Last activity: 2026-08-09 — Phase 17 execution started
+Last activity: 2026-08-10 — 17-06 Tasks 1-3 executed, blocking checkpoint reached
 
 ## Performance Metrics
 
@@ -190,6 +190,7 @@ Last activity: 2026-08-09 — Phase 17 execution started
 | Phase 17 P04 | ~40min | 4 tasks | 4 files |
 | Phase 17 P03 | ~50min+2 render-gate rounds | 5 tasks | 9 files |
 | Phase 17 P05 | ~5h30m | 4 tasks | 9 files |
+| Phase 17 P06 | ~2h | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -376,6 +377,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 17-05: D-35's declarative-load objective is conclusively NOT met on installed Hyprland 0.56.2 — hl.plugin.load() from Lua config either produces a permission dialog every login/lock (no matching grant, request stays ASK/PENDING) or crashes the compositor via infinite Config::Lua::CConfigManager reload()/handlePluginLoads()/postConfigReload() recursion (a matching grant resolves ALLOW). Call removed from dynamic-cursors.lua entirely, on evidence; the hl.config block (D-36 shake-off, D-37 mode) is untouched and proven to apply once hyprpm loads the plugin via the existing 17-04 path.
 - [Phase ?]: 17-05: D-32 resolved to checkpoint option-c (unify on rose-pine in both formats) at operator's explicit direction for consistency; rose-pine-cursor (AUR) audited and added, installed directory name BreezeX-RosePine-Linux (not the package name) applied across all five sites; bibata-cursor-theme removed after a repo-wide sweep confirmed it was dead weight.
 - [Phase ?]: 17-05: self-corrected mid-plan wrong claim — reverting the two experimental permission grants (f4d2ff6) was reported as fixing the login/idle-lock dialog, but it only restored the starting no-grant/ASK state. Actual fix was removing the hl.plugin.load() call itself (537af08), the only one of three fully-determined states (no grant->dialog; matching grant->crash; no request->neither) that is safe. Corrected after the coordinator caught it by re-reading the committed tree.
+- [Phase ?]: 17-06 (Tasks 1-3): criterion-3 sweep clean (25 OK/0 FAIL/0 DRIFT/1 INFO, exit 0); AMB-01/AMB-02 marked Complete on evidence; D-35 declarative-load conclusively unsafe on this Hyprland build, mechanism substituted with hyprpm+hyprpm-complete.sh; D-38 accepted gap restated at true size (5 sites/8 declaration lines, was 3). Phase 17's final sign-off is a blocking checkpoint (Task 4), not yet approved as of this entry.
 
 ### Quick Tasks Completed
 
@@ -473,8 +475,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-09T11:02:26.297Z
-Stopped at: Completed 17-05-PLAN.md
+Last session: 2026-08-10T07:42:33.909Z
+Stopped at: 17-06-PLAN.md Tasks 1-3 complete (sweep clean, report written, AMB-01/AMB-02 marked); blocking phase-close checkpoint (Task 4) awaiting human sign-off
 Resume file: None
 
 ## Operator Next Steps
