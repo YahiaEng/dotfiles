@@ -32,7 +32,12 @@ findings:
   warning: 5
   info: 2
   total: 8
-status: issues_found
+status: fixed
+fixed_at: 2026-08-10T11:20:00Z
+fix_summary:
+  fixed: 8
+  declined: 0
+  documented_deliberate: 1
 ---
 
 # Phase 17: Code Review Report
@@ -40,7 +45,17 @@ status: issues_found
 **Reviewed:** 2026-08-10T11:05:00Z
 **Depth:** standard
 **Files Reviewed:** 23
-**Status:** issues_found
+**Status:** issues_found → **fixed** (see fix pass, 2026-08-10T11:20:00Z)
+
+## Fix Pass Summary (2026-08-10)
+
+All 8 findings addressed: 7 fixed in source, 1 (IN-01) deliberately declined and documented instead. Commits (in application order): `d76b3eb` (WR-01), `2f843c2` (WR-03), `605a380` (WR-02), `ab9a423` (CR-01), `777684d` (WR-04), `0da1250` (IN-02), `cd1b184` (WR-05), `720f50a` (IN-01 doc), `ec0159a` (CR-01 follow-up — a real bug in the CR-01 fix's own absolute-path normalisation, found live during this fix pass's own verification and corrected before being accepted).
+
+**Verified LIVE against the real desktop** (state captured before, restored byte-identical after, `mpvpaper`'s real process state and `wallpaper-visibility.sh status` checked directly): CR-01 both paths (cross-theme pick and Material You pick — a real mpvpaper process was confirmed actually playing the picked live wallpaper in both cases, where before the fix it silently would not have), WR-01 both the scoped-repair non-regression case (active theme still self-heals) and the fixed case (a switch-in-progress no longer repoints `current.jpg` early).
+
+**Verified by code-path review + `bash -n` only, not live** (no TTY available in this environment to drive the interactive fzf UI, per the task's own constraint against working around that limitation): WR-02, WR-03 (the hover-debounce settle block requires actual fzf focus events to exercise directly), WR-04, WR-05, IN-02.
+
+**Declined and documented, not fixed:** IN-01 — adding `set -euo pipefail` to `theme-init.sh` was assessed as a real regression risk to the login path (see IN-01's own annotation below).
 
 ## Summary
 
@@ -51,6 +66,8 @@ Tracing the actual data flow between `wallpaper-picker.sh`, `lib/wallpaper.sh`'s
 ## Critical Issues
 
 ### CR-01: A live wallpaper picked outside the "same static theme, in-theme" path never actually plays — silently downgrades to a static frame with a false-success notification
+
+**Outcome: FIXED (commits `ab9a423`, `ec0159a`).** `theme_engine_wallpaper_sync_owner` widened to accept an absolute-path ref alongside the pre-existing theme-relative form (never a relaxation of the existing branch). Both reachable paths now forward an explicit ref: the picker's cross-theme static branch passes `$FULL_PATH` instead of leaving `SYNC_REF` empty; `theme-apply` grows an optional second argument the picker's Material You branch forwards to its existing single `sync_owner` call site (D-21 preserved — no second owner-declaration path). `notify-send` now queries the owner's read-only `status` verb after dispatch and reports when live playback is not actually active instead of unconditionally claiming success. **Verified LIVE against the real desktop for both paths** (see fixer notes below) — a genuine bug in the first version of the fix (symlink-following `realpath -m` vs. the owner's own `--no-symlinks` normalisation) was caught by this live verification and corrected in a follow-up commit before being accepted.
 
 **File:** `hypr/.config/hypr/scripts/wallpaper-picker.sh:694-727`, `theme-engine/.config/theme-engine/lib/wallpaper.sh:343-388` (`theme_engine_wallpaper_sync_owner`), `theme-engine/.config/theme-engine/theme-apply:106`
 
@@ -89,6 +106,8 @@ and for the Material You branch, call `theme_engine_wallpaper_sync_owner` (or th
 
 ### WR-01: `theme_engine_wallpaper_frame_repair` can mutate `current.jpg` before a render's success is known, contradicting the "Desktop left unchanged" error message
 
+**Outcome: FIXED (commit `d76b3eb`).** Scoped option 1 from the Fix suggestion: the repair guard's `ln -sfr` repoint now only fires when `$name` already equals the recorded active theme (`current-theme`) — a self-heal re-render of the theme already in effect. A switch TO a new theme still extracts the frame eagerly (self-heal of the file itself stays unconditional) but no longer flips `current.jpg` until `theme_engine_wallpaper_autoset` does so later, only after `theme_engine_generate` has actually succeeded. **Verified LIVE** against the real desktop: a non-active theme's repair extracts the frame without touching `current.jpg` (scenario A), and the active theme's own repair still self-heals and repoints as before (scenario B, non-regression) — both proven directly against the real state directories and restored byte-identical afterward.
+
 **File:** `theme-engine/.config/theme-engine/theme-apply:65-86`, `theme-engine/.config/theme-engine/lib/wallpaper.sh:301-324`
 
 **Issue:** `theme_engine_wallpaper_frame_repair "$NAME"` runs unconditionally before `theme_engine_generate` (deliberately, per the inline comment, to protect Material You's palette source). For a *static* preset whose recorded `last-wallpaper/$NAME` names a live entry whose extracted frame is currently missing (e.g. `wallpaper-frames` was wiped), this call re-extracts the frame and immediately does `ln -sfr "$frame" "$WALLPAPER_DIR/current.jpg"` (`lib/wallpaper.sh:319-321`) — a real, persistent, disk-visible side effect (the lock screen reads `current.jpg` directly) — **before** `theme_engine_generate` has run at all. If `theme_engine_generate` subsequently fails, `theme-apply` prints `"Theme render failed. Desktop left unchanged."` and exits 1 (`theme-apply:73-86`) — but `current.jpg` has already been repointed at the *new* theme's frame. The next lock, or the next unrelated `theme-doctor`/render check, will show the switched-to theme's wallpaper even though the switch was reported as failed and "unchanged." This is narrow (requires a wiped `wallpaper-frames` directory plus a subsequent render failure) but is a real, reproducible contract violation, not merely cosmetic — a script's own explicit user-facing claim becomes false.
@@ -96,6 +115,8 @@ and for the Material You branch, call `theme_engine_wallpaper_sync_owner` (or th
 **Fix:** Either scope the repair guard to the theme that's *already* active (compare `$NAME` against `current-theme` before repointing `current.jpg`), or defer the `ln -sfr` until after `theme_engine_generate` succeeds while still running the extraction early (split "extract" from "repoint").
 
 ### WR-02: No code path stops the live wallpaper when browsing from a live entry to a still entry mid-picker-session
+
+**Outcome: FIXED (commit `605a380`).** Added a session-scoped marker file (`LIVE_SESSION_MARKER`), set only after a hovered live entry's owner `select` call has actually succeeded (piggybacking on WR-03's own success gate). The still branch of `LIVE_SCRIPT` now checks this marker and issues a best-effort, backgrounded `"$WALLPAPER_OWNER" clear` whenever it is present, avoiding an unconditional clear call on every still-hover keystroke for sessions that never played anything live. **Verified by code-path review and `bash -n` only** — not driven through the interactive fzf UI (no TTY available in this environment; per the task's own constraint, raised as a limitation rather than worked around).
 
 **File:** `hypr/.config/hypr/scripts/wallpaper-picker.sh:402-519` (`LIVE_SCRIPT`)
 
@@ -105,6 +126,8 @@ and for the Material You branch, call `theme_engine_wallpaper_sync_owner` (or th
 
 ### WR-03: Hover settle block repoints `current.jpg` before the owner's own `select` revalidates the file still exists (TOCTOU)
 
+**Outcome: FIXED (commit `2f843c2`).** Reordered the hover settle block: dispatch to the owner's `select` first, then only relink `current.jpg` and record `last-wallpaper/<theme>` inside the `if` block gated on `select`'s own exit code. A selection the owner rejects (file deleted between hover-time check and settle-time dispatch) no longer leaves either artifact pointing at a frame nothing is playing. **Verified by code-path review and `bash -n` only** — not driven through the interactive fzf UI (no TTY available in this environment).
+
 **File:** `hypr/.config/hypr/scripts/wallpaper-picker.sh:470-502`
 
 **Issue:** The settle block extracts/relinks `current.jpg` to the hovered live entry's frame (line 475) and records `last-wallpaper/<theme>` (lines 490-494) **before** calling `"$WALLPAPER_OWNER" select "$FILE"` (line 501-502), which is where the owner's own `_validate_selection` re-checks that the file still exists and still resolves correctly (`wallpaper-visibility.sh:198-217`). If the underlying source file is deleted in the window between the settle block's own `[[ ! -f "$FILE" ]]` check (line 435, evaluated at hover time, not at settle time) and the `select` call actually running, `current.jpg` and `last-wallpaper` end up pointing at a frame for a video that the owner rejected and never plays — a state neither "the previous selection" nor "the new selection," with no player actually running behind it. Narrow, but the fix is cheap since the owner already re-validates.
@@ -113,6 +136,8 @@ and for the Material You branch, call `theme_engine_wallpaper_sync_owner` (or th
 
 ### WR-04: `_write_intent`/`_write_selection`/`_write_actuated`/`_write_snapshot` can leak an orphaned temp file on a write failure
 
+**Outcome: FIXED (commit `777684d`).** Applied the exact fix suggested: each function's `printf ... && mv ...` is now wrapped as `{ ...; } || rm -f "$tmp"`, so a failed write falls through to cleanup instead of orphaning the mktemp'd file. Preserves the existing best-effort semantics (callers still don't check these functions' return status). Verified via `bash -n` and a re-read of all four functions.
+
 **File:** `hypr/.config/hypr/scripts/wallpaper-visibility.sh:146-181`
 
 **Issue:** Each of these follows the pattern `tmp="$(mktemp ...)"; printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$dest"`. If the `printf` redirect fails (disk full, permissions), the `&&` short-circuits and `mv` never runs — but the `mktemp`-created file is never cleaned up. Under `set -euo pipefail`, this doesn't abort the containing verb (the `&&` chain itself isn't a bare failing command at the top level of a `_write_*` function's return value — the function keeps returning whatever `mv`'s absence yields, i.e., the `&&` expression's own nonzero status, which callers generally don't check), so this silently leaves a stray `.$source.XXXXXX`-style file behind in `$INTENT_DIR` on every failed write. Low impact (rare failure mode, small files) but a real robustness gap in an owner script that already goes to considerable lengths for atomicity elsewhere.
@@ -120,6 +145,8 @@ and for the Material You branch, call `theme_engine_wallpaper_sync_owner` (or th
 **Fix:** `tmp="$(mktemp ...)"; { printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$dest"; } || rm -f "$tmp"`.
 
 ### WR-05: Unsanitized value spliced directly into a `hyprctl eval` Lua-source string
+
+**Outcome: FIXED (commit `cd1b184`).** The three boolean-valued restore keys (`decoration:blur:enabled`, `animations:enabled`, `decoration:shadow:enabled`) now validate `$v` against `^(true|false)$` before splicing, exactly as suggested, falling back to the existing `need_reload=1` safe default on anything else. Also extended the same shape-check discipline to the fourth, numeric-valued key (`decoration:rounding`, validated against `^[0-9]+$`) — not explicitly named in the Fix suggestion's own snippet but reachable through the identical unvalidated-splice mechanism the finding describes. Change kept minimal per the task's constraint — same `if`/`else` shape, condition only. Provably still dead code on this repo's current token layout (unchanged), so no behavioural difference today.
 
 **File:** `hypr/.config/hypr/scripts/gaming-mode-toggle.sh:183-212` (pre-existing 13.1-era code, two new sibling call sites added by 17-03 do not touch this section)
 
@@ -131,6 +158,8 @@ and for the Material You branch, call `theme_engine_wallpaper_sync_owner` (or th
 
 ### IN-01: `theme-init.sh` lacks `set -euo pipefail`, unlike its sibling entrypoints
 
+**Outcome: DECLINED the strict-mode change; documented instead (commit `720f50a`).** Took the Fix suggestion's second option. Adding `set -euo pipefail` was assessed as a real regression risk: the script's final `exec theme-apply "$THEME"` line must always run even if the best-effort `awww` preview call above it fails transiently (e.g. very early in login, before the compositor's animated-wallpaper daemon is ready) — `set -e` would abort the script before `exec` runs, silently skipping theme-apply at login. Added an explanatory comment documenting the omission as deliberate rather than changing runtime behaviour on the login entrypoint.
+
 **File:** `hypr/.config/hypr/scripts/theme-init.sh:1-37`
 
 **Issue:** `theme-apply` and `wallpaper-visibility.sh` both open with `set -euo pipefail`; `theme-init.sh` (the login entrypoint that calls both) has no such guard. A failing `cat`, `awww img`, or the backgrounded `hyprpm-complete.sh` line would silently continue rather than surface. Given this script's own contract is "thin caller, never blocks," this is likely intentional best-effort behavior rather than an oversight, but it's an inconsistency worth a second look given every other script this phase touches is disciplined about it.
@@ -138,6 +167,8 @@ and for the Material You branch, call `theme_engine_wallpaper_sync_owner` (or th
 **Fix:** Add `set -euo pipefail` if failures here should be visible, or leave a comment explaining the deliberate omission if this is intentional best-effort design.
 
 ### IN-02: `wallpaper-visibility.sh select`'s usage text claims "requires an absolute path" but does not enforce it
+
+**Outcome: FIXED (commit `0da1250`).** Took the Fix suggestion's first option: `_cmd_select` now rejects any non-absolute `$raw` outright (`"$raw" != /*`) before it ever reaches `_validate_selection`, matching the pre-existing error message's own claim. Confirmed both real callers (`wallpaper-picker.sh`'s `$FILE`, `lib/wallpaper.sh`'s `$resolved`) already pass absolute paths, so this is behaviourally a no-op for existing call sites.
 
 **File:** `hypr/.config/hypr/scripts/wallpaper-visibility.sh:390-405`
 
