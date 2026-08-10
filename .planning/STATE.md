@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
-current_phase_name: QML Bar & Retirement Machinery
-status: roadmapped
-stopped_at: Phase 18 UI-SPEC approved
-last_updated: "2026-08-10T22:57:10.153Z"
-last_activity: 2026-08-10
-last_activity_desc: v4.0 roadmap created (Phases 18-22, 55/55 requirements mapped)
+current_phase_name: qml-bar-retirement-machinery
+status: executing
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-08-10T23:14:35.365Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** v4.0 Shell Migration & Debt Paydown — roadmapped as Phases 18-22. Next: `/gsd-plan-phase 18` (QML Bar & Retirement Machinery).
+**Current focus:** Phase 18 — qml-bar-retirement-machinery
 
 ## Current Position
 
-Phase: 18 — QML Bar & Retirement Machinery (not started)
-Plan: —
-Status: Roadmapped, awaiting phase planning
-Progress: [░░░░░░░░░░] 0/5 phases — v4.0
-Last activity: 2026-08-10 — v4.0 roadmap created (Phases 18-22, 55/55 requirements mapped)
+Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
+Plan: 2 of 20
+Status: Ready to execute
+Progress: [█░░░░░░░░░] 5%
+Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
 
@@ -192,6 +192,7 @@ Last activity: 2026-08-10 — v4.0 roadmap created (Phases 18-22, 55/55 requirem
 | Phase 17 P03 | ~50min+2 render-gate rounds | 5 tasks | 9 files |
 | Phase 17 P05 | ~5h30m | 4 tasks | 9 files |
 | Phase 17 P06 | ~2h | 3 tasks | 5 files |
+| Phase 18 P01 | ~20min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -387,6 +388,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 17-05: D-32 resolved to checkpoint option-c (unify on rose-pine in both formats) at operator's explicit direction for consistency; rose-pine-cursor (AUR) audited and added, installed directory name BreezeX-RosePine-Linux (not the package name) applied across all five sites; bibata-cursor-theme removed after a repo-wide sweep confirmed it was dead weight.
 - [Phase ?]: 17-05: self-corrected mid-plan wrong claim — reverting the two experimental permission grants (f4d2ff6) was reported as fixing the login/idle-lock dialog, but it only restored the starting no-grant/ASK state. Actual fix was removing the hl.plugin.load() call itself (537af08), the only one of three fully-determined states (no grant->dialog; matching grant->crash; no request->neither) that is safe. Corrected after the coordinator caught it by re-reading the committed tree.
 - [Phase ?]: 17-06 (Tasks 1-3): criterion-3 sweep clean (25 OK/0 FAIL/0 DRIFT/1 INFO, exit 0); AMB-01/AMB-02 marked Complete on evidence; D-35 declarative-load conclusively unsafe on this Hyprland build, mechanism substituted with hyprpm+hyprpm-complete.sh; D-38 accepted gap restated at true size (5 sites/8 declaration lines, was 3). Phase 17's final sign-off is a blocking checkpoint (Task 4), not yet approved as of this entry.
+- [Phase ?]: 18-01: exclusiveZone corrected to Design.barHeight alone (not + barEdgeMargin) — Hyprland's total reservation is margins.top + exclusiveZone, live-measured and fixed after the plan's own formula produced 52px/98px instead of 46px/92px
 
 ### Quick Tasks Completed
 
@@ -514,9 +516,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-10T14:48:18.830Z
-Stopped at: Phase 18 UI-SPEC approved
-Resume file: .planning/phases/18-qml-bar-retirement-machinery/18-UI-SPEC.md
+Last session: 2026-08-10T23:14:35.339Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

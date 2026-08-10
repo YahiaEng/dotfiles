@@ -1,15 +1,15 @@
 ---
 schema_version: 1
-open_count: 16
+open_count: 17
 waived_count: 0
 fixed_count: 7
-total_count: 23
-last_updated: 2026-08-02T17:07:48.756Z
+total_count: 24
+last_updated: 2026-08-10T23:12:33.140Z
 ---
 
 # Broken Windows Ledger
 
-> Cross-phase defect register. `/gsd-ship` blocks while `open_count > 0`.
+> Cross-phase defect register. With `workflow.windows_enforce` enabled, `/gsd-ship` blocks while `open_count > 0`.
 > Waive with `gsd-tools windows waive <id> "<reason>"` (reason required).
 > Mark fixed with `gsd-tools windows fixed <id>`.
 
@@ -38,6 +38,7 @@ last_updated: 2026-08-02T17:07:48.756Z
 | 21 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | E6 error-contract fault injection (rfkill-blocked toggle reverting to truth) not cleanly reproduced live — NetworkManager software radio switch succeeded independent of rfkill state; source-verified mechanism only | open |  | 2026-08-02T02:40:14.434Z |  |
 | 22 | 15 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Bluetooth tile external-toggle live-truth proof not run — session's rfkill soft-blocked bluetooth state intentionally left untouched per non-negotiable rule 3 | open |  | 2026-08-02T02:40:14.524Z |  |
 | 23 | 15 | deviation | quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml |  | pendingGlyph opacity pulse (WifiPanel.qml ~:574-595) and its BluetoothPanel.qml counterpart still bind one-shot emphasizedIn/OutDuration tokens as an infinite pulse period, inheriting the reduced-makes-it-faster inversion G-15-1 fixed for the sweep lines; deliberately left unchanged per 15-11's scope_fence (a pulse's message survives being fast, unlike a sweep's) | open |  | 2026-08-02T17:07:48.756Z |  |
+| 24 | 18 | unrun-verify | quickshell/.config/quickshell/modules/Bar.qml |  | 18-01 Task 2's <human-check> render gate (pill renders, floats clear of edge, live HH:MM, theme crossfade with no magenta flash) was not run by the executor — automated verify passed; visual confirmation deferred to the user per established project preference (skip-live-verification memory). | open |  | 2026-08-10T23:12:33.140Z |  |
 
 ````json
 [
@@ -315,6 +316,18 @@ last_updated: 2026-08-02T17:07:48.756Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-02T17:07:48.756Z",
+    "resolved_at": null
+  },
+  {
+    "id": 24,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/Bar.qml",
+    "line": null,
+    "description": "18-01 Task 2's <human-check> render gate (pill renders, floats clear of edge, live HH:MM, theme crossfade with no magenta flash) was not run by the executor — automated verify passed; visual confirmation deferred to the user per established project preference (skip-live-verification memory).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-10T23:12:33.140Z",
     "resolved_at": null
   }
 ]

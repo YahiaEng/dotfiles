@@ -11,7 +11,7 @@
 
 ### QBAR — Status bar (replaces waybar)
 
-- [ ] **QBAR-01**: The bar renders as a permanently-mounted surface that reserves its own screen space, in Athena's rounded-capsule visual language
+- [x] **QBAR-01**: The bar renders as a permanently-mounted surface that reserves its own screen space, in Athena's rounded-capsule visual language
 - [ ] **QBAR-02**: One bar component switches between a horizontal top strip and a **right-edge** vertical column from config — orientation is a property of a config-driven entry list, not a forked second layout. Replaces all four current waybar layouts.
 - [ ] **QBAR-03**: User can click a workspace indicator to switch to that workspace (restores the capability dead under waybar 0.15.0's compiled-in dispatch)
 - [ ] **QBAR-04**: User can scroll on the bar's audio and brightness sections to adjust them
@@ -123,7 +123,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QBAR-01 | Phase 18 | Pending |
+| QBAR-01 | Phase 18 | Complete |
 | QBAR-02 | Phase 18 | Pending |
 | QBAR-03 | Phase 18 | Pending |
 | QBAR-04 | Phase 18 | Pending |
@@ -180,6 +180,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | LEDGER-08 | Phase 19 | Pending |
 
 **Coverage:**
+
 - v4.0 requirements: 55 total
 - Mapped to phases: 55 ✓
 - Unmapped: 0
@@ -201,9 +202,11 @@ it, and recurs as a standing task in later phases:
   time it constrains a design) and would deliver no user-observable outcome of its
   own. Per-phase keeps the read adjacent to the redesign it constrains, and feeds
   each phase's own spec/discuss step as UAT acceptance criteria.
+
 - **GATE-02** (human render gate; no phase closes downgraded) → Phase 18. A per-phase
   *closing* gate, not a phase of its own. Recurs unchanged on Phases 19, 20 and 21.
   No old package is deleted before its judgment.
+
 - **GATE-03** (`quickshell-doctor` structural checks per new surface) and **GATE-04**
   (QML hex-literal lint) → Phase 18, because that is the phase where the mechanical
   coverage they replace (`waybar-equivalence-check`, `waybar-design-lint`) is
