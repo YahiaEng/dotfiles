@@ -202,6 +202,7 @@ Cross-cutting constraints:
 - **DND ownership moves into QML here.** Today it is a `swaync-client -dn/-df` CLI call from both grids; once swaync is gone there is no external CLI to shell out to.
 - **Promote the toggle grid, do not copy it.** `QuickToggles.qml` becomes a shared type instantiated by both the drawer and the centre. Rendering the same grid twice against the same scripts would carry today's swaync/drawer duplication forward under a new name — the exact thing this milestone exists to end.
 - **Debt interleave rationale:** LEDGER-04's six sessions are 4/6 wifi-bluetooth from Phase 15 and one is the GradientBorder session LEDGER-01 already closes in Phase 18 — this phase is where the bluetooth one becomes structurally resolvable. LEDGER-08's security review covers the same panel family whose components this phase extends, and is the right pass to run alongside taking a system-wide D-Bus role. LEDGER-07 lands here rather than later so that Phases 20-22 all run against a fully clean `theme-stress-test`, and so RETIRE-08's contract check in Phase 21 has a trustworthy baseline.
+- **GATE-01 opening task.** Before this phase's retirement plan is written, enumerate swaync's current behaviour (`config.json`, `style.css`, its `swaync-client` CLI surface) off the live implementation while it still exists, the same way `18-02` read waybar. Protocol and worked example: `.planning/phases/18-qml-bar-retirement-machinery/18-BEHAVIOUR-BASELINE.md` § "GATE-01 Recurrence Protocol".
 
 **Plans**: TBD
 **UI hint**: yes
@@ -228,6 +229,7 @@ Cross-cutting constraints:
 - **RETIRE-07 lands here** because this is the phase running the checklist script twice for two surfaces already, and because `wlogout` is the direct lineage of the power menu being replaced. One `pacman -Rns` covering both leftovers, through the same checklist.
 - **Debt interleave rationale:** LEDGER-02 is Logout, which *is* QPOWER-01's fifth action and shares QPOWER-04's graceful-exit mechanism — measuring it anywhere else would mean setting up the same teardown twice. LEDGER-05's WINDOWS rows should be triaged and sized at phase start, not closed in a rush at phase end.
 - **Security carry-over from Phase 15:** re-run the "who owns the prompt" check against the new power menu — a layer-shell overlay is unconditionally above every XDG toplevel, so any confirm dialog another app raises would land behind it.
+- **GATE-01 opening task.** Before this phase's retirement plans are written, enumerate swayosd's and wleave's current behaviour (swayosd's `style.css` and its libinput-backend service; wleave's `layout.json`/`style.css` and its six hue-capsule actions), plus the still-installed `wlogout`/`eww` leftovers, off the live implementations while they still exist. Protocol and worked example: `.planning/phases/18-qml-bar-retirement-machinery/18-BEHAVIOUR-BASELINE.md` § "GATE-01 Recurrence Protocol".
 
 **Plans**: TBD
 **UI hint**: yes
@@ -251,6 +253,7 @@ Cross-cutting constraints:
 - **Frame the reader count honestly:** waybar's mpris module already died in Phase 18, so this phase removes the *second* of three, not the third. The underlying scripts were never duplicated — only the client wrappers.
 - **RETIRE-08 lands here** because this is where the fifth and final contract entry and matugen template are removed; Phase 22 then proves it on a genuinely fresh install.
 - **Debt interleave rationale:** LEDGER-06 is the Phase 16 paperwork — that phase's missing VERIFICATION.md concerns the workspace overview, a QML surface, and its malformed coverage blocks are the same classifier discipline this milestone's own UAT depends on. Placing it in a migration phase rather than the closing phase keeps it from becoming end-of-milestone filler.
+- **GATE-01 opening task.** Before this phase's retirement plan is written, enumerate the AGS media card's current behaviour (its QML source, its `contract.json` entry, its `[templates.ags]` matugen block) off the live implementation while it still exists. Protocol and worked example: `.planning/phases/18-qml-bar-retirement-machinery/18-BEHAVIOUR-BASELINE.md` § "GATE-01 Recurrence Protocol".
 
 **Plans**: TBD
 **UI hint**: yes

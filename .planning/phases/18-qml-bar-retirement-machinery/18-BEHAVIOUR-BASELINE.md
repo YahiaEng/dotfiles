@@ -463,3 +463,50 @@ universally-present capabilities across all four layouts. This is not a hard gap
 own media capsule, D-18-05, is a named requirement independent of B), but it means B.1 as
 literally written does not obligate `18-19` to check now-playing at all. Recorded so the pass is
 not silently thinner than the document that feeds it.
+
+## GATE-01 Recurrence Protocol
+
+Written surface-agnostic from the actual experience of taking this document, so Phases 19, 20
+and 21 can execute the same discipline against swaync, swayosd/wleave and ags without
+re-deriving anything. The standing rule, as steps:
+
+1. **The enumeration is the phase's opening task**, taken before any redesign work and before
+   any deletion is planned — never a closing checklist. Its whole value is that it reads a live
+   implementation, and every later wave erodes that value a little more. This document was
+   written in wave 1 of 10, eight waves before `18-20` deletes every one of its sources.
+2. **The read is mechanical wherever a resolver exists for the surface's config format**, and the
+   resolver's raw output is committed alongside the prose — the resolver itself is frequently
+   deleted in the same commit as the thing it resolves. The concrete instance this phase hit:
+   `waybar-equivalence-check` implements waybar's first-defined-wins `include` algorithm, and
+   `18-20` deletes it together with every config it was the only correct reader of. A hand-read
+   of the raw `.jsonc` files would have missed the group-member modules this document had to
+   work around by re-probing `modules.jsonc` directly (see the Provenance tool-completeness
+   note above) — even a mechanical resolver can have gaps, and finding them is part of the job.
+3. **The output is checkable criteria in gesture-and-observation form, never a feature
+   narrative**, because the consumer is a human running the replacement side-by-side under a
+   blocking gate (`18-19`'s GATE-02 pass, for this document).
+4. **Completeness is asserted mechanically as an empty unaccounted-item set, not claimed.** This
+   document's `## Unaccounted Keys` section shows four explicitly-empty per-layout lists, each
+   checked by a runnable loop over every top-level key of every resolved snapshot — not a
+   sentence saying the enumeration "felt thorough."
+5. **Deliberate prior cuts are separated from capabilities into an explicit dead-definitions
+   table**, which becomes that phase's own GATE-02 B.6 exclusion list — this document's
+   `## Dead Definitions` names athena's removed tray (reversed by decision, D-18-04, not by
+   inheritance from the table) and floating's hardware-dead backlight scroll.
+6. **The document is never a port specification** — it records capabilities the user had, never
+   the positions, pixels, colours or transition durations they had them at. This document's own
+   `## Not a Port Specification` section names the concrete trap (`config-vertical.jsonc`'s
+   left-edge anchor) so a later executor does not invert the redesign framing PROJECT.md and
+   REQUIREMENTS.md both state.
+
+**Per-phase surface table** — naming the inputs each phase reads; the enumeration itself belongs
+to its own phase, which is the entire point of scheduling GATE-01 per-phase rather than upfront:
+
+| Phase | Surface | Reads | Resolver/reader |
+|---|---|---|---|
+| 19 | swaync | `config.json`, `style.css`, its two contract entries (D-03-class fixed-signal parity, if any), its `swaync-client` CLI surface (`-swb`, `-t -sw`, `-d -sw`, `-rs`, `--subscribe`) | No dedicated resolver exists for swaync's JSON/CSS — read directly, the same way this document read `bar-common.jsonc`'s two-key signal contract. |
+| 20 | swayosd, wleave | swayosd's `style.css` and its libinput-backend systemd `--user` service; wleave's `layout.json`/`style.css` and its six hue-capsule actions; the still-installed `wlogout` and `eww` leftovers named in `REQUIREMENTS.md` § RETIRE-07 | No dedicated resolver for either — both are read directly, same as swaync. |
+| 21 | ags | the media card's QML source, its `contract.json` entry, and its `[templates.ags]` matugen block | No dedicated resolver — `contract.json`'s own entry is itself the closest thing to a manifest and should be read as the starting point. |
+
+Do not attempt to enumerate any of those three surfaces here — naming the inputs is this
+protocol's deliverable; the enumeration itself is each phase's own opening task.
