@@ -733,12 +733,18 @@ fi
 # outside the folder are not recorded).
 if [[ "$CURRENT_THEME" == "materialyou" || "$CURRENT_THEME" == "materialyou-light" ]]; then
     sleep 0.5
-    ~/.config/theme-engine/theme-apply "$CURRENT_THEME"
+    # CR-01: forward the absolute path of a live pick so theme-apply's own
+    # D-21 sync_owner call site can select it directly — without this,
+    # sync_owner's one-arg fallback reads last-wallpaper/materialyou[-light],
+    # which nothing in this codebase ever writes, and always resolves to
+    # `clear`. Only reaches the owner through theme-apply's existing single
+    # call site (D-21) — never a second owner-declaration path.
+    if [[ "$SEL_IS_LIVE" == "1" ]]; then
+        ~/.config/theme-engine/theme-apply "$CURRENT_THEME" "$FULL_PATH"
+    else
+        ~/.config/theme-engine/theme-apply "$CURRENT_THEME"
+    fi
 else
-    notify-send -a "Wallpaper Picker" "Wallpaper Changed" \
-        "Set to $SELECTED" \
-        -i preferences-desktop-wallpaper -t 2000
-
     SYNC_REF=""
     if [[ -n "$CURRENT_THEME" && "$SELECTED" == "$CURRENT_THEME/"* ]]; then
         BARE_FILENAME="${SELECTED#"$CURRENT_THEME"/}"
@@ -754,16 +760,45 @@ else
                 && mv "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" "$LAST_WALLPAPER_DIR/$CURRENT_THEME" 2>/dev/null || true
             SYNC_REF="$BARE_FILENAME"
         fi
+    elif [[ "$SEL_IS_LIVE" == "1" ]]; then
+        # CR-01: a Ctrl-A cross-theme live pick. It is never recorded as
+        # $CURRENT_THEME's own last-used choice (matches confirm's
+        # existing in-theme-only recording rule), but it must still play
+        # — pass the absolute path so sync_owner's widened absolute-ref
+        # form (lib/wallpaper.sh) can validate and select it directly,
+        # instead of an empty SYNC_REF falling through to `clear`.
+        SYNC_REF="$FULL_PATH"
     fi
 
     # D-21: the ONE sync path — reach the owner through the SAME function
     # theme-apply calls, exactly once. An empty SYNC_REF (an out-of-theme
-    # Ctrl-A pick, or a shape the guard above rejected) makes the owner
-    # `clear` — correct: picking a still from another theme must stop a
-    # playing video.
+    # Ctrl-A STILL pick, or a shape the guard above rejected) makes the
+    # owner `clear` — correct: picking a still from another theme must
+    # stop a playing video.
     if declare -F theme_engine_wallpaper_sync_owner >/dev/null 2>&1; then
         theme_engine_wallpaper_sync_owner "$CURRENT_THEME" "$SYNC_REF" || true
     fi
+
+    # CR-01: notify-send must not claim unqualified success when a live
+    # pick's playback did not actually start. Read-only status query —
+    # wallpaper-visibility.sh's own documented read-only verb, never a
+    # second owner-declaration path; the select/clear intent above is
+    # still declared exclusively through sync_owner.
+    NOTIFY_BODY="Set to $SELECTED"
+    if [[ "$SEL_IS_LIVE" == "1" ]]; then
+        PLAYBACK_OK=0
+        if [[ -x "$WALLPAPER_OWNER" ]]; then
+            OWNER_STATUS=$("$WALLPAPER_OWNER" status 2>/dev/null || true)
+            [[ "$OWNER_STATUS" == playing:* ]] && PLAYBACK_OK=1
+        fi
+        if [[ "$PLAYBACK_OK" != "1" ]]; then
+            NOTIFY_BODY="Set to $SELECTED — live playback is not currently active (suppressed by idle/gaming/reduced-motion, or it failed to start)"
+        fi
+    fi
+
+    notify-send -a "Wallpaper Picker" "Wallpaper Changed" \
+        "$NOTIFY_BODY" \
+        -i preferences-desktop-wallpaper -t 2000
 fi
 
 rm -f "$PREVIOUS_FILE"

@@ -353,6 +353,20 @@ theme_engine_wallpaper_frame_repair() {
 # behaviour ever needs to change, it changes here once, for all three
 # callers at once — never re-derive any part of it at a second site.
 #
+# CR-01 widening: `ref` accepts a SECOND shape alongside the pre-existing
+# theme-relative `live/<file>` form (unchanged, byte-identical accept
+# branch below) — an ABSOLUTE path that resolves under
+# `$WALLPAPER_DIR/<some-theme>/live/<file>`. This is required for two
+# reachable callers whose live pick's own theme does not equal `$name`:
+# a Ctrl-A cross-theme pick in the picker (name=$CURRENT_THEME, the pick
+# lives under a DIFFERENT theme folder) and a live pick made while in
+# Material You mode (name=materialyou[-light], which never owns a
+# `live/` folder of its own at all). Widen-not-replace, per D-12's own
+# precedent: the existing relative-ref branch is untouched, the new
+# branch reuses theme_engine_wallpaper_is_live_ref (never a fresh regex,
+# never a prefix test) against the resolved path's own trailing
+# `<theme>/live/<file>` components.
+#
 # Best-effort throughout (`|| true`, returns 0 on every path) — this
 # whole concern is cosmetic to a theme-apply run under
 # `set -euo pipefail` and must never change its exit code, exactly as
@@ -382,15 +396,36 @@ theme_engine_wallpaper_sync_owner() {
 
     # ── Selection: take ref from $2 when the caller supplied one
     # (including the empty string, meaning "a wallpaper outside this
-    # theme, nothing to remember" — the picker's out-of-theme-pick case),
-    # otherwise read the first line of the theme's own recorded choice.
+    # theme, nothing to remember" — the picker's out-of-theme STILL-pick
+    # case), otherwise read the first line of the theme's own recorded
+    # choice.
     if [[ "$have_ref" -eq 0 ]]; then
         ref=$(head -n1 "$LAST_WALLPAPER_DIR/$name" 2>/dev/null || true)
     fi
 
-    if [[ -n "$ref" ]] && theme_engine_wallpaper_is_live_ref "$ref" \
-        && [[ -f "$WALLPAPER_DIR/$name/$ref" ]]; then
-        "$owner" select "$WALLPAPER_DIR/$name/$ref" >/dev/null 2>&1 || true
+    local resolved=""
+    if [[ -n "$ref" ]]; then
+        if [[ "$ref" == /* ]]; then
+            # CR-01's new absolute-path form. Resolve and re-derive the
+            # SAME <theme>/live/<file> shape the relative branch already
+            # trusts, then run it through the identical shape function —
+            # never a bespoke check for this branch.
+            local real wallpaper_dir_real rel ref_remainder
+            wallpaper_dir_real=$(realpath -m -- "$WALLPAPER_DIR" 2>/dev/null || printf '%s' "$WALLPAPER_DIR")
+            real=$(realpath -m -- "$ref" 2>/dev/null || true)
+            if [[ -n "$real" && -f "$real" && "$real" == "$wallpaper_dir_real"/*/live/* ]]; then
+                rel="${real#"$wallpaper_dir_real"/}"
+                ref_remainder="${rel#*/}"
+                theme_engine_wallpaper_is_live_ref "$ref_remainder" && resolved="$real"
+            fi
+        elif theme_engine_wallpaper_is_live_ref "$ref" \
+            && [[ -f "$WALLPAPER_DIR/$name/$ref" ]]; then
+            resolved="$WALLPAPER_DIR/$name/$ref"
+        fi
+    fi
+
+    if [[ -n "$resolved" ]]; then
+        "$owner" select "$resolved" >/dev/null 2>&1 || true
     else
         "$owner" clear >/dev/null 2>&1 || true
     fi

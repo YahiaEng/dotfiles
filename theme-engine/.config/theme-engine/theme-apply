@@ -30,19 +30,25 @@ source "$LIB_DIR/wallpaper.sh"
 source "$LIB_DIR/reload.sh"
 
 usage() {
-    echo "Usage: theme-apply <materialyou|materialyou-light|preset-name>" >&2
+    echo "Usage: theme-apply <materialyou|materialyou-light|preset-name> [live-wallpaper-abs-path]" >&2
     echo "Available presets:" >&2
     for f in "$PALETTES_DIR"/*.json; do
         [[ -f "$f" ]] && echo "  - $(basename "$f" .json)" >&2
     done
 }
 
-if [[ $# -ne 1 ]]; then
+if [[ $# -lt 1 || $# -gt 2 ]]; then
     usage
     exit 1
 fi
 
 NAME="$1"
+# CR-01: optional explicit live-wallpaper ref, forwarded verbatim to
+# theme_engine_wallpaper_sync_owner's call site below — never a second
+# owner-declaration path (D-21). Only the wallpaper picker's Material You
+# branch passes this; every other caller (theme-init.sh, the walker
+# dmenu picker, a plain theme switch) still passes exactly one argument
+# and gets the pre-existing no-ref fallback behaviour untouched.
 
 # Security Domain V5 — validate the argument against the ACTUAL palette
 # filenames before it is ever interpolated into a filesystem path. Reject
@@ -103,7 +109,17 @@ theme_engine_wallpaper_autoset "$NAME"
 # body: autoset returns early for both Material You names, so a call
 # nested inside it would silently never run in dynamic mode — exactly
 # the login-only-style breakage D-21 exists to prevent.
-theme_engine_wallpaper_sync_owner "$NAME" || true
+#
+# CR-01: when the caller supplied an explicit ref (Material You live
+# pick — autoset is a no-op for both Material You names and never
+# records one), forward it here instead of letting sync_owner fall back
+# to last-wallpaper/$NAME, which is never written for either Material
+# You name and would otherwise always resolve to `clear`.
+if [[ $# -ge 2 ]]; then
+    theme_engine_wallpaper_sync_owner "$NAME" "$2" || true
+else
+    theme_engine_wallpaper_sync_owner "$NAME" || true
+fi
 
 # Single reload owner (D-04) — runs once, only after commit succeeds.
 theme_engine_reload
