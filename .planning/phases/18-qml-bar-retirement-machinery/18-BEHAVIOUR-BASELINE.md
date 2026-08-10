@@ -210,16 +210,16 @@ split, because this document's completeness is asserted per-layout, not per-GATE
 | ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
 |---|---|---|---|---|---|
 | WB-ALL-01 | right·0 | `custom/media` | Shows the current MPRIS track title (`{icon} {}`, spotify gets its own glyph, everything else the default note glyph); click it — `ags request -i media toggle-media` opens the AGS media card (Phase 21 retires this binding — folded into the dashboard Media tab, D-18-05). Scroll up/down — `playerctl next`/`playerctl previous`. Polls every 30s via `media-player.py`. Verbatim `exec`: `python ~/.config/hypr/scripts/media-player.py 2> /dev/null`. Byte-identical between athena and floating. | athena, floating | B.1 (now-playing readout) |
-| WB-ATH-17 | right·1 (drawer) | `group/audio` | Hover the collapsed audio glyph — within ~650ms the drawer expands, growing **right-to-left** (`transition-left-to-right: false`), revealing the mute toggle, a volume slider, and a mic-mute toggle. `transition-duration: 650`. Distinct direction and duration from `group/apps` (500ms, left-to-right) and from vertical's own `group/audio` (400ms, vertical orientation, left-to-right — see `WB-VERT-07`). | athena | not a B row (drawer mechanics; the audio capability itself is B.1/B.3) |
+| WB-ATH-17 | right·1 (drawer) | `group/audio` | Hover the collapsed audio glyph — within ~650ms the drawer expands, growing **right-to-left** (`transition-left-to-right: false`), revealing the mute toggle, a volume slider, and a mic-mute toggle. `transition-duration: 650`. Distinct direction and duration from `group/apps` (500ms, left-to-right) and from vertical's own `group/audio` (400ms, vertical orientation, left-to-right — covered in the vertical section below). | athena | not a B row (drawer mechanics; the audio capability itself is B.1/B.3) |
 | WB-ATH-18 | right·1.0 | `pulseaudio` | Click the speaker glyph — `wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle` mutes/unmutes; right-click — `qs ipc call panel toggle audio` opens the shell-root audio panel (15-08 rewiring). Hover — tooltip reads "Output: `{volume}`%". Distinct from every other layout's `pulseaudio` (all four differ). | athena | B.1 (audio readout) |
-| WB-ATH-19 | right·1.1 | `pulseaudio/slider` | Drag the horizontal slider revealed by the drawer — output volume changes live, range 0-100. `orientation: horizontal` (contrast vertical's own vertically-oriented slider, `WB-VERT-09`). | athena | B.3 (scroll/adjust audio — this is drag, not scroll, but the same capability class) |
+| WB-ATH-19 | right·1.1 | `pulseaudio/slider` | Drag the horizontal slider revealed by the drawer — output volume changes live, range 0-100. `orientation: horizontal` (contrast vertical's own vertically-oriented slider, covered in the vertical section below). | athena | B.3 (scroll/adjust audio — this is drag, not scroll, but the same capability class) |
 | WB-ATH-20 | right·1.2 | `pulseaudio#microphone` | Renders the microphone's mute-state icon only (`{format_source}`, no numeric value) — present **only** in athena; no other layout has a `pulseaudio#microphone` entry anywhere. | athena | not a B row (athena-only extra) |
 | WB-ATH-21 | right·2 (drawer) | `group/connections` | Hover the collapsed connections glyph — within ~500ms the drawer expands right-to-left, revealing network and bluetooth icons. `transition-duration: 500`, `transition-left-to-right: false`. | athena | not a B row (drawer mechanics) |
 | WB-ATH-22 | right·2.0 | `network` | Wifi connected: shows a 5-step signal-strength glyph (`format-icons`, weakest to strongest); ethernet: shows a distinct ethernet glyph (`󰈀`); disconnected: shows `󰤮`; disabled: shows `󰖪`. Hover while on wifi — tooltip reads `{essid}` + signal % + frequency + up/down bandwidth. Click — `qs ipc call panel toggle wifi` opens the shell-root wifi panel (15-08 rewiring; the old tray-applet click this replaced had been dead since athena's tray removal). Distinct from every other layout's `network` (all four differ). | athena | B.1 (network readout) |
 | WB-ATH-23 | right·2.1 | `bluetooth` | Disconnected: shows `󰂯`; connected: shows `󰂱`; radio disabled: shows `󰂲`. Hover while connected — tooltip lists each connected device and, where the device reports one, its battery %. Click — `qs ipc call panel toggle bluetooth` opens the shell-root bluetooth panel; right-click — `rfkill toggle bluetooth` toggles the radio. **Present only in athena — `full`, `floating` and `vertical` never reference `bluetooth` at all**, despite UI-SPEC's B.1 listing bluetooth among "the three retired layouts collectively exposed" (see the GATE-02 Criterion B Index's B.1 note in the extension of this document for the correction). | athena | B.1 (see correction note — bluetooth is athena-sourced, not full/floating/vertical-sourced) |
 | WB-ALL-02 | right·3 | `clock` | Shows `{:%H:%M}` inline (e.g. "14:32" with a clock glyph); click — switches to `format-alt`, the full date (`{:%A, %B %d, %Y}`); click again — reverts. Right-click — `mode` (same alt-toggle via the `actions` block). Scroll up/down over the clock — `shift_up`/`shift_down` the calendar month shown in the hover tooltip. Hover — tooltip shows a full month calendar (`{calendar}`) for the current month. Byte-identical between athena and full — both use the shared `modules.jsonc` definition unmodified. | athena, full | B.1 (clock readout) |
 | WB-ALL-03 | right·4 | `custom/gaming-mode` | With `~/.cache/gaming-mode` containing `on`, shows the "controller-on" glyph (`󰊴`, tooltip "Gaming Mode: ON"); with any other content (including missing), shows the "controller-off" glyph (`󰊵`, tooltip "Gaming Mode: OFF") — fails safe to OFF. Click — `~/.config/hypr/scripts/gaming-mode-toggle.sh` toggles the state file. Polls the file every 2s. Byte-identical across **all four** layouts — none of them override this module. | athena, full, floating, vertical | not a B row (not one of B.1's named readouts, but present everywhere so its parity is de facto load-bearing) |
-| WB-ALL-04 | right·5 | `custom/notification` | Unread notifications present: shows a bell-with-badge glyph (`format-icons`, 8 states crossing notification/none × dnd/normal × inhibited/normal) plus the unread count (`{icon} {text}`); no unread: shows a plain bell. Click — `swaync-client -t -sw` toggles swaync's control centre open/closed. Right-click — `swaync-client -d -sw` toggles do-not-disturb. Reads live via `swaync-client -swb` (`exec-if: "which swaync-client"` — module renders nothing if swaync isn't installed). Byte-identical across athena, full and floating (vertical's own version differs — glyph-only, no count text — see `WB-VERT-11`). Verbatim `exec`: `swaync-client -swb`. Phase 19 rewires what is behind this click without touching the layout (D-18-33). | athena, full, floating | not a B row (bell readout isn't one of B.1's named six, but the swaync-wiring capability is what D-18-33 explicitly carries forward) |
+| WB-ALL-04 | right·5 | `custom/notification` | Unread notifications present: shows a bell-with-badge glyph (`format-icons`, 8 states crossing notification/none × dnd/normal × inhibited/normal) plus the unread count (`{icon} {text}`); no unread: shows a plain bell. Click — `swaync-client -t -sw` toggles swaync's control centre open/closed. Right-click — `swaync-client -d -sw` toggles do-not-disturb. Reads live via `swaync-client -swb` (`exec-if: "which swaync-client"` — module renders nothing if swaync isn't installed). Byte-identical across athena, full and floating (vertical's own version differs — glyph-only, no count text — covered in the vertical section below). Verbatim `exec`: `swaync-client -swb`. Phase 19 rewires what is behind this click without touching the layout (D-18-33). | athena, full, floating | not a B row (bell readout isn't one of B.1's named six, but the swaync-wiring capability is what D-18-33 explicitly carries forward) |
 | WB-ATH-24 | right·6 (drawer) | `group/settings` | Hover the collapsed gear glyph (`custom/settings`, `` U+F013) — within ~500ms the drawer expands right-to-left, revealing 5 switcher icons (theme, waybar-layout, font, icon-theme, wallpaper) plus the gear itself. `transition-duration: 500`, `transition-left-to-right: false`. This is the 08-16-checkpoint settings drawer that replaced the original tray-folded settings buttons (see the file's own header comment). | athena | not a B row (drawer mechanics; D-18-01 carries this drawer forward by name) |
 | WB-ATH-25 | right·6.0 | `custom/settings` | Click the collapsed gear glyph itself — toggles the `group/settings` drawer open/closed (`tooltip: false`). Athena's own definition (not in `modules.jsonc`; no other layout references it). | athena | not a B row |
 | WB-ALL-05 | right·6.1 | `custom/theme` *(source: `modules.jsonc` canonical, not present in `athena.json` — see the Provenance tool-completeness note)* | With the drawer open, hover the half-filled-circle icon — tooltip reads "Switch Theme"; click it — `~/.config/hypr/scripts/theme-switch.sh` opens the theme picker. Byte-identical (verified via a forced re-resolve probe, `jq -S` zero-diff) between athena's group-referenced use and full's direct `modules-right` use. | athena, full | not a B row (theme-switch capability, not one of B.1-6's named items — carried forward structurally by D-18-30's settings-drawer redesign) |
@@ -227,7 +227,239 @@ split, because this document's completeness is asserted per-layout, not per-GATE
 | WB-ATH-26 | right·6.3 | `custom/font` *(source: `modules.jsonc` canonical, not present in `athena.json`)* | With the drawer open, hover the font icon — tooltip reads "Change Font"; click it — `~/.config/hypr/scripts/font-switch.sh` opens the font picker. Referenced only by athena (no other layout lists `custom/font` in any zone or group). | athena | not a B row (athena-only extra) |
 | WB-ATH-27 | right·6.4 | `custom/icon-theme` *(source: `modules.jsonc` canonical, not present in `athena.json`)* | With the drawer open, hover the paintbrush icon — tooltip reads "Change Icons"; click it — `~/.config/hypr/scripts/icon-theme-switch.sh` opens the icon-theme picker. Referenced only by athena. | athena | not a B row (athena-only extra) |
 | WB-ALL-07 | right·6.5 | `custom/wallpaper` | With the drawer open, hover the picture-frame icon — click it — `bash ~/.config/hypr/scripts/wallpaper-switch.sh` opens the wallpaper picker. Byte-identical between athena's group-referenced canonical use and floating's own (redundant but matching) direct redefinition. | athena, floating | not a B row |
-| WB-ALL-08 | right·7 | `custom/power` | Click the power glyph — `~/.config/hypr/scripts/wleave.sh` opens the wleave power menu. Hover — tooltip reads "Power Menu". Byte-identical across athena, full and vertical (floating's own version differs — no tooltip-format, a `bash ` prefix on the same script path, and a different glyph escape — see `WB-FLOAT-11`). Phase 20 replaces what `wleave.sh` opens with the new QML power menu, unaffected by this layout binding. | athena, full, vertical | B.1 is silent on power specifically, but the click-opens-power-menu capability is carried forward structurally by QPOWER-01..04 |
+| WB-ALL-08 | right·7 | `custom/power` | Click the power glyph — `~/.config/hypr/scripts/wleave.sh` opens the wleave power menu. Hover — tooltip reads "Power Menu". Byte-identical across athena, full and vertical (floating's own version differs — no tooltip-format, a `bash ` prefix on the same script path, and a different glyph escape — covered in the floating section below). Phase 20 replaces what `wleave.sh` opens with the new QML power menu, unaffected by this layout binding. | athena, full, vertical | B.1 is silent on power specifically, but the click-opens-power-menu capability is carried forward structurally by QPOWER-01..04 |
 
 Athena zone-entry count: 14 (4 left + 2 center + 8 right, matching the interface context's
 recorded count exactly). Expanded row count (every group member as its own row): 35.
+
+## Layout Criteria — full
+
+`config-full.jsonc` is the plainest of the four — 15 zone-array entries, no groups, almost every
+module inherited unmodified from `modules.jsonc`. Rows already merged into the athena section
+above (`clock`, `custom/gaming-mode`, `custom/notification`, `custom/theme`,
+`custom/waybar-layout`, `custom/power`) are not repeated here — see that section for their text;
+their `Layouts` column already names `full`.
+
+### Zone: modules-left — `["hyprland/workspaces", "hyprland/window"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-ALL-09 | left·0 | `hyprland/workspaces` | Each workspace renders as a bare numeral 1-9 (`format-icons`: `"1"`..`"9"` plus distinct `active`/`urgent` glyphs, `default` empty) — no per-app window icons, unlike athena. `persistent-workspaces: {"*": 5}`. The config carries `"on-click": "activate"`, but the click is dead for the same compiled-in-C++ reason documented on athena's own entry above — full's own comment does not repeat the explanation, but the same waybar binary renders this click identically. Byte-identical between full and vertical (both use the unmodified `modules.jsonc` definition). | full, vertical | B.2 (dead click, same as every other layout's) |
+| WB-FULL-01 | left·1 | `hyprland/window` | Shows the focused window's title inline (`{}`, capped at 40 chars), independently per output (`separate-outputs: true`). Referenced **only** by `full` — no other layout lists `hyprland/window` in any zone. D-18-07 explicitly drops a focused-window-title entry from the replacement bar, citing this exact module as the capability being deliberately not carried forward (variable-width text is "the worst element for a bar that must not reflow"). | full | not a B row (D-18-07 names this the one capability deliberately not ported) |
+
+### Zone: modules-center — `["mpris", "clock"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-FULL-02 | center·0 | `mpris` | Shows `{player_icon}  {artist} — {title}` for the active MPRIS player (paused shows a pause glyph in the same position); no player: renders nothing (`format-stopped: ""`). Click — `ags request -i media toggle-media` opens the AGS media card. Right-click — `playerctl next`. Scroll up/down — `playerctl volume 0.05+`/`0.05-`. Hover — tooltip shows player/status/position/length only (no attacker-controlled metadata, WR-03). Distinct from vertical's own `mpris` (glyph-only, no track text) — the two do not merge. Note: waybar's built-in `mpris` module (this one) is a *different* now-playing surface from `custom/media` (the athena+floating merged row above, a Python-script-backed module) — the four layouts are split 2-and-2 between the two mechanisms, both pointing at the same `ags request -i media toggle-media` click. | full | not literally named in B.1's readout list (B.1 lists clock/battery/network/bluetooth/audio/cpu·ram·disk — media/now-playing is a real, universally-present capability across all four layouts under one of two mechanisms, but is not one of B.1's six named items; see the GATE-02 Criterion B Index note below) |
+| — | center·1 | `clock` | Covered above — merged into the athena section's entry (`Layouts: athena, full`). | full | B.1 |
+
+### Zone: modules-right — `["cpu", "memory", "temperature", "pulseaudio", "network", "custom/theme", "custom/waybar-layout", "tray", "custom/gaming-mode", "custom/notification", "custom/power"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-FULL-03 | right·0 | `cpu` | Shows a microchip glyph + `{usage}%` inline; polls every 2s; hover shows a tooltip (`tooltip: true`, default numeric tooltip). Distinct from every other layout's `cpu`. | full | B.1 |
+| WB-FULL-04 | right·1 | `memory` | Shows a glyph + `{percentage}%` inline; polls every 5s; hover — tooltip reads `{used:.1f}G / {total:.1f}G`. Distinct from every other layout's `memory`. | full | B.1 |
+| WB-FULL-05 | right·2 | `temperature` | Shows `{icon} {temperatureC}°C` inline (icon + numeric value together, unlike athena's click-to-reveal split); 5-step thermometer ramp; `critical-threshold: 80`; hover enabled (`tooltip: true`). Distinct from athena's and vertical's own `temperature`; absent entirely from `floating`. | full | B.1 (arguable — B.1 literally names "cpu/ram/disk", not a thermal sensor; recorded present regardless since the capability exists) |
+| WB-FULL-06 | right·3 | `pulseaudio` | Shows `{icon}  {volume}%` inline; muted shows " muted" text appended. Click — `wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle`. Right-click — `qs ipc call panel toggle audio`. No scroll handler and no `scroll-step` key — scrolling over this module does **not** adjust volume on `full` (contrast `floating`'s `scroll-step: 5`, below). Distinct from every other layout's `pulseaudio`. | full | B.1 (readout); **not** B.3 (no scroll-to-adjust on this layout) |
+| WB-FULL-07 | right·4 | `network` | Wifi: `{icon} {signalStrength}%`; ethernet: `9 {ifname}` (glyph escape); disconnected: `e offline` (glyph escape). Hover — tooltip shows `{ifname}: {ipaddr}/{cidr}` + `{essid}`. Click — `qs ipc call panel toggle wifi`. Distinct from every other layout's `network`. | full | B.1 |
+| — | right·5 | `custom/theme` | Covered above — merged into the athena section's entry (`Layouts: athena, full`). | full | not a B row |
+| — | right·6 | `custom/waybar-layout` | Covered above — merged into the athena section's entry (`Layouts: athena, full`). | full | not a B row |
+| WB-ALL-10 | right·7 | `tray` | Renders every registered `StatusNotifierItem` icon at `icon-size: 18` with `spacing: 8` between icons; click an icon — its own context menu opens (native waybar/DBusMenu behaviour, no config override). Byte-identical between full and vertical (both use the unmodified `modules.jsonc` definition, `icon-size: 18`/`spacing: 8`). Distinct from athena's own `tray` (icon-size 16 — and, per the Dead Definitions table below, athena's `tray` is a dead definition never actually placed on the bar) and from floating's own `tray` (`icon-theme: Papirus-Dark` override, `spacing: 10`). | full, vertical | B.5 (tray icons render, menus open on click) |
+| — | right·8 | `custom/gaming-mode` | Covered above — merged into the athena section's entry (`Layouts: athena, full, floating, vertical`). | full | not a B row |
+| — | right·9 | `custom/notification` | Covered above — merged into the athena section's entry (`Layouts: athena, full, floating`). | full | not a B row |
+| — | right·10 | `custom/power` | Covered above — merged into the athena section's entry (`Layouts: athena, full, vertical`). | full | not literally a B item |
+
+Full zone-entry count: 15 (2 left + 2 center + 11 right, matching the interface context's
+recorded count exactly).
+
+## Layout Criteria — floating
+
+`config-floating.jsonc` is the layout carrying the two highest-value findings surfaced during
+this enumeration: a live scroll-to-switch-workspace binding QBAR-03 does not mention, and a
+brightness-scroll binding that is already dead today for want of installed hardware/software
+(the evidence D-18-39's verdict rests on). Rows already merged into the athena section above
+(`custom/media`, `custom/gaming-mode`, `custom/notification`, `custom/wallpaper`) are not
+repeated here.
+
+### Zone: modules-left — `["custom/launcher", "cpu", "memory", "custom/media", "tray"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-FLOAT-01 | left·0 | `custom/launcher` | Click the rocket glyph — `walker` launches the app launcher. Right-click — `killall walker` force-kills it. Referenced **only** by `floating`. | floating | not a B row (launcher opener, not one of B.1-6) |
+| WB-FLOAT-02 | left·1 | `cpu` | Shows a glyph + `{}%` inline (no explicit `format-icons`, just the bare glyph in `format`); polls every 15s (the slowest CPU poll of any layout); `max-length: 10`. Distinct from every other layout's `cpu`. | floating | B.1 |
+| WB-FLOAT-03 | left·2 | `memory` | Shows a glyph + `{}%` inline; polls every 30s (the slowest memory poll of any layout); `max-length: 10`. Distinct from every other layout's `memory`. | floating | B.1 |
+| — | left·3 | `custom/media` | Covered above — merged into the athena section's entry (`Layouts: athena, floating`). | floating | not literally a B.1 item (see the GATE-02 Criterion B Index note) |
+| WB-FLOAT-04 | left·4 | `tray` | Renders every tray icon at `icon-size: 18`, `icon-theme: Papirus-Dark` (the only layout that pins an explicit icon theme for tray icons), `spacing: 10`. Distinct from every other layout's `tray`. | floating | B.5 |
+
+### Zone: modules-center — `["hyprland/workspaces"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-FLOAT-05 | center·0 | `hyprland/workspaces` | Bare numerals 1-9 (`format-icons`: `"1"`..`"9"`, no active/urgent override); `persistent-workspaces: {"*": 6}` (six persistent slots, not five). Click — `activate` — dead, same compiled-in-C++ reason as every other layout (this file's own comment, lines 109-125, is the source of that finding, cited on the athena and full/vertical entries above). **The scroll handlers are different: they are shell-command strings, not a compiled dispatch, so they work.** Scroll up over the workspace row — `hyprctl dispatch 'hl.dsp.focus({workspace="e+1"})'` switches to the next workspace. Scroll down — the `e-1` equivalent switches to the previous one. **This is a live capability QBAR-03's own text does not mention** (QBAR-03 is framed as click-to-switch); UI-SPEC's GATE-02 B.3 only names audio/brightness scroll, not workspace scroll. No plan in this phase currently names a replacement owner for scroll-to-switch-workspace on the new bar — flagged explicitly in the GATE-02 Criterion B Index below as an unassigned capability. Verbatim: `hyprctl dispatch 'hl.dsp.focus({workspace="e+1"})'`. | floating | B.2 (click is dead, same as everywhere) — **and** an unassigned scroll capability not covered by any B row as written |
+
+### Zone: modules-right — `["custom/updates", "custom/wallpaper", "network", "pulseaudio", "clock", "backlight", "battery", "custom/gaming-mode", "custom/notification", "custom/power"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-FLOAT-06 | right·0 | `custom/updates` | With 0 pending packages, this pill renders nothing (`exec-if: "[[ $(checkupdates \| wc -l) != 0 ]]"`). With 1+, shows `{count} Update(s)` (verbose text form, unlike athena's glyph-first form). Polls every 15s (athena polls every 900s — a 60x faster poll on this layout). Click — `kitty -e paru -Syu && notify-send 'The system has been updated'` (this layout also fires a completion notification; athena's does not). Distinct from athena's own `custom/updates`. Verbatim: `checkupdates \| wc -l`. | floating | not a B row |
+| — | right·1 | `custom/wallpaper` | Covered above — merged into the athena section's entry (`Layouts: athena, floating`). | floating | not a B row |
+| WB-FLOAT-07 | right·2 | `network` | Shows `{essid} ({signalStrength}%) {icon}` on wifi (text-first, glyph last — the only layout ordering it this way); ethernet: `{bandwidthTotalBytes} 󰍹`; disconnected: `󰤮`. Hover — tooltip reads `{ifname}` inline, `{bandwidthUpBytes}`/`{bandwidthDownBytes}` on wifi/ethernet, "Disconnected!" when down. Click — `qs ipc call panel toggle wifi`. Distinct from every other layout's `network`. | floating | B.1 |
+| WB-FLOAT-08 | right·3 | `pulseaudio` | Shows `{icon} {volume}%` inline (muted keeps the same format string — no distinct muted glyph). Click — `pactl set-sink-mute @DEFAULT_SINK@ toggle` (this layout's own divergent `pactl` spelling, not `wpctl` like every other layout). Right-click — `qs ipc call panel toggle audio`. **`scroll-step: 5` — scrolling up/down over this module raises/lowers output volume by 5 percentage points per notch**, waybar's native pulseaudio scroll-to-adjust behaviour. This is `config-floating.jsonc`'s own scroll-audio parity for GATE-02 B.3. Distinct from every other layout's `pulseaudio`. | floating | B.1 **and** B.3 (scroll-to-adjust volume, the direct precedent B.3 is checked against) |
+| WB-FLOAT-09 | right·4 | `clock` | Shows `{:%d %B  %I:%M%p}` inline (day, month name, glyph, 12-hour time — the only 12-hour clock among the four layouts). Click — `format-alt` shows `{:%d/%m/%Y  %T}`; click again reverts. Polls every 1s (the only clock with an explicit fast interval). Hover — tooltip shows a month calendar. Distinct from athena/full's shared clock and from vertical's own clock. | floating | B.1 |
+| — | right·5 | `backlight` | **Dead definition, not a criterion — see `## Dead Definitions` below.** Referenced by this zone array (`modules-right`), unlike the other two dead-definition entries in this document, but its scroll behaviour is a no-op on this host (D-18-39: `light` binary not installed, `/sys/class/backlight/` empty). | floating | B.3 (not demonstrable on this hardware — structurally present; see D-18-39 and the Dead Definitions entry) |
+| WB-FLOAT-10 | right·6 | `battery` | Shows `{icon}  {capacity}%` (glyph + percentage, unlike vertical's glyph-only form); charging/plugged both show a plug glyph variant; click — `format-alt` shows `{time} {icon}`. 5-state battery-level glyph ramp, `good`/`warning`/`critical` thresholds at 95/30/20. Distinct from vertical's own `battery`. | floating | B.1 (battery "when present" — this desktop has none, D-18-06's same precedent; the module itself renders nothing on this host regardless of layout) |
+| — | right·7 | `custom/gaming-mode` | Covered above — merged into the athena section's entry (`Layouts: athena, full, floating, vertical`). | floating | not a B row |
+| — | right·8 | `custom/notification` | Covered above — merged into the athena section's entry (`Layouts: athena, full, floating`). | floating | not a B row |
+| WB-FLOAT-11 | right·9 | `custom/power` | Click the power glyph (a distinct glyph escape from athena/full/vertical's shared form, and a literal `bash ` prefix on the invocation, unlike their bare script-path form) — `bash ~/.config/hypr/scripts/wleave.sh` opens the wleave power menu. No `tooltip-format` key — hover shows no custom tooltip text on this layout (contrast athena/full/vertical, all three of which show "Power Menu" on hover). Distinct from the athena/full/vertical merged entry. | floating | not literally a B item; QPOWER-01..04 carry this forward structurally |
+
+Floating zone-entry count: 16 (5 left + 1 center + 10 right, matching the interface context's
+recorded count exactly).
+
+## Layout Criteria — vertical
+
+`config-vertical.jsonc` is the 44px **left**-edge column (see `## Not a Port Specification`
+above for why the replacement's own right-edge vertical orientation must not be read off this
+anchor). Every text-bearing module here uses a
+stacked or abbreviated form to fit the fixed 44px width — the shape criteria below record, not
+the anchor edge. Rows already merged elsewhere (`hyprland/workspaces`, `tray` with full;
+`custom/gaming-mode`, `custom/power` with athena/full) are not repeated here.
+
+### Zone: modules-left — `["clock", "hyprland/workspaces"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-VERT-01 | left·0 | `clock` | Shows a two-line stacked form, `{:%H\n%M}` (hours over minutes, no glyph, no seconds — no `format-alt` key exists on this layout, so there is no click-to-toggle-detail behaviour at all, unlike every other layout's clock). Hover — tooltip shows a month calendar, byte-identical to every other layout's calendar tooltip content. Right-click/scroll actions (`mode`/`shift_up`/`shift_down`) are present and byte-identical to athena/full's shared clock's `actions` block. Distinct from athena/full's shared clock and from floating's own clock (no other layout stacks hours-over-minutes). | vertical | B.1 **and** B.4 (the stacked-text vertical-column form for a specific readout) |
+| — | left·1 | `hyprland/workspaces` | Covered above — merged into the full section's entry (`Layouts: full, vertical`). | vertical | B.2, B.4 |
+
+### Zone: modules-center — `["mpris"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-VERT-02 | center·0 | `mpris` | Glyph-only (`{player_icon}`, paused shows `{status_icon}` in the same slot — no artist/title text at all, unlike `full`'s text-bearing `mpris`). Click — `ags request -i media toggle-media`. Right-click — `playerctl next`. Scroll up/down — `playerctl volume 0.05+`/`-`. Hover — tooltip shows player/status/position/length. Distinct from full's own `mpris`. | vertical | not literally named in B.1 (see the note on `full`'s `mpris` entry above) — **and** B.4 (glyph-only is this readout's 44px-column form) |
+
+### Zone: modules-right — `["cpu", "memory", "temperature", "network", "group/audio", "battery", "custom/gaming-mode", "custom/notification", "tray", "custom/power"]`
+
+| ID | Zone·Index | Module | Checkable criterion | Layouts | GATE-02 B |
+|---|---|---|---|---|---|
+| WB-VERT-03 | right·0 | `cpu` | Glyph-only (`{}`, no numeric value inline); click — `uwsm app -- kitty -e htop` opens a terminal with `htop` (the only layout whose `cpu` module opens a system monitor on click). Hover — tooltip reads `CPU: {usage}%`. Polls every 2s. Distinct from every other layout's `cpu`. | vertical | B.1 **and** B.4 (glyph-only, detail moved to tooltip — the stacked-column form) |
+| WB-VERT-04 | right·1 | `memory` | Glyph-only, no numeric inline. Click — `uwsm app -- kitty -e htop`. Hover — tooltip reads `RAM: {used:.1f}G / {total:.1f}G`. Polls every 5s. Distinct from every other layout's `memory`. | vertical | B.1, B.4 |
+| WB-VERT-05 | right·2 | `temperature` | Glyph-only, 5-step thermometer ramp; `critical-threshold: 80`; click — `uwsm app -- kitty -e htop`; hover — tooltip reads `Temp: {temperatureC}°C`. Distinct from athena's and full's own `temperature`; absent from `floating`. | vertical | B.1 (arguable, same note as `full`'s temperature), B.4 |
+| WB-VERT-06 | right·3 | `network` | Wifi/ethernet/disconnected glyph-only (`format-wifi: "{icon}"`, no signal % inline — text detail moves entirely to the hover tooltip, which shows `{ifname}: {ipaddr}/{cidr}` + `{essid}` on wifi and up/down bandwidth on wifi/ethernet). Click — `qs ipc call panel toggle wifi`. Distinct from every other layout's `network`. | vertical | B.1, B.4 |
+| WB-VERT-07 | right·4 (drawer) | `group/audio` | Hover the collapsed volume glyph — within ~400ms the drawer expands **left-to-right** (`transition-left-to-right: true` — the opposite direction convention from athena's own `group/audio`, which expands right-to-left), revealing a vertical slider. `orientation: vertical` for the group itself. `transition-duration: 400` (the fastest drawer of any group in this document). | vertical | not a B row (drawer mechanics; the audio-adjust capability itself is B.1/B.3, see the member row below) |
+| WB-VERT-08 | right·4.0 | `pulseaudio` | Glyph-only, no volume % inline (detail moves to the hover tooltip: `{volume}% — {desc}`). Click — `wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle`. Right-click — `qs ipc call panel toggle audio`. **No scroll handler on the collapsed pill** — unlike `floating`'s `scroll-step`, adjusting volume on this layout requires hovering the drawer open first, then interacting with the revealed slider (the row below), not scrolling the collapsed glyph directly. Distinct from every other layout's `pulseaudio`. | vertical | B.1; **not** B.3 in the scroll-on-the-collapsed-pill sense — the drawer-then-drag shape is this layout's own B.3 equivalent |
+| WB-VERT-09 | right·4.1 | `pulseaudio/slider` | With the drawer open, drag the **vertical** slider — output volume changes live, range 0-100. `orientation: vertical` (contrast athena's horizontally-oriented slider). | vertical | B.3 (drag-to-adjust, vertical-column shape — the direct precedent for how the replacement's own vertical orientation might expose the same gesture) |
+| WB-VERT-10 | right·5 | `battery` | Glyph-only (`{icon}`, no percentage inline — detail moves to the hover tooltip: `{capacity}% — {time}`). Charging/plugged show a distinct plug glyph. 5-state ramp, same thresholds as `floating`'s battery (95/30/20). Distinct from floating's own `battery`. | vertical | B.1 ("when present" — none on this host), B.4 |
+| — | right·6 | `custom/gaming-mode` | Covered above — merged into the athena section's entry (`Layouts: athena, full, floating, vertical`). | vertical | not a B row |
+| WB-VERT-11 | right·7 | `custom/notification` | Glyph-only (`{icon}`, the count text dropped from `format` entirely — unlike athena/full/floating's shared `{icon} {text}` form). The dropped count text's replacement home is `tooltip: true` (flipped from the shared entry's `tooltip: false`) — `swaync-client -swb`'s own JSON payload already carries a `"tooltip"` field (verified live: `"tooltip":"16 Notifications"`), and waybar surfaces that automatically once `tooltip` isn't `false`, so hovering shows the unread count as text even though the inline glyph does not. Click — `swaync-client -t -sw`. Right-click — `swaync-client -d -sw`. Distinct from the athena/full/floating merged entry. | vertical | not a B row; B.4-relevant as this readout's 44px-column form |
+| — | right·8 | `tray` | Covered above — merged into the full section's entry (`Layouts: full, vertical`). | vertical | B.5, B.4 |
+| — | right·9 | `custom/power` | Covered above — merged into the athena section's entry (`Layouts: athena, full, vertical`). | vertical | not literally a B item |
+
+Vertical zone-entry count: 13 (2 left + 1 center + 10 right, matching the interface context's
+recorded count exactly).
+
+**Vertical orientation collectively substantiates B.4.** UI-SPEC B.4 ("the horizontal↔vertical
+toggle reaches the vertical orientation and every readout present in horizontal is still
+present, in the 44px stacked-text form, with no truncation") is not one module's criterion — it
+is the property that every `WB-VERT-*` row above (plus the vertical-column instances of the
+merged `hyprland/workspaces` and `tray` rows) collectively demonstrates: every readout that
+exists in horizontal form on `full` also has a vertical-column form here, stacked or
+glyph-only, none of it truncated in the resolved config (no `max-length` clamp appears on any
+vertical-layout module that isn't also present on its horizontal counterpart). `18-19`'s B.4
+pass is a live re-check of this claim against the actual rendered 44px column on the new bar,
+not a re-derivation of it.
+
+## Shared Module Definitions
+
+Every module defined once in `modules.jsonc` (23 definitions), the canonical shared layer every
+layout inherits through `"include": ["modules.jsonc", ...]`. "Overrides" below means a layout
+fully redefines the key (waybar's `include` is whole-key first-defined-wins — never a partial
+patch), which is exactly the class of change a raw `.jsonc` read can miss and only the resolved
+snapshot proves.
+
+| Module | Referenced by | Overridden by |
+|---|---|---|
+| `hyprland/workspaces` | athena, full, floating, vertical | athena, floating (full and vertical use the canonical form unmodified — the full+vertical merged row) |
+| `hyprland/window` | full | — (canonical, unmodified) |
+| `mpris` | full, vertical | vertical (full uses the canonical form unmodified) |
+| `clock` | athena, full, floating, vertical | floating, vertical (athena and full use the canonical form unmodified — the merged row in the athena section) |
+| `cpu` | athena, full, floating, vertical | athena, full, floating, vertical (all four override — no layout uses the canonical form as-is) |
+| `memory` | athena, full, floating, vertical | athena, full, floating, vertical (all four override) |
+| `temperature` | athena, full, vertical (not floating) | athena, full, vertical (all three that reference it override) |
+| `pulseaudio` | athena, full, floating, vertical | athena, full, floating, vertical (all four override) |
+| `network` | athena, full, floating, vertical | athena, full, floating, vertical (all four override) |
+| `custom/theme` | athena (via `group/settings`), full | — (both use the canonical form unmodified — the merged row in the athena section) |
+| `custom/waybar-layout` | athena (via `group/settings`), full | — (both canonical — the merged row in the athena section) |
+| `custom/gaming-mode` | athena, full, floating, vertical | — (all four canonical, unmodified — the merged row in the athena section) |
+| `custom/notification` | athena, full, floating, vertical | vertical (athena/full/floating canonical, unmodified — the merged row in the athena section) |
+| `custom/power` | athena, full, floating, vertical | floating (athena/full/vertical canonical, unmodified — the merged row in the athena section) |
+| `tray` | athena, full, floating, vertical | athena, floating (full and vertical canonical, unmodified — the merged row in the full section) |
+| `custom/media` | athena, floating | — (both canonical, unmodified — the merged row in the athena section) |
+| `custom/launcher` | floating | — (canonical, unmodified) |
+| `custom/updates` | athena, floating | athena, floating (both that reference it override) |
+| `custom/wallpaper` | athena (via `group/settings`), floating | — (both canonical — floating's own redefinition is byte-identical to canonical, merged into one row in the athena section) |
+| `custom/font` | athena (via `group/settings`) | — (canonical, unmodified) |
+| `custom/icon-theme` | athena (via `group/settings`) | — (canonical, unmodified) |
+| `backlight` | floating | — (canonical, unmodified — see `## Dead Definitions`) |
+| `battery` | floating, vertical | vertical (floating uses the canonical form unmodified) |
+
+## Dead Definitions
+
+Source for UI-SPEC GATE-02 criterion **B.6**'s exclusion clause: B.6 states that only a genuine
+`full`/`floating`/`vertical`-exclusive capability counts as a regression if missing from the new
+bar, and that nothing deliberately cut during athena's own 08-16 evolution should be expected
+back. The two rows below are exactly that — resolved-snapshot presence with zero live
+instantiation, or zero working behaviour, derived mechanically rather than by inspection.
+
+| Layout | Module | Why dead | Not a capability the replacement owes because |
+|---|---|---|---|
+| athena | `tray` | Present in `18-waybar-resolved/athena.json` (`icon-size: 16`, `spacing: 10` — `config-athena.jsonc` still defines the key directly) but referenced by **zero** zone arrays and **zero** group `modules` arrays — athena's `modules-left`/`-center`/`-right` never list `"tray"`. Removed at the 08-16 checkpoint iteration 2 because its nm-applet/blueman icons visually duplicated `group/connections` (the file's own comment, lines 34-38, records the user's request verbatim: "duplicate bluetooth/network next to gaming mode, remove it"). | The replacement is *not* exempt from having a tray — **D-18-04 deliberately reverses this exact removal**, making the tray always-visible at the end of the new bar. The tray's return is by explicit decision (D-18-04), not by inheritance from this table; this row documents only that athena's own bar never rendered one. |
+| floating | `backlight` | Present in `18-waybar-resolved/floating.json` and, unlike `tray` above, genuinely **referenced** by `modules-right` — waybar does instantiate this widget. Its behaviour is dead: scroll up/down is bound to `light -A 5`/`light -U 5`, but the `light` binary is not installed on this host (`/usr/bin/light` does not exist) and `/sys/class/backlight/` is empty (no backlight device at all — this is a desktop board, B550 AORUS ELITE AX V2, not a laptop). Verbatim: `"on-scroll-up": "light -A 5"`, `"on-scroll-down": "light -U 5"`. | D-18-39 records the exact same precedent (compare D-18-06's battery treatment): the capability is structurally present in config today but has been a no-op on this hardware since before this phase started, so its non-functional state on the new bar (QBAR-04 ships present-but-inert, gated on hardware presence via `brightnessctl`) is not a phase-18 regression — it is carrying forward an already-dead binding, evidenced by this row rather than merely asserted. This is what makes GATE-02 **B.3** recordable as "not demonstrable on this hardware — structurally present" instead of a claimed pass. |
+
+## Unaccounted Keys
+
+Closure proof: every top-level key of every resolved snapshot, checked against every criterion
+row, the `## Bar-Level Chrome` table, and the `## Dead Definitions` table above. All four lists
+are empty.
+
+- **athena** — 45 top-level keys in `18-waybar-resolved/athena.json`. Zero unaccounted: every
+  module key is a `WB-ATH-*`/`WB-ALL-*` row or the `tray` Dead Definition; every bar-level scalar
+  (`layer`, `position`, `height`, `margin-top`, `margin-left`, `margin-right`, `spacing`,
+  `on-sigusr1`, `on-sigusr2`) is in `## Bar-Level Chrome`; `modules-left`/`modules-center`/
+  `modules-right` are the zone-array keys named throughout this document's zone headers. **(none)**
+- **full** — 27 top-level keys. Zero unaccounted: every module key is a `WB-FULL-*`/`WB-ALL-*`
+  row; every bar-level scalar (`layer`, `position`, `height`, `margin-top`, `margin-left`,
+  `margin-right`, `spacing`, `on-sigusr1`, `on-sigusr2`) is in `## Bar-Level Chrome`. **(none)**
+- **floating** — 24 top-level keys. Zero unaccounted: every module key is a `WB-FLOAT-*`/
+  `WB-ALL-*` row or the `backlight` Dead Definition; every bar-level scalar (`layer`, `position`,
+  `spacing`, `on-sigusr1`, `on-sigusr2`) is in `## Bar-Level Chrome`, including the explicit
+  stated absence of `height`/`margin-*` on this layout. **(none)**
+- **vertical** — 27 top-level keys. Zero unaccounted: every module key is a `WB-VERT-*`/
+  `WB-ALL-*` row; every bar-level scalar (`layer`, `position`, `width`, `margin-top`,
+  `margin-left`, `margin-bottom`, `spacing`, `on-sigusr1`, `on-sigusr2`) is in
+  `## Bar-Level Chrome`, including the deliberately-absent `output` key. **(none)**
+
+## GATE-02 Criterion B Index
+
+Maps UI-SPEC § "GATE-02 Render-Gate Criteria" § B's six criteria to the criterion IDs above, so
+`18-19` walks this index under its blocking pass rather than re-deriving the mapping. Two rows
+below carry a correction to B's own text, found mechanically while assembling this index — both
+are named explicitly rather than silently absorbed, per this document's own completeness
+standard.
+
+| B# | UI-SPEC text | Substantiating criterion IDs |
+|---|---|---|
+| B.1 | Every readout the three retired layouts collectively exposed (clock, battery when present, network, bluetooth, audio, cpu/ram/disk) is present and live on the new bar. | clock: the athena+full merged row, floating's own clock row, vertical's own clock row. battery: floating's and vertical's own battery rows (render nothing on this host either way — no battery present, D-18-06 precedent). network: full's, floating's and vertical's own network rows. audio: full's, floating's and vertical's own pulseaudio rows. cpu/ram/disk: full's and floating's cpu+memory rows, vertical's cpu+memory rows (none of the three has a `disk` readout at all — `disk` is athena-exclusive). **Correction:** B's own text lists "bluetooth" among what the three retired layouts collectively exposed. The resolved snapshots show this is not so — `bluetooth` is referenced by **zero** of `full`/`floating`/`vertical`; it is exclusive to athena. B.1's bluetooth clause is therefore sourced from athena, not from the three-layout capability audit its own framing describes — `18-19` should read B.1's bluetooth check as inherited from D-18-32's aesthetic-baseline half, not the capability-audit half. |
+| B.2 | Clicking a workspace switches to it (the capability dead under waybar 0.15.0's compiled-in dispatch — QBAR-03's whole reason for existing). | The athena `hyprland/workspaces` row, the merged full+vertical `hyprland/workspaces` row, and floating's own `hyprland/workspaces` row — all four layouts' `hyprland/workspaces` carry the same dead `"on-click": "activate"`, confirmed by `config-floating.jsonc`'s own comment (the only layout that explains why) and the shared waybar C++ code path that renders every layout's click identically. |
+| B.3 | Scrolling on the audio section adjusts volume; scrolling on the brightness-bearing section adjusts brightness (parity with `config-floating`'s scroll bindings). | Audio: floating's own `pulseaudio` row (`scroll-step: 5`, the direct precedent this criterion names) and vertical's own `pulseaudio/slider` row (drawer-then-drag, a different gesture shape for the same capability — athena's own `pulseaudio/slider` row is also drag-based, not scroll). Brightness: the `backlight` Dead Definitions row — **not demonstrable on this hardware, structurally present per D-18-39**, never recordable as a pass. **Unassigned-capability flag:** floating's `hyprland/workspaces` scroll-up/down (`hl.dsp.focus`) is a live, working scroll capability on the retired bar that B.3 as written does not cover (B.3 only names audio and brightness) and that no plan in this phase currently names an owner for reproducing. Recorded here so it is not lost silently; not resolved by this document. |
+| B.4 | The horizontal↔vertical toggle (settings drawer + Super-menu, D-18-30) reaches the vertical orientation and every readout present in horizontal is still present, in the 44px stacked-text form, with no truncation. | Every row in the vertical layout section, plus the vertical-orientation instances of the merged `hyprland/workspaces` and `tray` rows — see the "Vertical orientation collectively substantiates B.4" note closing the vertical section above. |
+| B.5 | Tray icons render and their menus open on click, in both orientations. | The merged full+vertical `tray` row (covers the vertical-orientation half directly) and floating's own `tray` row. Athena's own `tray` definition is **not** evidence for B.5 — it is a Dead Definition, never placed on athena's bar; D-18-04 is the actual authority for the tray's return. |
+| B.6 | Nothing deliberately cut during athena's own 08-16 evolution (e.g. the old tray-folded settings sub-menu) is expected back — only a genuine `full`/`floating`/`vertical`-exclusive capability counts as a regression if missing. | `## Dead Definitions` in full, above — both rows (`tray` in athena, `backlight` in floating) are the exclusion list this criterion depends on. |
+
+**A second correction, found alongside the first while indexing B.1:** neither `mpris` (`full`,
+`vertical`) nor `custom/media` (`athena`, `floating`) — the two now-playing mechanisms every
+layout has exactly one of — is one of B.1's six named readouts, despite both being live,
+universally-present capabilities across all four layouts. This is not a hard gap (the new bar's
+own media capsule, D-18-05, is a named requirement independent of B), but it means B.1 as
+literally written does not obligate `18-19` to check now-playing at all. Recorded so the pass is
+not silently thinner than the document that feeds it.
