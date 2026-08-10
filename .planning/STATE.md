@@ -2,10 +2,9 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
-current_phase: 17
-status: completed
+status: Awaiting next milestone
 stopped_at: Completed 17-06-PLAN.md — Phase 17 (Ambient Extras) closed, checkpoint approved 2026-08-10
-last_updated: "2026-08-10T08:28:30.812Z"
+last_updated: "2026-08-10T10:34:31.771Z"
 last_activity: 2026-08-10
 last_activity_desc: 17-06 closed — phase-close checkpoint approved, D-38 gap reaffirmed still-accepted at its corrected 5-site size
 progress:
@@ -14,6 +13,7 @@ progress:
   total_plans: 68
   completed_plans: 68
   percent: 100
+current_phase: 17
 current_phase_name: ambient-extras
 ---
 
@@ -21,18 +21,17 @@ current_phase_name: ambient-extras
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-02)
+See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 17 — ambient-extras
+**Current focus:** Planning next milestone (v4.0 not yet scoped — run `/gsd-new-milestone`)
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
-Status: All phases complete
-Progress: [██████████] 100% — 8/8 phases complete, 68/68 plans executed
-Last activity: 2026-08-10 — Phase 17 complete
+Phase: Milestone v3.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-10 — Milestone v3.0 completed and archived
 
 ## Performance Metrics
 
@@ -474,6 +473,36 @@ No items were acknowledged-and-deferred *as a condition of* the v2.0 close: the
 pre-close artifact audit came back fully clear, so v2.0 closed as a
 `verified_closeout`, not an override.
 
+### Acknowledged at the v3.0 close (2026-08-10) — override_closeout
+
+v3.0 did **not** close clear. The pre-close artifact audit reported **53 open
+items** and the milestone audit status was `gaps_found`. All were acknowledged
+and carried forward by explicit operator decision rather than resolved, which is
+what makes this an `override_closeout`. Known verification overrides: 1 phase
+(16) + 53 open artifacts.
+
+| Category | Item | Status |
+|----------|------|--------|
+| phase verification | Phase 16 (Workspace Overview) has no `16-VERIFICATION.md` — evidence lives in `16-UAT.md` (30/30 passed, 0 issues) and `16-OVER04-MEASUREMENT.md` | Open — override |
+| requirement | MAINT-02 — Logout not wrapped like Shutdown/Reboot; D-29 measurement waived 2026-07-28, not performed | Open — the one unfinished v3.0 requirement |
+| requirement | OVER-04 frame-rate term — CPU half measured and passed (2.4× headroom), FPS floor/target recorded UNMEASURED | Open — partial |
+| integration | `GradientBorder` has one consumer (`Dashboard.qml:387`); the three Phase 15 panels on `PanelDialog.qml` carry no rim. Diagnosed, deliberately not fixed | Open — real gap, stated user expectation unmet |
+| debug session | bluetooth-enable-inert | diagnosed |
+| debug session | panels-missing-animated-border | diagnosed |
+| debug session | wifi-hidden-network-not-detected | unknown |
+| debug session | wifi-hidden-network-unsupported | diagnosed |
+| debug session | wifi-scan-progress-feedback | diagnosed |
+| debug session | wifi-wrong-password-external-dialog | diagnosed |
+| quick task | 260728-51j-write-the-hyprland-lua-config-migration- | missing |
+| deferred items | 46 entries across phase `deferred-items.md` files (12: 2, 13: 24, 14: 4, 15+: remainder) | Open — archived under `milestones/v3.0-phases/` |
+| bookkeeping | Two malformed `coverage:` blocks — `16-05-SUMMARY.md` D5 invalid `status: not_run`; `16-06-SUMMARY.md` D2/D3/D4 missing required `rationale`. Classifier failed safe (escalated, did not drop) | Open — cosmetic |
+
+Two items the audit listed were **closed** by the 2026-08-10 UAT rather than
+carried: 16-04/D3 (live permission enforcement across all five screencopy paths
+after a real session restart — was `deferred-items.md` item 0) and 16-05/D5
+(pointer click on a window thumbnail — never reproducible by any executor, no
+synthetic pointer tool on this host). Both operator-confirmed live.
+
 ## Session Continuity
 
 Last session: 2026-08-10T07:51:21.421Z
@@ -482,11 +511,4 @@ Resume file: None
 
 ## Operator Next Steps
 
-- **Phase 15 is closed, but two items were consciously skipped and are not tracked by any phase.** If either matters, do it before Phase 16 buries it:
-  - `/gsd-secure-phase 15` — no `15-SECURITY.md` exists. The phase touched wifi passphrase handling, suppressed the system's NetworkManager secret agent via a stowed autostart override, and added an `nmcli` subprocess. This is the one skipped item with real security surface.
-  - `/gsd-execute-phase 15` — would regenerate execution verification over plans 15-10..15-14 and the two inline fix commits, which the current `15-VERIFICATION.md` does not cover.
-- **Re-pair your phone.** The Z Fold7 bond was deliberately removed to measure bluetooth pairing with no agent registered, and was not restored. While re-pairing, if you take 30+ seconds confirming on the phone, watch whether the row shows "Couldn't pair" while the bond completes anyway — that single observation closes G-15-9 for free.
-- **Two inline fixes shipped without plan/summary artifacts**, at your request: `12575ac` (hidden-network handoff race) and `18da48c` (bluetooth Retry affordance). Both are UAT-verified and committed; they are simply absent from Phase 15's artifact trail.
-- Backup branch `v1` (`6b30204`) holds the pre-v3.0 snapshot. Still **local only** — push it to `origin` for off-machine safety.
-- This session's commits are local only (not yet pushed to `origin`) — push before relying on `verify/container-run.sh`'s real-remote clone for any reproducibility check.
-- Gates as of Phase 15 close: `motion-lint` 107/0. Other gates were not re-run this session; `hypr-equivalence-check`'s `binds.json` sub-check is known-failing (blocker 7 above) and pre-dates this phase.
+- Start the next milestone with /gsd-new-milestone
