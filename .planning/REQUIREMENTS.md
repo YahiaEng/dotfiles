@@ -79,7 +79,7 @@
 
 ### LEDGER — v3.0 debt paydown
 
-- [ ] **LEDGER-01**: The `GradientBorder` and `quickshell-doctor`-dispatch carry-ins are closed as bookkeeping — both are already fixed in code (`PanelDialog.qml:191`, commit `4f48847`; `hl.dsp.global` throughout); this requires a visual confirmation that the panel rim actually renders, then correcting PROJECT.md, MILESTONES.md, WINDOWS #14 and the debug session status
+- [ ] **LEDGER-01**: The `GradientBorder` and `quickshell-doctor`-dispatch carry-ins are closed as bookkeeping — both are already fixed in code (`PanelDialog.qml:191`, commit `4f48847`; `hl.dsp.global` throughout). **Visual confirmation TAKEN 2026-08-10: the operator confirmed the audio, wifi and bluetooth panels all render the glowing rim.** Remaining work is documentation only — correct PROJECT.md Active, MILESTONES.md "Known gaps at close", WINDOWS #14, and flip the `panels-missing-animated-border` debug session to resolved. Do NOT re-ask for the visual check.
 - [ ] **LEDGER-02**: MAINT-02 is settled by **taking the D-29 teardown measurement** that was waived on 2026-07-28, then wrapping Logout or recording why it needs no wrapping
 - [ ] **LEDGER-03**: OVER-04's frame-rate term is measured — the floor and target that were recorded UNMEASURED get real numbers
 - [ ] **LEDGER-04**: All 6 open debug sessions in `.planning/debug/` reach `resolved` or an explicitly-reasoned deferral
