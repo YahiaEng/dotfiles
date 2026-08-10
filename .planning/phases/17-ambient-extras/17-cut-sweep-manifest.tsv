@@ -1,0 +1,15 @@
+# 17-cut-sweep-manifest.tsv — Phase 17 (Ambient Extras) criterion-3 sweep data.
+# Schema (tab-separated, 9 columns, # comments allowed):
+#   ID  PLAN  UNIT  ARTIFACT  CONSUMER  SCOPE  REF  MODE  NOTE
+#
+# ARTIFACT vocabulary: exec:<path> | file:<path> | dir:<path> |
+#   sym:<path>::<literal> | none
+# CONSUMER: repo-relative path | "-" (no consumer) | glob:<name-pattern>
+#   (enumerate every matching file via `find . -name <pattern>`)
+# SCOPE: file | array:<NAME> | nocomment
+# REF: fixed string by default; an ERE only when prefixed `re:`
+# MODE: pair | branch | warn | empty
+#
+# Task 1 (tracer): S-02 only, proven against the live repo before the
+# rest of the manifest was populated. Task 2 fills S-01..S-23, E-01..E-03.
+S-02	17-01	wallpaper-visibility.sh (owner) x stow.sh live/ pre-create loop	exec:hypr/.config/hypr/scripts/wallpaper-visibility.sh	stow.sh	file	$HOME/Pictures/Wallpapers/$theme_name/live	pair	transcribed verbatim from the shipped stow.sh:223 mkdir -p line (17-01)
