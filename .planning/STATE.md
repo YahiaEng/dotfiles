@@ -3,10 +3,9 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
-current_phase_name: ambient-extras
-status: executing
+status: completed
 stopped_at: Completed 17-06-PLAN.md — Phase 17 (Ambient Extras) closed, checkpoint approved 2026-08-10
-last_updated: "2026-08-10T07:51:21.458Z"
+last_updated: "2026-08-10T08:28:30.812Z"
 last_activity: 2026-08-10
 last_activity_desc: 17-06 closed — phase-close checkpoint approved, D-38 gap reaffirmed still-accepted at its corrected 5-site size
 progress:
@@ -15,6 +14,7 @@ progress:
   total_plans: 68
   completed_plans: 68
   percent: 100
+current_phase_name: ambient-extras
 ---
 
 # Project State
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 
 ## Current Position
 
-Phase: 17 (ambient-extras) — COMPLETE
-Plan: 6 of 6
-Status: Phase 17 closed. Criterion-3 sweep clean, AMB-01/AMB-02 marked, phase-close checkpoint approved 2026-08-10 (D-38 gap "still accepted" at its corrected 5-site/8-line size) — see 17-SWEEP-REPORT.md and 17-06-SUMMARY.md
+Phase: 17
+Plan: Not started
+Status: All phases complete
 Progress: [██████████] 100% — 8/8 phases complete, 68/68 plans executed
-Last activity: 2026-08-10 — Phase 17 closed
+Last activity: 2026-08-10 — Phase 17 complete
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 107
+- Total plans completed: 113
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -60,6 +60,7 @@ Last activity: 2026-08-10 — Phase 17 closed
 | 13.1 | 10 | - | - |
 | 14 | 10 | - | - |
 | 15 | 14 | - | - |
+| 17 | 6 | - | - |
 
 **Recent Trend:**
 
