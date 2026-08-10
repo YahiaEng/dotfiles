@@ -406,15 +406,22 @@ theme_engine_wallpaper_sync_owner() {
     local resolved=""
     if [[ -n "$ref" ]]; then
         if [[ "$ref" == /* ]]; then
-            # CR-01's new absolute-path form. Resolve and re-derive the
-            # SAME <theme>/live/<file> shape the relative branch already
-            # trusts, then run it through the identical shape function —
-            # never a bespoke check for this branch.
-            local real wallpaper_dir_real rel ref_remainder
-            wallpaper_dir_real=$(realpath -m -- "$WALLPAPER_DIR" 2>/dev/null || printf '%s' "$WALLPAPER_DIR")
-            real=$(realpath -m -- "$ref" 2>/dev/null || true)
-            if [[ -n "$real" && -f "$real" && "$real" == "$wallpaper_dir_real"/*/live/* ]]; then
-                rel="${real#"$wallpaper_dir_real"/}"
+            # CR-01's new absolute-path form. Normalise with
+            # `realpath -m --no-symlinks` (lexical only, symlinks never
+            # followed) — the EXACT same algorithm wallpaper-visibility.sh's
+            # own _validate_selection uses against the literal (possibly
+            # itself symlinked, e.g. a stow-managed ~/Pictures)
+            # WALLPAPERS_ROOT/$WALLPAPER_DIR constant. Found live during
+            # this fix's own verification: using symlink-following
+            # `realpath -m` here instead resolved to the REAL target path
+            # (e.g. under the stow source tree), which then never matched
+            # $WALLPAPER_DIR's own literal, unresolved value and made the
+            # owner reject every selection — the two sides must normalise
+            # identically or they silently disagree.
+            local real rel ref_remainder
+            real=$(realpath -m --no-symlinks -- "$ref" 2>/dev/null || true)
+            if [[ -n "$real" && -f "$real" && "$real" == "$WALLPAPER_DIR"/*/live/* ]]; then
+                rel="${real#"$WALLPAPER_DIR"/}"
                 ref_remainder="${rel#*/}"
                 theme_engine_wallpaper_is_live_ref "$ref_remainder" && resolved="$real"
             fi
