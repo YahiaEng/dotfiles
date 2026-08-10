@@ -1,7 +1,7 @@
 ---
 phase: 18
 slug: 18-qml-bar-retirement-machinery
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-10
@@ -72,6 +72,8 @@ Add these to `modules/dashboard/Design.qml` itself (not a second singleton) — 
 | `popoutCornerRadius` | `20` | New popout frame — see below |
 | `popoutMinWidth` | `300` | New popout frame — see below |
 | `popoutMaxWidth` | `360` | New popout frame — see below |
+| `mediaTitleMaxChars` | `30` | UI-consideration probe resolution — parity with athena's own `modules.jsonc:"custom/media".max-length: 30`, the exact cap the retired bar already applied to this same string |
+| `trayMaxExtent` | `240` | UI-consideration probe resolution — max tray capsule length (width horizontal / height vertical) before its icon row scrolls internally; 240 = 7½ icon cells at the 32px cell pitch, so a typical tray never reaches it and an abnormal one can never push other capsules off-screen |
 
 ---
 
@@ -151,7 +153,9 @@ Applies to every non-tray capsule (system, workspaces, media+connectivity, clock
 - **Min-width**: none enforced by default — a capsule shrinks to fit its content. Two named exceptions:
   - Workspace capsule (vertical orientation): fixed-height slots per D-18-12, not shrink-to-fit.
   - Every text-bearing vertical-orientation entry: fixed `barColumnWidth` (44px), per D-18-14.
-- **Truncation**: none, anywhere. No bar text element is ever hard-truncated with an ellipsis. This is by construction (D-18-07's rationale generalized): every value is short/bounded (a glyph, a 1–3 digit percentage, a stacked 5-character time). Where a value's width could visibly jitter (e.g. `"5%"` vs `"100%"`), reserve worst-case width with right-aligned fixed-width numeric formatting so the capsule never visibly resizes on a value change — this is this document's explicit resolution of the long-text/overflow consideration for numeric readouts (see UI Considerations below).
+- **Truncation**: none for **bounded** values — and every bar value is bounded by construction (D-18-07's rationale generalized): a glyph, a 1–3 digit percentage, a stacked 5-character time. Where a bounded value's width could visibly jitter (e.g. `"5%"` vs `"100%"`), reserve worst-case width with right-aligned fixed-width numeric formatting so the capsule never visibly resizes on a value change.
+
+  **One named exception — the media track title**, the only genuinely unbounded string on this surface. It is capped at `mediaTitleMaxChars` (30) with `Text.ElideRight`, and the full title is shown in the media popout. Both halves are precedent, not invention: 30 is the exact `max-length` athena's own `custom/media` module already applies to this same string (so GATE-02's parity judgment stays honest), and `Text.ElideRight` is this codebase's established treatment for unbounded names in `AudioPanel.qml`, `BluetoothPanel.qml`, `MediaTab.qml`, `WorkspaceTile.qml` and `WindowThumbnail.qml`. No *other* bar element may cite this exception — network deliberately renders `{icon}` only (SSID in the popout), matching athena's `"format-wifi": "{icon}"`, so no second unbounded string reaches the bar. See UI Considerations below.
 
 ---
 
@@ -220,7 +224,8 @@ D-18-15 rejects reusing `PanelDialog` (a fixed 850×620, `anchors.top`-only, com
 
 - Always visible, no chevron, no threshold collapse (D-18-04) — the tray IS its own capsule, positioned last in the canonical group order.
 - Capsule chrome: identical to every other capsule (`Colours.surfaceVariant` fill, `barCapsuleRadius` pill), holding a `Row`/`Column` (per orientation) of tray icon cells.
-- Icon cell: `iconSizeMd` (24px) icon centred in a `spacingXs`-padded (4px each side, 32×32 total) hit target, `spacingXs` (4px) gap between cells — the same icon-cell geometry as every other section's icon, so the tray never reads as a visually distinct sub-widget.
+- Icon cell: `iconSizeMd` (24px) icon centred in a `spacingXs`-padded (4px each side, 32×32 total) hit target, `spacingXs` (4px) gap between cells — the same icon-cell geometry as every other section's icon, so the tray never reads as a visually distinct sub-widget. Cell size is **fixed** — the tray never shrinks its icons to fit more, which would break the one-uniform-icon-size rule.
+- **Bounded growth**: the capsule grows with icon count up to `trayMaxExtent` (240px), past which its icon row scrolls internally rather than growing further. This is a safety bound, not a collapse — D-18-04's "no chevron, no threshold collapse" holds: nothing is ever folded behind an expander, every icon stays reachable, and the tray stays always-visible. The bound exists solely so an abnormal tray can never push the other capsules off-screen. In practice a typical desktop tray (~6 icons ≈ 192px) never reaches it.
 - Empty tray (0 icons): the capsule collapses to zero width/height and disappears from the layout entirely — no "no tray icons" placeholder text on a glance surface this dense (this document's resolution of the empty-state consideration for the tray, see UI Considerations below).
 - Menu (`Quickshell.DBusMenu`, QBAR-05): opens anchored using the identical per-orientation anchoring rule as a section popout (below the icon for horizontal, leftward for vertical), styled as a `Colours.surfaceVariant` rounded-rect (radius 12 — smaller than `popoutCornerRadius`, since this is a native menu list, not a custom popout, and should read as lighter chrome), rows in `fontBody`/`Colours.onSurfaceVariant`, hover row tinted `Colours.surface`.
 - Broken/missing tray pixmap: render a Material Symbol `"apps"` placeholder glyph rather than a blank cell — never an empty hit target with no visual (this document's resolution of the tray's error-state consideration).
@@ -283,23 +288,74 @@ GATE-02 requires the bar be judged "at least as good as the four layouts it repl
 
 ## UI Considerations
 
-State coverage across the bar's elements, using the 8-category taxonomy (empty / loading / error / populated / partial / overflow / zero-one-many / long-text).
+State coverage across the bar's elements, using the 8-category taxonomy (empty / loading / error / populated / partial / overflow / zero-one-many / long-text), produced by `ui-consideration-probe.cjs` over the seven surfaces this document describes.
 
-Applicable state considerations resolved: 7 covered, 2 backstop, 1 unresolved.
+The classifier initially read three surfaces thin (E3 as list-only, E4 as control-only, E7 as static-only), which suppressed 12 considerations — including the media/network long-text case this document had previously waved away with a blanket no-long-text claim. Kind overrides were authored for E3 (`+static-content`, `+interactive-control`), E4 (`+list-collection`) and E7 (`+list-collection`, `+interactive-control`) and the probe re-run.
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|----------------------|
-| empty | Tray (0 icons) | ✅ covered | Capsule collapses to zero width and disappears — see System Tray Rendering |
-| empty | Battery (absent) | ✅ covered | Entry renders nothing, D-18-06 |
-| empty | Workspace (0 windows) | ✅ covered | Numeral/slot glyph only, no icon row — Overview.qml's always-rendered-slot precedent |
-| loading | Popout content before its backend (`AudioBackend`/`WifiBackend`/`BluetoothBackend`/`SystemResources`) has first responded | 🧪 backstop | Reuses `PanelDialog`'s `pending` state (`Colours.primary`-tinted) — planner must confirm each backend actually exposes a "not yet resolved" signal distinct from "resolved empty," since this document specifies the *treatment*, not each backend's own readiness signal |
-| error | Any of the four popout-backed sections failing | ✅ covered | Fourth-state placeholder grammar, see Interaction States + Copywriting Contract |
-| populated | Every readout at typical values | ✅ covered | The default/happy-path state described throughout this document |
-| partial | Resources popout (cpu resolves, ram/disk do not, or vice versa) | 🧪 backstop | Per-field missing-value treatment should mirror `PerformanceTab.qml`'s existing per-dial null handling — planner must confirm that precedent extends cleanly to the new compact popout body rather than assuming it |
-| overflow | Workspace with more windows than the fixed-height slot holds | ✅ covered | `+N` overflow count, D-18-12, applies in both orientations per this document's Orientation Transform Rules |
-| overflow | Tray with an unusually large icon count | ⚠ unresolved | No max-width or scroll cap is defined for the tray capsule — it grows unbounded with icon count. Acceptable given a typical desktop tray rarely exceeds ~6 icons on this host, but left as an explicit planner assumption rather than silently dropped |
-| zero-one-many | Notification bell unread count | ✅ covered | Badge hidden at 0, numeral shown for 1–9, `"9+"` beyond 9 — resolved here as Claude's Discretion; no CONTEXT decision named an exact cap |
-| long-text | Any bar text element | ✅ covered | No bar text is ever long by construction (D-18-07's rationale, generalized) — see Section Capsule Internals' truncation rule |
+**Applicable: 56 · resolved (explicit): 52 · resolved (backstop): 4 · unresolved: 0.**
+
+Surfaces: **E1** system capsule · **E2** workspace capsule · **E3** media+connectivity capsule · **E4** clock+actions capsule · **E5** tray capsule · **E6** section popout · **E7** the bar surface itself.
+
+| # | Category | Status | Resolution |
+|---|----------|--------|------------|
+| E1 | empty | ✅ resolved | cpu/ram/disk always report on a running host. The updates item is the only zero-able member: at 0 pending updates its glyph+count render nothing and the capsule shrinks — no "up to date" placeholder on a glance surface. |
+| E1 | loading | 🧪 backstop | `{ statement: "Before SystemResources' first sample each readout renders its glyph with an em-dash placeholder, never a synthesized 0%", verification: backstop }` — the treatment is specified; whether `SystemResources` exposes a first-sample signal distinct from "sampled 0" is unconfirmed and the planner must verify it against the real backend. |
+| E1 | error | ✅ resolved | Failing readout's glyph renders in `Colours.error` per the Interaction States table. |
+| E1 | populated | ✅ resolved | Glyph + `spacingXs` + right-aligned fixed-width numeric, worst-case width reserved so the capsule never resizes on a value change. |
+| E1 | partial | ✅ resolved | Readouts are independent: cpu resolving while disk fails shows cpu normally and tints only disk's glyph. The capsule never blanks wholesale. |
+| E1 | overflow | ✅ resolved | Cannot overflow — shrink-to-fit capsule holding 1–3 digit bounded values at reserved worst-case width. |
+| E1 | zero-one-many | ✅ resolved | Item count is fixed (4) and not data-driven; only the updates item drops out at 0, and the capsule re-flows without leaving a gap. |
+| E1 | long-text | ✅ resolved | All values bounded numeric — Section Capsule Internals' truncation rule, no exception invoked. |
+| E2 | empty | ✅ resolved | 0 windows → numeral/slot glyph only, no icon row (`Overview.qml`'s always-rendered-numbered-slot precedent). |
+| E2 | loading | ✅ resolved | Workspaces come from Hyprland's live IPC and are present at first paint; before the first event the capsule renders numbered slots with no icon rows — identical to the 0-window state, deliberately no separate skeleton (a skeleton would flash on every shell start). |
+| E2 | error | ✅ resolved | Hyprland IPC unavailable is shell-fatal, not a per-capsule state; the capsule degrades to static numbered slots rather than rendering an error tint the user cannot act on. |
+| E2 | populated | ✅ resolved | Live per-app window icons in the `{icon} {windows}` shape — GATE-02 A.3. |
+| E2 | partial | ✅ resolved | A window whose app icon cannot be resolved falls back to the same `"apps"` Material Symbol placeholder the tray uses for a broken pixmap — one placeholder glyph across the whole bar, not two conventions. |
+| E2 | overflow | ✅ resolved | `+N` overflow count past the fixed-height slot's capacity, D-18-12, in **both** orientations. |
+| E2 | zero-one-many | ✅ resolved | 0 → numeral only; 1..n → icon row; past slot capacity → `+N`. |
+| E2 | long-text | ✅ resolved | No text beyond the numeral and `+N`, both bounded. |
+| E3 | empty | ✅ resolved | No player running → media item renders nothing; battery absent → entry renders nothing (D-18-06, literal). |
+| E3 | loading | 🧪 backstop | `{ statement: "Before AudioBackend/WifiBackend/BluetoothBackend first respond, each entry shows its glyph with no value text — never a synthesized value", verification: backstop }` — same unconfirmed backend-readiness signal as E1/E6; planner must verify. |
+| E3 | error | ✅ resolved | Failing entry's glyph renders in `Colours.error`; opening its popout shows the fourth-state placeholder. |
+| E3 | populated | ✅ resolved | Glyph + short value per entry; network is glyph-only by design (see long-text below). |
+| E3 | partial | ✅ resolved | Media, audio, network, bluetooth and battery are independent — one failing tints only its own glyph, the grouped capsule stays otherwise live. |
+| E3 | overflow | ✅ resolved | Shrink-to-fit capsule; the media title (capped at `mediaTitleMaxChars`) is its only variable-width member, so the capsule's max extent is bounded by construction. |
+| E3 | zero-one-many | ✅ resolved | Battery present/absent is the only count variation; the rest are singletons. The capsule re-flows without a gap when battery or media drop out. |
+| E3 | long-text | ✅ resolved | **The one unbounded string on the bar.** Media track title capped at `mediaTitleMaxChars` (30) with `Text.ElideRight`, full title in the media popout — matching athena's own `custom/media` `max-length: 30` and this repo's established `Text.ElideRight` idiom. Network renders `{icon}` only (SSID in the popout, never inline), matching athena's `"format-wifi": "{icon}"`, so no second unbounded string ever reaches the bar. |
+| E4 | empty | ✅ resolved | Clock always has a value; all four actions are always present; the bell badge is hidden at 0 unread. |
+| E4 | loading | ✅ resolved | No async load — the system clock is available at first paint and the four actions are static. Nothing to skeleton. |
+| E4 | error | ✅ resolved | An action whose target script is missing renders at `disabledOpacity` (0.38) with its `MouseArea` still enabled so a hover tooltip can explain why — `PanelDialog`'s D-15-22 rule, reused. |
+| E4 | populated | ✅ resolved | Inline `HH:MM` horizontally; two stacked `fontLabel` lines (time, short date) vertically. |
+| E4 | partial | ✅ resolved | Each action is independent — one unavailable target disables only its own glyph, never the shared capsule. |
+| E4 | overflow | ✅ resolved | Clock format is fixed-width and the action glyph count is fixed at 4 — no growth path. |
+| E4 | zero-one-many | ✅ resolved | Bell badge hidden at 0, numeral for 1–9, `"9+"` beyond 9. |
+| E4 | long-text | ✅ resolved | Short-form date (`Aug 10`) is bounded to fit `barColumnWidth` (44px); no free text anywhere in this capsule. |
+| E5 | empty | ✅ resolved | 0 icons → capsule collapses to zero extent and disappears from the layout entirely; no placeholder text on a surface this dense. |
+| E5 | loading | ✅ resolved | Before the StatusNotifierWatcher registers items the tray is indistinguishable from empty — capsule absent, deliberately no skeleton, which would otherwise flash on every shell start. |
+| E5 | error | ✅ resolved | Broken/missing pixmap → `"apps"` Material Symbol placeholder, never a blank hit target. |
+| E5 | populated | ✅ resolved | Uniform 24px icons in 32×32 cells, `spacingXs` gaps, same geometry as every other section's icon. |
+| E5 | partial | ✅ resolved | Per-cell — some items resolving while others don't yields per-cell placeholders; the tray never blanks wholesale. |
+| E5 | overflow | ✅ resolved | Capsule grows to `trayMaxExtent` (240px), past which its icon row scrolls internally. A safety bound, not a collapse — D-18-04's "no chevron, no threshold collapse" holds and every icon stays reachable. Icons never shrink to fit. |
+| E5 | zero-one-many | ✅ resolved | 0 → capsule gone; 1..n → cells; past `trayMaxExtent` → internal scroll. |
+| E5 | long-text | ✅ resolved | Tray icons carry no text. Menu rows use `fontBody` with `Text.ElideRight`, per the repo's existing list-row precedent. |
+| E6 | empty | ✅ resolved | A section with nothing to show (no paired bluetooth devices, no nearby networks) uses `PanelDialog`'s established empty-state grammar — quiet Material Symbol + one line — not a blank body. |
+| E6 | loading | 🧪 backstop | `{ statement: "Popout content before its backend has first responded reuses PanelDialog's pending state (Colours.primary-tinted)", verification: backstop }` — this document specifies the *treatment*; the planner must confirm each backend actually exposes a "not yet resolved" signal distinct from "resolved empty". |
+| E6 | error | ✅ resolved | Fourth-state placeholder: `"{Section} unavailable — {plain-language reason}, then reopen this panel."` |
+| E6 | populated | ✅ resolved | Compact summary + primary quick actions, bounded 300–360px body. |
+| E6 | partial | 🧪 backstop | `{ statement: "Per-field missing values in the resources popout mirror PerformanceTab.qml's existing per-dial null handling", verification: backstop }` — the planner must confirm that precedent extends cleanly to the new compact body rather than assuming it. |
+| E6 | overflow | ✅ resolved | Bounded body; inherently unbounded content gets `PanelDialog`'s D-15-07 `Flickable`/scroll-exempt treatment, generalized to this frame. |
+| E6 | zero-one-many | ✅ resolved | Glance scope caps each list at the 2–3 most relevant entries by construction; the "Open in dashboard" wayfinding link is the path to the full list, which stays `PanelDialog`'s job. |
+| E6 | long-text | ✅ resolved | Device and network names elide right (`AudioPanel.qml` / `BluetoothPanel.qml` precedent), full name available in the dashboard panel behind the wayfinding link. |
+| E7 | empty | ✅ resolved | No zero-capsule state exists — the launcher and clock+actions capsules are unconditional, so the bar always renders something. |
+| E7 | loading | ✅ resolved | The bar paints its own chrome immediately at shell start with per-capsule placeholders; the bar's existence never waits on a backend. |
+| E7 | error | ✅ resolved | A failing backend tints only its own capsule — the bar itself never fails to render. Its *process* dying is QBAR-10's restart wrapper, a lifecycle concern, not a visual state. |
+| E7 | populated | ✅ resolved | 6 capsules in the canonical group order, `spacingSm` gaps, floating clear of the edge. |
+| E7 | partial | ✅ resolved | Capsules whose content is entirely absent (tray at 0 icons, battery-only content, media with no player) drop out of the layout and the remainder re-flow without leaving a gap. |
+| E7 | overflow | ✅ resolved | Vertical orientation constrains every text-bearing entry to `barColumnWidth` (44px) in re-stacked form, with "no truncation" as the acceptance bar — see Orientation Transform Rules. |
+| E7 | zero-one-many | ✅ resolved | Capsule count varies 4–6 as tray/battery/media drop out; gaps stay `spacingSm` and the row/column re-flows (horizontal keeps its left/center/right zone assignment, so workspaces stay centred regardless of count). |
+| E7 | long-text | ✅ resolved | No unbounded bar text except the media title, capped and elided — see E3 long-text. |
+
+**Backstop note for the planner:** the 4 backstop rows all rest on the same unverified fact — that `SystemResources`, `AudioBackend`, `WifiBackend` and `BluetoothBackend` each expose a *pending* signal distinguishable from *resolved-empty*. Confirm that once against the real backends; if any does not, adding that signal becomes a task in this phase, because without it the loading and empty states are indistinguishable and the em-dash/pending treatments above are unimplementable as written.
 
 ---
 
@@ -315,11 +371,13 @@ Not applicable — this is a Quickshell/QML shell with no shadcn or npm componen
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS — 4 sizes, 3 weights (reuse-over-template-default, justified)
+- [x] Dimension 5 Spacing: PASS — after revision 1; two-token grid exemption documented and bounded
+- [x] Dimension 6 Registry Safety: PASS — n/a, no registry concept in this stack
 
-**Approval:** pending
+**Approval:** APPROVED (gsd-ui-checker, revision 1 of max 2)
+
+Post-approval, the UI-consideration probe ran over the seven described surfaces and the `## UI Considerations` section above was replaced with its 56-row output. That pass added `mediaTitleMaxChars` (a character count, not a spacing value) and `trayMaxExtent` (240 = 240 ÷ 4, on-grid), narrowed the Section Capsule Internals truncation rule to bounded values with one named exception, and bounded the tray capsule's growth — no dimension verdict is affected.
