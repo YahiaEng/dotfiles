@@ -217,6 +217,20 @@ _ref_locate() {
     fi
 }
 
+# A predicate interpreter's `exit 2` on an unknown prefix only terminates
+# the command-substitution subshell it ran in ($(...) forks a subshell),
+# not the main script — a bare `art="$(_artifact_present ...)"` would
+# silently swallow that exit and let the row limp on as [FAIL] instead of
+# genuinely halting. This helper re-propagates the subshell's real exit
+# code into the parent shell immediately after every such call, so "loud"
+# actually means the whole sweep stops, not just one function call.
+_die_on_bad_rc() {
+    local rc="$1"
+    if [[ "$rc" -ne 0 ]]; then
+        exit "$rc"
+    fi
+}
+
 # ── Reporting helper ──────────────────────────────────────────────────────
 _report() {
     local label="$1" id="$2" msg="$3"
@@ -239,8 +253,8 @@ _process_row() {
         pair)
             local pf art rf v
             pf="$(_plan_finished "$PHASE_DIR" "$plan_num")"
-            art="$(_artifact_present "$id" "$artifact")"
-            rf="$(_ref_present "$id" "$consumer" "$scope" "$ref")"
+            art="$(_artifact_present "$id" "$artifact")"; _die_on_bad_rc $?
+            rf="$(_ref_present "$id" "$consumer" "$scope" "$ref")"; _die_on_bad_rc $?
             v="$(_verdict "$pf" "$art" "$rf")"
             case "$v" in
                 ok)
@@ -261,8 +275,8 @@ _process_row() {
             ;;
         branch)
             local art rf
-            art="$(_artifact_present "$id" "$artifact")"
-            rf="$(_ref_present "$id" "$consumer" "$scope" "$ref")"
+            art="$(_artifact_present "$id" "$artifact")"; _die_on_bad_rc $?
+            rf="$(_ref_present "$id" "$consumer" "$scope" "$ref")"; _die_on_bad_rc $?
             if [[ "$art" == "$rf" ]]; then
                 _report OK "$id" "$unit <-> $consumer [symmetric: artifact=$art ref=$rf]${note:+ — $note}"
             else
@@ -272,7 +286,7 @@ _process_row() {
         warn)
             local pf art
             pf="$(_plan_finished "$PHASE_DIR" "$plan_num")"
-            art="$(_artifact_present "$id" "$artifact")"
+            art="$(_artifact_present "$id" "$artifact")"; _die_on_bad_rc $?
             local detail=""
             if [[ "$art" == "yes" ]]; then
                 local p="${artifact//<user>/$(id -un)}"
@@ -292,7 +306,7 @@ _process_row() {
             ;;
         empty)
             local rf
-            rf="$(_ref_present "$id" "$consumer" "$scope" "$ref")"
+            rf="$(_ref_present "$id" "$consumer" "$scope" "$ref")"; _die_on_bad_rc $?
             if [[ "$rf" == "no" ]]; then
                 _report OK "$id" "$unit — asserted empty, confirmed zero hits in $consumer${note:+ — $note}"
             else
@@ -435,6 +449,21 @@ _self_test() {
         fail=$((fail+1))
     else
         echo "  [PASS] unknown ARTIFACT prefix exits nonzero and names the row (POISON-ROW)"
+        pass=$((pass+1))
+    fi
+
+    # A full row (through _process_row, the real per-row dispatcher, not
+    # just the interpreter directly) with a poisoned ARTIFACT prefix must
+    # halt the WHOLE sweep, not just fail one interpreter call — a bare
+    # `art="$(_artifact_present ...)"` would otherwise swallow the
+    # subshell's exit code and let the row limp on as [FAIL]. This is
+    # exactly the bug _die_on_bad_rc exists to close (found live during
+    # this task's own poisoned-manifest proof, Rule 1).
+    if ( _process_row "POISON-ROW-2" "17-01" "bad row" "bogus:/nowhere" "stow.sh" "file" "x" "pair" "note" >/dev/null 2>&1 ); then
+        echo "  [FAIL] a poisoned row inside _process_row did not halt the sweep"
+        fail=$((fail+1))
+    else
+        echo "  [PASS] a poisoned row inside _process_row halts the whole sweep (_die_on_bad_rc)"
         pass=$((pass+1))
     fi
 
