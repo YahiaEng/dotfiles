@@ -75,7 +75,7 @@
 - [x] **GATE-01**: Before each surface is redesigned, its current behaviour is enumerated from the live config and written down as acceptance criteria — while the implementation being replaced still exists to be read
 - [ ] **GATE-02**: Every phase passes a human render-and-look gate; no phase closes with its replacement judged worse than what it replaced, and no old package is deleted before that judgment
 - [ ] **GATE-03**: `quickshell-doctor` gains structural checks for each new surface, replacing the mechanical coverage that dies with `waybar-equivalence-check`
-- [ ] **GATE-04**: A hex-literal lint refuses any QML surface hard-coding a colour, mirroring `motion-lint`'s deny-by-default discipline
+- [x] **GATE-04**: A hex-literal lint refuses any QML surface hard-coding a colour, mirroring `motion-lint`'s deny-by-default discipline
 
 ### LEDGER — v3.0 debt paydown
 
@@ -169,7 +169,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | GATE-01 | Phase 18 | Complete |
 | GATE-02 | Phase 18 | Pending |
 | GATE-03 | Phase 18 | Pending |
-| GATE-04 | Phase 18 | Pending |
+| GATE-04 | Phase 18 | Complete |
 | LEDGER-01 | Phase 18 | Pending |
 | LEDGER-02 | Phase 20 | Pending |
 | LEDGER-03 | Phase 18 | Pending |

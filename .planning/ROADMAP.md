@@ -98,11 +98,11 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 - **No per-screen fan-out.** QS-03 is permanently dropped under D-13; the bar copies `Overview.qml`'s single-`PanelWindow` pattern and must not re-attempt `Variants`.
 - **New hazard, name it in the plan:** this is the first surface with `exclusiveZone > 0`, the first with no dismissed state (so it inherits none of the zero-idle discipline), and it shares a process with the notification server built in Phase 19 — QBAR-10's restart wrapper is the mitigation, since `quickshell-launch.sh` has none today.
 
-**Plans**: 2/20 plans executed across 10 waves
+**Plans**: 3/20 plans executed across 10 waves
 
 - [x] 18-01-PLAN.md
 - [x] 18-02-PLAN.md
-- [ ] 18-03-PLAN.md
+- [x] 18-03-PLAN.md
 - [ ] 18-04-PLAN.md
 - [ ] 18-05-PLAN.md
 - [ ] 18-06-PLAN.md
@@ -299,7 +299,7 @@ Cross-cutting constraints:
 | 15. Audio + Connectivity Panels | v3.0 | 14/14 | Complete | 2026-08-02 |
 | 16. Workspace Overview | v3.0 | 8/8 | Complete | 2026-08-08 |
 | 17. Ambient Extras | v3.0 | 6/6 | Complete | 2026-08-10 |
-| 18. QML Bar & Retirement Machinery | v4.0 | 2/20 | In Progress|  |
+| 18. QML Bar & Retirement Machinery | v4.0 | 3/20 | In Progress|  |
 | 19. Notification Server & Centre | v4.0 | 0/? | Not started | - |
 | 20. Indicators & Power Menu | v4.0 | 0/? | Not started | - |
 | 21. Media Fold-In & Contract Close | v4.0 | 0/? | Not started | - |
