@@ -143,11 +143,16 @@ _acquire_lock() {
 }
 
 # ── Atomic single-line writes (unique-temp + mv) ─────────────────────
+# WR-04: each write is wrapped so a failed `printf` (disk full,
+# permissions) never leaves the mktemp'd file behind — the `&&` chain's
+# own failure is caught by the enclosing `{ ...; } ||` and cleaned up,
+# rather than the failing redirect's temp file silently orphaning inside
+# $INTENT_DIR forever.
 _write_intent() {
     local source="$1" value="$2"
     local tmp
     tmp="$(mktemp "$INTENT_DIR/.$source.XXXXXX")"
-    printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$INTENT_DIR/$source"
+    { printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$INTENT_DIR/$source"; } || rm -f "$tmp"
 }
 
 _read_intent() {
@@ -159,7 +164,7 @@ _write_selection() {
     local value="$1"
     local tmp
     tmp="$(mktemp "$INTENT_DIR/.selection.XXXXXX")"
-    printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$SELECTION_FILE"
+    { printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$SELECTION_FILE"; } || rm -f "$tmp"
 }
 
 _read_selection() {
@@ -170,14 +175,14 @@ _write_actuated() {
     local target="$1"
     local tmp
     tmp="$(mktemp "$INTENT_DIR/.actuated.XXXXXX")"
-    printf '%s\n' "$target" >"$tmp" && mv -f "$tmp" "$ACTUATED_FILE"
+    { printf '%s\n' "$target" >"$tmp" && mv -f "$tmp" "$ACTUATED_FILE"; } || rm -f "$tmp"
 }
 
 _write_snapshot() {
     local value="$1"
     local tmp
     tmp="$(mktemp "$INTENT_DIR/.snapshot.XXXXXX")"
-    printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$SNAPSHOT_FILE"
+    { printf '%s\n' "$value" >"$tmp" && mv -f "$tmp" "$SNAPSHOT_FILE"; } || rm -f "$tmp"
 }
 
 _read_snapshot() {
