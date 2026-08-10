@@ -7,14 +7,27 @@
 // is LazyLoader-summoned/destroyed on dismiss. Both properties are named
 // here because every later plan in this phase inherits them:
 //
-//   1. exclusiveZone: Design.barHeight + Design.barEdgeMargin = 46. A
-//      SINGLE edge margin per D-18-38 — NOT barEdgeMargin*2. The doubled-
-//      margin reading (treating the margin as "gap on both the outer
-//      screen-edge side and the inner window-facing side") was UI-SPEC's
-//      earlier, wrong formula; it is already corrected there. 46 is this
-//      host's LIVE waybar reservation today (`hyprctl monitors -j`'s
-//      `reserved` array), not a derivation — Task 2 of this plan proves it
-//      on the live compositor rather than trusting the arithmetic.
+//   1. exclusiveZone: Design.barHeight = 40, PLUS margins.top:
+//      Design.barEdgeMargin = 6, for a live-measured total reservation of
+//      46 — this host's LIVE waybar reservation today (`hyprctl monitors
+//      -j`'s `reserved` array), not a derivation. LIVE-HOST CORRECTION
+//      (Task 2 of this plan, found by measuring rather than trusting the
+//      arithmetic): Hyprland's own reservation total is
+//      `margins.top + exclusiveZone`, NOT `exclusiveZone` alone — the
+//      compositor adds the anchored margin to whatever exclusiveZone value
+//      the surface submits. Setting `exclusiveZone: barHeight +
+//      barEdgeMargin` (46) ALONGSIDE `margins.top: barEdgeMargin` (6) was
+//      the actual doubled-margin bug (measured live: co-existing reading
+//      `[[0,98,0,0]]` against waybar's 46, i.e. this surface alone
+//      reserving 52, one of the exact wrong values this plan's own Task 2
+//      names and tells the executor to stop and correct rather than
+//      adjust the expected number). `exclusiveZone: Design.barHeight`
+//      alone — mirroring what waybar's own GTK layer-shell binding
+//      submits (its own content height, letting the compositor add
+//      `margin-top` separately) — reproduces the live baseline exactly:
+//      `[[0,92,0,0]]` co-existing with waybar, `[[0,46,0,0]]` with waybar
+//      hidden. See 18-01-SUMMARY.md's Deviations section for the full
+//      measurement trail.
 //   2. No dismissed state: this surface never unmounts for the life of the
 //      session, so anything it schedules runs permanently. The clock below
 //      is driven by SystemClock rather than a repeating Timer for exactly
@@ -65,7 +78,7 @@ PanelWindow {
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     focusable: false
-    exclusiveZone: Design.barHeight + Design.barEdgeMargin
+    exclusiveZone: Design.barHeight
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
 
