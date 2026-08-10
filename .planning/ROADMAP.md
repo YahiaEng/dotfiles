@@ -93,7 +93,55 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 - **LEDGER-03 attaches here** because the always-on bar is the first and right place to finally measure OVER-04's frame-rate term (`QSG_RENDER_LOOP=threaded`, 165Hz panel).
 - **No per-screen fan-out.** QS-03 is permanently dropped under D-13; the bar copies `Overview.qml`'s single-`PanelWindow` pattern and must not re-attempt `Variants`.
 - **New hazard, name it in the plan:** this is the first surface with `exclusiveZone > 0`, the first with no dismissed state (so it inherits none of the zero-idle discipline), and it shares a process with the notification server built in Phase 19 — QBAR-10's restart wrapper is the mitigation, since `quickshell-launch.sh` has none today.
-**Plans**: TBD
+**Plans**: 20 plans across 10 waves
+
+**Wave 1** — tracer + the three no-dependency openers
+- 18-01 TRACER: one `Bar.qml` `PanelWindow`, bar tokens, `exclusiveZone: 46`, one live clock capsule (QBAR-01)
+- 18-02 GATE-01 behaviour enumeration, read off the live waybar while it still exists (GATE-01)
+- 18-03 GATE-04 hex-literal lint, `color:`-anchored, folded blocking into `theme-doctor` (GATE-04)
+- 18-04 LEDGER-01 documentation close — no QML work (LEDGER-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- 18-05 QBAR-02 the one entry list, capsule chrome, six pre-declared slots (QBAR-02)
+- 18-06 RETIRE-01 generic `retirement-check <surface>` script, two tiers (RETIRE-01)
+- 18-07 QBAR-10 systemd `--user` restart unit (QBAR-10)
+
+**Wave 3** *(blocked on Wave 2 completion — four-wide parallel by construction)*
+- 18-08 QBAR-06 system + media/connectivity readouts, `MediaBackend` → native Mpris (QBAR-06)
+- 18-09 QBAR-03 workspace capsule, click-to-switch (QBAR-03)
+- 18-10 QBAR-05 tray capsule, first `SystemTray`/`DBusMenu` consumer (QBAR-05)
+- 18-11 both athena drawers + actions capsule + orientation toggle (QBAR-01, QBAR-02)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- 18-12 QBAR-04 scroll-to-adjust; brightness present-but-inert per D-18-39 (QBAR-04)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- 18-13 QBAR-09 popout frame + hover contract, proven on audio only (QBAR-09)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- 18-14 the remaining five popout bodies (QBAR-09)
+- 18-15 QBAR-07 full auto-hide, `bar-visibility.sh` sole owner, dim state deleted (QBAR-07)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- 18-16 QBAR-08 hot zone + Super-hold reveal (QBAR-08)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- 18-17 GATE-03 doctor checks — inverts the reserved-space invariant — + QBAR-12 zone stability (GATE-03, QBAR-12)
+- 18-18 QBAR-11 soak + LEDGER-03 frame rate via `QSG_RENDER_TIMING=1` (QBAR-11, LEDGER-03)
+
+**Wave 9** *(blocked on Wave 8 completion)*
+- 18-19 GATE-02 blocking human render gate — authorises or blocks the deletion (GATE-02)
+
+**Wave 10** *(blocked on Wave 9 completion)*
+- 18-20 RETIRE-02 waybar deletion, config-then-package in one commit (RETIRE-01, RETIRE-02)
+
+Cross-cutting constraints:
+- GATE-01 (18-02, wave 1) reads the live waybar config eight waves before 18-20 deletes it.
+- GATE-02 (18-19, wave 9) is a blocking close condition: no old package is deleted before it passes.
+- `retirement-check` runs **twice** — 18-06 captures the pre-deletion baseline, 18-20 re-runs it after.
+- GATE-04 is minted in wave 1 so no bar surface is ever born outside the hex-literal lint.
+- 18-05's stub pre-declaration is what makes wave 3 four-wide; each wave-3 plan owns one component file.
+
 **UI hint**: yes
 
 ### Phase 19: Notification Server & Centre
