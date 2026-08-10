@@ -5,16 +5,16 @@ milestone_name: Quickshell Foundation & Motion Language
 current_phase: 17
 current_phase_name: ambient-extras
 status: executing
-stopped_at: 17-06-PLAN.md Tasks 1-3 complete — awaiting blocking phase-close checkpoint sign-off
-last_updated: "2026-08-10T07:42:33.933Z"
-last_activity: 2026-08-09
-last_activity_desc: Phase 17 execution started
+stopped_at: Completed 17-06-PLAN.md — Phase 17 (Ambient Extras) closed, checkpoint approved 2026-08-10
+last_updated: "2026-08-10T07:51:21.458Z"
+last_activity: 2026-08-10
+last_activity_desc: 17-06 closed — phase-close checkpoint approved, D-38 gap reaffirmed still-accepted at its corrected 5-site size
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 68
-  completed_plans: 67
-  percent: 88
+  completed_plans: 68
+  percent: 100
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-02)
 
 ## Current Position
 
-Phase: 17 (ambient-extras) — EXECUTING
+Phase: 17 (ambient-extras) — COMPLETE
 Plan: 6 of 6
-Status: Sweep + report + requirement marking done (Tasks 1-3); blocking checkpoint (Task 4) awaiting human sign-off — see 17-SWEEP-REPORT.md
-Progress: [██████████] 99% — 7/8 phases complete, 62/62 plans executed
-Last activity: 2026-08-10 — 17-06 Tasks 1-3 executed, blocking checkpoint reached
+Status: Phase 17 closed. Criterion-3 sweep clean, AMB-01/AMB-02 marked, phase-close checkpoint approved 2026-08-10 (D-38 gap "still accepted" at its corrected 5-site/8-line size) — see 17-SWEEP-REPORT.md and 17-06-SUMMARY.md
+Progress: [██████████] 100% — 8/8 phases complete, 68/68 plans executed
+Last activity: 2026-08-10 — Phase 17 closed
 
 ## Performance Metrics
 
@@ -475,8 +475,8 @@ pre-close artifact audit came back fully clear, so v2.0 closed as a
 
 ## Session Continuity
 
-Last session: 2026-08-10T07:42:33.909Z
-Stopped at: 17-06-PLAN.md Tasks 1-3 complete (sweep clean, report written, AMB-01/AMB-02 marked); blocking phase-close checkpoint (Task 4) awaiting human sign-off
+Last session: 2026-08-10T07:51:21.421Z
+Stopped at: Completed 17-06-PLAN.md — Phase 17 (Ambient Extras) closed, checkpoint approved 2026-08-10
 Resume file: None
 
 ## Operator Next Steps
