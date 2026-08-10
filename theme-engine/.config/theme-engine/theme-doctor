@@ -737,6 +737,36 @@ else
     echo "  [SKIP] hypr-equivalence-check (no live Hyprland session — HYPRLAND_INSTANCE_SIGNATURE unset — or $HYPR_EQUIVALENCE_CHECK not found/executable)"
 fi
 
+# ── colour-lint fold (18-03, GATE-04, D-18-35) ───────────────────────────
+# Same "green gates, broken bar" gap the waybar-design-lint/motion-lint
+# folds above close, applied to QML hard-coded colours: GATE-04 requires
+# theme-doctor ITSELF to fail on a QML surface hard-coding a colour, not
+# merely a standalone script someone has to remember to run. Every
+# PASS/FAIL line folds into the tally exactly like the folds above.
+# [EXEMPT] lines are deliberately NOT folded — an exemption is
+# acknowledged debt, not a passing check, and counting it as a PASS would
+# make a gate that still sits over non-compliant surfaces read as green
+# (same discipline motion-lint's fold above already states). Guarded-skip
+# mirrors the folds above: an unstowed hypr package degrades to SKIP,
+# never a hard FAIL.
+#
+# UNLIKE the hypr-equivalence-check fold immediately above, this fold
+# needs NO live-session guard: colour-lint reads files on disk and never
+# touches the compositor, so it must stay unguarded and therefore still
+# runs in a headless fresh-install container.
+COLOUR_LINT="$HOME/.config/hypr/scripts/colour-lint"
+if [[ -x "$COLOUR_LINT" ]]; then
+    while IFS= read -r _cl_line; do
+        case "$_cl_line" in
+            *"[PASS]"*) check "colour-lint: ${_cl_line#*\[PASS\] }" "0" ;;
+            *"[FAIL]"*) check "colour-lint: ${_cl_line#*\[FAIL\] }" "1" ;;
+            *)          echo "  $_cl_line" ;;
+        esac
+    done < <("$COLOUR_LINT" 2>/dev/null)
+else
+    echo "  [SKIP] colour-lint ($COLOUR_LINT not found or not executable)"
+fi
+
 # ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
 #    switch. Guarded-skip mirrors the stow-conflict check above — this must
 #    degrade gracefully, not FAIL, when git or the repo itself is absent

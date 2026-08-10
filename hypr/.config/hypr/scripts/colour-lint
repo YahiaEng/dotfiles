@@ -1,0 +1,655 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║                  COLOUR-LINT (18-03)                   ║
+# ║  Deny-by-default QML colour gate. Report-only — never  ║
+# ║  mutates any file. Exits nonzero if ANY check FAILs.   ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# GATE-04 requires that a QML surface hard-coding a colour fails a gate,
+# mirroring motion-lint's (12-05) deny-by-default discipline. This is the
+# QML successor to waybar-design-lint's CHECK D ("no literal hex"), which
+# RETIRE-02 deletes later in this phase once this gate is folded into
+# theme-doctor (D-18-35).
+#
+#   CHECK A — reference resolution: every `Colours.<name>` occurrence in
+#             every non-exempt scanned surface must resolve against the
+#             name set PARSED from Colours.qml at run time (its
+#             `readonly property alias` lines plus its own top-level
+#             properties) — never hardcoded, never read from palette.json
+#             (Colours.roles is a live reference palette.json cannot back).
+#             A mis-resolved singleton reference reads `undefined` FOREVER
+#             with no load error (Colours.qml's own recorded finding), so
+#             a raw-value check alone would just teach an author to
+#             replace a literal with a reference — a typo'd reference
+#             would then satisfy the lint while silently rendering
+#             nothing. CHECK A closes that hole.
+#   CHECK B — no hard-coded colour at a colour-assignment anchor. Four
+#             shapes, each report-only and each requiring an anchor
+#             (never a bare hex-shaped-text scan):
+#               B1 — a `color:`-family property assignment (bare `color:`,
+#                    or a dotted/camelCase colour property such as
+#                    `border.color:`/`shadowColor:`) carrying a quoted hex
+#                    right-hand side.
+#               B2 — a `property color <name>:` declaration carrying a
+#                    quoted hex right-hand side. This is the shape that
+#                    discriminates: it is colour-TYPED, whereas
+#                    Colours.qml's 19 JsonAdapter fallback defaults are
+#                    `property string`, so the type keyword alone
+#                    separates a real violation from the definition
+#                    source's intentional debug-magenta defaults —
+#                    structurally, not by exemption.
+#               B3 — a `Qt.rgba(`/`Qt.hsla(`/`Qt.hsva(` call whose FIRST
+#                    THREE arguments are all numeric literals. A literal
+#                    FOURTH argument (alpha) is explicitly in-contract and
+#                    never a hit — `Qt.rgba(base.r, base.g, base.b, 0.5)`
+#                    is this repo's established token-plus-opacity idiom.
+#               B4 — any B1/B2 anchor carrying a quoted string literal
+#                    that is neither a `#`-hex nor exactly `"transparent"`
+#                    — closes the hex-to-named-colour evasion.
+#             The hex form matched: a quoted `#` followed by 3 to 8 hex
+#             digits, case-insensitive (`#RGB`, `#RRGGBB`, Qt's
+#             `#AARRGGBB`). An unquoted bare `#` is never matched — QML
+#             has no unquoted colour literal syntax.
+#   CHECK C — scanned-count floor: the run must scan more than zero
+#             surfaces; a fixed expected count would go stale the moment
+#             a later plan (18-05..18-16) adds a QML file, so the
+#             assertion is `> 0`, with the actual count printed on every
+#             run so a partial-glob miss is visible to a human.
+#
+# The hazard this whole design exists to defeat: a naive "any hex-shaped
+# string in a .qml file" scan finds 28 hits across this tree (19 of them
+# Colours.qml's own `property string` JsonAdapter fallback defaults) and
+# is unusable on day one. Anchoring on colour-ASSIGNMENT context instead
+# finds 8 — the 19 false positives are excluded STRUCTURALLY (the type
+# keyword differs), a stronger invariant than exempting the definition
+# source from its own lint.
+#
+# Deny-by-default: every `.qml` file under the quickshell config tree is
+# scanned; there is no per-file opt-in registry, so a QML file that does
+# not exist yet (every bar capsule 18-05..18-16 adds) is covered the
+# moment its file exists, with zero edits to this script.
+# A small, explicit EXEMPTIONS/LINE_EXEMPTIONS list (below) carries the
+# three genuine pre-existing violations this gate ships green against —
+# every entry requires a non-empty reason and prints an `[EXEMPT]` line on
+# EVERY run, so that debt stays visible rather than becoming an invisible,
+# permanently-green gate (this plan's prohibition).
+#
+# Usage:
+#   colour-lint [target-dir]
+#       No argument: scans the real deployed quickshell surface set
+#       ($HOME/.config/quickshell). With an argument: treats target-dir as
+#       the SOLE root and recursively globs .qml files inside it — the
+#       same code path serves a throwaway/poisoned fixture directory as
+#       serves the real tree (motion-lint's D-28 path-argument precedent:
+#       "a gate that cannot fail is not a gate").
+#
+#   colour-lint --self-test
+#       Runs this script against each of the six committed fixtures under
+#       tests/colour-fixtures/ (one at a time, in isolation) and asserts
+#       the expected verdict: the compliant fixture exits 0, every
+#       poisoned fixture exits non-zero. Makes "proven to fail" a
+#       permanent, rerunnable command rather than a one-time demonstration
+#       (motion-lint's D-28 precedent).
+#
+#   colour-lint --no-pending
+#       Opt-in, never default (D-33 shape): asserts zero entries across
+#       both EXEMPTIONS and LINE_EXEMPTIONS carry a structured
+#       `pending: True` field. A wholly separate assertion pass that runs
+#       no surface scan at all — it only inspects the exemption
+#       declarations themselves.
+#
+#   COLOUR_LINT_COLOURS_QML (env, optional)
+#       Overrides the definition-source path (default
+#       $HOME/.config/quickshell/modules/Colours.qml). Exists so the
+#       "refuse to proceed on an empty definition set" guard can be
+#       exercised against a throwaway/empty file without touching live
+#       state.
+#
+# Never runs theme-apply, never edits anything — pure read-only analysis.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/tests/colour-fixtures"
+COLOURS_QML_PATH="${COLOUR_LINT_COLOURS_QML:-$HOME/.config/quickshell/modules/Colours.qml}"
+
+PASS=0
+FAIL=0
+
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        printf '  [PASS] %s\n' "$desc"
+        PASS=$((PASS + 1))
+    else
+        printf '  [FAIL] %s\n' "$desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# ── Single python pass: definitions, exemptions, scanned-count and both
+#    checks, TAB-separated TAG/STATUS/detail lines on stdout. One process
+#    so the comment stripper and reference/colour-assignment regexes are
+#    defined exactly once (motion-lint/waybar-design-lint's precedent). ──
+_colour_lint_checks() {
+    python3 - "$COLOURS_QML_PATH" "$FIXTURES_DIR" "${ROOTS[@]}" <<'PYEOF'
+import os
+import re
+import sys
+
+colours_qml_path = sys.argv[1]
+fixtures_dir = os.path.realpath(sys.argv[2])
+roots = sys.argv[3:]
+
+results = []  # (tag, status, detail) — tag in {A, B, C, DEFS, EXEMPT, NOTE, ABORT, PENDING}
+
+
+def emit(tag, status, detail):
+    results.append((tag, status, detail))
+
+
+def dump():
+    for tag, status, detail in results:
+        print(f'{tag}\t{status}\t{detail}')
+
+
+# ── Comment strippers (newline-preserving, so line numbers stay accurate
+#    for the file:line citations this lint reports). Reused essentially
+#    verbatim from motion-lint (12-05) — four live sites in this tree
+#    carry hex text inside `//` comments (Colours.qml, PerformanceTab.qml
+#    twice, GradientBorder.qml) and an unstripped scan flags every one of
+#    them, so this is load-bearing, not defensive over-engineering. ──────
+def strip_block_comments(text):
+    out = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] == '/' and i + 1 < n and text[i + 1] == '*':
+            j = text.find('*/', i + 2)
+            end = n if j == -1 else j + 2
+            for ch in text[i:end]:
+                out.append('\n' if ch == '\n' else ' ')
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return ''.join(out)
+
+
+def strip_qml_comments(text):
+    text = strip_block_comments(text)
+    lines = text.split('\n')
+    out = []
+    # String-literal-aware: a `//` inside an open quoted span (e.g. inside
+    # a URL string) is never mistaken for a comment start. Tracks quote
+    # state char-by-char with backslash-escape awareness.
+    for line in lines:
+        in_string = None
+        cut = -1
+        i = 0
+        n = len(line)
+        while i < n:
+            ch = line[i]
+            if in_string:
+                if ch == '\\' and i + 1 < n:
+                    i += 2
+                    continue
+                if ch == in_string:
+                    in_string = None
+            elif ch in ('"', "'"):
+                in_string = ch
+            elif ch == '/' and i + 1 < n and line[i + 1] == '/':
+                cut = i
+                break
+            i += 1
+        out.append(line[:cut] if cut != -1 else line)
+    return '\n'.join(out)
+
+
+# ── Brace-depth tracker (string-literal-aware) — used only to find the
+#    TOP-LEVEL (direct children of the outer Singleton) property
+#    declarations in Colours.qml, so a nested JsonAdapter's `property
+#    string primary: "#FF00FF"` fallback default is never mistaken for a
+#    definition-source name (it already isn't, by type, but depth is a
+#    second, independent guard). ──────────────────────────────────────────
+def qml_brace_delta(line):
+    delta = 0
+    in_string = None
+    i = 0
+    n = len(line)
+    while i < n:
+        ch = line[i]
+        if in_string:
+            if ch == '\\' and i + 1 < n:
+                i += 2
+                continue
+            if ch == in_string:
+                in_string = None
+        elif ch in ('"', "'"):
+            in_string = ch
+        elif ch == '{':
+            delta += 1
+        elif ch == '}':
+            delta -= 1
+        i += 1
+    return delta
+
+
+# ── Definition source, CHECK A's name set — parsed from Colours.qml at
+#    run time, never hardcoded and never read from palette.json (a
+#    palette-derived set would flag Probe.qml's legitimate
+#    `Colours.roles` reference as dangling — palette.json structurally
+#    cannot back it). ───────────────────────────────────────────────────
+ALIAS_RE = re.compile(r'readonly\s+property\s+alias\s+([A-Za-z_][A-Za-z0-9_]*)\s*:')
+TOPLEVEL_PROP_RE = re.compile(
+    r'(?:readonly\s+)?property\s+(?!alias\b)[A-Za-z_][A-Za-z0-9_]*\s+([A-Za-z_][A-Za-z0-9_]*)\s*:'
+)
+
+
+def parse_colours_defs(path):
+    if not path or not os.path.isfile(path):
+        return set()
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError:
+        return set()
+    body = strip_qml_comments(raw)
+    names = set()
+    depth = 0
+    for line in body.split('\n'):
+        m_alias = ALIAS_RE.search(line)
+        if m_alias:
+            names.add(m_alias.group(1))
+        else:
+            m_prop = TOPLEVEL_PROP_RE.search(line)
+            if m_prop and depth == 1:
+                names.add(m_prop.group(1))
+        depth += qml_brace_delta(line)
+    return names
+
+
+defs = parse_colours_defs(colours_qml_path)
+colours_qml_realpath = (
+    os.path.realpath(colours_qml_path)
+    if colours_qml_path and os.path.isfile(colours_qml_path) else None
+)
+
+# ── Exemption list — path-glob -> required non-empty reason. Printed on
+#    EVERY run regardless of whether a matching file currently exists, so
+#    outstanding debt never goes invisible (same discipline motion-lint's
+#    EXEMPTIONS/D-23 established). One entry, day-one: WeatherPalette.qml
+#    (8 hits, all `property color` hex literals) — its own header already
+#    declares itself a deliberate, human-render-gate-approved exemption to
+#    the repo-wide zero-hex invariant, because weather-condition glyphs
+#    must read apart from each other and no theme-relative Colours role is
+#    guaranteed to stay yellow across a theme switch. ────────────────────
+EXEMPTIONS = [
+    {'label': 'WeatherPalette.qml',
+     'regex': re.compile(r'(^|/)WeatherPalette\.qml$'),
+     'reason': "deliberate, human-render-gate-approved exemption (Phase 14 "
+               "Plan 09 Task 4) to the repo-wide zero-hex invariant — "
+               "weather-condition glyphs (sun/cloud/rain/snow/storm, "
+               "sunrise/sunset) must read apart from each other at icon "
+               "size, and no Colours.* role is guaranteed to stay a fixed "
+               "hue across a theme switch (that guarantee is exactly what "
+               "Colours.* roles do NOT offer, by design)",
+     'pending': False},
+]
+
+for ex in EXEMPTIONS:
+    if not ex['reason'].strip():
+        emit('EXEMPT', 'FAIL', f"{ex['label']}: exemption entry has an empty reason (deny-by-default violation)")
+    else:
+        emit('EXEMPT', 'INFO', f"{ex['label']} — {ex['reason']}")
+
+
+def path_is_exempt(path):
+    return any(ex['regex'].search(path) for ex in EXEMPTIONS)
+
+
+# ── Line-scoped exemptions — a narrower carve-out than a whole-file
+#    EXEMPTIONS entry: covers exactly the one `shadowColor:` line in an
+#    otherwise fully non-exempt file. Content-anchored, never a hardcoded
+#    line number (motion-lint's WR-04 precedent: any edit above a
+#    hardcoded range silently shifts it onto the wrong line). Both are MD3
+#    elevation shadows, black by specification per each file's own in-file
+#    rationale comment — not a theme colour, and a whole-file exemption
+#    here would silently re-exempt every future edit to the rest of a
+#    fully compliant file. ─────────────────────────────────────────────
+LINE_EXEMPTIONS = [
+    {'label': 'overview/DragGhost.qml shadowColor:',
+     'regex': re.compile(r'(^|/)overview/DragGhost\.qml$'),
+     'anchor': re.compile(r'shadowColor\s*:\s*Qt\.rgba\('),
+     'line': None,
+     'reason': "MD3 elevation shadow, black by specification per "
+               "16-UI-SPEC.md \"Drag visuals\" (~0.35 opacity black, "
+               "~8px blur radius) — not a theme colour",
+     'pending': False},
+    {'label': 'overview/WindowThumbnail.qml shadowColor:',
+     'regex': re.compile(r'(^|/)overview/WindowThumbnail\.qml$'),
+     'anchor': re.compile(r'shadowColor\s*:\s*Qt\.rgba\('),
+     'line': None,
+     'reason': "MD3 elevation shadow, black by specification; heavier "
+               "0.5 alpha than DragGhost's 0.35 because these thumbnails "
+               "sit on a blurred backdrop rather than sharp desktop "
+               "(in-file rationale comment) — not a theme colour",
+     'pending': False},
+]
+
+for lx in LINE_EXEMPTIONS:
+    if not lx['reason'].strip():
+        emit('EXEMPT', 'FAIL', f"{lx['label']}: line-exemption entry has an empty reason (deny-by-default violation)")
+    # The resolved-line INFO/FAIL line is emitted later, once the actual
+    # matching file (if any) in this run's surface set is known.
+
+# ── --no-pending assertion (opt-in, never default) — a structured boolean
+#    field, never a reason-string substring match. Checked here,
+#    immediately after both lists are built and BEFORE the empty-
+#    definition-set guard below, since this assertion needs nothing from
+#    the definition source or the surface scan: it is purely about the
+#    exemption declarations themselves. Early-exits the whole python
+#    process — no surface scan runs in this mode (motion-lint's D-33
+#    shape). ─────────────────────────────────────────────────────────────
+if os.environ.get('COLOUR_LINT_MODE') == 'no-pending':
+    pending_entries = [
+        (ex['label'], ex['reason']) for ex in EXEMPTIONS if ex.get('pending')
+    ] + [
+        (lx['label'], lx['reason']) for lx in LINE_EXEMPTIONS if lx.get('pending')
+    ]
+    if pending_entries:
+        for label, reason in pending_entries:
+            emit('PENDING', 'FAIL', f'{label} is marked pending: True — {reason}')
+    else:
+        emit('PENDING', 'PASS',
+             'zero exemption entries (EXEMPTIONS + LINE_EXEMPTIONS) carry pending: True')
+    dump()
+    sys.exit(0)
+
+
+def line_is_exempt(path, line_no):
+    return any(
+        lx['regex'].search(path) and lx.get('line') == line_no
+        for lx in LINE_EXEMPTIONS
+    )
+
+
+# ── Refuse to proceed on an empty definition set (mirrors motion-lint's
+#    own empty-definition-set guard): with nothing to resolve against,
+#    every subsequent Colours.* reference would look dangling, which is a
+#    vacuous failure mode, not a real one. ────────────────────────────────
+if not defs:
+    emit('DEFS', 'FAIL',
+         f'zero Colours.* definitions parsed from {colours_qml_path} — '
+         'refusing to run: an empty definition set would make every '
+         'reference look dangling')
+    dump()
+    sys.exit(0)
+
+# The fixtures directory lives under tests/colour-fixtures/ — excluded
+# from a default run's recursive walk so a deliberately-poisoned fixture
+# is never scanned as if it were a real surface, EXCEPT when the caller
+# supplied a root that is itself inside (or is) the fixtures directory,
+# so a self-test/manual run pointed directly at it is unaffected — same
+# code path, context-aware exclusion (motion-lint precedent).
+exclude_fixtures = not any(
+    os.path.realpath(r) == fixtures_dir or os.path.realpath(r).startswith(fixtures_dir + os.sep)
+    for r in roots
+)
+
+
+def under_fixtures_dir(path):
+    real = os.path.realpath(path)
+    return real == fixtures_dir or real.startswith(fixtures_dir + os.sep)
+
+
+# ── Surface collection — recursive walk with followlinks=True (required:
+#    this repo deploys via stow, which symlinks whole directories —
+#    ~/.config/quickshell/modules is itself a symlink into the repo, and
+#    the default non-following walk silently drops every file inside).
+#    Same function serves the real default root AND a throwaway/fixture
+#    single-directory run — same code path (D-28: "a gate that cannot
+#    fail is not a gate"). ──────────────────────────────────────────────
+def collect_qml_files(roots):
+    files = []
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for dirpath, _dirnames, filenames in os.walk(root, followlinks=True):
+            for fn in filenames:
+                if not fn.endswith('.qml'):
+                    continue
+                full = os.path.join(dirpath, fn)
+                if exclude_fixtures and under_fixtures_dir(full):
+                    continue
+                files.append(full)
+    return files
+
+
+qml_files = sorted(collect_qml_files(roots))
+
+# ── Resolve LINE_EXEMPTIONS content anchors — must happen after surfaces
+#    are collected, since resolving a content anchor requires reading the
+#    actual matching file's text. Reason-emptiness was already checked
+#    above (structural, file-independent); this pass emits the per-run
+#    EXEMPT INFO/FAIL line carrying the actual (or FAILED-to-resolve)
+#    line number. ────────────────────────────────────────────────────────
+for lx in LINE_EXEMPTIONS:
+    if not lx['reason'].strip():
+        continue  # already emitted FAIL above; don't also print a line
+    match_path = next((p for p in qml_files if lx['regex'].search(p)), None)
+    if match_path is None:
+        emit('EXEMPT', 'INFO',
+             f"{lx['label']} — {lx['reason']} (no matching file in this "
+             "run's surface set; anchor not verified this run)")
+        continue
+    try:
+        raw = open(match_path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('EXEMPT', 'FAIL', f"{lx['label']}: {match_path} unreadable ({exc})")
+        continue
+    lx_lines = strip_qml_comments(raw).split('\n')
+    line_idx = next((idx for idx, ln in enumerate(lx_lines) if lx['anchor'].search(ln)), None)
+    if line_idx is None:
+        emit('EXEMPT', 'FAIL',
+             f"{lx['label']}: content anchor not found in {match_path} — "
+             "the exemption's intended line may have moved or been "
+             "removed; update the anchor or delete this exemption entry "
+             "rather than leaving it mis-scoped")
+        continue
+    lx['line'] = line_idx + 1  # 1-indexed
+    emit('EXEMPT', 'INFO', f"{lx['label']} (line {lx['line']}) — {lx['reason']}")
+
+total_scanned = len(qml_files)
+roots_desc = ', '.join(roots) if roots else '(no roots)'
+
+if total_scanned == 0:
+    emit('C', 'FAIL', f'colour-lint scanned 0 surfaces under {roots_desc}; check the root path(s).')
+else:
+    emit('C', 'PASS', f'colour-lint scanned {total_scanned} surface(s) under {roots_desc}')
+
+
+# ── CHECK A — Colours.<name> reference resolution ────────────────────────
+COLOURS_REF_RE = re.compile(r'Colours\.([A-Za-z_][A-Za-z0-9_]*)')
+
+
+def check_reference_surface(path):
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+    body = strip_qml_comments(raw)
+    a_hits = []
+    for i, line in enumerate(body.split('\n'), start=1):
+        for m in COLOURS_REF_RE.finditer(line):
+            name = m.group(1)
+            if name not in defs:
+                a_hits.append((i, name))
+    if a_hits:
+        for i, name in a_hits:
+            emit('A', 'FAIL',
+                 f'{path}:{i} references undefined Colours.{name} — no '
+                 "matching entry in Colours.qml's parsed name set (a "
+                 "mis-resolved singleton reference reads undefined "
+                 "forever with no load error)")
+    else:
+        emit('A', 'PASS', f'{path}: all Colours.* references resolve')
+    return True
+
+
+# ── CHECK B — no hard-coded colour at a colour-assignment anchor ────────
+# Property-name anchor: bare `color`, or any identifier ending in `Color`
+# (camelCase, e.g. `shadowColor`), optionally dotted (e.g.
+# `border.color`). Required to be preceded by start-of-line or a
+# non-identifier/non-dot character, and immediately followed (only
+# whitespace permitted) by `:` — so `backgroundColorish:` cannot
+# half-match: nothing in that identifier both ends in `color`/`Color` AND
+# sits directly before the colon.
+_LAST_SEGMENT = r'(?:color|[A-Za-z_][A-Za-z0-9_]*Color)'
+_PROP_NAME = rf'(?:[A-Za-z_][A-Za-z0-9_]*\.)*{_LAST_SEGMENT}'
+ASSIGN_RE = re.compile(rf'(?:^|[^A-Za-z0-9_.])({_PROP_NAME})\s*:\s*"([^"]*)"')
+PROP_COLOR_DECL_RE = re.compile(
+    r'(?:^|[^A-Za-z0-9_.])(?:readonly\s+)?property\s+color\s+'
+    r'([A-Za-z_][A-Za-z0-9_]*)\s*:\s*"([^"]*)"'
+)
+RGBA_RE = re.compile(
+    r'Qt\.(rgba|hsla|hsva)\(\s*([^,()]+),\s*([^,()]+),\s*([^,()]+)(?:,\s*([^)]+))?\)'
+)
+NUMERIC_RE = re.compile(r'^-?\d+(?:\.\d+)?$')
+HEX_RE = re.compile(r'^#[0-9A-Fa-f]{3,8}$')
+
+SHAPE_DESC = {
+    'B1': 'colour-assignment carrying a literal hex',
+    'B2': 'property color declaration carrying a literal hex',
+    'B3': 'Qt.* call with three literal numeric arguments',
+    'B4': 'quoted colour literal that is neither a hex nor "transparent"',
+}
+
+
+def classify_b(b_hits, line_no, propname, value, hex_shape):
+    if HEX_RE.match(value):
+        b_hits.append((line_no, f'{propname}: "{value}"', hex_shape))
+    elif value == 'transparent':
+        return  # sanctioned literal — never a hit
+    else:
+        b_hits.append((line_no, f'{propname}: "{value}"', 'B4'))
+
+
+def check_colour_assignment_surface(path):
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+    body = strip_qml_comments(raw)
+    b_hits = []
+    for i, line in enumerate(body.split('\n'), start=1):
+        if line_is_exempt(path, i):
+            continue
+        decl_spans = []
+        for m in PROP_COLOR_DECL_RE.finditer(line):
+            decl_spans.append(m.span())
+            classify_b(b_hits, i, m.group(1), m.group(2), 'B2')
+        for m in ASSIGN_RE.finditer(line):
+            if any(s[0] <= m.start() < s[1] for s in decl_spans):
+                continue  # already reported by the B2 declaration match above
+            classify_b(b_hits, i, m.group(1), m.group(2), 'B1')
+        for m in RGBA_RE.finditer(line):
+            args = (m.group(2), m.group(3), m.group(4))
+            if all(NUMERIC_RE.match(a.strip()) for a in args):
+                b_hits.append((i, m.group(0), 'B3'))
+    if b_hits:
+        for i, detail, shape in b_hits:
+            emit('B', 'FAIL',
+                 f'{path}:{i} hard-codes a colour at a colour-assignment '
+                 f'anchor ({shape} — {SHAPE_DESC[shape]}: {detail}). '
+                 'Replace with a Colours.<role> reference, or add a '
+                 'reasoned exemption.')
+    else:
+        emit('B', 'PASS', f'{path}: no hard-coded colour at a colour-assignment anchor')
+    return True
+
+
+for path in qml_files:
+    if path_is_exempt(path):
+        continue
+    if not check_reference_surface(path):
+        break
+    if colours_qml_realpath is not None and os.path.realpath(path) == colours_qml_realpath:
+        continue  # the definition source is excluded from CHECK B's surface set
+    if not check_colour_assignment_surface(path):
+        break
+
+dump()
+PYEOF
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+    echo "colour-lint --self-test: not yet implemented (added by 18-03 Task 2)" >&2
+    exit 1
+fi
+
+if [[ "${1:-}" == "--no-pending" ]]; then
+    echo "colour-lint --no-pending: not yet implemented (added by 18-03 Task 2)" >&2
+    exit 1
+fi
+
+TARGET_DIR="${1:-}"
+
+if [[ -n "$TARGET_DIR" ]]; then
+    ROOTS=("$TARGET_DIR")
+else
+    ROOTS=("$HOME/.config/quickshell")
+fi
+
+echo "colour-lint — QML colour deny-by-default gate"
+if [[ -n "$TARGET_DIR" ]]; then
+    echo "  target: $TARGET_DIR"
+else
+    echo "  target: real deployed quickshell surface set"
+fi
+echo "  definitions: $COLOURS_QML_PATH"
+echo ""
+
+while IFS=$'\t' read -r tag status detail; do
+    [[ -z "$tag" ]] && continue
+    case "$tag" in
+        EXEMPT)
+            case "$status" in
+                FAIL) check "exemption entry: $detail" "1" ;;
+                *)    printf '  [EXEMPT] %s\n' "$detail" ;;
+            esac
+            ;;
+        ABORT)
+            check "$detail" "1"
+            ;;
+        DEFS)
+            check "$detail" "1"
+            ;;
+        NOTE)
+            printf '  [NOTE] %s\n' "$detail"
+            ;;
+        *)
+            case "$status" in
+                PASS) check "CHECK $tag: $detail" "0" ;;
+                FAIL) check "CHECK $tag: $detail" "1" ;;
+            esac
+            ;;
+    esac
+done < <(_colour_lint_checks)
+
+if [[ "$FAIL" -eq 1 ]]; then
+    FAIL_WORD="check failed"
+else
+    FAIL_WORD="checks failed"
+fi
+
+echo ""
+printf 'Summary: %d passed, %d %s\n' "$PASS" "$FAIL" "$FAIL_WORD"
+[[ "$FAIL" -eq 0 ]]
+exit $?
