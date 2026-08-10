@@ -94,6 +94,57 @@
 
 ---
 
+## Milestone: v3.0 — Quickshell Foundation & Motion Language
+
+**Shipped:** 2026-08-10
+**Phases:** 8 (11-17, incl. inserted 13.1) | **Plans:** 68 | **Commits:** 530
+
+### What Was Built
+- Quickshell adopted as the shell toolkit behind a human-clicked viability gate that passed on the first attempt, with standing authority to stop the milestone.
+- One motion source (`theme-engine/motion.json`) rendering to three binary-verified targets — QML `easing.bezierCurve`, GTK4 `cubic-bezier()`, Hyprland `bezier =` — with a runtime normal/reduced/off axis and a deny-by-default `motion-lint` folded into `theme-doctor`.
+- The motion language retrofitted across every pre-existing surface: Hyprland, waybar, swaync, walker, SwayOSD, wleave, the AGS media card.
+- A Super+D four-tab dashboard drawer that shares state rather than forking it — one MPRIS reader with waybar and AGS, byte-identical quick-toggle scripts to swaync's grid, zero idle timers or subprocesses while dismissed.
+- Three in-shell panels (audio mixer, wifi picker, bluetooth manager) on one shared `PanelDialog` frame, verified against real hardware — a real AP, a real hidden network, a real Bluetooth peer.
+- A Super+O workspace overview: eleven pixel-stable tiles rendering every window as a live `ScreencopyView` at real geometry, with click-to-focus, two-level keyboard navigation and drag-between-workspaces — on `hyprland-toplevel-export-v1`, no plugin.
+- The compositor moved off hyprlang onto Lua ahead of Hyprland 0.57's removal (Phase 13.1, inserted against a real upstream deadline), proven by a committed pre-migration `hyprctl` baseline rather than a hand-diff.
+- Ambient extras shipped in full despite being scoped as the first thing to cut: video wallpaper with measured fullscreen-pause, and dynamic cursors as a fault-injection-proven guarded optional dependency.
+
+### What Worked
+- **The viability gate paid off a second time.** v2.0's lesson was written after eww; v3.0 applied it before writing any Quickshell feature, and QS-02 passed on the first click. The pattern has now de-risked two consecutive toolkit adoptions.
+- **Structured `coverage:` blocks in SUMMARY frontmatter.** Phase 16's UAT auto-passed 16 of 30 deliverables from passing verification refs and put exactly the 14 genuine judgment calls in front of the operator, each with a stated reason. This is the first milestone where "what does a human still need to look at?" was a machine-answerable question instead of a re-derivation from prose.
+- **Measuring before acting, twice in one phase.** Phase 15's G-15-7 looked exactly like the wifi secret-agent problem and the obvious move was to copy the wifi remedy — measuring first showed pairing then fails outright, so the copy would have turned a cosmetic complaint into a functional regression. The same instinct on G-15-6 would have rebuilt a working mechanism on a costlier route.
+- **Closing dead ends with evidence instead of ambiguity.** QS-03 was re-attempted under a bounded budget across two structurally distinct arrangements plus an escape-hatch spike before being dropped one-way; D-35 was tested to the point of reproducing a compositor SIGSEGV before the call was removed. Neither lingered as an open question.
+- **Falsifiable gates over hand-verification for the Lua migration.** `hypr-equivalence-check` diffing a live session against a committed baseline made an 80-bind config port provable, and caught two Lua-only hazards — randomized string-hash seeds breaking `pairs()` curve registration per boot, and `hl.dsp.dpms` silently ignoring bare-string arguments — that no amount of reading would have surfaced.
+
+### What Was Inefficient
+- **Phase 16 shipped two false passes on the same deliverable.** Multi-window thumbnails passed automated checks and screenshot verification twice with only one window visibly painted. The real fix came only after the operator's own eyes caught it and the executor switched from screenshots to per-delegate IPC measurement. Screenshot-based self-verification is not the human gate; it repeatedly reads as one.
+- **The bookkeeping lesson from v2.0 repeated, in a new shape.** v2.0's close found stale artifacts; v3.0's close found a whole missing one — Phase 16 has no VERIFICATION.md, which alone orphaned four requirements and forced an override closeout. The pre-close audit also surfaced 53 open items. Recording the lesson twice has not yet changed the behaviour.
+- **Waived gates accumulate silently.** Three separate measurement gates were waived rather than performed across the milestone (D-19/D-20 motion soak, WR-04 teardown hazard, and Phase 16's session-restart enforcement proof). Two were later closed; WR-04 is still open and is the milestone's only unfinished requirement. A waiver is cheap in the moment and indistinguishable from a pass in every summary that follows it.
+- **A reuse gap crossed a phase seam unnoticed.** `GradientBorder` was built in Phase 14 and never reached the Phase 15 panel family built on a shared frame — exactly the kind of omission a wiring-oriented integration pass reads as clean, because nothing is broken. It surfaced only when the user raised it, and was then diagnosed and deliberately left unfixed.
+- **Executor-unprovable checks needed a name earlier.** Several deliverables were structurally unverifiable from inside the session — a session restart would kill the executor, no synthetic pointer tool exists on this host — and each was rediscovered independently rather than being a known category with a standard disposition.
+
+### Patterns Established
+- Structured `coverage:` blocks in SUMMARY frontmatter, splitting deliverables into auto-covered (with refs) and human-needed (with a stated reason), consumed directly by UAT generation.
+- One source, N render targets, each verified against its own installed binary rather than assumed compatible — extended from colour (`contract.json`) to motion (`motion.json`).
+- Falsifiable equivalence gates for config migrations: snapshot the old system's own readback, commit it, diff the new one against it.
+- Guarded optional dependencies: anything installed via `hyprpm` or an AUR helper must exit 0 and warn on failure, proven by deliberate fault injection, never fail an unattended install.
+- Validation boundaries at every dispatch site that could carry client-controlled text into a compositor evaluator.
+- Naming the rung a measurement actually reached, and recording the untested half as UNMEASURED rather than inferring it.
+
+### Key Lessons
+1. **Screenshot verification is not the human gate.** Phase 16 passed two automated/screenshot rounds on a visibly broken surface. When the deliverable is "does this read correctly", the only instrument is a person looking at it on their own desktop.
+2. **A missing artifact costs more than a stale one.** v2.0 learned to reconcile tracking artifacts at phase close; v3.0 shows the sharper version — one unwritten VERIFICATION.md orphaned four requirements and downgraded the whole milestone from verified to override closeout.
+3. **A waiver is a decision, not a result, and needs to stay visibly distinct from one.** Three gates were waived this milestone. Every downstream summary reads a waived gate the same way it reads a passed one unless the waiver is carried forward explicitly.
+4. **Reuse omissions cross phase seams invisibly.** Nothing is broken, so wiring-oriented integration checks read clean. Detecting these needs a "who consumes this?" pass on newly built shared components, not a connectivity pass.
+5. **Categorize executor-unprovable checks up front.** "The executor is a child process of the thing under test" and "no synthetic input tool exists on this host" are structural facts about this project, not per-plan surprises.
+
+### Cost Observations
+- Model mix: adaptive profile (not instrumented per-model this milestone)
+- Timeline: 16 days, 530 commits, 68 plans
+- Notable: 4.25 plans/day, the project's highest, on its most novel technology — and with no rework block comparable to v2.0's ~12%. The cost moved from rework to verification debt: the milestone closed with 53 open artifacts and one phase unverified, which is a different failure mode than v2.0's, not a smaller one.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -102,6 +153,7 @@
 |-----------|--------|-------|------------|
 | v1.0 | 3 | 9 | Established root-cause-first auditing and rerunnable verification gates (parity/stress/container) |
 | v2.0 | 7 | 64 | Added the *human* gate class — blocking render-and-look approval and fail-fast toolkit-viability checks — after mechanical gates twice passed green on broken surfaces |
+| v3.0 | 8 | 68 | Made the human gate *addressable*: structured `coverage:` blocks decide per-deliverable whether a human is still needed and why, so UAT stops re-asking what automation already answered. First milestone to close as an `override_closeout` |
 
 ### Scale
 
@@ -109,6 +161,7 @@
 |-----------|------|---------|-------|-----------|
 | v1.0 | 3 | 98 | 9 | 3.0 |
 | v2.0 | 16 | 444 | 64 | 4.0 |
+| v3.0 | 16 | 530 | 68 | 4.25 |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -117,3 +170,6 @@
 3. **Verify APIs against the installed binary, never against docs or memory** (v1.0 walker `hotreload_theme`; v2.0 hyprlock schema, walker exit-130, wleave config surface — 4 confirmed instances, now a standing rule).
 4. **Mechanical gates cannot judge a visual surface** (v2.0, twice — Phases 6 and 8). Any phase with a UI needs a blocking human render gate.
 5. ⚠️ **Sequence push authorization early — REPEATED, still unresolved.** v1.0 lost a deferral cycle to an ~80-commit unpushed origin; v2.0 carried 393 unpushed commits from Phase 7 to milestone close, blocking the container-tier gate the entire time. This is the one lesson the project has recorded and then not acted on. Resolved at the v2.0 close; enforce earlier in v3.0.
+6. ⚠️ **Close the tracking artifact at phase close — REPEATED, escalating.** v2.0 found four stale artifacts at milestone close. v3.0 found a missing one: Phase 16 never got a VERIFICATION.md, which orphaned four requirements and downgraded the entire milestone to an `override_closeout`. The failure mode got worse, not better, after the lesson was written down.
+7. **Screenshot self-verification is not the human render gate** (v3.0, Phase 16 — two false passes on the same deliverable). The gate established in v2.0 only works when a person looks at the running surface; an executor capturing and judging its own screenshot reproduces the exact failure the gate exists to catch.
+8. **Distinguish waived gates from passed ones in every artifact downstream** (v3.0 — three waivers, one still open as the milestone's only unfinished requirement). A waiver reads identically to a pass in summary frontmatter unless it is carried forward explicitly.
