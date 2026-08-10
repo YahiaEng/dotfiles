@@ -227,6 +227,46 @@ QBAR-09.
   archives that must stay; counting them in the blocking tier makes "zero hits"
   unreachable and therefore meaningless.
 
+**Resolved during plan-phase research (2026-08-10)**
+
+- **D-18-38:** The bar's `exclusiveZone` is **`Design.barHeight + Design.barEdgeMargin`
+  (= 46px), a single edge margin, not doubled.** 18-UI-SPEC.md's "Auto-Hide & Reveal
+  Motion Contract" section states `barHeight + barEdgeMargin*2` (= 52px); that formula is
+  wrong and must be corrected in the UI-SPEC as part of this phase. Rationale: this host's
+  live, currently-working waybar reserves exactly 46px (`hyprctl monitors -j` →
+  `reserved: [0, 46, 0, 0]`, verified 2026-08-10). Building to the doubled formula reserves
+  6px more than the baseline GATE-02 compares the bar against pixel-for-pixel.
+- **D-18-39:** QBAR-04's brightness-scroll ships **present-but-inert, gated on hardware
+  presence** — a brightness section wired to `brightnessctl` (already at
+  `/usr/bin/brightnessctl`) that renders **nothing** when no backlight device exists.
+  Rationale: this is the exact D-18-06 battery precedent. `/sys/class/backlight/` is empty
+  on this desktop board, `light` (which the existing `config-floating.jsonc` backlight
+  module shells out to) is not installed, and no QML brightness backend exists — the
+  capability has been a dead no-op in waybar too, so this is not a phase-18 regression.
+  QBAR-04 is structurally satisfied and the code works unchanged on a laptop or DDC monitor.
+  Consequence: **GATE-02 criterion B.3 cannot be demonstrated live on this host** and must
+  be recorded as "not demonstrable on this hardware — structurally present", not as a pass.
+- **D-18-40:** QBAR-10's auto-restart is a **new systemd `--user` unit**
+  (`quickshell.service`) with an **explicit** `Restart=on-failure`, `RestartSec=`, and
+  `StartLimitIntervalSec=`/`StartLimitBurst=`, replacing the `uwsm app --` launch for
+  quickshell only. Rationale: backoff and crash-loop rate-limiting come from the OS instead
+  of hand-rolled bash, and a genuinely broken build fails **loudly** in
+  `systemctl --user status` rather than respawning forever (Pitfall 9's local-DoS vector).
+  The shape is copied from the shipped-but-unused `waybar.service`. Accepted cost: this is
+  the **first deviation** from this repo's `uwsm app --`-everywhere autostart convention —
+  name it explicitly in the plan; do not let it read as an accident. The rejected
+  alternative (a `while true` respawn loop inside `quickshell-launch.sh`) would have needed
+  hand-written backoff plus a max-restarts-per-window guard, and would add a second
+  long-lived wrapper process that QBAR-11's process-count soak must then account for.
+- **Correction to D-18-27's recorded rationale (the decision itself stands):** D-18-27
+  states that "Quickshell 0.3.0-2 cannot detect idle… there is no `ext-idle-notify`
+  consumer." That is **factually wrong** — `Quickshell.Wayland._IdleNotify` ships an
+  `IdleMonitor` type (`enabled`/`timeout`/`respectInhibitors`/`isIdle`) that is a genuine
+  `ext-idle-notify-v1` consumer, verified in the installed `.qmltypes`. D-18-27's
+  conclusion is unchanged and still correct for independent reasons (the script survives
+  QBAR-10 restarts, owns on-disk state, and has six existing callers), but the false claim
+  must not be repeated as fact in the plan or in any later phase's research.
+
 ### Claude's Discretion
 
 - Exact capsule split within D-18-10's 5–6 by-concern shape.
