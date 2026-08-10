@@ -394,7 +394,14 @@ _actuate() {
 
 _cmd_select() {
     local raw="${1:-}"
-    if [[ -z "$raw" ]]; then
+    # IN-02: enforce the documented contract (not just an empty check) —
+    # a relative path previously fell through to _validate_selection's
+    # own realpath(1) normalisation, which resolves it against this
+    # process's CWD, so the exact same relative argument could accept or
+    # reject depending on the caller's CWD at invocation time. Reject it
+    # outright here instead, matching the error message that already
+    # claims this requirement.
+    if [[ -z "$raw" || "$raw" != /* ]]; then
         echo "wallpaper-visibility.sh: 'select' requires an absolute path" >&2
         exit 1
     fi
