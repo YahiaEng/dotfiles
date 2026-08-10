@@ -317,7 +317,24 @@ theme_engine_wallpaper_frame_repair() {
     local offset
     offset="$(theme_engine_wallpaper_frame_offset "$name" "$recorded")"
     if theme_engine_wallpaper_extract_frame "$theme_dir/$recorded" "$frame" "$offset" && [[ -s "$frame" ]]; then
-        ln -sfr "$frame" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+        # WR-01: only flip current.jpg's pointer here when $name is
+        # ALREADY the active theme (a self-heal re-render of the theme
+        # already in effect, e.g. a wiped wallpaper-frames directory) —
+        # never for a switch TO $name, which has not committed yet.
+        # Repointing unconditionally made "Desktop left unchanged" false
+        # on a subsequent theme_engine_generate failure: current.jpg
+        # would already point at the new theme's frame even though
+        # theme-apply reported the switch failed. The frame itself is
+        # still (re)extracted eagerly either way — self-heal of the file
+        # on disk is unconditional — only the disk-visible current.jpg
+        # symlink flip is scoped. A switch's own repoint happens later,
+        # from theme_engine_wallpaper_autoset, and only after
+        # theme_engine_generate has actually succeeded.
+        local current_theme
+        current_theme=$(cat "$HOME/.local/state/theme/current-theme" 2>/dev/null || true)
+        if [[ "$name" == "$current_theme" ]]; then
+            ln -sfr "$frame" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+        fi
     fi
 
     return 0
