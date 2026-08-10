@@ -1,169 +1,210 @@
-# Research Summary: v3.0 Quickshell Foundation & Motion Language
+# Research Summary: v4.0 Shell Migration & Debt Paydown
 
-**Project:** Personal Arch + Hyprland dotfiles — adding a Quickshell/QML shell layer and a shared cross-toolkit motion pipeline
-**Domain:** Cross-toolkit motion system + QML shell composition on an existing, mature Hyprland 0.56.0 rice
-**Researched:** 2026-07-26
-**Confidence:** HIGH for stack (verified against this machine via `pacman -Si`, direct repo inspection); MEDIUM for features (source-read two flagship rices, end-4 and Caelestia); MEDIUM-HIGH for architecture (direct precedent in existing AGS pattern + deepwiki of reference rices); MEDIUM for pitfalls (mostly local verification, some web-sourced behavioral claims flagged for local testing)
+**Project:** Arch + Hyprland Dotfiles (Quickshell/QML shell migration)
+**Domain:** Wayland desktop shell replacement (waybar/swaync/SwayOSD/wleave/AGS → Quickshell/QML)
+**Researched:** 2026-08-10
+**Confidence:** HIGH (direct binary inspection + source code read) for stack/architecture; MEDIUM-HIGH for features/pitfalls
 
 ## Executive Summary
 
-This milestone adds a native QML/Quickshell shell layer to an existing Hyprland desktop that keeps every existing surface (waybar, swaync, SwayOSD, wleave, walker/elephant, AGS) running throughout. **The single most impactful correction from research: Quickshell 0.3.0 is now in Arch's official `extra` repo (not AUR-only), eliminating the reproducibility risk that would have been the biggest blocker; simply `pacman -S quickshell` and its Qt6 dependencies, both of which are already installed on this machine from AGS.**
+**v4.0 is a single-process, one-shell migration replacing five independently-failing GTK/GTK4 shell components (waybar, swaync, SwayOSD, wleave, AGS) with a unified Quickshell/QML renderer inside the existing `quickshell 0.3.0-2` package.** Every required service (notifications D-Bus server, PipeWire volume, battery state, tray, networks, media) is already shipped inside quickshell's own modules — no new packages are needed.
 
-The recommended approach is **additive-only coexistence**: build new QML surfaces (dashboard drawer, audio/wifi/bluetooth panels, workspace overview, ambient wallpaper) alongside existing GTK/Hyprland/bash surfaces, reusing their backing data (MPRIS, PipeWire, NetworkManager, BlueZ) rather than reimplementing.
+The recommended approach is **bar first** (proves always-on `PanelWindow` + exclusive-zone pattern), then notifications/OSD/power-menu in that sequence, then AGS fold-in last. The **single largest gate — notification-server D-Bus ownership** — is technically feasible (Quickshell's `NotificationServer` is real, verified installed) but operationally risky (two-owner race, hot-reload state loss) and must be explicitly decided before the notifications phase begins.
 
-**Motion scope — CORRECTED 2026-07-26 by user decision, supersedes any spring-first framing elsewhere in this document.** Research source-read both flagship rices and found **neither end-4 nor Caelestia uses QML `SpringAnimation` or literal spring physics** — both ship Material Design 3 Expressive named duration+bezier tokens. Milestone scope was therefore corrected to:
+**Two carry-in debt items are already closed in code** (GradientBorder reuse in `PanelDialog.qml` per commit `4f48847`; `quickshell-doctor` dispatch form already on the correct Lua `hl.dsp.global(...)` form) — both independently re-verified by the orchestrator against the working tree, not taken on the researchers' word. Only bookkeeping remains; the roadmapper must NOT scope phases for them.
 
-- **Baseline (Phase 12, required):** MD3 Expressive duration + bezier tokens, rendered to all three targets — QML, GTK4 CSS, Hyprland. This is the proven path, matches both references, and extends the `md3_decel` vocabulary wleave already uses. **No spring-fitting spike is on the critical path.**
-- **Stretch (attempted only after the baseline pipeline works, QML surfaces only):** spring-mass-stiffness-damping passthrough to native `SpringAnimation`. Additive; **blocks no other phase**, and may be dropped without affecting the milestone.
-
-Any statement in this document or the underlying research files describing spring physics as "the source of truth" reflects the pre-correction scope and is superseded by this section.
-
-**Key risk:** the hyprexpo plugin (a source-compiled Hyprland plugin with version-coupling fragility) is rejected in favor of Quickshell's native `ScreencopyView` + Hyprland's built-in `hyprland-toplevel-export-v1` protocol for the workspace overview — zero additional packages, no compiler toolchain, no rebuild-on-upgrade debt. Three researchers independently converged on this finding. Residual risks that replace it: live multi-window screencopy **performance** on 0.56.0, and Hyprland's Permissions system possibly gating screencopy (exact `ecosystem.conf` stanza unverified). Separately, if the optional spring stretch is attempted, its fitting step is lossy by design — single-point overshoot can be captured, multi-oscillation/ring-down cannot — so it needs a human side-by-side render gate before adoption. The MD3 baseline carries no such fidelity risk.
-
----
+One legitimate downgrade risk remains unresolved: **the AGS cava-visualizer** that the dashboard deliberately cut in Phase 14 must be either built (new QML process reader) or explicitly sign-off-deferred before AGS retirement, or the fold-in silently violates this milestone's own "no phase closes downgraded" rule.
 
 ## Key Findings
 
 ### Recommended Stack
 
-**Core:** Quickshell 0.3.0-2 from Arch `extra` (official package, not AUR), Qt6 base/declarative/svg/wayland (all already installed), plus existing services already running on this machine: PipeWire/WirePlumber (audio), NetworkManager 1.58 (wifi), BlueZ 5.87 (bluetooth), hyprland-protocols (built into Hyprland 0.56.0). **No hyprexpo plugin.** Instead, `hyprland-toplevel-export-v1` (a Wayland protocol the compositor natively implements) + Quickshell's `ScreencopyView`/`ToplevelManager` built-in types, confirmed working in end-4 and a third-party quickshell-overview reference implementation.
+**All technologies already installed; no version bumps available or needed:**
 
-**Supporting:** matugen (already deployed for color theming) extends with new QML/GTK4 motion templates. A new `theme-engine/lib/motion.sh` build step emits the MD3 duration+bezier token set to all three targets — one render target per surface, consumed live from `~/.local/state/theme/`, never copied, matching this repo's existing contract-and-render pattern. Python-backed spring sampling and least-squares bezier fitting are needed ONLY for the optional spring stretch, not for the baseline. This is mechanically identical to color rendering (all three targets consume from the same source manifest) but differs in frequency (motion tokens are hand-authored, theme-invariant; colors are wallpaper-driven, re-rendered per theme switch).
+- **quickshell 0.3.0-2** — the QML toolkit; this IS the v3.0 commitment. Confirmed latest in `extra`; `quickshell-git` exists in AUR but is version-behind and flagged out-of-date, and no capability gap forces it.
+- **Quickshell.Services.Notifications** — verified a real `org.freedesktop.Notifications` D-Bus **server** (not merely a passive client), read directly from `/usr/lib/qt6/qml/Quickshell/Services/Notifications/quickshell-service-notifications.qmltypes`. Direct swaync protocol-layer replacement, including a genuine inline-reply capability swaync 0.12.6 lacks. Does NOT provide for free: the control-centre UI, DND persistence, or history — all already in scope to build.
+- **Quickshell.Services.Pipewire** — volume/mute/sink control; already powers the Phase 15 audio panel
+- **Quickshell.Services.UPower** — battery state
+- **Quickshell.Services.SystemTray** (+ DBusMenu) — StatusNotifierItem tray
+- **Quickshell.Hyprland** — workspaces, dispatch, layer extensions (already load-bearing for Super+D / Super+O)
+- **Quickshell.Networking / .Bluetooth** — already power the Phase 15 panels
+- **Quickshell.Services.Mpris** — already the shared reader
+- **Quickshell.Wayland._IdleNotify / ._IdleInhibitor** — candidate native path for OLED-safe visibility
+- **Quickshell.Io.FileView** (inotify-backed `watchChanges`, verified present) + sysfs `/sys/class/leds/*::capslock/brightness` — capslock OSD with **zero root daemon**
+- **Quickshell.Io.Process** — shelling out to existing scripts
 
-**Confidence:** HIGH for Quickshell's official-repo status and Qt6 deps (verified locally). MEDIUM for the exact matugen template shapes and motion.sh implementation (confirmed as the right architectural pattern, but Python-based fitting algo is new code this repo hasn't written yet). LOW for whether Quickshell's `JsonAdapter` auto-propagates property changes through bindings with zero explicit reload code (Quickshell docs claim it does; must verify empirically in Phase 11).
+**Only real gap:** CPU/RAM/disk statistics have no dedicated Quickshell module and need the same `Process`-backed approach the Dashboard's Performance tab already uses.
 
-### Expected Features
+**Retirement requirement: ATOMIC package deletion.** Package removal, `contract.json` entry deletion, matugen-template deletion, and checker-script deletion must land in the same commit per retired surface. WINDOWS #1 (an orphaned `eww.scss` blocking `theme-doctor` for a full milestone) is the standing precedent. All five packages show `Required By: None` in `pacman -Qi`, so removal is unblocked once repo consumers migrate.
 
-**Must have (v3.0 launch):**
-- Dashboard drawer: calendar + quick-toggle grid (reusing BAR-05) + compact media widget (AGS backend) + system resources
-- Bluetooth panel: device list + connect/disconnect + "Details" escape hatch to blueman
-- Wifi panel: scan/list/connect + password prompt + "Details" escape hatch to nm-connection-editor
-- Per-app volume mixer: native Pipewire service + icon lookup from walker/elephant
-- Motion language: MD3-Expressive duration+bezier tokens rendered to all three targets (spring physics is a Phase-12 stretch on QML only, not a launch requirement — see the corrected Motion scope in the Executive Summary)
+**Live side-finding:** `wlogout` and `eww` are **still installed on the host** despite being retired from the repo in earlier milestones — an existing instance of the same leftover failure class this milestone exists to end. Worth an explicit cleanup line.
 
-**Should have (v3.0 stretch):**
-- Workspace overview: click-to-focus grid with live thumbnails via `ScreencopyView`
-- Drag-to-move windows between workspaces
-- Weather widget (isolate as own vertical slice due to external API dependency)
+### Expected Features & Differentiators
 
-**Defer / cut candidate (Phase 17):**
-- Animated/video wallpaper
-- Dynamic cursor (hyprpm plugin)
-- Overview type-to-search
-- Caelestia-style 4-tab swipeable dashboard
+**Source-verified reference-rice shapes** (read from actual QML on GitHub, not blog summaries — this project has a standing convention of source-verifying reference-rice claims after discovering neither reference uses `SpringAnimation` despite widespread belief):
+
+- **Caelestia's bar is vertical / right-edge** with pill-grouped workspaces.
+- **end-4's "ii" bar is horizontal** (top/bottom, configurable), per-monitor, with a "Hug vs Float" island `cornerStyle` switch and separate rounded `BarGroup` islands.
+- **Both rices independently implement swipe-to-dismiss on notification popups** — a strong table-stakes signal precisely because two unrelated projects converged without copying each other.
+- **Both instantiate `NotificationServer` directly in their own QML singleton** — the shell *is* the D-Bus server, not a client.
+- **Caelestia validates the media fold-in decision**: it has no bar media entry at all — media lives only in the dashboard (a small tile plus a fuller page with a radial cava-visualizer wrapped around a shaped cover-art cutout). That is the closer structural analog to "fold into the dashboard Media tab, no standalone card."
+
+**Table stakes (what waybar/swaync/SwayOSD/wleave/AGS ship today and a replacement must not lose):**
+
+- Bar: click workspace to switch, scroll volume/brightness, notification-centre button, OLED auto-hide, system tray, clock, battery
+- Notifications: transient popups, stacking, swipe-dismiss, auto-expire, actions, notification centre with history
+- OSD: volume/brightness/capslock indicators, auto-hide
+- Power: six actions (Shutdown/Reboot/Suspend/Hibernate/Logout/Lock)
+- Media: play/pause/next/prev, seek bar, cover art, player switching, **audio-reactive cava visual**
+
+**Differentiators worth taking from the reference rices:**
+
+- Bar: per-widget contextual popouts; dual auto-hide reveal (hover + Super-peek — OLED-relevant); "island" style toggle
+- Notifications: inter-surface geometry coordination, fullscreen-aware suppression, DND as a quick-toggle
+- OSD: multiple simultaneous sliders (volume + mic + brightness at once)
+- Power: in-context safety warnings (package-manager / download-running banners — maps directly onto this project's own unresolved Logout teardown-hazard concern); full keyboard navigation
+- Media: radial cava-visualizer around shaped cover art
+
+**Anti-features (explicitly do NOT copy, tied to PROJECT.md Out of Scope):** AI chat sidebar, full GUI settings app / Waffle alt-shell, per-track dominant-colour re-tinting (conflicts with the single-palette-source architecture), audio-sink protection banner (no equivalent trigger here), decorative mascot GIFs.
 
 ### Architecture Approach
 
-Extend the existing theme-engine pattern to include motion tokens. One `quickshell/` stow package with `shell.qml` (entry point), `services/{Colors,Motion,Config,GlobalStates}.qml` (singletons), `modules/{Dashboard,AudioMixer,Connectivity,Overview}/`, and `components/`. Colors flow: matugen → `quickshell-colors.json` → `Colors.qml` singleton watching `~/.local/state/theme/` via `FileView`. Motion flow: hand-authored `motion-tokens.json` → `motion.sh` renders to three targets (QML passthrough, GTK4 keyframes, Hyprland bezier fit). QML surfaces bind from singletons; GTK/Hyprland consume compiled targets. New surfaces claim disjoint `WlrLayershell.namespace` entries, default to `exclusiveZone: 0` (overlay-only). D-Bus readers are read-only (multiple safe); writers coordinate with SwayOSD (hardware keys), swaync (notifications), playerctld (MPRIS).
+**One process, multiple summonable surfaces + one always-mounted surface:**
 
-### Critical Pitfalls & Prevention
+- All surfaces live as `.qml` files under `quickshell/.config/quickshell/modules/`, registered in explicit `qmldir` manifests
+- Summonable surfaces (dashboard, panels, power, notification centre, OSD) wrap in `LazyLoader { active: false }` — destroyed on dismiss
+- **Always-mounted bar — genuinely new pattern.** Every existing QML surface uses `exclusiveZone: 0` and summon-on-demand; the bar needs `exclusiveZone > 0` and permanent mounting for the first time.
+- **QS-03's answer for an always-on bar is "don't fan out."** `Overview.qml` already proves the pattern (a single `PanelWindow`, no `Variants`) since the host has one monitor (`DP-1`). The bar should copy that rather than re-attempt per-screen fan-out, which was dropped one-way under D-13. No evidence of an upstream fix was found; it is irrelevant on this host regardless.
+- Notification server as its own `NotificationServer` singleton inside the shell root, holding D-Bus ownership outright
+- Shared backends (MediaBackend, AudioBackend, …) mounted once unconditionally
 
-1. **Quickshell input/focus failure (Pitfall 1, eww recurrence):** Phase 11 viability gate with human-clickable button, text field, outside-click dismiss. Must work on 0.56.0 before Phase 11 passes. Gate has STOP authority.
+**Contract consequences:** `contract.json` goes **29 → 17 entries** (12 removed across the five retiring packages). QML surfaces need **zero** new contract entries — an established D-18 precedent (`Colours.qml`'s own header) that already applies and needs no reinvention.
 
-2. **Layer-shell exclusive-zone conflicts (Pitfall 2):** New surfaces default to `exclusiveZone: 0`. Check `hyprctl layers -j` before adding any non-zero zones. Add `layer-doctor` assertion.
+**Critical new risk — bar crash blast radius.** If the bar and the notification server share one quickshell process (the likely design), any crash takes down both — and loses the always-on surface the user depends on continuously. `quickshell-launch.sh` currently has **no restart wrapper**. Decision needed at the bar phase: add restart-on-crash supervision, or accept and document the risk.
 
-3. **D-Bus double-handling (Pitfall 3):** MPRIS readers use same `playerctld` proxy; swaync stays sole notification daemon; SwayOSD owns hardware keys; QML panels call same APIs on click. Pre-flight: `busctl --user list | grep -c freedesktop.Notifications` must equal 1.
+**Regression gates replace equivalence checks.** `waybar-equivalence-check` and `waybar-design-lint` die with waybar; no generic replacement exists. The mechanical net that carries over is extending `quickshell-doctor` (already an extensible pattern) plus a new hex-literal lint mirroring `motion-lint`'s deny-by-default discipline. **Appearance judgment moves fully to the mandatory human render gate**, per the project's own stated rationale — Phase 8 and Phase 16 both shipped visibly broken surfaces through fully green automated gates.
 
-4. **Spring-to-bezier fidelity loss (Pitfall 6):** Single cubic-bezier cannot express multi-oscillation. QML gets native physics; GTK4 gets sampled keyframes or bezier fit; Hyprland gets bezier fit only. **Human side-by-side render gate per surface is mandatory.**
+### Critical Pitfalls
 
-5. **Hyprexpo plugin ABI + install fragility (Pitfall 4):** Treat hyprexpo as optional. If built, make `install.sh` step non-fatal (warn), pin tested-compatible commit, provide `hyprland-toplevel-export-v1` fallback. No compiler toolchain requirement.
+1. **D-Bus notification-server ownership race.** Two processes holding `org.freedesktop.Notifications` means silently queued or stolen name ownership; senders never see an error. *Mitigation:* extend `quickshell-doctor`'s existing `QSD_NAME_OWNERS` registry — its `poisoned-two-owner-busctl-list.txt` fixture **already models this exact failure state** and needs only the owner name updated and to be run live rather than only self-tested. Test the crash-and-respawn path deliberately; keep `swaync` installed with autostart **disabled** during a soak window; never split the autostart-line change and the package deletion across separate commits.
 
----
+2. **Notification-server D-Bus contract under-implementation.** `GetCapabilities` wrong, `replaces_id` dropped (progress notifications stack instead of updating), `ActionInvoked` never emitted. *Mitigation:* capture swaync's current capabilities as a baseline; build fault-injection fixtures for `replaces_id` and action invocation. A short throwaway probe (`notify-send -r`) early in the phase is the right discipline — the same shape as QS-02.
+
+3. **Always-on bar resource and exclusive-zone hazards.** Timers, subprocesses and caches that are harmless for 30 seconds become permanent costs over days: RSS creep, zombies, FD exhaustion. The bar inherits **none** of the "zero-idle while dismissed" discipline built for the dashboard drawer, because it has no dismissed state. None of the existing gates (which run for minutes) would catch multi-day drift. *Mitigation:* budget an explicit soak test (RSS at t=0 and t=hours); audit every `Timer`/`Process` for "keeps running when nothing changed"; verify the exclusive zone survives `hyprctl reload` and QML hot reload.
+
+4. **Hardware-key / OSD context loss — resolved better than initially feared.** PITFALLS.md was written without STACK.md's finding and framed this more cautiously; **trust STACK.md here**, which verified directly that volume/brightness/mic/media keys already fire via Hyprland `bind ... {locked=true}` calling `swayosd-client`. Deleting SwayOSD therefore only means swapping the exec target — no lock-screen regression. **Capslock is the one real gap**, since SwayOSD's root libinput daemon is the only thing catching it today; the sysfs LED node + `FileView.watchChanges` replacement closes it without a root service. The residual open question — whether to also retire `swayosd-libinput-backend.service` itself — remains a scope decision needing explicit sign-off, not a technical unknown.
+
+5. **Incomplete retirement consumer-check.** The eww cleanup left two orphaned layerrules despite a grep that felt thorough; `ags/` went the other way and was never registered in `stow.sh`. Five surfaces × one missed reference class = five broken regressions. *Mitigation:* build a retirement checklist **script**, not a manual grep, covering windowrules, `autostart.lua`, keybinds, `contract.json`, matugen templates, `quickshell-doctor` registries, doctor fixtures, systemd `--user` units, D-Bus `.service` activation files, XDG autostart `.desktop` files, and `install.sh`/`stow.sh` package lists. Run it **twice per surface** — before and after deletion — in config-then-package order.
+
+6. **Redesign forfeits unnamed daily-use features.** Scroll-to-change-workspace, right-click menus, specific dismiss and click-through behaviour — none are written down as specs. Redesigning against a reference language means they disappear silently. *Mitigation:* before redesigning each surface, enumerate its current behaviour from the live config, write it down, and make it UAT acceptance criteria — while the reference implementation still exists to be read.
+
+7. **Quickshell 0.3.0-2 always-on traps.** `Variants`/QS-03 risks, exclusive zone across reload, hot-reload state loss, render-loop selection (this project already found Qt auto-selecting the basic loop, needing `QSG_RENDER_LOOP=threaded` to reach 165Hz). *Mitigation:* test an explicit matrix — cold start / hot reload / `hyprctl reload` / multi-hour soak. Reuse existing bug-fix patterns before writing new IPC code.
+
+8. **Debt paydown silently dropped as migration runs long.** Five migrations plus eight debt items share one milestone. Migration has visible output; debt items are easy to defer, and v3.0's own closeout language explicitly names "whether v4.0 actually picks up the two real carry-ins" as the open test. *Mitigation:* deliberately interleave debt into migration phases at roadmap time rather than trailing it; and if the milestone runs long, **scope-cut migration stretch goals first, not debt.**
 
 ## Implications for Roadmap
 
-Sketched order is directionally correct (11 → 12 → 13 → 14 → 15 → 16 → 17). Two corrections:
+### Suggested Phase Sequence (continues from v3.0's Phase 17)
 
-**Correction 1:** Phases 13 and 14 are independent branches (both depend only on 12); could be parallelized if schedule demands, but keeping 13 before 14 is the right default (cheaper to validate motion-fitting on existing surfaces before building new QML UI).
+**Phase 18 — Bar (waybar → QML status bar)**
+- *First:* highest daily contact; its patterns seed every later surface
+- *Delivers:* workspace click, scroll volume/brightness, notification-centre button, system tray, clock, battery, OLED auto-hide
+- *Avoids:* pitfalls 3, 6, 7 (first soak gate; behaviour enumeration; render-loop and exclusive-zone stability)
+- *Gates:* soak test (RSS / process-count stability); exclusive zone verified across reload; structural checks extended into `quickshell-doctor`
+- *Retirement:* remove waybar + 7 contract entries + `[templates.waybar]` + `waybar-equivalence-check` + `waybar-design-lint`; re-home visibility ownership onto the bar's own IPC verb
 
-**Correction 2:** Phase 16's **research question** (hyprexpo vs. protocol) should be investigated during/after Phase 11 (feasibility gate, not execution complexity). Keep the build at position 16, but resolve research early so roadmap can decide Phase 16's scope while Phases 12-15 are in flight.
+**Phase 19 — Notifications (swaync → QML popups + slide-out centre)**
+- *After the bar:* the centre-button pattern is proven; the D-Bus ownership decision must be resolved explicitly before planning
+- *Delivers:* transient popups (swipe, actions), slide-out centre (history, clear-all), DND toggle, full D-Bus contract compliance
+- *Avoids:* pitfalls 1, 2, 7 (two-owner race test; contract fault injection; hot-reload state loss)
+- *Watch:* promote the quick-toggle grid to a shared component rather than hand-copying it
+- *Retirement:* remove swaync + 2 contract entries + `[templates.swaync]`; move DND ownership into QML
 
-### Phase Structure
+**Phase 20 — OSD (SwayOSD → QML indicators)**
+- *After Phase 19:* reuses the transient-toast frame type
+- *Delivers:* volume/brightness OSD on the existing Quickshell signals; capslock via the zero-root sysfs watch
+- *Key decision:* keep the libinput backend running standalone for its context reach, or accept and document the loss
+- *Retirement:* remove swayosd + 1 contract entry + `[templates.swayosd]`; collapse volume/brightness onto one QML path
 
-**Phase 11: Quickshell Viability Gate** — Throwaway `PanelWindow` with pointer/keyboard/focus/dismiss test. Human must click button, type field, dismiss via click-outside. Must pass on 0.56.0 before anything else. **Authority to STOP.**
+**Phase 21 — Power menu (wleave → QML session menu)**
+- *Independently schedulable:* no shared backend; lowest risk, closest existing precedent; can overlap Phase 20
+- *Delivers:* six actions, keyboard-navigable grid with visible focus, in-context safety warnings, modal keyboard grab
+- *Retirement:* remove wleave + 1 contract entry + `[templates.wleave]`
 
-**Phase 12: Token Pipeline (Colour + Motion)** — Extend matugen with `quickshell-colors.json`. Create hand-authored `motion-tokens.json` (mass/stiffness/damping). Implement `motion.sh` render to three targets. Wire `Colors.qml` and `Motion.qml` singletons. Add `motion-lint` gate. Decide and document fidelity ceiling, reduced-motion knob.
+**Phase 22 — Media fold-in (AGS → dashboard Media tab)**
+- *Last:* allows an independent cava decision gate
+- *Decision gate at phase start:* build a QML cava reader, or record explicit sign-off that a static ring is acceptable — no silent downgrade
+- *Delivers:* final MPRIS consolidation onto one backend owner; Media-tab refresh
+- *Retirement:* remove ags + 1 contract entry + `[templates.ags]`
 
-**Phase 13: Motion Retrofit** — Apply tokens to waybar/swaync/wleave/walker/AGS/Hyprland. Human side-by-side render gate per surface (QML vs. fitted-curve). Multi-day dogfooding check for high-frequency surfaces.
+**Phase 23 — D-34/D-36 fresh-install container rerun.** The closing regression gate for all five package deletions. Deliberately last, after every retirement lands — not threaded through individual phases.
 
-**Phase 14: Dashboard Drawer** — Calendar + toggle-grid (reusing BAR-05) + media widget (reusing AGS/MPRIS) + system resources. Establish single-scalar entrance/exit pattern. Register `quickshell` in `stow.sh`.
+### Parallel / interleaved debt
 
-**Phase 15: Audio + Connectivity Panels** — Bluetooth (LOW-MEDIUM), Wifi (MEDIUM-HIGH), per-app mixer (MEDIUM). One reusable dialog pattern. "Details" escape hatches to blueman/nm-connection-editor/pavucontrol.
+- **Bookkeeping (Phase 18 start, zero cost):** flip the `GradientBorder` debug-session status and update PROJECT.md/MILESTONES.md; close WINDOWS #14. Both are already fixed in code.
+- **OVER-04 FPS (attach to Phase 18):** verify `QSG_RENDER_LOOP=threaded` and baseline the bar at 165Hz — the always-on surface is the natural place to finally measure the frame-rate term.
+- **Debug curation + WINDOWS triage:** 6 open sessions, 16 open rows — size and prioritise early rather than at close.
+- **Retirement checklist script (Phase 18):** build once, reuse for all five retirements.
+- **Host-level leftovers:** uninstall the still-present `wlogout` and `eww` packages.
 
-**Phase 16: Workspace Overview** — Click-to-focus grid with live thumbnails via `ScreencopyView`. Research `hyprland-toplevel-export-v1` permission system. If performance/permissions block, becomes next cut-candidate after 17.
+### Dependency summary
 
-**Phase 17: Ambient Extras** — Video wallpaper (`mpvpaper` + thumbnails, low effort) and dynamic cursor (hyprpm plugin, lowest effort, plugin-ABI risk). **First thing cut if milestone runs long.** Can defer to v4.0.
+```
+Phase 18 (Bar) ─────────────────┐
+                                ├─→ Phase 19 (Notifications) ─→ Phase 20 (OSD)
+Phase 21 (Power)  ── independent, can overlap Phase 20
+Phase 22 (Media)  ── needs an explicit cava go/no-go at phase start
+Debt bookkeeping + OVER-04 ───── Phase 18 start
+D-34/D-36 container rerun ────── Phase 23, after all five retirements
+```
 
-### Phase Ordering Rationale
+## Research Flags
 
-- Phase 11 is hard gate: everything depends on Quickshell working; cheap to retry if it fails, expensive to discover failure later
-- Phase 12 blocks 13-17: all require color/motion render targets
-- Phase 13 before 14: cheaper to validate motion-fitting on existing surfaces before building new QML UI
-- Phase 14/15/16 sequence: toggle grid before panels (panels expand toggles); coordinate D-Bus access before most complex panel
-- Phase 17 last: independent, correct place for cut-candidate
+**Phases needing deeper research at planning time:**
 
-### Research Flags
+- **Phase 19 (Notifications)** — the notification-server ownership decision gate must be settled before the spec phase (QML becomes the D-Bus owner vs. stays a swaync client). Both are technically feasible; both reference rices chose "shell owns the server."
+- **Phase 22 (Media)** — cava-visualizer go/no-go needs an explicit spike before build starts.
 
-**Phases needing deeper research during planning:**
-- **Phase 11:** `JsonAdapter` property-binding propagation; exact `WlrLayershell.keyboardFocus` + `mask` mechanics on 0.56.0
-- **Phase 12:** GTK4 CSS `linear(<stops>)` support (must test empirically; default: unsupported, single-bezier fallback)
-- **Phase 15:** `Quickshell.Networking` API completeness (D-Bus calls vs. `nmcli` wrapper)
-- **Phase 16:** Hyprland `PERMISSION_TYPE_SCREENCOPY` requirement and `noscreenshare` window-rule semantics
+**Phases with proven patterns (skip detailed research):**
 
-**Phases with standard patterns (research-phase not needed):**
-- **Phase 13:** Motion retrofit is mechanical application of Phase 12 tokens
-- **Phase 14/15:** Dialog/panel patterns established in end-4/Caelestia, directly copyable
-- **Phase 17:** Both features use well-documented existing tools
-
----
+- **Phase 18 (Bar)** — reuse the existing `Colours`/`Motion` singletons; single `PanelWindow` with `exclusiveZone`, no multi-screen fan-out (QS-03, D-13)
+- **Phase 20 (OSD)** — volume/brightness already Hyprland-bind-routed; capslock has a zero-root sysfs replacement
+- **Phase 21 (Power)** — reuse the `PanelDialog` frame; keyboard-navigation pattern already proven in the dashboard
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Quickshell 0.3.0-2 verified in Arch `extra` via `pacman -Si`; Qt6 deps all installed; supporting services confirmed; no hyprexpo needed |
-| Features | HIGH (flagship), MEDIUM (execution) | Both flagships source-read; complexity flagged where native bindings absent (wifi D-Bus) |
-| Architecture | MEDIUM-HIGH | Extends proven AGS pattern; Quickshell behavioral details are single-source, need empirical validation Phase 11 |
-| Pitfalls | MEDIUM | Hyprland 0.56.0 verified locally; plugin-ABI/D-Bus/fitting pitfalls web-sourced, need local testing |
+| Stack | HIGH | Every technology verified directly against installed binaries on this host. No new packages needed. `Quickshell.Services.Notifications` verified as a real D-Bus server by reading the installed `.qmltypes`. |
+| Features | MEDIUM-HIGH | Table stakes from direct reads of reference-rice QML; two independent implementations converge (strong signal). Differentiators grounded in a diff against PROJECT.md's Validated list. Complexity estimates are researcher judgment, not measured. |
+| Architecture | HIGH | Direct repo inspection (shell root, summon mechanism, `qmldir` discipline, `contract.json` state) with file paths and `git log` verification. Two carry-ins verified in code and independently re-checked by the orchestrator. Open questions named rather than papered over. |
+| Pitfalls | MEDIUM-HIGH | Grounded in this repo's own committed evidence (`quickshell-doctor` fixtures, `autostart.lua` ordering, `windowrules.lua` namespaces, prior WINDOWS incidents). Freedesktop-spec contract details are general knowledge, not binary-verified, and are marked as such. |
 
-**Overall: MEDIUM-HIGH**
+**Overall: HIGH.** Blocking risks are explicitly named (notification-server ownership, cava go/no-go, bar crash isolation) rather than hidden.
 
-Stack and feature-shape solid; architecture extends proven patterns; main uncertainty is Quickshell behavioral details (Phase 11 settles) and GTK4 CSS `linear()` support (Phase 12 tests).
+### Where researchers disagreed
 
-### Gaps to Address
+- **Hardware keys.** PITFALLS.md framed SwayOSD's retirement as potentially losing lock-screen/TTY coverage; STACK.md then verified directly that media keys already route through Hyprland binds with `locked=true`. **Trust STACK.md** — it inspected the actual bind definitions, and PITFALLS.md was written without that finding. The residual capslock gap is real in both accounts.
+- **`GradientBorder` and WINDOWS #14.** PROJECT.md, MILESTONES.md and PITFALLS.md all treat these as open carry-ins; ARCHITECTURE.md found both already closed in code. **Trust ARCHITECTURE.md** — the orchestrator independently re-verified both against the working tree (`PanelDialog.qml:191`, commit `4f48847` dated 2026-08-02; `quickshell-doctor` on `hl.dsp.global`, with the only `dispatch global` string in a comment explaining why the old form is invalid). Caveat: the commit evidences clean mount/dismiss and no new log errors, **not** a human visual confirmation that the rim renders — that check is still owed, but it is a look, not a phase.
 
-1. **Quickshell's `JsonAdapter` auto-propagation:** Must verify empirically Phase 11 that file changes trigger property re-evaluation with zero explicit reload code
-2. **GTK4 CSS `linear()` easing:** Test empirically Phase 12 with throwaway CSS; default assumption: unsupported
-3. **NetworkManager D-Bus API in Quickshell:** Confirm `Quickshell.Networking` covers "list + connect + password" before Phase 15 commits to in-QML vs. `nmcli`
-4. **Hyprland screencopy permission system:** Verify permission grant + `noscreenshare` window-rule behavior before Phase 16
-5. **Spring-to-bezier fidelity perception:** Validate empirically Phase 13 during side-by-side render gate
-6. **Quickshell reduced-motion accessibility:** No precedent found; design knob Phase 12, validate Phase 13+
+### Gaps to address
 
----
+- **Notification-server go/no-go** — research confirms feasibility; the *decision* is not research's call. Resolve at Phase 19 roadmap time.
+- **Cava visualizer** — a deliberate Phase 14 scope cut. Phase 22 opens with an explicit spike and go/no-go before design.
+- **Current wleave keyboard nav** — not confirmable from planning docs alone; a quick source check before Phase 21 scoping will say whether it is already wired or a new requirement.
+- **SwayOSD libinput backend fate** — reaches contexts Hyprland binds cannot; needs explicit human sign-off on whether it is retired alongside the renderer.
+- **Bar crash isolation** — restart wrapper vs. documented accepted risk; resolve at Phase 18 roadmap time.
+- **QML hot-reload state survival** — needs the explicit test matrix; document what actually happens rather than assuming either way.
+- **`replaces_id` / `expire_timeout` merge semantics** — not spelled out in the fetched Quickshell docs; settle with a throwaway `notify-send -r` probe early in Phase 19.
+- **Capslock sysfs node stability** — `input5::capslock` was not verified across an actual reboot or USB re-enumeration.
 
 ## Sources
 
-**PRIMARY (HIGH — direct system verification):**
-- This machine: `pacman -Si quickshell`, `pacman -Qi qt6-*`, `hyprctl version`
-- Repo inspection: `theme-engine/contract.json`, `ags/.config/ags/app.tsx`, `hypr/.config/hypr/config/animations.conf`, `stow.sh`
-
-**SECONDARY (MEDIUM — source-read reference projects):**
-- `end-4/dots-hyprland` (GitHub API + raw file fetch): QML dashboard/panels/overview implementation
-- `caelestia-dots/shell` (GitHub API + raw file fetch): QML animation system, singleton pattern
-- Quickshell official docs (`quickshell.org/docs`): config model, `FileView`/`JsonAdapter`, `PanelWindow`/`WlrLayershell`, native service modules
-
-**TERTIARY (MEDIUM, cross-checked 2+ sources):**
-- Hyprland wiki + standards: `hyprland-toplevel-export-v1` protocol, native support
-- `hyprwm/hyprland-plugins` repo + GitHub issues + forum reports: hyprexpo plugin-ABI coupling, reproducibility risk
-- CSS Easing + GTK docs + spring-physics articles: fidelity limits, CSS capabilities
-
-**TERTIARY (LOW, single source or inference):**
-- Quickshell GitHub issues, end-4 issues: behavioral details (hot-reload, multi-monitor, memory)
-- Hyprland permissions wiki + `hyprctl`: screencopy permission system
-- playerctl/bluez/NetworkManager D-Bus docs: multi-client behavior
+- Direct host verification: `pacman -Q`/`-Qi`/`-Si`/`-Ql`; reading installed `.qmltypes` under `/usr/lib/qt6/qml/Quickshell/`; `busctl`; sysfs LED nodes — HIGH confidence
+- Direct repo inspection at `/home/aorus/dotfiles`: shell root and `qmldir` manifests, `theme-engine/contract.json`, `matugen/.config/matugen/config.toml`, `hypr/.config/hypr/config/*.lua`, `install.sh`, `stow.sh`, `hypr/.config/hypr/scripts/quickshell-doctor`, `git log`/`git show` — HIGH confidence
+- Reference-rice source reads: `github.com/end-4/dots-hyprland`, `github.com/caelestia-dots/shell` (actual QML files, linked in FEATURES.md) — HIGH confidence for what they ship
+- Project planning record: `.planning/PROJECT.md`, `.planning/MILESTONES.md`, `.planning/WINDOWS.md` — HIGH confidence
+- Freedesktop notification-spec contract fields (`GetCapabilities`, `replaces_id`, `ActionInvoked`) — general knowledge, NOT binary-verified; flagged LOW and owed a probe in Phase 19
 
 ---
-
-*Research completed: 2026-07-26*
-*Ready for roadmap: yes*
-*Synthesized from: STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md*
+*Synthesized 2026-08-10 at v4.0 milestone start. Orchestrator note: the synthesizer returned this document inline rather than writing it (known issue #222); the orchestrator persisted it.*

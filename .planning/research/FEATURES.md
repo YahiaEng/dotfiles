@@ -1,389 +1,263 @@
-# Feature Research
+# Feature Research — v4.0 Shell Migration Surfaces
 
-**Domain:** Quickshell/QML desktop-shell surfaces for a mature Arch + Hyprland rice (dashboard, audio/network/bluetooth panels, workspace overview, ambient wallpaper/cursor, spring-based motion language)
-**Researched:** 2026-07-26
-**Confidence:** HIGH for end-4/dots-hyprland and Caelestia (soramanew) — read directly from source: GitHub API directory listings + raw `.qml` file contents, not just README/blog summaries. MEDIUM for HyDE/ML4W/Omarchy/Aylur (websearch only, not source-read). LOW/uncorroborated claims are flagged inline.
+**Domain:** Desktop shell surfaces (status bar, notifications, OSD, power menu, media) for a personal Arch + Hyprland Quickshell (QML) rebuild
+**Researched:** 2026-08-10
+**Confidence:** HIGH — every claim about what end-4/dots-hyprland and Caelestia actually ship is sourced from a direct read of their real QML source files (via `raw.githubusercontent.com`, i.e. the actual file content, not a summary or blog post), matching this project's own established verification convention ("HIGH confidence — ground truth, not a web claim" per `.claude/CLAUDE.md`). See **Sources** for the exact file paths and links read. Table-stakes/differentiator/anti-feature judgments are this researcher's synthesis against `.planning/PROJECT.md` and `.planning/MILESTONES.md`, confidence HIGH for what the rices ship, MEDIUM for the prioritization calls layered on top.
 
-## Method note (read this before the tables)
-
-For end-4/dots-hyprland and Caelestia I did not rely on DeepWiki summaries alone — I walked the actual repo trees via the GitHub API and read the raw QML source of the specific files that answer this milestone's questions (sidebar/dashboard composition, overview implementation, volume/wifi/bluetooth dialogs, and the animation token files). Every claim below tagged **[source-read]** was verified this way and is HIGH confidence. Claims tagged **[websearch]** came from search snippets/DeepWiki only and are MEDIUM or LOW confidence as noted.
-
-Repos read directly:
-- `end-4/dots-hyprland`, path `dots/.config/quickshell/ii/` — the "ii" (Illogical Impulse) family, the default/flagship experience
-- `caelestia-dots/shell` — Caelestia's standalone Quickshell shell
+**Scope:** BAR, NOTIF (popups + control centre), OSD, POWER (session/power menu), MEDIA (dashboard fold-in). Launcher/menu (walker/elephant) is explicitly out of scope per the milestone and not researched here.
 
 ---
 
-## Feature Area 1: Dashboard Drawer
+## What The Reference Rices Actually Ship
 
-### What it actually contains
+### BAR
 
-**end-4/dots-hyprland ("right sidebar")** — this project's closest analog to "dashboard drawer" **[source-read: `SidebarRightContent.qml`, `CenterWidgetGroup.qml`, `BottomWidgetGroup.qml`]**:
+**Caelestia (`caelestia-dots/shell`) — one bar, vertical, right-edge.**
+Source: [`modules/bar/BarWrapper.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/bar/BarWrapper.qml), [`modules/bar/Bar.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/bar/Bar.qml), [`modules/bar/components/workspaces/Workspaces.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/bar/components/workspaces/Workspaces.qml), [`modules/bar/components/Power.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/bar/components/Power.qml).
 
-Top-to-bottom column layout inside one panel:
-1. `SystemButtonRow` — a row of system buttons (settings launcher, etc.) at the very top
-2. `QuickSliders` — mic/volume/brightness sliders, conditionally shown per-slider from config (`sidebar.quickSliders.{showMic,showVolume,showBrightness}`)
-3. **Quick-toggle grid** — pluggable between two visual styles (`ClassicQuickPanel` or `AndroidQuickPanel`, user-configurable "panel family"); toggle grid entries include Wi-Fi, Bluetooth, Night Light — each toggle taps to flip state instantly, and has an expand affordance that opens a **dedicated dialog** (see Feature Area 2) rather than cramming detail into the grid itself
-4. `CenterWidgetGroup` — **is literally a `NotificationList`** (the notification center's list lives inside this dashboard, not a separate surface)
-5. `BottomWidgetGroup` — a **tabbed, collapsible** card: Calendar / To-Do / Timer(Pomodoro), navigated via a vertical "navigation rail" of icon buttons, Ctrl+PageUp/PageDown to cycle tabs, collapses to a one-line "date • N tasks" summary row
+- **Single bar**, anchored `top+bottom+right` — a vertical column docked to the screen's right edge, not a horizontal top/bottom strip.
+- **Auto-hide by width**, not visibility: `implicitWidth` animates between `Config.border.thickness` (a thin sliver, never fully gone) and the full content width, driven by `Config.bar.persistent || screenState.bar || isHovered`. Exclusive zone tracks the same state.
+- **Entries are a config-driven ordered list** (`spacer`, `logo`, `workspaces`, `activeWindow`, `tray`, `clock`, `statusIcons`, `power`) rendered via `Repeater` + `DelegateChooser` — directly analogous to this project's `modules.jsonc` module-list pattern.
+- **Workspaces render as one pill**: a single `StyledClippingRect` with `radius: Tokens.rounding.full` containing a fixed `Config.bar.workspaces.shown` count of workspace dots (paginated by `groupOffset`, not an ever-growing strip), an `ActiveIndicator` overlay that highlights the current dot, an `OccupiedBg` layer showing which slots have windows, and a separate blurred/scaled-in overlay for the Hyprland "special" (scratchpad) workspace.
+- **Click a workspace dot → `hl.dsp.focus`/`workspace <id>` dispatch**; clicking the *active* dot again toggles the special workspace. **Scroll on the workspace pill** cycles workspaces (special-workspace aware).
+- **Scroll gesture is bar-region-contextual**: top half of the vertical bar = volume, bottom half = brightness (`Bar.qml handleWheel`).
+- **Per-widget contextual popouts**: hovering the tray, status-icons, or active-window entries opens a small flyout anchored to *that entry's* y-position (`checkPopout`), not one shared dropdown.
+- **Power** is a small icon button (`power_settings_new`, error-colored) living directly in the bar, toggling `screenState.session`.
 
-Separately, a **second, independent sidebar** (`sidebarLeft`) holds AI chat, an "Anime" easter-egg widget, and a screen translator — this is end-4's analog to this project's existing AI-dashboard walker menu, not part of the "dashboard" proper.
+**end-4 (`end-4/dots-hyprland`, the "ii" shell) — one bar per monitor, horizontal, top or bottom.**
+Source: [`modules/ii/bar/Bar.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/bar/Bar.qml), [`modules/ii/bar/BarContent.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/bar/BarContent.qml), [`modules/ii/bar/BarGroup.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/bar/BarGroup.qml).
 
-**Caelestia (soramanew)** — genuinely swipeable tabs, not a single scroll **[source-read: `modules/dashboard/Content.qml`, `modules/dashboard/dash/*.qml`]**:
+- **One bar instance per connected monitor** (`Variants { model: Quickshell.screens filtered by screenList }` + `LazyLoader`) — genuine multi-monitor fan-out. *(Flag: this project's own QS-03 per-screen fan-out was permanently dropped as infeasible on quickshell 0.3.0-2 in v3.0/D-13 — end-4 achieves this on the same toolkit version class, so it may be worth a narrow re-check, but the host has one physical monitor so it is not urgent.)*
+- **Top or bottom placement**, config-selectable.
+- **Auto-hide with two independent reveal triggers**: hover (a mouse region taller than the bar itself) **and** hold-Super-to-peek (`superShow`, with a configurable delay) — not just one hover mechanism.
+- **`cornerStyle` config switch**: `0` = "Hug" (bar flush to the screen edge, `RoundCorner` decorators bridge into the screen's own corner radius) vs `1` = "Float" (bar is inset with its own rounded-rect background + drop shadow). This is the literal "island" vocabulary, and it's a single config flag, not four hand-built layouts.
+- **Bar content is split into separate rounded-rect module islands** (`BarGroup`, a shared component with its own background `Rectangle` + `radius: Appearance.rounding.small`) — left group (resources + media), centre group (workspaces), right group (clock/utils/battery) — each its own pill, not one continuous strip.
+- **Scroll gesture is side-of-bar-contextual**: left half = brightness, right half = volume, each side also toggling the corresponding sidebar on click, with a `ScrollHint` label that reveals on hover to teach the gesture.
+- **Right-side status pill** bundles mute/mic-mute reveal icons, keyboard-layout indicator, unread-notification-count badge, network + bluetooth glyphs — click opens the right sidebar (control centre).
+- **System tray with overflow menu**, optional weather module.
+- **Consistent IPC + `GlobalShortcut` triple** (`toggle`/`open`/`close`) on every top-level surface (bar, OSD, session, media) — a reusable scriptable-surface pattern.
+- *(end-4 also ships an entirely separate alternate shell, "Waffle" — a Windows-11-taskbar clone with a Start button, search, task-view previews, pinned app buttons. This is a different rice, not part of the "ii" reference language this project is redesigning toward, and is called out explicitly under Anti-Features below.)*
 
-A horizontally-flickable `Flickable` with **4 tabs**, each independently toggleable in config (`Config.dashboard.show{Dashboard,Media,Performance,Weather}`):
-1. **Dashboard tab** — `Calendar`, `DateTime`, a small `Media` mini-player, `Resources` (CPU/mem/etc at a glance), `SmallWeather`, `User` (profile picture/name — has a `FileDialog` "face picker" to set your own avatar)
-2. **Media tab** — full media player: `CoverVisualiser`, `LyricList`/`LyricsAndSelector`/`LyricsInfo`, `BackgroundShapes` (ambient cover-art-derived shapes), `Details`
-3. **Performance tab** — `HeroCard`, `BatteryTank`, `MemoryCard`, `NetworkCard`, `StorageCard`
-4. **Weather tab** — full weather view (separate from the small dashboard-tab weather widget)
+### NOTIF (popups + control centre)
 
-Navigation: drag/flick horizontally between tabs (threshold-based — drag past 1/10 of a page width commits to the next/prev tab, else it springs back), plus a `Tabs.qml` header row of icon buttons for direct tap-to-jump.
+**Caelestia.**
+Source: [`modules/notifications/Notification.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/notifications/Notification.qml), [`modules/notifications/Content.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/notifications/Content.qml), [`services/Notifs.qml`](https://github.com/caelestia-dots/shell/blob/main/services/Notifs.qml), [`services/NotifData.qml`](https://github.com/caelestia-dots/shell/blob/main/services/NotifData.qml), [`modules/sidebar/NotifGroup.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/sidebar/NotifGroup.qml), [`modules/sidebar/NotifDock.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/sidebar/NotifDock.qml).
 
-The **quick-toggle grid is NOT on Caelestia's dashboard** — it lives in a separate "Utilities" drawer (`modules/utilities/cards/Toggles.qml`) alongside idle-inhibit and screen-recording cards. **[source-read]** Toggle IDs confirmed in source: `wifi`, `bluetooth`, `mic`, `settings` (closes utilities, opens dashboard/settings), `gameMode`, `dnd`, `vpn` (conditionally hidden unless a VPN provider is configured). Toggles auto-split into two rows once there are more than 6.
+- Popups: a top/right-anchored `ListView` with `move`/`displaced` transitions so the stack smoothly reflows as cards enter/leave.
+- Each card: **horizontal drag-to-dismiss** past `Config.notifs.clearThreshold` (fraction of width), **vertical drag-to-expand/collapse** past `Config.notifs.expandThreshold` (px), **hover pauses** the auto-dismiss timer (resumes on exit unless still pressed), **middle-click closes immediately**, **left-click invokes the sole action** if there is exactly one (`GlobalConfig.notifs.actionOnClick`), body supports **Markdown + hyperlinks** (link click opens externally and dismisses), a **circular ring progress indicator** overlays the app icon when `hints.value` is present (download/volume-style progress notifications), **critical urgency** swaps the whole card to an error color scheme, and a **copy-body-to-clipboard** action button is always present alongside any app-supplied actions.
+- **Inter-surface height coordination**: the popup stack's own height is clamped so it never overlaps the OSD, session screen, or utilities panel if any of those are simultaneously open (`Content.qml` reads their `y` position).
+- **Fullscreen-aware expiry**: `hasFullscreen` (checked against the focused monitor's active/special workspace) shortens the auto-dismiss timeout (`fullscreenExpireTimeout`) and can suppress popups entirely depending on `GlobalConfig.notifs.fullscreen`.
+- **DND**: a persistent `dnd` property suppresses all future popups and fires a toast confirming the state change (`"Do not disturb enabled/disabled"`); popups are also auto-suppressed whenever any sidebar is already open (`ShellState.anySidebarOpen()`).
+- **Persistence**: the full notification list is serialized to `notifs.json` and reloaded on shell restart — notifications outlive a Quickshell reload.
+- **Control centre**: notifications grouped by `appName` into `NotifGroup` cards (shared icon/urgency-color chip, count badge, per-app collapse/expand independent of the popup's own expand state), a `NotifDock` header with a live unread count, opening the centre marks all outstanding popups as read.
+- **`NotificationServer`** is instantiated directly inside `services/Notifs.qml` (`actionsSupported`, `bodyMarkupSupported`, `imageSupported`, `persistenceSupported` all `true`) — Caelestia's QML shell *is* the DBus notification server, not a client sitting in front of one.
 
-Caelestia's `Shortcuts.qml` also has a `showall` shortcut that toggles **launcher + dashboard + osd + utilities together** as one bundle, and every panel-toggle shortcut is guarded by `if (hasFullscreen) return;` — panels refuse to open over a fullscreen client (games, video). **[source-read]**
+**end-4.**
+Source: [`services/Notifications.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/services/Notifications.qml), [`modules/common/widgets/NotificationItem.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/common/widgets/NotificationItem.qml), [`modules/ii/notificationPopup/NotificationPopup.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/notificationPopup/NotificationPopup.qml), [`modules/common/models/quickToggles/NotificationToggle.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/common/models/quickToggles/NotificationToggle.qml).
 
-### How it's invoked and dismissed
+- Same **swipe-to-dismiss** gesture, independently implemented: horizontal drag past `dragConfirmThreshold`, middle-click to close, and a small polish detail — adjacent cards in the list rubber-band slightly while one is being dragged (`dragIndexDiff`-scaled offset).
+- Popups **inhibited** while the right sidebar (control centre) is open OR `Notifications.silent` (DND) is set — same dual-inhibition pattern as Caelestia, arrived at independently.
+- Grouped by `appName`, sorted by **most-recent activity per group** (`latestTimeForApp`), not alphabetically; persisted to `Directories.notificationsPath` (same durability-across-restart property as Caelestia).
+- **Opening media controls calls `Notifications.timeoutAll()`** — explicitly dismisses all current popups so the media popup isn't visually competing with them (an explicit z-priority rule, same intent as Caelestia's height-avoidance, different mechanism).
+- **DND is a first-class quick-toggle** (`NotificationToggle.qml`) living in the same quick-toggle grid as wifi/bluetooth/etc — this project already has an anti-drift quick-toggle grid shared between swaync and the walker menu, so this is a drop-in addition, not a new UI concept.
+- Also instantiates its own `NotificationServer` directly — same "the shell owns the DBus server" architecture as Caelestia.
 
-- **end-4**: `SUPER+N` toggles the right sidebar (dashboard), `SUPER+A`/`SUPER+B`/`SUPER+O` all toggle the left (AI) sidebar — redundant binds exist because of prior bind-shadowing history, a pattern this project has already lived through (Phase 7's Super-tap resolution). Bound via Hyprland's own `dispatch global quickshell:<name>` mechanism — Quickshell registers named "global shortcuts" that Hyprland's built-in dispatcher calls directly; **no custom IPC socket script is needed for this**. **[source-read: `hypr/hyprland/keybinds.lua`]**
-- **Caelestia**: bound the same way, one `CustomShortcut` per panel name, resolved through a per-screen `ShellState`/`ScreenState` boolean (`screenState.dashboard = !screenState.dashboard`). **[source-read]**
-- **Modality**: both are **non-modal overlays** on `wlr-layer-shell`, not modal dialogs — they render on top of everything via layer-shell but do not block input to the rest of the desktop. Keyboard focus is grabbed **on-demand** only while open (end-4: `WlrKeyboardFocus.OnDemand`; Caelestia: `HyprlandFocusGrab` on interactive panels like launcher/session). Click-outside-to-dismiss is implemented via a focus-grab-dismissed callback (`GlobalFocusGrab.dismissed → close panel`), not a raw click listener. **[source-read]**
-- Neither flagship rice uses an edge-swipe/hover gesture as the *primary* way to open the dashboard — keybind is primary. Caelestia's bar config has a documented `showOnHover`/`dragThreshold: 20` pair for edge-based reveal, but this is corroborated only via a config-file grep, not a fully-traced code path — treat "hover-to-reveal" as a secondary, optional interaction (MEDIUM confidence), not the way most users open it day to day.
+### OSD
 
-### Table stakes vs differentiators vs anti-features
+**Caelestia.**
+Source: [`modules/osd/Content.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/osd/Content.qml), [`modules/osd/Wrapper.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/osd/Wrapper.qml).
 
-| Category | Feature | Notes |
-|---|---|---|
-| Table stakes | Calendar widget | Present in both flagships; trivial complexity (QML `Calendar` bindable to date) |
-| Table stakes | Media mini-controls on the dashboard | Both flagships surface *some* media widget on the dashboard's landing view even though a full player exists elsewhere — this project already has an AGS media card (Phase 10, MEDIA-01..04); the QML dashboard should embed a **compact** version of the same MPRIS data, not rebuild a second media backend |
-| Table stakes | System resources at a glance | Both flagships show it (`Resources`/`Performance` tab); LOW complexity if you already have a stats-polling script |
-| Table stakes | Quick-toggle grid | Every serious rice has one; end-4 nests it in the dashboard, Caelestia keeps it in a separate "Utilities" drawer — **either placement is defensible**, this project already has a toggle grid in swaync (BAR-05) that should be the model to extend, not replace |
-| Differentiator | Weather widget | Both flagships have it, but it's the one dashboard widget that requires an external dependency (a weather API/service, network calls, API-key or geo-IP handling) — MEDIUM complexity, and the only dashboard widget with an ongoing external-service dependency risk |
-| Differentiator | Tabbed/swipeable multi-view dashboard (Caelestia's 4-tab model) | Materially richer than a single scrolling column; higher QML complexity (gesture-driven `Flickable` + threshold commit logic) but the flagship-tier UX differentiator |
-| Differentiator | Collapsible bottom card with nav-rail (end-4's Calendar/Todo/Timer tabs) | Good middle ground — tabbed richness without full swipe-gesture complexity |
-| Differentiator | Profile picture / "face" widget (Caelestia's `User.qml`) | Cosmetic personalization touch; trivial complexity, low priority |
-| Anti-feature | Duplicating the notification center inside the dashboard | end-4 does embed a `NotificationList` in its dashboard's `CenterWidgetGroup` — but this project already has a fully-shipped, themed swaync notification center (BAR-05, Phase 8) with its own toggle grid and sliders. Building a second notification list in QML creates two sources of truth for "what did I miss" and doubles the maintenance surface for zero net new capability. **Do not replicate this end-4 pattern here** — the dashboard drawer should link/defer to the existing swaync surface, not re-implement it |
-| Anti-feature | A second independent quick-toggle grid that duplicates swaync's existing toggle grid (BAR-05) | Two toggle grids with two states to keep in sync is exactly the "anti-drift toggle grid" problem BAR-05 already solved once — if the QML dashboard needs toggles, it should read/write the *same* backing state BAR-05 already established, not own a second copy |
+- Inline flyout panel in the same right-edge popout region as the session screen and notification popups, sliding via an `offsetScale` behavior (real position animation, not just opacity).
+- **Volume, microphone, and brightness are three independently-shown sliders in one vertical column** (`FilledSlider`, animated "wavy" fill), each individually scroll-adjustable, each appearing/disappearing per its own config flag (`enableMicrophone`, `enableBrightness`) — so more than one can be visible simultaneously if more than one changed.
+- Auto-hides after `Config.osd.hideDelay`; stays open while hovered; re-triggers its hide timer on every relevant `Connections` signal (volume/mute/source-volume/source-mute/brightness).
 
-### Complexity and dependencies
+**end-4.**
+Source: [`modules/ii/onScreenDisplay/OnScreenDisplay.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/onScreenDisplay/OnScreenDisplay.qml), [`modules/ii/onScreenDisplay/OsdValueIndicator.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/onScreenDisplay/OsdValueIndicator.qml).
 
-- Depends on: Phase 11 (Quickshell viability gate) and Phase 12 (token pipeline) as hard prerequisites — nothing here is buildable before those land, per the milestone's own phase ordering.
-- Calendar, quick-toggle grid, media mini-controls, system resources: **LOW-MEDIUM** each, mostly QML plumbing over data this project already has (MPRIS backend, existing toggle state, theming tokens).
-- Weather: **MEDIUM**, the only widget introducing a new external-service dependency (API key/network/rate-limit handling) — scope this as its own vertical slice so a flaky weather API can't block the rest of the drawer.
-- Full 4-tab swipeable model (Caelestia-style): **MEDIUM-HIGH** — worth deferring to "if time remains" rather than the MVP cut, given the milestone's own cut-candidate framing for ambient extras; a single-column dashboard (end-4-style) delivers most of the value at lower risk.
+- **Single floating pill**, **one indicator visible at a time** — `currentIndicator` switches between `volume`/`brightness`/`gamma` (night-light), no simultaneous multi-slider stack.
+- Auto-hides after `Config.options.osd.timeout`; **hides immediately the instant the mouse hovers it** (not just pause-the-timer).
+- Icon can **rotate or scale proportionally to the value** for extra motion feedback (used for the night-light gamma indicator).
+- Has a distinct **"protection" danger-banner state** for an audio-sink hardware-safety trigger (`Audio.onSinkProtectionTriggered`) — a narrow, hardware-specific feature.
+- Triggered via `Connections` on the `Brightness`/`Audio`/`Hyprsunset` service singletons, **not** on the keybind that caused the change — the OSD reacts to state regardless of source (media key, scroll gesture, external CLI, dashboard slider).
+- **Neither reference has a caps-lock OSD indicator.** This project's SwayOSD already covers caps-lock — that is a requirement this project must preserve on its own, not something inherited from the rices.
 
----
+### POWER (session/power menu)
 
-## Feature Area 2: Audio + Connectivity Panels (volume mixer, wifi, bluetooth)
+**Caelestia — compact, bar-triggered, inline popout.**
+Source: [`modules/session/Content.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/session/Content.qml), [`modules/session/Wrapper.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/session/Wrapper.qml), [`modules/bar/components/Power.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/bar/components/Power.qml).
 
-### What each surface actually contains
+- **Four actions**: Logout, Shutdown, Hibernate, Reboot (plus a decorative `AnimatedImage` GIF between Shutdown and Hibernate) — **no Lock, no Sleep/Suspend, no Task Manager** in this component.
+- Opens as an **inline popout** in the same right-edge region as OSD/notifications, not a full-screen overlay.
+- **Full keyboard navigation**: arrow-key-equivalent `KeyNavigation` chain between buttons, **plus vim binds** (Ctrl+J/K, Tab/Shift+Tab, gated by `Config.session.vimKeybinds`), Enter/Return activates, Escape closes, first button auto-focuses on open, and the button re-focuses itself whenever the launcher closes (`onLauncherChanged`).
+- Triggered from a small power-icon button embedded directly in the bar's own component tree, not a separate tool.
 
-**Per-app volume mixer — only end-4 has a real one. [source-read: `sidebarRight/volumeMixer/VolumeDialogContent.qml`, `VolumeMixerEntry.qml`]**
+**end-4 — richer, full-screen, own dedicated action set.**
+Source: [`modules/ii/sessionScreen/SessionScreen.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/sessionScreen/SessionScreen.qml).
 
-- Built on **`Quickshell.Services.Pipewire`** — a Quickshell built-in QML module wrapping PipeWire directly; no custom D-Bus/PulseAudio binding needs to be hand-rolled.
-- Dialog layout: a scrollable list of `VolumeMixerEntry`, one per active PipeWire app-node (`Audio.outputAppNodes` / `Audio.inputAppNodes`), each entry = app icon (looked up by `application.icon-name` / `node.name` via the same icon-guessing logic as the app launcher) + click-icon-to-mute (desaturates the icon while muted) + (implied, cut off in the portion read) a per-app volume slider — plus a device-selector combobox at the bottom to change the **default** sink/source. Two identical dialogs exist: one for output apps (`isSink: true`), one for input/mic apps.
-- **Caelestia has no per-app mixer at all.** `[source-read: modules/bar/popouts/Audio.qml]` — its Audio popout is only: output-device radio list, input-device radio list, a master-volume slider (scroll-wheel adjustable), and an "Open settings" button that hands off to an external app. This is a deliberate, confirmed scope decision by a flagship rice, not an oversight — **strong signal that a minimal in-shell mixer commonly stops at "pick device + master volume" and per-app sliders are the differentiator, not table stakes.**
+- **True full-screen overlay** (`PanelWindow` spanning the output, `WlrKeyboardFocus.Exclusive`), not an inline popout.
+- **Eight actions** in a `GridLayout`: Lock, Sleep, Logout, Task Manager, Hibernate, Shutdown, Reboot, Reboot-to-firmware-settings.
+- Same arrow-key `KeyNavigation` grid; **Escape or click-anywhere-outside cancels**; a **live subtitle** shows the currently-focused button's name; **the standout differentiator — in-context safety warnings**: a `SessionWarnings` service is polled and, if a package-manager process or an active download is detected, a red warning banner ("Your package manager is running" / "There might be a download in progress. Check your Downloads folder.") appears under the grid *before* the user can act.
 
-**Wifi picker — both flagships converge on the same shape. [source-read: `wifiNetworks/WifiDialog.qml` (end-4), `bar/popouts/Network.qml` (Caelestia)]**
+Both keep the "opens in place, doesn't destroy the session until an action fires" shape this project's current wleave already has — the interaction differentiators (full keyboard nav with a visible focus indicator, an in-context safety check) are additive, not a structural rewrite of what wleave already proved.
 
-- Scanning-in-progress indicator (indeterminate progress bar) while a scan runs
-- A list of visible networks (end-4: `Network.friendlyWifiNetworks`; Caelestia: `Nmcli.networks`, with a wireless/ethernet view toggle)
-- Tap a network → password dialog if secured (Caelestia has a dedicated `WirelessPassword.qml`; end-4's `WifiNetworkItem` presumably does the same, not fully read)
-- **Both have an explicit "Details"/"Open settings" button that shells out to an external app** (`Config.options.apps.network`) rather than reimplementing advanced settings in-shell — this is the load-bearing finding for scoping (see below)
+### MEDIA (dashboard fold-in question)
 
-**Bluetooth manager — same shape again. [source-read: `bluetoothDevices/BluetoothDialog.qml` (end-4), `bar/popouts/Bluetooth.qml` (Caelestia)]**
+**Caelestia does not put media on the bar at all.** The bar's entry list (`spacer`/`logo`/`workspaces`/`activeWindow`/`tray`/`clock`/`statusIcons`/`power`, confirmed by reading `Workspaces.qml`'s sibling `DelegateChoice` block in `Bar.qml`) has no media entry, and there is no `bar/popouts/Media.qml`. Media lives exclusively in:
 
-- Adapter enable/discovering toggles
-- Discovering-in-progress indicator
-- Device list (`BluetoothStatus.friendlyDeviceList` / `Bluetooth.defaultAdapter`)
-- Same **"Details" → external app (`Config.options.apps.bluetooth`)** escape hatch in end-4 for anything beyond connect/disconnect
+1. **`modules/dashboard/dash/Media.qml`** — the small dashboard-tile widget: cover art ringed by a **wavy `CircularProgress`** showing track position, title/album/artist text, prev/play-pause/next transport buttons, and a **BPM-synced "bongocat" GIF** (`speed: Audio.beatTracker.bpm / …`).
+   Source: [`modules/dashboard/dash/Media.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/dashboard/dash/Media.qml).
+2. **`modules/dashboard/media/`** — a fuller page: `CoverVisualiser.qml` renders the cover art through a **`MaterialShape.Cookie9Sided` cutout** with a **radial cava-driven bar visualizer** orbiting outward from the shape's own rotated edge (not a flat rectangular underlay); `Details.qml` adds title/artist/album, a `wavy`-animated seek slider (`StyledSlider`, draggable, `canSeek`-gated), and shuffle/loop/skip/play-pause transport; `LyricsAndSelector`/`LyricList` add synced-lyrics display.
+   Source: [`modules/dashboard/media/CoverVisualiser.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/dashboard/media/CoverVisualiser.qml), [`modules/dashboard/media/Details.qml`](https://github.com/caelestia-dots/shell/blob/main/modules/dashboard/media/Details.qml).
+3. `modules/lock/Media.qml` — now-playing also surfaces on the lock screen (not researched in depth; out of this milestone's scope).
 
-### What pavucontrol / nm-connection-editor / blueman provide that a minimal in-shell panel typically does NOT
+**No per-player volume control exists anywhere in either Media file.** Player selection is a single `Players.active` (`services/Players.qml`) with a `manualActive` override and an auto-dedup heuristic that collapses near-identical MPRIS sources (matching by track-title substring or by position/length proximity — handles the common "browser + embedded player" duplicate-source problem) — not a multi-card carousel.
+Source: [`services/Players.qml`](https://github.com/caelestia-dots/shell/blob/main/services/Players.qml).
 
-This is the single most important finding for honest scoping, and it is corroborated by the fact that **both reference flagship rices themselves keep an explicit escape hatch to these exact external tools** rather than trying to reach full parity in QML:
+**end-4 puts media both on the bar AND in a dedicated bar-triggered popout.** A small `Media.qml` entry lives inside the left `BarGroup`; clicking/scrolling it (or a keybind) opens `mediaControls/MediaControls.qml`, which stacks **one `PlayerControl.qml` card per de-duplicated MPRIS player** (own dedup heuristic, near-identical to Caelestia's) — so multi-player handling is literally multiple simultaneous cards, not a switcher control. Each card independently: downloads the cover art locally, extracts a **dominant color via `ColorQuantizer`** and re-tints the whole card through an `AdaptedMaterialScheme`, shows a **live waveform (`WaveVisualizer`) drawn over a blurred cover-art background**, a seek slider, shuffle/loop/skip/play-pause, and a position/length readout. Opening it calls `Notifications.timeoutAll()`. Shows a "No active player — make sure MPRIS support is on" placeholder card when nothing is playing.
+Source: [`modules/ii/mediaControls/MediaControls.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/mediaControls/MediaControls.qml), [`modules/ii/mediaControls/PlayerControl.qml`](https://github.com/end-4/dots-hyprland/blob/main/dots/.config/quickshell/ii/modules/ii/mediaControls/PlayerControl.qml).
 
-- **pavucontrol** provides: per-**stream** port/profile switching (e.g. route one app to headphones while another stays on speakers), full device **profile** switching (analog stereo vs. surround/5.1, HDMI vs analog), per-device latency/loopback controls, and configuration-tab hardware controls beyond simple mute/volume. A minimal panel (as built by end-4) gets you per-app mute + presumably a volume slider + default-device selection — it does **not** get you per-stream output routing or hardware profile switching without extra work.
-- **nm-connection-editor** provides: full connection **editing** — static IP/gateway/DNS, VPN profiles (plugin-based, many VPN types), 802.1X enterprise authentication, hidden-SSID manual entry, connection priority/metric, proxy configuration, IPv6 settings. A minimal wifi picker (as built by both flagships) gets you "see networks, tap one, type a password" — it does **not** get you enterprise auth, static IP, or VPN profile management without falling back to the external tool.
-- **blueman-manager** provides: OBEX file-transfer send/receive, PIN-code/passkey pairing dialogs for devices requiring manual pairing confirmation, per-device **service** browsing (which Bluetooth profiles a device advertises), trust management, and audio-profile switching for Bluetooth audio devices. A minimal panel gets you scan/connect/disconnect/forget — it does **not** get you file transfer, PIN-pairing flows, or per-device service/profile inspection.
-
-**Recommendation for this project, following the flagship precedent exactly:** build the in-shell panels to the same intentionally-limited scope both references chose (device pick + basic list/toggle actions), and wire an explicit "Details"/"Advanced" button on each panel that launches the existing GUI app (pavucontrol / nm-connection-editor / blueman-manager) for anything beyond that. This is not a compromise invented for this project — it is the pattern the two best-regarded rices in the ecosystem both independently converged on.
-
-### Table stakes vs differentiators vs anti-features
-
-| Category | Feature | Notes |
-|---|---|---|
-| Table stakes | Wifi list + connect + password prompt | Both flagships; MEDIUM complexity — Quickshell has no confirmed built-in NetworkManager QML module the way it has one for Pipewire/Bluetooth, so this likely means D-Bus calls to NetworkManager directly or shelling out to `nmcli` (Caelestia's approach — its service is literally named `Nmcli`) |
-| Table stakes | Bluetooth device list + connect/pair/forget | Both flagships; **Quickshell does ship a built-in `Quickshell.Bluetooth` module** (`Bluetooth.defaultAdapter`, `BluetoothDevice`) confirmed in both codebases — LOW-MEDIUM complexity, most of the plumbing exists already |
-| Table stakes | Master volume + output/input device switch | Caelestia's floor-level scope; do at minimum |
-| Table stakes | Escape-hatch "Advanced" button to the real GUI app | Confirmed present in every panel of both flagships — treat as non-negotiable, not optional polish |
-| Differentiator | Per-app volume mixer with per-app mute/slider | Only end-4 has this; genuinely differentiating and directly named in this milestone's scope. Built on Quickshell's native Pipewire service — **complexity is lower than it sounds** because the hard integration work (Quickshell↔PipeWire binding) is already solved upstream |
-| Anti-feature | Full connection-editing (static IP, VPN profiles, 802.1X) in-shell | Neither flagship attempts this; both defer to nm-connection-editor. Building it would mean re-implementing a large fraction of NetworkManager's own GUI for a feature almost never used day-to-day |
-| Anti-feature | OBEX file transfer / PIN-pairing flows in-shell | Neither flagship attempts this; low-frequency use case, high implementation cost (file picker, transfer progress, PIN entry state machine) for rare payoff |
-| Anti-feature | Per-app audio **routing** (assign app X to output Y) beyond default-device switching | Not present in either flagship's per-app mixer (end-4's mixer controls mute + presumably volume, not per-app output routing) — resist scope creep toward pavucontrol's full per-stream-port matrix |
-
-### Complexity and dependencies
-
-- Bluetooth panel: **LOW-MEDIUM** — Quickshell ships `Quickshell.Bluetooth` natively (confirmed in both codebases), most binding work is already done upstream.
-- Per-app volume mixer: **MEDIUM** — Quickshell ships `Quickshell.Services.Pipewire` natively; the remaining work is UI + reusing this project's existing icon-lookup logic (walker/elephant already do app/icon indexing — reuse that instead of reinventing `AppSearch.guessIcon`).
-- Wifi panel: **MEDIUM-HIGH**, the one panel of the three without a confirmed Quickshell-native binding — expect either raw D-Bus-to-NetworkManager calls or `nmcli` shelling, both of which need scan-state polling and password-prompt state-machine work regardless of approach.
-- All three panels depend on the toggle-grid state model from Feature Area 1 (wifi/bluetooth toggles live in the quick-toggle grid; the panels are the "expand" targets of those same toggles) — build the toggle grid first, panels second.
-- All three should share one `WindowDialog`/`ToggleDialog` component pattern (end-4's approach: a generic dialog wrapper reused for Wifi/Bluetooth/NightLight/Volume) rather than four bespoke popup implementations — this is a reusability finding worth carrying into the requirements as an architectural constraint, not just a feature list item.
+**What this means for the fold-in decision:** Caelestia's dashboard-only placement (no bar entry, no standalone popup) is the closer structural analog to what this project has already committed to (fold into the dashboard's Media tab, retire the standalone AGS card, no bar popout). The user's decision is validated by the closer reference, not contradicted by the other. The genuinely worth-copying pieces from both are the **visual/audio-reactive techniques** — Caelestia's radial-cava-around-shaped-cover-art is a real upgrade over this project's current flat cava underlay, deliverable entirely inside the existing dashboard Media tab with no new placement decision needed. end-4's per-track dominant-color re-tint is visually nice but is an anti-feature here (see below) — it competes with this project's single-palette-source architecture.
 
 ---
 
-## Feature Area 3: Workspace Overview
+## Table Stakes (Users Expect These)
 
-### What the surface actually contains
+| Surface | Feature | Why Expected | Complexity | Notes |
+|---------|---------|---------------|------------|-------|
+| BAR | Clicking a workspace number switches to it | Basic bar function; currently dead in this project under waybar 0.15.0's compiled-in dispatch | LOW | Mechanical port of Hyprland IPC dispatch calls this project already uses elsewhere (Lua config) |
+| BAR | Scroll over the bar adjusts volume/brightness contextually | Both references independently implement this; users on either rice would notice its absence | LOW | Region can be bar-half (end-4, horizontal) or bar-half-height (Caelestia, vertical) — adapt to this project's four layouts |
+| BAR | A toggle/click opens the notification centre | Existing BAR-05 behavior; must survive the port | LOW | Already proven pattern in this project |
+| BAR | Bar fully hides and reveals on hover (OLED) | Both refs implement auto-hide-by-size with hover reveal; this project's existing OLED-safe visibility system already requires this | LOW-MEDIUM | Existing single-owner visibility script (hypridle + fullscreen watcher + gaming mode) is the trigger source; port the QML-side hide animation only |
+| BAR | System tray renders icons, supports click + right-click menu | Standard bar expectation, both refs ship it | MEDIUM | Needs `SystemTray` Quickshell API + overflow-menu handling |
+| BAR | Clock and battery/resource indicators visible | Baseline bar content, both refs and this project's existing waybar layouts have it | LOW | Direct data-source port |
+| NOTIF | Popups appear, stack without overlapping, auto-expire | Baseline notification behavior; existing swaync popups already do this | LOW-MEDIUM | Depends on which surface owns the DBus notification server — see Dependencies |
+| NOTIF | Each popup dismissible by close button AND swipe | Both references independently implement swipe-to-dismiss — strong signal this is now a baseline expectation, not a nice-to-have | MEDIUM | New drag-axis interaction primitive this project's QML components don't have yet |
+| NOTIF | Inline notification actions clickable directly on the popup | Existing swaync capability; both refs preserve it | LOW-MEDIUM | Straightforward once the server/actions plumbing exists |
+| NOTIF | Notification centre lists history, grouped, clearable | Existing swaync control-centre capability (BAR-05); both refs group by app | MEDIUM | Grouping logic is cheap once notification data model exists |
+| NOTIF | DND/silent toggle suppresses popups | Existing anti-drift quick-toggle grid already has this class of toggle | LOW | Wire into the existing shared-script toggle-grid pattern |
+| OSD | Volume/brightness/caps-lock changes trigger a transient visible indicator | Existing SwayOSD behavior; must not regress | LOW | Caps-lock has no reference analog — this project must keep it on its own |
+| OSD | OSD auto-hides after a short delay | Existing SwayOSD behavior; both refs do this | LOW | — |
+| OSD | OSD shows the actual numeric/graphical value, not just an icon | Existing SwayOSD behavior; both refs show a progress bar/slider | LOW | — |
+| POWER | All six current wleave actions preserved (Shutdown/Reboot/Suspend/Hibernate/Logout + Lock) | Established user-facing baseline; the milestone explicitly bars downgrades | LOW-MEDIUM | Mechanical port of existing command list; visual language (hue capsules) can be redesigned per milestone intent |
+| POWER | Menu closeable by Escape / click-outside | Both refs do this; expected modal-dismiss behavior | LOW | — |
+| MEDIA | Play/pause/next/prev transport | Baseline MPRIS UI; existing AGS card already has this | LOW | Direct port from existing MPRIS bash backend / shared reader |
+| MEDIA | Seek bar shows position/duration, draggable to seek | Existing AGS card capability | LOW-MEDIUM | Both refs use a `canSeek`-gated slider; same shape |
+| MEDIA | Cover art displayed | Baseline; existing AGS card already has this | LOW | — |
+| MEDIA | Player switching when multiple MPRIS sources exist | Existing AGS card capability (player-switcher) | MEDIUM | Both refs solve the "duplicate source" problem with a dedup heuristic — worth porting the heuristic, not just the switcher UI |
+| MEDIA | Audio-reactive visual element | Existing AGS card's cava underlay; explicit "don't lose this" per the milestone's fold-in framing | MEDIUM | Reuse existing cava data plumbing; only the rendering technique needs to change (see Differentiators) |
 
-**[source-read: `end-4/dots-hyprland`, `modules/ii/overview/{Overview,OverviewWidget,OverviewWindow,SearchBar}.qml`]** — this is the only one of the two flagships with a full-screen Exposé-style overview; **Caelestia does not have one** (see below).
+## Differentiators (What The References Do That This Project Doesn't — Yet)
 
-- **Layout**: a grid of workspace tiles, `rows` × `columns` configurable (`Config.options.overview.rows/columns`), grouped into pages of `rows*columns` workspaces at a time (`workspaceGroup`), each workspace tile shows its number and contains live thumbnails of every window on it, scaled by a single `Config.options.overview.scale` factor. Order can be bottom-up or right-to-left (`orderBottomUp`/`orderRightLeft` config flags).
-- **Live thumbnails**: each window is a `ScreencopyView` (Quickshell's built-in Wayland screencopy component) with `live: true`, `captureSource` bound to the Hyprland `toplevel` — i.e. genuinely live video-like previews, not periodically-refreshed screenshots. Compact windows below a size threshold switch to a smaller icon-only "compact mode" instead of trying to render a tiny live thumbnail.
-- **Interactions confirmed in source**:
-  - **Click a workspace tile** → `Hyprland.dispatch("hl.dsp.focus(...)")` + closes the overview (jump-to-workspace)
-  - **Drag a window thumbnail onto a different workspace tile** → implemented via Qt `DropArea`/drag machinery on both the window (drag source) and workspace tile (drop target), with a hover-highlight state (`hoveredWhileDragging`) on the target tile while dragging
-  - **Type while the overview is open** → live fuzzy-search over open windows (`SearchBar`/`SearchWidget`), auto-focuses the first match — the overview doubles as an Alt-Tab-style window switcher, not just a workspace grid
-  - Windows on a workspace other than the currently-focused monitor's are rendered at reduced opacity (0.4) as a visual "elsewhere" cue
-- **Invocation/dismissal**: `SUPER+Tab` toggles it (Hyprland global-dispatch mechanism, same as the dashboard). Runs on a dedicated `wlr-layer-shell` surface (`namespace: "quickshell:overview"`) with `keyboardFocus: OnDemand` while open, and uses the same `GlobalFocusGrab`/click-outside-dismiss pattern as the dashboard — **non-modal overlay, but keyboard-focus-grabbing while open**, consistent with the rest of the shell.
+| Surface | Feature | Value Proposition | Complexity | Notes |
+|---------|---------|--------------------|------------|-------|
+| BAR | Per-widget contextual popouts anchored to the hovered entry (Caelestia) | Richer glanceable info (battery %, tray item name, active-window title) without opening the full notification centre — genuinely faster than today's all-or-nothing swaync overlay | MEDIUM | New interaction pattern; this project's `PanelDialog.qml` is one fixed dialog, not a per-entry-anchored flyout system |
+| BAR | Dual auto-hide reveal trigger — hover **and** hold-Super-to-peek (end-4) | Serves the OLED constraint directly: bar can default fully hidden (not just low-luminance) while staying reachable without touching the mouse | LOW-MEDIUM | Wire a `GlobalShortcut` into the existing single-owner visibility script; no redesign of that script needed |
+| BAR | Config-selectable "island" `cornerStyle` (hug vs float, end-4) implemented as one shared component | Gives the four existing layouts (full/athena/floating/vertical) one implementation instead of four independently hand-tuned CSS/QML trees — directly reduces the maintenance cost this milestone is trying to pay down | MEDIUM | `BarGroup`-style shared pill component; a real architectural investment, not just visual polish |
+| NOTIF | Inter-surface height/z coordination — notification stack shrinks to avoid overlapping OSD/power/dashboard when more than one is open (Caelestia); opening media/notification-centre explicitly dismisses stale popups (both refs) | This project's swaync/AGS/dashboard currently have zero awareness of each other's on-screen geometry — surfaces can visually collide today | MEDIUM | Needs a small shared-state singleton exposing each surface's occupied geometry — new but self-contained, same shape as `GlobalStates` in end-4 |
+| NOTIF | Fullscreen-aware notification suppression/shortened-expiry (Caelestia) | Direct hook for this project's existing gaming-mode + Hyprland fullscreen socket2 watcher — swaync cannot use that signal today | LOW | Reuse the existing fullscreen watcher as the suppression trigger instead of writing a new one |
+| NOTIF | DND surfaced as a standard quick-toggle-grid entry (both refs) | Drop-in addition to the already-existing anti-drift shared toggle grid; no new UI concept | LOW | — |
+| POWER | In-context safety warnings before a destructive action (package-manager-running / download-in-progress banner, end-4) | A genuinely new capability nothing in this project has today, and it maps almost exactly onto the project's own unresolved MAINT-02 Logout teardown-hazard concern (an unkillable-client-during-teardown risk class) | LOW-MEDIUM | One new `Process`/`Timer` polling a pacman lock file / active pacman process; self-contained, no cross-surface dependency |
+| POWER | Full keyboard-navigable action grid with visible per-button focus state and vim binds (both refs) | Current wleave's documented interaction is hover/focus name-reveal; a full arrow-key/vim `KeyNavigation` chain with a visible focus ring is a concrete step up in accessibility and speed for a keyboard-first Hyprland user | LOW | Boilerplate `KeyNavigation` chain; similar shape already partly used in this project's dashboard tab navigation |
+| OSD | Multiple simultaneous sliders (volume + mic + brightness shown at once if more than one changed recently, Caelestia) | Reduces "which one just changed?" ambiguity that the current single-indicator SwayOSD (and end-4's single-indicator model) both have | LOW-MEDIUM | Column of independently-shown sliders instead of one swapped indicator |
+| MEDIA | Radial audio-reactive visualizer wrapped around a shaped (non-rectangular) cover-art cutout (Caelestia's `Cookie9Sided` + orbiting cava bars) | A genuine visual upgrade over the current AGS card's flat blurred-art-plus-underlay cava treatment, deliverable entirely inside the existing dashboard Media tab | MEDIUM | Requires learning Quickshell's `Shape`/`ShapePath`/`PathAngleArc` QML API — new rendering technique for this project; existing cava data plumbing is reusable as-is |
+| MEDIA | Cross-source player dedup heuristic (both refs) | Cleanly solves the "same track shown twice from two MPRIS sources" problem neither reference treats as optional | LOW-MEDIUM | Small, well-specified algorithm (match by track-title substring or position/length proximity); cheap to port |
 
-**Caelestia does not implement a full-screen overview.** Its closest analog is `modules/windowinfo/WindowInfo.qml` **[source-read]** — a small hover-triggered preview popup anchored to a single window's taskbar icon (shows one window's live preview + details on hover), not an Exposé-style all-workspaces grid. Caelestia's bar instead shows small per-workspace window icons inline (`bar.workspaces.showWindows`, `maxWindowIcons: 5`) rather than a dedicated overview surface. **This means end-4 is the primary and effectively only flagship reference for this feature area** — treat Caelestia's absence of it as a data point that a full overview is a genuinely large, optional investment, not something every top-tier rice ships.
+## Anti-Features (Do Not Copy)
 
-### The research-gate question is answerable now, and the risk is lower than PROJECT.md assumes
-
-PROJECT.md frames this feature as **"research-gated on the hyprexpo / `hyprland-toplevel-export-v1` plugin question."** Source-reading end-4's actual implementation resolves this:
-
-- end-4's overview uses **`Quickshell.Wayland.ScreencopyView`** with a `Toplevel` capture source, and **`Quickshell.Wayland.ToplevelManager`** for window enumeration — both are Quickshell's own built-in QML types, confirmed against Quickshell's official docs (`quickshell.org/docs/.../Quickshell.Wayland/{ScreencopyView,ToplevelManager,Toplevel}`).
-- `ToplevelManager` uses the standard, cross-compositor **`zwlr-foreign-toplevel-management-v1`** Wayland protocol.
-- Live per-window screencopy (`ScreencopyView` with a `Toplevel` source) requires the compositor to support **`hyprland-toplevel-export-v1`** — but this is a **protocol Hyprland implements natively in the compositor itself**, not a separate plugin that needs `hyprpm` to install. It is architecturally unrelated to `hyprexpo` (which is a *different*, unrelated compositor-side Exposé effect plugin that end-4 does not use here at all).
-- Net effect: **building this feature in Quickshell needs zero extra Hyprland plugins and zero `hyprpm` dependency** — it is pure QML/Quickshell application code calling Wayland protocols Hyprland already ships. A standalone third-party repo (`Shanu-Kumawat/quickshell-overview`) exists purely to package this exact pattern as a reusable module, corroborating that this is a known, repeatable technique, not an end-4-only trick.
-- **This substantially de-risks the milestone's most uncertain feature.** The real remaining risk is not "does the protocol exist" (it does, confirmed) but ordinary QML/Quickshell implementation effort: drag-and-drop between workspace tiles, grid layout math, and the live-thumbnail performance characteristics under this project's actual Hyprland 0.56.0 build — which is exactly what the Phase 11 viability gate should be validating with a real `ScreencopyView` test, not a paper read of whether the protocol exists.
-
-### Table stakes vs differentiators vs anti-features
-
-| Category | Feature | Notes |
-|---|---|---|
-| Differentiator (not table stakes) | Full-screen live-thumbnail overview at all | Only one of the two flagships (end-4) has this; Caelestia deliberately doesn't. This is a genuine differentiator to build, not an assumed baseline — its absence in a rice does not read as "incomplete" the way a missing dashboard would |
-| Differentiator | Drag window between workspaces from the overview | Confirmed in end-4; meaningfully increases implementation complexity (drag source + drop target + hover state) over a click-only grid |
-| Differentiator | Type-to-search-and-jump while overview is open | Confirmed in end-4; turns the overview into a second app-switcher, arguably overlapping with this project's existing walker launcher — worth an explicit requirements decision on whether this duplication is wanted or should be left out to avoid two "type to find a window/app" surfaces |
-| Anti-feature (candidate) | Reduced-opacity cross-monitor windows, xwayland indicators, compact-mode icon fallback, per-corner-radius masking | All present in end-4's implementation as visual polish on top of the core grid; genuinely nice but each is separately-cuttable detail work, not part of a minimal viable overview |
-
-### Complexity and dependencies
-
-- Depends on: Phase 11 viability gate (must prove `ScreencopyView`/`ToplevelManager` actually deliver live frames performantly on this exact Hyprland 0.56.0 build — this is the concrete thing "research-gated" should mean now, not "does the Wayland protocol exist") and Phase 12 motion tokens (entrance/exit choreography, see Feature Area 5).
-- Grid layout + click-to-focus: **MEDIUM** — mostly layout math and Hyprland IPC calls this project already has experience with (existing `hyprctl`-based scripts).
-- Live thumbnails via `ScreencopyView`: **MEDIUM**, contingent entirely on the Phase 11 gate's performance findings (multiple simultaneous live Wayland screencopy streams is the one part of this feature with real unknowns left).
-- Drag-to-move-workspace: **MEDIUM-HIGH**, additive on top of the grid — sequence this as a follow-up slice after click-to-focus ships, not bundled into the first cut.
-- Type-to-search: **LOW-MEDIUM** technically, but see the anti-feature note above on overlap with walker — this is a scope decision, not just an effort estimate.
-
----
-
-## Feature Area 4: Ambient Extras (animated wallpaper, dynamic cursors)
-
-### Animated/video wallpaper
-
-**[source-read: `end-4/dots-hyprland`, `modules/ii/background/Background.qml`]** and **[source-read: `caelestia-dots/shell`, `modules/background/Wallpaper.qml`]**
-
-- **end-4 supports video wallpapers** (`.mp4/.webm/.mkv/.avi/.mov` detected by extension), but the Quickshell layer itself does **not** render the live video frame-by-frame — it renders a **pre-generated static thumbnail** of the video (`Config.options.background.thumbnailPath`) as the actual QML background image, while a companion script directory (`scripts/videos/`, `scripts/thumbnails/`) exists for generating that thumbnail. The strong implication (consistent with community `mpvpaper` usage patterns confirmed via websearch — MEDIUM confidence, not directly source-read for the playback half) is that the *actual playing video* is rendered by a separate process (`mpvpaper`, layered beneath everything as the real Wayland-level wallpaper), and Quickshell's own background layer only needs a still frame for things like color-extraction, workspace-thumbnail backdrops, and parallax math — not for painting the moving picture itself.
-- end-4's background layer additionally implements: **parallax** (wallpaper shifts based on which workspace is focused, `parallax.workspaceZoom`/`autoVertical`/`vertical` config), and **hide-on-fullscreen** (`hideWhenFullscreen` — the background layer's `visible` binding checks for a fullscreen client on that monitor and hides itself), plus an opt-in "work safety" content-sensitivity check that blurs/hides the wallpaper based on filename keywords + network SSID keywords (a NSFW-wallpaper-at-work safeguard — cute but almost certainly out of scope for a personal single-user rig).
-- **Caelestia's wallpaper module only supports static images** (`CachingImage`, with a "wallpaper missing" empty-state and a file-picker to select one) — **no video/animated wallpaper support confirmed in source**. This is a second data point (alongside the missing overview) that Caelestia is the more conservative/minimal of the two flagships on ambient-extras-style features; end-4 is the reference for this specific feature.
-- `mpvpaper` itself (the actual video-wallpaper player, **[websearch, MEDIUM confidence]**) is a standalone wlroots-compatible tool (`mpvpaper OUTPUT /path/to/video`, or `'*'` for all outputs), commonly wrapped in a small systemd user service so it survives logout/login and can be paused (`mpvpaper-stop`) to save power/CPU when not visible — this project's existing pattern of dedicated systemd `--user` services (SwayOSD, cava) is a good precedent to follow rather than a raw exec.
-
-### Dynamic cursors
-
-**[websearch, MEDIUM-HIGH confidence — corroborated across the Hyprland wiki, hyprcursor standards doc, and the plugin's own repo]**
-
-- "Dynamic cursors" in the Hyprland ecosystem is not a Quickshell/QML feature at all — it is **`VirtCode/hypr-dynamic-cursors`**, a **Hyprland compositor plugin** (installed via `hyprpm`) that works on top of `hyprcursor` (Hyprland's own modern cursor-theme format, which itself supports true multi-frame animated cursors via per-size delayed image sequences — distinct from and more capable than legacy XCursor).
-- The plugin's actual effect: stretches/squishes the cursor shape based on movement velocity (a cartoon-style "squash and stretch" cue), plus a "shake to find" cursor-enlarge gesture similar to Windows/macOS.
-- **This is architecturally independent of everything else in this milestone** — it is rendered by the Hyprland compositor itself, not by Quickshell/QML, and has zero interaction with the token pipeline's QML/GTK4/Hyprland-bezier render targets. It is thematically on-brand ("physics-flavored motion") but mechanically unrelated work.
-- **Pitfall carried over from this project's own STACK research**: Hyprland plugins installed via `hyprpm` are ABI-coupled to the exact compositor build and can silently break on a Hyprland version bump, requiring a `hyprpm update`/rebuild. Treat this exactly like any other `hyprpm` plugin dependency this project already has to reason about — not free of the version-coupling risk just because it's visually minor.
-
-### Table stakes vs differentiators vs anti-features
-
-| Category | Feature | Notes |
-|---|---|---|
-| Differentiator | Video/animated wallpaper | Only end-4 confirmed to support it; genuinely visually striking but the actual video playback almost certainly lives outside Quickshell (a separate `mpvpaper` process) — the QML-side work is thumbnail generation + hide-on-fullscreen + optional parallax, not a video decoder |
-| Differentiator | Wallpaper parallax on workspace switch | A nice, comparatively cheap add-on once static/video wallpaper rendering exists — reuses workspace-change events this project's Hyprland config already fires |
-| Differentiator | Dynamic/squash-stretch cursor | Genuinely differentiating and visually distinctive, but note it is a **compositor plugin, not a shell feature** — lowest QML effort in the entire milestone (a hyprpm install + a few config lines), at the cost of a plugin-ABI coupling risk independent of everything else built this milestone |
-| Anti-feature | "Work safety" NSFW-wallpaper auto-blur | end-4 has this; there is no plausible reason for a personal single-user rig to need it, and it adds a keyword-matching content-sensitivity system for zero benefit here |
-| Anti-feature (scope discipline, not "bad idea") | Building video-wallpaper *playback* itself inside Quickshell/QML | Neither flagship renders live video through QML — both treat video wallpaper as an external-process concern and only touch a static derived thumbnail from QML. Attempting true in-QML video playback would be reinventing what `mpvpaper` already solves |
-
-### Complexity and dependencies
-
-- This entire feature area is explicitly the milestone's own designated first cut if time runs short (per PROJECT.md) — the research supports that framing: both sub-features are legitimately separable from the token pipeline and can be dropped without leaving anything half-built elsewhere.
-- Video wallpaper: **MEDIUM** (thumbnail-generation script + hide-on-fullscreen binding + systemd service wrapper for `mpvpaper`), independent of Quickshell's dashboard/overview work.
-- Dynamic cursor: **LOW** (hyprpm plugin install + config), fully independent of the Quickshell/motion-language track — could ship in any phase, or be cut entirely, without touching anything else.
-- Neither ambient extra depends on the token pipeline (Phase 12) the way the dashboard/overview/panels do — they're the most decoupled feature area in the milestone, which is exactly why they're the correct cut candidate.
-
----
-
-## Feature Area 5: Spring-Based Motion Language
-
-### The central, milestone-relevant finding
-
-**Neither flagship reference rice actually uses QML's native `SpringAnimation` type or literal mass/stiffness/damping physics anywhere in their shared animation infrastructure. [source-read, HIGH confidence — verified independently in both codebases' core animation-token files]**
-
-- **end-4/dots-hyprland** (`modules/common/Appearance.qml`): defines a fixed table of **Material Design 3 Expressive motion tokens** — named duration+bezier-curve pairs such as `expressiveFastSpatial` (350ms), `expressiveDefaultSpatial` (500ms), `expressiveSlowSpatial` (650ms), `expressiveEffects` (200ms), plus MD3's standard `emphasized`/`emphasizedAccel`/`emphasizedDecel`/`standard`/`standardAccel`/`standardDecel` curves — each a literal cubic/multi-segment Bézier control-point array. Every animated property in the codebase (`Behavior on x/y/width/height/opacity`) uses `easing.type: Easing.BezierSpline` with `easing.bezierCurve: Appearance.animationCurves.<name>` — this is **fitted-curve, duration-based animation with named semantic tokens**, not physics simulation.
-- **Caelestia** (`components/Anim.qml`, `CAnim.qml`, `AnchorAnim.qml`): an independent implementation of the **exact same Material Design 3 Expressive Motion System** — a `NumberAnimation` subclass with an enum of named types (`FastSpatial`/`DefaultSpatial`/`SlowSpatial`/`FastEffects`/`DefaultEffects`/`SlowEffects`/`Standard*`/`Emphasized*`) mapping to the same category of duration+bezier-curve token pairs, pulled from a `Tokens.anim` config singleton. Also duration-based bezier curves, not `SpringAnimation`.
-- Both projects independently arrived at the **same underlying motion system (Google's Material Design 3 Expressive)** rather than at literal spring physics, despite one (Caelestia) explicitly branding itself as a "fluid, morphing shell." This is strong, cross-corroborated evidence that **"spring-like feel" in this ecosystem is achieved via carefully fitted Bézier duration tokens, not runtime mass/stiffness/damping simulation.**
-
-**Implication for this milestone's own stated design decision** ("spring physics is the source of truth; CSS/Hyprland curves are a compile target" — see PROJECT.md Key Decisions): this project is choosing to be **more ambitious than either flagship reference**, not merely catching up to them. That is a legitimate, deliberate choice — QML's `SpringAnimation` type does exist and is a real, usable primitive — but the roadmap should not assume "match the reference rices' motion quality" implies "they used springs, so we're just doing the same thing." The actual bar both flagships hit was: a small, curated set of named duration+curve tokens applied *consistently* everywhere, not the specific physics model. **The requirements should treat "spring source of truth, fitted-curve compile targets" as this project's own differentiator to validate on its own merits (does it look/feel better than MD3 Expressive tokens in practice?), not as replicating an already-proven pattern.** This is also a natural fallback: if the mass/stiffness/damping-to-bezier fitting pipeline proves harder than expected, landing on a hand-curated MD3-Expressive-style token set (duration + bezier per semantic category) is a proven, lower-risk substitute that both flagship rices demonstrate is sufficient to reach flagship-tier perceived quality.
-
-### How the reference rices actually choreograph entrance/exit and stagger
-
-**[source-read across multiple files in both codebases]**
-
-- **Single-scalar-drives-everything pattern (Caelestia, `modules/dashboard/Wrapper.qml`)**: the dashboard's entire entrance/exit is driven by **one** `offsetScale` property (0 = open, 1 = closed) with a single `Behavior on offsetScale { Anim {} }`. That one animated scalar simultaneously derives the panel's `anchors.topMargin` (slide off-screen above the top edge), `opacity` (fade), and `visible` (via `offsetScale < 1`). There is no separate slide animation and fade animation running independently and needing to be kept in sync — one curve, multiple derived properties, mathematically guaranteed to stay synchronized. This single-property technique, more than any specific curve shape, is very plausibly *the* actual source of the "polished, cohesive" feel — desynchronized slide/fade timings are a classic tell of amateur motion work, and this pattern makes that class of bug structurally impossible.
-- **Neighbor-panel reflow (Caelestia, `modules/drawers/Panels.qml`)**: panels don't just animate themselves — opening one panel (e.g. the session/power menu) reactively pushes a *neighboring* panel (e.g. the OSD) out of the way, because the neighbor's anchor margin is bound to `otherPanel.width * (1 - otherPanel.offsetScale)`. The whole drawer stack behaves like a connected physical system even though no single animation spans multiple panels — this is composition of independently-simple animated scalars into an emergent choreography.
-- **Asymmetric entrance vs exit curves (end-4, `Appearance.qml` `elementMoveEnter`/`elementMoveExit`)**: entrance uses `emphasizedDecel` (400ms, decelerating into place — a "settling" feel) while exit uses `emphasizedAccel` (200ms, faster and accelerating away). Exits are deliberately shorter and more linear/urgent; entrances are longer and more cushioned. This asymmetry (not a shared duration/curve for both directions) is a second concrete, source-verified technique behind "feels expensive."
-- **Sequential fade-out → swap → fade-in for content replacement (both codebases: end-4's `BottomWidgetGroup` tab switch `SequentialAnimation`; Caelestia's `AnimLoader`)**: switching tab content is never a hard cut or a simultaneous cross-fade — it's fade-current-out (fast), swap the underlying `Loader.source`/`sourceComponent`, fade-new-in (with a small position offset in end-4's version — the new tab content enters from a ±10px vertical offset with the entrance curve, compounding a slide+fade rather than a pure fade). This "exit, swap, entrance" sequencing (not a cross-fade) is the specific technique for tab/content switches, distinct from the panel-level open/close technique above.
-- **No literal per-item staggered-list-reveal animation was found in either codebase** in the files read (e.g. no `delay: index * N` pattern turned up in the dashboard/toggle-grid files examined). The "stagger" the milestone is asking about should probably be scoped as new/differentiating work rather than assumed present in the reference rices — if it's wanted (e.g. quick-toggle grid items cascading in one after another), that is going beyond what either flagship demonstrably does, which is worth flagging explicitly rather than assuming it's already a solved, copyable pattern.
-
-### Table stakes vs differentiators vs anti-features
-
-| Category | Feature | Notes |
-|---|---|---|
-| Table stakes | One consistent named-token set (duration+curve per semantic category) applied to every surface | Confirmed as the actual baseline both flagships hit — non-negotiable if the goal is "feels as good as end-4/Caelestia" |
-| Table stakes | Single-scalar entrance/exit driving position+opacity+visibility together | The concrete, source-confirmed technique behind "no desync" — should be an explicit architectural requirement (one `Behavior`, multiple bound derived properties), not left to each surface's author to reinvent per-panel |
-| Table stakes | Asymmetric entrance (slower, decelerating) vs exit (faster, accelerating) curves | Confirmed in end-4; a cheap, high-leverage rule to bake into the token pipeline from day one |
-| Differentiator | True spring physics (mass/stiffness/damping) as the actual source of truth, compiled to fitted Bézier curves for CSS/Hyprland targets | This project's own stated ambition — genuinely goes beyond what either flagship rice does; real, not yet proven, complexity — validate perceived-quality gain empirically rather than assuming it's a strict improvement over hand-tuned MD3-style tokens |
-| Differentiator | Reactive neighbor-panel reflow (opening one drawer visually displaces another) | A nice emergent-choreography touch confirmed in Caelestia; meaningfully increases coupling between panels' layout code, so scope this only once individual panels are stable |
-| Anti-feature (risk to flag, not "don't build") | Staggered per-item list-reveal animations | Not found as an established pattern in either flagship's actual source in the files examined — if the roadmap wants this, treat it as new ground, budget accordingly, and don't assume "the reference rices already solved this, just copy it" |
-| Anti-feature | Reinventing per-surface bespoke animation code instead of one shared token library | Both flagships centralize every duration/curve into one `Appearance`/`Tokens` singleton consumed everywhere — the anti-pattern to avoid is exactly what this milestone's "one token source" goal already guards against; reinforces that the existing Phase 12 plan is aimed at the right target |
-
-### Complexity and dependencies
-
-- This is squarely Phase 12's subject matter (token pipeline) and Phase 13's (motion retrofit across existing surfaces), and every other feature area in this document depends on it for its entrance/exit/stagger behavior — sequence it first, as the milestone plan already does.
-- Implementing the MD3-Expressive-style fallback (named duration+bezier tokens, no physics) is **LOW-MEDIUM** complexity and a proven, de-risked target — both flagship codebases are a working reference implementation of exactly this.
-- Implementing true mass/stiffness/damping-to-bezier-fitting as the source of truth is **MEDIUM-HIGH** complexity and unproven in this ecosystem specifically — no reference rice does this — treat it as this project's own R&D, with the MD3-token approach as an explicit, cheap fallback if the spring-fitting pipeline proves too costly relative to the payoff.
-- The single-scalar entrance/exit pattern and asymmetric entrance/exit curves are **near-zero marginal cost** architectural rules to adopt regardless of the spring-vs-bezier decision — bake them into whatever component library Phase 12 produces from the start, since retrofitting them onto already-built panels later is exactly the kind of rework this project has learned (via BAR-01/BAR-03's shared-module lesson) to avoid.
+| Surface | Feature | Why It's In The Reference | Why It's Wrong Here | Alternative |
+|---------|---------|----------------------------|----------------------|-------------|
+| (general) | AI chat sidebar (end-4's `sidebarLeft/aiChat/*`) | end-4 ships a built-in LLM chat panel as a shell feature | Explicitly out of scope: "no custom AI assistant widgets" (PROJECT.md) | Keep the existing AI dashboard as launchers + workspace only |
+| (general) | Full GUI settings app (end-4's `ContentPage`/`ConfigSlider`/`ConfigSwitch` settings family; end-4's alternate "Waffle" shell entirely) | end-4 ships an in-shell settings UI and a second, Windows-11-styled shell with its own Start menu/search/task-view | Explicitly out of scope: "no full GUI settings app" (PROJECT.md); Waffle is a different rice/interaction model, not the "ii" reference language this milestone targets | Settings menu keeps launching existing external tools, as today |
+| POWER | 8-action grid incl. "Reboot to firmware settings" (end-4) | end-4's session screen exposes a UEFI firmware-reboot action | Scope creep beyond the milestone's named requirements; requires UEFI capability detection this project has never touched, for a rarely-used action | Keep the existing six-action wleave set; revisit only if separately requested |
+| MEDIA | Per-track dominant-color extraction + card re-tinting (end-4's `ColorQuantizer`/`AdaptedMaterialScheme`) | end-4 downloads cover art and recolors the whole media card to match it per-track | Directly conflicts with this project's Key Decision that every themed surface consumes the palette via `@import` from `~/.local/state/theme/`, never a copied/derived color source — per-track tinting would be a second, competing color source | Keep the Media tab on the theme-engine palette; skip per-track tinting |
+| OSD | Audio-sink "protection" danger banner (end-4's `onSinkProtectionTriggered`) | end-4 has a specific hardware/PipeWire safety signal it surfaces as a red OSD banner | This project's audio stack has no known equivalent trigger; building a banner for a signal that never fires is speculative, untestable scope | Skip; revisit only if a real hardware-safety signal is identified |
+| MEDIA / POWER | Decorative mascot GIFs (Caelestia's BPM-synced "bongocat", end-4's session-screen animated GIF) | Novelty personalization touches in both rices | Not a themeable/maintainable UI element — needs a new asset-management path outside theme-engine for a purely cosmetic feature | Skip |
+| BAR | Waffle-style always-expanded taskbar app buttons + task previews (end-4's `waffle/bar/*`) | A completely different shell (Windows-11 taskbar clone) end-4 also happens to ship | Different interaction model (app-pinning/task-switching) than a top/side status bar; not what "QML bar" means for this project's redesign | N/A — not applicable to this milestone's bar |
 
 ---
 
 ## Feature Dependencies
 
 ```
-Phase 11 (Quickshell viability gate)
-    └──requires──> [everything below]
+[Notification-server ownership decision]
+    └──gates──> [DND toggle in QML]
+    └──gates──> [Notification grouping in QML control centre]
+    └──gates──> [Notification persistence across shell restart]
+    └──gates──> [Swipe-to-dismiss + inline actions as *first-class* data, not just UI chrome]
+    └──gates──> [swaync retirement timing — cannot retire swaync while it's still the DBus server]
 
-Phase 12 (token pipeline: colour + motion)
-    └──requires──> Dashboard Drawer (entrance/exit/tab-switch motion)
-    └──requires──> Audio/Connectivity Panels (dialog open/close motion)
-    └──requires──> Workspace Overview (window-move, panel open/close motion)
-    └──requires──> Ambient Extras (parallax easing, if built)
+[Existing OLED single-owner visibility script (hypridle + fullscreen watcher + gaming mode)]
+    └──reused-by──> [BAR auto-hide]
+    └──reused-by──> [NOTIF fullscreen-aware suppression]
 
-Quick-toggle grid (Dashboard Drawer, Feature Area 1)
-    └──requires──> Per-app volume mixer / Wifi picker / Bluetooth manager (Feature Area 2)
-                       (panels are the "expand" targets of toggle-grid entries in both flagships)
+[Existing shared MPRIS reader (waybar + AGS card today)]
+    └──reused-by──> [MEDIA dashboard fold-in]
+    └──reused-by──> [Cross-source player dedup heuristic]
 
-Existing swaync toggle grid + notification center (BAR-05, already shipped)
-    └──conflicts with──> Re-implementing a second toggle grid / notification list inside the new QML dashboard
-                       (two sources of truth for the same state — extend BAR-05's state, don't fork it)
+[Existing dashboard Media tab (DASH-01..10, shipped Phase 14)]
+    └──required-by──> [MEDIA fold-in]
 
-Existing AGS v3 media card (MEDIA-01..04, already shipped)
-    └──enhances──> Dashboard Drawer's media mini-widget
-                       (QML dashboard should read the same MPRIS backend, not build a second one)
+[Existing anti-drift quick-toggle grid (swaync ⇄ walker menu)]
+    └──required-by──> [DND quick-toggle]
+    └──must-be-repointed-by──> [NOTIF control centre replacing swaync's grid]
 
-Workspace Overview: live thumbnails (ScreencopyView + ToplevelManager)
-    └──requires──> Phase 11 viability gate proving multi-window live screencopy performance on this Hyprland 0.56.0 build
-                       (NOT a hyprexpo/hyprpm-plugin dependency — resolved by this research to be a Quickshell-native, zero-plugin capability)
-
-Workspace Overview: drag window between workspaces
-    └──enhances──> Workspace Overview: click-to-focus grid
-                       (build click-to-focus first, drag as a follow-up slice)
-
-Workspace Overview: type-to-search-and-jump
-    └──conflicts with (potentially)──> existing walker/elephant app+window search
-                       (explicit scope decision needed: is a second "type to find a window" surface wanted, or should this be left out)
-
-Video/animated wallpaper (Ambient Extras)
-    └──requires──> external mpvpaper process + thumbnail-generation script
-                       (Quickshell/QML side only needs the derived static thumbnail, not video decoding)
-
-Dynamic cursor (Ambient Extras)
-    └──independent of──> everything else in this milestone
-                       (a Hyprland/hyprpm compositor plugin, not a Quickshell/QML feature; zero coupling to the token pipeline)
+[BAR rebuild]
+    └──architecturally-anchors──> [Per-widget contextual popouts]
+    └──architecturally-anchors──> [NOTIF/OSD/POWER "avoid overlapping the bar" coordination]
 ```
 
-### Dependency notes
+### Dependency Notes
 
-- **Everything requires Phase 11 and (for motion) Phase 12**: no feature area in this document is buildable in isolation from the milestone's own foundational phases — this matches PROJECT.md's stated phase ordering and this research finds no reason to deviate from it.
-- **Toggle grid before panels**: in both flagship rices, the wifi/bluetooth quick-toggle is the entry point into the fuller wifi/bluetooth dialog (tap toggles state, "expand"/long-press opens the dialog) — building the panels before the toggle grid exists means building UI with no natural entry point yet.
-- **Overview's real dependency is a performance question, not a plugin question**: this research changes the shape of the Phase-11-gate work for this specific feature — the gate should include an actual `ScreencopyView`-based multi-window live-thumbnail test, since that's the part with genuine remaining uncertainty, not a hyprexpo/hyprpm compatibility check.
-- **Ambient extras are the correctly-chosen cut candidate**: both sub-features here are the most architecturally decoupled from the rest of the milestone (no token-pipeline dependency the way panels/dashboard/overview have), which independently supports PROJECT.md's own framing of this area as "first thing cut if the milestone runs long."
+- **The notification-server ownership question is the single largest gate in this whole research area.** Both reference rices instantiate `NotificationServer` directly inside their own QML singleton (`services/Notifs.qml` in Caelestia, `services/Notifications.qml` in end-4) — their QML shell *is* the DBus `org.freedesktop.Notifications` provider, not a client layered in front of one. Only one process can hold that DBus name at a time. This means:
+  - If the QML notification surface becomes the actual server, **swaync must be retired in the same phase**, not split into "popups now, centre later" — there is no valid intermediate state where swaync half-owns notifications.
+  - **All of** DND, grouping, persistence-across-restart, and swipe-to-dismiss-as-real-state (not just a UI animation over swaync's own dismiss call) are downstream of this decision. If the QML surface stays a client of swaync instead, most of the Differentiators above (DND toggle, grouping, fullscreen suppression) become swaync-side changes, not QML-side ones — a materially different, and likely much harder, engineering path since swaync's own extension surface is far more limited than a from-scratch QML `NotificationServer`.
+  - **Recommendation for the roadmap:** decide server ownership explicitly and early in the NOTIF phase (a dedicated decision gate, not an assumption baked into a plan), given both reference rices independently converged on "the shell owns the server."
+- **The existing OLED visibility script and fullscreen watcher are reusable infrastructure, not new work**, for both BAR auto-hide and NOTIF fullscreen-suppression — this lowers the complexity of two differentiators that would otherwise look expensive.
+- **MEDIA is the most independent item in this research.** It depends only on infrastructure that already exists (dashboard Media tab, shared MPRIS reader) and does not depend on BAR, NOTIF, OSD, or POWER being rebuilt first, because neither reference actually places media on the bar in the way this project is copying (Caelestia's dashboard-only placement is the validated precedent for the user's fold-in decision). It could be sequenced independently of the rest of the migration if the roadmap benefits from an early low-risk win — its main procedural dependency is the same AGS-retirement consumer-check pattern this project already used successfully for eww's retirement.
+- **BAR is correctly first per the milestone's own stated rationale** ("its patterns seed every later surface") — and the source reading confirms this structurally, not just organizationally: Caelestia's OSD/notification/session popouts read the bar's own geometry (`screenState.bar`) to avoid overlapping it, so the "avoid overlapping the bar" differentiator in NOTIF/OSD/POWER is architecturally anchored to BAR existing first.
 
-## MVP Definition
+---
 
-### Launch With (v3.0 minimum, matches PROJECT.md's Active scope)
+## Recommended Phase-Sequencing Hints (for the roadmapper)
 
-- [ ] Quickshell viability gate (layer-shell, pointer input, focus, multi-monitor, hot reload) — nothing else is buildable without this proof
-- [ ] Token pipeline emitting colour + a *first* motion system (start with MD3-Expressive-style named duration+bezier tokens as the proven baseline; treat spring-physics-as-source-of-truth as an enhancement layered on top once the baseline ships, not a blocking prerequisite for every other feature)
-- [ ] Motion retrofit of existing surfaces using that first motion system
-- [ ] Dashboard drawer: calendar + quick-toggle grid (reusing BAR-05's existing toggle state) + compact media widget (reusing the existing AGS/MPRIS backend) + system resources — the four widgets both flagships treat as baseline, explicitly *excluding* a second notification list
-- [ ] Bluetooth panel (device list + connect/disconnect/forget + "Details" escape hatch to blueman) — lowest-risk of the three connectivity panels given Quickshell's native `Quickshell.Bluetooth` module
-- [ ] Wifi panel (scan/list/connect/password prompt + "Details" escape hatch to nm-connection-editor)
-- [ ] Per-app volume mixer (leveraging Quickshell's native `Quickshell.Services.Pipewire`) + master volume/device switch
+**Low-risk, low-dependency — safe early or parallel:**
+- OSD (single-slider port + fullscreen/hover-hide semantics) — no notification-server dependency, reuses existing Audio/Brightness trigger sources
+- POWER (six-action keyboard-navigable grid + safety-banner differentiator) — no notification-server dependency, self-contained
+- MEDIA fold-in — depends only on already-shipped infrastructure (dashboard tab, shared MPRIS reader); the AGS-retirement consumer-check is the main procedural gate
 
-### Add After Validation (v3.0 stretch, still in scope but sequence-able second)
+**Structural prerequisite — must be early:**
+- BAR — other surfaces' "avoid overlapping the bar" behavior and the per-widget popout pattern are architecturally anchored to it existing first; also the milestone's own explicit first-phase choice
 
-- [ ] Workspace overview: click-to-focus grid with live thumbnails (contingent on the Phase 11 gate's screencopy-performance findings)
-- [ ] Weather widget (isolate as its own vertical slice given the external-API dependency)
-- [ ] Workspace overview: drag-window-between-workspaces (additive on top of click-to-focus)
-- [ ] Spring-physics-to-fitted-curve compile pipeline as the eventual motion source of truth, superseding the v1 MD3-style token baseline once validated
+**Requires an explicit decision gate before planning, not mid-plan discovery:**
+- NOTIF — the notification-server ownership question (QML becomes the DBus server vs QML stays a swaync client) determines whether DND/grouping/persistence/swipe-dismiss are QML-native features or swaync-side changes, and determines whether swaync retirement happens in the same phase as popups or is deferred. Recommend resolving this as a named decision at phase-scoping time, given both reference rices independently chose "the shell owns the server."
 
-### Future/Cut Candidate (explicitly named in PROJECT.md as first to cut)
+---
 
-- [ ] Animated/video wallpaper
-- [ ] Dynamic cursor (hypr-dynamic-cursors plugin)
-- [ ] Overview type-to-search-and-jump (pending an explicit decision on overlap with walker)
-- [ ] Caelestia-style 4-tab swipeable dashboard (single-column dashboard delivers most value at lower risk)
-- [ ] Wallpaper parallax-on-workspace-switch, "work safety" content-sensitivity blur (the latter recommended as a permanent anti-feature, not just deferred)
+## Confidence Assessment
 
-## Feature Prioritization Matrix
+| Area | Confidence | Notes |
+|------|------------|-------|
+| What end-4/Caelestia actually ship (BAR/NOTIF/OSD/POWER/MEDIA) | HIGH | Direct reads of the actual QML source files via GitHub raw content — the real files, not summaries, blog posts, or memory. Every claim above is traceable to a specific file path and, where feasible, a specific property/function name |
+| Table stakes classification | MEDIUM-HIGH | Cross-referenced against two independent rices that converged on the same behavior (e.g. swipe-to-dismiss implemented independently in both) — convergence between two unrelated projects is a stronger table-stakes signal than either alone |
+| Differentiators | MEDIUM-HIGH | Grounded in a direct diff against this project's documented current capabilities (`PROJECT.md` Validated section, `MILESTONES.md`); complexity estimates are this researcher's judgment, not measured |
+| Anti-features | HIGH for the ones tied to explicit PROJECT.md Out-of-Scope constraints (AI widgets, full settings app); MEDIUM for the ones argued from architectural conflict (per-track tinting vs single-palette-source) |
+| Notification-server dependency analysis | HIGH that the dependency exists (directly observed in both codebases' `NotificationServer{}` instantiation); MEDIUM on the specific recommendation to decide it early, which is this researcher's judgment call, not a sourced fact |
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| Dashboard: calendar + toggle grid + media + resources | HIGH | LOW-MEDIUM | P1 |
-| Bluetooth panel | HIGH | LOW-MEDIUM | P1 |
-| Wifi panel | HIGH | MEDIUM-HIGH | P1 |
-| Per-app volume mixer | HIGH | MEDIUM | P1 |
-| Motion language (MD3-style token baseline) | HIGH | LOW-MEDIUM | P1 |
-| Workspace overview (click-to-focus + live thumbnails) | HIGH | MEDIUM (contingent on Phase 11 gate) | P1-P2 |
-| Weather widget | MEDIUM | MEDIUM | P2 |
-| Overview drag-to-move | MEDIUM | MEDIUM-HIGH | P2 |
-| Spring-physics-as-source-of-truth compile pipeline | MEDIUM (unproven differentiator) | MEDIUM-HIGH | P2 |
-| Caelestia-style swipeable multi-tab dashboard | MEDIUM | MEDIUM-HIGH | P3 |
-| Overview type-to-search | LOW-MEDIUM (overlaps walker) | LOW-MEDIUM | P3 |
-| Animated/video wallpaper | MEDIUM (visually striking, low usage impact) | MEDIUM | P3 (explicit cut candidate) |
-| Dynamic cursor | LOW-MEDIUM (novelty) | LOW | P3 (explicit cut candidate) |
+## Gaps To Address
 
-**Priority key:**
-- P1: Must have for v3.0 to meet its stated goal of shipping "the net-new widgets a top-tier rice has"
-- P2: Should have, sequence after P1 lands and Phase 11 gate findings are in
-- P3: Nice to have, matches PROJECT.md's own designated cut candidates
-
-## Competitor (Reference Rice) Feature Analysis
-
-| Feature | end-4/dots-hyprland | Caelestia (soramanew) | This project's plan |
-|---------|---------------------|------------------------|----------------------|
-| Dashboard structure | Single-column sidebar: sliders → toggle grid → notifications → tabbed calendar/todo/timer | 4-tab swipeable: Dashboard/Media/Performance/Weather | Start single-column (end-4 model, lower risk), defer swipeable multi-tab |
-| Quick-toggle grid location | Inside the dashboard sidebar | Separate "Utilities" drawer | Either is defensible; reuse this project's existing BAR-05 toggle state either way |
-| Per-app volume mixer | Yes, full per-app list + mute + device switch | No — device switch + master volume only | Build it (differentiator), on Quickshell's native Pipewire service |
-| Wifi/Bluetooth panels | Yes, both with explicit "Details" escape hatch to external GUI apps | Yes, both, similar shape | Match this scope exactly — device pick/connect + escape hatch, not full parity with pavucontrol/nm-connection-editor/blueman |
-| Full-screen workspace overview | Yes — grid, live thumbnails, click-focus, drag-to-move, type-to-search | No — only a per-window hover-preview popup | Build it (end-4 is the only usable reference); de-risked by confirming it needs zero extra Hyprland plugins |
-| Video/animated wallpaper | Yes (thumbnail-in-QML + external mpvpaper process) | No — static images only | Build if time allows; explicit cut candidate per PROJECT.md |
-| Dynamic cursor | Not found in either shell's own source (this is a separate Hyprland/hyprpm plugin, not part of either shell) | Not found | Independent hyprpm plugin install; near-zero QML cost, explicit cut candidate |
-| Motion system | Material Design 3 Expressive tokens (fitted Bézier + duration, NOT literal spring physics) | Same MD3 Expressive system, independently implemented | This project is choosing to go further (spring-physics source of truth) — treat as its own differentiator to validate, with the MD3-token approach as a proven fallback |
+- **Whether this project's current wleave already has arrow-key/vim keyboard navigation** was not confirmed from `MILESTONES.md`/`PROJECT.md` (which document "hover/focus name reveal" but not explicitly a `KeyNavigation` chain) — worth a quick source check against the actual `wleave/` QML/config before scoping POWER-differentiator work, so the roadmap doesn't credit a capability that doesn't exist or duplicate one that does.
+- **Whether Quickshell 0.3.0-2's multi-monitor limitation (QS-03, permanently dropped under D-13) actually blocks end-4's per-screen bar `Variants`+`LazyLoader` pattern** was not re-tested — the host has one physical monitor so this is low-priority, but if a second monitor is ever added, this is the first thing that would need re-validating against the standing D-13 finding.
+- **swaync's own extension surface for DND/grouping/fullscreen-awareness** (i.e., what's achievable if NOTIF stays a swaync client rather than replacing the server) was not researched — this is the fallback path if the notification-server decision goes the other way, and isn't covered here since both reference rices chose the opposite path.
+- **Exact Quickshell QML APIs for `Shape`/`ShapePath`/`PathAngleArc`** (needed for the radial-cava-around-cover-art differentiator) were observed in use in Caelestia's source but not independently researched against Quickshell/Qt Quick Shapes documentation — flag for phase-specific research when that differentiator is actually planned.
 
 ## Sources
 
-- **[source-read, HIGH]** `github.com/end-4/dots-hyprland` — repository tree walked via GitHub REST API (`/contents/...`) and raw file contents fetched directly from `raw.githubusercontent.com/end-4/dots-hyprland/master/...` for: `modules/common/Appearance.qml`, `modules/ii/{sidebarRight,sidebarLeft,overview,mediaControls,onScreenDisplay,dock,cheatsheet,background}/**`, `hypr/hyprland/keybinds.lua`
-- **[source-read, HIGH]** `github.com/caelestia-dots/shell` — repository tree walked via GitHub REST API and raw file contents fetched directly from `raw.githubusercontent.com/caelestia-dots/shell/main/...` for: `components/{Anim,CAnim,AnchorAnim,AnimLoader}.qml`, `modules/dashboard/**`, `modules/drawers/{Drawers,Panels}.qml`, `modules/Shortcuts.qml`, `modules/utilities/cards/Toggles.qml`, `modules/bar/popouts/{Audio,Network,Bluetooth}.qml`, `modules/windowinfo/WindowInfo.qml`, `modules/background/Wallpaper.qml`
-- **[websearch, MEDIUM]** Quickshell official docs (`quickshell.org/docs/.../types/Quickshell.Wayland/{ScreencopyView,ToplevelManager,Toplevel}`) — confirms `ScreencopyView`+`Toplevel` requires `hyprland-toplevel-export-v1`, `ToplevelManager` requires `zwlr-foreign-toplevel-management-v1`; corroborated by finding `Shanu-Kumawat/quickshell-overview` as an independent standalone implementation of the same pattern
-- **[websearch, LOW-MEDIUM]** `mpvpaper` (GhostNaN/mpvpaper) usage patterns, systemd-service wrapping conventions for video wallpaper
-- **[websearch, MEDIUM-HIGH]** Hyprland Wiki (`wiki.hypr.land/Hypr-Ecosystem/hyprcursor/`), Hyprland Standards (`standards.hyprland.org/hyprcursor/`), `VirtCode/hypr-dynamic-cursors` repo — confirms hyprcursor native animated-cursor support and the dynamic-cursors plugin's squash/stretch + shake-to-find behavior, and that it is a `hyprpm` compositor plugin independent of any Quickshell shell
-- **[websearch, LOW]** pavucontrol, nm-connection-editor, blueman-manager feature summaries (ArchWiki, DeepWiki, manpages, project docs) used to build the "what a minimal panel typically lacks" comparison — corroborated qualitatively by the fact that both flagship shells' own source code independently defers to these exact tools via a "Details"/"Open settings" button
-- **[websearch, LOW-MEDIUM]** HyDE, ML4W, Omarchy, Aylur/AGS mentions — surface-level only (DeepWiki/blog snippets, no source-read); one search result attributed an end-4-style "Overview" description to Omarchy that conflicts with this project's own existing STACK.md research (which characterizes Omarchy as Waybar-based) — treated as likely search-synthesis cross-contamination and given no weight; Omarchy, HyDE, ML4W and Aylur/AGS are noted here only as breadth context, not as sources for any specific claim above
+- **Primary source — direct repository file reads (HIGH confidence, not a websearch/blog summary):**
+  - [`caelestia-dots/shell`](https://github.com/caelestia-dots/shell) — `modules/bar/{Bar,BarWrapper}.qml`, `modules/bar/components/{Power}.qml`, `modules/bar/components/workspaces/{Workspaces,Workspace}.qml`, `modules/notifications/{Content,Notification,Wrapper}.qml`, `modules/osd/{Content,Wrapper}.qml`, `modules/session/{Content,Wrapper}.qml`, `modules/sidebar/{Wrapper,Notif,NotifGroup,NotifDock,NotifDockList,NotifGroupList}.qml`, `modules/dashboard/dash/Media.qml`, `modules/dashboard/media/{CoverVisualiser,Details}.qml`, `services/{Players,Notifs,NotifData}.qml`. Read at commit `main` on 2026-08-10.
+  - [`end-4/dots-hyprland`](https://github.com/end-4/dots-hyprland) — `dots/.config/quickshell/ii/modules/ii/bar/{Bar,BarContent,BarGroup,Media,SysTray,UtilButtons}.qml`, `modules/ii/notificationPopup/NotificationPopup.qml`, `modules/ii/onScreenDisplay/{OnScreenDisplay,OsdValueIndicator}.qml`, `modules/ii/sessionScreen/{SessionScreen,SessionActionButton}.qml`, `modules/ii/mediaControls/{MediaControls,PlayerControl}.qml`, `modules/common/widgets/{NotificationItem,NotificationGroup}.qml`, `modules/common/models/quickToggles/NotificationToggle.qml`, `services/{Notifications,MprisController}.qml`. Read at commit `main` on 2026-08-10.
+  - This project's own convention (`.claude/CLAUDE.md`) explicitly treats direct-verification-against-the-real-artifact as HIGH confidence even when the generic research-tooling confidence classifier defaults unfamiliar fetch methods to LOW/MEDIUM (confirmed via `gsd-tools query classify-confidence`, which has no distinct bucket for "direct primary-source code read" and returned LOW for both `webfetch`/`github` providers regardless of `--verified`). This document follows that established project precedent rather than the generic classifier default.
+- **Project context (HIGH confidence, first-party):** `.planning/PROJECT.md`, `.planning/MILESTONES.md` — used to determine what already exists (table-stakes baseline) and what is explicitly out of scope (anti-features).
 
 ---
-*Feature research for: Quickshell/QML shell surfaces + motion language, v3.0 milestone*
-*Researched: 2026-07-26*
+*Feature research for: v4.0 Shell Migration & Debt Paydown — QML bar, notifications, OSD, power menu, media fold-in*
+*Researched: 2026-08-10*
