@@ -117,23 +117,125 @@ Deferred beyond v4.0. Tracked, not scoped.
 
 ## Traceability
 
-Which phases cover which requirements. Filled during roadmap creation.
+Which phases cover which requirements. Filled during roadmap creation (2026-08-10).
+
+Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QBAR-01..12 | TBD | Pending |
-| QNOTIF-01..11 | TBD | Pending |
-| QOSD-01..04 | TBD | Pending |
-| QPOWER-01..04 | TBD | Pending |
-| QMEDIA-01..03 | TBD | Pending |
-| RETIRE-01..09 | TBD | Pending |
-| GATE-01..04 | TBD | Pending |
-| LEDGER-01..08 | TBD | Pending |
+| QBAR-01 | Phase 18 | Pending |
+| QBAR-02 | Phase 18 | Pending |
+| QBAR-03 | Phase 18 | Pending |
+| QBAR-04 | Phase 18 | Pending |
+| QBAR-05 | Phase 18 | Pending |
+| QBAR-06 | Phase 18 | Pending |
+| QBAR-07 | Phase 18 | Pending |
+| QBAR-08 | Phase 18 | Pending |
+| QBAR-09 | Phase 18 | Pending |
+| QBAR-10 | Phase 18 | Pending |
+| QBAR-11 | Phase 18 | Pending |
+| QBAR-12 | Phase 18 | Pending |
+| QNOTIF-01 | Phase 19 | Pending |
+| QNOTIF-02 | Phase 19 | Pending |
+| QNOTIF-03 | Phase 19 | Pending |
+| QNOTIF-04 | Phase 19 | Pending |
+| QNOTIF-05 | Phase 19 | Pending |
+| QNOTIF-06 | Phase 19 | Pending |
+| QNOTIF-07 | Phase 19 | Pending |
+| QNOTIF-08 | Phase 19 | Pending |
+| QNOTIF-09 | Phase 19 | Pending |
+| QNOTIF-10 | Phase 19 | Pending |
+| QNOTIF-11 | Phase 19 | Pending |
+| QOSD-01 | Phase 20 | Pending |
+| QOSD-02 | Phase 20 | Pending |
+| QOSD-03 | Phase 20 | Pending |
+| QOSD-04 | Phase 20 | Pending |
+| QPOWER-01 | Phase 20 | Pending |
+| QPOWER-02 | Phase 20 | Pending |
+| QPOWER-03 | Phase 20 | Pending |
+| QPOWER-04 | Phase 20 | Pending |
+| QMEDIA-01 | Phase 21 | Pending |
+| QMEDIA-02 | Phase 21 | Pending |
+| QMEDIA-03 | Phase 21 | Pending |
+| RETIRE-01 | Phase 18 | Pending |
+| RETIRE-02 | Phase 18 | Pending |
+| RETIRE-03 | Phase 19 | Pending |
+| RETIRE-04 | Phase 20 | Pending |
+| RETIRE-05 | Phase 20 | Pending |
+| RETIRE-06 | Phase 21 | Pending |
+| RETIRE-07 | Phase 20 | Pending |
+| RETIRE-08 | Phase 21 | Pending |
+| RETIRE-09 | Phase 22 | Pending |
+| GATE-01 | Phase 18 | Pending |
+| GATE-02 | Phase 18 | Pending |
+| GATE-03 | Phase 18 | Pending |
+| GATE-04 | Phase 18 | Pending |
+| LEDGER-01 | Phase 18 | Pending |
+| LEDGER-02 | Phase 20 | Pending |
+| LEDGER-03 | Phase 18 | Pending |
+| LEDGER-04 | Phase 19 | Pending |
+| LEDGER-05 | Phase 20 | Pending |
+| LEDGER-06 | Phase 21 | Pending |
+| LEDGER-07 | Phase 19 | Pending |
+| LEDGER-08 | Phase 19 | Pending |
 
 **Coverage:**
 - v4.0 requirements: 55 total
-- Mapped to phases: 0
-- Unmapped: 55 ⚠️ (roadmap not yet created)
+- Mapped to phases: 55 ✓
+- Unmapped: 0
+- Duplicates (a requirement in more than one phase): 0
+
+**Per-phase totals:** Phase 18 → 20 · Phase 19 → 15 · Phase 20 → 13 · Phase 21 → 6 · Phase 22 → 1
+
+### Placement notes
+
+Four requirements are cross-cutting. Each is mapped to the phase that *establishes*
+it, and recurs as a standing task in later phases:
+
+- **GATE-01** (enumerate current behaviour before redesigning) → Phase 18. Scheduled
+  **per-phase, not as an upfront enumeration phase.** Justification: the enumeration
+  must be read off the live implementation *while it still exists*, and nothing is
+  deleted before its own migration phase — so every surface's old implementation is
+  demonstrably still readable at that surface's phase start. An upfront phase would
+  write the AGS enumeration four phases before anything consumed it (stale by the
+  time it constrains a design) and would deliver no user-observable outcome of its
+  own. Per-phase keeps the read adjacent to the redesign it constrains, and feeds
+  each phase's own spec/discuss step as UAT acceptance criteria.
+- **GATE-02** (human render gate; no phase closes downgraded) → Phase 18. A per-phase
+  *closing* gate, not a phase of its own. Recurs unchanged on Phases 19, 20 and 21.
+  No old package is deleted before its judgment.
+- **GATE-03** (`quickshell-doctor` structural checks per new surface) and **GATE-04**
+  (QML hex-literal lint) → Phase 18, because that is the phase where the mechanical
+  coverage they replace (`waybar-equivalence-check`, `waybar-design-lint`) is
+  deleted. Minting them there means no later surface is ever born outside them.
+
+**Retirement placement.** RETIRE-01 (the checklist script) is in Phase 18 because
+RETIRE-02..06 all depend on it. RETIRE-02..06 each sit in the same phase as the
+surface they retire — the package dies in the phase that proves its replacement,
+which is the point of the milestone. RETIRE-07 (uninstall the still-installed
+`wlogout`/`eww` leftovers) is in Phase 20, the phase already running the checklist
+twice for two surfaces and the phase where `wlogout`'s lineage finally closes.
+RETIRE-08 is in Phase 21, where the fifth and last contract entry is removed.
+RETIRE-09 is Phase 22 alone — it cannot run until every deletion has landed, and
+running it earlier would only prove the pre-migration state.
+
+**Debt is interleaved, not trailed.** All eight LEDGER requirements sit inside the
+four migration phases; Phase 22 carries none, and no phase is pure-debt.
+
+| Debt item | Phase | Why there |
+|---|---|---|
+| LEDGER-01 | 18 | Near-zero cost, both carry-ins already fixed in code — one look plus doc corrections |
+| LEDGER-03 | 18 | The first always-on surface is the right place to finally measure frame rate |
+| LEDGER-04 | 19 | 4 of 6 sessions are wifi/bluetooth from Phase 15; the bluetooth prompt's containment was explicitly deferred *to the notification-server replacement* |
+| LEDGER-07 | 19 | Lands early enough that Phases 20-22 all run their gates against a clean `theme-stress-test`, and RETIRE-08's contract check has a trustworthy baseline |
+| LEDGER-08 | 19 | The panel-family security review belongs in the phase that extends those same components and takes a system-wide D-Bus role |
+| LEDGER-02 | 20 | Logout *is* QPOWER-01's fifth action and shares QPOWER-04's graceful-exit mechanism — measuring it elsewhere means setting up the same teardown twice |
+| LEDGER-05 | 20 | Triaged and sized at phase start; a mid-milestone phase, not end-of-milestone filler |
+| LEDGER-06 | 21 | Phase 16's paperwork concerns a QML surface, and its coverage-block discipline is what this milestone's own UAT depends on |
+
+If the milestone runs long, **cut migration stretch goals first, never the debt** —
+research explicitly warns this is where debt-paydown silently dies, and v3.0's own
+closeout names it as the open test of v4.0.
 
 ## Scoping Decisions
 
@@ -150,7 +252,9 @@ Recorded at milestone start so later phases do not re-litigate them.
 | swaync handover | Deleted in the same phase, no soak window | User's call against the research recommendation of a disabled-but-installed soak. Consequence: no fast rollback if the QML server misbehaves, and a dropped notification leaves no trace. QNOTIF-05 and QNOTIF-11 carry more weight because of it |
 | MAINT-02 Logout | Measured, not assumed | Reverses the 2026-07-28 waiver. The D-29 teardown measurement gets taken |
 | Named additions | QBAR-08, QBAR-09, QPOWER-03, QMEDIA-02, QOSD-04 | The full permitted set. QOSD-04 was declined at first pass and added on reconsideration before roadmapping — the cap is that additions are named here, not that they are decided once |
+| GATE-01 scheduling | Per-phase task, not an upfront phase | The enumeration must be read while the implementation still exists; nothing is deleted before its own phase, so every surface is readable at its own phase start. See Placement notes |
+| Phase count | 5 phases (18-22) under `coarse` granularity | Five surface migrations with a hard-ordered dependency chain plus a mandated separate closing gate. Compressed where possible: OSD and power menu share Phase 20, since QPOWER is independently schedulable and may overlap the OSD |
 
 ---
 *Requirements defined: 2026-08-10*
-*Last updated: 2026-08-10 at v4.0 milestone start*
+*Last updated: 2026-08-10 — roadmap created, all 55 requirements mapped to Phases 18-22*

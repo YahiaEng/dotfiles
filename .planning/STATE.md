@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
-status: planning
-last_updated: "2026-08-10T11:23:01.908Z"
+status: roadmapped
+last_updated: "2026-08-10T12:15:00.000Z"
 last_activity: 2026-08-10
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Planning next milestone (v4.0 not yet scoped — run `/gsd-new-milestone`)
+**Current focus:** v4.0 Shell Migration & Debt Paydown — roadmapped as Phases 18-22. Next: `/gsd-plan-phase 18` (QML Bar & Retirement Machinery).
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 18 — QML Bar & Retirement Machinery (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-10 — Milestone v4.0 started
+Status: Roadmapped, awaiting phase planning
+Progress: [░░░░░░░░░░] 0/5 phases — v4.0
+Last activity: 2026-08-10 — v4.0 roadmap created (Phases 18-22, 55/55 requirements mapped)
 
 ## Performance Metrics
 
@@ -201,6 +202,14 @@ Last activity: 2026-08-10 — Milestone v4.0 started
   - **16 Workspace Overview** (OVER-01..04) — protocol question is settled (`ScreencopyView` + `hyprland-toplevel-export-v1`, no plugin); the real open risk is live multi-window screencopy *performance*, which OVER-04 makes a measured requirement with a documented fallback.
   - **17 Ambient Extras** (AMB-01..02) — explicitly the first phase to cut.
   - MAINT placement rationale and coverage proof live in REQUIREMENTS.md's Traceability section.
+- v4.0 roadmapped 2026-08-10: Phases 18-22, continuing numbering from v3.0's Phase 17 (which included an inserted 13.1). 55 requirements mapped 1:1 to phases, no orphans, no duplicates. Granularity `coarse`.
+  - **18 QML Bar & Retirement Machinery** (QBAR-01..12, RETIRE-01/02, GATE-01..04, LEDGER-01/03) — first, per the research's dependency analysis and PROJECT.md's own framing: highest daily contact, and its patterns (always-on `PanelWindow`, `exclusiveZone > 0`, config-driven entry list, restart wrapper, retirement checklist script) seed every later surface. First surface with no dismissed state, so it inherits none of the zero-idle discipline; first with `exclusiveZone > 0`; shares a process with Phase 19's notification server. Must NOT attempt per-screen fan-out (QS-03 permanently dropped under D-13) — copy `Overview.qml`'s single-`PanelWindow` pattern.
+  - **19 Notification Server & Centre** (QNOTIF-01..11, RETIRE-03, LEDGER-04/07/08) — after the bar (the centre button lives on it). swaync is **deleted in the same phase, no soak window** (user's call, against the research's disabled-but-installed recommendation), so there is no rollback: QNOTIF-05 (`replaces_id`) and QNOTIF-11 (live two-owner check, not self-test) carry extra verification weight. The autostart swap must be one atomic edit.
+  - **20 Indicators & Power Menu** (QOSD-01..04, QPOWER-01..04, RETIRE-04/05/07, LEDGER-02/05) — OSD reuses the transient-toast frame built in 19; the power menu is independently schedulable (no shared backend, lowest risk) and may be built in parallel inside this phase rather than occupying a thin phase of its own. `swayosd-libinput-backend.service`'s fate is a named scope call needing explicit sign-off, BAR-02-style.
+  - **21 Media Fold-In & Contract Close** (QMEDIA-01..03, RETIRE-06/08, LEDGER-06) — last of the migrations; **opens with a blocking cava go/no-go spike** (QMEDIA-02) before any design work. Note waybar's mpris reader already died in 18, so this removes the second of three readers, not the third.
+  - **22 Fresh-Install Proof** (RETIRE-09) — the milestone's closing regression gate, deliberately a single-requirement phase: it structurally cannot run until all five deletions land, and running it earlier would only prove the pre-migration state. Carries no debt.
+  - **GATE-01 is per-phase, not an upfront phase** — the enumeration must be read off the live implementation while it still exists, and nothing is deleted before its own phase. GATE-02 is a per-phase closing gate. Both are mapped to 18 as their establishing phase. Full justification in REQUIREMENTS.md § Traceability → Placement notes.
+  - **Debt is interleaved across 18-21, never parked** — research explicitly warns debt-paydown dies silently when migration runs long, and v3.0's closeout names this as the open test of v4.0. If the milestone runs long, cut migration stretch goals first, never the debt.
 - Phase 10 added: AGS Media Applet — decided 2026-07-15 after the Phase 08 eww media popup was proven unable to deliver pointer input to its widgets on this eww 0.6.0 / Hyprland 0.55.4 build (debug session resolved-by-redesign: `.planning/debug/resolved/eww-media-popup-clicks-dead.md`). Replace with a standalone AGS v3 (GTK4) media applet, keeping waybar/swaync/matugen. User rejected a full HyprPanel bar takeover in favor of a contained applet. Approved spec + plan live in `docs/superpowers/`.
 - Phase 13.1 inserted after Phase 13: Hyprland Lua Config Migration — 0.57 removes .conf support; hyprlang replaced by Lua. Inserted before Dashboard Drawer because phases 14-17 all consume the design tokens this rewrites. (URGENT)
 
@@ -501,10 +510,11 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-10T07:51:21.421Z
-Stopped at: Completed 17-06-PLAN.md — Phase 17 (Ambient Extras) closed, checkpoint approved 2026-08-10
+Last session: 2026-08-10T12:15:00.000Z
+Stopped at: v4.0 roadmap created — ROADMAP.md written (Phases 18-22), REQUIREMENTS.md traceability filled (55/55 mapped, 0 orphans, 0 duplicates)
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Review `.planning/ROADMAP.md` (Phases 18-22) and `.planning/REQUIREMENTS.md` § Traceability
+- Then plan the first phase with `/gsd-plan-phase 18`
