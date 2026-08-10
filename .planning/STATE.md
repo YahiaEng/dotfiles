@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: Quickshell Foundation & Motion Language
-status: Awaiting next milestone
-stopped_at: Completed 17-06-PLAN.md — Phase 17 (Ambient Extras) closed, checkpoint approved 2026-08-10
-last_updated: "2026-08-10T10:34:31.771Z"
+milestone: v4.0
+milestone_name: Shell Migration & Debt Paydown
+status: planning
+last_updated: "2026-08-10T11:23:01.908Z"
 last_activity: 2026-08-10
-last_activity_desc: 17-06 closed — phase-close checkpoint approved, D-38 gap reaffirmed still-accepted at its corrected 5-site size
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 68
-  completed_plans: 68
-  percent: 100
-current_phase: 17
-current_phase_name: ambient-extras
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: Milestone v3.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-10 — Milestone v3.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-08-10 — Milestone v4.0 started
 
 ## Performance Metrics
 

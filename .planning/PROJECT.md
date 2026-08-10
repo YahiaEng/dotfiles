@@ -10,6 +10,28 @@ On top of that foundation sits a full desktop: 22 theme targets across dark, lig
 
 One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
 
+## Current Milestone: v4.0 Shell Migration & Debt Paydown
+
+**Goal:** Rebuild every remaining pre-Quickshell surface in QML — redesigned toward the end-4/Caelestia reference language rather than straight-ported — retire each old package once its replacement is proven better, and clear the full v3.0 debt ledger, so the milestone ends with one shell and a clean backlog.
+
+**Target features:**
+- **Waybar → QML bar** (first phase): all four layouts, OLED-safe single-owner visibility, and workspace-click restored — dead today under waybar 0.15.0's compiled-in dispatch, and only replaceable by the new shell
+- **swaync → QML notifications**: notification popups plus the slide-out centre, its toggle grid and volume/brightness sliders, with the anti-drift state-sharing preserved
+- **SwayOSD → QML indicators** and **wleave → QML power menu**
+- **AGS media card folded into the dashboard's Media tab** — one now-playing surface, not two; `ags/` retired rather than ported
+- **Retirement is part of the deliverable** — each old stow package is deleted in the same phase that proves its replacement, ending the two-shell duplication v3.0 deliberately priced in
+- **Debt paydown, in full** — `GradientBorder` reuse across the panel family; MAINT-02 Logout settled (measured or wrapped); OVER-04's frame-rate term measured; the D-34/D-36 container reproducibility rerun; 6 open debug sessions curated; WINDOWS.md open rows closed; the incomplete quick task and Phase 16's missing VERIFICATION.md resolved
+
+**Scope boundary — the launcher stays.** walker/elephant and the Phase 7 menu tree are explicitly NOT rebuilt: they work, they are the one surface not carrying double maintenance, and Phase 7 invested 8 plans in the provider tree. Whether shell consistency justifies rebuilding fuzzy search, app indexing, clipboard and calc remains a v5.0+ question.
+
+**Redesign, not port — and the cost of that.** Every rebuilt surface is redesigned against the reference rices rather than reproduced pixel-for-pixel. This deliberately forfeits the old-vs-new equivalence check that would otherwise make regressions mechanical to spot (the shape `waybar-equivalence-check` and `hypr-equivalence-check` both used). The human render-and-look gate therefore becomes **mandatory per phase, not occasional** — this project has twice shipped visibly broken surfaces through fully green automated gates (Phase 8's bar, Phase 16's thumbnails' two false passes).
+
+**No phase closes downgraded.** A replacement that is worse than what it replaces blocks its phase; the old package is not deleted until the new surface is human-judged at least as good.
+
+**New features are capped, not open.** Small additions are permitted but must be minted as named requirements at scoping time, not invented mid-phase. Anything larger defers to v5.0.
+
+**Phase numbering** continues from v3.0's Phase 17 — v4.0 starts at Phase 18.
+
 ## Last Shipped Milestone: v3.0 Quickshell Foundation & Motion Language ✅ (2026-08-10)
 
 **Goal:** Establish Quickshell as the shell toolkit and a spring-based motion language shared by every surface, then ship the net-new widgets a top-tier rice has and this one does not — without retiring anything that works today. **Met.** The additive-only boundary held for all 8 phases — nothing that worked on 2026-07-26 stopped working.
@@ -90,15 +112,27 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 
 ### Active
 
-<!-- Current scope for the next milestone. REQ-IDs assigned when v4.0 requirements are defined. -->
+<!-- Current scope for v4.0. REQ-IDs assigned in REQUIREMENTS.md. -->
 
-*(v4.0 not yet scoped — run `/gsd-new-milestone`. These are the carry-ins it must decide on, not a committed scope.)*
+*(Scoped 2026-08-10 at v4.0 milestone start. Formal REQ-IDs live in `.planning/REQUIREMENTS.md`.)*
 
-- [ ] **Migrate and retire existing surfaces onto QML** — the deferred half of the decomposed rewrite. v3.0 deliberately retired nothing; v4.0 owns migration, decomposed so no milestone leaves the desktop unusable.
-- [ ] **Reuse `GradientBorder` across the panel family** — the animated rim has exactly one consumer (`Dashboard.qml:387`); the three Phase 15 panels built on `PanelDialog.qml` carry none. Diagnosed 2026-08-02 (debug session `panels-missing-animated-border`, 100% reproducible), deliberately not fixed. A stated user expectation the milestone left unmet.
-- [ ] **MAINT-02 carry-over: wrap Logout like Shutdown/Reboot** — the one genuinely unfinished v3.0 requirement. Its D-29 teardown measurement was waived, not performed, so the hazard is neither confirmed nor falsified. Reproduction steps remain verbatim in `13-03-PLAN.md` Task 2.
+**Migration — rebuild in QML, then retire the old package:**
+
+- [ ] **Waybar → QML bar** — four layouts, OLED-safe visibility, workspace-click restored (dead today under waybar 0.15.0's compiled-in dispatch; upstream PR #5013 postdates the release). First phase: highest daily contact, and its patterns seed every later surface.
+- [ ] **swaync → QML notifications** — popups plus the slide-out centre, toggle grid and volume/brightness sliders, preserving the anti-drift state shared with the Super-key menu.
+- [ ] **SwayOSD → QML indicators** — volume/brightness/caps-lock, still driven by the media keys.
+- [ ] **wleave → QML power menu** — the six hue capsules and their entrance cascade, on the shell instead of `gtk4-layer-shell`.
+- [ ] **AGS media card → dashboard Media tab** — folded in rather than ported; `ags/` retired, ending the three-consumer MPRIS duplication.
+- [ ] **Retire each old stow package** in the same phase that proves its replacement — the deferred half of the decomposed rewrite, and the point of the milestone.
+
+**Debt paydown:**
+
+- [ ] **Reuse `GradientBorder` across the panel family** — the animated rim has exactly one consumer (`Dashboard.qml:387`); the three Phase 15 panels built on `PanelDialog.qml` carry none. Diagnosed 2026-08-02 (debug session `panels-missing-animated-border`, 100% reproducible), deliberately not fixed. A stated user expectation v3.0 left unmet.
+- [ ] **MAINT-02 carry-over: settle Logout** — the one genuinely unfinished v3.0 requirement. Its D-29 teardown measurement was waived, not performed, so the hazard is neither confirmed nor falsified. Either take the measurement or wrap Logout like Shutdown/Reboot. Reproduction steps remain verbatim in `13-03-PLAN.md` Task 2.
 - [ ] **OVER-04's frame-rate term** — the CPU budget was measured and passed with 2.4× headroom; the FPS floor and target were recorded UNMEASURED and remain so.
+- [ ] **D-34/D-36 container reproducibility rerun** — deferred since Phase 7 pending push authorization, unblocked since the v2.0 push, still not run. Now load-bearing: this milestone deletes stow packages, so a fresh-install proof is a regression gate, not bookkeeping.
 - [ ] **Curate the open debug backlog** — 6 sessions unresolved in `.planning/debug/` (5 `diagnosed`, 1 `unknown`), 4 of them wifi/bluetooth-related from Phase 15.
+- [ ] **Close the paperwork ledger** — 16 of 23 WINDOWS.md rows still `open`; 1 incomplete quick task (`260728-51j`); Phase 16's missing `16-VERIFICATION.md`; two malformed `coverage:` blocks; `theme-stress-test` switch #5 still failing the clean-tree invariant on the tracked `current.jpg` symlink.
 
 ### Out of Scope
 
@@ -109,7 +143,9 @@ One theme switch — static or dynamic — instantly and consistently re-themes 
 - Re-theme on every wallpaper auto-cycle — latency/flicker cost; re-theme only on explicit user action
 - ~~Quickshell/QML custom shell rewrite — contradicts "extend, don't rewrite"; end-4/Caelestia patterns stay aspirational~~ — **REVERSED 2026-07-26 at v3.0 scoping.** Deliberate decision, not drift: the end-4/Caelestia surfaces the project actually wants (shaped/cutout surfaces, spring-physics panels, a full-screen overview) are structurally unreachable from GTK4 CSS, and Phase 8's own BAR-02 evidence artifact already proved waybar's CSS/SIGUSR2 model cannot actuate them. The "extend, don't rewrite" principle is preserved by *decomposing* the rewrite instead of abandoning it: v3.0 adds QML surfaces only and retires nothing, so the working desktop is never put at risk; migration of existing surfaces is deferred to v4.0. Superseded by the v3.0 milestone goal above.
 - **Retiring any existing surface during v3.0** — waybar, swaync, SwayOSD, wleave, walker/elephant and the AGS media card all stay live this milestone. Retirement without accumulated QML mileage is how the eww mistake happened; v4.0 owns migration.
-- Rebuilding walker/elephant in QML — deferred, undecided. Phase 7 invested 8 plans in the menu tree as elephant TOML providers; whether shell consistency justifies rebuilding fuzzy search, app indexing, clipboard and calc providers is a v4.0+ question.
+- **Rebuilding walker/elephant in QML** — **decided at v4.0 scoping (2026-08-10): explicitly out of scope for v4.0.** Phase 7 invested 8 plans in the menu tree as elephant TOML providers; the launcher works and is the one remaining surface *not* carrying double maintenance, so the migration milestone deliberately stops short of it. Whether shell consistency justifies rebuilding fuzzy search, app indexing, clipboard and calc providers is now a v5.0+ question.
+- **Pixel-for-pixel ports of the migrated surfaces** — v4.0 redesigns each surface against the end-4/Caelestia reference language rather than reproducing it. Consequence, accepted knowingly: the old-vs-new equivalence-check shape (`waybar-equivalence-check`, `hypr-equivalence-check`) is unavailable as a regression net, so the human render gate is mandatory per phase.
+- **Net-new features beyond named requirements** — v4.0 permits small additions only when minted as requirements at scoping time. Features invented mid-phase defer to v5.0.
 - Full GUI settings app — the settings menu launches existing tools; no custom settings UI (carried from v2.0 requirements)
 - Gaming-mode session switching — the game center is a launcher submenu, not a session manager (carried from v2.0 requirements)
 - eww as a widget toolkit — retired in Phase 10 after its popup was proven unable to deliver pointer input on this eww 0.6.0 / Hyprland 0.55.4 build; AGS v3 (GTK4) is the widget toolkit going forward
@@ -215,4 +251,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-10 after v3.0 milestone*
+*Last updated: 2026-08-10 at v4.0 milestone start*
