@@ -589,14 +589,103 @@ dump()
 PYEOF
 }
 
+run_self_test() {
+    local -a fixtures=(
+        "compliant-qml.qml:0"
+        "poisoned-hex-assign-qml.qml:1"
+        "poisoned-hex-property-qml.qml:1"
+        "poisoned-rgba-literal-qml.qml:1"
+        "poisoned-named-colour-qml.qml:1"
+        "poisoned-dangling-qml.qml:1"
+    )
+    local st_pass=0 st_fail=0
+    local entry fname expect_nonzero src tmp out rc want_desc
+
+    echo "colour-lint --self-test — replaying the six committed fixtures"
+    echo ""
+
+    for entry in "${fixtures[@]}"; do
+        fname="${entry%%:*}"
+        expect_nonzero="${entry##*:}"
+        src="$FIXTURES_DIR/$fname"
+
+        if [[ ! -f "$src" ]]; then
+            printf '  [FAIL] self-test: fixture missing: %s\n' "$src"
+            st_fail=$((st_fail + 1))
+            continue
+        fi
+
+        tmp="$(mktemp -d)"
+        cp -- "$src" "$tmp/$fname"
+        out="$("$0" "$tmp" 2>&1)"
+        rc=$?
+        rm -rf -- "$tmp"
+
+        if [[ "$expect_nonzero" == "0" ]]; then
+            want_desc="exit 0 (compliant)"
+        else
+            want_desc="a non-zero exit (poisoned)"
+        fi
+
+        if [[ "$expect_nonzero" == "0" && "$rc" -eq 0 ]] || [[ "$expect_nonzero" == "1" && "$rc" -ne 0 ]]; then
+            printf '  [PASS] self-test: %s -> %s as expected\n' "$fname" "$want_desc"
+            st_pass=$((st_pass + 1))
+        else
+            printf '  [FAIL] self-test: %s -> exited %d, expected %s\n' "$fname" "$rc" "$want_desc"
+            printf '         output:\n%s\n' "$(printf '%s\n' "$out" | sed 's/^/           /')"
+            st_fail=$((st_fail + 1))
+        fi
+    done
+
+    echo ""
+    printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+    [[ "$st_fail" -eq 0 ]]
+}
+
 if [[ "${1:-}" == "--self-test" ]]; then
-    echo "colour-lint --self-test: not yet implemented (added by 18-03 Task 2)" >&2
-    exit 1
+    run_self_test
+    exit $?
 fi
 
+# D-33 shape: same as --self-test above — check the first argument,
+# branch into a wholly separate assertion pass, exit with its status.
+# Opt-in only: omitting this flag (the normal `colour-lint` invocation)
+# never runs this assertion, so a temporary future exemption does not
+# fail the everyday gate the moment it is added — only --no-pending
+# enforces zero pending.
 if [[ "${1:-}" == "--no-pending" ]]; then
-    echo "colour-lint --no-pending: not yet implemented (added by 18-03 Task 2)" >&2
-    exit 1
+    echo "colour-lint --no-pending — asserting zero exemption entries are pending"
+    echo ""
+    ROOTS=()
+    while IFS=$'\t' read -r tag status detail; do
+        [[ -z "$tag" ]] && continue
+        case "$tag" in
+            EXEMPT)
+                case "$status" in
+                    FAIL) check "exemption entry: $detail" "1" ;;
+                    *)    printf '  [EXEMPT] %s\n' "$detail" ;;
+                esac
+                ;;
+            NOTE)
+                printf '  [NOTE] %s\n' "$detail"
+                ;;
+            *)
+                case "$status" in
+                    PASS) check "CHECK $tag: $detail" "0" ;;
+                    FAIL) check "CHECK $tag: $detail" "1" ;;
+                esac
+                ;;
+        esac
+    done < <(COLOUR_LINT_MODE=no-pending _colour_lint_checks)
+    echo ""
+    if [[ "$FAIL" -eq 1 ]]; then
+        FAIL_WORD="check failed"
+    else
+        FAIL_WORD="checks failed"
+    fi
+    printf 'Summary: %d passed, %d %s\n' "$PASS" "$FAIL" "$FAIL_WORD"
+    [[ "$FAIL" -eq 0 ]]
+    exit $?
 fi
 
 TARGET_DIR="${1:-}"
