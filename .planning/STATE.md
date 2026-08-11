@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-09-PLAN.md
-last_updated: "2026-08-11T01:24:07.054Z"
+stopped_at: Completed 18-10-PLAN.md
+last_updated: "2026-08-11T01:43:53.663Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 10 of 20
+Plan: 11 of 20
 Status: Ready to execute
-Progress: [█████░░░░░] 45%
+Progress: [█████░░░░░] 50%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -201,6 +201,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P07 | ~35min | 3 tasks | 5 files |
 | Phase 18 P08 | ~50min | 5 tasks | 5 files |
 | Phase 18 P09 | ~20min | 3 tasks | 1 files |
+| Phase 18 P10 | ~30min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -414,6 +415,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-08: Bluetooth's five behavior states render across three glyphs (bluetooth_disabled/bluetooth/bluetooth_connected), matching BluetoothPanel.qml's own established no-adapter/blocked/off collapse convention
 - [Phase ?]: 18-08: [Rule 1] Corrected wrong arithmetic inherited from plan prose — a 1,800,000ms (30-minute) interval is 2 runs/hour, not 4 as the plan text claimed; interval value itself was always correct
 - [Phase ?]: 18-09: WorkspaceCapsule.qml filled — 12-entry glyph map, fixed-extent slots (constant iconsPerSlot), object-first click dispatch with range-checked fallback; live hyprctl proof + human click-through gate NOT run this session (skip-live-verification preference), logged as unrun-verify
+- [Phase ?]: 18-10: tray menu chain needs modelData.menu?.menu (double-hop) not the plan's literal single-hop text — StatusNotifierItem.menu is a DBusMenuHandle, not itself a QsMenuHandle
+- [Phase ?]: 18-10: Open Question 1 (leaf-menu activation) NOT closed by live observation — no StatusNotifierItem registered on this host this session; sendTriggered() implemented as the best-evidenced static candidate, pending user click-through on real hardware
 
 ### Quick Tasks Completed
 
@@ -492,6 +495,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - 15-02: a prior executor's non-detached quickshell restart died with its session, silently breaking Super+A/Super+D until recovered (second occurrence of this failure mode) — **carried-forward rule, not an open blocker:** every remaining 15-03..15-09 verification restart must use `setsid uwsm app -- ~/.config/hypr/scripts/quickshell-launch.sh` and confirm the new PID's PPID is not a shell.
 - 15-05 Task 4 render gate: password-connect, in-flight Cancel abort effect, real failure copy, and Forget confirm not exercised live (no synthetic pointer tool on host, no real wifi passphrase) — see 15-05-SUMMARY.md 'Pending human sign-off' and WINDOWS.md entry #18
 - 16-04 Task 3 (live enforcement session restart + five-consumer proof) deferred by operator decision to end of Phase 16 — see deferred-items.md item 0 for the full run-cold procedure; enforce_permissions=true ships committed but functionally unproven until this is closed
+- 18-10: live click-through verification of the tray menu (activation call + dismissal mechanism) deferred to the user — WINDOWS.md entries 30/31/32
 
 ## Deferred Items
 
@@ -541,8 +545,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T01:24:07.037Z
-Stopped at: Completed 18-09-PLAN.md
+Last session: 2026-08-11T01:43:53.647Z
+Stopped at: Completed 18-10-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
