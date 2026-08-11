@@ -37,8 +37,16 @@ Rectangle {
     // The quickshell-bar namespace inherits the ^quickshell-.* family blur
     // rule's ignore_alpha floor, so no fill on this surface may sit below
     // that floor without silently killing the blur — every colour here
-    // resolves through Colours, with the repo's motion-gated crossfade.
-    color: hovered ? Colours.surface : Colours.surfaceVariant
+    // resolves through BarRoles (Phase 18.1 Plan 01), with the repo's
+    // motion-gated crossfade. BarRoles.capsule/capsuleHover are themselves
+    // translucent (0.85/0.95 over Colours.surfaceVariant), which is now
+    // MORE load-bearing than when this fill was opaque: if the blur behind
+    // the bar goes missing after this change, capture a screenshot BEFORE
+    // touching any alpha value and re-apply layer rules via `hyprctl eval`
+    // or a compositor restart — `hyprctl reload` silently drops layer-rule
+    // edits and the resulting symptom is indistinguishable from a QML
+    // alpha sitting under the ignore_alpha floor.
+    color: hovered ? BarRoles.capsuleHover : BarRoles.capsule
     Behavior on color {
         enabled: Motion.motionEnabled
         ColorAnimation {
@@ -51,8 +59,13 @@ Rectangle {
     // Exposed for slot content to bind to — Dashboard.qml's own tab-bar
     // active-state grammar reused rather than invented. There is
     // deliberately no pressed-state visual: this repo keys visual state
-    // off the resulting state change, never off pointer-down.
-    readonly property color contentColour: active ? Colours.onSurface : Colours.onSurfaceVariant
+    // off the resulting state change, never off pointer-down. Rebased onto
+    // BarRoles (D-24): the alias keeps its name, but its source is now
+    // role rows — capsuleFg (onSurfaceVariant) is what the inactive branch
+    // already resolved to, so that appearance is unchanged; the active
+    // branch moves to onAccent, the correct on-colour once a capsule can
+    // actually be filled with accent.
+    readonly property color contentColour: active ? BarRoles.onAccent : BarRoles.capsuleFg
     readonly property int iconFill: active ? 1 : 0
 
     // One axis-bound content positioner — the same single-positioner
