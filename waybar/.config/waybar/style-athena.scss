@@ -2,11 +2,15 @@
 @import url("waybar-theme.css");
 @import url("waybar-font.css");
 @import url("waybar-modules.css");
-/* D-06/D-03: owner-exclusive visibility override CSS, imported LAST so
-   its idle-dim rule wins the cascade. stow.sh seeds this file empty if
-   absent; waybar-visibility.sh (Task 2) also creates it on first run —
-   the file must always exist, or GTK3 discards this WHOLE stylesheet
-   (an unresolvable @import is not a soft warning here). */
+/* D-06/D-03: owner-exclusive visibility override CSS, historically
+   imported LAST so its idle-dim rule won the cascade. Phase 18 Plan 15
+   retired that rule (and the owner's own writer of this file) outright —
+   the QML bar's auto-hide replaces it — so this file is now a permanent
+   empty stub with no writer at all. stow.sh's seed is the ONLY thing
+   that still guarantees it exists; the file must always exist, or GTK3
+   discards this WHOLE stylesheet (an unresolvable @import is not a soft
+   warning here). Retained until RETIRE-02 deletes waybar, this import
+   and that seed together. */
 @import url("waybar-visibility.css");
 
 /* ╔══════════════════════════════════════════════════════╗

@@ -61,11 +61,16 @@ hl.on("hyprland.start", function()
     -- ── Status bar ───────────────────────────────────────
     hl.exec_cmd("uwsm app -- ~/.config/hypr/scripts/waybar-launch.sh")
 
-    -- ── Waybar fullscreen watcher (BAR-01/D-01) ──────────
-    -- Long-running Hyprland socket2 listener translating fullscreen
-    -- enter/exit events into intents on waybar-visibility.sh, the sole
-    -- owner of waybar visibility (D-03). No-ops cleanly with no session.
-    hl.exec_cmd("uwsm app -- ~/.config/hypr/scripts/waybar-fullscreen-watch.sh")
+    -- Waybar fullscreen watcher (formerly BAR-01/D-01) RETIRED here
+    -- (D-18-28, Phase 18 Plan 15/QBAR-07): the standalone socket2 listener
+    -- is deleted outright, not repointed — the fullscreen intent is now
+    -- reported by the QML shell itself, off the `fullscreenBlocking`
+    -- value it already derives for DASH-08, via an onFullscreenBlockingChanged
+    -- handler in shell.qml. One long-running process is removed from the
+    -- session as a direct consequence. This is a deliberate, plan-
+    -- authorised entry removal — the narrower exception D-18-28 carves
+    -- out of this file's own "no entry added, removed or reordered"
+    -- prohibition above.
 
     -- ── Quickshell shell root (D-01/D-02, QS-05; 18-07 QBAR-10) ───
     -- No longer headless: 18-01 mounted a permanent PanelWindow bar with

@@ -8,7 +8,8 @@
 # ║  bar over Quickshell IPC. No actor may ever call         ║
 # ║  `qs ipc call bar <verb>` directly — that is the exact   ║
 # ║  desync bug class this repo has already deleted twice    ║
-# ║  (waybar-visibility.sh, then wallpaper-visibility.sh).   ║
+# ║  (this script's own pre-rename form, then                ║
+# ║  wallpaper-visibility.sh).                                ║
 # ║  This is the same proven state machine, renamed —        ║
 # ║  D-18-27's whole point is that it is carried across, not ║
 # ║  rebuilt, because on-disk state survives the QBAR-10      ║

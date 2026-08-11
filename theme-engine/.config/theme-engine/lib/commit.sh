@@ -82,18 +82,22 @@ theme_engine_commit() {
     #
     # 08-12 (seventh occurrence of this bug class, found live while
     # verifying this plan's own checkpoint screenshots): waybar-visibility.css
-    # is a sixth engine-owned root-level state file, written only by
-    # waybar-visibility.sh in response to idle/fullscreen/gaming events (and
-    # seeded empty once by stow.sh) — never part of the rendered tree. It is
-    # imported LAST by every style-*.css specifically so its idle-dim rule
-    # wins the cascade (08-11/08-12 design_system). Without this exclusion,
-    # every theme-apply deleted it, the next waybar reload hit an
+    # is a sixth engine-owned root-level state file — historically written
+    # by the visibility owner in response to idle/fullscreen/gaming events
+    # (and seeded empty once by stow.sh) — never part of the rendered
+    # tree. As of Phase 18 Plan 15/QBAR-07 the owner (renamed
+    # bar-visibility.sh) no longer writes this file at all — it actuates
+    # the QML bar over Quickshell IPC instead — so stow.sh's seed is now
+    # this file's ONLY writer, and it stays a permanent empty stub. It is
+    # still imported LAST by every style-*.css (08-11/08-12 design_system)
+    # and this exclusion still matters for exactly the reason it always
+    # did: every theme-apply deleted it, the next waybar reload hit an
     # unresolvable @import, GTK3 discarded the ENTIRE stylesheet, and waybar
     # exited outright (reproduced live: "Hyprland IPC stopping..." in
     # waybar's own log immediately after the failed import) — the exact
-    # WLOG-01 failure class this whole gap-closure plan exists to prevent,
-    # and it would have hit the human at the very checkpoint this plan asks
-    # them to run theme-apply live against.
+    # WLOG-01 failure class this whole gap-closure plan exists to prevent.
+    # Retained until RETIRE-02 (18-20) deletes waybar, this file, its
+    # contract entry and the stow.sh seed together.
     #
     # TOKEN-03/D-29 (12-03, eighth occurrence — where the MECHANISM changes,
     # not just the count): motion-scale is a seventh engine-owned root-level

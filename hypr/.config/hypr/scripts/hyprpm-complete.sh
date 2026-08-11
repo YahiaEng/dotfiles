@@ -78,18 +78,21 @@
 # the already-loaded hot path above, which must stay a fast no-op.
 
 if [[ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
-    # No session, no work — same headless guard waybar-fullscreen-watch.sh
-    # uses. Silent: a login-time helper with no session to act on has
-    # nothing worth reporting.
+    # No session, no work — the same headless-guard shape every
+    # session-scoped listener in this repo uses (check the signature is
+    # set before touching a socket path built from it). Silent: a
+    # login-time helper with no session to act on has nothing worth
+    # reporting.
     exit 0
 fi
 
 # Corroborate the signature actually resolves to a live compositor socket
-# (mirrors waybar-fullscreen-watch.sh's headless/no-session guard exactly).
-# A bogus or stale HYPRLAND_INSTANCE_SIGNATURE must be treated exactly
-# like no session at all — NOT as "plugin not loaded", which would send
-# this script down the sudo-gated rebuild path against a compositor that
-# was never actually reachable.
+# — the same two-step (signature-set, then socket-exists) discipline
+# every session-scoped listener in this repo applies before trusting a
+# socket path built from it. A bogus or stale HYPRLAND_INSTANCE_SIGNATURE
+# must be treated exactly like no session at all — NOT as "plugin not
+# loaded", which would send this script down the sudo-gated rebuild path
+# against a compositor that was never actually reachable.
 SOCKET_PATH="${XDG_RUNTIME_DIR:-}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock"
 if [[ -z "${XDG_RUNTIME_DIR:-}" || ! -S "$SOCKET_PATH" ]]; then
     exit 0

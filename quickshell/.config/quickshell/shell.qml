@@ -477,7 +477,7 @@ ShellRoot {
     }
 
     // ── Fullscreen intent reporter (D-18-28) — replaces the retired
-    //    standalone waybar-fullscreen-watch.sh socket2 listener. Reports
+    //    standalone fullscreen-watcher socket2 listener script. Reports
     //    on the CHANGE of the already-derived `fullscreenBlocking` value
     //    above rather than inside the Hyprland Connections block's own
     //    onRawEvent handler — that block's refresh is asynchronous and

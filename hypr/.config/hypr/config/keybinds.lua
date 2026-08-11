@@ -103,8 +103,12 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/waybar-switch
 -- BAR-01/D-02/D-37: the ONLY bind that can clear a persistent
 -- fullscreen/gaming-hide -- targets the owner's `keybind toggle` verb
 -- (never hide/show directly), which carries the auto-clear-on-base-change
--- override semantics (D-02).
-hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/waybar-visibility.sh keybind toggle")) -- Toggle waybar visibility
+-- override semantics (D-02). Repointed to bar-visibility.sh (Phase 18
+-- Plan 15/QBAR-07/D-18-29) and DELIBERATELY kept a Hyprland compositor
+-- bind rather than converted to a QML GlobalShortcut: a shortcut living
+-- inside the shell process cannot resurrect a bar whose process is gone
+-- or hung, which is exactly the case this bind exists to recover from.
+hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/bar-visibility.sh keybind toggle")) -- Toggle bar visibility
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/hypr/scripts/wallpaper-switch.sh")) -- Change wallpaper
 
 -- ── Clipboard ────────────────────────────────────────

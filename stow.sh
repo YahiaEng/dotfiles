@@ -298,13 +298,19 @@ mkdir -p "$HOME/.cache"
 # toggle's state.
 [[ -f "$HOME/.cache/gaming-mode" ]] || echo "off" > "$HOME/.cache/gaming-mode"
 
-# BAR-01/D-03/D-06: seed the visibility owner's exclusive CSS override
-# file empty, same seed-only-when-absent idiom as above — every
+# BAR-01/D-03/D-06: seed waybar's exclusive CSS override file empty, same
+# seed-only-when-absent idiom as above — every
 # style-{full,athena,floating,vertical}.css @imports this file LAST, and an
-# unresolvable @import makes GTK3 discard the WHOLE stylesheet. Never
-# unconditional: waybar-visibility.sh (the sole writer) may have a live
-# idle-dim rule in here already on a stow.sh re-run, and clobbering it
-# would desync the owner's actuated state from what's on screen.
+# unresolvable @import makes GTK3 discard the WHOLE stylesheet. As of
+# Phase 18 Plan 15/QBAR-07 this file has NO writer at all — the owner
+# (renamed bar-visibility.sh) actuates the QML bar over Quickshell IPC
+# instead and no longer touches this path — so THIS SEED IS THE FILE'S
+# ONLY REMAINING WRITER. It stays seed-only-when-absent rather than
+# unconditional purely for re-run safety (a stow.sh re-run must never
+# clobber whatever is on disk). Do NOT remove this seed before RETIRE-02
+# (18-20) — waybar's four stylesheets still resolve their @import against
+# this exact path until that plan deletes waybar, this file, its
+# contract.json entry and this seed together.
 mkdir -p "$HOME/.local/state/theme"
 [[ -f "$HOME/.local/state/theme/waybar-visibility.css" ]] || : > "$HOME/.local/state/theme/waybar-visibility.css"
 

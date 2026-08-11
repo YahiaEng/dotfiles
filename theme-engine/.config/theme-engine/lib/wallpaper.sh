@@ -438,9 +438,9 @@ theme_engine_wallpaper_sync_owner() {
     fi
 
     # ── Reassert — mirrors reload.sh's own post-signal
-    # waybar-visibility.sh reassert call, so a theme switch can never
-    # leave the owner's actuated state desynced from the newly selected
-    # wallpaper.
+    # bar-visibility.sh reassert call (renamed, Phase 18 Plan 15/QBAR-07),
+    # so a theme switch can never leave the owner's actuated state
+    # desynced from the newly selected wallpaper.
     "$owner" reassert >/dev/null 2>&1 || true
 
     return 0

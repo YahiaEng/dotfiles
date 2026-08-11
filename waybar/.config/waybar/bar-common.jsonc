@@ -9,10 +9,16 @@
     // structurally, at the config layer: no signal from any actor can
     // ever accidentally reveal a bar another actor just hid.
     //
-    // waybar-visibility.sh (the D-03 owner) is the ONLY thing that
-    // decides show vs. hide; it does so by choosing which fixed signal
-    // to send (SIGUSR1 = hide, SIGUSR2 = reload/show), never by relying
-    // on waybar's own alternating-action default.
+    // Historically, the D-03 owner (bar-visibility.sh, renamed from its
+    // pre-Phase-18 form) was the ONLY thing that decided show vs.
+    // hide here, by choosing which fixed signal to send (SIGUSR1 = hide,
+    // SIGUSR2 = reload/show). Phase 18 Plan 15 drops waybar's own
+    // visibility control outright — the owner now actuates the QML bar
+    // only, and waybar is left permanently visible for the remaining
+    // waves (see that plan's "waybar Coexistence" section) — but this
+    // fixed on-sigusr1 action stays as-is: reload.sh's own SIGUSR2 still
+    // fires on every theme switch, and a fixed `hide` on-sigusr1 remains
+    // the structurally-safe default until RETIRE-02 deletes this file.
     "on-sigusr1": "hide",
 
     // Already waybar's default — declared explicitly anyway so the

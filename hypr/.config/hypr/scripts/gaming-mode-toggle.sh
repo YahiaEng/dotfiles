@@ -49,16 +49,18 @@ CONTRACT_LIB="$HOME/.config/theme-engine/lib/contract.sh"
 # shellcheck source=/dev/null
 [[ -r "$CONTRACT_LIB" ]] && source "$CONTRACT_LIB"
 
-# ── Re-pointed waybar-visibility call (D-03 / P7 D-26). ─────────────────
-# This IS the re-point Phase 7 left this thin one-liner for -- waybar
-# visibility is now owned exclusively by waybar-visibility.sh (the D-03
-# owner). This script must never signal waybar directly again (no raw
-# pkill -SIGUSR1/-SIGUSR2 waybar anywhere below). It declares an intent
-# ("gaming wants it hidden/shown"); the owner computes the resulting
-# state against the other actors (idle, fullscreen, keybind).
+# ── Re-pointed bar-visibility call (D-03 / P7 D-26, repointed Phase 18
+#    Plan 15/QBAR-07). This IS the re-point Phase 7 left this thin
+#    one-liner for -- bar visibility is now owned exclusively by
+#    bar-visibility.sh (the D-03 owner, renamed and actuating the QML
+#    bar over Quickshell IPC as of this repoint). This script must never
+#    call `qs ipc call bar` directly (no raw IPC call anywhere below). It
+#    declares an intent ("gaming wants it hidden/shown"); the owner
+#    computes the resulting state against the other actors (idle,
+#    fullscreen, keybind).
 _gaming_waybar_toggle() {
     local state="$1" # hide|show
-    ~/.config/hypr/scripts/waybar-visibility.sh gaming "$state" 2>/dev/null || true
+    ~/.config/hypr/scripts/bar-visibility.sh gaming "$state" 2>/dev/null || true
 }
 
 # ── D-28: identical shape for the live-wallpaper owner. Declares an
@@ -239,20 +241,24 @@ gaming_mode_off() {
     #    ITS visibility owner too (D-28). Mirrors the waybar call above.
     _gaming_wallpaper_toggle show
 
-    # ── Stale-idle fix (D-05 SIGSTOP interaction). gaming_mode_on()
-    #    freezes hypridle (pkill -STOP above), so an idle-hide/dim intent
-    #    that was already in effect when gaming mode engaged can never be
-    #    cleared by hypridle's own on-resume -- that process cannot run
-    #    while stopped. During gaming this is harmless (the gaming=hide
-    #    intent dominates under D-01's OR-union regardless), but declaring
-    #    ONLY "gaming show" here would leave that stale idle=hide intent
-    #    standing, and the bar would return dimmed instead of normal.
-    #    Toggling gaming mode off IS user input -- by D-02's own rule any
-    #    input clears idle-hide -- so this is gaming-mode correctly
-    #    reporting that input occurred, not reaching into another actor's
-    #    concern. Do NOT remove this second call as "redundant": without
-    #    it, gaming-mode-OFF can return a dimmed bar.
-    ~/.config/hypr/scripts/waybar-visibility.sh idle show 2>/dev/null || true
+    # ── Stale-idle fix (D-05 SIGSTOP interaction, reasoning corrected
+    #    Phase 18 Plan 15/QBAR-07). gaming_mode_on() freezes hypridle
+    #    (pkill -STOP above), so an idle-hide intent that was already in
+    #    effect when gaming mode engaged can never be cleared by
+    #    hypridle's own on-resume -- that process cannot run while
+    #    stopped. During gaming this is harmless (the gaming=hide intent
+    #    dominates under D-01's OR-union regardless), but declaring ONLY
+    #    "gaming show" here would leave that stale idle=hide intent
+    #    standing. Toggling gaming mode off IS user input -- by D-02's own
+    #    rule any input clears idle-hide -- so this is gaming-mode
+    #    correctly reporting that input occurred, not reaching into
+    #    another actor's concern. The outcome this call prevents is no
+    #    longer a dimmed bar (that CSS-dim machinery is deleted as of this
+    #    repoint) -- it is now a fully INVISIBLE bar left stuck hidden, a
+    #    STRONGER reason to keep this call, not a weaker one. Do NOT
+    #    remove this second call as "redundant": without it,
+    #    gaming-mode-OFF can return an invisible bar.
+    ~/.config/hypr/scripts/bar-visibility.sh idle show 2>/dev/null || true
 
     # ── Same stale-idle fix, applied to the live wallpaper (D-28/17-03
     #    Task 2e). gaming_mode_on()'s pkill -STOP -x hypridle above can
