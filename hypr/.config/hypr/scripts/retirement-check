@@ -1,0 +1,734 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║              RETIREMENT-CHECK (18-06)                 ║
+# ║  Generic, reusable retirement checklist (RETIRE-01).   ║
+# ║  Report-only — never mutates, moves, or deletes any     ║
+# ║  file it scans. Two tiers in one script (D-18-37): a    ║
+# ║  blocking tier over live code/config/fixtures/checker    ║
+# ║  internals, and a non-failing report tier over           ║
+# ║  .planning/ and repo prose.                              ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# RETIRE-01 requires a checklist that verifies EVERY reference class a
+# surface's retirement must clear — window/layer rules, autostart, keybinds,
+# contract.json, matugen templates, doctor registries/fixtures, systemd
+# units, D-Bus activation, XDG autostart, install/stow lists — before a
+# deletion in Phases 19-21 is trusted. RETIRE-02..06 all depend on this
+# script existing and being generic (D-18-34): it is built ONCE here against
+# `waybar`, but the very same code path must also work, unmodified, for
+# `swaync`, `swayosd`, `wleave`, `ags`, `wlogout` and `eww`.
+#
+# D-18-34 — generic from day one: <surface-name> is validated against a
+#   fixed registry allowlist BEFORE any filesystem path or grep pattern is
+#   ever constructed from it (mitigates T-18-06-01/02/03).
+# D-18-35 — this script's blocking tier is folded into theme-doctor (18-06
+#   Task 3), the same "green gates, broken surface" closing move
+#   waybar-design-lint/motion-lint/colour-lint already made.
+# D-18-36 — coverage extends past RETIRE-01's literal text to four more
+#   classes: checker-internals, test-fixtures, cross-package-refs,
+#   systemd-units' in-repo half.
+# D-18-37 — two tiers, one script: a `.planning/`-only or repo-prose-only
+#   reference is a [REPORT] line, never a [FAIL] — .planning/ carries
+#   thousands of legitimate shipped-milestone-archive mentions of every
+#   surface name, and folding that into the blocking tier would make a
+#   green run structurally unreachable.
+#
+# Usage:
+#   retirement-check <surface-name> [--root <dir>]
+#       Full per-class report for one surface. Exit 0 (clean) / 1 (any
+#       [FAIL]) / 2 (invalid argument). --root treats <dir> as the repo
+#       root instead of $DOTFILES_DIR — motion-lint/colour-lint's
+#       [target-dir] precedent: "a gate that cannot be pointed at a
+#       fixture cannot be proven to fail" (D-28).
+#   retirement-check --all
+#       One [REPORT] summary line per `pending` surface (surface name,
+#       retiring requirement, blocking/report totals — never the per-hit
+#       lists, which would flood theme-doctor). Full blocking-tier
+#       per-class output for every `retired` surface. This is what
+#       theme-doctor's fold (18-06 Task 3) calls. Exit 0 / 1.
+#   retirement-check --self-test
+#       Runs the five committed fixture trees under
+#       tests/retirement-fixtures/ and asserts each expected verdict.
+#       Exit 0 (all as expected) / 1 (otherwise).
+#   retirement-check --list
+#       Prints the registry (surface, status, retiring requirement,
+#       own-tree) and the known short-token precision limit, then exits 0.
+#   retirement-check (no argument)
+#       Usage to stderr, exit 2.
+#
+# Every scan matches the validated token case-insensitively with word
+# boundaries on both sides (`bar` never matches inside `waybar`; `waybar`
+# matches inside `waybar-style-full.css`), excludes .git/, node_modules/,
+# wallpapers/ and binary files, and sorts every within-class hit list under
+# a byte-order (LC_ALL=C-equivalent) sort — two runs over an unchanged tree
+# are byte-identical.
+#
+# The script writes to stdout and stderr only. It acquires no lock, creates
+# no temp file, and mutates nothing it scans — concurrent or interrupted
+# runs leave no partial state.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+SELF_PATH="$SCRIPT_DIR/retirement-check"
+FIXTURES_DIR="$SCRIPT_DIR/tests/retirement-fixtures"
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+
+# ── Registry (D-18-34) — surface|status|own-tree(colon-separated)|requirement.
+#    Every real surface ships `pending` in this phase (see PLAN's Measured
+#    ground truth table): `eww`/`wlogout` are repo-retired but NOT
+#    reference-free (33/3 surviving hits, measured 2026-08-10) — marking
+#    either `retired` now would arm the blocking tier against real
+#    surviving hits and turn theme-doctor red for the remaining eighteen
+#    plans of this phase. RETIRE-07 (Phase 20) is where they flip.
+#    `retirement-fixture` is `retired` by design and matches nothing in the
+#    real repo, so it emits [PASS] on every theme-doctor run — the blocking
+#    tier is continuously exercised and demonstrably green, not dormant
+#    until 18-20.
+REGISTRY_RAW='waybar|pending|waybar/:hypr/.config/hypr/scripts/waybar-*|RETIRE-02
+swaync|pending|swaync/:hypr/.config/hypr/scripts/swaync-*|RETIRE-03
+swayosd|pending|swayosd/|RETIRE-04
+wleave|pending|wleave/:hypr/.config/hypr/scripts/wleave.sh|RETIRE-05
+ags|pending|ags/|RETIRE-06
+wlogout|pending||RETIRE-07
+eww|pending||RETIRE-07
+retirement-fixture|retired|hypr/.config/hypr/scripts/tests/retirement-fixtures/|SELF-TEST'
+
+declare -A REG_STATUS REG_OWNTREE REG_REQ
+REGISTRY_ORDER=()
+while IFS='|' read -r _rc_name _rc_status _rc_owntree _rc_req; do
+    [[ -z "$_rc_name" ]] && continue
+    REGISTRY_ORDER+=("$_rc_name")
+    REG_STATUS["$_rc_name"]="$_rc_status"
+    REG_OWNTREE["$_rc_name"]="$_rc_owntree"
+    REG_REQ["$_rc_name"]="$_rc_req"
+done <<< "$REGISTRY_RAW"
+
+usage() {
+    cat >&2 <<EOF
+retirement-check — generic retirement checklist (RETIRE-01)
+
+Usage:
+  retirement-check <surface-name> [--root <dir>]
+  retirement-check --all
+  retirement-check --list
+  retirement-check --self-test
+
+Allowed surfaces: ${REGISTRY_ORDER[*]}
+EOF
+}
+
+_rc_reject() {
+    printf 'retirement-check: %s\n' "$1" >&2
+    printf 'Allowed surfaces: %s\n' "${REGISTRY_ORDER[*]}" >&2
+    exit 2
+}
+
+# T-18-06-01/02/03: both guards run BEFORE any path or pattern is built —
+# the syntactic guard alone excludes every path separator, every `..`
+# traversal sequence and every regex metacharacter; the registry-membership
+# guard then rejects anything not a declared key. Exit 2 is deliberately
+# distinct from 1 (dirty-surface), so a caller can tell "you asked wrong"
+# from "the surface is dirty".
+_rc_validate_token() {
+    local tok="$1"
+    if [[ ! "$tok" =~ ^[a-z][a-z0-9-]*$ ]]; then
+        _rc_reject "invalid surface name '$tok' (must match ^[a-z][a-z0-9-]*\$ — no path separators, no '..', no regex metacharacters)"
+    fi
+    if [[ -z "${REG_STATUS[$tok]:-}" ]]; then
+        _rc_reject "unknown surface '$tok'"
+    fi
+}
+
+# ── The single scan pass for one surface — every one of the sixteen
+#    reference classes, TAB-free plain-text [LABEL] lines on stdout,
+#    matching theme-doctor's fold idiom directly. One process so the
+#    comment-free grep/glob logic is defined exactly once (motion-lint/
+#    colour-lint precedent). ────────────────────────────────────────────
+_rc_scan() {
+    local root="$1" surface="$2" status="$3" owntree="$4" req="$5" mode="$6"
+    python3 - "$root" "$surface" "$status" "$owntree" "$req" "$mode" "$SELF_PATH" <<'PYEOF'
+import glob
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+root, surface, status, owntree_spec, req, mode, self_script = sys.argv[1:8]
+
+TOKEN_RE = re.compile(r'\b' + re.escape(surface) + r'\b', re.IGNORECASE)
+DISPATCH_LAYER_RE = re.compile(r'\bhl\.(layer_rule|window_rule)\s*\(')
+DISPATCH_EXEC_RE = re.compile(r'\bhl\.exec_cmd\s*\(')
+
+EXCLUDE_DIR_NAMES = {'.git', 'node_modules', 'wallpapers'}
+NON_PACKAGE_TOPLEVEL = {'.git', '.planning', '.claude', '.vscode', 'verify', 'docs', 'wallpapers'}
+
+CHECKER_INTERNALS_REL = [
+    'theme-engine/.config/theme-engine/theme-doctor',
+    'theme-engine/.config/theme-engine/theme-parity',
+    'theme-engine/.config/theme-engine/theme-stress-test',
+    'hypr/.config/hypr/scripts/quickshell-doctor',
+    'hypr/.config/hypr/scripts/keybind-doctor',
+    'hypr/.config/hypr/scripts/keybind-source-equivalence',
+    'hypr/.config/hypr/scripts/motion-lint',
+    'hypr/.config/hypr/scripts/hypr-equivalence-check',
+]
+
+CLASS_ORDER = [
+    'own-tree', 'layer-window-rules', 'autostart', 'keybinds', 'contract-json',
+    'matugen-templates', 'checker-internals', 'test-fixtures', 'cross-package-refs',
+    'install-stow-lists', 'systemd-units', 'dbus-activation', 'xdg-autostart',
+    'host-package', 'planning-archive', 'repo-prose',
+]
+REPORT_DOMAIN = {'planning-archive', 'repo-prose'}
+
+self_realpath = os.path.realpath(self_script) if self_script else None
+SELF_EXCLUDE = {self_realpath} if self_realpath else set()
+
+
+def is_binary(path):
+    try:
+        with open(path, 'rb') as f:
+            chunk = f.read(8192)
+        return b'\x00' in chunk
+    except OSError:
+        return True
+
+
+def iter_files(base):
+    if os.path.isfile(base):
+        yield base
+        return
+    if not os.path.isdir(base):
+        return
+    for dirpath, dirnames, filenames in os.walk(base, followlinks=True):
+        dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIR_NAMES]
+        for fn in filenames:
+            yield os.path.join(dirpath, fn)
+
+
+def grep_hits(paths, exclude_paths=None, extra_regex=None):
+    exclude_paths = exclude_paths or set()
+    hits = []
+    seen = set()
+    for p in paths:
+        if p in seen:
+            continue
+        seen.add(p)
+        rp = os.path.realpath(p)
+        if rp in exclude_paths:
+            continue
+        if is_binary(p):
+            continue
+        try:
+            with open(p, encoding='utf-8', errors='ignore') as f:
+                for i, line in enumerate(f, start=1):
+                    if extra_regex is not None and not extra_regex.search(line):
+                        continue
+                    if TOKEN_RE.search(line):
+                        hits.append(f'{p}:{i}')
+        except OSError:
+            continue
+    return sorted(hits)
+
+
+def result(hits=None, skip=None, count_only=False, count=None):
+    if skip is not None:
+        return {'skip': skip}
+    if count_only:
+        return {'hits': [], 'count': count, 'count_only': True}
+    return {'hits': hits, 'count': len(hits), 'count_only': False}
+
+
+# ── Class 1 — own-tree ───────────────────────────────────────────────────
+def scan_own_tree():
+    if not owntree_spec:
+        return result(skip='no own-tree path declared in the registry for this surface')
+    entries = [e for e in owntree_spec.split(':') if e]
+    paths = []
+    any_exists = False
+    for e in entries:
+        full = os.path.join(root, e)
+        if '*' in e:
+            matches = glob.glob(full)
+            any_exists = any_exists or bool(matches)
+            for m in matches:
+                paths.extend(iter_files(m))
+        else:
+            if os.path.exists(full):
+                any_exists = True
+                paths.extend(iter_files(full))
+    if not any_exists:
+        return result(skip=f'own-tree path(s) not present under {root}: {owntree_spec}')
+    hits = grep_hits(paths, exclude_paths=SELF_EXCLUDE)
+    return result(hits=hits)
+
+
+# ── Class 2 — layer-window-rules ────────────────────────────────────────
+def scan_layer_window_rules():
+    target = os.path.join(root, 'hypr/.config/hypr/config/windowrules.lua')
+    if not os.path.isfile(target):
+        return result(skip=f'{target} not present')
+    hits = grep_hits([target], extra_regex=DISPATCH_LAYER_RE)
+    return result(hits=hits)
+
+
+# ── Class 3 — autostart ─────────────────────────────────────────────────
+def scan_autostart():
+    targets = [os.path.join(root, 'hypr/.config/hypr/config/autostart.lua'),
+               os.path.join(root, 'hypr/.config/hypr/config/env.lua')]
+    existing = [t for t in targets if os.path.isfile(t)]
+    if not existing:
+        return result(skip=f'autostart.lua/env.lua not present under {root}')
+    hits = grep_hits(existing, extra_regex=DISPATCH_EXEC_RE)
+    return result(hits=hits)
+
+
+# ── Class 4 — keybinds ──────────────────────────────────────────────────
+def scan_keybinds():
+    target = os.path.join(root, 'hypr/.config/hypr/config/keybinds.lua')
+    if not os.path.isfile(target):
+        return result(skip=f'{target} not present')
+    return result(hits=grep_hits([target]))
+
+
+# ── Class 5 — contract-json ─────────────────────────────────────────────
+def scan_contract_json():
+    target = os.path.join(root, 'theme-engine/.config/theme-engine/contract.json')
+    if not os.path.isfile(target):
+        return result(skip=f'{target} not present')
+    return result(hits=grep_hits([target]))
+
+
+# ── Class 6 — matugen-templates ─────────────────────────────────────────
+def scan_matugen_templates():
+    cfg = os.path.join(root, 'matugen/.config/matugen/config.toml')
+    tdir = os.path.join(root, 'matugen/.config/matugen/templates')
+    targets = []
+    existing = False
+    if os.path.isfile(cfg):
+        existing = True
+        targets.append(cfg)
+    if os.path.isdir(tdir):
+        existing = True
+        targets.extend(iter_files(tdir))
+    if not existing:
+        return result(skip=f'matugen config.toml/templates not present under {root}')
+    return result(hits=grep_hits(targets))
+
+
+# ── Class 7 — checker-internals (retirement-check itself excluded: a
+#    registry naming the surfaces it checks is not a reference to them) ──
+def scan_checker_internals():
+    targets = [os.path.join(root, r) for r in CHECKER_INTERNALS_REL]
+    existing = [t for t in targets if os.path.isfile(t)]
+    if not existing:
+        return result(skip=f'checker-internals files not present under {root}')
+    return result(hits=grep_hits(existing, exclude_paths=SELF_EXCLUDE))
+
+
+# ── Class 8 — test-fixtures ─────────────────────────────────────────────
+def scan_test_fixtures():
+    target = os.path.join(root, 'hypr/.config/hypr/scripts/tests')
+    if not os.path.isdir(target):
+        return result(skip=f'{target} not present')
+    files = list(iter_files(target))
+    return result(hits=grep_hits(files, exclude_paths=SELF_EXCLUDE))
+
+
+# ── Class 9 — cross-package-refs (deny-by-default, D-18-36) ────────────
+def _own_tree_dirs():
+    dirs = set()
+    if not owntree_spec:
+        return dirs
+    for e in owntree_spec.split(':'):
+        if not e or '*' in e:
+            continue
+        full = os.path.realpath(os.path.join(root, e))
+        if os.path.isdir(full):
+            dirs.add(full)
+    return dirs
+
+
+def _already_attributed_files():
+    files = set()
+    for rel in ['hypr/.config/hypr/config/windowrules.lua',
+                'hypr/.config/hypr/config/autostart.lua',
+                'hypr/.config/hypr/config/env.lua',
+                'hypr/.config/hypr/config/keybinds.lua',
+                'theme-engine/.config/theme-engine/contract.json',
+                'matugen/.config/matugen/config.toml']:
+        p = os.path.join(root, rel)
+        if os.path.isfile(p):
+            files.add(os.path.realpath(p))
+    tdir = os.path.join(root, 'matugen/.config/matugen/templates')
+    if os.path.isdir(tdir):
+        for f in iter_files(tdir):
+            files.add(os.path.realpath(f))
+    for rel in CHECKER_INTERNALS_REL:
+        p = os.path.join(root, rel)
+        if os.path.isfile(p):
+            files.add(os.path.realpath(p))
+    testsdir = os.path.join(root, 'hypr/.config/hypr/scripts/tests')
+    if os.path.isdir(testsdir):
+        for f in iter_files(testsdir):
+            files.add(os.path.realpath(f))
+    return files
+
+
+def scan_cross_package_refs():
+    if not os.path.isdir(root):
+        return result(skip=f'{root} not present')
+    try:
+        top = sorted(
+            d for d in os.listdir(root)
+            if os.path.isdir(os.path.join(root, d)) and not d.startswith('.')
+            and d not in NON_PACKAGE_TOPLEVEL
+        )
+    except OSError:
+        return result(skip=f'cannot enumerate top-level dirs under {root}')
+    if not top:
+        return result(skip=f'no top-level package dirs under {root}')
+    excl_dirs = _own_tree_dirs()
+    excl_files = _already_attributed_files() | SELF_EXCLUDE
+    paths = []
+    for d in top:
+        dpath = os.path.realpath(os.path.join(root, d))
+        if dpath in excl_dirs:
+            continue
+        for f in iter_files(os.path.join(root, d)):
+            rf = os.path.realpath(f)
+            if rf in excl_files:
+                continue
+            if any(rf == ed or rf.startswith(ed + os.sep) for ed in excl_dirs):
+                continue
+            paths.append(f)
+    return result(hits=grep_hits(paths))
+
+
+# ── Class 10 — install-stow-lists ───────────────────────────────────────
+def scan_install_stow():
+    targets = [os.path.join(root, 'install.sh'), os.path.join(root, 'stow.sh')]
+    existing = [t for t in targets if os.path.isfile(t)]
+    if not existing:
+        return result(skip=f'install.sh/stow.sh not present under {root}')
+    return result(hits=grep_hits(existing))
+
+
+# ── Class 11 — systemd-units (live half + in-repo half, D-18-36) ───────
+def scan_systemd_units():
+    hits = []
+    scanned_any = False
+    systemctl = shutil.which('systemctl')
+    if systemctl:
+        try:
+            proc = subprocess.run([systemctl, '--user', 'list-unit-files'],
+                                   capture_output=True, text=True, timeout=10)
+            if proc.returncode == 0:
+                scanned_any = True
+                for line in proc.stdout.splitlines():
+                    if TOKEN_RE.search(line):
+                        hits.append(f'systemctl --user list-unit-files: {line.strip()}')
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    if os.path.isdir(root):
+        for d in sorted(os.listdir(root)):
+            p = os.path.join(root, d, '.config', 'systemd', 'user')
+            if os.path.isdir(p):
+                scanned_any = True
+                for f in iter_files(p):
+                    if TOKEN_RE.search(f):
+                        hits.append(f)
+                    else:
+                        hits.extend(grep_hits([f]))
+    if not scanned_any:
+        return result(skip='no systemctl on PATH and no in-repo */.config/systemd/user/ found')
+    return result(hits=sorted(set(hits)))
+
+
+# ── Class 12 — dbus-activation ──────────────────────────────────────────
+def scan_dbus_activation():
+    dirs = ['/usr/share/dbus-1/services',
+            os.path.join(os.path.expanduser('~'), '.local/share/dbus-1/services')]
+    existing = [d for d in dirs if os.path.isdir(d)]
+    if not existing:
+        return result(skip='no D-Bus services directory present '
+                           '(/usr/share/dbus-1/services, ~/.local/share/dbus-1/services)')
+    hits = []
+    for d in existing:
+        for f in iter_files(d):
+            if TOKEN_RE.search(f):
+                hits.append(f)
+            else:
+                hits.extend(grep_hits([f]))
+    return result(hits=sorted(set(hits)))
+
+
+# ── Class 13 — xdg-autostart ─────────────────────────────────────────────
+def scan_xdg_autostart():
+    dirs = ['/etc/xdg/autostart', os.path.join(os.path.expanduser('~'), '.config/autostart')]
+    existing = [d for d in dirs if os.path.isdir(d)]
+    if not existing:
+        return result(skip='no XDG autostart directory present '
+                           '(/etc/xdg/autostart, ~/.config/autostart)')
+    hits = []
+    for d in existing:
+        for f in iter_files(d):
+            if TOKEN_RE.search(f):
+                hits.append(f)
+            else:
+                hits.extend(grep_hits([f]))
+    return result(hits=sorted(set(hits)))
+
+
+# ── Class 14 — host-package ─────────────────────────────────────────────
+def scan_host_package():
+    pacman = shutil.which('pacman')
+    if not pacman:
+        return result(skip='pacman not on PATH')
+    try:
+        proc = subprocess.run([pacman, '-Q', surface], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return result(skip='pacman -Q invocation failed')
+    if proc.returncode == 0:
+        return result(hits=[f'pacman -Q {surface}: {proc.stdout.strip()}'])
+    return result(hits=[])
+
+
+# ── Class 15 — planning-archive (report domain, count-only) ────────────
+def scan_planning_archive():
+    target = os.path.join(root, '.planning')
+    if not os.path.isdir(target):
+        return result(skip=f'{target} not present')
+    hits = grep_hits(list(iter_files(target)))
+    return result(count_only=True, count=len(hits))
+
+
+# ── Class 16 — repo-prose (report domain, count-only) ───────────────────
+def scan_repo_prose():
+    targets = []
+    for rel in ['README.md', 'VERIFICATION.md']:
+        p = os.path.join(root, rel)
+        if os.path.isfile(p):
+            targets.append(p)
+    docs = os.path.join(root, 'docs')
+    if os.path.isdir(docs):
+        targets.extend(iter_files(docs))
+    claude_md = os.path.join(root, '.claude/CLAUDE.md')
+    if os.path.isfile(claude_md):
+        targets.append(claude_md)
+    planning_real = os.path.realpath(os.path.join(root, '.planning'))
+    if os.path.isdir(root):
+        for dirpath, dirnames, filenames in os.walk(root, followlinks=True):
+            dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIR_NAMES]
+            real_dp = os.path.realpath(dirpath)
+            if real_dp == planning_real or real_dp.startswith(planning_real + os.sep):
+                dirnames[:] = []
+                continue
+            for fn in filenames:
+                if fn.endswith('.md'):
+                    targets.append(os.path.join(dirpath, fn))
+    targets = sorted(set(targets))
+    if not targets:
+        return result(skip=f'no repo-prose files (README.md/VERIFICATION.md/docs/'
+                           f'.claude/CLAUDE.md/*.md) present under {root}')
+    hits = grep_hits(targets)
+    return result(count_only=True, count=len(hits))
+
+
+SCAN_FUNCS = {
+    'own-tree': scan_own_tree,
+    'layer-window-rules': scan_layer_window_rules,
+    'autostart': scan_autostart,
+    'keybinds': scan_keybinds,
+    'contract-json': scan_contract_json,
+    'matugen-templates': scan_matugen_templates,
+    'checker-internals': scan_checker_internals,
+    'test-fixtures': scan_test_fixtures,
+    'cross-package-refs': scan_cross_package_refs,
+    'install-stow-lists': scan_install_stow,
+    'systemd-units': scan_systemd_units,
+    'dbus-activation': scan_dbus_activation,
+    'xdg-autostart': scan_xdg_autostart,
+    'host-package': scan_host_package,
+    'planning-archive': scan_planning_archive,
+    'repo-prose': scan_repo_prose,
+}
+
+
+def emit_class(cname, r):
+    domain = 'report' if cname in REPORT_DOMAIN else 'blocking'
+    if 'skip' in r:
+        print(f'[SKIP] {surface}/{cname}: {r["skip"]}')
+        return 0
+    count = r['count']
+    if domain == 'report':
+        print(f'[REPORT] {surface}/{cname}: {count} reference(s)')
+        if not r.get('count_only'):
+            for h in r['hits']:
+                print(f'    {h}')
+        return 0
+    if status == 'retired':
+        if count == 0:
+            print(f'[PASS] {surface}/{cname}: no references')
+            return 0
+        print(f'[FAIL] {surface}/{cname}: {count} reference(s)')
+        for h in r['hits']:
+            print(f'    {h}')
+        return 1
+    print(f'[REPORT] {surface}/{cname}: {count} reference(s)')
+    for h in r['hits']:
+        print(f'    {h}')
+    return 0
+
+
+if mode == 'single':
+    fail_tally = 0
+    for cname in CLASS_ORDER:
+        fail_tally += emit_class(cname, SCAN_FUNCS[cname]())
+    print()
+    print(f'Summary: surface={surface} status={status} failed_classes={fail_tally}')
+    sys.exit(1 if fail_tally else 0)
+
+elif mode == 'all-summary':
+    if status == 'retired':
+        fail_tally = 0
+        for cname in CLASS_ORDER:
+            fail_tally += emit_class(cname, SCAN_FUNCS[cname]())
+        print(f'Summary: surface={surface} status=retired failed_classes={fail_tally}')
+        sys.exit(1 if fail_tally else 0)
+    blocking_total = 0
+    report_total = 0
+    for cname in CLASS_ORDER:
+        r = SCAN_FUNCS[cname]()
+        if 'skip' in r:
+            continue
+        if cname in REPORT_DOMAIN:
+            report_total += r['count']
+        else:
+            blocking_total += r['count']
+    print(f'[REPORT] {surface} (pending, {req}): blocking-domain={blocking_total} '
+          f'reference(s), report-domain={report_total} reference(s)')
+    sys.exit(0)
+
+else:
+    print(f'retirement-check: internal error — unknown mode {mode!r}', file=sys.stderr)
+    sys.exit(2)
+PYEOF
+}
+
+run_list() {
+    echo "retirement-check registry (RETIRE-01):"
+    echo ""
+    for s in "${REGISTRY_ORDER[@]}"; do
+        printf '  %-20s status=%-8s requirement=%-10s own-tree=%s\n' \
+            "$s" "${REG_STATUS[$s]}" "${REG_REQ[$s]}" "${REG_OWNTREE[$s]:-<none>}"
+    done
+    echo ""
+    echo "Known precision limit: a short common-word surface token (e.g. 'ags') can"
+    echo "word-boundary-match unrelated prose in an unrelated sentence — word boundaries"
+    echo "already exclude 'tags'/'flags'/'images'. The residual exposure lands almost"
+    echo "entirely in the report domain (planning-archive/repo-prose)."
+}
+
+run_all() {
+    local fail_any=0
+    for s in "${REGISTRY_ORDER[@]}"; do
+        if ! _rc_scan "$DOTFILES_DIR" "$s" "${REG_STATUS[$s]}" "${REG_OWNTREE[$s]}" "${REG_REQ[$s]}" "all-summary"; then
+            fail_any=1
+        fi
+    done
+    return "$fail_any"
+}
+
+run_self_test() {
+    local -a fixtures=(
+        "compliant-clean-surface:0"
+        "poisoned-stray-layer-rule:1"
+        "poisoned-stray-contract-entry:1"
+        "poisoned-stray-cross-script-ref:1"
+        "poisoned-planning-only:0"
+    )
+    local st_pass=0 st_fail=0
+    local entry fname expect_nonzero fixture_root rc want_desc out
+
+    echo "retirement-check --self-test — replaying the five committed fixtures"
+    echo ""
+
+    for entry in "${fixtures[@]}"; do
+        fname="${entry%%:*}"
+        expect_nonzero="${entry##*:}"
+        fixture_root="$FIXTURES_DIR/$fname"
+
+        if [[ ! -d "$fixture_root" ]]; then
+            printf '  [FAIL] self-test: fixture missing: %s\n' "$fixture_root"
+            st_fail=$((st_fail + 1))
+            continue
+        fi
+
+        out="$("$SELF_PATH" retirement-fixture --root "$fixture_root" 2>&1)"
+        rc=$?
+
+        if [[ "$expect_nonzero" == "0" ]]; then
+            want_desc="exit 0 (compliant)"
+        else
+            want_desc="a non-zero exit (poisoned)"
+        fi
+
+        if [[ "$expect_nonzero" == "0" && "$rc" -eq 0 ]] || [[ "$expect_nonzero" == "1" && "$rc" -ne 0 ]]; then
+            printf '  [PASS] self-test: %s -> %s as expected\n' "$fname" "$want_desc"
+            st_pass=$((st_pass + 1))
+        else
+            printf '  [FAIL] self-test: %s -> exited %d, expected %s\n' "$fname" "$rc" "$want_desc"
+            printf '         output:\n%s\n' "$(printf '%s\n' "$out" | sed 's/^/           /')"
+            st_fail=$((st_fail + 1))
+        fi
+    done
+
+    echo ""
+    printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+    [[ "$st_fail" -eq 0 ]]
+}
+
+case "${1:-}" in
+    --list)
+        run_list
+        exit 0
+        ;;
+    --self-test)
+        run_self_test
+        exit $?
+        ;;
+    --all)
+        run_all
+        exit $?
+        ;;
+    "")
+        usage
+        exit 2
+        ;;
+esac
+
+SURFACE="$1"
+shift
+_rc_validate_token "$SURFACE"
+
+ROOT="$DOTFILES_DIR"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --root)
+            [[ -n "${2:-}" ]] || _rc_reject "--root requires a directory argument"
+            ROOT="$2"
+            shift 2
+            ;;
+        *)
+            _rc_reject "unknown argument '$1'"
+            ;;
+    esac
+done
+
+echo "retirement-check — surface=$SURFACE status=${REG_STATUS[$SURFACE]} root=$ROOT"
+echo ""
+_rc_scan "$ROOT" "$SURFACE" "${REG_STATUS[$SURFACE]}" "${REG_OWNTREE[$SURFACE]}" "${REG_REQ[$SURFACE]}" "single"
+exit $?
