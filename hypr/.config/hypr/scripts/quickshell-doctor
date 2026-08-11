@@ -1713,6 +1713,98 @@ _qsd_check_bar_surface_registry() {
     check "bar-surface-registry (GATE-03, D-18-15's compensating instrument: every layer-shell frame this phase added, covered by construction — a registry row without a file fails, and a file declaring a namespace without a row fails too): source: ${src_res}, live: ${live_res}" "$overall_rc"
 }
 
+# ── D-20 (Phase 18.1 Plan 06) — bar-colour-role-routing ──────────────────
+# Converts this phase's whole failure mode into a check that fails loudly:
+# WorkspaceCapsule.qml:90 once promised colour-carried state in a COMMENT
+# while the code applied a foreground tint, and nothing caught it for a
+# whole phase. Modelled directly on _qsd_assert_panel_source (:691-701) —
+# find non-exempt *.qml files at maxdepth 1, strip comments, grep a
+# forbidden literal, count, name the offenders.
+#
+# QSD_BAR_COLOUR_ROLE_EXEMPT — every basename below carries a written
+# reason; an unnamed exemption is never permitted (T-18.1-24).
+#   - BarRoles.qml is the one file legitimately permitted to reference the
+#     global palette — it IS the role layer. Omitting this self-exemption
+#     would make the check fail on its own foundation file, which RESEARCH
+#     "Pitfall 3" names as warning sign one of a wrong implementation.
+#   - The seven SectionPopout-family files (SectionPopout, AudioPopout,
+#     WifiPopout, BluetoothPopout, ClockPopout, ResourcesPopout,
+#     MediaPopout) are separate anchored surfaces with their own
+#     surfaceBase; phase 18.1's scope_fence places popout content and the
+#     SectionPopout framework explicitly OUT of scope, and their palette
+#     references were never part of the fill-versus-tint defect this rule
+#     exists to catch. Live count at time of writing: 66 Colours.*
+#     references across these seven files (see .planning/WINDOWS.md for
+#     the deferred row recording this exemption so it resurfaces).
+# contentColour/capsuleRoot.* need NO exemption — neither ever appears as
+# a Colours.* palette-dot reference textually, so widening the array for
+# them would silently grow the check's blind spot.
+QSD_BAR_COLOUR_ROLE_EXEMPT=(
+    "BarRoles.qml"          # the role layer itself — the one legitimate Colours.* consumer
+    "SectionPopout.qml"     # popout framework — out of phase 18.1 scope_fence
+    "AudioPopout.qml"       # popout content — out of phase 18.1 scope_fence
+    "WifiPopout.qml"        # popout content — out of phase 18.1 scope_fence
+    "BluetoothPopout.qml"   # popout content — out of phase 18.1 scope_fence
+    "ClockPopout.qml"       # popout content — out of phase 18.1 scope_fence
+    "ResourcesPopout.qml"   # popout content — out of phase 18.1 scope_fence
+    "MediaPopout.qml"       # popout content — out of phase 18.1 scope_fence
+)
+
+# Assert half — no bar capsule file (excluding QSD_BAR_COLOUR_ROLE_EXEMPT
+# above) may reference the global Colours.* palette directly. Comments are
+# stripped to END OF LINE with a sed substitution (never
+# `grep -vE '^\s*//'`, which drops only whole-comment lines and lets a
+# trailing comment on a code line hide a real violation). Emits the
+# non-exempt scanned-file count, the offender count, and the offending
+# basenames, so a failure names what to fix and an empty scan is
+# distinguishable from a clean one.
+_qsd_assert_bar_colour_roles() {
+    local dir="$1" f base bad=0 scanned=0 offenders=""
+    while IFS= read -r f; do
+        base="$(basename -- "$f")"
+        local exempt=0 e
+        for e in "${QSD_BAR_COLOUR_ROLE_EXEMPT[@]}"; do
+            [[ "$base" == "$e" ]] && exempt=1 && break
+        done
+        [[ "$exempt" -eq 1 ]] && continue
+        scanned=$((scanned + 1))
+        if sed -E 's|//.*$||' -- "$f" 2>/dev/null | grep -q -- 'Colours\.'; then
+            bad=$((bad + 1))
+            offenders="${offenders}${offenders:+,}${base}"
+        fi
+    done < <(find -L "$dir" -maxdepth 1 -type f -name '*.qml' 2>/dev/null)
+    printf 'scanned=%s bad=%s offenders=%s' "$scanned" "$bad" "${offenders:-none}"
+    [[ "$bad" -eq 0 ]]
+}
+
+# Check half — resolves the scan root via _qsd_shell_qml_root, appends the
+# bar subdirectory, calls the assert half, and reports through the
+# existing check() reporter. Both empty boundaries (unresolvable root,
+# zero non-exempt files) report SKIP, never PASS — a vacuous pass over an
+# empty scan set is the exact mechanism (QBAR-01, T-18.1-25) that let the
+# original fill-versus-tint defect survive review.
+_qsd_check_bar_colour_role_routing() {
+    local scan_root dir
+    scan_root=$(_qsd_shell_qml_root)
+    if [[ ! -d "$scan_root" ]]; then
+        echo "  [SKIP] bar-colour-role-routing (D-20): shell QML root not found ($scan_root)"
+        return
+    fi
+    dir="$scan_root/bar"
+    if [[ ! -d "$dir" ]]; then
+        echo "  [SKIP] bar-colour-role-routing (D-20): bar directory not found ($dir)"
+        return
+    fi
+    local res rc scanned
+    res=$(_qsd_assert_bar_colour_roles "$dir"); rc=$?
+    scanned=$(printf '%s' "$res" | grep -oE 'scanned=[0-9]+' | cut -d= -f2)
+    if [[ "${scanned:-0}" -eq 0 ]]; then
+        echo "  [SKIP] bar-colour-role-routing (D-20): zero non-exempt .qml files found in $dir (exempt: ${QSD_BAR_COLOUR_ROLE_EXEMPT[*]})"
+        return
+    fi
+    check "bar-colour-role-routing (D-20, the executable counterpart of this phase's central prohibition — a rule stated in a comment and enforced nowhere: no bar capsule file may reference the global Colours.* palette directly; scanned ${dir}; exempt: ${QSD_BAR_COLOUR_ROLE_EXEMPT[*]}): ${res}" "$rc"
+}
+
 # ── check 4: permissions-enforce-readback ───────────────────────────────
 # Guards D-16-09 against silent revert. ecosystem:enforce_permissions is
 # read ONCE at compositor startup and its failure mode is silence — reading
@@ -2732,6 +2824,7 @@ _qsd_check_mpvpaper_layer_coexistence
 _qsd_check_overview_shortcut_single_registration
 _qsd_check_bar_reserved_zone_stability
 _qsd_check_bar_surface_registry
+_qsd_check_bar_colour_role_routing
 _qsd_check_permissions_enforce_readback
 _qsd_check_permissions_allowlist_paths_resolve
 _qsd_check_overview_content

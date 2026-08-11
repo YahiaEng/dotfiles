@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 42
+open_count: 43
 waived_count: 0
 fixed_count: 14
-total_count: 56
-last_updated: 2026-08-11T15:00:58.131Z
+total_count: 57
+last_updated: 2026-08-11T15:15:17.265Z
 ---
 
 # Broken Windows Ledger
@@ -71,6 +71,7 @@ last_updated: 2026-08-11T15:00:58.131Z
 | 54 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml |  | 18.1-05 Task 3 leg 2 (drawer opening into a moving bar) not live-observed — no synthetic pointer-input tool exists on this host (PROJECT.md-recorded finding); the dwell timer re-evaluating drawerHoverActive/drawerSettled at fire time (not only arm time) is asserted from source instead, per the plan's own stated fallback for this leg. Deferred to 18.1-07's GATE-02 hover walkthrough. | open |  | 2026-08-11T15:00:44.002Z |  |
 | 55 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml |  | 18.1-05 Task 3 leg 3 (drawer open when the bar hides) not live-observed — expanding a drawer via real hover, then triggering a bar hide (idle/fullscreen/gaming/keybind) and watching it collapse, needs pointer input this host has no synthetic tool for. Asserted from source instead: onDrawerSettledChanged stops both timers and calls requestCollapse() immediately (no grace) the moment drawerSettled goes false while expanded, and requestExpand() is reachable only from the dwell timer's fire handler which re-gates on drawerSettled, so the drawer cannot mechanically reappear expanded on the next reveal without a fresh hover+dwell cycle. Deferred to 18.1-07's GATE-02 hover walkthrough. | open |  | 2026-08-11T15:00:51.726Z |  |
 | 56 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml |  | 18.1-05 Task 3's zero-idle-at-rest check (both drawer timers not running with the pointer away and both drawers collapsed) was not confirmed via live introspection — no QML Timer.running probe/IPC exists on this host to poll it. Asserted from source instead: both drawerDwellTimer/drawerGraceTimer (in LauncherCapsule.qml and ClockActionsCapsule.qml) are repeat:false and are only ever started via .restart() inside onDrawerHoverActiveChanged (armed on a hover-state transition) or onDrawerSettledChanged (only while already expanded) — neither has running:true set unconditionally nor a Component.onCompleted starter, mirroring the same static method BarReveal.qml's own reHideTimer zero-idle claim already relies on. | open |  | 2026-08-11T15:00:58.131Z |  |
+| 57 | 18.1 | deviation | quickshell/.config/quickshell/modules/bar/ |  | D-20's quickshell-doctor colour-role-routing check exempts the seven SectionPopout-family files (SectionPopout.qml, AudioPopout.qml, WifiPopout.qml, BluetoothPopout.qml, ClockPopout.qml, ResourcesPopout.qml, MediaPopout.qml) by basename — 66 live Colours.* references across those seven files at time of writing. D-06/D-20 as written say the whole of modules/bar/, but phase 18.1's own scope_fence places popout content and the SectionPopout framework explicitly OUT of scope: these are separate anchored surfaces with their own surfaceBase, not bar capsules, and their palette references were never part of the fill-versus-tint defect the check exists to catch. This is a deferred decision, not a closed one — a future phase migrating the popout family onto BarRoles should remove this exemption and shrink QSD_BAR_COLOUR_ROLE_EXEMPT accordingly. | open |  | 2026-08-11T15:15:17.265Z |  |
 
 ````json
 [
@@ -744,6 +745,18 @@ last_updated: 2026-08-11T15:00:58.131Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T15:00:58.131Z",
+    "resolved_at": null
+  },
+  {
+    "id": 57,
+    "kind": "deviation",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/bar/",
+    "line": null,
+    "description": "D-20's quickshell-doctor colour-role-routing check exempts the seven SectionPopout-family files (SectionPopout.qml, AudioPopout.qml, WifiPopout.qml, BluetoothPopout.qml, ClockPopout.qml, ResourcesPopout.qml, MediaPopout.qml) by basename — 66 live Colours.* references across those seven files at time of writing. D-06/D-20 as written say the whole of modules/bar/, but phase 18.1's own scope_fence places popout content and the SectionPopout framework explicitly OUT of scope: these are separate anchored surfaces with their own surfaceBase, not bar capsules, and their palette references were never part of the fill-versus-tint defect the check exists to catch. This is a deferred decision, not a closed one — a future phase migrating the popout family onto BarRoles should remove this exemption and shrink QSD_BAR_COLOUR_ROLE_EXEMPT accordingly.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:15:17.265Z",
     "resolved_at": null
   }
 ]
