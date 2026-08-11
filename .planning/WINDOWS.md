@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 43
+open_count: 44
 waived_count: 0
 fixed_count: 19
-total_count: 62
-last_updated: 2026-08-11T16:45:25.110Z
+total_count: 63
+last_updated: 2026-08-11T21:48:09.267Z
 ---
 
 # Broken Windows Ledger
@@ -77,6 +77,7 @@ last_updated: 2026-08-11T16:45:25.110Z
 | 60 | 18.1 | deviation | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml | 308 | GATE-02 defect 3: drawer expansion reads as sudden/clunky vs Athena's smooth expansion. Container motion IS present (motion.json motion_enabled:true, 375ms emphasized-in MD3 bezier, Behavior on width/height at LauncherCapsule.qml:308-323) but revealed cells appear instantly with no fade/stagger, unlike Athena's transition: all on the members themselves. Not definitively isolated as the sole cause — a lead, not proven. Root cause lead for the operator's GATE-02 FAIL complaint 3. Not fixed in 18.1-07 (recording-only plan). | fixed |  | 2026-08-11T15:40:50.480Z | 2026-08-11T16:45:24.921Z |
 | 61 | 18.1 | deviation | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml | 50 | GATE-02 defect 4: app drawer shows jarring generic icons for apps without a good themed icon. appEntries (LauncherCapsule.qml:50-57) IS the correct predetermined 7-app list matching Athena's custom/app-* set; the divergence is in icon resolution — this phase's D-18-01 icon-theme redesign resolves each entry through the desktop-entry/icon-theme database instead of Athena's one-hardcoded-glyph-per-app approach. D-18-01's redesign is the direct cause and needs revisiting. Root cause of the operator's GATE-02 FAIL complaint 4. Not fixed in 18.1-07 (recording-only plan). | fixed |  | 2026-08-11T15:40:50.580Z | 2026-08-11T16:45:25.018Z |
 | 62 | 18.1 | unmet-truth | quickshell/.config/quickshell/modules/bar/BarRoles.qml |  | GATE-02 verification-method gap: no alpha-blended BarRoles role was ever probed for a resolved numeric value across this phase's automated checks — plan 18.1-01's verification asserted typeof BarRoles.accent === object (a non-alpha role) and never exercised a blended one. Plan 18.1-06's D-20 quickshell-doctor colour-routing check only asserts no direct Colours.* reference survives under modules/bar/; it does not assert a routed role RESOLVES to a real colour. This is why a 100%-black bar (see WINDOWS id 58) passed every automated check in the phase, including the check built specifically to guard bar colour correctness. The check is not wrong, it is insufficient — needs a resolved-value assertion on every alpha role, not just a routing/reference check. | fixed |  | 2026-08-11T15:40:50.676Z | 2026-08-11T16:45:25.110Z |
+| 63 | 18 | deviation | quickshell/.config/quickshell/shell.qml |  | 18-18 Task 5, option-b (operator decision 2026-08-12): 18-05 widened three SystemResources backend gates all-or-nothing, so switching on cpu/memory/storage for the bar also switched on the GPU and network samplers no bar entry consumes — SystemCapsule.qml reads only cpuFraction/memoryFraction/storageFraction. Measured cost: 900 nvidia-smi subprocess spawns per hour (gpuPollInterval 4000ms -> 3600/4), per 18-BAR-LIVENESS-CHARGE.md's live measurement. Wake/CPU-time share is NOT isolable from the soak's aggregate observation (that figure includes every backend combined); isolating it would need a differential gate-disabled-vs-enabled run, which means editing shell.qml. Remedy is one line of work: add a second, drawer-only gate expression in shell.qml so the GPU and network samplers follow the drawer while cpu/memory/storage follow the bar. Not done in phase 18 — shell.qml is 18-05's file, frozen for wave 3, and five shipped-and-verified plans (18-15, 18-16, 18-17 among them) depend on its current shape. Routed here from 18-08, measured by 18-18, decided by the operator as debt rather than an in-phase scope correction. Citation: 18-BAR-SOAK.md § 'GPU-and-network-sampler cost'. | open |  | 2026-08-11T21:48:09.267Z |  |
 
 ````json
 [
@@ -823,6 +824,18 @@ last_updated: 2026-08-11T16:45:25.110Z
     "reason": "",
     "recorded_at": "2026-08-11T15:40:50.676Z",
     "resolved_at": "2026-08-11T16:45:25.110Z"
+  },
+  {
+    "id": 63,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/shell.qml",
+    "line": null,
+    "description": "18-18 Task 5, option-b (operator decision 2026-08-12): 18-05 widened three SystemResources backend gates all-or-nothing, so switching on cpu/memory/storage for the bar also switched on the GPU and network samplers no bar entry consumes — SystemCapsule.qml reads only cpuFraction/memoryFraction/storageFraction. Measured cost: 900 nvidia-smi subprocess spawns per hour (gpuPollInterval 4000ms -> 3600/4), per 18-BAR-LIVENESS-CHARGE.md's live measurement. Wake/CPU-time share is NOT isolable from the soak's aggregate observation (that figure includes every backend combined); isolating it would need a differential gate-disabled-vs-enabled run, which means editing shell.qml. Remedy is one line of work: add a second, drawer-only gate expression in shell.qml so the GPU and network samplers follow the drawer while cpu/memory/storage follow the bar. Not done in phase 18 — shell.qml is 18-05's file, frozen for wave 3, and five shipped-and-verified plans (18-15, 18-16, 18-17 among them) depend on its current shape. Routed here from 18-08, measured by 18-18, decided by the operator as debt rather than an in-phase scope correction. Citation: 18-BAR-SOAK.md § 'GPU-and-network-sampler cost'.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T21:48:09.267Z",
+    "resolved_at": null
   }
 ]
 ````

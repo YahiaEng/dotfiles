@@ -292,7 +292,13 @@ number attached, independent of whether the full soak has completed:
 - **Ownership:** re-narrowing this cost means adding a second, drawer-only gate expression
   in `quickshell/.config/quickshell/shell.qml` — 18-05's file, frozen for wave 3 and not
   this plan's to edit.
-- **Disposition:** open, pending Task 5.
+- **Disposition:** **CLOSED to debt — `WINDOWS.md` row `63`** (operator decision, 2026-08-12,
+  Task 5 `option-b`). The finding now lives in the repo's cross-phase defect register with its
+  measured number, its named owner (`shell.qml`, 18-05's file) and its one-line remedy, rather
+  than only in this artifact. `option-a` — cutting a scope-correction plan against 18-05 at wave
+  8 — was rejected: five shipped-and-verified plans depend on `shell.qml`'s current shape, and
+  every downstream `SystemResources` assertion would have needed re-confirming. No QML was
+  edited by this plan, as both branches require.
 
 ## Commands executed
 
