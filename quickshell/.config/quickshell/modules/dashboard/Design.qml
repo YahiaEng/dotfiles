@@ -133,6 +133,42 @@ Singleton {
     readonly property int barSideMargin: 10
     readonly property int barCapsuleRadius: barHeight / 2
 
+    // ── Bar-scoped type/padding parity tokens (Phase 18.1 gap closure) ───
+    //    GATE-02 failed partly because the bar rendered "unmistakably
+    //    larger" than the Athena waybar it replaces. Root cause: the bar
+    //    borrowed the DASHBOARD's iconSizeMd (24) for its glyphs and
+    //    spacingSm (8) for capsule padding, where Athena's own stylesheet
+    //    specifies 16px glyphs and 6px capsule padding. These three tokens
+    //    carry Athena's literal values so the bar stops inheriting
+    //    dashboard sizing:
+    //      barGlyphSize     <- style-athena.scss:400 (`font-size: 16px` on
+    //                          every glyph-only module)
+    //      barBodySize      <- style-athena.scss:31 (`* { font-size: 13px }`)
+    //      barCapsulePadding<- style-athena.scss:76/112/150/216/264/293
+    //                          (`padding: 6px 6px` on every group capsule)
+    //    Like barEdgeMargin/barSideMargin above, barBodySize (13) and
+    //    barCapsulePadding (6) are OFF the repo's 4px grid. They carry the
+    //    same one-time waybar-parity exemption and are equally not a
+    //    precedent — they exist to match a stylesheet this bar must replace
+    //    without visibly downgrading it.
+    readonly property int barGlyphSize: 16
+    readonly property int barBodySize: 13
+    readonly property int barCapsulePadding: 6
+
+    //    Athena's capsules also carry `margin: 4px 5px`
+    //    (style-athena.scss:70), so a capsule is 8px SHORTER than the bar
+    //    and adjacent capsules sit 10px apart — they read as pills floating
+    //    in the bar. The QML bar had no such margin: BarCapsule's horizontal
+    //    implicitHeight returned barHeight outright, making every capsule a
+    //    full-bar-height slab. Measured on screen before this fix: Athena's
+    //    capsule 32px tall, the QML's 40px. That is a large part of GATE-02's
+    //    "big and clunky". barCapsuleHeight is derived from barHeight so the
+    //    two can never drift apart.
+    readonly property int barCapsuleMarginV: 4
+    readonly property int barCapsuleMarginH: 5
+    readonly property int barCapsuleHeight: barHeight - barCapsuleMarginV * 2
+    readonly property int barCapsuleGap: barCapsuleMarginH * 2
+
     // ── barColumnWidth (Phase 18 Plan 05) — provenance: 18-UI-SPEC.md
     //    "## New Tokens" + D-18-14 (text-bearing entries re-stack into this
     //    exact column width in vertical orientation). 44 IS on the repo's

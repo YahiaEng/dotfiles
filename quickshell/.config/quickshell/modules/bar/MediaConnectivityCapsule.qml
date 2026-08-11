@@ -91,7 +91,7 @@ BarCapsule {
 
         TextMetrics {
             id: valueReserve
-            font.pixelSize: Design.fontLabel
+            font.pixelSize: Design.barBodySize
             font.weight: Design.weightBody
             text: readoutItem.maxValueText
         }
@@ -104,14 +104,14 @@ BarCapsule {
 
             Text {
                 font.family: Design.symbolFontFamily
-                font.pixelSize: Design.iconSizeMd
+                font.pixelSize: Design.barGlyphSize
                 text: readoutItem.glyph
                 color: readoutItem.errored ? BarRoles.danger : root.contentColour
             }
 
             Text {
                 visible: readoutItem.showValue
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.barBodySize
                 font.weight: Design.weightBody
                 color: root.contentColour
                 horizontalAlignment: Text.AlignRight

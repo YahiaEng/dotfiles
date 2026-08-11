@@ -83,9 +83,17 @@ Rectangle {
     default property alias content: contentGrid.data
 
     // barHeight tall horizontally, barColumnWidth wide vertically; shrinks
-    // to fit on the free axis.
-    implicitWidth: vertical ? Design.barColumnWidth : contentGrid.implicitWidth + Design.spacingSm * 2
-    implicitHeight: vertical ? contentGrid.implicitHeight + Design.spacingSm * 2 : Design.barHeight
+    // to fit on the free axis. Padding is barCapsulePadding (6) — Athena's
+    // own `padding: 6px 6px` on every group capsule — NOT the dashboard's
+    // spacingSm (8), which is part of what made this bar read "unmistakably
+    // larger" than the waybar it replaces (GATE-02 defect 2).
+    // barCapsuleHeight (32), NOT barHeight (40): Athena's capsules carry
+    // `margin: 4px 5px` so they float inside the bar rather than filling it
+    // edge to edge. Bar.qml's zone Grids already anchor to
+    // parent.verticalCenter in horizontal orientation, so the 8px this frees
+    // up becomes symmetric breathing room with no extra positioning.
+    implicitWidth: vertical ? Design.barColumnWidth : contentGrid.implicitWidth + Design.barCapsulePadding * 2
+    implicitHeight: vertical ? contentGrid.implicitHeight + Design.barCapsulePadding * 2 : Design.barCapsuleHeight
 
     // QtQuick positioners exclude non-visible children AND their spacing —
     // this is what delivers UI-SPEC's E7-partial "the remainder re-flow

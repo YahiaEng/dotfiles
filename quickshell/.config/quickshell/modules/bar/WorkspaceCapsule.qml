@@ -38,7 +38,7 @@ BarCapsule {
     // Reserved icon cells per slot. Must be >= 2: the overflow label
     // occupies the LAST cell rather than an extra one, so a capacity of 1
     // would make every multi-window slot render an overflow count and no
-    // glyph at all. 3 is derived from Design.iconSizeMd cells stacking
+    // glyph at all. 3 is derived from Design.barGlyphSize cells stacking
     // along the slot's main axis — in vertical that axis is the column's
     // length, the scarce one.
     //
@@ -323,7 +323,7 @@ BarCapsule {
         visible: false
         text: workspaceCapsule.stateGlyphActive
         font.family: workspaceCapsule.appGlyphFontFamily
-        font.pixelSize: Design.fontLabel
+        font.pixelSize: Design.barBodySize
         font.weight: Design.weightBody
     }
 
@@ -357,7 +357,7 @@ BarCapsule {
             // The slot's own extent, stated explicitly from the tokens
             // rather than left implicit — the numeral's reserved
             // two-digit width/height, one inter-child gap, and
-            // iconsPerSlot reserved cells each Design.iconSizeMd square
+            // iconsPerSlot reserved cells each Design.barGlyphSize square
             // with their own inter-cell gaps. Stating it here is what
             // makes D-18-12's fixed-extent guarantee readable at the
             // file rather than emergent from whatever happens to be
@@ -365,10 +365,10 @@ BarCapsule {
             // the CONSTANT iconsPerSlot, never the window count, so this
             // expression's value cannot change as windows open and close.
             readonly property int numeralMainAxisExtent: workspaceCapsule.vertical ? slotIdentityMetrics.height : slotIdentityMetrics.width
-            readonly property int cellsMainAxisExtent: Design.iconSizeMd * workspaceCapsule.iconsPerSlot + Design.spacingXs * (workspaceCapsule.iconsPerSlot - 1)
+            readonly property int cellsMainAxisExtent: Design.barGlyphSize * workspaceCapsule.iconsPerSlot + Design.spacingXs * (workspaceCapsule.iconsPerSlot - 1)
             readonly property int slotMainAxisExtent: slotItem.numeralMainAxisExtent + Design.spacingXs + slotItem.cellsMainAxisExtent
 
-            // Cross-axis is a single Design.iconSizeMd (24px) — this is
+            // Cross-axis is a single Design.barGlyphSize (24px) — this is
             // what fits both the 24px horizontal content budget and the
             // 28px vertical column budget the shared chrome leaves
             // (BarCapsule's own implicitWidth/implicitHeight expressions),
@@ -378,8 +378,8 @@ BarCapsule {
             // numeral, a three-character overflow label — so the
             // codebase's precedent for handling unbounded window names
             // has nothing to apply to here.
-            implicitWidth: workspaceCapsule.vertical ? Design.iconSizeMd : slotItem.slotMainAxisExtent
-            implicitHeight: workspaceCapsule.vertical ? slotItem.slotMainAxisExtent : Design.iconSizeMd
+            implicitWidth: workspaceCapsule.vertical ? Design.barGlyphSize : slotItem.slotMainAxisExtent
+            implicitHeight: workspaceCapsule.vertical ? slotItem.slotMainAxisExtent : Design.barGlyphSize
             width: slotItem.implicitWidth
             height: slotItem.implicitHeight
 
@@ -412,7 +412,16 @@ BarCapsule {
             // iconsPerSlot capacity governs both — no second,
             // per-orientation capacity exists anywhere in this file.
             Grid {
-                anchors.fill: parent
+                // centerIn, NOT fill (GATE-02 defect 2, "the glyphs are not
+                // centered as they should"). A Grid positions its children
+                // from its own top-left, so under anchors.fill the row sat
+                // flush to the slot's top edge while each child's natural
+                // text height differed from the slot's one-glyph cross-axis
+                // extent — the glyphs rendered visibly high. centerIn is
+                // also what the shared chrome's own content Grid uses
+                // (BarCapsule.qml:76), i.e. the convention this block's
+                // comment above already claims to follow.
+                anchors.centerIn: parent
                 rows: workspaceCapsule.vertical ? -1 : 1
                 columns: workspaceCapsule.vertical ? 1 : -1
                 spacing: Design.spacingXs
@@ -420,11 +429,17 @@ BarCapsule {
                 Text {
                     width: slotIdentityMetrics.width
                     horizontalAlignment: Text.AlignHCenter
+                    // Same explicit one-glyph box + vertical centring the
+                    // icon cells below use, so the state glyph shares their
+                    // optical baseline instead of sitting on its own
+                    // font-metric-derived height.
+                    height: Design.barGlyphSize
+                    verticalAlignment: Text.AlignVCenter
                     // D-08: the numeral is gone — this now renders one of
                     // Athena's three Nerd Font state glyphs.
                     text: slotItem.slotStateGlyph
                     font.family: workspaceCapsule.appGlyphFontFamily
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.barBodySize
                     font.weight: Design.weightBody
                     // D-07: focused/urgent/default resolved through
                     // BarRoles via slotItem.slotTextColour above — the
@@ -446,8 +461,8 @@ BarCapsule {
                     delegate: Item {
                         id: cellItem
                         required property int index
-                        width: Design.iconSizeMd
-                        height: Design.iconSizeMd
+                        width: Design.barGlyphSize
+                        height: Design.barGlyphSize
 
                         // The overflow label displaces the LAST cell's
                         // glyph rather than occupying an extra cell, so
@@ -465,7 +480,7 @@ BarCapsule {
                             visible: !cellItem.showOverflow && cellItem.cellWindow !== null
                             text: cellItem.cellGlyph.text
                             font.family: cellItem.cellGlyph.family
-                            font.pixelSize: Design.iconSizeMd
+                            font.pixelSize: Design.barGlyphSize
                             color: slotItem.slotTextColour
                         }
 
@@ -477,7 +492,7 @@ BarCapsule {
                             // fixed extent, not because the count is
                             // expected to get large.
                             text: "+" + Math.min(99, slotItem.slotWindows.length - (workspaceCapsule.iconsPerSlot - 1))
-                            font.pixelSize: Design.fontLabel
+                            font.pixelSize: Design.barBodySize
                             color: slotItem.slotTextColour
                         }
                     }

@@ -362,7 +362,7 @@ PanelWindow {
         // single-positioner axis binding BarCapsule uses internally.
         Grid {
             id: startZone
-            spacing: Design.spacingSm
+            spacing: Design.barCapsuleGap
             rows: barWindow.vertical ? -1 : 1
             columns: barWindow.vertical ? 1 : -1
             anchors.left: !barWindow.vertical ? parent.left : undefined
@@ -381,7 +381,7 @@ PanelWindow {
 
         Grid {
             id: centerZone
-            spacing: Design.spacingSm
+            spacing: Design.barCapsuleGap
             rows: barWindow.vertical ? -1 : 1
             columns: barWindow.vertical ? 1 : -1
             anchors.centerIn: parent
@@ -397,7 +397,7 @@ PanelWindow {
 
         Grid {
             id: endZone
-            spacing: Design.spacingSm
+            spacing: Design.barCapsuleGap
             rows: barWindow.vertical ? -1 : 1
             columns: barWindow.vertical ? 1 : -1
             anchors.right: !barWindow.vertical ? parent.right : undefined

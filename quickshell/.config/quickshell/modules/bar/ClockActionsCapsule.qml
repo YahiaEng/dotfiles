@@ -119,7 +119,7 @@ BarCapsule {
             // Line 1 in both orientations: the time itself.
             Text {
                 id: clockTimeText
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.barBodySize
                 // No "bold" weight token exists in Design.qml (only
                 // weightDisplay/weightEmphasis/weightBody — see this
                 // plan's SUMMARY "Decisions Made"). Athena's #clock rule
@@ -140,7 +140,7 @@ BarCapsule {
             Text {
                 id: clockDateText
                 visible: clockActionsCapsule.vertical
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.barBodySize
                 font.weight: Design.weightBody
                 color: BarRoles.fillClockFg
                 text: Qt.formatDateTime(barClock.date, "ddd")
@@ -150,7 +150,7 @@ BarCapsule {
 
     // ── Shared geometry for every extra on this capsule — Task 2's
     //    LauncherCell pitch, reused. ────────────────────────────────────
-    readonly property int cellPitch: Design.iconSizeMd + Design.spacingXs * 2
+    readonly property int cellPitch: Design.barGlyphSize + Design.spacingXs * 2
 
     // ── ActionCell — the shared cell shape for every extra: identical
     //    geometry whether available or not, a live hover target at all
@@ -207,7 +207,7 @@ BarCapsule {
             anchors.centerIn: parent
             text: cellItem.glyph
             font.family: Design.symbolFontFamily
-            font.pixelSize: Design.iconSizeMd
+            font.pixelSize: Design.barGlyphSize
             font.variableAxes: clockActionsCapsule.fillAxisAvailable ? { "FILL": cellItem.filled ? 1 : 0 } : ({})
             color: cellItem.tint
             opacity: cellItem.available ? 1 : cellItem.disabledOpacity
@@ -231,7 +231,7 @@ BarCapsule {
                 id: badgeLabel
                 anchors.centerIn: parent
                 text: cellItem.badgeText
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.barBodySize
                 color: BarRoles.onAccent
             }
         }

@@ -10,13 +10,16 @@
 //     retired bar's own launcher group — a design-lineage list, not a
 //     curated one. Adding or removing one is a design decision, not a
 //     maintenance edit.
-// (b) Icons are resolved from the desktop-entry database and themed by
-//     the session icon theme — this is the redesign half of D-18-01. The
-//     retired bar used brand glyphs baked into one font, which could
-//     never follow an icon-theme switch; this can.
-// (c) The launch command is built from repo literals; the desktop-entry
-//     database is read for presentation only (icon + name), never for
-//     command construction.
+// (b) Icons are per-app Nerd Font GLYPHS carried in `appEntries` below,
+//     copied from Athena's own `custom/app-*` format fields. D-18-01's
+//     redesign half resolved them from the desktop-entry database so they
+//     would follow an icon-theme switch; the operator rejected that at
+//     GATE-02 because apps with weak or absent themed icons fell back to
+//     generic ones. Reverted to Athena's fixed-glyph approach in the 18.1
+//     gap closure, accepting that these do not follow an icon-theme change.
+// (c) The launch command is built from repo literals. The desktop-entry
+//     database is no longer read at all in this file — the lookup chain
+//     existed only to find an icon.
 // (d) Expansion is HOVER-driven as of Phase 18.1 Plan 05 (D-16/D-17/D-18),
 //     replacing the click toggle this file originally shipped. Both hover
 //     sources (the trigger cell and the drawer strip) report through the
@@ -28,7 +31,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
-import Quickshell.Widgets
+// Quickshell.Widgets (IconImage) dropped with the icon-theme resolution chain — GATE-02 defect 4.
 import "../"
 import "../dashboard"
 
@@ -43,25 +46,39 @@ BarCapsule {
 
     // The one place any application identifier appears in this file.
     // Order and identifiers verbatim from the retired bar's own launcher
-    // group. `desktopId` carries the desktop-entry suffix because it
-    // doubles as the launch argument (D-09's `uwsm app -- <id>.desktop`
-    // convention); LauncherCell strips that suffix before resolving the
-    // icon, see the comment beside that lookup below.
+    // group. `desktopId` carries the desktop-entry suffix because it is the
+    // launch argument (D-09's `uwsm app -- <id>.desktop` convention) — it is
+    // no longer stripped for an icon lookup, because there is no lookup.
+    //
+    // `glyph` carries Athena's OWN per-app Nerd Font codepoint, read
+    // straight out of config-athena.jsonc's `custom/app-*` format fields
+    // (GATE-02 defect 4). D-18-01's "redesign half" resolved each cell's
+    // icon from the session icon theme instead, so that it would follow an
+    // icon-theme switch. The operator rejected the result at GATE-02: apps
+    // whose themed icon is weak or absent fell back to a generic icon, and
+    // a drawer of mismatched stock icons reads worse than a coherent glyph
+    // row. Athena's fix — a fixed app list where each entry carries its own
+    // glyph — is restored here. The trade-off is now the stated one: these
+    // glyphs do NOT follow an icon-theme change, which is the same
+    // trade-off Athena itself makes and the one the operator chose.
+    readonly property string appGlyphFontFamily: "FiraCode Nerd Font"
     readonly property var appEntries: [
-        { id: "zen", desktopId: "zen.desktop", label: "Zen Browser" },
-        { id: "spotify", desktopId: "spotify.desktop", label: "Spotify" },
-        { id: "discord", desktopId: "discord.desktop", label: "Discord" },
-        { id: "steam", desktopId: "steam.desktop", label: "Steam" },
-        { id: "lutris", desktopId: "net.lutris.Lutris.desktop", label: "Lutris" },
-        { id: "obsidian", desktopId: "obsidian.desktop", label: "Obsidian" },
-        { id: "codium", desktopId: "codium.desktop", label: "VSCodium" }
+        { id: "zen", desktopId: "zen.desktop", label: "Zen Browser", glyph: "\u{f269}" },
+        { id: "spotify", desktopId: "spotify.desktop", label: "Spotify", glyph: "\u{f1bc}" },
+        { id: "discord", desktopId: "discord.desktop", label: "Discord", glyph: "\u{f1ff}" },
+        { id: "steam", desktopId: "steam.desktop", label: "Steam", glyph: "\u{f1b6}" },
+        { id: "lutris", desktopId: "net.lutris.Lutris.desktop", label: "Lutris", glyph: "\u{f11b}" },
+        { id: "obsidian", desktopId: "obsidian.desktop", label: "Obsidian", glyph: "\u{f0e55}" },
+        { id: "codium", desktopId: "codium.desktop", label: "VSCodium", glyph: "\u{f0a1e}" }
     ]
 
-    // The shared cell pitch: Design.iconSizeMd (24) of icon centred
-    // inside Design.spacingXs (4) of padding on every side, giving the
-    // same 32x32 cell the tray and the workspace capsule use, so every
-    // icon on this bar shares one pitch.
-    readonly property int cellPitch: Design.iconSizeMd + Design.spacingXs * 2
+    // The shared cell pitch: Design.barGlyphSize (16, Athena's glyph size)
+    // centred inside Design.spacingXs (4) of padding on every side — a 24px
+    // cell. Derived, never hard-coded, so it tracked the 24->16 glyph
+    // correction in the 18.1 gap closure automatically. The workspace
+    // capsule's icon cells share the same barGlyphSize, so every glyph on
+    // this bar still shares one pitch.
+    readonly property int cellPitch: Design.barGlyphSize + Design.spacingXs * 2
 
     // ── The public drawer seam — the hover contract below (Phase 18.1
     //    Plan 05, D-16/D-17/D-18) is the one and only implementation
@@ -163,63 +180,26 @@ BarCapsule {
 
         property var entry: ({})
 
-        // Step 1: resolve the desktop entry. Quickshell's DesktopEntries
-        // byId lookup wants the BARE identifier with no trailing suffix —
-        // resolved empirically this plan (a throwaway `qs -p` probe run
-        // against the installed quickshell 0.3.0-2: looking up the bare
-        // seven-entry set returned the real entry for every one — id,
-        // name and icon all populated — while looking up any of the
-        // seven WITH its desktop-entry suffix attached returned null for
-        // all seven). `entry.desktopId` keeps that suffix because it
-        // also doubles as the launch argument below, so it is stripped
-        // right here rather than
-        // carrying two separate identifier fields. Reading
-        // `DesktopEntries.applications.values.length`, even though the
-        // value itself is unused, is what makes this binding re-evaluate
-        // once the entry database's own async scan completes shortly
-        // after shell start (also proven live this plan: the model holds
-        // zero entries for roughly a second at process start) — without
-        // that read this expression would freeze at whatever had been
-        // indexed at binding-creation time.
-        readonly property var resolvedEntry: {
-            DesktopEntries.applications.values.length;
-            const bareId = cellItem.entry.desktopId ? cellItem.entry.desktopId.replace(/\.desktop$/, "") : "";
-            const byIdResult = DesktopEntries.byId(bareId);
-            if (byIdResult)
-                return byIdResult;
-            return DesktopEntries.heuristicLookup(cellItem.entry.label);
-        }
-
-        // Step 2: resolve the icon — the checking form of iconPath()
-        // returns an empty string when the icon is not installed.
-        readonly property string resolvedIconPath: cellItem.resolvedEntry ? Quickshell.iconPath(cellItem.resolvedEntry.icon, true) : ""
-
-        // Step 3: the fallback. Every step above is guarded and none
-        // assumes the previous one succeeded — a null entry, an empty
-        // icon path, or an IconImage error status all resolve here.
-        readonly property bool resolved: cellItem.resolvedEntry !== null && cellItem.resolvedIconPath !== "" && cellIcon.status !== Image.Error
-
-        IconImage {
-            id: cellIcon
-            anchors.centerIn: parent
-            implicitSize: Design.iconSizeMd
-            asynchronous: true
-            source: cellItem.resolvedIconPath
-            visible: cellItem.resolved
-        }
-
-        // The one placeholder this bar uses for a broken icon — the same
-        // Material Symbol the tray uses for an unresolved pixmap and the
-        // workspace capsule uses for an unresolvable window (UI-SPEC is
-        // explicit that this bar has one placeholder glyph, not three
-        // conventions). The cell is never blank and never a hit target
-        // with no visual.
+        // The cell's glyph comes from its own appEntries row — Athena's
+        // literal codepoint — so there is no icon resolution to fail and no
+        // generic-icon fallback to look wrong (GATE-02 defect 4). The
+        // DesktopEntries byId/heuristicLookup chain that used to live here
+        // existed ONLY to find an icon; `desktopId` is passed straight to
+        // the launch argv below and never needed the database, so removing
+        // the chain drops a per-scan re-evaluation with no behaviour left
+        // to preserve.
+        //
+        // The placeholder branch is gone with it, deliberately: a fixed
+        // literal list cannot produce an unresolved cell, so a fallback
+        // here would be unreachable code asserting a failure mode that no
+        // longer exists. A missing glyph is now a font problem (the family
+        // below), which shows as tofu and is a visible, diagnosable state
+        // rather than a silently-substituted stock icon.
         Text {
             anchors.centerIn: parent
-            visible: !cellItem.resolved
-            text: "apps"
-            font.family: Design.symbolFontFamily
-            font.pixelSize: Design.iconSizeMd
+            text: cellItem.entry.glyph ?? ""
+            font.family: launcherCapsule.appGlyphFontFamily
+            font.pixelSize: Design.barGlyphSize
             color: launcherCapsule.contentColour
         }
 
@@ -266,7 +246,7 @@ BarCapsule {
             anchors.centerIn: parent
             text: "apps"
             font.family: Design.symbolFontFamily
-            font.pixelSize: Design.iconSizeMd
+            font.pixelSize: Design.barGlyphSize
             // Reuses BarCapsule.iconFill's tab-bar active-state
             // convention rather than inventing a second active language:
             // filled while the drawer is open.
@@ -337,7 +317,47 @@ BarCapsule {
             Repeater {
                 model: launcherCapsule.appEntries
                 delegate: LauncherCell {
+                    id: stripCell
+                    required property int index
                     entry: modelData
+
+                    // GATE-02 defect 3 — "expansion works but it is very
+                    // clunky and sudden". The container's width/height
+                    // Behaviors above were already animating, but the cells
+                    // inside them popped in at full opacity the instant the
+                    // strip had any width, so the reveal read as a snap no
+                    // matter how smooth the container's own curve was. Each
+                    // cell now fades and rises into place, staggered by its
+                    // index, which is what makes the drawer look like it
+                    // opens rather than appears.
+                    //
+                    // The stagger step is deliberately small: seven cells at
+                    // emphasizedIn/6 each keeps the LAST cell landing inside
+                    // the container's own animation window instead of
+                    // trailing after the drawer has finished opening.
+                    readonly property int staggerStep: Math.round(Motion.emphasizedInDuration / 6)
+                    opacity: launcherCapsule.expanded ? 1 : 0
+                    transform: Translate {
+                        y: stripCell.opacity === 1 ? 0 : Design.spacingXs
+                    }
+
+                    Behavior on opacity {
+                        enabled: Motion.motionEnabled
+                        SequentialAnimation {
+                            // Only the opening direction staggers. On close
+                            // the whole strip should leave at once — this
+                            // repo's quick-to-leave grammar, the same
+                            // asymmetry the container Behaviors use.
+                            PauseAnimation {
+                                duration: launcherCapsule.expanded ? stripCell.index * stripCell.staggerStep : 0
+                            }
+                            NumberAnimation {
+                                duration: launcherCapsule.expanded ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                            }
+                        }
+                    }
                 }
             }
         }
