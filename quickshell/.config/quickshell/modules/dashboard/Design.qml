@@ -214,4 +214,22 @@ Singleton {
     // nothing there. It decides which of two true sentences is shown and
     // never what value is shown — no number anywhere is derived from it.
     readonly property int backendResolveDeadlineMs: 2000
+
+    // ── Reveal tokens (Phase 18 Plan 16, QBAR-08) — provenance:
+    //    18-UI-SPEC.md "## New Tokens". The last two unclaimed bar tokens
+    //    in that table; appended alone, per this phase's standing rule that
+    //    each plan appends only the tokens it actually reads.
+    //
+    //    hotZoneDepth (4) — D-18-25's decided 3-5px range for the invisible
+    //    input-only reveal strip, resolved under Claude's Discretion to the
+    //    midpoint, and 4 IS on the repo's 4px grid (unlike barEdgeMargin/
+    //    barSideMargin's one-time waybar-parity exemption above, this token
+    //    needs no exemption).
+    readonly property int hotZoneDepth: 4
+
+    // barReHideGraceMs (600) — D-18-26's re-hide grace window. Deliberately
+    // three times popoutDismissGraceMs (200) above: re-hiding the WHOLE bar
+    // is the more consequential event than dismissing one popout, and "must
+    // never vanish under the pointer" is the harder constraint to honour.
+    readonly property int barReHideGraceMs: 600
 }

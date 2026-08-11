@@ -22,6 +22,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import "modules"
 import "modules/dashboard"
+import "modules/bar"
 
 ShellRoot {
     id: root
@@ -169,11 +170,35 @@ ShellRoot {
         // Phase 18 Plan 15 (QBAR-07) — a binding, never an external write.
         // The same shape the backend gate properties above already use.
         visibilityState: root.barVisibilityState
+        // Phase 18 Plan 16 (QBAR-08) — the whole composition. BarReveal is
+        // a pure function of live pointer/modifier state; 18-15 already
+        // folded revealOverride into barRendered and excluded it from
+        // zoneReserved, so nothing in Bar.qml itself changes to make
+        // reveal work. See BarReveal.qml's own header for the full
+        // ownership statement.
+        revealOverride: BarReveal.revealActive
         onPanelRequested: (name) => root.openPanel(name)
         onDashboardRequested: (tabIndex) => {
             root.dashboardTabIndex = tabIndex;
             dashboardLoader.active = true;
         }
+    }
+
+    // ── Hot zone (Phase 18 Plan 16, QBAR-08) — mounted behind a loader
+    //    keyed on the INVERSE of the owner's base visible state: present
+    //    in EITHER hidden state, absent whenever the owner says visible.
+    //    Deliberately bound to hidden-ness rather than to which driver
+    //    caused it — the shell holds one state string, not a driver, and
+    //    binding to a driver would invent a coupling 18-15 does not offer.
+    //    In the idle-hidden state the strip is provably unreachable: the
+    //    pointer movement that would reach it clears the idle intent first
+    //    through hypridle's own on-resume listener — so the arming here is
+    //    correct but the reachable function is the hard-hidden state.
+    LazyLoader {
+        id: hotZoneLoader
+        active: root.barVisibilityState !== "visible"
+
+        HotZone {}
     }
 
     // ── Audio panel (Phase 15 Plan 02 tracer, PANEL-02/PANEL-06) ─────────

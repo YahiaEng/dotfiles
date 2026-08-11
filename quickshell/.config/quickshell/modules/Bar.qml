@@ -360,6 +360,15 @@ PanelWindow {
             }
         }
 
+        // Phase 18 Plan 16 (QBAR-08) — the bar's half of the combined
+        // hover region; the hot zone (modules/bar/HotZone.qml) is the
+        // other half. One report through the reveal singleton's single
+        // entry point; nothing else in this file changes.
+        HoverHandler {
+            id: barHoverHandler
+            onHoveredChanged: BarReveal.reportHover("bar", barHoverHandler.hovered)
+        }
+
         // Three zone containers exist in BOTH orientations; only which
         // capsules land in each differs. Each is a Grid with the same
         // single-positioner axis binding BarCapsule uses internally.
