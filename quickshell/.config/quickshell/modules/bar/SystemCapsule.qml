@@ -129,8 +129,18 @@ BarCapsule {
         // (invisible, zero paint cost) on every instance except updates.
         Rectangle {
             id: updatesFillPill
-            width: readoutItem.width
-            height: readoutItem.height
+            // Operator: "it needs to be slightly bigger because it is hard to
+            // spot". Was exactly the readout's own box, which made the only
+            // alert pill on the left the smallest thing there. Grown by one
+            // spacing step on each axis and centred, so it reads as a pill
+            // around the glyph rather than a tight disc behind it. Deliberately
+            // NOT grown to Athena's own `#custom-updates` footprint, which is
+            // wider because upstream always renders the count text beside the
+            // glyph — ours stays icon-only at rest by the operator's own
+            // preference, so it only needs presence, not width.
+            anchors.centerIn: parent
+            width: readoutItem.width + Design.spacingSm
+            height: readoutItem.height + Design.spacingXs
             radius: height / 2
             visible: readoutItem.filled
             color: BarRoles.fillUpdates

@@ -26,12 +26,12 @@ Rectangle {
         id: capsuleHover
     }
 
-    // Overview.qml's / QuickToggles.qml's full-pill idiom generalised to
-    // the second axis: evaluates to exactly Design.barCapsuleRadius (20)
-    // at the horizontal barHeight of 40, and to 22 at the vertical
-    // barColumnWidth of 44 — both exact halves of even numbers.
-    // Generalising the expression rather than minting a second radius
-    // token is what keeps one shape idiom across both orientations.
+    // Overview.qml's / QuickToggles.qml's full-pill idiom generalised to the
+    // second axis. Derived, never a literal, which is why it tracked the
+    // 18.1 height corrections on its own: at the horizontal barCapsuleHeight
+    // of 34 this is 17, and at the vertical barColumnWidth of 44 it is 22.
+    // Generalising the expression rather than minting a second radius token is
+    // what keeps one shape idiom across both orientations.
     radius: vertical ? width / 2 : height / 2
 
     // The quickshell-bar namespace inherits the ^quickshell-.* family blur
@@ -47,9 +47,12 @@ Rectangle {
     // edits and the resulting symptom is indistinguishable from a QML
     // alpha sitting under the ignore_alpha floor.
     // ── `surfaced` — opt IN to carrying a capsule surface ────────────────
-    // Operator decision (2026-08-11, GATE-02 round 2): only the CENTRE
-    // WORKSPACE capsule carries a background; every other capsule is bare
-    // glyphs directly on the wallpaper.
+    // Operator decision (2026-08-11, GATE-02 rounds 2-3): the surfaced set is
+    // the CENTRE WORKSPACE capsule and the CENTRE IDLE-INHIBITOR bulb, and
+    // nothing else — every other capsule is bare glyphs directly on the
+    // wallpaper. Both surfaced capsules happen to be the two centre-zone ones;
+    // that is a consequence of the operator's two choices, not a rule about the
+    // centre zone, so a future centre capsule does not inherit a surface.
     //
     // This is a deliberate, recorded DIVERGENCE from upstream Athena, which
     // puts `background-color: @surface_container` on every module group
@@ -61,7 +64,8 @@ Rectangle {
     //
     // Default FALSE so the surface cannot spread back by accident: a new
     // capsule is bare unless it explicitly asks to be surfaced, rather than
-    // surfaced unless it remembers to opt out.
+    // surfaced unless it remembers to opt out. Grep `surfaced: true` for the
+    // full set — currently WorkspaceCapsule and IdleInhibitorCapsule.
     property bool surfaced: false
 
     // Gap between this capsule's own content cells. Defaults to Athena's
@@ -82,15 +86,10 @@ Rectangle {
         }
     }
 
-    // Exposed for slot content to bind to — Dashboard.qml's own tab-bar
-    // active-state grammar reused rather than invented. There is
-    // deliberately no pressed-state visual: this repo keys visual state
-    // off the resulting state change, never off pointer-down. Rebased onto
-    // BarRoles (D-24): the alias keeps its name, but its source is now
-    // role rows — capsuleFg (onSurfaceVariant) is what the inactive branch
-    // already resolved to, so that appearance is unchanged; the active
-    // branch moves to onAccent, the correct on-colour once a capsule can
-    // actually be filled with accent.
+    // Exposed for slot content to bind to. There is deliberately no
+    // pressed-state visual: this repo keys visual state off the resulting state
+    // change, never off pointer-down.
+    //
     // capsuleFg unconditionally. The `active ? BarRoles.onAccent` branch this
     // replaces was a latent bug: on-accent is only legible ON an accent
     // fill, and NO BarCapsule background is ever accent-filled — the fill
@@ -121,16 +120,12 @@ Rectangle {
     // plumbing.
     default property alias content: contentGrid.data
 
-    // barHeight tall horizontally, barColumnWidth wide vertically; shrinks
-    // to fit on the free axis. Padding is barCapsulePadding (6) — Athena's
-    // own `padding: 6px 6px` on every group capsule — NOT the dashboard's
-    // spacingSm (8), which is part of what made this bar read "unmistakably
-    // larger" than the waybar it replaces (GATE-02 defect 2).
-    // barCapsuleHeight (32), NOT barHeight (40): Athena's capsules carry
-    // `margin: 4px 5px` so they float inside the bar rather than filling it
-    // edge to edge. Bar.qml's zone Grids already anchor to
-    // parent.verticalCenter in horizontal orientation, so the 8px this frees
-    // up becomes symmetric breathing room with no extra positioning.
+    // barCapsuleHeight tall horizontally (34 — Athena's `margin: 4px 5px` means
+    // a capsule floats inside the 42px bar rather than filling it edge to edge;
+    // Bar.qml's zone Grids already anchor to parent.verticalCenter, so the freed
+    // 8px becomes symmetric breathing room with no extra positioning),
+    // barColumnWidth wide vertically, shrinking to fit on the free axis.
+    //
     // Padding applies ONLY when this capsule actually draws a surface. Upstream
     // Athena's groups carry `padding: 6px 6px` because they have a background
     // to inset their content from; an UNSURFACED capsule has no edge to inset

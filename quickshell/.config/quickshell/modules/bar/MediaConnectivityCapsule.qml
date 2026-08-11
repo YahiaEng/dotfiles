@@ -74,6 +74,12 @@ BarCapsule {
 
     capsuleId: "mediaConnectivity"
 
+    // Same uniform right-side pitch as ClockActionsCapsule — see its own note.
+    // Left at the barCellGap (18) readout default, this capsule's glyphs sat at
+    // a different pitch from the action glyphs a few pixels away, which is the
+    // other half of the operator's "right side pills are spaced wrong".
+    contentGap: Design.spacingSm
+
     // ── The one reusable readout element — same visual language as
     //    SystemCapsule.qml's own Readout: glyph + Design.spacingXs gap +
     //    right-aligned reserved-width value, one bound Grid for the

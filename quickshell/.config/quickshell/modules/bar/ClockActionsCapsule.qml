@@ -43,12 +43,18 @@ BarCapsule {
     id: clockActionsCapsule
     capsuleId: "clockActions"
 
-    // Upstream's right-hand action glyphs (#custom-gaming-mode, #custom-power,
-    // #custom-notification) carry `margin: 4px 2px` — a 4px gap — not the 18px
-    // intra-group pitch the readout capsules use. At the default barCellGap
-    // the clock pill and the gaming glyph sat visibly too far apart, which the
-    // operator reported directly.
-    contentGap: Design.spacingXs
+    // Uniform right-side pitch. Every cell here already carries cellPitch's
+    // own spacingXs padding on each side, so a contentGap of spacingSm (8)
+    // renders a 16px glyph-to-glyph gap — the SAME 16px barCapsuleGap puts
+    // between two capsules, which is what makes the whole right side read as
+    // one evenly-spaced row instead of tight clusters with wide seams.
+    //
+    // spacingXs (4) was tried first, to mirror upstream's `margin: 4px 2px` on
+    // these glyphs literally. That is correct upstream, where each glyph is its
+    // own module inside a surfaced group; here the capsule is bare and its
+    // neighbours sit 16px away, so a 4px internal gap made the actions clump.
+    // The operator reported the result as unevenly spaced.
+    contentGap: Design.spacingSm
 
     readonly property string homeDir: Quickshell.env("HOME")
 
@@ -119,7 +125,7 @@ BarCapsule {
             // leaves the 4px gap Athena's own `margin: 4px 5px` produces.
             // Now that this capsule is unsurfaced, this pill IS the visible
             // module, exactly as upstream's #clock is.
-            width: clockTriggerGrid.width + Design.spacingMd + Design.spacingSm
+            width: clockTriggerGrid.width + Design.spacingMd
             height: clockTriggerGrid.height + Design.barCapsulePadding * 2
             radius: clockActionsCapsule.vertical ? width / 2 : height / 2
             color: BarRoles.fillClock

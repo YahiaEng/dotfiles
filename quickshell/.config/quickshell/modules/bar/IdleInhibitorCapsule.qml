@@ -31,6 +31,13 @@ BarCapsule {
     id: idleInhibitorCapsule
     capsuleId: "idleInhibitor"
 
+    // Operator: the centre bulb carries a background. This is also what
+    // upstream does — `#power-profiles-daemon, #idle_inhibitor` get
+    // `background-color: @surface_container` exactly like every group
+    // (ATHENA-UPSTREAM-SPEC.md) — so the bar's surfaced set is now the
+    // workspace capsule plus this one, and nothing else.
+    surfaced: true
+
     // 14-02's recorded per-file capability flag — Design.qml's own header
     // note records this is deliberately not a shared token, since it is a
     // claim about the font build rather than a design token.
