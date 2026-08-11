@@ -151,7 +151,7 @@ BarCapsule {
 
     Timer {
         id: drawerDwellTimer
-        interval: Design.popoutDwellMs
+        interval: Design.barDrawerDwellMs
         repeat: false
         onTriggered: {
             // Re-evaluated at FIRE time, not only at arm time: a dwell
@@ -302,7 +302,7 @@ BarCapsule {
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: launcherCapsule.expanded ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
+                duration: Design.barDrawerTransitionMs
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
             }
@@ -310,7 +310,7 @@ BarCapsule {
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: launcherCapsule.expanded ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
+                duration: Design.barDrawerTransitionMs
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
             }
@@ -375,10 +375,10 @@ BarCapsule {
                                 // — this repo's quick-to-leave grammar, the same
                                 // asymmetry the container Behaviors use.
                                 PauseAnimation {
-                                    duration: launcherCapsule.expanded ? cellSlot.index * Math.round(Motion.emphasizedInDuration / 6) : 0
+                                    duration: launcherCapsule.expanded ? cellSlot.index * Math.round(Design.barDrawerTransitionMs / 12) : 0
                                 }
                                 NumberAnimation {
-                                    duration: launcherCapsule.expanded ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
+                                    duration: Design.barDrawerTransitionMs
                                     easing.type: Easing.BezierSpline
                                     easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
                                 }

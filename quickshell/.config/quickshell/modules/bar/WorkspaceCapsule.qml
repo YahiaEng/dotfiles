@@ -435,11 +435,25 @@ BarCapsule {
                     // font-metric-derived height.
                     height: Design.barGlyphSize
                     verticalAlignment: Text.AlignVCenter
+                    // barGlyphSize, matching the window glyphs beside it.
+                    // This was barBodySize (13) against their 16, and a
+                    // size mismatch inside one row is what still read as
+                    // "not centered as they should" after the centerIn fix
+                    // — upstream Athena renders the state icon and the
+                    // window glyphs at ONE size, differentiating them by
+                    // label margin instead (ATHENA-UPSTREAM-SPEC.md).
+                    //
+                    // rightPadding lifts the gap after the state icon to 8
+                    // (Grid spacing 4 + 4), reproducing upstream's
+                    // `#workspaces button label:first-child { margin-right:
+                    // 8px }`. The window glyphs keep the tighter 4px pitch
+                    // between themselves, exactly as upstream does.
+                    rightPadding: Design.spacingSm - Design.spacingXs
                     // D-08: the numeral is gone — this now renders one of
                     // Athena's three Nerd Font state glyphs.
                     text: slotItem.slotStateGlyph
                     font.family: workspaceCapsule.appGlyphFontFamily
-                    font.pixelSize: Design.barBodySize
+                    font.pixelSize: Design.barGlyphSize
                     font.weight: Design.weightBody
                     // D-07: focused/urgent/default resolved through
                     // BarRoles via slotItem.slotTextColour above — the

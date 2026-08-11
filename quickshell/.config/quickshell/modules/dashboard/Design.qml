@@ -128,7 +128,7 @@ Singleton {
     //    the waybar layout it retires (D-18-38). No future token may cite
     //    this exemption — it is a one-time parity requirement, not a
     //    precedent.
-    readonly property int barHeight: 40
+    readonly property int barHeight: 42
     readonly property int barEdgeMargin: 6
     readonly property int barSideMargin: 10
     readonly property int barCapsuleRadius: barHeight / 2
@@ -164,10 +164,37 @@ Singleton {
     //    capsule 32px tall, the QML's 40px. That is a large part of GATE-02's
     //    "big and clunky". barCapsuleHeight is derived from barHeight so the
     //    two can never drift apart.
+    //    Values below come from the UPSTREAM Athena repo
+    //    (github.com/haikal-hakim/athena), read directly — see
+    //    18.1-qml-bar-athena-restoration/ATHENA-UPSTREAM-SPEC.md. They are NOT
+    //    from this repo's waybar/style-athena.scss, which is a local
+    //    reinterpretation and was the wrong reference the first time.
+    //
+    //    barCapsuleGap is margin(5) + bar spacing(6) + margin(5) = 16.
+    //    A previous pass used 10 (margin only) and missed config.jsonc's own
+    //    `"spacing": 6`, which is why the operator reported the left modules
+    //    sitting closer together than Athena's.
     readonly property int barCapsuleMarginV: 4
     readonly property int barCapsuleMarginH: 5
+    readonly property int barSpacing: 6
     readonly property int barCapsuleHeight: barHeight - barCapsuleMarginV * 2
-    readonly property int barCapsuleGap: barCapsuleMarginH * 2
+    readonly property int barCapsuleGap: barCapsuleMarginH * 2 + barSpacing
+
+    //    Athena's drawers are GTK drawers with an explicit transition-duration
+    //    and NO dwell delay — hovering opens them immediately
+    //    (modules/groups.jsonc). Ours ran the generic 375ms emphasized curve
+    //    behind a 400ms popoutDwellMs, which the operator reported as both
+    //    clunkier and slower to open than Athena's.
+    //      650 — distro-group (the app drawer) and audio
+    //      500 — connections and tray
+    readonly property int barDrawerTransitionMs: 650
+    readonly property int barDrawerTransitionFastMs: 500
+    //    Kept nonzero but small: a literal 0 makes the drawer fire on an
+    //    incidental pointer transit across the trigger, which Athena avoids
+    //    only because a waybar drawer is cheap to reopen. 80ms is below the
+    //    ~100ms threshold at which a delay becomes perceptible, so it reads as
+    //    immediate while still filtering pass-through motion.
+    readonly property int barDrawerDwellMs: 80
 
     // ── barColumnWidth (Phase 18 Plan 05) — provenance: 18-UI-SPEC.md
     //    "## New Tokens" + D-18-14 (text-bearing entries re-stack into this

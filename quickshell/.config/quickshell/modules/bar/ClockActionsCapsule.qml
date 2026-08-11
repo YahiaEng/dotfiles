@@ -481,7 +481,7 @@ BarCapsule {
 
     Timer {
         id: drawerDwellTimer
-        interval: Design.popoutDwellMs
+        interval: Design.barDrawerDwellMs
         repeat: false
         onTriggered: {
             // Re-evaluated at FIRE time, not only at arm time: a dwell
@@ -626,7 +626,7 @@ BarCapsule {
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: clockActionsCapsule.settingsExpanded ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
+                duration: Design.barDrawerTransitionMs
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: clockActionsCapsule.settingsExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
             }
@@ -634,7 +634,7 @@ BarCapsule {
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: clockActionsCapsule.settingsExpanded ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
+                duration: Design.barDrawerTransitionMs
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: clockActionsCapsule.settingsExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
             }
