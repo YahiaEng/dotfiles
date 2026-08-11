@@ -30,23 +30,45 @@ import "../"
 Singleton {
     id: root
 
+    // ── Colour-typed sources for the alpha blends ────────────────────────
+    // REQUIRED INDIRECTION — do not inline these back into the Qt.rgba
+    // calls below. Colours.qml declares every palette role as
+    // `property string` (Colours.qml:100-109/131-139), because its
+    // JsonAdapter loads them from palette.json's hex strings. A JS string
+    // has no .r/.g/.b members, so reading `Colours.surfaceVariant.r`
+    // yields `undefined` and `Qt.rgba(undefined, undefined, undefined, a)`
+    // silently returns BLACK at alpha `a` — no error, no warning, just a
+    // black bar. That is exactly the GATE-02 failure recorded in
+    // 18.1-VERIFICATION.md: five of these seventeen roles rendered as
+    // opaque black while every automated check passed, because the checks
+    // asserted routing (no direct Colours.* reference) and a non-alpha
+    // role's type, never that a BLENDED role resolves to a real colour.
+    //
+    // Assigning a hex string to a `color`-typed property is where QML
+    // performs the string->colour conversion, so these five aliases are
+    // what make .r/.g/.b real numbers. Same idiom as PanelDialog.qml:168,
+    // which blends off a colour-typed property rather than a string.
+    readonly property color surfaceColour: Colours.surface
+    readonly property color surfaceVariantColour: Colours.surfaceVariant
+    readonly property color outlineColour: Colours.outline
+
     // ── Surfaces — theme.scss:56/58 ──────────────────────────────────────
     // The translucent island surface and its hover state. Built on
     // Colours.surface via alpha(), matching Athena's own @surface-derived
     // bar-surface/bar-surface-hover roles.
-    readonly property color barSurface: Qt.rgba(Colours.surface.r, Colours.surface.g, Colours.surface.b, 0.55)
-    readonly property color barSurfaceHover: Qt.rgba(Colours.surface.r, Colours.surface.g, Colours.surface.b, 0.78)
+    readonly property color barSurface: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.55)
+    readonly property color barSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.78)
 
     // ── Capsule/drawer roles — theme.scss:110/116/120/125 ────────────────
     // Athena's discrete raised-pill surface, built on Colours.surfaceVariant
     // (the palette's only distinctly-raised neutral token) exactly as
     // theme.scss's own @capsule/@capsule-hover derive from @surface_variant.
-    readonly property color capsule: Qt.rgba(Colours.surfaceVariant.r, Colours.surfaceVariant.g, Colours.surfaceVariant.b, 0.85)
+    readonly property color capsule: Qt.rgba(root.surfaceVariantColour.r, root.surfaceVariantColour.g, root.surfaceVariantColour.b, 0.85)
     readonly property color capsuleFg: Colours.onSurfaceVariant
-    readonly property color capsuleHover: Qt.rgba(Colours.surfaceVariant.r, Colours.surfaceVariant.g, Colours.surfaceVariant.b, 0.95)
+    readonly property color capsuleHover: Qt.rgba(root.surfaceVariantColour.r, root.surfaceVariantColour.g, root.surfaceVariantColour.b, 0.95)
     // Slider trough — built on Colours.outline (theme.scss:125's own
     // @capsule-track source), a real palette member.
-    readonly property color capsuleTrack: Qt.rgba(Colours.outline.r, Colours.outline.g, Colours.outline.b, 0.5)
+    readonly property color capsuleTrack: Qt.rgba(root.outlineColour.r, root.outlineColour.g, root.outlineColour.b, 0.5)
 
     // ── State — theme.scss:93-97 ─────────────────────────────────────────
     // The active workspace, and only the active workspace, plus genuinely-
