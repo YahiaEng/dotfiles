@@ -73,7 +73,7 @@
 ### GATE — Quality gates for a redesign-not-port migration
 
 - [x] **GATE-01**: Before each surface is redesigned, its current behaviour is enumerated from the live config and written down as acceptance criteria — while the implementation being replaced still exists to be read
-- [x] **GATE-02**: Every phase passes a human render-and-look gate; no phase closes with its replacement judged worse than what it replaced, and no old package is deleted before that judgment
+- [ ] **GATE-02**: Every phase passes a human render-and-look gate; no phase closes with its replacement judged worse than what it replaced, and no old package is deleted before that judgment — **FAILED at Phase 18.1 (2026-08-11):** the operator ran the side-by-side comparison and judged the restored QML bar worse than the Athena waybar on four counts (opaque black surfaces instead of Athena's tinted fills, larger/clunkier geometry, sudden rather than smoothly-animated drawer reveal, jarring default icons in the app drawer). Full verbatim verdict and root causes in `18.1-07-SUMMARY.md`. Per D-23, Phase 18 plans 18-19 (this gate's re-run) and 18-20 (waybar package retirement) stay blocked, and waybar stays installed.
 - [x] **GATE-03**: `quickshell-doctor` gains structural checks for each new surface, replacing the mechanical coverage that dies with `waybar-equivalence-check`
 - [x] **GATE-04**: A hex-literal lint refuses any QML surface hard-coding a colour, mirroring `motion-lint`'s deny-by-default discipline
 
@@ -167,7 +167,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | RETIRE-08 | Phase 21 | Pending |
 | RETIRE-09 | Phase 22 | Pending |
 | GATE-01 | Phase 18 | Complete |
-| GATE-02 | Phase 18 | Complete |
+| GATE-02 | Phase 18 | Pending — FAILED at Phase 18.1 (2026-08-11): operator verdict was FAIL (black surfaces, oversized/clunky geometry, sudden drawer reveal, jarring default app-drawer icons). 18-19/18-20 remain blocked; waybar retained. See `18.1-07-SUMMARY.md`. |
 | GATE-03 | Phase 18 | Complete |
 | GATE-04 | Phase 18 | Complete |
 | LEDGER-01 | Phase 18 | Pending |

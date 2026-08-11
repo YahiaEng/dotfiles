@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 43
+open_count: 48
 waived_count: 0
 fixed_count: 14
-total_count: 57
-last_updated: 2026-08-11T15:15:17.265Z
+total_count: 62
+last_updated: 2026-08-11T15:40:50.676Z
 ---
 
 # Broken Windows Ledger
@@ -72,6 +72,11 @@ last_updated: 2026-08-11T15:15:17.265Z
 | 55 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml |  | 18.1-05 Task 3 leg 3 (drawer open when the bar hides) not live-observed — expanding a drawer via real hover, then triggering a bar hide (idle/fullscreen/gaming/keybind) and watching it collapse, needs pointer input this host has no synthetic tool for. Asserted from source instead: onDrawerSettledChanged stops both timers and calls requestCollapse() immediately (no grace) the moment drawerSettled goes false while expanded, and requestExpand() is reachable only from the dwell timer's fire handler which re-gates on drawerSettled, so the drawer cannot mechanically reappear expanded on the next reveal without a fresh hover+dwell cycle. Deferred to 18.1-07's GATE-02 hover walkthrough. | open |  | 2026-08-11T15:00:51.726Z |  |
 | 56 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml |  | 18.1-05 Task 3's zero-idle-at-rest check (both drawer timers not running with the pointer away and both drawers collapsed) was not confirmed via live introspection — no QML Timer.running probe/IPC exists on this host to poll it. Asserted from source instead: both drawerDwellTimer/drawerGraceTimer (in LauncherCapsule.qml and ClockActionsCapsule.qml) are repeat:false and are only ever started via .restart() inside onDrawerHoverActiveChanged (armed on a hover-state transition) or onDrawerSettledChanged (only while already expanded) — neither has running:true set unconditionally nor a Component.onCompleted starter, mirroring the same static method BarReveal.qml's own reHideTimer zero-idle claim already relies on. | open |  | 2026-08-11T15:00:58.131Z |  |
 | 57 | 18.1 | deviation | quickshell/.config/quickshell/modules/bar/ |  | D-20's quickshell-doctor colour-role-routing check exempts the seven SectionPopout-family files (SectionPopout.qml, AudioPopout.qml, WifiPopout.qml, BluetoothPopout.qml, ClockPopout.qml, ResourcesPopout.qml, MediaPopout.qml) by basename — 66 live Colours.* references across those seven files at time of writing. D-06/D-20 as written say the whole of modules/bar/, but phase 18.1's own scope_fence places popout content and the SectionPopout framework explicitly OUT of scope: these are separate anchored surfaces with their own surfaceBase, not bar capsules, and their palette references were never part of the fill-versus-tint defect the check exists to catch. This is a deferred decision, not a closed one — a future phase migrating the popout family onto BarRoles should remove this exemption and shrink QSD_BAR_COLOUR_ROLE_EXEMPT accordingly. | open |  | 2026-08-11T15:15:17.265Z |  |
+| 58 | 18.1 | deviation | quickshell/.config/quickshell/modules/Colours.qml | 106 | GATE-02 defect 1: BarRoles alpha-blend roles read .r/.g/.b off Colours.qml roles typed property string, not property color, so blended surfaces (capsule/capsuleHover/barSurface/barSurfaceHover/capsuleTrack) resolve to opaque black. Root cause of the operator's GATE-02 FAIL complaint 1. Not fixed in 18.1-07 (recording-only plan). | open |  | 2026-08-11T15:40:37.602Z |  |
+| 59 | 18.1 | deviation | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml |  | GATE-02 defect 2: bar geometry unmistakably larger than Athena — Design.iconSizeMd (24px) vs Athena's glyph-only 16px, capsule inner padding 8px (Design.spacingSm) vs Athena's 6px 6px; filed out of scope during this phase's Athena audit, which was wrong. Pacman/updates glyph also not optically centred. Root cause of the operator's GATE-02 FAIL complaint 2. Not fixed in 18.1-07 (recording-only plan). | open |  | 2026-08-11T15:40:50.375Z |  |
+| 60 | 18.1 | deviation | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml | 308 | GATE-02 defect 3: drawer expansion reads as sudden/clunky vs Athena's smooth expansion. Container motion IS present (motion.json motion_enabled:true, 375ms emphasized-in MD3 bezier, Behavior on width/height at LauncherCapsule.qml:308-323) but revealed cells appear instantly with no fade/stagger, unlike Athena's transition: all on the members themselves. Not definitively isolated as the sole cause — a lead, not proven. Root cause lead for the operator's GATE-02 FAIL complaint 3. Not fixed in 18.1-07 (recording-only plan). | open |  | 2026-08-11T15:40:50.480Z |  |
+| 61 | 18.1 | deviation | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml | 50 | GATE-02 defect 4: app drawer shows jarring generic icons for apps without a good themed icon. appEntries (LauncherCapsule.qml:50-57) IS the correct predetermined 7-app list matching Athena's custom/app-* set; the divergence is in icon resolution — this phase's D-18-01 icon-theme redesign resolves each entry through the desktop-entry/icon-theme database instead of Athena's one-hardcoded-glyph-per-app approach. D-18-01's redesign is the direct cause and needs revisiting. Root cause of the operator's GATE-02 FAIL complaint 4. Not fixed in 18.1-07 (recording-only plan). | open |  | 2026-08-11T15:40:50.580Z |  |
+| 62 | 18.1 | unmet-truth | quickshell/.config/quickshell/modules/bar/BarRoles.qml |  | GATE-02 verification-method gap: no alpha-blended BarRoles role was ever probed for a resolved numeric value across this phase's automated checks — plan 18.1-01's verification asserted typeof BarRoles.accent === object (a non-alpha role) and never exercised a blended one. Plan 18.1-06's D-20 quickshell-doctor colour-routing check only asserts no direct Colours.* reference survives under modules/bar/; it does not assert a routed role RESOLVES to a real colour. This is why a 100%-black bar (see WINDOWS id 58) passed every automated check in the phase, including the check built specifically to guard bar colour correctness. The check is not wrong, it is insufficient — needs a resolved-value assertion on every alpha role, not just a routing/reference check. | open |  | 2026-08-11T15:40:50.676Z |  |
 
 ````json
 [
@@ -757,6 +762,66 @@ last_updated: 2026-08-11T15:15:17.265Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T15:15:17.265Z",
+    "resolved_at": null
+  },
+  {
+    "id": 58,
+    "kind": "deviation",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/Colours.qml",
+    "line": 106,
+    "description": "GATE-02 defect 1: BarRoles alpha-blend roles read .r/.g/.b off Colours.qml roles typed property string, not property color, so blended surfaces (capsule/capsuleHover/barSurface/barSurfaceHover/capsuleTrack) resolve to opaque black. Root cause of the operator's GATE-02 FAIL complaint 1. Not fixed in 18.1-07 (recording-only plan).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:40:37.602Z",
+    "resolved_at": null
+  },
+  {
+    "id": 59,
+    "kind": "deviation",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml",
+    "line": null,
+    "description": "GATE-02 defect 2: bar geometry unmistakably larger than Athena — Design.iconSizeMd (24px) vs Athena's glyph-only 16px, capsule inner padding 8px (Design.spacingSm) vs Athena's 6px 6px; filed out of scope during this phase's Athena audit, which was wrong. Pacman/updates glyph also not optically centred. Root cause of the operator's GATE-02 FAIL complaint 2. Not fixed in 18.1-07 (recording-only plan).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:40:50.375Z",
+    "resolved_at": null
+  },
+  {
+    "id": 60,
+    "kind": "deviation",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml",
+    "line": 308,
+    "description": "GATE-02 defect 3: drawer expansion reads as sudden/clunky vs Athena's smooth expansion. Container motion IS present (motion.json motion_enabled:true, 375ms emphasized-in MD3 bezier, Behavior on width/height at LauncherCapsule.qml:308-323) but revealed cells appear instantly with no fade/stagger, unlike Athena's transition: all on the members themselves. Not definitively isolated as the sole cause — a lead, not proven. Root cause lead for the operator's GATE-02 FAIL complaint 3. Not fixed in 18.1-07 (recording-only plan).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:40:50.480Z",
+    "resolved_at": null
+  },
+  {
+    "id": 61,
+    "kind": "deviation",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml",
+    "line": 50,
+    "description": "GATE-02 defect 4: app drawer shows jarring generic icons for apps without a good themed icon. appEntries (LauncherCapsule.qml:50-57) IS the correct predetermined 7-app list matching Athena's custom/app-* set; the divergence is in icon resolution — this phase's D-18-01 icon-theme redesign resolves each entry through the desktop-entry/icon-theme database instead of Athena's one-hardcoded-glyph-per-app approach. D-18-01's redesign is the direct cause and needs revisiting. Root cause of the operator's GATE-02 FAIL complaint 4. Not fixed in 18.1-07 (recording-only plan).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:40:50.580Z",
+    "resolved_at": null
+  },
+  {
+    "id": 62,
+    "kind": "unmet-truth",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/bar/BarRoles.qml",
+    "line": null,
+    "description": "GATE-02 verification-method gap: no alpha-blended BarRoles role was ever probed for a resolved numeric value across this phase's automated checks — plan 18.1-01's verification asserted typeof BarRoles.accent === object (a non-alpha role) and never exercised a blended one. Plan 18.1-06's D-20 quickshell-doctor colour-routing check only asserts no direct Colours.* reference survives under modules/bar/; it does not assert a routed role RESOLVES to a real colour. This is why a 100%-black bar (see WINDOWS id 58) passed every automated check in the phase, including the check built specifically to guard bar colour correctness. The check is not wrong, it is insufficient — needs a resolved-value assertion on every alpha role, not just a routing/reference check.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:40:50.676Z",
     "resolved_at": null
   }
 ]

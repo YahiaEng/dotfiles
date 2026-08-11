@@ -191,8 +191,17 @@ Cross-cutting constraints:
 
 **Requirements**: GATE-02 (blocks), QBAR-01..12 (visual regression against the shipped bar)
 **Depends on:** Phase 18
-**Blocks:** Phase 18 plans 18-19 (GATE-02) and 18-20 (waybar package retirement)
-**Plans:** 6/7 plans executed
+**Blocks:** Phase 18 plans 18-19 (GATE-02) and 18-20 (waybar package retirement) — **STILL BLOCKED.** GATE-02 FAILED on 2026-08-11 (see below); waybar stays installed until a future gap-closure phase re-runs this gate and it passes.
+**Plans:** 7/7 plans executed — **GATE-02 FAILED**
+
+**GATE-02 verdict (2026-08-11): FAIL.** The operator ran the side-by-side comparison against the Athena waybar and judged the QML bar worse, not at least as good. Verbatim verdict and full detail in `18.1-07-SUMMARY.md`. Four defects found and recorded for gap-closure planning, none fixed here:
+
+1. **Black bar surfaces (root cause: type bug).** `quickshell/.config/quickshell/modules/Colours.qml:106` declares alpha-blended roles (`surfaceVariant` and the four others feeding `capsule`/`capsuleHover`/`barSurface`/`barSurfaceHover`/`capsuleTrack`) as `property string`, not `property color`. `BarRoles.qml`'s blend expression reads `.r`/`.g`/`.b` off that string, which is `undefined` on a JS string, so `Qt.rgba(undefined, undefined, undefined, 0.85)` evaluates to opaque black. The 12 non-alpha roles are unaffected because QML auto-converts a hex-string literal when assigned directly to a `color` property, which is why the filled pills render correctly while every translucent surface does not. Plan 18.1-01's own verification only probed a non-alpha role (`typeof BarRoles.accent === "object"`) and never exercised a blended one — the gap that let this ship.
+2. **Oversized/clunky geometry.** `Design.iconSizeMd` (24px) vs Athena's glyph-only 16px; capsule inner padding 8px (`Design.spacingSm`) vs Athena's 6px 6px. Both were found during this phase's Athena audit and filed as out of scope — that filing was wrong, since together they are the operator's "unmistakably larger" complaint. The pacman/updates glyph is also not optically centred.
+3. **Sudden drawer expansion.** Motion is present and enabled (`motion.json` `motion_enabled: true`, 375ms emphasized-in MD3 bezier; `LauncherCapsule.qml:308-323` has `Behavior on width`/`Behavior on height`). The container animates but the revealed cells appear instantly with no fade/stagger, reading as sudden next to Athena's `transition: all` on the members themselves. Not definitively isolated — a lead, not a proven single cause.
+4. **Jarring default app-drawer icons.** `LauncherCapsule.qml:50-57`'s `appEntries` is the correct predetermined 7-app list matching Athena's `custom/app-*` set. The divergence is in icon resolution: this phase's D-18-01 icon-theme redesign resolves each entry through the desktop-entry/icon-theme database, so entries without a good themed icon fall back to a generic glyph. Athena hardcodes one font glyph per app instead. D-18-01's redesign is the direct cause and needs revisiting in gap-closure.
+
+**Verification-method gap (recorded explicitly, not just the defects):** no alpha-blended `BarRoles` role was ever probed for a resolved numeric value in this phase's automated checks — only a non-alpha role was asserted as an object. Plan 18.1-06's D-20 `quickshell-doctor` routing check only asserts that no bar file holds a direct `Colours.*` reference; it does not assert that a routed role RESOLVES to a real colour. That is why a 100%-black bar passed every automated check in this phase, including the newest one built specifically to guard bar colour correctness. The check is not wrong, it is insufficient — a future fix needs a resolved-value assertion on every alpha role, not just a routing/reference check.
 
 Plans:
 **Wave 1**
@@ -215,7 +224,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 18.1-07-PLAN.md — GATE-02: the operator's side-by-side verdict against the Athena waybar, with all four named deltas disclosed, recorded truthfully in the ledger and roadmap (blocking checkpoint)
+- [x] 18.1-07-PLAN.md — GATE-02: the operator's side-by-side verdict against the Athena waybar, with all four named deltas disclosed, recorded truthfully in the ledger and roadmap (blocking checkpoint) — **verdict: FAIL**, recorded truthfully; 18-19/18-20 stay blocked
 
 ### Phase 19: Notification Server & Centre
 
