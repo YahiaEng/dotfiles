@@ -12,7 +12,7 @@
 ### QBAR — Status bar (replaces waybar)
 
 - [x] **QBAR-01**: The bar renders as a permanently-mounted surface that reserves its own screen space, in Athena's rounded-capsule visual language
-- [ ] **QBAR-02**: One bar component switches between a horizontal top strip and a **right-edge** vertical column from config — orientation is a property of a config-driven entry list, not a forked second layout. Replaces all four current waybar layouts.
+- [x] **QBAR-02**: One bar component switches between a horizontal top strip and a **right-edge** vertical column from config — orientation is a property of a config-driven entry list, not a forked second layout. Replaces all four current waybar layouts.
 - [ ] **QBAR-03**: User can click a workspace indicator to switch to that workspace (restores the capability dead under waybar 0.15.0's compiled-in dispatch)
 - [ ] **QBAR-04**: User can scroll on the bar's audio and brightness sections to adjust them
 - [ ] **QBAR-05**: The system tray shows running tray applications and their menus open on click
@@ -124,7 +124,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | QBAR-01 | Phase 18 | Complete |
-| QBAR-02 | Phase 18 | Pending |
+| QBAR-02 | Phase 18 | Complete |
 | QBAR-03 | Phase 18 | Pending |
 | QBAR-04 | Phase 18 | Pending |
 | QBAR-05 | Phase 18 | Pending |

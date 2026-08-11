@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-04-PLAN.md
-last_updated: "2026-08-10T23:56:03.659Z"
+stopped_at: Completed 18-05-PLAN.md
+last_updated: "2026-08-11T00:16:14.316Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 5 of 20
+Plan: 6 of 20
 Status: Ready to execute
-Progress: [██░░░░░░░░] 20%
+Progress: [███░░░░░░░] 25%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -196,6 +196,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P02 | ~20min | 3 tasks | 6 files |
 | Phase 18 P03 | ~25min | 3 tasks | 8 files |
 | Phase 18 P04 | ~15min | 3 tasks | 4 files |
+| Phase 18 P05 | ~35min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -398,6 +399,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-03: colour-lint folded blocking into theme-doctor per D-18-35, unguarded by any live-session check (reads files on disk only) so it still runs headless in a fresh-install container; three day-one exemptions (WeatherPalette.qml whole-file, DragGhost.qml/WindowThumbnail.qml shadowColor: content-anchored) print [EXEMPT] every run, never folded as PASS
 - [Phase ?]: 18-04: LEDGER-01 closed as pure bookkeeping — GradientBorder rim (commit 4f48847) and quickshell-doctor dispatch fix (13.1 Lua migration) were both already shipped; PROJECT.md, MILESTONES.md, WINDOWS.md and the debug session were the only stale artifacts, corrected via append-not-rewrite supersession on archive text
 - [Phase ?]: 18-04: MILESTONES.md's archived 'SEGV-crashed the compositor' wording left untouched despite a plan-checker typo expecting 'this compositor' — preserving the audit's original wording takes precedence over satisfying the checker string
+- [Phase ?]: 18-05: exclusiveZone must be the surface's own content extent alone (Design.barHeight/barColumnWidth), never plus barEdgeMargin — this plan's own Task 3 action text reintroduced 18-01's already-fixed double-margin bug verbatim; found live (co-existing [[0,98,0,0]] instead of [[0,92,0,0]]) and re-corrected
+- [Phase ?]: 18-05: PanelWindow's root anchors.{top,left,right,bottom} are plain bool, not AnchorLine — the undefined-clears-an-anchor idiom does not apply to them (live-verified via a reload warning); use a direct boolean ternary instead
+- [Phase ?]: 18-05: BarEntryModel.qml needs import Quickshell.Io (FileView) and ClockActionsCapsule.qml needs import Quickshell (SystemClock) — both omitted from the plan's own stated import lists, found via live quickshell reload errors
 
 ### Quick Tasks Completed
 
@@ -525,8 +529,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-10T23:56:03.643Z
-Stopped at: Completed 18-04-PLAN.md
+Last session: 2026-08-11T00:16:14.280Z
+Stopped at: Completed 18-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
