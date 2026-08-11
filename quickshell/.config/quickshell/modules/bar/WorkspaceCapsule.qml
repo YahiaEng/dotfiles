@@ -1,16 +1,39 @@
 // WorkspaceCapsule.qml — the workspaces slot (Phase 18 Plan 05, D-18-10).
 //
 // Owner: 18-09 — live per-app window icons in athena's icon-plus-windows
-// shape per D-18-02, fixed-height slots with +N overflow in BOTH
-// orientations per D-18-12, click-to-switch through Quickshell.Hyprland
-// copying Overview.qml's validate-before-interpolate discipline.
+// shape per D-18-02, click-to-switch through Quickshell.Hyprland copying
+// Overview.qml's validate-before-interpolate discipline.
 // Entries BarEntryModel already declares for this capsule: `workspaces`.
 //
+// ── Two DIFFERENT "fixed" guarantees live in this file — do not conflate
+//    them, that conflation is exactly what read this file's own prior
+//    header as "5 fixed slots that never grow" and became Phase 18.1
+//    GATE-02 operator item (c) (ATHENA-UPSTREAM-SPEC.md) ────────────────
+// 1. The SLOT SET (how many pills render) is DYNAMIC, matching upstream
+//    Athena's `"persistent-workspaces": { "*": 5 }` — a FLOOR, not a cap:
+//    slots 1..persistentSlotCount always render, and any workspace id
+//    beyond that range that currently EXISTS gets its own extra slot,
+//    appended live as `slotIds` below re-derives off Hyprland.workspaces
+//    and removed live the moment Hyprland itself destroys that empty
+//    workspace. Live-verified 2026-08-11: creating/focusing workspace 6
+//    grew the rendered set from 5 to 6 slots with no shell restart;
+//    closing its last window and navigating away shrank it back to 5,
+//    also with no restart.
+// 2. Each individual SLOT's own on-screen EXTENT, once that slot exists,
+//    stays fixed regardless of how many windows open/close inside it
+//    (D-18-12) — the icon-cell Repeater nested inside each slot delegate
+//    below is sized off the CONSTANT iconsPerSlot, never off the window
+//    count. D-18-12 is scoped to that per-slot content churn only; it
+//    was never a claim about the outer slot count, and `slotIds`
+//    growing/shrinking the outer set does not violate it (see slotIds'
+//    own comment below, point 3).
+//
 // Task 1 (tracer) proved the whole path — live model, glyph resolution,
-// dispatch — on one hardcoded slot. Task 2 below generalises that proof
-// into the full fixed-extent slot set: every persistent slot plus any
-// workspace beyond the persistent range, each with iconsPerSlot reserved
-// cells and +N overflow.
+// dispatch — on one hardcoded slot. Task 2 below generalised that proof
+// into the full dynamic-count slot set: every persistent slot plus any
+// workspace beyond the persistent range that currently exists, each
+// slot's own content sized with iconsPerSlot reserved cells and +N
+// overflow (guarantee 2 above).
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
@@ -288,6 +311,13 @@ BarCapsule {
     //    creating or destroying a workspace beyond the persistent range
     //    can, which is a rare, deliberate, user-initiated event, not the
     //    per-second churn the decision was written against.
+    //
+    // This property IS the mechanism satisfying Phase 18.1 GATE-02
+    // operator item (c) ("workspaces should grow above a persistent
+    // floor of five, the way upstream Athena does") — see the file
+    // header's two-guarantee note. It reads Hyprland.workspaces.values
+    // directly, so it is a live QML binding: it re-evaluates whenever
+    // that list changes, with no polling and no restart required.
     //
     // Ordering note: slot order is ascending integer id, matching the
     // retired bar's own sort-by-number behaviour, built by inserting each
