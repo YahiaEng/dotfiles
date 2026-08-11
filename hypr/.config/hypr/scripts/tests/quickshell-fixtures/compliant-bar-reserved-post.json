@@ -1,0 +1,10 @@
+[
+    {
+        "_provenance": "Synthetic fixture (Phase 18 Plan 17, QBAR-12) — the same single-monitor host as compliant-bar-reserved-pre.json, AFTER the owner's keybind-toggle transition to hidden-hard, which releases the bar's own exclusive zone (D-18-23). Only the top axis (index 1) changed, by exactly the bar's own extent — 46px. Target: bar-reserved-zone-stability. Expected verdict when diffed against the pre fixture: PASS (clean single-axis top-edge delta).",
+        "id": 1,
+        "name": "DP-1",
+        "width": 2560,
+        "height": 1440,
+        "reserved": [0, 0, 0, 0]
+    }
+]

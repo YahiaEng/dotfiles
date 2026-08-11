@@ -2,16 +2,19 @@
 # ╔══════════════════════════════════════════════════════╗
 # ║            QUICKSHELL-DOCTOR (D-05)                   ║
 # ║  Rerunnable coexistence gate: proves the Quickshell    ║
-# ║  shell root stays alive, claims no reserved screen     ║
-# ║  space, sits on its own quickshell-* overlay namespace, ║
-# ║  and shares every event source (D-Bus ownership,       ║
-# ║  hardware keys, volume/brightness step, MPRIS) with     ║
-# ║  waybar, swaync, SwayOSD, wleave, AGS and walker        ║
-# ║  without a second handler ever appearing. Report-only  ║
-# ║  apart from one documented transient exception (the     ║
-# ║  volume/brightness step probes below), which restore    ║
-# ║  what they change via a trap installed before either    ║
-# ║  probe's first mutation runs (T-11-11).                 ║
+# ║  shell root stays alive, reserves screen space          ║
+# ║  attributably to exactly one surface (the bar) and no  ║
+# ║  other, sits on its own quickshell-* namespaces at the ║
+# ║  level each surface is registered for, and shares every ║
+# ║  event source (D-Bus ownership, hardware keys,          ║
+# ║  volume/brightness step, MPRIS) with waybar, swaync,     ║
+# ║  SwayOSD, wleave, AGS and walker without a second        ║
+# ║  handler ever appearing. Report-only apart from a few    ║
+# ║  documented transient exceptions (the volume/brightness  ║
+# ║  step probes, the bar-reserved-zone-stability toggle,     ║
+# ║  and the opt-in compositor-reload half), each of which    ║
+# ║  restores what it changes via a trap installed before      ║
+# ║  its first mutation runs (T-11-11).                        ║
 # ╚══════════════════════════════════════════════════════╝
 #
 # Record-why (D-14-style correction, for this file's own design): on
@@ -25,6 +28,24 @@
 # visible on `hyprctl monitors -j`'s `reserved` array
 # ([left,top,right,bottom] pixel counts). Do NOT "simplify" this file
 # back into a `layers -j` grep for that field — it isn't there.
+#
+# Record-why (18-17, the one-reservation model): every surface up to and
+# including the overview reserved nothing, and this file asserted exactly
+# that — "Quickshell claims no reserved screen space" (this header's own
+# former third line) and a dedicated check with that same claim in its
+# label. Phase 18's bar (QBAR-01, wave 1) made that assertion false BY
+# DESIGN: `Bar.qml` is the first Quickshell surface with `exclusiveZone >
+# 0`, and it is permanent. The assertion is REWRITTEN here, not deleted
+# and not wrapped beside a second, contradicting one: exactly ONE
+# Quickshell surface may reserve space — the bar — every other Quickshell
+# surface reserves zero, and this file's checks now prove that
+# attribution rather than a blanket zero. `18-RESEARCH.md` Pitfall 6 and
+# `18-PATTERNS.md` both send a reader to `_qsd_check_reserved_array_
+# manifest_coverage` for this claim — that function asserts something
+# else (manifest token-allowlist safety, preserved below under an honest
+# name); the falsified claim actually lived in this header's own third
+# line and in the inline "reserved-space stays unclaimed" check further
+# down. Recorded here once so a future reader does not repeat that trip.
 #
 # Usage: quickshell-doctor [--no-summon] [--no-headless-output] [--no-panel-checks] [--self-test]
 #   --no-summon           Downgrade the transient summon-and-diff
@@ -98,6 +119,14 @@ STATE_DIR="$HOME/.local/state/quickshell"
 BASELINE_FILE="$STATE_DIR/doctor-baseline.json"
 KEYBIND_DOCTOR="$SCRIPT_DIR/keybind-doctor"
 FIXTURES_DIR="$SCRIPT_DIR/tests/quickshell-fixtures"
+# 18-17 (QBAR-12/GATE-03): the bar's sole owner (D-18-27) and its own
+# source file. bar-reserved-zone-stability calls exactly two of the
+# owner's verbs — bar-visibility.sh status and bar-visibility.sh keybind
+# toggle — and never a raw signal or a direct `qs ipc call bar` (the
+# desync class this repo has already deleted twice, per that script's own
+# header).
+BAR_VISIBILITY_SH="$HOME/.config/hypr/scripts/bar-visibility.sh"
+BAR_QML_PATH="$QUICKSHELL_CONFIG_DIR/modules/Bar.qml"
 US=$'\x1f'
 
 NO_SUMMON=0
@@ -119,7 +148,7 @@ done
 # shell profile, CI environment, or copied invocation that names a
 # nonexistent path is a hard error before this script does anything
 # else, never a silent fall-through to live (T-15-08).
-for _qsd_fv in QSD_FIXTURE_BUSCTL_LIST QSD_FIXTURE_HYPRCTL_BINDS QSD_FIXTURE_LAYERS_JSON QSD_FIXTURE_SHORTCUTS_MANIFEST QSD_FIXTURE_KEYBINDS_LUA QSD_FIXTURE_HYPRCTL_GETOPTION QSD_FIXTURE_PERMISSIONS_LUA QSD_FIXTURE_OVERVIEW_STATUS; do
+for _qsd_fv in QSD_FIXTURE_BUSCTL_LIST QSD_FIXTURE_HYPRCTL_BINDS QSD_FIXTURE_LAYERS_JSON QSD_FIXTURE_SHORTCUTS_MANIFEST QSD_FIXTURE_KEYBINDS_LUA QSD_FIXTURE_HYPRCTL_GETOPTION QSD_FIXTURE_PERMISSIONS_LUA QSD_FIXTURE_OVERVIEW_STATUS QSD_FIXTURE_MONITORS_JSON QSD_FIXTURE_DESIGN_QML QSD_FIXTURE_WINDOWRULES_LUA; do
     _qsd_fv_val="${!_qsd_fv:-}"
     if [[ -n "$_qsd_fv_val" && ! -f "$_qsd_fv_val" ]]; then
         echo "FATAL: $_qsd_fv names a nonexistent file: $_qsd_fv_val" >&2
@@ -132,6 +161,13 @@ if [[ -n "${QSD_FIXTURE_PANEL_QML_DIR:-}" && ! -d "$QSD_FIXTURE_PANEL_QML_DIR" ]
 fi
 if [[ -n "${QSD_FIXTURE_OVERVIEW_QML_DIR:-}" && ! -d "$QSD_FIXTURE_OVERVIEW_QML_DIR" ]]; then
     echo "FATAL: QSD_FIXTURE_OVERVIEW_QML_DIR names a nonexistent directory: $QSD_FIXTURE_OVERVIEW_QML_DIR" >&2
+    exit 1
+fi
+# 18-17: QSD_FIXTURE_SHELL_QML_ROOT (directory seam, bar-surface registry
+# source-tree scan root — Task 3) joins the two directory guards above,
+# same hard-FATAL-before-anything-else discipline.
+if [[ -n "${QSD_FIXTURE_SHELL_QML_ROOT:-}" && ! -d "$QSD_FIXTURE_SHELL_QML_ROOT" ]]; then
+    echo "FATAL: QSD_FIXTURE_SHELL_QML_ROOT names a nonexistent directory: $QSD_FIXTURE_SHELL_QML_ROOT" >&2
     exit 1
 fi
 unset _qsd_fv _qsd_fv_val
@@ -279,6 +315,46 @@ _qsd_layers_json() {
         return
     fi
     hyprctl layers -j 2>/dev/null
+}
+
+# ── 18-17 seams (T-15-08 discipline: same two rules as every seam above —
+#    a variable naming a nonexistent path is a hard FATAL at true top
+#    level, and none of the four is ever consulted on the live path
+#    unless explicitly set). ─────────────────────────────────────────────
+_qsd_monitors_json() {
+    if [[ -n "${QSD_FIXTURE_MONITORS_JSON:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_MONITORS_JSON" ]] || { echo "FATAL: QSD_FIXTURE_MONITORS_JSON names a nonexistent file: $QSD_FIXTURE_MONITORS_JSON" >&2; exit 1; }
+        cat -- "$QSD_FIXTURE_MONITORS_JSON"
+        return
+    fi
+    hyprctl monitors -j 2>/dev/null
+}
+
+_qsd_design_qml_path() {
+    if [[ -n "${QSD_FIXTURE_DESIGN_QML:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_DESIGN_QML" ]] || { echo "FATAL: QSD_FIXTURE_DESIGN_QML names a nonexistent file: $QSD_FIXTURE_DESIGN_QML" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_DESIGN_QML"
+        return
+    fi
+    printf '%s' "$QUICKSHELL_CONFIG_DIR/modules/dashboard/Design.qml"
+}
+
+_qsd_shell_qml_root() {
+    if [[ -n "${QSD_FIXTURE_SHELL_QML_ROOT:-}" ]]; then
+        [[ -d "$QSD_FIXTURE_SHELL_QML_ROOT" ]] || { echo "FATAL: QSD_FIXTURE_SHELL_QML_ROOT names a nonexistent directory: $QSD_FIXTURE_SHELL_QML_ROOT" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_SHELL_QML_ROOT"
+        return
+    fi
+    printf '%s' "$QUICKSHELL_CONFIG_DIR/modules"
+}
+
+_qsd_windowrules_lua_path() {
+    if [[ -n "${QSD_FIXTURE_WINDOWRULES_LUA:-}" ]]; then
+        [[ -f "$QSD_FIXTURE_WINDOWRULES_LUA" ]] || { echo "FATAL: QSD_FIXTURE_WINDOWRULES_LUA names a nonexistent file: $QSD_FIXTURE_WINDOWRULES_LUA" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_WINDOWRULES_LUA"
+        return
+    fi
+    printf '%s' "$HOME/.config/hypr/config/windowrules.lua"
 }
 
 # Directory seam — the source-half scan target for panel-namespace-
@@ -939,15 +1015,19 @@ _qsd_check_overview_shortcut_single_registration() {
     fi
 }
 
-# ── check 3: reserved-array-manifest-coverage ───────────────────────────
-# The existing reserved-space summon-and-diff (check 5, above) already
-# iterates every shortcuts.json entry, so the overview's fifth manifest
-# entry is already in scope. This is the explicit structural guard that a
-# future manifest entry cannot silently fall out of that iteration: every
-# entry must pass the same _qsd_valid_token allowlist the live summon-and-
-# diff loop itself gates on before dispatching. Non-invasive (parses the
-# manifest only, no summon), so it runs unconditionally, not gated behind
-# --no-summon.
+# ── manifest token-allowlist coverage (originally "check 3", D-16-23) ───
+# The "no summoned surface adds a reservation" summon-and-diff (check 5,
+# above) already iterates every shortcuts.json entry, so the overview's
+# fifth manifest entry is already in scope. This is the explicit
+# structural guard that a future manifest entry cannot silently fall out
+# of that iteration: every entry must pass the same _qsd_valid_token
+# allowlist the live summon-and-diff loop itself gates on before
+# dispatching. Non-invasive (parses the manifest only, no summon).
+# 18-17: this pure function is PRESERVED unchanged — only its wrapper
+# (formerly _qsd_check_reserved_array_manifest_coverage, below) was
+# replaced; this assertion is now called directly from
+# _qsd_check_bar_reserved_zone_stability as a named sub-assertion in that
+# check's single report line, rather than reported on its own line.
 _qsd_assert_manifest_coverage() {
     local manifest="$1"
     local total valid=0 m_appid m_name
@@ -963,19 +1043,229 @@ _qsd_assert_manifest_coverage() {
     [[ "$total" -gt 0 && "$valid" -eq "$total" ]]
 }
 
-_qsd_check_reserved_array_manifest_coverage() {
-    if ! command -v jq >/dev/null 2>&1; then
-        echo "  [SKIP] reserved-array-manifest-coverage (D-16-23 check 3): jq not found"
+# ── 18-17 (QBAR-12) — bar-reserved-zone-stability. Replaces
+#    _qsd_check_reserved_array_manifest_coverage in this exact slot: that
+#    name and that body are gone, but the manifest token-allowlist
+#    coverage it actually held (_qsd_assert_manifest_coverage, above) is
+#    real and survives, folded into this check's report as a named
+#    sub-assertion rather than deleted along with the framing that
+#    surrounded it. ─────────────────────────────────────────────────────
+
+# Reduces a monitors-JSON document to one deterministic line per monitor
+# (name<TAB>l,t,r,b), sorted by name inside jq itself — never by bash
+# associative-array iteration, which is unspecified order. Pure function,
+# no live read.
+_qsd_reservation_by_name() {
+    printf '%s' "$1" | jq -r '
+        [.[] | {name, reserved}] | sort_by(.name)[]
+        | [.name, (.reserved | join(","))] | @tsv
+    ' 2>/dev/null
+}
+
+# Diffs two monitors-JSON readings, keyed by monitor NAME (never by array
+# position — hyprctl emits monitors in enumeration order, and a hotplug
+# between two readings would make a positional comparison report drift
+# that never happened). Reports one deterministic line and returns
+# nothing meaningful itself — the caller interprets the fields. A changed
+# monitor SET is its own reported outcome, never folded into the
+# axis/delta verdict.
+_qsd_reservation_diff() {
+    local pre_json="$1" post_json="$2"
+    local -A pre_map=() post_map=()
+    local name resv
+    while IFS=$'\t' read -r name resv; do
+        [[ -z "$name" ]] && continue
+        pre_map["$name"]="$resv"
+    done < <(_qsd_reservation_by_name "$pre_json")
+    while IFS=$'\t' read -r name resv; do
+        [[ -z "$name" ]] && continue
+        post_map["$name"]="$resv"
+    done < <(_qsd_reservation_by_name "$post_json")
+
+    local common=0 appeared=0 disappeared=0
+    local n
+    for n in "${!pre_map[@]}"; do
+        if [[ -n "${post_map[$n]+x}" ]]; then
+            common=$((common + 1))
+        else
+            disappeared=$((disappeared + 1))
+        fi
+    done
+    for n in "${!post_map[@]}"; do
+        [[ -z "${pre_map[$n]+x}" ]] && appeared=$((appeared + 1))
+    done
+    local set_changed=0
+    [[ "$appeared" -gt 0 || "$disappeared" -gt 0 ]] && set_changed=1
+
+    local axes_changed=0 axis=-1 delta=0
+    if [[ "$set_changed" -eq 0 ]]; then
+        for n in "${!pre_map[@]}"; do
+            local -a pv qv
+            IFS=',' read -r -a pv <<<"${pre_map[$n]}"
+            IFS=',' read -r -a qv <<<"${post_map[$n]}"
+            local i
+            for i in 0 1 2 3; do
+                if [[ "${pv[$i]:-0}" != "${qv[$i]:-0}" ]]; then
+                    axes_changed=$((axes_changed + 1))
+                    axis="$i"
+                    delta=$(( qv[i] - pv[i] ))
+                    [[ "$delta" -lt 0 ]] && delta=$(( -delta ))
+                fi
+            done
+        done
+    fi
+    printf 'monitors=%s appeared=%s disappeared=%s set-changed=%s axes-changed=%s axis=%s delta=%s' \
+        "$common" "$appeared" "$disappeared" "$set_changed" "$axes_changed" "$axis" "$delta"
+}
+
+# Reads the expected reservation extent straight out of Design.qml's own
+# `readonly property int` tokens — never restated as a literal here, so a
+# future token change cannot drift away from this gate unnoticed. D-18-38:
+# a SINGLE edge margin, never doubled — the top axis (index 1) is
+# barHeight + barEdgeMargin, the right axis (index 2) is barColumnWidth +
+# barEdgeMargin; any other axis is an error, not a default.
+_qsd_expected_extent() {
+    local design="$1" axis="$2"
+    local bar_height bar_edge_margin bar_column_width
+    bar_height=$(grep -oP 'readonly\s+property\s+int\s+barHeight\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
+    bar_edge_margin=$(grep -oP 'readonly\s+property\s+int\s+barEdgeMargin\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
+    bar_column_width=$(grep -oP 'readonly\s+property\s+int\s+barColumnWidth\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
+    case "$axis" in
+        1)
+            [[ -n "$bar_height" && -n "$bar_edge_margin" ]] || return 1
+            echo $(( bar_height + bar_edge_margin ))
+            return 0
+            ;;
+        2)
+            [[ -n "$bar_column_width" && -n "$bar_edge_margin" ]] || return 1
+            echo $(( bar_column_width + bar_edge_margin ))
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+_qsd_check_bar_reserved_zone_stability() {
+    if ! command -v jq >/dev/null 2>&1 || ! command -v hyprctl >/dev/null 2>&1; then
+        echo "  [SKIP] bar-reserved-zone-stability (QBAR-12): jq or hyprctl not found"
         return
     fi
-    local manifest res rc
+    if [[ ! -x "$BAR_VISIBILITY_SH" ]]; then
+        echo "  [SKIP] bar-reserved-zone-stability (QBAR-12): bar-visibility.sh not found or not executable"
+        return
+    fi
+
+    # Preserved coverage (the manifest token-allowlist guard the replaced
+    # function actually held) — real and folded in as a named
+    # sub-assertion, runs regardless of the owner's state below.
+    local manifest manifest_res manifest_rc
     manifest=$(_qsd_shortcuts_manifest_path)
-    if [[ ! -f "$manifest" ]]; then
-        echo "  [SKIP] reserved-array-manifest-coverage (D-16-23 check 3): manifest not found ($manifest)"
+    if [[ -f "$manifest" ]]; then
+        manifest_res=$(_qsd_assert_manifest_coverage "$manifest"); manifest_rc=$?
+    else
+        manifest_res="manifest-entries=0 validated=0"
+        manifest_rc=1
+    fi
+
+    # Never a [FAIL] on a healthy hidden desktop: a bar that is legitimately
+    # hidden (gaming, idle, stepped away) makes the transition meaningless.
+    local owner_status
+    owner_status=$("$BAR_VISIBILITY_SH" status 2>/dev/null)
+    if [[ "$owner_status" != "visible" ]]; then
+        echo "  [SKIP] bar-reserved-zone-stability (QBAR-12): bar-visibility.sh status reports '${owner_status:-<none>}', not visible — a healthy desktop may legitimately be hidden, and the transition cannot be measured from here"
         return
     fi
-    res=$(_qsd_assert_manifest_coverage "$manifest"); rc=$?
-    check "reserved-array-manifest-coverage (D-16-23 check 3, extends check 5's summon-and-diff): every manifest entry passes the same _qsd_valid_token allowlist check 5's dispatch loop gates on, so none can silently fall out of the diff — ${res}" "$rc"
+
+    # ── T-11-11: arm BEFORE the first toggle. A single flag covers the
+    #    whole mutate-and-restore window; an interrupt anywhere inside it
+    #    leaves exactly one outstanding toggle for the trap to undo. ─────
+    BAR_STABILITY_TOGGLE_PENDING=1
+    local pre post
+    pre=$(_qsd_monitors_json)
+    "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
+    sleep 0.3
+    post=$(_qsd_monitors_json)
+    "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
+    BAR_STABILITY_TOGGLE_PENDING=0
+    sleep 0.3
+    local restored_status
+    restored_status=$("$BAR_VISIBILITY_SH" status 2>/dev/null)
+
+    local diff_res set_changed axes_changed axis delta
+    diff_res=$(_qsd_reservation_diff "$pre" "$post")
+    set_changed=$(printf '%s' "$diff_res" | grep -oP 'set-changed=\K[0-9]+')
+    axes_changed=$(printf '%s' "$diff_res" | grep -oP 'axes-changed=\K[0-9]+')
+    axis=$(printf '%s' "$diff_res" | grep -oP 'axis=\K-?[0-9]+')
+    delta=$(printf '%s' "$diff_res" | grep -oP 'delta=\K[0-9]+')
+
+    local design_path expected_extent="" extent_rc=1
+    design_path=$(_qsd_design_qml_path)
+    if [[ "$axis" == "1" || "$axis" == "2" ]]; then
+        expected_extent=$(_qsd_expected_extent "$design_path" "$axis"); extent_rc=$?
+    fi
+
+    local reservation_ok=1 reservation_reason=""
+    if [[ "$set_changed" != "0" ]]; then
+        reservation_ok=0
+        reservation_reason="monitor set changed mid-transition"
+    elif [[ "$axes_changed" == "0" ]]; then
+        reservation_ok=0
+        reservation_reason="zero delta — the bar reserves nothing"
+    elif [[ "$axes_changed" != "1" ]]; then
+        reservation_ok=0
+        reservation_reason="two or more axes moved — claiming an edge it does not occupy"
+    elif [[ "$extent_rc" -ne 0 || "$delta" != "$expected_extent" ]]; then
+        reservation_ok=0
+        reservation_reason="measured delta does not equal the extent parsed from Design.qml"
+    fi
+
+    # ── Hot-reload half — runs on every plain invocation. Touch the bar's
+    #    own source under the watched config directory, poll (bounded, no
+    #    guessed sleep) for its namespace to reappear, then compare. ─────
+    local hot_reload_label="skipped" hot_reload_ok=1
+    if [[ -f "$BAR_QML_PATH" ]]; then
+        local hot_pre hot_post attempt found=0
+        hot_pre=$(_qsd_monitors_json)
+        touch -- "$BAR_QML_PATH" 2>/dev/null
+        for ((attempt = 0; attempt < 40; attempt++)); do
+            sleep 0.25
+            if hyprctl layers -j 2>/dev/null | jq -e '[.[] | .levels? // {} | to_entries[] | .value[]? | select(.namespace=="quickshell-bar")] | length > 0' >/dev/null 2>&1; then
+                found=1
+                break
+            fi
+        done
+        if [[ "$found" -eq 1 ]]; then
+            hot_post=$(_qsd_monitors_json)
+            if [[ "$hot_pre" == "$hot_post" ]]; then
+                hot_reload_ok=1
+                hot_reload_label="identical"
+            else
+                hot_reload_ok=0
+                hot_reload_label="drifted"
+            fi
+        else
+            hot_reload_ok=0
+            hot_reload_label="namespace-did-not-return"
+        fi
+    else
+        hot_reload_ok=0
+        hot_reload_label="bar-source-not-found"
+    fi
+
+    # Compositor-reload half — Task 2 (18-17) fills this in behind its own
+    # opt-in flag; until then it reads as not-run and never contributes a
+    # pass.
+    local compositor_reload_label="not-run"
+
+    local overall_rc=0
+    [[ "$reservation_ok" -ne 1 ]] && overall_rc=1
+    [[ "$restored_status" != "visible" ]] && overall_rc=1
+    [[ "$hot_reload_ok" -ne 1 ]] && overall_rc=1
+    [[ "$manifest_rc" -ne 0 ]] && overall_rc=1
+
+    check "bar-reserved-zone-stability (QBAR-12, replaces the D-16-23 reserved-array-manifest-coverage slot — one-reservation model: the bar's own reservation exists, is attributable, is stable): delta=${delta} axis=${axis} (0=left,1=top,2=right,3=bottom), expected=${expected_extent:-<n/a>} (source=Design.qml, parsed not restated), ${reservation_reason:-attributed and stable}, hot-reload=${hot_reload_label}, compositor-reload=${compositor_reload_label}, ${manifest_res} (preserved coverage), measured via bar-visibility.sh status / bar-visibility.sh keybind toggle" "$overall_rc"
 }
 
 # ── check 4: permissions-enforce-readback ───────────────────────────────
@@ -1300,6 +1590,43 @@ run_self_test() {
     rc=$?
     _qsd_st "poisoned-invalid-token-shortcuts.json -> reserved-array-manifest-coverage FAILS (${res}, an entry fails _qsd_valid_token and would silently fall out of the diff)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
 
+    # 18-17 (QBAR-12) — bar-reserved-zone-stability (6 fixtures). The
+    # expected extent is parsed from compliant-bar-design.qml rather than
+    # ever hardcoded here, so no host-specific pixel count appears in this
+    # file at all — the pre/post pair's own delta must equal whatever that
+    # fixture's own tokens compute to.
+    local pre_json post_json diff_res extent axes_changed set_changed delta axis
+    pre_json=$(cat -- "$FIXTURES_DIR/compliant-bar-reserved-pre.json")
+    extent=$(_qsd_expected_extent "$FIXTURES_DIR/compliant-bar-design.qml" 1)
+    _qsd_st "compliant-bar-design.qml -> expected-extent parser resolves the top axis from Design.qml's own tokens (extent=${extent:-<none>})" "$([[ -n "$extent" ]] && echo 0 || echo 1)"
+    local right_extent
+    right_extent=$(_qsd_expected_extent "$FIXTURES_DIR/compliant-bar-design.qml" 2)
+    _qsd_st "compliant-bar-design.qml -> expected-extent parser resolves the right axis too (barColumnWidth + barEdgeMargin, extent=${right_extent:-<none>}), same single edge margin, never doubled" "$([[ -n "$right_extent" && "$right_extent" != "$extent" ]] && echo 0 || echo 1)"
+
+    post_json=$(cat -- "$FIXTURES_DIR/compliant-bar-reserved-post.json")
+    diff_res=$(_qsd_reservation_diff "$pre_json" "$post_json")
+    axes_changed=$(printf '%s' "$diff_res" | grep -oP 'axes-changed=\K[0-9]+')
+    set_changed=$(printf '%s' "$diff_res" | grep -oP 'set-changed=\K[0-9]+')
+    delta=$(printf '%s' "$diff_res" | grep -oP 'delta=\K[0-9]+')
+    axis=$(printf '%s' "$diff_res" | grep -oP 'axis=\K-?[0-9]+')
+    _qsd_st "compliant-bar-reserved-{pre,post}.json -> bar-reserved-zone-stability PASSES (${diff_res}, axis=${axis} matches the top edge, delta=${delta} matches extent=${extent} parsed from Design.qml, no monitor-set change)" \
+        "$([[ "$set_changed" == "0" && "$axes_changed" == "1" && "$delta" == "$extent" ]] && echo 0 || echo 1)"
+
+    post_json=$(cat -- "$FIXTURES_DIR/poisoned-zero-delta-bar-reserved-post.json")
+    diff_res=$(_qsd_reservation_diff "$pre_json" "$post_json")
+    axes_changed=$(printf '%s' "$diff_res" | grep -oP 'axes-changed=\K[0-9]+')
+    _qsd_st "poisoned-zero-delta-bar-reserved-post.json -> bar-reserved-zone-stability FAILS (${diff_res}, a zero delta means the bar reserves nothing)" "$([[ "$axes_changed" == "0" ]] && echo 0 || echo 1)"
+
+    post_json=$(cat -- "$FIXTURES_DIR/poisoned-two-axis-bar-reserved-post.json")
+    diff_res=$(_qsd_reservation_diff "$pre_json" "$post_json")
+    axes_changed=$(printf '%s' "$diff_res" | grep -oP 'axes-changed=\K[0-9]+')
+    _qsd_st "poisoned-two-axis-bar-reserved-post.json -> bar-reserved-zone-stability FAILS (${diff_res}, two axes moving means the bar is claiming an edge it does not occupy)" "$([[ "$axes_changed" -gt 1 ]] && echo 0 || echo 1)"
+
+    post_json=$(cat -- "$FIXTURES_DIR/poisoned-monitor-hotplug-bar-reserved-post.json")
+    diff_res=$(_qsd_reservation_diff "$pre_json" "$post_json")
+    set_changed=$(printf '%s' "$diff_res" | grep -oP 'set-changed=\K[0-9]+')
+    _qsd_st "poisoned-monitor-hotplug-bar-reserved-post.json -> bar-reserved-zone-stability reports a changed monitor set distinctly, never folded into a drift verdict (${diff_res})" "$([[ "$set_changed" == "1" ]] && echo 0 || echo 1)"
+
     # check 4: permissions-enforce-readback (2 fixtures).
     local raw
     raw=$(cat -- "$FIXTURES_DIR/compliant-hyprctl-getoption-enforce.txt")
@@ -1417,6 +1744,12 @@ RFKILL_ORIG_BT_SOFT=""
 # dismiss toggle, so an interrupt mid-check can never strand the overview
 # mounted on the user's screen.
 OVERVIEW_SUMMONED=0
+# 18-17 (QBAR-12): armed immediately before bar-reserved-zone-stability's
+# FIRST `bar-visibility.sh keybind toggle` call, cleared immediately after
+# the matching second toggle — a single flag covers the whole
+# mutate-and-restore window, so an interrupt anywhere inside it leaves at
+# most one outstanding toggle for the trap below to undo.
+BAR_STABILITY_TOGGLE_PENDING=0
 CLEANED_UP=0
 # shellcheck disable=SC2329 # invoked indirectly via `trap` below, not a direct call
 _qsd_cleanup() {
@@ -1452,6 +1785,10 @@ _qsd_cleanup() {
         [[ -n "$RFKILL_ORIG_WIFI_SOFT" ]] && rfkill "$RFKILL_ORIG_WIFI_SOFT" wifi >/dev/null 2>&1
         [[ -n "$RFKILL_ORIG_BT_SOFT" ]] && rfkill "$RFKILL_ORIG_BT_SOFT" bluetooth >/dev/null 2>&1
         RFKILL_RESTORE_NEEDED=0
+    fi
+    if [[ "$BAR_STABILITY_TOGGLE_PENDING" -eq 1 ]]; then
+        "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
+        BAR_STABILITY_TOGGLE_PENDING=0
     fi
 }
 # EXIT alone covers normal completion; INT/TERM additionally terminate
@@ -1514,18 +1851,24 @@ else
     check "namespace discipline (D-21): every quickshell-* layer namespace sits at level 3 (overlay) and belongs to the shell's own PID (off-level: ${OFF_LEVEL_COUNT}, wrong-pid: ${WRONG_PID_COUNT})" "$([[ "$OFF_LEVEL_COUNT" -eq 0 && "$WRONG_PID_COUNT" -eq 0 ]] && echo 0 || echo 1)"
 fi
 
-# ── 5. Reserved-space stays unclaimed (D-21), by diff not by literal —
-#    summon every manifest surface, re-read monitors -j's reserved
-#    array, assert byte-identical, then dismiss again. Never assert
-#    equality against a hardcoded value: waybar's height, this host's
-#    monitor name and the monitor count must all be free to change
-#    without editing this file. ───────────────────────────────────────
+# ── 5. No summoned surface adds a reservation (D-21, relabelled 18-17) —
+#    by diff not by literal — summon every manifest surface, re-read
+#    monitors -j's reserved array, assert byte-identical, then dismiss
+#    again. Mechanism UNCHANGED from the pre-18-17 "reserved-space stays
+#    unclaimed" check; only the label and this comment changed, to state
+#    what the mechanism actually proves under the one-reservation model
+#    (18-17's header record-why): the bar is the only surface permitted
+#    to reserve space, and this proves no OTHER summoned surface may add
+#    a second reservation beside it. Never assert equality against a
+#    hardcoded value: waybar's height, this host's monitor name and the
+#    monitor count must all be free to change without editing this
+#    file. ───────────────────────────────────────────────────────────
 if [[ "$NO_SUMMON" -eq 1 ]]; then
-    echo "  [SKIP] reserved-space stays unclaimed (D-21): summon-and-diff disabled by --no-summon"
+    echo "  [SKIP] no summoned surface adds a reservation (D-21): summon-and-diff disabled by --no-summon"
 elif ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
-    echo "  [SKIP] reserved-space stays unclaimed (D-21): hyprctl or jq not found"
+    echo "  [SKIP] no summoned surface adds a reservation (D-21): hyprctl or jq not found"
 elif [[ ! -f "$SHORTCUTS_MANIFEST" ]]; then
-    echo "  [SKIP] reserved-space stays unclaimed (D-21): manifest not found ($SHORTCUTS_MANIFEST)"
+    echo "  [SKIP] no summoned surface adds a reservation (D-21): manifest not found ($SHORTCUTS_MANIFEST)"
 else
     ZONE_DIFF_BAD=0
     while IFS="$US" read -r m_appid m_name; do
@@ -1548,7 +1891,7 @@ else
             printf '    reserved array changed summoning %s:%s — before=%s after=%s\n' "$m_appid" "$m_name" "$PRE" "$POST" >&2
         fi
     done < <(jq -r --arg us "$US" '.[] | [.appid, .name] | join($us)' "$SHORTCUTS_MANIFEST")
-    check "reserved-space stays unclaimed (D-21): summoning every manifest surface leaves monitors -j's reserved array byte-identical (changed: ${ZONE_DIFF_BAD})" "$([[ "$ZONE_DIFF_BAD" -eq 0 ]] && echo 0 || echo 1)"
+    check "no summoned surface adds a reservation (D-21, 18-17: only the bar may reserve): summoning every manifest surface leaves monitors -j's reserved array byte-identical (changed: ${ZONE_DIFF_BAD})" "$([[ "$ZONE_DIFF_BAD" -eq 0 ]] && echo 0 || echo 1)"
 fi
 
 # ── 6. keybind-doctor clean — the MAINT-01 half of QS-05's
@@ -1865,7 +2208,7 @@ _qsd_check_overview_namespace_conformance
 # check this new check shares the most structural shape with.
 _qsd_check_mpvpaper_layer_coexistence
 _qsd_check_overview_shortcut_single_registration
-_qsd_check_reserved_array_manifest_coverage
+_qsd_check_bar_reserved_zone_stability
 _qsd_check_permissions_enforce_readback
 _qsd_check_permissions_allowlist_paths_resolve
 _qsd_check_overview_content

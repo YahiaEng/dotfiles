@@ -1,0 +1,10 @@
+[
+    {
+        "_provenance": "Poisoned fixture (Phase 18 Plan 17, QBAR-12) — diffed against compliant-bar-reserved-pre.json, BOTH the top axis (index 1, 46 -> 0) and the left axis (index 0, 0 -> 10) change. Proves the check FAILS when more than one axis moves: a surface that moves two axes is claiming an edge it does not occupy. Target: bar-reserved-zone-stability. Expected verdict: FAIL (axes-changed=2).",
+        "id": 1,
+        "name": "DP-1",
+        "width": 2560,
+        "height": 1440,
+        "reserved": [10, 0, 0, 0]
+    }
+]

@@ -1,0 +1,10 @@
+[
+    {
+        "_provenance": "Poisoned fixture (Phase 18 Plan 17, QBAR-12) — a 'post' reading byte-identical to compliant-bar-reserved-pre.json's reserved array. Diffed against the pre fixture, this proves the check FAILS on a zero delta: a bar that reserves nothing must never pass silently. Target: bar-reserved-zone-stability. Expected verdict: FAIL (axes-changed=0).",
+        "id": 1,
+        "name": "DP-1",
+        "width": 2560,
+        "height": 1440,
+        "reserved": [0, 46, 0, 0]
+    }
+]

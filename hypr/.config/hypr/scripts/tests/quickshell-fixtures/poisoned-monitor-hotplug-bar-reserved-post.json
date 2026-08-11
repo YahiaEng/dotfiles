@@ -1,0 +1,10 @@
+[
+    {
+        "_provenance": "Poisoned fixture (Phase 18 Plan 17, QBAR-12) — diffed against compliant-bar-reserved-pre.json's monitor 'DP-1', this 'post' reading names a DIFFERENT monitor ('DP-2') instead. Proves the ordering-contract edge truth: a monitor hotplug between two readings must be reported as its own distinguishable outcome (a changed monitor SET), never folded into a drift verdict via a positional (not name-keyed) comparison. Target: bar-reserved-zone-stability. Expected verdict: reported set-changed=1, never a bare drift number.",
+        "id": 2,
+        "name": "DP-2",
+        "width": 2560,
+        "height": 1440,
+        "reserved": [0, 0, 0, 0]
+    }
+]

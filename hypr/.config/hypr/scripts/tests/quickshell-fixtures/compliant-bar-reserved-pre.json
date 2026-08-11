@@ -1,0 +1,10 @@
+[
+    {
+        "_provenance": "Synthetic fixture (Phase 18 Plan 17, QBAR-12) modelled on the real `hyprctl monitors -j` shape — a single-monitor host with the bar VISIBLE (before the owner's keybind-toggle transition). Paired with compliant-bar-reserved-post.json (bar hidden-hard) to prove the reservation delta: top axis (index 1), 46px, matching Design.qml's barHeight(40)+barEdgeMargin(6) as carried in compliant-bar-design.qml. Target: bar-reserved-zone-stability. Expected verdict when diffed against the post fixture: PASS.",
+        "id": 1,
+        "name": "DP-1",
+        "width": 2560,
+        "height": 1440,
+        "reserved": [0, 46, 0, 0]
+    }
+]
