@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 29
+open_count: 32
 waived_count: 0
 fixed_count: 8
-total_count: 37
-last_updated: 2026-08-11T02:24:39.043Z
+total_count: 40
+last_updated: 2026-08-11T02:48:07.870Z
 ---
 
 # Broken Windows Ledger
@@ -52,6 +52,9 @@ last_updated: 2026-08-11T02:24:39.043Z
 | 35 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/BrightnessBackend.qml |  | 18-12 Task 2 human-check deferred: repoint deviceClass to leds, confirm hot-reload renders real percentage, scroll, revert, vertical orientation — running quickshell process predates this plan's code | open |  | 2026-08-11T02:24:38.864Z |  |
 | 36 | 18 | lint-warning | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml | 117 | Pre-existing untokened color: (cellItem.tint) from 18-11, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12) | open |  | 2026-08-11T02:24:38.953Z |  |
 | 37 | 18 | lint-warning | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml | 241 | Pre-existing untokened color: ("transparent") from 18-10, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12) | open |  | 2026-08-11T02:24:39.043Z |  |
+| 38 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/SectionPopout.qml |  | 18-13 Task 1 human-check not run this session: click-to-open live rendering, hyprctl y=50 confirmation, volume slider moving real system volume, click-outside destruction, 18-12 scroll gesture survival, vertical-orientation placement — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.664Z |  |
+| 39 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/PopoutController.qml |  | 18-13 Task 2 human-check not run this session: felt 400ms dwell, bar-sweep-opens-nothing proof, diagonal-move-survives-the-gap, pin/Escape/click-outside cycle, no-keystroke-theft typing proof — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.772Z |  |
+| 40 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/AudioPopout.qml |  | 18-13 Task 3 human-check not run this session: foot-pill visual comparison against a dashboard panel's Advanced button, click-through to AudioPanel.qml, live pending/empty state provocation, theme-switch crossfade check — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.870Z |  |
 
 ````json
 [
@@ -497,6 +500,42 @@ last_updated: 2026-08-11T02:24:39.043Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T02:24:39.043Z",
+    "resolved_at": null
+  },
+  {
+    "id": 38,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/SectionPopout.qml",
+    "line": null,
+    "description": "18-13 Task 1 human-check not run this session: click-to-open live rendering, hyprctl y=50 confirmation, volume slider moving real system volume, click-outside destruction, 18-12 scroll gesture survival, vertical-orientation placement — deferred (live quickshell process predates this plan's commits).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T02:48:07.664Z",
+    "resolved_at": null
+  },
+  {
+    "id": 39,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/PopoutController.qml",
+    "line": null,
+    "description": "18-13 Task 2 human-check not run this session: felt 400ms dwell, bar-sweep-opens-nothing proof, diagonal-move-survives-the-gap, pin/Escape/click-outside cycle, no-keystroke-theft typing proof — deferred (live quickshell process predates this plan's commits).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T02:48:07.772Z",
+    "resolved_at": null
+  },
+  {
+    "id": 40,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/AudioPopout.qml",
+    "line": null,
+    "description": "18-13 Task 3 human-check not run this session: foot-pill visual comparison against a dashboard panel's Advanced button, click-through to AudioPanel.qml, live pending/empty state provocation, theme-switch crossfade check — deferred (live quickshell process predates this plan's commits).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T02:48:07.870Z",
     "resolved_at": null
   }
 ]
