@@ -277,19 +277,24 @@ BarCapsule {
     // meaning; the operator asked for "the star AI symbol" instead, so it gets
     // the identity glyph rather than its numeral.
     //
-    // The operator asked for a different icon than the first attempt, which used
-    // Material Symbols' `auto_awesome` sparkle. This is nf-md-robot (U+F06A9)
-    // from appGlyphFontFamily — the SAME Nerd Font every other identity glyph
-    // and window glyph on this bar uses.
+    // `auto_awesome` — Google's four-pointed sparkle, the icon that has become
+    // the de facto "AI" mark. The operator asked for this specifically after
+    // trying a Nerd Font robot.
     //
-    // That choice is deliberate beyond taste: the sparkle was the one identity
-    // glyph in this file needing a second font family, which forced a
-    // per-slot font switch and two differently-measured metrics paths. A Nerd
-    // Font icon removes that special case entirely, so every slot identity is
-    // one family at one size again. Swapping this glyph later is now a
-    // one-literal change with no font plumbing attached.
+    // It comes from Material Symbols, so it is the ONE identity glyph in this
+    // file NOT drawn from appGlyphFontFamily (FiraCode Nerd Font), and
+    // identityFontFor() below exists solely to serve it. That special case is a
+    // known, accepted cost: an interim Nerd Font glyph had removed it, but the
+    // operator wants this specific mark, and matching the requested design beats
+    // keeping one font family. Keep the metrics path in step with it — the
+    // reservation and the render must agree on family AND size, or the slot
+    // mis-measures (that exact mismatch has already been fixed twice here).
     readonly property int aiSlotId: 10
-    readonly property string aiSlotGlyph: "\u{f06a9}"
+    readonly property string aiSlotGlyph: "auto_awesome"
+
+    function identityFontFor(slotId) {
+        return slotId === workspaceCapsule.aiSlotId ? Design.symbolFontFamily : workspaceCapsule.appGlyphFontFamily;
+    }
 
     // Precedence matches slotTextColour's own: focused wins over urgent.
     // Anything else falls through to the caller's own numeral (String(
@@ -692,10 +697,11 @@ BarCapsule {
                     // numeral — see stateGlyphFor's derivation table above.
                     text: slotItem.slotStateGlyph
                     font.pixelSize: slotItem.slotIdentityIsNumeral ? Design.barBodySize : Design.barGlyphSize
-                    // One family for every identity — state glyph, AI icon and
-                    // numeral alike — now that the AI icon is a Nerd Font glyph
-                    // rather than a Material Symbol.
-                    font.family: workspaceCapsule.appGlyphFontFamily
+                    // Material Symbols for the AI slot's sparkle, the Nerd Font
+                    // for every state glyph and numeral. A focused or urgent AI
+                    // slot shows the Nerd Font state glyph, so the family has to
+                    // follow the same precedence slotStateGlyph itself uses.
+                    font.family: slotItem.slotFocused || slotItem.slotUrgent ? workspaceCapsule.appGlyphFontFamily : workspaceCapsule.identityFontFor(slotItem.slotId)
                     // A NUMERAL is bar body text and renders at barBodySize
                     // (13) — Athena's workspace labels inherit its
                     // `* { font-size: 13px }`, and ours painting them at
