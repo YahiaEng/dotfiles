@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
-current_phase_name: qml-bar-retirement-machinery
+current_phase_name: qml-bar-athena-restoration
 status: executing
-stopped_at: 18-18 HALTED — frame-rate campaign and soak end-capture deferred, resume commands recorded in 18-FRAME-RATE.md and 18-BAR-SOAK.md
-last_updated: "2026-08-11T10:30:36.853Z"
+stopped_at: "GATE-02 FAILED — operator judged the Phase 18 QML bar worse than the Athena waybar it replaces. Phase 18.1 (INSERTED) restores Athena's visual language and must complete before 18-19 (GATE-02) and 18-20 (waybar retirement). Design: docs/superpowers/specs/2026-08-11-qml-bar-athena-restoration-design.md (ca54fb1). Separately, 18-18 remains HALTED — LEDGER-03 frame-rate is now MEASURED and closed, but QBAR-11's soak needs a fresh uninterrupted 4h window (its earlier window was voided when the shell restarted for the frame-rate campaign). Next: /gsd-plan-phase 18.1"
+last_updated: "2026-08-11T13:11:19.310Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 0
-  total_plans: 20
+  total_plans: 27
   completed_plans: 18
   percent: 0
 ---
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 18 — qml-bar-retirement-machinery
+**Current focus:** Phase 18.1 — qml-bar-athena-restoration
 
 ## Current Position
 
@@ -232,6 +232,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
   - **Debt is interleaved across 18-21, never parked** — research explicitly warns debt-paydown dies silently when migration runs long, and v3.0's closeout names this as the open test of v4.0. If the milestone runs long, cut migration stretch goals first, never the debt.
 - Phase 10 added: AGS Media Applet — decided 2026-07-15 after the Phase 08 eww media popup was proven unable to deliver pointer input to its widgets on this eww 0.6.0 / Hyprland 0.55.4 build (debug session resolved-by-redesign: `.planning/debug/resolved/eww-media-popup-clicks-dead.md`). Replace with a standalone AGS v3 (GTK4) media applet, keeping waybar/swaync/matugen. User rejected a full HyprPanel bar takeover in favor of a contained applet. Approved spec + plan live in `docs/superpowers/`.
 - Phase 13.1 inserted after Phase 13: Hyprland Lua Config Migration — 0.57 removes .conf support; hyprlang replaced by Lua. Inserted before Dashboard Drawer because phases 14-17 all consume the design tokens this rewrites. (URGENT)
+- Phase 18.1 inserted after Phase 18: QML Bar Athena Restoration — operator judged the Phase 18 QML bar worse than the Athena waybar it replaces (GATE-02 verdict). Restores Athena's visual language: BarRoles colour layer, filled pills, hover-reveal drawers, Nerd Font workspace glyphs with pacman state set, icon-only resource pills, tray dropped. Design: docs/superpowers/specs/2026-08-11-qml-bar-athena-restoration-design.md (ca54fb1). Must complete before 18-19 (GATE-02) and 18-20 (waybar retirement). (URGENT)
 
 ### Decisions
 

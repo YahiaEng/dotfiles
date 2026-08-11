@@ -195,13 +195,26 @@ Cross-cutting constraints:
 **Plans:** 7 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 18.1-01-PLAN.md — TRACER: `BarRoles` colour role layer + `qmldir` registration, proven end-to-end on the filled focused-workspace pill; then Athena's state-glyph slot identity and the seven empty glyph literals
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 18.1-02-PLAN.md — `BarCapsule` chrome onto Athena's translucent capsule surface; `SystemCapsule` icon-only resource pills with the in-place `format-alt` value toggle, threshold colour and a filled updates alert pill
 - [ ] 18.1-03-PLAN.md — `ClockActionsCapsule` `fillClock` clock pill and state-driven `fillNotification` bell pill; the remaining action-cell tints plus the omitted `MediaConnectivityCapsule` error tint migrated onto `BarRoles`
 - [ ] 18.1-04-PLAN.md — live consumer sweep then the five-point `TrayCapsule` removal; QBAR-05 recorded Withdrawn under D-15 and the four TrayCapsule WINDOWS.md rows closed
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 18.1-05-PLAN.md — hover-reveal on both drawers with dwell + grace, explicitly integrated with `BarReveal` and bypassing the dead `PopoutController.barSettled` latch; four-leg integration proof
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 18.1-06-PLAN.md — the `quickshell-doctor` colour-routing check (D-20), proven able to fail via four falsifications, with every exemption named; the generated `BarRoles`↔`theme.scss` diff (D-21)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 18.1-07-PLAN.md — GATE-02: the operator's side-by-side verdict against the Athena waybar, with all four named deltas disclosed, recorded truthfully in the ledger and roadmap (blocking checkpoint)
 
 ### Phase 19: Notification Server & Centre
