@@ -1,0 +1,32 @@
+{
+"_provenance": "Poisoned fixture (Phase 18 Plan 17, GATE-03) — TWO surfaces both claiming the permanent bar's exact namespace at its correct level. Proves the check FAILS on the one cardinality it is strict about: the permanent frame must be present EXACTLY once. Target: bar-surface-registry (live half). Expected verdict: FAIL (permanent=2, not 1).",
+"DP-1": {
+    "levels": {
+        "0": [],
+        "1": [],
+        "2": [
+                {
+                    "address": "0x55ddac02b500",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 46,
+                    "alpha": 1,
+                    "namespace": "quickshell-bar",
+                    "pid": 2982672
+                },
+                {
+                    "address": "0x55ddac02b501",
+                    "x": 0,
+                    "y": 46,
+                    "w": 2560,
+                    "h": 46,
+                    "alpha": 1,
+                    "namespace": "quickshell-bar",
+                    "pid": 2982672
+                }
+        ],
+        "3": []
+    }
+}
+}

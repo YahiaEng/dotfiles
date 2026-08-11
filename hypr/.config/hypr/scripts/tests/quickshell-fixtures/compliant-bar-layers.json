@@ -1,0 +1,33 @@
+{
+"_provenance": "Synthetic fixture (Phase 18 Plan 17, GATE-03) modelled on the real hyprctl layers -j shape — the permanent bar at its registered top level (2), one open section popout at the overlay level (3), and no hot zone (the bar is visible, so the hot zone does not exist by design). Fixed pid 2982672, the same T-16-SELFTEST sentinel the panel/overview fixtures already use. Target: bar-surface-registry (live half). Expected verdict: PASS (permanent=1, off-level=0, wrong-pid=0, unmatched=0).",
+"DP-1": {
+    "levels": {
+        "0": [],
+        "1": [],
+        "2": [
+                {
+                    "address": "0x55ddac02b500",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 46,
+                    "alpha": 1,
+                    "namespace": "quickshell-bar",
+                    "pid": 2982672
+                }
+        ],
+        "3": [
+                {
+                    "address": "0x55ddad212d00",
+                    "x": 900,
+                    "y": 56,
+                    "w": 760,
+                    "h": 600,
+                    "alpha": 1,
+                    "namespace": "quickshell-bar-audio",
+                    "pid": 2982672
+                }
+        ]
+    }
+}
+}

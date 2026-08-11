@@ -1,0 +1,33 @@
+{
+"_provenance": "Poisoned fixture (Phase 18 Plan 17, GATE-03) — a namespace that is bar-family-SHAPED (starts with the literal 'quickshell-bar', so it is caught by the live half's broad candidate net) but matches NEITHER the permanent frame's exact string NOR the transient family's anchored pattern (no separator after 'bar' at all): 'quickshell-barnacle'. Proves the reverse-style live check FAILS on a bar-family-shaped namespace nothing registers, rather than silently accepting anything sharing the prefix. Target: bar-surface-registry (live half). Expected verdict: FAIL (unmatched=1).",
+"DP-1": {
+    "levels": {
+        "0": [],
+        "1": [],
+        "2": [
+                {
+                    "address": "0x55ddac02b500",
+                    "x": 0,
+                    "y": 0,
+                    "w": 2560,
+                    "h": 46,
+                    "alpha": 1,
+                    "namespace": "quickshell-bar",
+                    "pid": 2982672
+                }
+        ],
+        "3": [
+                {
+                    "address": "0x55ddad212d00",
+                    "x": 900,
+                    "y": 56,
+                    "w": 760,
+                    "h": 600,
+                    "alpha": 1,
+                    "namespace": "quickshell-barnacle",
+                    "pid": 2982672
+                }
+        ]
+    }
+}
+}

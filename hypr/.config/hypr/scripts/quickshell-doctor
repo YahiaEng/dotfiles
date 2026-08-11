@@ -253,6 +253,49 @@ QSD_PANEL_NAMES=(audio wifi bluetooth)
 QSD_PANEL_NAMESPACE_PREFIX="quickshell-"
 QSD_PANEL_NAMESPACE_SUFFIX="-panel"
 
+# ── 18-17 Task 3 (GATE-03) — the bar-surface registry. One ordered row
+#    per bar-family layer-shell frame this phase added, each:
+#    file (relative to the shell's QML module root) | namespace value or
+#    prefix | match type (exact|pattern — pattern requires at least one
+#    character after the stored prefix, never a bare startswith) | layer
+#    level (hyprctl layers -j levels key: 0=background 1=bottom 2=top
+#    3=overlay) | reservation permission (reserve|noreserve) | lifetime
+#    (permanent|transient).
+#
+#    A FUTURE EDITOR MUST: add one row, add nothing else. The closure
+#    this registry drives — in _qsd_assert_bar_surface_registry_source and
+#    _qsd_assert_bar_surface_registry_live below — is what makes forgetting
+#    a row impossible rather than merely discouraged: a row whose file is
+#    missing fails, and a file anywhere under the scan root that declares
+#    a layer namespace and is not a registry row or in
+#    QSD_KNOWN_NONBAR_FRAMES also fails.
+#
+#    `bar/BarDrawer.qml` (18-11's recommended Option B for D-18-11's
+#    vertical drawers) was an OPEN DECISION at the time this array was
+#    written, not yet taken — checked on disk at commit time and ABSENT,
+#    so it has no row. Its absence is not a licence to add the file
+#    without adding a row: the reverse closure below will fail the moment
+#    it ships unregistered.
+#
+#    Ordered and INDEXED, never associative — bash associative-array
+#    iteration order is unspecified, and a report string that changes
+#    order between runs would make a committed fixture's verdict
+#    order-dependent, the same class of defect the ten hardware keys in
+#    this file already avoid this way.
+QSD_BAR_SURFACE_ROWS=(
+    "Bar.qml|quickshell-bar|exact|2|reserve|permanent"
+    "bar/SectionPopout.qml|quickshell-bar-|pattern|3|noreserve|transient"
+    "bar/HotZone.qml|quickshell-bar-hotzone|exact|3|noreserve|transient"
+)
+
+# Pre-existing summonable layer-shell frames this phase did not add and
+# does not register — declaring a real WlrLayershell.namespace is
+# expected and correct for these, matched by basename. PanelDialog.qml is
+# the shared frame D-18-15 built the registry below to compensate for
+# (its own header forbids a bespoke PanelWindow beyond it); Dashboard.qml,
+# Overview.qml, Probe.qml and ScreencopyProbe.qml all predate this phase.
+QSD_KNOWN_NONBAR_FRAMES=(PanelDialog.qml Dashboard.qml Overview.qml Probe.qml ScreencopyProbe.qml)
+
 PASS=0
 FAIL=0
 
@@ -1468,6 +1511,208 @@ _qsd_check_bar_reserved_zone_stability() {
     check "bar-reserved-zone-stability (QBAR-12, replaces the D-16-23 reserved-array-manifest-coverage slot — one-reservation model: the bar's own reservation exists, is attributable, is stable): delta=${delta} axis=${axis} (0=left,1=top,2=right,3=bottom), expected=${expected_extent:-<n/a>} (source=Design.qml, parsed not restated), ${reservation_reason:-attributed and stable}, hot-reload=${hot_reload_label}, compositor-reload=${compositor_reload_label}, restore-verified=${restore_verified} (bounded-retry against a live readback, never trusting bar-visibility.sh status alone), ${manifest_res} (preserved coverage), measured via bar-visibility.sh status / bar-visibility.sh keybind toggle" "$overall_rc"
 }
 
+# ── 18-17 Task 3 (GATE-03) — bar-surface registry, closed in both
+#    directions. Two pure functions, each replayable by --self-test: the
+#    source half (registry <-> QML tree closure) and the live half
+#    (registry <-> mapped layer surfaces, explicit PID set, never a live
+#    pgrep inside the assertion — the same T-16-SELFTEST discipline
+#    _qsd_assert_panel_layers already established). ───────────────────────
+
+# Strips Lua/QML-style `//` line comments (leading whitespace then `//`)
+# before scanning, so a header note that merely MENTIONS
+# WlrLayershell.namespace in prose is never mistaken for a declaration —
+# the same discipline _qsd_assert_panel_source already applies with its
+# own `grep -vE '^\s*//'` filter, generalised here to a reusable function
+# rather than repeated inline.
+_qsd_strip_qml_comments() {
+    grep -vE '^\s*//' -- "$1" 2>/dev/null
+}
+
+# Forward + reservation-permission closure: every registry row's file
+# must exist under the scan root, declare its own namespace value/prefix
+# exactly once, and — for every row NOT permitted to reserve — declare a
+# literal `exclusiveZone: 0` in its own source (the structural protection
+# QBAR-12's stability assertion depends on: a second surface quietly
+# starting to reserve would move the number that check asserts is stable,
+# with no way to say where the drift came from). Bar.qml (the one row
+# permitted to reserve) is exempt from the zero-literal check — its own
+# exclusiveZone is a conditional expression, not a literal, by design.
+_qsd_assert_bar_surface_registry_forward() {
+    local scan_root="$1" row r_file r_ns r_match r_level r_reserve r_life
+    local missing=0 unexpected_reservation=0 rows_total=0
+    for row in "${QSD_BAR_SURFACE_ROWS[@]}"; do
+        rows_total=$((rows_total + 1))
+        IFS='|' read -r r_file r_ns r_match r_level r_reserve r_life <<<"$row"
+        local path="$scan_root/$r_file"
+        if [[ ! -f "$path" ]]; then
+            missing=$((missing + 1))
+            continue
+        fi
+        local ns_count
+        ns_count=$(_qsd_strip_qml_comments "$path" | grep -cF "WlrLayershell.namespace")
+        if [[ "$ns_count" -ne 1 ]]; then
+            missing=$((missing + 1))
+            continue
+        fi
+        _qsd_strip_qml_comments "$path" | grep -qF "$r_ns" || missing=$((missing + 1))
+        if [[ "$r_reserve" == "noreserve" ]]; then
+            _qsd_strip_qml_comments "$path" | grep -qE 'exclusiveZone[[:space:]]*:[[:space:]]*0\b' || unexpected_reservation=$((unexpected_reservation + 1))
+        fi
+    done
+    printf 'rows=%s missing=%s unexpected-reservation=%s' "$rows_total" "$missing" "$unexpected_reservation"
+    [[ "$rows_total" -gt 0 && "$missing" -eq 0 && "$unexpected_reservation" -eq 0 ]]
+}
+
+# Reverse closure: every *.qml file under the scan root that declares a
+# REAL WlrLayershell.namespace (comments stripped first) must be either a
+# registry row's own file or a member of QSD_KNOWN_NONBAR_FRAMES. This
+# direction is the whole point — the forward half proves the frames we
+# know about are correct, only this one makes a frame nobody registered
+# impossible to ship.
+_qsd_assert_bar_surface_registry_reverse() {
+    local scan_root="$1" f base unregistered=0
+    while IFS= read -r f; do
+        _qsd_strip_qml_comments "$f" | grep -qF "WlrLayershell.namespace" || continue
+        base="$(basename -- "$f")"
+        local known=0 row r_file r_rest
+        for row in "${QSD_BAR_SURFACE_ROWS[@]}"; do
+            r_file="${row%%|*}"
+            [[ "$(basename -- "$r_file")" == "$base" ]] && known=1
+        done
+        local kf
+        for kf in "${QSD_KNOWN_NONBAR_FRAMES[@]}"; do
+            [[ "$kf" == "$base" ]] && known=1
+        done
+        [[ "$known" -eq 0 ]] && unregistered=$((unregistered + 1))
+    done < <(find -L "$scan_root" -type f -name '*.qml' 2>/dev/null)
+    printf 'unregistered=%s' "$unregistered"
+    [[ "$unregistered" -eq 0 ]]
+}
+
+# Combines both closure directions into the one report this check prints,
+# requiring a positive row count before it can succeed (the same
+# non-vacuity guard _qsd_assert_manifest_coverage already applies — an
+# empty registry must fail rather than pass vacuously).
+_qsd_assert_bar_surface_registry_source() {
+    local scan_root="$1"
+    local fwd_res fwd_rc rev_res rev_rc
+    fwd_res=$(_qsd_assert_bar_surface_registry_forward "$scan_root"); fwd_rc=$?
+    rev_res=$(_qsd_assert_bar_surface_registry_reverse "$scan_root"); rev_rc=$?
+    printf '%s %s' "$fwd_res" "$rev_res"
+    [[ "$fwd_rc" -eq 0 && "$rev_rc" -eq 0 ]]
+}
+
+# Broad candidate net for the live half — every layer surface whose
+# namespace starts with "quickshell-bar" (deliberately including strings
+# with no separator at all, e.g. a hypothetical "quickshell-barnacle") so
+# a namespace that is bar-family-SHAPED but matches no registry row is
+# still captured for the per-row assertion below to judge, not silently
+# excluded before it is ever seen.
+_qsd_bar_family_layer_rows() {
+    printf '%s' "$1" | jq -r '
+        .[]? | .levels? // {} | to_entries[] | .key as $lvl | .value[]?
+        | select(.namespace | startswith("quickshell-bar"))
+        | [$lvl, .namespace, .pid] | @tsv
+    ' 2>/dev/null
+}
+
+# Live half: for every bar-family-shaped layer surface, match it against
+# EXACTLY ONE registry row — the permanent row by an EXACT string
+# comparison (never startswith/prefix: quickshell-bar is a strict prefix
+# of quickshell-bar-hotzone, and a prefix test would double-count the
+# hot zone against the permanent bar's own strict cardinality), the
+# transient rows by an anchored pattern requiring at least one character
+# after the stored prefix. Asserts the matched row's expected level and
+# shell-PID ownership. The permanent frame's cardinality is asserted
+# strict (exactly one — the bar must always be mapped); transient frames
+# may legitimately number zero (a closed popout, a bar that is currently
+# visible so its hot zone does not exist).
+_qsd_assert_bar_surface_registry_live() {
+    local json="$1" shell_pids="$2"
+    local lvl ns pid permanent_count=0 off_level=0 wrong_pid=0 unmatched=0
+    while IFS=$'\t' read -r lvl ns pid; do
+        [[ -z "$lvl" ]] && continue
+        local matched=0 expected_level="" row r_file r_ns r_match r_level r_reserve r_life
+        for row in "${QSD_BAR_SURFACE_ROWS[@]}"; do
+            IFS='|' read -r r_file r_ns r_match r_level r_reserve r_life <<<"$row"
+            if [[ "$r_match" == "exact" ]]; then
+                if [[ "$ns" == "$r_ns" ]]; then
+                    matched=$((matched + 1))
+                    expected_level="$r_level"
+                fi
+            else
+                case "$ns" in
+                    "${r_ns}"?*)
+                        matched=$((matched + 1))
+                        expected_level="$r_level"
+                        ;;
+                esac
+            fi
+        done
+        if [[ "$matched" -ne 1 ]]; then
+            unmatched=$((unmatched + 1))
+            continue
+        fi
+        [[ "$ns" == "quickshell-bar" ]] && permanent_count=$((permanent_count + 1))
+        [[ "$lvl" != "$expected_level" ]] && off_level=$((off_level + 1))
+        case " $shell_pids " in
+            *" $pid "*) ;;
+            *) wrong_pid=$((wrong_pid + 1)) ;;
+        esac
+    done < <(_qsd_bar_family_layer_rows "$json")
+    printf 'permanent=%s off-level=%s wrong-pid=%s unmatched=%s' "$permanent_count" "$off_level" "$wrong_pid" "$unmatched"
+    [[ "$permanent_count" -eq 1 && "$off_level" -eq 0 && "$wrong_pid" -eq 0 && "$unmatched" -eq 0 ]]
+}
+
+# Resolves a namespace's expected layer level: a bar-family row's own
+# declared level when it matches one (exact for the permanent frame,
+# anchored pattern for the transient family — same matching rule as
+# above), the overlay level (3) for everything else — the pre-18-17
+# blanket default this file's namespace-discipline check already applied
+# to every quickshell-* surface. Used by that check below so the bar's
+# top-level posture is read from the registry rather than restated as a
+# second literal.
+_qsd_expected_layer_level() {
+    local ns="$1" row r_file r_ns r_match r_level r_reserve r_life
+    for row in "${QSD_BAR_SURFACE_ROWS[@]}"; do
+        IFS='|' read -r r_file r_ns r_match r_level r_reserve r_life <<<"$row"
+        if [[ "$r_match" == "exact" ]]; then
+            if [[ "$ns" == "$r_ns" ]]; then
+                printf '%s' "$r_level"
+                return 0
+            fi
+        else
+            case "$ns" in
+                "${r_ns}"?*)
+                    printf '%s' "$r_level"
+                    return 0
+                    ;;
+            esac
+        fi
+    done
+    printf '3'
+    return 0
+}
+
+_qsd_check_bar_surface_registry() {
+    if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        echo "  [SKIP] bar-surface-registry (GATE-03): hyprctl or jq not found"
+        return
+    fi
+    local scan_root src_res src_rc
+    scan_root=$(_qsd_shell_qml_root)
+    src_res=$(_qsd_assert_bar_surface_registry_source "$scan_root"); src_rc=$?
+
+    local shell_pids live_res live_rc
+    shell_pids="$(pgrep -f 'quickshell -p' | tr '\n' ' ')"
+    live_res=$(_qsd_assert_bar_surface_registry_live "$(_qsd_layers_json)" "$shell_pids"); live_rc=$?
+
+    local overall_rc=0
+    [[ "$src_rc" -eq 0 ]] || overall_rc=1
+    [[ "$live_rc" -eq 0 ]] || overall_rc=1
+    check "bar-surface-registry (GATE-03, D-18-15's compensating instrument: every layer-shell frame this phase added, covered by construction — a registry row without a file fails, and a file declaring a namespace without a row fails too): source: ${src_res}, live: ${live_res}" "$overall_rc"
+}
+
 # ── check 4: permissions-enforce-readback ───────────────────────────────
 # Guards D-16-09 against silent revert. ecosystem:enforce_permissions is
 # read ONCE at compositor startup and its failure mode is silence — reading
@@ -1839,6 +2084,49 @@ run_self_test() {
     ext_report=$(_qsd_windowrules_extraction_report "$FIXTURES_DIR/poisoned-injection-windowrules.lua")
     _qsd_st "poisoned-injection-windowrules.lua -> extractor REJECTS the chained statement-separator/second-call line rather than silently passing over it (${ext_report})" "$([[ "$ext_report" == "candidates=2 accepted=1 rejected=1" ]] && echo 0 || echo 1)"
 
+    # 18-17 Task 3 (GATE-03) — bar-surface registry, both directions (7
+    # fixtures). Fixed pid 2982672 throughout, never a live pgrep inside
+    # any of these replays.
+    local bsr_json bsr_res
+    bsr_json=$(cat -- "$FIXTURES_DIR/compliant-bar-layers.json")
+    bsr_res=$(_qsd_assert_bar_surface_registry_live "$bsr_json" "2982672")
+    _qsd_st "compliant-bar-layers.json -> bar-surface-registry live half PASSES (${bsr_res}, bar at its registered top level, one open popout, no hot zone)" "$([[ $? -eq 0 ]] && echo 0 || echo 1)"
+    bsr_json=$(cat -- "$FIXTURES_DIR/poisoned-offlevel-bar-layers.json")
+    bsr_res=$(_qsd_assert_bar_surface_registry_live "$bsr_json" "2982672")
+    _qsd_st "poisoned-offlevel-bar-layers.json -> bar-surface-registry live half FAILS (${bsr_res}, bar reported at the overlay level instead of its registered top level)" "$([[ $? -ne 0 ]] && echo 0 || echo 1)"
+    bsr_json=$(cat -- "$FIXTURES_DIR/poisoned-two-bar-layers.json")
+    bsr_res=$(_qsd_assert_bar_surface_registry_live "$bsr_json" "2982672")
+    _qsd_st "poisoned-two-bar-layers.json -> bar-surface-registry live half FAILS (${bsr_res}, the permanent frame's strict cardinality is violated)" "$([[ $? -ne 0 ]] && echo 0 || echo 1)"
+    bsr_json=$(cat -- "$FIXTURES_DIR/poisoned-unknown-bar-namespace-layers.json")
+    bsr_res=$(_qsd_assert_bar_surface_registry_live "$bsr_json" "2982672")
+    _qsd_st "poisoned-unknown-bar-namespace-layers.json -> bar-surface-registry live half FAILS (${bsr_res}, a bar-family-shaped namespace matches no registry row)" "$([[ $? -ne 0 ]] && echo 0 || echo 1)"
+
+    local bsr_tmpdir bsr_src_res
+    bsr_tmpdir=$(mktemp -d)
+    cp -r -- "$FIXTURES_DIR/compliant-bar-qml-root/." "$bsr_tmpdir/"
+    bsr_src_res=$(_qsd_assert_bar_surface_registry_source "$bsr_tmpdir")
+    _qsd_st "compliant-bar-qml-root/ alone -> bar-surface-registry source half PASSES (${bsr_src_res}, every row present, only the bar reserves, nothing unregistered)" "$([[ $? -eq 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$bsr_tmpdir"
+
+    bsr_tmpdir=$(mktemp -d)
+    cp -r -- "$FIXTURES_DIR/compliant-bar-qml-root/." "$bsr_tmpdir/"
+    cp -- "$FIXTURES_DIR/poisoned-unregistered-frame.qml" "$bsr_tmpdir/"
+    bsr_src_res=$(_qsd_assert_bar_surface_registry_source "$bsr_tmpdir")
+    _qsd_st "poisoned-unregistered-frame.qml added alongside compliant-bar-qml-root/ -> bar-surface-registry source half FAILS (${bsr_src_res}, a file declares a namespace no registry row or known-frame set claims)" "$([[ $? -ne 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$bsr_tmpdir"
+
+    bsr_tmpdir=$(mktemp -d)
+    cp -r -- "$FIXTURES_DIR/compliant-bar-qml-root/." "$bsr_tmpdir/"
+    cp -- "$FIXTURES_DIR/poisoned-second-reserving-surface.qml" "$bsr_tmpdir/bar/HotZone.qml"
+    bsr_src_res=$(_qsd_assert_bar_surface_registry_source "$bsr_tmpdir")
+    _qsd_st "poisoned-second-reserving-surface.qml replacing bar/HotZone.qml -> bar-surface-registry source half FAILS (${bsr_src_res}, a registered noreserve row declares a non-zero exclusive zone)" "$([[ $? -ne 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$bsr_tmpdir"
+
+    bsr_tmpdir=$(mktemp -d)
+    bsr_src_res=$(_qsd_assert_bar_surface_registry_source "$bsr_tmpdir")
+    _qsd_st "empty scan root -> bar-surface-registry source half FAILS rather than passing vacuously (${bsr_src_res}, every registered row's file is reported missing)" "$([[ $? -ne 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$bsr_tmpdir"
+
     # check 4: permissions-enforce-readback (2 fixtures).
     local raw
     raw=$(cat -- "$FIXTURES_DIR/compliant-hyprctl-getoption-enforce.txt")
@@ -2051,27 +2339,38 @@ else
     fi
 fi
 
-# ── 4. Namespace discipline (D-21) — every quickshell-* layer namespace
-#    must sit at level 3 (overlay) and belong to the shell's own PID.
-#    This is what stops the class of stale-namespace residue that left
-#    two inert eww-media-popup layerrules behind. ────────────────────
+# ── 4. Namespace discipline (D-21, corrected 18-17) — every quickshell-*
+#    layer namespace must sit at ITS OWN expected level (read from the
+#    bar-surface registry when the namespace is in the bar family, the
+#    overlay level for every other quickshell-* surface — the second
+#    invariant this phase falsified: this check's former blanket "every
+#    quickshell-* namespace sits at level 3" was TRUE for every surface up
+#    to and including the overview and became false the moment the bar
+#    mounted on the top level in wave 1, red and unnoticed for seven
+#    waves) and belong to the shell's own PID. This is also what stops the
+#    class of stale-namespace residue that left two inert eww-media-popup
+#    layerrules behind. Corrected in the same pass as the reservation
+#    invariant (bar-reserved-zone-stability, above) — the file's two
+#    corrections are one decision, not two. ─────────────────────────────
 if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
     echo "  [SKIP] namespace discipline (D-21): hyprctl or jq not found"
 else
     SHELL_PIDS=" $(pgrep -f 'quickshell -p' | tr '\n' ' ') "
     LAYERS_JSON=$(hyprctl layers -j 2>/dev/null)
-    OFF_LEVEL_COUNT=$(printf '%s' "$LAYERS_JSON" | jq -r '
-        [.[].levels | to_entries[] | select(.key != "3") | .value[] | select(.namespace | startswith("quickshell-"))] | length
-    ')
+    OFF_LEVEL_COUNT=0
     WRONG_PID_COUNT=0
-    while IFS= read -r pid; do
-        [[ -z "$pid" ]] && continue
+    while IFS=$'\t' read -r ND_LVL ND_NS ND_PID; do
+        [[ -z "$ND_LVL" ]] && continue
+        ND_EXPECTED=$(_qsd_expected_layer_level "$ND_NS")
+        [[ "$ND_LVL" != "$ND_EXPECTED" ]] && OFF_LEVEL_COUNT=$((OFF_LEVEL_COUNT + 1))
         case "$SHELL_PIDS" in
-            *" $pid "*) ;;
+            *" $ND_PID "*) ;;
             *) WRONG_PID_COUNT=$((WRONG_PID_COUNT + 1)) ;;
         esac
-    done < <(printf '%s' "$LAYERS_JSON" | jq -r '.[].levels["3"][]? | select(.namespace | startswith("quickshell-")) | .pid')
-    check "namespace discipline (D-21): every quickshell-* layer namespace sits at level 3 (overlay) and belongs to the shell's own PID (off-level: ${OFF_LEVEL_COUNT}, wrong-pid: ${WRONG_PID_COUNT})" "$([[ "$OFF_LEVEL_COUNT" -eq 0 && "$WRONG_PID_COUNT" -eq 0 ]] && echo 0 || echo 1)"
+    done < <(printf '%s' "$LAYERS_JSON" | jq -r '
+        [.[].levels | to_entries[] | .key as $lvl | .value[] | select(.namespace | startswith("quickshell-")) | [$lvl, .namespace, .pid] | @tsv][]
+    ')
+    check "namespace discipline (D-21, 18-17: per-surface expected level read from the bar-surface registry, not one blanket overlay expectation): every quickshell-* layer namespace sits at its own expected level and belongs to the shell's own PID (off-level: ${OFF_LEVEL_COUNT}, wrong-pid: ${WRONG_PID_COUNT})" "$([[ "$OFF_LEVEL_COUNT" -eq 0 && "$WRONG_PID_COUNT" -eq 0 ]] && echo 0 || echo 1)"
 fi
 
 # ── 5. No summoned surface adds a reservation (D-21, relabelled 18-17) —
@@ -2432,6 +2731,7 @@ _qsd_check_overview_namespace_conformance
 _qsd_check_mpvpaper_layer_coexistence
 _qsd_check_overview_shortcut_single_registration
 _qsd_check_bar_reserved_zone_stability
+_qsd_check_bar_surface_registry
 _qsd_check_permissions_enforce_readback
 _qsd_check_permissions_allowlist_paths_resolve
 _qsd_check_overview_content
