@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-17-PLAN.md (GATE-03/QBAR-12 closed; 2 live production bugs found+fixed, see WINDOWS.md ids 48/49)
-last_updated: "2026-08-11T10:13:20.075Z"
+stopped_at: 18-18 HALTED — frame-rate campaign and soak end-capture deferred, resume commands recorded in 18-FRAME-RATE.md and 18-BAR-SOAK.md
+last_updated: "2026-08-11T10:30:36.853Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
   percent: 0
 ---
 
@@ -436,6 +436,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-16: revealActive is revealCondition||reHideTimer.running (grace-extended), not a literal hoverHeld/superHeld disjunction — required for the grace-beat behaviour D-18-26 and the human-check both need
 - [Phase ?]: 18-16 Task 2: held-Super reveal bind drafted, verified against keybind-doctor, and REVERTED (chord-collision finding vs the shipped SUPER+SUPER_L tap-to-menu bind at keybinds.lua:86) — QBAR-08 ships hover-only this plan; Super-hold is blocked, handed to the developer with full evidence in BarReveal.qml's header
 - [Phase ?]: 18-17: quickshell-doctor GATE-03/QBAR-12 closed — bar-reserved-zone-stability (delta-based, keyed by monitor name), opt-in --with-compositor-reload half (blur survived, screenshot-verified), and the bar-surface registry (3 rows, BarDrawer.qml confirmed absent) closed in both directions; namespace discipline corrected to per-surface levels. Two real production bugs found live and fixed: BarReveal.qml missing import Quickshell, and bar-visibility.sh's qs ipc call bar show missing a -- separator (silently broke the un-hide path on quickshell 0.3.0's qs CLI).
+- [Phase ?]: 18-18: deferred both live-intervention campaigns (frame-rate stop/restart+desktop rearrangement; 4-hour soak wait+200-cycle exercise) per standing run-time policy against disruptive live intervention; Task 3's inventory/tolerances/start-capture done for real with live data. Plan marked status:halted, not complete — LEDGER-03 and QBAR-11 stay open.
 
 ### Quick Tasks Completed
 
@@ -516,6 +517,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - 16-04 Task 3 (live enforcement session restart + five-consumer proof) deferred by operator decision to end of Phase 16 — see deferred-items.md item 0 for the full run-cold procedure; enforce_permissions=true ships committed but functionally unproven until this is closed
 - 18-10: live click-through verification of the tray menu (activation call + dismissal mechanism) deferred to the user — WINDOWS.md entries 30/31/32
 - QBAR-08 Super-hold half blocked: keybind-doctor's chord-collision check flags a press-bind on SUPER+SUPER_L against the shipped release-bind tap-to-menu bind at keybinds.lua:86; needs the Step 2 nested-hypr-lua-harness live probe (or a hand keypress test) before the mechanism can ship. Recovery path recorded in BarReveal.qml's header.
+- 18-18 HALTED (not complete): LEDGER-03 frame-rate campaign and QBAR-11 soak end-capture/200-cycle exercise both deferred — need user-present live desktop rearrangement (frame-rate) and ~3h40m more continued uptime on quickshell pid 737907 (soak). Resume commands in 18-FRAME-RATE.md and 18-BAR-SOAK.md Section five. WINDOWS.md entries 51/52. 18-19 blocked on this halt per status:halted contract.
 
 ## Deferred Items
 
@@ -565,9 +567,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T10:13:20.057Z
-Stopped at: Completed 18-17-PLAN.md (GATE-03/QBAR-12 closed; 2 live production bugs found+fixed, see WINDOWS.md ids 48/49)
-Resume file: None
+Last session: 2026-08-11T10:30:36.836Z
+Stopped at: 18-18 HALTED — frame-rate campaign and soak end-capture deferred, resume commands recorded in 18-FRAME-RATE.md and 18-BAR-SOAK.md
+Resume file: 18-18-PLAN.md (resume Tasks 1,2,4,5)
 
 ## Operator Next Steps
 
