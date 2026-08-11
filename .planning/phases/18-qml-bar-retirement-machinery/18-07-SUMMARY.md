@@ -183,3 +183,12 @@ Each task was committed atomically:
 ---
 *Phase: 18-qml-bar-retirement-machinery*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+- FOUND: `quickshell/.config/systemd/user/quickshell.service`
+- FOUND: `.planning/phases/18-qml-bar-retirement-machinery/18-RESTART-PARITY.md`
+- FOUND: `.planning/phases/18-qml-bar-retirement-machinery/18-07-SUMMARY.md`
+- FOUND commit: `8266efd`
+- FOUND commit: `26e0f1d`
+- FOUND commit: `d5ba161`
