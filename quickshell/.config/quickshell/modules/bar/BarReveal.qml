@@ -23,6 +23,72 @@
 // driven from shell.qml in Task 3, not from here). `shell.qml`'s root
 // carries `property string barVisibilityState`. All four identifiers
 // match this plan's assumption byte-for-byte — no correction needed.
+//
+// ── Mechanism record (Task 2, QBAR-08's held-Super half) — BLOCKED, NOT
+//    SHIPPED. This is the honest outcome, not the preferred one. ─────────
+// ATTEMPTED MECHANISM: Branch A — a single Hyprland compositor bind on the
+// same "SUPER + SUPER_L" chord line 86's tap-to-menu bind already uses,
+// dispatching the Quickshell global-shortcut identifier
+// "quickshell:bar-reveal" on the PRESS edge (no `release` option — line 86
+// keeps its own `release = true` bind on the SAME chord, untouched). The
+// installed Hyprland `GlobalShortcut` type
+// (Quickshell.Hyprland._GlobalShortcuts/GlobalShortcut, read directly from
+// its own qmltypes file rather than assumed) declares a readonly `pressed`
+// boolean with a `pressedChanged` notification AND separate
+// `pressed`/`released` signals (with `onPressed`/`onReleased` handlers) —
+// both edges genuinely exist on the QML side, correcting RESEARCH.md's
+// Open Question 2 / assumption A2, which found no held-modifier signal in
+// its scanned surface: the scan was incomplete, not wrong about the risk.
+// So the QML half is confirmed live-viable; `setSuperHeld(held)` below
+// exists and is ready to be the mechanism's sole writer the day a bind
+// reaches it.
+//
+// WHY IT WAS REVERTED: `keybind-doctor` was run against the drafted bind
+// before it was committed, per this task's "verification first" method.
+// Its SHADOW check (which distinguishes binds by `(modmask, key, keycode,
+// release)`) reported zero conflicts — the two binds ARE different tuples,
+// exactly as this plan's threat register predicted. But a SEPARATE check
+// the threat register did not anticipate — the quickshell-manifest chord
+// COLLISION check, which compares `(modmask, key)` WITHOUT the release
+// flag — flagged the drafted bind: it and line 86's bind both claim the
+// identical "SUPER + SUPER_L" chord, and the checker's model expects a
+// manifest-registered chord to be claimed by exactly one Hyprland bind
+// (the matching `hl.dsp.global(...)` line), not shared across two
+// dispatchers on different edges. Whether Hyprland's own runtime actually
+// dispatches both edges independently and safely (this repo's own
+// header comment above keybinds.lua:86 — "Hyprland's native default
+// release-bind shadowing" — describes a RELATED but not identical
+// phenomenon: how a release-only bind is suppressed when its modifier was
+// consumed by another chord mid-press, not whether a same-chord press
+// bind and release bind both fire cleanly) could not be settled without a
+// live keypress, which this session could not perform (see below).
+//
+// Per this task's own Step 4 stop condition — "if every candidate shape
+// breaks... revert... and hand the choice to the developer... do not ship
+// a bind that works most of the time" — the drafted bind, the
+// `shortcuts.json` manifest entry and the `GlobalShortcut` declaration in
+// shell.qml were all REVERTED rather than committed. `keybinds.lua:86` is
+// untouched. Branch B was not attempted for the same reason: it needs the
+// identical "SUPER + SUPER_L" chord (a press bind plus a paired release
+// bind) to represent "Super, held" at all, so it collides with line 86's
+// own release bind exactly the same way, with no chord substitute
+// available — QBAR-08 names Super specifically, not a Super+letter chord.
+//
+// WHAT REMAINS UNVERIFIED, recorded rather than hidden: whether Hyprland
+// actually dispatches a press-triggered global-shortcut bind and a
+// release-triggered exec_cmd bind on the identical chord independently, on
+// their own edges, with no shadowing between them. The nested
+// `hypr-lua-harness` instance is where this task's own action block
+// specifies that probe should run (Step 2); it was not run this session —
+// the live `quickshell` process on this host predates every commit in
+// this plan (`qs ipc call bar status` answers "Target not found") and has
+// not been restarted, matching 18-08/18-12/18-13/18-15's established
+// skip-live-verification precedent, and confirming the compositor-level
+// answer does not need a live `quickshell` process at all — only time this
+// session did not allocate to it. Logged to WINDOWS.md as a blocked item.
+// The next session that picks this up should run that probe FIRST — if it
+// answers cleanly, restoring this bind is a three-line reconstruction of
+// what this file's git history already shows was reverted here.
 pragma Singleton
 
 import QtQuick
@@ -52,6 +118,15 @@ Singleton {
     // Declared now so the disjunction beneath it is written once and never
     // rewritten by a later task.
     property bool superHeld: false
+
+    // Task 2's only writer of superHeld — set on the confirmed bind's
+    // press edge, cleared on its release edge, nothing else. Called from
+    // shell.qml's GlobalShortcut handlers rather than writing the property
+    // directly from there, so there is exactly one write SITE regardless
+    // of how many edges call it.
+    function setSuperHeld(held) {
+        root.superHeld = held;
+    }
 
     // The one entry point both hover surfaces (HotZone.qml, Bar.qml) report
     // through — never a direct property write from either file.

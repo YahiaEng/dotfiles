@@ -109,6 +109,21 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/waybar-switch
 -- inside the shell process cannot resurrect a bar whose process is gone
 -- or hung, which is exactly the case this bind exists to recover from.
 hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/bar-visibility.sh keybind toggle")) -- Toggle bar visibility
+-- Held-Super reveal (Phase 18 Plan 16, QBAR-08) — Step 4's stop condition
+-- was applied here, NOT shipped. See BarReveal.qml's own header for the
+-- full record: a press-triggered `hl.dsp.global("quickshell:bar-reveal")`
+-- bind on this exact "SUPER + SUPER_L" chord was drafted, staged and run
+-- through `keybind-doctor` before being written here — the doctor's
+-- shadow check (which distinguishes by release flag) reported zero
+-- conflicts, but its SEPARATE quickshell-manifest chord-collision check
+-- (which does not distinguish by release flag) flagged this exact chord
+-- as claimed by two different Hyprland-declared binds: the tap-to-menu
+-- release bind directly above, and the drafted press bind. That check
+-- could not be satisfied without either live-proving Hyprland actually
+-- dispatches both edges independently (unreachable this session — see
+-- BarReveal.qml) or reverting. Reverted per this task's own instruction:
+-- do not ship a bind that works most of the time. Blocked item, handed to
+-- the developer.
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/hypr/scripts/wallpaper-switch.sh")) -- Change wallpaper
 
 -- ── Clipboard ────────────────────────────────────────

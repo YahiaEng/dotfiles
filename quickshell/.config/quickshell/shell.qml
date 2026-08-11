@@ -668,4 +668,13 @@ ShellRoot {
         name: "overview"
         onPressed: root.toggleOverview()
     }
+
+    // Held-Super reveal (Phase 18 Plan 16, QBAR-08) — NOT shipped. A
+    // GlobalShortcut declaration here was drafted, then reverted under
+    // this task's own Step 4 stop condition after keybind-doctor's
+    // quickshell-manifest chord-collision check flagged the drafted bind
+    // against the shipped tap-to-menu bind at keybinds.lua:86. See
+    // BarReveal.qml's header for the full record. `superHeld` stays
+    // declared and permanently undriven — hover-only reveal (Task 1) is
+    // unaffected.
 }
