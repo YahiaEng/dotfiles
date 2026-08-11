@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-16-PLAN.md (QBAR-08 hover half shipped; Super-hold half blocked, see WINDOWS.md)
-last_updated: "2026-08-11T09:29:38.289Z"
+stopped_at: Completed 18-17-PLAN.md (GATE-03/QBAR-12 closed; 2 live production bugs found+fixed, see WINDOWS.md ids 48/49)
+last_updated: "2026-08-11T10:13:20.075Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 16
+  completed_plans: 17
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 16 of 20
+Plan: 17 of 20
 Status: Ready to execute
-Progress: [████████░░] 80%
+Progress: [█████████░] 85%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -207,6 +207,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P13 | ~45min | 3 tasks | 8 files |
 | Phase 18 P14 | ~55min | 3 tasks | 13 files |
 | Phase 18 P16 | ~1h | 3 tasks | 7 files |
+| Phase 18 P17 | ~1h50m | 3 tasks | 23 files |
 
 ## Accumulated Context
 
@@ -434,6 +435,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-14: clock and media both resolved 'no pending phase exists' (clock has no backend at all; media's repointed widgetState has a structurally unreachable middle value, confirmed by direct read); resources resolved EXISTS NATIVELY, confirmed per-instance (not per-tab) against Dial.qml/PerformanceTab.qml
 - [Phase ?]: 18-16: revealActive is revealCondition||reHideTimer.running (grace-extended), not a literal hoverHeld/superHeld disjunction — required for the grace-beat behaviour D-18-26 and the human-check both need
 - [Phase ?]: 18-16 Task 2: held-Super reveal bind drafted, verified against keybind-doctor, and REVERTED (chord-collision finding vs the shipped SUPER+SUPER_L tap-to-menu bind at keybinds.lua:86) — QBAR-08 ships hover-only this plan; Super-hold is blocked, handed to the developer with full evidence in BarReveal.qml's header
+- [Phase ?]: 18-17: quickshell-doctor GATE-03/QBAR-12 closed — bar-reserved-zone-stability (delta-based, keyed by monitor name), opt-in --with-compositor-reload half (blur survived, screenshot-verified), and the bar-surface registry (3 rows, BarDrawer.qml confirmed absent) closed in both directions; namespace discipline corrected to per-surface levels. Two real production bugs found live and fixed: BarReveal.qml missing import Quickshell, and bar-visibility.sh's qs ipc call bar show missing a -- separator (silently broke the un-hide path on quickshell 0.3.0's qs CLI).
 
 ### Quick Tasks Completed
 
@@ -563,8 +565,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T09:29:38.272Z
-Stopped at: Completed 18-16-PLAN.md (QBAR-08 hover half shipped; Super-hold half blocked, see WINDOWS.md)
+Last session: 2026-08-11T10:13:20.057Z
+Stopped at: Completed 18-17-PLAN.md (GATE-03/QBAR-12 closed; 2 live production bugs found+fixed, see WINDOWS.md ids 48/49)
 Resume file: None
 
 ## Operator Next Steps

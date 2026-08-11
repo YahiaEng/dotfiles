@@ -22,7 +22,7 @@
 - [x] **QBAR-09**: Clicking a bar section opens that section's own detail popout, in place of routing everything through the dashboard *(named addition)*
 - [x] **QBAR-10**: The bar returns automatically if its process dies — no manual restart
 - [ ] **QBAR-11**: The bar's memory and process count stay flat across a multi-hour soak — no RSS creep, no accumulated subprocesses, no idle timers doing nothing
-- [ ] **QBAR-12**: The bar's reserved screen space survives `hyprctl reload` and a QML hot reload without drift or overlap
+- [x] **QBAR-12**: The bar's reserved screen space survives `hyprctl reload` and a QML hot reload without drift or overlap
 
 ### QNOTIF — Notifications and centre (replaces swaync)
 
@@ -74,7 +74,7 @@
 
 - [x] **GATE-01**: Before each surface is redesigned, its current behaviour is enumerated from the live config and written down as acceptance criteria — while the implementation being replaced still exists to be read
 - [ ] **GATE-02**: Every phase passes a human render-and-look gate; no phase closes with its replacement judged worse than what it replaced, and no old package is deleted before that judgment
-- [ ] **GATE-03**: `quickshell-doctor` gains structural checks for each new surface, replacing the mechanical coverage that dies with `waybar-equivalence-check`
+- [x] **GATE-03**: `quickshell-doctor` gains structural checks for each new surface, replacing the mechanical coverage that dies with `waybar-equivalence-check`
 - [x] **GATE-04**: A hex-literal lint refuses any QML surface hard-coding a colour, mirroring `motion-lint`'s deny-by-default discipline
 
 ### LEDGER — v3.0 debt paydown
@@ -134,7 +134,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QBAR-09 | Phase 18 | Complete |
 | QBAR-10 | Phase 18 | Complete |
 | QBAR-11 | Phase 18 | Pending |
-| QBAR-12 | Phase 18 | Pending |
+| QBAR-12 | Phase 18 | Complete |
 | QNOTIF-01 | Phase 19 | Pending |
 | QNOTIF-02 | Phase 19 | Pending |
 | QNOTIF-03 | Phase 19 | Pending |
@@ -168,7 +168,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | RETIRE-09 | Phase 22 | Pending |
 | GATE-01 | Phase 18 | Complete |
 | GATE-02 | Phase 18 | Pending |
-| GATE-03 | Phase 18 | Pending |
+| GATE-03 | Phase 18 | Complete |
 | GATE-04 | Phase 18 | Complete |
 | LEDGER-01 | Phase 18 | Pending |
 | LEDGER-02 | Phase 20 | Pending |
