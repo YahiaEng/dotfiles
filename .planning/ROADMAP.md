@@ -181,6 +181,29 @@ Cross-cutting constraints:
 
 **UI hint**: yes
 
+### Phase 18.1: QML Bar Athena Restoration (INSERTED)
+
+**Goal:** Restore the Athena waybar's visual language to the Phase 18 QML bar, which the operator judged worse than the bar it replaces — GATE-02's verdict, arriving before 18-20 deleted the waybar package rather than after. Root cause is one architectural decision, not four bugs: Athena applies colour as background fills across primary/secondary/tertiary, while the QML bar applies it as foreground tint only (`Colours.secondary` is never referenced once under `modules/bar/`). Reverses Phase 18's end-4/Caelestia redesign premise for this surface.
+
+**Scope:** New `modules/bar/BarRoles.qml` colour role layer mirroring Athena's `theme.scss` (alpha values load-bearing); filled colour pills on active workspace, clock, updates and notifications; hover-reveal replacing click-toggle on the apps and settings drawers, integrated with `BarReveal`'s existing hot-zone grace timer; FiraCode Nerd Font workspace glyphs with Athena's window-rewrite map and the pacman state set replacing the numeral; icon-only resource pills at rest; `TrayCapsule.qml` deleted after a consumer sweep; a `quickshell-doctor` check asserting no `Colours.*` reference survives under `modules/bar/`.
+
+**Design input:** `docs/superpowers/specs/2026-08-11-qml-bar-athena-restoration-design.md` (committed `ca54fb1`) — approved design with decisions, risks and verification already settled.
+
+**Requirements**: GATE-02 (blocks), QBAR-01..12 (visual regression against the shipped bar)
+**Depends on:** Phase 18
+**Blocks:** Phase 18 plans 18-19 (GATE-02) and 18-20 (waybar package retirement)
+**Plans:** 7 plans
+
+Plans:
+
+- [ ] 18.1-01-PLAN.md — TRACER: `BarRoles` colour role layer + `qmldir` registration, proven end-to-end on the filled focused-workspace pill; then Athena's state-glyph slot identity and the seven empty glyph literals
+- [ ] 18.1-02-PLAN.md — `BarCapsule` chrome onto Athena's translucent capsule surface; `SystemCapsule` icon-only resource pills with the in-place `format-alt` value toggle, threshold colour and a filled updates alert pill
+- [ ] 18.1-03-PLAN.md — `ClockActionsCapsule` `fillClock` clock pill and state-driven `fillNotification` bell pill; the remaining action-cell tints plus the omitted `MediaConnectivityCapsule` error tint migrated onto `BarRoles`
+- [ ] 18.1-04-PLAN.md — live consumer sweep then the five-point `TrayCapsule` removal; QBAR-05 recorded Withdrawn under D-15 and the four TrayCapsule WINDOWS.md rows closed
+- [ ] 18.1-05-PLAN.md — hover-reveal on both drawers with dwell + grace, explicitly integrated with `BarReveal` and bypassing the dead `PopoutController.barSettled` latch; four-leg integration proof
+- [ ] 18.1-06-PLAN.md — the `quickshell-doctor` colour-routing check (D-20), proven able to fail via four falsifications, with every exemption named; the generated `BarRoles`↔`theme.scss` diff (D-21)
+- [ ] 18.1-07-PLAN.md — GATE-02: the operator's side-by-side verdict against the Athena waybar, with all four named deltas disclosed, recorded truthfully in the ledger and roadmap (blocking checkpoint)
+
 ### Phase 19: Notification Server & Centre
 
 **Goal**: The shell itself is the desktop's notification receiver, with the full popup + slide-out-centre experience, and swaync is deleted in the same phase with no fallback path.
