@@ -68,7 +68,14 @@ BarCapsule {
     // 18-10 and 18-11 run in the same wave with zero shared files.
 
     // The always-present slot range (five persistent slots).
-    readonly property int persistentSlotCount: 5
+    // Ten: the operator's nine Hyprland-bound workspaces plus workspace 10,
+    // which they reserve for AI work and want always present. Athena's own
+    // config uses `persistent-workspaces: {"*": 5}`, but the operator asked
+    // explicitly for the same nine workspaces their Athena renders, and their
+    // Athena's live set was wider than that config's floor — so this follows the
+    // operator's stated intent, not the upstream literal, and says so here so
+    // the two are not "reconciled" back to 5 by a later reader.
+    readonly property int persistentSlotCount: 10
 
     // Reserved icon cells per slot. Must be >= 2: the overflow label
     // occupies the LAST cell rather than an extra one, so a capacity of 1
@@ -258,6 +265,25 @@ BarCapsule {
     // check would.
     readonly property string stateGlyphActive: "󰮯"   // format-icons.active
     readonly property string stateGlyphUrgent: "󰧵"   // format-icons.urgent
+
+    // ── The reserved AI workspace ────────────────────────────────────────
+    // Workspace 10 is reserved for AI work (operator, GATE-02 round 4). Athena
+    // rendered it as a bare dot — `format-icons.empty` — which carried no
+    // meaning; the operator asked for "the star AI symbol" instead, so it gets
+    // the identity glyph rather than its numeral.
+    //
+    // `auto_awesome` is Material Symbols' standard AI sparkle. It is therefore
+    // the ONE identity glyph in this file that is NOT from appGlyphFontFamily
+    // (FiraCode Nerd Font) — it needs Design.symbolFontFamily, the same family
+    // every other Material Symbol on this bar uses. aiSlotFontFamily below is
+    // what the identity Text and its metrics both read so the reservation and
+    // the render can never disagree about which font measured it.
+    readonly property int aiSlotId: 10
+    readonly property string aiSlotGlyph: "auto_awesome"
+
+    function identityFontFor(slotId) {
+        return slotId === workspaceCapsule.aiSlotId ? Design.symbolFontFamily : workspaceCapsule.appGlyphFontFamily;
+    }
 
     // Precedence matches slotTextColour's own: focused wins over urgent.
     // Anything else falls through to the caller's own numeral (String(
@@ -501,7 +527,12 @@ BarCapsule {
             // stateGlyphFor above; GATE-02 round 4 restored the numeral
             // for the default branch after live-observation showed
             // Athena never actually renders the ghost there).
-            readonly property string slotStateGlyph: workspaceCapsule.stateGlyphFor(slotItem.slotFocused, slotItem.slotUrgent) || String(slotItem.slotId)
+            // Precedence: focused/urgent state glyph, then the AI slot's own
+            // symbol, then the plain numeral. The AI symbol sits BELOW the state
+            // glyphs deliberately — when workspace 10 is focused it must show the
+            // same pacman every other focused workspace shows, or the focused
+            // state would be unreadable on exactly one slot.
+            readonly property string slotStateGlyph: workspaceCapsule.stateGlyphFor(slotItem.slotFocused, slotItem.slotUrgent) || (slotItem.slotId === workspaceCapsule.aiSlotId ? workspaceCapsule.aiSlotGlyph : String(slotItem.slotId))
 
             // The slot's own extent, stated explicitly from the tokens
             // rather than left implicit — the numeral's reserved
@@ -643,7 +674,9 @@ BarCapsule {
                     // state glyph, everything else renders the slot's own
                     // numeral — see stateGlyphFor's derivation table above.
                     text: slotItem.slotStateGlyph
-                    font.family: workspaceCapsule.appGlyphFontFamily
+                    // Material Symbols for the AI slot's sparkle, the Nerd Font
+                    // for every state glyph and numeral — see identityFontFor.
+                    font.family: slotItem.slotFocused || slotItem.slotUrgent ? workspaceCapsule.appGlyphFontFamily : workspaceCapsule.identityFontFor(slotItem.slotId)
                     font.pixelSize: Design.barGlyphSize
                     font.weight: Design.weightBody
                     // D-07: focused/urgent/default resolved through
