@@ -18,10 +18,17 @@
 // 18-05 and a new backend type would need a `qmldir` registration plus a
 // `shell.qml` mount to reach it — the wrong trade for one integer. It is
 // the ONE entry in this whole file that reads no `systemResources`
-// register, and it is also the only entry that carries an interactive
-// element (its own click handler) — every other click, hover, dwell and
-// scroll on this capsule belongs to 18-12, 18-13 or 18-14, and no stub of
-// any of them exists here.
+// register.
+//
+// Interactive elements (Phase 18.1 Plan 02, D-25): the updates entry
+// carries its own click handler (starts a package upgrade); cpu, ram and
+// disk each carry an in-place format-alt VALUE TOGGLE (click reveals the
+// value on the same pill, click again hides it) — Athena's literal
+// format/format-alt swap, not a popout substitute. All other click,
+// hover, dwell and scroll on this capsule belongs to 18-12, 18-13 or
+// 18-14, and no stub of any of them exists here. cpu/ram/disk's toggle
+// click is resolved inside `resourcesPopoutTrigger` below (see that
+// wrapper's own comment) so it does not also summon the popout.
 import QtQuick
 import Quickshell.Io
 import "../"
@@ -54,10 +61,22 @@ BarCapsule {
         property bool populated: true
         property bool errored: false
 
-        // Only the updates entry sets this true; every other entry is
-        // inert, matching this file's own "one interactive element total"
-        // rule stated in the header above.
+        // Only the updates entry sets this true — its click starts a
+        // package upgrade via activated().
         property bool clickable: false
+
+        // Set true on the cpu, ram and disk instances only (D-25): an
+        // in-place format-alt value toggle, matching Athena's own
+        // format/format-alt swap. This file now carries TWO interactive
+        // shapes on the shared pointer hit area below (an upgrade-trigger
+        // click and a value-reveal click), amending the previous "one
+        // interactive element total" rule stated in the header above.
+        property bool valueToggleable: false
+        property bool valueRevealed: false
+
+        function toggleValue() {
+            readoutItem.valueRevealed = !readoutItem.valueRevealed;
+        }
 
         signal activated
 
@@ -91,16 +110,34 @@ BarCapsule {
                 font.weight: Design.weightBody
                 color: root.contentColour
                 horizontalAlignment: Text.AlignRight
-                width: valueReserve.width
+                // Hidden (not merely blank) AND zero-width when not
+                // revealed — QtQuick positioners already exclude
+                // non-visible children and their spacing (the same
+                // mechanism BarCapsule and the updates entry rely on), so
+                // this is what actually shrinks the pill rather than
+                // leaving the value's worst-case width reserved.
+                visible: readoutItem.valueRevealed
+                width: valueRevealed ? valueReserve.width : 0
                 text: readoutItem.populated ? readoutItem.valueText : "—"
             }
         }
 
+        // One hit area, not two: extended (never duplicated) to cover
+        // both interactive shapes this file now has. valueToggleable
+        // takes precedence in onClicked because a resource glyph can
+        // never be both toggleable and the upgrade-launcher — the two
+        // are mutually exclusive by construction (only the updates
+        // instance sets clickable, only cpu/ram/disk set valueToggleable).
         MouseArea {
             anchors.fill: parent
-            enabled: readoutItem.clickable
-            visible: readoutItem.clickable
-            onClicked: readoutItem.activated()
+            enabled: readoutItem.clickable || readoutItem.valueToggleable
+            visible: readoutItem.clickable || readoutItem.valueToggleable
+            onClicked: {
+                if (readoutItem.valueToggleable)
+                    readoutItem.toggleValue();
+                else if (readoutItem.clickable)
+                    readoutItem.activated();
+            }
         }
     }
 
@@ -122,13 +159,29 @@ BarCapsule {
     // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — named seam into this
     //    18-08-owned file. Ownership split, stated so it is never
     //    discovered at merge time: 18-08 owns the three Readout instances'
-    //    glyph, precedence and value bindings below, unchanged; this plan
-    //    owns only the PopoutTrigger wrapper and the nested Grid that
+    //    glyph, precedence and value bindings below; this plan (18.1-02)
+    //    additionally owns each instance's new value-toggle flag (D-25).
+    //    The wrapper owns only the PopoutTrigger and the nested Grid that
     //    reproduces the capsule's own positioner spacing, so the rendered
     //    geometry is unchanged. The updates readout stays a SIBLING
     //    outside this trigger, deliberately: it already owns a click that
     //    starts a package upgrade, and putting it inside the trigger would
-    //    make that click pin a popout instead of upgrading anything. ─────
+    //    make that click pin a popout instead of upgrading anything.
+    //
+    //    Click-ordering (D-25/QBAR-09, stated in source, not left to
+    //    event-propagation accident): each Readout's own pointer hit area
+    //    is nested INSIDE this PopoutTrigger's wrapped content, so a click
+    //    on a resource glyph is consumed there — it performs the in-place
+    //    value toggle and does NOT also reach the trigger's own hit area
+    //    to summon the popout. The popout stays reachable through the
+    //    trigger's own hover-dwell path (unaffected — dwell does not
+    //    route through a click at all). This precedence requires
+    //    PopoutTrigger.qml's content-hosting Item to stack above the
+    //    trigger's own hit area, which it does via the explicit z: 1 that
+    //    same file now declares (18.1-02 scope amendment) — without it,
+    //    the trigger's own hit area sat on top by declaration order alone
+    //    and swallowed the click before it ever reached a Readout's
+    //    nested one. ───────────────────────────────────────────────────
     PopoutTrigger {
         id: resourcesPopoutTrigger
         sectionId: "resources"
@@ -149,6 +202,7 @@ BarCapsule {
                 maxValueText: "100%"
                 populated: root.cpuStateValue === "populated"
                 errored: root.cpuStateValue === "empty"
+                valueToggleable: true
                 valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.cpuFraction) : ""
             }
 
@@ -157,12 +211,14 @@ BarCapsule {
                 maxValueText: "100%"
                 populated: root.memoryStateValue === "populated"
                 errored: root.memoryStateValue === "empty"
+                valueToggleable: true
                 valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.memoryFraction) : ""
             }
 
             Readout {
                 glyph: "hard_drive_2"
                 maxValueText: "100%"
+                valueToggleable: true
                 populated: root.storageStateValue === "populated"
                 errored: root.storageStateValue === "empty"
                 valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.storageFraction) : ""
