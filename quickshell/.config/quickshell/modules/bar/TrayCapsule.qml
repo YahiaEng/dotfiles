@@ -84,13 +84,36 @@ BarCapsule {
     // establishes for every other summonable surface in this shell.
     property var openMenuFor: null
 
+    // ── 18-10 Task 3: bounded growth ─────────────────────────────────────
+    // A SAFETY BOUND, not a collapse — D-18-04's "no chevron, no threshold
+    // collapse" still holds. Nothing is folded behind an expander, every
+    // icon stays reachable by scrolling, the tray stays always-visible,
+    // and icons never shrink to fit. Past the new Design.qml token below
+    // on the capsule's long axis, the icon row scrolls internally instead of
+    // growing further — the one reason being that an abnormal tray must
+    // never be able to push another capsule off-screen. The bound is
+    // computed once and used on whichever axis is the orientation's long
+    // axis, with no branch statement, exactly as every other axis in this
+    // file already is; the short axis is always exactly one cell.
+    readonly property int trayLongAxisExtent: Math.min(trayRoot.vertical ? trayIconGrid.implicitHeight : trayIconGrid.implicitWidth, Design.trayMaxExtent)
+
+    Flickable {
+        id: trayFlick
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        contentWidth: trayRoot.vertical ? trayRoot.cellPitch : trayIconGrid.implicitWidth
+        contentHeight: trayRoot.vertical ? trayIconGrid.implicitHeight : trayRoot.cellPitch
+        width: trayRoot.vertical ? trayRoot.cellPitch : trayRoot.trayLongAxisExtent
+        height: trayRoot.vertical ? trayRoot.trayLongAxisExtent : trayRoot.cellPitch
+
     // One axis-bound positioner for the icon row — the identical
     // single-positioner idiom BarCapsule's own content Grid and Bar.qml's
     // three zone containers already use, for the identical reason a
     // Row/Column pair would be the forked-arrangement failure in
     // miniature. This Grid is itself the lone child BarCapsule's own
-    // content Grid receives, so the tray nests one axis-bound positioner
-    // inside another rather than declaring a second kind of layout.
+    // content Grid receives (via the Flickable above), so the tray nests
+    // one axis-bound positioner inside another rather than declaring a
+    // second kind of layout.
     Grid {
         id: trayIconGrid
         spacing: trayRoot.cellGap
@@ -209,8 +232,8 @@ BarCapsule {
                     id: trayMenuPopup
                     // Inline per UI-SPEC's own declaration — used exactly
                     // once, so no Design.qml token is minted for it. Not
-                    // related to Design.trayMaxExtent (Task 3): that bound
-                    // is the icon row's own axis, this is the menu
+                    // related to Task 3's icon-row scroll bound: that one
+                    // governs the icon row's own axis, this is the menu
                     // surface's fixed width.
                     readonly property int menuWidth: 220
 
@@ -479,5 +502,6 @@ BarCapsule {
                 }
             }
         }
+    }
     }
 }

@@ -150,4 +150,19 @@ Singleton {
     //    each plan appends only the tokens it actually reads;
     //    trayMaxExtent and the popout tokens belong to 18-10/18-13/18-14.
     readonly property int mediaTitleMaxChars: 30
+
+    // ── trayMaxExtent (Phase 18 Plan 10) — provenance: 18-UI-SPEC.md
+    //    "## New Tokens" + D-18-04. The maximum extent of the tray
+    //    capsule's icon row on its long axis (width horizontal, height
+    //    vertical) before the row scrolls internally rather than the
+    //    capsule growing further — a safety bound, not a collapse: every
+    //    icon stays reachable by scrolling, nothing is folded behind an
+    //    expander. 240 IS on the repo's 4px grid and does NOT use the
+    //    two-token grid exemption 18-01 recorded for barEdgeMargin/
+    //    barSideMargin, which exists solely for waybar positional parity
+    //    and is not a precedent for this token. At the fixed 32px cell
+    //    pitch (iconSizeMd 24 + spacingXs*2) with 4px (spacingXs) gaps,
+    //    six icons measure 212 and render unbounded; seven measure 248 and
+    //    are the first count to scroll.
+    readonly property int trayMaxExtent: 240
 }
