@@ -1805,6 +1805,63 @@ _qsd_check_bar_colour_role_routing() {
     check "bar-colour-role-routing (D-20, the executable counterpart of this phase's central prohibition — a rule stated in a comment and enforced nowhere: no bar capsule file may reference the global Colours.* palette directly; scanned ${dir}; exempt: ${QSD_BAR_COLOUR_ROLE_EXEMPT[*]}): ${res}" "$rc"
 }
 
+# ── bar-colour-alpha-resolution (18.1 gap closure) ──────────────────────
+# D-20 above proves bar files ROUTE colour through BarRoles. It does not
+# prove a routed role RESOLVES to a real colour — and that gap is exactly
+# how GATE-02 shipped a bar with five black surfaces while every automated
+# check passed (18.1-VERIFICATION.md).
+#
+# The mechanism: Colours.qml declares its palette roles as `property
+# string` (its JsonAdapter loads palette.json hex strings). A JS string has
+# no .r/.g/.b, so `Qt.rgba(Colours.surfaceVariant.r, ..., 0.85)` silently
+# evaluates to BLACK at 85% — no error, no warning. Any alpha blend must
+# therefore read .r/.g/.b off a COLOUR-TYPED property, never off a
+# `Colours.*` role directly.
+#
+# This is the mechanical form of that rule. It is deliberately narrower
+# than a full resolved-value assertion (which would need a rooted `qs -p`
+# probe checking .r/.g/.b/.a are finite and within [0,1]); that remains the
+# recommended stronger successor. What this catches is the exact regression
+# class that produced the failure: a `.r`/`.g`/`.b` read off Colours.*
+# anywhere under modules/bar.
+_qsd_check_bar_colour_alpha_resolution() {
+    local scan_root dir
+    scan_root=$(_qsd_shell_qml_root)
+    if [[ ! -d "$scan_root" ]]; then
+        echo "  [SKIP] bar-colour-alpha-resolution: shell QML root not found ($scan_root)"
+        return
+    fi
+    dir="$scan_root/bar"
+    if [[ ! -d "$dir" ]]; then
+        echo "  [SKIP] bar-colour-alpha-resolution: bar directory not found ($dir)"
+        return
+    fi
+    local files scanned offenders rc
+    files=$(find "$dir" -maxdepth 1 -name '*.qml' 2>/dev/null | sort)
+    scanned=$(printf '%s' "$files" | grep -c . || true)
+    if [[ "${scanned:-0}" -eq 0 ]]; then
+        echo "  [SKIP] bar-colour-alpha-resolution: zero .qml files found in $dir"
+        return
+    fi
+    # Strip trailing comments before matching so a line DOCUMENTING the
+    # forbidden shape (this phase's own BarRoles header does) cannot trip it.
+    offenders=""
+    local f
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        if sed 's|//.*||' "$f" | grep -qE 'Colours\.[a-zA-Z_][a-zA-Z0-9_]*\.[rgb]\b'; then
+            offenders="${offenders}${offenders:+ }$(basename "$f")"
+        fi
+    done <<< "$files"
+    if [[ -n "$offenders" ]]; then
+        rc=1
+    else
+        rc=0
+        offenders="none"
+    fi
+    check "bar-colour-alpha-resolution (18.1: an alpha blend must read .r/.g/.b off a colour-typed property, never off a string-typed Colours.* role — the latter silently yields BLACK; scanned ${dir}, files=${scanned}): offenders=${offenders}" "$rc"
+}
+
 # ── check 4: permissions-enforce-readback ───────────────────────────────
 # Guards D-16-09 against silent revert. ecosystem:enforce_permissions is
 # read ONCE at compositor startup and its failure mode is silence — reading
@@ -2825,6 +2882,7 @@ _qsd_check_overview_shortcut_single_registration
 _qsd_check_bar_reserved_zone_stability
 _qsd_check_bar_surface_registry
 _qsd_check_bar_colour_role_routing
+_qsd_check_bar_colour_alpha_resolution
 _qsd_check_permissions_enforce_readback
 _qsd_check_permissions_allowlist_paths_resolve
 _qsd_check_overview_content
