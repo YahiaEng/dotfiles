@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 35
+open_count: 37
 waived_count: 0
 fixed_count: 8
-total_count: 43
-last_updated: 2026-08-11T03:14:04.512Z
+total_count: 45
+last_updated: 2026-08-11T03:35:37.331Z
 ---
 
 # Broken Windows Ledger
@@ -58,6 +58,8 @@ last_updated: 2026-08-11T03:14:04.512Z
 | 41 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/WifiPopout.qml |  | 18-14 Task 1 human-check deferred: live scan/discovery negative-check (iw dev / bluetoothctl show) while wifi/bluetooth popouts are open | open |  | 2026-08-11T03:14:04.331Z |  |
 | 42 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockPopout.qml |  | 18-14 Task 2 human-check deferred: cell-for-cell calendar comparison against the dashboard card and the resources popout's unsampled em-dash state on a fresh shell restart | open |  | 2026-08-11T03:14:04.420Z |  |
 | 43 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaPopout.qml |  | 18-14 Task 3 human-check deferred: live transport control, multi-player case, and confirming all five foot-link destinations are intact and unthinned | open |  | 2026-08-11T03:14:04.512Z |  |
+| 44 | 18 | unrun-verify | hypr/.config/hypr/scripts/bar-visibility.sh |  | 18-15 Task 3's live per-driver zone-policy proof sequence (qs ipc call bar <verb> round trip against idle/gaming/keybind, plus the hyprctl monitors -j reserved-array deltas) was not run — the live quickshell process predates every commit in this plan and has not been restarted/reloaded, matching the phase's established skip-live-verification precedent (18-08/18-12/18-13). | open |  | 2026-08-11T03:35:30.387Z |  |
+| 45 | 18 | deviation | quickshell/.config/quickshell/shell.qml |  | 18-15 Task 2's acceptance grep for 'exactly four functions matching show\|hideIdle\|hideHard\|status' counts 5 whole-file matches, not 4 — a pre-existing overviewIpc.status() (16-04) collides with the regex. barIpc itself declares exactly the specified four functions; the mismatch is in the verify script's scope (whole-file vs. handler-scoped), not a defect in the implementation. | open |  | 2026-08-11T03:35:37.331Z |  |
 
 ````json
 [
@@ -575,6 +577,30 @@ last_updated: 2026-08-11T03:14:04.512Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T03:14:04.512Z",
+    "resolved_at": null
+  },
+  {
+    "id": 44,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "hypr/.config/hypr/scripts/bar-visibility.sh",
+    "line": null,
+    "description": "18-15 Task 3's live per-driver zone-policy proof sequence (qs ipc call bar <verb> round trip against idle/gaming/keybind, plus the hyprctl monitors -j reserved-array deltas) was not run — the live quickshell process predates every commit in this plan and has not been restarted/reloaded, matching the phase's established skip-live-verification precedent (18-08/18-12/18-13).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T03:35:30.387Z",
+    "resolved_at": null
+  },
+  {
+    "id": 45,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/shell.qml",
+    "line": null,
+    "description": "18-15 Task 2's acceptance grep for 'exactly four functions matching show|hideIdle|hideHard|status' counts 5 whole-file matches, not 4 — a pre-existing overviewIpc.status() (16-04) collides with the regex. barIpc itself declares exactly the specified four functions; the mismatch is in the verify script's scope (whole-file vs. handler-scoped), not a defect in the implementation.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T03:35:37.331Z",
     "resolved_at": null
   }
 ]
