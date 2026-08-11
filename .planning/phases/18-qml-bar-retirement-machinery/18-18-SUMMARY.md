@@ -11,9 +11,10 @@ requires:
   - phase: 18-16
     provides: "HotZone.qml create/destroy lifecycle — the surface the deferred 200-cycle exercise targets"
 provides:
-  - "18-FRAME-RATE.md — LEDGER-03 measurement methodology, safe host facts, and exact resume commands (no condition measured yet)"
-  - "18-BAR-SOAK.md — QBAR-11's aggregated permanent-liveness inventory, pre-declared tolerances, and a real live start capture (soak end deferred)"
-  - "Two WINDOWS.md unrun-verify entries (51, 52) making the deferred live campaigns discoverable and resumable"
+  - "18-FRAME-RATE.md — LEDGER-03 CLOSED: methodology plus the live five-condition campaign (eae9001). 60 fps floor passes; 165 fps target recorded not-resolvable with the sanctioned instrument"
+  - "18-BAR-SOAK.md — QBAR-11's aggregated inventory, pre-declared tolerances, and a live re-anchored start capture with a recomputed threshold table (soak end still owed)"
+  - "WINDOWS.md rows 51 and 52 closed as fixed; row 63 (sampler debt, Task 5 option-b) and row 64 (the running soak window) appended"
+  - "Two corrections downstream plans must honour: the reserved array is [[0,48,0,0]] not [[0,46,0,0]], and the long-lived-child gate intersects by command not pid"
 affects: [18-19]
 
 # Actuals (#2632)
@@ -39,32 +40,41 @@ key-decisions:
   - "Task 3 (the aggregated inventory, pre-declared tolerances, and start capture) WAS performed for real — it required no service interruption and no desktop rearrangement, only read-only /proc, ps, hyprctl and systemctl reads against the already-running supervised process, plus one genuine 300-second wake/CPU observation window."
   - "Since C2/C3/C4 (OVER-04's actual load-floor conditions) were not measured, Task 2's ledger corrections (16-OVER04-MEASUREMENT.md, PROJECT.md, MILESTONES.md) were NOT made — writing 'measured' numbers into those files without a real measurement would violate this plan's own prohibition. LEDGER-03 stays open."
   - "Task 5's blocking decision (GPU/network sampler disposition) was not decided — its own text requires 'Task 4 measured what that costs,' and Task 4 did not run. Deciding between option-a/option-b without that number would be presumptuous; left open."
-  - "status: halted (not complete) — per #2830's machine-read semantics, this correctly blocks 18-19 (depends_on: [18-02, 18-17, 18-18]) from being offered to the executor until this plan is resumed and re-summarized as complete."
+  - "SUPERSEDED 2026-08-12 — was: 'status: halted (not complete) — per #2830's machine-read semantics, this correctly blocks 18-19 until this plan is resumed and re-summarized as complete.' That is exactly what happened: the plan was resumed and is now complete, so 18-19 is offered to the executor."
+  # ── Resumption decisions, 2026-08-12 ────────────────────────────────
+  - "LEDGER-03 was ALREADY closed when the decisions above said it was not — the campaign ran later the same day (eae9001) and 18-FRAME-RATE.md reads 'Status: MEASURED'. The 2026-08-11 decision text describing it as deferred was stale within hours of being written. Lesson recorded because it nearly caused a real error: this resumption was about to file a LEDGER-03 waiver before checking the artifact's own status line."
+  - "Task 5 decided by the operator as option-b (record as debt, WINDOWS row 63) rather than option-a (scope-correction plan against 18-05). Rationale: five shipped-and-verified plans depend on shell.qml's current shape at wave 8."
+  - "This plan is completed on its settled work while QBAR-11 stays explicitly open in WINDOWS row 64, per the operator's decision to unblock 18-19 now and hold 18-20's irreversible waybar deletion until the soak closes. QBAR-11 is NOT claimed as met."
+  - "The soak's long-lived-child gate is respecified to intersect by COMMAND rather than pid — proven necessary live when the swaync-client child re-spawned mid-session and a pid intersection would have reported the subscription dead."
+  - "The reserved array is [[0,48,0,0]], not the [[0,46,0,0]] recorded throughout phase 18: Phase 18.1 raised Design.barHeight 40 -> 42 to match upstream Athena. 18-19 and 18-20 both carry the stale 46 and must record the live value with this reason rather than be made to pass."
 
-requirements-completed: []
+requirements-completed: [LEDGER-03]
 
 coverage:
   - id: D1
-    description: "Frame-rate measurement methodology (Task 1) fully documented with safe host facts captured live, all five conditions honestly marked not-measured with reasons, and exact resume commands recorded"
+    description: "LEDGER-03 frame-rate measurement — methodology, then the live campaign itself across all five conditions"
     requirement: "LEDGER-03"
     verification: []
     human_judgment: true
-    rationale: "The deliverable itself is a deferred methodology capture, not a passing measurement — LEDGER-03 is NOT closed by this plan run. A human (with the live desktop available for rearrangement) must run the resume campaign in 18-FRAME-RATE.md before this requirement can be marked complete."
+    rationale: "CLOSED. The methodology capture (this plan's original scope) was followed later the same day by the real campaign — commit eae9001; 18-FRAME-RATE.md now reads 'Status: MEASURED, 2026-08-11'. All five conditions were exercised live with QSG_RENDER_TIMING=1; the compositor overlay that froze the host in Phase 16 was never retried. 60 fps floor PASSES (0 of 81,261 render-loop iterations over 16.67 ms during a human-driven overview drag at OVER-04's own load floor; worst 12 ms / 83.3 fps). The 165 fps target is recorded NOT RESOLVABLE with the sanctioned instrument — integer-ms bucketing swallows the 156.75 fps threshold and iteration counts are an upper bound on presentation — and is deliberately not claimed as a pass. Task 2's ledger corrections all landed (16-OVER04-MEASUREMENT.md, PROJECT.md, MILESTONES.md); REQUIREMENTS.md was the last holdout and was corrected on 2026-08-12."
   - id: D2
-    description: "QBAR-11 aggregated permanent-liveness inventory, pre-declared tolerances, and a real live start capture (pid, RSS, one confirmed long-lived child, a genuine 300s wake/CPU observation)"
+    description: "QBAR-11 aggregated permanent-liveness inventory, pre-declared tolerances, and a live start capture anchoring a real soak window"
     requirement: "QBAR-11"
     verification: []
     human_judgment: true
-    rationale: "The start capture is real and complete, but QBAR-11 requires a closed soak (end capture + verdict) which needs 14400s of continued uptime and a 200-cycle exercise this session could not perform. A human must resume 18-BAR-SOAK.md's Section five once the window elapses before this requirement can be marked complete."
+    rationale: "OPEN BY DESIGN — the inventory and tolerances are complete and the window is running, but QBAR-11 needs a closed soak (end capture + 200-cycle exercise + verdict) and 14400s cannot elapse inside an execution session. Tracked in WINDOWS.md row 64. This is the one item gating 18-20, per the operator's 2026-08-12 decision to complete this plan on its settled work and hold the irreversible waybar deletion until the soak closes."
 
-duration: ~45min
+duration: ~45min (initial) + ~35min (2026-08-12 resumption)
 completed: 2026-08-11
-status: halted
+resumed: 2026-08-12
+status: complete
 ---
 
-# Phase 18 Plan 18: QML Bar Measurement Methodology — LEDGER-03 and QBAR-11 Deferred by Design
+# Phase 18 Plan 18: QML Bar Measurement Methodology — LEDGER-03 Closed, QBAR-11's Window Running
 
-**Both measurement artifacts exist with real, live-captured host facts and a fully specified resume procedure, but neither requirement closes this session: the frame-rate campaign needs the user's live desktop rearranged to OVER-04's load floor, and the soak needs 4+ hours of continued uptime this session cannot wait out — both are recorded as resumable deferred items rather than forced to a fabricated or partial result.**
+**Everything below the line was written on 2026-08-11, when this plan halted with both campaigns deferred. It is retained verbatim as the historical record. Two of the three open items have since closed — see `## Resumption (2026-08-12)` at the end, which is the current state of this plan.**
+
+**Original headline (2026-08-11):** Both measurement artifacts exist with real, live-captured host facts and a fully specified resume procedure, but neither requirement closes this session: the frame-rate campaign needs the user's live desktop rearranged to OVER-04's load floor, and the soak needs 4+ hours of continued uptime this session cannot wait out — both are recorded as resumable deferred items rather than forced to a fabricated or partial result.
 
 ## Performance
 
@@ -176,3 +186,85 @@ status: halted
 - FOUND commit: `ece64cb`
 - FOUND commit: `7230a33`
 - FOUND commit: `72f2fb7`
+
+---
+
+## Resumption (2026-08-12) — the current state of this plan
+
+This plan halted on 2026-08-11 with three items open: Task 2 (ledger corrections), Task 4
+(soak end + verdict) and Task 5 (the blocking sampler decision). Two are now closed and the
+third is running. `status` is `complete`; the one genuinely open item is tracked in
+`WINDOWS.md` row 64 and gates 18-20, not this plan.
+
+### What closed, and how
+
+**Task 1 + Task 2 — LEDGER-03: CLOSED, and it was already closed when this summary said it
+was not.** The frame-rate campaign ran later on 2026-08-11, after this summary was written
+(`eae9001`). `18-FRAME-RATE.md` opens with `Status: MEASURED`. All five conditions were
+exercised live; the 60 fps floor passes with 0 of 81,261 iterations over 16.67 ms, and the
+165 fps target is honestly recorded as not resolvable with the sanctioned instrument rather
+than claimed. The three ledger targets Task 2 named — `16-OVER04-MEASUREMENT.md`,
+`PROJECT.md`, `MILESTONES.md` — all carry the correction. Only `REQUIREMENTS.md` still read
+`Pending`, and was corrected on 2026-08-12 along with `LEDGER-01`, whose four bookkeeping
+targets were likewise all already done. `WINDOWS.md` row 51 is marked fixed.
+
+**Task 5 — sampler disposition: CLOSED as debt (`option-b`, operator decision).** The GPU
+and network samplers cost 900 `nvidia-smi` spawns/hour that no bar entry consumes;
+re-narrowing means a second drawer-only gate expression in `shell.qml`. Recorded as
+`WINDOWS.md` row 63 with its measured number, named owner and one-line remedy. `option-a`
+— cutting a scope-correction plan against 18-05 at wave 8 — was rejected because five
+shipped-and-verified plans depend on `shell.qml`'s current shape. No QML was edited, as
+both branches require.
+
+**Task 4 — QBAR-11 soak: OPEN, window re-anchored and running.** See below.
+
+### The soak window had to be re-anchored twice, and why that matters
+
+The original anchor (pid `737907`) went void when `quickshell` restarted during Phase 18.1's
+bar rebuild. Re-anchoring on 2026-08-12 surfaced three findings that are worth more than the
+capture itself:
+
+1. **waybar was still running** from 18.1's GATE-02 comparison, stacked above the QML bar and
+   holding a second exclusive zone — reserved read `[[0,94,0,0]]` instead of `[[0,48,0,0]]`.
+   A first capture attempt was discarded rather than anchor a 4-hour window to a two-bar
+   state about to change. **waybar autostarts** (`autostart.lua:62` →`waybar-launch.sh`), so
+   stopping it by hand is not durable — it returns on every boot until 18-20 deletes that
+   line. Any session that needs the shipped single-bar configuration must stop it first.
+
+2. **The long-lived-child gate was specified wrong.** Section four intersects the two
+   `pgrep -P` samples *by pid*. The child's pid changed mid-session (`262662` → `424020`)
+   while the command stayed `/usr/bin/swaync-client -swb`, so a pid intersection yields the
+   empty set and reports "the subscription died" — which Section three calls a finding — for
+   a subscription that is alive. Twelve samples at 5-second spacing confirmed a single
+   re-spawn, not a loop. **The end capture must intersect on command, not pid.**
+
+3. **The reserved array is `[[0,48,0,0]]`, not the `[[0,46,0,0]]` every earlier phase-18
+   artifact records.** Real and intended: Phase 18.1 raised `Design.barHeight` from 40 to
+   upstream Athena's own `"height": 42`, and `barEdgeMargin` is 6. `Bar.qml`'s own arithmetic
+   comment still claimed 46 and was corrected against the live reading (`aa763b1`).
+   **18-19's fingerprint and 18-20's parity statement both name `[0,46,0,0]` and are stale by
+   2px** — both predate 18.1. Neither should be made to pass; both should record the live 48
+   with this reason.
+
+A third re-anchor was forced at 01:09 by a host reboot. **A valid window needs 4 hours with
+no reboot and no `quickshell` restart** — that constraint is the whole difficulty of this
+task, not the measurement.
+
+### Honest status of the three anchor readings
+
+Three wake rates now exist under three different conditions and they are **not**
+interchangeable: `19.3429`/sec (2026-08-11, void, pre-18.1 build), `13.7567`/sec (two-bar
+transient, waybar up), `6.9533`/sec (settled single-bar, post-18.1). The drop is **not**
+claimed as an improvement — build, bar geometry and compositor surface count all differ
+between them and no differential measurement was run to attribute it. Section three's
+tolerance *percentages* were pre-declared and were not re-opened; only the absolute bands
+were recomputed against the live anchor, in Section four-bis's "Re-anchored thresholds"
+table.
+
+### What is still owed
+
+`18-BAR-SOAK.md` Section five, against the live anchor: the end capture, at least five RSS
+samples spaced through the window, the 200-cycle hide/reveal exercise through
+`bar-visibility.sh`'s own verbs, and the verdict against the re-anchored thresholds. Until
+that closes, **QBAR-11 is open and 18-20 must not run** — deleting waybar removes the
+fallback bar, and the soak is the evidence that the replacement holds up over hours.

@@ -1,12 +1,24 @@
 # 18-18 Tasks 3-4: QBAR-11 Permanent-Liveness Soak
 
 **Status: Task 3 (inventory, tolerances, start capture) COMPLETE and real. Task 4 (soak
-end capture, 200-cycle exercise, verdict) DEFERRED** — its own precondition (at least
-14400 seconds of continuous single-pid uptime since this document's start capture, with an
-unchanged `NRestarts`) cannot be met within a single execution session. Per this plan's
-explicit soak guidance, this session does not block on that wall-clock requirement; it
-takes the readings available now and records the remainder as a resumable deferred item
-with the exact commands to complete it. No verdict is asserted anywhere in this document.
+end capture, 200-cycle exercise, verdict) OPEN — the window is now RUNNING.** Task 4's
+precondition is at least 14400 seconds of continuous single-pid uptime with an unchanged
+`NRestarts`, which cannot elapse inside one execution session. No verdict is asserted
+anywhere in this document.
+
+**Window state, 2026-08-12:** the original start capture (Section four, pid `737907`) is
+**void** — `quickshell` restarted during Phase 18.1's bar rebuild, and Section three
+declares a restart mid-window fatal. A fresh anchor was taken against pid `262631` after
+the desktop was settled (waybar stopped, the QML bar sole owner of the reserved zone):
+**Section four-bis is the live anchor**, and its "Re-anchored thresholds" table carries the
+absolute bands the end capture is judged against. Section three's tolerance *percentages*
+are unchanged — they were pre-declared before any result existed and were not re-opened.
+
+**Earliest valid end capture: ≈ 04:32:15 EEST on 2026-08-12** (unit start 00:32:15 +
+14400 s). Until then, use the machine normally — normal use is what exercises the popout
+create-and-destroy path, and is what the requirement's own phrase "multi-hour session"
+means. If `quickshell` restarts before then, the window voids again and Section four-bis
+must be re-taken from the new pid.
 
 ## Section one — the aggregated permanent-liveness inventory
 
@@ -51,12 +63,16 @@ as a cheaper bar.
 From `18-BAR-IDLE-BASELINE.md` (18-01, tracer scope, captured before any gate was
 widened):
 
-| Metric | Pre-expansion floor (18-01) | Soak start (this document, below) |
-|---|---|---|
-| RSS | 445104 KiB (~435 MiB) | 450424 KiB (see Section four) |
-| Process count | 1 | 1 |
-| Child process count | 0 | 1 (the `swaync-client -swb` subscription — did not exist at 18-01's tracer scope; added by 18-11) |
-| Declared `Timer {}` in `Bar.qml` | 0 | 0 (unchanged — the clock is still `SystemClock`-driven; the 26 repo-wide count below covers pre-existing gated surfaces, not `Bar.qml` itself) |
+| Metric | Pre-expansion floor (18-01) | Void start, pre-18.1 (Section four) | **Live anchor, post-18.1 (Section four-bis)** |
+|---|---|---|---|
+| RSS | 445104 KiB (~435 MiB) | 450424 KiB | **477016 KiB** |
+| Process count | 1 | 1 | **1** |
+| Child process count | 0 | 1 (the `swaync-client -swb` subscription — did not exist at 18-01's tracer scope; added by 18-11) | **1, by command** (pid re-spawned mid-session — see the methodology correction in Section four-bis) |
+| Declared `Timer {}` in `Bar.qml` | 0 | 0 (unchanged — the clock is still `SystemClock`-driven; the 26 repo-wide count below covers pre-existing gated surfaces, not `Bar.qml` itself) | **0** (repo-wide count now **34**, up from 26 — Phase 18.1's rework, still none in `Bar.qml`) |
+| Reserved array | — | `[[0,46,0,0]]` | **`[[0,48,0,0]]`** (`barHeight` 40 → 42, upstream Athena) |
+
+The RSS column crosses a build boundary and is **not** a leak series: 18.1 rebuilt the bar
+between the second and third columns. Only the third column anchors the running soak.
 
 This baseline exists precisely because after wave 3 there is no minimal bar left to
 measure directly; both the pre-expansion floor and this session's start reading are real
@@ -98,7 +114,20 @@ number, not a number to be re-explained afterward.
 Every rate is computed from raw integer deltas with `awk` (`bc` is not installed on this
 host and no package may be added to obtain a division); only the *display* is rounded.
 
-## Section four — the start capture
+## Section four — the start capture (2026-08-11) — **VOID, retained as the historical record**
+
+> **This window never opened.** Section three requires 14400 s of continuous uptime on a
+> single pid with `NRestarts` unchanged, and states that if the process restarts before the
+> window elapses "the window is void — a fresh start capture must be taken and this section
+> re-run from a new pid." `quickshell` restarted during Phase 18.1's bar rebuild: pid
+> `737907` is gone and the supervised unit now runs pid `262631`
+> (`ExecMainStartTimestamp` = 2026-08-12 00:32:15 EEST). Every reading below is real and was
+> honestly taken; none of it anchors the live soak. The live anchor is **Section four-bis**.
+>
+> Two further facts invalidate this section as a comparison basis even setting the pid aside:
+> the build changed underneath it (module `Timer {}` count 26 → 34 across 18.1's rework), and
+> the reserved array moved from `[[0,46,0,0]]` to `[[0,48,0,0]]` when 18.1 raised
+> `Design.barHeight` from 40 to upstream Athena's 42.
 
 Pid validated as digits-only before use in any path or command. All readings taken on the
 **currently live, systemd-supervised** `quickshell` process — this session did not perform
@@ -207,7 +236,165 @@ cpu-sec/sec over a real 300s(315s) observation, `NRestarts=0`, cgroup confirms t
 supervised unit, `quickshell-bar` is the sole quickshell layer namespace, reserved array
 `[[0,46,0,0]]`, bar visible, theme `catppuccin`.
 
+## Section four-bis — the re-taken start capture (2026-08-12) — **THE LIVE ANCHOR**
+
+Taken after the desktop was settled, and deliberately re-taken once: a first attempt at
+`00:45` was discarded because **waybar was still running** from Phase 18.1's GATE-02
+comparison, stacked above the QML bar (`waybar` y=6 h=40, `quickshell-bar` y=52 h=42) and
+holding a second exclusive zone — `hyprctl monitors` read `[[0,94,0,0]]`. Anchoring a
+4-hour window to a two-bar state that was about to change would have guaranteed a
+start/end mismatch on the reserved-array check. waybar (pid `3840410`,
+`-c config-athena.jsonc`) was stopped by operator decision; waybar remains **installed and
+relaunchable** via `waybar-launch.sh` until 18-20 actually retires it. The discarded
+reading is recorded below for completeness rather than dropped.
+
+```
+$ pgrep -x quickshell
+262631
+
+$ ps -o rss=,vsz=,etimes= -p 262631
+481364 1021416  1701
+
+$ pgrep -c -x quickshell
+1
+
+$ pgrep -P 262631          # sample 1
+262662
+$ sleep 10 && pgrep -P 262631   # sample 2, 10s later
+424020
+
+$ ps -o pid=,cmd= -p 424020
+ 424020 /usr/bin/swaync-client -swb
+```
+
+**Methodology correction, forced by live evidence — the long-lived-child gate must
+intersect on COMMAND, not pid.** Section four's procedure intersects the two `pgrep -P`
+samples by pid. That is wrong, and this session proved it: the child's pid changed between
+sample 1 and sample 2 (`262662` → `424020`) while the command stayed
+`/usr/bin/swaync-client -swb`. A pid intersection yields the empty set and would report
+"zero long-lived children" — i.e. "the subscription died", which Section three calls a
+finding — when the subscription is in fact alive and healthy. Confirmed by direct
+observation: 12 samples at 5-second spacing held `424020` steady with no further respawn,
+so this was a single re-spawn (concurrent with waybar's exit), not a loop. **The end
+capture must compare the child *command set*, and report any pid change as an observation
+rather than as a death.**
+
+```
+$ for i in $(seq 1 12); do date +%H:%M:%S; pgrep -P 262631; ps -o rss= -p 262631; sleep 5; done
+01:01:20  424020  477024      01:01:50  424020  476976
+01:01:25  424020  477048      01:01:55  424020  477044
+01:01:30  424020  477068      01:02:00  424020  477044
+01:01:35  424020  476984      01:02:05  424020  477044
+01:01:40  424020  476984      01:02:10  424020  476992
+01:01:45  424020  477044      01:02:15  424020  477000
+```
+
+RSS oscillates in a ~92 KiB band with no trend across that minute — recorded as the
+short-horizon shape observation, not as evidence about the 4-hour window.
+
+**300-second wake/CPU observation (start-of-window figures):**
+
+```
+T0 = 1786485646 (epoch)
+  voluntary_ctxt_switches = 30136, nonvoluntary_ctxt_switches = 1792
+  utime = 352, stime = 366
+T1 = 1786485946 (epoch, 300s later)
+  voluntary_ctxt_switches = 32006, nonvoluntary_ctxt_switches = 2008
+  utime = 375, stime = 378
+
+elapsed = 300s
+wake_delta = (32006-30136) + (2008-1792) = 1870 + 216 = 2086
+cpu_ticks_delta = (375-352) + (378-366) = 23 + 12 = 35 ticks = 0.35s CPU
+
+$ awk -v w=2086 -v t=300 'BEGIN{printf "%.4f\n", w/t}'
+6.9533   # wakes/sec — THE ANCHOR RATE
+
+$ awk -v c=35 -v t=300 'BEGIN{printf "%.6f\n", (c/100)/t}'
+0.001167 # cpu-seconds per wall-second — THE ANCHOR RATE
+```
+
+**The discarded two-bar reading (00:45, waybar up, reserved `[[0,94,0,0]]`), for contrast
+only:** 13.7567 wakes/sec, 0.001967 cpu-sec/sec, RSS 453284 KiB. It is not the anchor and
+no gate is computed against it.
+
+**Three wake rates now exist and they are not interchangeable** — 19.3429/sec (2026-08-11,
+void, pre-18.1 build), 13.7567/sec (two-bar transient), 6.9533/sec (settled anchor). The
+drop is *not* claimed here as an improvement: the build, the bar geometry and the number of
+compositor surfaces all differ between them, and no differential measurement was run to
+attribute it. It is recorded as three separate observations under three separate
+conditions, which is what they are.
+
+```
+$ getconf CLK_TCK
+100
+
+$ ps -o rss=,etimes= -p 262631   # RSS sample 1 of >=5
+477016   2011
+
+$ systemctl --user show quickshell.service -p NRestarts -p MainPID -p ExecMainStartTimestamp
+MainPID=262631
+NRestarts=0
+ExecMainStartTimestamp=Wed 2026-08-12 00:32:15 EEST
+
+$ cat /proc/262631/cgroup
+0::/user.slice/user-1000.slice/user@1000.service/app.slice/app-graphical.slice/quickshell.service
+
+$ hyprctl layers -j | jq -r '..|.namespace? // empty' | sort | uniq -c
+      1 awww-daemon
+      1 quickshell-bar
+
+$ hyprctl monitors -j | jq -c '[.[].reserved]'
+[[0,48,0,0]]
+
+$ ~/.config/hypr/scripts/bar-visibility.sh status
+visible
+
+$ cat ~/.local/state/theme/current-theme
+catppuccin
+
+$ grep -rn 'Timer\s*{' quickshell/.config/quickshell/modules/ | grep -v '^\s*//' | wc -l
+34
+```
+
+**The reserved array is `[[0,48,0,0]]`, not the `[[0,46,0,0]]` every earlier phase-18
+artifact records.** This is a real, intended change, not drift: `Design.barHeight` is `42`
+and `Design.barEdgeMargin` is `6`, and Phase 18.1 raised `barHeight` from 40 to upstream
+Athena's own `"height": 42` (`ATHENA-UPSTREAM-SPEC.md`). `Bar.qml`'s own arithmetic comment
+still claimed 46 and was corrected against this live reading. **18-19's fingerprint and
+18-20's parity statement both name `[0,46,0,0]` and are stale by 2px** — both were written
+before 18.1 existed. Neither should be "made to pass"; both should record the live 48 with
+this reason.
+
+**Start-capture summary (the anchor):** pid `262631`, `NRestarts=0`, unit start
+2026-08-12 00:32:15 EEST, RSS `477016` KiB, etimes `2011` s at window open (well past the
+10-minute settle precondition), one `quickshell` process, one long-lived child by command
+(`swaync-client -swb`), wake rate `6.9533`/sec and CPU rate `0.001167` cpu-sec/sec over a
+real 300 s observation, `quickshell-bar` the sole quickshell layer namespace, reserved
+`[[0,48,0,0]]`, bar visible, theme `catppuccin`, 34 module `Timer {}` declarations.
+
+### Re-anchored thresholds
+
+Section three's tolerance *percentages* were pre-declared before any result existed and are
+unchanged. Only the absolute values are recomputed, because they are defined relative to a
+start rate and the start rate was re-taken:
+
+| Gate | Anchor (start) | Pre-declared tolerance | Absolute band for the end capture |
+|---|---|---|---|
+| Wake rate | `6.9533`/sec | ±20% | `5.5626` – `8.3440`/sec inclusive |
+| CPU-time rate | `0.001167` cpu-s/s | ±25% | `0.00087525` – `0.00145875` inclusive |
+| RSS magnitude | `477016` KiB | ≤32 MiB total AND ≤5 MiB/hour | ceiling `509784` KiB; rate ≤`5120` KiB/hour |
+| RSS shape | — | final-third growth ≤ 2× first-third growth | ≥5 samples spaced through the window |
+| Process count | 1 process, 1 child | exact equality | `pgrep -c -x quickshell` == 1; child **command** set == {`/usr/bin/swaync-client -swb`} |
+| Hot-zone namespaces | — | exactly 0, no tolerance | 0 `quickshell-bar-hotzone` after the 200-cycle exercise |
+| Window | etimes `2011` s at open | ≥14400 s, `NRestarts` unchanged | earliest valid end capture ≈ **04:32:15 EEST** |
+
 ## Section five — the soak protocol (instructions for the deferred Task 4)
+
+> **Re-anchored 2026-08-12.** Every `737907` below is superseded by **`262631`**, and the
+> two comparison rates by **`6.9533`** wakes/sec and **`0.001167`** cpu-sec/sec — see
+> Section four-bis, which is the live anchor. The child intersection must be taken on
+> **command**, not pid. The original text is left intact so the procedure it describes is
+> still readable end-to-end.
 
 **Minimum window:** 4 hours (14400s) of continuous uptime on pid `737907` with
 `NRestarts` staying at `0`. If the process restarts for any reason before 14400s elapses,
@@ -233,19 +420,25 @@ unmounts, and that choice is only sound if the destroy path actually releases.
 **Resume commands, exact, for a future session once 14400s has genuinely elapsed:**
 
 ```bash
-PID=737907   # must still be the SAME pid; if not, the window is void — restart Section four
+PID=262631   # re-anchored 2026-08-12; must still be the SAME pid, else the window is void
+             # (NRestarts must also still read 0 — check BOTH, a restart can reuse neither)
 ps -o etimes= -p "$PID"                                   # must be >= 14400
 systemctl --user show quickshell.service -p NRestarts     # must still read 0
 
 # End capture — identical command set to Section four, same pid, same order
 ps -o rss=,vsz=,etimes= -p "$PID"
 pgrep -c -x quickshell
-pgrep -P "$PID"; sleep 10; pgrep -P "$PID"                # intersect for long-lived set
+pgrep -P "$PID"; sleep 10; pgrep -P "$PID"                # intersect by COMMAND, not pid:
+  # ps -o cmd= -p <each>  and compare the command SETS. A pid that changed while the
+  # command persisted is a re-spawn to note, NOT a dead subscription. Proven live
+  # 2026-08-12: 262662 -> 424020, same swaync-client -swb. See Section four-bis.
 awk '/^voluntary_ctxt_switches:/{print $2}' /proc/"$PID"/status
 awk '/^nonvoluntary_ctxt_switches:/{print $2}' /proc/"$PID"/status
 awk '{print $14, $15}' /proc/"$PID"/stat
-# ...repeat the 300s observation exactly as Section four did, then diff both rates
-# against 19.3429 wakes/sec (±20%) and 0.002476 cpu-sec/sec (±25%)
+# ...repeat the 300s observation exactly as Section four-bis did, then diff both rates
+# against 6.9533 wakes/sec (band 5.5626-8.3440) and 0.001167 cpu-sec/sec
+# (band 0.00087525-0.00145875) — see "Re-anchored thresholds" in Section four-bis.
+# The 19.3429 / 0.002476 pair belongs to the VOID pre-18.1 window; do not use it.
 systemctl --user show quickshell.service -p NRestarts
 cat /proc/"$PID"/cgroup
 hyprctl layers -j | jq -r '..|.namespace? // empty' | sort | uniq -c

@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 44
+open_count: 43
 waived_count: 0
-fixed_count: 19
-total_count: 63
-last_updated: 2026-08-11T21:48:09.267Z
+fixed_count: 21
+total_count: 64
+last_updated: 2026-08-11T22:08:11.516Z
 ---
 
 # Broken Windows Ledger
@@ -65,8 +65,8 @@ last_updated: 2026-08-11T21:48:09.267Z
 | 48 | 18 | deviation | hypr/.config/hypr/scripts/bar-visibility.sh |  | 18-17 found and fixed live: qs ipc call bar show (no --) silently fails to invoke on quickshell 0.3.0's qs CLI (literal token 'show' collides with the ipc show subcommand); _ipc_call() now uses 'qs ipc call -- bar $verb'. Never live-tested before 18-17 (18-15-SUMMARY recorded the interactive round-trip as not performed). | fixed |  | 2026-08-11T10:09:37.777Z | 2026-08-11T10:10:14.135Z |
 | 49 | 18 | deviation | quickshell/.config/quickshell/modules/bar/BarReveal.qml |  | 18-17 found and fixed live: BarReveal.qml (18-16 Task 3) declares pragma Singleton and roots on the Singleton {} type but never imports Quickshell (the module that type comes from), so any real quickshell.service restart/reload since 18-16 landed failed with 'Singleton is not a type', taking down the whole bar. Fixed with a one-line import; verified clean on both a full systemd restart and a source-touch hot reload. | fixed |  | 2026-08-11T10:10:20.236Z | 2026-08-11T10:10:27.569Z |
 | 50 | 18 | deviation | hypr/.config/hypr/scripts/quickshell-doctor |  | 18-17 Task 2 acceptance criterion 'grep -cE ^\\s*trap  returns 1' is stale against pre-existing file state: quickshell-doctor already carried 3 trap lines (EXIT/INT/TERM, all invoking the single _qsd_cleanup) before this plan touched the file. Task 2 extended _qsd_cleanup's body only, installed no new trap statement — the real invariant (one cleanup function, one flag per mutation class) holds; the literal grep count does not and never could on this file. | open |  | 2026-08-11T10:10:34.633Z |  |
-| 51 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-FRAME-RATE.md |  | LEDGER-03 frame-rate campaign (Task 1 of 18-18) deferred: full methodology and exact resume commands recorded in 18-FRAME-RATE.md, but no condition (C0-C4) was measured this session. Requires stopping quickshell.service to run an unsupervised QSG_RENDER_TIMING instance, and rearranging the live desktop to OVER-04's 8-window/3-workspace load floor (live check: only 4 windows/4 workspaces present). LEDGER-03 stays open; 16-OVER04-MEASUREMENT.md/PROJECT.md/MILESTONES.md not edited. | open |  | 2026-08-11T10:28:14.163Z |  |
-| 52 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak (Task 4 of 18-18) deferred: Task 3's aggregated inventory, pre-declared tolerances, and a real start capture (pid 737907, RSS 450424 KiB, wake rate 19.3429/sec and CPU rate 0.002476 cpu-sec/sec over a genuine 300s observation) are complete in 18-BAR-SOAK.md. Task 4's end capture, 200-cycle hide/reveal exercise, and verdict require at least 14400s of continued single-pid uptime with unchanged NRestarts, which cannot elapse within one session. Exact resume commands recorded in 18-BAR-SOAK.md Section five. QBAR-11 stays open; no verdict asserted. | open |  | 2026-08-11T10:28:19.689Z |  |
+| 51 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-FRAME-RATE.md |  | LEDGER-03 frame-rate campaign (Task 1 of 18-18) deferred: full methodology and exact resume commands recorded in 18-FRAME-RATE.md, but no condition (C0-C4) was measured this session. Requires stopping quickshell.service to run an unsupervised QSG_RENDER_TIMING instance, and rearranging the live desktop to OVER-04's 8-window/3-workspace load floor (live check: only 4 windows/4 workspaces present). LEDGER-03 stays open; 16-OVER04-MEASUREMENT.md/PROJECT.md/MILESTONES.md not edited. | fixed |  | 2026-08-11T10:28:14.163Z | 2026-08-11T22:03:07.085Z |
+| 52 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak (Task 4 of 18-18) deferred: Task 3's aggregated inventory, pre-declared tolerances, and a real start capture (pid 737907, RSS 450424 KiB, wake rate 19.3429/sec and CPU rate 0.002476 cpu-sec/sec over a genuine 300s observation) are complete in 18-BAR-SOAK.md. Task 4's end capture, 200-cycle hide/reveal exercise, and verdict require at least 14400s of continued single-pid uptime with unchanged NRestarts, which cannot elapse within one session. Exact resume commands recorded in 18-BAR-SOAK.md Section five. QBAR-11 stays open; no verdict asserted. | fixed |  | 2026-08-11T10:28:19.689Z | 2026-08-11T22:08:11.418Z |
 | 53 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/Bar.qml |  | 18.1-04 Task 1's live restart check (quickshell.log carries no new TrayCapsule-is-not-a-type or unresolved-type QML error line, and the bar renders every remaining capsule in both orientations with the tray gap gone) was NOT performed this session — deferred to the user per established project preference (skip-live-verification memory; same shape as WINDOWS entries 24/25). The hyprctl monitors -j reserved array was compared before and after the edit without a restart (unchanged: [0,46,0,0]), which does not by itself prove the new qmldir/Bar.qml/BarEntryModel.qml code loads without error. | open |  | 2026-08-11T14:49:54.036Z |  |
 | 54 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml |  | 18.1-05 Task 3 leg 2 (drawer opening into a moving bar) not live-observed — no synthetic pointer-input tool exists on this host (PROJECT.md-recorded finding); the dwell timer re-evaluating drawerHoverActive/drawerSettled at fire time (not only arm time) is asserted from source instead, per the plan's own stated fallback for this leg. Deferred to 18.1-07's GATE-02 hover walkthrough. | open |  | 2026-08-11T15:00:44.002Z |  |
 | 55 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml |  | 18.1-05 Task 3 leg 3 (drawer open when the bar hides) not live-observed — expanding a drawer via real hover, then triggering a bar hide (idle/fullscreen/gaming/keybind) and watching it collapse, needs pointer input this host has no synthetic tool for. Asserted from source instead: onDrawerSettledChanged stops both timers and calls requestCollapse() immediately (no grace) the moment drawerSettled goes false while expanded, and requestExpand() is reachable only from the dwell timer's fire handler which re-gates on drawerSettled, so the drawer cannot mechanically reappear expanded on the next reveal without a fresh hover+dwell cycle. Deferred to 18.1-07's GATE-02 hover walkthrough. | open |  | 2026-08-11T15:00:51.726Z |  |
@@ -78,6 +78,7 @@ last_updated: 2026-08-11T21:48:09.267Z
 | 61 | 18.1 | deviation | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml | 50 | GATE-02 defect 4: app drawer shows jarring generic icons for apps without a good themed icon. appEntries (LauncherCapsule.qml:50-57) IS the correct predetermined 7-app list matching Athena's custom/app-* set; the divergence is in icon resolution — this phase's D-18-01 icon-theme redesign resolves each entry through the desktop-entry/icon-theme database instead of Athena's one-hardcoded-glyph-per-app approach. D-18-01's redesign is the direct cause and needs revisiting. Root cause of the operator's GATE-02 FAIL complaint 4. Not fixed in 18.1-07 (recording-only plan). | fixed |  | 2026-08-11T15:40:50.580Z | 2026-08-11T16:45:25.018Z |
 | 62 | 18.1 | unmet-truth | quickshell/.config/quickshell/modules/bar/BarRoles.qml |  | GATE-02 verification-method gap: no alpha-blended BarRoles role was ever probed for a resolved numeric value across this phase's automated checks — plan 18.1-01's verification asserted typeof BarRoles.accent === object (a non-alpha role) and never exercised a blended one. Plan 18.1-06's D-20 quickshell-doctor colour-routing check only asserts no direct Colours.* reference survives under modules/bar/; it does not assert a routed role RESOLVES to a real colour. This is why a 100%-black bar (see WINDOWS id 58) passed every automated check in the phase, including the check built specifically to guard bar colour correctness. The check is not wrong, it is insufficient — needs a resolved-value assertion on every alpha role, not just a routing/reference check. | fixed |  | 2026-08-11T15:40:50.676Z | 2026-08-11T16:45:25.110Z |
 | 63 | 18 | deviation | quickshell/.config/quickshell/shell.qml |  | 18-18 Task 5, option-b (operator decision 2026-08-12): 18-05 widened three SystemResources backend gates all-or-nothing, so switching on cpu/memory/storage for the bar also switched on the GPU and network samplers no bar entry consumes — SystemCapsule.qml reads only cpuFraction/memoryFraction/storageFraction. Measured cost: 900 nvidia-smi subprocess spawns per hour (gpuPollInterval 4000ms -> 3600/4), per 18-BAR-LIVENESS-CHARGE.md's live measurement. Wake/CPU-time share is NOT isolable from the soak's aggregate observation (that figure includes every backend combined); isolating it would need a differential gate-disabled-vs-enabled run, which means editing shell.qml. Remedy is one line of work: add a second, drawer-only gate expression in shell.qml so the GPU and network samplers follow the drawer while cpu/memory/storage follow the bar. Not done in phase 18 — shell.qml is 18-05's file, frozen for wave 3, and five shipped-and-verified plans (18-15, 18-16, 18-17 among them) depend on its current shape. Routed here from 18-08, measured by 18-18, decided by the operator as debt rather than an in-phase scope correction. Citation: 18-BAR-SOAK.md § 'GPU-and-network-sampler cost'. | open |  | 2026-08-11T21:48:09.267Z |  |
+| 64 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak (18-18 Task 4) — window RE-ANCHORED and now RUNNING as of 2026-08-12 01:00. Supersedes row 52, whose anchor (pid 737907) went void when quickshell restarted during Phase 18.1's bar rebuild. Live anchor is 18-BAR-SOAK.md Section four-bis: pid 262631, unit start 2026-08-12 00:32:15 EEST, NRestarts=0, RSS 477016 KiB, wake rate 6.9533/sec, CPU rate 0.001167 cpu-sec/sec over a real 300s observation, reserved [[0,48,0,0]], quickshell-bar sole namespace. Earliest valid end capture approximately 04:32:15 EEST (unit start + 14400s). STILL TO RUN: the end capture, at least 5 spaced RSS samples through the window, the 200-cycle hide/reveal exercise via bar-visibility.sh's own verbs, and the verdict against the re-anchored threshold table. TWO METHODOLOGY CORRECTIONS carried by the artifact and required of the end capture: (1) intersect the long-lived-child set by COMMAND, not pid — proven live when the swaync-client -swb child re-spawned 262662 -> 424020 mid-session, which a pid intersection would have reported as a dead subscription; (2) the reserved array is [[0,48,0,0]] not [[0,46,0,0]] — Design.barHeight went 40 -> 42 in 18.1 to match upstream Athena, so 18-19's fingerprint and 18-20's parity statement are both stale by 2px and must record the live value with that reason rather than be made to pass. If quickshell restarts before the window elapses, the window voids again and Section four-bis must be re-taken. | open |  | 2026-08-11T22:08:11.516Z |  |
 
 ````json
 [
@@ -688,10 +689,10 @@ last_updated: 2026-08-11T21:48:09.267Z
     "file": ".planning/phases/18-qml-bar-retirement-machinery/18-FRAME-RATE.md",
     "line": null,
     "description": "LEDGER-03 frame-rate campaign (Task 1 of 18-18) deferred: full methodology and exact resume commands recorded in 18-FRAME-RATE.md, but no condition (C0-C4) was measured this session. Requires stopping quickshell.service to run an unsupervised QSG_RENDER_TIMING instance, and rearranging the live desktop to OVER-04's 8-window/3-workspace load floor (live check: only 4 windows/4 workspaces present). LEDGER-03 stays open; 16-OVER04-MEASUREMENT.md/PROJECT.md/MILESTONES.md not edited.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-11T10:28:14.163Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-11T22:03:07.085Z"
   },
   {
     "id": 52,
@@ -700,10 +701,10 @@ last_updated: 2026-08-11T21:48:09.267Z
     "file": ".planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md",
     "line": null,
     "description": "QBAR-11 soak (Task 4 of 18-18) deferred: Task 3's aggregated inventory, pre-declared tolerances, and a real start capture (pid 737907, RSS 450424 KiB, wake rate 19.3429/sec and CPU rate 0.002476 cpu-sec/sec over a genuine 300s observation) are complete in 18-BAR-SOAK.md. Task 4's end capture, 200-cycle hide/reveal exercise, and verdict require at least 14400s of continued single-pid uptime with unchanged NRestarts, which cannot elapse within one session. Exact resume commands recorded in 18-BAR-SOAK.md Section five. QBAR-11 stays open; no verdict asserted.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-11T10:28:19.689Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-11T22:08:11.418Z"
   },
   {
     "id": 53,
@@ -835,6 +836,18 @@ last_updated: 2026-08-11T21:48:09.267Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T21:48:09.267Z",
+    "resolved_at": null
+  },
+  {
+    "id": 64,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": ".planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md",
+    "line": null,
+    "description": "QBAR-11 soak (18-18 Task 4) — window RE-ANCHORED and now RUNNING as of 2026-08-12 01:00. Supersedes row 52, whose anchor (pid 737907) went void when quickshell restarted during Phase 18.1's bar rebuild. Live anchor is 18-BAR-SOAK.md Section four-bis: pid 262631, unit start 2026-08-12 00:32:15 EEST, NRestarts=0, RSS 477016 KiB, wake rate 6.9533/sec, CPU rate 0.001167 cpu-sec/sec over a real 300s observation, reserved [[0,48,0,0]], quickshell-bar sole namespace. Earliest valid end capture approximately 04:32:15 EEST (unit start + 14400s). STILL TO RUN: the end capture, at least 5 spaced RSS samples through the window, the 200-cycle hide/reveal exercise via bar-visibility.sh's own verbs, and the verdict against the re-anchored threshold table. TWO METHODOLOGY CORRECTIONS carried by the artifact and required of the end capture: (1) intersect the long-lived-child set by COMMAND, not pid — proven live when the swaync-client -swb child re-spawned 262662 -> 424020 mid-session, which a pid intersection would have reported as a dead subscription; (2) the reserved array is [[0,48,0,0]] not [[0,46,0,0]] — Design.barHeight went 40 -> 42 in 18.1 to match upstream Athena, so 18-19's fingerprint and 18-20's parity statement are both stale by 2px and must record the live value with that reason rather than be made to pass. If quickshell restarts before the window elapses, the window voids again and Section four-bis must be re-taken.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T22:08:11.516Z",
     "resolved_at": null
   }
 ]

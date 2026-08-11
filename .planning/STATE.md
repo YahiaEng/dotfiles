@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
-current_phase: 19
-current_phase_name: Notification Server & Centre
-status: planning
-stopped_at: Completed 18.1-07-PLAN.md — GATE-02 FAILED, 18-19/18-20 remain blocked
-last_updated: "2026-08-11T21:35:15.579Z"
+current_phase: 18
+current_phase_name: qml-bar-retirement-machinery
+status: executing
+stopped_at: Resumed Phase 18 — GATE-02 PASSED at 18.1 (2026-08-12), 18-18 halt being resolved to unblock 18-19/18-20
+last_updated: "2026-08-11T21:49:19.050Z"
 last_activity: 2026-08-12
 last_activity_desc: Phase 18.1 complete, transitioned to Phase 19
 progress:
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 18.1 — qml-bar-athena-restoration
+**Current focus:** Phase 18 — qml-bar-retirement-machinery
 
 ## Current Position
 
-Phase: 19 — Notification Server & Centre
-Plan: Not started
-Status: Ready to plan
+Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
+Plan: 1 of 20
+Status: Executing Phase 18
 Progress: [█████████░] 93%
-Last activity: 2026-08-12 — Phase 18.1 complete, transitioned to Phase 19
+Last activity: 2026-08-12 — Phase 18 execution started
 
 ## Performance Metrics
 
