@@ -8,6 +8,7 @@
 // This one is NOT empty: 18-01's live clock moves here intact, carried
 // exactly rather than rebuilt — see the SystemClock declaration below.
 import QtQuick
+import Quickshell
 import "../dashboard"
 
 BarCapsule {

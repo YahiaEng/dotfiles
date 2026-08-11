@@ -103,7 +103,10 @@ ShellRoot {
     // parallel.
     MediaBackend {
         id: mediaBackendInstance
-        drawerOpen: dashboardLoader.active
+        // Widened by Phase 18 Plan 05's bar always-on charge — see the
+        // named comment block beside audioTruthNeeded below for the full
+        // reasoning; the same charge applies here.
+        drawerOpen: dashboardLoader.active || barInstance.requiresMedia
     }
 
     WeatherBackend {
@@ -125,10 +128,14 @@ ShellRoot {
     // already do.
     SystemResources {
         id: systemResourcesInstance
-        drawerOpen: dashboardLoader.active
+        // Widened by Phase 18 Plan 05's bar always-on charge — see the
+        // named comment block beside audioTruthNeeded below for the full
+        // reasoning; the same charge applies here.
+        drawerOpen: dashboardLoader.active || barInstance.requiresResources
     }
 
-    // ── QML bar (Phase 18 Plan 01 tracer, QBAR-01) ───────────────────────
+    // ── QML bar (Phase 18 Plan 01 tracer, QBAR-01; wired up in full by
+    //    Plan 05, QBAR-02) ────────────────────────────────────────────────
     // Mounted unconditionally, a direct ShellRoot child and sibling of the
     // backend instances above — deliberately the FIRST surface in this
     // file NOT behind a LazyLoader, NOT behind a GlobalShortcut, and NOT
@@ -137,8 +144,27 @@ ShellRoot {
     // named inversion of that shape (Bar.qml's own header comment repeats
     // the same reasoning). The bar's visibility control arrives in 18-15
     // as a `bar` IPC handler, not as a loader toggle.
+    //
+    // The five backend handles are bound in once here — the same
+    // mount-backends-at-the-root-once shape this file's own comment above
+    // (MediaBackend/WeatherBackend/SystemResources) already established —
+    // so wave 3 (18-08..18-11) inherits live backend access without any
+    // of them touching this file. onPanelRequested routes through the
+    // single guarded summon path (openPanel(), reused verbatim, never
+    // reimplemented); onDashboardRequested mirrors the dashboard's own
+    // existing summon shape (set the tab index, then activate the loader).
     Bar {
         id: barInstance
+        audioBackend: audioBackendInstance
+        mediaBackend: mediaBackendInstance
+        systemResources: systemResourcesInstance
+        wifiBackend: wifiBackendInstance
+        bluetoothBackend: bluetoothBackendInstance
+        onPanelRequested: (name) => root.openPanel(name)
+        onDashboardRequested: (tabIndex) => {
+            root.dashboardTabIndex = tabIndex;
+            dashboardLoader.active = true;
+        }
     }
 
     // ── Audio panel (Phase 15 Plan 02 tracer, PANEL-02/PANEL-06) ─────────
@@ -172,7 +198,24 @@ ShellRoot {
     // discovery whenever the drawer is open, which D-15-15/D-15-18 forbid.
     // This does not edit AudioBackend.qml itself — 15-02/15-04 own that
     // file outright; it only changes which loaders feed its own gate.
-    readonly property bool audioTruthNeeded: dashboardLoader.active || audioPanelLoader.active
+    // ── Phase 18 Plan 05 — the bar's permanent always-on charge ──────────
+    // This is where the shell's backend gates first widen to
+    // permanently-live: the always-on bar now keeps audio, media and
+    // system-resources truth live for the whole session, not merely while
+    // a summoned surface is open. The widening condition is derived from
+    // the one entry list (BarEntryModel.requiresAudio/requiresMedia/
+    // requiresResources, re-exported through barInstance) rather than
+    // hand-set per backend, so the charge is enumerable and re-narrowable
+    // from a single place. 18-BAR-IDLE-BASELINE.md is the pre-widening
+    // reading and 18-18's soak diffs against it, so this is a named
+    // charge against QBAR-11, not an unexplained creep.
+    //
+    // WifiBackend and BluetoothBackend are deliberately left untouched:
+    // their gates start scanning and discovery, which D-15-15/D-15-18
+    // forbid running always-on (see this file's own comment block above,
+    // beside audioTruthNeeded's original declaration) — the bar reads
+    // only those two backends' ungated connection-state bindings.
+    readonly property bool audioTruthNeeded: dashboardLoader.active || audioPanelLoader.active || barInstance.requiresAudio
 
     AudioBackend {
         id: audioBackendInstance
