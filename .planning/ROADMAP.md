@@ -192,12 +192,12 @@ Cross-cutting constraints:
 **Requirements**: GATE-02 (blocks), QBAR-01..12 (visual regression against the shipped bar)
 **Depends on:** Phase 18
 **Blocks:** Phase 18 plans 18-19 (GATE-02) and 18-20 (waybar package retirement)
-**Plans:** 7 plans
+**Plans:** 1/7 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 18.1-01-PLAN.md — TRACER: `BarRoles` colour role layer + `qmldir` registration, proven end-to-end on the filled focused-workspace pill; then Athena's state-glyph slot identity and the seven empty glyph literals
+- [x] 18.1-01-PLAN.md — TRACER: `BarRoles` colour role layer + `qmldir` registration, proven end-to-end on the filled focused-workspace pill; then Athena's state-glyph slot identity and the seven empty glyph literals
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

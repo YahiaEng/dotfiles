@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
-current_phase: 18
+current_phase: 18.1
 current_phase_name: qml-bar-athena-restoration
 status: executing
-stopped_at: "GATE-02 FAILED — operator judged the Phase 18 QML bar worse than the Athena waybar it replaces. Phase 18.1 (INSERTED) restores Athena's visual language and must complete before 18-19 (GATE-02) and 18-20 (waybar retirement). Design: docs/superpowers/specs/2026-08-11-qml-bar-athena-restoration-design.md (ca54fb1). Separately, 18-18 remains HALTED — LEDGER-03 frame-rate is now MEASURED and closed, but QBAR-11's soak needs a fresh uninterrupted 4h window (its earlier window was voided when the shell restarted for the frame-rate campaign). Next: /gsd-plan-phase 18.1"
-last_updated: "2026-08-11T13:11:19.310Z"
+stopped_at: Completed 18.1-01-PLAN.md
+last_updated: "2026-08-11T14:02:15.757Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 27
-  completed_plans: 18
+  completed_plans: 19
   percent: 0
 ---
 
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 17 of 20
+Phase: 18.1 (qml-bar-athena-restoration) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
-Progress: [█████████░] 85%
-Last activity: 2026-08-11 — Phase 18 execution started
+Progress: [███████░░░] 70%
+Last activity: 2026-08-11 — Phase 18.1 execution started
 
 ## Performance Metrics
 
@@ -208,6 +208,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P14 | ~55min | 3 tasks | 13 files |
 | Phase 18 P16 | ~1h | 3 tasks | 7 files |
 | Phase 18 P17 | ~1h50m | 3 tasks | 23 files |
+| Phase 18.1 P01 | ~12min (this session, Tasks 2-3) | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -438,6 +439,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-16 Task 2: held-Super reveal bind drafted, verified against keybind-doctor, and REVERTED (chord-collision finding vs the shipped SUPER+SUPER_L tap-to-menu bind at keybinds.lua:86) — QBAR-08 ships hover-only this plan; Super-hold is blocked, handed to the developer with full evidence in BarReveal.qml's header
 - [Phase ?]: 18-17: quickshell-doctor GATE-03/QBAR-12 closed — bar-reserved-zone-stability (delta-based, keyed by monitor name), opt-in --with-compositor-reload half (blur survived, screenshot-verified), and the bar-surface registry (3 rows, BarDrawer.qml confirmed absent) closed in both directions; namespace discipline corrected to per-surface levels. Two real production bugs found live and fixed: BarReveal.qml missing import Quickshell, and bar-visibility.sh's qs ipc call bar show missing a -- separator (silently broke the un-hide path on quickshell 0.3.0's qs CLI).
 - [Phase ?]: 18-18: deferred both live-intervention campaigns (frame-rate stop/restart+desktop rearrangement; 4-hour soak wait+200-cycle exercise) per standing run-time policy against disruptive live intervention; Task 3's inventory/tolerances/start-capture done for real with live data. Plan marked status:halted, not complete — LEDGER-03 and QBAR-11 stay open.
+- [Phase ?]: 18.1-01: Athena's fourth workspace state (empty, U+F444) deliberately NOT implemented — D-08 only named active/default/urgent; recorded as a named delta routed to GATE-02, a windowless-but-existing workspace renders stateGlyphDefault
+- [Phase ?]: 18.1-01: accepted cost of D-08's state-glyph identity — the numeral's one-to-one visual mapping onto Super+N keybinds is gone
+- [Phase ?]: 18.1-01: zen's glyph is U+F269 (fa-firefox), carried verbatim from Athena's own config-athena.jsonc — not a transcription error, no dedicated Zen glyph exists in the font
 
 ### Quick Tasks Completed
 
@@ -568,9 +572,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T10:30:36.836Z
-Stopped at: 18-18 HALTED — frame-rate campaign and soak end-capture deferred, resume commands recorded in 18-FRAME-RATE.md and 18-BAR-SOAK.md
-Resume file: 18-18-PLAN.md (resume Tasks 1,2,4,5)
+Last session: 2026-08-11T14:02:15.739Z
+Stopped at: Completed 18.1-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

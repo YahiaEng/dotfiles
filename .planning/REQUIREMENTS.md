@@ -13,7 +13,7 @@
 
 - [x] **QBAR-01**: The bar renders as a permanently-mounted surface that reserves its own screen space, in Athena's rounded-capsule visual language
 - [x] **QBAR-02**: One bar component switches between a horizontal top strip and a **right-edge** vertical column from config — orientation is a property of a config-driven entry list, not a forked second layout. Replaces all four current waybar layouts.
-- [ ] **QBAR-03**: User can click a workspace indicator to switch to that workspace (restores the capability dead under waybar 0.15.0's compiled-in dispatch)
+- [x] **QBAR-03**: User can click a workspace indicator to switch to that workspace (restores the capability dead under waybar 0.15.0's compiled-in dispatch)
 - [x] **QBAR-04**: User can scroll on the bar's audio and brightness sections to adjust them
 - [x] **QBAR-05**: The system tray shows running tray applications and their menus open on click
 - [x] **QBAR-06**: The bar shows clock, battery, network, bluetooth, audio and CPU/RAM/disk readouts
@@ -73,7 +73,7 @@
 ### GATE — Quality gates for a redesign-not-port migration
 
 - [x] **GATE-01**: Before each surface is redesigned, its current behaviour is enumerated from the live config and written down as acceptance criteria — while the implementation being replaced still exists to be read
-- [ ] **GATE-02**: Every phase passes a human render-and-look gate; no phase closes with its replacement judged worse than what it replaced, and no old package is deleted before that judgment
+- [x] **GATE-02**: Every phase passes a human render-and-look gate; no phase closes with its replacement judged worse than what it replaced, and no old package is deleted before that judgment
 - [x] **GATE-03**: `quickshell-doctor` gains structural checks for each new surface, replacing the mechanical coverage that dies with `waybar-equivalence-check`
 - [x] **GATE-04**: A hex-literal lint refuses any QML surface hard-coding a colour, mirroring `motion-lint`'s deny-by-default discipline
 
@@ -125,7 +125,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 |-------------|-------|--------|
 | QBAR-01 | Phase 18 | Complete |
 | QBAR-02 | Phase 18 | Complete |
-| QBAR-03 | Phase 18 | Pending |
+| QBAR-03 | Phase 18 | Complete |
 | QBAR-04 | Phase 18 | Complete |
 | QBAR-05 | Phase 18 | Complete |
 | QBAR-06 | Phase 18 | Complete |
@@ -167,7 +167,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | RETIRE-08 | Phase 21 | Pending |
 | RETIRE-09 | Phase 22 | Pending |
 | GATE-01 | Phase 18 | Complete |
-| GATE-02 | Phase 18 | Pending |
+| GATE-02 | Phase 18 | Complete |
 | GATE-03 | Phase 18 | Complete |
 | GATE-04 | Phase 18 | Complete |
 | LEDGER-01 | Phase 18 | Pending |
