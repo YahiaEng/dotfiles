@@ -82,37 +82,72 @@ BarCapsule {
     //     than two, and the two are in different fonts besides (a
     //     fallback that silently depends on font substitution renders a
     //     blank box on a host missing that font).
-    // (b) [Phase 18.1 Plan 01 — D-07 correction] the source table's state
-    //     icon set (active/default/urgent/empty under "format-icons") was
-    //     not carried when this file was first built — this comment
-    //     originally promised "state is carried by colour instead" while
-    //     the actual code applied only a foreground TINT to the numeral
-    //     (WorkspaceCapsule.qml's pre-18.1 line 349), never the filled
-    //     pill Athena itself renders (`#workspaces button.active { background:
-    //     @accent; }`, style-athena.scss:167-171). That gap between this
-    //     comment's promise and the code's behaviour is the documented
-    //     origin of Phase 18.1. It is now fixed: the focused slot below
-    //     renders a real background fill (`BarRoles.accent`/
+    // (b) [Phase 18.1 Plan 01 — D-07/D-08 correction] the source table's
+    //     state icon set (active/default/urgent/empty under
+    //     "format-icons") was not carried when this file was first built —
+    //     this comment originally promised "state is carried by colour
+    //     instead" while the actual code applied only a foreground TINT to
+    //     the numeral (WorkspaceCapsule.qml's pre-18.1 line 349), never
+    //     the filled pill Athena itself renders (`#workspaces
+    //     button.active { background: @accent; }`,
+    //     style-athena.scss:167-171). That gap between this comment's
+    //     promise and the code's behaviour is the documented origin of
+    //     Phase 18.1. It is now fixed on two fronts: Task 1 gave the
+    //     focused slot a real background fill (`BarRoles.accent`/
     //     `BarRoles.onAccent`, via `slotFillColour`/`slotTextColour`), the
     //     urgent-and-unfocused branch stays a foreground tint
     //     (`BarRoles.danger`) matching Athena's own CSS
     //     (`style-athena.scss:175-177`), and the default branch reads
-    //     `BarRoles.capsuleFg`. Colour now genuinely IS the whole state
-    //     carrier described here.
+    //     `BarRoles.capsuleFg`. Task 2 restored the actual glyph identity:
+    //     the plain numeral is gone, replaced by one of Athena's three
+    //     Nerd Font state glyphs (`stateGlyphActive`/`stateGlyphDefault`/
+    //     `stateGlyphUrgent`, `format-icons` active/default/urgent) chosen
+    //     by `stateGlyphFor(focused, urgent)` with focused taking
+    //     precedence over urgent — the same precedence `slotTextColour`
+    //     already used. Colour and glyph now both genuinely carry state,
+    //     as this comment always claimed. Accepted cost, named by D-08:
+    //     the numeral's one-to-one visual mapping onto the Super+N
+    //     keybinds is gone — a slot no longer shows which digit activates
+    //     it. Athena's fourth state, `empty` (U+F444,
+    //     style-athena.scss:180-182, opacity 0.6, for a workspace that
+    //     exists but holds zero windows), is NOT implemented here — a
+    //     named delta routed to GATE-02, not a silent omission; such a
+    //     slot renders `stateGlyphDefault` instead.
     readonly property var appGlyphMap: [
         { appId: "kitty", glyph: "󰆍" },
-        { appId: "firefox", glyph: "" },
-        { appId: "zen", glyph: "" },
+        { appId: "firefox", glyph: "" },
+        { appId: "zen", glyph: "" },
         { appId: "codium", glyph: "󰨞" },
         { appId: "VSCodium", glyph: "󰨞" },
-        { appId: "discord", glyph: "" },
-        { appId: "spotify", glyph: "" },
+        { appId: "discord", glyph: "" },
+        { appId: "spotify", glyph: "" },
         { appId: "obsidian", glyph: "󰹕" },
-        { appId: "net.lutris.Lutris", glyph: "" },
-        { appId: "steam", glyph: "" },
-        { appId: "thunar", glyph: "" },
+        { appId: "net.lutris.Lutris", glyph: "" },
+        { appId: "steam", glyph: "" },
+        { appId: "thunar", glyph: "" },
         { appId: "yazi", glyph: "󰇥" }
     ]
+
+    // ── Athena's three-state workspace-slot glyph identity (D-08) ───────
+    // Nerd Font codepoints carried verbatim from config-athena.jsonc's own
+    // `format-icons` table (active/default/urgent) — the same table
+    // `appGlyphMap` above already draws its per-app glyphs' font family
+    // from (`appGlyphFontFamily`). Athena's fourth state, `empty`
+    // (U+F444, style-athena.scss:180-182), is a named delta NOT
+    // implemented here — see the (b) note above.
+    readonly property string stateGlyphActive: "󰮯"   // format-icons.active
+    readonly property string stateGlyphDefault: "󰊠"  // format-icons.default
+    readonly property string stateGlyphUrgent: "󰧵"   // format-icons.urgent
+
+    // Precedence matches slotTextColour's own: focused wins over urgent,
+    // urgent wins over default. Pure function, no side effects.
+    function stateGlyphFor(focused, urgent) {
+        if (focused)
+            return workspaceCapsule.stateGlyphActive;
+        if (urgent)
+            return workspaceCapsule.stateGlyphUrgent;
+        return workspaceCapsule.stateGlyphDefault;
+    }
 
     // Reads a toplevel's app id off its wayland handle, null-guarding
     // both the toplevel and the handle — the same shape 16-25's
@@ -277,13 +312,17 @@ BarCapsule {
         return ids;
     }
 
-    // Hidden metrics text reserving the numeral's width at a two-digit
-    // string (UI-SPEC's reserve-worst-case-width rule) — a 1-to-2-digit
-    // workspace id change can never shift a slot's geometry.
+    // Hidden metrics text reserving the slot identity glyph's extent
+    // (UI-SPEC's reserve-worst-case-width rule) — the numeral this
+    // reserved is gone (D-08), so this now measures the widest of
+    // Athena's three state glyphs (stateGlyphActive) in the same Nerd
+    // Font family the slot delegate renders it in, so no state change can
+    // ever shift a slot's geometry.
     Text {
-        id: numeralMetrics
+        id: slotIdentityMetrics
         visible: false
-        text: "00"
+        text: workspaceCapsule.stateGlyphActive
+        font.family: workspaceCapsule.appGlyphFontFamily
         font.pixelSize: Design.fontLabel
         font.weight: Design.weightBody
     }
@@ -310,6 +349,11 @@ BarCapsule {
             // default.
             readonly property color slotTextColour: slotItem.slotFocused ? BarRoles.onAccent : (slotItem.slotUrgent ? BarRoles.danger : BarRoles.capsuleFg)
 
+            // D-08: the slot's Nerd Font state-glyph identity, replacing
+            // the plain numeral — same focused-over-urgent precedence as
+            // slotTextColour above.
+            readonly property string slotStateGlyph: workspaceCapsule.stateGlyphFor(slotItem.slotFocused, slotItem.slotUrgent)
+
             // The slot's own extent, stated explicitly from the tokens
             // rather than left implicit — the numeral's reserved
             // two-digit width/height, one inter-child gap, and
@@ -320,7 +364,7 @@ BarCapsule {
             // rendered inside — the icon-cell Repeater's model below is
             // the CONSTANT iconsPerSlot, never the window count, so this
             // expression's value cannot change as windows open and close.
-            readonly property int numeralMainAxisExtent: workspaceCapsule.vertical ? numeralMetrics.height : numeralMetrics.width
+            readonly property int numeralMainAxisExtent: workspaceCapsule.vertical ? slotIdentityMetrics.height : slotIdentityMetrics.width
             readonly property int cellsMainAxisExtent: Design.iconSizeMd * workspaceCapsule.iconsPerSlot + Design.spacingXs * (workspaceCapsule.iconsPerSlot - 1)
             readonly property int slotMainAxisExtent: slotItem.numeralMainAxisExtent + Design.spacingXs + slotItem.cellsMainAxisExtent
 
@@ -374,9 +418,12 @@ BarCapsule {
                 spacing: Design.spacingXs
 
                 Text {
-                    width: numeralMetrics.width
+                    width: slotIdentityMetrics.width
                     horizontalAlignment: Text.AlignHCenter
-                    text: String(slotItem.slotId)
+                    // D-08: the numeral is gone — this now renders one of
+                    // Athena's three Nerd Font state glyphs.
+                    text: slotItem.slotStateGlyph
+                    font.family: workspaceCapsule.appGlyphFontFamily
                     font.pixelSize: Design.fontLabel
                     font.weight: Design.weightBody
                     // D-07: focused/urgent/default resolved through
