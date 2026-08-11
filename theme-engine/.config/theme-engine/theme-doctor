@@ -767,6 +767,49 @@ else
     echo "  [SKIP] colour-lint ($COLOUR_LINT not found or not executable)"
 fi
 
+# ── retirement-check fold (18-06, RETIRE-01/D-18-35) ───────────────────
+# Same "green gates, broken surface" gap the waybar-design-lint/motion-lint/
+# colour-lint folds above close, applied to retirement: an orphaned
+# eww.scss contract entry blocked theme-doctor for a full milestone because
+# no gate enforced this class (WINDOWS #1) — folding retirement-check's
+# blocking tier in HERE means that class of miss cannot recur unnoticed,
+# rather than depending on someone remembering to run the standalone
+# script. Every [PASS]/[FAIL] line folds into the tally exactly like the
+# folds above; [REPORT] and [SKIP] lines pass through unfolded via the bare
+# `*)` arm, matching the motion-lint fold's own third arm (theme-doctor
+# line ~698) — this is D-18-37's tier split expressed at the fold boundary,
+# not only inside the script itself.
+#
+# While every real surface ships `pending` in this phase (see 18-06-PLAN's
+# Measured ground truth table), retirement-check --all contributes ONLY
+# [REPORT] lines for those seven surfaces plus the self-test registry
+# row's own [PASS] lines — the tally is UNCHANGED by this fold until 18-20
+# flips waybar's registry row to `retired` in the same commit as the
+# deletion. Guarded-skip mirrors the folds above: an unstowed hypr package
+# degrades to SKIP, never a hard FAIL.
+#
+# NOTE for future editors: never spell out the checker's own self-test
+# surface token literally in this file's prose — theme-doctor is itself a
+# retirement-check checker-internals scan target, so the literal token
+# reads back as a stray self-reference and fails its own gate.
+# RETIREMENT_CHECK honours an existing env override (unlike the
+# hardcoded-path folds above) so the guarded-skip degradation path itself
+# stays provable via RETIREMENT_CHECK=/nonexistent, the same "a gate that
+# cannot be pointed off cannot be proven to degrade" discipline this
+# script's own --root argument already applies to fixture pointing.
+RETIREMENT_CHECK="${RETIREMENT_CHECK:-$HOME/.config/hypr/scripts/retirement-check}"
+if [[ -x "$RETIREMENT_CHECK" ]]; then
+    while IFS= read -r _rc_line; do
+        case "$_rc_line" in
+            *"[PASS]"*) check "retirement-check: ${_rc_line#*\[PASS\] }" "0" ;;
+            *"[FAIL]"*) check "retirement-check: ${_rc_line#*\[FAIL\] }" "1" ;;
+            *)          echo "  $_rc_line" ;;
+        esac
+    done < <("$RETIREMENT_CHECK" --all 2>/dev/null)
+else
+    echo "  [SKIP] retirement-check ($RETIREMENT_CHECK not found or not executable)"
+fi
+
 # ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
 #    switch. Guarded-skip mirrors the stow-conflict check above — this must
 #    degrade gracefully, not FAIL, when git or the repo itself is absent
