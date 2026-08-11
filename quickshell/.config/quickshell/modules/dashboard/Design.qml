@@ -165,4 +165,17 @@ Singleton {
     //    six icons measure 212 and render unbounded; seven measure 248 and
     //    are the first count to scroll.
     readonly property int trayMaxExtent: 240
+
+    // ── barScrollStepPercent (Phase 18 Plan 12) — provenance: three
+    //    independent sources on this host already agree on 5, so this
+    //    token inherits one step vocabulary rather than inventing a
+    //    fourth: config-floating.jsonc's pulseaudio module ("scroll-step":
+    //    5), its backlight module's own `light -A 5`/`light -U 5` delta,
+    //    and this host's hardware media keys via `swayosd-client
+    //    --output-volume raise/lower`/`--brightness raise/lower`, whose
+    //    own default step is 5. A percentage-point count, not a spacing
+    //    value — the repo's 4px-grid discipline does not apply to it.
+    //    Appended alone, per 18-05's standing rule that each plan appends
+    //    only the tokens it actually reads.
+    readonly property int barScrollStepPercent: 5
 }
