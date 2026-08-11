@@ -240,8 +240,6 @@ PanelWindow {
             return mediaConnectivityComponent;
         if (capsuleId === "clockActions")
             return clockActionsComponent;
-        if (capsuleId === "tray")
-            return trayComponent;
         return null;
     }
 
@@ -299,17 +297,6 @@ PanelWindow {
             bluetoothBackend: barWindow.bluetoothBackend
         }
     }
-    Component {
-        id: trayComponent
-        TrayCapsule {
-            audioBackend: barWindow.audioBackend
-            mediaBackend: barWindow.mediaBackend
-            systemResources: barWindow.systemResources
-            wifiBackend: barWindow.wifiBackend
-            bluetoothBackend: barWindow.bluetoothBackend
-        }
-    }
-
     Item {
         id: barContent
         anchors.fill: parent

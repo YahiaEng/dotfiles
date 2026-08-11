@@ -157,13 +157,6 @@ Singleton {
                 { id: "settings", backends: [], textBearing: false },
                 { id: "power", backends: [], textBearing: false }
             ]
-        },
-        {
-            id: "tray",
-            zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
-            entries: [
-                { id: "tray", backends: [], textBearing: false }
-            ]
         }
     ]
 
