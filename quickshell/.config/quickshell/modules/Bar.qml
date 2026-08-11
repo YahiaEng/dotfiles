@@ -243,7 +243,8 @@ PanelWindow {
         return null;
     }
 
-    // Binding all five backend handles to all six capsule types is
+    // Binding all five backend handles to all five capsule types (six
+    // before phase 18.1 plan 04 removed TrayCapsule under D-15) is
     // deliberate redundancy: it is what lets a wave-3 plan discover a
     // backend need inside its own file instead of editing this one and
     // serialising the wave.
