@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-05-PLAN.md
-last_updated: "2026-08-11T00:16:14.316Z"
+stopped_at: Completed 18-06-PLAN.md
+last_updated: "2026-08-11T00:37:44.181Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 6 of 20
+Plan: 7 of 20
 Status: Ready to execute
-Progress: [███░░░░░░░] 25%
+Progress: [███░░░░░░░] 30%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -197,6 +197,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P03 | ~25min | 3 tasks | 8 files |
 | Phase 18 P04 | ~15min | 3 tasks | 4 files |
 | Phase 18 P05 | ~35min | 3 tasks | 12 files |
+| Phase 18 P06 | ~50min | 3 tasks | 54 files |
 
 ## Accumulated Context
 
@@ -402,6 +403,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-05: exclusiveZone must be the surface's own content extent alone (Design.barHeight/barColumnWidth), never plus barEdgeMargin — this plan's own Task 3 action text reintroduced 18-01's already-fixed double-margin bug verbatim; found live (co-existing [[0,98,0,0]] instead of [[0,92,0,0]]) and re-corrected
 - [Phase ?]: 18-05: PanelWindow's root anchors.{top,left,right,bottom} are plain bool, not AnchorLine — the undefined-clears-an-anchor idiom does not apply to them (live-verified via a reload warning); use a direct boolean ternary instead
 - [Phase ?]: 18-05: BarEntryModel.qml needs import Quickshell.Io (FileView) and ClockActionsCapsule.qml needs import Quickshell (SystemClock) — both omitted from the plan's own stated import lists, found via live quickshell reload errors
+- [Phase ?]: 18-06: retirement-check's own committed fixtures excluded from real-repo scans (motion-lint/colour-lint precedent) — poisoned fixtures carry the literal test token and would otherwise permanently arm retirement-fixture's blocking tier red
+- [Phase ?]: 18-06: layer-window-rules/autostart classes filter to actual hl.layer_rule/hl.window_rule/hl.exec_cmd dispatcher lines, not any line mentioning the token — whole-line grep over-counted 2x against measured ground truth
+- [Phase ?]: 18-06: baseline document capture uses a fixed-point run/embed/re-run/confirm cycle since the committed doc's own footprint inflates its own planning-archive count
 
 ### Quick Tasks Completed
 
@@ -529,8 +533,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T00:16:14.280Z
-Stopped at: Completed 18-05-PLAN.md
+Last session: 2026-08-11T00:37:44.154Z
+Stopped at: Completed 18-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

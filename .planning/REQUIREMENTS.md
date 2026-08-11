@@ -60,7 +60,7 @@
 
 ### RETIRE — Retirement mechanics
 
-- [ ] **RETIRE-01**: A retirement checklist **script** exists covering every reference class (window/layer rules, autostart, keybinds, `contract.json`, matugen templates, doctor registries and fixtures, systemd `--user` units, D-Bus activation files, XDG autostart, `install.sh`/`stow.sh` lists) and is run before *and* after each deletion
+- [x] **RETIRE-01**: A retirement checklist **script** exists covering every reference class (window/layer rules, autostart, keybinds, `contract.json`, matugen templates, doctor registries and fixtures, systemd `--user` units, D-Bus activation files, XDG autostart, `install.sh`/`stow.sh` lists) and is run before *and* after each deletion
 - [ ] **RETIRE-02**: `waybar` is removed — package, config, contract entries, matugen template, `waybar-equivalence-check` and `waybar-design-lint` — in the phase that proves its replacement
 - [ ] **RETIRE-03**: `swaync` is removed the same way, in the same phase as QNOTIF
 - [ ] **RETIRE-04**: `swayosd` is removed the same way, including its libinput backend service
@@ -157,7 +157,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QMEDIA-01 | Phase 21 | Pending |
 | QMEDIA-02 | Phase 21 | Pending |
 | QMEDIA-03 | Phase 21 | Pending |
-| RETIRE-01 | Phase 18 | Pending |
+| RETIRE-01 | Phase 18 | Complete |
 | RETIRE-02 | Phase 18 | Pending |
 | RETIRE-03 | Phase 19 | Pending |
 | RETIRE-04 | Phase 20 | Pending |
