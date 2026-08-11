@@ -6,10 +6,11 @@
 // copying Overview.qml's validate-before-interpolate discipline.
 // Entries BarEntryModel already declares for this capsule: `workspaces`.
 //
-// ── Task 1 (tracer): one slot, one live glyph, one click that actually
-//    switches — the whole path end to end, wired once, before the full
-//    slot set is built on top of it. Task 2 replaces the single hardcoded
-//    slot below with the full fixed-extent slot set.
+// Task 1 (tracer) proved the whole path — live model, glyph resolution,
+// dispatch — on one hardcoded slot. Task 2 below generalises that proof
+// into the full fixed-extent slot set: every persistent slot plus any
+// workspace beyond the persistent range, each with iconsPerSlot reserved
+// cells and +N overflow.
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
@@ -203,57 +204,220 @@ BarCapsule {
         return true;
     }
 
-    // ── Task 1's single proof slot (workspace 1 only) ───────────────────
-    // Everything above this line is reused unchanged by Task 2's full
-    // slot set; only the rendering below is Task 1-specific and gets
-    // replaced wholesale.
-    Item {
-        id: tracerSlot
+    // ── The full slot set ────────────────────────────────────────────────
+    // The ascending union of 1..persistentSlotCount and every existing
+    // workspace id above that range, excluding non-positive ids (Hyprland's
+    // special workspaces, including the scratchpad — Super+S and the
+    // overview own that tile; it is deliberately not a bar slot).
+    //
+    // Three decisions compressed into this one property, each recorded so
+    // none of them reads as an oversight:
+    //
+    // 1. Five, not six: the canonical modules.jsonc definition shared by
+    //    two of the retired layouts AND the athena layout both use 5 —
+    //    three of four retired layouts agree on 5, only config-floating
+    //    uses 6. That one-slot difference is a NAMED delta routed to
+    //    18-19's GATE-02 criterion B; the remedy is a one-integer change
+    //    to persistentSlotCount above.
+    // 2. Why the dynamic tail exists at all: a workspace beyond the
+    //    persistent range that actually exists would otherwise be
+    //    invisible on the bar, and since the keybinds bind ten
+    //    workspaces the user can be standing on one the bar does not
+    //    show. The retired module behaved the same way (persistent slots
+    //    plus whatever exists) — this is parity, not an addition.
+    // 3. Why the dynamic tail does not violate D-18-12: that guarantee is
+    //    scoped, in its own words, to nothing moving AS WINDOWS OPEN AND
+    //    CLOSE. Window churn cannot change this set at all — only
+    //    creating or destroying a workspace beyond the persistent range
+    //    can, which is a rare, deliberate, user-initiated event, not the
+    //    per-second churn the decision was written against.
+    //
+    // Ordering note: slot order is ascending integer id, matching the
+    // retired bar's own sort-by-number behaviour, built by inserting each
+    // dynamic id at its comparison-found position rather than by a
+    // general sort/reverse pass — the persistent range is already
+    // ascending by construction, so this is one comparison per dynamic
+    // id, not a sorting algorithm over the whole set.
+    readonly property var slotIds: {
+        var ids = [];
+        for (var p = 1; p <= workspaceCapsule.persistentSlotCount; p++)
+            ids.push(p);
 
-        readonly property var slotWorkspace: workspaceCapsule.workspaceForId(1)
-        readonly property var slotWindows: workspaceCapsule.windowsFor(tracerSlot.slotWorkspace)
-        readonly property bool slotFocused: !!(Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.id === 1)
-        readonly property var firstGlyph: workspaceCapsule.glyphFor(workspaceCapsule.appIdFor(tracerSlot.slotWindows.length > 0 ? tracerSlot.slotWindows[0] : null))
-
-        implicitWidth: numeralMetrics.width + Design.spacingXs + Design.iconSizeMd
-        implicitHeight: Design.iconSizeMd
-
-        Text {
-            id: numeralMetrics
-            visible: false
-            text: "00"
-            font.pixelSize: Design.fontLabel
-            font.weight: Design.weightBody
+        var list = Hyprland.workspaces.values;
+        for (var i = 0; i < list.length; i++) {
+            var id = list[i].id;
+            if (id <= workspaceCapsule.persistentSlotCount)
+                continue;
+            if (ids.indexOf(id) !== -1)
+                continue;
+            var insertAt = ids.length;
+            for (var j = workspaceCapsule.persistentSlotCount; j < ids.length; j++) {
+                if (ids[j] > id) {
+                    insertAt = j;
+                    break;
+                }
+            }
+            ids.splice(insertAt, 0, id);
         }
+        return ids;
+    }
 
-        Row {
-            anchors.fill: parent
-            spacing: Design.spacingXs
+    // Hidden metrics text reserving the numeral's width at a two-digit
+    // string (UI-SPEC's reserve-worst-case-width rule) — a 1-to-2-digit
+    // workspace id change can never shift a slot's geometry.
+    Text {
+        id: numeralMetrics
+        visible: false
+        text: "00"
+        font.pixelSize: Design.fontLabel
+        font.weight: Design.weightBody
+    }
 
-            Text {
-                width: numeralMetrics.width
-                horizontalAlignment: Text.AlignHCenter
-                text: "1"
-                font.pixelSize: Design.fontLabel
-                font.weight: Design.weightBody
-                color: tracerSlot.slotFocused ? Colours.primary : workspaceCapsule.contentColour
+    Repeater {
+        model: workspaceCapsule.slotIds
+
+        delegate: Item {
+            id: slotItem
+            required property int modelData
+            readonly property int slotId: slotItem.modelData
+            readonly property var slotWorkspace: workspaceCapsule.workspaceForId(slotItem.slotId)
+            readonly property var slotWindows: workspaceCapsule.windowsFor(slotItem.slotWorkspace)
+            readonly property bool slotFocused: !!(Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.id === slotItem.slotId)
+            readonly property bool slotUrgent: !!(slotItem.slotWorkspace && slotItem.slotWorkspace.urgent) && !slotItem.slotFocused
+
+            // The slot's own extent, stated explicitly from the tokens
+            // rather than left implicit — the numeral's reserved
+            // two-digit width/height, one inter-child gap, and
+            // iconsPerSlot reserved cells each Design.iconSizeMd square
+            // with their own inter-cell gaps. Stating it here is what
+            // makes D-18-12's fixed-extent guarantee readable at the
+            // file rather than emergent from whatever happens to be
+            // rendered inside — the icon-cell Repeater's model below is
+            // the CONSTANT iconsPerSlot, never the window count, so this
+            // expression's value cannot change as windows open and close.
+            readonly property int numeralMainAxisExtent: workspaceCapsule.vertical ? numeralMetrics.height : numeralMetrics.width
+            readonly property int cellsMainAxisExtent: Design.iconSizeMd * workspaceCapsule.iconsPerSlot + Design.spacingXs * (workspaceCapsule.iconsPerSlot - 1)
+            readonly property int slotMainAxisExtent: slotItem.numeralMainAxisExtent + Design.spacingXs + slotItem.cellsMainAxisExtent
+
+            // Cross-axis is a single Design.iconSizeMd (24px) — this is
+            // what fits both the 24px horizontal content budget and the
+            // 28px vertical column budget the shared chrome leaves
+            // (BarCapsule's own implicitWidth/implicitHeight expressions),
+            // with room to spare in vertical. No text-truncation property
+            // is set anywhere in this file: every string rendered here is
+            // bounded by construction — a one-glyph icon, a two-digit
+            // numeral, a three-character overflow label — so the
+            // codebase's precedent for handling unbounded window names
+            // has nothing to apply to here.
+            implicitWidth: workspaceCapsule.vertical ? Design.iconSizeMd : slotItem.slotMainAxisExtent
+            implicitHeight: workspaceCapsule.vertical ? slotItem.slotMainAxisExtent : Design.iconSizeMd
+            width: slotItem.implicitWidth
+            height: slotItem.implicitHeight
+
+            // One bound positioner, never a Row/Column sibling pair — the
+            // same discipline the bar root and the shared chrome's own
+            // content Grid already use. columns:1 in vertical puts every
+            // child (numeral, then each icon cell) on its own row/line;
+            // rows:1 in horizontal puts them all in one row. The SAME
+            // iconsPerSlot capacity governs both — no second,
+            // per-orientation capacity exists anywhere in this file.
+            Grid {
+                anchors.fill: parent
+                rows: workspaceCapsule.vertical ? -1 : 1
+                columns: workspaceCapsule.vertical ? 1 : -1
+                spacing: Design.spacingXs
+
+                Text {
+                    width: numeralMetrics.width
+                    horizontalAlignment: Text.AlignHCenter
+                    text: String(slotItem.slotId)
+                    font.pixelSize: Design.fontLabel
+                    font.weight: Design.weightBody
+                    // The workspace override on UI-SPEC's Active row:
+                    // focused reads Colours.primary, urgent-and-unfocused
+                    // reads Colours.error (carrying the state the athena
+                    // table expressed with a separate urgent glyph), and
+                    // the default falls through to the chrome's own
+                    // content colour.
+                    color: slotItem.slotFocused ? Colours.primary : (slotItem.slotUrgent ? Colours.error : workspaceCapsule.contentColour)
+                }
+
+                // The icon-cell Repeater's model is the CONSTANT
+                // iconsPerSlot, never slotWindows or its length — this is
+                // the whole of D-18-12's mechanism. Because the cell
+                // count cannot vary, the slot's extent (above) cannot
+                // vary, so no window event can move anything. A
+                // cell-count-follows-content Repeater would look
+                // identical at rest and fail the requirement the moment
+                // a window opened.
+                Repeater {
+                    model: workspaceCapsule.iconsPerSlot
+
+                    delegate: Item {
+                        id: cellItem
+                        required property int index
+                        width: Design.iconSizeMd
+                        height: Design.iconSizeMd
+
+                        // The overflow label displaces the LAST cell's
+                        // glyph rather than occupying an extra cell, so
+                        // the visible-glyph count is capacity minus 1
+                        // whenever the label shows, and the label's own
+                        // count is windows-minus-(capacity-1) — never
+                        // windows-minus-capacity.
+                        readonly property bool isLastCell: cellItem.index === workspaceCapsule.iconsPerSlot - 1
+                        readonly property bool showOverflow: cellItem.isLastCell && slotItem.slotWindows.length > workspaceCapsule.iconsPerSlot
+                        readonly property var cellWindow: cellItem.showOverflow ? null : (cellItem.index < slotItem.slotWindows.length ? slotItem.slotWindows[cellItem.index] : null)
+                        readonly property var cellGlyph: workspaceCapsule.glyphFor(workspaceCapsule.appIdFor(cellItem.cellWindow))
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: !cellItem.showOverflow && cellItem.cellWindow !== null
+                            text: cellItem.cellGlyph.text
+                            font.family: cellItem.cellGlyph.family
+                            font.pixelSize: Design.iconSizeMd
+                            color: workspaceCapsule.contentColour
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: cellItem.showOverflow
+                            // Clamped at two digits so the label can
+                            // never outgrow its cell — protecting the
+                            // fixed extent, not because the count is
+                            // expected to get large.
+                            text: "+" + Math.min(99, slotItem.slotWindows.length - (workspaceCapsule.iconsPerSlot - 1))
+                            font.pixelSize: Design.fontLabel
+                            color: workspaceCapsule.contentColour
+                        }
+                    }
+                }
             }
 
-            Text {
-                width: Design.iconSizeMd
-                height: Design.iconSizeMd
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                visible: tracerSlot.slotWindows.length > 0
-                text: tracerSlot.firstGlyph.text
-                font.family: tracerSlot.firstGlyph.family
-                font.pixelSize: Design.iconSizeMd
-                color: workspaceCapsule.contentColour
+            // Non-hover-consuming click target — TapHandler uses a
+            // passive grab and does not intercept hover, so the shared
+            // chrome's own HoverHandler (on BarCapsule's root) keeps
+            // working for 18-13's popout dwell mechanics. No
+            // pressed-state visual: this repo keys visual state off the
+            // resulting state change (the workspace becoming active),
+            // never off pointer-down.
+            TapHandler {
+                onTapped: workspaceCapsule.activateWorkspace(slotItem.slotId)
             }
-        }
-
-        TapHandler {
-            onTapped: workspaceCapsule.activateWorkspace(1)
         }
     }
+
+    // ── States handled by degradation, not by invented chrome ───────────
+    // A slot with no windows renders its numeral and no glyphs, full
+    // extent kept (the icon-cell Repeater's model is always the constant).
+    // A slot whose workspace object does not exist (never-opened
+    // persistent slot) behaves identically and stays clickable through
+    // activateWorkspace()'s dispatch fallback. A window whose app id
+    // resolves to nothing renders the fallback ligature via glyphFor().
+    // Hyprland IPC being unavailable is NOT handled here at all — that is
+    // shell-fatal, not a per-capsule state (UI-SPEC E2 error), and this
+    // capsule's natural degradation is its static numbered slots, which
+    // is strictly more useful than an error tint the user cannot act on.
+    // No skeleton/loading state either: both live models are populated at
+    // first paint, and a skeleton would flash on every shell start.
 }
