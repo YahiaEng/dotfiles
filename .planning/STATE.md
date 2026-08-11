@@ -5,10 +5,10 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Resumed Phase 18 — GATE-02 PASSED at 18.1 (2026-08-12), 18-18 halt being resolved to unblock 18-19/18-20
-last_updated: "2026-08-11T21:49:19.050Z"
+stopped_at: "18-19 at its blocking human gate — GATE-02 sheet assembled, 14 rows await live observation; B.4-DRAWER already FAIL. 18-20 held pending the QBAR-11 soak (ends ~05:09 EEST)."
+last_updated: "2026-08-11T22:30:00.000Z"
 last_activity: 2026-08-12
-last_activity_desc: Phase 18.1 complete, transitioned to Phase 19
+last_activity_desc: 18-18 completed, 18-19 assembled to its human gate, soak window re-anchored
 progress:
   total_phases: 6
   completed_phases: 1
