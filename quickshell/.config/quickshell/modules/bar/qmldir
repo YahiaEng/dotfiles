@@ -36,3 +36,17 @@ WorkspaceCapsule 1.0 WorkspaceCapsule.qml
 MediaConnectivityCapsule 1.0 MediaConnectivityCapsule.qml
 ClockActionsCapsule 1.0 ClockActionsCapsule.qml
 TrayCapsule 1.0 TrayCapsule.qml
+
+# SectionPopout / PopoutController / PopoutTrigger / AudioPopout (Phase 18
+# Plan 13, QBAR-09) added in WAVE 5, after the wave-3 freeze above had
+# already served its purpose. PopoutController carries the singleton
+# keyword — this manifest's SECOND singleton after BarEntryModel — and
+# needs pragma Singleton in its own source file as well as the keyword
+# here (the 12-06 both-required finding, same shape as
+# BarEntryModel/BrightnessBackend above). SectionPopout, PopoutTrigger and
+# AudioPopout are ordinary instance types, each instantiated explicitly by
+# name rather than held as an ambient singleton.
+SectionPopout 1.0 SectionPopout.qml
+singleton PopoutController 1.0 PopoutController.qml
+PopoutTrigger 1.0 PopoutTrigger.qml
+AudioPopout 1.0 AudioPopout.qml

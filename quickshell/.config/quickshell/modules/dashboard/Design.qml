@@ -178,4 +178,21 @@ Singleton {
     //    Appended alone, per 18-05's standing rule that each plan appends
     //    only the tokens it actually reads.
     readonly property int barScrollStepPercent: 5
+
+    // ── Popout tokens (Phase 18 Plan 13, QBAR-09) — provenance:
+    //    18-UI-SPEC.md "## Section Popout Frame" + "## Popout Hover
+    //    Mechanics". Appended alone, per this phase's standing rule that
+    //    each plan appends only the tokens it actually reads.
+    //
+    //    popoutDwellMs/popoutDismissGraceMs gate WHETHER an animation
+    //    starts (D-18-20/D-18-21) — they are not an animation's own
+    //    duration or easing, so they live here rather than on the Motion
+    //    singleton, and Phase 12's semantic-motion-layer growth policy
+    //    stays shut.
+    readonly property int popoutDwellMs: 400
+    readonly property int popoutDismissGraceMs: 200
+    readonly property int popoutHeaderHeight: 48
+    readonly property int popoutCornerRadius: 20
+    readonly property int popoutMinWidth: 300
+    readonly property int popoutMaxWidth: 360
 }

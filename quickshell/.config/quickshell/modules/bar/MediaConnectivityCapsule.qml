@@ -157,58 +157,75 @@ BarCapsule {
     readonly property real audioVolume: root.audioBackend ? root.audioBackend.masterVolume : 0
     readonly property bool audioReady: root.audioBackend ? root.audioBackend.pipewireReady : false
 
-    Readout {
-        id: audioReadout
-        glyph: root.audioMuted ? "volume_off" : "volume_up"
-        maxValueText: "100%"
-        populated: root.audioReady
-        valueText: root.audioReady ? Math.round(Math.max(0, Math.min(1, root.audioVolume)) * 100) + "%" : ""
+    // ── Popout wrapper (Phase 18 Plan 13, QBAR-09) — named seam into this
+    //    18-08-owned file. Ownership split, stated so it is never
+    //    discovered at merge time: 18-08 owns the Readout's glyph, values
+    //    and precedence; 18-12 owns the WheelHandler inside it; this plan
+    //    owns only the PopoutTrigger wrapper around both, and adds no
+    //    other identifier to this file. Nothing else changes: not the
+    //    other four entries, not the entry order, not the wheel gesture.
+    PopoutTrigger {
+        id: audioPopoutTrigger
+        sectionId: "audio"
+        popoutComponent: Component {
+            AudioPopout {
+                audioBackend: root.audioBackend
+            }
+        }
 
-        // ── Scroll-to-adjust (18-12, QBAR-04, the tracer). One notch is
-        //    one step, on every pointing device: angleDelta.y accumulates
-        //    into a signed running total and one step is emitted per whole
-        //    120 units (one notch on a classic wheel), the remainder
-        //    carried forward — this is what keeps a high-resolution wheel
-        //    or a touchpad proportional rather than firing a full step per
-        //    micro-event. The accumulator is signed, so an immediate
-        //    direction reversal cancels rather than queueing.
-        //    `target: null` and no `property:` are both deliberate: this
-        //    handler transforms nothing and mutates no target property —
-        //    every effect comes from onWheel below. A handler left at its
-        //    defaults with a target property named would silently scale or
-        //    rotate this entry, a visible defect no source gate would
-        //    catch.
-        WheelHandler {
-            id: audioWheelHandler
-            target: null
+        Readout {
+            id: audioReadout
+            glyph: root.audioMuted ? "volume_off" : "volume_up"
+            maxValueText: "100%"
+            populated: root.audioReady
+            valueText: root.audioReady ? Math.round(Math.max(0, Math.min(1, root.audioVolume)) * 100) + "%" : ""
 
-            property real pendingAngle: 0
+            // ── Scroll-to-adjust (18-12, QBAR-04, the tracer). One notch is
+            //    one step, on every pointing device: angleDelta.y accumulates
+            //    into a signed running total and one step is emitted per whole
+            //    120 units (one notch on a classic wheel), the remainder
+            //    carried forward — this is what keeps a high-resolution wheel
+            //    or a touchpad proportional rather than firing a full step per
+            //    micro-event. The accumulator is signed, so an immediate
+            //    direction reversal cancels rather than queueing.
+            //    `target: null` and no `property:` are both deliberate: this
+            //    handler transforms nothing and mutates no target property —
+            //    every effect comes from onWheel below. A handler left at its
+            //    defaults with a target property named would silently scale or
+            //    rotate this entry, a visible defect no source gate would
+            //    catch.
+            WheelHandler {
+                id: audioWheelHandler
+                target: null
 
-            onWheel: (event) => {
-                if (!root.audioBackend || !root.audioReady)
-                    return;
-                audioWheelHandler.pendingAngle += event.angleDelta.y;
-                const notchUnits = 120;
-                while (Math.abs(audioWheelHandler.pendingAngle) >= notchUnits) {
-                    const direction = audioWheelHandler.pendingAngle > 0 ? 1 : -1;
-                    audioWheelHandler.pendingAngle -= direction * notchUnits;
-                    // Read the backend's own masterVolume fresh on every
-                    // step rather than accumulating a local running value —
-                    // the same D-22 discipline AudioBackend's writers exist
-                    // to enforce, and what keeps repeated stepping
-                    // non-drifting.
-                    const stepFraction = Design.barScrollStepPercent / 100;
-                    let nextVolume = root.audioBackend.masterVolume + direction * stepFraction;
-                    // Clamp to zero-to-unity at the call site: the shipped
-                    // setMasterVolume() null-guards and does nothing else —
-                    // there is no range clamp anywhere in it or its
-                    // callers' path — and PipeWire treats a value above
-                    // unity as amplification. This control is always
-                    // visible and always scrollable, so the bound is the
-                    // caller's, and it must travel with this call if it is
-                    // ever moved.
-                    nextVolume = Math.max(0, Math.min(1, nextVolume));
-                    root.audioBackend.setMasterVolume(nextVolume);
+                property real pendingAngle: 0
+
+                onWheel: (event) => {
+                    if (!root.audioBackend || !root.audioReady)
+                        return;
+                    audioWheelHandler.pendingAngle += event.angleDelta.y;
+                    const notchUnits = 120;
+                    while (Math.abs(audioWheelHandler.pendingAngle) >= notchUnits) {
+                        const direction = audioWheelHandler.pendingAngle > 0 ? 1 : -1;
+                        audioWheelHandler.pendingAngle -= direction * notchUnits;
+                        // Read the backend's own masterVolume fresh on every
+                        // step rather than accumulating a local running value —
+                        // the same D-22 discipline AudioBackend's writers exist
+                        // to enforce, and what keeps repeated stepping
+                        // non-drifting.
+                        const stepFraction = Design.barScrollStepPercent / 100;
+                        let nextVolume = root.audioBackend.masterVolume + direction * stepFraction;
+                        // Clamp to zero-to-unity at the call site: the shipped
+                        // setMasterVolume() null-guards and does nothing else —
+                        // there is no range clamp anywhere in it or its
+                        // callers' path — and PipeWire treats a value above
+                        // unity as amplification. This control is always
+                        // visible and always scrollable, so the bound is the
+                        // caller's, and it must travel with this call if it is
+                        // ever moved.
+                        nextVolume = Math.max(0, Math.min(1, nextVolume));
+                        root.audioBackend.setMasterVolume(nextVolume);
+                    }
                 }
             }
         }
