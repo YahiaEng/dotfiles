@@ -214,6 +214,55 @@ BarCapsule {
         }
     }
 
+    // ── brightness (18-12, QBAR-04, D-18-39) ────────────────────────────
+    // Present-but-inert, gated on hardware presence: visible only when
+    // BrightnessBackend.present reports a real device, contributing zero
+    // extent and zero spacing otherwise — D-18-06's battery precedent
+    // applied a second time, exactly as D-18-39 asks. On this host it
+    // renders nothing (`/sys/class/backlight/` is empty). No greyed glyph,
+    // no zero, no placeholder: absence here is honest, never a control
+    // that looks live but cannot act.
+    Readout {
+        id: brightnessReadout
+        visible: BrightnessBackend.present
+        glyph: "brightness_medium"
+        maxValueText: "100%"
+        populated: true
+        errored: BrightnessBackend.failed
+        valueText: BrightnessBackend.percent + "%"
+
+        // A second, separate scroll target from audio — the
+        // Design.spacingSm gap the shared chrome inserts between entries
+        // belongs to neither, so a gesture landing in the gap adjusts
+        // nothing. Same shape as the audio handler above: no target, no
+        // target property, angleDelta accumulated into whole notches. This
+        // one does not read or clamp a percent itself — brightnessctl's
+        // own delta forms own the bounds, which is the whole reason
+        // BrightnessBackend.adjust() takes a signed notch count rather
+        // than a computed absolute.
+        WheelHandler {
+            id: brightnessWheelHandler
+            target: null
+
+            property real pendingAngle: 0
+
+            onWheel: (event) => {
+                if (!BrightnessBackend.present)
+                    return;
+                brightnessWheelHandler.pendingAngle += event.angleDelta.y;
+                const notchUnits = 120;
+                let notchCount = 0;
+                while (Math.abs(brightnessWheelHandler.pendingAngle) >= notchUnits) {
+                    const direction = brightnessWheelHandler.pendingAngle > 0 ? 1 : -1;
+                    brightnessWheelHandler.pendingAngle -= direction * notchUnits;
+                    notchCount += direction;
+                }
+                if (notchCount !== 0)
+                    BrightnessBackend.adjust(notchCount);
+            }
+        }
+    }
+
     // ── network ──────────────────────────────────────────────────────────
     // Glyph only, no value text, ever. Precedence: hardware radio blocked;
     // radio off; device unresolved-or-on-but-disconnected (the same glyph

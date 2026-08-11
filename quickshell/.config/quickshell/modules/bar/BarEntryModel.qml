@@ -131,6 +131,16 @@ Singleton {
             entries: [
                 { id: "media", backends: ["media"], textBearing: true },
                 { id: "audio", backends: ["audio"], textBearing: true },
+                // brightness (Phase 18 Plan 12, QBAR-04, D-18-39) sits
+                // immediately after audio because they are the bar's only
+                // two scroll-adjustable entries — adjacency makes them one
+                // contiguous scroll zone. It has no shell-mounted backend
+                // (it reads BrightnessBackend, a bar-local singleton) so it
+                // carries no name in `backends` here, and it renders
+                // nothing when no device is present exactly as `battery`
+                // does below — one entry list, one shape, no conditional
+                // arrangement.
+                { id: "brightness", backends: [], textBearing: true },
                 { id: "network", backends: [], textBearing: false },
                 { id: "bluetooth", backends: [], textBearing: false },
                 { id: "battery", backends: ["power"], textBearing: true }

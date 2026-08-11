@@ -19,8 +19,16 @@
 # `BarCapsule` (the shared chrome) plus the six pre-declared slots — are
 # each an ordinary instance, not a singleton, so their lifetime stays
 # explicit rather than ambient; `Bar.qml` instantiates each exactly once.
+#
+# `BrightnessBackend` (Phase 18 Plan 12, QBAR-04, D-18-39) added in wave 4.
+# This manifest's freeze (below) was scoped to WAVE 3 (18-08/09/10/11) by
+# its own text — 18-05's own success criteria already name later plans'
+# types (SectionPopout for 18-13, HotZone for 18-16) as in-bounds additions
+# to this same manifest, so this registration is in bounds, not a
+# violation. Same both-required singleton form as BarEntryModel above.
 module qs.modules.bar
 singleton BarEntryModel 1.0 BarEntryModel.qml
+singleton BrightnessBackend 1.0 BrightnessBackend.qml
 BarCapsule 1.0 BarCapsule.qml
 LauncherCapsule 1.0 LauncherCapsule.qml
 SystemCapsule 1.0 SystemCapsule.qml
