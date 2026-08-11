@@ -78,7 +78,20 @@ BarCapsule {
     // Left at the barCellGap (18) readout default, this capsule's glyphs sat at
     // a different pitch from the action glyphs a few pixels away, which is the
     // other half of the operator's "right side pills are spaced wrong".
-    contentGap: Design.spacingSm
+    //
+    // spacingSm (8) was tried and measured (Phase 18.1 spacing-probe task):
+    // this capsule's Readout component carries NO internal padding around its
+    // glyph (unlike ClockActionsCapsule's ActionCell, whose cellPitch bakes in
+    // spacingXs (4) on each side), so a contentGap of 8 here rendered an 8px
+    // glyph-to-glyph gap while ClockActionsCapsule's SAME contentGap of 8
+    // rendered a 16px glyph-to-glyph gap (8 + 4 + 4, ActionCell's own padding
+    // on both sides of the gap) — measured directly via mapToItem, not
+    // estimated: media-to-audio and audio-to-network both sat at 8px while
+    // gaming-to-bell and bell-to-settings both sat at 16px. spacingMd (16)
+    // closes that gap: with zero internal padding to add, this capsule's
+    // contentGap alone must equal the OTHER capsule's already-16px effective
+    // pitch, not merely match its raw contentGap number.
+    contentGap: Design.spacingMd
 
     // ── The one reusable readout element — same visual language as
     //    SystemCapsule.qml's own Readout: glyph + Design.spacingXs gap +

@@ -144,12 +144,63 @@ BarCapsule {
             }
         }
 
+        // Phantom right-side padding — measured necessity, not decoration.
+        // The pill above is now flush with both edges of its own cell (see
+        // clockTriggerGrid's own comment), so this cell carries ZERO
+        // built-in padding, unlike every ActionCell (gamingCell immediately
+        // after this trigger included), which reserves spacingXs (4px) on
+        // each side inside its cellPitch box. Two glyphs that are BOTH
+        // zero-padded (every MediaConnectivityCapsule Readout pair) need
+        // only contentGap to reach the shared 16px visible pitch; two that
+        // are BOTH 4px-padded (every ActionCell pair) also reach it at the
+        // SAME contentGap because their two 4px insets sum to the other
+        // capsule's whole difference. This pill-to-ActionCell pair is the
+        // one boundary with only ONE side padded, so it undershot the
+        // shared pitch by exactly that missing 4px (measured: 12px visible
+        // where every other adjacent pair measured 16px). A non-rendering
+        // spacer the width of that one missing inset closes it — reserving
+        // cell width with no drawn content, exactly like BarCapsule's own
+        // `visible` contract excludes an empty entry's spacing with no
+        // extra code, this does the inverse: adds spacing with no visible
+        // content.
+        Item {
+            id: clockCellRightPad
+            // Plain Item, no delegate of its own — draws nothing regardless
+            // of `visible`, so that property is left at its default (true)
+            // rather than set false: childrenRect (what sizes this cell) is
+            // a geometry aggregate, not a positioner, and this repo has no
+            // verified guarantee it excludes invisible children the way a
+            // Positioner does — leaving visible untouched removes any doubt
+            // this spacer's width reaches childrenRect at all.
+            x: clockFillPill.x + clockFillPill.width
+            width: Design.spacingXs
+            height: 1
+        }
+
         // Reproduces contentGrid's own spacing/orientation formula exactly
         // (Design.spacingSm), so wrapping these two Text elements in one
         // trigger cell leaves the rendered gap between them, and between
         // this cell and the next, byte-identical to before.
         Grid {
             id: clockTriggerGrid
+            // Phase 18.1 spacing-probe task, measured via mapToItem: this
+            // Grid sits flush at contentHost's own (0,0) origin by default,
+            // but clockFillPill above is centred ON this Grid at a width
+            // spacingLg (24) WIDER than it — so with this Grid flush-left,
+            // the pill bled spacingLg/2 (12px) out the LEFT edge of its own
+            // allocated cell (measured: pill x=2302.6875 against a cell/
+            // capsule left edge of 2314.6875) while leaving 12px of dead
+            // space unused on the right (measured: pill right edge 2380.0
+            // against the cell's own right edge of 2392.0). The left bleed
+            // ate directly into the fixed 16px barCapsuleGap before this
+            // capsule (leaving only a 4px visible gap to the network glyph);
+            // the right dead space widened the gap to the gaming glyph to
+            // 20px. This offset re-centres the Grid inside the cell the
+            // pill's own width already reserves, so the pill renders flush
+            // with both cell edges instead of overflowing one and starving
+            // the other — the padding VALUE (spacingLg) is unchanged, only
+            // where it is centred from.
+            x: Design.spacingLg / 2
             rows: clockActionsCapsule.vertical ? -1 : 1
             columns: clockActionsCapsule.vertical ? 1 : -1
             spacing: Design.spacingXs
