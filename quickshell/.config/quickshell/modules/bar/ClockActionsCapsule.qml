@@ -168,6 +168,12 @@ BarCapsule {
         property bool available: true
         property bool badgeVisible: false
         property string badgeText: ""
+        // Optional filled background (D-13, only bellCell opts in below).
+        // Defaults leave every other ActionCell instance unaffected —
+        // Athena has exactly three filled hues and this must not become
+        // a fourth.
+        property bool fillActive
+        property color fillColour: "transparent"
         signal clicked()
         signal rightClicked()
 
@@ -176,6 +182,25 @@ BarCapsule {
         // to this opacity, hover target left live so a tooltip can state
         // the reason. Never removed, never blank, never a dead hit area.
         readonly property real disabledOpacity: 0.38
+
+        // Declared FIRST so it renders behind the glyph below. No
+        // MouseArea/HoverHandler of its own — cellMouseArea (below) is
+        // the cell's one hit target, unaffected by this addition.
+        Rectangle {
+            id: cellFillPill
+            anchors.fill: parent
+            radius: height / 2
+            visible: cellItem.fillActive
+            color: cellItem.fillColour
+            Behavior on color {
+                enabled: Motion.motionEnabled
+                ColorAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
+        }
 
         Text {
             id: glyphText
@@ -462,7 +487,22 @@ BarCapsule {
         }
         label: "Notifications"
         filled: notificationSource.unreadCount > 0
-        tint: notificationSource.available ? clockActionsCapsule.contentColour : Colours.error
+        // D-13/QBAR-06: the fill, the badge and the FILL variable axis
+        // (via `filled` above) all derive from the ONE
+        // notificationSource.unreadCount input — no second source of
+        // "there are notifications". Three-branch tint: on-fill colour
+        // when unread, danger when the source is unavailable (D-24's
+        // migration of this branch, landed here rather than migrated
+        // twice in Task 3), neutral content colour otherwise.
+        fillActive: notificationSource.unreadCount > 0
+        fillColour: BarRoles.fillNotification
+        tint: {
+            if (notificationSource.unreadCount > 0)
+                return BarRoles.fillNotificationFg;
+            if (!notificationSource.available)
+                return BarRoles.danger;
+            return clockActionsCapsule.contentColour;
+        }
         badgeVisible: notificationSource.unreadCount > 0
         badgeText: notificationSource.unreadCount > 9 ? "9+" : String(notificationSource.unreadCount)
         onClicked: notificationSource.openCentre()
