@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-08-PLAN.md
-last_updated: "2026-08-11T01:12:18.556Z"
+stopped_at: Completed 18-09-PLAN.md
+last_updated: "2026-08-11T01:24:07.054Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 9 of 20
+Plan: 10 of 20
 Status: Ready to execute
-Progress: [████░░░░░░] 40%
+Progress: [█████░░░░░] 45%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -200,6 +200,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P06 | ~50min | 3 tasks | 54 files |
 | Phase 18 P07 | ~35min | 3 tasks | 5 files |
 | Phase 18 P08 | ~50min | 5 tasks | 5 files |
+| Phase 18 P09 | ~20min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -412,6 +413,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-08: MediaBackend position-refresh Timer added conservatively (not proven live whether a plain positionChanged binding would have sufficed) — flagged for a future live check
 - [Phase ?]: 18-08: Bluetooth's five behavior states render across three glyphs (bluetooth_disabled/bluetooth/bluetooth_connected), matching BluetoothPanel.qml's own established no-adapter/blocked/off collapse convention
 - [Phase ?]: 18-08: [Rule 1] Corrected wrong arithmetic inherited from plan prose — a 1,800,000ms (30-minute) interval is 2 runs/hour, not 4 as the plan text claimed; interval value itself was always correct
+- [Phase ?]: 18-09: WorkspaceCapsule.qml filled — 12-entry glyph map, fixed-extent slots (constant iconsPerSlot), object-first click dispatch with range-checked fallback; live hyprctl proof + human click-through gate NOT run this session (skip-live-verification preference), logged as unrun-verify
 
 ### Quick Tasks Completed
 
@@ -539,8 +541,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T01:12:18.538Z
-Stopped at: Completed 18-08-PLAN.md
+Last session: 2026-08-11T01:24:07.037Z
+Stopped at: Completed 18-09-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
