@@ -88,6 +88,27 @@ BarCapsule {
     // reader under time pressure does not reach for the wrong lever.
     readonly property int iconsPerSlot: 3
 
+    // ── Width floor (GATE-02 round 4, operator item 1: "too compressed,
+    //    make it match athena's width") ──────────────────────────────────
+    // Upstream's `tokens/workspace.css` gives every workspace button a
+    // hard `min-width: 32px` floor — a slot never renders smaller than
+    // this even when its content (a bare focused pacman, or a one-digit
+    // numeral) would naturally measure less. The 17f729a fix that made
+    // `cellsMainAxisExtent` above track OCCUPIED cells instead of
+    // reserving all `iconsPerSlot` fixed the centring bug it targeted,
+    // but left a slot free to shrink to whatever its content needed —
+    // this floor is the missing piece. Applied to `slotMainAxisExtent`
+    // below (this file's existing orientation-agnostic "main axis"
+    // convention — width in horizontal, height in vertical — the same
+    // one every other *MainAxisExtent property here already uses), not
+    // hardcoded as a separate horizontal-only path: a slot only ever
+    // GROWS beyond 32 when its own content needs more room, matching
+    // upstream's own "floor, not fixed size" behaviour. Verified against
+    // the live Athena bar by screenshotting both capsules in one frame
+    // and measuring pixel widths directly (see the plan's SUMMARY/commit
+    // message), not by arithmetic alone.
+    readonly property int slotMinMainAxisExtent: 32
+
     // The Nerd Font family that renders the per-app glyphs below — a
     // hand-carried parity value in the same sense Design.qml's own
     // borderWidth is: the theme engine's live font-name state is only
@@ -133,21 +154,36 @@ BarCapsule {
     //     urgent-and-unfocused branch stays a foreground tint
     //     (`BarRoles.danger`) matching Athena's own CSS
     //     (`style-athena.scss:175-177`), and the default branch reads
-    //     `BarRoles.capsuleFg`. Task 2 restored the actual glyph identity:
-    //     the plain numeral is gone, replaced by one of Athena's three
-    //     Nerd Font state glyphs (`stateGlyphActive`/`stateGlyphDefault`/
-    //     `stateGlyphUrgent`, `format-icons` active/default/urgent) chosen
-    //     by `stateGlyphFor(focused, urgent)` with focused taking
+    //     `BarRoles.capsuleFg`. Task 2 restored a glyph identity for the
+    //     focused/urgent states: `stateGlyphActive`/`stateGlyphUrgent`
+    //     (`format-icons` active/urgent) chosen with focused taking
     //     precedence over urgent — the same precedence `slotTextColour`
-    //     already used. Colour and glyph now both genuinely carry state,
-    //     as this comment always claimed. Accepted cost, named by D-08:
-    //     the numeral's one-to-one visual mapping onto the Super+N
-    //     keybinds is gone — a slot no longer shows which digit activates
-    //     it. Athena's fourth state, `empty` (U+F444,
-    //     style-athena.scss:180-182, opacity 0.6, for a workspace that
-    //     exists but holds zero windows), is NOT implemented here — a
-    //     named delta routed to GATE-02, not a silent omission; such a
-    //     slot renders `stateGlyphDefault` instead.
+    //     already used. D-08 (Task 2, first pass) went further and also
+    //     dropped the numeral for the DEFAULT (non-focused, non-urgent)
+    //     branch, replacing it with a fourth glyph (`stateGlyphDefault`,
+    //     the ghost). That was never actually correct — see (c) below.
+    // (c) [Phase 18.1 GATE-02 round 4 — this fix] D-08's "numeral is gone"
+    //     was written from the retired bar's own architecture, never
+    //     checked against a live Athena instance. Live observation of the
+    //     operator's own config-athena.jsonc waybar (method: repeated
+    //     `hyprctl dispatch hl.dsp.focus({workspace=N})` state changes,
+    //     `grim` screenshots compared frame-by-frame, confirmed against
+    //     Alexays/Waybar v0.15.0's own `Workspace::selectIcon()` source
+    //     and cross-checked with `waybar --log-level trace`) shows the
+    //     ghost (`stateGlyphDefault`, format-icons.default) NEVER
+    //     actually renders for a live, non-focused, non-urgent slot —
+    //     every such slot renders its own NUMBER instead, whether
+    //     occupied or empty. D-08's "accepted cost" (losing the
+    //     Super+N-to-digit mapping) was therefore never a real trade-off;
+    //     it was a bug. The numeral is restored below for the default
+    //     branch — see the state-glyph table where `stateGlyphActive`/
+    //     `stateGlyphUrgent` are declared. Athena's fourth state, `empty`
+    //     (format-icons.empty, U+F444, a small dot), IS real and was
+    //     directly observed (a persistent-floor slot with no live backing
+    //     workspace renders it) — but its exact trigger did not survive a
+    //     waybar restart during verification (see that table's own note)
+    //     and is NOT reproduced here; a named delta, not a silent
+    //     omission.
     readonly property var appGlyphMap: [
         { appId: "kitty", glyph: "󰆍" },
         { appId: "firefox", glyph: "" },
@@ -163,25 +199,76 @@ BarCapsule {
         { appId: "yazi", glyph: "󰇥" }
     ]
 
-    // ── Athena's three-state workspace-slot glyph identity (D-08) ───────
-    // Nerd Font codepoints carried verbatim from config-athena.jsonc's own
-    // `format-icons` table (active/default/urgent) — the same table
-    // `appGlyphMap` above already draws its per-app glyphs' font family
-    // from (`appGlyphFontFamily`). Athena's fourth state, `empty`
-    // (U+F444, style-athena.scss:180-182), is a named delta NOT
-    // implemented here — see the (b) note above.
+    // ── Athena's workspace-slot identity rule — DERIVED FROM LIVE
+    //    OBSERVATION, Phase 18.1 GATE-02 round 4, 2026-08-11 ────────────
+    // Do not re-derive this from config-athena.jsonc's `format-icons`
+    // table alone (active/default/urgent/empty) — that table describes
+    // waybar's INPUT states, not what actually renders, and reading it
+    // naively is exactly how the pre-round-4 code got this wrong (every
+    // non-focused slot rendered `format-icons.default`, the ghost). The
+    // rule below was built by driving the operator's own live
+    // config-athena.jsonc waybar through real state changes (`hyprctl
+    // dispatch hl.dsp.focus({workspace=N})`, opening/closing a real
+    // `kitty` window) and diffing `grim` screenshots frame-by-frame,
+    // THEN cross-checked by reading Alexays/Waybar v0.15.0's own
+    // `Workspace::selectIcon()` (confirmed byte-identical to the
+    // installed binary via `strings $(which waybar)`) and by running
+    // `waybar --log-level trace` against a freshly-restarted instance:
+    //
+    // | Precedence | Condition (this slot)          | Rendered identity          |
+    // |-----------:|---------------------------------|-----------------------------|
+    // | 1          | focused                         | stateGlyphActive (pacman)   |
+    // | 2          | urgent, not focused              | stateGlyphUrgent            |
+    // | 3          | anything else (occupied OR empty)| its own workspace NUMBER    |
+    //
+    // Window glyphs (from `glyphFor()`/`appGlyphMap`) append after the
+    // identity in every row, exactly as upstream's `"{icon} {windows}"`
+    // format does — precedence above governs ONLY the `{icon}` half.
+    //
+    // `format-icons.default` (the ghost, U+F02A0) is real in the config
+    // but was never observed rendering live for a non-focused, non-urgent
+    // slot — occupied AND empty slots alike fell through to the plain
+    // NUMBER (waybar's own final fallback when no state/name/persistent
+    // icon key matches — see `selectIcon()`'s trailing `return m_name;`).
+    // It is therefore dropped from this file entirely rather than kept as
+    // a byte that's never read.
+    //
+    // `format-icons.empty` (a small dot, U+F444) IS real — a persistent-
+    // floor slot with no live backing Hyprland workspace rendered it, and
+    // it responded correctly to `hyprctl dispatch hl.dsp.focus({workspace
+    // =10})` (became the active pill) and back (returned to the dot).
+    // But: (a) restarting the operator's waybar process for a controlled
+    // check changed the SAME slot range from "numbers" to "ghosts" for
+    // EVERY non-focused slot including previously-numbered ones — meaning
+    // whatever binary had been running before that restart (Arch does not
+    // restart running daemons on package upgrade) was not byte-identical
+    // to the on-disk v0.15.0 this file's precedence table was verified
+    // against; (b) Hyprland here has NO `workspace = N, persistent:true`
+    // rules backing any of these ids (grepped, none found) — so a live
+    // "does this workspace currently exist" check flickers (confirmed:
+    // `hyprctl dispatch hl.dsp.focus({workspace=4})` then away destroys
+    // workspace 4 immediately), which the dot's one clean trigger
+    // (workspace 10 specifically, the LAST of Athena's 5-slot persistent
+    // block) did not exhibit for its neighbours 6-9. The dot's exact
+    // trigger did not resolve to a single, stable rule across repeated
+    // verification and is NOT reproduced here — named delta, not a
+    // silent omission. This file's own persistent floor (below) already
+    // always renders regardless of live existence, which is what keeps
+    // rule 3 above stable rather than flickering the way an existence
+    // check would.
     readonly property string stateGlyphActive: "󰮯"   // format-icons.active
-    readonly property string stateGlyphDefault: "󰊠"  // format-icons.default
     readonly property string stateGlyphUrgent: "󰧵"   // format-icons.urgent
 
-    // Precedence matches slotTextColour's own: focused wins over urgent,
-    // urgent wins over default. Pure function, no side effects.
+    // Precedence matches slotTextColour's own: focused wins over urgent.
+    // Anything else falls through to the caller's own numeral (String(
+    // slotId)) per the table above — not a glyph at all, so it is not
+    // returned from here. Pure function, no side effects.
     function stateGlyphFor(focused, urgent) {
         if (focused)
             return workspaceCapsule.stateGlyphActive;
         if (urgent)
             return workspaceCapsule.stateGlyphUrgent;
-        return workspaceCapsule.stateGlyphDefault;
+        return "";
     }
 
     // Reads a toplevel's app id off its wayland handle, null-guarding
@@ -354,18 +441,36 @@ BarCapsule {
         return ids;
     }
 
-    // Hidden metrics text reserving the slot identity glyph's extent
-    // (UI-SPEC's reserve-worst-case-width rule) — the numeral this
-    // reserved is gone (D-08), so this now measures the widest of
-    // Athena's three state glyphs (stateGlyphActive) in the same Nerd
-    // Font family the slot delegate renders it in, so no state change can
-    // ever shift a slot's geometry.
+    // Hidden metrics text reserving the slot identity's extent (UI-SPEC's
+    // reserve-worst-case-width rule). The identity is now EITHER a glyph
+    // (stateGlyphActive/Urgent, focused/urgent) OR a plain two-digit
+    // numeral (everything else — see the state-glyph table above), both
+    // rendered through the SAME Text element/font/size in the delegate
+    // below, so both must be measured and the wider one reserved.
+    // font.pixelSize here MUST match the identity Text's own
+    // font.pixelSize (Design.barGlyphSize) — this metrics block
+    // previously measured at Design.barBodySize (13) while the rendered
+    // glyph painted at Design.barGlyphSize (16), a real mismatch that
+    // under-reserved the slot's own extent; fixed here as part of this
+    // pass (Rule 1).
     Text {
-        id: slotIdentityMetrics
+        id: slotIdentityGlyphMetrics
         visible: false
         text: workspaceCapsule.stateGlyphActive
         font.family: workspaceCapsule.appGlyphFontFamily
-        font.pixelSize: Design.barBodySize
+        font.pixelSize: Design.barGlyphSize
+        font.weight: Design.weightBody
+    }
+    Text {
+        id: slotIdentityNumeralMetrics
+        visible: false
+        // Worst-case two digits — this file's own dynamic tail
+        // (`slotIds`) can carry ids past 9, and isValidWorkspaceId's own
+        // upper bound is 10, so single-digit reservation would clip a
+        // legitimate id.
+        text: "00"
+        font.family: workspaceCapsule.appGlyphFontFamily
+        font.pixelSize: Design.barGlyphSize
         font.weight: Design.weightBody
     }
 
@@ -391,10 +496,12 @@ BarCapsule {
             // default.
             readonly property color slotTextColour: slotItem.slotFocused ? BarRoles.onAccent : (slotItem.slotUrgent ? BarRoles.danger : BarRoles.capsuleFg)
 
-            // D-08: the slot's Nerd Font state-glyph identity, replacing
-            // the plain numeral — same focused-over-urgent precedence as
-            // slotTextColour above.
-            readonly property string slotStateGlyph: workspaceCapsule.stateGlyphFor(slotItem.slotFocused, slotItem.slotUrgent)
+            // The slot's identity text — a glyph when focused/urgent,
+            // otherwise its own numeral (see the state-glyph table on
+            // stateGlyphFor above; GATE-02 round 4 restored the numeral
+            // for the default branch after live-observation showed
+            // Athena never actually renders the ghost there).
+            readonly property string slotStateGlyph: workspaceCapsule.stateGlyphFor(slotItem.slotFocused, slotItem.slotUrgent) || String(slotItem.slotId)
 
             // The slot's own extent, stated explicitly from the tokens
             // rather than left implicit — the numeral's reserved
@@ -406,7 +513,7 @@ BarCapsule {
             // rendered inside — the icon-cell Repeater's model below is
             // the CONSTANT iconsPerSlot, never the window count, so this
             // expression's value cannot change as windows open and close.
-            readonly property int numeralMainAxisExtent: workspaceCapsule.vertical ? slotIdentityMetrics.height : slotIdentityMetrics.width
+            readonly property int numeralMainAxisExtent: workspaceCapsule.vertical ? Math.max(slotIdentityGlyphMetrics.height, slotIdentityNumeralMetrics.height) : Math.max(slotIdentityGlyphMetrics.width, slotIdentityNumeralMetrics.width)
             // ── D-18-12 NARROWED, deliberately, by the GATE-02 fix ──────
             // This was `barGlyphSize * iconsPerSlot + gaps`, i.e. the extent of
             // ALL iconsPerSlot reserved cells whether or not a window occupied
@@ -435,7 +542,15 @@ BarCapsule {
             // are not centered". The fill is anchors.fill of this slot, so
             // widening the slot IS how the pill gains its padding.
             readonly property int slotSidePadding: slotItem.slotFocused ? Design.spacingMd - Design.spacingXs : Design.spacingXs
-            readonly property int slotMainAxisExtent: slotItem.numeralMainAxisExtent + Design.spacingXs + slotItem.cellsMainAxisExtent + slotItem.slotSidePadding * 2
+            // Content-driven extent, THEN floored at slotMinMainAxisExtent
+            // (upstream's `min-width: 32px`, GATE-02 round 4 item 1) — a
+            // slot only grows past the floor when its own content needs
+            // more, it never shrinks below it. This floor is a MINIMUM;
+            // it does not touch D-18-12's own UPPER bound above
+            // (cellsShown is still capped at iconsPerSlot regardless of
+            // this floor).
+            readonly property int slotContentMainAxisExtent: slotItem.numeralMainAxisExtent + Design.spacingXs + slotItem.cellsMainAxisExtent + slotItem.slotSidePadding * 2
+            readonly property int slotMainAxisExtent: Math.max(workspaceCapsule.slotMinMainAxisExtent, slotItem.slotContentMainAxisExtent)
 
             // Cross-axis is a single Design.barGlyphSize (24px) — this is
             // what fits both the 24px horizontal content budget and the
@@ -502,7 +617,7 @@ BarCapsule {
                 spacing: Design.spacingXs
 
                 Text {
-                    width: slotIdentityMetrics.width
+                    width: Math.max(slotIdentityGlyphMetrics.width, slotIdentityNumeralMetrics.width)
                     horizontalAlignment: Text.AlignHCenter
                     // Same explicit one-glyph box + vertical centring the
                     // icon cells below use, so the state glyph shares their
@@ -524,8 +639,9 @@ BarCapsule {
                     // 8px }`. The window glyphs keep the tighter 4px pitch
                     // between themselves, exactly as upstream does.
                     rightPadding: Design.spacingSm - Design.spacingXs
-                    // D-08: the numeral is gone — this now renders one of
-                    // Athena's three Nerd Font state glyphs.
+                    // GATE-02 round 4: focused/urgent render a Nerd Font
+                    // state glyph, everything else renders the slot's own
+                    // numeral — see stateGlyphFor's derivation table above.
                     text: slotItem.slotStateGlyph
                     font.family: workspaceCapsule.appGlyphFontFamily
                     font.pixelSize: Design.barGlyphSize
