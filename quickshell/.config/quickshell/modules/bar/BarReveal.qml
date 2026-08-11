@@ -92,6 +92,7 @@
 pragma Singleton
 
 import QtQuick
+import Quickshell
 import "../dashboard"
 
 Singleton {
