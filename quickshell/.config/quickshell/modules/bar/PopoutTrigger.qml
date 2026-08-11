@@ -6,10 +6,11 @@
 // writes PopoutController.openSection or pinnedSection directly; every
 // state change routes through the controller's own summon functions.
 //
-// Task 1 (this commit) wires only the click path (toggle) and the loader.
-// Task 2 (same plan) adds hover reporting (entryEntered/entryMoved/
-// entryExited/publishAnchor on the dwell path) and the pin-vs-preview
-// click semantics on top of this.
+// Task 1 wires only the click path (toggle) and the loader. Task 2 (this
+// commit) adds hover reporting — entryEntered/entryMoved/entryExited to
+// the controller, the loaded popout's own hover edges relayed to
+// popoutEntered/popoutExited, and a fresh publishAnchor() call on both
+// paths that can open (hover-entered and click).
 import QtQuick
 import Quickshell
 import "../"
@@ -63,8 +64,23 @@ Item {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton
         hoverEnabled: true
+        // Fresh anchor published before either path that can open — the
+        // hover-entered path (dwell) and the click path — so the popout
+        // always reads a fresh centre.
+        onEntered: {
+            triggerRoot.publishAnchor();
+            PopoutController.entryEntered(triggerRoot.sectionId);
+        }
+        onExited: PopoutController.entryExited(triggerRoot.sectionId)
+        onPositionChanged: PopoutController.entryMoved(triggerRoot.sectionId)
         onClicked: {
             triggerRoot.publishAnchor();
+            // D-18-18: a click while previewing pins; a click on an
+            // already-pinned popout closes it; a click with nothing open
+            // opens and pins in one step, bypassing dwell entirely —
+            // dwell exists to disambiguate an accidental hover, and a
+            // click carries no ambiguity to resolve. toggle() (Task 1)
+            // already implements exactly this shape.
             PopoutController.toggle(triggerRoot.sectionId);
         }
     }
@@ -84,6 +100,16 @@ Item {
             popoutLoader.item.pinned = Qt.binding(function () { return triggerRoot.pinned; });
             popoutLoader.item.triggerCentre = Qt.binding(function () { return triggerRoot._publishedCentre; });
             popoutLoader.item.dismissFinished.connect(PopoutController.close);
+            // The triggering entry and the popout are ONE hover region
+            // (D-18-21) — relay the loaded surface's own hover edge into
+            // the controller's popoutEntered/popoutExited exactly as this
+            // trigger's own MouseArea relays its entry/exit above.
+            popoutLoader.item.hoveredChanged.connect(function () {
+                if (popoutLoader.item.hovered)
+                    PopoutController.popoutEntered();
+                else
+                    PopoutController.popoutExited();
+            });
         }
     }
 

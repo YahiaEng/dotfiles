@@ -199,12 +199,27 @@ PanelWindow {
         onFinished: popoutWindow.dismissFinished()
     }
 
+    // ── Whole-surface hover (Phase 18 Plan 13 Task 2, D-18-21) — the
+    //    trigger and this popout are ONE hover region held as two
+    //    independent booleans; this is the popout's own half, relayed by
+    //    PopoutTrigger.qml into PopoutController.popoutEntered()/
+    //    popoutExited(). Read-only from outside this file; nothing but
+    //    this HoverHandler ever writes it. Attached to `content` (a real
+    //    Item filling the window), the same way BarCapsule.qml's own
+    //    HoverHandler attaches to its Rectangle root rather than to a
+    //    non-Item window type. ────────────────────────────────────────
+    readonly property bool hovered: popoutHoverHandler.hovered
+
     Item {
         id: content
         anchors.fill: parent
         focus: true
         Keys.onEscapePressed: popoutWindow.handleEscape()
         Component.onCompleted: content.forceActiveFocus()
+
+        HoverHandler {
+            id: popoutHoverHandler
+        }
 
         // ── Header band ───────────────────────────────────────────────
         Item {
