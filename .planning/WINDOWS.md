@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 39
+open_count: 40
 waived_count: 0
-fixed_count: 8
-total_count: 47
-last_updated: 2026-08-11T09:26:59.939Z
+fixed_count: 10
+total_count: 50
+last_updated: 2026-08-11T10:10:34.633Z
 ---
 
 # Broken Windows Ledger
@@ -62,6 +62,9 @@ last_updated: 2026-08-11T09:26:59.939Z
 | 45 | 18 | deviation | quickshell/.config/quickshell/shell.qml |  | 18-15 Task 2's acceptance grep for 'exactly four functions matching show\|hideIdle\|hideHard\|status' counts 5 whole-file matches, not 4 — a pre-existing overviewIpc.status() (16-04) collides with the regex. barIpc itself declares exactly the specified four functions; the mismatch is in the verify script's scope (whole-file vs. handler-scoped), not a defect in the implementation. | open |  | 2026-08-11T03:35:37.331Z |  |
 | 46 | 18 | deviation | hypr/.config/hypr/config/keybinds.lua |  | 18-16 Task 2: held-Super reveal bind (Branch A) drafted then reverted — keybind-doctor's chord-collision check flagged it against the shipped SUPER+SUPER_L tap-to-menu bind at line 86; compositor-side probe not live-verified this session | open |  | 2026-08-11T09:26:59.846Z |  |
 | 47 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/BarReveal.qml |  | 18-16: hot-zone/reveal live gestures (pointer-to-edge reveal, Super-hold reveal, popout-suppression, escape hatch, reserved-array stability, hyprctl layers lifecycle) not exercised — live quickshell process predates this plan's commits ('qs ipc call bar status' -> Target not found), matching 18-08/18-12/18-13/18-15 precedent | open |  | 2026-08-11T09:26:59.939Z |  |
+| 48 | 18 | deviation | hypr/.config/hypr/scripts/bar-visibility.sh |  | 18-17 found and fixed live: qs ipc call bar show (no --) silently fails to invoke on quickshell 0.3.0's qs CLI (literal token 'show' collides with the ipc show subcommand); _ipc_call() now uses 'qs ipc call -- bar $verb'. Never live-tested before 18-17 (18-15-SUMMARY recorded the interactive round-trip as not performed). | fixed |  | 2026-08-11T10:09:37.777Z | 2026-08-11T10:10:14.135Z |
+| 49 | 18 | deviation | quickshell/.config/quickshell/modules/bar/BarReveal.qml |  | 18-17 found and fixed live: BarReveal.qml (18-16 Task 3) declares pragma Singleton and roots on the Singleton {} type but never imports Quickshell (the module that type comes from), so any real quickshell.service restart/reload since 18-16 landed failed with 'Singleton is not a type', taking down the whole bar. Fixed with a one-line import; verified clean on both a full systemd restart and a source-touch hot reload. | fixed |  | 2026-08-11T10:10:20.236Z | 2026-08-11T10:10:27.569Z |
+| 50 | 18 | deviation | hypr/.config/hypr/scripts/quickshell-doctor |  | 18-17 Task 2 acceptance criterion 'grep -cE ^\\s*trap  returns 1' is stale against pre-existing file state: quickshell-doctor already carried 3 trap lines (EXIT/INT/TERM, all invoking the single _qsd_cleanup) before this plan touched the file. Task 2 extended _qsd_cleanup's body only, installed no new trap statement — the real invariant (one cleanup function, one flag per mutation class) holds; the literal grep count does not and never could on this file. | open |  | 2026-08-11T10:10:34.633Z |  |
 
 ````json
 [
@@ -627,6 +630,42 @@ last_updated: 2026-08-11T09:26:59.939Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T09:26:59.939Z",
+    "resolved_at": null
+  },
+  {
+    "id": 48,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "hypr/.config/hypr/scripts/bar-visibility.sh",
+    "line": null,
+    "description": "18-17 found and fixed live: qs ipc call bar show (no --) silently fails to invoke on quickshell 0.3.0's qs CLI (literal token 'show' collides with the ipc show subcommand); _ipc_call() now uses 'qs ipc call -- bar $verb'. Never live-tested before 18-17 (18-15-SUMMARY recorded the interactive round-trip as not performed).",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-08-11T10:09:37.777Z",
+    "resolved_at": "2026-08-11T10:10:14.135Z"
+  },
+  {
+    "id": 49,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/BarReveal.qml",
+    "line": null,
+    "description": "18-17 found and fixed live: BarReveal.qml (18-16 Task 3) declares pragma Singleton and roots on the Singleton {} type but never imports Quickshell (the module that type comes from), so any real quickshell.service restart/reload since 18-16 landed failed with 'Singleton is not a type', taking down the whole bar. Fixed with a one-line import; verified clean on both a full systemd restart and a source-touch hot reload.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-08-11T10:10:20.236Z",
+    "resolved_at": "2026-08-11T10:10:27.569Z"
+  },
+  {
+    "id": 50,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "hypr/.config/hypr/scripts/quickshell-doctor",
+    "line": null,
+    "description": "18-17 Task 2 acceptance criterion 'grep -cE ^\\s*trap  returns 1' is stale against pre-existing file state: quickshell-doctor already carried 3 trap lines (EXIT/INT/TERM, all invoking the single _qsd_cleanup) before this plan touched the file. Task 2 extended _qsd_cleanup's body only, installed no new trap statement — the real invariant (one cleanup function, one flag per mutation class) holds; the literal grep count does not and never could on this file.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T10:10:34.633Z",
     "resolved_at": null
   }
 ]
