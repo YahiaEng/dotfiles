@@ -33,6 +33,12 @@ ShellRoot {
     // memory only (CONTEXT.md's discretion note); never persisted to disk.
     property int dashboardTabIndex: 0
 
+    // Home-directory accessor (Phase 18 Plan 15) — the same
+    // `Quickshell.env("HOME")` idiom QuickToggles.qml/PanelDialog.qml
+    // already use for their own fixed-argv Process commands, reused here
+    // rather than a second accessor.
+    property string homeDir: Quickshell.env("HOME")
+
     // QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — arrangement
     // A, a Variants+LazyLoader fan-out declared here in shell.qml,
     // reproduced 11-QUICKSHELL-EVIDENCE.md's FM2 post-hotplug visibility
@@ -160,6 +166,9 @@ ShellRoot {
         systemResources: systemResourcesInstance
         wifiBackend: wifiBackendInstance
         bluetoothBackend: bluetoothBackendInstance
+        // Phase 18 Plan 15 (QBAR-07) — a binding, never an external write.
+        // The same shape the backend gate properties above already use.
+        visibilityState: root.barVisibilityState
         onPanelRequested: (name) => root.openPanel(name)
         onDashboardRequested: (tabIndex) => {
             root.dashboardTabIndex = tabIndex;
@@ -410,6 +419,121 @@ ShellRoot {
                 Hyprland.refreshToplevels();
             }
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Bar visibility conversation (Phase 18 Plan 15, QBAR-07) — the
+    // shell's entire half of the single-owner claim. The on-disk
+    // bar-visibility.sh script alone decides; everything below only
+    // reflects that decision (the `bar` IpcHandler) or reports one fact
+    // the owner cannot observe on its own (fullscreen intent, via the
+    // reporter). Nothing here originates a hide/show decision.
+    // ══════════════════════════════════════════════════════════════════
+
+    property string barVisibilityState: "visible"
+
+    // The ONLY writer of barVisibilityState in the entire shell — its
+    // only callers are the three write verbs on barIpc below. Nothing on
+    // the bar itself (no hover, no focus event, no timer, no popout) may
+    // call this function, because the moment a second writer exists the
+    // single-owner claim is false. An unknown value is refused and logged
+    // to the console, leaving the current state standing rather than
+    // falling through toward a hidden default.
+    function setBarVisibility(next) {
+        if (next !== "visible" && next !== "hidden-idle" && next !== "hidden-hard") {
+            console.warn("setBarVisibility: refusing unknown state '" + next + "'");
+            return;
+        }
+        root.barVisibilityState = next;
+        console.log("bar: visibility=" + next + " zone=" + (next === "hidden-hard" ? "released" : "reserved"));
+    }
+
+    // ── The `bar` IPC target — three fixed no-argument write verbs
+    //    (deliberately narrower than one verb parsing a state name, so
+    //    there is no parseable input on this channel at all) plus one
+    //    read-only status verb. `status()` exists so the owner's own
+    //    `status` verb and this property can be compared directly — the
+    //    two must always print the same string, and that equality IS how
+    //    single ownership is proven rather than asserted. ───────────────
+    IpcHandler {
+        id: barIpc
+        target: "bar"
+
+        function show(): string {
+            root.setBarVisibility("visible");
+            return root.barVisibilityState;
+        }
+        function hideIdle(): string {
+            root.setBarVisibility("hidden-idle");
+            return root.barVisibilityState;
+        }
+        function hideHard(): string {
+            root.setBarVisibility("hidden-hard");
+            return root.barVisibilityState;
+        }
+        function status(): string {
+            return root.barVisibilityState;
+        }
+    }
+
+    // ── Fullscreen intent reporter (D-18-28) — replaces the retired
+    //    standalone waybar-fullscreen-watch.sh socket2 listener. Reports
+    //    on the CHANGE of the already-derived `fullscreenBlocking` value
+    //    above rather than inside the Hyprland Connections block's own
+    //    onRawEvent handler — that block's refresh is asynchronous and
+    //    the value is not yet current at the instant the raw event
+    //    arrives; that existing block is left exactly as it is, since it
+    //    is what makes the value current in the first place. Inherits the
+    //    same maximize-versus-fullscreen ambiguity already recorded above
+    //    `fullscreenBlocking` — the retired watcher had it too, and this
+    //    plan does not introduce it. While the shell is down nothing
+    //    reports fullscreen at all, which is exactly why the startup
+    //    resync below exists. Two fixed-argv Process objects, deliberately
+    //    never one object with a mutated command, so no element of either
+    //    argv is ever computed. ─────────────────────────────────────────
+    Process {
+        id: fullscreenHideProcess
+        command: [root.homeDir + "/.config/hypr/scripts/bar-visibility.sh", "fullscreen", "hide"]
+    }
+    Process {
+        id: fullscreenShowProcess
+        command: [root.homeDir + "/.config/hypr/scripts/bar-visibility.sh", "fullscreen", "show"]
+    }
+    function reportFullscreenIntent() {
+        if (root.fullscreenBlocking)
+            fullscreenHideProcess.startDetached();
+        else
+            fullscreenShowProcess.startDetached();
+    }
+    onFullscreenBlockingChanged: root.reportFullscreenIntent()
+
+    // ── Startup resync — a shell restart cannot leave the bar stranded
+    //    with a stale intent from a crash. Declares fullscreen intent
+    //    FIRST, then forces a reassert through a single non-repeating
+    //    one-shot below (Component.onCompleted): a `fullscreen=hide`
+    //    intent that outlived a crash would otherwise still be on disk,
+    //    and a reassert reading it first would hide a bar with no
+    //    fullscreen window on screen. The quarter second exists solely so
+    //    the detached intent write above lands before the forced read
+    //    below. This Timer is explicitly exempt from the phase's
+    //    zero-idle discipline because it does not repeat — it fires once
+    //    per shell start and is inert forever after, which is not the
+    //    recurring cost that discipline polices. ──────────────────────
+    Process {
+        id: reassertProcess
+        command: [root.homeDir + "/.config/hypr/scripts/bar-visibility.sh", "reassert"]
+    }
+    Timer {
+        id: startupReassertTimer
+        interval: 250
+        repeat: false
+        running: false
+        onTriggered: reassertProcess.startDetached()
+    }
+    Component.onCompleted: {
+        // Order is load-bearing — see the comment above.
+        root.reportFullscreenIntent();
+        startupReassertTimer.running = true;
     }
 
     // ── Shell-root IPC surface (Phase 15 Plan 03, Task 1) — the seam every

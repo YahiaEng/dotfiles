@@ -42,9 +42,11 @@
 // without silently killing that blur.
 //
 // Explicitly NOT built here (each owned by a named later plan): popouts
-// and hover mechanics (18-13/14), auto-hide and the `bar` IPC handler
-// (18-15), the hot zone (18-16), doctor checks (18-17), the restart unit
-// (18-07, QBAR-10).
+// and hover mechanics (18-13/14), the hot zone (18-16), doctor checks
+// (18-17), the restart unit (18-07, QBAR-10). Auto-hide and the `bar`
+// IPC handler (18-15) are built by THIS plan — see the visibility-state
+// block below; the owner script and the IpcHandler both live in
+// shell.qml, never in this file (see that block's own closing note).
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -98,17 +100,17 @@ PanelWindow {
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     focusable: false
-    // LIVE-MEASURED CORRECTION (this task, found and fixed the same way
-    // 18-01's Task 2 found and fixed the original instance of this exact
-    // bug): the surface's own submitted exclusiveZone is its content
+    // LIVE-MEASURED CORRECTION (18-05's Task 2, found and fixed the same
+    // way 18-01's Task 2 found and fixed the original instance of this
+    // exact bug): the surface's own submitted exclusiveZone is its content
     // extent ALONE — Design.barHeight horizontally, Design.barColumnWidth
     // vertically — never plus the edge margin, because Hyprland's own
     // reservation TOTAL is margins.<anchored-edge> + exclusiveZone, and
     // margins.top/.right above ALREADY carry Design.barEdgeMargin on
     // their respective axis. Folding it into exclusiveZone too would
-    // double-count it — reproduced live this task (co-existing reading
+    // double-count it — reproduced live in 18-05 (co-existing reading
     // [[0,98,0,0]] instead of the expected [[0,92,0,0]], the exact +6
-    // signature of the double-margin bug) before being corrected here.
+    // signature of the double-margin bug) before being corrected there.
     // Total reservation = margins.<edge> + exclusiveZone. Horizontally
     // that total is Design.barHeight + Design.barEdgeMargin = 46,
     // unchanged from 18-01's live-proven arithmetic; vertically it is
@@ -116,7 +118,16 @@ PanelWindow {
     // margin on whichever axis is anchored, never doubled into both
     // terms. Both terms below are compile-time expressions over readonly
     // property int tokens; no runtime value reaches either.
-    exclusiveZone: barWindow.vertical ? Design.barColumnWidth : Design.barHeight
+    //
+    // ── Phase 18 Plan 15 (QBAR-07) — the content extent moved into its
+    //    own named property, `reservedZoneExtent`, and `exclusiveZone`
+    //    below now gates it on `zoneReserved` (declared further down,
+    //    beside `barRendered`) rather than submitting it unconditionally.
+    //    The right-hand side is the EXACT expression this property held
+    //    before this plan — moved, not re-derived; see the property's own
+    //    trailing comment for why it must stay content-only. ────────────
+    readonly property int reservedZoneExtent: barWindow.vertical ? Design.barColumnWidth : Design.barHeight // content only — margins.<edge> above independently carries the single Design.barEdgeMargin; never add it here too, or the reservation doubles
+    exclusiveZone: barWindow.zoneReserved ? barWindow.reservedZoneExtent : 0
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
 
@@ -146,6 +157,58 @@ PanelWindow {
     //    actions and 18-14's wayfinding links are the callers. ──────────
     signal panelRequested(string name)
     signal dashboardRequested(int tabIndex)
+
+    // ── Visibility state (Phase 18 Plan 15, QBAR-07) — this file's own
+    //    slice of the single-owner claim: `visibilityState` is written
+    //    ONLY by shell.qml's binding on the `Bar { id: barInstance }`
+    //    mount below (a binding, never an external assignment), never by
+    //    anything inside this file. Three values only:
+    //    "visible" | "hidden-idle" | "hidden-hard" — the same vocabulary
+    //    the on-disk owner script's own status verb prints. ────────────
+    property string visibilityState: "visible"
+
+    // 18-16's seam (QBAR-08, not built here): a strictly transient
+    // presentation override that may make a hidden bar temporarily
+    // rendered, may NEVER make a visible bar hidden, never writes an
+    // intent file anywhere, and never affects the reservation below —
+    // `zoneReserved` is deliberately independent of this property so a
+    // hover reveal over a fullscreen window draws the bar without
+    // re-reserving space, and therefore cannot reflow the game the user
+    // is playing.
+    property bool revealOverride: false
+
+    readonly property bool barRendered: barWindow.visibilityState === "visible" || barWindow.revealOverride
+    // Independent of revealOverride by construction — see the comment on
+    // that property above. Reserves for every state except the one
+    // explicit, hard, want-the-pixels-back state (fullscreen, gaming
+    // mode, or the keybind override); a merely-idle hide keeps the zone.
+    readonly property bool zoneReserved: barWindow.visibilityState !== "hidden-hard"
+
+    // The observable 18-16 consumes: that plan drives PopoutController's
+    // own reveal-settled latch off `barRendered` and this flag together.
+    // This plan adds no writer of that latch itself — ownership of it
+    // stays with 18-16, which is the only file that ever assigns it.
+    readonly property bool barTransitionRunning: barFadeAnim.running
+
+    // ── Hidden-state slide offsets — the bar slides out through its own
+    //    anchored edge in either orientation. Zero whenever rendered; on
+    //    the free (non-anchored) axis it stays zero even while hidden,
+    //    since sliding along the axis nothing anchors to would not read
+    //    as "leaving through the edge". ───────────────────────────────
+    readonly property real hiddenTranslateY: (barWindow.barRendered || barWindow.vertical) ? 0 : -barWindow.reservedZoneExtent
+    readonly property real hiddenTranslateX: (barWindow.barRendered || !barWindow.vertical) ? 0 : barWindow.reservedZoneExtent
+
+    // Closes any open popout the instant this surface stops rendering —
+    // idle, fullscreen, gaming mode, keybind, all funnel through
+    // `barRendered` going false. A pinned popout floating with no bar
+    // beneath it (over a fullscreen window, say) is the failure this
+    // guard exists to prevent. The separate rule that a hover-reveal must
+    // not re-hide while a popout is open is 18-16's grace condition and
+    // is not implemented here.
+    onBarRenderedChanged: {
+        if (!barWindow.barRendered && PopoutController.anyOpen)
+            PopoutController.close();
+    }
 
     // ── Popout wayfinding relay (Phase 18 Plan 13 Task 3, QBAR-09) —
     //    named seam into this 18-05-owned file, additive and bounded to
@@ -250,6 +313,52 @@ PanelWindow {
     Item {
         id: barContent
         anchors.fill: parent
+
+        // ── Rendering the three-state model (Phase 18 Plan 15, QBAR-07)
+        //    — boolean visibility plus a token-driven slide-and-fade.
+        //    Precision contract: there is no fractional visibility
+        //    anywhere on this path — opacity is a plain 0/1 boolean
+        //    ternary, and the only real-valued quantities anywhere below
+        //    are the animation durations/offsets, both token-sourced. ───
+        opacity: barWindow.barRendered ? 1 : 0
+        transform: Translate {
+            id: hideTranslate
+            x: barWindow.hiddenTranslateX
+            y: barWindow.hiddenTranslateY
+
+            // The duration/easing ternary is read at the MOMENT each
+            // Behavior's animation starts, when `barRendered` already
+            // holds its new value — so a reveal takes the standard
+            // register and a re-hide takes the emphasized-out register
+            // from one Behavior per property, never from two competing
+            // animations. Same quick-to-leave asymmetry this whole shell
+            // already encodes numerically elsewhere.
+            Behavior on x {
+                enabled: Motion.motionEnabled
+                NumberAnimation {
+                    duration: barWindow.barRendered ? Motion.standardDuration : Motion.emphasizedOutDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: barWindow.barRendered ? Motion.standardEasing : Motion.emphasizedOutEasing
+                }
+            }
+            Behavior on y {
+                enabled: Motion.motionEnabled
+                NumberAnimation {
+                    duration: barWindow.barRendered ? Motion.standardDuration : Motion.emphasizedOutDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: barWindow.barRendered ? Motion.standardEasing : Motion.emphasizedOutEasing
+                }
+            }
+        }
+        Behavior on opacity {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                id: barFadeAnim
+                duration: barWindow.barRendered ? Motion.standardDuration : Motion.emphasizedOutDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: barWindow.barRendered ? Motion.standardEasing : Motion.emphasizedOutEasing
+            }
+        }
 
         // Three zone containers exist in BOTH orientations; only which
         // capsules land in each differs. Each is a Grid with the same
