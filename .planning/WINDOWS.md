@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 32
+open_count: 35
 waived_count: 0
 fixed_count: 8
-total_count: 40
-last_updated: 2026-08-11T02:48:07.870Z
+total_count: 43
+last_updated: 2026-08-11T03:14:04.512Z
 ---
 
 # Broken Windows Ledger
@@ -55,6 +55,9 @@ last_updated: 2026-08-11T02:48:07.870Z
 | 38 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/SectionPopout.qml |  | 18-13 Task 1 human-check not run this session: click-to-open live rendering, hyprctl y=50 confirmation, volume slider moving real system volume, click-outside destruction, 18-12 scroll gesture survival, vertical-orientation placement — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.664Z |  |
 | 39 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/PopoutController.qml |  | 18-13 Task 2 human-check not run this session: felt 400ms dwell, bar-sweep-opens-nothing proof, diagonal-move-survives-the-gap, pin/Escape/click-outside cycle, no-keystroke-theft typing proof — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.772Z |  |
 | 40 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/AudioPopout.qml |  | 18-13 Task 3 human-check not run this session: foot-pill visual comparison against a dashboard panel's Advanced button, click-through to AudioPanel.qml, live pending/empty state provocation, theme-switch crossfade check — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.870Z |  |
+| 41 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/WifiPopout.qml |  | 18-14 Task 1 human-check deferred: live scan/discovery negative-check (iw dev / bluetoothctl show) while wifi/bluetooth popouts are open | open |  | 2026-08-11T03:14:04.331Z |  |
+| 42 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockPopout.qml |  | 18-14 Task 2 human-check deferred: cell-for-cell calendar comparison against the dashboard card and the resources popout's unsampled em-dash state on a fresh shell restart | open |  | 2026-08-11T03:14:04.420Z |  |
+| 43 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaPopout.qml |  | 18-14 Task 3 human-check deferred: live transport control, multi-player case, and confirming all five foot-link destinations are intact and unthinned | open |  | 2026-08-11T03:14:04.512Z |  |
 
 ````json
 [
@@ -536,6 +539,42 @@ last_updated: 2026-08-11T02:48:07.870Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T02:48:07.870Z",
+    "resolved_at": null
+  },
+  {
+    "id": 41,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/WifiPopout.qml",
+    "line": null,
+    "description": "18-14 Task 1 human-check deferred: live scan/discovery negative-check (iw dev / bluetoothctl show) while wifi/bluetooth popouts are open",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T03:14:04.331Z",
+    "resolved_at": null
+  },
+  {
+    "id": 42,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/ClockPopout.qml",
+    "line": null,
+    "description": "18-14 Task 2 human-check deferred: cell-for-cell calendar comparison against the dashboard card and the resources popout's unsampled em-dash state on a fresh shell restart",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T03:14:04.420Z",
+    "resolved_at": null
+  },
+  {
+    "id": 43,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/MediaPopout.qml",
+    "line": null,
+    "description": "18-14 Task 3 human-check deferred: live transport control, multi-player case, and confirming all five foot-link destinations are intact and unthinned",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T03:14:04.512Z",
     "resolved_at": null
   }
 ]

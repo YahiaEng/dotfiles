@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-13-PLAN.md
-last_updated: "2026-08-11T02:48:22.324Z"
+stopped_at: Completed 18-14-PLAN.md
+last_updated: "2026-08-11T03:14:21.444Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 13
+  completed_plans: 14
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 14 of 20
+Plan: 15 of 20
 Status: Ready to execute
-Progress: [███████░░░] 65%
+Progress: [███████░░░] 70%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -205,6 +205,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P11 | ~30min | 3 tasks | 4 files |
 | Phase 18 P12 | ~35min | 3 tasks | 6 files |
 | Phase 18 P13 | ~45min | 3 tasks | 8 files |
+| Phase 18 P14 | ~55min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -428,6 +429,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-13: ExclusionMode.Ignore on SectionPopout (not PanelDialog's Normal) so token-derived margins measure from the true screen edge without subtracting the bar's own reservation back out
 - [Phase ?]: 18-13: bodyColumn's inner width is a fixed Design-token expression, never bound to popoutWindow's own resolved width, avoiding a circular binding since implicitWidth clamps FROM bodyColumn.implicitWidth
 - [Phase ?]: 18-13: AudioPopout's body content gated on bodyState==="populated" so the frame placeholder never double-renders under real content
+- [Phase ?]: 18-14: wifi readiness resolved EXISTS NATIVELY via Networking.backend enum (confirmed against installed qmltypes) — no timer needed; bluetooth resolved DOES NOT EXIST, BUILT (monotonic latch + one-shot deadline, the only new timing object this plan adds)
+- [Phase ?]: 18-14: clock and media both resolved 'no pending phase exists' (clock has no backend at all; media's repointed widgetState has a structurally unreachable middle value, confirmed by direct read); resources resolved EXISTS NATIVELY, confirmed per-instance (not per-tab) against Dial.qml/PerformanceTab.qml
 
 ### Quick Tasks Completed
 
@@ -556,8 +559,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T02:48:22.307Z
-Stopped at: Completed 18-13-PLAN.md
+Last session: 2026-08-11T03:14:21.426Z
+Stopped at: Completed 18-14-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
