@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 42
+open_count: 38
 waived_count: 0
-fixed_count: 10
+fixed_count: 14
 total_count: 52
-last_updated: 2026-08-11T10:28:19.689Z
+last_updated: 2026-08-11T14:47:35.113Z
 ---
 
 # Broken Windows Ledger
@@ -44,14 +44,14 @@ last_updated: 2026-08-11T10:28:19.689Z
 | 27 | 18 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml |  | 18-08 Task 3 D-18-31/GATE-02 live render-gate not performed this session: album art, seek slider, player switcher, transport buttons and near-instant external-pause reflection unconfirmed against a real quickshell reload | open |  | 2026-08-11T01:11:51.902Z |  |
 | 28 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/SystemCapsule.qml |  | 18-08 Task 1/2 D-18-31/GATE-02 live render-gate not performed this session: system capsule cpu/ram/disk/updates not visually confirmed against top/free/df/checkupdates on a live-reloaded bar | open |  | 2026-08-11T01:11:57.190Z |  |
 | 29 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml |  | 18-08 Task 4 D-18-31/GATE-02 live render-gate not performed this session: audio/network/bluetooth glyph reactions to a real mute/radio toggle, vertical re-stack and theme-switch crossfade unconfirmed on a live-reloaded bar | open |  | 2026-08-11T01:11:57.281Z |  |
-| 30 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 Task 2 live click-through on a real tray application's real menu row was NOT performed this session — no StatusNotifierWatcher existed on this host's session bus before this plan's Task 1 commit (waybar's athena layout deliberately removed its own tray module), and neither blueman-applet nor nm-applet registered a StatusNotifierItem even after quickshell began self-hosting the watcher. The implemented leaf-activation call (sendTriggered() on the concrete DBusMenuItem) is the highest-ranked candidate by static existence evidence (dbusmenu.hpp:97), not by live observation; RESEARCH.md Open Question 1 remains open pending a user-side click-through on real hardware with a real tray menu. | open |  | 2026-08-11T01:40:49.092Z |  |
-| 31 | 18 | deviation | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 Task 3's acceptance criterion 'exactly one Rectangle {} in the file (the menu popup's own)' is unsatisfiable given Task 2's own explicit action text, which separately requires a 1px Colours.outline separator divider and a Colours.surface hover-tint background on menu rows — both need a Rectangle in plain QtQuick. Implemented per Task 2's semantic spec (menuSurface background + one separator-divider Rectangle declared once inside the row Repeater delegate + one hover-tint Rectangle declared once inside the same delegate = 3 Rectangle declaration sites in source), documented as a stale/self-contradictory acceptance-criteria text issue rather than distorting the UI to force a literal count of 1 — mirrors 18-05-SUMMARY.md's own Deviation precedent for this exact class of plan-text conflict. | open |  | 2026-08-11T01:41:17.168Z |  |
-| 32 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 GATE-02 B.5's full visual pass (icons actually rendering and looking correct in both orientations, menu opening and looking correct) was not human-eyeballed this session — no tray application successfully registered a StatusNotifierItem on this host (see the paired unrun-verify entry), so there was nothing to look at. Only the mechanical half was proven live this session: hyprctl reserved-zone and quickshell-bar layer-namespace readings across horizontal -> vertical -> horizontal with zero TrayCapsule.qml load errors at each step. Deferred to the user, same shape as 18-05's own D-18-31 deferral. | open |  | 2026-08-11T01:41:17.263Z |  |
+| 30 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 Task 2 live click-through on a real tray application's real menu row was NOT performed this session — no StatusNotifierWatcher existed on this host's session bus before this plan's Task 1 commit (waybar's athena layout deliberately removed its own tray module), and neither blueman-applet nor nm-applet registered a StatusNotifierItem even after quickshell began self-hosting the watcher. The implemented leaf-activation call (sendTriggered() on the concrete DBusMenuItem) is the highest-ranked candidate by static existence evidence (dbusmenu.hpp:97), not by live observation; RESEARCH.md Open Question 1 remains open pending a user-side click-through on real hardware with a real tray menu. | fixed | resolved by deletion of TrayCapsule.qml in phase 18.1 (D-15) — the subject file no longer exists | 2026-08-11T01:40:49.092Z | 2026-08-11T14:47:35.113Z |
+| 31 | 18 | deviation | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 Task 3's acceptance criterion 'exactly one Rectangle {} in the file (the menu popup's own)' is unsatisfiable given Task 2's own explicit action text, which separately requires a 1px Colours.outline separator divider and a Colours.surface hover-tint background on menu rows — both need a Rectangle in plain QtQuick. Implemented per Task 2's semantic spec (menuSurface background + one separator-divider Rectangle declared once inside the row Repeater delegate + one hover-tint Rectangle declared once inside the same delegate = 3 Rectangle declaration sites in source), documented as a stale/self-contradictory acceptance-criteria text issue rather than distorting the UI to force a literal count of 1 — mirrors 18-05-SUMMARY.md's own Deviation precedent for this exact class of plan-text conflict. | fixed | resolved by deletion of TrayCapsule.qml in phase 18.1 (D-15) — the subject file no longer exists | 2026-08-11T01:41:17.168Z | 2026-08-11T14:47:35.113Z |
+| 32 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 GATE-02 B.5's full visual pass (icons actually rendering and looking correct in both orientations, menu opening and looking correct) was not human-eyeballed this session — no tray application successfully registered a StatusNotifierItem on this host (see the paired unrun-verify entry), so there was nothing to look at. Only the mechanical half was proven live this session: hyprctl reserved-zone and quickshell-bar layer-namespace readings across horizontal -> vertical -> horizontal with zero TrayCapsule.qml load errors at each step. Deferred to the user, same shape as 18-05's own D-18-31 deferral. | fixed | resolved by deletion of TrayCapsule.qml in phase 18.1 (D-15) — the subject file no longer exists | 2026-08-11T01:41:17.263Z | 2026-08-11T14:47:35.113Z |
 | 33 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml |  | D-18-31/GATE-02 human render-gate check for 18-11 not performed by executor (human_verify_mode: end-of-phase) — both drawers open/act, both orientation reach paths, all four extras visible, no literal-text glyph, idle inhibitor genuinely suppresses idle, bell count matches, theme-switch crossfade clean. Deferred to 18-19's blocking GATE-02 pass. | open |  | 2026-08-11T02:11:30.945Z |  |
 | 34 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml |  | 18-12 Task 1 human-check deferred: live wheel-scroll on audio entry vs wpctl get-volume, both bounds — running quickshell process predates this plan's code | open |  | 2026-08-11T02:24:38.777Z |  |
 | 35 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/BrightnessBackend.qml |  | 18-12 Task 2 human-check deferred: repoint deviceClass to leds, confirm hot-reload renders real percentage, scroll, revert, vertical orientation — running quickshell process predates this plan's code | open |  | 2026-08-11T02:24:38.864Z |  |
 | 36 | 18 | lint-warning | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml | 117 | Pre-existing untokened color: (cellItem.tint) from 18-11, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12) | open |  | 2026-08-11T02:24:38.953Z |  |
-| 37 | 18 | lint-warning | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml | 241 | Pre-existing untokened color: ("transparent") from 18-10, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12) | open |  | 2026-08-11T02:24:39.043Z |  |
+| 37 | 18 | lint-warning | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml | 241 | Pre-existing untokened color: ("transparent") from 18-10, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12) | fixed | resolved by deletion of TrayCapsule.qml in phase 18.1 (D-15) — the subject file no longer exists | 2026-08-11T02:24:39.043Z | 2026-08-11T14:47:35.113Z |
 | 38 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/SectionPopout.qml |  | 18-13 Task 1 human-check not run this session: click-to-open live rendering, hyprctl y=50 confirmation, volume slider moving real system volume, click-outside destruction, 18-12 scroll gesture survival, vertical-orientation placement — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.664Z |  |
 | 39 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/PopoutController.qml |  | 18-13 Task 2 human-check not run this session: felt 400ms dwell, bar-sweep-opens-nothing proof, diagonal-move-survives-the-gap, pin/Escape/click-outside cycle, no-keystroke-theft typing proof — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.772Z |  |
 | 40 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/AudioPopout.qml |  | 18-13 Task 3 human-check not run this session: foot-pill visual comparison against a dashboard panel's Advanced button, click-through to AudioPanel.qml, live pending/empty state provocation, theme-switch crossfade check — deferred (live quickshell process predates this plan's commits). | open |  | 2026-08-11T02:48:07.870Z |  |
@@ -425,10 +425,10 @@ last_updated: 2026-08-11T10:28:19.689Z
     "file": "quickshell/.config/quickshell/modules/bar/TrayCapsule.qml",
     "line": null,
     "description": "18-10 Task 2 live click-through on a real tray application's real menu row was NOT performed this session — no StatusNotifierWatcher existed on this host's session bus before this plan's Task 1 commit (waybar's athena layout deliberately removed its own tray module), and neither blueman-applet nor nm-applet registered a StatusNotifierItem even after quickshell began self-hosting the watcher. The implemented leaf-activation call (sendTriggered() on the concrete DBusMenuItem) is the highest-ranked candidate by static existence evidence (dbusmenu.hpp:97), not by live observation; RESEARCH.md Open Question 1 remains open pending a user-side click-through on real hardware with a real tray menu.",
-    "status": "open",
-    "reason": "",
+    "status": "fixed",
+    "reason": "resolved by deletion of TrayCapsule.qml in phase 18.1 (D-15) — the subject file no longer exists",
     "recorded_at": "2026-08-11T01:40:49.092Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-11T14:47:35.113Z"
   },
   {
     "id": 31,
@@ -437,10 +437,10 @@ last_updated: 2026-08-11T10:28:19.689Z
     "file": "quickshell/.config/quickshell/modules/bar/TrayCapsule.qml",
     "line": null,
     "description": "18-10 Task 3's acceptance criterion 'exactly one Rectangle {} in the file (the menu popup's own)' is unsatisfiable given Task 2's own explicit action text, which separately requires a 1px Colours.outline separator divider and a Colours.surface hover-tint background on menu rows — both need a Rectangle in plain QtQuick. Implemented per Task 2's semantic spec (menuSurface background + one separator-divider Rectangle declared once inside the row Repeater delegate + one hover-tint Rectangle declared once inside the same delegate = 3 Rectangle declaration sites in source), documented as a stale/self-contradictory acceptance-criteria text issue rather than distorting the UI to force a literal count of 1 — mirrors 18-05-SUMMARY.md's own Deviation precedent for this exact class of plan-text conflict.",
-    "status": "open",
-    "reason": "",
+    "status": "fixed",
+    "reason": "resolved by deletion of TrayCapsule.qml in phase 18.1 (D-15) — the subject file no longer exists",
     "recorded_at": "2026-08-11T01:41:17.168Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-11T14:47:35.113Z"
   },
   {
     "id": 32,
@@ -449,10 +449,10 @@ last_updated: 2026-08-11T10:28:19.689Z
     "file": "quickshell/.config/quickshell/modules/bar/TrayCapsule.qml",
     "line": null,
     "description": "18-10 GATE-02 B.5's full visual pass (icons actually rendering and looking correct in both orientations, menu opening and looking correct) was not human-eyeballed this session — no tray application successfully registered a StatusNotifierItem on this host (see the paired unrun-verify entry), so there was nothing to look at. Only the mechanical half was proven live this session: hyprctl reserved-zone and quickshell-bar layer-namespace readings across horizontal -> vertical -> horizontal with zero TrayCapsule.qml load errors at each step. Deferred to the user, same shape as 18-05's own D-18-31 deferral.",
-    "status": "open",
-    "reason": "",
+    "status": "fixed",
+    "reason": "resolved by deletion of TrayCapsule.qml in phase 18.1 (D-15) — the subject file no longer exists",
     "recorded_at": "2026-08-11T01:41:17.263Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-11T14:47:35.113Z"
   },
   {
     "id": 33,
@@ -509,10 +509,10 @@ last_updated: 2026-08-11T10:28:19.689Z
     "file": "quickshell/.config/quickshell/modules/bar/TrayCapsule.qml",
     "line": 241,
     "description": "Pre-existing untokened color: (\"transparent\") from 18-10, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12)",
-    "status": "open",
-    "reason": "",
+    "status": "fixed",
+    "reason": "resolved by deletion of TrayCapsule.qml in phase 18.1 (D-15) — the subject file no longer exists",
     "recorded_at": "2026-08-11T02:24:39.043Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-11T14:47:35.113Z"
   },
   {
     "id": 38,
