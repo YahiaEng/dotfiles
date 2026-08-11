@@ -33,9 +33,19 @@ clock, the session terminal, and nine idle terminals.
 
 | Term | Threshold | Measured |
 |---|---|---|
-| FPS floor | ≥ 60 fps under every condition | **UNMEASURED** — see below |
-| FPS target | at or near 165 fps | **UNMEASURED** — see below |
+| FPS floor | ≥ 60 fps under every condition | **PASS** ✅ — 0 of 81,261 render-loop iterations exceeded 16.67 ms during the overview drag; worst 12 ms (83.3 fps). Measured in Phase 18, `18-FRAME-RATE.md` |
+| FPS target | at or near 165 fps | **NOT RESOLVABLE** ⚠️ — distribution consistent with panel rate (sustained 159.3/s), but integer-ms bucketing swallows the 156.75 fps threshold and iteration counts are an upper bound on presentation. Not claimed as a pass. Measured in Phase 18, `18-FRAME-RATE.md` |
 | Shell CPU | under half of one core (< 50%) | **20.9% worst case** ✅ |
+
+> **2026-08-11 — the FPS terms were measured in Phase 18** (`18-FRAME-RATE.md`), closing
+> LEDGER-03. The instrument was **Qt's own render-timing output** (`QSG_RENDER_TIMING=1` with
+> `QSG_RENDER_LOOP=threaded`) against an instrumented quickshell instance — **not** the
+> compositor debug overlay described in the section below, which was **never retried**. Five
+> conditions were exercised at OVER-04's own load floor (8 mapped windows across 5 workspaces,
+> overview reporting 8 live captures): bar idle, bar reveal/re-hide, overview at rest, overview
+> over a fullscreen client, and a human-driven overview drag. The floor passes; the target is
+> recorded as not resolvable with that instrument rather than as a pass. The section immediately
+> below is preserved as the record of why the terms went unmeasured at v3.0's close.
 
 ### Why the FPS terms are unmeasured, and why they were not retried
 
@@ -219,8 +229,9 @@ windows=12 workspaces=5
 ## VERDICT — OVER-04
 
 **INSIDE-BUDGET** — on the CPU term, which is the only term this host could measure
-safely. The FPS floor and target are recorded above as UNMEASURED, and this verdict
-does not claim them.
+safely at v3.0's close. The FPS floor was measured later, in Phase 18, and **passes**;
+the FPS target is recorded above as not resolvable with that instrument (see
+`18-FRAME-RATE.md`). This verdict, written at v3.0, claims neither.
 
 Shell CPU stays under half of one core under all three conditions, with the worst
 observed value — 20.9%, during a sustained drag with twelve windows across five
