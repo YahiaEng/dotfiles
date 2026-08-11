@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 40
+open_count: 42
 waived_count: 0
 fixed_count: 10
-total_count: 50
-last_updated: 2026-08-11T10:10:34.633Z
+total_count: 52
+last_updated: 2026-08-11T10:28:19.689Z
 ---
 
 # Broken Windows Ledger
@@ -65,6 +65,8 @@ last_updated: 2026-08-11T10:10:34.633Z
 | 48 | 18 | deviation | hypr/.config/hypr/scripts/bar-visibility.sh |  | 18-17 found and fixed live: qs ipc call bar show (no --) silently fails to invoke on quickshell 0.3.0's qs CLI (literal token 'show' collides with the ipc show subcommand); _ipc_call() now uses 'qs ipc call -- bar $verb'. Never live-tested before 18-17 (18-15-SUMMARY recorded the interactive round-trip as not performed). | fixed |  | 2026-08-11T10:09:37.777Z | 2026-08-11T10:10:14.135Z |
 | 49 | 18 | deviation | quickshell/.config/quickshell/modules/bar/BarReveal.qml |  | 18-17 found and fixed live: BarReveal.qml (18-16 Task 3) declares pragma Singleton and roots on the Singleton {} type but never imports Quickshell (the module that type comes from), so any real quickshell.service restart/reload since 18-16 landed failed with 'Singleton is not a type', taking down the whole bar. Fixed with a one-line import; verified clean on both a full systemd restart and a source-touch hot reload. | fixed |  | 2026-08-11T10:10:20.236Z | 2026-08-11T10:10:27.569Z |
 | 50 | 18 | deviation | hypr/.config/hypr/scripts/quickshell-doctor |  | 18-17 Task 2 acceptance criterion 'grep -cE ^\\s*trap  returns 1' is stale against pre-existing file state: quickshell-doctor already carried 3 trap lines (EXIT/INT/TERM, all invoking the single _qsd_cleanup) before this plan touched the file. Task 2 extended _qsd_cleanup's body only, installed no new trap statement — the real invariant (one cleanup function, one flag per mutation class) holds; the literal grep count does not and never could on this file. | open |  | 2026-08-11T10:10:34.633Z |  |
+| 51 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-FRAME-RATE.md |  | LEDGER-03 frame-rate campaign (Task 1 of 18-18) deferred: full methodology and exact resume commands recorded in 18-FRAME-RATE.md, but no condition (C0-C4) was measured this session. Requires stopping quickshell.service to run an unsupervised QSG_RENDER_TIMING instance, and rearranging the live desktop to OVER-04's 8-window/3-workspace load floor (live check: only 4 windows/4 workspaces present). LEDGER-03 stays open; 16-OVER04-MEASUREMENT.md/PROJECT.md/MILESTONES.md not edited. | open |  | 2026-08-11T10:28:14.163Z |  |
+| 52 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak (Task 4 of 18-18) deferred: Task 3's aggregated inventory, pre-declared tolerances, and a real start capture (pid 737907, RSS 450424 KiB, wake rate 19.3429/sec and CPU rate 0.002476 cpu-sec/sec over a genuine 300s observation) are complete in 18-BAR-SOAK.md. Task 4's end capture, 200-cycle hide/reveal exercise, and verdict require at least 14400s of continued single-pid uptime with unchanged NRestarts, which cannot elapse within one session. Exact resume commands recorded in 18-BAR-SOAK.md Section five. QBAR-11 stays open; no verdict asserted. | open |  | 2026-08-11T10:28:19.689Z |  |
 
 ````json
 [
@@ -666,6 +668,30 @@ last_updated: 2026-08-11T10:10:34.633Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T10:10:34.633Z",
+    "resolved_at": null
+  },
+  {
+    "id": 51,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": ".planning/phases/18-qml-bar-retirement-machinery/18-FRAME-RATE.md",
+    "line": null,
+    "description": "LEDGER-03 frame-rate campaign (Task 1 of 18-18) deferred: full methodology and exact resume commands recorded in 18-FRAME-RATE.md, but no condition (C0-C4) was measured this session. Requires stopping quickshell.service to run an unsupervised QSG_RENDER_TIMING instance, and rearranging the live desktop to OVER-04's 8-window/3-workspace load floor (live check: only 4 windows/4 workspaces present). LEDGER-03 stays open; 16-OVER04-MEASUREMENT.md/PROJECT.md/MILESTONES.md not edited.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T10:28:14.163Z",
+    "resolved_at": null
+  },
+  {
+    "id": 52,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": ".planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md",
+    "line": null,
+    "description": "QBAR-11 soak (Task 4 of 18-18) deferred: Task 3's aggregated inventory, pre-declared tolerances, and a real start capture (pid 737907, RSS 450424 KiB, wake rate 19.3429/sec and CPU rate 0.002476 cpu-sec/sec over a genuine 300s observation) are complete in 18-BAR-SOAK.md. Task 4's end capture, 200-cycle hide/reveal exercise, and verdict require at least 14400s of continued single-pid uptime with unchanged NRestarts, which cannot elapse within one session. Exact resume commands recorded in 18-BAR-SOAK.md Section five. QBAR-11 stays open; no verdict asserted.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T10:28:19.689Z",
     "resolved_at": null
   }
 ]
