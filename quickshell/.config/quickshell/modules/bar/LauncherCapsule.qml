@@ -17,11 +17,13 @@
 // (c) The launch command is built from repo literals; the desktop-entry
 //     database is read for presentation only (icon + name), never for
 //     command construction.
-// (d) Expansion is click-driven here, with public entry points, because
-//     the hover contract — the settle-and-move suppression latch, the
-//     dwell and the leave grace — is owned by 18-13. A second, unlatched
-//     hover trigger built now is exactly the bug D-18-19 exists to
-//     prevent.
+// (d) Expansion is HOVER-driven as of Phase 18.1 Plan 05 (D-16/D-17/D-18),
+//     replacing the click toggle this file originally shipped. Both hover
+//     sources (the trigger cell and the drawer strip) report through the
+//     single `reportDrawerHover` entry point below, so exactly one
+//     implementation of the hover contract exists in this file — never a
+//     second, unlatched hover trigger, which is exactly the bug D-18-19
+//     warned against under the prior click-driven design.
 import QtQuick
 import QtQuick.Controls
 import Quickshell
@@ -61,10 +63,9 @@ BarCapsule {
     // icon on this bar shares one pitch.
     readonly property int cellPitch: Design.iconSizeMd + Design.spacingXs * 2
 
-    // ── The public drawer seam — 18-13 attaches its hover contract to
-    //    exactly these three names. No dwell timer, no grace timer and
-    //    no hover-driven expansion exist in this file, so exactly one
-    //    implementation of that contract will ever exist. ──────────────
+    // ── The public drawer seam — the hover contract below (Phase 18.1
+    //    Plan 05, D-16/D-17/D-18) is the one and only implementation
+    //    driving these three names. ─────────────────────────────────────
     property bool expanded: false
     function requestExpand() {
         launcherCapsule.expanded = true;
@@ -79,6 +80,80 @@ BarCapsule {
     // consumes, whichever of its two options is taken. Computed from the
     // cell count and pitch, not hard-coded.
     readonly property int expandedCrossExtent: launcherCapsule.appEntries.length * launcherCapsule.cellPitch + (launcherCapsule.appEntries.length - 1) * Design.spacingXs
+
+    // ── Hover-reveal (Phase 18.1 Plan 05, D-16/D-17/D-18) — the drawer's
+    //    ONE hover contract. Both hover sources (the trigger cell and the
+    //    drawer strip, wired below) report through `reportDrawerHover`
+    //    into the same `drawerHoverActive` boolean, so the pointer
+    //    travelling from the trigger to the strip never reads as a clean
+    //    exit — a per-surface boolean would defeat the grace timer below
+    //    before it ever ran. The settledness read below reads Bar.qml's
+    //    own live rendered/transitioning state through the shared
+    //    `QsWindow.window` handle (the same reachable path
+    //    `barIdleInhibitor`'s `window: QsWindow.window` binding already
+    //    proves live in ClockActionsCapsule.qml) — deliberately NOT the
+    //    reveal-machine singleton's own dead settled latch (D-26 fences
+    //    that one out by name). This file writes to no reveal-machine
+    //    state at all: the bar's own whole-content hover handler already
+    //    spans the area the drawer expands inside, so the bar's own
+    //    re-hide grace already covers an open drawer with zero new
+    //    wiring. ────────────────────────────────────────────────────────
+    property bool _triggerHovered: false
+    property bool _stripHovered: false
+    property bool drawerHoverActive: false
+    function reportDrawerHover(source, entered) {
+        if (source === "trigger")
+            launcherCapsule._triggerHovered = entered;
+        else if (source === "strip")
+            launcherCapsule._stripHovered = entered;
+        launcherCapsule.drawerHoverActive = launcherCapsule._triggerHovered || launcherCapsule._stripHovered;
+    }
+
+    readonly property bool drawerSettled: QsWindow.window ? (QsWindow.window.barRendered && !QsWindow.window.barTransitionRunning) : false
+
+    onDrawerHoverActiveChanged: {
+        if (launcherCapsule.drawerHoverActive) {
+            drawerGraceTimer.stop();
+            drawerDwellTimer.restart();
+        } else {
+            drawerDwellTimer.stop();
+            drawerGraceTimer.restart();
+        }
+    }
+
+    // A drawer that survived into a hidden bar would reappear expanded on
+    // the next reveal — QBAR-07's boundary case. Collapse immediately,
+    // with no grace, the moment the bar stops being settled.
+    onDrawerSettledChanged: {
+        if (!launcherCapsule.drawerSettled && launcherCapsule.expanded) {
+            drawerDwellTimer.stop();
+            drawerGraceTimer.stop();
+            launcherCapsule.requestCollapse();
+        }
+    }
+
+    Timer {
+        id: drawerDwellTimer
+        interval: Design.popoutDwellMs
+        repeat: false
+        onTriggered: {
+            // Re-evaluated at FIRE time, not only at arm time: a dwell
+            // armed while the bar was up must not open a drawer into a
+            // bar that began hiding moments later.
+            if (launcherCapsule.drawerHoverActive && launcherCapsule.drawerSettled)
+                launcherCapsule.requestExpand();
+        }
+    }
+
+    Timer {
+        id: drawerGraceTimer
+        interval: Design.popoutDismissGraceMs
+        repeat: false
+        onTriggered: {
+            if (!launcherCapsule.drawerHoverActive)
+                launcherCapsule.requestCollapse();
+        }
+    }
 
     // ── One drawer cell — the tray's own cell geometry, reused. ────────
     component LauncherCell: Item {
@@ -199,9 +274,9 @@ BarCapsule {
             color: launcherCapsule.contentColour
         }
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: launcherCapsule.expanded ? launcherCapsule.requestCollapse() : launcherCapsule.requestExpand()
+        HoverHandler {
+            id: triggerHoverHandler
+            onHoveredChanged: launcherCapsule.reportDrawerHover("trigger", triggerHoverHandler.hovered)
         }
     }
 
@@ -242,6 +317,11 @@ BarCapsule {
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
             }
+        }
+
+        HoverHandler {
+            id: stripHoverHandler
+            onHoveredChanged: launcherCapsule.reportDrawerHover("strip", stripHoverHandler.hovered)
         }
 
         Grid {
