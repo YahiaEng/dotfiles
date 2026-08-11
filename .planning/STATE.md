@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18.1
 current_phase_name: qml-bar-athena-restoration
 status: executing
-stopped_at: Completed 18.1-04-PLAN.md
-last_updated: "2026-08-11T14:52:03.103Z"
+stopped_at: Completed 18.1-05-PLAN.md
+last_updated: "2026-08-11T15:03:57.813Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 27
-  completed_plans: 22
+  completed_plans: 23
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18.1 (qml-bar-athena-restoration) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
-Progress: [████████░░] 81%
+Progress: [█████████░] 85%
 Last activity: 2026-08-11 — Phase 18.1 execution started
 
 ## Performance Metrics
@@ -212,6 +212,7 @@ Last activity: 2026-08-11 — Phase 18.1 execution started
 | Phase 18.1 P02 | ~17min (continuation) | 3 tasks | 3 files |
 | Phase 18.1 P03 | ~20min | 3 tasks | 2 files |
 | Phase 18.1 P04 | ~25min | 2 tasks | 6 files |
+| Phase 18.1 P05 | ~30min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -452,6 +453,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18.1-04: TrayCapsule.qml (30K) deleted with all four code-level consumers under D-15; live sweep matched RESEARCH's five-point checklist exactly, no extra references found
 - [Phase ?]: 18.1-04: QBAR-05 recorded Withdrawn (superseded by D-15) in both REQUIREMENTS.md locations, citing Athena's tray drop (nm-applet/blueman icon duplication with the connections group); no other requirement's status moved
 - [Phase ?]: 18.1-04: WINDOWS.md rows 30/31/32/37 closed status=fixed (not the plan's literal 'resolved', which is outside the ledger tool's validated status enum) with a reason column naming deletion-by-D-15 as the true closure cause, never a claimed-performed verification; frontmatter counts cross-checked against gsd-tools' own live recount
+- [Phase ?]: 18.1-05: Both hover sources (trigger+strip) feed one drawerHoverActive boolean via one reportDrawerHover entry point, so the trigger-to-drawer pointer transit never reads as a clean exit
+- [Phase ?]: 18.1-05: drawerSettled reads Bar.qml's live barRendered/barTransitionRunning via QsWindow.window, never PopoutController.barSettled (dead latch) and never writes to BarReveal — the bar's own hover handler already covers an open drawer
+- [Phase ?]: 18.1-05: click toggle fully replaced (not layered) by hover-reveal on both drawer triggers, matching D-16 and Athena's own hover-only group drawers
+- [Phase ?]: 18.1-05: Task 3's four integration legs established via source assertion (no synthetic pointer-input tool on host); WINDOWS.md rows 54-56 filed, deferred to 18.1-07 GATE-02
 
 ### Quick Tasks Completed
 
@@ -582,8 +587,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T14:52:03.085Z
-Stopped at: Completed 18.1-04-PLAN.md
+Last session: 2026-08-11T15:03:57.791Z
+Stopped at: Completed 18.1-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
