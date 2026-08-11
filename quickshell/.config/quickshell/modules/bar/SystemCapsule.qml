@@ -156,9 +156,12 @@ BarCapsule {
     // retired bar polled its update-check command every 15 seconds from a
     // dismissible widget; this surface never dismisses, so an inherited
     // 15-second cadence would run that same command roughly 5,700 times a
-    // day against public package-mirror infrastructure from one desktop.
-    // Thirty minutes below is four runs an hour instead of two hundred and
-    // forty.
+    // day (240 an hour) against public package-mirror infrastructure from
+    // one desktop. Thirty minutes below is two runs an hour — 48 a day —
+    // a fivefold-per-day reduction from the number the retired module
+    // carried (the plan text this file was built from said "four runs an
+    // hour"; the arithmetic for a 1,800,000ms/30-minute interval is two,
+    // corrected here and recorded in the SUMMARY as a Rule 1 fix).
     readonly property string updatesCheckCommand: "checkupdates"
     readonly property int updatesPollIntervalMs: 1800000
     property int pendingUpdatesCount: 0
