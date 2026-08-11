@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 25
+open_count: 29
 waived_count: 0
 fixed_count: 8
-total_count: 33
-last_updated: 2026-08-11T02:11:30.945Z
+total_count: 37
+last_updated: 2026-08-11T02:24:39.043Z
 ---
 
 # Broken Windows Ledger
@@ -48,6 +48,10 @@ last_updated: 2026-08-11T02:11:30.945Z
 | 31 | 18 | deviation | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 Task 3's acceptance criterion 'exactly one Rectangle {} in the file (the menu popup's own)' is unsatisfiable given Task 2's own explicit action text, which separately requires a 1px Colours.outline separator divider and a Colours.surface hover-tint background on menu rows — both need a Rectangle in plain QtQuick. Implemented per Task 2's semantic spec (menuSurface background + one separator-divider Rectangle declared once inside the row Repeater delegate + one hover-tint Rectangle declared once inside the same delegate = 3 Rectangle declaration sites in source), documented as a stale/self-contradictory acceptance-criteria text issue rather than distorting the UI to force a literal count of 1 — mirrors 18-05-SUMMARY.md's own Deviation precedent for this exact class of plan-text conflict. | open |  | 2026-08-11T01:41:17.168Z |  |
 | 32 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 GATE-02 B.5's full visual pass (icons actually rendering and looking correct in both orientations, menu opening and looking correct) was not human-eyeballed this session — no tray application successfully registered a StatusNotifierItem on this host (see the paired unrun-verify entry), so there was nothing to look at. Only the mechanical half was proven live this session: hyprctl reserved-zone and quickshell-bar layer-namespace readings across horizontal -> vertical -> horizontal with zero TrayCapsule.qml load errors at each step. Deferred to the user, same shape as 18-05's own D-18-31 deferral. | open |  | 2026-08-11T01:41:17.263Z |  |
 | 33 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml |  | D-18-31/GATE-02 human render-gate check for 18-11 not performed by executor (human_verify_mode: end-of-phase) — both drawers open/act, both orientation reach paths, all four extras visible, no literal-text glyph, idle inhibitor genuinely suppresses idle, bell count matches, theme-switch crossfade clean. Deferred to 18-19's blocking GATE-02 pass. | open |  | 2026-08-11T02:11:30.945Z |  |
+| 34 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml |  | 18-12 Task 1 human-check deferred: live wheel-scroll on audio entry vs wpctl get-volume, both bounds — running quickshell process predates this plan's code | open |  | 2026-08-11T02:24:38.777Z |  |
+| 35 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/BrightnessBackend.qml |  | 18-12 Task 2 human-check deferred: repoint deviceClass to leds, confirm hot-reload renders real percentage, scroll, revert, vertical orientation — running quickshell process predates this plan's code | open |  | 2026-08-11T02:24:38.864Z |  |
+| 36 | 18 | lint-warning | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml | 117 | Pre-existing untokened color: (cellItem.tint) from 18-11, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12) | open |  | 2026-08-11T02:24:38.953Z |  |
+| 37 | 18 | lint-warning | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml | 241 | Pre-existing untokened color: ("transparent") from 18-10, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12) | open |  | 2026-08-11T02:24:39.043Z |  |
 
 ````json
 [
@@ -445,6 +449,54 @@ last_updated: 2026-08-11T02:11:30.945Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T02:11:30.945Z",
+    "resolved_at": null
+  },
+  {
+    "id": 34,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml",
+    "line": null,
+    "description": "18-12 Task 1 human-check deferred: live wheel-scroll on audio entry vs wpctl get-volume, both bounds — running quickshell process predates this plan's code",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T02:24:38.777Z",
+    "resolved_at": null
+  },
+  {
+    "id": 35,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/BrightnessBackend.qml",
+    "line": null,
+    "description": "18-12 Task 2 human-check deferred: repoint deviceClass to leds, confirm hot-reload renders real percentage, scroll, revert, vertical orientation — running quickshell process predates this plan's code",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T02:24:38.864Z",
+    "resolved_at": null
+  },
+  {
+    "id": 36,
+    "kind": "lint-warning",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml",
+    "line": 117,
+    "description": "Pre-existing untokened color: (cellItem.tint) from 18-11, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T02:24:38.953Z",
+    "resolved_at": null
+  },
+  {
+    "id": 37,
+    "kind": "lint-warning",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/TrayCapsule.qml",
+    "line": 241,
+    "description": "Pre-existing untokened color: (\"transparent\") from 18-10, found by 18-12's file-wide colour-token gate but out of scope (not touched by 18-12)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T02:24:39.043Z",
     "resolved_at": null
   }
 ]

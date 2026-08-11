@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-11-PLAN.md
-last_updated: "2026-08-11T02:13:36.074Z"
+stopped_at: Completed 18-12-PLAN.md
+last_updated: "2026-08-11T02:24:55.632Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 12 of 20
+Plan: 13 of 20
 Status: Ready to execute
-Progress: [██████░░░░] 55%
+Progress: [██████░░░░] 60%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -203,6 +203,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P09 | ~20min | 3 tasks | 1 files |
 | Phase 18 P10 | ~30min | 3 tasks | 2 files |
 | Phase 18 P11 | ~30min | 3 tasks | 4 files |
+| Phase 18 P12 | ~35min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -421,6 +422,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-11: NotificationSource's Process children attach via explicit property list<QtObject>, not default property — QtObject has no default property, found live via quickshell hot-reload
 - [Phase ?]: 18-11: DesktopEntries.byId() wants the bare identifier with no .desktop suffix, confirmed via a throwaway qs -p probe against quickshell 0.3.0-2
 - [Phase ?]: 18-11: vertical-orientation drawer host (D-18-11's leftward strip) raised to the orchestrator, not resolved this execution — Bar.qml/BarDrawer.qml scope correction outstanding
+- [Phase ?]: 18-12: brightnessctl --class/--device long-form flags used instead of -c/-d to avoid colliding with the file's own no-interpreter -c-flag security gate
+- [Phase ?]: 18-12: GATE-02 B.3 brightness half recorded as 'not demonstrable on this hardware — structurally present' in 18-SCROLL-GATE-RECORD.md, never as a pass
 
 ### Quick Tasks Completed
 
@@ -549,8 +552,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T02:13:36.057Z
-Stopped at: Completed 18-11-PLAN.md
+Last session: 2026-08-11T02:24:55.608Z
+Stopped at: Completed 18-12-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

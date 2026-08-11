@@ -14,7 +14,7 @@
 - [x] **QBAR-01**: The bar renders as a permanently-mounted surface that reserves its own screen space, in Athena's rounded-capsule visual language
 - [x] **QBAR-02**: One bar component switches between a horizontal top strip and a **right-edge** vertical column from config — orientation is a property of a config-driven entry list, not a forked second layout. Replaces all four current waybar layouts.
 - [ ] **QBAR-03**: User can click a workspace indicator to switch to that workspace (restores the capability dead under waybar 0.15.0's compiled-in dispatch)
-- [ ] **QBAR-04**: User can scroll on the bar's audio and brightness sections to adjust them
+- [x] **QBAR-04**: User can scroll on the bar's audio and brightness sections to adjust them
 - [x] **QBAR-05**: The system tray shows running tray applications and their menus open on click
 - [x] **QBAR-06**: The bar shows clock, battery, network, bluetooth, audio and CPU/RAM/disk readouts
 - [ ] **QBAR-07**: The bar auto-hides **fully** (never a persistent sliver — OLED constraint) driven by idle, fullscreen, gaming mode and a keybind, with exactly one owner of visibility state
@@ -126,7 +126,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QBAR-01 | Phase 18 | Complete |
 | QBAR-02 | Phase 18 | Complete |
 | QBAR-03 | Phase 18 | Pending |
-| QBAR-04 | Phase 18 | Pending |
+| QBAR-04 | Phase 18 | Complete |
 | QBAR-05 | Phase 18 | Complete |
 | QBAR-06 | Phase 18 | Complete |
 | QBAR-07 | Phase 18 | Pending |
