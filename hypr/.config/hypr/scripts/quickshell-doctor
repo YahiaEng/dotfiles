@@ -47,11 +47,27 @@
 # line and in the inline "reserved-space stays unclaimed" check further
 # down. Recorded here once so a future reader does not repeat that trip.
 #
-# Usage: quickshell-doctor [--no-summon] [--no-headless-output] [--no-panel-checks] [--self-test]
+# Usage: quickshell-doctor [--no-summon] [--no-headless-output] [--no-panel-checks] [--with-compositor-reload] [--self-test]
 #   --no-summon           Downgrade the transient summon-and-diff
 #                         reserved-space check to a named [SKIP] line, for
 #                         a headless/CI context where dispatching a
 #                         GlobalShortcut has no compositor to land on.
+#   --with-compositor-reload  18-17's first OPT-IN flag (every other flag
+#                         here is an opt-OUT of something safe-by-default;
+#                         this one enables something hazardous-by-default,
+#                         and the polarity is deliberately inverted so no
+#                         casual run pays this cost). Runs a live `hyprctl
+#                         reload` as part of bar-reserved-zone-stability's
+#                         compositor-reload half. On this Lua-parser build
+#                         a reload is known to interact badly with this
+#                         repo's `^quickshell-.*` layer rules (RESEARCH.md
+#                         Pitfall 4 territory) — the check restores them by
+#                         replaying windowrules.lua's own quickshell rules
+#                         through `hyprctl eval` and RESTARTS the shell
+#                         (rules bind at surface map time, so a replay
+#                         alone changes nothing on an already-mapped
+#                         surface). Off by default: prints
+#                         "compositor-reload=SKIPPED" and never a pass.
 #   --no-headless-output  Downgrade the QS-03 headless-output hotplug
 #                         group (add / per-screen surface creation /
 #                         reserved-unchanged / remove) to named [SKIP]
@@ -133,11 +149,17 @@ NO_SUMMON=0
 NO_HEADLESS_OUTPUT=0
 NO_PANEL_CHECKS=0
 SELF_TEST=0
+# 18-17: this file's first OPT-IN flag (every flag above downgrades a
+# check that is safe by default; this one enables a compositor mutation
+# that is not) — deliberately inverted polarity, default off, see the
+# usage block above for the full cost.
+WITH_COMPOSITOR_RELOAD=0
 for arg in "$@"; do
     case "$arg" in
         --no-summon) NO_SUMMON=1 ;;
         --no-headless-output) NO_HEADLESS_OUTPUT=1 ;;
         --no-panel-checks) NO_PANEL_CHECKS=1 ;;
+        --with-compositor-reload) WITH_COMPOSITOR_RELOAD=1 ;;
         --self-test) SELF_TEST=1 ;;
     esac
 done
@@ -1147,6 +1169,114 @@ _qsd_expected_extent() {
     esac
 }
 
+# ── 18-17 Task 2 (QBAR-12, opt-in) — windowrules.lua quickshell layer-rule
+#    extractor, replay grammar gate, and restore. The one code-execution
+#    sink this plan introduces (T-18-17-03): text read from a repo file is
+#    replayed as a Lua expression into the running compositor, so every
+#    line is validated against a strict single-call grammar before it can
+#    ever reach `hyprctl eval`, and each accepted line is passed as its
+#    own argv element — never concatenated into a shell string. ─────────
+
+# Candidate lines — broad on purpose, so a malformed/injected attempt is
+# still captured for the validator to judge and count, not silently
+# filtered out before the assertion ever sees it. Comment lines (Lua `--`)
+# are excluded here so a header note merely mentioning these words is
+# never mistaken for a declaration.
+_qsd_windowrules_candidates() {
+    local path="$1" raw trimmed
+    while IFS= read -r raw; do
+        trimmed="${raw#"${raw%%[![:space:]]*}"}"
+        trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+        [[ -z "$trimmed" ]] && continue
+        [[ "$trimmed" == --* ]] && continue
+        [[ "$trimmed" == *layer_rule* && "$trimmed" == *quickshell* ]] || continue
+        printf '%s\n' "$trimmed"
+    done < <(cat -- "$path" 2>/dev/null)
+}
+
+# Strict single-call grammar: exactly one complete, balanced
+# `hl.layer_rule({ ... })` call, nothing before or after it, no statement
+# separator, no comment marker, no second function call, no shell
+# metacharacter, no embedded newline (read one line at a time, so this is
+# structural rather than checked here).
+_qsd_valid_layer_rule_call() {
+    local line="$1"
+    [[ "$line" =~ ^hl\.layer_rule\(.*\)$ ]] || return 1
+    case "$line" in
+        *';'*) return 1 ;;
+        *'--'*) return 1 ;;
+        *'`'*) return 1 ;;
+        *'$('*) return 1 ;;
+        *'|'*) return 1 ;;
+        *'&'*) return 1 ;;
+        *'>'*) return 1 ;;
+        *'<'*) return 1 ;;
+    esac
+    local calls
+    calls=$(grep -oE '[A-Za-z_][A-Za-z0-9_.]*\(' <<<"$line" | wc -l)
+    [[ "$calls" -eq 1 ]] || return 1
+    local opens closes popen pclose
+    opens=$(grep -o '{' <<<"$line" | wc -l)
+    closes=$(grep -o '}' <<<"$line" | wc -l)
+    [[ "$opens" -eq "$closes" && "$opens" -ge 1 ]] || return 1
+    popen=$(grep -o '(' <<<"$line" | wc -l)
+    pclose=$(grep -o ')' <<<"$line" | wc -l)
+    [[ "$popen" -eq "$pclose" && "$popen" -ge 1 ]] || return 1
+    return 0
+}
+
+# Pure function: emits every VALID quickshell layer-rule call, one per
+# line, in the file's OWN declared order — never sorted, filtered by
+# anything other than validity, or deduplicated. Order is load-bearing:
+# `windowrules.lua`'s own comments record that a per-surface rule
+# contradicting the `^quickshell-.*` family regex is silently inert if
+# replayed before it.
+_qsd_extract_quickshell_layer_rules() {
+    local path="$1" cand
+    while IFS= read -r cand; do
+        _qsd_valid_layer_rule_call "$cand" && printf '%s\n' "$cand"
+    done < <(_qsd_windowrules_candidates "$path")
+}
+
+# Reports "candidates=N accepted=M rejected=R" — R is the whole point of
+# the injection fixture: a rejection is a check failure, not a line to
+# silently pass over.
+_qsd_windowrules_extraction_report() {
+    local path="$1" candidates accepted
+    candidates=$(_qsd_windowrules_candidates "$path" | grep -c . || true)
+    accepted=$(_qsd_extract_quickshell_layer_rules "$path" | grep -c . || true)
+    printf 'candidates=%s accepted=%s rejected=%s' "$candidates" "$accepted" "$((candidates - accepted))"
+}
+
+# Trap-invoked restore (T-11-11: called only via the EXIT/INT/TERM trap
+# above, never inline). Replays every extracted rule through `hyprctl
+# eval`, each as its own argv element via a line-continuation split (never
+# a constructed shell string — the extracted text never sits adjacent to
+# a bash `eval` or a `sh -c`), THEN restarts the shell through 18-07's
+# systemd unit. The restart is not an afterthought: layer rules bind at
+# surface map time, so replaying a rule against an already-mapped surface
+# changes nothing on it — a restore that stopped at the replay would leave
+# the desktop exactly as broken as the reload left it while appearing to
+# have fixed it (recorded from this host's own session evidence, not from
+# documentation — layer-rule effects carry no `hyprctl` readback on this
+# build, so nothing here is claimed as mechanically verified; see the
+# compositor-reload check body below for the human half of this proof).
+_qsd_restore_quickshell_layer_rules() {
+    local wr_path rule_line
+    wr_path=$(_qsd_windowrules_lua_path)
+    while IFS= read -r rule_line; do
+        [[ -z "$rule_line" ]] && continue
+        hyprctl eval \
+            "$rule_line" >/dev/null 2>&1
+    done < <(_qsd_extract_quickshell_layer_rules "$wr_path")
+    systemctl --user restart quickshell.service >/dev/null 2>&1
+    local attempt
+    for ((attempt = 0; attempt < 60; attempt++)); do
+        sleep 0.25
+        pgrep -f 'quickshell -p' >/dev/null 2>&1 && break
+    done
+}
+
 _qsd_check_bar_reserved_zone_stability() {
     if ! command -v jq >/dev/null 2>&1 || ! command -v hyprctl >/dev/null 2>&1; then
         echo "  [SKIP] bar-reserved-zone-stability (QBAR-12): jq or hyprctl not found"
@@ -1188,10 +1318,36 @@ _qsd_check_bar_reserved_zone_stability() {
     sleep 0.3
     post=$(_qsd_monitors_json)
     "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
-    BAR_STABILITY_TOGGLE_PENDING=0
     sleep 0.3
-    local restored_status
+
+    # ── Restore verification, bounded retry (T-18-17 live finding, this
+    #    host): bar-visibility.sh status is computed purely from local
+    #    intent files, never from a live readback of the shell it
+    #    actuates — it can report "visible" even when the underlying `qs
+    #    ipc call bar show` silently failed to reach the target (recorded
+    #    in this plan's SUMMARY: a `qs` 0.3.0 CLI argument-parsing quirk
+    #    where the literal token "show" collides with the `ipc show`
+    #    subcommand one level up, out of this plan's scope to fix —
+    #    bar-visibility.sh is 18-15's and explicitly untouched here).
+    #    "MUST NOT leave the machine worse than the diagnostic found it"
+    #    is enforced here rather than assumed: verify the reservation
+    #    actually matches the pre-toggle reading, and if not, retry
+    #    through ADDITIONAL PAIRS of the same keybind-toggle verb this
+    #    check is scoped to — never a third verb, never a raw IPC call. A
+    #    single stray extra toggle would flip the override the wrong way;
+    #    only a PAIR returns it to "show" again. ─────────────────────────
+    local restore_pair_attempt
+    for ((restore_pair_attempt = 0; restore_pair_attempt < 3; restore_pair_attempt++)); do
+        [[ "$(_qsd_monitors_json)" == "$pre" ]] && break
+        "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
+        sleep 0.3
+        "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
+        sleep 0.3
+    done
+    BAR_STABILITY_TOGGLE_PENDING=0
+    local restored_status restore_verified=0
     restored_status=$("$BAR_VISIBILITY_SH" status 2>/dev/null)
+    [[ "$(_qsd_monitors_json)" == "$pre" ]] && restore_verified=1
 
     local diff_res set_changed axes_changed axis delta
     diff_res=$(_qsd_reservation_diff "$pre" "$post")
@@ -1254,18 +1410,62 @@ _qsd_check_bar_reserved_zone_stability() {
         hot_reload_label="bar-source-not-found"
     fi
 
-    # Compositor-reload half — Task 2 (18-17) fills this in behind its own
-    # opt-in flag; until then it reads as not-run and never contributes a
-    # pass.
-    local compositor_reload_label="not-run"
+    # ── Compositor-reload half (18-17 Task 2, opt-in) — off by default:
+    #    prints as skipped, names the flag that enables it, and never
+    #    contributes a pass on this branch. On: exercises the one
+    #    documented hazard in this file (T-18-17-02), restores
+    #    unconditionally afterward (no readback exists to assert on, so
+    #    there is nothing to condition the restore on), and reports into
+    #    this same single line. ─────────────────────────────────────────
+    local compositor_reload_label="SKIPPED (enable with --with-compositor-reload)"
+    local compositor_reload_relevant=0 compositor_reload_ok=0
+    if [[ "$WITH_COMPOSITOR_RELOAD" -eq 1 ]]; then
+        compositor_reload_relevant=1
+        local comp_pre comp_post
+        comp_pre=$(_qsd_monitors_json)
+        COMPOSITOR_RULES_MAY_BE_DROPPED=1
+        hyprctl reload >/dev/null 2>&1
+        local comp_attempt comp_bar_back=0
+        for ((comp_attempt = 0; comp_attempt < 40; comp_attempt++)); do
+            sleep 0.25
+            if hyprctl layers -j 2>/dev/null | jq -e '[.[] | .levels? // {} | to_entries[] | .value[]? | select(.namespace=="quickshell-bar")] | length > 0' >/dev/null 2>&1; then
+                comp_bar_back=1
+                break
+            fi
+        done
+        comp_post=$(_qsd_monitors_json)
+        local comp_diff comp_set_changed comp_axes_changed
+        comp_diff=$(_qsd_reservation_diff "$comp_pre" "$comp_post")
+        comp_set_changed=$(printf '%s' "$comp_diff" | grep -oP 'set-changed=\K[0-9]+')
+        comp_axes_changed=$(printf '%s' "$comp_diff" | grep -oP 'axes-changed=\K[0-9]+')
+
+        # Restore unconditionally — always, not only when a drift was
+        # observed (T-18-17-02, backstop truth: whether a reload discards
+        # already-applied layer rules was never measured and cannot be,
+        # because layer-rule effects carry no `hyprctl` readback on this
+        # build; restoring unconditionally is the honest alternative to
+        # guessing).
+        _qsd_restore_quickshell_layer_rules
+        COMPOSITOR_RULES_MAY_BE_DROPPED=0
+
+        if [[ "$comp_bar_back" -eq 1 && "$comp_set_changed" == "0" && "$comp_axes_changed" == "0" ]]; then
+            compositor_reload_ok=1
+            compositor_reload_label="identical"
+        else
+            compositor_reload_ok=0
+            compositor_reload_label="drifted"
+        fi
+    fi
 
     local overall_rc=0
     [[ "$reservation_ok" -ne 1 ]] && overall_rc=1
     [[ "$restored_status" != "visible" ]] && overall_rc=1
+    [[ "$restore_verified" -ne 1 ]] && overall_rc=1
     [[ "$hot_reload_ok" -ne 1 ]] && overall_rc=1
     [[ "$manifest_rc" -ne 0 ]] && overall_rc=1
+    [[ "$compositor_reload_relevant" -eq 1 && "$compositor_reload_ok" -ne 1 ]] && overall_rc=1
 
-    check "bar-reserved-zone-stability (QBAR-12, replaces the D-16-23 reserved-array-manifest-coverage slot — one-reservation model: the bar's own reservation exists, is attributable, is stable): delta=${delta} axis=${axis} (0=left,1=top,2=right,3=bottom), expected=${expected_extent:-<n/a>} (source=Design.qml, parsed not restated), ${reservation_reason:-attributed and stable}, hot-reload=${hot_reload_label}, compositor-reload=${compositor_reload_label}, ${manifest_res} (preserved coverage), measured via bar-visibility.sh status / bar-visibility.sh keybind toggle" "$overall_rc"
+    check "bar-reserved-zone-stability (QBAR-12, replaces the D-16-23 reserved-array-manifest-coverage slot — one-reservation model: the bar's own reservation exists, is attributable, is stable): delta=${delta} axis=${axis} (0=left,1=top,2=right,3=bottom), expected=${expected_extent:-<n/a>} (source=Design.qml, parsed not restated), ${reservation_reason:-attributed and stable}, hot-reload=${hot_reload_label}, compositor-reload=${compositor_reload_label}, restore-verified=${restore_verified} (bounded-retry against a live readback, never trusting bar-visibility.sh status alone), ${manifest_res} (preserved coverage), measured via bar-visibility.sh status / bar-visibility.sh keybind toggle" "$overall_rc"
 }
 
 # ── check 4: permissions-enforce-readback ───────────────────────────────
@@ -1627,6 +1827,18 @@ run_self_test() {
     set_changed=$(printf '%s' "$diff_res" | grep -oP 'set-changed=\K[0-9]+')
     _qsd_st "poisoned-monitor-hotplug-bar-reserved-post.json -> bar-reserved-zone-stability reports a changed monitor set distinctly, never folded into a drift verdict (${diff_res})" "$([[ "$set_changed" == "1" ]] && echo 0 || echo 1)"
 
+    # 18-17 Task 2 (QBAR-12, opt-in --with-compositor-reload) — the
+    # windowrules.lua quickshell layer-rule extractor and its grammar
+    # gate (2 fixtures). Never touches the compositor or the shell.
+    local ext_report ext_order fixture_order
+    ext_report=$(_qsd_windowrules_extraction_report "$FIXTURES_DIR/compliant-quickshell-windowrules.lua")
+    _qsd_st "compliant-quickshell-windowrules.lua -> extractor accepts every quickshell layer-rule call, rejects nothing (${ext_report})" "$([[ "$ext_report" == "candidates=11 accepted=11 rejected=0" ]] && echo 0 || echo 1)"
+    ext_order=$(_qsd_extract_quickshell_layer_rules "$FIXTURES_DIR/compliant-quickshell-windowrules.lua")
+    fixture_order=$(_qsd_windowrules_candidates "$FIXTURES_DIR/compliant-quickshell-windowrules.lua")
+    _qsd_st "compliant-quickshell-windowrules.lua -> extraction preserves the fixture's own declared order byte-for-byte (order load-bearing: a per-surface override replayed before the family regex it contradicts would be silently inert)" "$([[ "$ext_order" == "$fixture_order" ]] && echo 0 || echo 1)"
+    ext_report=$(_qsd_windowrules_extraction_report "$FIXTURES_DIR/poisoned-injection-windowrules.lua")
+    _qsd_st "poisoned-injection-windowrules.lua -> extractor REJECTS the chained statement-separator/second-call line rather than silently passing over it (${ext_report})" "$([[ "$ext_report" == "candidates=2 accepted=1 rejected=1" ]] && echo 0 || echo 1)"
+
     # check 4: permissions-enforce-readback (2 fixtures).
     local raw
     raw=$(cat -- "$FIXTURES_DIR/compliant-hyprctl-getoption-enforce.txt")
@@ -1750,6 +1962,13 @@ OVERVIEW_SUMMONED=0
 # mutate-and-restore window, so an interrupt anywhere inside it leaves at
 # most one outstanding toggle for the trap below to undo.
 BAR_STABILITY_TOGGLE_PENDING=0
+# 18-17 Task 2 (QBAR-12, opt-in --with-compositor-reload path only): set
+# immediately before the live `hyprctl reload` call, cleared only after
+# BOTH the layer-rule reassertion and the shell restart have completed —
+# an interrupt mid-reload leaves this set so the trap still restores the
+# layer rules, even though nothing about a reload's own effect on them
+# can be read back on this build (record-why lives at the check site).
+COMPOSITOR_RULES_MAY_BE_DROPPED=0
 CLEANED_UP=0
 # shellcheck disable=SC2329 # invoked indirectly via `trap` below, not a direct call
 _qsd_cleanup() {
@@ -1789,6 +2008,10 @@ _qsd_cleanup() {
     if [[ "$BAR_STABILITY_TOGGLE_PENDING" -eq 1 ]]; then
         "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
         BAR_STABILITY_TOGGLE_PENDING=0
+    fi
+    if [[ "$COMPOSITOR_RULES_MAY_BE_DROPPED" -eq 1 ]]; then
+        _qsd_restore_quickshell_layer_rules
+        COMPOSITOR_RULES_MAY_BE_DROPPED=0
     fi
 }
 # EXIT alone covers normal completion; INT/TERM additionally terminate

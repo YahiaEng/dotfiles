@@ -243,9 +243,25 @@ _compute() {
 # actuation it replaces could never have had, because a signal returns
 # immediately regardless of whether anything is listening. Returns the
 # IPC call's own exit status; discards both output streams.
+#
+# T-18-17 finding (live-discovered, 18-17's own hot-reload/restore
+# verification — the interactive round-trip this repo's own 18-15-SUMMARY
+# recorded as NOT performed that session): on quickshell 0.3.0's `qs` CLI,
+# the literal positional argument "show" collides with the `ipc show`
+# subcommand one level up in CLI11's parser — `qs ipc call bar show`
+# (no `--`) silently falls back to printing the target's interface
+# listing instead of invoking the function, while still exiting 0. Every
+# OTHER verb (hideIdle/hideHard/status) is unaffected — only the literal
+# token "show" collides. Reproduced deterministically (100% across
+# repeated clean single-instance rounds), so this was never a timing
+# race. The `--` end-of-options separator is the fix CLI11 itself
+# provides for exactly this ambiguity, and it changes nothing about
+# WHICH function is called or how — still exactly one bounded call to
+# the SAME target/verb pair, still discards both streams, still returns
+# the call's own exit status.
 _ipc_call() {
     local verb="$1"
-    timeout 2 qs ipc call bar "$verb" >/dev/null 2>&1
+    timeout 2 qs ipc call -- bar "$verb" >/dev/null 2>&1
 }
 
 # ── Actuate the computed state ───────────────────────────────────────
