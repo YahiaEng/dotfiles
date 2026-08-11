@@ -362,24 +362,23 @@ BarCapsule {
         width: root.vertical ? root.drawerCellPitch : (root.audioDrawerExpanded ? root.audioStripExtent : 0)
         height: root.vertical ? (root.audioDrawerExpanded ? root.audioStripExtent : 0) : root.drawerCellPitch
 
-        // Asymmetric in/out — this repo's quick-to-leave grammar
-        // (LauncherCapsule's own stripHost Behaviors), reused rather than
-        // invented. 650ms — Design.barDrawerTransitionMs, upstream's own
-        // audio-drawer transition-duration (groups.jsonc).
+        // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
+        // directions, not this repo's semantic-motion emphasizedIn/Out
+        // bezier pair — see Design.barDrawerEasingType's own provenance
+        // comment. 650ms — Design.barDrawerTransitionMs, upstream's own
+        // audio-drawer transition-duration (groups.jsonc), unchanged.
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: root.audioDrawerExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                easing.type: Design.barDrawerEasingType
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: root.audioDrawerExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                easing.type: Design.barDrawerEasingType
             }
         }
 
@@ -750,20 +749,21 @@ BarCapsule {
         width: root.vertical ? root.drawerCellPitch : (root.connectionsDrawerExpanded ? root.connectionsStripExtent : 0)
         height: root.vertical ? (root.connectionsDrawerExpanded ? root.connectionsStripExtent : 0) : root.drawerCellPitch
 
+        // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
+        // directions — see Design.barDrawerEasingType's own provenance
+        // comment (audioStripHost above carries the full rationale).
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionFastMs
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: root.connectionsDrawerExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                easing.type: Design.barDrawerEasingType
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionFastMs
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: root.connectionsDrawerExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                easing.type: Design.barDrawerEasingType
             }
         }
 

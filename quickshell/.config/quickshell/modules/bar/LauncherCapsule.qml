@@ -296,23 +296,24 @@ BarCapsule {
         width: launcherCapsule.vertical ? launcherCapsule.cellPitch : (launcherCapsule.expanded ? launcherCapsule.expandedCrossExtent : 0)
         height: launcherCapsule.vertical ? (launcherCapsule.expanded ? launcherCapsule.expandedCrossExtent : 0) : launcherCapsule.cellPitch
 
-        // Asymmetric in/out — this repo's quick-to-leave grammar, reused
-        // rather than invented, for every dismissible surface's own
-        // expand/collapse.
+        // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
+        // directions, not this repo's semantic-motion emphasizedIn/Out
+        // bezier pair (that pairing is tuned for panel/dialog reveals and
+        // its acceleration is what the operator reported as "not smooth").
+        // Design.barDrawerEasingType (Easing.OutCubic) mimics Athena's own
+        // GTK transition exactly — see that token's own provenance comment.
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                easing.type: Design.barDrawerEasingType
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                easing.type: Design.barDrawerEasingType
             }
         }
 
@@ -348,42 +349,25 @@ BarCapsule {
                     width: launcherCapsule.cellPitch
                     height: launcherCapsule.cellPitch
 
+                    // GATE-02 round 4: a GTK Revealer never staggers or
+                    // fades its children individually and never translates
+                    // them on the cross axis — it is a single clip-based
+                    // slide of the CONTAINER, full stop. The former
+                    // per-cell opacity stagger (PauseAnimation keyed off
+                    // cellSlot.index) ran ON TOP of the 650ms container
+                    // animation above, which is what made the drawer take
+                    // far longer than Athena's 650ms to finish opening —
+                    // the operator's "slow" report. The former Translate's
+                    // cross-axis `y` offset is what made a cell (and, in
+                    // MediaConnectivityCapsule's sibling drawers, the
+                    // trigger) visibly shift on hover — removed outright,
+                    // not just zeroed, since a Translate left at y:0 is
+                    // still a per-frame transform Athena's own drawer has
+                    // no equivalent of. The stripHost's own clip:true is
+                    // what reveals this cell now — exactly like a Revealer.
                     LauncherCell {
                         anchors.fill: parent
                         entry: launcherCapsule.appEntries[cellSlot.index]
-
-                        // GATE-02 defect 3 — "expansion works but it is very
-                        // clunky and sudden". The container's width/height
-                        // Behaviors were already animating, but the cells inside
-                        // popped in at full opacity the instant the strip had
-                        // any width, so the reveal snapped regardless of how
-                        // smooth the container curve was. Each cell now fades
-                        // and rises into place, staggered by index.
-                        //
-                        // Stagger step is emphasizedIn/6 so the LAST cell still
-                        // lands inside the container's own animation window
-                        // rather than trailing after the drawer has opened.
-                        opacity: launcherCapsule.expanded ? 1 : 0
-                        transform: Translate {
-                            y: launcherCapsule.expanded ? 0 : Design.spacingXs
-                        }
-
-                        Behavior on opacity {
-                            enabled: Motion.motionEnabled
-                            SequentialAnimation {
-                                // Only opening staggers; closing leaves at once
-                                // — this repo's quick-to-leave grammar, the same
-                                // asymmetry the container Behaviors use.
-                                PauseAnimation {
-                                    duration: launcherCapsule.expanded ? cellSlot.index * Math.round(Design.barDrawerTransitionMs / 12) : 0
-                                }
-                                NumberAnimation {
-                                    duration: Design.barDrawerTransitionMs
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
-                                }
-                            }
-                        }
                     }
                 }
             }

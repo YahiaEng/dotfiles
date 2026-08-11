@@ -196,6 +196,19 @@ Singleton {
     //      500 — connections and tray
     readonly property int barDrawerTransitionMs: 650
     readonly property int barDrawerTransitionFastMs: 500
+    //    GATE-02 round 4: every bar drawer strip's width/height Behavior was
+    //    running Motion.emphasizedIn/OutEasing — a semantic-motion-layer
+    //    bezier tuned for panel/dialog reveals, with aggressive acceleration
+    //    that the operator reported as "not smooth"/"very rough". Athena's
+    //    own drawer is a GTK Revealer, whose slide transition is a plain
+    //    ease-out curve, not an emphasized in/out pair — one direction, one
+    //    shape, the whole time. Easing.OutCubic is Qt's built-in equivalent
+    //    (no bezier array, no Motion.qml round-trip needed since this is not
+    //    a theme-driven semantic token, just Qt's own enum), named here so
+    //    the four drawer strips (launcher, settings, audio, connections)
+    //    share one literal rather than repeating the enum value at each
+    //    call site.
+    readonly property int barDrawerEasingType: Easing.OutCubic
     //    Kept nonzero but small: a literal 0 makes the drawer fire on an
     //    incidental pointer transit across the trigger, which Athena avoids
     //    only because a waybar drawer is cheap to reopen. 80ms is below the

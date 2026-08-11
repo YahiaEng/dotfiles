@@ -642,47 +642,49 @@ BarCapsule {
         onRightClicked: notificationSource.toggleDnd()
     }
 
-    ActionCell {
-        id: settingsTriggerCell
-        glyph: "settings"
-        label: "Settings"
-        filled: clockActionsCapsule.settingsExpanded
-        // Athena colours the settings-drawer trigger glyph @accent
-        // unconditionally, not as a state indicator (style-athena.scss:298)
-        // — this is a permanent accent glyph, so no ternary.
-        tint: BarRoles.accent
-
-        HoverHandler {
-            id: settingsTriggerHoverHandler
-            onHoveredChanged: clockActionsCapsule.reportDrawerHover("trigger", settingsTriggerHoverHandler.hovered)
-        }
-    }
-
     // The settings strip — a Repeater over settingsAxes inside one
     // axis-bound Grid, the same rows/columns formula BarCapsule uses
     // internally, never a Row/Column pair. Carries the same flagged
     // vertical-orientation host gap Task 2's launcher strip carries — see
     // this plan's `## Scope correction required`.
+    //
+    // GATE-02 round 4: declared BEFORE settingsTriggerCell, not after —
+    // this capsule sits in the bar's END zone (anchors.right, Bar.qml),
+    // so a Grid's LAST child's right edge is what stays pinned to the
+    // window edge as the Grid's own width changes (the same Qt Quick Grid
+    // layout arithmetic MediaConnectivityCapsule.qml's audio/connections
+    // strips already rely on — see that file's own comment on
+    // audioStripHost for the full arithmetic). The FORMER order (trigger
+    // then strip) put the strip AFTER the trigger, so growing it pushed
+    // powerCell rightward while leaving the trigger's own screen position
+    // to drift with everything before it — the operator's "expands in the
+    // opposite direction". Declaring the strip first makes it grow
+    // LEFTWARD out of a fixed settingsTriggerCell, matching every other
+    // right-side drawer on this bar and upstream's own
+    // `transition-left-to-right: false` convention.
     Item {
         id: settingsStripHost
         clip: true
         width: clockActionsCapsule.vertical ? clockActionsCapsule.cellPitch : (clockActionsCapsule.settingsExpanded ? clockActionsCapsule.expandedCrossExtent : 0)
         height: clockActionsCapsule.vertical ? (clockActionsCapsule.settingsExpanded ? clockActionsCapsule.expandedCrossExtent : 0) : clockActionsCapsule.cellPitch
 
+        // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
+        // directions — see Design.barDrawerEasingType's own provenance
+        // comment for why the former Motion.emphasizedIn/Out bezier pair is
+        // gone (that pairing's acceleration was the operator's "not smooth"
+        // report).
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: clockActionsCapsule.settingsExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                easing.type: Design.barDrawerEasingType
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: clockActionsCapsule.settingsExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                easing.type: Design.barDrawerEasingType
             }
         }
 
@@ -704,6 +706,22 @@ BarCapsule {
                     axis: modelData
                 }
             }
+        }
+    }
+
+    ActionCell {
+        id: settingsTriggerCell
+        glyph: "settings"
+        label: "Settings"
+        filled: clockActionsCapsule.settingsExpanded
+        // Athena colours the settings-drawer trigger glyph @accent
+        // unconditionally, not as a state indicator (style-athena.scss:298)
+        // — this is a permanent accent glyph, so no ternary.
+        tint: BarRoles.accent
+
+        HoverHandler {
+            id: settingsTriggerHoverHandler
+            onHoveredChanged: clockActionsCapsule.reportDrawerHover("trigger", settingsTriggerHoverHandler.hovered)
         }
     }
 
