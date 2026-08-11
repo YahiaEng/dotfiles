@@ -192,7 +192,7 @@ Cross-cutting constraints:
 **Requirements**: GATE-02 (blocks), QBAR-01..12 (visual regression against the shipped bar)
 **Depends on:** Phase 18
 **Blocks:** Phase 18 plans 18-19 (GATE-02) and 18-20 (waybar package retirement)
-**Plans:** 3/7 plans executed
+**Plans:** 4/7 plans executed
 
 Plans:
 **Wave 1**
@@ -203,7 +203,7 @@ Plans:
 
 - [x] 18.1-02-PLAN.md — `BarCapsule` chrome onto Athena's translucent capsule surface; `SystemCapsule` icon-only resource pills with the in-place `format-alt` value toggle, threshold colour and a filled updates alert pill
 - [x] 18.1-03-PLAN.md — `ClockActionsCapsule` `fillClock` clock pill and state-driven `fillNotification` bell pill; the remaining action-cell tints plus the omitted `MediaConnectivityCapsule` error tint migrated onto `BarRoles`
-- [ ] 18.1-04-PLAN.md — live consumer sweep then the five-point `TrayCapsule` removal; QBAR-05 recorded Withdrawn under D-15 and the four TrayCapsule WINDOWS.md rows closed
+- [x] 18.1-04-PLAN.md — live consumer sweep then the five-point `TrayCapsule` removal; QBAR-05 recorded Withdrawn under D-15 and the four TrayCapsule WINDOWS.md rows closed
 
 **Wave 3** *(blocked on Wave 2 completion)*
 

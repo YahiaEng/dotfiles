@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 38
+open_count: 39
 waived_count: 0
 fixed_count: 14
-total_count: 52
-last_updated: 2026-08-11T14:47:35.113Z
+total_count: 53
+last_updated: 2026-08-11T14:49:54.036Z
 ---
 
 # Broken Windows Ledger
@@ -67,6 +67,7 @@ last_updated: 2026-08-11T14:47:35.113Z
 | 50 | 18 | deviation | hypr/.config/hypr/scripts/quickshell-doctor |  | 18-17 Task 2 acceptance criterion 'grep -cE ^\\s*trap  returns 1' is stale against pre-existing file state: quickshell-doctor already carried 3 trap lines (EXIT/INT/TERM, all invoking the single _qsd_cleanup) before this plan touched the file. Task 2 extended _qsd_cleanup's body only, installed no new trap statement — the real invariant (one cleanup function, one flag per mutation class) holds; the literal grep count does not and never could on this file. | open |  | 2026-08-11T10:10:34.633Z |  |
 | 51 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-FRAME-RATE.md |  | LEDGER-03 frame-rate campaign (Task 1 of 18-18) deferred: full methodology and exact resume commands recorded in 18-FRAME-RATE.md, but no condition (C0-C4) was measured this session. Requires stopping quickshell.service to run an unsupervised QSG_RENDER_TIMING instance, and rearranging the live desktop to OVER-04's 8-window/3-workspace load floor (live check: only 4 windows/4 workspaces present). LEDGER-03 stays open; 16-OVER04-MEASUREMENT.md/PROJECT.md/MILESTONES.md not edited. | open |  | 2026-08-11T10:28:14.163Z |  |
 | 52 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak (Task 4 of 18-18) deferred: Task 3's aggregated inventory, pre-declared tolerances, and a real start capture (pid 737907, RSS 450424 KiB, wake rate 19.3429/sec and CPU rate 0.002476 cpu-sec/sec over a genuine 300s observation) are complete in 18-BAR-SOAK.md. Task 4's end capture, 200-cycle hide/reveal exercise, and verdict require at least 14400s of continued single-pid uptime with unchanged NRestarts, which cannot elapse within one session. Exact resume commands recorded in 18-BAR-SOAK.md Section five. QBAR-11 stays open; no verdict asserted. | open |  | 2026-08-11T10:28:19.689Z |  |
+| 53 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/Bar.qml |  | 18.1-04 Task 1's live restart check (quickshell.log carries no new TrayCapsule-is-not-a-type or unresolved-type QML error line, and the bar renders every remaining capsule in both orientations with the tray gap gone) was NOT performed this session — deferred to the user per established project preference (skip-live-verification memory; same shape as WINDOWS entries 24/25). The hyprctl monitors -j reserved array was compared before and after the edit without a restart (unchanged: [0,46,0,0]), which does not by itself prove the new qmldir/Bar.qml/BarEntryModel.qml code loads without error. | open |  | 2026-08-11T14:49:54.036Z |  |
 
 ````json
 [
@@ -692,6 +693,18 @@ last_updated: 2026-08-11T14:47:35.113Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T10:28:19.689Z",
+    "resolved_at": null
+  },
+  {
+    "id": 53,
+    "kind": "unrun-verify",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/Bar.qml",
+    "line": null,
+    "description": "18.1-04 Task 1's live restart check (quickshell.log carries no new TrayCapsule-is-not-a-type or unresolved-type QML error line, and the bar renders every remaining capsule in both orientations with the tray gap gone) was NOT performed this session — deferred to the user per established project preference (skip-live-verification memory; same shape as WINDOWS entries 24/25). The hyprctl monitors -j reserved array was compared before and after the edit without a restart (unchanged: [0,46,0,0]), which does not by itself prove the new qmldir/Bar.qml/BarEntryModel.qml code loads without error.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T14:49:54.036Z",
     "resolved_at": null
   }
 ]
