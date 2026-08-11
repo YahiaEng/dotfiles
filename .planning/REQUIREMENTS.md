@@ -79,9 +79,9 @@
 
 ### LEDGER — v3.0 debt paydown
 
-- [ ] **LEDGER-01**: The `GradientBorder` and `quickshell-doctor`-dispatch carry-ins are closed as bookkeeping — both are already fixed in code (`PanelDialog.qml:191`, commit `4f48847`; `hl.dsp.global` throughout). **Visual confirmation TAKEN 2026-08-10: the operator confirmed the audio, wifi and bluetooth panels all render the glowing rim.** Remaining work is documentation only — correct PROJECT.md Active, MILESTONES.md "Known gaps at close", WINDOWS #14, and flip the `panels-missing-animated-border` debug session to resolved. Do NOT re-ask for the visual check.
+- [x] **LEDGER-01**: The `GradientBorder` and `quickshell-doctor`-dispatch carry-ins are closed as bookkeeping — both are already fixed in code (`PanelDialog.qml:191`, commit `4f48847`; `hl.dsp.global` throughout). **Visual confirmation TAKEN 2026-08-10: the operator confirmed the audio, wifi and bluetooth panels all render the glowing rim.** Remaining work is documentation only — correct PROJECT.md Active, MILESTONES.md "Known gaps at close", WINDOWS #14, and flip the `panels-missing-animated-border` debug session to resolved. Do NOT re-ask for the visual check.
 - [ ] **LEDGER-02**: MAINT-02 is settled by **taking the D-29 teardown measurement** that was waived on 2026-07-28, then wrapping Logout or recording why it needs no wrapping
-- [ ] **LEDGER-03**: OVER-04's frame-rate term is measured — the floor and target that were recorded UNMEASURED get real numbers
+- [x] **LEDGER-03**: OVER-04's frame-rate term is measured — the floor and target that were recorded UNMEASURED get real numbers. **MEASURED 2026-08-11 in Phase 18 (`18-FRAME-RATE.md`, commit `eae9001`)** with Qt's `QSG_RENDER_TIMING=1`; the compositor overlay that froze the host in Phase 16 was never retried. **60 fps floor PASSES** — 0 of 81,261 render-loop iterations exceeded 16.67 ms during a human-driven overview drag at OVER-04's own load floor, worst case 12 ms (83.3 fps); the only sub-60 fps events across ~89,000 measured frames were 11 single-frame bar-transition hitches (38–62 ms) and 2 overview surface-creation frames (90/93 ms). **165 fps target recorded NOT RESOLVABLE** with the sanctioned instrument (integer-ms bucketing swallows the 156.75 fps threshold; iteration counts are an upper bound on presentation) and deliberately not claimed as a pass. Ledger corrections carried into `16-OVER04-MEASUREMENT.md`, `PROJECT.md` and `MILESTONES.md`.
 - [ ] **LEDGER-04**: All 6 open debug sessions in `.planning/debug/` reach `resolved` or an explicitly-reasoned deferral
 - [ ] **LEDGER-05**: WINDOWS.md's 16 open rows are each closed or re-deferred with a stated reason — no row left silently open
 - [ ] **LEDGER-06**: Phase 16's missing `16-VERIFICATION.md` is written, its two malformed `coverage:` blocks corrected, and the incomplete quick task `260728-51j` resolved
@@ -170,9 +170,9 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | GATE-02 | Phase 18 | Complete — PASSED at Phase 18.1 (2026-08-12) after gap closure; first run failed 2026-08-11. 18-19/18-20 unblocked; waybar retained until 18-20. |
 | GATE-03 | Phase 18 | Complete |
 | GATE-04 | Phase 18 | Complete |
-| LEDGER-01 | Phase 18 | Pending |
+| LEDGER-01 | Phase 18 | Complete — all four bookkeeping targets corrected: `PROJECT.md`, `MILESTONES.md` (both gaps gained dated SUPERSEDED clauses), WINDOWS #14 marked fixed, and the `panels-missing-animated-border` debug session moved to `.planning/debug/resolved/` with `status: resolved` |
 | LEDGER-02 | Phase 20 | Pending |
-| LEDGER-03 | Phase 18 | Pending |
+| LEDGER-03 | Phase 18 | Complete — measured 2026-08-11, `18-FRAME-RATE.md`; 60 fps floor passes, 165 fps target recorded not-resolvable with the sanctioned instrument |
 | LEDGER-04 | Phase 19 | Pending |
 | LEDGER-05 | Phase 20 | Pending |
 | LEDGER-06 | Phase 21 | Pending |
