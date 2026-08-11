@@ -78,12 +78,71 @@ BarCapsule {
             readoutItem.valueRevealed = !readoutItem.valueRevealed;
         }
 
+        // Threshold-driven colour (D-12/QBAR-06). All three inert at their
+        // -1 default — an instance that never sets them (e.g. the updates
+        // entry) simply never crosses either comparison below. Fractions,
+        // to match what systemResources publishes (0.0-1.0), not percents.
+        property real metricFraction: -1
+        property real warnThreshold: -1
+        property real dangerThreshold: -1
+
+        // Lets ONE non-threshold instance (the updates entry, D-12's
+        // filled alert pill) override the plain contentColour fallback
+        // with its own fixed on-fill colour, without widening the
+        // threshold precedence itself to know about fills.
+        property bool useContentOverride: false
+        property color contentOverride: "transparent"
+
+        // Set true on the updates entry only (D-12) — draws
+        // updatesFillPill (declared below, before entryGrid so it renders
+        // behind it) as a solid rounded fill behind this entry's glyph
+        // and value, matching Athena's #custom-updates rule. Every other
+        // instance leaves this false and the pill stays invisible.
+        property bool filled: false
+
+        // Precedence, both boundaries inclusive (>=): errored (the ONLY
+        // state "empty" reaches, never "pending" — see the header note on
+        // D-41) beats a real threshold breach, which beats the ordinary
+        // on-chrome colour. A metric sitting exactly on its threshold
+        // value takes the more severe colour, which is why both
+        // comparisons below are >= and neither is >.
+        readonly property color severityColour: {
+            if (readoutItem.errored)
+                return BarRoles.danger;
+            if (readoutItem.dangerThreshold >= 0 && readoutItem.metricFraction >= readoutItem.dangerThreshold)
+                return BarRoles.danger;
+            if (readoutItem.warnThreshold >= 0 && readoutItem.metricFraction >= readoutItem.warnThreshold)
+                return BarRoles.warn;
+            return readoutItem.useContentOverride ? readoutItem.contentOverride : root.contentColour;
+        }
+
         signal activated
 
         readonly property bool vertical: root.vertical
 
         implicitWidth: entryGrid.implicitWidth
         implicitHeight: entryGrid.implicitHeight
+
+        // Declared BEFORE entryGrid so it renders behind this entry's
+        // glyph/value content by declaration order alone (no explicit z
+        // needed — nothing else in this component sets one). Inert
+        // (invisible, zero paint cost) on every instance except updates.
+        Rectangle {
+            id: updatesFillPill
+            width: readoutItem.width
+            height: readoutItem.height
+            radius: height / 2
+            visible: readoutItem.filled
+            color: BarRoles.fillUpdates
+            Behavior on color {
+                enabled: Motion.motionEnabled
+                ColorAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
+        }
 
         TextMetrics {
             id: valueReserve
@@ -102,13 +161,13 @@ BarCapsule {
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd
                 text: readoutItem.glyph
-                color: readoutItem.errored ? Colours.error : root.contentColour
+                color: readoutItem.severityColour
             }
 
             Text {
                 font.pixelSize: Design.fontLabel
                 font.weight: Design.weightBody
-                color: root.contentColour
+                color: readoutItem.severityColour
                 horizontalAlignment: Text.AlignRight
                 // Hidden (not merely blank) AND zero-width when not
                 // revealed — QtQuick positioners already exclude
@@ -203,6 +262,10 @@ BarCapsule {
                 populated: root.cpuStateValue === "populated"
                 errored: root.cpuStateValue === "empty"
                 valueToggleable: true
+                // Athena's own config-athena.jsonc cpu states block.
+                warnThreshold: 0.75
+                dangerThreshold: 0.90
+                metricFraction: root.systemResources ? root.systemResources.cpuFraction : 0
                 valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.cpuFraction) : ""
             }
 
@@ -212,6 +275,10 @@ BarCapsule {
                 populated: root.memoryStateValue === "populated"
                 errored: root.memoryStateValue === "empty"
                 valueToggleable: true
+                // Athena's own config-athena.jsonc memory states block.
+                warnThreshold: 0.75
+                dangerThreshold: 0.85
+                metricFraction: root.systemResources ? root.systemResources.memoryFraction : 0
                 valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.memoryFraction) : ""
             }
 
@@ -221,6 +288,10 @@ BarCapsule {
                 valueToggleable: true
                 populated: root.storageStateValue === "populated"
                 errored: root.storageStateValue === "empty"
+                // Athena's own config-athena.jsonc disk states block.
+                warnThreshold: 0.80
+                dangerThreshold: 0.90
+                metricFraction: root.systemResources ? root.systemResources.storageFraction : 0
                 valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.storageFraction) : ""
             }
         }
@@ -249,6 +320,22 @@ BarCapsule {
     readonly property int updatesPollIntervalMs: 1800000
     property int pendingUpdatesCount: 0
 
+    // Athena's own #custom-updates rule is a FILLED pill (style-athena.scss
+    // "background: @fill-updates; color: @fill-updates-fg; font-weight:
+    // bold"), not a foreground tint like the resource glyphs — D-12. The
+    // fill Rectangle (updatesFillPill, declared inside the Readout
+    // component below and enabled via `filled: true` here) lives INSIDE
+    // this Readout instance rather than as a sibling item: BarCapsule's
+    // `default property alias content: contentGrid.data` reparents every
+    // top-level child of this file's root into the shared chrome's own
+    // Grid positioner, so a sibling Rectangle here would become a THIRD
+    // grid cell (alongside resourcesPopoutTrigger and this entry) rather
+    // than an overlay behind this one — a real layout bug, caught before
+    // it shipped rather than left as a restated-in-a-comment promise.
+    // Nesting keeps the pill "behind" this entry's content by declaration
+    // order (it is declared first inside Readout, content Grid second)
+    // while inheriting this instance's own visible: pendingUpdatesCount
+    // > 0 gate for free — no separate condition to keep in sync.
     Readout {
         glyph: "deployed_code_update"
         maxValueText: "999"
@@ -256,6 +343,13 @@ BarCapsule {
         populated: true
         errored: false
         clickable: true
+        filled: true
+        // Fixed on-fill colour (D-12), not a threshold tint: warnThreshold/
+        // dangerThreshold are left at their inert -1 default, so
+        // severityColour's threshold branches never fire for this
+        // instance and it falls straight to the override below.
+        useContentOverride: true
+        contentOverride: BarRoles.fillUpdatesFg
         valueText: root.pendingUpdatesCount.toString()
         onActivated: root.launchUpgrade()
     }
