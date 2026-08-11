@@ -98,6 +98,13 @@ Singleton {
 
     readonly property int weightDisplay: Font.Medium
     readonly property int weightEmphasis: Font.DemiBold
+    // Athena sets `font-weight: bold` on #clock and #custom-updates — CSS bold
+    // is 700, i.e. Font.Bold, not DemiBold (600). Named here rather than left
+    // as a raw numeric at the call site: ClockActionsCapsule previously
+    // recorded that no bold token existed and settled for weightBody
+    // (Normal), which is why the operator reported the clock font as lighter
+    // than Athena's. Minting the token is the honest fix.
+    readonly property int weightBold: Font.Bold
     readonly property int weightBody: Font.Normal
 
     readonly property string symbolFontFamily: "Material Symbols Rounded"
@@ -195,6 +202,33 @@ Singleton {
     //    ~100ms threshold at which a delay becomes perceptible, so it reads as
     //    immediate while still filtering pass-through motion.
     readonly property int barDrawerDwellMs: 80
+
+    //    ── Intra- vs inter-group gap, and why intra is the LARGER one ─────
+    //    Upstream Athena's readout modules carry `padding: 0 8px` plus
+    //    `margin-right: 2px`, so two adjacent glyphs inside one group sit
+    //    8+8+2 = 18px apart — while two adjacent GROUPS sit 5+6+5 = 16px
+    //    apart (barCapsuleGap). Intra-group spacing is therefore WIDER than
+    //    inter-group spacing upstream.
+    //
+    //    Ours was inverted: 8px inside a capsule against 16px between them.
+    //    With the capsules also unsurfaced (operator decision — only the
+    //    workspace capsule has a background), that inversion is what made the
+    //    operator report the system readouts as "too close together and too
+    //    far apart from the drawer glyph": the group read as one clump
+    //    floating far from its neighbour, instead of evenly-pitched glyphs.
+    //
+    //    barCellGap is the DEFAULT capsule content gap. Capsules whose
+    //    upstream counterpart is tighter override it: workspace buttons carry
+    //    only `margin: 0 2px` (a 4px gap) and the right-hand action glyphs
+    //    `margin: 4px 2px`, so both use spacingXs instead.
+    readonly property int barCellGap: 18
+
+    //    A workspace button fills its group's content box upstream
+    //    (`min-width: 32px` with the group's own 6px padding), so the active
+    //    pill is as tall as the content area — not as tall as one glyph. Ours
+    //    sized the slot to barGlyphSize (16), which made the accent fill look
+    //    "too thin" and left a glyph no vertical room to centre inside.
+    readonly property int barSlotHeight: barCapsuleHeight - barCapsulePadding * 2
 
     // ── barColumnWidth (Phase 18 Plan 05) — provenance: 18-UI-SPEC.md
     //    "## New Tokens" + D-18-14 (text-bearing entries re-stack into this

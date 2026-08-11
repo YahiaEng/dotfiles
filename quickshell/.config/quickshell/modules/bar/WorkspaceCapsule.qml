@@ -51,6 +51,11 @@ BarCapsule {
     // wallpaper.
     surfaced: true
 
+    // Upstream workspace buttons carry only `margin: 0 2px` (a 4px gap), far
+    // tighter than the 18px intra-group pitch the readout capsules use, so
+    // this overrides BarCapsule's barCellGap default.
+    contentGap: Design.spacingXs
+
     // ── Why these three constants stay LOCAL rather than in Design.qml ──
     // None of the three appears in 18-UI-SPEC.md's "## New Tokens" table,
     // and this file is the only reader of any of them — Design.qml's own
@@ -402,8 +407,35 @@ BarCapsule {
             // the CONSTANT iconsPerSlot, never the window count, so this
             // expression's value cannot change as windows open and close.
             readonly property int numeralMainAxisExtent: workspaceCapsule.vertical ? slotIdentityMetrics.height : slotIdentityMetrics.width
-            readonly property int cellsMainAxisExtent: Design.barGlyphSize * workspaceCapsule.iconsPerSlot + Design.spacingXs * (workspaceCapsule.iconsPerSlot - 1)
-            readonly property int slotMainAxisExtent: slotItem.numeralMainAxisExtent + Design.spacingXs + slotItem.cellsMainAxisExtent
+            // ── D-18-12 NARROWED, deliberately, by the GATE-02 fix ──────
+            // This was `barGlyphSize * iconsPerSlot + gaps`, i.e. the extent of
+            // ALL iconsPerSlot reserved cells whether or not a window occupied
+            // them. That held the slot's width perfectly constant, but it also
+            // meant a focused workspace with one window rendered its glyphs
+            // against the LEFT of an accent pill sized for three — the visible
+            // content sat left of centre inside its own fill, which is the
+            // operator's "the pacman glyphs are not centered" (the Grid below is
+            // already anchors.centerIn; it was centring a row whose right-hand
+            // cells were invisible-but-space-occupying).
+            //
+            // Upstream Athena sizes a workspace button to the windows it
+            // actually has, so this now counts OCCUPIED cells (floor 1, so an
+            // empty workspace keeps a slot to click). D-18-12's remaining, still
+            // true guarantee is narrower and stated exactly: the slot never
+            // exceeds iconsPerSlot cells, so it has a hard UPPER bound and
+            // cannot grow without limit as windows open — it is no longer a
+            // claim that the width never changes at all.
+            readonly property int cellsShown: Math.max(1, Math.min(slotItem.slotWindows.length, workspaceCapsule.iconsPerSlot))
+            readonly property int cellsMainAxisExtent: Design.barGlyphSize * slotItem.cellsShown + Design.spacingXs * (slotItem.cellsShown - 1)
+            // Athena pads a workspace button horizontally — `padding: 0 12px`
+            // when active, `padding: 0 4px` otherwise — so its content never
+            // touches the pill edge. Ours had none, which left the focused
+            // slot's glyphs flush against the accent fill's left and right
+            // edges: the remaining half of the operator's "the pacman glyphs
+            // are not centered". The fill is anchors.fill of this slot, so
+            // widening the slot IS how the pill gains its padding.
+            readonly property int slotSidePadding: slotItem.slotFocused ? Design.spacingMd - Design.spacingXs : Design.spacingXs
+            readonly property int slotMainAxisExtent: slotItem.numeralMainAxisExtent + Design.spacingXs + slotItem.cellsMainAxisExtent + slotItem.slotSidePadding * 2
 
             // Cross-axis is a single Design.barGlyphSize (24px) — this is
             // what fits both the 24px horizontal content budget and the
@@ -415,8 +447,14 @@ BarCapsule {
             // numeral, a three-character overflow label — so the
             // codebase's precedent for handling unbounded window names
             // has nothing to apply to here.
-            implicitWidth: workspaceCapsule.vertical ? Design.barGlyphSize : slotItem.slotMainAxisExtent
-            implicitHeight: workspaceCapsule.vertical ? slotItem.slotMainAxisExtent : Design.barGlyphSize
+            // Cross axis is barSlotHeight (22 = capsule content box), NOT
+            // barGlyphSize (16). Upstream's workspace button fills its group's
+            // content box, so the active accent pill is content-height tall;
+            // sizing the slot to a single glyph made that fill read "too thin"
+            // and left the glyphs no vertical room to centre within, which is
+            // the operator's remaining pair of workspace complaints.
+            implicitWidth: workspaceCapsule.vertical ? Design.barSlotHeight : slotItem.slotMainAxisExtent
+            implicitHeight: workspaceCapsule.vertical ? slotItem.slotMainAxisExtent : Design.barSlotHeight
             width: slotItem.implicitWidth
             height: slotItem.implicitHeight
 
@@ -512,6 +550,13 @@ BarCapsule {
                     delegate: Item {
                         id: cellItem
                         required property int index
+                        // A cell with no window and no overflow label is now
+                        // INVISIBLE, so the Grid excludes it and its spacing
+                        // (this file's own shared-chrome note relies on exactly
+                        // that positioner behaviour). Without this the slot's
+                        // visible glyphs stay left-aligned inside a fill sized
+                        // for every reserved cell.
+                        visible: cellItem.showOverflow || cellItem.cellWindow !== null || cellItem.index === 0
                         width: Design.barGlyphSize
                         height: Design.barGlyphSize
 

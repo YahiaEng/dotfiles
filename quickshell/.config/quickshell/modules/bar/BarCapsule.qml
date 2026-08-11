@@ -64,6 +64,14 @@ Rectangle {
     // surfaced unless it remembers to opt out.
     property bool surfaced: false
 
+    // Gap between this capsule's own content cells. Defaults to Athena's
+    // intra-group pitch (barCellGap, 18) — which is deliberately WIDER than
+    // the gap BETWEEN capsules (barCapsuleGap, 16); see Design.qml for why.
+    // Capsules whose upstream counterpart is tighter override this:
+    // workspace buttons and the right-hand action glyphs both carry only a
+    // 2px margin upstream, i.e. a 4px gap.
+    property int contentGap: Design.barCellGap
+
     color: !surfaced ? "transparent" : (hovered ? BarRoles.capsuleHover : BarRoles.capsule)
     Behavior on color {
         enabled: Motion.motionEnabled
@@ -105,7 +113,7 @@ Rectangle {
     Grid {
         id: contentGrid
         anchors.centerIn: parent
-        spacing: Design.spacingSm
+        spacing: capsuleRoot.contentGap
         rows: capsuleRoot.vertical ? -1 : 1
         columns: capsuleRoot.vertical ? 1 : -1
     }
@@ -123,8 +131,18 @@ Rectangle {
     // edge to edge. Bar.qml's zone Grids already anchor to
     // parent.verticalCenter in horizontal orientation, so the 8px this frees
     // up becomes symmetric breathing room with no extra positioning.
-    implicitWidth: vertical ? Design.barColumnWidth : contentGrid.implicitWidth + Design.barCapsulePadding * 2
-    implicitHeight: vertical ? contentGrid.implicitHeight + Design.barCapsulePadding * 2 : Design.barCapsuleHeight
+    // Padding applies ONLY when this capsule actually draws a surface. Upstream
+    // Athena's groups carry `padding: 6px 6px` because they have a background
+    // to inset their content from; an UNSURFACED capsule has no edge to inset
+    // from, so the same 6px becomes invisible dead space on both sides — which
+    // inflated the gap between two adjacent bare capsules to 16 + 6 + 6 = 28px
+    // against the intended 16. That is what made the operator report the system
+    // readouts as "too far apart from the drawer glyph": the readouts' own
+    // pitch was correct, the air between the capsules was not.
+    readonly property int contentInset: surfaced ? Design.barCapsulePadding : 0
+
+    implicitWidth: vertical ? Design.barColumnWidth : contentGrid.implicitWidth + contentInset * 2
+    implicitHeight: vertical ? contentGrid.implicitHeight + contentInset * 2 : Design.barCapsuleHeight
 
     // QtQuick positioners exclude non-visible children AND their spacing —
     // this is what delivers UI-SPEC's E7-partial "the remainder re-flow

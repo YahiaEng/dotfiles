@@ -43,6 +43,13 @@ BarCapsule {
     id: clockActionsCapsule
     capsuleId: "clockActions"
 
+    // Upstream's right-hand action glyphs (#custom-gaming-mode, #custom-power,
+    // #custom-notification) carry `margin: 4px 2px` — a 4px gap — not the 18px
+    // intra-group pitch the readout capsules use. At the default barCellGap
+    // the clock pill and the gaming glyph sat visibly too far apart, which the
+    // operator reported directly.
+    contentGap: Design.spacingXs
+
     readonly property string homeDir: Quickshell.env("HOME")
 
     // 14-02's recorded per-file capability flag — Design.qml's own header
@@ -134,21 +141,40 @@ BarCapsule {
             id: clockTriggerGrid
             rows: clockActionsCapsule.vertical ? -1 : 1
             columns: clockActionsCapsule.vertical ? 1 : -1
-            spacing: Design.spacingSm
+            spacing: Design.spacingXs
+
+            // Upstream's clock leads with a glyph:
+            // `format: "󰃱 <span size='11pt'>{:%H.%M }</span>"`. Ours had none,
+            // which the operator reported directly. Rendered as its own Text in
+            // Design.symbolFontFamily rather than by pasting upstream's Nerd
+            // Font codepoint into the time string: every other glyph in this
+            // file is a Material Symbols ligature, and mixing a second glyph
+            // font into one pill would depend on font substitution to line up.
+            Text {
+                id: clockGlyphText
+                text: "schedule"
+                font.family: Design.symbolFontFamily
+                font.pixelSize: Design.barGlyphSize
+                color: BarRoles.fillClockFg
+                verticalAlignment: Text.AlignVCenter
+                height: Design.barGlyphSize
+            }
 
             // Line 1 in both orientations: the time itself.
             Text {
                 id: clockTimeText
                 font.pixelSize: Design.barBodySize
-                // No "bold" weight token exists in Design.qml (only
-                // weightDisplay/weightEmphasis/weightBody — see this
-                // plan's SUMMARY "Decisions Made"). Athena's #clock rule
-                // is font-weight: bold; left at weightBody rather than
-                // minting a raw numeric weight or repurposing a token
-                // under a name it doesn't carry.
-                font.weight: Design.weightBody
+                // weightBold — Athena's #clock rule is `font-weight: bold`
+                // (CSS 700 = Font.Bold). This was weightBody (Normal) with a
+                // comment explaining that no bold token existed; the token now
+                // exists (Design.qml), so the comment's premise is gone and the
+                // operator's "the font is lighter" is fixed at the source
+                // rather than approximated with DemiBold.
+                font.weight: Design.weightBold
                 color: BarRoles.fillClockFg
                 text: Qt.formatDateTime(barClock.date, "HH:mm")
+                verticalAlignment: Text.AlignVCenter
+                height: Design.barGlyphSize
             }
 
             // Line 2, vertical only (D-18-14's two-stacked-lines form): a
