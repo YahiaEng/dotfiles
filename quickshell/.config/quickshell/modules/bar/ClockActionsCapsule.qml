@@ -1,21 +1,28 @@
 // ClockActionsCapsule.qml — the clock + actions slot (Phase 18 Plan 05,
 // D-18-10).
 //
-// Owner: 18-11 for the five action entries (`gaming`, `notifications`,
-// `idleInhibitor`, `settings`, `power`) — the two athena drawers plus the
-// four permanent extras.
+// Owner: 18-11 for the four action entries (`gaming`, `notifications`,
+// `settings`, `power`) — the two athena drawers plus three of the four
+// permanent extras. The fourth, `idleInhibitor`, relocated to its own
+// centre-zone capsule under the GATE-02 fix; see note (a) below.
 //
 // This one is NOT empty: 18-01's live clock moves here intact, carried
 // exactly rather than rebuilt — see the SystemClock declaration below.
 //
 // ── 18-11 fills the rest of this capsule. Three facts a later reader
 //    would otherwise re-litigate: ────────────────────────────────────
-// (a) The five action entries below are the four permanent extras D-18-03
-//     names (power, gaming, notifications, idle inhibitor) plus the
-//     settings-drawer trigger. The fourth extra's other half — the
-//     updates count — lives in the system capsule (18-08), because
-//     18-05's entry list split that pair by kind (readout vs action), not
-//     by pairing.
+// (a) The four action entries below are three of D-18-03's four permanent
+//     extras (power, gaming, notifications) plus the settings-drawer
+//     trigger. The fourth extra, the idle inhibitor, relocated to its own
+//     centre-zone capsule (IdleInhibitorCapsule.qml) under the GATE-02
+//     upstream-parity fix — upstream Athena places it in modules-center,
+//     immediately right of workspaces (ATHENA-UPSTREAM-SPEC.md), not
+//     beside clock/settings on the right. The bulb's backend (the
+//     `IdleInhibitor` element and `idleInhibited` property) moved with it;
+//     nothing of it remains in this file. The other extra pair's half —
+//     the updates count — still lives in the system capsule (18-08),
+//     because 18-05's entry list split that pair by kind (readout vs
+//     action), not by pairing.
 // (b) The notification binding is deliberately temporary and is sealed
 //     behind one named component (`NotificationSource` below) so that
 //     Phase 19 replaces a backend rather than re-opening a layout that
@@ -62,9 +69,9 @@ BarCapsule {
     //    plan owns only the PopoutTrigger wrapper around them and the
     //    nested Grid that reproduces the outer positioner's own spacing so
     //    wrapping the pair changes nothing about the rendered bar. Change
-    //    nothing else: not the gaming, notification, idle-inhibitor,
-    //    settings or power cells, not the settings drawer, not the entry
-    //    order, not the notification source component. ──────────────────
+    //    nothing else: not the gaming, notification, settings or power
+    //    cells, not the settings drawer, not the entry order, not the
+    //    notification source component. ─────────────────────────────────
     PopoutTrigger {
         id: clockPopoutTrigger
         sectionId: "clock"
@@ -420,21 +427,6 @@ BarCapsule {
         id: notificationSource
     }
 
-    // ── Idle inhibitor — the native wayland idle-inhibit client, bound
-    //    to the bar's own permanently-mapped window. Starts disabled on
-    //    every shell start and is never persisted: an inhibitor restored
-    //    after an automatic restart would keep the machine awake with no
-    //    visible cause, the same failure class this repo already records
-    //    for a stale gaming state — failing to "not inhibiting" is the
-    //    only safe default. ─────────────────────────────────────────────
-    property bool idleInhibited: false
-
-    IdleInhibitor {
-        id: barIdleInhibitor
-        window: QsWindow.window
-        enabled: clockActionsCapsule.idleInhibited
-    }
-
     // ── The settings drawer — the same five axes D-18-01 names, sharing
     //    Task 2's drawer shape verbatim. Promoting that shape to a
     //    shared type is a named follow-on, not a licence to edit the
@@ -470,8 +462,9 @@ BarCapsule {
     //    grace timer below before it ever ran. The settledness read below
     //    reads Bar.qml's own live rendered/transitioning state through
     //    the shared `QsWindow.window` handle (the same reachable path
-    //    `barIdleInhibitor`'s `window: QsWindow.window` binding already
-    //    proves live above) — deliberately NOT the reveal-machine
+    //    IdleInhibitorCapsule.qml's own `barIdleInhibitor`'s
+    //    `window: QsWindow.window` binding already proves live) —
+    //    deliberately NOT the reveal-machine
     //    singleton's own dead settled latch (D-26 fences that one out by
     //    name). This file writes to no reveal-machine state at all: the
     //    bar's own whole-content hover handler already spans the area the
@@ -571,9 +564,11 @@ BarCapsule {
     }
 
     // ── Capsule assembly — declaration order matches 18-05's entry list
-    //    (clock above, then gaming, notifications, idle inhibitor,
-    //    settings, power), one positioner (BarCapsule's own content
-    //    Grid), nothing hidden or folded in either orientation. ─────────
+    //    (clock above, then gaming, notifications, settings, power), one
+    //    positioner (BarCapsule's own content Grid), nothing hidden or
+    //    folded in either orientation. The idle inhibitor is no longer
+    //    among these cells — see note (a) above; it now assembles inside
+    //    IdleInhibitorCapsule.qml. ────────────────────────────────────────
 
     ActionCell {
         id: gamingCell
@@ -617,15 +612,6 @@ BarCapsule {
         badgeText: notificationSource.unreadCount > 9 ? "9+" : String(notificationSource.unreadCount)
         onClicked: notificationSource.openCentre()
         onRightClicked: notificationSource.toggleDnd()
-    }
-
-    ActionCell {
-        id: idleCell
-        glyph: "lightbulb"
-        label: "Keep Awake"
-        filled: clockActionsCapsule.idleInhibited
-        tint: clockActionsCapsule.idleInhibited ? BarRoles.accent : clockActionsCapsule.contentColour
-        onClicked: clockActionsCapsule.idleInhibited = !clockActionsCapsule.idleInhibited
     }
 
     ActionCell {

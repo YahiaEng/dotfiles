@@ -108,7 +108,7 @@ BarCapsule {
     //    own live rendered/transitioning state through the shared
     //    `QsWindow.window` handle (the same reachable path
     //    `barIdleInhibitor`'s `window: QsWindow.window` binding already
-    //    proves live in ClockActionsCapsule.qml) — deliberately NOT the
+    //    proves live in IdleInhibitorCapsule.qml) — deliberately NOT the
     //    reveal-machine singleton's own dead settled latch (D-26 fences
     //    that one out by name). This file writes to no reveal-machine
     //    state at all: the bar's own whole-content hover handler already

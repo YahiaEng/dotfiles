@@ -35,6 +35,11 @@ SystemCapsule 1.0 SystemCapsule.qml
 WorkspaceCapsule 1.0 WorkspaceCapsule.qml
 MediaConnectivityCapsule 1.0 MediaConnectivityCapsule.qml
 ClockActionsCapsule 1.0 ClockActionsCapsule.qml
+# IdleInhibitorCapsule (GATE-02 operator fix, item (b)) added after the
+# wave-3 freeze above had already served its purpose — the bulb's own
+# centre-zone capsule, holding the backend/cell relocated out of
+# ClockActionsCapsule.qml. See that file's own header note (a).
+IdleInhibitorCapsule 1.0 IdleInhibitorCapsule.qml
 # TrayCapsule 1.0 TrayCapsule.qml — REMOVED by phase 18.1 plan 04 (D-15):
 # the tray capsule was deleted along with its qmldir row, its two Bar.qml
 # consumers (componentFor() branch + trayComponent Component block) and its

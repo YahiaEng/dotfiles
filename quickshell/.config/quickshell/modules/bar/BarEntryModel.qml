@@ -94,10 +94,14 @@ Singleton {
     // capsule split as Claude's Discretion and a later reader would
     // otherwise assume a mistake:
     // First — `updates` sits in `system` as a readout (UI-SPEC's canonical
-    // order places it there) while `idleInhibitor` sits in `clockActions`
-    // as an action, even though D-18-03 names "updates count + idle
-    // inhibitor" as one extra — they are split by kind, not by pairing,
-    // and GATE-02 A.5 still finds all four extras visibly present.
+    // order places it there) while `idleInhibitor` sits in its OWN
+    // capsule, `idleInhibitor`, in the centre zone beside `workspaces`
+    // (GATE-02 operator fix, item (b) — upstream Athena's own
+    // modules-center placement, ATHENA-UPSTREAM-SPEC.md), even though
+    // D-18-03 names "updates count + idle inhibitor" as one extra and this
+    // capsule started life folded into `clockActions` — they are split by
+    // kind (readout vs action) and now also by zone, and GATE-02 A.5 still
+    // finds all four extras visibly present.
     // Second — `network` and `bluetooth` declare NO gated backend, which
     // is deliberate and is explained beside the aggregates below.
     readonly property var capsules: [
@@ -123,6 +127,22 @@ Singleton {
             zone: { horizontal: root.zoneCenter, vertical: root.zoneStart },
             entries: [
                 { id: "workspaces", backends: [], textBearing: true }
+            ]
+        },
+        {
+            // GATE-02 operator fix, item (b): the idle-inhibitor bulb's own
+            // capsule, immediately after `workspaces` in this array so
+            // declaration order (== render order, see capsulesForZone()
+            // below) places it right of workspaces in the centre zone.
+            // Same zone shape as `workspaces` above: centre horizontally,
+            // start vertically (the vertical column has no centre band —
+            // see zoneCenter's own header note). No power-profiles-daemon
+            // capsule exists beside it — the operator explicitly does not
+            // want one, even though upstream Athena places one there too.
+            id: "idleInhibitor",
+            zone: { horizontal: root.zoneCenter, vertical: root.zoneStart },
+            entries: [
+                { id: "idleInhibitor", backends: [], textBearing: false }
             ]
         },
         {
@@ -153,7 +173,6 @@ Singleton {
                 { id: "clock", backends: [], textBearing: true },
                 { id: "gaming", backends: [], textBearing: false },
                 { id: "notifications", backends: [], textBearing: false },
-                { id: "idleInhibitor", backends: [], textBearing: false },
                 { id: "settings", backends: [], textBearing: false },
                 { id: "power", backends: [], textBearing: false }
             ]
