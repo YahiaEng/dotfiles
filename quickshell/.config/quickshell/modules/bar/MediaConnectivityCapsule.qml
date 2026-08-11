@@ -142,14 +142,33 @@ BarCapsule {
         ? root.mediaTitleRaw.slice(0, Design.mediaTitleMaxChars)
         : root.mediaTitleRaw
 
-    Readout {
+    // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — same seam shape as
+    //    the wifi/bluetooth wrappers Task 1 added. The trigger's own
+    //    `visible` mirrors the Readout's — a PopoutTrigger wraps a plain
+    //    Item, not a positioner, so its own implicit size does not
+    //    collapse to zero merely because its child is invisible; without
+    //    this the shared chrome's own Grid positioner would keep
+    //    reserving space for an empty media entry, the exact regression
+    //    this comment exists to prevent (Rule 1). ─────────────────────────
+    PopoutTrigger {
+        id: mediaPopoutTrigger
         visible: root.mediaBackend ? root.mediaBackend.hasPlayer : false
-        glyph: "music_note"
-        maxValueText: "M".repeat(Design.mediaTitleMaxChars)
-        maxWidthVertical: Design.barColumnWidth
-        elideValue: true
-        populated: true
-        valueText: root.mediaTitleCapped
+        sectionId: "media"
+        popoutComponent: Component {
+            MediaPopout {
+                mediaBackend: root.mediaBackend
+            }
+        }
+
+        Readout {
+            visible: root.mediaBackend ? root.mediaBackend.hasPlayer : false
+            glyph: "music_note"
+            maxValueText: "M".repeat(Design.mediaTitleMaxChars)
+            maxWidthVertical: Design.barColumnWidth
+            elideValue: true
+            populated: true
+            valueText: root.mediaTitleCapped
+        }
     }
 
     // ── audio ────────────────────────────────────────────────────────────

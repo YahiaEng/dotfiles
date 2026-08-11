@@ -60,7 +60,7 @@ SectionPopout {
     readonly property string _deviceLabel: (root.audioBackend && root._sink) ? root.audioBackend.deviceLabel(root._sink) : ""
     // At most the first three sinks — the cap that keeps this a glance
     // surface; the unbounded list stays AudioPanel.qml's job.
-    readonly property var _sinkRows: root.audioBackend ? root.audioBackend.sinks.slice(0, 3) : []
+    readonly property var _sinkRows: root.audioBackend ? root.audioBackend.sinks.slice(0, Design.popoutListCap) : []
 
     // Body content is gated on `bodyState === "populated"` — the same
     // discipline AudioPanel.qml's own outputSection applies — so a
