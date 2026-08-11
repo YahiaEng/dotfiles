@@ -34,6 +34,14 @@ Item {
     Item {
         id: contentHost
         anchors.fill: parent
+        // Explicit stacking (18.1-02 scope amendment, human-authorized):
+        // must stack above triggerMouseArea so nested click handlers
+        // (D-25 format-alt toggle) receive clicks. With no z anywhere in
+        // this file, declaration order alone put triggerMouseArea (below)
+        // on top, silently swallowing every click before it reached
+        // wrapped content — stating the stacking intent here removes that
+        // implicit fragility instead of re-encoding it.
+        z: 1
         implicitWidth: childrenRect.width
         implicitHeight: childrenRect.height
     }
