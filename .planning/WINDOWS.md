@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 17
+open_count: 18
 waived_count: 0
 fixed_count: 8
-total_count: 25
-last_updated: 2026-08-11T00:13:17.928Z
+total_count: 26
+last_updated: 2026-08-11T00:45:20.302Z
 ---
 
 # Broken Windows Ledger
@@ -40,6 +40,7 @@ last_updated: 2026-08-11T00:13:17.928Z
 | 23 | 15 | deviation | quickshell/.config/quickshell/modules/dashboard/WifiPanel.qml |  | pendingGlyph opacity pulse (WifiPanel.qml ~:574-595) and its BluetoothPanel.qml counterpart still bind one-shot emphasizedIn/OutDuration tokens as an infinite pulse period, inheriting the reduced-makes-it-faster inversion G-15-1 fixed for the sweep lines; deliberately left unchanged per 15-11's scope_fence (a pulse's message survives being fast, unlike a sweep's) | open |  | 2026-08-02T17:07:48.756Z |  |
 | 24 | 18 | unrun-verify | quickshell/.config/quickshell/modules/Bar.qml |  | 18-01 Task 2's <human-check> render gate (pill renders, floats clear of edge, live HH:MM, theme crossfade with no magenta flash) was not run by the executor — automated verify passed; visual confirmation deferred to the user per established project preference (skip-live-verification memory). | open |  | 2026-08-10T23:12:33.140Z |  |
 | 25 | 18 | unrun-verify | quickshell/.config/quickshell/modules/Bar.qml |  | D-18-31/GATE-02 human render-gate for 18-05 (orientation flip, vertical clock re-stack, theme crossfade in both orientations) not performed by the executor — deferred to the user per established project preference (18-01's identical precedent, WINDOWS entry 24). | open |  | 2026-08-11T00:13:17.928Z |  |
+| 26 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-RESTART-PARITY.md |  | QBAR-10 destructive restart/rate-limit live proof (SIGTERM retire, SIGKILL restart, 6x SIGKILL rate-limit trip, recovery) and the Task 3 human visual check were deferred to the operator — full runbook provided; only non-destructive systemctl show/is-enabled/systemd-analyze checks were run by the executor | open |  | 2026-08-11T00:45:20.302Z |  |
 
 ````json
 [
@@ -341,6 +342,18 @@ last_updated: 2026-08-11T00:13:17.928Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T00:13:17.928Z",
+    "resolved_at": null
+  },
+  {
+    "id": 26,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": ".planning/phases/18-qml-bar-retirement-machinery/18-RESTART-PARITY.md",
+    "line": null,
+    "description": "QBAR-10 destructive restart/rate-limit live proof (SIGTERM retire, SIGKILL restart, 6x SIGKILL rate-limit trip, recovery) and the Task 3 human visual check were deferred to the operator — full runbook provided; only non-destructive systemctl show/is-enabled/systemd-analyze checks were run by the executor",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T00:45:20.302Z",
     "resolved_at": null
   }
 ]
