@@ -21,6 +21,7 @@
 // back to the full panel family — D-18-17 keeps every dashboard tab and
 // every panel's unbounded list; this frame never thins or replaces them.
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -44,6 +45,59 @@ PanelWindow {
     property real triggerCentre: 0
     property bool pinned: false
     default property alias body: bodyColumn.data
+
+    // ── Task 3 — the four-state body vocabulary, copied from
+    //    PanelDialog.qml BY NAME rather than paraphrased: the names are
+    //    identical on purpose, since reusing the vocabulary verbatim is
+    //    one of the few places the two frames can be kept in step by
+    //    construction rather than by review (D-18-15's accepted cost). ───
+    property string bodyState: "populated"
+
+    function stateColour(state) {
+        switch (state) {
+        case "populated": return Colours.onSurface;
+        case "pending": return Colours.primary;
+        case "empty": return Colours.onSurfaceVariant;
+        case "failed": return Colours.error;
+        default: return Colours.onSurface;
+        }
+    }
+
+    // Per-instance overridable glyph/text pairs so a body supplies its
+    // own words without restructuring the frame — PanelDialog.qml's own
+    // emptyStateGlyph/emptyStateText idiom, extended to all three
+    // non-populated states. The failure copy defaults to the UI-SPEC
+    // sentence shape verbatim: the section name, an em dash, a
+    // plain-language reason, then "then reopen this panel." — plain
+    // language first and mechanism second.
+    property string emptyStateGlyph: "info"
+    property string emptyStateText: "Nothing to show"
+    property string pendingStateGlyph: "hourglass_empty"
+    property string pendingStateText: "Loading…"
+    property string failedStateGlyph: "error"
+    property string failedStateText: popoutWindow.popoutTitle + " unavailable — something went wrong, then reopen this panel."
+
+    // ── Task 3 — the foot wayfinding link. The whole reason this popout
+    //    can stay a glance surface: D-18-17 keeps the dashboard's four
+    //    tabs and the panel family's unbounded lists, and this is the
+    //    visible path to them, so a popout is never the only place
+    //    something can be seen. ─────────────────────────────────────────
+    property string wayfindingLabel: "Open in dashboard"
+    property bool wayfindingAvailable: true
+    property string wayfindingUnavailableReason: ""
+    signal wayfindingActivated()
+
+    // Press suppression comes from this early-return guard, NOT from
+    // disabling the mouse area below — press suppression and hover
+    // reachability are two different requirements satisfied by two
+    // different guards, PanelDialog.qml's own Advanced button comment
+    // records exactly why: a fully disabled MouseArea also stops
+    // receiving hover, which would make the reason UNREACHABLE by hover.
+    function activateWayfinding() {
+        if (!popoutWindow.wayfindingAvailable)
+            return;
+        popoutWindow.wayfindingActivated();
+    }
 
     signal dismissRequested()
     signal dismissFinished()
@@ -102,7 +156,9 @@ PanelWindow {
     //    width off Design tokens, never off popoutWindow's own resolved
     //    width (that would be circular), so this clamp is deterministic. ─
     implicitWidth: Math.max(Design.popoutMinWidth, Math.min(Design.popoutMaxWidth, bodyColumn.implicitWidth + Design.spacingMd * 2))
-    implicitHeight: Design.popoutHeaderHeight + bodyColumn.implicitHeight + Design.spacingMd
+    // Header, body, ONE spacing gap, the foot band, and a final spacing
+    // gap below it (Task 3 appends the foot band to this sum).
+    implicitHeight: Design.popoutHeaderHeight + bodyColumn.implicitHeight + Design.spacingMd + popoutFoot.height + Design.spacingMd
 
     // ── Anchoring arithmetic — Design tokens plus triggerCentre plus this
     //    window's own screen handle; no literal pixel value anywhere.
@@ -179,7 +235,7 @@ PanelWindow {
     readonly property Cascade entranceCascade: Cascade {}
 
     Component.onCompleted: {
-        popoutWindow.entranceCascade.bands = [popoutHeader, bodyColumn];
+        popoutWindow.entranceCascade.bands = [popoutHeader, bodyColumn, popoutFoot];
         popoutWindow.entranceCascade.armed = true;
         popoutWindow.entranceCascade.run();
     }
@@ -266,6 +322,94 @@ PanelWindow {
             anchors.leftMargin: Design.spacingMd
             width: Design.popoutMaxWidth - Design.spacingMd * 2
             spacing: Design.spacingMd
+        }
+
+        // ── Task 3 — the frame-owned state placeholder. Anchored to the
+        //    body REGION rather than declared inside bodyColumn itself,
+        //    the same reason PanelDialog.qml's own comment gives:
+        //    bodyColumn is content a popout body writes into, while this
+        //    placeholder is the frame's own fallback. Visible whenever
+        //    the state is not populated — a quiet Material Symbol plus
+        //    one line, never a blank body. ─────────────────────────────
+        Column {
+            id: statePlaceholder
+            anchors.centerIn: bodyColumn
+            visible: popoutWindow.bodyState !== "populated"
+            spacing: Design.spacingSm
+
+            readonly property string _glyph: popoutWindow.bodyState === "pending" ? popoutWindow.pendingStateGlyph
+                : popoutWindow.bodyState === "failed" ? popoutWindow.failedStateGlyph
+                : popoutWindow.emptyStateGlyph
+            readonly property string _text: popoutWindow.bodyState === "pending" ? popoutWindow.pendingStateText
+                : popoutWindow.bodyState === "failed" ? popoutWindow.failedStateText
+                : popoutWindow.emptyStateText
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: statePlaceholder._glyph
+                font.family: Design.symbolFontFamily
+                font.pixelSize: Design.iconSizeMd
+                textFormat: Text.PlainText
+                color: popoutWindow.stateColour(popoutWindow.bodyState)
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: statePlaceholder._text
+                font.pixelSize: Design.fontBody
+                textFormat: Text.PlainText
+                color: popoutWindow.stateColour(popoutWindow.bodyState)
+            }
+        }
+
+        // ── Task 3 — the foot wayfinding link. A plain pill in the
+        //    surface-variant role, NEVER accent-toned — PanelDialog.qml's
+        //    Advanced button treatment reused exactly, only its position
+        //    moves from the header to the foot. ───────────────────────
+        Item {
+            id: popoutFoot
+            anchors.top: bodyColumn.bottom
+            anchors.topMargin: Design.spacingMd
+            anchors.left: parent.left
+            anchors.leftMargin: Design.spacingMd
+            height: Design.iconSizeMd + Design.spacingSm * 2
+
+            readonly property real disabledOpacity: 0.38
+
+            Rectangle {
+                id: wayfindingPill
+                width: wayfindingLabelText.implicitWidth + Design.spacingLg * 2
+                height: parent.height
+                radius: height / 2
+                color: Colours.surfaceVariant
+                opacity: popoutWindow.wayfindingAvailable ? 1 : popoutFoot.disabledOpacity
+
+                Text {
+                    id: wayfindingLabelText
+                    anchors.centerIn: parent
+                    text: popoutWindow.wayfindingLabel
+                    font.pixelSize: Design.fontBody
+                    textFormat: Text.PlainText
+                    color: Colours.onSurfaceVariant
+                    opacity: popoutWindow.wayfindingAvailable ? 1 : popoutFoot.disabledOpacity
+                }
+
+                // The MouseArea itself stays enabled: "a press does
+                // nothing at all" is guaranteed by activateWayfinding()'s
+                // own early-return guard above, not by disabling this —
+                // a disabled MouseArea would also stop receiving hover,
+                // making the reason UNREACHABLE, which is exactly what
+                // PanelDialog.qml's own Advanced button comment warns
+                // against.
+                MouseArea {
+                    id: wayfindingMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: popoutWindow.activateWayfinding()
+                    ToolTip.visible: wayfindingMouseArea.containsMouse
+                    ToolTip.text: popoutWindow.wayfindingAvailable ? "Open " + popoutWindow.wayfindingLabel.toLowerCase() : popoutWindow.wayfindingUnavailableReason
+                    ToolTip.delay: Design.tooltipDelayMs
+                }
+            }
         }
     }
 }

@@ -147,6 +147,21 @@ PanelWindow {
     signal panelRequested(string name)
     signal dashboardRequested(int tabIndex)
 
+    // ── Popout wayfinding relay (Phase 18 Plan 13 Task 3, QBAR-09) —
+    //    named seam into this 18-05-owned file, additive and bounded to
+    //    exactly this one block. A popout lives inside a capsule
+    //    instantiated through a loader and has no declarative path to
+    //    this window root's signals, and reaching for the window through
+    //    an ambient attached lookup would be a second way to do what this
+    //    repo already does by passing handles down — so this plan reuses
+    //    the existing seam above instead of adding a third one. No other
+    //    line of this file changes. ──────────────────────────────────────
+    Connections {
+        target: PopoutController
+        function onPanelRequested(name) { barWindow.panelRequested(name); }
+        function onDashboardRequested(tabIndex) { barWindow.dashboardRequested(tabIndex); }
+    }
+
     // Mirrors shell.qml's own panelLoaderFor(name) name-to-object map
     // rather than inventing a second lookup shape. An unrecognised id
     // resolves to null and renders nothing, exactly as panelLoaderFor

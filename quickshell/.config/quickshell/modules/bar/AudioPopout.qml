@@ -11,12 +11,24 @@
 // created the stream, so they are peer-supplied strings and this is the
 // same treatment 18-10 gave tray-supplied text (T-18-13-03).
 //
-// Task 1 (this commit) ships the interaction shape: device label, mute
-// toggle, master volume, up to three sinks — reusing AudioPanel.qml's own
-// master-volume control shape rather than inventing a second gesture.
-// Task 3 (same plan) drives bodyState from the backend's own
-// pending/empty signals and adds the foot wayfinding link back to
-// AudioPanel.qml.
+// Task 1 shipped the interaction shape: device label, mute toggle, master
+// volume, up to three sinks — reusing AudioPanel.qml's own master-volume
+// control shape rather than inventing a second gesture. Task 3 (this
+// commit) drives bodyState from the backend's own pending/empty signals
+// and adds the foot wayfinding link back to AudioPanel.qml.
+//
+// ── Task 3's read of AudioBackend.qml, recorded rather than assumed ────
+// `pipewireReady` (Pipewire.ready) and `outputsPresent` (sinks.length > 0)
+// are genuinely distinct: PipeWire can be ready with zero sinks (a real
+// host with no output device attached), and can be unready with sinks
+// still holding their last-known list from before a restart. This is
+// what makes the UI-SPEC E6-loading treatment implementable as written
+// rather than aspirational. No whole-backend failure signal exists
+// anywhere in AudioBackend.qml — grepped directly, not guessed — so the
+// "failed" state stays declared in the frame's vocabulary and
+// deliberately UNEXERCISED here, exactly as PanelDialog.qml's own tracer
+// left two of its four states unexercised. Do not invent a mapping to
+// make the fourth state light up.
 import QtQuick
 import QtQuick.Controls
 import "../"
@@ -31,13 +43,32 @@ SectionPopout {
     popoutTitle: "Audio"
     popoutGlyph: (root.audioBackend && root.audioBackend.masterMuted) ? "volume_off" : "volume_up"
 
+    bodyState: {
+        if (!root.audioBackend || !root.audioBackend.pipewireReady)
+            return "pending";
+        if (!root.audioBackend.outputsPresent)
+            return "empty";
+        return "populated";
+    }
+    emptyStateGlyph: "volume_off"
+    emptyStateText: "No audio output devices found"
+
+    wayfindingLabel: "Open audio settings"
+    onWayfindingActivated: PopoutController.requestPanel("audio")
+
     readonly property var _sink: root.audioBackend ? root.audioBackend.defaultSink : null
     readonly property string _deviceLabel: (root.audioBackend && root._sink) ? root.audioBackend.deviceLabel(root._sink) : ""
     // At most the first three sinks — the cap that keeps this a glance
     // surface; the unbounded list stays AudioPanel.qml's job.
     readonly property var _sinkRows: root.audioBackend ? root.audioBackend.sinks.slice(0, 3) : []
 
+    // Body content is gated on `bodyState === "populated"` — the same
+    // discipline AudioPanel.qml's own outputSection applies — so a
+    // pending/empty popout shows the frame's placeholder alone rather
+    // than a blank device label and an inert slider rendering underneath
+    // it.
     Text {
+        visible: root.bodyState === "populated"
         width: parent.width
         text: root._deviceLabel
         textFormat: Text.PlainText
@@ -48,6 +79,7 @@ SectionPopout {
     }
 
     Row {
+        visible: root.bodyState === "populated"
         width: parent.width
         height: Design.iconSizeMd
         spacing: Design.spacingMd
@@ -128,6 +160,7 @@ SectionPopout {
     // default-sink setter. No stream list, no input section, no per-app
     // mixer — nothing else belongs in a glance surface.
     Column {
+        visible: root.bodyState === "populated"
         width: parent.width
         spacing: Design.spacingSm
 
