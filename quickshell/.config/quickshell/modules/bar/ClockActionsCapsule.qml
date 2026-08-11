@@ -601,6 +601,10 @@ BarCapsule {
         glyph: "settings"
         label: "Settings"
         filled: clockActionsCapsule.settingsExpanded
+        // Athena colours the settings-drawer trigger glyph @accent
+        // unconditionally, not as a state indicator (style-athena.scss:298)
+        // — this is a permanent accent glyph, so no ternary.
+        tint: BarRoles.accent
 
         HoverHandler {
             id: settingsTriggerHoverHandler

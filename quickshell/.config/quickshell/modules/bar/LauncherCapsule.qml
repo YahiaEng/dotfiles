@@ -271,7 +271,10 @@ BarCapsule {
             // convention rather than inventing a second active language:
             // filled while the drawer is open.
             font.variableAxes: launcherCapsule.fillAxisAvailable ? { "FILL": launcherCapsule.expanded ? 1 : 0 } : ({})
-            color: launcherCapsule.contentColour
+            // Athena colours the app-launcher trigger glyph @accent
+            // unconditionally, not as a state indicator (style-athena.scss:81)
+            // — this is a permanent accent glyph, so no ternary.
+            color: BarRoles.accent
         }
 
         HoverHandler {
