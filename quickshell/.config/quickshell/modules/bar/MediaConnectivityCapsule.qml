@@ -402,7 +402,24 @@ BarCapsule {
         id: audioStripHost
         clip: true
         width: root.vertical ? root.drawerCellPitch : (root.audioDrawerExpanded ? root.audioStripExtent : 0)
-        height: root.vertical ? (root.audioDrawerExpanded ? root.audioStripExtent : 0) : root.drawerCellPitch
+        // Phase 18.1 trigger-shift fix, measured via mapToItem (temporary
+        // MCCPROBE, removed before this commit): in horizontal orientation
+        // this host's height was root.drawerCellPitch (24) UNCONDITIONALLY,
+        // wider than audioPopoutTrigger's own rendered height (its glyph
+        // Text's natural metrics, measured 20) — and BarCapsule's outer
+        // content Grid (rows:1 in horizontal) excludes a ZERO-WIDTH item
+        // from its row-height max entirely (confirmed live: contentGrid.
+        // implicitHeight measured 20 while this host, at width 0, still
+        // reported height 24 the same instant), but counts it once width
+        // becomes nonzero on hover. That is what silently grew the row from
+        // 20 to 24 and shifted every glyph in it upward by (24-20)/2 = 2px
+        // — reproducible on every hover, invisible in the code, only
+        // visible by measuring mid-transition. Pinning this host's height
+        // to the trigger's OWN live height (rather than the unrelated
+        // drawerCellPitch token) removes the mismatch structurally: with
+        // both values equal, the row's height max cannot change no matter
+        // which items the Grid quirk does or doesn't count.
+        height: root.vertical ? (root.audioDrawerExpanded ? root.audioStripExtent : 0) : audioPopoutTrigger.height
 
         // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
         // directions, not this repo's semantic-motion emphasizedIn/Out
@@ -445,7 +462,11 @@ BarCapsule {
             Slider {
                 id: audioVolumeSlider
                 width: root.vertical ? root.drawerCellPitch : root.audioSliderLength
-                height: root.vertical ? root.audioSliderLength : root.drawerCellPitch
+                // Pinned to audioStripHost's own height (see that property's
+                // comment) rather than drawerCellPitch, so this content fills
+                // its host exactly instead of overflowing a shorter box under
+                // clip:true.
+                height: root.vertical ? root.audioSliderLength : audioStripHost.height
                 orientation: root.vertical ? Qt.Vertical : Qt.Horizontal
                 from: 0
                 to: 1
@@ -495,7 +516,13 @@ BarCapsule {
             Item {
                 id: audioMicCell
                 width: root.drawerCellPitch
-                height: root.drawerCellPitch
+                // Height only (not width — width still feeds
+                // audioStripExtent's WIDTH reservation, untouched by this
+                // fix) pinned to audioStripHost's own height in horizontal
+                // orientation, same reasoning as the slider above; vertical
+                // orientation is unaffected (root.drawerCellPitch there is
+                // the CROSS-axis dimension, not the one this bug lives in).
+                height: root.vertical ? root.drawerCellPitch : audioStripHost.height
 
                 Text {
                     anchors.centerIn: parent
@@ -789,7 +816,15 @@ BarCapsule {
         id: connectionsStripHost
         clip: true
         width: root.vertical ? root.drawerCellPitch : (root.connectionsDrawerExpanded ? root.connectionsStripExtent : 0)
-        height: root.vertical ? (root.connectionsDrawerExpanded ? root.connectionsStripExtent : 0) : root.drawerCellPitch
+        // Same fix and same reasoning as audioStripHost's own comment above
+        // (Phase 18.1 trigger-shift fix, measured via mapToItem): pinned to
+        // wifiPopoutTrigger's own live height instead of the unrelated
+        // drawerCellPitch token, so BarCapsule's outer content Grid never
+        // sees a taller row once this host's width goes nonzero on hover.
+        // The bluetooth Readout nested inside this host already renders at
+        // that same natural glyph height with no override, so shrinking
+        // this host to match introduces no clipping.
+        height: root.vertical ? (root.connectionsDrawerExpanded ? root.connectionsStripExtent : 0) : wifiPopoutTrigger.height
 
         // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
         // directions — see Design.barDrawerEasingType's own provenance
@@ -814,11 +849,34 @@ BarCapsule {
             onHoveredChanged: root.reportConnectionsDrawerHover("strip", connectionsStripHoverHandler.hovered)
         }
 
-        Grid {
+        // Plain Item, not a Grid — this strip only ever holds the ONE
+        // bluetooth trigger (unlike audioStripHost's slider+mic pair, which
+        // genuinely needs a positioner to arrange two siblings), so a Grid
+        // here bought nothing but inherited that pattern's LEFT-alignment
+        // default. Phase 18.1 gap-tightening fix, measured via mapToItem
+        // (temporary MCCPROBE, removed before this commit): connectionsStripExtent
+        // reserves a full drawerCellPitch (24) box so the bluetooth glyph
+        // keeps the same touch/hover padding every other bar glyph gets —
+        // correct, and unchanged by this fix — but the former Grid always
+        // places its one child flush at the box's OWN (0,0), i.e. the
+        // LEADING edge. With this box's own edge (not its content) already
+        // sitting exactly barCapsuleGap-pitch (16px) before the network
+        // trigger — confirmed by measuring this host's own right edge
+        // against wifiPopoutTrigger's left edge — a glyph only 10.84px wide
+        // left-aligned in a 24px box left 13.16px of invisible padding
+        // BETWEEN the visible glyph and that already-correct 16px gap,
+        // reading as a ~29px gap overall (measured: bt glyph right edge
+        // 2250.68 to net left edge 2279.84). Anchoring the trigger to this
+        // box's OWN trailing edge instead — right in horizontal orientation,
+        // where the strip is declared to grow leftward out of a fixed
+        // network trigger (see this file's own header comment on that
+        // declaration order) — makes the VISIBLE glyph, not just the box,
+        // flush against the boundary the 16px pitch is measured from.
+        // Vertical orientation is untouched: no anchor override there, so
+        // an unanchored child still renders at its parent's origin (0,0),
+        // byte-identical to the Grid's own former top-left default.
+        Item {
             anchors.fill: parent
-            rows: root.vertical ? -1 : 1
-            columns: root.vertical ? 1 : -1
-            spacing: Design.spacingXs
 
             // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — relocated
             //    verbatim from its former flat top-level position into
@@ -828,6 +886,8 @@ BarCapsule {
             PopoutTrigger {
                 id: bluetoothPopoutTrigger
                 sectionId: "bluetooth"
+                anchors.right: root.vertical ? undefined : parent.right
+                anchors.verticalCenter: root.vertical ? undefined : parent.verticalCenter
                 popoutComponent: Component {
                     BluetoothPopout {
                         bluetoothBackend: root.bluetoothBackend
