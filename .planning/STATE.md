@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-14-PLAN.md
-last_updated: "2026-08-11T03:14:21.444Z"
+stopped_at: Completed 18-16-PLAN.md (QBAR-08 hover half shipped; Super-hold half blocked, see WINDOWS.md)
+last_updated: "2026-08-11T09:29:38.289Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 14
+  completed_plans: 16
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 15 of 20
+Plan: 16 of 20
 Status: Ready to execute
-Progress: [███████░░░] 70%
+Progress: [████████░░] 80%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -206,6 +206,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P12 | ~35min | 3 tasks | 6 files |
 | Phase 18 P13 | ~45min | 3 tasks | 8 files |
 | Phase 18 P14 | ~55min | 3 tasks | 13 files |
+| Phase 18 P16 | ~1h | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -431,6 +432,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-13: AudioPopout's body content gated on bodyState==="populated" so the frame placeholder never double-renders under real content
 - [Phase ?]: 18-14: wifi readiness resolved EXISTS NATIVELY via Networking.backend enum (confirmed against installed qmltypes) — no timer needed; bluetooth resolved DOES NOT EXIST, BUILT (monotonic latch + one-shot deadline, the only new timing object this plan adds)
 - [Phase ?]: 18-14: clock and media both resolved 'no pending phase exists' (clock has no backend at all; media's repointed widgetState has a structurally unreachable middle value, confirmed by direct read); resources resolved EXISTS NATIVELY, confirmed per-instance (not per-tab) against Dial.qml/PerformanceTab.qml
+- [Phase ?]: 18-16: revealActive is revealCondition||reHideTimer.running (grace-extended), not a literal hoverHeld/superHeld disjunction — required for the grace-beat behaviour D-18-26 and the human-check both need
+- [Phase ?]: 18-16 Task 2: held-Super reveal bind drafted, verified against keybind-doctor, and REVERTED (chord-collision finding vs the shipped SUPER+SUPER_L tap-to-menu bind at keybinds.lua:86) — QBAR-08 ships hover-only this plan; Super-hold is blocked, handed to the developer with full evidence in BarReveal.qml's header
 
 ### Quick Tasks Completed
 
@@ -510,6 +513,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - 15-05 Task 4 render gate: password-connect, in-flight Cancel abort effect, real failure copy, and Forget confirm not exercised live (no synthetic pointer tool on host, no real wifi passphrase) — see 15-05-SUMMARY.md 'Pending human sign-off' and WINDOWS.md entry #18
 - 16-04 Task 3 (live enforcement session restart + five-consumer proof) deferred by operator decision to end of Phase 16 — see deferred-items.md item 0 for the full run-cold procedure; enforce_permissions=true ships committed but functionally unproven until this is closed
 - 18-10: live click-through verification of the tray menu (activation call + dismissal mechanism) deferred to the user — WINDOWS.md entries 30/31/32
+- QBAR-08 Super-hold half blocked: keybind-doctor's chord-collision check flags a press-bind on SUPER+SUPER_L against the shipped release-bind tap-to-menu bind at keybinds.lua:86; needs the Step 2 nested-hypr-lua-harness live probe (or a hand keypress test) before the mechanism can ship. Recovery path recorded in BarReveal.qml's header.
 
 ## Deferred Items
 
@@ -559,8 +563,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T03:14:21.426Z
-Stopped at: Completed 18-14-PLAN.md
+Last session: 2026-08-11T09:29:38.272Z
+Stopped at: Completed 18-16-PLAN.md (QBAR-08 hover half shipped; Super-hold half blocked, see WINDOWS.md)
 Resume file: None
 
 ## Operator Next Steps

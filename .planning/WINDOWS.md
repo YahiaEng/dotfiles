@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 37
+open_count: 39
 waived_count: 0
 fixed_count: 8
-total_count: 45
-last_updated: 2026-08-11T03:35:37.331Z
+total_count: 47
+last_updated: 2026-08-11T09:26:59.939Z
 ---
 
 # Broken Windows Ledger
@@ -60,6 +60,8 @@ last_updated: 2026-08-11T03:35:37.331Z
 | 43 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaPopout.qml |  | 18-14 Task 3 human-check deferred: live transport control, multi-player case, and confirming all five foot-link destinations are intact and unthinned | open |  | 2026-08-11T03:14:04.512Z |  |
 | 44 | 18 | unrun-verify | hypr/.config/hypr/scripts/bar-visibility.sh |  | 18-15 Task 3's live per-driver zone-policy proof sequence (qs ipc call bar <verb> round trip against idle/gaming/keybind, plus the hyprctl monitors -j reserved-array deltas) was not run — the live quickshell process predates every commit in this plan and has not been restarted/reloaded, matching the phase's established skip-live-verification precedent (18-08/18-12/18-13). | open |  | 2026-08-11T03:35:30.387Z |  |
 | 45 | 18 | deviation | quickshell/.config/quickshell/shell.qml |  | 18-15 Task 2's acceptance grep for 'exactly four functions matching show\|hideIdle\|hideHard\|status' counts 5 whole-file matches, not 4 — a pre-existing overviewIpc.status() (16-04) collides with the regex. barIpc itself declares exactly the specified four functions; the mismatch is in the verify script's scope (whole-file vs. handler-scoped), not a defect in the implementation. | open |  | 2026-08-11T03:35:37.331Z |  |
+| 46 | 18 | deviation | hypr/.config/hypr/config/keybinds.lua |  | 18-16 Task 2: held-Super reveal bind (Branch A) drafted then reverted — keybind-doctor's chord-collision check flagged it against the shipped SUPER+SUPER_L tap-to-menu bind at line 86; compositor-side probe not live-verified this session | open |  | 2026-08-11T09:26:59.846Z |  |
+| 47 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/BarReveal.qml |  | 18-16: hot-zone/reveal live gestures (pointer-to-edge reveal, Super-hold reveal, popout-suppression, escape hatch, reserved-array stability, hyprctl layers lifecycle) not exercised — live quickshell process predates this plan's commits ('qs ipc call bar status' -> Target not found), matching 18-08/18-12/18-13/18-15 precedent | open |  | 2026-08-11T09:26:59.939Z |  |
 
 ````json
 [
@@ -601,6 +603,30 @@ last_updated: 2026-08-11T03:35:37.331Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T03:35:37.331Z",
+    "resolved_at": null
+  },
+  {
+    "id": 46,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "hypr/.config/hypr/config/keybinds.lua",
+    "line": null,
+    "description": "18-16 Task 2: held-Super reveal bind (Branch A) drafted then reverted — keybind-doctor's chord-collision check flagged it against the shipped SUPER+SUPER_L tap-to-menu bind at line 86; compositor-side probe not live-verified this session",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T09:26:59.846Z",
+    "resolved_at": null
+  },
+  {
+    "id": 47,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/BarReveal.qml",
+    "line": null,
+    "description": "18-16: hot-zone/reveal live gestures (pointer-to-edge reveal, Super-hold reveal, popout-suppression, escape hatch, reserved-array stability, hyprctl layers lifecycle) not exercised — live quickshell process predates this plan's commits ('qs ipc call bar status' -> Target not found), matching 18-08/18-12/18-13/18-15 precedent",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T09:26:59.939Z",
     "resolved_at": null
   }
 ]
