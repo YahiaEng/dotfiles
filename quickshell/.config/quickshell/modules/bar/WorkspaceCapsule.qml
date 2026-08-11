@@ -68,14 +68,17 @@ BarCapsule {
     // 18-10 and 18-11 run in the same wave with zero shared files.
 
     // The always-present slot range (five persistent slots).
-    // Ten: the operator's nine Hyprland-bound workspaces plus workspace 10,
-    // which they reserve for AI work and want always present. Athena's own
-    // config uses `persistent-workspaces: {"*": 5}`, but the operator asked
-    // explicitly for the same nine workspaces their Athena renders, and their
-    // Athena's live set was wider than that config's floor — so this follows the
-    // operator's stated intent, not the upstream literal, and says so here so
-    // the two are not "reconciled" back to 5 by a later reader.
-    readonly property int persistentSlotCount: 10
+    // Seven, matching the slot COUNT the operator's Athena renders (its live
+    // set was 1, 2, 6, 7, 8, 9 and the reserved tenth — seven pills). Athena's
+    // own config says `persistent-workspaces: {"*": 5}` while rendering more
+    // than that, so this follows the operator's stated cap rather than the
+    // upstream literal; do not "reconcile" it back to 5.
+    //
+    // Workspace 10 (the reserved AI slot) is NOT part of this floor — it is not
+    // workspace 7. It appears through the dynamic tail below whenever it
+    // exists, carrying the AI symbol instead of its numeral, so the resting bar
+    // is seven pills and the eighth appears only while AI work is live.
+    readonly property int persistentSlotCount: 7
 
     // Reserved icon cells per slot. Must be >= 2: the overflow label
     // occupies the LAST cell rather than an extra one, so a capacity of 1
@@ -473,12 +476,12 @@ BarCapsule {
     // numeral (everything else — see the state-glyph table above), both
     // rendered through the SAME Text element/font/size in the delegate
     // below, so both must be measured and the wider one reserved.
-    // font.pixelSize here MUST match the identity Text's own
-    // font.pixelSize (Design.barGlyphSize) — this metrics block
-    // previously measured at Design.barBodySize (13) while the rendered
-    // glyph painted at Design.barGlyphSize (16), a real mismatch that
-    // under-reserved the slot's own extent; fixed here as part of this
-    // pass (Rule 1).
+    // Each metrics Text MUST measure at the size its own case actually paints
+    // at: a glyph at barGlyphSize (16), a numeral at barBodySize (13). An
+    // earlier pass unified both on barGlyphSize to fix a real under-reservation
+    // (numerals were being measured at 13 while everything painted at 16);
+    // splitting them again is correct now only because the RENDER is split too,
+    // driven by the same slotIdentityIsNumeral flag.
     Text {
         id: slotIdentityGlyphMetrics
         visible: false
@@ -496,7 +499,7 @@ BarCapsule {
         // legitimate id.
         text: "00"
         font.family: workspaceCapsule.appGlyphFontFamily
-        font.pixelSize: Design.barGlyphSize
+        font.pixelSize: Design.barBodySize
         font.weight: Design.weightBody
     }
 
@@ -533,6 +536,10 @@ BarCapsule {
             // same pacman every other focused workspace shows, or the focused
             // state would be unreadable on exactly one slot.
             readonly property string slotStateGlyph: workspaceCapsule.stateGlyphFor(slotItem.slotFocused, slotItem.slotUrgent) || (slotItem.slotId === workspaceCapsule.aiSlotId ? workspaceCapsule.aiSlotGlyph : String(slotItem.slotId))
+            // True when the identity resolved to a numeral rather than a glyph.
+            // Drives BOTH the rendered size and the metrics reservation, so the
+            // two can never disagree about which size measured the slot.
+            readonly property bool slotIdentityIsNumeral: !workspaceCapsule.stateGlyphFor(slotItem.slotFocused, slotItem.slotUrgent) && slotItem.slotId !== workspaceCapsule.aiSlotId
 
             // The slot's own extent, stated explicitly from the tokens
             // rather than left implicit — the numeral's reserved
@@ -674,10 +681,22 @@ BarCapsule {
                     // state glyph, everything else renders the slot's own
                     // numeral — see stateGlyphFor's derivation table above.
                     text: slotItem.slotStateGlyph
+                    font.pixelSize: slotItem.slotIdentityIsNumeral ? Design.barBodySize : Design.barGlyphSize
                     // Material Symbols for the AI slot's sparkle, the Nerd Font
                     // for every state glyph and numeral — see identityFontFor.
                     font.family: slotItem.slotFocused || slotItem.slotUrgent ? workspaceCapsule.appGlyphFontFamily : workspaceCapsule.identityFontFor(slotItem.slotId)
-                    font.pixelSize: Design.barGlyphSize
+                    // A NUMERAL is bar body text and renders at barBodySize
+                    // (13) — Athena's workspace labels inherit its
+                    // `* { font-size: 13px }`, and ours painting them at
+                    // barGlyphSize (16) is why the operator reported the number
+                    // font as not matching. A GLYPH (state or AI symbol) is an
+                    // icon and stays at barGlyphSize, which is also what the
+                    // window glyphs beside it use.
+                    //
+                    // The family needed no change: upstream's
+                    // "JetBrainsMono Nerd Font" is NOT installed on this host,
+                    // and the operator's live Athena renders through
+                    // FiraCode Nerd Font — already appGlyphFontFamily here.
                     font.weight: Design.weightBody
                     // D-07: focused/urgent/default resolved through
                     // BarRoles via slotItem.slotTextColour above — the
