@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18.1
 current_phase_name: qml-bar-athena-restoration
 status: executing
-stopped_at: Completed 18.1-05-PLAN.md
-last_updated: "2026-08-11T15:03:57.813Z"
+stopped_at: Completed 18.1-06-PLAN.md
+last_updated: "2026-08-11T15:18:08.611Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 27
-  completed_plans: 23
+  completed_plans: 24
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18.1 (qml-bar-athena-restoration) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Status: Ready to execute
-Progress: [█████████░] 85%
+Progress: [█████████░] 89%
 Last activity: 2026-08-11 — Phase 18.1 execution started
 
 ## Performance Metrics
@@ -213,6 +213,7 @@ Last activity: 2026-08-11 — Phase 18.1 execution started
 | Phase 18.1 P03 | ~20min | 3 tasks | 2 files |
 | Phase 18.1 P04 | ~25min | 2 tasks | 6 files |
 | Phase 18.1 P05 | ~30min | 3 tasks | 2 files |
+| Phase 18.1 P06 | 35min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -457,6 +458,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18.1-05: drawerSettled reads Bar.qml's live barRendered/barTransitionRunning via QsWindow.window, never PopoutController.barSettled (dead latch) and never writes to BarReveal — the bar's own hover handler already covers an open drawer
 - [Phase ?]: 18.1-05: click toggle fully replaced (not layered) by hover-reveal on both drawer triggers, matching D-16 and Athena's own hover-only group drawers
 - [Phase ?]: 18.1-05: Task 3's four integration legs established via source assertion (no synthetic pointer-input tool on host); WINDOWS.md rows 54-56 filed, deferred to 18.1-07 GATE-02
+- [Phase ?]: D-20: quickshell-doctor exemption set is 8 basenames (BarRoles.qml + 7 SectionPopout-family files), reconciled against live grep; plan's <verification> section item 3 misstates it as 9 — flagged as a plan-text defect, not corrected in code.
+- [Phase ?]: D-20 falsifications (Task 2) run against an isolated scratch fixture via QSD_FIXTURE_SHELL_QML_ROOT rather than in-place poison-and-restore on the real bar/ tree — same four proofs, zero risk of a poison surviving mid-session.
+- [Phase ?]: D-21 BarRoles-to-theme.scss diff is fully mechanical: every property name converts to its theme.scss role via camelCase->kebab-case regex with zero hand-authored pairing table; 17/17 rows resolved, zero disagreements.
 
 ### Quick Tasks Completed
 
@@ -587,8 +591,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T15:03:57.791Z
-Stopped at: Completed 18.1-05-PLAN.md
+Last session: 2026-08-11T15:18:08.591Z
+Stopped at: Completed 18.1-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

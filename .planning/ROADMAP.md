@@ -192,7 +192,7 @@ Cross-cutting constraints:
 **Requirements**: GATE-02 (blocks), QBAR-01..12 (visual regression against the shipped bar)
 **Depends on:** Phase 18
 **Blocks:** Phase 18 plans 18-19 (GATE-02) and 18-20 (waybar package retirement)
-**Plans:** 5/7 plans executed
+**Plans:** 6/7 plans executed
 
 Plans:
 **Wave 1**
@@ -211,7 +211,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 18.1-06-PLAN.md — the `quickshell-doctor` colour-routing check (D-20), proven able to fail via four falsifications, with every exemption named; the generated `BarRoles`↔`theme.scss` diff (D-21)
+- [x] 18.1-06-PLAN.md — the `quickshell-doctor` colour-routing check (D-20), proven able to fail via four falsifications, with every exemption named; the generated `BarRoles`↔`theme.scss` diff (D-21)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
