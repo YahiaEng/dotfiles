@@ -195,4 +195,23 @@ Singleton {
     readonly property int popoutCornerRadius: 20
     readonly property int popoutMinWidth: 300
     readonly property int popoutMaxWidth: 360
+
+    // ── Popout body tokens (Phase 18 Plan 14, QBAR-09) — provenance:
+    //    18-UI-SPEC.md's glance-scope rule for `popoutListCap`; this plan
+    //    itself for `backendResolveDeadlineMs`, since UI-SPEC's token table
+    //    carries no row for it. Appended alone, per this phase's standing
+    //    rule that each plan appends only the tokens it actually reads.
+    //
+    //    One number governs every popout list across all six bodies —
+    //    wifi's saved networks, bluetooth's devices, audio's sinks (18-13's
+    //    own literal is retrofitted onto this token by this same plan's
+    //    last task) — so the rule that keeps a popout a glance surface
+    //    lives in one place rather than as a literal repeated per body.
+    readonly property int popoutListCap: 3
+
+    // What it bounds: how long the shell will keep claiming a connectivity
+    // service is still resolving before it says instead that there is
+    // nothing there. It decides which of two true sentences is shown and
+    // never what value is shown — no number anywhere is derived from it.
+    readonly property int backendResolveDeadlineMs: 2000
 }

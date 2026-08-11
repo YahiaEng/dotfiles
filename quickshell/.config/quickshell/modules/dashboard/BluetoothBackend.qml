@@ -426,4 +426,68 @@ Scope {
     // dismiss" means mechanically.
     onPanelOpenChanged: if (!root.panelOpen)
         root.stopDiscovery()
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Phase 18 Plan 14 (QBAR-09) — the readiness register the bluetooth
+    // popout body (BluetoothPopout.qml) reads. Strictly additive: no line
+    // above this one changes, and this section touches no lifecycle gate,
+    // no scan flag and no discovery control — this is a READINESS
+    // register, never a capability write.
+    //
+    // ── Readiness audit verdict (Task 1) — DOES NOT EXIST, BUILT ─────────
+    // The bluetooth singleton (`qs::bluetooth::BluezQml`, confirmed
+    // against the installed
+    // `/usr/lib/qt6/qml/Quickshell/Bluetooth/quickshell-bluetooth.qmltypes`)
+    // exposes exactly three members — `defaultAdapter` (a pointer, the
+    // only one with a `notify` signal), `adapters` (an UntypedObjectModel)
+    // and `devices` (an UntypedObjectModel) — plus one signal,
+    // `defaultAdapterChanged`. No service-resolved flag exists anywhere on
+    // it, so a monotonic latch plus one bounded, non-repeating deadline is
+    // built — the shape the plan's own audit named as the expected outcome
+    // here, and the ONLY timing object this entire plan adds anywhere.
+    // ═══════════════════════════════════════════════════════════════════
+
+    // Monotonic and never reset: an adapter that disconnects later does
+    // not un-resolve the service, and a latch that could flip back would
+    // let the popout body oscillate between two different honest messages
+    // for the same machine.
+    property bool _adapterCollectionSeen: false
+
+    Connections {
+        target: Bluetooth.adapters
+        function onValuesChanged() {
+            if (!root._adapterCollectionSeen && Bluetooth.adapters && Bluetooth.adapters.values.length > 0)
+                root._adapterCollectionSeen = true;
+        }
+    }
+
+    Component.onCompleted: {
+        if (Bluetooth.adapters && Bluetooth.adapters.values.length > 0)
+            root._adapterCollectionSeen = true;
+    }
+
+    // The only timing object this whole plan adds anywhere — it stops and
+    // never restarts, and it is bounded rather than repeating precisely
+    // because this backend is mounted for the whole session on a surface
+    // with no dismissed state.
+    property bool _resolveDeadlineElapsed: false
+
+    Timer {
+        id: resolveDeadlineTimer
+        interval: Design.backendResolveDeadlineMs
+        repeat: false
+        running: true
+        onTriggered: root._resolveDeadlineElapsed = true
+    }
+
+    // The deadline is a bound on the CLAIM, not a guess at the answer:
+    // before it elapses the shell says it is still checking, after it
+    // elapses the shell says there is nothing — both are true statements
+    // about what the shell knows at that moment. At no point is a value
+    // invented.
+    readonly property string readinessState: {
+        if (!root._adapterCollectionSeen && !root._resolveDeadlineElapsed)
+            return "pending";
+        return root.adapterPresent ? "populated" : "empty";
+    }
 }

@@ -485,4 +485,40 @@ Scope {
             root.connectFailed(failedNetwork, text);
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Phase 18 Plan 14 (QBAR-09) — the readiness register the wifi popout
+    // body (WifiPopout.qml) reads. Strictly additive: no line above this
+    // one changes, and this section touches no lifecycle gate, no scan
+    // flag and no discovery control — this is a READINESS register, never
+    // a capability write.
+    //
+    // ── Readiness audit verdict (Task 1) — EXISTS NATIVELY ───────────────
+    // `Quickshell.Networking`'s own singleton exposes `Networking.backend`
+    // (`NetworkBackendType::Enum`, values `["None", "NetworkManager"]`),
+    // confirmed against the installed
+    // `/usr/lib/qt6/qml/Quickshell/Networking/quickshell-network.qmltypes`.
+    // `None` is the not-yet-resolved value — nothing has told the
+    // networking layer which backend to use yet; `NetworkManager` is the
+    // resolved value once NetworkManager's D-Bus service is detected. This
+    // answers a coarser question than "has THIS machine's wifi device been
+    // enumerated" — that half is already `wifiDevice` above, reactive off
+    // `Networking.devices`. Combining the two gives the full three-way
+    // answer with no additional signal built and no additional timer
+    // added anywhere in this file.
+    //
+    // Caveat recorded rather than silently accepted: the installed
+    // qmltypes declares `backend` `isPropertyConstant` with no `notify`
+    // signal, meaning a binding reading it is evaluated once and never
+    // re-evaluated. That is consistent with backend detection settling
+    // once, early — before any QML component tree exists — rather than
+    // wobbling for the session's whole lifetime, and it is why no latch
+    // and no deadline is needed on this half of the answer, unlike
+    // bluetooth's equivalent register.
+    // ═══════════════════════════════════════════════════════════════════
+    readonly property string readinessState: {
+        if (Networking.backend === NetworkBackendType.None)
+            return "pending";
+        return root.wifiDevice ? "populated" : "empty";
+    }
 }

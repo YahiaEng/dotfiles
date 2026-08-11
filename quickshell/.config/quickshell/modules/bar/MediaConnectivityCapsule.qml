@@ -326,10 +326,27 @@ BarCapsule {
         return 1;
     }
 
-    Readout {
-        glyph: root.networkGlyph
-        showValue: false
-        opacity: root.networkOpacity
+    // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — named seam into this
+    //    18-08-owned file. Ownership split, stated so it is never
+    //    discovered at merge time: 18-08 owns the Readout's glyph and
+    //    value bindings; this plan owns only the PopoutTrigger wrapper
+    //    around it, matching 18-13's own audio-entry precedent exactly.
+    //    Nothing else changes: not the glyph or opacity bindings, not the
+    //    entry order. ───────────────────────────────────────────────────
+    PopoutTrigger {
+        id: wifiPopoutTrigger
+        sectionId: "wifi"
+        popoutComponent: Component {
+            WifiPopout {
+                wifiBackend: root.wifiBackend
+            }
+        }
+
+        Readout {
+            glyph: root.networkGlyph
+            showValue: false
+            opacity: root.networkOpacity
+        }
     }
 
     // ── bluetooth ────────────────────────────────────────────────────────
@@ -355,9 +372,21 @@ BarCapsule {
         return root.btConnectedCount > 0 ? "bluetooth_connected" : "bluetooth";
     }
 
-    Readout {
-        glyph: root.bluetoothGlyph
-        showValue: false
+    // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — same seam shape as
+    //    the wifi entry immediately above. ───────────────────────────────
+    PopoutTrigger {
+        id: bluetoothPopoutTrigger
+        sectionId: "bluetooth"
+        popoutComponent: Component {
+            BluetoothPopout {
+                bluetoothBackend: root.bluetoothBackend
+            }
+        }
+
+        Readout {
+            glyph: root.bluetoothGlyph
+            showValue: false
+        }
     }
 
     // ── battery ──────────────────────────────────────────────────────────

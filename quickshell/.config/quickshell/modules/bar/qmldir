@@ -50,3 +50,12 @@ SectionPopout 1.0 SectionPopout.qml
 singleton PopoutController 1.0 PopoutController.qml
 PopoutTrigger 1.0 PopoutTrigger.qml
 AudioPopout 1.0 AudioPopout.qml
+
+# 18-14 appends the other five D-18-16 bodies across three commits, one per
+# task/body-group, per this manifest's own rule that a type is registered
+# in the commit that creates it: WifiPopout/BluetoothPopout (Task 1),
+# ClockPopout/ResourcesPopout (Task 2), MediaPopout (Task 3). None is a
+# singleton — each is instantiated once per popout summon through its own
+# PopoutTrigger's popoutComponent, never held ambiently.
+WifiPopout 1.0 WifiPopout.qml
+BluetoothPopout 1.0 BluetoothPopout.qml
