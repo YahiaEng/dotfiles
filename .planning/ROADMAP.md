@@ -192,7 +192,7 @@ Cross-cutting constraints:
 **Requirements**: GATE-02 (blocks), QBAR-01..12 (visual regression against the shipped bar)
 **Depends on:** Phase 18
 **Blocks:** Phase 18 plans 18-19 (GATE-02) and 18-20 (waybar package retirement) — **STILL BLOCKED.** GATE-02 FAILED on 2026-08-11 (see below); waybar stays installed until a future gap-closure phase re-runs this gate and it passes.
-**Plans:** 7/7 plans executed — **GATE-02 FAILED**
+**Plans:** 7/7 plans complete
 
 **GATE-02 verdict (2026-08-11): FAIL.** The operator ran the side-by-side comparison against the Athena waybar and judged the QML bar worse, not at least as good. Verbatim verdict and full detail in `18.1-07-SUMMARY.md`. Four defects found and recorded for gap-closure planning, none fixed here:
 
