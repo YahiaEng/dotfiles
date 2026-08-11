@@ -40,10 +40,17 @@ BarCapsule {
     // would make every multi-window slot render an overflow count and no
     // glyph at all. 3 is derived from Design.iconSizeMd cells stacking
     // along the slot's main axis — in vertical that axis is the column's
-    // length, the scarce one. This is the single tuning knob if 18-19's
-    // GATE-02 pass finds the vertical column overfull once all six
-    // capsules exist; lowering it is a one-line change, and removing
-    // capability is not the alternative.
+    // length, the scarce one.
+    //
+    // ── Open question handed forward to 18-19 ────────────────────────────
+    // At full scope the vertical column carries all six bar capsules, and
+    // only 18-19's GATE-02 pass — once every capsule exists — can see
+    // whether they all fit the monitor's height. If they do not, THIS
+    // constant is the one sanctioned tuning knob: lowering it is a
+    // one-line change. Dropping slots, hiding glyphs behind an expander,
+    // or eliding any entry present in the horizontal orientation is
+    // forbidden by this phase outright — stated plainly so a future
+    // reader under time pressure does not reach for the wrong lever.
     readonly property int iconsPerSlot: 3
 
     // The Nerd Font family that renders the per-app glyphs below — a
