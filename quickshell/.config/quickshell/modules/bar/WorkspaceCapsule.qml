@@ -68,17 +68,19 @@ BarCapsule {
     // 18-10 and 18-11 run in the same wave with zero shared files.
 
     // The always-present slot range (five persistent slots).
-    // Seven, matching the slot COUNT the operator's Athena renders (its live
-    // set was 1, 2, 6, 7, 8, 9 and the reserved tenth — seven pills). Athena's
-    // own config says `persistent-workspaces: {"*": 5}` while rendering more
-    // than that, so this follows the operator's stated cap rather than the
+    // SIX numbered slots plus the always-present reserved AI slot (id 10) below
+    // = seven pills, which is exactly the composition the operator's Athena
+    // renders: six numbered workspaces and the reserved tenth. Athena's own
+    // config says `persistent-workspaces: {"*": 5}` while rendering more than
+    // that, so this follows the operator's stated cap of seven rather than the
     // upstream literal; do not "reconcile" it back to 5.
     //
-    // Workspace 10 (the reserved AI slot) is NOT part of this floor — it is not
-    // workspace 7. It appears through the dynamic tail below whenever it
-    // exists, carrying the AI symbol instead of its numeral, so the resting bar
-    // is seven pills and the eighth appears only while AI work is live.
-    readonly property int persistentSlotCount: 7
+    // A previous pass set this to 7 and left the AI slot to the dynamic tail,
+    // which made it vanish whenever workspace 10 did not exist. The operator
+    // asked for it back, so it is now persistent (aiSlotId is unioned into
+    // slotIds unconditionally) and the numbered floor drops to six to hold the
+    // total at seven.
+    readonly property int persistentSlotCount: 6
 
     // Reserved icon cells per slot. Must be >= 2: the overflow label
     // occupies the LAST cell rather than an extra one, so a capacity of 1
@@ -275,18 +277,19 @@ BarCapsule {
     // meaning; the operator asked for "the star AI symbol" instead, so it gets
     // the identity glyph rather than its numeral.
     //
-    // `auto_awesome` is Material Symbols' standard AI sparkle. It is therefore
-    // the ONE identity glyph in this file that is NOT from appGlyphFontFamily
-    // (FiraCode Nerd Font) — it needs Design.symbolFontFamily, the same family
-    // every other Material Symbol on this bar uses. aiSlotFontFamily below is
-    // what the identity Text and its metrics both read so the reservation and
-    // the render can never disagree about which font measured it.
+    // The operator asked for a different icon than the first attempt, which used
+    // Material Symbols' `auto_awesome` sparkle. This is nf-md-robot (U+F06A9)
+    // from appGlyphFontFamily — the SAME Nerd Font every other identity glyph
+    // and window glyph on this bar uses.
+    //
+    // That choice is deliberate beyond taste: the sparkle was the one identity
+    // glyph in this file needing a second font family, which forced a
+    // per-slot font switch and two differently-measured metrics paths. A Nerd
+    // Font icon removes that special case entirely, so every slot identity is
+    // one family at one size again. Swapping this glyph later is now a
+    // one-literal change with no font plumbing attached.
     readonly property int aiSlotId: 10
-    readonly property string aiSlotGlyph: "auto_awesome"
-
-    function identityFontFor(slotId) {
-        return slotId === workspaceCapsule.aiSlotId ? Design.symbolFontFamily : workspaceCapsule.appGlyphFontFamily;
-    }
+    readonly property string aiSlotGlyph: "\u{f06a9}"
 
     // Precedence matches slotTextColour's own: focused wins over urgent.
     // Anything else falls through to the caller's own numeral (String(
@@ -450,6 +453,13 @@ BarCapsule {
         var ids = [];
         for (var p = 1; p <= workspaceCapsule.persistentSlotCount; p++)
             ids.push(p);
+        // The reserved AI workspace is persistent, not dynamic: it renders
+        // whether or not Hyprland currently has a workspace 10, so the slot the
+        // operator reserves for AI work is always there to click. Pushed after
+        // the numbered floor and before the dynamic tail's insertion scan, which
+        // keeps ids ascending without a sort.
+        if (ids.indexOf(workspaceCapsule.aiSlotId) === -1)
+            ids.push(workspaceCapsule.aiSlotId);
 
         var list = Hyprland.workspaces.values;
         for (var i = 0; i < list.length; i++) {
@@ -682,9 +692,10 @@ BarCapsule {
                     // numeral — see stateGlyphFor's derivation table above.
                     text: slotItem.slotStateGlyph
                     font.pixelSize: slotItem.slotIdentityIsNumeral ? Design.barBodySize : Design.barGlyphSize
-                    // Material Symbols for the AI slot's sparkle, the Nerd Font
-                    // for every state glyph and numeral — see identityFontFor.
-                    font.family: slotItem.slotFocused || slotItem.slotUrgent ? workspaceCapsule.appGlyphFontFamily : workspaceCapsule.identityFontFor(slotItem.slotId)
+                    // One family for every identity — state glyph, AI icon and
+                    // numeral alike — now that the AI icon is a Nerd Font glyph
+                    // rather than a Material Symbol.
+                    font.family: workspaceCapsule.appGlyphFontFamily
                     // A NUMERAL is bar body text and renders at barBodySize
                     // (13) — Athena's workspace labels inherit its
                     // `* { font-size: 13px }`, and ours painting them at
