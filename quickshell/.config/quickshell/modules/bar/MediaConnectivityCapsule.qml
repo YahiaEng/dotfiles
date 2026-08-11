@@ -110,6 +110,15 @@ BarCapsule {
         property bool populated: true
         property bool errored: false
         property bool elideValue: false
+        // Numeric readouts stay AlignRight against a FIXED reserve so their
+        // digits do not jitter as the value changes. A TITLE is not a number:
+        // right-aligning it inside a reserve sized for 30 capital Ms parked the
+        // text at the far right of that box while the glyph stayed at the left,
+        // which is the operator's "the music glyph is so far to the left of the
+        // now playing title". These two knobs let the media entry opt out
+        // without changing any numeric readout.
+        property int valueAlignment: Text.AlignRight
+        property bool valueShrinks: false
         // -1 means "no vertical-specific cap" (the normal case).
         property real maxWidthVertical: -1
 
@@ -123,6 +132,19 @@ BarCapsule {
             font.pixelSize: Design.barBodySize
             font.weight: Design.weightBody
             text: readoutItem.maxValueText
+        }
+
+        // The rendered text's own width, measured in the same font as the
+        // reserve above. Used only by valueShrinks entries: it lets the cell hug
+        // its content while still capping at the reserve, so a long title elides
+        // at the cap and a short one sits right beside its glyph. Measured rather
+        // than read off the Text's implicitWidth, which is unreliable once
+        // `width` and `elide` are both set on that same element.
+        TextMetrics {
+            id: valueActual
+            font.pixelSize: Design.barBodySize
+            font.weight: Design.weightBody
+            text: readoutItem.populated ? readoutItem.valueText : "—"
         }
 
         Grid {
@@ -143,13 +165,16 @@ BarCapsule {
                 font.pixelSize: Design.barBodySize
                 font.weight: Design.weightBody
                 color: root.contentColour
-                horizontalAlignment: Text.AlignRight
+                horizontalAlignment: readoutItem.valueAlignment
                 elide: readoutItem.elideValue ? Text.ElideRight : Text.ElideNone
-                width: readoutItem.showValue
-                    ? (readoutItem.vertical && readoutItem.maxWidthVertical >= 0
+                width: {
+                    if (!readoutItem.showValue)
+                        return 0;
+                    var cap = readoutItem.vertical && readoutItem.maxWidthVertical >= 0
                         ? Math.min(valueReserve.width, readoutItem.maxWidthVertical)
-                        : valueReserve.width)
-                    : 0
+                        : valueReserve.width;
+                    return readoutItem.valueShrinks ? Math.min(valueActual.width, cap) : cap;
+                }
                 text: readoutItem.populated ? readoutItem.valueText : "—"
             }
         }
@@ -192,6 +217,10 @@ BarCapsule {
         Readout {
             visible: root.mediaBackend ? root.mediaBackend.hasPlayer : false
             glyph: "music_note"
+            // A title reads as a label beside its glyph, not as a right-aligned
+            // figure — see valueAlignment/valueShrinks on the component above.
+            valueAlignment: Text.AlignLeft
+            valueShrinks: true
             maxValueText: "M".repeat(Design.mediaTitleMaxChars)
             maxWidthVertical: Design.barColumnWidth
             elideValue: true
