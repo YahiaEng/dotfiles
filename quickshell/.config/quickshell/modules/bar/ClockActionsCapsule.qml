@@ -99,23 +99,19 @@ BarCapsule {
         Rectangle {
             id: clockFillPill
             anchors.centerIn: clockTriggerGrid
-            // Upstream Athena's #clock is its OWN module — 34px tall (42px bar
-            // less its 4px top/bottom margin) with `padding: 6px 10px 6px
-            // 16px`. Ours is a cell inside a capsule, so the pill must fit the
-            // capsule rather than add its own margin on top: the old
-            // `grid.height + spacingSm * 2` came to ~33px inside a 22px content
-            // area (capsuleHeight 34 less 2x barCapsulePadding), which overflowed
-            // and got cut flat at the bar's bottom edge — the operator's "the
-            // time pill looks out of position". Pinning to barCapsuleHeight makes
-            // it exactly Athena's clock height and, now that this capsule is
-            // unsurfaced, the pill IS the visible module just as upstream's is.
-            // Athena states the clock as PADDING around its text
-            // (`padding: 6px 10px 6px 16px`), not as a fixed height — so
-            // derive it the same way: content + barCapsulePadding (6) on each
-            // side. Pinning to barCapsuleHeight (34) instead put the pill's
-            // bottom flush against the bar's edge with no wallpaper gap, which
-            // still read as cut off; deriving from padding leaves the 4px
-            // margin Athena's own `margin: 4px 5px` produces.
+            // Upstream Athena states #clock as PADDING around its text
+            // (`padding: 6px 10px 6px 16px`), not as a fixed height, so this
+            // derives the same way: content + barCapsulePadding (6) per side.
+            //
+            // Two earlier shapes were wrong and are recorded so neither is
+            // retried: `grid.height + spacingSm * 2` came to ~33px inside a
+            // 22px content area and overflowed to the bar's bottom edge (the
+            // operator's "the time pill looks out of position"); pinning to
+            // barCapsuleHeight (34) then sat flush against that edge with no
+            // wallpaper gap and still read as cut off. Deriving from padding
+            // leaves the 4px gap Athena's own `margin: 4px 5px` produces.
+            // Now that this capsule is unsurfaced, this pill IS the visible
+            // module, exactly as upstream's #clock is.
             width: clockTriggerGrid.width + Design.spacingMd + Design.spacingSm
             height: clockTriggerGrid.height + Design.barCapsulePadding * 2
             radius: clockActionsCapsule.vertical ? width / 2 : height / 2
