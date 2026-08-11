@@ -8,17 +8,24 @@ anywhere in this document.
 
 **Window state, 2026-08-12:** the original start capture (Section four, pid `737907`) is
 **void** — `quickshell` restarted during Phase 18.1's bar rebuild, and Section three
-declares a restart mid-window fatal. A fresh anchor was taken against pid `262631` after
-the desktop was settled (waybar stopped, the QML bar sole owner of the reserved zone):
-**Section four-bis is the live anchor**, and its "Re-anchored thresholds" table carries the
-absolute bands the end capture is judged against. Section three's tolerance *percentages*
-are unchanged — they were pre-declared before any result existed and were not re-opened.
+declares a restart mid-window fatal. Two further anchors followed, and the
+first of them is void as well: Section four-bis (pid `262631`) was killed by a host reboot at
+01:09. **Section four-ter is the live anchor** (pid `1626`), and its "Live thresholds" table
+carries the absolute bands the end capture is judged against. Section three's tolerance
+*percentages* are unchanged throughout — they were pre-declared before any result existed and
+were never re-opened; only the absolute values move, because they are defined relative to a
+start rate that had to be re-taken.
 
-**Earliest valid end capture: ≈ 04:32:15 EEST on 2026-08-12** (unit start 00:32:15 +
+**Earliest valid end capture: ≈ 05:09:39 EEST on 2026-08-12** (unit start 01:09:39 +
 14400 s). Until then, use the machine normally — normal use is what exercises the popout
 create-and-destroy path, and is what the requirement's own phrase "multi-hour session"
-means. If `quickshell` restarts before then, the window voids again and Section four-bis
-must be re-taken from the new pid.
+means.
+
+**The window has now voided three times** (18.1's rebuild, then a reboot, with a discarded
+two-bar attempt between them). Each void needed a fresh capture from a new pid. The recurring
+obstacle is not the measurement — every capture took 5 minutes and worked first time — it is
+holding four hours of uninterrupted uptime. If `quickshell` restarts or the host reboots
+before 05:09:39, Section four-ter must be re-taken and the clock restarts.
 
 ## Section one — the aggregated permanent-liveness inventory
 
@@ -387,6 +394,78 @@ start rate and the start rate was re-taken:
 | Process count | 1 process, 1 child | exact equality | `pgrep -c -x quickshell` == 1; child **command** set == {`/usr/bin/swaync-client -swb`} |
 | Hot-zone namespaces | — | exactly 0, no tolerance | 0 `quickshell-bar-hotzone` after the 200-cycle exercise |
 | Window | etimes `2011` s at open | ≥14400 s, `NRestarts` unchanged | earliest valid end capture ≈ **04:32:15 EEST** |
+
+## Section four-ter — **THE LIVE ANCHOR** (2026-08-12 01:21, post-reboot)
+
+Section four-bis is **also void**: the host rebooted at 01:09 (`who -b`), taking `quickshell`
+from pid `262631` to `1626`. That is the third void in this plan's history and it is the
+finding, not a footnote — **a valid QBAR-11 window needs four hours with no reboot and no
+`quickshell` restart, and that constraint, not the measurement, is what makes this task
+hard.** waybar was stopped again before this capture (it autostarts; see below) and the
+mandatory 10-minute settle was waited out (`etimes` 612 s at capture start).
+
+```
+$ systemctl --user show quickshell.service -p NRestarts -p MainPID -p ExecMainStartTimestamp
+MainPID=1626
+NRestarts=0
+ExecMainStartTimestamp=Wed 2026-08-12 01:09:39 EEST
+
+$ ps -o rss=,etimes= -p 1626      # RSS sample 1 of >=5
+221928   1010
+
+T0 = 1786486890   vol=8957   nonvol=544    utime=109  stime=65
+T1 = 1786487190   vol=12015  nonvol=659    utime=136  stime=80
+elapsed = 300s
+wake_delta      = (12015-8957) + (659-544) = 3058 + 115 = 3173
+cpu_ticks_delta = (136-109)    + (80-65)   =   27 +  15 =   42 ticks
+
+$ awk -v w=3173 -v t=300 'BEGIN{printf "%.4f\n", w/t}'
+10.5767   # wakes/sec — THE ANCHOR RATE
+$ awk -v c=42 -v t=300 'BEGIN{printf "%.6f\n", (c/100)/t}'
+0.001400  # cpu-sec/sec — THE ANCHOR RATE
+
+$ hyprctl layers -j | jq -r '..|.namespace? // empty' | sort | uniq -c
+      1 awww-daemon
+      1 quickshell-bar
+$ hyprctl monitors -j | jq -c '[.[].reserved]'
+[[0,48,0,0]]
+$ pgrep -c -x waybar
+0
+$ ~/.config/hypr/scripts/bar-visibility.sh status
+visible
+$ cat ~/.local/state/theme/current-theme
+catppuccin
+$ grep -rn 'Timer\s*{' quickshell/.config/quickshell/modules/ | grep -v '^\s*//' | wc -l
+34
+```
+
+**RSS is 221928 KiB here against 477016 KiB in Section four-bis — do not read that as a
+28 MiB-per-hour leak.** The two numbers are from different process lifetimes: four-bis
+measured a process that had been up through an entire 18.1 rebuild session, this one is
+10 minutes past a cold boot. **The RSS series across sections four / four-bis / four-ter is
+not a series at all** and no growth figure may be derived from it. Only samples taken
+*within* this window, against pid `1626`, are comparable — which is exactly why Section
+three demands at least five spaced samples rather than two endpoints.
+
+### Live thresholds — judge the end capture against THESE
+
+| Gate | Anchor (start) | Pre-declared tolerance | Absolute band for the end capture |
+|---|---|---|---|
+| Wake rate | `10.5767`/sec | ±20% | `8.4614` – `12.6920`/sec inclusive |
+| CPU-time rate | `0.001400` cpu-s/s | ±25% | `0.00105000` – `0.00175000` inclusive |
+| RSS magnitude | `221928` KiB | ≤32 MiB total AND ≤5 MiB/hour | ceiling `254696` KiB; rate ≤`5120` KiB/hour |
+| RSS shape | — | final-third growth ≤ 2× first-third growth | ≥5 samples spaced through the window |
+| Process count | 1 process, 1 child | exact equality | `pgrep -c -x quickshell` == 1; child **command** set == {`/usr/bin/swaync-client -swb`} |
+| Hot-zone namespaces | — | exactly 0, no tolerance | 0 `quickshell-bar-hotzone` after the 200-cycle exercise |
+| Window | unit start 01:09:39 | ≥14400 s, `NRestarts` unchanged | earliest valid end capture ≈ **05:09:39 EEST** |
+
+**Resume with `PID=1626`.** Section five's command set is otherwise correct as written; ignore
+its `737907` and the four-bis `262631`, and intersect the child set by **command**, not pid.
+
+**waybar must be off for the end capture too.** It autostarts from
+`hypr/.config/hypr/config/autostart.lua:62` (`waybar-launch.sh`), so it will be running again
+after any reboot. If it is up, the reserved array reads `[[0,94,0,0]]` and the start/end
+comparison breaks. Stop it before the end capture, or the window is unusable.
 
 ## Section five — the soak protocol (instructions for the deferred Task 4)
 
