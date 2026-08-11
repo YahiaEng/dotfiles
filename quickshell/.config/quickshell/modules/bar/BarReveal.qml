@@ -144,6 +144,16 @@ Singleton {
     //    reads it. ─────────────────────────────────────────────────────
     readonly property bool revealCondition: root.hoverHeld || root.superHeld
 
+    // ── D-18-26's other input, read exactly once (Task 3) — 18-13 declared
+    //    this popout-open flag two waves early specifically so this file
+    //    would not reach into popout internals; this is that one read.
+    //    Never written from here. Reading it through this local alias,
+    //    rather than spelling the singleton reference a second time below,
+    //    is what keeps this file's own literal reference count at exactly
+    //    one while still consuming the value from two places (the timer's
+    //    guard and the re-arm handler beneath it). ───────────────────────
+    readonly property bool popoutOpen: PopoutController.anyOpen
+
     // ── The single timing object this plan introduces anywhere — the bar
     //    has no dismissed state, so a repeating timer added here would run
     //    forever; this one is non-repeating and stopped at rest. Interval
@@ -154,13 +164,24 @@ Singleton {
         repeat: false
         running: false
         onTriggered: {
+            // D-18-26's full conjunction, evaluated in exactly this one
+            // place: the reveal condition has ended (guaranteed by the
+            // arm/cancel wiring below) AND no popout is open. A popout
+            // still open here means the bar cannot vanish out from under
+            // it — re-arm a full window rather than let it fall, so a
+            // popout read continuously holds the bar up indefinitely
+            // rather than for one more fixed window.
+            if (root.popoutOpen) {
+                reHideTimer.restart();
+                return;
+            }
             // Explicit, defensive clear — revealCondition is guaranteed
             // false by the time this fires uninterrupted (arming only
             // happens on its OWN transition to false, and re-entering
             // cancels the timer outright rather than shortening it — see
             // the arm/cancel wiring below), so hoverHeld is already false
-            // here. Stated as a clear rather than left implicit, per this
-            // task's own action text.
+            // here. Stated as a clear rather than left implicit, per
+            // Task 1's own action text.
             root.hoverHeld = false;
         }
     }
@@ -175,6 +196,16 @@ Singleton {
         if (root.revealCondition)
             reHideTimer.stop();
         else
+            reHideTimer.restart();
+    }
+
+    // Closing the last popout while the pointer is already away must start
+    // a FRESH full grace window, never resume a window that was implicitly
+    // extended by the open popout above — the user just finished reading
+    // something; they get the whole beat, not a remainder (Task 3's own
+    // action text).
+    onPopoutOpenChanged: {
+        if (!root.popoutOpen && !root.revealCondition)
             reHideTimer.restart();
     }
 

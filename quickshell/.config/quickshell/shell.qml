@@ -201,6 +201,20 @@ ShellRoot {
         HotZone {}
     }
 
+    // ── D-18-19's latch driver (Phase 18 Plan 16, Task 3) — the OTHER
+    //    half of the seam Task 1's revealOverride binding above completes:
+    //    a binding, never a pair of edge handlers, so a transition that
+    //    completes instantly under disabled motion cannot be missed the
+    //    way an edge handler registered a frame late could. 18-15 declared
+    //    both operands and deliberately shipped no writer of its own so
+    //    ownership of the popout singleton's settle latch would land here,
+    //    and here only — completing the three-plan chain 18-13 started.
+    Binding {
+        target: PopoutController
+        property: "barSettled"
+        value: barInstance.barRendered && !barInstance.barTransitionRunning
+    }
+
     // ── Audio panel (Phase 15 Plan 02 tracer, PANEL-02/PANEL-06) ─────────
     // Same summon-via-LazyLoader mechanism as the dashboard drawer above.
     // `AudioBackend`'s `panelOpen` gate is bound to this loader's own
