@@ -21,6 +21,13 @@ BarCapsule {
     id: workspaceCapsule
     capsuleId: "workspaces"
 
+    // The ONE capsule that carries a surface — operator decision, GATE-02
+    // round 2. See BarCapsule.qml's `surfaced` for why this diverges from
+    // upstream Athena (which surfaces every group). Every other capsule
+    // leaves `surfaced` at its false default and renders bare glyphs on the
+    // wallpaper.
+    surfaced: true
+
     // ── Why these three constants stay LOCAL rather than in Design.qml ──
     // None of the three appears in 18-UI-SPEC.md's "## New Tokens" table,
     // and this file is the only reader of any of them — Design.qml's own

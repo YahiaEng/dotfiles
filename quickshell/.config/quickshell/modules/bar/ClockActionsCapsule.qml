@@ -92,8 +92,25 @@ BarCapsule {
         Rectangle {
             id: clockFillPill
             anchors.centerIn: clockTriggerGrid
-            width: clockTriggerGrid.width + Design.spacingSm * 2
-            height: clockTriggerGrid.height + Design.spacingSm * 2
+            // Upstream Athena's #clock is its OWN module — 34px tall (42px bar
+            // less its 4px top/bottom margin) with `padding: 6px 10px 6px
+            // 16px`. Ours is a cell inside a capsule, so the pill must fit the
+            // capsule rather than add its own margin on top: the old
+            // `grid.height + spacingSm * 2` came to ~33px inside a 22px content
+            // area (capsuleHeight 34 less 2x barCapsulePadding), which overflowed
+            // and got cut flat at the bar's bottom edge — the operator's "the
+            // time pill looks out of position". Pinning to barCapsuleHeight makes
+            // it exactly Athena's clock height and, now that this capsule is
+            // unsurfaced, the pill IS the visible module just as upstream's is.
+            // Athena states the clock as PADDING around its text
+            // (`padding: 6px 10px 6px 16px`), not as a fixed height — so
+            // derive it the same way: content + barCapsulePadding (6) on each
+            // side. Pinning to barCapsuleHeight (34) instead put the pill's
+            // bottom flush against the bar's edge with no wallpaper gap, which
+            // still read as cut off; deriving from padding leaves the 4px
+            // margin Athena's own `margin: 4px 5px` produces.
+            width: clockTriggerGrid.width + Design.spacingMd + Design.spacingSm
+            height: clockTriggerGrid.height + Design.barCapsulePadding * 2
             radius: clockActionsCapsule.vertical ? width / 2 : height / 2
             color: BarRoles.fillClock
             Behavior on color {
@@ -158,7 +175,14 @@ BarCapsule {
     //    off the resulting state change). ────────────────────────────────
     component ActionCell: Item {
         id: cellItem
-        width: clockActionsCapsule.cellPitch
+        // A badged cell widens to hold its count BESIDE the glyph rather than
+        // on top of it. Upstream Athena's #custom-notification is a filled
+        // pill containing the bell glyph and the count side by side; ours drew
+        // a badge circle of implicitHeight spacingMd (16) anchored to the
+        // top-right of a cell whose glyph is barGlyphSize (16), so the badge
+        // covered the bell exactly — the operator's "the notifications glyph
+        // is messed up".
+        width: clockActionsCapsule.cellPitch + (cellItem.badgeVisible ? badge.width + Design.spacingXs : 0)
         height: clockActionsCapsule.cellPitch
 
         property string glyph: ""
@@ -204,7 +228,12 @@ BarCapsule {
 
         Text {
             id: glyphText
-            anchors.centerIn: parent
+            // Offset left by half the badge's footprint when badged, so the
+            // glyph+count pair is optically centred in the widened cell
+            // instead of the glyph staying centred and the count hanging off.
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.horizontalCenterOffset: cellItem.badgeVisible ? -(badge.width + Design.spacingXs) / 2 : 0
             text: cellItem.glyph
             font.family: Design.symbolFontFamily
             font.pixelSize: Design.barGlyphSize
@@ -224,8 +253,11 @@ BarCapsule {
             height: implicitHeight
             radius: height / 2
             color: BarRoles.accent
-            anchors.top: parent.top
-            anchors.right: parent.right
+            // Beside the glyph, vertically centred — was anchors.top/right,
+            // which laid a 16px circle over a 16px glyph.
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: glyphText.right
+            anchors.leftMargin: Design.spacingXs
 
             Text {
                 id: badgeLabel

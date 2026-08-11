@@ -46,7 +46,25 @@ Rectangle {
     // or a compositor restart — `hyprctl reload` silently drops layer-rule
     // edits and the resulting symptom is indistinguishable from a QML
     // alpha sitting under the ignore_alpha floor.
-    color: hovered ? BarRoles.capsuleHover : BarRoles.capsule
+    // ── `surfaced` — opt IN to carrying a capsule surface ────────────────
+    // Operator decision (2026-08-11, GATE-02 round 2): only the CENTRE
+    // WORKSPACE capsule carries a background; every other capsule is bare
+    // glyphs directly on the wallpaper.
+    //
+    // This is a deliberate, recorded DIVERGENCE from upstream Athena, which
+    // puts `background-color: @surface_container` on every module group
+    // including `#workspaces` (ATHENA-UPSTREAM-SPEC.md). Upstream gets away
+    // with it because @surface_container (#1b2023) is an opaque near-black
+    // barely above its own #0f1416 background, so it recedes; our
+    // BarRoles.capsule is translucent over the live wallpaper and reads far
+    // more strongly. The operator was shown both options and chose this one.
+    //
+    // Default FALSE so the surface cannot spread back by accident: a new
+    // capsule is bare unless it explicitly asks to be surfaced, rather than
+    // surfaced unless it remembers to opt out.
+    property bool surfaced: false
+
+    color: !surfaced ? "transparent" : (hovered ? BarRoles.capsuleHover : BarRoles.capsule)
     Behavior on color {
         enabled: Motion.motionEnabled
         ColorAnimation {
