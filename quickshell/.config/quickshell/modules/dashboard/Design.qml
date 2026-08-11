@@ -132,4 +132,12 @@ Singleton {
     readonly property int barEdgeMargin: 6
     readonly property int barSideMargin: 10
     readonly property int barCapsuleRadius: barHeight / 2
+
+    // ── barColumnWidth (Phase 18 Plan 05) — provenance: 18-UI-SPEC.md
+    //    "## New Tokens" + D-18-14 (text-bearing entries re-stack into this
+    //    exact column width in vertical orientation). 44 IS on the repo's
+    //    4px grid — it does NOT use the two-token grid exemption recorded
+    //    above for barEdgeMargin/barSideMargin, which exists solely for
+    //    waybar positional parity and is not a precedent for this token.
+    readonly property int barColumnWidth: 44
 }

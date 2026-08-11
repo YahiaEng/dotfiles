@@ -1,0 +1,30 @@
+# qmldir — explicit module manifest for quickshell/modules/bar/ (Phase 18
+# Plan 05, QBAR-02)
+#
+# Checking this file in disables Quickshell's directory-scanner synthesis for
+# this directory (same finding as modules/qmldir and modules/dashboard/qmldir
+# above it) — any .qml type added to this directory that is NOT declared
+# below becomes unresolvable to Bar.qml's `import "bar"`, with NO load error.
+# A type MUST be registered in the SAME commit that creates it.
+#
+# This manifest is owned by plan 18-05 and frozen for wave 3 (18-08, 18-09,
+# 18-10, 18-11): a wave-3 plan that finds it needs an unlisted type here has
+# found an 18-05 scope correction, not a licence to edit this file — the
+# exact 14-03 precedent modules/dashboard/qmldir's own header records.
+#
+# `BarEntryModel` is the one entry list and carries the `singleton` keyword
+# (12-06's both-required finding: pragma Singleton in source AND this
+# keyword here, or the type is never constructed and reads undefined
+# forever with no load error). The seven capsule types below it —
+# `BarCapsule` (the shared chrome) plus the six pre-declared slots — are
+# each an ordinary instance, not a singleton, so their lifetime stays
+# explicit rather than ambient; `Bar.qml` instantiates each exactly once.
+module qs.modules.bar
+singleton BarEntryModel 1.0 BarEntryModel.qml
+BarCapsule 1.0 BarCapsule.qml
+LauncherCapsule 1.0 LauncherCapsule.qml
+SystemCapsule 1.0 SystemCapsule.qml
+WorkspaceCapsule 1.0 WorkspaceCapsule.qml
+MediaConnectivityCapsule 1.0 MediaConnectivityCapsule.qml
+ClockActionsCapsule 1.0 ClockActionsCapsule.qml
+TrayCapsule 1.0 TrayCapsule.qml
