@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 24
+open_count: 25
 waived_count: 0
 fixed_count: 8
-total_count: 32
-last_updated: 2026-08-11T01:41:17.263Z
+total_count: 33
+last_updated: 2026-08-11T02:11:30.945Z
 ---
 
 # Broken Windows Ledger
@@ -47,6 +47,7 @@ last_updated: 2026-08-11T01:41:17.263Z
 | 30 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 Task 2 live click-through on a real tray application's real menu row was NOT performed this session — no StatusNotifierWatcher existed on this host's session bus before this plan's Task 1 commit (waybar's athena layout deliberately removed its own tray module), and neither blueman-applet nor nm-applet registered a StatusNotifierItem even after quickshell began self-hosting the watcher. The implemented leaf-activation call (sendTriggered() on the concrete DBusMenuItem) is the highest-ranked candidate by static existence evidence (dbusmenu.hpp:97), not by live observation; RESEARCH.md Open Question 1 remains open pending a user-side click-through on real hardware with a real tray menu. | open |  | 2026-08-11T01:40:49.092Z |  |
 | 31 | 18 | deviation | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 Task 3's acceptance criterion 'exactly one Rectangle {} in the file (the menu popup's own)' is unsatisfiable given Task 2's own explicit action text, which separately requires a 1px Colours.outline separator divider and a Colours.surface hover-tint background on menu rows — both need a Rectangle in plain QtQuick. Implemented per Task 2's semantic spec (menuSurface background + one separator-divider Rectangle declared once inside the row Repeater delegate + one hover-tint Rectangle declared once inside the same delegate = 3 Rectangle declaration sites in source), documented as a stale/self-contradictory acceptance-criteria text issue rather than distorting the UI to force a literal count of 1 — mirrors 18-05-SUMMARY.md's own Deviation precedent for this exact class of plan-text conflict. | open |  | 2026-08-11T01:41:17.168Z |  |
 | 32 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/TrayCapsule.qml |  | 18-10 GATE-02 B.5's full visual pass (icons actually rendering and looking correct in both orientations, menu opening and looking correct) was not human-eyeballed this session — no tray application successfully registered a StatusNotifierItem on this host (see the paired unrun-verify entry), so there was nothing to look at. Only the mechanical half was proven live this session: hyprctl reserved-zone and quickshell-bar layer-namespace readings across horizontal -> vertical -> horizontal with zero TrayCapsule.qml load errors at each step. Deferred to the user, same shape as 18-05's own D-18-31 deferral. | open |  | 2026-08-11T01:41:17.263Z |  |
+| 33 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml |  | D-18-31/GATE-02 human render-gate check for 18-11 not performed by executor (human_verify_mode: end-of-phase) — both drawers open/act, both orientation reach paths, all four extras visible, no literal-text glyph, idle inhibitor genuinely suppresses idle, bell count matches, theme-switch crossfade clean. Deferred to 18-19's blocking GATE-02 pass. | open |  | 2026-08-11T02:11:30.945Z |  |
 
 ````json
 [
@@ -432,6 +433,18 @@ last_updated: 2026-08-11T01:41:17.263Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T01:41:17.263Z",
+    "resolved_at": null
+  },
+  {
+    "id": 33,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml",
+    "line": null,
+    "description": "D-18-31/GATE-02 human render-gate check for 18-11 not performed by executor (human_verify_mode: end-of-phase) — both drawers open/act, both orientation reach paths, all four extras visible, no literal-text glyph, idle inhibitor genuinely suppresses idle, bell count matches, theme-switch crossfade clean. Deferred to 18-19's blocking GATE-02 pass.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T02:11:30.945Z",
     "resolved_at": null
   }
 ]

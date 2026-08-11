@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-10-PLAN.md
-last_updated: "2026-08-11T01:43:53.663Z"
+stopped_at: Completed 18-11-PLAN.md
+last_updated: "2026-08-11T02:13:36.074Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 11 of 20
+Plan: 12 of 20
 Status: Ready to execute
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 55%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -202,6 +202,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P08 | ~50min | 5 tasks | 5 files |
 | Phase 18 P09 | ~20min | 3 tasks | 1 files |
 | Phase 18 P10 | ~30min | 3 tasks | 2 files |
+| Phase 18 P11 | ~30min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -417,6 +418,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-09: WorkspaceCapsule.qml filled — 12-entry glyph map, fixed-extent slots (constant iconsPerSlot), object-first click dispatch with range-checked fallback; live hyprctl proof + human click-through gate NOT run this session (skip-live-verification preference), logged as unrun-verify
 - [Phase ?]: 18-10: tray menu chain needs modelData.menu?.menu (double-hop) not the plan's literal single-hop text — StatusNotifierItem.menu is a DBusMenuHandle, not itself a QsMenuHandle
 - [Phase ?]: 18-10: Open Question 1 (leaf-menu activation) NOT closed by live observation — no StatusNotifierItem registered on this host this session; sendTriggered() implemented as the best-evidenced static candidate, pending user click-through on real hardware
+- [Phase ?]: 18-11: NotificationSource's Process children attach via explicit property list<QtObject>, not default property — QtObject has no default property, found live via quickshell hot-reload
+- [Phase ?]: 18-11: DesktopEntries.byId() wants the bare identifier with no .desktop suffix, confirmed via a throwaway qs -p probe against quickshell 0.3.0-2
+- [Phase ?]: 18-11: vertical-orientation drawer host (D-18-11's leftward strip) raised to the orchestrator, not resolved this execution — Bar.qml/BarDrawer.qml scope correction outstanding
 
 ### Quick Tasks Completed
 
@@ -545,8 +549,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T01:43:53.647Z
-Stopped at: Completed 18-10-PLAN.md
+Last session: 2026-08-11T02:13:36.057Z
+Stopped at: Completed 18-11-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
