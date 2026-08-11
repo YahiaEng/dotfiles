@@ -30,6 +30,15 @@ actions = { "open" = "~/.config/hypr/scripts/font-switch.sh" }
 text = "  Waybar layout"
 actions = { "open" = "~/.config/hypr/scripts/waybar-switch.sh" }
 
+# D-18-30: the orientation half of the QML bar's settings-drawer/Super-key
+# menu double reach path (18-11). The entry above is superseded by this
+# one but is deliberately left in place -- the bar it points at is still
+# running through wave 9 -- and is removed in 18-20's own deletion commit
+# together with the script it targets, not here.
+[[entries]]
+text = "  Bar orientation"
+actions = { "open" = "~/.config/hypr/scripts/bar-orientation.sh" }
+
 [[entries]]
 text = "  Network"
 # D-17: nmtui in a floating kitty — the shim itself does the uwsm/kitty wrap.
