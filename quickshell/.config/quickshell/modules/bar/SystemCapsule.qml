@@ -39,6 +39,27 @@ BarCapsule {
 
     capsuleId: "system"
 
+    // Phase 18.1 spacing-probe task, measured via mapToItem: LauncherCapsule's
+    // trigger glyph sits at a fixed spacingSm/spacingXs-independent 16px from
+    // this capsule (Design.barCapsuleGap, the cross-capsule token, untouched)
+    // — every OTHER left-side glyph pair must land on that same 16px pitch
+    // for the row to read as one even sequence, which is what the operator
+    // reported as uneven twice. Two things both feed off this ONE property:
+    // (1) resourcesTriggerGrid's own spacing (below) is raised from
+    // spacingSm to spacingMd so cpu/ram/disk (zero internal padding, same
+    // shape as the right side's MediaConnectivityCapsule fix) land on 16px
+    // directly, matching that fix's exact reasoning. (2) THIS property
+    // governs the one remaining boundary in this capsule's own outer
+    // Grid — resourcesPopoutTrigger to the updates entry — where the
+    // updates pill has a fixed, box-width-independent Design.spacingXs
+    // (4px) left bleed past its own readout box (see that Readout's
+    // implicitWidth comment for the proof). spacingMd (16, the target)
+    // plus spacingXs (4, the pill's own unavoidable overflow) is what
+    // makes the VISIBLE gap land on 16 once the pill's bleed is subtracted
+    // back out — not a new literal, the sum of two already-named tokens,
+    // same idiom the right-side fix used for `Design.spacingLg / 2`.
+    contentGap: Design.spacingMd + Design.spacingXs
+
     // ── The one reusable readout element ────────────────────────────────
     // Declared once, instantiated once here (four times once Task 2 lands
     // ram/disk/updates) rather than hand-copied — a glyph, Design.spacingXs
@@ -120,14 +141,24 @@ BarCapsule {
 
         readonly property bool vertical: root.vertical
 
-        // A filled entry's pill is drawn larger than its content (see
-        // updatesFillPill, grown so the alert is easy to spot) and centred, so it
-        // OVERFLOWS this item's bounds. Reserving that overflow here is what
-        // keeps the capsule's own contentGap measuring from the pill's edge
-        // rather than from the glyph inside it — without it, the gap either side
-        // of the updates pill rendered visibly tighter than every other gap on
-        // the left, which the operator reported as uneven spacing.
-        implicitWidth: entryGrid.implicitWidth + (readoutItem.filled ? Design.spacingSm : 0)
+        // Phase 18.1 spacing-probe task, measured via mapToItem: this used
+        // to read `entryGrid.implicitWidth + (filled ? Design.spacingSm :
+        // 0)`, on the claim that widening THIS box compensates the pill's
+        // overflow so the capsule's contentGap measures from the pill's
+        // edge. That claim does not hold algebraically — updatesFillPill's
+        // own width is `readoutItem.width + Design.spacingSm` and it is
+        // `anchors.centerIn: parent`, so its overflow past this box is
+        // `(pill.width - readoutItem.width) / 2 == Design.spacingSm / 2`
+        // on EACH side, a constant that cancels out `readoutItem.width`
+        // entirely — the box could be any width and the pill would still
+        // bleed the same fixed amount. Measured proof: with the old +8
+        // reserve in place, the disk->updates visible gap (contentGap 18
+        // nominal) still only measured 14px, exactly 18 minus the pill's
+        // unresolved spacingSm/2 (4px) left bleed. Reverted to a plain
+        // implicitWidth (matching implicitHeight's own shape below) — the
+        // real compensation now lives on root.contentGap, see that
+        // property's own comment for the corrected arithmetic.
+        implicitWidth: entryGrid.implicitWidth
         implicitHeight: entryGrid.implicitHeight
 
         // Declared BEFORE entryGrid so it renders behind this entry's
@@ -237,9 +268,14 @@ BarCapsule {
     //    discovered at merge time: 18-08 owns the three Readout instances'
     //    glyph, precedence and value bindings below; this plan (18.1-02)
     //    additionally owns each instance's new value-toggle flag (D-25).
-    //    The wrapper owns only the PopoutTrigger and the nested Grid that
-    //    reproduces the capsule's own positioner spacing, so the rendered
-    //    geometry is unchanged. The updates readout stays a SIBLING
+    //    The wrapper owns only the PopoutTrigger and the nested Grid, whose
+    //    own `spacing` is now Design.spacingMd (Phase 18.1 spacing-probe
+    //    task) rather than root.contentGap itself — this capsule's
+    //    contentGap additionally carries a fixed compensation term for the
+    //    updates pill's own overflow (see that property's comment) that
+    //    does not belong on a plain zero-padding boundary like cpu-ram-disk,
+    //    so the two spacings are deliberately no longer the same property,
+    //    only the same target PITCH. The updates readout stays a SIBLING
     //    outside this trigger, deliberately: it already owns a click that
     //    starts a package upgrade, and putting it inside the trigger would
     //    make that click pin a popout instead of upgrading anything.
@@ -271,7 +307,17 @@ BarCapsule {
             id: resourcesTriggerGrid
             rows: root.vertical ? -1 : 1
             columns: root.vertical ? 1 : -1
-            spacing: Design.spacingSm
+            // Phase 18.1 spacing-probe task, measured via mapToItem: cpu,
+            // ram and disk carry no internal padding of their own (each
+            // Readout's box is exactly entryGrid.implicitWidth — see that
+            // property's own comment), so — same reasoning the right side's
+            // MediaConnectivityCapsule fix used for its own zero-padded
+            // Readout pairs — this spacing alone must equal the target
+            // 16px pitch directly. spacingSm (8) measured at exactly half
+            // that (8.0px cpu->ram and ram->disk, both confirmed via the
+            // probe) while every other left-side boundary sat at 16 or
+            // higher, which is what the operator reported as uneven.
+            spacing: Design.spacingMd
 
             Readout {
                 glyph: "memory"
