@@ -74,6 +74,38 @@ BarCapsule {
             }
         }
 
+        // Athena's filled `secondary`-hued clock pill (D-13,
+        // theme.scss:127-145's "filled, but fewer" trio — clock, updates,
+        // notification). Declared BEFORE clockTriggerGrid so it renders
+        // behind the clock's own two Text elements by declaration order,
+        // with no MouseArea/HoverHandler of its own — it must never
+        // become a hit target, since the clock popout trigger's own
+        // click/hover contract lives on clockPopoutTrigger, not on this
+        // fill. Deliberately a SIBLING of clockTriggerGrid (both direct
+        // children of contentHost, a plain Item, not a Positioner) rather
+        // than nested inside the Grid itself — a Grid positioner forbids
+        // anchors on its own direct children ("Cannot specify anchors
+        // for items inside Grid", caught live in plan 18.1-02). Grid
+        // (a Positioner) auto-sizes its own width/height to its content,
+        // so anchoring to clockTriggerGrid's real width/height here is
+        // safe.
+        Rectangle {
+            id: clockFillPill
+            anchors.centerIn: clockTriggerGrid
+            width: clockTriggerGrid.width + Design.spacingSm * 2
+            height: clockTriggerGrid.height + Design.spacingSm * 2
+            radius: clockActionsCapsule.vertical ? width / 2 : height / 2
+            color: BarRoles.fillClock
+            Behavior on color {
+                enabled: Motion.motionEnabled
+                ColorAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
+        }
+
         // Reproduces contentGrid's own spacing/orientation formula exactly
         // (Design.spacingSm), so wrapping these two Text elements in one
         // trigger cell leaves the rendered gap between them, and between
@@ -88,8 +120,14 @@ BarCapsule {
             Text {
                 id: clockTimeText
                 font.pixelSize: Design.fontLabel
+                // No "bold" weight token exists in Design.qml (only
+                // weightDisplay/weightEmphasis/weightBody — see this
+                // plan's SUMMARY "Decisions Made"). Athena's #clock rule
+                // is font-weight: bold; left at weightBody rather than
+                // minting a raw numeric weight or repurposing a token
+                // under a name it doesn't carry.
                 font.weight: Design.weightBody
-                color: clockActionsCapsule.contentColour
+                color: BarRoles.fillClockFg
                 text: Qt.formatDateTime(barClock.date, "HH:mm")
             }
 
@@ -104,7 +142,7 @@ BarCapsule {
                 visible: clockActionsCapsule.vertical
                 font.pixelSize: Design.fontLabel
                 font.weight: Design.weightBody
-                color: clockActionsCapsule.contentColour
+                color: BarRoles.fillClockFg
                 text: Qt.formatDateTime(barClock.date, "ddd")
             }
         }
