@@ -223,7 +223,7 @@ BarCapsule {
             width: implicitWidth
             height: implicitHeight
             radius: height / 2
-            color: Colours.primary
+            color: BarRoles.accent
             anchors.top: parent.top
             anchors.right: parent.right
 
@@ -232,7 +232,7 @@ BarCapsule {
                 anchors.centerIn: parent
                 text: cellItem.badgeText
                 font.pixelSize: Design.fontLabel
-                color: Colours.onPrimary
+                color: BarRoles.onAccent
             }
         }
 
@@ -470,7 +470,7 @@ BarCapsule {
         glyph: "sports_esports"
         label: "Gaming Mode"
         filled: clockActionsCapsule.gamingOn
-        tint: clockActionsCapsule.gamingOn ? Colours.primary : clockActionsCapsule.contentColour
+        tint: clockActionsCapsule.gamingOn ? BarRoles.accent : clockActionsCapsule.contentColour
         onClicked: gamingLaunchProcess.startDetached()
     }
 
@@ -514,7 +514,7 @@ BarCapsule {
         glyph: "lightbulb"
         label: "Keep Awake"
         filled: clockActionsCapsule.idleInhibited
-        tint: clockActionsCapsule.idleInhibited ? Colours.primary : clockActionsCapsule.contentColour
+        tint: clockActionsCapsule.idleInhibited ? BarRoles.accent : clockActionsCapsule.contentColour
         onClicked: clockActionsCapsule.idleInhibited = !clockActionsCapsule.idleInhibited
     }
 

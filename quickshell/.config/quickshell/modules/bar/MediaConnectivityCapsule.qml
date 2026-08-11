@@ -106,7 +106,7 @@ BarCapsule {
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd
                 text: readoutItem.glyph
-                color: readoutItem.errored ? Colours.error : root.contentColour
+                color: readoutItem.errored ? BarRoles.danger : root.contentColour
             }
 
             Text {
