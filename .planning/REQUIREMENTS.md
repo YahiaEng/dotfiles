@@ -21,7 +21,7 @@
 - [ ] **QBAR-08**: The hidden bar reveals on pointer hover **and** on holding Super *(named addition)*
 - [x] **QBAR-09**: Clicking a bar section opens that section's own detail popout, in place of routing everything through the dashboard *(named addition)*
 - [x] **QBAR-10**: The bar returns automatically if its process dies — no manual restart
-- [ ] **QBAR-11**: The bar's memory and process count stay flat across a multi-hour soak — no RSS creep, no accumulated subprocesses, no idle timers doing nothing
+- [x] **QBAR-11**: The bar's memory and process count stay flat across a multi-hour soak — no RSS creep, no accumulated subprocesses, no idle timers doing nothing
 - [x] **QBAR-12**: The bar's reserved screen space survives `hyprctl reload` and a QML hot reload without drift or overlap
 
 ### QNOTIF — Notifications and centre (replaces swaync)
@@ -133,7 +133,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QBAR-08 | Phase 18 | Pending |
 | QBAR-09 | Phase 18 | Complete |
 | QBAR-10 | Phase 18 | Complete |
-| QBAR-11 | Phase 18 | Pending |
+| QBAR-11 | Phase 18 | Complete |
 | QBAR-12 | Phase 18 | Complete |
 | QNOTIF-01 | Phase 19 | Pending |
 | QNOTIF-02 | Phase 19 | Pending |

@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18.1
 current_phase_name: qml-bar-athena-restoration
 status: executing
-stopped_at: Completed 18.1-01-PLAN.md
-last_updated: "2026-08-11T14:02:15.757Z"
+stopped_at: Completed 18.1-02-PLAN.md
+last_updated: "2026-08-11T14:33:53.625Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 27
-  completed_plans: 19
+  completed_plans: 20
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18.1 (qml-bar-athena-restoration) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
-Progress: [███████░░░] 70%
+Progress: [███████░░░] 74%
 Last activity: 2026-08-11 — Phase 18.1 execution started
 
 ## Performance Metrics
@@ -209,6 +209,7 @@ Last activity: 2026-08-11 — Phase 18.1 execution started
 | Phase 18 P16 | ~1h | 3 tasks | 7 files |
 | Phase 18 P17 | ~1h50m | 3 tasks | 23 files |
 | Phase 18.1 P01 | ~12min (this session, Tasks 2-3) | 3 tasks | 4 files |
+| Phase 18.1 P02 | ~17min (continuation) | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -442,6 +443,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18.1-01: Athena's fourth workspace state (empty, U+F444) deliberately NOT implemented — D-08 only named active/default/urgent; recorded as a named delta routed to GATE-02, a windowless-but-existing workspace renders stateGlyphDefault
 - [Phase ?]: 18.1-01: accepted cost of D-08's state-glyph identity — the numeral's one-to-one visual mapping onto Super+N keybinds is gone
 - [Phase ?]: 18.1-01: zen's glyph is U+F269 (fa-firefox), carried verbatim from Athena's own config-athena.jsonc — not a transcription error, no dedicated Zen glyph exists in the font
+- [Phase ?]: 18.1-02: Human-authorized scope amendment — PopoutTrigger.qml z:1 fix on contentHost so nested click handlers (D-25 toggle) receive clicks; triggerMouseArea and 18-13/18-14 dwell/pin/summon logic untouched
+- [Phase ?]: 18.1-02: updatesFillPill implemented nested inside the Readout component (gated by a new 'filled' property) rather than as a sibling item, after a live Qt Quick Positioner-anchors warning proved a sibling Rectangle would become an illegal third grid cell (Rule 1 fix)
 
 ### Quick Tasks Completed
 
@@ -572,8 +575,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T14:02:15.739Z
-Stopped at: Completed 18.1-01-PLAN.md
+Last session: 2026-08-11T14:33:53.607Z
+Stopped at: Completed 18.1-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
