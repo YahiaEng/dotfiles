@@ -9,6 +9,28 @@
 # No `-e`: this script ends in `exec`; an `-e` abort on a transient
 # failure must never leave the session with nothing running — a missing
 # binary or config degrades to "skip, logged", never a hard crash.
+#
+# 18-07 (QBAR-10, D-18-40): as of this plan, this script is
+# quickshell.service's ExecStart= target rather than a uwsm scope's
+# command — see quickshell/.config/systemd/user/quickshell.service for
+# the unit itself. This script still runs as the process systemd
+# supervises, and its final `exec quickshell -p "$CONFIG_DIR"` below is
+# what makes quickshell the unit's main pid — the process the restart
+# policy actually watches. This gives the two guard paths' `exit 0` a
+# second meaning it did not carry before: a clean exit is explicitly
+# exempted from `Restart=on-failure`, so a missing binary or a missing
+# shell.qml stays a logged skip and can NEVER enter a restart cycle — it
+# was already the right behaviour for a headless daemon, and it is now
+# also the right behaviour under a supervisor. The correct way to
+# restart quickshell is now `systemctl --user restart quickshell.service`
+# — NOT a plain `pkill quickshell` (SIGTERM), which the restart policy
+# exempts and will NOT bring the bar back on its own. This also
+# supersedes the standing executor rule requiring a detached relaunch
+# (`setsid uwsm app -- ...`): a relaunch through quickshell.service
+# cannot die with the shell that requested it, because the process is a
+# child of the systemd user manager, not of the caller — the failure
+# mode that rule existed to guard against structurally cannot occur
+# through the unit.
 set -uo pipefail
 
 LOG="$HOME/.cache/quickshell.log"
