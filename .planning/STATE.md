@@ -4,17 +4,17 @@ milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 18.1
 current_phase_name: qml-bar-athena-restoration
-status: executing
-stopped_at: Completed 18.1-06-PLAN.md
-last_updated: "2026-08-11T15:18:08.611Z"
+status: verifying
+stopped_at: Completed 18.1-07-PLAN.md — GATE-02 FAILED, 18-19/18-20 remain blocked
+last_updated: "2026-08-11T15:42:58.214Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 27
-  completed_plans: 24
-  percent: 0
+  completed_plans: 25
+  percent: 17
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 Phase: 18.1 (qml-bar-athena-restoration) — EXECUTING
 Plan: 7 of 7
-Status: Ready to execute
-Progress: [█████████░] 89%
+Status: Phase complete — ready for verification
+Progress: [█████████░] 93%
 Last activity: 2026-08-11 — Phase 18.1 execution started
 
 ## Performance Metrics
@@ -214,6 +214,7 @@ Last activity: 2026-08-11 — Phase 18.1 execution started
 | Phase 18.1 P04 | ~25min | 2 tasks | 6 files |
 | Phase 18.1 P05 | ~30min | 3 tasks | 2 files |
 | Phase 18.1 P06 | 35min | 3 tasks | 2 files |
+| Phase 18.1 P07 | ~10min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -461,6 +462,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: D-20: quickshell-doctor exemption set is 8 basenames (BarRoles.qml + 7 SectionPopout-family files), reconciled against live grep; plan's <verification> section item 3 misstates it as 9 — flagged as a plan-text defect, not corrected in code.
 - [Phase ?]: D-20 falsifications (Task 2) run against an isolated scratch fixture via QSD_FIXTURE_SHELL_QML_ROOT rather than in-place poison-and-restore on the real bar/ tree — same four proofs, zero risk of a poison surviving mid-session.
 - [Phase ?]: D-21 BarRoles-to-theme.scss diff is fully mechanical: every property name converts to its theme.scss role via camelCase->kebab-case regex with zero hand-authored pairing table; 17/17 rows resolved, zero disagreements.
+- [Phase ?]: 18.1-07: GATE-02 FAILED — operator judged the restored QML bar worse than Athena on black surfaces (Colours.qml property-string type bug), oversized/clunky geometry, sudden drawer reveal, and jarring default app-drawer icons. Recorded truthfully (not softened); 18-19/18-20 stay blocked, waybar retained. Root causes filed in WINDOWS.md ids 58-62 for gap-closure.
 
 ### Quick Tasks Completed
 
@@ -591,8 +593,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T15:18:08.591Z
-Stopped at: Completed 18.1-06-PLAN.md
+Last session: 2026-08-11T15:42:58.195Z
+Stopped at: Completed 18.1-07-PLAN.md — GATE-02 FAILED, 18-19/18-20 remain blocked
 Resume file: None
 
 ## Operator Next Steps
