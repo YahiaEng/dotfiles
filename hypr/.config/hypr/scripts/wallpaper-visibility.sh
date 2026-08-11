@@ -7,8 +7,9 @@
 # ║  INTENT here; this script computes the resulting state  ║
 # ║  and starts/stops mpvpaper accordingly. No actor may     ║
 # ║  ever start or kill mpvpaper directly — that is the      ║
-# ║  exact desync bug class waybar-visibility.sh (Phase 8,   ║
-# ║  D-03) already proved out and this script mirrors.       ║
+# ║  exact desync bug class bar-visibility.sh (Phase 8,      ║
+# ║  D-03, renamed Phase 18 Plan 15) already proved out and   ║
+# ║  this script mirrors.                                     ║
 # ╚══════════════════════════════════════════════════════╝
 #
 # CLI contract:
@@ -16,7 +17,7 @@
 #       A suppression source declares its own intent. <source> is
 #       validated against a strict, fixed allowlist BEFORE it is ever
 #       used to build a path (T-08-05 discipline, carried over from
-#       waybar-visibility.sh) — it becomes part of a filename under
+#       bar-visibility.sh) — it becomes part of a filename under
 #       ~/.cache/wallpaper-visibility.d/, so an unvalidated value could
 #       write outside that directory. Call sites for these three names
 #       land in 17-03 (D-30 idle, D-28 gaming, D-31 reduced motion) — this
@@ -35,7 +36,7 @@
 #   wallpaper-visibility.sh reassert
 #       Recompute from the existing intent files and selection, and
 #       force re-actuation even if the target already matches
-#       .actuated. Idempotent. Mirrors waybar-visibility.sh's `reassert`
+#       .actuated. Idempotent. Mirrors bar-visibility.sh's `reassert`
 #       — theme-apply's wallpaper step should call this after selecting
 #       a new live wallpaper so a switch can never desync the owner's
 #       process state from what is actually on disk.
@@ -68,7 +69,7 @@
 # ENTIRE read-modify-write — read intents + selection, compute, actuate,
 # record .actuated — under a single process-wide advisory lock (flock on
 # .owner.lock, blocking; see _acquire_lock / main below), the exact idiom
-# waybar-visibility.sh already proved in production (T-17-03). Every
+# bar-visibility.sh already proved in production (T-17-03). Every
 # individual file publish is ALSO atomic on its own — written to a
 # UNIQUE mktemp'd temp in the same directory, then mv'd into place. A
 # missing intent file means "show" — the safe default (a wallpaper you
@@ -76,17 +77,20 @@
 #
 # BASE_UNION = "hide" if ANY of {idle, gaming, motion[, fullscreen]}
 # currently says hide, else "show" — the same union-of-sources rule
-# waybar-visibility.sh uses, generalised to this owner's source set.
+# bar-visibility.sh uses, generalised to this owner's source set.
 #
 # The actuation target is "stopped" when BASE_UNION is hide, or when no
 # selection is currently recorded/valid; otherwise it is
 # "playing:<absolute-path>".
 #
-# ── D-29 deviation from the waybar analog, stated explicitly ─────────
-# waybar-visibility.sh actuates by SIGNALLING a long-running process
-# (SIGUSR1/SIGUSR2 to a bar that is already running). This owner
-# actuates by STARTING and STOPPING a process instead — mpvpaper is not
-# a persistent daemon the rest of the system already keeps alive.
+# ── D-29 deviation from the bar analog, stated explicitly (updated
+#    Phase 18 Plan 15 for the analog's rename and actuation swap) ─────
+# bar-visibility.sh actuates over Quickshell IPC (`qs ipc call bar
+# <verb>`) against a QML process that is already running and rendering
+# continuously. This owner actuates by STARTING and STOPPING a process
+# instead — mpvpaper is not a persistent daemon the rest of the system
+# already keeps alive, so there is no running target to send a verb to
+# when the intent is "stopped".
 # Pausing/resuming the actual video during a hard hide (fullscreen etc)
 # is mpvpaper's OWN internal job via `-p -a full` (RESEARCH.md Deep-Dive
 # #1) — this script must NEVER write mpv's playback-suspend ("pause")
