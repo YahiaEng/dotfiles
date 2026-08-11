@@ -125,7 +125,12 @@ BarCapsule {
             // leaves the 4px gap Athena's own `margin: 4px 5px` produces.
             // Now that this capsule is unsurfaced, this pill IS the visible
             // module, exactly as upstream's #clock is.
-            width: clockTriggerGrid.width + Design.spacingMd
+            // spacingLg (24) of horizontal padding, i.e. 12 per side. Athena's
+            // #clock carries `padding: 6px 10px 6px 16px` — 26 total — and 24 is
+            // the nearest value on the repo's 4px grid. This was spacingMd (16,
+            // i.e. 8 per side), which hugged the text and is what the operator
+            // reported as the clock pill looking compressed.
+            width: clockTriggerGrid.width + Design.spacingLg
             height: clockTriggerGrid.height + Design.barCapsulePadding * 2
             radius: clockActionsCapsule.vertical ? width / 2 : height / 2
             color: BarRoles.fillClock

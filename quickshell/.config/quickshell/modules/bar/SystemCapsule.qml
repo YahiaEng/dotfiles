@@ -120,7 +120,14 @@ BarCapsule {
 
         readonly property bool vertical: root.vertical
 
-        implicitWidth: entryGrid.implicitWidth
+        // A filled entry's pill is drawn larger than its content (see
+        // updatesFillPill, grown so the alert is easy to spot) and centred, so it
+        // OVERFLOWS this item's bounds. Reserving that overflow here is what
+        // keeps the capsule's own contentGap measuring from the pill's edge
+        // rather than from the glyph inside it — without it, the gap either side
+        // of the updates pill rendered visibly tighter than every other gap on
+        // the left, which the operator reported as uneven spacing.
+        implicitWidth: entryGrid.implicitWidth + (readoutItem.filled ? Design.spacingSm : 0)
         implicitHeight: entryGrid.implicitHeight
 
         // Declared BEFORE entryGrid so it renders behind this entry's
