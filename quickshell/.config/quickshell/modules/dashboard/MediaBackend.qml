@@ -1,296 +1,361 @@
-// MediaBackend.qml — the drawer's single shared reader of the existing
-// media backend (Phase 14 Plan 05, DASH-04, D-35).
+// MediaBackend.qml — the drawer's single shared reader of media state
+// (originally Phase 14 Plan 05, DASH-04, D-35; repointed by Phase 18 Plan
+// 08, D-18-05).
 //
-// Root type `Scope` (from `Quickshell`, NOT `Item`) — verified present in
-// the installed quickshell-core.qmltypes with `children` as its default
-// property, which is what lets the `Process` below be declared as a plain
-// child.  `Scope` renders nothing and mounts cleanly under `ShellRoot` with
-// no window, unlike an `Item`.
+// ── D-18-05 repoints this file onto Quickshell.Services.Mpris, the
+//    toolkit's own native MPRIS singleton, and SUPERSEDES the D-35 fence
+//    this header used to carry ("the toolkit's own MPRIS service module is
+//    never imported here even though it is installed and importable").
+//    That prohibition is lifted by this later decision — the import below
+//    is not an accident and not a violation, it is what D-18-05 asks for.
+//    (a) What supersedes what: D-18-05 supersedes D-35's import fence.
+//        D-35's OTHER half — the tab designs to a fixed contract shape and
+//        no consumer re-derives MPRIS state itself — still holds, and
+//        still holds structurally: this remains the ONE place in the repo
+//        that reads player state, and every field below still flows
+//        through named, typed properties rather than a raw player object
+//        reaching a view.
+//    (b) What changes observably: player-state transitions now arrive as
+//        Qt property-change notifications straight off the native D-Bus
+//        binding rather than on the next tick of a 1Hz shell-script
+//        reader — play/pause, track change and player appearance/
+//        disappearance are reflected within one event loop turn instead of
+//        within up to one second. With zero players running, this file now
+//        starts no process at all, rather than a reader that polled and
+//        reported nothing every second. The previous reader's per-tick
+//        subprocess fan-out — roughly ten forks a second while the drawer
+//        was open — is gone entirely; the one subprocess that remains
+//        (below) is a single-flighted, event-triggered album-art resolve,
+//        not a poll.
+//    (c) This file remains a READ-ONLY consumer of player state. No MPRIS
+//        state is re-derived or cached beyond what the singleton already
+//        exposes — `players`/`activePlayer` below are pure projections of
+//        `Mpris.players`, recomputed from it, never a second source of
+//        truth drifting alongside it.
+//    (d) `drawerOpen` is retained by name and still gates the one timer
+//        this file keeps (the position-refresh heartbeat below), but 18-05
+//        widened what `shell.qml` binds to it (now also
+//        `barInstance.requiresMedia`, true from 18-05 onward since the
+//        bar's entry list is complete) — so in practice this property is
+//        now almost always true. That is this plan's own named always-on
+//        charge, measured in `18-BAR-LIVENESS-CHARGE.md`, not an
+//        oversight, and the position timer only actually runs while a
+//        track is both playing and seekable on top of that.
 //
-// `drawerOpen` (D-32/D-36) is the lifecycle gate every wave-3 backend
-// carries: the media watch process below runs only while this is true,
-// bound by shell.qml to `dashboardLoader.active` (D-14). Zero idle
-// footprint is the tracer's promise (14-01).
+// ── T-14-01's mutator-dispatch discipline, restated for the new dispatch
+//    surface. Transport control is now a direct method call on the active
+//    `MprisPlayer` object (`togglePlaying()`/`next()`/`previous()`) or a
+//    direct, clamped property write (`position =`/`volume =`) rather than
+//    an argv handed to a subprocess — the injection surface T-14-01
+//    described (a caller-supplied verb reaching a shell) is REDUCED, not
+//    merely restated: there is no argv left in this file's mutator path at
+//    all. The one remaining subprocess (the album-art resolver) still
+//    follows the fixed-argv, no-shell discipline the header used to state
+//    for the whole file — see the "Album art" section below.
 //
-// D-35's two hard fences:
-//   1. The drawer is a THIRD READER of the one existing media backend
-//      (media-status.sh/media-players.sh) — never a second one. No MPRIS
-//      state is ever re-derived in QML, and the toolkit's own MPRIS
-//      service module is never imported here even though it is installed
-//      and importable on this machine (14-RESEARCH.md Pitfall 2) — every
-//      media read comes from the one streaming reader below, every media
-//      write goes through the mutator dispatch below.
-//   2. The tab designs to the EXISTING media-status.sh payload contract —
-//      no media-status.sh extensions this phase. Neither
-//      hypr/.config/hypr/scripts/media-status.sh nor
-//      hypr/.config/hypr/scripts/media-players.sh is touched by this file.
+// ── D-41 widget-state register — "populated" | "pending" | "empty" —
+//    carried on every one of this phase's modules/dashboard/ files, even
+//    the non-visual backends, so the vocabulary is uniform across the
+//    whole module surface. "pending" is retained by name here but is now
+//    STRUCTURALLY UNREACHABLE: the native singleton is populated at first
+//    paint (there is no asynchronous first-line window the old streaming
+//    reader had), so this file only ever resolves to "populated" or
+//    "empty". The name stays because a switch elsewhere in this repo may
+//    compile against all three, not because this file can still produce
+//    the middle one.
 //
-// D-41 widget-state register — "populated" / "pending" / "empty" — carried
-// on every one of this phase's nine modules/dashboard/ files, even the
-// non-visual backends, so the vocabulary is uniform across the whole
-// module surface.
-//
-// T-14-01's mitigation lives entirely below: every mutating function
-// builds a fixed argv array whose only non-literal elements are the
-// resolved script path plus, where the verb needs them, a player id
-// (sourced only from this file's own stream/list output, both of which
-// media-players.sh already filtered through its own validation before
-// ever emitting them) and one numeric argument (clamped and converted to
-// a plain decimal string before it is ever placed in an argv element).
-// The verb itself is always a double-quoted literal from
-// media-players.sh's own allowlist — never computed, never a generic
-// passthrough. Nothing here is ever joined into a string or handed to a
-// shell interpreter for re-splitting.
+// Root type `Scope` (from `Quickshell`, NOT `Item`) — renders nothing and
+// mounts cleanly under `ShellRoot` with no window, unlike an `Item`; kept
+// unchanged from the original file.
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Mpris
 
 Scope {
     id: root
 
-    // Lifecycle gate (D-32/D-36) — bound by shell.qml to
-    // dashboardLoader.active. Starts nothing while false.
+    // Lifecycle gate — bound by shell.qml to
+    // dashboardLoader.active || barInstance.requiresMedia (18-05). Gates
+    // only the position-refresh Timer below; every other read here is a
+    // plain reactive binding over the always-present Mpris singleton.
     property bool drawerOpen: false
 
-    // ── Two paths, resolved once ────────────────────────────────────────
-    readonly property string homeDir: Quickshell.env("HOME")
-    readonly property string scriptStatusPath: root.homeDir + "/.config/hypr/scripts/media-status.sh"
-    readonly property string scriptPlayersPath: root.homeDir + "/.config/hypr/scripts/media-players.sh"
+    // ── Identity ─────────────────────────────────────────────────────────
+    // A player's `identity` is a human-readable display name and is NOT
+    // guaranteed unique across two instances of the same app — `uniqueId`
+    // (falling back to `dbusName` if a build ever leaves it empty) is the
+    // stable key every selection, switcher-row and active-player lookup
+    // below is keyed on instead.
+    function _playerIdentity(p) {
+        if (!p)
+            return "";
+        return (p.uniqueId && p.uniqueId !== "") ? p.uniqueId : (p.dbusName || "");
+    }
 
-    // ── The default-safe payload shape — every contract field always
-    //    exists at its neutral value, so no consumer ever reads an
-    //    undefined member and the empty state is a real value rather than
-    //    a null check scattered through the tab. Mirrors
-    //    media-status.sh's own `_empty_payload` shape exactly. ───────────
-    readonly property var emptyPayload: ({
-        player: "", label: "", status: "", title: "", artist: "", album: "",
-        art: "", position: 0, length: 0, volume: -1, can_seek: false
-    })
+    // ── Active player selection ─────────────────────────────────────────
+    // Resolution order, stated here rather than left implicit: (1) the
+    // explicitly selected player, if it is still present in the model;
+    // (2) the first player reporting isPlaying; (3) the first player in
+    // the model; (4) null. No sort runs anywhere in this file — the
+    // model's own order is used as-is, so two equally-eligible players
+    // cannot swap between reads. A selection whose player has vanished
+    // falls back through this same rule automatically: `_explicitSelectionId`
+    // simply stops matching anything in the model, it is never explicitly
+    // cleared.
+    property string _explicitSelectionId: ""
 
-    property var payload: root.emptyPayload
-
-    // True the first time any line has ever been successfully parsed on
-    // this shell-root instance's whole lifetime (never reset on dismiss —
-    // the instance itself persists at the shell root, D-14). This is what
-    // lets a re-summon after a prior session render the last-good payload
-    // immediately instead of a brief "pending" flash: only the very first
-    // ever drawer open, before the first line lands, sees "pending".
-    property bool _everReceivedLine: false
-
-    // ── The one streaming reader ─────────────────────────────────────────
-    // Nothing else in the drawer may read this stream — the Dashboard
-    // tab's compact widget (14-08) reads THIS instance's derived
-    // properties, which is exactly why this component is mounted once at
-    // the shell root rather than instantiated per tab. The script's
-    // reserved third subcommand (a lower-cost position-only poll) is
-    // deliberately unused: a second child against the same script is the
-    // second backend D-35 forbids, and `watch` already re-emits the whole
-    // payload whenever the elapsed seconds change, so the seek slider
-    // advances at the script's own one-second cadence for free.
-    Process {
-        id: mediaWatcher
-        running: root.drawerOpen
-        command: [root.scriptStatusPath, "watch"]
-        stdout: SplitParser {
-            onRead: (line) => {
-                if (!line || line.trim() === "")
-                    return;
-                var parsed;
-                try {
-                    parsed = JSON.parse(line);
-                } catch (e) {
-                    // A truncated/garbled line is a transient — the
-                    // previous payload stays standing, the register is
-                    // untouched, and this is the only guarded warning per
-                    // rejection (never a spam loop).
-                    console.warn("MediaBackend: malformed payload line ignored");
-                    return;
-                }
-                if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
-                    return;
-                root.payload = parsed;
-                root._everReceivedLine = true;
+    readonly property var activePlayer: {
+        const list = Mpris.players ? Mpris.players.values : [];
+        if (root._explicitSelectionId !== "") {
+            for (var i = 0; i < list.length; i++) {
+                if (list[i] && root._playerIdentity(list[i]) === root._explicitSelectionId)
+                    return list[i];
             }
         }
-    }
-
-    // ── Derived display fields — the surface both media views read ──────
-    // Neither view re-derives presentation logic, and 14-08's compact
-    // widget inherits the same fallbacks for free.
-    readonly property bool hasPlayer: (root.payload.player || "") !== ""
-
-    // Case-insensitive, trimmed compare against the playing value
-    // media-status.sh passes through from the player itself.
-    readonly property bool playing: (root.payload.status || "").trim().toLowerCase() === "playing"
-
-    // Title falls back to the player's own label, then to nothing — never
-    // a raw empty string reaching a text element. The tab decides
-    // visibility for artist/album; this file only ever hands back the
-    // trimmed value or "".
-    readonly property string displayTitle: {
-        const t = (root.payload.title || "").trim();
-        if (t !== "")
-            return t;
-        return (root.payload.label || "").trim();
-    }
-    readonly property string displayArtist: (root.payload.artist || "").trim()
-    readonly property string displayAlbum: (root.payload.album || "").trim()
-
-    readonly property string artPath: root.payload.art || ""
-    readonly property int positionSeconds: root.payload.position || 0
-    readonly property int lengthSeconds: root.payload.length || 0
-
-    // volume: the script's own no-volume sentinel is -1 — this is a
-    // capability test, never a zero test (a real player at 0% volume must
-    // still show the band).
-    readonly property bool hasVolume: root.payload.volume !== -1
-    readonly property real volumeLevel: root.hasVolume ? root.payload.volume : 0
-
-    // Seekable requires both the payload's own flag AND a positive length
-    // (belt-and-suspenders against a stray true with a zero length).
-    readonly property bool canSeek: root.payload.can_seek === true && root.lengthSeconds > 0
-
-    // D-41: "populated" | "pending" | "empty". "pending" is the window
-    // between the drawer opening and the first line ever landing on this
-    // instance's whole lifetime — once any line has landed, the state is
-    // read straight from hasPlayer, including immediately on a re-summon
-    // (D-14's warm-data promise: the last-good payload survives a
-    // dismissal on this shell-root instance).
-    readonly property string widgetState: {
-        if (root.drawerOpen && !root._everReceivedLine)
-            return "pending";
-        return root.hasPlayer ? "populated" : "empty";
-    }
-
-    // ── The player list — the switcher chips' data source ───────────────
-    // A one-shot child of `media-players.sh list`, not a second stream:
-    // one file, one owner, a discrete query rather than a persistent
-    // reader. Refreshed on exactly three triggers: the drawer opening, the
-    // stream payload's player field changing, and a low-frequency timer —
-    // never continuously.
-    property var players: []
-    property string _lastSeenPlayerId: ""
-
-    // The active id is read straight off the stream payload's own player
-    // field — already filtered through media-players.sh's own validation
-    // before it was ever emitted — never recomputed here.
-    readonly property string activePlayerId: root.payload.player || ""
-
-    Process {
-        id: playerListProcess
-        running: false
-        command: [root.scriptPlayersPath, "list"]
-        stdout: StdioCollector {
-            id: playerListCollector
+        for (var j = 0; j < list.length; j++) {
+            if (list[j] && list[j].isPlaying === true)
+                return list[j];
         }
-        onExited: (exitCode, exitStatus) => {
-            var parsed;
-            try {
-                parsed = JSON.parse(playerListCollector.text);
-            } catch (e) {
-                root.players = [];
-                return;
-            }
-            root.players = Array.isArray(parsed) ? parsed : [];
-        }
+        return list.length > 0 ? list[0] : null;
     }
 
-    function refreshPlayerList() {
-        if (playerListProcess.running)
-            return;
-        playerListProcess.running = true;
-    }
+    readonly property string activePlayerId: root._playerIdentity(root.activePlayer)
 
-    onDrawerOpenChanged: {
-        if (root.drawerOpen)
-            root.refreshPlayerList();
-    }
-
-    onPayloadChanged: {
-        if (root.payload.player !== root._lastSeenPlayerId) {
-            root._lastSeenPlayerId = root.payload.player || "";
-            root.refreshPlayerList();
-        }
-    }
-
-    // Data-refresh cadence, deliberately NOT a motion token — a poll
-    // cadence riding the motion-scale axis would reach zero at the `off`
-    // preset (the same reasoning 14-04's chip watchdogs record). A
-    // newly-launched second player changes nothing in the stream payload
-    // while the active selection stays put, so without this timer the
-    // chip row would go stale in exactly the situation it exists for.
-    readonly property int playerListRefreshMs: 5000
-    Timer {
-        id: playerListRefreshTimer
-        interval: root.playerListRefreshMs
-        running: root.drawerOpen
-        repeat: true
-        onTriggered: root.refreshPlayerList()
-    }
-
-    // ── The mutator dispatch — T-14-01's mitigation, the security-relevant
-    //    part of this file. One function per verb; there is no generic
-    //    caller-supplied-verb passthrough, because a passthrough is how an
-    //    allowlist stops being an allowlist. ─────────────────────────────
-    Process {
-        id: mutatorProcess
-        running: false
-    }
-
-    function _dispatch(argv) {
-        mutatorProcess.command = argv;
-        mutatorProcess.running = true;
-    }
-
-    // Plain non-negative decimal string, never scientific notation, never
-    // a negative number — the numeric-argument discipline every seek/
-    // volume call below shares.
-    function _plainNumber(value, decimals) {
-        var v = Number(value);
-        if (!isFinite(v) || v < 0)
-            v = 0;
-        return v.toFixed(decimals);
-    }
-
-    // Truth-driven, always (D-22): none of these functions assigns any
-    // rendered state. `playing`, `positionSeconds` and `volumeLevel` above
-    // are read from the stream and only from the stream, so a command
-    // that fails, is refused by the player or is rejected by the mutator
-    // leaves the drawer showing what the player is actually doing.
-    function playPause() {
-        if (!root.hasPlayer)
-            return;
-        root._dispatch([root.scriptPlayersPath, "cmd", root.payload.player, "play-pause"]);
-    }
-    function nextTrack() {
-        if (!root.hasPlayer)
-            return;
-        root._dispatch([root.scriptPlayersPath, "cmd", root.payload.player, "next"]);
-    }
-    function previousTrack() {
-        if (!root.hasPlayer)
-            return;
-        root._dispatch([root.scriptPlayersPath, "cmd", root.payload.player, "previous"]);
-    }
-    function seekTo(seconds) {
-        if (!root.hasPlayer)
-            return;
-        var clamped = Math.max(0, Math.min(root.lengthSeconds, seconds));
-        root._dispatch([root.scriptPlayersPath, "cmd", root.payload.player, "seek", root._plainNumber(clamped, 0)]);
-    }
-    function setVolume(fraction) {
-        if (!root.hasPlayer)
-            return;
-        var clamped = Math.max(0, Math.min(1, fraction));
-        root._dispatch([root.scriptPlayersPath, "cmd", root.payload.player, "volume", root._plainNumber(clamped, 2)]);
-    }
-    // `playerId` is the one argument this dispatch surface accepts from a
-    // caller rather than reading off the stream payload directly — it
-    // still only ever originates from an entry of `players` above, itself
-    // already filtered through media-players.sh's own validation.
+    // `playerId` is the one argument this surface accepts from a caller
+    // rather than reading straight off the active-player resolution above —
+    // it is checked against the live model before being accepted, and an
+    // unknown id is a no-op rather than a blind write.
     function selectPlayer(playerId) {
         if (typeof playerId !== "string" || playerId === "")
             return;
-        root._dispatch([root.scriptPlayersPath, "select", playerId]);
+        const list = Mpris.players ? Mpris.players.values : [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && root._playerIdentity(list[i]) === playerId) {
+                root._explicitSelectionId = playerId;
+                return;
+            }
+        }
+    }
+
+    // ── The switcher's data source — same element shape MediaTab.qml's
+    //    switcher already consumes ({ id, label, active }), read from that
+    //    consumer first and matched here rather than exposing raw player
+    //    objects and expecting the tab to adapt. ────────────────────────
+    readonly property var players: {
+        const list = Mpris.players ? Mpris.players.values : [];
+        var out = [];
+        for (var i = 0; i < list.length; i++) {
+            const p = list[i];
+            if (!p)
+                continue;
+            const pid = root._playerIdentity(p);
+            out.push({
+                id: pid,
+                label: (p.identity && p.identity !== "") ? p.identity : pid,
+                active: p === root.activePlayer
+            });
+        }
+        return out;
+    }
+
+    // ── Derived display fields — the surface both media views read.
+    //    Neither view re-derives presentation logic. ───────────────────
+    readonly property bool hasPlayer: root.activePlayer !== null
+
+    readonly property bool playing: root.hasPlayer && root.activePlayer.isPlaying === true
+
+    // Title falls back to the player's own identity, then to nothing —
+    // never a raw empty string reaching a text element. Preserves the
+    // previous fallback-to-label behaviour precisely.
+    readonly property string displayTitle: {
+        if (!root.hasPlayer)
+            return "";
+        const t = (root.activePlayer.trackTitle || "").trim();
+        if (t !== "")
+            return t;
+        return (root.activePlayer.identity || "").trim();
+    }
+    readonly property string displayArtist: root.hasPlayer ? (root.activePlayer.trackArtist || "").trim() : ""
+    readonly property string displayAlbum: root.hasPlayer ? (root.activePlayer.trackAlbum || "").trim() : ""
+
+    // Guarded against the unsupported case, where the raw value is
+    // meaningless, by reporting zero rather than a stale or NaN figure.
+    readonly property int lengthSeconds: {
+        if (!root.hasPlayer || root.activePlayer.lengthSupported !== true)
+            return 0;
+        const l = root.activePlayer.length;
+        return (isFinite(l) && l > 0) ? Math.floor(l) : 0;
+    }
+
+    // The native flag is a direct capability test, never a zero test — a
+    // real player at zero volume must still show the band, exactly as the
+    // previous script-sentinel implementation guaranteed.
+    readonly property bool hasVolume: root.hasPlayer && root.activePlayer.volumeSupported === true
+    readonly property real volumeLevel: root.hasVolume ? root.activePlayer.volume : 0
+
+    // Belt-and-suspenders guard kept from the previous implementation: the
+    // player's own seek capability AND a positive length.
+    readonly property bool canSeek: root.hasPlayer && root.activePlayer.canSeek === true && root.lengthSeconds > 0
+
+    // D-41: "populated" | "pending" | "empty" — see the file header for why
+    // "pending" is retained by name but is now structurally unreachable
+    // from this file; the native singleton has no asynchronous first-line
+    // window to be pending in.
+    readonly property string widgetState: {
+        if (!root.hasPlayer)
+            return "empty";
+        return "populated";
+    }
+
+    // ── Position — a Timer-forced heartbeat, not a bare property binding.
+    //    `position` carries a Qt change notification (`positionChanged`),
+    //    but MPRIS does not obligate a player to emit it every second
+    //    during ordinary playback — the spec's own model expects a client
+    //    to interpolate, and this session could not live-verify against a
+    //    real playing track whether a plain binding already advances (see
+    //    SUMMARY for the recorded gap). A one-second heartbeat that reads
+    //    `activePlayer.position` fresh on every tick is the conservative
+    //    choice: gated on `drawerOpen && playing && canSeek`, in-process,
+    //    no fork — it replaces a reader that forked roughly ten processes
+    //    a second, and it is the ONLY remaining timer in this file. ──────
+    property int _positionTick: 0
+
+    Timer {
+        id: positionRefreshTimer
+        interval: 1000
+        repeat: true
+        running: root.drawerOpen && root.playing && root.canSeek
+        onTriggered: root._positionTick = root._positionTick + 1
+    }
+
+    readonly property int positionSeconds: {
+        const _tick = root._positionTick; // dependency: forces re-evaluation every heartbeat
+        return root.hasPlayer ? Math.max(0, Math.floor(root.activePlayer.position)) : 0;
+    }
+
+    // ── Album art — the breakable link. `artPath` MUST remain a bare
+    //    local filesystem path: MediaTab.qml:613 prefixes it with a
+    //    "file://" scheme itself, so a URL-valued artPath here would
+    //    produce a doubled scheme and a silently blank art circle. ───────
+    readonly property string homeDir: Quickshell.env("HOME")
+    readonly property string artResolverPath: root.homeDir + "/.config/hypr/scripts/media-art-resolve.sh"
+
+    // Percent-decodes a file:// URL's path component. No subprocess is
+    // needed for this branch, which is the common one.
+    function _decodeFileUrl(url) {
+        const raw = url.substring("file://".length);
+        try {
+            return decodeURIComponent(raw);
+        } catch (e) {
+            return raw;
+        }
+    }
+
+    // The last-write-wins key: only a resolve whose recorded request URL
+    // still equals the CURRENT track's art URL is ever published. A
+    // resolve that returns for a track the user has already skipped past
+    // is discarded here, not upstream — the process itself is not killed,
+    // its result is simply never read into `_resolvedArtPath` consumption.
+    property string _artResolveRequestUrl: ""
+    property string _resolvedArtPath: ""
+
+    readonly property string artPath: {
+        const url = root.hasPlayer ? (root.activePlayer.trackArtUrl || "") : "";
+        if (url === "")
+            return "";
+        if (url.indexOf("file://") === 0)
+            return root._decodeFileUrl(url);
+        return (root._artResolveRequestUrl === url) ? root._resolvedArtPath : "";
+    }
+
+    // Single-flighted: a track change while a resolve is already in flight
+    // does not spawn a second child — it is picked up by the chase in
+    // `onExited` below once the in-flight one finishes.
+    function _triggerArtResolve() {
+        if (artResolveProcess.running)
+            return;
+        const url = root.hasPlayer ? (root.activePlayer.trackArtUrl || "") : "";
+        if (url === "" || url.indexOf("file://") === 0)
+            return;
+        if (url === root._artResolveRequestUrl && root._resolvedArtPath !== "")
+            return;
+        root._artResolveRequestUrl = url;
+        artResolveProcess.command = [root.artResolverPath, url];
+        artResolveProcess.running = true;
+    }
+
+    // The URL is handed to the resolver unmodified, as a single argv
+    // element — never fetched in-process, never re-parsed as code, never
+    // concatenated into a command line. The resolver's own scheme
+    // allowlist and its pre-flight rejection of loopback and RFC1918
+    // hosts are the mitigation for a request-forgery sink pointed at this
+    // machine, and re-implementing the fetch here would discard both.
+    Process {
+        id: artResolveProcess
+        running: false
+        stdout: StdioCollector {
+            id: artResolveCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._resolvedArtPath = (exitCode === 0) ? (artResolveCollector.text || "").trim() : "";
+            // Chase a track that moved on while this resolve was in
+            // flight — single-flighted (this process just cleared
+            // `running`), never queued, never a second concurrent child.
+            if (root.hasPlayer) {
+                const currentUrl = root.activePlayer.trackArtUrl || "";
+                if (currentUrl !== "" && currentUrl.indexOf("file://") !== 0 && currentUrl !== root._artResolveRequestUrl)
+                    root._triggerArtResolve();
+            }
+        }
+    }
+
+    onActivePlayerChanged: root._triggerArtResolve()
+
+    Connections {
+        target: root.activePlayer
+        function onTrackArtUrlChanged() {
+            root._triggerArtResolve();
+        }
+    }
+
+    Component.onCompleted: root._triggerArtResolve()
+
+    // ── Transport and volume — direct method calls / clamped property
+    //    writes on the active player, each guarded on there being an
+    //    active player AND on the corresponding capability flag, so this
+    //    file never asks a player to do something it has declared it
+    //    cannot. One function per verb; no generic caller-supplied-verb
+    //    passthrough — the reason the old header gave still applies: a
+    //    passthrough is how an allowlist stops being an allowlist. ───────
+    function playPause() {
+        if (!root.hasPlayer || root.activePlayer.canTogglePlaying !== true)
+            return;
+        root.activePlayer.togglePlaying();
+    }
+    function nextTrack() {
+        if (!root.hasPlayer || root.activePlayer.canGoNext !== true)
+            return;
+        root.activePlayer.next();
+    }
+    function previousTrack() {
+        if (!root.hasPlayer || root.activePlayer.canGoPrevious !== true)
+            return;
+        root.activePlayer.previous();
+    }
+    // Absolute seek via the position property's own writer (`position =`
+    // calls the native setPosition), never the relative `seek(offset)`
+    // method — MediaTab's slider hands this an absolute second count.
+    function seekTo(seconds) {
+        if (!root.hasPlayer || root.activePlayer.canSeek !== true)
+            return;
+        const clamped = Math.max(0, Math.min(root.lengthSeconds, Number(seconds) || 0));
+        root.activePlayer.position = clamped;
+    }
+    function setVolume(fraction) {
+        if (!root.hasPlayer || root.activePlayer.volumeSupported !== true)
+            return;
+        const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
+        root.activePlayer.volume = clamped;
     }
 }
