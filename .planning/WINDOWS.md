@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 39
+open_count: 42
 waived_count: 0
 fixed_count: 14
-total_count: 53
-last_updated: 2026-08-11T14:49:54.036Z
+total_count: 56
+last_updated: 2026-08-11T15:00:58.131Z
 ---
 
 # Broken Windows Ledger
@@ -68,6 +68,9 @@ last_updated: 2026-08-11T14:49:54.036Z
 | 51 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-FRAME-RATE.md |  | LEDGER-03 frame-rate campaign (Task 1 of 18-18) deferred: full methodology and exact resume commands recorded in 18-FRAME-RATE.md, but no condition (C0-C4) was measured this session. Requires stopping quickshell.service to run an unsupervised QSG_RENDER_TIMING instance, and rearranging the live desktop to OVER-04's 8-window/3-workspace load floor (live check: only 4 windows/4 workspaces present). LEDGER-03 stays open; 16-OVER04-MEASUREMENT.md/PROJECT.md/MILESTONES.md not edited. | open |  | 2026-08-11T10:28:14.163Z |  |
 | 52 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak (Task 4 of 18-18) deferred: Task 3's aggregated inventory, pre-declared tolerances, and a real start capture (pid 737907, RSS 450424 KiB, wake rate 19.3429/sec and CPU rate 0.002476 cpu-sec/sec over a genuine 300s observation) are complete in 18-BAR-SOAK.md. Task 4's end capture, 200-cycle hide/reveal exercise, and verdict require at least 14400s of continued single-pid uptime with unchanged NRestarts, which cannot elapse within one session. Exact resume commands recorded in 18-BAR-SOAK.md Section five. QBAR-11 stays open; no verdict asserted. | open |  | 2026-08-11T10:28:19.689Z |  |
 | 53 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/Bar.qml |  | 18.1-04 Task 1's live restart check (quickshell.log carries no new TrayCapsule-is-not-a-type or unresolved-type QML error line, and the bar renders every remaining capsule in both orientations with the tray gap gone) was NOT performed this session — deferred to the user per established project preference (skip-live-verification memory; same shape as WINDOWS entries 24/25). The hyprctl monitors -j reserved array was compared before and after the edit without a restart (unchanged: [0,46,0,0]), which does not by itself prove the new qmldir/Bar.qml/BarEntryModel.qml code loads without error. | open |  | 2026-08-11T14:49:54.036Z |  |
+| 54 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml |  | 18.1-05 Task 3 leg 2 (drawer opening into a moving bar) not live-observed — no synthetic pointer-input tool exists on this host (PROJECT.md-recorded finding); the dwell timer re-evaluating drawerHoverActive/drawerSettled at fire time (not only arm time) is asserted from source instead, per the plan's own stated fallback for this leg. Deferred to 18.1-07's GATE-02 hover walkthrough. | open |  | 2026-08-11T15:00:44.002Z |  |
+| 55 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml |  | 18.1-05 Task 3 leg 3 (drawer open when the bar hides) not live-observed — expanding a drawer via real hover, then triggering a bar hide (idle/fullscreen/gaming/keybind) and watching it collapse, needs pointer input this host has no synthetic tool for. Asserted from source instead: onDrawerSettledChanged stops both timers and calls requestCollapse() immediately (no grace) the moment drawerSettled goes false while expanded, and requestExpand() is reachable only from the dwell timer's fire handler which re-gates on drawerSettled, so the drawer cannot mechanically reappear expanded on the next reveal without a fresh hover+dwell cycle. Deferred to 18.1-07's GATE-02 hover walkthrough. | open |  | 2026-08-11T15:00:51.726Z |  |
+| 56 | 18.1 | unrun-verify | quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml |  | 18.1-05 Task 3's zero-idle-at-rest check (both drawer timers not running with the pointer away and both drawers collapsed) was not confirmed via live introspection — no QML Timer.running probe/IPC exists on this host to poll it. Asserted from source instead: both drawerDwellTimer/drawerGraceTimer (in LauncherCapsule.qml and ClockActionsCapsule.qml) are repeat:false and are only ever started via .restart() inside onDrawerHoverActiveChanged (armed on a hover-state transition) or onDrawerSettledChanged (only while already expanded) — neither has running:true set unconditionally nor a Component.onCompleted starter, mirroring the same static method BarReveal.qml's own reHideTimer zero-idle claim already relies on. | open |  | 2026-08-11T15:00:58.131Z |  |
 
 ````json
 [
@@ -705,6 +708,42 @@ last_updated: 2026-08-11T14:49:54.036Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T14:49:54.036Z",
+    "resolved_at": null
+  },
+  {
+    "id": 54,
+    "kind": "unrun-verify",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml",
+    "line": null,
+    "description": "18.1-05 Task 3 leg 2 (drawer opening into a moving bar) not live-observed — no synthetic pointer-input tool exists on this host (PROJECT.md-recorded finding); the dwell timer re-evaluating drawerHoverActive/drawerSettled at fire time (not only arm time) is asserted from source instead, per the plan's own stated fallback for this leg. Deferred to 18.1-07's GATE-02 hover walkthrough.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:00:44.002Z",
+    "resolved_at": null
+  },
+  {
+    "id": 55,
+    "kind": "unrun-verify",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/bar/ClockActionsCapsule.qml",
+    "line": null,
+    "description": "18.1-05 Task 3 leg 3 (drawer open when the bar hides) not live-observed — expanding a drawer via real hover, then triggering a bar hide (idle/fullscreen/gaming/keybind) and watching it collapse, needs pointer input this host has no synthetic tool for. Asserted from source instead: onDrawerSettledChanged stops both timers and calls requestCollapse() immediately (no grace) the moment drawerSettled goes false while expanded, and requestExpand() is reachable only from the dwell timer's fire handler which re-gates on drawerSettled, so the drawer cannot mechanically reappear expanded on the next reveal without a fresh hover+dwell cycle. Deferred to 18.1-07's GATE-02 hover walkthrough.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:00:51.726Z",
+    "resolved_at": null
+  },
+  {
+    "id": 56,
+    "kind": "unrun-verify",
+    "phase": "18.1",
+    "file": "quickshell/.config/quickshell/modules/bar/LauncherCapsule.qml",
+    "line": null,
+    "description": "18.1-05 Task 3's zero-idle-at-rest check (both drawer timers not running with the pointer away and both drawers collapsed) was not confirmed via live introspection — no QML Timer.running probe/IPC exists on this host to poll it. Asserted from source instead: both drawerDwellTimer/drawerGraceTimer (in LauncherCapsule.qml and ClockActionsCapsule.qml) are repeat:false and are only ever started via .restart() inside onDrawerHoverActiveChanged (armed on a hover-state transition) or onDrawerSettledChanged (only while already expanded) — neither has running:true set unconditionally nor a Component.onCompleted starter, mirroring the same static method BarReveal.qml's own reHideTimer zero-idle claim already relies on.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T15:00:58.131Z",
     "resolved_at": null
   }
 ]
