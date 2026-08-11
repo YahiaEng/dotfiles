@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed 18-12-PLAN.md
-last_updated: "2026-08-11T02:24:55.632Z"
+stopped_at: Completed 18-13-PLAN.md
+last_updated: "2026-08-11T02:48:22.324Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 18 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 20
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 13 of 20
+Plan: 14 of 20
 Status: Ready to execute
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 65%
 Last activity: 2026-08-11 — Phase 18 execution started
 
 ## Performance Metrics
@@ -204,6 +204,7 @@ Last activity: 2026-08-11 — Phase 18 execution started
 | Phase 18 P10 | ~30min | 3 tasks | 2 files |
 | Phase 18 P11 | ~30min | 3 tasks | 4 files |
 | Phase 18 P12 | ~35min | 3 tasks | 6 files |
+| Phase 18 P13 | ~45min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -424,6 +425,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18-11: vertical-orientation drawer host (D-18-11's leftward strip) raised to the orchestrator, not resolved this execution — Bar.qml/BarDrawer.qml scope correction outstanding
 - [Phase ?]: 18-12: brightnessctl --class/--device long-form flags used instead of -c/-d to avoid colliding with the file's own no-interpreter -c-flag security gate
 - [Phase ?]: 18-12: GATE-02 B.3 brightness half recorded as 'not demonstrable on this hardware — structurally present' in 18-SCROLL-GATE-RECORD.md, never as a pass
+- [Phase ?]: 18-13: ExclusionMode.Ignore on SectionPopout (not PanelDialog's Normal) so token-derived margins measure from the true screen edge without subtracting the bar's own reservation back out
+- [Phase ?]: 18-13: bodyColumn's inner width is a fixed Design-token expression, never bound to popoutWindow's own resolved width, avoiding a circular binding since implicitWidth clamps FROM bodyColumn.implicitWidth
+- [Phase ?]: 18-13: AudioPopout's body content gated on bodyState==="populated" so the frame placeholder never double-renders under real content
 
 ### Quick Tasks Completed
 
@@ -552,8 +556,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T02:24:55.608Z
-Stopped at: Completed 18-12-PLAN.md
+Last session: 2026-08-11T02:48:22.307Z
+Stopped at: Completed 18-13-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
