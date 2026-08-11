@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 18
+open_count: 21
 waived_count: 0
 fixed_count: 8
-total_count: 26
-last_updated: 2026-08-11T00:45:20.302Z
+total_count: 29
+last_updated: 2026-08-11T01:11:57.281Z
 ---
 
 # Broken Windows Ledger
@@ -41,6 +41,9 @@ last_updated: 2026-08-11T00:45:20.302Z
 | 24 | 18 | unrun-verify | quickshell/.config/quickshell/modules/Bar.qml |  | 18-01 Task 2's <human-check> render gate (pill renders, floats clear of edge, live HH:MM, theme crossfade with no magenta flash) was not run by the executor — automated verify passed; visual confirmation deferred to the user per established project preference (skip-live-verification memory). | open |  | 2026-08-10T23:12:33.140Z |  |
 | 25 | 18 | unrun-verify | quickshell/.config/quickshell/modules/Bar.qml |  | D-18-31/GATE-02 human render-gate for 18-05 (orientation flip, vertical clock re-stack, theme crossfade in both orientations) not performed by the executor — deferred to the user per established project preference (18-01's identical precedent, WINDOWS entry 24). | open |  | 2026-08-11T00:13:17.928Z |  |
 | 26 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-RESTART-PARITY.md |  | QBAR-10 destructive restart/rate-limit live proof (SIGTERM retire, SIGKILL restart, 6x SIGKILL rate-limit trip, recovery) and the Task 3 human visual check were deferred to the operator — full runbook provided; only non-destructive systemctl show/is-enabled/systemd-analyze checks were run by the executor | open |  | 2026-08-11T00:45:20.302Z |  |
+| 27 | 18 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml |  | 18-08 Task 3 D-18-31/GATE-02 live render-gate not performed this session: album art, seek slider, player switcher, transport buttons and near-instant external-pause reflection unconfirmed against a real quickshell reload | open |  | 2026-08-11T01:11:51.902Z |  |
+| 28 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/SystemCapsule.qml |  | 18-08 Task 1/2 D-18-31/GATE-02 live render-gate not performed this session: system capsule cpu/ram/disk/updates not visually confirmed against top/free/df/checkupdates on a live-reloaded bar | open |  | 2026-08-11T01:11:57.190Z |  |
+| 29 | 18 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml |  | 18-08 Task 4 D-18-31/GATE-02 live render-gate not performed this session: audio/network/bluetooth glyph reactions to a real mute/radio toggle, vertical re-stack and theme-switch crossfade unconfirmed on a live-reloaded bar | open |  | 2026-08-11T01:11:57.281Z |  |
 
 ````json
 [
@@ -354,6 +357,42 @@ last_updated: 2026-08-11T00:45:20.302Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-11T00:45:20.302Z",
+    "resolved_at": null
+  },
+  {
+    "id": 27,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml",
+    "line": null,
+    "description": "18-08 Task 3 D-18-31/GATE-02 live render-gate not performed this session: album art, seek slider, player switcher, transport buttons and near-instant external-pause reflection unconfirmed against a real quickshell reload",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T01:11:51.902Z",
+    "resolved_at": null
+  },
+  {
+    "id": 28,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/SystemCapsule.qml",
+    "line": null,
+    "description": "18-08 Task 1/2 D-18-31/GATE-02 live render-gate not performed this session: system capsule cpu/ram/disk/updates not visually confirmed against top/free/df/checkupdates on a live-reloaded bar",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T01:11:57.190Z",
+    "resolved_at": null
+  },
+  {
+    "id": 29,
+    "kind": "unrun-verify",
+    "phase": "18",
+    "file": "quickshell/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml",
+    "line": null,
+    "description": "18-08 Task 4 D-18-31/GATE-02 live render-gate not performed this session: audio/network/bluetooth glyph reactions to a real mute/radio toggle, vertical re-stack and theme-switch crossfade unconfirmed on a live-reloaded bar",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-11T01:11:57.281Z",
     "resolved_at": null
   }
 ]

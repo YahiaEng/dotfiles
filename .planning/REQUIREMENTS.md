@@ -16,7 +16,7 @@
 - [ ] **QBAR-03**: User can click a workspace indicator to switch to that workspace (restores the capability dead under waybar 0.15.0's compiled-in dispatch)
 - [ ] **QBAR-04**: User can scroll on the bar's audio and brightness sections to adjust them
 - [ ] **QBAR-05**: The system tray shows running tray applications and their menus open on click
-- [ ] **QBAR-06**: The bar shows clock, battery, network, bluetooth, audio and CPU/RAM/disk readouts
+- [x] **QBAR-06**: The bar shows clock, battery, network, bluetooth, audio and CPU/RAM/disk readouts
 - [ ] **QBAR-07**: The bar auto-hides **fully** (never a persistent sliver — OLED constraint) driven by idle, fullscreen, gaming mode and a keybind, with exactly one owner of visibility state
 - [ ] **QBAR-08**: The hidden bar reveals on pointer hover **and** on holding Super *(named addition)*
 - [ ] **QBAR-09**: Clicking a bar section opens that section's own detail popout, in place of routing everything through the dashboard *(named addition)*
@@ -128,7 +128,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QBAR-03 | Phase 18 | Pending |
 | QBAR-04 | Phase 18 | Pending |
 | QBAR-05 | Phase 18 | Pending |
-| QBAR-06 | Phase 18 | Pending |
+| QBAR-06 | Phase 18 | Complete |
 | QBAR-07 | Phase 18 | Pending |
 | QBAR-08 | Phase 18 | Pending |
 | QBAR-09 | Phase 18 | Pending |
