@@ -415,6 +415,9 @@ BarCapsule {
         { id: "wallpaper", glyph: "wallpaper", label: "Wallpaper", script: "wallpaper-switch.sh" }
     ]
 
+    // ── The public drawer seam — the hover contract below (Phase 18.1
+    //    Plan 05, D-16/D-17/D-18) is the one and only implementation
+    //    driving these three names. ─────────────────────────────────────
     property bool settingsExpanded: false
     function requestExpand() {
         clockActionsCapsule.settingsExpanded = true;
@@ -423,6 +426,81 @@ BarCapsule {
         clockActionsCapsule.settingsExpanded = false;
     }
     readonly property int expandedCrossExtent: clockActionsCapsule.settingsAxes.length * clockActionsCapsule.cellPitch + (clockActionsCapsule.settingsAxes.length - 1) * Design.spacingXs
+
+    // ── Hover-reveal (Phase 18.1 Plan 05, D-16/D-17/D-18) — mirrors
+    //    LauncherCapsule.qml's mechanism shape-identically (same property
+    //    names, same timer ids, same tokens) so the two are diffable with
+    //    zero behavioural divergence. Both hover sources (the trigger
+    //    cell and the drawer strip, wired below) report through
+    //    `reportDrawerHover` into the same `drawerHoverActive` boolean,
+    //    so the pointer travelling from the trigger to the strip never
+    //    reads as a clean exit — a per-surface boolean would defeat the
+    //    grace timer below before it ever ran. The settledness read below
+    //    reads Bar.qml's own live rendered/transitioning state through
+    //    the shared `QsWindow.window` handle (the same reachable path
+    //    `barIdleInhibitor`'s `window: QsWindow.window` binding already
+    //    proves live above) — deliberately NOT the reveal-machine
+    //    singleton's own dead settled latch (D-26 fences that one out by
+    //    name). This file writes to no reveal-machine state at all: the
+    //    bar's own whole-content hover handler already spans the area the
+    //    drawer expands inside, so the bar's own re-hide grace already
+    //    covers an open drawer with zero new wiring. ─────────────────────
+    property bool _triggerHovered: false
+    property bool _stripHovered: false
+    property bool drawerHoverActive: false
+    function reportDrawerHover(source, entered) {
+        if (source === "trigger")
+            clockActionsCapsule._triggerHovered = entered;
+        else if (source === "strip")
+            clockActionsCapsule._stripHovered = entered;
+        clockActionsCapsule.drawerHoverActive = clockActionsCapsule._triggerHovered || clockActionsCapsule._stripHovered;
+    }
+
+    readonly property bool drawerSettled: QsWindow.window ? (QsWindow.window.barRendered && !QsWindow.window.barTransitionRunning) : false
+
+    onDrawerHoverActiveChanged: {
+        if (clockActionsCapsule.drawerHoverActive) {
+            drawerGraceTimer.stop();
+            drawerDwellTimer.restart();
+        } else {
+            drawerDwellTimer.stop();
+            drawerGraceTimer.restart();
+        }
+    }
+
+    // A drawer that survived into a hidden bar would reappear expanded on
+    // the next reveal — QBAR-07's boundary case. Collapse immediately,
+    // with no grace, the moment the bar stops being settled.
+    onDrawerSettledChanged: {
+        if (!clockActionsCapsule.drawerSettled && clockActionsCapsule.settingsExpanded) {
+            drawerDwellTimer.stop();
+            drawerGraceTimer.stop();
+            clockActionsCapsule.requestCollapse();
+        }
+    }
+
+    Timer {
+        id: drawerDwellTimer
+        interval: Design.popoutDwellMs
+        repeat: false
+        onTriggered: {
+            // Re-evaluated at FIRE time, not only at arm time: a dwell
+            // armed while the bar was up must not open a drawer into a
+            // bar that began hiding moments later.
+            if (clockActionsCapsule.drawerHoverActive && clockActionsCapsule.drawerSettled)
+                clockActionsCapsule.requestExpand();
+        }
+    }
+
+    Timer {
+        id: drawerGraceTimer
+        interval: Design.popoutDismissGraceMs
+        repeat: false
+        onTriggered: {
+            if (!clockActionsCapsule.drawerHoverActive)
+                clockActionsCapsule.requestCollapse();
+        }
+    }
 
     // One axis cell — an ActionCell that also owns its own script-present
     // probe and its own detached launcher, keyed off its own `axis` data
@@ -523,7 +601,11 @@ BarCapsule {
         glyph: "settings"
         label: "Settings"
         filled: clockActionsCapsule.settingsExpanded
-        onClicked: clockActionsCapsule.settingsExpanded ? clockActionsCapsule.requestCollapse() : clockActionsCapsule.requestExpand()
+
+        HoverHandler {
+            id: settingsTriggerHoverHandler
+            onHoveredChanged: clockActionsCapsule.reportDrawerHover("trigger", settingsTriggerHoverHandler.hovered)
+        }
     }
 
     // The settings strip — a Repeater over settingsAxes inside one
@@ -552,6 +634,11 @@ BarCapsule {
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: clockActionsCapsule.settingsExpanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
             }
+        }
+
+        HoverHandler {
+            id: settingsStripHoverHandler
+            onHoveredChanged: clockActionsCapsule.reportDrawerHover("strip", settingsStripHoverHandler.hovered)
         }
 
         Grid {
