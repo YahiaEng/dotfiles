@@ -59,3 +59,5 @@ AudioPopout 1.0 AudioPopout.qml
 # PopoutTrigger's popoutComponent, never held ambiently.
 WifiPopout 1.0 WifiPopout.qml
 BluetoothPopout 1.0 BluetoothPopout.qml
+ClockPopout 1.0 ClockPopout.qml
+ResourcesPopout 1.0 ResourcesPopout.qml

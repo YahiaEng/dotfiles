@@ -55,27 +55,59 @@ BarCapsule {
         precision: SystemClock.Minutes
     }
 
-    // Line 1 in both orientations: the time itself.
-    Text {
-        id: clockTimeText
-        font.pixelSize: Design.fontLabel
-        font.weight: Design.weightBody
-        color: clockActionsCapsule.contentColour
-        text: Qt.formatDateTime(barClock.date, "HH:mm")
-    }
+    // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — named seam into this
+    //    18-11-owned file. Ownership split, stated so it is never
+    //    discovered at merge time: 18-11 owns the clock cell's own two
+    //    Text elements below, unchanged in content and appearance; this
+    //    plan owns only the PopoutTrigger wrapper around them and the
+    //    nested Grid that reproduces the outer positioner's own spacing so
+    //    wrapping the pair changes nothing about the rendered bar. Change
+    //    nothing else: not the gaming, notification, idle-inhibitor,
+    //    settings or power cells, not the settings drawer, not the entry
+    //    order, not the notification source component. ──────────────────
+    PopoutTrigger {
+        id: clockPopoutTrigger
+        sectionId: "clock"
+        popoutComponent: Component {
+            ClockPopout {
+                currentDate: barClock.date
+            }
+        }
 
-    // Line 2, vertical only (D-18-14's two-stacked-lines form): a short
-    // date, sized to fit Design.barColumnWidth with no truncation. Hidden
-    // in horizontal, where the capsule stays a single line — and, per the
-    // shared chrome's own visibility rule, an invisible child is excluded
-    // from the positioner's spacing too.
-    Text {
-        id: clockDateText
-        visible: clockActionsCapsule.vertical
-        font.pixelSize: Design.fontLabel
-        font.weight: Design.weightBody
-        color: clockActionsCapsule.contentColour
-        text: Qt.formatDateTime(barClock.date, "ddd")
+        // Reproduces contentGrid's own spacing/orientation formula exactly
+        // (Design.spacingSm), so wrapping these two Text elements in one
+        // trigger cell leaves the rendered gap between them, and between
+        // this cell and the next, byte-identical to before.
+        Grid {
+            id: clockTriggerGrid
+            rows: clockActionsCapsule.vertical ? -1 : 1
+            columns: clockActionsCapsule.vertical ? 1 : -1
+            spacing: Design.spacingSm
+
+            // Line 1 in both orientations: the time itself.
+            Text {
+                id: clockTimeText
+                font.pixelSize: Design.fontLabel
+                font.weight: Design.weightBody
+                color: clockActionsCapsule.contentColour
+                text: Qt.formatDateTime(barClock.date, "HH:mm")
+            }
+
+            // Line 2, vertical only (D-18-14's two-stacked-lines form): a
+            // short date, sized to fit Design.barColumnWidth with no
+            // truncation. Hidden in horizontal, where the capsule stays a
+            // single line — and, per the shared chrome's own visibility
+            // rule, an invisible child is excluded from the positioner's
+            // spacing too.
+            Text {
+                id: clockDateText
+                visible: clockActionsCapsule.vertical
+                font.pixelSize: Design.fontLabel
+                font.weight: Design.weightBody
+                color: clockActionsCapsule.contentColour
+                text: Qt.formatDateTime(barClock.date, "ddd")
+            }
+        }
     }
 
     // ── Shared geometry for every extra on this capsule — Task 2's

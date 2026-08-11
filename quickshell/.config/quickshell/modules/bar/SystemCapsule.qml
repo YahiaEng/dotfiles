@@ -113,34 +113,61 @@ BarCapsule {
     // read rather than each re-reading the backend's own register.
     readonly property string cpuStateValue: root.systemResources ? root.systemResources.cpuState : "empty"
 
-    Readout {
-        glyph: "memory"
-        maxValueText: "100%"
-        populated: root.cpuStateValue === "populated"
-        errored: root.cpuStateValue === "empty"
-        valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.cpuFraction) : ""
-    }
-
     // ── ram ──────────────────────────────────────────────────────────────
     readonly property string memoryStateValue: root.systemResources ? root.systemResources.memoryState : "empty"
-
-    Readout {
-        glyph: "memory_alt"
-        maxValueText: "100%"
-        populated: root.memoryStateValue === "populated"
-        errored: root.memoryStateValue === "empty"
-        valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.memoryFraction) : ""
-    }
 
     // ── disk ─────────────────────────────────────────────────────────────
     readonly property string storageStateValue: root.systemResources ? root.systemResources.storageState : "empty"
 
-    Readout {
-        glyph: "hard_drive_2"
-        maxValueText: "100%"
-        populated: root.storageStateValue === "populated"
-        errored: root.storageStateValue === "empty"
-        valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.storageFraction) : ""
+    // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — named seam into this
+    //    18-08-owned file. Ownership split, stated so it is never
+    //    discovered at merge time: 18-08 owns the three Readout instances'
+    //    glyph, precedence and value bindings below, unchanged; this plan
+    //    owns only the PopoutTrigger wrapper and the nested Grid that
+    //    reproduces the capsule's own positioner spacing, so the rendered
+    //    geometry is unchanged. The updates readout stays a SIBLING
+    //    outside this trigger, deliberately: it already owns a click that
+    //    starts a package upgrade, and putting it inside the trigger would
+    //    make that click pin a popout instead of upgrading anything. ─────
+    PopoutTrigger {
+        id: resourcesPopoutTrigger
+        sectionId: "resources"
+        popoutComponent: Component {
+            ResourcesPopout {
+                systemResources: root.systemResources
+            }
+        }
+
+        Grid {
+            id: resourcesTriggerGrid
+            rows: root.vertical ? -1 : 1
+            columns: root.vertical ? 1 : -1
+            spacing: Design.spacingSm
+
+            Readout {
+                glyph: "memory"
+                maxValueText: "100%"
+                populated: root.cpuStateValue === "populated"
+                errored: root.cpuStateValue === "empty"
+                valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.cpuFraction) : ""
+            }
+
+            Readout {
+                glyph: "memory_alt"
+                maxValueText: "100%"
+                populated: root.memoryStateValue === "populated"
+                errored: root.memoryStateValue === "empty"
+                valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.memoryFraction) : ""
+            }
+
+            Readout {
+                glyph: "hard_drive_2"
+                maxValueText: "100%"
+                populated: root.storageStateValue === "populated"
+                errored: root.storageStateValue === "empty"
+                valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.storageFraction) : ""
+            }
+        }
     }
 
     // ── updates ──────────────────────────────────────────────────────────
