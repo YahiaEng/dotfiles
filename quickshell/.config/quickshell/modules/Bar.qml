@@ -112,8 +112,11 @@ PanelWindow {
     // [[0,98,0,0]] instead of the expected [[0,92,0,0]], the exact +6
     // signature of the double-margin bug) before being corrected there.
     // Total reservation = margins.<edge> + exclusiveZone. Horizontally
-    // that total is Design.barHeight + Design.barEdgeMargin = 46,
-    // unchanged from 18-01's live-proven arithmetic; vertically it is
+    // that total is Design.barHeight + Design.barEdgeMargin = 48
+    // (42 + 6), live-confirmed 2026-08-12 as [[0,48,0,0]]. It read 46
+    // from 18-01 through 18-18, when barHeight was 40; Phase 18.1 raised
+    // it to upstream Athena's own "height": 42 (ATHENA-UPSTREAM-SPEC.md),
+    // which moved the reservation by the same 2px. Vertically it is
     // Design.barColumnWidth + Design.barEdgeMargin = 50 — a SINGLE edge
     // margin on whichever axis is anchored, never doubled into both
     // terms. Both terms below are compile-time expressions over readonly
