@@ -71,3 +71,12 @@ MediaPopout 1.0 MediaPopout.qml
 # by shell.qml behind a loader keyed on the hidden state.
 singleton BarReveal 1.0 BarReveal.qml
 HotZone 1.0 HotZone.qml
+
+# BarRoles (Phase 18.1 Plan 01, D-03) — the bar-scoped colour role layer
+# every capsule's colour expression routes through, replacing direct
+# Colours.* references under modules/bar/. Carries the singleton keyword
+# (the 12-06 both-required finding, same shape as every other singleton
+# above — needs pragma Singleton in its own source file as well as this
+# keyword here, or the type resolves undefined forever with no load
+# error).
+singleton BarRoles 1.0 BarRoles.qml

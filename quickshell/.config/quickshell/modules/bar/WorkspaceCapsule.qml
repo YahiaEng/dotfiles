@@ -82,15 +82,23 @@ BarCapsule {
     //     than two, and the two are in different fonts besides (a
     //     fallback that silently depends on font substitution renders a
     //     blank box on a host missing that font).
-    // (b) the source table's state icon set (active/default/urgent/empty
-    //     under "format-icons") is not carried either — this capsule's
-    //     slot identity is the workspace NUMERAL (the shape the
-    //     canonical modules.jsonc definition every other layout shares
-    //     already uses), which maps one-to-one onto the Super+N
-    //     keybinds. State is carried by colour instead (UI-SPEC's Accent
-    //     role). The athena layout showed a ghost glyph where this shows
-    //     a number — 18-19's GATE-02 criterion A judges whether that
-    //     reads as well.
+    // (b) [Phase 18.1 Plan 01 — D-07 correction] the source table's state
+    //     icon set (active/default/urgent/empty under "format-icons") was
+    //     not carried when this file was first built — this comment
+    //     originally promised "state is carried by colour instead" while
+    //     the actual code applied only a foreground TINT to the numeral
+    //     (WorkspaceCapsule.qml's pre-18.1 line 349), never the filled
+    //     pill Athena itself renders (`#workspaces button.active { background:
+    //     @accent; }`, style-athena.scss:167-171). That gap between this
+    //     comment's promise and the code's behaviour is the documented
+    //     origin of Phase 18.1. It is now fixed: the focused slot below
+    //     renders a real background fill (`BarRoles.accent`/
+    //     `BarRoles.onAccent`, via `slotFillColour`/`slotTextColour`), the
+    //     urgent-and-unfocused branch stays a foreground tint
+    //     (`BarRoles.danger`) matching Athena's own CSS
+    //     (`style-athena.scss:175-177`), and the default branch reads
+    //     `BarRoles.capsuleFg`. Colour now genuinely IS the whole state
+    //     carrier described here.
     readonly property var appGlyphMap: [
         { appId: "kitty", glyph: "󰆍" },
         { appId: "firefox", glyph: "" },
@@ -292,6 +300,16 @@ BarCapsule {
             readonly property bool slotFocused: !!(Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.id === slotItem.slotId)
             readonly property bool slotUrgent: !!(slotItem.slotWorkspace && slotItem.slotWorkspace.urgent) && !slotItem.slotFocused
 
+            // D-07: the focused slot's fill — a filled pill, not a tint.
+            // Every other state (default, urgent-and-unfocused) stays
+            // transparent; Athena's own CSS treats urgent as a foreground
+            // tint only (style-athena.scss:175-177), never a filled pill.
+            readonly property color slotFillColour: slotItem.slotFocused ? BarRoles.accent : "transparent"
+            // D-07: the slot's text/glyph colour, in Athena's own
+            // precedence — focused wins over urgent, urgent wins over
+            // default.
+            readonly property color slotTextColour: slotItem.slotFocused ? BarRoles.onAccent : (slotItem.slotUrgent ? BarRoles.danger : BarRoles.capsuleFg)
+
             // The slot's own extent, stated explicitly from the tokens
             // rather than left implicit — the numeral's reserved
             // two-digit width/height, one inter-child gap, and
@@ -321,6 +339,27 @@ BarCapsule {
             width: slotItem.implicitWidth
             height: slotItem.implicitHeight
 
+            // D-07: the focused-slot fill — Overview.qml's/BarCapsule.qml's
+            // own full-pill idiom (radius: height / 2), painted BEHIND the
+            // Grid below so it never occludes the glyph/numeral content.
+            // Motion-gated the same shape BarCapsule.qml's own hover
+            // Behavior uses, so the fill crossfades in step with every
+            // other bar surface rather than snapping.
+            Rectangle {
+                anchors.fill: parent
+                radius: height / 2
+                color: slotItem.slotFillColour
+
+                Behavior on color {
+                    enabled: Motion.motionEnabled
+                    ColorAnimation {
+                        duration: Motion.standardDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
+                    }
+                }
+            }
+
             // One bound positioner, never a Row/Column sibling pair — the
             // same discipline the bar root and the shared chrome's own
             // content Grid already use. columns:1 in vertical puts every
@@ -340,13 +379,10 @@ BarCapsule {
                     text: String(slotItem.slotId)
                     font.pixelSize: Design.fontLabel
                     font.weight: Design.weightBody
-                    // The workspace override on UI-SPEC's Active row:
-                    // focused reads Colours.primary, urgent-and-unfocused
-                    // reads Colours.error (carrying the state the athena
-                    // table expressed with a separate urgent glyph), and
-                    // the default falls through to the chrome's own
-                    // content colour.
-                    color: slotItem.slotFocused ? Colours.primary : (slotItem.slotUrgent ? Colours.error : workspaceCapsule.contentColour)
+                    // D-07: focused/urgent/default resolved through
+                    // BarRoles via slotItem.slotTextColour above — the
+                    // bar's colour role layer, not the global palette.
+                    color: slotItem.slotTextColour
                 }
 
                 // The icon-cell Repeater's model is the CONSTANT
@@ -383,7 +419,7 @@ BarCapsule {
                             text: cellItem.cellGlyph.text
                             font.family: cellItem.cellGlyph.family
                             font.pixelSize: Design.iconSizeMd
-                            color: workspaceCapsule.contentColour
+                            color: slotItem.slotTextColour
                         }
 
                         Text {
@@ -395,7 +431,7 @@ BarCapsule {
                             // expected to get large.
                             text: "+" + Math.min(99, slotItem.slotWindows.length - (workspaceCapsule.iconsPerSlot - 1))
                             font.pixelSize: Design.fontLabel
-                            color: workspaceCapsule.contentColour
+                            color: slotItem.slotTextColour
                         }
                     }
                 }
