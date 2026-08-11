@@ -200,7 +200,21 @@ BarCapsule {
             text: cellItem.entry.glyph ?? ""
             font.family: launcherCapsule.appGlyphFontFamily
             font.pixelSize: Design.barGlyphSize
-            color: launcherCapsule.contentColour
+            // Athena's own drawer-member rule: @capsule-fg at rest, @accent
+            // on hover (style-athena.scss:93 and :106). Read directly off
+            // BarRoles rather than through the capsule's contentColour,
+            // because this is a per-CELL state — the capsule-wide content
+            // colour cannot express "this one cell is under the pointer".
+            color: cellMouseArea.containsMouse ? BarRoles.accent : BarRoles.capsuleFg
+
+            Behavior on color {
+                enabled: Motion.motionEnabled
+                ColorAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
         }
 
         // Fixed four-element argv — the launcher wrapper, its
@@ -315,46 +329,59 @@ BarCapsule {
             spacing: Design.spacingXs
 
             Repeater {
-                model: launcherCapsule.appEntries
-                delegate: LauncherCell {
-                    id: stripCell
+                // The delegate root is a PLAIN Item, not LauncherCell itself.
+                // Repeater injects `index`/`modelData` into a plain delegate
+                // root, but NOT into an inline component (`component
+                // LauncherCell: Item`) used as the root — verified live: a
+                // diagnostic in the old shape logged
+                // `index=undefined typeof=undefined entryKeys=[] modelLen=7`,
+                // i.e. the model held all seven rows and none of them reached
+                // a cell. That is GATE-02 defect 4's real cause: `entry` sat at
+                // its `({})` default for every cell, so all seven resolved
+                // identically to one fallback. Wrapping the component in a
+                // plain Item and indexing appEntries explicitly is what
+                // actually delivers the data.
+                model: launcherCapsule.appEntries.length
+                delegate: Item {
+                    id: cellSlot
                     required property int index
-                    entry: modelData
+                    width: launcherCapsule.cellPitch
+                    height: launcherCapsule.cellPitch
 
-                    // GATE-02 defect 3 — "expansion works but it is very
-                    // clunky and sudden". The container's width/height
-                    // Behaviors above were already animating, but the cells
-                    // inside them popped in at full opacity the instant the
-                    // strip had any width, so the reveal read as a snap no
-                    // matter how smooth the container's own curve was. Each
-                    // cell now fades and rises into place, staggered by its
-                    // index, which is what makes the drawer look like it
-                    // opens rather than appears.
-                    //
-                    // The stagger step is deliberately small: seven cells at
-                    // emphasizedIn/6 each keeps the LAST cell landing inside
-                    // the container's own animation window instead of
-                    // trailing after the drawer has finished opening.
-                    readonly property int staggerStep: Math.round(Motion.emphasizedInDuration / 6)
-                    opacity: launcherCapsule.expanded ? 1 : 0
-                    transform: Translate {
-                        y: stripCell.opacity === 1 ? 0 : Design.spacingXs
-                    }
+                    LauncherCell {
+                        anchors.fill: parent
+                        entry: launcherCapsule.appEntries[cellSlot.index]
 
-                    Behavior on opacity {
-                        enabled: Motion.motionEnabled
-                        SequentialAnimation {
-                            // Only the opening direction staggers. On close
-                            // the whole strip should leave at once — this
-                            // repo's quick-to-leave grammar, the same
-                            // asymmetry the container Behaviors use.
-                            PauseAnimation {
-                                duration: launcherCapsule.expanded ? stripCell.index * stripCell.staggerStep : 0
-                            }
-                            NumberAnimation {
-                                duration: launcherCapsule.expanded ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                        // GATE-02 defect 3 — "expansion works but it is very
+                        // clunky and sudden". The container's width/height
+                        // Behaviors were already animating, but the cells inside
+                        // popped in at full opacity the instant the strip had
+                        // any width, so the reveal snapped regardless of how
+                        // smooth the container curve was. Each cell now fades
+                        // and rises into place, staggered by index.
+                        //
+                        // Stagger step is emphasizedIn/6 so the LAST cell still
+                        // lands inside the container's own animation window
+                        // rather than trailing after the drawer has opened.
+                        opacity: launcherCapsule.expanded ? 1 : 0
+                        transform: Translate {
+                            y: launcherCapsule.expanded ? 0 : Design.spacingXs
+                        }
+
+                        Behavior on opacity {
+                            enabled: Motion.motionEnabled
+                            SequentialAnimation {
+                                // Only opening staggers; closing leaves at once
+                                // — this repo's quick-to-leave grammar, the same
+                                // asymmetry the container Behaviors use.
+                                PauseAnimation {
+                                    duration: launcherCapsule.expanded ? cellSlot.index * Math.round(Motion.emphasizedInDuration / 6) : 0
+                                }
+                                NumberAnimation {
+                                    duration: launcherCapsule.expanded ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: launcherCapsule.expanded ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+                                }
                             }
                         }
                     }

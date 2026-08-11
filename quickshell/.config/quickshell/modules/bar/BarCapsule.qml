@@ -65,7 +65,20 @@ Rectangle {
     // already resolved to, so that appearance is unchanged; the active
     // branch moves to onAccent, the correct on-colour once a capsule can
     // actually be filled with accent.
-    readonly property color contentColour: active ? BarRoles.onAccent : BarRoles.capsuleFg
+    // capsuleFg unconditionally. The `active ? BarRoles.onAccent` branch this
+    // replaces was a latent bug: on-accent is only legible ON an accent
+    // fill, and NO BarCapsule background is ever accent-filled — the fill
+    // expression below is `hovered ? capsuleHover : capsule`, both neutral.
+    // So an active capsule rendered its content at onAccent (#1e1e2e on
+    // catppuccin) over a #313244 surface: near-black on near-black.
+    //
+    // It stayed invisible-but-harmless while the only consumers were raster
+    // IconImages and an unreachable placeholder branch. The 18.1 gap closure
+    // gave the app drawer real glyphs, which made every cell in an open
+    // drawer vanish. Athena has no equivalent state either: its drawer
+    // members are @capsule-fg at rest and hover to @accent
+    // (style-athena.scss:93/106), never to @on-accent.
+    readonly property color contentColour: BarRoles.capsuleFg
     readonly property int iconFill: active ? 1 : 0
 
     // One axis-bound content positioner — the same single-positioner
