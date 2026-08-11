@@ -1,0 +1,3 @@
+[templates.totallyunrelated]
+input_path = "~/.config/matugen/templates/totallyunrelated.css"
+output_path = "~/.local/state/theme/totallyunrelated.css"

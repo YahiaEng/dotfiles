@@ -147,7 +147,7 @@ _rc_validate_token() {
 #    colour-lint precedent). ────────────────────────────────────────────
 _rc_scan() {
     local root="$1" surface="$2" status="$3" owntree="$4" req="$5" mode="$6"
-    python3 - "$root" "$surface" "$status" "$owntree" "$req" "$mode" "$SELF_PATH" <<'PYEOF'
+    python3 - "$root" "$surface" "$status" "$owntree" "$req" "$mode" "$SELF_PATH" "$FIXTURES_DIR" <<'PYEOF'
 import glob
 import os
 import re
@@ -155,7 +155,7 @@ import shutil
 import subprocess
 import sys
 
-root, surface, status, owntree_spec, req, mode, self_script = sys.argv[1:8]
+root, surface, status, owntree_spec, req, mode, self_script, fixtures_dir_arg = sys.argv[1:9]
 
 TOKEN_RE = re.compile(r'\b' + re.escape(surface) + r'\b', re.IGNORECASE)
 DISPATCH_LAYER_RE = re.compile(r'\bhl\.(layer_rule|window_rule)\s*\(')
@@ -186,6 +186,30 @@ REPORT_DOMAIN = {'planning-archive', 'repo-prose'}
 self_realpath = os.path.realpath(self_script) if self_script else None
 SELF_EXCLUDE = {self_realpath} if self_realpath else set()
 
+# The committed self-test fixture trees live INSIDE the real hypr config
+# tree (hypr/scripts/tests/retirement-fixtures/), and the poisoned ones
+# deliberately contain the literal token text they test — a normal run
+# against the real repo (own-tree, test-fixtures, cross-package-refs all
+# recurse through this area) would otherwise pick up those poisoned
+# fixtures as if they were real surviving references, permanently arming
+# retirement-fixture's blocking tier red. Excluded UNLESS the caller's
+# --root itself points AT (or inside) the fixtures directory — the exact
+# motion-lint/colour-lint precedent: same code path serves both, context-
+# aware exclusion only.
+fixtures_realpath = os.path.realpath(fixtures_dir_arg) if fixtures_dir_arg else None
+root_realpath = os.path.realpath(root) if root else None
+EXCLUDE_FIXTURES = bool(fixtures_realpath) and not (
+    root_realpath == fixtures_realpath
+    or (root_realpath and root_realpath.startswith(fixtures_realpath + os.sep))
+)
+
+
+def _under_fixtures(path):
+    if not EXCLUDE_FIXTURES or not fixtures_realpath:
+        return False
+    real = os.path.realpath(path)
+    return real == fixtures_realpath or real.startswith(fixtures_realpath + os.sep)
+
 
 def is_binary(path):
     try:
@@ -197,6 +221,8 @@ def is_binary(path):
 
 
 def iter_files(base):
+    if _under_fixtures(base):
+        return
     if os.path.isfile(base):
         yield base
         return
@@ -204,8 +230,14 @@ def iter_files(base):
         return
     for dirpath, dirnames, filenames in os.walk(base, followlinks=True):
         dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIR_NAMES]
+        if _under_fixtures(dirpath):
+            dirnames[:] = []
+            continue
         for fn in filenames:
-            yield os.path.join(dirpath, fn)
+            full = os.path.join(dirpath, fn)
+            if _under_fixtures(full):
+                continue
+            yield full
 
 
 def grep_hits(paths, exclude_paths=None, extra_regex=None):
