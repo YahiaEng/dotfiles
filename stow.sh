@@ -102,6 +102,21 @@ mkdir -p "$HOME/.config/autostart"
 # 13-02-SUMMARY.md for the full DropInPaths= empty-vs-populated evidence.
 mkdir -p "$HOME/.config/systemd/user/swaync.service.d"
 
+# 18-07 (QBAR-10): pre-create ~/.config/systemd/user itself as a REAL
+# directory, independent of the swaync drop-in pre-create just above. That
+# line only guarantees this parent as a SIDE EFFECT of creating its own
+# drop-in subdirectory, and Phase 19 deletes swaync entirely — when that
+# line goes, the protection it incidentally provided for this parent would
+# vanish silently with it, and the resulting symptom (a unit file systemd
+# cannot see because its directory became a symlink into the repo) looks
+# nothing like a stow change to whoever hits it later. This line makes the
+# guarantee explicit and independent of swaync's survival. Narrower than
+# the swaync case: a unit FILE (quickshell.service, unlike a drop-in
+# DIRECTORY) is followed by systemd even when reached through a symlink,
+# so only the PARENT directory needs to be real — this mkdir -p is what
+# guarantees that.
+mkdir -p "$HOME/.config/systemd/user"
+
 # 13.1-10: pre-create ~/.config/hypr as a REAL directory — a genuine,
 # previously-undiscovered fresh-machine reproducibility bug found live by
 # this task's own throwaway-home-directory reproduction proof (Criterion
@@ -200,6 +215,22 @@ mkdir -p "$HOME/.local"
 # free to fold one level below ~/.local (as the ~/.local comment above
 # already documents) — harmless, since nothing this script writes
 # targets ~/.local/share/ at runtime.
+#
+# Audit-note correction (18-07, QBAR-10): the 15-13 correction just above
+# is itself now narrower than it reads. `quickshell` ships a THIRD tree
+# outside its own ~/.config/quickshell/ namespace —
+# ~/.config/systemd/user/quickshell.service, this repo's first custom
+# systemd --user unit. It is guarded by its own `mkdir -p
+# "$HOME/.config/systemd/user"` further up (independent of the swaync
+# drop-in pre-create it sits beside), so — like the autostart override
+# before it — it is not itself an instance of the fold bug; but leaving
+# the 15-13 correction's "two exceptions" claim standing as though it
+# were still complete is exactly the failure that correction exists to
+# prevent applying to itself. Three exceptions to the "every OTHER
+# package ships exclusively under ~/.config/<pkg>/" claim, then:
+# `wallpapers` (roots outside .config/), `quickshell`'s
+# ~/.config/autostart/ entry, and now `quickshell`'s
+# ~/.config/systemd/user/ entry.
 mkdir -p "$HOME/Pictures/Wallpapers" "$HOME/Pictures/Screenshots"
 
 # D-02/AMB-01: pre-create each theme's live/ directory as a REAL directory,
