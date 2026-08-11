@@ -140,4 +140,14 @@ Singleton {
     //    above for barEdgeMargin/barSideMargin, which exists solely for
     //    waybar positional parity and is not a precedent for this token.
     readonly property int barColumnWidth: 44
+
+    // ── mediaTitleMaxChars (Phase 18 Plan 08) — provenance: 18-UI-SPEC.md
+    //    "## New Tokens". 30 is the EXACT cap the retired bar already
+    //    applied to this same track-title string, so 18-19's parity
+    //    judgment compares like with like. A character count, not a
+    //    spacing value — the repo's 4px-grid discipline does not apply to
+    //    it. Appended alone, per 18-05's standing rule for this phase that
+    //    each plan appends only the tokens it actually reads;
+    //    trayMaxExtent and the popout tokens belong to 18-10/18-13/18-14.
+    readonly property int mediaTitleMaxChars: 30
 }
