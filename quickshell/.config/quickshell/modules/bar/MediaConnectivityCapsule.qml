@@ -975,19 +975,6 @@ BarCapsule {
         return false;
     }
 
-    // U+F0200 is MDI `ethernet` in the Nerd Font range — a literal
-    // codepoint, NOT a Material Symbols ligature, matching the network
-    // entry's own five-bar ramp above and deliberately avoiding the failure
-    // mode GATE-02 row A.3 names (a nonexistent ligature renders as its own
-    // name in plain text). Coverage confirmed with fc-list against the
-    // capsule's own drawerGlyphFontFamily (FiraCode Nerd Font) before use.
-    Readout {
-        visible: root.ethernetConnected
-        glyph: "\u{f0200}"
-        glyphFontFamily: root.drawerGlyphFontFamily
-        showValue: false
-    }
-
     // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — named seam into this
     //    18-08-owned file. Ownership split, stated so it is never
     //    discovered at merge time: 18-08 owns the Readout's glyph and
@@ -1018,6 +1005,24 @@ BarCapsule {
             id: connectionsTriggerHoverHandler
             onHoveredChanged: root.reportConnectionsDrawerHover("trigger", connectionsTriggerHoverHandler.hovered)
         }
+    }
+
+    // Declared AFTER wifiPopoutTrigger so it renders to the RIGHT of the
+    // network glyph (operator's placement choice, 2026-08-12; it sat to the
+    // left when first added). Position only — the predicate, glyph and
+    // zero-extent-when-hidden behaviour are unchanged.
+    //
+    // U+F0200 is MDI `ethernet` in the Nerd Font range — a literal
+    // codepoint, NOT a Material Symbols ligature, matching the network
+    // entry's own five-bar ramp above and deliberately avoiding the failure
+    // mode GATE-02 row A.3 names (a nonexistent ligature renders as its own
+    // name in plain text). Coverage confirmed with fc-list against the
+    // capsule's own drawerGlyphFontFamily (FiraCode Nerd Font) before use.
+    Readout {
+        visible: root.ethernetConnected
+        glyph: "\u{f0200}"
+        glyphFontFamily: root.drawerGlyphFontFamily
+        showValue: false
     }
 
     // ── battery ──────────────────────────────────────────────────────────
