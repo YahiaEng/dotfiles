@@ -99,7 +99,7 @@ hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("pkill walker")) -- Emergency: f
 -- name, then delegates to the single engine entrypoint,
 -- ~/.config/theme-engine/theme-apply, for all rendering + reload.
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("~/.config/hypr/scripts/theme-switch.sh")) -- Switch theme
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/waybar-switch.sh")) -- Switch waybar
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/bar-orientation.sh")) -- Switch bar orientation
 -- BAR-01/D-02/D-37: the ONLY bind that can clear a persistent
 -- fullscreen/gaming-hide -- targets the owner's `keybind toggle` verb
 -- (never hide/show directly), which carries the auto-clear-on-base-change

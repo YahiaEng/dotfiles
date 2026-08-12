@@ -350,14 +350,6 @@ done <<< "$CONTRACT_FILE_LIST"
 # (theme_engine_compile_gtk3_stylesheets) is wired into BOTH the
 # static-preset and materialyou render branches — nothing else checks
 # that.
-#
-# 13-05: waybar's six compiled sheets join the same walk for the identical
-# reason — motion baked in, colour still a live @import (theme.scss/
-# waybar-theme.css keeps the colour @import; waybar-modules.scss carries
-# no colour or import at all, only tokenized module rules), so every one
-# is theme-independent by construction. This is also the only place that
-# proves waybar's sass compile ran in BOTH render branches, same as
-# swaync's two entries above.
 echo ""
 echo "-- Motion byte-identity (D-31) --"
 # 13.1-10: hyprland-motion.conf dropped from this set — the hyprlang
@@ -376,9 +368,6 @@ echo "-- Motion byte-identity (D-31) --"
 MOTION_BYTE_IDENTITY_FILES=(
     motion.json gtk-4.0-motion.css
     _motion.scss swaync-style.css
-    waybar-theme.css waybar-modules.css
-    waybar-style-full.css waybar-style-athena.css
-    waybar-style-floating.css waybar-style-vertical.css
 )
 DIRS_COMPARED=0
 for target in "${TARGETS[@]}"; do

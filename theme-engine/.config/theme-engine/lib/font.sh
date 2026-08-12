@@ -7,13 +7,12 @@
 # regardless of which theme/mode is active. Mirrors theme-engine/lib/
 # wallpaper.sh's per-axis state-file precedent (RESEARCH Pattern 1).
 #
-# This function only renders the two fragments that have no other owner:
-# kitty-font.conf (consumed by kitty.conf's second `include`) and
-# waybar-font.css (consumed by the three style-*.css files' second
-# `@import`). The GTK gtk-font-name key is folded into generate.sh's
-# EXISTING theme_engine_render_gtk_settings printf call instead of a
-# separate write (Pitfall 6 discipline — never a second parallel settings
-# writer for a key already owned by that function).
+# This function only renders the one fragment that has no other owner:
+# kitty-font.conf (consumed by kitty.conf's second `include`). The GTK
+# gtk-font-name key is folded into generate.sh's EXISTING
+# theme_engine_render_gtk_settings printf call instead of a separate write
+# (Pitfall 6 discipline — never a second parallel settings writer for a key
+# already owned by that function).
 
 FONT_STATE_FILE="$HOME/.local/state/theme/font-choice"
 FONT_DEFAULT="FiraCode Nerd Font"
@@ -26,9 +25,9 @@ theme_engine_read_font() {
 }
 
 # theme_engine_render_font_files <tmp_dir>
-# Renders kitty-font.conf + waybar-font.css into the tmp render tree from
-# the font-choice state (called from generate.sh's theme_engine_generate,
-# alongside theme_engine_render_gtk_settings — same call-site shape).
+# Renders kitty-font.conf into the tmp render tree from the font-choice
+# state (called from generate.sh's theme_engine_generate, alongside
+# theme_engine_render_gtk_settings — same call-site shape).
 theme_engine_render_font_files() {
     local tmp="$1"
     local font_name
@@ -42,13 +41,4 @@ theme_engine_render_font_files() {
     # 12-16 since it is included after them.
     printf 'font_family      %s\nbold_font        %s Bold\nitalic_font      %s Italic\nbold_italic_font %s Bold Italic\n' \
         "$font_name" "$font_name" "$font_name" "$font_name" > "$out_dir/kitty-font.conf"
-
-    # waybar: @import'd by the three style-*.css files' second @import line
-    # (added in Task 2) — waybar-font.css is the SOLE owner of waybar's
-    # font-family (the per-stylesheet `* { }` literal was removed in gap
-    # plan 06-10/CR-01), so import ordering is no longer load-bearing here.
-    # Font Awesome fallback kept so waybar's icon-font module glyphs keep
-    # resolving regardless of the chosen nerd-font family.
-    printf '* {\n    font-family: "%s", "Font Awesome 6 Free";\n}\n' \
-        "$font_name" > "$out_dir/waybar-font.css"
 }

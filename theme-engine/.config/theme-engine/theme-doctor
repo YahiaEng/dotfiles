@@ -70,10 +70,10 @@ else
     done <<< "$CONTRACT_FILE_LIST"
 fi
 
-# WR-07: theme-invariant font render targets (kitty-font.conf,
-# waybar-font.css) get a presence-only check — they are excluded from the
-# color-contract `files` array above (theme-parity's parity checks require
-# color-declaration content these font fragments do not have).
+# WR-07: theme-invariant font render targets (kitty-font.conf) get a
+# presence-only check — they are excluded from the color-contract `files`
+# array above (theme-parity's parity checks require color-declaration
+# content these font fragments do not have).
 PRESENCE_ONLY_FILE_LIST="$(contract_presence_only_files)"
 if [[ -n "$PRESENCE_ONLY_FILE_LIST" ]]; then
     while IFS= read -r f; do
@@ -339,16 +339,10 @@ fi
 # (gi.require_version conflict), so this runs as two separate
 # invocations. Never calls Gtk.init() — CssProvider needs no display,
 # and init() would require one, breaking the headless verify gate.
-#    D-31/D-32's disk-truth principle, applied here per RESEARCH's own
-#    finding: this array used to hardcode the waybar layout stylesheets
-#    one by one — the same copy-paste-drift pattern already killed in
-#    waybar-switch.sh/waybar-launch.sh (D-32), sitting in a 4th place. A
-#    5th waybar layout must be covered by this guard with zero edit to
-#    this script, so the waybar entries are discovered by glob and
-#    appended to the non-waybar sheets, which stay explicit (they are
-#    not a family and have no enumeration to derive). Guarded with
-#    nullglob so an unstowed waybar package degrades to the per-sheet
-#    SKIP below, never an unexpanded literal pattern handed to the parser.
+#    D-31/D-32's disk-truth principle, applied here: the explicit array
+#    below lists every deployed GTK3 sheet directly rather than deriving
+#    any of them from a glob — the retired bar's layout family was the
+#    only surface that needed glob-discovery, and it is gone.
 GTK3_CSS_SHEETS=(
     "$HOME/.config/gtk-3.0/gtk.css"
     # 13-02/D-01: swaync/style.css no longer exists (converted to a
@@ -358,15 +352,6 @@ GTK3_CSS_SHEETS=(
     # named.
     "$STATE_DIR/swaync-style.css"
 )
-# 13-05: waybar/style-*.css no longer exists either (all six converted to
-# sass-authored .scss) — the compiled sheets in the state dir are what
-# actually reach GTK3, so the glob is repointed there. nullglob guard
-# preserved (an unstowed/un-rendered waybar package degrades to the
-# per-sheet SKIP below, never an unexpanded literal pattern).
-shopt -s nullglob
-WAYBAR_STYLE_SHEETS=("$STATE_DIR"/waybar-style-*.css)
-shopt -u nullglob
-GTK3_CSS_SHEETS+=("${WAYBAR_STYLE_SHEETS[@]}")
 GTK4_CSS_SHEETS=(
     "$HOME/.config/gtk-4.0/gtk.css"
     "$HOME/.config/swayosd/style.css"
@@ -460,234 +445,29 @@ else
     echo "  [SKIP] GTK CSS-parse guard (python-gobject / gi not available)"
 fi
 
-# ── D-17: per-module CSS reachability + colour-resolution gate ─────────
-# Folds D-17's "full module re-test" into a rerunnable, mechanical check
-# instead of a human eyeballing four bars under N palettes. For every
-# deployed waybar config-*.jsonc, resolves the layout's REAL module list
-# through waybar-equivalence-check --resolve (08-01's one JSONC/include
-# parser — no second one is written here), flattens that layout's own
-# stylesheet through the same live GTK3 CssProvider used by the CSS-parse
-# guard above, and asserts:
-#   1. every module has a reachable CSS rule (word-boundary match on its
-#      waybar-assigned widget id) — the "silently unstyled module" half
-#      of the Phase-1 battery/backlight bug;
-#   2. every @token the flattened sheet references is @define-color'd
-#      somewhere in that same flattened output — the load-bearing half.
-#      Verified live during planning (GTK 3.24.52): a rule referencing an
-#      UNDEFINED named colour raises NO parsing-error and yields a
-#      NON-EMPTY provider — the exact blind spot the guard above cannot
-#      see, because its only two signals (fatal error, empty provider)
-#      are both silent for this failure class.
-# Never calls Gtk.init() (CssProvider needs no display — same headless-
-# safe discipline as _theme_doctor_css_parse above). Degrades to [SKIP],
-# never [FAIL], on any missing optional dependency (python3-gi absent,
-# waybar-equivalence-check absent, waybar package not stowed) — P7 D-34's
-# "container gate stays green and unattended" invariant.
-WAYBAR_EQUIV_CHECK="$HOME/.config/hypr/scripts/waybar-equivalence-check"
-WAYBAR_DIR_FOR_GATE="$HOME/.config/waybar"
+# D-17's "full module re-test" (per-module CSS reachability + colour-
+# resolution against the retired bar's layout configs, resolved through
+# its own equivalence checker) is retired along with the surface it
+# tested — the checker and the config family it resolved are both gone,
+# and the surviving bar has no equivalent module/widget-id indirection
+# for this gate to walk.
 
-_theme_doctor_module_gate() {
-    # 13-05: configs stay repo-stowed (waybar_dir); the per-layout STYLE
-    # PATH the resolver flattens must point at the COMPILED state-dir
-    # sheet now (style-<layout>.css no longer exists as a repo file at
-    # all — the six sources are .scss, compiled into $STATE_DIR).
-    python3 - "$WAYBAR_EQUIV_CHECK" "$WAYBAR_DIR_FOR_GATE" "$STATE_DIR" <<'PYEOF' 2>/dev/null
-import glob
-import json
-import os
-import re
-import subprocess
-import sys
-
-equiv_check = sys.argv[1]
-waybar_dir = sys.argv[2]
-state_dir = sys.argv[3]
-
-if not os.path.isfile(equiv_check):
-    print("SKIP\t(all layouts)\twaybar-equivalence-check not found under ~/.config/hypr/scripts — cannot resolve configs")
-    sys.exit(0)
-
-configs = sorted(glob.glob(os.path.join(waybar_dir, "config-*.jsonc")))
-if not configs:
-    print(f"SKIP\t(all layouts)\tno config-*.jsonc found under {waybar_dir} — run stow.sh")
-    sys.exit(0)
-
-try:
-    import gi
-    gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
-except Exception as exc:
-    print(f"SKIP\t(all layouts)\tpython3-gi not available: {exc}")
-    sys.exit(0)
-
-# CSS at-rule keywords that share the "@ident" shape with a named-colour
-# reference but are never a colour token — excluded from Assertion 2.
-AT_RULE_KEYWORDS = {"import", "define-color", "media", "keyframes", "supports", "charset"}
-
-
-def module_to_id(name):
-    """waybar's own widget-id assignment rule: a compositor-namespaced
-    module (hyprland/*, sway/*, river/*, wlr/*) is identified by its LAST
-    segment; every other slash-bearing name replaces '/' with '-'; a bare
-    name is its own id."""
-    if "/" in name:
-        prefix = name.split("/")[0]
-        if prefix in ("hyprland", "sway", "river", "wlr"):
-            return "#" + name.split("/")[-1]
-        return "#" + name.replace("/", "-")
-    return "#" + name
-
-
-for config_path in configs:
-    layout = os.path.basename(config_path)[len("config-"):-len(".jsonc")]
-    style_path = os.path.join(state_dir, f"waybar-style-{layout}.css")
-
-    if not os.path.isfile(style_path):
-        print(f"SKIP\t{layout}\twaybar-style-{layout}.css not deployed under {state_dir} — run theme-apply")
-        continue
-
-    try:
-        resolved_proc = subprocess.run(
-            [equiv_check, "--resolve", config_path],
-            capture_output=True, text=True, timeout=10,
-        )
-    except Exception as exc:
-        print(f"SKIP\t{layout}\twaybar-equivalence-check --resolve failed to run: {exc}")
-        continue
-
-    if resolved_proc.returncode != 0:
-        print(f"SKIP\t{layout}\twaybar-equivalence-check --resolve exited {resolved_proc.returncode}")
-        continue
-
-    try:
-        resolved = json.loads(resolved_proc.stdout)
-    except Exception as exc:
-        print(f"SKIP\t{layout}\tcould not parse --resolve JSON output: {exc}")
-        continue
-
-    modules = []
-    for arr_key in ("modules-left", "modules-center", "modules-right"):
-        modules += resolved.get(arr_key, []) or []
-
-    provider = Gtk.CssProvider()
-    fatal = []
-
-    def _on_error(_provider, _section, error, _fatal=fatal):
-        if error.code != 4:
-            _fatal.append(error.message)
-
-    provider.connect("parsing-error", _on_error)
-    try:
-        provider.load_from_path(style_path)
-    except Exception as exc:
-        fatal.append(str(exc))
-    css = provider.to_string()
-
-    if fatal or not css:
-        print(f"SKIP\t{layout}\tstylesheet failed to parse or is empty — already reported by the CSS-parse guard above")
-        continue
-
-    # Gate self-check (once per layout, cheap): the flattening primitive
-    # this whole gate relies on must actually have inlined the @import
-    # chain. If either signal is missing, the flattening assumption this
-    # gate depends on is false for this run — fail loudly rather than
-    # silently passing on an unflattened (and therefore untested) sheet.
-    if "@define-color" not in css:
-        print(f"FAIL\t{layout}\tflattened stylesheet has no @define-color — @import chain did not inline as expected")
-        continue
-
-    # Assertion 1 — rule reachability, word-boundary matched so "#cpu"
-    # cannot be satisfied by a "#cpu-foo" rule.
-    for mod in modules:
-        widget_id = module_to_id(mod)
-        pattern = re.compile(re.escape(widget_id) + r"(?![-\w])")
-        if pattern.search(css):
-            print(f"PASS\t{layout}\treachable: {mod} -> {widget_id}")
-        else:
-            print(f"FAIL\t{layout}\tno reachable CSS rule for module '{mod}' (widget id {widget_id})")
-
-    # Assertion 2 — colour resolution (HARD FAIL). Every @token the
-    # flattened sheet references must be declared by an @define-color
-    # somewhere in that same flattened output.
-    referenced = set(re.findall(r"@([A-Za-z_][A-Za-z0-9_-]*)", css))
-    referenced -= AT_RULE_KEYWORDS
-    defined = set(re.findall(r"@define-color\s+([A-Za-z_][A-Za-z0-9_-]*)", css))
-    unresolved = sorted(referenced - defined)
-    if unresolved:
-        print(f"FAIL\t{layout}\tunresolved colour token(s): {', '.join(unresolved)}")
-    else:
-        print(f"PASS\t{layout}\tall {len(referenced)} referenced colour token(s) resolved")
-PYEOF
-}
-
-if python3 -c "import gi" >/dev/null 2>&1; then
-    while IFS=$'\t' read -r status layout detail; do
-        [[ -z "$status" ]] && continue
-        desc="D-17 module-gate: $layout ($detail)"
-        case "$status" in
-            SKIP) echo "  [SKIP] $desc" ;;
-            PASS) check "$desc" "0" ;;
-            *)    check "$desc" "1" ;;
-        esac
-    done < <(_theme_doctor_module_gate)
-else
-    echo "  [SKIP] D-17 module-gate (python-gobject / gi not available)"
-fi
-
-# ── Waybar entrypoint compiled-sheet reference guard (13-05 fix) ───────
-# Static, deterministic check that waybar's two entry-point scripts (the
-# autostart launcher and the Super+B interactive switcher) both reference
-# the COMPILED state-dir sheet naming convention (waybar-style-<slug>.css),
-# never the retired repo-stowed style-<slug>.css this plan's stylesheet
-# conversion removed. Found live during this plan: waybar-switch.sh (not
-# in 13-05's own files_modified) drifted onto the dead path and was only
-# caught by actually pressing the keybind, not by any automated gate —
-# this check turns that drift class into a gate failure instead of a
-# runtime surprise the next time either script is edited. Positive
-# assertion (contains the compiled-sheet substring), not a negative
-# blocklist of every possible dead-path spelling — cheaper to maintain
-# and cannot be defeated by a rephrased dead reference.
-for _ep_name in waybar-launch.sh waybar-switch.sh; do
-    _ep_path="$HOME/.config/hypr/scripts/$_ep_name"
-    if [[ -f "$_ep_path" ]]; then
-        grep -q 'waybar-style-' "$_ep_path"
-        check "waybar entrypoint guard: $_ep_name references the compiled waybar-style-<slug>.css convention" "$?"
-    else
-        echo "  [SKIP] waybar entrypoint guard: $_ep_name not deployed under ~/.config/hypr/scripts"
-    fi
-done
-
-# ── waybar-design-lint fold (08-15) ───────────────────────────────────
-# The design/token gate (transparent window, role-names-only, no literal
-# hex, no empty glyphs, token resolution) that would have caught the 08-12
-# UAT failure now runs on EVERY theme-doctor invocation, not only when
-# someone remembers the standalone script — that "green gates, broken bar"
-# gap is exactly what this phase closes. Each of its per-check results is
-# surfaced as a theme-doctor line and folds into the pass/fail tally.
-# Guarded-skip mirrors the other waybar sections: an unstowed waybar
-# package degrades to SKIP, never a hard FAIL.
-WAYBAR_DESIGN_LINT="$HOME/.config/hypr/scripts/waybar-design-lint"
-if [[ -x "$WAYBAR_DESIGN_LINT" ]]; then
-    while IFS= read -r _dl_line; do
-        case "$_dl_line" in
-            *"[PASS]"*) check "design-lint: ${_dl_line#*\[PASS\] }" "0" ;;
-            *"[FAIL]"*) check "design-lint: ${_dl_line#*\[FAIL\] }" "1" ;;
-        esac
-    done < <("$WAYBAR_DESIGN_LINT" 2>/dev/null)
-else
-    echo "  [SKIP] waybar-design-lint ($WAYBAR_DESIGN_LINT not found or not executable)"
-fi
+# The retired bar's compiled-sheet entrypoint guard (13-05 fix) and its
+# design/token lint fold (08-15) are retired along with the surface they
+# checked — both scripts they invoked are gone with the bar's own config
+# family, and the surviving bar has no equivalent compiled-sheet naming
+# convention for either check to walk.
 
 # ── motion-lint fold (12-05, TOKEN-04) ──────────────────────────────────
-# Same "green gates, broken bar" gap the waybar-design-lint fold above
-# closes, applied to motion: TOKEN-04 requires theme-doctor ITSELF to fail
-# on a surface that hand-rolls a raw duration/easing value, not merely a
-# standalone script someone has to remember to run. Every PASS/FAIL line
-# folds into the tally exactly like the waybar-design-lint fold above.
+# Same "green gates, broken bar" gap the retired design-lint fold above
+# used to close, applied to motion: TOKEN-04 requires theme-doctor ITSELF to
+# fail on a surface that hand-rolls a raw duration/easing value, not merely
+# a standalone script someone has to remember to run. Every PASS/FAIL line
+# folds into the tally the same way that retired fold did.
 # [EXEMPT] and [WARN] lines are deliberately NOT folded — an exemption is
 # acknowledged debt, not a passing check, and counting it as a PASS would
 # make a gate that still sits over non-compliant surfaces read as green.
-# Guarded-skip mirrors the waybar-design-lint fold: an unstowed hypr
+# Guarded-skip mirrors every other fold in this file: an unstowed hypr
 # package degrades to SKIP, never a hard FAIL.
 MOTION_LINT="$HOME/.config/hypr/scripts/motion-lint"
 if [[ -x "$MOTION_LINT" ]]; then
@@ -738,9 +518,9 @@ else
 fi
 
 # ── colour-lint fold (18-03, GATE-04, D-18-35) ───────────────────────────
-# Same "green gates, broken bar" gap the waybar-design-lint/motion-lint
-# folds above close, applied to QML hard-coded colours: GATE-04 requires
-# theme-doctor ITSELF to fail on a QML surface hard-coding a colour, not
+# Same "green gates, broken bar" gap the retired design-lint fold and the
+# motion-lint fold above close, applied to QML hard-coded colours: GATE-04
+# requires theme-doctor ITSELF to fail on a QML surface hard-coding a colour, not
 # merely a standalone script someone has to remember to run. Every
 # PASS/FAIL line folds into the tally exactly like the folds above.
 # [EXEMPT] lines are deliberately NOT folded — an exemption is
@@ -768,8 +548,8 @@ else
 fi
 
 # ── retirement-check fold (18-06, RETIRE-01/D-18-35) ───────────────────
-# Same "green gates, broken surface" gap the waybar-design-lint/motion-lint/
-# colour-lint folds above close, applied to retirement: an orphaned
+# Same "green gates, broken surface" gap the retired design-lint fold and
+# the motion-lint/colour-lint folds above close, applied to retirement: an orphaned
 # eww.scss contract entry blocked theme-doctor for a full milestone because
 # no gate enforced this class (WINDOWS #1) — folding retirement-check's
 # blocking tier in HERE means that class of miss cannot recur unnoticed,
@@ -780,13 +560,15 @@ fi
 # line ~698) — this is D-18-37's tier split expressed at the fold boundary,
 # not only inside the script itself.
 #
-# While every real surface ships `pending` in this phase (see 18-06-PLAN's
-# Measured ground truth table), retirement-check --all contributes ONLY
-# [REPORT] lines for those seven surfaces plus the self-test registry
-# row's own [PASS] lines — the tally is UNCHANGED by this fold until 18-20
-# flips waybar's registry row to `retired` in the same commit as the
-# deletion. Guarded-skip mirrors the folds above: an unstowed hypr package
-# degrades to SKIP, never a hard FAIL.
+# Every real surface shipped `pending` when this fold was written (see
+# 18-06-PLAN's Measured ground truth table), so retirement-check --all
+# contributed ONLY [REPORT] lines for those seven surfaces plus the
+# self-test registry row's own [PASS] lines — the tally stayed unchanged
+# by this fold until 18-20 flipped the first surface's registry row to
+# `retired` in the same commit as its deletion, which is what makes this
+# fold's [PASS]/[FAIL] lines mean something for the first time. Guarded-skip
+# mirrors the folds above: an unstowed hypr package degrades to SKIP, never
+# a hard FAIL.
 #
 # NOTE for future editors: never spell out the checker's own self-test
 # surface token literally in this file's prose — theme-doctor is itself a

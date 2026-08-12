@@ -34,7 +34,6 @@ PACKAGES=(
     vscodium
     walker
     wallpapers
-    waybar
     wleave
     yazi
     zshell
@@ -286,33 +285,25 @@ chmod +x "$HOME/.config/hypr/scripts/"*.sh 2>/dev/null || true
 # falls back to catppuccin automatically when no state exists yet (D-10),
 # so no pre-seed is needed here.
 mkdir -p "$HOME/.cache"
-# WR-05: seed only when absent — stow.sh is re-runnable, and an
-# unconditional write clobbers the user's currently selected layout.
-[[ -f "$HOME/.cache/current-waybar-layout" ]] || echo "full" > "$HOME/.cache/current-waybar-layout"
-
-# D-27/D-28: seed-only-when-absent (same idiom as above) — guarantees the
-# gaming-mode state file exists on a fresh install so gaming-mode-toggle.sh
-# never has to handle a missing-file case on first read. This is NOT the
-# D-28 session reset (that's the unconditional autostart.conf exec-once
-# hook) — re-running stow.sh mid-session must never clobber an active
-# toggle's state.
+# D-27/D-28: seed-only-when-absent — guarantees the gaming-mode state
+# file exists on a fresh install so gaming-mode-toggle.sh never has to
+# handle a missing-file case on first read. This is NOT the D-28 session
+# reset (that's the unconditional autostart.conf exec-once hook) —
+# re-running stow.sh mid-session must never clobber an active toggle's
+# state.
 [[ -f "$HOME/.cache/gaming-mode" ]] || echo "off" > "$HOME/.cache/gaming-mode"
 
-# BAR-01/D-03/D-06: seed waybar's exclusive CSS override file empty, same
-# seed-only-when-absent idiom as above — every
-# style-{full,athena,floating,vertical}.css @imports this file LAST, and an
-# unresolvable @import makes GTK3 discard the WHOLE stylesheet. As of
-# Phase 18 Plan 15/QBAR-07 this file has NO writer at all — the owner
-# (renamed bar-visibility.sh) actuates the QML bar over Quickshell IPC
-# instead and no longer touches this path — so THIS SEED IS THE FILE'S
-# ONLY REMAINING WRITER. It stays seed-only-when-absent rather than
-# unconditional purely for re-run safety (a stow.sh re-run must never
-# clobber whatever is on disk). Do NOT remove this seed before RETIRE-02
-# (18-20) — waybar's four stylesheets still resolve their @import against
-# this exact path until that plan deletes waybar, this file, its
-# contract.json entry and this seed together.
+# BAR-01/D-03/D-06: this section seeded the retired bar's exclusive CSS
+# override file empty from Phase 8 onward, since every one of its
+# stylesheets @import'd this file LAST and an unresolvable @import made
+# GTK3 discard the WHOLE stylesheet. By Phase 18 Plan 15/QBAR-07 the file
+# had no writer at all left besides this seed — the owner (renamed
+# bar-visibility.sh) actuates the QML bar over Quickshell IPC instead and
+# never touched this path. RETIRE-02 (18-20) deleted the retired bar, this
+# state file, its contract.json entry and this seed together, which is
+# why only the state-dir creation below survives — the remaining seeds in
+# this section still need it.
 mkdir -p "$HOME/.local/state/theme"
-[[ -f "$HOME/.local/state/theme/waybar-visibility.css" ]] || : > "$HOME/.local/state/theme/waybar-visibility.css"
 
 # D-06/D-07: seed the motion-scale axis to its default, same seed-only-
 # when-absent idiom as above — an absent file already reads as "normal"
@@ -322,8 +313,8 @@ mkdir -p "$HOME/.local/state/theme"
 [[ -f "$HOME/.local/state/theme/motion-scale" ]] || echo "normal" > "$HOME/.local/state/theme/motion-scale"
 
 # D-30/D-31: seed the weather location/units state axis, same seed-only-
-# when-absent idiom as above (state dir already created by the
-# waybar-visibility.css seed further up — no second mkdir -p needed here).
+# when-absent idiom as above (state dir already created further up — no
+# second mkdir -p needed here).
 # Every key is a top-level SCALAR — never a nested object. `JsonAdapter`
 # (Quickshell.Io) binds only top-level JSON keys to declared properties
 # (verified directly against the installed qmltypes, and already
@@ -433,19 +424,19 @@ ln -sf "../../../.local/state/theme/hyprland-tokens.lua" "$HOME/.config/hypr/sta
 # D-01/D-05/13-02/13-05: seed the sass-compiled GTK3 stylesheet(s) by
 # INVOKING the real renderer AND the real compiler — never a
 # hand-authored/pre-compiled stub. Mirrors the motion-file seed block
-# immediately above, same rationale: after swaync's AND waybar's
-# conversion, the files swaync-launch.sh/waybar-launch.sh point at only
-# exist if sass actually ran — today they are stow symlinks present the
-# instant stow.sh runs; after these plans they are generated artifacts
-# that must be rendered. Never committing a pre-compiled default sheet
-# would make it a second source of truth that goes stale the moment a
-# swaync/*.scss or waybar/*.scss edit lands (this repo's most-enforced
-# invariant). 13-05 extends the seed list from swaync's two outputs to
-# all seven compiled sheets (the sass partial + swaync's one sheet + all
-# six waybar sheets) — same seed mechanism, same all-or-nothing check
-# (all seven must already exist or the whole seed re-runs), because a bar
-# that starts with five sheets present and one missing is exactly the
-# "unstyled bar with no error to search for" D-05 forbids.
+# immediately above, same rationale: after swaync's conversion, the file
+# swaync-launch.sh points at only exists if sass actually ran — today it
+# is a stow symlink present the instant stow.sh runs; after that plan it
+# is a generated artifact that must be rendered. Never committing a
+# pre-compiled default sheet would make it a second source of truth that
+# goes stale the moment a swaync/*.scss edit lands (this repo's
+# most-enforced invariant). 13-05 briefly extended this seed list to seven
+# compiled sheets (the sass partial + swaync's one sheet + six sheets
+# belonging to a bar retired by RETIRE-02/18-20, same commit that dropped
+# this list back to the two GTK3_SCSS_TARGETS rows lib/motion.sh still
+# compiles) — same all-or-nothing check, because a surface that starts
+# with some sheets present and one missing is exactly the "unstyled
+# surface with no error to search for" D-05 forbids.
 # Deliberately NOT given line 135's `|| true` tolerance (D-05 explicit):
 # a silently unstyled desktop with no error to search for is worse than a
 # failed install, so a failure here prints a loud, specific message and
@@ -453,12 +444,6 @@ ln -sf "../../../.local/state/theme/hyprland-tokens.lua" "$HOME/.config/hypr/sta
 GTK3_SASS_SEED_FILES=(
     _motion.scss
     swaync-style.css
-    waybar-theme.css
-    waybar-modules.css
-    waybar-style-full.css
-    waybar-style-athena.css
-    waybar-style-floating.css
-    waybar-style-vertical.css
 )
 GTK3_SASS_SEED_MISSING=0
 for _sf in "${GTK3_SASS_SEED_FILES[@]}"; do
@@ -476,18 +461,16 @@ if [[ "$GTK3_SASS_SEED_MISSING" == "1" ]]; then
             trap 'rm -rf "$SEED_TMP"' EXIT
             if theme_engine_render_motion_files "$SEED_TMP" && theme_engine_compile_gtk3_stylesheets "$SEED_TMP"; then
                 mkdir -p "$STATE_DIR"
-                for mf in _motion.scss swaync-style.css waybar-theme.css waybar-modules.css \
-                          waybar-style-full.css waybar-style-athena.css \
-                          waybar-style-floating.css waybar-style-vertical.css; do
+                for mf in _motion.scss swaync-style.css; do
                     [[ -f "$SEED_TMP$STATE_DIR/$mf" ]] && cp "$SEED_TMP$STATE_DIR/$mf" "$STATE_DIR/$mf"
                 done
             else
-                echo "  ⚠ GTK3 sass-compile seed failed — swaync/waybar will start UNSTYLED (or fail to start, depending on the failure) until theme-apply runs successfully first" >&2
+                echo "  ⚠ GTK3 sass-compile seed failed — swaync will start UNSTYLED (or fail to start, depending on the failure) until theme-apply runs successfully first" >&2
                 exit 1
             fi
         ) || echo "  ⚠ GTK3 sass-compile seed did not complete — see error above; run theme-apply manually to resolve" >&2
     else
-        echo "  ⚠ $MOTION_LIB not found — skipping GTK3 sass-compile seed; swaync/waybar will start unstyled without these files" >&2
+        echo "  ⚠ $MOTION_LIB not found — skipping GTK3 sass-compile seed; swaync will start unstyled without these files" >&2
     fi
 fi
 
@@ -562,5 +545,5 @@ echo "Next steps:"
 echo "  1. Add wallpapers to ~/Pictures/Wallpapers/"
 echo "  2. Log into Hyprland"
 echo "  3. Use Super+Shift+T to switch themes"
-echo "  4. Use Super+Shift+W to switch waybar layouts"
+echo "  4. Use Super+B to switch bar orientation"
 echo "  5. Use Super+Shift+B to pick wallpapers"

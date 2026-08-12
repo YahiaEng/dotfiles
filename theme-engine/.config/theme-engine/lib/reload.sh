@@ -16,15 +16,11 @@
 # VISIBILITY state (show/hide, driven by idle/fullscreen/gaming/keybind
 # intents, actuated over Quickshell IPC), a second, disjoint, equally
 # idempotent concern. Two owners, two non-overlapping jobs. (This was
-# already true before this comment: gaming-mode-toggle.sh has been
-# sending waybar/bar visibility intents since Phase 7 — the alternative
-# reading, that no other file may ever touch waybar, was never accurate.)
-# This file's own `pkill -SIGUSR2 waybar` below — which STILL targets
-# waybar directly, since waybar's own visibility control is deliberately
-# left un-migrated for the four waves it still exists (see 18-15's
-# "waybar Coexistence" section) — is immediately followed by a
-# best-effort call into the bar owner's `reassert` verb so the two owners
-# can never desync (see theme_engine_reload's comment at that call site).
+# already true before this comment: gaming-mode-toggle.sh has been sending
+# bar visibility intents since Phase 7.) RETIRE-02 (18-20) removed this
+# file's own signal targeting the now-retired bar directly — the QML bar
+# is the sole surviving bar, and its visibility is reasserted through the
+# owner's `reassert` verb below rather than a compositor-wide signal.
 
 STATE_DIR="$HOME/.local/state/theme"
 
@@ -33,7 +29,7 @@ theme_engine_reload() {
     # ── Headless guard (Quick 260709-buf, T-buf-01) ─────────────────
     # Render+commit already happened before this function is ever called
     # (theme-apply's own ordering); the entire fan-out below assumes a
-    # live Wayland+D-Bus session (hyprctl, waybar/kitty signals, swaync,
+    # live Wayland+D-Bus session (hyprctl, kitty signals, swaync,
     # GTK gsettings, walker's D-Bus bus-name dance, and even the
     # file-only vscodium merge are all skipped here). With no session,
     # there is nothing to reload — the committed state is picked up at
@@ -71,22 +67,16 @@ theme_engine_reload() {
     # functional change required here — this line stays exactly as it
     # already was for hyprlang.
     hyprctl reload >/dev/null 2>&1 || true
-    pkill -SIGUSR2 waybar 2>/dev/null || true
-    # BAR-01/D-03: on-sigusr2 is configured as `reload`, which (per
-    # waybar(5)) also resets waybar to its config-time visibility. That
-    # line stays untouched — waybar's own visibility control is
-    # deliberately left un-migrated for the four waves it still exists
-    # (18-15's "waybar Coexistence" section), so this signal resetting it
-    # to visible on every theme switch is exactly the intended behaviour.
-    # `reassert` below now targets bar-visibility.sh (renamed, Phase 18
-    # Plan 15/QBAR-07) — it recomputes from the owner's existing intent
-    # files and re-actuates the QML bar over IPC if needed, so a shell
-    # restart or any other externally-caused reset can never desync the
-    # owner's .actuated record from what the QML bar is actually
-    # rendering. Best-effort and scoped inside this function's own
-    # headless guard above, so it never runs in a session-less context
-    # (container/VM gate, fresh install) where there is no bar to
-    # actuate anyway.
+    # BAR-01/D-03: the retired bar's `pkill -SIGUSR2` reload-and-reset
+    # signal lived here until RETIRE-02 (18-20) removed it along with the
+    # surface it targeted. `reassert` below targets bar-visibility.sh
+    # (renamed, Phase 18 Plan 15/QBAR-07) — it recomputes from the owner's
+    # existing intent files and re-actuates the QML bar over IPC if needed,
+    # so a shell restart or any other externally-caused reset can never
+    # desync the owner's .actuated record from what the QML bar is actually
+    # rendering. Best-effort and scoped inside this function's own headless
+    # guard above, so it never runs in a session-less context (container/VM
+    # gate, fresh install) where there is no bar to actuate anyway.
     "$HOME"/.config/hypr/scripts/bar-visibility.sh reassert 2>/dev/null || true
     pkill -SIGUSR1 kitty 2>/dev/null || true
     # swaync belt-and-suspenders (Quick 260709-buf, T-buf-01): only fire

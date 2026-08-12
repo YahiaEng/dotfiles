@@ -58,19 +58,18 @@ hl.on("hyprland.start", function()
     -- ── Wallpaper daemon ─────────────────────────────────
     hl.exec_cmd("uwsm app -- awww-daemon")
 
-    -- ── Status bar ───────────────────────────────────────
-    hl.exec_cmd("uwsm app -- ~/.config/hypr/scripts/waybar-launch.sh")
-
-    -- Waybar fullscreen watcher (formerly BAR-01/D-01) RETIRED here
-    -- (D-18-28, Phase 18 Plan 15/QBAR-07): the standalone socket2 listener
-    -- is deleted outright, not repointed — the fullscreen intent is now
-    -- reported by the QML shell itself, off the `fullscreenBlocking`
-    -- value it already derives for DASH-08, via an onFullscreenBlockingChanged
-    -- handler in shell.qml. One long-running process is removed from the
-    -- session as a direct consequence. This is a deliberate, plan-
-    -- authorised entry removal — the narrower exception D-18-28 carves
-    -- out of this file's own "no entry added, removed or reordered"
-    -- prohibition above.
+    -- The retired bar's fullscreen watcher (formerly BAR-01/D-01) was
+    -- RETIRED here (D-18-28, Phase 18 Plan 15/QBAR-07): the standalone
+    -- socket2 listener was deleted outright, not repointed — the
+    -- fullscreen intent is now reported by the QML shell itself, off the
+    -- `fullscreenBlocking` value it already derives for DASH-08, via an
+    -- onFullscreenBlockingChanged handler in shell.qml. One long-running
+    -- process was removed from the session as a direct consequence, and
+    -- RETIRE-02 (18-20) removed the launcher entry itself the same way —
+    -- both are deliberate, plan-authorised entry removals, the narrower
+    -- exception D-18-28 and this plan carve out of this file's own "no
+    -- entry added, removed or reordered" prohibition above. The QML bar's
+    -- own launch entry is the `quickshell.service` start below.
 
     -- ── Quickshell shell root (D-01/D-02, QS-05; 18-07 QBAR-10) ───
     -- No longer headless: 18-01 mounted a permanent PanelWindow bar with
@@ -141,9 +140,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("uwsm app -- ~/.config/hypr/scripts/swaync-launch.sh")
 
     -- ── AGS media applet daemon (MEDIA-01/MEDIA-04, 10-06) ──
-    -- The sole media-widget daemon this repo autostarts. The waybar
-    -- media segment toggles this instance ("media") via
-    -- `ags request -i media toggle-media`.
+    -- The sole media-widget daemon this repo autostarts. This instance
+    -- ("media") is toggled via `ags request -i media toggle-media`.
     hl.exec_cmd("uwsm app -- ags run --directory ~/.config/ags")
 
     -- ── Application launcher (elephant backend + walker) ─

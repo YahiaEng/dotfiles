@@ -85,7 +85,7 @@ DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 #    real repo, so it emits [PASS] on every theme-doctor run — the blocking
 #    tier is continuously exercised and demonstrably green, not dormant
 #    until 18-20.
-REGISTRY_RAW='waybar|pending|waybar/:hypr/.config/hypr/scripts/waybar-*|RETIRE-02
+REGISTRY_RAW='waybar|retired|waybar/:hypr/.config/hypr/scripts/waybar-*|RETIRE-02
 swaync|pending|swaync/:hypr/.config/hypr/scripts/swaync-*|RETIRE-03
 swayosd|pending|swayosd/|RETIRE-04
 wleave|pending|wleave/:hypr/.config/hypr/scripts/wleave.sh|RETIRE-05

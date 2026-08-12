@@ -67,9 +67,9 @@ theme_engine_commit() {
     #
     # D-19/UTIL-05 (06-08): font-choice is a fourth engine-owned root-level
     # state file, same bug class again — holds the theme-orthogonal
-    # font-switcher pick. kitty-font.conf/waybar-font.css ARE part of the
-    # rendered tree (lib/font.sh writes them every run) and are therefore
-    # NOT excluded — only the root-level state file itself is.
+    # font-switcher pick. kitty-font.conf IS part of the rendered tree
+    # (lib/font.sh writes it every run) and is therefore NOT excluded —
+    # only the root-level state file itself is.
     #
     # WR-06 (06-18, sixth occurrence of this bug class): walker-relaunch.log
     # is a fifth engine-owned root-level state file, written by reload.sh's
@@ -81,23 +81,24 @@ theme_engine_commit() {
     # pointing the user at a log a later switch already wiped.
     #
     # 08-12 (seventh occurrence of this bug class, found live while
-    # verifying this plan's own checkpoint screenshots): waybar-visibility.css
-    # is a sixth engine-owned root-level state file — historically written
-    # by the visibility owner in response to idle/fullscreen/gaming events
-    # (and seeded empty once by stow.sh) — never part of the rendered
-    # tree. As of Phase 18 Plan 15/QBAR-07 the owner (renamed
-    # bar-visibility.sh) no longer writes this file at all — it actuates
-    # the QML bar over Quickshell IPC instead — so stow.sh's seed is now
-    # this file's ONLY writer, and it stays a permanent empty stub. It is
-    # still imported LAST by every style-*.css (08-11/08-12 design_system)
-    # and this exclusion still matters for exactly the reason it always
-    # did: every theme-apply deleted it, the next waybar reload hit an
-    # unresolvable @import, GTK3 discarded the ENTIRE stylesheet, and waybar
-    # exited outright (reproduced live: "Hyprland IPC stopping..." in
-    # waybar's own log immediately after the failed import) — the exact
-    # WLOG-01 failure class this whole gap-closure plan exists to prevent.
-    # Retained until RETIRE-02 (18-20) deletes waybar, this file, its
-    # contract entry and the stow.sh seed together.
+    # verifying this plan's own checkpoint screenshots): the retired bar's
+    # visibility-state CSS was a sixth engine-owned root-level state file —
+    # historically written by the visibility owner in response to
+    # idle/fullscreen/gaming events (and seeded empty once by stow.sh) —
+    # never part of the rendered tree. By Phase 18 Plan 15/QBAR-07 the owner
+    # (renamed bar-visibility.sh) no longer wrote this file at all — it
+    # actuated the QML bar over Quickshell IPC instead — so stow.sh's seed
+    # was its ONLY writer, and it stayed a permanent empty stub. It was
+    # still imported LAST by every one of the retired bar's stylesheets and
+    # this exclusion mattered for exactly the reason it always had: every
+    # theme-apply deleted it, the next reload of that bar hit an
+    # unresolvable @import, GTK3 discarded the ENTIRE stylesheet, and the
+    # bar exited outright (reproduced live: "Hyprland IPC stopping..." in
+    # its own log immediately after the failed import) — the exact WLOG-01
+    # failure class this whole gap-closure plan existed to prevent. RETIRE-02
+    # (18-20) deleted the surface, this file, its contract entry and the
+    # stow.sh seed together, which is why this exclusion no longer appears
+    # in the data-driven array below.
     #
     # TOKEN-03/D-29 (12-03, eighth occurrence — where the MECHANISM changes,
     # not just the count): motion-scale is a seventh engine-owned root-level

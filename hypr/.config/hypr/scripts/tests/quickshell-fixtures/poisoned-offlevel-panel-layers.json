@@ -19,16 +19,6 @@
 ],
         "2": [
                 {
-                    "address": "0x55ddac02b4f0",
-                    "x": 10,
-                    "y": 6,
-                    "w": 2540,
-                    "h": 40,
-                    "alpha": 1,
-                    "namespace": "waybar",
-                    "pid": 1342296
-                },
-                {
                     "address": "0x55ddad212cf0",
                     "x": 855,
                     "y": 56,

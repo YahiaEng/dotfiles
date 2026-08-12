@@ -235,24 +235,32 @@ check_theme_doctor() {
 # get_expected_sentinel_normalized <theme-name>
 # For a static preset: the palette JSON's primary color (source of truth).
 # For materialyou/materialyou-light: the FRESHLY-RENDERED primary, read
-# from waybar.css — not gtk-4.0-colors.css as the plan text names, since
-# gtk-colors.css (the shared template rendering BOTH gtk-3.0-colors.css
-# and gtk-4.0-colors.css) defines only accent_color/accent_bg_color
-# (mapped from colors.primary), never a literal "@define-color primary"
-# name (verified empirically against matugen/.config/matugen/templates/
-# gtk-colors.css and the live rendered gtk-4.0-colors.css this session —
-# [Rule 1] deviation, see SUMMARY). waybar.css DOES define "@define-color
-# primary" verbatim and is already committed to the live state dir by the
-# time theme-apply returns (D-14 atomic commit), so reading it here
-# reflects the just-applied theme. materialyou-light shares this branch
-# (Task 3, [Rule 1] deviation) — without it, the newly-added
-# materialyou-light sequence entries would look up a nonexistent
-# palettes/materialyou-light.json and abort the stress test on every run.
+# from palette.json's own `.primary` key — not gtk-4.0-colors.css as the
+# plan text names, since gtk-colors.css (the shared template rendering BOTH
+# gtk-3.0-colors.css and gtk-4.0-colors.css) defines only
+# accent_color/accent_bg_color (mapped from colors.primary), never a
+# literal "@define-color primary" name (verified empirically against
+# matugen/.config/matugen/templates/gtk-colors.css and the live rendered
+# gtk-4.0-colors.css this session — [Rule 1] deviation, see SUMMARY).
+# Until RETIRE-02 (18-20), this branch read the retired bar's compiled
+# stylesheet instead, which DID define "@define-color primary" verbatim —
+# but every other gtk-css sheet defining that same token (swaync, swayosd,
+# wleave) is itself retired elsewhere in this milestone, so repointing at
+# any of them would only relocate this breakage into a later phase.
+# palette.json is a contract entry no remaining RETIRE requirement removes,
+# is already committed to the live state dir by the time theme-apply
+# returns (D-14 atomic commit), and both sources were verified to yield an
+# identical value before the repoint — so reading it here still reflects
+# the just-applied theme without depending on a doomed gtk-css sheet.
+# materialyou-light shares this branch (Task 3, [Rule 1] deviation) —
+# without it, the newly-added materialyou-light sequence entries would
+# look up a nonexistent palettes/materialyou-light.json and abort the
+# stress test on every run.
 get_expected_sentinel_normalized() {
     local name="$1"
     local raw=""
     if [[ "$name" == "materialyou" || "$name" == "materialyou-light" ]]; then
-        raw="$(sed -nE 's/@define-color[[:space:]]+primary[[:space:]]+(.*);.*/\1/p' "$STATE_DIR/waybar.css" 2>/dev/null | head -1)"
+        raw="$(jq -r '.primary' "$STATE_DIR/palette.json" 2>/dev/null)"
     else
         raw="$(jq -r '.colors.primary.default.color' "$PALETTES_DIR/$name.json" 2>/dev/null)"
     fi
@@ -283,21 +291,22 @@ sentinel_present_in_file() {
 
 # Representative set of state-dir files for the per-switch sentinel check
 # (D-36) — spans both format families that actually carry a literal
-# "primary"-named/keyed value (gtk-css: waybar.css/swaync.css/wleave.css;
-# lua-table: hyprland-tokens.lua — REQUIRED, Pitfall 1's exact target,
-# swapped 13.1-09 for the retiring hyprland.conf hypr-vars fragment now
-# that contract.json's hyprland.conf entry is gone in the collapsed
-# contract) plus two files where the primary VALUE appears under a
-# different key name (gtk-4.0-colors.css's accent_color; kitty.conf's
+# "primary"-named/keyed value (gtk-css: swaync.css/wleave.css; lua-table:
+# hyprland-tokens.lua — REQUIRED, Pitfall 1's exact target, swapped 13.1-09
+# for the retiring hyprland.conf hypr-vars fragment now that
+# contract.json's hyprland.conf entry is gone in the collapsed contract)
+# plus two files where the primary VALUE appears under a different key
+# name (gtk-4.0-colors.css's accent_color; kitty.conf's
 # color4/color12/cursor) — confirming the sentinel is checked by value,
 # not by name, across formats. `sentinel_present_in_file` and
 # `contract_extract_values` needed no code change for this swap: both
 # already dispatch purely off `contract_format`, and 13.1-05 already
-# added the `lua-table` extractor arm this file's own primary-color
-# lookup at line 257 (`jq -r '.colors.primary...'`, a DIFFERENT palette
-# source used only for the matugen-vs-rendered comparison, not this
-# array) never touches.
-REPRESENTATIVE_FILES=(hyprland-tokens.lua waybar.css swaync.css wleave.css gtk-4.0-colors.css kitty.conf)
+# added the `lua-table` extractor arm this file's own primary-color lookup
+# above (a DIFFERENT palette source used only for the matugen-vs-rendered
+# comparison, not this array) never touches. RETIRE-02 (18-20) dropped the
+# retired bar's compiled sheet from this set along with the surface itself
+# — the remaining five entries are unaffected.
+REPRESENTATIVE_FILES=(hyprland-tokens.lua swaync.css wleave.css gtk-4.0-colors.css kitty.conf)
 
 # ── D-17: live re-colour assertion (12-06, TOKEN-02) ────────────────────
 # Proves criterion 1 — a theme switch re-colours a LIVE Quickshell surface
