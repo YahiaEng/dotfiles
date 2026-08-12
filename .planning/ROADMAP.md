@@ -67,7 +67,7 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 
 ### 🔨 v4.0 Shell Migration & Debt Paydown (Phases 18-22) — ACTIVE
 
-- [ ] **Phase 18: QML Bar & Retirement Machinery** - The always-on bar replaces waybar, and every gate and script the later retirements depend on is built and proven once
+- [x] **Phase 18: QML Bar & Retirement Machinery** - The always-on bar replaces waybar, and every gate and script the later retirements depend on is built and proven once (completed 2026-08-13)
 - [ ] **Phase 19: Notification Server & Centre** - The shell itself owns `org.freedesktop.Notifications`; popups, slide-out centre and swaync's deletion land together with no rollback
 - [ ] **Phase 20: Indicators & Power Menu** - QML volume/brightness/caps-lock indicators and the six-action power menu; SwayOSD, wleave and the leftover wlogout/eww packages leave the host
 - [ ] **Phase 21: Media Fold-In & Contract Close** - The AGS card folds into the dashboard's Media tab behind a cava go/no-go, ending the MPRIS duplication and closing `contract.json` at its post-migration size
@@ -346,7 +346,7 @@ Plans:
 | 15. Audio + Connectivity Panels | v3.0 | 14/14 | Complete | 2026-08-02 |
 | 16. Workspace Overview | v3.0 | 8/8 | Complete | 2026-08-08 |
 | 17. Ambient Extras | v3.0 | 6/6 | Complete | 2026-08-10 |
-| 18. QML Bar & Retirement Machinery | v4.0 | 20/20 | In Progress|  |
+| 18. QML Bar & Retirement Machinery | v4.0 | 20/20 | Complete    | 2026-08-13 |
 | 19. Notification Server & Centre | v4.0 | 0/? | Not started | - |
 | 20. Indicators & Power Menu | v4.0 | 0/? | Not started | - |
 | 21. Media Fold-In & Contract Close | v4.0 | 0/? | Not started | - |

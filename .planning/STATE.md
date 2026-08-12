@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
-current_phase: 18
-current_phase_name: qml-bar-retirement-machinery
-status: verifying
+current_phase: 18.1
+current_phase_name: QML Bar Athena Restoration
+status: planning
 stopped_at: Completed 18-20-PLAN.md (RETIRE-02 waybar retirement)
-last_updated: "2026-08-12T20:32:46.657Z"
-last_activity: 2026-08-12
-last_activity_desc: "18-19 (GATE-02) closed on Iteration 3: 14 PASS, B.3 NOT-DEMONSTRABLE, 0 FAIL — RETIRE-02 AUTHORISED against 2644ae0; 18-20 unblocked"
+last_updated: "2026-08-12T21:47:13.475Z"
+last_activity: 2026-08-13
+last_activity_desc: Phase 18 complete, transitioned to Phase 18.1
 progress:
   total_phases: 6
   completed_phases: 2
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 20 of 20 (18-19/GATE-02 complete; 18-20/RETIRE-02 next)
-Status: Phase complete — ready for verification
+Phase: 18.1 — QML Bar Athena Restoration
+Plan: Not started
+Status: Ready to plan
 Progress: [██████████] 100%
-Last activity: 2026-08-12 — 18-19 (GATE-02) closed, RETIRE-02 authorised
+Last activity: 2026-08-13 — Phase 18 complete, transitioned to Phase 18.1
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 120
+- Total plans completed: 140
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -62,6 +62,7 @@ Last activity: 2026-08-12 — 18-19 (GATE-02) closed, RETIRE-02 authorised
 | 15 | 14 | - | - |
 | 17 | 6 | - | - |
 | 18.1 | 7 | - | - |
+| 18 | 20 | - | - |
 
 **Recent Trend:**
 
