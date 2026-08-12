@@ -93,6 +93,23 @@ PACMAN_PKGS=(
     psmisc
     rsync
     stow
+    # Phase 18/RETIRE-02 review WR-02: explicit, not transitive. The
+    # theme-engine's lib/wallpaper.sh invokes `ffmpeg` directly to extract
+    # the still frame a live wallpaper hands to hyprlock, and
+    # scripts/gif-export.sh runs a two-pass palettegen/paletteuse
+    # conversion through it. `ffmpegthumbnailer` is listed further down for
+    # Thunar/yazi thumbnails and does NOT provide /usr/bin/ffmpeg — the two
+    # are different packages solving different problems. ffmpeg was already
+    # present transitively on the development host, which is exactly the
+    # host-only-state failure class ROADMAP standing constraint 3 forbids.
+    ffmpeg
+    # Phase 18/RETIRE-02 review WR-01: provides `checkupdates`, which the
+    # QML bar's SystemCapsule.qml invokes directly on an always-on
+    # 30-minute poll (updatesCheckCommand). Without it the bar's updates
+    # readout is permanently dead on a fresh install with no error a user
+    # would connect to a missing package. Same host-only-state class as
+    # the `lua` and `adw-gtk-theme` entries above.
+    pacman-contrib
     # Phase 13.1/D-14: explicit dependency, not a transitive one — the
     # theme-engine's lib/contract.sh lua-table extractor invokes `lua`
     # directly (dofile()+walk) to parity-check hyprland-tokens.lua. `lua`
