@@ -191,3 +191,33 @@ RETIRE-02 BLOCKED — gate not yet run
 gate invalidates the authorisation by construction rather than by anyone remembering to re-run it.
 This line is rewritten only by task 3 of `18-19-PLAN.md`, after all fifteen rows above carry a
 verdict from the closed vocabulary.
+
+---
+
+## Iteration 1 — operator findings, 2026-08-12 04:15
+
+Build under test: HEAD `8c5d280`, quickshell pid `528309`, reserved `[[0,48,0,0]]`, no waybar.
+
+The operator began the sitting and reported four defects before completing all fifteen rows.
+Per this record's own contract the gate **judges and does not fix** — each finding below is
+recorded with its owning file and its remedy, the fix lands outside this record, and the next
+iteration re-observes **all fifteen rows**, not only these four. The remaining rows are
+**not** recorded as passing: they were not reached, which is different from passing, and they
+carry no verdict yet.
+
+| # | Operator's words | Owning file | Root cause | Status |
+|---|---|---|---|---|
+| F1 | "The time pill looks like it is positioned higher up than the rest of the pills" | `BarCapsule.qml` (and/or `ClockActionsCapsule.qml`) | LEAD, NOT PROVEN: `contentGrid` is `anchors.centerIn: parent`, but `Grid` defaults to `AlignTop` for its items and no `verticalItemAlignment` is set anywhere in the file. A child shorter than the tallest in the row would ride high. **To be measured live before any edit** — this file family has disproven four confident code-reading hypotheses (three in 18.1, one on 2026-08-12). | Open |
+| F2 | "The popup text explaining what a glyph is, appears on top of the glyph obstructing the view" | six sites: `AudioPopout.qml:104`, `IdleInhibitorCapsule.qml:97`, `MediaConnectivityCapsule.qml:552`, `ClockActionsCapsule.qml:367`, `SectionPopout.qml:408`, `LauncherCapsule.qml:246` | CONFIRMED by source: not one tooltip sets a position. Every site sets only `ToolTip.visible`, `ToolTip.text` and `ToolTip.delay`, so Qt's default placement applies — and on a 42px top-edge bar there is no room above, so it lands on the glyph. This is one systemic defect, not six separate ones. | Open |
+| F3 | "I am not sure if the 'light pulp' glyph does anything when clicked" | `IdleInhibitorCapsule.qml` | The click IS wired and functional — `onClicked` toggles `idleInhibited`, which drives a real `IdleInhibitor { enabled: idleInhibited }`. The defect is **feedback, not function**: the only signals are a colour tint and a `FILL` variable-axis change gated on `fillAxisAvailable`. If that axis is unavailable the entire feedback is a small glyph changing colour. Needs a live check of `fillAxisAvailable`. | Open |
+| F4 | "The media popup ... buttons need to be centered and positioned correctly" | `MediaPopout.qml:168` | CONFIRMED by source: `transportRow` is the only child of the popout body carrying neither `width: parent.width` nor a centering anchor. `mediaRow` (:66), the progress bar (:145) and `multiPlayerText` (:263) all set `width: parent.width`. So the transport row alone lays out at x=0, left-aligned. | Open |
+
+**Consequence for the gate.** `## Deletion Authorisation` stays `RETIRE-02 BLOCKED`. Four open
+defects plus `B.4-DRAWER` unobserved plus eleven rows unreached is not a pass, and 18-20 must
+not run.
+
+**Note on F2 and F4 as a pair.** Both are absences rather than errors — a property nobody set,
+not a value set wrongly. Neither would ever surface in a static check, and both were invisible
+to every automated gate in this phase. That is the third time in this repo a purely visual
+defect has survived a green automated pass, which is the precedent D-18-31 cites as the reason
+this human gate exists at all.
