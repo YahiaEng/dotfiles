@@ -138,6 +138,17 @@ BarCapsule {
 
         readonly property bool vertical: root.vertical
 
+        // KNOWN RESIDUAL (2026-08-12), left at the simple binding on purpose.
+        // Grid sizes columns from children's implicitWidth; the value Text's
+        // implicitWidth is its natural extent ("0%" ~12) while its BOUND width is
+        // the reserve for maxValueText ("100%" = 33). So this box reports 16 (the
+        // glyph), BarCapsule's contentGrid centres a 16-wide slot, and brightness
+        // and battery draw 33px of text out to right=47 in the 44px column.
+        // Deriving this from entryGrid.childrenRect.width was tried and MEASURED:
+        // it improved the overhang to right=45 but Qt reported "Binding loop
+        // detected for property implicitWidth", so it was reverted — a loop is
+        // worse than 3px. The real fix is for the value Text to reserve its width
+        // through a property the Grid can see without a cycle.
         implicitWidth: entryGrid.implicitWidth
         implicitHeight: entryGrid.implicitHeight
 
@@ -166,6 +177,16 @@ BarCapsule {
             rows: readoutItem.vertical ? -1 : 1
             columns: readoutItem.vertical ? 1 : -1
             spacing: Design.spacingXs
+            // Same omission BarCapsule's own contentGrid carried, one level
+            // down: without item alignment, Grid's AlignLeft/AlignTop defaults
+            // left the stacked glyph and value rows sharing a leading edge.
+            // MEASURED: brightness and battery reserve 33px for "100%" inside a
+            // box whose implicitWidth is the 16px glyph, so both rows started at
+            // x=14 and the value ran to right=47 — 3px past the 44px column.
+            // Centring makes that overflow SYMMETRIC instead of one-sided
+            // (x=5.5, right=38.5), which fits, and it centres the glyph row too.
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
 
             Text {
                 font.family: readoutItem.glyphFontFamily

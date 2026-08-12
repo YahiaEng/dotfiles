@@ -668,6 +668,14 @@ BarCapsule {
                 rows: workspaceCapsule.vertical ? -1 : 1
                 columns: workspaceCapsule.vertical ? 1 : -1
                 spacing: Design.spacingXs
+                // The operator's "the workspace module is not centered": the
+                // module itself measured centred (slots x=11.0 w=22.0 -> centre
+                // 22.0, exactly the column centre), but the NUMERAL inside each
+                // slot did not (x=11.0 w=16.0 -> centre 19.0, 3px left), because
+                // this Grid inherited AlignLeft/AlignTop like BarCapsule's
+                // contentGrid did. Same one-property fix, same reason.
+                horizontalItemAlignment: Grid.AlignHCenter
+                verticalItemAlignment: Grid.AlignVCenter
 
                 Text {
                     width: Math.max(slotIdentityGlyphMetrics.width, slotIdentityNumeralMetrics.width)
