@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
-current_phase: 18.1
-current_phase_name: QML Bar Athena Restoration
+current_phase: 19
+current_phase_name: Notification Server & Centre
 status: planning
 stopped_at: Completed 18-20-PLAN.md (RETIRE-02 waybar retirement)
-last_updated: "2026-08-12T21:47:13.475Z"
+last_updated: "2026-08-12T22:40:35.095Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 complete, transitioned to Phase 18.1
 progress:
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 18.1 — QML Bar Athena Restoration
+Phase: 19 — Notification Server & Centre
 Plan: Not started
 Status: Ready to plan
 Progress: [██████████] 100%
-Last activity: 2026-08-13 — Phase 18 complete, transitioned to Phase 18.1
+Last activity: 2026-08-13 — Phase 18.1 complete, transitioned to Phase 19
 
 ## Performance Metrics
 
