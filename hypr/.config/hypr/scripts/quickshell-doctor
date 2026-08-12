@@ -717,7 +717,7 @@ _qsd_assert_panel_source() {
     local dir="$1" f bad=0
     while IFS= read -r f; do
         [[ "$(basename -- "$f")" == "PanelDialog.qml" ]] && continue
-        if grep -vE '^\s*//' -- "$f" 2>/dev/null | grep -q 'WlrLayershell\.namespace'; then
+        if _qsd_matches "$(grep -vE '^\s*//' -- "$f" 2>/dev/null)" 'WlrLayershell\.namespace'; then
             bad=$((bad + 1))
         fi
     done < <(find -L "$dir" -maxdepth 1 -type f -name '*.qml' 2>/dev/null)
@@ -1553,6 +1553,40 @@ _qsd_strip_qml_comments() {
     grep -vE '^\s*//' -- "$1" 2>/dev/null
 }
 
+# ── SIGPIPE-safe pattern match (2026-08-12) ──────────────────────────────
+# `producer | grep -q PATTERN` is UNSAFE in this script, which runs under
+# `set -uo pipefail` (see the top). `grep -q` exits the instant it matches;
+# if the producer still has buffered output to write, it takes SIGPIPE and
+# exits 141, and pipefail reports the whole pipeline as FAILED even though
+# the pattern was found. Whether that happens depends on how much output
+# follows the match, i.e. on FILE LENGTH — so a check silently changes
+# verdict as a file grows.
+#
+# MEASURED 2026-08-12 on this very script. bar/SectionPopout.qml at 454
+# lines / 23239 bytes returned rc=0; the same file at 484 lines / 25242
+# bytes returned rc=141, from the identical pipeline, with the namespace it
+# was looking for present and unchanged on one line in both. That surfaced
+# as bar-surface-registry reporting `missing=1` against a registry that was
+# entirely correct.
+#
+# The FAILURE DIRECTION differs by site, and one direction is dangerous:
+#   - the registry closures read 141 as "namespace absent" -> false FAIL,
+#     noisy but safe;
+#   - bar-colour-role-routing and bar-colour-alpha-resolution use the
+#     `if producer | grep -q` shape, so 141 reads as "this file does NOT
+#     touch Colours.*" -> a false PASS, i.e. D-20's gate waving through the
+#     exact violation it exists to catch. Demonstrated with a synthetic
+#     4000-line file whose second line is `Colours.surface`: the short
+#     version was detected, the long one was missed.
+#
+# This helper takes the producer's output as a STRING and matches with a
+# herestring, so there is no upstream process left to signal.
+_qsd_matches() {  # _qsd_matches <text> <grep-args...>
+    local text="$1"
+    shift
+    grep -q "$@" <<<"$text"
+}
+
 # Forward + reservation-permission closure: every registry row's file
 # must exist under the scan root, declare its own namespace value/prefix
 # exactly once, and — for every row NOT permitted to reserve — declare a
@@ -1579,9 +1613,9 @@ _qsd_assert_bar_surface_registry_forward() {
             missing=$((missing + 1))
             continue
         fi
-        _qsd_strip_qml_comments "$path" | grep -qF "$r_ns" || missing=$((missing + 1))
+        _qsd_matches "$(_qsd_strip_qml_comments "$path")" -F "$r_ns" || missing=$((missing + 1))
         if [[ "$r_reserve" == "noreserve" ]]; then
-            _qsd_strip_qml_comments "$path" | grep -qE 'exclusiveZone[[:space:]]*:[[:space:]]*0\b' || unexpected_reservation=$((unexpected_reservation + 1))
+            _qsd_matches "$(_qsd_strip_qml_comments "$path")" -E 'exclusiveZone[[:space:]]*:[[:space:]]*0\b' || unexpected_reservation=$((unexpected_reservation + 1))
         fi
     done
     printf 'rows=%s missing=%s unexpected-reservation=%s' "$rows_total" "$missing" "$unexpected_reservation"
@@ -1597,7 +1631,7 @@ _qsd_assert_bar_surface_registry_forward() {
 _qsd_assert_bar_surface_registry_reverse() {
     local scan_root="$1" f base unregistered=0
     while IFS= read -r f; do
-        _qsd_strip_qml_comments "$f" | grep -qF "WlrLayershell.namespace" || continue
+        _qsd_matches "$(_qsd_strip_qml_comments "$f")" -F "WlrLayershell.namespace" || continue
         base="$(basename -- "$f")"
         local known=0 row r_file r_rest
         for row in "${QSD_BAR_SURFACE_ROWS[@]}"; do
@@ -1794,7 +1828,7 @@ _qsd_assert_bar_colour_roles() {
         done
         [[ "$exempt" -eq 1 ]] && continue
         scanned=$((scanned + 1))
-        if sed -E 's|//.*$||' -- "$f" 2>/dev/null | grep -q -- 'Colours\.'; then
+        if _qsd_matches "$(sed -E 's|//.*$||' -- "$f" 2>/dev/null)" -- 'Colours\.'; then
             bad=$((bad + 1))
             offenders="${offenders}${offenders:+,}${base}"
         fi
@@ -1875,7 +1909,7 @@ _qsd_check_bar_colour_alpha_resolution() {
     local f
     while IFS= read -r f; do
         [[ -n "$f" ]] || continue
-        if sed 's|//.*||' "$f" | grep -qE 'Colours\.[a-zA-Z_][a-zA-Z0-9_]*\.[rgb]\b'; then
+        if _qsd_matches "$(sed 's|//.*||' "$f")" -E 'Colours\.[a-zA-Z_][a-zA-Z0-9_]*\.[rgb]\b'; then
             offenders="${offenders}${offenders:+ }$(basename "$f")"
         fi
     done <<< "$files"
@@ -2005,7 +2039,7 @@ _qsd_check_overview_content() {
 _qsd_assert_single_capture_path() {
     local dir="$1" f matches=0 names=""
     while IFS= read -r f; do
-        if grep -vE '^\s*//' -- "$f" 2>/dev/null | grep -qE 'ScreencopyView[[:space:]]*\{'; then
+        if _qsd_matches "$(grep -vE '^\s*//' -- "$f" 2>/dev/null)" -E 'ScreencopyView[[:space:]]*\{'; then
             matches=$((matches + 1))
             names="${names}$(basename -- "$f") "
         fi
