@@ -20,10 +20,11 @@
 # actually mounted — WINDOWS row 67's own recorded false-positive.
 #
 # THIS REVERSES D-18-28. 18-15 deleted this repo's standalone socket2
-# listener (waybar-fullscreen-watch.sh) outright: "the standalone socket2
-# listener is deleted outright, not repointed — the fullscreen intent is
-# now reported by the QML shell itself". That removal was correct FOR
-# THAT DEFECT, because the shell could report its own fullscreen intent.
+# listener (the retired bar's fullscreen-watch script) outright: "the
+# standalone socket2 listener is deleted outright, not repointed — the
+# fullscreen intent is now reported by the QML shell itself". That
+# removal was correct FOR THAT DEFECT, because the shell could report its
+# own fullscreen intent.
 # Here the situation is structurally different: the shell is precisely
 # the thing that fails — it goes on reporting a healthy bar while no
 # surface exists — so a self-healing mechanism cannot live inside the
@@ -59,8 +60,9 @@
 # (verified live this session). Adding a package would touch install.sh's
 # reproducibility contract for no reason python3 alone doesn't already
 # solve. The inline `python3 - <<'PYEOF'` idiom is theme-doctor's
-# established shape, inherited directly from the retired
-# waybar-fullscreen-watch.sh (git show adce9e6^:...).
+# established shape, inherited directly from the retired fullscreen-watch
+# script this file's header describes above (git show adce9e6^:... names
+# its exact former path; see 18-20-SUMMARY.md's scrubbed-history section).
 
 set -euo pipefail
 

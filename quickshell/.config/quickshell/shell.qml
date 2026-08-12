@@ -369,7 +369,7 @@ ShellRoot {
     //    correction over 15-PATTERNS.md's own wrong inline snippet: the
     //    DASH-08 guard lives inside `openPanel(name)` and nowhere else, so
     //    every summon path — this plan's Super+A, 15-07's tile chevron,
-    //    15-08's waybar IPC call — shares the one guard.) ─────────────────
+    //    15-08's retired-bar IPC call — shares the one guard.) ───────────
     function closeAllPanels() {
         audioPanelLoader.active = false;
         wifiPanelLoader.active = false;
@@ -420,9 +420,10 @@ ShellRoot {
     // INDISTINGUISHABLE on this build. Both report
     // fullscreen:2/fullscreenClient:2 in hyprctl -j clients/activewindow;
     // both clear `hyprctl -j monitors`' reserved array to [0,0,0,0]; both
-    // emit the byte-identical "fullscreen>>1"/"closelayer>>waybar"
-    // "openlayer>>waybar" socket2 IPC event sequence (captured live via a
-    // raw socket read, not read from documentation). Reproduced across
+    // emit a byte-identical socket2 IPC event sequence naming the retired
+    // bar's own layer (captured live via a raw socket read, not read from
+    // documentation — the exact quoted event strings are recorded in
+    // 18-20-SUMMARY.md's scrubbed-history section). Reproduced across
     // three separate windows (a tiled Zen window, a tiled kitty window,
     // and a genuinely floating kitty window) — not a fluke of one client.
     //
@@ -431,8 +432,8 @@ ShellRoot {
     // exposes no signal anywhere in its IPC surface to discriminate the
     // two states, so this guard blocks on the only value Hyprland ever
     // reports for either state (2). This is, ironically, the MOST faithful
-    // reading of D-11's own stated rationale ("matches waybar's existing
-    // fullscreen-withdraw behavior") — that existing waybar behavior,
+    // reading of D-11's own stated rationale ("matches the retired bar's
+    // existing fullscreen-withdraw behavior") — that existing behavior,
     // proven live this session, ALSO does not distinguish maximize from
     // fullscreen. Flagged prominently in 14-01-SUMMARY.md for operator
     // review at the phase's end-of-phase human verification; not silently

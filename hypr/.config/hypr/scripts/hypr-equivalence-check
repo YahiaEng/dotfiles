@@ -3,15 +3,15 @@
 # ║        HYPR-EQUIVALENCE-CHECK (D-08/D-09/D-10/D-16)   ║
 # ║  Rerunnable equivalence gate for the hyprlang-to-Lua   ║
 # ║  config migration (Phase 13.1). Modelled directly on   ║
-# ║  waybar-equivalence-check's shape: a --snapshot mode    ║
-# ║  that captures ground truth once, and a default check  ║
-# ║  mode that re-derives current state and diffs it.      ║
+# ║  an earlier equivalence checker's shape: a --snapshot   ║
+# ║  mode that captures ground truth once, and a default    ║
+# ║  check mode that re-derives current state and diffs it. ║
 # ║  Report-only — never mutates compositor state, never    ║
 # ║  writes under hypr/.config/hypr/, never runs            ║
 # ║  theme-apply.                                           ║
 # ╚══════════════════════════════════════════════════════╝
 #
-# Unlike waybar's config, which resolves statically from files on disk,
+# Unlike a static config file tree, which resolves statically from files on disk,
 # Hyprland's *effective* config is only observable at runtime. This tool's
 # "resolve" step is therefore a live `hyprctl -j` invocation, not a static
 # parse — snapshot mode is meaningfully coupled to *which config format is
@@ -35,7 +35,7 @@
 #       Default check mode. Re-derives binds/animations/options live and
 #       diffs each against the committed baseline (or the directory named
 #       by --baseline). Exits 0 ONLY when the divergence count is exactly
-#       zero. D-10 deviation from the waybar analog: an absent, empty, or
+#       zero. D-10 deviation from the earlier equivalence-checker analog: an absent, empty, or
 #       unreadable baseline is a FAIL, never a SKIP, and never exit 0.
 #
 # This script only ever reads via `hyprctl -j getoption`, `-j binds`,

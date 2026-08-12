@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # quickshell-launch.sh — guarded, logged launcher (D-06)
 #
-# Mirrors waybar-launch.sh's guard-then-exec shape, but stricter: a
-# headless shell root (D-02) that dies leaves zero other visible evidence,
-# so this script guards binary + config existence AND logs startup/exit,
-# where waybar-launch.sh only guards the layout choice.
+# Mirrors the retired bar's own launcher's guard-then-exec shape, but
+# stricter: a headless shell root (D-02) that dies leaves zero other
+# visible evidence, so this script guards binary + config existence AND
+# logs startup/exit, where that retired launcher only guarded the layout
+# choice.
 #
 # No `-e`: this script ends in `exec`; an `-e` abort on a transient
 # failure must never leave the session with nothing running — a missing

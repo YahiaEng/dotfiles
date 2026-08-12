@@ -412,9 +412,9 @@ PanelDialog {
                         from: 0
                         to: 1
                         // Always bound to backend.masterVolume, never a
-                        // local copy (D-22 truth-driven): a change made by
-                        // waybar or a hardware key shows up here without
-                        // any panel interaction.
+                        // local copy (D-22 truth-driven): a change made
+                        // externally or by a hardware key shows up here
+                        // without any panel interaction.
                         value: root.backend ? root.backend.masterVolume : 0
                         // Continuous write on onMoved — the write is a
                         // native property set on a PipeWire node, not a

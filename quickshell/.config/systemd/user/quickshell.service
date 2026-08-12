@@ -1,8 +1,8 @@
 # quickshell.service — this repo's FIRST custom systemd --user unit (18-07,
 # QBAR-10, D-18-40).
 #
-# Every autostart entry in this repo — the wallpaper daemon, waybar, its
-# fullscreen watcher, quickshell (until this plan), swaync, the AGS media
+# Every autostart entry in this repo — the wallpaper daemon, the (now
+# retired) bar, its fullscreen watcher, quickshell (until this plan), swaync, the AGS media
 # applet, elephant, walker, hypridle, swayosd, the polkit agent and both
 # clipboard watchers — launches through a transient `uwsm app` scope in
 # `app-graphical.slice`, with no `Restart=` directive anywhere. There is
@@ -17,13 +17,14 @@
 # deviation to any other autostart entry is explicitly out of scope for
 # this plan.
 #
-# Shape copied from `waybar.service` (`systemctl --user cat waybar.service`,
-# packaged under /usr/lib/systemd/user/, `disabled`): PartOf=/After=
-# graphical-session.target, Restart=on-failure. That file has carried a
-# restart directive all along while the bar it supervises has actually
-# been running from a uwsm scope this whole time — this unit therefore
-# outlives it; 18-20 deletes the waybar package (and waybar.service with
-# it) once the QML bar retires waybar for good.
+# Shape copied from the retired bar's own packaged unit (inspected via
+# `systemctl --user cat`, packaged under /usr/lib/systemd/user/,
+# `disabled`; exact unit name recorded in 18-20-SUMMARY.md's
+# scrubbed-history section): PartOf=/After= graphical-session.target,
+# Restart=on-failure. That file carried a restart directive all along
+# while the bar it supervised had actually been running from a uwsm scope
+# the whole time — this unit therefore outlives it; RETIRE-02 (18-20)
+# deleted that bar's package (and its packaged unit with it).
 #
 # Why ExecStart= is the existing launcher script and not the quickshell
 # binary directly: quickshell-launch.sh (unchanged by this plan's Task 2
@@ -69,8 +70,8 @@
 #   status` — rather than respawning forever; a rarer crash still
 #   recovers indefinitely.
 #
-# Three deliberate divergences from waybar.service's shape, each a
-# considered omission rather than an oversight:
+# Three deliberate divergences from the retired bar's packaged unit
+# shape, each a considered omission rather than an oversight:
 #
 #   1. No [Install] section, and therefore no enable step. Enabling would
 #      write a wants-symlink into the user's own systemd tree that never
@@ -82,8 +83,8 @@
 #      instead, keeping that file the single readable inventory of what a
 #      session launches.
 #
-#   2. No hard `Requisite` directive on the session target. waybar.service carries one.
-#      Measured on this host: graphical-session.target and the
+#   2. No hard `Requisite` directive on the session target. The retired
+#      bar's packaged unit carried one. Measured on this host: graphical-session.target and the
 #      compositor's own autostart handler both timestamp inside the same
 #      one-second tick, so a hard requirement is a coin-flip between a
 #      running bar and a start refused for a session a fraction of a
@@ -93,8 +94,8 @@
 #      is in turn what stops the restart policy from retrying forever
 #      against a compositor that no longer exists.
 #
-#   3. No ExecReload=. waybar.service maps reload onto a signal because
-#      that is waybar's whole style-reload mechanism. Quickshell
+#   3. No ExecReload=. The retired bar's packaged unit mapped reload onto
+#      a signal because that was its whole style-reload mechanism. Quickshell
 #      hot-reloads its QML on file change natively, and the visibility
 #      actuation seam is an IPC call arriving in 18-15 — inventing a
 #      reload verb here would create a second, untested control path for

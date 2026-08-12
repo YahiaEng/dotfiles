@@ -324,7 +324,7 @@ _stop_player() {
 # force=1 (reassert) always re-actuates; force=0 (every other verb)
 # skips when the computed target already matches the last actuated
 # target (absorb redundant calls, never amplify them — same rule as the
-# waybar analog's T-08-18).
+# bar-visibility analog's T-08-18).
 _actuate() {
     local force="$1"
     _compute

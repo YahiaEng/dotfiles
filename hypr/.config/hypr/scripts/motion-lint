@@ -22,8 +22,8 @@
 #             against the name set the pipeline actually emitted under
 #             ~/.local/state/theme/{gtk-4.0-motion.css,motion.json,
 #             hyprland-motion.conf,hyprland-tokens.lua}. This is the
-#             WLOG-01-style killer for motion, exactly
-#             `waybar-design-lint`'s CHECK A precedent.
+#             WLOG-01-style killer for motion, exactly the retired bar's
+#             design-lint tool's CHECK A precedent.
 #   CHECK B — no raw values: no non-exempt surface may hand-roll a bare
 #             duration/easing literal instead of consuming a token. For
 #             CSS/QML this is a literal `Nms`/`Ns`/`cubic-bezier(...)`/CSS
@@ -118,7 +118,7 @@ check() {
 # ── Single python pass: definitions, exemptions, scanned-count and both
 #    checks, TAB-separated TAG/STATUS/detail lines on stdout. One process
 #    so the comment strippers and reference/raw-value regexes are defined
-#    exactly once (waybar-design-lint's precedent). ───────────────────────
+#    exactly once (the retired bar's design-lint tool's precedent). ──────
 _motion_lint_checks() {
     python3 - "$STATE_DIR" "$FIXTURES_DIR" "${ROOTS[@]}" <<'PYEOF'
 import json
@@ -397,15 +397,15 @@ lua_speed_defs, lua_curve_defs, lua_curve_base_defs = load_lua_defs()
 #    check_css_surface below). swayosd/style.css stays exempt (D-02: zero
 #    motion literals, motion is entirely compositor-delivered) — it was
 #    never a candidate for this conversion.
-#    waybar/*.css's whole-file entry was REMOVED by plan 13-05
-#    (MOTION-02/D-01) once it converted all six waybar stylesheets to
-#    sass (theme.scss, style-{full,athena,floating,vertical}.scss,
-#    waybar-modules.scss) and tokenized every transition/animation-
-#    duration/animation-timing-function declaration onto the same
-#    sass-compiled _motion.scss partial swaync consumes — the renamed
-#    .scss sources are picked up by this script's existing .css/.scss
-#    glob with no code change, and are now covered by CHECK A/B like any
-#    other non-exempt CSS/SCSS surface (see check_css_surface below).
+#    A retired bar's *.css whole-file entry was REMOVED by plan 13-05
+#    (MOTION-02/D-01) once it converted all six of that bar's stylesheets
+#    to sass and tokenized every transition/animation-duration/animation-
+#    timing-function declaration onto the same sass-compiled _motion.scss
+#    partial swaync consumes — the renamed .scss sources were picked up
+#    by this script's existing .css/.scss glob with no code change, and
+#    were covered by CHECK A/B like any other non-exempt CSS/SCSS surface
+#    (see check_css_surface below) until RETIRE-02 (18-20) deleted that
+#    bar and its stylesheets outright.
 EXEMPTIONS = [
     {'glob': 'swayosd/style.css', 'regex': re.compile(r'(^|/)swayosd/style\.css$'),
      'reason': 'no motion literals — motion is compositor-delivered through '
@@ -1150,7 +1150,6 @@ else
     ROOTS=(
         "$HOME/.config/hypr"
         "$HOME/.config/quickshell"
-        "$HOME/.config/waybar"
         "$HOME/.config/swaync"
         "$HOME/.config/swayosd"
         "$HOME/.config/walker"

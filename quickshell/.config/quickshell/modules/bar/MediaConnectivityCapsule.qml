@@ -301,13 +301,14 @@ BarCapsule {
     //
     //    Glyphs are literal Nerd Font codepoints (\u{...} escapes, the
     //    same convention LauncherCapsule.qml/WorkspaceCapsule.qml already
-    //    use for Athena's per-app/per-state glyphs), sourced from
-    //    config-athena.jsonc — this repo's own waybar Athena config,
-    //    already cmap-verified against the installed font per that
-    //    file's own comments — and cross-checked against
-    //    ATHENA-UPSTREAM-SPEC.md. The two sources disagree on which wifi
-    //    glyph is "disconnected" vs "disabled"; config-athena.jsonc's own
-    //    format-disconnected/format-disabled KEY NAMES settle it
+    //    use for Athena's per-app/per-state glyphs), originally sourced
+    //    from the retired bar's own config-athena.jsonc Athena config
+    //    (cmap-verified against the installed font per that now-deleted
+    //    file's own comments, RETIRE-02/18-20) — and cross-checked
+    //    against ATHENA-UPSTREAM-SPEC.md. The two sources disagreed on
+    //    which wifi glyph is "disconnected" vs "disabled"; the retired
+    //    config's own format-disconnected/format-disabled KEY NAMES
+    //    settled it
     //    (disconnected = wifi-strength-off-outline U+F092E, radio on but
     //    no AP; disabled = wifi-off U+F05AA, radio off), and this file
     //    follows that resolution. "FiraCode Nerd Font" is the same family

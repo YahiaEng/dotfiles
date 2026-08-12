@@ -177,23 +177,24 @@ BarCapsule {
     // (c) [Phase 18.1 GATE-02 round 4 — this fix] D-08's "numeral is gone"
     //     was written from the retired bar's own architecture, never
     //     checked against a live Athena instance. Live observation of the
-    //     operator's own config-athena.jsonc waybar (method: repeated
-    //     `hyprctl dispatch hl.dsp.focus({workspace=N})` state changes,
-    //     `grim` screenshots compared frame-by-frame, confirmed against
-    //     Alexays/Waybar v0.15.0's own `Workspace::selectIcon()` source
-    //     and cross-checked with `waybar --log-level trace`) shows the
-    //     ghost (`stateGlyphDefault`, format-icons.default) NEVER
-    //     actually renders for a live, non-focused, non-urgent slot —
-    //     every such slot renders its own NUMBER instead, whether
-    //     occupied or empty. D-08's "accepted cost" (losing the
-    //     Super+N-to-digit mapping) was therefore never a real trade-off;
-    //     it was a bug. The numeral is restored below for the default
-    //     branch — see the state-glyph table where `stateGlyphActive`/
-    //     `stateGlyphUrgent` are declared. Athena's fourth state, `empty`
-    //     (format-icons.empty, U+F444, a small dot), IS real and was
-    //     directly observed (a persistent-floor slot with no live backing
-    //     workspace renders it) — but its exact trigger did not survive a
-    //     waybar restart during verification (see that table's own note)
+    //     operator's own config-athena.jsonc retired-bar instance (method:
+    //     repeated `hyprctl dispatch hl.dsp.focus({workspace=N})` state
+    //     changes, `grim` screenshots compared frame-by-frame, confirmed
+    //     against the retired bar's upstream v0.15.0 `Workspace::
+    //     selectIcon()` source and cross-checked with its own
+    //     `--log-level trace` output) shows the ghost
+    //     (`stateGlyphDefault`, format-icons.default) NEVER actually
+    //     renders for a live, non-focused, non-urgent slot — every such
+    //     slot renders its own NUMBER instead, whether occupied or empty.
+    //     D-08's "accepted cost" (losing the Super+N-to-digit mapping)
+    //     was therefore never a real trade-off; it was a bug. The numeral
+    //     is restored below for the default branch — see the state-glyph
+    //     table where `stateGlyphActive`/`stateGlyphUrgent` are declared.
+    //     Athena's fourth state, `empty` (format-icons.empty, U+F444, a
+    //     small dot), IS real and was directly observed (a
+    //     persistent-floor slot with no live backing workspace renders
+    //     it) — but its exact trigger did not survive a restart of that
+    //     retired bar during verification (see that table's own note)
     //     and is NOT reproduced here; a named delta, not a silent
     //     omission.
     readonly property var appGlyphMap: [
@@ -215,17 +216,19 @@ BarCapsule {
     //    OBSERVATION, Phase 18.1 GATE-02 round 4, 2026-08-11 ────────────
     // Do not re-derive this from config-athena.jsonc's `format-icons`
     // table alone (active/default/urgent/empty) — that table describes
-    // waybar's INPUT states, not what actually renders, and reading it
-    // naively is exactly how the pre-round-4 code got this wrong (every
-    // non-focused slot rendered `format-icons.default`, the ghost). The
-    // rule below was built by driving the operator's own live
-    // config-athena.jsonc waybar through real state changes (`hyprctl
-    // dispatch hl.dsp.focus({workspace=N})`, opening/closing a real
-    // `kitty` window) and diffing `grim` screenshots frame-by-frame,
-    // THEN cross-checked by reading Alexays/Waybar v0.15.0's own
+    // the retired bar's INPUT states, not what actually renders, and
+    // reading it naively is exactly how the pre-round-4 code got this
+    // wrong (every non-focused slot rendered `format-icons.default`, the
+    // ghost). The rule below was built by driving the operator's own live
+    // config-athena.jsonc retired-bar instance through real state changes
+    // (`hyprctl dispatch hl.dsp.focus({workspace=N})`, opening/closing a
+    // real `kitty` window) and diffing `grim` screenshots frame-by-frame,
+    // THEN cross-checked by reading the upstream v0.15.0 source's own
     // `Workspace::selectIcon()` (confirmed byte-identical to the
-    // installed binary via `strings $(which waybar)`) and by running
-    // `waybar --log-level trace` against a freshly-restarted instance:
+    // installed binary via `strings`) and by running that retired bar's
+    // own `--log-level trace` against a freshly-restarted instance (full
+    // upstream project citation recorded in 18-20-SUMMARY.md's
+    // scrubbed-history section):
     //
     // | Precedence | Condition (this slot)          | Rendered identity          |
     // |-----------:|---------------------------------|-----------------------------|
@@ -240,7 +243,7 @@ BarCapsule {
     // `format-icons.default` (the ghost, U+F02A0) is real in the config
     // but was never observed rendering live for a non-focused, non-urgent
     // slot — occupied AND empty slots alike fell through to the plain
-    // NUMBER (waybar's own final fallback when no state/name/persistent
+    // NUMBER (the retired bar's own final fallback when no state/name/persistent
     // icon key matches — see `selectIcon()`'s trailing `return m_name;`).
     // It is therefore dropped from this file entirely rather than kept as
     // a byte that's never read.
@@ -249,7 +252,7 @@ BarCapsule {
     // floor slot with no live backing Hyprland workspace rendered it, and
     // it responded correctly to `hyprctl dispatch hl.dsp.focus({workspace
     // =10})` (became the active pill) and back (returned to the dot).
-    // But: (a) restarting the operator's waybar process for a controlled
+    // But: (a) restarting the operator's retired-bar process for a controlled
     // check changed the SAME slot range from "numbers" to "ghosts" for
     // EVERY non-focused slot including previously-numbered ones — meaning
     // whatever binary had been running before that restart (Arch does not

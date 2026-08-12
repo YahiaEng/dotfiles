@@ -139,8 +139,10 @@ button {
    for the full user-approved deviation writeup. */
 
 /* Two hues this repo's four native M3 roles don't cover (D-04) — the
-   exact Phase 8-14 mix() idiom (waybar/theme.css lines ~165-172), applied
-   at the CONTAINER level for the first time in this repo. Phase 8 only
+   exact Phase 8-14 mix() idiom (the retired bar's own theme sheet, lines
+   ~165-172 — exact former path in 18-20-SUMMARY.md's scrubbed-history
+   section), applied at the CONTAINER level for the first time in this
+   repo. Phase 8 only
    ever mixed base/opaque hues; here the container fill AND its on-colour
    pairing both need their own mix so the frost-fill/glyph contrast
    pairing holds for these two derived capsules exactly as it does for

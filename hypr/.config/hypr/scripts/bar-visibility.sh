@@ -37,11 +37,11 @@
 #   bar-visibility.sh reassert
 #       Recompute from the existing intent files and re-actuate over IPC,
 #       changing no source's declared intent. Idempotent. This is what
-#       theme-engine/lib/reload.sh calls immediately after its own waybar
-#       SIGUSR2, and what shell.qml's own startup sequence forces once
-#       after declaring its fullscreen intent (D-18-28's ordering
-#       contract), so this script's state can never desync from what the
-#       bar is actually rendering.
+#       theme-engine/lib/reload.sh calls at the end of every theme
+#       switch's reload fan-out, and what shell.qml's own startup
+#       sequence forces once after declaring its fullscreen intent
+#       (D-18-28's ordering contract), so this script's state can never
+#       desync from what the bar is actually rendering.
 #   bar-visibility.sh status
 #       Prints the computed state (visible / hidden-idle / hidden-hard)
 #       and exits 0. Read-only with respect to the bar itself — never
@@ -93,10 +93,13 @@
 # surface, not of a stylesheet. The old 5% lit sliver (the opacity
 # constant, the CSS-writing helper and the CSS path) is deleted outright
 # in this commit, not renamed and not repointed; nothing replaces it.
-# `~/.local/state/theme/waybar-visibility.css` now has NO writer at all —
-# it is an inert empty stub, retained only so waybar's four stylesheets
-# still resolve their @import until RETIRE-02 (18-20) deletes waybar,
-# that file, its contract entry and the stow.sh seed together.
+# The retired bar's visibility-state CSS stub (formerly under
+# ~/.local/state/theme/) had NO writer left at all from this plan onward
+# — it stayed an inert empty stub, retained only so the retired bar's
+# four stylesheets could still resolve their @import, until RETIRE-02
+# (18-20) deleted that bar, the state file, its contract entry and the
+# stow.sh seed together. (Its exact filename is recorded in
+# 18-20-SUMMARY.md's scrubbed-history section.)
 #
 # Only a differing computed target is actuated (tracked in .actuated) —
 # redundant calls are absorbed, never amplified (T-08-18: the fullscreen

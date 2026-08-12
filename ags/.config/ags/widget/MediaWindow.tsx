@@ -13,8 +13,8 @@ const GLYPH_NEXT = String.fromCodePoint(0x23ed) // ⏭
 const GLYPH_PLAY = String.fromCodePoint(0x25b6) // ▶
 const GLYPH_PAUSE = String.fromCodePoint(0x23f8) // ⏸
 // U+F028 nf-fa-volume_up — a Nerd Font speaker glyph verified present in
-// the installed FiraCodeNerdFont (waybar's pulseaudio module renders the
-// F026/F027/F028 ramp). Replaces U+1F50A 🔊, a color-emoji codepoint that
+// the installed FiraCodeNerdFont (the retired bar's pulseaudio module
+// rendered the F026/F027/F028 ramp). Replaces U+1F50A 🔊, a color-emoji codepoint that
 // rendered oversized/misaligned and mismatched the monochrome UI.
 const GLYPH_VOLUME = String.fromCodePoint(0xf028) //
 
@@ -41,7 +41,7 @@ export default function MediaWindow() {
         // OWN sliders / clicks its OWN buttons (focus stays inside this
         // toplevel, so is-active stays true — no spurious close). Clicking
         // any OTHER surface deactivates this toplevel, firing
-        // notify::is-active -> hide. Esc and the waybar toggle also close.
+        // notify::is-active -> hide. Esc and the toggle-media request also close it.
         self.connect("notify::is-active", () => {
           if (!self.is_active && self.visible) self.hide()
         })

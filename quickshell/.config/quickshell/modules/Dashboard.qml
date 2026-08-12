@@ -19,8 +19,8 @@
 // plan's render gate, see 14-03-SUMMARY.md's Deviations): only anchors.top
 // is set, so the compositor centres the window horizontally; exclusiveZone 0
 // + ExclusionMode.Normal mean the drawer reserves nothing but still respects
-// waybar's own reservation, landing flush below the bar with zero
-// per-layout offset logic.
+// the bar's own reservation, landing flush below it with zero per-layout
+// offset logic.
 //
 // D-02/D-04 originally locked one uniform 850x860 frame identical on every
 // tab. The render gate's human sign-off rejected that outright: the user
@@ -71,7 +71,7 @@ PanelWindow {
     anchors.top: true
 
     // ── Top margin (render-gate feedback 2026-07-29) ────────────────────
-    // Without this, the drawer's surface sits flush at y = waybar's
+    // Without this, the drawer's surface sits flush at y = the bar's
     // reserved-zone bottom (0px gap) — measured directly via
     // `hyprctl -j layers` at exactly the same y as
     // swaync-control-center's own LAYER surface. But that surface is a
@@ -85,7 +85,7 @@ PanelWindow {
     // either swaync's own panel or a real tiled window ever is — it
     // visually occupies the bare gap strip between the bar and where
     // window content actually begins, reading as "dropped in an awkward
-    // place between waybar and the window area" rather than "dropping
+    // place between the bar and the window area" rather than "dropping
     // from the top of the window area" the way swaync's control centre
     // does. Mirrors swaync's own `control-center-margin-top` value
     // directly (both numbers are hand-authored literals in their own
@@ -93,7 +93,7 @@ PanelWindow {
     // JSON already has to `hyprland.lua`'s gaps_out) so the drawer's top
     // edge lines up with swaync's and with where a real window starts,
     // while `exclusiveZone: 0`/`ExclusionMode.Normal` below still keep
-    // waybar's own reserved zone completely untouched — this is a margin
+    // the bar's own reserved zone completely untouched — this is a margin
     // INSIDE the space Hyprland already leaves free for layer-shell
     // surfaces, not a change to what any surface reserves.
     readonly property int drawerTopMargin: 10
@@ -192,9 +192,9 @@ PanelWindow {
     }
 
     // Reserve nothing (D-03/D-08/D-43): the drawer holds zero exclusive
-    // zone on any edge waybar reserves, but ExclusionMode.Normal means it
-    // still respects what waybar already reserves, so the compositor places
-    // the drawer flush below the bar automatically.
+    // zone on any edge the bar reserves, but ExclusionMode.Normal means it
+    // still respects what the bar already reserves, so the compositor
+    // places the drawer flush below the bar automatically.
     exclusiveZone: 0
     exclusionMode: ExclusionMode.Normal
 

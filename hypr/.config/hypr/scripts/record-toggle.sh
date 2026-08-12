@@ -17,9 +17,9 @@
 #     audio mode as CLI flags instead.
 #   - D-04: GIF export is a notification action calling the separate
 #     gif-export.sh, not a synchronous ffmpeg finalize step.
-#   - No webcam overlay (out of scope this phase) and no waybar
+#   - No webcam overlay (out of scope this phase) and no bar-status
 #     indicator toggle (Phase 8) — see recording_active() below for the
-#     pgrep status probe Phase 8's waybar module will read.
+#     pgrep status probe a future bar module could read.
 set -euo pipefail
 
 VIDEOS_DIR="$HOME/Videos"
@@ -29,7 +29,7 @@ RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 RECORDING_FILE="$RUNTIME_DIR/record-toggle-filename"
 LOG_FILE="$RUNTIME_DIR/record-toggle.log"
 
-# Status probe for Phase 8's future waybar recording indicator: while a
+# Status probe for a future bar recording indicator: while a
 # recording is active, `pgrep -f "^gpu-screen-recorder "` (note the
 # trailing space, bounding the match to argv[0]) is truthy — no other
 # state file needed for a simple running/not-running check. WR-05: the

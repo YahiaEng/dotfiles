@@ -7,8 +7,8 @@
 # ║  other, sits on its own quickshell-* namespaces at the ║
 # ║  level each surface is registered for, and shares every ║
 # ║  event source (D-Bus ownership, hardware keys,          ║
-# ║  volume/brightness step, MPRIS) with waybar, swaync,     ║
-# ║  SwayOSD, wleave, AGS and walker without a second        ║
+# ║  volume/brightness step, MPRIS) with swaync, SwayOSD,     ║
+# ║  wleave, AGS and walker without a second                 ║
 # ║  handler ever appearing. Report-only apart from a few    ║
 # ║  documented transient exceptions (the volume/brightness  ║
 # ║  step probes, the bar-reserved-zone-stability toggle,     ║
@@ -245,7 +245,7 @@ declare -A QSD_NAME_OWNERS=(
     ["org.freedesktop.Notifications"]="swaync"
 )
 declare -A QSD_CLIENT_CONSUMERS=(
-    ["PipeWire"]="Phase 15's audio panel joins pw-play/pw-cli/wpctl and waybar's own pulseaudio module as an additional PipeWire client — never the sole one, so cardinality is never asserted"
+    ["PipeWire"]="Phase 15's audio panel joins pw-play/pw-cli/wpctl as an additional PipeWire client — never the sole one, so cardinality is never asserted"
     ["NetworkManager"]="Phase 15's wifi panel joins nm-applet/nmcli/nmtui as an additional NetworkManager client — never the sole one"
     ["BlueZ"]="Phase 15's bluetooth panel joins bluetoothctl/blueman-manager as an additional BlueZ client — never the sole one"
 )
@@ -2591,7 +2591,7 @@ fi
 #    (18-17's header record-why): the bar is the only surface permitted
 #    to reserve space, and this proves no OTHER summoned surface may add
 #    a second reservation beside it. Never assert equality against a
-#    hardcoded value: waybar's height, this host's monitor name and the
+#    hardcoded value: the bar's height, this host's monitor name and the
 #    monitor count must all be free to change without editing this
 #    file. ───────────────────────────────────────────────────────────
 if [[ "$NO_SUMMON" -eq 1 ]]; then

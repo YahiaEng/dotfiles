@@ -58,7 +58,7 @@ CONTRACT_LIB="$HOME/.config/theme-engine/lib/contract.sh"
 #    declares an intent ("gaming wants it hidden/shown"); the owner
 #    computes the resulting state against the other actors (idle,
 #    fullscreen, keybind).
-_gaming_waybar_toggle() {
+_gaming_bar_toggle() {
     local state="$1" # hide|show
     ~/.config/hypr/scripts/bar-visibility.sh gaming "$state" 2>/dev/null || true
 }
@@ -143,11 +143,11 @@ gaming_mode_on() {
     #    session's exec-once spawns a brand-new hypridle process, D-28).
     pkill -STOP -x hypridle 2>/dev/null || true
 
-    # ── Hide waybar: declare the gaming intent to the visibility owner.
-    _gaming_waybar_toggle hide
+    # ── Hide the bar: declare the gaming intent to the visibility owner.
+    _gaming_bar_toggle hide
 
     # ── Stop the live wallpaper: declare the gaming intent to ITS
-    #    visibility owner (D-28). Mirrors the waybar call above exactly.
+    #    visibility owner (D-28). Mirrors the bar call above exactly.
     _gaming_wallpaper_toggle hide
 
     _write_state "on"
@@ -234,11 +234,11 @@ gaming_mode_off() {
     # ── Un-inhibit idle/lock.
     pkill -CONT -x hypridle 2>/dev/null || true
 
-    # ── Un-hide waybar: declare the gaming intent cleared.
-    _gaming_waybar_toggle show
+    # ── Un-hide the bar: declare the gaming intent cleared.
+    _gaming_bar_toggle show
 
     # ── Restore the live wallpaper: declare the gaming intent cleared on
-    #    ITS visibility owner too (D-28). Mirrors the waybar call above.
+    #    ITS visibility owner too (D-28). Mirrors the bar call above.
     _gaming_wallpaper_toggle show
 
     # ── Stale-idle fix (D-05 SIGSTOP interaction, reasoning corrected
@@ -266,7 +266,7 @@ gaming_mode_off() {
     #    was frozen — hypridle's own on-resume can never run to clear it
     #    while stopped. Without this second call, turning gaming mode OFF
     #    returns a STOPPED wallpaper (17-01/17-02 already proved this
-    #    exact shape for waybar; the wallpaper owner needs the identical
+    #    exact shape for the bar; the wallpaper owner needs the identical
     #    second call or the fix is only half-applied).
     ~/.config/hypr/scripts/wallpaper-visibility.sh idle show 2>/dev/null || true
 

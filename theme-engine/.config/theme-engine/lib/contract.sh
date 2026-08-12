@@ -26,9 +26,9 @@ contract_files() {
 # contract_presence_only_files
 # Emits the ordered list of theme-invariant font render targets that get a
 # presence-only check (existence, not color-contract parity) — these are
-# fragments (kitty-font.conf, waybar-font.css) with no color-declaration
-# content, so they are deliberately excluded from the `files` array that
-# theme-parity's name-set/semantic-value parity consumes (WR-07/06-10).
+# fragments (kitty-font.conf) with no color-declaration content, so they
+# are deliberately excluded from the `files` array that theme-parity's
+# name-set/semantic-value parity consumes (WR-07/06-10).
 contract_presence_only_files() {
     jq -r '(.presence_only_files // [])[]' "$CONTRACT_JSON"
 }
@@ -252,8 +252,10 @@ PYEOF
             # `grep -q ... && echo` as the LAST command in this compound
             # group made the whole extractor's exit status depend on
             # whether an @import line happened to exist — a file with
-            # motion but no colour @import (waybar-modules.css, an
-            # included partial by design, never a standalone sheet) made
+            # motion but no colour @import (the retired bar's modules
+            # stylesheet, an included partial by design, never a
+            # standalone sheet — exact filename in 18-20-SUMMARY.md's
+            # scrubbed-history section) made
             # `grep -q` fail with no match, and `&&` short-circuited
             # without ever reaching `echo`, so THAT failing exit status
             # became the function's own return value even though the awk

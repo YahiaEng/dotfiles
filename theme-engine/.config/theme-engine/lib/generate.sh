@@ -23,8 +23,8 @@ source "$LIB_DIR/mode.sh"
 
 # UTIL-05/D-19: font is a theme-orthogonal state axis (same shape as
 # wallpaper.sh's last-wallpaper/ precedent) — lib/font.sh owns its own
-# render path (kitty-font.conf, waybar-font.css) and the read helper this
-# file's own theme_engine_render_gtk_settings uses for gtk-font-name below.
+# render path (kitty-font.conf) and the read helper this file's own
+# theme_engine_render_gtk_settings uses for gtk-font-name below.
 # shellcheck source=lib/font.sh
 source "$LIB_DIR/font.sh"
 

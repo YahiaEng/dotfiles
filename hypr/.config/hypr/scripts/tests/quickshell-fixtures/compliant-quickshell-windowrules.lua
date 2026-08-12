@@ -4,10 +4,10 @@
 -- REAL file order — order is load-bearing: the quickshell-overview blur
 -- pair is declared AFTER the ^quickshell-.* family pair on purpose
 -- (D-42/D-43), and a replay that reorders them would silently disable
--- the later ones. One non-quickshell line (waybar) is included to prove
+-- the later ones. One non-quickshell line (walker) is included to prove
 -- the candidate filter excludes it. Target: the extractor. Expected
 -- verdict: 11 accepted, 0 rejected, in this exact order.
-hl.layer_rule({ match = { namespace = "waybar" }, blur = true })
+hl.layer_rule({ match = { namespace = "walker" }, blur = true })
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, animation = "slide" })
 hl.layer_rule({ match = { namespace = "quickshell-audio-panel" }, animation = "slide" })
 hl.layer_rule({ match = { namespace = "quickshell-wifi-panel" }, animation = "slide" })

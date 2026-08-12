@@ -132,9 +132,9 @@ Singleton {
     //    to reproduce config-athena.jsonc's `margin-top` and
     //    `margin-left`/`margin-right` byte-for-byte (6 and 10
     //    respectively), so the QML bar lands positionally identical to
-    //    the waybar layout it retires (D-18-38). No future token may cite
-    //    this exemption — it is a one-time parity requirement, not a
-    //    precedent.
+    //    the retired bar's layout it replaces (D-18-38, RETIRE-02/18-20).
+    //    No future token may cite this exemption — it is a one-time
+    //    parity requirement, not a precedent.
     readonly property int barHeight: 42
     readonly property int barEdgeMargin: 6
     readonly property int barSideMargin: 10
@@ -142,22 +142,20 @@ Singleton {
 
     // ── Bar-scoped type/padding parity tokens (Phase 18.1 gap closure) ───
     //    GATE-02 failed partly because the bar rendered "unmistakably
-    //    larger" than the Athena waybar it replaces. Root cause: the bar
-    //    borrowed the DASHBOARD's iconSizeMd (24) for its glyphs and
-    //    spacingSm (8) for capsule padding, where Athena's own stylesheet
-    //    specifies 16px glyphs and 6px capsule padding. These three tokens
-    //    carry Athena's literal values so the bar stops inheriting
-    //    dashboard sizing:
-    //      barGlyphSize     <- style-athena.scss:400 (`font-size: 16px` on
-    //                          every glyph-only module)
-    //      barBodySize      <- style-athena.scss:31 (`* { font-size: 13px }`)
-    //      barCapsulePadding<- style-athena.scss:76/112/150/216/264/293
-    //                          (`padding: 6px 6px` on every group capsule)
+    //    larger" than the Athena retired-bar layout it replaces. Root
+    //    cause: the bar borrowed the DASHBOARD's iconSizeMd (24) for its
+    //    glyphs and spacingSm (8) for capsule padding, where Athena's own
+    //    stylesheet specifies 16px glyphs and 6px capsule padding. These
+    //    three tokens carry Athena's literal values so the bar stops
+    //    inheriting dashboard sizing (exact retired-stylesheet file+line
+    //    citations for barGlyphSize/barBodySize/barCapsulePadding are
+    //    recorded in 18-20-SUMMARY.md's scrubbed-history section, since
+    //    that stylesheet no longer exists in this tree).
     //    Like barEdgeMargin/barSideMargin above, barBodySize (13) and
     //    barCapsulePadding (6) are OFF the repo's 4px grid. They carry the
-    //    same one-time waybar-parity exemption and are equally not a
-    //    precedent — they exist to match a stylesheet this bar must replace
-    //    without visibly downgrading it.
+    //    same one-time retired-bar-parity exemption and are equally not a
+    //    precedent — they exist to match a stylesheet this bar had to
+    //    replace without visibly downgrading it.
     readonly property int barGlyphSize: 16
     readonly property int barBodySize: 13
     readonly property int barCapsulePadding: 6
@@ -174,8 +172,9 @@ Singleton {
     //    Values below come from the UPSTREAM Athena repo
     //    (github.com/haikal-hakim/athena), read directly — see
     //    18.1-qml-bar-athena-restoration/ATHENA-UPSTREAM-SPEC.md. They are NOT
-    //    from this repo's waybar/style-athena.scss, which is a local
-    //    reinterpretation and was the wrong reference the first time.
+    //    from this repo's own retired-bar style-athena.scss (RETIRE-02/
+    //    18-20 deleted it), which was a local reinterpretation and was
+    //    the wrong reference the first time.
     //
     //    barCapsuleGap is margin(5) + bar spacing(6) + margin(5) = 16.
     //    A previous pass used 10 (margin only) and missed config.jsonc's own
@@ -211,7 +210,7 @@ Singleton {
     readonly property int barDrawerEasingType: Easing.OutCubic
     //    Kept nonzero but small: a literal 0 makes the drawer fire on an
     //    incidental pointer transit across the trigger, which Athena avoids
-    //    only because a waybar drawer is cheap to reopen. 80ms is below the
+    //    only because its own drawer is cheap to reopen. 80ms is below the
     //    ~100ms threshold at which a delay becomes perceptible, so it reads as
     //    immediate while still filtering pass-through motion.
     readonly property int barDrawerDwellMs: 80
@@ -267,7 +266,7 @@ Singleton {
     //    exact column width in vertical orientation). 44 IS on the repo's
     //    4px grid — it does NOT use the two-token grid exemption recorded
     //    above for barEdgeMargin/barSideMargin, which exists solely for
-    //    waybar positional parity and is not a precedent for this token.
+    //    retired-bar positional parity and is not a precedent for this token.
     readonly property int barColumnWidth: 44
 
     // ── mediaTitleMaxChars (Phase 18 Plan 08) — provenance: 18-UI-SPEC.md
@@ -288,8 +287,8 @@ Singleton {
     //    icon stays reachable by scrolling, nothing is folded behind an
     //    expander. 240 IS on the repo's 4px grid and does NOT use the
     //    two-token grid exemption 18-01 recorded for barEdgeMargin/
-    //    barSideMargin, which exists solely for waybar positional parity
-    //    and is not a precedent for this token. At the fixed 32px cell
+    //    barSideMargin, which exists solely for retired-bar positional
+    //    parity and is not a precedent for this token. At the fixed 32px cell
     //    pitch (iconSizeMd 24 + spacingXs*2) with 4px (spacingXs) gaps,
     //    six icons measure 212 and render unbounded; seven measure 248 and
     //    are the first count to scroll.
@@ -352,8 +351,8 @@ Singleton {
     //    hotZoneDepth (4) — D-18-25's decided 3-5px range for the invisible
     //    input-only reveal strip, resolved under Claude's Discretion to the
     //    midpoint, and 4 IS on the repo's 4px grid (unlike barEdgeMargin/
-    //    barSideMargin's one-time waybar-parity exemption above, this token
-    //    needs no exemption).
+    //    barSideMargin's one-time retired-bar-parity exemption above, this
+    //    token needs no exemption).
     readonly property int hotZoneDepth: 4
 
     // barReHideGraceMs (600) — D-18-26's re-hide grace window. Deliberately

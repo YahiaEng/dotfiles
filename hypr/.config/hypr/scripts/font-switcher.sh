@@ -17,8 +17,8 @@
 # UTIL-05/D-18/D-19: font choice is a theme-orthogonal state axis (same
 # discipline as icon-theme-picker.sh/D-19's icon-theme axis) — this script
 # WRITES the font-choice state file and re-runs theme-apply so lib/font.sh
-# (kitty-font.conf/waybar-font.css) and generate.sh's gtk-font-name read
-# own the actual render, never a bare one-off write to any surface.
+# (kitty-font.conf) and generate.sh's gtk-font-name read own the actual
+# render, never a bare one-off write to any surface.
 
 set -euo pipefail
 
@@ -249,9 +249,8 @@ if command -v jq >/dev/null 2>&1; then
 fi
 
 # ── Re-run theme-apply so font.sh re-renders kitty-font.conf/
-# waybar-font.css/gtk-font-name and the reload fan-out picks it up (kitty
-# SIGUSR1 live-reloads, waybar SIGUSR2, GTK reload) — never reimplement
-# render/reload here. ──────────────────────────────────────────────────
+# gtk-font-name and the reload fan-out picks it up (kitty SIGUSR1
+# live-reloads, GTK reload) — never reimplement render/reload here. ─────
 ACTIVE_PRESET=$(cat "$CURRENT_THEME_FILE" 2>/dev/null || echo "")
 if [[ -n "$ACTIVE_PRESET" ]]; then
     ~/.config/theme-engine/theme-apply "$ACTIVE_PRESET"

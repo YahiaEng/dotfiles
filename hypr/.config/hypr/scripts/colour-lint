@@ -7,9 +7,9 @@
 #
 # GATE-04 requires that a QML surface hard-coding a colour fails a gate,
 # mirroring motion-lint's (12-05) deny-by-default discipline. This is the
-# QML successor to waybar-design-lint's CHECK D ("no literal hex"), which
-# RETIRE-02 deletes later in this phase once this gate is folded into
-# theme-doctor (D-18-35).
+# QML successor to the retired bar's design-lint tool's CHECK D ("no
+# literal hex") — RETIRE-02 (18-20) deleted that tool once this gate was
+# folded into theme-doctor (D-18-35).
 #
 #   CHECK A — reference resolution: every `Colours.<name>` occurrence in
 #             every non-exempt scanned surface must resolve against the
@@ -131,7 +131,8 @@ check() {
 # ── Single python pass: definitions, exemptions, scanned-count and both
 #    checks, TAB-separated TAG/STATUS/detail lines on stdout. One process
 #    so the comment stripper and reference/colour-assignment regexes are
-#    defined exactly once (motion-lint/waybar-design-lint's precedent). ──
+#    defined exactly once (motion-lint's / the retired design-lint tool's
+#    precedent). ────────────────────────────────────────────────────────
 _colour_lint_checks() {
     python3 - "$COLOURS_QML_PATH" "$FIXTURES_DIR" "${ROOTS[@]}" <<'PYEOF'
 import os
