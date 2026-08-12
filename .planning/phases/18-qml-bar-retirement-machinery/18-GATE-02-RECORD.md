@@ -46,7 +46,7 @@ resolved by machine below, before any human sits down.
 Every field below was captured by running a command against the live host on 2026-08-12, not
 recalled or inferred.
 
-- **HEAD sha:** `911d8a57c66b6be8c6f1b1d19bddeb4462f06326` (`git rev-parse HEAD`).
+- **HEAD sha:** `8c5d2804da17a2966e12c729edbc3236a77c741c` (`git rev-parse HEAD`), re-read 2026-08-12 04:11 for iteration 1. Supersedes the sheet-assembly sha `911d8a57c66b6be8c6f1b1d19bddeb4462f06326`; see the re-bind note below.
 - **Working tree:** `git status --porcelain -- quickshell/ hypr/` returned empty — clean.
 - **Reserved array (`hyprctl monitors -j | jq '.[0].reserved'`):** `[0, 48, 0, 0]`.
   **Live-value correction, recorded rather than forced to match the stale plan text:** D-18-38 and
@@ -62,8 +62,8 @@ recalled or inferred.
   live host wins, and this is that value recorded with its reason, per the operating instruction
   for this pass. The single-bar-owns-the-zone signal this fingerprint field exists to carry (one
   axis reserving, one bar claiming it) holds regardless of which of the two numbers is correct.
-- **Quickshell pid (`pgrep -x quickshell`):** `1626`.
-- **Quickshell start time (`ps -o lstart= -p 1626`):** `Wed Aug 12 01:09:38 2026`.
+- **Quickshell pid (`pgrep -x quickshell`):** `528309`.
+- **Quickshell start time (`ps -o lstart= -p 528309`):** `Wed Aug 12 02:40:25 2026`.
 - **`quickshell-bar` namespace (`hyprctl layers -j`):** present (alongside `awww-daemon`, which is
   an unrelated wallpaper daemon layer and not a second bar).
 - **`pgrep -x waybar`:** returned nothing (exit 1) — no waybar process running. It was already
@@ -73,10 +73,22 @@ recalled or inferred.
   not apply here). It autostarts on next boot via
   `hypr/.config/hypr/config/autostart.lua:62` → `waybar-launch.sh`; it is not disabled, only not
   currently running, and it is not relaunched for this pass.
-- **Newest `modules/bar/*.qml` mtime vs. process start:** `find quickshell/.config/quickshell/modules/bar -name '*.qml' -newer /proc/1626` returned nothing — no bar QML file is newer than the
-  running process. **No restart was needed or performed.**
+- **Newest `modules/bar/*.qml` mtime vs. process start:** THREE files are newer than the process
+  start — `BarDrawer.qml` (03:59:38), `LauncherCapsule.qml` (04:02:42) and
+  `ClockActionsCapsule.qml` (04:05:14). **This is not a stale-build signal and the mtime proxy is
+  the wrong test here:** quickshell hot-reloads on file change, so a file newer than the process
+  can still be fully loaded by it. The correct check is the log, and it is unambiguous — the last
+  successful `Configuration Loaded` is at **04:05:47**, later than the last edit at 04:05:14, so
+  the running process carries all three files. **No restart was needed or performed**, which is
+  also what kept the QBAR-11 soak window alive.
+- **Re-bound for iteration 1 (2026-08-12 04:11).** The fingerprint originally captured for this
+  record (HEAD `911d8a5`, pid `1626`, start 01:09:38) is superseded: the host rebooted, the bar's
+  hover-to-popout defect was fixed (`b3e5e5a`), and `BarDrawer.qml` landed (`8c5d280`, quick task
+  260812-59l) — the last of which exists specifically to remedy row `B.4-DRAWER`. Judging against
+  the old fingerprint would have certified a build that no longer exists. The values in this block
+  are the live ones, re-read immediately before the sitting.
 - **QBAR-11 soak window:** a live soak measurement window is running against this same quickshell
-  process (`18-BAR-SOAK.md`, WINDOWS row 64), anchored to this same start time. This fingerprint
+  process (`18-BAR-SOAK.md` Section four-quater, WINDOWS row 66), anchored to this same start time. This fingerprint
   capture and the rest of this task are entirely read-only against the running process — no
   restart, reload, or `hyprctl eval`/`hyprctl reload` was issued at any point, so the soak window
   is undisturbed.
@@ -87,7 +99,7 @@ The exact ordered steps a human follows once before observing any of the fifteen
 
 1. Confirm the fingerprint block above matches the machine right now — re-run the reserved-array
    and pid checks (`hyprctl monitors -j | jq '.[0].reserved'`, `pgrep -x quickshell`) and confirm
-   they still agree with what is recorded (`[0, 48, 0, 0]`, pid `1626`).
+   they still agree with what is recorded (`[0, 48, 0, 0]`, pid `528309`).
 2. Open `18-BEHAVIOUR-BASELINE.md` and this record side by side on a second workspace. These two
    documents are the comparison partner for this whole pass. **Do not relaunch waybar**: at this
    wave it has no visibility owner (18-15 renamed `waybar-visibility.sh` to `bar-visibility.sh` and
