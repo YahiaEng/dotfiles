@@ -66,6 +66,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Services.UPower
+import Quickshell.Networking
 import "../"
 import "../dashboard"
 
@@ -935,6 +936,56 @@ BarCapsule {
                 }
             }
         }
+    }
+
+    // ── ethernet ─────────────────────────────────────────────────────────
+    // Visible only while a WIRED device reports itself connected, mirroring
+    // the battery entry's own conditional-entry idiom below: when false the
+    // entry contributes zero extent and zero spacing, so the collapsed row
+    // reads exactly as it did before this entry existed.
+    //
+    // Read from `Networking.devices` — the same passive NetworkManager
+    // device list `WifiBackend.qml` already consumes, so this adds NO new
+    // service connection and touches neither backend's scan/discovery path,
+    // which this file's own header forbids widening. `type` and `connected`
+    // are live D-Bus properties; nothing here polls and nothing spawns.
+    //
+    // Measured on this host 2026-08-12 (temporary ETHPROBE, removed before
+    // this commit) rather than assumed, because the obvious alternative is a
+    // trap: /sys/class/net reports SIX type=1 interfaces here — eno1 plus
+    // docker0, three br-* bridges and a veth — so a /sys-based check would
+    // read "ethernet connected" permanently on this machine. NetworkManager
+    // already filters those out: `Networking.devices` contains exactly two
+    // entries, eno1 (type 2 = Wired) and wlan0 (type 1 = Wifi).
+    //
+    // The same probe caught the other trap: `managed` is UNDEFINED on this
+    // Quickshell build — only `nmManaged` exists — so a predicate written
+    // against `managed` would have been falsy forever and this glyph would
+    // never once have appeared. It is deliberately not referenced here.
+    readonly property bool ethernetConnected: {
+        const devs = Networking.devices;
+        if (!devs || !devs.values)
+            return false;
+        const vals = devs.values;
+        for (let i = 0; i < vals.length; i++) {
+            const d = vals[i];
+            if (d && d.type === DeviceType.Wired && d.connected === true)
+                return true;
+        }
+        return false;
+    }
+
+    // U+F0200 is MDI `ethernet` in the Nerd Font range — a literal
+    // codepoint, NOT a Material Symbols ligature, matching the network
+    // entry's own five-bar ramp above and deliberately avoiding the failure
+    // mode GATE-02 row A.3 names (a nonexistent ligature renders as its own
+    // name in plain text). Coverage confirmed with fc-list against the
+    // capsule's own drawerGlyphFontFamily (FiraCode Nerd Font) before use.
+    Readout {
+        visible: root.ethernetConnected
+        glyph: "\u{f0200}"
+        glyphFontFamily: root.drawerGlyphFontFamily
+        showValue: false
     }
 
     // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — named seam into this
