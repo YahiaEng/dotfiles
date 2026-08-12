@@ -527,7 +527,18 @@ BarCapsule {
     //    Plan 05, D-16/D-17/D-18) is the one and only implementation
     //    driving these three names. ─────────────────────────────────────
     property bool settingsExpanded: false
+    // The trigger cell's own scene-space centre along the bar's long axis
+    // — BarDrawer.qml's `triggerCentre` contract, published ONCE per
+    // expand rather than a live binding. Mirrors
+    // LauncherCapsule.qml's own publishDrawerAnchor() shape-identically.
+    property real _publishedDrawerCentre: 0
+    function publishDrawerAnchor() {
+        clockActionsCapsule._publishedDrawerCentre = settingsTriggerCell.mapToItem(null, 0, 0).y + settingsTriggerCell.height / 2;
+    }
     function requestExpand() {
+        // Published before `settingsExpanded` is set true, so both the
+        // dwell path and any direct caller publish a fresh centre.
+        clockActionsCapsule.publishDrawerAnchor();
         clockActionsCapsule.settingsExpanded = true;
     }
     function requestCollapse() {
@@ -700,9 +711,15 @@ BarCapsule {
 
     // The settings strip — a Repeater over settingsAxes inside one
     // axis-bound Grid, the same rows/columns formula BarCapsule uses
-    // internally, never a Row/Column pair. Carries the same flagged
-    // vertical-orientation host gap Task 2's launcher strip carries — see
-    // this plan's `## Scope correction required`.
+    // internally, never a Row/Column pair. Horizontal orientation: the
+    // true drawer, complete here. Vertical orientation: hosted by
+    // BarDrawer.qml instead (18-11's Option B, taken by quick task
+    // 260812-59l, see the LazyLoader mounted after settingsTriggerCell
+    // below), because a layer-shell surface cannot render outside its own
+    // buffer and Bar.qml pins the vertical window to
+    // Design.barColumnWidth — this Item contributes nothing (both
+    // dimensions resolve to 0) and its five cells are destroyed, not
+    // merely clipped, whenever clockActionsCapsule.vertical is true.
     //
     // GATE-02 round 4: declared BEFORE settingsTriggerCell, not after —
     // this capsule sits in the bar's END zone (anchors.right, Bar.qml),
@@ -717,18 +734,19 @@ BarCapsule {
     // opposite direction". Declaring the strip first makes it grow
     // LEFTWARD out of a fixed settingsTriggerCell, matching every other
     // right-side drawer on this bar and upstream's own
-    // `transition-left-to-right: false` convention.
+    // `transition-left-to-right: false` convention. This declaration
+    // order is load-bearing and stays exactly as it was.
     Item {
         id: settingsStripHost
         clip: true
-        width: clockActionsCapsule.vertical ? clockActionsCapsule.cellPitch : (clockActionsCapsule.settingsExpanded ? clockActionsCapsule.expandedCrossExtent : 0)
-        height: clockActionsCapsule.vertical ? (clockActionsCapsule.settingsExpanded ? clockActionsCapsule.expandedCrossExtent : 0) : clockActionsCapsule.cellPitch
+        width: clockActionsCapsule.vertical ? 0 : (clockActionsCapsule.settingsExpanded ? clockActionsCapsule.expandedCrossExtent : 0)
+        height: clockActionsCapsule.vertical ? 0 : clockActionsCapsule.cellPitch
 
         // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
         // directions — see Design.barDrawerEasingType's own provenance
         // comment for why the former Motion.emphasizedIn/Out bezier pair is
         // gone (that pairing's acceleration was the operator's "not smooth"
-        // report).
+        // report). Horizontal-only now, but left exactly as it was.
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
@@ -749,17 +767,32 @@ BarCapsule {
             onHoveredChanged: clockActionsCapsule.reportDrawerHover("strip", settingsStripHoverHandler.hovered)
         }
 
-        Grid {
-            id: settingsGrid
+        // Gated behind `!vertical` so the five cells below are destroyed
+        // in vertical orientation rather than merely clipped — the same
+        // zero-idle-cost discipline BarDrawer.qml's own LazyLoader applies
+        // to the surface that replaces this Grid there. `sourceComponent`
+        // used explicitly (this repo's own convention for a plain
+        // QtQuick.Loader — see Dashboard.qml's dashboardTabLoader).
+        Loader {
+            id: settingsGridLoader
             anchors.fill: parent
-            rows: clockActionsCapsule.vertical ? -1 : 1
-            columns: clockActionsCapsule.vertical ? 1 : -1
-            spacing: Design.spacingXs
+            active: !clockActionsCapsule.vertical
+            asynchronous: false
 
-            Repeater {
-                model: clockActionsCapsule.settingsAxes
-                delegate: SettingsAxisCell {
-                    axis: modelData
+            sourceComponent: Component {
+                Grid {
+                    id: settingsGrid
+                    anchors.fill: parent
+                    rows: 1
+                    columns: -1
+                    spacing: Design.spacingXs
+
+                    Repeater {
+                        model: clockActionsCapsule.settingsAxes
+                        delegate: SettingsAxisCell {
+                            axis: modelData
+                        }
+                    }
                 }
             }
         }
@@ -778,6 +811,35 @@ BarCapsule {
         HoverHandler {
             id: settingsTriggerHoverHandler
             onHoveredChanged: clockActionsCapsule.reportDrawerHover("trigger", settingsTriggerHoverHandler.hovered)
+        }
+    }
+
+    // ── Vertical-orientation drawer host (18-11's Option B, D-18-11,
+    //    quick task 260812-59l, closing GATE-02 row B.4-DRAWER) — the
+    //    SAME registered BarDrawer type LauncherCapsule.qml mounts, no
+    //    second host type (constraint 7). Mounted behind a LazyLoader
+    //    keyed on `vertical && settingsExpanded`, so it costs nothing
+    //    while collapsed or in horizontal orientation.
+    //    `reportDrawerHover` is the sole hover relay (D-18-19) — no
+    //    second dwell or grace timer is added here. Reuses
+    //    SettingsAxisCell (this file's own inline component). ────────────
+    LazyLoader {
+        id: verticalSettingsDrawerLoader
+        active: clockActionsCapsule.vertical && clockActionsCapsule.settingsExpanded
+
+        BarDrawer {
+            drawerId: "settings"
+            crossExtent: clockActionsCapsule.expandedCrossExtent
+            cellPitch: clockActionsCapsule.cellPitch
+            triggerCentre: clockActionsCapsule._publishedDrawerCentre
+            onHoveredChanged: clockActionsCapsule.reportDrawerHover("strip", hovered)
+
+            Repeater {
+                model: clockActionsCapsule.settingsAxes
+                delegate: SettingsAxisCell {
+                    axis: modelData
+                }
+            }
         }
     }
 
