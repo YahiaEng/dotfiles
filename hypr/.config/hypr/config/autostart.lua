@@ -99,6 +99,41 @@ hl.on("hyprland.start", function()
     -- error here rather than nowhere at all.
     hl.exec_cmd("systemctl --user start quickshell.service")
 
+    -- ── Bar watchdog (WINDOWS.md row 67) ─────────────────
+    -- Monitor removal/re-add (display sleep, DPMS cycle, hotplug)
+    -- destroys the `quickshell-bar` layer surface while quickshell
+    -- itself stays perfectly healthy — same pid, NRestarts=0,
+    -- ActiveState=active, zero QML errors — and keeps reporting
+    -- `bar: visibility=visible zone=reserved` while no surface exists.
+    -- The bar stays gone until quickshell.service is restarted by hand.
+    --
+    -- This REVERSES the removal noted directly above: D-18-28 deleted
+    -- this repo's standalone socket2 listener because the QML shell
+    -- could report its own fullscreen intent instead. Here the shell is
+    -- precisely the thing that fails — it cannot report an outage it
+    -- doesn't know it's in — so a self-healing mechanism structurally
+    -- cannot live inside it. One long-running process was removed from
+    -- the session there; a different one, for a different defect, is
+    -- added back here. Full listener + fixture-proven test harness:
+    -- hypr/.config/hypr/scripts/bar-watchdog.sh.
+    --
+    -- D-15/D-35 carve-out: this is an entry ADDED, which this file's own
+    -- "no entry added, removed or reordered" prohibition (top of file)
+    -- otherwise forbids. Named here as a deliberate, plan-authorised
+    -- addition (quick 260812-n9b) in the same register D-18-28 used for
+    -- its authorised removal — not an oversight, and not a widening of
+    -- the prohibition's exception surface beyond this one line.
+    --
+    -- `systemctl --user start`, not `uwsm app --`: the unit is what
+    -- carries the restart policy and the session-teardown binding,
+    -- exactly as for quickshell.service directly above. `--no-block` is
+    -- deliberately not used, for the same reason that entry gives: the
+    -- start job for a Type=simple service completes as soon as the
+    -- process is forked, this call is not on the compositor's critical
+    -- path, and blocking means a unit that fails to load surfaces its
+    -- error here rather than nowhere at all.
+    hl.exec_cmd("systemctl --user start quickshell-bar-watchdog.service")
+
     -- ── Notification daemon ──────────────────────────────
     -- swaync-launch.sh points swaync at the sass-compiled state-dir
     -- stylesheet (D-01/D-34/13-02), degrading to unstyled rather than
