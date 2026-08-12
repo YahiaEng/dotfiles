@@ -135,6 +135,22 @@ BarCapsule {
         property bool valueShrinks: false
         // -1 means "no vertical-specific cap" (the normal case).
         property real maxWidthVertical: -1
+        // Opt-in, media only. In VERTICAL orientation, render the value as a
+        // 90-degree-rotated line running DOWN the column instead of across it.
+        // Every numeric readout leaves this false and is byte-for-byte
+        // unchanged: a percentage is short enough to sit beside its glyph, and
+        // rotating "47%" would be worse, not better. A track title is the one
+        // value on this bar that is long, free-form and third-party, and it is
+        // the only value for which the 44px width — not the bar's height — is
+        // the binding constraint.
+        property bool rotateValueVertical: false
+        property real rotatedValueMaxRun: Design.mediaTitleVerticalRun
+        // The rotated line shows the FULL value, not the horizontal bar's
+        // 30-char capped form: the cap exists because a horizontal capsule
+        // cannot grow, whereas here the window is fixed and the text scrolls
+        // through it, so nothing needs cutting off. Defaults to valueText so
+        // any future opt-in gets sane behaviour without setting it.
+        property string rotatedValueText: readoutItem.valueText
 
         readonly property bool vertical: root.vertical
 
@@ -165,6 +181,18 @@ BarCapsule {
         // at the cap and a short one sits right beside its glyph. Measured rather
         // than read off the Text's implicitWidth, which is unreliable once
         // `width` and `elide` are both set on that same element.
+        // Natural extent of the ROTATED line, measured in its own font. A third
+        // TextMetrics rather than reusing valueActual, because the rotated form
+        // shows the full uncapped value while valueActual measures the capped
+        // one — sizing the scroll window off the wrong string would either clip
+        // a title early or scroll past its end.
+        TextMetrics {
+            id: rotatedMetrics
+            font.pixelSize: Design.barBodySize
+            font.weight: Design.weightBody
+            text: readoutItem.rotatedValueText
+        }
+
         TextMetrics {
             id: valueActual
             font.pixelSize: Design.barBodySize
@@ -211,6 +239,94 @@ BarCapsule {
                     return readoutItem.valueShrinks ? Math.min(valueActual.width, cap) : cap;
                 }
                 text: readoutItem.populated ? readoutItem.valueText : "—"
+            }
+
+            // The rotated vertical-orientation value (opt-in — media only).
+            // Sized from the two TextMetrics above rather than from its own
+            // Text: TextMetrics is not an Item and takes no part in layout, so
+            // reading it cannot feed back into the Grid that positions this
+            // host. That is the whole reason this shape is loop-free where
+            // `entryGrid.childrenRect.width` and `Slider.availableWidth` both
+            // looped in this same file — a measurement object has nothing
+            // downstream of it to cycle through.
+            //
+            // The host carries the LAYOUT box (line height across the column,
+            // title length down it) while the Text inside is rotated within
+            // that box. A rotated Item still reports its unrotated width and
+            // height to its parent positioner, so without this wrapper the Grid
+            // would reserve the title's full horizontal length and blow the
+            // 44px column apart.
+            Item {
+                id: rotatedValueHost
+                visible: readoutItem.rotateValueVertical && readoutItem.vertical && readoutItem.populated && readoutItem.rotatedValueText !== ""
+                clip: true
+                width: visible ? rotatedMetrics.height : 0
+                // The WINDOW, deliberately capped: a title longer than the cap
+                // scrolls through this box rather than lengthening it. That is
+                // what lets both UI-SPEC rules hold at once — E7 requires the
+                // capsule extent not grow as the title changes, and the vertical
+                // Orientation Transform rule requires no truncation. A static
+                // line can satisfy either but never both; a fixed window with
+                // moving text satisfies both.
+                height: visible ? Math.min(rotatedMetrics.width, readoutItem.rotatedValueMaxRun) : 0
+
+                // How much title does not fit the window. Zero for the common
+                // case (a title shorter than the cap), which is what keeps the
+                // animation below completely inert most of the time.
+                readonly property real overflow: Math.max(0, rotatedMetrics.width - height)
+                property real scroll: 0
+
+                Text {
+                    id: rotatedValueText
+                    // +90, so the title reads top-to-bottom down the column
+                    // rather than bottom-to-top, matching the reading direction
+                    // of the bar's own entry order.
+                    rotation: 90
+                    width: rotatedMetrics.width
+                    height: rotatedMetrics.height
+                    // Rotation is about the item's centre, so placing the centre
+                    // on the host's centre and then offsetting y slides the
+                    // rotated line ALONG the column. At scroll = +overflow/2 the
+                    // title's start is at the window's top edge; at -overflow/2
+                    // its end is at the bottom.
+                    x: (rotatedValueHost.width - width) / 2
+                    y: (rotatedValueHost.height - height) / 2 + rotatedValueHost.scroll
+                    font.pixelSize: Design.barBodySize
+                    font.weight: Design.weightBody
+                    color: root.contentColour
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: readoutItem.rotatedValueText
+                }
+
+                // Ping-pong scroll, and ONLY when there is something to scroll.
+                // `running` is false whenever the host is hidden, motion is
+                // disabled, or the title already fits — so a paused player or a
+                // short track leaves no animation and no timer alive. That is
+                // deliberate: QBAR-11 watches this surface for exactly the class
+                // of "idle timers doing nothing" a always-on marquee would add.
+                SequentialAnimation on scroll {
+                    running: rotatedValueHost.visible && rotatedValueHost.overflow > 0 && Motion.motionEnabled
+                    loops: Animation.Infinite
+                    PauseAnimation {
+                        duration: Design.barDrawerTransitionMs
+                    }
+                    NumberAnimation {
+                        from: rotatedValueHost.overflow / 2
+                        to: -rotatedValueHost.overflow / 2
+                        duration: Math.max(1, rotatedValueHost.overflow) * 28
+                        easing.type: Easing.InOutQuad
+                    }
+                    PauseAnimation {
+                        duration: Design.barDrawerTransitionMs
+                    }
+                    NumberAnimation {
+                        from: -rotatedValueHost.overflow / 2
+                        to: rotatedValueHost.overflow / 2
+                        duration: Math.max(1, rotatedValueHost.overflow) * 28
+                        easing.type: Easing.InOutQuad
+                    }
+                }
             }
         }
     }
@@ -277,6 +393,24 @@ BarCapsule {
             // they still bound the horizontal case, and they are the fallback if
             // showValue is ever re-enabled here.
             showValue: !root.vertical
+            // 2026-08-13, operator: "the now playing module does not display the
+            // title of what is playing". It did not, by the decision recorded
+            // immediately above — and that decision was right about the
+            // constraint and wrong about the only way out of it. A 44px column
+            // fits ~5 characters ACROSS; it has ~1400px DOWN. Rotating the title
+            // moves it onto the axis that has room, so it is shown in full with
+            // no truncation, which is what UI-SPEC's vertical bar actually asks
+            // for — the rule was "no truncation", not "no title".
+            // The glyph-only fallback stays intact for every other vertical
+            // entry, and MediaPopout still carries the full uncapped title.
+            rotateValueVertical: true
+            // The FULL title, not mediaTitleCapped: the 30-char cap exists so a
+            // horizontal capsule cannot be stretched by a long title, and the
+            // rotated form is bounded by its own fixed window instead. Feeding
+            // the capped string here would elide a title twice — once at 30
+            // chars, then again at the window — and scroll to an end that is not
+            // the real end of the track name.
+            rotatedValueText: root.mediaTitleRaw
         }
     }
 

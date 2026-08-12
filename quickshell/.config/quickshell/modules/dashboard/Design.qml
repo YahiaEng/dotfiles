@@ -296,6 +296,22 @@ Singleton {
     //    trayMaxExtent and the popout tokens belong to 18-10/18-13/18-14.
     readonly property int mediaTitleMaxChars: 30
 
+    // ── mediaTitleVerticalRun (2026-08-13) — the maximum length, ALONG the
+    //    column, of the rotated now-playing title in vertical orientation.
+    //    Provenance: operator report that the vertical bar showed no title at
+    //    all. It showed none by design — a 44px column fits roughly five
+    //    characters at barBodySize (measured: a two-digit clock is 14.8px, so
+    //    ~7.4px/char), so UI-SPEC's vertical "no truncation" bar left the title
+    //    to MediaPopout, exactly as network leaves the SSID there.
+    //    Rotating the title 90 degrees changes which axis the constraint lives
+    //    on: the title then runs down the column, where the budget is the bar's
+    //    height rather than its 44px width, and most titles fit outright.
+    //    This cap exists so a pathological title cannot grow the capsule without
+    //    bound — UI-SPEC's E7 row requires the capsule extent stay fixed as the
+    //    title changes. 160 is 10x the glyph pitch and comfortably longer than
+    //    any title that fit the horizontal bar's own 30-char cap.
+    readonly property int mediaTitleVerticalRun: 160
+
     // ── trayMaxExtent (Phase 18 Plan 10) — provenance: 18-UI-SPEC.md
     //    "## New Tokens" + D-18-04. The maximum extent of the tray
     //    capsule's icon row on its long axis (width horizontal, height
