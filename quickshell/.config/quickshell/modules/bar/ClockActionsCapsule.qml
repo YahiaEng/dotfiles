@@ -845,10 +845,23 @@ BarCapsule {
         glyph: "settings"
         label: "Settings"
         filled: clockActionsCapsule.settingsExpanded
+        // NO tint — falls through to ActionCell's default contentColour.
+        //
         // Athena colours the settings-drawer trigger glyph @accent
-        // unconditionally, not as a state indicator (style-athena.scss:298)
-        // — this is a permanent accent glyph, so no ternary.
-        tint: BarRoles.accent
+        // unconditionally (style-athena.scss:298), and this file followed it
+        // until the operator's call on 2026-08-12: the accent moves to
+        // powerCell below. Recorded as a DELIBERATE departure from the
+        // reference bar rather than left looking like a port slip, because
+        // athena is this phase's own aesthetic baseline — GATE-02 Block A
+        // judges every A-row against it — so a reader diffing the two will
+        // find this difference and needs to know it was chosen. The rationale
+        // is that a permanent accent should mark the one irreversible action
+        // on the bar, and opening a settings drawer is not that; invoking the
+        // power menu is.
+        //
+        // `filled` still tracks settingsExpanded, so the trigger keeps its own
+        // open/closed state indication — this removes the permanent colour,
+        // not the feedback.
 
         HoverHandler {
             id: settingsTriggerHoverHandler
@@ -890,6 +903,18 @@ BarCapsule {
         glyph: "power_settings_new"
         label: "Power Menu"
         available: clockActionsCapsule.powerAvailable
+        // The bar's one permanent accent glyph, moved here from
+        // settingsTriggerCell above on the operator's call (2026-08-12) — see
+        // that cell's comment for why the departure from athena is recorded
+        // rather than silent. Unconditional, not a state indicator, so no
+        // ternary: the same shape settings previously used.
+        //
+        // Deliberately NOT gated on `available`. ActionCell already dims an
+        // unavailable cell through its own opacity path, so tinting
+        // conditionally here would express the same state twice and, on a host
+        // where the power menu is missing, would silently leave the bar with no
+        // accent glyph at all.
+        tint: BarRoles.accent
         onClicked: powerLaunchProcess.startDetached()
     }
 
