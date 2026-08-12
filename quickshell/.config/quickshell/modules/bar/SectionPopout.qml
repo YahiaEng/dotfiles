@@ -178,8 +178,16 @@ PanelWindow {
     // identical correction, found hours earlier on the same layer posture; this
     // file is the sibling that taught it the wrong expression and never got the
     // fix. Keep the two files' shape identical.
-    readonly property int _horizontalTopMargin: Design.spacingXs
-    readonly property int _verticalRightMargin: Design.spacingXs
+    //
+    // Then set to zero, operator's call 2026-08-12: the card's leading edge is
+    // to sit flush with the Hyprland window edge, not a gap short of it. The
+    // compositor has already placed this surface at the reserved boundary — the
+    // very edge a maximized window starts at (measured: reserved [0,48,0,0], so
+    // y=48) — so zero IS that alignment and any positive margin pushes the card
+    // off it. Deliberately 0 rather than a Design token: there is no gap left to
+    // name, and inventing a zero-valued token would imply a tunable that isn't.
+    readonly property int _horizontalTopMargin: 0
+    readonly property int _verticalRightMargin: 0
 
     readonly property real _horizontalDesiredLeft: Design.barSideMargin + popoutWindow.triggerCentre - popoutWindow.width / 2
     readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(popoutWindow._horizontalDesiredLeft, (popoutWindow.screen ? popoutWindow.screen.width : popoutWindow.width) - popoutWindow.width - Design.barSideMargin))
