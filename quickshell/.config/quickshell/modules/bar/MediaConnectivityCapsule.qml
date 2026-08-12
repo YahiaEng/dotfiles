@@ -240,6 +240,22 @@ BarCapsule {
             elideValue: true
             populated: true
             valueText: root.mediaTitleCapped
+            // GLYPH ONLY in vertical — the title lives in MediaPopout there.
+            // A track title cannot be shown in a 44px column, and UI-SPEC's
+            // Orientation Transform Rules set the vertical acceptance bar at "no
+            // truncation": entries re-stack to "glyph above short value, or glyph
+            // beside an abbreviated value, whichever fits 44px WITHOUT
+            // truncation". A capped-and-elided title fits the box but only by
+            // truncating, which that bar excludes — the operator saw it as "the
+            // media module is cropped".
+            //
+            // Network is the precedent the same spec names: it "deliberately
+            // renders {icon} only (SSID in the popout)". Media now reads the same
+            // way in vertical, and the popout is reachable exactly as before.
+            // maxWidthVertical/elideValue above are retained rather than deleted:
+            // they still bound the horizontal case, and they are the fallback if
+            // showValue is ever re-enabled here.
+            showValue: !root.vertical
         }
     }
 
@@ -921,8 +937,24 @@ BarCapsule {
             PopoutTrigger {
                 id: bluetoothPopoutTrigger
                 sectionId: "bluetooth"
-                anchors.right: root.vertical ? undefined : parent.right
-                anchors.verticalCenter: root.vertical ? undefined : parent.verticalCenter
+                // Explicit x/y, NOT conditional anchors cleared with `undefined`.
+                // The comment above claimed vertical was "untouched: no anchor
+                // override there, so an unanchored child still renders at its
+                // parent's origin (0,0)" — that is false, because assigning
+                // `undefined` to an anchor line from inside a binding does not
+                // reliably clear it. The right anchor therefore stayed live in
+                // vertical and MEASURED at x=-10.8 right=0.0: the glyph rendered
+                // entirely left of the column and the host's clip:true erased it,
+                // which is the operator's "wifi expansion does not reveal
+                // bluetooth". The reveal was working; its content was off-surface.
+                //
+                // Same failing idiom found the same day in Bar.qml's zone
+                // containers, where verticalCenter surviving alongside top/bottom
+                // made Qt derive a full-height Grid. Explicit x/y cannot
+                // half-apply: trailing edge horizontally (what the 16px pitch is
+                // measured from, per the comment above), centred vertically.
+                x: root.vertical ? (parent.width - width) / 2 : (parent.width - width)
+                y: (parent.height - height) / 2
                 popoutComponent: Component {
                     BluetoothPopout {
                         bluetoothBackend: root.bluetoothBackend

@@ -112,6 +112,39 @@ Rectangle {
     Grid {
         id: contentGrid
         anchors.centerIn: parent
+        // Centre every item on the CROSS axis, in both orientations. Grid
+        // defaults to AlignLeft/AlignTop, and with one row (horizontal) or one
+        // column (vertical) the cross-axis default is what decides whether
+        // narrow items line up with wide ones.
+        //
+        // MEASURED 2026-08-12 in vertical, 44px column: the clock cell (39.1
+        // wide, the widest child) set the grid's width, and every narrower cell
+        // hugged its leading edge — gaming/bell/settings/power all sat at x=2.0
+        // w=24.0, centre 14 against a column centre of 22. The operator reported
+        // exactly that split: "clock pill positioned too far to the right" and
+        // "power, settings, gaming mode, ethernet, wifi, volume, now playing all
+        // positioned to the left too much". Neither was actually mispositioned —
+        // the clock was centred and the rest were not.
+        //
+        // This is the same defect GATE-02's F1 recorded on the OTHER axis ("the
+        // time pill looks like it is positioned higher up than the rest"), whose
+        // root cause was noted then as "Grid defaults to AlignTop for its items
+        // and no verticalItemAlignment is set anywhere in the file". Both axes
+        // are set here now, so neither can recur.
+        horizontalItemAlignment: Grid.AlignHCenter
+        verticalItemAlignment: Grid.AlignVCenter
+        // KNOWN RESIDUAL, measured and left open deliberately (2026-08-12):
+        // this Grid reports w=16 in mediaConnectivity while holding 33-wide
+        // percent readouts (brightness, battery), because those Readouts' value
+        // Text carries a reserve for "100%" that its own 16px-wide box never
+        // accounts for. Centring them therefore lands at x=14 -> right=47, 3px
+        // past the 44px column; before item alignment was set they sat at x=0
+        // -> right=33 and fitted only by being left-aligned. Pinning this width
+        // to `capsuleRoot.width` was tried and DID NOT take (the binding
+        // self-references contentGrid.implicitWidth in its other branch and Qt
+        // drops it) — measured no change, so it is not left here as dead code.
+        // The real fix belongs in MediaConnectivityCapsule's Readout, whose box
+        // must reserve its stacked value's width in vertical.
         spacing: capsuleRoot.contentGap
         rows: capsuleRoot.vertical ? -1 : 1
         columns: capsuleRoot.vertical ? 1 : -1
