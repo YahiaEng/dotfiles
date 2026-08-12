@@ -270,6 +270,12 @@ try:
 except OSError:
     sys.exit(0)
 
+# Announce liveness once at connect time so the journal always carries
+# evidence the watchdog is actually attached and watching, independent
+# of whether a monitor event has fired yet — the unit can otherwise run
+# for hours in complete silence (correct, but unverifiable at a glance).
+log(f"watching {SOCKET_PATH} for monitor events (mode={MODE})")
+
 buf = b""
 pending_deadline = None  # time.monotonic() deadline, or None if idle
 

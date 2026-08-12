@@ -1,0 +1,72 @@
+# quickshell-bar-watchdog.service — this repo's SECOND custom systemd
+# --user unit, beside quickshell.service (18-07, QBAR-10, D-18-40).
+#
+# What this supervises and why it is a second authored unit rather than a
+# uwsm scope: it must outlive transient failures the same way the thing
+# it watches does — quickshell.service is the FIRST surface in this repo
+# whose process death is a visible desktop outage, and this unit exists
+# because the outage recorded at WINDOWS.md row 67 does NOT kill that
+# process at all. quickshell stays perfectly healthy — same pid,
+# NRestarts=0, ActiveState=active, zero QML errors — while a monitor
+# removal/re-add destroys the `quickshell-bar` layer surface underneath
+# it and the shell never notices. A `uwsm app` scope has no restart
+# policy and no independent supervision lifecycle; this unit needs both,
+# exactly the same two properties that justified quickshell.service
+# itself.
+#
+# No [Install] section, and therefore no enable step — same reasoning as
+# quickshell.service's own header: enabling would write a wants-symlink
+# into the user's own systemd tree that never lands in the repo,
+# contradicting this project's core value that the whole setup
+# reproduces from a clone plus one script. Omitting the stanza makes that
+# failure mode structurally impossible — the unit cannot be enabled even
+# by accident (`systemctl --user is-enabled` reports `static`).
+# autostart.lua starts it explicitly instead, keeping that file the
+# single readable inventory of what a session launches.
+#
+# PartOf=/After=graphical-session.target and Slice=app-graphical.slice,
+# for the same reasons quickshell.service gives: PartOf= is what stops
+# this unit at session end, which is what stops the restart policy
+# retrying forever against a compositor that no longer exists; the slice
+# keeps it in the same cgroup parent as everything else the session
+# starts.
+#
+# Explicitly NOT PartOf=/BindsTo=quickshell.service. This unit's entire
+# job is to restart quickshell.service — binding its own lifetime to the
+# unit it restarts would tear the watchdog down inside its own recovery
+# (a PartOf=/BindsTo= relationship stops or restarts the dependent unit
+# whenever the target unit stops), and would couple two restart policies
+# that must stay independent: quickshell.service recovering from its own
+# crashes is unrelated to this unit recovering the bar surface, and each
+# must be free to retry/backoff on its own schedule without the other
+# interfering.
+#
+# The exit-0 contract: bar-watchdog.sh's guard paths (no session, no
+# socket, clean EOF at session exit) all `exit 0`, and per
+# systemd.service(5) a clean exit does NOT restart under
+# Restart=on-failure — so a headless or post-session invocation degrades
+# to a logged skip and can never enter a restart cycle. Same reasoning,
+# same conclusion as quickshell.service's own guard paths.
+#
+# No ExecReload=: there is no reload verb, and inventing one would create
+# a second untested control path no caller asks for.
+#
+# Logs go to the journal (`journalctl --user -u
+# quickshell-bar-watchdog.service`), which is why the script writes to
+# stdout and carries no log file or rotation logic of its own — a
+# deliberate divergence from quickshell-launch.sh's ~1MiB rotation, which
+# exists because that script predates having a unit at all.
+
+[Unit]
+Description=Quickshell bar watchdog (monitor-event surface recovery)
+PartOf=graphical-session.target
+After=graphical-session.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+Slice=app-graphical.slice
+ExecStart=%h/.config/hypr/scripts/bar-watchdog.sh
+Restart=on-failure
+RestartSec=2
