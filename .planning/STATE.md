@@ -5,10 +5,10 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed quick-260812-n9b (event-driven bar watchdog for WINDOWS row 67)
+stopped_at: Completed quick-260812-opa (GATE-02 F5 popout offset); 18-19 awaiting iteration-3 human pass
 last_updated: "2026-08-12T14:32:03.801Z"
 last_activity: 2026-08-12
-last_activity_desc: Four GATE-02 iteration-1 defects fixed (quick 260812-69w) — gate ready for iteration 2
+last_activity_desc: GATE-02 F5 fixed (quick 260812-opa) — popout cards no longer 52px low; gate iteration 3 pending
 progress:
   total_phases: 6
   completed_phases: 1
@@ -483,6 +483,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 11 | Give bar hover drawers their own collapse-grace token (barDrawerGraceMs 600, was borrowing popoutDismissGraceMs 200) — drawers were collapsing before finishing their 500ms reveal | 2026-08-12 | c78655e | — |
 | 12 | Bar: fix tooltip placement double-counting the bar extent on both axes; add an ethernet glyph left of wifi, visible only while a wired link is connected | 2026-08-12 | 67333c5 | — |
 | 13 | Add an event-driven bar watchdog (socket2 listener + systemd unit) that restores the QML bar after a monitor sleep/hotplug — works around WINDOWS row 67, which stays open | 2026-08-12 | 59ec9ae | — |
+| 260812-opa | GATE-02 F5: popout cards sat 52px low — SectionPopout double-counted the bar extent past an offset the compositor already applied (measured y=100 → y=52). Same correction BarTooltip already carried; BarDrawer followed to keep the shared anchoring rule identical | 2026-08-12 | cefcf20 | [260812-opa-fix-gate-02-f5-popout-cards-render-52px-](./quick/260812-opa-fix-gate-02-f5-popout-cards-render-52px-/) |
 
 ### Pending Todos
 
