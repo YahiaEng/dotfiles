@@ -4,7 +4,7 @@
 
 **Arch + Hyprland Dotfiles**
 
-Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow and installed on fresh systems via a custom `install.sh`. The centerpiece is a dynamic theming system: custom scripts switch between static pre-configured themes and matugen-generated (wallpaper-driven) themes, propagating colors to every desktop component — Hyprland, kitty, waybar, swaync, walker, thunar, GTK apps, wleave.
+Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow and installed on fresh systems via a custom `install.sh`. The centerpiece is a dynamic theming system: custom scripts switch between static pre-configured themes and matugen-generated (wallpaper-driven) themes, propagating colors to every desktop component — Hyprland, kitty, the Quickshell bar, swaync, walker, thunar, GTK apps, wleave.
 
 **Core Value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
 
@@ -59,9 +59,9 @@ Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow an
 
 # Milestone 2 add-ons
 
-# playerctl already installed; no action needed for the waybar mpris module
+# playerctl already installed; the QML bar's media capsule reads it via MediaBackend.qml
 
-# (it ships inside the waybar package itself)
+# (no bar-side package to install — the readout ships in this repo's quickshell/ tree)
 
 ## Alternatives Considered
 
@@ -69,7 +69,7 @@ Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow an
 |-------------|-------------|--------------------------|
 | matugen | pywal / wpgtk | Only if you need Python-ecosystem template hooks or `pywal`'s specific 16-color terminal palette algorithm; both are less actively maintained for Wayland/GTK4 in 2025/2026 and don't have matugen's Material You algorithm or first-class Hyprland templates. Not recommended here — would mean redoing the whole pipeline for no functional gain. |
 | GSettings/dconf (already in place) | xsettingsd | Never on this stack — see "What NOT to Use." |
-| Waybar built-in `mpris` module | Custom `playerctl`-backed script module | When the desired now-playing UI needs a popover/expanded panel beyond a single bar segment's inline text — otherwise the built-in module is strictly less code to maintain. |
+| QML media capsule + popout (`modules/bar/MediaConnectivityCapsule.qml`, `modules/bar/MediaPopout.qml`) | A separate polled script module | Never on this stack — waybar was retired in Phase 18 Plan 20 (RETIRE-02) and there is no bar-side module system to poll into. The capsule reads `modules/dashboard/MediaBackend.qml` directly via Quickshell's data bindings; extend that backend rather than adding an external polling script. |
 | swayosd | Custom `wob`-style OSD scripts | Only if you specifically want a minimalist single-bar OSD (`wob`) instead of the fuller GTK popup swayosd provides; swayosd is the more actively developed and more themeable (full CSS) option and already integrates cleanly with the matugen named-color pattern used elsewhere in this repo. |
 | nwg-look (diagnostic only) | lxappearance | lxappearance is an X11/Xwayland tool that requires workarounds under wlroots compositors and writes to `settings.ini` rather than GSettings — do not use it for diagnosing this repo's Wayland-native theming pipeline. |
 
@@ -88,7 +88,7 @@ Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow an
 - Skip any xsettings-daemon-based fix entirely; the correct live-update path is GSettings/dconf + the portal, which this repo's `gtk-reload.sh` already targets correctly.
 - Treat GTK3 apps (Thunar) as "restart required after CSS/theme-package change" and GTK4/libadwaita apps (Walker) as "restart required after CSS change, but dark/light + accent color can live-update via the portal if you choose to layer that on later."
 - Any walker-restart script must ensure `elephant` is also healthy (not just relaunch `walker --gapplication-service`) before concluding a theme fix is complete — a stale/mismatched `elephant` won't surface as a CSS problem but can look like one (blank/default UI).
-- Use a custom `playerctl`-backed waybar `custom` module or a small GTK4 popover, following the same named-color CSS convention as the rest of the stack, rather than introducing a different toolkit/framework just for this widget.
+- Build any new bar widget as a QML capsule under `quickshell/.config/quickshell/modules/bar/`, colored through `Colours.qml` and animated through `Motion.qml`, rather than introducing a different toolkit/framework just for one widget. `colour-lint` (GATE-04) rejects hardcoded colors in QML, so read palette values from `Colours.qml` rather than writing literals.
 
 ## Version Compatibility
 
@@ -97,7 +97,7 @@ Personal dotfiles for an Arch Linux + Hyprland desktop, managed with GNU stow an
 | walker 2.16.2 | elephant 2.21.0 | Both currently installed and running on this machine; keep them upgraded together since they speak a private protocol over a Unix socket — a walker/elephant version skew is a plausible (if unconfirmed) contributor to launcher misbehavior beyond just theming. |
 | gtk3 3.24.52 | adw-gtk-theme 6.5-1 | Once installed, `adw-gtk-theme` provides the `adw-gtk3-dark`/`adw-gtk3` theme names already referenced by this repo's `settings.ini` and GSettings — no other config change needed. |
 | gtk4 4.22.4 | libadwaita 1:1.9.2-1 | Current libadwaita supports the GNOME47+ accent-color GSettings key; this repo does not currently rely on it (uses full named-color CSS overrides instead), which is the more complete theming approach and should be kept rather than switched to the accent-color API alone. |
-| waybar 0.15.0 | `reload_style_on_change` config key | Available in this version; not currently enabled in this repo's `config-*.jsonc` — safe, low-risk addition as a belt-and-suspenders alongside the existing `SIGUSR2` post_hook. |
+| quickshell | matugen-bin 4.1.0 | The bar reads its palette from `Colours.qml`, regenerated by the matugen/theme-engine pipeline. QML hot-reloads on file change natively, so no signal-driven reload hook is needed — unlike the retired waybar's `SIGUSR2` post_hook, which Phase 18 Plan 20 removed along with the rest of the surface. |
 
 ## Sources
 
