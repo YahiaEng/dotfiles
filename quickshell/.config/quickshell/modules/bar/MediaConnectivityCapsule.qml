@@ -360,7 +360,7 @@ BarCapsule {
     }
     Timer {
         id: audioDrawerGraceTimer
-        interval: Design.popoutDismissGraceMs
+        interval: Design.barDrawerGraceMs
         repeat: false
         onTriggered: {
             if (!root.audioDrawerHoverActive)
@@ -743,7 +743,7 @@ BarCapsule {
     }
     Timer {
         id: connectionsDrawerGraceTimer
-        interval: Design.popoutDismissGraceMs
+        interval: Design.barDrawerGraceMs
         repeat: false
         onTriggered: {
             if (!root.connectionsDrawerHoverActive)

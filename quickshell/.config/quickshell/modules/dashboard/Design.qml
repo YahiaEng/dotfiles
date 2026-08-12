@@ -215,6 +215,25 @@ Singleton {
     //    ~100ms threshold at which a delay becomes perceptible, so it reads as
     //    immediate while still filtering pass-through motion.
     readonly property int barDrawerDwellMs: 80
+    //    The collapse side of the same gesture, and deliberately NOT
+    //    popoutDismissGraceMs (200), which the two drawer grace timers
+    //    borrowed until 2026-08-12. That value is correct for dismissing a
+    //    popout — a large surface sitting directly under the pointer — and
+    //    wrong here for two measured reasons. First, it is less than half
+    //    barDrawerTransitionFastMs (500), so a drawer could begin collapsing
+    //    before it had finished opening. Second, reaching a revealed glyph
+    //    means traversing barCapsuleGap (16) between trigger and strip, and
+    //    across that gap neither HoverHandler reports hovered while the
+    //    clock is already running — the operator's report was that the
+    //    drawers "disappear too fast making it hard to reach the expanded
+    //    bluetooth/mic glyphs".
+    //    600 exceeds the 500ms reveal so a collapse can never race the open,
+    //    and leaves 100ms of traversal headroom. It equals barReHideGraceMs
+    //    (600) on purpose: that token is already 3x popoutDismissGraceMs on
+    //    the recorded reasoning that re-hiding the whole bar is a costlier
+    //    mistake than dismissing a popout, and collapsing a drawer the user
+    //    is actively reaching into is that same class of mistake.
+    readonly property int barDrawerGraceMs: 600
 
     //    ── Intra- vs inter-group gap, and why intra is the LARGER one ─────
     //    Upstream Athena's readout modules carry `padding: 0 8px` plus

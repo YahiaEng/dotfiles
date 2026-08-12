@@ -176,7 +176,7 @@ BarCapsule {
 
     Timer {
         id: drawerGraceTimer
-        interval: Design.popoutDismissGraceMs
+        interval: Design.barDrawerGraceMs
         repeat: false
         onTriggered: {
             if (!launcherCapsule.drawerHoverActive)
