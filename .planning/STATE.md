@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed quick-260812-pd5 vertical pass; 18-19 awaiting iteration-3 human pass
-last_updated: "2026-08-12T19:27:09.804Z"
+stopped_at: Completed 18-19-PLAN.md (GATE-02) - RETIRE-02 AUTHORISED against 2644ae0, 18-20 unblocked
+last_updated: "2026-08-12T19:45:12.776Z"
 last_activity: 2026-08-12
-last_activity_desc: "Vertical bar pass (quick 260812-pd5): centring/clipping/zone fixes measured; 2 x 3px residuals open; GATE-02 iteration 3 pending"
+last_activity_desc: "18-19 (GATE-02) closed on Iteration 3: 14 PASS, B.3 NOT-DEMONSTRABLE, 0 FAIL — RETIRE-02 AUTHORISED against 2644ae0; 18-20 unblocked"
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 27
-  completed_plans: 25
+  completed_plans: 26
   percent: 17
 ---
 
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
-Plan: 1 of 20
-Status: Executing Phase 18
-Progress: [█████████░] 93%
-Last activity: 2026-08-12 — Phase 18 execution resumed (wave continue)
+Plan: 20 of 20 (18-19/GATE-02 complete; 18-20/RETIRE-02 next)
+Status: Ready to execute
+Progress: [██████████] 96%
+Last activity: 2026-08-12 — 18-19 (GATE-02) closed, RETIRE-02 authorised
 
 ## Performance Metrics
 
@@ -216,6 +216,7 @@ Last activity: 2026-08-12 — Phase 18 execution resumed (wave continue)
 | Phase 18.1 P05 | ~30min | 3 tasks | 2 files |
 | Phase 18.1 P06 | 35min | 3 tasks | 2 files |
 | Phase 18.1 P07 | ~10min | 1 tasks | 3 files |
+| Phase 18 P19 | multi-session | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -465,6 +466,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: D-21 BarRoles-to-theme.scss diff is fully mechanical: every property name converts to its theme.scss role via camelCase->kebab-case regex with zero hand-authored pairing table; 17/17 rows resolved, zero disagreements.
 - [Phase ?]: 18.1-07: GATE-02 FAILED — operator judged the restored QML bar worse than Athena on black surfaces (Colours.qml property-string type bug), oversized/clunky geometry, sudden drawer reveal, and jarring default app-drawer icons. Recorded truthfully (not softened); 18-19/18-20 stay blocked, waybar retained. Root causes filed in WINDOWS.md ids 58-62 for gap-closure.
 - [Phase ?]: [Quick 260812-n9b]: Added event-driven bar-watchdog (socket2 listener + quickshell-bar-watchdog.service) as a workaround for WINDOWS row 67 (monitor removal destroys quickshell-bar layer surface, shell stays healthy and unaware). Reverses D-18-28's listener retirement for a structurally different reason — the shell cannot self-report this failure. Fixture-proven (8 cases, 23/23), live-installed and stable, but end-to-end recovery is UNPROVEN until a real display sleep occurs; WINDOWS row 67 stays open. Adds a second permanent process, changing 18-BAR-SOAK.md Section one's process-count claim (not corrected by this plan).
+- [Phase ?]: GATE-02 closed on Iteration 3 (sha 2644ae0): 14 rows PASS, B.3 NOT-DEMONSTRABLE per D-18-39, 0 FAIL, 0 OVERRIDDEN — RETIRE-02 AUTHORISED, four disclosed cosmetic residuals accepted as known-state debt
 
 ### Quick Tasks Completed
 
@@ -602,8 +604,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-12T14:09:55.789Z
-Stopped at: Completed quick-260812-n9b (event-driven bar watchdog for WINDOWS row 67)
+Last session: 2026-08-12T19:45:12.755Z
+Stopped at: Completed 18-19-PLAN.md (GATE-02) - RETIRE-02 AUTHORISED against 2644ae0, 18-20 unblocked
 Resume file: None
 
 ## Operator Next Steps
