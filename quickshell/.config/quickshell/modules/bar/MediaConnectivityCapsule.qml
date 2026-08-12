@@ -962,18 +962,28 @@ BarCapsule {
     // Quickshell build — only `nmManaged` exists — so a predicate written
     // against `managed` would have been falsy forever and this glyph would
     // never once have appeared. It is deliberately not referenced here.
-    readonly property bool ethernetConnected: {
+    // Resolved to the DEVICE rather than to a boolean (operator request,
+    // 2026-08-12): EthernetPopout.qml needs the object itself to read `name`,
+    // `linkSpeed`, `hasLink` and `address` off it. `ethernetConnected` below is
+    // now derived from this single resolution rather than walking the model a
+    // second time, so the glyph's visibility and the card's contents can never
+    // disagree about which device they mean. Same filtered-access shape
+    // WifiBackend.qml's own `wifiDevice` uses (RESEARCH Pitfall 1); `null` is
+    // an ordinary value, never an error.
+    readonly property var ethernetDevice: {
         const devs = Networking.devices;
         if (!devs || !devs.values)
-            return false;
+            return null;
         const vals = devs.values;
         for (let i = 0; i < vals.length; i++) {
             const d = vals[i];
             if (d && d.type === DeviceType.Wired && d.connected === true)
-                return true;
+                return d;
         }
-        return false;
+        return null;
     }
+
+    readonly property bool ethernetConnected: root.ethernetDevice !== null
 
     // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — named seam into this
     //    18-08-owned file. Ownership split, stated so it is never
@@ -1018,11 +1028,34 @@ BarCapsule {
     // mode GATE-02 row A.3 names (a nonexistent ligature renders as its own
     // name in plain text). Coverage confirmed with fc-list against the
     // capsule's own drawerGlyphFontFamily (FiraCode Nerd Font) before use.
-    Readout {
+    // Wrapped in a PopoutTrigger (operator request, 2026-08-12): this shipped
+    // as a bare Readout, so it was the one glyph in this capsule whose click
+    // did nothing while its immediate neighbour opened a full card. The
+    // wrapper is the ONLY addition — the predicate, the glyph, the font and
+    // the zero-extent-when-hidden behaviour are all unchanged, and `visible`
+    // moves onto the trigger so a hidden entry still contributes no extent and
+    // cannot be hovered into summoning a card for an absent device.
+    //
+    // No HoverHandler here, deliberately, unlike wifiPopoutTrigger above: that
+    // one feeds the connections drawer's reveal contract, and the drawer's
+    // extent is measured off bluetoothPopoutTrigger's own width. Adding a
+    // second hover reporter for a conditional entry would make that measured
+    // extent depend on whether a cable is plugged in.
+    PopoutTrigger {
+        id: ethernetPopoutTrigger
         visible: root.ethernetConnected
-        glyph: "\u{f0200}"
-        glyphFontFamily: root.drawerGlyphFontFamily
-        showValue: false
+        sectionId: "ethernet"
+        popoutComponent: Component {
+            EthernetPopout {
+                ethernetDevice: root.ethernetDevice
+            }
+        }
+
+        Readout {
+            glyph: "\u{f0200}"
+            glyphFontFamily: root.drawerGlyphFontFamily
+            showValue: false
+        }
     }
 
     // ── battery ──────────────────────────────────────────────────────────

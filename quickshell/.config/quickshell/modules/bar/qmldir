@@ -67,6 +67,7 @@ AudioPopout 1.0 AudioPopout.qml
 # ClockPopout/ResourcesPopout (Task 2), MediaPopout (Task 3). None is a
 # singleton — each is instantiated once per popout summon through its own
 # PopoutTrigger's popoutComponent, never held ambiently.
+EthernetPopout 1.0 EthernetPopout.qml
 WifiPopout 1.0 WifiPopout.qml
 BluetoothPopout 1.0 BluetoothPopout.qml
 ClockPopout 1.0 ClockPopout.qml

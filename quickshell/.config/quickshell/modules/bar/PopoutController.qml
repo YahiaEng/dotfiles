@@ -21,15 +21,27 @@ import "../dashboard"
 Singleton {
     id: root
 
-    // ── The six-section allowlist (D-18-16) ─────────────────────────────
-    // Every popout body this plan or 18-14 ever adds is one of these six
-    // names. Validated before a sectionId reaches
+    // ── The section allowlist (D-18-16) ─────────────────────────────────
+    // Every popout body this plan or 18-14 ever adds is one of these names.
+    // Validated before a sectionId reaches
     // WlrLayershell.namespace (SectionPopout.qml) — the same
     // validate-before-interpolate discipline Overview.qml applies before a
     // compositor dispatch, because an id outside the family prefix would
     // silently lose the family's blur and alpha layer rules and disappear
     // from GATE-03's checks.
-    readonly property var sections: ["audio", "wifi", "bluetooth", "clock", "resources", "media"]
+    //
+    // EXTENDED from D-18-16's original SIX to seven, 2026-08-12, by operator
+    // request: "ethernet" joins them so the wired glyph — which shipped as a
+    // bare Readout beside a network glyph that had a popout — can open
+    // EthernetPopout.qml. Recorded as an extension rather than made quietly,
+    // because this list is a deny-by-default gate and its whole value is that
+    // growing it is a visible act. The gate's own mechanism is unchanged, and
+    // nothing here asserts a COUNT: the previous "six" was prose, never a
+    // machine check (verified before editing), so no gate needed relaxing to
+    // admit the seventh. GATE-03's bar-surface registry needed no new row
+    // either — its SectionPopout entry stores the PATTERN prefix
+    // `quickshell-bar-`, which `quickshell-bar-ethernet` already matches.
+    readonly property var sections: ["audio", "wifi", "bluetooth", "clock", "resources", "media", "ethernet"]
 
     function isValidSection(id) {
         return root.sections.indexOf(id) !== -1;

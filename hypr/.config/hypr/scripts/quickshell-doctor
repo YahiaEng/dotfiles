@@ -1769,6 +1769,7 @@ QSD_BAR_COLOUR_ROLE_EXEMPT=(
     "SectionPopout.qml"     # popout framework — out of phase 18.1 scope_fence
     "AudioPopout.qml"       # popout content — out of phase 18.1 scope_fence
     "WifiPopout.qml"        # popout content — out of phase 18.1 scope_fence
+    "EthernetPopout.qml"    # popout content — same colour layer as its six siblings (added 2026-08-12)
     "BluetoothPopout.qml"   # popout content — out of phase 18.1 scope_fence
     "ClockPopout.qml"       # popout content — out of phase 18.1 scope_fence
     "ResourcesPopout.qml"   # popout content — out of phase 18.1 scope_fence
