@@ -5,10 +5,10 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: Completed quick-260812-pd5 (bar: ethernet card, updates tooltip, GPU glyph); 18-19 awaiting iteration-3 human pass
+stopped_at: Completed quick-260812-pd5 vertical pass; 18-19 awaiting iteration-3 human pass
 last_updated: "2026-08-12T14:32:03.801Z"
 last_activity: 2026-08-12
-last_activity_desc: Bar refinements + two quickshell-doctor gate bugs fixed (quick 260812-pd5); GATE-02 iteration 3 pending
+last_activity_desc: Vertical bar pass (quick 260812-pd5): centring/clipping/zone fixes measured; 2 x 3px residuals open; GATE-02 iteration 3 pending
 progress:
   total_phases: 6
   completed_phases: 1

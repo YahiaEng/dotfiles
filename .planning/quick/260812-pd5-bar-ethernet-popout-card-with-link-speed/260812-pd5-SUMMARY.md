@@ -248,6 +248,51 @@ GATE-02 Block A's baseline, so the difference had to be marked as chosen rather 
 Not gated on `available`, since `ActionCell` already dims unavailable cells via opacity (verified)
 and a conditional tint would leave a host with no power menu showing no accent at all.
 
+## Vertical-orientation pass (`00e90aa`, `23c7d21`, `1787f54`, `df01b56`)
+
+Ran a measured vertical pass at the operator's request. Flipped via
+`bar-orientation.sh`, measured with temporary probes (all removed), flipped back with
+`reserved=[0,48,0,0]` and `bar x=10 y=6 w=2540 h=42` byte-identical to baseline. Same
+process throughout, pid `3012973`, no restart.
+
+**Fixed, each confirmed by measurement:**
+
+| Issue | Before | After |
+|---|---|---|
+| Dead space in the column | content ended y=1004 of 1420 | start 0→624, end 1016→**1420** |
+| `endZone` drawing over `startZone` | both grids `h=1420 sceneY=0` | implicit again (624 / 404) |
+| clockActions clipping | `crW=61.3` at `x=-9` in a 44px column | nothing exceeds 44 |
+| Popouts/drawers off their trigger | +10px both axes | trigger 786.98 vs popout centre 787 |
+| "clock too far right / rest too far left" | cells `x=2` centre 14 | cells `x=9.6` centre 21.6 |
+| wifi expansion not revealing bluetooth | `x=-10.8 right=0.0` (clipped away) | `x=20.6 right=31.4` |
+| media cropped | `w=44`, title truncated | `w=16` glyph-only, centred |
+
+**Three root causes worth remembering:**
+
+1. **`anchors.x = undefined` does not clear an anchor from inside a binding.** Found in
+   `Bar.qml`'s zone containers and again in `MediaConnectivityCapsule`'s bluetooth trigger —
+   whose comment explicitly claimed the opposite. In the zone case a surviving `verticalCenter`
+   made Qt *derive* height: `top=0 + verticalCenter=710 → h=1420`. Replaced with explicit x/y.
+2. **`Grid` defaults to `AlignLeft`/`AlignTop`** and sets no item alignment, so the widest child
+   decides where narrow ones sit. This is GATE-02's F1 on the other axis.
+3. **`Grid` sizes columns from `implicitWidth`, not resolved `width`** — which is why the percent
+   readouts still overhang (below).
+
+**Still open, both measured and commented in-source:**
+
+- brightness/battery percent readouts overhang the column by 3px (`right=47` vs 44). Cause
+  isolated: the value Text's `implicitWidth` is its natural extent while its bound width is the
+  "100%" reserve, so the box reserves 16. A `childrenRect` fix reached `right=45` but produced
+  "Binding loop detected for property implicitWidth" and was reverted.
+- workspace numerals sit 3px left inside their slots (`centre=19.0`); the slots themselves
+  measure correctly centred at 22.0.
+
+**Declined deliberately:** the audio/wifi reveal strips still grow along the column rather than
+leftward. Option B (`BarDrawer`) is wired only into `LauncherCapsule` and `ClockActionsCapsule`.
+Relocating a slider and mic cell needs a `Component` plus two `Loader`s and re-plumbing three
+external id references, and would risk the measured horizontal invariants ("all three gaps
+measure 16.00"). The operator chose to keep the current behaviour.
+
 ## Consequence for phase 18
 
 These change the bar, so GATE-02's fingerprint is void again. Iteration 3 must open against a
