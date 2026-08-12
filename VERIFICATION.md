@@ -180,9 +180,9 @@ uwsm start hyprland-uwsm.desktop
 configured — the minimal archinstall baseline from step 2 has none by
 default, so the TTY command above is the expected path here.)
 
-Confirm walker, elephant, waybar, swaync, and Thunar all come up themed
-— no relogin, no manual fixups. This is the moment the container tier
-cannot exercise at all.
+Confirm walker, elephant, the Quickshell bar, swaync, and Thunar all come
+up themed — no relogin, no manual fixups. This is the moment the
+container tier cannot exercise at all.
 
 ## 7. Run theme-doctor and theme-parity, save the logs (D-45)
 
@@ -211,8 +211,8 @@ via SPICE) as the machine-readable half of the INST-03 evidence.
 Look at the VM's own display (the SPICE/QEMU console window, not a
 screenshot taken by a script) and confirm, with your own eyes:
 
-- Waybar, swaync, walker, wleave, and Thunar all show the same theme
-  (Catppuccin, by default from the first-boot seed in step 5)
+- The Quickshell bar, swaync, walker, wleave, and Thunar all show the
+  same theme (Catppuccin, by default from the first-boot seed in step 5)
 - Switching themes (`Super + Shift + T`) live-updates every visible app
   instantly, no relogin — the same ten-target standard from Phase 1/2
 - Nothing is unstyled, blank, or still showing stock GTK defaults

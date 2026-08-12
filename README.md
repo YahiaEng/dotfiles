@@ -1,13 +1,13 @@
 # 🍚 Hyprland Dotfiles — Material You + Multi-Theme Rice
 
-A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme and waybar layout switching through custom Walker menus.
+A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme switching and bar orientation switching through custom Walker menus.
 
 ## ✨ Features
 
 - **Dynamic Material You theming** — colors auto-generated from your wallpaper via Matugen
 - **6 static themes** — Catppuccin Mocha, Dracula, Rosé Pine, Gruvbox Dark, Tokyo Night, Nord
-- **3 waybar layouts** — Minimal, Full (system stats + media), Floating (island-style)
-- **Walker-powered switching** — change themes and waybar layouts on the fly
+- **Quickshell bar** — horizontal/vertical orientation switching, workspaces, media/connectivity capsule, tray, clock
+- **Walker-powered switching** — change themes and bar orientation on the fly
 - **NVIDIA optimized** — env variables for 2160×1440 @ 165Hz
 - **Smooth animations** — Material Design 3 inspired bezier curves
 - **GNU Stow managed** — clean symlink structure from `~/dotfiles` → `~/.config`
@@ -18,7 +18,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 | Component       | Tool                  |
 |:----------------|:----------------------|
 | Window Manager  | Hyprland              |
-| Status Bar      | Waybar                |
+| Status Bar      | Quickshell            |
 | Launcher        | Walker                |
 | Terminal        | Kitty                 |
 | Notifications   | SwayNC                |
@@ -50,20 +50,18 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │   ├── hyprlock.conf
 │   └── scripts/
 │       ├── theme-switch.sh             # Walker theme picker
-│       ├── waybar-switch.sh            # Walker waybar layout picker
+│       ├── bar-orientation.sh          # Walker bar orientation picker
 │       ├── wallpaper-switch.sh         # Walker wallpaper picker + matugen
-│       ├── waybar-launch.sh            # Launches waybar with saved layout
+│       ├── quickshell-launch.sh        # Guarded launcher for the QML shell root
 │       ├── theme-init.sh               # Restores theme on login
 │       └── screenshot.sh               # grim + slurp screenshots
 │
-├── waybar/.config/waybar/
-│   ├── config-minimal.jsonc            # Workspaces + clock
-│   ├── config-full.jsonc               # Full system bar
-│   ├── config-floating.jsonc           # Island-style bar
-│   ├── style-minimal.css
-│   ├── style-full.css
-│   ├── style-floating.css
-│   └── colors.css                      # Active colors (auto-managed)
+├── quickshell/.config/quickshell/
+│   ├── shell.qml                       # Shell root — bar, panels, overview
+│   └── modules/
+│       ├── bar/                        # Bar capsules (workspace, media, tray, clock)
+│       ├── dashboard/                  # Super+D drawer panels
+│       └── overview/                   # Super (tap) overview grid
 │
 ├── kitty/.config/kitty/
 │   ├── kitty.conf
@@ -78,7 +76,6 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │   ├── config.toml                     # Matugen settings + template registry
 │   └── templates/                      # Matugen input templates
 │       ├── hyprland-colors.conf
-│       ├── waybar-colors.css
 │       ├── kitty-colors.conf
 │       └── swaync-colors.css
 │
@@ -123,7 +120,7 @@ cp /path/to/your/wallpapers/*.jpg ~/Pictures/Wallpapers/
 | `Super + L`          | Lock screen               |
 | `Super + N`          | Toggle notification center|
 | `Super + Shift + T`  | **Theme switcher**        |
-| `Super + Shift + W`  | **Waybar layout switcher**|
+| `Super + B`          | **Bar orientation switcher**|
 | `Super + Shift + B`  | **Wallpaper picker**      |
 | `Super + C`          | Clipboard history         |
 | `Print`              | Screenshot (full)         |
