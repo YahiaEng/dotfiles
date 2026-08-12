@@ -483,7 +483,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 11 | Give bar hover drawers their own collapse-grace token (barDrawerGraceMs 600, was borrowing popoutDismissGraceMs 200) — drawers were collapsing before finishing their 500ms reveal | 2026-08-12 | c78655e | — |
 | 12 | Bar: fix tooltip placement double-counting the bar extent on both axes; add an ethernet glyph left of wifi, visible only while a wired link is connected | 2026-08-12 | 67333c5 | — |
 | 13 | Add an event-driven bar watchdog (socket2 listener + systemd unit) that restores the QML bar after a monitor sleep/hotplug — works around WINDOWS row 67, which stays open | 2026-08-12 | 59ec9ae | — |
-| 260812-opa | GATE-02 F5: popout cards sat 52px low — SectionPopout double-counted the bar extent past an offset the compositor already applied (measured y=100 → y=52). Same correction BarTooltip already carried; BarDrawer followed to keep the shared anchoring rule identical | 2026-08-12 | cefcf20 | [260812-opa-fix-gate-02-f5-popout-cards-render-52px-](./quick/260812-opa-fix-gate-02-f5-popout-cards-render-52px-/) |
+| 260812-opa | GATE-02 F5: popout cards sat 52px low — SectionPopout double-counted the bar extent past an offset the compositor already applied (measured y=100). Leading edge then aligned flush with the Hyprland window edge, which sits at gaps_out below the reserved boundary, not on it (y=58) | 2026-08-12 | cefcf20, 7aa2cfd, d1acef4 | [260812-opa-fix-gate-02-f5-popout-cards-render-52px-](./quick/260812-opa-fix-gate-02-f5-popout-cards-render-52px-/) |
 
 ### Pending Todos
 

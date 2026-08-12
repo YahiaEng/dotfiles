@@ -2,8 +2,8 @@
 status: complete
 quick_id: 260812-opa
 date: 2026-08-12
-description: "GATE-02 F5: popout cards sat 52px low (bar extent double-counted); leading edge then aligned flush with the Hyprland window edge"
-commit: cefcf20, 7aa2cfd
+description: "GATE-02 F5: popout cards sat 52px low (bar extent double-counted); leading edge now flush with the Hyprland window edge at y=58"
+commit: cefcf20, 7aa2cfd, d1acef4
 files_modified:
   - quickshell/.config/quickshell/modules/bar/SectionPopout.qml
   - quickshell/.config/quickshell/modules/bar/BarDrawer.qml
@@ -44,37 +44,49 @@ hold the identical shape.
 Both readings taken with `hyprctl layers -j`, the wifi popout pinned open, on the same live
 process (pid `1520318`, never restarted):
 
-| Surface | Before | After (margin 4) | Final (margin 0) | Reference |
-|---|---|---|---|---|
-| `quickshell-bar-wifi` | **y=100** | **y=52** | **y=48** | — |
-| `quickshell-bar` | y=6 h=42 | y=6 h=42 | y=6 h=42 | bottom edge 48 |
-| reserved (`hyprctl monitors -j`) | `DP-1 [0,48,0,0]` | unchanged | unchanged | window area starts at y=48 |
+Every reading below was taken with `hyprctl layers -j`, the wifi popout pinned open, on the same
+live process (pid `1520318`, never restarted across any of the four states):
 
-The first correction landed the card at 52 — `Design.spacingXs` clear of the bar. The operator then
-called for flush alignment with the Hyprland window edge instead, so the margin went to 0.
+| Margin expression | Value | Card `y` | Verdict |
+|---|---|---|---|
+| `barEdgeMargin + barHeight + spacingXs` | 52 | **100** | original — bar extent double-counted |
+| `spacingXs` | 4 | **52** | gap short of the bar |
+| `0` | 0 | **48** | the reserved boundary — rejected, see below |
+| `barSideMargin` | 10 | **58** | flush with the window edge ✓ |
 
-**y=48 is derived, not directly measured.** Two readings on this exact surface establish the
-relationship as exactly `48 + margin`: margin 52 gave y=100, margin 4 gave y=52. Margin 0 therefore
-gives y=48, the reserved boundary a maximized window starts at. No popout was pinned open at the
-time of the final edit to take a third reading; GATE-02's `A.2` row (the card floating clear of
-every edge) is the live confirmation and is still unobserved.
+Reference geometry, same host: `quickshell-bar` at `x=10 y=6 w=2540 h=42`; reserved
+`DP-1 [0,48,0,0]`; `general:gaps_out` 10; `general:border_size` 3; tiled windows reporting
+`at=[13,61] size=[2534,1366]`.
+
+## The trap: the reserved boundary is not the window edge
+
+The zero-margin attempt was wrong, and wrongly reasoned. Having measured `48 + margin` twice, the
+relationship was extrapolated to margin 0 → y=48 and called "flush with the window edge" without
+measuring what the window edge actually is. y=48 was correct as a *number* and wrong as a *target*:
+Hyprland insets tiled windows by `general:gaps_out` **below** the reserved zone, so a window's
+visible outer border edge is at y=58, not 48. The card sat 10px above the thing it was supposed to
+line up with.
+
+`Design.barSideMargin` (10) is that inset, and the bar itself already uses it for exactly this
+alignment on the other axis — the bar measures `x=10 w=2540`, flush with the window's left and
+right outer edges. Reusing it for the leading edge lands the card on the window's edge on both
+axes, confirmed by measurement at y=58 against a window outer edge of y=58.
+
+The value matches `gaps_out` rather than binding to it: a QML layer surface cannot read
+`general:gaps_out` live, so changing that Hyprland setting means revisiting this. Both files carry
+the measurement in-comment so the next reader need not re-derive it.
 
 ## Changes
 
-- `SectionPopout.qml` — `_horizontalTopMargin` and `_verticalRightMargin` both dropped the bar's
-  extent (first to `Design.spacingXs`, then to `0` for flush alignment). The stale reasoning above
-  them is replaced with the measured record.
+- `SectionPopout.qml` — `_horizontalTopMargin` and `_verticalRightMargin` both now
+  `Design.barSideMargin`. The stale reasoning above them is replaced with the measured record.
 - `BarDrawer.qml` — `_verticalRightMargin` given the same treatment. Required, not optional: that
   file's own comment binds it to SectionPopout's expression pair as "ONE anchoring rule, not two
   (constraint 8)", so leaving it would have broken a stated invariant.
 
-Both land on a literal `0` rather than a `Design` token: with the compositor already placing these
-surfaces at the reserved boundary there is no gap left to name, and a zero-valued token would imply
-a tunable that no longer exists.
-
 ## What is measured and what is not
 
-**Measured:** the horizontal branch, before and after, numbers above.
+**Measured:** the horizontal branch, all four margin states, numbers above — including the final y=58 against a window outer edge of y=58.
 
 **Not measured:** the vertical branch (`SectionPopout.qml:168`, `BarDrawer.qml:101`). It is
 corrected by the same reasoning — the compositor already offsets past whichever edge the bar
