@@ -290,6 +290,24 @@ BarCapsule {
             rows: clockActionsCapsule.vertical ? -1 : 1
             columns: clockActionsCapsule.vertical ? 1 : -1
             spacing: Design.spacingXs
+            // MEASURED 2026-08-13: a Grid sizes itself to its widest child and
+            // defaults every narrower one to AlignLeft. In vertical this Grid
+            // stacks three lines — glyph (w=16.0), time (w=14.8) and the day
+            // (the widest, which is where the Grid's own 23.3 comes from) — so
+            // glyph and time both sat flush left at x=10.0, centred at 18.0 and
+            // 17.4 against the Grid's own centre of 21.6. Off by 3.6 and 4.2.
+            //
+            // This was present before the pill offset above was corrected, but
+            // invisible: the pill was itself 6px right, so the contents looked
+            // roughly centred INSIDE it by cancellation. Fixing the pill exposed
+            // the real misalignment rather than causing it — the operator's "the
+            // time is now centered, but the clock glyph and time inside it are
+            // now off-center" is exactly that unmasking.
+            //
+            // Centring the items is the whole fix: the widest child still sets
+            // the Grid's width, and every narrower line now centres on the same
+            // axis the pill already centres on.
+            horizontalItemAlignment: Grid.AlignHCenter
 
             // Upstream's clock leads with a glyph:
             // `format: "󰃱 <span size='11pt'>{:%H.%M }</span>"`. Ours had none,
