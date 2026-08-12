@@ -383,3 +383,176 @@ apart by two separate sittings, because the F2 fix corrected the file it was rep
 did not sweep the sibling that taught it the wrong expression. Neither was visible to any automated
 gate in this phase — that is now the fourth purely visual defect to survive a green automated pass,
 strengthening rather than weakening the precedent D-18-31 cites for why this human gate exists.
+
+---
+
+## Build Under Test — Iteration 3
+
+Every field below was captured by running a command against the live host on 2026-08-12 ~22:28,
+not recalled or inferred, immediately before this iteration's sitting.
+
+- **HEAD sha:** `2644ae0563f2d330b8d615d355f523a44047da02` (`git rev-parse HEAD`).
+- **Working tree:** `git status --porcelain -- quickshell/ hypr/` returned empty — clean.
+- **Reserved array (`hyprctl monitors -j | jq '.[0].reserved'`):** `[0, 0, 50, 0]`. **This is not
+  the same shape as Iterations 1-2's `[0, 48, 0, 0]`, and that is expected, not a fault:** the bar
+  is currently in **VERTICAL** orientation (`~/.local/state/quickshell/bar-orientation` reads
+  `vertical`, left there deliberately by `2644ae0`'s own commit message — "Bar is left in
+  VERTICAL, as the operator set it" — because the just-landed vertical pass was worked and
+  measured in that orientation). The nonzero value moved from the top-edge slot to the left-edge
+  slot and its magnitude changed from 48 (`barHeight` 42 + `barEdgeMargin` 6) to 50
+  (`barColumnWidth` 44 + `barEdgeMargin` 6, confirmed live: `grep -n
+  'readonly property int barColumnWidth' quickshell/.config/quickshell/modules/dashboard/Design.qml`
+  → `44`). Setup step 3 already directs the human to put the bar in horizontal orientation for
+  Block A and B.1-B.3 — this fingerprint records the state found, not the state corrected to,
+  exactly as Iterations 1-2 recorded the 48-vs-46 live-value mismatch rather than silently
+  matching stale plan text.
+- **Quickshell pid (`pgrep -x quickshell`):** `3012973` — the same pid Iteration 2's late entries
+  already reference (the `bar-watchdog` restart that moved Iteration 2's pid from `1520318` to
+  `3012973` happened mid-sitting, before Iteration 2 was ever closed; this iteration binds to that
+  same still-running process, not a new one).
+- **Quickshell start time (`ps -o lstart= -p 3012973`):** `Wed Aug 12 20:38:10 2026`.
+- **`quickshell-bar` namespace (`hyprctl layers -j`):** present, alongside `awww-daemon` (the same
+  unrelated wallpaper-daemon layer noted in Iterations 1-2) and a new `quickshell-bar-hotzone`
+  namespace not present in either earlier fingerprint — consistent with the hover/reveal machinery
+  visible in the live log (`reveal: shown` / `reveal: hidden` debug lines) rather than a second bar;
+  no second `pgrep -x waybar` result accompanies it (see below).
+- **`pgrep -x waybar`:** returned nothing (exit 1) — no waybar process running.
+- **Newest `modules/bar/*.qml` mtime vs. process start:** the newest file
+  (`ClockActionsCapsule.qml`, 22:23:39) is newer than the process start (20:38:10) — expected, since
+  the vertical pass's four fix commits landed against this same running pid via hot reload, never a
+  restart. **The mtime proxy is not the halt condition; the reload log is.** `~/.cache/quickshell.log`'s
+  last `Configuration Loaded` line postdates the newest file's mtime (log mtime 22:27:37 vs. file
+  mtime 22:23:39, both after the last edit in `2644ae0`), and `tail -100` of the log shows zero
+  `error`/`warning`/`fail` lines in that window (excluding the pre-existing, unrelated
+  `WeatherBackend: fetch failed` debug line). **No restart was needed or performed** — same
+  determination Iteration 1 made for the same reason, re-applied here rather than re-derived from
+  first principles.
+- **This task's own actions were entirely read-only against the running process** — no restart, no
+  `hyprctl reload`, no `hyprctl eval` was issued while capturing this fingerprint.
+
+**Delta from Iteration 2's binding sha `13de40f` (`13de40f81b11745b9cd37c241af28588abdfa63e`).**
+Twenty-five commits landed in between (`git log --oneline 13de40f..HEAD`), in this order
+(oldest first):
+
+| Commit | Summary |
+|---|---|
+| `a1c6614` | docs(18-19): open GATE-02 Iteration 2 — fresh fingerprint, B.4-DRAWER re-resolved |
+| `b066f3b` | docs(phase-18): record wave 9 checkpoint position in STATE |
+| `6bf31f0` | docs(18-19): record GATE-02 F5 — popout cards 52px low, double-counted bar extent |
+| `cefcf20` | **fix(quick-260812-opa): popout cards sat 52px low — stop double-counting the bar extent** |
+| `bae2457` | docs(quick-260812-opa): GATE-02 F5 — popout cards sat 52px low, bar extent double-counted |
+| `7aa2cfd` | **fix(quick-260812-opa): align popout/drawer leading edge flush with the window edge** |
+| `64383e7` | docs(quick-260812-opa): record the flush-edge alignment change |
+| `b6c4c4a` | docs(quick-260812-opa): correct the summary's changes section and commit list |
+| `d1acef4` | **fix(quick-260812-opa): align popouts to the window edge, not the reserved boundary** |
+| `1aa60b5` | docs(quick-260812-opa): record the window-edge measurement and the reserved-boundary trap |
+| `00ae4dc` | docs(quick-260812-opa): drop a duplicated paragraph in the summary |
+| `84dbec1` | feat(quick-260812-pd5): system capsule — GPU readout and an "Update system" tooltip |
+| `7204d17` | feat(quick-260812-pd5): give the ethernet glyph a popout card |
+| `da668dc` | docs(quick-260812-pd5): bar ethernet card, updates tooltip, GPU readout |
+| `f452eee` | feat(quick-260812-pd5): GPU glyph, "Update System" casing, centred see-more foot |
+| `2f896f8` | fix(quick-260812-pd5): quickshell-doctor — two gate bugs, one of them a false PASS |
+| `94421e2` | docs(quick-260812-pd5): record refinements and the two doctor gate bugs |
+| `5752648` | feat(quick-260812-pd5): move the permanent accent from the settings glyph to power |
+| `e8fc895` | docs(quick-260812-pd5): record the settings-to-power accent swap |
+| `00e90aa` | **fix(quick-260812-pd5): vertical bar — dead space, clipping, and a failing anchor idiom** |
+| `23c7d21` | **fix(quick-260812-pd5): popouts and drawers sat 10px off their own trigger** |
+| `1787f54` | **fix(quick-260812-pd5): vertical bar — centring, off-surface bluetooth, cropped media** |
+| `df01b56` | **fix(quick-260812-pd5): set Grid item alignment two levels deeper; residuals recorded** |
+| `356ebb1` | docs(quick-260812-pd5): record the vertical pass, its three root causes and two residuals |
+| `2644ae0` | **fix(quick-260812-pd5): centre-band workspaces in vertical; two fixes reverted for loops** |
+
+**Remedies this gate routed (the F5 popout-position fix, in landing order):** `cefcf20` (stop
+double-counting the bar's own extent — the root-cause fix), `7aa2cfd` (align the popout/drawer
+leading edge flush with the window edge, a follow-on correction to the same surfaces), `d1acef4`
+(align against the window edge rather than the reserved boundary — a further correction on the same
+chain), and `23c7d21` (the vertical-pass task's own re-measurement of the identical popout/drawer
+positioning, found still 10px off and fixed again). All four touch the surfaces `A.2` (floating
+clear of every edge), `B.5` (tray menu anchoring below/leftward) and `B.4-DRAWER` (drawer growth
+direction) are judged against — the exact three rows Iteration 2's suspension named as voided by
+F5. **Unrelated work whose surfaces a criterion still touches, not a routed remedy:** the ethernet
+popout card and GPU/system-capsule readout (`84dbec1`, `7204d17`, `f452eee`) touch B.1's readout
+walk and B.6's capability audit; the settings→power accent swap (`5752648`) touches A.5's density
+check and is recorded in-source as a deliberate athena departure; the two `quickshell-doctor` gate
+bugs (`2f896f8`) touch nothing this record judges directly (they are meta: a false-PASS risk in an
+*automated* gate, which is exactly the category of evidence D-18-31 already distrusts and this human
+pass exists to not depend on); and the full vertical-orientation pass (`00e90aa`, `1787f54`,
+`df01b56`, `2644ae0`) touches `B.4` (every B.1 readout present in the 44px column, no truncation)
+and `B.4-DRAWER` (drawer growth direction) directly, plus `A.1`/`A.3` indirectly via the residuals
+named below.
+
+**Four open vertical-pass residuals, measured and reverted rather than claimed fixed — named here
+so the sitting judges a known state, per this record's own contract that a degraded state is
+recorded against its cause rather than waved through:**
+
+| Residual | Measurement | Rows it bears on | Status |
+|---|---|---|---|
+| Percent-readout overhang | brightness/battery percent values overhang the 44px column by ~3px (`right=47` vs `44`) — `Grid` sizes columns from `implicitWidth`, not resolved `width`, and the value `Text`'s natural extent exceeds its "100%"-reserved bound width of 16 | B.4 (44px column, no truncation) | Open, unfixed |
+| Workspace numeral offset | workspace numerals sit ~3px left inside their own slots (numeral centre `19.0` vs. slot centre `22.0`, itself correctly centred) | A.3 (per-app icons / numerals), B.2 (workspace click) | Open, unfixed |
+| Clock pill offset | clock pill measured `x=8.0 y=1176.0` (39.1×90) inside a cell at `x=2.0 y=1182.0` — a `+6/-6` offset that reaches `x=47.1`, past the 44px column, and 6px above the capsule top. Root cause: the pill centres on `clockTriggerGrid`, which itself sits 6px right of the cell's true centre. A fix centring on `parent` corrected the geometry but made `PopoutTrigger` (which sizes itself from `childrenRect`) depend circularly on its own centred child — "Binding loop detected for property implicitWidth/implicitHeight" at `PopoutTrigger.qml:40` — and was **reverted** | A.1 (discrete rounded pills), B.4 (44px column) | **Attempted, reverted for a QML binding loop** |
+| Slider track offset | expanded volume slider's handle centres at `22`, its 4px track sits at `x=10` (track centre `12`) — the knob renders ~10px right of its own groove. Centring on the `Slider`'s width put the track at `x=24` (still wrong, the `Slider` is wider than its 24px host); centring on `availableWidth` aligned handle and track at `26` but produced the same class of binding loop through the strip-extent chain, and was **reverted** | B.4-DRAWER (the expanding strip's own internals, mounted via `BarDrawer.qml`) | **Attempted, reverted for a QML binding loop** |
+
+All four share one root cause, recorded in `260812-pd5-SUMMARY.md`: implicit-size inference in
+`PopoutTrigger`/`Readout`-family components creates a parent-child measurement cycle wherever a
+fix tries to centre a child on a container that itself sizes from that child's `childrenRect` —
+the two reverted attempts above hit exactly that cycle. Two of the four (percent-readout,
+workspace numeral) were never attempted at all; two (clock pill, slider track) were attempted,
+measured, and reverted specifically because the fix introduced a binding loop rather than because
+the fix was wrong in direction.
+
+**A fifth item, not a residual but a locked-decision question the sitting should also weigh:**
+`2644ae0`'s own commit message records that the vertical workspace centre-banding just added is "a
+DELIBERATE deviation from UI-SPEC's Orientation Transform Rules, which state vertical has 'no
+center-banding'" — done at the operator's explicit request after being shown the rule, but not yet
+reconciled with UI-SPEC's own text. This bears on B.4 (the vertical-column layout criterion) and is
+named here rather than silently inherited, in the same spirit as the four residuals above.
+
+**B.4-DRAWER machine re-resolution at current HEAD (2026-08-12 ~22:28).** Re-run the same
+determination Iteration 2 made against `13de40f`, now against `2644ae0`:
+`test -f quickshell/.config/quickshell/modules/bar/BarDrawer.qml` → **file exists**.
+`grep -n BarDrawer quickshell/.config/quickshell/modules/bar/qmldir` → registered
+(`BarDrawer 1.0 BarDrawer.qml`). `grep -n LazyLoader quickshell/.config/quickshell/modules/bar/BarDrawer.qml`
+→ present (multiple lines; the file's own header still names it "a LazyLoader-gated anchored strip
+surface"). `grep -rn "BarDrawer {" quickshell/.config/quickshell/modules/bar/{LauncherCapsule,ClockActionsCapsule}.qml`
+→ both still mount `BarDrawer { … }`. **18-11's Option B remains taken, unchanged since `8c5d280`
+through `2644ae0`.** `260812-pd5-SUMMARY.md`'s own text notes one adjacent, deliberate non-change:
+the audio/wifi reveal strips still expand along the column rather than leftward — Option B
+(`BarDrawer`) is wired only into `LauncherCapsule` and `ClockActionsCapsule`, not into the
+audio/wifi popout strips, and the operator chose to keep that behaviour rather than re-plumb it.
+That is a separate, already-decided scope boundary from B.4-DRAWER's own question (which strip
+hosts the *launcher* and *clock/settings* drawers) and does not change this row's branch
+resolution — named here so the sitting is not surprised by it if it opens the audio/wifi reveal
+during B.4/B.5's gestures.
+
+## Iteration 3 — Verdicts
+
+_Pending — no human sitting has been performed against this iteration's fingerprint yet. All
+fifteen rows below are reset to the placeholder for this iteration; the master tables above
+(`## Block A`, `## Block B`, `## Named Sub-Judgments`, `## Lifted UI-SPEC Rows Judged Here`) are
+where verdicts and observations are actually written when the sitting happens — this list is the
+Iteration 3 checklist, not a second copy of those tables. Order fixed per the plan's ordering
+contract: Block A first, then Block B, then the three named sub-judgments, then the lifted row._
+
+- [ ] A.1 — AWAITING-OBSERVATION (watch for the clock-pill offset residual — reverted fix, still open)
+- [ ] A.2 — AWAITING-OBSERVATION
+- [ ] A.3 — AWAITING-OBSERVATION (watch for the workspace-numeral offset residual — unfixed)
+- [ ] A.4 — AWAITING-OBSERVATION
+- [ ] A.5 — AWAITING-OBSERVATION
+- [ ] B.1 — AWAITING-OBSERVATION
+- [ ] B.2 — AWAITING-OBSERVATION
+- [ ] B.3 — AWAITING-OBSERVATION (audio half live; brightness half transcribed per D-18-39 — never judged fresh)
+- [ ] B.4 — AWAITING-OBSERVATION (watch for the percent-readout overhang and the centre-banding UI-SPEC deviation, both open)
+- [ ] B.5 — AWAITING-OBSERVATION
+- [ ] B.6 — AWAITING-OBSERVATION
+- [ ] B.4-DRAWER — AWAITING-OBSERVATION (branch machine-resolved to Option-B-taken above, unchanged since Iteration 2; watch for the slider-track offset residual — reverted fix, still open)
+- [ ] B.6-WS — AWAITING-OBSERVATION
+- [ ] B.6-WSCOUNT — AWAITING-OBSERVATION
+- [ ] UI-E7-LT — AWAITING-OBSERVATION
+
+**`## Deletion Authorisation` stays `RETIRE-02 BLOCKED`** until all fifteen rows above carry a
+verdict from the closed vocabulary and task 3 runs. Iteration 2's single reported defect (F5) is
+fixed and its remedy commits are named above, but Iteration 2 never verdicted any of the fifteen
+rows — the sitting was suspended before any gesture was recorded. A re-check re-observes all
+fifteen rows, not only the previously-reported ones, because the workspace capsule, the entry
+list, the popout frame and the drawer host are all shared surfaces and a fix to one can regress
+another (must_haves, "A re-check re-observes all fifteen rows").
