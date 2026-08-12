@@ -182,7 +182,7 @@ _(no entries yet)_
 
 ## Deletion Authorisation
 
-RETIRE-02 BLOCKED — gate not yet run
+RETIRE-02 AUTHORISED — sha `2644ae0563f2d330b8d615d355f523a44047da02`, Iteration 3, 2026-08-12
 
 18-20 reads this section as its own precondition before it deletes `config-athena.jsonc`,
 `config-full.jsonc`, `config-floating.jsonc`, `config-vertical.jsonc`, `modules.jsonc`,
@@ -191,6 +191,31 @@ RETIRE-02 BLOCKED — gate not yet run
 gate invalidates the authorisation by construction rather than by anyone remembering to re-run it.
 This line is rewritten only by task 3 of `18-19-PLAN.md`, after all fifteen rows above carry a
 verdict from the closed vocabulary.
+
+**The two conditions 18-20 must re-assert before it deletes anything:**
+1. This section carries the authorisation token `RETIRE-02 AUTHORISED`.
+2. `git diff --quiet 2644ae0563f2d330b8d615d355f523a44047da02 -- quickshell/.config/quickshell/`
+   succeeds (exit 0) — nothing under `quickshell/.config/quickshell/` has changed since the sha the
+   fifteen gestures were actually performed against. The sha is on this line for exactly this
+   reason: it is what makes the authorisation a mechanical consequence of an unchanged build,
+   rather than a claim that ages the moment anything under `quickshell/` moves.
+
+**Verified live at close, 2026-08-12, not merely asserted:**
+`git diff --quiet 2644ae0563f2d330b8d615d355f523a44047da02 -- quickshell/.config/quickshell/` —
+**exit 0, no output** — confirmed clean. HEAD had, by that point, advanced past the authorising
+sha by three docs-only commits (`caec5b9` opening Iteration 3, `22a3d6b` a STATE.md checkpoint,
+and `58db118` recording the fifteen verdicts) — none of which touches
+`quickshell/.config/quickshell/`, so the authorisation binds to `2644ae0`, the sha the operator
+actually observed, rather than to the docs-commit HEAD current at authorisation time. Fifteen of
+fifteen rows are resolved (14 `PASS`, 1 `NOT-DEMONSTRABLE` on B.3 alone per D-18-39), zero `FAIL`,
+zero `OVERRIDDEN` — see `## Gate Result — Iteration 3` below.
+
+**Current HEAD at the moment this authorisation was written (recorded, not the authorising sha):**
+`58db11818cc3ad9ffb185d5562e4ee21970737dd` — the task 2 commit (fifteen verdicts). This is itself
+a docs-only descendant of `2644ae0` (see the HEAD-advancement note under `## Iteration 3 —
+Verdicts` above); the authorisation this section grants remains bound to `2644ae0`, not to this
+sha, and 18-20 re-verifies that binding itself via the `git diff --quiet` invocation above rather
+than trusting either sha recorded in prose.
 
 ---
 
@@ -582,3 +607,45 @@ quickshell/.config/quickshell/` returns empty. The build actually observed is th
 only the planning record around it advanced. Task 3's authorisation binds to `2644ae0`, the sha
 the fifteen gestures were actually performed against, not to whichever docs-commit HEAD happens to
 be current when the authorisation line is written.
+
+---
+
+## Gate Result — Iteration 3
+
+**Branch taken: CLOSE.** Every one of the fifteen criterion rows resolved to `PASS`,
+`NOT-DEMONSTRABLE` (B.3 only, per D-18-39), or `OVERRIDDEN` — none resolved to `FAIL`.
+
+| Iteration | Sha the verdicts describe | PASS | NOT-DEMONSTRABLE | FAIL | OVERRIDDEN |
+|---|---|---|---|---|---|
+| 3 | `2644ae0563f2d330b8d615d355f523a44047da02` | 14 | 1 (B.3) | 0 | 0 |
+
+No developer overrides were written — none were needed, since no row failed.
+
+**Two earlier iterations, for the record's own continuity (neither closed):**
+- **Iteration 1** (bound `8c5d280`) — suspended after the operator reported four defects (F1
+  clock-pill alignment, F2 tooltips landing on the glyph, F3 idle-bulb feedback, F4 media
+  transport row not centred) before reaching eleven of the fifteen rows; zero rows verdicted. All
+  four fixed outside this record (`6721977`, `6285f5d`).
+- **Iteration 2** (bound `13de40f`) — suspended after the operator reported one defect (F5, popout
+  cards sitting ~52px low from a double-counted bar extent) before any row was verdicted. Fixed
+  outside this record (`cefcf20`, `7aa2cfd`, `d1acef4`, `23c7d21` — the last landing during the
+  subsequent vertical-orientation pass that itself opened Iteration 3).
+
+**Re-check integrity, since this is a re-check and not a first pass:** all fifteen rows were
+re-observed in Iteration 3, not only the rows affected by Iterations 1 and 2's fixes — per this
+record's own contract that a fix to one shared surface (workspace capsule, entry list, popout
+frame, drawer host) can regress another. No regression was found on any row; in particular, A.2,
+B.5 and B.4-DRAWER — the three rows Iteration 2's suspension named as voided by the F5 fix — were
+each re-observed and passed in Iteration 3.
+
+## For 18-20
+
+Three lines, transcribed rather than inferred, for `18-20-PLAN.md`'s own precondition:
+
+1. **Section to grep:** `## Deletion Authorisation`
+2. **Token to grep for:** `RETIRE-02 AUTHORISED`
+3. **`git diff --quiet` invocation to run against the authorising sha:**
+   `git diff --quiet 2644ae0563f2d330b8d615d355f523a44047da02 -- quickshell/.config/quickshell/`
+   — must exit 0 (no output) immediately before 18-20's deletion commit; a non-zero exit means a
+   fix landed under `quickshell/.config/quickshell/` after this gate ran, and the authorisation is
+   invalid by construction, regardless of what this section's text still says.
