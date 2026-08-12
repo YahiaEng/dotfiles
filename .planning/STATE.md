@@ -5,10 +5,10 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: "18-19 at its blocking human gate — GATE-02 sheet assembled, 14 rows await live observation; B.4-DRAWER already FAIL. 18-20 held pending the QBAR-11 soak (ends ~05:09 EEST)."
+stopped_at: "18-19 at its blocking human gate — 14 rows await live observation. B.4-DRAWER remedy applied (quick 260812-59l) but unproven by observation. 18-20 held pending the QBAR-11 soak (pid 528309, ends ~06:40 EEST)."
 last_updated: "2026-08-11T22:30:00.000Z"
 last_activity: 2026-08-12
-last_activity_desc: 18-18 completed, 18-19 assembled to its human gate, soak window re-anchored
+last_activity_desc: BarDrawer.qml lands (quick 260812-59l) — GATE-02 B.4-DRAWER remedy applied, awaiting the operator's gate pass
 progress:
   total_phases: 6
   completed_phases: 1
@@ -477,6 +477,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260728-3na | Add DKMS verification pacman hook and enable kernel module cleanup service (2026-07-28 black-screen incident backstop) | 2026-07-28 | 745ad22, 1868826 | [260728-3na-add-dkms-verification-pacman-hook-and-en](./quick/260728-3na-add-dkms-verification-pacman-hook-and-en/) |
 | 260728-48c | Generalize dkms-verify into kernel-module-verify — covers prebuilt (nvidia-open) and DKMS module sources, closing a vacuous-pass blind spot | 2026-07-28 | 27393b2 | [260728-48c-generalize-dkms-verify-into-kernel-modul](./quick/260728-48c-generalize-dkms-verify-into-kernel-modul/) |
 | 260728-4f9 | Make install.sh fully reproduce the 2026-07-28 incident fixes: LTS fallback kernel, nvidia-open-dkms name, post-install verification gate | 2026-07-28 | 6de97c7 | [260728-4f9-make-install-sh-fully-reproduce-the-2026](./quick/260728-4f9-make-install-sh-fully-reproduce-the-2026/) |
+| 260812-59l | Add BarDrawer.qml vertical drawer host (18-11 Option B, D-18-11) — clears GATE-02 row B.4-DRAWER, the only failing row blocking RETIRE-02 | 2026-08-12 | fc01499, 55208c4, 10674fd | [260812-59l-add-bardrawer-qml-vertical-drawer-host-1](./quick/260812-59l-add-bardrawer-qml-vertical-drawer-host-1/) |
 
 ### Pending Todos
 
