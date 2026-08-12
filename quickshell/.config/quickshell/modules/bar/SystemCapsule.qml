@@ -429,14 +429,16 @@ BarCapsule {
             }
 
             Readout {
-                // MDI-free: "developer_board" is a Material Symbols
-                // ligature, verified PRESENT in the installed
-                // MaterialSymbolsRounded variable font via fontTools before
-                // use — the same check the ethernet glyph's own comment
-                // demands, because GATE-02 row A.3's named failure mode is a
-                // nonexistent ligature rendering as its own name in plain
-                // text.
-                glyph: "developer_board"
+                // "view_in_ar" — a 3D cube, operator's choice 2026-08-12 over
+                // the first attempt's "developer_board", which read as a
+                // generic circuit board and sat too close to the CPU entry's
+                // own chip glyph two slots away. Verified PRESENT in the
+                // installed MaterialSymbolsRounded variable font via fontTools
+                // before use, alongside a deliberately nonexistent control
+                // name that correctly reported absent — GATE-02 row A.3's named
+                // failure mode is a nonexistent ligature rendering as its own
+                // name in plain text.
+                glyph: "view_in_ar"
                 maxValueText: "100%"
                 visible: root.gpuPresent
                 populated: root.gpuStateValue === "populated"
@@ -512,7 +514,7 @@ BarCapsule {
         // The only tooltip in this capsule — see the tooltipText seam's own
         // comment for why cpu/ram/disk deliberately have none. Names the
         // action the click performs, not the glyph.
-        tooltipText: "Update system"
+        tooltipText: "Update System"
         tooltipId: "systemUpdates"
     }
 

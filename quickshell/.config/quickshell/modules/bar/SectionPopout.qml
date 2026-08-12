@@ -396,20 +396,33 @@ PanelWindow {
         //    surface-variant role, NEVER accent-toned — PanelDialog.qml's
         //    Advanced button treatment reused exactly, only its position
         //    moves from the header to the foot. ───────────────────────
+        // Operator's call, 2026-08-12: the foot was a left-aligned pill
+        // carrying its destination as a text label ("Open Wi-Fi settings" and
+        // its six siblings). It is now a CENTRED glyph-only pill. Anchored
+        // left AND right, where it was previously left only, because a
+        // horizontalCenter has nothing to centre within until the item spans
+        // the frame's inner width.
         Item {
             id: popoutFoot
             anchors.top: bodyColumn.bottom
             anchors.topMargin: Design.spacingMd
             anchors.left: parent.left
             anchors.leftMargin: Design.spacingMd
+            anchors.right: parent.right
+            anchors.rightMargin: Design.spacingMd
             height: Design.iconSizeMd + Design.spacingSm * 2
 
             readonly property real disabledOpacity: 0.38
 
             Rectangle {
                 id: wayfindingPill
-                width: wayfindingLabelText.implicitWidth + Design.spacingLg * 2
+                // Was label-width-driven; now a fixed pill sized off the
+                // glyph it holds, so all seven popouts show an identically
+                // sized control regardless of how long their destination
+                // name is.
+                width: Design.iconSizeMd + Design.spacingLg
                 height: parent.height
+                anchors.horizontalCenter: parent.horizontalCenter
                 radius: height / 2
                 color: Colours.surfaceVariant
                 opacity: popoutWindow.wayfindingAvailable ? 1 : popoutFoot.disabledOpacity
@@ -417,8 +430,18 @@ PanelWindow {
                 Text {
                     id: wayfindingLabelText
                     anchors.centerIn: parent
-                    text: popoutWindow.wayfindingLabel
-                    font.pixelSize: Design.fontBody
+                    // "more_horiz" is a Material Symbols ligature, verified
+                    // PRESENT in the installed MaterialSymbolsRounded variable
+                    // font via fontTools before use, alongside a deliberately
+                    // nonexistent control name that correctly reported absent.
+                    // GATE-02 row A.3's named failure mode is a nonexistent
+                    // ligature rendering as its own name in plain text — and
+                    // this site is now the ONLY thing in the foot, so that
+                    // failure would leave the word "more_horiz" sitting in
+                    // every popout.
+                    text: "more_horiz"
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.iconSizeMd
                     textFormat: Text.PlainText
                     color: Colours.onSurfaceVariant
                     opacity: popoutWindow.wayfindingAvailable ? 1 : popoutFoot.disabledOpacity
@@ -445,7 +468,14 @@ PanelWindow {
                     hoverEnabled: true
                     onClicked: popoutWindow.activateWayfinding()
                     ToolTip.visible: wayfindingMouseArea.containsMouse
-                    ToolTip.text: popoutWindow.wayfindingAvailable ? "Open " + popoutWindow.wayfindingLabel.toLowerCase() : popoutWindow.wayfindingUnavailableReason
+                    // The label VERBATIM, not "Open " + label.toLowerCase().
+                    // Every one of the seven wayfindingLabel values already
+                    // begins with "Open", so the old expression rendered "Open
+                    // open wi-fi settings" — a harmless wording slip while the
+                    // label was also drawn on the pill, but this tooltip is now
+                    // the only place the destination appears at all, so it has
+                    // to read correctly.
+                    ToolTip.text: popoutWindow.wayfindingAvailable ? popoutWindow.wayfindingLabel : popoutWindow.wayfindingUnavailableReason
                     ToolTip.delay: Design.tooltipDelayMs
                 }
             }
