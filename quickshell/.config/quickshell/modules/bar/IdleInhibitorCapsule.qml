@@ -37,6 +37,27 @@ BarCapsule {
     // workspace capsule plus this one, and nothing else.
     surfaced: true
 
+    // F3 (quick task 260812-69w) — Task 1's Probe C measured the FILL
+    // variable axis genuinely functional on this host (byte-different
+    // grabToImage renders for FILL:0 vs FILL:1; fc-match's own resolved
+    // file carries the axis list in its name:
+    // MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf). So the operator's
+    // "the bulb doesn't read as on" complaint is not a broken axis — it is
+    // a small glyph changing colour being too subtle a signal at bar
+    // scale. The fix: when inhibited, fill the WHOLE capsule pill with
+    // BarRoles.accent — the identical "on" language WorkspaceCapsule's own
+    // active-slot pill already speaks (slotFillColour: BarRoles.accent /
+    // slotTextColour: BarRoles.onAccent) and ClockActionsCapsule's own
+    // gamingCell tint idiom echoes (`active ? BarRoles.accent :
+    // contentColour`) — no new visual vocabulary. Overriding `color` here
+    // (rather than adding a fillActive/fillColour pair to BarCapsule.qml,
+    // ActionCell's own idiom) keeps BarCapsule's shared `Behavior on
+    // color` animating this override too, and leaves the other five
+    // consumers of that shared chrome untouched. fillAxisAvailable below
+    // is read by the glyph's own font.variableAxes expression — its VALUE
+    // is unchanged by this fix; only the FILL glyph's insufficient legibility.
+    color: idleInhibitorCapsule.idleInhibited ? BarRoles.accent : (idleInhibitorCapsule.hovered ? BarRoles.capsuleHover : BarRoles.capsule)
+
     // 14-02's recorded per-file capability flag — Design.qml's own header
     // note records this is deliberately not a shared token, since it is a
     // claim about the font build rather than a design token.
@@ -77,7 +98,12 @@ BarCapsule {
             font.family: Design.symbolFontFamily
             font.pixelSize: Design.barGlyphSize
             font.variableAxes: idleInhibitorCapsule.fillAxisAvailable ? { "FILL": idleInhibitorCapsule.idleInhibited ? 1 : 0 } : ({})
-            color: idleInhibitorCapsule.idleInhibited ? BarRoles.accent : idleInhibitorCapsule.contentColour
+            // F3 — onAccent, not accent, now that the capsule's own pill
+            // fills accent when inhibited (see the capsule root's `color`
+            // override above): the glyph is content ON that fill, the
+            // same on-fill/fill pairing WorkspaceCapsule's own
+            // slotTextColour/slotFillColour already use.
+            color: idleInhibitorCapsule.idleInhibited ? BarRoles.onAccent : idleInhibitorCapsule.contentColour
 
             Behavior on color {
                 enabled: Motion.motionEnabled

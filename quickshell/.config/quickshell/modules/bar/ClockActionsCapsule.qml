@@ -200,6 +200,37 @@ BarCapsule {
             // the other — the padding VALUE (spacingLg) is unchanged, only
             // where it is centred from.
             x: Design.spacingLg / 2
+            // F1 (quick task 260812-69w) — Task 1's Probe A measured this
+            // Grid sitting flush at contentHost's own local y=0 by
+            // default, while clockFillPill (anchors.centerIn:
+            // clockTriggerGrid, barCapsulePadding*2 taller than this Grid)
+            // overhangs ABOVE that origin: contentHost.childrenRect.y
+            // measured -6. contentHost/triggerRoot's own implicitHeight
+            // (28, from childrenRect.height) correctly captures the pill's
+            // total SIZE but not that ORIGIN, so BarCapsule's outer Grid
+            // (which top-aligns this 28px cell against its 24px
+            // (cellPitch) ActionCell siblings — every sibling already
+            // vertically self-centres its own glyph at local
+            // cellPitch/2=12) rendered the clock's pill+text pair 4px
+            // higher than its siblings' content centre (measured: clock
+            // content sceneY=15 vs ActionCell content sceneY=19).
+            // Re-deriving the whole positioner's alignment mode
+            // (BarCapsule.qml's contentGrid) was rejected: a
+            // vertical-centre change there would ALSO re-centre every
+            // other row containing differing-height children (measured
+            // live: workspaces' own row mixes 16/20/22px children), moving
+            // capsules the operator never flagged — the acceptance bar
+            // requires those to show a delta of exactly 0. The fix
+            // therefore stays local: target this Grid's own vertical
+            // centre at cellPitch/2 (12), the SAME slot centre every
+            // ActionCell already centres its own glyph on, instead of at
+            // this cell's own (taller, pill-driven) box centre. Vertical
+            // orientation is untouched (0, matching its prior default) —
+            // Probe A only measured the horizontal misalignment the
+            // operator reported, and this Grid's vertical-mode shape
+            // (rows=-1, three stacked lines) is a different geometry this
+            // fix must not touch.
+            y: clockActionsCapsule.vertical ? 0 : (clockActionsCapsule.cellPitch - clockTriggerGrid.height) / 2
             rows: clockActionsCapsule.vertical ? -1 : 1
             columns: clockActionsCapsule.vertical ? 1 : -1
             spacing: Design.spacingXs
@@ -866,3 +897,4 @@ BarCapsule {
         powerAvailabilityProbe.running = true;
     }
 }
+
