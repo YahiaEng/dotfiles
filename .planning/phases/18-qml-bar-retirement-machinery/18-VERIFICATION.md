@@ -1,10 +1,66 @@
 ---
 phase: 18-qml-bar-retirement-machinery
 verified: 2026-08-12T23:59:00+03:00
-status: gaps_found
-score: 15/20 must-haves verified
+status: passed
+score: 17/20 verified, 1 withdrawn, 1 accepted-unmeasured, 1 not-demonstrable
 behavior_unverified: 3
-overrides_applied: 0
+overrides_applied: 1
+resolved: 2026-08-13T00:40:00+03:00
+resolution:
+  summary: >
+    Both gaps below were closed after this report was written — one by building the missing
+    thing, one by an explicit operator decision to accept it unmeasured. The gap blocks are
+    retained in full as the historical record of what was found; each now carries a
+    `resolution` field. Nothing here was closed by re-reading the evidence more generously.
+  qbar_08:
+    how: shipped
+    detail: >
+      The held-Super reveal now exists end to end. Root cause of the 18-16 block was a checker
+      defect, not a bind conflict: `keybind-doctor`'s chord-collision check compared
+      (modmask, key) while its own shadow check compared (modmask, key, keycode, release), so a
+      chord legitimately claimed on two different edges read as one chord claimed twice. The
+      collision check now compares the edge as well, `shortcuts.json`'s new bar-reveal entry
+      declares `"release": false` to claim the press edge explicitly, `keybinds.lua` carries the
+      press bind, and `shell.qml`'s GlobalShortcut drives BarReveal.setSuperHeld() on both edges.
+      Evidence: keybind-doctor 14/14 (was 13/1 on the collision check); quickshell:bar-reveal
+      present in `hyprctl globalshortcuts`; firing it live logs `reveal: shown`; zero binding
+      loops; colour-lint 112/0; quickshell-doctor and theme-doctor unchanged at their
+      pre-existing failure counts. Commits `bc2f5f1`-range (keybind-doctor fix, then the bind
+      trio).
+    residual_human_check: >
+      One thing remains unproven by machine and is stated rather than glossed: a synthetic
+      `hyprctl dispatch` fires the press edge only, so the release edge and the continued
+      function of the Super-tap-to-menu bind on the same chord have not been observed under a
+      real keypress. Both are a five-second manual check. Reverting is one bind line if the tap
+      bind turns out to be shadowed.
+  qbar_11:
+    how: accepted-unmeasured
+    detail: >
+      NOT measured, NOT passed. The operator was shown that the requirement had never been
+      verified on a clean window and chose to close the phase without it: "I am not waiting for
+      4 hours. Accept my approval for this phase." Recorded in REQUIREMENTS.md under the new
+      `[A]` marker, which the file's status legend defines as an accepted risk that must never
+      be summarised as a pass. WINDOWS.md rows 68 and 69 stay open to carry the outstanding
+      work, including re-inventorying the soak's "exactly one permanent process" premise
+      against quickshell-bar-watchdog.service before any re-run can mean anything.
+  also_corrected:
+    - >
+      GATE-02 record: rows A.5 and B.5 were transcribed from a UI-SPEC predating phase 18.1's
+      withdrawal of the tray, and asked the operator to observe a TrayCapsule that 18.1-04
+      (D-15) had already deleted. B.5 reclassified PASS -> OVERRIDDEN against a written
+      override citing QBAR-05's formal withdrawal; A.5's stale tray clause annotated, its PASS
+      standing on the rest of the criterion. True Iteration 3 tally: 13 PASS, 1
+      NOT-DEMONSTRABLE, 1 OVERRIDDEN, 0 FAIL. The deletion authorisation is unaffected — the
+      tray was withdrawn deliberately and on the record before the gate ran, so no capability
+      was lost unknowingly, which is the harm GATE-02 exists to prevent.
+    - >
+      REQUIREMENTS.md's GATE-02 row cited phase 18.1's earlier informal approval rather than
+      this phase's actual blocking pass (18-19 Iteration 3, sha 2644ae0). Re-cited.
+    - >
+      install.sh: `ffmpeg` and `pacman-contrib` declared explicitly (code review WR-01/WR-02).
+      Both were present transitively on the development host only — the host-only-state class
+      this repo's own core value forbids. A fresh install had a dead updates readout and broken
+      live-wallpaper frame extraction.
 gaps:
   - truth: "QBAR-11: The bar's memory and process count stay flat across a multi-hour soak — no RSS creep, no accumulated subprocesses, no idle timers doing nothing"
     status: failed
