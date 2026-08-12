@@ -327,3 +327,59 @@ recorded no verdict on any of the fifteen — a re-check re-observes all fifteen
 that were reported, because the workspace capsule, the entry list and the drawer host are shared
 surfaces and a fix to one can regress another (must_haves, "A re-check re-observes all fifteen
 rows").
+
+---
+
+## Iteration 2 — operator findings, 2026-08-12 17:45
+
+Build under test: HEAD `13de40f`, quickshell pid `1520318`, reserved `[0,48,0,0]`, no waybar.
+
+The operator opened the sitting and reported one defect before any row was verdicted. Per this
+record's contract the gate **judges and does not fix**: the finding is recorded here with its
+owning files and its remedy, the fix lands outside this record, and Iteration 3 re-observes **all
+fifteen rows**. No row below Iteration 2's checklist carries a verdict — the sitting was
+suspended, which is different from passing.
+
+| # | Operator's words | Owning files | Root cause | Status |
+|---|---|---|---|---|
+| F5 | "The popup cards appear too low. They should be aligned with the top of the window" | `SectionPopout.qml:167` (horizontal), `SectionPopout.qml:168` + `BarDrawer.qml:101` (vertical) | **CONFIRMED BY MEASUREMENT, not by source reading.** `hyprctl layers -j` with the wifi popout pinned open returned `ns=quickshell-bar-wifi x=2085 y=100 w=360 h=276` against a bar measured in the same call at `y=6 h=42` (bottom edge 48) and a reserved array of `[0,48,0,0]`. The card's top therefore sits **52px below y=48, where the window area begins**. Cause is a double-count of the bar's own extent: `_horizontalTopMargin` is `Design.barEdgeMargin + Design.barHeight + Design.spacingXs` (52), but the compositor has *already* offset this anchored surface past the bar's 48px exclusive zone, so the bar's extent is added twice — 48 + 52 = the measured 100. | Open |
+
+**This is the same defect `BarTooltip.qml` already measured and fixed, in a file that never got the
+correction.** `BarTooltip.qml:78-90` records the identical failure from 2026-08-12 in the F2 fix:
+the tooltip started from `barEdgeMargin + barHeight + spacingXs` (52) transcribed from
+`SectionPopout`'s shape, "rendered at y=100 (measured via `hyprctl layers`) against a bar whose
+bottom edge is 48", and was corrected to `_horizontalTopMargin: Design.spacingXs` — "only the GAP
+past the edge the compositor already found, nothing more." The two surfaces are structurally
+identical and share their whole layer posture: both `PanelWindow`, both
+`anchors { top: true; left: !vertical; right: vertical }`, both `exclusiveZone: 0`, both
+`exclusionMode: ExclusionMode.Ignore`, both `WlrLayershell.layer: WlrLayer.Overlay`. The comment at
+`SectionPopout.qml:82-84` justifying the difference — "a popout is positioned inside a window that
+spans the screen, whereas this is an anchored layer surface" — is factually wrong about
+`SectionPopout`, which is itself an anchored layer surface, not a screen-spanning window.
+
+**Scope: one systemic defect across two files, not six.** All six cards inherit the frame —
+`AudioPopout.qml`, `MediaPopout.qml`, `WifiPopout.qml`, `BluetoothPopout.qml`, `ClockPopout.qml`
+and `ResourcesPopout.qml` all declare `SectionPopout` as their root — so a single expression owns
+every card's position. The vertical branch carries the same shape twice
+(`SectionPopout.qml:168` and `BarDrawer.qml:101`, both
+`barEdgeMargin + barColumnWidth + spacingXs` past a right edge the compositor has already found),
+predicting a 54px overshoot in vertical orientation. **That half is a prediction, not a
+measurement** — it requires the same `hyprctl layers` read taken in vertical orientation before any
+edit, and it must not be fixed on the strength of the horizontal measurement alone.
+
+**Remedy.** One term per expression: drop the bar's extent (`Design.barHeight` /
+`Design.barColumnWidth`) and keep only the gap, exactly as `BarTooltip.qml:91-92` now does. Lands
+the horizontal card top at 52 — 4px clear of the bar's bottom edge, `Design.spacingXs` on the
+repo's 4px grid. Fix lands as a quick task outside this record.
+
+**Consequence for the gate.** `## Deletion Authorisation` stays `RETIRE-02 BLOCKED` and 18-20 must
+not run. Iteration 2's verdict checklist is void: a popout reposition moves a surface that
+`A.2` (floating clear of every edge), `B.5` (tray menu opening below the cell, and leftward in
+vertical) and `B.4-DRAWER` (drawer growth direction) are all judged against, so the fix supersedes
+this iteration's fingerprint and Iteration 3 opens against a new one.
+
+**Note on F5 against F2.** F2 and F5 are the same root cause in two files, found thirteen hours
+apart by two separate sittings, because the F2 fix corrected the file it was reported against and
+did not sweep the sibling that taught it the wrong expression. Neither was visible to any automated
+gate in this phase — that is now the fourth purely visual defect to survive a green automated pass,
+strengthening rather than weakening the precedent D-18-31 cites for why this human gate exists.
