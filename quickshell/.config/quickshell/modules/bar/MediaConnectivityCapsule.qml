@@ -583,9 +583,19 @@ BarCapsule {
                     color: BarRoles.capsuleTrack
 
                     Rectangle {
+                        // `position`, NOT `visualPosition`, on the vertical axis.
+                        // Qt defines visualPosition as 1.0 - position whenever the
+                        // control is mirrored OR orientation is Qt.Vertical, so a
+                        // vertical fill written against visualPosition renders the
+                        // INVERSE of the volume: full at 0%, empty at 100%. The
+                        // horizontal branch keeps visualPosition, where it is the
+                        // correct RTL-aware value and equals position under LTR.
+                        // See the handle below, which had the mirrored form of the
+                        // same bug (2026-08-13, operator: "dragging the slider
+                        // makes it move opposite to where I am dragging it").
                         anchors.bottom: root.vertical ? parent.bottom : undefined
                         width: root.vertical ? parent.width : audioVolumeSlider.visualPosition * parent.width
-                        height: root.vertical ? audioVolumeSlider.visualPosition * parent.height : parent.height
+                        height: root.vertical ? audioVolumeSlider.position * parent.height : parent.height
                         radius: parent.radius
                         color: BarRoles.accent
                     }
@@ -594,8 +604,20 @@ BarCapsule {
                     x: root.vertical
                         ? (audioVolumeSlider.leftPadding + audioVolumeSlider.availableWidth / 2 - width / 2)
                         : (audioVolumeSlider.leftPadding + audioVolumeSlider.visualPosition * (audioVolumeSlider.availableWidth - width))
+                    // `visualPosition` directly — NOT `1 - visualPosition`. Qt
+                    // already inverts visualPosition for a vertical orientation
+                    // (it is defined as 1.0 - position when mirrored or vertical),
+                    // so subtracting it from 1 a second time cancels that out and
+                    // yields `position` — putting the knob at the BOTTOM at 100%
+                    // and at the top at 0%, while the drag gesture moved it the
+                    // other way. That double inversion is the operator's "dragging
+                    // the slider makes it move opposite to where I am dragging it"
+                    // (2026-08-13). The fill Rectangle above carried the same bug
+                    // in mirror image and is corrected with it; the two must always
+                    // be read against the same convention or the knob and its own
+                    // groove disagree.
                     y: root.vertical
-                        ? (audioVolumeSlider.topPadding + (1 - audioVolumeSlider.visualPosition) * (audioVolumeSlider.availableHeight - height))
+                        ? (audioVolumeSlider.topPadding + audioVolumeSlider.visualPosition * (audioVolumeSlider.availableHeight - height))
                         : (audioVolumeSlider.topPadding + audioVolumeSlider.availableHeight / 2 - height / 2)
                     width: 12
                     height: 12
