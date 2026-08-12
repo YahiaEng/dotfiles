@@ -11,6 +11,12 @@
 // the controller, the loaded popout's own hover edges relayed to
 // popoutEntered/popoutExited, and a fresh publishAnchor() call on both
 // paths that can open (hover-entered and click).
+//
+// Hover and buttons are reported by two DIFFERENT objects here, which is
+// the one thing about this file a reader must not "tidy": buttons come
+// from triggerMouseArea, hover comes from triggerHoverHandler attached to
+// the root. See triggerHoverHandler's comment for the measurement that
+// forced the split (bugfix wifi-glyph-hover-no-popout, 2026-08-12).
 import QtQuick
 import Quickshell
 import "../"
@@ -61,27 +67,31 @@ Item {
             : origin.x + triggerRoot.width / 2;
     }
 
-    // Left button only. Task 1 wires only the click, to the controller's
-    // toggle function. No stealing-prevention and no composed-event
-    // propagation are declared here, and no wheel handling is added at
-    // all: the scroll gesture already living on the entry inside this
-    // wrapper (18-12) must keep working, which is the one thing about
-    // this wrapper a code reader would not predict.
+    // Left button only, and BUTTONS ONLY — this MouseArea deliberately
+    // reports no hover whatsoever; the trigger's hover role belongs to
+    // triggerHoverHandler below, and that split is load-bearing (see that
+    // handler's own comment for the measurement that forced it). Task 1
+    // wires only the click, to the controller's toggle function. No
+    // stealing-prevention and no composed-event propagation are declared
+    // here, and no wheel handling is added at all: the scroll gesture
+    // already living on the entry inside this wrapper (18-12) must keep
+    // working, which is the one thing about this wrapper a code reader
+    // would not predict.
     MouseArea {
         id: triggerMouseArea
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton
-        hoverEnabled: true
-        // Fresh anchor published before either path that can open — the
-        // hover-entered path (dwell) and the click path — so the popout
-        // always reads a fresh centre.
-        onEntered: {
-            triggerRoot.publishAnchor();
-            PopoutController.entryEntered(triggerRoot.sectionId);
-        }
-        onExited: PopoutController.entryExited(triggerRoot.sectionId)
-        onPositionChanged: PopoutController.entryMoved(triggerRoot.sectionId)
+        // Stated explicitly even though false is the default: the point of
+        // writing it is to stop a later reader from "restoring" the hover
+        // wiring here after finding it missing. Nothing anywhere in the
+        // shell reads triggerMouseArea.containsMouse.
+        hoverEnabled: false
+
         onClicked: {
+            // Fresh anchor published before either path that can open —
+            // the hover-entered path (dwell, armed from
+            // triggerHoverHandler) and this click path — so the popout
+            // always reads a fresh centre.
             triggerRoot.publishAnchor();
             // D-18-18: a click while previewing pins; a click on an
             // already-pinned popout closes it; a click with nothing open
@@ -90,6 +100,62 @@ Item {
             // click carries no ambiguity to resolve. toggle() (Task 1)
             // already implements exactly this shape.
             PopoutController.toggle(triggerRoot.sectionId);
+        }
+    }
+
+    // ── The trigger's hover role — on triggerRoot ITSELF ─────────────────
+    // Attached here rather than to triggerMouseArea, and it must not be
+    // moved back. Everything a caller writes inside a PopoutTrigger {}
+    // block lands in contentHost (default property alias content:
+    // contentHost.data), and contentHost sits at z: 1 ABOVE
+    // triggerMouseArea. A HoverHandler written in that block — the audio
+    // and connections drawer triggers in MediaConnectivityCapsule.qml each
+    // declare exactly one — therefore makes CONTENTHOST a hover-accepting
+    // item, and Qt's hover walk, which visits children front-to-back and
+    // stops at the first item that accepts, never reaches the MouseArea
+    // underneath. Button events still reach it (a HoverHandler handles no
+    // buttons), which is exactly why click worked and hover did not.
+    //
+    // Measured on the running shell 2026-08-12, not inferred: during pure
+    // hover, triggerMouseArea.onEntered fired ZERO times on the two
+    // sections with such a sibling (wifi, audio) while firing 6/5/4 times
+    // on the three without one (bluetooth, clock, media) — and a
+    // HoverHandler on triggerRoot fired on ALL of them, 1:1 with the
+    // MouseArea wherever the MouseArea worked at all. That 1:1 agreement is
+    // what makes this a like-for-like replacement rather than a new
+    // contract.
+    //
+    // Two non-fixes, recorded so they are not re-attempted: setting
+    // blocking: false changes nothing (false is already HoverHandler's
+    // default, and it is the parent item's hover acceptance — not the
+    // handler's accept flag — that ends the walk), and contentHost's z: 1
+    // cannot be dropped (18.1-02 / d5a9698 raised it precisely so the D-25
+    // format-alt toggle nested in the wrapped content receives clicks).
+    HoverHandler {
+        id: triggerHoverHandler
+
+        onHoveredChanged: {
+            if (triggerHoverHandler.hovered) {
+                triggerRoot.publishAnchor();
+                PopoutController.entryEntered(triggerRoot.sectionId);
+            } else {
+                PopoutController.entryExited(triggerRoot.sectionId);
+            }
+        }
+
+        // The pointer-move report that arms D-18-19's suppression latch —
+        // the direct replacement for MouseArea.onPositionChanged, which
+        // cannot fire now that this trigger's MouseArea reports no hover.
+        // QQuickSinglePointHandler emits pointChanged for every event the
+        // handler processes, so this fires on hover MOTION and not only on
+        // the enter edge, which is what keeps the latch's actual meaning —
+        // the pointer moved after the bar settled — instead of arming it on
+        // the reveal gesture that put the pointer here in the first place.
+        // Guarded on hovered because the leave event updates the point too,
+        // and a leave is not a move within the entry.
+        onPointChanged: {
+            if (triggerHoverHandler.hovered)
+                PopoutController.entryMoved(triggerRoot.sectionId);
         }
     }
 
