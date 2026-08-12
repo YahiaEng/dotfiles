@@ -119,6 +119,13 @@ Singleton {
                 { id: "cpu", backends: ["resources"], textBearing: true },
                 { id: "ram", backends: ["resources"], textBearing: true },
                 { id: "disk", backends: ["resources"], textBearing: true },
+                // gpu (operator request, 2026-08-12) — declared alongside its
+                // three siblings and on the SAME "resources" backend, which is
+                // why it widens no gate: requiresResources is already true
+                // from cpu/ram/disk, so this row changes no aggregate. The
+                // entry renders only where SystemResources reports
+                // gpuAvailable, so a machine with no NVIDIA GPU is unaffected.
+                { id: "gpu", backends: ["resources"], textBearing: true },
                 { id: "updates", backends: [], textBearing: true }
             ]
         },

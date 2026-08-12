@@ -86,6 +86,25 @@ BarCapsule {
         // package upgrade via activated().
         property bool clickable: false
 
+        // ── Tooltip seam (operator request, 2026-08-12) ─────────────────
+        // Set on the updates entry ONLY, and deliberately not on cpu/ram/
+        // disk: those three sit inside resourcesPopoutTrigger and already
+        // answer a hover with a full ResourcesPopout card, so a tooltip
+        // there would fight the popout for the same gesture. The updates
+        // entry is the one glyph in this capsule with neither a popout nor
+        // any visible hint of what its click does — it launches a package
+        // upgrade — which is the same "function is wired, feedback is
+        // absent" shape GATE-02 finding F3 recorded against the idle bulb.
+        //
+        // Empty by default, and every consumer below is gated on non-empty,
+        // so the three resource instances add no hover handler at all. That
+        // gating is load-bearing, not tidiness: a hover-accepting MouseArea
+        // or an enabled HoverHandler on those three could swallow the hover
+        // that resourcesPopoutTrigger's own dwell path needs (QBAR-09),
+        // which is why the hit area below is still NOT hoverEnabled.
+        property string tooltipText: ""
+        property string tooltipId: ""
+
         // Set true on the cpu, ram and disk instances only (D-25): an
         // in-place format-alt value toggle, matching Athena's own
         // format/format-alt swap. This file now carries TWO interactive
@@ -246,6 +265,30 @@ BarCapsule {
                     readoutItem.activated();
             }
         }
+
+        // A HoverHandler, not `hoverEnabled` on the MouseArea above: a
+        // hover-accepting MouseArea can consume the hover its ancestors
+        // need, and cpu/ram/disk's ancestor is resourcesPopoutTrigger,
+        // whose dwell path is the only way their popout opens. A pointer
+        // handler is passive by comparison, and this one is additionally
+        // disabled outright on any instance with no tooltip text — so on
+        // the three resource entries it does nothing whatsoever.
+        HoverHandler {
+            id: readoutHoverHandler
+            enabled: readoutItem.tooltipText !== ""
+        }
+
+        // Sibling of the hit area, never a wrapper — BarTooltipHost.qml's
+        // own stated contract, and the shape all four existing bar-window
+        // sites use. Zero-size, and its LazyLoader only mounts a surface
+        // once the dwell has elapsed AND the hover is still live, so the
+        // three text-less instances cost an idle Timer and nothing else.
+        BarTooltipHost {
+            anchorItem: readoutItem
+            text: readoutItem.tooltipText
+            active: readoutItem.tooltipText !== "" && readoutHoverHandler.hovered
+            tipId: readoutItem.tooltipId
+        }
     }
 
     // ── cpu ──────────────────────────────────────────────────────────────
@@ -262,6 +305,33 @@ BarCapsule {
 
     // ── disk ─────────────────────────────────────────────────────────────
     readonly property string storageStateValue: root.systemResources ? root.systemResources.storageState : "empty"
+
+    // ── gpu (operator request, 2026-08-12) ───────────────────────────────
+    // Display-only: the metric already existed and was ALREADY being
+    // sampled. SystemResources.qml has carried gpuFraction/gpuAvailable/
+    // gpuState/gpuName since 14-10 Task 2 (DASH-09), and shell.qml binds
+    // that instance's drawerOpen to `dashboardLoader.active ||
+    // barInstance.requiresResources` — which cpu/ram/disk hold true
+    // permanently via their backends: ["resources"] declarations. So
+    // gpuSampleTimer (running: drawerOpen && gpuAvailable) has been
+    // spawning nvidia-smi every gpuPollInterval (4s) all along with
+    // nothing on screen reading it. MEASURED live before this entry was
+    // added, via a temporary GPUPROBE (removed): drawerOpen=true
+    // gpuAvailable=true gpuState=populated gpuName="NVIDIA GeForce
+    // RTX 3070" gpuFraction=0.36. This entry therefore adds a glyph and
+    // NO new sampling cost — it starts displaying a figure already paid for.
+    //
+    // Note for anyone tempted to "fix" the asymmetry: ResourcesPopout.qml
+    // deliberately shows no GPU row (its own comment: the Performance tab
+    // owns GPU, network-rate and temperature), so the bar showing GPU while
+    // that popout does not is intentional, not an oversight.
+    readonly property string gpuStateValue: root.systemResources ? root.systemResources.gpuState : "empty"
+
+    // Conditional entry, the same idiom the battery and ethernet entries on
+    // the right side use: false contributes zero extent and zero spacing, so
+    // a machine with no NVIDIA GPU renders exactly the bar it renders today.
+    // Bound to the probe's cached answer, never to the presence of a value.
+    readonly property bool gpuPresent: root.systemResources ? root.systemResources.gpuAvailable : false
 
     // ── Popout wrapper (Phase 18 Plan 14, QBAR-09) — named seam into this
     //    18-08-owned file. Ownership split, stated so it is never
@@ -357,6 +427,30 @@ BarCapsule {
                 metricFraction: root.systemResources ? root.systemResources.storageFraction : 0
                 valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.storageFraction) : ""
             }
+
+            Readout {
+                // MDI-free: "developer_board" is a Material Symbols
+                // ligature, verified PRESENT in the installed
+                // MaterialSymbolsRounded variable font via fontTools before
+                // use — the same check the ethernet glyph's own comment
+                // demands, because GATE-02 row A.3's named failure mode is a
+                // nonexistent ligature rendering as its own name in plain
+                // text.
+                glyph: "developer_board"
+                maxValueText: "100%"
+                visible: root.gpuPresent
+                populated: root.gpuStateValue === "populated"
+                errored: root.gpuStateValue === "empty"
+                valueToggleable: true
+                // Athena has no GPU states block to lift — it never had a GPU
+                // entry — so these follow the CPU entry's pair rather than
+                // inventing a third pattern: a GPU pinned near capacity is
+                // the same "busy" signal a CPU near capacity is.
+                warnThreshold: 0.75
+                dangerThreshold: 0.90
+                metricFraction: root.systemResources ? root.systemResources.gpuFraction : 0
+                valueText: root.systemResources ? root.systemResources.formatPercent(root.systemResources.gpuFraction) : ""
+            }
         }
     }
 
@@ -415,6 +509,11 @@ BarCapsule {
         contentOverride: BarRoles.fillUpdatesFg
         valueText: root.pendingUpdatesCount.toString()
         onActivated: root.launchUpgrade()
+        // The only tooltip in this capsule — see the tooltipText seam's own
+        // comment for why cpu/ram/disk deliberately have none. Names the
+        // action the click performs, not the glyph.
+        tooltipText: "Update system"
+        tooltipId: "systemUpdates"
     }
 
     Process {
