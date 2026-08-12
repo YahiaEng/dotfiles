@@ -129,7 +129,16 @@ BarCapsule {
             // the nearest value on the repo's 4px grid. This was spacingMd (16,
             // i.e. 8 per side), which hugged the text and is what the operator
             // reported as the clock pill looking compressed.
-            width: clockTriggerGrid.width + Design.spacingLg
+            // Horizontal keeps spacingLg (24). VERTICAL cannot afford it:
+            // MEASURED 2026-08-12, the pill came to 51.1px against a
+            // barColumnWidth of 44 — and after the time line was narrowed to
+            // stacked HH/mm, this pill was the LAST thing overflowing the
+            // column, the texts inside it all fitting. The 24 traces to athena's
+            // `padding: 6px 10px 6px 16px`, which is a horizontal-strip
+            // rationale; a 44px column has no room for 12 per side. Vertical
+            // therefore reuses barCapsulePadding, the same token the height
+            // already derives from, giving a symmetric inset that fits.
+            width: clockTriggerGrid.width + (clockActionsCapsule.vertical ? Design.barCapsulePadding * 2 : Design.spacingLg)
             height: clockTriggerGrid.height + Design.barCapsulePadding * 2
             radius: clockActionsCapsule.vertical ? width / 2 : height / 2
             color: BarRoles.fillClock
@@ -172,7 +181,12 @@ BarCapsule {
             // Positioner does — leaving visible untouched removes any doubt
             // this spacer's width reaches childrenRect at all.
             x: clockFillPill.x + clockFillPill.width
-            width: Design.spacingXs
+            // Zero in vertical: this spacer closes a missing HORIZONTAL inset
+            // between the clock pill and the cell to its right. In a column
+            // there is no cell to its right — the next capsule is below — so the
+            // 4px only widened the clock cell, which measured 55.1 against the
+            // pill's own 51.1 and pushed the whole capsule past the 44px column.
+            width: clockActionsCapsule.vertical ? 0 : Design.spacingXs
             height: 1
         }
 
@@ -264,9 +278,31 @@ BarCapsule {
                 // rather than approximated with DemiBold.
                 font.weight: Design.weightBold
                 color: BarRoles.fillClockFg
-                text: Qt.formatDateTime(barClock.date, "HH:mm")
+                // MEASURED 2026-08-12: "HH:mm" at this size and weight renders
+                // 61.3px wide, against a barColumnWidth of 44. The whole
+                // capsule's content grid took that width and, being centred in
+                // a 44px window, sat at x=-9 — every cell in the capsule spilled
+                // past both edges of the bar with clip=false. So in VERTICAL the
+                // hours and minutes take their own lines: two glyphs of two
+                // digits fit the column with room, and D-18-14's
+                // "two-stacked-lines" form is honoured more literally than a
+                // single wide HH:mm line ever did.
+                text: clockActionsCapsule.vertical
+                    ? Qt.formatDateTime(barClock.date, "HH") + "\n" + Qt.formatDateTime(barClock.date, "mm")
+                    : Qt.formatDateTime(barClock.date, "HH:mm")
+                horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                height: Design.barGlyphSize
+                // Fixed single-line height in horizontal (unchanged); content-sized
+                // in vertical, because a two-line string inside a 16px box would
+                // clip the minutes away entirely — trading a horizontal overflow
+                // for a vertical one.
+                //
+                // contentHeight, NOT implicitHeight: binding a Text's `height` to
+                // its own `implicitHeight` is circular, and Qt said so —
+                // "Binding loop detected for property height" at this line, on
+                // the first reload after the two-line change. contentHeight is
+                // derived from the text and font alone, so it closes the loop.
+                height: clockActionsCapsule.vertical ? contentHeight : Design.barGlyphSize
             }
 
             // Line 2, vertical only (D-18-14's two-stacked-lines form): a
@@ -303,8 +339,21 @@ BarCapsule {
         // top-right of a cell whose glyph is barGlyphSize (16), so the badge
         // covered the bell exactly — the operator's "the notifications glyph
         // is messed up".
-        width: clockActionsCapsule.cellPitch + (cellItem.badgeVisible ? badge.width + Design.spacingXs : 0)
-        height: clockActionsCapsule.cellPitch
+        // MEASURED 2026-08-12: beside-the-glyph is right in horizontal but does
+        // not fit the vertical column. A badged cell came to 46.8px wide (24
+        // pitch + an 18.8 badge for a two-digit count + 4 gap) against a
+        // barColumnWidth of 44 — one digit lands at exactly 44, two or "9+"
+        // spill. So the badge keeps its side-by-side placement horizontally and
+        // stacks BELOW the glyph vertically: the cell stays one pitch wide and
+        // grows downward instead, where there is room.
+        //
+        // Stacking rather than reverting to the old top-right overlay is
+        // deliberate — the overlay is what this comment's own history records as
+        // "the notifications glyph is messed up", because badge (spacingMd 16)
+        // and glyph (barGlyphSize 16) are the same size, so it covered the bell
+        // exactly. Below-the-glyph covers nothing.
+        width: clockActionsCapsule.cellPitch + ((cellItem.badgeVisible && !clockActionsCapsule.vertical) ? badge.width + Design.spacingXs : 0)
+        height: clockActionsCapsule.cellPitch + ((cellItem.badgeVisible && clockActionsCapsule.vertical) ? badge.height + Design.spacingXs : 0)
 
         property string glyph: ""
         property string label: ""
@@ -354,7 +403,11 @@ BarCapsule {
             // instead of the glyph staying centred and the count hanging off.
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.horizontalCenterOffset: cellItem.badgeVisible ? -(badge.width + Design.spacingXs) / 2 : 0
+            // Shifted along whichever axis the badge occupies, so the
+            // glyph+count pair stays optically centred in the grown cell rather
+            // than the glyph holding centre with the count hanging off the end.
+            anchors.horizontalCenterOffset: (cellItem.badgeVisible && !clockActionsCapsule.vertical) ? -(badge.width + Design.spacingXs) / 2 : 0
+            anchors.verticalCenterOffset: (cellItem.badgeVisible && clockActionsCapsule.vertical) ? -(badge.height + Design.spacingXs) / 2 : 0
             text: cellItem.glyph
             font.family: Design.symbolFontFamily
             font.pixelSize: Design.barGlyphSize
@@ -374,11 +427,18 @@ BarCapsule {
             height: implicitHeight
             radius: height / 2
             color: BarRoles.accent
-            // Beside the glyph, vertically centred — was anchors.top/right,
-            // which laid a 16px circle over a 16px glyph.
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: glyphText.right
-            anchors.leftMargin: Design.spacingXs
+            // Beside the glyph horizontally, BELOW it vertically — never on top
+            // of it, which is what anchors.top/right used to do and what laid a
+            // 16px circle over a 16px glyph. Each orientation clears the other's
+            // anchors with undefined, the same idiom Bar.qml's zone containers
+            // use for their own axis swap; leaving both sets bound would make
+            // the badge fight two anchor lines at once.
+            anchors.verticalCenter: clockActionsCapsule.vertical ? undefined : parent.verticalCenter
+            anchors.left: clockActionsCapsule.vertical ? undefined : glyphText.right
+            anchors.leftMargin: clockActionsCapsule.vertical ? 0 : Design.spacingXs
+            anchors.horizontalCenter: clockActionsCapsule.vertical ? parent.horizontalCenter : undefined
+            anchors.top: clockActionsCapsule.vertical ? glyphText.bottom : undefined
+            anchors.topMargin: clockActionsCapsule.vertical ? Design.spacingXs : 0
 
             Text {
                 id: badgeLabel

@@ -75,7 +75,26 @@ Singleton {
     // vertically; center is used horizontally only (a column has no
     // visual-balance reason to centre-band a group, per UI-SPEC's
     // Orientation Transform Rules) and is simply empty in the other
-    // orientation. A single three-name vocabulary is what makes the
+    // orientation.
+    //
+    // CORRECTED 2026-08-12 after measurement. `end` was mapped to `start` in
+    // vertical for every capsule, so ALL six sections landed in the top zone
+    // and the column stopped dead at y=1004 of 1420 available — 416px of unused
+    // bar, which the operator reported as "it does not utilize the entire
+    // vertical space". Measured with a temporary BARPROBE walking the zone
+    // containers: zone:start held every capsule (ih=1004) while zone:center and
+    // zone:end were both 0x0.
+    //
+    // The fix follows UI-SPEC's Orientation Transform Rules literally rather
+    // than mirroring the horizontal map wholesale. That section says vertical is
+    // "top->bottom, in the same canonical order, NO center-banding" AND that the
+    // end-of-bar group "stays fixed at the bottom". So `end` now means the bottom
+    // in vertical too (media+connectivity, clock+actions), while `center`'s two
+    // members stay in `start` — centre-banding a column is the one thing that
+    // rule explicitly forbids. The slack now falls BETWEEN the two groups,
+    // which is exactly how the horizontal bar reads between its left and right
+    // groups.
+    // A single three-name vocabulary is what makes the
     // forked-arrangement failure structurally unrepresentable: Bar.qml
     // builds three zone containers in both orientations and only the
     // per-capsule zone VALUES differ.
@@ -154,7 +173,7 @@ Singleton {
         },
         {
             id: "mediaConnectivity",
-            zone: { horizontal: root.zoneEnd, vertical: root.zoneStart },
+            zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
             entries: [
                 { id: "media", backends: ["media"], textBearing: true },
                 { id: "audio", backends: ["audio"], textBearing: true },
@@ -175,7 +194,7 @@ Singleton {
         },
         {
             id: "clockActions",
-            zone: { horizontal: root.zoneEnd, vertical: root.zoneStart },
+            zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
             entries: [
                 { id: "clock", backends: [], textBearing: true },
                 { id: "gaming", backends: [], textBearing: false },

@@ -377,15 +377,31 @@ PanelWindow {
         // Three zone containers exist in BOTH orientations; only which
         // capsules land in each differs. Each is a Grid with the same
         // single-positioner axis binding BarCapsule uses internally.
+        //
+        // POSITIONED BY EXPLICIT x/y, NOT BY CONDITIONAL ANCHORS (2026-08-12).
+        // Each zone used to carry four anchor bindings that switched by
+        // orientation, clearing the unused pair with `undefined`. That idiom
+        // does NOT reliably clear an anchor line from inside a binding, and the
+        // consequence was measurable: with `verticalCenter` still bound in
+        // vertical, pairing it with `top` or `bottom` makes Qt DERIVE the
+        // height. startZone came out top=0 + verticalCenter=710 -> height
+        // 2*710 = 1420; endZone came out bottom=1420 + verticalCenter=710 ->
+        // height 1420 at y=0. Both grids therefore spanned the whole column and
+        // both packed their content at the top, so endZone's capsules rendered
+        // OVER startZone's instead of at the bottom, and the bar looked
+        // top-crammed with dead space below (measured via BARPROBE: zone:start
+        // h=1420 ih=624, zone:end h=1420 ih=404, both sceneY=0).
+        //
+        // Explicit x/y cannot half-apply. Height stays implicit, so each Grid is
+        // exactly its content and the positioner does the rest.
         Grid {
             id: startZone
             spacing: Design.barCapsuleGap
             rows: barWindow.vertical ? -1 : 1
             columns: barWindow.vertical ? 1 : -1
-            anchors.left: !barWindow.vertical ? parent.left : undefined
-            anchors.top: barWindow.vertical ? parent.top : undefined
-            anchors.verticalCenter: !barWindow.vertical ? parent.verticalCenter : undefined
-            anchors.horizontalCenter: barWindow.vertical ? parent.horizontalCenter : undefined
+            // start = left edge horizontally, top edge vertically.
+            x: barWindow.vertical ? (parent.width - width) / 2 : 0
+            y: barWindow.vertical ? 0 : (parent.height - height) / 2
 
             Repeater {
                 model: BarEntryModel.capsulesForZone(BarEntryModel.zoneStart)
@@ -401,7 +417,11 @@ PanelWindow {
             spacing: Design.barCapsuleGap
             rows: barWindow.vertical ? -1 : 1
             columns: barWindow.vertical ? 1 : -1
-            anchors.centerIn: parent
+            // center = the middle on the laid-out axis, in both orientations.
+            // (Empty in vertical by UI-SPEC's no-centre-banding rule, but the
+            // container still exists and still positions correctly if used.)
+            x: (parent.width - width) / 2
+            y: (parent.height - height) / 2
 
             Repeater {
                 model: BarEntryModel.capsulesForZone(BarEntryModel.zoneCenter)
@@ -417,10 +437,9 @@ PanelWindow {
             spacing: Design.barCapsuleGap
             rows: barWindow.vertical ? -1 : 1
             columns: barWindow.vertical ? 1 : -1
-            anchors.right: !barWindow.vertical ? parent.right : undefined
-            anchors.bottom: barWindow.vertical ? parent.bottom : undefined
-            anchors.verticalCenter: !barWindow.vertical ? parent.verticalCenter : undefined
-            anchors.horizontalCenter: barWindow.vertical ? parent.horizontalCenter : undefined
+            // end = right edge horizontally, bottom edge vertically.
+            x: barWindow.vertical ? (parent.width - width) / 2 : (parent.width - width)
+            y: barWindow.vertical ? (parent.height - height) : (parent.height - height) / 2
 
             // The Repeater is what makes render order equal declaration
             // order and therefore stable — the ordering contract in
