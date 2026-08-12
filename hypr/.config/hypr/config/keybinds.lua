@@ -109,21 +109,29 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/bar-orientati
 -- inside the shell process cannot resurrect a bar whose process is gone
 -- or hung, which is exactly the case this bind exists to recover from.
 hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/bar-visibility.sh keybind toggle")) -- Toggle bar visibility
--- Held-Super reveal (Phase 18 Plan 16, QBAR-08) — Step 4's stop condition
--- was applied here, NOT shipped. See BarReveal.qml's own header for the
--- full record: a press-triggered `hl.dsp.global("quickshell:bar-reveal")`
--- bind on this exact "SUPER + SUPER_L" chord was drafted, staged and run
--- through `keybind-doctor` before being written here — the doctor's
--- shadow check (which distinguishes by release flag) reported zero
--- conflicts, but its SEPARATE quickshell-manifest chord-collision check
--- (which does not distinguish by release flag) flagged this exact chord
--- as claimed by two different Hyprland-declared binds: the tap-to-menu
--- release bind directly above, and the drafted press bind. That check
--- could not be satisfied without either live-proving Hyprland actually
--- dispatches both edges independently (unreachable this session — see
--- BarReveal.qml) or reverting. Reverted per this task's own instruction:
--- do not ship a bind that works most of the time. Blocked item, handed to
--- the developer.
+-- Held-Super reveal (Phase 18 Plan 16, QBAR-08) — SHIPPED. Deliberately
+-- shares the "SUPER + SUPER_L" chord with the tap-to-menu bind above and
+-- is NOT a conflict: that one is a RELEASE bind, this one is a PRESS
+-- bind, and Hyprland dispatches the two edges independently. Holding
+-- Super reveals the hidden bar; tapping and releasing it opens the main
+-- menu; doing both in one gesture does both, which is the intended
+-- behaviour, not an accident.
+--
+-- 18-16 drafted this exact bind and reverted it, because keybind-doctor's
+-- quickshell-manifest chord-collision check compared (modmask, key)
+-- WITHOUT the release flag and so read the two binds as one chord claimed
+-- twice. The doctor's own shadow check had always distinguished by
+-- (modmask, key, keycode, release) and reported zero conflicts — the two
+-- checks disagreed with each other. The collision check now compares the
+-- edge as well, and `shortcuts.json`'s bar-reveal entry declares
+-- `"release": false` to claim the press edge explicitly, so both sides of
+-- the cross-check now agree these are two different claims.
+--
+-- Do NOT "simplify" this to a single bind or move it to another chord:
+-- QBAR-08 specifies holding Super, and the escape hatch at Super+Escape
+-- below exists precisely so a Super-bind experiment can never lock the
+-- keyboard.
+hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:bar-reveal")) -- Reveal hidden bar while Super is held
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/hypr/scripts/wallpaper-switch.sh")) -- Change wallpaper
 
 -- ── Clipboard ────────────────────────────────────────

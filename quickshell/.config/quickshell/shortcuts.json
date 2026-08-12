@@ -28,5 +28,11 @@
     "name": "overview",
     "chord": { "mods": "SUPER", "key": "O" },
     "description": "Summon the workspace overview (OVER-01)"
+  },
+  {
+    "appid": "quickshell",
+    "name": "bar-reveal",
+    "chord": { "mods": "SUPER", "key": "SUPER_L", "release": false },
+    "description": "Reveal the hidden bar while Super is held (QBAR-08). Explicit `release: false` — this entry claims the PRESS edge only. The RELEASE edge of the same chord is a separate, pre-existing Hyprland bind (tap Super -> main menu, keybinds.lua), and the two never collide because keybind-doctor's chord-collision check compares the edge, exactly as its shadow check always has."
   }
 ]

@@ -684,12 +684,33 @@ ShellRoot {
         onPressed: root.toggleOverview()
     }
 
-    // Held-Super reveal (Phase 18 Plan 16, QBAR-08) — NOT shipped. A
-    // GlobalShortcut declaration here was drafted, then reverted under
-    // this task's own Step 4 stop condition after keybind-doctor's
-    // quickshell-manifest chord-collision check flagged the drafted bind
-    // against the shipped tap-to-menu bind at keybinds.lua:86. See
-    // BarReveal.qml's header for the full record. `superHeld` stays
-    // declared and permanently undriven — hover-only reveal (Task 1) is
-    // unaffected.
+    // ── Held-Super reveal (Phase 18 Plan 16, QBAR-08) — SHIPPED. ─────────
+    // The sole writer of BarReveal.superHeld. 18-16 drafted this block and
+    // reverted it: keybind-doctor's chord-collision check compared
+    // (modmask, key) WITHOUT the release flag, so the press bind below and
+    // the pre-existing Super-tap RELEASE bind read as one chord claimed
+    // twice. That was a checker limitation, not a real conflict — the same
+    // script's shadow check has always distinguished binds by
+    // (modmask, key, keycode, release). The collision check now compares
+    // the edge too, and `shortcuts.json`'s bar-reveal entry declares
+    // `"release": false` to claim the press edge explicitly, so the two
+    // binds are different tuples on both sides of the cross-check.
+    //
+    // Both edges genuinely exist on the QML side: the installed Hyprland
+    // GlobalShortcut type declares `pressed`/`released` signals (read from
+    // its own qmltypes, not assumed), correcting RESEARCH.md's Open
+    // Question 2 — that scan was incomplete, not wrong about the risk.
+    //
+    // setSuperHeld() rather than a direct property write, so BarReveal
+    // keeps exactly one write site for superHeld no matter how many edges
+    // call in. The hover half (HotZone.qml) reports through
+    // BarReveal.reportHover() on the same principle and is untouched here;
+    // BarReveal composes the two into revealCondition itself.
+    GlobalShortcut {
+        id: barRevealShortcut
+        appid: "quickshell"
+        name: "bar-reveal"
+        onPressed: BarReveal.setSuperHeld(true)
+        onReleased: BarReveal.setSuperHeld(false)
+    }
 }
