@@ -6,7 +6,7 @@ current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
 stopped_at: "18-19 at its blocking human gate — 14 rows await live observation. B.4-DRAWER remedy applied (quick 260812-59l) but unproven by observation. 18-20 held pending the QBAR-11 soak (pid 528309, ends ~06:40 EEST)."
-last_updated: "2026-08-12T12:17:35.238Z"
+last_updated: "2026-08-12T12:32:57.364Z"
 last_activity: 2026-08-12
 last_activity_desc: Four GATE-02 iteration-1 defects fixed (quick 260812-69w) — gate ready for iteration 2
 progress:
@@ -480,6 +480,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260812-59l | Add BarDrawer.qml vertical drawer host (18-11 Option B, D-18-11) — clears GATE-02 row B.4-DRAWER, the only failing row blocking RETIRE-02 | 2026-08-12 | fc01499, 55208c4, 10674fd | [260812-59l-add-bardrawer-qml-vertical-drawer-host-1](./quick/260812-59l-add-bardrawer-qml-vertical-drawer-host-1/) |
 | 260812-69w | Fix four GATE-02 iteration-1 bar defects (clock pill alignment, tooltips obstructing their glyph, idle bulb feedback, media transport centering) | 2026-08-12 | 6721977, 6285f5d | [260812-69w-fix-four-gate-02-iteration-1-bar-defects](./quick/260812-69w-fix-four-gate-02-iteration-1-bar-defects/) |
 | 11 | Give bar hover drawers their own collapse-grace token (barDrawerGraceMs 600, was borrowing popoutDismissGraceMs 200) — drawers were collapsing before finishing their 500ms reveal | 2026-08-12 | c78655e | — |
+| 12 | Bar: fix tooltip placement double-counting the bar extent on both axes; add an ethernet glyph left of wifi, visible only while a wired link is connected | 2026-08-12 | 67333c5 | — |
 
 ### Pending Todos
 
