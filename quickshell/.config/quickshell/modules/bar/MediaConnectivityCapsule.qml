@@ -290,7 +290,28 @@ BarCapsule {
     // the row.
     readonly property int audioSliderLength: 72
     readonly property int audioStripExtent: root.audioSliderLength + Design.spacingXs + root.drawerCellPitch
-    readonly property int connectionsStripExtent: root.drawerCellPitch
+    // The bluetooth glyph's OWN natural width, not drawerCellPitch (24).
+    // Measured 2026-08-12 (temporary GAPPROBE, removed before this commit):
+    // with a 24px box around a 10.84px glyph, the visible gaps across the
+    // expanded row ran 16.00 (audio strip -> volume), 29.16 (volume ->
+    // bluetooth), 16.00 (bluetooth -> network). The 13.16px excess is the
+    // box's dead space. Phase 18.1 had anchored the trigger to this box's
+    // trailing edge to close the bluetooth->network side, which fixed that
+    // gap by moving the dead space to the LEADING side rather than removing
+    // it — so the defect reappeared on the other side of the same glyph,
+    // which is what the operator then reported.
+    //
+    // The 24px box was justified as "the same touch/hover padding every
+    // other bar glyph gets". That premise is false, and the same
+    // measurement disproves it: audioPopoutTrigger renders 12.84 wide and
+    // wifiPopoutTrigger 14.84 — both their glyphs' natural widths, neither
+    // padded to a 24px cell. Binding to the trigger's own implicitWidth
+    // makes this glyph match its neighbours on BOTH sides at once, and
+    // makes its hover target the same size as theirs rather than twice it.
+    // `real`, not `int`: the glyph's implicitWidth is 10.84 and an int
+    // truncates it to 10, leaving the right-anchored glyph overhanging its
+    // own box by 0.84 and the gap measuring 15.16 instead of 16.00.
+    readonly property real connectionsStripExtent: bluetoothPopoutTrigger.implicitWidth
 
     // Shared by both drawers — QsWindow.window's own live rendered/
     // transitioning state, the exact reachable path LauncherCapsule.qml's
@@ -861,9 +882,16 @@ BarCapsule {
         // here bought nothing but inherited that pattern's LEFT-alignment
         // default. Phase 18.1 gap-tightening fix, measured via mapToItem
         // (temporary MCCPROBE, removed before this commit): connectionsStripExtent
-        // reserves a full drawerCellPitch (24) box so the bluetooth glyph
-        // keeps the same touch/hover padding every other bar glyph gets —
-        // correct, and unchanged by this fix — but the former Grid always
+        // then reserved a full drawerCellPitch (24) box, justified as keeping
+        // "the same touch/hover padding every other bar glyph gets".
+        // SUPERSEDED 2026-08-12 — that justification was false and a later
+        // measurement disproved it: audioPopoutTrigger renders 12.84 wide and
+        // wifiPopoutTrigger 14.84, both natural glyph widths with no 24px
+        // cell. connectionsStripExtent now binds to the trigger's own
+        // implicitWidth, so all three gaps across the expanded row measure
+        // 16.00. The paragraph below describes the 18.1 state, kept because
+        // the right-edge anchor it introduced is still what holds the
+        // bluetooth->network side at 16 — but the former Grid always
         // places its one child flush at the box's OWN (0,0), i.e. the
         // LEADING edge. With this box's own edge (not its content) already
         // sitting exactly barCapsuleGap-pitch (16px) before the network
