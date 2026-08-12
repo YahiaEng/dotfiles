@@ -1,9 +1,10 @@
 ---
 slug: wifi-glyph-hover-no-popout
-status: awaiting_human_verify
+status: resolved
 trigger: "HOvering over thw wifi glyph does not expand into a wifi card module"
 created: 2026-08-12
 updated: 2026-08-12
+resolved_commit: b3e5e5a
 phase: 18-qml-bar-retirement-machinery
 ---
 
@@ -409,12 +410,30 @@ verification:
     `point` with `notify: pointChanged`; `QQuickHoverHandler` has it as prototype). PASS
   - `blocking` confirmed to default false in the same metadata, so the "set blocking: false"
     direction is a verified non-fix rather than an assumed one. PASS
-  - Behavioural matrix (hover-opens on all six, click-opens, D-25 nested click): PENDING —
-    requires operator gestures. The agent cannot move the physical pointer:
-    `hyprctl dispatch movecursor` was attempted and Hyprland 0.56.2's new Lua dispatch form
-    rejects it, and the remaining `hl.dsp.*` route is compositor Lua evaluation, i.e. the
-    prohibited `hyprctl eval` in another spelling. `wtype` is keyboard-only, so clicks are
-    unreachable regardless. NOT claimed as verified.
+  - Behavioural matrix, hover half: **PASS, measured 2026-08-12 03:06** on instance
+    `9nbberpmjt` after the operator's gesture pass. All six sections logged a bare
+    `popout: open section=X` with NO following `pin` — the hover signature — in one
+    left-to-right sweep: `resources` (03:06:02), `media` (03:06:07), **`audio`**
+    (03:06:10), **`wifi`** (03:06:16), `bluetooth` (03:06:19), `clock` (03:06:22).
+    The two formerly-dead sections now hover-open, and the four that already worked did
+    not regress. Zero errors/warnings in the instance log.
+  - This also retires the one live regression risk carried into the fix: `pointChanged`
+    was proven to EXIST by type metadata but only INFERRED to fire on motion. Had it not
+    fired, `entryMoved` would never run, D-18-19's latch would never arm, and NOTHING
+    would hover-open — including the four working sections. Six opens prove it fires.
+  - Click half and D-25 nested click: **NOT separately instrumented.** The operator
+    reported them working, but passes B and C left no trace in the log (every `open` is
+    followed by `dismiss` with no `pin`, i.e. the capture is pure hover end to end).
+    Treated as low-risk on structure rather than claimed as measured: `onClicked` and
+    `acceptedButtons` are byte-identical to HEAD, `hoverEnabled` cannot affect button
+    delivery, and D-25 depends on `contentHost`'s `z: 1`, which this fix never touches.
+    Recorded as inferred, not verified — if a click path is ever reported broken, this is
+    the gap to check first.
+  - Agent cannot self-verify the behavioural matrix: `hyprctl dispatch movecursor` is
+    rejected by Hyprland 0.56.2's Lua dispatch form, the remaining `hl.dsp.*` route is
+    compositor Lua evaluation (the prohibited `hyprctl eval` in another spelling), and
+    `wtype` is keyboard-only so clicks are unreachable regardless. This is a standing
+    constraint on this host, not a one-off.
 
 files_changed:
   - quickshell/.config/quickshell/modules/bar/PopoutTrigger.qml (the fix)
