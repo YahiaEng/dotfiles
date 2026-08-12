@@ -116,7 +116,14 @@ PanelWindow {
     // window's side edges. Keeps the ONE anchoring rule identical; see
     // SectionPopout.qml:167 for the full measurement.
     readonly property int _verticalRightMargin: Design.barSideMargin
-    readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(Design.barSideMargin + drawerRoot.triggerCentre - drawerRoot.height / 2, (drawerRoot.screen ? drawerRoot.screen.height : drawerRoot.height) - drawerRoot.height - Design.barSideMargin))
+    // triggerCentre is scene-absolute (the host publishes it via
+    // mapToItem(null, ...)), so barSideMargin is NOT added as an origin here —
+    // it was until 2026-08-12, which put the drawer 10px off its trigger. Same
+    // correction as SectionPopout.qml's desired-position pair; see that file
+    // for BarTooltip.qml's measured numbers on the identical mistake.
+    // barSideMargin remains in the clamp bounds, where it is a screen-edge
+    // inset and always was correct.
+    readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(drawerRoot.triggerCentre - drawerRoot.height / 2, (drawerRoot.screen ? drawerRoot.screen.height : drawerRoot.height) - drawerRoot.height - Design.barSideMargin))
 
     margins.right: drawerRoot._verticalRightMargin
     margins.top: drawerRoot._verticalClampedTop

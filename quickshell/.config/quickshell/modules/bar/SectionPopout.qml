@@ -198,10 +198,25 @@ PanelWindow {
     readonly property int _horizontalTopMargin: Design.barSideMargin
     readonly property int _verticalRightMargin: Design.barSideMargin
 
-    readonly property real _horizontalDesiredLeft: Design.barSideMargin + popoutWindow.triggerCentre - popoutWindow.width / 2
+    // triggerCentre is ALREADY a scene-absolute coordinate — PopoutTrigger.qml
+    // publishes it via mapToItem(null, 0, 0) — so barSideMargin must NOT be
+    // added here as an origin. It was, on both axes, until 2026-08-12, which
+    // put every popout 10px off the glyph it belongs to.
+    //
+    // BarTooltip.qml:94-100 records the identical mistake with its own live
+    // numbers, taken from the same publisher: "spotify's glyph centre 40
+    // against a tooltip centre of 50, discord 68 against 78, steam 96 against
+    // 106". That file corrected itself and did not sweep this one — the third
+    // time in this family that BarTooltip found a bug, fixed only itself, and
+    // left the sibling it had copied the expression FROM still carrying it
+    // (see _horizontalTopMargin above for the second).
+    //
+    // barSideMargin stays in the CLAMP below, where it is a screen-edge inset
+    // rather than an origin — that use was always correct and is unchanged.
+    readonly property real _horizontalDesiredLeft: popoutWindow.triggerCentre - popoutWindow.width / 2
     readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(popoutWindow._horizontalDesiredLeft, (popoutWindow.screen ? popoutWindow.screen.width : popoutWindow.width) - popoutWindow.width - Design.barSideMargin))
 
-    readonly property real _verticalDesiredTop: Design.barSideMargin + popoutWindow.triggerCentre - popoutWindow.height / 2
+    readonly property real _verticalDesiredTop: popoutWindow.triggerCentre - popoutWindow.height / 2
     readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(popoutWindow._verticalDesiredTop, (popoutWindow.screen ? popoutWindow.screen.height : popoutWindow.height) - popoutWindow.height - Design.barSideMargin))
 
     margins.top: popoutWindow.vertical ? popoutWindow._verticalClampedTop : popoutWindow._horizontalTopMargin
@@ -270,6 +285,7 @@ PanelWindow {
         popoutWindow.entranceCascade.armed = true;
         popoutWindow.entranceCascade.run();
     }
+
 
     // Exit motion — faster than the entrance on purpose, the codebase's
     // existing quick-to-leave asymmetry, read off Motion and never
