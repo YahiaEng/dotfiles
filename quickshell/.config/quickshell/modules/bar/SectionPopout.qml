@@ -400,6 +400,14 @@ PanelWindow {
                 // making the reason UNREACHABLE, which is exactly what
                 // PanelDialog.qml's own Advanced button comment warns
                 // against.
+                // F2 (quick task 260812-69w) — deliberately LEFT AS the
+                // plain attached ToolTip, not converted to
+                // BarTooltipHost. Same reasoning as AudioPopout.qml's own
+                // audioMuteMouseArea comment: this frame is several
+                // hundred pixels tall (Task 1's Probe B measured the
+                // sibling site's Popup clamp landing at y=60, fully clear
+                // of its glyph, in the same window architecture this foot
+                // link shares), so there is no overlap here to fix.
                 MouseArea {
                     id: wayfindingMouseArea
                     anchors.fill: parent

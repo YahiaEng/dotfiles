@@ -168,6 +168,17 @@ SectionPopout {
     Row {
         id: transportRow
         visible: root.bodyState === "populated"
+        // F4 (quick task 260812-69w): the only child of bodyColumn with
+        // neither width: parent.width nor a centring anchor — mediaRow,
+        // the progress line and multiPlayerText all set width: parent.width;
+        // this Row's own three buttons need CENTRING, not stretching, so it
+        // takes the opposite treatment. anchors.horizontalCenter is legal on
+        // a Column child (Column positions only the vertical axis); centerIn
+        // and any vertical anchor are not and would draw "Cannot specify ...
+        // anchors for items inside Column" and silently break the
+        // positioner. Measured before this fix: transportRow.x=0 while
+        // bodyColumn.width=328 — flush left, not centred.
+        anchors.horizontalCenter: parent.horizontalCenter
         spacing: Design.spacingMd
 
         Item {

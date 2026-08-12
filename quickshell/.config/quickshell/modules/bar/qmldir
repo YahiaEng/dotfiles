@@ -99,3 +99,14 @@ singleton BarRoles 1.0 BarRoles.qml
 # ClockActionsCapsule.qml each mount their own instance behind their own
 # LazyLoader, keyed on `vertical && expanded`.
 BarDrawer 1.0 BarDrawer.qml
+
+# BarTooltip / BarTooltipHost (quick task 260812-69w, F2 — GATE-02
+# iteration-1 defect) — the escaping layer-shell tooltip surface and its
+# per-site dwell-timer/LazyLoader host. Both ORDINARY instance types, NOT
+# singletons: each of the four BAR-WINDOW tooltip sites
+# (IdleInhibitorCapsule.qml, ClockActionsCapsule.qml's ActionCell,
+# MediaConnectivityCapsule.qml, LauncherCapsule.qml) mounts its own
+# BarTooltipHost, which in turn LazyLoader-mounts its own BarTooltip
+# instance on dwell.
+BarTooltip 1.0 BarTooltip.qml
+BarTooltipHost 1.0 BarTooltipHost.qml

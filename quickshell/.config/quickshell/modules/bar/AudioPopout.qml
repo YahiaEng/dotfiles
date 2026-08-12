@@ -93,6 +93,16 @@ SectionPopout {
             text: (root.audioBackend && root.audioBackend.masterMuted) ? "volume_off" : "volume_up"
             color: (root.audioBackend && root.audioBackend.masterMuted) ? Colours.onSurfaceVariant : Colours.primary
 
+            // F2 (quick task 260812-69w) — deliberately LEFT AS the plain
+            // attached ToolTip, not converted to BarTooltipHost. This
+            // popout renders inside SectionPopout's own window, several
+            // hundred pixels tall (measured live: popoutW=360,
+            // popoutH=334) — Task 1's Probe B showed this tooltip's own
+            // Popup clamp landing at y=60, fully clear of this glyph, with
+            // no overlap to fix. A bar-anchored layer surface would
+            // compute its margins from the wrong window's coordinate
+            // space here; converting a site that already renders correctly
+            // would be a regression risk for zero benefit.
             MouseArea {
                 id: audioMuteMouseArea
                 anchors.fill: parent

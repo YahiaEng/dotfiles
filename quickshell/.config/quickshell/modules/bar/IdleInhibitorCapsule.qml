@@ -21,7 +21,6 @@
 // WorkspaceCapsule — but renders as a bare glyph on the wallpaper like
 // every other capsule.
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import "../"
@@ -94,10 +93,20 @@ BarCapsule {
             id: idleMouseArea
             anchors.fill: parent
             hoverEnabled: true
-            ToolTip.visible: idleMouseArea.containsMouse
-            ToolTip.text: "Keep Awake"
-            ToolTip.delay: Design.tooltipDelayMs
             onClicked: idleInhibitorCapsule.idleInhibited = !idleInhibitorCapsule.idleInhibited
         }
+    }
+
+    // F2 (quick task 260812-69w) — a QtQuick.Controls ToolTip is a Popup,
+    // clamped to its own window; Bar.qml's horizontal window is only 42px
+    // tall (Task 1's Probe B measured the clamp live: an assigned y=60
+    // resolved back to y=-2). BarTooltipHost mounts an escaping
+    // layer-shell surface instead, below the bar in horizontal
+    // orientation and left of it in vertical.
+    BarTooltipHost {
+        anchorItem: idleCell
+        text: "Keep Awake"
+        active: idleMouseArea.containsMouse
+        tipId: "idleInhibitor"
     }
 }

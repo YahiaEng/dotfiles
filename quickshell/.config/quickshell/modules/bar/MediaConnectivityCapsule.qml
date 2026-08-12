@@ -549,9 +549,15 @@ BarCapsule {
                         if (root.audioBackend)
                             root.audioBackend.setInputMuted(!root.audioBackend.inputMuted);
                     }
-                    ToolTip.visible: audioMicMouseArea.containsMouse
-                    ToolTip.text: (root.audioBackend && root.audioBackend.inputMuted) ? "Unmute microphone" : "Mute microphone"
-                    ToolTip.delay: Design.tooltipDelayMs
+                }
+
+                // F2 (quick task 260812-69w) — see IdleInhibitorCapsule.qml's
+                // own comment for the measured clamp this replaces.
+                BarTooltipHost {
+                    anchorItem: audioMicCell
+                    text: (root.audioBackend && root.audioBackend.inputMuted) ? "Unmute microphone" : "Mute microphone"
+                    active: audioMicMouseArea.containsMouse
+                    tipId: "mediaConnectivity-mic"
                 }
             }
         }

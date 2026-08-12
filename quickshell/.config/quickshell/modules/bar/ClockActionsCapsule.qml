@@ -32,7 +32,6 @@
 //     `NotificationSource` — named in source as a charge against QBAR-11
 //     that ends when that swap lands.
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -364,9 +363,6 @@ BarCapsule {
             anchors.fill: parent
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
-            ToolTip.visible: cellMouseArea.containsMouse && cellItem.label !== ""
-            ToolTip.text: cellItem.label
-            ToolTip.delay: Design.tooltipDelayMs
             onClicked: (mouse) => {
                 if (!cellItem.available)
                     return;
@@ -375,6 +371,21 @@ BarCapsule {
                 else
                     cellItem.clicked();
             }
+        }
+
+        // F2 (quick task 260812-69w) — see IdleInhibitorCapsule.qml's own
+        // comment for the measured clamp this replaces. The empty-label
+        // suppression this ToolTip used to carry as a second condition
+        // (`&& cellItem.label !== ""`) is now folded into `active` itself,
+        // per the plan's own instruction — a host with nothing to say
+        // never arms its dwell timer. `tipId` is keyed off glyph, the one
+        // value distinct across every ActionCell instance in this file
+        // (gaming/bell/settings/power all carry a different glyph).
+        BarTooltipHost {
+            anchorItem: cellItem
+            text: cellItem.label
+            active: cellMouseArea.containsMouse && cellItem.label !== ""
+            tipId: "clockActions-" + cellItem.glyph
         }
     }
 

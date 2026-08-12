@@ -294,11 +294,23 @@ QSD_PANEL_NAMESPACE_SUFFIX="-panel"
 #    order between runs would make a committed fixture's verdict
 #    order-dependent, the same class of defect the ten hardware keys in
 #    this file already avoid this way.
+#    `bar/BarTooltip.qml` (quick task 260812-69w, F2 — GATE-02 iteration-1
+#    defect) was added the same way BarDrawer.qml was: its namespace
+#    prefix is `quickshell-bartip-`, NOT `quickshell-bar-tip-` — the same
+#    reason BarDrawer.qml's own row is `quickshell-bardrawer-` and not
+#    `quickshell-bar-drawer-`. The SectionPopout row's pattern prefix
+#    `quickshell-bar-` matches ANY string beginning with that prefix plus
+#    at least one character, so `quickshell-bar-tip-…` would match both
+#    rows, be counted `unmatched`, and fail the live half the moment a
+#    tooltip is shown. `quickshell-bartip-…` still starts with
+#    `quickshell-bar` (broad candidate net) and `quickshell-` (family
+#    blur/ignore_alpha rules), while resolving to exactly one row.
 QSD_BAR_SURFACE_ROWS=(
     "Bar.qml|quickshell-bar|exact|2|reserve|permanent"
     "bar/SectionPopout.qml|quickshell-bar-|pattern|3|noreserve|transient"
     "bar/HotZone.qml|quickshell-bar-hotzone|exact|3|noreserve|transient"
     "bar/BarDrawer.qml|quickshell-bardrawer-|pattern|3|noreserve|transient"
+    "bar/BarTooltip.qml|quickshell-bartip-|pattern|3|noreserve|transient"
 )
 
 # Pre-existing summonable layer-shell frames this phase did not add and

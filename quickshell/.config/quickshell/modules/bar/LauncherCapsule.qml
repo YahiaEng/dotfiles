@@ -28,7 +28,6 @@
 //     second, unlatched hover trigger, which is exactly the bug D-18-19
 //     warned against under the prior click-driven design.
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 // Quickshell.Widgets (IconImage) dropped with the icon-theme resolution chain — GATE-02 defect 4.
@@ -243,9 +242,6 @@ BarCapsule {
             id: cellMouseArea
             anchors.fill: parent
             hoverEnabled: true
-            ToolTip.visible: cellMouseArea.containsMouse
-            ToolTip.text: cellItem.entry.label
-            ToolTip.delay: Design.tooltipDelayMs
             onClicked: {
                 // Every one of these seven applications takes focus, and
                 // a lifetime-bound child would be killed the moment
@@ -255,6 +251,17 @@ BarCapsule {
                 launchProcess.startDetached();
                 launcherCapsule.requestCollapse();
             }
+        }
+
+        // F2 (quick task 260812-69w) — see IdleInhibitorCapsule.qml's own
+        // comment for the measured clamp this replaces. `tipId` is keyed
+        // off desktopId so each of the seven live LauncherCell instances
+        // resolves to its own distinct namespace, never a collision.
+        BarTooltipHost {
+            anchorItem: cellItem
+            text: cellItem.entry.label
+            active: cellMouseArea.containsMouse
+            tipId: "launcher-" + cellItem.entry.desktopId
         }
     }
 
