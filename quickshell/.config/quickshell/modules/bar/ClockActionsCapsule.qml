@@ -231,7 +231,31 @@ BarCapsule {
             // with both cell edges instead of overflowing one and starving
             // the other — the padding VALUE (spacingLg) is unchanged, only
             // where it is centred from.
-            x: Design.spacingLg / 2
+            //
+            // MEASURED 2026-08-13: this offset must be half the pill's OWN
+            // horizontal padding, and that padding is orientation-dependent
+            // — clockFillPill.width adds spacingLg (24) in horizontal but
+            // barCapsulePadding * 2 (12) in vertical, because a 44px column
+            // cannot afford 12 per side. A hardcoded spacingLg/2 (12) is
+            // therefore correct in horizontal and twice too large in
+            // vertical, which put the pill 6px right of its own cell:
+            // measured pill x=10.0 w=35.3 (right 45.3) against a cell at
+            // x=4.0 w=35.3 (right 39.3) in a 44px column — clipped by 1.3px
+            // at the right edge, and the operator's "the clock pill is not
+            // centred, it is clipped to the right side".
+            //
+            // Deriving the offset from the same branch the pill's own width
+            // uses keeps the two in lockstep by construction. This is
+            // deliberately NOT the other candidate fix (re-anchoring the
+            // pill to centre on `parent` instead of this Grid): that one
+            // also lands the geometry, but PopoutTrigger sizes itself from
+            // childrenRect, so a child centred on it makes each depend on
+            // the other and it was reverted on 2026-08-12 for "Binding loop
+            // detected for property implicitWidth/implicitHeight" at
+            // PopoutTrigger.qml[40]. Moving the Grid changes no dependency
+            // edge at all — the pill still centres on the Grid, the Grid
+            // still takes a constant x — so there is no cycle to create.
+            x: (clockActionsCapsule.vertical ? Design.barCapsulePadding * 2 : Design.spacingLg) / 2
             // F1 (quick task 260812-69w) — Task 1's Probe A measured this
             // Grid sitting flush at contentHost's own local y=0 by
             // default, while clockFillPill (anchors.centerIn:
@@ -379,6 +403,12 @@ BarCapsule {
         property color tint: clockActionsCapsule.contentColour
         property bool available: true
         property bool badgeVisible: false
+        // Opt-out for a cell whose own hover does something more informative
+        // than a one-word label. Default true: every extra on this capsule
+        // (gaming, bell, power) has no hover behaviour of its own, so its
+        // tooltip is the only thing naming it. A cell that EXPANDS on hover is
+        // the exception — see settingsTriggerCell's own comment.
+        property bool tooltipEnabled: true
         property string badgeText: ""
         // Optional filled background (D-13, only bellCell opts in below).
         // Defaults leave every other ActionCell instance unaffected —
@@ -493,7 +523,7 @@ BarCapsule {
         BarTooltipHost {
             anchorItem: cellItem
             text: cellItem.label
-            active: cellMouseArea.containsMouse && cellItem.label !== ""
+            active: cellMouseArea.containsMouse && cellItem.label !== "" && cellItem.tooltipEnabled
             tipId: "clockActions-" + cellItem.glyph
         }
     }
@@ -923,6 +953,20 @@ BarCapsule {
         glyph: "settings"
         label: "Settings"
         filled: clockActionsCapsule.settingsExpanded
+        // 2026-08-13, operator report: "hovering over the settings glyph
+        // expands it and shows a tooltip — remove the tooltip as it covers the
+        // expanded options". This cell is the one ActionCell whose hover has a
+        // richer answer than its own label: the same gesture opens the five-axis
+        // settings drawer, and the tooltip then renders over the axis glyphs the
+        // hover just revealed. `label` is deliberately KEPT rather than blanked —
+        // it is the cell's identity, read by tipId and available to any future
+        // consumer; only the tooltip surface is suppressed.
+        //
+        // Not gated on `settingsExpanded` instead: the tooltip's dwell timer and
+        // the drawer's own dwell both arm from the same hover, so a state-gated
+        // condition still flashes the tip during the window before the drawer
+        // opens. A flat opt-out is the only shape with no flash.
+        tooltipEnabled: false
         // NO tint — falls through to ActionCell's default contentColour.
         //
         // Athena colours the settings-drawer trigger glyph @accent
