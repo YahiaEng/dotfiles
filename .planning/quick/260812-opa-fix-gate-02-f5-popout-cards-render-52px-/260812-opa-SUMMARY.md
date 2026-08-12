@@ -44,18 +44,24 @@ hold the identical shape.
 Both readings taken with `hyprctl layers -j`, the wifi popout pinned open, on the same live
 process (pid `1520318`, never restarted):
 
-| Surface | Before | After | Reference |
-|---|---|---|---|
-| `quickshell-bar-wifi` | **y=100** | **y=52** | — |
-| `quickshell-bar` | y=6 h=42 | y=6 h=42 | bottom edge 48 |
-| reserved (`hyprctl monitors -j`) | `DP-1 [0,48,0,0]` | unchanged | window area starts at y=48 |
+| Surface | Before | After (margin 4) | Final (margin 0) | Reference |
+|---|---|---|---|---|
+| `quickshell-bar-wifi` | **y=100** | **y=52** | **y=48** | — |
+| `quickshell-bar` | y=6 h=42 | y=6 h=42 | y=6 h=42 | bottom edge 48 |
+| reserved (`hyprctl monitors -j`) | `DP-1 [0,48,0,0]` | unchanged | unchanged | window area starts at y=48 |
 
-The card now sits `Design.spacingXs` (4px) clear of the bar's bottom edge, on the repo's 4px grid
-— the same relationship the tooltip holds.
+The first correction landed the card at 52 — `Design.spacingXs` clear of the bar. The operator then
+called for flush alignment with the Hyprland window edge instead, so the margin went to 0.
+
+**y=48 is derived, not directly measured.** Two readings on this exact surface establish the
+relationship as exactly `48 + margin`: margin 52 gave y=100, margin 4 gave y=52. Margin 0 therefore
+gives y=48, the reserved boundary a maximized window starts at. No popout was pinned open at the
+time of the final edit to take a third reading; GATE-02's `A.2` row (the card floating clear of
+every edge) is the live confirmation and is still unobserved.
 
 ## Changes
 
-- `SectionPopout.qml:167-168` — `_horizontalTopMargin` and `_verticalRightMargin` both reduced to
+- `SectionPopout.qml:167-168` — `_horizontalTopMargin` and `_verticalRightMargin` both reduced to 0 (via
   `Design.spacingXs`. The stale reasoning above them is replaced with the measured record.
 - `BarDrawer.qml:101` — `_verticalRightMargin` reduced to `Design.spacingXs`. Required, not
   optional: that file's own comment binds it to SectionPopout's expression pair as "ONE anchoring
