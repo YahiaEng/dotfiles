@@ -232,7 +232,24 @@ Singleton {
     //    the recorded reasoning that re-hiding the whole bar is a costlier
     //    mistake than dismissing a popout, and collapsing a drawer the user
     //    is actively reaching into is that same class of mistake.
-    readonly property int barDrawerGraceMs: 600
+    //    CORRECTED 2026-08-13. The 600 above was sized against
+    //    barDrawerTransitionFastMs (500) — but only the CONNECTIONS strip
+    //    animates at that duration. The audio strip (MediaConnectivityCapsule
+    //    audioStripHost), the settings strip (ClockActionsCapsule) and the
+    //    launcher strip (LauncherCapsule) all animate at
+    //    barDrawerTransitionMs (650), so for three of the four drawers the
+    //    grace window was SHORTER than the reveal it was supposed to outlast:
+    //    the collapse could begin before the drawer had finished opening, with
+    //    -50ms of traversal headroom instead of +100. That is the operator's
+    //    "the expanded volume bar disappears too quickly", reported after the
+    //    600 fix had already landed — the fix was right in shape and measured
+    //    against the wrong one of two transition tokens.
+    //    Deriving from the SLOWEST drawer transition restores the invariant
+    //    this token exists to state, and keeps it true by construction if
+    //    either duration is ever retuned. The +100 is the same traversal
+    //    headroom the reasoning above already argued for across
+    //    barCapsuleGap (16), unchanged.
+    readonly property int barDrawerGraceMs: barDrawerTransitionMs + 100
 
     //    ── Intra- vs inter-group gap, and why intra is the LARGER one ─────
     //    Upstream Athena's readout modules carry `padding: 0 8px` plus
