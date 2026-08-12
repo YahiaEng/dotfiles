@@ -5,10 +5,10 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
 current_phase_name: Notification Server & Centre
 status: planning
-stopped_at: Completed 18-20-PLAN.md (RETIRE-02 waybar retirement)
+stopped_at: Phases 18 + 18.1 closed; waybar retired; phase 19 not yet discussed
 last_updated: "2026-08-12T22:40:35.095Z"
 last_activity: 2026-08-13
-last_activity_desc: Phase 18 complete, transitioned to Phase 18.1
+last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
   total_phases: 6
   completed_phases: 2
