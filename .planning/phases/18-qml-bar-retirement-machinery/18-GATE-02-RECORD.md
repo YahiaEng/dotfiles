@@ -149,7 +149,7 @@ remedy so the human decides rather than investigates under blocking-gate pressur
 
 | ID | Criterion (verbatim) | Baseline | Gesture | Verdict | Observation |
 |---|---|---|---|---|---|
-| B.4-DRAWER | D-18-11: vertical-orientation drawers expand inward, horizontally — "a floating strip growing leftward over the desktop." | live repo state vs. `D-18-11` | **Branch resolved by machine, before any human sits down.** Command run: `test -f quickshell/.config/quickshell/modules/bar/BarDrawer.qml` (18-11's recommended Option B) — file **does not exist**. Second command: `grep -n "Math.max" quickshell/.config/quickshell/modules/Bar.qml` and a search for any maximum-against-a-published-`expandedCrossExtent` expression in `Bar.qml` (18-11's Option A) — **no such expression exists**; `Bar.qml`'s vertical `implicitWidth` is pinned to `Design.barColumnWidth` alone (line 94: `implicitWidth: barWindow.vertical ? Design.barColumnWidth : 0`). Neither of 18-11's two scope-correction options was taken. Per 18-11's own closing instruction ("If neither is taken before 18-19 ... 18-19's blocking pass must record that explicitly rather than waving it through. Do not let that become the silent default."), this row is pre-filled as a failure rather than left pending. | FAIL | D-18-11 is not met: with neither Option A (widen `Bar.qml`'s vertical window) nor Option B (a new `modules/bar/BarDrawer.qml`) taken, the vertical drawers (`LauncherCapsule`, `ClockActionsCapsule`) can only expand within `Bar.qml`'s fixed `Design.barColumnWidth` (44px) vertical window — i.e. along the column, not leftward over the desktop as D-18-11 requires. Both capsules already publish `expandedCrossExtent` (confirmed live: `grep -l expandedCrossExtent` matches `ClockActionsCapsule.qml` and `LauncherCapsule.qml`), so the contract a fix would consume already exists; only the host that can render it is missing. **Remedy, named by 18-11:** Option B (recommended) — register `modules/bar/BarDrawer.qml` as a `LazyLoader`-gated anchored strip surface, one new `qmldir` line, no change to `Bar.qml`, no change to the reservation. This is a live-verified structural fact, not a rendered observation — no live look at the vertical drawer's actual on-screen behaviour was performed as part of resolving this branch, and the human pass should still glance at it in vertical orientation to confirm this matches what is visually shown, per the plan's own instruction to "look anyway and write down what you saw." |
+| B.4-DRAWER | D-18-11: vertical-orientation drawers expand inward, horizontally — "a floating strip growing leftward over the desktop." | live repo state vs. `D-18-11` | **Branch re-resolved by machine for Iteration 2, 2026-08-12 ~17:35.** The `FAIL`/observation this cell previously carried was written by task 1 at HEAD `911d8a5` (before `git merge-base --is-ancestor` confirms `8766918`, task 1's own commit, is an ancestor of `8c5d280`) — genuinely correct at that instant, because `BarDrawer.qml` did not exist yet. It went stale three commits later in the same sitting: `fc01499`/`55208c4`/`10674fd`/`8c5d280` (quick task 260812-59l, "add BarDrawer.qml vertical drawer host (18-11 Option B)") landed **before** Iteration 1's fingerprint was even re-bound to `8c5d280` by follow-up `2327903` — so Iteration 1's own bound build already had the file, and this row's text was never updated to match. Re-run now against current HEAD `13de40f`: `test -f quickshell/.config/quickshell/modules/bar/BarDrawer.qml` → **file exists**. `grep -n BarDrawer quickshell/.config/quickshell/modules/bar/qmldir` → registered (`BarDrawer 1.0 BarDrawer.qml`). `grep -n LazyLoader quickshell/.config/quickshell/modules/bar/BarDrawer.qml` → present (multiple lines; file's own header names it "a LazyLoader-gated anchored strip surface"). `grep -rn "BarDrawer {" quickshell/.config/quickshell/modules/bar/{LauncherCapsule,ClockActionsCapsule}.qml` → both mount `BarDrawer { … }` behind their own `LazyLoader`. **18-11's Option B is taken, as of `8c5d280` and unchanged through `13de40f`.** Per task 1's own action text ("If either is true, write the row with the placeholder verdict and a gesture … in vertical orientation open the launcher drawer and confirm the strip grows leftward over the desktop rather than along the column"), this row reverts to the placeholder and the gesture below, superseding the stale pre-fill. | AWAITING-OBSERVATION | AWAITING-OBSERVATION — **gesture for the human, Iteration 2:** in vertical orientation, open the launcher drawer, then separately the clock/settings drawer (`ClockActionsCapsule.qml`), and confirm each strip grows leftward over the desktop rather than along the 44px column. Named explicitly because `8c5d280`'s own commit message states plainly that this behaviour "is claimed by construction and unproven by observation" — the authoring agent could not move the pointer on this host (Hyprland 0.56.2's Lua dispatch form rejects `movecursor`, `wtype` is keyboard-only) — so this row is that behaviour's first live look, not a re-confirmation of something already seen. If either strip instead grows along the column, that is a `FAIL` against D-18-11 exactly as task 1's original determination described, with the same Option-B remedy (already applied) now itself the thing found not to work and needing further investigation rather than a known one-file fix. |
 | B.6-WS | Scroll-to-switch-workspaces: not implemented on the new bar (a deliberate cut, routed here by 18-09/18-12). | `config-floating` (`hyprland/workspaces` scroll-up/down → `hl.dsp.focus`) | Hover the workspace capsule and scroll **without** holding Super, confirming nothing happens; then hold Super and scroll anywhere, confirming the workspace changes. **Evidence, transcribed from `18-SCROLL-GATE-RECORD.md` § "Section 2":** `keybinds.lua` already binds Super plus mouse wheel globally to the identical dispatch expressions — verbatim: `hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))` and `hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))` — so the only thing lost by retiring `config-floating` is scroll-over-the-bar **without** holding Super. Live-checked: `WorkspaceCapsule.qml` currently contains no `WheelHandler` (`grep -c WheelHandler` returns 0), confirming the cut is real and not implemented. **Judgment for the human:** is losing scroll-over-the-bar-without-Super a loss? **Remedy if it is** (pre-specified by 18-12, mechanical, not a fresh design): a `WheelHandler` on `WorkspaceCapsule.qml`'s root entry item, same shape as the two `WheelHandler`s already built in `MediaConnectivityCapsule.qml` (`target: null`, `angleDelta.y` accumulated into signed 120-unit notches), dispatching the same `hl.dsp.focus({workspace: "e+1"})` / `"e-1"` expression forms via the capsule's existing click-dispatch call surface. | AWAITING-OBSERVATION | AWAITING-OBSERVATION |
 | B.6-WSCOUNT | The persistent workspace slot count: three of the four retired layouts persist five slots, `config-floating.jsonc` alone persists six — a named delta routed here by 18-09. | `config-floating` (six persistent slots) vs. the other three retired layouts (five) | Count the always-present workspace slots on the bar with no windows open beyond them. **Evidence, live-checked and corrected against the routing plans:** `18-09-PLAN.md` and `18-SCROLL-GATE-RECORD.md` both state `persistentSlotCount` ships at **5**. The **live value on this host is 6** (`grep -n persistentSlotCount quickshell/.config/quickshell/modules/bar/WorkspaceCapsule.qml` → `readonly property int persistentSlotCount: 6`) — `git log` shows Phase 18.1 (the Athena restoration, inserted after 18-09 shipped) moved this value across several commits after 18-09/18-12 were written (`444d6dd` "grow the workspace capsule dynamically above a persistent floor of five", `d0c4404` "show all nine workspaces plus the reserved AI slot", `6a33caa` "cap the workspace floor at seven", `c5b6ada` "make the reserved AI workspace persistent again"), landing at 6 — matching `config-floating.jsonc`'s own six, not the 5-vs-6 delta the routing plans describe. **This is a live-value correction, recorded rather than silently inherited**: the 5-vs-6 delta the routing plans named may already be closed by the current build. **Judgment for the human:** confirm the live count matches 6 by looking at the bar, and judge whether that count (now matching `config-floating`) is acceptable, or whether some other count-related defect remains. **Remedy if a gap remains:** one integer in `WorkspaceCapsule.qml`'s `persistentSlotCount` constant. | AWAITING-OBSERVATION | AWAITING-OBSERVATION |
 
@@ -221,3 +221,109 @@ not a value set wrongly. Neither would ever surface in a static check, and both 
 to every automated gate in this phase. That is the third time in this repo a purely visual
 defect has survived a green automated pass, which is the precedent D-18-31 cites as the reason
 this human gate exists at all.
+
+---
+
+## Build Under Test — Iteration 2
+
+Every field below was captured by running a command against the live host on 2026-08-12
+~17:33-17:37, not recalled or inferred, immediately before this iteration's sitting.
+
+- **HEAD sha:** `13de40f81b11745b9cd37c241af28588abdfa63e` (`git rev-parse HEAD`).
+- **Working tree:** `git status --porcelain -- quickshell/ hypr/` returned empty — clean.
+- **Reserved array (`hyprctl monitors -j | jq '.[0].reserved'`):** `[0, 48, 0, 0]` — unchanged
+  from Iteration 1; still the live 48px value (`Design.barHeight` 42 + `Design.barEdgeMargin` 6)
+  recorded there with its D-18-38-vs-live-host reasoning, not the phase's stale 46px reference.
+- **Quickshell pid (`pgrep -x quickshell`):** `1520318` — a different pid than Iteration 1's
+  `528309`, confirming the process restarted (host reboot or an intervening bar-watchdog
+  recovery — `quickshell-bar-watchdog.service` landed in this same commit range, see below) at
+  some point since Iteration 1's sitting. This is expected and not itself a defect: Iteration 2
+  binds to *this* pid, not the old one.
+- **Quickshell start time (`ps -o lstart= -p 1520318`):** `Wed Aug 12 16:37:09 2026`.
+- **`quickshell-bar` namespace (`hyprctl layers -j`):** present (alongside `awww-daemon`, the
+  same unrelated wallpaper-daemon layer noted in Iteration 1).
+- **`pgrep -x waybar`:** returned nothing (exit 1) — no waybar process running.
+- **All six fingerprint values match the orchestrator's pre-dispatch expectation exactly**
+  (HEAD, pid, reserved array, waybar-absent, layer namespace, clean tree) — no halt condition
+  was met.
+
+**Iteration 2 supersedes Iteration 1's binding sha `8c5d280` (`8c5d2804da17a2966e12c729edbc3236a77c741c`).**
+Eighteen commits landed in between (`git log --oneline 8c5d280..HEAD`), most materially the four
+Iteration-1 defect fixes plus one closely-related tooltip fix found while fixing them, in this
+order (oldest first):
+
+| Commit | Summary |
+|---|---|
+| `2327903` | docs(18-19): re-bind the GATE-02 fingerprint to the build actually under test |
+| `da9a703` | docs(18-19): record four GATE-02 iteration-1 defects with owning files |
+| `6721977` | **feat(quick-260812-69w): F2 escaping bar tooltips + F4 centred transport row** |
+| `6285f5d` | **fix(quick-260812-69w): F1 clock pill vertical alignment + F3 idle bulb accent fill** |
+| `d1c8702` | docs(quick-260812-69w): fix four GATE-02 iteration-1 bar defects |
+| `da032fc` | docs(18-18): soak window elapsed but contaminated; record the bar-loss defect |
+| `c78655e` | fix(bar): give hover drawers their own collapse grace, 600ms not 200ms |
+| `33c768a` | docs: log the drawer-grace fix in STATE quick tasks |
+| `e3f8266` | fix(bar): make the expanded bluetooth glyph's gaps uniform at 16px |
+| `c40d1de` | fix(bar): stop tooltips double-counting the bar's own extent on both axes |
+| `67333c5` | feat(bar): show an ethernet glyph left of wifi while a wired link is connected |
+| `6f8d101` | docs: log the tooltip-placement and ethernet-glyph edits |
+| `8853755` | feat(bar): move the ethernet glyph to the right of the wifi glyph |
+| `8b9286a` | docs(quick-n9b): plan the event-driven bar watchdog for WINDOWS row 67 |
+| `f425ac3` | feat(quick-260812-n9b): bar-watchdog listener, health check, recovery, proven on fixture |
+| `b63cddb` | feat(quick-260812-n9b): quickshell-bar-watchdog.service, installed and verified live |
+| `59ec9ae` | feat(quick-260812-n9b): wire bar-watchdog into autostart, D-18-28 reversal noted |
+| `13de40f` | docs(quick-260812-n9b): bar watchdog — restore the bar after a monitor sleep |
+
+`6721977` and `6285f5d` are the fixes for the four operator-reported defects (F1 clock pill
+vertical alignment, F2 tooltips landing on top of the glyph, F3 idle-bulb feedback, F4 media
+transport row not centered). `c40d1de` is a related tooltip fix found in the same area
+afterward (double-counted bar extent on both axes) — not one of the original four, but touching
+the same tooltip-placement surface F2 named, so Iteration 2's B.1/UI-E7-LT/tray-tooltip
+observations should watch for any regression there too. The remaining commits (ethernet glyph,
+drawer collapse grace, bluetooth glyph gap, bar-watchdog service) are unrelated feature/reliability
+work from other quick tasks that also landed in this window; none of them is a remedy this gate
+routed, but B.1's live-readout walk and B.5's tray gesture should note if the ethernet glyph or the
+watchdog's presence changes anything a criterion checks.
+
+**B.4-DRAWER machine resolution (see the corrected row above, in `## Named Sub-Judgments`).**
+`BarDrawer.qml` exists at current HEAD, registered in `qmldir`, `LazyLoader`-gated, and mounted by
+both `LauncherCapsule.qml` and `ClockActionsCapsule.qml` — 18-11's Option B is taken. This was
+already true at Iteration 1's own bound sha (`8c5d280`); the row's stale `FAIL` text (written by
+task 1 against an earlier, pre-`8c5d280` HEAD) has been corrected in place above, reverted to the
+placeholder verdict and given the observation gesture, rather than left to silently block a build
+that in fact already carries the fix. The visual behaviour itself has never been observed live —
+the landing commit says so explicitly — so this is a first-look row for Iteration 2, not a
+re-confirmation.
+
+## Iteration 2 — Verdicts
+
+_Pending — no human sitting has been performed against this iteration's fingerprint yet. All
+fifteen rows below are reset to the placeholder for this iteration; the master tables above
+(`## Block A`, `## Block B`, `## Named Sub-Judgments`, `## Lifted UI-SPEC Rows Judged Here`) are
+where verdicts and observations are actually written when the sitting happens — this list is the
+Iteration 2 checklist, not a second copy of those tables, so that filling in the master tables is
+never ambiguous about which iteration it belongs to. Order fixed per the plan's ordering contract:
+Block A first, then Block B, then the three named sub-judgments, then the lifted row._
+
+- [ ] A.1 — AWAITING-OBSERVATION
+- [ ] A.2 — AWAITING-OBSERVATION
+- [ ] A.3 — AWAITING-OBSERVATION
+- [ ] A.4 — AWAITING-OBSERVATION
+- [ ] A.5 — AWAITING-OBSERVATION
+- [ ] B.1 — AWAITING-OBSERVATION
+- [ ] B.2 — AWAITING-OBSERVATION
+- [ ] B.3 — AWAITING-OBSERVATION (audio half live; brightness half transcribed per D-18-39 — never judged fresh)
+- [ ] B.4 — AWAITING-OBSERVATION
+- [ ] B.5 — AWAITING-OBSERVATION
+- [ ] B.6 — AWAITING-OBSERVATION
+- [ ] B.4-DRAWER — AWAITING-OBSERVATION (branch machine-resolved to Option-B-taken above; gesture still required — first live look at the drawer's actual expansion direction)
+- [ ] B.6-WS — AWAITING-OBSERVATION
+- [ ] B.6-WSCOUNT — AWAITING-OBSERVATION
+- [ ] UI-E7-LT — AWAITING-OBSERVATION
+
+**`## Deletion Authorisation` stays `RETIRE-02 BLOCKED`** until all fifteen rows above carry a
+verdict from the closed vocabulary and task 3 runs. Iteration 1's four defects (F1-F4) are fixed
+and their commits are named above, but Iteration 1 never reached eleven of the fifteen rows and
+recorded no verdict on any of the fifteen — a re-check re-observes all fifteen, not only the four
+that were reported, because the workspace capsule, the entry list and the drawer host are shared
+surfaces and a fix to one can regress another (must_haves, "A re-check re-observes all fifteen
+rows").
