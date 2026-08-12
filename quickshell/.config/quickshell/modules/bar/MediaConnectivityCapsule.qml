@@ -536,6 +536,24 @@ BarCapsule {
                 }
 
                 background: Rectangle {
+                    // MEASURED 2026-08-12: in vertical the 4px track sat at
+                    // x=10 (centre 12) while the handle centred at 22 — the knob
+                    // rendered 10px right of its own groove, which the operator
+                    // reported as "the expanded volume slider is shifted to the
+                    // right". leftPadding is the correct origin for a HORIZONTAL
+                    // track; a vertical one must centre across the slider's width.
+                    // KNOWN RESIDUAL (2026-08-12): in vertical the 4px track sits
+                    // at x=10 (centre 12) while the handle centres at 22, so the
+                    // knob renders ~10px right of its groove — the operator's "the
+                    // expanded volume slider is shifted to the right". Two fixes
+                    // were tried and MEASURED: centring on the Slider's width put
+                    // the track at x=24 (still off, the Slider is wider than its
+                    // 24px host), and centring on availableWidth aligned handle and
+                    // track at 26 but introduced "Binding loop detected for property
+                    // implicitWidth" in PopoutTrigger.qml — availableWidth feeds back
+                    // through the strip-extent chain. Reverted: a loop is worse than
+                    // the offset. The fix needs a reference that does not depend on
+                    // the Slider's own resolved width.
                     x: audioVolumeSlider.leftPadding
                     y: audioVolumeSlider.topPadding + audioVolumeSlider.availableHeight / 2 - height / 2
                     width: root.vertical ? 4 : audioVolumeSlider.availableWidth

@@ -85,6 +85,19 @@ Singleton {
     // containers: zone:start held every capsule (ih=1004) while zone:center and
     // zone:end were both 0x0.
     //
+    // AMENDED AGAIN 2026-08-12 on the operator's repeated call: workspaces and
+    // idleInhibitor ARE centre-banded in vertical. Measured at y=184-572 in a
+    // 1420 column when top-packed, which the operator reported as "positioned too
+    // far to the top". This is a DELIBERATE deviation from UI-SPEC's Orientation
+    // Transform Rules, which say vertical has "no center-banding (a column has no
+    // visual-balance reason to center one group the way workspaces are centered
+    // horizontally)". Recorded as a deviation, not an oversight: the operator
+    // asked for the horizontal arrangement mirrored, was shown the spec rule, and
+    // chose the mirror anyway. UI-SPEC should be amended or this re-litigated
+    // before GATE-02 judges A-rows against it.
+    //
+    // The paragraph below describes the earlier spec-literal reading, kept
+    // because the end-at-bottom half of it still stands:
     // The fix follows UI-SPEC's Orientation Transform Rules literally rather
     // than mirroring the horizontal map wholesale. That section says vertical is
     // "top->bottom, in the same canonical order, NO center-banding" AND that the
@@ -150,7 +163,7 @@ Singleton {
         },
         {
             id: "workspaces",
-            zone: { horizontal: root.zoneCenter, vertical: root.zoneStart },
+            zone: { horizontal: root.zoneCenter, vertical: root.zoneCenter },
             entries: [
                 { id: "workspaces", backends: [], textBearing: true }
             ]
@@ -166,7 +179,7 @@ Singleton {
             // capsule exists beside it — the operator explicitly does not
             // want one, even though upstream Athena places one there too.
             id: "idleInhibitor",
-            zone: { horizontal: root.zoneCenter, vertical: root.zoneStart },
+            zone: { horizontal: root.zoneCenter, vertical: root.zoneCenter },
             entries: [
                 { id: "idleInhibitor", backends: [], textBearing: false }
             ]

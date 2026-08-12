@@ -421,7 +421,18 @@ PanelWindow {
             // (Empty in vertical by UI-SPEC's no-centre-banding rule, but the
             // container still exists and still positions correctly if used.)
             x: (parent.width - width) / 2
-            y: (parent.height - height) / 2
+            // Centred BETWEEN the other two zones, not on the whole bar. MEASURED
+            // 2026-08-12 once workspaces was centre-banded: centring on the bar put
+            // this zone at y=490-930 while endZone starts at 922, so idleInhibitor
+            // (894-930) overlapped mediaConnectivity (922-1166) by 8px. Centring in
+            // the gap the other two leave cannot collide as long as that gap is big
+            // enough; if it ever is not, this clamps to just below startZone rather
+            // than drifting upward into it.
+            y: barWindow.vertical
+                ? Math.max(startZone.y + startZone.height,
+                           startZone.y + startZone.height
+                           + ((endZone.y - (startZone.y + startZone.height)) - height) / 2)
+                : (parent.height - height) / 2
 
             Repeater {
                 model: BarEntryModel.capsulesForZone(BarEntryModel.zoneCenter)

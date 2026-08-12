@@ -110,6 +110,24 @@ BarCapsule {
         // safe.
         Rectangle {
             id: clockFillPill
+            // MEASURED 2026-08-12: centring on clockTriggerGrid put this pill at
+            // x=8.0 y=1176.0 (39.1x90) inside a cell at x=2.0 y=1182.0 — offset
+            // +6/-6, so it reached x=47.1 past the 44px column and started 6px
+            // above the capsule's own top edge. The grid sits 6px right of the
+            // cell's centre, so centring on the grid centres on the wrong thing.
+            // In vertical, centre on the CELL (this item's parent), which the
+            // trigger already sizes to the pill. Both branches name a real
+            // object — never `undefined`, which does not clear an anchor.
+            // KNOWN RESIDUAL (2026-08-12): in vertical this pill measured x=8.0
+            // y=1176.0 (39.1x90) inside a cell at x=2.0 y=1182.0 — offset +6/-6,
+            // reaching x=47.1 past the 44px column and 6px above the capsule's top.
+            // Centring on `parent` instead FIXED the geometry (measured x=2.0
+            // y=1182.0) but introduced "Binding loop detected for property
+            // implicitWidth/implicitHeight" at PopoutTrigger.qml[40]: the trigger
+            // sizes itself from childrenRect, so a child centred on it makes each
+            // depend on the other. Reverted — a loop is worse than the overhang.
+            // The fix needs the cell to reserve the pill's padding explicitly
+            // rather than inferring its size from the pill.
             anchors.centerIn: clockTriggerGrid
             // Upstream Athena states #clock as PADDING around its text
             // (`padding: 6px 10px 6px 16px`), not as a fixed height, so this
