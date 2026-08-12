@@ -2,8 +2,8 @@
 status: complete
 quick_id: 260812-opa
 date: 2026-08-12
-description: "Fix GATE-02 F5: popout cards render 52px too low, SectionPopout double-counts the bar extent"
-commit: cefcf20
+description: "GATE-02 F5: popout cards sat 52px low (bar extent double-counted); leading edge then aligned flush with the Hyprland window edge"
+commit: cefcf20, 7aa2cfd
 files_modified:
   - quickshell/.config/quickshell/modules/bar/SectionPopout.qml
   - quickshell/.config/quickshell/modules/bar/BarDrawer.qml
@@ -61,11 +61,16 @@ every edge) is the live confirmation and is still unobserved.
 
 ## Changes
 
-- `SectionPopout.qml:167-168` — `_horizontalTopMargin` and `_verticalRightMargin` both reduced to 0 (via
-  `Design.spacingXs`. The stale reasoning above them is replaced with the measured record.
-- `BarDrawer.qml:101` — `_verticalRightMargin` reduced to `Design.spacingXs`. Required, not
-  optional: that file's own comment binds it to SectionPopout's expression pair as "ONE anchoring
-  rule, not two (constraint 8)", so leaving it would have broken a stated invariant.
+- `SectionPopout.qml` — `_horizontalTopMargin` and `_verticalRightMargin` both dropped the bar's
+  extent (first to `Design.spacingXs`, then to `0` for flush alignment). The stale reasoning above
+  them is replaced with the measured record.
+- `BarDrawer.qml` — `_verticalRightMargin` given the same treatment. Required, not optional: that
+  file's own comment binds it to SectionPopout's expression pair as "ONE anchoring rule, not two
+  (constraint 8)", so leaving it would have broken a stated invariant.
+
+Both land on a literal `0` rather than a `Design` token: with the compositor already placing these
+surfaces at the reserved boundary there is no gap left to name, and a zero-valued token would imply
+a tunable that no longer exists.
 
 ## What is measured and what is not
 
