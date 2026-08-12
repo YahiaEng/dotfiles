@@ -547,6 +547,63 @@ window, against pid `528309`, are comparable.
 sections opens its popout. Earlier anchors measured a build where two of those six could not
 be opened by hover at all — another reason their rates are not comparable to this one.
 
+## Section six — the 2026-08-12 window: ELAPSED but CONTAMINATED, no verdict claimed
+
+The fourth anchor (Section four-quater, pid `528309`, unit start 02:40:26) ran to
+`etimes 44941` s — **12.5 hours, comfortably past the 14400 s minimum** — on a single pid with
+`NRestarts=0`. It is the first window in this plan's history to survive its own duration. It
+still does **not** produce a QBAR-11 verdict, and the reason is recorded here rather than
+buried, because the numbers it produced would otherwise read as a serious leak.
+
+### What the gates say, taken at face value
+
+| Gate | Start (four-quater) | End (2026-08-12 15:05) | Threshold | Face-value outcome |
+|---|---|---|---|---|
+| Window length | etimes 2011 s | **44941 s** | ≥14400 s | **PASS** |
+| Restart count | `NRestarts=0`, pid 528309 | `NRestarts=0`, pid 528309 | unchanged | **PASS** |
+| Process count | 1 | 1 | exactly 1 | **PASS** |
+| Long-lived child (by command) | {`/usr/bin/swaync-client -swb`} | {`/usr/bin/swaync-client -swb`} | exact set equality | **PASS** |
+| RSS total growth | 428640 KiB | **594696 KiB** (+166056 KiB = **+162 MiB**) | ≤32 MiB | **FAIL — 5x over** |
+| RSS rate | — | **≈13.0 MiB/hour** | ≤5 MiB/hour | **FAIL — 2.6x over** |
+| Wake / CPU rate | 6.5733/s, 0.001100 | **NOT TAKEN** | ±20% / ±25% | **UNEVALUABLE** |
+| Hot-zone namespaces after 200 cycles | — | **exercise never run** | exactly 0 | **UNEVALUABLE** |
+
+### Why the RSS failure is NOT reported as a leak
+
+Three contaminations, any one of which is disqualifying on its own:
+
+1. **The window was not a resting window.** It spans the entire development session that fixed
+   the hover-to-popout defect, added `BarDrawer.qml`, and fixed the four GATE-02 defects.
+   The config was hot-reloaded many times inside it, and every `Configuration Loaded`
+   re-instantiates the QML tree. A soak is defined against a *stable* bar left alone; this one
+   measured a bar being actively rebuilt underneath itself. That alone accounts for an unknown
+   and probably large share of the 162 MiB.
+2. **The measurement's own subject disappeared mid-window.** At 14:32:51 the bar's layer surface
+   was lost to a monitor-removal / no-outputs event (`WINDOWS.md` row 67) and never came back.
+   For an unknown span at the end of the window, the process was not rendering a bar at all —
+   so the "resting cost of the bar" was not what was being sampled.
+3. **The rate gates were never evaluated.** The 300-second end observation was deliberately
+   skipped: the operator's desktop had no bar and restoring it took priority over completing a
+   measurement that conditions 1 and 2 had already invalidated. The five spaced RSS samples and
+   the 200-cycle hot-zone exercise were likewise never run.
+
+**Therefore: QBAR-11 stays OPEN.** No leak is claimed and no pass is claimed. Reporting
+`+162 MiB` as a finding would be exactly the "number that was not honestly measured" this plan's
+own prohibitions forbid — the arithmetic is real, the attribution is not.
+
+### What a valid window now requires
+
+A fifth anchor, taken when **no development work is planned against `quickshell/`**, held for
+4 hours with no hot reload, no monitor sleep, and no `quickshell` restart, ending in the full
+Section-five procedure (end capture, ≥5 spaced RSS samples, the 200-cycle exercise, verdict).
+
+**The recurring obstacle has been named four times now and should be treated as the finding:**
+this requirement needs four uninterrupted hours on a workstation that is simultaneously the
+development target. Every capture itself took five minutes and worked first time; every window
+died to something environmental. `WINDOWS.md` row 68 carries the question of whether QBAR-11
+should be re-scoped to a window this host can actually hold, or measured on a quiescent session
+deliberately set aside for it.
+
 ## Section five — the soak protocol (instructions for the deferred Task 4)
 
 > **Re-anchored 2026-08-12.** Every `737907` below is superseded by **`262631`**, and the
