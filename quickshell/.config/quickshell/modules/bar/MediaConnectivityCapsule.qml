@@ -555,7 +555,27 @@ BarCapsule {
                     // through the strip-extent chain. Reverted: a loop is worse than
                     // the offset. The fix needs a reference that does not depend on
                     // the Slider's own resolved width.
-                    x: audioVolumeSlider.leftPadding
+                    // FIXED 2026-08-13. MEASURED before the change: host x=10.0
+                    // w=24.0 (centre 22.0 — the 44px column's own centre, so the
+                    // strip was never the thing off-centre), track x=10.0 w=4.0
+                    // centre 12.0, handle x=16.0 w=12.0 centre 22.0. One cause,
+                    // both reported symptoms: `leftPadding` (0) is the correct
+                    // ORIGIN for a horizontal track and wrong for a vertical one,
+                    // so the groove sat flush left at centre 12 while the handle
+                    // correctly centred at 22. The operator's "the expanded volume
+                    // bar is not centered" is this track; their "weird dot to its
+                    // right" is that correctly-placed 12px round handle, 10px clear
+                    // of its own groove.
+                    //
+                    // The reference here is `root.drawerCellPitch`, which IS this
+                    // Slider's width in vertical (see `width:` above) but is reached
+                    // as a plain token pair — Design.barGlyphSize + spacingXs * 2 —
+                    // never through the Slider's own resolved geometry. That is what
+                    // separates it from the reverted attempt: `availableWidth` feeds
+                    // back through the strip-extent chain into PopoutTrigger's
+                    // childrenRect sizing and looped; two constants cannot depend on
+                    // anything downstream of them. Verified 0 binding loops after.
+                    x: root.vertical ? (root.drawerCellPitch / 2 - width / 2) : audioVolumeSlider.leftPadding
                     y: audioVolumeSlider.topPadding + audioVolumeSlider.availableHeight / 2 - height / 2
                     width: root.vertical ? 4 : audioVolumeSlider.availableWidth
                     height: root.vertical ? audioVolumeSlider.availableHeight : 4
