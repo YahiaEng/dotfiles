@@ -179,15 +179,24 @@ PanelWindow {
     // file is the sibling that taught it the wrong expression and never got the
     // fix. Keep the two files' shape identical.
     //
-    // Then set to zero, operator's call 2026-08-12: the card's leading edge is
-    // to sit flush with the Hyprland window edge, not a gap short of it. The
-    // compositor has already placed this surface at the reserved boundary — the
-    // very edge a maximized window starts at (measured: reserved [0,48,0,0], so
-    // y=48) — so zero IS that alignment and any positive margin pushes the card
-    // off it. Deliberately 0 rather than a Design token: there is no gap left to
-    // name, and inventing a zero-valued token would imply a tunable that isn't.
-    readonly property int _horizontalTopMargin: 0
-    readonly property int _verticalRightMargin: 0
+    // Then aligned to the WINDOW edge, operator's call 2026-08-12, after a first
+    // attempt at 0 was rejected. The reserved boundary and the window edge are
+    // NOT the same line, which is the trap here: Hyprland insets tiled windows
+    // by general:gaps_out BELOW the reserved zone. MEASURED on this host —
+    // reserved [0,48,0,0], gaps_out 10, border_size 3, and a tiled window
+    // reporting `at=[13,61] size=[2534,1366]`, so its visible outer border edge
+    // is at y=58 and x=10, not 48/0. A margin of 0 put the card at the reserved
+    // boundary (measured y=48), floating 10px clear of the window it was meant
+    // to line up with.
+    //
+    // barSideMargin (10) is that inset, and the bar itself already uses it for
+    // exactly this alignment on the other axis: the bar measures x=10 w=2540,
+    // flush with the window's left and right outer edges. Reusing it here makes
+    // the popout's leading edge land on the window's leading edge. It matches
+    // gaps_out by value rather than by binding — if general:gaps_out changes,
+    // this alignment needs revisiting (a QML surface cannot read it live).
+    readonly property int _horizontalTopMargin: Design.barSideMargin
+    readonly property int _verticalRightMargin: Design.barSideMargin
 
     readonly property real _horizontalDesiredLeft: Design.barSideMargin + popoutWindow.triggerCentre - popoutWindow.width / 2
     readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(popoutWindow._horizontalDesiredLeft, (popoutWindow.screen ? popoutWindow.screen.width : popoutWindow.width) - popoutWindow.width - Design.barSideMargin))

@@ -107,11 +107,15 @@ PanelWindow {
     // of 48); this vertical branch is corrected by the same reasoning rather
     // than by its own measurement, so GATE-02's B.4 and B.4-DRAWER rows are the
     // live confirmation. See SectionPopout.qml:167 and BarTooltip.qml:78-90.
-    // Then zeroed with SectionPopout, operator's call 2026-08-12: the leading
-    // edge sits flush with the Hyprland window edge the compositor already
-    // placed this surface at, so there is no gap left to name — hence a literal
-    // 0 rather than a Design token. Keeps the ONE anchoring rule identical.
-    readonly property int _verticalRightMargin: 0
+    // Then aligned to the WINDOW edge with SectionPopout, operator's call
+    // 2026-08-12: the reserved boundary is not the window edge — Hyprland insets
+    // tiled windows by general:gaps_out (10) below it, measured on this host as a
+    // window outer border edge of y=58 against a reserved top of 48. A margin of
+    // 0 lands on the reserved boundary, 10px clear of the window. barSideMargin
+    // IS that inset and is what the bar already uses to sit flush with the
+    // window's side edges. Keeps the ONE anchoring rule identical; see
+    // SectionPopout.qml:167 for the full measurement.
+    readonly property int _verticalRightMargin: Design.barSideMargin
     readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(Design.barSideMargin + drawerRoot.triggerCentre - drawerRoot.height / 2, (drawerRoot.screen ? drawerRoot.screen.height : drawerRoot.height) - drawerRoot.height - Design.barSideMargin))
 
     margins.right: drawerRoot._verticalRightMargin
