@@ -3,7 +3,7 @@ status: complete
 quick_id: 260812-pd5
 date: 2026-08-12
 description: "Bar: ethernet popout card with link speed, Update-system tooltip, GPU resource glyph"
-commit: 84dbec1, 7204d17, f452eee, 2f896f8
+commit: 84dbec1, 7204d17, f452eee, 2f896f8, 5752648
 files_modified:
   - quickshell/.config/quickshell/modules/bar/EthernetPopout.qml
   - quickshell/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml
@@ -237,6 +237,16 @@ The pid changed from `1520318` to `3012973` mid-session. Not a crash and not cau
 here: `journalctl` shows `bar-watchdog: restarted quickshell.service (rc=0)` at 20:38, then
 `bar-surface present — no action` at 21:03 — the WINDOWS-row-67 watchdog doing its job after a
 monitor event.
+
+## Accent swap (`5752648`)
+
+Operator's call: the permanent accent moves off the settings glyph and onto power.
+`settingsTriggerCell` drops `tint: BarRoles.accent` (keeping `filled: settingsExpanded`, so it
+still shows open/closed); `powerCell` takes it unconditionally. Recorded in-source as a deliberate
+departure from athena, which accents the settings trigger at `style-athena.scss:298` — athena is
+GATE-02 Block A's baseline, so the difference had to be marked as chosen rather than drifted.
+Not gated on `available`, since `ActionCell` already dims unavailable cells via opacity (verified)
+and a conditional tint would leave a host with no power menu showing no accent at all.
 
 ## Consequence for phase 18
 
