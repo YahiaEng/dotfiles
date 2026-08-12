@@ -84,7 +84,20 @@ BarCapsule {
     //    Plan 05, D-16/D-17/D-18) is the one and only implementation
     //    driving these three names. ─────────────────────────────────────
     property bool expanded: false
+    // The trigger cell's own scene-space centre along the bar's long axis
+    // — BarDrawer.qml's `triggerCentre` contract, published ONCE per
+    // expand rather than a live binding, the same PopoutTrigger.qml
+    // publishAnchor() discipline SectionPopout.qml's own triggerCentre
+    // documents (scene mapping does not re-evaluate when an ancestor
+    // moves, so a binding would go stale silently).
+    property real _publishedDrawerCentre: 0
+    function publishDrawerAnchor() {
+        launcherCapsule._publishedDrawerCentre = triggerCell.mapToItem(null, 0, 0).y + triggerCell.height / 2;
+    }
     function requestExpand() {
+        // Published before `expanded` is set true, so both the dwell
+        // path and any direct caller publish a fresh centre.
+        launcherCapsule.publishDrawerAnchor();
         launcherCapsule.expanded = true;
     }
     function requestCollapse() {
@@ -281,20 +294,18 @@ BarCapsule {
     // the same rows/columns formula BarCapsule uses internally, never a
     // Row/Column pair. Horizontal orientation: the strip grows along the
     // bar's own axis inside the bar window — the true drawer, complete
-    // here. Vertical orientation: D-18-11 wants an inward-horizontal
-    // strip growing leftward over the desktop, which this window cannot
-    // host (18-05 pinned the vertical window's extent to
-    // Design.barColumnWidth, and a layer-shell surface does not render
-    // outside its own buffer) — see this plan's `## Scope correction
-    // required`. Until that correction lands, this file's own strip
-    // expands along the column instead (rows/columns bound to `vertical`
-    // exactly as below), the acknowledged, named fallback rather than a
-    // silent one.
+    // here. Vertical orientation: hosted by BarDrawer.qml instead (18-11's
+    // Option B, taken by quick task 260812-59l, see the LazyLoader below),
+    // because a layer-shell surface cannot render outside its own buffer
+    // and Bar.qml pins the vertical window to Design.barColumnWidth — this
+    // Item contributes nothing (both dimensions resolve to 0) and its
+    // seven cells are destroyed, not merely clipped, whenever
+    // launcherCapsule.vertical is true.
     Item {
         id: stripHost
         clip: true
-        width: launcherCapsule.vertical ? launcherCapsule.cellPitch : (launcherCapsule.expanded ? launcherCapsule.expandedCrossExtent : 0)
-        height: launcherCapsule.vertical ? (launcherCapsule.expanded ? launcherCapsule.expandedCrossExtent : 0) : launcherCapsule.cellPitch
+        width: launcherCapsule.vertical ? 0 : (launcherCapsule.expanded ? launcherCapsule.expandedCrossExtent : 0)
+        height: launcherCapsule.vertical ? 0 : launcherCapsule.cellPitch
 
         // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
         // directions, not this repo's semantic-motion emphasizedIn/Out
@@ -302,6 +313,10 @@ BarCapsule {
         // its acceleration is what the operator reported as "not smooth").
         // Design.barDrawerEasingType (Easing.OutCubic) mimics Athena's own
         // GTK transition exactly — see that token's own provenance comment.
+        // Horizontal-only now, but left exactly as it was: this Behavior
+        // pair only ever animated the horizontal-orientation width/height
+        // shape (vertical's own width/height are now a bare 0 above, not a
+        // second animated branch).
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
@@ -322,52 +337,106 @@ BarCapsule {
             onHoveredChanged: launcherCapsule.reportDrawerHover("strip", stripHoverHandler.hovered)
         }
 
-        Grid {
-            id: stripGrid
+        // Gated behind `!vertical` so the seven cells below are destroyed
+        // in vertical orientation rather than merely clipped — the same
+        // zero-idle-cost discipline BarDrawer.qml's own LazyLoader applies
+        // to the surface that replaces this Grid there. `sourceComponent`
+        // used explicitly (this repo's own convention for a plain
+        // QtQuick.Loader — see Dashboard.qml's dashboardTabLoader — rather
+        // than relying on a bare child becoming the implicit component).
+        Loader {
+            id: stripGridLoader
             anchors.fill: parent
-            rows: launcherCapsule.vertical ? -1 : 1
-            columns: launcherCapsule.vertical ? 1 : -1
-            spacing: Design.spacingXs
+            active: !launcherCapsule.vertical
+            asynchronous: false
+
+            sourceComponent: Component {
+                Grid {
+                    id: stripGrid
+                    anchors.fill: parent
+                    rows: 1
+                    columns: -1
+                    spacing: Design.spacingXs
+
+                    Repeater {
+                        // The delegate root is a PLAIN Item, not LauncherCell itself.
+                        // Repeater injects `index`/`modelData` into a plain delegate
+                        // root, but NOT into an inline component (`component
+                        // LauncherCell: Item`) used as the root — verified live: a
+                        // diagnostic in the old shape logged
+                        // `index=undefined typeof=undefined entryKeys=[] modelLen=7`,
+                        // i.e. the model held all seven rows and none of them reached
+                        // a cell. That is GATE-02 defect 4's real cause: `entry` sat at
+                        // its `({})` default for every cell, so all seven resolved
+                        // identically to one fallback. Wrapping the component in a
+                        // plain Item and indexing appEntries explicitly is what
+                        // actually delivers the data.
+                        model: launcherCapsule.appEntries.length
+                        delegate: Item {
+                            id: cellSlot
+                            required property int index
+                            width: launcherCapsule.cellPitch
+                            height: launcherCapsule.cellPitch
+
+                            // GATE-02 round 4: a GTK Revealer never staggers or
+                            // fades its children individually and never translates
+                            // them on the cross axis — it is a single clip-based
+                            // slide of the CONTAINER, full stop. The former
+                            // per-cell opacity stagger (PauseAnimation keyed off
+                            // cellSlot.index) ran ON TOP of the 650ms container
+                            // animation above, which is what made the drawer take
+                            // far longer than Athena's 650ms to finish opening —
+                            // the operator's "slow" report. The former Translate's
+                            // cross-axis `y` offset is what made a cell (and, in
+                            // MediaConnectivityCapsule's sibling drawers, the
+                            // trigger) visibly shift on hover — removed outright,
+                            // not just zeroed, since a Translate left at y:0 is
+                            // still a per-frame transform Athena's own drawer has
+                            // no equivalent of. The stripHost's own clip:true is
+                            // what reveals this cell now — exactly like a Revealer.
+                            LauncherCell {
+                                anchors.fill: parent
+                                entry: launcherCapsule.appEntries[cellSlot.index]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Vertical-orientation drawer host (18-11's Option B, D-18-11,
+    //    quick task 260812-59l, closing GATE-02 row B.4-DRAWER) — the
+    //    shared BarDrawer type, mounted behind a LazyLoader keyed on
+    //    `vertical && expanded` (shell.qml's own default-property idiom,
+    //    D-18-24's create/destroy shape), so it costs nothing while
+    //    collapsed or in horizontal orientation. `reportDrawerHover` is
+    //    the sole hover relay (D-18-19) — no second dwell or grace timer
+    //    is added here. Reuses LauncherCell (this file's own inline
+    //    component, reachable inside this loaded block) with the same
+    //    plain-Item delegate wrapper the horizontal strip above uses. ───
+    LazyLoader {
+        id: verticalDrawerLoader
+        active: launcherCapsule.vertical && launcherCapsule.expanded
+
+        BarDrawer {
+            drawerId: "launcher"
+            crossExtent: launcherCapsule.expandedCrossExtent
+            cellPitch: launcherCapsule.cellPitch
+            triggerCentre: launcherCapsule._publishedDrawerCentre
+            onHoveredChanged: launcherCapsule.reportDrawerHover("strip", hovered)
 
             Repeater {
-                // The delegate root is a PLAIN Item, not LauncherCell itself.
-                // Repeater injects `index`/`modelData` into a plain delegate
-                // root, but NOT into an inline component (`component
-                // LauncherCell: Item`) used as the root — verified live: a
-                // diagnostic in the old shape logged
-                // `index=undefined typeof=undefined entryKeys=[] modelLen=7`,
-                // i.e. the model held all seven rows and none of them reached
-                // a cell. That is GATE-02 defect 4's real cause: `entry` sat at
-                // its `({})` default for every cell, so all seven resolved
-                // identically to one fallback. Wrapping the component in a
-                // plain Item and indexing appEntries explicitly is what
-                // actually delivers the data.
                 model: launcherCapsule.appEntries.length
                 delegate: Item {
-                    id: cellSlot
+                    id: verticalCellSlot
                     required property int index
                     width: launcherCapsule.cellPitch
                     height: launcherCapsule.cellPitch
 
-                    // GATE-02 round 4: a GTK Revealer never staggers or
-                    // fades its children individually and never translates
-                    // them on the cross axis — it is a single clip-based
-                    // slide of the CONTAINER, full stop. The former
-                    // per-cell opacity stagger (PauseAnimation keyed off
-                    // cellSlot.index) ran ON TOP of the 650ms container
-                    // animation above, which is what made the drawer take
-                    // far longer than Athena's 650ms to finish opening —
-                    // the operator's "slow" report. The former Translate's
-                    // cross-axis `y` offset is what made a cell (and, in
-                    // MediaConnectivityCapsule's sibling drawers, the
-                    // trigger) visibly shift on hover — removed outright,
-                    // not just zeroed, since a Translate left at y:0 is
-                    // still a per-frame transform Athena's own drawer has
-                    // no equivalent of. The stripHost's own clip:true is
-                    // what reveals this cell now — exactly like a Revealer.
                     LauncherCell {
                         anchors.fill: parent
-                        entry: launcherCapsule.appEntries[cellSlot.index]
+                        entry: launcherCapsule.appEntries[verticalCellSlot.index]
                     }
                 }
             }

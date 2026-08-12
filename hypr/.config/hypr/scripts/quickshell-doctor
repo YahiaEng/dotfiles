@@ -271,11 +271,23 @@ QSD_PANEL_NAMESPACE_SUFFIX="-panel"
 #    QSD_KNOWN_NONBAR_FRAMES also fails.
 #
 #    `bar/BarDrawer.qml` (18-11's recommended Option B for D-18-11's
-#    vertical drawers) was an OPEN DECISION at the time this array was
-#    written, not yet taken — checked on disk at commit time and ABSENT,
-#    so it has no row. Its absence is not a licence to add the file
-#    without adding a row: the reverse closure below will fail the moment
-#    it ships unregistered.
+#    vertical drawers) was an OPEN DECISION when this array was first
+#    written, not yet taken. The decision was taken by quick task
+#    260812-59l (closing GATE-02 row B.4-DRAWER): the file ships, and its
+#    row is below. Its namespace prefix is `quickshell-bardrawer-`, NOT
+#    `quickshell-bar-drawer-` — a future editor must not "fix" this to
+#    look more like a hyphenated compound word. The reason:
+#    _qsd_assert_bar_surface_registry_live (below) requires every live
+#    bar-family namespace to match EXACTLY ONE registry row, and the
+#    SectionPopout row above stores the pattern prefix `quickshell-bar-`,
+#    which matches ANY string beginning with that prefix plus at least
+#    one character. A namespace of the shape `quickshell-bar-…` would
+#    therefore match both the SectionPopout row and this file's own row,
+#    be counted `unmatched`, and fail the live half the moment a drawer
+#    is actually open. `quickshell-bardrawer-…` still starts with
+#    `quickshell-bar` (so the broad candidate net still captures it) and
+#    with `quickshell-` (so the family-wide blur/ignore_alpha layer rules
+#    still apply), while resolving to exactly one row.
 #
 #    Ordered and INDEXED, never associative — bash associative-array
 #    iteration order is unspecified, and a report string that changes
@@ -286,6 +298,7 @@ QSD_BAR_SURFACE_ROWS=(
     "Bar.qml|quickshell-bar|exact|2|reserve|permanent"
     "bar/SectionPopout.qml|quickshell-bar-|pattern|3|noreserve|transient"
     "bar/HotZone.qml|quickshell-bar-hotzone|exact|3|noreserve|transient"
+    "bar/BarDrawer.qml|quickshell-bardrawer-|pattern|3|noreserve|transient"
 )
 
 # Pre-existing summonable layer-shell frames this phase did not add and

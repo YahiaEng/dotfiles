@@ -90,3 +90,12 @@ HotZone 1.0 HotZone.qml
 # keyword here, or the type resolves undefined forever with no load
 # error).
 singleton BarRoles 1.0 BarRoles.qml
+
+# BarDrawer (18-11's Option B for D-18-11's vertical drawers, taken as an
+# 18-05 scope correction by quick task 260812-59l, closing GATE-02 row
+# B.4-DRAWER) — the shared LazyLoader-gated anchored strip surface that
+# hosts the launcher and settings drawers in vertical orientation. An
+# ORDINARY instance type, NOT a singleton: LauncherCapsule.qml and
+# ClockActionsCapsule.qml each mount their own instance behind their own
+# LazyLoader, keyed on `vertical && expanded`.
+BarDrawer 1.0 BarDrawer.qml
