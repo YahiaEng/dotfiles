@@ -75,13 +75,33 @@ PanelWindow {
     //    transcribed verbatim in shape. Single-edge-margin arithmetic,
     //    never doubled (the same shape D-18-38 fixed for the bar's own
     //    reservation). ──────────────────────────────────────────────────
-    readonly property int _horizontalTopMargin: Design.barEdgeMargin + Design.barHeight + Design.spacingXs
-    readonly property int _verticalRightMargin: Design.barEdgeMargin + Design.barColumnWidth + Design.spacingXs
+    // MEASURED 2026-08-12, and the first attempt got this wrong in exactly
+    // the way the comment above warns against. These were
+    // `barEdgeMargin + barHeight + spacingXs` (52) and
+    // `barEdgeMargin + barColumnWidth + spacingXs` (54), transcribed from
+    // SectionPopout's shape — but a popout is positioned inside a window
+    // that spans the screen, whereas this is an anchored layer surface, and
+    // the compositor ALREADY offsets an anchored surface past the bar's
+    // 48px exclusive zone. Adding the bar's own extent again double-counted
+    // it: tooltips rendered at y=100 (measured via `hyprctl layers`) against
+    // a bar whose bottom edge is 48 — about 79px below the glyph being
+    // hovered, which is what the operator reported as "way below the
+    // cursor". The margin here is therefore only the GAP past the edge the
+    // compositor already found, nothing more.
+    readonly property int _horizontalTopMargin: Design.spacingXs
+    readonly property int _verticalRightMargin: Design.spacingXs
 
-    readonly property real _horizontalDesiredLeft: Design.barSideMargin + tooltipRoot.triggerCentre - tooltipRoot.width / 2
+    // triggerCentre is ALREADY a scene-absolute coordinate (the host
+    // publishes it via mapToItem(null, ...)), so adding barSideMargin here
+    // shifted every tooltip 10px off the glyph it describes — measured
+    // 2026-08-12: spotify's glyph centre 40 against a tooltip centre of 50,
+    // discord 68 against 78, steam 96 against 106. barSideMargin is still
+    // correct in the CLAMP below, where it is a screen-edge inset rather
+    // than an origin.
+    readonly property real _horizontalDesiredLeft: tooltipRoot.triggerCentre - tooltipRoot.width / 2
     readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(tooltipRoot._horizontalDesiredLeft, (tooltipRoot.screen ? tooltipRoot.screen.width : tooltipRoot.width) - tooltipRoot.width - Design.barSideMargin))
 
-    readonly property real _verticalDesiredTop: Design.barSideMargin + tooltipRoot.triggerCentre - tooltipRoot.height / 2
+    readonly property real _verticalDesiredTop: tooltipRoot.triggerCentre - tooltipRoot.height / 2
     readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(tooltipRoot._verticalDesiredTop, (tooltipRoot.screen ? tooltipRoot.screen.height : tooltipRoot.height) - tooltipRoot.height - Design.barSideMargin))
 
     margins.top: tooltipRoot.vertical ? tooltipRoot._verticalClampedTop : tooltipRoot._horizontalTopMargin
