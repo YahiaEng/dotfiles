@@ -5,8 +5,8 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
 status: executing
-stopped_at: "18-19 at its blocking human gate — 14 rows await live observation. B.4-DRAWER remedy applied (quick 260812-59l) but unproven by observation. 18-20 held pending the QBAR-11 soak (pid 528309, ends ~06:40 EEST)."
-last_updated: "2026-08-12T12:32:57.364Z"
+stopped_at: Completed quick-260812-n9b (event-driven bar watchdog for WINDOWS row 67)
+last_updated: "2026-08-12T14:12:45.468Z"
 last_activity: 2026-08-12
 last_activity_desc: Four GATE-02 iteration-1 defects fixed (quick 260812-69w) — gate ready for iteration 2
 progress:
@@ -464,6 +464,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: D-20 falsifications (Task 2) run against an isolated scratch fixture via QSD_FIXTURE_SHELL_QML_ROOT rather than in-place poison-and-restore on the real bar/ tree — same four proofs, zero risk of a poison surviving mid-session.
 - [Phase ?]: D-21 BarRoles-to-theme.scss diff is fully mechanical: every property name converts to its theme.scss role via camelCase->kebab-case regex with zero hand-authored pairing table; 17/17 rows resolved, zero disagreements.
 - [Phase ?]: 18.1-07: GATE-02 FAILED — operator judged the restored QML bar worse than Athena on black surfaces (Colours.qml property-string type bug), oversized/clunky geometry, sudden drawer reveal, and jarring default app-drawer icons. Recorded truthfully (not softened); 18-19/18-20 stay blocked, waybar retained. Root causes filed in WINDOWS.md ids 58-62 for gap-closure.
+- [Phase ?]: [Quick 260812-n9b]: Added event-driven bar-watchdog (socket2 listener + quickshell-bar-watchdog.service) as a workaround for WINDOWS row 67 (monitor removal destroys quickshell-bar layer surface, shell stays healthy and unaware). Reverses D-18-28's listener retirement for a structurally different reason — the shell cannot self-report this failure. Fixture-proven (8 cases, 23/23), live-installed and stable, but end-to-end recovery is UNPROVEN until a real display sleep occurs; WINDOWS row 67 stays open. Adds a second permanent process, changing 18-BAR-SOAK.md Section one's process-count claim (not corrected by this plan).
 
 ### Quick Tasks Completed
 
@@ -481,6 +482,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260812-69w | Fix four GATE-02 iteration-1 bar defects (clock pill alignment, tooltips obstructing their glyph, idle bulb feedback, media transport centering) | 2026-08-12 | 6721977, 6285f5d | [260812-69w-fix-four-gate-02-iteration-1-bar-defects](./quick/260812-69w-fix-four-gate-02-iteration-1-bar-defects/) |
 | 11 | Give bar hover drawers their own collapse-grace token (barDrawerGraceMs 600, was borrowing popoutDismissGraceMs 200) — drawers were collapsing before finishing their 500ms reveal | 2026-08-12 | c78655e | — |
 | 12 | Bar: fix tooltip placement double-counting the bar extent on both axes; add an ethernet glyph left of wifi, visible only while a wired link is connected | 2026-08-12 | 67333c5 | — |
+| 13 | Add an event-driven bar watchdog (socket2 listener + systemd unit) that restores the QML bar after a monitor sleep/hotplug — works around WINDOWS row 67, which stays open | 2026-08-12 | 59ec9ae | — |
 
 ### Pending Todos
 
@@ -598,8 +600,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-11T15:42:58.195Z
-Stopped at: Completed 18.1-07-PLAN.md — GATE-02 FAILED, 18-19/18-20 remain blocked
+Last session: 2026-08-12T14:09:55.789Z
+Stopped at: Completed quick-260812-n9b (event-driven bar watchdog for WINDOWS row 67)
 Resume file: None
 
 ## Operator Next Steps

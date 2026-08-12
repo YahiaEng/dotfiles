@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 44
+open_count: 46
 waived_count: 0
 fixed_count: 24
-total_count: 68
-last_updated: 2026-08-12T12:11:20.063Z
+total_count: 70
+last_updated: 2026-08-12T14:09:51.627Z
 ---
 
 # Broken Windows Ledger
@@ -83,6 +83,8 @@ last_updated: 2026-08-12T12:11:20.063Z
 | 66 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak (18-18 Task 4) — LIVE WINDOW, FOURTH anchor. Supersedes rows 52, 64 and 65, all voided: 52 by Phase 18.1's bar rebuild, 64 by a host reboot at 01:09, 65 by the two quickshell restarts spent fixing the bar's hover-to-popout defect (b3e5e5a). Live anchor is 18-BAR-SOAK.md Section four-quater: pid 528309, unit start 2026-08-12 02:40:26 EEST, NRestarts=0, RSS 428640 KiB, wake rate 6.5733/sec (band 5.2586-7.8880), CPU rate 0.001100 cpu-sec/sec (band 0.000825-0.001375), RSS ceiling 461408 KiB, reserved [[0,48,0,0]], waybar count 0, 34 module timers. Earliest valid end capture approximately 06:40:26 EEST. STILL TO RUN: end capture, at least 5 RSS samples spaced through the window, the 200-cycle hide/reveal exercise via bar-visibility.sh verbs, and the verdict. FOUR CONSTRAINTS: (1) resume with PID=528309 and intersect the long-lived-child set by COMMAND not pid — proven necessary when the swaync-client -swb child re-spawned mid-session, where a pid intersection would have reported the subscription dead; (2) stop waybar first — it autostarts from hypr/.config/hypr/config/autostart.lua:62, and while it runs reserved reads [[0,94,0,0]] instead of [[0,48,0,0]], breaking the start/end comparison; (3) the RSS figures across Sections four/four-bis/four-ter/four-quater are NOT a series and no growth rate may be derived across them — four process lifetimes across two builds; (4) this window measures the POST-FIX build where all six bar sections hover-open; earlier anchors measured a build where wifi and audio could not be hover-opened at all. THE FINDING WORTH CARRYING: the window has voided three times and every capture itself took 5 minutes and worked first time. The difficulty of QBAR-11 is holding four uninterrupted hours on a workstation in active use, not taking the measurement. If this recurs, consider whether the requirement should be re-scoped to a window the host can actually hold. | fixed |  | 2026-08-12T00:14:57.214Z | 2026-08-12T12:11:04.623Z |
 | 67 | 18 | deviation | quickshell/.config/quickshell/modules/Bar.qml |  | BAR DOES NOT SURVIVE A MONITOR REMOVAL / NO-OUTPUTS EVENT, and its own status verb reports a false positive. Observed live 2026-08-12: at 14:32:51 the log shows 'quickshell.hyprland.ipc: Got removal for monitor "FALLBACK" which was not previously tracked' immediately followed by 'qt.qpa.wayland: There are no outputs - creating placeholder screen'. After the real output returned, the quickshell-bar layer namespace was ABSENT from hyprctl layers and reserved read [[0,0,0,0]], while the shell's own state machine logged 'bar: visibility=visible zone=reserved' — i.e. the shell believed the bar was up and reserving when no surface existed. quickshell itself never died: same pid 528309, NRestarts=0, ActiveState=active, zero QML errors. TWO SEPARATE DEFECTS HERE. (1) The PanelWindow does not re-create its layer surface after the output it was bound to is destroyed and restored — a display sleep/wake or DPMS cycle silently removes the bar for the rest of the session. (2) The owner's designed recovery verb does not recover it and its status verb LIES: `bar-visibility.sh status` printed 'visible' with no surface present, and `bar-visibility.sh reassert` — documented in 18-BAR-SOAK.md Section five as 'the recovery if the status reads anything else' — completed without error and changed nothing. Only `systemctl --user restart quickshell.service` restored it. IMPACT: this is a permanent-liveness defect against QBAR-11's own subject matter, it is invisible to every automated gate in phase 18 (no QML error, service active, status verb green), and it will recur on any monitor sleep. It also means bar-visibility.sh's status output cannot be trusted as evidence that the bar is rendering — any gate or check that greps it is checking intent, not reality. NOT FIXED: found while restoring the operator's desktop, recorded rather than chased at the time. | open |  | 2026-08-12T12:10:22.886Z |  |
 | 68 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak still OPEN after four anchors. Supersedes rows 52, 64, 65 and 66. The fourth window (pid 528309, 02:40:26 to 15:05 on 2026-08-12) is the first to ELAPSE — etimes 44941s, 12.5 hours, NRestarts=0, single pid, one long-lived child by command — and it still yields no verdict. Full accounting in 18-BAR-SOAK.md Section six. Process gates all PASS. RSS gates FAIL at face value (428640 to 594696 KiB = +162 MiB against a 32 MiB ceiling; about 13.0 MiB/hour against a 5 MiB/hour cap) but that failure is explicitly NOT reported as a leak, for three disqualifying reasons: (1) the window spanned the whole development session that fixed the hover defect, added BarDrawer.qml and fixed four GATE-02 defects, so the config was hot-reloaded many times and every reload re-instantiates the QML tree — a soak is defined against a bar left alone, and this one measured a bar being rebuilt underneath itself; (2) the measurement subject vanished mid-window when the bar layer surface was lost to a monitor-removal event (row 67) and never returned, so for an unknown span nothing was rendering; (3) the 300s end observation, the five spaced RSS samples and the 200-cycle hot-zone exercise were all skipped in favour of restoring the operator's missing bar. WHAT A VALID WINDOW NEEDS: a fifth anchor taken when no development work is planned against quickshell/, held 4 hours with no hot reload, no monitor sleep and no restart, ending in the full Section-five procedure. THE REAL FINDING, now observed four times and worth acting on rather than repeating: this requirement asks for four uninterrupted hours on a workstation that is simultaneously the development target for the code being measured. Every capture took five minutes and worked first time; every window died to something environmental (a rebuild, a reboot, a fix, a monitor sleep). Consider re-scoping QBAR-11 to a window this host can actually hold, or deliberately setting aside a quiescent session for it, rather than re-anchoring a fifth time and hoping. | open |  | 2026-08-12T12:11:20.063Z |  |
+| 69 | 18 | deviation | hypr/.config/hypr/scripts/bar-watchdog.sh |  | quick 260812-n9b added quickshell-bar-watchdog.service, a second permanent long-lived process supervising the bar (WINDOWS row 67 workaround). 18-BAR-SOAK.md Section one still states the bar carries exactly one permanent child process — no longer true, not corrected by this plan per its hard constraints. | open |  | 2026-08-12T14:09:51.533Z |  |
+| 70 | 18 | deviation | hypr/.config/hypr/scripts/bar-watchdog.sh |  | quick 260812-n9b's watchdog for WINDOWS row 67 is armed and fixture-proven but end-to-end recovery (real monitor-sleep -> surface-loss -> auto-restore) is UNPROVEN — reproducing the trigger is unsafe on this host (row 14, SEGV during a DP-1 hotplug). WINDOWS row 67 stays open. | open |  | 2026-08-12T14:09:51.627Z |  |
 
 ````json
 [
@@ -900,6 +902,30 @@ last_updated: 2026-08-12T12:11:20.063Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-12T12:11:20.063Z",
+    "resolved_at": null
+  },
+  {
+    "id": 69,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "hypr/.config/hypr/scripts/bar-watchdog.sh",
+    "line": null,
+    "description": "quick 260812-n9b added quickshell-bar-watchdog.service, a second permanent long-lived process supervising the bar (WINDOWS row 67 workaround). 18-BAR-SOAK.md Section one still states the bar carries exactly one permanent child process — no longer true, not corrected by this plan per its hard constraints.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-12T14:09:51.533Z",
+    "resolved_at": null
+  },
+  {
+    "id": 70,
+    "kind": "deviation",
+    "phase": "18",
+    "file": "hypr/.config/hypr/scripts/bar-watchdog.sh",
+    "line": null,
+    "description": "quick 260812-n9b's watchdog for WINDOWS row 67 is armed and fixture-proven but end-to-end recovery (real monitor-sleep -> surface-loss -> auto-restore) is UNPROVEN — reproducing the trigger is unsafe on this host (row 14, SEGV during a DP-1 hotplug). WINDOWS row 67 stays open.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-12T14:09:51.627Z",
     "resolved_at": null
   }
 ]
