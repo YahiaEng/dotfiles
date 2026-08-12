@@ -10,22 +10,23 @@ anywhere in this document.
 **void** — `quickshell` restarted during Phase 18.1's bar rebuild, and Section three
 declares a restart mid-window fatal. Two further anchors followed, and the
 first of them is void as well: Section four-bis (pid `262631`) was killed by a host reboot at
-01:09. **Section four-ter is the live anchor** (pid `1626`), and its "Live thresholds" table
-carries the absolute bands the end capture is judged against. Section three's tolerance
+01:09. **Section four-quater is the live anchor** (pid `528309`, unit start 02:40:26), and its
+"Live thresholds" table carries the absolute bands the end capture is judged against.
+Sections four, four-bis and four-ter are all void. Section three's tolerance
 *percentages* are unchanged throughout — they were pre-declared before any result existed and
 were never re-opened; only the absolute values move, because they are defined relative to a
 start rate that had to be re-taken.
 
-**Earliest valid end capture: ≈ 05:09:39 EEST on 2026-08-12** (unit start 01:09:39 +
+**Earliest valid end capture: ≈ 06:40:26 EEST on 2026-08-12** (unit start 02:40:26 +
 14400 s). Until then, use the machine normally — normal use is what exercises the popout
 create-and-destroy path, and is what the requirement's own phrase "multi-hour session"
 means.
 
-**The window has now voided three times** (18.1's rebuild, then a reboot, with a discarded
-two-bar attempt between them). Each void needed a fresh capture from a new pid. The recurring
+**The window has now voided three times** (18.1's rebuild, a host reboot, and the
+hover-fix restarts, with a discarded two-bar attempt among them). Each void needed a fresh capture from a new pid. The recurring
 obstacle is not the measurement — every capture took 5 minutes and worked first time — it is
 holding four hours of uninterrupted uptime. If `quickshell` restarts or the host reboots
-before 05:09:39, Section four-ter must be re-taken and the clock restarts.
+before 06:40:26, Section four-quater must be re-taken and the clock restarts.
 
 ## Section one — the aggregated permanent-liveness inventory
 
@@ -70,11 +71,12 @@ as a cheaper bar.
 From `18-BAR-IDLE-BASELINE.md` (18-01, tracer scope, captured before any gate was
 widened):
 
-| Metric | Pre-expansion floor (18-01) | Void start, pre-18.1 (Section four) | **Live anchor, post-18.1 (Section four-bis)** |
+| Metric | Pre-expansion floor (18-01) | Void start, pre-18.1 (Section four) | **LIVE ANCHOR — post-hover-fix (Section four-quater)** |
 |---|---|---|---|
-| RSS | 445104 KiB (~435 MiB) | 450424 KiB | **477016 KiB** |
+| RSS | 445104 KiB (~435 MiB) | 450424 KiB | **428640 KiB** |
 | Process count | 1 | 1 | **1** |
 | Child process count | 0 | 1 (the `swaync-client -swb` subscription — did not exist at 18-01's tracer scope; added by 18-11) | **1, by command** (pid re-spawned mid-session — see the methodology correction in Section four-bis) |
+| Wake rate | — | 19.3429/sec | **6.5733/sec** |
 | Declared `Timer {}` in `Bar.qml` | 0 | 0 (unchanged — the clock is still `SystemClock`-driven; the 26 repo-wide count below covers pre-existing gated surfaces, not `Bar.qml` itself) | **0** (repo-wide count now **34**, up from 26 — Phase 18.1's rework, still none in `Bar.qml`) |
 | Reserved array | — | `[[0,46,0,0]]` | **`[[0,48,0,0]]`** (`barHeight` 40 → 42, upstream Athena) |
 
@@ -243,7 +245,13 @@ cpu-sec/sec over a real 300s(315s) observation, `NRestarts=0`, cgroup confirms t
 supervised unit, `quickshell-bar` is the sole quickshell layer namespace, reserved array
 `[[0,46,0,0]]`, bar visible, theme `catppuccin`.
 
-## Section four-bis — the re-taken start capture (2026-08-12) — **THE LIVE ANCHOR**
+## Section four-bis — the re-taken start capture (2026-08-12) — **VOID, retained as the record**
+
+> **Superseded twice over.** This anchor (pid `262631`) was killed by the host reboot at
+> 01:09. Its findings still matter — the waybar two-bar discovery, the child-intersect-by-
+> command correction and the `[[0,48,0,0]]` reserved-array correction all originate here and
+> all still apply — but its **rates and thresholds are not the ones to judge against.**
+> Use Section four-quater.
 
 Taken after the desktop was settled, and deliberately re-taken once: a first attempt at
 `00:45` was discarded because **waybar was still running** from Phase 18.1's GATE-02
@@ -379,7 +387,7 @@ this reason.
 real 300 s observation, `quickshell-bar` the sole quickshell layer namespace, reserved
 `[[0,48,0,0]]`, bar visible, theme `catppuccin`, 34 module `Timer {}` declarations.
 
-### Re-anchored thresholds
+### Re-anchored thresholds — SUPERSEDED, do not judge against these
 
 Section three's tolerance *percentages* were pre-declared before any result existed and are
 unchanged. Only the absolute values are recomputed, because they are defined relative to a
@@ -395,7 +403,12 @@ start rate and the start rate was re-taken:
 | Hot-zone namespaces | — | exactly 0, no tolerance | 0 `quickshell-bar-hotzone` after the 200-cycle exercise |
 | Window | etimes `2011` s at open | ≥14400 s, `NRestarts` unchanged | earliest valid end capture ≈ **04:32:15 EEST** |
 
-## Section four-ter — **THE LIVE ANCHOR** (2026-08-12 01:21, post-reboot)
+## Section four-ter — (2026-08-12 01:21, post-reboot) — **VOID, retained as the record**
+
+> **Superseded by Section four-quater.** This anchor (pid `1626`) was killed by the two
+> `quickshell` restarts spent diagnosing and fixing the bar's hover-to-popout defect
+> (`b3e5e5a`). Its readings are real and were honestly taken; its "Live thresholds" table
+> below is **no longer the one to judge against** — use Section four-quater's.
 
 Section four-bis is **also void**: the host rebooted at 01:09 (`who -b`), taking `quickshell`
 from pid `262631` to `1626`. That is the third void in this plan's history and it is the
@@ -447,7 +460,7 @@ not a series at all** and no growth figure may be derived from it. Only samples 
 *within* this window, against pid `1626`, are comparable — which is exactly why Section
 three demands at least five spaced samples rather than two endpoints.
 
-### Live thresholds — judge the end capture against THESE
+### Live thresholds — SUPERSEDED, do not judge against these
 
 | Gate | Anchor (start) | Pre-declared tolerance | Absolute band for the end capture |
 |---|---|---|---|
@@ -466,6 +479,73 @@ its `737907` and the four-bis `262631`, and intersect the child set by **command
 `hypr/.config/hypr/config/autostart.lua:62` (`waybar-launch.sh`), so it will be running again
 after any reboot. If it is up, the reserved array reads `[[0,94,0,0]]` and the start/end
 comparison breaks. Stop it before the end capture, or the window is unusable.
+
+## Section four-quater — **THE LIVE ANCHOR** (2026-08-12 03:08, post-hover-fix)
+
+Section four-ter is void in turn. Two `quickshell` restarts were spent diagnosing and fixing
+the bar's hover-to-popout defect (`b3e5e5a` — debug session
+`.planning/debug/resolved/wifi-glyph-hover-no-popout.md`), an authorised interruption: the
+soak measures resting cost, and measuring it against a build with a known input defect would
+have anchored the milestone's number to code that was about to change anyway.
+
+**Fourth anchor. The window has now voided three times before this one** — 18.1's rebuild, a
+host reboot, and this fix. Each void cost one 5-minute capture and every capture worked first
+time. **The difficulty of QBAR-11 is holding four uninterrupted hours, not taking the
+measurement**, and that should be read as the finding rather than as noise in the log.
+
+```
+$ systemctl --user show quickshell.service -p NRestarts -p MainPID -p ExecMainStartTimestamp
+MainPID=528309
+NRestarts=0
+ExecMainStartTimestamp=Wed 2026-08-12 02:40:26 EEST
+
+$ ps -o rss=,etimes= -p 528309    # RSS sample 1 of >=5
+428640   1988
+
+T0 = vol 26457 / nonvol 598 / utime 222 / stime 174
+T1 = vol 28318 / nonvol 709 / utime 244 / stime 185   (300s later)
+wake_delta      = 1861 + 111 = 1972
+cpu_ticks_delta =   22 +  11 =   33 ticks
+
+6.5733    # wakes/sec — THE ANCHOR RATE
+0.001100  # cpu-sec/sec — THE ANCHOR RATE
+
+$ hyprctl layers -j | jq -r '..|.namespace? // empty' | sort | uniq -c
+      1 awww-daemon
+      1 quickshell-bar
+$ hyprctl monitors -j | jq -c '[.[].reserved]'
+[[0,48,0,0]]
+$ pgrep -c -x waybar
+0
+$ ~/.config/hypr/scripts/bar-visibility.sh status
+visible
+$ grep -rn 'Timer\s*{' quickshell/.config/quickshell/modules/ | grep -v '^\s*//' | wc -l
+34
+```
+
+### Live thresholds — judge the end capture against THESE
+
+| Gate | Anchor (start) | Pre-declared tolerance | Absolute band for the end capture |
+|---|---|---|---|
+| Wake rate | `6.5733`/sec | ±20% | `5.2586` – `7.8880`/sec inclusive |
+| CPU-time rate | `0.001100` cpu-s/s | ±25% | `0.00082500` – `0.00137500` inclusive |
+| RSS magnitude | `428640` KiB | ≤32 MiB total AND ≤5 MiB/hour | ceiling `461408` KiB; rate ≤`5120` KiB/hour |
+| RSS shape | — | final-third growth ≤ 2× first-third growth | ≥5 samples spaced through the window |
+| Process count | 1 process, 1 child | exact equality | `pgrep -c -x quickshell` == 1; child **command** set == {`/usr/bin/swaync-client -swb`} |
+| Hot-zone namespaces | — | exactly 0, no tolerance | 0 `quickshell-bar-hotzone` after the 200-cycle exercise |
+| Window | unit start 02:40:26 | ≥14400 s, `NRestarts` unchanged | earliest valid end capture ≈ **06:40:26 EEST** |
+
+**Resume with `PID=528309`.** Intersect the child set by **command**, not pid. Stop waybar
+before the end capture — it autostarts from `hypr/.config/hypr/config/autostart.lua:62` and
+while it runs the reserved array reads `[[0,94,0,0]]` instead of `[[0,48,0,0]]`.
+
+**The RSS figures across sections four / four-bis / four-ter / four-quater are still not a
+series** — four different process lifetimes across two builds. Only samples taken within this
+window, against pid `528309`, are comparable.
+
+**The bar under this window is the FIXED build** (`b3e5e5a`), where hovering any of the six
+sections opens its popout. Earlier anchors measured a build where two of those six could not
+be opened by hover at all — another reason their rates are not comparable to this one.
 
 ## Section five — the soak protocol (instructions for the deferred Task 4)
 
