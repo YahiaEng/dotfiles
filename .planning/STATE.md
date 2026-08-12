@@ -8,7 +8,7 @@ status: executing
 stopped_at: Completed quick-260812-pd5 (bar: ethernet card, updates tooltip, GPU glyph); 18-19 awaiting iteration-3 human pass
 last_updated: "2026-08-12T14:32:03.801Z"
 last_activity: 2026-08-12
-last_activity_desc: Four operator bar items (quick 260812-pd5): ethernet card, updates tooltip, GPU glyph; GATE-02 iteration 3 pending
+last_activity_desc: Bar refinements + two quickshell-doctor gate bugs fixed (quick 260812-pd5); GATE-02 iteration 3 pending
 progress:
   total_phases: 6
   completed_phases: 1
@@ -484,7 +484,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 12 | Bar: fix tooltip placement double-counting the bar extent on both axes; add an ethernet glyph left of wifi, visible only while a wired link is connected | 2026-08-12 | 67333c5 | — |
 | 13 | Add an event-driven bar watchdog (socket2 listener + systemd unit) that restores the QML bar after a monitor sleep/hotplug — works around WINDOWS row 67, which stays open | 2026-08-12 | 59ec9ae | — |
 | 260812-opa | GATE-02 F5: popout cards sat 52px low — SectionPopout double-counted the bar extent past an offset the compositor already applied (measured y=100). Leading edge then aligned flush with the Hyprland window edge, which sits at gaps_out below the reserved boundary, not on it (y=58) | 2026-08-12 | cefcf20, 7aa2cfd, d1acef4 | [260812-opa-fix-gate-02-f5-popout-cards-render-52px-](./quick/260812-opa-fix-gate-02-f5-popout-cards-render-52px-/) |
-| 260812-pd5 | Bar: ethernet popout card (native fields only — no IPv4 or NM profile name exists on the device object), "Update system" tooltip on the updates glyph, GPU readout in the system capsule (metric already sampled since 14-10, so display-only). Resource glyphs already recolour on threshold — no work needed | 2026-08-12 | 84dbec1, 7204d17 | [260812-pd5-bar-ethernet-popout-card-with-link-speed](./quick/260812-pd5-bar-ethernet-popout-card-with-link-speed/) |
+| 260812-pd5 | Bar: ethernet popout card (native fields only — no IPv4 or NM profile name exists on the device object), "Update system" tooltip on the updates glyph, GPU readout in the system capsule (metric already sampled since 14-10, so display-only). Resource glyphs already recolour on threshold — no work needed (+ refinements: view_in_ar GPU glyph, "Update System" casing, centred more_horiz see-more foot in all 7 popouts). Also fixed two quickshell-doctor gate bugs found on the way: a pipefail/SIGPIPE `grep -q` pattern that false-FAILED the registry and could false-PASS the D-20 colour gate, and a stale compliant fixture from 260812-69w | 2026-08-12 | 84dbec1, 7204d17, f452eee, 2f896f8 | [260812-pd5-bar-ethernet-popout-card-with-link-speed](./quick/260812-pd5-bar-ethernet-popout-card-with-link-speed/) |
 
 ### Pending Todos
 

@@ -3,7 +3,7 @@ status: complete
 quick_id: 260812-pd5
 date: 2026-08-12
 description: "Bar: ethernet popout card with link speed, Update-system tooltip, GPU resource glyph"
-commit: 84dbec1, 7204d17
+commit: 84dbec1, 7204d17, f452eee, 2f896f8
 files_modified:
   - quickshell/.config/quickshell/modules/bar/EthernetPopout.qml
   - quickshell/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml
@@ -165,6 +165,78 @@ Nothing here was confirmed by eye — no popout was opened and no glyph was look
 mechanical wiring is checked (gates pass, no binding errors, ligatures verified, device fields
 measured), but that the ethernet card renders correctly, that the GPU glyph appears in the right
 place, and that the tooltip reads well are all operator observations still outstanding.
+
+## Follow-up round — operator refinements after seeing it live (`f452eee`)
+
+- **GPU glyph** `developer_board` → `view_in_ar`. The board glyph read as generic circuitry and
+  sat too close to the CPU entry's chip glyph two slots away.
+- **Tooltip casing** → "Update System".
+- **Updates state**: no change. It stays hidden at zero pending updates — operator's call, the
+  absence is the signal. (`checkupdates` returns 0 on this host, which is why the entry was
+  invisible when the question was raised.)
+- **Popout foot** → a centred, glyph-only `more_horiz` pill, replacing the left-aligned text pill
+  in all seven cards. `popoutFoot` gained a right anchor, since a `horizontalCenter` has nothing
+  to centre within until the item spans the frame's inner width, and the pill is now sized off
+  the glyph rather than off label width so every card shows an identically sized control. The
+  destination text moved into the hover tooltip — and that tooltip now uses the label verbatim
+  instead of `"Open " + label.toLowerCase()`, which rendered "Open open wi-fi settings" for all
+  seven labels. Harmless while the label was also drawn on the pill; not harmless once the
+  tooltip is the only place the destination appears.
+
+## Two quickshell-doctor gate bugs found on the way (`2f896f8`)
+
+The foot change made `bar-surface-registry` report `missing=1` against a registry that was
+entirely correct. Chasing that surfaced two separate defects in the gate itself.
+
+**Bug 1 — `producer | grep -q` under `set -uo pipefail`.** `grep -q` exits the instant it
+matches, the producer takes SIGPIPE and exits 141, and pipefail reports the pipeline as failed
+even though the pattern *was* found. Whether it happens depends on how much output follows the
+match — on **file length** — so a check silently changes verdict as a file grows. Measured on the
+same file with the namespace present and unchanged in both:
+
+| SectionPopout.qml | pipeline rc |
+|---|---|
+| 454 lines / 23239 bytes | 0 |
+| 484 lines / 25242 bytes | **141** |
+
+A 30-line comment addition was the entire cause of the reported failure.
+
+The failure *direction* differs by site, and one is dangerous:
+
+- Registry closures read 141 as "namespace absent" → false **FAIL**. Noisy but safe.
+- `bar-colour-role-routing` and `bar-colour-alpha-resolution` use `if producer | grep -q`, so 141
+  reads as "this file does NOT touch `Colours.*`" → a false **PASS**. That is D-20's gate,
+  described in its own check string as "the executable counterpart of this phase's central
+  prohibition", able to wave through the exact violation it exists to catch. Demonstrated with a
+  synthetic file whose second line is `Colours.surface`: the 3-line version was detected, the
+  4000-line version was missed.
+
+Fixed with `_qsd_matches`, which takes the producer's output as a string and matches via
+herestring, leaving no upstream process to signal. Applied to the 7 file-scanning assertion
+sites; the remaining `| grep -q` uses read tiny fixed-size streams (a busctl list, one printf'd
+value, `brightnessctl -l`) where the producer finishes first, and are left alone.
+
+**Bug 2 — stale compliant fixture.** Quick task 260812-69w added the
+`bar/BarTooltip.qml|quickshell-bartip-` registry row without adding the matching stub to
+`compliant-bar-qml-root/`, so the forward closure counted it missing against every fixture root.
+That made `--self-test`'s own **compliant** case fail, and left `missing=1` inside every poisoned
+case's result string where it masked the number those cases actually assert on. Stub added,
+following the convention `BarDrawer.qml`'s own stub records for quick task 260812-59l.
+
+**Verification — the goal was to keep the gate strict, not to turn it green:**
+
+- `--self-test`: **55 passed, 0 failed** (was 54 passed, 1 failed). All 17 poison detections still
+  FAIL correctly, including empty-scan-root (`missing=5`), `poisoned-unregistered-frame`
+  (`unregistered=1`) and `poisoned-second-reserving-surface` (`unexpected-reservation=1`).
+- Live: `bar-surface-registry` **PASSES** (`rows=5 missing=0`) with the new foot in place, and the
+  doctor overall goes 24 passed/4 failed → **25 passed/3 failed**.
+
+## A note on the quickshell restart
+
+The pid changed from `1520318` to `3012973` mid-session. Not a crash and not caused by any edit
+here: `journalctl` shows `bar-watchdog: restarted quickshell.service (rc=0)` at 20:38, then
+`bar-surface present — no action` at 21:03 — the WINDOWS-row-67 watchdog doing its job after a
+monitor event.
 
 ## Consequence for phase 18
 
