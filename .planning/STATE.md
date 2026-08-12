@@ -8,7 +8,7 @@ status: executing
 stopped_at: "18-19 at its blocking human gate — 14 rows await live observation. B.4-DRAWER remedy applied (quick 260812-59l) but unproven by observation. 18-20 held pending the QBAR-11 soak (pid 528309, ends ~06:40 EEST)."
 last_updated: "2026-08-11T22:30:00.000Z"
 last_activity: 2026-08-12
-last_activity_desc: BarDrawer.qml lands (quick 260812-59l) — GATE-02 B.4-DRAWER remedy applied, awaiting the operator's gate pass
+last_activity_desc: Four GATE-02 iteration-1 defects fixed (quick 260812-69w) — gate ready for iteration 2
 progress:
   total_phases: 6
   completed_phases: 1
@@ -478,6 +478,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260728-48c | Generalize dkms-verify into kernel-module-verify — covers prebuilt (nvidia-open) and DKMS module sources, closing a vacuous-pass blind spot | 2026-07-28 | 27393b2 | [260728-48c-generalize-dkms-verify-into-kernel-modul](./quick/260728-48c-generalize-dkms-verify-into-kernel-modul/) |
 | 260728-4f9 | Make install.sh fully reproduce the 2026-07-28 incident fixes: LTS fallback kernel, nvidia-open-dkms name, post-install verification gate | 2026-07-28 | 6de97c7 | [260728-4f9-make-install-sh-fully-reproduce-the-2026](./quick/260728-4f9-make-install-sh-fully-reproduce-the-2026/) |
 | 260812-59l | Add BarDrawer.qml vertical drawer host (18-11 Option B, D-18-11) — clears GATE-02 row B.4-DRAWER, the only failing row blocking RETIRE-02 | 2026-08-12 | fc01499, 55208c4, 10674fd | [260812-59l-add-bardrawer-qml-vertical-drawer-host-1](./quick/260812-59l-add-bardrawer-qml-vertical-drawer-host-1/) |
+| 260812-69w | Fix four GATE-02 iteration-1 bar defects (clock pill alignment, tooltips obstructing their glyph, idle bulb feedback, media transport centering) | 2026-08-12 | 6721977, 6285f5d | [260812-69w-fix-four-gate-02-iteration-1-bar-defects](./quick/260812-69w-fix-four-gate-02-iteration-1-bar-defects/) |
 
 ### Pending Todos
 
