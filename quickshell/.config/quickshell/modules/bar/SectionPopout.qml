@@ -164,8 +164,22 @@ PanelWindow {
     //    window's own screen handle; no literal pixel value anywhere.
     //    Single-edge-margin arithmetic, the same shape D-18-38 fixed for
     //    the bar's own reservation — never doubled. ──────────────────────
-    readonly property int _horizontalTopMargin: Design.barEdgeMargin + Design.barHeight + Design.spacingXs
-    readonly property int _verticalRightMargin: Design.barEdgeMargin + Design.barColumnWidth + Design.spacingXs
+    // MEASURED 2026-08-12 (GATE-02 finding F5). These were
+    // `barEdgeMargin + barHeight + spacingXs` (52) and
+    // `barEdgeMargin + barColumnWidth + spacingXs` (54) — the bar's own extent
+    // added on top of an offset the compositor had ALREADY applied. This is an
+    // anchored layer surface (top + left/right, exclusiveZone 0), so the
+    // compositor already places it past the bar's 48px exclusive zone; adding
+    // the extent again double-counted it. `hyprctl layers` returned
+    // `quickshell-bar-wifi y=100` against a bar whose bottom edge is 48 — the
+    // operator reported it as "the popup cards appear too low". The margin here
+    // is therefore only the GAP past the edge the compositor already found,
+    // nothing more. BarTooltip.qml:78-90 records the identical failure and the
+    // identical correction, found hours earlier on the same layer posture; this
+    // file is the sibling that taught it the wrong expression and never got the
+    // fix. Keep the two files' shape identical.
+    readonly property int _horizontalTopMargin: Design.spacingXs
+    readonly property int _verticalRightMargin: Design.spacingXs
 
     readonly property real _horizontalDesiredLeft: Design.barSideMargin + popoutWindow.triggerCentre - popoutWindow.width / 2
     readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(popoutWindow._horizontalDesiredLeft, (popoutWindow.screen ? popoutWindow.screen.width : popoutWindow.width) - popoutWindow.width - Design.barSideMargin))

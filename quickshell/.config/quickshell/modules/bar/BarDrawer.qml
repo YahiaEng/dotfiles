@@ -98,7 +98,16 @@ PanelWindow {
     //    whenever either changes. Single-edge margin arithmetic, never
     //    doubled, the same shape D-18-38 already fixed for the bar's own
     //    reservation. ───────────────────────────────────────────────────
-    readonly property int _verticalRightMargin: Design.barEdgeMargin + Design.barColumnWidth + Design.spacingXs
+    // Corrected 2026-08-12 with SectionPopout.qml under GATE-02 finding F5,
+    // keeping the two files' ONE anchoring rule identical. Was
+    // `barEdgeMargin + barColumnWidth + spacingXs` (54): the compositor already
+    // offsets an anchored layer surface past the bar's exclusive zone, so adding
+    // the bar's own extent again double-counted it. F5 was measured on the
+    // horizontal branch (`quickshell-bar-wifi y=100` against a bar bottom edge
+    // of 48); this vertical branch is corrected by the same reasoning rather
+    // than by its own measurement, so GATE-02's B.4 and B.4-DRAWER rows are the
+    // live confirmation. See SectionPopout.qml:167 and BarTooltip.qml:78-90.
+    readonly property int _verticalRightMargin: Design.spacingXs
     readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(Design.barSideMargin + drawerRoot.triggerCentre - drawerRoot.height / 2, (drawerRoot.screen ? drawerRoot.screen.height : drawerRoot.height) - drawerRoot.height - Design.barSideMargin))
 
     margins.right: drawerRoot._verticalRightMargin
