@@ -592,27 +592,41 @@ else
         #    DECLARED_GLOBAL_ARG (captured once, at parse time, by
         #    _kbd_parse_lua_binds) rather than re-parsing the raw line
         #    text a second time here.
+        #    EDGE-AWARENESS (Phase 18/QBAR-08): the comparison below includes
+        #    the release flag, matching check 2's (shadow) discipline, which
+        #    has always distinguished binds by (modmask,key,keycode,release).
+        #    Before this, collision compared (modmask,key) ALONE, so a chord
+        #    legitimately claimed on two different edges — a press bind and a
+        #    release bind — read as one chord claimed twice and was reported
+        #    as a collision. That is not a collision: Hyprland dispatches the
+        #    two edges independently, and this repo already relies on exactly
+        #    that (keybinds.lua's Super-tap release bind coexisting with the
+        #    Super-hold press bind that drives quickshell:bar-reveal). A
+        #    manifest entry may declare `chord.release`; absent, it means the
+        #    press edge, which is the Hyprland default and the shape every
+        #    pre-existing manifest entry already has.
         COLLISION_COUNT=0
-        while IFS="$US" read -r m_appid m_name m_mods m_key; do
+        while IFS="$US" read -r m_appid m_name m_mods m_key m_release; do
             [[ -z "$m_appid" ]] && continue
             m_modmask=$(_kbd_modmask "$m_mods")
+            [[ -z "$m_release" || "$m_release" == "null" ]] && m_release="false"
             i=0
             for t in "${DECLARED_TUPLES[@]}"; do
-                IFS='|' read -r d_modmask d_key _ _ <<<"$t"
-                if [[ "$d_modmask" == "$m_modmask" && "$d_key" == "$m_key" ]]; then
+                IFS='|' read -r d_modmask d_key _ d_release <<<"$t"
+                if [[ "$d_modmask" == "$m_modmask" && "$d_key" == "$m_key" && "$d_release" == "$m_release" ]]; then
                     rawline="${DECLARED_RAWLINES[$i]}"
                     c_global_arg="${DECLARED_GLOBAL_ARG[$i]}"
                     if [[ -n "$c_global_arg" && "$c_global_arg" == "${m_appid}:${m_name}" ]]; then
                         : # the manifest entry's own legitimate registration line
                     else
                         COLLISION_COUNT=$((COLLISION_COUNT + 1))
-                        printf '    chord collision: %s collides with quickshell manifest entry %s:%s\n' "$rawline" "$m_appid" "$m_name" >&2
+                        printf '    chord collision: %s collides with quickshell manifest entry %s:%s (same edge, release=%s)\n' "$rawline" "$m_appid" "$m_name" "$m_release" >&2
                     fi
                 fi
                 i=$((i + 1))
             done
-        done < <(jq -r --arg us "$US" '.[] | [.appid, .name, .chord.mods, .chord.key] | join($us)' "$SHORTCUTS_MANIFEST")
-        check "quickshell chord collision: zero Hyprland-declared binds claim a chord the manifest already owns without going through the matching global dispatcher (found: ${COLLISION_COUNT})" "$([[ $COLLISION_COUNT -eq 0 ]] && echo 0 || echo 1)"
+        done < <(jq -r --arg us "$US" '.[] | [.appid, .name, .chord.mods, .chord.key, ((.chord.release // false) | tostring)] | join($us)' "$SHORTCUTS_MANIFEST")
+        check "quickshell chord collision: zero Hyprland-declared binds claim a chord+edge the manifest already owns without going through the matching global dispatcher (found: ${COLLISION_COUNT})" "$([[ $COLLISION_COUNT -eq 0 ]] && echo 0 || echo 1)"
     fi
 fi
 
