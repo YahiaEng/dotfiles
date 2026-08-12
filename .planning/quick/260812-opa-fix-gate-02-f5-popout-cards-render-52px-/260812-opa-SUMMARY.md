@@ -41,9 +41,6 @@ hold the identical shape.
 
 ## Measurement — before and after
 
-Both readings taken with `hyprctl layers -j`, the wifi popout pinned open, on the same live
-process (pid `1520318`, never restarted):
-
 Every reading below was taken with `hyprctl layers -j`, the wifi popout pinned open, on the same
 live process (pid `1520318`, never restarted across any of the four states):
 
