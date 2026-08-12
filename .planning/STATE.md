@@ -4,17 +4,17 @@ milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 18
 current_phase_name: qml-bar-retirement-machinery
-status: executing
-stopped_at: Completed 18-19-PLAN.md (GATE-02) - RETIRE-02 AUTHORISED against 2644ae0, 18-20 unblocked
-last_updated: "2026-08-12T19:45:12.776Z"
+status: verifying
+stopped_at: Completed 18-20-PLAN.md (RETIRE-02 waybar retirement)
+last_updated: "2026-08-12T20:32:46.657Z"
 last_activity: 2026-08-12
 last_activity_desc: "18-19 (GATE-02) closed on Iteration 3: 14 PASS, B.3 NOT-DEMONSTRABLE, 0 FAIL — RETIRE-02 AUTHORISED against 2644ae0; 18-20 unblocked"
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 27
-  completed_plans: 26
-  percent: 17
+  completed_plans: 27
+  percent: 33
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 Phase: 18 (qml-bar-retirement-machinery) — EXECUTING
 Plan: 20 of 20 (18-19/GATE-02 complete; 18-20/RETIRE-02 next)
-Status: Ready to execute
-Progress: [██████████] 96%
+Status: Phase complete — ready for verification
+Progress: [██████████] 100%
 Last activity: 2026-08-12 — 18-19 (GATE-02) closed, RETIRE-02 authorised
 
 ## Performance Metrics
@@ -217,6 +217,7 @@ Last activity: 2026-08-12 — 18-19 (GATE-02) closed, RETIRE-02 authorised
 | Phase 18.1 P06 | 35min | 3 tasks | 2 files |
 | Phase 18.1 P07 | ~10min | 1 tasks | 3 files |
 | Phase 18 P19 | multi-session | 3 tasks | 1 files |
+| Phase 18 P20 | 50min | 3 tasks | 72 files |
 
 ## Accumulated Context
 
@@ -467,6 +468,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 18.1-07: GATE-02 FAILED — operator judged the restored QML bar worse than Athena on black surfaces (Colours.qml property-string type bug), oversized/clunky geometry, sudden drawer reveal, and jarring default app-drawer icons. Recorded truthfully (not softened); 18-19/18-20 stay blocked, waybar retained. Root causes filed in WINDOWS.md ids 58-62 for gap-closure.
 - [Phase ?]: [Quick 260812-n9b]: Added event-driven bar-watchdog (socket2 listener + quickshell-bar-watchdog.service) as a workaround for WINDOWS row 67 (monitor removal destroys quickshell-bar layer surface, shell stays healthy and unaware). Reverses D-18-28's listener retirement for a structurally different reason — the shell cannot self-report this failure. Fixture-proven (8 cases, 23/23), live-installed and stable, but end-to-end recovery is UNPROVEN until a real display sleep occurs; WINDOWS row 67 stays open. Adds a second permanent process, changing 18-BAR-SOAK.md Section one's process-count claim (not corrected by this plan).
 - [Phase ?]: GATE-02 closed on Iteration 3 (sha 2644ae0): 14 rows PASS, B.3 NOT-DEMONSTRABLE per D-18-39, 0 FAIL, 0 OVERRIDDEN — RETIRE-02 AUTHORISED, four disclosed cosmetic residuals accepted as known-state debt
+- [Phase ?]: RETIRE-02: waybar fully retired (package, config, contract, matugen, checkers) with retirement-check registry flipped to retired; own-tree class permanently reads SKIP for a genuinely deleted surface, recorded as the correct terminal state rather than forced toward PASS
 
 ### Quick Tasks Completed
 
@@ -604,8 +606,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-12T19:45:12.755Z
-Stopped at: Completed 18-19-PLAN.md (GATE-02) - RETIRE-02 AUTHORISED against 2644ae0, 18-20 unblocked
+Last session: 2026-08-12T20:32:46.636Z
+Stopped at: Completed 18-20-PLAN.md (RETIRE-02 waybar retirement)
 Resume file: None
 
 ## Operator Next Steps
