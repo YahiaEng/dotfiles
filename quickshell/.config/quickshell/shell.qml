@@ -23,6 +23,7 @@ import Quickshell.Io
 import "modules"
 import "modules/dashboard"
 import "modules/bar"
+import "modules/notifications"
 
 ShellRoot {
     id: root
@@ -39,6 +40,17 @@ ShellRoot {
     // already use for their own fixed-argv Process commands, reused here
     // rather than a second accessor.
     property string homeDir: Quickshell.env("HOME")
+
+    // ── Notification server (Phase 19 Plan 01 tracer, QNOTIF-01,
+    //    T-19-02) — a live reference at root scope, not behind any
+    //    LazyLoader and carrying no `active` property, forcing the
+    //    pragma-Singleton's construction at shell start rather than
+    //    lazily on whichever surface first touches it. NotifPopupStack
+    //    (this same plan's Task 3) becomes the real per-frame consumer of
+    //    NotifServer.popups; this binding exists independently so the
+    //    D-Bus name is claimed and held for the whole process lifetime
+    //    even before that surface exists.
+    readonly property int notifServerUnreadCount: NotifServer.unreadCount
 
     // QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — arrangement
     // A, a Variants+LazyLoader fan-out declared here in shell.qml,

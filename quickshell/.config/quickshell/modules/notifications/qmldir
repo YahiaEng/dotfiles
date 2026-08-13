@@ -1,0 +1,18 @@
+# qmldir — explicit module manifest for quickshell/modules/notifications/
+# (Phase 19 Plan 01 tracer). Mirrors modules/qmldir's own standing
+# instruction verbatim: any .qml type added to this directory that is NOT
+# declared below becomes unresolvable to importers of `qs.modules.notifications`.
+# Any FUTURE type added to this directory MUST do the same, in the same
+# commit that creates it.
+#
+# NotifServer carries the `singleton` keyword; NotifData does not — it is a
+# per-notification wrapper, instantiated once per D-Bus arrival via
+# NotifServer.qml's own `Component { NotifData {} }` factory, never a
+# shared instance. NotifServer.qml carries a matching `pragma Singleton`
+# line for the same both-required reason Colours.qml/Motion.qml/Design.qml
+# each already state (12-06, binary-verified): with only one of the two,
+# bare `NotifServer.propertyName`-style access resolves to `undefined`
+# forever, with no load error.
+module qs.modules.notifications
+singleton NotifServer 1.0 NotifServer.qml
+NotifData 1.0 NotifData.qml
