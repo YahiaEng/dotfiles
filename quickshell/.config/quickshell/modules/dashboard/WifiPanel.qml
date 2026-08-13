@@ -808,6 +808,14 @@ PanelDialog {
                     anchors.verticalCenter: parent.verticalCenter
                     elide: Text.ElideRight
                     maximumLineCount: 1
+                    // Explicit plain-text pin (T-19-26, closing
+                    // 15-SECURITY.md's Unregistered Flags item 2 / T-15-08b's
+                    // still-open twin) — an SSID is attacker-controllable
+                    // text arriving over the air, and QML's automatic format
+                    // detection would render markup as markup rather than as
+                    // literal characters. Mirrors BluetoothPanel.qml's
+                    // `deviceNameText` pin idiom character for character.
+                    textFormat: Text.PlainText
                     text: networkRow.network ? networkRow.network.name : ""
                     font.pixelSize: root.fontBody
                     font.weight: root.weightBody
@@ -818,9 +826,28 @@ PanelDialog {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: root.handleRowPress(networkRow.network)
-                        ToolTip.visible: ssidHoverArea.containsMouse
-                        ToolTip.text: ssidText.text
-                        ToolTip.delay: Design.tooltipDelayMs
+                    }
+                    // A standalone `ToolTip` (not the attached-property
+                    // shorthand) so its own content item's text format can
+                    // be pinned explicitly — the tooltip is where the full,
+                    // unelided SSID lands, making it the highest-value
+                    // target for T-19-26's mitigation. Mirrors
+                    // BluetoothPanel.qml's `nameTooltip` idiom character for
+                    // character.
+                    ToolTip {
+                        id: ssidTooltip
+                        visible: ssidHoverArea.containsMouse
+                        delay: Design.tooltipDelayMs
+                        text: ssidText.text
+                        contentItem: Text {
+                            text: ssidTooltip.text
+                            textFormat: Text.PlainText
+                            color: Colours.onSurface
+                        }
+                        background: Rectangle {
+                            color: Colours.surfaceVariant
+                            radius: root.spacingXs
+                        }
                     }
                 }
 
@@ -1053,6 +1080,11 @@ PanelDialog {
                 Text {
                     id: forgetConfirmLabel
                     width: parent.width - forgetConfirmYes.implicitWidth - forgetConfirmNo.implicitWidth - root.spacingSm * 2
+                    // Explicit plain-text pin (T-19-26) — the SSID embedded
+                    // in this confirm string is the same over-the-air value
+                    // as `ssidText` above. Mirrors BluetoothPanel.qml's own
+                    // `forgetConfirmLabel` pin idiom character for character.
+                    textFormat: Text.PlainText
                     text: "Forget " + (networkRow.network ? networkRow.network.name : "") + "?"
                     font.pixelSize: root.fontLabel
                     color: Colours.onSurface
