@@ -696,6 +696,12 @@ BarCapsule {
         WheelHandler {
             id: audioStripWheelHandler
             target: null
+            // MEASURED 2026-08-13 — see the audio glyph handler below for the
+            // full root-cause trail. Without this line a WheelHandler on this
+            // shell receives NOTHING: Qt's Wayland backend reports the seat
+            // pointer as a TouchPad, and WheelHandler accepts Mouse only by
+            // default.
+            acceptedDevices: PointerDevice.AllDevices
 
             property real pendingAngle: 0
 
@@ -934,6 +940,35 @@ BarCapsule {
             WheelHandler {
                 id: audioWheelHandler
                 target: null
+                // ── The line that makes every WheelHandler on this shell work
+                //    at all. MEASURED 2026-08-13 with a synthetic uinput
+                //    pointer driving a real scroll at the glyph's exact screen
+                //    position, against a bar whose drawer demonstrably expanded
+                //    from the same hover (so pointer focus was not in doubt):
+                //
+                //      acceptedDevices unset (the default) ....... 0 events
+                //      acceptedDevices: PointerDevice.Mouse ...... 0 events
+                //      acceptedDevices: PointerDevice.TouchPad ... 3 events
+                //      acceptedDevices: PointerDevice.AllDevices . 3 events
+                //      MouseArea.onWheel (control) ............... 3 events
+                //
+                //    The event carried `devType=4` (TouchPad), `devName=
+                //    "touchpad"` — and that is NOT the synthetic device's name,
+                //    it is what Qt's Wayland backend calls the seat pointer for
+                //    ALL pointer input on this host, a real mouse included.
+                //    WheelHandler's default acceptedDevices is Mouse, so it
+                //    matched nothing and never fired.
+                //
+                //    Consequence worth stating plainly: QBAR-04's scroll-to-
+                //    adjust has been dead since 18-12 shipped it, on every
+                //    surface, and GATE-02 row B.3's audio-half PASS cannot have
+                //    been a real observation. The control below was correct all
+                //    along — the handler was simply never handed an event.
+                //
+                //    AllDevices rather than Mouse|TouchPad: the classification
+                //    is the platform's to change, and this control should not
+                //    break again if a Qt or Quickshell update relabels the seat.
+                acceptedDevices: PointerDevice.AllDevices
 
                 property real pendingAngle: 0
 
@@ -990,6 +1025,14 @@ BarCapsule {
         WheelHandler {
             id: brightnessWheelHandler
             target: null
+            // Same platform fact as the audio glyph handler above, same fix —
+            // Qt's Wayland backend reports the seat pointer as a TouchPad and
+            // WheelHandler accepts Mouse by default, so this never fired
+            // either. Applied here even though this host has no backlight
+            // device to exercise it (D-18-39): a handler that is dead for two
+            // independent reasons is one that will still be dead after the
+            // hardware reason is gone.
+            acceptedDevices: PointerDevice.AllDevices
 
             property real pendingAngle: 0
 
