@@ -502,3 +502,29 @@ hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0
 -- backdrop and readable glass tiles.
 hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = true })
 hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.25 })
+
+-- ── Notification surfaces (Phase 19 Plan 01 tracer, QNOTIF-01/02) ────────
+-- Three exact-match namespace rows, all three added by this one plan even
+-- though only quickshell-notif-popups has a real surface yet (this plan's
+-- own instruction: "adding all three now means waves 2-3 never reopen
+-- this file"). All three fall inside the `^quickshell-.*` family regex
+-- above, so blur + the ignore_alpha 0.5 floor apply automatically with no
+-- rule needed here for either — same D-20 exact-match-only discipline as
+-- every other namespace row in this file: only the animation CHARACTER is
+-- declared per surface, never blur/ignore_alpha again. Declared AFTER the
+-- family regex rows (and after quickshell-overview's own late pair) per
+-- this plan's own instruction and this file's already-recorded ordering
+-- finding — a namespace rule placed BEFORE the family regex risks losing
+-- to it if the two ever contradict, so every exact-match row in this file
+-- lives at or after this point.
+--
+-- "slide" for all three, matching quickshell-dashboard's own precedent:
+-- popups slide + fade from the anchored top-right edge (D-19-13), the
+-- centre slides from off-screen right (D-19-23), and the toast slides
+-- down from the top edge (D-19-36's own "Toast frame" section). No
+-- duration or curve is written here — Hyprland treats a per-namespace
+-- layer rule as a style-only override; timing rides animations.lua's
+-- token-driven layersIn/layersOut leaves, the same as every sibling row.
+hl.layer_rule({ match = { namespace = "quickshell-notif-popups" }, animation = "slide" })
+hl.layer_rule({ match = { namespace = "quickshell-notif-centre" }, animation = "slide" })
+hl.layer_rule({ match = { namespace = "quickshell-notif-toast" }, animation = "slide" })

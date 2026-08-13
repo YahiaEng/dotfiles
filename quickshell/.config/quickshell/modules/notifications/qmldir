@@ -16,3 +16,10 @@
 module qs.modules.notifications
 singleton NotifServer 1.0 NotifServer.qml
 NotifData 1.0 NotifData.qml
+
+# NotifPopupStack/NotifCard (Task 3, this same plan) — the top-right popup
+# surface and its card body. Neither a singleton: NotifPopupStack is one
+# ordinary instance mounted at shell.qml root, and NotifCard is one
+# instance per ListView delegate.
+NotifPopupStack 1.0 NotifPopupStack.qml
+NotifCard 1.0 NotifCard.qml

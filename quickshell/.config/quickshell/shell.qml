@@ -52,6 +52,15 @@ ShellRoot {
     //    even before that surface exists.
     readonly property int notifServerUnreadCount: NotifServer.unreadCount
 
+    // ── Notification popup stack (Phase 19 Plan 01 tracer, QNOTIF-02) —
+    //    mounted unconditionally at root, matching Bar.qml's own
+    //    always-on posture rather than a summon-via-LazyLoader shape: a
+    //    notification can arrive at any moment for the whole session,
+    //    not only while some other surface is open (this plan's own
+    //    key_links). Its own ListView content — empty by default — is
+    //    what keeps it visually inert until a real notification exists.
+    NotifPopupStack {}
+
     // QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — arrangement
     // A, a Variants+LazyLoader fan-out declared here in shell.qml,
     // reproduced 11-QUICKSHELL-EVIDENCE.md's FM2 post-hotplug visibility
