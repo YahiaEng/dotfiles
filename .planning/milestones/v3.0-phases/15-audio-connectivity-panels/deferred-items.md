@@ -133,9 +133,49 @@ Accept/Reject, (c) `GetCapabilities` lists `body` and `actions`.
 
 ---
 
-## Phase 19 Disposition (2026-08-13) — resolved-by-construction, live verification owed to plan 19-08
+## CLOSED 2026-08-13 by plan 19-08 Task 5 — live pairing verified at GATE-02
 
-**Status: NOT closed here.** This item is dispositioned as **resolved-by-construction
+**Status: CLOSED.** Closed on its own owner condition ("closes when the swaync
+replacement ships with the capability declared and a real bluetooth pairing verified
+against it"), not at a phase boundary. Both halves are now satisfied:
+
+**(c) `GetCapabilities` lists `body` and `actions` — mechanically verified**, not
+inferred from the design contract. Queried directly against the live session bus at
+close time:
+
+```
+$ busctl --user call org.freedesktop.Notifications /org/freedesktop/Notifications \
+    org.freedesktop.Notifications GetCapabilities
+as 6 "persistence" "body" "body-markup" "body-hyperlinks" "actions" "icon-static"
+
+$ ... GetServerInformation
+ssss "quickshell" "quickshell" "" "1.2"
+```
+
+Both capabilities this item names as its blocking requirement are present, and the
+server answering is the shell itself. This is the condition that decides blueman's
+branch at `blueman/gui/Notification.py:295` — with `body` and `actions` both in
+`caps`, it selects `_NotificationBubble`, never `_NotificationDialog`. The demotion
+path this item was raised to prevent is therefore closed at its source.
+
+**(a) no GTK dialog appears and (b) the confirmation renders through the new server
+with working Accept/Reject — confirmed by the user at the GATE-02 render gate**, which
+listed this pairing as criterion B.4 and required a real phone paired over bluetooth.
+The user approved the gate on all 12 criteria on 2026-08-13, B.4 included.
+
+**Evidence boundary, stated honestly:** (c) is instrumented above and reproducible by
+re-running those two commands. (a) and (b) rest on the user's own GATE-02 approval —
+they were verified by the human at the gate, not captured mechanically by this plan,
+because a pairing confirmation dialog cannot be asserted from a script. That is the
+same standard this item's own text set ("pair a real phone and confirm..."), and the
+same standard G-15-2 was closed under when the user supplied the Z Fold7 during UAT
+round 2. It is recorded this way rather than implying a capture that was never taken.
+
+---
+
+### Prior disposition (superseded 2026-08-13, retained for provenance)
+
+**Status at the time: NOT closed.** This item was dispositioned as **resolved-by-construction
 in Phase 19**, with its own stated closing condition ("closes when the swaync
 replacement ships with the capability declared and a real bluetooth pairing verified
 against it") split across two halves: the declared-capability half is satisfied by this
