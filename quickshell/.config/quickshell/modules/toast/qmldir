@@ -1,0 +1,14 @@
+# qmldir — explicit module manifest for quickshell/modules/toast/ (Phase 19
+# Plan 05, Task 3). Mirrors every sibling module manifest's own standing
+# instruction: any .qml type added to this directory that is NOT declared
+# below becomes unresolvable to importers of `qs.modules.toast`. Any FUTURE
+# type added to this directory MUST do the same, in the same commit that
+# creates it.
+#
+# Toast is NOT a singleton — shell.qml mounts one ordinary instance for the
+# do-not-disturb toast; Phase 20's OSD indicators are expected to mount
+# their own separate instance(s) rather than share this one, since a
+# volume/brightness readout and a DND notice can each need to be on screen
+# independently.
+module qs.modules.toast
+Toast 1.0 Toast.qml

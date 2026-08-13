@@ -156,8 +156,16 @@ Singleton {
             }
             // Chase whatever arrived while this child was in flight —
             // single-flighted (this process just cleared `running`),
-            // never queued, never a second concurrent child.
-            if (root.pendingDelta !== 0) {
+            // never queued, never a second concurrent child. An absolute
+            // request (Phase 19 Plan 05, Task 3) takes priority over a
+            // pending relative delta when both arrived mid-flight: a
+            // slider's absolute target is always the more specific of the
+            // two intents.
+            if (root.pendingAbsolutePercent !== -1) {
+                const next = root.pendingAbsolutePercent;
+                root.pendingAbsolutePercent = -1;
+                root._startAbsolute(next);
+            } else if (root.pendingDelta !== 0) {
                 const next = root.pendingDelta;
                 root.pendingDelta = 0;
                 root._startAdjust(next);
@@ -192,6 +200,47 @@ Singleton {
             return;
         }
         root._startAdjust(delta);
+    }
+
+    // ── Absolute setter (Phase 19 Plan 05, Task 3) — a deliberate, named
+    //    deviation from D-19-20's literal "reuse as-is" wording (see
+    //    19-05-PLAN.md's own <planner_assumptions>), resolving
+    //    RESEARCH.md's Pitfall 1/Open Question 1: this backend previously
+    //    exposed only `adjust(steps)`, a relative notch-count verb built
+    //    for the bar's scroll-to-adjust case. A slider dragged to an
+    //    absolute position would otherwise have to compute a notch delta
+    //    on every drag tick, losing the sub-step positions a drag
+    //    naturally produces. Guarded by the EXACT same device-presence
+    //    probe and single-flight/coalescing shape as `adjust()` above —
+    //    this host has no backlight device, so this is a clean no-op here,
+    //    neither erroring nor writing. `adjust()` itself is byte-unchanged
+    //    by this addition; only `adjustProcess.onExited` above (a sibling
+    //    handler, not part of `adjust()`'s own body) and the two members
+    //    below are new. ───────────────────────────────────────────────────
+    // -1 means "no absolute request pending" — distinct from 0, which is a
+    // legitimate target brightness.
+    property int pendingAbsolutePercent: -1
+
+    function _startAbsolute(percent) {
+        root._adjustDeltaForm = percent + "%";
+        adjustProcess.running = true;
+    }
+
+    // The absolute counterpart to adjust(steps): a target percentage,
+    // never a notch count. Clamped to 0..100 here rather than left to
+    // brightnessctl, since this verb's whole contract is "the device ends
+    // up at exactly this value" and a caller passing an out-of-range drag
+    // position should not have to know that already.
+    function setPercent(percent) {
+        if (!root.present || root.deviceName === "")
+            return;
+        const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+        if (adjustProcess.running) {
+            root.pendingDelta = 0;
+            root.pendingAbsolutePercent = clamped;
+            return;
+        }
+        root._startAbsolute(clamped);
     }
 
     Component.onCompleted: probeProcess.running = true

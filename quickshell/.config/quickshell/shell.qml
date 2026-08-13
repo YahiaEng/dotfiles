@@ -17,6 +17,7 @@
 // being deleted — it is not scaffolding. Phase 14's dashboard drawer
 // mounts into this same root later.
 import QtQml
+import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
@@ -24,6 +25,7 @@ import "modules"
 import "modules/dashboard"
 import "modules/bar"
 import "modules/notifications"
+import "modules/toast"
 
 ShellRoot {
     id: root
@@ -72,6 +74,54 @@ ShellRoot {
         target: NotifServer
         property: "fullscreenBlocking"
         value: root.fullscreenBlocking
+    }
+
+    // ── Do-not-disturb toast (Phase 19 Plan 05, Task 3, D-19-36) — one
+    //    always-mounted Toast instance (the surface exists for the
+    //    process lifetime, matching NotifPopupStack's own always-on
+    //    posture; it stays invisible until `show()` is called). The
+    //    icon glyph and the two copy strings are local shell.qml state,
+    //    bound reactively into the toast's own static content below —
+    //    this is what makes `Toast.qml` itself carry zero do-not-disturb
+    //    strings (its own header explains why) while still supplying
+    //    genuinely reactive content per this file's own single instance.
+    property string dndToastGlyph: "do_not_disturb_on"
+    property string dndToastHeading: ""
+    property string dndToastBody: ""
+
+    Toast {
+        id: dndToast
+
+        Text {
+            font.family: Design.symbolFontFamily
+            font.pixelSize: Design.iconSizeMd
+            text: root.dndToastGlyph
+            color: BarRoles.notifSurfaceFg
+        }
+        Column {
+            spacing: Design.spacingXs
+            Text {
+                text: root.dndToastHeading
+                font.pixelSize: Design.fontBody
+                font.weight: Design.weightEmphasis
+                color: BarRoles.notifSurfaceFg
+            }
+            Text {
+                text: root.dndToastBody
+                font.pixelSize: Design.fontLabel
+                color: BarRoles.notifSurfaceFg
+            }
+        }
+    }
+
+    Connections {
+        target: NotifServer
+        function onDndToggled(newValue, heading, body) {
+            root.dndToastGlyph = newValue ? "do_not_disturb_on" : "do_not_disturb_off";
+            root.dndToastHeading = heading;
+            root.dndToastBody = body;
+            dndToast.show();
+        }
     }
 
     // ── Notification test IPC surface (Phase 19 Plan 04, Task 3 — Rule 2
