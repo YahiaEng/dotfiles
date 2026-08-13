@@ -172,13 +172,35 @@ PanelWindow {
     }
 
     // ── Layer posture ─────────────────────────────────────────────────
+    // GATE-02 gap-closure fix (round 4, item 6) — previously top:true/
+    // bottom:true with ZERO top/bottom margin, spanning the full 1440px
+    // monitor height edge-to-edge. Measured live against a real tiled
+    // window on this monitor (`hyprctl clients -j`, DP-1 2560x1440,
+    // reserved [0,0,50,0] for the bar's right-edge exclusion): a tiled
+    // client sits at (13,13) size (2484,1414) — i.e. inset exactly 13px
+    // from every edge (gaps_out=10 + border_size=3, hyprland.lua, and
+    // Hyprland's own reported client geometry includes the border), and
+    // its right edge (13+2484=2497) sits 13px inside the reserved
+    // boundary (2560-50=2510) — the SAME 13px, not the reserved
+    // boundary itself. `centreTopBottomInset`/`centreRightGapInset`
+    // below are that measured 13, applied on all three non-slide edges
+    // so the centre's own edges land exactly where a real window's do,
+    // never a value re-derived from a different surface's own constant
+    // (PanelDialog.qml's unrelated panelTopMargin=10 was deliberately
+    // NOT reused here — it answers a different question, a floating
+    // dialog's own top gap, not this edge-to-edge sidebar's alignment
+    // against tiled windows).
+    readonly property int centreTopBottomInset: 13
+    readonly property int centreRightGapInset: 13
     anchors {
         top: true
         bottom: true
         right: true
     }
     implicitWidth: Design.notifSurfaceWidth
-    margins.right: (-centreWindow.implicitWidth - 5) * centreWindow.offsetScale
+    margins.top: centreWindow.centreTopBottomInset
+    margins.bottom: centreWindow.centreTopBottomInset
+    margins.right: centreWindow.centreRightGapInset + (-centreWindow.implicitWidth - 5) * centreWindow.offsetScale
     exclusiveZone: 0
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
@@ -202,28 +224,33 @@ PanelWindow {
 
     // ── Chrome — same visual family as the popup card and toast
     //    (BarRoles.notifSurface, GradientBorder rim, D-19-43's routing
-    //    rule: never a direct Colours.* reference). Corners rounded on the
-    //    LEFT edge only (the frame's inner, desktop-facing side) — top,
-    //    bottom and right are all screen-flush, so only the left edge has
-    //    a visible corner to round, the same asymmetric-rounding reasoning
-    //    PanelDialog.qml's own bottom-only rounding already answers to. ──
+    //    rule: never a direct Colours.* reference). GATE-02 gap-closure
+    //    fix (round 4, item 6) — all four corners now round uniformly.
+    //    The previous left-only rounding assumed top/bottom/right were
+    //    screen-flush (true when this frame spanned the full monitor
+    //    height with zero right-edge gap); now that every edge carries
+    //    the same measured inset a real tiled window has, all four
+    //    corners sit away from the screen boundary exactly like a real
+    //    window's own rounded corners (hyprland.lua's own `rounding`),
+    //    so a flush corner would look like a mistake, not a design
+    //    choice. ─────────────────────────────────────────────────────
     Rectangle {
         id: background
         anchors.fill: parent
-        topLeftRadius: Design.popoutCornerRadius
-        bottomLeftRadius: Design.popoutCornerRadius
-        topRightRadius: 0
-        bottomRightRadius: 0
+        radius: Design.popoutCornerRadius
         color: BarRoles.notifSurface
     }
 
     GradientBorder {
         anchors.fill: parent
         borderWidth: Design.borderWidth
+        // GradientBorder has no uniform `radius` shorthand (per-corner only
+        // — see its own header comment) — all four set to match the
+        // Rectangle above's now-uniform rounding.
         topLeftRadius: Design.popoutCornerRadius
+        topRightRadius: Design.popoutCornerRadius
         bottomLeftRadius: Design.popoutCornerRadius
-        topRightRadius: 0
-        bottomRightRadius: 0
+        bottomRightRadius: Design.popoutCornerRadius
     }
 
     Item {
