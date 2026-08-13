@@ -53,9 +53,16 @@
 # adapter; `BluetoothPanel`/`BluetoothBackend`, the bluetooth panel's body
 # and BlueZ adapter — all four instances of PanelDialog's shared frame
 # (PANEL-06).
+#
+# Phase 19 Plan 05 (D-19-19/QNOTIF-07) adds a third singleton: `ToggleState`,
+# the sole owner of all six quick-toggle tiles' state, promoted out of
+# `QuickToggles.qml` so a second grid instance (Plan 19-06's centre footer)
+# cannot drift from the drawer's own. Same both-required `pragma Singleton`
+# + qmldir `singleton` keyword discipline as `Design`/`WeatherPalette` above.
 module qs.modules.dashboard
 singleton Design 1.0 Design.qml
 singleton WeatherPalette 1.0 WeatherPalette.qml
+singleton ToggleState 1.0 ToggleState.qml
 DashboardTab 1.0 DashboardTab.qml
 MediaTab 1.0 MediaTab.qml
 PerformanceTab 1.0 PerformanceTab.qml
