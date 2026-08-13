@@ -61,6 +61,19 @@ ShellRoot {
     //    what keeps it visually inert until a real notification exists.
     NotifPopupStack {}
 
+    // ── Notification suppression fullscreen input (Phase 19 Plan 05,
+    //    QNOTIF-10) — a `Binding`, never an imperative write, mirroring
+    //    this file's own `PopoutController.barSettled` binding below.
+    //    `fullscreenBlocking` (declared further down this file) is the
+    //    single existing owner of "is a fullscreen client focused"
+    //    (RESEARCH.md Pattern 6) — NotifServer.qml deliberately recomputes
+    //    nothing of its own; it only receives this value.
+    Binding {
+        target: NotifServer
+        property: "fullscreenBlocking"
+        value: root.fullscreenBlocking
+    }
+
     // ── Notification test IPC surface (Phase 19 Plan 04, Task 3 — Rule 2
     //    deviation, missing critical functionality) — the plan's own
     //    fault-injection fixture (notif-fault-inject) needs a mechanical,
