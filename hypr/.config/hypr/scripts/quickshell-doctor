@@ -7,7 +7,7 @@
 # ║  other, sits on its own quickshell-* namespaces at the ║
 # ║  level each surface is registered for, and shares every ║
 # ║  event source (D-Bus ownership, hardware keys,          ║
-# ║  volume/brightness step, MPRIS) with swaync, SwayOSD,     ║
+# ║  volume/brightness step, MPRIS) with SwayOSD,             ║
 # ║  wleave, AGS and walker without a second                 ║
 # ║  handler ever appearing. Report-only apart from a few    ║
 # ║  documented transient exceptions (the volume/brightness  ║
@@ -242,7 +242,7 @@ QS03_ACCEPTED_PERMANENT=1
 #    mode. _qsd_assert_client_consumer_not_owned below is the structural
 #    guard that makes this mistake fail the gate instead of shipping.
 declare -A QSD_NAME_OWNERS=(
-    ["org.freedesktop.Notifications"]="swaync"
+    ["org.freedesktop.Notifications"]="quickshell"
 )
 declare -A QSD_CLIENT_CONSUMERS=(
     ["PipeWire"]="Phase 15's audio panel joins pw-play/pw-cli/wpctl as an additional PipeWire client — never the sole one, so cardinality is never asserted"
@@ -2154,7 +2154,7 @@ run_self_test() {
     rows=$(cat -- "$FIXTURES_DIR/compliant-busctl-list.txt" | grep -F 'org.freedesktop.Notifications' || true)
     count=$(printf '%s\n' "$rows" | grep -c '.')
     owner=$(printf '%s\n' "$rows" | awk '{print $3}' | head -1)
-    _qsd_st "compliant-busctl-list.txt -> panel-notifications-single-owner PASSES (count=${count}, owner=${owner:-<none>})" "$([[ "$count" == "1" && "$owner" == "swaync" ]] && echo 0 || echo 1)"
+    _qsd_st "compliant-busctl-list.txt -> panel-notifications-single-owner PASSES (count=${count}, owner=${owner:-<none>})" "$([[ "$count" == "1" && "$owner" == "quickshell" ]] && echo 0 || echo 1)"
     rows=$(cat -- "$FIXTURES_DIR/poisoned-two-owner-busctl-list.txt" | grep -F 'org.freedesktop.Notifications' || true)
     count=$(printf '%s\n' "$rows" | grep -c '.')
     _qsd_st "poisoned-two-owner-busctl-list.txt -> panel-notifications-single-owner FAILS (count=${count}, expected 1)" "$([[ "$count" != "1" ]] && echo 0 || echo 1)"
@@ -2183,7 +2183,7 @@ run_self_test() {
     # observed once: deliberately collide a client-consumer key into the
     # name-owner registry, in a subshell so the real arrays are untouched.
     (
-        declare -A QSD_NAME_OWNERS=(["org.freedesktop.Notifications"]="swaync" ["PipeWire"]="nobody")
+        declare -A QSD_NAME_OWNERS=(["org.freedesktop.Notifications"]="quickshell" ["PipeWire"]="nobody")
         declare -A QSD_CLIENT_CONSUMERS=(["PipeWire"]="collision fixture")
         bad=0
         for key in "${!QSD_CLIENT_CONSUMERS[@]}"; do
@@ -2650,7 +2650,7 @@ else
     # semantics and position all stay unchanged — this is a promotion of
     # the model underneath the check, not a change to what it asserts.
     read -r NOTIF_COUNT NOTIF_OWNER <<<"$(_qsd_notif_sample)"
-    check "single org.freedesktop.Notifications owner, and it is swaync (count: ${NOTIF_COUNT}, owner: ${NOTIF_OWNER})" "$([[ "$NOTIF_COUNT" -eq 1 && "$NOTIF_OWNER" == "${QSD_NAME_OWNERS[org.freedesktop.Notifications]}" ]] && echo 0 || echo 1)"
+    check "single org.freedesktop.Notifications owner, and it is quickshell (count: ${NOTIF_COUNT}, owner: ${NOTIF_OWNER})" "$([[ "$NOTIF_COUNT" -eq 1 && "$NOTIF_OWNER" == "${QSD_NAME_OWNERS[org.freedesktop.Notifications]}" ]] && echo 0 || echo 1)"
 fi
 _qsd_assert_client_consumer_not_owned
 
