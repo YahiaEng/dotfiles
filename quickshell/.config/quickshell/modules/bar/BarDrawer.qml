@@ -116,14 +116,32 @@ PanelWindow {
     // window's side edges. Keeps the ONE anchoring rule identical; see
     // SectionPopout.qml:167 for the full measurement.
     readonly property int _verticalRightMargin: Design.barSideMargin
-    // triggerCentre is scene-absolute (the host publishes it via
-    // mapToItem(null, ...)), so barSideMargin is NOT added as an origin here —
-    // it was until 2026-08-12, which put the drawer 10px off its trigger. Same
-    // correction as SectionPopout.qml's desired-position pair; see that file
-    // for BarTooltip.qml's measured numbers on the identical mistake.
-    // barSideMargin remains in the clamp bounds, where it is a screen-edge
-    // inset and always was correct.
-    readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(drawerRoot.triggerCentre - drawerRoot.height / 2, (drawerRoot.screen ? drawerRoot.screen.height : drawerRoot.height) - drawerRoot.height - Design.barSideMargin))
+    // ── Origin conversion, PROVEN BY EXPERIMENT 2026-08-13 ──────────────────
+    // The comment that stood here until now asserted "triggerCentre is
+    // scene-absolute (the host publishes it via mapToItem(null, ...))" and
+    // therefore subtracted no origin. That assertion is false, and it is what
+    // put this drawer 10px above the cell that opens it.
+    //
+    // `mapToItem(null, ...)` maps into the item's OWN WINDOW, not the screen.
+    // For a bar entry that window is the bar's PanelWindow, which in vertical
+    // orientation sits at screen y = Design.barSideMargin (10) because of its
+    // own `margins.top`. `margins.top` on THIS surface, by contrast, is
+    // measured from the screen. The two spaces differ by exactly barSideMargin.
+    //
+    // Measured, with the settings drawer open:
+    //   settingsTriggerCell.mapToItem(null,0,0).y = 1364, h = 24 -> centre 1376
+    //   drawer surface (hyprctl layers)           = y 1364, h 24 -> centre 1376
+    //   bar surface (hyprctl layers)              = y 10
+    // and then the coordinate space was settled by hovering, rather than
+    // argued: a pointer parked at screen y=1368 does NOT open the drawer,
+    // while y=1394 does — so the cell really occupies screen 1374..1398, its
+    // true centre is 1386, and the drawer at 1376 was ten pixels high.
+    //
+    // Adding barSideMargin converts publisher space into this surface's space.
+    // It also still appears in the clamp below, where it is a screen-edge
+    // inset — a different job, and correct there both before and after.
+    readonly property real _verticalDesiredTop: drawerRoot.triggerCentre + Design.barSideMargin - drawerRoot.height / 2
+    readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(drawerRoot._verticalDesiredTop, (drawerRoot.screen ? drawerRoot.screen.height : drawerRoot.height) - drawerRoot.height - Design.barSideMargin))
 
     margins.right: drawerRoot._verticalRightMargin
     margins.top: drawerRoot._verticalClampedTop
@@ -149,6 +167,7 @@ PanelWindow {
         rows: 1
         columns: -1
         spacing: Design.spacingXs
+
     }
 
     HoverHandler {

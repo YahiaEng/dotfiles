@@ -50,7 +50,33 @@ Item {
             if (!hostRoot.anchorItem)
                 return;
             var scenePos = hostRoot.anchorItem.mapToItem(null, hostRoot.anchorItem.width / 2, hostRoot.anchorItem.height / 2);
-            hostRoot._publishedCentre = BarEntryModel.isVertical ? scenePos.y : scenePos.x;
+            // ── Window-origin conversion (2026-08-13) ────────────────────
+            // `mapToItem(null, ...)` maps into the item's OWN WINDOW, never
+            // the screen — a fact this family assumed the other way round in
+            // three separate files. BarTooltip positions itself with
+            // `margins`, which ARE screen-relative, so the two spaces differ
+            // by the host window's own origin and the tooltip has to add it.
+            //
+            // This went unnoticed while every tooltip site lived in the bar
+            // window, where the error is a uniform 10px (Design.barSideMargin,
+            // the bar's own margin) — visible only if you measured. It became
+            // obvious once ActionCell was reused inside BarDrawer, which is a
+            // SEPARATE window: a settings-axis cell then mapped to ~12 inside
+            // that drawer, and its tooltip rendered at screen y=10, clamped to
+            // the top of the display about 1370px from the cell it describes.
+            // Measured live: tooltip surface `quickshell-bartip-clockActions-
+            // contrast` at (2448, 10) while its cell sat at y=1386. The
+            // operator reported it as the settings options having "no
+            // tooltips", which is what a tooltip in the far corner looks like.
+            //
+            // `QsWindow.window.margins` is the general answer rather than a
+            // per-site constant: for the bar it yields barSideMargin, for the
+            // drawer it yields that drawer's own computed screen top, and any
+            // future host window is correct without touching this file.
+            var win = QsWindow.window;
+            var originX = (win && win.margins) ? win.margins.left : 0;
+            var originY = (win && win.margins) ? win.margins.top : 0;
+            hostRoot._publishedCentre = BarEntryModel.isVertical ? (scenePos.y + originY) : (scenePos.x + originX);
             hostRoot._dwellElapsed = true;
         }
     }
