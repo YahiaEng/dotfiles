@@ -33,21 +33,39 @@
 // closed discipline this shell already holds every other dismissible
 // surface to).
 //
-// ── No keyboard focus, no focus grab, no click-outside dismissal
-//    (D-19-18) — DELIBERATE, do not "fix" ────────────────────────────────
-// `WlrLayershell.keyboardFocus: WlrKeyboardFocus.None` and no
-// `HyprlandFocusGrab` anywhere in this file. Typing continues to reach
-// whatever application is actually focused while this surface is open.
-// Because there is consequently no focus grab, there is also no
-// click-outside dismissal — this surface closes ONLY via its own explicit
-// toggle (bell/Super+N) or Escape. This mirrors `SectionPopout.qml`'s own
-// unpinned-state shape (the same `None` + `Keys.onEscapePressed` +
-// `content.forceActiveFocus()` combination already shipped there) rather
-// than inventing a new pattern.
+// ── GATE-02 gap-closure supersession of D-19-18 ──────────────────────────
+// D-19-18's ORIGINAL text (kept here for the record, no longer this file's
+// behaviour) specified `WlrKeyboardFocus.None` and no focus grab at all,
+// deliberately forgoing click-outside dismissal as an accepted tradeoff.
+// Live GATE-02 testing on the real desktop found this genuinely
+// unusable: the user expects click-away AND Escape to close the centre,
+// matching every other summonable surface in this shell (the dashboard
+// drawer, the audio/wifi/bluetooth panels), and reported it as a defect,
+// not a tradeoff they'd accept. This supersedes D-19-18 by direct
+// instruction relayed through the same GATE-02 review this plan's own
+// render gate answers to — implemented by adopting the IDENTICAL,
+// already-proven pattern `PanelDialog.qml`/`Dashboard.qml` use:
+// `WlrKeyboardFocus.OnDemand` + a `HyprlandFocusGrab` bound to this
+// window's own open/close state, `content.forceActiveFocus()` on
+// completion, and `Keys.onEscapePressed` — not a novel mechanism.
+//
+// The honest cost, stated rather than hidden: while the centre is open,
+// this surface DOES now hold keyboard focus (on demand), so typing does
+// NOT continue to reach whatever application was focused before it
+// opened — the literal opposite of D-19-18's original promise. No
+// pointer-only click-outside mechanism exists anywhere in this shell's
+// own established vocabulary (Hyprland's focus-grab extension is the
+// only click-away detector this codebase uses anywhere, and it is a
+// combined pointer+keyboard grab, not a pointer-only one) — this is the
+// "genuine conflict" GATE-02's own review anticipated, and the tradeoff
+// was resolved in favour of matching this shell's other panels rather
+// than inventing an unproven pointer-only mechanism on the user's live
+// desktop.
 import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import "../"
 import "../dashboard"
 import "../bar"
@@ -165,8 +183,22 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-notif-centre"
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    // GATE-02 supersession of D-19-18 — see this file's own header.
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     color: "transparent"
+
+    // ── Click-outside dismissal (GATE-02 supersession of D-19-18) ───────
+    // The SAME `HyprlandFocusGrab` shape `PanelDialog.qml`/`Dashboard.qml`
+    // already use, bound to this window's own open/close state rather
+    // than `active: true` — those two are destroyed on dismiss (a fresh
+    // grab every time), this window is permanent (D-19-14), so the grab
+    // itself must toggle instead.
+    HyprlandFocusGrab {
+        id: centreFocusGrab
+        windows: [centreWindow]
+        active: NotifServer.centreOpen
+        onCleared: centreWindow.close()
+    }
 
     // ── Chrome — same visual family as the popup card and toast
     //    (BarRoles.notifSurface, GradientBorder rim, D-19-43's routing
