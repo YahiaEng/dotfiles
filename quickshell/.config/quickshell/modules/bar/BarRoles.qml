@@ -108,21 +108,27 @@ Singleton {
     // alpha ... not another boolean") — no compositor change is made here,
     // so no hyprctl reload/eval is required for this to take effect.
     //
-    // 0.55 is NOT a new value: it is `barSurface`'s own resting alpha
-    // (line 59), already proven glassy-not-transparent on this host under
-    // the same family blur rule. Critically, the family's ignore_alpha
-    // floor is 0.5 — a region composited BELOW that cutoff is not blurred
-    // at all and reads as raw unblurred transparency (the exact failure
-    // mode recorded at the ags-media and quickshell-overview rules). 0.55
-    // and 0.72 both clear 0.5, so every region of both surfaces stays
-    // above the cutoff and genuinely frosts. Do not lower either value
-    // past 0.5 without first declaring a namespace-scoped ignore_alpha
-    // rule AFTER the family pair in windowrules.lua — declared before it,
-    // it silently loses (that file's own ordering finding).
-    readonly property color notifSurface: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.55)
+    // ROUND 8 (item 2 — "glass/frosty look is not noticeable enough").
+    // Round 7 stopped at 0.55 because that was the floor: the family's own
+    // `ignore_alpha = 0.5` means a region composited BELOW that cutoff is
+    // not blurred at all and renders as raw unblurred transparency (the
+    // failure mode recorded at the ags-media and quickshell-overview
+    // rules), so 0.55 was as transparent as this surface could get while
+    // staying frosted. Round 8 lifts that constraint at its source:
+    // windowrules.lua now declares `ignore_alpha = 0.2` for the three
+    // notification namespaces specifically, DECLARED LAST so it beats the
+    // family floor it contradicts. That reopens the range below 0.5, and
+    // these values move into it — 0.38 resting / 0.52 hover, both clear of
+    // the new 0.2 cutoff by a wide margin, so every region of both
+    // surfaces still frosts while showing far more of the blurred desktop
+    // through it. The ~0.14 resting→hover step is preserved, so a hovered
+    // card still reads as lifting toward the viewer.
+    //
+    // THESE TWO VALUES AND THAT RULE ARE A PAIR. Raising the threshold
+    // back toward 0.5, or dropping these alphas below 0.2, silently
+    // switches blur off on this surface family rather than erroring —
+    // change one, re-check the other.
+    readonly property color notifSurface: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.38)
     readonly property color notifSurfaceFg: Colours.onSurface
-    // Keeps the original ~0.12 resting→hover step (was 0.78→0.90), so a
-    // hovered card still reads as lifting toward the viewer, now from the
-    // glassier resting register. Still clear of the 0.5 blur cutoff.
-    readonly property color notifSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.72)
+    readonly property color notifSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.52)
 }

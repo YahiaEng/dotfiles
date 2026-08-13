@@ -528,3 +528,42 @@ hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.
 hl.layer_rule({ match = { namespace = "quickshell-notif-popups" }, animation = "slide" })
 hl.layer_rule({ match = { namespace = "quickshell-notif-centre" }, animation = "slide" })
 hl.layer_rule({ match = { namespace = "quickshell-notif-toast" }, animation = "slide" })
+
+-- ── notification-family ignore_alpha override (GATE-02 gap-closure,
+--    round 8 item 2 — "glass/frosty look is not noticeable enough") ──────
+--
+-- These three namespaces already inherit `blur = true` from the
+-- `^quickshell-.*` family regex, and blur was never the missing piece:
+-- decoration:blur is globally enabled at size 8 / passes 3, so the
+-- compositor has been frosting the backdrop of these surfaces all along.
+-- What was missing is TRANSPARENCY for that frost to show through. Round 7
+-- lowered the surfaces to 0.55 alpha (BarRoles.notifSurface) and that was
+-- as far as the family's own `ignore_alpha = 0.5` floor allowed: below the
+-- cutoff a region is not blurred AT ALL and renders as raw unblurred
+-- transparency — the failure mode already recorded at the ags-media rule
+-- above, and the reason round 7 deliberately stopped at 0.55.
+--
+-- Lowering the threshold for these three namespaces specifically is what
+-- unlocks the rest of the range. 0.2 is chosen the same way ags-media's
+-- own 0.25 was: it must sit below EVERY composited alpha the surface can
+-- present, so no region of the card or the centre ever drops under the
+-- cutoff and goes raw. Round 8 sets those alphas to 0.38 resting / 0.52
+-- hover, both comfortably clear of 0.2, so the whole surface frosts while
+-- reading as genuinely see-through glass rather than a tinted panel.
+--
+-- DECLARED LAST, DELIBERATELY — same ordering discipline as the
+-- quickshell-overview pair above, and for the same reason: these rows
+-- CONTRADICT the family's own 0.5 floor, and this file's recorded
+-- ordering finding is that a namespace rule contradicting the family
+-- regex silently loses when declared before it. `blur = true` is restated
+-- alongside rather than relying on inheritance, matching how the overview
+-- pair declares both arms together.
+--
+-- Blur STRENGTH stays global (decoration:blur:size/passes) and is
+-- untouched — it cannot be set per-layer, as this file already records.
+hl.layer_rule({ match = { namespace = "quickshell-notif-popups" }, blur = true })
+hl.layer_rule({ match = { namespace = "quickshell-notif-centre" }, blur = true })
+hl.layer_rule({ match = { namespace = "quickshell-notif-toast" }, blur = true })
+hl.layer_rule({ match = { namespace = "quickshell-notif-popups" }, ignore_alpha = 0.2 })
+hl.layer_rule({ match = { namespace = "quickshell-notif-centre" }, ignore_alpha = 0.2 })
+hl.layer_rule({ match = { namespace = "quickshell-notif-toast" }, ignore_alpha = 0.2 })
