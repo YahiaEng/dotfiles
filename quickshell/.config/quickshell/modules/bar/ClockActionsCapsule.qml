@@ -495,16 +495,32 @@ BarCapsule {
             color: BarRoles.accent
             // Beside the glyph horizontally, BELOW it vertically — never on top
             // of it, which is what anchors.top/right used to do and what laid a
-            // 16px circle over a 16px glyph. Each orientation clears the other's
-            // anchors with undefined, the same idiom Bar.qml's zone containers
-            // use for their own axis swap; leaving both sets bound would make
-            // the badge fight two anchor lines at once.
-            anchors.verticalCenter: clockActionsCapsule.vertical ? undefined : parent.verticalCenter
-            anchors.left: clockActionsCapsule.vertical ? undefined : glyphText.right
-            anchors.leftMargin: clockActionsCapsule.vertical ? 0 : Design.spacingXs
-            anchors.horizontalCenter: clockActionsCapsule.vertical ? parent.horizontalCenter : undefined
-            anchors.top: clockActionsCapsule.vertical ? glyphText.bottom : undefined
-            anchors.topMargin: clockActionsCapsule.vertical ? Design.spacingXs : 0
+            // 16px circle over a 16px glyph.
+            //
+            // FIXED 2026-08-13, operator: "when I switch back to horizontal
+            // mode, the notification bell is bugged". The previous shape
+            // swapped between two anchor SETS, clearing the unused one by
+            // assigning `undefined`:
+            //
+            //     anchors.verticalCenter:   vertical ? undefined : parent.verticalCenter
+            //     anchors.horizontalCenter: vertical ? parent.horizontalCenter : undefined
+            //
+            // Assigning `undefined` to an AnchorLine does NOT reliably clear an
+            // anchor that has already been established — this repo measured
+            // exactly that during the 2026-08-12 vertical pass, on the popout
+            // triggers, and fixed it there the same way. So a bar that STARTED
+            // horizontal was fine, and one that had been vertical and came back
+            // carried both sets at once: the badge was simultaneously
+            // centre-anchored and left-anchored, and fought itself.
+            // That is why the defect only ever appeared on the way BACK.
+            //
+            // Explicit x/y has no such failure mode: a number always replaces
+            // the previous number. No cycle is introduced — glyphText's
+            // centre OFFSETS read badge.width/height (a size, derived from
+            // badgeLabel), while these read glyphText's resolved POSITION, and
+            // a size never depends on a position here.
+            x: clockActionsCapsule.vertical ? (parent.width - width) / 2 : (glyphText.x + glyphText.width + Design.spacingXs)
+            y: clockActionsCapsule.vertical ? (glyphText.y + glyphText.height + Design.spacingXs) : (parent.height - height) / 2
 
             Text {
                 id: badgeLabel
