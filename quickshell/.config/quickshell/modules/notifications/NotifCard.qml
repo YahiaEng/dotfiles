@@ -181,11 +181,50 @@ Item {
             width: Design.notifImageSize
             height: Design.notifImageSize
 
-            // Resolved (not merely "set") icon names for tiers 2/3 — each
-            // is only non-empty once the icon theme actually has it, so
-            // the cascade below never shows a tier whose Image would just
-            // render nothing.
-            readonly property string _appIconResolved: card.appIcon.length > 0 ? Quickshell.iconPath(card.appIcon, "") : ""
+            // ── GATE-02 gap-closure fix (missing-texture icon) ────────────
+            // ROOT CAUSE: `Quickshell.iconPath(name, "")` was trusted to
+            // return an empty string whenever `name` cannot be resolved.
+            // Live-diagnosed: it does not always. `gaming-mode-toggle.sh`'s
+            // own `notify-send -i input-gaming ...` sends an app_icon that
+            // is not present in the installed icon theme, and Qt's own
+            // icon-theme resolution machinery was observed (WARN in
+            // ~/.cache/quickshell.log: "Could not load icon "input-gaming"
+            // at size QSize(100, 100) from request") to still hand back
+            // SOME resolvable path — very likely a generic "missing icon"
+            // placeholder pixmap baked in by the theme/Qt's own fallback,
+            // which then reports a perfectly normal `Image.status: Ready`
+            // and renders as a literal broken-texture glyph, not a QML
+            // load failure `visible: length > 0` could ever catch.
+            // `Quickshell.hasThemeIcon(name)` (same API family, confirmed
+            // present in this build's qmltypes) is the actual existence
+            // check — resolution is now gated on THAT, not on whichever
+            // string `iconPath()` happens to hand back for a name that
+            // does not exist. This applies to both icon-theme tiers (2:
+            // app_icon, 3: desktop-entry icon); tier 1 (the image hint,
+            // always a raw file path, never an icon-theme lookup) instead
+            // gates on the Image element's own `status`, since a missing
+            // FILE genuinely does report `Image.Error` with nothing
+            // rendered — no icon-theme fallback machinery is in that path
+            // to disguise the failure.
+            //
+            // CORRECTED — the first version of this fix gated every
+            // app_icon/desktop-entry-icon through `hasThemeIcon()`
+            // unconditionally, which is itself a regression:
+            // `app_icon` per the freedesktop spec can ALSO be a file path
+            // or URI (this repo's own real example: kitty sets it to
+            // `/usr/lib/kitty/logo/kitty.png`), which `hasThemeIcon()`
+            // correctly reports `false` for since it is not a theme
+            // lookup at all — the unconditional guard silently rejected a
+            // perfectly valid icon. `_looksLikeThemeName()` is the
+            // corrected trust boundary: only a bare name (no path
+            // separator, no URI scheme) goes through `hasThemeIcon()`; a
+            // path/URI-shaped value is trusted to `iconPath()` directly,
+            // with the Image element's own `status` as the runtime
+            // safety net. ─────────────────────────────────────────────
+            function _looksLikeThemeName(name) {
+                return name.indexOf("/") === -1 && name.indexOf("://") === -1;
+            }
+            readonly property string _appIconResolved: (card.appIcon.length > 0 && (!iconSlot._looksLikeThemeName(card.appIcon) || Quickshell.hasThemeIcon(card.appIcon))) ? Quickshell.iconPath(card.appIcon, "") : ""
             readonly property string _desktopEntryIconName: {
                 var de = card.notifData && card.notifData.notification ? card.notifData.notification.desktopEntry : "";
                 if (!de || de.length === 0)
@@ -193,12 +232,12 @@ Item {
                 var entry = DesktopEntries.byId(de);
                 return entry ? entry.icon : "";
             }
-            readonly property string _desktopIconResolved: iconSlot._desktopEntryIconName.length > 0 ? Quickshell.iconPath(iconSlot._desktopEntryIconName, "") : ""
+            readonly property string _desktopIconResolved: (iconSlot._desktopEntryIconName.length > 0 && (!iconSlot._looksLikeThemeName(iconSlot._desktopEntryIconName) || Quickshell.hasThemeIcon(iconSlot._desktopEntryIconName))) ? Quickshell.iconPath(iconSlot._desktopEntryIconName, "") : ""
 
             Image {
                 id: notifImage
                 anchors.fill: parent
-                visible: card.image.length > 0
+                visible: card.image.length > 0 && status !== Image.Error
                 source: card.image.length > 0 ? card.image : ""
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
@@ -206,16 +245,16 @@ Item {
             Image {
                 id: appIconImage
                 anchors.fill: parent
-                visible: !notifImage.visible && iconSlot._appIconResolved.length > 0
-                source: appIconImage.visible ? iconSlot._appIconResolved : ""
+                visible: !notifImage.visible && iconSlot._appIconResolved.length > 0 && status !== Image.Error
+                source: (!notifImage.visible && iconSlot._appIconResolved.length > 0) ? iconSlot._appIconResolved : ""
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
             }
             Image {
                 id: desktopIconImage
                 anchors.fill: parent
-                visible: !notifImage.visible && !appIconImage.visible && iconSlot._desktopIconResolved.length > 0
-                source: desktopIconImage.visible ? iconSlot._desktopIconResolved : ""
+                visible: !notifImage.visible && !appIconImage.visible && iconSlot._desktopIconResolved.length > 0 && status !== Image.Error
+                source: (!notifImage.visible && !appIconImage.visible && iconSlot._desktopIconResolved.length > 0) ? iconSlot._desktopIconResolved : ""
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
             }
