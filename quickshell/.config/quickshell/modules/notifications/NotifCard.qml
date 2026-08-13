@@ -50,6 +50,7 @@
 // IS this surface's untrusted-string control now, not a blunt format pin.
 import QtQuick
 import QtQuick.Shapes
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
@@ -244,29 +245,97 @@ Item {
             }
             readonly property string _desktopIconResolved: (iconSlot._desktopEntryIconName.length > 0 && (!iconSlot._looksLikeThemeName(iconSlot._desktopEntryIconName) || Quickshell.hasThemeIcon(iconSlot._desktopEntryIconName))) ? Quickshell.iconPath(iconSlot._desktopEntryIconName, "") : ""
 
+            // GATE-02 gap-closure fix (round 5 — restored "picture"
+            // feature, mirroring NotifGroup.qml's own identical round-5
+            // treatment for the centre's rows). Tier 1 (the image hint,
+            // `card.image`) is now shown large and rounded-square-cropped
+            // via the SAME `MultiEffect`+mask-`Rectangle` technique already
+            // proven in `dashboard/MediaTab.qml`'s circular album-art crop
+            // (a rounded square here instead of a circle) — not a plain
+            // `fillMode: PreserveAspectFit` render as before. `notifImage`
+            // itself is now the invisible pixel source the mask reads from,
+            // never painted directly (see MediaTab.qml's own note on why
+            // painting it too would double-draw an unmasked square under
+            // the masked one). Tiers 2-4 (app icon, desktop-entry icon,
+            // generic glyph) are unchanged in size/position/order — this
+            // is a presentation layer over the same resolve chain, not a
+            // new fallback rule.
             Image {
                 id: notifImage
                 anchors.fill: parent
-                visible: card.image.length > 0 && status !== Image.Error
-                source: card.image.length > 0 ? card.image : ""
-                fillMode: Image.PreserveAspectFit
+                fillMode: Image.PreserveAspectCrop
                 asynchronous: true
+                cache: false
+                source: card.image.length > 0 ? card.image : ""
+                visible: false
+            }
+            Rectangle {
+                id: notifImageMaskShape
+                anchors.fill: parent
+                radius: Design.spacingSm
+                visible: false
+                // Load-bearing — see MediaTab.qml's own header note: an
+                // invisible item with no `layer.enabled` produces no paint
+                // node, which `MultiEffect.maskSource` reads as an EMPTY
+                // mask rather than a full one.
+                layer.enabled: true
+            }
+            MultiEffect {
+                id: notifImageMasked
+                anchors.fill: parent
+                source: notifImage
+                maskEnabled: true
+                maskSource: notifImageMaskShape
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 1.0
+                // A genuine tier-1 load failure falls through to the
+                // app-icon tier below rather than masking a broken source
+                // — the same guard this slot already used before this
+                // round, just moved from `notifImage.visible` itself to
+                // this masked-output visibility.
+                visible: card.image.length > 0 && notifImage.status === Image.Ready
             }
             Image {
                 id: appIconImage
                 anchors.fill: parent
-                visible: !notifImage.visible && iconSlot._appIconResolved.length > 0 && status !== Image.Error
-                source: (!notifImage.visible && iconSlot._appIconResolved.length > 0) ? iconSlot._appIconResolved : ""
+                visible: !notifImageMasked.visible && iconSlot._appIconResolved.length > 0 && status !== Image.Error
+                source: (!notifImageMasked.visible && iconSlot._appIconResolved.length > 0) ? iconSlot._appIconResolved : ""
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
             }
             Image {
                 id: desktopIconImage
                 anchors.fill: parent
-                visible: !notifImage.visible && !appIconImage.visible && iconSlot._desktopIconResolved.length > 0 && status !== Image.Error
-                source: (!notifImage.visible && !appIconImage.visible && iconSlot._desktopIconResolved.length > 0) ? iconSlot._desktopIconResolved : ""
+                visible: !notifImageMasked.visible && !appIconImage.visible && iconSlot._desktopIconResolved.length > 0 && status !== Image.Error
+                source: (!notifImageMasked.visible && !appIconImage.visible && iconSlot._desktopIconResolved.length > 0) ? iconSlot._desktopIconResolved : ""
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
+            }
+            // ── App-icon badge — Caelestia's own "small app icon
+            //    overlapping the picture's corner" treatment, identical
+            //    to NotifGroup.qml's row-level badge. Shown ONLY when the
+            //    picture (not the app icon itself) occupies the primary
+            //    slot, so the badge never doubles the app icon over
+            //    itself. ─────────────────────────────────────────────────
+            Rectangle {
+                id: iconBadgeFrame
+                readonly property string _badgeSrc: iconSlot._appIconResolved.length > 0 ? iconSlot._appIconResolved : iconSlot._desktopIconResolved
+                visible: notifImageMasked.visible && _badgeSrc.length > 0 && iconBadgeImage.status !== Image.Error
+                width: Design.notifBadgeSize
+                height: Design.notifBadgeSize
+                radius: width / 2
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                color: card._fill
+
+                Image {
+                    id: iconBadgeImage
+                    anchors.fill: parent
+                    anchors.margins: Design.spacingXs / 2
+                    source: iconBadgeFrame._badgeSrc
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                }
             }
             // GATE-02 gap-closure fix (round 4, item 1) — the ONLY urgency-
             // dependent difference anywhere on this card now lives here:
@@ -280,7 +349,7 @@ Item {
             // bell, per the user's own "swap exactly there" instruction.
             Text {
                 anchors.centerIn: parent
-                visible: !notifImage.visible && !appIconImage.visible && !desktopIconImage.visible
+                visible: !notifImageMasked.visible && !appIconImage.visible && !desktopIconImage.visible
                 text: card._critical ? "error" : "notifications"
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd
