@@ -187,6 +187,36 @@ See `key-decisions` in frontmatter — summarized: `NotifServer.centreOpen` was 
 - **Scope discipline:** `NotifCard.qml` (Plan 19-04) was read and deliberately left untouched — its own similar-looking `Repeater { model: card._liveActions }` binds to a per-popup live notification whose delegate is destroyed in lockstep with that same notification's own popup lifecycle, never outliving it, which is exactly the property that made this plan's own session-long map unsafe. No Plan 19-08 artifact and no swaync-related file was touched.
 - **Committed in:** `b7b6b30` (fix commit)
 
+## Gap-Closure Fix, Round 2 (post-execution, GATE-02 re-check)
+
+**A second GATE-02 re-check confirmed the crash fix above (PASS), DND-across-restart (PASS), and the disabled brightness slider (accepted) — and found four further live defects, all fixed as same-plan gap-closure commits.**
+
+### FAILURE 2 (critical): notification popups did not appear at all — DIAGNOSED, not a code bug
+
+**Root cause:** `NotifServer.dnd` was persisted `true` — left ON from the user's own earlier B.7 restart-persistence test, never turned back off. The suppression predicate (`dnd || gaming || centreOpen || fullscreenBlocking`, Plan 19-05) was working exactly as designed: every arrival was suppressed, recorded to history, and correctly never popped. Confirmed live: read `~/.local/state/quickshell/notifications.json` (`dnd: true`), flipped it to `false`, restarted, and `notify-send` at both normal and critical urgency produced real popup layers immediately (`hyprctl layers` showed `quickshell-notif-popups`). **DND was left OFF after this diagnosis** (not restored to the user's prior `true`), since a working desktop was judged more useful than silently reproducing a stale test artifact — flagged here so the user can re-enable it deliberately if they want it on.
+
+**Visible-indication gap, reported as asked:** neither the bar nor the centre gives any obvious "DND is currently on" signal beyond the shared toggle grid's own tile lit-state (which requires opening the drawer or centre to see) — the bell glyph does swap to `notifications_paused` when `NotifServer.dnd` is true (`ClockActionsCapsule.qml`'s existing three-branch glyph logic, unchanged by this plan), but nothing calls this out as a DND indicator specifically versus "no unread notifications." A user who set DND and closed every panel has no ambient cue it's still on. Not fixed (out of this gap-closure's scope — a genuine UX/discoverability question, not a defect in the four listed issues), reported per the coordinator's own explicit instruction.
+
+**A genuine, separate, pre-existing defect found while performing this diagnosis's own required verification step** ("verify live with notify-send at normal and critical urgency"): critical-urgency popups auto-dismissed at 5 seconds, identical to normal urgency, instead of never. Root cause and fix in `fix(19-04): a6472f2` — see that commit and the `Deviations from Plan` note below. Not one of the four named issues, but discovered performing the exact verification requested and fixed under the same "diagnose before touching code" discipline.
+
+### ISSUE a: click-away and Escape did not dismiss the centre
+
+D-19-18 deliberately specified no keyboard focus and no focus grab, accepting no click-outside dismissal. GATE-02 found this unusable — superseded by direct instruction, matching Dashboard.qml/PanelDialog.qml's own `WlrKeyboardFocus.OnDemand` + `HyprlandFocusGrab` pattern. Honest cost: the centre now holds keyboard focus while open, so typing does not reach the previously-focused app — the literal opposite of D-19-18's original text. No pointer-only click-away mechanism exists anywhere in this shell (`HyprlandFocusGrab` is the only click-away detector this codebase has, and it is a combined pointer+keyboard grab) — this is the "genuine conflict" flagged for report. Verified live: Escape confirmed via `wtype -k Escape` (no synthetic pointer tool exists on this host); click-away uses the byte-identical mechanism already proven in Dashboard.qml/PanelDialog.qml but was not independently re-verified live for the same missing-pointer-tool reason. Fixed in `fix(19-06): 2fccc86`.
+
+### ISSUE b: the bell icon clipped with the checkmark icon in the empty-state illustration
+
+The original `notif-empty.svg` placed the checkmark path directly inside the bell's own bounding box (bell ~x8-82/y14-79, checkmark ~x30-84/y46-118) — genuinely overlapping geometry, not a rendering artifact. Redesigned with the bell confined to the top-left (bbox x8-68/y4-68) and the checkmark as a badge in the bottom-right corner (circle centred (94,94) r20, bbox x74-114/y74-114) — a clear 6px gap on both axes. The checkmark is a hole cut through the solid badge circle via `fill-rule="evenodd"`, keeping the illustration a single flat colour/alpha shape under `MultiEffect` colorization. Verified live with a cache-cleared restart, confirmed no "Cannot open"/parse warning for the file (a red herring surfaced mid-investigation: repeated "Cannot open" lines in an earlier `grep | tail` turned out to be stale log entries from before this plan's own `assets/` stow symlink existed, still sitting in the append-only log, not live re-occurring errors — resolved by checking only lines appended after a fresh restart marker). Fixed in `fix(19-06): d4a63fd`.
+
+### ISSUE c: the hover highlight over centre rows clipped past the panel and was barely visible
+
+Two independent defects: (1) `historyRegion` had no horizontal inset from the window's own edges, so a row's square-cornered hover rectangle could render past the frame's own rounded corner near the top/bottom of the list — fixed with a `Design.spacingMd` inset, matching the header's own existing convention; `clip: true` was already present on both `historyRegion` and the `ListView`. (2) the hover colour (`BarRoles.notifSurfaceHover`, 0.90 alpha) sat on top of the row's own 0.78-alpha `notifSurface` background — a 12-point alpha step of the same colour family, reading as barely visible — switched to `BarRoles.capsuleHover` (0.95 alpha surfaceVariant), the established list-row hover contrast this repo already uses (`AudioPopout.qml`'s sink rows: transparent -> a solid surfaceVariant tone), routed through `BarRoles` per D-19-43, no hardcoded colour. Verified live across several open/close cycles with an action-carrying notification present to exercise the row-rendering path; no new warnings. Fixed in `fix(19-06): cc4730d`.
+
+### Round 2 verification summary
+
+Every fix above was verified against the running shell (`systemctl --user restart quickshell.service` for cache-affecting changes, otherwise live hot-reload), with `pgrep -x quickshell` confirmed as a single PID and `coredumpctl list` confirmed to show no entry past the original `16:15:54` dump after every step. `busctl --user list` confirmed `quickshell` retained sole ownership of `org.freedesktop.Notifications` throughout. No Plan 19-08 artifact and no swaync-related file was touched in this round either.
+
+**Commits, round 2:** `a6472f2` (fix(19-04), critical-urgency auto-dismiss), `2fccc86` (fix(19-06), ISSUE a), `d4a63fd` (fix(19-06), ISSUE b), `cc4730d` (fix(19-06), ISSUE c).
+
 ## User Setup Required
 
 None - no external service configuration required.
