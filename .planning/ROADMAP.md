@@ -250,8 +250,50 @@ Plans:
 - **Promote the toggle grid, do not copy it.** `QuickToggles.qml` becomes a shared type instantiated by both the drawer and the centre. Rendering the same grid twice against the same scripts would carry today's swaync/drawer duplication forward under a new name — the exact thing this milestone exists to end.
 - **Debt interleave rationale:** LEDGER-04's six sessions are 4/6 wifi-bluetooth from Phase 15 and one is the GradientBorder session LEDGER-01 already closes in Phase 18 — this phase is where the bluetooth one becomes structurally resolvable. LEDGER-08's security review covers the same panel family whose components this phase extends, and is the right pass to run alongside taking a system-wide D-Bus role. LEDGER-07 lands here rather than later so that Phases 20-22 all run against a fully clean `theme-stress-test`, and so RETIRE-08's contract check in Phase 21 has a trustworthy baseline.
 - **GATE-01 opening task.** Before this phase's retirement plan is written, enumerate swaync's current behaviour (`config.json`, `style.css`, its `swaync-client` CLI surface) off the live implementation while it still exists, the same way `18-02` read waybar. Protocol and worked example: `.planning/phases/18-qml-bar-retirement-machinery/18-BEHAVIOUR-BASELINE.md` § "GATE-01 Recurrence Protocol".
+- **LEDGER-04's count is corrected at plan time.** RESEARCH.md verified the live count as **5** open session files, not six — the `GradientBorder` session was already closed by Phase 18's LEDGER-01. The bluetooth pairing prompt is a **separate** item (G-15-7) tracked in Phase 15's `deferred-items.md`, and none of the 5 remaining sessions is fixed by notification-server work. Six dispositions are owed across two ledgers; `19-02` writes five as explicitly-reasoned deferrals and points G-15-7 at `19-08`, which closes it on a real pairing.
+- **LEDGER-07's premise is also corrected.** `current.jpg` is already untracked and gitignored from 13-06's fix, so the tree is not currently dirty. D-19-45 is still live work — it removes the `.gitignore` exemption structurally by moving the pointer into `~/.local/state/theme/` — but it is a structural change, not a tree-dirtying bug fix.
 
-**Plans**: TBD
+**Plans**: 8 plans across 4 waves
+
+- [ ] 19-01-PLAN.md — TRACER: shell owns `org.freedesktop.Notifications`, one real popup card end-to-end, plus the full token/role/namespace surface every later plan consumes (QNOTIF-01, QNOTIF-02)
+- [ ] 19-02-PLAN.md — GATE-01 behaviour baseline off the live daemon + six LEDGER-04 dispositions across two ledgers (LEDGER-04)
+- [ ] 19-03-PLAN.md — LEDGER-07: wallpaper pointer out of the stow tree, `theme-stress-test` full clean run with a clean tree (LEDGER-07)
+- [ ] 19-04-PLAN.md — Popup completion: gestures, height clamp, in-place update, ring progress, markdown allowlist + link confirm, fault-injection fixture (QNOTIF-02, QNOTIF-03, QNOTIF-04, QNOTIF-05)
+- [ ] 19-05-PLAN.md — Server completion: history persistence, DND ownership in QML, suppression, toast frame, shared toggle singleton, absolute brightness setter (QNOTIF-07, QNOTIF-09, QNOTIF-10)
+- [ ] 19-06-PLAN.md — The centre: slide-out frame, grouped history, three clear levels, empty state, pinned footer with three sliders, bell + `Super+N` repoint (QNOTIF-06, QNOTIF-08)
+- [ ] 19-07-PLAN.md — LEDGER-08: panel-family gap closure + `19-SECURITY.md` over the new D-Bus surface, verifier re-run (LEDGER-08)
+- [ ] 19-08-PLAN.md — GATE-02 blocking render gate, one-way-door decision, QNOTIF-11 live two-owner proof, RETIRE-03 deletion with the atomic autostart swap (QNOTIF-11, RETIRE-03, LEDGER-04, LEDGER-07)
+
+**Wave 1** — tracer plus the two zero-dependency openers
+
+- 19-01 TRACER: bus ownership → `NotifServer`/`NotifData` → `NotifPopupStack`/`NotifCard`, all `Design.qml`/`BarRoles.qml` tokens declared upfront, three layer namespaces registered (QNOTIF-01, QNOTIF-02)
+- 19-02 GATE-01 enumeration read off the live daemon while it still exists (LEDGER-04)
+- 19-03 LEDGER-07 debt — no QML, fully independent of the notification work (LEDGER-07)
+
+**Wave 2** *(blocked on 19-01)*
+
+- 19-04 popup expansion — owns the view files (QNOTIF-02, QNOTIF-03, QNOTIF-04, QNOTIF-05)
+- 19-05 server expansion — owns `NotifServer.qml`, the toggle singleton and the toast module (QNOTIF-07, QNOTIF-09, QNOTIF-10)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- 19-06 the centre, the third top-level frame in this shell (QNOTIF-06, QNOTIF-08)
+
+**Wave 4** *(blocked on Wave 3 — two-wide parallel, no file overlap)*
+
+- 19-07 LEDGER-08 security review over the panel family plus the new inbound D-Bus surface (LEDGER-08)
+- 19-08 the closing gate and the deletion — non-autonomous (QNOTIF-11, RETIRE-03)
+
+Cross-cutting constraints:
+
+- GATE-01 (19-02, wave 1) reads the live daemon three waves before 19-08 deletes it.
+- GATE-02 (19-08) is blocking: nothing is deleted before it passes, and the `replaces_id` / `ActionInvoked` fault-injection fixture from 19-04 must be green before the gate opens.
+- A `checkpoint:decision` sits between the render gate and the first deletion task — the phase's one-way door.
+- **The autostart swap is exactly one task in exactly one commit** (19-08 Task 4), asserted mechanically: the commit touching `autostart.lua` must contain exactly two files, the second being `quickshell-doctor`'s owner registry.
+- `retirement-check` runs **twice** — 19-08 Task 1 captures the pre-deletion baseline, Task 5 re-runs it for zero hits.
+- 19-01 declares the complete token, colour-role and layer-namespace surface so waves 2 and 3 never reopen `Design.qml`, `BarRoles.qml` or `windowrules.lua` — this is what keeps the wave-2 pair parallel.
+- `QuickToggles.qml` is promoted to a view over one `ToggleState` singleton and instantiated twice (19-05 promotes, 19-06 adds the second instantiation) — never copied.
+
 **UI hint**: yes
 
 ### Phase 20: Indicators & Power Menu
