@@ -92,6 +92,67 @@ PanelWindow {
         }
     }
 
+    // ── Grouping and ordering (Task 2, D-19-26/27) — the ONE place
+    //    per-app grouping happens; `NotifGroup.qml` is a pure view over
+    //    each resulting entry. Recomputed whenever `NotifServer.history`
+    //    changes; groups sorted by most-recent activity, newest at top —
+    //    never alphabetical, per D-19-27's own explicit rejection of that
+    //    ordering. Items within a group inherit `history`'s own
+    //    newest-first order with no re-sort of their own. ─────────────────
+    readonly property var groupedHistory: {
+        var byApp = {};
+        var order = [];
+        var hist = NotifServer.history;
+        for (var i = 0; i < hist.length; i++) {
+            var item = hist[i];
+            var key = item.appName || "";
+            if (!byApp.hasOwnProperty(key)) {
+                byApp[key] = { appName: key, items: [], latest: 0 };
+                order.push(key);
+            }
+            byApp[key].items.push(item);
+            if (item.timestamp > byApp[key].latest)
+                byApp[key].latest = item.timestamp;
+        }
+        var groups = order.map(function (k) {
+            return byApp[k];
+        });
+        groups.sort(function (a, b) {
+            return b.latest - a.latest;
+        });
+        return groups;
+    }
+
+    // ── Per-group expand state (D-19-26's chevron) — keyed by appName,
+    //    survives `groupedHistory`'s own recomputation (which produces
+    //    brand-new group objects on every history change) since this map
+    //    is a SEPARATE property, never derived from the grouped list
+    //    itself. A group that empties simply stops appearing in
+    //    `groupedHistory` — D-19-26's "auto-collapses when it empties" is
+    //    therefore a structural consequence of the grouping above, not a
+    //    branch this map has to implement. ───────────────────────────────
+    property var expandedApps: ({})
+    function toggleGroupExpanded(appName) {
+        var next = Object.assign({}, centreWindow.expandedApps);
+        next[appName] = !next[appName];
+        centreWindow.expandedApps = next;
+    }
+
+    // ── One shared clock for every relative timestamp in the centre
+    //    (D-19-32, QBAR-11) — a single interval reading feeding every
+    //    `NotifGroup` delegate's own `nowMs` property, never one polling
+    //    element per row. 30 seconds is well under the coarsest bucket
+    //    ("now" for <60s) this centre ever renders, so no visible label
+    //    ever drifts stale by more than that margin. ───────────────────
+    property real _sharedClockNow: Date.now()
+    Timer {
+        id: _sharedClock
+        interval: 30000
+        running: centreWindow.visible
+        repeat: true
+        onTriggered: centreWindow._sharedClockNow = Date.now()
+    }
+
     // ── Layer posture ─────────────────────────────────────────────────
     anchors {
         top: true
@@ -214,10 +275,10 @@ PanelWindow {
         }
 
         // ── History region — scrollable, fills remaining vertical space.
-        //    Task 2 (this same plan) replaces the placeholder child below
-        //    with the real grouped-history ListView; the empty-state
-        //    illustration lives here permanently since it answers to THIS
-        //    region's own emptiness, not to Task 2's own content. ─────────
+        //    Carries both the empty-state illustration (Task 1) and the
+        //    grouped-history ListView (Task 2) as siblings — the empty
+        //    state answers to this region's own emptiness independent of
+        //    which child is currently rendering content. ─────────────────
         Item {
             id: historyRegion
             anchors.top: header.bottom
@@ -287,10 +348,30 @@ PanelWindow {
                 }
             }
 
-            // Task 2 mounts the grouped-history ListView as a further
-            // sibling of `emptyState` inside this Item, anchored to fill
-            // it. Left empty here on purpose — see this region's own
-            // header note.
+            // ── Grouped history list (Task 2) — a ListView over
+            //    `centreWindow.groupedHistory`, newest-activity-first
+            //    (D-19-27). Each delegate is a pure-view `NotifGroup`,
+            //    receiving this window's own expand map and shared clock
+            //    and emitting signals back for every mutation, rather than
+            //    writing `NotifServer.history` itself. ───────────────────
+            ListView {
+                id: historyList
+                anchors.fill: parent
+                model: centreWindow.groupedHistory
+                spacing: Design.spacingSm
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                delegate: NotifGroup {
+                    width: historyList.width
+                    groupData: modelData
+                    expanded: !!centreWindow.expandedApps[modelData.appName]
+                    nowMs: centreWindow._sharedClockNow
+                    onToggleExpandRequested: centreWindow.toggleGroupExpanded(modelData.appName)
+                    onClearNotificationRequested: id => NotifServer.clearOne(id)
+                    onClearGroupRequested: appName => NotifServer.clearGroup(appName)
+                }
+            }
         }
 
         // ── Pinned footer — fixed height, never scrolls. Task 3 replaces

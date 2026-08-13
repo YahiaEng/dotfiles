@@ -249,6 +249,12 @@ Singleton {
             body: notif.body,
             appIcon: notif.appIcon,
             image: notif.image,
+            // desktopEntry (Phase 19 Plan 06 addition) — the third tier of
+            // the icon fallback chain the centre's NotifGroup.qml reuses
+            // verbatim from NotifCard.qml (image hint -> app_icon via icon
+            // theme -> desktop-entry icon -> generic glyph). Plain string,
+            // serializes cleanly.
+            desktopEntry: notif.desktopEntry,
             urgency: notif.urgency,
             timestamp: Date.now()
         };
@@ -257,6 +263,87 @@ Singleton {
             next = next.slice(0, Design.notifHistoryCap);
         root.history = next;
         root._writeState();
+    }
+
+    // ── Per-session action retention (Phase 19 Plan 06 addition,
+    //    D-19-31/QNOTIF-04) — a map from notification id (string-keyed,
+    //    since JS object keys are always strings) to the live
+    //    `NotificationAction` list captured at arrival, held ONLY in
+    //    memory and never written to `notifications.json` — the id key's
+    //    mere ABSENCE after a restart is the entire "sender's session is
+    //    gone" signal D-19-31 needs (RESEARCH.md Pitfall 3: there is no
+    //    other cleanly-detectable case). `NotifGroup.qml` reads this via
+    //    the two functions below rather than reaching into this map
+    //    directly, so the map's own shape stays free to change later. ────
+    property var _sessionActionsById: ({})
+
+    function hasSessionActions(id) {
+        return root._sessionActionsById.hasOwnProperty(String(id));
+    }
+    function actionsForHistoryId(id) {
+        var key = String(id);
+        return root._sessionActionsById.hasOwnProperty(key) ? root._sessionActionsById[key] : [];
+    }
+
+    // ── Per-notification and per-app-group history clears (Phase 19 Plan
+    //    06 addition, D-19-29/QNOTIF-06) — `clearAll()` above already
+    //    covers the third level. Rule 2 deviation: the centre cannot
+    //    implement two of D-19-29's three required clear levels without
+    //    either these two verbs or writing `root.history` directly from
+    //    outside this file (which would skip `_writeState()` and silently
+    //    break D-19-24's persistence guarantee for exactly those two
+    //    paths). Per-notification clearing needs no batching (the plan's
+    //    own text — one item, one filter); per-app-group clearing DOES
+    //    batch, mirroring `clearAll()`'s own Timer shape, so a single
+    //    app's very large history cannot stall the UI thread either. ─────
+    function clearOne(id) {
+        var next = root.history.filter(function (item) {
+            return item.id !== id;
+        });
+        if (next.length === root.history.length)
+            return;
+        root.history = next;
+        root._writeState();
+    }
+
+    property string _clearGroupTarget: ""
+    Timer {
+        id: _clearGroupBatchTimer
+        interval: 0
+        repeat: true
+        onTriggered: {
+            var stillPresent = root.history.some(function (item) {
+                return item.appName === root._clearGroupTarget;
+            });
+            if (!stillPresent) {
+                _clearGroupBatchTimer.stop();
+                root._clearGroupTarget = "";
+                root._writeState();
+                return;
+            }
+            var toRemove = Design.notifHistoryBatchSize;
+            var next = [];
+            for (var i = 0; i < root.history.length; i++) {
+                var item = root.history[i];
+                if (item.appName === root._clearGroupTarget && toRemove > 0) {
+                    toRemove--;
+                    continue;
+                }
+                next.push(item);
+            }
+            root.history = next;
+        }
+    }
+    function clearGroup(appName) {
+        if (root._clearGroupTarget !== "")
+            return;
+        var hasAny = root.history.some(function (item) {
+            return item.appName === appName;
+        });
+        if (!hasAny)
+            return;
+        root._clearGroupTarget = appName;
+        _clearGroupBatchTimer.start();
     }
 
     NotificationServer {
@@ -277,6 +364,16 @@ Singleton {
             // MUST set tracked=true or Quickshell may not retain the
             // object past this handler returning (RESEARCH.md Pattern 1).
             notif.tracked = true;
+
+            // Phase 19 Plan 06 addition (D-19-31) — captured for EVERY
+            // arrival, suppressed or not, so a suppressed notification's
+            // eventual centre row can still show working action buttons;
+            // never persisted (see _sessionActionsById's own header).
+            // Recorded BEFORE _recordHistory() below: that call reassigns
+            // `history`, which is what a centre row's own bindings
+            // actually react to, and the map must already carry this
+            // entry by the time a fresh row for it is instantiated.
+            root._sessionActionsById[String(notif.id)] = notif.actions;
 
             // D-19-33 — unconditional history record BEFORE the
             // suppression branch: with no soak window and no rollback, a
