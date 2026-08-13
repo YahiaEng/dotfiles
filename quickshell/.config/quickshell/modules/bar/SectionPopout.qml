@@ -213,10 +213,37 @@ PanelWindow {
     //
     // barSideMargin stays in the CLAMP below, where it is a screen-edge inset
     // rather than an origin — that use was always correct and is unchanged.
-    readonly property real _horizontalDesiredLeft: popoutWindow.triggerCentre - popoutWindow.width / 2
+    // ── Origin conversion, MEASURED 2026-08-13 ──────────────────────────────
+    // The paragraph above is right that barSideMargin is not an offset to be
+    // guessed at, and wrong that `triggerCentre` is scene-absolute. It is not:
+    // PopoutTrigger.publishAnchor() computes it with
+    // `triggerRoot.mapToItem(null, 0, 0)`, and `mapToItem(null, ...)` maps into
+    // the item's OWN WINDOW — for a bar entry, the bar's PanelWindow. These
+    // margins, by contrast, are screen-relative. The two spaces differ by the
+    // bar window's own origin along its long axis, which is
+    // Design.barSideMargin in BOTH orientations (Bar.qml sets
+    // `margins.top: vertical ? barSideMargin : barEdgeMargin` and
+    // `margins.left: vertical ? 0 : barSideMargin`, so whichever axis the
+    // popout slides along, the offset is barSideMargin).
+    //
+    // Measured live, vertical, with the audio popout open:
+    //   audio trigger true screen centre .......... 1094
+    //     (hover-verified: a pointer at screen y=1094 hovers that trigger)
+    //   quickshell-bar-audio surface .............. y 917, h 334 -> centre 1084
+    // — ten pixels high, the same error and the same cause BarDrawer.qml
+    // carried until it was corrected the same day. BarTooltip.qml is NOT
+    // corrected here and must not be: its host (BarTooltipHost.qml) already
+    // converts the centre before publishing it, so adding the origin again
+    // would move every tooltip 10px the other way. The rule across this family
+    // is that whoever consumes a raw mapToItem() value converts it exactly
+    // once.
+    //
+    // barSideMargin still appears in the CLAMPS below as a screen-edge inset —
+    // a different job, correct before and after.
+    readonly property real _horizontalDesiredLeft: popoutWindow.triggerCentre + Design.barSideMargin - popoutWindow.width / 2
     readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(popoutWindow._horizontalDesiredLeft, (popoutWindow.screen ? popoutWindow.screen.width : popoutWindow.width) - popoutWindow.width - Design.barSideMargin))
 
-    readonly property real _verticalDesiredTop: popoutWindow.triggerCentre - popoutWindow.height / 2
+    readonly property real _verticalDesiredTop: popoutWindow.triggerCentre + Design.barSideMargin - popoutWindow.height / 2
     readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(popoutWindow._verticalDesiredTop, (popoutWindow.screen ? popoutWindow.screen.height : popoutWindow.height) - popoutWindow.height - Design.barSideMargin))
 
     margins.top: popoutWindow.vertical ? popoutWindow._verticalClampedTop : popoutWindow._horizontalTopMargin
