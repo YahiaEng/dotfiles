@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 46
+open_count: 47
 waived_count: 0
 fixed_count: 24
-total_count: 70
-last_updated: 2026-08-12T14:09:51.627Z
+total_count: 71
+last_updated: 2026-08-13T09:53:24.990Z
 ---
 
 # Broken Windows Ledger
@@ -85,6 +85,7 @@ last_updated: 2026-08-12T14:09:51.627Z
 | 68 | 18 | unrun-verify | .planning/phases/18-qml-bar-retirement-machinery/18-BAR-SOAK.md |  | QBAR-11 soak still OPEN after four anchors. Supersedes rows 52, 64, 65 and 66. The fourth window (pid 528309, 02:40:26 to 15:05 on 2026-08-12) is the first to ELAPSE — etimes 44941s, 12.5 hours, NRestarts=0, single pid, one long-lived child by command — and it still yields no verdict. Full accounting in 18-BAR-SOAK.md Section six. Process gates all PASS. RSS gates FAIL at face value (428640 to 594696 KiB = +162 MiB against a 32 MiB ceiling; about 13.0 MiB/hour against a 5 MiB/hour cap) but that failure is explicitly NOT reported as a leak, for three disqualifying reasons: (1) the window spanned the whole development session that fixed the hover defect, added BarDrawer.qml and fixed four GATE-02 defects, so the config was hot-reloaded many times and every reload re-instantiates the QML tree — a soak is defined against a bar left alone, and this one measured a bar being rebuilt underneath itself; (2) the measurement subject vanished mid-window when the bar layer surface was lost to a monitor-removal event (row 67) and never returned, so for an unknown span nothing was rendering; (3) the 300s end observation, the five spaced RSS samples and the 200-cycle hot-zone exercise were all skipped in favour of restoring the operator's missing bar. WHAT A VALID WINDOW NEEDS: a fifth anchor taken when no development work is planned against quickshell/, held 4 hours with no hot reload, no monitor sleep and no restart, ending in the full Section-five procedure. THE REAL FINDING, now observed four times and worth acting on rather than repeating: this requirement asks for four uninterrupted hours on a workstation that is simultaneously the development target for the code being measured. Every capture took five minutes and worked first time; every window died to something environmental (a rebuild, a reboot, a fix, a monitor sleep). Consider re-scoping QBAR-11 to a window this host can actually hold, or deliberately setting aside a quiescent session for it, rather than re-anchoring a fifth time and hoping. | open |  | 2026-08-12T12:11:20.063Z |  |
 | 69 | 18 | deviation | hypr/.config/hypr/scripts/bar-watchdog.sh |  | quick 260812-n9b added quickshell-bar-watchdog.service, a second permanent long-lived process supervising the bar (WINDOWS row 67 workaround). 18-BAR-SOAK.md Section one still states the bar carries exactly one permanent child process — no longer true, not corrected by this plan per its hard constraints. | open |  | 2026-08-12T14:09:51.533Z |  |
 | 70 | 18 | deviation | hypr/.config/hypr/scripts/bar-watchdog.sh |  | quick 260812-n9b's watchdog for WINDOWS row 67 is armed and fixture-proven but end-to-end recovery (real monitor-sleep -> surface-loss -> auto-restore) is UNPROVEN — reproducing the trigger is unsafe on this host (row 14, SEGV during a DP-1 hotplug). WINDOWS row 67 stays open. | open |  | 2026-08-12T14:09:51.627Z |  |
+| 71 | 19 | unrun-verify | theme-engine/.config/theme-engine/theme-stress-test |  | theme-stress-test cannot reach a full 10-switch clean run: hypr-equivalence-check (folded into theme-doctor) fails on binds.json/animations.json/options.jsonl divergence from its stale Phase-13.1 baseline (predates the v3.0 archive + phases 14-18), plus a structural incompatibility discovered in this session — its col.active_border/col.inactive_border comparison can only ever match the ONE theme the baseline was captured under, so it cannot pass across a multi-theme stress run even after re-baselining. Pre-existing, tracked since Phase 15 (15-audio-connectivity-panels/deferred-items.md item 1); out of scope for 19-03. D-19-45/D-19-46 verified independently via direct theme-apply runs (git clean throughout, pointer survives materialyou-materialyou rsync cycle). | open |  | 2026-08-13T09:53:24.990Z |  |
 
 ````json
 [
@@ -926,6 +927,18 @@ last_updated: 2026-08-12T14:09:51.627Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-12T14:09:51.627Z",
+    "resolved_at": null
+  },
+  {
+    "id": 71,
+    "kind": "unrun-verify",
+    "phase": "19",
+    "file": "theme-engine/.config/theme-engine/theme-stress-test",
+    "line": null,
+    "description": "theme-stress-test cannot reach a full 10-switch clean run: hypr-equivalence-check (folded into theme-doctor) fails on binds.json/animations.json/options.jsonl divergence from its stale Phase-13.1 baseline (predates the v3.0 archive + phases 14-18), plus a structural incompatibility discovered in this session — its col.active_border/col.inactive_border comparison can only ever match the ONE theme the baseline was captured under, so it cannot pass across a multi-theme stress run even after re-baselining. Pre-existing, tracked since Phase 15 (15-audio-connectivity-panels/deferred-items.md item 1); out of scope for 19-03. D-19-45/D-19-46 verified independently via direct theme-apply runs (git clean throughout, pointer survives materialyou-materialyou rsync cycle).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-13T09:53:24.990Z",
     "resolved_at": null
   }
 ]
