@@ -253,14 +253,14 @@ Plans:
 - **LEDGER-04's count is corrected at plan time.** RESEARCH.md verified the live count as **5** open session files, not six — the `GradientBorder` session was already closed by Phase 18's LEDGER-01. The bluetooth pairing prompt is a **separate** item (G-15-7) tracked in Phase 15's `deferred-items.md`, and none of the 5 remaining sessions is fixed by notification-server work. Six dispositions are owed across two ledgers; `19-02` writes five as explicitly-reasoned deferrals and points G-15-7 at `19-08`, which closes it on a real pairing.
 - **LEDGER-07's premise is also corrected.** `current.jpg` is already untracked and gitignored from 13-06's fix, so the tree is not currently dirty. D-19-45 is still live work — it removes the `.gitignore` exemption structurally by moving the pointer into `~/.local/state/theme/` — but it is a structural change, not a tree-dirtying bug fix.
 
-**Plans**: 5/8 plans executed across 4 waves
+**Plans**: 6/8 plans executed across 4 waves
 
 - [x] 19-01-PLAN.md — TRACER: shell owns `org.freedesktop.Notifications`, one real popup card end-to-end, plus the full token/role/namespace surface every later plan consumes (QNOTIF-01, QNOTIF-02)
 - [x] 19-02-PLAN.md — GATE-01 behaviour baseline off the live daemon + six LEDGER-04 dispositions across two ledgers (LEDGER-04)
 - [x] 19-03-PLAN.md — LEDGER-07: wallpaper pointer out of the stow tree, `theme-stress-test` full clean run with a clean tree (LEDGER-07)
 - [x] 19-04-PLAN.md — Popup completion: gestures, height clamp, in-place update, ring progress, markdown allowlist + link confirm, fault-injection fixture (QNOTIF-02, QNOTIF-03, QNOTIF-04, QNOTIF-05)
 - [x] 19-05-PLAN.md — Server completion: history persistence, DND ownership in QML, suppression, toast frame, shared toggle singleton, absolute brightness setter (QNOTIF-07, QNOTIF-09, QNOTIF-10)
-- [ ] 19-06-PLAN.md — The centre: slide-out frame, grouped history, three clear levels, empty state, pinned footer with three sliders, bell + `Super+N` repoint (QNOTIF-06, QNOTIF-08)
+- [x] 19-06-PLAN.md — The centre: slide-out frame, grouped history, three clear levels, empty state, pinned footer with three sliders, bell + `Super+N` repoint (QNOTIF-06, QNOTIF-08)
 - [ ] 19-07-PLAN.md — LEDGER-08: panel-family gap closure + `19-SECURITY.md` over the new D-Bus surface, verifier re-run (LEDGER-08)
 - [ ] 19-08-PLAN.md — GATE-02 blocking render gate, one-way-door decision, QNOTIF-11 live two-owner proof, RETIRE-03 deletion with the atomic autostart swap (QNOTIF-11, RETIRE-03, LEDGER-04, LEDGER-07)
 
@@ -389,7 +389,7 @@ Cross-cutting constraints:
 | 16. Workspace Overview | v3.0 | 8/8 | Complete | 2026-08-08 |
 | 17. Ambient Extras | v3.0 | 6/6 | Complete | 2026-08-10 |
 | 18. QML Bar & Retirement Machinery | v4.0 | 20/20 | Complete    | 2026-08-13 |
-| 19. Notification Server & Centre | v4.0 | 5/8 | In Progress|  |
+| 19. Notification Server & Centre | v4.0 | 6/8 | In Progress|  |
 | 20. Indicators & Power Menu | v4.0 | 0/? | Not started | - |
 | 21. Media Fold-In & Contract Close | v4.0 | 0/? | Not started | - |
 | 22. Fresh-Install Proof | v4.0 | 0/? | Not started | - |
