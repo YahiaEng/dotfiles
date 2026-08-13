@@ -98,13 +98,23 @@ PanelWindow {
     readonly property int _horizontalTopMargin: Design.spacingXs
     readonly property real _verticalRightMargin: Design.spacingXs + tooltipRoot.hostClearance
 
-    // triggerCentre is ALREADY a scene-absolute coordinate (the host
-    // publishes it via mapToItem(null, ...)), so adding barSideMargin here
-    // shifted every tooltip 10px off the glyph it describes — measured
-    // 2026-08-12: spotify's glyph centre 40 against a tooltip centre of 50,
-    // discord 68 against 78, steam 96 against 106. barSideMargin is still
-    // correct in the CLAMP below, where it is a screen-edge inset rather
-    // than an origin.
+    // triggerCentre arrives here ALREADY converted to screen space, so this
+    // file must NOT add barSideMargin — doing so shifted every tooltip 10px
+    // off the glyph it describes (measured 2026-08-12: spotify's glyph centre
+    // 40 against a tooltip centre of 50, discord 68 against 78, steam 96
+    // against 106). barSideMargin is still correct in the CLAMP below, where
+    // it is a screen-edge inset rather than an origin.
+    //
+    // CORRECTED 2026-08-13 — the conclusion above was right, its stated reason
+    // was not, and that wrong reason propagated into BarDrawer.qml and
+    // SectionPopout.qml where it caused the very bug it was warning about.
+    // `mapToItem(null, ...)` does NOT return a scene-absolute coordinate: it
+    // maps into the item's OWN WINDOW. What makes this file correct is that
+    // BarTooltipHost.qml converts the value before publishing it (adding
+    // QsWindow.window.margins), not that the value was ever screen-absolute.
+    // The rule across this family: whoever consumes a raw mapToItem() result
+    // converts it exactly once. BarDrawer and SectionPopout convert at the
+    // consumer; tooltips convert at the host. Do not add an origin here.
     readonly property real _horizontalDesiredLeft: tooltipRoot.triggerCentre - tooltipRoot.width / 2
     readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(tooltipRoot._horizontalDesiredLeft, (tooltipRoot.screen ? tooltipRoot.screen.width : tooltipRoot.width) - tooltipRoot.width - Design.barSideMargin))
 
