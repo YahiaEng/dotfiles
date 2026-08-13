@@ -149,6 +149,16 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("uwsm app -- walker --gapplication-service")
 
     -- ── Idle daemon ──────────────────────────────────────
+    -- Session-start idle-intent reset: the bar-visibility intent files
+    -- survive reboots (D-18-27), but hypridle's on-resume can only fire
+    -- after a same-session on-timeout — so an idle=hide left behind by a
+    -- session that crashed while idle-hidden would strand the bar hidden
+    -- for an active user until the next full idle→resume cycle. A fresh
+    -- session is non-idle by definition, so declare it through the owner
+    -- BEFORE hypridle starts. The declare path writes the intent file
+    -- even if the Quickshell IPC actuation fails (the shell may not be
+    -- up yet); shell.qml's startup reassert then reads the fresh state.
+    hl.exec_cmd("uwsm app -- ~/.config/hypr/scripts/bar-visibility.sh idle show")
     hl.exec_cmd("uwsm app -- hypridle")
 
     -- ── SwayOSD (OSD-01/D-23/D-24) ───────────────────────
