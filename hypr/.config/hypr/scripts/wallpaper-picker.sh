@@ -17,7 +17,13 @@
 set -euo pipefail
 
 WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
-CURRENT_LINK="$WALLPAPER_DIR/current.jpg"
+# D-19-45: engine-owned active-wallpaper pointer — moved OUT of
+# WALLPAPER_DIR into the same state directory lib/wallpaper.sh's own
+# CURRENT_WALLPAPER_LINK now targets. Independently declared here as the
+# same literal (not sourced), matching this file's existing
+# same-value-not-shared-source convention for WALLPAPER_DIR/
+# LAST_WALLPAPER_DIR just below.
+CURRENT_LINK="$HOME/.local/state/theme/current.jpg"
 STATE_FILE="$HOME/.local/state/theme/current-theme"
 PREVIOUS_FILE="$HOME/.cache/wallpaper-picker-previous"
 LAST_WALLPAPER_DIR="$HOME/.local/state/theme/last-wallpaper"
@@ -175,12 +181,13 @@ LAST_WALLPAPER_DIR="$LAST_WALLPAPER_DIR"
 ACTIVE_MARKER="$ACTIVE_MARKER"
 LIVE_MARKER="$LIVE_MARKER"
 WALLPAPER_LIB="$WALLPAPER_LIB"
+CURRENT_LINK="$CURRENT_LINK"
 # shellcheck source=/dev/null
 [[ -r "\$WALLPAPER_LIB" ]] && source "\$WALLPAPER_LIB"
 
 ACTIVE_RELPATH=""
-if [[ -f "\$WALLPAPER_DIR/current.jpg" ]]; then
-    ACTIVE_TARGET=\$(readlink -f "\$WALLPAPER_DIR/current.jpg" 2>/dev/null || echo "")
+if [[ -f "\$CURRENT_LINK" ]]; then
+    ACTIVE_TARGET=\$(readlink -f "\$CURRENT_LINK" 2>/dev/null || echo "")
     if [[ -n "\$ACTIVE_TARGET" && "\$ACTIVE_TARGET" == "\$WALLPAPER_DIR_REAL"/* ]]; then
         ACTIVE_RELPATH="\${ACTIVE_TARGET#"\$WALLPAPER_DIR_REAL"/}"
     elif [[ -n "\$ACTIVE_TARGET" && -n "\$FRAME_DIR_REAL" && "\$ACTIVE_TARGET" == "\$FRAME_DIR_REAL"/* && -n "\$CURRENT_THEME" ]]; then
@@ -199,9 +206,10 @@ if [[ -f "\$WALLPAPER_DIR/current.jpg" ]]; then
 fi
 
 if [[ "\$MODE" == "full" ]]; then
+    # D-19-45: no `! -name` exclusion needed — the pointer no longer lives
+    # inside WALLPAPER_DIR at all, so nothing here can enumerate it.
     LIST=\$(find "\$WALLPAPER_DIR" -maxdepth 2 \\
         -type f \\( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \\) \\
-        ! -name "current.jpg" \\
         -printf "%P\\n" 2>/dev/null | sort)
     # D-03: separate, unfiltered live/ enumeration pass — no -iname test
     # at all (D-01 defines "live" by folder, not extension), NEVER merged
@@ -211,7 +219,6 @@ if [[ "\$MODE" == "full" ]]; then
 else
     LIST=\$(find "\$WALLPAPER_DIR/\$MODE" -maxdepth 1 \\
         -type f \\( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \\) \\
-        ! -name "current.jpg" \\
         -printf "%f\\n" 2>/dev/null | sort | sed "s|^|\$MODE/|")
     LIVE_LIST=\$(find "\$WALLPAPER_DIR/\$MODE/live" -maxdepth 1 -type f \\
         -printf "%f\\n" 2>/dev/null | sort | sed "s|^|\$MODE/live/|")
@@ -253,7 +260,7 @@ if [[ -n "$CURRENT_THEME" && "$CURRENT_THEME" != "materialyou" && "$CURRENT_THEM
     THEME_FOLDER="$WALLPAPER_DIR/$CURRENT_THEME"
     THEME_HAS_IMAGES=0
     if [[ -d "$THEME_FOLDER" ]]; then
-        if find "$THEME_FOLDER" -maxdepth 1 -type f \( "${IMG_MATCH[@]}" \) ! -name "current.jpg" -print -quit 2>/dev/null | grep -q .; then
+        if find "$THEME_FOLDER" -maxdepth 1 -type f \( "${IMG_MATCH[@]}" \) -print -quit 2>/dev/null | grep -q .; then
             THEME_HAS_IMAGES=1
         # D-03 live-only-theme fix: a theme whose wallpapers are ALL live
         # must not fall through to the unrestricted full library — mirrors
@@ -392,7 +399,10 @@ SIZE=$(du -h "$FILE" 2>/dev/null | cut -f1)
 LIVE_BADGE=""
 [[ "$IS_LIVE" == "1" ]] && LIVE_BADGE="  │  ▶ live"
 ACTIVE_MARK=""
-CURRENT_LINK="$WALLPAPER_DIR/current.jpg"
+# D-19-45: prefer the library's own pointer var (sourced above); fall
+# back to the known literal if the source failed (fresh-install degrade,
+# same convention as FRAME_DIR_REAL's fallback earlier in this file).
+CURRENT_LINK="${CURRENT_WALLPAPER_LINK:-$HOME/.local/state/theme/current.jpg}"
 if [[ -f "$CURRENT_LINK" ]]; then
     # Compare fully-resolved (readlink -f) targets on both sides — WALLPAPER_DIR
     # itself may sit behind a stow-managed directory symlink, so resolving only
@@ -496,7 +506,11 @@ if [[ "$IS_LIVE" == "1" ]]; then
         # frame for a video nothing is actually playing.
         cmd=("$WALLPAPER_OWNER" select "$FILE")
         if "${cmd[@]}" >/dev/null 2>&1; then
-            [[ -s "$FRAME" ]] && ln -sfr "$FRAME" "$WALLPAPER_DIR/current.jpg" 2>/dev/null
+            # D-19-45: library-sourced pointer var (available — WALLPAPER_LIB
+            # was sourced into this generated script above), same fallback
+            # convention as the preview script's own CURRENT_LINK.
+            CUR_LINK="${CURRENT_WALLPAPER_LINK:-$HOME/.local/state/theme/current.jpg}"
+            [[ -s "$FRAME" ]] && ln -sfr "$FRAME" "$CUR_LINK" 2>/dev/null
 
             # Bugfix, continued: current.jpg alone is not enough —
             # autoset() (run by EVERY theme-apply, including motion-

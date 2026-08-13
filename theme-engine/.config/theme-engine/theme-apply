@@ -69,10 +69,11 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 # D-08: repair-on-missing guard, deliberately placed BEFORE generate — not
-# stylistic. generate.sh:54 resolves current.jpg as the Material You
-# palette source; a wiped state directory repaired AFTER generate would
-# render a palette derived from a stale or dangling pointer with nothing
-# reporting it. Best-effort (|| true): must never abort a render.
+# stylistic. generate.sh:54 resolves the active-wallpaper pointer as the
+# Material You palette source; a wiped state directory repaired AFTER
+# generate would render a palette derived from a stale or dangling
+# pointer with nothing reporting it. Best-effort (|| true): must never
+# abort a render.
 theme_engine_wallpaper_frame_repair "$NAME" || true
 
 if ! theme_engine_generate "$NAME" "$TMP_DIR"; then

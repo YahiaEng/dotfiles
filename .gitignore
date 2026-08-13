@@ -18,17 +18,6 @@ Thumbs.db
 walker/.config/walker/themes/rice/style.css
 yazi/.config/yazi/theme.toml
 
-# Wallpaper runtime pointer (D-23) — `current.jpg` is a relative symlink
-# rewritten on every static theme switch by lib/wallpaper.sh's `ln -sfr`,
-# by wallpaper-picker.sh, and by a file-manager action; read by the
-# Material You generator (generate.sh) and the lock screen
-# (hyprlock.conf). Committing it made a runtime pointer look like repo
-# content and permanently dirtied the tree on any non-default static
-# theme, which is why the fix here is to untrack it rather than exempt
-# the clean-tree check from it. Seeded at install time by stow.sh instead
-# of tracked, so a fresh install still lands on the same wallpaper.
-wallpapers/Pictures/Wallpapers/current.jpg
-
 # Screenshots (D-48) — runtime output from screenshot.sh, never repo content.
 # Belt-and-suspenders alongside the .stow-local-ignore fold exclusion above.
 wallpapers/Pictures/Screenshots/

@@ -15,8 +15,23 @@ WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
 LAST_WALLPAPER_DIR="$HOME/.local/state/theme/last-wallpaper"
 # D-07: engine-owned frame directory (registered in contract.json below) —
 # the still frames extracted from live/ wallpapers, D-06/D-08's source of
-# truth for current.jpg whenever the recorded choice is live.
+# truth for the active-wallpaper pointer whenever the recorded choice is
+# live.
 FRAME_DIR="$HOME/.local/state/theme/wallpaper-frames"
+# D-19-45: engine-owned active-wallpaper pointer. Moved OUT of
+# WALLPAPER_DIR (legitimate stow-managed repo content) into the SAME
+# state directory that already holds wallpaper-frames/, last-wallpaper/
+# and current-theme, and that commit.sh's rsync --delete already
+# excludes — reusing D-07's established engine-owned location rather than
+# inventing a new one. All three symlink-repoint call sites in this file
+# target this ONE variable; no caller may reconstruct a wallpapers-
+# directory path for the pointer again. Every consumer outside this file
+# (hyprlock,
+# theme-init, wallpaper-picker, generate.sh, theme-doctor, stow.sh)
+# independently declares the same literal, matching this repo's existing
+# same-value-not-shared-source convention for cross-script constants
+# (see wallpaper-picker.sh's own WALLPAPER_DIR/LAST_WALLPAPER_DIR).
+CURRENT_WALLPAPER_LINK="$HOME/.local/state/theme/current.jpg"
 # D-09: fixed seek-offset default, Claude's discretion per CONTEXT.md.
 # Typical wallpaper loops open on a fade-in; the frame-0 fallback in
 # theme_engine_wallpaper_extract_frame already covers clips shorter than
@@ -140,12 +155,14 @@ theme_engine_wallpaper_autoset() {
     [[ -d "$theme_dir" ]] || return 0
 
     # Same extension filter + enumeration idiom as wallpaper-picker.sh
-    # (maxdepth 1, filename-only, exclude current.jpg — Security Domain V5:
-    # never trust raw interpolation, enumerate real files only).
+    # (maxdepth 1, filename-only — Security Domain V5: never trust raw
+    # interpolation, enumerate real files only). D-19-45: no longer needs
+    # a `! -name` exclusion for the pointer — it no longer lives inside
+    # this directory at all, so a stale guard is dead code, not a live
+    # constraint (removed, not left as belt-and-braces).
     local images
     images=$(find "$theme_dir" -maxdepth 1 \
         -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \) \
-        ! -name "current.jpg" \
         -printf "%f\n" 2>/dev/null | sort)
 
     # D-03: separate, unfiltered live/ enumeration pass. Deliberately NEVER
@@ -239,12 +256,12 @@ theme_engine_wallpaper_autoset() {
             theme_engine_wallpaper_extract_frame "$theme_dir/$chosen" "$frame" "$offset" || true
         fi
         if [[ -s "$frame" ]]; then
-            ln -sfr "$frame" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+            ln -sfr "$frame" "$CURRENT_WALLPAPER_LINK" 2>/dev/null || true
         fi
         # Extraction failed (or produced nothing): leave the existing
-        # current.jpg pointer completely untouched — current.jpg is the
-        # hyprlock background on every unlock, and a dangling pointer is a
-        # lock screen with no background (T-17-09).
+        # pointer completely untouched — it is the hyprlock background on
+        # every unlock, and a dangling pointer is a lock screen with no
+        # background (T-17-09).
 
         # Best-effort live preview — same graphical-session guard as the
         # still branch below, headless container gate must never hang
@@ -258,9 +275,9 @@ theme_engine_wallpaper_autoset() {
                 --transition-fps 165 2>/dev/null || true
         fi
     else
-        # Apply: repoint current.jpg at the chosen still file (unchanged
-        # pre-existing behaviour).
-        ln -sfr "$theme_dir/$chosen" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+        # Apply: repoint the pointer at the chosen still file (unchanged
+        # pre-existing behaviour, new target location).
+        ln -sfr "$theme_dir/$chosen" "$CURRENT_WALLPAPER_LINK" 2>/dev/null || true
 
         # Best-effort live preview — only when a graphical session is
         # present (same WAYLAND_DISPLAY/DBUS_SESSION_BUS_ADDRESS guard
@@ -333,7 +350,7 @@ theme_engine_wallpaper_frame_repair() {
         local current_theme
         current_theme=$(cat "$HOME/.local/state/theme/current-theme" 2>/dev/null || true)
         if [[ "$name" == "$current_theme" ]]; then
-            ln -sfr "$frame" "$WALLPAPER_DIR/current.jpg" 2>/dev/null || true
+            ln -sfr "$frame" "$CURRENT_WALLPAPER_LINK" 2>/dev/null || true
         fi
     fi
 

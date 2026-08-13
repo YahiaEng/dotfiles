@@ -31,7 +31,7 @@
         <name>Set as Wallpaper</name>
         <submenu></submenu>
         <unique-id>1003-set-wallpaper</unique-id>
-        <command>ln -sf %f ~/Pictures/Wallpapers/current.jpg &amp;&amp; awww img %f --transition-type center --transition-duration 2 --transition-fps 165 &amp;&amp; THEME=$(cat ~/.cache/current-theme 2>/dev/null); [ "$THEME" = "materialyou" ] &amp;&amp; matugen image %f -m dark || notify-send "Wallpaper Changed" "Set to %n"</command>
+        <command>ln -sf %f ~/.local/state/theme/current.jpg &amp;&amp; awww img %f --transition-type center --transition-duration 2 --transition-fps 165 &amp;&amp; THEME=$(cat ~/.cache/current-theme 2>/dev/null); [ "$THEME" = "materialyou" ] &amp;&amp; matugen image %f -m dark || notify-send "Wallpaper Changed" "Set to %n"</command>
         <description>Set this image as wallpaper (with Material You if active)</description>
         <range>1</range>
         <patterns>*.jpg;*.jpeg;*.png;*.webp</patterns>

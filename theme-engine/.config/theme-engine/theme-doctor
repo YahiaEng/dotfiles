@@ -139,10 +139,13 @@ if [[ -n "$DOCTOR_LIVE_RECORDED" ]] && theme_engine_wallpaper_is_live_ref "$DOCT
     [[ -s "$DOCTOR_LIVE_FRAME" ]]
     check "live-wallpaper frame: $DOCTOR_LIVE_FRAME exists and is non-empty" "$?"
 
-    DOCTOR_CURRENT_RESOLVED="$(readlink -f "$HOME/Pictures/Wallpapers/current.jpg" 2>/dev/null || true)"
+    # D-19-45: engine-owned active-wallpaper pointer — moved OUT of the
+    # stow-managed Wallpapers directory into ~/.local/state/theme/, the
+    # same literal lib/wallpaper.sh's own CURRENT_WALLPAPER_LINK targets.
+    DOCTOR_CURRENT_RESOLVED="$(readlink -f "$HOME/.local/state/theme/current.jpg" 2>/dev/null || true)"
     DOCTOR_FRAME_RESOLVED="$(readlink -f "$DOCTOR_LIVE_FRAME" 2>/dev/null || true)"
     [[ -n "$DOCTOR_CURRENT_RESOLVED" && "$DOCTOR_CURRENT_RESOLVED" == "$DOCTOR_FRAME_RESOLVED" ]]
-    check "live-wallpaper frame: current.jpg resolves to $DOCTOR_LIVE_FRAME" "$?"
+    check "live-wallpaper frame: wallpaper pointer resolves to $DOCTOR_LIVE_FRAME" "$?"
 else
     echo "  [SKIP] live-wallpaper frame gate (recorded choice for '${DOCTOR_LIVE_THEME:-<unknown>}' is not a live/ entry)"
 fi

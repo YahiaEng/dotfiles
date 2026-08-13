@@ -474,27 +474,32 @@ if [[ "$GTK3_SASS_SEED_MISSING" == "1" ]]; then
     fi
 fi
 
-# D-23: seed the wallpaper pointer, same seed-only-when-absent idiom as
-# above — current.jpg is now untracked and gitignored (WINDOWS.md entry 9:
-# it is runtime state, rewritten on every static theme switch by
-# lib/wallpaper.sh's `ln -sfr`, never repo content), so a fresh install has
-# nothing providing it unless this seed runs. theme-init.sh and
-# hyprlock.conf both read this exact path directly, and generate.sh reads
-# it as the Material You source image — all three degrade (no wallpaper,
-# no lock background, no Material You source) but none of them, and
-# nothing else in the boot path, fails to start without it. That is the
-# opposite failure posture from the motion-file/GTK3-sass seeds above
-# (whose absence is a hard config-parse failure that keeps Hyprland from
-# starting at all) — deliberately kept as a warning, not a loud `exit 1`,
-# because a themed-but-wallpaperless desktop is a degrade, not a crash.
+# D-19-45: seed the active-wallpaper pointer, same seed-only-when-absent
+# idiom as above — the pointer now lives at
+# ~/.local/state/theme/current.jpg (moved OUT of the stow-managed
+# Wallpapers directory entirely; superseding D-23's untrack-and-gitignore
+# fix, which still left it inside the stow tree). It is runtime state,
+# rewritten on every static theme switch by lib/wallpaper.sh's symlink
+# repoint, never repo content, so a fresh install has nothing providing it
+# unless this seed runs. theme-init.sh and hyprlock.conf both read this
+# exact path directly, and generate.sh reads it as the Material You source
+# image — all three degrade (no wallpaper, no lock background, no
+# Material You source) but none of them, and nothing else in the boot
+# path, fails to start without it. That is the opposite failure posture
+# from the motion-file/GTK3-sass seeds above (whose absence is a hard
+# config-parse failure that keeps Hyprland from starting at all) —
+# deliberately kept as a warning, not a loud `exit 1`, because a
+# themed-but-wallpaperless desktop is a degrade, not a crash.
 # Must be a RELATIVE symlink (`ln -sfr`), matching the runtime writer —
 # an absolute symlink for this exact file already broke fresh installs
-# once before (quick task 260709-ciu).
-if [[ ! -L "$HOME/Pictures/Wallpapers/current.jpg" ]]; then
+# once before (quick task 260709-ciu). The state directory itself is
+# already guaranteed real (created earlier in this file, well before this
+# seed runs) — no separate mkdir -p needed for the parent here.
+if [[ ! -L "$HOME/.local/state/theme/current.jpg" ]]; then
     WALLPAPER_SEED_TARGET="$DOTFILES_DIR/wallpapers/Pictures/Wallpapers/catppuccin/5-alien-planet.jpg"
     if [[ -f "$WALLPAPER_SEED_TARGET" ]]; then
-        mkdir -p "$HOME/Pictures/Wallpapers"
-        if ln -sfr "$WALLPAPER_SEED_TARGET" "$HOME/Pictures/Wallpapers/current.jpg" 2>/dev/null; then
+        mkdir -p "$HOME/.local/state/theme"
+        if ln -sfr "$WALLPAPER_SEED_TARGET" "$HOME/.local/state/theme/current.jpg" 2>/dev/null; then
             :
         else
             echo "  ⚠ wallpaper pointer seed failed — no wallpaper, lock-screen background, or Material You source until a theme switch runs successfully" >&2

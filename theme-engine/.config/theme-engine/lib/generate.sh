@@ -8,7 +8,13 @@
 # only runs after this succeeds (D-14 atomic render-then-commit).
 
 MATUGEN_CFG="$HOME/.config/matugen/config.toml"
-WALLPAPER_LINK="$HOME/Pictures/Wallpapers/current.jpg"
+# D-19-45: engine-owned active-wallpaper pointer — moved OUT of the
+# stow-managed Wallpapers directory into ~/.local/state/theme/, the same
+# literal lib/wallpaper.sh's own CURRENT_WALLPAPER_LINK now targets.
+# Independently declared (not sourced) — theme-parity sources this file
+# without wallpaper.sh, so this constant must stand on its own, matching
+# this repo's existing same-value-not-shared-source convention.
+WALLPAPER_LINK="$HOME/.local/state/theme/current.jpg"
 # WR-04: report-only callers (theme-parity) must not truncate the LIVE
 # error log — it may hold the diagnosis of a real theme-apply failure.
 # They can redirect renders elsewhere via THEME_ENGINE_RENDER_LOG, set

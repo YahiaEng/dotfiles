@@ -17,7 +17,9 @@
 # `awww` call itself failing quietly. Left un-set on purpose, not an
 # oversight.
 STATE_FILE="$HOME/.local/state/theme/current-theme"
-WALLPAPER="$HOME/Pictures/Wallpapers/current.jpg"
+# D-19-45: pointer moved from the stow-managed Wallpapers directory into
+# engine-owned state — same symlink, new home.
+WALLPAPER="$HOME/.local/state/theme/current.jpg"
 
 THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "catppuccin")
 
