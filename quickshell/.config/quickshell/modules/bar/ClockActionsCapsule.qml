@@ -37,6 +37,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import "../"
 import "../dashboard"
+import "../notifications"
 
 BarCapsule {
     id: clockActionsCapsule
@@ -607,88 +608,32 @@ BarCapsule {
     // or a layout expression outside this component, the Phase 19
     // replacement stops being a backend swap and becomes a rewrite of a
     // surface that has already passed its render gate.
+    // ── Phase 19 Plan 06 repoint — internals only, per this component's
+    //    own contract above. The three Process children and the outgoing
+    //    daemon's own CLI argv/vocabulary are gone; every read below binds
+    //    live to NotifServer (Plan 19-01/19-05's own singleton) and every
+    //    write calls its existing public verbs directly, in-process, with
+    //    no subprocess anywhere in either path. `available` has no
+    //    failure mode left to represent — NotifServer is a QML singleton
+    //    inside this same process, not a CLI backend that can be absent —
+    //    so it is now an honest constant `true` rather than a probe
+    //    result.
     component NotificationSource: QtObject {
         id: sourceRoot
 
-        readonly property int unreadCount: sourceRoot._unreadCount
-        readonly property bool dndActive: sourceRoot._dndActive
-        readonly property bool available: sourceRoot._available
-
-        property int _unreadCount: 0
-        property bool _dndActive: false
-        property bool _available: true
-
-        // The closed eight-member vocabulary the subscription's own
-        // "class" field carries — verified live this plan by running the
-        // command directly against the installed swaync, both with and
-        // without a real notification present. A compare-only closed
-        // list, never an interpolation.
-        readonly property var _dndClasses: ["dnd-notification", "dnd-none", "dnd-inhibited-notification", "dnd-inhibited-none"]
-        readonly property var _liveClasses: ["notification", "none", "inhibited-notification", "inhibited-none"]
+        readonly property int unreadCount: NotifServer.unreadCount
+        readonly property bool dndActive: NotifServer.dnd
+        readonly property bool available: true
 
         function openCentre() {
-            openCentreProcess.startDetached();
+            if (NotifServer.centreOpen)
+                NotifServer.centreOpen = false;
+            else
+                NotifServer.openCentre();
         }
         function toggleDnd() {
-            toggleDndProcess.startDetached();
+            NotifServer.toggleDnd();
         }
-
-        // QtObject carries no default property of its own, so the three
-        // Process children below are attached through one explicit list
-        // property rather than declared as anonymous children.
-        //
-        // The FIRST of the three is the one permanent child process this
-        // plan adds to an always-on surface (T-18-11-06) — a
-        // subscription, not a poll, so it costs nothing between events.
-        // This is the charge named in this plan's SUMMARY as 18-18's soak
-        // must account for, alongside the ones 18-08 records in its own
-        // liveness-charge document — it is deliberately NOT written into
-        // that other document, since 18-08 owns it in the same wave and a
-        // shared write would be the one file conflict wave 3 has
-        // otherwise avoided entirely. It ends when Phase 19 replaces this
-        // component's body.
-        property list<QtObject> _processes: [
-            Process {
-                id: notificationSubscription
-                running: true
-                command: ["swaync-client", "-swb"]
-                stdout: SplitParser {
-                    onRead: (line) => {
-                        try {
-                            const payload = JSON.parse(line);
-                            if (payload && typeof payload.text === "string") {
-                                const n = Number(payload.text);
-                                if (Number.isFinite(n) && n >= 0)
-                                    sourceRoot._unreadCount = Math.trunc(n);
-                            }
-                            if (payload && typeof payload.class === "string") {
-                                if (sourceRoot._dndClasses.indexOf(payload.class) !== -1)
-                                    sourceRoot._dndActive = true;
-                                else if (sourceRoot._liveClasses.indexOf(payload.class) !== -1)
-                                    sourceRoot._dndActive = false;
-                            }
-                            sourceRoot._available = true;
-                        } catch (e) {
-                            // malformed/truncated line — keep the
-                            // last-good values standing, never fall back
-                            // to a synthesized zero.
-                        }
-                    }
-                }
-                onExited: function (exitCode, exitStatus) {
-                    if (exitCode !== 0)
-                        sourceRoot._available = false;
-                }
-            },
-            Process {
-                id: openCentreProcess
-                command: ["swaync-client", "-t", "-sw"]
-            },
-            Process {
-                id: toggleDndProcess
-                command: ["swaync-client", "-d", "-sw"]
-            }
-        ]
     }
 
     NotificationSource {

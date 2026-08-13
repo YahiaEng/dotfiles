@@ -194,6 +194,23 @@ ShellRoot {
             }
             return false;
         }
+
+        // ── Centre toggle verb (Phase 19 Plan 06, D-19-16) — extends this
+        //    SAME "notifs" target rather than minting a second one, per
+        //    RESEARCH.md's own "IPC handler shape" example, which already
+        //    reserved this target for exactly this verb. Calls
+        //    notifCentreInstance's own toggle() directly (below, same
+        //    file) rather than re-deriving its open/close logic here —
+        //    this IPC verb and the GlobalShortcut below share that one
+        //    implementation. The bell in ClockActionsCapsule.qml cannot
+        //    reach this window instance (a different file, mounted inside
+        //    Bar.qml) and instead calls NotifServer's own public verbs
+        //    directly — the same two calls toggle()'s own body makes,
+        //    just inlined at that one cross-file call site. ──────────────
+        function toggleCentre(): string {
+            notifCentreInstance.toggle();
+            return NotifServer.centreOpen ? "open" : "closed";
+        }
     }
 
     // QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — arrangement
@@ -419,7 +436,19 @@ ShellRoot {
     // forbid running always-on (see this file's own comment block above,
     // beside audioTruthNeeded's original declaration) — the bar reads
     // only those two backends' ungated connection-state bindings.
-    readonly property bool audioTruthNeeded: dashboardLoader.active || audioPanelLoader.active || barInstance.requiresAudio
+    //
+    // ── Phase 19 Plan 06 widening — the centre's own volume/mic sliders ──
+    // NotifServer.centreOpen joins the OR-chain for the identical reason
+    // dashboardLoader.active already does: CentreFooter's sliders read
+    // AudioBackend.masterVolume/inputVolume, which are only live while
+    // this gate is true (A6, this file's own PwObjectTracker precedent).
+    // Without this, the centre's sliders would show frozen defaults while
+    // open — the exact "separate, disagreeing volume state" QNOTIF-08
+    // forbids. NotifCentre is never behind a LazyLoader (D-19-14's
+    // always-on posture), so `centreOpen` — not a loader's own `active` —
+    // is the only signal available here for "is the centre currently
+    // showing".
+    readonly property bool audioTruthNeeded: dashboardLoader.active || audioPanelLoader.active || barInstance.requiresAudio || NotifServer.centreOpen
 
     AudioBackend {
         id: audioBackendInstance
@@ -838,6 +867,22 @@ ShellRoot {
         appid: "quickshell"
         name: "overview"
         onPressed: root.toggleOverview()
+    }
+
+    // ── Notification centre (Phase 19 Plan 06, D-19-16) — `N` matches the
+    //    outgoing daemon's own Super+N chord (keybinds.lua, repointed by
+    //    this same plan from an exec_cmd shelling to swaync-client onto
+    //    this GlobalShortcut). No fullscreen refusal guard, matching the
+    //    overview's own reasoning above rather than the dashboard's: a
+    //    notification is not an interruption a fullscreen game needs
+    //    protecting from in the same way a drawer is — it is the surface
+    //    that already suppressed itself while fullscreen (QNOTIF-10) — and
+    //    an already-open centre must always be closable regardless.
+    GlobalShortcut {
+        id: notifCentreShortcut
+        appid: "quickshell"
+        name: "notif-centre"
+        onPressed: notifCentreInstance.toggle()
     }
 
     // ── Held-Super reveal (Phase 18 Plan 16, QBAR-08) — SHIPPED. ─────────

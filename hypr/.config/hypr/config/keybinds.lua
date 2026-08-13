@@ -224,7 +224,13 @@ hl.bind(mainMod .. " + A", hl.dsp.global("quickshell:audio-panel")) -- Summon au
 hl.bind(mainMod .. " + O", hl.dsp.global("quickshell:overview")) -- Summon workspace overview (OVER-01)
 
 -- ── Notification center ──────────────────────────────
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("swaync-client -t -sw")) -- Toggle notification center
+-- Phase 19 Plan 06 (D-19-16): repointed from an exec_cmd shelling to the
+-- outgoing daemon's own CLI onto this repo's own established
+-- hl.dsp.global("quickshell:<name>") + shortcuts.json + GlobalShortcut
+-- pattern — the same idiom Super+D/Super+A/Super+O already use. Identifier
+-- below byte-matches shortcuts.json's appid:name pair and shell.qml's own
+-- notifCentreShortcut — keybind-doctor's cross-check contract.
+hl.bind(mainMod .. " + N", hl.dsp.global("quickshell:notif-centre")) -- Toggle notification center (QNOTIF-06)
 
 -- ── Lock screen ──────────────────────────────────────
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(lockScreen)) -- Lock screen

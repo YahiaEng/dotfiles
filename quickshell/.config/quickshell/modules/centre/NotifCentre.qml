@@ -374,16 +374,19 @@ PanelWindow {
             }
         }
 
-        // ── Pinned footer — fixed height, never scrolls. Task 3 replaces
-        //    this placeholder Item with a real `CentreFooter` instance at
-        //    the SAME id, so `historyRegion`'s own anchor above needs no
-        //    edit when that lands. ────────────────────────────────────────
-        Item {
+        // ── Pinned footer — fixed height, never scrolls (D-19-17). The
+        //    shared toggle grid plus three live sliders (Task 3); backend
+        //    seams relayed straight through from this window's own
+        //    Task-1-declared properties, threaded in by shell.qml exactly
+        //    as Dashboard's own instantiation is. ────────────────────────
+        CentreFooter {
             id: footerHost
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: 0
+            audioBackend: centreWindow.audioBackend
+            wifiBackend: centreWindow.wifiBackend
+            bluetoothBackend: centreWindow.bluetoothBackend
         }
     }
 }
