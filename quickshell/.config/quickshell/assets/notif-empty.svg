@@ -2,17 +2,34 @@
   notif-empty.svg — the notification centre's empty-state illustration
   (Phase 19 Plan 06, D-19-22, 19-UI-SPEC.md § "Empty State").
 
-  A simple bell-with-checkmark line-art motif, resolved under Claude's
-  Discretion per D-19-22's own note that the specific asset was left open.
-  Drawn as a single flat fill (#000000, no gradients, no internal
+  A bell silhouette with a checkmark badge, resolved under Claude's
+  Discretion per D-19-22's own note that the specific asset was left
+  open. Drawn as a single flat fill (#000000, no gradients, no internal
   shading) so it reads correctly as a silhouette once
   QtQuick.Effects.MultiEffect recolours every non-transparent pixel to
   BarRoles.accent at runtime (colorization: 1) — the exact mechanism
   Caelestia's own Colouriser wrapper uses. The literal fill colour below
   is never seen on screen; only its alpha shape is.
+
+  GATE-02 gap-closure fix (ISSUE b, ~2026-08-13): the ORIGINAL version of
+  this file placed the checkmark path directly inside the bell's own
+  bounding box (bell spanning roughly x8-82/y14-79, checkmark spanning
+  roughly x30-84/y46-118) — the two motifs genuinely overlapped/clipped
+  into each other on screen, which the user reported live during GATE-02.
+  This version keeps the bell confined to the TOP-LEFT of the canvas
+  (bounding box roughly x8-68/y4-68) and the checkmark as a badge in the
+  BOTTOM-RIGHT corner (badge circle centred (94,94) r20, bounding box
+  x74-114/y74-114) — a clear 6px gap between the two bounding boxes on
+  both axes, so neither motif's geometry can ever touch the other's. The
+  checkmark itself is a HOLE cut through the solid badge circle via
+  `fill-rule="evenodd"` (two overlapping subpaths: the full circle, then
+  a checkmark-shaped polygon nested entirely inside it) — a single flat
+  colour therefore still reads as "circle with a checkmark punched out
+  of it" rather than needing a second fill colour, keeping the
+  silhouette-only constraint above intact.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="#000000">
-  <path d="M60 14c-4 0-7 3-7 7v3c-13 3-22 14-22 29v14c0 8-6 13-6 13h70s-6-5-6-13V53c0-15-9-26-22-29v-3c0-4-3-7-7-7z"/>
-  <circle cx="60" cy="92" r="8"/>
-  <path d="M38 78l14 14 30-32 8 8-38 40-22-22z"/>
+  <path d="M38 6c-3 0-5 2-5 5v2c-11 3-18 13-18 24v10c0 6-5 9-5 9h56s-5-3-5-9V37c0-11-7-21-18-24V11c0-3-2-5-5-5z"/>
+  <circle cx="38" cy="62" r="6"/>
+  <path fill-rule="evenodd" d="M74,94 A20,20 0 1,0 114,94 A20,20 0 1,0 74,94 M81,93 L89,101 L107,83 L103,79 L89,93 L85,89 Z"/>
 </svg>
