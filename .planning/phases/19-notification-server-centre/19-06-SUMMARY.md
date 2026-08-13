@@ -366,6 +366,38 @@ One honest observation for the record: `historyCount` read `0` at the very start
 
 **Commits, round 5 (final):** `0e6a9e8` (feat(19-04), popup picture+badge), `cf062ed` (feat(19-06), centre picture+badge + item 1 x-button structural fix + item 3 widened critical detection), `0171b9b` (fix(19-06), the actual clearAll()/clearGroup() root-cause fix — `interval: 0` → `interval: 1` on both batch timers).
 
+## Gap-Closure Fix, Round 6 (post-execution, GATE-02 re-check)
+
+**The user confirmed items 1 (x-button) and 2 (clear-all) from round 5 now work correctly — both permanently fixed. Two further items: the "picture" was misunderstood (a decorative centre element, not per-notification thumbnails), and destructive controls need red hover feedback.**
+
+### Item 1: the decorative centre picture — Caelestia's REAL source found and matched
+
+The user directly corrected round 5's own picture work: "it is NOT per-notification image rendering... it is a decorative/cosmetic picture — a logo/artwork element in the notification centre itself, the way Caelestia shell has one." (Round 5's thumbnail-in-row work stands on its own merits and was not reverted — it just wasn't what this specific ask was about.)
+
+**Research, per the round-6 instruction's own escalation path:** `.planning/research/FEATURES.md`'s NOTIF section (re-checked) still only documents the popup's icon+ring-progress treatment — nothing sidebar-specific. Escalated to inspecting the actual `caelestia-dots/shell` source, found already vendored at `~/.claude/jobs/4517c040/tmp/caelestia-shell` (a dated git clone, commit `06b4fe0`, 2026-07-30) — cross-checked live against the current `raw.githubusercontent.com` HEAD of `modules/sidebar/Content.qml` via `curl` and confirmed byte-identical, so the vendored copy is not stale for this file. Read every file in Caelestia's real `modules/sidebar/` tree (`Content.qml`, `Wrapper.qml`, `NotifDock.qml`, `NotifGroupList.qml`, `NotifGroup.qml`) for any `Image`/`AnimatedImage` element.
+
+**Finding:** exactly ONE decorative picture exists anywhere in Caelestia's real notification sidebar, in `NotifDock.qml` lines 96-107 — an `Image` bound to `Config.paths.noNotifsPic` (default `root:/assets/dino.png`, confirmed in `plugin/src/Caelestia/Config/userpaths.hpp`'s own `CONFIG_PROPERTY` macro), shown ONLY inside the empty-state `Loader` (`opacity: notifCount > 0 ? 0 : 1`), tinted via a `Colouriser` layer effect. There is **no separate always-visible header banner** anywhere in the real source — `Content.qml` itself is nothing more than one `NotifDock` inside a `StyledRect`; the coordinator's own "likely top-of-panel header area" framing was a reasonable guess about placement that the primary source does not actually bear out.
+
+**Conclusion:** this project's own empty-state illustration (`notif-empty.svg` + "All up to date!", built in Task 1, D-19-22) is therefore ALREADY the faithful equivalent of Caelestia's real decorative picture — same placement (centred in the empty region), same behaviour (empty-state-only), same tint mechanism (this file's own header comment already records the Colouriser-parity finding). The one genuine, concrete gap versus Caelestia's actual pattern: Caelestia's picture is user-configurable (`Config.paths.noNotifsPic`); this project's was a hardcoded bundled path with no override.
+
+**Fix:** added an optional user-override image at `~/.local/state/quickshell/notif-centre-picture.png` (the SAME directory `NotifServer.qml`'s own `notifications.json` already lives in — no new directory convention). When present and successfully loaded (`Image.status === Image.Ready`), it's used (tinted through the same `MultiEffect` colourisation as the default, matching Caelestia's own unconditional tint regardless of default-vs-override); absent or broken, it falls straight through to the bundled `notif-empty.svg` — the same `Image.status !== Error` graceful-degradation idiom this whole session's icon-fallback work already established, applied here to a missing USER asset instead of a missing notification icon.
+
+**Verified live:** with no override file present, a single `WARN: Cannot open` logs (expected — the file genuinely doesn't exist) and the bundled bell illustration renders correctly, tinted, "All up to date!" showing (screenshot-confirmed, no crash, no broken-texture gap). Dropped a real test PNG (a solid white circle) at the override path and restarted: the override rendered instead, correctly tinted through the identical `MultiEffect` pipeline (screenshot-confirmed). Removed the test file and confirmed the fallback path again on a final restart. Committed in `8928a2f` (`feat(19-06)`, bundled with item 2's clear-all hover fix below since both landed in this same file this round).
+
+### Item 2: destructive controls need red hover feedback
+
+The per-notification "x", the per-app-group "x", and the clear-all button all hovered to the neutral `BarRoles.accent` — the SAME colour any non-destructive hover in these files uses (e.g. the group-expand header background), giving a "clear this forever" action no more visual weight than "expand this." All three now hover to `BarRoles.danger`, using the exact same `containsMouse`-conditional-colour idiom these files already use everywhere — no new mechanism, just the correct colour role for what each control actually does.
+
+`NotifCard.qml` (the popup) was checked and needs no change: its dismiss mechanism is entirely gesture-based (drag/middle-click via `gestureArea` — this file's own documented single-`MouseArea` design, no second hit area). There is no separate visible hover-state "x" button on the popup card to re-colour, so the round-6 instruction's own "if it has a visible hover state" condition is not met — correctly out of scope, not overlooked.
+
+**Verified live:** each binding was temporarily forced to the danger branch unconditionally (`color: true ? BarRoles.danger : ...`), restarted, and screenshotted — all three glyphs (clear-all icon, group "x", per-row "x") rendered a clear red/pink tint, visually distinct from both the neutral resting grey and the purple accent used elsewhere in the centre. All three bindings were then reverted to their real `containsMouse`-conditional form before committing. Committed in `fe8851f` (`fix(19-06)`, `NotifGroup.qml`'s two close glyphs) and `8928a2f` (`feat(19-06)`, `NotifCentre.qml`'s clear-all icon, bundled with item 1).
+
+### Round 6 verification summary
+
+Every code-affecting change was verified against the running shell (`systemctl --user restart quickshell.service`, `~/.cache/quickshell/qmlcache/` cleared before each restart — six restarts this round). `pgrep -x quickshell` stayed a single PID and `coredumpctl list` showed no entry past the original `16:15:54` dump after every restart; `busctl --user list` confirmed `quickshell` retained sole ownership of `org.freedesktop.Notifications` throughout. No Plan 19-08 artifact and no swaync-related file was touched.
+
+**Commits, round 6:** `fe8851f` (fix(19-06), `NotifGroup.qml` destructive hover), `8928a2f` (feat(19-06), decorative picture + user override + `NotifCentre.qml`'s own clear-all hover fix).
+
 ## User Setup Required
 
 None - no external service configuration required.
