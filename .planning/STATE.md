@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
 current_phase_name: notification-server-centre
 status: executing
-stopped_at: Completed 19-02-PLAN.md
-last_updated: "2026-08-13T09:31:24.299Z"
+stopped_at: Completed 19-03-PLAN.md
+last_updated: "2026-08-13T09:56:32.276Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 35
-  completed_plans: 29
+  completed_plans: 30
   percent: 33
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (notification-server-centre) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
-Progress: [████████░░] 83%
+Progress: [█████████░] 86%
 Last activity: 2026-08-13 — Phase 19 execution started
 
 ## Performance Metrics
@@ -221,6 +221,7 @@ Last activity: 2026-08-13 — Phase 19 execution started
 | Phase 18 P20 | 50min | 3 tasks | 72 files |
 | Phase 19 P01 | ~55min | 3 tasks | 9 files |
 | Phase 19 P02 | ~35min | 2 tasks | 7 files |
+| Phase 19 P03 | ~40 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -477,6 +478,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: swaync is D-Bus-activated (Type=dbus/BusName), not a bare exec-once process; systemctl mask/unmask is the correct tool for a clean single-owner bus test
 - [Phase ?]: LEDGER-04: all five open debug sessions corrected to resolved (not deferred) after cross-checking 15-UAT.md's own Gaps ledger, which 19-RESEARCH.md's ground-truth pass had not consulted — Each of the five bugs was already fixed by its own Phase 15 gap-closure plan and confirmed pass on round-2 UAT retest; writing a deferral for an already-shipped, verified fix would itself be inaccurate record-keeping
 - [Phase ?]: G-15-7 (bluetooth pairing containment) dispositioned resolved-by-construction but left open, pointed at plan 19-08 for its live pairing verification — The item's own closing condition has a live-verification half no documentation pass can satisfy; marking it closed here would be a fabricated resolution
+- [Phase ?]: D-19-45/D-19-46 implemented and verified (wallpaper pointer relocated to ~/.local/state/theme/current.jpg; theme-stress-test's REPRESENTATIVE_FILES corrected); LEDGER-07 left open — theme-stress-test's full clean run is blocked by a pre-existing, out-of-scope hypr-equivalence-check baseline staleness (tracked since Phase 15, compounded since; see 19-03-SUMMARY.md and deferred-items.md)
 
 ### Quick Tasks Completed
 
@@ -565,6 +567,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - 18-10: live click-through verification of the tray menu (activation call + dismissal mechanism) deferred to the user — WINDOWS.md entries 30/31/32
 - QBAR-08 Super-hold half blocked: keybind-doctor's chord-collision check flags a press-bind on SUPER+SUPER_L against the shipped release-bind tap-to-menu bind at keybinds.lua:86; needs the Step 2 nested-hypr-lua-harness live probe (or a hand keypress test) before the mechanism can ship. Recovery path recorded in BarReveal.qml's header.
 - 18-18 HALTED (not complete): LEDGER-03 frame-rate campaign and QBAR-11 soak end-capture/200-cycle exercise both deferred — need user-present live desktop rearrangement (frame-rate) and ~3h40m more continued uptime on quickshell pid 737907 (soak). Resume commands in 18-FRAME-RATE.md and 18-BAR-SOAK.md Section five. WINDOWS.md entries 51/52. 18-19 blocked on this halt per status:halted contract.
+- hypr-equivalence-check baseline (Phase 13.1) is stale — binds.json/animations.json/options.jsonl diverge, plus a structural theme-coupling issue in the border-color comparison. Blocks theme-stress-test from ever reaching a full clean run until a surgical re-baseline (14-10/16-04 precedent) is done with human review. See WINDOWS.md #71 and 19-notification-server-centre/deferred-items.md.
 
 ## Deferred Items
 
@@ -614,8 +617,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-13T09:31:24.280Z
-Stopped at: Completed 19-02-PLAN.md
+Last session: 2026-08-13T09:56:32.257Z
+Stopped at: Completed 19-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
