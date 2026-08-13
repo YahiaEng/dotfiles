@@ -416,6 +416,36 @@ Singleton {
     // Scale" exceptions note). 0.3 is the conventional swipe-to-confirm
     // dismiss range, resolved under Claude's Discretion.
     readonly property real notifDismissThresholdFraction: 0.3
+    // ── GATE-02 gap-closure round 7 additions ───────────────────────────
+    // Item 3 — the DESIGN bound on simultaneous popups, layered on top of
+    // NotifPopupStack's own geometric 2/3-screen-height fit (whichever is
+    // smaller wins there). Three is the depth at which a stack still reads
+    // as a stack: enough for a burst to be visible at once, few enough
+    // that the surplus rolls into the existing "+N more" summary card
+    // instead of tiling the right edge of the screen.
+    readonly property int notifMaxVisiblePopups: 3
+    // Item 2 — expanded-state body clamp. The compact state already elides
+    // the body to one line; the EXPANDED state had no bound at all
+    // (`maximumLineCount: 0`, `elide: ElideNone`), so a long-bodied
+    // notification grew its card without limit and could run off-screen —
+    // the "long content looks weird inside the card" report. 19-UI-SPEC.md
+    // (N1/overflow) specifies "expanded state scrolls if content still
+    // exceeds the clamp", but a Flickable nested inside this card would
+    // have to fight the card's OWN two drag gestures for the same
+    // vertical/horizontal touch stream (D-19-05 expand, D-19-07 dismiss),
+    // so the clamp is enforced by line count with an ellipsis instead of a
+    // scroll view — same bound, no gesture contention. Eight lines keeps
+    // a normal multi-paragraph message fully visible.
+    readonly property int notifBodyMaxLines: 8
+    // Item 1 — the notification centre's persistent decorative picture
+    // band. Round 6 shipped this picture inside the EMPTY-STATE block, so
+    // it was visible only while history was completely empty; with any
+    // notification present it was gone, which is the "where is the picture"
+    // report. It is now a permanent element of the centre and this is the
+    // vertical band it occupies, under the header and above the history
+    // list. Large enough to read as artwork rather than an icon, small
+    // enough that a full-height centre still shows plenty of history.
+    readonly property int notifCentrePictureHeight: 132
     // D-19-36 — the DND-toggle toast's own auto-dismiss window,
     // deliberately its own number rather than reused from D-19-04's 3s/5s
     // notification timeouts: a toast is feedback for an action just

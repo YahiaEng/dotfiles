@@ -93,15 +93,36 @@ Singleton {
     // ── Notification surfaces (Phase 19 Plan 01 tracer, D-19-43) — the
     //    popup card, centre frame and toast all read these three rows;
     //    never a direct Colours.* reference from a notification-family
-    //    file. 0.78 is the exact panelSurfaceOpacity decimal
-    //    PanelDialog.qml already established (PanelDialog.qml:154),
-    //    reused verbatim rather than rederived, matching this file's own
-    //    stated idiom of carrying literal decimals forward without
-    //    intermediate arithmetic.
-    readonly property color notifSurface: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.78)
+    //    file.
+    //
+    // GATE-02 gap-closure (round 7, item 4 — "give notifications and the
+    // notification centre a glass look"). These were 0.78/0.90, inherited
+    // verbatim from PanelDialog.qml's own panelSurfaceOpacity. Both
+    // notification surfaces ALREADY sit under the `^quickshell-.*` family
+    // blur rule (windowrules.lua) via their `quickshell-notif-popups` /
+    // `quickshell-notif-centre` namespaces — so the compositor was already
+    // frosting the backdrop; at 0.78 almost none of that frost reached the
+    // eye, and the surfaces read as solid panels. The lever is this
+    // surface's OWN alpha, exactly as windowrules.lua's own family comment
+    // states ("if this reads too strong, the lever is this surface's own
+    // alpha ... not another boolean") — no compositor change is made here,
+    // so no hyprctl reload/eval is required for this to take effect.
+    //
+    // 0.55 is NOT a new value: it is `barSurface`'s own resting alpha
+    // (line 59), already proven glassy-not-transparent on this host under
+    // the same family blur rule. Critically, the family's ignore_alpha
+    // floor is 0.5 — a region composited BELOW that cutoff is not blurred
+    // at all and reads as raw unblurred transparency (the exact failure
+    // mode recorded at the ags-media and quickshell-overview rules). 0.55
+    // and 0.72 both clear 0.5, so every region of both surfaces stays
+    // above the cutoff and genuinely frosts. Do not lower either value
+    // past 0.5 without first declaring a namespace-scoped ignore_alpha
+    // rule AFTER the family pair in windowrules.lua — declared before it,
+    // it silently loses (that file's own ordering finding).
+    readonly property color notifSurface: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.55)
     readonly property color notifSurfaceFg: Colours.onSurface
-    // Sits between the resting 0.78 and capsule's own 0.95 hover
-    // register — a notification card is a heavier, less pill-like
-    // surface than a bar capsule (19-UI-SPEC.md "BarRoles.qml additions").
-    readonly property color notifSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.90)
+    // Keeps the original ~0.12 resting→hover step (was 0.78→0.90), so a
+    // hovered card still reads as lifting toward the viewer, now from the
+    // glassier resting register. Still clear of the 0.5 blur cutoff.
+    readonly property color notifSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.72)
 }

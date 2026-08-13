@@ -431,7 +431,17 @@ Item {
                 // Titles never carry markdown in this design.
                 textFormat: Text.PlainText
                 elide: Text.ElideRight
-                maximumLineCount: 1
+                // GATE-02 gap-closure (round 7, item 2). Compact stays at
+                // one elided line exactly as 19-UI-SPEC.md's N1/long-text
+                // rule requires ("Summary elides right at one line
+                // (compact)") — the spec deliberately says nothing about
+                // the EXPANDED state, and a long title chopped mid-word
+                // while the card is deliberately opened to show more is
+                // the same "long content looks weird" complaint the body
+                // clamp below answers. Two lines expanded, still elided
+                // past that so a pathological title cannot grow the card.
+                wrapMode: card.expanded ? Text.Wrap : Text.NoWrap
+                maximumLineCount: card.expanded ? 2 : 1
                 font.pixelSize: Design.fontHeading
                 font.weight: Design.weightEmphasis
                 color: card._fg
@@ -447,8 +457,19 @@ Item {
                 text: NotifMarkdown.filter(card.body)
                 textFormat: Text.MarkdownText
                 wrapMode: card.expanded ? Text.Wrap : Text.NoWrap
-                elide: card.expanded ? Text.ElideNone : Text.ElideRight
-                maximumLineCount: card.expanded ? 0 : 1
+                // GATE-02 gap-closure (round 7, item 2 — "notifications
+                // with long content look weird inside the card"). The
+                // expanded state was `elide: ElideNone` +
+                // `maximumLineCount: 0`, i.e. no bound of any kind: the
+                // card's own `implicitHeight` is driven by this column, so
+                // a long-bodied notification grew the card without limit
+                // and could exceed the screen. Now bounded by
+                // `Design.notifBodyMaxLines` with a trailing ellipsis (see
+                // that token's own note for why a line clamp rather than
+                // the spec's nested Flickable — gesture contention with
+                // this card's two drag axes).
+                elide: Text.ElideRight
+                maximumLineCount: card.expanded ? Design.notifBodyMaxLines : 1
                 font.pixelSize: Design.fontBody
                 color: card._fg
                 linkColor: BarRoles.accent

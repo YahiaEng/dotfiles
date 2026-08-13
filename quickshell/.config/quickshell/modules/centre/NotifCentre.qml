@@ -384,9 +384,98 @@ PanelWindow {
         //    grouped-history ListView (Task 2) as siblings — the empty
         //    state answers to this region's own emptiness independent of
         //    which child is currently rendering content. ─────────────────
+        // ── Decorative picture band (GATE-02 gap-closure, round 7 item 1)
+        //
+        // Round 6 implemented this picture INSIDE the empty-state block,
+        // faithfully mirroring Caelestia's own `NotifDock.qml` (its
+        // `noNotifsPic` lives in an empty-state Loader, opacity bound to
+        // `notifCount > 0 ? 0 : 1`). That reading of Caelestia is still
+        // correct — but it is not what was asked for here: the picture was
+        // therefore invisible in the ONLY state the user ever opens the
+        // centre in, i.e. with notifications present. Per direct round-7
+        // correction it is now a PERMANENT element of the centre: always
+        // rendered, in its own band under the header and above the history
+        // list, independent of `NotifServer.history.length`. This is a
+        // deliberate divergence from Caelestia's empty-only placement,
+        // recorded here so a future reader does not "restore parity" and
+        // silently regress it back to round 6's behaviour.
+        //
+        // Two further changes were required for it to read as a picture at
+        // all, both carried over from the round-6 implementation:
+        //   1. Size — it was 96x96 (icon scale). The band is 132px tall
+        //      and full-width, so real artwork has room to be artwork.
+        //   2. Colourisation — round 6 ran BOTH the bundled fallback AND
+        //      any user-supplied override through `colorization: 1.0`,
+        //      which flattens every pixel to a single accent-coloured
+        //      silhouette. That is right for the bundled monochrome SVG
+        //      glyph (and is what Caelestia does to its own mascot), but
+        //      it means a user who dropped their own PNG at the documented
+        //      override path got a flat accent blob, never their picture.
+        //      The override now renders untinted at its natural aspect;
+        //      only the bundled glyph is colourised.
+        //
+        // Override path is unchanged from round 6 (a user who already
+        // placed a file there keeps it working):
+        //   ~/.local/state/quickshell/notif-centre-picture.png
+        Item {
+            id: decorPicture
+            anchors.top: header.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Design.spacingMd
+            anchors.rightMargin: Design.spacingMd
+            height: Design.notifCentrePictureHeight
+
+            readonly property string _overridePath: Quickshell.env("HOME") + "/.local/state/quickshell/notif-centre-picture.png"
+            // Graceful degradation, unchanged in shape from round 6: the
+            // override counts only once it has genuinely finished loading
+            // (Image.Ready). An absent file reports Image.Error/Image.Null
+            // and this falls straight through to the bundled glyph — never
+            // a blank band or a broken-texture gap.
+            readonly property bool _hasOverride: decorPictureOverride.status === Image.Ready
+
+            Image {
+                id: decorPictureOverride
+                anchors.fill: parent
+                source: "file://" + decorPicture._overridePath
+                // Rendered directly — no `layer.enabled`, no MultiEffect,
+                // so the user's own colours survive (see the note above).
+                fillMode: Image.PreserveAspectFit
+                visible: decorPicture._hasOverride
+                asynchronous: true
+                cache: false
+                smooth: true
+            }
+
+            Image {
+                id: decorPictureFallback
+                anchors.centerIn: parent
+                width: Math.min(parent.width, parent.height)
+                height: width
+                source: "../../assets/notif-empty.svg"
+                fillMode: Image.PreserveAspectFit
+                // See DashboardTab.qml/MediaTab.qml's own recorded finding
+                // (and this file's round-6 note): an invisible source item
+                // with no `layer.enabled` produces no paint node at all, so
+                // the MultiEffect below would read an empty texture.
+                visible: false
+                layer.enabled: true
+                smooth: true
+                sourceSize.width: width
+                sourceSize.height: height
+            }
+            MultiEffect {
+                anchors.fill: decorPictureFallback
+                source: decorPictureFallback
+                visible: !decorPicture._hasOverride
+                colorization: 1.0
+                colorizationColor: BarRoles.accent
+            }
+        }
+
         Item {
             id: historyRegion
-            anchors.top: header.bottom
+            anchors.top: decorPicture.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             // GATE-02 gap-closure fix (ISSUE c) — this region previously
@@ -501,72 +590,20 @@ PanelWindow {
                 // project's picture was a hardcoded bundled path with no
                 // user-override mechanism, unlike `Config.paths.noNotifsPic`
                 // — closed below. ───────────────────────────────────────
-                Item {
-                    id: emptyIllustrationHost
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 96
-                    height: 96
-
-                    // User-configurable override (round 6) — mirrors
-                    // Caelestia's own `Config.paths.noNotifsPic` pattern: a
-                    // fixed, documented path under this shell's own
-                    // existing `~/.local/state/quickshell/` directory (the
-                    // SAME directory `NotifServer.qml`'s own
-                    // `notifications.json` already lives in — no new
-                    // directory convention introduced). Absent by default
-                    // (sane fallback below); a user who drops a PNG there
-                    // gets their own artwork instead of the bundled bell,
-                    // exactly like swapping Caelestia's own `noNotifsPic`.
-                    readonly property string _overridePath: Quickshell.env("HOME") + "/.local/state/quickshell/notif-centre-picture.png"
-
-                    Image {
-                        id: emptyIllustrationOverride
-                        anchors.fill: parent
-                        source: "file://" + emptyIllustrationHost._overridePath
-                        visible: false
-                        asynchronous: true
-                        cache: false
-                        // Same load-bearing note as the bundled default
-                        // below — an invisible source with no
-                        // `layer.enabled` paints nothing for MultiEffect to
-                        // read.
-                        layer.enabled: true
-                        smooth: true
-                        sourceSize.width: emptyIllustrationHost.width
-                        sourceSize.height: emptyIllustrationHost.height
-                    }
-                    Image {
-                        id: emptyIllustrationSource
-                        anchors.fill: parent
-                        source: "../../assets/notif-empty.svg"
-                        visible: false
-                        // See DashboardTab.qml/MediaTab.qml's own recorded
-                        // finding: an invisible source item with no
-                        // `layer.enabled` produces no paint node at all, so
-                        // MultiEffect would read an empty texture.
-                        layer.enabled: true
-                        smooth: true
-                        sourceSize.width: emptyIllustrationHost.width
-                        sourceSize.height: emptyIllustrationHost.height
-                    }
-                    MultiEffect {
-                        anchors.fill: parent
-                        // Graceful degradation: the override is used only
-                        // once it has genuinely finished loading
-                        // (Image.Ready) — an absent file reports
-                        // Image.Error/Image.Null and this falls straight
-                        // through to the bundled default, never a blank or
-                        // broken-texture gap. Both sources are tinted
-                        // through the SAME colourisation, matching
-                        // Caelestia's own unconditional tint (it colourises
-                        // whatever `noNotifsPic` currently resolves to,
-                        // default or user-overridden alike).
-                        source: emptyIllustrationOverride.status === Image.Ready ? emptyIllustrationOverride : emptyIllustrationSource
-                        colorization: 1.0
-                        colorizationColor: BarRoles.accent
-                    }
-                }
-
+                // ROUND 7 SUPERSESSION — the illustration that used to sit
+                // here has MOVED OUT of the empty state and into the
+                // permanent `decorPicture` band declared above this
+                // Column's own parent region. Everything the round-6
+                // research block above establishes about Caelestia's
+                // empty-only placement remains factually accurate and is
+                // kept for provenance; it is simply no longer what this
+                // project does, by direct instruction (see `decorPicture`'s
+                // own header for the full rationale, the override path,
+                // and why the override is no longer colourised). Nothing
+                // is rendered here now — duplicating the picture would
+                // show it twice whenever history happened to be empty, so
+                // the empty state keeps only its headline below, beneath
+                // the always-visible band.
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "All up to date!"

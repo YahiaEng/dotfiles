@@ -97,7 +97,18 @@ PanelWindow {
     // the ListView's own inter-card spacing — the same shape a real
     // compact NotifCard resolves to via its own `implicitHeight` formula.
     readonly property real _perCardHeight: Design.notifImageSize + Design.spacingMd * 2 + Design.spacingSm
-    readonly property int _rawMaxVisible: Math.max(1, Math.floor(popupStack._availableHeight / popupStack._perCardHeight))
+    // GATE-02 gap-closure (round 7, item 3 — "reduce the max limit of popup
+    // notifications that can appear at a time"). Previously this was the
+    // geometric fit alone: on this host's monitor that resolves to roughly
+    // a dozen simultaneous cards before the "+N more" summary ever appears,
+    // which is a wall of popups, not a stack. The geometric bound stays as
+    // the hard ceiling (a short monitor must still never overflow its own
+    // 2/3-height budget), and `Design.notifMaxVisiblePopups` is layered on
+    // top as the DESIGN bound — whichever is smaller wins. The "+N more"
+    // overflow card and every count below are unchanged and pick this up
+    // automatically, so nothing is dropped or hidden: the surplus is
+    // summarised exactly as it already was when the screen ran out of room.
+    readonly property int _rawMaxVisible: Math.min(Design.notifMaxVisiblePopups, Math.max(1, Math.floor(popupStack._availableHeight / popupStack._perCardHeight)))
     readonly property int _totalCount: NotifServer.popups.length
     readonly property bool _needsClamp: popupStack._totalCount > popupStack._rawMaxVisible
     // One slot is reserved for the "+N more" card itself when clamped.
