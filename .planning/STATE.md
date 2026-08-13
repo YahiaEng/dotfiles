@@ -4,15 +4,15 @@ milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
 current_phase_name: Notification Server & Centre
-status: planning
+status: executing
 stopped_at: Phase 19 context gathered
-last_updated: "2026-08-13T01:52:41.773Z"
+last_updated: "2026-08-13T02:49:42.767Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 27
+  total_plans: 35
   completed_plans: 27
   percent: 33
 ---
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 Phase: 19 — Notification Server & Centre
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Progress: [██████████] 100%
 Last activity: 2026-08-13 — Phase 18.1 complete, transitioned to Phase 19
 
