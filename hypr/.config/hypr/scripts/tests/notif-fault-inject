@@ -1,0 +1,277 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║          NOTIF-FAULT-INJECT (Phase 19 Plan 04)         ║
+# ║  Mechanical fault-injection fixture for the two         ║
+# ║  QNOTIF-05/QNOTIF-04 mechanics carrying extra            ║
+# ║  verification weight under the phase's own no-soak,      ║
+# ║  no-rollback swaync retirement (D-19-46-class risk).       ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Injection 1 — in-place update (`replaces_id`, D-19-08, QNOTIF-05):
+# issues two `Notify` calls sharing an id and asserts, off the shell's own
+# IPC surface (never a screenshot): the in-flight count is unchanged, the
+# card's stack index is unchanged, and the visible text matches the
+# second call. Read via `qs ipc call notifs <fn>` — the `notifs` IpcHandler
+# `shell.qml` declares for exactly this fixture (RESEARCH.md's own "IPC
+# handler shape" reserved that target name for the centre/DND verbs a
+# later plan adds; this is the SAME target, extended, never a second one).
+#
+# Injection 2 — action invocation (QNOTIF-04): sends a notification
+# carrying an action from a sender THIS fixture controls (a short-lived
+# Python listener on the session bus, generated to a temp file below —
+# `notif-fault-inject` stays a single standalone file, matching this
+# repo's existing tests/ convention), invokes that action through the
+# shell's real `notifs.invokeAction` verb (the same `NotificationAction
+# .invoke()` call a real card's action-button `TapHandler` makes — not a
+# synthetic bus signal), and asserts the sender's OWN `ActionInvoked`
+# handler wrote a sentinel file. Asserting only "the shell did not error"
+# proves nothing about the far end reached (QNOTIF-04 is entirely about
+# the far end), so the sentinel is written by the sender's own signal
+# subscription, never inferred from the invoking side.
+#
+# ── Live-session notification-daemon race (documented, not a defect) ────
+# swaync remains installed and D-Bus-activated until this phase's own
+# retirement plan (19-08) deletes it; whichever of swaync/quickshell
+# claims org.freedesktop.Notifications first on a given boot keeps it
+# (Plan 19-01's own key-decision, restated here). If swaync currently
+# holds the name, this script follows Plan 19-01's established
+# precedent: mask+stop swaync just long enough for Quickshell's own
+# retry-on-unregister to reclaim the name (no quickshell restart needed —
+# live-verified: Quickshell's NotificationServer logs "Registration will
+# be attempted again if the active service is unregistered" and does so
+# within ~1s), run both injections, then restore swaync via a trap
+# installed BEFORE the mutation (T-11-11's own restore discipline) so a
+# mid-script failure never leaves the host holding a masked swaync unit.
+# Once 19-08 deletes swaync outright, `_notif_owner` already reports
+# "quickshell" on entry and this whole block is skipped — forward-safe
+# with no edit needed.
+#
+# Do NOT pipe into a quiet-mode grep invocation anywhere in this file —
+# under `pipefail`, a successful early match can terminate the producer
+# and surface exit 141, which flips PASS/FAIL as a function of input
+# length rather than content (this repo's own documented false-pass
+# trap; every check here buffers to a variable first, then tests the
+# variable).
+#
+# Re-runnable back-to-back with no manual cleanup: every assertion below
+# is a BEFORE/AFTER comparison local to its own two `Notify` calls, never
+# an absolute count — leftover popups from a prior run (still live under
+# their own 3-5s dismiss timers) never change a later run's verdict.
+#
+# Usage: notif-fault-inject
+set -uo pipefail
+
+command -v qs >/dev/null 2>&1 || { echo "FATAL: qs (Quickshell CLI) not found on PATH" >&2; exit 1; }
+command -v notify-send >/dev/null 2>&1 || { echo "FATAL: notify-send not found on PATH" >&2; exit 1; }
+command -v busctl >/dev/null 2>&1 || { echo "FATAL: busctl not found on PATH" >&2; exit 1; }
+command -v python3 >/dev/null 2>&1 || { echo "FATAL: python3 not found on PATH" >&2; exit 1; }
+python3 -c 'import gi; gi.require_version("GLib", "2.0"); from gi.repository import Gio, GLib' >/dev/null 2>&1 \
+    || { echo "FATAL: python3 gi (PyGObject) with Gio/GLib not importable — needed for the action-injection sender" >&2; exit 1; }
+
+PASS=0
+FAIL=0
+
+# check DESC OK — OK is "0" for pass, any other value for fail (mirrors
+# quickshell-doctor's own convention).
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        printf '  [PASS] %s\n' "$desc"
+        PASS=$((PASS + 1))
+    else
+        printf '  [FAIL] %s\n' "$desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# ── Notification-name ownership discipline (T-11-11 restore-before-mutate
+#    shape) ─────────────────────────────────────────────────────────────
+_notif_owner() {
+    # Buffered to a variable, never piped straight into a quiet-mode
+    # grep — a poisoned/empty `busctl --user list` output must resolve
+    # to an empty string here, not a truncated pipe.
+    local out
+    out="$(busctl --user list 2>/dev/null)"
+    printf '%s\n' "$out" | awk '$1 == "org.freedesktop.Notifications" { print $3; exit }'
+}
+
+_SWAYNC_WAS_MASKED=0
+_restore_swaync() {
+    if [[ "$_SWAYNC_WAS_MASKED" -eq 1 ]]; then
+        systemctl --user unmask swaync.service >/dev/null 2>&1
+        systemctl --user reset-failed swaync.service >/dev/null 2>&1
+        systemctl --user start swaync.service >/dev/null 2>&1 || true
+    fi
+    [[ -n "${_SENDER_SCRIPT:-}" ]] && rm -f "$_SENDER_SCRIPT"
+    [[ -n "${_SENDER_OUT:-}" ]] && rm -f "$_SENDER_OUT" "$_SENDER_OUT.err"
+    [[ -n "${_SENTINEL:-}" ]] && rm -f "$_SENTINEL"
+}
+trap _restore_swaync EXIT
+
+owner="$(_notif_owner)"
+if [[ "$owner" != "quickshell" ]]; then
+    echo "notif-fault-inject: org.freedesktop.Notifications currently owned by '${owner:-<none>}' — masking swaync so Quickshell can claim it (restored on exit)"
+    systemctl --user mask --now swaync.service >/dev/null 2>&1
+    pkill -x swaync >/dev/null 2>&1 || true
+    _SWAYNC_WAS_MASKED=1
+    claimed=0
+    for _ in $(seq 1 25); do
+        if [[ "$(_notif_owner)" == "quickshell" ]]; then
+            claimed=1
+            break
+        fi
+        sleep 0.2
+    done
+    check "Quickshell claims org.freedesktop.Notifications after swaync is masked" "$([[ "$claimed" -eq 1 ]] && echo 0 || echo 1)"
+    if [[ "$claimed" -ne 1 ]]; then
+        echo ""
+        echo "Summary: ${PASS} passed, ${FAIL} failed"
+        exit 1
+    fi
+else
+    check "Quickshell already owns org.freedesktop.Notifications" 0
+fi
+
+echo ""
+echo "-- injection 1: in-place update (replaces_id, QNOTIF-05) --"
+
+count_before="$(qs ipc call notifs count 2>/dev/null)"
+id1="$(notify-send --print-id "Fault Inject Original" "original body" 2>/dev/null)"
+sleep 0.3
+
+count_after_send="$(qs ipc call notifs count 2>/dev/null)"
+index_before="$(qs ipc call notifs indexOf "$id1" 2>/dev/null)"
+
+id1_replace="$(notify-send --print-id -r "$id1" "Fault Inject Updated" "updated body" 2>/dev/null)"
+sleep 0.3
+
+count_after_replace="$(qs ipc call notifs count 2>/dev/null)"
+index_after="$(qs ipc call notifs indexOf "$id1" 2>/dev/null)"
+text_after="$(qs ipc call notifs textOf "$id1" 2>/dev/null)"
+
+ok=1
+[[ "$id1_replace" == "$id1" ]] && ok=0
+check "replace call returns the same notification id ($id1 -> $id1_replace)" "$ok"
+
+ok=1
+[[ "$count_after_send" == "$count_after_replace" ]] && ok=0
+check "in-flight count unchanged across the replace ($count_after_send -> $count_after_replace)" "$ok"
+
+ok=1
+[[ -n "$index_before" && "$index_before" != "-1" && "$index_before" == "$index_after" ]] && ok=0
+check "card's stack index unchanged across the replace ($index_before -> $index_after)" "$ok"
+
+ok=1
+[[ "$text_after" == "Fault Inject Updated|updated body" ]] && ok=0
+check "visible text matches the second call's values (got: $text_after)" "$ok"
+
+ok=1
+[[ "$count_before" -ge 0 ]] 2>/dev/null && ok=0
+check "baseline count read cleanly before injection (got: $count_before)" "$ok"
+
+echo ""
+echo "-- injection 2: action invocation reaches the sending process (QNOTIF-04) --"
+
+_SENDER_SCRIPT="$(mktemp)"
+_SENDER_OUT="$(mktemp)"
+_SENTINEL="$(mktemp -u)"
+
+cat > "$_SENDER_SCRIPT" <<'PYEOF'
+#!/usr/bin/env python3
+# Standalone sender+listener this fixture owns end to end: sends its own
+# Notify call carrying one action, then subscribes to ActionInvoked and
+# writes a sentinel file ONLY when ITS OWN notification id + action
+# identifier come back — the observable proof that invocation actually
+# reached this sending process, not merely that the shell reported no
+# error invoking it.
+import sys
+import gi
+gi.require_version('GLib', '2.0')
+from gi.repository import Gio, GLib
+
+
+def main():
+    if len(sys.argv) != 2:
+        print("usage: sender.py <sentinel-path>", file=sys.stderr)
+        return 2
+    sentinel_path = sys.argv[1]
+    action_id = "default"
+
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+    loop = GLib.MainLoop()
+    state = {"fired": False}
+    notif_id = None
+
+    def on_signal(connection, sender_name, object_path, interface_name,
+                  signal_name, parameters, user_data):
+        nid, act = parameters.unpack()
+        if nid == notif_id and act == action_id:
+            with open(sentinel_path, "w") as f:
+                f.write("fired\n")
+            state["fired"] = True
+            loop.quit()
+
+    sub_id = bus.signal_subscribe(
+        None, "org.freedesktop.Notifications", "ActionInvoked",
+        "/org/freedesktop/Notifications", None, Gio.DBusSignalFlags.NONE,
+        on_signal, None)
+
+    result = bus.call_sync(
+        "org.freedesktop.Notifications", "/org/freedesktop/Notifications",
+        "org.freedesktop.Notifications", "Notify",
+        GLib.Variant("(susssasa{sv}i)", (
+            "notif-fault-inject", 0, "",
+            "Fault Inject Action Test", "action fixture",
+            [action_id, "Default Action"], {}, -1)),
+        GLib.VariantType("(u)"), Gio.DBusCallFlags.NONE, 5000, None)
+    notif_id = result.unpack()[0]
+
+    print(notif_id, flush=True)
+
+    GLib.timeout_add_seconds(10, loop.quit)
+    loop.run()
+
+    bus.signal_unsubscribe(sub_id)
+    return 0 if state["fired"] else 1
+
+
+sys.exit(main())
+PYEOF
+
+python3 "$_SENDER_SCRIPT" "$_SENTINEL" > "$_SENDER_OUT" 2>"$_SENDER_OUT.err" &
+sender_pid=$!
+
+action_id=""
+for _ in $(seq 1 50); do
+    if [[ -s "$_SENDER_OUT" ]]; then
+        action_id="$(head -n1 "$_SENDER_OUT")"
+        [[ "$action_id" =~ ^[0-9]+$ ]] && break
+        action_id=""
+    fi
+    sleep 0.1
+done
+
+ok=1
+[[ -n "$action_id" ]] && ok=0
+check "sender produced a notification id to act on (got: ${action_id:-<none>})" "$ok"
+
+if [[ -n "$action_id" ]]; then
+    qs ipc call notifs invokeAction "$action_id" default >/dev/null 2>&1
+fi
+
+wait "$sender_pid" 2>/dev/null
+sender_rc=$?
+
+ok=1
+[[ -f "$_SENTINEL" ]] && ok=0
+check "sender's own ActionInvoked handler wrote the sentinel (arrival at the sending process proven, not assumed)" "$ok"
+
+ok=1
+[[ "$sender_rc" -eq 0 ]] && ok=0
+check "sender exited 0 (received its own action before the 10s bound)" "$ok"
+
+echo ""
+echo "Summary: ${PASS} passed, ${FAIL} failed"
+[[ "$FAIL" -eq 0 ]]
+exit $?

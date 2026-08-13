@@ -61,6 +61,59 @@ ShellRoot {
     //    what keeps it visually inert until a real notification exists.
     NotifPopupStack {}
 
+    // ── Notification test IPC surface (Phase 19 Plan 04, Task 3 — Rule 2
+    //    deviation, missing critical functionality) — the plan's own
+    //    fault-injection fixture (notif-fault-inject) needs a mechanical,
+    //    screenshot-free way to read the popup stack's count/index/text
+    //    and to invoke a tracked notification's own action exactly the way
+    //    a real card's action-button TapHandler would. No such surface
+    //    existed before this plan. RESEARCH.md's own "IPC handler shape"
+    //    code example already reserves a `notifs` IpcHandler target for
+    //    the centre/DND verbs a later plan adds — this extends that SAME
+    //    target rather than minting a second one, with only the verbs
+    //    this fixture needs today. `invokeAction` calls the real
+    //    `NotificationAction.invoke()` method (the same one a card's own
+    //    action-button TapHandler calls), not a synthetic bus signal, so
+    //    the fixture exercises the shell's actual code path rather than
+    //    standing in for it.
+    IpcHandler {
+        id: notifsIpc
+        target: "notifs"
+
+        function count(): int {
+            return NotifServer.popups.length;
+        }
+        function historyCount(): int {
+            return NotifServer.history.length;
+        }
+        function indexOf(id: int): int {
+            for (var i = 0; i < NotifServer.popups.length; i++) {
+                if (NotifServer.popups[i].notifId === id)
+                    return i;
+            }
+            return -1;
+        }
+        function textOf(id: int): string {
+            var idx = notifsIpc.indexOf(id);
+            if (idx === -1)
+                return "";
+            return NotifServer.popups[idx].summary + "|" + NotifServer.popups[idx].body;
+        }
+        function invokeAction(id: int, identifier: string): bool {
+            var idx = notifsIpc.indexOf(id);
+            if (idx === -1)
+                return false;
+            var actions = NotifServer.popups[idx].actions;
+            for (var i = 0; i < actions.length; i++) {
+                if (actions[i].identifier === identifier) {
+                    actions[i].invoke();
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     // QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — arrangement
     // A, a Variants+LazyLoader fan-out declared here in shell.qml,
     // reproduced 11-QUICKSHELL-EVIDENCE.md's FM2 post-hotplug visibility
