@@ -5,6 +5,17 @@
 
 export GDK_BACKEND=wayland,x11,*
 export QT_QPA_PLATFORM="wayland;xcb"
+# Without this, Qt has NO icon theme name and searches only hicolor, its
+# built-in fallback. Measured on this host: hasThemeIcon("mpv") (hicolor)
+# = true, while "preferences-desktop-theme"/"folder"/"audio-volume-high"
+# (elementary, the ACTIVE gsettings icon theme) = false. Quickshell's
+# image://icon/ provider then paints a magenta/black missing-texture
+# checkerboard for those names at status Ready — not Image.Error — so no
+# load-failure guard can catch it. gtk3 makes Qt read the GTK icon theme,
+# which is the same gsettings value the rest of this repo already drives.
+# Plugin is /usr/lib/qt6/plugins/platformthemes/libqgtk3.so, shipped by
+# qt6-base (already a dependency) — no extra package to install.
+export QT_QPA_PLATFORMTHEME=gtk3
 export QT_AUTO_SCREEN_SCALE_FACTOR=1
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 export SDL_VIDEODRIVER=wayland
