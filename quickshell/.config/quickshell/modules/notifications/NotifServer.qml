@@ -51,11 +51,25 @@ Singleton {
 
     readonly property int unreadCount: root.popups.length
 
-    // ── dismiss(id) — the one verb this plan implements for real. Removes
-    //    the matching wrapper from `popups` (never mutates the array in
-    //    place) and destroys it. Called both by NotifCard.qml's own D-19-04
-    //    dismiss timer and available for a later gesture-driven dismiss to
-    //    reuse without this file changing again. ─────────────────────────
+    // ── dismiss(id) — removes the matching wrapper from `popups` (never
+    //    mutates the array in place) and moves it into `history`, newest
+    //    first. Called by NotifCard.qml's own D-19-04 auto-dismiss timer
+    //    AND every gesture path (drag, middle-click, click-with-no-single-
+    //    action) built in Plan 19-04 — one code path, so "no gesture
+    //    destroys data" (this plan's own must_haves) is a property of
+    //    THIS function rather than something every caller re-proves.
+    //
+    //    CORRECTED Phase 19 Plan 04 (Rule 1 — bug): the Plan 19-01 tracer's
+    //    own version of this function called `wrapper.destroy()` after
+    //    removing it from `popups` — correct for a wave-1 world where
+    //    nothing read `history` yet, but it directly contradicts this
+    //    plan's own cornerstone truth ("no gesture destroys data... the
+    //    notification is still present in history afterwards") the moment
+    //    a real gesture-driven dismiss exists. The wrapper is a live
+    //    QtObject the whole time; only its `popups`-membership changes.
+    //    `notifHistoryCap`/D-19-30's oldest-dropped-past-100 batching is
+    //    explicitly wave-2 scope (history/grouping/clearing) — this
+    //    function does not cap `history` itself. ─────────────────────────
     function dismiss(id) {
         var idx = -1;
         for (var i = 0; i < root.popups.length; i++) {
@@ -70,7 +84,8 @@ Singleton {
         var next = root.popups.slice();
         next.splice(idx, 1);
         root.popups = next;
-        wrapper.destroy();
+        wrapper.popup = false;
+        root.history = [wrapper].concat(root.history);
     }
 
     // ── Honest empty verbs — reachable, doing nothing yet, extended by

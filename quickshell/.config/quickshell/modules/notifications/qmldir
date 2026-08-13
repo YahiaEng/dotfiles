@@ -23,3 +23,10 @@ NotifData 1.0 NotifData.qml
 # instance per ListView delegate.
 NotifPopupStack 1.0 NotifPopupStack.qml
 NotifCard 1.0 NotifCard.qml
+
+# NotifMarkdown (Phase 19 Plan 04, Task 2) — the allowlist filter for
+# sender-supplied body text. A pragma-Singleton type, same both-required
+# `pragma Singleton` + qmldir `singleton` keyword rule as NotifServer
+# above: it is stateless (one pure function), so every consumer calls
+# `NotifMarkdown.filter(...)` directly rather than instantiating it.
+singleton NotifMarkdown 1.0 NotifMarkdown.qml
