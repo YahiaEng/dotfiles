@@ -1,7 +1,6 @@
 {
   "files": [
     { "name": "kitty.conf", "format": "kitty-kv" },
-    { "name": "swaync.css", "format": "gtk-css" },
     { "name": "wleave.css", "format": "gtk-css" },
     { "name": "gtk-3.0-colors.css", "format": "gtk-css" },
     { "name": "gtk-4.0-colors.css", "format": "gtk-css" },
@@ -20,8 +19,7 @@
     { "name": "hyprland-tokens.lua", "format": "lua-table", "exempt_keys": ["colors.image"] },
     { "name": "ags.scss", "format": "scss-vars" },
     { "name": "palette.json", "format": "json" },
-    { "name": "_motion.scss", "format": "scss-vars" },
-    { "name": "swaync-style.css", "format": "gtk-css-motion" }
+    { "name": "_motion.scss", "format": "scss-vars" }
   ],
   "state_metadata_files": ["current-theme", "mode"],
   "presence_only_files": ["kitty-font.conf"],

@@ -35,11 +35,6 @@ output_path = "~/.local/state/theme/hyprland-colors.lua"
 input_path = "~/.config/matugen/templates/kitty-colors.conf"
 output_path = "~/.local/state/theme/kitty.conf"
 
-# ── SwayNC colors ────────────────────────────────────
-[templates.swaync]
-input_path = "~/.config/matugen/templates/swaync-colors.css"
-output_path = "~/.local/state/theme/swaync.css"
-
 # ── Yazi theme ───────────────────────────────────────
 [templates.yazi]
 input_path = "~/.config/matugen/templates/yazi-theme.toml"

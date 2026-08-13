@@ -213,7 +213,7 @@ hl.window_rule({ match = { class = [[^(firefox)$]] }, no_blur = true })
 -- live rule)
 hl.window_rule({ match = { class = [[^(chromium)$]] }, no_blur = true })
 
--- ── Layer rules (walker, swaync, wleave)
+-- ── Layer rules (walker, wleave)
 -- D-08 (13-01): the two wofi layerrules formerly here (blur on / ignore_alpha
 -- 0.5, match:namespace wofi) were deleted — wofi was retired in v1.0 and
 -- these were dead config referencing a non-existent surface. RETIRE-02
@@ -221,8 +221,6 @@ hl.window_rule({ match = { class = [[^(chromium)$]] }, no_blur = true })
 -- the same reason.
 
 hl.layer_rule({ match = { namespace = "walker" }, blur = true })
-hl.layer_rule({ match = { namespace = "swaync-control-center" }, blur = true })
-hl.layer_rule({ match = { namespace = "swaync-notification-window" }, blur = true })
 -- wleave power menu (WLOG-01, GTK4 cutover of the retired power-menu
 -- surface). wleave is a gtk4-layer-shell surface with :namespace "wleave";
 -- paired with the transparent-window + scoped-scrim split in
@@ -399,8 +397,6 @@ hl.layer_rule({ match = { namespace = "^quickshell-.*" }, blur = true })
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, blur = true })
 
 hl.layer_rule({ match = { namespace = "walker" }, ignore_alpha = 0.5 })
-hl.layer_rule({ match = { namespace = "swaync-control-center" }, ignore_alpha = 0.5 })
-hl.layer_rule({ match = { namespace = "swaync-notification-window" }, ignore_alpha = 0.5 })
 -- An earlier draft (10-06c) lowered .media-scrim to rgba($background, 0.25)
 -- and correspondingly dropped this threshold to 0.2 to chase a stronger
 -- frost — but with .media-bg-art layered underneath at 0.35 too, that put
@@ -445,7 +441,7 @@ hl.layer_rule({ match = { namespace = "wleave" }, ignore_alpha = 0.25 })
 -- quickshell-* family ignore_alpha floor (D-42, Phase 14 Plan 01) — see
 -- the family-treatment comment block above the blur arm for the full A2
 -- rationale and verdict; this pair mirrors it exactly for ignore_alpha,
--- matching the 0.5 threshold the walker/swaync rules already use.
+-- matching the 0.5 threshold the walker rule already uses.
 hl.layer_rule({ match = { namespace = "^quickshell-.*" }, ignore_alpha = 0.5 })
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0.5 })
 

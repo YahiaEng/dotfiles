@@ -348,12 +348,11 @@ fi
 #    only surface that needed glob-discovery, and it is gone.
 GTK3_CSS_SHEETS=(
     "$HOME/.config/gtk-3.0/gtk.css"
-    # 13-02/D-01: swaync/style.css no longer exists (converted to a
+    # 13-02/D-01: the retired daemon's style.css no longer exists (converted to a
     # sass-authored style.scss) — the compiled output in the state dir is
     # what actually reaches GTK3 at runtime, so it is the correct target
     # for this provider-load check regardless of what the repo source is
     # named.
-    "$STATE_DIR/swaync-style.css"
 )
 GTK4_CSS_SHEETS=(
     "$HOME/.config/gtk-4.0/gtk.css"

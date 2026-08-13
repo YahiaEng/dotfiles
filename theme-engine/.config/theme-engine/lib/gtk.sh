@@ -308,7 +308,7 @@ theme_engine_apply_icon_theme() {
         # `accent_color`, not `primary`: gtk-4.0-colors.css is emitted with
         # libadwaita's named-color vocabulary (accent_color, window_bg_color,
         # …). `@define-color primary` is the MATUGEN template convention used
-        # by the swaync/wleave/swayosd sheets — it never appears in
+        # by the wleave/swayosd sheets — it never appears in
         # this file, so the old name matched nothing on every run.
         # `|| true` for the same reason as theme_engine_gtk4_accent above:
         # a no-match grep under `set -euo pipefail` aborted theme-apply here,

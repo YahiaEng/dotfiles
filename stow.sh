@@ -26,7 +26,6 @@ PACKAGES=(
     kitty
     matugen
     quickshell
-    swaync
     swayosd
     theme-engine
     thunar
@@ -87,30 +86,26 @@ mkdir -p "$HOME/.config/quickshell"
 # consequence.
 mkdir -p "$HOME/.config/autostart"
 
-# 13-02: pre-create swaync.service's systemd drop-in directory as a REAL
-# directory — a stow/systemd interaction discovered empirically this plan,
-# not a style preference: systemd 261 silently ignores an entire .d
-# drop-in directory when it is itself a symlink (verified directly —
-# `systemctl --user show swaync.service -p DropInPaths` stayed EMPTY with
-# stow's normal whole-directory fold in place, and only became non-empty
-# once the parent existed as a real directory before stow ran). Same
-# pre-create-before-stow idiom as fish/gtk-3.0/gtk-4.0/quickshell above:
-# with the real directory already present, stow descends into it and
-# symlinks only override.conf, which systemd DOES trust. Any FUTURE
-# stowed systemd unit/drop-in in this repo needs the same treatment — see
-# 13-02-SUMMARY.md for the full DropInPaths= empty-vs-populated evidence.
-mkdir -p "$HOME/.config/systemd/user/swaync.service.d"
+# 13-02 (drop-in pre-create) stood here until Phase 19 Plan 19-08 Task 5
+# (RETIRE-03) deleted the notification daemon whose PACKAGED unit it
+# overrode — the drop-in, its unit and its package are all gone, so the
+# pre-create has nothing left to protect. The finding it recorded still
+# holds and still applies to any FUTURE stowed systemd drop-in in this
+# repo: systemd silently ignores an entire .d drop-in directory when the
+# directory itself is a symlink, so the real directory must exist before
+# stow runs (13-02-SUMMARY.md carries the DropInPaths= empty-vs-populated
+# evidence).
 
 # 18-07 (QBAR-10): pre-create ~/.config/systemd/user itself as a REAL
-# directory, independent of the swaync drop-in pre-create just above. That
-# line only guarantees this parent as a SIDE EFFECT of creating its own
-# drop-in subdirectory, and Phase 19 deletes swaync entirely — when that
-# line goes, the protection it incidentally provided for this parent would
-# vanish silently with it, and the resulting symptom (a unit file systemd
-# cannot see because its directory became a symlink into the repo) looks
-# nothing like a stow change to whoever hits it later. This line makes the
-# guarantee explicit and independent of swaync's survival. Narrower than
-# the swaync case: a unit FILE (quickshell.service, unlike a drop-in
+# directory. This line was written to be independent of the drop-in
+# pre-create that used to sit directly above it, precisely BECAUSE Phase
+# 19 was going to delete that daemon — otherwise the protection this
+# parent incidentally received would have vanished silently along with
+# it, and the resulting symptom (a unit file systemd cannot see because
+# its directory became a symlink into the repo) looks nothing like a stow
+# change to whoever hits it later. That deletion has now happened, and
+# this line is what still guarantees the parent. Narrower than the
+# drop-in case: a unit FILE (quickshell.service, unlike a drop-in
 # DIRECTORY) is followed by systemd even when reached through a symlink,
 # so only the PARENT directory needs to be real — this mkdir -p is what
 # guarantees that.
@@ -220,8 +215,8 @@ mkdir -p "$HOME/.local"
 # outside its own ~/.config/quickshell/ namespace —
 # ~/.config/systemd/user/quickshell.service, this repo's first custom
 # systemd --user unit. It is guarded by its own `mkdir -p
-# "$HOME/.config/systemd/user"` further up (independent of the swaync
-# drop-in pre-create it sits beside), so — like the autostart override
+# "$HOME/.config/systemd/user"` further up (which no longer sits beside
+# any drop-in pre-create), so — like the autostart override
 # before it — it is not itself an instance of the fold bug; but leaving
 # the 15-13 correction's "two exceptions" claim standing as though it
 # were still complete is exactly the failure that correction exists to
@@ -424,26 +419,26 @@ ln -sf "../../../.local/state/theme/hyprland-tokens.lua" "$HOME/.config/hypr/sta
 # D-01/D-05/13-02/13-05: seed the sass-compiled GTK3 stylesheet(s) by
 # INVOKING the real renderer AND the real compiler — never a
 # hand-authored/pre-compiled stub. Mirrors the motion-file seed block
-# immediately above, same rationale: after swaync's conversion, the file
-# swaync-launch.sh points at only exists if sass actually ran — today it
-# is a stow symlink present the instant stow.sh runs; after that plan it
-# is a generated artifact that must be rendered. Never committing a
+# immediately above, same rationale: a compiled sheet only exists if sass
+# actually ran, so it is a generated artifact that must be rendered rather
+# than a file present the instant stow.sh runs. Never committing a
 # pre-compiled default sheet would make it a second source of truth that
-# goes stale the moment a swaync/*.scss edit lands (this repo's
-# most-enforced invariant). 13-05 briefly extended this seed list to seven
-# compiled sheets (the sass partial + swaync's one sheet + six sheets
-# belonging to a bar retired by RETIRE-02/18-20, same commit that dropped
-# this list back to the two GTK3_SCSS_TARGETS rows lib/motion.sh still
-# compiles) — same all-or-nothing check, because a surface that starts
-# with some sheets present and one missing is exactly the "unstyled
-# surface with no error to search for" D-05 forbids.
+# goes stale the moment a *.scss edit lands (this repo's most-enforced
+# invariant). This list has shrunk twice as surfaces retired: 13-05 briefly
+# extended it to seven compiled sheets (the sass partial, one belonging to
+# the notification daemon, and six belonging to a bar), RETIRE-02/18-20
+# dropped the bar's six, and Phase 19 Plan 19-08 Task 5 (RETIRE-03) dropped
+# the notification daemon's one when it deleted that daemon — leaving the
+# sass partial alone, which is what lib/motion.sh's GTK3_SCSS_TARGETS still
+# compiles. Same all-or-nothing check, because a surface that starts with
+# some sheets present and one missing is exactly the "unstyled surface with
+# no error to search for" D-05 forbids.
 # Deliberately NOT given line 135's `|| true` tolerance (D-05 explicit):
 # a silently unstyled desktop with no error to search for is worse than a
 # failed install, so a failure here prints a loud, specific message and
 # leaves a non-zero trail rather than degrading quietly.
 GTK3_SASS_SEED_FILES=(
     _motion.scss
-    swaync-style.css
 )
 GTK3_SASS_SEED_MISSING=0
 for _sf in "${GTK3_SASS_SEED_FILES[@]}"; do
@@ -461,16 +456,16 @@ if [[ "$GTK3_SASS_SEED_MISSING" == "1" ]]; then
             trap 'rm -rf "$SEED_TMP"' EXIT
             if theme_engine_render_motion_files "$SEED_TMP" && theme_engine_compile_gtk3_stylesheets "$SEED_TMP"; then
                 mkdir -p "$STATE_DIR"
-                for mf in _motion.scss swaync-style.css; do
+                for mf in _motion.scss; do
                     [[ -f "$SEED_TMP$STATE_DIR/$mf" ]] && cp "$SEED_TMP$STATE_DIR/$mf" "$STATE_DIR/$mf"
                 done
             else
-                echo "  ⚠ GTK3 sass-compile seed failed — swaync will start UNSTYLED (or fail to start, depending on the failure) until theme-apply runs successfully first" >&2
+                echo "  ⚠ GTK3 sass-compile seed failed — GTK3 surfaces will start UNSTYLED until theme-apply runs successfully first" >&2
                 exit 1
             fi
         ) || echo "  ⚠ GTK3 sass-compile seed did not complete — see error above; run theme-apply manually to resolve" >&2
     else
-        echo "  ⚠ $MOTION_LIB not found — skipping GTK3 sass-compile seed; swaync will start unstyled without these files" >&2
+        echo "  ⚠ $MOTION_LIB not found — skipping GTK3 sass-compile seed; GTK3 surfaces will start unstyled without these files" >&2
     fi
 fi
 

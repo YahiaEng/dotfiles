@@ -74,24 +74,24 @@ PanelWindow {
     // Without this, the drawer's surface sits flush at y = the bar's
     // reserved-zone bottom (0px gap) — measured directly via
     // `hyprctl -j layers` at exactly the same y as
-    // swaync-control-center's own LAYER surface. But that surface is a
-    // full-screen transparent canvas; swaync's actual VISIBLE panel is
-    // inset from it by its own `control-center-margin-top: 10` (swaync/
-    // .config/swaync/config.json), landing its panel flush with where a
+    // the retired notification daemon's own LAYER surface. But that
+    // surface was a full-screen transparent canvas; its actual VISIBLE
+    // panel was inset from it by its own `control-center-margin-top: 10`,
+    // landing that panel flush with where a
     // REAL tiled Hyprland window starts (`hyprland.lua`'s
     // `general.gaps_out: 10` inset from the reserved zone) — not flush
     // with the bar itself. A drawer sitting at the bar's exact edge (this
     // window's old behaviour) is therefore 10px CLOSER to the bar than
-    // either swaync's own panel or a real tiled window ever is — it
+    // either that daemon's own panel or a real tiled window ever is — it
     // visually occupies the bare gap strip between the bar and where
     // window content actually begins, reading as "dropped in an awkward
     // place between the bar and the window area" rather than "dropping
-    // from the top of the window area" the way swaync's control centre
-    // does. Mirrors swaync's own `control-center-margin-top` value
+    // from the top of the window area" the way that daemon's control
+    // centre did. Mirrors its `control-center-margin-top` value
     // directly (both numbers are hand-authored literals in their own
-    // component's config, not a shared token — same relationship swaync's
-    // JSON already has to `hyprland.lua`'s gaps_out) so the drawer's top
-    // edge lines up with swaync's and with where a real window starts,
+    // component's config, not a shared token — the same relationship that
+    // daemon's JSON had to `hyprland.lua`'s gaps_out) so the drawer's top
+    // edge lines up with where a real window starts,
     // while `exclusiveZone: 0`/`ExclusionMode.Normal` below still keep
     // the bar's own reserved zone completely untouched — this is a margin
     // INSIDE the space Hyprland already leaves free for layer-shell
@@ -433,8 +433,8 @@ PanelWindow {
     // ── Dismiss wiring (D-12/D-13) — Probe.qml/ScreencopyProbe.qml's
     //    existing, QS-02-proven combination reused verbatim: click-outside
     //    and focus-loss both land on the same signal, D-13's
-    //    deprecated-blind coexistence rule with zero edits to swaync,
-    //    walker or wleave.
+    //    deprecated-blind coexistence rule with zero edits to walker or
+    //    wleave.
     HyprlandFocusGrab {
         id: grab
         windows: [ dashboardWindow ]

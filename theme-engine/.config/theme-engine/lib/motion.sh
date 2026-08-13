@@ -587,7 +587,6 @@ theme_engine_render_motion_scss() {
 # row in 13-02; a six-row bar-layout family that briefly lived here was
 # retired along with the surface that owned it.
 GTK3_SCSS_TARGETS=(
-    "$HOME/.config/swaync/style.scss:swaync-style.css"
 )
 
 # theme_engine_compile_gtk3_stylesheets <tmp_dir>

@@ -26,7 +26,7 @@
 // D-19-06's "hover pauses, leaving resumes — not a reset, not sticky"
 // cannot be expressed with a bare declarative `running:` binding (a QML
 // `Timer` restarts from zero elapsed on stop+start, and Design's own
-// swaync-matching windows are not the sender's `expireTimeout`, so there
+// the retired daemon's matching windows are not the sender's `expireTimeout`, so there
 // is nothing to re-bind `interval` to for a natural pause/resume). Instead
 // `_remainingMs` tracks what is left, `_pauseDismissTimer`/
 // `_startDismissTimer` snapshot/restore it against `Date.now()`, and

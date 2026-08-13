@@ -2,13 +2,15 @@
 # QBAR-10, D-18-40).
 #
 # Every autostart entry in this repo — the wallpaper daemon, the (now
-# retired) bar, its fullscreen watcher, quickshell (until this plan), swaync, the AGS media
-# applet, elephant, walker, hypridle, swayosd, the polkit agent and both
+# retired) bar, its fullscreen watcher, quickshell (until this plan), the
+# notification daemon retired in Phase 19, the AGS media applet,
+# elephant, walker, hypridle, swayosd, the polkit agent and both
 # clipboard watchers — launches through a transient `uwsm app` scope in
 # `app-graphical.slice`, with no `Restart=` directive anywhere. There is
 # zero precedent in this repo for a custom systemd `--user` unit before
-# this file; the only stowed systemd artifact that existed until now is a
-# drop-in overriding swaync's PACKAGED unit, not an authored one. This
+# this file; the only stowed systemd artifact that existed until now was a
+# drop-in overriding the PACKAGED unit of the notification daemon Phase
+# 19 retired, not an authored one. This
 # unit is a deliberate, scoped exception: quickshell alone gets a
 # supervisor, because 18-01 made it the first surface in this repo that is
 # permanently mounted — its process death is now a visible desktop outage,

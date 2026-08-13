@@ -45,7 +45,7 @@
 //
 // ── DND (D-19-19's own promotion target) ─────────────────────────────────
 // DND's truth now comes straight from `NotifServer.dnd` — Plan 19-05's
-// own Task 1 server-side work — rather than the `swaync-client -D`
+// own Task 1 server-side work — rather than the retired daemon's client
 // subscribe/poll pair `QuickToggles.qml` used to run. Both the read
 // (`NotifServer.dnd`) and the write (`NotifServer.toggleDnd()`) go through
 // that one singleton, so there is exactly one owner of DND truth in the
@@ -77,7 +77,7 @@ Singleton {
     //            read `cat ~/.cache/gaming-mode 2>/dev/null || echo off`,
     //            lit iff value == "on".
     //   DND    — read `NotifServer.dnd`, write `NotifServer.toggleDnd()`
-    //            (D-19-19's own promotion — was swaync-client, is now the
+    //            (D-19-19's own promotion — was an external client, is now the
     //            shell's own persisted server state).
     //   Dark   — exec `theme-switch.sh`,
     //            read `cat ~/.local/state/theme/mode 2>/dev/null || echo dark`,
@@ -106,7 +106,7 @@ Singleton {
     readonly property bool darkState: (modeRaw.length > 0 ? modeRaw : "dark") === "dark"
 
     // ── DND state — a direct read of NotifServer's own persisted property.
-    //    No subscribe/poll process, no swaync-client anywhere in this
+    //    No subscribe/poll process, no external notification client anywhere in this
     //    file: NotifServer.qml IS the single owner of this fact now. ────
     readonly property bool dndState: NotifServer.dnd
 
@@ -219,7 +219,7 @@ Singleton {
         root.pendingChip = "dnd";
         chipWatchdogTimer.restart();
         // D-19-19's own promotion: the write goes through NotifServer's
-        // own toggle verb, never a swaync-client call from this file.
+        // own toggle verb, never an external client call from this file.
         NotifServer.toggleDnd();
     }
 

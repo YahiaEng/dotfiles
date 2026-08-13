@@ -388,7 +388,8 @@ lua_speed_defs, lua_curve_defs, lua_curve_base_defs = load_lua_defs()
 #    onto $motion_speed_*/$motion_curve_*/motion-* tokens emitted by
 #    hyprland-motion.conf — the file is now covered by CHECK A/B like any
 #    other non-exempt Hyprland surface (see check_hypr_surface below).
-#    swaync/style.css's whole-file entry was REMOVED by plan 13-02
+#    The retired notification daemon's style.css whole-file entry was
+#    REMOVED by plan 13-02
 #    (MOTION-02/D-01/D-34) once it converted the file to style.scss and
 #    tokenized all six transitions onto the sass-compiled _motion.scss
 #    partial — the renamed .scss source is picked up by this script's
@@ -401,7 +402,7 @@ lua_speed_defs, lua_curve_defs, lua_curve_base_defs = load_lua_defs()
 #    (MOTION-02/D-01) once it converted all six of that bar's stylesheets
 #    to sass and tokenized every transition/animation-duration/animation-
 #    timing-function declaration onto the same sass-compiled _motion.scss
-#    partial swaync consumes — the renamed .scss sources were picked up
+#    partial that daemon also consumed — the renamed .scss sources were picked up
 #    by this script's existing .css/.scss glob with no code change, and
 #    were covered by CHECK A/B like any other non-exempt CSS/SCSS surface
 #    (see check_css_surface below) until RETIRE-02 (18-20) deleted that
@@ -1150,7 +1151,6 @@ else
     ROOTS=(
         "$HOME/.config/hypr"
         "$HOME/.config/quickshell"
-        "$HOME/.config/swaync"
         "$HOME/.config/swayosd"
         "$HOME/.config/walker"
         "$HOME/.config/wleave"

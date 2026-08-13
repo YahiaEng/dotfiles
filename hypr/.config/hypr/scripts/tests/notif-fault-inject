@@ -4,7 +4,7 @@
 # ║  Mechanical fault-injection fixture for the two         ║
 # ║  QNOTIF-05/QNOTIF-04 mechanics carrying extra            ║
 # ║  verification weight under the phase's own no-soak,      ║
-# ║  no-rollback swaync retirement (D-19-46-class risk).       ║
+# ║  no-rollback daemon retirement (D-19-46-class risk).       ║
 # ╚══════════════════════════════════════════════════════╝
 #
 # Injection 1 — in-place update (`replaces_id`, D-19-08, QNOTIF-05):
@@ -29,22 +29,14 @@
 # the far end), so the sentinel is written by the sender's own signal
 # subscription, never inferred from the invoking side.
 #
-# ── Live-session notification-daemon race (documented, not a defect) ────
-# swaync remains installed and D-Bus-activated until this phase's own
-# retirement plan (19-08) deletes it; whichever of swaync/quickshell
-# claims org.freedesktop.Notifications first on a given boot keeps it
-# (Plan 19-01's own key-decision, restated here). If swaync currently
-# holds the name, this script follows Plan 19-01's established
-# precedent: mask+stop swaync just long enough for Quickshell's own
-# retry-on-unregister to reclaim the name (no quickshell restart needed —
-# live-verified: Quickshell's NotificationServer logs "Registration will
-# be attempted again if the active service is unregistered" and does so
-# within ~1s), run both injections, then restore swaync via a trap
-# installed BEFORE the mutation (T-11-11's own restore discipline) so a
-# mid-script failure never leaves the host holding a masked swaync unit.
-# Once 19-08 deletes swaync outright, `_notif_owner` already reports
-# "quickshell" on entry and this whole block is skipped — forward-safe
-# with no edit needed.
+# ── Notification-name ownership ─────────────────────────────────────────
+# The previously-installed standalone notification daemon was deleted
+# from repo and host by Plan 19-08 Task 5 (RETIRE-03), and with it the
+# D-Bus activation file that could hand org.freedesktop.Notifications
+# back to it. The mask/restore dance this script used to perform to win
+# the name went with it: the shell is now the only possible owner, so
+# ownership is ASSERTED on entry rather than contested. A non-quickshell
+# owner here is now a real failure, not a race to work around.
 #
 # Do NOT pipe into a quiet-mode grep invocation anywhere in this file —
 # under `pipefail`, a successful early match can terminate the producer
@@ -96,41 +88,21 @@ _notif_owner() {
     printf '%s\n' "$out" | awk '$1 == "org.freedesktop.Notifications" { print $3; exit }'
 }
 
-_SWAYNC_WAS_MASKED=0
-_restore_swaync() {
-    if [[ "$_SWAYNC_WAS_MASKED" -eq 1 ]]; then
-        systemctl --user unmask swaync.service >/dev/null 2>&1
-        systemctl --user reset-failed swaync.service >/dev/null 2>&1
-        systemctl --user start swaync.service >/dev/null 2>&1 || true
-    fi
+_cleanup() {
     [[ -n "${_SENDER_SCRIPT:-}" ]] && rm -f "$_SENDER_SCRIPT"
     [[ -n "${_SENDER_OUT:-}" ]] && rm -f "$_SENDER_OUT" "$_SENDER_OUT.err"
     [[ -n "${_SENTINEL:-}" ]] && rm -f "$_SENTINEL"
 }
-trap _restore_swaync EXIT
+trap _cleanup EXIT
 
 owner="$(_notif_owner)"
+check "Quickshell owns org.freedesktop.Notifications (sole possible owner post-RETIRE-03)" \
+    "$([[ "$owner" == "quickshell" ]] && echo 0 || echo 1)"
 if [[ "$owner" != "quickshell" ]]; then
-    echo "notif-fault-inject: org.freedesktop.Notifications currently owned by '${owner:-<none>}' — masking swaync so Quickshell can claim it (restored on exit)"
-    systemctl --user mask --now swaync.service >/dev/null 2>&1
-    pkill -x swaync >/dev/null 2>&1 || true
-    _SWAYNC_WAS_MASKED=1
-    claimed=0
-    for _ in $(seq 1 25); do
-        if [[ "$(_notif_owner)" == "quickshell" ]]; then
-            claimed=1
-            break
-        fi
-        sleep 0.2
-    done
-    check "Quickshell claims org.freedesktop.Notifications after swaync is masked" "$([[ "$claimed" -eq 1 ]] && echo 0 || echo 1)"
-    if [[ "$claimed" -ne 1 ]]; then
-        echo ""
-        echo "Summary: ${PASS} passed, ${FAIL} failed"
-        exit 1
-    fi
-else
-    check "Quickshell already owns org.freedesktop.Notifications" 0
+    echo "notif-fault-inject: FATAL — org.freedesktop.Notifications owned by '${owner:-<none>}', expected quickshell" >&2
+    echo ""
+    echo "Summary: ${PASS} passed, ${FAIL} failed"
+    exit 1
 fi
 
 echo ""

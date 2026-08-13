@@ -342,7 +342,7 @@ done <<< "$CONTRACT_FILE_LIST"
 # rests on. On failure, name which palette/mode diverged and print the
 # differing hashes.
 #
-# 13-02/D-35: _motion.scss and swaync-style.css join this walk — the sass
+# 13-02/D-35: _motion.scss joins this walk — the sass
 # partial and its compiled sheet both bake in motion and only ever
 # @import colour (D-03), so they are theme-independent by the same D-31
 # premise the three original motion targets rest on. Their identity here
@@ -367,7 +367,7 @@ echo "-- Motion byte-identity (D-31) --"
 # remains checkable (and checked) on every other target below.
 MOTION_BYTE_IDENTITY_FILES=(
     motion.json gtk-4.0-motion.css
-    _motion.scss swaync-style.css
+    _motion.scss
 )
 DIRS_COMPARED=0
 for target in "${TARGETS[@]}"; do

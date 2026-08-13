@@ -67,7 +67,7 @@ QtObject {
         function onActionsChanged() { root.actions = root.notification.actions; }
         // Restarting the dismiss Timer is NotifCard.qml's own job (its
         // Timer.interval is bound to this wrapper's urgency, not to
-        // expireTimeout directly, per D-19-04's fixed swaync-matching
+        // expireTimeout directly, per D-19-04's fixed daemon-matching
         // windows) — this handler only keeps the retained field itself
         // current, so a later plan reading expireTimeout never sees a
         // stale value after a replaces_id re-send.

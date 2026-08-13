@@ -165,9 +165,6 @@ PACMAN_PKGS=(
     # Polkit
     polkit-gnome
 
-    # Notifications (IN-11: official extra repo, not AUR)
-    swaync
-
     # Qt Wayland
     qt5-wayland
     qt6-wayland

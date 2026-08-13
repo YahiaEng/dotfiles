@@ -871,7 +871,7 @@ ShellRoot {
 
     // ── Notification centre (Phase 19 Plan 06, D-19-16) — `N` matches the
     //    outgoing daemon's own Super+N chord (keybinds.lua, repointed by
-    //    this same plan from an exec_cmd shelling to swaync-client onto
+    //    this same plan from an exec_cmd shelling to an external client onto
     //    this GlobalShortcut). No fullscreen refusal guard, matching the
     //    overview's own reasoning above rather than the dashboard's: a
     //    notification is not an interruption a fullscreen game needs

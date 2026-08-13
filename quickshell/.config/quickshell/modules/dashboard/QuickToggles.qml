@@ -28,7 +28,7 @@
 // The full-width `Off | Reduced | Normal | Lively` motion-scale segmented
 // row is DELIBERATELY NOT part of this promotion — D-23's own text (see
 // below) already establishes it sits OUTSIDE the DASH-07 mirror proof by
-// construction (no swaync counterpart, a one-way view of a state file),
+// construction (no external-daemon counterpart, a one-way view of a state file),
 // so it stays exactly where it was: local state, local to this file, not
 // mirrored, not promoted.
 //
@@ -145,7 +145,7 @@ Item {
         root.panelRequested(name);
     }
 
-    // ── Chips (D-25) — swaync's own order: Gaming, DND, Dark. Glyph picks
+    // ── Chips (D-25) — the retired daemon's own order: Gaming, DND, Dark. Glyph picks
     //    are discretion (all Material Symbols Rounded ligature names,
     //    live-confirmed to render as real glyphs, not tofu). ─────────────
     readonly property var chipModel: [
@@ -413,7 +413,7 @@ Item {
     // ═══════════════════════════════════════════════════════════════════
     // Motion-scale segmented row (D-24) — full-width, direct jump, one
     // press = exactly one theme-apply re-render. Sits OUTSIDE the DASH-07
-    // mirror proof by construction (D-23): there is no swaync counterpart
+    // mirror proof by construction (D-23): there is no external-daemon counterpart
     // for this control, it is a one-way view of a state file — and, per
     // this plan's own header note, deliberately NOT part of the D-19-19
     // singleton promotion either. Unchanged from Phase 14/15.

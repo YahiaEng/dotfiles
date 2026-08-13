@@ -4,7 +4,7 @@
 # Runs exactly once, only after commit.sh has successfully moved rendered
 # output into ~/.local/state/theme/ — never against half-rendered state.
 # No other file in this repo may invoke hyprctl reload / pkill -SIGUSR* /
-# swaync-client -rs / a walker restart / the vscodium merge — this is the
+# a walker restart / the vscodium merge — this is the
 # single owner (matugen's post_hooks were stripped in Plan 01-02 Task 1
 # specifically so this is the only place any of that fires).
 #
@@ -29,14 +29,15 @@ theme_engine_reload() {
     # ── Headless guard (Quick 260709-buf, T-buf-01) ─────────────────
     # Render+commit already happened before this function is ever called
     # (theme-apply's own ordering); the entire fan-out below assumes a
-    # live Wayland+D-Bus session (hyprctl, kitty signals, swaync,
+    # live Wayland+D-Bus session (hyprctl, kitty signals,
     # GTK gsettings, walker's D-Bus bus-name dance, and even the
     # file-only vscodium merge are all skipped here). With no session,
     # there is nothing to reload — the committed state is picked up at
     # next login. This matters concretely for stow.sh's first-boot theme
     # seed, which calls theme-apply in a headless container/fresh-install
-    # context: swaync-client -rs in particular blocked forever there with
-    # no session D-Bus (INST-03 gate hang, 45+ min, evidence
+    # context: the retired notification daemon's own reload client in
+    # particular blocked forever there with no session D-Bus (INST-03
+    # gate hang, 45+ min, evidence
     # verify/logs/run-20260709T042501Z) — `|| true` only guards a
     # non-zero exit, not a hang. Discretion call: vscodium's merge is
     # purely file-based and would itself be headless-safe, but skipping
@@ -79,14 +80,11 @@ theme_engine_reload() {
     # gate, fresh install) where there is no bar to actuate anyway.
     "$HOME"/.config/hypr/scripts/bar-visibility.sh reassert 2>/dev/null || true
     pkill -SIGUSR1 kitty 2>/dev/null || true
-    # swaync belt-and-suspenders (Quick 260709-buf, T-buf-01): only fire
-    # when the daemon is actually present, and bound the call with a
-    # timeout even then — the headless guard above should already
-    # prevent this from ever running with no session, but this is the
-    # second layer directly on the line that hung.
-    if pgrep -x swaync >/dev/null 2>&1; then
-        timeout 5 swaync-client -rs >/dev/null 2>&1 || true
-    fi
+    # The retired notification daemon's reload step stood here until
+    # Phase 19 Plan 19-08 Task 5 (RETIRE-03). Nothing replaces it: the
+    # QML shell owns notifications in-process now and re-reads its own
+    # palette through Colours.qml on file change, so a theme switch
+    # needs no signal, no client call and no restart on its behalf.
 
     # ── GTK (gsettings toggle + env propagation + Thunar daemon) ──
     theme_engine_gtk_reload
