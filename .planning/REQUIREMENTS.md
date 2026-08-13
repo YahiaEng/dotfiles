@@ -34,10 +34,10 @@
 - [x] **QNOTIF-04**: A notification's own action buttons work, and invoking one reaches the sending application
 - [x] **QNOTIF-05**: A progress-style notification (download, volume) updates its existing card in place instead of stacking new ones
 - [ ] **QNOTIF-06**: User can open a slide-out centre showing notification history, with clear-all
-- [ ] **QNOTIF-07**: The centre carries the quick-toggle grid, sharing state with the Super-key menu with no drift between them
+- [x] **QNOTIF-07**: The centre carries the quick-toggle grid, sharing state with the Super-key menu with no drift between them
 - [ ] **QNOTIF-08**: The centre carries working volume and brightness sliders
-- [ ] **QNOTIF-09**: Do-not-disturb is a quick toggle and its state persists across a shell restart
-- [ ] **QNOTIF-10**: Popups are suppressed while the centre is open and while a fullscreen client is focused
+- [x] **QNOTIF-09**: Do-not-disturb is a quick toggle and its state persists across a shell restart
+- [x] **QNOTIF-10**: Popups are suppressed while the centre is open and while a fullscreen client is focused
 - [ ] **QNOTIF-11**: A live two-owner check proves no second notification server is registered — `quickshell-doctor`'s existing poisoned-two-owner fixture is pointed at the new owner and run against a real session, not only self-tested
 
 ### QOSD — On-screen indicators (replaces SwayOSD)
@@ -143,10 +143,10 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QNOTIF-04 | Phase 19 | Complete |
 | QNOTIF-05 | Phase 19 | Complete |
 | QNOTIF-06 | Phase 19 | Pending |
-| QNOTIF-07 | Phase 19 | Pending |
+| QNOTIF-07 | Phase 19 | Complete |
 | QNOTIF-08 | Phase 19 | Pending |
-| QNOTIF-09 | Phase 19 | Pending |
-| QNOTIF-10 | Phase 19 | Pending |
+| QNOTIF-09 | Phase 19 | Complete |
+| QNOTIF-10 | Phase 19 | Complete |
 | QNOTIF-11 | Phase 19 | Pending |
 | QOSD-01 | Phase 20 | Pending |
 | QOSD-02 | Phase 20 | Pending |

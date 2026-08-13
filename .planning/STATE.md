@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
 current_phase_name: notification-server-centre
 status: executing
-stopped_at: Completed 19-04-PLAN.md
-last_updated: "2026-08-13T11:45:52.048Z"
+stopped_at: Completed 19-05-PLAN.md
+last_updated: "2026-08-13T12:17:40.778Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 35
-  completed_plans: 31
+  completed_plans: 32
   percent: 33
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (notification-server-centre) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
-Progress: [█████████░] 89%
+Progress: [█████████░] 91%
 Last activity: 2026-08-13 — Phase 19 execution started
 
 ## Performance Metrics
@@ -223,6 +223,7 @@ Last activity: 2026-08-13 — Phase 19 execution started
 | Phase 19 P02 | ~35min | 2 tasks | 7 files |
 | Phase 19 P03 | ~40 min | 3 tasks | 14 files |
 | Phase 19 P04 | ~50min | 3 tasks | 7 files |
+| Phase 19 P05 | ~30min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -483,6 +484,10 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 19-04: dismiss(id) rewritten to move a wrapper into history rather than destroy it — the tracer-era version directly contradicted this plan's own no-gesture-destroys-data truth once real gesture-driven dismiss existed
 - [Phase ?]: 19-04: found and fixed a live ReferenceError in NotifPopupStack.qml — a Component{} block referenced its delegate Loader's own id (cardLoader) directly, which is out of scope at runtime; fixed via Loader.onLoaded + Qt.binding() to forward modelData across the QML Component id-scope boundary
 - [Phase ?]: 19-04: notif-fault-inject fixture built and live-verified 2/2 runs (9/9 checks each); action-invocation sender is a self-contained Python/PyGObject listener generated to a temp file at runtime so the fixture stays a single committed file while still fully controlling its own sender
+- [Phase ?]: History records unconditionally at D-Bus arrival (before the suppression branch), superseding 19-04's dismiss-time push into history — a suppressed notification is never dismissed, so recording only at dismiss would have missed it entirely (D-19-33).
+- [Phase ?]: ToggleState.qml (pragma Singleton) is the sole owner of all six quick-toggle tiles' state; QuickToggles.qml is a pure view. DND's truth/write moved from swaync-client subscribe/poll onto NotifServer.dnd/toggleDnd() directly.
+- [Phase ?]: ToggleState's backend seams (audio/wifi/bluetooth) are relayed via Binding elements inside QuickToggles.qml's own already-threaded properties, not wired directly from shell.qml into the singleton — avoided touching Dashboard.qml/DashboardTab.qml despite both being named in the plan's files_modified.
+- [Phase ?]: DND toast copy strings live on NotifServer.qml (emitted via a new dndToggled signal), not inside Toast.qml or shell.qml, keeping Toast.qml a generic chrome-only frame Phase 20's OSD can reuse verbatim.
 
 ### Quick Tasks Completed
 
@@ -621,8 +626,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-13T11:45:52.029Z
-Stopped at: Completed 19-04-PLAN.md
+Last session: 2026-08-13T12:17:40.759Z
+Stopped at: Completed 19-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

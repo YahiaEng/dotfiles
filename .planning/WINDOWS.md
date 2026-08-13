@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 47
+open_count: 50
 waived_count: 0
 fixed_count: 24
-total_count: 71
-last_updated: 2026-08-13T09:53:24.990Z
+total_count: 74
+last_updated: 2026-08-13T12:17:52.097Z
 ---
 
 # Broken Windows Ledger
@@ -86,6 +86,9 @@ last_updated: 2026-08-13T09:53:24.990Z
 | 69 | 18 | deviation | hypr/.config/hypr/scripts/bar-watchdog.sh |  | quick 260812-n9b added quickshell-bar-watchdog.service, a second permanent long-lived process supervising the bar (WINDOWS row 67 workaround). 18-BAR-SOAK.md Section one still states the bar carries exactly one permanent child process — no longer true, not corrected by this plan per its hard constraints. | open |  | 2026-08-12T14:09:51.533Z |  |
 | 70 | 18 | deviation | hypr/.config/hypr/scripts/bar-watchdog.sh |  | quick 260812-n9b's watchdog for WINDOWS row 67 is armed and fixture-proven but end-to-end recovery (real monitor-sleep -> surface-loss -> auto-restore) is UNPROVEN — reproducing the trigger is unsafe on this host (row 14, SEGV during a DP-1 hotplug). WINDOWS row 67 stays open. | open |  | 2026-08-12T14:09:51.627Z |  |
 | 71 | 19 | unrun-verify | theme-engine/.config/theme-engine/theme-stress-test |  | theme-stress-test cannot reach a full 10-switch clean run: hypr-equivalence-check (folded into theme-doctor) fails on binds.json/animations.json/options.jsonl divergence from its stale Phase-13.1 baseline (predates the v3.0 archive + phases 14-18), plus a structural incompatibility discovered in this session — its col.active_border/col.inactive_border comparison can only ever match the ONE theme the baseline was captured under, so it cannot pass across a multi-theme stress run even after re-baselining. Pre-existing, tracked since Phase 15 (15-audio-connectivity-panels/deferred-items.md item 1); out of scope for 19-03. D-19-45/D-19-46 verified independently via direct theme-apply runs (git clean throughout, pointer survives materialyou-materialyou rsync cycle). | open |  | 2026-08-13T09:53:24.990Z |  |
+| 72 | 19 | unrun-verify | quickshell/.config/quickshell/modules/notifications/NotifServer.qml |  | Task 1 human-check not run interactively: DND-on tile-lit-state after a restart, and fullscreen-focused-client suppression path — hyprctl dashboard summon failed on a pre-existing Lua config quirk; persistence/suppression proven via JSON/log inspection instead | open |  | 2026-08-13T12:17:51.925Z |  |
+| 73 | 19 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Task 2 human-check not run interactively: opening the drawer, clicking the DND tile, confirming all six tiles render untruncated with the full two-line label — grid state ownership proven structurally via grep/quickshell-doctor instead | open |  | 2026-08-13T12:17:52.009Z |  |
+| 74 | 19 | unrun-verify | quickshell/.config/quickshell/modules/toast/Toast.qml |  | Task 3 human-check not run interactively: visually confirming the toast slides in top-centre with correct on/off copy, self-dismisses after ~2s, and two rapid toggles produce one toast not two — DND was flipped by directly editing the state file, never exercising the real toggleDnd()/dndToggled/show() path | open |  | 2026-08-13T12:17:52.097Z |  |
 
 ````json
 [
@@ -939,6 +942,42 @@ last_updated: 2026-08-13T09:53:24.990Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-13T09:53:24.990Z",
+    "resolved_at": null
+  },
+  {
+    "id": 72,
+    "kind": "unrun-verify",
+    "phase": "19",
+    "file": "quickshell/.config/quickshell/modules/notifications/NotifServer.qml",
+    "line": null,
+    "description": "Task 1 human-check not run interactively: DND-on tile-lit-state after a restart, and fullscreen-focused-client suppression path — hyprctl dashboard summon failed on a pre-existing Lua config quirk; persistence/suppression proven via JSON/log inspection instead",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-13T12:17:51.925Z",
+    "resolved_at": null
+  },
+  {
+    "id": 73,
+    "kind": "unrun-verify",
+    "phase": "19",
+    "file": "quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml",
+    "line": null,
+    "description": "Task 2 human-check not run interactively: opening the drawer, clicking the DND tile, confirming all six tiles render untruncated with the full two-line label — grid state ownership proven structurally via grep/quickshell-doctor instead",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-13T12:17:52.009Z",
+    "resolved_at": null
+  },
+  {
+    "id": 74,
+    "kind": "unrun-verify",
+    "phase": "19",
+    "file": "quickshell/.config/quickshell/modules/toast/Toast.qml",
+    "line": null,
+    "description": "Task 3 human-check not run interactively: visually confirming the toast slides in top-centre with correct on/off copy, self-dismisses after ~2s, and two rapid toggles produce one toast not two — DND was flipped by directly editing the state file, never exercising the real toggleDnd()/dndToggled/show() path",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-13T12:17:52.097Z",
     "resolved_at": null
   }
 ]
