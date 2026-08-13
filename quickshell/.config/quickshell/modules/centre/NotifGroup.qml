@@ -187,6 +187,29 @@ Item {
             color: headerMouseArea.containsMouse ? BarRoles.capsuleHover : "transparent"
         }
 
+        // GATE-02 gap-closure fix (round 4, item 4) — this catch-all click
+        // area MUST be declared (and therefore z-stacked) BELOW every more
+        // specific interactive child of headerRow, most importantly
+        // `groupCloseMouseArea` nested inside the close glyph in
+        // `groupActions` below. It was previously declared LAST (after
+        // `groupActions`), which in QtQuick's default paint/hit-test order
+        // (last sibling on top) put it ON TOP of and therefore stole every
+        // click meant for the close glyph — pressing "x" toggled the
+        // group's expanded state instead of clearing it. Declaring this
+        // MouseArea first — immediately after the background Rectangle
+        // it colours, referenced purely by id so declaration order has no
+        // effect on that binding — means every later, more specific
+        // sibling (the close glyph's own MouseArea, and any future control
+        // added to groupActions) naturally paints on top and captures its
+        // own clicks first; anywhere else in the header row with no
+        // narrower handler still falls through to this one and expands.
+        MouseArea {
+            id: headerMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: groupItem.toggleExpandRequested()
+        }
+
         Row {
             anchors.left: parent.left
             anchors.leftMargin: Design.spacingSm
@@ -302,13 +325,6 @@ Item {
                     }
                 }
             }
-        }
-
-        MouseArea {
-            id: headerMouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            onClicked: groupItem.toggleExpandRequested()
         }
     }
 
