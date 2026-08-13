@@ -5,8 +5,8 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
 current_phase_name: Notification Server & Centre
 status: planning
-stopped_at: Phases 18 + 18.1 closed; waybar retired; phase 19 not yet discussed
-last_updated: "2026-08-12T22:40:35.095Z"
+stopped_at: Phase 19 context gathered
+last_updated: "2026-08-13T01:52:41.773Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
@@ -607,9 +607,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-12T20:32:46.636Z
-Stopped at: Completed 18-20-PLAN.md (RETIRE-02 waybar retirement)
-Resume file: None
+Last session: 2026-08-13T01:52:41.745Z
+Stopped at: Phase 19 context gathered
+Resume file: .planning/phases/19-notification-server-centre/19-CONTEXT.md
 
 ## Operator Next Steps
 
