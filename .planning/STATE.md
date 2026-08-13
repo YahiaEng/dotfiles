@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
 current_phase_name: notification-server-centre
 status: executing
-stopped_at: Completed 19-03-PLAN.md
-last_updated: "2026-08-13T09:56:32.276Z"
+stopped_at: Completed 19-04-PLAN.md
+last_updated: "2026-08-13T11:45:52.048Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 35
-  completed_plans: 30
+  completed_plans: 31
   percent: 33
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (notification-server-centre) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
-Progress: [█████████░] 86%
+Progress: [█████████░] 89%
 Last activity: 2026-08-13 — Phase 19 execution started
 
 ## Performance Metrics
@@ -222,6 +222,7 @@ Last activity: 2026-08-13 — Phase 19 execution started
 | Phase 19 P01 | ~55min | 3 tasks | 9 files |
 | Phase 19 P02 | ~35min | 2 tasks | 7 files |
 | Phase 19 P03 | ~40 min | 3 tasks | 14 files |
+| Phase 19 P04 | ~50min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -479,6 +480,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: LEDGER-04: all five open debug sessions corrected to resolved (not deferred) after cross-checking 15-UAT.md's own Gaps ledger, which 19-RESEARCH.md's ground-truth pass had not consulted — Each of the five bugs was already fixed by its own Phase 15 gap-closure plan and confirmed pass on round-2 UAT retest; writing a deferral for an already-shipped, verified fix would itself be inaccurate record-keeping
 - [Phase ?]: G-15-7 (bluetooth pairing containment) dispositioned resolved-by-construction but left open, pointed at plan 19-08 for its live pairing verification — The item's own closing condition has a live-verification half no documentation pass can satisfy; marking it closed here would be a fabricated resolution
 - [Phase ?]: D-19-45/D-19-46 implemented and verified (wallpaper pointer relocated to ~/.local/state/theme/current.jpg; theme-stress-test's REPRESENTATIVE_FILES corrected); LEDGER-07 left open — theme-stress-test's full clean run is blocked by a pre-existing, out-of-scope hypr-equivalence-check baseline staleness (tracked since Phase 15, compounded since; see 19-03-SUMMARY.md and deferred-items.md)
+- [Phase ?]: 19-04: dismiss(id) rewritten to move a wrapper into history rather than destroy it — the tracer-era version directly contradicted this plan's own no-gesture-destroys-data truth once real gesture-driven dismiss existed
+- [Phase ?]: 19-04: found and fixed a live ReferenceError in NotifPopupStack.qml — a Component{} block referenced its delegate Loader's own id (cardLoader) directly, which is out of scope at runtime; fixed via Loader.onLoaded + Qt.binding() to forward modelData across the QML Component id-scope boundary
+- [Phase ?]: 19-04: notif-fault-inject fixture built and live-verified 2/2 runs (9/9 checks each); action-invocation sender is a self-contained Python/PyGObject listener generated to a temp file at runtime so the fixture stays a single committed file while still fully controlling its own sender
 
 ### Quick Tasks Completed
 
@@ -617,8 +621,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-13T09:56:32.257Z
-Stopped at: Completed 19-03-PLAN.md
+Last session: 2026-08-13T11:45:52.029Z
+Stopped at: Completed 19-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
