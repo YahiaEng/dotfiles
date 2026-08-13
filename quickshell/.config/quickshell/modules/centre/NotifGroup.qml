@@ -49,6 +49,7 @@
 // rather than silently rendering a blank slot.
 import QtQuick
 import Quickshell
+import Quickshell.Services.Notifications
 import "../"
 import "../dashboard"
 import "../bar"
@@ -69,6 +70,14 @@ Item {
     readonly property var groupItems: groupItem.groupData.items || []
     readonly property int groupCount: groupItem.groupItems.length
     readonly property var _first: groupItem.groupCount > 0 ? groupItem.groupItems[0] : null
+
+    // GATE-02 gap-closure fix (round 4, item 2) — mirrors NotifCard.qml's
+    // own round-4 item-1 treatment exactly: the ONLY urgency-dependent
+    // difference anywhere on a centre row is the fallback glyph (swapped
+    // to a danger icon for critical urgency), never the row/header chrome
+    // itself. Header uses the group's newest (`_first`) item's urgency;
+    // each expanded row below reads its own `modelData.urgency`.
+    readonly property bool _headerCritical: !!groupItem._first && groupItem._first.urgency === NotificationUrgency.Critical
 
     // GATE-02 gap-closure fix (missing-texture icon) — `iconPath()` was
     // trusted to return an empty string for an unresolvable name. Live-
@@ -209,11 +218,14 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     visible: !headerIconImage.visible
-                    text: "notifications"
+                    // GATE-02 gap-closure fix (round 4, item 2) — same
+                    // icon-only urgency marker as NotifCard.qml's fallback
+                    // glyph; fires only when no real icon/image resolved.
+                    text: groupItem._headerCritical ? "error" : "notifications"
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.iconSizeMd
                     textFormat: Text.PlainText
-                    color: BarRoles.capsuleFg
+                    color: groupItem._headerCritical ? BarRoles.danger : BarRoles.capsuleFg
                 }
             }
 
@@ -330,6 +342,9 @@ Item {
                 readonly property bool _fromDisk: !NotifServer.hasSessionActions(notifRow.modelData.id)
                 readonly property var _actions: NotifServer.actionsForHistoryId(notifRow.modelData.id)
                 readonly property string _iconSrc: groupItem.resolveIconSource(notifRow.modelData)
+                // GATE-02 gap-closure fix (round 4, item 2) — per-row
+                // urgency marker, same icon-only treatment as the header.
+                readonly property bool _critical: notifRow.modelData.urgency === NotificationUrgency.Critical
 
                 Rectangle {
                     anchors.fill: parent
@@ -367,11 +382,12 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         visible: !rowIconImage.visible
-                        text: "notifications"
+                        // GATE-02 gap-closure fix (round 4, item 2).
+                        text: notifRow._critical ? "error" : "notifications"
                         font.family: Design.symbolFontFamily
                         font.pixelSize: Design.iconSizeMd
                         textFormat: Text.PlainText
-                        color: BarRoles.capsuleFg
+                        color: notifRow._critical ? BarRoles.danger : BarRoles.capsuleFg
                     }
                 }
 
