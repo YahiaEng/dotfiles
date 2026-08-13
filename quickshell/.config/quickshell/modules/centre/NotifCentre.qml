@@ -316,6 +316,18 @@ PanelWindow {
             anchors.top: header.bottom
             anchors.left: parent.left
             anchors.right: parent.right
+            // GATE-02 gap-closure fix (ISSUE c) — this region previously
+            // spanned edge-to-edge with NO horizontal inset, so a row's
+            // own square-cornered hover highlight (radius: spacingSm,
+            // much smaller than the WINDOW's own popoutCornerRadius)
+            // could render right up against — and visually poke past —
+            // the frame's own ROUNDED left edge near the top/bottom of
+            // the list, reading as "clipping outside the centre's
+            // bounds". Matches the header's own existing spacingMd inset
+            // (see `header`'s Text/clearAllButton anchors.leftMargin/
+            // rightMargin above) rather than inventing a new value.
+            anchors.leftMargin: Design.spacingMd
+            anchors.rightMargin: Design.spacingMd
             anchors.bottom: footerHost.top
             anchors.bottomMargin: Design.spacingLg
             clip: true

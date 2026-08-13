@@ -137,7 +137,18 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: Design.spacingSm
-            color: headerMouseArea.containsMouse ? BarRoles.notifSurfaceHover : "transparent"
+            // GATE-02 gap-closure fix (ISSUE c) — `notifSurfaceHover` (0.90
+            // alpha) sat on top of this surface's own 0.78-alpha
+            // `notifSurface` background, an 12-point alpha step of the
+            // SAME base colour that read as "barely visible" live. Reads
+            // through `BarRoles.capsuleHover` instead — the established
+            // list-row hover contrast this repo already uses elsewhere
+            // (AudioPopout.qml's own sink rows: transparent ->
+            // Colours.surfaceVariant, the same tonal family this maps to
+            // through BarRoles per D-19-43's routing rule), a clearly
+            // distinct surfaceVariant tone rather than a subtle alpha
+            // step of the row's own background family.
+            color: headerMouseArea.containsMouse ? BarRoles.capsuleHover : "transparent"
         }
 
         Row {
@@ -290,7 +301,9 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: Design.spacingSm
-                    color: rowMouseArea.containsMouse ? BarRoles.notifSurfaceHover : "transparent"
+                    // GATE-02 gap-closure fix (ISSUE c) — see headerRow's
+                    // own identical Rectangle above for the full rationale.
+                    color: rowMouseArea.containsMouse ? BarRoles.capsuleHover : "transparent"
                 }
 
                 MouseArea {
