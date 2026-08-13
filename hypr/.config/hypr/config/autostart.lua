@@ -77,10 +77,15 @@ hl.on("hyprland.start", function()
     -- visible desktop outage, not the invisible loss of a headless probe
     -- daemon. The probe instrumentation panel (Super+Shift+G) is still a
     -- surface it can render, summoned on demand; it is no longer the
-    -- only one. From Phase 19 the same process also carries the
-    -- notification server. quickshell-doctor still asserts this process
-    -- stays alive and its liveness/namespace checks are unaffected by
-    -- the launch-mechanism change below.
+    -- only one. This process IS the session's notification server: it
+    -- owns org.freedesktop.Notifications on the session bus (Phase 19,
+    -- RETIRE-03/D-19-42), and quickshell-doctor's own owner registry
+    -- names it as the declared owner of that bus name. The separate
+    -- notification daemon that used to hold it had its launch entry
+    -- removed from this file in Plan 19-08 Task 4 — see the removal
+    -- carve-out recorded further down this file. quickshell-doctor still
+    -- asserts this process stays alive and its liveness/namespace checks
+    -- are unaffected by the launch-mechanism change below.
     --
     -- 18-07 (QBAR-10, D-18-40): launched through quickshell.service
     -- instead of a transient `uwsm app` scope — this is the ONLY entry
@@ -133,11 +138,26 @@ hl.on("hyprland.start", function()
     -- error here rather than nowhere at all.
     hl.exec_cmd("systemctl --user start quickshell-bar-watchdog.service")
 
-    -- ── Notification daemon ──────────────────────────────
-    -- swaync-launch.sh points swaync at the sass-compiled state-dir
-    -- stylesheet (D-01/D-34/13-02), degrading to unstyled rather than
-    -- not running at all if the compiled sheet is ever absent.
-    hl.exec_cmd("uwsm app -- ~/.config/hypr/scripts/swaync-launch.sh")
+    -- The standalone notification daemon that used to be launched HERE
+    -- was RETIRED in Plan 19-08 Task 4 (RETIRE-03, D-19-42). Its launch
+    -- entry and its launch script are both gone: the QML shell root
+    -- started above now owns org.freedesktop.Notifications directly, in
+    -- the same process, so a second launcher on this page would be a
+    -- second process racing for a bus name only one owner can hold —
+    -- and the loser fails quietly, which is precisely the failure D-19-42
+    -- exists to make impossible.
+    --
+    -- This is an entry REMOVED, which this file's own "no entry added,
+    -- removed or reordered" prohibition (top of file) otherwise forbids.
+    -- Named here as a deliberate, plan-authorised removal in the same
+    -- register D-18-28 and RETIRE-02 (18-20) used for theirs — not an
+    -- oversight, and not a widening of the prohibition's exception
+    -- surface beyond this one entry.
+    --
+    -- The swap was made atomic on purpose: this removal and the declared
+    -- owner in quickshell-doctor's registry are the same fact recorded in
+    -- two places, so they move together. See that file's own note at the
+    -- registry row for the one wrinkle in how that landed here.
 
     -- ── AGS media applet daemon (MEDIA-01/MEDIA-04, 10-06) ──
     -- The sole media-widget daemon this repo autostarts. This instance

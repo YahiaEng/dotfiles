@@ -241,6 +241,30 @@ QS03_ACCEPTED_PERMANENT=1
 #    clients talk to it at once, which is that service's normal operating
 #    mode. _qsd_assert_client_consumer_not_owned below is the structural
 #    guard that makes this mistake fail the gate instead of shipping.
+# RETIRE-03 / D-19-42 atomic swap (Plan 19-08 Task 4). The declared owner
+# of org.freedesktop.Notifications below and the notification-daemon launch
+# entry in hypr/config/autostart.lua are the same fact recorded in two
+# places, so the plan required them to move in ONE commit: any boot from a
+# state where the old daemon is still launched but the shell is declared
+# owner runs two processes racing for a bus name only one can hold, and the
+# loser fails silently rather than loudly.
+#
+# HONEST DEVIATION, recorded here rather than only in a commit message.
+# The flip on the row below did NOT land with the launch-entry removal. It
+# landed early, in Task 1's commit bf55b1e ("pre-deletion baseline, fixture
+# re-point, live single-owner proof"), which the plan had explicitly asked
+# to leave this row alone. The launch-entry removal followed in Task 4.
+# So the exposure window this pairing exists to prevent did briefly exist
+# in repo history — bf55b1e..Task 4 — with the registry naming the shell
+# while autostart.lua still launched the old daemon.
+#
+# It never bit on this host: the session was already running the shell as
+# sole owner throughout that window (verified live at both ends), the old
+# daemon was not running, and no cold boot occurred between the two
+# commits. A cold boot inside that window WOULD have started both. The
+# window is closed as of Task 4; this note stays so that a future reader
+# auditing "was the swap really atomic" gets the true answer from the file
+# rather than inferring a cleaner history than actually happened.
 declare -A QSD_NAME_OWNERS=(
     ["org.freedesktop.Notifications"]="quickshell"
 )
