@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
 current_phase_name: notification-server-centre
 status: executing
-stopped_at: Completed 19-01-PLAN.md
-last_updated: "2026-08-13T09:19:23.966Z"
+stopped_at: Completed 19-02-PLAN.md
+last_updated: "2026-08-13T09:31:24.299Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 35
-  completed_plans: 28
+  completed_plans: 29
   percent: 33
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (notification-server-centre) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
-Progress: [████████░░] 80%
+Progress: [████████░░] 83%
 Last activity: 2026-08-13 — Phase 19 execution started
 
 ## Performance Metrics
@@ -220,6 +220,7 @@ Last activity: 2026-08-13 — Phase 19 execution started
 | Phase 18 P19 | multi-session | 3 tasks | 1 files |
 | Phase 18 P20 | 50min | 3 tasks | 72 files |
 | Phase 19 P01 | ~55min | 3 tasks | 9 files |
+| Phase 19 P02 | ~35min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -474,6 +475,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: NotifPopupStack corner-anchors the same top+right edges Bar.qml always anchors, so the compositor auto-clears whichever edge the bar currently reserves without a live property read
 - [Phase ?]: QtObject-rooted QML files must assign a Connections child through a named property, not an anonymous default-property child
 - [Phase ?]: swaync is D-Bus-activated (Type=dbus/BusName), not a bare exec-once process; systemctl mask/unmask is the correct tool for a clean single-owner bus test
+- [Phase ?]: LEDGER-04: all five open debug sessions corrected to resolved (not deferred) after cross-checking 15-UAT.md's own Gaps ledger, which 19-RESEARCH.md's ground-truth pass had not consulted — Each of the five bugs was already fixed by its own Phase 15 gap-closure plan and confirmed pass on round-2 UAT retest; writing a deferral for an already-shipped, verified fix would itself be inaccurate record-keeping
+- [Phase ?]: G-15-7 (bluetooth pairing containment) dispositioned resolved-by-construction but left open, pointed at plan 19-08 for its live pairing verification — The item's own closing condition has a live-verification half no documentation pass can satisfy; marking it closed here would be a fabricated resolution
 
 ### Quick Tasks Completed
 
@@ -611,8 +614,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-13T09:19:23.947Z
-Stopped at: Completed 19-01-PLAN.md
+Last session: 2026-08-13T09:31:24.280Z
+Stopped at: Completed 19-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
