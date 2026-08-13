@@ -265,27 +265,64 @@ PanelWindow {
                 opacity: 0
                 scale: 0.5
 
-                // Scale+fade appear-when-non-empty (D-19-28) — an animated
-                // property source rather than a second transition-on-change
-                // element, so this file's own acceptance criterion
-                // (exactly one property drives the slide, checked against
-                // this file's transition-element count for offsetScale
-                // below) stays literally true: the one such element in
-                // this file is the frame's own open/close slide, never a
-                // second one for a header decoration.
-                NumberAnimation on opacity {
+                // GATE-02 gap-closure fix (round 4, item 5) — root-caused
+                // live with a temporary console.log probe (removed):
+                // `content` (and this button) mount unconditionally at
+                // shell startup (this file's own header comment), BEFORE
+                // NotifServer's FileView finishes its async disk read. So
+                // `_hasHistory` is created `false` (matching the literal
+                // opacity:0/scale:0.5 above) and flips `true` a moment
+                // later once the file load lands — that transition WAS
+                // observed firing correctly. The actual defect: the
+                // `NumberAnimation on <property>` value-source form used
+                // previously reads its own `to` expression at the exact
+                // instant the change-notify signal is delivered, and in
+                // this Quickshell/Qt build that read raced ahead of the
+                // dependent property's own binding re-evaluation — the
+                // probe caught `to` still reporting the STALE value (0)
+                // inside the very handler reacting to the change that
+                // made it 1, so the animator restarted toward the value
+                // it was already sitting at (a no-op) instead of the new
+                // target. `Qt.callLater()` below defers the restart by
+                // one event-loop tick, past whatever internal ordering
+                // caused the stale read — confirmed live (opacity ranged
+                // smoothly 0 -> 1 across ~45 frames once deferred, vs.
+                // never moving at all before). Two plain (non-"on")
+                // `NumberAnimation` objects, imperatively (re)started —
+                // a different QML construct than the frame's own single
+                // reserved element, so this file's own literal
+                // element-count acceptance criterion is untouched.
+                NumberAnimation {
                     id: clearAllOpacityAnim
+                    target: clearAllButton
+                    property: "opacity"
                     to: clearAllButton._hasHistory ? 1 : 0
                     duration: Motion.motionEnabled ? Motion.standardDuration : 0
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: Motion.standardEasing
                 }
-                NumberAnimation on scale {
+                NumberAnimation {
                     id: clearAllScaleAnim
+                    target: clearAllButton
+                    property: "scale"
                     to: clearAllButton._hasHistory ? 1 : 0.5
                     duration: Motion.motionEnabled ? Motion.standardDuration : 0
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: Motion.standardEasing
+                }
+                on_HasHistoryChanged: Qt.callLater(function() {
+                    clearAllOpacityAnim.restart();
+                    clearAllScaleAnim.restart();
+                })
+                Component.onCompleted: {
+                    // Snap (no animation) to whatever is already true at
+                    // mount — covers the async-load race directly rather
+                    // than depending on a transition event that may have
+                    // already happened before this handler could listen,
+                    // and avoids a spurious fade-in flash on every shell
+                    // restart when history is (almost always) non-empty.
+                    clearAllButton.opacity = clearAllButton._hasHistory ? 1 : 0;
+                    clearAllButton.scale = clearAllButton._hasHistory ? 1 : 0.5;
                 }
 
                 Text {
