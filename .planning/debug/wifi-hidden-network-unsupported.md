@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "add an option to add a hidden wifi network (a network has it's SSID broadcast turned off)"
 created: 2026-08-02T19:00:00Z
-updated: 2026-08-02T19:10:00Z
+updated: 2026-08-13T00:00:00Z
 ---
 
 ## Current Focus
@@ -140,3 +140,37 @@ fix: |
 
 verification: N/A — diagnose-only. No code changed.
 files_changed: []
+
+## Phase 19 Disposition (2026-08-13)
+
+**RESOLVED — the feature this session scoped was implemented exactly along the
+recommended route, the same day, and shipped.** This session's own recommendation
+(Route B: a directed `nmcli device wifi rescan ssid <SSID>` probe materializing the
+hidden AP as an ordinary `Network` object, feeding the entire existing connect flow
+unchanged, with Route A kept only as a documented fallback) was implemented by plan
+`15-14-PLAN.md` the same day. `15-UAT.md`'s Gaps ledger records it directly: `gap_id:
+G-15-4b`, `status: resolved`, `resolved_by: 15-14-PLAN.md`, with the explicit note
+"Resolved as SHIPPED — the entry point, form, handoff and Escape stage all exist." UAT
+round-1 test 6 initially passed; a round-2 retest against a *real* hidden AP then
+failed, but that failure was diagnosed as a **separate, narrower** defect — a handoff
+race inside `WifiPanel.qml`, not a Route-B-viability failure this session's own
+uncertainty ("MUST be a Step Zero... Route B is UNPROVEN end-to-end") had flagged as
+the risk — and is tracked under its own gap ID, `G-15-6`
+(`.planning/debug/wifi-hidden-network-not-detected.md`), itself already resolved and
+dispositioned above in this same Phase 19 pass. The feature-absence gap this session
+diagnosed is not reopened by G-15-6's existence; `15-UAT.md`'s own text is explicit
+that G-15-6 is "not a reopening of this one."
+
+`19-RESEARCH.md`'s LEDGER-04 Ground Truth section (taken 2026-08-13) listed this file
+among the five still needing "resolve or deferral" and characterized it as a "wifi
+panel feature gap," which was true at the moment this session was written but did not
+cross-check `15-UAT.md`'s Gaps ledger, where the feature this session scoped is already
+implemented, shipped and (via G-15-6's own separate closure) fully working end-to-end
+against a real hidden network. This disposition corrects the record against that more
+authoritative, already-committed source.
+
+**Boundary note:** the implementation itself is `WifiPanel.qml`/`WifiBackend.qml` work,
+outside Phase 19's own declared scope (the notification server, swaync's retirement,
+and LEDGER-04/07/08). Phase 19 did not build this feature and takes no credit for it —
+it only corrects this file's disposition to match ground truth already shipped in
+Phase 15. No wifi or bluetooth panel source file was modified by this Phase 19 plan.

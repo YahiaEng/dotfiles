@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Clicking enable on bluetooth does nothing. If this is due to me missing required packages, then the bluetooth should show as disabled and label the reason when I hover on it."
 created: 2026-08-02T19:00:00Z
-updated: 2026-08-02T19:35:00Z
+updated: 2026-08-13T00:00:00Z
 ---
 
 ## Current Focus
@@ -123,7 +123,34 @@ started: Discovered during UAT of phase 15 (audio-connectivity-panels)
 ## Resolution
 
 root_cause: "AND-gate, two simultaneously-required contributing causes. (1) ENVIRONMENT: the host's bluetooth adapter (hci0, 60:E9:AA:20:44:B0) is rfkill SOFT-blocked — a persistent host state saved by systemd-rfkill across reboots, not test residue — so Quickshell's BluetoothAdapter binding refuses `enabled = true` outright, logging 'Cannot enable adapter because it is blocked by rfkill.' to stderr and never touching D-Bus; (2) CODE: BluetoothBackend.qml exposes only `adapterPresent`/`adapterEnabled` and never reads `adapter.state`, so BluetoothAdapterState.Blocked (enum 4, confirmed live) is not representable in QML; BluetoothPanel.qml therefore has only two branches where WifiPanel.qml has three, falls through to the fixable `adapterOffBranch`, and renders an Enable button that provably cannot work; and `setAdapterEnabled()` has no failure path and no adapter-level error signal (`deviceActionFailed` is device-scoped only), so the refusal is swallowed entirely."
-fix: "[not applied — diagnose-only mode]"
-verification: "[not applied — diagnose-only mode]"
+fix: "Applied by plan 15-12 (2026-08-02, same day as this diagnosis): BluetoothBackend.qml gained a readonly `adapterBlocked` guard reading `adapter.state === BluetoothAdapterState.Blocked`, and BluetoothPanel.qml gained a third `adapterBlockedBranch` (mirroring WifiPanel.qml's existing three-branch shape) rendering Enable present-but-disabled with a hover reason, exactly the fix direction this session's own `fix_rationale` named."
+verification: "15-UAT.md round 2, test 2 (\"Bluetooth blocked-adapter state\"): result PASS — the panel renders the third empty state, dimmed Enable, correct hover copy, and re-renders live into the ordinary off-state after an external `rfkill unblock bluetooth` with no restart. gap_id G-15-2, resolved_by 15-12-PLAN.md, resolved_at 2026-08-02. The device-list half of the original UAT test 2 (pair/connect/disconnect/forget) was a SEPARATE scope note on that same gap, not this Enable-button bug — it was independently closed in round 2 test 7 once the user supplied a real peer."
 files_changed: []
 oracle_type: implicit (observed stderr refusal) + specified (documented D-15-22/UI-SPEC E7 affordance contract)
+
+## Phase 19 Disposition (2026-08-13)
+
+**RESOLVED — already fixed and UAT-verified in Phase 15; this session's frontmatter was
+simply never closed out.** `19-RESEARCH.md`'s LEDGER-04 Ground Truth section (taken
+2026-08-13) characterized this file as still-open ("root cause... never read/surfaced
+in QML... D-19-39 does NOT fix this"), which is true only in the narrow sense that
+Phase 19's own notification-server work does not touch it — that characterization did
+not cross-check `15-UAT.md`'s own Gaps ledger, which independently records this exact
+bug (gap_id `G-15-2`) as `status: resolved`, `resolved_by: 15-12-PLAN.md`, confirmed
+`pass` on round-2 retest the same day it was diagnosed. This disposition corrects the
+record against that more authoritative, already-committed source rather than treating
+Phase 19's own research pass as the last word.
+
+This is the second instance of the exact bookkeeping lag `.planning/debug/resolved/panels-missing-animated-border.md`
+already named as "the reusable lesson" — a fix landing through its normal gap-closure
+plan track (here, 15-12) rather than through this debug session, with nothing closing
+the loop back to this file's frontmatter. No wifi or bluetooth panel source file was
+modified by this Phase 19 plan; the fix already existed in `BluetoothBackend.qml`/
+`BluetoothPanel.qml` (verified present via read-only inspection of the live tree, not
+by editing) before this disposition was written.
+
+**Boundary note:** this session's bug and its fix are Bluetooth-panel work
+(`BluetoothBackend.qml`/`BluetoothPanel.qml`), outside Phase 19's own declared scope
+(the notification server, swaync's retirement, and LEDGER-04/07/08). Phase 19 did not
+perform this fix and takes no credit for it — it only corrects this file's disposition
+to match ground truth already established and shipped by Phase 15.

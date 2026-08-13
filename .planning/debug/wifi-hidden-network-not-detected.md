@@ -1,8 +1,18 @@
+---
+status: resolved
+trigger: "It cannot detect my hidden network."
+created: 2026-08-02T00:00:00Z
+updated: 2026-08-13T00:00:00Z
+---
+
 # Debug session — hidden network not detected (G-15-6)
 
 **Opened:** 2026-08-02, UAT round 2, test 6
 **Symptom:** "It cannot detect my hidden network."
 **Status:** ROOT CAUSE FOUND — measured against the user's own hidden AP, not inferred.
+This file's own `status:` frontmatter field above reflects the Phase 19 disposition
+appended at the end of this document — the prose "ROOT CAUSE FOUND" line above is this
+session's own original finding, kept verbatim, and is not itself the disposition.
 
 ---
 
@@ -152,3 +162,31 @@ Exact cold-cache reveal latency for a *single* probe was not pinned down: the re
 stayed in NM's scan cache for 150 s+ without aging out, so the cold-start condition could not
 be re-created during this session. The fix should therefore be robust to a long and variable
 reveal (retry on list change + periodic re-probe) rather than tuned to a specific number.
+
+## Phase 19 Disposition (2026-08-13)
+
+**RESOLVED — already fixed, inline, the same day this session diagnosed it.** This
+session's own diagnosis (retry the handoff on `wifiDevice.networks.valuesChanged`,
+re-probe while in flight, raise the 8000ms watchdog above the measured reveal latency —
+see `## What must change` above) was implemented verbatim in commit `12575ac`, at the
+user's explicit request to fix inline rather than route through a formal gap-closure
+plan. `15-UAT.md`'s Gaps ledger records it directly: `gap_id: G-15-6`, `status:
+resolved`, `resolved_by: "commit 12575ac (inline fix — user chose to skip formal
+gap-closure planning)"`, `retest_result: "pass — verified by the user against their own
+hidden AP on a cold cache"` — the strongest evidence class available on this surface,
+since this was the one behaviour Phase 15's own shipping plan (15-14) had explicitly
+recorded as unprovable without a real hidden AP, and the user then supplied one.
+`PROJECT.md`'s Key Decisions table independently corroborates the same commit and
+outcome under "A one-shot handoff on process exit is not a handoff."
+
+`19-RESEARCH.md`'s LEDGER-04 Ground Truth section (taken 2026-08-13) listed this file
+among the five still needing "resolve or deferral," which is accurate as a description
+of this file's own stale frontmatter but did not cross-check `15-UAT.md`'s Gaps ledger,
+where the same bug is already closed and retested. This disposition corrects the
+record against that more authoritative, already-committed source.
+
+**Boundary note:** the fix itself is `WifiPanel.qml`/`WifiBackend.qml` work, outside
+Phase 19's own declared scope (the notification server, swaync's retirement, and
+LEDGER-04/07/08). Phase 19 did not perform this fix and takes no credit for it — it
+only corrects this file's disposition to match ground truth already shipped in
+Phase 15. No wifi or bluetooth panel source file was modified by this Phase 19 plan.

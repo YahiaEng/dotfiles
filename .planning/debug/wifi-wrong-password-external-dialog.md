@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "A wrong password opens up a different dialogue window which is rendered behind the wifi panel. This is not the behaviour I want, everything should be contained inside the wifi panel."
 created: 2026-08-02T00:00:00Z
-updated: 2026-08-02T00:00:00Z
+updated: 2026-08-13T00:00:00Z
 ---
 
 ## Current Focus
@@ -119,6 +119,55 @@ root_cause: |
   once the user dismisses nm-applet's dialog, with reason 'no-secrets' -> NoSecrets ->
   "Password required" — the wrong copy — and WifiPanel.qml:249 then re-expands the row.
 
-fix: [not applied — diagnose-only mode]
-verification: [n/a]
-files_changed: []
+fix: "Applied by plan 15-13-PLAN.md (2026-08-02, same day as this diagnosis): nm-applet's
+  autostart is suppressed under stow via a byte-for-byte filename-matched override
+  (`quickshell/.config/autostart/nm-applet.desktop`, `Hidden=true`, honoured by
+  `systemd-xdg-autostart-generator`), removing the only registered NetworkManager
+  secret agent on this host — exactly the \"only fix\" this session's own root_cause
+  concluded (\"Removing the agent is the only fix\", quoted verbatim in that override
+  file's own header comment). `network-manager-applet` itself stays installed
+  deliberately (D-15-23) since it still supplies `nm-connection-editor`, the panel's
+  Advanced target — only the autostarted agent is suppressed, not the package. The
+  failure-copy mapping question this session flagged as a second, independent finding
+  (whether a real PSK mismatch resolves to WifiAuthTimeout or NoSecrets) was also
+  addressed in the same plan."
+verification: "15-UAT.md round 2, test 4 (\"Wrong wifi password stays inside the
+  panel\"): result PASS — a deliberately wrong passphrase produces NO external window,
+  the failure renders as row-scoped copy naming the rejected passphrase, and the
+  distinct \"Password required\" case (a network needing a passphrase never supplied)
+  stays distinguishable. gap_id G-15-4, resolved_by 15-13-PLAN.md, resolved_at
+  2026-08-02 — a live end-to-end user pass through the real UI path, closing the gap
+  this fix's own shipping SUMMARY (15-13-SUMMARY.md) had flagged as its one material
+  residual (\"no wrong-PSK connect was driven through the real UI path\")."
+files_changed:
+  - quickshell/.config/autostart/nm-applet.desktop
+
+## Phase 19 Disposition (2026-08-13)
+
+**RESOLVED — already fixed and UAT-verified in Phase 15, this session's frontmatter was
+simply never closed out.** `19-RESEARCH.md`'s LEDGER-04 Ground Truth section (taken
+2026-08-13) listed this file among the five still needing "resolve or deferral,"
+characterizing it as a "wifi/nm-applet bug" without a fix credited to
+notification-server work — accurate as far as it goes, but that characterization did
+not cross-check `15-UAT.md`'s own Gaps ledger, which independently records this exact
+bug (gap_id `G-15-4`) as `status: resolved`, `resolved_by: 15-13-PLAN.md`, confirmed
+`pass` on round-2 retest through the real UI path. This disposition corrects the record
+against that more authoritative, already-committed source rather than treating Phase
+19's own research pass as the last word.
+
+This is another instance of the same bookkeeping lag `.planning/debug/resolved/panels-missing-animated-border.md`
+already named as "the reusable lesson" — a fix landing through its normal gap-closure
+plan track (here, 15-13) rather than through this debug session, with nothing closing
+the loop back to this file's frontmatter. Notably, the fix here is *not* Bluetooth's
+"G-15-7 remedy MUST NOT be copied" trap — `15-UAT.md`'s own G-15-7 entry explicitly
+names this fix (agent suppression) as the wrong move for bluetooth's structurally
+different pairing requirement, so the two must stay dispositioned independently rather
+than by analogy; they are, in this pass.
+
+**Boundary note:** this session's fix (`quickshell/.config/autostart/nm-applet.desktop`,
+`install.sh`, `WifiBackend.qml`, `WifiPanel.qml`, `15-UI-SPEC.md`) is wifi/nm-applet
+work, outside Phase 19's own declared scope (the notification server, swaync's
+retirement, and LEDGER-04/07/08). Phase 19 did not perform this fix and takes no credit
+for it — it only corrects this file's disposition to match ground truth already
+shipped in Phase 15. No wifi or bluetooth panel source file was modified by this
+Phase 19 plan.

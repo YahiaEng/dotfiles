@@ -130,3 +130,41 @@ cheap path to containment; building a `org.bluez.Agent1` D-Bus process is not.
 **Verification when that phase lands:** pair a real phone and confirm (a) no GTK
 dialog appears, (b) the confirmation renders through the new server with working
 Accept/Reject, (c) `GetCapabilities` lists `body` and `actions`.
+
+---
+
+## Phase 19 Disposition (2026-08-13) — resolved-by-construction, live verification owed to plan 19-08
+
+**Status: NOT closed here.** This item is dispositioned as **resolved-by-construction
+in Phase 19**, with its own stated closing condition ("closes when the swaync
+replacement ships with the capability declared and a real bluetooth pairing verified
+against it") split across two halves: the declared-capability half is satisfied by this
+phase's own design contract, and the live-verification half is explicitly deferred to
+plan **`19-08`**.
+
+`19-CONTEXT.md`'s locked decisions already commit to declaring both capabilities this
+item names as its blocking requirement — `GetCapabilities` advertising `body` and
+`actions` is a stated design contract of the Phase 19 notification server, not an open
+question, so the first half of this item's own closing condition is satisfied by
+construction as soon as that server ships. What remains is exactly what this item's own
+text already specified as its closing verification: *"pair a real phone and confirm (a)
+no GTK dialog appears, (b) the confirmation renders through the new server with working
+Accept/Reject, (c) `GetCapabilities` lists `body` and `actions`."* That live pairing
+test is plan `19-08`'s to run and flip this item closed — not this plan's. Marking this
+resolved before a phone has actually been paired against the shipped server would be
+exactly the fabricated-resolution failure `19-RESEARCH.md`'s LEDGER-04 Ground Truth
+section warns against, so it stays open, pointed forward, until `19-08` performs that
+verification and updates this entry itself.
+
+**Boundary note, corrected count:** `19-RESEARCH.md`'s LEDGER-04 Ground Truth section
+(taken 2026-08-13) already established that this item is tracked as a SEPARATE ledger
+from the five session files in `.planning/debug/` — it is not one of "six open debug
+sessions" as ROADMAP.md's stale phrasing conflated. The corrected LEDGER-04 accounting
+this phase closes out is: **five open session files in `.planning/debug/`** (all five
+dispositioned `resolved` in this same 2026-08-13 pass — see each file's own "Phase 19
+Disposition" section), **plus this one separately-tracked deferred item** (dispositioned
+resolved-by-construction here, live-verified by `19-08`) — **six dispositions total**,
+against the corrected count, not the roadmap's stale "six debug sessions" framing. The
+historical sixth debug-session file (`panels-missing-animated-border.md`) was already
+moved to `.planning/debug/resolved/` and closed under Phase 18's LEDGER-01, before this
+phase began.

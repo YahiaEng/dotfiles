@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Scan progress line is moving too fast. Pressing on \"rescan\" needs to show feedback that the rescan action is underway."
 created: 2026-08-02T08:00:00Z
-updated: 2026-08-02T08:40:00Z
+updated: 2026-08-13T00:00:00Z
 ---
 
 ## Current Focus
@@ -284,6 +284,46 @@ root_cause: |
   Spec note: RC2's level semantics were LOCKED by 15-UI-SPEC.md:177 — the code matches
   the spec, so the spec must be amended alongside any fix.
 
-fix: [not applied — diagnose-only mode, goal: find_root_cause_only]
-verification: [n/a]
+fix: "Applied by plan 15-11-PLAN.md (2026-08-02, same day as this diagnosis) — addressed
+  both root causes independently: RC1 (the sweep bound to one-shot MD3 transition
+  tokens) fixed by exposing a Motion.qml alias for one of motion.json's already-rendered
+  loop-period tokens, so the progress sweep uses a real loop period instead of a
+  transition token; RC2 (no press feedback) fixed by synthesizing a client-side
+  in-flight edge off `wifiDevice.networks.valuesChanged` (the exact `Connections` reuse
+  this session's own evidence named as the house precedent) plus adding a pressed/busy
+  visual state to the refresh glyph. 15-UI-SPEC.md's D-15-15 was amended alongside the
+  code fix, exactly as this session's own Evidence section flagged as required (\"the
+  implementation is FAITHFUL to the spec... closing G-15-1 therefore requires amending
+  15-UI-SPEC.md, not just editing QML\")."
+verification: "15-UAT.md round 2, test 1 (\"Wifi scan pace and Rescan feedback\"):
+  result PASS — sweep runs at a readable pace, pressing Rescan gives immediate press
+  feedback plus a persistent busy state that clears when results land, and the
+  `reduced` motion preset is no longer faster than `normal` (the perverse inversion
+  this session's own Evidence entry flagged). gap_id G-15-1, resolved_by
+  15-11-PLAN.md, resolved_at 2026-08-02."
 files_changed: []
+
+## Phase 19 Disposition (2026-08-13)
+
+**RESOLVED — already fixed and UAT-verified in Phase 15, this session's frontmatter was
+simply never closed out.** `19-RESEARCH.md`'s LEDGER-04 Ground Truth section (taken
+2026-08-13) listed this file among the five still needing "resolve or deferral,"
+characterizing it as a "wifi panel bug" without a fix credited to notification-server
+work — accurate as far as it goes, but that characterization did not cross-check
+`15-UAT.md`'s own Gaps ledger, which independently records this exact bug (gap_id
+`G-15-1`, covering both reported symptoms — sweep pace and press feedback) as `status:
+resolved`, `resolved_by: 15-11-PLAN.md`, confirmed `pass` on round-2 retest. This
+disposition corrects the record against that more authoritative, already-committed
+source rather than treating Phase 19's own research pass as the last word.
+
+This is another instance of the same bookkeeping lag `.planning/debug/resolved/panels-missing-animated-border.md`
+already named as "the reusable lesson" — a fix landing through its normal gap-closure
+plan track (here, 15-11) rather than through this debug session, with nothing closing
+the loop back to this file's frontmatter.
+
+**Boundary note:** this session's bug and its fix are `WifiPanel.qml`/`WifiBackend.qml`/
+`Motion.qml`/`15-UI-SPEC.md` work, outside Phase 19's own declared scope (the
+notification server, swaync's retirement, and LEDGER-04/07/08). Phase 19 did not
+perform this fix and takes no credit for it — it only corrects this file's disposition
+to match ground truth already shipped in Phase 15. No wifi or bluetooth panel source
+file was modified by this Phase 19 plan.
