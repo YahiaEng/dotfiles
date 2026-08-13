@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
 current_phase_name: notification-server-centre
 status: executing
-stopped_at: Completed 19-06-PLAN.md
-last_updated: "2026-08-13T12:45:21.657Z"
+stopped_at: Completed 19-07-PLAN.md
+last_updated: "2026-08-13T12:59:31.235Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 35
-  completed_plans: 33
+  completed_plans: 34
   percent: 33
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 19 (notification-server-centre) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 Last activity: 2026-08-13 — Phase 19 execution started
 
 ## Performance Metrics
@@ -225,6 +225,7 @@ Last activity: 2026-08-13 — Phase 19 execution started
 | Phase 19 P04 | ~50min | 3 tasks | 7 files |
 | Phase 19 P05 | ~30min | 3 tasks | 8 files |
 | Phase 19 P06 | ~45min | 3 tasks | 10 files |
+| Phase 19 P07 | ~25min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -491,6 +492,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: DND toast copy strings live on NotifServer.qml (emitted via a new dndToggled signal), not inside Toast.qml or shell.qml, keeping Toast.qml a generic chrome-only frame Phase 20's OSD can reuse verbatim.
 - [Phase ?]: NotifServer.centreOpen reused as the summon-state mediator every path toggles, avoiding a new mediator file
 - [Phase ?]: NotifServer.qml extended with clearOne/clearGroup/_sessionActionsById to implement D-19-29/D-19-31 without breaking persistence
+- [Phase ?]: 19-07: closed WifiPanel.qml's textFormat gap (15-SECURITY.md Unregistered Flags item 2 / T-15-08b's still-open twin) and authored 19-SECURITY.md consolidating 24 threat-register rows across the phase, threats_open: 0; AudioPanel.qml's same-class gap found and recorded (not fixed, out of declared file scope) as a follow-up
 
 ### Quick Tasks Completed
 
@@ -629,8 +631,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-13T12:45:16.653Z
-Stopped at: Completed 19-06-PLAN.md
+Last session: 2026-08-13T12:59:26.346Z
+Stopped at: Completed 19-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

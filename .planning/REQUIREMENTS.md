@@ -88,7 +88,7 @@
 - [ ] **LEDGER-05**: WINDOWS.md's 16 open rows are each closed or re-deferred with a stated reason — no row left silently open
 - [ ] **LEDGER-06**: Phase 16's missing `16-VERIFICATION.md` is written, its two malformed `coverage:` blocks corrected, and the incomplete quick task `260728-51j` resolved
 - [ ] **LEDGER-07**: `theme-stress-test` reaches a full clean run — the `lib/wallpaper.sh:65` tracked-symlink repoint that dirties the tree on every static switch is fixed
-- [ ] **LEDGER-08**: Phase 15's acknowledged gaps are closed — a security review of the panel family, and the verifier re-run over its gap-closure round
+- [x] **LEDGER-08**: Phase 15's acknowledged gaps are closed — a security review of the panel family, and the verifier re-run over its gap-closure round
 
 ## Future Requirements
 
@@ -179,7 +179,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | LEDGER-05 | Phase 20 | Pending |
 | LEDGER-06 | Phase 21 | Pending |
 | LEDGER-07 | Phase 19 | Pending |
-| LEDGER-08 | Phase 19 | Pending |
+| LEDGER-08 | Phase 19 | Complete |
 
 **Coverage:**
 
