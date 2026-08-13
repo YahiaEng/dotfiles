@@ -438,6 +438,43 @@ Live: `systemctl --user restart quickshell.service`, then a deliberately long-bo
 
 **Commit, round 7:** `01c58c6` (`fix(19-06)`) — `NotifCentre.qml`, `NotifCard.qml`, `NotifPopupStack.qml`, `BarRoles.qml`, `Design.qml`.
 
+## Gap-Closure Fix, Round 8 (post-execution, GATE-02 re-check)
+
+**Two items. Commit `7a80e41`.**
+
+### Item 1: "Why did you move the picture(bell) location? Return it to the center." — placement now settled
+
+Round 7 promoted the picture out of the empty state into an always-visible band under the header. Round 8 reverts that: it is back at the empty-state centre it held in round 6, which is also Caelestia's own placement in `NotifDock.qml`.
+
+**Why this is now closed rather than another swing.** Rounds 7 and 8 jointly imply "always visible" *and* "centred", and those two are not simultaneously reachable in this panel: the vertical centre is exactly where the history list lives, so the only construction satisfying both is rendering the picture *behind* the cards. That option was put to the user explicitly, with a layout sketch, and rejected — "results in a case where the picture is visible behind the cards which looks buggy." With behind-content ruled out, "centred" resolves unambiguously to the empty state. The `emptyIllustrationHost` declaration now carries a **do-not-move marker** recording this reasoning, so the next reader does not re-open a question that has already cost three rounds.
+
+**Round 7's two non-positional fixes are deliberately retained**, since neither concerned where the picture sat and both were independent reasons it read as "there is no picture at all":
+
+- It renders at `Design.notifCentrePictureHeight` (132px) rather than the original 96px icon scale.
+- A user-supplied override renders **untinted** at its natural aspect. Round 6 pushed both the bundled fallback and the override through `colorization: 1.0`, flattening any real PNG to one accent-coloured silhouette — so the override mechanism round 6 added could never actually display a picture. Only the bundled monochrome glyph is still colourised (matching Caelestia, which colourises its own mascot).
+
+Override path unchanged since round 6: `~/.local/state/quickshell/notif-centre-picture.png`.
+
+### Item 2: "Glass/frosty look is not noticeable enough" — the threshold was the binding constraint, not the blur
+
+Blur was never the missing piece. `decoration:blur` is globally enabled at **size 8 / passes 3**, and all three notification namespaces already inherit `blur = true` from the `^quickshell-.*` family regex — the compositor had been frosting these backdrops since Plan 19-01. What was missing was *transparency for that frost to show through*.
+
+Round 7 lowered the surfaces to 0.55 and **stopped there because that was the floor**: the family's own `ignore_alpha = 0.5` means any region composited below the cutoff is not blurred at all and renders as raw unblurred transparency — the exact failure mode already recorded at the `ags-media` rule. 0.55 was therefore as see-through as the surface could get while remaining frosted, which is why round 7's change was real but visually modest.
+
+**Fix — the constraint is lifted at its source.** `windowrules.lua` now declares `ignore_alpha = 0.2` for `quickshell-notif-popups`, `quickshell-notif-centre` and `quickshell-notif-toast`, **declared last in the file** so it beats the family floor it contradicts (this file's own recorded ordering finding: a namespace rule contradicting the family regex silently loses when declared before it). `blur = true` is restated alongside rather than relying on inheritance, matching the shape of the `quickshell-overview` pair. With the cutoff at 0.2, the sub-0.5 range reopens and `BarRoles.notifSurface`/`notifSurfaceHover` move into it at **0.38 resting / 0.52 hover** — both well clear of the new cutoff, so every region of both surfaces still genuinely frosts. 0.2 is chosen the same way `ags-media`'s 0.25 was: below every composited alpha the surface can present, so no region drops under it and goes raw.
+
+**These are a matched pair and are cross-referenced in both files.** Raising the threshold back toward 0.5, or dropping the alphas below 0.2, silently switches blur off on this family rather than erroring. Blur *strength* remains global (`decoration:blur:size`/`passes`) and is untouched — it cannot be set per-layer, as `windowrules.lua` already records.
+
+**Applied live with `hyprctl keyword layerrule` before restarting the shell — never `hyprctl reload`**, which drops layer rules silently and would have made the change look like a wrong-alpha problem instead of an unapplied-rule one.
+
+### Round 8 verification summary
+
+`qmllint --bare` clean on both modified QML files; `luac -p` clean on `windowrules.lua`. `quickshell-doctor --self-test`: **55 passed, 0 failed** — this includes the windowrules extractor's own accept/reject check and its declared-order check, both of which cover the six new layer-rule calls. Live: rules applied via `hyprctl keyword`, shell restarted, `pgrep -c quickshell` = 1, service active, a test notification sent and the `quickshell-notif` layer confirmed mapped.
+
+`colour-lint` reports four failures — `zero Quickshell MPRIS writers`, `panel-swayosd-key-ownership`, `bar-surface-registry` (`unregistered=3`) and `permissions-allowlist-paths-resolve`. **All four are the same set produced by the stash-verified pre-change baseline taken in round 7** (changes stashed, checks re-run, identical failures), so none is introduced by rounds 7 or 8. The `bar-surface-registry` gap is the one already deferred to Plan 19-08 by explicit precedent (see "Next Phase Readiness" above).
+
+**Commit, round 8:** `7a80e41` (`fix(19-06)`) — `NotifCentre.qml`, `BarRoles.qml`, `windowrules.lua`.
+
 ## User Setup Required
 
 None - no external service configuration required.
