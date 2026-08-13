@@ -70,19 +70,46 @@ Item {
     readonly property int groupCount: groupItem.groupItems.length
     readonly property var _first: groupItem.groupCount > 0 ? groupItem.groupItems[0] : null
 
+    // GATE-02 gap-closure fix (missing-texture icon) — `iconPath()` was
+    // trusted to return an empty string for an unresolvable name. Live-
+    // diagnosed against gaming-mode-toggle.sh's own `notify-send -i
+    // input-gaming ...` (a real app_icon this host's icon theme does not
+    // carry): it does not always — Qt's own icon-theme resolution can
+    // hand back a resolvable "missing icon" placeholder pixmap instead of
+    // failing outright (confirmed via a live WARN: `Could not load icon
+    // "input-gaming" at size QSize(100, 100) from request`, immediately
+    // followed by a normal, non-empty resolved path).
+    //
+    // `Quickshell.hasThemeIcon(name)` is the actual existence check for a
+    // BARE THEME ICON NAME. A first version of this fix gated every
+    // app_icon/desktop-entry-icon through it unconditionally — live-
+    // diagnosed as its own regression: `app_icon` per the freedesktop
+    // spec can ALSO be a file path or URI (this repo's own real example:
+    // kitty sets it to `/usr/lib/kitty/logo/kitty.png`), which
+    // `hasThemeIcon()` correctly reports `false` for since it is not a
+    // theme lookup at all — the unconditional guard was silently
+    // rejecting a perfectly valid icon. `_looksLikeThemeName()` below is
+    // the corrected trust boundary: only a bare name (no path separator,
+    // no URI scheme) goes through `hasThemeIcon()`; a path/URI-shaped
+    // value is trusted to `iconPath()` directly, with the Image
+    // element's own `status !== Image.Error` (below) as the runtime
+    // safety net for a path that turns out not to exist.
+    function _looksLikeThemeName(name) {
+        return name.indexOf("/") === -1 && name.indexOf("://") === -1;
+    }
     function resolveIconSource(entry) {
         if (!entry)
             return "";
         if (entry.image && entry.image.length > 0)
             return entry.image;
-        if (entry.appIcon && entry.appIcon.length > 0) {
+        if (entry.appIcon && entry.appIcon.length > 0 && (!groupItem._looksLikeThemeName(entry.appIcon) || Quickshell.hasThemeIcon(entry.appIcon))) {
             var p = Quickshell.iconPath(entry.appIcon, "");
             if (p.length > 0)
                 return p;
         }
         if (entry.desktopEntry && entry.desktopEntry.length > 0) {
             var de = DesktopEntries.byId(entry.desktopEntry);
-            if (de && de.icon) {
+            if (de && de.icon && (!groupItem._looksLikeThemeName(de.icon) || Quickshell.hasThemeIcon(de.icon))) {
                 var p2 = Quickshell.iconPath(de.icon, "");
                 if (p2.length > 0)
                     return p2;
@@ -167,15 +194,21 @@ Item {
                 readonly property string _iconSrc: groupItem.resolveIconSource(groupItem._first)
 
                 Image {
+                    id: headerIconImage
                     anchors.fill: parent
-                    visible: headerIconSlot._iconSrc.length > 0
+                    // status !== Error — a genuine tier-1 (image hint)
+                    // file-load failure, the one class resolveIconSource()
+                    // itself cannot pre-detect (see this file's own header
+                    // note). Falls through to the generic glyph below
+                    // rather than a broken-texture render.
+                    visible: headerIconSlot._iconSrc.length > 0 && status !== Image.Error
                     source: headerIconSlot._iconSrc.length > 0 ? headerIconSlot._iconSrc : ""
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
                 }
                 Text {
                     anchors.centerIn: parent
-                    visible: headerIconSlot._iconSrc.length === 0
+                    visible: !headerIconImage.visible
                     text: "notifications"
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.iconSizeMd
@@ -323,15 +356,17 @@ Item {
                     height: Design.notifImageSize
 
                     Image {
+                        id: rowIconImage
                         anchors.fill: parent
-                        visible: notifRow._iconSrc.length > 0
+                        // See headerIconSlot's own identical note above.
+                        visible: notifRow._iconSrc.length > 0 && status !== Image.Error
                         source: notifRow._iconSrc.length > 0 ? notifRow._iconSrc : ""
                         fillMode: Image.PreserveAspectFit
                         asynchronous: true
                     }
                     Text {
                         anchors.centerIn: parent
-                        visible: notifRow._iconSrc.length === 0
+                        visible: !rowIconImage.visible
                         text: "notifications"
                         font.family: Design.symbolFontFamily
                         font.pixelSize: Design.iconSizeMd
