@@ -328,7 +328,11 @@ Item {
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.fontLabel + 4
                 textFormat: Text.PlainText
-                color: groupCloseMouseArea.containsMouse ? BarRoles.accent : BarRoles.capsuleFg
+                // GATE-02 gap-closure fix (round 6, item 2) — destructive
+                // hover: this glyph clears the WHOLE app group, so its
+                // hover state reads BarRoles.danger, not the neutral
+                // BarRoles.accent every other hover in this file uses.
+                color: groupCloseMouseArea.containsMouse ? BarRoles.danger : BarRoles.capsuleFg
 
                 MouseArea {
                     id: groupCloseMouseArea
@@ -668,7 +672,12 @@ Item {
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.fontLabel + 2
                     textFormat: Text.PlainText
-                    color: rowCloseMouseArea.containsMouse ? BarRoles.accent : BarRoles.capsuleFg
+                    // GATE-02 gap-closure fix (round 6, item 2) — destructive
+                    // hover: this glyph clears one notification, so its
+                    // hover state reads BarRoles.danger, matching the
+                    // group-level close glyph and the clear-all button
+                    // above/in NotifCentre.qml.
+                    color: rowCloseMouseArea.containsMouse ? BarRoles.danger : BarRoles.capsuleFg
 
                     MouseArea {
                         id: rowCloseMouseArea
