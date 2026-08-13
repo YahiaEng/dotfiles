@@ -1,0 +1,18 @@
+<!--
+  notif-empty.svg — the notification centre's empty-state illustration
+  (Phase 19 Plan 06, D-19-22, 19-UI-SPEC.md § "Empty State").
+
+  A simple bell-with-checkmark line-art motif, resolved under Claude's
+  Discretion per D-19-22's own note that the specific asset was left open.
+  Drawn as a single flat fill (#000000, no gradients, no internal
+  shading) so it reads correctly as a silhouette once
+  QtQuick.Effects.MultiEffect recolours every non-transparent pixel to
+  BarRoles.accent at runtime (colorization: 1) — the exact mechanism
+  Caelestia's own Colouriser wrapper uses. The literal fill colour below
+  is never seen on screen; only its alpha shape is.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="#000000">
+  <path d="M60 14c-4 0-7 3-7 7v3c-13 3-22 14-22 29v14c0 8-6 13-6 13h70s-6-5-6-13V53c0-15-9-26-22-29v-3c0-4-3-7-7-7z"/>
+  <circle cx="60" cy="92" r="8"/>
+  <path d="M38 78l14 14 30-32 8 8-38 40-22-22z"/>
+</svg>

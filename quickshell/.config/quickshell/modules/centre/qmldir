@@ -1,0 +1,17 @@
+# qmldir — explicit module manifest for quickshell/modules/centre/ (Phase
+# 19 Plan 06, D-19-14, QNOTIF-06). Mirrors every sibling module manifest's
+# own standing instruction: any .qml type added to this directory that is
+# NOT declared below becomes unresolvable to importers of
+# `qs.modules.centre`. Any FUTURE type added to this directory MUST do the
+# same, in the same commit that creates it.
+#
+# None of the three types below is a singleton. `NotifCentre` is the third
+# top-level frame in this shell (after `PanelDialog`/`SectionPopout`,
+# D-19-14's own "costly reversibility" record) — one ordinary instance,
+# mounted once at shell.qml's root, exactly like `NotifPopupStack`/`Toast`.
+# `NotifGroup` is one instance per app-group ListView delegate; `CentreFooter`
+# is one instance, nested inside `NotifCentre`'s own pinned footer band.
+module qs.modules.centre
+NotifCentre 1.0 NotifCentre.qml
+NotifGroup 1.0 NotifGroup.qml
+CentreFooter 1.0 CentreFooter.qml

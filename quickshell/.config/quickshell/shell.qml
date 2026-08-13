@@ -26,6 +26,7 @@ import "modules/dashboard"
 import "modules/bar"
 import "modules/notifications"
 import "modules/toast"
+import "modules/centre"
 
 ShellRoot {
     id: root
@@ -62,6 +63,24 @@ ShellRoot {
     //    key_links). Its own ListView content — empty by default — is
     //    what keeps it visually inert until a real notification exists.
     NotifPopupStack {}
+
+    // ── Notification centre (Phase 19 Plan 06, D-19-14, QNOTIF-06) — the
+    //    third top-level frame in this shell, mounted unconditionally like
+    //    NotifPopupStack/Toast above rather than behind a LazyLoader: its
+    //    own header explains why (history/DND must never depend on this
+    //    window's existence). `audioBackend`/`wifiBackend`/
+    //    `bluetoothBackend` are threaded in exactly as Dashboard's own
+    //    instantiation below does, so its footer's shared toggle grid
+    //    (Task 3) can relay them into ToggleState the same way
+    //    QuickToggles.qml's drawer instance already does — a second
+    //    instantiation re-asserting the identical object reference, by
+    //    that file's own design, never a second source.
+    NotifCentre {
+        id: notifCentreInstance
+        audioBackend: audioBackendInstance
+        wifiBackend: wifiBackendInstance
+        bluetoothBackend: bluetoothBackendInstance
+    }
 
     // ── Notification suppression fullscreen input (Phase 19 Plan 05,
     //    QNOTIF-10) — a `Binding`, never an imperative write, mirroring
