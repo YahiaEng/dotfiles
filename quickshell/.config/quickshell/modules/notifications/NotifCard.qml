@@ -474,12 +474,67 @@ Item {
         interval: card._remainingMs > 0 ? card._remainingMs : 1
         running: false
         repeat: false
-        onTriggered: NotifServer.dismiss(card.notifId)
+        onTriggered: {
+            // GATE-02 gap-closure fix, structural guarantee — this is the
+            // ONLY place a timer ever dismisses a card, so it is also the
+            // right place to make "critical never auto-dismisses" true by
+            // construction rather than by trusting every scheduling path
+            // upstream got a genuine, measured urgency-population race
+            // right. A stale/mis-scheduled timer firing on a card that is
+            // (at THIS instant) critical is refused rather than acted on.
+            if (card._critical)
+                return;
+            NotifServer.dismiss(card.notifId);
+        }
     }
 
+    // ── GATE-02 gap-closure fix — the `!card.notifData` guard below ────────
+    // ROOT CAUSE: `notifData` is forwarded onto this card asynchronously by
+    // NotifPopupStack.qml's own `Loader.onLoaded` + `Qt.binding()` idiom
+    // (19-04-SUMMARY.md's own recorded fix for a DIFFERENT symptom in that
+    // same scope-boundary). `Component.onCompleted` below can therefore fire
+    // BEFORE `notifData` — and so `urgency`/`_critical`/`_fullDismissMs` —
+    // is actually populated. Without this guard, `_startDismissTimer()` ran
+    // at that moment against the fallback urgency (Normal), started a real
+    // 5000ms `dismissTimer`, and nothing ever corrected it afterward: a
+    // readonly property becoming reactively correct later does not retarget
+    // an already-running Timer, and no reset hook existed for "notifData
+    // just arrived". Empirically this dismissed EVERY critical-urgency card
+    // at 5 seconds — confirmed live: NotifServer's own D-Bus arrival log
+    // showed `urgency=2` (Critical) correctly received, so the defect was
+    // entirely downstream of the server, in this race. Fixed by refusing to
+    // start anything until `notifData` is real, and by adding the
+    // `onNotifDataChanged` handler below so the FIRST genuine
+    // urgency-aware decision is made once it actually arrives, whichever
+    // order the two events land in. ─────────────────────────────────────
+    // GATE-02 gap-closure fix, second half — measured live via a temporary
+    // diagnostic (removed): `card.notifData.urgency` is genuinely read as
+    // `Normal` on ONE early evaluation before settling to its real value
+    // moments later (Quickshell's own C++ notification object populates
+    // `urgency` a beat after the `notification` signal fires, ahead of its
+    // own `urgencyChanged` correction) — a sub-race beneath the one this
+    // function's `!card.notifData` guard already closes. The existing
+    // `Connections.onUrgencyChanged -> _resetDismissTimer()` handler DOES
+    // react to that later correction and DOES call back in here with the
+    // now-correct `_critical=true` — but the ORIGINAL version of this
+    // function only ever *refused to schedule* on that branch, never
+    // *cancelled* whatever it may have already scheduled a moment earlier
+    // under the stale reading. That left a real, already-ticking 5000ms
+    // `dismissTimer` completely undisturbed, which is what dismissed every
+    // critical-urgency card at 5 seconds regardless of how many times
+    // urgency was later read correctly. Every early-return branch below
+    // now explicitly stops the timer, so this function is idempotent
+    // under repeated calls with a flip-flopping urgency reading, not just
+    // correct on whichever call happens to be last.
     function _startDismissTimer() {
-        if (card._fullDismissMs <= 0)
+        if (!card.notifData) {
+            dismissTimer.stop();
             return;
+        }
+        if (card._fullDismissMs <= 0) {
+            dismissTimer.stop();
+            return;
+        }
         card._resumeEpoch = Date.now();
         dismissTimer.interval = card._remainingMs > 0 ? card._remainingMs : card._fullDismissMs;
         dismissTimer.restart();
@@ -500,6 +555,18 @@ Item {
     }
 
     Component.onCompleted: card._startDismissTimer()
+
+    // The other half of the gap-closure fix above: if `notifData` arrives
+    // AFTER `Component.onCompleted` already ran (and therefore already
+    // no-op'd against the `!card.notifData` guard), this is what actually
+    // starts the timer — now with the real urgency in hand. `_resetDismissTimer()`
+    // (not `_startDismissTimer()` directly) so `_remainingMs` is reset to
+    // the freshly-correct `_fullDismissMs` first, exactly as every other
+    // "the notification's own facts changed" path below already does.
+    onNotifDataChanged: {
+        if (card.notifData)
+            card._resetDismissTimer();
+    }
 
     // ── D-19-08's "restarts its dismiss timer" — fires on a genuine
     //    `replaces_id` re-send only (these fields never change on a
