@@ -51,6 +51,13 @@ Singleton {
     readonly property color surfaceColour: Colours.surface
     readonly property color surfaceVariantColour: Colours.surfaceVariant
     readonly property color outlineColour: Colours.outline
+    // GATE-02 gap-closure addition (round 3, item 6) — same required
+    // indirection as the three aliases above, for the new
+    // notifCriticalSurface blend below: `Colours.error` is itself a
+    // `property string`, so `.r/.g/.b` off it directly would silently
+    // resolve to BLACK, the exact failure class this file's own header
+    // already documents.
+    readonly property color dangerColour: Colours.error
 
     // ── Surfaces — theme.scss:56/58 ──────────────────────────────────────
     // The translucent island surface and its hover state. Built on
@@ -104,4 +111,19 @@ Singleton {
     // register — a notification card is a heavier, less pill-like
     // surface than a bar capsule (19-UI-SPEC.md "BarRoles.qml additions").
     readonly property color notifSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.90)
+
+    // ── Critical-urgency surface (GATE-02 gap-closure, round 3, item 6) ──
+    // D-19-11's ORIGINAL text specified a whole-card swap to
+    // `danger`/`onDanger` — live-rejected during GATE-02 as too loud for
+    // routine critical notifications (a battery-low warning filling the
+    // entire card solid red, every time). Superseded by direct
+    // coordinator/user instruction: the background now stays the normal
+    // surface TONE with a subtle wash of danger mixed in (85% surface /
+    // 15% danger, at the SAME 0.78 alpha every other notification surface
+    // uses), rather than an opaque danger fill — "distinct but calm" per
+    // the round-3 request. `notifSurfaceFg` (unchanged, normal text
+    // colour) stays the foreground for every urgency tier now; only the
+    // RIM carries full-saturation `danger` for critical cards (see
+    // NotifCard.qml's own tiered-rim block) — a thin accent, not a wash.
+    readonly property color notifCriticalSurface: Qt.rgba(root.surfaceColour.r * 0.85 + root.dangerColour.r * 0.15, root.surfaceColour.g * 0.85 + root.dangerColour.g * 0.15, root.surfaceColour.b * 0.85 + root.dangerColour.b * 0.15, 0.78)
 }

@@ -77,8 +77,20 @@ Item {
     readonly property bool _critical: card.urgency === NotificationUrgency.Critical
     readonly property bool _low: card.urgency === NotificationUrgency.Low
 
-    readonly property color _fill: card._critical ? BarRoles.danger : BarRoles.notifSurface
-    readonly property color _fg: card._critical ? BarRoles.onDanger : BarRoles.notifSurfaceFg
+    // ── GATE-02 gap-closure fix (round 3, item 6) — tiered, subtle
+    //    urgency treatment. D-19-11's ORIGINAL text swapped the WHOLE
+    //    card to BarRoles.danger/onDanger for critical — live-rejected as
+    //    too loud. Superseded by direct coordinator/user instruction:
+    //    background stays the normal surface tone with only a subtle
+    //    wash of danger mixed in (BarRoles.notifCriticalSurface), text/
+    //    icon colour stays the normal notifSurfaceFg for every tier now
+    //    (readable, calm), and the RIM (below) is what actually carries
+    //    each tier's own identity at full saturation — a thin accent,
+    //    not a fill. D-19-11's "never auto-dismisses" and "still subject
+    //    to the height clamp" are UNCHANGED; only the colour treatment
+    //    was too loud. ─────────────────────────────────────────────────
+    readonly property color _fill: card._critical ? BarRoles.notifCriticalSurface : BarRoles.notifSurface
+    readonly property color _fg: BarRoles.notifSurfaceFg
 
     // ── D-19-05 expanded state — drag-only, never hover-triggered. ──────
     property bool expanded: false
@@ -103,13 +115,31 @@ Item {
         }
     }
 
+    // ── Tiered rim (GATE-02 gap-closure fix, round 3, item 6) — normal
+    //    urgency keeps the existing shared GradientBorder (the rotating
+    //    accent rim every other panel-family surface uses); low and
+    //    critical urgency instead get a plain, SOLID-colour rim — muted
+    //    BarRoles.capsuleTrack for low (matches the outgoing daemon's own
+    //    "border-color: surface_variant" low-priority treatment, per
+    //    19-BEHAVIOUR-BASELINE.md SWC-37), full-saturation BarRoles.danger
+    //    for critical. Exactly one of the two is ever visible for a given
+    //    card — never both, never neither. ─────────────────────────────
     GradientBorder {
         anchors.fill: parent
+        visible: !card._critical && !card._low
         borderWidth: Design.notifRingStrokeWidth
         topLeftRadius: Design.popoutCornerRadius
         topRightRadius: Design.popoutCornerRadius
         bottomLeftRadius: Design.popoutCornerRadius
         bottomRightRadius: Design.popoutCornerRadius
+    }
+    Rectangle {
+        anchors.fill: parent
+        visible: card._critical || card._low
+        radius: Design.popoutCornerRadius
+        color: "transparent"
+        border.width: Design.notifRingStrokeWidth
+        border.color: card._critical ? BarRoles.danger : BarRoles.capsuleTrack
     }
 
     // ── The one card-level gesture hit area (Pattern 3) ──────────────────
