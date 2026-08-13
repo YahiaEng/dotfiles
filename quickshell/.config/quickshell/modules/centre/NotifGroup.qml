@@ -38,16 +38,21 @@
 //
 // ── Icon fallback — delegates to Quickshell.iconPath, never reimplements
 //    it (this file's own acceptance criterion) ──────────────────────────
-// `resolveIconSource()` below is the SAME four-tier chain
-// NotifCard.qml's own icon slot already applies (image hint -> app_icon
-// via the icon theme -> desktop-entry icon via DesktopEntries.byId ->
-// generic glyph), reused here rather than a second implementation. The
-// resolver DOES surface a detectable failure at every tier (an empty
-// string, confirmed by reading `Quickshell.iconPath`'s own qmltypes
-// return type and by NotifCard.qml's own existing use of the identical
-// empty-string check) — so the generic-glyph fallback fires reliably
-// rather than silently rendering a blank slot.
+// `resolveAppIconSource()` below is the SAME app-icon/desktop-entry chain
+// NotifCard.qml's own icon slot already applies (app_icon via the icon
+// theme -> desktop-entry icon via DesktopEntries.byId -> empty), reused
+// here rather than a second implementation. The resolver DOES surface a
+// detectable failure at every tier (an empty string, confirmed by reading
+// `Quickshell.iconPath`'s own qmltypes return type and by NotifCard.qml's
+// own existing use of the identical empty-string check) — so the generic-
+// glyph fallback fires reliably rather than silently rendering a blank
+// slot. (Round 5 gap-closure: this used to be one function,
+// `resolveIconSource()`, folding the image-hint tier in ahead of these
+// two — split apart so the picture feature's badge can address the app-
+// icon tier independently of whichever tier the picture itself uses; see
+// this file's own round-5 comments on `headerIconSlot`/`rowIconSlot`.)
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.Notifications
 import "../"
@@ -71,13 +76,23 @@ Item {
     readonly property int groupCount: groupItem.groupItems.length
     readonly property var _first: groupItem.groupCount > 0 ? groupItem.groupItems[0] : null
 
-    // GATE-02 gap-closure fix (round 4, item 2) — mirrors NotifCard.qml's
-    // own round-4 item-1 treatment exactly: the ONLY urgency-dependent
-    // difference anywhere on a centre row is the fallback glyph (swapped
-    // to a danger icon for critical urgency), never the row/header chrome
-    // itself. Header uses the group's newest (`_first`) item's urgency;
-    // each expanded row below reads its own `modelData.urgency`.
-    readonly property bool _headerCritical: !!groupItem._first && groupItem._first.urgency === NotificationUrgency.Critical
+    // GATE-02 gap-closure fix (round 4, item 2; widened round 5, item 3)
+    // — mirrors NotifCard.qml's own round-4 item-1 treatment exactly: the
+    // ONLY urgency-dependent difference anywhere on a centre row is the
+    // fallback glyph (swapped to a danger icon for critical urgency),
+    // never the row/header chrome itself. Round 4 read only the group's
+    // newest (`_first`) item's urgency for the collapsed header — round 5
+    // widened this to ANY item in the group, so a critical notification
+    // never loses its danger marker at the collapsed level just because a
+    // newer, non-critical notification from the same app arrived after it
+    // (the popup shows the marker on every individual critical card
+    // regardless of recency; the collapsed header, being one icon for a
+    // whole group, needs the same "never hide a critical" guarantee, not
+    // "only the newest one's urgency counts"). Each expanded row below
+    // still independently reads its own `modelData.urgency`.
+    readonly property bool _headerCritical: groupItem.groupItems.some(function (item) {
+        return item.urgency === NotificationUrgency.Critical;
+    })
 
     // GATE-02 gap-closure fix (missing-texture icon) — `iconPath()` was
     // trusted to return an empty string for an unresolvable name. Live-
@@ -106,11 +121,18 @@ Item {
     function _looksLikeThemeName(name) {
         return name.indexOf("/") === -1 && name.indexOf("://") === -1;
     }
-    function resolveIconSource(entry) {
+    // GATE-02 gap-closure fix (round 5 — restored "picture" feature). Was
+    // one function, `resolveIconSource()`, folding the image-hint tier in
+    // ahead of these two into a single combined value. Split apart because
+    // both `headerIconSlot` and `rowIconSlot` (below) now need the app-icon
+    // tier addressable on its OWN — as the small corner badge that sits
+    // over a large picture, and as the slot's own independent fallback
+    // when the picture fails to load (e.g. a raw `image-data` notification
+    // reloaded after a restart, whose decoded-pixmap URL does not survive
+    // the restart) — neither of which the old combined value could express.
+    function resolveAppIconSource(entry) {
         if (!entry)
             return "";
-        if (entry.image && entry.image.length > 0)
-            return entry.image;
         if (entry.appIcon && entry.appIcon.length > 0 && (!groupItem._looksLikeThemeName(entry.appIcon) || Quickshell.hasThemeIcon(entry.appIcon))) {
             var p = Quickshell.iconPath(entry.appIcon, "");
             if (p.length > 0)
@@ -187,25 +209,29 @@ Item {
             color: headerMouseArea.containsMouse ? BarRoles.capsuleHover : "transparent"
         }
 
-        // GATE-02 gap-closure fix (round 4, item 4) — this catch-all click
-        // area MUST be declared (and therefore z-stacked) BELOW every more
-        // specific interactive child of headerRow, most importantly
-        // `groupCloseMouseArea` nested inside the close glyph in
-        // `groupActions` below. It was previously declared LAST (after
-        // `groupActions`), which in QtQuick's default paint/hit-test order
-        // (last sibling on top) put it ON TOP of and therefore stole every
-        // click meant for the close glyph — pressing "x" toggled the
-        // group's expanded state instead of clearing it. Declaring this
-        // MouseArea first — immediately after the background Rectangle
-        // it colours, referenced purely by id so declaration order has no
-        // effect on that binding — means every later, more specific
-        // sibling (the close glyph's own MouseArea, and any future control
-        // added to groupActions) naturally paints on top and captures its
-        // own clicks first; anywhere else in the header row with no
-        // narrower handler still falls through to this one and expands.
+        // GATE-02 gap-closure fix (round 5, item 1 — SECOND attempt; the
+        // round-4 z-order reorder (e5973b8) did NOT fix this live, per
+        // direct user re-test). Abandoning the z-order theory entirely in
+        // favour of a GEOMETRIC exclusion: rather than trusting paint/
+        // hit-test layering to route the click correctly between two
+        // overlapping MouseAreas (headerMouseArea's full-fill area and
+        // groupCloseMouseArea nested inside groupActions), this MouseArea's
+        // own bounds now physically STOP before groupActions begins —
+        // `anchors.right: groupActions.left` instead of `parent.right`.
+        // There is no pixel where headerMouseArea and anything inside
+        // groupActions (close glyph, count badge, chevron) can BOTH claim
+        // hit-test ownership, so there is nothing left for any layering
+        // rule (correct or not) to get wrong. The chevron gets its own
+        // small MouseArea below (also calling toggleExpandRequested()) so
+        // the visual "click to expand" affordance it implies still works;
+        // the count badge is left non-interactive (informational only,
+        // same as before this round).
         MouseArea {
             id: headerMouseArea
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.right: groupActions.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
             hoverEnabled: true
             onClicked: groupItem.toggleExpandRequested()
         }
@@ -223,24 +249,48 @@ Item {
                 width: Design.iconSizeMd
                 height: Design.iconSizeMd
                 anchors.verticalCenter: parent.verticalCenter
-                readonly property string _iconSrc: groupItem.resolveIconSource(groupItem._first)
+                // GATE-02 gap-closure fix (round 5 — picture persistence
+                // honesty). PREVIOUSLY this slot used the single combined
+                // `resolveIconSource()` string: if `entry.image` was
+                // non-empty it was used unconditionally, with NO fallback
+                // to the app icon if that image failed to load — the one
+                // real-world case this matters for is a raw `image-data`
+                // notification reloaded after a restart, whose persisted
+                // `image` field is a `image://qsimage/N/M` URL backed by
+                // an in-process pixmap decoder that does not survive the
+                // restart. Live-confirmed this exact failure: after a
+                // restart, such a group's header fell through straight to
+                // the generic bell glyph, never trying the app icon that
+                // WAS still resolvable (a real file path, unaffected by
+                // the restart) — while this file's own row-level slot
+                // (below, using the newer split `_pictureSrc`/
+                // `_appIconSrc` properties) already handled this
+                // correctly. Rewritten to the same three-tier structure
+                // the row uses, so the header now falls through to the
+                // app icon exactly like the row does, rather than jumping
+                // straight to the bell.
+                readonly property string _pictureSrc: (groupItem._first && groupItem._first.image && groupItem._first.image.length > 0) ? groupItem._first.image : ""
+                readonly property string _appIconSrc: groupItem.resolveAppIconSource(groupItem._first)
 
+                Image {
+                    id: headerPictureImage
+                    anchors.fill: parent
+                    visible: headerIconSlot._pictureSrc.length > 0 && status !== Image.Error
+                    source: headerIconSlot._pictureSrc.length > 0 ? headerIconSlot._pictureSrc : ""
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                }
                 Image {
                     id: headerIconImage
                     anchors.fill: parent
-                    // status !== Error — a genuine tier-1 (image hint)
-                    // file-load failure, the one class resolveIconSource()
-                    // itself cannot pre-detect (see this file's own header
-                    // note). Falls through to the generic glyph below
-                    // rather than a broken-texture render.
-                    visible: headerIconSlot._iconSrc.length > 0 && status !== Image.Error
-                    source: headerIconSlot._iconSrc.length > 0 ? headerIconSlot._iconSrc : ""
+                    visible: !headerPictureImage.visible && headerIconSlot._appIconSrc.length > 0 && status !== Image.Error
+                    source: (!headerPictureImage.visible && headerIconSlot._appIconSrc.length > 0) ? headerIconSlot._appIconSrc : ""
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
                 }
                 Text {
                     anchors.centerIn: parent
-                    visible: !headerIconImage.visible
+                    visible: !headerPictureImage.visible && !headerIconImage.visible
                     // GATE-02 gap-closure fix (round 4, item 2) — same
                     // icon-only urgency marker as NotifCard.qml's fallback
                     // glyph; fires only when no real icon/image resolved.
@@ -324,6 +374,21 @@ Item {
                         easing.bezierCurve: Motion.standardEasing
                     }
                 }
+
+                // GATE-02 gap-closure fix (round 5, item 1) — now that
+                // headerMouseArea's own bounds stop before groupActions
+                // (see its own comment above), the chevron's visual
+                // "click to expand/collapse" affordance needs its own
+                // explicit hit area to keep working; it never overlaps
+                // groupCloseMouseArea (a different Text item entirely,
+                // to the chevron's left) so there is nothing here for a
+                // layering rule to get wrong.
+                MouseArea {
+                    id: chevronMouseArea
+                    anchors.fill: parent
+                    anchors.margins: -Design.spacingXs
+                    onClicked: groupItem.toggleExpandRequested()
+                }
             }
         }
     }
@@ -357,7 +422,28 @@ Item {
                 // that actually decides whether the strip renders at all.
                 readonly property bool _fromDisk: !NotifServer.hasSessionActions(notifRow.modelData.id)
                 readonly property var _actions: NotifServer.actionsForHistoryId(notifRow.modelData.id)
-                readonly property string _iconSrc: groupItem.resolveIconSource(notifRow.modelData)
+                // GATE-02 gap-closure fix (round 5 — restored "picture"
+                // feature; round 4's own item 3 read 19-DISCUSSION-LOG.md
+                // as settling this in favour of the single-slot icon-
+                // fallback chain, but the user's direct round-5 correction
+                // states the Caelestia-style picture WAS agreed during
+                // phase discussion and dropped from the written
+                // requirements — treated here as a restored requirement,
+                // not a fresh design call. `_pictureSrc` is the image-hint
+                // tier ALONE (never the combined chain `resolveIconSource`
+                // returns) so it can be composed with `_appIconSrc` as a
+                // separate badge, matching Caelestia's own notification-row
+                // layout as described by the round-5 instruction: a large
+                // rounded-square picture at the row's leading edge with the
+                // app's own icon as a small badge overlapping its corner —
+                // .planning/research/FEATURES.md's own NOTIF section (read
+                // again this round) documents Caelestia's icon-plus-ring-
+                // progress treatment but is silent on the exact picture/
+                // badge composition, so this follows the standard Caelestia
+                // layout the round-5 instruction itself specifies where
+                // the research is silent.
+                readonly property string _pictureSrc: (notifRow.modelData.image && notifRow.modelData.image.length > 0) ? notifRow.modelData.image : ""
+                readonly property string _appIconSrc: groupItem.resolveAppIconSource(notifRow.modelData)
                 // GATE-02 gap-closure fix (round 4, item 2) — per-row
                 // urgency marker, same icon-only treatment as the header.
                 readonly property bool _critical: notifRow.modelData.urgency === NotificationUrgency.Critical
@@ -377,6 +463,19 @@ Item {
                     acceptedButtons: Qt.NoButton
                 }
 
+                // GATE-02 gap-closure fix (round 5 — restored "picture"
+                // feature). Three tiers now share this one slot, in order:
+                // (1) the notification's own picture, large and rounded-
+                // square-cropped, with the app icon as a small badge over
+                // its bottom-right corner; (2) the app icon alone, at the
+                // same large size, when there is no picture (the previous
+                // behaviour, unchanged in size/position); (3) the generic
+                // glyph placeholder when neither resolves. The masking
+                // technique (an invisible `layer.enabled: true` Rectangle
+                // read as a `MultiEffect.maskSource`) is the SAME pattern
+                // already proven in `dashboard/MediaTab.qml`'s own circular
+                // album-art crop — reused here with a rounded-square mask
+                // instead of a circle, not reinvented.
                 Item {
                     id: rowIconSlot
                     anchors.left: parent.left
@@ -386,24 +485,96 @@ Item {
                     width: Design.notifImageSize
                     height: Design.notifImageSize
 
+                    // ── Tier 1: the picture ──────────────────────────────
+                    Image {
+                        id: rowPictureImage
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        cache: false
+                        source: notifRow._pictureSrc
+                        // Painted only through the MultiEffect below —
+                        // see MediaTab.qml's own identical note on why an
+                        // unmasked double-draw must be avoided.
+                        visible: false
+                    }
+                    Rectangle {
+                        id: rowPictureMaskShape
+                        anchors.fill: parent
+                        radius: Design.spacingSm
+                        visible: false
+                        // Load-bearing, not decorative — see MediaTab.qml's
+                        // own header note: an invisible item with no
+                        // `layer.enabled` produces no paint node at all,
+                        // which `MultiEffect.maskSource` reads as an EMPTY
+                        // mask rather than a full one.
+                        layer.enabled: true
+                    }
+                    MultiEffect {
+                        id: rowPictureMasked
+                        anchors.fill: parent
+                        source: rowPictureImage
+                        maskEnabled: true
+                        maskSource: rowPictureMaskShape
+                        maskThresholdMin: 0.5
+                        maskSpreadAtMin: 1.0
+                        // A genuine tier-1 load failure (round 3's own
+                        // established guard, reused verbatim) falls
+                        // through to the app-icon tier below rather than
+                        // masking an empty/broken source.
+                        visible: notifRow._pictureSrc.length > 0 && rowPictureImage.status === Image.Ready
+                    }
+
+                    // ── Tier 2: app icon alone, same slot, same size as
+                    //    before this round — unchanged fallback behaviour
+                    //    when there is no picture (or it failed to load). ──
                     Image {
                         id: rowIconImage
                         anchors.fill: parent
-                        // See headerIconSlot's own identical note above.
-                        visible: notifRow._iconSrc.length > 0 && status !== Image.Error
-                        source: notifRow._iconSrc.length > 0 ? notifRow._iconSrc : ""
+                        visible: !rowPictureMasked.visible && notifRow._appIconSrc.length > 0 && status !== Image.Error
+                        source: !rowPictureMasked.visible && notifRow._appIconSrc.length > 0 ? notifRow._appIconSrc : ""
                         fillMode: Image.PreserveAspectFit
                         asynchronous: true
                     }
+
+                    // ── Tier 3: generic glyph placeholder ────────────────
                     Text {
                         anchors.centerIn: parent
-                        visible: !rowIconImage.visible
+                        visible: !rowPictureMasked.visible && !rowIconImage.visible
                         // GATE-02 gap-closure fix (round 4, item 2).
                         text: notifRow._critical ? "error" : "notifications"
                         font.family: Design.symbolFontFamily
                         font.pixelSize: Design.iconSizeMd
                         textFormat: Text.PlainText
                         color: notifRow._critical ? BarRoles.danger : BarRoles.capsuleFg
+                    }
+
+                    // ── App-icon badge — Caelestia's own "small app icon
+                    //    overlapping the picture's corner" treatment.
+                    //    Rendered ONLY when the picture (not the app icon
+                    //    itself) occupies the primary slot, so the badge
+                    //    never doubles the app icon over itself. A ring
+                    //    (`BarRoles.notifSurface`, the same surface the
+                    //    whole row already sits on) separates the badge
+                    //    visually from the photo beneath it. ─────────────
+                    Rectangle {
+                        id: rowBadgeFrame
+                        visible: rowPictureMasked.visible && notifRow._appIconSrc.length > 0 && rowBadgeImage.status !== Image.Error
+                        width: Design.notifBadgeSize
+                        height: Design.notifBadgeSize
+                        radius: width / 2
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        color: BarRoles.notifSurface
+
+                        Image {
+                            id: rowBadgeImage
+                            anchors.fill: parent
+                            anchors.margins: Design.spacingXs / 2
+                            source: notifRow._appIconSrc
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true
+                        }
                     }
                 }
 
