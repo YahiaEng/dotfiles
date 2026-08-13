@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 19
-current_phase_name: Notification Server & Centre
+current_phase_name: notification-server-centre
 status: executing
-stopped_at: Phase 19 context gathered
-last_updated: "2026-08-13T02:49:42.767Z"
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-08-13T09:19:23.966Z"
 last_activity: 2026-08-13
 last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 35
-  completed_plans: 27
+  completed_plans: 28
   percent: 33
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 18 — qml-bar-retirement-machinery
+**Current focus:** Phase 19 — notification-server-centre
 
 ## Current Position
 
-Phase: 19 — Notification Server & Centre
-Plan: Not started
+Phase: 19 (notification-server-centre) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Progress: [██████████] 100%
-Last activity: 2026-08-13 — Phase 18.1 complete, transitioned to Phase 19
+Progress: [████████░░] 80%
+Last activity: 2026-08-13 — Phase 19 execution started
 
 ## Performance Metrics
 
@@ -219,6 +219,7 @@ Last activity: 2026-08-13 — Phase 18.1 complete, transitioned to Phase 19
 | Phase 18.1 P07 | ~10min | 1 tasks | 3 files |
 | Phase 18 P19 | multi-session | 3 tasks | 1 files |
 | Phase 18 P20 | 50min | 3 tasks | 72 files |
+| Phase 19 P01 | ~55min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -470,6 +471,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Quick 260812-n9b]: Added event-driven bar-watchdog (socket2 listener + quickshell-bar-watchdog.service) as a workaround for WINDOWS row 67 (monitor removal destroys quickshell-bar layer surface, shell stays healthy and unaware). Reverses D-18-28's listener retirement for a structurally different reason — the shell cannot self-report this failure. Fixture-proven (8 cases, 23/23), live-installed and stable, but end-to-end recovery is UNPROVEN until a real display sleep occurs; WINDOWS row 67 stays open. Adds a second permanent process, changing 18-BAR-SOAK.md Section one's process-count claim (not corrected by this plan).
 - [Phase ?]: GATE-02 closed on Iteration 3 (sha 2644ae0): 14 rows PASS, B.3 NOT-DEMONSTRABLE per D-18-39, 0 FAIL, 0 OVERRIDDEN — RETIRE-02 AUTHORISED, four disclosed cosmetic residuals accepted as known-state debt
 - [Phase ?]: RETIRE-02: waybar fully retired (package, config, contract, matugen, checkers) with retirement-check registry flipped to retired; own-tree class permanently reads SKIP for a genuinely deleted surface, recorded as the correct terminal state rather than forced toward PASS
+- [Phase ?]: NotifPopupStack corner-anchors the same top+right edges Bar.qml always anchors, so the compositor auto-clears whichever edge the bar currently reserves without a live property read
+- [Phase ?]: QtObject-rooted QML files must assign a Connections child through a named property, not an anonymous default-property child
+- [Phase ?]: swaync is D-Bus-activated (Type=dbus/BusName), not a bare exec-once process; systemctl mask/unmask is the correct tool for a clean single-owner bus test
 
 ### Quick Tasks Completed
 
@@ -607,9 +611,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-13T01:52:41.745Z
-Stopped at: Phase 19 context gathered
-Resume file: .planning/phases/19-notification-server-centre/19-CONTEXT.md
+Last session: 2026-08-13T09:19:23.947Z
+Stopped at: Completed 19-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 

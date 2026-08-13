@@ -28,8 +28,8 @@
 
 ### QNOTIF — Notifications and centre (replaces swaync)
 
-- [ ] **QNOTIF-01**: The shell itself is the system's notification receiver — it owns the `org.freedesktop.Notifications` D-Bus name, and applications' notifications reach it directly
-- [ ] **QNOTIF-02**: Notifications appear as popups that stack and reflow smoothly as they enter and leave
+- [x] **QNOTIF-01**: The shell itself is the system's notification receiver — it owns the `org.freedesktop.Notifications` D-Bus name, and applications' notifications reach it directly
+- [x] **QNOTIF-02**: Notifications appear as popups that stack and reflow smoothly as they enter and leave
 - [ ] **QNOTIF-03**: User can dismiss a popup by swiping it sideways
 - [ ] **QNOTIF-04**: A notification's own action buttons work, and invoking one reaches the sending application
 - [ ] **QNOTIF-05**: A progress-style notification (download, volume) updates its existing card in place instead of stacking new ones
@@ -137,8 +137,8 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QBAR-10 | Phase 18 | Complete |
 | QBAR-11 | Phase 18 | Accepted unmeasured — explicit operator decision 2026-08-13 to close Phase 18 without the soak. Accepted risk, NOT a passing measurement; never cite as one. Never measured on a clean window. Four soak anchors attempted; the only full 4h+ window was contaminated by live development. `quickshell-bar-watchdog.service` landing afterward invalidates the soak's "exactly one permanent process" premise, so a re-run needs that assumption updated first. No leak suspected; unmeasured, not failing. See `18-BAR-SOAK.md`, `WINDOWS.md` rows 68-69 |
 | QBAR-12 | Phase 18 | Complete |
-| QNOTIF-01 | Phase 19 | Pending |
-| QNOTIF-02 | Phase 19 | Pending |
+| QNOTIF-01 | Phase 19 | Complete |
+| QNOTIF-02 | Phase 19 | Complete |
 | QNOTIF-03 | Phase 19 | Pending |
 | QNOTIF-04 | Phase 19 | Pending |
 | QNOTIF-05 | Phase 19 | Pending |
