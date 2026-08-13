@@ -414,6 +414,38 @@ BarCapsule {
         }
     }
 
+    // ── One volume step, shared by every surface that can be scrolled ────
+    //    18-12 (QBAR-04) put the wheel accumulator on the audio GLYPH, which
+    //    is the surface GATE-02's B.3 row exercised and passed. But the glyph
+    //    is also the hover trigger that REVEALS the slider strip, so the
+    //    natural gesture — hover the glyph, move onto the slider that just
+    //    appeared, scroll — landed on a strip with no wheel handling at all.
+    //    QtQuick's Slider ignores wheel events unless `wheelEnabled` is set,
+    //    so nothing happened. Operator, 2026-08-13: "the scroll on the volume
+    //    bar does not work."
+    //
+    //    The step itself is lifted here rather than duplicated into a second
+    //    handler: two copies of a clamp and a D-22 fresh-read would be two
+    //    places to get the bound wrong. Each handler keeps its OWN angle
+    //    accumulator (they are independent input streams and must not share
+    //    a remainder) and calls this for the effect.
+    function applyVolumeStep(direction) {
+        if (!root.audioBackend || !root.audioReady)
+            return;
+        // Read masterVolume fresh on every step rather than accumulating a
+        // local running value — the D-22 discipline AudioBackend's writers
+        // exist to enforce, and what keeps repeated stepping non-drifting.
+        const stepFraction = Design.barScrollStepPercent / 100;
+        let nextVolume = root.audioBackend.masterVolume + direction * stepFraction;
+        // Clamp at the call site: the shipped setMasterVolume() null-guards
+        // and does nothing else — no range clamp anywhere in it or its
+        // callers' path — and PipeWire treats a value above unity as
+        // amplification. The bound is the caller's and must travel with this
+        // call if it is ever moved.
+        nextVolume = Math.max(0, Math.min(1, nextVolume));
+        root.audioBackend.setMasterVolume(nextVolume);
+    }
+
     // ── audio ────────────────────────────────────────────────────────────
     readonly property bool audioMuted: root.audioBackend ? root.audioBackend.masterMuted : false
     readonly property real audioVolume: root.audioBackend ? root.audioBackend.masterVolume : 0
@@ -638,6 +670,46 @@ BarCapsule {
         HoverHandler {
             id: audioStripHoverHandler
             onHoveredChanged: root.reportAudioDrawerHover("strip", audioStripHoverHandler.hovered)
+        }
+
+        // Scroll-to-adjust on the REVEALED strip, not only on the glyph that
+        // reveals it (2026-08-13). Same notch accumulator shape as the glyph's
+        // handler — signed running total, one step per whole 120 units, the
+        // remainder carried forward so a high-resolution wheel or touchpad
+        // stays proportional — but its OWN accumulator, because the glyph and
+        // the strip are independent input streams and sharing a remainder
+        // would make a reversal on one cancel a pending step on the other.
+        //
+        // `target: null` and no `property:` for the same reason 18-12 gives on
+        // the glyph handler: this transforms nothing and mutates no target
+        // property. A handler left at its defaults with a target named would
+        // silently scale or rotate the strip — a visible defect no source gate
+        // would catch.
+        //
+        // This deliberately covers the whole strip (slider AND mic cell)
+        // rather than the Slider alone: the gesture is "scroll the volume
+        // area", and a dead 24px band over the mic glyph inside an otherwise
+        // scrollable strip is the kind of inconsistency that reads as broken.
+        // The Slider's own `wheelEnabled` stays false — enabling it would give
+        // the control a second, competing step size that ignores
+        // Design.barScrollStepPercent and the D-22 fresh read.
+        WheelHandler {
+            id: audioStripWheelHandler
+            target: null
+
+            property real pendingAngle: 0
+
+            onWheel: (event) => {
+                if (!root.audioBackend || !root.audioReady)
+                    return;
+                audioStripWheelHandler.pendingAngle += event.angleDelta.y;
+                const notchUnits = 120;
+                while (Math.abs(audioStripWheelHandler.pendingAngle) >= notchUnits) {
+                    const direction = audioStripWheelHandler.pendingAngle > 0 ? 1 : -1;
+                    audioStripWheelHandler.pendingAngle -= direction * notchUnits;
+                    root.applyVolumeStep(direction);
+                }
+            }
         }
 
         Grid {
@@ -873,23 +945,11 @@ BarCapsule {
                     while (Math.abs(audioWheelHandler.pendingAngle) >= notchUnits) {
                         const direction = audioWheelHandler.pendingAngle > 0 ? 1 : -1;
                         audioWheelHandler.pendingAngle -= direction * notchUnits;
-                        // Read the backend's own masterVolume fresh on every
-                        // step rather than accumulating a local running value —
-                        // the same D-22 discipline AudioBackend's writers exist
-                        // to enforce, and what keeps repeated stepping
-                        // non-drifting.
-                        const stepFraction = Design.barScrollStepPercent / 100;
-                        let nextVolume = root.audioBackend.masterVolume + direction * stepFraction;
-                        // Clamp to zero-to-unity at the call site: the shipped
-                        // setMasterVolume() null-guards and does nothing else —
-                        // there is no range clamp anywhere in it or its
-                        // callers' path — and PipeWire treats a value above
-                        // unity as amplification. This control is always
-                        // visible and always scrollable, so the bound is the
-                        // caller's, and it must travel with this call if it is
-                        // ever moved.
-                        nextVolume = Math.max(0, Math.min(1, nextVolume));
-                        root.audioBackend.setMasterVolume(nextVolume);
+                        // The step, its fresh backend read and its clamp now
+                        // live in root.applyVolumeStep() so the strip's own
+                        // handler cannot drift from this one. Behaviour here is
+                        // unchanged — same fraction, same clamp, same call.
+                        root.applyVolumeStep(direction);
                     }
                 }
             }
