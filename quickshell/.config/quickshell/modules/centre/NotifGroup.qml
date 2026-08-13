@@ -146,6 +146,15 @@ Item {
                     return p2;
             }
         }
+        // Round-9 tier (see the `_pictureSrc` note below): a themed icon
+        // supplied as `notify-send -i <name>` arrives in `image` as an
+        // `image://icon/` provider URI, never in `appIcon`. It is excluded
+        // from the picture tier there, so it is picked up HERE — otherwise
+        // a sender that supplies only that hint (every theme-engine script
+        // in this repo) would resolve no icon at all and fall through to
+        // the generic glyph, which is a quieter version of the same bug.
+        if (entry.image && entry.image.startsWith("image://icon/"))
+            return entry.image;
         return "";
     }
 
@@ -269,7 +278,27 @@ Item {
                 // the row uses, so the header now falls through to the
                 // app icon exactly like the row does, rather than jumping
                 // straight to the bell.
-                readonly property string _pictureSrc: (groupItem._first && groupItem._first.image && groupItem._first.image.length > 0) ? groupItem._first.image : ""
+                // GATE-02 gap-closure (round 9 — "script notifications have
+                // a missing texture for an icon"). `notify-send -i <name>`
+                // does NOT populate `appIcon`: Quickshell surfaces a
+                // themed icon hint through the `image` property as an
+                // `image://icon/<name>` PROVIDER URI (confirmed against
+                // the persisted history — every theme-apply/stress-test
+                // entry records appIcon:"" and image:"image://icon/...").
+                // Round 5's picture feature then treated that icon as a
+                // Caelestia-style photo thumbnail: PreserveAspectCrop'd
+                // and mask-cropped to a rounded square. An icon-theme SVG
+                // carries transparent padding, so cropping it to a square
+                // and scaling it up renders as a near-empty box — the
+                // reported missing texture — and because appIcon and
+                // desktopEntry are both empty for these senders, the
+                // corner badge had no source either, so nothing else drew.
+                // An `image://icon/` URI is an ICON, not a picture, and is
+                // routed to the icon tier below (PreserveAspectFit,
+                // unmasked, no badge). A real image hint — file path, data
+                // URI, or the image-data pixmap — is untouched and still
+                // gets the full picture treatment.
+                readonly property string _pictureSrc: (groupItem._first && groupItem._first.image && groupItem._first.image.length > 0 && !groupItem._first.image.startsWith("image://icon/")) ? groupItem._first.image : ""
                 readonly property string _appIconSrc: groupItem.resolveAppIconSource(groupItem._first)
 
                 Image {
@@ -446,7 +475,7 @@ Item {
                 // badge composition, so this follows the standard Caelestia
                 // layout the round-5 instruction itself specifies where
                 // the research is silent.
-                readonly property string _pictureSrc: (notifRow.modelData.image && notifRow.modelData.image.length > 0) ? notifRow.modelData.image : ""
+                readonly property string _pictureSrc: (notifRow.modelData.image && notifRow.modelData.image.length > 0 && !notifRow.modelData.image.startsWith("image://icon/")) ? notifRow.modelData.image : ""
                 readonly property string _appIconSrc: groupItem.resolveAppIconSource(notifRow.modelData)
                 // GATE-02 gap-closure fix (round 4, item 2) — per-row
                 // urgency marker, same icon-only treatment as the header.

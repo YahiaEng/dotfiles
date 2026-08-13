@@ -260,13 +260,42 @@ Item {
             // generic glyph) are unchanged in size/position/order — this
             // is a presentation layer over the same resolve chain, not a
             // new fallback rule.
+            // GATE-02 gap-closure (round 9 — "script notifications have
+            // a missing texture for an icon"). `notify-send -i <name>`
+            // does NOT populate `appIcon`: Quickshell surfaces a
+            // themed icon hint through the `image` property as an
+            // `image://icon/<name>` PROVIDER URI (confirmed against
+            // the persisted history — every theme-apply/stress-test
+            // entry records appIcon:"" and image:"image://icon/...").
+            // Round 5's picture feature then treated that icon as a
+            // Caelestia-style photo thumbnail: PreserveAspectCrop'd
+            // and mask-cropped to a rounded square. An icon-theme SVG
+            // carries transparent padding, so cropping it to a square
+            // and scaling it up renders as a near-empty box — the
+            // reported missing texture — and because appIcon and
+            // desktopEntry are both empty for these senders, the
+            // corner badge had no source either, so nothing else drew.
+            // An `image://icon/` URI is an ICON, not a picture, and is
+            // routed to the icon tier below (PreserveAspectFit,
+            // unmasked, no badge). A real image hint — file path, data
+            // URI, or the image-data pixmap — is untouched and still
+            // gets the full picture treatment.
+            readonly property bool _imageIsThemeIcon: card.image.startsWith("image://icon/")
+            readonly property string _pictureSrc: (card.image.length > 0 && !iconSlot._imageIsThemeIcon) ? card.image : ""
+            readonly property string _iconFromImageHint: iconSlot._imageIsThemeIcon ? card.image : ""
+            // The icon tier now has a fourth source ahead of the glyph:
+            // an explicit appIcon wins, then a desktop-entry icon, then
+            // the themed hint rerouted out of the picture tier above.
+            readonly property string _iconTierSrc: iconSlot._appIconResolved.length > 0 ? iconSlot._appIconResolved
+                : (iconSlot._desktopIconResolved.length > 0 ? iconSlot._desktopIconResolved : iconSlot._iconFromImageHint)
+
             Image {
                 id: notifImage
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: false
-                source: card.image.length > 0 ? card.image : ""
+                source: iconSlot._pictureSrc
                 visible: false
             }
             Rectangle {
@@ -293,13 +322,13 @@ Item {
                 // — the same guard this slot already used before this
                 // round, just moved from `notifImage.visible` itself to
                 // this masked-output visibility.
-                visible: card.image.length > 0 && notifImage.status === Image.Ready
+                visible: iconSlot._pictureSrc.length > 0 && notifImage.status === Image.Ready
             }
             Image {
                 id: appIconImage
                 anchors.fill: parent
-                visible: !notifImageMasked.visible && iconSlot._appIconResolved.length > 0 && status !== Image.Error
-                source: (!notifImageMasked.visible && iconSlot._appIconResolved.length > 0) ? iconSlot._appIconResolved : ""
+                visible: !notifImageMasked.visible && iconSlot._iconTierSrc.length > 0 && status !== Image.Error
+                source: (!notifImageMasked.visible && iconSlot._iconTierSrc.length > 0) ? iconSlot._iconTierSrc : ""
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
             }
