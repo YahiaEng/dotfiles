@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 50
+open_count: 51
 waived_count: 0
 fixed_count: 24
-total_count: 74
-last_updated: 2026-08-13T12:17:52.097Z
+total_count: 75
+last_updated: 2026-08-13T12:43:20.122Z
 ---
 
 # Broken Windows Ledger
@@ -89,6 +89,7 @@ last_updated: 2026-08-13T12:17:52.097Z
 | 72 | 19 | unrun-verify | quickshell/.config/quickshell/modules/notifications/NotifServer.qml |  | Task 1 human-check not run interactively: DND-on tile-lit-state after a restart, and fullscreen-focused-client suppression path — hyprctl dashboard summon failed on a pre-existing Lua config quirk; persistence/suppression proven via JSON/log inspection instead | open |  | 2026-08-13T12:17:51.925Z |  |
 | 73 | 19 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Task 2 human-check not run interactively: opening the drawer, clicking the DND tile, confirming all six tiles render untruncated with the full two-line label — grid state ownership proven structurally via grep/quickshell-doctor instead | open |  | 2026-08-13T12:17:52.009Z |  |
 | 74 | 19 | unrun-verify | quickshell/.config/quickshell/modules/toast/Toast.qml |  | Task 3 human-check not run interactively: visually confirming the toast slides in top-centre with correct on/off copy, self-dismisses after ~2s, and two rapid toggles produce one toast not two — DND was flipped by directly editing the state file, never exercising the real toggleDnd()/dndToggled/show() path | open |  | 2026-08-13T12:17:52.097Z |  |
+| 75 | 19 | unrun-verify | quickshell/.config/quickshell/modules/centre/NotifCentre.qml |  | Task 1-3 human-check blocks (slide/fade, Escape close, empty-state tint, grouping/clearing live sends, footer sliders, bell/Super+N summon) deferred to end-of-phase UAT per human_verify_mode=end-of-phase | open |  | 2026-08-13T12:43:20.122Z |  |
 
 ````json
 [
@@ -978,6 +979,18 @@ last_updated: 2026-08-13T12:17:52.097Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-13T12:17:52.097Z",
+    "resolved_at": null
+  },
+  {
+    "id": 75,
+    "kind": "unrun-verify",
+    "phase": "19",
+    "file": "quickshell/.config/quickshell/modules/centre/NotifCentre.qml",
+    "line": null,
+    "description": "Task 1-3 human-check blocks (slide/fade, Escape close, empty-state tint, grouping/clearing live sends, footer sliders, bell/Super+N summon) deferred to end-of-phase UAT per human_verify_mode=end-of-phase",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-13T12:43:20.122Z",
     "resolved_at": null
   }
 ]
