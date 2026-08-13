@@ -89,4 +89,19 @@ Singleton {
     readonly property color fillUpdatesFg: Colours.onTertiary
     readonly property color fillNotification: Colours.primary
     readonly property color fillNotificationFg: Colours.onPrimary
+
+    // ── Notification surfaces (Phase 19 Plan 01 tracer, D-19-43) — the
+    //    popup card, centre frame and toast all read these three rows;
+    //    never a direct Colours.* reference from a notification-family
+    //    file. 0.78 is the exact panelSurfaceOpacity decimal
+    //    PanelDialog.qml already established (PanelDialog.qml:154),
+    //    reused verbatim rather than rederived, matching this file's own
+    //    stated idiom of carrying literal decimals forward without
+    //    intermediate arithmetic.
+    readonly property color notifSurface: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.78)
+    readonly property color notifSurfaceFg: Colours.onSurface
+    // Sits between the resting 0.78 and capsule's own 0.95 hover
+    // register — a notification card is a heavier, less pill-like
+    // surface than a bar capsule (19-UI-SPEC.md "BarRoles.qml additions").
+    readonly property color notifSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.90)
 }

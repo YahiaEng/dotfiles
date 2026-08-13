@@ -393,4 +393,42 @@ Singleton {
     // is the more consequential event than dismissing one popout, and "must
     // never vanish under the pointer" is the harder constraint to honour.
     readonly property int barReHideGraceMs: 600
+
+    // ── Notification tokens (Phase 19 Plan 01 tracer, QNOTIF-01/02) —
+    //    provenance: 19-UI-SPEC.md "## New Tokens" -> `Design.qml`
+    //    additions table. Declared in ONE pass per this plan's own
+    //    instruction, so no later Phase 19 plan needs to reopen this file
+    //    for a token addition.
+    readonly property int notifSurfaceWidth: 430
+    readonly property int notifImageSize: 42
+    readonly property int notifBadgeSize: 20
+    // Reuses the rim's own stroke weight rather than inventing a fourth
+    // line-weight value on this surface (D-19-09).
+    readonly property int notifRingStrokeWidth: borderWidth
+    // D-19-05's vertical drag-to-expand threshold, bound to the existing
+    // spacing scale rather than a new literal.
+    readonly property int notifExpandThresholdPx: spacingXl
+    // D-19-07's horizontal drag-to-dismiss threshold — a FRACTION of card
+    // width (Caelestia's `clearThreshold`), never a pixel offset. This
+    // codebase's first dimensionless-fraction token: it does not sit on
+    // the 4px grid every property above does, because it reproduces a
+    // ratio, not a screen-space offset (19-UI-SPEC.md's own "Spacing
+    // Scale" exceptions note). 0.3 is the conventional swipe-to-confirm
+    // dismiss range, resolved under Claude's Discretion.
+    readonly property real notifDismissThresholdFraction: 0.3
+    // D-19-36 — the DND-toggle toast's own auto-dismiss window,
+    // deliberately its own number rather than reused from D-19-04's 3s/5s
+    // notification timeouts: a toast is feedback for an action just
+    // taken, not content to read.
+    readonly property int notifToastDurationMs: 2000
+    // Content-hugging cap for the toast frame, narrower than
+    // notifSurfaceWidth because a toast carries one line of text, never a
+    // card's full content.
+    readonly property int notifToastMaxWidth: 320
+    // D-19-29 — Caelestia's verified per-app clear-all batching interval.
+    readonly property int notifHistoryBatchSize: 30
+    // D-19-30 — the named divergence from Caelestia's uncapped history:
+    // oldest item dropped past 100, since this shell hot-reloads and
+    // restarts far more often than either reference shell's deployment.
+    readonly property int notifHistoryCap: 100
 }
