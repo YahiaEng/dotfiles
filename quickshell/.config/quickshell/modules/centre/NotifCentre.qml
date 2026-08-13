@@ -358,7 +358,16 @@ PanelWindow {
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.iconSizeMd
                     textFormat: Text.PlainText
-                    color: clearAllMouseArea.containsMouse ? BarRoles.accent : BarRoles.capsuleFg
+                    // GATE-02 gap-closure fix (round 6, item 2) — destructive
+                    // controls hover to BarRoles.danger, not BarRoles.accent,
+                    // so hovering a "clear everything" action reads as the
+                    // warning it is rather than the same neutral highlight
+                    // any non-destructive hover (e.g. the group-expand
+                    // header) already uses. Same containsMouse-swap idiom
+                    // this file already uses everywhere else — no new
+                    // mechanism, just the correct colour role for this
+                    // control's actual consequence.
+                    color: clearAllMouseArea.containsMouse ? BarRoles.danger : BarRoles.capsuleFg
                 }
                 MouseArea {
                     id: clearAllMouseArea
@@ -445,12 +454,87 @@ PanelWindow {
                     easing.bezierCurve: Motion.standardEasing
                 }
 
+                // GATE-02 gap-closure fix (round 6, item 1 — "decorative
+                // picture", restored per direct user correction). RESEARCH:
+                // read `.planning/research/FEATURES.md` again (still no
+                // sidebar-picture detail beyond the icon+ring-progress
+                // treatment already covered) and, per the round-6
+                // instruction's own "inspect vendored Caelestia sources"
+                // fallback, read the actual `caelestia-dots/shell` source —
+                // a dated clone already present at
+                // `~/.claude/jobs/4517c040/tmp/caelestia-shell` (commit
+                // 06b4fe0, 2026-07-30), cross-checked live against the
+                // current `raw.githubusercontent.com` HEAD of
+                // `modules/sidebar/Content.qml` (byte-identical). Checked
+                // EVERY file in Caelestia's real `modules/sidebar/` tree
+                // (`Content.qml`, `Wrapper.qml`, `NotifDock.qml`,
+                // `NotifGroupList.qml`, `NotifGroup.qml`) for any
+                // Image/AnimatedImage element — found exactly ONE, in
+                // `NotifDock.qml` lines 96-107:
+                //   Image {
+                //       source: Paths.absolutePath(Config.paths.noNotifsPic)
+                //       fillMode: Image.PreserveAspectFit
+                //       layer.enabled: true
+                //       layer.effect: Colouriser { colorizationColor: ... }
+                //   }
+                // — shown ONLY inside the empty-state Loader (opacity bound
+                // to `notifCount > 0 ? 0 : 1`), immediately above the "All
+                // up to date!"-equivalent text, tinted via the exact same
+                // colourisation mechanism this file already uses. Its
+                // default path resolves to `root:/assets/dino.png` (a
+                // bundled mascot illustration, confirmed in
+                // `plugin/src/Caelestia/Config/userpaths.hpp`:
+                // `CONFIG_PROPERTY(QString, noNotifsPic,
+                // u"root:/assets/dino.png"_s)`), user-overridable through
+                // Caelestia's own C++ config system. There is NO separate
+                // always-visible header banner anywhere in Caelestia's real
+                // notification sidebar — `Content.qml` itself is just a
+                // `NotifDock` inside one `StyledRect`, nothing else. This
+                // project's own empty-state illustration (below) is
+                // therefore ALREADY the faithful equivalent of Caelestia's
+                // real decorative picture — same placement (centred in the
+                // empty-state region), same behaviour (empty-only), same
+                // tint mechanism (this file's own header note on
+                // `MultiEffect`/`colorization` already records the
+                // Colouriser-parity finding from Task 1). The one genuine,
+                // concrete gap versus Caelestia's actual pattern: THIS
+                // project's picture was a hardcoded bundled path with no
+                // user-override mechanism, unlike `Config.paths.noNotifsPic`
+                // — closed below. ───────────────────────────────────────
                 Item {
                     id: emptyIllustrationHost
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 96
                     height: 96
 
+                    // User-configurable override (round 6) — mirrors
+                    // Caelestia's own `Config.paths.noNotifsPic` pattern: a
+                    // fixed, documented path under this shell's own
+                    // existing `~/.local/state/quickshell/` directory (the
+                    // SAME directory `NotifServer.qml`'s own
+                    // `notifications.json` already lives in — no new
+                    // directory convention introduced). Absent by default
+                    // (sane fallback below); a user who drops a PNG there
+                    // gets their own artwork instead of the bundled bell,
+                    // exactly like swapping Caelestia's own `noNotifsPic`.
+                    readonly property string _overridePath: Quickshell.env("HOME") + "/.local/state/quickshell/notif-centre-picture.png"
+
+                    Image {
+                        id: emptyIllustrationOverride
+                        anchors.fill: parent
+                        source: "file://" + emptyIllustrationHost._overridePath
+                        visible: false
+                        asynchronous: true
+                        cache: false
+                        // Same load-bearing note as the bundled default
+                        // below — an invisible source with no
+                        // `layer.enabled` paints nothing for MultiEffect to
+                        // read.
+                        layer.enabled: true
+                        smooth: true
+                        sourceSize.width: emptyIllustrationHost.width
+                        sourceSize.height: emptyIllustrationHost.height
+                    }
                     Image {
                         id: emptyIllustrationSource
                         anchors.fill: parent
@@ -467,7 +551,17 @@ PanelWindow {
                     }
                     MultiEffect {
                         anchors.fill: parent
-                        source: emptyIllustrationSource
+                        // Graceful degradation: the override is used only
+                        // once it has genuinely finished loading
+                        // (Image.Ready) — an absent file reports
+                        // Image.Error/Image.Null and this falls straight
+                        // through to the bundled default, never a blank or
+                        // broken-texture gap. Both sources are tinted
+                        // through the SAME colourisation, matching
+                        // Caelestia's own unconditional tint (it colourises
+                        // whatever `noNotifsPic` currently resolves to,
+                        // default or user-overridden alike).
+                        source: emptyIllustrationOverride.status === Image.Ready ? emptyIllustrationOverride : emptyIllustrationSource
                         colorization: 1.0
                         colorizationColor: BarRoles.accent
                     }
