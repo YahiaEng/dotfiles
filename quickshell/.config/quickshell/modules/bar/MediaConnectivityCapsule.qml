@@ -308,23 +308,38 @@ BarCapsule {
                 SequentialAnimation on scroll {
                     running: rotatedValueHost.visible && rotatedValueHost.overflow > 0 && Motion.motionEnabled
                     loops: Animation.Infinite
+                    // LINEAR, not an ease. This is a marquee, not a transition:
+                    // its job is to be legible while moving, and constant speed
+                    // is what makes it readable. The first build used
+                    // Easing.InOutQuad with a 650ms pause at each end, which
+                    // measured as working (two screenshots 3.5s apart showed
+                    // different thirds of the title) but read as BROKEN to the
+                    // operator — an ease-in-out is nearly motionless either side
+                    // of its turnaround, so those two slow tails plus the pause
+                    // gave a ~2s window in every 13s cycle where nothing visibly
+                    // happened. "It scrolls, you just have to catch it" is not a
+                    // working marquee.
+                    //
+                    // 18ms per pixel of overflow ~= 55px/s, a readable scroll
+                    // speed, and the pause is short enough that the head of the
+                    // title is legible without the whole thing looking frozen.
                     PauseAnimation {
-                        duration: Design.barDrawerTransitionMs
+                        duration: Design.barDrawerGraceMs
                     }
                     NumberAnimation {
                         from: rotatedValueHost.overflow / 2
                         to: -rotatedValueHost.overflow / 2
-                        duration: Math.max(1, rotatedValueHost.overflow) * 28
-                        easing.type: Easing.InOutQuad
+                        duration: Math.max(1, rotatedValueHost.overflow) * 18
+                        easing.type: Easing.Linear
                     }
                     PauseAnimation {
-                        duration: Design.barDrawerTransitionMs
+                        duration: Design.barDrawerGraceMs
                     }
                     NumberAnimation {
                         from: -rotatedValueHost.overflow / 2
                         to: rotatedValueHost.overflow / 2
-                        duration: Math.max(1, rotatedValueHost.overflow) * 28
-                        easing.type: Easing.InOutQuad
+                        duration: Math.max(1, rotatedValueHost.overflow) * 18
+                        easing.type: Easing.Linear
                     }
                 }
             }
