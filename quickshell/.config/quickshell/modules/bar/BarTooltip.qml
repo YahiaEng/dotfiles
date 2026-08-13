@@ -88,8 +88,15 @@ PanelWindow {
     // hovered, which is what the operator reported as "way below the
     // cursor". The margin here is therefore only the GAP past the edge the
     // compositor already found, nothing more.
+    // Extra leftward step so the tooltip clears a floating host surface
+    // (BarDrawer) that its anchor cell lives inside. 0 for every bar-hosted
+    // site, which is why those are unchanged. See BarTooltipHost's own
+    // `_hostClearance` for how it is derived and why `exclusiveZone` is the
+    // discriminator.
+    property real hostClearance: 0
+
     readonly property int _horizontalTopMargin: Design.spacingXs
-    readonly property int _verticalRightMargin: Design.spacingXs
+    readonly property real _verticalRightMargin: Design.spacingXs + tooltipRoot.hostClearance
 
     // triggerCentre is ALREADY a scene-absolute coordinate (the host
     // publishes it via mapToItem(null, ...)), so adding barSideMargin here

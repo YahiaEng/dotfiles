@@ -33,6 +33,34 @@ Item {
     property real _publishedCentre: 0
     property bool _dwellElapsed: false
 
+    // ── Host clearance (2026-08-13) ───────────────────────────────────
+    // How far the tooltip must be pushed off the bar's edge to avoid
+    // covering the surface its own anchor lives in.
+    //
+    // In vertical orientation BarTooltip anchors right with a spacingXs
+    // gap, and that gap is measured from the RESERVED boundary — so a
+    // tooltip for a bar cell lands just clear of the bar, which is right.
+    // But a settings-axis cell lives in BarDrawer, a floating surface that
+    // extends 146px further left (its own margins.right 10 + width 136),
+    // so the same gap put the tooltip directly on top of the five options
+    // it was describing — the operator's "their placement is obstructing
+    // the view", measured as a tooltip at x 2448..2506 over a drawer at
+    // 2364..2500.
+    //
+    // The discriminator is `exclusiveZone`, not a name or a size: a host
+    // that RESERVES its space is already behind the boundary the tooltip
+    // measures from and needs no clearance, while a host that floats over
+    // the desktop must be stepped around. That keeps this correct for any
+    // future floating host without another special case here.
+    readonly property real _hostClearance: {
+        var win = QsWindow.window;
+        if (!win || !win.margins)
+            return 0;
+        if (win.exclusiveZone && win.exclusiveZone > 0)
+            return 0;
+        return win.margins.right + win.width;
+    }
+
     onActiveChanged: {
         if (hostRoot.active) {
             dwellTimer.restart();
@@ -95,6 +123,7 @@ Item {
             vertical: BarEntryModel.isVertical
             triggerCentre: hostRoot._publishedCentre
             tipId: hostRoot.tipId
+            hostClearance: hostRoot._hostClearance
         }
     }
 }
