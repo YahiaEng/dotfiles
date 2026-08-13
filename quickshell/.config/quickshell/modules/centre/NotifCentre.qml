@@ -354,10 +354,28 @@ PanelWindow {
             //    receiving this window's own expand map and shared clock
             //    and emitting signals back for every mutation, rather than
             //    writing `NotifServer.history` itself. ───────────────────
+            //
+            // ── Gap-closure fix (GATE-02 crash) ─────────────────────────
+            // The window itself is always mounted (D-19-14 — history/DND
+            // must not depend on it), but this list's own DELEGATES do not
+            // need to exist while the surface is closed. The model below
+            // is now gated on `centreWindow.visible`: while closed it is a
+            // fixed empty array, so no `NotifGroup` delegate — and none of
+            // its own nested per-row/per-action Repeaters — is ever
+            // instantiated in the background. Before this fix, a
+            // notification arriving at ANY time (the centre need not be
+            // open, need not even have been opened once this session)
+            // regenerated this ListView's delegates unconditionally,
+            // which is what turned an unrelated bell-tooltip hover into a
+            // crash: the nested Repeater regeneration this triggered ran
+            // concurrently with the tooltip's own incubation. Gating here
+            // does not delay content — `visible` already flips true the
+            // instant the open animation starts, well before the slide
+            // finishes.
             ListView {
                 id: historyList
                 anchors.fill: parent
-                model: centreWindow.groupedHistory
+                model: centreWindow.visible ? centreWindow.groupedHistory : []
                 spacing: Design.spacingSm
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds

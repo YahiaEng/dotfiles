@@ -266,16 +266,41 @@ Singleton {
     }
 
     // ── Per-session action retention (Phase 19 Plan 06 addition,
-    //    D-19-31/QNOTIF-04) — a map from notification id (string-keyed,
-    //    since JS object keys are always strings) to the live
-    //    `NotificationAction` list captured at arrival, held ONLY in
-    //    memory and never written to `notifications.json` — the id key's
-    //    mere ABSENCE after a restart is the entire "sender's session is
-    //    gone" signal D-19-31 needs (RESEARCH.md Pitfall 3: there is no
-    //    other cleanly-detectable case). `NotifGroup.qml` reads this via
-    //    the two functions below rather than reaching into this map
-    //    directly, so the map's own shape stays free to change later. ────
+    //    D-19-31/QNOTIF-04; gap-closure fix, GATE-02 crash) ───────────────
+    // GATE-02 finding: the ORIGINAL version of this block stored the raw
+    // live `QList<NotificationAction*>` (`notif.actions` itself) into
+    // `_sessionActionsById`, and `NotifGroup.qml` bound THAT value straight
+    // into a `Repeater.model`. That Repeater's delegate is created lazily,
+    // often long after the notification arrived and asynchronously via
+    // Quickshell's own incubation controller — by the time it actually
+    // ran, `QQmlDelegateModel`'s attempt to convert the stored value
+    // SIGSEGV'd inside `QMetaType::convert` (coredump pid 569912, 2026-08-13
+    // 16:15:54; nested `QQuickRepeater::regenerate`/`componentComplete`
+    // frames matching this exact group-row -> action-chip Repeater
+    // nesting). Root cause: a raw QObject-pointer list is not a value safe
+    // to hold in a `property var` across an unbounded time gap and then
+    // hand to delegate-model machinery — `NotifCard.qml`'s own identical-
+    // LOOKING `Repeater { model: card._liveActions }` is safe only because
+    // that card's delegate is destroyed in lockstep with the SAME
+    // notification's own live popup lifecycle, never outliving it; this
+    // map is deliberately session-LONG-lived, which is exactly the
+    // condition that makes the raw reference unsafe.
+    //
+    // Fix: `_sessionActionsById` now stores a PLAIN, serializable snapshot
+    // (`[{identifier, text}, ...]`, captured synchronously and safely at
+    // arrival, when the objects are certainly live) — this is the ONLY
+    // value `NotifGroup.qml`'s Repeater ever sees, so no raw QObject
+    // reference ever reaches delegate-model conversion. The raw list is
+    // still needed to actually INVOKE an action, so it lives separately in
+    // `_sessionRawActionsById` and is touched ONLY inside
+    // `invokeSessionAction()` below — a plain imperative function call
+    // from a TapHandler at the instant of a real click, never a reactive
+    // binding and never a model. Neither map is written to
+    // `notifications.json`; an id's absence from `_sessionActionsById`
+    // after a restart is still the entire D-19-31 "sender's session is
+    // gone" signal.
     property var _sessionActionsById: ({})
+    property var _sessionRawActionsById: ({})
 
     function hasSessionActions(id) {
         return root._sessionActionsById.hasOwnProperty(String(id));
@@ -283,6 +308,21 @@ Singleton {
     function actionsForHistoryId(id) {
         var key = String(id);
         return root._sessionActionsById.hasOwnProperty(key) ? root._sessionActionsById[key] : [];
+    }
+    // Called only from a TapHandler's onTapped — an imperative call at
+    // click time, never bound into any property or model. If the
+    // underlying action object is by then stale, this fails silently
+    // (matching the rest of this file's own no-throw discipline) rather
+    // than propagating into anything QML's delegate machinery touches.
+    function invokeSessionAction(id, identifier) {
+        var key = String(id);
+        var raw = root._sessionRawActionsById.hasOwnProperty(key) ? root._sessionRawActionsById[key] : [];
+        for (var i = 0; i < raw.length; i++) {
+            if (raw[i] && raw[i].identifier === identifier) {
+                raw[i].invoke();
+                return;
+            }
+        }
     }
 
     // ── Per-notification and per-app-group history clears (Phase 19 Plan
@@ -365,15 +405,30 @@ Singleton {
             // object past this handler returning (RESEARCH.md Pattern 1).
             notif.tracked = true;
 
-            // Phase 19 Plan 06 addition (D-19-31) — captured for EVERY
-            // arrival, suppressed or not, so a suppressed notification's
-            // eventual centre row can still show working action buttons;
-            // never persisted (see _sessionActionsById's own header).
-            // Recorded BEFORE _recordHistory() below: that call reassigns
-            // `history`, which is what a centre row's own bindings
-            // actually react to, and the map must already carry this
-            // entry by the time a fresh row for it is instantiated.
-            root._sessionActionsById[String(notif.id)] = notif.actions;
+            // Phase 19 Plan 06 addition (D-19-31; gap-closure fix, GATE-02
+            // crash — see _sessionActionsById's own header for the full
+            // root cause) — captured for EVERY arrival, suppressed or not,
+            // so a suppressed notification's eventual centre row can still
+            // show working action buttons; never persisted. The RAW list
+            // goes only into `_sessionRawActionsById` (touched solely by
+            // invokeSessionAction(), never bound to anything); the PLAIN
+            // snapshot that actually reaches a Repeater's model is built
+            // here, synchronously, while `notif.actions`' own objects are
+            // certainly still live. Recorded BEFORE _recordHistory() below:
+            // that call reassigns `history`, which is what a centre row's
+            // own bindings actually react to, and both maps must already
+            // carry this entry by the time a fresh row for it is
+            // instantiated.
+            var _rawActions = notif.actions || [];
+            var _plainActions = [];
+            for (var _ai = 0; _ai < _rawActions.length; _ai++) {
+                _plainActions.push({
+                    identifier: _rawActions[_ai].identifier,
+                    text: _rawActions[_ai].text
+                });
+            }
+            root._sessionRawActionsById[String(notif.id)] = _rawActions;
+            root._sessionActionsById[String(notif.id)] = _plainActions;
 
             // D-19-33 — unconditional history record BEFORE the
             // suppression branch: with no soak window and no rollback, a

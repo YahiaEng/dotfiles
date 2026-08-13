@@ -383,7 +383,18 @@ Item {
                                     color: BarRoles.capsuleFg
                                 }
                                 TapHandler {
-                                    onTapped: actionChip.modelData.invoke()
+                                    // Gap-closure fix (GATE-02 crash) —
+                                    // `modelData` is now a plain
+                                    // `{identifier, text}` snapshot, never a
+                                    // live NotificationAction reference (see
+                                    // NotifServer.qml's own
+                                    // _sessionActionsById header for why).
+                                    // Invocation goes through
+                                    // NotifServer.invokeSessionAction(),
+                                    // which looks up the live object only
+                                    // at this exact imperative call, never
+                                    // as a bound property.
+                                    onTapped: NotifServer.invokeSessionAction(notifRow.modelData.id, actionChip.modelData.identifier)
                                 }
                             }
                         }
