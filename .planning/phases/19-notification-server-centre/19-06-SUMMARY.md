@@ -398,6 +398,46 @@ Every code-affecting change was verified against the running shell (`systemctl -
 
 **Commits, round 6:** `fe8851f` (fix(19-06), `NotifGroup.qml` destructive hover), `8928a2f` (feat(19-06), decorative picture + user override + `NotifCentre.qml`'s own clear-all hover fix).
 
+## Gap-Closure Fix, Round 7 (post-execution, GATE-02 re-check)
+
+**Four items reported in the round-7 human click-test. All four landed in one commit, `01c58c6`.**
+
+### Item 1: "WHERE IS THE CAELESTIA-LIKE PICTURE" — round 6's placement was the defect
+
+Round 6's research finding (Caelestia's `noNotifsPic` is empty-state-only, `NotifDock.qml` lines 96-107) is factually correct and is left in place in-file for provenance. It was nonetheless the wrong call for **this** project, and the user's round-6 wording — "a decorative/cosmetic picture, a logo/artwork element in the notification centre itself" — was satisfied only in a state the centre is essentially never looked at in. Three independent causes, all fixed together:
+
+1. **Placement.** The picture lived inside the empty-state `Column`, gated `visible: NotifServer.history.length === 0`. Any notification at all removed it from the scene graph. Since the centre is opened *to read notifications*, the picture was invisible in the only state that matters — a fully-working feature nobody could ever see.
+2. **Scale.** 96×96, the same size as an icon. Not an artwork element.
+3. **Colourisation.** `colorization: 1.0` was applied to the user override as well as the bundled glyph, flattening every pixel of a real PNG to one flat accent-coloured silhouette. Anyone who had already used the round-6 override path got a coloured blob, never their picture — so even the escape hatch round 6 added could not actually show a picture.
+
+**Fix:** the picture is now a permanent `decorPicture` band (132px tall, full width, `Design.notifCentrePictureHeight`) anchored between the header and the history list, always rendered, with `historyRegion` re-anchored to `decorPicture.bottom`. The user override renders directly at its natural aspect with no `layer.enabled` and no `MultiEffect` in its path, so its own colours survive; only the bundled monochrome `notif-empty.svg` is still colourised to `BarRoles.accent`. The empty state keeps its "All up to date!" headline and no longer carries an image of its own — the band already shows one, and duplicating it would render the picture twice whenever history was empty. The override path is unchanged from round 6 (`~/.local/state/quickshell/notif-centre-picture.png`), so a file already placed there keeps working and now renders as actual artwork.
+
+This is a **deliberate divergence from Caelestia's real behaviour**, recorded in-file at the `decorPicture` declaration so a future reader doing a parity pass does not "restore" it and silently regress to round 6.
+
+### Item 2: long content looked wrong inside the card
+
+The expanded state had no bound of any kind — `elide: Text.ElideNone`, `maximumLineCount: 0`. Because the card's `implicitHeight` follows `contentColumn.implicitHeight`, a long-bodied notification grew the card without limit and could run past the screen edge. Body now clamps to `Design.notifBodyMaxLines` (8) with a trailing ellipsis; a long summary may take 2 lines when expanded rather than being chopped at 1 (compact stays at exactly 1 elided line, as 19-UI-SPEC.md N1/long-text requires — the spec says nothing about the expanded case).
+
+**Deviation from 19-UI-SPEC.md (N1/overflow), deliberate:** the spec calls for the expanded state to *scroll* past the clamp, reusing `PanelDialog`'s `Flickable` treatment. A `Flickable` nested inside this card would compete for the same vertical and horizontal touch stream as the card's own two drag gestures (D-19-05 drag-to-expand, D-19-07 drag-to-dismiss). The same bound is therefore enforced by line count instead of a scroll view — identical outcome for the reported defect, no gesture contention.
+
+### Item 3: too many popups on screen at once
+
+Visible depth was purely the geometric fit — `floor(2/3 screen height / per-card height)` — which resolves to roughly a dozen cards on this monitor before the existing "+N more" summary card ever appeared. `Design.notifMaxVisiblePopups` (3) is now layered on top as the design bound, smaller-wins against the geometric ceiling (a short monitor must still never overflow its own height budget). The overflow card and every count derived below it pick this up with no further change, so surplus notifications are **summarised, never dropped**.
+
+### Item 4: glass look
+
+Both surfaces were **already** blurred — `quickshell-notif-popups` and `quickshell-notif-centre` both match the `^quickshell-.*` family blur rule in `windowrules.lua`. The compositor was frosting the backdrop the whole time; at 0.78 alpha almost none of it reached the eye and both read as solid panels. `BarRoles.notifSurface` is now 0.55 resting and `notifSurfaceHover` 0.72 — 0.55 is `barSurface`'s own existing register, not a newly invented value, and the ~0.12 resting→hover step is preserved. No compositor file was touched, so no `hyprctl` reload is required for this to take effect (which also avoids the known reload-drops-layer-rules trap entirely).
+
+Both values deliberately clear the family's **0.5 `ignore_alpha` floor**. Below that cutoff a region is not blurred at all and reads as raw unblurred transparency — the exact failure mode already recorded at the `ags-media` and `quickshell-overview` rules in that same file. The in-file note states that lowering either value past 0.5 requires first declaring a namespace-scoped `ignore_alpha` rule **after** the family pair, per `windowrules.lua`'s own ordering finding.
+
+### Round 7 verification summary
+
+`qmllint --bare` clean on all five modified files. `quickshell-doctor --self-test`: **55 passed, 0 failed**. `colour-lint` (GATE-04) reports two failures — `bar-surface-registry` (`unregistered=3`) and `permissions-allowlist-paths-resolve` — and **both reproduce identically with this round's changes stashed**, confirming they are pre-existing (the registry gap is the one already deferred to Plan 19-08 by explicit precedent, see "Next Phase Readiness" above) and not introduced here.
+
+Live: `systemctl --user restart quickshell.service`, then a deliberately long-bodied notification followed by four more in quick succession to exercise both the new body clamp and the new popup cap at once. `pgrep -c quickshell` stayed 1, `systemctl --user is-active` stayed active, `hyprctl layers` showed the popup layer up, and the only coredump in the window was an unrelated `gjs-console` SIGSEGV. `busctl --user list` confirmed sole ownership of `org.freedesktop.Notifications` throughout. No Plan 19-08 artifact and no swaync-related file was touched.
+
+**Commit, round 7:** `01c58c6` (`fix(19-06)`) — `NotifCentre.qml`, `NotifCard.qml`, `NotifPopupStack.qml`, `BarRoles.qml`, `Design.qml`.
+
 ## User Setup Required
 
 None - no external service configuration required.
