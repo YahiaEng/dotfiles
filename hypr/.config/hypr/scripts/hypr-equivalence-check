@@ -53,7 +53,24 @@ if [[ -z "$REPO_ROOT" ]]; then
     REPO_ROOT="$(cd -- "$SCRIPT_DIR/../../../.." &>/dev/null && pwd)"
 fi
 
-DEFAULT_BASELINE_DIR="$REPO_ROOT/.planning/phases/13.1-hyprland-lua-config-migration/.hypr-baseline"
+# [Rule 3 - blocking, found during 19-03 Task 3] The baseline was captured
+# under the live phases/ tree (13.1-02) but the v3.0 milestone archive
+# (commit cf26332, `/gsd-complete-milestone`) moved the whole phase
+# directory to milestones/v3.0-phases/ — this hardcoded literal never
+# tracked that move, so every check-mode run since the archive has hit
+# D-10's "absent baseline is a FAIL, never a SKIP" path for a reason
+# wholly unrelated to whatever the live config actually diverges on.
+# Prefer the live phases/ location (in case a future phase captures a
+# baseline the same way while still active) and fall back to the
+# milestone-archived location — robust to the SAME archive workflow
+# moving it again later, without needing another hardcoded-path fix.
+_LIVE_BASELINE_DIR="$REPO_ROOT/.planning/phases/13.1-hyprland-lua-config-migration/.hypr-baseline"
+_ARCHIVED_BASELINE_DIR="$REPO_ROOT/.planning/milestones/v3.0-phases/13.1-hyprland-lua-config-migration/.hypr-baseline"
+if [[ -d "$_LIVE_BASELINE_DIR" ]]; then
+    DEFAULT_BASELINE_DIR="$_LIVE_BASELINE_DIR"
+else
+    DEFAULT_BASELINE_DIR="$_ARCHIVED_BASELINE_DIR"
+fi
 BASELINE_DIR="$DEFAULT_BASELINE_DIR"
 
 HYPR_CONF_ROOT="$REPO_ROOT/hypr/.config/hypr"
