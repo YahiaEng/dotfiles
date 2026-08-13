@@ -344,6 +344,33 @@ PanelWindow {
                 anchors.centerIn: parent
                 spacing: Design.spacingMd
 
+                // GATE-02 gap-closure fix (ISSUES 1/2, round 3) — this
+                // `visible` binding is the HARD correctness gate: reading
+                // `NotifServer.history.length` directly and unconditionally,
+                // never the gated `ListView.model`/`.count` (which is
+                // intentionally `[]` while the centre is closed, per the
+                // earlier crash gap-closure fix — a stale/gated signal for
+                // "is history empty" would be exactly the class of bug the
+                // coordinator's own diagnosis hint named). Previously this
+                // Column had NO `visible` binding at all — only the
+                // opacity animation below controlled its appearance, which
+                // meant a stuck, delayed, or mid-flight opacity value
+                // could leave "All up to date!" rendering (however faintly)
+                // OVER real list content, worst during a group expand
+                // (the one case tall enough to actually reach where this
+                // centred block sits). `visible` now makes that
+                // structurally impossible regardless of the opacity
+                // animation's own state — it disappears from the scene
+                // graph entirely, not just fades, the instant real history
+                // exists. The opacity animation is kept purely as a
+                // fade-IN polish when transitioning INTO the empty state
+                // (D-19-22's own "cross-fades in") — the fade-OUT
+                // direction is now instant by construction, which is an
+                // acceptable, deliberate asymmetry given the correctness
+                // requirement is one-directional (never show over content,
+                // no promise about how it leaves).
+                visible: NotifServer.history.length === 0
+
                 // Cross-fade via the same animated-property-source idiom —
                 // see the clear-all button's own identical note above for
                 // why this is not a second transition-on-change element.

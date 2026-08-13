@@ -2,34 +2,26 @@
   notif-empty.svg — the notification centre's empty-state illustration
   (Phase 19 Plan 06, D-19-22, 19-UI-SPEC.md § "Empty State").
 
-  A bell silhouette with a checkmark badge, resolved under Claude's
-  Discretion per D-19-22's own note that the specific asset was left
-  open. Drawn as a single flat fill (#000000, no gradients, no internal
+  GATE-02 gap-closure fix (ISSUE 3, round 3): the prior two-motif version
+  (a bell plus a separate checkmark badge) was rejected live as "looking
+  terrible together" even after fixing their overlapping geometry (round
+  2's own fix). Per the coordinator's explicit instruction this round —
+  re-checked against 19-UI-SPEC.md/19-CONTEXT.md/FEATURES.md, none of
+  which pin a literal Caelestia asset (D-19-22 leaves the specific asset
+  under Claude's Discretion; FEATURES.md's own NOTIF section does not
+  describe Caelestia's illustration's contents at the pixel level) —
+  simplified to a SINGLE motif: one clean bell silhouette, nothing else
+  competing for attention. A bell is the least ambiguous "notifications"
+  symbol available and needs no second glyph to read correctly.
+
+  Drawn as a single flat fill (#000000, no gradients, no internal
   shading) so it reads correctly as a silhouette once
   QtQuick.Effects.MultiEffect recolours every non-transparent pixel to
   BarRoles.accent at runtime (colorization: 1) — the exact mechanism
   Caelestia's own Colouriser wrapper uses. The literal fill colour below
   is never seen on screen; only its alpha shape is.
-
-  GATE-02 gap-closure fix (ISSUE b, ~2026-08-13): the ORIGINAL version of
-  this file placed the checkmark path directly inside the bell's own
-  bounding box (bell spanning roughly x8-82/y14-79, checkmark spanning
-  roughly x30-84/y46-118) — the two motifs genuinely overlapped/clipped
-  into each other on screen, which the user reported live during GATE-02.
-  This version keeps the bell confined to the TOP-LEFT of the canvas
-  (bounding box roughly x8-68/y4-68) and the checkmark as a badge in the
-  BOTTOM-RIGHT corner (badge circle centred (94,94) r20, bounding box
-  x74-114/y74-114) — a clear 6px gap between the two bounding boxes on
-  both axes, so neither motif's geometry can ever touch the other's. The
-  checkmark itself is a HOLE cut through the solid badge circle via
-  `fill-rule="evenodd"` (two overlapping subpaths: the full circle, then
-  a checkmark-shaped polygon nested entirely inside it) — a single flat
-  colour therefore still reads as "circle with a checkmark punched out
-  of it" rather than needing a second fill colour, keeping the
-  silhouette-only constraint above intact.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="#000000">
-  <path d="M38 6c-3 0-5 2-5 5v2c-11 3-18 13-18 24v10c0 6-5 9-5 9h56s-5-3-5-9V37c0-11-7-21-18-24V11c0-3-2-5-5-5z"/>
-  <circle cx="38" cy="62" r="6"/>
-  <path fill-rule="evenodd" d="M74,94 A20,20 0 1,0 114,94 A20,20 0 1,0 74,94 M81,93 L89,101 L107,83 L103,79 L89,93 L85,89 Z"/>
+  <path d="M60 12c-4 0-7 3-7 7v4c-16 4-27 18-27 35v14c0 9-8 15-8 15h84s-8-6-8-15V58c0-17-11-31-27-35v-4c0-4-3-7-7-7z"/>
+  <circle cx="60" cy="98" r="9"/>
 </svg>
