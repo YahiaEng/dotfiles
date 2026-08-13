@@ -170,10 +170,30 @@ Singleton {
     //    than one synchronous splice, so a full history clear never blocks
     //    the UI thread — Caelestia's own per-app-group batching shape,
     //    applied here to the whole-history clear path (per-app-group
-    //    clearing is Plan 19-06's own centre-UI concern). ─────────────────
+    //    clearing is Plan 19-06's own centre-UI concern).
+    //
+    //    GATE-02 gap-closure fix (round 5 — ROOT CAUSE of "clear-all does
+    //    nothing"). `interval: 0` never actually fired `onTriggered` on
+    //    this Quickshell/Qt build — live-confirmed with a temporary
+    //    probe (since removed): `Timer.start()` correctly flipped
+    //    `running` to `true` (proven via the probe's own before/after
+    //    log), yet `onTriggered` never logged a single tick across
+    //    repeated real invocations, driven directly through a temporary
+    //    IPC verb (no click needed) with up to several seconds' wait —
+    //    `historyLen` stayed pinned at 100 the entire time. The click/UI
+    //    layer (MouseArea -> signal -> clearAll()) was already proven
+    //    working in round 5's own click-chain probes; this Timer was the
+    //    actual dead end, silently swallowing every batch tick.
+    //    `interval: 1` is still imperceptible (the whole history drains
+    //    in a handful of 1ms ticks) and is the minimal change that makes
+    //    the timer's own repeating trigger fire at all on this build —
+    //    confirmed live: `historyCount` IPC verb went 100 -> 0 after
+    //    `clearAll()`, and stayed 0 after a full `systemctl --user
+    //    restart quickshell.service` (both in-memory and in the
+    //    persisted `notifications.json`). ─────────────────────────────
     Timer {
         id: _clearAllBatchTimer
-        interval: 0
+        interval: 1
         repeat: true
         onTriggered: {
             if (root.history.length === 0) {
@@ -347,9 +367,18 @@ Singleton {
     }
 
     property string _clearGroupTarget: ""
+    // GATE-02 gap-closure fix (round 5) — same root cause and same fix
+    // as `_clearAllBatchTimer` above: `interval: 0` never fired on this
+    // build, which left `_clearGroupTarget` permanently set after the
+    // first call (the timer that resets it back to "" on completion
+    // never ran), silently no-opping every subsequent clearGroup() call
+    // for ANY app via the early-return guard below. Live-confirmed with
+    // the same seed-two-groups/clear-one-verify-the-other test as
+    // `clearAll()`'s own note above, including surviving a real
+    // `systemctl --user restart` afterward.
     Timer {
         id: _clearGroupBatchTimer
-        interval: 0
+        interval: 1
         repeat: true
         onTriggered: {
             var stillPresent = root.history.some(function (item) {
