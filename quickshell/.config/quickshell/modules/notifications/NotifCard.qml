@@ -77,8 +77,18 @@ Item {
     readonly property bool _critical: card.urgency === NotificationUrgency.Critical
     readonly property bool _low: card.urgency === NotificationUrgency.Low
 
-    readonly property color _fill: card._critical ? BarRoles.danger : BarRoles.notifSurface
-    readonly property color _fg: card._critical ? BarRoles.onDanger : BarRoles.notifSurfaceFg
+    // ── GATE-02 gap-closure fix (round 4, item 1) — DESIGN REVERSAL over
+    //    round 3's own tiered-surface treatment (c474164, reverted this
+    //    round: 65e4787), itself a reversal of D-19-11's original
+    //    whole-card danger swap. Direct user instruction this round:
+    //    critical notifications keep the IDENTICAL card design as normal
+    //    — no separate surface wash, no separate rim, nothing chrome-wide
+    //    — the ONLY difference anywhere on the card is the fallback icon
+    //    (see iconSlot's own Text below), swapped to a danger glyph.
+    //    `_fill`/`_fg` are therefore now UNCONDITIONAL — every urgency
+    //    tier reads the exact same two roles. ─────────────────────────
+    readonly property color _fill: BarRoles.notifSurface
+    readonly property color _fg: BarRoles.notifSurfaceFg
 
     // ── D-19-05 expanded state — drag-only, never hover-triggered. ──────
     property bool expanded: false
@@ -258,14 +268,24 @@ Item {
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
             }
+            // GATE-02 gap-closure fix (round 4, item 1) — the ONLY urgency-
+            // dependent difference anywhere on this card now lives here:
+            // the fallback glyph (shown only when none of the three real
+            // tiers above resolved) is a danger/warning icon for critical
+            // urgency instead of the generic bell, tinted BarRoles.danger
+            // so it still reads as an urgency marker without touching the
+            // card's own chrome. A real app-supplied icon/image for a
+            // critical notification is left exactly as sent — this only
+            // replaces what would otherwise be a blank "notifications"
+            // bell, per the user's own "swap exactly there" instruction.
             Text {
                 anchors.centerIn: parent
                 visible: !notifImage.visible && !appIconImage.visible && !desktopIconImage.visible
-                text: "notifications"
+                text: card._critical ? "error" : "notifications"
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd
                 textFormat: Text.PlainText
-                color: card._fg
+                color: card._critical ? BarRoles.danger : card._fg
             }
 
             // ── Ring progress (D-19-09) — a `hints.value` notification
