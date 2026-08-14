@@ -475,6 +475,71 @@ Round 7 lowered the surfaces to 0.55 and **stopped there because that was the fl
 
 **Commit, round 8:** `7a80e41` (`fix(19-06)`) — `NotifCentre.qml`, `BarRoles.qml`, `windowrules.lua`.
 
+## Gap-Closure Fixes, Rounds 9-12 (post-deletion, GATE-02 re-checks)
+
+Four further rounds after the gate passed and the daemon was deleted. Rounds 9 and 10 are one defect; rounds 11 and 12 are six separate reports.
+
+### Rounds 9-10: script notifications rendered a missing-texture icon
+
+**Round 9 (`f6535cd`) — necessary but not sufficient.** `notify-send -i <name>` does not populate `appIcon`; Quickshell surfaces a themed icon hint through `image` as an `image://icon/<name>` provider URI (confirmed against persisted history: every theme-engine entry records `appIcon:""` with `image:"image://icon/preferences-desktop-theme"`). Round 5's picture feature keys purely off `image` being non-empty, so it treated that icon as a photo thumbnail — `PreserveAspectCrop`'d and mask-cropped to a rounded square. An `image://icon/` URI is now excluded from the picture tier and routed to the icon tier in both surfaces. **The user re-tested and the icons were still missing.**
+
+**Round 10 (`3fbf611`) — the actual root cause, measured.** Instructed not to guess, the diagnosis was done by instrument rather than inference:
+
+- **Screenshot.** `grim` against the popup layer's own `hyprctl` geometry showed the icon slot painting a **magenta/black checkerboard** — Qt's missing-texture placeholder.
+- **API probe.** A throwaway `qs -p` shell called the Quickshell icon API directly:
+
+| name | theme | `hasThemeIcon` |
+|------|-------|----------------|
+| `mpv` | hicolor | **true** |
+| `preferences-desktop-theme` | elementary | false |
+| `folder` | elementary | false |
+| `audio-volume-high` | elementary | false |
+
+  `iconPath(name, "")` returned `"image://icon/<name>"` for all of them — never a filesystem path.
+
+- **Isolation.** A notification sent with an absolute file path rendered perfectly, isolating the fault to name resolution rather than the image pipeline.
+
+**Root cause: Qt inside quickshell had no icon theme name at all**, so it searched only `hicolor`, its built-in fallback — while the session's actual icon theme is `elementary`. No platform theme was configured (`QT_QPA_PLATFORMTHEME` unset, no platform-theme package installed).
+
+**Why no guard caught it:** Quickshell's `image://icon/` provider returns that checkerboard at status **`Ready`**, not `Image.Error`. Every guard in both notification surfaces tests for load *failure*; this never failed — it "succeeded" and painted a placeholder.
+
+**Fix:** `QT_QPA_PLATFORMTHEME=gtk3` in `uwsm/.config/uwsm/env`, the file `env.lua` already names as the single source of truth for session environment. Verified by re-running the probe under each candidate — `gtk3` flips elementary icons to `true`, `xdgdesktopportal` does not. The plugin is `libqgtk3.so` from `qt6-base`, already a dependency, so `install.sh` needs no new package and this reproduces on a fresh system.
+
+**Known side effect, recorded not hidden:** `gtk3` also gives Qt the GTK font, and `Design.qml` pins font *sizes* only, never a family — so every `Text` in the shell now inherits `FiraCode Nerd Font` from gsettings. Arguably correct (the shell now follows this repo's own `font-switcher.sh` as GTK apps do), but a visible desktop-wide change nobody asked for.
+
+### Round 11 (`4e71be6`): four centre defects
+
+**1. Row icon too large — measured, not estimated.** Screenshotted the open centre and measured rendered icon bounding boxes:
+
+| | before | after |
+|---|---|---|
+| group header icon | 18×18 | 18×18 |
+| expanded row icon | **32×32** | **18×18** |
+
+The row icon rendered nearly double its own group header's, inverting the hierarchy. Cause: `rowIconSlot` reused `Design.notifImageSize` (42) — the *popup card's* size, correct there and wrong for single-density history rows. Now uses `Design.iconSizeMd`, the token `headerIconSlot` already uses, so the two agree by construction. Measured using this file's own round-6 technique: the delegate's `expanded` binding was temporarily forced true, captured, measured, then reverted and diffed against a backup to prove the probe left nothing behind.
+
+**2. Chevrons dead in the centre.** "Open wifi panel" / "open volume mixer" / "open bluetooth panel" did nothing. `CentreFooter` instantiated `QuickToggles` **without connecting its `panelRequested(name)` signal**, so those chevrons emitted into nothing — while the identical grid in the dashboard drawer worked via `DashboardTab.qml:1423`. Wired the same three-hop shape: `CentreFooter` → `NotifCentre` → `shell.qml`'s single guarded `openPanel(name)`. No guard duplicated.
+
+**3. Count read as unfinished.** A bare numeral in `fontHeading` alone against the frame's corner. Now a capsule in the shell's own pill language carrying the number and what it means, pluralised off the same value the numeral reads, sized to its own content.
+
+**4. No scroll on the sliders.** Added `WheelHandler` to the shared `SliderRow`. Chosen over a `MouseArea` with `onWheel` because a MouseArea filling the slider would sit over the handle and swallow the existing drag. It emits `row.moved(...)` rather than assigning `rowSlider.value`, because `value` is bound to the backend's live truth and a local write would break that binding and desync the control from hardware keys.
+
+### Round 12 (`411b84c`): Bluetooth tile label clipped
+
+Measured cause — the tiles are **not** overflowing; they divide the available width exactly (`QuickToggles.qml` ~line 401):
+
+```
+(430 - 32 margin - spacingSm*5) / 6  = ~59px per tile
+59 - chipLabelInset*2                 = ~51px label room
+"Bluetooth" at fontLabel (12)         = ~58px needed
+```
+
+The label exceeded its own `width`, and with no elide set it painted past the tile and off the frame. `WordWrap` cannot rescue a single word with no break opportunity — which is exactly why two-word "Do Not Disturb" wraps happily on the same grid. Fixed with `fontSizeMode: Text.HorizontalFit` + `minimumPixelSize: fontLabel - 3`, so only labels that don't fit shrink. Chosen over eliding (`"Bluetoot…"`, worse than the clip) and over abbreviating to "BT" (fights the same no-shortening constraint the grid documents for "Do Not Disturb"). Screenshot-verified; the shared dashboard drawer needs no separate check, since the other five labels are unshrunk in the *narrower* of the two surfaces.
+
+### Rounds 9-12 verification summary
+
+`qmllint` clean on every touched file each round. Shell restarted and re-screenshotted per round; single instance and sole ownership of `org.freedesktop.Notifications` throughout. All twelve rounds' items confirmed and approved by the user.
+
 ## User Setup Required
 
 None - no external service configuration required.
