@@ -5,8 +5,8 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: Indicators & Power Menu
 status: planning
-stopped_at: Completed 19-07-PLAN.md
-last_updated: "2026-08-14T02:00:22.389Z"
+stopped_at: Phase 20 context gathered
+last_updated: "2026-08-14T03:07:34.921Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 19 complete, transitioned to Phase 20
 progress:
@@ -632,9 +632,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-13T12:59:26.346Z
-Stopped at: Completed 19-07-PLAN.md
-Resume file: None
+Last session: 2026-08-14T03:07:34.901Z
+Stopped at: Phase 20 context gathered
+Resume file: .planning/phases/20-indicators-power-menu/20-CONTEXT.md
 
 ## Operator Next Steps
 
