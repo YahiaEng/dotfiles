@@ -483,8 +483,34 @@ Item {
                 // ever sees the sender's string; only bold/italic/link
                 // constructs the filter re-permitted can render as
                 // anything other than literal escaped text.
-                text: NotifMarkdown.filter(card.body)
-                textFormat: Text.MarkdownText
+                // GATE-02 round 13 — long body text ran to the card's edge
+                // with no ellipsis. MEASURED off a grim capture of a live
+                // popup rather than eyeballed:
+                //   contentArea insets spacingMd (16) all round, so this
+                //   column's right edge sits at x=414 of the 430px card.
+                //   summary text ended at x=408 — inside its own bounds,
+                //   eliding correctly, 21px clear of the card edge.
+                //   body text ended at x=427 — THIRTEEN PIXELS PAST its own
+                //   right edge, overflowing into the card's margin and
+                //   stopping only where the card clipped it, 2px off the rim.
+                //
+                // The two differ in exactly one property: `textFormat`. Qt
+                // does not apply `elide` to rich text, so as MarkdownText
+                // this line ignored its width entirely and was merely
+                // clipped — which is why it had no "…" while the PlainText
+                // summary directly above it did.
+                //
+                // Compact renders the RAW body as PlainText: elide works,
+                // the ellipsis appears, and every character is shown
+                // literally — the same sender-controlled-string posture
+                // T-19-01 already pins the summary to, and strictly safer
+                // than markup interpretation. Markdown is not lost, it is
+                // deferred: the expanded state below still renders the
+                // allowlist-filtered MarkdownText with links and emphasis,
+                // which is the state that can actually show them. A
+                // one-line preview is no place for a hyperlink anyway.
+                text: card.expanded ? NotifMarkdown.filter(card.body) : card.body
+                textFormat: card.expanded ? Text.MarkdownText : Text.PlainText
                 wrapMode: card.expanded ? Text.Wrap : Text.NoWrap
                 // GATE-02 gap-closure (round 7, item 2 — "notifications
                 // with long content look weird inside the card"). The
