@@ -92,6 +92,21 @@ Singleton {
 
     // ── Typography — 14-UI-SPEC.md "## Typography" ──────────────────────
     readonly property int fontDisplay: 32
+    // ── Font FAMILY is deliberately NOT a token here (decided 2026-08-14)
+    //    Every Text in this shell inherits Qt's default family, which since
+    //    the round-10 icon fix (`QT_QPA_PLATFORMTHEME=gtk3` in uwsm/env)
+    //    resolves to the GTK font from gsettings. That is the CHOSEN
+    //    behaviour, confirmed by the user when the side effect was surfaced:
+    //    it makes this repo's own `font-switcher.sh` re-font the bar,
+    //    notifications and centre in the same stroke it re-fonts GTK apps,
+    //    which is the project's core value ("one switch re-themes the entire
+    //    desktop") applied to typography.
+    //
+    //    So: do NOT add a `fontFamily` token here to "fix" the shell looking
+    //    different after a font switch — that is the feature. Pinning a
+    //    family would decouple the shell from font-switcher.sh and silently
+    //    reintroduce the split this decision closed. Sizes stay tokenised
+    //    below; only the family is delegated.
     readonly property int fontHeading: 20
     readonly property int fontBody: 16
     readonly property int fontLabel: 12
