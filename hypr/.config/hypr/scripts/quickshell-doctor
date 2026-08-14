@@ -335,6 +335,29 @@ QSD_BAR_SURFACE_ROWS=(
     "bar/HotZone.qml|quickshell-bar-hotzone|exact|3|noreserve|transient"
     "bar/BarDrawer.qml|quickshell-bardrawer-|pattern|3|noreserve|transient"
     "bar/BarTooltip.qml|quickshell-bartip-|pattern|3|noreserve|transient"
+    # ── Phase 19 notification family (RETIRE-03 / QNOTIF, added 2026-08-14)
+    #    Registered here rather than waved through QSD_KNOWN_NONBAR_FRAMES
+    #    below: that set is explicitly for frames "this phase did not add"
+    #    and which PREDATE the registry, and these are neither — they are
+    #    exactly the case the registry exists to cover, just from a later
+    #    phase than the one that wrote it. Plan 19-06 deferred these rows to
+    #    19-08 and 19-08 closed without adding them, which is the whole of
+    #    the `unregistered=3` debt this closes.
+    #
+    #    All three verified against the files and the live compositor before
+    #    being written: each declares `WlrLayershell.layer: WlrLayer.Overlay`
+    #    (level 3) and `exclusiveZone: 0`, and `hyprctl layers -j` reports
+    #    quickshell-notif-popups at level 3 live. `noreserve` is therefore
+    #    accurate, not assumed — the bar remains the single reserving
+    #    surface this file's own header insists on.
+    #
+    #    Lifetime is `permanent` for the popup stack and the centre because
+    #    D-19-14 mounts both unconditionally at shell root (history and DND
+    #    must not depend on the centre's existence); the toast is `transient`
+    #    — it is summoned per feedback event and destroyed on expiry.
+    "notifications/NotifPopupStack.qml|quickshell-notif-popups|exact|3|noreserve|permanent"
+    "centre/NotifCentre.qml|quickshell-notif-centre|exact|3|noreserve|permanent"
+    "toast/Toast.qml|quickshell-notif-toast|exact|3|noreserve|transient"
 )
 
 # Pre-existing summonable layer-shell frames this phase did not add and
