@@ -515,8 +515,25 @@ Item {
                     anchors.leftMargin: Design.spacingSm
                     anchors.top: parent.top
                     anchors.topMargin: Design.spacingSm
-                    width: Design.notifImageSize
-                    height: Design.notifImageSize
+                    // GATE-02 gap-closure (round 11) — MEASURED, not
+                    // estimated. Screenshotted the open centre with grim
+                    // against its own hyprctl layer geometry and measured
+                    // the rendered icon bounding boxes off the capture:
+                    //   group header icon = 18x18 px
+                    //   expanded row icon = 32x32 px
+                    // The row's icon was rendering nearly DOUBLE its own
+                    // group header's, which inverts the hierarchy — a
+                    // child row must not out-weigh the group heading it
+                    // sits under. Cause: this slot reused
+                    // `Design.notifImageSize` (42), which is the POPUP
+                    // CARD's image size. That size is correct there (a
+                    // popup is a standalone 430px-wide card and the user
+                    // confirmed the popup reads fine) and wrong here (a
+                    // centre row is single-density history). Now uses the
+                    // SAME token the header slot above uses, so the two
+                    // agree by construction rather than by coincidence.
+                    width: Design.iconSizeMd
+                    height: Design.iconSizeMd
 
                     // ── Tier 1: the picture ──────────────────────────────
                     Image {

@@ -80,6 +80,11 @@ ShellRoot {
         audioBackend: audioBackendInstance
         wifiBackend: wifiBackendInstance
         bluetoothBackend: bluetoothBackendInstance
+        // GATE-02 round 11 — terminus of the centre's chevron relay, the
+        // same `openPanel(name)` the dashboard's own identical grid
+        // already terminates on (line ~270). openPanel owns the guard and
+        // the loader lookup exactly once; nothing is duplicated here.
+        onPanelRequested: name => root.openPanel(name)
     }
 
     // ── Notification suppression fullscreen input (Phase 19 Plan 05,

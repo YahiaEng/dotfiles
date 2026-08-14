@@ -82,6 +82,11 @@ PanelWindow {
     property var wifiBackend: null
     property var bluetoothBackend: null
 
+    // ── 15-07 chevron relay, third hop (GATE-02 round 11) — mirrors
+    //    Dashboard.qml's own `panelRequested` exactly, so shell.qml can
+    //    terminate both on the SAME single guarded `openPanel(name)`.
+    signal panelRequested(string name)
+
     // ── Summon verbs — see header. `open()` reuses NotifServer's own
     //    existing D-19-37 popup-clear verb rather than duplicating it;
     //    `close()` is the one new write path this file introduces. ───────
@@ -269,16 +274,50 @@ PanelWindow {
             anchors.right: parent.right
             height: Design.popoutHeaderHeight
 
-            Text {
-                id: countText
+            // ── Count capsule (GATE-02 round 11) ────────────────────────
+            // Was a bare numeral in fontHeading sitting alone against the
+            // frame's top-left corner — no shape, no label, no relation to
+            // anything else on the surface, which is what read as unfinished.
+            // It is now a capsule in the same pill language the rest of this
+            // shell already speaks (BarRoles.capsule fill, full-round radius,
+            // the bar's own capsule idiom), carrying the number AND what the
+            // number means. Sized off its own content rather than a fixed
+            // width, so it stays correct at 0, 9 or 100+ entries.
+            Rectangle {
+                id: countCapsule
                 anchors.left: parent.left
                 anchors.leftMargin: Design.spacingMd
                 anchors.verticalCenter: parent.verticalCenter
-                text: String(NotifServer.history.length)
-                textFormat: Text.PlainText
-                font.pixelSize: Design.fontHeading
-                font.weight: Design.weightEmphasis
-                color: BarRoles.notifSurfaceFg
+                implicitWidth: countRow.implicitWidth + Design.spacingMd * 2
+                implicitHeight: countRow.implicitHeight + Design.spacingXs * 2
+                width: implicitWidth
+                height: implicitHeight
+                radius: height / 2
+                color: BarRoles.capsule
+
+                Row {
+                    id: countRow
+                    anchors.centerIn: parent
+                    spacing: Design.spacingXs
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: String(NotifServer.history.length)
+                        textFormat: Text.PlainText
+                        font.pixelSize: Design.fontBody
+                        font.weight: Design.weightEmphasis
+                        color: BarRoles.accent
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        // Pluralised off the same value the numeral reads,
+                        // so the two can never disagree.
+                        text: NotifServer.history.length === 1 ? "notification" : "notifications"
+                        textFormat: Text.PlainText
+                        font.pixelSize: Design.fontBody
+                        color: BarRoles.notifSurfaceFg
+                    }
+                }
             }
 
             Item {
@@ -655,6 +694,11 @@ PanelWindow {
             audioBackend: centreWindow.audioBackend
             wifiBackend: centreWindow.wifiBackend
             bluetoothBackend: centreWindow.bluetoothBackend
+            // GATE-02 round 11 — second hop of the chevron relay; see
+            // CentreFooter.qml's own note. Re-emitted, never actioned
+            // here: this window does not summon panels itself, exactly as
+            // Dashboard.qml:723 re-emits rather than opening.
+            onPanelRequested: name => centreWindow.panelRequested(name)
         }
     }
 }

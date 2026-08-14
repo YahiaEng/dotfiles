@@ -65,12 +65,25 @@ Item {
     implicitHeight: toggleGridHost.implicitHeight + Design.spacingLg + slidersColumn.implicitHeight + Design.spacingMd * 2
     height: footerRoot.implicitHeight
 
+    // ── 15-07 chevron relay, centre-side half (GATE-02 round 11) ────────
+    // The tiles' own chevrons emit `panelRequested(name)` for the three
+    // tiles that declare a `panel` (volume -> audio, wifi, bluetooth).
+    // This footer instantiated QuickToggles WITHOUT connecting that
+    // signal, so in the centre those chevrons emitted into nothing and
+    // clicking them did visibly nothing — while the identical grid in the
+    // dashboard drawer worked, because DashboardTab.qml:1423 relays it.
+    // Relayed here to the same terminus by the same shape: footer ->
+    // NotifCentre -> shell.qml's single guarded `openPanel(name)`, which
+    // stays the only place a summon actually happens.
+    signal panelRequested(string name)
+
     QuickToggles {
         id: toggleGridHost
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: Design.spacingMd
+        onPanelRequested: name => footerRoot.panelRequested(name)
         // A plain Item's own `height` does not auto-track its
         // `implicitHeight` — DashboardTab.qml's own identical
         // instantiation sets this explicitly for the same reason.
@@ -126,6 +139,39 @@ Item {
                 // key with no interaction of its own.
                 value: row.value
                 onMoved: row.moved(rowSlider.value)
+
+                // ── Scroll-to-adjust (GATE-02 round 11) ─────────────────
+                // The bar's own audio capsule already adjusts on scroll,
+                // so a slider that only responds to drag was the odd one
+                // out. `WheelHandler` rather than a MouseArea with
+                // `onWheel`: a MouseArea filling the slider would sit over
+                // the handle and swallow the drag this control already
+                // supports, whereas WheelHandler consumes ONLY wheel
+                // events and leaves press/drag entirely alone.
+                //
+                // Emits `row.moved(...)` — the same signal `onMoved`
+                // raises — rather than assigning `rowSlider.value`
+                // directly: `value` is bound to the backend's live truth
+                // (see the note above), so writing it locally would break
+                // that binding and desync the control from the hardware.
+                // The backend echoes the new value back through the same
+                // binding, exactly as a drag or a hardware key does.
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    enabled: row.reachable
+                    onWheel: event => {
+                        // One notch is 120 units (Qt's standard);
+                        // step 5% of the row's own range so volume
+                        // (0..1) and brightness (0..100) both move 5%.
+                        var notches = event.angleDelta.y / 120;
+                        if (notches === 0)
+                            return;
+                        var step = row.toValue * 0.05 * notches;
+                        var next = Math.max(0, Math.min(row.toValue, rowSlider.value + step));
+                        if (next !== rowSlider.value)
+                            row.moved(next);
+                    }
+                }
 
                 background: Rectangle {
                     x: rowSlider.leftPadding
