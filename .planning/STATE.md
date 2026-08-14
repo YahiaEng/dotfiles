@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
-current_phase: 19
-current_phase_name: notification-server-centre
-status: executing
+current_phase: 20
+current_phase_name: Indicators & Power Menu
+status: planning
 stopped_at: Completed 19-07-PLAN.md
-last_updated: "2026-08-13T12:59:31.235Z"
-last_activity: 2026-08-13
-last_activity_desc: Phase 18 + 18.1 complete — waybar retired, QBAR-08 shipped, QBAR-11 accepted unmeasured; next is discussing phase 19
+last_updated: "2026-08-14T02:00:22.389Z"
+last_activity: 2026-08-14
+last_activity_desc: Phase 19 complete, transitioned to Phase 20
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 35
-  completed_plans: 34
-  percent: 33
+  completed_plans: 35
+  percent: 50
 ---
 
 # Project State
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 19 (notification-server-centre) — EXECUTING
-Plan: 8 of 8
-Status: Ready to execute
+Phase: 20 — Indicators & Power Menu
+Plan: Not started
+Status: Ready to plan
 Progress: [██████████] 97%
-Last activity: 2026-08-13 — Phase 19 execution started
+Last activity: 2026-08-14 — Phase 19 complete, transitioned to Phase 20
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 140
+- Total plans completed: 148
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -63,6 +63,7 @@ Last activity: 2026-08-13 — Phase 19 execution started
 | 17 | 6 | - | - |
 | 18.1 | 7 | - | - |
 | 18 | 20 | - | - |
+| 19 | 8 | - | - |
 
 **Recent Trend:**
 

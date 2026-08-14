@@ -68,7 +68,7 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 ### 🔨 v4.0 Shell Migration & Debt Paydown (Phases 18-22) — ACTIVE
 
 - [x] **Phase 18: QML Bar & Retirement Machinery** - The always-on bar replaces waybar, and every gate and script the later retirements depend on is built and proven once (completed 2026-08-13)
-- [ ] **Phase 19: Notification Server & Centre** - The shell itself owns `org.freedesktop.Notifications`; popups, slide-out centre and swaync's deletion land together with no rollback
+- [x] **Phase 19: Notification Server & Centre** - The shell itself owns `org.freedesktop.Notifications`; popups, slide-out centre and swaync's deletion land together with no rollback (completed 2026-08-14)
 - [ ] **Phase 20: Indicators & Power Menu** - QML volume/brightness/caps-lock indicators and the six-action power menu; SwayOSD, wleave and the leftover wlogout/eww packages leave the host
 - [ ] **Phase 21: Media Fold-In & Contract Close** - The AGS card folds into the dashboard's Media tab behind a cava go/no-go, ending the MPRIS duplication and closing `contract.json` at its post-migration size
 - [ ] **Phase 22: Fresh-Install Proof** - The D-34/D-36 container gate proves a clean clone still reproduces the whole desktop after all five packages are gone
@@ -262,7 +262,7 @@ Plans:
 - [x] 19-05-PLAN.md — Server completion: history persistence, DND ownership in QML, suppression, toast frame, shared toggle singleton, absolute brightness setter (QNOTIF-07, QNOTIF-09, QNOTIF-10)
 - [x] 19-06-PLAN.md — The centre: slide-out frame, grouped history, three clear levels, empty state, pinned footer with three sliders, bell + `Super+N` repoint (QNOTIF-06, QNOTIF-08)
 - [x] 19-07-PLAN.md — LEDGER-08: panel-family gap closure + `19-SECURITY.md` over the new D-Bus surface, verifier re-run (LEDGER-08)
-- [ ] 19-08-PLAN.md — GATE-02 blocking render gate, one-way-door decision, QNOTIF-11 live two-owner proof, RETIRE-03 deletion with the atomic autostart swap (QNOTIF-11, RETIRE-03, LEDGER-04, LEDGER-07)
+- [x] 19-08-PLAN.md — GATE-02 blocking render gate, one-way-door decision, QNOTIF-11 live two-owner proof, RETIRE-03 deletion with the atomic autostart swap (QNOTIF-11, RETIRE-03, LEDGER-04, LEDGER-07)
 
 **Wave 1** — tracer plus the two zero-dependency openers
 
@@ -389,7 +389,7 @@ Cross-cutting constraints:
 | 16. Workspace Overview | v3.0 | 8/8 | Complete | 2026-08-08 |
 | 17. Ambient Extras | v3.0 | 6/6 | Complete | 2026-08-10 |
 | 18. QML Bar & Retirement Machinery | v4.0 | 20/20 | Complete    | 2026-08-13 |
-| 19. Notification Server & Centre | v4.0 | 7/8 | In Progress|  |
+| 19. Notification Server & Centre | v4.0 | 8/8 | Complete    | 2026-08-14 |
 | 20. Indicators & Power Menu | v4.0 | 0/? | Not started | - |
 | 21. Media Fold-In & Contract Close | v4.0 | 0/? | Not started | - |
 | 22. Fresh-Install Proof | v4.0 | 0/? | Not started | - |

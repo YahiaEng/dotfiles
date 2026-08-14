@@ -38,7 +38,7 @@
 - [x] **QNOTIF-08**: The centre carries working volume and brightness sliders
 - [x] **QNOTIF-09**: Do-not-disturb is a quick toggle and its state persists across a shell restart
 - [x] **QNOTIF-10**: Popups are suppressed while the centre is open and while a fullscreen client is focused
-- [ ] **QNOTIF-11**: A live two-owner check proves no second notification server is registered — `quickshell-doctor`'s existing poisoned-two-owner fixture is pointed at the new owner and run against a real session, not only self-tested
+- [x] **QNOTIF-11**: A live two-owner check proves no second notification server is registered — `quickshell-doctor`'s existing poisoned-two-owner fixture is pointed at the new owner and run against a real session, not only self-tested
 
 ### QOSD — On-screen indicators (replaces SwayOSD)
 
@@ -64,7 +64,7 @@
 
 - [x] **RETIRE-01**: A retirement checklist **script** exists covering every reference class (window/layer rules, autostart, keybinds, `contract.json`, matugen templates, doctor registries and fixtures, systemd `--user` units, D-Bus activation files, XDG autostart, `install.sh`/`stow.sh` lists) and is run before *and* after each deletion
 - [x] **RETIRE-02**: `waybar` is removed — package, config, contract entries, matugen template, `waybar-equivalence-check` and `waybar-design-lint` — in the phase that proves its replacement
-- [ ] **RETIRE-03**: `swaync` is removed the same way, in the same phase as QNOTIF
+- [x] **RETIRE-03**: `swaync` is removed the same way, in the same phase as QNOTIF
 - [ ] **RETIRE-04**: `swayosd` is removed the same way, including its libinput backend service
 - [ ] **RETIRE-05**: `wleave` is removed the same way
 - [ ] **RETIRE-06**: `ags` is removed the same way
@@ -84,7 +84,7 @@
 - [x] **LEDGER-01**: The `GradientBorder` and `quickshell-doctor`-dispatch carry-ins are closed as bookkeeping — both are already fixed in code (`PanelDialog.qml:191`, commit `4f48847`; `hl.dsp.global` throughout). **Visual confirmation TAKEN 2026-08-10: the operator confirmed the audio, wifi and bluetooth panels all render the glowing rim.** Remaining work is documentation only — correct PROJECT.md Active, MILESTONES.md "Known gaps at close", WINDOWS #14, and flip the `panels-missing-animated-border` debug session to resolved. Do NOT re-ask for the visual check.
 - [ ] **LEDGER-02**: MAINT-02 is settled by **taking the D-29 teardown measurement** that was waived on 2026-07-28, then wrapping Logout or recording why it needs no wrapping
 - [x] **LEDGER-03**: OVER-04's frame-rate term is measured — the floor and target that were recorded UNMEASURED get real numbers. **MEASURED 2026-08-11 in Phase 18 (`18-FRAME-RATE.md`, commit `eae9001`)** with Qt's `QSG_RENDER_TIMING=1`; the compositor overlay that froze the host in Phase 16 was never retried. **60 fps floor PASSES** — 0 of 81,261 render-loop iterations exceeded 16.67 ms during a human-driven overview drag at OVER-04's own load floor, worst case 12 ms (83.3 fps); the only sub-60 fps events across ~89,000 measured frames were 11 single-frame bar-transition hitches (38–62 ms) and 2 overview surface-creation frames (90/93 ms). **165 fps target recorded NOT RESOLVABLE** with the sanctioned instrument (integer-ms bucketing swallows the 156.75 fps threshold; iteration counts are an upper bound on presentation) and deliberately not claimed as a pass. Ledger corrections carried into `16-OVER04-MEASUREMENT.md`, `PROJECT.md` and `MILESTONES.md`.
-- [ ] **LEDGER-04**: All 6 open debug sessions in `.planning/debug/` reach `resolved` or an explicitly-reasoned deferral
+- [x] **LEDGER-04**: All 6 open debug sessions in `.planning/debug/` reach `resolved` or an explicitly-reasoned deferral
 - [ ] **LEDGER-05**: WINDOWS.md's 16 open rows are each closed or re-deferred with a stated reason — no row left silently open
 - [ ] **LEDGER-06**: Phase 16's missing `16-VERIFICATION.md` is written, its two malformed `coverage:` blocks corrected, and the incomplete quick task `260728-51j` resolved
 - [ ] **LEDGER-07**: `theme-stress-test` reaches a full clean run — the `lib/wallpaper.sh:65` tracked-symlink repoint that dirties the tree on every static switch is fixed
@@ -147,7 +147,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QNOTIF-08 | Phase 19 | Complete |
 | QNOTIF-09 | Phase 19 | Complete |
 | QNOTIF-10 | Phase 19 | Complete |
-| QNOTIF-11 | Phase 19 | Pending |
+| QNOTIF-11 | Phase 19 | Complete |
 | QOSD-01 | Phase 20 | Pending |
 | QOSD-02 | Phase 20 | Pending |
 | QOSD-03 | Phase 20 | Pending |
@@ -161,7 +161,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QMEDIA-03 | Phase 21 | Pending |
 | RETIRE-01 | Phase 18 | Complete |
 | RETIRE-02 | Phase 18 | Complete |
-| RETIRE-03 | Phase 19 | Pending |
+| RETIRE-03 | Phase 19 | Complete |
 | RETIRE-04 | Phase 20 | Pending |
 | RETIRE-05 | Phase 20 | Pending |
 | RETIRE-06 | Phase 21 | Pending |
@@ -175,10 +175,10 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | LEDGER-01 | Phase 18 | Complete — all four bookkeeping targets corrected: `PROJECT.md`, `MILESTONES.md` (both gaps gained dated SUPERSEDED clauses), WINDOWS #14 marked fixed, and the `panels-missing-animated-border` debug session moved to `.planning/debug/resolved/` with `status: resolved` |
 | LEDGER-02 | Phase 20 | Pending |
 | LEDGER-03 | Phase 18 | Complete — measured 2026-08-11, `18-FRAME-RATE.md`; 60 fps floor passes, 165 fps target recorded not-resolvable with the sanctioned instrument |
-| LEDGER-04 | Phase 19 | Pending |
+| LEDGER-04 | Phase 19 | Complete |
 | LEDGER-05 | Phase 20 | Pending |
 | LEDGER-06 | Phase 21 | Pending |
-| LEDGER-07 | Phase 19 | Pending |
+| LEDGER-07 | Phase 19 | Pending — NOT satisfied by Phase 19. `theme-stress-test` still aborts at switch #1 on `theme-doctor`'s strict D-66 gate, from three pre-existing `hypr-equivalence-check` failures (`binds.json` extra live binds, `animations.json` dynamic-cursors curve, `options.jsonl` border colours that can only ever match the one theme its stale Phase 13.1 baseline was captured under). None touches notifications. Plan 19-03 diagnosed this in full and deliberately declined to paper over it or mark this complete; remediation needs a human judgment call on which live bind/animation deltas are intentional since Phase 15. Phase 19's own D-19-45 wallpaper-pointer work DID land — this row's blocker is the equivalence baseline, not the pointer. Auto-marked Complete by `phase.complete`'s blanket pass on 2026-08-14 and corrected back the same day; see `19-VERIFICATION.md`. |
 | LEDGER-08 | Phase 19 | Complete |
 
 **Coverage:**
