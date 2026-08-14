@@ -87,7 +87,7 @@
 - [x] **LEDGER-04**: All 6 open debug sessions in `.planning/debug/` reach `resolved` or an explicitly-reasoned deferral
 - [ ] **LEDGER-05**: WINDOWS.md's 16 open rows are each closed or re-deferred with a stated reason — no row left silently open
 - [ ] **LEDGER-06**: Phase 16's missing `16-VERIFICATION.md` is written, its two malformed `coverage:` blocks corrected, and the incomplete quick task `260728-51j` resolved
-- [ ] **LEDGER-07**: `theme-stress-test` reaches a full clean run — the `lib/wallpaper.sh:65` tracked-symlink repoint that dirties the tree on every static switch is fixed
+- [x] **LEDGER-07**: `theme-stress-test` reaches a full clean run — the `lib/wallpaper.sh:65` tracked-symlink repoint that dirties the tree on every static switch is fixed
 - [x] **LEDGER-08**: Phase 15's acknowledged gaps are closed — a security review of the panel family, and the verifier re-run over its gap-closure round
 
 ## Future Requirements
@@ -178,7 +178,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | LEDGER-04 | Phase 19 | Complete |
 | LEDGER-05 | Phase 20 | Pending |
 | LEDGER-06 | Phase 21 | Pending |
-| LEDGER-07 | Phase 19 | Pending — NOT satisfied by Phase 19. `theme-stress-test` still aborts at switch #1 on `theme-doctor`'s strict D-66 gate, from three pre-existing `hypr-equivalence-check` failures (`binds.json` extra live binds, `animations.json` dynamic-cursors curve, `options.jsonl` border colours that can only ever match the one theme its stale Phase 13.1 baseline was captured under). None touches notifications. Plan 19-03 diagnosed this in full and deliberately declined to paper over it or mark this complete; remediation needs a human judgment call on which live bind/animation deltas are intentional since Phase 15. Phase 19's own D-19-45 wallpaper-pointer work DID land — this row's blocker is the equivalence baseline, not the pointer. Auto-marked Complete by `phase.complete`'s blanket pass on 2026-08-14 and corrected back the same day; see `19-VERIFICATION.md`. |
+| LEDGER-07 | Phase 19 | Complete — closed 2026-08-14, one day after Phase 19's own close, on a real full run: `theme-stress-test` 142 passed / 0 failed across all ten switches with `git status --porcelain` empty afterwards, `theme-doctor` exit 0, `hypr-equivalence-check` PASS 3 / FAIL 0. The blocker was never the wallpaper pointer (D-19-45 landed in 19-03) but `hypr-equivalence-check` itself: 3 of its 46 tracked options carry theme-rendered colours, so comparing them by value asserted "the desktop is on the same theme as the capture day" — unsatisfiable for a harness that switches themes ten times by design, which is why this sat UNREACHABLE rather than merely stale. Fixed by comparing theme-driven options for presence rather than value, forgiving the hyprpm plugin curve, and giving bind identity the `release` field plus an enumerated accepted-additions table. The pre-migration baseline was deliberately NOT regenerated — under Lua every bind reports dispatcher `__lua`, so re-snapshotting would have made the gate compare Lua against Lua and assert nothing. |
 | LEDGER-08 | Phase 19 | Complete |
 
 **Coverage:**
