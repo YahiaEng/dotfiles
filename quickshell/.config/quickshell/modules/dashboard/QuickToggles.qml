@@ -290,6 +290,35 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                     maximumLineCount: 2
+                    // GATE-02 round 12 — "Bluetooth" was clipped in the
+                    // notification centre. MEASURED, not estimated: the
+                    // centre is 430 wide, CentreFooter insets this grid by
+                    // spacingMd (16) each side, and tile width is computed
+                    // at line ~401 as an even division of what's left, so
+                    // (430 - 32 - spacingSm*5) / 6 = ~59px per tile and
+                    // 59 - chipLabelInset*2 = ~51px of label room. At
+                    // fontLabel (12) "Bluetooth" needs ~58px. The tiles
+                    // themselves are NOT overflowing — they divide the
+                    // available width exactly — it is this label that
+                    // exceeds its own `width`, and with no elide set it
+                    // simply painted past the tile and off the frame.
+                    //
+                    // WordWrap cannot rescue it: "Bluetooth" is a single
+                    // word with no break opportunity, which is why the
+                    // two-word "Do Not Disturb" wraps happily on the same
+                    // grid while this one clips.
+                    //
+                    // HorizontalFit shrinks ONLY labels that don't fit,
+                    // down to minimumPixelSize, leaving every label that
+                    // already fits at full fontLabel. Chosen over the two
+                    // alternatives deliberately: eliding gives "Bluetoot…"
+                    // (worse than the clip), and shortening to "BT" fights
+                    // the same no-abbreviation constraint this grid
+                    // already documents for "Do Not Disturb". The wider
+                    // dashboard drawer is unaffected, since nothing needs
+                    // shrinking at that width.
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: root.fontLabel - 3
                     color: chipItem.lit ? Colours.onPrimary : Colours.onSurfaceVariant
                     Behavior on color {
                         enabled: Motion.motionEnabled
