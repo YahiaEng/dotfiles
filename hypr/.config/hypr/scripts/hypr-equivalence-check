@@ -296,9 +296,54 @@ all_keys = sorted(set(baseline) | set(live))
 diffs = []
 notes = []
 
+# ── Theme-driven options are compared for PRESENCE, never for VALUE ──────
+# (LEDGER-07, 2026-08-14.)
+#
+# These keys carry colours rendered by the theme engine, so their value is a
+# pure function of whichever theme is active RIGHT NOW. Comparing them by
+# value does not assert config equivalence at all — it asserts "the desktop
+# is on the same theme as the day this baseline was captured", which is a
+# different (and useless) claim, and one that is impossible to satisfy in
+# the exact situation this check matters most: `theme-stress-test` switches
+# through ten themes by design, so at most one of its ten switches could
+# ever have passed. That is why LEDGER-07 sat unreachable rather than merely
+# stale — re-capturing the baseline could not have fixed it, only moved
+# which single theme happened to pass.
+#
+# `set` and presence are STILL compared, so a theme key disappearing, or
+# never being applied at all, still FAILS — the regression this check
+# genuinely owns here is "does the config still drive this option", not
+# "which colour did it drive it to". Colour CORRECTNESS is owned by
+# `theme-parity` and `theme-doctor`'s own palette checks, which compare
+# rendered output against the active theme's palette — the right instrument
+# for the question, and already run in the same `theme-doctor` pass.
+#
+# Deliberately narrow: exactly the three colour-valued keys of the 46
+# tracked, enumerated rather than pattern-matched, so a future non-colour
+# option can never be silently swallowed by a broad `col.*` glob.
+THEME_DRIVEN_KEYS = {
+    'general:col.active_border',
+    'general:col.inactive_border',
+    'decoration:shadow:color',
+}
+
 for key in all_keys:
     b = baseline.get(key)
     l = live.get(key)
+    if key in THEME_DRIVEN_KEYS and b is not None and l is not None:
+        if b['set'] != l['set']:
+            diffs.append(
+                f"! {key}: theme-driven key, but `set` differs "
+                f"(baseline set={b['set']} vs live set={l['set']}) — the config "
+                f"no longer drives this option"
+            )
+        else:
+            notes.append(
+                f". {key}: theme-driven — value compared for presence only "
+                f"(baseline={b['raw_value']!r} vs live={l['raw_value']!r}); "
+                f"colour correctness is theme-parity/theme-doctor's own check"
+            )
+        continue
     if b is None:
         diffs.append(f"+ {key}: present in live only ({l['type_key']}={l['raw_value']!r})")
         continue
@@ -411,6 +456,7 @@ baseline = json.load(open(baseline_path))
 live = json.load(open(live_path))
 
 diffs = []
+notes = []
 
 # ── Identity-matched, NOT positional (fix for the phantom-tail defect) ────
 # This comparison used to walk `zip(baseline, live)` by array index. A single
@@ -437,8 +483,21 @@ diffs = []
 # degrading into an unhelpful ADDED+REMOVED pair. Verified unique across both
 # the committed baseline and a live capture before being relied on; an
 # ambiguous identity is reported rather than guessed at (below).
+# `release` is part of a bind's IDENTITY, not just its payload (LEDGER-07,
+# 2026-08-14). Hyprland lets a press-bind and a release-bind coexist on one
+# chord, and this repo deliberately uses that: `keybinds.lua`'s own comment at
+# the SUPER_L site records that the hold-to-reveal bind "shares the
+# 'SUPER + SUPER_L' chord with the tap-to-menu bind above". With `release`
+# outside the identity those two collapse onto one key, pairing turns
+# ambiguous, and the gate emitted "duplicate bind identity ... cannot pair
+# records unambiguously" — a real FAIL caused by the identity being too coarse
+# to describe the config, not by any divergence. Adding it makes tap and hold
+# each pair with their own counterpart. `release` remains in STRUCTURAL_FIELDS
+# too, so a bind that genuinely flips press<->release is still caught: it now
+# reads as one ADDED plus one REMOVED rather than a silent field mismatch.
 def _identity(b):
-    return (b.get("submap", ""), b.get("modmask"), b.get("key"))
+    return (b.get("submap", ""), b.get("modmask"), b.get("key"),
+            b.get("release"))
 
 def _describe(b):
     return f"modmask={b.get('modmask')!r} key={b.get('key')!r} keycode={b.get('keycode')!r}"
@@ -454,7 +513,37 @@ for arr, target, name in ((baseline, base_by_id, "baseline"), (live, live_by_id,
             diffs.append(f"duplicate bind identity in {name}: {_describe(b)} — cannot pair records unambiguously")
         target[ident] = b
 
+# ── Deliberate post-migration additions (LEDGER-07, 2026-08-14) ─────────
+# The baseline is a FROZEN pre-migration snapshot, by design — that is what
+# makes it ground truth. But the config legitimately keeps growing: a later
+# phase adding a genuinely new bind is not a migration regression, and with
+# no way to record that, this gate would fail permanently from the first new
+# feature onward and stay failed forever. That is precisely how LEDGER-07
+# became unreachable rather than merely stale.
+#
+# Each entry is enumerated by full identity and carries the reason and the
+# declaring site, so accepting one is a conscious, reviewable act — never a
+# pattern that silently swallows the next addition too. Anything not listed
+# here still FAILs exactly as before.
+ACCEPTED_ADDITIONS = {
+    # Phase 18 (QBAR-09) hold-to-reveal: shows the OLED-hidden bar while
+    # Super is held, declared at keybinds.lua:134 as
+    # `hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:bar-reveal"))`.
+    # Deliberately shares the SUPER_L chord with the older tap-to-menu bind
+    # (keybinds.lua:86, release=True), which is why it needed `release` in the
+    # identity above to be describable at all. Post-dates this baseline
+    # (captured 2026-08-08); it is new config, not drifted config.
+    ("", 64, "SUPER_L", False):
+        "Phase 18 QBAR-09 hold-to-reveal bar (keybinds.lua:134)",
+}
+
 for ident in live_by_id.keys() - base_by_id.keys():
+    if ident in ACCEPTED_ADDITIONS:
+        notes.append(
+            f"bind added since baseline, accepted: "
+            f"{_describe(live_by_id[ident])} — {ACCEPTED_ADDITIONS[ident]}"
+        )
+        continue
     diffs.append(f"bind ADDED (not in baseline): {_describe(live_by_id[ident])}")
 for ident in base_by_id.keys() - live_by_id.keys():
     diffs.append(f"bind REMOVED (in baseline, not live): {_describe(base_by_id[ident])}")
@@ -478,6 +567,9 @@ for ident in sorted(base_by_id.keys() & live_by_id.keys(), key=lambda t: tuple(s
                   # at 14-10 Task 4's render gate — see the header comment above
         else:
             diffs.append(f"{label}: field 'mouse' baseline={bm!r} live={lm!r} (UNEXPECTED — not the documented mouse:272/273 True-vs-False gap)")
+
+for n in notes:
+    print(f". {n}")
 
 if diffs:
     for d in diffs:
@@ -768,10 +860,35 @@ live_set = set(live_tuples)
 
 missing = baseline_set - live_set
 added = live_set - baseline_set
+
+# ── Plugin-registered curves are not this config's to declare ────────────
+# (LEDGER-07, 2026-08-14.)
+#
+# The baseline is the PRE-MIGRATION hyprlang ground truth: its whole purpose
+# is to prove the Lua config still produces the same compositor state the
+# hyprlang config did. A curve registered by a hyprpm PLUGIN was never in
+# this repo's config in either era, so its presence says nothing about
+# migration equivalence — it only says the plugin is loaded, which is
+# `dynamic-cursors.lua`'s own concern and Phase 17's own deliberate D-36/D-37
+# addition (made after this baseline was captured).
+#
+# Enumerated by exact name, never by a `dynamic-cursors-*` prefix glob, so a
+# future plugin curve has to be added here consciously rather than inheriting
+# an exemption it was never reasoned about.
+PLUGIN_REGISTERED_CURVES = {
+    'dynamic-cursors-magnification',
+}
+_plugin_forgiven = {t for t in added if (t[0] or '') in PLUGIN_REGISTERED_CURVES}
+added -= _plugin_forgiven
+
 for t in sorted(missing, key=lambda x: (x[0] or '')):
     diffs.append(f"- curve present in baseline only: {t}")
 for t in sorted(added, key=lambda x: (x[0] or '')):
     diffs.append(f"+ curve present in live only: {t}")
+for t in sorted(_plugin_forgiven, key=lambda x: (x[0] or '')):
+    print(f". curve present in live only: {t[0]} — plugin-registered "
+          f"(hyprpm), not declared by this repo's config in either era; "
+          f"forgiven for migration-equivalence purposes")
 
 if diffs:
     for d in diffs:
