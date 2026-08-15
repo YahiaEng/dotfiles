@@ -227,6 +227,20 @@ PanelWindow {
     // this one property, never `Colours.surface` directly.
     readonly property color surfaceColour: Colours.surface
 
+    // The SCRIM specifically dims through `surfaceVariant`, not `surface`
+    // (third revision follow-up, user-reported). `surface` is the theme's
+    // own background — on the current Dracula palette it is #282a36, a
+    // very dark desaturated blue-grey — so raising the scrim to 0.35 made
+    // a legitimately-rendered dim read as the opaque-black bug all over
+    // again ("you messed up the dimming. It now looks like the
+    // opaque-black bug"). It was NOT that bug: the value resolved
+    // correctly through the intermediate above. It simply looked identical,
+    // which for a user-facing surface is the same problem.
+    // `surfaceVariant` (#44475a on this palette) is materially lighter and
+    // more chromatic, so a strong dim still reads as a themed veil rather
+    // than a black wash. Same `property color` indirection, same reason.
+    readonly property color scrimColour: Colours.surfaceVariant
+
     // ── The six actions — D-20-26 migration source: 20-BEHAVIOUR-BASELINE.md's
     //    verbatim wleave layout.json transcription, captured before that
     //    file's deletion (the sole place these strings existed). Every
@@ -506,7 +520,7 @@ PanelWindow {
         // ramping `opacity` is what makes the ramp read as a smooth dim
         // rather than a colour crossfade, with no second colour to define.
         opacity: 0
-        color: Qt.rgba(powerWindow.surfaceColour.r, powerWindow.surfaceColour.g, powerWindow.surfaceColour.b, Design.sessionScrimOpacity)
+        color: Qt.rgba(powerWindow.scrimColour.r, powerWindow.scrimColour.g, powerWindow.scrimColour.b, Design.sessionScrimOpacity)
 
         Behavior on opacity {
             enabled: Motion.motionEnabled
@@ -739,7 +753,17 @@ PanelWindow {
                     anchors.fill: parent
                     radius: width / 2
                     color: "transparent"
-                    border.width: 1
+                    // Suppressed while focused (third revision follow-up,
+                    // user-reported): the gradient focus ring below is
+                    // meant to REPLACE this rim, not sit beside it. Left
+                    // visible, the 1px severity hairline and the 3px
+                    // rotating rim rendered as two concentric strokes —
+                    // "the gradient ring overlaps with the outer ring of
+                    // the circular pills. It should cover it." Width, not
+                    // colour, so no literal is introduced for colour-lint
+                    // to reject; the tier hue still reads from the icon
+                    // glyph while focused, so no severity signal is lost.
+                    border.width: pill.isFocused ? 0 : 1
                     border.color: pill.fillRole
                 }
 
@@ -781,7 +805,15 @@ PanelWindow {
                 GradientBorder {
                     id: focusRing
                     anchors.fill: parent
-                    anchors.margins: -Design.borderWidth
+                    // Straddles the pill boundary (half the stroke inside,
+                    // half outside) rather than sitting fully outside it,
+                    // so the 3px rotating rim lands exactly ON the line the
+                    // suppressed 1px severity hairline occupies — covering
+                    // it, per the user's "It should cover it". A full
+                    // -borderWidth margin put the ring's inner edge at the
+                    // boundary instead, leaving the hairline visible just
+                    // inside it as a second concentric stroke.
+                    anchors.margins: -Design.borderWidth / 2
                     borderWidth: Design.borderWidth
                     topLeftRadius: width / 2
                     topRightRadius: width / 2
