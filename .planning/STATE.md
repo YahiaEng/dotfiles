@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: indicators-power-menu
 status: executing
-stopped_at: Completed 20-06-PLAN.md (Task 1 rebuild + Tasks 2-3)
-last_updated: "2026-08-15T17:58:40.182Z"
+stopped_at: Completed 20-05-PLAN.md
+last_updated: "2026-08-15T18:21:42.892Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 45
-  completed_plans: 40
+  completed_plans: 41
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 20 (indicators-power-menu) — EXECUTING
-Plan: 6 of 10
+Plan: 7 of 10
 Status: Ready to execute
-Progress: [█████████░] 89%
+Progress: [█████████░] 91%
 Last activity: 2026-08-15 — Phase 20 execution started
 
 ## Performance Metrics
@@ -232,6 +232,7 @@ Last activity: 2026-08-15 — Phase 20 execution started
 | Phase 20 P03 | 5min | 3 tasks | 3 files |
 | Phase 20 P04 | 45min | 3 tasks | 4 files |
 | Phase 20 P06 | 35min | 3 tasks | 10 files |
+| Phase 20 P05 | 55min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -509,6 +510,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 20-06: PowerMenu.qml rebuilt grid -> radial ring (D-20-21 revised); click-outside and post-action-flash bugs fixed
 - [Phase ?]: 20-06: PopoutController extended with a third wayfinding seam (powerMenuRequested) so ClockActionsCapsule's bar glyph can reach shell.qml's togglePowerMenu() in-process
 - [Phase ?]: 20-06: LEDGER-02 settled — Logout wrapped without the D-29 teardown measurement, recorded as evidence not measurement
+- [Phase ?]: Caps Lock (QOSD-02) built on a bounded shared-Timer poll instead of the event-driven sysfs watch — GATE-01 measured the watch dead on this host; polling is a pre-authorized, documented deviation, not a silent substitution
+- [Phase ?]: Brightness OSD trigger fixed: keybinds route through BrightnessBackend via a new shell.qml osd IpcHandler (qs ipc call) instead of a raw brightnessctl exec, so the backend remains the sole emitter the OSD watches
 
 ### Quick Tasks Completed
 
@@ -647,8 +650,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-15T17:58:40.162Z
-Stopped at: Completed 20-06-PLAN.md (Task 1 rebuild + Tasks 2-3)
+Last session: 2026-08-15T18:21:42.868Z
+Stopped at: Completed 20-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

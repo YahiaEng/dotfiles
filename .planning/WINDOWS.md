@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 50
+open_count: 52
 waived_count: 2
 fixed_count: 24
-total_count: 76
-last_updated: 2026-08-15T17:56:24.301Z
+total_count: 78
+last_updated: 2026-08-15T18:21:26.383Z
 ---
 
 # Broken Windows Ledger
@@ -91,33 +91,8 @@ last_updated: 2026-08-15T17:56:24.301Z
 | 74 | 19 | unrun-verify | quickshell/.config/quickshell/modules/toast/Toast.qml |  | Task 3 human-check not run interactively: visually confirming the toast slides in top-centre with correct on/off copy, self-dismisses after ~2s, and two rapid toggles produce one toast not two — DND was flipped by directly editing the state file, never exercising the real toggleDnd()/dndToggled/show() path | open | RE-DEFERRED (LEDGER-05, 20-02): Phase 20's OSD reuses this exact Toast frame type. Owner: plan 20-08's Gate A, criteria 3 (auto-hide) and 4 (hover-pause) — exercises the identical show()/timer/self-dismiss mechanism this row flags as unproven. | 2026-08-13T12:17:52.097Z |  |
 | 75 | 19 | unrun-verify | quickshell/.config/quickshell/modules/centre/NotifCentre.qml |  | Task 1-3 human-check blocks (slide/fade, Escape close, empty-state tint, grouping/clearing live sends, footer sliders, bell/Super+N summon) deferred to end-of-phase UAT per human_verify_mode=end-of-phase | open |  | 2026-08-13T12:43:20.122Z |  |
 | 76 | 20 | deviation | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | Plan 20-06 Task 1's grid design was rejected live and rebuilt to a radial ring; the ring's own Task-1 human-check (7 items, plus the two live-verified bug fixes) has not yet been re-run live against the ring — deferred to the operator per continuation-agent instructions not to press keys/restart the shell. | open |  | 2026-08-15T17:56:24.301Z |  |
-
-## Batch re-defer (LEDGER-05, D-20-40)
-
-**Ids (ascending):** 7, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 33, 34,
-35, 36, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 50, 53, 54, 55, 56, 57, 63, 67, 68, 69, 70,
-71, 72, 73, 75
-
-**Reason:** None of these 45 rows name a surface Phase 20 touches (`swayosd`, `wleave`,
-`wlogout`, `eww`, `Toast.qml`'s show/hide mechanism, the power menu, or
-`windowrules.lua`'s layer-rule ordering — see the individual-verdict set above for the 6
-rows that do). They are a mix of human-render-gate checks intentionally skipped per this
-project's established "skip live verification, ship fast" preference (Phases 09, 13.1, 15,
-18, 18.1, 19 — the largest share), pre-existing deviations recorded for later triage and
-never chased, and long-running measurement/paperwork debt. Re-triaging all 45 individually
-here would mean writing 45 one-off verdicts inside a phase that already carries two new
-surfaces and three package deletions.
-
-**Owning phase:** Phase 21 (Media Fold-In & Contract Close) — already carries LEDGER-06,
-a mandate to close cross-phase paperwork/verification debt, per ROADMAP.md's own rationale
-for placing ledger triage in a migration phase rather than the closing Phase 22 gate
-(which explicitly carries "no debt at all"). Full reasoning: `20-LEDGER-05-TRIAGE.md`.
-
-**Date:** 2026-08-15
-
-**Tie-break rule:** a row naming one of this phase's own surfaces goes in the individual-
-verdict set above, never in this batch id list, even if it would otherwise fall in the
-numeric remainder — no id appears in both places.
+| 77 | 20 | deviation | quickshell/.config/quickshell/modules/osd/CapsLockBackend.qml |  | QOSD-02 Caps Lock detector uses a bounded 250ms poll (shared with Osd.qml's recency Timer) instead of the event-driven sysfs watch the plan specified — GATE-01 measured the watch dead on this host; live ON-transition firing on a real physical key press is unverified | open |  | 2026-08-15T18:21:21.959Z |  |
+| 78 | 20 | deviation | hypr/.config/hypr/config/keybinds.lua |  | Brightness keybinds now route through BrightnessBackend via a new shell.qml osd IpcHandler instead of a raw brightnessctl exec, fixing the OSD trigger gap 20-04-SUMMARY.md named — unverified since this host has zero backlight-class devices; re-test on real laptop hardware | open |  | 2026-08-15T18:21:26.383Z |  |
 
 ````json
 [
@@ -1031,6 +1006,30 @@ numeric remainder — no id appears in both places.
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-15T17:56:24.301Z",
+    "resolved_at": null
+  },
+  {
+    "id": 77,
+    "kind": "deviation",
+    "phase": "20",
+    "file": "quickshell/.config/quickshell/modules/osd/CapsLockBackend.qml",
+    "line": null,
+    "description": "QOSD-02 Caps Lock detector uses a bounded 250ms poll (shared with Osd.qml's recency Timer) instead of the event-driven sysfs watch the plan specified — GATE-01 measured the watch dead on this host; live ON-transition firing on a real physical key press is unverified",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-15T18:21:21.959Z",
+    "resolved_at": null
+  },
+  {
+    "id": 78,
+    "kind": "deviation",
+    "phase": "20",
+    "file": "hypr/.config/hypr/config/keybinds.lua",
+    "line": null,
+    "description": "Brightness keybinds now route through BrightnessBackend via a new shell.qml osd IpcHandler instead of a raw brightnessctl exec, fixing the OSD trigger gap 20-04-SUMMARY.md named — unverified since this host has zero backlight-class devices; re-test on real laptop hardware",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-15T18:21:26.383Z",
     "resolved_at": null
   }
 ]
