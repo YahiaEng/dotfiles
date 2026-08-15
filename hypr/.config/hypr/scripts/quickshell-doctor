@@ -77,8 +77,10 @@
 #                         (panel-namespace-conformance,
 #                         panel-shortcut-single-registration,
 #                         panel-notifications-single-owner,
-#                         panel-swayosd-key-ownership) to named [SKIP]
-#                         lines, for a headless/CI context with no
+#                         panel-osd-state-driven-trigger — renamed from
+#                         panel-swayosd-key-ownership by Phase 20 Plan 04,
+#                         D-20-05, see that check's own header) to named
+#                         [SKIP] lines, for a headless/CI context with no
 #                         compositor to summon a panel into — the same
 #                         shape --no-summon already has for the
 #                         reserved-space check.
@@ -358,6 +360,42 @@ QSD_BAR_SURFACE_ROWS=(
     "notifications/NotifPopupStack.qml|quickshell-notif-popups|exact|3|noreserve|permanent"
     "centre/NotifCentre.qml|quickshell-notif-centre|exact|3|noreserve|permanent"
     "toast/Toast.qml|quickshell-notif-toast|exact|3|noreserve|transient"
+    # ── Phase 20 Plan 04 (QOSD-01/QOSD-03, D-20-33) — the OSD's own
+    #    namespace. D-20-04 is explicit that no NEW top-level frame is
+    #    created for the OSD (it is a `Toast.qml` INSTANCE), so this is a
+    #    namespace registration only, not a new frame class.
+    #
+    #    Resolution direction, recorded per this array's own header
+    #    instruction: the LIVE half (_qsd_assert_bar_surface_registry_live)
+    #    resolves namespace->row and would tolerate a second row on
+    #    toast/Toast.qml fine — cardinality is judged on the live
+    #    namespace string, not the file. The SOURCE half
+    #    (_qsd_assert_bar_surface_registry_forward) is what actually
+    #    resolves file->row: for EACH row it re-derives both the
+    #    "this file declares its own namespace exactly once" marker and the
+    #    row's namespace LITERAL from that SAME row's own file. A second
+    #    row pointed at toast/Toast.qml with namespace "quickshell-osd"
+    #    fails that check — the literal string "quickshell-osd" never
+    #    appears in Toast.qml's own source; it lives only in
+    #    modules/osd/Osd.qml, which sets Toast's `layerNamespace` property
+    #    to that value. So this row is registered against `osd/Osd.qml`
+    #    instead, per the array header's own file->row fallback rule.
+    #
+    #    That file, in turn, contains no literal `WlrLayershell.namespace`
+    #    string at all (Toast.qml owns that binding once, forwarding
+    #    `toastWindow.layerNamespace`) — a case the forward check's marker
+    #    predates. `_qsd_assert_bar_surface_registry_forward` below accepts
+    #    a `layerNamespace:` property-override line as an equally valid,
+    #    count-once declaration marker, but ONLY as a fallback when the
+    #    direct `WlrLayershell.namespace` marker count is zero — every
+    #    pre-Phase-20 row above still matches the direct marker exactly
+    #    once and never reaches that fallback, so this extension changes no
+    #    existing row's verdict. The same fallback covers the
+    #    `exclusiveZone: 0` noreserve check: Osd.qml inherits it from
+    #    Toast.qml rather than redeclaring it, so that check falls back to
+    #    toast/Toast.qml's own literal when the instance file doesn't carry
+    #    one itself.
+    "osd/Osd.qml|quickshell-osd|exact|3|noreserve|transient"
 )
 
 # Pre-existing summonable layer-shell frames this phase did not add and
@@ -642,21 +680,26 @@ _qsd_swayosd_server_reachable() {
     _qsd_busctl_list | grep -q 'org\.erikreider\.swayosd-server'
 }
 
-# _qsd_osd_activation_count — counts OSD-pill activations (namespace
-# "swayosd", confirmed live 2026-08-02 by polling `hyprctl layers -j`
-# every 50ms across a real swayosd-client raise with the server running:
-# a 258x96 layer at level 3 owned by the swayosd-server PID, namespace
-# literally "swayosd") across the window the given action command runs
-# in. Counts rising edges (absent -> present transitions), which is a
+# _qsd_osd_activation_count — counts OSD-pill activations, by polling
+# `hyprctl layers -j` every 50ms across the window the given action command
+# runs in. Counts rising edges (absent -> present transitions), which is a
 # truer "activation count" than a bare presence flag when the pill can
 # blink more than once.
+#
+# Phase 20 Plan 04 (D-20-05) re-points the layer filter from the swayosd
+# era's literal namespace "swayosd" (confirmed live 2026-08-02 against a
+# real swayosd-client raise: a 258x96 layer at level 3 owned by
+# swayosd-server) to `quickshell-osd` — `Osd.qml`'s own namespace
+# (`modules/osd/Osd.qml`, a `Toast.qml` instance, D-20-02/D-20-04). Same
+# polling mechanism, same rising-edge count, only the namespace literal
+# changed. Used only by panel-osd-state-driven-trigger below.
 _qsd_osd_activation_count() {
     local action="$1" i hit prev=0 transitions=0
     ( eval "$action" ) &
     local action_pid=$!
     for i in $(seq 1 24); do
         hit=0
-        if _qsd_layers_json 2>/dev/null | jq -e '[.[]?.levels?["3"]?[]? | select(.namespace=="swayosd")] | length > 0' >/dev/null 2>&1; then
+        if _qsd_layers_json 2>/dev/null | jq -e '[.[]?.levels?["3"]?[]? | select(.namespace=="quickshell-osd")] | length > 0' >/dev/null 2>&1; then
             hit=1
         fi
         [[ "$hit" -eq 1 && "$prev" -eq 0 ]] && transitions=$((transitions + 1))
@@ -942,17 +985,42 @@ _qsd_check_panel_notifications_single_owner() {
     check "panel-notifications-single-owner (T-15-03, existing check invoked in the summoned context — no new mechanism): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
 }
 
-_qsd_check_panel_swayosd_key_ownership() {
+#   panel-osd-state-driven-trigger (D-20-05) — renamed from
+#   panel-swayosd-key-ownership (D-15-24) by Phase 20 Plan 04, Task 3.
+#
+#   D-15-24 built this check to prove the OPPOSITE of what Phase 20 now
+#   wants: it asserted that a direct PipeWire write raised ZERO swayosd
+#   pills while the hardware-key path raised exactly one — i.e. that the
+#   D-15-25 side panels do not own the key path. D-20-05 deliberately
+#   INVERTS that premise: `Osd.qml`'s own trigger is now backend state
+#   change, never the keybind (see that file's own header), so BOTH a
+#   direct PipeWire write and the hardware key must raise the
+#   `quickshell-osd` indicator, and that EQUALITY is the new requirement.
+#   Leaving the old check as-is would fail on correct Phase 20 behaviour;
+#   deleting it would lose the differential instrument this repo already
+#   proved works. It is re-expressed in place instead — D-15-24's framing
+#   is recorded here as historically correct for the swayosd era, not
+#   deleted without explanation.
+#
+#   No `_qsd_swayosd_server_reachable` guard here (unlike the check this
+#   supersedes) — the instrument under test is now the quickshell shell's
+#   own `quickshell-osd` layer surface, never swayosd-server, so gating on
+#   swayosd-server's bus presence would SKIP a real quickshell-osd
+#   regression whenever swayosd-server happens to be absent, which is
+#   backwards now that swayosd is out of this check's dependency path.
+#   `_qsd_swayosd_server_reachable` itself stays DEFINED, not deleted: the
+#   separate "one-step-per-press volume probe" check (QS-06, further down,
+#   still swayosd-client-driven) is a second, remaining consumer — that
+#   check is unchanged by this plan and is plan 20-09's own scope
+#   (RETIRE-04) to finish, so the helper is left in place rather than
+#   half-removed.
+_qsd_check_panel_osd_state_driven_trigger() {
     if [[ "$NO_PANEL_CHECKS" -eq 1 ]]; then
-        echo "  [SKIP] panel-swayosd-key-ownership (D-15-25): disabled by --no-panel-checks"
+        echo "  [SKIP] panel-osd-state-driven-trigger (D-20-05, supersedes panel-swayosd-key-ownership/D-15-24): disabled by --no-panel-checks"
         return
     fi
-    if ! command -v hyprctl >/dev/null 2>&1 || ! command -v qs >/dev/null 2>&1; then
-        echo "  [SKIP] panel-swayosd-key-ownership (D-15-25): hyprctl or qs not found"
-        return
-    fi
-    if ! _qsd_swayosd_server_reachable; then
-        echo "  [SKIP] panel-swayosd-key-ownership (D-15-24): SwayOSD server unreachable (org.erikreider.swayosd-server not on the session bus) — never a [FAIL] blaming the ownership table for a dead instrument"
+    if ! command -v hyprctl >/dev/null 2>&1 || ! command -v qs >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        echo "  [SKIP] panel-osd-state-driven-trigger (D-20-05): hyprctl, qs or jq not found"
         return
     fi
 
@@ -981,10 +1049,12 @@ _qsd_check_panel_swayosd_key_ownership() {
     [[ "$not_one" -ne 0 ]] && bad=$((bad + 1))
     report+="table-byte-identical=$([[ "$bad" -eq 0 ]] && echo yes || echo no) not-exactly-one-count=${not_one} "
 
-    # Differential OSD proof — arm the volume restore trap BEFORE either
-    # write, extending the existing T-11-11 trap rather than adding a
-    # second one (VOL_RESTORE_NEEDED/VOL_ORIG_RAW are declared below,
-    # ahead of this check's own call site).
+    # Differential OSD proof (D-20-05, inverted from D-15-24) — arm the
+    # volume restore trap BEFORE either write, extending the existing
+    # T-11-11 trap rather than adding a second one (VOL_RESTORE_NEEDED/
+    # VOL_ORIG_RAW are declared below, ahead of this check's own call
+    # site). BOTH arms must now raise `quickshell-osd` exactly once — the
+    # equality itself is the D-20-05 requirement this check proves.
     local zero_count=0 one_count=0
     if command -v pactl >/dev/null 2>&1 && pactl get-sink-volume @DEFAULT_SINK@ >/dev/null 2>&1; then
         local orig_line
@@ -993,23 +1063,36 @@ _qsd_check_panel_swayosd_key_ownership() {
         if [[ "${#VOL_ORIG_RAW[@]}" -gt 0 ]]; then
             VOL_RESTORE_NEEDED=1
             # (i) direct PipeWire-node write — the same class of write the
-            # audio panel's backend performs, no OSD client in the path.
+            # audio panel's backend performs, no OSD client and no keybind
+            # in the path. Under D-20-05 this must now raise the indicator
+            # too, not stay silent as the swayosd-era check asserted.
             zero_count=$(_qsd_osd_activation_count "pactl set-sink-volume @DEFAULT_SINK@ +1%")
-            # (ii) the hardware-key path, exactly as the compositor bind
-            # invokes it (keybinds.lua: swayosd-client --output-volume raise).
-            one_count=$(_qsd_osd_activation_count "swayosd-client --output-volume raise")
+            # (ii) the hardware-key path, exactly as the repointed
+            # compositor bind invokes it (keybinds.lua, Task 2 of this
+            # plan: wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0 —
+            # never swayosd-client, per the keybind swap this same plan
+            # made, so both files change together and no gate observes an
+            # inconsistent pair).
+            one_count=$(_qsd_osd_activation_count "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0")
             pactl set-sink-volume @DEFAULT_SINK@ "${VOL_ORIG_RAW[@]}" >/dev/null 2>&1
         fi
     fi
-    [[ "$zero_count" -ne 0 || "$one_count" -ne 1 ]] && bad=$((bad + 1))
-    report+="osd-differential(pipewire-write=${zero_count},hw-key=${one_count},instrument=layer-namespace:swayosd) "
+    [[ "$zero_count" -ne 1 || "$one_count" -ne 1 ]] && bad=$((bad + 1))
+    report+="osd-differential(pipewire-write=${zero_count},hw-key=${one_count},instrument=layer-namespace:quickshell-osd,expected=both-exactly-1-per-D-20-05) "
 
+    # source-holds-by-construction — widened from the panel QML dir alone
+    # (D-15-24's own scope) to the whole shell QML tree plus the hypr
+    # compositor config dir, since Task 2 of this plan proved zero
+    # swayosd-client references across BOTH surfaces, not just the
+    # dashboard panels. Both path seams respect their existing
+    # QSD_FIXTURE_* overrides (T-15-08 discipline) rather than hardcoding
+    # a second, divergent path.
     local src_bad=0
-    src_bad=$(grep -rlE 'swayosd-client' -- "$(_qsd_panel_qml_dir)" 2>/dev/null | grep -c '.')
+    src_bad=$(grep -rlE 'swayosd-client' -- "$(_qsd_shell_qml_root)" "$(dirname -- "$(_qsd_keybinds_lua_path)")" 2>/dev/null | grep -c '.')
     [[ "$src_bad" -ne 0 ]] && bad=$((bad + 1))
-    report+="source-holds-by-construction(swayosd-client-refs=${src_bad})"
+    report+="source-holds-by-construction(swayosd-client-refs=${src_bad},scanned=quickshell-modules+hypr-config)"
 
-    check "panel-swayosd-key-ownership (D-15-24, proven differentially): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
+    check "panel-osd-state-driven-trigger (D-20-05, supersedes panel-swayosd-key-ownership/D-15-24, proven differentially): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
 }
 
 # ── D-16-23 (Phase 16 Plan 04) check bodies — seven checks closing the two
@@ -1643,6 +1726,18 @@ _qsd_matches() {  # _qsd_matches <text> <grep-args...>
 # with no way to say where the drift came from). Bar.qml (the one row
 # permitted to reserve) is exempt from the zero-literal check — its own
 # exclusiveZone is a conditional expression, not a literal, by design.
+#
+# Phase 20 Plan 04 (D-20-02/D-20-04) extends both markers with a fallback,
+# scoped so no pre-existing row's verdict can change: every row before
+# Phase 20 declares `WlrLayershell.namespace` directly in its own file
+# (direct-marker count 1) and its own `exclusiveZone: 0` literal directly
+# too, so neither fallback below is ever reached for them. `osd/Osd.qml`
+# is a `Toast{}` INSTANCE (D-20-02's promote decision) — it declares
+# neither directly; it overrides `Toast.qml`'s `layerNamespace` property
+# (the value Toast.qml itself forwards to its own single
+# `WlrLayershell.namespace` binding) and inherits Toast.qml's own
+# `exclusiveZone: 0` unchanged. Both fallbacks below recognise that
+# specific, narrow shape rather than loosening the marker for every row.
 _qsd_assert_bar_surface_registry_forward() {
     local scan_root="$1" row r_file r_ns r_match r_level r_reserve r_life
     local missing=0 unexpected_reservation=0 rows_total=0
@@ -1654,15 +1749,44 @@ _qsd_assert_bar_surface_registry_forward() {
             missing=$((missing + 1))
             continue
         fi
-        local ns_count
-        ns_count=$(_qsd_strip_qml_comments "$path" | grep -cF "WlrLayershell.namespace")
+        local stripped ns_count used_instance_fallback=0
+        stripped="$(_qsd_strip_qml_comments "$path")"
+        ns_count=$(printf '%s\n' "$stripped" | grep -cF "WlrLayershell.namespace")
+        if [[ "$ns_count" -eq 0 ]]; then
+            # Fallback marker (D-20-02/D-20-04, see header above): a
+            # Toast-derived instance file declares its OWN effective
+            # namespace by overriding `layerNamespace:` with a literal,
+            # never by writing `WlrLayershell.namespace` itself — that
+            # binding lives once in toast/Toast.qml. Only reached when the
+            # direct marker count is exactly zero, so every pre-Phase-20
+            # row (direct count 1) never touches this branch.
+            ns_count=$(printf '%s\n' "$stripped" | grep -cE 'layerNamespace[[:space:]]*:')
+            used_instance_fallback=1
+        fi
         if [[ "$ns_count" -ne 1 ]]; then
             missing=$((missing + 1))
             continue
         fi
-        _qsd_matches "$(_qsd_strip_qml_comments "$path")" -F "$r_ns" || missing=$((missing + 1))
+        _qsd_matches "$stripped" -F "$r_ns" || missing=$((missing + 1))
         if [[ "$r_reserve" == "noreserve" ]]; then
-            _qsd_matches "$(_qsd_strip_qml_comments "$path")" -E 'exclusiveZone[[:space:]]*:[[:space:]]*0\b' || unexpected_reservation=$((unexpected_reservation + 1))
+            local ez_ok=0
+            _qsd_matches "$stripped" -E 'exclusiveZone[[:space:]]*:[[:space:]]*0\b' && ez_ok=1
+            if [[ "$ez_ok" -eq 0 && "$used_instance_fallback" -eq 1 && "$r_file" != "toast/Toast.qml" ]]; then
+                # Fallback (see header above): a Toast-derived INSTANCE row
+                # (identified by having needed the layerNamespace marker
+                # fallback just above — never a row that declares its own
+                # WlrLayershell.namespace directly) may inherit Toast.qml's
+                # own exclusiveZone: 0 literal rather than redeclaring it.
+                # Gated on used_instance_fallback so a row that legitimately
+                # declares WlrLayershell.namespace itself (e.g. HotZone.qml)
+                # is never let through on a missing exclusiveZone literal by
+                # riding this branch — only a genuine Toast{} instance can
+                # reach it.
+                local base_stripped
+                base_stripped="$(_qsd_strip_qml_comments "$scan_root/toast/Toast.qml" 2>/dev/null)"
+                _qsd_matches "$base_stripped" -E 'exclusiveZone[[:space:]]*:[[:space:]]*0\b' && ez_ok=1
+            fi
+            [[ "$ez_ok" -eq 0 ]] && unexpected_reservation=$((unexpected_reservation + 1))
         fi
     done
     printf 'rows=%s missing=%s unexpected-reservation=%s' "$rows_total" "$missing" "$unexpected_reservation"
@@ -2209,22 +2333,24 @@ run_self_test() {
     count=$(printf '%s\n' "$rows" | grep -c '.')
     _qsd_st "poisoned-zero-owner-busctl-list.txt -> panel-notifications-single-owner FAILS (count=${count}, a dead daemon is as much a failure as a second one)" "$([[ "$count" != "1" ]] && echo 0 || echo 1)"
 
-    # panel-swayosd-key-ownership (3 fixtures)
+    # panel-osd-state-driven-trigger (D-20-05, ex-panel-swayosd-key-ownership) —
+    # 3 fixtures, exercising the shared _qsd_xf86_ownership_table half only;
+    # the osd-differential half is a live-only proof, not fixture-replayed.
     local table not_one=0 p v
     table=$(QSD_FIXTURE_HYPRCTL_BINDS="$FIXTURES_DIR/compliant-hyprctl-binds.txt" _qsd_xf86_ownership_table)
     IFS="$US" read -ra pairs <<<"$table"
     for p in "${pairs[@]}"; do [[ -z "$p" ]] && continue; v="${p##*=}"; [[ "$v" != "1" ]] && not_one=$((not_one + 1)); done
-    _qsd_st "compliant-hyprctl-binds.txt -> panel-swayosd-key-ownership PASSES (not-exactly-one count=${not_one})" "$([[ "$not_one" -eq 0 ]] && echo 0 || echo 1)"
+    _qsd_st "compliant-hyprctl-binds.txt -> panel-osd-state-driven-trigger PASSES (not-exactly-one count=${not_one})" "$([[ "$not_one" -eq 0 ]] && echo 0 || echo 1)"
     not_one=0
     table=$(QSD_FIXTURE_HYPRCTL_BINDS="$FIXTURES_DIR/poisoned-duplicate-xf86-binds.txt" _qsd_xf86_ownership_table)
     IFS="$US" read -ra pairs <<<"$table"
     for p in "${pairs[@]}"; do [[ -z "$p" ]] && continue; v="${p##*=}"; [[ "$v" != "1" ]] && not_one=$((not_one + 1)); done
-    _qsd_st "poisoned-duplicate-xf86-binds.txt -> panel-swayosd-key-ownership FAILS (volume-raise key doubled, not-exactly-one count=${not_one})" "$([[ "$not_one" -ne 0 ]] && echo 0 || echo 1)"
+    _qsd_st "poisoned-duplicate-xf86-binds.txt -> panel-osd-state-driven-trigger FAILS (volume-raise key doubled, not-exactly-one count=${not_one})" "$([[ "$not_one" -ne 0 ]] && echo 0 || echo 1)"
     not_one=0
     table=$(QSD_FIXTURE_HYPRCTL_BINDS="$FIXTURES_DIR/poisoned-missing-xf86-binds.txt" _qsd_xf86_ownership_table)
     IFS="$US" read -ra pairs <<<"$table"
     for p in "${pairs[@]}"; do [[ -z "$p" ]] && continue; v="${p##*=}"; [[ "$v" != "1" ]] && not_one=$((not_one + 1)); done
-    _qsd_st "poisoned-missing-xf86-binds.txt -> panel-swayosd-key-ownership FAILS (mute key bound zero times, not-exactly-one count=${not_one})" "$([[ "$not_one" -ne 0 ]] && echo 0 || echo 1)"
+    _qsd_st "poisoned-missing-xf86-binds.txt -> panel-osd-state-driven-trigger FAILS (mute key bound zero times, not-exactly-one count=${not_one})" "$([[ "$not_one" -ne 0 ]] && echo 0 || echo 1)"
 
     # The promotion's own structural guard, replayed rather than only
     # observed once: deliberately collide a client-consumer key into the
@@ -2755,7 +2881,7 @@ fi
 _qsd_check_panel_namespace_conformance
 _qsd_check_panel_shortcut_single_registration
 _qsd_check_panel_notifications_single_owner
-_qsd_check_panel_swayosd_key_ownership
+_qsd_check_panel_osd_state_driven_trigger
 
 # ── 10. One step per press — volume (QS-06), measured, transient,
 #    self-restoring. The one deliberate mutation in this gate. Never
