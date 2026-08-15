@@ -563,3 +563,42 @@ hl.layer_rule({ match = { namespace = "quickshell-notif-toast" }, blur = true })
 hl.layer_rule({ match = { namespace = "quickshell-notif-popups" }, ignore_alpha = 0.2 })
 hl.layer_rule({ match = { namespace = "quickshell-notif-centre" }, ignore_alpha = 0.2 })
 hl.layer_rule({ match = { namespace = "quickshell-notif-toast" }, ignore_alpha = 0.2 })
+
+-- ── quickshell-osd / quickshell-session layer rules (Phase 20 Plan 03,
+--    QOSD-01/QOSD-04, QPOWER-01) ─────────────────────────────────────────
+-- Both new namespaces declared here, in this file's LAST-declared block,
+-- AFTER the `^quickshell-.*` family regex rows (lines 396/445) and after
+-- every exact-match namespace row above — this file's own recorded
+-- ordering finding is that a namespace rule contradicting the family
+-- regex silently loses if declared before it, so every exact-match row in
+-- this file lives at or after this point. Additive only: the family regex
+-- rows and the existing notification override block above are untouched.
+--
+-- quickshell-osd reuses Toast.qml's frame (Phase 19 Plan 01) but is a
+-- BRAND-NEW namespace, matching the three quickshell-notif-* rows'
+-- "slide" precedent and restating blur = true by name rather than relying
+-- on the family regex, same idiom as the notification override block
+-- above.
+hl.layer_rule({ match = { namespace = "quickshell-osd" }, animation = "slide" })
+hl.layer_rule({ match = { namespace = "quickshell-osd" }, blur = true })
+-- quickshell-osd does NOT inherit quickshell-notif-toast's 0.2 override
+-- just because it renders the same Toast.qml frame — a fresh namespace
+-- inherits only the family's own ignore_alpha = 0.5 floor. Toast.qml's
+-- fill is BarRoles.notifSurface at alpha 0.38, tuned against the
+-- notification family's 0.2, and 0.38 < 0.5. Without this row the OSD
+-- region falls below the active cutoff and blur silently turns off — a
+-- symptom visually indistinguishable from "the layer rule never applied
+-- at all", a different and unrelated failure mode this repo has already
+-- hit once. 0.2 sits below 0.38 with the same headroom the notification
+-- family already uses.
+hl.layer_rule({ match = { namespace = "quickshell-osd" }, ignore_alpha = 0.2 })
+
+-- quickshell-session gets only an animation row here. Its card fill is
+-- Colours.surface at panelSurfaceOpacity (0.78) and its scrim is
+-- Design.sessionScrimOpacity (0.55) — both above the family's own 0.5
+-- floor, so the floor alone is PREDICTED sufficient; no ignore_alpha
+-- override is added speculatively. This prediction is VERIFIED at plan
+-- 20-08's Gate B criterion 1 (the dialog reads as part of the panel
+-- family — rim, rounded card, theme-reactive fill, scrim), not assumed
+-- here.
+hl.layer_rule({ match = { namespace = "quickshell-session" }, animation = "slide" })
