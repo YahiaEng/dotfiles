@@ -619,7 +619,7 @@ Singleton {
     // Exposed as a single re-tunable token, not a call-site literal, per
     // the same instruction that motivated tokenising it in both prior
     // revisions — the user may move it again after judging it live.
-    readonly property real sessionScrimOpacity: 0.35
+    readonly property real sessionScrimOpacity: 0.25
     // sessionScrimRampFactor (3) — NEW, third-revision follow-up. A
     // MULTIPLE of Motion's own emphasizedIn/Out duration, not a duration
     // of its own: motion.json stays the single source of motion timing and
