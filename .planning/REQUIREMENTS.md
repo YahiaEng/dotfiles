@@ -45,11 +45,11 @@
 - [x] **QOSD-01**: Volume and brightness indicators appear on the media keys, including while the lock screen is up
 - [x] **QOSD-02**: A Caps Lock indicator appears with **no root service** — read from the keyboard LED's sysfs node via a watched file
 - [ ] **QOSD-03**: Indicators auto-hide after a delay and stay open while hovered
-- [ ] **QOSD-04**: Volume, microphone and brightness show as independent sliders in one column when more than one has changed — each individually adjustable, each appearing only if that control actually moved *(named addition)*
+- [x] **QOSD-04**: Volume, microphone and brightness show as independent sliders in one column when more than one has changed — each individually adjustable, each appearing only if that control actually moved *(named addition)*
 
 ### QPOWER — Power menu (replaces wleave)
 
-- [ ] **QPOWER-01**: Six actions available — Shutdown, Reboot, Suspend, Hibernate, Logout, Lock
+- [x] **QPOWER-01**: Six actions available — Shutdown, Reboot, Suspend, Hibernate, Logout, Lock
 - [ ] **QPOWER-02**: Fully keyboard-navigable with visible focus; Enter activates, Escape closes, first action auto-focused on open
 - [ ] **QPOWER-03**: The menu warns before a destructive action when a package manager or download is still running *(named addition)*
 - [ ] **QPOWER-04**: Shutdown and Reboot keep the graceful compositor exit that closed the FIX-01 hang class
@@ -151,8 +151,8 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QOSD-01 | Phase 20 | Complete |
 | QOSD-02 | Phase 20 | Complete |
 | QOSD-03 | Phase 20 | Pending |
-| QOSD-04 | Phase 20 | Pending |
-| QPOWER-01 | Phase 20 | Pending |
+| QOSD-04 | Phase 20 | Complete |
+| QPOWER-01 | Phase 20 | Complete |
 | QPOWER-02 | Phase 20 | Pending |
 | QPOWER-03 | Phase 20 | Pending |
 | QPOWER-04 | Phase 20 | Pending |
