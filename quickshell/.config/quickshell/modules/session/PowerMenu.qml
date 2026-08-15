@@ -86,6 +86,51 @@
 // this window) is called LAST, after the process has already launched,
 // so the object this function belongs to is never deleted out from under
 // the `actionProcess.startDetached()` call above it.
+//
+// ── THIRD revision (2026-08-15, live user feedback on the second
+//    revision) — reverse dismiss animation, animated focus ring, hover
+//    parity, stronger/gradual dimming ─────────────────────────────────
+// Four independent asks, none reopening the ring SHAPE (still locked):
+//   1. **Reverse cascade on dismiss.** `Cascade.qml` gains an opt-in
+//      `runExit()` (see its own header for the full design) — pills sweep
+//      back OUT, un-staggered, on `Motion.emphasizedOutDuration`/Easing.
+//      Both `closeAndRun()` and `requestDismiss()` now route through one
+//      funnel, `_beginDismiss(actionIndex)`, so the Bug-2 ordering
+//      guarantee above (unmap BEFORE the action process starts) is
+//      enforced in exactly one place: `visible = false` and
+//      `actionProcess.startDetached()` now happen in the exit cascade's
+//      OWN completion callback, never before it, on BOTH the
+//      action-dismiss and no-action-dismiss routes. This adds up to
+//      `Motion.emphasizedOutDuration` (150ms fallback) of latency before
+//      a session-ending action's process starts — judged acceptable: it
+//      is a single un-staggered duration, not stacked per-pill, and the
+//      surface is already invisible the instant that duration elapses.
+//   2. **Focus ring becomes the animated Hyprland-style gradient rim**
+//      (`GradientBorder.qml`, this shell's existing shared rim) — see the
+//      pill delegate below. Deliberately its OWN, easily-revertible
+//      change: nothing else in this pass touches the focus-ring block.
+//   3. **Hover now moves `focusedIndex`** — `pillMouseArea.onEntered`
+//      writes it directly (see the pill delegate's own comment for the
+//      hover/keyboard precedence this establishes). The existing 0.65
+//      hover-fill lift is KEPT, not retired — see that same comment for
+//      why it is not redundant with the ring/scale now also following
+//      hover.
+//   4. **Scrim stronger AND gradual.** `Design.sessionScrimOpacity`
+//      raised 0.15 -> 0.35 (Design.qml carries the full derivation and
+//      the `ignore_alpha` 0.2-cutoff consequence: 0.35 sits ABOVE the
+//      `quickshell-session` namespace's own 0.2 override, so this
+//      surface's backdrop blur returns — previously split, with the
+//      pill fill blurred and the scrim not; now both sit on the SAME
+//      side, so the split itself is what this change also resolves, not
+//      merely raises a number). "Gradual" is the scrim's own `opacity`
+//      (not its baked-in alpha) ramped 0->1 on open and 1->0 on dismiss,
+//      via a `Behavior on opacity` whose duration/easing binding reads
+//      `_dismissing` to pick `emphasizedIn`/`emphasizedOut` — entrance
+//      and exit each borrow the SAME token pair the pill cascade itself
+//      uses for its own direction, not a fifth motion value.
+// See 20-CONTEXT.md's D-20-21 (third revision note) and 20-UI-SPEC.md's
+// revised Focus Treatment / Entrance Motion / New Tokens sections for the
+// design-contract side of this pass.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -100,8 +145,17 @@ PanelWindow {
 
     signal dismissRequested()
 
+    // Third-revision addition — guards every dismissal route
+    // (Escape/click-outside/focus-grab-clear/action-selection) so a
+    // second dismissal trigger arriving while the exit cascade is already
+    // playing is a no-op rather than a second, competing teardown. Set
+    // once, in `_beginDismiss()`, never reset — this window is destroyed
+    // by the LazyLoader at the end of every dismissal path, so a fresh
+    // menu open always gets a fresh instance with this back at `false`.
+    property bool _dismissing: false
+
     function requestDismiss() {
-        powerWindow.dismissRequested();
+        powerWindow._beginDismiss(-1);
     }
 
     // Esc routes through this rather than straight to requestDismiss(),
@@ -307,18 +361,51 @@ PanelWindow {
         return list;
     }
 
-    // Bug 2 fix — see file header. Unmaps the surface (visible = false)
-    // BEFORE the action Process starts, for every action, then tears the
-    // LazyLoader item down LAST — after the process has already launched,
-    // so nothing this function still needs is deleted out from under it.
+    // Bug 2 fix, THIRD-REVISION ordering (see file header item 1) — still
+    // "unmap BEFORE the action Process starts," but "unmap" now waits on
+    // the exit cascade actually finishing, never fires while the surface
+    // could still be mid-animation on screen. `closeAndRun()` itself is
+    // now just the actionIndex >= 0 entry into the shared funnel below.
     function closeAndRun(index) {
         if (index < 0 || index >= powerWindow.actions.length)
             return;
-        var cmd = powerWindow.actions[index].command;
-        powerWindow.visible = false;
-        actionProcess.command = cmd;
-        actionProcess.startDetached();
-        powerWindow.requestDismiss();
+        powerWindow._beginDismiss(index);
+    }
+
+    // ── The single dismissal funnel (third revision) — every route in
+    //    this file (Escape, scrim click-outside, HyprlandFocusGrab clear,
+    //    action selection) now goes through this ONE function, so the
+    //    Bug-2 ordering guarantee and the exit-cascade wait are enforced
+    //    in exactly one place rather than duplicated per call site.
+    //    `actionIndex >= 0` means "run that action's command after
+    //    unmapping"; `-1` means "just close, no action."
+    function _beginDismiss(actionIndex) {
+        if (powerWindow._dismissing)
+            return;
+        powerWindow._dismissing = true;
+        // Scrim ramp-down (item 4) starts in step with the pill exit
+        // cascade below — the `Behavior on opacity` on `scrim` reads
+        // `_dismissing` (now true) to pick the emphasizedOut duration/
+        // easing pair, the same tokens the cascade itself uses for exit.
+        scrim.opacity = 0;
+
+        function afterExit() {
+            powerWindow.entranceCascade.exitFinished.disconnect(afterExit);
+            if (actionIndex >= 0) {
+                // Bug 2 ordering, preserved and now animation-aware: the
+                // surface is only unmapped, and the action process only
+                // started, once every pill has actually finished
+                // sweeping out — never while a frame of the exit
+                // animation could still be on screen.
+                var cmd = powerWindow.actions[actionIndex].command;
+                powerWindow.visible = false;
+                actionProcess.command = cmd;
+                actionProcess.startDetached();
+            }
+            powerWindow.dismissRequested();
+        }
+        powerWindow.entranceCascade.exitFinished.connect(afterExit);
+        powerWindow.entranceCascade.runExit();
     }
 
     // startDetached() — NOT a lifetime-bound `running` assignment —
@@ -393,21 +480,50 @@ PanelWindow {
         return bands;
     }
 
-    // ── Full-bleed scrim (D-20-21, revised twice) — a light dim
-    //    (Design.sessionScrimOpacity, 0.15 as of the second revision,
-    //    down from 0.32), not a screen-take-over. Deliberately kept below
-    //    the quickshell-session namespace's own ignore_alpha 0.2 cutoff
-    //    (windowrules.lua) so the scrim dims the desktop WITHOUT the
-    //    compositor blurring the whole screen behind it — the split this
-    //    task's own root-cause finding 3 describes (ignore_alpha gates
-    //    BLUR, not drawing; a region below the cutoff still draws, just
-    //    unblurred). Carries the click-outside MouseArea (Bug 1 fix, see
-    //    file header) so dismissal is deterministic and independent of
+    // ── Full-bleed scrim (D-20-21, revised THREE times) — a dim
+    //    (Design.sessionScrimOpacity, 0.35 as of the THIRD revision — was
+    //    0.15, was 0.32, was 0.55 originally), not a screen-take-over.
+    //    0.35 sits ABOVE the quickshell-session namespace's own
+    //    ignore_alpha 0.2 cutoff (windowrules.lua), a deliberate reversal
+    //    of the second revision's "stay below the cutoff" reasoning — see
+    //    Design.qml's own sessionScrimOpacity comment for the full
+    //    consequence (backdrop blur returns, and this now matches the
+    //    pill fill's own side of the same cutoff instead of splitting
+    //    from it). "Gradual" (also third revision) is this Rectangle's
+    //    own `opacity` ramp, not this `color` value — see the Behavior
+    //    below. Carries the click-outside MouseArea (Bug 1 fix, see file
+    //    header) so dismissal is deterministic and independent of
     //    HyprlandFocusGrab's focus-change semantics. ────────────────────
     Rectangle {
         id: scrim
         anchors.fill: parent
+        // Third revision, item 4 — "gradual" is this Rectangle's own
+        // `opacity` (0 here at construction, driven to 1/0 by
+        // Component.onCompleted / `_beginDismiss()`), animated by the
+        // `Behavior` below; `color` itself stays a fixed, fully-resolved
+        // RGBA value at the token's own target alpha (`sessionScrimOpacity`,
+        // "stronger" per item 4) — multiplying that fixed alpha through the
+        // ramping `opacity` is what makes the ramp read as a smooth dim
+        // rather than a colour crossfade, with no second colour to define.
+        opacity: 0
         color: Qt.rgba(powerWindow.surfaceColour.r, powerWindow.surfaceColour.g, powerWindow.surfaceColour.b, Design.sessionScrimOpacity)
+
+        Behavior on opacity {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                // Direction-aware duration/easing — reads `_dismissing`
+                // fresh at the moment `scrim.opacity` actually changes, so
+                // the ramp-IN (Component.onCompleted, `_dismissing` still
+                // false) and the ramp-OUT (`_beginDismiss()`, `_dismissing`
+                // already true) each borrow the SAME emphasizedIn/Out pair
+                // the pill cascade itself uses for that same direction —
+                // not a fifth motion value, and never a raw literal
+                // (`motion-lint` CHECK B).
+                duration: powerWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: powerWindow._dismissing ? Motion.emphasizedOutEasing : Motion.emphasizedInEasing
+            }
+        }
 
         // Bug 1 fix — declared on the scrim itself, BEHIND the ring
         // (the ring Item is a later sibling below, so its pills' own
@@ -489,6 +605,11 @@ PanelWindow {
             powerWindow.entranceCascade.bands = powerWindow._buildCascadeBands();
             powerWindow.entranceCascade.armed = true;
             powerWindow.entranceCascade.run();
+            // Scrim ramp-in (item 4, third revision) — set here, in step
+            // with the pill cascade's own arm/run above, not before it.
+            // `scrim`'s own `Behavior on opacity` reads `_dismissing`
+            // (false here) to pick the emphasizedIn duration/easing pair.
+            scrim.opacity = 1;
             // Cascade.run() itself is what gates the whole stagger on
             // Motion.motionEnabled (the `off`-scale collapse branch) — not
             // re-checked a second time on this surface. Logged here
@@ -581,6 +702,18 @@ PanelWindow {
                 // No per-pill destructive styling tied to a live warning,
                 // ever (D-20-28) — every pill's PERMANENT baseline fill is
                 // static, unaffected by any live detector state.
+                //
+                // ── THIRD REVISION decision — this 0.65 lift is KEPT, not
+                //    retired, now that hover also drives focusedIndex (see
+                //    pillMouseArea below). It is not redundant: `hovered`
+                //    and `isFocused` can DIVERGE — an arrow-key press can
+                //    move `focusedIndex` to a different pill while the
+                //    pointer sits motionless over this one (see
+                //    pillMouseArea's own precedence comment) — so a
+                //    hovered-but-not-currently-focused pill would carry
+                //    ZERO visual feedback without this lift. It reinforces
+                //    the ring+scale when the two coincide (the common
+                //    mouse-driven case) and stands alone when they do not.
                 Rectangle {
                     id: pillFill
                     anchors.fill: parent
@@ -611,21 +744,50 @@ PanelWindow {
                 }
 
                 // Visible focus is a RING, never a fill swap (QPOWER-02,
-                // D-20-24). SECOND revision: NEUTRAL Colours.onSurface, not
-                // BarRoles.accent — pills now carry three different
-                // severity hues (see the rim above), so a single chromatic
-                // ring can no longer read consistently against all three;
-                // paired with the scale-up above as the non-colour cue that
-                // survives every pill hue. Still Design.borderWidth (3px),
-                // still drawn OUTSIDE the pill's own circular boundary,
-                // unchanged from the first revision.
-                Rectangle {
+                // D-20-24) — THIRD REVISION, item 2: the user's own ask,
+                // "change the hovered ring to the shifting colours we have
+                // on Hyprland," resolved by instantiating the shell's
+                // existing GradientBorder.qml here rather than hand-rolling
+                // a second animated rotating-gradient implementation.
+                // GradientBorder is the exact component Hyprland-border
+                // parity already lives in (Toast.qml, NotifCard.qml,
+                // Dashboard.qml, NotifCentre.qml, NotifPopupStack.qml,
+                // SectionPopout.qml, DragGhost.qml, PanelDialog.qml — see
+                // PanelDialog.qml:191-198 for a worked consumer) — its
+                // infinite `NumberAnimation on angle` IS the "shifting
+                // colours." All four corner radii are set to half of this
+                // item's own (post-margin) width, so the rim traces a true
+                // circle rather than GradientBorder's usual rounded-rect —
+                // a self-referential `width / 2` binding, resolved after
+                // `anchors.fill`/`anchors.margins` below have already fixed
+                // this item's width.
+                //
+                // Still drawn OUTSIDE the pill's own `sessionPillDiameter`
+                // boundary via the same `-Design.borderWidth` outward
+                // margin the retired neutral ring used, and still gated
+                // `visible: pill.isFocused` — only the RING TREATMENT
+                // changed (a rotating multi-hue gradient in place of a
+                // static `Colours.onSurface` stroke); the 1.08×
+                // `sessionFocusScale` scale-up above is UNCHANGED and
+                // independent of this swap, per the task's own explicit
+                // instruction to keep it (it is the non-colour cue that
+                // survives every pill hue, orthogonal to whatever colour
+                // treatment the ring itself carries).
+                //
+                // Deliberately its own, easily revertible change — nothing
+                // else in this pass touches this block, and reverting it
+                // alone (back to the retired static `Colours.onSurface`
+                // Rectangle above) needs no other file touched.
+                GradientBorder {
+                    id: focusRing
                     anchors.fill: parent
                     anchors.margins: -Design.borderWidth
-                    radius: (width) / 2
-                    color: "transparent"
-                    border.width: Design.borderWidth
-                    border.color: Colours.onSurface
+                    borderWidth: Design.borderWidth
+                    topLeftRadius: width / 2
+                    topRightRadius: width / 2
+                    bottomLeftRadius: width / 2
+                    bottomRightRadius: width / 2
+                    active: pill.isFocused
                     visible: pill.isFocused
                 }
 
@@ -648,10 +810,45 @@ PanelWindow {
                     color: pill.fillRole
                 }
 
+                // THIRD REVISION, item 3 (bug fix) — hover now moves focus.
+                // `pill.hovered` already existed above (this delegate's own
+                // `readonly property bool hovered: pillMouseArea.containsMouse`)
+                // as `pillMouseArea.containsMouse`, but nothing previously
+                // WROTE `focusedIndex` on hover — only `onClicked` did — so
+                // hovering lifted the fill's opacity (see the Fill comment
+                // above) without moving the ring, the scale-up, or the
+                // centre label. `onEntered` closes that gap directly.
+                //
+                // ── Hover/keyboard precedence (recorded here per the
+                //    task's own instruction to decide deliberately, not
+                //    leave implicit) — MOST-RECENT-INPUT-WINS, and neither
+                //    input source fights the other because neither
+                //    continuously re-asserts itself:
+                //      - `onEntered` fires EXACTLY ONCE per pointer entry,
+                //        not every frame the pointer rests inside the
+                //        pill. A stationary pointer therefore never
+                //        re-writes `focusedIndex` on its own, so a
+                //        subsequent arrow-key press (which writes
+                //        `focusedIndex` directly, via `rotateFocus()`)
+                //        always wins and STAYS won until the pointer
+                //        actually leaves and re-enters some pill.
+                //      - Symmetrically, an arrow-key press never fights a
+                //        SUBSEQUENT pointer entry into a different pill —
+                //        that entry's own `onEntered` simply fires and
+                //        wins, same as any other hover.
+                //    The one residual case this does NOT resolve — the
+                //    pointer already resting over pill A when keyboard
+                //    focus moves to pill B — is not a "fight": the ring
+                //    shows B (correct, keyboard was the last input), while
+                //    pill A's own hover-fill lift (kept, see the Fill
+                //    comment above) still shows the pointer's own
+                //    location. Two independent, simultaneously-true cues,
+                //    not a contradiction.
                 MouseArea {
                     id: pillMouseArea
                     anchors.fill: parent
                     hoverEnabled: true
+                    onEntered: powerWindow.focusedIndex = pill.pillIndex
                     onClicked: {
                         powerWindow.focusedIndex = pill.pillIndex;
                         powerWindow.closeAndRun(pill.pillIndex);

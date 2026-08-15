@@ -63,6 +63,50 @@
 // has a meaningful rotation centre) is unaffected and still takes the
 // existing translate path even while `circularMotion` is true for the
 // Cascade instance as a whole — the choice is per-band, not per-instance.
+//
+// ── `runExit()` (Phase 20, power-menu THIRD revision, 2026-08-15) ────────
+// The mirror of `run()`: sweeps every band back OUT (opacity 1->0,
+// transform 0->its entrance start value) instead of in. An opt-in ENTRY
+// POINT, not a default behaviour change — every existing consumer (all
+// seven `PanelDialog`/Dashboard/Overview/etc. tabs) never calls this
+// function, so nothing about their own dismissal changes; only a caller
+// that explicitly invokes `runExit()` (PowerMenu.qml, this pass) gets an
+// animated exit at all.
+//
+// Deliberately NOT staggered per band the way `run()` is — every band
+// exits in PARALLEL, all at once. Two reasons: (1) the entrance's stagger
+// exists to draw the eye across six pills arriving one after another,
+// which is a want, not a need — nothing about dismissal needs the same
+// per-band reveal rhythm; (2) PowerMenu.qml's own Bug-2 fix gates the
+// session action's own process start on this animation finishing, so
+// stacking `bands.length * staggerOffsetDuration` on top of the exit
+// duration would add real, avoidable latency to Suspend/Hibernate/
+// Shutdown. A single un-staggered `Motion.emphasizedOutDuration` (150ms
+// fallback) is the whole added delay, not a stagger-multiplied one.
+//
+// Reuses `Motion.emphasizedOutDuration`/`emphasizedOutEasing` — the
+// existing "exit" pair (already consumed by the OSD/power-menu dismiss
+// per `20-UI-SPEC.md`'s own Motion table), not a reversed copy of the
+// in-curve and not a new token; `motion-lint` has one more consumer of an
+// existing name, not a new name to check.
+//
+// Reuses whatever transform object `run()` already attached to a band
+// (left resting at `y`/`angle` 0 once the entrance finished) rather than
+// creating a second one — falls back to creating one fresh only if a band
+// was never animated in at all (e.g. `Motion.motionEnabled` was off at
+// entrance time, so `run()` took its `reset()` branch and attached no
+// transform).
+//
+// `_activeAnims` / `_stopActiveAnims()` exist for exactly one edge case:
+// D-20-36 deliberately leaves entrance and input readiness unserialised,
+// so a click-outside/Escape dismissal can arrive WHILE the entrance
+// cascade is still mid-flight. Without this guard, `runExit()` would start
+// a second animation on the same band's `opacity`/transform property
+// while the first was still running — two animations fighting the same
+// property is a visual glitch, not merely untidy. `runExit()` stops (and
+// discards) any such in-flight entrance animation first, so the exit
+// continues smoothly from wherever the band actually was, never from a
+// value the entrance never reached.
 import QtQuick
 import "../"
 
@@ -74,6 +118,20 @@ QtObject {
     property int tabIndex: -1
     readonly property int riseDistance: 16
     property int runCount: 0
+
+    // ── Exit support (third revision) — see the header note above. ──────
+    // Fired once, after every band's own exit animation has finished (or
+    // immediately, synchronously, under the `off`-motion collapse) — the
+    // single synchronisation point a caller needs to know "the surface is
+    // now actually done animating out."
+    signal exitFinished()
+    // Bookkeeping for `_stopActiveAnims()` — every SequentialAnimation
+    // `run()` starts is tracked here while in flight, so a `runExit()`
+    // that arrives mid-entrance can stop them cleanly instead of letting
+    // two animations fight the same band property. Never read/written by
+    // anything outside `run()`/`runExit()`/`_stopActiveAnims()`.
+    property var _activeAnims: []
+    property int _exitPending: 0
 
     // Opt-in — see the header note above. Default false preserves every
     // existing consumer's behaviour unchanged.
@@ -145,6 +203,40 @@ QtObject {
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: Motion.emphasizedInEasing
                 }
+            }
+        }
+    }
+
+    // Exit counterpart of `_animFactory` above — a `ParallelAnimation`, not
+    // a `SequentialAnimation` wrapping a `PauseAnimation`, because exit is
+    // deliberately un-staggered (see the header note's latency reasoning).
+    // `toValue` is per-instance (0->riseDistance for a translate band,
+    // 0->ringSweepAngle for a rotation band) since, unlike the entrance
+    // (which always targets 0), the exit target differs by transform kind.
+    property Component _exitAnimFactory: Component {
+        ParallelAnimation {
+            id: exitAnim
+
+            property var targetBand: null
+            property var targetTransform: null
+            property string transformProperty: "y"
+            property real toValue: 0
+
+            NumberAnimation {
+                target: exitAnim.targetBand
+                property: "opacity"
+                to: 0
+                duration: Motion.emphasizedOutDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.emphasizedOutEasing
+            }
+            NumberAnimation {
+                target: exitAnim.targetTransform
+                property: exitAnim.transformProperty
+                to: exitAnim.toValue
+                duration: Motion.emphasizedOutDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.emphasizedOutEasing
             }
         }
     }
@@ -223,7 +315,8 @@ QtObject {
                 "transformProperty": transformProperty,
                 "bandIndex": i
             });
-            anim.finished.connect(anim.destroy);
+            root._activeAnims.push(anim);
+            anim.finished.connect(root._makeEntranceFinishedHandler(anim));
             anim.start();
         }
 
@@ -231,5 +324,104 @@ QtObject {
         // The fence's countable trace, grepped verbatim by this plan's own
         // verify block and read by Task 4's human gate.
         console.log("cascade: run tab=" + root.tabIndex + " bands=" + root.bands.length + " circularMotion=" + root.circularMotion);
+    }
+
+    // Returns a closure bound to ONE `anim` instance — written as a factory
+    // function rather than an inline `for`-loop closure because `var`
+    // (this file's own convention throughout) is function-scoped, not
+    // block-scoped: an inline closure inside the `run()` loop above would
+    // capture the SAME `anim` variable across every iteration and every
+    // handler would end up referencing only the last-created animation.
+    // Binding `anim` as this function's own parameter gives each returned
+    // closure its own independent copy.
+    function _makeEntranceFinishedHandler(anim) {
+        return function() {
+            var idx = root._activeAnims.indexOf(anim);
+            if (idx >= 0)
+                root._activeAnims.splice(idx, 1);
+            anim.destroy();
+        };
+    }
+
+    // Stops and discards every still-running entrance animation — see the
+    // header note's `_activeAnims` paragraph for why `runExit()` must do
+    // this before starting its own animations.
+    function _stopActiveAnims() {
+        for (var i = 0; i < root._activeAnims.length; i++) {
+            var a = root._activeAnims[i];
+            if (a) {
+                a.stop();
+                a.destroy();
+            }
+        }
+        root._activeAnims = [];
+    }
+
+    // The exit entry point — see the header note above for the full
+    // reasoning (un-staggered, `emphasizedOut`-family tokens, transform
+    // reuse). Emits `exitFinished()` exactly once, after every band's own
+    // exit animation completes, or immediately/synchronously under the
+    // `off`-motion collapse (mirroring `run()`'s own `reset()` branch).
+    function runExit() {
+        root._stopActiveAnims();
+
+        if (!Motion.motionEnabled || root.bands.length === 0) {
+            root.exitFinished();
+            return;
+        }
+
+        root._exitPending = 0;
+        for (var i = 0; i < root.bands.length; i++) {
+            var band = root.bands[i];
+            if (!band)
+                continue;
+
+            var transformObj;
+            var transformProperty;
+            var toValue;
+            var hasExistingTransform = band.transform && band.transform.length > 0;
+            if (root.circularMotion && band.ringPivot !== undefined) {
+                transformObj = hasExistingTransform ? band.transform[0] : root._rotationFactory.createObject(band, {
+                    "origin.x": band.ringPivot.x,
+                    "origin.y": band.ringPivot.y,
+                    "angle": 0
+                });
+                transformProperty = "angle";
+                toValue = root.ringSweepAngle;
+            } else {
+                transformObj = hasExistingTransform ? band.transform[0] : root._translateFactory.createObject(band, { "y": 0 });
+                transformProperty = "y";
+                toValue = root.riseDistance;
+            }
+            if (!hasExistingTransform)
+                band.transform = [transformObj];
+
+            root._exitPending++;
+            var anim = root._exitAnimFactory.createObject(root, {
+                "targetBand": band,
+                "targetTransform": transformObj,
+                "transformProperty": transformProperty,
+                "toValue": toValue
+            });
+            anim.finished.connect(root._makeExitFinishedHandler(anim));
+            anim.start();
+        }
+
+        // The fence's countable trace, mirroring `run()`'s own
+        // "cascade: run" line so a reader greps one prefix for both
+        // directions.
+        console.log("cascade: run-exit tab=" + root.tabIndex + " bands=" + root.bands.length + " circularMotion=" + root.circularMotion);
+    }
+
+    // Same per-instance-closure reasoning as `_makeEntranceFinishedHandler`
+    // above, plus the `_exitPending` countdown that turns N per-band
+    // completions into the single `exitFinished()` a caller awaits.
+    function _makeExitFinishedHandler(anim) {
+        return function() {
+            root._exitPending--;
+            anim.destroy();
+            if (root._exitPending <= 0)
+                root.exitFinished();
+        };
     }
 }

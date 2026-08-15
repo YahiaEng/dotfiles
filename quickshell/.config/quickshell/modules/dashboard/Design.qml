@@ -586,21 +586,40 @@ Singleton {
     // is a smaller, denser shape that needs less coverage to read as
     // "there" against the dimmed scrim behind it.
     readonly property real sessionPillFillOpacity: 0.50
-    // sessionScrimOpacity (0.15, CHANGED AGAIN from 0.32) — second
-    // revision, the user's explicit ask: "I want both — a dimmed
-    // background and truly frosted pills." 0.15 is a lighter dim still,
-    // deliberately kept BELOW the quickshell-session namespace's own
-    // ignore_alpha 0.2 cutoff (windowrules.lua:615, unchanged from the
-    // first revision's reasoning) — a scrim above that cutoff would ask
-    // the compositor to blur the entire screen behind the ring, which is
-    // not what "dimmed background" (as distinct from "frosted pills")
-    // asked for; a scrim below it dims without blurring, matching this
-    // task's own root-cause finding 3 (ignore_alpha gates blur, not
-    // drawing — a region below the cutoff is still drawn, just unblurred).
+    // sessionScrimOpacity (0.35, CHANGED AGAIN from 0.15) — THIRD
+    // revision, user's explicit ask: "Can you make the dimming stronger
+    // and gradual?" ("Gradual" is implemented entirely in PowerMenu.qml's
+    // scrim `Behavior on opacity`, not here — this token still names only
+    // the target alpha the ramp animates TOWARD.)
+    //
+    // CROSSES the quickshell-session namespace's own ignore_alpha 0.2
+    // cutoff (windowrules.lua:615) — a DELIBERATE, reported consequence,
+    // not an oversight. The second revision (0.15) sat below that cutoff
+    // on purpose, so the scrim dimmed WITHOUT the compositor blurring the
+    // desktop behind it. At 0.35 that no longer holds: this surface's
+    // backdrop blur returns. This is judged acceptable, and arguably a
+    // net improvement, for two reasons: (1) "stronger" was the user's own
+    // explicit ask, and a scrim strong enough to read as "stronger" than
+    // 0.15 while STILL sitting under 0.2 would need to be uncomfortably
+    // close to that cutoff to register as meaningfully darker at all;
+    // (2) the pill fill (`sessionPillFillOpacity`, 0.50) has sat ABOVE
+    // this same 0.2 cutoff since the second revision — so prior to this
+    // change the two alpha values on this ONE namespace were on OPPOSITE
+    // sides of ignore_alpha's all-or-nothing per-namespace blur switch,
+    // meaning the pill fill blurred the backdrop while the scrim did not
+    // (`20-UI-SPEC.md`'s own "Frost and the ignore_alpha trap" section
+    // already documents this switch is all-or-nothing per namespace, not
+    // a per-pixel decision). Raising the scrim above 0.2 does not
+    // introduce a NEW split — it removes an EXISTING one, since both
+    // values now sit on the same side. No `windowrules.lua` change is
+    // needed: the existing `ignore_alpha = 0.2` row already covers 0.35
+    // with headroom (0.15 above the cutoff) exactly as it already covered
+    // the pill fill's 0.50 (0.30 above).
+    //
     // Exposed as a single re-tunable token, not a call-site literal, per
-    // the same instruction that motivated tokenising it in the first
-    // revision — the user may move it again after judging it live.
-    readonly property real sessionScrimOpacity: 0.15
+    // the same instruction that motivated tokenising it in both prior
+    // revisions — the user may move it again after judging it live.
+    readonly property real sessionScrimOpacity: 0.35
     // sessionFocusScale (1.08) — NEW, second revision. Replaces the
     // retired chromatic-only focus ring (previously BarRoles.accent, a
     // palette hue) with a NEUTRAL ring (Colours.onSurface, see
