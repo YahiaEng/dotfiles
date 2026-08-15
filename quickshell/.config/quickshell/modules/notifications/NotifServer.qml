@@ -210,6 +210,24 @@ Singleton {
         _clearAllBatchTimer.start();
     }
 
+    // ── dismissAllPopups() (D-20-32, Phase 20 Plan 07) — end-4's own
+    //    `timeoutAll()` shape: clears every ON-SCREEN popup at once, on
+    //    the power menu's own open transition (shell.qml's
+    //    `togglePowerMenu()`, the one place all three of that surface's
+    //    entry points converge). Nothing is lost — every arrival is
+    //    already recorded into `history` unconditionally in
+    //    `onNotification` below, before suppression is even decided (see
+    //    `dismiss()`'s own header comment above for why a second history
+    //    write here would double-record), so per D-19-07 a dismissed
+    //    popup simply drops out of `popups`; its history record is
+    //    untouched. This is the third, now-named instance of the exact
+    //    same one-line `root.popups = []` idiom `openCentre()` and
+    //    `toggleDnd()` (turning DND on) already establish below — not a
+    //    new mechanism, just its first caller from outside this file.
+    function dismissAllPopups() {
+        root.popups = [];
+    }
+
     function openCentre() {
         // Plan 19-06 builds the centre's own PanelWindow/summon mechanism
         // and binds `centreOpen` off its own lifecycle (the panelOpen/

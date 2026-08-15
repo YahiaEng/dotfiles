@@ -92,6 +92,30 @@ Toast {
     // shared-backend pattern — Osd.qml never mounts its own AudioBackend.
     property var audioBackend: null
 
+    // ── Cross-surface suppression (Phase 20 Plan 07, D-20-31) — gated
+    //    ONCE at this frame's own `show()` entry (`Toast.qml`'s own
+    //    `suppressed` property, added for exactly this instance, checked
+    //    first thing inside `show()`), rather than at each of this file's
+    //    own `show()` call sites (`_markRecent()`'s four callers plus
+    //    `capsLockBackend`'s `turnedOn` handler below) — a trigger added
+    //    to this file later inherits the gate for free instead of needing
+    //    to remember to check it itself. The power menu is modal with its
+    //    own scrim; an indicator blipping over it would read as a leak
+    //    through that modal. Threaded in from shell.qml exactly like
+    //    `audioBackend` above, bound to `powerMenuLoader.active` there —
+    //    this file never reaches into `PowerMenu`/`PowerMenuLoader`
+    //    itself.
+    //
+    //    Deliberately NOT suppressed by the notification centre
+    //    (`NotifServer.centreOpen`): QNOTIF-10's centre-suppression rule
+    //    exists because popups and the centre show the SAME content
+    //    twice, and an OSD duplicates nothing there, so that rule does
+    //    not extend to this surface. No `NotifServer.centreOpen`
+    //    reference exists anywhere in this file — that asymmetry is
+    //    stated here so a later reader does not "fix" it by adding one.
+    property bool powerMenuOpen: false
+    suppressed: osd.powerMenuOpen
+
     edge: "bottom"
     interactive: true
     layerNamespace: "quickshell-osd"

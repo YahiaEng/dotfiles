@@ -84,6 +84,17 @@ PanelWindow {
     // one frame type via the OSD's own override, never a second Timer.
     property int dismissDurationMs: Design.notifToastDurationMs
 
+    // ── Cross-surface suppression (Phase 20 Plan 07, D-20-31) — default
+    //    `false`, so the DND toast's behaviour is byte-unchanged: nothing
+    //    in `shell.qml`'s DND instance ever sets this. `Osd.qml` (the
+    //    OSD instance) is the only caller that ever binds this `true`,
+    //    gated on the power menu's own open state — see that file's own
+    //    header for why the notification centre does NOT get the same
+    //    treatment. Checked first thing inside `show()` below, so this is
+    //    gated ONCE at this frame's own entry point rather than at every
+    //    site that calls `show()`.
+    property bool suppressed: false
+
     // True from the moment `show()` first activates the surface until the
     // exit animation (or its motion-disabled collapse) finishes.
     property bool toastActive: false
@@ -102,6 +113,16 @@ PanelWindow {
     }
 
     function show() {
+        // D-20-31 — the ONE gate, checked before anything else in this
+        // function. An already-showing, then-suppressed surface (the
+        // power menu opening while the OSD happens to be mid-dwell) is
+        // deliberately left showing rather than force-hidden here —
+        // `suppressed` only blocks a NEW `show()` call from starting or
+        // restarting the dwell timer; see `Osd.qml`'s own header for why
+        // this asymmetry is acceptable (the power menu's own scrim/frost
+        // is what visually resolves the overlap in practice).
+        if (toastWindow.suppressed)
+            return;
         var wasActive = toastWindow.toastActive;
         toastWindow.toastActive = true;
         toastWindow._armDismissTimer(toastWindow.dismissDurationMs);

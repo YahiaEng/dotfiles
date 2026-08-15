@@ -313,6 +313,31 @@ PanelWindow {
         }
     }
 
+    // ── Entrance cascade (Phase 20 Plan 07, D-20-35 revised for the ring)
+    //    — reuses PanelDialog.qml's own `Cascade` component verbatim
+    //    (never a second hand-rolled stagger mechanism). Bands are the six
+    //    ring pills in ring order (Lock, Log Out, Suspend, Hibernate,
+    //    Reboot, Shut Down — the SAME order `actions`/`pillRepeater`
+    //    already use), then the centre label, plus the warning chip as an
+    //    eighth band when it is already present at open time. There is no
+    //    header band left on this surface to seed the first band the way
+    //    PanelDialog.qml's own `headerIdentity` does — the cascade starts
+    //    directly on the first pill. ─────────────────────────────────────
+    readonly property Cascade entranceCascade: Cascade {}
+
+    function _buildCascadeBands() {
+        var bands = [];
+        for (var i = 0; i < pillRepeater.count; i++) {
+            var item = pillRepeater.itemAt(i);
+            if (item)
+                bands.push(item);
+        }
+        bands.push(centreLabel);
+        if (powerWindow.warningActive)
+            bands.push(warningChip);
+        return bands;
+    }
+
     // ── Full-bleed scrim (D-20-21 revised) — a light dim
     //    (Design.sessionScrimOpacity, 0.32), not a screen-take-over.
     //    Carries the click-outside MouseArea (Bug 1 fix, see file
@@ -382,7 +407,37 @@ PanelWindow {
                 }
             }
         }
-        Component.onCompleted: ring.forceActiveFocus()
+        // ── D-20-36 — ring entrance and input readiness are deliberately
+        //    NOT serialised (the third option offered, and the one taken).
+        //    `ring.forceActiveFocus()` below runs synchronously, in the
+        //    SAME Component.onCompleted as arming the cascade — every Key
+        //    handler above and every pill's own MouseArea are already live
+        //    the instant this surface opens, before the cascade's own
+        //    stagger animation has run a single frame. Nothing here gates
+        //    `ring.enabled`/`focus` or any pill's MouseArea on
+        //    `entranceCascade.runCount` or any animation's own
+        //    `running`/`finished` state — that gating is the thing this
+        //    comment records was deliberately NOT added. WINDOWS rows 3
+        //    and 4 (the Phase 9 hover-during-entrance interaction, never
+        //    exercised live) stay open and are triaged in plan 20-02; this
+        //    choice does not silently resolve them, and a later reader
+        //    finding this file interactive mid-animation should not treat
+        //    that as a bug to fix.
+        Component.onCompleted: {
+            ring.forceActiveFocus();
+            powerWindow.entranceCascade.bands = powerWindow._buildCascadeBands();
+            powerWindow.entranceCascade.armed = true;
+            powerWindow.entranceCascade.run();
+            // Cascade.run() itself is what gates the whole stagger on
+            // Motion.motionEnabled (the `off`-scale collapse branch) — not
+            // re-checked a second time on this surface. Logged here
+            // (mirroring Cascade.qml's own "cascade: run" fence trace) so
+            // a reader can confirm, without instrumenting anything, that
+            // this surface's stagger consumes the SAME shared
+            // Motion.staggerOffsetDuration token PanelDialog.qml's own
+            // cascade already uses, never a second hand-rolled value.
+            console.log("power-menu: cascade armed bands=" + powerWindow.entranceCascade.bands.length + " staggerMs=" + Motion.staggerOffsetDuration + " motionEnabled=" + Motion.motionEnabled);
+        }
 
         // ── Centre label (D-20-21 revised) — the ONLY place any action's
         //    name appears anywhere on this surface, replacing the retired

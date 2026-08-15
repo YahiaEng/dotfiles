@@ -160,6 +160,12 @@ ShellRoot {
     Osd {
         id: osdInstance
         audioBackend: audioBackendInstance
+        // D-20-31 (Phase 20 Plan 07) — the OSD's own cross-surface
+        // suppression gate, bound to the power menu's LazyLoader `active`
+        // rather than a second, independently-tracked "is the menu open"
+        // flag. See Osd.qml's own header for the full reasoning, including
+        // why the notification centre does NOT get the same treatment.
+        powerMenuOpen: powerMenuLoader.active
     }
 
     // ── Brightness IPC surface (Phase 20 Plan 05, QOSD-01/QOSD-04 — Rule 2
@@ -612,8 +618,22 @@ ShellRoot {
         }
     }
 
+    // D-20-32 (Phase 20 Plan 07) — opening the menu dismisses live
+    // notification popups. All three of this surface's entry points
+    // (Super+Shift+Q's GlobalShortcut, the walker menu's dispatch, and the
+    // bar's `powerCell`) already converge on THIS one function (see the
+    // comments beside each), so gating the dismissal here — on the
+    // OPENING transition only, never on close — is the single place both
+    // cross-surface effects for this plan fire from, rather than one call
+    // per entry point. Nothing is lost: NotifServer.qml's own
+    // `dismissAllPopups()` only clears the ON-SCREEN stack; every
+    // notification is already recorded into `history` unconditionally on
+    // arrival (D-19-07), before this function is ever reachable.
     function togglePowerMenu() {
-        powerMenuLoader.active = !powerMenuLoader.active;
+        var opening = !powerMenuLoader.active;
+        powerMenuLoader.active = opening;
+        if (opening)
+            NotifServer.dismissAllPopups();
     }
 
     // D-16-23 check 6's capture-check verb — the same `IpcHandler` pattern
