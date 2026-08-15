@@ -415,6 +415,26 @@ Singleton {
     //    instruction, so no later Phase 19 plan needs to reopen this file
     //    for a token addition.
     readonly property int notifSurfaceWidth: 430
+    // ── OSD tokens (Phase 20 Plan 03, QOSD-01/QOSD-04) — provenance:
+    //    20-UI-SPEC.md "## New Tokens". Declared here, adjacent to
+    //    notifSurfaceWidth/notifToastDurationMs, since the OSD is their
+    //    deliberate sibling: it reuses Toast.qml's frame (Phase 19 Plan
+    //    01) but is its own layer namespace and its own width/dwell.
+    //
+    //    osdWidth (380) — D-20-10, locked. Deliberately narrower than
+    //    notifSurfaceWidth (430) so the OSD reads as a lighter surface
+    //    than the popup/centre family it shares chrome with.
+    readonly property int osdWidth: 380
+    // osdHideDelayMs (1200) — D-20-06, Claude's Discretion resolved by
+    // UI-SPEC. Independent of notifToastDurationMs (2000) on purpose, and
+    // deliberately longer than SwayOSD's own 1000: interactive: true means
+    // a drag must be able to complete inside the dwell window, and the
+    // hover-pause already covers genuinely slow interaction.
+    readonly property int osdHideDelayMs: 1200
+    // osdRecencyWindowMs (1500) — D-20-08, Claude's Discretion resolved by
+    // UI-SPEC. Gates SLIDER-ROW MEMBERSHIP (a control earns a row only if
+    // its value changed within this window), not the dwell.
+    readonly property int osdRecencyWindowMs: 1500
     readonly property int notifImageSize: 42
     readonly property int notifBadgeSize: 20
     // Reuses the rim's own stroke weight rather than inventing a fourth
@@ -476,4 +496,31 @@ Singleton {
     // oldest item dropped past 100, since this shell hot-reloads and
     // restarts far more often than either reference shell's deployment.
     readonly property int notifHistoryCap: 100
+
+    // ── Session (power menu) tokens (Phase 20 Plan 03, QPOWER-01) —
+    //    provenance: 20-UI-SPEC.md "## New Tokens". Declared in ONE pass
+    //    per this plan's own instruction, so no later Phase 20 power-half
+    //    plan needs to reopen this file for a token addition.
+    //
+    //    sessionDialogWidth (488) — D-20-21. Derivation, recorded so the
+    //    number is never re-derived wrong: sessionTileWidth (136) × 3 +
+    //    spacingMd (16) × 2 gaps + panelPadding (24) × 2 sides
+    //    = 408 + 32 + 48 = 488.
+    readonly property int sessionDialogWidth: 488
+    readonly property int sessionTileWidth: 136
+    readonly property int sessionTileHeight: 104
+    // sessionTileRadius (16) — D-20-21. Deliberately NOT popoutCornerRadius
+    // (20, reserved for the outer frame); matches QuickToggles.qml's own
+    // chipRadius (16) so a session tile reads as a sibling of a
+    // quick-toggle chip.
+    readonly property int sessionTileRadius: 16
+    // sessionTileIconSize (32) — D-20-21. The one deliberate departure
+    // from the shell's uniform iconSizeMd (24) icon discipline: a session
+    // tile is a large tap target carrying a single glyph as its entire
+    // content, not an icon alongside a label, so it earns a larger size.
+    readonly property int sessionTileIconSize: 32
+    // sessionScrimOpacity (0.55) — D-20-21/D-20-34. Matches
+    // BarRoles.barSurface's own 0.55 and therefore already clears the
+    // `^quickshell-.*` family's ignore_alpha: 0.5 floor with headroom.
+    readonly property real sessionScrimOpacity: 0.55
 }
