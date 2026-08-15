@@ -115,6 +115,22 @@ Singleton {
         root.dashboardRequested(tabIndex);
     }
 
+    // powerMenuRequested (Phase 20 Plan 06 Task 2, QPOWER-01/D-20-22) — a
+    // THIRD wayfinding seam, reusing this exact mechanism rather than
+    // inventing a second one. `ClockActionsCapsule.qml`'s `powerCell`
+    // lives inside a capsule instantiated through a loader with no
+    // declarative path of its own to shell.qml's window root, identically
+    // to the panel/dashboard case above; PowerMenu is a top-level
+    // LazyLoader toggle rather than a popout-family member, so it earns
+    // its own signal instead of overloading `panelRequested`'s
+    // popout-section semantics. Bar.qml relays this the same way it
+    // already relays the two above.
+    signal powerMenuRequested()
+
+    function requestPowerMenu() {
+        root.powerMenuRequested();
+    }
+
     // ══════════════════════════════════════════════════════════════════
     // Task 2 — the hover contract (D-18-19 through D-18-22)
     // ══════════════════════════════════════════════════════════════════

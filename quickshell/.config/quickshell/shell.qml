@@ -374,6 +374,12 @@ ShellRoot {
             root.dashboardTabIndex = tabIndex;
             dashboardLoader.active = true;
         }
+        // Phase 20 Plan 06 Task 2 (QPOWER-01/D-20-22) — the bar's
+        // `powerCell` relays through PopoutController -> Bar.qml's third
+        // summon seam (see both files' own comments) to reach this one
+        // verb, the same `togglePowerMenu()` the keybind and the walker
+        // menu already call.
+        onPowerMenuRequested: root.togglePowerMenu()
     }
 
     // ── Hot zone (Phase 18 Plan 16, QBAR-08) — mounted behind a loader

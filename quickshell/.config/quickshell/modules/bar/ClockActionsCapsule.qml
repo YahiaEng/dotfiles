@@ -563,21 +563,17 @@ BarCapsule {
         }
     }
 
-    // ── Power ─────────────────────────────────────────────────────────
-    readonly property string powerScriptPath: clockActionsCapsule.homeDir + "/.config/hypr/scripts/wleave.sh"
-    property bool powerAvailable: true
-
-    Process {
-        id: powerAvailabilityProbe
-        command: ["test", "-x", clockActionsCapsule.powerScriptPath]
-        onExited: function (exitCode, exitStatus) {
-            clockActionsCapsule.powerAvailable = exitCode === 0;
-        }
-    }
-    Process {
-        id: powerLaunchProcess
-        command: [clockActionsCapsule.powerScriptPath]
-    }
+    // ── Power (Phase 20 Plan 06 Task 2, D-20-23) ─────────────────────────
+    // powerScriptPath / powerAvailable / powerAvailabilityProbe /
+    // powerLaunchProcess are all REMOVED OUTRIGHT, not repointed — the
+    // menu is now an in-process QML surface (PowerMenu.qml), so "the
+    // power menu is missing" stops being a reachable state, the exact
+    // risk `powerAvailabilityProbe`'s own comment used to cite as its
+    // reason to exist. `powerCell` below now calls
+    // `PopoutController.requestPowerMenu()` in-process instead of
+    // launching a script — see PopoutController.qml's own comment for why
+    // this reuses the panel/dashboard wayfinding seam rather than a new
+    // mechanism.
 
     // ── Gaming mode — a read-only, compare-only consumer of the state
     //    its owner script writes. No second copy of the on/off logic
@@ -1003,7 +999,11 @@ BarCapsule {
         id: powerCell
         glyph: "power_settings_new"
         label: "Power Menu"
-        available: clockActionsCapsule.powerAvailable
+        // available intentionally left at ActionCell's own default — no
+        // `powerAvailable`-shaped binding replaces the deleted probe
+        // (D-20-23): an in-process surface has no "missing" state to
+        // gate on, and `available: true` here would just be the same
+        // dead machinery under a new name.
         // The bar's one permanent accent glyph, moved here from
         // settingsTriggerCell above on the operator's call (2026-08-12) — see
         // that cell's comment for why the departure from athena is recorded
@@ -1016,11 +1016,7 @@ BarCapsule {
         // where the power menu is missing, would silently leave the bar with no
         // accent glyph at all.
         tint: BarRoles.accent
-        onClicked: powerLaunchProcess.startDetached()
-    }
-
-    Component.onCompleted: {
-        powerAvailabilityProbe.running = true;
+        onClicked: PopoutController.requestPowerMenu()
     }
 }
 

@@ -396,6 +396,23 @@ QSD_BAR_SURFACE_ROWS=(
     #    toast/Toast.qml's own literal when the instance file doesn't carry
     #    one itself.
     "osd/Osd.qml|quickshell-osd|exact|3|noreserve|transient"
+    # ── Phase 20 Plan 06 Task 2 (QPOWER-01, D-20-33) — the power menu's own
+    #    namespace. Resolution direction, recorded per this array's own
+    #    header instruction: unlike the OSD row above, this one needs no
+    #    file->row fallback — `session/PowerMenu.qml` declares
+    #    `WlrLayershell.namespace: "quickshell-session"` as a direct
+    #    literal in its own source (it is not a Toast.qml instance forwarding
+    #    someone else's namespace binding), so
+    #    `_qsd_assert_bar_surface_registry_forward`'s direct
+    #    `WlrLayershell.namespace` marker matches this row's file exactly
+    #    once with no fallback needed. Level 3 because it declares
+    #    `WlrLayer.Overlay`; `noreserve` because `exclusiveZone: 0` (the bar
+    #    remains the single reserving surface this file's header insists
+    #    on); `transient` because it is summoned per invocation (a
+    #    LazyLoader toggle) and destroyed on dismiss, mirroring the notif
+    #    toast row's own transient lifetime above rather than the
+    #    permanent notif-popups/notif-centre rows.
+    "session/PowerMenu.qml|quickshell-session|exact|3|noreserve|transient"
 )
 
 # Pre-existing summonable layer-shell frames this phase did not add and

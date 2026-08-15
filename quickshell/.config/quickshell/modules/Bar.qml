@@ -154,12 +154,17 @@ PanelWindow {
     readonly property bool requiresMedia: BarEntryModel.requiresMedia
     readonly property bool requiresResources: BarEntryModel.requiresResources
 
-    // ── Summon seams — the ONLY two this file exposes, frozen for wave 3
-    //    and wave 6 alike. A later plan needing a third seam has found an
-    //    18-05 scope correction. Nothing emits from either here — 18-11's
-    //    actions and 18-14's wayfinding links are the callers. ──────────
+    // ── Summon seams — 18-05 froze this at exactly two for wave 3 and
+    //    wave 6 alike, and a later plan needing a third seam would find an
+    //    18-05 scope correction: this is that correction (Phase 20 Plan 06
+    //    Task 2, QPOWER-01/D-20-22). Nothing emits from any of the three
+    //    here — 18-11's actions and 18-14's wayfinding links are the
+    //    callers for the first two; PopoutController.requestPowerMenu()
+    //    (called from `powerCell.onClicked` below) is the caller for the
+    //    third — `powerCell.onClicked` in ClockActionsCapsule.qml. ───────
     signal panelRequested(string name)
     signal dashboardRequested(int tabIndex)
+    signal powerMenuRequested()
 
     // ── Visibility state (Phase 18 Plan 15, QBAR-07) — this file's own
     //    slice of the single-owner claim: `visibilityState` is written
@@ -226,6 +231,7 @@ PanelWindow {
         target: PopoutController
         function onPanelRequested(name) { barWindow.panelRequested(name); }
         function onDashboardRequested(tabIndex) { barWindow.dashboardRequested(tabIndex); }
+        function onPowerMenuRequested() { barWindow.powerMenuRequested(); }
     }
 
     // Mirrors shell.qml's own panelLoaderFor(name) name-to-object map
