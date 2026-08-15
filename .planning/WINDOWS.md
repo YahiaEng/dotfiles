@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 52
+open_count: 53
 waived_count: 2
 fixed_count: 24
-total_count: 78
-last_updated: 2026-08-15T18:21:26.383Z
+total_count: 79
+last_updated: 2026-08-15T18:48:59.990Z
 ---
 
 # Broken Windows Ledger
@@ -93,6 +93,7 @@ last_updated: 2026-08-15T18:21:26.383Z
 | 76 | 20 | deviation | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | Plan 20-06 Task 1's grid design was rejected live and rebuilt to a radial ring; the ring's own Task-1 human-check (7 items, plus the two live-verified bug fixes) has not yet been re-run live against the ring — deferred to the operator per continuation-agent instructions not to press keys/restart the shell. | open |  | 2026-08-15T17:56:24.301Z |  |
 | 77 | 20 | deviation | quickshell/.config/quickshell/modules/osd/CapsLockBackend.qml |  | QOSD-02 Caps Lock detector uses a bounded 250ms poll (shared with Osd.qml's recency Timer) instead of the event-driven sysfs watch the plan specified — GATE-01 measured the watch dead on this host; live ON-transition firing on a real physical key press is unverified | open |  | 2026-08-15T18:21:21.959Z |  |
 | 78 | 20 | deviation | hypr/.config/hypr/config/keybinds.lua |  | Brightness keybinds now route through BrightnessBackend via a new shell.qml osd IpcHandler instead of a raw brightnessctl exec, fixing the OSD trigger gap 20-04-SUMMARY.md named — unverified since this host has zero backlight-class devices; re-test on real laptop hardware | open |  | 2026-08-15T18:21:26.383Z |  |
+| 79 | 20 | unrun-verify | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | 20-07 Task 1/2/3 human-checks not run live (no restarts/keypresses this session): detector timing, warning chip placement, cascade stagger, OSD suppression, popup dismissal, scrim colour fix | open |  | 2026-08-15T18:48:59.990Z |  |
 
 ````json
 [
@@ -1030,6 +1031,18 @@ last_updated: 2026-08-15T18:21:26.383Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-15T18:21:26.383Z",
+    "resolved_at": null
+  },
+  {
+    "id": 79,
+    "kind": "unrun-verify",
+    "phase": "20",
+    "file": "quickshell/.config/quickshell/modules/session/PowerMenu.qml",
+    "line": null,
+    "description": "20-07 Task 1/2/3 human-checks not run live (no restarts/keypresses this session): detector timing, warning chip placement, cascade stagger, OSD suppression, popup dismissal, scrim colour fix",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-15T18:48:59.990Z",
     "resolved_at": null
   }
 ]

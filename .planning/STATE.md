@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: indicators-power-menu
 status: executing
-stopped_at: Completed 20-05-PLAN.md
-last_updated: "2026-08-15T18:21:42.892Z"
+stopped_at: Completed 20-07-PLAN.md
+last_updated: "2026-08-15T18:49:11.109Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 45
-  completed_plans: 41
+  completed_plans: 42
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 20 (indicators-power-menu) — EXECUTING
-Plan: 7 of 10
+Plan: 8 of 10
 Status: Ready to execute
-Progress: [█████████░] 91%
+Progress: [█████████░] 93%
 Last activity: 2026-08-15 — Phase 20 execution started
 
 ## Performance Metrics
@@ -233,6 +233,7 @@ Last activity: 2026-08-15 — Phase 20 execution started
 | Phase 20 P04 | 45min | 3 tasks | 4 files |
 | Phase 20 P06 | 35min | 3 tasks | 10 files |
 | Phase 20 P05 | 55min | 2 tasks | 6 files |
+| Phase 20 P07 | ~30min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -512,6 +513,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 20-06: LEDGER-02 settled — Logout wrapped without the D-29 teardown measurement, recorded as evidence not measurement
 - [Phase ?]: Caps Lock (QOSD-02) built on a bounded shared-Timer poll instead of the event-driven sysfs watch — GATE-01 measured the watch dead on this host; polling is a pre-authorized, documented deviation, not a silent substitution
 - [Phase ?]: Brightness OSD trigger fixed: keybinds route through BrightnessBackend via a new shell.qml osd IpcHandler (qs ipc call) instead of a raw brightnessctl exec, so the backend remains the sole emitter the OSD watches
+- [Phase ?]: 20-07: Fixed Rule 1 bug in 20-06's scrim (Colours.surface.r/g/b read directly, resolved undefined, rendered opaque black) via a property-color intermediate; both cross-surface effects (OSD suppression, popup dismissal) wired through shell.qml's togglePowerMenu() since all three power-menu entry points converge there
 
 ### Quick Tasks Completed
 
@@ -650,8 +652,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-15T18:21:42.868Z
-Stopped at: Completed 20-05-PLAN.md
+Last session: 2026-08-15T18:49:11.088Z
+Stopped at: Completed 20-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

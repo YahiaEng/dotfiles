@@ -51,7 +51,7 @@
 
 - [x] **QPOWER-01**: Six actions available — Shutdown, Reboot, Suspend, Hibernate, Logout, Lock
 - [x] **QPOWER-02**: Fully keyboard-navigable with visible focus; Enter activates, Escape closes, first action auto-focused on open
-- [ ] **QPOWER-03**: The menu warns before a destructive action when a package manager or download is still running *(named addition)*
+- [x] **QPOWER-03**: The menu warns before a destructive action when a package manager or download is still running *(named addition)*
 - [x] **QPOWER-04**: Shutdown and Reboot keep the graceful compositor exit that closed the FIX-01 hang class
 
 ### QMEDIA — Media fold-in (replaces the AGS card)
@@ -154,7 +154,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QOSD-04 | Phase 20 | Complete |
 | QPOWER-01 | Phase 20 | Complete |
 | QPOWER-02 | Phase 20 | Complete |
-| QPOWER-03 | Phase 20 | Pending |
+| QPOWER-03 | Phase 20 | Complete |
 | QPOWER-04 | Phase 20 | Complete |
 | QMEDIA-01 | Phase 21 | Pending |
 | QMEDIA-02 | Phase 21 | Pending |
