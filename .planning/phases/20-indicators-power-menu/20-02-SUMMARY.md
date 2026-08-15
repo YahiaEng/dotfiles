@@ -132,6 +132,15 @@ None - no external service configuration required.
 - Phase 21 planning should read the batch re-defer block in `.planning/WINDOWS.md` (45 ids) as an inherited triage obligation alongside its existing LEDGER-06 scope.
 - No blockers for the remaining wave-1 plan (20-03) or wave-2 work.
 
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/20-indicators-power-menu/20-LEDGER-05-TRIAGE.md`
+- FOUND: `.planning/WINDOWS.md`
+- FOUND: `.planning/phases/20-indicators-power-menu/20-02-SUMMARY.md`
+- FOUND commit: `77ac4b4` (Task 1)
+- FOUND commit: `622029c` (Task 2)
+- FOUND commit: `acf8d89` (SUMMARY)
+
 ---
 *Phase: 20-indicators-power-menu*
 *Completed: 2026-08-15*
