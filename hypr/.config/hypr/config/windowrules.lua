@@ -611,5 +611,15 @@ hl.layer_rule({ match = { namespace = "quickshell-osd" }, ignore_alpha = 0.2 })
 -- quickshell-osd already use (lines 563-565, 594) rather than inventing a
 -- fourth distinct low-threshold number for no reason. See 20-UI-SPEC.md's
 -- "Frost and the ignore_alpha trap" for the full derivation.
-hl.layer_rule({ match = { namespace = "quickshell-session" }, animation = "slide" })
+-- `fade`, NOT `slide` (user-reported, third-revision follow-up: "I see a
+-- black background animate and drop down and then the power menu appears
+-- on top of it"). Same reasoning quickshell-overview's own rule above
+-- already records — a surface covering the whole screen has no edge to
+-- slide in from, so `slide` drags the full-bleed scrim in as a visible
+-- panel instead of dimming in place. The session surface joined that
+-- full-screen class once it took a scrim and, later, exclusionMode
+-- Ignore; it inherited `slide` from the drawer/panel family it no longer
+-- resembles. The gradual dim itself is PowerMenu.qml's own scrim opacity
+-- ramp (Design.sessionScrimRampFactor), not a compositor slide.
+hl.layer_rule({ match = { namespace = "quickshell-session" }, animation = "fade" })
 hl.layer_rule({ match = { namespace = "quickshell-session" }, ignore_alpha = 0.2 })
