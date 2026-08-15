@@ -58,7 +58,25 @@ Toast {
             font.family: Design.symbolFontFamily
             font.pixelSize: Design.iconSizeMd
             color: BarRoles.notifSurfaceFg
-            text: (!osd.audioBackend || osd.audioBackend.masterMuted || osd.audioBackend.masterVolume <= 0) ? "volume_off" : "volume_up"
+
+            // Graded by level, matching SwayOSD's own four-state icon
+            // behaviour rather than the muted/unmuted pair the tracer
+            // shipped with. Cut points (0.34 / 0.67) are taken verbatim
+            // from MediaConnectivityCapsule.qml's `audioGlyph` so the bar
+            // capsule and the OSD change glyph at the SAME volume — a
+            // second set of thresholds would let the two disagree on
+            // screen at once. Material Symbols names here, since this
+            // frame renders in Design.symbolFontFamily, not the capsule's
+            // Font Awesome.
+            text: {
+                if (!osd.audioBackend || osd.audioBackend.masterMuted)
+                    return "volume_off";
+                if (osd.audioBackend.masterVolume < 0.34)
+                    return "volume_mute";
+                if (osd.audioBackend.masterVolume < 0.67)
+                    return "volume_down";
+                return "volume_up";
+            }
         }
 
         // Track/handle geometry reused verbatim from AudioPopout.qml's own
