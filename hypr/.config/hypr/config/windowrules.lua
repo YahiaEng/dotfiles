@@ -619,7 +619,15 @@ hl.layer_rule({ match = { namespace = "quickshell-osd" }, ignore_alpha = 0.2 })
 -- panel instead of dimming in place. The session surface joined that
 -- full-screen class once it took a scrim and, later, exclusionMode
 -- Ignore; it inherited `slide` from the drawer/panel family it no longer
--- resembles. The gradual dim itself is PowerMenu.qml's own scrim opacity
--- ramp (Design.sessionScrimRampFactor), not a compositor slide.
+-- resembles. The gradual dim itself was originally PowerMenu.qml's own
+-- scrim opacity ramp (Design.sessionScrimRampFactor) layered on top of
+-- this `fade` row -- but that QML-side ramp animated the scrim's buffer
+-- alpha across this exact namespace's own ignore_alpha 0.2 cutoff below,
+-- a step function, snapping the backdrop into blur mid-ramp. That ramp
+-- and its Design.sessionScrimRampFactor token are removed (fourth
+-- revision, PowerMenu.qml's own scrim comment carries the full story);
+-- THIS `fade` row is now the only source of the gradual dim, timed by
+-- animations.lua's layersIn/layersOut, with no QML-side ramp left to
+-- layer on top of it.
 hl.layer_rule({ match = { namespace = "quickshell-session" }, animation = "fade" })
 hl.layer_rule({ match = { namespace = "quickshell-session" }, ignore_alpha = 0.2 })

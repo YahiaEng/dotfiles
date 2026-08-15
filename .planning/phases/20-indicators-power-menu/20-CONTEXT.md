@@ -88,7 +88,15 @@ the launcher (out of scope for v4.0 entirely).
 - **D-20-10:** Column width is a **new `Design.osdWidth` token, ~380px** — wide enough
   that a track reads as adjustable, deliberately narrower than the 430px shared by the
   notification popups and centre (D-19-02/D-19-15) so the OSD stays visibly a lighter
-  surface.
+  surface. **Named divergence (implementation-time, verified live):** this decision was
+  written when the OSD's only content was the slider column, and "width is fixed" does not
+  extend to the Caps Lock content shape added by D-20-11 — that shape has no slider track
+  to size a fixed 380px pill for, and a 380px pill wrapped tightly around a glyph plus two
+  words ("Caps Lock") read as visibly broken, not deliberate, once built and viewed live.
+  `Osd.qml`'s `implicitWidth` is therefore conditional: `osdWidth` for the slider-column
+  state, content-hugging (`capsLockRow.implicitWidth + Design.spacingMd * 2`, Toast.qml's
+  own content-hugging idiom) for the Caps Lock state. See `20-UI-SPEC.md`'s "New Tokens"
+  and "OSD — Caps Lock Variant" for the rendered contract.
 - **D-20-11:** **Caps Lock replaces the column** with a single icon + label row — the
   shape the DND toast already uses — rather than joining it as a row. A binary state does
   not belong in a column built for continuous values.
@@ -147,8 +155,8 @@ the launcher (out of scope for v4.0 entirely).
 
 ### The power menu
 
-- **D-20-21 [REVISED 2026-08-15, THREE TIMES — see below for all three superseded
-  versions]:** The
+- **D-20-21 [REVISED FOUR TIMES, 2026-08-15 (×3) and 2026-08-16 (×1) — see below for all
+  four superseded versions]:** The
   menu is a **floating radial cluster, not a framed dialog.** Six pure-circle action pills
   sit evenly spaced on a **ring** (60° apart, screen-centred), icon-only — no per-pill
   label. The ring's centre displays the **name of the currently-focused action** (e.g.
@@ -156,7 +164,8 @@ the launcher (out of scope for v4.0 entirely).
   `20-UI-SPEC.md` carries the full geometry derivation (`sessionPillDiameter`,
   `sessionRingRadius`, `sessionSurfaceDiameter`, `sessionCentreLabelWidth`).
 
-  **Colour and motion treatment, as of the SECOND revision (current):**
+  **Colour and motion treatment, as of the SECOND revision (superseded — see the FOURTH
+  revision below for what currently governs; kept here for the unbroken history):**
   - **Pill fill** is same-hue `Colours.surface` (the scrim's own hue) at
     `sessionPillFillOpacity` **0.50** — a neutral frost, not a saturated disc. This is the
     `WorkspaceTile.qml` 12-round render-gate finding ("a tint over frost mostly reads as
@@ -195,7 +204,8 @@ the launcher (out of scope for v4.0 entirely).
   implements exactly that; the ring's SHAPE (six pills at 60° on a ring, centre label, no
   card/header/grid) remains LOCKED from the first revision and is not reopened here.
 
-  **Colour and motion treatment, as of the THIRD revision (current):**
+  **Colour and motion treatment, as of the THIRD revision (superseded — see the FOURTH
+  revision below for what currently governs; kept here for the unbroken history):**
   - **Dismissal is now animated, bidirectionally.** `Cascade.qml` gains an opt-in
     `runExit()` counterpart to `run()` — pills sweep back OUT (opacity 1->0, transform
     toward their entrance start value) on the SAME `Motion.emphasizedOutDuration`/
@@ -244,6 +254,71 @@ the launcher (out of scope for v4.0 entirely).
   mouse does not highlight selections" (a bug report), (4) "Can you make the dimming
   stronger and gradual?" None of the four reopens the ring's own SHAPE, which remains
   locked from the first revision.
+
+  **Colour and motion treatment, as of the FOURTH revision (current):**
+  - **Focus indicator reverts to the second revision's static NEUTRAL ring** —
+    `Colours.onSurface`, `sessionFocusScale` 1.08 scale-up, unanimated. The third
+    revision's `GradientBorder.qml` rotating multi-hue rim is REVERTED, on the user's own
+    call after living with it: "Revert the colorful shifting highlighter decision I made
+    earlier." It had been adopted explicitly as a try-and-decide ("I will decide if I like
+    it or rollback") and this is the decide half. The second revision's own reasoning is
+    confirmed correct, not merely reinstated: pills carry three severity hues
+    (`fillClock`/`fillUpdates`/`danger`), so a chromatic ring cannot read consistently
+    against all of them — and the rotating rim made this WORSE, cycling through the very
+    hues it needed to stay distinguishable from. **Not reverted alongside the colour:**
+    the ring's geometry — the `-Design.borderWidth / 2` outward straddle margin and the
+    pill's own 1px severity hairline being suppressed while focused (`border.width:
+    pill.isFocused ? 0 : 1`) — which fixed a separate, colour-independent fault (the ring
+    rendering as a second concentric stroke beside the hairline instead of covering it,
+    "It should cover it") and stays exactly as it was. `GradientBorder.qml` itself is
+    unchanged and remains in active use elsewhere in this shell (Toast, NotifCard,
+    Dashboard, NotifCentre, NotifPopupStack, SectionPopout, DragGhost, PanelDialog) — only
+    the power menu stopped consuming it.
+  - **Scrim mechanism changes, independent of the focus-ring colour.** Two live
+    verification passes after the third revision found the scrim's dim-in read as a
+    visible "pop" partway through the ramp ("the dimming screen pops into existence...
+    very jarring"). Root cause: `ignore_alpha` is a STEP function evaluated against this
+    surface's own buffer alpha, so animating the scrim `Rectangle`'s `opacity` (the third
+    revision's `Behavior on opacity` mechanism) dragged it across the `quickshell-session`
+    namespace's own `ignore_alpha` 0.2 cutoff mid-ramp, snapping the backdrop into blur in
+    a single frame — no retune of the ramp's duration or easing curve could fix a
+    threshold crossing, since a threshold is not a curve. The QML-side ramp is removed
+    outright, along with the `Design.sessionScrimRampFactor` token that scaled it; the
+    scrim `Rectangle` now holds `opacity: 1` permanently and the "gradual" dim is done by
+    the compositor's own layer fade (`windowrules.lua`'s `animation = "fade"` row for
+    `quickshell-session`, timed by `animations.lua`'s `layersIn`/`layersOut`), which fades
+    the final composited output rather than animating a buffer alpha the threshold can be
+    crossed against.
+  - **`sessionScrimOpacity` moves again, to 0.25** (was 0.35, was 0.15, was 0.32, was 0.55
+    originally) — still ABOVE the `ignore_alpha` 0.2 cutoff (backdrop blur still applies,
+    same side as the pill fill's own 0.50), lighter than the third revision's 0.35 after
+    living with it. No `windowrules.lua` change required — the existing `ignore_alpha =
+    0.2` row already covers 0.25 with headroom.
+  - **`animation = "slide"` → `"fade"` for `quickshell-session`** (a related but separate
+    fix, same investigation window): user-reported, "I see a black background animate and
+    drop down and then the power menu appears on top of it" — a full-bleed scrim has no
+    edge to slide in from, so `slide` dragged it in as a visible panel. `fade` is now the
+    row's own value.
+  - **Everything else from the third revision is UNCHANGED**: the reverse exit cascade
+    (`Cascade.qml`'s `runExit()`), hover moving `focusedIndex`, the pill fill/icon/rim
+    treatment from the second revision, and the ring shape itself (locked since the first
+    revision) — none of those are reopened by this pass.
+
+  — **Why revised a fourth time:** two independent threads converged on the same day. (1)
+  After living with the third revision's animated gradient focus ring, the user decided
+  against it and asked for the plain revert quoted above — no new design, a rollback of
+  exactly the trial the third revision itself framed as reversible. (2) Separately, live
+  re-verification of the third revision's "gradual" scrim found the dim-in visibly
+  snapping partway through, traced to the `ignore_alpha` step-function interaction
+  described above and fixed by moving the fade to the compositor. Neither thread reopens
+  the ring's own SHAPE, which remains locked from the first revision.
+
+  — **Superseded third-revision styling (kept for history, no longer governs):** the
+  focus ring was `GradientBorder.qml`'s animated, rotating multi-hue rim
+  (`Colours.primary`/`secondary`/`tertiary`), sized to a true circle via matched corner
+  radii; the scrim was `sessionScrimOpacity` 0.35, ramped via a QML `Behavior on opacity`
+  on the scrim `Rectangle` itself, scaled by the now-deleted `Design.sessionScrimRampFactor`
+  token; the `quickshell-session` namespace's `animation` row was `"slide"`.
 
   — **Superseded second-revision styling (kept for history, no longer governs):** the
   focus ring was a static `Colours.onSurface` `Rectangle` stroke (no animation); the
@@ -612,12 +687,11 @@ the launcher (out of scope for v4.0 entirely).
   centre shows the focused action's name, replacing every per-pill label. The QPOWER-03
   warning, when present, renders as a standalone frosted chip **below the ring**, not
   inside any frame — there is no frame for it to sit inside anymore. **Colour/motion
-  treatment is SECOND-REVISION current, see D-20-21's second-revision note above — this
-  bullet no longer describes it, to avoid a second, driftable copy:** each pill is now a
-  neutral same-hue frost carrying its severity colour on the icon+rim rather than the
-  fill, the focus mark is a neutral ring plus a scale-up (not `BarRoles.accent`), the scrim
-  is 0.15 (not 0.32), and pills sweep in with circular motion. D-20-21 is the single source
-  of truth for these values; do not re-derive or restate them here.
+  treatment is FOURTH-REVISION current, see D-20-21's fourth-revision note below — this
+  bullet no longer describes it, to avoid a second, driftable copy** (it previously pointed
+  at the second-revision note; that note is itself now superseded twice over — always
+  follow D-20-21's OWN "current" marker rather than this bullet's memory of it). D-20-21 is
+  the single source of truth for these values; do not re-derive or restate them here.
 - **"Show me how it will look"** — the user asked to see the option rendered before
   committing to it, twice now. Downstream UI work should expect the same: show the surface,
   don't describe it, and treat a live rejection after a first render as a normal part of

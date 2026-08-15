@@ -78,6 +78,51 @@ created: 2026-08-15
 > full under "New Tokens" and "Color" below. Every section below marked
 > **[THIRD REVISION]** reflects this pass. Also **not** re-run through
 > `gsd-ui-checker` — same scope boundary as the first two revisions.
+>
+> **FOURTH REVISION NOTICE (2026-08-16) — supersedes item 2 of the THIRD
+> REVISION NOTICE above; items 1, 3, 4 of that notice still stand.** After
+> living with the THIRD revision's animated rotating gradient rim, the user's
+> own call: *"Revert the colorful shifting highlighter decision I made
+> earlier."* It had been adopted explicitly as a try-and-decide (*"I will
+> decide if I like it or rollback"*) and this is the decide half — REVERTED,
+> not a new design. The focus ring is once again a **static, NEUTRAL
+> `Colours.onSurface` `Rectangle` stroke** (the SECOND revision's treatment),
+> paired with the unchanged `sessionFocusScale` (1.08×) scale-up. The SECOND
+> revision's reasoning is confirmed correct in hindsight, not merely
+> reinstated: pills carry three severity hues (`fillClock`/`fillUpdates`/
+> `danger`), so a chromatic ring cannot read consistently against all of
+> them — and the THIRD revision's rotating rim made this *worse*, cycling
+> through the very hues it needed to stay distinguishable from. Two things
+> this revision does **not** touch, named explicitly so they are not assumed
+> reverted along with the colour: (1) the ring's **geometry** — the
+> `-Design.borderWidth / 2` outward straddle margin and the pill's own 1px
+> severity hairline being suppressed while focused (`border.width:
+> pill.isFocused ? 0 : 1`) — both fixed a separate, colour-independent fault
+> (the ring rendering as a second concentric stroke beside the hairline
+> instead of covering it, "It should cover it"), and stay as they are;
+> (2) `GradientBorder.qml` **itself**, which remains in active use
+> throughout this shell (Toast, NotifCard, Dashboard, NotifCentre,
+> NotifPopupStack, SectionPopout, DragGhost, PanelDialog) — only the power
+> menu stopped consuming it. Separately, and unrelated to the ring colour:
+> two independent live-verification passes after the THIRD revision found
+> the scrim's dim-in read as a visible "pop" partway through its ramp.
+> Root cause: `ignore_alpha` is evaluated as a STEP function against this
+> surface's buffer alpha, so animating the scrim `Rectangle`'s own `opacity`
+> (the THIRD revision's `Behavior on opacity` mechanism) dragged it across
+> the `quickshell-session` namespace's `ignore_alpha` 0.2 cutoff mid-ramp,
+> snapping the backdrop into blur in a single frame — no tuning of the ramp
+> duration or easing curve could fix a threshold crossing, since a threshold
+> is not a curve. The QML-side ramp (and its `Design.sessionScrimRampFactor`
+> token) is **removed outright**; the "gradual" dim is now the compositor's
+> own layer fade (`windowrules.lua`'s `animation = "fade"` for this
+> namespace, driven by `animations.lua`'s `layersIn`/`layersOut`), which
+> multiplies the final composited output rather than animating a buffer
+> alpha the threshold can be crossed against. `sessionScrimOpacity` itself
+> also moved again, 0.35 → **0.25** — still above the `ignore_alpha` 0.2
+> cutoff (backdrop blur still applies), lighter than the THIRD revision's
+> 0.35 after live re-judging. Every section below marked **[FOURTH
+> REVISION]** reflects this pass. Not re-run through `gsd-ui-checker` — same
+> scope boundary as the prior three revisions.
 
 ---
 
@@ -86,7 +131,7 @@ created: 2026-08-15
 | Property | Value |
 |----------|-------|
 | Tool | none — Quickshell/QML shell, not a React/Next.js/Vite stack. shadcn gate not applicable. |
-| Component library | This repo's own token + frame system: `modules/dashboard/Design.qml` (spacing/type/icon/popout/notification tokens — reused, not redeclared), `modules/Colours.qml` (Material You palette singleton), `modules/Motion.qml` (duration/easing singleton), `modules/bar/BarRoles.qml` (the bar-family colour-role layer), `modules/toast/Toast.qml` (the reusable transient-notice frame built in Phase 19 **explicitly for this phase's OSD reuse** — D-20-02, D-20-04), `modules/dashboard/PanelDialog.qml` (**[REVISED 2026-08-15]** the power menu now reuses only its `HyprlandFocusGrab`/`Cascade` construction pattern and window-strategy precedent, per D-20-21 revised — the card/header chrome this row originally cited is retired; see "Power Menu — Frame" below), `modules/dashboard/GradientBorder.qml` (**[THIRD REVISION, REINSTATED as a consumer]** retired from the power menu in the second revision — no card edge to rim — but reinstated in the third revision as the animated focus-ring treatment on each pill, sized to a circle via matched corner radii; still the same shared rim used elsewhere in this shell, no fork), `modules/dashboard/AudioBackend.qml` / `modules/bar/BrightnessBackend.qml` (the two backends the OSD's sliders read/write, D-20-05/D-20-09 — no new backend, unaffected), `modules/bar/AudioPopout.qml` (the slider geometry the OSD column reuses verbatim, see "Sliders" below, unaffected), `modules/dashboard/QuickToggles.qml` (**[RETIRED as a reference]** its chip-radius idiom informed the now-retired rectangular tile; the ring's circular pills have no equivalent borrowed idiom from this file). |
+| Component library | This repo's own token + frame system: `modules/dashboard/Design.qml` (spacing/type/icon/popout/notification tokens — reused, not redeclared), `modules/Colours.qml` (Material You palette singleton), `modules/Motion.qml` (duration/easing singleton), `modules/bar/BarRoles.qml` (the bar-family colour-role layer), `modules/toast/Toast.qml` (the reusable transient-notice frame built in Phase 19 **explicitly for this phase's OSD reuse** — D-20-02, D-20-04), `modules/dashboard/PanelDialog.qml` (**[REVISED 2026-08-15]** the power menu now reuses only its `HyprlandFocusGrab`/`Cascade` construction pattern and window-strategy precedent, per D-20-21 revised — the card/header chrome this row originally cited is retired; see "Power Menu — Frame" below), `modules/dashboard/GradientBorder.qml` (**[FOURTH REVISION, RETIRED again as a power-menu consumer]** retired from the power menu in the second revision (no card edge to rim), briefly reinstated in the third revision as the animated focus-ring treatment on each pill, and reverted again in the fourth revision after live trial — the power menu's focus ring is once again a static `Colours.onSurface` stroke, not this component; `GradientBorder.qml` itself is unchanged and remains the shared rim used elsewhere in this shell (Toast, NotifCard, Dashboard, NotifCentre, NotifPopupStack, SectionPopout, DragGhost, PanelDialog) — only the power menu stopped consuming it), `modules/dashboard/AudioBackend.qml` / `modules/bar/BrightnessBackend.qml` (the two backends the OSD's sliders read/write, D-20-05/D-20-09 — no new backend, unaffected), `modules/bar/AudioPopout.qml` (the slider geometry the OSD column reuses verbatim, see "Sliders" below, unaffected), `modules/dashboard/QuickToggles.qml` (**[RETIRED as a reference]** its chip-radius idiom informed the now-retired rectangular tile; the ring's circular pills have no equivalent borrowed idiom from this file). |
 | Icon library | Material Symbols Rounded — variable font, FILL axis, `Design.symbolFontFamily`, glyphs by ligature name. Two glyphs this phase introduces are **not yet used anywhere else in this shell** (`brightness_6`, `keyboard_capslock`) — flag for the planner to confirm they resolve in the installed variable-font build, the same live-verification discipline `14-02-SUMMARY.md` already applied to `fillAxisAvailable`, before treating them as settled. |
 | Font | Body/UI text: `Qt.application.font` (system default, delegated to `font-switcher.sh` per `Design.qml`'s own documented decision — do not add a family override here either). Icons: Material Symbols Rounded. |
 
@@ -106,11 +151,11 @@ Existing surfaces this phase must read, not re-derive:
 
 > **Planner correction (verified at Step 9.5, after checker sign-off).** The two line-height values are **not** `Design.qml` tokens, despite this section's `(Design.qml)` heading. Verified live: `lineHeightTight 1.2` / `lineHeightNormal 1.5` are declared as local `readonly property real` in `modules/dashboard/PanelDialog.qml:149-150` and `modules/Dashboard.qml:228-229`, and consumed locally (`WifiPanel.qml`, `BluetoothPanel.qml`). `grep -rn lineHeight` returns no `Design.qml` hit. The power dialog must therefore either declare the pair locally in the `PanelDialog.qml` idiom (the conservative, precedent-matching choice — no cross-file change) or promote them to `Design.qml` as a deliberate token addition (which would then also want the three existing local declarations repointed, a larger change than this phase's scope implies). Values themselves are correct as stated; only their **location** was mis-cited. Pick one explicitly — do not let the implementation quietly invent a third declaration site.
 
-**Color** (`Colours.qml`/`BarRoles.qml`): `BarRoles.notifSurface`/`notifSurfaceFg` (OSD frame, reused verbatim from Toast.qml, no change), `BarRoles.accent`/`onAccent` (OSD slider fill/handle **only** — no longer the power-menu focus ring; see below), `BarRoles.capsuleTrack` (slider track), `BarRoles.warn`/`onWarn` (the power-menu warning chip — REVISED container, unchanged role), `Colours.surface` at `sessionScrimOpacity` (the power menu's own full-screen scrim, **0.35 as of the THIRD REVISION**, was 0.15, was 0.32, was 0.55 originally) — the **same** `Colours.surface` role, at `sessionPillFillOpacity` (now also the six pills' own same-hue frosted fill, 0.50 — see "Color" below), `GradientBorder.qml`'s own `Colours.primary`/`secondary`/`tertiary` gradient stops (**[THIRD REVISION, NEW]** the focus ring's rotating multi-hue treatment, replacing the second revision's static `Colours.onSurface` there — see "Focus Treatment"), `BarRoles.fillClock`/`fillClockFg`, `BarRoles.fillUpdates`/`fillUpdatesFg`, `BarRoles.danger`/`onDanger` (**[SECOND REVISION]** now the six pills' icon-glyph and hairline-rim colour — **not** the fill; see "Color" and the action→colour-role table below). `Colours.surface`/`surfaceVariant` at `panelSurfaceOpacity` are **no longer power-menu colours** — there is no card or tile background left to carry them (both retired with the frame).
+**Color** (`Colours.qml`/`BarRoles.qml`): `BarRoles.notifSurface`/`notifSurfaceFg` (OSD frame, reused verbatim from Toast.qml, no change), `BarRoles.accent`/`onAccent` (OSD slider fill/handle **only** — no longer the power-menu focus ring; see below), `BarRoles.capsuleTrack` (slider track), `BarRoles.warn`/`onWarn` (the power-menu warning chip — REVISED container, unchanged role), `Colours.surface` at `sessionScrimOpacity` (the power menu's own full-screen scrim, **0.25 as of the FOURTH REVISION**, was 0.35 (THIRD), was 0.15 (SECOND), was 0.32, was 0.55 originally) — the **same** `Colours.surface` role, at `sessionPillFillOpacity` (now also the six pills' own same-hue frosted fill, 0.50 — see "Color" below), `Colours.onSurface` (**[FOURTH REVISION, REVERTED]** the focused pill's ring, back to a static neutral stroke after the THIRD revision's trial of `GradientBorder.qml`'s rotating `Colours.primary`/`secondary`/`tertiary` gradient — see "Focus Treatment"), `BarRoles.fillClock`/`fillClockFg`, `BarRoles.fillUpdates`/`fillUpdatesFg`, `BarRoles.danger`/`onDanger` (**[SECOND REVISION]** now the six pills' icon-glyph and hairline-rim colour — **not** the fill; see "Color" and the action→colour-role table below). `Colours.surface`/`surfaceVariant` at `panelSurfaceOpacity` are **no longer power-menu colours** — there is no card or tile background left to carry them (both retired with the frame).
 
-**Motion** (`Motion.qml`): `standardDuration 200`/`standardEasing` (OSD slider fill/value changes, hover states; **[SECOND REVISION, NEW USE]** also the focused pill's `sessionFocusScale` scale-up `Behavior`), `emphasizedInDuration 300`/`emphasizedInEasing` (power menu cascade entrance — **[SECOND REVISION]** now also the per-pill circular-motion sweep's own angle animation, sharing the identical duration/easing pair the existing translate-rise path already used, not a second motion value — **[THIRD REVISION, NEW USE]** now also the scrim's own ramp-IN `Behavior on opacity`), `emphasizedOutDuration 150`/`emphasizedOutEasing` (OSD/power-menu exit — **[THIRD REVISION, NEW USE]** now literally the power-menu pill cascade's own `runExit()` animation AND the scrim's ramp-OUT `Behavior on opacity`, not merely a reserved name), `staggerOffsetDuration 50`/`staggerOffsetEasing` (D-20-35's per-pill cascade, revised for the ring — the SAME token `PanelDialog`'s own `Cascade` component already consumes, not a new stagger value; **[THIRD REVISION]** entrance only — the exit cascade is deliberately un-staggered, see "Entrance & Exit Motion"). All gated `enabled: Motion.motionEnabled`.
+**Motion** (`Motion.qml`): `standardDuration 200`/`standardEasing` (OSD slider fill/value changes, hover states; **[SECOND REVISION, NEW USE]** also the focused pill's `sessionFocusScale` scale-up `Behavior`), `emphasizedInDuration 300`/`emphasizedInEasing` (power menu cascade entrance — **[SECOND REVISION]** now also the per-pill circular-motion sweep's own angle animation, sharing the identical duration/easing pair the existing translate-rise path already used, not a second motion value), `emphasizedOutDuration 150`/`emphasizedOutEasing` (OSD/power-menu exit — **[THIRD REVISION, NEW USE]** now literally the power-menu pill cascade's own `runExit()` animation, not merely a reserved name), `staggerOffsetDuration 50`/`staggerOffsetEasing` (D-20-35's per-pill cascade, revised for the ring — the SAME token `PanelDialog`'s own `Cascade` component already consumes, not a new stagger value; **[THIRD REVISION]** entrance only — the exit cascade is deliberately un-staggered, see "Entrance & Exit Motion"). All gated `enabled: Motion.motionEnabled`. **[FOURTH REVISION, REMOVED]** The scrim's THIRD-revision `Behavior on opacity` ramp (which had borrowed `emphasizedInDuration`/`emphasizedOutDuration` for its ramp-IN/ramp-OUT) is deleted outright — `ignore_alpha` is a step function, and animating the scrim's own buffer alpha across its 0.2 cutoff snapped the backdrop into blur mid-ramp. The scrim's "gradual" dim is now the compositor's own layer fade (`windowrules.lua`'s `animation = "fade"` for `quickshell-session`, timed by `animations.lua`'s `layersIn`/`layersOut`) — outside `Motion.qml`'s token set entirely, the single place compositor-driven motion is declared for this shell.
 
-**Frame components reused verbatim**: `Toast.qml` (the OSD frame itself — an *instance*, not a copy), the `HyprlandFocusGrab` + `dismissRequested()` pattern (power-menu click-outside dismissal — coexists with D-20-24's exclusive keyboard focus, see "Power Menu — Frame"), `Cascade.qml` (power-menu entrance AND, as of the THIRD REVISION, exit — now cascading six pills + a centre label instead of a header + tile grid — **[SECOND REVISION]** `Cascade.qml` gained `circularMotion` (default `false`, every existing consumer including `PanelDialog.qml`'s own tabs unaffected), consumed here for the first time so the six pill bands sweep in by rotation instead of the shared straight-line rise — **[THIRD REVISION]** `Cascade.qml` also gained `runExit()`, the un-staggered mirror of `run()` on `Motion.emphasizedOutDuration`/Easing, likewise opt-in and consumed here for the first time; see "Power Menu — Entrance & Exit Motion"), the custom `Slider` `background`/`handle` geometry from `AudioPopout.qml` (track height 8/radius 4, handle 20×20, reused **unchanged**, colour already routed through `BarRoles.accent`/`capsuleTrack` there — no divergence this phase, resolving the Claude's Discretion item "reuse vs. lighter variant" in favour of verbatim reuse, see "Sliders" below). **`GradientBorder.qml`** was retired from the power menu in the SECOND revision (no card edge left to rim) and **REINSTATED in the THIRD revision** as the per-pill animated focus-ring treatment (see "Power Menu — Focus Treatment") — a different consumption than the retired card-rim use, sized to a circle rather than a rounded rect; it remains in use elsewhere in this shell throughout, unaffected either way.
+**Frame components reused verbatim**: `Toast.qml` (the OSD frame itself — an *instance*, not a copy), the `HyprlandFocusGrab` + `dismissRequested()` pattern (power-menu click-outside dismissal — coexists with D-20-24's exclusive keyboard focus, see "Power Menu — Frame"), `Cascade.qml` (power-menu entrance AND, as of the THIRD REVISION, exit — now cascading six pills + a centre label instead of a header + tile grid — **[SECOND REVISION]** `Cascade.qml` gained `circularMotion` (default `false`, every existing consumer including `PanelDialog.qml`'s own tabs unaffected), consumed here for the first time so the six pill bands sweep in by rotation instead of the shared straight-line rise — **[THIRD REVISION]** `Cascade.qml` also gained `runExit()`, the un-staggered mirror of `run()` on `Motion.emphasizedOutDuration`/Easing, likewise opt-in and consumed here for the first time; see "Power Menu — Entrance & Exit Motion"), the custom `Slider` `background`/`handle` geometry from `AudioPopout.qml` (track height 8/radius 4, handle 20×20, reused **unchanged**, colour already routed through `BarRoles.accent`/`capsuleTrack` there — no divergence this phase, resolving the Claude's Discretion item "reuse vs. lighter variant" in favour of verbatim reuse, see "Sliders" below). **`GradientBorder.qml`** was retired from the power menu in the SECOND revision (no card edge left to rim), **REINSTATED in the THIRD revision** as the per-pill animated focus-ring treatment (see "Power Menu — Focus Treatment") — a different consumption than the retired card-rim use, sized to a circle rather than a rounded rect — and **RETIRED AGAIN in the FOURTH revision**, after live trial, back to a static `Colours.onSurface` stroke; it remains in use elsewhere in this shell throughout (Toast, NotifCard, Dashboard, NotifCentre, NotifPopupStack, SectionPopout, DragGhost, PanelDialog), unaffected by any of the three power-menu-specific changes.
 
 ---
 
@@ -122,7 +167,7 @@ Add to `modules/dashboard/Design.qml` (spacing/sizing/timing) and `modules/bar/B
 
 | Token | Value | Provenance |
 |-------|-------|------------|
-| `osdWidth` | `380` | D-20-10, **locked**. Deliberately narrower than `notifSurfaceWidth`/`notifCentreWidth` (430) so the OSD stays visibly a lighter surface than the popup/centre family it shares chrome with. |
+| `osdWidth` | `380` | D-20-10, **locked for the slider-column content shape**. Deliberately narrower than `notifSurfaceWidth`/`notifCentreWidth` (430) so the OSD stays visibly a lighter surface than the popup/centre family it shares chrome with. **Named divergence from D-20-10 (implementation-time, verified live):** D-20-10's "width is fixed" was written when the OSD's only content was the slider column. `Osd.qml`'s `implicitWidth` is now conditional — `osdWidth` for the slider-column state, but content-hugging (`capsLockRow.implicitWidth + Design.spacingMd * 2`) for the Caps Lock state, which has no slider track to size a fixed-width pill for. A 380px pill wrapped tightly around a glyph and two words ("Caps Lock") read as visibly broken, not deliberate — see "OSD — Caps Lock Variant" below. |
 | `osdHideDelayMs` | `1200` | D-20-06, Claude's Discretion (SwayOSD's own default is 1000ms, cited in CONTEXT as the reference point, not a mandate). Resolved slightly above SwayOSD parity: `interactive: true` (D-20-02) means a drag gesture must have time to complete inside the dwell window before auto-hide fires, and the hover-pause (D-20-07) already protects any genuinely-slow interaction — 1200ms is enough headroom for a quick glance-and-release without meaningfully lengthening the everyday case. |
 | `osdRecencyWindowMs` | `1500` | D-20-08, Claude's Discretion. QOSD-04's rolling-recency gate — a control earns a slider only if its value changed within this window. Sized against a real multi-key-press cadence (several taps of a volume/brightness key inside well under a second) so a deliberate burst of adjustments keeps every touched control visible together, while a single old change has cleared by the time a genuinely new, unrelated one arrives. |
 
@@ -145,8 +190,8 @@ verified, not merely trusted:
 | `sessionSurfaceDiameter` | `272` | D-20-21 (revised). Overall extent of the ring cluster, outer edge to outer edge: `2 × (sessionRingRadius + sessionPillDiameter / 2) = 2 × (96 + 40) = 272`. On the 4px grid (272 / 4 = 68). This is the window's centred-content bounding box, analogous to the retired `sessionDialogWidth`. **Unaffected by the SECOND revision.** |
 | `sessionCentreLabelWidth` | `112` | D-20-21 (revised). The safe, **rotation-independent** inscribed region at the ring's centre that no pill can ever encroach on, regardless of which action sits at which clock position: `2 × (sessionRingRadius − sessionPillDiameter / 2) = 2 × (96 − 40) = 112`. On the 4px grid (112 / 4 = 28). Verified against the longest focused-action strings ("Hibernate", "Shut Down", 9 chars each) at `fontBody`(16)/`weightEmphasis` — both fit without wrapping (see "Power Menu — Frame"). **Unaffected by the SECOND revision.** |
 | `sessionPillFillOpacity` | `0.50` **[SECOND REVISION, CHANGED from 0.72]** | D-20-21, second revision, Claude's Discretion under the user's explicit "truly frosted pills" ask. 0.72 read as a saturated disc — `WorkspaceTile.qml`'s own 12-round render gate already found this exact failure mode ("a tint over frost mostly reads as tint") and resolved it by filling with the SAME hue as its own scrim (`Colours.surface`) rather than a hue-carrying tint (`modules/overview/WorkspaceTile.qml:140-190`). Applied identically here: the fill is now `Colours.surface` (via `PowerMenu.qml`'s `surfaceColour` property-colour intermediate, never a direct severity hue), applied as `Qt.rgba(surfaceColour.r, surfaceColour.g, surfaceColour.b, sessionPillFillOpacity)` — the severity colour that previously lived on the fill now lives on the icon glyph and a new hairline rim instead (see "Pill Anatomy" below). Still a ratio, exempt from the 4px-grid rule per the same precedent as `notifDismissThresholdFraction`. **0.50 sits well above the `quickshell-session` namespace's own `ignore_alpha 0.2` floor** (already declared in `windowrules.lua:615` as of this revision — see "Frost and the ignore_alpha trap," now updated below) with 0.30 of headroom, so the pill still frosts. |
-| `sessionScrimOpacity` | `0.35` **[THIRD REVISION, CHANGED AGAIN from 0.15]** | D-20-21, third revision — the user's explicit ask: *"Can you make the dimming stronger and gradual?"* "Stronger" is this value; "gradual" is implemented entirely in `PowerMenu.qml` (the scrim `Rectangle`'s own `opacity`, ramped by a `Behavior`, NOT this token — this token still names only the target alpha the ramp animates TOWARD). **This value CROSSES the `quickshell-session` namespace's own `ignore_alpha 0.2` cutoff** (`windowrules.lua:615`, unchanged row) — a deliberate reversal of the second revision's "stay below it" reasoning: this surface's backdrop blur returns. Not a new split — the pill fill (`sessionPillFillOpacity`, 0.50) has sat ABOVE this same cutoff since the second revision, so the scrim moving to the SAME side as the pill fill *removes* a pre-existing mixed-blur state (scrim unblurred, pill fill blurred) rather than introducing one. No `windowrules.lua` change is required: the existing `ignore_alpha = 0.2` row already covers 0.35 with 0.15 of headroom, comparable to the pill fill's own 0.30. Exposed as a single re-tunable token, not a call-site literal — the user may move it again after judging it live. |
-| `sessionFocusScale` | `1.08` **[SECOND REVISION, NEW; UNCHANGED in the THIRD]** | D-20-21, second revision. Originally paired with a NEUTRAL `Colours.onSurface` focus ring; the THIRD revision replaces that ring with `GradientBorder.qml`'s animated rim (see "Focus Treatment" below) but this scale-up itself is explicitly KEPT unchanged and orthogonal — it is the non-colour cue that survives every pill colour AND every ring colour treatment, not something the ring-colour swap needed to touch. 1.08 (8%) is deliberately slight: an 8% scale on the 80px `sessionPillDiameter` adds 6.4px of radius, leaving 9.6px of the 16px (`spacingMd`) inter-pill clearance `sessionRingRadius`'s own derivation already guarantees — a ratio, exempt from the 4px-grid rule for the same reason `sessionPillFillOpacity`/`sessionScrimOpacity` are. |
+| `sessionScrimOpacity` | `0.25` **[FOURTH REVISION, CHANGED AGAIN from 0.35]** | D-20-21, fourth revision. THIRD revision raised this to 0.35 for the user's "stronger" ask, ramped by a QML `Behavior on opacity`. Live re-verification (two passes) found that ramp itself the bug: `ignore_alpha` is a STEP function against this surface's buffer alpha, so animating `opacity` 0→0.35 dragged the scrim across the `quickshell-session` namespace's own `ignore_alpha 0.2` cutoff mid-ramp, snapping the backdrop into blur in a single frame ("the dimming screen pops into existence... very jarring") — no ramp-duration or easing-curve retune could fix a threshold crossing. Resolution: the QML-side ramp is removed entirely (`Design.sessionScrimRampFactor` deleted with it); the scrim `Rectangle` now holds `opacity: 1` permanently and the "gradual" dim is the compositor's own layer fade (`windowrules.lua`'s `animation = "fade"` for `quickshell-session`, timed by `animations.lua`'s `layersIn`/`layersOut`), which fades the final composited output rather than animating a buffer alpha the threshold can be crossed against. The target alpha itself also moved down, 0.35 → 0.25, after living with the stronger value. **Still ABOVE the `quickshell-session` namespace's own `ignore_alpha 0.2` cutoff** (`windowrules.lua:625`) — backdrop blur still applies, with 0.05 of headroom (narrower than 0.35's 0.15, still comfortably clear, same side as the pill fill's own 0.50). No `windowrules.lua` change needed. Exposed as a single re-tunable token, not a call-site literal. |
+| `sessionFocusScale` | `1.08` **[SECOND REVISION, NEW; UNCHANGED across the THIRD and FOURTH]** | D-20-21, second revision. Originally paired with a NEUTRAL `Colours.onSurface` focus ring; the THIRD revision trialled `GradientBorder.qml`'s animated rim in its place (see "Focus Treatment" below), and the FOURTH revision reverted that trial back to the NEUTRAL ring on the user's own call ("Revert the colorful shifting highlighter decision I made earlier"). This scale-up itself was explicitly KEPT unchanged and orthogonal through both swaps — it is the non-colour cue that survives every pill colour AND every ring-colour treatment, never something either ring-colour change needed to touch. 1.08 (8%) is deliberately slight: an 8% scale on the 80px `sessionPillDiameter` adds 6.4px of radius, leaving 9.6px of the 16px (`spacingMd`) inter-pill clearance `sessionRingRadius`'s own derivation already guarantees — a ratio, exempt from the 4px-grid rule for the same reason `sessionPillFillOpacity`/`sessionScrimOpacity` are. |
 
 #### Frost and the ignore_alpha trap — the route specified, stated explicitly
 
@@ -170,6 +215,22 @@ backdrop now blurs UNIFORMLY — the split this section spent two revisions desc
 longer exists on this surface. Still no further `windowrules.lua` change is required: the
 existing `ignore_alpha = 0.2` row already covers both current values (0.35 scrim, 0.50 pill
 fill) with headroom on the SAME side.
+
+**[FOURTH REVISION UPDATE.]** `sessionScrimOpacity` moves again, 0.35 → **0.25** —
+still on the SAME side of the 0.2 cutoff as the pill fill (0.50), so the "resolved, not
+merely re-balanced" state the THIRD revision reached still holds; no further
+`windowrules.lua` change is required. The mechanism changed more than the number:
+the THIRD revision's "gradual" ramp was a QML `Behavior on opacity` animating this
+Rectangle's own alpha from 0 toward its target — which meant the ramp *itself* crossed
+the 0.2 step function mid-animation, snapping the backdrop into blur on one frame rather
+than fading it in. That QML-side ramp is deleted; the scrim's `opacity` now holds at a
+constant 1 and the fade-in/out is done by the compositor's own layer animation
+(`windowrules.lua`'s `animation = "fade"` row for `quickshell-session`, timed by
+`animations.lua`'s `layersIn`/`layersOut`) acting on the whole composited surface, which
+has no per-frame buffer-alpha threshold to cross. This section's own "all-or-nothing
+per-namespace blur switch" finding is unaffected by the mechanism change — it still
+describes exactly how `ignore_alpha` decides blur for a static alpha value; it just no
+longer has to reason about an animated one crossing it.
 
 This surface carries **two different alpha values in the same `quickshell-session`
 namespace**: the scrim at `sessionScrimOpacity` (0.15 as of the second revision, below the
@@ -197,11 +258,19 @@ consistent with both the frost requirement and the light-scrim requirement.
 
 **Concrete instruction for whoever adds this row (`windowrules.lua`, declared in the
 existing "AFTER the `^quickshell-.*` family regex" block — lines 567-604 in the pre-revision
-file, immediately below the existing `quickshell-session` `animation = "slide"` row):**
+file, immediately below the existing `quickshell-session` `animation` row — that row's own
+value has since changed, see the note below):**
 
 ```
 hl.layer_rule({ match = { namespace = "quickshell-session" }, ignore_alpha = 0.2 })
 ```
+
+**[FOURTH REVISION NOTE.]** The `quickshell-session` `animation` row referenced above has
+since changed from `"slide"` to `"fade"` (user-reported, THIRD-revision follow-up: *"I see
+a black background animate and drop down and then the power menu appears on top of it"*) —
+a full-bleed scrim has no edge to slide in from, so `slide` dragged it in as a visible
+panel instead of dimming in place. This is unrelated to `ignore_alpha`/frost and does not
+change anything this subsection reasons about.
 
 0.2 was chosen to sit below BOTH values present on this surface at the time this section was
 first written (0.32 scrim, 0.72 pill fill) with the same kind of headroom the notification
@@ -275,7 +344,7 @@ Every value below is either a `BarRoles.<role>` token (OSD, routed per the notif
 |------|-------|-------|
 | Dominant | `BarRoles.notifSurface` (OSD, unchanged) | OSD frame background |
 | Slider accent | `BarRoles.accent` / `onAccent` | OSD slider fill + handle **only**. No longer the power-menu focus ring — see "Animated focus" below. |
-| ~~Neutral focus~~ Animated focus | `GradientBorder.qml` (`Colours.primary`/`secondary`/`tertiary` gradient, rotating) | **[THIRD REVISION, CHANGED from `Colours.onSurface`]** The focused pill's ring — see "Power Menu — Focus Treatment". The second revision's static NEUTRAL `Colours.onSurface` ring is retired; the ring is now this shell's shared animated Hyprland-parity rim (`GradientBorder.qml`, already used by Toast/NotifCard/Dashboard/NotifCentre/NotifPopupStack/SectionPopout/DragGhost/PanelDialog), sized to a true circle via matched corner radii. `sessionFocusScale`'s scale-up (a non-colour cue) is UNCHANGED and stays paired with it, independent of the ring's own colour treatment. User's own framing: a deliberately isolated, easily-revertible change ("I will decide if I like it or rollback"). |
+| Neutral focus | `Colours.onSurface` | **[FOURTH REVISION, REVERTED]** The focused pill's ring — see "Power Menu — Focus Treatment". The THIRD revision trialled `GradientBorder.qml`'s animated, rotating multi-hue rim (`Colours.primary`/`secondary`/`tertiary` gradient) here — the user's own framing at the time: a deliberately isolated, easily-revertible change ("I will decide if I like it or rollback"). After living with it, the user's own call: "Revert the colorful shifting highlighter decision I made earlier." The ring is once again a static `Colours.onSurface` stroke, the SECOND revision's treatment, on the same reasoning: pills carry three severity hues, so a chromatic ring cannot read consistently against all of them — the rotating rim made that worse by cycling through the very hues it needed to stay distinguishable from. `sessionFocusScale`'s scale-up (a non-colour cue) is UNCHANGED throughout and stays paired with it, independent of the ring's own colour treatment. |
 | Neutral frost | `Colours.surface` at `sessionPillFillOpacity` | **[SECOND REVISION, NEW]** Every pill's own fill, regardless of severity tier — the SAME hue as the scrim (see "Pill Anatomy"). Replaces the first revision's saturated per-tier fill; see the action→colour-role table below for where the severity colour moved instead. |
 | Warning | `BarRoles.warn` / `BarRoles.onWarn` | QPOWER-03's warning chip — icon + text. Reserved for the chip alone, unchanged from the retired design — no pill uses the `warn` role by name (see the coherence note below the severity table for the deliberate `warn`/`fillUpdates` hue overlap). |
 | Severity palette (pills) | `fillClock`, `fillUpdates`, `danger` | **[SECOND REVISION]** Carries the icon glyph (full opacity) and a hairline rim around each pill's boundary — **not** the fill (see "Neutral frost" row above and "Pill Anatomy" below). The `Fg` variants (`fillClockFg`, `fillUpdatesFg`, `onDanger`) that the first revision used as the icon's contrast colour against an opaque saturated fill are **retired on this surface** — the icon now reads the tier's own hue directly against the neutral frosted fill, so no separate contrast-pair colour is needed. See the action→colour-role table immediately below. |
@@ -318,22 +387,20 @@ pill's icon/rim ever reads as "this is the accent colour" by coincidence with th
 accent-tinted controls elsewhere in this shell. `fillNotification` is therefore still not
 used on this surface, alongside `accent` itself.
 
-**[THIRD REVISION — a new consideration worth naming honestly, not silently absorbed.]**
-The focus ring is no longer neutral: `GradientBorder.qml`'s three-stop rotating gradient
-IS `Colours.primary` → `Colours.secondary` → `Colours.tertiary` (see "Focus Treatment"),
-and `fillClock` (tier A) resolves to `Colours.secondary` while `fillUpdates` (tier B)
-resolves to `Colours.tertiary` — two of the ring's own three gradient stops are the SAME
-underlying hues as two of the three pill tiers. This is a genuine, if minor, overlap the
-second revision's "neutral ring, no hue to collide with" framing no longer describes. It is
-judged acceptable and left as-is, for two reasons: (1) the ring's gradient is continuously
-ROTATING, never sitting statically on any one stop, so a focused tier-A/B pill's icon+rim
-never reads as visually MERGED with the ring — at any instant the ring shows a POSITION
-along the rotating gradient, not a fixed colour a viewer could mistake for the pill's own
-static tint; (2) `GradientBorder.qml` already coexists with same-hued content elsewhere in
-this shell (e.g. `NotifCard.qml`'s own tier-coloured accents sit inside a `GradientBorder`
-rim without an exclusion rule). `accent`/`fillNotification` (`Colours.primary`) remains
-excluded from the severity palette regardless, for the ORIGINAL, still-valid reason: it is
-reserved for the OSD slider, unrelated to the ring's own colour treatment.
+**[THIRD REVISION, SUPERSEDED BY THE FOURTH — kept for history, no longer governs.]**
+While the focus ring was `GradientBorder.qml`'s trialled three-stop rotating gradient
+(`Colours.primary` → `Colours.secondary` → `Colours.tertiary`), `fillClock` (tier A)
+resolved to `Colours.secondary` and `fillUpdates` (tier B) resolved to `Colours.tertiary` —
+two of the ring's own three gradient stops were the SAME underlying hues as two of the
+three pill tiers. That overlap was judged acceptable at the time (the ring's gradient
+rotates continuously, so a focused tier-A/B pill's icon+rim never read as visually merged
+with a fixed ring colour) but is now moot: the **FOURTH revision reverts the ring to a
+static, NEUTRAL `Colours.onSurface` stroke** (see "Focus Treatment"), so the second
+revision's original "neutral ring, no hue to collide with" framing is once again exactly
+accurate, not merely restored by coincidence. `accent`/`fillNotification`
+(`Colours.primary`) remains excluded from the severity palette regardless, for the
+ORIGINAL, still-valid reason: it is reserved for the OSD slider, unrelated to the ring's
+own colour treatment.
 
 **Coherence note, not a conflict:** `BarRoles.warn` (the chip's colour) and
 `BarRoles.fillUpdates` (tier B's pill colour) both resolve to `Colours.tertiary` — the same
@@ -364,7 +431,7 @@ Per D-20-02, the OSD is a **`Toast.qml` instance**. The file gains properties, n
 ### Placement
 
 - **Anchor**: bottom-centre (`edge: "bottom"`), `margins.bottom: Design.barSideMargin` (10px, reusing the exact token the DND toast's own top margin already uses, mirrored to the opposite edge — no new margin token).
-- **Width**: `osdWidth` (380px), content-hugging on height (one row for a single control, N rows for N simultaneously-recent controls, or the Caps Lock row's own fixed content height — never the same height for every state).
+- **Width**: `osdWidth` (380px) for the slider-column content shape; content-hugging (`capsLockRow.implicitWidth + Design.spacingMd * 2`) for the Caps Lock content shape — see the named divergence from D-20-10 under "New Tokens" and "OSD — Caps Lock Variant" below. Height is content-hugging on both shapes (one row for a single control, N rows for N simultaneously-recent controls, or the Caps Lock row's own fixed content height — never the same height for every state).
 - **Namespace**: `quickshell-osd` — inside the `^quickshell-.*` family regex, blur/`ignore_alpha` apply automatically; needs its own exact-match `animation = "slide"` row in `windowrules.lua`, declared after the family regex (D-20-33's own instruction).
 - **`exclusiveZone: 0`, `ExclusionMode.Normal`** — unchanged from Toast.qml, auto-clears whichever edge the bar currently reserves, no bar-orientation branch (same mechanism the DND toast already relies on).
 
@@ -418,6 +485,7 @@ Each row: glyph (`iconSizeMd`, 24px — `volume_up`/`volume_off`, `mic`/`mic_off
 ## OSD — Caps Lock Variant (QOSD-02, D-20-11..16)
 
 - **Replaces the column entirely** (D-20-11) — a single icon + label row, the exact shape the DND toast already uses (`Toast.qml`'s own `bodyRow: Row { spacing: Design.spacingSm }` content slot), never joins the slider column as a fourth row. A binary state does not belong in a column built for continuous values.
+- **Width — named divergence from D-20-10 (implementation-time, verified live).** D-20-10's "width is fixed" was written when the OSD's only content was the slider column; a 380px (`osdWidth`) pill wrapped tightly around a glyph and the two words "Caps Lock" read as visibly broken, not deliberate. `Osd.qml`'s `implicitWidth` is content-hugging on this content shape only (`capsLockRow.implicitWidth + Design.spacingMd * 2`), falling back to `osdWidth` for the slider-column shape — see "New Tokens" above.
 - **Fires only on the ON transition** (D-20-12) — *divergence from SwayOSD*, which flashes on both. Never coexists with the slider column: Caps Lock is its own content swapped into the same `Toast` instance's `body` slot, mutually exclusive with the slider Column by construction (one `Toast`, one content region, D-20-04's "no new frame type").
 - **Read mechanism** (D-20-13..16, not this document's visual concern but load-bearing context): sysfs LED node via a watched `FileView`, glob-resolved at startup and re-globbed on read failure — absent, never broken, if no node matches (mirrors `ClockActionsCapsule.qml`'s own `gamingStateFile` pattern, cited directly in CONTEXT as the shape to follow).
 
@@ -457,11 +525,15 @@ the user locked this one: a ring with a centre label.
 
 Still built as **one `PanelWindow`** spanning the full output — that part of the original
 resolution stands, only the child content's shape changed:
-- a full-bleed **scrim** (`Colours.surface` at `sessionScrimOpacity`, **0.35 as of the
-  THIRD revision** — was 0.15, was 0.32, was 0.55 originally — see New Tokens; also now
-  gradual, ramped by a `Behavior on opacity` rather than applied instantaneously) filling
-  the window, giving `HyprlandFocusGrab`'s click-outside dismissal the same screen-wide
-  catch area as before, still with no second window to coordinate;
+- a full-bleed **scrim** (`Colours.surface` at `sessionScrimOpacity`, **0.25 as of the
+  FOURTH revision** — was 0.35 (THIRD), was 0.15 (SECOND), was 0.32, was 0.55 originally —
+  see New Tokens; "gradual" is now the compositor's own layer fade, `windowrules.lua`'s
+  `animation = "fade"` for `quickshell-session` timed by `animations.lua`'s
+  `layersIn`/`layersOut` — **not** a QML-side `Behavior on opacity` on this Rectangle, which
+  the THIRD revision used but the FOURTH revision removed after it was found to snap the
+  backdrop into blur mid-ramp, see New Tokens) filling the window, giving
+  `HyprlandFocusGrab`'s click-outside dismissal the same screen-wide catch area as before,
+  still with no second window to coordinate;
 - the actual **content** — six pills on a ring plus a centre label, no card, no header — as
   a child `Item` centred via `anchors.centerIn: parent`, `implicitWidth` /
   `implicitHeight`: `Design.sessionSurfaceDiameter` (272px, both axes — the content is
@@ -476,8 +548,10 @@ first comparison round are unaffected by this revision.
 - **Namespace**: `quickshell-session` (D-20-33, unchanged) — inside the `^quickshell-.*`
   family regex, blur applies automatically via the family's `blur = true` row;
   `ignore_alpha` carries a namespace-specific `0.2` override row
-  (`windowrules.lua:615`, **implemented** — see "Frost and the ignore_alpha trap" under
-  New Tokens above). Its own exact-match `animation = "slide"` row is unaffected.
+  (`windowrules.lua:625`, **implemented** — see "Frost and the ignore_alpha trap" under
+  New Tokens above). Its own exact-match `animation` row is `"fade"`, **not** `"slide"`
+  (changed post-THIRD-revision — a full-bleed scrim has no edge to slide in from; see
+  "Frost and the ignore_alpha trap" for the user-reported symptom this fixed).
 - **`exclusiveZone: 0`** — unchanged, an overlay, reserves nothing.
 - **`WlrKeyboardFocus.Exclusive`** (D-20-24, unaffected by the shape change) — this
   surface's actions still end the session, so it still earns exclusive focus over D-19-18's
@@ -486,14 +560,16 @@ first comparison round are unaffected by this revision.
   retired design (`Colours.surface` at `panelSurfaceOpacity`, a `GradientBorder` traced
   around the DIALOG's own rectangular edge, `popoutHeaderHeight`, the Heading-styled title)
   have **no equivalent in the ring design** — there is no rectangular frame left to carry
-  them. **[THIRD REVISION note, not a reopening of this point]** `GradientBorder.qml` DOES
-  have a consumer on this surface again as of the third revision — but as each pill's own
-  circular focus ring (see "Power Menu — Focus Treatment"), not as a rim around any
-  card-shaped frame; there is still no such frame for a card-level rim to trace. The visual
-  identity that replaces "reads as part of the panel family" is now carried by the pills'
+  them. **[FOURTH REVISION note, superseding the THIRD revision's own note here]**
+  `GradientBorder.qml` briefly had a consumer on this surface as of the THIRD revision — as
+  each pill's own circular focus ring — but the FOURTH revision reverted that trial back to
+  a static `Colours.onSurface` stroke (see "Power Menu — Focus Treatment"); `GradientBorder`
+  has **no consumer on this surface again**, same as after the second revision. There is
+  still no rectangular frame anywhere on this surface for a card-level rim to trace. The
+  visual identity that replaces "reads as part of the panel family" is carried by the pills'
   own frosted, neutral fills, their icon+rim severity colour, the ring's circular-motion
-  entrance/exit, and (third revision) the focused pill's own animated rim (see "Pill
-  Anatomy" and "Entrance & Exit Motion" below).
+  entrance/exit, and the focused pill's neutral ring + scale-up (see "Pill Anatomy" and
+  "Entrance & Exit Motion" below).
 
 ### Entry points (D-20-22, unaffected by this revision — repoint only)
 
@@ -514,19 +590,20 @@ Reboot (240°/8 o'clock), Shut Down (300°/10 o'clock). This ordering is also th
 band order (see "Entrance Motion") and the rotation model's index order (see "Focus
 Treatment").
 
-### ASCII preview 4 — power menu, resting state, Lock focused (default on open) [THIRD REVISION: animated gradient focus ring + scale, stronger scrim, same-hue frost fill]
+### ASCII preview 4 — power menu, resting state, Lock focused (default on open) [FOURTH REVISION: neutral focus ring + scale (reverted from the third revision's animated gradient), 0.25 scrim]
 
 ```
                  sessionSurfaceDiameter = 272px, screen-centred
-                    scrim: Colours.surface @ 0.35 (stronger dim, third revision,
-                    now above the ignore_alpha 0.2 cutoff — backdrop blur returns)
+                    scrim: Colours.surface @ 0.25 (fourth revision — was 0.35 third,
+                    still above the ignore_alpha 0.2 cutoff — backdrop blur applies;
+                    fade is now the compositor's layersIn/layersOut, not a QML ramp)
 
                               ┏━━━━━━━━┓
                               ┃  🔒(A) ┃   ← Lock, 12 o'clock (0°), default-
-                              ┗━━━━━━━━┛      focused: GradientBorder rotating
-                    ╭────────╮        ╭────────╮   multi-hue ring (was NEUTRAL
-                    │  ⏻(C) │        │  ⎋(B) │    Colours.onSurface, second rev.) +
-                    ╰────────╯        ╰────────╯    sessionFocusScale (1.08)
+                              ┗━━━━━━━━┛      focused: static NEUTRAL
+                    ╭────────╮        ╭────────╮   Colours.onSurface ring (reverted
+                    │  ⏻(C) │        │  ⎋(B) │    from the third revision's animated
+                    ╰────────╯        ╰────────╯    GradientBorder rim) + sessionFocusScale (1.08)
               Shut Down (300°)          Log Out (60°)
                           ┌───────────────┐
                           │               │
@@ -654,44 +731,47 @@ nothing else:
   recent input), while pill A's own hover-fill lift (kept — see "Pill Anatomy") still marks
   where the pointer actually is. Two independent, simultaneously-true cues, not a
   contradiction.
-- **Visible focus is a RING plus a scale-up — ring treatment CHANGED AGAIN in the THIRD
-  REVISION** — the second revision's static NEUTRAL `Colours.onSurface` stroke is retired;
-  the ring is now `GradientBorder.qml`'s animated, rotating multi-hue rim (the user's own
-  ask: *"change the hovered ring to the shifting colours we have on Hyprland"*), the same
-  shared rim this shell already uses for Hyprland-border parity elsewhere (Toast, NotifCard,
-  Dashboard, NotifCentre, NotifPopupStack, SectionPopout, DragGhost, PanelDialog). Sized to
-  a true circle: all four of `GradientBorder`'s corner-radius properties are bound to half
-  of its own (post-margin) width, rather than the rounded-rect shape those properties
-  usually describe on a card. Still drawn **outside** the pill's own `sessionPillDiameter`
-  (80px) circular boundary by `Design.borderWidth` (3px) — geometry and outside-placement
-  unchanged across all three revisions, only the colour/motion TREATMENT changed. **The
+- **Visible focus is a RING plus a scale-up — ring treatment REVERTED in the FOURTH
+  REVISION, back to the SECOND revision's own treatment.** The THIRD revision had replaced
+  the static NEUTRAL `Colours.onSurface` stroke with `GradientBorder.qml`'s animated,
+  rotating multi-hue rim (the user's own ask at the time: *"change the hovered ring to the
+  shifting colours we have on Hyprland"* — the same shared rim this shell uses for
+  Hyprland-border parity elsewhere, Toast/NotifCard/Dashboard/NotifCentre/NotifPopupStack/
+  SectionPopout/DragGhost/PanelDialog). After living with it, the user's own call: *"Revert
+  the colorful shifting highlighter decision I made earlier."* The ring is once again a
+  **static `Colours.onSurface` `Rectangle` stroke** — the second revision's own reasoning
+  holds and is now confirmed, not merely reinstated: pills carry three different severity
+  hues, so a single chromatic ring colour cannot read consistently against all of them, and
+  the rotating rim made this worse by cycling through the very hues it needed to stay
+  distinguishable from. Geometry is **not** reverted along with the colour — the ring is
+  still drawn **outside** the pill's own `sessionPillDiameter` (80px) circular boundary via
+  an outward `-Design.borderWidth / 2` margin straddle, and the pill's own 1px severity
+  hairline is still suppressed while focused (`border.width: pill.isFocused ? 0 : 1`) — both
+  fixed a separate, colour-independent fault (the ring rendering as a second concentric
+  stroke beside the hairline instead of covering it) and stay exactly as they were. **The
   focused pill also still scales** to `Design.sessionFocusScale` (1.08×) about its own
-  centre — UNCHANGED, and deliberately orthogonal to the ring-colour swap: it is the
-  non-colour cue that survives every pill hue AND every ring-colour treatment, kept
-  identically through both the second and third revisions. The user's own framing for this
-  swap — *"I will decide if I like it or rollback"* — is why it is scoped as one isolated,
-  cleanly revertible change, not entangled with the hover/dismiss/scrim changes in the same
-  pass.
+  centre — UNCHANGED across all four revisions, and deliberately orthogonal to the
+  ring-colour swap in either direction: it is the non-colour cue that survives every pill
+  hue AND every ring-colour treatment.
 
-### ASCII preview 5 — focused-pill treatment (zoomed), rotation model [THIRD REVISION: animated gradient ring + scale, not a static neutral stroke]
+### ASCII preview 5 — focused-pill treatment (zoomed), rotation model [FOURTH REVISION: static neutral ring + scale, reverted from the third revision's animated gradient]
 
 ```
    resting:                  focused (keyboard or hover):           rotate/hover → next:
    ╭────────╮                ┏━━━━━━━━━┓                            ╭────────╮   ┏━━━━━━━━━┓
-   │   🔒   │                ┃   🔒    ┃  ← GradientBorder rim       │   🔒   │   ┃   ⎋     ┃
-   ╰────────╯                ┗━━━━━━━━━┛    (rotating multi-hue,     ╰────────╯   ┗━━━━━━━━━┛
-     Lock                     Lock 1.08×    Colours.primary/         Lock        Log Out 1.08×
-                                             secondary/tertiary,                 ← Right/Down
-                                             matching Hyprland's                   rotates focus,
-                                             own active-border                    OR hover moves
-                                             animation), borderWidth              the pointer here
-                                             (3px), drawn OUTSIDE                 — either input
-                                             the 80px pill; pill                  wins on its own
-                                             ALSO scales to                       most-recent
-                                             sessionFocusScale                    event, see
-                                             (1.08×) about its                    Focus Treatment
-                                             own centre. Fill hue                 above.
-                                             never changes.
+   │   🔒   │                ┃   🔒    ┃  ← Colours.onSurface ring   │   🔒   │   ┃   ⎋     ┃
+   ╰────────╯                ┗━━━━━━━━━┛    (static, neutral —      ╰────────╯   ┗━━━━━━━━━┛
+     Lock                     Lock 1.08×    reverted from the       Lock        Log Out 1.08×
+                                             third revision's                   ← Right/Down
+                                             rotating GradientBorder               rotates focus,
+                                             trial), borderWidth                  OR hover moves
+                                             (3px), drawn OUTSIDE                 the pointer here
+                                             the 80px pill; pill                  — either input
+                                             ALSO scales to                       wins on its own
+                                             sessionFocusScale                    most-recent
+                                             (1.08×) about its                    event, see
+                                             own centre. Fill hue                 Focus Treatment
+                                             never changes.                       above.
 ```
 
 ---
@@ -828,12 +908,13 @@ nothing else:
         The focused Shut Down pill renders identically to its non-warned
         appearance — same neutral frosted fill every pill always carries
         (second revision), same danger-tinted icon+rim it always carries,
-        same GradientBorder animated focus ring + scale (third revision,
-        was a static NEUTRAL Colours.onSurface ring in the second
-        revision, was BarRoles.accent originally), no recolour tied to the
-        live warning. The chip is informational text below the ring, never
-        a pill recolour, never a blocking overlay. Enter still fires Shut
-        Down (after the third revision's exit cascade plays and the
+        same static NEUTRAL Colours.onSurface focus ring + scale (the
+        fourth revision's reverted state, after briefly trialling a
+        GradientBorder animated rim in the third revision; was
+        BarRoles.accent originally), no recolour tied to the live warning.
+        The chip is informational text below the ring, never a pill
+        recolour, never a blocking overlay. Enter still fires Shut Down
+        (after the third revision's exit cascade plays and the
         surface actually unmaps — see "Entrance & Exit Motion" — before
         the process itself starts). This is what "warn only" looks like on
         the ring design.
@@ -882,26 +963,27 @@ Two separate render gates, run and passed independently — a stall in one must 
 6. Caps Lock shows the icon+label row **only** on the ON transition, never on OFF.
 7. **The two GATE-01 open questions are answered with evidence, not assumed**: does the pill render over hyprlock (D-20-19); does Caps Lock indicate at the SDDM prompt before this gate authorises `RETIRE-04`'s `swayosd-libinput-backend.service` removal (D-20-17/18).
 
-### Gate B — Power menu (unlocks RETIRE-05: `wleave`) [criteria 1, 2, 4 REVISED for the ring; 1, 2 REVISED AGAIN + 10 ADDED in the SECOND revision; 1, 10 REVISED AGAIN + 4, 11, 12 ADDED in the THIRD revision]
+### Gate B — Power menu (unlocks RETIRE-05: `wleave`) [criteria 1, 2, 4 REVISED for the ring; 1, 2 REVISED AGAIN + 10 ADDED in the SECOND revision; 1, 10 REVISED AGAIN + 4, 11, 12 ADDED in the THIRD revision; 1, 2, 10 REVISED AGAIN in the FOURTH revision]
 
 **Aesthetic**
-1. **[REVISED AGAIN, third revision]** The ring reads as a floating, frosted cluster that
-   STRONGLY dims the desktop with the compositor's own blur behind it — each pill's fill is
-   a neutral same-hue frost (`Colours.surface` at `sessionPillFillOpacity` 0.50) with its
-   severity role carried by the icon glyph and a hairline rim, the scrim now a stronger 0.35
-   dim that CROSSES the `quickshell-session` namespace's `ignore_alpha` 0.2 cutoff (backdrop
-   blur is confirmed visible behind the ring, not merely dimmed flat colour) — never
-   wleave's flat six-hue-capsule layout, never the retired grid dialog's "overtakes the
-   entire screen" reading, never the first revision's saturated-disc pill fill, and never
-   the second revision's lighter 0.15/no-blur scrim the user asked to move past ("make the
-   dimming stronger").
-2. **[REVISED AGAIN, second revision]** A live theme switch re-colours every pill's
+1. **[REVISED AGAIN, fourth revision]** The ring reads as a floating, frosted cluster that
+   dims the desktop with the compositor's own blur behind it — each pill's fill is a neutral
+   same-hue frost (`Colours.surface` at `sessionPillFillOpacity` 0.50) with its severity
+   role carried by the icon glyph and a hairline rim, the scrim now `sessionScrimOpacity`
+   **0.25** (down from the third revision's 0.35, still above the `quickshell-session`
+   namespace's `ignore_alpha` 0.2 cutoff — backdrop blur confirmed visible behind the ring,
+   not merely dimmed flat colour), fading in/out via the compositor's own layer animation
+   (never a QML opacity ramp — see New Tokens) — never wleave's flat six-hue-capsule layout,
+   never the retired grid dialog's "overtakes the entire screen" reading, never the first
+   revision's saturated-disc pill fill, and never the second revision's lighter 0.15/no-blur
+   scrim.
+2. **[REVISED AGAIN, fourth revision]** A live theme switch re-colours every pill's
    icon/rim/warning-chip within one crossfade — the fill itself stays the SAME neutral
    `Colours.surface` hue across a theme switch by construction (it is the scrim's own hue,
    not a per-tier one), so "re-colours" here means the icon+rim+chip, not the fill. **The
-   focus ring's own `GradientBorder` gradient stops (`Colours.primary`/`secondary`/
-   `tertiary`, third revision) also re-colour on the same theme switch, matching every other
-   `GradientBorder` consumer in this shell.**
+   focus ring itself is `Colours.onSurface` (reverted from the third revision's trialled
+   `GradientBorder` gradient) — it also re-colours on the same theme switch, since
+   `Colours.onSurface` is itself a theme-reactive role.**
 3. All six actions present, correctly glyphed, icon-only (no per-pill label); Lock
    auto-focused on open at 12 o'clock.
 4. **[REVISED, third revision]** Arrow keys ROTATE focus around the ring — Right/Down
@@ -922,27 +1004,34 @@ Two separate render gates, run and passed independently — a stall in one must 
    suppressed while the menu is open (a manual key press during the gate produces no OSD).
 9. Shutdown/Reboot still route through the graceful compositor exit (QPOWER-04) —
    confirmed against the same mechanism FIX-01 already established, not a new one.
-10. **[REVISED AGAIN, third revision — "neutral" wording corrected]** On open, the six
-    pills are visibly seen sweeping into their ring positions with a rotational/circular
-    motion (not a straight fade or a barely-visible rise) — confirmed by eye during the
-    entrance, not merely by reading `Cascade.qml`'s own console trace. The focused pill
-    (Lock, at open) shows a visibly ANIMATED, rotating multi-hue `GradientBorder` ring —
-    **not** a static neutral ring; the second revision's own "visibly NEUTRAL (non-hued)
-    focus ring" wording is superseded and must not be checked against as written — plus a
+10. **[REVISED AGAIN, fourth revision — reverts the third revision's own wording]** On
+    open, the six pills are visibly seen sweeping into their ring positions with a
+    rotational/circular motion (not a straight fade or a barely-visible rise) — confirmed by
+    eye during the entrance, not merely by reading `Cascade.qml`'s own console trace. The
+    focused pill (Lock, at open) shows a visibly NEUTRAL (non-hued), static
+    `Colours.onSurface` focus ring — **not** an animated or rotating gradient; the third
+    revision's own "visibly ANIMATED, rotating multi-hue `GradientBorder` ring" wording is
+    superseded (that trial was reverted) and must not be checked against as written — plus a
     slight scale-up, both distinguishable at a glance from every pill's own severity-hued
     icon/rim and from each other.
-11. **[ADDED, third revision]** On dismiss — BOTH via selecting an action (Enter/click/
-    mnemonic) and via a no-action close (Escape/click-outside) — the six pills are visibly
-    seen sweeping back OUT before the surface disappears, confirmed by eye, not merely by
-    the console's `cascade: run-exit` trace. For the action-selection route specifically:
-    the chosen action's own process must not be observed to start (e.g. no `hyprlock`
-    flash, no suspend/reboot beginning) until AFTER the exit sweep has visibly finished —
-    confirming the Bug-2 ordering guarantee still holds with the animation inserted, not
-    merely that the animation plays.
-12. **[ADDED, third revision]** The scrim is visibly seen to ramp its dim in in step with
-    the pill entrance (not a hard snap to full dimness on the very first frame) and ramp
-    back down in step with the pill exit cascade added in criterion 11 — confirmed by eye
-    on both open and dismiss.
+11. **[ADDED, third revision; unaffected by the fourth]** On dismiss — BOTH via selecting an
+    action (Enter/click/mnemonic) and via a no-action close (Escape/click-outside) — the six
+    pills are visibly seen sweeping back OUT before the surface disappears, confirmed by
+    eye, not merely by the console's `cascade: run-exit` trace. For the action-selection
+    route specifically: the chosen action's own process must not be observed to start (e.g.
+    no `hyprlock` flash, no suspend/reboot beginning) until AFTER the exit sweep has visibly
+    finished — confirming the Bug-2 ordering guarantee still holds with the animation
+    inserted, not merely that the animation plays.
+12. **[ADDED, third revision; mechanism REVISED in the fourth]** The scrim is visibly seen
+    to fade its dim in on open and fade back down on dismiss (not a hard snap to full
+    dimness on the very first frame) — confirmed by eye on both open and dismiss. The third
+    revision's own wording described this as the scrim ramping "in step with" the pill
+    entrance/exit cascade via a shared QML `Behavior`; that coupling is removed in the
+    fourth revision (the QML-side ramp itself caused a visible blur-snap partway through,
+    see New Tokens) — the scrim's fade is now the compositor's own layer animation,
+    independent of and no longer synchronised step-for-step with the pill cascade's own
+    timing. Check only that the fade itself reads as gradual, not that it is paced identically
+    to the pill cascade.
 
 **Pass bar**: all of each gate's own criteria confirmed live. Any single failure blocks that gate's own deletion commit until fixed and re-checked — the other gate is unaffected.
 
@@ -979,7 +1068,7 @@ Surfaces: **S1** OSD frame (as a whole, any content) · **S2** individual OSD sl
 | S3 | error | ✅ resolved | No matching LED node found on any glob attempt (D-20-14) → the indicator is **absent**, never broken — never renders a "Caps Lock: unknown" row. |
 | S3 | populated | ✅ resolved | Icon + "Caps Lock" label, per ASCII preview 3. |
 | S3 | partial | ✅ resolved | Not applicable — one icon, one fixed label, nothing partially renders. |
-| S3 | overflow | ✅ resolved | Content-hugging within `osdWidth` (380px); "Caps Lock" never approaches that width. |
+| S3 | overflow | ✅ resolved | **[Named divergence from D-20-10, see New Tokens]** Not applicable — this content shape's width is itself content-hugging (`capsLockRow.implicitWidth + Design.spacingMd * 2`), not the fixed `osdWidth` (380px) the slider-column shape uses, so there is no fixed container for "Caps Lock" to overflow. |
 | S3 | zero-one-many | ✅ resolved | Not applicable — binary state, one row. |
 | S3 | long-text | ✅ resolved | Fixed short string, no sender-controlled text ever reaches this row (unlike a notification). |
 | S4 | empty | ✅ resolved | Not applicable — the dialog only exists while summoned; there is no "no actions" state, all six are always present. |
@@ -1125,3 +1214,50 @@ capability, not a restyle of an existing one — the second revision's own Gate 
 exercised mouse hover moving `focusedIndex` at all, because it did not. A future checker
 re-run should treat this as new interaction surface to verify, not as a pre-existing
 criterion whose wording merely tightened.
+
+---
+
+## FOURTH REVISION RECORD (2026-08-16) — supersedes the THIRD revision's own text for the sections it touches; also folds in an OSD-side divergence discovered at the same time
+
+Same scope boundary as the prior three records: design-contract layer only
+(`20-CONTEXT.md`, this file, `Design.qml`'s token values, and the relevant QML comments)
+and **not** re-run through `gsd-ui-checker`. Sections touched: header notices (this
+revision's own notice added above), Design System / Reused Tokens (`GradientBorder.qml`
+row, Color paragraph, Motion paragraph, Frame-components-reused paragraph), New Tokens
+(`sessionScrimOpacity`, `sessionFocusScale`'s provenance note, `osdWidth`'s named
+divergence), "Frost and the ignore_alpha trap" (mechanism update + `animation` value
+correction), Color (the focus-role table row, the action→colour-role "third revision"
+paragraph, now marked superseded), Frame (scrim comment, the "No card..." GradientBorder
+note), ASCII preview 4, Focus Treatment (ring-treatment paragraph, ASCII preview 5), Gate B
+(criteria 1, 2, 10, 12 revised), OSD Placement/Caps-Lock-Variant sections and the S3/overflow
+UI Consideration row (the D-20-10 divergence, unrelated to the focus-ring revert but
+discovered and fixed in the same pass per this task's own instructions).
+
+**What changed, dimension by dimension, for this pass specifically:**
+- **Copywriting**: no change — the revert touches colour/motion and one layout divergence,
+  not copy.
+- **Visuals**: ASCII preview 5 rewritten back to the static neutral ring (undoing the third
+  revision's rewrite); ASCII preview 4's scrim/ring annotations updated to the new values
+  and treatment; no other preview needed a redraw.
+- **Color**: the focus ring's colour source reverts from `GradientBorder.qml`'s three-stop
+  rotating gradient (`Colours.primary`/`secondary`/`tertiary`) back to the single flat
+  `Colours.onSurface` role — undoing the third revision's routing change, not introducing a
+  new one. No colour role is added or retired by this pass.
+- **Typography**: no change.
+- **Spacing**: no new spacing token; `sessionScrimOpacity` (the existing ratio token,
+  exempt from the 4px grid per the established precedent) changes value again, 0.35 → 0.25
+  — no new exemption introduced. `osdWidth` itself is unchanged (380); only its
+  applicability narrows to the slider-column content shape, formalising a divergence that
+  already existed in the built `Osd.qml` before this pass documented it.
+- **Registry Safety**: not applicable, unaffected.
+
+**A genuine mechanism change this pass makes, flagged explicitly rather than folded
+silently into the colour-value story:** the scrim's "gradual" dim is no longer a QML-side
+`Behavior on opacity` on `PowerMenu.qml`'s own scrim `Rectangle` (the third revision's
+mechanism) — it is now the compositor's own layer fade (`windowrules.lua`'s
+`animation = "fade"` for `quickshell-session`, timed by `animations.lua`'s
+`layersIn`/`layersOut`). This was a genuine bug fix (a QML-animated buffer alpha crossing
+the namespace's `ignore_alpha` step function snapped the backdrop into blur mid-ramp), not
+a stylistic preference, and removed a token (`Design.sessionScrimRampFactor`) outright. A
+future checker re-run should verify the fade reads as gradual on its own terms, not assume
+it is still paced by any per-pill `Cascade` timing.

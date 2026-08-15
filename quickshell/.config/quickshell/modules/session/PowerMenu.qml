@@ -109,6 +109,10 @@
 //      (`GradientBorder.qml`, this shell's existing shared rim) — see the
 //      pill delegate below. Deliberately its OWN, easily-revertible
 //      change: nothing else in this pass touches the focus-ring block.
+//      [FOURTH revision, 2026-08-16: REVERTED — see the pill delegate's
+//      own comment below for the full story. The ring is back to a
+//      static `Colours.onSurface` stroke; this item is kept here as the
+//      trial record, not the current state.]
 //   3. **Hover now moves `focusedIndex`** — `pillMouseArea.onEntered`
 //      writes it directly (see the pill delegate's own comment for the
 //      hover/keyboard precedence this establishes). The existing 0.65
@@ -128,7 +132,13 @@
 //      `_dismissing` to pick `emphasizedIn`/`emphasizedOut` — entrance
 //      and exit each borrow the SAME token pair the pill cascade itself
 //      uses for its own direction, not a fifth motion value.
-// See 20-CONTEXT.md's D-20-21 (third revision note) and 20-UI-SPEC.md's
+//      [FOURTH revision, 2026-08-16: this `Behavior on opacity` mechanism
+//      is REMOVED — see the scrim Rectangle's own comment below for why
+//      (animating this surface's buffer alpha across the `ignore_alpha`
+//      step function snapped the backdrop into blur mid-ramp). The
+//      "gradual" dim is now the compositor's own layer fade, and
+//      `sessionScrimOpacity` itself moved again, 0.35 -> 0.25.]
+// See 20-CONTEXT.md's D-20-21 (fourth revision note) and 20-UI-SPEC.md's
 // revised Focus Treatment / Entrance Motion / New Tokens sections for the
 // design-contract side of this pass.
 import QtQuick
@@ -507,31 +517,35 @@ PanelWindow {
         return bands;
     }
 
-    // ── Full-bleed scrim (D-20-21, revised THREE times) — a dim
-    //    (Design.sessionScrimOpacity, 0.35 as of the THIRD revision — was
-    //    0.15, was 0.32, was 0.55 originally), not a screen-take-over.
-    //    0.35 sits ABOVE the quickshell-session namespace's own
-    //    ignore_alpha 0.2 cutoff (windowrules.lua), a deliberate reversal
-    //    of the second revision's "stay below the cutoff" reasoning — see
+    // ── Full-bleed scrim (D-20-21, revised FOUR times) — a dim
+    //    (Design.sessionScrimOpacity, 0.25 as of the FOURTH revision — was
+    //    0.35 (third), was 0.15, was 0.32, was 0.55 originally), not a
+    //    screen-take-over. 0.25 sits ABOVE the quickshell-session
+    //    namespace's own ignore_alpha 0.2 cutoff (windowrules.lua), the
+    //    same side the third revision's 0.35 already sat on — see
     //    Design.qml's own sessionScrimOpacity comment for the full
-    //    consequence (backdrop blur returns, and this now matches the
-    //    pill fill's own side of the same cutoff instead of splitting
-    //    from it). "Gradual" (also third revision) is this Rectangle's
-    //    own `opacity` ramp, not this `color` value — see the Behavior
-    //    below. Carries the click-outside MouseArea (Bug 1 fix, see file
-    //    header) so dismissal is deterministic and independent of
-    //    HyprlandFocusGrab's focus-change semantics. ────────────────────
+    //    consequence (backdrop blur applies, matching the pill fill's own
+    //    side of the same cutoff). "Gradual" is now the COMPOSITOR's own
+    //    layer fade (windowrules.lua's `animation = "fade"` for this
+    //    namespace, timed by animations.lua's layersIn/layersOut) — NOT a
+    //    `Behavior` on this Rectangle's own `opacity`. See the block
+    //    immediately below for why the fourth revision removed that
+    //    QML-side ramp. Carries the click-outside MouseArea (Bug 1 fix,
+    //    see file header) so dismissal is deterministic and independent
+    //    of HyprlandFocusGrab's focus-change semantics. ─────────────────
     Rectangle {
         id: scrim
         anchors.fill: parent
-        // Third revision, item 4 — "gradual" is this Rectangle's own
-        // `opacity` (0 here at construction, driven to 1/0 by
-        // Component.onCompleted / `_beginDismiss()`), animated by the
-        // `Behavior` below; `color` itself stays a fixed, fully-resolved
-        // RGBA value at the token's own target alpha (`sessionScrimOpacity`,
-        // "stronger" per item 4) — multiplying that fixed alpha through the
-        // ramping `opacity` is what makes the ramp read as a smooth dim
-        // rather than a colour crossfade, with no second colour to define.
+        // Third revision, item 4 — "gradual" WAS this Rectangle's own
+        // `opacity` (0 at construction, driven to 1/0 by
+        // Component.onCompleted / `_beginDismiss()`), animated by a
+        // `Behavior on opacity`. Fourth revision: that `Behavior` is
+        // REMOVED — see below for why — and `opacity` now holds at a
+        // constant 1 for this Rectangle's entire lifetime; `color` alone
+        // carries the fixed, fully-resolved RGBA value at the token's own
+        // target alpha (`sessionScrimOpacity`). This paragraph is kept as
+        // the historical record of the mechanism that used to live here,
+        // not a description of what runs now.
         // ── No QML opacity ramp here. This is load-bearing. ─────────────
         // `ignore_alpha` is a STEP function evaluated against this
         // surface's own BUFFER alpha: Hyprland gives the blurred backdrop
