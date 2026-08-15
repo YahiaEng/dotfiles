@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: indicators-power-menu
 status: executing
-stopped_at: Completed 20-03-PLAN.md (shared token/colour-role/layer-namespace surface)
-last_updated: "2026-08-15T16:21:49.899Z"
+stopped_at: Completed 20-04-PLAN.md
+last_updated: "2026-08-15T17:06:55.574Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 45
-  completed_plans: 38
+  completed_plans: 39
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 20 (indicators-power-menu) — EXECUTING
-Plan: 4 of 10
+Plan: 5 of 10
 Status: Ready to execute
-Progress: [████████░░] 84%
+Progress: [█████████░] 87%
 Last activity: 2026-08-15 — Phase 20 execution started
 
 ## Performance Metrics
@@ -230,6 +230,7 @@ Last activity: 2026-08-15 — Phase 20 execution started
 | Phase 20 P02 | 12min | 2 tasks | 3 files |
 | Phase 20 P01 | 35min (multi-session) | 4 tasks | 5 files |
 | Phase 20 P03 | 5min | 3 tasks | 3 files |
+| Phase 20 P04 | 45min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -502,6 +503,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: D-20-19 measured: no SwayOSD pill over hyprlock -> QOSD-01 amended to its already-true locked=true key-functionality clause (keybinds.lua:297-308), not chased
 - [Phase ?]: RESEARCH Open Question 1 measured: sysfs Caps Lock FileView watch did not fire on either edge -> flagged as scope conversation for plan 20-05 Task 2's polling-Timer fallback, not pre-authorised
 - [Phase ?]: 20-03: onWarn completes the existing warn pair; quickshell-osd gets its OWN ignore_alpha=0.2 override (does not inherit quickshell-notif-toast's) because Toast.qml's reused fill (0.38) sits below the family's 0.5 floor
+- [Phase ?]: quickshell-osd registry row placed on osd/Osd.qml with a narrowly-scoped forward-closure fallback, since neither of the plan's two suggested row placements satisfied the check body unmodified
+- [Phase ?]: panel-swayosd-key-ownership renamed to panel-osd-state-driven-trigger (D-20-05 inverts D-15-24's premise); _qsd_swayosd_server_reachable stays defined for the QS-06 probe's remaining use, deferred to plan 20-09
 
 ### Quick Tasks Completed
 
@@ -640,8 +643,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-15T16:21:49.877Z
-Stopped at: Completed 20-03-PLAN.md (shared token/colour-role/layer-namespace surface)
+Last session: 2026-08-15T17:06:55.549Z
+Stopped at: Completed 20-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

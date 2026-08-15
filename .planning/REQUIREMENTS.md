@@ -44,7 +44,7 @@
 
 - [x] **QOSD-01**: Volume and brightness indicators appear on the media keys, including while the lock screen is up
 - [x] **QOSD-02**: A Caps Lock indicator appears with **no root service** — read from the keyboard LED's sysfs node via a watched file
-- [ ] **QOSD-03**: Indicators auto-hide after a delay and stay open while hovered
+- [x] **QOSD-03**: Indicators auto-hide after a delay and stay open while hovered
 - [x] **QOSD-04**: Volume, microphone and brightness show as independent sliders in one column when more than one has changed — each individually adjustable, each appearing only if that control actually moved *(named addition)*
 
 ### QPOWER — Power menu (replaces wleave)
@@ -150,7 +150,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QNOTIF-11 | Phase 19 | Complete |
 | QOSD-01 | Phase 20 | Complete |
 | QOSD-02 | Phase 20 | Complete |
-| QOSD-03 | Phase 20 | Pending |
+| QOSD-03 | Phase 20 | Complete |
 | QOSD-04 | Phase 20 | Complete |
 | QPOWER-01 | Phase 20 | Complete |
 | QPOWER-02 | Phase 20 | Pending |
