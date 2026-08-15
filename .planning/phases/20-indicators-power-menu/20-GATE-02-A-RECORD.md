@@ -69,31 +69,38 @@ executor's instruction not to self-certify a criterion the user has not confirme
 
 | # | Criterion (verbatim from `20-UI-SPEC.md` § "Gate A — OSD") | Verdict | Observation |
 |---|---|---|---|
-| 1 | The OSD frame reads as visually part of the same family as the popup card/centre/toast (rounded corners, `GradientBorder`-free but same `notifSurface` fill register, theme-reactive) — never SwayOSD's flat unthemed pill. | AWAITING-OBSERVATION | Not yet judged live. |
-| 2 | A live theme switch re-colours the slider fill/handle within one crossfade, zero literal-hex flash. | AWAITING-OBSERVATION | Not yet judged live. |
-| 3 | Volume/brightness/mic key presses each show the correct single-row OSD; pressing two within `osdRecencyWindowMs` shows both as a two-row column; a control that never moved never appears. | AWAITING-OBSERVATION | **Brightness half pre-empted, per this plan's own must_haves and D-18-39's precedent:** `/sys/class/backlight/` is empty on this host (zero backlight-class devices, confirmed live in `20-RESEARCH.md`), so the brightness row's code path is present-but-inert and cannot be demonstrated live here — record that half `NOT-DEMONSTRABLE` when the sitting happens, not `FAIL`, and not silently omitted. **Volume and mic halves still require a real live gesture** (single-row show, two-within-window column, absent-if-unmoved) — not yet performed. |
-| 4 | Hover pauses the auto-hide timer; leaving resumes it (not a reset). | AWAITING-OBSERVATION | Not yet judged live. |
-| 5 | Drag and scroll both adjust a slider in place, writing through the live backend — confirmed by a value shown elsewhere (bar capsule, centre) agreeing immediately. | AWAITING-OBSERVATION | Not yet judged live. |
-| 6 | Caps Lock shows the icon+label row **only** on the ON transition, never on OFF. | AWAITING-OBSERVATION | Not yet judged live. **Carries WINDOWS row 77's open verification debt** — the 250ms poll mechanism (`CapsLockBackend.qml`, built after GATE-01 measured the specified event-driven watch dead on this host) has never been confirmed to fire on a real physical key press. This criterion IS that confirmation. |
+| 1 | The OSD frame reads as visually part of the same family as the popup card/centre/toast (rounded corners, `GradientBorder`-free but same `notifSurface` fill register, theme-reactive) — never SwayOSD's flat unthemed pill. | PASS | Confirmed live by the operator during the 2026-08-16 sitting. |
+| 2 | A live theme switch re-colours the slider fill/handle within one crossfade, zero literal-hex flash. | PASS | Confirmed live by the operator during the 2026-08-16 sitting. |
+| 3 | Volume/brightness/mic key presses each show the correct single-row OSD; pressing two within `osdRecencyWindowMs` shows both as a two-row column; a control that never moved never appears. | PASS (volume, mic) / **NOT-DEMONSTRABLE** (brightness) | **Volume and mic halves PASS**, confirmed live by the operator (single-row show, two-within-window column, absent-if-unmoved). **Brightness half is NOT-DEMONSTRABLE, per D-18-39's precedent** — this host has zero backlight-class devices (`/sys/class/backlight/` empty, `brightnessctl -l` lists only LED-class devices), so the brightness row's code path is present-but-inert and cannot be exercised here. The operator has EXPLICITLY APPROVED proceeding with RETIRE-04 despite this — it does NOT block Gate A's authorisation — but it is recorded as an **accepted, named risk with its verification debt intact**, not a pass. These dotfiles also target a laptop, where this path is a real deliverable that remains unproven. `.planning/todos/pending/2026-08-15-brightness-osd-unverifiable-on-desktop.md` and WINDOWS.md row 78 stay OPEN — this gate's approval does not close them. |
+| 4 | Hover pauses the auto-hide timer; leaving resumes it (not a reset). | PASS | Confirmed live by the operator during the 2026-08-16 sitting. |
+| 5 | Drag and scroll both adjust a slider in place, writing through the live backend — confirmed by a value shown elsewhere (bar capsule, centre) agreeing immediately. | PASS | Confirmed live by the operator during the 2026-08-16 sitting. |
+| 6 | Caps Lock shows the icon+label row **only** on the ON transition, never on OFF. | **PASS — confirmed live** | The operator pressed the physical Caps Lock key and the indicator appeared, exercised specifically and separately from the rest of the sitting. **This closes WINDOWS row 77**, which had never been confirmed before: the 250ms sysfs poll in `CapsLockBackend.qml` (built after GATE-01 measured the specified event-driven watch dead on this host) DOES fire correctly on a real physical key press. This is also the resolution of `20-RESEARCH.md` Open Question 1 (whether the poll-based fallback would actually work in practice) — it does. |
 | 7 | The two GATE-01 open questions are answered with evidence, not assumed: does the pill render over hyprlock (D-20-19); does Caps Lock indicate at the SDDM prompt before this gate authorises RETIRE-04's `swayosd-libinput-backend.service` removal (D-20-17/18). | **PASS** | **Resolved directly from `20-GATE-01-MEASUREMENTS.md`, per this plan's own instruction that criterion 7 reads plan 20-01's recorded measurements rather than re-taking them.** (a) § "SDDM greeter Caps Lock" — no on-screen indicator appeared at the greeter (the keyboard's own hardware LED lighting is a separate, unrelated fact); verdict token `RETIRE-04 proceeds`, not `RETIRE-04: BLOCKED` — so this criterion does not trigger the plan's own "D-20-18 BLOCKED branch fails criterion 7" clause. (b) § "SwayOSD over hyprlock" — the pill did NOT appear over the hyprlock lock surface; per D-20-19's negative branch this is recorded as `amended — locked-key-functionality already satisfied, no lock-surface render required`, not chased as a gap. Both sub-answers are evidenced, neither defaults, and neither blocks RETIRE-04. |
 
 ## Deletion Authorisation
 
-**`RETIRE-04 BLOCKED` — pending live render-gate sitting.**
+**`RETIRE-04 AUTHORISED`**
 
-Six of seven criteria (1-6) remain `AWAITING-OBSERVATION`; only criterion 7 is resolved (from
-GATE-01's own prior measurement, not a fresh live gesture). Per this record's own pass bar,
-every criterion must carry `PASS` or `NOT-DEMONSTRABLE`-with-reason before this section can
-read `RETIRE-04 AUTHORISED`. This is a normal, expected mid-gate state — not the D-20-18
-scope-escalation branch, which applies only if criterion 7 itself had failed.
+All seven criteria carry a verdict. Criteria 1, 2, 4, 5 PASS. Criterion 3 PASSES for its volume
+and mic halves; its brightness half is NOT-DEMONSTRABLE (zero backlight-class devices on this
+host, D-18-39 precedent) and is explicitly accepted by the operator as an open, named risk rather
+than treated as blocking — see the note on that row. Criterion 6 PASSES, confirmed live with a
+real physical Caps Lock key press. Criterion 7 PASSES (resolved from `20-GATE-01-MEASUREMENTS.md`,
+per the plan's own instruction). The operator reported **"Both gates approved"** on 2026-08-16.
 
-**Once the operator completes the live sitting** (criteria 1-6, plus re-confirming criterion 3's
-volume/mic halves and the brightness half's `NOT-DEMONSTRABLE` reason), this section is rewritten
-with:
-1. The authorisation token `RETIRE-04 AUTHORISED` (or a documented `FAIL` list keeping it
-   `RETIRE-04 BLOCKED`).
-2. Re-verification that `git diff --quiet 8b6a111a5f896a4bb449ac5a2cb91bcf6680d205 -- quickshell/.config/quickshell/`
-   still holds — a shell tree that moved since the judged sha invalidates the judgment.
+**Judged sha:** `8b6a111a5f896a4bb449ac5a2cb91bcf6680d205`.
 
-Plan 20-09 reads this section as its own precondition and refuses to delete `swayosd` on
-anything but a full `RETIRE-04 AUTHORISED` pass.
+**Interlock re-verified at authorisation time:**
+`git diff --quiet 8b6a111a5f896a4bb449ac5a2cb91bcf6680d205 -- quickshell/.config/quickshell/`
+holds (exit 0, no output) — the shell tree has not moved since the judged sha. Re-run at HEAD
+`4aa2f20542edade99c7267a7724fc42d6f213f15` (this record's own commit ancestor) and confirmed
+clean.
+
+**Accepted residual risk carried forward, not cleared by this authorisation:** criterion 3's
+brightness half stays NOT-DEMONSTRABLE. `.planning/todos/pending/2026-08-15-brightness-osd-unverifiable-on-desktop.md`
+and WINDOWS.md row 78 remain OPEN — this authorisation does not close them, and the brightness
+path ships unproven pending real laptop hardware.
+
+Plan 20-09 reads this section as its own precondition. It MUST re-assert the interlock command
+above at the moment of deletion before removing `swayosd` — a shell tree that has moved since the
+judged sha invalidates this authorisation.
