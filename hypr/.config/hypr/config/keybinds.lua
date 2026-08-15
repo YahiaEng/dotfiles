@@ -299,20 +299,37 @@ hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true }) -- 
 -- hyprlock is up, per D-20-19's measurement) — kept verbatim, not
 -- re-decided by this plan. `-l 1.0` on the raise bind caps PipeWire's own
 -- software boost at 100%, which `swayosd-client` used to cap for us.
--- XF86AudioLowerVolume/XF86AudioMute/XF86AudioMicMute repointed in Task 2
--- of this same plan; XF86MonBrightness{Up,Down} likewise.
+-- XF86AudioLowerVolume/XF86AudioMute/XF86AudioMicMute are repointed onto
+-- `wpctl` the same way (Task 2 of this same plan); XF86MonBrightness{Up,Down}
+-- repoint onto `brightnessctl` instead, see the comment above that pair.
+-- No `swayosd-client` invocation remains in this file as of Task 2.
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0"), { locked = true, repeating = true }) -- Raise volume
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("swayosd-client --output-volume lower"), { locked = true, repeating = true }) -- Lower volume
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("swayosd-client --output-volume mute-toggle"), { locked = true, repeating = true }) -- Mute audio
-hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("swayosd-client --input-volume mute-toggle"), { locked = true, repeating = true }) -- Mute microphone
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true }) -- Lower volume
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true }) -- Mute audio
+hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, repeating = true }) -- Mute microphone
 
 -- ── Brightness ───────────────────────────────────────
--- OSD-01/D-24: routed through swayosd-client so brightness gets the same
--- themed pill as volume. swayosd-client drives the same backlight path
--- brightnessctl did, so D-25's descope still holds: DDC (external-monitor)
--- brightness stays out of scope — this is the laptop-backlight path only.
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("swayosd-client --brightness raise"), { locked = true, repeating = true }) -- Raise brightness
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("swayosd-client --brightness lower"), { locked = true, repeating = true }) -- Lower brightness
+-- Phase 20 Plan 04 Task 2 (QOSD-01, D-20-05): repointed off swayosd-client
+-- onto brightnessctl directly, same backend-state-change mechanism as the
+-- audio binds above. `--class=backlight` is MANDATORY, not decoration —
+-- this host has ZERO backlight-class devices and several LED-class ones
+-- (including `input33::capslock`, the exact node QOSD-02 watches), so an
+-- unclassed `brightnessctl set` could write a keyboard LED instead of a
+-- (nonexistent) backlight. The long `--class` flag is used deliberately
+-- rather than `-c`, whose trailing-comma QML-array form is textually
+-- indistinguishable from a shell interpreter's own `-c` flag — see
+-- BrightnessBackend.qml's own header (T-18-12-01). With no backlight
+-- device present these two binds are correctly inert (D-18-39's
+-- present-but-inert precedent), which is why brightness key presses must
+-- alter no keyboard LED on this host. The caps-lock OSD (QOSD-02, D-20-13)
+-- is handled separately — a watched sysfs LED node read in-process by the
+-- shell, still keyless, still no root service; the prior claim that
+-- swayosd-libinput-backend.service owned this is no longer true now that
+-- swayosd is being phased out of the OSD path. D-25's DDC descope still
+-- holds: external-monitor brightness stays out of scope, laptop-backlight
+-- path only.
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl --class=backlight set 5%+"), { locked = true, repeating = true }) -- Raise brightness
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl --class=backlight set 5%-"), { locked = true, repeating = true }) -- Lower brightness
 
 -- ── Media controls ───────────────────────────────────
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true }) -- Next track

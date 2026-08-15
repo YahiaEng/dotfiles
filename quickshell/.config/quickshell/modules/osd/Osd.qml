@@ -127,15 +127,37 @@ Toast {
         }
     }
 
-    // ── Trigger — D-20-05, see header. Reacts to the two AudioBackend
-    //    properties this task's single row reads. Task 2 widens this SAME
-    //    block (mic/brightness) rather than adding a second Connections. ──
+    // ── Trigger — D-20-05, see header. Task 2 (this block) widens the
+    //    SAME Connections rather than adding a second one, per the plan's
+    //    own instruction — one trigger surface, three backends. The
+    //    content shown is STILL Task 1's single volume row only: mic and
+    //    brightness changes now reach `show()` and raise the frame, but
+    //    render no row of their own yet. That is an intentional
+    //    intermediate state (not a bug) — plan 20-05 builds the multi-row
+    //    column that actually renders the mic/brightness/caps-lock rows.
+    //    `BrightnessBackend` is a singleton (modules/bar/qmldir), reached
+    //    directly through the "../bar" import above — no threading through
+    //    shell.qml is needed, unlike `audioBackend` which Osd.qml never
+    //    mounts itself.
     Connections {
         target: osd.audioBackend
         function onMasterVolumeChanged() {
             osd.show();
         }
         function onMasterMutedChanged() {
+            osd.show();
+        }
+        function onInputVolumeChanged() {
+            osd.show();
+        }
+        function onInputMutedChanged() {
+            osd.show();
+        }
+    }
+
+    Connections {
+        target: BrightnessBackend
+        function onPercentChanged() {
             osd.show();
         }
     }
