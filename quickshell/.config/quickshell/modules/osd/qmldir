@@ -1,15 +1,20 @@
 # qmldir — explicit module manifest for quickshell/modules/osd/ (Phase 20
-# Plan 04, QOSD-01/QOSD-03). Mirrors every sibling module manifest's own
-# standing instruction: any .qml type added to this directory that is NOT
-# declared below becomes unresolvable to `shell.qml`'s `import "modules/osd"`.
-# Any FUTURE type added to this directory (plan 20-05's multi-row column
-# content lives INSIDE Osd.qml, not as a second type here) MUST do the
-# same, in the same commit that creates it.
+# Plan 04, QOSD-01/QOSD-03; Plan 05, QOSD-04 this commit, QOSD-02 in a
+# following commit). Mirrors every sibling module manifest's own standing
+# instruction: any .qml type added to this directory that is NOT declared
+# below becomes unresolvable to `shell.qml`'s `import "modules/osd"`. Any
+# FUTURE type added to this directory MUST do the same, in the same commit
+# that creates it.
 #
 # Osd is NOT a singleton — shell.qml mounts one ordinary, always-on
 # instance (Toast.qml's own always-mounted posture, matching the DND
 # toast), never behind a LazyLoader: the OSD must react to a volume/
 # brightness/caps-lock change at any moment for the whole session, not
 # only while some other surface is open.
+#
+# OsdSliderRow (Plan 05, QOSD-04) — the reusable slider row Osd.qml
+# instantiates up to three times. Not a singleton — Osd.qml owns exactly
+# one instance of each row.
 module qs.modules.osd
 Osd 1.0 Osd.qml
+OsdSliderRow 1.0 OsdSliderRow.qml

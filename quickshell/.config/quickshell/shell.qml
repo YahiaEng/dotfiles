@@ -162,6 +162,39 @@ ShellRoot {
         audioBackend: audioBackendInstance
     }
 
+    // ── Brightness IPC surface (Phase 20 Plan 05, QOSD-01/QOSD-04 — Rule 2
+    //    deviation, missing critical functionality, see 20-05-SUMMARY.md).
+    //    `.planning/todos/pending/2026-08-15-brightness-osd-unverifiable-
+    //    on-desktop.md`'s option (a): route the WRITE through
+    //    `BrightnessBackend` so the backend itself remains the OSD
+    //    trigger's sole emitter (D-20-05's "trigger is backend state,
+    //    never the keybind" stays literally true), rather than option
+    //    (b) (poll while visible) — chosen because this repo already has
+    //    a proven, zero-new-process actuation path for exactly this shape
+    //    (`bar-visibility.sh`'s own `qs ipc call bar <verb>` precedent,
+    //    itself run from a Hyprland keybind's `exec_cmd`), so no new
+    //    mechanism is introduced, only a second target on the SAME
+    //    mechanism. `BrightnessBackend.adjust(steps)` already applies
+    //    `Design.barScrollStepPercent` (5) internally — the identical
+    //    step size the raw `brightnessctl ... set 5%+/-` exec it replaces
+    //    used, so this is a trigger-path fix, not a behaviour change.
+    //    `raise`/`lower` (not `show`/anything CLI11 could collide with —
+    //    T-18-17's own finding) return a string for a bounded caller to
+    //    log, mirroring `overviewIpc.toggle()`'s own shape below. ───────
+    IpcHandler {
+        id: osdIpc
+        target: "osd"
+
+        function raise(): string {
+            BrightnessBackend.adjust(1);
+            return "raised";
+        }
+        function lower(): string {
+            BrightnessBackend.adjust(-1);
+            return "lowered";
+        }
+    }
+
     // ── Notification test IPC surface (Phase 19 Plan 04, Task 3 — Rule 2
     //    deviation, missing critical functionality) — the plan's own
     //    fault-injection fixture (notif-fault-inject) needs a mechanical,

@@ -309,27 +309,36 @@ hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ to
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, repeating = true }) -- Mute microphone
 
 -- ── Brightness ───────────────────────────────────────
--- Phase 20 Plan 04 Task 2 (QOSD-01, D-20-05): repointed off swayosd-client
--- onto brightnessctl directly, same backend-state-change mechanism as the
--- audio binds above. `--class=backlight` is MANDATORY, not decoration —
--- this host has ZERO backlight-class devices and several LED-class ones
--- (including `input33::capslock`, the exact node QOSD-02 watches), so an
--- unclassed `brightnessctl set` could write a keyboard LED instead of a
--- (nonexistent) backlight. The long `--class` flag is used deliberately
--- rather than `-c`, whose trailing-comma QML-array form is textually
--- indistinguishable from a shell interpreter's own `-c` flag — see
--- BrightnessBackend.qml's own header (T-18-12-01). With no backlight
--- device present these two binds are correctly inert (D-18-39's
--- present-but-inert precedent), which is why brightness key presses must
--- alter no keyboard LED on this host. The caps-lock OSD (QOSD-02, D-20-13)
--- is handled separately — a watched sysfs LED node read in-process by the
--- shell, still keyless, still no root service; the prior claim that
--- swayosd-libinput-backend.service owned this is no longer true now that
--- swayosd is being phased out of the OSD path. D-25's DDC descope still
+-- Phase 20 Plan 05 (QOSD-01/QOSD-04, D-20-05, Rule 2 deviation — see
+-- 20-05-SUMMARY.md and
+-- .planning/todos/pending/2026-08-15-brightness-osd-unverifiable-on-desktop.md):
+-- repointed OFF the raw `brightnessctl` exec Plan 04 Task 2 shipped, onto
+-- `qs ipc call -- osd raise|lower` (shell.qml's own `osd` IpcHandler,
+-- calling `BrightnessBackend.adjust()`). Plan 04's raw exec changed the
+-- backlight directly but bypassed `BrightnessBackend.percent` entirely —
+-- `Osd.qml`'s trigger watches THAT property, so the OSD never raised on a
+-- real backlight-equipped host even though the hardware itself changed
+-- correctly. Routing the write through the backend keeps D-20-05's
+-- "trigger is backend state, never the keybind" literally true: the
+-- backend is still the sole emitter, only the keybind's OWN call target
+-- moved. `timeout 2` bounds the call the same way bar-visibility.sh's own
+-- `_ipc_call` does; `--` is REQUIRED per T-18-17's measured CLI11
+-- collision finding (a bare positional argument can collide with the
+-- `ipc show` subcommand one level up) even though neither `raise` nor
+-- `lower` is the literal token that collided — kept for consistency with
+-- the one precedent this repo has already proven correct, not because
+-- these two verbs are known to collide themselves. This host has ZERO
+-- backlight-class devices (`BrightnessBackend.present` is false), so this
+-- path is implemented but UNVERIFIED here — re-test on real laptop
+-- hardware per the todo file's own verification-debt section. The
+-- caps-lock OSD (QOSD-02, D-20-13) remains handled separately — a polled
+-- (not watched — GATE-01 measured the watch dead, see
+-- CapsLockBackend.qml's own header) sysfs LED node read in-process by the
+-- shell, still keyless, still no root service. D-25's DDC descope still
 -- holds: external-monitor brightness stays out of scope, laptop-backlight
 -- path only.
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl --class=backlight set 5%+"), { locked = true, repeating = true }) -- Raise brightness
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl --class=backlight set 5%-"), { locked = true, repeating = true }) -- Lower brightness
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("timeout 2 qs ipc call -- osd raise"), { locked = true, repeating = true }) -- Raise brightness
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("timeout 2 qs ipc call -- osd lower"), { locked = true, repeating = true }) -- Lower brightness
 
 -- ── Media controls ───────────────────────────────────
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true }) -- Next track
