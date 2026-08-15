@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 53
+open_count: 51
 waived_count: 2
-fixed_count: 24
+fixed_count: 26
 total_count: 79
-last_updated: 2026-08-15T18:48:59.990Z
+last_updated: 2026-08-15T21:25:59.053Z
 ---
 
 # Broken Windows Ledger
@@ -90,8 +90,8 @@ last_updated: 2026-08-15T18:48:59.990Z
 | 73 | 19 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Task 2 human-check not run interactively: opening the drawer, clicking the DND tile, confirming all six tiles render untruncated with the full two-line label — grid state ownership proven structurally via grep/quickshell-doctor instead | open |  | 2026-08-13T12:17:52.009Z |  |
 | 74 | 19 | unrun-verify | quickshell/.config/quickshell/modules/toast/Toast.qml |  | Task 3 human-check not run interactively: visually confirming the toast slides in top-centre with correct on/off copy, self-dismisses after ~2s, and two rapid toggles produce one toast not two — DND was flipped by directly editing the state file, never exercising the real toggleDnd()/dndToggled/show() path | open | RE-DEFERRED (LEDGER-05, 20-02): Phase 20's OSD reuses this exact Toast frame type. Owner: plan 20-08's Gate A, criteria 3 (auto-hide) and 4 (hover-pause) — exercises the identical show()/timer/self-dismiss mechanism this row flags as unproven. | 2026-08-13T12:17:52.097Z |  |
 | 75 | 19 | unrun-verify | quickshell/.config/quickshell/modules/centre/NotifCentre.qml |  | Task 1-3 human-check blocks (slide/fade, Escape close, empty-state tint, grouping/clearing live sends, footer sliders, bell/Super+N summon) deferred to end-of-phase UAT per human_verify_mode=end-of-phase | open |  | 2026-08-13T12:43:20.122Z |  |
-| 76 | 20 | deviation | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | Plan 20-06 Task 1's grid design was rejected live and rebuilt to a radial ring; the ring's own Task-1 human-check (7 items, plus the two live-verified bug fixes) has not yet been re-run live against the ring — deferred to the operator per continuation-agent instructions not to press keys/restart the shell. | open |  | 2026-08-15T17:56:24.301Z |  |
-| 77 | 20 | deviation | quickshell/.config/quickshell/modules/osd/CapsLockBackend.qml |  | QOSD-02 Caps Lock detector uses a bounded 250ms poll (shared with Osd.qml's recency Timer) instead of the event-driven sysfs watch the plan specified — GATE-01 measured the watch dead on this host; live ON-transition firing on a real physical key press is unverified | open |  | 2026-08-15T18:21:21.959Z |  |
+| 76 | 20 | deviation | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | Plan 20-06 Task 1's grid design was rejected live and rebuilt to a radial ring; the ring's own Task-1 human-check (7 items, plus the two live-verified bug fixes) has not yet been re-run live against the ring — deferred to the operator per continuation-agent instructions not to press keys/restart the shell. | fixed |  | 2026-08-15T17:56:24.301Z | 2026-08-15T21:25:58.952Z |
+| 77 | 20 | deviation | quickshell/.config/quickshell/modules/osd/CapsLockBackend.qml |  | QOSD-02 Caps Lock detector uses a bounded 250ms poll (shared with Osd.qml's recency Timer) instead of the event-driven sysfs watch the plan specified — GATE-01 measured the watch dead on this host; live ON-transition firing on a real physical key press is unverified | fixed |  | 2026-08-15T18:21:21.959Z | 2026-08-15T21:25:59.053Z |
 | 78 | 20 | deviation | hypr/.config/hypr/config/keybinds.lua |  | Brightness keybinds now route through BrightnessBackend via a new shell.qml osd IpcHandler instead of a raw brightnessctl exec, fixing the OSD trigger gap 20-04-SUMMARY.md named — unverified since this host has zero backlight-class devices; re-test on real laptop hardware | open |  | 2026-08-15T18:21:26.383Z |  |
 | 79 | 20 | unrun-verify | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | 20-07 Task 1/2/3 human-checks not run live (no restarts/keypresses this session): detector timing, warning chip placement, cascade stagger, OSD suppression, popup dismissal, scrim colour fix | open |  | 2026-08-15T18:48:59.990Z |  |
 
@@ -1004,10 +1004,10 @@ last_updated: 2026-08-15T18:48:59.990Z
     "file": "quickshell/.config/quickshell/modules/session/PowerMenu.qml",
     "line": null,
     "description": "Plan 20-06 Task 1's grid design was rejected live and rebuilt to a radial ring; the ring's own Task-1 human-check (7 items, plus the two live-verified bug fixes) has not yet been re-run live against the ring — deferred to the operator per continuation-agent instructions not to press keys/restart the shell.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-15T17:56:24.301Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-15T21:25:58.952Z"
   },
   {
     "id": 77,
@@ -1016,10 +1016,10 @@ last_updated: 2026-08-15T18:48:59.990Z
     "file": "quickshell/.config/quickshell/modules/osd/CapsLockBackend.qml",
     "line": null,
     "description": "QOSD-02 Caps Lock detector uses a bounded 250ms poll (shared with Osd.qml's recency Timer) instead of the event-driven sysfs watch the plan specified — GATE-01 measured the watch dead on this host; live ON-transition firing on a real physical key press is unverified",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-15T18:21:21.959Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-15T21:25:59.053Z"
   },
   {
     "id": 78,
