@@ -1,0 +1,14 @@
+# qmldir — explicit module manifest for quickshell/modules/session/ (Phase
+# 20 Plan 06, QPOWER-01). Mirrors every sibling module manifest's own
+# standing instruction (modules/qmldir's header states this as a
+# repo-wide rule): any .qml type added to this directory that is NOT
+# declared below becomes unresolvable to shell.qml's `import
+# "modules/session"`. A type MUST be registered in the SAME commit that
+# creates it.
+#
+# PowerMenu is NOT a singleton — shell.qml mounts it behind a LazyLoader
+# (the summon-via-LazyLoader idiom every other dismissible surface in this
+# shell uses, `active: false` at rest), never an always-on instance: the
+# dialog exists only while summoned.
+module qs.modules.session
+PowerMenu 1.0 PowerMenu.qml

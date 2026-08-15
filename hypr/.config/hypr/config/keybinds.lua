@@ -65,7 +65,7 @@ hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileExplorer)) -- Open file manager
 hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(tui)) -- Open file manager (TUI)
 hl.bind(mainMod .. " + I", hl.dsp.exec_cmd(codeEditor)) -- Open code editor
 hl.bind(mainMod .. " + Q", hl.dsp.window.kill()) -- Close active window
-hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.exec_cmd("~/.config/hypr/scripts/wleave.sh")) -- Open power menu
+hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.global("quickshell:power-menu")) -- Open power menu
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" })) -- Toggle floating
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen(0)) -- Toggle fullscreen
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen(1)) -- Toggle maximize

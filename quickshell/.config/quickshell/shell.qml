@@ -28,6 +28,7 @@ import "modules/notifications"
 import "modules/toast"
 import "modules/centre"
 import "modules/osd"
+import "modules/session"
 
 ShellRoot {
     id: root
@@ -555,6 +556,27 @@ ShellRoot {
         overviewLoader.active = !overviewLoader.active;
     }
 
+    // ── Power menu (Phase 20 Plan 06, the power half's tracer, QPOWER-01)
+    // ────────────────────────────────────────────────────────────────────
+    // Same summon-via-LazyLoader mechanism as the panels/overview above —
+    // the dialog exists only while summoned. Exempt from `fullscreenBlocking`
+    // for the same reason the overview is (D-16-19, above): a
+    // session-ending action must remain reachable from inside a fullscreen
+    // app, arguably more than navigation is — refusing it would trap the
+    // user rather than merely inconvenience them.
+    LazyLoader {
+        id: powerMenuLoader
+        active: false
+
+        PowerMenu {
+            onDismissRequested: powerMenuLoader.active = false
+        }
+    }
+
+    function togglePowerMenu() {
+        powerMenuLoader.active = !powerMenuLoader.active;
+    }
+
     // D-16-23 check 6's capture-check verb — the same `IpcHandler` pattern
     // as `panelIpc` below (one handler, one target, functions only), so a
     // blank grid is machine-detectable rather than dependent on someone
@@ -913,6 +935,19 @@ ShellRoot {
         appid: "quickshell"
         name: "notif-centre"
         onPressed: notifCentreInstance.toggle()
+    }
+
+    // ── Power menu (Phase 20 Plan 06, QPOWER-01/D-20-22) — repoints the
+    //    outgoing `wleave.sh` shell's own Super+Shift+Q chord
+    //    (keybinds.lua) onto this GlobalShortcut. All three consumers this
+    //    plan repoints (this bind, the walker menu's power entry, the
+    //    bar's `powerCell`) call `root.togglePowerMenu()` above — one
+    //    verb, three callers, per D-17's declared-manifest mechanism. ────
+    GlobalShortcut {
+        id: powerMenuShortcut
+        appid: "quickshell"
+        name: "power-menu"
+        onPressed: root.togglePowerMenu()
     }
 
     // ── Held-Super reveal (Phase 18 Plan 16, QBAR-08) — SHIPPED. ─────────

@@ -40,5 +40,11 @@
     "name": "notif-centre",
     "chord": { "mods": "SUPER", "key": "N" },
     "description": "Toggle the notification centre (Phase 19 Plan 06, D-19-16, QNOTIF-06) — repoints the outgoing daemon's own Super+N chord onto this shell's own GlobalShortcut."
+  },
+  {
+    "appid": "quickshell",
+    "name": "power-menu",
+    "chord": { "mods": "SUPER SHIFT", "key": "Q" },
+    "description": "Toggle the in-process session/power dialog (Phase 20 Plan 06, QPOWER-01, D-20-22) — repoints wleave.sh's own Super+Shift+Q chord onto this shell's own GlobalShortcut."
   }
 ]
