@@ -51,6 +51,8 @@ Existing surfaces this phase must read, not re-derive:
 
 **Typography** (`Design.qml`): `fontHeading 20`/`weightEmphasis` · `fontBody 16`/`weightBody` · `fontLabel 12`/`weightBody`. Line-height: `lineHeightTight 1.2` (Heading), `lineHeightNormal 1.5` (Body/Label) — same three-weight reuse-over-invention precedent both prior phases established; this phase adds no fourth weight and no fourth size.
 
+> **Planner correction (verified at Step 9.5, after checker sign-off).** The two line-height values are **not** `Design.qml` tokens, despite this section's `(Design.qml)` heading. Verified live: `lineHeightTight 1.2` / `lineHeightNormal 1.5` are declared as local `readonly property real` in `modules/dashboard/PanelDialog.qml:149-150` and `modules/Dashboard.qml:228-229`, and consumed locally (`WifiPanel.qml`, `BluetoothPanel.qml`). `grep -rn lineHeight` returns no `Design.qml` hit. The power dialog must therefore either declare the pair locally in the `PanelDialog.qml` idiom (the conservative, precedent-matching choice — no cross-file change) or promote them to `Design.qml` as a deliberate token addition (which would then also want the three existing local declarations repointed, a larger change than this phase's scope implies). Values themselves are correct as stated; only their **location** was mis-cited. Pick one explicitly — do not let the implementation quietly invent a third declaration site.
+
 **Color** (`Colours.qml`/`BarRoles.qml`): `BarRoles.notifSurface`/`notifSurfaceFg` (OSD frame, reused verbatim from Toast.qml, no change), `BarRoles.accent`/`onAccent` (slider fill/handle, focus ring), `BarRoles.capsuleTrack` (slider track), `BarRoles.warn` (= `Colours.tertiary`, the power-menu warning banner — reused, not new), `Colours.surface`/`onSurface` (power dialog background/foreground, read directly per the `PanelDialog.qml`-family convention of NOT routing through `BarRoles` — that routing rule is scoped to the notification family under D-19-43, not the dashboard/panel family), `Colours.surfaceVariant`/`onSurfaceVariant` (power-menu tile fill/foreground, same source as `PanelDialog`'s own Advanced button).
 
 **Motion** (`Motion.qml`): `standardDuration 200`/`standardEasing` (OSD slider fill/value changes, hover states), `emphasizedInDuration 300`/`emphasizedInEasing` (power dialog cascade entrance), `emphasizedOutDuration 150`/`emphasizedOutEasing` (OSD/dialog exit), `staggerOffsetDuration 50`/`staggerOffsetEasing` (D-20-35's per-action cascade — the SAME token `PanelDialog`'s own `Cascade` component already consumes, not a new stagger value). All gated `enabled: Motion.motionEnabled`.
@@ -427,6 +429,8 @@ State coverage across this phase's surfaces, using the 8-category taxonomy (empt
 
 Surfaces: **S1** OSD frame (as a whole, any content) · **S2** individual OSD slider row · **S3** OSD Caps Lock row · **S4** power dialog frame · **S5** individual session tile · **S6** warning banner.
 
+**Probe provenance (ui-phase Step 9.5, post-verification).** `ui-consideration-probe.cjs` was run over all six surfaces after the checker approved this spec. It reported **48 applicable considerations, 0 unclassified** — exactly the 6 × 8 grid below, independently confirming the axis rather than taking this table's word for it. Detected element kinds: S1 `list-collection/media/interactive-control/static-content` · S2 `form/list-collection/media/interactive-control` · S3 `list-collection/media/interactive-control/static-content` · S4 `list-collection/nav` · S5 `list-collection/nav/media/interactive-control/static-content` · S6 `list-collection/media/static-content`. Kind-confirmation was a no-op for recall here: every surface already reaches the full 8-category set, so no additional element kind could raise a category that is not already applicable — the usual partial-cue under-coverage risk does not apply to this spec. Final tally: **46 resolved (explicit) · 2 resolved (backstop) · 0 unresolved.**
+
 | # | Category | Status | Resolution |
 |---|----------|--------|------------|
 | S1 | empty | ✅ resolved | No control recently moved and Caps Lock hasn't just toggled → the frame is not shown at all (`toastActive: false`), zero-idle, matching Toast.qml's existing `visible: toastActive` gate. |
@@ -439,7 +443,7 @@ Surfaces: **S1** OSD frame (as a whole, any content) · **S2** individual OSD sl
 | S1 | long-text | ✅ resolved | Not applicable — the OSD carries no free text (Copywriting Contract); "Caps Lock" is a fixed short string. |
 | S2 | empty | ✅ resolved | A row only exists once its control has a value to show — there is no empty slider row. |
 | S2 | loading | ✅ resolved | Value binds live to the backend's current property, present at first render. |
-| S2 | error | ✅ resolved | Present-but-inert backend (this host's brightness, D-18-39 precedent, per 19-UI-SPEC.md's identical resolution) → row still renders but the slider track shows no fill and does not accept drag; **this is a genuine open assumption carried from 19-UI-SPEC.md's own N6/empty row** (whether "backend absent" and "backend present-but-inert" need visually distinct treatment) — inherited here unresolved, not newly resolved. |
+| S2 | error | ✅ resolved | **Present-but-inert backend renders NO row at all — byte-identical to "backend absent" and to "control didn't move."** (User decision, ui-phase Step 9.5 probe resolution, taken from a rendered three-option comparison.) The rule is structural, not styling: a row's existence is gated on "this control's value changed within `osdRecencyWindowMs`," and an inert backend's value never changes, so the gate never opens. There is therefore no second slider appearance to maintain and no disabled/greyed register on this surface — consistent with D-20-28's own "nothing is ever greyed" rule on the power menu. **Scope note:** this resolves the question *for the transient OSD only*. 19-UI-SPEC.md's N6/empty question — whether absent vs. present-but-inert need distinct treatment on the notification centre's **always-visible** sliders, where the row is present regardless of recency — remains open where it actually lives and is NOT decided by this row. The planner must not propagate this answer to the centre's sliders. |
 | S2 | populated | ✅ resolved | Icon + track + handle, per "Sliders" section. |
 | S2 | partial | ✅ resolved | Not applicable — a slider row has exactly one value, no sub-parts. |
 | S2 | overflow | ✅ resolved | Not applicable — a slider's value is inherently bounded 0-1/0-100%. |
@@ -478,7 +482,12 @@ Surfaces: **S1** OSD frame (as a whole, any content) · **S2** individual OSD sl
 | S6 | zero-one-many | ✅ resolved | 0 → banner absent (S6/empty); 1-3 → stacked lines, resolved above. |
 | S6 | long-text | ✅ resolved | Three fixed strings (Copywriting Contract), one with a dynamic integer — none can grow unboundedly. |
 
-**Backstop/unresolved notes for the planner:** three backstop rows (S1/error, S4/error) rest on backend-signal behaviour this document cannot verify from CONTEXT.md/RESEARCH.md alone — confirm each against the real implementation, the same class of gap 18-UI-SPEC.md and 19-UI-SPEC.md both already flagged for their own surfaces' backends. One row (S2/error) explicitly carries forward an assumption 19-UI-SPEC.md itself left unresolved (N6/empty, backend-absent vs. backend-present-but-inert) rather than re-deciding it independently here — the two surfaces share the same underlying backends and should not be allowed to silently diverge on this question.
+**Backstop notes for the planner:** two rows (S1/error, S4/error) are `verification: backstop` — they rest on backend-signal behaviour this document cannot verify from CONTEXT.md alone, the same class of gap 18-UI-SPEC.md and 19-UI-SPEC.md both already flagged for their own surfaces' backends. Each must be confirmed against the real implementation and wired to evidence; at verify time a backstop row with no wired evidence routes to `insufficient_spec → human_needed` rather than silently passing, which is the intended behaviour, not over-flagging.
+
+- **S1/error** — that AudioBackend/BrightnessBackend simply never fire when the underlying service is down (so the OSD never triggers rather than showing a broken frame). Confirm; do not assume.
+- **S4/error** — that a `hyprshutdown` exec failure degrades silently rather than surfacing an in-menu error. A completely silent failure on a session-ending action is a real UX question worth one explicit check before it ships that way.
+
+**No unresolved rows remain.** S2/error was the one genuinely open row at checker sign-off (it was labelled resolved while its own text said otherwise); it was resolved by explicit user decision during the Step 9.5 probe and now carries a concrete truth, with its scope limited to this surface as recorded above.
 
 ---
 
@@ -494,11 +503,19 @@ Not applicable — this is a Quickshell/QML shell with no shadcn or npm componen
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+Verdict: **APPROVED** — 6/6 dimensions PASS, no blocking issues (gsd-ui-checker, `ui_safety_gate: true`).
+
+- [x] Dimension 1 Copywriting: PASS — every CTA is a specific verb; OSD deliberately textless; warning copy names the actual condition
+- [x] Dimension 2 Visuals: PASS — 6 rendered ASCII previews; no icon-only action without a label
+- [x] Dimension 3 Color: PASS — accent scoped to slider fill/handle + focus ring only; warn reserved to the banner; no hardcoded hex (GATE-04)
+- [x] Dimension 4 Typography: PASS — 3 sizes, 2 weights, no fourth of either (see the line-height location correction under Reused Tokens)
+- [x] Dimension 5 Spacing: PASS — every new token on the 4px grid, no exemptions this phase
+- [x] Dimension 6 Registry Safety: PASS — not applicable, no shadcn/npm registry in this stack
+
+**Non-blocking items the checker flagged for the planner:**
+1. Icon glyphs `brightness_6` and `keyboard_capslock` must be tested against the installed variable-font build before they are relied on.
+2. The two `backstop` error rows (S1/error, S4/error) must be confirmed against the live backends — see UI Considerations.
+3. `Toast.qml` needs a **third** opt-in property (`namespace`), not the two D-20-02 names — a real gap between two locked decisions, surfaced here rather than mid-implementation.
+4. Line-height token location mis-cited — see the Planner correction under Reused Tokens.
 
 **Approval:** pending
