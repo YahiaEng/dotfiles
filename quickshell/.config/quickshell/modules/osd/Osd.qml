@@ -22,6 +22,7 @@
 // the mic row are plan 20-05's own scope — Task 2 of this plan only widens
 // the TRIGGER (mic/brightness backends), never the content shown here.
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import "../"
 import "../dashboard"
