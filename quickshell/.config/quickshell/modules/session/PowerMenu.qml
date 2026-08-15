@@ -533,7 +533,17 @@ PanelWindow {
                 // the pill cascade itself uses for that same direction —
                 // not a fifth motion value, and never a raw literal
                 // (`motion-lint` CHECK B).
-                duration: powerWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration
+                //
+                // Scaled by `sessionScrimRampFactor` (user-reported: "the
+                // gradient dimming happens too fast"). The pill cascade's
+                // own timing is UNCHANGED — only the scrim is slowed. They
+                // are deliberately different now: the pills are a discrete
+                // arrival the eye tracks per-band, while the dim is an
+                // ambient field change that reads as abrupt at the same
+                // speed. Still a token multiple, never a raw literal, the
+                // same idiom WorkspaceTile.qml:431 and Overview.qml:931
+                // already use for `Motion.ambientDuration` multiples.
+                duration: (powerWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration) * Design.sessionScrimRampFactor
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: powerWindow._dismissing ? Motion.emphasizedOutEasing : Motion.emphasizedInEasing
             }

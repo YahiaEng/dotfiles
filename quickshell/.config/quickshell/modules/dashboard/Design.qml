@@ -620,6 +620,21 @@ Singleton {
     // the same instruction that motivated tokenising it in both prior
     // revisions — the user may move it again after judging it live.
     readonly property real sessionScrimOpacity: 0.35
+    // sessionScrimRampFactor (3) — NEW, third-revision follow-up. A
+    // MULTIPLE of Motion's own emphasizedIn/Out duration, not a duration
+    // of its own: motion.json stays the single source of motion timing and
+    // a motion-scale change still governs the scrim, which a hardcoded
+    // millisecond value here would silently escape. At the current tokens
+    // this is 900ms in, 450ms out.
+    //
+    // Deliberately decoupled from the pill cascade, which keeps the
+    // unscaled tokens. The user reported the dim as "too fast" while
+    // calling the pill animation "good" at that same speed — a discrete
+    // per-band arrival and an ambient full-field dim do not read as the
+    // same tempo even when they share a duration. A ratio rather than a
+    // second absolute value keeps that relationship intact if motion.json
+    // is ever retuned.
+    readonly property real sessionScrimRampFactor: 3
     // sessionFocusScale (1.08) — NEW, second revision. Replaces the
     // retired chromatic-only focus ring (previously BarRoles.accent, a
     // palette hue) with a NEUTRAL ring (Colours.onSurface, see
