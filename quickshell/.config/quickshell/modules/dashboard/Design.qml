@@ -497,30 +497,86 @@ Singleton {
     // restarts far more often than either reference shell's deployment.
     readonly property int notifHistoryCap: 100
 
-    // ── Session (power menu) tokens (Phase 20 Plan 03, QPOWER-01) —
+    // ── Session (power menu) tokens (Phase 20 Plan 03, QPOWER-01;
+    //    REVISED 2026-08-15 for the ring design — see 20-CONTEXT.md's
+    //    D-20-21 revision note and 20-UI-SPEC.md's "## New Tokens —
+    //    Power menu" section, rewritten in the same pass as this block) —
     //    provenance: 20-UI-SPEC.md "## New Tokens". Declared in ONE pass
     //    per this plan's own instruction, so no later Phase 20 power-half
     //    plan needs to reopen this file for a token addition.
     //
-    //    sessionDialogWidth (488) — D-20-21. Derivation, recorded so the
-    //    number is never re-derived wrong: sessionTileWidth (136) × 3 +
-    //    spacingMd (16) × 2 gaps + panelPadding (24) × 2 sides
-    //    = 408 + 32 + 48 = 488.
-    readonly property int sessionDialogWidth: 488
-    readonly property int sessionTileWidth: 136
-    readonly property int sessionTileHeight: 104
-    // sessionTileRadius (16) — D-20-21. Deliberately NOT popoutCornerRadius
-    // (20, reserved for the outer frame); matches QuickToggles.qml's own
-    // chipRadius (16) so a session tile reads as a sibling of a
-    // quick-toggle chip.
-    readonly property int sessionTileRadius: 16
-    // sessionTileIconSize (32) — D-20-21. The one deliberate departure
-    // from the shell's uniform iconSizeMd (24) icon discipline: a session
-    // tile is a large tap target carrying a single glyph as its entire
-    // content, not an icon alongside a label, so it earns a larger size.
+    //    The user rejected the built 3×2-grid dialog live ("overtakes the
+    //    entire screen... I want a floating cards design, circular pills
+    //    arranged in a circular motion... colored according to the theme
+    //    with a frosted look") and locked a ring-with-centre-label shape
+    //    instead. Four grid-shaped tokens below are RETIRED — a circle has
+    //    one diameter, not a width/height/radius triple, and there is no
+    //    dialog card left to size: sessionDialogWidth (488),
+    //    sessionTileWidth (136), sessionTileHeight (104),
+    //    sessionTileRadius (16). None has a consumer left in this tree.
+    //    sessionTileIconSize is KEPT unchanged below — its justification
+    //    (a primary, session-ending action earning more visual weight than
+    //    this shell's uniform 24px icon discipline) holds identically for
+    //    a circular pill's icon. sessionScrimOpacity is CHANGED. Four new
+    //    tokens replace the retired four; derivations are recorded here so
+    //    the ring geometry is verifiable, not merely trusted — full
+    //    arithmetic also lives in 20-UI-SPEC.md's New Tokens table.
+
+    // sessionPillDiameter (80) — D-20-21 (revised). sessionTileIconSize
+    // (32) + spacingLg (24) × 2 sides of padding = 32 + 48 = 80. On the
+    // 4px grid (80 / 4 = 20).
+    readonly property int sessionPillDiameter: 80
+    // sessionRingRadius (96) — D-20-21 (revised). Centre-of-ring to
+    // centre-of-pill. For 6 points spaced evenly on a circle (60° apart),
+    // the chord length between adjacent centres equals the radius itself
+    // (2R·sin(30°) = R). Setting that chord to sessionPillDiameter (80) +
+    // spacingMd (16) gap gives R = 96 — adjacent pill EDGES sit exactly
+    // one spacingMd apart. On the 4px grid (96 / 4 = 24).
+    readonly property int sessionRingRadius: 96
+    // sessionSurfaceDiameter (272) — D-20-21 (revised). Overall extent of
+    // the ring cluster, outer edge to outer edge:
+    // 2 × (sessionRingRadius + sessionPillDiameter / 2)
+    // = 2 × (96 + 40) = 272. On the 4px grid (272 / 4 = 68).
+    readonly property int sessionSurfaceDiameter: 272
+    // sessionCentreLabelWidth (112) — D-20-21 (revised). The safe,
+    // rotation-independent inscribed region at the ring's centre that no
+    // pill can ever encroach on, regardless of which action sits at which
+    // clock position: 2 × (sessionRingRadius − sessionPillDiameter / 2)
+    // = 2 × (96 − 40) = 112. On the 4px grid (112 / 4 = 28). Verified
+    // against the longest focused-action strings ("Hibernate", "Shut
+    // Down", 9 chars each) at fontBody/weightEmphasis — both fit without
+    // wrapping.
+    readonly property int sessionCentreLabelWidth: 112
+    // sessionTileIconSize (32) — D-20-21, KEPT unchanged. The one
+    // deliberate departure from the shell's uniform iconSizeMd (24) icon
+    // discipline: a session pill is a large tap target carrying a single
+    // glyph as its entire content, not an icon alongside a label, so it
+    // earns a larger size. Holds identically under the ring revision.
     readonly property int sessionTileIconSize: 32
-    // sessionScrimOpacity (0.55) — D-20-21/D-20-34. Matches
-    // BarRoles.barSurface's own 0.55 and therefore already clears the
-    // `^quickshell-.*` family's ignore_alpha: 0.5 floor with headroom.
-    readonly property real sessionScrimOpacity: 0.55
+    // sessionPillFillOpacity (0.72) — D-20-21 (revised), Claude's
+    // Discretion. NEW — required by the user's explicit "frosted look"
+    // (each pill individually frosted, not opaque). A ratio, not an
+    // offset — exempt from the 4px-grid rule per the same precedent as
+    // notifDismissThresholdFraction. Applied as
+    // Qt.rgba(<role>.r, <role>.g, <role>.b, sessionPillFillOpacity)
+    // against whichever severity-role colour a pill maps to (see
+    // 20-UI-SPEC.md's action→colour-role table). 0.72 is chosen
+    // specifically to clear the ^quickshell-.* family's
+    // ignore_alpha: 0.5 floor with real headroom (0.22) — see
+    // 20-UI-SPEC.md's "Frost and the ignore_alpha trap" for why the
+    // SCRIM below does NOT get the same headroom and what that requires
+    // in windowrules.lua (a follow-up change, not part of this token
+    // update).
+    readonly property real sessionPillFillOpacity: 0.72
+    // sessionScrimOpacity (0.32, CHANGED from 0.55) — D-20-21 (revised) —
+    // the user's explicit ask: "a popup that slightly dims the screen",
+    // rejecting the original 0.55 as reading like the design "overtakes
+    // the entire screen". This value sits BELOW the ^quickshell-.* family's
+    // ignore_alpha: 0.5 floor — the previous 0.55 cleared that floor by
+    // construction (matching BarSurface's own proven 0.55); 0.32 does
+    // not, and does not try to. See 20-UI-SPEC.md's "Frost and the
+    // ignore_alpha trap" for the required windowrules.lua follow-up
+    // (a new quickshell-session-specific ignore_alpha row, NOT made in
+    // this token-update commit).
+    readonly property real sessionScrimOpacity: 0.32
 }

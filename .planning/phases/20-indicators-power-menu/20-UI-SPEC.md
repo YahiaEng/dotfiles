@@ -25,6 +25,19 @@ created: 2026-08-15
 > document renders them, it does not re-litigate them.** Per this project's own
 > standing instruction, every layout/shape/grid/state choice below carries a
 > rendered ASCII preview, not a prose-only description.
+>
+> **REVISION NOTICE (2026-08-15).** The power-menu sections of this document
+> were rewritten after the user rejected the built 3×2-grid dialog live and
+> selected a floating radial-pill design instead (D-20-21, revised). Every
+> "Power Menu" section below (Frame, Tile→Pill Anatomy, Focus Treatment,
+> Entrance Motion, Safety Warning, the New Tokens table, the affected rows in
+> Spacing/Typography/Color, ASCII previews 4-6) is rewritten to the ring shape.
+> The **OSD sections are untouched** — Phase 20 Plan 03/05 already built and
+> verified the OSD half against the original OSD tokens, and this revision does
+> not touch them. Checker sign-off below reflects the ORIGINAL (grid) design;
+> this revision has not been re-run through gsd-ui-checker — a later render
+> gate is where that re-verification happens, per the executor's own scope
+> (design-contract layer only, not a re-run of the checker agent).
 
 ---
 
@@ -33,13 +46,13 @@ created: 2026-08-15
 | Property | Value |
 |----------|-------|
 | Tool | none — Quickshell/QML shell, not a React/Next.js/Vite stack. shadcn gate not applicable. |
-| Component library | This repo's own token + frame system: `modules/dashboard/Design.qml` (spacing/type/icon/popout/notification tokens — reused, not redeclared), `modules/Colours.qml` (Material You palette singleton), `modules/Motion.qml` (duration/easing singleton), `modules/bar/BarRoles.qml` (the bar-family colour-role layer), `modules/toast/Toast.qml` (the reusable transient-notice frame built in Phase 19 **explicitly for this phase's OSD reuse** — D-20-02, D-20-04), `modules/dashboard/PanelDialog.qml` (the panel-frame family the power menu is built "on," per D-20-21 — chrome/rim/cascade/focus-grab conventions reused, geometry diverged, see "Power Menu — Frame" below), `modules/dashboard/GradientBorder.qml` (the shared animated rim), `modules/dashboard/AudioBackend.qml` / `modules/bar/BrightnessBackend.qml` (the two backends the OSD's sliders read/write, D-20-05/D-20-09 — no new backend), `modules/bar/AudioPopout.qml` (the slider geometry the OSD column reuses verbatim, see "Sliders" below), `modules/dashboard/QuickToggles.qml` (the chip-radius/icon-weight vocabulary the power menu's tiles borrow the *idiom* from, not the component itself). |
+| Component library | This repo's own token + frame system: `modules/dashboard/Design.qml` (spacing/type/icon/popout/notification tokens — reused, not redeclared), `modules/Colours.qml` (Material You palette singleton), `modules/Motion.qml` (duration/easing singleton), `modules/bar/BarRoles.qml` (the bar-family colour-role layer), `modules/toast/Toast.qml` (the reusable transient-notice frame built in Phase 19 **explicitly for this phase's OSD reuse** — D-20-02, D-20-04), `modules/dashboard/PanelDialog.qml` (**[REVISED 2026-08-15]** the power menu now reuses only its `HyprlandFocusGrab`/`Cascade` construction pattern and window-strategy precedent, per D-20-21 revised — the card/rim/header chrome this row originally cited is retired; see "Power Menu — Frame" below), `modules/dashboard/GradientBorder.qml` (**[RETIRED from the power menu this revision]** — no card edge left to rim; still the shared animated rim used elsewhere in this shell), `modules/dashboard/AudioBackend.qml` / `modules/bar/BrightnessBackend.qml` (the two backends the OSD's sliders read/write, D-20-05/D-20-09 — no new backend, unaffected), `modules/bar/AudioPopout.qml` (the slider geometry the OSD column reuses verbatim, see "Sliders" below, unaffected), `modules/dashboard/QuickToggles.qml` (**[RETIRED as a reference]** its chip-radius idiom informed the now-retired rectangular tile; the ring's circular pills have no equivalent borrowed idiom from this file). |
 | Icon library | Material Symbols Rounded — variable font, FILL axis, `Design.symbolFontFamily`, glyphs by ligature name. Two glyphs this phase introduces are **not yet used anywhere else in this shell** (`brightness_6`, `keyboard_capslock`) — flag for the planner to confirm they resolve in the installed variable-font build, the same live-verification discipline `14-02-SUMMARY.md` already applied to `fillAxisAvailable`, before treating them as settled. |
 | Font | Body/UI text: `Qt.application.font` (system default, delegated to `font-switcher.sh` per `Design.qml`'s own documented decision — do not add a family override here either). Icons: Material Symbols Rounded. |
 
 Existing surfaces this phase must read, not re-derive:
 - `modules/toast/Toast.qml` — its header explicitly names this phase as the intended second consumer, and states chrome/content are separable at the type boundary (`default property alias body`). Currently hardcodes `anchors.top: true` and the namespace string `"quickshell-notif-toast"`, and is non-interactive (`keyboardFocus: None`, `focusable: false`). This document's OSD section specifies exactly what changes and what stays fixed.
-- `modules/dashboard/PanelDialog.qml` — `headerHeight: 72`, `cornerRadius: 28`, `panelSurfaceOpacity: 0.78`, `disabledOpacity: 0.38`, `HyprlandFocusGrab` dismissal, `Cascade` entrance. The power menu reuses this file's **pattern language** (background/rim/cascade/focus-grab construction), not its layer posture — `PanelDialog` is anchors-top/bottom-rounded/docked-under-the-bar, built for drawer-style panels; the power menu is a screen-centred modal and diverges on geometry accordingly (see "Power Menu — Frame").
+- `modules/dashboard/PanelDialog.qml` — `headerHeight: 72`, `cornerRadius: 28`, `panelSurfaceOpacity: 0.78`, `disabledOpacity: 0.38`, `HyprlandFocusGrab` dismissal, `Cascade` entrance. **[REVISED 2026-08-15]** The power menu now reuses only `HyprlandFocusGrab` dismissal and the `Cascade` entrance component from this file — `headerHeight`, `cornerRadius` and `panelSurfaceOpacity` have no consumer on the power menu anymore, since there is no card left to carry a header, corner radius or panel fill. `PanelDialog` remains the pattern the ONE-`PanelWindow`-spanning-the-output window strategy came from (see "Power Menu — Frame").
 - `hypr/.config/hypr/config/windowrules.lua:396,445` — the `^quickshell-.*` family regex already applies `blur: true` and `ignore_alpha: 0.5` to any namespace beginning `quickshell-`. Both this phase's new namespaces (`quickshell-osd`, `quickshell-session`, per D-20-33) get blur automatically by construction; each needs only its own exact-match `animation` row, declared **after** the family regex per this file's own already-recorded ordering finding (worked examples at lines 499-526, 563-565).
 - `modules/bar/ClockActionsCapsule.qml:567-580,1002-1019` — `powerScriptPath`, `powerAvailabilityProbe`, `powerLaunchProcess`, and the `powerCell` `ActionCell` (glyph `power_settings_new`, permanently accent-tinted per an operator decision recorded at line 1007-1017). This phase repoints `onClicked` to open the QML power menu in-process and **deletes** `powerAvailabilityProbe`/`powerAvailable` entirely (D-20-23) — the cell's own rendering (glyph, permanent accent tint, tooltip) is **unchanged**, matching the exact "repoint internals, leave rendering untouched" discipline Phase 19 already applied to the bell (`NotificationSource`, same file).
 
@@ -53,11 +66,11 @@ Existing surfaces this phase must read, not re-derive:
 
 > **Planner correction (verified at Step 9.5, after checker sign-off).** The two line-height values are **not** `Design.qml` tokens, despite this section's `(Design.qml)` heading. Verified live: `lineHeightTight 1.2` / `lineHeightNormal 1.5` are declared as local `readonly property real` in `modules/dashboard/PanelDialog.qml:149-150` and `modules/Dashboard.qml:228-229`, and consumed locally (`WifiPanel.qml`, `BluetoothPanel.qml`). `grep -rn lineHeight` returns no `Design.qml` hit. The power dialog must therefore either declare the pair locally in the `PanelDialog.qml` idiom (the conservative, precedent-matching choice — no cross-file change) or promote them to `Design.qml` as a deliberate token addition (which would then also want the three existing local declarations repointed, a larger change than this phase's scope implies). Values themselves are correct as stated; only their **location** was mis-cited. Pick one explicitly — do not let the implementation quietly invent a third declaration site.
 
-**Color** (`Colours.qml`/`BarRoles.qml`): `BarRoles.notifSurface`/`notifSurfaceFg` (OSD frame, reused verbatim from Toast.qml, no change), `BarRoles.accent`/`onAccent` (slider fill/handle, focus ring), `BarRoles.capsuleTrack` (slider track), `BarRoles.warn` (= `Colours.tertiary`, the power-menu warning banner — reused, not new), `Colours.surface`/`onSurface` (power dialog background/foreground, read directly per the `PanelDialog.qml`-family convention of NOT routing through `BarRoles` — that routing rule is scoped to the notification family under D-19-43, not the dashboard/panel family), `Colours.surfaceVariant`/`onSurfaceVariant` (power-menu tile fill/foreground, same source as `PanelDialog`'s own Advanced button).
+**Color** (`Colours.qml`/`BarRoles.qml`): `BarRoles.notifSurface`/`notifSurfaceFg` (OSD frame, reused verbatim from Toast.qml, no change), `BarRoles.accent`/`onAccent` (OSD slider fill/handle; power-menu focus ring only — never a pill fill), `BarRoles.capsuleTrack` (slider track), `BarRoles.warn`/`onWarn` (the power-menu warning chip — REVISED container, unchanged role), `Colours.surface` at `sessionScrimOpacity` (the power menu's own full-screen scrim, **0.32, REVISED from 0.55**), `BarRoles.fillClock`/`fillClockFg`, `BarRoles.fillUpdates`/`fillUpdatesFg`, `BarRoles.danger`/`onDanger` (**NEW consumers this revision** — the six pills' individually-frosted, severity-mapped fills; see "Color" and the action→colour-role table below). `Colours.surface`/`surfaceVariant` at `panelSurfaceOpacity` are **no longer power-menu colours** — there is no card or tile background left to carry them (both retired with the frame).
 
-**Motion** (`Motion.qml`): `standardDuration 200`/`standardEasing` (OSD slider fill/value changes, hover states), `emphasizedInDuration 300`/`emphasizedInEasing` (power dialog cascade entrance), `emphasizedOutDuration 150`/`emphasizedOutEasing` (OSD/dialog exit), `staggerOffsetDuration 50`/`staggerOffsetEasing` (D-20-35's per-action cascade — the SAME token `PanelDialog`'s own `Cascade` component already consumes, not a new stagger value). All gated `enabled: Motion.motionEnabled`.
+**Motion** (`Motion.qml`): `standardDuration 200`/`standardEasing` (OSD slider fill/value changes, hover states), `emphasizedInDuration 300`/`emphasizedInEasing` (power menu cascade entrance), `emphasizedOutDuration 150`/`emphasizedOutEasing` (OSD/power-menu exit), `staggerOffsetDuration 50`/`staggerOffsetEasing` (D-20-35's per-pill cascade, revised for the ring — the SAME token `PanelDialog`'s own `Cascade` component already consumes, not a new stagger value). All gated `enabled: Motion.motionEnabled`.
 
-**Frame components reused verbatim**: `Toast.qml` (the OSD frame itself — an *instance*, not a copy), `GradientBorder.qml` (power dialog rim), the `HyprlandFocusGrab` + `dismissRequested()` pattern (power dialog click-outside dismissal — coexists with D-20-24's exclusive keyboard focus, see "Power Menu — Frame"), `Cascade.qml` (power dialog entrance), the custom `Slider` `background`/`handle` geometry from `AudioPopout.qml` (track height 8/radius 4, handle 20×20, reused **unchanged**, colour already routed through `BarRoles.accent`/`capsuleTrack` there — no divergence this phase, resolving the Claude's Discretion item "reuse vs. lighter variant" in favour of verbatim reuse, see "Sliders" below).
+**Frame components reused verbatim**: `Toast.qml` (the OSD frame itself — an *instance*, not a copy), the `HyprlandFocusGrab` + `dismissRequested()` pattern (power-menu click-outside dismissal — coexists with D-20-24's exclusive keyboard focus, see "Power Menu — Frame"), `Cascade.qml` (power-menu entrance, now cascading six pills + a centre label instead of a header + tile grid), the custom `Slider` `background`/`handle` geometry from `AudioPopout.qml` (track height 8/radius 4, handle 20×20, reused **unchanged**, colour already routed through `BarRoles.accent`/`capsuleTrack` there — no divergence this phase, resolving the Claude's Discretion item "reuse vs. lighter variant" in favour of verbatim reuse, see "Sliders" below). **`GradientBorder.qml` is RETIRED from the power menu this revision** — there is no card edge left to rim; it remains in use elsewhere in this shell, unaffected.
 
 ---
 
@@ -73,16 +86,71 @@ Add to `modules/dashboard/Design.qml` (spacing/sizing/timing) and `modules/bar/B
 | `osdHideDelayMs` | `1200` | D-20-06, Claude's Discretion (SwayOSD's own default is 1000ms, cited in CONTEXT as the reference point, not a mandate). Resolved slightly above SwayOSD parity: `interactive: true` (D-20-02) means a drag gesture must have time to complete inside the dwell window before auto-hide fires, and the hover-pause (D-20-07) already protects any genuinely-slow interaction — 1200ms is enough headroom for a quick glance-and-release without meaningfully lengthening the everyday case. |
 | `osdRecencyWindowMs` | `1500` | D-20-08, Claude's Discretion. QOSD-04's rolling-recency gate — a control earns a slider only if its value changed within this window. Sized against a real multi-key-press cadence (several taps of a volume/brightness key inside well under a second) so a deliberate burst of adjustments keeps every touched control visible together, while a single old change has cleared by the time a genuinely new, unrelated one arrives. |
 
-### `Design.qml` additions — Power menu
+### `Design.qml` additions — Power menu [REVISED 2026-08-15 for the ring shape]
 
-| Token | Value | Provenance |
+The four grid-derived tokens below are **RETIRED** — a circle has one diameter, not a
+width/height/radius triple, and there is no dialog card left to size:
+`sessionDialogWidth` (488), `sessionTileWidth` (136), `sessionTileHeight` (104),
+`sessionTileRadius` (16). None of the four is referenced anywhere in this revised document.
+`sessionTileIconSize` is **kept** unchanged — its justification (a primary, session-ending
+action earning more visual weight than the shell's uniform 24px icon discipline) holds
+identically for a circular pill's icon. `sessionScrimOpacity` is **changed**. Four new
+tokens replace the retired four, each derivation shown so the ring geometry can be
+verified, not merely trusted:
+
+| Token | Value | Derivation / Provenance |
 |-------|-------|------------|
-| `sessionDialogWidth` | `488` | D-20-21. Derived, not arbitrary: `sessionTileWidth`(136) × 3 + `spacingMd`(16, reused) × 2 gaps + `panelPadding`(24, reused) × 2 sides = 408 + 32 + 48 = 488. On the 4px grid (488 / 4 = 122). |
-| `sessionTileWidth` | `136` | D-20-21. On the 4px grid. Roomy enough for the longest label ("Hibernate") at `fontBody`/`weightEmphasis` without wrapping. |
-| `sessionTileHeight` | `104` | D-20-21. On the 4px grid. Tall enough for icon + label + mnemonic in one column without crowding — see "Power Menu — Tile Anatomy". |
-| `sessionTileRadius` | `16` | D-20-21. Not `popoutCornerRadius` (20, reserved for the outer frame's own corners) — matches this shell's established "chip" radius vocabulary (`QuickToggles.qml`'s own `chipRadius: 16`), so a session tile reads as a sibling of a quick-toggle chip, not an unrelated shape. |
-| `sessionTileIconSize` | `32` | D-20-21. A primary, session-ending action is deliberately given more visual weight than a bar glyph (`iconSizeMd` 24) or a quick-toggle chip icon (also 24) — the next rung on this shell's existing icon scale, introduced here because nothing on this surface has needed it before. |
-| `sessionScrimOpacity` | `0.55` | D-20-21/D-20-34, Claude's Discretion (the scrim-as-window-property-vs-separate-layer question, resolved below under "Power Menu — Frame"). Matches `barSurface`'s own `0.55` decimal (`BarRoles.qml`) — a known-good value already proven to clear the `^quickshell-.*` family's `ignore_alpha: 0.5` floor with headroom, reused rather than inventing a fresh boundary-hugging number. |
+| `sessionPillDiameter` | `80` | D-20-21 (revised). `sessionTileIconSize`(32, reused) + `spacingLg`(24, reused) × 2 sides of padding = 32 + 48 = 80. On the 4px grid (80 / 4 = 20). Sized as a comfortable circular tap target around a 32px glyph, not just the glyph's own bounding box. |
+| `sessionRingRadius` | `96` | D-20-21 (revised). Centre-of-ring to centre-of-pill. For 6 points spaced evenly on a circle (60° apart), the chord length between adjacent centres equals the radius itself (`2R·sin(30°) = R`). Setting that chord to `sessionPillDiameter`(80) + `spacingMd`(16, reused) gap gives `R = 96` — i.e. adjacent pill EDGES sit exactly one `spacingMd` apart. On the 4px grid (96 / 4 = 24). |
+| `sessionSurfaceDiameter` | `272` | D-20-21 (revised). Overall extent of the ring cluster, outer edge to outer edge: `2 × (sessionRingRadius + sessionPillDiameter / 2) = 2 × (96 + 40) = 272`. On the 4px grid (272 / 4 = 68). This is the window's centred-content bounding box, analogous to the retired `sessionDialogWidth`. |
+| `sessionCentreLabelWidth` | `112` | D-20-21 (revised). The safe, **rotation-independent** inscribed region at the ring's centre that no pill can ever encroach on, regardless of which action sits at which clock position: `2 × (sessionRingRadius − sessionPillDiameter / 2) = 2 × (96 − 40) = 112`. On the 4px grid (112 / 4 = 28). Verified against the longest focused-action strings ("Hibernate", "Shut Down", 9 chars each) at `fontBody`(16)/`weightEmphasis` — both fit without wrapping (see "Power Menu — Frame"). |
+| `sessionPillFillOpacity` | `0.72` | D-20-21 (revised), Claude's Discretion. NEW — required by the user's explicit "frosted look" (each pill individually frosted, not opaque). A ratio, not an offset — exempt from the 4px-grid rule per the same precedent as `notifDismissThresholdFraction`. Applied as `Qt.rgba(<role>.r, <role>.g, <role>.b, sessionPillFillOpacity)` against whichever severity-role colour the pill maps to (see the action→colour table below), the same colour-typed-alias idiom `BarRoles.qml`'s own `capsule`/`capsuleHover` rows already use. **0.72 is chosen specifically to clear the `^quickshell-.*` family's `ignore_alpha: 0.5` floor with real headroom (0.22)** — the exact trap this token exists to avoid; see "Frost and the ignore_alpha trap" below for the full reasoning, including why the SCRIM's own alpha (next row) does NOT get the same headroom and what that requires downstream. |
+| `sessionScrimOpacity` | `0.32` **(CHANGED from 0.55)** | D-20-21 (revised) — the user's explicit ask: *"a popup that slightly dims the screen"*, rejecting the original 0.55 as reading like the design "overtakes the entire screen." 0.32 is a deliberately light dim. **This value sits BELOW the `^quickshell-.*` family's `ignore_alpha: 0.5` floor** — the previous 0.55 cleared that floor by construction (matching `barSurface`'s own proven 0.55); 0.32 does not, and does not try to. See "Frost and the ignore_alpha trap" immediately below for what this requires in `windowrules.lua` — flagged explicitly rather than left for the implementing plan to discover. |
+
+#### Frost and the ignore_alpha trap — the route specified, stated explicitly
+
+This surface now carries **two different alpha values in the same `quickshell-session`
+namespace**: the scrim at `sessionScrimOpacity` (0.32, below the family's 0.5 floor) and
+each pill's own fill at `sessionPillFillOpacity` (0.72, above it). This is exactly the
+`ignore_alpha` trap named in the executor's own instructions: *"a fill alpha at or below
+the surface's `ignore_alpha` threshold silently discards blur."*
+
+`windowrules.lua`'s own recorded finding (the `wleave` rule, `windowrules.lua:414-440`) is
+that `ignore_alpha` behaves as **an all-or-nothing blur switch for the whole backdrop of
+one namespace** — not a per-pixel decision independent of the rest of the surface. That
+rule's own resolution, when it faced this identical shape (a transparent window + a scrim
++ per-element fills at different alphas), was to set its `ignore_alpha` threshold BELOW
+the *lowest* alpha value anywhere on the surface (0.25, under its own 0.40 scrim), so blur
+stays on uniformly across the whole backdrop rather than risking a split where the scrim
+silently stops blurring while the capsules keep blurring.
+
+**This is Route B: a new `quickshell-session`-specific `ignore_alpha` override row is
+required, NOT Route A ("pin every alpha above the family floor").** Route A is not
+available here without contradicting the user's own scrim instruction — the scrim's 0.32
+is deliberately below 0.5, that is what "slightly dims the screen" means at this value, and
+raising it back above 0.5 to dodge the trap would silently re-introduce the "overtakes the
+screen" problem the whole revision exists to fix. Route B is therefore the only option
+consistent with both the frost requirement and the light-scrim requirement.
+
+**Concrete instruction for whoever adds this row (`windowrules.lua`, declared in the
+existing "AFTER the `^quickshell-.*` family regex" block — lines 567-604 in the pre-revision
+file, immediately below the existing `quickshell-session` `animation = "slide"` row):**
+
+```
+hl.layer_rule({ match = { namespace = "quickshell-session" }, ignore_alpha = 0.2 })
+```
+
+0.2 is chosen to sit below BOTH values present on this surface (0.32 scrim, 0.72 pill fill)
+with the same kind of headroom the notification family and `quickshell-osd` already use at
+that exact threshold (`windowrules.lua:563-565,594`), rather than inventing a fourth
+distinct low-threshold number for no reason. **This row does not exist yet** —
+`windowrules.lua` currently carries only the stale `quickshell-session` `animation` row
+plus a comment predicting the family's bare 0.5 floor would be "sufficient," a prediction
+written against the retired 0.55/0.78 values and invalidated by this revision. Adding the
+row above, and correcting that stale comment, is in scope for whichever plan implements
+`PowerMenu.qml` against this revised spec — it is NOT made in this spec-revision commit,
+which is scoped to the design-contract layer only (`20-CONTEXT.md`, this file, and
+`Design.qml`'s token values) and does not touch `windowrules.lua`.
 
 ### `BarRoles.qml` addition — one role completion, not a new family
 
@@ -90,7 +158,7 @@ Add to `modules/dashboard/Design.qml` (spacing/sizing/timing) and `modules/bar/B
 |------|-------------|-------|
 | `onWarn` | `Colours.onTertiary` | The `warn` role (`Colours.tertiary`) has existed since Phase 18.1 with no paired foreground colour — nothing needed one until QPOWER-03's warning banner. Completes the existing pair rather than opening a new colour family; mirrors the `danger`/`onDanger` pairing already on this file. |
 
-Every other colour this phase needs already exists and is reused by name: `BarRoles.notifSurface`/`notifSurfaceFg` (OSD, via Toast.qml, unchanged), `BarRoles.accent`/`onAccent`, `BarRoles.capsuleTrack`, `BarRoles.warn`. The power dialog's own background/tile colours read `Colours.*` directly, per the `PanelDialog`-family convention (see Reused Tokens above) — not a new routing rule, an existing one this phase's frame inherits by construction.
+Every other colour this phase needs already exists and is reused by name: `BarRoles.notifSurface`/`notifSurfaceFg` (OSD, via Toast.qml, unchanged), `BarRoles.accent`/`onAccent`, `BarRoles.capsuleTrack`, `BarRoles.warn`/`onWarn`, `BarRoles.fillClock`/`fillClockFg`, `BarRoles.fillUpdates`/`fillUpdatesFg`, `BarRoles.danger`/`onDanger`. **[REVISED]** The power menu's scrim reads `Colours.surface` directly (unchanged mechanism); the six pills read exclusively through `BarRoles.*` role names now (the severity palette) rather than a direct `Colours.surfaceVariant` reference — there is no more "power dialog background/tile colour reading `Colours.*` directly" case, since there is no dialog background left.
 
 ---
 
@@ -100,13 +168,22 @@ Declared values (must be multiples of 4) — this project's established scale, r
 
 | Token | Value | Usage on this surface |
 |-------|-------|------------------------|
-| xs | 4px | Mnemonic-letter inset inside a session tile |
+| xs | 4px | **[REVISED]** No longer a mnemonic-letter inset — pills carry no text (locked). Retained on this surface only as the general-purpose smallest increment; no session-specific consumer currently claims it. |
 | sm | 8px | Gap between OSD rows in the multi-slider column; icon-to-track gap fallback |
-| md | 16px | OSD frame padding; icon-to-track gap (glyph → slider row, matches `AudioPopout.qml`'s own row shape); session dialog padding (`panelPadding` reused); session grid gap between tiles |
-| lg | 24px | Space between the session grid and the warning banner when the banner is present |
+| md | 16px | OSD frame padding; icon-to-track gap (glyph → slider row, matches `AudioPopout.qml`'s own row shape); **[REVISED]** the gap between adjacent ring pills (baked into `sessionRingRadius`'s own derivation, not a separately-applied margin — see the New Tokens table); the warning chip's internal padding (icon-to-text within a chip line) |
+| lg | 24px | **[REVISED]** Half of `sessionPillDiameter`'s own padding derivation (icon 32 + `spacingLg`×2 = 80); the gap between the ring's outer edge and the warning chip when the chip is present (was: "grid to banner", same role, new geometry — see "Power Menu — Safety Warning") |
 | xl | 32px | Not used directly on this surface — `notifExpandThresholdPx` (Phase 19) is the only consumer of this exact value elsewhere; recorded here only to confirm no exception is introduced |
 
-No non-4px-grid exception exists on this surface — unlike Phase 18's `barEdgeMargin`/`barSideMargin` (retired-bar parity) or Phase 19's `notifDismissThresholdFraction` (a ratio, not an offset), every new numeric token this phase adds (`osdWidth`, `sessionDialogWidth`, `sessionTileWidth`, `sessionTileHeight`, `sessionTileRadius`, `sessionTileIconSize`) sits on the 4px grid.
+No non-4px-grid exception exists on this surface for offset-shaped tokens — unlike Phase
+18's `barEdgeMargin`/`barSideMargin` (retired-bar parity), every new numeric offset token
+this phase adds sits on the 4px grid: `osdWidth`, `sessionPillDiameter`,
+`sessionRingRadius`, `sessionSurfaceDiameter`, `sessionCentreLabelWidth`,
+`sessionTileIconSize`. Two RATIO tokens — `sessionPillFillOpacity` (0.72) and
+`sessionScrimOpacity` (0.32) — are exempt for the same reason Phase 19's
+`notifDismissThresholdFraction` was: they express a fraction of full opacity, not a
+screen-space offset, so the 4px-grid rule does not apply to them by definition. The four
+retired grid-shaped tokens (`sessionDialogWidth`, `sessionTileWidth`, `sessionTileHeight`,
+`sessionTileRadius`) are no longer part of this surface's token set at all.
 
 ---
 
@@ -114,9 +191,11 @@ No non-4px-grid exception exists on this surface — unlike Phase 18's `barEdgeM
 
 | Role | Size | Weight | Line Height | Used for |
 |------|------|--------|-------------|----------|
-| Heading | 20px (`fontHeading`) | DemiBold (`weightEmphasis`) | 1.2 | Power dialog header ("Session") |
-| Body | 16px (`fontBody`) | DemiBold (`weightEmphasis`) for tile labels; Normal (`weightBody`) for the warning banner line | 1.5 | Session tile labels; warning banner copy |
-| Label | 12px (`fontLabel`) | Normal (`weightBody`) | 1.5 | Session tile mnemonic letter (low-emphasis, corner-anchored); Caps Lock row's own label sits at Body, not Label — see OSD section |
+| Heading | 20px (`fontHeading`) | DemiBold (`weightEmphasis`) | 1.2 | **[RETIRED on this surface]** No dialog header exists in the ring design — no card, no "Session" title. This role has no consumer on the power menu under this revision; still used elsewhere in this shell (unaffected). |
+| Body | 16px (`fontBody`) | DemiBold (`weightEmphasis`) for the centre focused-action label; Normal (`weightBody`) for the warning chip's copy line | 1.5 | **[REVISED]** The ring's centre label (was: tile labels — pills no longer carry any label of their own); warning chip copy |
+| Label | 12px (`fontLabel`) | Normal (`weightBody`) | 1.5 | **[RETIRED on this surface]** No mnemonic letter is displayed (D-20-24, revised — pills are icon-only, locked). Caps Lock row's own label sits at Body, not Label — see OSD section, unaffected by this revision. |
+
+**[NEW row this revision.]** Every pill is icon-only — zero characters of text render on or under any pill. The single centre label (Body/DemiBold, `sessionCentreLabelWidth` 112px box, centred) is now the ONLY place an action's name appears anywhere on this surface, replacing the six per-tile labels the grid design carried.
 
 The OSD carries **no text at all** — see Copywriting Contract. Its only typographic element is the Caps Lock row's single word, which uses Body (16px/`weightBody`, matching the DND toast's own text weight in Toast.qml's shared frame — not DemiBold, since this is feedback copy, not a heading).
 
@@ -130,16 +209,58 @@ Every value below is either a `BarRoles.<role>` token (OSD, routed per the notif
 
 | Role | Token | Usage |
 |------|-------|-------|
-| Dominant | `BarRoles.notifSurface` (OSD) / `Colours.surface` at `panelSurfaceOpacity` 0.78 (power dialog) | OSD frame background (unchanged from Toast.qml); power dialog card background |
-| Secondary | `Colours.surfaceVariant` | Session tile fill at rest |
-| Accent | `BarRoles.accent` | OSD slider fill + handle; the focused session tile's ring (**never** a fill swap — see "Power Menu — Focus Treatment") |
-| Warning | `BarRoles.warn` / `BarRoles.onWarn` (NEW) | QPOWER-03's warning banner — icon + text. **Not** `danger`/`onDanger`: D-20-28 is warn-only, the action stays available, so this surface never uses the destructive-red register at all |
+| Dominant | `BarRoles.notifSurface` (OSD, unchanged) | OSD frame background |
+| Ring accent | `BarRoles.accent` / `onAccent` | OSD slider fill + handle; the focused pill's ring, and **only** the ring — see "Power Menu — Focus Treatment". **[REVISED]** No pill's own fill ever uses this role (see the severity table below) — the invariant that made this true for the retired grid design ("the tile's own fill never changes to accent") is preserved unchanged under the ring design, it is simply no longer a caveat that needs stating case-by-case, because Accent's hue (`Colours.primary`) is excluded from the severity palette entirely, by construction. |
+| Warning | `BarRoles.warn` / `BarRoles.onWarn` | QPOWER-03's warning chip — icon + text. Reserved for the chip alone, unchanged from the retired design — no pill uses the `warn` role by name (see the coherence note below the severity table for the deliberate `warn`/`fillUpdates` hue overlap). |
+| Severity palette (pills) | `fillClock`/`fillClockFg`, `fillUpdates`/`fillUpdatesFg`, `danger`/`onDanger` | **[NEW this revision]** — see the action→colour-role table immediately below. Each pill's fill is `Qt.rgba(<role>.r, <role>.g, <role>.b, sessionPillFillOpacity)` (0.72), not the role's opaque value — see New Tokens. |
 
-Accent (`BarRoles.accent`) reserved for, explicitly — never "all interactive elements":
-1. The active fill and handle of every OSD slider (volume/mic/brightness).
-2. The focused session tile's ring — ring only, the tile's own fill never changes to accent.
+### Action → colour-role mapping (severity), NEW this revision
 
-`BarRoles.warn`/`onWarn` reserved for exactly one thing on this surface: the power-menu warning banner. No tile, no icon, no other element on either surface uses it. `BarRoles.danger`/`onDanger` (the destructive-red register) is **not used anywhere in this phase** — D-20-28's "warn only, action stays available" rule means nothing on either surface is ever styled as blocked or dangerous; the six tiles themselves render identically whether or not a warning is showing.
+The six pills are individually coloured, so — unlike the retired grid, where every tile was
+uniformly `Colours.surfaceVariant` and colour carried no meaning — colour now needs to
+carry meaning without contradicting D-20-28's "warn only, nothing is ever styled as
+blocked/dangerous." The resolution: **static, permanent, per-action severity tinting is
+orthogonal to D-20-28's dynamic rule.** D-20-28 forbids a tile's appearance from *reacting*
+to a live, transient detector state (package manager running, etc.) — it says nothing
+about a tile's own baseline identity colour, which never changes regardless of whether any
+warning is currently showing. A permanently danger-tinted Shut Down pill looks identical
+whether pacman is running or not; that is what keeps this consistent with "warn only."
+
+Grouping follows D-20-29's own existing boundary exactly — the set of actions the warning
+already applies to (Shutdown, Reboot, Hibernate, Logout) versus the two it does not (Lock,
+Suspend) — subdivided once further by how final the two warned actions in each pair are:
+
+| Action | Tier | Fill role | Icon/fg role | Reasoning |
+|--------|------|-----------|--------------|-----------|
+| Lock | A — never warned | `fillClock` | `fillClockFg` | Instantly reversible, no session loss, the default-focused action (least destructive, D-20-24). |
+| Suspend | A — never warned | `fillClock` | `fillClockFg` | Reversible on wake; grouped with Lock because D-20-29 excludes exactly these two from the warned set — same tier, same colour. |
+| Log Out | B — warned | `fillUpdates` | `fillUpdatesFg` | Ends the session but is not a full compositor/system exit. |
+| Reboot | B — warned | `fillUpdates` | `fillUpdatesFg` | Ends the session and restarts the compositor; grouped with Log Out at the same severity. |
+| Hibernate | C — warned, most severe | `danger` | `onDanger` | Suspend-to-disk: a pacman transaction in flight resumes into an inconsistent package DB just as badly as a hard poweroff (D-20-29's own stated reason for including it in the warned set at all). |
+| Shut Down | C — warned, most severe | `danger` | `onDanger` | Full poweroff, the least recoverable action on the surface; grouped with Hibernate at the top severity tier. |
+
+**Why `Colours.primary` (Accent/`fillNotification`'s hue) is excluded from every pill:**
+`BarRoles.accent` is `Colours.primary`, and it is reserved for the focus ring (see above).
+`BarRoles.fillNotification` resolves to the identical underlying colour
+(`Colours.primary`) under a different role name — using it on any pill would produce a
+pill that is visually indistinguishable from the ring colour, defeating the ring's own
+job as "the single, unambiguous signal for where a keypress goes" (the focus-treatment
+rule, unchanged from the retired design). `fillNotification` is therefore not used on this
+surface either, alongside `accent` itself.
+
+**Coherence note, not a conflict:** `BarRoles.warn` (the chip's colour) and
+`BarRoles.fillUpdates` (tier B's pill colour) both resolve to `Colours.tertiary` — the same
+underlying hue, different role names. This is deliberate, not an oversight: when the chip
+appears under a focused Log Out or Reboot pill, the colour story reads as one continuous
+"caution" register rather than two coincidentally-similar hues. `warn` itself is still
+never applied to a pill by name, preserving the "reserved for exactly one thing" statement
+literally, even though the palette below it happens to share a value with tier B.
+
+`BarRoles.danger`/`onDanger` **is now used** — a direct change from the retired design,
+where it was explicitly unused anywhere on this phase's two surfaces. This is intentional
+and reasoned above (static severity tint ≠ D-20-28's dynamic disabled/blocked styling);
+nothing about D-20-28 itself is weakened by it — no tile is ever disabled, greyed, or
+confirmation-gated by any detector, exactly as before.
 
 ---
 
@@ -236,130 +357,275 @@ Each row: glyph (`iconSizeMd`, 24px — `volume_up`/`volume_off`, `mic`/`mic_off
 
 ---
 
-## Power Menu — Frame (QPOWER-01/02, D-20-21..25)
+## Power Menu — Frame (QPOWER-01/02, D-20-21 REVISED 2026-08-15)
 
-### Shape, chosen from a rendered comparison (per the discussion log's own "show me how it will look" record)
+### Shape, chosen from a SECOND rendered comparison, after the first was rejected live
 
-**Centred floating dialog, not a full-screen grid, not an inline popout** (D-20-21). Built as **one `PanelWindow`** spanning the full output (matching `Overview.qml`'s own full-screen-catch-region precedent, `catchBase: Colours.surface` at its own scrim opacity) with:
-- a full-bleed **scrim** (`Colours.surface` at `sessionScrimOpacity`, 0.55 — see New Tokens) filling the window, giving `HyprlandFocusGrab`'s click-outside dismissal a screen-wide catch area with no second window to coordinate;
-- the actual **dialog card** — header, 3×2 grid, optional warning banner — as a child `Item` centred via `anchors.centerIn: parent`, `implicitWidth: Design.sessionDialogWidth` (488px), height content-driven (grid alone vs. grid + warning banner).
+**A floating radial cluster of six circular pills, not a framed dialog** (D-20-21,
+revised). The user's own words, rejecting the built 3×2-grid dialog: *"It overtakes the
+entire screen and does not behave like a popup that slightly dims the screen. I want a
+floating cards design, circular pills arranged in a circular motion each one is colored
+according to the theme with a frosted look."* Presented with three sketched radial options,
+the user locked this one: a ring with a centre label.
 
-This is **not** end-4's full-screen overlay (rejected in D-20-21: that reference fills the whole screen with content, edge to edge) — the window spans the screen only so the scrim and click-outside catch region can, while everything the user actually looks at is the small centred card. It is also **not** Caelestia's inline right-edge popout (rejected: would contend for the notification centre's own region, D-19-00 divergence recorded explicitly).
+Still built as **one `PanelWindow`** spanning the full output — that part of the original
+resolution stands, only the child content's shape changed:
+- a full-bleed **scrim** (`Colours.surface` at `sessionScrimOpacity`, **0.32**, revised down
+  from 0.55 — see New Tokens) filling the window, giving `HyprlandFocusGrab`'s click-outside
+  dismissal the same screen-wide catch area as before, still with no second window to
+  coordinate;
+- the actual **content** — six pills on a ring plus a centre label, no card, no header — as
+  a child `Item` centred via `anchors.centerIn: parent`, `implicitWidth` /
+  `implicitHeight`: `Design.sessionSurfaceDiameter` (272px, both axes — the content is
+  circular), plus room below for the warning chip when present (content-driven, chip
+  absent vs. chip present — see "Safety Warning" below).
 
-- **Namespace**: `quickshell-session` (D-20-33) — inside the `^quickshell-.*` family regex, blur/`ignore_alpha` apply automatically; its own exact-match `animation = "slide"` row (matching every other dismissible surface's precedent — a subtle slide-in on the card, not the full-screen scrim, reads better than a hard cut; motion detail below).
-- **`exclusiveZone: 0`** — an overlay, reserves nothing.
-- **`WlrKeyboardFocus.Exclusive`** (D-20-24) — a deliberate divergence from D-19-18's no-exclusive-focus rule (written for the non-modal notification centre); this surface's actions end the session, so it earns exclusive focus. `HyprlandFocusGrab` still provides click-outside dismissal **alongside** exclusive focus — the two are not mutually exclusive on this compositor (the popup card and the drawer already prove a focus-grab-based dismiss works under `WlrKeyboardFocus.OnDemand`; `Exclusive` additionally guarantees every keypress lands on this surface while it is open, which `OnDemand` does not).
-- **Card background**: `Colours.surface` at `panelSurfaceOpacity` (0.78, `PanelDialog.qml`'s own literal, reused not redeclared). **Card corner radius: uniform** `popoutCornerRadius` (20px) on all four corners — unlike `PanelDialog`'s bottom-only rounding (which answers to that frame's own edge-flush, docked-under-the-bar geometry), this card floats fully clear of every screen edge, the same reasoning both the popup card and the toast in `19-UI-SPEC.md` already gave for their own uniform rounding.
-- **Card rim**: `GradientBorder`, `Design.borderWidth` (3px) — same component, same weight, every panel-family surface in this shell.
-- **Header**: `popoutHeaderHeight` (48px, reused — not `PanelDialog`'s own 72px `headerHeight`, since this dialog carries no Advanced button and no icon+title pairing at that scale; 48px matches the notification centre's own header band instead, a closer sibling in visual weight), title "Session" (Heading, 20px/DemiBold, left-inset `panelPadding` 24px), no close button (dismissal inherits the same Escape/click-outside set every other dismissible surface in this shell uses).
+This is **not** the retired grid design (rejected live, 2026-08-15, verbatim quote above)
+and remains, as the original resolution already established, **not** end-4's full-screen
+overlay and **not** Caelestia's inline right-edge popout — those two rejections from the
+first comparison round are unaffected by this revision.
 
-### Entry points (D-20-22, no visual change to any of the three — repoint only)
+- **Namespace**: `quickshell-session` (D-20-33, unchanged) — inside the `^quickshell-.*`
+  family regex, blur applies automatically via the family's `blur = true` row; `ignore_alpha`
+  now needs a namespace-specific override this revision introduces — see "Frost and the
+  ignore_alpha trap" under New Tokens above, **not implemented in this spec-revision
+  commit**. Its own exact-match `animation = "slide"` row is unaffected.
+- **`exclusiveZone: 0`** — unchanged, an overlay, reserves nothing.
+- **`WlrKeyboardFocus.Exclusive`** (D-20-24, unaffected by the shape change) — this
+  surface's actions still end the session, so it still earns exclusive focus over D-19-18's
+  general rule; `HyprlandFocusGrab` still coexists with it for click-outside dismissal.
+- **No card, no rim, no header, no "Session" title.** These four elements of the retired
+  design (`Colours.surface` at `panelSurfaceOpacity`, `GradientBorder`, `popoutHeaderHeight`,
+  the Heading-styled title) have **no equivalent in the ring design** — there is no
+  rectangular frame left to carry them. The visual identity that replaces "reads as part of
+  the panel family" is now carried entirely by the pills' own frosted, theme-coloured
+  fills and the ring's motion (see "Pill Anatomy" and "Entrance Motion" below).
 
-All three existing consumers repoint to open this in-process surface instead of launching `wleave.sh`: `Super+Shift+Q`, the walker menu's power entry, and the bar's `powerCell` (`ClockActionsCapsule.qml`, glyph unchanged, permanent accent tint unchanged). `powerAvailabilityProbe` is deleted outright (D-20-23) — an in-process QML surface has no "missing" state to probe for.
+### Entry points (D-20-22, unaffected by this revision — repoint only)
 
-### ASCII preview 4 — power menu, resting state
+All three existing consumers still repoint to open this in-process surface instead of
+launching `wleave.sh`: `Super+Shift+Q`, the walker menu's power entry, and the bar's
+`powerCell` (`ClockActionsCapsule.qml`, glyph unchanged, permanent accent tint unchanged).
+`powerAvailabilityProbe` is still deleted outright (D-20-23).
+
+### Ring layout — clock-position assignment (this document's own call, arithmetic shown)
+
+Six pills at 60° increments, `sessionRingRadius` (96px) from centre. Position assignment
+(this spec's own choice, recorded explicitly rather than left ambiguous): **Lock sits at
+12 o'clock (0°)**, matching its role as the default-focused, least-destructive action — a
+"start at the top" reading that needs no legend to understand. The remaining five follow
+clockwise in the SAME reading order the retired grid used (top-row-then-bottom-row, left to
+right): Log Out (60°/2 o'clock), Suspend (120°/4 o'clock), Hibernate (180°/6 o'clock),
+Reboot (240°/8 o'clock), Shut Down (300°/10 o'clock). This ordering is also the cascade's
+band order (see "Entrance Motion") and the rotation model's index order (see "Focus
+Treatment").
+
+### ASCII preview 4 — power menu, resting state, Lock focused (default on open)
 
 ```
-                    sessionDialogWidth = 488px, screen-centred, scrim behind
-        ╔══════════════════════════════════════════════════╗
-        ║  Session                                           ║   ← popoutHeaderHeight (48px)
-        ║────────────────────────────────────────────────── ║
-        ║                                                     ║
-        ║   ┌────────┐    ┌────────┐    ┌────────┐          ║
-        ║   │   🔒   │    │   ⎋    │    │   ☾    │          ║
-        ║   │  Lock  │    │Log Out │    │Suspend │          ║
-        ║   │   l    │    │   e    │    │   u    │          ║
-        ║   └────────┘    └────────┘    └────────┘          ║
-        ║                                                     ║
-        ║   ┌────────┐    ┌────────┐    ┌────────┐          ║
-        ║   │   ❄    │    │   ↻    │    │   ⏻   │          ║
-        ║   │Hibernate│   │ Reboot │    │ShutDown│          ║
-        ║   │   h    │    │   r    │    │   s    │          ║
-        ║   └────────┘    └────────┘    └────────┘          ║
-        ║                                                     ║
-        ╚══════════════════════════════════════════════════╝
-        Rows exactly as the selected mockup names them (CONTEXT.md
-        <specifics>): Lock/Log Out/Suspend top, Hibernate/Reboot/Shut Down
-        bottom. sessionGridGap (16px, = spacingMd) between tiles both axes,
-        panelPadding (24px) inset from the card edge on all sides.
+                 sessionSurfaceDiameter = 272px, screen-centred
+                    scrim: Colours.surface @ 0.32 (light dim)
+
+                              ┏━━━━━━━━┓
+                              ┃   🔒   ┃   ← Lock, 12 o'clock (0°),
+                              ┗━━━━━━━━┛      default-focused (accent ring)
+                    ╭────────╮        ╭────────╮
+                    │   ⏻   │        │   ⎋    │
+                    ╰────────╯        ╰────────╯
+              Shut Down (300°)          Log Out (60°)
+                          ┌───────────────┐
+                          │               │
+                          │     Lock      │  ← centre label:
+                          │               │     the FOCUSED action's
+                          └───────────────┘     name, replaces every
+              Reboot (240°)           Suspend (120°)   per-pill label
+                    ╭────────╮        ╭────────╮
+                    │   ↻   │        │   ☾    │
+                    ╰────────╯        ╰────────╯
+                              ╭────────╮
+                              │   ❄    │   ← Hibernate, 6 o'clock (180°)
+                              ╰────────╯
+
+        Every pill is a pure circle (sessionPillDiameter 80px), icon only —
+        no text on or under any pill (locked). sessionCentreLabelWidth
+        (112px) is the safe zone at the centre, clear of every pill
+        regardless of ring rotation (see New Tokens derivation).
 ```
 
 ---
 
-## Power Menu — Tile Anatomy (QPOWER-01)
+## Power Menu — Pill Anatomy (QPOWER-01) [renamed from "Tile Anatomy", rewritten for the ring]
 
-Each tile (`sessionTileWidth` 136 × `sessionTileHeight` 104, radius `sessionTileRadius` 16):
+Each pill is a **pure circle**, `sessionPillDiameter` (80px), containing an icon and
+nothing else:
 
-- **Fill**: `Colours.surfaceVariant` at rest — identical source to `PanelDialog`'s own Advanced button, no new colour.
-- **Icon**: `sessionTileIconSize` (32px) glyph, centred, `Colours.onSurfaceVariant`. Glyphs: `lock` (Lock), `logout` (Log Out), `bedtime` (Suspend), `ac_unit` (Hibernate — the conventional "frozen state" metaphor several existing icon themes already use for hibernate), `restart_alt` (Reboot), `power_settings_new` (Shut Down — the exact glyph the bar's own `powerCell` already uses, so the action and the trigger that opens the menu share one icon identity).
-- **Label**: Body (16px)/DemiBold, `Colours.onSurfaceVariant`, one line — every one of the six labels fits `sessionTileWidth` minus padding at this size without wrapping ("Hibernate" and "Log Out" are the longest, both verified to fit at Body/DemiBold).
-- **Mnemonic letter** (this document's own addition, not a locked CONTEXT decision — see reasoning below): small (`fontLabel`, 12px), low-emphasis (`Colours.onSurfaceVariant` at reduced opacity, matching the `disabledOpacity` 0.38 register used elsewhere for muted-but-present text), bottom-right corner inset by `spacingXs` (4px). **Reasoning**: D-20-24 keeps wleave's existing mnemonics (`l/e/u/h/r/s`) working, but notes they are "undisplayed" today (`show-keybinds: false`) — a discoverability gap, not a locked visual decision either way. Given this phase's explicit "full keyboard-navigable... visible focus" emphasis (QPOWER-02) and the redesign's own stated intent to surface capability rather than port silent behaviour, showing the mnemonic is a natural extension of that intent. Flagged here explicitly as a UI-researcher recommendation rather than a CONTEXT-locked requirement, so the planner or a later render-gate round can drop it without touching a locked decision if it reads as clutter once built.
-- **Hover** (pointer only): fill lifts from `Colours.surfaceVariant` toward a lighter blend, same `+0.1`-alpha-step idiom `BarRoles.capsule`→`capsuleHover` already establishes (`0.85`→`0.95`) — applied locally here since this dialog reads `Colours.*` directly rather than through `BarRoles`.
-- **No per-tile destructive styling, ever** (D-20-28) — all six tiles render identically regardless of which action a live QPOWER-03 warning names; the warning lives in the banner below the grid, never on a tile.
+- **Fill**: `Qt.rgba(<severity-role>.r, <severity-role>.g, <severity-role>.b,
+  sessionPillFillOpacity)` — i.e. **individually frosted and individually coloured per
+  action**, per the user's explicit ask, replacing the retired design's single uniform
+  `Colours.surfaceVariant` fill. See the action→colour-role table under "Color" above for
+  which role each of the six actions uses.
+- **Icon**: `sessionTileIconSize` (32px, KEPT unchanged from the retired design — its
+  justification, a primary session-ending action earning more visual weight than this
+  shell's uniform 24px icon discipline, holds identically for a circular pill), centred,
+  the paired `on<Role>` foreground colour (e.g. `onAccent`, `onDanger`) at full opacity —
+  only the pill's own FILL is frosted/translucent, the icon glyph itself stays crisp.
+  Glyphs unchanged from the retired design: `lock` (Lock), `logout` (Log Out), `bedtime`
+  (Suspend), `ac_unit` (Hibernate), `restart_alt` (Reboot), `power_settings_new` (Shut
+  Down — the exact glyph the bar's own `powerCell` already uses).
+- **No label, no mnemonic letter, on or under the pill** — both retired outright. The
+  retired design's per-tile label is replaced entirely by the ring's single centre label
+  (see below); the retired design's UI-researcher-recommended mnemonic letter is reverted
+  to undisplayed (D-20-24, revised — the pill has no spare corner to print it in, unlike
+  the retired rectangular tile). Mnemonics (`l/e/u/h/r/s`) remain fully functional, silently.
+- **Hover** (pointer only): the pill's own `sessionPillFillOpacity` (0.72) lifts toward a
+  higher value (e.g. 0.85, the same `+0.1`-ish alpha-step idiom `BarRoles.capsule`→
+  `capsuleHover` already establishes) — applied locally, same idiom as the retired design,
+  new numbers only because the base opacity itself changed.
+- **No per-pill destructive styling tied to a LIVE warning, ever** (D-20-28, unaffected) —
+  all six pills render identically regardless of which action a live QPOWER-03 detector
+  currently names; that rule is untouched by this revision. **What DID change**: each
+  pill's PERMANENT, warning-independent baseline colour now carries severity meaning (see
+  "Color" above) — this is a new, static property of the action itself, not a reaction to
+  a live detector, and does not conflict with D-20-28 (reasoned in full under "Color").
+
+### Centre label
+
+- **Content**: the NAME of the currently-focused action only (e.g. "Lock", "Shut Down") —
+  no icon, no mnemonic, no other text. Updates live as focus rotates around the ring.
+- **Typography**: Body (16px/`weightEmphasis`) — see Typography section, revised.
+- **Box**: `sessionCentreLabelWidth` (112px), centred in the ring, verified to fit the two
+  longest strings ("Hibernate", "Shut Down") without wrapping.
+- **No background/chip of its own** — the label sits directly on the scrim, matching the
+  pills' own "no separate backing surface beyond the frost" register; it is not a seventh
+  frosted element, just text.
 
 ---
 
-## Power Menu — Focus Treatment (QPOWER-02, D-20-24)
+## Power Menu — Focus Treatment (QPOWER-02, D-20-24 REVISED for the ring)
 
-- **First action auto-focused on open**: Lock (top-left, the least destructive action — a deliberate default, not arbitrary; also the one action never gated by QPOWER-03's warning, D-20-29).
-- **Arrow-key navigation** across the 3×2 grid (two-dimensional — up/down move between rows, left/right move within a row, matching the grid's own visual adjacency, no wraparound assumed unless the planner finds a reason to add it).
-- **Enter activates, Escape closes** — both inherited from the same key-handling idiom `PanelDialog.qml`'s `handleEscape()` already establishes.
-- **Mnemonics** (`l/e/u/h/r/s`) fire the matching action directly regardless of current focus, unchanged behaviour from wleave, now visually surfaced (see Tile Anatomy above).
-- **Visible focus is a RING, never a fill swap** — `BarRoles.accent`, `Design.borderWidth` (3px), drawn **outside** the tile's own `sessionTileRadius` (16px) boundary, so the ring reads as an addition to the tile rather than a recolour of it. This keeps the six tiles visually uniform at rest and lets the ring be the single, unambiguous "this is where a keypress goes" signal QPOWER-02 requires.
+- **First action auto-focused on open**: Lock (12 o'clock — the least destructive action, a
+  deliberate default unchanged from the retired design; also the one action never gated by
+  QPOWER-03's warning, D-20-29).
+- **Arrow-key navigation is ROTATION, not 2D movement** (revised — see D-20-24's CONTEXT
+  revision for the full reasoning). Right and Down both rotate focus clockwise one pill
+  (60°, to the next index in ring order); Left and Up both rotate focus counter-clockwise
+  one pill. **Wraps**: yes — clockwise past Shut Down (index 5) lands back on Lock (index
+  0), and vice versa. This is a deliberate reversal of the retired grid's no-wrap rule,
+  justified by the shape itself: a ring has no edge case the grid's row boundary created,
+  so the pill clockwise of the last one genuinely is the first one, exactly as adjacent on
+  screen as the navigation model treats it.
+- **Enter activates, Escape closes** — unchanged, same key-handling idiom.
+- **Mnemonics** (`l/e/u/h/r/s`) fire the matching action directly regardless of current
+  focus — unchanged behaviour, still undisplayed (see "Pill Anatomy" above for why the
+  retired design's decision to surface them is reverted).
+- **Visible focus is still a RING, never a fill swap** — `BarRoles.accent`,
+  `Design.borderWidth` (3px), drawn **outside** the pill's own `sessionPillDiameter` (80px)
+  circular boundary, unchanged in spirit from the retired design. Because pills are now
+  individually coloured (unlike the retired design's uniform `surfaceVariant` fill), the
+  accent-hued ring reading clearly against every pill matters more than before — resolved
+  by excluding `Colours.primary` (Accent's own hue) from every pill's severity palette (see
+  "Color" above), so the ring is never drawn against a same-hue fill; it always reads
+  against either a differently-hued pill or the dim scrim in the gap around it.
 
-### ASCII preview 5 — focused-tile treatment (zoomed)
+### ASCII preview 5 — focused-pill treatment (zoomed), rotation model
 
 ```
-   resting:                        focused (keyboard, first on open):
-   ┌────────┐                      ┏━━━━━━━━┓   ← BarRoles.accent ring,
-   │   🔒   │                      ┃   🔒   ┃      borderWidth (3px),
-   │  Lock  │                      ┃  Lock  ┃      drawn OUTSIDE the
-   │   l    │                      ┃   l    ┃      16px tile radius —
-   └────────┘                      ┗━━━━━━━━┛      fill never changes.
+   resting:                  focused (keyboard):              rotate → next (clockwise):
+   ╭────────╮                ┏━━━━━━━━┓                       ╭────────╮   ┏━━━━━━━━┓
+   │   🔒   │                ┃   🔒   ┃   ← BarRoles.accent    │   🔒   │   ┃   ⎋    ┃
+   ╰────────╯                ┗━━━━━━━━┛     ring, borderWidth  ╰────────╯   ┗━━━━━━━━┛
+     Lock                       Lock          (3px), drawn        Lock       Log Out
+                                               OUTSIDE the                  ← Right/Down
+                                               80px pill —                    rotates focus
+                                               fill never                     one pill CW;
+                                               changes.                       wraps past
+                                                                               Shut Down → Lock.
 ```
 
 ---
 
-## Power Menu — Entrance Motion (D-20-35/36)
+## Power Menu — Entrance Motion (D-20-35 REVISED for the ring)
 
-- **Staggered per-action cascade** — re-expresses wleave's already-approved-on-sight `md3_decel` entrance, re-timed entirely on `Motion.qml` tokens (`staggerOffsetDuration`, the same `Cascade.qml` mechanism `PanelDialog.qml` already uses for its own header/Advanced-button entrance — reused component, not a new one). Grid entrance and input readiness are **not** serialised (D-20-36) — the grid is interactive immediately, before its own entrance animation finishes; WINDOWS rows 3/4 (the Phase 9 hover-during-entrance interaction, never exercised live) stay open and are explicitly in-scope for this phase's LEDGER-05 triage, not silently resolved by this choice.
-- **Header and each of the six tiles are the cascade's bands** (six tiles + header = seven bands, `PanelDialog.qml`'s own `entranceCascade.bands` pattern extended from two bands to eight — header, then tiles in reading order, then the warning banner if present at open).
+- **Staggered per-pill cascade** — re-expresses wleave's already-approved-on-sight
+  `md3_decel` entrance, re-timed entirely on `Motion.qml` tokens (`staggerOffsetDuration`,
+  the same `Cascade.qml` mechanism `PanelDialog.qml` already uses — reused component, not a
+  new one). Ring entrance and input readiness are still **not** serialised (D-20-36,
+  unaffected by this revision) — the ring is interactive immediately, before its own
+  entrance animation finishes; WINDOWS rows 3/4 stay open, unchanged.
+- **The six pills (in ring order, starting at Lock) and the centre label are the cascade's
+  bands** — seven bands total, replacing the retired design's "header + six tiles" framing
+  (there is no header left to seed the first band; the cascade now starts directly on the
+  first pill). The warning chip is an eighth band when present at open, unchanged in spirit
+  from the retired design's warning-banner band.
 
 ---
 
-## Power Menu — Safety Warning (QPOWER-03, D-20-27..30)
+## Power Menu — Safety Warning (QPOWER-03, D-20-27..30, chip geometry REVISED for the ring)
 
-- **Three detectors, checked on open then polled on a low-frequency `Timer` while visible** (D-20-30) — nothing runs while the menu is dismissed (zero-idle rule):
+- **Three detectors, checked on open then polled on a low-frequency `Timer` while visible**
+  (D-20-30, unaffected) — nothing runs while the menu is dismissed (zero-idle rule):
   1. A running pacman/paru/yay process (`pgrep`).
-  2. Active downloads (a heuristic — recent `.part`/`.crdownload` files or Downloads-folder mtime).
-  3. A toplevel count against a configured window-class deny-list — recorded honestly as a hand-maintained list, not a real detector.
-- **Applies to Shutdown, Reboot, Hibernate, Logout — not Lock or Suspend** (D-20-29).
-- **Warn only — every action stays available** (D-20-28). The banner is informational, never blocking, never disables a tile.
-- **Placement**: inside the frame, beneath the grid — **not** floating on the scrim (the rejected alternative from the discussion log's own rendered comparison). `spacingLg` (24px) gap above the banner, `spacingMd` (16px) internal padding, full dialog width.
-- **Multiple simultaneous warnings stack as separate lines** within one banner block, each its own icon (`warning`, `iconSizeMd`)+text row, `BarRoles.warn` icon, `BarRoles.onWarn`... — correction, text colour is `BarRoles.warn` itself for the icon and a body-weight `BarRoles.onWarn`-toned line for the copy (see Color section).
+  2. Active downloads (a heuristic — recent `.part`/`.crdownload` files or Downloads-folder
+     mtime).
+  3. A toplevel count against a configured window-class deny-list — recorded honestly as a
+     hand-maintained list, not a real detector.
+- **Applies to Shutdown, Reboot, Hibernate, Logout — not Lock or Suspend** (D-20-29,
+  unaffected — and now also the exact boundary the severity-colour tiers use, see "Color").
+- **Warn only — every action stays available** (D-20-28, unaffected). The chip is
+  informational, never blocking, never disables a pill.
+- **Placement, REVISED**: there is no frame left to sit "beneath the grid" inside. The
+  warning renders as its own small **frosted chip**, centred horizontally, positioned
+  `spacingLg` (24px) below the ring's own outer edge (i.e. below the bottommost pill's
+  lower boundary, which sits at `sessionRingRadius + sessionPillDiameter / 2` from the
+  ring's centre). The chip is NOT a fourth kind of pill and is not on the ring itself — it
+  is a small rounded-rectangle surface (`Colours.surface` at `panelSurfaceOpacity` 0.78,
+  reused, opaque enough that it needs no frost of its own since it is transient safety
+  copy, not a themed action; corner radius `popoutCornerRadius` 20, reused), internal
+  padding `spacingMd` (16px), width content-hugging up to `sessionSurfaceDiameter` (272px)
+  for horizontal balance under the ring.
+- **Multiple simultaneous warnings still stack as separate lines** within the one chip, each
+  its own icon (`warning`, `iconSizeMd`) + text row — `BarRoles.warn` for the icon,
+  `BarRoles.onWarn` for the body-weight copy line (see Color section; unaffected by the
+  shape change other than its container).
+- **Absent when clear**: no detector active → the chip does not render at all, and the
+  overall surface's bounding box shrinks back to just `sessionSurfaceDiameter` — no
+  reserved gap where the chip would have been, unchanged in spirit from the retired
+  design's "card height shrinks, no reserved blank space" rule (see UI Considerations,
+  S6/empty).
 
 ### ASCII preview 6 — destructive-action warning state (Shut Down focused, a package manager running)
 
 ```
-        ╔══════════════════════════════════════════════════╗
-        ║  Session                                           ║
-        ║────────────────────────────────────────────────── ║
-        ║   ┌────────┐    ┌────────┐    ┌────────┐          ║
-        ║   │   🔒   │    │   ⎋    │    │   ☾    │          ║
-        ║   │  Lock  │    │Log Out │    │Suspend │          ║
-        ║   └────────┘    └────────┘    └────────┘          ║
-        ║   ┌────────┐    ┌────────┐    ┏━━━━━━━━┓          ║
-        ║   │   ❄    │    │   ↻    │    ┃   ⏻   ┃          ║
-        ║   │Hibernate│   │ Reboot │    ┃ShutDown┃          ║
-        ║   └────────┘    └────────┘    ┗━━━━━━━━┛          ║
-        ║                                                     ║
-        ║   ⚠  A package manager is currently running        ║
-        ║────────────────────────────────────────────────── ║
-        ╚══════════════════════════════════════════════════╝
-        Every tile — including the focused, about-to-fire Shut Down tile —
-        renders identically to its resting state. The warning is informational
-        text below the grid, never a tile recolour, never a blocking overlay.
-        Enter still fires Shut Down. This is what "warn only" looks like.
+                              ╭────────╮
+                              │   🔒   │   ← Lock (unfocused, resting)
+                              ╰────────╯
+                    ┏━━━━━━━━┓        ╭────────╮
+                    ┃   ⏻   ┃        │   ⎋    │
+                    ┗━━━━━━━━┛        ╰────────╯
+              Shut Down (FOCUSED)       Log Out
+                          ┌───────────────┐
+                          │               │
+                          │   Shut Down   │  ← centre label follows
+                          │               │     focus to Shut Down
+                          └───────────────┘
+                    ╭────────╮        ╭────────╮
+                    │   ↻   │        │   ☾    │
+                    ╰────────╯        ╰────────╯
+                              ╭────────╮
+                              │   ❄    │
+                              ╰────────╯
+
+                    ╭──────────────────────────────╮
+                    │ ⚠  A package manager is       │  ← warning chip,
+                    │    currently running          │     spacingLg (24px)
+                    ╰──────────────────────────────╯     below the ring
+
+        The focused Shut Down pill renders identically to its non-warned
+        appearance — same danger-tinted fill it always carries, same
+        accent focus ring, no recolour tied to the live warning. The chip
+        is informational text below the ring, never a pill recolour, never
+        a blocking overlay. Enter still fires Shut Down. This is what
+        "warn only" looks like on the ring design.
 ```
 
 ---
@@ -378,8 +644,9 @@ Each tile (`sessionTileWidth` 136 × `sessionTileHeight` 104, radius `sessionTil
 |---------|------|
 | OSD (volume/mic/brightness rows) | **None** — purely iconographic, icon + slider only, matching SwayOSD's and Caelestia's own precedent. No numeric percentage label anywhere on this surface. |
 | Caps Lock row | "Caps Lock" |
-| Power dialog header | "Session" |
-| Action tile labels | "Lock" · "Log Out" · "Suspend" · "Hibernate" · "Reboot" · "Shut Down" — exact strings, Title Case, matching this shell's existing label casing convention (dashboard tab labels) |
+| Power dialog header | **[RETIRED]** No header exists in the ring design — no card, no "Session" title anywhere on the surface. |
+| Pill icons | **[REVISED]** No per-pill label text at all (locked — pure circle, icon only). |
+| Centre label | "Lock" · "Log Out" · "Suspend" · "Hibernate" · "Reboot" · "Shut Down" — **[MOVED, unchanged strings]** exact strings, Title Case, matching this shell's existing label casing convention (dashboard tab labels); now shown ONE at a time, at the ring's centre, following focus, replacing the retired design's six simultaneously-visible per-tile labels. |
 | Warning — package manager running | "A package manager is currently running" |
 | Warning — possible download | "A download may still be in progress" |
 | Warning — toplevel deny-list | "{n} app(s) may not close cleanly" (dynamic count, singular/plural not distinguished — "1 app(s)" is accepted awkwardness over a second string variant for a rarely-seen count of exactly one) |
@@ -404,20 +671,32 @@ Two separate render gates, run and passed independently — a stall in one must 
 6. Caps Lock shows the icon+label row **only** on the ON transition, never on OFF.
 7. **The two GATE-01 open questions are answered with evidence, not assumed**: does the pill render over hyprlock (D-20-19); does Caps Lock indicate at the SDDM prompt before this gate authorises `RETIRE-04`'s `swayosd-libinput-backend.service` removal (D-20-17/18).
 
-### Gate B — Power menu (unlocks RETIRE-05: `wleave`)
+### Gate B — Power menu (unlocks RETIRE-05: `wleave`) [criteria 1, 2, 4 REVISED for the ring]
 
 **Aesthetic**
-1. The dialog reads as part of the panel family (rim, rounded card, theme-reactive fill, scrim) — never wleave's flat six-hue-capsule layout.
-2. A live theme switch re-colours tile fill/focus-ring/warning-banner within one crossfade.
-
-**Capability**
-3. All six actions present, correctly labelled and glyphed; Lock auto-focused on open.
-4. Arrow keys move focus two-dimensionally across the 3×2 grid; Enter activates the focused tile; Escape closes with no action taken.
-5. Mnemonics (`l/e/u/h/r/s`) fire their action from any focus state.
-6. A live pacman/paru/yay run triggers the warning banner within one poll interval of opening the menu with it already running, and clears within one poll interval of it ending — action still fires either way.
-7. All three entry points (keybind, walker menu, bar glyph) open the identical in-process surface — none still shells to `wleave.sh`.
-8. Opening the menu visibly clears any live notification popups; the OSD is confirmed suppressed while the menu is open (a manual key press during the gate produces no OSD).
-9. Shutdown/Reboot still route through the graceful compositor exit (QPOWER-04) — confirmed against the same mechanism FIX-01 already established, not a new one.
+1. **[REVISED]** The ring reads as a floating, frosted cluster that only lightly dims the
+   desktop — each pill individually frosted and theme-coloured per its severity role, the
+   scrim a light 0.32 dim — never wleave's flat six-hue-capsule layout, and never the
+   retired grid dialog's "overtakes the entire screen" reading the user explicitly rejected.
+2. **[REVISED]** A live theme switch re-colours every pill's fill/focus-ring/warning-chip
+   within one crossfade.
+3. All six actions present, correctly glyphed, icon-only (no per-pill label); Lock
+   auto-focused on open at 12 o'clock.
+4. **[REVISED]** Arrow keys ROTATE focus around the ring — Right/Down clockwise,
+   Left/Up counter-clockwise, wrapping past either end (D-20-24, revised); Enter activates
+   the focused pill; Escape closes with no action taken. The centre label updates to name
+   the newly-focused action on every rotation.
+5. Mnemonics (`l/e/u/h/r/s`) fire their action from any focus state — still undisplayed on
+   the pill itself, confirmed working by keypress alone, not by reading a printed letter.
+6. A live pacman/paru/yay run triggers the warning chip below the ring within one poll
+   interval of opening the menu with it already running, and clears within one poll
+   interval of it ending — action still fires either way.
+7. All three entry points (keybind, walker menu, bar glyph) open the identical in-process
+   surface — none still shells to `wleave.sh`.
+8. Opening the menu visibly clears any live notification popups; the OSD is confirmed
+   suppressed while the menu is open (a manual key press during the gate produces no OSD).
+9. Shutdown/Reboot still route through the graceful compositor exit (QPOWER-04) —
+   confirmed against the same mechanism FIX-01 already established, not a new one.
 
 **Pass bar**: all of each gate's own criteria confirmed live. Any single failure blocks that gate's own deletion commit until fixed and re-checked — the other gate is unaffected.
 
@@ -427,7 +706,7 @@ Two separate render gates, run and passed independently — a stall in one must 
 
 State coverage across this phase's surfaces, using the 8-category taxonomy (empty / loading / error / populated / partial / overflow / zero-one-many / long-text).
 
-Surfaces: **S1** OSD frame (as a whole, any content) · **S2** individual OSD slider row · **S3** OSD Caps Lock row · **S4** power dialog frame · **S5** individual session tile · **S6** warning banner.
+Surfaces: **S1** OSD frame (as a whole, any content) · **S2** individual OSD slider row · **S3** OSD Caps Lock row · **S4** power menu surface as a whole (ring + centre label, REVISED 2026-08-15 from "power dialog frame") · **S5** individual pill (REVISED from "session tile") · **S6** warning chip (REVISED from "warning banner"). The category resolutions below are re-worded for the ring shape where the shape itself changes the answer; the underlying taxonomy and category count are unaffected by the revision.
 
 **Probe provenance (ui-phase Step 9.5, post-verification).** `ui-consideration-probe.cjs` was run over all six surfaces after the checker approved this spec. It reported **48 applicable considerations, 0 unclassified** — exactly the 6 × 8 grid below, independently confirming the axis rather than taking this table's word for it. Detected element kinds: S1 `list-collection/media/interactive-control/static-content` · S2 `form/list-collection/media/interactive-control` · S3 `list-collection/media/interactive-control/static-content` · S4 `list-collection/nav` · S5 `list-collection/nav/media/interactive-control/static-content` · S6 `list-collection/media/static-content`. Kind-confirmation was a no-op for recall here: every surface already reaches the full 8-category set, so no additional element kind could raise a category that is not already applicable — the usual partial-cue under-coverage risk does not apply to this spec. Final tally: **46 resolved (explicit) · 2 resolved (backstop) · 0 unresolved.**
 
@@ -460,27 +739,27 @@ Surfaces: **S1** OSD frame (as a whole, any content) · **S2** individual OSD sl
 | S4 | empty | ✅ resolved | Not applicable — the dialog only exists while summoned; there is no "no actions" state, all six are always present. |
 | S4 | loading | ✅ resolved | Not applicable — every backend this menu needs (pgrep, file-mtime checks) resolves synchronously enough that no loading skeleton is needed; the first poll's result simply hasn't landed yet, treated as "no warning" until it does (never a placeholder banner). |
 | S4 | error | 🧪 backstop | `{ statement: "If the compositor exit mechanism (hyprshutdown) itself is unreachable, Shutdown/Reboot fail silently rather than showing an in-menu error — matching this shell's existing convention of degrading external-process failures silently rather than surfacing a toast for every possible exec failure", verification: backstop }` — planner should confirm this is the intended failure mode, not assume it; a completely silent failure on a session-ending action is a real UX question worth one explicit check. |
-| S4 | populated | ✅ resolved | Header + 3×2 grid, optionally + warning banner, per ASCII previews 4 and 6. |
-| S4 | partial | ✅ resolved | One detector active (e.g. pacman running, no downloads) → exactly one warning line shows, not three lines with two saying "no issue" — absent-if-clear, not a three-state checklist. |
-| S4 | overflow | ✅ resolved | Fixed 3×2 grid, exactly 6 tiles, no growth path; warning banner can show at most 3 lines (one per detector), a fixed, small, known-bounded region. |
-| S4 | zero-one-many | ✅ resolved | Not applicable to the tile count (always 6); the warning banner is genuinely zero-one-many (0-3 lines) and is resolved above under "partial." |
-| S4 | long-text | ✅ resolved | "Session" header, fixed six labels, fixed three warning strings — no free or sender-controlled text anywhere on this surface, unlike the notification family. |
-| S5 | empty | ✅ resolved | Not applicable — six tiles are always fully populated, no empty-tile state exists. |
-| S5 | loading | ✅ resolved | Not applicable — glyph/label/mnemonic are static per tile, no async content. |
-| S5 | error | ✅ resolved | Not applicable per D-20-28 — no tile is ever disabled, greyed, or shown as unavailable; "warn only" means every tile is always fully interactive. |
-| S5 | populated | ✅ resolved | Icon + label + mnemonic, per "Tile Anatomy." |
-| S5 | partial | ✅ resolved | Not applicable — a tile has no sub-parts that can be partially present. |
-| S5 | overflow | ✅ resolved | Fixed tile size, all six labels verified to fit without wrapping (see Tile Anatomy). |
-| S5 | zero-one-many | ✅ resolved | Not applicable — exactly six tiles, no dynamic count. |
-| S5 | long-text | ✅ resolved | "Hibernate" and "Log Out" are the longest labels and were explicitly checked against `sessionTileWidth`; no ellipsis/truncation mechanism exists or is needed. |
-| S6 | empty | ✅ resolved | No detector active → the banner region does not render at all — the dialog is exactly the grid, `spacingLg` gap included, no reserved blank space (the dialog's own height shrinks, it does not leave a gap). |
-| S6 | loading | ✅ resolved | See S4/loading — first-poll-not-landed-yet is treated identically to "no warning," never a distinct loading banner. |
-| S6 | error | ✅ resolved | A detector process itself failing to run (e.g. `pgrep` missing) degrades to "that detector reports nothing" rather than a banner claiming an error — consistent with D-20-27's own honest framing that the deny-list detector is already a bounded stand-in, not a guaranteed-correct instrument. |
-| S6 | populated | ✅ resolved | 1-3 warning lines, per ASCII preview 6. |
-| S6 | partial | ✅ resolved | Independent detectors — one clearing does not affect another still active; each line's presence is independent. |
-| S6 | overflow | ✅ resolved | Hard bound of 3 lines (one per detector, no detector can fire twice). |
-| S6 | zero-one-many | ✅ resolved | 0 → banner absent (S6/empty); 1-3 → stacked lines, resolved above. |
-| S6 | long-text | ✅ resolved | Three fixed strings (Copywriting Contract), one with a dynamic integer — none can grow unboundedly. |
+| S4 | populated | ✅ resolved | **[REVISED]** Ring of six pills + centre label, optionally + warning chip below, per ASCII previews 4 and 6. |
+| S4 | partial | ✅ resolved | One detector active (e.g. pacman running, no downloads) → exactly one warning line shows in the chip, not three lines with two saying "no issue" — absent-if-clear, not a three-state checklist. Unaffected by the shape change. |
+| S4 | overflow | ✅ resolved | **[REVISED]** Fixed ring, exactly 6 pills, no growth path; warning chip can show at most 3 lines (one per detector), a fixed, small, known-bounded region. |
+| S4 | zero-one-many | ✅ resolved | Not applicable to the pill count (always 6); the warning chip is genuinely zero-one-many (0-3 lines) and is resolved above under "partial." |
+| S4 | long-text | ✅ resolved | **[REVISED]** No header exists to carry long text (retired). One of six fixed centre-label strings shown at a time, fixed three warning strings — no free or sender-controlled text anywhere on this surface, unlike the notification family. |
+| S5 | empty | ✅ resolved | Not applicable — six pills are always fully populated, no empty-pill state exists. |
+| S5 | loading | ✅ resolved | Not applicable — glyph is static per pill, no async content. |
+| S5 | error | ✅ resolved | Not applicable per D-20-28 — no pill is ever disabled, greyed, or shown as unavailable; "warn only" means every pill is always fully interactive. |
+| S5 | populated | ✅ resolved | **[REVISED]** Icon only, per "Pill Anatomy" — no label, no mnemonic letter (both retired for the pure-circle shape; the mnemonic itself still fires, just undisplayed). |
+| S5 | partial | ✅ resolved | Not applicable — a pill has no sub-parts that can be partially present. |
+| S5 | overflow | ✅ resolved | **[REVISED]** Fixed pill size (`sessionPillDiameter` 80px); a single centred icon at `sessionTileIconSize` (32px) has no overflow case a label's line-length once created — retired along with the label itself. |
+| S5 | zero-one-many | ✅ resolved | Not applicable — exactly six pills, no dynamic count. |
+| S5 | long-text | ✅ resolved | **[REVISED]** Not applicable — pills carry zero characters of text (locked). The former "Hibernate"/"Log Out" label-fit check now applies to the single centre label instead (see `sessionCentreLabelWidth`'s derivation under New Tokens), not to any pill. |
+| S6 | empty | ✅ resolved | **[REVISED]** No detector active → the warning chip does not render at all — the overall surface is exactly the ring + centre label, `spacingLg` gap included, no reserved blank space (the surface's own bounding box shrinks, it does not leave a gap). |
+| S6 | loading | ✅ resolved | See S4/loading — first-poll-not-landed-yet is treated identically to "no warning," never a distinct loading chip. |
+| S6 | error | ✅ resolved | A detector process itself failing to run (e.g. `pgrep` missing) degrades to "that detector reports nothing" rather than a chip claiming an error — consistent with D-20-27's own honest framing that the deny-list detector is already a bounded stand-in, not a guaranteed-correct instrument. Unaffected by the shape change. |
+| S6 | populated | ✅ resolved | 1-3 warning lines, per ASCII preview 6, now inside a standalone chip below the ring rather than a banner inside a card. |
+| S6 | partial | ✅ resolved | Independent detectors — one clearing does not affect another still active; each line's presence is independent. Unaffected by the shape change. |
+| S6 | overflow | ✅ resolved | Hard bound of 3 lines (one per detector, no detector can fire twice). Unaffected. |
+| S6 | zero-one-many | ✅ resolved | 0 → chip absent (S6/empty); 1-3 → stacked lines, resolved above. |
+| S6 | long-text | ✅ resolved | Three fixed strings (Copywriting Contract), one with a dynamic integer — none can grow unboundedly. Unaffected. |
 
 **Backstop notes for the planner:** two rows (S1/error, S4/error) are `verification: backstop` — they rest on backend-signal behaviour this document cannot verify from CONTEXT.md alone, the same class of gap 18-UI-SPEC.md and 19-UI-SPEC.md both already flagged for their own surfaces' backends. Each must be confirmed against the real implementation and wired to evidence; at verify time a backstop row with no wired evidence routes to `insufficient_spec → human_needed` rather than silently passing, which is the intended behaviour, not over-flagging.
 
@@ -503,7 +782,8 @@ Not applicable — this is a Quickshell/QML shell with no shadcn or npm componen
 
 ## Checker Sign-Off
 
-Verdict: **APPROVED** — 6/6 dimensions PASS, no blocking issues (gsd-ui-checker, `ui_safety_gate: true`).
+Verdict (ORIGINAL, grid design): **APPROVED** — 6/6 dimensions PASS, no blocking issues
+(gsd-ui-checker, `ui_safety_gate: true`).
 
 - [x] Dimension 1 Copywriting: PASS — every CTA is a specific verb; OSD deliberately textless; warning copy names the actual condition
 - [x] Dimension 2 Visuals: PASS — 6 rendered ASCII previews; no icon-only action without a label
@@ -512,10 +792,52 @@ Verdict: **APPROVED** — 6/6 dimensions PASS, no blocking issues (gsd-ui-checke
 - [x] Dimension 5 Spacing: PASS — every new token on the 4px grid, no exemptions this phase
 - [x] Dimension 6 Registry Safety: PASS — not applicable, no shadcn/npm registry in this stack
 
-**Non-blocking items the checker flagged for the planner:**
-1. Icon glyphs `brightness_6` and `keyboard_capslock` must be tested against the installed variable-font build before they are relied on.
-2. The two `backstop` error rows (S1/error, S4/error) must be confirmed against the live backends — see UI Considerations.
-3. `Toast.qml` needs a **third** opt-in property (`namespace`), not the two D-20-02 names — a real gap between two locked decisions, surfaced here rather than mid-implementation.
-4. Line-height token location mis-cited — see the Planner correction under Reused Tokens.
+**Non-blocking items the checker flagged for the planner (original design, still applicable
+where unaffected by the ring revision):**
+1. Icon glyphs `brightness_6` and `keyboard_capslock` must be tested against the installed variable-font build before they are relied on. **[unaffected — OSD sections untouched by this revision]**
+2. The two `backstop` error rows (S1/error, S4/error) must be confirmed against the live backends — see UI Considerations. **[unaffected]**
+3. `Toast.qml` needs a **third** opt-in property (`namespace`), not the two D-20-02 names — a real gap between two locked decisions, surfaced here rather than mid-implementation. **[unaffected — OSD, not power menu]**
+4. Line-height token location mis-cited — see the Planner correction under Reused Tokens. **[unaffected]**
 
 **Approval:** pending
+
+---
+
+## REVISION RECORD (2026-08-15) — supersedes the checker verdict above for the power-menu sections only
+
+The verdict and dimension checklist above were produced against the **original 3×2-grid
+power-menu design**, before it was built and rejected live. This document's power-menu
+sections (Frame, Pill Anatomy, Focus Treatment, Entrance Motion, Safety Warning, the
+relevant New Tokens / Spacing / Typography / Color rows, ASCII previews 4-6, Gate B,
+Copywriting, and the S4/S5/S6 rows of UI Considerations) have been rewritten by the
+executor of this spec-revision task to the user's locked ring design, per the process
+recorded in `20-CONTEXT.md`'s D-20-21 revision note. **This rewrite has NOT been re-run
+through `gsd-ui-checker`** — that re-verification is out of scope for a spec-revision
+executor (design-contract layer only: `20-CONTEXT.md`, this file, `Design.qml`'s token
+values) and is expected to happen either at the next render-gate round or via an explicit
+re-run of the UI-phase checker before Gate B is attempted. The OSD sections (everything
+under "OSD — ...") and their dimension of the original verdict are **unaffected and still
+current** — this revision does not touch them.
+
+**What changed, dimension by dimension, for the record:**
+- **Copywriting**: per-pill labels retired; centre label carries the same six strings, one
+  at a time. Warning copy strings unchanged verbatim.
+- **Visuals**: 3 of 6 ASCII previews rewritten (4, 5, 6) to the ring shape; the "no
+  icon-only action without a label" original PASS criterion is now explicitly and
+  deliberately violated by design (the user's own lock: "containing an ICON ONLY") — flagged
+  here rather than silently reasserted, since a future checker re-run must judge this as an
+  intentional, user-directed exception, not an oversight.
+- **Color**: `BarRoles.danger`/`onDanger` and `fillClock`/`fillUpdates` (plus their `Fg`
+  pairs) are now used on pill fills — a direct reversal of the original verdict's "warn
+  reserved to the banner [and nothing styled as dangerous]" framing; both are reasoned
+  explicitly under "Color" above and do not weaken D-20-28.
+- **Typography**: the Heading role loses its only consumer on this surface (no header); Body
+  gains a new consumer (the centre label) in place of its old one (tile labels); Label loses
+  its only consumer (the retired mnemonic letter). Still 3 sizes / 2 weights, no fourth of
+  either — the original PASS's own numeric claim still holds under the new assignment.
+- **Spacing**: four grid-shaped tokens retired, four ring-shaped tokens added, one opacity
+  ratio token added (`sessionPillFillOpacity`) alongside the changed `sessionScrimOpacity` —
+  every offset-shaped token still verified on the 4px grid (see New Tokens / Spacing Scale
+  above); the two ratio tokens are exempt by the same precedent the original design already
+  established for `notifDismissThresholdFraction`.
+- **Registry Safety**: not applicable, unaffected.

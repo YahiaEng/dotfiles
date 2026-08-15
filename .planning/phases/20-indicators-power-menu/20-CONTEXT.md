@@ -147,14 +147,35 @@ the launcher (out of scope for v4.0 entirely).
 
 ### The power menu
 
-- **D-20-21:** The menu is a **centred floating dialog on the `PanelDialog` family**, six
-  actions in a **3×2 grid**, with a scrim behind. Chosen over both references: end-4's
-  full-screen overlay (and today's wleave) and Caelestia's inline right-edge popout.
-  Reasons: a contained frame gives QPOWER-03's warning a natural home inside the surface;
-  a 3×2 grid makes arrow navigation two-dimensional and unambiguous where six-across is
-  left/right only; and it adds **no new top-level frame type**, so no new GATE-03 entry.
-  *Divergence from Caelestia (D-19-00) recorded explicitly:* its right-edge placement
-  would contend for the same region as the notification centre built in Phase 19.
+- **D-20-21 [REVISED 2026-08-15 — see below for the superseded original]:** The menu is a
+  **floating radial cluster, not a framed dialog.** Six pure-circle action pills sit evenly
+  spaced on a **ring** (60° apart, screen-centred), icon-only — no per-pill label. The
+  ring's centre displays the **name of the currently-focused action** (e.g. "Shut Down"),
+  replacing per-pill labels entirely. Each pill is coloured according to the theme (see the
+  action→colour-role table in `20-UI-SPEC.md` § "Power Menu — Frame") and is **individually
+  frosted**. The scrim behind the ring is **`sessionScrimOpacity` 0.32** (down from the
+  superseded 0.55) — a light dim, not a screen-take-over. No card frame, no header, no
+  grid: `20-UI-SPEC.md` carries the full geometry derivation (`sessionPillDiameter`,
+  `sessionRingRadius`, `sessionSurfaceDiameter`, `sessionCentreLabelWidth`).
+  — **Why revised:** the original 3×2-grid dialog was built and shown live, and the user
+  rejected it verbatim: *"The design is a complete rejected failure and not what I asked
+  for. It overtakes the entire screen and does not behave like a popup that slightly dims
+  the screen. I want a floating cards design, circular pills arranged in a circular motion
+  each one is colored according to the theme with a frosted look."* Presented with three
+  sketched radial options, the user selected this ring-with-centre-label shape and it is
+  now **LOCKED** — implement exactly, do not reinterpret.
+  — **Superseded original (kept for history, no longer governs):** *"The menu is a centred
+  floating dialog on the `PanelDialog` family, six actions in a 3×2 grid, with a scrim
+  behind. Chosen over both references: end-4's full-screen overlay (and today's wleave) and
+  Caelestia's inline right-edge popout. Reasons: a contained frame gives QPOWER-03's warning
+  a natural home inside the surface; a 3×2 grid makes arrow navigation two-dimensional and
+  unambiguous where six-across is left/right only; and it adds no new top-level frame type,
+  so no new GATE-03 entry."* The "no new top-level frame type" property is unaffected by
+  this revision — the ring is still built as content inside the same one-`PanelWindow`
+  structure (full-bleed scrim + centred child `Item`) the original resolved on, per the
+  still-open-at-the-time Claude's Discretion item below; only the child content's shape
+  changed, not the window/frame strategy, so no new GATE-03 entry is introduced by this
+  revision either.
 - **D-20-22:** **All three existing entry points repoint** to the shell — none may be left
   calling `wleave.sh`:
   - `hypr/.config/hypr/config/keybinds.lua:68` — `Super+Shift+Q`
@@ -167,12 +188,35 @@ the launcher (out of scope for v4.0 entirely).
   line 571) is **removed entirely**, along with the `powerAvailable` binding. The menu
   becomes an in-process QML surface, so "the power menu is missing" stops being a
   reachable state — the exact risk that probe's own comment cites.
-- **D-20-24:** **Exclusive keyboard focus** (`WlrKeyboardFocus.Exclusive`), arrow-key
-  navigation across the 3×2 grid, Enter activates, Escape closes, first action
-  auto-focused (QPOWER-02) — **plus** wleave's existing per-action mnemonics
-  `l/e/u/h/r/s`, which work today but are undisplayed (`show-keybinds: false`).
+- **D-20-24 [navigation clause REVISED 2026-08-15 for the ring shape, rest unchanged]:**
+  **Exclusive keyboard focus** (`WlrKeyboardFocus.Exclusive`), Enter activates, Escape
+  closes, first action auto-focused (QPOWER-02) — **plus** wleave's existing per-action
+  mnemonics `l/e/u/h/r/s`, which work today but are undisplayed (`show-keybinds: false`)
+  and **stay undisplayed** under this revision: the ring's pills are pure circles
+  containing an icon only, no text on or under the pill (locked, verbatim from the user's
+  rejection of the grid design), so there is no surface left to print a mnemonic letter on.
+  This reverses `20-UI-SPEC.md`'s prior recommendation to surface the mnemonic on the tile
+  — that recommendation was explicitly tied to the now-retired rectangular tile's spare
+  corner, which a circle containing only a centred icon does not have. The mnemonics
+  themselves remain fully functional and fire their action from any focus state,
+  unchanged; only their on-screen visibility reverts to wleave's original undiscovered
+  state.
   *Deliberate divergence from D-19-18's no-exclusive-focus rule:* that rule was written
   for a non-modal centre. This surface's actions end the session.
+  **Arrow-key model, ring version:** navigation is **rotation around the ring**, not 2D
+  grid movement — a ring has one degree of freedom (angular position), so both axes
+  collapse to "rotate forward/backward." Right and Down both rotate focus **clockwise**
+  one pill (60°); Left and Up both rotate focus **counter-clockwise** one pill. This gives
+  every arrow key a defined, non-arbitrary behaviour rather than only wiring two of the
+  four. **Wraps: YES** — going clockwise past the last pill lands on the first, and vice
+  versa. This reverses the original grid decision, which deliberately had NO wraparound;
+  the reversal is deliberate and reasoned, not a silent drop: the grid's no-wrap rule
+  existed because a 3×2 grid has real edges — wrapping from the top-right tile to the
+  bottom-left tile would jump across a row boundary that reads as two unrelated corners,
+  not a spatial "next" tile. A ring has no such edge: the pill clockwise of the last one
+  genuinely IS the first one, adjacent on screen exactly the way it's adjacent in the
+  navigation model. Wrapping is therefore not merely "more natural" here, it is the
+  correct model for a continuous shape, where the grid's boundary case does not exist.
 - **D-20-25:** **Redesign toward the reference language**, not a port of wleave's six hue
   capsules. This is the milestone's stated intent and is why GATE-02 is mandatory — the
   old-vs-new equivalence check is forfeit by design.
@@ -225,9 +269,16 @@ the launcher (out of scope for v4.0 entirely).
   its own rule declares, in the same commit as that rule.** The family floor is 0.5; a
   QML alpha below the active floor silently kills blur, with a symptom indistinguishable
   from a wrong rule.
-- **D-20-35:** The power grid enters on a **staggered per-action cascade**, re-expressing
-  wleave's md3_decel entrance that was already approved on sight — re-timed entirely on
-  `Motion.qml` tokens, with no hand-rolled numbers (`motion-lint` enforces this).
+- **D-20-35 [REVISED 2026-08-15 for the ring shape]:** The power menu enters on a
+  **staggered per-pill cascade**, re-expressing wleave's md3_decel entrance that was
+  already approved on sight — re-timed entirely on `Motion.qml` tokens, with no
+  hand-rolled numbers (`motion-lint` enforces this). The cascade's bands are now the six
+  ring pills (in the same reading order as their ring position — see `20-UI-SPEC.md`) plus
+  the centre label, in place of the retired grid's "header row" framing — there is no
+  header in the ring design to seed the first band, so the cascade starts directly on the
+  first pill. The warning chip (see D-20-27..30, now rendered as a standalone chip below
+  the ring rather than a banner inside a card) remains an additional band when present at
+  open, unchanged in spirit from the original.
 - **D-20-36:** Grid entrance and input readiness were **not** serialised (the third option
   offered). WINDOWS rows 3 and 4 — the Phase 9 hover-during-entrance interaction that was
   never exercised live — remain open and are in-scope for LEDGER-05 triage.
@@ -442,16 +493,29 @@ the launcher (out of scope for v4.0 entirely).
 <specifics>
 ## Specific Ideas
 
-- **The power menu's shape was chosen from a rendered comparison**, not described in the
-  abstract. The selected mockup: a centred `PanelDialog`-family frame with a "Session"
-  header, a 3×2 action grid (Lock / Log Out / Suspend on the top row, Hibernate / Reboot /
-  Shut Down on the bottom), a visible focus ring on the focused action, and the QPOWER-03
-  warning line inside the frame beneath the grid — not floating on the scrim.
+- **The power menu's shape was chosen from a rendered comparison, twice.** The first
+  rendered comparison (2026-08-14) selected a centred `PanelDialog`-family frame with a
+  "Session" header, a 3×2 action grid, a visible focus ring, and the QPOWER-03 warning line
+  inside the frame beneath the grid. That design was **built and then rejected live** on
+  2026-08-15 — see D-20-21's revision note for the user's verbatim rejection. A second
+  rendered comparison, of three sketched radial options, replaced it.
+- **The current, LOCKED mockup (2026-08-15):** no card frame, no header. Six pure-circle
+  icon-only pills sit evenly spaced on a ring, screen-centred, each individually frosted
+  and coloured per its severity role (`20-UI-SPEC.md` carries the table). The ring's centre
+  shows the focused action's name, replacing every per-pill label. A visible focus ring
+  (same `BarRoles.accent` stroke idiom as before, drawn outside the pill boundary so it
+  reads against the scrim rather than the pill's own fill) marks the focused pill. The
+  QPOWER-03 warning, when present, renders as a standalone frosted chip **below the ring**,
+  not inside any frame — there is no frame for it to sit inside anymore. The scrim behind
+  the whole cluster is a light 0.32 dim, not the previous 0.55.
 - **"Show me how it will look"** — the user asked to see the option rendered before
-  committing to it. Downstream UI work should expect the same: show the surface, don't
-  describe it.
-- The three rejected shapes and *why* are recorded in D-20-21, so the planner does not
-  re-derive them.
+  committing to it, twice now. Downstream UI work should expect the same: show the surface,
+  don't describe it, and treat a live rejection after a first render as a normal part of
+  this process, not a failure of it.
+- The three shapes rejected in the FIRST comparison round, and the three sketched radial
+  options presented in the SECOND round (of which the ring-with-centre-label won), are
+  recorded across D-20-21's revision note — the planner does not need to re-derive either
+  round.
 
 </specifics>
 
