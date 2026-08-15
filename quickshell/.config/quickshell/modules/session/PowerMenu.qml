@@ -410,11 +410,11 @@ PanelWindow {
         if (powerWindow._dismissing)
             return;
         powerWindow._dismissing = true;
-        // Scrim ramp-down (item 4) starts in step with the pill exit
-        // cascade below — the `Behavior on opacity` on `scrim` reads
-        // `_dismissing` (now true) to pick the emphasizedOut duration/
-        // easing pair, the same tokens the cascade itself uses for exit.
-        scrim.opacity = 0;
+        // No scrim ramp-down here — the compositor's own layersOut fade
+        // takes the whole surface out as one image. Driving `scrim.opacity`
+        // toward 0 would drag it back across the ignore_alpha threshold and
+        // snap the background OUT of blur a frame before the surface goes,
+        // the exit-side twin of the entrance pop. See the scrim block.
 
         function afterExit() {
             powerWindow.entranceCascade.exitFinished.disconnect(afterExit);
@@ -532,54 +532,35 @@ PanelWindow {
         // "stronger" per item 4) — multiplying that fixed alpha through the
         // ramping `opacity` is what makes the ramp read as a smooth dim
         // rather than a colour crossfade, with no second colour to define.
-        opacity: 0
+        // ── No QML opacity ramp here. This is load-bearing. ─────────────
+        // `ignore_alpha` is a STEP function evaluated against this
+        // surface's own BUFFER alpha: Hyprland gives the blurred backdrop
+        // only to pixels above the threshold (0.2 for quickshell-session).
+        // Animating this Rectangle's `opacity` from 0 to its 0.25 target
+        // therefore drags the scrim ACROSS that threshold mid-animation,
+        // and the whole background snaps into blur in a single frame at
+        // ~80% through the ramp — reported as "the dimming screen pops
+        // into existence... very jarring".
+        //
+        // Every attempt to tune that away made it worse, and the step
+        // explains why: a longer ramp (factor 3, then 5) pushed the snap
+        // LATER; lowering the target 0.35 -> 0.25 moved the crossing from
+        // 57% to 80% of the ramp; and switching the curve to linear could
+        // not help, because a threshold crossing is not a curve.
+        //
+        // The compositor's own layer fade (windowrules.lua's
+        // `animation = "fade"` for this namespace, driven by animations.lua's
+        // layersIn/layersOut) multiplies the FINAL COMPOSITED OUTPUT
+        // instead. Blur is computed once against a static buffer alpha and
+        // then fades in as one uniform image, so there is no threshold to
+        // cross and no step to see. That is why the fade belongs to the
+        // compositor and not to this file.
+        //
+        // Keep `opacity` at 1 and carry the dim strength in `color`'s alpha
+        // alone. Anything that re-introduces an opacity Behavior here
+        // re-introduces the pop.
+        opacity: 1
         color: Qt.rgba(powerWindow.scrimColour.r, powerWindow.scrimColour.g, powerWindow.scrimColour.b, Design.sessionScrimOpacity)
-
-        Behavior on opacity {
-            enabled: Motion.motionEnabled
-            NumberAnimation {
-                // Direction-aware duration/easing — reads `_dismissing`
-                // fresh at the moment `scrim.opacity` actually changes, so
-                // the ramp-IN (Component.onCompleted, `_dismissing` still
-                // false) and the ramp-OUT (`_beginDismiss()`, `_dismissing`
-                // already true) each borrow the SAME emphasizedIn/Out pair
-                // the pill cascade itself uses for that same direction —
-                // not a fifth motion value, and never a raw literal
-                // (`motion-lint` CHECK B).
-                //
-                // Scaled by `sessionScrimRampFactor` (user-reported: "the
-                // gradient dimming happens too fast"). The pill cascade's
-                // own timing is UNCHANGED — only the scrim is slowed. They
-                // are deliberately different now: the pills are a discrete
-                // arrival the eye tracks per-band, while the dim is an
-                // ambient field change that reads as abrupt at the same
-                // speed. Still a token multiple, never a raw literal, the
-                // same idiom WorkspaceTile.qml:431 and Overview.qml:931
-                // already use for `Motion.ambientDuration` multiples.
-                duration: (powerWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration) * Design.sessionScrimRampFactor
-                // LINEAR, deliberately — not the emphasized bezier the
-                // pills use (user-reported: "the power menu appears then
-                // after a short delay, the dimming screen pops into
-                // existence. This is very jarring").
-                //
-                // The emphasized curve is slow at t=0 by design. On a
-                // discrete object like a pill that reads as weight. On a
-                // full-field dim toward a subtle target alpha it means the
-                // first several hundred ms produce no perceptible change
-                // at all, and the eye registers onset only once the curve
-                // accelerates — a delay followed by a pop. Lengthening the
-                // duration made that dead zone LONGER, which is why the
-                // slower ramp read as more sudden, not less.
-                //
-                // A dim has no shape to accelerate; it only has presence.
-                // Linear rises evenly from the first frame, so onset is
-                // immediate and the whole ramp is perceptually uniform.
-                // Easing.Linear is a named enum, not a control-point
-                // literal, so this does not introduce a motion-lint CHECK B
-                // violation the way a hand-written bezier would.
-                easing.type: Easing.Linear
-            }
-        }
 
         // Bug 1 fix — declared on the scrim itself, BEHIND the ring
         // (the ring Item is a later sibling below, so its pills' own
@@ -661,11 +642,10 @@ PanelWindow {
             powerWindow.entranceCascade.bands = powerWindow._buildCascadeBands();
             powerWindow.entranceCascade.armed = true;
             powerWindow.entranceCascade.run();
-            // Scrim ramp-in (item 4, third revision) — set here, in step
-            // with the pill cascade's own arm/run above, not before it.
-            // `scrim`'s own `Behavior on opacity` reads `_dismissing`
-            // (false here) to pick the emphasizedIn duration/easing pair.
-            scrim.opacity = 1;
+            // No scrim ramp-in here — the compositor's layersIn fade brings
+            // the whole surface up as one already-composited image, so the
+            // dim arrives with it and never crosses the blur threshold
+            // mid-animation. See the scrim block for the full reasoning.
             // Cascade.run() itself is what gates the whole stagger on
             // Motion.motionEnabled (the `off`-scale collapse branch) — not
             // re-checked a second time on this surface. Logged here
