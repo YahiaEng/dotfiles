@@ -70,6 +70,7 @@ Toast {
             id: osdVolumeSlider
             anchors.verticalCenter: parent.verticalCenter
             width: osdRow.width - osdVolumeGlyph.width - Design.spacingMd
+            height: osdVolumeGlyph.height
             from: 0
             to: 1
             value: osd.audioBackend ? osd.audioBackend.masterVolume : 0
