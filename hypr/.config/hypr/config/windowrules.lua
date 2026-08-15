@@ -593,12 +593,23 @@ hl.layer_rule({ match = { namespace = "quickshell-osd" }, blur = true })
 -- family already uses.
 hl.layer_rule({ match = { namespace = "quickshell-osd" }, ignore_alpha = 0.2 })
 
--- quickshell-session gets only an animation row here. Its card fill is
--- Colours.surface at panelSurfaceOpacity (0.78) and its scrim is
--- Design.sessionScrimOpacity (0.55) — both above the family's own 0.5
--- floor, so the floor alone is PREDICTED sufficient; no ignore_alpha
--- override is added speculatively. This prediction is VERIFIED at plan
--- 20-08's Gate B criterion 1 (the dialog reads as part of the panel
--- family — rim, rounded card, theme-reactive fill, scrim), not assumed
--- here.
+-- quickshell-session — REVISED 2026-08-15 (D-20-21 revised, ring design).
+-- The stale prediction below no longer holds: the grid dialog (card fill
+-- 0.78, scrim 0.55, both above the family's 0.5 floor) was built, shown
+-- live, and rejected by the user for a radial ring with two DIFFERENT
+-- alpha values on the same namespace — the scrim at sessionScrimOpacity
+-- (0.32, a deliberate light dim, BELOW the family floor) and each pill's
+-- own frosted fill at sessionPillFillOpacity (0.72, ABOVE it). ignore_alpha
+-- behaves as an all-or-nothing blur switch for the whole backdrop of one
+-- namespace (the wleave rule's own finding, line 417 above) — a single
+-- namespace-wide floor cannot serve both values, so Route A ("pin every
+-- alpha above the floor") is not available without contradicting the
+-- user's own light-scrim instruction. Route B — a quickshell-session-
+-- specific override BELOW both values present on the surface (0.32 scrim,
+-- 0.72 pill fill) — is the only option consistent with both requirements.
+-- 0.2 mirrors the exact threshold the notification family and
+-- quickshell-osd already use (lines 563-565, 594) rather than inventing a
+-- fourth distinct low-threshold number for no reason. See 20-UI-SPEC.md's
+-- "Frost and the ignore_alpha trap" for the full derivation.
 hl.layer_rule({ match = { namespace = "quickshell-session" }, animation = "slide" })
+hl.layer_rule({ match = { namespace = "quickshell-session" }, ignore_alpha = 0.2 })
