@@ -1,10 +1,9 @@
 # qmldir — explicit module manifest for quickshell/modules/osd/ (Phase 20
-# Plan 04, QOSD-01/QOSD-03; Plan 05, QOSD-04 this commit, QOSD-02 in a
-# following commit). Mirrors every sibling module manifest's own standing
-# instruction: any .qml type added to this directory that is NOT declared
-# below becomes unresolvable to `shell.qml`'s `import "modules/osd"`. Any
-# FUTURE type added to this directory MUST do the same, in the same commit
-# that creates it.
+# Plan 04, QOSD-01/QOSD-03; Plan 05, QOSD-02/QOSD-04). Mirrors every
+# sibling module manifest's own standing instruction: any .qml type added
+# to this directory that is NOT declared below becomes unresolvable to
+# `shell.qml`'s `import "modules/osd"`. Any FUTURE type added to this
+# directory MUST do the same, in the same commit that creates it.
 #
 # Osd is NOT a singleton — shell.qml mounts one ordinary, always-on
 # instance (Toast.qml's own always-mounted posture, matching the DND
@@ -13,8 +12,12 @@
 # only while some other surface is open.
 #
 # OsdSliderRow (Plan 05, QOSD-04) — the reusable slider row Osd.qml
-# instantiates up to three times. Not a singleton — Osd.qml owns exactly
-# one instance of each row.
+# instantiates up to three times. CapsLockBackend (Plan 05, QOSD-02) — the
+# glob-resolved, read-only, poll-driven Caps Lock detector Osd.qml mounts
+# once (see that file's own header for why it is polled rather than
+# watched). Neither is a singleton — Osd.qml owns exactly one instance of
+# each.
 module qs.modules.osd
 Osd 1.0 Osd.qml
 OsdSliderRow 1.0 OsdSliderRow.qml
+CapsLockBackend 1.0 CapsLockBackend.qml

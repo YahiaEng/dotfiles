@@ -1,6 +1,5 @@
 // Osd.qml — the OSD indicator surface (Phase 20 Plans 04/05,
-// QOSD-01/QOSD-03/QOSD-04 this commit; QOSD-02 Caps Lock lands in this
-// same plan's Task 2, a following commit).
+// QOSD-01/QOSD-02/QOSD-03/QOSD-04).
 //
 // A `Toast.qml` INSTANCE (D-20-02/D-20-04), never a new frame type — no new
 // GATE-03 registry work beyond a namespace registration. Bottom-centre
@@ -16,6 +15,15 @@
 // no keybind ever calls `show()` directly. This is what makes an external
 // `wpctl` call or a bar scroll raise the identical indicator to a hardware
 // key press.
+//
+// ── Plan 20-05 content: three shapes, one frame ───────────────────────────
+// `body` (Toast.qml's content slot) holds exactly TWO top-level Items —
+// `osdSliderColumn` (the QOSD-04 multi-slider column) and `capsLockRow`
+// (the QOSD-02 Caps Lock row) — made mutually exclusive purely by their own
+// `visible` bindings (D-20-04/D-20-11: one `Toast`, one content region, no
+// second frame). `bodyRow` (Toast.qml's own `Row`) skips whichever one is
+// currently invisible, so this is structurally identical to "one shape at
+// a time" without a Loader or a state machine.
 //
 // ── Membership — a rolling recency window, not a static flag (D-20-08) ──
 // A control's row is visible only while `Design.osdRecencyWindowMs` (1500)
@@ -37,10 +45,21 @@
 // always-visible sliders, where 19-UI-SPEC.md's N6/empty question is still
 // open where it actually lives.
 //
-// ── The recency-window ticker (Task 2 of this plan reuses this SAME
-//    Timer for Caps Lock polling — see that commit for why) ─────────────
-// `osdTicker` below ages out any control whose recency window has
-// elapsed, every `_tickerIntervalMs`.
+// ── One shared Timer, two jobs (load-bearing, read before editing) ───────
+// `osdTicker` below is the ONLY `Timer {}` in this module directory. It
+// does two things every tick: (1) ages out any control whose recency
+// window has elapsed, and (2) calls `capsLockBackend.checkNow()` — see
+// `CapsLockBackend.qml`'s own header for why Caps Lock detection is a
+// bounded POLL rather than the event-driven watch QOSD-02 was originally
+// specified around (GATE-01 measured the watch dead on this host). The
+// poll must run for the WHOLE SESSION, not merely while the OSD is
+// visible, since it is what CATCHES the ON edge that raises the OSD in the
+// first place — it cannot be gated on the OSD's own visibility without
+// becoming circular. This is a deliberate, documented divergence from this
+// plan's own zero-idle prohibition, made because the originally-specified
+// mechanism is measured non-functional here — NOT a silent substitution.
+// Do not add a second `Timer {}` anywhere in this directory; extend this
+// one's `_tick()` instead, the same way it already serves two owners.
 //
 // ── Brightness's OWN trigger gap (a separate, already-scoped item) ────────
 // `BrightnessBackend.percent` only updates from writes ITS OWN
@@ -84,6 +103,12 @@ Toast {
     // overridden here.
     implicitWidth: Design.osdWidth
 
+    // ── Content-shape switch (D-20-04/D-20-11) — see header. Set true
+    //    only by capsLockBackend's own turnedOn() signal below; cleared by
+    //    every audio/brightness change, so whichever trigger fired most
+    //    recently owns the frame. ─────────────────────────────────────
+    property bool showingCapsLock: false
+
     // ── Recency state (D-20-08) — one timestamp + one derived visibility
     //    flag per control, aged out by the shared ticker below. Never
     //    read directly by a row; each row's own `visible:` binds to the
@@ -115,6 +140,7 @@ Toast {
             osd._brightnessChangedAt = now;
             osd.brightnessRecent = true;
         }
+        osd.showingCapsLock = false;
         osd.show();
     }
 
@@ -126,12 +152,14 @@ Toast {
             osd.micRecent = false;
         if (osd.brightnessRecent && now - osd._brightnessChangedAt >= Design.osdRecencyWindowMs)
             osd.brightnessRecent = false;
+        capsLockBackend.checkNow();
     }
 
     // ── QOSD-04: up to three independently adjustable rows, fixed order,
     //    each present only because its own control actually moved. ──────
     Column {
         id: osdSliderColumn
+        visible: !osd.showingCapsLock
         width: Design.osdWidth - Design.spacingMd * 2
         spacing: Design.spacingSm
 
@@ -210,9 +238,42 @@ Toast {
         }
     }
 
-    // ── The recency-window ticker — see header. Task 2 of this plan
-    //    (Caps Lock) reuses this SAME Timer instance for its own poll
-    //    rather than declaring a second one — see that commit. ─────────
+    // ── QOSD-02: replaces the column entirely (D-20-11), never joins it
+    //    as a fourth row — see header. Identical geometry to the DND
+    //    toast's own content row (Design.spacingSm icon-to-text,
+    //    Design.spacingMd frame padding, inherited from Toast.qml). ─────
+    Row {
+        id: capsLockRow
+        visible: osd.showingCapsLock
+        width: Design.osdWidth - Design.spacingMd * 2
+        spacing: Design.spacingSm
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            font.family: Design.symbolFontFamily
+            font.pixelSize: Design.iconSizeMd
+            color: BarRoles.notifSurfaceFg
+            // Not yet used anywhere else in this shell — verified this
+            // session the same way as "brightness_6" above:
+            // "keyboard_capslock" resolves as a named glyph in the
+            // installed Material Symbols Rounded variable font's glyph
+            // order, the same presence pattern as this shell's other,
+            // already-working glyphs.
+            text: "keyboard_capslock"
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            font.pixelSize: Design.fontBody
+            // Body weight, not DemiBold — this is feedback copy, matching
+            // the DND toast's own text weight in this shared frame, not a
+            // heading (20-UI-SPEC.md's own Typography section).
+            font.weight: Design.weightBody
+            color: BarRoles.notifSurfaceFg
+            text: "Caps Lock"
+        }
+    }
+
+    // ── The one shared Timer in this module directory — see header. ────
     Timer {
         id: osdTicker
         interval: osd._tickerIntervalMs
@@ -221,12 +282,25 @@ Toast {
         onTriggered: osd._tick()
     }
 
+    CapsLockBackend {
+        id: capsLockBackend
+    }
+
+    Connections {
+        target: capsLockBackend
+        function onTurnedOn() {
+            osd.showingCapsLock = true;
+            osd.show();
+        }
+    }
+
     // ── Trigger — D-20-05, see header. One Connections block per backend,
-    //    each change marking its own control recent (D-20-08).
-    //    `BrightnessBackend` is a singleton (modules/bar/qmldir), reached
-    //    directly through the "../bar" import above — no threading
-    //    through shell.qml is needed, unlike `audioBackend` which
-    //    Osd.qml never mounts itself. ───────────────────────────────────
+    //    each change marking its own control recent (D-20-08) and
+    //    switching the frame back to the slider column if Caps Lock's
+    //    content was showing. `BrightnessBackend` is a singleton
+    //    (modules/bar/qmldir), reached directly through the "../bar"
+    //    import above — no threading through shell.qml is needed, unlike
+    //    `audioBackend` which Osd.qml never mounts itself. ─────────────
     Connections {
         target: osd.audioBackend
         function onMasterVolumeChanged() {
