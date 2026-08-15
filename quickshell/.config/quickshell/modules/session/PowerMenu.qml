@@ -176,7 +176,20 @@ PanelWindow {
     anchors.left: true
     anchors.right: true
     exclusiveZone: 0
-    exclusionMode: ExclusionMode.Normal
+    // Ignore, NOT Normal (user-reported: "Dimming does not affect the
+    // quickshell bar"). Under Normal the compositor shrinks this surface
+    // out of the bar's own exclusive zone, so the scrim stopped at the
+    // bar's edge and the bar sat undimmed above a dimmed desktop — the
+    // modal read as partial. Layer order was never the problem: this
+    // surface is already WlrLayer.Overlay (level 3) against the bar's
+    // WlrLayer.Top (level 2), so it was always ABOVE the bar, just not
+    // BEHIND it in extent.
+    //
+    // Deliberately diverges from Toast.qml:183, which documents choosing
+    // Normal on purpose so transient notices do not cover the bar. The
+    // opposite is correct here: a session modal that leaves a live,
+    // clickable bar undimmed is not modal.
+    exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-session"
     // D-20-24 — see file header for the full coexistence reasoning.

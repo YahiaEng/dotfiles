@@ -125,7 +125,17 @@ Toast {
     // notifSurfaceWidth); height stays content-hugging — Toast.qml's own
     // implicitHeight binding is untouched, only implicitWidth is
     // overridden here.
-    implicitWidth: Design.osdWidth
+    // Fixed osdWidth for the slider column (D-20-10), but content-width
+    // for the Caps Lock state, which has no track to size for. Named
+    // divergence from D-20-10's flat "width is fixed": the decision was
+    // written when the only content was a slider row, and a 380px pill
+    // around a glyph plus two words reads as broken rather than
+    // deliberate. Falls back to Toast.qml's own content-hugging idiom
+    // (implicitWidth + frame padding) rather than inventing a second
+    // width token.
+    implicitWidth: osd.showingCapsLock
+        ? capsLockRow.implicitWidth + Design.spacingMd * 2
+        : Design.osdWidth
 
     // ── Content-shape switch (D-20-04/D-20-11) — see header. Set true
     //    only by capsLockBackend's own turnedOn() signal below; cleared by
@@ -269,7 +279,14 @@ Toast {
     Row {
         id: capsLockRow
         visible: osd.showingCapsLock
-        width: Design.osdWidth - Design.spacingMd * 2
+        // Content-width, NOT the slider column's fixed width
+        // (user-reported: "capslock pill is oversized as it inherits the
+        // same dimensions of the volume pill"). A slider row needs the full
+        // osdWidth because the track has to be long enough to drag
+        // meaningfully; a glyph plus "Caps Lock" does not, and stretching
+        // it to 380px left most of the pill empty. A Row with no explicit
+        // width sizes to its children, which is what drives the
+        // conditional implicitWidth on the frame above.
         spacing: Design.spacingSm
 
         Text {
