@@ -42,8 +42,8 @@
 
 ### QOSD — On-screen indicators (replaces SwayOSD)
 
-- [ ] **QOSD-01**: Volume and brightness indicators appear on the media keys, including while the lock screen is up
-- [ ] **QOSD-02**: A Caps Lock indicator appears with **no root service** — read from the keyboard LED's sysfs node via a watched file
+- [x] **QOSD-01**: Volume and brightness indicators appear on the media keys, including while the lock screen is up
+- [x] **QOSD-02**: A Caps Lock indicator appears with **no root service** — read from the keyboard LED's sysfs node via a watched file
 - [ ] **QOSD-03**: Indicators auto-hide after a delay and stay open while hovered
 - [ ] **QOSD-04**: Volume, microphone and brightness show as independent sliders in one column when more than one has changed — each individually adjustable, each appearing only if that control actually moved *(named addition)*
 
@@ -65,10 +65,10 @@
 - [x] **RETIRE-01**: A retirement checklist **script** exists covering every reference class (window/layer rules, autostart, keybinds, `contract.json`, matugen templates, doctor registries and fixtures, systemd `--user` units, D-Bus activation files, XDG autostart, `install.sh`/`stow.sh` lists) and is run before *and* after each deletion
 - [x] **RETIRE-02**: `waybar` is removed — package, config, contract entries, matugen template, `waybar-equivalence-check` and `waybar-design-lint` — in the phase that proves its replacement
 - [x] **RETIRE-03**: `swaync` is removed the same way, in the same phase as QNOTIF
-- [ ] **RETIRE-04**: `swayosd` is removed the same way, including its libinput backend service
-- [ ] **RETIRE-05**: `wleave` is removed the same way
+- [x] **RETIRE-04**: `swayosd` is removed the same way, including its libinput backend service
+- [x] **RETIRE-05**: `wleave` is removed the same way
 - [ ] **RETIRE-06**: `ags` is removed the same way
-- [ ] **RETIRE-07**: The `wlogout` and `eww` packages — repo-retired in earlier milestones but **still installed on this host** — are uninstalled
+- [x] **RETIRE-07**: The `wlogout` and `eww` packages — repo-retired in earlier milestones but **still installed on this host** — are uninstalled
 - [ ] **RETIRE-08**: `contract.json` reaches its post-migration size (29 → ~17 entries) with `theme-doctor` and `theme-parity` green and no orphaned entries
 - [ ] **RETIRE-09**: The fresh-install container gate (D-34/D-36) passes after every retirement has landed — the milestone's closing proof that a clean clone still reproduces the desktop
 
@@ -148,8 +148,8 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QNOTIF-09 | Phase 19 | Complete |
 | QNOTIF-10 | Phase 19 | Complete |
 | QNOTIF-11 | Phase 19 | Complete |
-| QOSD-01 | Phase 20 | Pending |
-| QOSD-02 | Phase 20 | Pending |
+| QOSD-01 | Phase 20 | Complete |
+| QOSD-02 | Phase 20 | Complete |
 | QOSD-03 | Phase 20 | Pending |
 | QOSD-04 | Phase 20 | Pending |
 | QPOWER-01 | Phase 20 | Pending |
@@ -162,10 +162,10 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | RETIRE-01 | Phase 18 | Complete |
 | RETIRE-02 | Phase 18 | Complete |
 | RETIRE-03 | Phase 19 | Complete |
-| RETIRE-04 | Phase 20 | Pending |
-| RETIRE-05 | Phase 20 | Pending |
+| RETIRE-04 | Phase 20 | Complete |
+| RETIRE-05 | Phase 20 | Complete |
 | RETIRE-06 | Phase 21 | Pending |
-| RETIRE-07 | Phase 20 | Pending |
+| RETIRE-07 | Phase 20 | Complete |
 | RETIRE-08 | Phase 21 | Pending |
 | RETIRE-09 | Phase 22 | Pending |
 | GATE-01 | Phase 18 | Complete |

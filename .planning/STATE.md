@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: indicators-power-menu
 status: executing
-stopped_at: Completed 20-02-PLAN.md (LEDGER-05 WINDOWS.md triage)
-last_updated: "2026-08-15T16:14:15.868Z"
+stopped_at: Completed 20-01-PLAN.md (GATE-01 baseline, consumer sweep, live measurements)
+last_updated: "2026-08-15T16:17:22.277Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 45
-  completed_plans: 36
+  completed_plans: 37
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 20 (indicators-power-menu) — EXECUTING
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
-Progress: [████████░░] 80%
+Progress: [████████░░] 82%
 Last activity: 2026-08-15 — Phase 20 execution started
 
 ## Performance Metrics
@@ -228,6 +228,7 @@ Last activity: 2026-08-15 — Phase 20 execution started
 | Phase 19 P06 | ~45min | 3 tasks | 10 files |
 | Phase 19 P07 | ~25min | 2 tasks | 2 files |
 | Phase 20 P02 | 12min | 2 tasks | 3 files |
+| Phase 20 P01 | 35min (multi-session) | 4 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -496,6 +497,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: NotifServer.qml extended with clearOne/clearGroup/_sessionActionsById to implement D-19-29/D-19-31 without breaking persistence
 - [Phase ?]: 19-07: closed WifiPanel.qml's textFormat gap (15-SECURITY.md Unregistered Flags item 2 / T-15-08b's still-open twin) and authored 19-SECURITY.md consolidating 24 threat-register rows across the phase, threats_open: 0; AudioPanel.qml's same-class gap found and recorded (not fixed, out of declared file scope) as a follow-up
 - [Phase ?]: 20-02: Individual-verdict set {3,4,5,6,10,74} triaged; 45-row remainder batch re-deferred to Phase 21 (LEDGER-05)
+- [Phase ?]: D-20-17 measured: no SDDM greeter indicator (hardware LED lit separately) -> RETIRE-04 proceeds including swayosd-libinput-backend.service
+- [Phase ?]: D-20-19 measured: no SwayOSD pill over hyprlock -> QOSD-01 amended to its already-true locked=true key-functionality clause (keybinds.lua:297-308), not chased
+- [Phase ?]: RESEARCH Open Question 1 measured: sysfs Caps Lock FileView watch did not fire on either edge -> flagged as scope conversation for plan 20-05 Task 2's polling-Timer fallback, not pre-authorised
 
 ### Quick Tasks Completed
 
@@ -634,8 +638,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-15T16:14:15.843Z
-Stopped at: Completed 20-02-PLAN.md (LEDGER-05 WINDOWS.md triage)
+Last session: 2026-08-15T16:17:22.257Z
+Stopped at: Completed 20-01-PLAN.md (GATE-01 baseline, consumer sweep, live measurements)
 Resume file: None
 
 ## Operator Next Steps
