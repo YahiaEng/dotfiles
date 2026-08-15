@@ -1,23 +1,59 @@
-// PowerMenu.qml — the session/power dialog (Phase 20 Plan 06 Task 1,
-// QPOWER-01/02/04, D-20-21..26). Built ON PanelDialog.qml's pattern
-// language (background/rim/HyprlandFocusGrab construction), NOT by
-// instantiating it: PanelDialog is anchors-top, bottom-rounded, docked
-// under the bar — built for drawer-style panels. This is a screen-centred
-// modal, so the construction is copied and the geometry diverges.
+// PowerMenu.qml — the session/power menu (Phase 20 Plan 06 Task 1,
+// QPOWER-01/02/04, D-20-21..26). REWRITTEN 2026-08-15 from a 3x2 grid
+// dialog to a radial ring, after the grid was built and shown live and
+// the user rejected it verbatim: "It overtakes the entire screen and
+// does not behave like a popup that slightly dims the screen. I want a
+// floating cards design, circular pills arranged in a circular motion
+// each one is colored according to the theme with a frosted look."
+// Presented with three sketched radial options, the user locked this
+// ring-with-centre-label shape — see 20-CONTEXT.md's D-20-21 revision
+// note and 20-UI-SPEC.md's "Power Menu — Frame" (revised) for the full
+// contract this file renders. Do not reinterpret the shape.
+//
+// Still ONE PanelWindow spanning the full output, per the original
+// resolution — only the CHILD CONTENT changed from a card+grid to a
+// scrim + six-pill ring + centre label. No card, no header, no rim.
 //
 // Scope note: the QPOWER-03 warning banner/detectors and the Cascade.qml
-// entrance are plan 20-07's job, not this file's. This plan wires the
-// thinnest complete path: Super+Shift+Q opens the dialog, Lock is
-// focused, Enter locks the session.
+// staggered entrance are plan 20-07's job, not this file's — unaffected
+// by this rewrite.
 //
 // ── Exclusive focus + HyprlandFocusGrab coexistence (D-20-24) ────────────
 // WlrKeyboardFocus.Exclusive is a deliberate divergence from D-19-18's
 // no-exclusive-focus rule, written for the non-modal notification centre.
 // This surface's actions end the session, so it earns exclusive focus —
-// every keypress must land here while it is open. HyprlandFocusGrab still
-// provides click-outside dismissal ALONGSIDE exclusive focus below — no
-// surface in this repo has combined the two before; proven live at this
-// plan's Task 1 human-check, not assumed from the OnDemand case.
+// every keypress must land here while it is open.
+//
+// ── Bug fix (live verification, 2026-08-15) — click-outside dismissal ──
+// The grid build paired WlrKeyboardFocus.Exclusive with HyprlandFocusGrab
+// and the user found clicking outside the dialog did not dismiss it.
+// Root cause: a click on the SCRIM never changes which window holds
+// keyboard focus (the scrim is part of THIS same window), so
+// HyprlandFocusGrab's onCleared — which fires on a FOCUS change to
+// another window — never sees it; Exclusive focus makes this worse by
+// guaranteeing no other window can ever take focus while this one is
+// open. The fix below is an explicit full-surface MouseArea behind the
+// ring (on the scrim itself) whose onClicked deterministically closes
+// the menu, independent of compositor focus-grab semantics.
+// HyprlandFocusGrab is kept for the (different) case of focus genuinely
+// moving to another surface; both routes call the same requestDismiss(),
+// which is idempotent (a second call while the loader is already
+// inactive is a no-op), so there is no double-fire hazard.
+//
+// ── Bug fix (live verification, 2026-08-15) — post-unlock flash ────────
+// Reproduced on Lock: hyprlock starts correctly, but after unlocking the
+// power menu flashes on screen before disappearing — the surface was not
+// torn down before its action fired, so it survived (unmapped only via
+// the LazyLoader's async destruction) behind the lock screen and
+// repainted for a frame on unlock. Lock is merely the case where the
+// user survives long enough to see it: Suspend and Hibernate have the
+// identical defect on resume. Fix: `closeAndRun()` sets `visible: false`
+// — which unmaps the wlr layer-shell surface synchronously, not merely
+// opacity 0 — BEFORE the action Process starts, for all six actions.
+// `requestDismiss()` (which tears down the LazyLoader item, including
+// this window) is called LAST, after the process has already launched,
+// so the object this function belongs to is never deleted out from under
+// the `actionProcess.startDetached()` call above it.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -38,17 +74,17 @@ PanelWindow {
 
     // Esc routes through this rather than straight to requestDismiss(),
     // matching PanelDialog.qml's own handleEscape() idiom — no action is
-    // taken, the dialog just closes.
+    // taken, the menu just closes.
     function handleEscape() {
         powerWindow.requestDismiss();
     }
 
-    // ── Layer posture — full-output span so the scrim gives
-    //    HyprlandFocusGrab's click-outside dismissal a screen-wide catch
-    //    area with no second window to coordinate (Overview.qml's own
-    //    full-screen-catch-region precedent). exclusiveZone 0 — an
-    //    overlay, reserves nothing. Namespace was declared in 20-03
-    //    already; first rendered here. ────────────────────────────────────
+    // ── Layer posture — full-output span so the scrim gives the click-
+    //    outside MouseArea (and HyprlandFocusGrab, for the other case) a
+    //    screen-wide catch area with no second window to coordinate
+    //    (Overview.qml's own full-screen-catch-region precedent).
+    //    exclusiveZone 0 — an overlay, reserves nothing. Namespace
+    //    declared in 20-03, first rendered here. ─────────────────────────
     anchors.top: true
     anchors.bottom: true
     anchors.left: true
@@ -61,13 +97,14 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     color: "transparent"
 
-    // ── Local Design-derived constants — PanelDialog.qml's own idiom ─────
-    readonly property real panelSurfaceOpacity: 0.78
-    // lineHeightTight/lineHeightNormal — 20-UI-SPEC.md's Step-9.5
-    // correction confirmed these are NOT Design.qml tokens (20-03-SUMMARY.md
-    // deliberately did not promote them). Declared locally per
-    // PanelDialog.qml's own precedent, not a third declaration site.
-    readonly property real lineHeightTight: 1.2
+    // ── Local Design-derived constant — PanelDialog.qml's own idiom ──────
+    // lineHeightTight has no consumer on this surface any more — the
+    // Heading role (the only thing that used it) is retired: no header,
+    // no card, no "Session" title left to carry it (20-UI-SPEC.md
+    // Typography table). Only lineHeightNormal (the centre label, Body
+    // weight) survives. 20-UI-SPEC.md's Step-9.5 correction confirmed
+    // neither is a Design.qml token; declared locally per PanelDialog.qml's
+    // own precedent, not a third declaration site.
     readonly property real lineHeightNormal: 1.5
 
     // ── The six actions — D-20-26 migration source: 20-BEHAVIOUR-BASELINE.md's
@@ -80,9 +117,11 @@ PanelWindow {
     //    `advancedCommand` discipline: a Process.command bound to a
     //    declared property, never joined into a string).
     //
-    //    Row order exactly as the selected mockup names it: Lock/Log Out/
-    //    Suspend top row (indices 0-2), Hibernate/Reboot/Shut Down bottom
-    //    row (indices 3-5) — array order IS grid reading order.
+    //    Array order IS ring order (D-20-21 revised, 20-UI-SPEC.md's
+    //    "Ring layout — clock-position assignment"): Lock at 12 o'clock
+    //    (0°), then clockwise — Log Out (60°), Suspend (120°), Hibernate
+    //    (180°), Reboot (240°), Shut Down (300°). This is also the
+    //    rotation model's index order (see rotateFocus() below).
     readonly property var actions: [
         {
             glyph: "lock", label: "Lock", mnemonic: "l",
@@ -117,16 +156,49 @@ PanelWindow {
         }
     ]
 
-    // Lock (index 0, top-left) auto-focused on open — the least
+    // Lock (index 0, 12 o'clock) auto-focused on open — the least
     // destructive action, and the one action QPOWER-03 never warns about
     // (D-20-29).
     property int focusedIndex: 0
 
-    function runAction(index) {
+    // ── Severity colour mapping (D-20-21 revised, action -> colour-role
+    //    table in 20-UI-SPEC.md § "Color"). Kept as functions rather than
+    //    baked into the `actions` array above so every pill's fill stays
+    //    a LIVE binding on BarRoles' singleton colours — Gate B criterion
+    //    2 requires a live theme switch to re-colour every pill within
+    //    one crossfade while the menu is open, which a one-time JS-array
+    //    snapshot would not satisfy. `accent`/`fillNotification`
+    //    (Colours.primary's hue) are deliberately excluded from every
+    //    tier so the focus ring is never drawn against a same-hue fill.
+    function fillRoleFor(idx) {
+        switch (idx) {
+        case 0: case 2: return BarRoles.fillClock;     // Lock, Suspend — tier A
+        case 1: case 4: return BarRoles.fillUpdates;   // Log Out, Reboot — tier B
+        case 3: case 5: return BarRoles.danger;        // Hibernate, Shut Down — tier C
+        default: return BarRoles.fillClock;
+        }
+    }
+    function fgRoleFor(idx) {
+        switch (idx) {
+        case 0: case 2: return BarRoles.fillClockFg;
+        case 1: case 4: return BarRoles.fillUpdatesFg;
+        case 3: case 5: return BarRoles.onDanger;
+        default: return BarRoles.fillClockFg;
+        }
+    }
+
+    // Bug 2 fix — see file header. Unmaps the surface (visible = false)
+    // BEFORE the action Process starts, for every action, then tears the
+    // LazyLoader item down LAST — after the process has already launched,
+    // so nothing this function still needs is deleted out from under it.
+    function closeAndRun(index) {
         if (index < 0 || index >= powerWindow.actions.length)
             return;
-        actionProcess.command = powerWindow.actions[index].command;
+        var cmd = powerWindow.actions[index].command;
+        powerWindow.visible = false;
+        actionProcess.command = cmd;
         actionProcess.startDetached();
+        powerWindow.requestDismiss();
     }
 
     // startDetached() — NOT a lifetime-bound `running` assignment —
@@ -138,46 +210,64 @@ PanelWindow {
         command: []
     }
 
-    // Two-dimensional arrow-key move across the 3x2 grid — up/down
-    // between rows, left/right within a row, matching visual adjacency.
-    // No wraparound (20-UI-SPEC.md's Focus Treatment): a move past the
-    // grid edge is a no-op, not a wrap to the opposite edge.
-    function moveFocus(dCol, dRow) {
-        var col = powerWindow.focusedIndex % 3;
-        var row = Math.floor(powerWindow.focusedIndex / 3);
-        var newCol = col + dCol;
-        var newRow = row + dRow;
-        if (newCol < 0 || newCol > 2 || newRow < 0 || newRow > 1)
-            return;
-        powerWindow.focusedIndex = newRow * 3 + newCol;
+    // Rotation around the ring (D-20-24, revised) — a ring has one
+    // degree of freedom, so both arrow-key axes collapse to
+    // "rotate forward/backward". Right and Down both rotate clockwise
+    // one pill (60°); Left and Up both rotate counter-clockwise one
+    // pill. WRAPS — the pill clockwise of the last one genuinely is the
+    // first one, a deliberate reversal of the retired grid's no-wrap
+    // rule (a ring has no edge case for a wrap to create).
+    function rotateFocus(step) {
+        var n = powerWindow.actions.length;
+        powerWindow.focusedIndex = (powerWindow.focusedIndex + step + n) % n;
     }
 
     // Mnemonics fire their matching action directly from any focus state
-    // — unchanged behaviour from wleave, now visibly surfaced on the
-    // tiles (D-20-24).
+    // — unchanged behaviour from wleave. Still undisplayed under the ring
+    // (D-20-24 revised): a pure circle containing only a centred icon has
+    // no spare corner to print a letter on, unlike the retired
+    // rectangular tile.
     function fireMnemonic(letter) {
         for (var i = 0; i < powerWindow.actions.length; i++) {
             if (powerWindow.actions[i].mnemonic === letter) {
-                powerWindow.runAction(i);
+                powerWindow.closeAndRun(i);
                 return;
             }
         }
     }
 
-    // ── Full-bleed scrim (D-20-21) — gives HyprlandFocusGrab's click-
-    //    outside dismissal a screen-wide catch area with no second window
-    //    to coordinate; resolves the "scrim as window property vs
-    //    separate layer" discretion item in favour of one window. ───────
+    // ── Full-bleed scrim (D-20-21 revised) — a light dim
+    //    (Design.sessionScrimOpacity, 0.32), not a screen-take-over.
+    //    Carries the click-outside MouseArea (Bug 1 fix, see file
+    //    header) so dismissal is deterministic and independent of
+    //    HyprlandFocusGrab's focus-change semantics. ────────────────────
     Rectangle {
         id: scrim
         anchors.fill: parent
         color: Qt.rgba(Colours.surface.r, Colours.surface.g, Colours.surface.b, Design.sessionScrimOpacity)
+
+        // Bug 1 fix — declared on the scrim itself, BEHIND the ring
+        // (the ring Item is a later sibling below, so its pills' own
+        // MouseAreas take input priority over this one wherever they
+        // overlap it; empty space inside the ring's bounding box that
+        // is not covered by any pill has no MouseArea of its own and
+        // passes the click straight through to this one, so clicking
+        // "outside" a pill anywhere on screen dismisses the menu).
+        MouseArea {
+            id: scrimMouseArea
+            anchors.fill: parent
+            onClicked: powerWindow.requestDismiss()
+        }
     }
 
-    // ── HyprlandFocusGrab (D-20-24) — click-outside dismissal, copied
-    //    verbatim from PanelDialog.qml, COEXISTING with Exclusive focus
-    //    above — the combination no surface in this repo has used before,
-    //    proven live at this plan's Task 1 human-check. ──────────────────
+    // ── HyprlandFocusGrab (D-20-24) — click-outside dismissal for the
+    //    case of keyboard focus genuinely moving to ANOTHER surface,
+    //    copied verbatim from PanelDialog.qml, coexisting with Exclusive
+    //    focus above. Proven live at this plan's Task 1 human-check. The
+    //    scrim's own MouseArea above is now the PRIMARY dismissal path
+    //    for same-window outside clicks (see file header for why this
+    //    grab alone could not see those) — both call the same idempotent
+    //    requestDismiss(), so no double-fire hazard. ─────────────────────
     HyprlandFocusGrab {
         id: grab
         windows: [ powerWindow ]
@@ -185,185 +275,127 @@ PanelWindow {
         onCleared: powerWindow.requestDismiss()
     }
 
-    // ── The dialog card — centred, uniform-rounded on all four corners
-    //    (unlike PanelDialog's bottom-only rounding), since this card
-    //    floats fully clear of every screen edge. ─────────────────────────
+    // ── The ring — six pure-circle pills plus a centre label, no card,
+    //    no header, no rim (D-20-21 revised). Content-only Item, centred
+    //    in the output, sized to Design.sessionSurfaceDiameter on both
+    //    axes since the content is circular. ─────────────────────────────
     Item {
-        id: card
+        id: ring
         anchors.centerIn: parent
-        implicitWidth: Design.sessionDialogWidth
-        implicitHeight: cardColumn.implicitHeight
+        implicitWidth: Design.sessionSurfaceDiameter
+        implicitHeight: Design.sessionSurfaceDiameter
+        width: implicitWidth
+        height: implicitHeight
         focus: true
 
         Keys.onEscapePressed: powerWindow.handleEscape()
-        Keys.onReturnPressed: powerWindow.runAction(powerWindow.focusedIndex)
-        Keys.onEnterPressed: powerWindow.runAction(powerWindow.focusedIndex)
-        Keys.onLeftPressed: powerWindow.moveFocus(-1, 0)
-        Keys.onRightPressed: powerWindow.moveFocus(1, 0)
-        Keys.onUpPressed: powerWindow.moveFocus(0, -1)
-        Keys.onDownPressed: powerWindow.moveFocus(0, 1)
+        Keys.onReturnPressed: powerWindow.closeAndRun(powerWindow.focusedIndex)
+        Keys.onEnterPressed: powerWindow.closeAndRun(powerWindow.focusedIndex)
+        Keys.onLeftPressed: powerWindow.rotateFocus(-1)
+        Keys.onUpPressed: powerWindow.rotateFocus(-1)
+        Keys.onRightPressed: powerWindow.rotateFocus(1)
+        Keys.onDownPressed: powerWindow.rotateFocus(1)
         Keys.onPressed: (event) => {
             var letter = event.text.toLowerCase();
             for (var i = 0; i < powerWindow.actions.length; i++) {
                 if (powerWindow.actions[i].mnemonic === letter) {
-                    powerWindow.runAction(i);
+                    powerWindow.closeAndRun(i);
                     event.accepted = true;
                     return;
                 }
             }
         }
-        Component.onCompleted: card.forceActiveFocus()
+        Component.onCompleted: ring.forceActiveFocus()
 
-        Rectangle {
-            id: cardBackground
-            anchors.fill: parent
-            radius: Design.popoutCornerRadius
-            color: Qt.rgba(Colours.surface.r, Colours.surface.g, Colours.surface.b, powerWindow.panelSurfaceOpacity)
+        // ── Centre label (D-20-21 revised) — the ONLY place any action's
+        //    name appears anywhere on this surface, replacing the retired
+        //    design's six simultaneously-visible per-tile labels. Updates
+        //    live as focus rotates. No background/chip of its own — sits
+        //    directly on the scrim. ────────────────────────────────────
+        Text {
+            id: centreLabel
+            anchors.centerIn: parent
+            width: Design.sessionCentreLabelWidth
+            horizontalAlignment: Text.AlignHCenter
+            text: powerWindow.actions[powerWindow.focusedIndex].label
+            font.pixelSize: Design.fontBody
+            font.weight: Design.weightEmphasis
+            lineHeight: powerWindow.lineHeightNormal
+            color: Colours.onSurface
         }
 
-        GradientBorder {
-            anchors.fill: parent
-            borderWidth: Design.borderWidth
-            topLeftRadius: Design.popoutCornerRadius
-            topRightRadius: Design.popoutCornerRadius
-            bottomLeftRadius: Design.popoutCornerRadius
-            bottomRightRadius: Design.popoutCornerRadius
-        }
+        Repeater {
+            id: pillRepeater
+            model: powerWindow.actions
 
-        Column {
-            id: cardColumn
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
+            delegate: Item {
+                id: pill
+                width: Design.sessionPillDiameter
+                height: Design.sessionPillDiameter
 
-            // ── Header band — popoutHeaderHeight (48px), NOT PanelDialog's
-            //    own 72px headerHeight: this dialog carries no Advanced
-            //    button and no icon+title pairing at that scale. No close
-            //    button — dismissal inherits the Escape/click-outside set
-            //    every other dismissible surface in this shell uses. ─────
-            Item {
-                id: cardHeader
-                width: cardColumn.width
-                height: Design.popoutHeaderHeight
+                readonly property int pillIndex: index
+                readonly property real angleRad: pillIndex * 60 * Math.PI / 180
+                x: ring.width / 2 + Design.sessionRingRadius * Math.sin(angleRad) - width / 2
+                y: ring.height / 2 - Design.sessionRingRadius * Math.cos(angleRad) - height / 2
 
-                Text {
-                    anchors.left: parent.left
-                    anchors.leftMargin: Design.panelPadding
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Session"
-                    font.pixelSize: Design.fontHeading
-                    font.weight: Design.weightEmphasis
-                    lineHeight: powerWindow.lineHeightTight
-                    color: Colours.onSurface
+                readonly property bool isFocused: pillIndex === powerWindow.focusedIndex
+                readonly property bool hovered: pillMouseArea.containsMouse
+                readonly property color fillRole: powerWindow.fillRoleFor(pillIndex)
+                readonly property color fgRole: powerWindow.fgRoleFor(pillIndex)
+
+                // Fill: individually frosted and individually coloured
+                // per action's severity tier (D-20-21 revised — see the
+                // action->colour-role table in 20-UI-SPEC.md § "Color").
+                // Hover (pointer only) lifts sessionPillFillOpacity (0.72)
+                // toward 0.85, the same +0.1-ish alpha-step idiom
+                // BarRoles.capsule->capsuleHover already establishes.
+                // No per-pill destructive styling tied to a live warning,
+                // ever (D-20-28) — every pill's PERMANENT baseline colour
+                // is static, unaffected by any live detector state.
+                Rectangle {
+                    id: pillFill
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: Qt.rgba(pill.fillRole.r, pill.fillRole.g, pill.fillRole.b,
+                                   pill.hovered ? 0.85 : Design.sessionPillFillOpacity)
                 }
-            }
 
-            // ── The 3x2 grid — sessionTileWidth(136)*3 + spacingMd(16)*2
-            //    gaps + panelPadding(24)*2 sides == sessionDialogWidth
-            //    (488) exactly (20-03's own derivation comment), so this
-            //    Grid needs no explicit width — its own padding already
-            //    resolves to the card's full width. ───────────────────────
-            Grid {
-                id: tileGrid
-                columns: 3
-                spacing: Design.spacingMd
-                leftPadding: Design.panelPadding
-                rightPadding: Design.panelPadding
-                topPadding: Design.panelPadding
-                bottomPadding: Design.panelPadding
+                // Visible focus is a RING, never a fill swap (QPOWER-02,
+                // D-20-24): BarRoles.accent at Design.borderWidth (3px),
+                // drawn OUTSIDE the pill's own circular boundary.
+                // Colours.primary (accent's hue) is excluded from every
+                // tier above so this ring never reads against a
+                // same-hue fill.
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: -Design.borderWidth
+                    radius: (width) / 2
+                    color: "transparent"
+                    border.width: Design.borderWidth
+                    border.color: BarRoles.accent
+                    visible: pill.isFocused
+                }
 
-                Repeater {
-                    id: tileRepeater
-                    model: powerWindow.actions
+                // Icon only — no label, no mnemonic letter on or under
+                // the pill (both retired, locked per the user's own
+                // "containing an ICON ONLY" ask). Only the pill's FILL is
+                // frosted; the icon glyph itself stays crisp at full
+                // opacity.
+                Text {
+                    anchors.centerIn: parent
+                    text: modelData.glyph
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.sessionTileIconSize
+                    color: pill.fgRole
+                }
 
-                    delegate: Item {
-                        id: tile
-                        width: Design.sessionTileWidth
-                        height: Design.sessionTileHeight
-
-                        readonly property bool isFocused: index === powerWindow.focusedIndex
-                        readonly property bool hovered: tileMouseArea.containsMouse
-
-                        // Fill: Colours.surfaceVariant at rest — identical
-                        // source to PanelDialog's own Advanced button, no
-                        // new colour. Hover (pointer only) lifts toward a
-                        // lighter blend, the same +0.1-alpha-step idiom
-                        // BarRoles.capsule->capsuleHover establishes
-                        // (0.85->0.95), applied locally since this dialog
-                        // reads Colours.* directly. No per-tile destructive
-                        // styling, ever (D-20-28) — all six tiles render
-                        // identically at rest regardless of focus/warning
-                        // state.
-                        Rectangle {
-                            id: tileFill
-                            anchors.fill: parent
-                            radius: Design.sessionTileRadius
-                            color: tile.hovered
-                                ? Qt.rgba(Colours.surfaceVariant.r, Colours.surfaceVariant.g, Colours.surfaceVariant.b, 0.95)
-                                : Qt.rgba(Colours.surfaceVariant.r, Colours.surfaceVariant.g, Colours.surfaceVariant.b, 0.85)
-                        }
-
-                        // Visible focus is a RING, never a fill swap
-                        // (QPOWER-02, D-20-24): BarRoles.accent at
-                        // Design.borderWidth (3px), drawn OUTSIDE the
-                        // tile's own sessionTileRadius (16px) boundary so
-                        // it reads as an addition to the tile rather than
-                        // a recolour of it.
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.margins: -Design.borderWidth
-                            radius: Design.sessionTileRadius + Design.borderWidth
-                            color: "transparent"
-                            border.width: Design.borderWidth
-                            border.color: BarRoles.accent
-                            visible: tile.isFocused
-                        }
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: Design.spacingXs
-
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: modelData.glyph
-                                font.family: Design.symbolFontFamily
-                                font.pixelSize: Design.sessionTileIconSize
-                                color: Colours.onSurfaceVariant
-                            }
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: modelData.label
-                                font.pixelSize: Design.fontBody
-                                font.weight: Design.weightEmphasis
-                                lineHeight: powerWindow.lineHeightTight
-                                color: Colours.onSurfaceVariant
-                            }
-                        }
-
-                        // Mnemonic letter — low-emphasis, bottom-right
-                        // corner, inset spacingXs (4px), at the
-                        // muted-but-present disabledOpacity register
-                        // (0.38) used elsewhere for the same purpose.
-                        Text {
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            anchors.margins: Design.spacingXs
-                            text: modelData.mnemonic
-                            font.pixelSize: Design.fontLabel
-                            lineHeight: powerWindow.lineHeightNormal
-                            color: Colours.onSurfaceVariant
-                            opacity: 0.38
-                        }
-
-                        MouseArea {
-                            id: tileMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: {
-                                powerWindow.focusedIndex = index;
-                                powerWindow.runAction(index);
-                            }
-                        }
+                MouseArea {
+                    id: pillMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {
+                        powerWindow.focusedIndex = pill.pillIndex;
+                        powerWindow.closeAndRun(pill.pillIndex);
                     }
                 }
             }
