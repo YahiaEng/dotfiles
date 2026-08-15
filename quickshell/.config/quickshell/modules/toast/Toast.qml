@@ -1,21 +1,25 @@
 // Toast.qml — a reusable transient-notice frame (Phase 19 Plan 05, Task 3;
-// 19-UI-SPEC.md § "Toast frame").
+// 19-UI-SPEC.md § "Toast frame"). Parameterised on edge/interactive/
+// namespace/dismiss-interval (Phase 20 Plan 04, D-20-02/D-20-04) — see the
+// <assumption_delta_decision> in that plan for why this became a promote
+// rather than an add-alongside: `Toast.qml` is now a generic
+// transient-notice frame with the do-not-disturb toast as one instance
+// (every new property defaults to that instance's own pre-existing
+// literal, so `shell.qml`'s DND `Toast` block is byte-identical before and
+// after this change) and the OSD (`modules/osd/Osd.qml`) as a second.
 //
 // A SEPARATE module directory from `modules/notifications/`, deliberately:
-// this frame is a general-purpose transient notice — Phase 20's OSD
-// indicators reuse it for a value readout — and burying it inside the
-// notification module would make that reuse read as a cross-feature
-// dependency it is not.
+// this frame is a general-purpose transient notice and burying it inside
+// the notification module would make the OSD's reuse read as a
+// cross-feature dependency it is not.
 //
 // ── Chrome only, no do-not-disturb copy anywhere in this file ────────────
 // This file carries a generic content slot (`default property alias body`)
-// rather than hardcoded icon/text — Phase 20 is expected to swap the
-// content region for a value readout while keeping the frame chrome
-// identical, so chrome and content are separable at the type boundary, not
-// by editing this file later. The caller (`shell.qml`, this same plan)
-// supplies the actual visible children; the do-not-disturb copy strings
-// themselves live on `NotifServer.qml` (its own natural owner, since it
-// already owns DND), never here.
+// rather than hardcoded icon/text, so chrome and content are separable at
+// the type boundary. The caller (`shell.qml`'s DND instance, or
+// `Osd.qml`) supplies the actual visible children; the do-not-disturb copy
+// strings themselves live on `NotifServer.qml` (its own natural owner,
+// since it already owns DND), never here.
 //
 // ── One surface, replaced in place — never stacked ───────────────────────
 // `show()` sets `toastActive` true and (re)starts the auto-dismiss timer.
@@ -30,12 +34,24 @@
 // surface, one Timer, one exit animation.
 //
 // ── Motion (19-UI-SPEC.md) ────────────────────────────────────────────────
-// Slides down + fades in from the top edge on Motion.standardDuration/
-// standardEasing (routine register — this fires on an everyday action, a
-// DND toggle, not an emphasized one). Exits the same way, self-timed only
-// — this surface is never dismissible by click (D-19-36's own "a toast is
-// never dismissible by click, only by its own timer, since it is
-// feedback, not content").
+// Slides/fades in from its anchored edge (top for the DND toast, bottom
+// for the OSD — see `edge` below) on Motion.standardDuration/
+// standardEasing (routine register — this fires on an everyday action,
+// not an emphasized one). Exits the same way, self-timed by default.
+//
+// ── Interactivity (Phase 20 Plan 04, D-20-07) ─────────────────────────────
+// The frame is still NEVER dismissible by click, only by its own timer —
+// that half of D-19-36's original claim is unchanged for every instance,
+// interactive or not. What narrows: the DND toast (`interactive: false`,
+// the default) carries no pointer surface at all, exactly as before —
+// "feedback, not content" stays literally true for it. An
+// `interactive: true` instance (the OSD) additionally accepts pointer
+// input for VALUE ADJUSTMENT (its own content, e.g. a slider drag) and
+// DWELL CONTROL (hover pauses the auto-dismiss timer; leaving resumes it
+// with the time REMAINING, not a fresh interval — Caelestia's own
+// behaviour, a named divergence from end-4's hide-on-hover). Neither of
+// those is a click-to-dismiss gesture, so the original claim narrows to
+// cover both instances rather than being contradicted by either.
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -49,14 +65,46 @@ PanelWindow {
     // ── Public content slot — see header. ────────────────────────────────
     default property alias body: bodyRow.data
 
+    // ── Parameterisation (Phase 20 Plan 04) — every property below
+    //    defaults to the DND toast's own pre-existing literal, so
+    //    `shell.qml`'s DND instance needs zero changes and stays
+    //    byte-identical. ─────────────────────────────────────────────────
+    // Which edge the frame anchors to and slides from — "top" (default,
+    // the DND toast) or "bottom" (the OSD, D-20-01's bottom-centre anchor).
+    property string edge: "top"
+    // See the header's "Interactivity" section — gates the hover-pause
+    // HoverHandler below. Default false: the DND toast carries no pointer
+    // surface at all, unchanged from before this property existed.
+    property bool interactive: false
+    // The layer-shell namespace this instance registers under. Default is
+    // the DND toast's own pre-existing literal.
+    property string layerNamespace: "quickshell-notif-toast"
+    // Per-instance auto-dismiss duration. Default is the DND toast's own
+    // pre-existing token — `Design.osdHideDelayMs` (1200) coexists on this
+    // one frame type via the OSD's own override, never a second Timer.
+    property int dismissDurationMs: Design.notifToastDurationMs
+
     // True from the moment `show()` first activates the surface until the
     // exit animation (or its motion-disabled collapse) finishes.
     property bool toastActive: false
 
+    // Absolute epoch-ms deadline the dismiss timer is counting down to,
+    // valid only while `toastDismissTimer` is running. The hover-pause
+    // handler below reads this to compute the REMAINING time on leave,
+    // rather than resuming with a fresh full interval (D-20-07).
+    property real _dismissDeadlineMs: 0
+
+    function _armDismissTimer(ms) {
+        var clamped = Math.max(1, ms);
+        toastDismissTimer.interval = clamped;
+        toastWindow._dismissDeadlineMs = Date.now() + clamped;
+        toastDismissTimer.restart();
+    }
+
     function show() {
         var wasActive = toastWindow.toastActive;
         toastWindow.toastActive = true;
-        toastDismissTimer.restart();
+        toastWindow._armDismissTimer(toastWindow.dismissDurationMs);
         if (wasActive)
             return; // already showing — only the timer restarts (see header)
         if (!Motion.motionEnabled) {
@@ -65,7 +113,7 @@ PanelWindow {
             return;
         }
         content.opacity = 0;
-        contentTranslate.y = -Design.spacingMd;
+        contentTranslate.y = toastWindow.edge === "bottom" ? Design.spacingMd : -Design.spacingMd;
         entranceAnim.start();
     }
 
@@ -79,27 +127,55 @@ PanelWindow {
 
     Timer {
         id: toastDismissTimer
-        interval: Design.notifToastDurationMs
         repeat: false
         onTriggered: toastWindow.hide()
     }
 
-    // ── Layer posture — top-centre (anchors.top only, so the compositor
-    //    horizontally centres the surface — Dashboard.qml's own precedent
-    //    for the identical shape), clear of both the top-right popup stack
-    //    and the right-edge centre by construction (neither is anchored
-    //    here). `ExclusionMode.Normal` (not `Ignore`) so the compositor
+    // ── Hover-pause/resume (Phase 20 Plan 04, D-20-07) — only wired up
+    //    when `interactive` is true, so the DND toast gets no
+    //    HoverHandler at all and its behaviour is unchanged. Pauses
+    //    (stops, remaining time preserved) on hover-in; resumes with the
+    //    time REMAINING on hover-out — never a reset to a fresh interval.
+    HoverHandler {
+        id: toastHoverHandler
+        enabled: toastWindow.interactive
+        onHoveredChanged: {
+            if (!toastWindow.interactive || !toastWindow.toastActive)
+                return;
+            if (toastHoverHandler.hovered) {
+                toastDismissTimer.stop();
+            } else {
+                var remaining = toastWindow._dismissDeadlineMs - Date.now();
+                toastWindow._armDismissTimer(remaining);
+            }
+        }
+    }
+
+    // ── Layer posture — top-centre by default (anchors.top only, so the
+    //    compositor horizontally centres the surface — Dashboard.qml's
+    //    own precedent for the identical shape), clear of both the
+    //    top-right popup stack and the right-edge centre by construction
+    //    (neither is anchored here). The OSD anchors bottom-centre instead
+    //    (`edge: "bottom"`, D-20-01) — the mirrored bottom margin reuses
+    //    `Design.barSideMargin`, the SAME token this frame's own top
+    //    margin already uses, never a new margin token.
+    //    `ExclusionMode.Normal` (not `Ignore`) so the compositor
     //    auto-clears whichever edge the bar currently reserves, the same
     //    mechanism Dashboard.qml's own `drawerTopMargin` comment records —
     //    this frame needs no bar-orientation branch because of it. ───────
     visible: toastWindow.toastActive
-    anchors.top: true
+    anchors.top: toastWindow.edge === "top"
+    anchors.bottom: toastWindow.edge === "bottom"
     exclusiveZone: 0
     exclusionMode: ExclusionMode.Normal
-    margins.top: Design.barSideMargin
+    margins.top: toastWindow.edge === "top" ? Design.barSideMargin : 0
+    margins.bottom: toastWindow.edge === "bottom" ? Design.barSideMargin : 0
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "quickshell-notif-toast"
-    // Never interactive — no click dismissal is possible by design.
+    WlrLayershell.namespace: toastWindow.layerNamespace
+    // Keyboard focus is NEVER claimed, interactive or not — the OSD wants
+    // pointer input (drag a slider, hover to pause dismiss), never
+    // keyboard focus. This is what keeps click-to-dismiss impossible on
+    // every instance (see header).
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     focusable: false
     color: "transparent"
@@ -139,7 +215,7 @@ PanelWindow {
 
         transform: Translate {
             id: contentTranslate
-            y: -Design.spacingMd
+            y: toastWindow.edge === "bottom" ? Design.spacingMd : -Design.spacingMd
         }
 
         Row {
@@ -182,7 +258,7 @@ PanelWindow {
         NumberAnimation {
             target: contentTranslate
             property: "y"
-            to: -Design.spacingMd
+            to: toastWindow.edge === "bottom" ? Design.spacingMd : -Design.spacingMd
             duration: Motion.standardDuration
             easing.type: Easing.BezierSpline
             easing.bezierCurve: Motion.standardEasing

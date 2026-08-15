@@ -290,11 +290,18 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true }) -- Dr
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true }) -- Drag to resize window
 
 -- ── Audio controls ───────────────────────────────────
--- OSD-01/D-23: routed through swayosd-client so the themed pill (D-24)
--- shows on every change; mute AND mic-mute both go through swayosd-client.
--- Caps-lock OSD is keyless — handled by swayosd-libinput-backend.service
--- (enabled in install.sh, D-23), no keybind needed here.
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("swayosd-client --output-volume raise"), { locked = true, repeating = true }) -- Raise volume
+-- Phase 20 Plan 04 (QOSD-01, D-20-05): the pill is now raised by BACKEND
+-- STATE CHANGE, not by an OSD client — `wpctl` writes PipeWire directly,
+-- AudioBackend.qml's own reactive properties pick it up, and the QML
+-- `quickshell-osd` indicator's own Connections block raises the surface
+-- from THAT, never from this keybind. `locked = true` is still what
+-- QOSD-01's in-session half rests on (the key must keep working while
+-- hyprlock is up, per D-20-19's measurement) — kept verbatim, not
+-- re-decided by this plan. `-l 1.0` on the raise bind caps PipeWire's own
+-- software boost at 100%, which `swayosd-client` used to cap for us.
+-- XF86AudioLowerVolume/XF86AudioMute/XF86AudioMicMute repointed in Task 2
+-- of this same plan; XF86MonBrightness{Up,Down} likewise.
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0"), { locked = true, repeating = true }) -- Raise volume
 hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("swayosd-client --output-volume lower"), { locked = true, repeating = true }) -- Lower volume
 hl.bind("XF86AudioMute", hl.dsp.exec_cmd("swayosd-client --output-volume mute-toggle"), { locked = true, repeating = true }) -- Mute audio
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("swayosd-client --input-volume mute-toggle"), { locked = true, repeating = true }) -- Mute microphone

@@ -27,6 +27,7 @@ import "modules/bar"
 import "modules/notifications"
 import "modules/toast"
 import "modules/centre"
+import "modules/osd"
 
 ShellRoot {
     id: root
@@ -146,6 +147,18 @@ ShellRoot {
             root.dndToastBody = body;
             dndToast.show();
         }
+    }
+
+    // ── OSD indicators (Phase 20 Plan 04 tracer, QOSD-01/QOSD-03) — a
+    //    second `Toast` instance (D-20-02/D-20-04), always-mounted like
+    //    the DND toast above rather than behind a LazyLoader: the OSD must
+    //    react to a volume/brightness/caps-lock change at any moment for
+    //    the whole session, not only while some other surface is open.
+    //    `audioBackend` is threaded in exactly as `Bar`/`Dashboard` below
+    //    already do — Osd.qml never mounts its own AudioBackend.
+    Osd {
+        id: osdInstance
+        audioBackend: audioBackendInstance
     }
 
     // ── Notification test IPC surface (Phase 19 Plan 04, Task 3 — Rule 2
@@ -453,7 +466,19 @@ ShellRoot {
     // always-on posture), so `centreOpen` — not a loader's own `active` —
     // is the only signal available here for "is the centre currently
     // showing".
-    readonly property bool audioTruthNeeded: dashboardLoader.active || audioPanelLoader.active || barInstance.requiresAudio || NotifServer.centreOpen
+    // ── Phase 20 Plan 04 widening — the OSD's own state-driven trigger ───
+    // D-20-05 requires an external `wpctl` call or a bar scroll to raise
+    // the IDENTICAL indicator a hardware key does — which is only
+    // possible if AudioBackend's PwObjectTracker holds the default sink
+    // LIVE for the whole session (A6, this file's own PwObjectTracker
+    // precedent above), not merely while some other surface happens to be
+    // open. `osdInstance` above is a permanent, always-mounted surface
+    // (never behind a LazyLoader, matching the bar's own `requiresAudio`
+    // shape), so this term is unconditionally true rather than gated on a
+    // loader's `active` the way every other term in this OR-chain is.
+    readonly property bool osdNeedsAudioTruth: true
+
+    readonly property bool audioTruthNeeded: dashboardLoader.active || audioPanelLoader.active || barInstance.requiresAudio || NotifServer.centreOpen || root.osdNeedsAudioTruth
 
     AudioBackend {
         id: audioBackendInstance
