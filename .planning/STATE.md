@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: indicators-power-menu
 status: executing
-stopped_at: Completed 20-04-PLAN.md
-last_updated: "2026-08-15T17:06:55.574Z"
+stopped_at: Completed 20-06-PLAN.md (Task 1 rebuild + Tasks 2-3)
+last_updated: "2026-08-15T17:58:40.182Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 45
-  completed_plans: 39
+  completed_plans: 40
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 20 (indicators-power-menu) — EXECUTING
-Plan: 5 of 10
+Plan: 6 of 10
 Status: Ready to execute
-Progress: [█████████░] 87%
+Progress: [█████████░] 89%
 Last activity: 2026-08-15 — Phase 20 execution started
 
 ## Performance Metrics
@@ -231,6 +231,7 @@ Last activity: 2026-08-15 — Phase 20 execution started
 | Phase 20 P01 | 35min (multi-session) | 4 tasks | 5 files |
 | Phase 20 P03 | 5min | 3 tasks | 3 files |
 | Phase 20 P04 | 45min | 3 tasks | 4 files |
+| Phase 20 P06 | 35min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -505,6 +506,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 20-03: onWarn completes the existing warn pair; quickshell-osd gets its OWN ignore_alpha=0.2 override (does not inherit quickshell-notif-toast's) because Toast.qml's reused fill (0.38) sits below the family's 0.5 floor
 - [Phase ?]: quickshell-osd registry row placed on osd/Osd.qml with a narrowly-scoped forward-closure fallback, since neither of the plan's two suggested row placements satisfied the check body unmodified
 - [Phase ?]: panel-swayosd-key-ownership renamed to panel-osd-state-driven-trigger (D-20-05 inverts D-15-24's premise); _qsd_swayosd_server_reachable stays defined for the QS-06 probe's remaining use, deferred to plan 20-09
+- [Phase ?]: 20-06: PowerMenu.qml rebuilt grid -> radial ring (D-20-21 revised); click-outside and post-action-flash bugs fixed
+- [Phase ?]: 20-06: PopoutController extended with a third wayfinding seam (powerMenuRequested) so ClockActionsCapsule's bar glyph can reach shell.qml's togglePowerMenu() in-process
+- [Phase ?]: 20-06: LEDGER-02 settled — Logout wrapped without the D-29 teardown measurement, recorded as evidence not measurement
 
 ### Quick Tasks Completed
 
@@ -643,8 +647,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-15T17:06:55.549Z
-Stopped at: Completed 20-04-PLAN.md
+Last session: 2026-08-15T17:58:40.162Z
+Stopped at: Completed 20-06-PLAN.md (Task 1 rebuild + Tasks 2-3)
 Resume file: None
 
 ## Operator Next Steps
