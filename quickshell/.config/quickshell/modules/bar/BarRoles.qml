@@ -76,6 +76,12 @@ Singleton {
     readonly property color accent: Colours.primary
     readonly property color onAccent: Colours.onPrimary
     readonly property color warn: Colours.tertiary
+    // onWarn (Phase 20 Plan 03, QPOWER-03) — completes the existing `warn`
+    // pair rather than opening a new colour family, mirroring the
+    // danger/onDanger pairing immediately below. `warn` has existed since
+    // Phase 18.1 with no paired foreground colour because nothing needed
+    // one until QPOWER-03's warning banner.
+    readonly property color onWarn: Colours.onTertiary
     readonly property color danger: Colours.error
     readonly property color onDanger: Colours.onError
 
