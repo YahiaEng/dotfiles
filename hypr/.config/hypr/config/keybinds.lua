@@ -337,8 +337,16 @@ hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURC
 -- shell, still keyless, still no root service. D-25's DDC descope still
 -- holds: external-monitor brightness stays out of scope, laptop-backlight
 -- path only.
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("timeout 2 qs ipc call -- osd raise"), { locked = true, repeating = true }) -- Raise brightness
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("timeout 2 qs ipc call -- osd lower"), { locked = true, repeating = true }) -- Lower brightness
+-- `|| brightnessctl` fallback: routing through the shell is what lets
+-- BrightnessBackend emit the change itself (D-20-05 — the trigger is backend
+-- state, never the keybind), but it makes the key depend on quickshell being
+-- alive. On 2026-08-15 the shell was down for several minutes on a missing
+-- QML import; during that window these keys would have done nothing at all.
+-- The fallback trades the OSD (which cannot render with no shell anyway) for
+-- the brightness change still happening. `timeout 2` bounds a hung IPC call
+-- so the fallback is reachable rather than blocking on it.
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("timeout 2 qs ipc call -- osd raise || brightnessctl --class=backlight set 5%+"), { locked = true, repeating = true }) -- Raise brightness
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("timeout 2 qs ipc call -- osd lower || brightnessctl --class=backlight set 5%-"), { locked = true, repeating = true }) -- Lower brightness
 
 -- ── Media controls ───────────────────────────────────
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true }) -- Next track
