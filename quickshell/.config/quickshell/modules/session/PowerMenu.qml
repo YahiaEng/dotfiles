@@ -557,8 +557,27 @@ PanelWindow {
                 // same idiom WorkspaceTile.qml:431 and Overview.qml:931
                 // already use for `Motion.ambientDuration` multiples.
                 duration: (powerWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration) * Design.sessionScrimRampFactor
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: powerWindow._dismissing ? Motion.emphasizedOutEasing : Motion.emphasizedInEasing
+                // LINEAR, deliberately — not the emphasized bezier the
+                // pills use (user-reported: "the power menu appears then
+                // after a short delay, the dimming screen pops into
+                // existence. This is very jarring").
+                //
+                // The emphasized curve is slow at t=0 by design. On a
+                // discrete object like a pill that reads as weight. On a
+                // full-field dim toward a subtle target alpha it means the
+                // first several hundred ms produce no perceptible change
+                // at all, and the eye registers onset only once the curve
+                // accelerates — a delay followed by a pop. Lengthening the
+                // duration made that dead zone LONGER, which is why the
+                // slower ramp read as more sudden, not less.
+                //
+                // A dim has no shape to accelerate; it only has presence.
+                // Linear rises evenly from the first frame, so onset is
+                // immediate and the whole ramp is perceptually uniform.
+                // Easing.Linear is a named enum, not a control-point
+                // literal, so this does not introduce a motion-lint CHECK B
+                // violation the way a hand-written bezier would.
+                easing.type: Easing.Linear
             }
         }
 

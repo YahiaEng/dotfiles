@@ -634,7 +634,7 @@ Singleton {
     // same tempo even when they share a duration. A ratio rather than a
     // second absolute value keeps that relationship intact if motion.json
     // is ever retuned.
-    readonly property real sessionScrimRampFactor: 5
+    readonly property real sessionScrimRampFactor: 2.5
     // sessionFocusScale (1.08) — NEW, second revision. Replaces the
     // retired chromatic-only focus ring (previously BarRoles.accent, a
     // palette hue) with a NEUTRAL ring (Colours.onSurface, see
