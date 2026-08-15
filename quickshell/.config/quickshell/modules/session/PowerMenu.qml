@@ -824,24 +824,36 @@ PanelWindow {
                 // else in this pass touches this block, and reverting it
                 // alone (back to the retired static `Colours.onSurface`
                 // Rectangle above) needs no other file touched.
-                GradientBorder {
+                // Focus ring — NEUTRAL, static. The animated
+                // GradientBorder rim trialled in the third revision was
+                // REVERTED on the user's own call after seeing it live
+                // ("Revert the colorful shifting highlighter decision I
+                // made earlier"); it was adopted as an explicit
+                // try-and-decide, and this is the decide half.
+                //
+                // The second revision's reasoning stands and is why this
+                // is neutral rather than any palette hue: pills carry
+                // three different severity colours (fillClock /
+                // fillUpdates / danger), so a chromatic ring cannot read
+                // consistently against all of them — and the rotating rim
+                // made that worse, cycling through the very hues it had to
+                // stay distinguishable from.
+                //
+                // Geometry is deliberately NOT reverted with the colour.
+                // The -borderWidth/2 straddle and the suppressed 1px
+                // severity hairline (see pillRim above) fixed a separate
+                // user-reported fault — the ring rendering as a second
+                // concentric stroke beside the hairline instead of
+                // covering it — which is independent of what colour the
+                // ring is.
+                Rectangle {
                     id: focusRing
                     anchors.fill: parent
-                    // Straddles the pill boundary (half the stroke inside,
-                    // half outside) rather than sitting fully outside it,
-                    // so the 3px rotating rim lands exactly ON the line the
-                    // suppressed 1px severity hairline occupies — covering
-                    // it, per the user's "It should cover it". A full
-                    // -borderWidth margin put the ring's inner edge at the
-                    // boundary instead, leaving the hairline visible just
-                    // inside it as a second concentric stroke.
                     anchors.margins: -Design.borderWidth / 2
-                    borderWidth: Design.borderWidth
-                    topLeftRadius: width / 2
-                    topRightRadius: width / 2
-                    bottomLeftRadius: width / 2
-                    bottomRightRadius: width / 2
-                    active: pill.isFocused
+                    radius: width / 2
+                    color: "transparent"
+                    border.width: Design.borderWidth
+                    border.color: Colours.onSurface
                     visible: pill.isFocused
                 }
 
