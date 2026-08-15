@@ -69,7 +69,11 @@ Toast {
             // frame renders in Design.symbolFontFamily, not the capsule's
             // Font Awesome.
             text: {
-                if (!osd.audioBackend || osd.audioBackend.masterMuted)
+                // Zero volume shows the muted glyph even when not muted —
+                // SwayOSD's own behaviour, and the tracer's. Distinct from
+                // volume_mute (a speaker with no waves) which covers merely
+                // quiet.
+                if (!osd.audioBackend || osd.audioBackend.masterMuted || osd.audioBackend.masterVolume <= 0)
                     return "volume_off";
                 if (osd.audioBackend.masterVolume < 0.34)
                     return "volume_mute";
