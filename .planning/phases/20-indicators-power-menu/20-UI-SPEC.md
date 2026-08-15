@@ -38,6 +38,28 @@ created: 2026-08-15
 > this revision has not been re-run through gsd-ui-checker — a later render
 > gate is where that re-verification happens, per the executor's own scope
 > (design-contract layer only, not a re-run of the checker agent).
+>
+> **SECOND REVISION NOTICE (2026-08-15, same day).** The ring SHAPE above
+> stayed locked, but a second live verification pass on the built ring found
+> four defects: no visible entrance animation, pills reading as flat
+> saturated discs instead of frosted, and a focus ring that read poorly
+> against three different pill hues. Asked to choose dimming vs. frost, the
+> user answered "both." This pass changes: pill fill (same-hue neutral frost,
+> `sessionPillFillOpacity` 0.72 → **0.50**), severity colour placement (moved
+> OFF the fill onto the icon glyph + a new hairline rim), focus treatment
+> (`BarRoles.accent` ring → a **neutral** `Colours.onSurface` ring + a new
+> `sessionFocusScale` 1.08 scale-up), scrim (`sessionScrimOpacity` 0.32 →
+> **0.15**), and entrance motion (`Cascade.qml` gains an opt-in
+> `circularMotion` sweep, consumed here for the first time). The ring's
+> geometry tokens (`sessionPillDiameter`, `sessionRingRadius`,
+> `sessionSurfaceDiameter`, `sessionCentreLabelWidth`) and the action→tier
+> mapping are **unchanged** by this pass — only colour placement, the focus
+> cue, the scrim value, and the entrance animation move. Every section below
+> marked **[SECOND REVISION]** reflects this pass; sections without that
+> marker are unaffected by it (they may still carry the original
+> **[REVISED]** marker from the first, shape-level pass). This pass is also
+> **not** re-run through `gsd-ui-checker` — same scope boundary as the first
+> revision.
 
 ---
 
@@ -66,11 +88,11 @@ Existing surfaces this phase must read, not re-derive:
 
 > **Planner correction (verified at Step 9.5, after checker sign-off).** The two line-height values are **not** `Design.qml` tokens, despite this section's `(Design.qml)` heading. Verified live: `lineHeightTight 1.2` / `lineHeightNormal 1.5` are declared as local `readonly property real` in `modules/dashboard/PanelDialog.qml:149-150` and `modules/Dashboard.qml:228-229`, and consumed locally (`WifiPanel.qml`, `BluetoothPanel.qml`). `grep -rn lineHeight` returns no `Design.qml` hit. The power dialog must therefore either declare the pair locally in the `PanelDialog.qml` idiom (the conservative, precedent-matching choice — no cross-file change) or promote them to `Design.qml` as a deliberate token addition (which would then also want the three existing local declarations repointed, a larger change than this phase's scope implies). Values themselves are correct as stated; only their **location** was mis-cited. Pick one explicitly — do not let the implementation quietly invent a third declaration site.
 
-**Color** (`Colours.qml`/`BarRoles.qml`): `BarRoles.notifSurface`/`notifSurfaceFg` (OSD frame, reused verbatim from Toast.qml, no change), `BarRoles.accent`/`onAccent` (OSD slider fill/handle; power-menu focus ring only — never a pill fill), `BarRoles.capsuleTrack` (slider track), `BarRoles.warn`/`onWarn` (the power-menu warning chip — REVISED container, unchanged role), `Colours.surface` at `sessionScrimOpacity` (the power menu's own full-screen scrim, **0.32, REVISED from 0.55**), `BarRoles.fillClock`/`fillClockFg`, `BarRoles.fillUpdates`/`fillUpdatesFg`, `BarRoles.danger`/`onDanger` (**NEW consumers this revision** — the six pills' individually-frosted, severity-mapped fills; see "Color" and the action→colour-role table below). `Colours.surface`/`surfaceVariant` at `panelSurfaceOpacity` are **no longer power-menu colours** — there is no card or tile background left to carry them (both retired with the frame).
+**Color** (`Colours.qml`/`BarRoles.qml`): `BarRoles.notifSurface`/`notifSurfaceFg` (OSD frame, reused verbatim from Toast.qml, no change), `BarRoles.accent`/`onAccent` (OSD slider fill/handle **only** — **[SECOND REVISION]** no longer the power-menu focus ring; see below), `BarRoles.capsuleTrack` (slider track), `BarRoles.warn`/`onWarn` (the power-menu warning chip — REVISED container, unchanged role), `Colours.surface` at `sessionScrimOpacity` (the power menu's own full-screen scrim, **0.15 as of the SECOND REVISION**, was 0.32, was 0.55 originally) — the **same** `Colours.surface` role, at `sessionPillFillOpacity` (**[SECOND REVISION, NEW USE]** now also the six pills' own same-hue frosted fill, 0.50 — see "Color" below), `Colours.onSurface` (**[SECOND REVISION, NEW]** the focus ring's neutral colour, replacing `BarRoles.accent` there), `BarRoles.fillClock`/`fillClockFg`, `BarRoles.fillUpdates`/`fillUpdatesFg`, `BarRoles.danger`/`onDanger` (**[SECOND REVISION]** now the six pills' icon-glyph and hairline-rim colour — **not** the fill; see "Color" and the action→colour-role table below). `Colours.surface`/`surfaceVariant` at `panelSurfaceOpacity` are **no longer power-menu colours** — there is no card or tile background left to carry them (both retired with the frame).
 
-**Motion** (`Motion.qml`): `standardDuration 200`/`standardEasing` (OSD slider fill/value changes, hover states), `emphasizedInDuration 300`/`emphasizedInEasing` (power menu cascade entrance), `emphasizedOutDuration 150`/`emphasizedOutEasing` (OSD/power-menu exit), `staggerOffsetDuration 50`/`staggerOffsetEasing` (D-20-35's per-pill cascade, revised for the ring — the SAME token `PanelDialog`'s own `Cascade` component already consumes, not a new stagger value). All gated `enabled: Motion.motionEnabled`.
+**Motion** (`Motion.qml`): `standardDuration 200`/`standardEasing` (OSD slider fill/value changes, hover states; **[SECOND REVISION, NEW USE]** also the focused pill's `sessionFocusScale` scale-up `Behavior`), `emphasizedInDuration 300`/`emphasizedInEasing` (power menu cascade entrance — **[SECOND REVISION]** now also the per-pill circular-motion sweep's own angle animation, sharing the identical duration/easing pair the existing translate-rise path already used, not a second motion value), `emphasizedOutDuration 150`/`emphasizedOutEasing` (OSD/power-menu exit), `staggerOffsetDuration 50`/`staggerOffsetEasing` (D-20-35's per-pill cascade, revised for the ring — the SAME token `PanelDialog`'s own `Cascade` component already consumes, not a new stagger value). All gated `enabled: Motion.motionEnabled`.
 
-**Frame components reused verbatim**: `Toast.qml` (the OSD frame itself — an *instance*, not a copy), the `HyprlandFocusGrab` + `dismissRequested()` pattern (power-menu click-outside dismissal — coexists with D-20-24's exclusive keyboard focus, see "Power Menu — Frame"), `Cascade.qml` (power-menu entrance, now cascading six pills + a centre label instead of a header + tile grid), the custom `Slider` `background`/`handle` geometry from `AudioPopout.qml` (track height 8/radius 4, handle 20×20, reused **unchanged**, colour already routed through `BarRoles.accent`/`capsuleTrack` there — no divergence this phase, resolving the Claude's Discretion item "reuse vs. lighter variant" in favour of verbatim reuse, see "Sliders" below). **`GradientBorder.qml` is RETIRED from the power menu this revision** — there is no card edge left to rim; it remains in use elsewhere in this shell, unaffected.
+**Frame components reused verbatim**: `Toast.qml` (the OSD frame itself — an *instance*, not a copy), the `HyprlandFocusGrab` + `dismissRequested()` pattern (power-menu click-outside dismissal — coexists with D-20-24's exclusive keyboard focus, see "Power Menu — Frame"), `Cascade.qml` (power-menu entrance, now cascading six pills + a centre label instead of a header + tile grid — **[SECOND REVISION]** `Cascade.qml` itself gains one new opt-in property, `circularMotion` (default `false`, every existing consumer including `PanelDialog.qml`'s own tabs unaffected), consumed here for the first time so the six pill bands sweep in by rotation instead of the shared straight-line rise; see "Power Menu — Entrance Motion"), the custom `Slider` `background`/`handle` geometry from `AudioPopout.qml` (track height 8/radius 4, handle 20×20, reused **unchanged**, colour already routed through `BarRoles.accent`/`capsuleTrack` there — no divergence this phase, resolving the Claude's Discretion item "reuse vs. lighter variant" in favour of verbatim reuse, see "Sliders" below). **`GradientBorder.qml` is RETIRED from the power menu this revision** — there is no card edge left to rim; it remains in use elsewhere in this shell, unaffected.
 
 ---
 
@@ -100,20 +122,32 @@ verified, not merely trusted:
 
 | Token | Value | Derivation / Provenance |
 |-------|-------|------------|
-| `sessionPillDiameter` | `80` | D-20-21 (revised). `sessionTileIconSize`(32, reused) + `spacingLg`(24, reused) × 2 sides of padding = 32 + 48 = 80. On the 4px grid (80 / 4 = 20). Sized as a comfortable circular tap target around a 32px glyph, not just the glyph's own bounding box. |
-| `sessionRingRadius` | `96` | D-20-21 (revised). Centre-of-ring to centre-of-pill. For 6 points spaced evenly on a circle (60° apart), the chord length between adjacent centres equals the radius itself (`2R·sin(30°) = R`). Setting that chord to `sessionPillDiameter`(80) + `spacingMd`(16, reused) gap gives `R = 96` — i.e. adjacent pill EDGES sit exactly one `spacingMd` apart. On the 4px grid (96 / 4 = 24). |
-| `sessionSurfaceDiameter` | `272` | D-20-21 (revised). Overall extent of the ring cluster, outer edge to outer edge: `2 × (sessionRingRadius + sessionPillDiameter / 2) = 2 × (96 + 40) = 272`. On the 4px grid (272 / 4 = 68). This is the window's centred-content bounding box, analogous to the retired `sessionDialogWidth`. |
-| `sessionCentreLabelWidth` | `112` | D-20-21 (revised). The safe, **rotation-independent** inscribed region at the ring's centre that no pill can ever encroach on, regardless of which action sits at which clock position: `2 × (sessionRingRadius − sessionPillDiameter / 2) = 2 × (96 − 40) = 112`. On the 4px grid (112 / 4 = 28). Verified against the longest focused-action strings ("Hibernate", "Shut Down", 9 chars each) at `fontBody`(16)/`weightEmphasis` — both fit without wrapping (see "Power Menu — Frame"). |
-| `sessionPillFillOpacity` | `0.72` | D-20-21 (revised), Claude's Discretion. NEW — required by the user's explicit "frosted look" (each pill individually frosted, not opaque). A ratio, not an offset — exempt from the 4px-grid rule per the same precedent as `notifDismissThresholdFraction`. Applied as `Qt.rgba(<role>.r, <role>.g, <role>.b, sessionPillFillOpacity)` against whichever severity-role colour the pill maps to (see the action→colour table below), the same colour-typed-alias idiom `BarRoles.qml`'s own `capsule`/`capsuleHover` rows already use. **0.72 is chosen specifically to clear the `^quickshell-.*` family's `ignore_alpha: 0.5` floor with real headroom (0.22)** — the exact trap this token exists to avoid; see "Frost and the ignore_alpha trap" below for the full reasoning, including why the SCRIM's own alpha (next row) does NOT get the same headroom and what that requires downstream. |
-| `sessionScrimOpacity` | `0.32` **(CHANGED from 0.55)** | D-20-21 (revised) — the user's explicit ask: *"a popup that slightly dims the screen"*, rejecting the original 0.55 as reading like the design "overtakes the entire screen." 0.32 is a deliberately light dim. **This value sits BELOW the `^quickshell-.*` family's `ignore_alpha: 0.5` floor** — the previous 0.55 cleared that floor by construction (matching `barSurface`'s own proven 0.55); 0.32 does not, and does not try to. See "Frost and the ignore_alpha trap" immediately below for what this requires in `windowrules.lua` — flagged explicitly rather than left for the implementing plan to discover. |
+| `sessionPillDiameter` | `80` | D-20-21 (revised). `sessionTileIconSize`(32, reused) + `spacingLg`(24, reused) × 2 sides of padding = 32 + 48 = 80. On the 4px grid (80 / 4 = 20). Sized as a comfortable circular tap target around a 32px glyph, not just the glyph's own bounding box. **Unaffected by the SECOND revision.** |
+| `sessionRingRadius` | `96` | D-20-21 (revised). Centre-of-ring to centre-of-pill. For 6 points spaced evenly on a circle (60° apart), the chord length between adjacent centres equals the radius itself (`2R·sin(30°) = R`). Setting that chord to `sessionPillDiameter`(80) + `spacingMd`(16, reused) gap gives `R = 96` — i.e. adjacent pill EDGES sit exactly one `spacingMd` apart. On the 4px grid (96 / 4 = 24). **Unaffected by the SECOND revision** (also now the rotation radius the circular-motion entrance sweeps pills around — see "Entrance Motion"). |
+| `sessionSurfaceDiameter` | `272` | D-20-21 (revised). Overall extent of the ring cluster, outer edge to outer edge: `2 × (sessionRingRadius + sessionPillDiameter / 2) = 2 × (96 + 40) = 272`. On the 4px grid (272 / 4 = 68). This is the window's centred-content bounding box, analogous to the retired `sessionDialogWidth`. **Unaffected by the SECOND revision.** |
+| `sessionCentreLabelWidth` | `112` | D-20-21 (revised). The safe, **rotation-independent** inscribed region at the ring's centre that no pill can ever encroach on, regardless of which action sits at which clock position: `2 × (sessionRingRadius − sessionPillDiameter / 2) = 2 × (96 − 40) = 112`. On the 4px grid (112 / 4 = 28). Verified against the longest focused-action strings ("Hibernate", "Shut Down", 9 chars each) at `fontBody`(16)/`weightEmphasis` — both fit without wrapping (see "Power Menu — Frame"). **Unaffected by the SECOND revision.** |
+| `sessionPillFillOpacity` | `0.50` **[SECOND REVISION, CHANGED from 0.72]** | D-20-21, second revision, Claude's Discretion under the user's explicit "truly frosted pills" ask. 0.72 read as a saturated disc — `WorkspaceTile.qml`'s own 12-round render gate already found this exact failure mode ("a tint over frost mostly reads as tint") and resolved it by filling with the SAME hue as its own scrim (`Colours.surface`) rather than a hue-carrying tint (`modules/overview/WorkspaceTile.qml:140-190`). Applied identically here: the fill is now `Colours.surface` (via `PowerMenu.qml`'s `surfaceColour` property-colour intermediate, never a direct severity hue), applied as `Qt.rgba(surfaceColour.r, surfaceColour.g, surfaceColour.b, sessionPillFillOpacity)` — the severity colour that previously lived on the fill now lives on the icon glyph and a new hairline rim instead (see "Pill Anatomy" below). Still a ratio, exempt from the 4px-grid rule per the same precedent as `notifDismissThresholdFraction`. **0.50 sits well above the `quickshell-session` namespace's own `ignore_alpha 0.2` floor** (already declared in `windowrules.lua:615` as of this revision — see "Frost and the ignore_alpha trap," now updated below) with 0.30 of headroom, so the pill still frosts. |
+| `sessionScrimOpacity` | `0.15` **[SECOND REVISION, CHANGED AGAIN from 0.32]** | D-20-21, second revision — the user's explicit ask: *"I want both — a dimmed background and truly frosted pills."* 0.15 is a lighter dim still. **This value sits further BELOW the `quickshell-session` namespace's own `ignore_alpha 0.2` cutoff** (unchanged reasoning from the first revision, `windowrules.lua:615`) — a scrim above that cutoff would ask the compositor to blur the entire screen behind the ring, which is not what "dimmed background" (as distinct from "frosted pills") asked for; a scrim below it dims without blurring, matching this task's own root-cause finding that `ignore_alpha` gates BLUR, not drawing. Exposed as a single re-tunable token, not a call-site literal — the user may move it again after judging it live. |
+| `sessionFocusScale` | `1.08` **[SECOND REVISION, NEW]** | D-20-21, second revision. Replaces the retired chromatic-only focus ring (`BarRoles.accent`) with a NEUTRAL ring (`Colours.onSurface`, see "Focus Treatment" below) plus this scale-up of the focused pill's own `Item`. Rationale: pills now carry three different severity hues (icon + rim, see above), so a single chromatic focus-ring colour can no longer read consistently against all three — a neutral ring plus a non-colour cue (scale) survives every pill colour and a busy wallpaper alike. 1.08 (8%) is deliberately slight: an 8% scale on the 80px `sessionPillDiameter` adds 6.4px of radius, leaving 9.6px of the 16px (`spacingMd`) inter-pill clearance `sessionRingRadius`'s own derivation already guarantees — a ratio, exempt from the 4px-grid rule for the same reason `sessionPillFillOpacity`/`sessionScrimOpacity` are. |
 
 #### Frost and the ignore_alpha trap — the route specified, stated explicitly
 
-This surface now carries **two different alpha values in the same `quickshell-session`
-namespace**: the scrim at `sessionScrimOpacity` (0.32, below the family's 0.5 floor) and
-each pill's own fill at `sessionPillFillOpacity` (0.72, above it). This is exactly the
-`ignore_alpha` trap named in the executor's own instructions: *"a fill alpha at or below
-the surface's `ignore_alpha` threshold silently discards blur."*
+**[SECOND REVISION UPDATE.]** Route B below **has since been implemented** —
+`windowrules.lua:615` now carries `hl.layer_rule({ match = { namespace =
+"quickshell-session" }, ignore_alpha = 0.2 })`, exactly the row this section originally
+specified. The reasoning below is unchanged and still governs; only the two alpha values
+sitting on either side of that 0.2 cutoff have moved, in the SECOND revision, to
+`sessionScrimOpacity` **0.15** (was 0.32) and `sessionPillFillOpacity` **0.50** (was 0.72)
+— both still on the same side of the 0.2 cutoff they were before (scrim below, pill fill
+above), so the split this section describes still holds without any further
+`windowrules.lua` change.
+
+This surface carries **two different alpha values in the same `quickshell-session`
+namespace**: the scrim at `sessionScrimOpacity` (0.15 as of the second revision, below the
+family's 0.5 floor) and each pill's own fill at `sessionPillFillOpacity` (0.50 as of the
+second revision, above it). This is exactly the `ignore_alpha` trap named in the
+executor's own instructions: *"a fill alpha at or below the surface's `ignore_alpha`
+threshold silently discards blur."*
 
 `windowrules.lua`'s own recorded finding (the `wleave` rule, `windowrules.lua:414-440`) is
 that `ignore_alpha` behaves as **an all-or-nothing blur switch for the whole backdrop of
@@ -140,17 +174,18 @@ file, immediately below the existing `quickshell-session` `animation = "slide"` 
 hl.layer_rule({ match = { namespace = "quickshell-session" }, ignore_alpha = 0.2 })
 ```
 
-0.2 is chosen to sit below BOTH values present on this surface (0.32 scrim, 0.72 pill fill)
-with the same kind of headroom the notification family and `quickshell-osd` already use at
-that exact threshold (`windowrules.lua:563-565,594`), rather than inventing a fourth
-distinct low-threshold number for no reason. **This row does not exist yet** —
-`windowrules.lua` currently carries only the stale `quickshell-session` `animation` row
-plus a comment predicting the family's bare 0.5 floor would be "sufficient," a prediction
-written against the retired 0.55/0.78 values and invalidated by this revision. Adding the
-row above, and correcting that stale comment, is in scope for whichever plan implements
-`PowerMenu.qml` against this revised spec — it is NOT made in this spec-revision commit,
-which is scoped to the design-contract layer only (`20-CONTEXT.md`, this file, and
-`Design.qml`'s token values) and does not touch `windowrules.lua`.
+0.2 was chosen to sit below BOTH values present on this surface at the time this section was
+first written (0.32 scrim, 0.72 pill fill) with the same kind of headroom the notification
+family and `quickshell-osd` already use at that exact threshold (`windowrules.lua:563-
+565,594`), rather than inventing a fourth distinct low-threshold number for no reason.
+**[SECOND REVISION UPDATE.] This row now exists** — `windowrules.lua:615` carries it
+verbatim, added by the plan that implemented `PowerMenu.qml` against the first revision of
+this spec. The second revision's own two new values (`sessionScrimOpacity` 0.15,
+`sessionPillFillOpacity` 0.50) both still clear this same 0.2 threshold on their original
+sides (scrim below, pill fill above), so **no further `windowrules.lua` change is required
+by the second revision** — the existing 0.2 row already covers both new numbers with more
+headroom than before (scrim: 0.05 below the cutoff vs. the original 0.12; pill fill: 0.30
+above vs. the original 0.52 — narrower on the pill-fill side, still comfortably clear).
 
 ### `BarRoles.qml` addition — one role completion, not a new family
 
@@ -210,11 +245,13 @@ Every value below is either a `BarRoles.<role>` token (OSD, routed per the notif
 | Role | Token | Usage |
 |------|-------|-------|
 | Dominant | `BarRoles.notifSurface` (OSD, unchanged) | OSD frame background |
-| Ring accent | `BarRoles.accent` / `onAccent` | OSD slider fill + handle; the focused pill's ring, and **only** the ring — see "Power Menu — Focus Treatment". **[REVISED]** No pill's own fill ever uses this role (see the severity table below) — the invariant that made this true for the retired grid design ("the tile's own fill never changes to accent") is preserved unchanged under the ring design, it is simply no longer a caveat that needs stating case-by-case, because Accent's hue (`Colours.primary`) is excluded from the severity palette entirely, by construction. |
+| Slider accent | `BarRoles.accent` / `onAccent` | OSD slider fill + handle **only**. **[SECOND REVISION]** No longer the power-menu focus ring — see "Neutral focus" below. |
+| Neutral focus | `Colours.onSurface` | **[SECOND REVISION, NEW]** The focused pill's ring — see "Power Menu — Focus Treatment". Replaces `BarRoles.accent` there: pills now carry three different severity hues (see the severity table below), so a single chromatic focus-ring colour can no longer read consistently against all three; a neutral ring plus `sessionFocusScale`'s scale-up (a non-colour cue) survives every pill colour. |
+| Neutral frost | `Colours.surface` at `sessionPillFillOpacity` | **[SECOND REVISION, NEW]** Every pill's own fill, regardless of severity tier — the SAME hue as the scrim (see "Pill Anatomy"). Replaces the first revision's saturated per-tier fill; see the action→colour-role table below for where the severity colour moved instead. |
 | Warning | `BarRoles.warn` / `BarRoles.onWarn` | QPOWER-03's warning chip — icon + text. Reserved for the chip alone, unchanged from the retired design — no pill uses the `warn` role by name (see the coherence note below the severity table for the deliberate `warn`/`fillUpdates` hue overlap). |
-| Severity palette (pills) | `fillClock`/`fillClockFg`, `fillUpdates`/`fillUpdatesFg`, `danger`/`onDanger` | **[NEW this revision]** — see the action→colour-role table immediately below. Each pill's fill is `Qt.rgba(<role>.r, <role>.g, <role>.b, sessionPillFillOpacity)` (0.72), not the role's opaque value — see New Tokens. |
+| Severity palette (pills) | `fillClock`, `fillUpdates`, `danger` | **[SECOND REVISION]** Carries the icon glyph (full opacity) and a hairline rim around each pill's boundary — **not** the fill (see "Neutral frost" row above and "Pill Anatomy" below). The `Fg` variants (`fillClockFg`, `fillUpdatesFg`, `onDanger`) that the first revision used as the icon's contrast colour against an opaque saturated fill are **retired on this surface** — the icon now reads the tier's own hue directly against the neutral frosted fill, so no separate contrast-pair colour is needed. See the action→colour-role table immediately below. |
 
-### Action → colour-role mapping (severity), NEW this revision
+### Action → colour-role mapping (severity), tiers unchanged since the first revision, PLACEMENT changed in the second
 
 The six pills are individually coloured, so — unlike the retired grid, where every tile was
 uniformly `Colours.surfaceVariant` and colour carried no meaning — colour now needs to
@@ -228,25 +265,29 @@ whether pacman is running or not; that is what keeps this consistent with "warn 
 
 Grouping follows D-20-29's own existing boundary exactly — the set of actions the warning
 already applies to (Shutdown, Reboot, Hibernate, Logout) versus the two it does not (Lock,
-Suspend) — subdivided once further by how final the two warned actions in each pair are:
+Suspend) — subdivided once further by how final the two warned actions in each pair are.
+**[SECOND REVISION]** The `Tier`/`Role` columns below are unchanged from the first
+revision; only where that role renders moved, from the `Fill` column (retired, now always
+the same neutral frost regardless of tier) to the new `Icon + rim` column:
 
-| Action | Tier | Fill role | Icon/fg role | Reasoning |
-|--------|------|-----------|--------------|-----------|
-| Lock | A — never warned | `fillClock` | `fillClockFg` | Instantly reversible, no session loss, the default-focused action (least destructive, D-20-24). |
-| Suspend | A — never warned | `fillClock` | `fillClockFg` | Reversible on wake; grouped with Lock because D-20-29 excludes exactly these two from the warned set — same tier, same colour. |
-| Log Out | B — warned | `fillUpdates` | `fillUpdatesFg` | Ends the session but is not a full compositor/system exit. |
-| Reboot | B — warned | `fillUpdates` | `fillUpdatesFg` | Ends the session and restarts the compositor; grouped with Log Out at the same severity. |
-| Hibernate | C — warned, most severe | `danger` | `onDanger` | Suspend-to-disk: a pacman transaction in flight resumes into an inconsistent package DB just as badly as a hard poweroff (D-20-29's own stated reason for including it in the warned set at all). |
-| Shut Down | C — warned, most severe | `danger` | `onDanger` | Full poweroff, the least recoverable action on the surface; grouped with Hibernate at the top severity tier. |
+| Action | Tier | Role | Icon + rim (second revision) | ~~Fill (retired)~~ | Reasoning |
+|--------|------|------|-------------------------------|---------------------|-----------|
+| Lock | A — never warned | `fillClock` | icon + rim = `fillClock` | ~~was fill~~ | Instantly reversible, no session loss, the default-focused action (least destructive, D-20-24). |
+| Suspend | A — never warned | `fillClock` | icon + rim = `fillClock` | ~~was fill~~ | Reversible on wake; grouped with Lock because D-20-29 excludes exactly these two from the warned set — same tier, same colour. |
+| Log Out | B — warned | `fillUpdates` | icon + rim = `fillUpdates` | ~~was fill~~ | Ends the session but is not a full compositor/system exit. |
+| Reboot | B — warned | `fillUpdates` | icon + rim = `fillUpdates` | ~~was fill~~ | Ends the session and restarts the compositor; grouped with Log Out at the same severity. |
+| Hibernate | C — warned, most severe | `danger` | icon + rim = `danger` | ~~was fill~~ | Suspend-to-disk: a pacman transaction in flight resumes into an inconsistent package DB just as badly as a hard poweroff (D-20-29's own stated reason for including it in the warned set at all). |
+| Shut Down | C — warned, most severe | `danger` | icon + rim = `danger` | ~~was fill~~ | Full poweroff, the least recoverable action on the surface; grouped with Hibernate at the top severity tier. |
 
-**Why `Colours.primary` (Accent/`fillNotification`'s hue) is excluded from every pill:**
-`BarRoles.accent` is `Colours.primary`, and it is reserved for the focus ring (see above).
-`BarRoles.fillNotification` resolves to the identical underlying colour
-(`Colours.primary`) under a different role name — using it on any pill would produce a
-pill that is visually indistinguishable from the ring colour, defeating the ring's own
-job as "the single, unambiguous signal for where a keypress goes" (the focus-treatment
-rule, unchanged from the retired design). `fillNotification` is therefore not used on this
-surface either, alongside `accent` itself.
+**Why `Colours.primary` (Accent/`fillNotification`'s hue) is still excluded from every
+pill:** `BarRoles.accent` is `Colours.primary`, reserved for the OSD slider (see "Slider
+accent" above). `BarRoles.fillNotification` resolves to the identical underlying colour
+under a different role name. **[SECOND REVISION]** The focus ring is now neutral
+(`Colours.onSurface`), so the original hue-collision-with-the-ring rationale no longer
+strictly applies — but the exclusion is kept anyway, so that no pill's icon/rim ever reads
+as "this is the accent colour" by coincidence with the OSD's own accent-tinted controls
+elsewhere in this shell. `fillNotification` is therefore still not used on this surface,
+alongside `accent` itself.
 
 **Coherence note, not a conflict:** `BarRoles.warn` (the chip's colour) and
 `BarRoles.fillUpdates` (tier B's pill colour) both resolve to `Colours.tertiary` — the same
@@ -370,10 +411,10 @@ the user locked this one: a ring with a centre label.
 
 Still built as **one `PanelWindow`** spanning the full output — that part of the original
 resolution stands, only the child content's shape changed:
-- a full-bleed **scrim** (`Colours.surface` at `sessionScrimOpacity`, **0.32**, revised down
-  from 0.55 — see New Tokens) filling the window, giving `HyprlandFocusGrab`'s click-outside
-  dismissal the same screen-wide catch area as before, still with no second window to
-  coordinate;
+- a full-bleed **scrim** (`Colours.surface` at `sessionScrimOpacity`, **0.15 as of the
+  SECOND revision** — was 0.32, was 0.55 originally — see New Tokens) filling the window,
+  giving `HyprlandFocusGrab`'s click-outside dismissal the same screen-wide catch area as
+  before, still with no second window to coordinate;
 - the actual **content** — six pills on a ring plus a centre label, no card, no header — as
   a child `Item` centred via `anchors.centerIn: parent`, `implicitWidth` /
   `implicitHeight`: `Design.sessionSurfaceDiameter` (272px, both axes — the content is
@@ -386,10 +427,10 @@ overlay and **not** Caelestia's inline right-edge popout — those two rejection
 first comparison round are unaffected by this revision.
 
 - **Namespace**: `quickshell-session` (D-20-33, unchanged) — inside the `^quickshell-.*`
-  family regex, blur applies automatically via the family's `blur = true` row; `ignore_alpha`
-  now needs a namespace-specific override this revision introduces — see "Frost and the
-  ignore_alpha trap" under New Tokens above, **not implemented in this spec-revision
-  commit**. Its own exact-match `animation = "slide"` row is unaffected.
+  family regex, blur applies automatically via the family's `blur = true` row;
+  `ignore_alpha` carries a namespace-specific `0.2` override row
+  (`windowrules.lua:615`, **implemented** — see "Frost and the ignore_alpha trap" under
+  New Tokens above). Its own exact-match `animation = "slide"` row is unaffected.
 - **`exclusiveZone: 0`** — unchanged, an overlay, reserves nothing.
 - **`WlrKeyboardFocus.Exclusive`** (D-20-24, unaffected by the shape change) — this
   surface's actions still end the session, so it still earns exclusive focus over D-19-18's
@@ -398,8 +439,9 @@ first comparison round are unaffected by this revision.
   design (`Colours.surface` at `panelSurfaceOpacity`, `GradientBorder`, `popoutHeaderHeight`,
   the Heading-styled title) have **no equivalent in the ring design** — there is no
   rectangular frame left to carry them. The visual identity that replaces "reads as part of
-  the panel family" is now carried entirely by the pills' own frosted, theme-coloured
-  fills and the ring's motion (see "Pill Anatomy" and "Entrance Motion" below).
+  the panel family" is now carried entirely by the pills' own frosted, neutral fills, their
+  icon+rim severity colour, and the ring's circular-motion entrance (see "Pill Anatomy" and
+  "Entrance Motion" below — both **[SECOND REVISION]**).
 
 ### Entry points (D-20-22, unaffected by this revision — repoint only)
 
@@ -420,17 +462,17 @@ Reboot (240°/8 o'clock), Shut Down (300°/10 o'clock). This ordering is also th
 band order (see "Entrance Motion") and the rotation model's index order (see "Focus
 Treatment").
 
-### ASCII preview 4 — power menu, resting state, Lock focused (default on open)
+### ASCII preview 4 — power menu, resting state, Lock focused (default on open) [SECOND REVISION: neutral focus ring + scale, same-hue frost fill]
 
 ```
                  sessionSurfaceDiameter = 272px, screen-centred
-                    scrim: Colours.surface @ 0.32 (light dim)
+                    scrim: Colours.surface @ 0.15 (light dim, second revision)
 
                               ┏━━━━━━━━┓
-                              ┃   🔒   ┃   ← Lock, 12 o'clock (0°),
-                              ┗━━━━━━━━┛      default-focused (accent ring)
-                    ╭────────╮        ╭────────╮
-                    │   ⏻   │        │   ⎋    │
+                              ┃  🔒(A) ┃   ← Lock, 12 o'clock (0°), default-
+                              ┗━━━━━━━━┛      focused: NEUTRAL Colours.onSurface
+                    ╭────────╮        ╭────────╮   ring (was BarRoles.accent) +
+                    │  ⏻(C) │        │  ⎋(B) │    sessionFocusScale (1.08)
                     ╰────────╯        ╰────────╯
               Shut Down (300°)          Log Out (60°)
                           ┌───────────────┐
@@ -440,53 +482,75 @@ Treatment").
                           └───────────────┘     name, replaces every
               Reboot (240°)           Suspend (120°)   per-pill label
                     ╭────────╮        ╭────────╮
-                    │   ↻   │        │   ☾    │
+                    │  ↻(B) │        │  ☾(A) │
                     ╰────────╯        ╰────────╯
                               ╭────────╮
-                              │   ❄    │   ← Hibernate, 6 o'clock (180°)
+                              │  ❄(C) │   ← Hibernate, 6 o'clock (180°)
                               ╰────────╯
 
-        Every pill is a pure circle (sessionPillDiameter 80px), icon only —
-        no text on or under any pill (locked). sessionCentreLabelWidth
-        (112px) is the safe zone at the centre, clear of every pill
-        regardless of ring rotation (see New Tokens derivation).
+        Every pill is a pure circle (sessionPillDiameter 80px), fill is a
+        NEUTRAL same-hue frost (Colours.surface @ sessionPillFillOpacity
+        0.50, second revision — was each action's own saturated tier
+        colour at 0.72). (A)/(B)/(C) above mark each pill's TIER, now
+        carried by the icon glyph + a hairline rim, not the fill — see
+        "Pill Anatomy". No text on or under any pill (locked).
+        sessionCentreLabelWidth (112px) is the safe zone at the centre,
+        clear of every pill regardless of ring rotation (see New Tokens
+        derivation).
 ```
 
 ---
 
-## Power Menu — Pill Anatomy (QPOWER-01) [renamed from "Tile Anatomy", rewritten for the ring]
+## Power Menu — Pill Anatomy (QPOWER-01) [renamed from "Tile Anatomy", rewritten for the ring, colour placement REVISED AGAIN in the SECOND revision]
 
 Each pill is a **pure circle**, `sessionPillDiameter` (80px), containing an icon and
 nothing else:
 
-- **Fill**: `Qt.rgba(<severity-role>.r, <severity-role>.g, <severity-role>.b,
-  sessionPillFillOpacity)` — i.e. **individually frosted and individually coloured per
-  action**, per the user's explicit ask, replacing the retired design's single uniform
-  `Colours.surfaceVariant` fill. See the action→colour-role table under "Color" above for
-  which role each of the six actions uses.
+- **Fill [SECOND REVISION]**: `Qt.rgba(surfaceColour.r, surfaceColour.g, surfaceColour.b,
+  sessionPillFillOpacity)` — i.e. **NEUTRAL, same-hue frost** (`Colours.surface`, the
+  scrim's own hue, at 0.50), the **same fill for every pill regardless of severity tier**.
+  This replaces the first revision's per-action saturated severity fill at 0.72:
+  `WorkspaceTile.qml`'s own 12-round render gate already found that exact failure mode ("a
+  tint over frost mostly reads as tint") and resolved it identically, by filling with the
+  scrim's own hue rather than a hue-carrying tint
+  (`modules/overview/WorkspaceTile.qml:140-190`). Read through `PowerMenu.qml`'s existing
+  `surfaceColour` property-colour intermediate — never a second direct `Colours.surface`
+  reference and never the tier's own severity role.
 - **Icon**: `sessionTileIconSize` (32px, KEPT unchanged from the retired design — its
   justification, a primary session-ending action earning more visual weight than this
-  shell's uniform 24px icon discipline, holds identically for a circular pill), centred,
-  the paired `on<Role>` foreground colour (e.g. `onAccent`, `onDanger`) at full opacity —
-  only the pill's own FILL is frosted/translucent, the icon glyph itself stays crisp.
-  Glyphs unchanged from the retired design: `lock` (Lock), `logout` (Log Out), `bedtime`
-  (Suspend), `ac_unit` (Hibernate), `restart_alt` (Reboot), `power_settings_new` (Shut
-  Down — the exact glyph the bar's own `powerCell` already uses).
+  shell's uniform 24px icon discipline, holds identically for a circular pill), centred.
+  **[SECOND REVISION]** Colour is now `<severity-role>` directly (e.g. `fillClock`,
+  `danger` — see the action→colour-role table under "Color" above) at full opacity, **not**
+  the retired `on<Role>` contrast-pair colour — since the fill beneath it is now a neutral
+  frost rather than an opaque saturated colour, the icon itself is where the tier's own hue
+  now reads. Only the pill's FILL is frosted/translucent, the icon glyph itself stays
+  crisp. Glyphs unchanged from the retired design: `lock` (Lock), `logout` (Log Out),
+  `bedtime` (Suspend), `ac_unit` (Hibernate), `restart_alt` (Reboot), `power_settings_new`
+  (Shut Down — the exact glyph the bar's own `powerCell` already uses).
+- **Rim [SECOND REVISION, NEW]**: a **hairline** (1px, not `Design.borderWidth`) stroke of
+  `<severity-role>` (the SAME role as the icon) drawn directly on the pill's own circular
+  boundary — the second place the tier's colour now lives, alongside the icon. Hairline,
+  not the structural 3px, per `WorkspaceTile.qml`'s own render-gate precedent that a
+  structural border width on a region (rather than a control's own edge) "draws a hard
+  card edge" (16-07 gate, round 11) — here the rim is a colour cue riding on top of the
+  pill's own circular tap-target edge, not a second frame.
 - **No label, no mnemonic letter, on or under the pill** — both retired outright. The
   retired design's per-tile label is replaced entirely by the ring's single centre label
   (see below); the retired design's UI-researcher-recommended mnemonic letter is reverted
   to undisplayed (D-20-24, revised — the pill has no spare corner to print it in, unlike
   the retired rectangular tile). Mnemonics (`l/e/u/h/r/s`) remain fully functional, silently.
-- **Hover** (pointer only): the pill's own `sessionPillFillOpacity` (0.72) lifts toward a
-  higher value (e.g. 0.85, the same `+0.1`-ish alpha-step idiom `BarRoles.capsule`→
-  `capsuleHover` already establishes) — applied locally, same idiom as the retired design,
-  new numbers only because the base opacity itself changed.
+- **Hover** (pointer only) **[SECOND REVISION]**: the pill's own `sessionPillFillOpacity`
+  (0.50) lifts toward a higher value (0.65) on the SAME neutral fill — the same `+0.1`-ish
+  alpha-step idiom `BarRoles.capsule`→`capsuleHover` already establishes, renumbered only
+  because the base opacity itself changed; the fill's HUE never changes on hover, only its
+  alpha, unchanged in spirit from the first revision.
 - **No per-pill destructive styling tied to a LIVE warning, ever** (D-20-28, unaffected) —
   all six pills render identically regardless of which action a live QPOWER-03 detector
-  currently names; that rule is untouched by this revision. **What DID change**: each
-  pill's PERMANENT, warning-independent baseline colour now carries severity meaning (see
-  "Color" above) — this is a new, static property of the action itself, not a reaction to
-  a live detector, and does not conflict with D-20-28 (reasoned in full under "Color").
+  currently names; that rule is untouched by either revision. **What DID change (first
+  revision, unaffected by the second)**: each pill's PERMANENT, warning-independent
+  baseline icon/rim colour carries severity meaning (see "Color" above) — this is a new,
+  static property of the action itself, not a reaction to a live detector, and does not
+  conflict with D-20-28 (reasoned in full under "Color").
 
 ### Centre label
 
@@ -518,45 +582,74 @@ nothing else:
 - **Mnemonics** (`l/e/u/h/r/s`) fire the matching action directly regardless of current
   focus — unchanged behaviour, still undisplayed (see "Pill Anatomy" above for why the
   retired design's decision to surface them is reverted).
-- **Visible focus is still a RING, never a fill swap** — `BarRoles.accent`,
+- **Visible focus is still a RING, never a fill swap — plus a scale-up [SECOND
+  REVISION]** — `Colours.onSurface` (**NEUTRAL**, was `BarRoles.accent`),
   `Design.borderWidth` (3px), drawn **outside** the pill's own `sessionPillDiameter` (80px)
-  circular boundary, unchanged in spirit from the retired design. Because pills are now
-  individually coloured (unlike the retired design's uniform `surfaceVariant` fill), the
-  accent-hued ring reading clearly against every pill matters more than before — resolved
-  by excluding `Colours.primary` (Accent's own hue) from every pill's severity palette (see
-  "Color" above), so the ring is never drawn against a same-hue fill; it always reads
-  against either a differently-hued pill or the dim scrim in the gap around it.
+  circular boundary — width and outside-placement unchanged from the first revision, only
+  the colour changed. **New**: the focused pill also scales to `Design.sessionFocusScale`
+  (1.08×) about its own centre. Because pills are now individually coloured on their
+  icon+rim (see "Pill Anatomy" above) with three DIFFERENT severity hues, a single
+  chromatic ring can no longer read consistently against all three — the first revision's
+  resolution (excluding `Colours.primary` from the severity palette so the ring never sits
+  against a same-hue fill) does not generalise to three different hues the way it did to
+  one uniform fill. The second revision's fix is a NEUTRAL ring (reads against every hue
+  equally) plus a non-colour cue (the scale) that survives every pill colour and a busy
+  wallpaper alike — belt-and-braces, not a redundant pair: a viewer notices the size change
+  even in a glance too quick to register the ring's own colour.
 
-### ASCII preview 5 — focused-pill treatment (zoomed), rotation model
+### ASCII preview 5 — focused-pill treatment (zoomed), rotation model [SECOND REVISION: neutral ring + scale, not accent]
 
 ```
-   resting:                  focused (keyboard):              rotate → next (clockwise):
-   ╭────────╮                ┏━━━━━━━━┓                       ╭────────╮   ┏━━━━━━━━┓
-   │   🔒   │                ┃   🔒   ┃   ← BarRoles.accent    │   🔒   │   ┃   ⎋    ┃
-   ╰────────╯                ┗━━━━━━━━┛     ring, borderWidth  ╰────────╯   ┗━━━━━━━━┛
-     Lock                       Lock          (3px), drawn        Lock       Log Out
-                                               OUTSIDE the                  ← Right/Down
-                                               80px pill —                    rotates focus
-                                               fill never                     one pill CW;
-                                               changes.                       wraps past
-                                                                               Shut Down → Lock.
+   resting:                  focused (keyboard):                    rotate → next (clockwise):
+   ╭────────╮                ┏━━━━━━━━━┓                            ╭────────╮   ┏━━━━━━━━━┓
+   │   🔒   │                ┃   🔒    ┃  ← Colours.onSurface        │   🔒   │   ┃   ⎋     ┃
+   ╰────────╯                ┗━━━━━━━━━┛    (NEUTRAL) ring,          ╰────────╯   ┗━━━━━━━━━┛
+     Lock                     Lock 1.08×    borderWidth (3px),         Lock        Log Out 1.08×
+                                             drawn OUTSIDE the                    ← Right/Down
+                                             80px pill; pill ALSO                   rotates focus
+                                             scales to                             one pill CW;
+                                             sessionFocusScale                     wraps past
+                                             (1.08×) about its                    Shut Down → Lock.
+                                             own centre. Fill hue
+                                             never changes.
 ```
 
 ---
 
-## Power Menu — Entrance Motion (D-20-35 REVISED for the ring)
+## Power Menu — Entrance Motion (D-20-35 REVISED for the ring; motion shape REVISED AGAIN in the SECOND revision)
 
 - **Staggered per-pill cascade** — re-expresses wleave's already-approved-on-sight
   `md3_decel` entrance, re-timed entirely on `Motion.qml` tokens (`staggerOffsetDuration`,
   the same `Cascade.qml` mechanism `PanelDialog.qml` already uses — reused component, not a
   new one). Ring entrance and input readiness are still **not** serialised (D-20-36,
-  unaffected by this revision) — the ring is interactive immediately, before its own
+  unaffected by either revision) — the ring is interactive immediately, before its own
   entrance animation finishes; WINDOWS rows 3/4 stay open, unchanged.
 - **The six pills (in ring order, starting at Lock) and the centre label are the cascade's
   bands** — seven bands total, replacing the retired design's "header + six tiles" framing
   (there is no header left to seed the first band; the cascade now starts directly on the
   first pill). The warning chip is an eighth band when present at open, unchanged in spirit
   from the retired design's warning-banner band.
+- **Motion shape [SECOND REVISION]: CIRCULAR, not a straight-line rise.** Live
+  verification found the first revision's entrance effectively invisible — `Cascade.qml`'s
+  existing translate-based rise (16px vertical offset, `riseDistance`) reads clearly on a
+  tall dialog band but is too small a fraction of an 80px pill's own size to register as
+  motion at all. `Cascade.qml` gains one opt-in property, **`circularMotion` (default
+  `false`, every other consumer including `PanelDialog.qml`'s tabs unaffected)**. When set,
+  a band that declares its own `ringPivot` — a point, in the band's OWN local coordinate
+  space, naming where the ring's centre sits relative to that band (the six pill delegates
+  each compute this from their own `x`/`y`; the centre label and warning chip do not
+  declare it and fall back to the existing translate-rise path unchanged) — sweeps into its
+  resting position by ROTATING toward 0° around that pivot, instead of translating toward 0
+  on the y-axis. The rotation radius is `sessionRingRadius` (96px, unaffected/reused, not a
+  new token) and the starting sweep angle is a new `Cascade.qml`-local geometry constant,
+  `ringSweepAngle` (30°, half of the 60° inter-pill spacing — enough arc to read clearly as
+  rotational without a pill's START position reaching into the NEXT pill's own resting
+  slot, which a full 60° sweep would). Still driven entirely by the SAME
+  `Motion.emphasizedInDuration`/`emphasizedInEasing` pair and the same per-band
+  `Motion.staggerOffsetDuration` stagger the straight-line path already used — no new
+  duration or easing token, only a new geometry shape for the existing motion curve to
+  animate along. Still gated `enabled: Motion.motionEnabled` via the existing `off`-scale
+  collapse in `Cascade.qml`'s `run()`, unaffected.
 
 ---
 
@@ -621,11 +714,13 @@ nothing else:
                     ╰──────────────────────────────╯     below the ring
 
         The focused Shut Down pill renders identically to its non-warned
-        appearance — same danger-tinted fill it always carries, same
-        accent focus ring, no recolour tied to the live warning. The chip
-        is informational text below the ring, never a pill recolour, never
-        a blocking overlay. Enter still fires Shut Down. This is what
-        "warn only" looks like on the ring design.
+        appearance — same neutral frosted fill every pill always carries
+        (second revision), same danger-tinted icon+rim it always carries,
+        same NEUTRAL Colours.onSurface focus ring + scale (second
+        revision, was BarRoles.accent), no recolour tied to the live
+        warning. The chip is informational text below the ring, never a
+        pill recolour, never a blocking overlay. Enter still fires Shut
+        Down. This is what "warn only" looks like on the ring design.
 ```
 
 ---
@@ -671,15 +766,20 @@ Two separate render gates, run and passed independently — a stall in one must 
 6. Caps Lock shows the icon+label row **only** on the ON transition, never on OFF.
 7. **The two GATE-01 open questions are answered with evidence, not assumed**: does the pill render over hyprlock (D-20-19); does Caps Lock indicate at the SDDM prompt before this gate authorises `RETIRE-04`'s `swayosd-libinput-backend.service` removal (D-20-17/18).
 
-### Gate B — Power menu (unlocks RETIRE-05: `wleave`) [criteria 1, 2, 4 REVISED for the ring]
+### Gate B — Power menu (unlocks RETIRE-05: `wleave`) [criteria 1, 2, 4 REVISED for the ring; 1, 2 REVISED AGAIN, 10 ADDED, in the SECOND revision]
 
 **Aesthetic**
-1. **[REVISED]** The ring reads as a floating, frosted cluster that only lightly dims the
-   desktop — each pill individually frosted and theme-coloured per its severity role, the
-   scrim a light 0.32 dim — never wleave's flat six-hue-capsule layout, and never the
-   retired grid dialog's "overtakes the entire screen" reading the user explicitly rejected.
-2. **[REVISED]** A live theme switch re-colours every pill's fill/focus-ring/warning-chip
-   within one crossfade.
+1. **[REVISED AGAIN, second revision]** The ring reads as a floating, TRULY frosted
+   cluster that lightly dims the desktop — each pill's fill is a neutral same-hue frost
+   (`Colours.surface` at `sessionPillFillOpacity` 0.50) with its severity role carried by
+   the icon glyph and a hairline rim, the scrim a lighter 0.15 dim — never wleave's flat
+   six-hue-capsule layout, never the retired grid dialog's "overtakes the entire screen"
+   reading, and never the first revision's saturated-disc pill fill the user also rejected
+   live ("The pills don't have the frosted look").
+2. **[REVISED AGAIN, second revision]** A live theme switch re-colours every pill's
+   icon/rim/warning-chip within one crossfade — the fill itself stays the SAME neutral
+   `Colours.surface` hue across a theme switch by construction (it is the scrim's own hue,
+   not a per-tier one), so "re-colours" here means the icon+rim+chip, not the fill.
 3. All six actions present, correctly glyphed, icon-only (no per-pill label); Lock
    auto-focused on open at 12 o'clock.
 4. **[REVISED]** Arrow keys ROTATE focus around the ring — Right/Down clockwise,
@@ -688,6 +788,12 @@ Two separate render gates, run and passed independently — a stall in one must 
    the newly-focused action on every rotation.
 5. Mnemonics (`l/e/u/h/r/s`) fire their action from any focus state — still undisplayed on
    the pill itself, confirmed working by keypress alone, not by reading a printed letter.
+10. **[ADDED, second revision]** On open, the six pills are visibly seen sweeping into
+    their ring positions with a rotational/circular motion (not a straight fade or a
+    barely-visible rise) — confirmed by eye during the entrance, not merely by reading
+    `Cascade.qml`'s own console trace. The focused pill (Lock, at open) shows a visibly
+    NEUTRAL (non-hued) focus ring plus a slight scale-up, distinguishable at a glance from
+    every pill's own severity-hued icon/rim.
 6. A live pacman/paru/yay run triggers the warning chip below the ring within one poll
    interval of opening the menu with it already running, and clears within one poll
    interval of it ending — action still fires either way.

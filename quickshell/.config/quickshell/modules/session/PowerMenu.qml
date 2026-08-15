@@ -18,6 +18,38 @@
 // staggered entrance are plan 20-07's job, not this file's — unaffected
 // by this rewrite.
 //
+// ── SECOND revision (2026-08-15, same day) — colour/motion polish pass ──
+// Live re-verification of the ring found: no entrance animation visible,
+// pills reading as flat saturated discs rather than frosted, and a
+// poor-reading accent-hued focus ring now that pills carry three
+// different severity hues. Asked to choose dimming vs. frost, the user
+// said "both". This pass, recorded in full in 20-CONTEXT.md's D-20-21
+// second-revision note and 20-UI-SPEC.md's revised tables:
+//   - moves each pill's severity colour OFF the fill and onto the icon
+//     glyph (full opacity) + a hairline rim (WorkspaceTile.qml's own
+//     "hairline, not the structural borderWidth" precedent, 16-07 render
+//     gate round 11);
+//   - re-fills every pill with same-hue Colours.surface (via the existing
+//     surfaceColour property-colour intermediate below — never a direct
+//     severity hue on the fill any more), at the lighter
+//     Design.sessionPillFillOpacity (0.50, down from 0.72) —
+//     WorkspaceTile.qml's own 12-round gate already found a saturated
+//     tint over frost "mostly reads as tint" and resolved it exactly this
+//     way (modules/overview/WorkspaceTile.qml:140-190);
+//   - replaces the focused pill's BarRoles.accent ring with a NEUTRAL
+//     Colours.onSurface ring plus a slight Design.sessionFocusScale
+//     scale-up, since a chromatic ring can no longer read consistently
+//     against three different pill hues;
+//   - drops Design.sessionScrimOpacity to 0.15 (still below the
+//     quickshell-session namespace's own ignore_alpha 0.2 cutoff, so the
+//     scrim keeps dimming without asking the compositor to blur the whole
+//     screen behind it — root cause 3 below);
+//   - extends Cascade.qml (not a competing animation) with an opt-in
+//     circularMotion sweep so the six pills visibly rotate into their
+//     ring positions on entrance, rather than the near-invisible
+//     straight-line rise the shared component's existing path produced
+//     at this shape's own scale.
+//
 // ── Exclusive focus + HyprlandFocusGrab coexistence (D-20-24) ────────────
 // WlrKeyboardFocus.Exclusive is a deliberate divergence from D-19-18's
 // no-exclusive-focus rule, written for the non-modal notification centre.
@@ -195,29 +227,40 @@ PanelWindow {
     // (D-20-29).
     property int focusedIndex: 0
 
-    // ── Severity colour mapping (D-20-21 revised, action -> colour-role
-    //    table in 20-UI-SPEC.md § "Color"). Kept as functions rather than
-    //    baked into the `actions` array above so every pill's fill stays
-    //    a LIVE binding on BarRoles' singleton colours — Gate B criterion
-    //    2 requires a live theme switch to re-colour every pill within
-    //    one crossfade while the menu is open, which a one-time JS-array
-    //    snapshot would not satisfy. `accent`/`fillNotification`
-    //    (Colours.primary's hue) are deliberately excluded from every
-    //    tier so the focus ring is never drawn against a same-hue fill.
+    // ── Severity colour mapping (D-20-21, revised twice — mapping itself
+    //    UNCHANGED across both revisions; only WHERE it renders changed —
+    //    action -> colour-role table in 20-UI-SPEC.md § "Color"). Kept as
+    //    a function rather than baked into the `actions` array above so
+    //    every pill's colour stays a LIVE binding on BarRoles' singleton
+    //    colours — Gate B criterion 2 requires a live theme switch to
+    //    re-colour every pill within one crossfade while the menu is
+    //    open, which a one-time JS-array snapshot would not satisfy.
+    //
+    //    SECOND REVISION: this function's return value now colours the
+    //    ICON GLYPH and the hairline RIM (see the pill delegate below),
+    //    never the fill — the fill is same-hue Colours.surface at
+    //    Design.sessionPillFillOpacity regardless of tier (see
+    //    `pillFill` below). `fgRoleFor` (the old `on<Role>` contrast-pair
+    //    function used for the icon when the fill itself was an opaque
+    //    saturated colour) is retired along with that fill treatment —
+    //    the icon now reads the tier's own hue directly, at full opacity,
+    //    against the neutral frosted fill, so no separate "on-colour"
+    //    pairing is needed any more.
+    //
+    //    `accent`/`fillNotification` (Colours.primary's hue) stay
+    //    excluded from every tier: BarRoles.accent is reserved for the
+    //    OSD slider fill/handle elsewhere in this shell, and keeping it
+    //    off every pill's severity palette avoids a pill's icon/rim ever
+    //    reading as "this is the accent colour" by coincidence — unrelated
+    //    to the focus ring, which is neutral (Colours.onSurface) as of
+    //    this revision and no longer needs hue-collision avoidance against
+    //    any specific pill tier.
     function fillRoleFor(idx) {
         switch (idx) {
         case 0: case 2: return BarRoles.fillClock;     // Lock, Suspend — tier A
         case 1: case 4: return BarRoles.fillUpdates;   // Log Out, Reboot — tier B
         case 3: case 5: return BarRoles.danger;        // Hibernate, Shut Down — tier C
         default: return BarRoles.fillClock;
-        }
-    }
-    function fgRoleFor(idx) {
-        switch (idx) {
-        case 0: case 2: return BarRoles.fillClockFg;
-        case 1: case 4: return BarRoles.fillUpdatesFg;
-        case 3: case 5: return BarRoles.onDanger;
-        default: return BarRoles.fillClockFg;
         }
     }
 
@@ -313,17 +356,29 @@ PanelWindow {
         }
     }
 
-    // ── Entrance cascade (Phase 20 Plan 07, D-20-35 revised for the ring)
-    //    — reuses PanelDialog.qml's own `Cascade` component verbatim
-    //    (never a second hand-rolled stagger mechanism). Bands are the six
-    //    ring pills in ring order (Lock, Log Out, Suspend, Hibernate,
-    //    Reboot, Shut Down — the SAME order `actions`/`pillRepeater`
-    //    already use), then the centre label, plus the warning chip as an
-    //    eighth band when it is already present at open time. There is no
-    //    header band left on this surface to seed the first band the way
-    //    PanelDialog.qml's own `headerIdentity` does — the cascade starts
-    //    directly on the first pill. ─────────────────────────────────────
-    readonly property Cascade entranceCascade: Cascade {}
+    // ── Entrance cascade (Phase 20 Plan 07, D-20-35 revised for the ring;
+    //    SECOND revision adds circularMotion) — reuses PanelDialog.qml's
+    //    own `Cascade` component, still not a second hand-rolled stagger
+    //    mechanism. Bands are the six ring pills in ring order (Lock, Log
+    //    Out, Suspend, Hibernate, Reboot, Shut Down — the SAME order
+    //    `actions`/`pillRepeater` already use), then the centre label,
+    //    plus the warning chip as an eighth band when it is already
+    //    present at open time. There is no header band left on this
+    //    surface to seed the first band the way PanelDialog.qml's own
+    //    `headerIdentity` does — the cascade starts directly on the first
+    //    pill.
+    //
+    //    `circularMotion: true` (SECOND revision, D-20-21) — Cascade.qml
+    //    gained this opt-in property so the six pill bands (which each
+    //    declare their own `ringPivot`, see the pill delegate above) sweep
+    //    into their resting ring position by ROTATING around the ring's
+    //    own centre, rather than the shared component's existing
+    //    straight-line rise. This is an EXTENSION of the existing
+    //    mechanism, not a competing one — the centre label and warning
+    //    chip bands below have no `ringPivot` of their own, so Cascade
+    //    still falls back to its pre-existing translate-rise path for
+    //    those two, exactly as before this revision. ─────────────────────
+    readonly property Cascade entranceCascade: Cascade { circularMotion: true }
 
     function _buildCascadeBands() {
         var bands = [];
@@ -338,10 +393,16 @@ PanelWindow {
         return bands;
     }
 
-    // ── Full-bleed scrim (D-20-21 revised) — a light dim
-    //    (Design.sessionScrimOpacity, 0.32), not a screen-take-over.
-    //    Carries the click-outside MouseArea (Bug 1 fix, see file
-    //    header) so dismissal is deterministic and independent of
+    // ── Full-bleed scrim (D-20-21, revised twice) — a light dim
+    //    (Design.sessionScrimOpacity, 0.15 as of the second revision,
+    //    down from 0.32), not a screen-take-over. Deliberately kept below
+    //    the quickshell-session namespace's own ignore_alpha 0.2 cutoff
+    //    (windowrules.lua) so the scrim dims the desktop WITHOUT the
+    //    compositor blurring the whole screen behind it — the split this
+    //    task's own root-cause finding 3 describes (ignore_alpha gates
+    //    BLUR, not drawing; a region below the cutoff still draws, just
+    //    unblurred). Carries the click-outside MouseArea (Bug 1 fix, see
+    //    file header) so dismissal is deterministic and independent of
     //    HyprlandFocusGrab's focus-change semantics. ────────────────────
     Rectangle {
         id: scrim
@@ -436,7 +497,7 @@ PanelWindow {
             // this surface's stagger consumes the SAME shared
             // Motion.staggerOffsetDuration token PanelDialog.qml's own
             // cascade already uses, never a second hand-rolled value.
-            console.log("power-menu: cascade armed bands=" + powerWindow.entranceCascade.bands.length + " staggerMs=" + Motion.staggerOffsetDuration + " motionEnabled=" + Motion.motionEnabled);
+            console.log("power-menu: cascade armed bands=" + powerWindow.entranceCascade.bands.length + " staggerMs=" + Motion.staggerOffsetDuration + " motionEnabled=" + Motion.motionEnabled + " circularMotion=" + powerWindow.entranceCascade.circularMotion);
         }
 
         // ── Centre label (D-20-21 revised) — the ONLY place any action's
@@ -470,55 +531,121 @@ PanelWindow {
                 x: ring.width / 2 + Design.sessionRingRadius * Math.sin(angleRad) - width / 2
                 y: ring.height / 2 - Design.sessionRingRadius * Math.cos(angleRad) - height / 2
 
+                // ── ringPivot (SECOND revision) — the ring's own centre,
+                //    expressed in THIS pill's local coordinate space (a
+                //    Rotation transform's origin is relative to the item's
+                //    own untransformed local box, not the parent's — so
+                //    this is "ring centre in the ring's coordinate space"
+                //    minus "this pill's own x/y offset within the ring",
+                //    not simply ring.width/2). Read by Cascade.qml via
+                //    duck-typing (`band.ringPivot`), never written by it —
+                //    only the ring's own pill delegates define this
+                //    property; the centre label and warning chip below do
+                //    not, and fall back to Cascade's existing straight-line
+                //    rise for those two bands (see Cascade.qml's run()).
+                readonly property point ringPivot: Qt.point(ring.width / 2 - pill.x, ring.height / 2 - pill.y)
+
                 readonly property bool isFocused: pillIndex === powerWindow.focusedIndex
                 readonly property bool hovered: pillMouseArea.containsMouse
                 readonly property color fillRole: powerWindow.fillRoleFor(pillIndex)
-                readonly property color fgRole: powerWindow.fgRoleFor(pillIndex)
 
-                // Fill: individually frosted and individually coloured
-                // per action's severity tier (D-20-21 revised — see the
-                // action->colour-role table in 20-UI-SPEC.md § "Color").
-                // Hover (pointer only) lifts sessionPillFillOpacity (0.72)
-                // toward 0.85, the same +0.1-ish alpha-step idiom
+                // Focused-pill scale-up (SECOND revision, D-20-21) —
+                // Design.sessionFocusScale (1.08), paired with the neutral
+                // focus ring below since a single chromatic ring can no
+                // longer read consistently against three different pill
+                // hues. Scales about the pill's own centre (QML's default
+                // transformOrigin: Item.Center), so this never shifts the
+                // pill's own ring position.
+                scale: pill.isFocused ? Design.sessionFocusScale : 1.0
+                Behavior on scale {
+                    enabled: Motion.motionEnabled
+                    NumberAnimation {
+                        duration: Motion.standardDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
+                    }
+                }
+
+                // Fill: same-hue frost, NOT the severity colour (SECOND
+                // revision, D-20-21 — WorkspaceTile.qml's own 12-round
+                // render gate already found a saturated tint over frost
+                // "mostly reads as tint",
+                // modules/overview/WorkspaceTile.qml:140-190). Reads
+                // Colours.surface via powerWindow.surfaceColour — the SAME
+                // property-colour intermediate the scrim above already
+                // uses, never a second `Colours.surface` reference and
+                // never `pill.fillRole` on the fill. Hover (pointer only)
+                // lifts Design.sessionPillFillOpacity (0.50) toward 0.65,
+                // the same +0.1-ish alpha-step idiom
                 // BarRoles.capsule->capsuleHover already establishes.
                 // No per-pill destructive styling tied to a live warning,
-                // ever (D-20-28) — every pill's PERMANENT baseline colour
-                // is static, unaffected by any live detector state.
+                // ever (D-20-28) — every pill's PERMANENT baseline fill is
+                // static, unaffected by any live detector state.
                 Rectangle {
                     id: pillFill
                     anchors.fill: parent
                     radius: width / 2
-                    color: Qt.rgba(pill.fillRole.r, pill.fillRole.g, pill.fillRole.b,
-                                   pill.hovered ? 0.85 : Design.sessionPillFillOpacity)
+                    color: Qt.rgba(powerWindow.surfaceColour.r, powerWindow.surfaceColour.g, powerWindow.surfaceColour.b,
+                                   pill.hovered ? 0.65 : Design.sessionPillFillOpacity)
+                }
+
+                // Severity rim (NEW, SECOND revision) — the tier colour
+                // that used to live on the fill now lives here instead, as
+                // a hairline stroke ON the pill's own boundary (radius
+                // width/2, no outward margin — unlike the focus ring below,
+                // which is deliberately OUTSIDE the boundary). Hairline
+                // (1px), not Design.borderWidth (3px): WorkspaceTile.qml's
+                // own render gate already found the structural 3px width
+                // draws "a hard card edge" on a region meant to read as a
+                // marking rather than a frame (16-07 gate, round 11) — the
+                // same reasoning applies here: the rim is a colour cue, not
+                // the pill's own tap-target edge (the fill's circular
+                // bound already reads as that).
+                Rectangle {
+                    id: pillRim
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: "transparent"
+                    border.width: 1
+                    border.color: pill.fillRole
                 }
 
                 // Visible focus is a RING, never a fill swap (QPOWER-02,
-                // D-20-24): BarRoles.accent at Design.borderWidth (3px),
-                // drawn OUTSIDE the pill's own circular boundary.
-                // Colours.primary (accent's hue) is excluded from every
-                // tier above so this ring never reads against a
-                // same-hue fill.
+                // D-20-24). SECOND revision: NEUTRAL Colours.onSurface, not
+                // BarRoles.accent — pills now carry three different
+                // severity hues (see the rim above), so a single chromatic
+                // ring can no longer read consistently against all three;
+                // paired with the scale-up above as the non-colour cue that
+                // survives every pill hue. Still Design.borderWidth (3px),
+                // still drawn OUTSIDE the pill's own circular boundary,
+                // unchanged from the first revision.
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: -Design.borderWidth
                     radius: (width) / 2
                     color: "transparent"
                     border.width: Design.borderWidth
-                    border.color: BarRoles.accent
+                    border.color: Colours.onSurface
                     visible: pill.isFocused
                 }
 
                 // Icon only — no label, no mnemonic letter on or under
                 // the pill (both retired, locked per the user's own
-                // "containing an ICON ONLY" ask). Only the pill's FILL is
-                // frosted; the icon glyph itself stays crisp at full
-                // opacity.
+                // "containing an ICON ONLY" ask). SECOND revision: the
+                // icon now carries the tier's own severity hue directly
+                // (pill.fillRole, e.g. BarRoles.fillClock) at full
+                // opacity, rather than the retired on<Role> contrast pair
+                // — since the fill beneath it is now a neutral frost, not
+                // an opaque saturated colour, the icon (alongside the rim
+                // above) is where the colour story now lives. Only the
+                // pill's FILL is frosted; the icon glyph itself stays
+                // crisp at full opacity, unaffected by this revision.
                 Text {
                     anchors.centerIn: parent
                     text: modelData.glyph
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.sessionTileIconSize
-                    color: pill.fgRole
+                    color: pill.fillRole
                 }
 
                 MouseArea {

@@ -553,30 +553,67 @@ Singleton {
     // glyph as its entire content, not an icon alongside a label, so it
     // earns a larger size. Holds identically under the ring revision.
     readonly property int sessionTileIconSize: 32
-    // sessionPillFillOpacity (0.72) — D-20-21 (revised), Claude's
-    // Discretion. NEW — required by the user's explicit "frosted look"
-    // (each pill individually frosted, not opaque). A ratio, not an
-    // offset — exempt from the 4px-grid rule per the same precedent as
-    // notifDismissThresholdFraction. Applied as
-    // Qt.rgba(<role>.r, <role>.g, <role>.b, sessionPillFillOpacity)
-    // against whichever severity-role colour a pill maps to (see
-    // 20-UI-SPEC.md's action→colour-role table). 0.72 is chosen
-    // specifically to clear the ^quickshell-.* family's
-    // ignore_alpha: 0.5 floor with real headroom (0.22) — see
-    // 20-UI-SPEC.md's "Frost and the ignore_alpha trap" for why the
-    // SCRIM below does NOT get the same headroom and what that requires
-    // in windowrules.lua (a follow-up change, not part of this token
-    // update).
-    readonly property real sessionPillFillOpacity: 0.72
-    // sessionScrimOpacity (0.32, CHANGED from 0.55) — D-20-21 (revised) —
-    // the user's explicit ask: "a popup that slightly dims the screen",
-    // rejecting the original 0.55 as reading like the design "overtakes
-    // the entire screen". This value sits BELOW the ^quickshell-.* family's
-    // ignore_alpha: 0.5 floor — the previous 0.55 cleared that floor by
-    // construction (matching BarSurface's own proven 0.55); 0.32 does
-    // not, and does not try to. See 20-UI-SPEC.md's "Frost and the
-    // ignore_alpha trap" for the required windowrules.lua follow-up
-    // (a new quickshell-session-specific ignore_alpha row, NOT made in
-    // this token-update commit).
-    readonly property real sessionScrimOpacity: 0.32
+
+    // ── SECOND REVISION (2026-08-15, same day, live re-verification) ────
+    // The ring shape itself (locked above) was approved, but a second live
+    // check found: no entrance animation, pills reading as flat saturated
+    // discs rather than frosted, and a poor-reading focus-ring colour now
+    // that pills carry three different severity hues. Asked to choose
+    // between dimming and frost, the user said "both" — a dimmed
+    // background AND truly frosted pills. `sessionPillFillOpacity` and
+    // `sessionScrimOpacity` change value again below; `sessionFocusScale`
+    // is a new token. Full reasoning recorded in 20-CONTEXT.md's D-20-21
+    // second-revision note and 20-UI-SPEC.md's revised "Power Menu" tables
+    // — this comment is the short form, not the only copy.
+    //
+    // sessionPillFillOpacity (0.50, CHANGED AGAIN from 0.72) — second
+    // revision. 0.72 read as a saturated disc: WorkspaceTile.qml's own
+    // 12-round render gate already found this exact failure mode ("a tint
+    // over frost mostly reads as tint") and landed on the SAME hue as its
+    // scrim (Colours.surface) at 0.40 for its empty-tile fill, rather than
+    // a hue-carrying tint — see modules/overview/WorkspaceTile.qml:140-190.
+    // Applied identically here: the fill is now Colours.surface (via
+    // PowerMenu.qml's own surfaceColour property-colour intermediate,
+    // never a direct severity hue), so the severity colour that used to
+    // live on the fill now lives on the icon glyph and a hairline rim
+    // instead (see PowerMenu.qml's pill delegate). Applied as
+    // Qt.rgba(surfaceColour.r, surfaceColour.g, surfaceColour.b,
+    // sessionPillFillOpacity). Still a ratio, exempt from the 4px-grid
+    // rule per the same precedent as notifDismissThresholdFraction. 0.50
+    // sits well above the quickshell-session namespace's own ignore_alpha
+    // 0.2 floor (0.30 headroom, windowrules.lua:615), so the pill still
+    // frosts; deliberately lighter than WorkspaceTile's 0.40 since a pill
+    // is a smaller, denser shape that needs less coverage to read as
+    // "there" against the dimmed scrim behind it.
+    readonly property real sessionPillFillOpacity: 0.50
+    // sessionScrimOpacity (0.15, CHANGED AGAIN from 0.32) — second
+    // revision, the user's explicit ask: "I want both — a dimmed
+    // background and truly frosted pills." 0.15 is a lighter dim still,
+    // deliberately kept BELOW the quickshell-session namespace's own
+    // ignore_alpha 0.2 cutoff (windowrules.lua:615, unchanged from the
+    // first revision's reasoning) — a scrim above that cutoff would ask
+    // the compositor to blur the entire screen behind the ring, which is
+    // not what "dimmed background" (as distinct from "frosted pills")
+    // asked for; a scrim below it dims without blurring, matching this
+    // task's own root-cause finding 3 (ignore_alpha gates blur, not
+    // drawing — a region below the cutoff is still drawn, just unblurred).
+    // Exposed as a single re-tunable token, not a call-site literal, per
+    // the same instruction that motivated tokenising it in the first
+    // revision — the user may move it again after judging it live.
+    readonly property real sessionScrimOpacity: 0.15
+    // sessionFocusScale (1.08) — NEW, second revision. Replaces the
+    // retired chromatic-only focus ring (previously BarRoles.accent, a
+    // palette hue) with a NEUTRAL ring (Colours.onSurface, see
+    // PowerMenu.qml) plus this scale-up of the focused pill's own Item.
+    // Rationale: pills now carry three different severity hues (see the
+    // action→colour-role table, unchanged), so a single chromatic
+    // focus-ring colour cannot read consistently against all three — a
+    // neutral ring plus a non-colour cue (scale) survives every pill
+    // colour and a busy wallpaper alike. 1.08 (8%) is deliberately slight:
+    // an 8% scale on the 80px sessionPillDiameter adds 6.4px of radius,
+    // leaving 9.6px of the 16px (spacingMd) inter-pill clearance
+    // sessionRingRadius's own derivation already guarantees — enough to
+    // register as "this one is different" in peripheral vision without
+    // the scaled pill visibly colliding with its neighbours.
+    readonly property real sessionFocusScale: 1.08
 }

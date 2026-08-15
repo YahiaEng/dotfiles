@@ -147,35 +147,72 @@ the launcher (out of scope for v4.0 entirely).
 
 ### The power menu
 
-- **D-20-21 [REVISED 2026-08-15 — see below for the superseded original]:** The menu is a
-  **floating radial cluster, not a framed dialog.** Six pure-circle action pills sit evenly
-  spaced on a **ring** (60° apart, screen-centred), icon-only — no per-pill label. The
-  ring's centre displays the **name of the currently-focused action** (e.g. "Shut Down"),
-  replacing per-pill labels entirely. Each pill is coloured according to the theme (see the
-  action→colour-role table in `20-UI-SPEC.md` § "Power Menu — Frame") and is **individually
-  frosted**. The scrim behind the ring is **`sessionScrimOpacity` 0.32** (down from the
-  superseded 0.55) — a light dim, not a screen-take-over. No card frame, no header, no
-  grid: `20-UI-SPEC.md` carries the full geometry derivation (`sessionPillDiameter`,
+- **D-20-21 [REVISED 2026-08-15, TWICE — see below for both superseded versions]:** The
+  menu is a **floating radial cluster, not a framed dialog.** Six pure-circle action pills
+  sit evenly spaced on a **ring** (60° apart, screen-centred), icon-only — no per-pill
+  label. The ring's centre displays the **name of the currently-focused action** (e.g.
+  "Shut Down"), replacing per-pill labels entirely. No card frame, no header, no grid:
+  `20-UI-SPEC.md` carries the full geometry derivation (`sessionPillDiameter`,
   `sessionRingRadius`, `sessionSurfaceDiameter`, `sessionCentreLabelWidth`).
-  — **Why revised:** the original 3×2-grid dialog was built and shown live, and the user
-  rejected it verbatim: *"The design is a complete rejected failure and not what I asked
-  for. It overtakes the entire screen and does not behave like a popup that slightly dims
-  the screen. I want a floating cards design, circular pills arranged in a circular motion
-  each one is colored according to the theme with a frosted look."* Presented with three
-  sketched radial options, the user selected this ring-with-centre-label shape and it is
-  now **LOCKED** — implement exactly, do not reinterpret.
-  — **Superseded original (kept for history, no longer governs):** *"The menu is a centred
-  floating dialog on the `PanelDialog` family, six actions in a 3×2 grid, with a scrim
-  behind. Chosen over both references: end-4's full-screen overlay (and today's wleave) and
-  Caelestia's inline right-edge popout. Reasons: a contained frame gives QPOWER-03's warning
-  a natural home inside the surface; a 3×2 grid makes arrow navigation two-dimensional and
-  unambiguous where six-across is left/right only; and it adds no new top-level frame type,
-  so no new GATE-03 entry."* The "no new top-level frame type" property is unaffected by
-  this revision — the ring is still built as content inside the same one-`PanelWindow`
-  structure (full-bleed scrim + centred child `Item`) the original resolved on, per the
-  still-open-at-the-time Claude's Discretion item below; only the child content's shape
-  changed, not the window/frame strategy, so no new GATE-03 entry is introduced by this
-  revision either.
+
+  **Colour and motion treatment, as of the SECOND revision (current):**
+  - **Pill fill** is same-hue `Colours.surface` (the scrim's own hue) at
+    `sessionPillFillOpacity` **0.50** — a neutral frost, not a saturated disc. This is the
+    `WorkspaceTile.qml` 12-round render-gate finding ("a tint over frost mostly reads as
+    tint") applied to the ring: the first-revision fill (a saturated severity colour at
+    0.72) was a stronger version of exactly what that gate already rejected.
+  - **Severity colour moved OFF the fill.** Each pill's tier colour (`fillClock` /
+    `fillUpdates` / `danger`, mapping unchanged — see the action→colour-role table) now
+    lives in the icon glyph (full opacity) and a hairline rim around the pill's own
+    boundary, following the same hairline-not-`borderWidth` precedent `WorkspaceTile.qml`'s
+    own render gate already established for a "region, not a control."
+  - **Focus indicator is now a NEUTRAL ring** (`Colours.onSurface`-derived,
+    `sessionFocusScale` 1.08 scale-up of the focused pill) — **not** the first revision's
+    `BarRoles.accent` ring. Rationale: pills now come in three different severity hues, so
+    a single chromatic focus-ring colour cannot read consistently against all three; a
+    neutral ring plus a non-colour cue (scale) survives every pill colour and a busy
+    wallpaper alike.
+  - **Scrim** stays at `sessionScrimOpacity`, now **0.15** (down again from 0.32) — still
+    below the `quickshell-session` namespace's own `ignore_alpha` 0.2 cutoff (unchanged),
+    so the desktop dims without the compositor blurring the whole screen behind the ring.
+    Exposed as a single re-tunable token, not a call-site literal, since the user may move
+    it again after judging it live.
+  - **Entrance animation** now sweeps pills in with **circular motion** (a rotation around
+    the ring's own centre, easing to each pill's resting angle), extending — not replacing
+    — the existing `Cascade.qml` per-pill stagger the first revision already wired. Pills
+    previously animated with no visible motion at all (`Cascade.qml`'s translate-only path
+    produced a straight vertical rise so small at the pill's own scale it read as no
+    animation); the ring is the first `Cascade` consumer to opt into
+    `circularMotion: true`.
+
+  — **Why revised a second time:** the ring shape itself was approved, but live
+  verification (2026-08-15, same day as the first revision) surfaced four further defects:
+  *"There is still a background shadow and the pills have no animation. They should
+  animate in a circular motion,"* and *"The pills don't have the frosted look and currently
+  selected highlight color is bad."* Asked whether they wanted dimming or frost, the user
+  answered *"I want both — a dimmed background and truly frosted pills."* This revision
+  implements exactly that; the ring's SHAPE (six pills at 60° on a ring, centre label, no
+  card/header/grid) remains LOCKED from the first revision and is not reopened here.
+
+  — **Superseded first-revision styling (kept for history, no longer governs):** pill fill
+  was each action's saturated severity colour directly at `sessionPillFillOpacity` 0.72;
+  the focus ring was `BarRoles.accent` at `Design.borderWidth`; the scrim was
+  `sessionScrimOpacity` 0.32; entrance was a per-pill `Cascade` stagger with a straight
+  vertical rise (`Cascade.qml`'s pre-existing `Translate`-only path, unchanged from
+  `PanelDialog.qml`'s own use of the same component).
+
+  — **Superseded original shape (kept for history, no longer governs):** *"The menu is a
+  centred floating dialog on the `PanelDialog` family, six actions in a 3×2 grid, with a
+  scrim behind. Chosen over both references: end-4's full-screen overlay (and today's
+  wleave) and Caelestia's inline right-edge popout. Reasons: a contained frame gives
+  QPOWER-03's warning a natural home inside the surface; a 3×2 grid makes arrow navigation
+  two-dimensional and unambiguous where six-across is left/right only; and it adds no new
+  top-level frame type, so no new GATE-03 entry."* The "no new top-level frame type"
+  property is unaffected by either revision — the ring is still built as content inside the
+  same one-`PanelWindow` structure (full-bleed scrim + centred child `Item`) the original
+  resolved on; only the child content's shape and, now, its colour/motion treatment have
+  changed, not the window/frame strategy, so no new GATE-03 entry is introduced by either
+  revision.
 - **D-20-22:** **All three existing entry points repoint** to the shell — none may be left
   calling `wleave.sh`:
   - `hypr/.config/hypr/config/keybinds.lua:68` — `Super+Shift+Q`
@@ -499,15 +536,17 @@ the launcher (out of scope for v4.0 entirely).
   inside the frame beneath the grid. That design was **built and then rejected live** on
   2026-08-15 — see D-20-21's revision note for the user's verbatim rejection. A second
   rendered comparison, of three sketched radial options, replaced it.
-- **The current, LOCKED mockup (2026-08-15):** no card frame, no header. Six pure-circle
-  icon-only pills sit evenly spaced on a ring, screen-centred, each individually frosted
-  and coloured per its severity role (`20-UI-SPEC.md` carries the table). The ring's centre
-  shows the focused action's name, replacing every per-pill label. A visible focus ring
-  (same `BarRoles.accent` stroke idiom as before, drawn outside the pill boundary so it
-  reads against the scrim rather than the pill's own fill) marks the focused pill. The
-  QPOWER-03 warning, when present, renders as a standalone frosted chip **below the ring**,
-  not inside any frame — there is no frame for it to sit inside anymore. The scrim behind
-  the whole cluster is a light 0.32 dim, not the previous 0.55.
+- **The current, LOCKED mockup shape (2026-08-15):** no card frame, no header. Six
+  pure-circle icon-only pills sit evenly spaced on a ring, screen-centred. The ring's
+  centre shows the focused action's name, replacing every per-pill label. The QPOWER-03
+  warning, when present, renders as a standalone frosted chip **below the ring**, not
+  inside any frame — there is no frame for it to sit inside anymore. **Colour/motion
+  treatment is SECOND-REVISION current, see D-20-21's second-revision note above — this
+  bullet no longer describes it, to avoid a second, driftable copy:** each pill is now a
+  neutral same-hue frost carrying its severity colour on the icon+rim rather than the
+  fill, the focus mark is a neutral ring plus a scale-up (not `BarRoles.accent`), the scrim
+  is 0.15 (not 0.32), and pills sweep in with circular motion. D-20-21 is the single source
+  of truth for these values; do not re-derive or restate them here.
 - **"Show me how it will look"** — the user asked to see the option rendered before
   committing to it, twice now. Downstream UI work should expect the same: show the surface,
   don't describe it, and treat a live rejection after a first render as a normal part of
