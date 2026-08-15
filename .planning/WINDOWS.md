@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 49
+open_count: 50
 waived_count: 2
 fixed_count: 24
-total_count: 75
-last_updated: 2026-08-15T16:08:52.144Z
+total_count: 76
+last_updated: 2026-08-15T17:56:24.301Z
 ---
 
 # Broken Windows Ledger
@@ -90,6 +90,7 @@ last_updated: 2026-08-15T16:08:52.144Z
 | 73 | 19 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/QuickToggles.qml |  | Task 2 human-check not run interactively: opening the drawer, clicking the DND tile, confirming all six tiles render untruncated with the full two-line label — grid state ownership proven structurally via grep/quickshell-doctor instead | open |  | 2026-08-13T12:17:52.009Z |  |
 | 74 | 19 | unrun-verify | quickshell/.config/quickshell/modules/toast/Toast.qml |  | Task 3 human-check not run interactively: visually confirming the toast slides in top-centre with correct on/off copy, self-dismisses after ~2s, and two rapid toggles produce one toast not two — DND was flipped by directly editing the state file, never exercising the real toggleDnd()/dndToggled/show() path | open | RE-DEFERRED (LEDGER-05, 20-02): Phase 20's OSD reuses this exact Toast frame type. Owner: plan 20-08's Gate A, criteria 3 (auto-hide) and 4 (hover-pause) — exercises the identical show()/timer/self-dismiss mechanism this row flags as unproven. | 2026-08-13T12:17:52.097Z |  |
 | 75 | 19 | unrun-verify | quickshell/.config/quickshell/modules/centre/NotifCentre.qml |  | Task 1-3 human-check blocks (slide/fade, Escape close, empty-state tint, grouping/clearing live sends, footer sliders, bell/Super+N summon) deferred to end-of-phase UAT per human_verify_mode=end-of-phase | open |  | 2026-08-13T12:43:20.122Z |  |
+| 76 | 20 | deviation | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | Plan 20-06 Task 1's grid design was rejected live and rebuilt to a radial ring; the ring's own Task-1 human-check (7 items, plus the two live-verified bug fixes) has not yet been re-run live against the ring — deferred to the operator per continuation-agent instructions not to press keys/restart the shell. | open |  | 2026-08-15T17:56:24.301Z |  |
 
 ## Batch re-defer (LEDGER-05, D-20-40)
 
@@ -1018,6 +1019,18 @@ numeric remainder — no id appears in both places.
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-13T12:43:20.122Z",
+    "resolved_at": null
+  },
+  {
+    "id": 76,
+    "kind": "deviation",
+    "phase": "20",
+    "file": "quickshell/.config/quickshell/modules/session/PowerMenu.qml",
+    "line": null,
+    "description": "Plan 20-06 Task 1's grid design was rejected live and rebuilt to a radial ring; the ring's own Task-1 human-check (7 items, plus the two live-verified bug fixes) has not yet been re-run live against the ring — deferred to the operator per continuation-agent instructions not to press keys/restart the shell.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-15T17:56:24.301Z",
     "resolved_at": null
   }
 ]
