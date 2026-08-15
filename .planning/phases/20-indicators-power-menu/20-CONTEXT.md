@@ -147,7 +147,8 @@ the launcher (out of scope for v4.0 entirely).
 
 ### The power menu
 
-- **D-20-21 [REVISED 2026-08-15, TWICE — see below for both superseded versions]:** The
+- **D-20-21 [REVISED 2026-08-15, THREE TIMES — see below for all three superseded
+  versions]:** The
   menu is a **floating radial cluster, not a framed dialog.** Six pure-circle action pills
   sit evenly spaced on a **ring** (60° apart, screen-centred), icon-only — no per-pill
   label. The ring's centre displays the **name of the currently-focused action** (e.g.
@@ -193,6 +194,63 @@ the launcher (out of scope for v4.0 entirely).
   answered *"I want both — a dimmed background and truly frosted pills."* This revision
   implements exactly that; the ring's SHAPE (six pills at 60° on a ring, centre label, no
   card/header/grid) remains LOCKED from the first revision and is not reopened here.
+
+  **Colour and motion treatment, as of the THIRD revision (current):**
+  - **Dismissal is now animated, bidirectionally.** `Cascade.qml` gains an opt-in
+    `runExit()` counterpart to `run()` — pills sweep back OUT (opacity 1->0, transform
+    toward their entrance start value) on the SAME `Motion.emphasizedOutDuration`/
+    `emphasizedOutEasing` pair the shell already reserves for exits, un-staggered (every
+    band exits in parallel, not one-after-another) so the added latency before a
+    session-ending action's process starts is a single duration, never stacked per pill.
+    Both `closeAndRun()` and the no-action dismissal routes (Escape, click-outside,
+    focus-grab clear) now fund through one funnel, so the Bug-2 ordering guarantee
+    (unmap the surface BEFORE the action process starts) is enforced against the exit
+    cascade's OWN completion, not before it — `visible = false` and the action process
+    start both now wait on `Cascade.exitFinished`.
+  - **Focus indicator is now the shell's animated Hyprland-style gradient rim**
+    (`GradientBorder.qml`, this shell's existing shared rim — used elsewhere by Toast,
+    NotifCard, Dashboard, NotifCentre, NotifPopupStack, SectionPopout, DragGhost,
+    PanelDialog) — **not** the second revision's static neutral `Colours.onSurface`
+    ring. All four corner radii are set to half the ring item's own width so the rim
+    traces a true circle. The 1.08× `sessionFocusScale` scale-up is UNCHANGED and stays
+    orthogonal to whatever colour treatment the ring itself carries. User's own framing:
+    "I will decide if I like it or rollback" — kept as one cleanly revertible unit, not
+    entangled with the other three third-revision changes.
+  - **Hover now moves `focusedIndex`** (bug fix — hovering previously lifted only the
+    fill's opacity, never the ring/scale/centre-label). Precedence: most-recent-input-
+    wins — a pointer `onEntered` event fires once per entry and a keyboard rotation
+    writes `focusedIndex` directly, so neither continuously re-asserts itself against
+    the other. The pre-existing hover-fill lift (0.50 -> 0.65) is KEPT, not retired: it
+    can diverge from focus (pointer resting on one pill while keyboard focus sits on
+    another) and remains the only cue for that divergent case.
+  - **Scrim raised again**, to `sessionScrimOpacity` **0.35** (was 0.15, was 0.32, was
+    0.55 originally) — the user's own ask: "stronger and gradual." This CROSSES the
+    `quickshell-session` namespace's own `ignore_alpha` 0.2 cutoff (a deliberate
+    reversal of the second revision's "stay below it" reasoning) — backdrop blur
+    returns for this surface. This is not a new split: the pill fill (0.50) has sat
+    above that same cutoff since the second revision, so raising the scrim to also sit
+    above it REMOVES a pre-existing mixed-blur state rather than introducing one. No
+    `windowrules.lua` change is required — the existing `ignore_alpha = 0.2` row already
+    covers both values with headroom. "Gradual" is implemented as the scrim
+    Rectangle's own `opacity` (not its baked-in alpha) ramped 0->1 on open and 1->0 on
+    dismiss via a `Behavior on opacity`, borrowing the same emphasizedIn/emphasizedOut
+    token pair the pill cascade itself uses for each direction.
+
+  — **Why revised a third time:** after living with the second revision, the user said
+  "I like the new refinements you did" and then asked for four specific, independent
+  changes via live feedback: (1) "I want the reverse animation to play when the power
+  menu is dismissed," (2) "Can you change the hovered ring to the shifting colours we
+  have on hyprland. I will decide if I like it or rollback," (3) "Hovering with the
+  mouse does not highlight selections" (a bug report), (4) "Can you make the dimming
+  stronger and gradual?" None of the four reopens the ring's own SHAPE, which remains
+  locked from the first revision.
+
+  — **Superseded second-revision styling (kept for history, no longer governs):** the
+  focus ring was a static `Colours.onSurface` `Rectangle` stroke (no animation); the
+  scrim was `sessionScrimOpacity` 0.15, applied instantaneously with no ramp; dismissal
+  had no exit animation at all — `requestDismiss()`/`closeAndRun()` tore the surface
+  down immediately; hover lifted only the pill fill's opacity and never wrote
+  `focusedIndex`.
 
   — **Superseded first-revision styling (kept for history, no longer governs):** pill fill
   was each action's saturated severity colour directly at `sessionPillFillOpacity` 0.72;
@@ -306,7 +364,8 @@ the launcher (out of scope for v4.0 entirely).
   its own rule declares, in the same commit as that rule.** The family floor is 0.5; a
   QML alpha below the active floor silently kills blur, with a symptom indistinguishable
   from a wrong rule.
-- **D-20-35 [REVISED 2026-08-15 for the ring shape]:** The power menu enters on a
+- **D-20-35 [REVISED 2026-08-15 for the ring shape; REVISED AGAIN 2026-08-15, third
+  revision, now BIDIRECTIONAL]:** The power menu enters on a
   **staggered per-pill cascade**, re-expressing wleave's md3_decel entrance that was
   already approved on sight — re-timed entirely on `Motion.qml` tokens, with no
   hand-rolled numbers (`motion-lint` enforces this). The cascade's bands are now the six
@@ -316,6 +375,18 @@ the launcher (out of scope for v4.0 entirely).
   first pill. The warning chip (see D-20-27..30, now rendered as a standalone chip below
   the ring rather than a banner inside a card) remains an additional band when present at
   open, unchanged in spirit from the original.
+
+  **Third revision — exit is now animated too, un-staggered.** `Cascade.qml` gains
+  `runExit()`, the mirror of `run()`: every band sweeps back to its entrance start state
+  (opacity 1->0, transform back toward its pre-entrance value) on
+  `Motion.emphasizedOutDuration`/`emphasizedOutEasing` — the shell's existing "exit" pair,
+  not a reversed copy of the entrance's emphasizedIn curve and not a new token.
+  Deliberately NOT staggered per band the way entrance is: every band exits in parallel,
+  so the added latency before `PowerMenu.qml`'s own Bug-2-guarded action-process start is
+  bounded to one un-staggered duration (150ms fallback), never `bands.length ×
+  staggerOffsetDuration` stacked on top. Opt-in at the call level, same discipline as
+  `circularMotion` — every other `Cascade` consumer never calls `runExit()`, so nothing
+  about their own dismissal changes.
 - **D-20-36:** Grid entrance and input readiness were **not** serialised (the third option
   offered). WINDOWS rows 3 and 4 — the Phase 9 hover-during-entrance interaction that was
   never exercised live — remain open and are in-scope for LEDGER-05 triage.
