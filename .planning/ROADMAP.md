@@ -320,7 +320,20 @@ Cross-cutting constraints:
 - **Security carry-over from Phase 15:** re-run the "who owns the prompt" check against the new power menu — a layer-shell overlay is unconditionally above every XDG toplevel, so any confirm dialog another app raises would land behind it.
 - **GATE-01 opening task.** Before this phase's retirement plans are written, enumerate swayosd's and wleave's current behaviour (swayosd's `style.css` and its libinput-backend service; wleave's `layout.json`/`style.css` and its six hue-capsule actions), plus the still-installed `wlogout`/`eww` leftovers, off the live implementations while they still exist. Protocol and worked example: `.planning/phases/18-qml-bar-retirement-machinery/18-BEHAVIOUR-BASELINE.md` § "GATE-01 Recurrence Protocol".
 
-**Plans**: TBD
+**Plans**: 10 plans, 7 waves
+
+Plans:
+- [ ] 20-01-PLAN.md — GATE-01: live behaviour baseline, pre-deletion consumer sweep, and the three open-question measurements (wave 1)
+- [ ] 20-02-PLAN.md — LEDGER-05: WINDOWS.md triage at phase start against the live ledger (wave 1)
+- [ ] 20-03-PLAN.md — Shared declaration surface: 9 `Design.qml` tokens, `BarRoles.onWarn`, both new layer namespaces incl. the `quickshell-osd` `ignore_alpha` override (wave 1)
+- [ ] 20-04-PLAN.md — OSD tracer: volume key → backend state → bottom-centre `Toast` instance, plus the full `swayosd-client` exec-target swap (wave 2)
+- [ ] 20-05-PLAN.md — OSD expansion: QOSD-04 recency-gated multi-slider column and QOSD-02 Caps Lock via a glob-resolved read-only sysfs watch (wave 3)
+- [ ] 20-06-PLAN.md — Power-menu tracer: 3×2 session dialog, all three entry points repointed, probe deleted, LEDGER-02 recorded (wave 3)
+- [ ] 20-07-PLAN.md — Power-menu expansion: QPOWER-03 detectors and banner, cascade entrance, cross-surface suppression (wave 4)
+- [ ] 20-08-PLAN.md — GATE-02: two independent render-gate records and the deletion-authorisation checkpoint (wave 5)
+- [ ] 20-09-PLAN.md — RETIRE-04: `swayosd` and its libinput backend removed, config-then-package (wave 6)
+- [ ] 20-10-PLAN.md — RETIRE-05 + RETIRE-07: `wleave` removed, then `wlogout` + `eww` in one `pacman -Rns` (wave 7)
+
 **UI hint**: yes
 
 ### Phase 21: Media Fold-In & Contract Close
