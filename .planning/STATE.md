@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
-current_phase_name: Indicators & Power Menu
+current_phase_name: indicators-power-menu
 status: executing
-stopped_at: Phase 20 UI-SPEC approved
-last_updated: "2026-08-15T15:56:45.695Z"
-last_activity: 2026-08-14
-last_activity_desc: Phase 19 complete, transitioned to Phase 20
+stopped_at: Completed 20-02-PLAN.md (LEDGER-05 WINDOWS.md triage)
+last_updated: "2026-08-15T16:14:15.868Z"
+last_activity: 2026-08-15
+last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 46
-  completed_plans: 35
+  total_plans: 45
+  completed_plans: 36
   percent: 50
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 19 — notification-server-centre
+**Current focus:** Phase 20 — indicators-power-menu
 
 ## Current Position
 
-Phase: 20 — Indicators & Power Menu
-Plan: Not started
+Phase: 20 (indicators-power-menu) — EXECUTING
+Plan: 2 of 10
 Status: Ready to execute
-Progress: [██████████] 97%
-Last activity: 2026-08-14 — Phase 19 complete, transitioned to Phase 20
+Progress: [████████░░] 80%
+Last activity: 2026-08-15 — Phase 20 execution started
 
 ## Performance Metrics
 
@@ -227,6 +227,7 @@ Last activity: 2026-08-14 — Phase 19 complete, transitioned to Phase 20
 | Phase 19 P05 | ~30min | 3 tasks | 8 files |
 | Phase 19 P06 | ~45min | 3 tasks | 10 files |
 | Phase 19 P07 | ~25min | 2 tasks | 2 files |
+| Phase 20 P02 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -494,6 +495,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: NotifServer.centreOpen reused as the summon-state mediator every path toggles, avoiding a new mediator file
 - [Phase ?]: NotifServer.qml extended with clearOne/clearGroup/_sessionActionsById to implement D-19-29/D-19-31 without breaking persistence
 - [Phase ?]: 19-07: closed WifiPanel.qml's textFormat gap (15-SECURITY.md Unregistered Flags item 2 / T-15-08b's still-open twin) and authored 19-SECURITY.md consolidating 24 threat-register rows across the phase, threats_open: 0; AudioPanel.qml's same-class gap found and recorded (not fixed, out of declared file scope) as a follow-up
+- [Phase ?]: 20-02: Individual-verdict set {3,4,5,6,10,74} triaged; 45-row remainder batch re-deferred to Phase 21 (LEDGER-05)
 
 ### Quick Tasks Completed
 
@@ -632,9 +634,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-15T14:54:28.955Z
-Stopped at: Phase 20 UI-SPEC approved
-Resume file: .planning/phases/20-indicators-power-menu/20-UI-SPEC.md
+Last session: 2026-08-15T16:14:15.843Z
+Stopped at: Completed 20-02-PLAN.md (LEDGER-05 WINDOWS.md triage)
+Resume file: None
 
 ## Operator Next Steps
 

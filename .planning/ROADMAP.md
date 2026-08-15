@@ -320,13 +320,13 @@ Cross-cutting constraints:
 - **Security carry-over from Phase 15:** re-run the "who owns the prompt" check against the new power menu — a layer-shell overlay is unconditionally above every XDG toplevel, so any confirm dialog another app raises would land behind it.
 - **GATE-01 opening task.** Before this phase's retirement plans are written, enumerate swayosd's and wleave's current behaviour (swayosd's `style.css` and its libinput-backend service; wleave's `layout.json`/`style.css` and its six hue-capsule actions), plus the still-installed `wlogout`/`eww` leftovers, off the live implementations while they still exist. Protocol and worked example: `.planning/phases/18-qml-bar-retirement-machinery/18-BEHAVIOUR-BASELINE.md` § "GATE-01 Recurrence Protocol".
 
-**Plans**: 10 plans, 7 waves
+**Plans**: 1/10 plans executed, 7 waves
 
 Plans:
 **Wave 1**
 
 - [ ] 20-01-PLAN.md — GATE-01: live behaviour baseline, pre-deletion consumer sweep, and the three open-question measurements (wave 1)
-- [ ] 20-02-PLAN.md — LEDGER-05: WINDOWS.md triage at phase start against the live ledger (wave 1)
+- [x] 20-02-PLAN.md — LEDGER-05: WINDOWS.md triage at phase start against the live ledger (wave 1)
 - [ ] 20-03-PLAN.md — Shared declaration surface: 9 `Design.qml` tokens, `BarRoles.onWarn`, both new layer namespaces incl. the `quickshell-osd` `ignore_alpha` override (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -423,7 +423,7 @@ Plans:
 | 17. Ambient Extras | v3.0 | 6/6 | Complete | 2026-08-10 |
 | 18. QML Bar & Retirement Machinery | v4.0 | 20/20 | Complete    | 2026-08-13 |
 | 19. Notification Server & Centre | v4.0 | 8/8 | Complete    | 2026-08-14 |
-| 20. Indicators & Power Menu | v4.0 | 0/? | Not started | - |
+| 20. Indicators & Power Menu | v4.0 | 1/10 | In Progress|  |
 | 21. Media Fold-In & Contract Close | v4.0 | 0/? | Not started | - |
 | 22. Fresh-Install Proof | v4.0 | 0/? | Not started | - |
 
