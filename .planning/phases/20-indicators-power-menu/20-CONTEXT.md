@@ -31,7 +31,7 @@ the launcher (out of scope for v4.0 entirely).
 
 ### Governing rules inherited from Phase 19
 
-- **D-19-00 still governs.** Caelestia's shipped behaviour is the strong default, end-4
+- **D-19-00 [informational] still governs:** Caelestia's shipped behaviour is the strong default, end-4
   secondary; check `.planning/research/FEATURES.md` § OSD / § POWER before proposing an
   approach, and name the divergence explicitly whenever recommending against Caelestia.
   Several decisions below *do* diverge — each says so and why.

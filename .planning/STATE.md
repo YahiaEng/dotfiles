@@ -4,15 +4,15 @@ milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: Indicators & Power Menu
-status: planning
+status: executing
 stopped_at: Phase 20 UI-SPEC approved
-last_updated: "2026-08-15T14:54:28.979Z"
+last_updated: "2026-08-15T15:56:45.695Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 19 complete, transitioned to Phase 20
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 35
+  total_plans: 46
   completed_plans: 35
   percent: 50
 ---
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 Phase: 20 — Indicators & Power Menu
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Progress: [██████████] 97%
 Last activity: 2026-08-14 — Phase 19 complete, transitioned to Phase 20
 
