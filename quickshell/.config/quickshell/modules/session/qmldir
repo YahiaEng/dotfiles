@@ -12,3 +12,4 @@
 # dialog exists only while summoned.
 module qs.modules.session
 PowerMenu 1.0 PowerMenu.qml
+PowerMenuBackend 1.0 PowerMenuBackend.qml
