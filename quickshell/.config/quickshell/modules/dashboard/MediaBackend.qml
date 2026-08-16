@@ -87,10 +87,34 @@ Scope {
     // (falling back to `dbusName` if a build ever leaves it empty) is the
     // stable key every selection, switcher-row and active-player lookup
     // below is keyed on instead.
+    // MEASURED against the installed type, not assumed:
+    // /usr/lib/qt6/qml/Quickshell/Services/Mpris/quickshell-service-mpris.qmltypes:259-263
+    // declares `uniqueId` as **uint** — a NUMBER, not a string. Returning it raw
+    // made every id in the `players` model a number, and all three consumers of
+    // that id expect a string:
+    //   - selectPlayer()        guards `typeof playerId !== "string"` -> returned early
+    //   - setVolumeForPlayer()  same guard -> returned early
+    //   - _explicitSelectionId  is `property string`, so QML coerced the assigned
+    //                           number to a string, which then failed the `===`
+    //                           against this function's number in _findCanonicalById()
+    // Net effect: switching players from the dropdown AND every per-player volume
+    // write were silent no-ops. Both were reported dead at Plan 08's gate — the
+    // slider moved under the cursor and nothing happened, because the write was
+    // discarded by its own guard one line in.
+    //
+    // Coerced here, at the single source, rather than by loosening the three
+    // guards: the id is a string by contract everywhere it is consumed, and a
+    // uint that stringifies is a perfectly good stable identity.
     function _playerIdentity(p) {
         if (!p)
             return "";
-        return (p.uniqueId && p.uniqueId !== "") ? p.uniqueId : (p.dbusName || "");
+        // Explicit typeof test, never truthiness — uniqueId 0 is a legitimate id
+        // and would fall through a `p.uniqueId && ...` check to dbusName.
+        if (typeof p.uniqueId === "number" && isFinite(p.uniqueId))
+            return String(p.uniqueId);
+        if (typeof p.uniqueId === "string" && p.uniqueId !== "")
+            return p.uniqueId;
+        return p.dbusName || "";
     }
 
     // ── Dedup — collapsing duplicate perceptual sources (D-21-09) ────────
