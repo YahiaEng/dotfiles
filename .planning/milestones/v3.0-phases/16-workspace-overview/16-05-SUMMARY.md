@@ -98,7 +98,15 @@ coverage:
         status: pass
       - kind: manual_procedural
         ref: "NOT independently reproduced by the executor — no pointer-simulation tool is available in this environment (checked: ydotool/wlrctl/dotool absent, only wtype for keyboard input exists). The plan's own <human-check> for this criterion requires an actual mouse click, which the executor cannot synthesize; the click-target geometry and z-order were verified structurally and via source inspection instead."
-        status: not_run
+        # status corrected 2026-08-16 (21-03, LEDGER-06): "not_run" is not a valid
+        # status value anywhere else in this milestone's coverage corpus. "unknown"
+        # is the value the corpus actually uses for this exact shape — a
+        # manual_procedural check the executor could not perform for lack of a
+        # synthetic pointer tool (see 14-01-SUMMARY.md:68, 15-10-SUMMARY.md:72,
+        # the only two other occurrences of this pattern in v3.0-phases). This is
+        # a judgment call, not a mechanical rename: "unknown" was chosen over
+        # "fail" because the check was never exercised, not exercised-and-failed.
+        status: unknown
     human_judgment: true
     rationale: "Whether an actual pointer click lands on the correct target and produces the correct focus/dismiss behavior on the live desktop is exactly what 16-02/16-03's own history says only human observation reliably catches for this surface (two screenshot-verified false passes preceded the real multi-window fix). This plan's structural/geometry argument is sound but is not a substitute for the operator physically clicking a thumbnail — flagged honestly rather than claimed complete. Recommend folding into D-16-22's dated running note (16-03-SUMMARY.md's precedent for exactly this class of executor-cannot-reproduce check) at the next live session."
 

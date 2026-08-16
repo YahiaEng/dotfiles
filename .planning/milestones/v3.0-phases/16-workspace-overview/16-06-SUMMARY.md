@@ -73,6 +73,7 @@ coverage:
         ref: "Task 3 render gate step 3, approved: only the hovered tile lights; moving to a third tile un-lights the second as the third lights"
         status: pass
     human_judgment: true
+    rationale: "Whether exactly one tile lights at a time, and whether it follows the cursor cleanly from tile to tile as the drag moves, is a live-drag observation this host cannot synthesize (no pointer-simulation tool) — Task 3 render gate step 3 is the only place this was actually exercised, by the operator moving a real drag across tiles."
   - id: D3
     description: "A missed drop cancels at zero cost (snapshot animates home on the standard pair); a same-tile drop is a clean no-op that never dispatches"
     requirement: "OVER-03"
@@ -84,6 +85,7 @@ coverage:
         ref: "Task 3 render gate step 6, approved: release in the gap between tiles animates the ghost home, nothing moved"
         status: pass
     human_judgment: true
+    rationale: "Whether a missed drop actually cancels at zero cost — rather than merely having the right animation tokens wired in source — requires releasing a real drag outside a tile and watching the ghost animate home; this host has no synthetic pointer tool, so Task 3 render gate step 6 is the only place this was exercised live."
   - id: D4
     description: "Drag works symmetrically into and out of the scratchpad tile — an ordinary member of the workspace-target set, no special case (D-16-05)"
     requirement: "OVER-03"
@@ -92,6 +94,7 @@ coverage:
         ref: "Task 3 render gate step 7, approved: drag into the scratchpad tile and back out to a numbered tile, both directions working"
         status: pass
     human_judgment: true
+    rationale: "Whether the scratchpad genuinely behaves as an ordinary bidirectional drop target — not a special case that only half-works — can only be confirmed by dragging a real window into it and back out again; this host has no synthetic pointer tool, so Task 3 render gate step 7 is the only place this round trip was exercised live."
   - id: D5
     description: "No client-controlled text ever reaches the compositor's Lua evaluator (T-16-25); the address is shape-checked at dispatch time"
     requirement: "OVER-03"
