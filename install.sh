@@ -332,11 +332,12 @@ AUR_PKGS=(
     1password
     octopi
 
-    # Icon themes (D-16 — human package-legitimacy checkpoint approved;
-    # colloid-icon-theme-git note: the plain colloid-icon-theme name does
-    # NOT exist on AUR, only the -git suffix does)
-    tela-icon-theme
-    colloid-icon-theme-git
+    # Icon themes (D-16 — human package-legitimacy checkpoint approved).
+    # tela-icon-theme and colloid-icon-theme-git moved to AUR_PKGS_HOST
+    # below (22-09 perf) — papirus-folders stays here: it is small and
+    # pairs with papirus-icon-theme, which remains a core pacman package
+    # (install.sh:193), so icon theming still has a real theme present in
+    # --core-only scope.
     papirus-folders
 
     # Game center (D-33 — human package-legitimacy checkpoint approved
@@ -420,6 +421,23 @@ AUR_PKGS_HOST=(
     # Limine Bootloader
     limine-dracut-support
     kernel-modules-hook
+
+    # Icon themes, heavy-build half (22-09 perf — measured, not a guess):
+    # tela-icon-theme took 21min and colloid-icon-theme-git took 22min in
+    # the 22-BASELINE.md run (03-install.log timestamp diffs), 43 of the
+    # baseline's ~62-minute total. The cost is package() copying tens of
+    # thousands of small icon files onto overlayfs, not compression. Safe
+    # to skip under --core-only: icon-theme-picker.sh discovers installed
+    # themes at runtime and explicitly handles the case where only
+    # Adwaita is present (icon-theme-picker.sh:124-126, MAINT-03's
+    # Ctrl-A browse-and-install path), and no .ini/.lua/.toml/.conf/.qml
+    # file in this repo references either theme by name — nothing in the
+    # theme pipeline hardcodes them. colloid-icon-theme-git note: the
+    # plain colloid-icon-theme name does NOT exist on AUR, only the -git
+    # suffix does. A default (no-flag) run still installs both — this
+    # changes only the container-gate scope, not the real host install.
+    tela-icon-theme
+    colloid-icon-theme-git
 )
 
 if [[ "$CORE_ONLY" != "true" ]]; then
