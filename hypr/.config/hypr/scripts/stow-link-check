@@ -1,0 +1,424 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║               STOW-LINK-CHECK (22-02)                 ║
+# ║  Dangling-symlink sweep over every stow-created target. ║
+# ║  Report-only — never mutates, moves or deletes anything ║
+# ║  it scans.                                              ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# RETIRE-09/D-22-06 requires that SC-2's symlink clause ("no dangling
+# reference exists anywhere in the reproduced system") have a mechanism —
+# measurement confirmed nothing in this repo checks for dangling symlinks
+# anywhere (theme-doctor, theme-parity, stow.sh and the whole scripts tree
+# were grepped; the only "dangling" hits were motion-lint's token-reference
+# language and prose). Built the way every other gate in this repo is built:
+# standalone script + committed compliant/poisoned fixtures + --self-test,
+# folded into theme-doctor with a guarded skip — the shape motion-lint,
+# colour-lint and retirement-check all take (D-22-06). Explicitly rejected:
+# a bare `find -xtype l` written into the harness, because "a gate that
+# cannot be pointed at a fixture cannot be proven to fail" (D-28).
+#
+# Usage:
+#   stow-link-check
+#       No argument: sweeps the real deployed targets under $HOME.
+#   stow-link-check --root <dir>
+#       Treats <dir> as the $HOME equivalent — the same code path serves a
+#       throwaway/poisoned fixture directory as serves the real tree (D-28).
+#   stow-link-check --self-test
+#       Replays the six committed fixtures under tests/stow-link-fixtures/
+#       and asserts each expected verdict. Exit 0 (all as expected) / 1
+#       (otherwise).
+#   stow-link-check --list
+#       Prints the declared sweep-root set and the exemption list, then
+#       exits 0.
+#
+# Exit codes: 0 clean / 1 any [FAIL] / 2 invalid argument.
+#
+# Sweep-root set, derived from stow.sh:19's PACKAGES loop and the three
+# documented exceptions at stow.sh:190-225 (RETIRE-09's own discretion note:
+# "err toward covering every path stow.sh's PACKAGES loop can write to"):
+#   .config              recursive  — every PACKAGES entry that stows under
+#                                      ~/.config/<pkg>/, plus the autostart/
+#                                      and systemd/user/ exception subtrees
+#                                      which live inside it
+#   .local               recursive  — the ~/.local/ targets (the editor
+#                                      package's share/applications entry
+#                                      among them)
+#   Pictures/Wallpapers  recursive  — the wallpapers package, the one
+#                                      package whose tree roots outside
+#                                      .config/.local
+#   Pictures/Screenshots recursive  — the sibling root stow.sh pre-creates
+#                                      alongside it
+#   .                    depth 1    — top-level dotfiles a shell package can
+#                                      place directly in $HOME
+# The depth-1 restriction on the home root is load-bearing: it catches
+# top-level dotfile links without descending into the repository clone or
+# unrelated home content, which would make the sweep unbounded.
+#
+# Full-chain symlink resolution: a link is DANGLING if and only if the
+# entire chain fails to resolve — a link landing on an existing intermediate
+# whose own target is absent is still reported, and a symlink loop is
+# reported dangling rather than hanging the sweep (the poisoned-symlink-
+# chain fixture proves this). Every within-root hit list is sorted under a
+# byte-order sort, so two runs over an unchanged tree are byte-identical.
+#
+# Exemptions: a deny-by-default list, same discipline motion-lint's
+# EXEMPTIONS/colour-lint's EXEMPTIONS establish — every entry requires a
+# non-empty reason, and every exemption that actually suppressed a hit on a
+# given run is printed on that run, never silently discarded. Starts EMPTY;
+# an entry is added only if a real sweep surfaces a link that is
+# legitimately dangling by design, with the reason written at that moment.
+#
+# Never mutates anything it scans — pure read-only analysis.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+SELF_PATH="$SCRIPT_DIR/stow-link-check"
+FIXTURES_DIR="$SCRIPT_DIR/tests/stow-link-fixtures"
+
+usage() {
+    cat >&2 <<EOF
+stow-link-check — dangling-symlink sweep over stow-created targets (RETIRE-09)
+
+Usage:
+  stow-link-check
+  stow-link-check --root <dir>
+  stow-link-check --self-test
+  stow-link-check --list
+EOF
+}
+
+_slc_reject() {
+    printf 'stow-link-check: %s\n' "$1" >&2
+    exit 2
+}
+
+# ── The single sweep pass — declared sweep-root data, full-chain symlink
+#    resolution, exemption filtering, [PASS]/[FAIL]/[SKIP]/[EXEMPT] lines on
+#    stdout matching theme-doctor's fold idiom directly. One process so the
+#    resolver/sort logic is defined exactly once (retirement-check/motion-
+#    lint precedent). ────────────────────────────────────────────────────
+_slc_sweep() {
+    local mode="$1" sweep_home="${2:-}"
+    python3 - "$mode" "$sweep_home" <<'PYEOF'
+import os
+import sys
+
+mode = sys.argv[1]
+sweep_home = sys.argv[2] if len(sys.argv) > 2 else ''
+
+# ── Declared sweep-root set (relative-path, recursion-mode, why) — data,
+#    not scattered path literals, mirroring retirement-check's REGISTRY_RAW
+#    idiom. "." is the home root itself: it always exists trivially (any
+#    valid --root/HOME is a directory), so it is declared here (and shown by
+#    --list) but deliberately EXCLUDED from the vacuous-green presence tally
+#    below — a root that can never be "absent" cannot inform that guard.
+SWEEP_ROOTS = [
+    ('.config', 'recursive',
+     'every PACKAGES entry that stows under ~/.config/<pkg>/, plus the '
+     'autostart/ and systemd/user/ exception subtrees which live inside it'),
+    ('.local', 'recursive',
+     'the ~/.local/ targets (the editor package\'s share/applications '
+     'entry among them)'),
+    ('Pictures/Wallpapers', 'recursive',
+     'the wallpapers package, the one package whose tree roots outside '
+     '.config/.local'),
+    ('Pictures/Screenshots', 'recursive',
+     'the sibling root stow.sh pre-creates alongside it'),
+    ('.', 'depth1',
+     'top-level dotfiles a shell package can place directly in $HOME'),
+]
+
+# ── Exemption list (D-22-06) — glob-equivalent regex -> required non-empty
+#    reason -> provisional bool. Deny-by-default: refuse to load an entry
+#    with an empty reason. Starts EMPTY by design (RETIRE-09's scope has
+#    surfaced no link that is legitimately dangling on purpose); a future
+#    entry is added only when a real sweep finds one, with the reason
+#    written at that moment — never silently.
+EXEMPTIONS = []
+
+results = []  # (tag, detail) — tag in {SKIP, PASS, FAIL, EXEMPT, LIST}
+
+
+def emit(tag, detail):
+    results.append((tag, detail))
+
+
+def dump():
+    for tag, detail in results:
+        print(f'{tag}\t{detail}')
+
+
+for ex in EXEMPTIONS:
+    if not ex.get('reason', '').strip():
+        emit('FAIL', f"exemption entry {ex.get('glob', '?')!r} has an empty reason (deny-by-default violation)")
+
+
+def path_is_exempt(rel_path):
+    import re
+    for ex in EXEMPTIONS:
+        if not ex.get('reason', '').strip():
+            continue
+        if re.search(ex['regex'], rel_path):
+            return ex
+    return None
+
+
+def is_dangling(link_path):
+    """Full-chain resolution. Returns True if the chain is dangling (a
+    missing component, or a loop), False if it fully resolves to an
+    existing node. Never uses os.path.realpath()/readlink -e's single-call
+    shortcuts blindly — walks hop by hop with an explicit `seen` set so a
+    genuine symlink loop is detected and reported dangling rather than
+    hanging the sweep (T-22-02-DOS mitigation)."""
+    current = link_path
+    seen = set()
+    hops = 0
+    while True:
+        try:
+            st = os.lstat(current)
+        except OSError:
+            return True  # a component of the chain does not exist
+        import stat as _stat
+        if not _stat.S_ISLNK(st.st_mode):
+            return False  # resolved to a real, existing node
+        if current in seen:
+            return True  # symlink loop
+        seen.add(current)
+        hops += 1
+        if hops > 40:
+            return True  # pathological chain depth — treat as dangling
+        target = os.readlink(current)
+        if not os.path.isabs(target):
+            target = os.path.normpath(os.path.join(os.path.dirname(current), target))
+        current = target
+
+
+def walk_links(root):
+    """Yield every symlink path at or below root, recursively. Descends
+    into a symlinked directory only if that directory symlink itself
+    resolves (a broken directory symlink is yielded and NOT descended
+    into) — mirrors motion-lint's stow-aware followlinks reasoning: stow
+    frequently symlinks whole subdirectories, not just individual files."""
+    stack = [root]
+    visited_real = set()
+    while stack:
+        current_dir = stack.pop()
+        real_current = os.path.realpath(current_dir)
+        if real_current in visited_real:
+            continue  # guard against a directory-symlink cycle
+        visited_real.add(real_current)
+        try:
+            entries = sorted(os.scandir(current_dir), key=lambda e: e.name)
+        except OSError:
+            continue
+        for entry in entries:
+            path = entry.path
+            if entry.is_symlink():
+                yield path
+                if not is_dangling(path):
+                    try:
+                        if os.path.isdir(path):
+                            stack.append(path)
+                    except OSError:
+                        pass
+            else:
+                try:
+                    if entry.is_dir(follow_symlinks=False):
+                        stack.append(path)
+                except OSError:
+                    pass
+
+
+def walk_links_depth1(root):
+    try:
+        entries = sorted(os.scandir(root), key=lambda e: e.name)
+    except OSError:
+        entries = []
+    for entry in entries:
+        if entry.is_symlink():
+            yield entry.path
+
+
+if mode == 'list':
+    for rel_path, rmode, why in SWEEP_ROOTS:
+        emit('LIST', f'{rel_path} ({rmode}) — {why}')
+    if EXEMPTIONS:
+        for ex in EXEMPTIONS:
+            emit('LIST-EXEMPT', f"{ex.get('glob', '?')} — {ex.get('reason', '')}")
+    else:
+        emit('LIST-EXEMPT', '(none declared)')
+    dump()
+    sys.exit(0)
+
+if not sweep_home or not os.path.isdir(sweep_home):
+    emit('FAIL', f'sweep home {sweep_home!r} is not a directory')
+    dump()
+    sys.exit(1)
+
+sweep_home_real = os.path.realpath(sweep_home)
+
+present_count = 0
+denom = 0  # roots counted toward the vacuous-green guard — excludes "."
+any_link_checked = 0
+
+for rel_path, rmode, why in SWEEP_ROOTS:
+    abs_root = os.path.normpath(os.path.join(sweep_home, rel_path))
+    exists = os.path.isdir(abs_root)
+    is_trivial = (rel_path == '.')
+    if not is_trivial:
+        denom += 1
+        if exists:
+            present_count += 1
+    if not exists:
+        emit('SKIP', f'{rel_path}: not present under {sweep_home} ({why})')
+        continue
+
+    if rmode == 'depth1':
+        links = list(walk_links_depth1(abs_root))
+    else:
+        links = list(walk_links(abs_root))
+
+    dangling = []
+    for link_path in links:
+        any_link_checked += 1
+        if is_dangling(link_path):
+            rel = os.path.relpath(link_path, sweep_home)
+            dangling.append((rel, link_path))
+
+    # LC_ALL=C-equivalent byte-order sort — encode to bytes so ordering
+    # never depends on the interpreter's default Unicode collation.
+    dangling.sort(key=lambda t: t[0].encode('utf-8'))
+
+    for rel, link_path in dangling:
+        try:
+            target_desc = os.readlink(link_path)
+        except OSError:
+            target_desc = '<unreadable>'
+        ex = path_is_exempt(rel)
+        if ex is not None:
+            emit('EXEMPT', f"{rel} -> {target_desc} ({ex.get('reason', '')})")
+        else:
+            emit('FAIL', f'{rel} -> {target_desc} (dangling)')
+
+    non_exempt_dangling = [r for r, lp in dangling if path_is_exempt(r) is None]
+    if links and not non_exempt_dangling:
+        emit('PASS', f'{rel_path}: {len(links)} symlink(s), none dangling')
+
+if denom > 0 and present_count == 0:
+    emit('FAIL', f'0 of {denom} sweep roots present under {sweep_home} — '
+                 'refusing to report clean (vacuous-green guard)')
+
+dump()
+PYEOF
+}
+
+run_list() {
+    echo "stow-link-check — declared sweep-root set and exemption list:"
+    echo ""
+    while IFS=$'\t' read -r tag detail; do
+        [[ -z "$tag" ]] && continue
+        case "$tag" in
+            LIST)         printf '  %s\n' "$detail" ;;
+            LIST-EXEMPT)  printf '  [EXEMPT] %s\n' "$detail" ;;
+        esac
+    done < <(_slc_sweep list)
+}
+
+run_sweep() {
+    local sweep_home="$1"
+    local pass_n=0 fail_n=0
+    echo "stow-link-check — dangling-symlink sweep"
+    echo "  target: $sweep_home"
+    echo ""
+    while IFS=$'\t' read -r tag detail; do
+        [[ -z "$tag" ]] && continue
+        case "$tag" in
+            SKIP)   printf '  [SKIP] %s\n' "$detail" ;;
+            PASS)   printf '  [PASS] %s\n' "$detail"; pass_n=$((pass_n + 1)) ;;
+            FAIL)   printf '  [FAIL] %s\n' "$detail"; fail_n=$((fail_n + 1)) ;;
+            EXEMPT) printf '  [EXEMPT] %s\n' "$detail" ;;
+        esac
+    done < <(_slc_sweep sweep "$sweep_home")
+    echo ""
+    printf 'Summary: %d passed, %d failed\n' "$pass_n" "$fail_n"
+    [[ "$fail_n" -eq 0 ]]
+}
+
+run_self_test() {
+    local -a fixtures=(
+        "compliant-resolving-links:0"
+        "poisoned-dangling-config-link:1"
+        "poisoned-dangling-systemd-unit:1"
+        "poisoned-dangling-pictures-link:1"
+        "poisoned-symlink-chain:1"
+        "empty-no-roots:1"
+    )
+    local st_pass=0 st_fail=0
+    local entry fname expect_nonzero fixture_root rc want_desc out
+
+    echo "stow-link-check --self-test — replaying the six committed fixtures"
+    echo ""
+
+    for entry in "${fixtures[@]}"; do
+        fname="${entry%%:*}"
+        expect_nonzero="${entry##*:}"
+        fixture_root="$FIXTURES_DIR/$fname"
+
+        if [[ ! -d "$fixture_root" ]]; then
+            printf '  [FAIL] self-test: fixture missing: %s\n' "$fixture_root"
+            st_fail=$((st_fail + 1))
+            continue
+        fi
+
+        out="$("$SELF_PATH" --root "$fixture_root" 2>&1)"
+        rc=$?
+
+        if [[ "$expect_nonzero" == "0" ]]; then
+            want_desc="exit 0 (compliant)"
+        else
+            want_desc="a non-zero exit (poisoned)"
+        fi
+
+        if [[ "$expect_nonzero" == "0" && "$rc" -eq 0 ]] || [[ "$expect_nonzero" == "1" && "$rc" -ne 0 ]]; then
+            printf '  [PASS] self-test: %s -> %s as expected\n' "$fname" "$want_desc"
+            st_pass=$((st_pass + 1))
+        else
+            printf '  [FAIL] self-test: %s -> exited %d, expected %s\n' "$fname" "$rc" "$want_desc"
+            printf '         output:\n%s\n' "$(printf '%s\n' "$out" | sed 's/^/           /')"
+            st_fail=$((st_fail + 1))
+        fi
+    done
+
+    echo ""
+    printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+    [[ "$st_fail" -eq 0 ]]
+}
+
+case "${1:-}" in
+    --list)
+        run_list
+        exit 0
+        ;;
+    --self-test)
+        run_self_test
+        exit $?
+        ;;
+    --root)
+        [[ -n "${2:-}" ]] || _slc_reject "--root requires a directory argument"
+        SWEEP_HOME="$2"
+        shift 2
+        [[ $# -eq 0 ]] || _slc_reject "unknown argument '$1'"
+        run_sweep "$SWEEP_HOME"
+        exit $?
+        ;;
+    "")
+        run_sweep "$HOME"
+        exit $?
+        ;;
+    *)
+        usage
+        exit 2
+        ;;
+esac
