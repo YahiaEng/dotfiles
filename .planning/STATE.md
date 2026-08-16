@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 21
 current_phase_name: media-fold-in-contract-close
 status: executing
-stopped_at: Completed 21-03-PLAN.md
-last_updated: "2026-08-16T04:39:32.701Z"
+stopped_at: Completed 21-01-PLAN.md
+last_updated: "2026-08-16T04:51:57.938Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 54
-  completed_plans: 46
+  completed_plans: 47
   percent: 67
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 21 (media-fold-in-contract-close) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
-Progress: [█████████░] 85%
+Progress: [█████████░] 87%
 Last activity: 2026-08-16 — Phase 21 execution started
 
 ## Performance Metrics
@@ -239,6 +239,7 @@ Last activity: 2026-08-16 — Phase 21 execution started
 | Phase 20 P09 | multi-session | 3 tasks | 22 files |
 | Phase 20 P10 | 45min | 3 tasks | 33 files |
 | Phase 21 P03 | ~35min | 3 tasks | 5 files |
+| Phase 21 P01 | ~20min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -528,6 +529,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 16-VERIFICATION.md reconstructed retroactively from Phase 16's own eight plan summaries, UAT record and measurement doc — records OVER-04's frame-rate term UNMEASURED and the panel rim gap exactly as they stood at that phase's 2026-08-10 close, no later closure folded in
 - [Phase ?]: Two malformed coverage: blocks (16-05 D5 invalid status, 16-06 D2/D3/D4 missing rationale) fixed in place with no validator added
 - [Phase ?]: Quick task 260728-51j closed on on-disk evidence (live Lua config tree, retired hyprlang templates block) rather than reconstructed from its title
+- [Phase ?]: 21-01: CavaService registered top-level (modules/qmldir) not modules/dashboard/, so MediaPopout (later plan) can share the same singleton instance
+- [Phase ?]: 21-01: claim/release trigger reuses MediaTab.qml's own Component.onCompleted/onDestruction (Dashboard.qml's mediaTabLoader is already active-only-while-current and destroyed-on-dismiss per D-14) rather than a new visibility computation
+- [Phase ?]: 21-01: tracer verification segment rebuilt oversized mid-plan after human checkpoint reported the original 3-14px segment unjudgeable; marked verification-only scaffolding, 21-06 owns normalizing it to real proportions
 
 ### Quick Tasks Completed
 
@@ -666,8 +670,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T04:39:32.680Z
-Stopped at: Completed 21-03-PLAN.md
+Last session: 2026-08-16T04:51:57.916Z
+Stopped at: Completed 21-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

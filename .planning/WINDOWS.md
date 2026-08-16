@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 53
+open_count: 54
 waived_count: 2
 fixed_count: 27
-total_count: 82
-last_updated: 2026-08-16T01:42:48.234Z
+total_count: 83
+last_updated: 2026-08-16T04:51:35.665Z
 ---
 
 # Broken Windows Ledger
@@ -97,6 +97,7 @@ last_updated: 2026-08-16T01:42:48.234Z
 | 80 | 20 | deviation | quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml |  | MPRIS import trips quickshell-doctor's zero-MPRIS-writer check — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md | open |  | 2026-08-16T01:02:25.646Z |  |
 | 81 | 20 | deviation | hypr/.config/hypr/config/permissions.lua |  | permissions-allowlist-paths-resolve gate fails (2 missing binary paths, 1 glob pattern) — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md | open |  | 2026-08-16T01:02:29.771Z |  |
 | 82 | 20 | deviation | hypr/.config/hypr/scripts/media-players.sh |  | eww-media-* cache paths renamed to media-* to close eww's retirement-check blocking tier; narrows 20-RETIREMENT-BASELINE.md's original report-only disposition | fixed |  | 2026-08-16T01:42:29.301Z | 2026-08-16T01:42:48.234Z |
+| 83 | 21 | stub | quickshell/.config/quickshell/modules/dashboard/MediaTab.qml |  | Cava-verification overlay (cavaVerifyOverlay/cavaVerifyPath) is deliberately oversized checkpoint-driven scaffolding, not the final visualiser; 21-06 owns normalizing to real proportions per 21-UI-SPEC.md's Visualiser Geometry table | open |  | 2026-08-16T04:51:35.665Z |  |
 
 ````json
 [
@@ -1083,6 +1084,18 @@ last_updated: 2026-08-16T01:42:48.234Z
     "reason": "",
     "recorded_at": "2026-08-16T01:42:29.301Z",
     "resolved_at": "2026-08-16T01:42:48.234Z"
+  },
+  {
+    "id": 83,
+    "kind": "stub",
+    "phase": "21",
+    "file": "quickshell/.config/quickshell/modules/dashboard/MediaTab.qml",
+    "line": null,
+    "description": "Cava-verification overlay (cavaVerifyOverlay/cavaVerifyPath) is deliberately oversized checkpoint-driven scaffolding, not the final visualiser; 21-06 owns normalizing to real proportions per 21-UI-SPEC.md's Visualiser Geometry table",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T04:51:35.665Z",
+    "resolved_at": null
   }
 ]
 ````
