@@ -566,47 +566,6 @@ Item {
                         }
                     }
                 }
-
-                // ── Phase 21 Plan 01 tracer (QMEDIA-02) — ONE live radial
-                //    segment, proving the cava-to-QML streaming contract
-                //    end-to-end before any expansion. A single "clock
-                //    hand" from `ringRadius` (the existing dashed ring's
-                //    own radius, unchanged) outward, its length driven by
-                //    `CavaService.bars[0]`. Do NOT read this as the full
-                //    D-21-01 visualiser — that replaces this whole block
-                //    with a Repeater of 60 bars in the expansion plan; this
-                //    is deliberately the minimum slice that proves the
-                //    pipe. Floors at a 3px sliver so silence (or no cava
-                //    process at all) never reads as a vanished segment,
-                //    and grows to 14px at full amplitude (T-21-02's array
-                //    is already length-capped upstream in CavaService).
-                ShapePath {
-                    id: cavaBarPath
-                    fillColor: "transparent"
-                    strokeColor: Colours.primary
-                    strokeWidth: root.ringStrokeWidth
-                    capStyle: ShapePath.RoundCap
-
-                    readonly property real _level: CavaService.bars.length > 0 ? Math.max(0, Math.min(1, CavaService.bars[0])) : 0
-                    readonly property real _outerRadius: root.ringRadius + 3 + cavaBarPath._level * 11
-
-                    startX: artSlot.width / 2
-                    startY: artSlot.height / 2 - root.ringRadius
-
-                    PathLine {
-                        x: artSlot.width / 2
-                        y: artSlot.height / 2 - cavaBarPath._outerRadius
-                    }
-
-                    Behavior on strokeColor {
-                        enabled: Motion.motionEnabled
-                        ColorAnimation {
-                            duration: Motion.standardDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.standardEasing
-                        }
-                    }
-                }
             }
 
             Item {
@@ -729,6 +688,71 @@ Item {
                         font.family: root.symbolFontFamily
                         font.pixelSize: root.artBadgeSize * 0.52
                         color: Colours.onPrimaryContainer
+                    }
+                }
+
+                // ── Phase 21 Plan 01 tracer (QMEDIA-02) — VERIFICATION-ONLY
+                //    scaffolding, deliberately oversized so the human gate
+                //    can judge motion by eye. MUST be normalized to real
+                //    proportions in 21-06 (the D-21-01 full radial-bar
+                //    expansion), which replaces this whole block with a
+                //    properly-scaled Repeater of 60 bars around the ring —
+                //    do not carry this sizing forward past that plan.
+                //
+                //    A thick (16px), high-contrast (Colours.error — a hue
+                //    used nowhere else on this tab) partial ring, painted
+                //    ON TOP of the cover art (last child of artContainer,
+                //    so it paints after the masked image and placeholder
+                //    badge above it). Sweeps clockwise from the top,
+                //    floored at a 20-degree sliver at silence (so it never
+                //    fully vanishes) up to a near-complete 300-degree ring
+                //    at full amplitude — a dramatic, unmissable size swing,
+                //    not a few pixels of stroke length. Cannot be confused
+                //    with the thin grey dashed ring behind the art (a
+                //    separate Shape, different colour, never overlaps this
+                //    one in paint order) or with the horizontal seek/
+                //    progress bar below the details column (a completely
+                //    different, non-circular element).
+                //
+                //    Driven by the PEAK across all published bands
+                //    (Math.max(...CavaService.bars)), not bars[0] alone —
+                //    a verification-only choice, since a single low-index
+                //    band can sit near-silent for dialogue-heavy content
+                //    even while the stream is genuinely live, which would
+                //    read as a false negative on the human gate. The real
+                //    D-21-01 expansion maps each of the 60 bars to its own
+                //    segment individually; this peak-of-all-bands mapping
+                //    exists only to make THIS gate legible and does not
+                //    carry forward.
+                Shape {
+                    id: cavaVerifyOverlay
+                    anchors.fill: parent
+                    asynchronous: true
+                    preferredRendererType: Shape.CurveRenderer
+
+                    readonly property real _verifyRadius: cavaVerifyOverlay.width / 2 - 20
+
+                    ShapePath {
+                        id: cavaVerifyPath
+                        fillColor: "transparent"
+                        strokeColor: Colours.error
+                        strokeWidth: 16
+                        capStyle: ShapePath.RoundCap
+
+                        readonly property real _level: CavaService.bars.length > 0 ? Math.max(0, Math.min(1, Math.max(...CavaService.bars))) : 0
+                        readonly property real _sweepDeg: 20 + cavaVerifyPath._level * 280
+
+                        startX: cavaVerifyOverlay.width / 2
+                        startY: cavaVerifyOverlay.height / 2 - cavaVerifyOverlay._verifyRadius
+
+                        PathAngleArc {
+                            centerX: cavaVerifyOverlay.width / 2
+                            centerY: cavaVerifyOverlay.height / 2
+                            radiusX: cavaVerifyOverlay._verifyRadius
+                            radiusY: cavaVerifyOverlay._verifyRadius
+                            startAngle: -90
+                            sweepAngle: cavaVerifyPath._sweepDeg
+                        }
                     }
                 }
             }
