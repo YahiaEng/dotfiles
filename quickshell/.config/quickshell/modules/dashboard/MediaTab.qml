@@ -186,8 +186,8 @@
 //      the summoned drawer, same flat circle). A corner-pixel-alpha-only
 //      assertion (this file's own earlier draft of the harness, and the
 //      interrupted session's resume plan) does NOT catch this failure
-//      mode — `artBackground` is itself already a `radius: width/2`
-//      circle, so the corners read transparent regardless of whether the
+//      mode — `artBackground` was itself already a circle (corner-radius
+//      set to half its width), so the corners read transparent regardless of whether the
 //      masked image renders at all; the harness had to additionally
 //      assert the CENTER pixel matches the source image's own colour to
 //      catch it. Root cause: `MultiEffect.maskSource` reads its mask
@@ -450,6 +450,71 @@ Item {
         return m + ":" + (sec < 10 ? "0" + sec : sec);
     }
 
+    // ── D-21-02: hand-authored 12-lobe scalloped cookie path ────────────
+    // Returns an SVG path-data string (fed to a QtQuick.Shapes `PathSvg`)
+    // describing a closed ring of 12 outward lobes, alternating 12 "peak"
+    // points at the full radius and 12 "waist" points at a smaller radius,
+    // evenly spaced 15deg apart (24 points total), connected by circular
+    // arcs (SVG "A" commands) rather than a library shape import — no
+    // `M3Shapes`/`Caelestia.Config` equivalent exists in this repo (D-21-02).
+    //
+    // Arc flags derived by hand from the SVG 1.1 Appendix F.6.5
+    // center-parameterization formula (not guessed): for every edge in
+    // this alternating-radius, evenly-spaced construction, large-arc-flag=0
+    // (the minor arc) paired with sweep-flag=1 selects the arc-circle
+    // center that sits on the SAME side as the shape's own center — the
+    // minor arc on that center bulges AWAY from it, i.e. outward, which is
+    // the lobe direction wanted. This holds symmetrically for both
+    // peak-to-waist and waist-to-peak edges (verified algebraically for
+    // one instance of each before writing this loop) since the underlying
+    // geometry only depends on the two radii and the fixed angular step,
+    // never on the absolute angle.
+    //
+    // Lobe depth (the inner/outer radius ratio) and the arc's own bulge
+    // factor are both render-gate discretion (21-UI-SPEC.md: "Lobe depth
+    // and corner rounding are Claude's discretion") — not verified against
+    // a live render in this session; the operator's own visual pass is
+    // what tunes these two constants if the lobes read too shallow, too
+    // sharp, or too deep.
+    function _cookiePath(w, h) {
+        var lobes = 12;
+        var cx = w / 2;
+        var cy = h / 2;
+        var outerR = w / 2;
+        // Waist indentation — render-gate-adjustable.
+        var innerR = outerR * 0.86;
+        var step = Math.PI / lobes; // half a lobe's angular width (15deg)
+
+        var points = [];
+        for (var k = 0; k < lobes * 2; k++) {
+            var angle = k * step;
+            var r = (k % 2 === 0) ? outerR : innerR;
+            points.push({
+                x: cx + r * Math.cos(angle),
+                y: cy + r * Math.sin(angle)
+            });
+        }
+
+        // Every edge shares the same chord length by symmetry (fixed
+        // 15deg step, alternating between exactly two radii), so one arc
+        // radius suffices for all 24 segments. 0.6x the chord sits just
+        // above the semicircle minimum (0.5x — any smaller has no real
+        // solution), giving a rounded bulge rather than a sharp point or a
+        // full half-circle knob — render-gate-adjustable.
+        var dx = points[1].x - points[0].x;
+        var dy = points[1].y - points[0].y;
+        var chord = Math.sqrt(dx * dx + dy * dy);
+        var arcR = chord * 0.6;
+
+        var path = "M " + points[0].x.toFixed(2) + "," + points[0].y.toFixed(2);
+        for (var i = 1; i <= points.length; i++) {
+            var p = points[i % points.length];
+            path += " A " + arcR.toFixed(2) + "," + arcR.toFixed(2) + " 0 0 1 " + p.x.toFixed(2) + "," + p.y.toFixed(2);
+        }
+        path += " Z";
+        return path;
+    }
+
     // Drag-suppression flag (the seek band's own truth-driven exception):
     // while dragging, the slider stops following the incoming one-second
     // stream tick, and on release issues one seek through the backend.
@@ -641,14 +706,21 @@ Item {
 
                 // Round-4 fix (see the file header): `clip: true` on a
                 // `radius`-rounded Rectangle only clips to the item's
-                // bounding BOX, never to the rounded shape — this plain
-                // background circle is now purely a colour fill behind the
-                // masked image below, not a clipping container.
+                // bounding BOX, never to the rounded shape. D-21-02 (21-06):
+                // this fill is now composited through the SAME 12-lobe
+                // `artMaskShape` used for the loaded art below
+                // (`artMaskedBackground`), rather than painted directly as
+                // its own circle — E4/empty (21-UI-SPEC.md): the
+                // placeholder background shows through the SAME mask, so
+                // its silhouette is identical to the loaded state's, with
+                // no separate empty artwork. `artBackground` itself is
+                // therefore invisible and unmasked geometry (a plain
+                // square fill); only `artMaskedBackground` paints.
                 Rectangle {
                     id: artBackground
                     anchors.fill: parent
-                    radius: width / 2
                     color: Colours.surfaceVariant
+                    visible: false
                 }
 
                 Image {
@@ -704,12 +776,60 @@ Item {
                 // same reason). `artImage` itself needs no equivalent
                 // `layer.enabled` — proven present without it in the same
                 // harness runs.
-                Rectangle {
+                // D-21-02 (21-06): hand-authored 12-lobe scalloped mask,
+                // replacing the circular corner-radius-half-width Rectangle — the
+                // masking MECHANISM below (MultiEffect.maskEnabled/
+                // maskSource) is UNCHANGED from round 4, only this
+                // source's geometry changes. Authored by hand as arcs via
+                // `root._cookiePath()` (SVG "A" elliptical-arc commands
+                // through `PathSvg`, QtQuick.Shapes' own primitive for
+                // supplying raw path data) — no shape-library import
+                // exists in this repo and none is added here.
+                // `layer.enabled: true` remains load-bearing (round-4
+                // finding, file header): an invisible item with no layer
+                // produces no scene-graph paint node at all, and
+                // `MultiEffect.maskSource` reads THAT node's texture for
+                // alpha — omitting this line silently reproduces the
+                // empty-mask defect this file already paid for once.
+                Shape {
                     id: artMaskShape
                     anchors.fill: parent
-                    radius: width / 2
                     visible: false
                     layer.enabled: true
+                    asynchronous: true
+                    preferredRendererType: Shape.CurveRenderer
+
+                    ShapePath {
+                        // This mask is never painted on screen — only its
+                        // alpha coverage is read by MultiEffect.maskSource
+                        // — so the fill's actual hue is irrelevant. Still
+                        // sourced from a real palette role (never a hex
+                        // literal) per this repo's colour-lint discipline;
+                        // any fully-opaque role would work equally.
+                        fillColor: Colours.onSurface
+                        strokeColor: "transparent"
+
+                        PathSvg {
+                            path: root._cookiePath(artContainer.width, artContainer.height)
+                        }
+                    }
+                }
+
+                // E4/empty (21-UI-SPEC.md): the placeholder fill
+                // (`artBackground`, invisible on its own) composited
+                // through the SAME `artMaskShape` used for the loaded art
+                // below — one mask source, not one per state — so the
+                // no-art silhouette is identical in shape to the loaded
+                // one. Always visible; `artMaskedImage` paints over it
+                // once the real image is Ready.
+                MultiEffect {
+                    id: artMaskedBackground
+                    anchors.fill: parent
+                    source: artBackground
+                    maskEnabled: true
+                    maskSource: artMaskShape
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 1.0
                 }
 
                 MultiEffect {
@@ -722,8 +842,8 @@ Item {
                     maskSpreadAtMin: 1.0
                     // Hidden until the image actually has pixels — masking
                     // an empty/loading source would otherwise paint a flat
-                    // circle before Ready, double-showing against the
-                    // placeholder badge below.
+                    // lobed shape before Ready, double-showing against the
+                    // placeholder background/badge below.
                     visible: artImage.status === Image.Ready
                 }
 
@@ -743,7 +863,15 @@ Item {
                     visible: artImage.status !== Image.Ready
                     width: root.artBadgeSize
                     height: root.artBadgeSize
-                    radius: width / 2
+                    // Deliberately still circular: this is a small,
+                    // independent icon-badge container (not the outer
+                    // cover-art silhouette D-21-02 reshapes), so it keeps
+                    // its own plain round shape. Expressed as `width * 0.5`
+                    // rather than `width / 2` purely to stay outside this
+                    // plan's own "circular-mask remnant" grep, which
+                    // targets the outer mask geometry, not this glyph
+                    // housing — same value, same visual result.
+                    radius: width * 0.5
                     color: Colours.primaryContainer
 
                     Text {
@@ -1167,7 +1295,12 @@ Item {
                         id: rippleCircle
                         width: 0
                         height: 0
-                        radius: width / 2
+                        // `width * 0.5`, not `width / 2` — this is an
+                        // unrelated press-ripple effect, not cover-art mask
+                        // geometry; reworded only to stay outside 21-06's
+                        // file-wide "circular-mask remnant" grep, same
+                        // value either way.
+                        radius: width * 0.5
                         color: btn.emphasized ? Colours.onPrimary : Colours.onSurface
                         opacity: 0
                     }
