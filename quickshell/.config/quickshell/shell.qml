@@ -962,7 +962,7 @@ ShellRoot {
 
     // D-21-12 (Phase 21 Plan 07, QMEDIA-01): restores reachability for the
     // retired standalone media card's own opener (RETIRE-06), which died
-    // with waybar's Phase 18 retirement and has had no live caller since
+    // with the Phase 18 bar retirement (RETIRE-02) and has had no caller since
     // (21-BEHAVIOUR-BASELINE.md D-01). Opens the dashboard DIRECTLY on the
     // Media tab — reuses the existing loader-open path (`dashboardLoader`)
     // and the existing initial-tab-index parameter (`root.dashboardTabIndex`)

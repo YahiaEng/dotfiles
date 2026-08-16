@@ -234,7 +234,7 @@ hl.bind(mainMod .. " + N", hl.dsp.global("quickshell:notif-centre")) -- Toggle n
 
 -- Media tab entry point (Phase 21 Plan 07, D-21-12, QMEDIA-01): restores
 -- reachability for the retired standalone media card's own opener
--- (RETIRE-06), dead since waybar's Phase 18 retirement
+-- (RETIRE-06), dead since the Phase 18 bar retirement (RETIRE-02)
 -- (21-BEHAVIOUR-BASELINE.md D-01) with no live caller since. `M` verified
 -- free among this host's remaining plain-Super letters. Identifier below
 -- byte-matches shortcuts.json's

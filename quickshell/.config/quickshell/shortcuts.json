@@ -51,6 +51,6 @@
     "appid": "quickshell",
     "name": "media",
     "chord": { "mods": "SUPER", "key": "M" },
-    "description": "Open the dashboard directly on the Media tab (Phase 21 Plan 07, D-21-12, QMEDIA-01) — restores reachability for the retired standalone media card's own opener (RETIRE-06), which died with waybar in Phase 18 (21-BEHAVIOUR-BASELINE.md D-01) and has had no live caller since."
+    "description": "Open the dashboard directly on the Media tab (Phase 21 Plan 07, D-21-12, QMEDIA-01) — restores reachability for the retired standalone media card's own opener (RETIRE-06), which died with the Phase 18 bar retirement (RETIRE-02, 21-BEHAVIOUR-BASELINE.md D-01) and has had no live caller since."
   }
 ]
