@@ -21,9 +21,10 @@ That is exactly what this VM procedure exists to prove.
 
 **Pass condition (unambiguous, D-53):**
 
-> `theme-doctor` exits 0 (all checks pass, including the session-dependent
-> ones) AND `theme-parity` reports 0 failures AND the human visually
-> confirms the themed desktop on the VM's own display.
+> `theme-doctor` exits 0 and reports zero failures — except for entries on
+> the pre-authored exemption list in §7 — AND `theme-parity` reports 0
+> failures across all render targets AND the human visually confirms the
+> themed desktop on the VM's own display.
 
 All three conditions must hold. A tool-only pass without a human visual
 confirmation does **not** satisfy INST-03 — same standard Phase 1/2 held
@@ -251,12 +252,43 @@ echo "theme-doctor exit: $?"
 echo "theme-parity exit: $?"
 ```
 
-Both commands must exit `0`. `theme-doctor`'s summary line must read
-`Summary: N passed, 0 failed` — including the session-dependent checks
-(`walker process running`, `elephant process running`, `gsettings
-gtk-theme = adw-gtk3-dark`, `elephant listproviders responds`) that the
-container tier cannot exercise. `theme-parity` must report 0 failures
-across all 7 render targets.
+Both commands must exit `0`. `theme-doctor` must report zero failures
+**except for entries on the pre-authored exemption list below** —
+including the session-dependent checks (`walker process running`,
+`elephant process running`, `gsettings gtk-theme = adw-gtk3-dark`,
+`elephant listproviders responds`) that the container tier cannot
+exercise, which must still pass here with no exemption needed.
+`theme-parity` must report 0 failures across all 7 render targets — its
+half of the bar is unqualified; no exemption row ever applies to it.
+
+### Pre-authored exemption list (D-22-02)
+
+**Authored before any VM run exists to argue with it.** This is the whole
+mechanism: writing the list down in advance is what prevents a red line
+being rationalised away after it appears on screen. Anything a `theme-doctor`
+run reports that is **not** on this list is a real defect, full stop —
+not a candidate for a same-day addition. This is the same discipline
+`retirement-check`'s registry, `motion-lint`'s exemption list and
+`hypr-equivalence-check`'s own `ACCEPTED_ADDITIONS` table all already use
+in this repo: the rule is data the tool's reader consults, never prose
+someone has to remember to honour.
+
+**This list governs the VM tier only.** The container tier has its own
+separate, machine-read allowlist committed next to `container-run.sh` —
+the two are never merged, and neither tier's exemptions apply to the
+other.
+
+| Check (as `theme-doctor` names it) | Reason it may legitimately differ on a genuinely fresh machine | Source | Permanent / provisional |
+|---|---|---|---|
+| `hypr-equivalence-check: options.jsonl` (folded into `theme-doctor`, live-session-guarded) | This baseline was captured against Hyprland **0.56.1** (2026-07-28). This dev host already runs **0.56.2**, and a VM built fresh from the official `extra` repo at run time is very likely to differ again. `options.jsonl`'s comparator has **no** accepted-additions mechanism — unlike `binds.json`, which forgives a named, reviewed set of new binds via `ACCEPTED_ADDITIONS` — so any `hyprctl -j getoption` key a newer Hyprland release adds, renames or removes produces an unconditional "present in live only" / "present in baseline only" FAIL with no escape hatch. | `.hypr-baseline/MANIFEST.md:3` (baseline Hyprland version); `hyprctl version` on this host (0.56.2, confirmed live); `hypr-equivalence-check:347-351` (`_compare_options_normalized`'s `b is None` / `l is None` branches — the only two arms with no accepted-additions equivalent) | Provisional — resolved the day the baseline is re-captured against the VM's Hyprland version, or moot if `options.jsonl` ever gains an `ACCEPTED_ADDITIONS`-style mechanism like `binds.json` already has |
+
+No other row is added: `binds.json` already absorbs legitimate new binds
+via its own `ACCEPTED_ADDITIONS` table (so a genuine addition there is not
+a `theme-doctor` FAIL at all, and needs no exemption here), and
+`animations.json`'s leaf/curve comparison was not found to carry an
+equivalent version-drift gap. A check with no source-level reason is a
+defect, not an exemption — the same rule the container-tier allowlist
+(D-22-09) follows.
 
 Copy both log files off the VM (e.g. `scp`, or a shared clipboard/folder
 via SPICE) as the machine-readable half of the INST-03 evidence.
