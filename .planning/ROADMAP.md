@@ -444,7 +444,35 @@ Cross-cutting constraints:
 - **Not a pure-debt phase.** Every LEDGER item is interleaved into Phases 18-21; nothing debt-shaped is parked here. This phase carries one retirement-mechanics requirement and nothing else.
 - **The dev host will lie to you.** It still has the old packages installed even after `stow.sh`/`install.sh` were edited — this gate is the only thing that surfaces a dead symlink or missing package that daily-driver testing never would.
 
-**Plans**: TBD
+**Plans**: 6 plans across 5 waves
+
+- [ ] 22-01-PLAN.md — TRACER: baseline container run on the UNMODIFIED harness against today's `origin/main`, measuring one variable before anything is changed (D-22-12) (RETIRE-09)
+- [ ] 22-02-PLAN.md — `stow-link-check`: the dangling-symlink checker SC-2 has no mechanism for today, with six committed fixtures, `--self-test`, and an unguarded `theme-doctor` fold that runs headless (RETIRE-09)
+- [ ] 22-03-PLAN.md — SC-3 prose sweep and procedure correction: `README.md`, `env.lua`, `VERIFICATION.md` §5/§6/§7/§8, plus the VM exemption list authored BEFORE the run (RETIRE-09)
+- [ ] 22-04-PLAN.md — Committed session-failure allowlist + three blocking container steps (retirement checklist, symlink sweep, `theme-doctor` flipped from informational), pushed and run once (RETIRE-09)
+- [ ] 22-05-PLAN.md — Defect closure loop: fix, push, re-run to `overall=PASS`, then close SC-1/SC-2/SC-3's mechanical halves on committed evidence (RETIRE-09)
+- [ ] 22-06-PLAN.md — The graphical VM tier: human render gate, verdict record, RETIRE-09 closed only on both tiers (RETIRE-09)
+
+**Wave 1** — the opening measurement, alone (D-22-12: modifying the harness first changes two variables at once)
+
+- 22-01 TRACER: baseline run, read what it says, decide which world the phase is in
+
+**Wave 2** *(blocked on 22-01 — nothing may be pushed until the baseline has completed, since the harness clones the remote)*
+
+- 22-02 the new checker + fixtures + fold (zero file overlap with 22-03)
+- 22-03 prose and procedure corrections (zero file overlap with 22-02)
+
+**Wave 3** *(blocked on 22-01 for the measured failure list, and on 22-02 for the checker the new step calls)*
+
+- 22-04 allowlist + harness wiring + push + first modified-harness run
+
+**Wave 4** *(blocked on 22-04)*
+
+- 22-05 fix-and-re-run to green, bounded at four iterations
+
+**Wave 5** *(blocked on 22-05 for a green container tier and on 22-03 for the corrected procedure)*
+
+- 22-06 the human-run VM tier and the phase verdict
 
 ## Progress
 
@@ -472,7 +500,7 @@ Cross-cutting constraints:
 | 19. Notification Server & Centre | v4.0 | 8/8 | Complete    | 2026-08-14 |
 | 20. Indicators & Power Menu | v4.0 | 10/10 | Complete    | 2026-08-16 |
 | 21. Media Fold-In & Contract Close | v4.0 | 9/9 | Complete    | 2026-08-16 |
-| 22. Fresh-Install Proof | v4.0 | 0/? | Not started | - |
+| 22. Fresh-Install Proof | v4.0 | 0/6 | Planned | - |
 
 **Totals:** 23 phases (18 complete) · 141 plans complete · 3 milestones shipped
 
