@@ -381,12 +381,12 @@ Plans:
 - **A pre-existing gate failure is in scope, not routed around.** `quickshell-doctor` check 9 asserts *zero* Quickshell MPRIS readers — a Phase-11-era invariant that has been silently FAILING since D-18-05 legitimately gave `MediaBackend.qml` a real `Mpris` import. QMEDIA-03 repairs it in place (zero → exactly-one, plus an identity assertion and three-count self-test fixtures) rather than adding a parallel counter. Planned as `21-04`.
 - **Two folded todos** ride along on an explicit operator decision, not because they belong to this phase's media/contract boundary: frost unification across the panel-class layer surfaces, and the ambient DND capsule indicator. Both are sized into their own plan (`21-05`) with their own commits so neither blurs a media or retirement diff.
 
-**Plans**: 9 plans across 5 waves
+**Plans**: 1/9 plans executed across 5 waves
 **UI hint**: yes
 
 - [ ] 21-01-PLAN.md — TRACER: cava → QML streaming contract proven end-to-end on real audio, plus the reference-counted owner with a short linger and a one-knob always-on (QMEDIA-02)
 - [ ] 21-02-PLAN.md — GATE-01 behavioural enumeration off the LIVE media card, plus the parity checklist that unlocks the deletion gate (QMEDIA-01, RETIRE-06)
-- [ ] 21-03-PLAN.md — LEDGER-06: Phase 16's verification report reconstructed as it stood, two malformed `coverage:` blocks fixed in place, quick task `260728-51j` closed on evidence (LEDGER-06)
+- [x] 21-03-PLAN.md — LEDGER-06: Phase 16's verification report reconstructed as it stood, two malformed `coverage:` blocks fixed in place, quick task `260728-51j` closed on evidence (LEDGER-06)
 - [ ] 21-04-PLAN.md — QMEDIA-03's standing check: repair `quickshell-doctor` check 9 zero→exactly-one, with self-test fixtures proving it fails at 0 and at 2 and ignores prose (QMEDIA-03)
 - [ ] 21-05-PLAN.md — Folded todos: one frost value across dashboard/overview/notifications/OSD, and the whole-capsule DND tint (QMEDIA-01)
 - [ ] 21-06-PLAN.md — Visualiser build-out: 60-bar radial ring + hand-authored 12-lobe cookie mask on BOTH the Media tab and the bar popout, plus the required `14-UI-SPEC.md` accent amendment (QMEDIA-02)
@@ -471,7 +471,7 @@ Cross-cutting constraints:
 | 18. QML Bar & Retirement Machinery | v4.0 | 20/20 | Complete    | 2026-08-13 |
 | 19. Notification Server & Centre | v4.0 | 8/8 | Complete    | 2026-08-14 |
 | 20. Indicators & Power Menu | v4.0 | 10/10 | Complete    | 2026-08-16 |
-| 21. Media Fold-In & Contract Close | v4.0 | 0/? | Not started | - |
+| 21. Media Fold-In & Contract Close | v4.0 | 1/9 | In Progress|  |
 | 22. Fresh-Install Proof | v4.0 | 0/? | Not started | - |
 
 **Totals:** 23 phases (18 complete) · 141 plans complete · 3 milestones shipped

@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 21
-current_phase_name: Media Fold-In & Contract Close
+current_phase_name: media-fold-in-contract-close
 status: executing
-stopped_at: Phase 21 UI-SPEC approved
-last_updated: "2026-08-16T04:20:30.225Z"
+stopped_at: Completed 21-03-PLAN.md
+last_updated: "2026-08-16T04:39:32.701Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 54
-  completed_plans: 45
+  completed_plans: 46
   percent: 67
 ---
 
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 20 — indicators-power-menu
+**Current focus:** Phase 21 — media-fold-in-contract-close
 
 ## Current Position
 
-Phase: 21 — Media Fold-In & Contract Close
-Plan: Not started
+Phase: 21 (media-fold-in-contract-close) — EXECUTING
+Plan: 2 of 9
 Status: Ready to execute
-Progress: [██████████] 100%
-Last activity: 2026-08-16 — Phase 20 complete, transitioned to Phase 21
+Progress: [█████████░] 85%
+Last activity: 2026-08-16 — Phase 21 execution started
 
 ## Performance Metrics
 
@@ -238,6 +238,7 @@ Last activity: 2026-08-16 — Phase 20 complete, transitioned to Phase 21
 | Phase 20 P08 | multi-session (live sitting between Task 2 and Task 3) | 3 tasks | 3 files |
 | Phase 20 P09 | multi-session | 3 tasks | 22 files |
 | Phase 20 P10 | 45min | 3 tasks | 33 files |
+| Phase 21 P03 | ~35min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -524,6 +525,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: wleave/wlogout/eww removal: Gate B interlock upheld as a real halt condition, operator-granted override recorded explicitly (never as passing)
 - [Phase ?]: eww-media-* cache paths renamed to media-* to close retirement-check's blocking tier, narrowing an earlier baseline disposition call
 - [Phase ?]: Brightness OSD NOT-DEMONSTRABLE verdict (WINDOWS row 78) stays open at phase close, superseding the plan's clear-verification-debt instruction for that one item
+- [Phase ?]: 16-VERIFICATION.md reconstructed retroactively from Phase 16's own eight plan summaries, UAT record and measurement doc — records OVER-04's frame-rate term UNMEASURED and the panel rim gap exactly as they stood at that phase's 2026-08-10 close, no later closure folded in
+- [Phase ?]: Two malformed coverage: blocks (16-05 D5 invalid status, 16-06 D2/D3/D4 missing rationale) fixed in place with no validator added
+- [Phase ?]: Quick task 260728-51j closed on on-disk evidence (live Lua config tree, retired hyprlang templates block) rather than reconstructed from its title
 
 ### Quick Tasks Completed
 
@@ -662,9 +666,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T03:21:50.067Z
-Stopped at: Phase 21 UI-SPEC approved
-Resume file: .planning/phases/21-media-fold-in-contract-close/21-UI-SPEC.md
+Last session: 2026-08-16T04:39:32.680Z
+Stopped at: Completed 21-03-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
