@@ -1153,10 +1153,21 @@ Item {
                                     anchors.rightMargin: root.spacingSm
                                     spacing: root.spacingXs
 
+                                    // The active-row checkmark. Hidden with OPACITY, never
+                                    // `visible` — a QML positioner drops invisible children
+                                    // out of its layout entirely, so `visible: active` made
+                                    // every background row lose this column's width AND its
+                                    // spacing, shifting the label/slider/readout group left
+                                    // by that much while the label-width formula below still
+                                    // subtracted the budget unconditionally. Active and
+                                    // background rows then never lined up (operator-reported
+                                    // at Plan 08's gate: "the checkmark offsets them").
+                                    // Opacity keeps the column reserved in every row, which
+                                    // is exactly what that formula already assumes.
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
                                         width: root.fontLabel + 4
-                                        visible: !!modelData.active
+                                        opacity: modelData.active ? 1 : 0
                                         text: "check"
                                         font.family: root.symbolFontFamily
                                         font.pixelSize: root.fontLabel + 4
@@ -1185,25 +1196,52 @@ Item {
                                     //    the bottom volumeRow's own support gate. One
                                     //    `visible` binding covers both elements, so
                                     //    neither can show without the other.
-                                    //    Deliberately given a higher `z` than the
-                                    //    row's own select-on-click MouseArea below —
-                                    //    a click/drag landing on this control's own
-                                    //    bounding box is consumed here first and never
-                                    //    reaches the row's selection handler, so
-                                    //    dragging a background player's volume never
-                                    //    switches to it. ─────────────────────────
+                                    //    Separation from the row's select-on-click
+                                    //    MouseArea is done by pushing THAT MouseArea
+                                    //    behind this Row (`z: -1` on it), NOT by
+                                    //    raising `z` here. An earlier revision set
+                                    //    `z: 1` on this Slider and claimed it
+                                    //    outranked the MouseArea; it does not. `z`
+                                    //    orders an item only against its OWN
+                                    //    siblings, and that MouseArea is a sibling of
+                                    //    the enclosing Row, not of this Slider — so
+                                    //    at the row level both sat at z=0, later
+                                    //    declaration won, and the MouseArea swallowed
+                                    //    every press. The slider rendered but was
+                                    //    inert on every row where the MouseArea was
+                                    //    enabled — i.e. every NON-active row, since
+                                    //    it carries `enabled: !modelData.active`.
+                                    //    Operator-reported at Plan 08's gate.
                                     Slider {
                                         id: rowVolumeSlider
                                         anchors.verticalCenter: parent.verticalCenter
-                                        z: 1
                                         visible: playerMenuRow.rowHasVolume
                                         width: root.playerMenuSliderWidth
                                         height: parent.height
                                         from: 0
                                         to: 1
-                                        value: modelData.volumeSupported ? modelData.volume : 0
-                                        onPressedChanged: {
-                                            if (!pressed && root.mediaBackend && modelData.volumeSupported)
+                                        // Dragging a Controls Slider assigns `value`
+                                        // imperatively, which would destroy a plain
+                                        // `value:` binding and leave the row frozen
+                                        // at the last dragged figure, deaf to volume
+                                        // changed anywhere else. The Binding below
+                                        // re-asserts backend ownership the moment the
+                                        // drag ends, so the row tracks the player
+                                        // again.
+                                        Binding on value {
+                                            when: !rowVolumeSlider.pressed
+                                            value: modelData.volumeSupported ? modelData.volume : 0
+                                            restoreMode: Binding.RestoreBindingOrValue
+                                        }
+                                        // `onMoved` fires for USER movement only,
+                                        // never for the programmatic re-assert above —
+                                        // so writing live here cannot feed back on
+                                        // itself. Live-during-drag rather than
+                                        // on-release: the previous
+                                        // `onPressedChanged`-only write gave no
+                                        // audible response until the button came up.
+                                        onMoved: {
+                                            if (root.mediaBackend && modelData.volumeSupported)
                                                 root.mediaBackend.setVolumeForPlayer(modelData.id, rowVolumeSlider.value);
                                         }
 
@@ -1243,8 +1281,20 @@ Item {
                                     }
                                 }
 
+                                // Row-wide select-on-click, deliberately BEHIND the Row
+                                // above (`z: -1`). The Texts in that Row do not accept
+                                // mouse events, so a click on the label still falls
+                                // through to here and selects the player — but the
+                                // Slider does accept them, so a press or drag landing on
+                                // the volume control is consumed there and never reaches
+                                // this handler. That is the whole drag-a-background-
+                                // player's-volume-without-switching-to-it behaviour, and
+                                // it has to be expressed as a stacking relationship
+                                // between THESE two siblings; a `z` on the Slider (a
+                                // grandchild) cannot reach across parents to do it.
                                 MouseArea {
                                     anchors.fill: parent
+                                    z: -1
                                     enabled: !modelData.active
                                     onClicked: {
                                         if (root.mediaBackend)
