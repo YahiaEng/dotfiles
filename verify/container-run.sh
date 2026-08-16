@@ -41,10 +41,24 @@ TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 LOG_DIR="$SCRIPT_DIR/logs/run-${TIMESTAMP}"
 SUMMARY_FILE="$LOG_DIR/summary.log"
 CONTAINER_SCRIPT_FILE="$LOG_DIR/container-script.sh"
-# A full run (pull + install.sh + stow.sh + theme-parity) is minutes,
-# not an hour — anything past this budget means a step hung (Quick
-# 260709-buf, T-buf-02). Env-overridable for slower hosts/CI.
-CONTAINER_TIMEOUT="${CONTAINER_TIMEOUT:-3600}"
+# Budget, from measured evidence (D-22-07 Defect 2 repair): the
+# run-20260816T191755Z baseline hit the prior 3600s budget with genuine
+# forward progress remaining — `podman top` showed paru still mid-batch
+# through a cold-cache, no-shared-AUR-cache 31-entry AUR_PKGS list,
+# having reached roughly package #14 (vscodium-bin) by the time it was
+# inspected ~63-65 minutes in (a few minutes after the host's own 3600s
+# timeout had already fired). That is ~14 packages in ~64 minutes, or
+# ~4.6 min/package including bootstrap+clone overhead. Task 1 (this same
+# plan) removes 2 packages (limine-dracut-support, kernel-modules-hook —
+# the ones whose Gradle build was failing) from the container-gate set,
+# leaving 29. At the same per-package rate: 29 * 4.6min ≈ 133min ≈
+# 7980s for the AUR-install phase alone, plus stow.sh + theme-parity
+# (both minutes, not hours, per this script's own header comment) and a
+# 30% safety margin for a colder cache / slower mirror than the baseline
+# drew: 7980s * 1.3 ≈ 10374s ≈ 10400s. Env-overridable for slower
+# hosts/CI or a re-measurement once this repaired harness has its own
+# evidence.
+CONTAINER_TIMEOUT="${CONTAINER_TIMEOUT:-10400}"
 
 echo "╔══════════════════════════════════════════╗"
 echo "║   container-run — installer regression   ║"
@@ -92,11 +106,14 @@ echo "step=pull status=ok" >> "$SUMMARY_FILE"
 # exactly what each run executed, alongside its logs.
 #
 # Trust boundary (T-03-04-NOPASS): the NOPASSWD sudoers drop-in created
-# by this script exists ONLY inside the ephemeral, --rm'd container's
-# filesystem at /etc/sudoers.d/. The generator text below lands in the
-# gitignored verify/logs/ dir per run and is never a repo-tracked
-# sudoers file; no NOPASSWD configuration ever persists on the host or
-# beyond a single `podman run` invocation.
+# by this script exists ONLY inside the ephemeral container's filesystem
+# at /etc/sudoers.d/. The container is started WITHOUT --rm (D-22-07
+# Defect 1 repair, below — the harness needs to inspect its exit code
+# after a bounded wait) and is instead removed explicitly by a `trap ...
+# EXIT INT TERM` cleanup on every exit path. The generator text below
+# lands in the gitignored verify/logs/ dir per run and is never a
+# repo-tracked sudoers file; no NOPASSWD configuration ever persists on
+# the host or beyond a single container's lifetime.
 #
 # The heredoc delimiter is quoted ('CONTAINER_SCRIPT') so none of it is
 # expanded by the outer host shell — every $VAR below is resolved INSIDE
@@ -227,30 +244,130 @@ exit "$GATE_FAIL"
 CONTAINER_SCRIPT
 chmod +x "$CONTAINER_SCRIPT_FILE"
 
-# ── Run the whole regression inside one fresh container ──
+# ── Run the whole regression inside one fresh, detached container ──
 # No -i / no stdin feed: the script executes from the /logs mount (see
 # the post-mortem note above the heredoc).
 #
-# Chosen approach (Quick 260709-buf, T-buf-02): an outer `timeout`
-# around the single `podman run` — rather than per-step timeouts inside
-# the heredoc — is the simplest correct change and catches ALL hangs
-# (including future ones not yet anticipated), not only the swaync one
-# fixed separately in reload.sh. SIGTERM at the budget, SIGKILL 30s
-# later if podman doesn't stop. `timeout` exits 124 on expiry, which
-# flows into IN_CONTAINER_RC exactly like any other nonzero rc.
-if timeout --kill-after=30 "$CONTAINER_TIMEOUT" podman run --rm \
+# D-22-07 Defect 1 repair (supersedes the prior attached-and-hope
+# approach): baseline run-20260816T191755Z measured, via live `podman
+# ps -a` / `podman top` / `podman inspect`, that SIGKILLing an attached
+# `podman run` client only detaches the CLI — under rootless podman the
+# conmon-owned container keeps running unsupervised (container
+# 197980ef926b was confirmed still `running=true`, with `paru` still
+# building AUR packages, several minutes after the host script had
+# already exited with its own FAIL verdict). The prior comment here
+# claimed the outer `timeout` "catches ALL hangs" — that claim is FALSE
+# for the containerized workload; it only ever bounded the host-side
+# wrapper's own exit. This repair starts the container detached with a
+# harness-known identity (`--cidfile`), waits on that identity with a
+# bounded `podman wait`, and on budget expiry actively stops the
+# container and CONFIRMS via `podman inspect` that it is no longer
+# running before the harness does anything else — a stop that is issued
+# but not confirmed would reproduce the original defect in a new
+# costume.
+CID_FILE="$LOG_DIR/container.cid"
+rm -f "$CID_FILE"
+
+# Cleanup on every exit path — normal completion, timeout, or this
+# script being interrupted. `--rm` was deliberately dropped from the run
+# itself (kept on `podman run` it would race the harness's own post-exit
+# inspection of the container's state/exit code); removal is instead
+# explicit and unconditional here, so cleanup stays deterministic
+# regardless of how this script exits. `podman rm -f` operates on the
+# container directly (it does not depend on the backgrounded `timeout
+# podman wait` pair below having stopped); that background job is also
+# best-effort killed here so nothing is left watching a container that
+# no longer exists.
+# shellcheck disable=SC2329  # invoked indirectly via `trap` below, not called directly
+cleanup_container() {
+    [[ -n "${WAIT_PID:-}" ]] && kill "$WAIT_PID" &>/dev/null || true
+    [[ -f "$CID_FILE" ]] || return 0
+    local cid
+    cid="$(cat "$CID_FILE" 2>/dev/null)" || return 0
+    [[ -n "$cid" ]] || return 0
+    podman rm -f "$cid" &>/dev/null || true
+}
+trap cleanup_container EXIT INT TERM
+
+if ! podman run -d --cidfile="$CID_FILE" \
     -v "$LOG_DIR:/logs:Z" \
-    "$IMAGE" bash /logs/container-script.sh; then
-    IN_CONTAINER_RC=0
+    "$IMAGE" bash /logs/container-script.sh > "$LOG_DIR/container-start.log" 2>&1; then
+    echo "  [FAIL] podman run -d (log: $LOG_DIR/container-start.log)"
+    echo "step=container-run status=fail" >> "$SUMMARY_FILE"
+    echo "overall=FAIL" >> "$SUMMARY_FILE"
+    exit 1
+fi
+CID="$(cat "$CID_FILE")"
+
+# Bounded wait, not a sleep-loop assumption of rate: `podman wait`
+# blocks until the container exits and prints its exit code on stdout.
+# The outer `timeout` is what distinguishes "exited on its own" (podman
+# wait returns 0, its stdout is the container's own exit code) from "we
+# hit the budget" (the `timeout` wrapper around `podman wait` itself
+# returns 124/137 — that is the WAIT expiring, not a signal reaching the
+# container, which is exactly the distinction the prior mechanism could
+# not make).
+#
+# Run it as a BACKGROUND job and block on bash's own `wait` builtin
+# rather than on `timeout ... podman wait ...` synchronously in the
+# foreground — verified live (throwaway container, SIGINT): GNU
+# `timeout` isolates its child into a NEW process group by default (its
+# own `--foreground` flag documents this — it exists specifically to
+# opt OUT of that isolation), so a signal delivered to this script's own
+# process group never reaches the `podman wait` child at all. Bash
+# additionally defers running a trap for a signal received while blocked
+# on a synchronous foreground external command until that command
+# exits. Combined, interrupting the prior synchronous form left the
+# cleanup trap unexecuted until the full budget elapsed — the very
+# defect class this repair exists to close, reproduced in a new costume.
+# Bash's `wait` builtin, by contrast, returns immediately when a trapped
+# signal arrives, so the trap runs promptly regardless of what the
+# backgrounded `timeout`/`podman wait` pair is still doing — cleanup
+# does not depend on stopping that pair, only on `podman rm -f "$CID"`
+# in the trap, which operates on the container directly.
+timeout "$CONTAINER_TIMEOUT" podman wait "$CID" >"$LOG_DIR/container-wait.log" 2>&1 &
+WAIT_PID=$!
+wait "$WAIT_PID"
+WAIT_RC=$?
+
+CONTAINER_TIMED_OUT=0
+if [[ "$WAIT_RC" -eq 0 ]]; then
+    IN_CONTAINER_RC="$(tail -n1 "$LOG_DIR/container-wait.log" 2>/dev/null)"
 else
-    IN_CONTAINER_RC=$?
+    if [[ "$WAIT_RC" -eq 124 || "$WAIT_RC" -eq 137 ]]; then
+        CONTAINER_TIMED_OUT=1
+    fi
+    # Budget expired (or `podman wait` itself errored, or this script was
+    # interrupted) — actively stop, escalate, and verify. This is the
+    # whole point of the repair.
+    podman stop --time=30 "$CID" &>/dev/null || true
+    if [[ "$(podman inspect -f '{{.State.Running}}' "$CID" 2>/dev/null)" == "true" ]]; then
+        podman kill "$CID" &>/dev/null || true
+    fi
+    # `podman kill` is async — re-inspect on a short bounded poll rather
+    # than assuming the signal already landed, and confirm stopped
+    # before the harness writes any verdict.
+    STOPPED_CONFIRMED=0
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        if [[ "$(podman inspect -f '{{.State.Running}}' "$CID" 2>/dev/null)" != "true" ]]; then
+            STOPPED_CONFIRMED=1
+            break
+        fi
+        sleep 1
+    done
+    if [[ "$STOPPED_CONFIRMED" -eq 0 ]]; then
+        echo "container-run: FATAL — container $CID still running after stop+kill+10s verification (repair of D-22-07 Defect 1 itself failed to stop it)" >&2
+        IN_CONTAINER_RC=137
+    else
+        # Preserve the existing exit-code contract (124/137 for timeout)
+        # for downstream logic even though the mechanism producing it has
+        # changed.
+        IN_CONTAINER_RC="$(podman inspect -f '{{.State.ExitCode}}' "$CID" 2>/dev/null || echo 137)"
+        [[ "$CONTAINER_TIMED_OUT" -eq 1 ]] && IN_CONTAINER_RC=124
+    fi
 fi
 
-# Detect a timeout (124: SIGTERM expiry; 137: SIGKILL fallthrough after
-# --kill-after) so the verdict logic below can record it explicitly.
-CONTAINER_TIMED_OUT=0
-if [[ "$IN_CONTAINER_RC" -eq 124 || "$IN_CONTAINER_RC" -eq 137 ]]; then
-    CONTAINER_TIMED_OUT=1
+if [[ "$CONTAINER_TIMED_OUT" -eq 1 ]]; then
     echo "step=container-run status=timeout after=${CONTAINER_TIMEOUT}s" >> "$SUMMARY_FILE"
 fi
 
@@ -263,10 +380,26 @@ fi
 # FAIL with an explicit reason. The outer script also appends
 # overall=FAIL itself whenever the inner verdict line is absent, so the
 # machine-readable log is never ambiguous.
+#
+# D-22-07 Defect 2 repair: the double `overall=` line in
+# run-20260816T191755Z was the observable signature of the container
+# outliving this verdict logic — a still-running container wrote its own
+# late verdict into the same file, after the host had already read and
+# appended its own. Because the container is now confirmed stopped
+# (above) BEFORE this block runs, that late-write race is closed at the
+# source: nothing can append to summary.log after this point. The
+# `grep -q` below is still guarded defensively — on the (now believed
+# unreachable) chance an `overall=` line is already present, the
+# conflict is recorded explicitly rather than silently appending a
+# duplicate.
 FAIL_REASON=""
 if [[ "$CONTAINER_TIMED_OUT" -eq 1 ]]; then
-    grep -q '^overall=' "$SUMMARY_FILE" 2>/dev/null || echo "overall=FAIL" >> "$SUMMARY_FILE"
-    FAIL_REASON="container run exceeded ${CONTAINER_TIMEOUT}s and was killed (timeout) — check the last-running step's log in $LOG_DIR/"
+    if grep -q '^overall=' "$SUMMARY_FILE" 2>/dev/null; then
+        echo "overall-conflict=timeout-after-inner-verdict-already-present" >> "$SUMMARY_FILE"
+    else
+        echo "overall=FAIL" >> "$SUMMARY_FILE"
+    fi
+    FAIL_REASON="container run exceeded ${CONTAINER_TIMEOUT}s and was stopped+verified-not-running (timeout) — check the last-running step's log in $LOG_DIR/"
 elif [[ ! -f "$SUMMARY_FILE" ]]; then
     FAIL_REASON="summary.log missing — container never wrote its log"
 elif ! grep -q '^overall=' "$SUMMARY_FILE"; then
