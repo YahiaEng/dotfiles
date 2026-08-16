@@ -14,7 +14,7 @@
 
 # ── Hyprland colour token fragment (Lua-table pipeline, Phase 13.1) ──
 # 13.1-10: this is now the ONLY Hyprland-side colour template. The
-# hyprlang [templates.hyprland] block (hyprland-colors.conf ->
+# hyprlang-format templates.hyprland block (hyprland-colors.conf ->
 # ~/.local/state/theme/hyprland.conf, the D-12 rollback target) was
 # retired alongside the static .conf tree once the operator resolved
 # Task 2's one-way decision as retire-now — see

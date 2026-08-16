@@ -650,7 +650,7 @@ what makes this an `override_closeout`. Known verification overrides: 1 phase
 | debug session | wifi-hidden-network-unsupported | diagnosed |
 | debug session | wifi-scan-progress-feedback | diagnosed |
 | debug session | wifi-wrong-password-external-dialog | diagnosed |
-| quick task | 260728-51j-write-the-hyprland-lua-config-migration- | missing |
+| quick task | 260728-51j-write-the-hyprland-lua-config-migration- | Resolved — already done, closed on evidence 2026-08-16 (21-03, LEDGER-06). Directory unrecoverable, not recreated. Evidence: `hypr/.config/hypr/config/keybinds.lua`/`windowrules.lua`/`autostart.lua` are the live Lua config tree; the hyprlang `[templates.hyprland]` block it would have retired is gone (only `[templates.hyprland_lua]` remains), per `matugen/.config/matugen/config.toml`'s own header |
 | deferred items | 46 entries across phase `deferred-items.md` files (12: 2, 13: 24, 14: 4, 15+: remainder) | Open — archived under `milestones/v3.0-phases/` |
 | bookkeeping | Two malformed `coverage:` blocks — `16-05-SUMMARY.md` D5 invalid `status: not_run`; `16-06-SUMMARY.md` D2/D3/D4 missing required `rationale`. Classifier failed safe (escalated, did not drop) | Open — cosmetic |
 
