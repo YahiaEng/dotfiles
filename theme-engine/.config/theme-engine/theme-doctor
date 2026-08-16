@@ -104,7 +104,7 @@ if command -v jq >/dev/null 2>&1 && [[ -d "$STATE_DIR" ]]; then
         while IFS= read -r entry; do
             [[ -z "$entry" ]] && continue
             EXAMINED=$((EXAMINED + 1))
-            if ! printf '%s\n' "$KNOWN_STATE_ENTRIES" | grep -qx "$entry"; then
+            if ! grep -qx "$entry" <<< "$KNOWN_STATE_ENTRIES"; then
                 UNACCOUNTED="$UNACCOUNTED $entry"
             fi
         done < <(find "$STATE_DIR" -mindepth 1 -maxdepth 1 -printf '%f\n' 2>/dev/null)
@@ -310,10 +310,10 @@ if command -v elephant >/dev/null 2>&1 && [[ -f "$WALKER_CONFIG" ]]; then
     MISSING=""
     for p in $CONFIGURED_PROVIDERS; do
         if [[ "$p" == "menus" ]]; then
-            if printf '%s\n' "$ACTIVE_PROVIDERS" | grep -q '^menus:' || pacman -Q elephant-menus >/dev/null 2>&1; then
+            if grep -q '^menus:' <<< "$ACTIVE_PROVIDERS" || pacman -Q elephant-menus >/dev/null 2>&1; then
                 continue
             fi
-        elif printf '%s\n' "$ACTIVE_PROVIDERS" | grep -qx "$p"; then
+        elif grep -qx "$p" <<< "$ACTIVE_PROVIDERS"; then
             continue
         fi
         MISSING="$MISSING $p"
