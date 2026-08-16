@@ -31,8 +31,9 @@ actions = { "open" = "~/.config/hypr/scripts/cheat-sheet.sh" }
 [[entries]]
 text = "  Power"
 # D-20-22: delegates to the ONE existing power surface (same as
-# Super+Shift+Q) — repointed from wleave.sh to the in-process QML power
-# menu's own GlobalShortcut. `hyprctl dispatch` on this Lua-config-managed
+# Super+Shift+Q) — repointed from the retired GTK4 power-menu shell script
+# to the in-process QML power menu's own GlobalShortcut (RETIRE-05, Phase
+# 20 Plan 10). `hyprctl dispatch` on this Lua-config-managed
 # instance takes a Lua expression, not the classic `dispatcher,args`
 # string (keybinds.lua:44-49's own recorded finding), so this dispatches
 # the identical `hl.dsp.global("quickshell:power-menu")` call

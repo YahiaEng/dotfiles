@@ -211,8 +211,9 @@ via SPICE) as the machine-readable half of the INST-03 evidence.
 Look at the VM's own display (the SPICE/QEMU console window, not a
 screenshot taken by a script) and confirm, with your own eyes:
 
-- The Quickshell bar, swaync, walker, wleave, and Thunar all show the
-  same theme (Catppuccin, by default from the first-boot seed in step 5)
+- The Quickshell bar (including its in-process power menu), swaync,
+  walker, and Thunar all show the same theme (Catppuccin, by default
+  from the first-boot seed in step 5)
 - Switching themes (`Super + Shift + T`) live-updates every visible app
   instantly, no relogin — the same ten-target standard from Phase 1/2
 - Nothing is unstyled, blank, or still showing stock GTK defaults

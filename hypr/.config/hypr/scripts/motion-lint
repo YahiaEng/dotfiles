@@ -378,11 +378,12 @@ lua_speed_defs, lua_curve_defs, lua_curve_base_defs = load_lua_defs()
 #    needs a TEMPORARY exemption sets `pending: True` on its own entry;
 #    `--no-pending` (below) is the opt-in assertion that catches one left
 #    behind.
-#    wleave's own whole-file entry was REMOVED by plan 12-07 (TOKEN-03/
-#    D-19/D-23) once it retrofitted wleave's stylesheet onto emitted
-#    tokens — wleave/style.css is now covered by CHECK A and CHECK B like
-#    any other non-exempt surface (see LINE_EXEMPTIONS below for the one
-#    narrow carve-out D-19 still requires).
+#    The retired power-menu surface's own whole-file entry was REMOVED by
+#    plan 12-07 (TOKEN-03/D-19/D-23) once it retrofitted that surface's
+#    stylesheet onto emitted tokens — the sheet was covered by CHECK A and
+#    CHECK B like any other non-exempt surface from that point on (see
+#    LINE_EXEMPTIONS below for the one narrow carve-out D-19 required,
+#    RETIRE-05-retired along with the surface itself, Phase 20 Plan 10).
 #    hypr/config/animations.conf's whole-file entry was REMOVED by plan
 #    13-01 (MOTION-01/D-32) once it retrofitted every `animation =` line
 #    onto $motion_speed_*/$motion_curve_*/motion-* tokens emitted by
@@ -434,41 +435,17 @@ def path_is_exempt(path):
 #    narrower carve-out than a whole-file EXEMPTIONS entry: covers exactly
 #    one CSS rule inside a file that is otherwise fully non-exempt.
 #    Printed once per declared entry regardless of whether it currently
-#    matches anything, same visibility discipline as EXEMPTIONS. Exists
-#    because wleave's `button:hover, button:focus` rule intentionally
-#    keeps its overshoot timing function AND its three still-literal
-#    `150ms ease` transitions (12-07 Task 1's D-19-fenced retrofit tokenizes
-#    only the `transform` item's duration) while the REST of the same
-#    file (the motion import, `capsule-entrance`, the label-reveal exit
-#    transition) is fully token-driven — a whole-file EXEMPTIONS entry
-#    here would silently re-exempt those retrofitted rules too, exactly
-#    the silencing D-23/this plan's sibling prohibition forbids.
-LINE_EXEMPTIONS = [
-    {'label': 'wleave/style.css button:hover,button:focus rule',
-     'regex': re.compile(r'(^|/)wleave/style\.css$'),
-     # WR-04: content anchors, not hardcoded line numbers. The prior
-     # `'start': 230, 'end': 253` had no tie to the actual rule it was
-     # meant to cover — any edit ABOVE that range (a new comment, an
-     # inserted rule, even one blank line) silently shifts every
-     # subsequent line number, so the exemption would then cover the
-     # wrong span. Resolved per-run below (after the real matching file,
-     # if any, is known) by locating the `button:hover,` / `button:focus
-     # {` open pair and the next bare `}` close — a moved/renamed rule
-     # then fails loud (EXEMPT FAIL) instead of silently mis-scoping.
-     'anchor_start': re.compile(r'^\s*button:hover\s*,\s*$'),
-     'anchor_focus': re.compile(r'^\s*button:focus\s*\{'),
-     'anchor_end': re.compile(r'^\s*\}\s*$'),
-     'start': None, 'end': None,
-     'reason': "D-19/D-31 fence, PERMANENT: hover/focus keeps its "
-               "hand-authored overshoot timing function and its three "
-               "still-literal 150ms/ease transitions — human-approved "
-               "feel at a prior render gate (\"button glows and grows "
-               "larger\"), deliberately preserved. A knowing, scoped "
-               "exception to MD3 purity on exactly this one rule, not "
-               "unfinished work; only the transform item's duration was "
-               "ever tokenized",
-     'pending': False},
-]
+#    matches anything, same visibility discipline as EXEMPTIONS.
+#    The retired power-menu surface's `button:hover, button:focus` rule was
+#    the one entry this mechanism ever carried (D-19/D-31, "PERMANENT" in
+#    its own reason text) — that permanence was scoped to a file, not to
+#    the mechanism itself, and the file no longer exists (RETIRE-05,
+#    Phase 20 Plan 10).
+#    The fence is RETIRED WITH ITS SUBJECT, not overridden: no future rule
+#    silently inherits this carve-out, and a genuinely new narrow exception
+#    adds its own fresh entry here with its own reason. LINE_EXEMPTIONS is
+#    deliberately left as an empty list — the mechanism stays available.
+LINE_EXEMPTIONS = []
 
 for lx in LINE_EXEMPTIONS:
     if not lx['reason'].strip():
@@ -681,14 +658,17 @@ VAR_MASK_RE = re.compile(r'var\((?:[^()]|\([^()]*\))*\)')
 # the duration/easing values this pipeline emits tokens for at all — there
 # is no `--motion-delay-*` custom property anywhere in motion.json's data
 # model, so CHECK B's "replace with a var(--motion-*) reference" message
-# would be actively wrong pointed at one (added 12-07, found live against
-# wleave's six per-capsule `animation-delay` lines: D-23's deny-by-default
-# scan cannot tell "this raw ms value has a token that should replace it"
-# from "this raw ms value has no token because none was ever meant to
-# exist" without this carve-out — a lint-design gap, not a wleave defect).
-# search, not match+anchor: wleave writes these as one-line rules
-# (`button#lock { animation-delay: 0ms; }`), so the property name never
-# sits at column 0.
+# would be actively wrong pointed at one (added 12-07, originally found
+# live against a retired power-menu surface's six per-capsule
+# `animation-delay` lines, that surface RETIRE-05-deleted, Phase 20
+# Plan 10: D-23's deny-by-default scan cannot tell "this raw ms value has
+# a token that should replace it" from "this raw ms value has no token
+# because none was ever meant to exist" without this carve-out — a
+# lint-design gap, not a surface-specific defect, and the regex mechanism
+# below stays generic for whichever future surface next exercises it).
+# search, not match+anchor: a one-line rule form
+# (`button#lock { animation-delay: 0ms; }`, the original found-live case)
+# means the property name does not always sit at column 0.
 DELAY_PROPERTY_RE = re.compile(r'(?:animation|transition)-delay\s*:', re.I)
 # WR-01: the declaration's own VALUE span (property name through the next
 # `;`, or end-of-line if unterminated) — used to blank out only that
@@ -1149,7 +1129,6 @@ else
         "$HOME/.config/hypr"
         "$HOME/.config/quickshell"
         "$HOME/.config/walker"
-        "$HOME/.config/wleave"
         "$HOME/.config/gtk-4.0"
         "$HOME/.config/ags"
     )

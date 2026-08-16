@@ -307,9 +307,10 @@ theme_engine_apply_icon_theme() {
     if [[ -f "$colors_file" ]]; then
         # `accent_color`, not `primary`: gtk-4.0-colors.css is emitted with
         # libadwaita's named-color vocabulary (accent_color, window_bg_color,
-        # …). `@define-color primary` is the MATUGEN template convention used
-        # by the wleave sheet — it never appears in
-        # this file, so the old name matched nothing on every run.
+        # …). `@define-color primary` was the MATUGEN template convention
+        # used by the retired power-menu surface's own sheet
+        # (RETIRE-05-deleted, Phase 20 Plan 10) — it never appeared in this
+        # file, so the old name matched nothing on every run.
         # `|| true` for the same reason as theme_engine_gtk4_accent above:
         # a no-match grep under `set -euo pipefail` aborted theme-apply here,
         # so the gsettings icon-theme write below (and every reload step after

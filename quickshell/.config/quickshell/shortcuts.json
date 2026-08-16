@@ -45,6 +45,6 @@
     "appid": "quickshell",
     "name": "power-menu",
     "chord": { "mods": "SUPER SHIFT", "key": "Q" },
-    "description": "Toggle the in-process session/power dialog (Phase 20 Plan 06, QPOWER-01, D-20-22) — repoints wleave.sh's own Super+Shift+Q chord onto this shell's own GlobalShortcut."
+    "description": "Toggle the in-process session/power dialog (Phase 20 Plan 06, QPOWER-01, D-20-22) — repoints the retired GTK4 power-menu surface's own Super+Shift+Q chord onto this shell's own GlobalShortcut (that surface RETIRE-05-deleted, Phase 20 Plan 10)."
   }
 ]

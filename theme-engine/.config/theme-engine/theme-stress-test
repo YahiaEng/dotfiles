@@ -245,9 +245,9 @@ check_theme_doctor() {
 # Until RETIRE-02 (18-20), this branch read the retired bar's compiled
 # stylesheet instead, which DID define "@define-color primary" verbatim —
 # but every other gtk-css sheet defining that same token (the notification
-# daemon's own sheet among them, wleave) is itself retired
-# elsewhere in this milestone, so repointing at any of them would only
-# relocate this breakage into a later phase.
+# daemon's own sheet and the retired power-menu surface's sheet among
+# them) is itself retired elsewhere in this milestone, so repointing at
+# any of them would only relocate this breakage into a later phase.
 # palette.json is a contract entry no remaining RETIRE requirement removes,
 # is already committed to the live state dir by the time theme-apply
 # returns (D-14 atomic commit), and both sources were verified to yield an
@@ -293,25 +293,26 @@ sentinel_present_in_file() {
 # Representative set of state-dir files for the per-switch sentinel check
 # (D-36) — spans the three format families (per contract.json's own
 # `format` tag on each entry) that still carry a checkable primary-color
-# value after D-19-46: gtk-css (wleave.css), lua-table (hyprland-
-# tokens.lua — REQUIRED, Pitfall 1's exact target, swapped 13.1-09 for the
-# retiring hyprland.conf hypr-vars fragment now that contract.json's
-# hyprland.conf entry is gone in the collapsed contract), and kitty-kv
-# (kitty.conf). gtk-4.0-colors.css joins wleave.css as a SECOND gtk-css
-# entry deliberately — the primary VALUE there appears under a different
-# key name (accent_color, vs. kitty.conf's color4/color12/cursor),
-# confirming the sentinel is checked by value, not by name, across
-# formats. `sentinel_present_in_file` and `contract_extract_values`
-# needed no code change for D-19-46: both already dispatch purely off
-# `contract_format`, and 13.1-05 already added the `lua-table` extractor
-# arm this file's own primary-color lookup above (a DIFFERENT palette
-# source used only for the matugen-vs-rendered comparison, not this
-# array) never touches. D-19-46 drops the retiring notification daemon's
-# compiled stylesheet from this set — its own render template is deleted
-# by a later plan in this same phase, and nothing replaces the dropped
-# entry: the remaining four still cover every format family the check
-# needs, so no format coverage is lost.
-REPRESENTATIVE_FILES=(hyprland-tokens.lua wleave.css gtk-4.0-colors.css kitty.conf)
+# value after D-19-46/RETIRE-05: gtk-css (gtk-4.0-colors.css), lua-table
+# (hyprland-tokens.lua — REQUIRED, Pitfall 1's exact target, swapped
+# 13.1-09 for the retiring hyprland.conf hypr-vars fragment now that
+# contract.json's hyprland.conf entry is gone in the collapsed contract),
+# and kitty-kv (kitty.conf). `sentinel_present_in_file` and
+# `contract_extract_values` needed no code change for D-19-46: both already
+# dispatch purely off `contract_format`, and 13.1-05 already added the
+# `lua-table` extractor arm this file's own primary-color lookup above (a
+# DIFFERENT palette source used only for the matugen-vs-rendered
+# comparison, not this array) never touches. D-19-46 dropped the retiring
+# notification daemon's compiled stylesheet from this set; RETIRE-05
+# (Phase 20 Plan 10) then REMOVED the retired power-menu surface's own
+# gtk-css entry from this array by deletion, not repoint — the array
+# already carried gtk-4.0-colors.css as a SECOND gtk-css representative
+# (its primary VALUE appears under a different key name, accent_color, vs.
+# kitty.conf's color4/color12/cursor, confirming the sentinel is checked by
+# value, not by name, across formats), so the gtk-css format stays
+# represented with no placeholder needed. The remaining three still cover
+# every format family the check needs, so no format coverage is lost.
+REPRESENTATIVE_FILES=(hyprland-tokens.lua gtk-4.0-colors.css kitty.conf)
 
 # ── D-17: live re-colour assertion (12-06, TOKEN-02) ────────────────────
 # Proves criterion 1 — a theme switch re-colours a LIVE Quickshell surface

@@ -1,10 +1,11 @@
 /* motion-lint fixture (12-05, D-28).
- * Derives from wleave/.config/wleave/style.css's hover/focus transition
- * block (lines ~226-230) and its capsule-entrance keyframe (lines
- * ~555-570), rewritten to GTK4's longhand transition-* form that
- * 12-RESEARCH.md Pattern 3 verified resolves correctly for a var()-bearing
- * comma list. Never loaded by any live surface — motion-lint self-test
- * fixture only.
+ * Originally derived from a retired GTK4 power-menu surface's hover/focus
+ * transition block and its capsule-entrance keyframe (RETIRE-05, Phase 20
+ * Plan 10 — see git history for the exact source lines), rewritten to
+ * GTK4's longhand transition-* form that 12-RESEARCH.md Pattern 3 verified
+ * resolves correctly for a var()-bearing comma list. Standalone fixture
+ * data since authoring — never loaded by any live surface — motion-lint
+ * self-test fixture only.
  */
 button:hover,
 button:focus {

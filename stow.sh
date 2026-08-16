@@ -32,7 +32,6 @@ PACKAGES=(
     vscodium
     walker
     wallpapers
-    wleave
     yazi
     zshell
 )

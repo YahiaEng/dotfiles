@@ -434,7 +434,7 @@ PanelWindow {
     //    existing, QS-02-proven combination reused verbatim: click-outside
     //    and focus-loss both land on the same signal, D-13's
     //    deprecated-blind coexistence rule with zero edits to walker or
-    //    wleave.
+    //    the (now-retired) GTK4 power-menu surface.
     HyprlandFocusGrab {
         id: grab
         windows: [ dashboardWindow ]

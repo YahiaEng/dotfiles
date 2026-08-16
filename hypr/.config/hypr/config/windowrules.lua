@@ -213,83 +213,22 @@ hl.window_rule({ match = { class = [[^(firefox)$]] }, no_blur = true })
 -- live rule)
 hl.window_rule({ match = { class = [[^(chromium)$]] }, no_blur = true })
 
--- ── Layer rules (walker, wleave)
+-- ── Layer rules (walker)
 -- D-08 (13-01): the two wofi layerrules formerly here (blur on / ignore_alpha
 -- 0.5, match:namespace wofi) were deleted — wofi was retired in v1.0 and
 -- these were dead config referencing a non-existent surface. RETIRE-02
 -- (18-20) deleted this section's own retired-bar rule the same way, for
--- the same reason.
+-- the same reason. RETIRE-05 (Phase 20 Plan 10) deleted wleave's own three
+-- namespace rules from this file the same way — wleave's exit-animation
+-- and entrance-defect investigation (09-03/09-04) was specific to its own
+-- CSS keyframe/compositor-scale interaction and is not repeated here; see
+-- git history at this file's pre-RETIRE-05 sha for the full record. The
+-- one durable finding worth keeping — GTK4 layer-shell windows paint an
+-- opaque background by default, defeating blur without an explicit
+-- override — is the same finding the ags-media rule below already relies
+-- on.
 
 hl.layer_rule({ match = { namespace = "walker" }, blur = true })
--- wleave power menu (WLOG-01, GTK4 cutover of the retired power-menu
--- surface). wleave is a gtk4-layer-shell surface with :namespace "wleave";
--- paired with the transparent-window + scoped-scrim split in
--- wleave/style.css so the blur has something to frost through — the same
--- 10-06 durable finding the ags-media rule below already applies (GTK4
--- windows paint an opaque background by default, defeating blur without
--- an explicit override).
-hl.layer_rule({ match = { namespace = "wleave" }, blur = true })
--- 09-03 D-10 exit-animation attempt (Tier 1, RESEARCH Assumption A2).
--- `09-RESEARCH.md` flagged that wleave hides its window synchronously,
--- client-side, before delay-command-ms elapses — leaving no window-visible
--- "closing" interval a GTK CSS transition could animate — and that whether
--- a COMPOSITOR-level layerrule fires on that kind of client-initiated hide
--- was unconfirmed. This is the one must_haves.truths backstop item this
--- plan cannot close by reading source; it was checked live.
--- RESULT, observed live (not assumed): it DOES fire. A live 10-frame rapid
--- `grim` capture across a real dismissal (phase evidence would show this,
--- reproducible via: launch wleave, dismiss with Escape, grab several quick
--- sequential grim frames of the capsule row) shows the capsule row visibly
--- fading across multiple frames before the surface is gone. Achieved tier: 1
--- (compositor layerrule animation) — recorded honestly in 09-03-SUMMARY.md.
---
--- ── 09-04 render-gate defect fix: double-animation on ENTRANCE ─────────
--- REPORTED DEFECT: "the roll-in animation is still too fast and looks
--- sluggish" — a precise, non-contradictory report: the overall envelope
--- reads as an abrupt pop (too fast to register as intentional) while the
--- part that IS perceived reads as a jerky, mistimed cascade (sluggish).
---
--- ROOT CAUSE, confirmed structurally via `hyprctl animations` (not
--- guessed): the global `layers` bucket (animations.conf: `animation =
--- layers, 1, 4, md3_decel, popin 80%`) has BOTH its `layersIn` and
--- `layersOut` children reporting `overridden: 0` — i.e. fully inheriting
--- the parent's `popin 80%` style. The previous `animation layers` rule
--- below therefore pinned wleave's ENTRANCE (not just its exit) to the
--- same compositor-level 80%→100% SCALE pop already used for exit. That
--- outer scale was firing at the same time as this stylesheet's own
--- per-button `@keyframes capsule-entrance` (translateY+scale, 35ms
--- stagger) — two independently-timed scale animations compounding: the
--- compositor's own pop completes as a fast, snappy step, while the CSS
--- cascade riding on top of that same moving container reads as an
--- out-of-sync jerk once the outer frame has already visually "arrived".
---
--- CONFIRMED live via cropped rapid-`grim` capture (a `grim -g "X,Y WxH"`
--- region capture runs in ~90ms here vs ~1.4s for a full 2560x1440 shot —
--- fast enough to resolve this sub-400ms transition, unlike the 09-03
--- full-screen technique): with the OLD `animation layers` rule, an
--- in-flight frame showed only 2 of 6 capsules rendered, OUT OF THEIR
--- left-to-right delay order, with no scrim/blur yet applied — a visibly
--- broken intermediate state. With the fix below, the same technique shows
--- a clean, correctly-ordered left-to-right cascade (capsule N solid
--- before capsule N+1 appears) at every sampled frame.
---
--- FIX: pin wleave's compositor-level layer animation to the `fade` bucket
--- (a plain opacity fade, no scale) instead of `layers` (which carries the
--- competing scale-pop). This makes the CSS keyframes the ONLY system that
--- scales/translates capsules — the compositor now only cross-fades the
--- whole surface's opacity, which does not compete with an independent
--- transform. Re-verified live that this does NOT regress the exit fade
--- (still a clean multi-frame fade-out on Escape, same rapid-capture
--- technique) — Tier 1 (compositor-level animation) is unchanged, only the
--- STYLE moved from `popin 80%` to `fade`. D-10's <350ms CSS budget and
--- the immediate-fire power action are both untouched — this rule affects
--- only the compositor's own envelope, never `delay-command-ms`.
---
--- NOT MECHANICALLY VERIFIABLE via this plan's harness — no `clients -j`
--- projection exists for the animation style itself (13.1-LUA-FINDINGS.md
--- Spike A). Compensating check: the wleave capsule-row fade at the
--- end-of-phase human verification, same rapid-capture technique as above.
-hl.layer_rule({ match = { namespace = "wleave" }, animation = "fade" })
 -- Dashboard drawer character arm (D-20, Phase 14 Plan 01), exact-match
 -- ONLY — `slide` is the drawer's own character, never given the family
 -- regex, since Phases 15/16 choose their own animation per surface. No
@@ -386,8 +325,8 @@ hl.layer_rule({ match = { namespace = "ags-media" }, blur = true })
 -- the exact rules are now a retained, documented redundancy rather than a
 -- required fallback. Full observation in 14-01-SUMMARY.md. Layer-rule
 -- effects carry no `hyprctl` projection on this build
--- (13.1-LUA-FINDINGS.md Spike A, same precedent already recorded beside
--- the wleave fade rule above) — the compensating check was this task's
+-- (13.1-LUA-FINDINGS.md Spike A, same precedent recorded for wleave's own
+-- animation rule, since RETIRE-05-deleted) — the compensating check was this task's
 -- visual A/B, not a mechanical query. The family arm's blast radius
 -- newly covers the pre-existing quickshell-probe/quickshell-screencopy-probe
 -- namespaces too; both render opaque (D-04, deliberately unstyled), so
@@ -411,33 +350,16 @@ hl.layer_rule({ match = { namespace = "walker" }, ignore_alpha = 0.5 })
 -- unblurred transparency) while still reading as a light, see-through
 -- frost rather than a solid panel.
 hl.layer_rule({ match = { namespace = "ags-media" }, ignore_alpha = 0.25 })
--- wleave's composited alpha differs from the retired single-uniform-fill
--- scrim this replaces: the new design layers a transparent window, a 0.40
--- scrim, and per-capsule fills, where the old surface had one flat fill.
--- ignore_alpha acts as an all-or-nothing blur switch for the whole
--- backdrop, so this threshold is set BELOW the 0.40 scrim alpha (0.25) so
--- the scrim still blurs. Blur STRENGTH is decoration:blur and is global —
--- it cannot be set per-layer — so this scrim alpha is the only wleave-local
--- control over how much desktop reads through.
---
--- 09-03 re-derivation: the design now actually composites THREE values at
--- this surface, not one — the 0.40 scrim alone, and the scrim WITH a
--- capsule's own fill layered on top (0.35 alpha at rest, 0.55 on hover/
--- focus). Alpha-compositing scrim-then-fill gives an effective per-capsule
--- alpha of ~0.61 at rest and ~0.73 on hover/focus (1 − (1 − 0.40) × (1 − fill)).
--- 0.25 sits below all three values (0.40 / 0.61 / 0.73), so every region of
--- the surface — bare scrim AND capsule interiors, at rest and hovered —
--- stays above the cutoff and blurs; nothing is at risk of reading as raw
--- unblurred transparency at the low end (the ags-media rule's failure mode
--- above), nor is 0.25 so low that it swings to that same rule's OTHER
--- failure mode (a heavy, barely-see-through opaque frost) — the underlying
--- alpha values here (0.40/0.61/0.73) are themselves the parts of this
--- design carrying that risk, not the threshold, and they read correctly on
--- the live rest/hover captures in this phase's evidence directory. 0.25 is
--- therefore kept unchanged from 09-02's starting value, now with this
--- recomputed justification rather than the single-flat-fill reasoning it
--- replaced — marked for a final look at the 09-04 render gate as always.
-hl.layer_rule({ match = { namespace = "wleave" }, ignore_alpha = 0.25 })
+-- FILE-LEVEL FINDING, learned from wleave's own ignore_alpha rule (deleted
+-- RETIRE-05, Phase 20 Plan 10 — see git history at this file's pre-RETIRE-05
+-- sha for the full multi-value composited-alpha derivation): ignore_alpha
+-- acts as an all-or-nothing blur switch for the WHOLE backdrop of one
+-- namespace, not a per-region one, and blur STRENGTH (decoration:blur) is
+-- global and cannot be set per-layer — so a namespace's ignore_alpha
+-- threshold is the only per-surface lever, and it must be set BELOW every
+-- alpha value that surface composites, not just its nominal scrim alpha.
+-- This is the finding quickshell-session's own ignore_alpha rule below
+-- still cites.
 -- quickshell-* family ignore_alpha floor (D-42, Phase 14 Plan 01) — see
 -- the family-treatment comment block above the blur arm for the full A2
 -- rationale and verdict; this pair mirrors it exactly for ignore_alpha,
@@ -601,7 +523,9 @@ hl.layer_rule({ match = { namespace = "quickshell-osd" }, ignore_alpha = 0.2 })
 -- (0.32, a deliberate light dim, BELOW the family floor) and each pill's
 -- own frosted fill at sessionPillFillOpacity (0.72, ABOVE it). ignore_alpha
 -- behaves as an all-or-nothing blur switch for the whole backdrop of one
--- namespace (the wleave rule's own finding, line 417 above) — a single
+-- namespace (the wleave rule's own finding, preserved above at the
+-- ags-media ignore_alpha rule's FILE-LEVEL FINDING comment, since
+-- RETIRE-05 deleted wleave's own rule) — a single
 -- namespace-wide floor cannot serve both values, so Route A ("pin every
 -- alpha above the floor") is not available without contradicting the
 -- user's own light-scrim instruction. Route B — a quickshell-session-

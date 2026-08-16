@@ -357,7 +357,6 @@ GTK3_CSS_SHEETS=(
 GTK4_CSS_SHEETS=(
     "$HOME/.config/gtk-4.0/gtk.css"
     "$HOME/.config/walker/themes/rice/style.css"
-    "$HOME/.config/wleave/style.css"
 )
 
 _theme_doctor_css_parse() {
@@ -550,9 +549,10 @@ fi
 
 # ── retirement-check fold (18-06, RETIRE-01/D-18-35) ───────────────────
 # Same "green gates, broken surface" gap the retired design-lint fold and
-# the motion-lint/colour-lint folds above close, applied to retirement: an orphaned
-# eww.scss contract entry blocked theme-doctor for a full milestone because
-# no gate enforced this class (WINDOWS #1) — folding retirement-check's
+# the motion-lint/colour-lint folds above close, applied to retirement: an
+# orphaned retired-widget-daemon stylesheet contract entry blocked
+# theme-doctor for a full milestone because no gate enforced this class
+# (WINDOWS #1) — folding retirement-check's
 # blocking tier in HERE means that class of miss cannot recur unnoticed,
 # rather than depending on someone remembering to run the standalone
 # script. Every [PASS]/[FAIL] line folds into the tally exactly like the

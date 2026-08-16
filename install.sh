@@ -312,9 +312,6 @@ AUR_PKGS=(
     elephant-websearch
     elephant-files
 
-    # Logout menu (AUR-only; not in official repos)
-    wleave
-
     # Z-shell
     zsh
     oh-my-posh

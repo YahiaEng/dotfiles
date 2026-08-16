@@ -187,8 +187,9 @@ hl.on("hyprland.start", function()
     -- ── Clipboard ────────────────────────────────────────
     -- UTIL-03/D-15: -max-items caps history at ~100 entries (default is
     -- 750) so plaintext secrets don't accumulate unbounded; paired with a
-    -- session-end wipe (wleave logout/shutdown/reboot actions) and a
-    -- manual wipe entry (clipboard-wipe.sh, Super+Shift+C) — Security
+    -- session-end wipe (PowerMenu.qml's own logout/shutdown/reboot actions,
+    -- migrated from wleave's layout.json — RETIRE-05, Phase 20 Plan 10) and
+    -- a manual wipe entry (clipboard-wipe.sh, Super+Shift+C) — Security
     -- Domain Information Disclosure mitigation, ships in the same wave
     -- as the cap.
     hl.exec_cmd("uwsm app -- wl-paste --type text --watch cliphist -max-items 100 store")

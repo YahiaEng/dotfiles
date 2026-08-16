@@ -265,8 +265,9 @@ PanelWindow {
     readonly property color scrimColour: Colours.surfaceVariant
 
     // ── The six actions — D-20-26 migration source: 20-BEHAVIOUR-BASELINE.md's
-    //    verbatim wleave layout.json transcription, captured before that
-    //    file's deletion (the sole place these strings existed). Every
+    //    verbatim transcription of the retired power-menu surface's own
+    //    layout.json, captured before that file's deletion (RETIRE-05,
+    //    Phase 20 Plan 10 — the sole place these strings existed). Every
     //    `command` element below is an inline literal — never built by
     //    concatenation, template literal, or interpolation of a runtime
     //    value. A reader sees every byte that will reach a shell by
@@ -467,7 +468,8 @@ PanelWindow {
     }
 
     // Mnemonics fire their matching action directly from any focus state
-    // — unchanged behaviour from wleave. Still undisplayed under the ring
+    // — unchanged behaviour from the retired power-menu surface (RETIRE-05,
+    // Phase 20 Plan 10). Still undisplayed under the ring
     // (D-20-24 revised): a pure circle containing only a centred icon has
     // no spare corner to print a letter on, unlike the retired
     // rectangular tile.

@@ -1,7 +1,6 @@
 {
   "files": [
     { "name": "kitty.conf", "format": "kitty-kv" },
-    { "name": "wleave.css", "format": "gtk-css" },
     { "name": "gtk-3.0-colors.css", "format": "gtk-css" },
     { "name": "gtk-4.0-colors.css", "format": "gtk-css" },
     { "name": "walker-style.css", "format": "css-literal" },

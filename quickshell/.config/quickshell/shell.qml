@@ -997,8 +997,9 @@ ShellRoot {
     }
 
     // ── Power menu (Phase 20 Plan 06, QPOWER-01/D-20-22) — repoints the
-    //    outgoing `wleave.sh` shell's own Super+Shift+Q chord
-    //    (keybinds.lua) onto this GlobalShortcut. All three consumers this
+    //    retired GTK4 power-menu surface's own Super+Shift+Q chord
+    //    (keybinds.lua) onto this GlobalShortcut, that surface
+    //    RETIRE-05-deleted (Phase 20 Plan 10). All three consumers this
     //    plan repoints (this bind, the walker menu's power entry, the
     //    bar's `powerCell`) call `root.togglePowerMenu()` above — one
     //    verb, three callers, per D-17's declared-manifest mechanism. ────

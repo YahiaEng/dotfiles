@@ -45,11 +45,6 @@ output_path = "~/.local/state/theme/yazi.toml"
 input_path = "~/.config/matugen/templates/vscodium-colors.json"
 output_path = "~/.local/state/theme/vscodium.json"
 
-# ── Wleave colors (power menu, GTK4) ─────────────────
-[templates.wleave]
-input_path = "~/.config/matugen/templates/wleave-colors.css"
-output_path = "~/.local/state/theme/wleave.css"
-
 # ── GTK 3.0 colors ─────────────────────────────────
 [templates.gtk3]
 input_path = "~/.config/matugen/templates/gtk-colors.css"
