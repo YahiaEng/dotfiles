@@ -385,7 +385,7 @@ task's commit) so the working tree is clean for `theme-doctor`'s own git-cleanli
 |---|---|
 | `theme-engine/.config/theme-engine/theme-doctor` | 0 |
 | `theme-engine/.config/theme-engine/theme-parity` | 0 |
-| `theme-engine/.config/theme-engine/theme-stress-test` | 0 (full clean run, human-observed — the deferral plan 20-09 recorded, discharged here) |
+| `theme-engine/.config/theme-engine/theme-stress-test` | 0 (full clean run, all 10 switches + pre/post-conditions, 132 passed/0 failed, re-run genuinely clean post-commit — the deferral plan 20-09 recorded, discharged here) |
 | `hypr/.config/hypr/scripts/motion-lint` | 0 (281 passed; `--self-test` 10/10) |
 | `hypr/.config/hypr/scripts/colour-lint` | 0 (142 passed) |
 | `hypr/.config/hypr/scripts/quickshell-doctor --self-test` | 0 (55/55) |
@@ -422,6 +422,18 @@ clean — no error or binding-loop lines. The instance-already-registered host-p
 **Entry points:** `Super+Shift+Q`, the walker "Power" menu entry, and the bar's power glyph all
 still converge on `togglePowerMenu()` — confirmed structurally at Gate B (unchanged since, no
 `quickshell/.config/quickshell/` file outside this plan's own edits moved).
+
+**Open human-visual item, honestly recorded rather than self-certified:** Task 3's `<verify>`
+`<human-check>` asks for a human to watch `theme-stress-test` run to completion by eye AND
+perform one live theme switch (static preset + matugen wallpaper) confirming the QML OSD and
+power menu both re-colour visually. The automated half of this — `theme-stress-test`'s own
+exit-code/assertion pass, including its own live D-17 re-colour assertion checking
+`quickshell`'s `Colours.primary` against `palette.json` on every one of the 10 switches — DID run
+and IS genuinely green (see the table above). What did NOT happen this session is a human
+actually watching the switches by eye or manually triggering `Super+Shift+T` and looking at the
+power menu. Not self-certified as done; left open for the operator's own pass, consistent with
+this project's established preference to ship on automated-verification strength and let the
+user verify live behaviour themselves rather than have the agent drive probe shells/screenshots.
 
 **(d) Closing the record honestly.** This phase's deletions do NOT establish that a fresh clone
 reproduces the desktop — that is **RETIRE-09's fresh-install container gate, Phase 22**, not
