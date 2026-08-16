@@ -409,6 +409,13 @@ Item {
     // column 24px (sectionGap) to the right — the vertical gap is the
     // binding constraint and 14 already overran it at peak.
     readonly property real visualiserMaxExtension: 18
+
+    // How far a full-amplitude bar reaches OUTSIDE artSlot's own bounds.
+    // artSlot does not clip, so this is real spill that any sibling seated
+    // beneath the art has to be pushed clear of — see artColumn's spacing.
+    // Zero when the ring fits inside the slot, so it costs nothing if the
+    // geometry is ever brought back within bounds.
+    readonly property real visualiserOverflow: Math.max(0, root.ringRadius + root.visualiserMaxExtension - root.artSize / 2)
     // Minimum sliver length at silence — matches the old ring's
     // dashPattern dash length at ringStrokeWidth, the exact property the
     // silence-state equivalence argument (D-21-01) depends on.
@@ -446,7 +453,14 @@ Item {
     // string at fontLabel size.
     readonly property int playerMenuSliderWidth: 56
     readonly property int playerMenuVolumeReadoutWidth: 28
-    readonly property int timeLabelWidth: 36
+    // Widened only while the track is long enough to carry an hour field —
+    // 36 fits "M:SS"/"MM:SS", which "1:30:00" overruns. Driven off the
+    // track LENGTH, not the elapsed position, so the two time labels keep
+    // one stable width for the whole track instead of the seek slider
+    // jumping narrower the moment playback crosses 1:00:00. Both values sit
+    // on the repo's 4px grid.
+    readonly property bool hasHourField: (root.mediaBackend ? root.mediaBackend.lengthSeconds : 0) >= 3600
+    readonly property int timeLabelWidth: root.hasHourField ? 56 : 36
     readonly property int transportSize: 44
     readonly property int transportEmphasizedSize: 60
     // Play/pause's pill width — Caelestia's `fillWidth` capsule convention:
@@ -475,11 +489,20 @@ Item {
 
     readonly property bool hasPlayer: root.mediaBackend ? root.mediaBackend.hasPlayer : false
 
+    // H:MM:SS past the hour, M:SS below it. Without the hour branch a
+    // 90-minute source rendered as "90:00" rather than "1:30:00"
+    // (operator-reported at Plan 08's gate). Minutes are zero-padded ONLY
+    // when an hour field precedes them — "5:07" stays "5:07", never
+    // "05:07" — so nothing about sub-hour playback changes.
     function _formatTime(totalSeconds) {
         var s = Math.max(0, Math.floor(totalSeconds || 0));
-        var m = Math.floor(s / 60);
+        var h = Math.floor(s / 3600);
+        var m = Math.floor((s % 3600) / 60);
         var sec = s % 60;
-        return m + ":" + (sec < 10 ? "0" + sec : sec);
+        var ss = sec < 10 ? "0" + sec : String(sec);
+        if (h > 0)
+            return h + ":" + (m < 10 ? "0" + m : String(m)) + ":" + ss;
+        return m + ":" + ss;
     }
 
     // ── D-21-02: hand-authored 12-lobe scalloped cookie path ────────────
@@ -671,7 +694,23 @@ Item {
             id: artColumn
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: root.spacingSm
+            // The visualiser bars are drawn from artSlot's centre out to
+            // ringRadius + visualiserMaxExtension, which EXCEEDS artSlot's
+            // own half-height — artSlot is an Item and does not clip, so at
+            // full amplitude the bars spill past its declared bounds and
+            // straight into whatever this Column seats beneath it.
+            // Measured with the values in force: ringRadius 107 +
+            // visualiserMaxExtension 18 = 125 against artSize/2 = 110, i.e.
+            // a 15px spill against a spacingSm (8) gap — the bars reached
+            // 7px into the source pill (operator-reported at Plan 08's
+            // gate: "the dropdown pill clips with the visualizer").
+            //
+            // Derived, never a hand-tuned constant: 21-06 already retuned
+            // visualiserMaxExtension once (14 -> 18) on operator feedback,
+            // and a literal here would have silently gone stale at that
+            // moment. Anything that changes the ring's reach now moves this
+            // gap with it.
+            spacing: root.spacingSm + root.visualiserOverflow
 
             // ── 1. Cover art — fixed square ──────────────────────────
             Item {
@@ -1528,7 +1567,82 @@ Item {
                 }
             }
 
-            // ── 4. Transport row — previous / play-pause / next ─────────
+            // ── 4. Volume band — ABSENT (not disabled) with no volume ───
+            // Seated directly under the seek band (operator-requested at
+            // Plan 08's gate) so the two continuous-value controls sit
+            // together and the transport buttons close the stack, rather
+            // than a slider appearing on each side of them.
+            // A real player-capability limit signalled by the payload's own
+            // sentinel, asymmetric with the seek band's present-but-disabled
+            // treatment above — recorded here rather than left to look like
+            // an inconsistency. Caelestia's own Media view has no volume
+            // control at all in this pane; this repo's must_haves require
+            // one whenever the payload signals `hasVolume`, so the band
+            // stays, restyled onto the same pill/tonal language as the
+            // rest of this redesign.
+            Row {
+                id: volumeRow
+                width: parent.width
+                height: root.controlRowHeight
+                spacing: root.spacingSm
+                visible: root.hasPlayer && root.mediaBackend.hasVolume
+
+                Text {
+                    width: root.iconSizeMd
+                    height: parent.height
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: "volume_up"
+                    font.family: root.symbolFontFamily
+                    font.pixelSize: root.iconSizeMd
+                    color: Colours.onSurfaceVariant
+                }
+
+                Slider {
+                    id: volumeSlider
+                    width: volumeRow.width - root.iconSizeMd - root.spacingSm
+                    height: parent.height
+                    from: 0
+                    to: 1
+                    value: root.mediaBackend ? root.mediaBackend.volumeLevel : 0
+                    wheelEnabled: true
+                    onPressedChanged: {
+                        root._noteControlDrag(pressed);
+                        if (!pressed && root.mediaBackend)
+                            root.mediaBackend.setVolume(volumeSlider.value);
+                    }
+                    onMoved: {
+                        if (root.mediaBackend)
+                            root.mediaBackend.setVolume(volumeSlider.value);
+                    }
+
+                    background: Rectangle {
+                        x: volumeSlider.leftPadding
+                        y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
+                        width: volumeSlider.availableWidth
+                        height: 4
+                        radius: 2
+                        color: Colours.surfaceVariant
+
+                        Rectangle {
+                            width: volumeSlider.visualPosition * parent.width
+                            height: parent.height
+                            radius: parent.radius
+                            color: Colours.primary
+                        }
+                    }
+                    handle: Rectangle {
+                        x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
+                        y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
+                        width: 16
+                        height: 16
+                        radius: 8
+                        color: Colours.primary
+                    }
+                }
+            }
+
+            // ── 5. Transport row — previous / play-pause / next ─────────
             // Caelestia's tonal-icon-button convention: previous/next sit
             // on a filled `surfaceVariant` disc rather than a bare glyph
             // (a `pillShape: false` TransportButton), and play/pause is a
@@ -1541,6 +1655,11 @@ Item {
                 property bool emphasized: false
                 property bool pillShape: false
                 property bool controlEnabled: true
+                // Still maintained by the MouseArea below, but currently read
+                // by nothing: `fillProgress` was its only consumer until the
+                // Plan 08 gate fix pinned that to 0. Kept as the press hook
+                // rather than deleted, since the ripple's own handlers sit on
+                // the same events — but do not assume it drives anything.
                 property bool pressedState: false
                 signal activated()
 
@@ -1568,7 +1687,31 @@ Item {
                 // frame — the diagnosed cause of the "jittery and laggy"
                 // play/pause transition. The ripple below still supplies
                 // animated press feedback on cheap plain geometry.
-                property real fillProgress: (btn.emphasized && root.fillAxisAvailable && btn.pressedState) ? 1 : 0
+                // HELD CONSTANT (Plan 08 gate fix). This used to be
+                // `(btn.emphasized && root.fillAxisAvailable &&
+                // btn.pressedState) ? 1 : 0`, i.e. it flipped 0->1 the
+                // instant the play/pause button was pressed. Both glyphStack
+                // Texts feed it into `font.variableAxes`, so that flip forced
+                // Qt to re-shape BOTH glyphs and regenerate their cached
+                // layer textures — a discrete weight jump landing at exactly
+                // the moment of the swap, on top of the crossfade. That jump
+                // is what read as "sudden and jarring"; the crossfade itself
+                // was running the whole time.
+                //
+                // Animating the axis instead is NOT the alternative — the
+                // round-5 note below records that per-frame FILL animation
+                // reshapes the text every frame and was the diagnosed cause
+                // of the earlier "jittery and laggy" transition. So the axis
+                // is simply left alone, and press feedback comes from the
+                // ripple, which the round-5 note already names as its
+                // deliberate replacement.
+                //
+                // Pinned to 0, the value it already held AT REST, so the
+                // buttons' resting appearance is byte-for-byte what it was —
+                // only the press-time excursion to 1 is gone. Pinning to 1
+                // instead would have quietly restyled every emphasized glyph
+                // from outlined to filled, which nobody asked for.
+                readonly property real fillProgress: 0
 
                 Rectangle {
                     id: circle
@@ -1640,15 +1783,23 @@ Item {
                             }
                         }
 
+                        // Emphasized-in rather than standard: this is an
+                        // incoming element settling into place, which is what
+                        // that pair is for, and its longer decelerating curve
+                        // gives the swap a readable arrival instead of a
+                        // quick flick. Both tokens come from Motion, so
+                        // motion-lint's no-raw-literals rule still holds and
+                        // the whole thing still collapses correctly when
+                        // motion is disabled (_startMorph's else branch).
                         NumberAnimation {
                             id: morphAnim
                             target: glyphStack
                             property: "morph"
                             from: 0
                             to: 1
-                            duration: Motion.standardDuration
+                            duration: Motion.emphasizedInDuration
                             easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.standardEasing
+                            easing.bezierCurve: Motion.emphasizedInEasing
                         }
 
                         Component.onCompleted: {
@@ -1763,77 +1914,6 @@ Item {
                         emphasized: false
                         controlEnabled: root.hasPlayer
                         onActivated: if (root.mediaBackend) root.mediaBackend.nextTrack()
-                    }
-                }
-            }
-
-            // ── 5. Volume band — ABSENT (not disabled) with no volume ───
-            // A real player-capability limit signalled by the payload's own
-            // sentinel, asymmetric with the seek band's present-but-disabled
-            // treatment above — recorded here rather than left to look like
-            // an inconsistency. Caelestia's own Media view has no volume
-            // control at all in this pane; this repo's must_haves require
-            // one whenever the payload signals `hasVolume`, so the band
-            // stays, restyled onto the same pill/tonal language as the
-            // rest of this redesign.
-            Row {
-                id: volumeRow
-                width: parent.width
-                height: root.controlRowHeight
-                spacing: root.spacingSm
-                visible: root.hasPlayer && root.mediaBackend.hasVolume
-
-                Text {
-                    width: root.iconSizeMd
-                    height: parent.height
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    text: "volume_up"
-                    font.family: root.symbolFontFamily
-                    font.pixelSize: root.iconSizeMd
-                    color: Colours.onSurfaceVariant
-                }
-
-                Slider {
-                    id: volumeSlider
-                    width: volumeRow.width - root.iconSizeMd - root.spacingSm
-                    height: parent.height
-                    from: 0
-                    to: 1
-                    value: root.mediaBackend ? root.mediaBackend.volumeLevel : 0
-                    wheelEnabled: true
-                    onPressedChanged: {
-                        root._noteControlDrag(pressed);
-                        if (!pressed && root.mediaBackend)
-                            root.mediaBackend.setVolume(volumeSlider.value);
-                    }
-                    onMoved: {
-                        if (root.mediaBackend)
-                            root.mediaBackend.setVolume(volumeSlider.value);
-                    }
-
-                    background: Rectangle {
-                        x: volumeSlider.leftPadding
-                        y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                        width: volumeSlider.availableWidth
-                        height: 4
-                        radius: 2
-                        color: Colours.surfaceVariant
-
-                        Rectangle {
-                            width: volumeSlider.visualPosition * parent.width
-                            height: parent.height
-                            radius: parent.radius
-                            color: Colours.primary
-                        }
-                    }
-                    handle: Rectangle {
-                        x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
-                        y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                        width: 16
-                        height: 16
-                        radius: 8
-                        color: Colours.primary
                     }
                 }
             }
