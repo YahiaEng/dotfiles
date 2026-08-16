@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 54
+open_count: 56
 waived_count: 2
 fixed_count: 27
-total_count: 83
-last_updated: 2026-08-16T04:51:35.665Z
+total_count: 85
+last_updated: 2026-08-16T05:33:01.088Z
 ---
 
 # Broken Windows Ledger
@@ -98,6 +98,8 @@ last_updated: 2026-08-16T04:51:35.665Z
 | 81 | 20 | deviation | hypr/.config/hypr/config/permissions.lua |  | permissions-allowlist-paths-resolve gate fails (2 missing binary paths, 1 glob pattern) — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md | open |  | 2026-08-16T01:02:29.771Z |  |
 | 82 | 20 | deviation | hypr/.config/hypr/scripts/media-players.sh |  | eww-media-* cache paths renamed to media-* to close eww's retirement-check blocking tier; narrows 20-RETIREMENT-BASELINE.md's original report-only disposition | fixed |  | 2026-08-16T01:42:29.301Z | 2026-08-16T01:42:48.234Z |
 | 83 | 21 | stub | quickshell/.config/quickshell/modules/dashboard/MediaTab.qml |  | Cava-verification overlay (cavaVerifyOverlay/cavaVerifyPath) is deliberately oversized checkpoint-driven scaffolding, not the final visualiser; 21-06 owns normalizing to real proportions per 21-UI-SPEC.md's Visualiser Geometry table | open |  | 2026-08-16T04:51:35.665Z |  |
+| 84 | 21 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/MediaTab.qml |  | 60-bar visualiser + 12-lobe mask human-check lines not live-verified this session (no session summoned, no screenshot) | open |  | 2026-08-16T05:33:00.997Z |  |
+| 85 | 21 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaPopout.qml |  | Ported ring/mask human-check lines (incl. shared-process-count check) not live-verified this session | open |  | 2026-08-16T05:33:01.088Z |  |
 
 ````json
 [
@@ -1095,6 +1097,30 @@ last_updated: 2026-08-16T04:51:35.665Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-16T04:51:35.665Z",
+    "resolved_at": null
+  },
+  {
+    "id": 84,
+    "kind": "unrun-verify",
+    "phase": "21",
+    "file": "quickshell/.config/quickshell/modules/dashboard/MediaTab.qml",
+    "line": null,
+    "description": "60-bar visualiser + 12-lobe mask human-check lines not live-verified this session (no session summoned, no screenshot)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T05:33:00.997Z",
+    "resolved_at": null
+  },
+  {
+    "id": 85,
+    "kind": "unrun-verify",
+    "phase": "21",
+    "file": "quickshell/.config/quickshell/modules/bar/MediaPopout.qml",
+    "line": null,
+    "description": "Ported ring/mask human-check lines (incl. shared-process-count check) not live-verified this session",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T05:33:01.088Z",
     "resolved_at": null
   }
 ]
