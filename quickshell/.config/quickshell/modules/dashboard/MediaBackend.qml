@@ -23,7 +23,7 @@
 //        within up to one second. With zero players running, this file now
 //        starts no process at all, rather than a reader that polled and
 //        reported nothing every second. The previous reader's per-tick
-//        subprocess fan-out — roughly ten forks a second while the drawer
+//        subprocess churn — roughly ten forks a second while the drawer
 //        was open — is gone entirely; the one subprocess that remains
 //        (below) is a single-flighted, event-triggered album-art resolve,
 //        not a poll.
@@ -93,25 +93,141 @@ Scope {
         return (p.uniqueId && p.uniqueId !== "") ? p.uniqueId : (p.dbusName || "");
     }
 
+    // ── Dedup — collapsing duplicate perceptual sources (D-21-09) ────────
+    // Two live model entries are treated as the SAME perceptual source
+    // (e.g. one track surfacing twice, once from a browser process and
+    // once from the site's own embedded player) when EITHER holds:
+    //   (a) one entry's trimmed, case-normalised track title contains the
+    //       other's as a substring, checked in both directions; or
+    //   (b) their playback positions AND their track lengths are each
+    //       within a small proximity window of one another.
+    // This is a DISPLAY-LIST-ONLY collapse (21-UI-SPEC.md "Per-Player
+    // Volume + Dedup Resolution") — the canonical entry picked below is
+    // read/written through the exact same live MprisPlayer object every
+    // other function in this file already uses; nothing here builds a
+    // second control or a stand-in object for the pair, and no write ever
+    // reaches more than the one canonical player.
+    readonly property real _dedupPositionWindowSeconds: 2
+    readonly property real _dedupLengthWindowSeconds: 2
+
+    function _normalizedTitle(p) {
+        if (!p)
+            return "";
+        return (p.trackTitle || "").trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    // Guarded both ways: a tight title-substring test (normalised, so
+    // punctuation/case/whitespace differences alone don't block a real
+    // match) OR a tight position+length proximity test — either alone is
+    // enough to collapse a pair, but two entries that share NEITHER stay
+    // two entries, so a genuinely distinct second player is never hidden.
+    function _isSamePerceptualSource(a, b) {
+        if (!a || !b)
+            return false;
+        const ta = root._normalizedTitle(a);
+        const tb = root._normalizedTitle(b);
+        if (ta !== "" && tb !== "" && (ta.indexOf(tb) !== -1 || tb.indexOf(ta) !== -1))
+            return true;
+        const lenA = (a.lengthSupported === true && isFinite(a.length) && a.length > 0) ? a.length : -1;
+        const lenB = (b.lengthSupported === true && isFinite(b.length) && b.length > 0) ? b.length : -1;
+        if (lenA < 0 || lenB < 0)
+            return false;
+        const posA = Number(a.position) || 0;
+        const posB = Number(b.position) || 0;
+        return Math.abs(posA - posB) <= root._dedupPositionWindowSeconds
+            && Math.abs(lenA - lenB) <= root._dedupLengthWindowSeconds;
+    }
+
+    // Groups the raw model into perceptual-source clusters. Computed once
+    // per model change and consumed by every reader below (the switcher
+    // list, active-player resolution, selectPlayer, setVolumeForPlayer)
+    // so all four agree on exactly the same collapse — never a second,
+    // drifting copy of this logic living in a filter applied afterward.
+    readonly property var _playerGroups: {
+        const list = Mpris.players ? Mpris.players.values : [];
+        var groups = [];
+        for (var i = 0; i < list.length; i++) {
+            const p = list[i];
+            if (!p)
+                continue;
+            var placed = false;
+            for (var g = 0; g < groups.length; g++) {
+                if (root._isSamePerceptualSource(groups[g][0], p)) {
+                    groups[g].push(p);
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed)
+                groups.push([p]);
+        }
+        return groups;
+    }
+
+    // Picks the one entry a group of duplicates surfaces as. Prefers a
+    // volume-supporting member when the group is mixed, so the surviving
+    // row keeps its control; otherwise breaks the tie by the identity
+    // string's own stable sort order — deliberately NOT "whichever the
+    // model happened to yield first" — so an identical pair collapses the
+    // same way across a shell restart.
+    function _canonicalOf(group) {
+        if (!group || group.length === 0)
+            return null;
+        var members = group.slice().sort(function (a, b) {
+            const ia = root._playerIdentity(a);
+            const ib = root._playerIdentity(b);
+            return ia < ib ? -1 : (ia > ib ? 1 : 0);
+        });
+        for (var i = 0; i < members.length; i++) {
+            if (members[i] && members[i].volumeSupported === true)
+                return members[i];
+        }
+        return members[0];
+    }
+
+    // The full ordered list of canonical (post-dedup) player objects —
+    // the single list every identifier-accepting function below resolves
+    // against, so the active selection can never point at an entry the
+    // switcher does not show.
+    readonly property var _canonicalPlayers: {
+        const groups = root._playerGroups;
+        var out = [];
+        for (var g = 0; g < groups.length; g++) {
+            const c = root._canonicalOf(groups[g]);
+            if (c)
+                out.push(c);
+        }
+        return out;
+    }
+
+    function _findCanonicalById(playerId) {
+        const list = root._canonicalPlayers;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && root._playerIdentity(list[i]) === playerId)
+                return list[i];
+        }
+        return null;
+    }
+
     // ── Active player selection ─────────────────────────────────────────
     // Resolution order, stated here rather than left implicit: (1) the
-    // explicitly selected player, if it is still present in the model;
-    // (2) the first player reporting isPlaying; (3) the first player in
-    // the model; (4) null. No sort runs anywhere in this file — the
-    // model's own order is used as-is, so two equally-eligible players
-    // cannot swap between reads. A selection whose player has vanished
-    // falls back through this same rule automatically: `_explicitSelectionId`
-    // simply stops matching anything in the model, it is never explicitly
-    // cleared.
+    // explicitly selected player, if it is still present among the
+    // CANONICAL (post-dedup) entries; (2) the first canonical entry
+    // reporting isPlaying; (3) the first canonical entry; (4) null. No
+    // sort runs over the canonical list itself — `_canonicalPlayers`
+    // preserves the model's own first-encountered group order, so two
+    // equally-eligible players cannot swap between reads. A selection
+    // whose player has vanished falls back through this same rule
+    // automatically: `_explicitSelectionId` simply stops matching
+    // anything canonical, it is never explicitly cleared.
     property string _explicitSelectionId: ""
 
     readonly property var activePlayer: {
-        const list = Mpris.players ? Mpris.players.values : [];
+        const list = root._canonicalPlayers;
         if (root._explicitSelectionId !== "") {
-            for (var i = 0; i < list.length; i++) {
-                if (list[i] && root._playerIdentity(list[i]) === root._explicitSelectionId)
-                    return list[i];
-            }
+            const explicit = root._findCanonicalById(root._explicitSelectionId);
+            if (explicit)
+                return explicit;
         }
         for (var j = 0; j < list.length; j++) {
             if (list[j] && list[j].isPlaying === true)
@@ -123,37 +239,38 @@ Scope {
     readonly property string activePlayerId: root._playerIdentity(root.activePlayer)
 
     // `playerId` is the one argument this surface accepts from a caller
-    // rather than reading straight off the active-player resolution above —
-    // it is checked against the live model before being accepted, and an
-    // unknown id is a no-op rather than a blind write.
+    // rather than reading straight off the active-player resolution above
+    // — it is checked against the CANONICAL (post-dedup) entries before
+    // being accepted, so a caller can only ever select an identifier the
+    // switcher actually displays; an unknown or collapsed-away id is a
+    // no-op rather than a blind write.
     function selectPlayer(playerId) {
         if (typeof playerId !== "string" || playerId === "")
             return;
-        const list = Mpris.players ? Mpris.players.values : [];
-        for (var i = 0; i < list.length; i++) {
-            if (list[i] && root._playerIdentity(list[i]) === playerId) {
-                root._explicitSelectionId = playerId;
-                return;
-            }
-        }
+        if (root._findCanonicalById(playerId))
+            root._explicitSelectionId = playerId;
     }
 
     // ── The switcher's data source — same element shape MediaTab.qml's
-    //    switcher already consumes ({ id, label, active }), read from that
+    //    switcher already consumes ({ id, label, active }), extended this
+    //    plan with `volumeSupported`/`volume` (D-21-10), read from that
     //    consumer first and matched here rather than exposing raw player
-    //    objects and expecting the tab to adapt. ────────────────────────
+    //    objects and expecting the tab to adapt. One row per CANONICAL
+    //    (post-dedup) entry — a collapsed pair contributes exactly one row
+    //    here, which is what gates the switcher's own expand affordance
+    //    downstream. ───────────────────────────────────────────────────
     readonly property var players: {
-        const list = Mpris.players ? Mpris.players.values : [];
+        const list = root._canonicalPlayers;
         var out = [];
         for (var i = 0; i < list.length; i++) {
             const p = list[i];
-            if (!p)
-                continue;
             const pid = root._playerIdentity(p);
             out.push({
                 id: pid,
                 label: (p.identity && p.identity !== "") ? p.identity : pid,
-                active: p === root.activePlayer
+                active: p === root.activePlayer,
+                volumeSupported: p.volumeSupported === true,
+                volume: p.volumeSupported === true ? p.volume : 0
             });
         }
         return out;
@@ -357,5 +474,24 @@ Scope {
             return;
         const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
         root.activePlayer.volume = clamped;
+    }
+
+    // Identifier-scoped clamped write (D-21-10) — the SAME clamped-write
+    // pattern as setVolume() above, except its target is resolved from
+    // the CANONICAL (post-dedup) entries by identifier, never from the
+    // active-player resolution. Applies the identical identifier-
+    // validation guard selectPlayer() above uses: an id that does not
+    // match a canonical entry is a silent no-op, never a throw and never
+    // a write to some other player. setVolume() itself is UNCHANGED — it
+    // stays the bottom volumeRow's active-player-only path (21-UI-SPEC.md
+    // "Per-Player Volume + Dedup Resolution").
+    function setVolumeForPlayer(playerId, fraction) {
+        if (typeof playerId !== "string" || playerId === "")
+            return;
+        const target = root._findCanonicalById(playerId);
+        if (!target || target.volumeSupported !== true)
+            return;
+        const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
+        target.volume = clamped;
     }
 }
