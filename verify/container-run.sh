@@ -27,23 +27,36 @@
 # non-graphical prerequisites from scratch — a genuine `git clone` of the
 # real remote (D-56, not a dev-machine re-stow), `install.sh --core-only`
 # (pacman/AUR package installs + the hard-fail verify_packages table),
-# `stow.sh` (idempotent symlinks + first-boot theme seed), and
-# `theme-parity` (headless-safe render/output-contract gate).
+# `stow.sh` (idempotent symlinks + first-boot theme seed), a blocking
+# `retirement-check --all` run INSIDE the container (D-22-05 — its
+# host-package class asserts against the REPRODUCED system, not the dev
+# host, which still has old packages installed), a blocking
+# `stow-link-check` dangling-symlink sweep over the freshly-stowed tree
+# (D-22-06), `theme-doctor` (D-22-08, BLOCKING against the committed
+# allowlist at verify/theme-doctor-session-allowlist.txt — see below),
+# and `theme-parity` (headless-safe render/output-contract gate).
 #
-# What this does NOT prove: theme-doctor's session-dependent checks
-# (pgrep walker/elephant, gsettings, D-Bus) legitimately cannot pass in a
-# headless container with no running Hyprland session — theme-doctor runs
-# here informationally only (never gates this harness's exit code). The
-# graphical VM procedure in VERIFICATION.md is the tier that proves those
-# checks pass with a live session and a human's own eyes (D-53).
+# What this does NOT prove: theme-doctor's three genuinely
+# session-dependent checks (gsettings gtk-theme, walker process running,
+# elephant process running) legitimately cannot pass in a headless
+# container with no running Hyprland session and no D-Bus session bus —
+# each is admitted by a source-justified entry in
+# verify/theme-doctor-session-allowlist.txt (D-22-09/10), a committed,
+# byte-exact-matched allowlist, never fitted to whatever happened to go
+# red. Every OTHER theme-doctor failure — roughly 575 headless-safe file
+# and lint checks — now blocks this harness's exit code, for the first
+# time. The graphical VM procedure in VERIFICATION.md remains the tier
+# that proves the three allowlisted checks pass with a live session and a
+# human's own eyes (D-53).
 #
 # Exit code: 0 only if clone + install.sh --core-only + stow.sh +
-# theme-parity all succeed AND summary.log affirmatively records
-# overall=PASS. Nonzero on any failure, a missing summary verdict, or a
-# container-rc/summary mismatch. This is a hard gate (D-64 spirit) — no
-# warn-and-continue path for the gating steps, and no verdict is trusted
-# from the container exit code alone (see the false-pass post-mortem
-# below).
+# retirement-check --all + stow-link-check + theme-doctor (against the
+# allowlist) + theme-parity all succeed AND summary.log affirmatively
+# records overall=PASS. Nonzero on any failure, a missing summary
+# verdict, or a container-rc/summary mismatch. This is a hard gate (D-64
+# spirit) — no warn-and-continue path for the gating steps, and no
+# verdict is trusted from the container exit code alone (see the
+# false-pass post-mortem below).
 
 set -uo pipefail
 
@@ -218,8 +231,25 @@ set -uo pipefail
 # consuming input meant for something else.
 exec </dev/null
 
+# D-22-04 Task 2: the allowlist-matching logic below (theme-doctor step)
+# must be byte-exact and prefix-anchored — no case folding, no Unicode
+# normalisation, no whitespace collapsing. Setting LC_ALL=C here, once,
+# for the whole in-container script guarantees every subsequent bash
+# string slice/compare (`${var:0:n}`, `[[ == ]]`) operates on bytes, not
+# locale-dependent characters, without scattering the assignment.
+export LC_ALL=C
+
 REPO_URL="https://github.com/yahiaeng/dotfiles"
 GATE_FAIL=0
+# D-22-04 Task 2: explicit in-container clone path. The clone lands in the
+# `builder` user's home (see the `git clone` step below), but THIS script
+# itself runs as root — a bare $HOME here resolves to /root, not
+# /home/builder. Every existing step that needs the clone reaches it
+# through `su - builder -c`; the two new blocking steps below (and the
+# theme-doctor allowlist read) need to read repository files directly
+# from this root-level script, so the path is named explicitly here
+# rather than assumed from $HOME.
+CLONE_DIR="/home/builder/dotfiles"
 
 log_step() {
     # log_step <name> <logfile> <cmd...>
@@ -345,18 +375,159 @@ if [[ "$GATE_FAIL" -eq 0 ]]; then
     fi
 fi
 
-# ── theme-doctor: informational only. Its session-dependent checks
-#    (pgrep walker/elephant, gsettings, D-Bus bus names) legitimately
-#    cannot pass headless with no running Hyprland session — that
-#    evidence is the graphical VM gate's job (VERIFICATION.md). Captured
-#    for inspection; never gates this harness's exit code. ──────────────
+# ── retirement-check --all: BLOCKING, INSIDE the container (D-22-05) ────
+# retirement-check's host-package class runs `pacman -Q <surface>` against
+# the machine it executes on — running it here asserts against the
+# REPRODUCED system, precisely what SC-2 asks for and what the developer
+# host cannot answer (the dev host still has the old packages installed).
+# Its other 13 classes run against the freshly-cloned, freshly-stowed
+# tree. Invoked through the STOWED path (not the clone path) via
+# `su - builder -c` so $HOME resolves to the builder's home and
+# retirement-check's own DOTFILES_DIR default ($HOME/dotfiles) resolves
+# to the real clone. Log numbered 04a- (not renumbering 05/06) so
+# historical run directories stay comparable.
+if [[ "$GATE_FAIL" -eq 0 ]]; then
+    if log_step "retirement-check --all" /logs/04a-retirement-check.log \
+        su - builder -c '$HOME/.config/hypr/scripts/retirement-check --all'; then
+        echo "step=retirement-check status=ok" >> /logs/summary.log
+    else
+        echo "step=retirement-check status=fail" >> /logs/summary.log
+        GATE_FAIL=1
+    fi
+fi
+
+# ── stow-link-check: BLOCKING dangling-symlink sweep (D-22-06) ──────────
+# Closes SC-2's symlink clause on the REPRODUCED system, not the dev
+# host — sweeps the builder's freshly-stowed $HOME (no argument = real
+# deployed targets). Log numbered 04b- for the same reason as above.
+if [[ "$GATE_FAIL" -eq 0 ]]; then
+    if log_step "stow-link-check" /logs/04b-stow-link-check.log \
+        su - builder -c '$HOME/.config/hypr/scripts/stow-link-check'; then
+        echo "step=stow-link-check status=ok" >> /logs/summary.log
+    else
+        echo "step=stow-link-check status=fail" >> /logs/summary.log
+        GATE_FAIL=1
+    fi
+fi
+
+# ── theme-doctor: BLOCKING against a committed allowlist (D-22-08). ─────
+# Every [FAIL] theme-doctor reports (roughly 578 checks, the overwhelming
+# majority file/lint checks that pass fine headless) now gates this
+# harness's exit code UNLESS it is admitted by an entry in the committed
+# allowlist (verify/theme-doctor-session-allowlist.txt) — a byte-exact,
+# prefix-anchored match under LC_ALL=C (set once, at the top of this
+# script), never a glob or regex. A missing, unreadable or malformed
+# allowlist FAILS CLOSED (T-22-04-FAILOPEN): this step never silently
+# degrades back to the old informational behaviour. The graphical VM gate
+# (VERIFICATION.md) remains the tier that proves every one of these
+# checks passes with a live session and a human's own eyes (D-53) — this
+# step only proves the ~575 headless-safe checks pass, plus that the
+# admitted session-dependent failures are exactly the three named ones
+# and nothing new.
 if [[ "$GATE_FAIL" -eq 0 ]]; then
     su - builder -c 'cd ~/dotfiles && $HOME/.config/theme-engine/theme-doctor' \
         > /logs/05-theme-doctor.log 2>&1
-    echo "step=theme-doctor status=informational rc=$?" >> /logs/summary.log
+    TD_RC=$?
+
+    ALLOWLIST_FILE="$CLONE_DIR/verify/theme-doctor-session-allowlist.txt"
+    TD_STEP_OK=1
+    TD_FAIL_REASON=""
+
+    if [[ ! -r "$ALLOWLIST_FILE" ]]; then
+        TD_STEP_OK=0
+        TD_FAIL_REASON="allowlist file missing or unreadable at $ALLOWLIST_FILE"
+    fi
+
+    declare -a AL_PREFIX=() AL_CLASS=() AL_SRC=() AL_REASON=() AL_MATCHED=()
+    if [[ "$TD_STEP_OK" -eq 1 ]]; then
+        _al_lineno=0
+        while IFS= read -r _al_raw || [[ -n "$_al_raw" ]]; do
+            _al_lineno=$((_al_lineno + 1))
+            [[ -z "$_al_raw" ]] && continue
+            [[ "$_al_raw" =~ ^[[:space:]]*# ]] && continue
+            [[ "$_al_raw" =~ ^[[:space:]]*$ ]] && continue
+
+            _al_nf=$(($(printf '%s' "$_al_raw" | tr -cd '|' | wc -c) + 1))
+            if [[ "$_al_nf" -ne 4 ]]; then
+                TD_STEP_OK=0
+                TD_FAIL_REASON="malformed allowlist record at line $_al_lineno (expected 4 pipe-delimited fields, got $_al_nf): $_al_raw"
+                break
+            fi
+
+            IFS='|' read -r _al_p _al_c _al_s _al_r <<< "$_al_raw"
+
+            if [[ -z "$_al_p" || "${#_al_p}" -lt 12 ]]; then
+                TD_STEP_OK=0
+                TD_FAIL_REASON="malformed allowlist record at line $_al_lineno (match_prefix empty or under 12 bytes): $_al_raw"
+                break
+            fi
+            case "$_al_c" in
+                no-session-bus | no-compositor | no-display | no-user-session) ;;
+                *)
+                    TD_STEP_OK=0
+                    TD_FAIL_REASON="malformed allowlist record at line $_al_lineno (bad reason_class '$_al_c'): $_al_raw"
+                    break
+                    ;;
+            esac
+            if [[ -z "$_al_s" || -z "$_al_r" ]]; then
+                TD_STEP_OK=0
+                TD_FAIL_REASON="malformed allowlist record at line $_al_lineno (empty source_ref or reason): $_al_raw"
+                break
+            fi
+
+            AL_PREFIX+=("$_al_p")
+            AL_CLASS+=("$_al_c")
+            AL_SRC+=("$_al_s")
+            AL_REASON+=("$_al_r")
+            AL_MATCHED+=("0")
+        done < "$ALLOWLIST_FILE"
+    fi
+
+    TD_ALLOWED=0
+    TD_BLOCKING=0
+    if [[ "$TD_STEP_OK" -eq 1 ]]; then
+        while IFS= read -r _td_line; do
+            case "$_td_line" in
+                *"[FAIL]"*)
+                    _td_desc="${_td_line#*\[FAIL\] }"
+                    _td_matched_idx=-1
+                    for _td_i in "${!AL_PREFIX[@]}"; do
+                        _td_p="${AL_PREFIX[$_td_i]}"
+                        if [[ "${_td_desc:0:${#_td_p}}" == "$_td_p" ]]; then
+                            _td_matched_idx="$_td_i"
+                            break
+                        fi
+                    done
+                    if [[ "$_td_matched_idx" -ge 0 ]]; then
+                        echo "  [ALLOWED] $_td_desc (${AL_CLASS[$_td_matched_idx]})"
+                        AL_MATCHED[$_td_matched_idx]=1
+                        TD_ALLOWED=$((TD_ALLOWED + 1))
+                    else
+                        echo "  [BLOCKING] $_td_desc"
+                        TD_BLOCKING=$((TD_BLOCKING + 1))
+                    fi
+                    ;;
+            esac
+        done < /logs/05-theme-doctor.log
+
+        for _td_i in "${!AL_PREFIX[@]}"; do
+            if [[ "${AL_MATCHED[$_td_i]}" -eq 0 ]]; then
+                echo "  [UNUSED] ${AL_PREFIX[$_td_i]}"
+            fi
+        done
+    fi
+
     echo ""
-    echo "=== theme-doctor (informational, does not gate) ==="
-    tail -n 5 /logs/05-theme-doctor.log || true
+    if [[ "$TD_STEP_OK" -eq 1 && "$TD_BLOCKING" -eq 0 ]]; then
+        echo "step=theme-doctor status=ok allowed=$TD_ALLOWED blocking=0" >> /logs/summary.log
+        echo "=== theme-doctor: allowed=$TD_ALLOWED blocking=0 (rc=$TD_RC) ==="
+    else
+        [[ -z "$TD_FAIL_REASON" ]] && TD_FAIL_REASON="$TD_BLOCKING failure(s) not covered by the committed allowlist"
+        echo "step=theme-doctor status=fail allowed=$TD_ALLOWED blocking=$TD_BLOCKING" >> /logs/summary.log
+        echo "=== theme-doctor: FAILED — $TD_FAIL_REASON ==="
+        tail -n 40 /logs/05-theme-doctor.log || true
+        GATE_FAIL=1
+    fi
 fi
 
 # ── theme-parity: the primary headless-safe health gate (render-only,
