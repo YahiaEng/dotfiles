@@ -407,6 +407,22 @@ Scope {
     // real player at zero volume must still show the band, exactly as the
     // previous script-sentinel implementation guaranteed.
     readonly property bool hasVolume: root.hasPlayer && root.activePlayer.volumeSupported === true
+
+    // ── Transport capability, surfaced so the buttons can reflect it ─────
+    // MPRIS players advertise CanGoNext/CanGoPrevious and plenty of them
+    // answer false. Measured on this host at Plan 08's gate: Zen/Firefox
+    // reports CanGoNext=false and CanGoPrevious=false while Spotify reports
+    // true for both — so prev/next genuinely cannot work on the browser,
+    // and nextTrack()/previousTrack() below already refuse to dispatch.
+    // Until now nothing told the UI that, so the buttons rendered fully
+    // enabled and silently did nothing: an affordance promising an action
+    // the player has declared it cannot perform.
+    //
+    // Exposed as present-but-disabled state rather than hiding the buttons,
+    // matching the seek band's own treatment of an unseekable track — the
+    // controls keep their geometry and drop to disabledOpacity.
+    readonly property bool canGoNext: root.hasPlayer && root.activePlayer.canGoNext === true
+    readonly property bool canGoPrevious: root.hasPlayer && root.activePlayer.canGoPrevious === true
     readonly property real volumeLevel: root.hasVolume ? root.activePlayer.volume : 0
 
     // Belt-and-suspenders guard kept from the previous implementation: the
@@ -616,13 +632,47 @@ Scope {
     // a write to some other player. setVolume() itself is UNCHANGED — it
     // stays the bottom volumeRow's active-player-only path (21-UI-SPEC.md
     // "Per-Player Volume + Dedup Resolution").
+    // Takes the PLAYER OBJECT, not an id string. The switcher row already
+    // holds the live object (the `player` field of the `players` projection)
+    // and binds its slider and percentage readout straight to
+    // `player.volume`, so passing that same object here makes the row's
+    // DISPLAY and its WRITE share one source by construction — they cannot
+    // disagree about which player the row is for.
+    //
+    // The previous signature took an id string and re-resolved it through
+    // _findCanonicalById. That round-trip has already produced one silent
+    // defect in this phase (uniqueId is a uint, so the `typeof playerId
+    // !== "string"` guard rejected every call), and an operator then
+    // reported a volume write landing on the WRONG player at Plan 08's
+    // gate. Rather than keep auditing the round-trip, the round-trip is
+    // gone: there is no id to mis-resolve.
+    //
+    // Membership is still validated — a delegate holding a stale object
+    // from a player that has since left the list must not be able to write
+    // to it. Identity comparison against the canonical list, not an id
+    // match, so this check cannot itself reintroduce the failure it guards.
+    function setVolumeForPlayerObject(player, fraction) {
+        if (!player || player.volumeSupported !== true)
+            return;
+        const list = root._canonicalPlayers;
+        var member = false;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] === player) {
+                member = true;
+                break;
+            }
+        }
+        if (!member)
+            return;
+        player.volume = Math.max(0, Math.min(1, Number(fraction) || 0));
+    }
+
+    // Retained id-based wrapper — the name 21-BEHAVIOUR-BASELINE.md's C-12
+    // row cites. Delegates to the object path above so there is exactly one
+    // write implementation.
     function setVolumeForPlayer(playerId, fraction) {
         if (typeof playerId !== "string" || playerId === "")
             return;
-        const target = root._findCanonicalById(playerId);
-        if (!target || target.volumeSupported !== true)
-            return;
-        const clamped = Math.max(0, Math.min(1, Number(fraction) || 0));
-        target.volume = clamped;
+        root.setVolumeForPlayerObject(root._findCanonicalById(playerId), fraction);
     }
 }

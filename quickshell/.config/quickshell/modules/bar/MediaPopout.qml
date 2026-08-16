@@ -422,6 +422,16 @@ SectionPopout {
             width: Design.iconSizeMd + Design.spacingSm * 2
             height: width
 
+            // Present-but-disabled when the player declares it cannot go
+            // back, mirroring the Media tab's transport gating. Measured at
+            // Plan 08's gate: Zen/Firefox reports CanGoPrevious=false while
+            // Spotify reports true, and previousTrack() already refuses to
+            // dispatch — so an always-lit button here promised an action the
+            // player had declared impossible. 0.38 is the same
+            // disabled-state opacity MediaTab's TransportButton uses.
+            readonly property bool controlEnabled: root.mediaBackend ? root.mediaBackend.canGoPrevious : false
+            opacity: prevButton.controlEnabled ? 1 : 0.38
+
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
@@ -438,6 +448,7 @@ SectionPopout {
             }
             MouseArea {
                 anchors.fill: parent
+                enabled: prevButton.controlEnabled
                 onClicked: {
                     if (root.mediaBackend)
                         root.mediaBackend.previousTrack();
@@ -478,6 +489,11 @@ SectionPopout {
             width: Design.iconSizeMd + Design.spacingSm * 2
             height: width
 
+            // See prevButton above — gated on the player's own declared
+            // capability rather than on a player merely existing.
+            readonly property bool controlEnabled: root.mediaBackend ? root.mediaBackend.canGoNext : false
+            opacity: nextButton.controlEnabled ? 1 : 0.38
+
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
@@ -494,6 +510,7 @@ SectionPopout {
             }
             MouseArea {
                 anchors.fill: parent
+                enabled: nextButton.controlEnabled
                 onClicked: {
                     if (root.mediaBackend)
                         root.mediaBackend.nextTrack();

@@ -1386,8 +1386,14 @@ Item {
                                         // `onPressedChanged`-only write gives no
                                         // audible response until the button comes up.
                                         onMoved: {
+                                            // Passes the SAME live object this row's
+                                            // value and readout are bound to, so the
+                                            // row cannot display one player while
+                                            // writing to another — the shape of the
+                                            // wrong-player write reported at Plan 08's
+                                            // gate.
                                             if (root.mediaBackend && modelData.volumeSupported)
-                                                root.mediaBackend.setVolumeForPlayer(modelData.id, rowVolumeSlider.value);
+                                                root.mediaBackend.setVolumeForPlayerObject(modelData.player, rowVolumeSlider.value);
                                         }
 
                                         background: Rectangle {
@@ -1968,7 +1974,14 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         glyph: "skip_previous"
                         emphasized: false
-                        controlEnabled: root.hasPlayer
+                        // Present-but-disabled when the PLAYER says it cannot
+                        // go back — same treatment the seek band gives an
+                        // unseekable track. Zen/Firefox reports
+                        // CanGoPrevious=false (measured at Plan 08's gate)
+                        // and previousTrack() already refuses to dispatch, so
+                        // a fully-enabled button here was promising an action
+                        // the player had declared impossible.
+                        controlEnabled: root.hasPlayer && root.mediaBackend.canGoPrevious
                         onActivated: if (root.mediaBackend) root.mediaBackend.previousTrack()
                     }
                     TransportButton {
@@ -1986,7 +1999,9 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         glyph: "skip_next"
                         emphasized: false
-                        controlEnabled: root.hasPlayer
+                        // See skip_previous above — gated on the player's own
+                        // declared capability, not merely on a player existing.
+                        controlEnabled: root.hasPlayer && root.mediaBackend.canGoNext
                         onActivated: if (root.mediaBackend) root.mediaBackend.nextTrack()
                     }
                 }
