@@ -5,8 +5,8 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 21
 current_phase_name: Media Fold-In & Contract Close
 status: planning
-stopped_at: Completed 20-10-PLAN.md (RETIRE-05/RETIRE-07, phase 20 complete)
-last_updated: "2026-08-16T01:44:57.455Z"
+stopped_at: Phase 21 context gathered
+last_updated: "2026-08-16T02:32:51.787Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
@@ -662,9 +662,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T01:43:08.620Z
-Stopped at: Completed 20-10-PLAN.md (RETIRE-05/RETIRE-07, phase 20 complete)
-Resume file: None
+Last session: 2026-08-16T02:32:51.766Z
+Stopped at: Phase 21 context gathered
+Resume file: .planning/phases/21-media-fold-in-contract-close/21-CONTEXT.md
 
 ## Operator Next Steps
 
