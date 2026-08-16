@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 60
+open_count: 61
 waived_count: 2
 fixed_count: 27
-total_count: 89
-last_updated: 2026-08-16T16:38:38.524Z
+total_count: 90
+last_updated: 2026-08-16T20:56:04.982Z
 ---
 
 # Broken Windows Ledger
@@ -104,6 +104,7 @@ last_updated: 2026-08-16T16:38:38.524Z
 | 87 | 21 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/MediaTab.qml |  | Per-player mini-slider drag/select-separation human-check not live-verified this session (needs two live players and real pointer input) | open |  | 2026-08-16T10:56:39.504Z |  |
 | 88 | 21 | unrun-verify | quickshell/.config/quickshell/shell.qml |  | Super+M open/close/fullscreen-guard human-check not live-verified this session — also requires a Quickshell process restart to register the new GlobalShortcut (D-17), not performed | open |  | 2026-08-16T10:56:39.602Z |  |
 | 89 | 21 | unrun-verify | theme-engine/.config/theme-engine/theme-stress-test |  | 21-09 Task 2: theme-stress-test not run — standing session rules prohibit live-theme-mutating commands (prior session accidentally re-themed the operator's desktop running this exact command, 21-08-SUMMARY.md). Static substitute verified instead (REPRESENTATIVE_FILES omits the removed ags.scss entry). Operator must run: bash theme-engine/.config/theme-engine/theme-stress-test | open |  | 2026-08-16T16:38:38.524Z |  |
+| 90 | 22 | deviation | VERIFICATION.md |  | 22-03: RETIRE-02 (waybar) repo-prose count did not decrease (37, unchanged) — all hits live in docs/superpowers historical design specs/plans, outside repo-prose's .lua/env.lua scan scope and outside this plan's declared file scope; RETIRE-03 (swaync) count did decrease 13->9. See 22-03-SUMMARY.md coverage D7. | open |  | 2026-08-16T20:56:04.982Z |  |
 
 ````json
 [
@@ -1173,6 +1174,18 @@ last_updated: 2026-08-16T16:38:38.524Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-16T16:38:38.524Z",
+    "resolved_at": null
+  },
+  {
+    "id": 90,
+    "kind": "deviation",
+    "phase": "22",
+    "file": "VERIFICATION.md",
+    "line": null,
+    "description": "22-03: RETIRE-02 (waybar) repo-prose count did not decrease (37, unchanged) — all hits live in docs/superpowers historical design specs/plans, outside repo-prose's .lua/env.lua scan scope and outside this plan's declared file scope; RETIRE-03 (swaync) count did decrease 13->9. See 22-03-SUMMARY.md coverage D7.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T20:56:04.982Z",
     "resolved_at": null
   }
 ]
