@@ -154,7 +154,17 @@ if [[ "$COLD_RUN" -eq 1 ]]; then
     CACHE_MODE="cold"
 else
     CACHE_MODE="warm"
-    mkdir -p "$PACMAN_CACHE_WRITE" "$PARU_CACHE_WRITE"
+    # WR-03 fix: this script runs under `set -uo pipefail` (no `-e`), so an
+    # unhandled mkdir failure here (a permission issue on verify/cache/,
+    # disk full, etc.) previously did not stop the script — CACHE_MOUNT_ARGS
+    # was still populated with all four `-v` entries as if it had
+    # succeeded, deferring the failure to whatever `podman run -d` does
+    # when asked to bind-mount a directory it couldn't create (which may
+    # silently auto-create the mount point, masking the real root cause).
+    mkdir -p "$PACMAN_CACHE_WRITE" "$PARU_CACHE_WRITE" || {
+        echo "container-run: cannot create writable cache dirs at $CONTAINER_CACHE_DIR" >&2
+        exit 1
+    }
     # T-22-09-DESTRUCT: host caches are `:ro`. Writes go only to the
     # separate, container-scoped directories created above.
     CACHE_MOUNT_ARGS+=(
