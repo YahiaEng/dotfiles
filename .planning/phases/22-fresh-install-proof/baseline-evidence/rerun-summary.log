@@ -1,0 +1,15 @@
+# container-run summary — 20260816T222431Z
+cache-mode=warm
+cache-pacman-ro=/var/cache/pacman/pkg/
+cache-paru-ro=/home/aorus/.cache/paru
+cache-pacman-write=/home/aorus/dotfiles/verify/cache/pacman-write
+cache-paru-write=/home/aorus/dotfiles/verify/cache/paru-write
+step=pull status=ok
+step=bootstrap status=ok
+step=paru-cache-seed status=attempted rc=0
+step=clone status=ok
+step=install status=ok
+step=stow status=ok
+step=theme-doctor status=informational rc=1
+step=theme-parity status=ok
+overall=PASS

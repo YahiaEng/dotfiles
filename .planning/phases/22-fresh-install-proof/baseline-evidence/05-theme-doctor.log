@@ -1,0 +1,635 @@
+theme-doctor — theme-engine health check
+
+  [PASS] adw-gtk-theme package installed
+  [FAIL] gsettings gtk-theme = adw-gtk3-dark (mode=dark, got: Adwaita)
+  [PASS] /home/builder/.local/state/theme/current-theme exists
+  [PASS] /home/builder/.local/state/theme/kitty.conf exists
+  [PASS] /home/builder/.local/state/theme/gtk-3.0-colors.css exists
+  [PASS] /home/builder/.local/state/theme/gtk-4.0-colors.css exists
+  [PASS] /home/builder/.local/state/theme/walker-style.css exists
+  [PASS] /home/builder/.local/state/theme/yazi.toml exists
+  [PASS] /home/builder/.local/state/theme/vscodium.json exists
+  [PASS] /home/builder/.local/state/theme/gtk-3.0-settings.ini exists
+  [PASS] /home/builder/.local/state/theme/gtk-4.0-settings.ini exists
+  [PASS] /home/builder/.local/state/theme/fzf-colors.conf exists
+  [PASS] /home/builder/.local/state/theme/hyprlock.conf exists
+  [PASS] /home/builder/.local/state/theme/zen-userchrome.css exists
+  [PASS] /home/builder/.local/state/theme/satty.toml exists
+  [PASS] /home/builder/.local/state/theme/motion.json exists
+  [PASS] /home/builder/.local/state/theme/gtk-4.0-motion.css exists
+  [PASS] /home/builder/.local/state/theme/hyprland-tokens.lua exists
+  [PASS] /home/builder/.local/state/theme/palette.json exists
+  [PASS] /home/builder/.local/state/theme/_motion.scss exists
+  [PASS] /home/builder/.local/state/theme/kitty-font.conf exists
+  [PASS] state-manifest: all 24 entries under /home/builder/.local/state/theme accounted for (unaccounted: none)
+  [SKIP] live-wallpaper frame gate (recorded choice for 'catppuccin' is not a live/ entry)
+  [SKIP] hyprctl animations readback (hyprctl/jq unavailable, no compositor running, or /home/builder/.local/state/theme/hyprland-motion.conf not deployed)
+  [PASS] walker style.css symlinked to state dir
+  [PASS] yazi theme.toml symlinked to state dir
+  [PASS] stow -n theme-engine reports no conflicts
+  [PASS] elephant version responds (got: 2.22.0)
+  [PASS] elephant listproviders responds
+  [PASS] walker version responds (got: 2.17.0)
+  [FAIL] walker process running
+  [FAIL] elephant process running
+  [PASS] elephant listproviders covers all configured walker providers (missing: none)
+  [PASS] CSS-parse: gtk-3.0/gtk.css (1872 bytes)
+  [PASS] CSS-parse: gtk-4.0/gtk.css (1872 bytes)
+  [PASS] CSS-parse: walker/themes/rice/style.css (8056 bytes)
+  motion-lint — motion-token deny-by-default gate
+    target: real deployed surface set (4 root dir(s))
+    definitions: /home/builder/.local/state/theme
+  
+    [NOTE] /home/builder/.local/state/theme/hyprland-motion.conf absent — optional legacy hyprland-motion.conf source skipped (normal state after the hyprlang emitter retires; hyprland-tokens.lua remains the primary hypr definition source going forward)
+    [EXEMPT] walker/**/style.css — no motion literals — motion is compositor-delivered through the layer animation
+  [PASS] motion-lint: CHECK C: motion-lint scanned 144 surface(s) (css/scss=2, conf=7, qml=101, lua=34)
+  [PASS] motion-lint: CHECK A: /home/builder/.config/gtk-4.0/gtk.css: all motion token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/gtk-4.0/gtk.css: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/hypridle.conf: all animation speed/curve references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/hypridle.conf: no hand-authored (non motion-*) bezier curves or raw speed literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/hyprlock.conf: all animation speed/curve references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/hyprlock.conf: no hand-authored (non motion-*) bezier curves or raw speed literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/compliant-clean-surface/kitty/kitty.conf: all animation speed/curve references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/compliant-clean-surface/kitty/kitty.conf: no hand-authored (non motion-*) bezier curves or raw speed literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-planning-only/kitty/kitty.conf: all animation speed/curve references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-planning-only/kitty/kitty.conf: no hand-authored (non motion-*) bezier curves or raw speed literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-contract-entry/kitty/kitty.conf: all animation speed/curve references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-contract-entry/kitty/kitty.conf: no hand-authored (non motion-*) bezier curves or raw speed literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-cross-script-ref/kitty/kitty.conf: all animation speed/curve references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-cross-script-ref/kitty/kitty.conf: no hand-authored (non motion-*) bezier curves or raw speed literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-layer-rule/kitty/kitty.conf: all animation speed/curve references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-layer-rule/kitty/kitty.conf: no hand-authored (non motion-*) bezier curves or raw speed literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/colour-fixtures/compliant-qml.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/colour-fixtures/compliant-qml.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-dangling-qml.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-dangling-qml.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-hex-assign-qml.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-hex-assign-qml.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-hex-property-qml.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-hex-property-qml.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-named-colour-qml.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-named-colour-qml.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-rgba-literal-qml.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/colour-fixtures/poisoned-rgba-literal-qml.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/MediaBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/MediaBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-design.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-design.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/Bar.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/Bar.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/bar/BarDrawer.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/bar/BarDrawer.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/bar/BarTooltip.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/bar/BarTooltip.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/bar/HotZone.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/bar/HotZone.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/bar/SectionPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/bar/SectionPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/centre/NotifCentre.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/centre/NotifCentre.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/dashboard/PanelDialog.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/dashboard/PanelDialog.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/notifications/NotifPopupStack.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/notifications/NotifPopupStack.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/osd/Osd.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/osd/Osd.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/session/PowerMenu.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/session/PowerMenu.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/toast/Toast.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-bar-qml-root/toast/Toast.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-no-mpris-reader.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-no-mpris-reader.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-panel.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-panel.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-window-thumbnail.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-window-thumbnail.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-own-namespace-panel.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-own-namespace-panel.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-prose-only-mpris-mention.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-prose-only-mpris-mention.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-second-mpris-reader.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-second-mpris-reader.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-second-reserving-surface.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-second-reserving-surface.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-second-screencopyview.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-second-screencopyview.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-unregistered-frame.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-unregistered-frame.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/Bar.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/Bar.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/CavaService.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/CavaService.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/Colours.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/Colours.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/Dashboard.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/Dashboard.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/Motion.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/Motion.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/Overview.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/Overview.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/Probe.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/Probe.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/ScreencopyProbe.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/ScreencopyProbe.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/AudioPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/AudioPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarCapsule.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarCapsule.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarDrawer.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarDrawer.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarEntryModel.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarEntryModel.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarReveal.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarReveal.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarRoles.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarRoles.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarTooltip.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarTooltip.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarTooltipHost.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarTooltipHost.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BluetoothPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BluetoothPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BrightnessBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BrightnessBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/ClockActionsCapsule.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/ClockActionsCapsule.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/ClockPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/ClockPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/EthernetPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/EthernetPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/HotZone.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/HotZone.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/IdleInhibitorCapsule.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/IdleInhibitorCapsule.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/LauncherCapsule.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/LauncherCapsule.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/MediaPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/MediaPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/PopoutController.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/PopoutController.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/PopoutTrigger.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/PopoutTrigger.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/ResourcesPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/ResourcesPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/SectionPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/SectionPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/SystemCapsule.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/SystemCapsule.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/WifiPopout.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/WifiPopout.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/WorkspaceCapsule.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/WorkspaceCapsule.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/centre/CentreFooter.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/centre/CentreFooter.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/centre/NotifCentre.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/centre/NotifCentre.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/centre/NotifGroup.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/centre/NotifGroup.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/AudioBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/AudioBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/AudioPanel.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/AudioPanel.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/BluetoothBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/BluetoothBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/BluetoothPanel.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/BluetoothPanel.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/Cascade.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/Cascade.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/ConditionGlyph.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/ConditionGlyph.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/DashboardTab.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/DashboardTab.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/Design.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/Design.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/Dial.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/Dial.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/GradientBorder.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/GradientBorder.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/MediaBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/MediaBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/MediaTab.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/MediaTab.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/PanelDialog.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/PanelDialog.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/PerformanceTab.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/PerformanceTab.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/QuickToggles.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/QuickToggles.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/SystemResources.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/SystemResources.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/ToggleState.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/ToggleState.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WeatherBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WeatherBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WeatherPalette.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WeatherPalette.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WeatherTab.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WeatherTab.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WifiBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WifiBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WifiPanel.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WifiPanel.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifCard.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifCard.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifData.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifData.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifMarkdown.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifMarkdown.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifPopupStack.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifPopupStack.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifServer.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifServer.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/osd/CapsLockBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/osd/CapsLockBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/osd/Osd.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/osd/Osd.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/osd/OsdSliderRow.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/osd/OsdSliderRow.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/overview/DragGhost.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/overview/DragGhost.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/overview/WindowThumbnail.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/overview/WindowThumbnail.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/overview/WorkspaceTile.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/overview/WorkspaceTile.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/session/PowerMenu.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/session/PowerMenu.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/session/PowerMenuBackend.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/session/PowerMenuBackend.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/modules/toast/Toast.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/modules/toast/Toast.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/quickshell/shell.qml: all Motion.* references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/quickshell/shell.qml: no raw duration/easing literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/config/animations.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/config/animations.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/config/autostart.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/config/autostart.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/config/dynamic-cursors.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/config/dynamic-cursors.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/config/env.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/config/env.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/config/keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/config/keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/config/monitors.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/config/monitors.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/config/permissions.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/config/permissions.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/config/windowrules.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/config/windowrules.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/hyprland.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/hyprland.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/lib/tokens.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/lib/tokens.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-overview-keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-overview-keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-permissions.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-permissions.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-quickshell-windowrules.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/compliant-quickshell-windowrules.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-collision-keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-collision-keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-collision-overview-keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-collision-overview-keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-injection-windowrules.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-injection-windowrules.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-missing-binary-permissions.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-missing-binary-permissions.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-pattern-binary-permissions.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/quickshell-fixtures/poisoned-pattern-binary-permissions.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/compliant-clean-surface/hypr/.config/hypr/config/autostart.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/compliant-clean-surface/hypr/.config/hypr/config/autostart.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/compliant-clean-surface/hypr/.config/hypr/config/keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/compliant-clean-surface/hypr/.config/hypr/config/keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/compliant-clean-surface/hypr/.config/hypr/config/windowrules.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/compliant-clean-surface/hypr/.config/hypr/config/windowrules.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-planning-only/hypr/.config/hypr/config/autostart.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-planning-only/hypr/.config/hypr/config/autostart.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-planning-only/hypr/.config/hypr/config/keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-planning-only/hypr/.config/hypr/config/keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-planning-only/hypr/.config/hypr/config/windowrules.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-planning-only/hypr/.config/hypr/config/windowrules.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-contract-entry/hypr/.config/hypr/config/autostart.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-contract-entry/hypr/.config/hypr/config/autostart.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-contract-entry/hypr/.config/hypr/config/keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-contract-entry/hypr/.config/hypr/config/keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-contract-entry/hypr/.config/hypr/config/windowrules.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-contract-entry/hypr/.config/hypr/config/windowrules.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-cross-script-ref/hypr/.config/hypr/config/autostart.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-cross-script-ref/hypr/.config/hypr/config/autostart.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-cross-script-ref/hypr/.config/hypr/config/keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-cross-script-ref/hypr/.config/hypr/config/keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-cross-script-ref/hypr/.config/hypr/config/windowrules.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-cross-script-ref/hypr/.config/hypr/config/windowrules.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-layer-rule/hypr/.config/hypr/config/autostart.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-layer-rule/hypr/.config/hypr/config/autostart.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-layer-rule/hypr/.config/hypr/config/keybinds.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-layer-rule/hypr/.config/hypr/config/keybinds.lua: no raw duration/control-point literals
+  [PASS] motion-lint: CHECK A: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-layer-rule/hypr/.config/hypr/config/windowrules.lua: all token references resolve
+  [PASS] motion-lint: CHECK B: /home/builder/.config/hypr/scripts/tests/retirement-fixtures/poisoned-stray-layer-rule/hypr/.config/hypr/config/windowrules.lua: no raw duration/control-point literals
+  
+  Summary: 287 passed, 0 checks failed
+  [SKIP] hypr-equivalence-check (no live Hyprland session — HYPRLAND_INSTANCE_SIGNATURE unset — or /home/builder/.config/hypr/scripts/hypr-equivalence-check not found/executable)
+  colour-lint — QML colour deny-by-default gate
+    target: real deployed quickshell surface set
+    definitions: /home/builder/.config/quickshell/modules/Colours.qml
+  
+    [EXEMPT] WeatherPalette.qml — deliberate, human-render-gate-approved exemption (Phase 14 Plan 09 Task 4) to the repo-wide zero-hex invariant — weather-condition glyphs (sun/cloud/rain/snow/storm, sunrise/sunset) must read apart from each other at icon size, and no Colours.* role is guaranteed to stay a fixed hue across a theme switch (that guarantee is exactly what Colours.* roles do NOT offer, by design)
+    [EXEMPT] overview/DragGhost.qml shadowColor: (line 96) — MD3 elevation shadow, black by specification per 16-UI-SPEC.md "Drag visuals" (~0.35 opacity black, ~8px blur radius) — not a theme colour
+    [EXEMPT] overview/WindowThumbnail.qml shadowColor: (line 158) — MD3 elevation shadow, black by specification; heavier 0.5 alpha than DragGhost's 0.35 because these thumbnails sit on a blurred backdrop rather than sharp desktop (in-file rationale comment) — not a theme colour
+  [PASS] colour-lint: CHECK C: colour-lint scanned 73 surface(s) under /home/builder/.config/quickshell
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/Bar.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/Bar.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/CavaService.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/CavaService.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/Colours.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/Dashboard.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/Dashboard.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/Motion.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/Motion.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/Overview.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/Overview.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/Probe.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/Probe.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/ScreencopyProbe.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/ScreencopyProbe.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/AudioPopout.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/AudioPopout.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarCapsule.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarCapsule.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarDrawer.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarDrawer.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarEntryModel.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarEntryModel.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarReveal.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarReveal.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarRoles.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarRoles.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarTooltip.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarTooltip.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BarTooltipHost.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BarTooltipHost.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BluetoothPopout.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BluetoothPopout.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/BrightnessBackend.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/BrightnessBackend.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/ClockActionsCapsule.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/ClockActionsCapsule.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/ClockPopout.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/ClockPopout.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/EthernetPopout.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/EthernetPopout.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/HotZone.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/HotZone.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/IdleInhibitorCapsule.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/IdleInhibitorCapsule.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/LauncherCapsule.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/LauncherCapsule.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/MediaConnectivityCapsule.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/MediaPopout.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/MediaPopout.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/PopoutController.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/PopoutController.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/PopoutTrigger.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/PopoutTrigger.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/ResourcesPopout.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/ResourcesPopout.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/SectionPopout.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/SectionPopout.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/SystemCapsule.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/SystemCapsule.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/WifiPopout.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/WifiPopout.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/bar/WorkspaceCapsule.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/bar/WorkspaceCapsule.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/centre/CentreFooter.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/centre/CentreFooter.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/centre/NotifCentre.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/centre/NotifCentre.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/centre/NotifGroup.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/centre/NotifGroup.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/AudioBackend.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/AudioBackend.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/AudioPanel.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/AudioPanel.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/BluetoothBackend.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/BluetoothBackend.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/BluetoothPanel.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/BluetoothPanel.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/Cascade.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/Cascade.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/ConditionGlyph.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/ConditionGlyph.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/DashboardTab.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/DashboardTab.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/Design.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/Design.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/Dial.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/Dial.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/GradientBorder.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/GradientBorder.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/MediaBackend.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/MediaBackend.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/MediaTab.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/MediaTab.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/PanelDialog.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/PanelDialog.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/PerformanceTab.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/PerformanceTab.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/QuickToggles.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/QuickToggles.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/SystemResources.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/SystemResources.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/ToggleState.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/ToggleState.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WeatherBackend.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WeatherBackend.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WeatherTab.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WeatherTab.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WifiBackend.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WifiBackend.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/dashboard/WifiPanel.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/dashboard/WifiPanel.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifCard.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifCard.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifData.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifData.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifMarkdown.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifMarkdown.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifPopupStack.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifPopupStack.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/notifications/NotifServer.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/notifications/NotifServer.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/osd/CapsLockBackend.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/osd/CapsLockBackend.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/osd/Osd.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/osd/Osd.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/osd/OsdSliderRow.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/osd/OsdSliderRow.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/overview/DragGhost.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/overview/DragGhost.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/overview/WindowThumbnail.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/overview/WindowThumbnail.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/overview/WorkspaceTile.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/overview/WorkspaceTile.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/session/PowerMenu.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/session/PowerMenu.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/session/PowerMenuBackend.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/session/PowerMenuBackend.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/modules/toast/Toast.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/modules/toast/Toast.qml: no hard-coded colour at a colour-assignment anchor
+  [PASS] colour-lint: CHECK A: /home/builder/.config/quickshell/shell.qml: all Colours.* references resolve
+  [PASS] colour-lint: CHECK B: /home/builder/.config/quickshell/shell.qml: no hard-coded colour at a colour-assignment anchor
+  
+  Summary: 144 passed, 0 checks failed
+  [SKIP] waybar/own-tree: own-tree path(s) not present under /home/builder/dotfiles: waybar/:hypr/.config/hypr/scripts/waybar-*
+  [PASS] retirement-check: waybar/layer-window-rules: no references
+  [PASS] retirement-check: waybar/autostart: no references
+  [PASS] retirement-check: waybar/keybinds: no references
+  [PASS] retirement-check: waybar/contract-json: no references
+  [PASS] retirement-check: waybar/matugen-templates: no references
+  [PASS] retirement-check: waybar/checker-internals: no references
+  [PASS] retirement-check: waybar/test-fixtures: no references
+  [PASS] retirement-check: waybar/cross-package-refs: no references
+  [PASS] retirement-check: waybar/install-stow-lists: no references
+  [PASS] retirement-check: waybar/systemd-units: no references
+  [PASS] retirement-check: waybar/dbus-activation: no references
+  [PASS] retirement-check: waybar/xdg-autostart: no references
+  [PASS] retirement-check: waybar/host-package: no references
+  [REPORT] waybar/planning-archive: 4916 reference(s)
+  [REPORT] waybar/repo-prose: 37 reference(s)
+  Summary: surface=waybar status=retired failed_classes=0
+  [SKIP] swaync/own-tree: own-tree path(s) not present under /home/builder/dotfiles: swaync/:hypr/.config/hypr/scripts/swaync-*
+  [PASS] retirement-check: swaync/layer-window-rules: no references
+  [PASS] retirement-check: swaync/autostart: no references
+  [PASS] retirement-check: swaync/keybinds: no references
+  [PASS] retirement-check: swaync/contract-json: no references
+  [PASS] retirement-check: swaync/matugen-templates: no references
+  [PASS] retirement-check: swaync/checker-internals: no references
+  [PASS] retirement-check: swaync/test-fixtures: no references
+  [PASS] retirement-check: swaync/cross-package-refs: no references
+  [PASS] retirement-check: swaync/install-stow-lists: no references
+  [PASS] retirement-check: swaync/systemd-units: no references
+  [PASS] retirement-check: swaync/dbus-activation: no references
+  [PASS] retirement-check: swaync/xdg-autostart: no references
+  [PASS] retirement-check: swaync/host-package: no references
+  [REPORT] swaync/planning-archive: 1762 reference(s)
+  [REPORT] swaync/repo-prose: 9 reference(s)
+  Summary: surface=swaync status=retired failed_classes=0
+  [SKIP] swayosd/own-tree: own-tree path(s) not present under /home/builder/dotfiles: swayosd/
+  [PASS] retirement-check: swayosd/layer-window-rules: no references
+  [PASS] retirement-check: swayosd/autostart: no references
+  [PASS] retirement-check: swayosd/keybinds: no references
+  [PASS] retirement-check: swayosd/contract-json: no references
+  [PASS] retirement-check: swayosd/matugen-templates: no references
+  [PASS] retirement-check: swayosd/checker-internals: no references
+  [PASS] retirement-check: swayosd/test-fixtures: no references
+  [PASS] retirement-check: swayosd/cross-package-refs: no references
+  [PASS] retirement-check: swayosd/install-stow-lists: no references
+  [PASS] retirement-check: swayosd/systemd-units: no references
+  [PASS] retirement-check: swayosd/dbus-activation: no references
+  [PASS] retirement-check: swayosd/xdg-autostart: no references
+  [PASS] retirement-check: swayosd/host-package: no references
+  [REPORT] swayosd/planning-archive: 1311 reference(s)
+  [REPORT] swayosd/repo-prose: 3 reference(s)
+  Summary: surface=swayosd status=retired failed_classes=0
+  [SKIP] wleave/own-tree: own-tree path(s) not present under /home/builder/dotfiles: wleave/:hypr/.config/hypr/scripts/wleave.sh
+  [PASS] retirement-check: wleave/layer-window-rules: no references
+  [PASS] retirement-check: wleave/autostart: no references
+  [PASS] retirement-check: wleave/keybinds: no references
+  [PASS] retirement-check: wleave/contract-json: no references
+  [PASS] retirement-check: wleave/matugen-templates: no references
+  [PASS] retirement-check: wleave/checker-internals: no references
+  [PASS] retirement-check: wleave/test-fixtures: no references
+  [PASS] retirement-check: wleave/cross-package-refs: no references
+  [PASS] retirement-check: wleave/install-stow-lists: no references
+  [PASS] retirement-check: wleave/systemd-units: no references
+  [PASS] retirement-check: wleave/dbus-activation: no references
+  [PASS] retirement-check: wleave/xdg-autostart: no references
+  [PASS] retirement-check: wleave/host-package: no references
+  [REPORT] wleave/planning-archive: 1724 reference(s)
+  [REPORT] wleave/repo-prose: 1 reference(s)
+  Summary: surface=wleave status=retired failed_classes=0
+  [SKIP] ags/own-tree: own-tree path(s) not present under /home/builder/dotfiles: ags/
+  [PASS] retirement-check: ags/layer-window-rules: no references
+  [PASS] retirement-check: ags/autostart: no references
+  [PASS] retirement-check: ags/keybinds: no references
+  [PASS] retirement-check: ags/contract-json: no references
+  [PASS] retirement-check: ags/matugen-templates: no references
+  [PASS] retirement-check: ags/checker-internals: no references
+  [PASS] retirement-check: ags/test-fixtures: no references
+  [PASS] retirement-check: ags/cross-package-refs: no references
+  [PASS] retirement-check: ags/install-stow-lists: no references
+  [PASS] retirement-check: ags/systemd-units: no references
+  [PASS] retirement-check: ags/dbus-activation: no references
+  [PASS] retirement-check: ags/xdg-autostart: no references
+  [PASS] retirement-check: ags/host-package: no references
+  [REPORT] ags/planning-archive: 1287 reference(s)
+  [REPORT] ags/repo-prose: 107 reference(s)
+  Summary: surface=ags status=retired failed_classes=0
+  [SKIP] wlogout/own-tree: no own-tree path declared in the registry for this surface
+  [PASS] retirement-check: wlogout/layer-window-rules: no references
+  [PASS] retirement-check: wlogout/autostart: no references
+  [PASS] retirement-check: wlogout/keybinds: no references
+  [PASS] retirement-check: wlogout/contract-json: no references
+  [PASS] retirement-check: wlogout/matugen-templates: no references
+  [PASS] retirement-check: wlogout/checker-internals: no references
+  [PASS] retirement-check: wlogout/test-fixtures: no references
+  [PASS] retirement-check: wlogout/cross-package-refs: no references
+  [PASS] retirement-check: wlogout/install-stow-lists: no references
+  [PASS] retirement-check: wlogout/systemd-units: no references
+  [PASS] retirement-check: wlogout/dbus-activation: no references
+  [PASS] retirement-check: wlogout/xdg-autostart: no references
+  [PASS] retirement-check: wlogout/host-package: no references
+  [REPORT] wlogout/planning-archive: 1058 reference(s)
+  [REPORT] wlogout/repo-prose: 0 reference(s)
+  Summary: surface=wlogout status=retired failed_classes=0
+  [SKIP] eww/own-tree: no own-tree path declared in the registry for this surface
+  [PASS] retirement-check: eww/layer-window-rules: no references
+  [PASS] retirement-check: eww/autostart: no references
+  [PASS] retirement-check: eww/keybinds: no references
+  [PASS] retirement-check: eww/contract-json: no references
+  [PASS] retirement-check: eww/matugen-templates: no references
+  [PASS] retirement-check: eww/checker-internals: no references
+  [PASS] retirement-check: eww/test-fixtures: no references
+  [PASS] retirement-check: eww/cross-package-refs: no references
+  [PASS] retirement-check: eww/install-stow-lists: no references
+  [PASS] retirement-check: eww/systemd-units: no references
+  [PASS] retirement-check: eww/dbus-activation: no references
+  [PASS] retirement-check: eww/xdg-autostart: no references
+  [PASS] retirement-check: eww/host-package: no references
+  [REPORT] eww/planning-archive: 1216 reference(s)
+  [REPORT] eww/repo-prose: 27 reference(s)
+  Summary: surface=eww status=retired failed_classes=0
+  [PASS] retirement-check: retirement-fixture/own-tree: no references
+  [PASS] retirement-check: retirement-fixture/layer-window-rules: no references
+  [PASS] retirement-check: retirement-fixture/autostart: no references
+  [PASS] retirement-check: retirement-fixture/keybinds: no references
+  [PASS] retirement-check: retirement-fixture/contract-json: no references
+  [PASS] retirement-check: retirement-fixture/matugen-templates: no references
+  [PASS] retirement-check: retirement-fixture/checker-internals: no references
+  [PASS] retirement-check: retirement-fixture/test-fixtures: no references
+  [PASS] retirement-check: retirement-fixture/cross-package-refs: no references
+  [PASS] retirement-check: retirement-fixture/install-stow-lists: no references
+  [PASS] retirement-check: retirement-fixture/systemd-units: no references
+  [PASS] retirement-check: retirement-fixture/dbus-activation: no references
+  [PASS] retirement-check: retirement-fixture/xdg-autostart: no references
+  [PASS] retirement-check: retirement-fixture/host-package: no references
+  [REPORT] retirement-fixture/planning-archive: 26 reference(s)
+  [REPORT] retirement-fixture/repo-prose: 1 reference(s)
+  Summary: surface=retirement-fixture status=retired failed_classes=0
+  stow-link-check — dangling-symlink sweep
+    target: /home/builder
+  
+    [SCOPE-SKIP] .config/hypr/scripts/tests/stow-link-fixtures: this checker's own deployed test fixtures — out of sweep scope, not an exemption (22-08/D-22-06)
+  [PASS] stow-link-check: .config: 43 symlink(s), none dangling
+  [PASS] stow-link-check: Pictures/Wallpapers: 92 symlink(s), none dangling
+  [PASS] stow-link-check: .: 1 symlink(s), none dangling
+  
+  Summary: 3 passed, 0 failed
+  [PASS] git status --porcelain is empty (/home/builder/dotfiles stays clean)
+
+Summary: 571 passed, 3 failed
