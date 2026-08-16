@@ -320,10 +320,6 @@ AUR_PKGS=(
     zsh
     oh-my-posh
 
-    # Limine Bootloader
-    limine-dracut-support
-    kernel-modules-hook
-
     # Code editors
     vscodium-bin
 
@@ -412,6 +408,23 @@ AUR_PKGS=(
     # weight).
     rose-pine-cursor
 )
+
+# ── AUR packages (host-only — skipped under --core-only) ─
+# Bootloader + kernel hooks: host-only. A container has no bootloader and
+# never reaches a boot, so these are out of --core-only scope for the same
+# reason install.sh:816's kernel-module-verify check skips there ("no
+# hardware section ran, so there is no kernel/driver work to check"). A
+# default (no-flag) run still appends and installs both — this changes only
+# the container-gate scope, not the real host install.
+AUR_PKGS_HOST=(
+    # Limine Bootloader
+    limine-dracut-support
+    kernel-modules-hook
+)
+
+if [[ "$CORE_ONLY" != "true" ]]; then
+    AUR_PKGS+=("${AUR_PKGS_HOST[@]}")
+fi
 
 # ── section_core_rice ─────────────────────────────────
 # Mirror sync, AUR-helper bootstrap, pacman + AUR package installs,
