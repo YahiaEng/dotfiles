@@ -715,8 +715,11 @@ Item {
                 //    properly-scaled Repeater of 60 bars around the ring —
                 //    do not carry this sizing forward past that plan.
                 //
-                //    A thick (16px), high-contrast (Colours.error — a hue
-                //    used nowhere else on this tab) partial ring, painted
+                //    A thick (16px) partial ring on the accent role
+                //    (Colours.primary — the accent token 21-UI-SPEC's Color
+                //    section assigns to this surface; an earlier revision
+                //    used Colours.error purely for gate contrast, which
+                //    broke that mapping and is corrected here), painted
                 //    ON TOP of the cover art (last child of artContainer,
                 //    so it paints after the masked image and placeholder
                 //    badge above it). Sweeps clockwise from the top,
@@ -751,7 +754,7 @@ Item {
                     ShapePath {
                         id: cavaVerifyPath
                         fillColor: "transparent"
-                        strokeColor: Colours.error
+                        strokeColor: Colours.primary
                         strokeWidth: 16
                         capStyle: ShapePath.RoundCap
 
