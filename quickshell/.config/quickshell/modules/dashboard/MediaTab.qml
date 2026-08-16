@@ -438,6 +438,14 @@ Item {
     readonly property int controlRowHeight: 32
     readonly property int playerSelectorHeight: 36
     readonly property int playerMenuRowHeight: 32
+    // D-21-10 — per-player volume mini-slider + readout (21-UI-SPEC.md
+    // "Per-Player Volume + Dedup Resolution"): a spacing-scale exception,
+    // not a 4px-grid multiple — 56px is narrow enough to fit inside the
+    // dropdown without widening it past what a label needs, wide enough
+    // to be a usable drag target. ~28px readout matches a 3-digit "100%"
+    // string at fontLabel size.
+    readonly property int playerMenuSliderWidth: 56
+    readonly property int playerMenuVolumeReadoutWidth: 28
     readonly property int timeLabelWidth: 36
     readonly property int transportSize: 44
     readonly property int transportEmphasizedSize: 60
@@ -1103,7 +1111,12 @@ Item {
                     y: playerSelector.menuOpensUpward
                         ? (playerSelector._pillTopY - playerMenu.height - root.spacingXs)
                         : (playerSelector._pillTopY + selectorPill.height + root.spacingXs)
-                    width: selectorPill.width
+                    // D-21-10: widened beyond the pill's own width so a
+                    // slider-bearing row has room without the label losing
+                    // all its budget — the pill alone is only ever wide
+                    // enough for a label (21-UI-SPEC.md "Per-Player
+                    // Volume + Dedup Resolution"). Render-gate adjustable.
+                    width: Math.max(selectorPill.width, root.artSize * 1.3)
                     height: menuColumn.height + root.spacingXs * 2
                     radius: root.spacingSm
                     color: Colours.surfaceVariant
@@ -1128,8 +1141,11 @@ Item {
                         Repeater {
                             model: playerSelector.playerList
                             delegate: Item {
+                                id: playerMenuRow
                                 width: menuColumn.width
                                 height: root.playerMenuRowHeight
+
+                                readonly property bool rowHasVolume: !!modelData.volumeSupported
 
                                 Row {
                                     anchors.fill: parent
@@ -1150,7 +1166,78 @@ Item {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: modelData.label || modelData.id || ""
                                         elide: Text.ElideRight
+                                        // D-21-10: on a row with a mini-slider, the
+                                        // existing checkmark-column budget also
+                                        // gives up the slider width, one gap and the
+                                        // % readout width — 21-UI-SPEC.md's own
+                                        // arithmetic, restated here verbatim rather
+                                        // than left as an anchor side-effect.
                                         width: menuColumn.width - root.spacingSm * 2 - (root.fontLabel + 4) - root.spacingXs
+                                            - (playerMenuRow.rowHasVolume ? (root.playerMenuSliderWidth + root.spacingSm + root.playerMenuVolumeReadoutWidth) : 0)
+                                        font.pixelSize: root.fontLabel
+                                        color: modelData.active ? Colours.onSurface : Colours.onSurfaceVariant
+                                    }
+
+                                    // ── Per-player volume (D-21-10) — a mini-slider
+                                    //    plus a percentage readout, present only on
+                                    //    rows whose player reports volume support;
+                                    //    rows without it stay label-only, mirroring
+                                    //    the bottom volumeRow's own support gate. One
+                                    //    `visible` binding covers both elements, so
+                                    //    neither can show without the other.
+                                    //    Deliberately given a higher `z` than the
+                                    //    row's own select-on-click MouseArea below —
+                                    //    a click/drag landing on this control's own
+                                    //    bounding box is consumed here first and never
+                                    //    reaches the row's selection handler, so
+                                    //    dragging a background player's volume never
+                                    //    switches to it. ─────────────────────────
+                                    Slider {
+                                        id: rowVolumeSlider
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        z: 1
+                                        visible: playerMenuRow.rowHasVolume
+                                        width: root.playerMenuSliderWidth
+                                        height: parent.height
+                                        from: 0
+                                        to: 1
+                                        value: modelData.volumeSupported ? modelData.volume : 0
+                                        onPressedChanged: {
+                                            if (!pressed && root.mediaBackend && modelData.volumeSupported)
+                                                root.mediaBackend.setVolumeForPlayer(modelData.id, rowVolumeSlider.value);
+                                        }
+
+                                        background: Rectangle {
+                                            x: rowVolumeSlider.leftPadding
+                                            y: rowVolumeSlider.topPadding + rowVolumeSlider.availableHeight / 2 - height / 2
+                                            width: rowVolumeSlider.availableWidth
+                                            height: 3
+                                            radius: 1.5
+                                            color: Colours.surfaceVariant
+
+                                            Rectangle {
+                                                width: rowVolumeSlider.visualPosition * parent.width
+                                                height: parent.height
+                                                radius: parent.radius
+                                                color: Colours.primary
+                                            }
+                                        }
+                                        handle: Rectangle {
+                                            x: rowVolumeSlider.leftPadding + rowVolumeSlider.visualPosition * (rowVolumeSlider.availableWidth - width)
+                                            y: rowVolumeSlider.topPadding + rowVolumeSlider.availableHeight / 2 - height / 2
+                                            width: 12
+                                            height: 12
+                                            radius: 6
+                                            color: Colours.primary
+                                        }
+                                    }
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: playerMenuRow.rowHasVolume
+                                        width: root.playerMenuVolumeReadoutWidth
+                                        horizontalAlignment: Text.AlignRight
+                                        text: modelData.volumeSupported ? (Math.round((modelData.volume || 0) * 100) + "%") : ""
                                         font.pixelSize: root.fontLabel
                                         color: modelData.active ? Colours.onSurface : Colours.onSurfaceVariant
                                     }

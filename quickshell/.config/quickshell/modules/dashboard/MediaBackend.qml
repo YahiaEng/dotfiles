@@ -296,13 +296,68 @@ Scope {
     readonly property string displayArtist: root.hasPlayer ? (root.activePlayer.trackArtist || "").trim() : ""
     readonly property string displayAlbum: root.hasPlayer ? (root.activePlayer.trackAlbum || "").trim() : ""
 
+    // ── Seekability latch (GATE-01 Parity Checklist gap C-11, closed here) ─
+    // MPRIS does not obligate a source to keep reporting a positive
+    // `mpris:length` on every read — this repo's own live session
+    // observed a real Firefox/YouTube track transiently report
+    // length:0/canSeek:false mid-track (21-BEHAVIOUR-BASELINE.md's own
+    // Provenance section). Without a latch, `lengthSeconds`/`canSeek`
+    // below would flicker the seek row off and on for exactly that
+    // transient condition — the reason the retiring AGS card's own
+    // `lib/media.ts` carried a trackKeyOf/updateSeekLatch pair. Ported
+    // here: once a track is confirmed seekable (native canSeek === true
+    // AND a positive length observed), that confirmation is held for the
+    // SAME track identity even if a later read reports a transient
+    // zero-length/false-canSeek — the latch resets only on a genuine
+    // track-identity change (a new player+title+artist) or the player
+    // disappearing.
+    function _trackKeyOf(p) {
+        if (!p)
+            return "";
+        return root._playerIdentity(p) + "|" + (p.trackTitle || "") + "|" + (p.trackArtist || "");
+    }
+
+    property string _seekLatchTrackKey: ""
+    property bool _seekLatchSeekable: false
+    property int _seekLatchLength: 0
+
+    function _updateSeekLatch() {
+        if (!root.hasPlayer) {
+            root._seekLatchTrackKey = "";
+            root._seekLatchSeekable = false;
+            root._seekLatchLength = 0;
+            return;
+        }
+        const key = root._trackKeyOf(root.activePlayer);
+        if (key !== root._seekLatchTrackKey) {
+            // A genuine track-identity change (or the very first
+            // observation) — start this track's own latch fresh before
+            // considering this read's values.
+            root._seekLatchTrackKey = key;
+            root._seekLatchSeekable = false;
+            root._seekLatchLength = 0;
+        }
+        const rawLength = root.activePlayer.lengthSupported === true ? root.activePlayer.length : 0;
+        const rawSeekable = root.activePlayer.canSeek === true && isFinite(rawLength) && rawLength > 0;
+        if (rawSeekable) {
+            root._seekLatchSeekable = true;
+            root._seekLatchLength = Math.floor(rawLength);
+        }
+    }
+
     // Guarded against the unsupported case, where the raw value is
     // meaningless, by reporting zero rather than a stale or NaN figure.
+    // Falls through to the latched length for THIS exact track when the
+    // current read is transiently zero/unsupported (C-11 above).
     readonly property int lengthSeconds: {
-        if (!root.hasPlayer || root.activePlayer.lengthSupported !== true)
+        if (!root.hasPlayer)
             return 0;
-        const l = root.activePlayer.length;
-        return (isFinite(l) && l > 0) ? Math.floor(l) : 0;
+        if (root.activePlayer.lengthSupported === true) {
+            const l = root.activePlayer.length;
+            if (isFinite(l) && l > 0)
+                return Math.floor(l);
+        }
+        return (root._seekLatchTrackKey === root._trackKeyOf(root.activePlayer)) ? root._seekLatchLength : 0;
     }
 
     // The native flag is a direct capability test, never a zero test — a
@@ -312,8 +367,16 @@ Scope {
     readonly property real volumeLevel: root.hasVolume ? root.activePlayer.volume : 0
 
     // Belt-and-suspenders guard kept from the previous implementation: the
-    // player's own seek capability AND a positive length.
-    readonly property bool canSeek: root.hasPlayer && root.activePlayer.canSeek === true && root.lengthSeconds > 0
+    // player's own seek capability AND a positive length — OR, per the
+    // latch above, this exact track was already confirmed seekable
+    // earlier and has not changed identity since (C-11).
+    readonly property bool canSeek: {
+        if (!root.hasPlayer)
+            return false;
+        if (root.activePlayer.canSeek === true && root.lengthSeconds > 0)
+            return true;
+        return root._seekLatchTrackKey === root._trackKeyOf(root.activePlayer) && root._seekLatchSeekable;
+    }
 
     // D-41: "populated" | "pending" | "empty" — see the file header for why
     // "pending" is retained by name but is now structurally unreachable
@@ -427,16 +490,41 @@ Scope {
         }
     }
 
-    onActivePlayerChanged: root._triggerArtResolve()
+    onActivePlayerChanged: {
+        root._triggerArtResolve();
+        root._updateSeekLatch();
+    }
 
     Connections {
         target: root.activePlayer
         function onTrackArtUrlChanged() {
             root._triggerArtResolve();
         }
+        // Seekability-latch inputs (C-11) — any of these can carry the
+        // transient zero-length/false-canSeek report the latch exists to
+        // survive, and a genuine track change also arrives on this same
+        // target via trackTitle/trackArtist.
+        function onCanSeekChanged() {
+            root._updateSeekLatch();
+        }
+        function onLengthChanged() {
+            root._updateSeekLatch();
+        }
+        function onLengthSupportedChanged() {
+            root._updateSeekLatch();
+        }
+        function onTrackTitleChanged() {
+            root._updateSeekLatch();
+        }
+        function onTrackArtistChanged() {
+            root._updateSeekLatch();
+        }
     }
 
-    Component.onCompleted: root._triggerArtResolve()
+    Component.onCompleted: {
+        root._triggerArtResolve();
+        root._updateSeekLatch();
+    }
 
     // ── Transport and volume — direct method calls / clamped property
     //    writes on the active player, each guarded on there being an
