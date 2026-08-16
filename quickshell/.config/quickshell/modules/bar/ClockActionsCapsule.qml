@@ -636,30 +636,26 @@ BarCapsule {
         id: notificationSource
     }
 
-    // ── Do-not-disturb ambient capsule tint (Phase 21 Plan 05, D-21-27,
-    //    21-UI-SPEC.md § DND Capsule Tint) — INSTANCE-LEVEL override of
-    //    the inherited `color:` on this capsule's own root BarCapsule
-    //    object, deliberately NOT a branch inside BarCapsule.qml's shared
-    //    expression: editing the shared component would spread the tint
-    //    to every other capsule in the bar (WorkspaceCapsule,
-    //    IdleInhibitorCapsule, ...), and only this one is meant to change.
+    // ── Do-not-disturb reads as a LIT BELL GLYPH, not an ambient capsule
+    //    tint. D-21-27 originally routed dndActive into an instance-level
+    //    `color:` override on this capsule's own root BarCapsule object,
+    //    washing the whole capsule in accent at 0.28. The operator reversed
+    //    that at Plan 05's blocking render gate (2026-08-16): the wash sat
+    //    behind and around the opaque clockFillPill, so the tinted region
+    //    engulfed the clock even though the pill itself never changed
+    //    colour. See D-21-27-R in 21-UI-SPEC.md § DND Capsule Tint.
     //
-    //    This capsule never sets `surfaced: true` (confirmed: the only two
-    //    occurrences of the word in this file are prose comments), so its
-    //    baseline fill is unconditionally "transparent" — bare glyphs on
-    //    the wallpaper, per BarCapsule.qml's own `!surfaced ? "transparent"
-    //    : (...)` expression. The tint below therefore fires REGARDLESS of
-    //    the surfaced branch, not as a variant inside it: the false branch
-    //    reproduces that exact expression unchanged, so nothing about the
-    //    untinted appearance shifts.
+    //    The replacement is not a new mechanism — it is the accent rule
+    //    21-UI-SPEC.md:115 already states ("Accent reserved for: ... lit
+    //    toggle chips (Gaming/DND/Dark when ON) ..."), expressed exactly as
+    //    gamingCell above already expresses it: a `tint` branch on the one
+    //    cell that owns the mode. No capsule-level `color:` override
+    //    remains here, so this capsule inherits BarCapsule.qml's shared
+    //    expression unmodified again, and BarRoles' dndSurface/dndSurfaceFg
+    //    pair is gone with it.
     //
-    //    Source of truth stays NotifServer.dnd, read through the existing
-    //    `notificationSource.dndActive` alias above — no second state
-    //    holder. No explicit `Behavior on color` is added here:
-    //    BarCapsule.qml already declares one on this same property, and a
-    //    base-type Behavior continues to apply to value changes driven by
-    //    an instance-level property override.
-    color: notificationSource.dndActive ? BarRoles.dndSurface : (!surfaced ? "transparent" : (hovered ? BarRoles.capsuleHover : BarRoles.capsule))
+    //    Source of truth is still NotifServer.dnd via the existing
+    //    `notificationSource.dndActive` alias — no second state holder.
 
     // ── The settings drawer — the same five axes D-18-01 names, sharing
     //    Task 2's drawer shape verbatim. Promoting that shape to a
@@ -840,17 +836,36 @@ BarCapsule {
         // D-13/QBAR-06: the fill, the badge and the FILL variable axis
         // (via `filled` above) all derive from the ONE
         // notificationSource.unreadCount input — no second source of
-        // "there are notifications". Three-branch tint: on-fill colour
-        // when unread, danger when the source is unavailable (D-24's
-        // migration of this branch, landed here rather than migrated
-        // twice in Task 3), neutral content colour otherwise.
+        // "there are notifications". dndActive is deliberately NOT added
+        // to `filled`/`fillActive`/`badgeVisible` below: do-not-disturb is
+        // a mode, not a count, and folding it into any of those three
+        // would break that single-input invariant.
         fillActive: notificationSource.unreadCount > 0
         fillColour: BarRoles.fillNotification
+        // Four-branch tint: on-fill colour when unread, danger when the
+        // source is unavailable (D-24's migration of this branch, landed
+        // here rather than migrated twice in Task 3), ACCENT while
+        // do-not-disturb is active (D-21-27-R — the lit-toggle-chip rule
+        // of 21-UI-SPEC.md:115, mirroring gamingCell's
+        // `gamingOn ? BarRoles.accent : contentColour` verbatim), neutral
+        // content colour otherwise.
+        //
+        // The DND branch sits BELOW the unread branch on purpose. When
+        // unread > 0 the glyph is drawn on cellFillPill filled
+        // BarRoles.fillNotification (= Colours.primary), and BarRoles.accent
+        // is ALSO Colours.primary — an accent glyph on that fill would be
+        // primary-on-primary and vanish. Nothing is lost by yielding: the
+        // glyph SHAPE already carries do-not-disturb unconditionally
+        // (`notifications_paused` outranks `notifications_active` in the
+        // glyph expression above), so the mode still reads when both are
+        // true; only the redundant colour cue defers.
         tint: {
             if (notificationSource.unreadCount > 0)
                 return BarRoles.fillNotificationFg;
             if (!notificationSource.available)
                 return BarRoles.danger;
+            if (notificationSource.dndActive)
+                return BarRoles.accent;
             return clockActionsCapsule.contentColour;
         }
         badgeVisible: notificationSource.unreadCount > 0

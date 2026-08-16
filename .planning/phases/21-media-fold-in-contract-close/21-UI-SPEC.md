@@ -37,9 +37,17 @@ created: 2026-08-16
 > | Probe element kinds (§ UI Considerations) | **Confirmed** — authored overrides applied; 0 unclassified |
 >
 > Values still left to the operator's eye rather than settled here: the linger
-> duration (5000 ms), the DND tint alpha (`0.28`), the frost value (`0.38`), and
+> duration (5000 ms), ~~the DND tint alpha (`0.28`)~~, the frost value (`0.38`), and
 > the five visualiser geometry numbers. All are single-constant tunables — final
 > pixel judgment happens at D-21-20's blocking combined render gate.
+>
+> **Amended 2026-08-16:** the DND alpha is struck because Plan 05's render gate did
+> not tune it — it rejected the mechanism the alpha belonged to. See D-21-27-R at
+> § DND Indicator. The lit-bell-glyph replacement has no alpha of its own, so DND
+> is no longer a tunable at all. This is the one case in this phase where a render
+> gate returned an approach result rather than a strength result; the escape valve
+> quoted there ("the fix is tuning the tint strength, not rethinking the approach")
+> turned out to be wrong, and the gate correctly overrode it.
 
 ---
 
@@ -179,10 +187,10 @@ The mask mechanism (`MultiEffect.maskEnabled`/`maskSource`, established at round
 |  |  | `loading` | ✅ explicit | Art resolving (album-art resolver's single-flighted subprocess in flight): placeholder holds through the cookie mask until the image source is ready. No spinner — the mask shape is stable across the transition so nothing reflows. |
 |  |  | `error` | ✅ explicit | Art fetch fails or the URL is rejected by the resolver's security discipline: falls back to the same surfaceVariant placeholder as the empty state. Logged only, no user-facing copy. |
 |  |  | `populated` | ◐ backstop | Loaded art at a NON-SQUARE aspect ratio must fill the cookie mask without letterboxing or horizontal/vertical distortion — the mask clips, the image does not stretch. This re-opens the round-4 clipping test that the circular mask previously satisfied; D-21-20's render gate must include a deliberately non-square cover fixture (e.g. a 16:9 and a 3:4 source) as an explicit check, not an incidental one. |
-| **E5** — DND-tinted bar clock/actions capsule | `interactive-control, static-content` | `loading` | ⊘ dismissed | The DND boolean is read synchronously from NotifServer.dnd, already live in ClockActionsCapsule. There is no asynchronous fetch and therefore no in-flight state to design. |
-|  |  | `error` | ✅ explicit | If the notification server is unavailable, dndActive reads false and the capsule renders its normal BarRoles.capsule fill — the tint is purely additive, so its absence is the existing correct appearance rather than a broken one. |
-|  |  | `overflow` | ⊘ dismissed | The capsule's content (clock text plus a fixed set of action glyphs) is unchanged by this phase; the DND change is a fill-colour swap on the outer surface only and adds no content that could overflow. |
-|  |  | `long-text` | ✅ explicit | Clock text and glyphs keep their existing tint (BarRoles.dndSurfaceFg = Colours.onSurface, deliberately NOT onAccent) because a 0.28-alpha accent wash over the capsule surface does not reach onPrimary's contrast target. Legibility of the longest clock string is therefore unchanged from the untinted state. |
+| **E5** — DND indicator on the bar clock/actions capsule (lit bell glyph per D-21-27-R) | `interactive-control, static-content` | `loading` | ⊘ dismissed | The DND boolean is read synchronously from NotifServer.dnd, already live in ClockActionsCapsule. There is no asynchronous fetch and therefore no in-flight state to design. |
+|  |  | `error` | ✅ explicit | If the notification server is unavailable, `dndActive` reads false **and** the bell cell's tint takes its `!available → BarRoles.danger` branch, which sits *above* the DND branch — so an unavailable source reads as danger, never as a lit DND chip. The indicator is purely additive: its absence is the existing correct appearance rather than a broken one. |
+|  |  | `overflow` | ⊘ dismissed | The capsule's content (clock text plus a fixed set of action glyphs) is unchanged by this phase; under D-21-27-R the DND change is a glyph-colour swap on one existing cell and adds no content that could overflow. |
+|  |  | `long-text` | ✅ explicit | **Amended for D-21-27-R:** the clock text is now wholly untouched by DND — the capsule fill has no DND branch at all, so legibility of the longest clock string is unchanged by construction rather than by contrast argument. (Original rationale, now moot: clock text and glyphs kept `BarRoles.dndSurfaceFg` = `Colours.onSurface`, deliberately not onAccent, because a 0.28-alpha accent wash did not reach onPrimary's contrast target.) |
 | **E6** — Bar media popout | `media, nav, interactive-control, static-content` | `empty` | ✅ explicit | No player: existing 'Nothing is playing' copy (MediaPopout.qml emptyStateText), with the ring in its static silence state. No new copy — the quiet ring is part of the existing empty register. |
 |  |  | `loading` | ✅ explicit | Same as the ring's cold-start rule: silhouette held until the first cava frame. The popout is the surface most likely to hit a cold start, since it is hover-driven and short-lived. |
 |  |  | `error` | ✅ explicit | cava unavailable: permanent silhouette, no copy. Identical to the Media tab's rule — one behaviour across both surfaces. |
@@ -233,7 +241,7 @@ Not applicable — QML/Quickshell project, no shadcn/component-registry mechanis
 Checker's non-blocking implementation notes, carried forward as planner obligations:
 
 1. `Design.qml` — add `readonly property int cavaLingerMs: 5000` (render-gate adjustable).
-2. `BarRoles.qml` — add the `dndSurface` / `dndSurfaceFg` pair (§ DND Capsule Tint).
+2. ~~`BarRoles.qml` — add the `dndSurface` / `dndSurfaceFg` pair (§ DND Capsule Tint).~~ **Retired by D-21-27-R:** the pair was added, then removed when the render gate reversed the ambient-tint approach. `BarRoles.qml` gains no DND tokens; the lit bell glyph reuses the existing `accent` role.
 3. `14-UI-SPEC.md` — apply the verbatim amendment at § Required amendment above. **This is a plan task in its own right, not an implied side effect of building the ring** (D-21-04 names the amendment itself as a required deliverable).
 
 ---
@@ -335,36 +343,76 @@ All five geometry values are render-gate discretion, not spec-locked pixels — 
 
 **Dedup interaction (the required resolution):** D-21-09's collapsing is a **display-list-only** operation. When two `Mpris.players.values` entries are recognised as the same perceptual source (title-substring or position/length proximity match), the dedup heuristic picks one canonical entry to appear in `players` (the switcher's model) and drops the other from that list — it does not merge two live volume-capable objects into one control. The surviving canonical entry's own `.volume`/`.volumeSupported` are what the row's mini-slider (and, if it's the active player, the bottom `volumeRow`) read and write, via the same `setVolumeForPlayer`/`setVolume` calls as any other row. **No fan-out, no dual-write:** a collapsed row's volume control behaves exactly like any single player's — it is only the *display* that is collapsed, never the underlying MPRIS object being controlled.
 
-### DND Capsule Tint (D-21-27, tint strength is Claude's discretion)
+### DND Indicator — ~~Capsule Tint~~ Lit Bell Glyph (D-21-27 → **D-21-27-R**, reversed at the render gate)
 
-Source of truth stays `NotifServer.dnd`, already read into `ClockActionsCapsule.qml`'s `sourceRoot.dndActive` (`ClockActionsCapsule.qml:621`) — this phase only needs to route that existing boolean into the capsule's own fill, plus add the blended token pair to `BarRoles.qml`.
+> **REVERSED 2026-08-16 at Plan 05 Task 3's blocking human-verify gate.** D-21-27's
+> ambient whole-capsule tint shipped as specified below and was rejected on sight. The
+> spec's own claim that the clock pill is "unchanged" was literally true — `clockFillPill`
+> is opaque `Colours.secondary` and never took the accent — but it missed what the
+> operator actually sees: the wash sits *behind and around* that opaque pill, so the
+> tinted region engulfs the clock even though the pill's colour is untouched. "The clock
+> pill does not change colour" and "the tint does not extend to the clock" are not the
+> same claim, and only the second one is what the design needed to satisfy.
+>
+> **Superseding decision (D-21-27-R):** DND reads as a **lit bell glyph**, not an ambient
+> surface. This is not a new mechanism — it is the accent rule this very document already
+> states at § Accent Discipline: *"Accent reserved for: ... lit toggle chips
+> (Gaming/DND/Dark when ON) ..."*. The capsule-wide wash was the departure from that rule;
+> the reversal restores it.
 
-**Recommended new `BarRoles.qml` tokens** (following the file's own established `Qt.rgba(roleColour.r/.g/.b, alpha)` blend pattern, e.g. `barSurface`/`capsuleHover`):
+Source of truth is unchanged: `NotifServer.dnd`, read into `ClockActionsCapsule.qml`'s
+`notificationSource.dndActive` (`ClockActionsCapsule.qml:621`).
+
+**`BarRoles.qml` gains no tokens.** The `dndSurface`/`dndSurfaceFg` pair specified below was
+added, then removed with the reversal — a lit glyph needs no blended surface, it reuses the
+existing `accent` role. A comment marks the vacated spot so the pair is not re-added by
+reflex.
+
+The whole change is one branch on the bell cell's `tint`, mirroring `gamingCell`'s
+`gamingOn ? BarRoles.accent : contentColour` (`ClockActionsCapsule.qml:823`) verbatim:
 
 ```qml
-readonly property color dndSurface: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.28)
-readonly property color dndSurfaceFg: Colours.onSurface   // kept on onSurface, not onAccent —
-                                                            // 0.28 alpha over the existing capsule
-                                                            // surface doesn't reach onPrimary's
-                                                            // contrast target; glyphs/clock text
-                                                            // stay legible unchanged
+tint: {
+    if (notificationSource.unreadCount > 0)
+        return BarRoles.fillNotificationFg;
+    if (!notificationSource.available)
+        return BarRoles.danger;
+    if (notificationSource.dndActive)
+        return BarRoles.accent;        // ← D-21-27-R
+    return clockActionsCapsule.contentColour;
+}
 ```
-
-`ClockActionsCapsule.qml`'s outer fill (currently inherited from `BarCapsule.color`, the shared `!surfaced ? "transparent" : (hovered ? capsuleHover : capsule)` expression) needs one additional branch specific to this capsule: when `sourceRoot.dndActive` is true, the outer surface uses `BarRoles.dndSurface` instead of `BarRoles.capsule`/`capsuleHover`. The inner clock pill (`clockFillPill`, already filled `BarRoles.fillClock` = `Colours.secondary`) is **unchanged** — DND tints the outer capsule surface only, not the clock pill nested inside it, avoiding a colour clash between two simultaneously-tinted layers.
 
 ```
 Normal:                          DND active:
 ┌───────────────────────────┐    ┌───────────────────────────┐
-│ ⏰ 14:32   💡 🔔 ⚙ ⏻       │    │▓⏰ 14:32   💡 🔔 ⚙ ⏻      ▓│
+│ ⏰ 14:32   💡 🔔 ⚙ ⏻       │    │ ⏰ 14:32   💡 🔕 ⚙ ⏻       │
 └───────────────────────────┘    └───────────────────────────┘
-  BarRoles.capsule (30%)           BarRoles.dndSurface (accent
-                                    wash) — whole capsule, clock
-                                    pill's own secondary fill unchanged
+  capsule fill inherited from      capsule fill IDENTICAL — no
+  BarCapsule.qml, unmodified       instance-level override at all;
+                                    only the bell cell changes, to
+                                    the `notifications_paused` glyph
+                                    in BarRoles.accent
 ```
 
-Colour transition uses the same `Behavior on color { ColorAnimation { duration: Motion.standardDuration; easing... Motion.standardEasing } }` idiom already present on `clockFillPill` (`ClockActionsCapsule.qml:163` area) — no new motion token.
+**Two ordering constraints, both load-bearing:**
 
-**Alpha `0.28` is the recommended starting point, not a locked value** — CONTEXT.md's own escape valve applies here: "if it reads as visually loud the fix is tuning the tint strength, not rethinking the approach." Render-gate adjustable between roughly `0.20`–`0.35` without touching the mechanism.
+1. **The DND branch sits below the unread branch.** `BarRoles.accent` and
+   `BarRoles.fillNotification` are *both* `Colours.primary`, so when `unreadCount > 0` the
+   glyph is drawn on a primary-filled `cellFillPill` — an accent glyph there would be
+   primary-on-primary and disappear. Nothing is lost by yielding: the glyph *shape* already
+   carries DND unconditionally (`notifications_paused` outranks `notifications_active` in
+   the glyph expression), so the mode still reads when both are true; only the redundant
+   colour cue defers.
+2. **DND is not folded into `filled` / `fillActive` / `badgeVisible`.** Those three derive
+   from the single `unreadCount` input per D-13/QBAR-06. Do-not-disturb is a mode, not a
+   count; adding it to any of them would break that invariant.
+
+Colour transition needs no new motion token — `ActionCell`'s `glyphText` inherits the
+existing `Behavior on color` idiom already present on the cell's own colour properties.
+
+**Tint strength is no longer a tunable.** The `0.20`–`0.35` alpha escape valve applied to a
+blended surface; a lit glyph is a full-strength accent role with no alpha of its own.
 
 ### Frost unification value (D-21-26, resolved — not open)
 
