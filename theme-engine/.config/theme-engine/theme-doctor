@@ -593,6 +593,39 @@ else
     echo "  [SKIP] retirement-check ($RETIREMENT_CHECK not found or not executable)"
 fi
 
+# ── stow-link-check fold (22-02, RETIRE-09/D-22-06) ─────────────────────
+# SC-2's symlink clause ("no dangling reference exists anywhere in the
+# reproduced system") had no mechanism anywhere in this repo before this
+# fold — the same "green gates, broken surface" gap the folds above close,
+# applied to dangling symlinks under every stow-created target. Every
+# [PASS]/[FAIL] line folds into the tally exactly like the folds above;
+# [SKIP]/[EXEMPT] lines pass through unfolded via the bare `*)` arm, the
+# same D-18-37 tier-split discipline the retirement-check fold above
+# already applies.
+#
+# UNLIKE the hypr-equivalence-check fold, this checker reads files on disk
+# and never touches the compositor, so it carries NO live-session guard —
+# it must stay unguarded so it actually runs inside a headless fresh-
+# install container (this is precisely what makes plan 22-04's container
+# step possible; a live-session gate here would make the new checker
+# silently skip in the one environment that matters).
+#
+# STOW_LINK_CHECK honours an existing env override (the retirement-check
+# fold's own precedent) so the guarded-skip degradation path itself stays
+# provable via STOW_LINK_CHECK=/nonexistent.
+STOW_LINK_CHECK="${STOW_LINK_CHECK:-$HOME/.config/hypr/scripts/stow-link-check}"
+if [[ -x "$STOW_LINK_CHECK" ]]; then
+    while IFS= read -r _slc_line; do
+        case "$_slc_line" in
+            *"[PASS]"*) check "stow-link-check: ${_slc_line#*\[PASS\] }" "0" ;;
+            *"[FAIL]"*) check "stow-link-check: ${_slc_line#*\[FAIL\] }" "1" ;;
+            *)          echo "  $_slc_line" ;;
+        esac
+    done < <("$STOW_LINK_CHECK" 2>/dev/null)
+else
+    echo "  [SKIP] stow-link-check ($STOW_LINK_CHECK not found or not executable)"
+fi
+
 # ── CLEAN-02 permanent invariant (D-50): repo stays clean after a theme
 #    switch. Guarded-skip mirrors the stow-conflict check above — this must
 #    degrade gracefully, not FAIL, when git or the repo itself is absent
