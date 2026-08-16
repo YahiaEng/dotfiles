@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: indicators-power-menu
 status: executing
-stopped_at: Completed 20-08-PLAN.md
-last_updated: "2026-08-15T21:28:12.520Z"
+stopped_at: Completed 20-09-PLAN.md (RETIRE-04, swayosd removal)
+last_updated: "2026-08-16T01:02:53.504Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 45
-  completed_plans: 43
+  completed_plans: 44
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 20 (indicators-power-menu) — EXECUTING
-Plan: 9 of 10
+Plan: 10 of 10
 Status: Ready to execute
-Progress: [██████████] 96%
+Progress: [██████████] 98%
 Last activity: 2026-08-15 — Phase 20 execution started
 
 ## Performance Metrics
@@ -235,6 +235,7 @@ Last activity: 2026-08-15 — Phase 20 execution started
 | Phase 20 P05 | 55min | 2 tasks | 6 files |
 | Phase 20 P07 | ~30min | 3 tasks | 7 files |
 | Phase 20 P08 | multi-session (live sitting between Task 2 and Task 3) | 3 tasks | 3 files |
+| Phase 20 P09 | multi-session | 3 tasks | 22 files |
 
 ## Accumulated Context
 
@@ -516,6 +517,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: Brightness OSD trigger fixed: keybinds route through BrightnessBackend via a new shell.qml osd IpcHandler (qs ipc call) instead of a raw brightnessctl exec, so the backend remains the sole emitter the OSD watches
 - [Phase ?]: 20-07: Fixed Rule 1 bug in 20-06's scrim (Colours.surface.r/g/b read directly, resolved undefined, rendered opaque black) via a property-color intermediate; both cross-surface effects (OSD suppression, popup dismissal) wired through shell.qml's togglePowerMenu() since all three power-menu entry points converge there
 - [Phase ?]: 20-08: Both GATE-02 render gates approved live — RETIRE-04 and RETIRE-05 authorised at sha 8b6a111; brightness OSD half stays NOT-DEMONSTRABLE (accepted risk, WINDOWS row 78 open); Caps Lock poll fallback confirmed live (WINDOWS row 77 closed); Gate B security carry-over (criterion 13) recorded OVERRIDDEN
+- [Phase ?]: 20-09: swayosd (RETIRE-04) fully removed — package, libinput backend, and every reference class cleared; retirement-check flipped to retired with zero blocking hits
+- [Phase ?]: 20-09: quickshell-doctor's swayosd-client source-holds-by-construction sub-check removed (not repointed) — its own literal pattern permanently blocked retirement-check's blocking tier; the osd-differential proof beside it is the substantive ongoing regression guard
 
 ### Quick Tasks Completed
 
@@ -654,8 +657,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-15T21:28:12.496Z
-Stopped at: Completed 20-08-PLAN.md
+Last session: 2026-08-16T01:02:53.480Z
+Stopped at: Completed 20-09-PLAN.md (RETIRE-04, swayosd removal)
 Resume file: None
 
 ## Operator Next Steps

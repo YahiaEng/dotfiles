@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 51
+open_count: 53
 waived_count: 2
 fixed_count: 26
-total_count: 79
-last_updated: 2026-08-15T21:25:59.053Z
+total_count: 81
+last_updated: 2026-08-16T01:02:29.771Z
 ---
 
 # Broken Windows Ledger
@@ -94,6 +94,8 @@ last_updated: 2026-08-15T21:25:59.053Z
 | 77 | 20 | deviation | quickshell/.config/quickshell/modules/osd/CapsLockBackend.qml |  | QOSD-02 Caps Lock detector uses a bounded 250ms poll (shared with Osd.qml's recency Timer) instead of the event-driven sysfs watch the plan specified — GATE-01 measured the watch dead on this host; live ON-transition firing on a real physical key press is unverified | fixed |  | 2026-08-15T18:21:21.959Z | 2026-08-15T21:25:59.053Z |
 | 78 | 20 | deviation | hypr/.config/hypr/config/keybinds.lua |  | Brightness keybinds now route through BrightnessBackend via a new shell.qml osd IpcHandler instead of a raw brightnessctl exec, fixing the OSD trigger gap 20-04-SUMMARY.md named — unverified since this host has zero backlight-class devices; re-test on real laptop hardware | open |  | 2026-08-15T18:21:26.383Z |  |
 | 79 | 20 | unrun-verify | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | 20-07 Task 1/2/3 human-checks not run live (no restarts/keypresses this session): detector timing, warning chip placement, cascade stagger, OSD suppression, popup dismissal, scrim colour fix | open |  | 2026-08-15T18:48:59.990Z |  |
+| 80 | 20 | deviation | quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml |  | MPRIS import trips quickshell-doctor's zero-MPRIS-writer check — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md | open |  | 2026-08-16T01:02:25.646Z |  |
+| 81 | 20 | deviation | hypr/.config/hypr/config/permissions.lua |  | permissions-allowlist-paths-resolve gate fails (2 missing binary paths, 1 glob pattern) — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md | open |  | 2026-08-16T01:02:29.771Z |  |
 
 ````json
 [
@@ -1043,6 +1045,30 @@ last_updated: 2026-08-15T21:25:59.053Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-15T18:48:59.990Z",
+    "resolved_at": null
+  },
+  {
+    "id": 80,
+    "kind": "deviation",
+    "phase": "20",
+    "file": "quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml",
+    "line": null,
+    "description": "MPRIS import trips quickshell-doctor's zero-MPRIS-writer check — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T01:02:25.646Z",
+    "resolved_at": null
+  },
+  {
+    "id": 81,
+    "kind": "deviation",
+    "phase": "20",
+    "file": "hypr/.config/hypr/config/permissions.lua",
+    "line": null,
+    "description": "permissions-allowlist-paths-resolve gate fails (2 missing binary paths, 1 glob pattern) — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T01:02:29.771Z",
     "resolved_at": null
   }
 ]
