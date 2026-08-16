@@ -2739,8 +2739,9 @@ fi
 #    to and including the overview and became false the moment the bar
 #    mounted on the top level in wave 1, red and unnoticed for seven
 #    waves) and belong to the shell's own PID. This is also what stops the
-#    class of stale-namespace residue that left two inert eww-media-popup
-#    layerrules behind. Corrected in the same pass as the reservation
+#    class of stale-namespace residue that left two inert media-popup
+#    layerrules (from the retired widget-daemon era) behind. Corrected in
+#    the same pass as the reservation
 #    invariant (bar-reserved-zone-stability, above) — the file's two
 #    corrections are one decision, not two. ─────────────────────────────
 if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then

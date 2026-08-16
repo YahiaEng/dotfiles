@@ -8,8 +8,8 @@
 # ║  executes and nothing escapes its output context.       ║
 # ╚══════════════════════════════════════════════════════╝
 #
-# Report-only — never mutates the real ~/.cache/eww-media-player or
-# ~/.cache/eww-media-art. HOME is pointed at an isolated temp dir for
+# Report-only — never mutates the real ~/.cache/media-player or
+# ~/.cache/media-art. HOME is pointed at an isolated temp dir for
 # the entire run, which both media-players.sh and media-art-resolve.sh
 # derive their state/cache paths from.
 #

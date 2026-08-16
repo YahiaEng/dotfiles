@@ -17,7 +17,10 @@
 
 set -euo pipefail
 
-CACHE_DIR="$HOME/.cache/eww-media-art"
+# Renamed from the retired widget daemon's own cache-naming convention —
+# RETIRE-07, Phase 20 Plan 10, that daemon is uninstalled; this script's
+# own consumer has always owned the cache.
+CACHE_DIR="$HOME/.cache/media-art"
 MAX_BYTES=5000000
 TIMEOUT_SECS=5
 

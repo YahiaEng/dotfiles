@@ -17,11 +17,14 @@
 #                                       -> argv-form playerctl invocation; exit 2 on any
 #                                          validation failure (no playerctl call is ever made)
 #
-# State file: ~/.cache/eww-media-player ("<id>"), owned exclusively by `select`.
+# State file: ~/.cache/media-player ("<id>"), owned exclusively by `select`.
+# (Renamed from the retired widget daemon's own cache-naming convention —
+# RETIRE-07, Phase 20 Plan 10, that daemon is uninstalled; this script's
+# own consumer has always owned the state.)
 
 set -euo pipefail
 
-SELECTED_FILE="$HOME/.cache/eww-media-player"
+SELECTED_FILE="$HOME/.cache/media-player"
 
 # _valid_id <candidate> — the sole gate for T-08-07-02. A bash [[ =~ ]]
 # regex test: no subshell, no external command, never re-parses the

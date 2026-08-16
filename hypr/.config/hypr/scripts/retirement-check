@@ -90,8 +90,8 @@ swaync|retired|swaync/:hypr/.config/hypr/scripts/swaync-*|RETIRE-03
 swayosd|retired|swayosd/|RETIRE-04
 wleave|retired|wleave/:hypr/.config/hypr/scripts/wleave.sh|RETIRE-05
 ags|pending|ags/|RETIRE-06
-wlogout|pending||RETIRE-07
-eww|pending||RETIRE-07
+wlogout|retired||RETIRE-07
+eww|retired||RETIRE-07
 retirement-fixture|retired|hypr/.config/hypr/scripts/tests/retirement-fixtures/|SELF-TEST'
 
 declare -A REG_STATUS REG_OWNTREE REG_REQ
