@@ -1147,6 +1147,16 @@ Item {
 
                                 readonly property bool rowHasVolume: !!modelData.volumeSupported
 
+                                // The horizontal band, measured from this row's right
+                                // edge, occupied by the volume control pair. Stated once
+                                // and consumed twice — by the label's width budget below
+                                // and by the select-on-click MouseArea's right margin —
+                                // so the click target and the layout can never drift
+                                // apart into an overlap.
+                                readonly property real volumeRegionWidth: rowHasVolume
+                                    ? (root.playerMenuSliderWidth + root.spacingSm + root.playerMenuVolumeReadoutWidth)
+                                    : 0
+
                                 Row {
                                     anchors.fill: parent
                                     anchors.leftMargin: root.spacingSm
@@ -1184,7 +1194,7 @@ Item {
                                         // arithmetic, restated here verbatim rather
                                         // than left as an anchor side-effect.
                                         width: menuColumn.width - root.spacingSm * 2 - (root.fontLabel + 4) - root.spacingXs
-                                            - (playerMenuRow.rowHasVolume ? (root.playerMenuSliderWidth + root.spacingSm + root.playerMenuVolumeReadoutWidth) : 0)
+                                            - playerMenuRow.volumeRegionWidth
                                         font.pixelSize: root.fontLabel
                                         color: modelData.active ? Colours.onSurface : Colours.onSurfaceVariant
                                     }
@@ -1220,26 +1230,25 @@ Item {
                                         height: parent.height
                                         from: 0
                                         to: 1
-                                        // Dragging a Controls Slider assigns `value`
-                                        // imperatively, which would destroy a plain
-                                        // `value:` binding and leave the row frozen
-                                        // at the last dragged figure, deaf to volume
-                                        // changed anywhere else. The Binding below
-                                        // re-asserts backend ownership the moment the
-                                        // drag ends, so the row tracks the player
-                                        // again.
-                                        Binding on value {
-                                            when: !rowVolumeSlider.pressed
-                                            value: modelData.volumeSupported ? modelData.volume : 0
-                                            restoreMode: Binding.RestoreBindingOrValue
-                                        }
-                                        // `onMoved` fires for USER movement only,
-                                        // never for the programmatic re-assert above —
-                                        // so writing live here cannot feed back on
-                                        // itself. Live-during-drag rather than
-                                        // on-release: the previous
-                                        // `onPressedChanged`-only write gave no
-                                        // audible response until the button came up.
+                                        // Plain binding, exactly like the bottom
+                                        // volumeRow's own slider at the foot of this
+                                        // file — the known-working reference in this
+                                        // same surface. An earlier attempt wrapped
+                                        // this in `Binding on value { when: !pressed;
+                                        // restoreMode: RestoreBindingOrValue }` to
+                                        // survive the binding-break a Controls Slider
+                                        // causes when dragged; that added a second
+                                        // suspect to a control that was already not
+                                        // responding, and diverged from the reference
+                                        // for no proven gain. If the post-drag
+                                        // binding-break ever becomes a real complaint,
+                                        // it is a separate, reproducible fix.
+                                        value: modelData.volumeSupported ? modelData.volume : 0
+                                        // `onMoved` fires for USER movement only, so
+                                        // writing here cannot feed back on itself.
+                                        // Live-during-drag rather than on-release: an
+                                        // `onPressedChanged`-only write gives no
+                                        // audible response until the button comes up.
                                         onMoved: {
                                             if (root.mediaBackend && modelData.volumeSupported)
                                                 root.mediaBackend.setVolumeForPlayer(modelData.id, rowVolumeSlider.value);
@@ -1281,20 +1290,33 @@ Item {
                                     }
                                 }
 
-                                // Row-wide select-on-click, deliberately BEHIND the Row
-                                // above (`z: -1`). The Texts in that Row do not accept
-                                // mouse events, so a click on the label still falls
-                                // through to here and selects the player — but the
-                                // Slider does accept them, so a press or drag landing on
-                                // the volume control is consumed there and never reaches
-                                // this handler. That is the whole drag-a-background-
-                                // player's-volume-without-switching-to-it behaviour, and
-                                // it has to be expressed as a stacking relationship
-                                // between THESE two siblings; a `z` on the Slider (a
-                                // grandchild) cannot reach across parents to do it.
+                                // Select-on-click, scoped to the LABEL BAND ONLY — it
+                                // stops short of the volume control instead of covering
+                                // the whole row and relying on stacking order to yield.
+                                //
+                                // Two earlier revisions tried to arbitrate an overlap
+                                // rather than remove it: first `z: 1` on the Slider
+                                // (which cannot work — `z` orders an item only against
+                                // its own siblings, and this MouseArea is a sibling of
+                                // the enclosing Row, not of the Slider), then `z: -1`
+                                // here. Neither made the slider respond. Overlapping an
+                                // interactive control with a full-bleed hit target is
+                                // the fragile part; this removes the overlap, so no
+                                // stacking claim has to hold for the slider to work.
+                                //
+                                // Right margin = the volume band + the Row's own right
+                                // inset + one gap, all derived from volumeRegionWidth
+                                // so this can never drift out of step with the layout.
+                                // On a row without volume support the margin is zero
+                                // and the whole row stays clickable, as before.
                                 MouseArea {
-                                    anchors.fill: parent
-                                    z: -1
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: playerMenuRow.rowHasVolume
+                                        ? (playerMenuRow.volumeRegionWidth + root.spacingSm + root.spacingXs)
+                                        : 0
                                     enabled: !modelData.active
                                     onClicked: {
                                         if (root.mediaBackend)
