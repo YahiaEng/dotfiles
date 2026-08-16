@@ -178,5 +178,56 @@ not apply either — this is the clean-pass outcome, closer to world 3
 not break reproduction, and the remaining plans are about raising the bar
 rather than repairing anything") than any of the FAIL-flavored worlds.
 
-**Decision awaiting the operator:** `proceed-to-04`, `repair-again`, or
-`rescope` — see the blocking checkpoint returned alongside this document.
+**Operator decision: `proceed-to-04`.**
+
+**Resolution:** this run resolves to **world 1** — the gate reached a
+verdict (`overall=PASS`), and RETIRE-09's container-tier question is
+answered on evidence: the five package deletions (waybar, swaync,
+swayosd, wleave, ags) did **not** break fresh-install reproduction. Plan
+22-04 is unblocked and inherits the verbatim `theme-doctor` failure
+inventory above (3 entries, structural-reason column deliberately empty)
+as its sole admissible D-22-09 input. No harness repair round is needed;
+no rescope is needed — the phase resumes its planned shape.
+
+## Threat model update: T-22-01-DOS closed, superseded by T-22-07-DOS
+
+Plan 22-01's baseline recorded T-22-01-DOS's mitigation claim ("the
+`timeout --kill-after=30` wrapper bounds the whole run") as **disproven
+by measurement** — the orphaned container `197980ef926b` was confirmed
+still `running=true` several minutes after the host wrapper had already
+exited with its own verdict.
+
+Plan 22-07 Task 2 replaced that mechanism (`podman run -d --cidfile` +
+bounded `wait` on bash's own `wait` builtin + `podman stop`→`kill`→verify
+escalation under a `trap ... EXIT INT TERM`) and is recorded in
+22-07-PLAN.md's threat register as **T-22-07-DOS**, disposition
+`mitigate`, explicitly **superseding** T-22-01-DOS. At the time that
+register entry was written, the mitigation was verified only on
+throwaway `sleep 600` containers (budget-expiry stop path and a
+self-delivered-SIGINT interrupt path), not on a real gate run.
+
+**This re-run is that production proof.** `run-20260816T222431Z` exercised
+the full mechanism end-to-end against a real, non-trivial workload
+(125-package install, `stow.sh`, `theme-doctor`, `theme-parity`) and:
+
+- Wrote **exactly one** `overall=` line (`overall=PASS`) — the
+  double-verdict signature of the original defect (two independent
+  writers appending to the same `summary.log`) did not recur.
+- Left **no orphaned container**: `podman ps -a` after the run completed
+  was empty, confirmed directly (not inferred from exit code alone, per
+  this harness's own "never trust the container exit code alone"
+  discipline).
+- Did not need to exercise the stop/kill escalation itself (the container
+  exited on its own at 1042s, well inside the 10400s budget) — but the
+  cleanup trap's `podman rm -f "$cid"` ran unconditionally on the normal
+  `WAIT_RC=0` exit path too, and its removal is exactly what left
+  `podman ps -a` empty.
+
+**T-22-01-DOS status: CLOSED**, not merely "reported as disproven." The
+superseding mitigation (T-22-07-DOS) is now verified both on isolated
+throwaway containers (22-07 Task 2's own verify step) and in production
+against a real gate run (this document). Any future re-opening of this
+threat class should reference T-22-07-DOS's mechanism
+(`verify/container-run.sh`'s `podman run -d`/bounded-`wait`/trap block)
+as the current state, not the pre-22-07 attached-`timeout` form
+T-22-01-DOS described.
