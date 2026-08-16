@@ -5,8 +5,8 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
 current_phase_name: Fresh-Install Proof
 status: planning
-stopped_at: Completed 21-06-PLAN.md
-last_updated: "2026-08-16T17:35:34.096Z"
+stopped_at: Phase 22 context gathered
+last_updated: "2026-08-16T18:30:08.913Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
@@ -679,9 +679,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T05:33:21.844Z
-Stopped at: Completed 21-06-PLAN.md
-Resume file: None
+Last session: 2026-08-16T18:30:08.891Z
+Stopped at: Phase 22 context gathered
+Resume file: .planning/phases/22-fresh-install-proof/22-CONTEXT.md
 
 ## Operator Next Steps
 
