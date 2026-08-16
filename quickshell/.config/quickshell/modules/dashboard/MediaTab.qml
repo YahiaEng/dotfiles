@@ -395,6 +395,21 @@ Item {
     readonly property int artCircleSize: root.artSize - (root.ringGap + root.ringStrokeWidth) * 2
     readonly property real ringRadius: root.artCircleSize / 2 + root.ringGap
     readonly property int artBadgeSize: Math.round(root.artCircleSize * 0.42)
+
+    // ── Visualiser geometry (D-21-01/03, 21-06 — 21-UI-SPEC.md
+    //    "Visualiser Geometry" table). 60 bars is LOCKED (D-21-03); the
+    //    four numeric values below are render-gate discretion, not
+    //    spec-locked pixels — 21-UI-SPEC.md's own framing. Inner radius
+    //    is `ringRadius` itself (unchanged), so the silence footprint
+    //    lands pixel-for-pixel where the old dashed ring sat.
+    readonly property int visualiserBarCount: 60
+    // Outer radius at full amplitude = ringRadius + visualiserMaxExtension.
+    readonly property real visualiserMaxExtension: 14
+    // Minimum sliver length at silence — matches the old ring's
+    // dashPattern dash length at ringStrokeWidth, the exact property the
+    // silence-state equivalence argument (D-21-01) depends on.
+    readonly property real visualiserMinSliver: 3
+    readonly property real visualiserBarStrokeWidth: 2
     readonly property int detailsWidth: 340
     readonly property int controlRowHeight: 32
     readonly property int playerSelectorHeight: 36
@@ -538,88 +553,81 @@ Item {
             // overlap since the ring's radius is strictly outside the
             // art's own). Static geometry — repaints only on resize or a
             // theme-driven colour change, never per frame while idle.
+            // ── D-21-01 full expansion (21-06) — 60 radial bars replacing
+            //    BOTH the round-3 static dashed ring (formerly
+            //    `artRingPath`, a `PathAngleArc`) and 21-01's tracer single
+            //    "clock hand" (formerly `cavaBarPath`). Each bar is one
+            //    straight radial segment — the reference shell's "clock
+            //    hand" construction, never an arc. Bar index maps to angle
+            //    deterministically (index * 360/60), never sorted,
+            //    filtered or re-keyed, so identical audio always produces
+            //    the identical arrangement across a shell restart.
+            //
+            //    Silence AND failure both render the SAME silhouette: when
+            //    the service is not streaming, or a given band's index is
+            //    missing from a short/malformed array, that bar falls
+            //    through to the minimum sliver in the outline role — this
+            //    is the exact geometric equivalence the round-3 ring was
+            //    accepted on (21-CONTEXT.md D-21-01's silence-state
+            //    argument), now reproduced per-bar rather than as one
+            //    static dashed circle.
             Shape {
                 id: artRing
                 anchors.fill: parent
                 asynchronous: true
                 preferredRendererType: Shape.CurveRenderer
 
-                ShapePath {
-                    id: artRingPath
-                    fillColor: "transparent"
-                    strokeColor: Colours.outline
-                    strokeWidth: root.ringStrokeWidth
-                    capStyle: ShapePath.RoundCap
-                    strokeStyle: ShapePath.DashLine
-                    // Dash length ~= strokeWidth (a round dot under
-                    // RoundCap), gap wide enough that each mark reads as
-                    // separate rather than a solid ring. At this radius the
-                    // pattern lands near 56 marks — close to upstream's
-                    // fixed 60-bar visualiser density (`visualiserBars`
-                    // default, `serviceconfig.hpp`) without depending on
-                    // any bar count this repo has no audio service to
-                    // supply.
-                    dashPattern: [1, 3]
+                Repeater {
+                    model: root.visualiserBarCount
 
-                    startX: artSlot.width / 2 + root.ringRadius
-                    startY: artSlot.height / 2
+                    ShapePath {
+                        id: visualiserBar
+                        fillColor: "transparent"
+                        strokeWidth: root.visualiserBarStrokeWidth
+                        capStyle: ShapePath.RoundCap
 
-                    PathAngleArc {
-                        centerX: artSlot.width / 2
-                        centerY: artSlot.height / 2
-                        radiusX: root.ringRadius
-                        radiusY: root.ringRadius
-                        startAngle: 0
-                        sweepAngle: 360
-                    }
+                        readonly property int barIndex: index
+                        readonly property real angleRad: (visualiserBar.barIndex * (360 / root.visualiserBarCount) - 90) * Math.PI / 180
 
-                    Behavior on strokeColor {
-                        enabled: Motion.motionEnabled
-                        ColorAnimation {
-                            duration: Motion.standardDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.standardEasing
+                        // Per-bar fallback: streaming AND this specific
+                        // index present in the published array. A short
+                        // or torn frame (fewer values than barCount) still
+                        // leaves every out-of-range bar on the silence
+                        // sliver rather than stale/undefined geometry.
+                        readonly property bool hasLiveData: CavaService.streaming
+                            && CavaService.bars.length > visualiserBar.barIndex
+                        readonly property real amplitude: visualiserBar.hasLiveData
+                            ? Math.max(0, Math.min(1, CavaService.bars[visualiserBar.barIndex]))
+                            : 0
+                        readonly property real outerRadius: root.ringRadius
+                            + root.visualiserMinSliver
+                            + visualiserBar.amplitude * (root.visualiserMaxExtension - root.visualiserMinSliver)
+
+                        startX: artSlot.width / 2 + root.ringRadius * Math.cos(visualiserBar.angleRad)
+                        startY: artSlot.height / 2 + root.ringRadius * Math.sin(visualiserBar.angleRad)
+
+                        PathLine {
+                            x: artSlot.width / 2 + visualiserBar.outerRadius * Math.cos(visualiserBar.angleRad)
+                            y: artSlot.height / 2 + visualiserBar.outerRadius * Math.sin(visualiserBar.angleRad)
                         }
-                    }
-                }
 
-                // ── Phase 21 Plan 01 tracer (QMEDIA-02) — ONE live radial
-                //    segment, proving the cava-to-QML streaming contract
-                //    end-to-end before any expansion. A single "clock
-                //    hand" from `ringRadius` (the existing dashed ring's
-                //    own radius, unchanged) outward, its length driven by
-                //    `CavaService.bars[0]`. Do NOT read this as the full
-                //    D-21-01 visualiser — that replaces this whole block
-                //    with a Repeater of 60 bars in the expansion plan; this
-                //    is deliberately the minimum slice that proves the
-                //    pipe. Floors at a 3px sliver so silence (or no cava
-                //    process at all) never reads as a vanished segment,
-                //    and grows to 14px at full amplitude (T-21-02's array
-                //    is already length-capped upstream in CavaService).
-                ShapePath {
-                    id: cavaBarPath
-                    fillColor: "transparent"
-                    strokeColor: Colours.primary
-                    strokeWidth: root.ringStrokeWidth
-                    capStyle: ShapePath.RoundCap
+                        // D-21-04: outline at silence/no-data, primary
+                        // (accent) only while this band genuinely carries
+                        // amplitude — reusing the file's own existing
+                        // stroke-colour transition idiom (motion-gated,
+                        // Motion.standardDuration/standardEasing), not a
+                        // newly invented animation path.
+                        strokeColor: (visualiserBar.hasLiveData && visualiserBar.amplitude > 0)
+                            ? Colours.primary
+                            : Colours.outline
 
-                    readonly property real _level: CavaService.bars.length > 0 ? Math.max(0, Math.min(1, CavaService.bars[0])) : 0
-                    readonly property real _outerRadius: root.ringRadius + 3 + cavaBarPath._level * 11
-
-                    startX: artSlot.width / 2
-                    startY: artSlot.height / 2 - root.ringRadius
-
-                    PathLine {
-                        x: artSlot.width / 2
-                        y: artSlot.height / 2 - cavaBarPath._outerRadius
-                    }
-
-                    Behavior on strokeColor {
-                        enabled: Motion.motionEnabled
-                        ColorAnimation {
-                            duration: Motion.standardDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.standardEasing
+                        Behavior on strokeColor {
+                            enabled: Motion.motionEnabled
+                            ColorAnimation {
+                                duration: Motion.standardDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Motion.standardEasing
+                            }
                         }
                     }
                 }
