@@ -4,15 +4,15 @@ milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 21
 current_phase_name: Media Fold-In & Contract Close
-status: planning
+status: executing
 stopped_at: Phase 21 UI-SPEC approved
-last_updated: "2026-08-16T03:21:50.088Z"
+last_updated: "2026-08-16T04:20:30.225Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 45
+  total_plans: 54
   completed_plans: 45
   percent: 67
 ---
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 Phase: 21 — Media Fold-In & Contract Close
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Progress: [██████████] 100%
 Last activity: 2026-08-16 — Phase 20 complete, transitioned to Phase 21
 

@@ -119,8 +119,7 @@ scope for v4.0 entirely).
   sets 24 — both are superseded; cava's bar count is config-driven, so this is a
   free choice with no upstream constraint.
 
-- **D-21-04: The ring takes the accent role, and `14-UI-SPEC.md` is amended to
-  say so.** The spec currently reserves primary/accent for an enumerated list
+- **D-21-04: The ring takes the accent role, and `14-UI-SPEC.md` is amended to say so.** The spec currently reserves primary/accent for an enumerated list
   (tab indicator, lit toggle chips, active motion-scale segment, play/pause
   pressed state, calendar "today", pending-pulse) and explicitly forbids it as
   "a general interactive-element default" — which is why the static ring was
@@ -135,8 +134,7 @@ scope for v4.0 entirely).
   gain); interpolating outline→primary by amplitude (a third behaviour neither
   the spec nor Caelestia describes).
 
-- **D-21-05: The ring renders on BOTH the dashboard Media tab and the bar's
-  `MediaPopout`.** QMEDIA-02's wording names only the Media tab; the operator
+- **D-21-05: The ring renders on BOTH the dashboard Media tab and the bar's `MediaPopout`.** QMEDIA-02's wording names only the Media tab; the operator
   extended it to the popout because that is the surface actually reachable
   without opening the drawer. This is what forces D-21-06's shared ownership —
   two independent surfaces claim one process.
@@ -168,8 +166,7 @@ scope for v4.0 entirely).
 
 ### Parity (QMEDIA-01)
 
-- **D-21-08: GATE-01's behavioural enumeration is taken off the LIVE card, and
-  no keybind restoration is required to do it.** The AGS daemon is running
+- **D-21-08: GATE-01's behavioural enumeration is taken off the LIVE card, and no keybind restoration is required to do it.** The AGS daemon is running
   (PID 1705 + `gjs` 1796) and still answers its request handler, so
   `ags request -i media toggle-media` summons the card on demand. Enumerate
   against the running surface per `18-BEHAVIOUR-BASELINE.md` §
@@ -206,8 +203,7 @@ scope for v4.0 entirely).
   The native `Mpris.players.values` already exposes `.volume`/`.volumeSupported`
   per player, so the data layer needs no new reader.
 
-- **D-21-11: Any genuine gap the enumeration finds is BUILT before the card is
-  deleted.** No accepted losses, no case-by-case ruling mid-phase. Rationale:
+- **D-21-11: Any genuine gap the enumeration finds is BUILT before the card is deleted.** No accepted losses, no case-by-case ruling mid-phase. Rationale:
   the deletion is irreversible and nothing is lost by waiting.
 
 - **D-21-12: `Super+M` opens the dashboard directly on the Media tab.** A new
@@ -226,8 +222,7 @@ scope for v4.0 entirely).
 
 ### Retirement (RETIRE-06) and the reader count (QMEDIA-03)
 
-- **D-21-13: The three orphaned bash scripts are deleted in the SAME commit as
-  the `ags` package.** Verified consumer sweep:
+- **D-21-13: The three orphaned bash scripts are deleted in the SAME commit as the `ags` package.** Verified consumer sweep:
   - `media-status.sh` (running now, PID 1960) — consumed **only** by
     `ags/lib/media.ts`. Orphaned by this deletion.
   - `media-players.sh` — consumed **only** by `ags/lib/media.ts`. Orphaned.
@@ -249,8 +244,7 @@ scope for v4.0 entirely).
   and the loopback/RFC1918 pre-flight rejection that mitigate request forgery
   against this machine. Do not delete it with the others.
 
-- **D-21-15: `test-media-hardening.sh` is trimmed to its surviving coverage AND
-  gains one new check.**
+- **D-21-15: `test-media-hardening.sh` is trimmed to its surviving coverage AND gains one new check.**
   - **Drop** checks 1/2/3 (hostile title/artist through `media-status.sh once`),
     4-7 (`media-players.sh` id/verb/arg allowlist) and 11 (the zero-player gate)
     — they test deleted files.
@@ -306,10 +300,7 @@ scope for v4.0 entirely).
     visualiser, not the AGS applet.
   - `dart-sass` (line 244) — **stays**, comment corrected per above.
 
-- **D-21-19: Comments naming the dead surface are REWRITTEN, not scrubbed and
-  not exempted.** `ags-media` appears in `windowrules.lua` as **two real layer
-  rules** (line 305 `blur = true`, line 352 `ignore_alpha = 0.25`) and **seven
-  comments** (lines 228, 278, 295, 301, 418, 461, 465, 527), plus one in
+- **D-21-19: Comments naming the dead surface are REWRITTEN, not scrubbed and not exempted.** `ags-media` appears in `windowrules.lua` as **two real layer rules** (line 305 `blur = true`, line 352 `ignore_alpha = 0.25`) and **seven comments** (lines 228, 278, 295, 301, 418, 461, 465, 527), plus one in
   `theme-parity:239` and several in `MediaTab.qml`. The rules go; the comments
   are rewritten so the **finding survives and the name goes** — e.g. "a fill
   alpha at or below the threshold silently discards blur" stated on its own
@@ -327,8 +318,7 @@ scope for v4.0 entirely).
   ruling, so the exemption would institutionalise a recurring judgement call
   immediately before the phase that rebuilds this machine from scratch.
 
-- **D-21-20: ONE combined gate unlocks the deletion — parity checklist and
-  rendered look in a single sitting, one verdict.** The gate covers both
+- **D-21-20: ONE combined gate unlocks the deletion — parity checklist and rendered look in a single sitting, one verdict.** The gate covers both
   D-21-11's parity checklist and a live look at the cookie shape and the running
   ring. Rationale: Phase 20 ran two independent gates because its two surfaces
   shared no backend; here there is one surface, so two approval rounds for one
@@ -336,8 +326,7 @@ scope for v4.0 entirely).
   — **Reversibility:** one-way — this gate is what stands between the phase and
   an irreversible package deletion. Warrants a `checkpoint:decision`.
 
-- **D-21-21: `retirement-check`'s registry row `ags|pending|ags/|RETIRE-06`
-  (line 92) flips to retired** in the same commit, per the standing precedent.
+- **D-21-21: `retirement-check`'s registry row `ags|pending|ags/|RETIRE-06` (line 92) flips to retired** in the same commit, per the standing precedent.
 
 - **D-21-22: The phase closes on a VERIFIER RUN, not on operator attestation.**
   Phase 20 closed on attestation with no verifier run (commit `8cefc5a`). This
@@ -348,8 +337,7 @@ scope for v4.0 entirely).
 
 ### Debt — LEDGER-06
 
-- **D-21-23: Phase 16's `16-VERIFICATION.md` is reconstructed AS IT STOOD AT THE
-  TIME**, from the eight plan summaries, `16-UAT.md` and
+- **D-21-23: Phase 16's `16-VERIFICATION.md` is reconstructed AS IT STOOD AT THE TIME**, from the eight plan summaries, `16-UAT.md` and
   `16-OVER04-MEASUREMENT.md`. An honest historical record including the gaps
   Phase 16 actually left open — notably the OVER-04 frame-rate floor/target
   recorded UNMEASURED (only the CPU half passed, at 2.4× headroom) and the
@@ -362,8 +350,7 @@ scope for v4.0 entirely).
   Phase 20's LEDGER-01. Under this decision that closure is **not** folded into
   the Phase 16 report; the report says what was true at Phase 16's close.
 
-- **D-21-24: The two malformed `coverage:` blocks are fixed in place, with no
-  validator added.**
+- **D-21-24: The two malformed `coverage` blocks are fixed in place, with no validator added.**
   - `16-05-SUMMARY.md` D5 — invalid `status: not_run`.
   - `16-06-SUMMARY.md` D2/D3/D4 — missing the required `rationale` field.
   The classifier failed safe (escalated rather than dropping), so nothing was
