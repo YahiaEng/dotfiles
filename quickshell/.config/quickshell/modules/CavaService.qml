@@ -100,6 +100,12 @@ Singleton {
             if (root.alwaysOn || root._claimCount > 0)
                 return;
             cavaProcess.running = false;
+            // Drop the last frame with the process. `bars` masks _bars while
+            // stopped, but the NEXT claim() flips `running` true again the
+            // instant it is called — one frame ahead of any fresh stdout —
+            // and would otherwise re-publish this pre-kill amplitude data.
+            // Silence and failure must render the same silhouette.
+            root._bars = [];
         }
     }
 
@@ -117,7 +123,14 @@ Singleton {
                 const vals = line
                     .split(";")
                     .filter(s => s.length > 0)
-                    .map(s => Number(s) / 100)
+                    // Non-finite guard, positional: the length filter above
+                    // runs on the RAW token, so a malformed field still
+                    // reaches Number() and yields NaN — and NaN survives
+                    // every consumer's `Math.max(0, Math.min(1, v))` clamp
+                    // untouched, propagating into ring geometry. Map it to
+                    // silence rather than dropping it, so the bad field does
+                    // not shift every later band one index to the left.
+                    .map(s => { const n = Number(s) / 100; return Number.isFinite(n) ? n : 0; })
                     .slice(0, root.barCount);
                 // Publish ONLY when at least one value survived — a blank
                 // or torn line must leave the previous array in place

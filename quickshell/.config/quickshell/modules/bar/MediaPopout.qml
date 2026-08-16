@@ -153,6 +153,11 @@ SectionPopout {
     // amplitude without clipping: art diameter plus the gap and max
     // extension on both sides.
     readonly property int _ringSlotSize: root._artSize + Math.ceil((root._ringGap + root._visualiserMaxExtension) * 2)
+    // The ACTIVE PLAYER's own play state, mirroring MediaTab.qml's
+    // `backendPlaying` (MediaTab.qml:649). Read raw off the backend, NOT
+    // through an optimistic pending-state alias — the ring must follow the
+    // real transport, not a predicted one.
+    readonly property bool _backendPlaying: root.mediaBackend ? root.mediaBackend.playing : false
 
     Row {
         id: mediaRow
@@ -208,7 +213,18 @@ SectionPopout {
                         readonly property int barIndex: popoutBarDelegate.barIndex
                         readonly property real angleRad: (popoutVisualiserBar.barIndex * (360 / root._visualiserBarCount) - 90) * Math.PI / 180
 
-                        readonly property bool hasLiveData: CavaService.streaming
+                        // `root._backendPlaying` is load-bearing, not
+                        // belt-and-braces — the same term MediaTab.qml
+                        // carries at MediaTab.qml:815, and for the same
+                        // reason. Cava monitors the SYSTEM AUDIO OUTPUT, not
+                        // the selected MPRIS player, so gating on
+                        // CavaService.streaming alone draws a live ring around
+                        // a PAUSED source's cover art whenever anything else
+                        // on the system is making noise. A paused source must
+                        // show the even ring of slivers — the same silent-state
+                        // silhouette the stopped-audio case renders.
+                        readonly property bool hasLiveData: root._backendPlaying
+                            && CavaService.streaming
                             && CavaService.bars.length > popoutVisualiserBar.barIndex
                         readonly property real amplitude: popoutVisualiserBar.hasLiveData
                             ? Math.max(0, Math.min(1, CavaService.bars[popoutVisualiserBar.barIndex]))

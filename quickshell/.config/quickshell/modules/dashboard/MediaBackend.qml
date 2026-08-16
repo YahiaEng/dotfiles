@@ -176,7 +176,15 @@ Scope {
                 continue;
             var placed = false;
             for (var g = 0; g < groups.length; g++) {
-                if (root._isSamePerceptualSource(groups[g][0], p)) {
+                // Single-linkage: match against ANY member, not just
+                // groups[g][0]. _isSamePerceptualSource compares position and
+                // length against tolerance WINDOWS, which makes it a
+                // non-transitive relation — a third source can sit inside the
+                // window of member [1] while falling outside member [0]'s.
+                // Testing only the first member would then split one
+                // perceptual source into two switcher rows, and which rows
+                // you got would depend on the model's arrival order.
+                if (groups[g].some(m => root._isSamePerceptualSource(m, p))) {
                     groups[g].push(p);
                     placed = true;
                     break;
