@@ -474,10 +474,21 @@ if [[ "$GATE_FAIL" -eq 0 ]]; then
             [[ "$_al_raw" =~ ^[[:space:]]*# ]] && continue
             [[ "$_al_raw" =~ ^[[:space:]]*$ ]] && continue
 
+            # WR-02 fix: count only the delimiters BEFORE the reason column
+            # begins (the first 3 pipes), not every `|` byte in the raw
+            # line. The header documents `reason` as free-text prose with
+            # no restriction against containing a literal `|` — the prior
+            # exact-4 count treated any such pipe as an extra field and
+            # hard-failed the whole gate on legitimate data. `read` with
+            # fewer target vars than delimited fields already absorbs
+            # everything past the 3rd delimiter into the last var verbatim
+            # (including any further `|` bytes), so "at least 4 fields" is
+            # the correct check — a record with FEWER than 4 (missing a
+            # required column) is still rejected below.
             _al_nf=$(($(printf '%s' "$_al_raw" | tr -cd '|' | wc -c) + 1))
-            if [[ "$_al_nf" -ne 4 ]]; then
+            if [[ "$_al_nf" -lt 4 ]]; then
                 TD_STEP_OK=0
-                TD_FAIL_REASON="malformed allowlist record at line $_al_lineno (expected 4 pipe-delimited fields, got $_al_nf): $_al_raw"
+                TD_FAIL_REASON="malformed allowlist record at line $_al_lineno (expected at least 4 pipe-delimited fields, got $_al_nf): $_al_raw"
                 break
             fi
 
