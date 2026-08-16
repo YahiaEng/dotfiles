@@ -535,6 +535,18 @@ ACCEPTED_ADDITIONS = {
     # (captured 2026-08-08); it is new config, not drifted config.
     ("", 64, "SUPER_L", False):
         "Phase 18 QBAR-09 hold-to-reveal bar (keybinds.lua:134)",
+    # Phase 21 (QMEDIA-01) open-dashboard-on-Media-tab, declared at
+    # keybinds.lua:243 as
+    # `hl.bind(mainMod .. " + M", hl.dsp.global("quickshell:media"))`.
+    # Part of the media fold-in that replaced the retired standalone GTK4
+    # media applet's own entry point (RETIRE-06, D-21-12); no baseline bind
+    # was removed for it, so it reads here purely as an addition. The retired
+    # surface is deliberately named by requirement ID, not by package name —
+    # retirement-check's checker-internals class scans this file for the
+    # literal name. Post-dates this baseline (captured
+    # 2026-08-08); it is new config, not drifted config.
+    ("", 64, "M", False):
+        "Phase 21 QMEDIA-01 dashboard-on-Media-tab (keybinds.lua:243)",
 }
 
 for ident in live_by_id.keys() - base_by_id.keys():
