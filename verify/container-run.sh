@@ -7,7 +7,20 @@
 # ║  inside a fresh archlinux/archlinux podman container.  ║
 # ╚══════════════════════════════════════════════════════╝
 #
-# Usage: verify/container-run.sh
+# Usage: verify/container-run.sh [--cold]
+#
+#   --cold   Mount no host package caches at all — reproduces the original
+#            from-scratch behaviour byte-for-byte (22-09 perf). Use this to
+#            keep the cold-cache build path exercisable so a stale cache can
+#            never permanently hide a broken PKGBUILD. Without this flag,
+#            the run mounts the host's real pacman/paru caches READ-ONLY
+#            (source: 23 GB / 8.4 GB of real, hard-to-rebuild dev-machine
+#            state — see the cache-mount block below) plus a persistent,
+#            gitignored, container-writable pair under verify/cache/ for
+#            anything the run downloads or clones that was not already
+#            cached. Every run logs which mode it used and which paths were
+#            mounted (`cache-mode=`/`cache-*=` lines in summary.log), so a
+#            fast cached run is never later mistaken for a full cold proof.
 #
 # What this proves (INST-03, container tier): the hardened installer
 # (Phase 3 plans 03-01/03-02/03-03) reproduces the fully themed desktop's
@@ -35,6 +48,27 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
+# ── Argument parsing (22-09 perf) ─────────────────────────
+# Only one flag exists. Anything else is a hard error rather than a
+# silently-ignored typo.
+COLD_RUN=0
+for arg in "$@"; do
+    case "$arg" in
+        --cold)
+            COLD_RUN=1
+            ;;
+        -h | --help)
+            sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        *)
+            echo "container-run: unknown argument: $arg (see --help)" >&2
+            exit 1
+            ;;
+    esac
+done
+
 REPO_URL="https://github.com/yahiaeng/dotfiles"
 IMAGE="docker.io/archlinux/archlinux:latest"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -60,6 +94,32 @@ CONTAINER_SCRIPT_FILE="$LOG_DIR/container-script.sh"
 # evidence.
 CONTAINER_TIMEOUT="${CONTAINER_TIMEOUT:-10400}"
 
+# ── Host cache resolution (22-09 perf) ────────────────────
+# Resolved rather than hardcoded where a standard tool exists. pacman-conf
+# reads the real, possibly-customized CacheDir from /etc/pacman.conf;
+# XDG_CACHE_HOME is the standard override point for paru's own cache root
+# (paru has no equivalent introspection command).
+PACMAN_CACHE_HOST="$(pacman-conf CacheDir 2>/dev/null | head -n1)"
+PACMAN_CACHE_HOST="${PACMAN_CACHE_HOST:-/var/cache/pacman/pkg}"
+PARU_CACHE_HOST="${XDG_CACHE_HOME:-$HOME/.cache}/paru"
+
+# Writable, PERSISTENT (survives across runs — the point of "reuse"),
+# gitignored container-scoped cache pair. Never the same path as the host
+# caches above: pacman/paru write new downloads/clones here, the host
+# caches above are mounted read-only and are never a write target.
+#
+# Cleanup note: the container script chowns these to its own `builder`
+# user (a subordinate-range uid under rootless podman, proven live —
+# without the chown, `builder` gets "Permission denied" writing here at
+# all). A later plain `rm -rf verify/cache/` as the host user will
+# therefore fail partway through; use `podman unshare rm -rf
+# verify/cache/` (proven live to work) or sudo. This has no bearing on
+# T-22-09-DESTRUCT — that threat is about the READ-ONLY host caches
+# below, which no in-container process, chowned or not, can write to.
+CONTAINER_CACHE_DIR="$SCRIPT_DIR/cache"
+PACMAN_CACHE_WRITE="$CONTAINER_CACHE_DIR/pacman-write"
+PARU_CACHE_WRITE="$CONTAINER_CACHE_DIR/paru-write"
+
 echo "╔══════════════════════════════════════════╗"
 echo "║   container-run — installer regression   ║"
 echo "╚══════════════════════════════════════════╝"
@@ -72,9 +132,39 @@ if ! command -v podman &>/dev/null; then
     exit 1
 fi
 
+# ── Cache mount plan (22-09 perf) ─────────────────────────
+# Built once, used both for the podman invocation below and for the
+# summary.log record — evidence read months later must never leave a
+# reader guessing whether a fast run was a real from-scratch proof.
+CACHE_MOUNT_ARGS=()
+if [[ "$COLD_RUN" -eq 1 ]]; then
+    CACHE_MODE="cold"
+else
+    CACHE_MODE="warm"
+    mkdir -p "$PACMAN_CACHE_WRITE" "$PARU_CACHE_WRITE"
+    # T-22-09-DESTRUCT: host caches are `:ro`. Writes go only to the
+    # separate, container-scoped directories created above.
+    CACHE_MOUNT_ARGS+=(
+        -v "$PACMAN_CACHE_HOST:/caches/pacman-ro:ro,Z"
+        -v "$PARU_CACHE_HOST:/caches/paru-ro:ro,Z"
+        -v "$PACMAN_CACHE_WRITE:/caches/pacman-write:Z"
+        -v "$PARU_CACHE_WRITE:/caches/paru-write:Z"
+    )
+fi
+
 mkdir -p "$LOG_DIR"
 echo "Logs: $LOG_DIR"
-echo "# container-run summary — $TIMESTAMP" > "$SUMMARY_FILE"
+{
+    echo "# container-run summary — $TIMESTAMP"
+    echo "cache-mode=$CACHE_MODE"
+    if [[ "$CACHE_MODE" == "warm" ]]; then
+        echo "cache-pacman-ro=$PACMAN_CACHE_HOST"
+        echo "cache-paru-ro=$PARU_CACHE_HOST"
+        echo "cache-pacman-write=$PACMAN_CACHE_WRITE"
+        echo "cache-paru-write=$PARU_CACHE_WRITE"
+    fi
+} > "$SUMMARY_FILE"
+echo "Cache mode: $CACHE_MODE"
 
 # ── Pull a fresh image every run (no stale cached layers) ─
 echo ""
@@ -148,6 +238,22 @@ log_step() {
     fi
 }
 
+# ── Host cache reuse, pacman half (22-09 perf) ────────────────────────
+# Self-detecting on the mount's actual presence, not on an expanded host
+# variable — this heredoc is intentionally single-quoted (see the note
+# above it), so every $VAR here resolves INSIDE the container. Must run
+# BEFORE the bootstrap `pacman -Sy` below so the very first sync already
+# consults the read-only host mirror. pacman.conf's CacheDir directive is
+# consulted in the order listed and pacman downloads to the first entry
+# it can write to (pacman.conf(5)) — listing the read-only host mirror
+# first means anything the developer's own machine already built or
+# downloaded is found there and never re-fetched; anything new lands in
+# the second, writable, host-persisted directory, which never touches
+# the read-only mount (T-22-09-DESTRUCT).
+if [[ -d /caches/pacman-ro && -d /caches/pacman-write ]]; then
+    printf 'CacheDir = /caches/pacman-ro/\nCacheDir = /caches/pacman-write/\n' >> /etc/pacman.conf
+fi
+
 # ── Bootstrap: git + base-devel + sudo (needed for makepkg/paru, which
 #    refuse to run as root) ────────────────────────────────────────────
 if log_step "bootstrap (pacman -Sy git base-devel sudo)" /logs/01-bootstrap.log \
@@ -166,6 +272,33 @@ if [[ "$GATE_FAIL" -eq 0 ]]; then
     useradd -m builder
     echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder-nopasswd
     chmod 440 /etc/sudoers.d/builder-nopasswd
+    # 22-09 perf: the writable cache mounts are host directories owned by
+    # the container's mapped root (== the host user under rootless
+    # podman); `builder` maps to a different, subordinate-range uid and
+    # has no write access to them by default — proven live (throwaway
+    # container) to fail `mkdir` with "Permission denied" before this
+    # chown. Root can always write regardless of ownership, so this only
+    # matters for paru's builder-run clones, but pacman-write is chowned
+    # too for consistent, non-root-owned host-side artifacts.
+    [[ -d /caches/pacman-write ]] && chown -R builder:builder /caches/pacman-write
+    [[ -d /caches/paru-write ]] && chown -R builder:builder /caches/paru-write
+fi
+
+# ── Host cache reuse, paru half (22-09 perf) ──────────────────────────
+# paru has no pacman-style multi-directory CacheDir; its reusable state
+# (cloned AUR PKGBUILD trees under .../paru/clone) lives at a single
+# directory a -git package's pkgver() must be free to update via `git
+# pull`, so it cannot be the read-only mount itself. Best-effort,
+# skip-what-already-exists seed (`cp -an`, GNU coreutils, no rsync
+# dependency) copies the developer's real clone cache into the writable,
+# host-persisted directory once per run; paru is then pointed at that
+# writable directory for the rest of the run via XDG_CACHE_HOME (below,
+# at the install.sh invocation). A seed failure is NOT fatal — caching
+# is an optimization, not a correctness requirement of this gate.
+if [[ "$GATE_FAIL" -eq 0 && -d /caches/paru-ro && -d /caches/paru-write ]]; then
+    su - builder -c "mkdir -p /caches/paru-write/clone && cp -an /caches/paru-ro/clone/. /caches/paru-write/clone/ 2>/dev/null; exit 0" \
+        > /logs/01b-paru-cache-seed.log 2>&1
+    echo "step=paru-cache-seed status=attempted rc=$?" >> /logs/summary.log
 fi
 
 # ── Real `git clone` from the remote (D-56) — the true fresh-machine
@@ -183,9 +316,17 @@ fi
 
 # ── install.sh --core-only: pacman/AUR package installs + the hard-fail
 #    verify_packages table (D-63/D-64/D-65) ─────────────────────────────
+# XDG_CACHE_HOME repoints paru's own cache root at the writable,
+# host-persisted directory (seeded above) only when cache reuse is
+# active; under --cold (or if the mount is simply absent) builder falls
+# through to its normal ~/.cache, exactly today's from-scratch behaviour.
 if [[ "$GATE_FAIL" -eq 0 ]]; then
+    PARU_CACHE_ENV=""
+    if [[ -d /caches/paru-write ]]; then
+        PARU_CACHE_ENV="export XDG_CACHE_HOME=/caches/paru-write; "
+    fi
     if log_step "install.sh --core-only" /logs/03-install.log \
-        su - builder -c "cd ~/dotfiles && chmod +x install.sh stow.sh && ./install.sh --core-only"; then
+        su - builder -c "${PARU_CACHE_ENV}cd ~/dotfiles && chmod +x install.sh stow.sh && ./install.sh --core-only"; then
         echo "step=install status=ok" >> /logs/summary.log
     else
         echo "step=install status=fail" >> /logs/summary.log
@@ -291,6 +432,7 @@ trap cleanup_container EXIT INT TERM
 
 if ! podman run -d --cidfile="$CID_FILE" \
     -v "$LOG_DIR:/logs:Z" \
+    "${CACHE_MOUNT_ARGS[@]}" \
     "$IMAGE" bash /logs/container-script.sh > "$LOG_DIR/container-start.log" 2>&1; then
     echo "  [FAIL] podman run -d (log: $LOG_DIR/container-start.log)"
     echo "step=container-run status=fail" >> "$SUMMARY_FILE"
