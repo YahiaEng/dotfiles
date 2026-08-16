@@ -1510,7 +1510,33 @@ Item {
                     height: parent.height
                     from: 0
                     to: Math.max(1, root.mediaBackend ? root.mediaBackend.lengthSeconds : 1)
-                    value: root.seekDragging ? seekSlider.value : (root.mediaBackend ? root.mediaBackend.positionSeconds : 0)
+                    // NO `value:` binding here on purpose. This used to be
+                    //   value: root.seekDragging ? seekSlider.value : (...positionSeconds)
+                    // which references seekSlider.value from inside
+                    // seekSlider's OWN value binding — a self-reference, i.e.
+                    // a binding loop. positionSeconds tracks
+                    // activePlayer.position continuously (MediaBackend.qml:455),
+                    // so that loop was re-evaluated the whole time the user
+                    // was dragging and kept re-asserting the property against
+                    // them: the bar resisted the pointer and snapped back to
+                    // the playhead (operator-reported at Plan 08's gate).
+                    //
+                    // The freeze-while-dragging intent was right; expressing
+                    // it as a self-reference was not. The Binding below states
+                    // it directly instead — the backend owns `value` only
+                    // while the user is NOT dragging, and the Slider owns it
+                    // outright while they are.
+                    Binding {
+                        target: seekSlider
+                        property: "value"
+                        value: root.mediaBackend ? root.mediaBackend.positionSeconds : 0
+                        when: !root.seekDragging
+                        // RestoreNone, NOT RestoreBindingOrValue: on
+                        // deactivation this must simply STOP writing, never
+                        // restore some previously captured figure back over
+                        // the value the user is actively dragging.
+                        restoreMode: Binding.RestoreNone
+                    }
                     enabled: root.hasPlayer && root.mediaBackend.canSeek
                     wheelEnabled: true
                     onPressedChanged: {
@@ -1522,9 +1548,15 @@ Item {
                         if (pressed) {
                             root.seekDragging = true;
                         } else if (root.seekDragging) {
-                            root.seekDragging = false;
+                            // Issue the seek BEFORE clearing the flag.
+                            // Clearing first re-activates the Binding above,
+                            // which would immediately write the player's
+                            // not-yet-updated position over the dragged
+                            // figure — a visible snap back to the old
+                            // playhead in the instant before the seek lands.
                             if (root.mediaBackend)
                                 root.mediaBackend.seekTo(seekSlider.value);
+                            root.seekDragging = false;
                         }
                     }
 
