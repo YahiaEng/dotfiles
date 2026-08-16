@@ -178,3 +178,13 @@ None - no external service configuration required.
 ---
 *Phase: 22-fresh-install-proof*
 *Completed: 2026-08-16*
+
+## Self-Check: PASSED
+
+- FOUND: install.sh
+- FOUND: verify/container-run.sh
+- FOUND: .gitignore
+- FOUND: .planning/phases/22-fresh-install-proof/22-09-SUMMARY.md
+- FOUND commit: 1c24290 (Task 1)
+- FOUND commit: ee5009a (Task 2)
+- FOUND commit: 9c78d60 (Task 3 / this SUMMARY)

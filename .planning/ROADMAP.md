@@ -444,7 +444,9 @@ Cross-cutting constraints:
 - **Not a pure-debt phase.** Every LEDGER item is interleaved into Phases 18-21; nothing debt-shaped is parked here. This phase carries one retirement-mechanics requirement and nothing else.
 - **The dev host will lie to you.** It still has the old packages installed even after `stow.sh`/`install.sh` were edited — this gate is the only thing that surfaces a dead symlink or missing package that daily-driver testing never would.
 
-**Plans**: 4/8 plans executed across 5 waves
+**Plans**: 5/9 plans executed across 5 waves
+
+- [x] 22-09-PLAN.md
 
 - [x] 22-08-PLAN.md
 
@@ -504,7 +506,7 @@ Cross-cutting constraints:
 | 19. Notification Server & Centre | v4.0 | 8/8 | Complete    | 2026-08-14 |
 | 20. Indicators & Power Menu | v4.0 | 10/10 | Complete    | 2026-08-16 |
 | 21. Media Fold-In & Contract Close | v4.0 | 9/9 | Complete    | 2026-08-16 |
-| 22. Fresh-Install Proof | v4.0 | 4/8 | In Progress|  |
+| 22. Fresh-Install Proof | v4.0 | 5/9 | In Progress|  |
 
 **Totals:** 23 phases (18 complete) · 141 plans complete · 3 milestones shipped
 
