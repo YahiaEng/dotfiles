@@ -183,3 +183,42 @@ None. No new package, no new external service, no new stow package. `cava/` (pla
 ## Self-Check: PASSED
 
 All 3 modified files confirmed present on disk; all 3 task commit hashes (`533e3c1`, `70428bb`, `c11e230`) confirmed in git history.
+
+---
+
+## ⚠ Post-Execution Corrections (appended 2026-08-16, orchestrator)
+
+**Everything above describing the cover art as a 12-lobe cookie, and every
+statement that the visualiser was code-complete, is SUPERSEDED by this section.**
+The body above is retained unedited as the record of what this plan actually did
+at the time. Three corrections landed after it was written; all three came from
+the operator looking at the screen, and none was caught by any automated gate.
+
+| # | Defect | Why every gate missed it | Fix |
+|---|--------|--------------------------|-----|
+| 1 | **The 60 bars rendered nothing.** The ring was bare and empty live. | `Repeater` instantiates only `Item`-derived delegates; `ShapePath` is not an `Item`, so `Repeater { ShapePath {} }` creates **zero** objects and fails **silently** — no QML error, no warning. This plan's `<verify>` step was `grep -q "Repeater"`, which passed: it proved a *string* was present, never that a *bar* was drawn. `21-RESEARCH.md:311` had asserted the pattern was safe; that research claim is false (Qt Forum 104917). | `063e331` — each `ShapePath` wrapped in an `Item` delegate, pushed into `Shape.data` in `Component.onCompleted`, on both surfaces. |
+| 2 | **The 12-lobe cookie was rejected on sight.** | Not a defect in execution — a design reversal. D-21-02 is **REVERSED**; see the reversal note on that decision in `21-CONTEXT.md`. The plan implemented the decision faithfully; the operator changed the decision. | `2b99609` — `_circlePath()` is now the mask source on both surfaces; `_cookiePath()` retained but **unused**. Masking mechanism (`MultiEffect` + load-bearing `layer.enabled`) untouched, so round 4's proven state is restored. |
+| 3 | **Working bars read as "too subtle".** | No gate measures perceived motion. Root cause was the **data**, not the geometry: measured live for 3s, median band amplitude **0**, p90 **19/100**, max 100 — so under the linear mapping a typical bar sat at ~5px of a 14px range. | `ad7a894` — `visualiserResponseExponent: 0.45` (`pow(a,0.45)`, endpoints fixed so the silence sliver and D-21-01's silence-equivalence argument are unchanged), max extension 14→18, bar stroke 2→3 (popout 6→8, 1→1.5). |
+
+### Live verification status — now partially CLOSED
+
+The "What is explicitly NOT covered by this session" list above is **no longer
+accurate**. Operator-verified live on 2026-08-16:
+
+- ✅ (a) bars visibly move independently to real audio — *"Yes, the bars are there and react to sound"*, then *"Visualizer looks good"* after the response curve landed.
+- ✅ (d) cover art shape — verified, and **rejected**, producing correction #2. The art is now a circle; the cookie was never accepted.
+- ❌ (b) silence-state equivalence to the round-3 dashed ring — **still unverified**.
+- ❌ (c) silent degradation when the cava process is killed — **still unverified**.
+- ❌ (e) both surfaces sharing exactly one cava process when open simultaneously — **still unverified**.
+
+The three remaining ❌ items stay owned by D-21-20's combined render gate in 21-08.
+
+### Process finding carried forward
+
+Three defects in one plan were certified green by the full gate suite
+(`colour-lint` 144/0, `motion-lint` 291/0, all `<verify>` greps passing). Earlier
+in the same phase a visualiser painted in `Colours.error` also passed
+`colour-lint` 144/0, because that lint checks a colour **is** a token, never that
+it is the **right** token. **D-21-20's combined deletion gate must therefore not
+be passed on greps or lints alone** — the `ags` deletion is irreversible in-tree
+and requires eyes on the rendered surface. Recorded as A-21-03 in `21-CONTEXT.md`.

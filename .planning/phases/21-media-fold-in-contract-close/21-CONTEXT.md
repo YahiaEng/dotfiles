@@ -112,6 +112,27 @@ scope for v4.0 entirely).
   cover aspect ratios.
   — **Reversibility:** reversible — the mask source is one property; reverting to
   the circular `Rectangle` restores round 4's proven state.
+  — **⚠ REVERSED BY THE OPERATOR, 2026-08-16, during 21-06 execution.** On first
+  sight of the rendered 12-lobe cookie the operator said: *"I don't like this new
+  album art style. Restore the circular look."* The cookie is **rejected**; the
+  cover art is a plain circle on both `MediaTab.qml` and `MediaPopout.qml`
+  (commit `2b99609`). This is consistent with the round-3 feedback already
+  recorded in `MediaTab.qml`'s header, which asked for *"something rounder and
+  dotted, closer to the ring's own idle silhouette than to the cookie-blob host
+  shape underneath it"* — the round-3 reconciliation argument above (that a live
+  ring justifies the lobes) did not survive contact with the rendered result.
+  `_circlePath()` is now the mask source in both files; `_cookiePath()` is
+  retained but unused so the decision stays cheaply reversible. The mask
+  **mechanism** (`MultiEffect.maskEnabled`/`maskSource`, plus the load-bearing
+  `layer.enabled: true`) is untouched, so round 4's proven state is what is
+  restored — the "known risk" above is therefore closed, not merely deferred.
+  — **Downstream impact:** D-21-03's "pairs evenly with the 12 lobes (5 bars per
+  lobe)" rationale below no longer applies. The 60-bar count is unaffected — it
+  is locked to Caelestia's `visualiserBars` default independently of the host
+  shape — but any artifact justifying 60 *by the lobe pairing* is now stale.
+  Anything still describing the cover art as a cookie (21-06's SUMMARY, and
+  D-21-20's combined render gate in 21-08) must be read as superseded by this
+  entry.
 
 - **D-21-03: 60 bars**, matching Caelestia's `visualiserBars` default from
   `serviceconfig.hpp`. Pairs evenly with the 12 lobes (5 bars per lobe). Note the
@@ -424,6 +445,49 @@ scope for v4.0 entirely).
 - The exact single frost value chosen in D-21-26, and the fill/threshold pair
   that carries it — subject to the live-verification constraints named there.
 - D-21-27's tint strength.
+
+### Execution-Time Amendments (recorded 2026-08-16, during Wave 1/2)
+
+These were decided live against rendered results, after the decisions above were
+written. They supersede any earlier text they contradict.
+
+- **D-21-02 REVERSED — circular cover art.** See the reversal note on D-21-02
+  itself. Commit `2b99609`.
+
+- **A-21-01: `Repeater { ShapePath {} }` does not work — Item-wrapper required.**
+  `21-RESEARCH.md:311` asserted the 60-bar ring was "not new machinery, it is the
+  existing `Shape` extended with a `Repeater` as its content". **That research
+  claim is false.** `Repeater` instantiates only `Item`-derived delegates, and
+  `ShapePath` is not an `Item`, so the construct creates **zero** objects and
+  fails **completely silently** — no QML error, no warning. Shipped in 21-06 and
+  rendered a bare, empty ring. Qt Forum topic 104917 documents both the
+  limitation ("The Repeater cannot reside inside the ShapePath item… but only
+  outside of the Shape item") and the workaround now used in both files: wrap each
+  `ShapePath` in an `Item` delegate and push it into `Shape.data` in
+  `Component.onCompleted`. Commit `063e331`.
+
+- **A-21-02: visualiser response is curved, not linear.** Operator judged the
+  working ring "too subtle". Measured live for 3s against this repo's own cava
+  config: **median band amplitude 0, p90 19/100, max 100** — so under linear
+  mapping a typical bar sat at ~5px of a 14px range. Added
+  `visualiserResponseExponent: 0.45` (`pow(a, 0.45)`, endpoints fixed at 0 and 1
+  so the silence sliver and full-amplitude cap are unchanged and D-21-01's
+  silence-equivalence argument still holds), plus max extension 14→18 and bar
+  stroke 2→3 (8→... and 1→1.5 on the popout). Layout headroom was measured before
+  choosing: the binding constraint is the **8px vertical gap to the player pill**,
+  not the 24px `sectionGap` to the details column. All three remain one-constant
+  render-gate tunables per 21-UI-SPEC.md. Commit `ad7a894`. **Operator-verified
+  live**: *"Yes, the bars are there and react to sound"*, then *"Visualizer looks
+  good"*.
+
+- **A-21-03 [process]: green gates certified three broken surfaces this phase.**
+  A `Colours.error` visualiser passed `colour-lint` 144/0 (the lint checks that a
+  colour IS a token, never that it is the RIGHT token); a spec-rejected
+  `PathAngleArc` passed every check because nothing compared the build to the
+  spec; and the zero-bar `Repeater` passed a `grep -q "Repeater"` assertion while
+  rendering nothing. **Consequence for D-21-20's combined deletion gate in 21-08:
+  it must not be passed on greps or lints alone.** The `ags` deletion is
+  irreversible in-tree; it requires eyes on the rendered surface.
 
 ### Folded Todos
 
