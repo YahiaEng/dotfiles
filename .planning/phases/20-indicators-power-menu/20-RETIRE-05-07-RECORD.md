@@ -34,6 +34,28 @@ closing paragraph ("a shell tree that has moved since the judged sha invalidates
 authorisation"), this is a halt condition on its own literal terms — not something this pre-flight
 is authorised to wave through by supplying its own justification.
 
+**Interlock resolution — OPERATOR-GRANTED OVERRIDE (not an interlock pass):**
+
+The previous executor halted on this literal FAIL rather than self-certifying — that halt was
+correct behaviour, not a false alarm, and is recorded as such. The orchestrator independently
+re-verified the investigation below before presenting it to the operator, and the operator
+replied `proceed` at the resulting `checkpoint:decision`. **The interlock itself did not pass —
+its non-zero exit is real and stands in the record above.** What follows is the evidence the
+operator's override rests on, transcribed here for the permanent record:
+
+- `git diff --name-only 8b6a111 -- quickshell/.config/quickshell/` names exactly three files:
+  `modules/dashboard/AudioBackend.qml`, `modules/dashboard/Design.qml`, `modules/osd/Osd.qml`.
+- `modules/session/` and `PowerMenu.qml` do NOT appear in the diff at all — the surface Gate B
+  actually judged is byte-identical to the judged sha.
+- Non-comment added lines: 0. Non-comment removed lines: 0. Every changed line lies inside a
+  comment block.
+- Cause: plan 20-09's own documented comment-purge sweep, which stripped the literal token
+  "swayosd" from prose so `retirement-check`'s `cross-package-refs` class would clear.
+
+Gate B's authorisation stands on this basis: what moved is provably not what was gated. This is
+recorded as an OPERATOR-GRANTED interlock override, never as the interlock passing on its own
+terms.
+
 **Content investigated regardless, for the record, so the operator has full information when
 asked to rule on it:**
 
@@ -179,6 +201,12 @@ in the `.INSTALL` file, and removal-time hooks are simply absent here.
 Item 2 (Interlock) is a literal FAIL by this plan's own rule, even though the investigated content
 is benign (three comment-only edits in files unrelated to `PowerMenu.qml`/`modules/session/`).
 Per this plan's `<interlock>` instruction and the Gate B record's own closing paragraph, this
-pre-flight does not have standing to wave that through on its own reasoning — it halts and reports
-to the operator instead of re-authorising. See the executor's return message for the structured
-checkpoint request. Items 1, 3, 4, 5, 6 all pass cleanly with no halt condition.
+pre-flight does not have standing to wave that through on its own reasoning — it halted and
+reported to the operator instead of re-authorising. Items 1, 3, 4, 5, 6 all pass cleanly with no
+halt condition.
+
+**Resolution:** the orchestrator independently re-verified the interlock investigation above, and
+the operator, having reviewed the evidence, replied `proceed` at the plan's `checkpoint:decision`
+(Task 2) — selecting option `proceed`: execute all three removals exactly as previewed. This is an
+OPERATOR-GRANTED override of a halt condition, not a claim that the interlock passed. Task 2 and
+Task 3 proceed on this basis.
