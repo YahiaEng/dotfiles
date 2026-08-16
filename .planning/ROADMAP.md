@@ -375,10 +375,57 @@ Plans:
 - **Frame the reader count honestly:** waybar's mpris module already died in Phase 18, so this phase removes the *second* of three, not the third. The underlying scripts were never duplicated — only the client wrappers.
 - **RETIRE-08 lands here** because this is where the fifth and final contract entry and matugen template are removed; Phase 22 then proves it on a genuinely fresh install.
 - **Debt interleave rationale:** LEDGER-06 is the Phase 16 paperwork — that phase's missing VERIFICATION.md concerns the workspace overview, a QML surface, and its malformed coverage blocks are the same classifier discipline this milestone's own UAT depends on. Placing it in a migration phase rather than the closing phase keeps it from becoming end-of-milestone filler.
-- **GATE-01 opening task.** Before this phase's retirement plan is written, enumerate the AGS media card's current behaviour (its QML source, its `contract.json` entry, its `[templates.ags]` matugen block) off the live implementation while it still exists. Protocol and worked example: `.planning/phases/18-qml-bar-retirement-machinery/18-BEHAVIOUR-BASELINE.md` § "GATE-01 Recurrence Protocol".
+- **GATE-01 opening task.** Before this phase's retirement plan is written, enumerate the AGS media card's current behaviour (its QML source, its `contract.json` entry, its `[templates.ags]` matugen block) off the live implementation while it still exists. Protocol and worked example: `.planning/phases/18-qml-bar-retirement-machinery/18-BEHAVIOUR-BASELINE.md` § "GATE-01 Recurrence Protocol". **Planned as `21-02`, wave 1** — read off the still-running daemon (`ags request -i media toggle-media`), never from source archaeology.
+- **The cava go/no-go is RESOLVED TO GO at plan time (D-21-00) — there is no opening spike.** Three findings collapsed it before planning: `cava 0.10.7-1` is installed and already running (PID 1990) feeding the unreachable card; `ags/lib/cava.ts` is a working 21-line streaming reader whose contract a Quickshell `Process` + `SplitParser` mirrors exactly; and `MediaTab.qml` already imports `QtQuick.Shapes` and already draws the ring. Measured on this host: 60-bar cava = 1.20% of one core / 14.0 MB RSS, ~350 ms cold start. Success criterion 2's alternative (a recorded human no-go verdict) is NOT being taken. The phase opens on the build (`21-01` tracer), not on the go/no-go.
+- **Correction to this entry's own numbers, carried from `21-CONTEXT.md`:** `contract.json` carries **18** `files` entries today, not 29 — the 29 was the pre-migration total across all five retirements. Removing `ags.scss` takes it to **17**, which does match the stated target. Plan against 18 → 17.
+- **A pre-existing gate failure is in scope, not routed around.** `quickshell-doctor` check 9 asserts *zero* Quickshell MPRIS readers — a Phase-11-era invariant that has been silently FAILING since D-18-05 legitimately gave `MediaBackend.qml` a real `Mpris` import. QMEDIA-03 repairs it in place (zero → exactly-one, plus an identity assertion and three-count self-test fixtures) rather than adding a parallel counter. Planned as `21-04`.
+- **Two folded todos** ride along on an explicit operator decision, not because they belong to this phase's media/contract boundary: frost unification across the panel-class layer surfaces, and the ambient DND capsule indicator. Both are sized into their own plan (`21-05`) with their own commits so neither blurs a media or retirement diff.
 
-**Plans**: TBD
+**Plans**: 9 plans across 5 waves
 **UI hint**: yes
+
+- [ ] 21-01-PLAN.md — TRACER: cava → QML streaming contract proven end-to-end on real audio, plus the reference-counted owner with a short linger and a one-knob always-on (QMEDIA-02)
+- [ ] 21-02-PLAN.md — GATE-01 behavioural enumeration off the LIVE media card, plus the parity checklist that unlocks the deletion gate (QMEDIA-01, RETIRE-06)
+- [ ] 21-03-PLAN.md — LEDGER-06: Phase 16's verification report reconstructed as it stood, two malformed `coverage:` blocks fixed in place, quick task `260728-51j` closed on evidence (LEDGER-06)
+- [ ] 21-04-PLAN.md — QMEDIA-03's standing check: repair `quickshell-doctor` check 9 zero→exactly-one, with self-test fixtures proving it fails at 0 and at 2 and ignores prose (QMEDIA-03)
+- [ ] 21-05-PLAN.md — Folded todos: one frost value across dashboard/overview/notifications/OSD, and the whole-capsule DND tint (QMEDIA-01)
+- [ ] 21-06-PLAN.md — Visualiser build-out: 60-bar radial ring + hand-authored 12-lobe cookie mask on BOTH the Media tab and the bar popout, plus the required `14-UI-SPEC.md` accent amendment (QMEDIA-02)
+- [ ] 21-07-PLAN.md — Parity completion: cross-source dedup, a volume control per player inline in the switcher, `Super+M` to the Media tab (QMEDIA-01)
+- [ ] 21-08-PLAN.md — THE COMBINED GATE (parity checklist + rendered look, one verdict) then the deletion: `ags` gone from repo and host, config-then-package, one commit (QMEDIA-01, QMEDIA-02, QMEDIA-03, RETIRE-06, RETIRE-08)
+- [ ] 21-09-PLAN.md — Contract close: the bare-path album-art handoff check nothing tests today, plus every gate re-run after the deletion with raw evidence committed (RETIRE-08, QMEDIA-03, RETIRE-06)
+
+**Wave 1** — tracer plus four fully-independent openers (zero file overlap)
+
+- 21-01 TRACER: `cava/` stow package, `CavaService` singleton (`Process` + `SplitParser`, refcount + linger), one live bar on the Media tab (QMEDIA-02)
+- 21-02 GATE-01 enumeration off the live card — **hard ordering constraint: nothing that destroys `ags/` may run before this** (QMEDIA-01)
+- 21-03 LEDGER-06 debt — independent paperwork, gates nothing (LEDGER-06)
+- 21-04 QMEDIA-03 standing-check repair (QMEDIA-03)
+- 21-05 folded todos: frost + DND — non-autonomous, closes on a live look (QMEDIA-01)
+
+**Wave 2** *(blocked on 21-01 — needs the proven stream)*
+
+- 21-06 the full ring and the cookie mask on both surfaces, sharing ONE process (QMEDIA-02)
+
+**Wave 3** *(blocked on 21-02 for the gap list, and 21-06 for `MediaTab.qml` ownership)*
+
+- 21-07 dedup, per-player volume, `Super+M`; every GAP row the enumeration found is BUILT here (QMEDIA-01)
+
+**Wave 4** *(blocked on all of 21-02, 21-04, 21-05, 21-06, 21-07)*
+
+- 21-08 the one combined gate, a `checkpoint:decision` one-way door, then the deletion — non-autonomous
+
+**Wave 5** *(blocked on 21-08)*
+
+- 21-09 contract close, every gate green, raw evidence committed for the closing verifier run (D-21-22)
+
+Cross-cutting constraints:
+
+- **Enumeration → gap-fill → parity → deletion.** D-21-08/D-21-11 make this a hard ordering constraint; `21-08` re-checks `git log` ordering as an acceptance criterion before deleting anything.
+- **ONE combined gate**, not two (D-21-20) — the parity checklist and the rendered look are judged in a single sitting with a single verdict.
+- **Config-then-package, one commit** (WINDOWS #1, applied four times already this milestone) — the three orphaned bash scripts go in the SAME commit as the package (D-21-13).
+- **`media-art-resolve.sh` STAYS** (D-21-14) and **`dart-sass` STAYS** (D-21-18, its `install.sh` comment is wrong and gets corrected).
+- **Comments naming the dead surface are REWRITTEN, never scrubbed and never exempted** (D-21-19) — the exact interlock that stalled Phase 20's final plan.
+- **The phase closes on a VERIFIER RUN, not operator attestation** (D-21-22).
 
 ### Phase 22: Fresh-Install Proof
 
