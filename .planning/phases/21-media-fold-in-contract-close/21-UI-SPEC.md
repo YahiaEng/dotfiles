@@ -1,7 +1,7 @@
 ---
 phase: 21
 slug: media-fold-in-contract-close
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-16
@@ -24,11 +24,22 @@ created: 2026-08-16
 > ×dedup interaction, D-21-26/27's exact tint values), and specifies the
 > required `14-UI-SPEC.md` amendment verbatim (D-21-04).
 >
-> **No interactive question round was run for this document.** Every open
-> visual call below is resolved with a stated recommendation and rationale,
-> rendered as ASCII where the operator's standing preference (`show, don't
-> describe`) applies — final pixel judgment happens at D-21-20's blocking
-> combined render gate, which is where the operator actually looks at this.
+> **Operator question round: run 2026-08-16, after checker approval.** The
+> authoring agent had no interactive round and self-resolved every open call;
+> three of those were then put to the operator as rendered ASCII options and
+> answered. Two **changed** the authored recommendation or confirmed it against
+> a stated alternative:
+>
+> | Call | Outcome |
+> |------|---------|
+> | Cava claim condition (§ Appendix) | **Changed** — release on surface-hidden only; pause no longer releases the claim |
+> | Per-player volume placement (D-21-10) | **Confirmed** — inline mini-sliders in the player-switcher dropdown |
+> | Probe element kinds (§ UI Considerations) | **Confirmed** — authored overrides applied; 0 unclassified |
+>
+> Values still left to the operator's eye rather than settled here: the linger
+> duration (5000 ms), the DND tint alpha (`0.28`), the frost value (`0.38`), and
+> the five visualiser geometry numbers. All are single-constant tunables — final
+> pixel judgment happens at D-21-20's blocking combined render gate.
 
 ---
 
@@ -132,25 +143,69 @@ The mask mechanism (`MultiEffect.maskEnabled`/`maskSource`, established at round
 
 ## UI Considerations
 
-> `ui-consideration-probe`-style state coverage for every element this phase adds or changes. Empty/error-state COPY lives in `## Copywriting Contract` above — rows here reference it rather than restating it.
+> Shape-rooted UI **state** coverage, produced by `ui-consideration-probe.cjs` over the seven
+> surfaces this phase adds or changes, then resolved item by item. Empty-state and error-state
+> **copy** lives in `## Copywriting Contract` above — rows here reference it rather than
+> restating it (de-dup).
+>
+> **Element kinds were operator-confirmed, not taken from the heuristic.** The prose classifier
+> mis-tagged two elements: the visualiser ring detected as `nav` only (it matched the word
+> "tab" in "Media tab"), and the DND capsule detected as nothing at all (`unclassified`).
+> Authored `elements` overrides were applied — ring/popout gained `media` (raising the `empty`
+> and `populated` rows below, which the heuristic would have silently dropped), the DND capsule
+> gained `interactive-control` + `static-content`. Re-running with overrides moved the probe
+> from 39 applicable/1 unclassified to **35 applicable / 0 unclassified**.
 
-Applicable: 13 — **13 covered, 0 backstop, 0 unresolved.**
+**Coverage: 35 applicable — 29 resolved (explicit), 3 resolved (backstop), 3 dismissed with reason, 0 unresolved.**
 
-| Category | Element(s) | Status | Resolution |
-|----------|------------|--------|------------|
-| empty | Visualiser ring, no player at all | ✅ covered | Static silhouette state (§ Visualiser States "silence") — `Colours.outline`, same geometry as today's round-3 dashed ring |
-| pending | Visualiser ring, playing but cava has not yet emitted a first frame (~350ms cold-start window, D-21-00's measurement) | ✅ covered | Ring stays in the static silhouette state until the first real frame arrives — never a blank/zero ring, never a flash of accent before data exists |
-| populated | Visualiser ring, playing with live cava data | ✅ covered | Reactive per-bar amplitude, `Colours.primary`/accent (§ Visualiser States "playing") |
-| populated (paused) | Visualiser ring, player exists but is paused | ✅ covered | Same static silhouette as empty — cava is not claimed while paused (§ Cava Claim Condition), so there is no live data to show and none should be implied |
-| error/degraded | cava binary missing or process exits unexpectedly | ✅ covered | Permanent fallback to the static silhouette; see Copywriting Contract |
-| partial | A single torn/blank cava output line | ✅ covered | Ignored; last-good frame held (D-21-01, mirrors `ags/lib/cava.ts`) |
-| overflow | 60-bar `Repeater` | ✅ covered | Fixed count, no unbounded content — structurally impossible |
-| zero-one-many | Player-switcher list, 0/1/2+ entries | ✅ covered | 0 → empty state (no pill content, existing `"No players"` label); 1 → pill shows label, no expand chevron (existing `hasChoice` gate, unchanged); 2+ → dropdown with per-row mini volume slider (new, § Per-Player Volume) |
-| zero-one-many | Per-row volume control, `volumeSupported` true/false | ✅ covered | `volumeSupported: false` → slider omitted, row is label-only (mirrors the Media tab's existing `hasVolume`-gated bottom volume row) |
-| long-text | Player labels inside the dropdown, now sharing row width with a slider | ✅ covered | Label `elide: Text.ElideRight`, width formula updated to reserve the new slider's 56px + `spacingSm` gap (see § Per-Player Volume) — same elide mechanism, narrower budget |
-| dedup | A collapsed duplicate-source pair (D-21-09) | ✅ covered | The collapsed row's volume control acts on the single canonical `MprisPlayer` object the dedup heuristic keeps — dedup operates on the *display* list only, so there is exactly one real volume-capable object behind the row; see § Per-Player Volume "Dedup interaction" |
-| toggle (DND capsule) | Bar clock/actions capsule, DND off/on | ✅ covered | Two states only — outer capsule fill token swap, no partial/intermediate visual state (§ DND Capsule Tint) |
-| loading | Player-menu open transition | ✅ covered | Unchanged — existing `Motion.standardDuration`/`standardEasing` opacity fade, no new motion token needed |
+| Element | Kinds | Category | Status | Resolution |
+|---------|-------|----------|--------|------------|
+| **E1** — Visualiser ring (Media tab + popout) | `media` | `empty` | ✅ explicit | No player at all: ring renders the static silhouette — Colours.outline, RoundCap, 3px minimum sliver, geometrically identical to the round-3-accepted dashed ring. Nothing previously approved changes. |
+|  |  | `loading` | ✅ explicit | ~350ms cava cold start: ring HOLDS the silence silhouette until the first real frame arrives. Never a blank ring, never a zero-length ring, never a flash of accent before data exists. Drawer opens on Motion.standardDuration (200ms), so the first frame lands ~150ms after the drawer settles. |
+|  |  | `error` | ✅ explicit | cava binary missing or process exits unexpectedly: permanent fallback to the static silhouette, logged only. No user-facing error copy (house rule: never a scary error string). A torn/partial output line is ignored and the last-good frame is held (mirrors ags/lib/cava.ts). |
+|  |  | `populated` | ✅ explicit | Playing with live cava data: 60 radial bars, per-bar length proportional to that band's amplitude, Colours.primary accent, RoundCap, 3px minimum sliver so no bar ever fully vanishes. Colour animates outline->primary via the existing Behavior on strokeColor (Motion.standardDuration/standardEasing). PAUSED is NOT this state: per the locked claim condition, cava keeps running while paused with a surface open, but the ring shows the silence silhouette because there is no amplitude to render. |
+| **E2** — Player-switcher dropdown | `list-collection, interactive-control, static-content` | `empty` | ✅ explicit | Zero players: existing 'No players' label, no pill content, no dropdown. Unchanged. |
+|  |  | `loading` | ✅ explicit | Menu open transition uses the existing Motion.standardDuration/standardEasing opacity fade. No new motion token. MPRIS enumeration is synchronous from Mpris.players.values — no separate loading state exists. |
+|  |  | `error` | ✅ explicit | A player disappearing mid-interaction (process exits while its row is open): the row leaves the model on the next Mpris.players.values change; a mini-slider drag in flight targets a dead id and the clamped-write in setVolumeForPlayer becomes a no-op rather than throwing. No error copy. |
+|  |  | `populated` | ✅ explicit | 2+ players: dropdown with one row each — checkmark column, elided label, 56px mini-slider, percentage readout (Design.fontLabel). Active row tinted onSurface, inactive onSurfaceVariant. |
+|  |  | `partial` | ✅ explicit | volumeSupported:false rows omit the slider AND the readout entirely and render label-only, mirroring the Media tab's existing hasVolume-gated bottom volume row. A mixed list (some rows with sliders, some without) is the expected normal case, not a defect. |
+|  |  | `overflow` | ◐ backstop | Many players (more than fit the drawer height): the dropdown must clip and scroll rather than grow past the panel. The exact scroll treatment is not specified here — verify at the D-21-20 render gate with a synthetic 6+ player fixture. |
+|  |  | `zero-one-many` | ✅ explicit | 0 -> existing 'No players' empty label; 1 -> pill shows the label with NO expand chevron (existing hasChoice gate, unchanged); 2+ -> full dropdown. Dedup collapses duplicate perceptual sources BEFORE this count, so a deduped pair reads as one player throughout. |
+|  |  | `long-text` | ✅ explicit | Row labels keep elide: Text.ElideRight on a narrower budget. Existing formula (menuColumn.width - spacingSm*2 - (fontLabel+4) - spacingXs) additionally subtracts 56 (slider) + spacingSm (gap) + ~28 (readout) on rows that have a slider. Menu widens to Math.max(selectorPill.width, artSize*1.3) so the label keeps a usable budget. |
+| **E3** — Bottom volume row (active player) | `interactive-control` | `loading` | ✅ explicit | No loading state — the Slider binds directly to the active player's live volume property. Unchanged parity baseline. |
+|  |  | `error` | ✅ explicit | Active player without volume support: the whole row is hidden (existing hasVolume gate). A write to a player that rejects it is a clamped no-op. No error copy. Unchanged. |
+|  |  | `long-text` | ⊘ dismissed | The bottom volume row carries no text — it is a bare Slider with an icon. There is no string that can overflow. |
+| **E4** — Cookie-masked cover art | `media` | `empty` | ✅ explicit | No player / art absent: the surfaceVariant placeholder background shows through the SAME 12-lobe cookie mask, so the silhouette is identical in shape to the loaded state. No separate empty artwork. |
+|  |  | `loading` | ✅ explicit | Art resolving (album-art resolver's single-flighted subprocess in flight): placeholder holds through the cookie mask until the image source is ready. No spinner — the mask shape is stable across the transition so nothing reflows. |
+|  |  | `error` | ✅ explicit | Art fetch fails or the URL is rejected by the resolver's security discipline: falls back to the same surfaceVariant placeholder as the empty state. Logged only, no user-facing copy. |
+|  |  | `populated` | ◐ backstop | Loaded art at a NON-SQUARE aspect ratio must fill the cookie mask without letterboxing or horizontal/vertical distortion — the mask clips, the image does not stretch. This re-opens the round-4 clipping test that the circular mask previously satisfied; D-21-20's render gate must include a deliberately non-square cover fixture (e.g. a 16:9 and a 3:4 source) as an explicit check, not an incidental one. |
+| **E5** — DND-tinted bar clock/actions capsule | `interactive-control, static-content` | `loading` | ⊘ dismissed | The DND boolean is read synchronously from NotifServer.dnd, already live in ClockActionsCapsule. There is no asynchronous fetch and therefore no in-flight state to design. |
+|  |  | `error` | ✅ explicit | If the notification server is unavailable, dndActive reads false and the capsule renders its normal BarRoles.capsule fill — the tint is purely additive, so its absence is the existing correct appearance rather than a broken one. |
+|  |  | `overflow` | ⊘ dismissed | The capsule's content (clock text plus a fixed set of action glyphs) is unchanged by this phase; the DND change is a fill-colour swap on the outer surface only and adds no content that could overflow. |
+|  |  | `long-text` | ✅ explicit | Clock text and glyphs keep their existing tint (BarRoles.dndSurfaceFg = Colours.onSurface, deliberately NOT onAccent) because a 0.28-alpha accent wash over the capsule surface does not reach onPrimary's contrast target. Legibility of the longest clock string is therefore unchanged from the untinted state. |
+| **E6** — Bar media popout | `media, nav, interactive-control, static-content` | `empty` | ✅ explicit | No player: existing 'Nothing is playing' copy (MediaPopout.qml emptyStateText), with the ring in its static silence state. No new copy — the quiet ring is part of the existing empty register. |
+|  |  | `loading` | ✅ explicit | Same as the ring's cold-start rule: silhouette held until the first cava frame. The popout is the surface most likely to hit a cold start, since it is hover-driven and short-lived. |
+|  |  | `error` | ✅ explicit | cava unavailable: permanent silhouette, no copy. Identical to the Media tab's rule — one behaviour across both surfaces. |
+|  |  | `populated` | ✅ explicit | Playing with one player: live reactive ring plus the existing now-playing rows and the 'Open Media tab' wayfinding label. |
+|  |  | `overflow` | ✅ explicit | The popout does not host the player list — with 2+ players it shows the existing single line 'N players — switch in the dashboard' and defers switching to the Media tab. This is what keeps the popout's height bounded regardless of player count. |
+|  |  | `long-text` | ✅ explicit | Long track/artist strings keep the popout's existing elide treatment, unchanged by this phase. The ring is fixed-diameter and does not participate in text layout. |
+| **E7** — Dashboard Media tab panel | `nav, media, interactive-control, static-content` | `empty` | ✅ explicit | D-41's in-place-placeholder pattern is unchanged: no separate empty screen. Transport controls remain visible but inert, art shows the cookie-masked placeholder, ring shows the silence silhouette. |
+|  |  | `loading` | ✅ explicit | Tab opens on the existing drawer motion (Motion.standardDuration, 200ms). Super+M opens the dashboard directly on this tab (D-21-12). The cava cold start, when one is paid, resolves ~150ms after the drawer has settled. |
+|  |  | `error` | ✅ explicit | No new user-facing error surface. Every failure this phase introduces (cava missing, cava crash, torn frame, art fetch failure) degrades to an existing calm state and is logged only. |
+|  |  | `populated` | ✅ explicit | Full parity with the retired AGS card (QMEDIA-01): transport, seek, cookie-masked cover art, per-player volume via the dropdown mini-sliders, player switching, plus the cava ring the AGS card also had. |
+|  |  | `overflow` | ◐ backstop | Panel content at its tallest (many players expanded, long metadata) must stay within the drawer without pushing the pinned controls off-surface. Verify at the D-21-20 render gate together with E2's scroll check. |
+|  |  | `long-text` | ✅ explicit | Title on Design.fontHeading, artist/album on Design.fontBody, both keeping their existing elide behaviour. No new type role and no new size, so the longest-string behaviour is unchanged from what 14-UI-SPEC.md already governs. |
+
+**Planner note.** The three `◐ backstop` rows are the only ones without a concrete authored
+truth — each names a held-out visual check rather than a spec'd value, and all three land on
+the D-21-20 combined render gate:
+
+- `E2/overflow` — dropdown scroll/clip behaviour with a synthetic 6+ player fixture
+- `E4/populated` — **non-square cover art through the 12-lobe cookie mask.** This re-opens the
+  round-4 clipping test the circular mask previously satisfied; the render gate must carry a
+  deliberately non-square fixture (e.g. 16:9 and 3:4 sources) as an explicit check, not an
+  incidental one. The mask must clip without stretching the image.
+- `E7/overflow` — panel content at its tallest must not push the pinned controls off-surface
 
 ---
 
@@ -166,14 +221,20 @@ Not applicable — QML/Quickshell project, no shadcn/component-registry mechanis
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** APPROVED by `gsd-ui-checker` — 6/6 dimensions, 0 blocking issues.
+
+Checker's non-blocking implementation notes, carried forward as planner obligations:
+
+1. `Design.qml` — add `readonly property int cavaLingerMs: 5000` (render-gate adjustable).
+2. `BarRoles.qml` — add the `dndSurface` / `dndSurfaceFg` pair (§ DND Capsule Tint).
+3. `14-UI-SPEC.md` — apply the verbatim amendment at § Required amendment above. **This is a plan task in its own right, not an implied side effect of building the ring** (D-21-04 names the amendment itself as a required deliverable).
 
 ---
 
@@ -183,20 +244,29 @@ These are the specific renderings this phase's own `21-CONTEXT.md` requires ("re
 
 ### Cava claim condition (new resolution — not explicitly stated in CONTEXT.md)
 
-D-21-06 locks *refcount + linger* as the ownership mechanism but does not state exactly when a surface "claims" the process. Resolved here: a surface claims cava when **both** (a) it is visible (Media tab is the active dashboard tab AND the dashboard is open; OR the bar's media popout is open) **and** (b) `mediaBackend.playing === true`. Pausing releases the claim (engages the linger) even if the surface stays open — this keeps the zero-idle rule honest for the common "left the dashboard open on Media, paused the track" case, and it costs nothing extra: the ring's paused-state visual is identical to its no-player visual (the static silhouette), so there is no user-visible loss from not running cava while paused.
+D-21-06 locks *refcount + linger* as the ownership mechanism but does not state exactly when a surface "claims" the process. **Resolved by the operator (2026-08-16, `/gsd-ui-phase` question round): a surface claims cava when it is VISIBLE, and releases only when it is HIDDEN. Playback state does NOT gate the claim — pausing keeps the process alive.**
 
 ```
-surface visible? ──┐
-                    ├─AND──► claim cava (refcount++)
-playing == true? ───┘
+surface visible? ──► claim cava (refcount++)
+                     (visible = Media tab is the active dashboard
+                      tab AND the dashboard is open; OR the bar's
+                      media popout is open)
 
-release (refcount--) on: surface hidden, OR playing becomes false
+release (refcount--) on: surface hidden ONLY — never on pause
 refcount reaches 0 ──► start Design.cavaLingerMs timer
 timer fires with refcount still 0 ──► kill cava process
 refcount becomes >0 before timer fires ──► cancel timer, process stays alive (no re-spawn, no 350ms cost)
 ```
 
-**Linger duration (Claude's discretion, D-21-06):** recommend **5000ms (5s)**, as a new named constant `Design.cavaLingerMs` (not reusing the bar's sub-second `barDrawerGraceMs`/`popoutDismissGraceMs` family — those govern hover-dismiss grace at a completely different scale/purpose; this is a process-lifecycle decision). Rationale: long enough to survive a quick popout-close-then-dashboard-open flow or a brief pause/resume without re-paying the measured ~350ms cold start; short enough to still read as "a few seconds" per D-21-06's own wording and to matter for the zero-idle budget. **Must be reachable by changing this single constant to a very large value (or a dedicated `Design.cavaAlwaysOn: bool` bypass) if the operator's reserved revisit lands on always-on** — do not restructure the refcount to satisfy that reversal.
+**Why pause does not release.** The linger cannot itself produce lag — it delays *killing* a process nobody is watching, so a longer linger is strictly less perceived lag, never more. The only user-visible cost is the ~350 ms cold start on the way back in, and CONTEXT.md's own measurement puts that first frame roughly **150 ms after the drawer has already settled** (drawer opens on `Motion.standardDuration`, 200 ms), landing on the designed silence silhouette rather than a blank or a spinner.
+
+The release *trigger*, not the linger value, is what decides how often that cost is paid. A 5 s linger comfortably covers the navigation flows (popout → dashboard, accidental close-and-reopen) but not pause-then-resume, which is typically tens of seconds. Gating the claim on `playing` would therefore re-pay the cold start on nearly every resume. Releasing on visibility alone makes resume seamless at negligible idle cost, because **both media surfaces are inherently transient** — the popout is hover-driven and the dashboard is a drawer, so "open **and** paused" is a narrow, short-lived state rather than a resting one.
+
+Rejected: *claim = visible AND playing* (strictest zero-idle reading, but ~150 ms of quiet ring on most resumes); *always-on* (1.20% of a core permanently — CONTEXT.md rejected it, and D-21-06's one-knob requirement keeps it reachable later regardless).
+
+**Ring behaviour while paused is unchanged by this choice:** the process runs, but there is no amplitude, so the ring shows the same static silhouette as the no-player state. Keeping cava alive buys instant resume; it does not put a live ring on a paused track.
+
+**Linger duration (Claude's discretion, D-21-06):** recommend **5000ms (5s)**, as a new named constant `Design.cavaLingerMs` (not reusing the bar's sub-second `barDrawerGraceMs`/`popoutDismissGraceMs` family — those govern hover-dismiss grace at a completely different scale/purpose; this is a process-lifecycle decision). Rationale: long enough to survive the navigation flows this value is actually responsible for — a popout-close-then-dashboard-open, or an accidental close-and-reopen — without re-paying the measured ~350ms cold start; short enough to still read as "a few seconds" per D-21-06's own wording and to matter for the zero-idle budget. **Pause/resume is deliberately NOT this value's job** — it is handled structurally by the claim condition above (pause never releases), because pause gaps run to tens of seconds and no defensible linger value would cover them. **Must be reachable by changing this single constant to a very large value (or a dedicated `Design.cavaAlwaysOn: bool` bypass) if the operator's reserved revisit lands on always-on** — do not restructure the refcount to satisfy that reversal.
 
 ### Visualiser States
 
@@ -241,6 +311,8 @@ Two ring states, both reusing the existing art-column layout (`artSize`, `ringGa
 All five geometry values are render-gate discretion, not spec-locked pixels — same status `14-UI-SPEC.md` already gives the Performance tab's dial geometry ("dial-specific render-gate discretion... do not force dial geometry onto the 4px grid").
 
 ### Per-Player Volume + Dedup Resolution (required by D-21-10, rendered here)
+
+**Operator-confirmed 2026-08-16** against two rendered alternatives (*active-player-only*, which would have dropped a QMEDIA-01 parity item; *expand-on-select rows*, which preserved the label elide budget but cost two taps to reach any background volume).
 
 **Where the controls live:** the existing bottom-of-tab `volumeRow` (`MediaTab.qml:1282`, `Slider` bound to `mediaBackend.setVolume`) **stays wired to the active player only** — this is the parity baseline (QMEDIA-01) and needs no change. The **new** per-player capability lives inside the player-switcher dropdown itself (`playerMenu`/`menuColumn`, `MediaTab.qml:824-899`): each row gains an inline mini-slider, so a background (non-selected) player's volume is reachable without switching to it first — discoverable exactly where the player's identity already lives, not as a second detached control surface.
 
