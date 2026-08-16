@@ -433,7 +433,34 @@ if [[ "$GATE_FAIL" -eq 0 ]]; then
     TD_STEP_OK=1
     TD_FAIL_REASON=""
 
-    if [[ ! -r "$ALLOWLIST_FILE" ]]; then
+    # CR-02 fix: theme-doctor's own contract is exit 0 (every check passed)
+    # or exit 1 (some [FAIL] present, which the allowlist scan below then
+    # adjudicates) — those are the only two legitimate outcomes. TD_RC was
+    # previously captured only for the human-readable log line below and
+    # never gated on: if theme-doctor never ran at all (missing binary,
+    # `su - builder -c` itself failing, an early `source` failure), the log
+    # is empty, the allowlist scan below finds zero [FAIL] lines, and the
+    # step silently reported status=ok allowed=0 blocking=0 — a false PASS
+    # indistinguishable from "everything genuinely passed."
+    if [[ "$TD_RC" -ne 0 && "$TD_RC" -ne 1 ]]; then
+        TD_STEP_OK=0
+        TD_FAIL_REASON="theme-doctor exited $TD_RC (expected 0 or 1) — it did not run to completion"
+    fi
+
+    # CR-02 fix, second half: a 0/1 exit code alone is still not proof
+    # theme-doctor ran to completion (the same "never trust the exit code
+    # alone" discipline this script already applies to its own
+    # summary.log verdict later in this file). Require the log to
+    # affirmatively contain theme-doctor's own final tally line before
+    # trusting the allowlist scan below — a plausible-but-empty or
+    # truncated log must not be treated as success. Guarded so it never
+    # overwrites a more specific reason already set above.
+    if [[ "$TD_STEP_OK" -eq 1 ]] && ! grep -qE '^Summary: [0-9]+ passed, [0-9]+ failed$' /logs/05-theme-doctor.log; then
+        TD_STEP_OK=0
+        TD_FAIL_REASON="theme-doctor's log never reached its own 'Summary: N passed, M failed' line — it did not run to completion"
+    fi
+
+    if [[ "$TD_STEP_OK" -eq 1 && ! -r "$ALLOWLIST_FILE" ]]; then
         TD_STEP_OK=0
         TD_FAIL_REASON="allowlist file missing or unreadable at $ALLOWLIST_FILE"
     fi
