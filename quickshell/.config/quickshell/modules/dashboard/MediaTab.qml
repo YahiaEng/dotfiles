@@ -659,16 +659,40 @@ Item {
                 asynchronous: true
                 preferredRendererType: Shape.CurveRenderer
 
+                // Repeater CANNOT instantiate ShapePath directly. Repeater
+                // requires Item-derived delegates, and ShapePath is not an
+                // Item — so a bare `Repeater { ShapePath {...} }` silently
+                // creates ZERO bars: no QML error, no warning, an empty
+                // ring. That is exactly the defect this file shipped with
+                // until it was caught live (the ring rendered completely
+                // bare after the static dashed arc it replaced was removed).
+                // 21-RESEARCH.md:311's claim that this was "the existing
+                // Shape extended with a Repeater as its content" was wrong.
+                //
+                // The documented workaround (Qt Forum 104917) is to wrap
+                // each ShapePath in an Item delegate and push it into the
+                // Shape's `data` on completion. The forum's "won't update"
+                // caveat concerns MODEL changes under a custom
+                // QAbstractListModel; our model is the constant 60, and the
+                // per-bar amplitude/colour bindings below keep evaluating
+                // normally after the push, so it does not apply here.
                 Repeater {
                     model: root.visualiserBarCount
 
-                    ShapePath {
+                    delegate: Item {
+                        id: barDelegate
+
+                        readonly property int barIndex: index
+
+                        Component.onCompleted: artRing.data.push(barDelegate.barPath)
+
+                        readonly property ShapePath barPath: ShapePath {
                         id: visualiserBar
                         fillColor: "transparent"
                         strokeWidth: root.visualiserBarStrokeWidth
                         capStyle: ShapePath.RoundCap
 
-                        readonly property int barIndex: index
+                        readonly property int barIndex: barDelegate.barIndex
                         readonly property real angleRad: (visualiserBar.barIndex * (360 / root.visualiserBarCount) - 90) * Math.PI / 180
 
                         // Per-bar fallback: streaming AND this specific
@@ -710,6 +734,7 @@ Item {
                                 easing.type: Easing.BezierSpline
                                 easing.bezierCurve: Motion.standardEasing
                             }
+                        }
                         }
                     }
                 }

@@ -179,16 +179,27 @@ SectionPopout {
                 asynchronous: true
                 preferredRendererType: Shape.CurveRenderer
 
+                // Same Repeater/ShapePath limitation as MediaTab.qml: a
+                // Repeater cannot instantiate ShapePath (not an Item), and
+                // fails silently to zero bars. Item-wrapper + data.push is
+                // the documented workaround (Qt Forum 104917).
                 Repeater {
                     model: root._visualiserBarCount
 
-                    ShapePath {
+                    delegate: Item {
+                        id: popoutBarDelegate
+
+                        readonly property int barIndex: index
+
+                        Component.onCompleted: mediaRing.data.push(popoutBarDelegate.barPath)
+
+                        readonly property ShapePath barPath: ShapePath {
                         id: popoutVisualiserBar
                         fillColor: "transparent"
                         strokeWidth: root._visualiserBarStrokeWidth
                         capStyle: ShapePath.RoundCap
 
-                        readonly property int barIndex: index
+                        readonly property int barIndex: popoutBarDelegate.barIndex
                         readonly property real angleRad: (popoutVisualiserBar.barIndex * (360 / root._visualiserBarCount) - 90) * Math.PI / 180
 
                         readonly property bool hasLiveData: CavaService.streaming
@@ -219,6 +230,7 @@ SectionPopout {
                                 easing.type: Easing.BezierSpline
                                 easing.bezierCurve: Motion.standardEasing
                             }
+                        }
                         }
                     }
                 }
