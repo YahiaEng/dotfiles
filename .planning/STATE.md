@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
 current_phase_name: fresh-install-proof
 status: executing
-stopped_at: Phase 22 context gathered
-last_updated: "2026-08-16T19:16:09.409Z"
+stopped_at: Completed 22-01-PLAN.md (baseline FAIL, harness-repair-first decided)
+last_updated: "2026-08-16T20:30:25.821Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 60
-  completed_plans: 54
+  completed_plans: 55
   percent: 83
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 22 (fresh-install-proof) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 22
-Progress: [█████████░] 93%
+Plan: 2 of 6
+Status: Ready to execute
+Progress: [█████████░] 92%
 Last activity: 2026-08-16 — Phase 22 execution started
 
 ## Performance Metrics
@@ -244,6 +244,7 @@ Last activity: 2026-08-16 — Phase 22 execution started
 | Phase 21 P04 | ~20min | 2 tasks | 5 files |
 | Phase 21 P02 | ~11min | 2 tasks | 1 files |
 | Phase 21 P06 | ~35min | 3 tasks | 3 files |
+| Phase 22 P01 | 72min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -541,6 +542,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: [Phase 21-02]: Found a genuine, unwaived parity gap — MediaBackend.qml has no per-track seekability latch analogous to lib/media.ts's trackKeyOf/updateSeekLatch; marked GAP (C-11), must be built or live-reverified before deletion per D-21-11
 - [Phase ?]: [Phase 21-02]: Per-player volume (D-21-10) explicitly labelled an addition beyond parity, kept out of the Parity: N/N verdict so its current absence isn't mistaken for an unaccounted gap
 - [Phase ?]: 60-bar Repeater visualiser + hand-authored 12-lobe cookie mask ported to both MediaTab.qml and MediaPopout.qml, sharing one CavaService instance; 14-UI-SPEC.md amended per D-21-04
+- [Phase ?]: Phase 22 baseline: unmodified container gate FAILED against origin/main for two harness/environment reasons (undersized timeout budget + broken kill-container mechanism under rootless podman, plus a pre-existing unrelated limine-dracut-support AUR build failure) — RETIRE-09's five-deletion reproducibility question remains UNTESTED
+- [Phase ?]: Operator selected harness-repair-first at the 22-01 Task 3 blocking checkpoint; T-22-01-DOS threat-model mitigation claim falsified by measurement (timeout wrapper does not stop the actual container, only its host-side client)
 
 ### Quick Tasks Completed
 
@@ -630,6 +633,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - QBAR-08 Super-hold half blocked: keybind-doctor's chord-collision check flags a press-bind on SUPER+SUPER_L against the shipped release-bind tap-to-menu bind at keybinds.lua:86; needs the Step 2 nested-hypr-lua-harness live probe (or a hand keypress test) before the mechanism can ship. Recovery path recorded in BarReveal.qml's header.
 - 18-18 HALTED (not complete): LEDGER-03 frame-rate campaign and QBAR-11 soak end-capture/200-cycle exercise both deferred — need user-present live desktop rearrangement (frame-rate) and ~3h40m more continued uptime on quickshell pid 737907 (soak). Resume commands in 18-FRAME-RATE.md and 18-BAR-SOAK.md Section five. WINDOWS.md entries 51/52. 18-19 blocked on this halt per status:halted contract.
 - hypr-equivalence-check baseline (Phase 13.1) is stale — binds.json/animations.json/options.jsonl diverge, plus a structural theme-coupling issue in the border-color comparison. Blocks theme-stress-test from ever reaching a full clean run until a surgical re-baseline (14-10/16-04 precedent) is done with human review. See WINDOWS.md #71 and 19-notification-server-centre/deferred-items.md.
+- Plan 22-04's D-22-09 theme-doctor allowlist derivation is blocked — no run has reached step=theme-doctor yet to produce the required failure-list input
 
 ## Deferred Items
 
@@ -679,9 +683,9 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T18:30:08.891Z
-Stopped at: Phase 22 context gathered
-Resume file: .planning/phases/22-fresh-install-proof/22-CONTEXT.md
+Last session: 2026-08-16T20:30:25.797Z
+Stopped at: Completed 22-01-PLAN.md (baseline FAIL, harness-repair-first decided)
+Resume file: None
 
 ## Operator Next Steps
 
