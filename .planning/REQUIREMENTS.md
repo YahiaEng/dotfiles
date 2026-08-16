@@ -58,7 +58,7 @@
 
 - [ ] **QMEDIA-01**: The dashboard's Media tab carries transport, seek, cover art, per-player volume and player switching — everything the standalone card did
 - [x] **QMEDIA-02**: An audio-reactive visualiser renders as a ring around shaped cover art, restoring the cava element the Media tab cut in Phase 14
-- [ ] **QMEDIA-03**: Exactly one MPRIS reader remains in the whole desktop — the three-consumer duplication v3.0 priced in is ended
+- [x] **QMEDIA-03**: Exactly one MPRIS reader remains in the whole desktop — the three-consumer duplication v3.0 priced in is ended
 
 ### RETIRE — Retirement mechanics
 
@@ -158,7 +158,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QPOWER-04 | Phase 20 | Complete |
 | QMEDIA-01 | Phase 21 | Pending |
 | QMEDIA-02 | Phase 21 | Complete |
-| QMEDIA-03 | Phase 21 | Pending |
+| QMEDIA-03 | Phase 21 | Complete |
 | RETIRE-01 | Phase 18 | Complete |
 | RETIRE-02 | Phase 18 | Complete |
 | RETIRE-03 | Phase 19 | Complete |
