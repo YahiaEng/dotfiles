@@ -569,6 +569,28 @@ Item {
     // stream tick, and on release issues one seek through the backend.
     property bool seekDragging: false
 
+    // ── Pager-swipe suppression while a slider is held ───────────────────
+    // This tab is a page inside Dashboard.qml's SwipeView, whose contentItem
+    // is a horizontal ListView (Dashboard.qml:798-808) — i.e. a Flickable.
+    // A Flickable ancestor STEALS a drag from a child control once the drag
+    // threshold is exceeded, which is why every slider on this tab responded
+    // to a click (press lands, value jumps) but ignored a drag (the flick
+    // grabbed it and swiped toward the next tab instead).
+    // Operator-reported at Plan 08's gate: "I have to click on the bar,
+    // dragging does not work."
+    //
+    // Every slider here increments this while held; Dashboard.qml binds the
+    // pager's `interactive` off it, so the swipe is disabled for exactly as
+    // long as a control is being dragged and re-enabled the moment it is
+    // released. A counter rather than a bool because the seek band and a
+    // switcher row each own a slider — clamped at zero so a missed release
+    // can never latch the pager permanently non-interactive.
+    property int _controlDragCount: 0
+    readonly property bool controlDragActive: root._controlDragCount > 0
+    function _noteControlDrag(pressed) {
+        root._controlDragCount = Math.max(0, root._controlDragCount + (pressed ? 1 : -1));
+    }
+
     // ── Round-6 fix: optimistic play/pause state (see file header) ──────
     // Measured on this machine: `media-status.sh watch`'s change-detect
     // poll (`cmd_watch`'s `sleep "$POLL_INTERVAL"`, POLL_INTERVAL=1)
@@ -727,12 +749,32 @@ Item {
                         readonly property int barIndex: barDelegate.barIndex
                         readonly property real angleRad: (visualiserBar.barIndex * (360 / root.visualiserBarCount) - 90) * Math.PI / 180
 
-                        // Per-bar fallback: streaming AND this specific
-                        // index present in the published array. A short
-                        // or torn frame (fewer values than barCount) still
-                        // leaves every out-of-range bar on the silence
-                        // sliver rather than stale/undefined geometry.
-                        readonly property bool hasLiveData: CavaService.streaming
+                        // Per-bar fallback: the ACTIVE PLAYER is playing, AND
+                        // cava is streaming, AND this specific index is
+                        // present in the published array. A short or torn
+                        // frame (fewer values than barCount) still leaves
+                        // every out-of-range bar on the silence sliver rather
+                        // than stale/undefined geometry.
+                        //
+                        // `root.backendPlaying` is load-bearing, not
+                        // belt-and-braces. Cava monitors the SYSTEM AUDIO
+                        // OUTPUT, not the selected MPRIS player — so with a
+                        // browser still playing, cava keeps streaming no
+                        // matter which player the switcher has selected.
+                        // Gating on CavaService.streaming alone therefore drew
+                        // a live ring around a PAUSED source's cover art
+                        // whenever anything else on the system was making
+                        // noise (operator-reported at Plan 08's gate: browser
+                        // playing, switch to a paused Spotify, ring still
+                        // dancing). Consulting the active player's own play
+                        // state is what ties the ring to the art it surrounds.
+                        //
+                        // A paused source therefore shows the even ring of
+                        // slivers — the same silent-state silhouette the
+                        // stopped-audio case renders, which is the
+                        // equivalence the live-ring design was accepted on.
+                        readonly property bool hasLiveData: root.backendPlaying
+                            && CavaService.streaming
                             && CavaService.bars.length > visualiserBar.barIndex
                         readonly property real amplitude: visualiserBar.hasLiveData
                             ? Math.max(0, Math.min(1, CavaService.bars[visualiserBar.barIndex]))
@@ -1244,6 +1286,13 @@ Item {
                                         // binding-break ever becomes a real complaint,
                                         // it is a separate, reproducible fix.
                                         value: modelData.volumeSupported ? modelData.volume : 0
+                                        // Controls' Slider ignores the wheel unless
+                                        // asked; the base QQuickControl carries this
+                                        // property, not QQuickSlider itself, so it is
+                                        // easy to miss. Set explicitly rather than
+                                        // relying on a default.
+                                        wheelEnabled: true
+                                        onPressedChanged: root._noteControlDrag(pressed)
                                         // `onMoved` fires for USER movement only, so
                                         // writing here cannot feed back on itself.
                                         // Live-during-drag rather than on-release: an
@@ -1417,7 +1466,13 @@ Item {
                     to: Math.max(1, root.mediaBackend ? root.mediaBackend.lengthSeconds : 1)
                     value: root.seekDragging ? seekSlider.value : (root.mediaBackend ? root.mediaBackend.positionSeconds : 0)
                     enabled: root.hasPlayer && root.mediaBackend.canSeek
+                    wheelEnabled: true
                     onPressedChanged: {
+                        // Suppress the pager swipe first — C-10 is
+                        // drag-to-position, and without this the enclosing
+                        // ListView stole the drag exactly as it did on the
+                        // switcher's volume rows.
+                        root._noteControlDrag(pressed);
                         if (pressed) {
                             root.seekDragging = true;
                         } else if (root.seekDragging) {
@@ -1739,8 +1794,14 @@ Item {
                     from: 0
                     to: 1
                     value: root.mediaBackend ? root.mediaBackend.volumeLevel : 0
+                    wheelEnabled: true
                     onPressedChanged: {
+                        root._noteControlDrag(pressed);
                         if (!pressed && root.mediaBackend)
+                            root.mediaBackend.setVolume(volumeSlider.value);
+                    }
+                    onMoved: {
+                        if (root.mediaBackend)
                             root.mediaBackend.setVolume(volumeSlider.value);
                     }
 

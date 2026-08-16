@@ -702,6 +702,26 @@ PanelWindow {
             // this).
             spacing: 0
 
+            // ── Yield the swipe while a page's slider is being dragged ────
+            // This pager's contentItem is a horizontal ListView (below), and
+            // a Flickable ancestor steals a drag from a child control once
+            // the drag threshold is exceeded. That made every slider on the
+            // Media tab click-only: the press landed and the value jumped,
+            // but a drag was grabbed by the flick and became a tab swipe.
+            // Reported at Phase 21 Plan 08's gate for the switcher's
+            // per-player volume rows; it applied equally to the seek band
+            // (C-10, drag-to-position) and the main volume slider.
+            //
+            // MediaTab publishes `controlDragActive` for exactly this, held
+            // for as long as any of its sliders is pressed. Only the media
+            // page is consulted because it is the only page that owns drag
+            // controls today; a future page with its own sliders declares
+            // the same property and gets added to this expression. The
+            // `=== true` keeps an undefined property (a page that does not
+            // declare it, or a Loader whose item has not been created yet)
+            // from reading as truthy and disabling the swipe outright.
+            interactive: !(mediaTabLoader.item && mediaTabLoader.item.controlDragActive === true)
+
             // RESEARCH Pattern 4 (borrowed from Caelestia, not its pager
             // mechanism): one Loader per tab, active only when it is the
             // current tab, so an off-screen Performance/Weather tab runs
