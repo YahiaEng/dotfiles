@@ -5,16 +5,16 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
 current_phase_name: fresh-install-proof
 status: executing
-stopped_at: Completed 22-05-PLAN.md — SC-1/SC-2/SC-3 mechanical halves closed on 22-04's independently re-verified green run; zero-defect fix loop recorded; RETIRE-09 still open pending plan 22-06's VM tier
-last_updated: "2026-08-16T23:24:23.408Z"
+stopped_at: Completed 22-06-PLAN.md — RETIRE-09 CLOSED, both INST-03 tiers pass, Phase 22 complete (9/9 plans), v4.0 milestone all 55 requirements satisfied
+last_updated: "2026-08-16T23:36:46.592Z"
 last_activity: 2026-08-17
-last_activity_desc: "plan 22-04: theme-doctor session-failure allowlist authored + container-run.sh converted to blocking against it, retirement-check/stow-link-check added as new blocking steps, pushed and run once — overall=PASS"
+last_activity_desc: "plan 22-06: graphical VM tier run by the operator — PASS, zero exemptions invoked, VM destroyed; RETIRE-09 closed; Phase 22 complete (9/9 plans); v4.0 milestone's all 55 requirements now satisfied"
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 63
-  completed_plans: 62
-  percent: 83
+  completed_plans: 63
+  percent: 100
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 22 (fresh-install-proof) — EXECUTING
-Plan: 8 of 9 summarized (plans 05, 06 still outstanding)
-Status: 22-04 complete (five gating steps, theme-doctor blocking, allowed=3 blocking=0, overall=PASS); 22-05/06 remain before RETIRE-09 can be marked complete
-Progress: [██████████] 98%
-Last activity: 2026-08-17 — plan 22-04: theme-doctor session-failure allowlist authored + container-run.sh converted to blocking against it, retirement-check/stow-link-check added as new blocking steps, pushed and run once — overall=PASS
+Phase: 22 (fresh-install-proof) — COMPLETE
+Plan: 9 of 9 summarized
+Status: RETIRE-09 CLOSED — both INST-03 tiers pass (container run-20260816T230409Z overall=PASS; graphical VM operator verdict PASS, zero exemptions invoked, VM destroyed). Phase 22 complete; v4.0 milestone's all 55 requirements now satisfied. Milestone closeout (archiving, MILESTONES.md, PROJECT.md evolution) is a separate step, not yet run.
+Progress: [██████████] 100%
+Last activity: 2026-08-17 — plan 22-06: graphical VM tier run by the operator — PASS, zero exemptions invoked, VM destroyed; RETIRE-09 closed; Phase 22 complete (9/9 plans); v4.0 milestone's all 55 requirements now satisfied
 
 ## Performance Metrics
 
@@ -252,6 +252,7 @@ Last activity: 2026-08-17 — plan 22-04: theme-doctor session-failure allowlist
 | Phase 22 P07 | multi-session (~50min active, gate re-run 17min22s) | 3 tasks | 5 files |
 | Phase 22 P04 | ~50min | 3 tasks | 8 files |
 | Phase 22 P05 | ~15min | 2 tasks | 6 files |
+| Phase 22 P06 | ~35min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -564,6 +565,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: gsettings gtk-theme classified no-session-bus (lib/reload.sh:48 headless guard); walker/elephant process checks classified no-compositor (autostart.lua:163-164, Hyprland-only exec)
 - [Phase ?]: Plan 22-05: closed on plan 22-04's existing green run after independently re-verifying all four raw evidence logs line-by-line, rather than launching a new ~17min container re-run — HEAD==origin/main confirmed, no repo/harness changes since the green run
 - [Phase ?]: Plan 22-05: SC-1/SC-2/SC-3 mechanical halves closed on cited evidence lines (green-evidence/*.log); RETIRE-09 remains open pending plan 22-06's graphical VM tier and human render verdict
+- [Phase ?]: 22-06: RETIRE-09 CLOSED — both INST-03 tiers pass against origin/main @ 4cee477c33df (container run-20260816T230409Z overall=PASS; graphical VM operator verdict PASS, zero exemptions invoked, VM destroyed). All 55 v4.0 requirements now complete.
+- [Phase ?]: 22-06: D-22-02's sole VM exemption (hypr-equivalence-check: options.jsonl) went unused this run — recorded as available-but-unused, not deleted; the 0.56.1-baseline-vs-newer-runtime drift risk it names stays real for future runs.
 
 ### Quick Tasks Completed
 
@@ -703,8 +706,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T23:24:23.385Z
-Stopped at: Completed 22-05-PLAN.md — SC-1/SC-2/SC-3 mechanical halves closed on 22-04's independently re-verified green run; zero-defect fix loop recorded; RETIRE-09 still open pending plan 22-06's VM tier
+Last session: 2026-08-16T23:36:46.568Z
+Stopped at: Completed 22-06-PLAN.md — RETIRE-09 CLOSED, both INST-03 tiers pass, Phase 22 complete (9/9 plans), v4.0 milestone all 55 requirements satisfied
 Resume file: None
 
 ## Operator Next Steps
