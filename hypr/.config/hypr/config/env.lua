@@ -12,8 +12,10 @@
 -- directory of the `rose-pine-cursor` AUR package — NOT its package
 -- name, confirmed by reading the PKGBUILD and verifying on disk).
 -- HYPRCURSOR_THEME/HYPRCURSOR_SIZE are new here: Hyprland reads these for
--- every native Wayland client (kitty, walker, quickshell, waybar,
--- swaync, Thunar-under-Wayland), pointed at `rose-pine-hyprcursor`
+-- every native Wayland client (kitty, walker, the Quickshell shell
+-- process — which now carries the bar, the notification surfaces, the
+-- OSD, the power menu and the dashboard in one process — and
+-- Thunar-under-Wayland), pointed at `rose-pine-hyprcursor`
 -- (already installed, 17-04) — the hyprcursor-format sibling of the same
 -- BreezeX-remixed-to-Rose-Pine shape family (rose-pine-hyprcursor's own
 -- manifest.hl description literally says so), so native and XWayland

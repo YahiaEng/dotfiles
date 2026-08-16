@@ -21,7 +21,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 | Status Bar      | Quickshell            |
 | Launcher        | Walker                |
 | Terminal        | Kitty                 |
-| Notifications   | SwayNC                |
+| Notifications   | Quickshell            |
 | Wallpaper       | awww                  |
 | Theming         | Matugen               |
 | Lock Screen     | Hyprlock              |
@@ -66,11 +66,6 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 ├── kitty/.config/kitty/
 │   ├── kitty.conf
 │   └── colors.conf                     # Active colors (auto-managed)
-│
-├── swaync/.config/swaync/
-│   ├── config.json
-│   ├── style.css
-│   └── colors.css                      # Active colors (auto-managed)
 │
 ├── matugen/.config/matugen/
 │   ├── config.toml                     # Matugen settings + template registry
