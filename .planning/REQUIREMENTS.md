@@ -70,7 +70,7 @@
 - [x] **RETIRE-06**: `ags` is removed the same way
 - [x] **RETIRE-07**: The `wlogout` and `eww` packages — repo-retired in earlier milestones but **still installed on this host** — are uninstalled
 - [x] **RETIRE-08**: `contract.json` reaches its post-migration size (29 → ~17 entries) with `theme-doctor` and `theme-parity` green and no orphaned entries
-- [ ] **RETIRE-09**: The fresh-install container gate (D-34/D-36) passes after every retirement has landed — the milestone's closing proof that a clean clone still reproduces the desktop
+- [x] **RETIRE-09**: The fresh-install container gate (D-34/D-36) passes after every retirement has landed — the milestone's closing proof that a clean clone still reproduces the desktop — **CLOSED 2026-08-17.** Both INST-03 tiers passed against the same tree (`origin/main` at `4cee477c33df`): the container tier (`run-20260816T230409Z`, `overall=PASS`, nine gating steps, `retirement-check`/`stow-link-check`/`theme-doctor` all blocking and green) plus the graphical VM tier (operator verdict PASS, zero exemptions invoked, VM destroyed) run by the human on the VM's own display — the surface this milestone built that the container cannot render at all. Evidence: `22-VERIFICATION-RECORD.md`.
 
 ### GATE — Quality gates for a redesign-not-port migration
 
@@ -167,7 +167,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | RETIRE-06 | Phase 21 | Complete |
 | RETIRE-07 | Phase 20 | Complete |
 | RETIRE-08 | Phase 21 | Complete |
-| RETIRE-09 | Phase 22 | Pending |
+| RETIRE-09 | Phase 22 | Complete — closed 2026-08-17. Both tiers passed against `origin/main` at `4cee477c33df`: container tier `run-20260816T230409Z` `overall=PASS` (nine gating steps, `retirement-check`/`stow-link-check`/`theme-doctor` all blocking and green); graphical VM tier human verdict PASS, zero exemptions invoked, nothing unexpected, VM destroyed. The VM's four session-dependent `theme-doctor` checks (walker/elephant process, gsettings gtk-theme, elephant listproviders) — which the container structurally cannot exercise and must allowlist — passed cleanly on the VM with no allowlist needed. See `22-VERIFICATION-RECORD.md`. |
 | GATE-01 | Phase 18 | Complete |
 | GATE-02 | Phase 18 | Complete — PASSED at 18-19 Iteration 3, sha `2644ae0`, 2026-08-12. Operator performed all fifteen gestures live: 14 PASS, 1 NOT-DEMONSTRABLE (B.3 brightness half, authorised by D-18-39), 0 FAIL, 0 OVERRIDDEN. Iterations 1 and 2 were suspended on five operator-reported defects (F1-F5), all fixed before Iteration 3. Authorised RETIRE-02, which then executed. Evidence: `18-GATE-02-RECORD.md` § Deletion Authorisation. Phase 18.1's earlier informal approval (2026-08-12) is superseded — it unblocked 18-19 but was not the blocking pass. |
 | GATE-03 | Phase 18 | Complete |

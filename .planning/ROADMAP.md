@@ -71,7 +71,7 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 - [x] **Phase 19: Notification Server & Centre** - The shell itself owns `org.freedesktop.Notifications`; popups, slide-out centre and swaync's deletion land together with no rollback (completed 2026-08-14)
 - [x] **Phase 20: Indicators & Power Menu** - QML volume/brightness/caps-lock indicators and the six-action power menu; SwayOSD, wleave and the leftover wlogout/eww packages leave the host (completed 2026-08-16)
 - [x] **Phase 21: Media Fold-In & Contract Close** - The AGS card folds into the dashboard's Media tab behind a cava go/no-go, ending the MPRIS duplication and closing `contract.json` at its post-migration size (completed 2026-08-16)
-- [ ] **Phase 22: Fresh-Install Proof** - The D-34/D-36 container gate proves a clean clone still reproduces the whole desktop after all five packages are gone
+- [x] **Phase 22: Fresh-Install Proof** - The D-34/D-36 container gate proves a clean clone still reproduces the whole desktop after all five packages are gone (completed 2026-08-17)
 
 ## Phase Details
 
@@ -444,7 +444,7 @@ Cross-cutting constraints:
 - **Not a pure-debt phase.** Every LEDGER item is interleaved into Phases 18-21; nothing debt-shaped is parked here. This phase carries one retirement-mechanics requirement and nothing else.
 - **The dev host will lie to you.** It still has the old packages installed even after `stow.sh`/`install.sh` were edited — this gate is the only thing that surfaces a dead symlink or missing package that daily-driver testing never would.
 
-**Plans**: 8/9 plans executed across 5 waves
+**Plans**: 9/9 plans executed across 5 waves — Phase 22 COMPLETE (2026-08-17)
 
 - [x] 22-09-PLAN.md
 
@@ -457,7 +457,7 @@ Cross-cutting constraints:
 - [x] 22-03-PLAN.md — SC-3 prose sweep and procedure correction: `README.md`, `env.lua`, `VERIFICATION.md` §5/§6/§7/§8, plus the VM exemption list authored BEFORE the run (RETIRE-09)
 - [x] 22-04-PLAN.md — Committed session-failure allowlist + three blocking container steps (retirement checklist, symlink sweep, `theme-doctor` flipped from informational), pushed and run once (RETIRE-09)
 - [x] 22-05-PLAN.md — Defect closure loop: fix, push, re-run to `overall=PASS`, then close SC-1/SC-2/SC-3's mechanical halves on committed evidence (RETIRE-09)
-- [ ] 22-06-PLAN.md — The graphical VM tier: human render gate, verdict record, RETIRE-09 closed only on both tiers (RETIRE-09)
+- [x] 22-06-PLAN.md — The graphical VM tier: human render gate, verdict record, RETIRE-09 closed only on both tiers (RETIRE-09) — operator verdict PASS, zero exemptions invoked, VM destroyed. See `22-VERIFICATION-RECORD.md`.
 
 **Wave 1** — the opening measurement, alone (D-22-12: modifying the harness first changes two variables at once)
 
@@ -506,7 +506,7 @@ Cross-cutting constraints:
 | 19. Notification Server & Centre | v4.0 | 8/8 | Complete    | 2026-08-14 |
 | 20. Indicators & Power Menu | v4.0 | 10/10 | Complete    | 2026-08-16 |
 | 21. Media Fold-In & Contract Close | v4.0 | 9/9 | Complete    | 2026-08-16 |
-| 22. Fresh-Install Proof | v4.0 | 8/9 | In Progress|  |
+| 22. Fresh-Install Proof | v4.0 | 9/9 | Complete | 2026-08-17 |
 
 **Totals:** 23 phases (18 complete) · 141 plans complete · 3 milestones shipped
 
