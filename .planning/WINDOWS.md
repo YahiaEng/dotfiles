@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 56
+open_count: 59
 waived_count: 2
 fixed_count: 27
-total_count: 85
-last_updated: 2026-08-16T05:33:01.088Z
+total_count: 88
+last_updated: 2026-08-16T10:56:39.602Z
 ---
 
 # Broken Windows Ledger
@@ -100,6 +100,9 @@ last_updated: 2026-08-16T05:33:01.088Z
 | 83 | 21 | stub | quickshell/.config/quickshell/modules/dashboard/MediaTab.qml |  | Cava-verification overlay (cavaVerifyOverlay/cavaVerifyPath) is deliberately oversized checkpoint-driven scaffolding, not the final visualiser; 21-06 owns normalizing to real proportions per 21-UI-SPEC.md's Visualiser Geometry table | open |  | 2026-08-16T04:51:35.665Z |  |
 | 84 | 21 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/MediaTab.qml |  | 60-bar visualiser + 12-lobe mask human-check lines not live-verified this session (no session summoned, no screenshot) | open |  | 2026-08-16T05:33:00.997Z |  |
 | 85 | 21 | unrun-verify | quickshell/.config/quickshell/modules/bar/MediaPopout.qml |  | Ported ring/mask human-check lines (incl. shared-process-count check) not live-verified this session | open |  | 2026-08-16T05:33:01.088Z |  |
+| 86 | 21 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml |  | Dedup (duplicate-source collapse) and seekability-latch human-check lines not live-verified this session — needs two real MPRIS sources and a transiently-flickering source respectively | open |  | 2026-08-16T10:56:39.370Z |  |
+| 87 | 21 | unrun-verify | quickshell/.config/quickshell/modules/dashboard/MediaTab.qml |  | Per-player mini-slider drag/select-separation human-check not live-verified this session (needs two live players and real pointer input) | open |  | 2026-08-16T10:56:39.504Z |  |
+| 88 | 21 | unrun-verify | quickshell/.config/quickshell/shell.qml |  | Super+M open/close/fullscreen-guard human-check not live-verified this session — also requires a Quickshell process restart to register the new GlobalShortcut (D-17), not performed | open |  | 2026-08-16T10:56:39.602Z |  |
 
 ````json
 [
@@ -1121,6 +1124,42 @@ last_updated: 2026-08-16T05:33:01.088Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-16T05:33:01.088Z",
+    "resolved_at": null
+  },
+  {
+    "id": 86,
+    "kind": "unrun-verify",
+    "phase": "21",
+    "file": "quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml",
+    "line": null,
+    "description": "Dedup (duplicate-source collapse) and seekability-latch human-check lines not live-verified this session — needs two real MPRIS sources and a transiently-flickering source respectively",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T10:56:39.370Z",
+    "resolved_at": null
+  },
+  {
+    "id": 87,
+    "kind": "unrun-verify",
+    "phase": "21",
+    "file": "quickshell/.config/quickshell/modules/dashboard/MediaTab.qml",
+    "line": null,
+    "description": "Per-player mini-slider drag/select-separation human-check not live-verified this session (needs two live players and real pointer input)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T10:56:39.504Z",
+    "resolved_at": null
+  },
+  {
+    "id": 88,
+    "kind": "unrun-verify",
+    "phase": "21",
+    "file": "quickshell/.config/quickshell/shell.qml",
+    "line": null,
+    "description": "Super+M open/close/fullscreen-guard human-check not live-verified this session — also requires a Quickshell process restart to register the new GlobalShortcut (D-17), not performed",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-16T10:56:39.602Z",
     "resolved_at": null
   }
 ]
