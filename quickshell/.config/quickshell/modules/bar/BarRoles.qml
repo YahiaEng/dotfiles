@@ -137,4 +137,32 @@ Singleton {
     readonly property color notifSurface: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.38)
     readonly property color notifSurfaceFg: Colours.onSurface
     readonly property color notifSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.52)
+
+    // ── Do-not-disturb ambient capsule tint (Phase 21 Plan 05, D-21-27,
+    //    21-UI-SPEC.md § DND Capsule Tint) ─────────────────────────────────
+    // For as long as NotifServer.dnd is true, ClockActionsCapsule.qml's own
+    // root capsule instance overrides its inherited `color:` to this
+    // surface, so the WHOLE capsule reads as a mode change rather than a
+    // badge on one glyph — the tint is applied there, at the instance
+    // level, never inside BarCapsule.qml's own shared expression.
+    //
+    // Built off `root.accent` (already a `color`-typed property, itself
+    // assigned from `Colours.primary` above) rather than a fresh
+    // indirection — this file's own REQUIRED INDIRECTION rule (see header)
+    // is that no blend may read a `Colours.*` role directly, because
+    // Colours.qml's roles are JSON-parsed strings with no .r/.g/.b members
+    // and blending one directly silently yields opaque black. `accent` has
+    // already performed that string->colour coercion, so reusing it here
+    // satisfies the rule with no new property.
+    //
+    // 0.28 is a recommended starting point (D-21-27), not a locked value —
+    // render-gate adjustable roughly between 0.20 and 0.35 without
+    // touching the mechanism.
+    readonly property color dndSurface: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.28)
+    // Deliberately onSurface, NOT onAccent: a 0.28-alpha accent wash over
+    // the capsule surface does not reach onPrimary's contrast target, so
+    // switching the clock text/glyph tint to onAccent would reduce
+    // legibility rather than improve it. The clock and action glyphs keep
+    // reading exactly as they do untinted.
+    readonly property color dndSurfaceFg: Colours.onSurface
 }

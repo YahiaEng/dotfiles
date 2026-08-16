@@ -636,6 +636,31 @@ BarCapsule {
         id: notificationSource
     }
 
+    // ── Do-not-disturb ambient capsule tint (Phase 21 Plan 05, D-21-27,
+    //    21-UI-SPEC.md § DND Capsule Tint) — INSTANCE-LEVEL override of
+    //    the inherited `color:` on this capsule's own root BarCapsule
+    //    object, deliberately NOT a branch inside BarCapsule.qml's shared
+    //    expression: editing the shared component would spread the tint
+    //    to every other capsule in the bar (WorkspaceCapsule,
+    //    IdleInhibitorCapsule, ...), and only this one is meant to change.
+    //
+    //    This capsule never sets `surfaced: true` (confirmed: the only two
+    //    occurrences of the word in this file are prose comments), so its
+    //    baseline fill is unconditionally "transparent" — bare glyphs on
+    //    the wallpaper, per BarCapsule.qml's own `!surfaced ? "transparent"
+    //    : (...)` expression. The tint below therefore fires REGARDLESS of
+    //    the surfaced branch, not as a variant inside it: the false branch
+    //    reproduces that exact expression unchanged, so nothing about the
+    //    untinted appearance shifts.
+    //
+    //    Source of truth stays NotifServer.dnd, read through the existing
+    //    `notificationSource.dndActive` alias above — no second state
+    //    holder. No explicit `Behavior on color` is added here:
+    //    BarCapsule.qml already declares one on this same property, and a
+    //    base-type Behavior continues to apply to value changes driven by
+    //    an instance-level property override.
+    color: notificationSource.dndActive ? BarRoles.dndSurface : (!surfaced ? "transparent" : (hovered ? BarRoles.capsuleHover : BarRoles.capsule))
+
     // ── The settings drawer — the same five axes D-18-01 names, sharing
     //    Task 2's drawer shape verbatim. Promoting that shape to a
     //    shared type is a named follow-on, not a licence to edit the
