@@ -289,12 +289,31 @@ Scope {
         for (var i = 0; i < list.length; i++) {
             const p = list[i];
             const pid = root._playerIdentity(p);
+            // `volume` is deliberately NOT projected as a snapshot number.
+            // Doing so made this whole `players` binding depend on p.volume,
+            // so every volume write rebuilt the array — and a Repeater whose
+            // model is a JS array destroys and recreates all its delegates
+            // when that array is replaced. The consequence was that DRAGGING
+            // a switcher row's volume slider killed itself on its first
+            // movement: the write rebuilt the model, the delegate holding the
+            // slider was destroyed, and the mouse grab went with it. A click
+            // or a wheel step survived because each is one discrete event
+            // that completes before the rebuild; a drag cannot.
+            // Operator-reported at Plan 08's gate ("scrolling works but
+            // dragging does not").
+            //
+            // The live player object is exposed instead, so the consumer
+            // binds to `modelData.player.volume` — notifiable through
+            // volumeChanged without disturbing this array's identity. Note
+            // this array still rebuilds on identity/label/active/
+            // volumeSupported changes, which are all rare and none of which
+            // can occur mid-drag.
             out.push({
                 id: pid,
                 label: (p.identity && p.identity !== "") ? p.identity : pid,
                 active: p === root.activePlayer,
                 volumeSupported: p.volumeSupported === true,
-                volume: p.volumeSupported === true ? p.volume : 0
+                player: p
             });
         }
         return out;

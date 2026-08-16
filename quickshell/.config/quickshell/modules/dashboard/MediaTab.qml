@@ -1285,7 +1285,14 @@ Item {
                                         // for no proven gain. If the post-drag
                                         // binding-break ever becomes a real complaint,
                                         // it is a separate, reproducible fix.
-                                        value: modelData.volumeSupported ? modelData.volume : 0
+                                        // Bound to the LIVE player object, not to a
+                                        // snapshot field on the model row — see
+                                        // MediaBackend.qml's `players` projection. A
+                                        // projected number would make the model array
+                                        // itself depend on volume, and rebuilding that
+                                        // array mid-drag destroys this delegate and the
+                                        // mouse grab with it.
+                                        value: (modelData.volumeSupported && modelData.player) ? modelData.player.volume : 0
                                         // Controls' Slider ignores the wheel unless
                                         // asked; the base QQuickControl carries this
                                         // property, not QQuickSlider itself, so it is
@@ -1333,7 +1340,7 @@ Item {
                                         visible: playerMenuRow.rowHasVolume
                                         width: root.playerMenuVolumeReadoutWidth
                                         horizontalAlignment: Text.AlignRight
-                                        text: modelData.volumeSupported ? (Math.round((modelData.volume || 0) * 100) + "%") : ""
+                                        text: (modelData.volumeSupported && modelData.player) ? (Math.round((modelData.player.volume || 0) * 100) + "%") : ""
                                         font.pixelSize: root.fontLabel
                                         color: modelData.active ? Colours.onSurface : Colours.onSurfaceVariant
                                     }
