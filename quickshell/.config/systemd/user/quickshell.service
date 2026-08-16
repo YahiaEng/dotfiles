@@ -3,9 +3,9 @@
 #
 # Every autostart entry in this repo — the wallpaper daemon, the (now
 # retired) bar, its fullscreen watcher, quickshell (until this plan), the
-# notification daemon retired in Phase 19, the AGS media applet,
-# elephant, walker, hypridle, swayosd, the polkit agent and both
-# clipboard watchers — launches through a transient `uwsm app` scope in
+# notification daemon retired in Phase 19, the (now retired) OSD daemon,
+# the AGS media applet, elephant, walker, hypridle, the polkit agent and
+# both clipboard watchers — launches through a transient `uwsm app` scope in
 # `app-graphical.slice`, with no `Restart=` directive anywhere. There is
 # zero precedent in this repo for a custom systemd `--user` unit before
 # this file; the only stowed systemd artifact that existed until now was a

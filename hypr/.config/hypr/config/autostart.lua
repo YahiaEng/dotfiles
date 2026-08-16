@@ -181,16 +181,6 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("uwsm app -- ~/.config/hypr/scripts/bar-visibility.sh idle show")
     hl.exec_cmd("uwsm app -- hypridle")
 
-    -- ── SwayOSD (OSD-01/D-23/D-24) ───────────────────────
-    -- swayosd-client (bound to XF86Audio*/mic-mute keys in keybinds.conf)
-    -- is a thin D-Bus client with nothing to talk to until this server
-    -- runs; it performs the actual volume/mute change AND renders the
-    -- themed OSD pill from style.css. Launched here, before theme-init,
-    -- so the pill is themed on first paint. The keyless caps-lock OSD is
-    -- handled separately by the packaged swayosd-libinput-backend.service
-    -- (system bus, enabled in install.sh).
-    hl.exec_cmd("uwsm app -- swayosd-server")
-
     -- ── Polkit agent ─────────────────────────────────────
     hl.exec_cmd("uwsm app -- /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
 

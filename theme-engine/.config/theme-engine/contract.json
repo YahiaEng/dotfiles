@@ -11,7 +11,6 @@
     { "name": "gtk-4.0-settings.ini", "format": "ini-kv" },
     { "name": "fzf-colors.conf", "format": "env-kv" },
     { "name": "hyprlock.conf", "format": "hypr-vars" },
-    { "name": "swayosd.css", "format": "gtk-css" },
     { "name": "zen-userchrome.css", "format": "css-literal" },
     { "name": "satty.toml", "format": "toml" },
     { "name": "motion.json", "format": "json" },

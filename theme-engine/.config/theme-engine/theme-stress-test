@@ -245,7 +245,7 @@ check_theme_doctor() {
 # Until RETIRE-02 (18-20), this branch read the retired bar's compiled
 # stylesheet instead, which DID define "@define-color primary" verbatim —
 # but every other gtk-css sheet defining that same token (the notification
-# daemon's own sheet among them, swayosd, wleave) is itself retired
+# daemon's own sheet among them, wleave) is itself retired
 # elsewhere in this milestone, so repointing at any of them would only
 # relocate this breakage into a later phase.
 # palette.json is a contract entry no remaining RETIRE requirement removes,

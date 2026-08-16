@@ -347,9 +347,10 @@ Singleton {
     //    token inherits one step vocabulary rather than inventing a
     //    fourth: config-floating.jsonc's pulseaudio module ("scroll-step":
     //    5), its backlight module's own `light -A 5`/`light -U 5` delta,
-    //    and this host's hardware media keys via `swayosd-client
-    //    --output-volume raise/lower`/`--brightness raise/lower`, whose
-    //    own default step is 5. A percentage-point count, not a spacing
+    //    and this host's hardware media keys via the (now retired) OSD
+    //    daemon's client (`--output-volume raise/lower`/`--brightness
+    //    raise/lower`), whose own default step was 5. A percentage-point
+    //    count, not a spacing
     //    value — the repo's 4px-grid discipline does not apply to it.
     //    Appended alone, per 18-05's standing rule that each plan appends
     //    only the tokens it actually reads.
@@ -427,9 +428,10 @@ Singleton {
     readonly property int osdWidth: 380
     // osdHideDelayMs (1200) — D-20-06, Claude's Discretion resolved by
     // UI-SPEC. Independent of notifToastDurationMs (2000) on purpose, and
-    // deliberately longer than SwayOSD's own 1000: interactive: true means
-    // a drag must be able to complete inside the dwell window, and the
-    // hover-pause already covers genuinely slow interaction.
+    // deliberately longer than the retired OSD daemon's own 1000:
+    // interactive: true means a drag must be able to complete inside the
+    // dwell window, and the hover-pause already covers genuinely slow
+    // interaction.
     readonly property int osdHideDelayMs: 1200
     // osdRecencyWindowMs (1500) — D-20-08, Claude's Discretion resolved by
     // UI-SPEC. Gates SLIDER-ROW MEMBERSHIP (a control earns a row only if

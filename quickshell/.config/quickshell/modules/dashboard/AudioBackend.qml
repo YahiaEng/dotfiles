@@ -13,8 +13,10 @@
 // Every read and write in this file goes through the native
 // `Quickshell.Services.Pipewire` members; no subprocess appears anywhere in
 // the audio read or write path (Prohibition P1 in 15-02-PLAN.md's
-// must_haves), and nothing here ever invokes an OSD client — SwayOSD stays
-// the sole OSD producer, triggered only by hardware keys (D-15-24).
+// must_haves), and nothing here ever invokes an OSD client — the (now
+// retired) standalone OSD daemon stayed the sole OSD producer, triggered
+// only by hardware keys (D-15-24), until Phase 20's in-process QML OSD
+// took over (D-20-05).
 //
 // ── 15-API-PROBE.md A3/A6/PwNodeType corrections, binding on this file ───
 // `Pipewire.nodes` is an `UntypedObjectModel`: no `.count`, no `.get(i)`.

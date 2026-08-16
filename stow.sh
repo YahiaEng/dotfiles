@@ -26,7 +26,6 @@ PACKAGES=(
     kitty
     matugen
     quickshell
-    swayosd
     theme-engine
     thunar
     uwsm

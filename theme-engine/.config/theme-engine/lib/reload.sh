@@ -101,41 +101,23 @@ theme_engine_reload() {
     #    the engine just committed to the state dir.
     theme_engine_reload_vscodium
 
-    # ── SwayOSD (OSD-01/D-24, corrected WR-01): style.css is only read
-    #    at startup (GTK apps have no live CSS reload API — same class of
-    #    limitation as Walker/GTK3 elsewhere in this engine), so a theme
-    #    switch must restart swayosd-server itself (the user-owned process
-    #    that performs the volume change AND renders the pill) — NOT the
-    #    system-bus libinput backend, which only forwards raw hardware key
-    #    events and has no CSS to reload. Guarded by the existing
-    #    `pgrep -x swayosd-server` check so a fresh/no-swayosd or headless
-    #    machine never spawns a spurious kill/relaunch (parity/container
-    #    gate stays a no-op here). Mirrors the walker kill-then-detached-
-    #    relaunch idiom above, minus walker's D-Bus bus-name and elephant
-    #    health gates — swayosd-server has neither.
-    if pgrep -x swayosd-server >/dev/null 2>&1; then
-        pkill -x swayosd-server 2>/dev/null || true
-
-        # set -e-safe increment (see theme_engine_reload_walker note above
-        # for why the terser post-increment form is unsafe under set -e):
-        # osd_waited=$(( osd_waited + 1 )) is the only safe form here.
-        local osd_waited=0
-        while pgrep -x swayosd-server >/dev/null 2>&1 && (( osd_waited < 20 )); do
-            sleep 0.1
-            osd_waited=$(( osd_waited + 1 ))
-        done
-
-        setsid uwsm app -- swayosd-server >/dev/null 2>&1 </dev/null &
-        disown
-    fi
-
+    # ── OSD (OSD-01/D-24): Phase 20 (RETIRE-04) replaced the standalone
+    #    GTK3 OSD daemon with an in-process QML surface (`Osd.qml`, a
+    #    `Toast.qml` instance) owned by the same Quickshell shell process
+    #    the bar and notification centre already run in. QML hot-reloads
+    #    its own palette through `Colours.qml` on file change natively —
+    #    unlike the retired daemon's GTK3 style.css (no live CSS reload
+    #    API), there is nothing here that needs a kill/relaunch step on a
+    #    theme switch. This fan-out step is intentionally absent, not
+    #    silently dropped.
+    #
     # ── AGS media applet (MEDIA-03, 10-05): CSS-only hot reload — the
     #    `media` instance's own reload-css requestHandler recompiles
     #    style.scss (which @imports ~/.local/state/theme/ags.scss, just
     #    committed above) via `sass` and re-applies it with
     #    app.apply_css(css, true); no process restart needed (unlike
-    #    Walker/SwayOSD's GTK3 no-live-CSS-reload limitation — AGS is
-    #    GTK4 and owns its own CssProvider). `ags list` prints one
+    #    Walker's GTK3 no-live-CSS-reload limitation — AGS is GTK4 and
+    #    owns its own CssProvider). `ags list` prints one
     #    registered instance name per line with no separator, so anchor
     #    the match to the exact literal "media" token via a line-exact
     #    grep rather than a substring match. Guarded so a machine where

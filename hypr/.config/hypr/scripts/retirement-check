@@ -87,7 +87,7 @@ DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 #    until 18-20.
 REGISTRY_RAW='waybar|retired|waybar/:hypr/.config/hypr/scripts/waybar-*|RETIRE-02
 swaync|retired|swaync/:hypr/.config/hypr/scripts/swaync-*|RETIRE-03
-swayosd|pending|swayosd/|RETIRE-04
+swayosd|retired|swayosd/|RETIRE-04
 wleave|pending|wleave/:hypr/.config/hypr/scripts/wleave.sh|RETIRE-05
 ags|pending|ags/|RETIRE-06
 wlogout|pending||RETIRE-07

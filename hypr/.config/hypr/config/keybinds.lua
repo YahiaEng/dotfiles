@@ -298,11 +298,12 @@ hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true }) -- 
 -- QOSD-01's in-session half rests on (the key must keep working while
 -- hyprlock is up, per D-20-19's measurement) — kept verbatim, not
 -- re-decided by this plan. `-l 1.0` on the raise bind caps PipeWire's own
--- software boost at 100%, which `swayosd-client` used to cap for us.
+-- software boost at 100%, which the retired OSD daemon's client used to
+-- cap for us.
 -- XF86AudioLowerVolume/XF86AudioMute/XF86AudioMicMute are repointed onto
 -- `wpctl` the same way (Task 2 of this same plan); XF86MonBrightness{Up,Down}
 -- repoint onto `brightnessctl` instead, see the comment above that pair.
--- No `swayosd-client` invocation remains in this file as of Task 2.
+-- No retired-daemon client invocation remains in this file as of Task 2.
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0"), { locked = true, repeating = true }) -- Raise volume
 hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true }) -- Lower volume
 hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true }) -- Mute audio

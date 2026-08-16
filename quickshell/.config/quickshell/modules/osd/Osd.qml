@@ -201,8 +201,9 @@ Toast {
             id: osdVolumeRow
             width: osdSliderColumn.width
             visible: osd.volumeRecent
-            // Graded by level, matching SwayOSD's own four-state icon
-            // behaviour. Cut points (0.34 / 0.67) are taken verbatim from
+            // Graded by level, matching the retired OSD daemon's own
+            // four-state icon behaviour. Cut points (0.34 / 0.67) are
+            // taken verbatim from
             // MediaConnectivityCapsule.qml's own `audioGlyph` so the bar
             // capsule and the OSD change glyph at the SAME volume — a
             // second set of thresholds would let the two disagree on

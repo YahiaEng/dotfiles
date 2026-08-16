@@ -395,9 +395,10 @@ lua_speed_defs, lua_curve_defs, lua_curve_base_defs = load_lua_defs()
 #    partial — the renamed .scss source is picked up by this script's
 #    existing .css/.scss glob with no code change, and is now covered by
 #    CHECK A/B like any other non-exempt CSS/SCSS surface (see
-#    check_css_surface below). swayosd/style.css stays exempt (D-02: zero
-#    motion literals, motion is entirely compositor-delivered) — it was
-#    never a candidate for this conversion.
+#    check_css_surface below). The retired OSD daemon's own whole-file
+#    exemption entry (D-02: zero motion literals, motion entirely
+#    compositor-delivered) was REMOVED by Phase 20 Plan 09 (RETIRE-04) once
+#    the exempted file was deleted with the package.
 #    A retired bar's *.css whole-file entry was REMOVED by plan 13-05
 #    (MOTION-02/D-01) once it converted all six of that bar's stylesheets
 #    to sass and tokenized every transition/animation-duration/animation-
@@ -408,10 +409,6 @@ lua_speed_defs, lua_curve_defs, lua_curve_base_defs = load_lua_defs()
 #    (see check_css_surface below) until RETIRE-02 (18-20) deleted that
 #    bar and its stylesheets outright.
 EXEMPTIONS = [
-    {'glob': 'swayosd/style.css', 'regex': re.compile(r'(^|/)swayosd/style\.css$'),
-     'reason': 'no motion literals — motion is compositor-delivered through '
-               'the layer animation (D-02)',
-     'pending': False},
     {'glob': 'walker/**/style.css', 'regex': re.compile(r'(^|/)walker/.*/style\.css$'),
      'reason': 'no motion literals — motion is compositor-delivered through '
                'the layer animation',
@@ -1151,7 +1148,6 @@ else
     ROOTS=(
         "$HOME/.config/hypr"
         "$HOME/.config/quickshell"
-        "$HOME/.config/swayosd"
         "$HOME/.config/walker"
         "$HOME/.config/wleave"
         "$HOME/.config/gtk-4.0"

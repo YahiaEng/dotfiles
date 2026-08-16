@@ -356,7 +356,6 @@ GTK3_CSS_SHEETS=(
 )
 GTK4_CSS_SHEETS=(
     "$HOME/.config/gtk-4.0/gtk.css"
-    "$HOME/.config/swayosd/style.css"
     "$HOME/.config/walker/themes/rice/style.css"
     "$HOME/.config/wleave/style.css"
 )

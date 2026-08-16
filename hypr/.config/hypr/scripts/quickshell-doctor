@@ -7,8 +7,8 @@
 # ║  other, sits on its own quickshell-* namespaces at the ║
 # ║  level each surface is registered for, and shares every ║
 # ║  event source (D-Bus ownership, hardware keys,          ║
-# ║  volume/brightness step, MPRIS) with SwayOSD,             ║
-# ║  wleave, AGS and walker without a second                 ║
+# ║  volume/brightness step, MPRIS) with the in-process      ║
+# ║  QML OSD, wleave, AGS and walker without a second         ║
 # ║  handler ever appearing. Report-only apart from a few    ║
 # ║  documented transient exceptions (the volume/brightness  ║
 # ║  step probes, the bar-reserved-zone-stability toggle,     ║
@@ -77,9 +77,9 @@
 #                         (panel-namespace-conformance,
 #                         panel-shortcut-single-registration,
 #                         panel-notifications-single-owner,
-#                         panel-osd-state-driven-trigger — renamed from
-#                         panel-swayosd-key-ownership by Phase 20 Plan 04,
-#                         D-20-05, see that check's own header) to named
+#                         panel-osd-state-driven-trigger — renamed by
+#                         Phase 20 Plan 04, D-20-05, see that check's own
+#                         header) to named
 #                         [SKIP] lines, for a headless/CI context with no
 #                         compositor to summon a panel into — the same
 #                         shape --no-summon already has for the
@@ -685,31 +685,23 @@ _qsd_xf86_ownership_table() {
     printf '%s' "$out"
 }
 
-# _qsd_swayosd_server_reachable — succeeds only when the OSD server is
-# actually answering on the session bus (name-owned, not merely that
-# swayosd-client is on PATH — the exact guard gap measured at planning
-# time: a dead server produced "measured delta=0 ... drift: 3277", a
-# failure blamed on tolerance rather than on the absent instrument).
-# Read-only: lists the bus, never round-trips a method call, so this
-# guard itself performs no mutation.
-_qsd_swayosd_server_reachable() {
-    command -v busctl >/dev/null 2>&1 || return 1
-    _qsd_busctl_list | grep -q 'org\.erikreider\.swayosd-server'
-}
-
 # _qsd_osd_activation_count — counts OSD-pill activations, by polling
 # `hyprctl layers -j` every 50ms across the window the given action command
 # runs in. Counts rising edges (absent -> present transitions), which is a
 # truer "activation count" than a bare presence flag when the pill can
 # blink more than once.
 #
-# Phase 20 Plan 04 (D-20-05) re-points the layer filter from the swayosd
-# era's literal namespace "swayosd" (confirmed live 2026-08-02 against a
-# real swayosd-client raise: a 258x96 layer at level 3 owned by
-# swayosd-server) to `quickshell-osd` — `Osd.qml`'s own namespace
+# Phase 20 Plan 04 (D-20-05) re-points the layer filter from the retired
+# OSD daemon's literal namespace (confirmed live 2026-08-02 against a real
+# hardware-key raise: a 258x96 layer at level 3 owned by that daemon's
+# server process) to `quickshell-osd` — `Osd.qml`'s own namespace
 # (`modules/osd/Osd.qml`, a `Toast.qml` instance, D-20-02/D-20-04). Same
 # polling mechanism, same rising-edge count, only the namespace literal
-# changed. Used only by panel-osd-state-driven-trigger below.
+# changed. Used only by panel-osd-state-driven-trigger below. Plan 20-09
+# (RETIRE-04) removed `_qsd_swayosd_server_reachable` outright once its
+# last two consumers (this check's own D-Bus guard, superseded by D-20-05;
+# and the one-step-per-press volume probe, further down) were repointed
+# off the retired daemon.
 _qsd_osd_activation_count() {
     local action="$1" i hit prev=0 transitions=0
     ( eval "$action" ) &
@@ -1002,12 +994,13 @@ _qsd_check_panel_notifications_single_owner() {
     check "panel-notifications-single-owner (T-15-03, existing check invoked in the summoned context — no new mechanism): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
 }
 
-#   panel-osd-state-driven-trigger (D-20-05) — renamed from
-#   panel-swayosd-key-ownership (D-15-24) by Phase 20 Plan 04, Task 3.
+#   panel-osd-state-driven-trigger (D-20-05) — renamed from the retired
+#   OSD daemon's own key-ownership check (D-15-24) by Phase 20 Plan 04,
+#   Task 3.
 #
 #   D-15-24 built this check to prove the OPPOSITE of what Phase 20 now
-#   wants: it asserted that a direct PipeWire write raised ZERO swayosd
-#   pills while the hardware-key path raised exactly one — i.e. that the
+#   wants: it asserted that a direct PipeWire write raised ZERO OSD pills
+#   while the hardware-key path raised exactly one — i.e. that the
 #   D-15-25 side panels do not own the key path. D-20-05 deliberately
 #   INVERTS that premise: `Osd.qml`'s own trigger is now backend state
 #   change, never the keybind (see that file's own header), so BOTH a
@@ -1016,24 +1009,23 @@ _qsd_check_panel_notifications_single_owner() {
 #   Leaving the old check as-is would fail on correct Phase 20 behaviour;
 #   deleting it would lose the differential instrument this repo already
 #   proved works. It is re-expressed in place instead — D-15-24's framing
-#   is recorded here as historically correct for the swayosd era, not
-#   deleted without explanation.
+#   is recorded here as historically correct for the retired daemon's
+#   era, not deleted without explanation.
 #
-#   No `_qsd_swayosd_server_reachable` guard here (unlike the check this
-#   supersedes) — the instrument under test is now the quickshell shell's
-#   own `quickshell-osd` layer surface, never swayosd-server, so gating on
-#   swayosd-server's bus presence would SKIP a real quickshell-osd
-#   regression whenever swayosd-server happens to be absent, which is
-#   backwards now that swayosd is out of this check's dependency path.
-#   `_qsd_swayosd_server_reachable` itself stays DEFINED, not deleted: the
-#   separate "one-step-per-press volume probe" check (QS-06, further down,
-#   still swayosd-client-driven) is a second, remaining consumer — that
-#   check is unchanged by this plan and is plan 20-09's own scope
-#   (RETIRE-04) to finish, so the helper is left in place rather than
-#   half-removed.
+#   No D-Bus reachability guard here (unlike the check this supersedes)
+#   — the instrument under test is now the quickshell shell's own
+#   `quickshell-osd` layer surface, owned by this repo's own process, so
+#   gating on a separate daemon's bus presence would SKIP a real
+#   quickshell-osd regression whenever that daemon happened to be absent
+#   — backwards now that the retired daemon is out of this check's
+#   dependency path entirely. Plan 20-09 (RETIRE-04) removed the
+#   D-Bus-reachability helper this check never used, once its last
+#   remaining consumer (the separate "one-step-per-press volume probe"
+#   check, QS-06, further down) was itself repointed off the retired
+#   daemon.
 _qsd_check_panel_osd_state_driven_trigger() {
     if [[ "$NO_PANEL_CHECKS" -eq 1 ]]; then
-        echo "  [SKIP] panel-osd-state-driven-trigger (D-20-05, supersedes panel-swayosd-key-ownership/D-15-24): disabled by --no-panel-checks"
+        echo "  [SKIP] panel-osd-state-driven-trigger (D-20-05, supersedes the D-15-24 key-ownership check): disabled by --no-panel-checks"
         return
     fi
     if ! command -v hyprctl >/dev/null 2>&1 || ! command -v qs >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
@@ -1082,34 +1074,34 @@ _qsd_check_panel_osd_state_driven_trigger() {
             # (i) direct PipeWire-node write — the same class of write the
             # audio panel's backend performs, no OSD client and no keybind
             # in the path. Under D-20-05 this must now raise the indicator
-            # too, not stay silent as the swayosd-era check asserted.
+            # too, not stay silent as the retired daemon's own check
+            # asserted.
             zero_count=$(_qsd_osd_activation_count "pactl set-sink-volume @DEFAULT_SINK@ +1%")
             # (ii) the hardware-key path, exactly as the repointed
-            # compositor bind invokes it (keybinds.lua, Task 2 of this
-            # plan: wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0 —
-            # never swayosd-client, per the keybind swap this same plan
-            # made, so both files change together and no gate observes an
-            # inconsistent pair).
+            # compositor bind invokes it (keybinds.lua, Task 2 of Phase 20
+            # Plan 04: wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0 —
+            # the retired daemon's client is no longer on the exec path
+            # anywhere, so both files change together and no gate observes
+            # an inconsistent pair).
             one_count=$(_qsd_osd_activation_count "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0")
             pactl set-sink-volume @DEFAULT_SINK@ "${VOL_ORIG_RAW[@]}" >/dev/null 2>&1
         fi
     fi
     [[ "$zero_count" -ne 1 || "$one_count" -ne 1 ]] && bad=$((bad + 1))
-    report+="osd-differential(pipewire-write=${zero_count},hw-key=${one_count},instrument=layer-namespace:quickshell-osd,expected=both-exactly-1-per-D-20-05) "
+    report+="osd-differential(pipewire-write=${zero_count},hw-key=${one_count},instrument=layer-namespace:quickshell-osd,expected=both-exactly-1-per-D-20-05)"
 
-    # source-holds-by-construction — widened from the panel QML dir alone
-    # (D-15-24's own scope) to the whole shell QML tree plus the hypr
-    # compositor config dir, since Task 2 of this plan proved zero
-    # swayosd-client references across BOTH surfaces, not just the
-    # dashboard panels. Both path seams respect their existing
-    # QSD_FIXTURE_* overrides (T-15-08 discipline) rather than hardcoding
-    # a second, divergent path.
-    local src_bad=0
-    src_bad=$(grep -rlE 'swayosd-client' -- "$(_qsd_shell_qml_root)" "$(dirname -- "$(_qsd_keybinds_lua_path)")" 2>/dev/null | grep -c '.')
-    [[ "$src_bad" -ne 0 ]] && bad=$((bad + 1))
-    report+="source-holds-by-construction(swayosd-client-refs=${src_bad},scanned=quickshell-modules+hypr-config)"
-
-    check "panel-osd-state-driven-trigger (D-20-05, supersedes panel-swayosd-key-ownership/D-15-24, proven differentially): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
+    # The former "source-holds-by-construction" sub-check (a grep for the
+    # retired daemon's client binary name across the shell QML tree and the
+    # hypr compositor config dir) was REMOVED by Plan 20-09 (RETIRE-04):
+    # once the package is uninstalled from the host (this same plan's Task
+    # 2), the property it asserted — nothing in this repo still execs that
+    # binary — is structurally guaranteed rather than actively checked, and
+    # the osd-differential proof above is the substantive, ongoing
+    # regression guard for D-20-05's actual requirement (both write paths
+    # raise the indicator equally). A stray reference to a since-removed
+    # binary would surface as a loud runtime "command not found" the next
+    # time it ran, not a silent gap.
+    check "panel-osd-state-driven-trigger (D-20-05, supersedes the D-15-24 key-ownership check, proven differentially): ${report}" "$([[ "$bad" -eq 0 ]] && echo 0 || echo 1)"
 }
 
 # ── D-16-23 (Phase 16 Plan 04) check bodies — seven checks closing the two
@@ -2350,7 +2342,7 @@ run_self_test() {
     count=$(printf '%s\n' "$rows" | grep -c '.')
     _qsd_st "poisoned-zero-owner-busctl-list.txt -> panel-notifications-single-owner FAILS (count=${count}, a dead daemon is as much a failure as a second one)" "$([[ "$count" != "1" ]] && echo 0 || echo 1)"
 
-    # panel-osd-state-driven-trigger (D-20-05, ex-panel-swayosd-key-ownership) —
+    # panel-osd-state-driven-trigger (D-20-05, supersedes the D-15-24 key-ownership check) —
     # 3 fixtures, exercising the shared _qsd_xf86_ownership_table half only;
     # the osd-differential half is a live-only proof, not fixture-replayed.
     local table not_one=0 p v
@@ -2902,18 +2894,18 @@ _qsd_check_panel_osd_state_driven_trigger
 
 # ── 10. One step per press — volume (QS-06), measured, transient,
 #    self-restoring. The one deliberate mutation in this gate. Never
-#    let a missing instrument produce a silent [PASS]: skip cleanly
-#    when swayosd-client is absent, pactl reports no default sink, or
-#    (D-15-25 Part 2) the SwayOSD server itself is unreachable — the
-#    guard gap measured at planning time, where a dead server produced
-#    "measured delta=0 ... drift: 3277", a failure blamed on tolerance
-#    rather than on the absent instrument. ──────────────────────────────
-if ! command -v swayosd-client >/dev/null 2>&1; then
-    echo "  [SKIP] one-step-per-press volume probe (swayosd-client not found)"
+#    let a missing instrument produce a silent [PASS]: skip cleanly when
+#    wpctl is absent or pactl reports no default sink. Plan 20-09
+#    (RETIRE-04) repointed this probe's mutation onto the same `wpctl`
+#    exec target keybinds.lua now uses (Phase 20 Plan 04, Task 2) — a
+#    direct PipeWire write needs no separate D-Bus-reachability guard
+#    the way the retired daemon's client did, since `pactl`'s own
+#    default-sink check below already proves the mutation target is
+#    live. ──────────────────────────────────────────────────────────────
+if ! command -v wpctl >/dev/null 2>&1; then
+    echo "  [SKIP] one-step-per-press volume probe (wpctl not found)"
 elif ! command -v pactl >/dev/null 2>&1 || ! pactl get-sink-volume @DEFAULT_SINK@ >/dev/null 2>&1; then
     echo "  [SKIP] one-step-per-press volume probe (pactl reports no default sink)"
-elif ! _qsd_swayosd_server_reachable; then
-    echo "  [SKIP] one-step-per-press volume probe (D-15-25 guard: SwayOSD server unreachable — org.erikreider.swayosd-server not on the session bus, never a [FAIL] blaming tolerance drift for a dead instrument)"
 else
     ORIG_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
     mapfile -t VOL_ORIG_RAW < <(printf '%s' "$ORIG_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
@@ -2928,7 +2920,7 @@ else
         # _qsd_cleanup directly.
         VOL_RESTORE_NEEDED=1
 
-        swayosd-client --output-volume raise >/dev/null 2>&1
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0 >/dev/null 2>&1
         sleep 0.3
         NEW_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
         mapfile -t VOL_NEW_RAW < <(printf '%s' "$NEW_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
@@ -2972,8 +2964,8 @@ if command -v brightnessctl >/dev/null 2>&1 && brightnessctl -l 2>/dev/null | gr
     BRI_HAS_BACKLIGHT=1
 fi
 
-if ! command -v swayosd-client >/dev/null 2>&1; then
-    echo "  [SKIP] one-step-per-press brightness probe (swayosd-client not found)"
+if ! command -v brightnessctl >/dev/null 2>&1; then
+    echo "  [SKIP] one-step-per-press brightness probe (brightnessctl not found)"
 elif [[ "$BRI_HAS_BACKLIGHT" -eq 0 ]]; then
     echo "  [SKIP] one-step-per-press brightness probe (no backlight-class device — brightnessctl -l lists only leds-class devices on this host)"
 else
@@ -2982,7 +2974,11 @@ else
     # as the volume probe above.
     BRI_RESTORE_NEEDED=1
 
-    swayosd-client --brightness raise >/dev/null 2>&1
+    # Plan 20-09 (RETIRE-04) repointed this probe's mutation onto the same
+    # raw `brightnessctl --class=backlight` exec target the compositor
+    # bind's shell-fallback branch uses (Phase 20 Plan 04/05), off the
+    # retired daemon's client.
+    brightnessctl --class=backlight set 5%+ >/dev/null 2>&1
     sleep 0.3
     BRI_NEW=$(brightnessctl get)
     BRI_DELTA=$((BRI_NEW - BRI_ORIG_RAW))

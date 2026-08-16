@@ -1,6 +1,7 @@
 # provenance: captured live 2026-08-02 via `hyprctl binds`, trimmed to
 # exactly the ten XF86Audio*/XF86MonBrightness* blocks (real tab-indented
-# shape, unmodified). Target check: panel-swayosd-key-ownership. Expected
+# shape, unmodified). Target check: panel-osd-state-driven-trigger
+# (D-20-05, supersedes the D-15-24 key-ownership check). Expected
 # verdict: PASS — every key's handler count is exactly 1.
 bindle
 	modmask: 0

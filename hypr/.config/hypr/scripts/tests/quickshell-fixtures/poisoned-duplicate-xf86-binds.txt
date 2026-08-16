@@ -1,7 +1,8 @@
 # provenance: derived from compliant-hyprctl-binds.txt (the real, live
 # 2026-08-02 `hyprctl binds` capture) with exactly one defect introduced:
 # a second XF86AudioRaiseVolume block appended at the end. Target check:
-# panel-swayosd-key-ownership. Expected verdict: FAIL — the volume-raise
+# panel-osd-state-driven-trigger (D-20-05, supersedes the D-15-24
+# key-ownership check). Expected verdict: FAIL — the volume-raise
 # key's handler count is 2, not 1.
 bindle
 	modmask: 0

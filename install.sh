@@ -187,7 +187,6 @@ PACMAN_PKGS=(
     hyprshot
     satty
     gpu-screen-recorder
-    swayosd
     hyprpicker
     wtype
     ddcutil
@@ -550,17 +549,6 @@ section_core_rice() {
     echo "Enabling dbus-broker for uwsm..."
     systemctl --user enable --now dbus-broker.service 2>/dev/null || true
 
-    # ── Enable swayosd libinput backend (D-23) ──────────
-    # Listens for hardware key events (volume/brightness/caps-lock) directly
-    # via libinput, so the caps-lock OSD works without any Hyprland keybind.
-    # This is a system (root) unit — the packaged extra/swayosd unit ships
-    # ONLY at /usr/lib/systemd/system/ with its own polkit policy + udev
-    # rules — so it must be enabled on the system bus via sudo, not --user
-    # (06-REVIEW.md CR-02: `systemctl --user` fails with "Unit does not
-    # exist" against this unit).
-    echo "Enabling swayosd-libinput-backend for OSD..."
-    sudo systemctl enable --now swayosd-libinput-backend.service || echo "  ⚠ swayosd-libinput-backend enable failed" >&2
-
     # ── Enable ollama (D-23) ─────────────────────────────
     # Install + enable only — NO model pull here. A multi-GB model
     # download would wreck the unattended container gate and fresh-install
@@ -569,9 +557,9 @@ section_core_rice() {
     # Default bind is 127.0.0.1:11434 (loopback-only) — this script
     # deliberately never overrides the daemon's listen-address env var;
     # exposing it to 0.0.0.0 would open an unauthenticated inference API
-    # to the LAN (T-07-09). Non-fatal/non-silenced, matching the swayosd
-    # precedent above, so the container gate (systemd not PID 1) stays
-    # green without hiding a real failure on bare metal.
+    # to the LAN (T-07-09). Non-fatal/non-silenced (warn on stderr, never
+    # `|| true`), so the container gate (systemd not PID 1) stays green
+    # without hiding a real failure on bare metal.
     echo "Enabling ollama..."
     sudo systemctl enable --now ollama.service || echo "  ⚠ ollama enable failed" >&2
     echo ""
@@ -579,8 +567,8 @@ section_core_rice() {
     # ── D-33: optional dynamic-cursors hyprpm block (AMB-02) — BEGIN ──
     # Phase 17 plan 04. hyprpm is the build/load manager for the optional
     # `dynamic-cursors` plugin (D-32/D-35). This block is intentionally
-    # copied from the swayosd/ollama warn-and-continue guard shape two
-    # steps above (command-then-warn-on-stderr), NOT from
+    # copied from the ollama warn-and-continue guard shape directly above
+    # (command-then-warn-on-stderr), NOT from
     # verify_packages() below — that function's own comment states "No
     # warn-and-continue path" and exists specifically to hard-fail on a
     # missing REQUIRED package. Nothing in this block may ever be added
@@ -719,7 +707,7 @@ section_hardware() {
 
     # `enable` without --now: the reaper deletes module trees for kernels
     # that are not running, which is a boot-time job, not a mid-install one.
-    # Guarded + non-fatal, matching the swayosd/ollama precedent above, so a
+    # Guarded + non-fatal, matching the ollama precedent above, so a
     # machine without kernel-modules-hook installed still completes cleanly.
     if systemctl cat linux-modules-cleanup.service &>/dev/null; then
         echo "Enabling linux-modules-cleanup (reaps orphaned kernel module trees)..."
@@ -826,7 +814,7 @@ verify_packages VERIFY_PKGS
 # Non-fatal by design: this script runs under `set -euo pipefail`, so an
 # unguarded non-zero exit would abort AFTER everything is already installed,
 # turning a useful warning into a confusing failure. Same `|| echo "  ⚠ ..."`
-# precedent as the swayosd/ollama enables in section_core_rice.
+# precedent as the ollama enable in section_core_rice.
 #
 # Skipped under --core-only: no hardware section ran, so there is no
 # kernel/driver work to check.
