@@ -2629,6 +2629,40 @@ run_self_test() {
     res=$(_qsd_assert_mpvpaper_layers "$(cat -- "$FIXTURES_DIR/poisoned-offlevel-mpvpaper-layers.json")" "2982672"); rc=$?
     _qsd_st "poisoned-offlevel-mpvpaper-layers.json -> mpvpaper-layer-coexistence FAILS (${res}, namespace moved to the overlay level)" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
 
+    # ── 21-04 (QMEDIA-03) — the standing MPRIS-reader-count check,
+    #    self-tested at all three counts plus the prose case. Passing at
+    #    one is not evidence it fails at zero and at two — these four
+    #    fixtures prove both sides of the boundary and the precision edge,
+    #    each replayed in its own isolated tmpdir (the same per-fixture
+    #    isolation idiom panel-namespace-conformance's source half already
+    #    established above).
+    local mpris_res mpris_rc
+    tmpdir=$(mktemp -d)
+    cp -- "$FIXTURES_DIR/compliant-no-mpris-reader.qml" "$tmpdir/"
+    mpris_res=$(_qsd_assert_mpris_reader "$tmpdir" "MediaBackend.qml"); mpris_rc=$?
+    _qsd_st "compliant-no-mpris-reader.qml alone -> MPRIS-reader-count check FAILS (${mpris_res}, a zero count means the real reader was deleted or moved)" "$([[ "$mpris_rc" -ne 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$tmpdir"
+
+    tmpdir=$(mktemp -d)
+    cp -- "$FIXTURES_DIR/MediaBackend.qml" "$tmpdir/"
+    mpris_res=$(_qsd_assert_mpris_reader "$tmpdir" "MediaBackend.qml"); mpris_rc=$?
+    _qsd_st "MediaBackend.qml alone -> MPRIS-reader-count check PASSES (${mpris_res})" "$([[ "$mpris_rc" -eq 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$tmpdir"
+
+    tmpdir=$(mktemp -d)
+    cp -- "$FIXTURES_DIR/MediaBackend.qml" "$tmpdir/"
+    cp -- "$FIXTURES_DIR/poisoned-second-mpris-reader.qml" "$tmpdir/"
+    mpris_res=$(_qsd_assert_mpris_reader "$tmpdir" "MediaBackend.qml"); mpris_rc=$?
+    _qsd_st "poisoned-second-mpris-reader.qml added alongside MediaBackend.qml -> MPRIS-reader-count check FAILS (${mpris_res}, the exact case QMEDIA-03 exists to prevent)" "$([[ "$mpris_rc" -ne 0 ]] && echo 0 || echo 1)"
+    rm -rf -- "$tmpdir"
+
+    tmpdir=$(mktemp -d)
+    cp -- "$FIXTURES_DIR/MediaBackend.qml" "$tmpdir/"
+    cp -- "$FIXTURES_DIR/poisoned-prose-only-mpris-mention.qml" "$tmpdir/"
+    mpris_res=$(_qsd_assert_mpris_reader "$tmpdir" "MediaBackend.qml"); mpris_rc=$?
+    _qsd_st "poisoned-prose-only-mpris-mention.qml added alongside MediaBackend.qml -> MPRIS-reader-count check PASSES with count still 1 (${mpris_res}, a prose mention must not increment the count)" "$([[ "$mpris_rc" -eq 0 && "$mpris_res" == "hits=1 basenames=MediaBackend.qml" ]] && echo 0 || echo 1)"
+    rm -rf -- "$tmpdir"
+
     echo ""
     printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
     [[ "$st_fail" -eq 0 ]]
