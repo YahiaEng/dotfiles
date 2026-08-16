@@ -5,39 +5,63 @@ executor's scope-boundary rule (only auto-fix issues directly caused by the
 current task's own changes; pre-existing debt in unrelated files is logged,
 not fixed).
 
-## Plan 22-02: `stow-link-check` real-host findings (2026-08-16)
+## Resolved in Plan 22-08 (2026-08-17)
+
+Plan 22-02's real-host sweep (below, historical) reported **1095 findings**
+under the checker as originally scoped. Plan 22-08 found that figure was
+overwhelmingly a sweep-SCOPE defect, not real host debt, and closed it in
+three steps:
+
+1. **Fixture self-reference (phase-blocking, 5 findings).** The hypr
+   package deploys `stow-link-check`'s own committed test fixtures to
+   `~/.config/hypr/scripts/tests/stow-link-fixtures/` on every machine — a
+   `.config`-recursive sweep reported its own deliberately-poisoned fixture
+   links as real findings on every run, which would have failed
+   `theme-doctor` on every fresh install forever. Fixed with a scope
+   exclusion (not an `EXEMPTIONS` entry — a deployed test fixture is out of
+   the sweep's declared territory, not a link legitimately dangling by
+   design).
+2. **Sweep-root over-breadth (1085 findings).** `SWEEP_ROOTS` declared
+   `.local` recursive and `.` (home root) as a blanket depth-1 walk, but
+   only `vscodium` writes under `~/.local` (`.local/share/applications/`)
+   and only `zshell` writes a top-level `$HOME` dotfile (`~/.zshrc`).
+   The prior over-broad roots were catching **Steam's own runtime
+   artifacts** under `~/.local/share/Steam/` (transient-by-design
+   `SingletonLock`/`SingletonCookie`/`SingletonSocket` symlinks plus
+   `steamrt32`/`steamrt64` shims), **podman's overlay storage** under
+   `~/.local/share/containers/`, and `~/.steampath` — none stow-managed at
+   all. `.config`'s recursive descent was also unconditional, catching
+   **Zen browser's own profile lock file** (`~/.config/zen/<profile>/lock`)
+   the one time it happened to exist. All four are now permanently out of
+   the sweep's declared scope (not merely absent on this run) — the roots
+   were narrowed to what `stow.sh`'s `PACKAGES` loop actually writes,
+   re-derived directly against every package's shipped tree rather than
+   trusted from the prior plan's broader declaration.
+3. **Real repository debt (3 findings) — removed from the dev host.**
+   `~/.config/swayosd` and `~/.config/wleave` were stale dangling symlinks
+   into stow packages deleted from the repo in Phase 20 (RETIRE-04/05) but
+   never unstowed on this particular long-lived machine.
+   `~/.config/hyprland.conf.bak` similarly pointed at a path from before
+   the Phase 13.1 Lua migration. All three were confirmed (`test -L` +
+   non-resolving `test -e`) as pure dangling symlinks holding no data, then
+   removed with plain `rm` (never `rm -r`). `stow-link-check` against the
+   real `$HOME` now exits 0 with zero findings; `theme-doctor`'s stow-link
+   fold passes; no live stow package link was disturbed.
+
+**The 1095 figure is now historical** — it described the pre-22-08
+checker's over-broad scope, not the repository's actual debt, which turned
+out to be exactly the 3 items above. Current state: `stow-link-check`
+reports 0 findings on this dev host, and RETIRE-09's symlink-absence clause
+(SC-2) is provable clean here for the first time.
+
+## Plan 22-02: `stow-link-check` real-host findings (2026-08-16) — historical
 
 Running the newly-built `stow-link-check` (and, folded, `theme-doctor`)
 against the actual dev host's real `$HOME` — not a fixture, not the
-container/VM proof this checker exists for — surfaces **1095 real dangling
-symlinks**, none of which are caused by this plan's own changes and none of
-which are reachable by the container/VM tier (a fresh clone/VM has none of
-this accumulated state):
-
-- **Retired-package leftovers on this specific host** — `~/.config/swayosd`
-  and `~/.config/wleave` are stale dangling symlinks into stow packages that
-  were deleted from the repo in Phase 20 (RETIRE-04/05) but never
-  unstowed/cleaned up on this particular long-lived machine.
-  `~/.config/hyprland.conf.bak` similarly points at a path from before the
-  Phase 13.1 Lua migration.
-- **Steam's own runtime artifacts** under `~/.local/share/Steam/` (several
-  hundred `SingletonLock`/`SingletonCookie`/`SingletonSocket`-style
-  transient-by-design dangling symlinks, plus `steamrt32`/`steamrt64`
-  runtime library shims) — not stow-managed at all, Steam's own behavior.
-- **Zen browser's own lock file** (`~/.config/zen/<profile>/lock` — a
-  standard Firefox-family profile lock symlink pointing at a
-  host:pid string, dangling by design once the browser exits).
-
-None of these are exempted by `stow-link-check`'s own (deliberately empty)
-`EXEMPTIONS` list, because none are within the scope that list exists for
-(a link this repo's own stow packages create that is legitimately dangling
-by design). They are genuine host hygiene debt, unrelated to RETIRE-09's
-actual question (does a *fresh* clone reproduce cleanly) and unrelated to
-this plan's file scope (`hypr/.config/hypr/scripts/stow-link-check`, its
-fixtures, `theme-engine/.config/theme-engine/theme-doctor`'s new fold).
-
-**Not fixed here.** A future host-hygiene pass could `stow -D swayosd
-wleave` remnants and prune the stale `.bak` file; Steam's and Zen's own
-artifacts are not this repo's concern at all. Recorded so a bare
-`theme-doctor` run on this specific dev host is not mistaken for a
-regression introduced by this plan.
+container/VM proof this checker exists for — surfaced **1095 real dangling
+symlinks** under the checker's original (pre-22-08) scope, none of which
+were caused by plan 22-02's own changes and none of which were reachable by
+the container/VM tier (a fresh clone/VM has none of this accumulated
+state). See "Resolved in Plan 22-08" above for the breakdown and
+resolution — this section is kept for the historical record of what the
+first real sweep found before the checker's scope was corrected.

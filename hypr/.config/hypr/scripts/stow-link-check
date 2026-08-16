@@ -43,8 +43,9 @@
 # defects, corrected below):
 #   .config                    config-scoped — depth-1 catches every
 #                               top-level orphan (incl. a RETIRED package's
-#                               leftover link, e.g. swayosd/wleave, which no
-#                               longer has a PACKAGES entry to name), and
+#                               leftover link, e.g. the RETIRE-04/05
+#                               surfaces, which no longer have a PACKAGES
+#                               entry to name), and
 #                               recurses ONLY into the owned-directory names
 #                               in OWNED_CONFIG_TOP below plus the single
 #                               systemd/user/ exception nested one level
@@ -75,7 +76,7 @@
 #                               stow-managed) and there is no known
 #                               retired-package orphan at this level a
 #                               name allowlist would blind (unlike
-#                               .config's swayosd/wleave case).
+#                               .config's RETIRE-04/05 case).
 # The name-allowlist restriction on the home root is load-bearing: it
 # catches exactly the top-level dotfile link(s) a package actually writes
 # without descending into the repository clone or unrelated home content
@@ -388,8 +389,9 @@ def walk_links_home_named(root, allowed_names):
 def walk_config_scoped(root, sweep_home_arg):
     """22-08/Task 2 — the .config-specific walk. Depth-1 always yields
     every entry that is itself a symlink (catches a RETIRED package's
-    orphaned top-level link — swayosd/wleave are the live examples — which
-    no longer has a PACKAGES entry to name it by). Recursion below a
+    orphaned top-level link — the RETIRE-04/05 surfaces are the live
+    examples — which no longer have a PACKAGES entry to name them by).
+    Recursion below a
     top-level REAL directory only happens for a name in OWNED_CONFIG_TOP,
     or for .config/systemd/user specifically (systemd's only owned child;
     its sibling *.wants/ dirs are systemd/pipewire's own generated content,
