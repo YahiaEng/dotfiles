@@ -647,4 +647,23 @@ Singleton {
     // register as "this one is different" in peripheral vision without
     // the scaled pill visibly colliding with its neighbours.
     readonly property real sessionFocusScale: 1.08
+
+    // ── cavaLingerMs (Phase 21 Plan 01 Task 2, D-21-06) — provenance:
+    //    21-UI-SPEC.md's "Cava claim condition" appendix, Claude's
+    //    Discretion resolved to the appendix's own recommendation: 5000ms.
+    //    Deliberately its own named constant, NOT
+    //    popoutDismissGraceMs/barDrawerGraceMs above — those govern
+    //    sub-second hover-dismiss grace on the bar, a different scale for
+    //    a different purpose (UI 250-input-latency judgment, not process
+    //    lifecycle). This is how long CavaService.qml keeps the shared
+    //    cava subprocess alive after the last surface (Media tab, and the
+    //    bar's MediaPopout in a later plan) releases its claim, before
+    //    actually killing it — long enough to survive a popout-close-
+    //    then-dashboard-open or an accidental close-and-reopen without
+    //    re-paying the measured ~350ms cold start; short enough to still
+    //    read as "a few seconds" against the zero-idle rule. Pause/resume
+    //    is deliberately NOT this value's job — MediaTab.qml's claim
+    //    condition never releases on pause, since pause gaps run to tens
+    //    of seconds and no linger value would cover them.
+    readonly property int cavaLingerMs: 5000
 }

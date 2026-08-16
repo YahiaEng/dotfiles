@@ -17,20 +17,23 @@
 // a later plan — `Colours`/`Motion` are the existing precedent for a
 // cross-directory singleton reached from both `dashboard/` and `bar/`.
 //
-// ── Task 1 (this plan's tracer) ──────────────────────────────────────────
-// No claim/release ownership model exists yet. The process starts the
-// moment this singleton is first constructed (QML singletons instantiate
-// lazily on first reference — MediaTab.qml's new visualiser segment is
-// that first reference), so the audio path can be proven end-to-end
-// before the ownership model is built. Task 2 replaces the
-// `Component.onCompleted` starter below with the real claim()/release()
-// refcount and a linger timer (D-21-06); nothing here should be read as
-// the final lifecycle.
+// ── Ownership (Task 2, D-21-06 + 21-UI-SPEC.md's "Cava claim condition"
+//    appendix) ───────────────────────────────────────────────────────────
+// A surface claims this singleton while genuinely visible and releases the
+// instant it stops being visible — never on pause. Either surface (the
+// Media tab today; the bar's MediaPopout in a later plan) may hold the
+// claim; the counter floors at 0 and a short linger timer delays the
+// actual kill so a claim handover inside the window (popout close ->
+// dashboard open, or an accidental close-and-reopen) never re-pays the
+// measured ~350ms cold start. `alwaysOn` is D-21-06's required one-knob
+// reversal: flip it and the linger timer becomes a permanent no-op, with
+// no other change to the ownership model — see its own declaration below.
 pragma Singleton
 
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "dashboard"
 
 Singleton {
     id: root
@@ -53,8 +56,51 @@ Singleton {
     readonly property var bars: cavaProcess.running ? root._bars : []
     readonly property bool streaming: cavaProcess.running
 
-    // ── Tracer-only starter — REPLACED by Task 2's claim()/release() ────
-    Component.onCompleted: cavaProcess.running = true
+    // ── Reference-counted ownership ──────────────────────────────────────
+    property int _claimCount: 0
+
+    // D-21-06's one-knob always-on reversal — the operator's reserved
+    // revisit. Flip this to `true` and the linger timer below permanently
+    // declines to stop the process; nothing else in this file, and no
+    // caller's claim()/release() usage, needs to change for that reversal
+    // to take effect.
+    property bool alwaysOn: false
+
+    function claim() {
+        root._claimCount += 1;
+        lingerTimer.stop();
+        if (!cavaProcess.running)
+            cavaProcess.running = true;
+    }
+
+    function release() {
+        root._claimCount = Math.max(0, root._claimCount - 1);
+        if (root._claimCount === 0)
+            lingerTimer.restart();
+    }
+
+    // Non-repeating — fires at most once per claim-drop-to-zero, re-armed
+    // only by the next release() that brings the counter back to 0.
+    // Mirrors modules/bar/PopoutController.qml's graceTimer STRUCTURE
+    // (re-check the live condition inside onTriggered, never trust
+    // anything captured when the timer was armed), not its constant —
+    // Design.cavaLingerMs is its own named value at a different scale.
+    Timer {
+        id: lingerTimer
+        interval: Design.cavaLingerMs
+        repeat: false
+        running: false
+        onTriggered: {
+            // Re-read the live claim count and alwaysOn HERE, at fire
+            // time — a claim can land during the wait (the
+            // popout-close-then-dashboard-open flow this timer exists to
+            // protect), so trusting state captured when the timer was
+            // armed would kill a process a surface just re-claimed.
+            if (root.alwaysOn || root._claimCount > 0)
+                return;
+            cavaProcess.running = false;
+        }
+    }
 
     Process {
         id: cavaProcess

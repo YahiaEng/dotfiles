@@ -330,6 +330,22 @@ Item {
 
     anchors.fill: parent
 
+    // ── CavaService ownership (Phase 21 Plan 01 Task 2, D-21-06) ─────────
+    // This whole component is mounted by Dashboard.qml's mediaTabLoader,
+    // which is `active` ONLY while the Media tab is the current tab (see
+    // Dashboard.qml:731) — and the loader itself, along with everything
+    // under it, is destroyed whenever the dashboard drawer closes (D-14's
+    // LazyLoader-per-summon design). So this Item's own construction and
+    // destruction ARE "the Media tab is genuinely visible" (dashboard
+    // open AND Media tab current) and "that stops being true", exactly
+    // the trigger 21-UI-SPEC.md's Cava claim condition appendix
+    // specifies — no separate visibility computation needed here.
+    // Deliberately NOT gated on playback state (no `isPlaying` term
+    // anywhere in this file): pausing must not release the claim, per
+    // the same appendix.
+    Component.onCompleted: CavaService.claim()
+    Component.onDestruction: CavaService.release()
+
     // ── Constants mirrored from 14-UI-SPEC.md (see header comment above —
     //    this file cannot reach dashboardWindow's copies). ────────────────
     readonly property int spacingXs: Design.spacingXs
