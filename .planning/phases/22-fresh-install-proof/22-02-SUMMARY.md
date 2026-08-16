@@ -47,7 +47,7 @@ key-decisions:
 patterns-established:
   - "Full-chain symlink resolution via explicit hop-by-hop walk + seen-set for loop/dangling-chain detection — reusable pattern for any future checker that must resolve symlink chains without a shell-out to readlink -e"
 
-requirements-completed: [RETIRE-09]
+requirements-completed: []  # RETIRE-09 intentionally NOT marked complete — it is a single, phase-wide requirement (ROADMAP.md: "deliberately a single-requirement phase") that only closes when the actual container/VM proof passes end-to-end. This plan builds one mechanism (SC-2's symlink-absence check) the proof depends on, matching 22-01's same deliberate non-completion.
 
 coverage:
   - id: T1
@@ -167,3 +167,7 @@ None — no external service configuration required.
 ---
 *Phase: 22-fresh-install-proof*
 *Completed: 2026-08-16*
+
+## Self-Check: PASSED
+
+All 11 claimed files/paths verified present on disk; all 4 claimed commits verified present in `git log --oneline --all`.
