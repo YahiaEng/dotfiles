@@ -647,7 +647,33 @@ cleanup_container() {
     [[ -n "$cid" ]] || return 0
     podman rm -f "$cid" &>/dev/null || true
 }
-trap cleanup_container EXIT INT TERM
+# WR-04 fix: cleanup_container is trapped on EXIT only now, not on INT/TERM
+# directly. Under the prior `trap cleanup_container EXIT INT TERM`, an
+# INT/TERM delivered while blocked on `wait "$WAIT_PID"` below ran
+# `podman rm -f` immediately — BEFORE the stop→kill→confirm/`podman
+# inspect` sequence a few lines down ever got a chance to execute, since
+# bash runs a pending signal trap as soon as the interrupted `wait`
+# returns and the next command boundary is reached, which can be before
+# `WAIT_RC=$?` is even evaluated. That race didn't produce a false PASS
+# (the eventual verdict logic still correctly reports FAIL, since no
+# `overall=` line is ever present after an early `rm -f`), but it meant
+# the documented "actively stop, escalate, and verify" narrative never
+# actually ran on the interrupt path, and the resulting FAIL_REASON was
+# misleadingly worded (a generic "container script died before finishing"
+# rather than naming the interrupt). INTERRUPTED_BY_SIGNAL now records
+# which signal fired (nothing removes the container yet); the existing
+# stop→kill→confirm sequence below runs exactly as it does for a timeout
+# (WAIT_RC is nonzero from the interrupted `wait "$WAIT_PID"` either way),
+# and cleanup_container still runs unconditionally on the script's actual
+# EXIT as the final safety net — this changes ONLY the interrupt-vs-
+# escalation ordering, not the lifecycle's overall guarantees.
+INTERRUPTED_BY_SIGNAL=""
+record_interrupt() {
+    INTERRUPTED_BY_SIGNAL="$1"
+}
+trap cleanup_container EXIT
+trap 'record_interrupt INT' INT
+trap 'record_interrupt TERM' TERM
 
 if ! podman run -d --cidfile="$CID_FILE" \
     -v "$LOG_DIR:/logs:Z" \
@@ -717,15 +743,40 @@ else
         sleep 1
     done
     if [[ "$STOPPED_CONFIRMED" -eq 0 ]]; then
+        # WR-05 fix: this used to print a FATAL message and then fall
+        # through into the normal verdict-reading logic below AS IF the
+        # container were confirmed stopped (IN_CONTAINER_RC=137 was set,
+        # but nothing prevented reading $SUMMARY_FILE next). SIGKILL
+        # cannot be caught or ignored by a well-behaved process (only an
+        # uninterruptible D-state task could survive it — extremely rare
+        # on Linux), so this is a low-probability path, but if it ever
+        # fires the container may still be alive and could still be
+        # writing to the shared /logs/summary.log bind mount at the exact
+        # moment this script begins reading it for its verdict — precisely
+        # the race D-22-07's whole repair exists to close. Treat this as
+        # an unconditional hard failure and exit immediately, skipping the
+        # verdict-reading logic entirely, rather than flowing into code
+        # that assumes the container is confirmed stopped. cleanup_container
+        # still runs via the EXIT trap below (podman rm -f can force-remove
+        # a still-running container).
         echo "container-run: FATAL — container $CID still running after stop+kill+10s verification (repair of D-22-07 Defect 1 itself failed to stop it)" >&2
-        IN_CONTAINER_RC=137
-    else
-        # Preserve the existing exit-code contract (124/137 for timeout)
-        # for downstream logic even though the mechanism producing it has
-        # changed.
-        IN_CONTAINER_RC="$(podman inspect -f '{{.State.ExitCode}}' "$CID" 2>/dev/null || echo 137)"
-        [[ "$CONTAINER_TIMED_OUT" -eq 1 ]] && IN_CONTAINER_RC=124
+        echo "step=container-run status=fail reason=stop-kill-confirm-failed" >> "$SUMMARY_FILE"
+        echo "overall=FAIL" >> "$SUMMARY_FILE"
+        echo ""
+        echo "╔══════════════════════════════════════════╗"
+        echo "║   container-run: FAIL                    ║"
+        echo "╚══════════════════════════════════════════╝"
+        echo "Reason: container $CID still running after stop+kill+10s verification — refusing to read summary.log while it may still be written to"
+        echo ""
+        echo "Machine-readable summary: $SUMMARY_FILE"
+        echo "Per-step logs: $LOG_DIR/"
+        exit 1
     fi
+    # Preserve the existing exit-code contract (124/137 for timeout)
+    # for downstream logic even though the mechanism producing it has
+    # changed.
+    IN_CONTAINER_RC="$(podman inspect -f '{{.State.ExitCode}}' "$CID" 2>/dev/null || echo 137)"
+    [[ "$CONTAINER_TIMED_OUT" -eq 1 ]] && IN_CONTAINER_RC=124
 fi
 
 if [[ "$CONTAINER_TIMED_OUT" -eq 1 ]]; then
@@ -761,6 +812,18 @@ if [[ "$CONTAINER_TIMED_OUT" -eq 1 ]]; then
         echo "overall=FAIL" >> "$SUMMARY_FILE"
     fi
     FAIL_REASON="container run exceeded ${CONTAINER_TIMEOUT}s and was stopped+verified-not-running (timeout) — check the last-running step's log in $LOG_DIR/"
+elif [[ -n "$INTERRUPTED_BY_SIGNAL" ]]; then
+    # WR-04 fix: name the interrupt explicitly instead of falling through
+    # to the generic "container script died before finishing" wording
+    # below — this path is reached only after the same stop→kill→confirm
+    # escalation sequence above has already verified the container is no
+    # longer running.
+    if grep -q '^overall=' "$SUMMARY_FILE" 2>/dev/null; then
+        echo "overall-conflict=interrupted-after-inner-verdict-already-present" >> "$SUMMARY_FILE"
+    else
+        echo "overall=FAIL" >> "$SUMMARY_FILE"
+    fi
+    FAIL_REASON="script received SIG${INTERRUPTED_BY_SIGNAL} and stopped+verified-not-running the container (interrupted, not a genuine step failure) — check the last-running step's log in $LOG_DIR/"
 elif [[ ! -f "$SUMMARY_FILE" ]]; then
     FAIL_REASON="summary.log missing — container never wrote its log"
 elif ! grep -q '^overall=' "$SUMMARY_FILE"; then
