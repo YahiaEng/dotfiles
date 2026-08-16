@@ -951,12 +951,26 @@ PanelWindow {
 
     // Named property, matching PanelDialog.qml/Dashboard.qml's own
     // panelSurfaceOpacity/drawerSurfaceOpacity precedent for a bare numeric
-    // opacity constant. Heavy on purpose: this is the ONE case that still
-    // covers the whole surface, because a grid where every capture failed
-    // has nothing worth seeing through to — unlike the ordinary case, which
-    // deliberately ships no full-bleed scrim at all (round 12, above).
+    // opacity constant. This is the ONE case that still covers the whole
+    // surface, because a grid where every capture failed has nothing worth
+    // seeing through to — unlike the ordinary case, which deliberately
+    // ships no full-bleed scrim at all (round 12, above); the ordinary
+    // case's own frost is instead governed by each WorkspaceTile's own
+    // fill against windowrules.lua's quickshell-overview ignore_alpha
+    // threshold, neither of which this plan touches.
+    //
+    // REVISED 0.7 -> 0.38 (D-21-26, frost unification, measured
+    // 2026-08-15/16). This is the only surface-wide fill constant left in
+    // this file after round 12 removed the full-bleed scrim, so it is
+    // what "the overview's own fill" means for D-21-26's purposes — moved
+    // to the notification family's own fill (BarRoles.notifSurface) in
+    // step with windowrules.lua's quickshell-overview ignore_alpha
+    // (0.25 -> 0.2, that file's own comment), staying strictly above the
+    // new cutoff. Losing the former deliberate heaviness only affects the
+    // rare whole-grid-capture-failure state this property gates, not the
+    // ordinary overview appearance.
     readonly property color catchBase: Colours.surface
-    readonly property real catchScrimOpacity: 0.7
+    readonly property real catchScrimOpacity: 0.38
 
     Rectangle {
         id: wholeGridCatch

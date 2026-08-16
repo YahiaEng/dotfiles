@@ -365,7 +365,21 @@ hl.layer_rule({ match = { namespace = "ags-media" }, ignore_alpha = 0.25 })
 -- rationale and verdict; this pair mirrors it exactly for ignore_alpha,
 -- matching the 0.5 threshold the walker rule already uses.
 hl.layer_rule({ match = { namespace = "^quickshell-.*" }, ignore_alpha = 0.5 })
-hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0.5 })
+
+-- quickshell-dashboard's own ignore_alpha — REVISED (D-21-26, frost
+-- unification, measured 2026-08-15/16). Until this revision this row was
+-- a no-op: it repeated the family's own 0.5 floor verbatim, so the
+-- drawer had no REAL per-surface override and simply inherited the
+-- family default. D-21-26 gives it a genuine override, lowered to 0.2 to
+-- join the notification family's and the OSD's own threshold (this
+-- file's lines ~485-487, 516), so the drawer reads at the SAME frost
+-- strength as every other panel-class surface. This row already sits
+-- AFTER the family regex above, which is what makes it win under this
+-- file's own recorded ordering finding (a namespace rule declared before
+-- the family regex loses to it; this one does not need to move). Paired
+-- with Dashboard.qml's drawerSurfaceOpacity, raised in step from 0.78 to
+-- 0.38 to clear this new, lower cutoff — see that file's own comment.
+hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0.2 })
 
 -- ── quickshell-overview blur pair — DECLARED LAST, DELIBERATELY ──────────
 -- (plan 16-07 Task 3 render gate, round 8. Full rationale for WHY this
@@ -413,13 +427,23 @@ hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0
 -- Rounds 5-9 of that gate were spent tuning QML alphas against rules the
 -- compositor had never read; the alphas were never the problem.
 --
--- Threshold 0.25 sits below every alpha this surface composites (the 0.45
--- scrim and the ~0.615 empty tile alike), so the whole surface blurs
--- consistently — the wleave/ags-media pattern. Verified visually at these
--- values, not derived: screenshot with blur applied shows a frosted
--- backdrop and readable glass tiles.
+-- Threshold 0.25 sat below every alpha this surface composited (the tiles'
+-- own fill, ~0.615 empty), so the whole surface blurred consistently — the
+-- wleave/ags-media pattern. Verified visually at that value, not derived:
+-- screenshot with blur applied showed a frosted backdrop and readable
+-- glass tiles.
+--
+-- REVISED to 0.2 (D-21-26, frost unification, measured 2026-08-15/16):
+-- joins the notification family's and the OSD's own threshold (this
+-- file's lines ~485-487, 516) so this surface reads at the SAME frost
+-- strength as every other panel-class surface. 0.2 stays below every
+-- alpha this surface composites exactly as 0.25 did — the tiles' own
+-- fill is unchanged by this plan and sits well clear of both cutoffs;
+-- only the whole-grid-capture-failure catch scrim (catchScrimOpacity,
+-- Overview.qml) is raised in step, from 0.7 to 0.38, to clear this new,
+-- lower threshold instead of the old one — see that file's own comment.
 hl.layer_rule({ match = { namespace = "quickshell-overview" }, blur = true })
-hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.25 })
+hl.layer_rule({ match = { namespace = "quickshell-overview" }, ignore_alpha = 0.2 })
 
 -- ── Notification surfaces (Phase 19 Plan 01 tracer, QNOTIF-01/02) ────────
 -- Three exact-match namespace rows, all three added by this one plan even

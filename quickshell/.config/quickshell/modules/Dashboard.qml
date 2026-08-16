@@ -243,7 +243,21 @@ PanelWindow {
     // this file (`import "dashboard"`) and `PanelDialog.qml` (`import "../"`)
     // can already read. If Hyprland's border_size changes, follow it there.
     readonly property int borderWidth: Design.borderWidth
-    readonly property real drawerSurfaceOpacity: 0.78
+    // REVISED 0.78 -> 0.38 (D-21-26, frost unification, measured
+    // 2026-08-15/16). The UI-SPEC's own frost table names 0.5 as this
+    // surface's "current fill", but that is the namespace's ignore_alpha
+    // THRESHOLD (windowrules.lua's family-inherited floor before this
+    // plan), not this constant — this file's own drawerSurfaceOpacity was
+    // measured at 0.78 this session, a different value entirely. Lowered
+    // in step with windowrules.lua's quickshell-dashboard ignore_alpha
+    // (0.5 -> 0.2, that file's own comment) to the notification family's
+    // own fill (BarRoles.notifSurface, 0.38) so the drawer reads at the
+    // SAME frost strength as every other panel-class surface — 0.38
+    // stays strictly above the new 0.2 cutoff, so blur is not silently
+    // discarded (this file's own recorded failure mode, see the
+    // `background` Rectangle's Behavior comment below and 21-CONTEXT.md's
+    // D-21-26 constraint 1).
+    readonly property real drawerSurfaceOpacity: 0.38
     readonly property color surfaceBase: Colours.surface
 
     // ── Pager & tab constants (D-15..D-19, Task 2) — declared beside the
