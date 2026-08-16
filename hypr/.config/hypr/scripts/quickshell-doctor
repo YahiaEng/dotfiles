@@ -194,6 +194,13 @@ if [[ -n "${QSD_FIXTURE_SHELL_QML_ROOT:-}" && ! -d "$QSD_FIXTURE_SHELL_QML_ROOT"
     echo "FATAL: QSD_FIXTURE_SHELL_QML_ROOT names a nonexistent directory: $QSD_FIXTURE_SHELL_QML_ROOT" >&2
     exit 1
 fi
+# 21-04 (QMEDIA-03): QSD_FIXTURE_QUICKSHELL_CONFIG_DIR (directory seam, the
+# standing MPRIS-reader-count check's scan root) joins the directory
+# guards above, same hard-FATAL-before-anything-else discipline.
+if [[ -n "${QSD_FIXTURE_QUICKSHELL_CONFIG_DIR:-}" && ! -d "$QSD_FIXTURE_QUICKSHELL_CONFIG_DIR" ]]; then
+    echo "FATAL: QSD_FIXTURE_QUICKSHELL_CONFIG_DIR names a nonexistent directory: $QSD_FIXTURE_QUICKSHELL_CONFIG_DIR" >&2
+    exit 1
+fi
 unset _qsd_fv _qsd_fv_val
 
 # D-13 (12-CONTEXT.md, one-way): per-screen Quickshell surface fan-out was
@@ -540,6 +547,21 @@ _qsd_shell_qml_root() {
     printf '%s' "$QUICKSHELL_CONFIG_DIR/modules"
 }
 
+# 21-04 (QMEDIA-03): directory seam — the scan root for the standing
+# MPRIS-reader-count check (below). Live: the whole quickshell config
+# tree (unchanged from the Phase-11 check this promotes — the reader
+# could in principle appear anywhere under it, not only under modules/).
+# Fixture: a directory containing exactly the fixture files under test,
+# same T-15-08 discipline as every seam above.
+_qsd_quickshell_config_dir() {
+    if [[ -n "${QSD_FIXTURE_QUICKSHELL_CONFIG_DIR:-}" ]]; then
+        [[ -d "$QSD_FIXTURE_QUICKSHELL_CONFIG_DIR" ]] || { echo "FATAL: QSD_FIXTURE_QUICKSHELL_CONFIG_DIR names a nonexistent directory: $QSD_FIXTURE_QUICKSHELL_CONFIG_DIR" >&2; exit 1; }
+        printf '%s' "$QSD_FIXTURE_QUICKSHELL_CONFIG_DIR"
+        return
+    fi
+    printf '%s' "$QUICKSHELL_CONFIG_DIR"
+}
+
 _qsd_windowrules_lua_path() {
     if [[ -n "${QSD_FIXTURE_WINDOWRULES_LUA:-}" ]]; then
         [[ -f "$QSD_FIXTURE_WINDOWRULES_LUA" ]] || { echo "FATAL: QSD_FIXTURE_WINDOWRULES_LUA names a nonexistent file: $QSD_FIXTURE_WINDOWRULES_LUA" >&2; exit 1; }
@@ -822,6 +844,34 @@ _qsd_assert_panel_source() {
     done < <(find -L "$dir" -maxdepth 1 -type f -name '*.qml' 2>/dev/null)
     printf 'bad=%s' "$bad"
     [[ "$bad" -eq 0 ]]
+}
+
+# 21-04 (QMEDIA-03) — asserts the standing MPRIS-reader-count invariant:
+# exactly one file under the given directory imports
+# Quickshell.Services.Mpris or instantiates an Mpris* type, AND that
+# single match's basename is the expected reader. A bare count of one is
+# spoofable by a defect that removes the real reader and adds a
+# different one elsewhere (T-21-08) — this asserts identity, not only
+# cardinality, so both halves must hold. Regex discipline unchanged from
+# the Phase-11 check this promotes (T-11-REVIEWFIX/WR-02, comment
+# preserved at the call site below): an actual API surface (the service
+# import line or a QML `Mpris*` type instantiation), never a bare
+# case-insensitive substring, so a prose-only mention in a comment never
+# increments the count. Prints "hits=N basenames=..." and returns 0/1 —
+# called both by check 9 below (live path) and by --self-test (fixture
+# replay, isolated per-fixture tmpdirs).
+_qsd_assert_mpris_reader() {
+    local dir="$1" expected="${2:-MediaBackend.qml}"
+    local f
+    local MPRIS_HITS=0
+    local MPRIS_BASENAMES=""
+    while IFS= read -r f; do
+        grep -qE 'import[[:space:]]+Quickshell\.Services\.Mpris|\bMpris[A-Za-z]*[[:space:]]*\{' "$f" 2>/dev/null || continue
+        MPRIS_HITS=$((MPRIS_HITS + 1))
+        MPRIS_BASENAMES="${MPRIS_BASENAMES}${MPRIS_BASENAMES:+,}$(basename -- "$f")"
+    done < <(find -L "$dir" -type f 2>/dev/null)
+    printf 'hits=%s basenames=%s' "$MPRIS_HITS" "${MPRIS_BASENAMES:-none}"
+    [[ "$MPRIS_HITS" -eq 1 && "$MPRIS_BASENAMES" == "$expected" ]]
 }
 
 # ── 17-03 Task 4 (standing constraint #4) — mpvpaper layer-coexistence
@@ -2864,22 +2914,33 @@ else
     echo "    per-key counts: ${KEY_REPORT}"
 fi
 
-# ── 9. No Quickshell MPRIS writer (QS-06 / standing constraint 4) —
-#    Phase 11 ships no media widget so this asserts a zero that must
-#    stay zero; a third *reader* of MPRIS is safe, a third uncoordinated
-#    *writer* is not. ─────────────────────────────────────────────────
-if [[ -d "$QUICKSHELL_CONFIG_DIR" ]]; then
-    MPRIS_HITS=0
-    # T-11-REVIEWFIX (WR-02): match an actual MPRIS API surface — the
-    # service import line or a QML `Mpris*` type instantiation — not a
-    # bare case-insensitive substring of the word, which would also flip
-    # on prose (e.g. a doc comment merely mentioning "MPRIS").
-    while IFS= read -r f; do
-        grep -qE 'import[[:space:]]+Quickshell\.Services\.Mpris|\bMpris[A-Za-z]*[[:space:]]*\{' "$f" 2>/dev/null && MPRIS_HITS=$((MPRIS_HITS + 1))
-    done < <(find -L "$QUICKSHELL_CONFIG_DIR" -type f 2>/dev/null)
-    check "zero Quickshell MPRIS writers (found in ${MPRIS_HITS} file(s) under $QUICKSHELL_CONFIG_DIR)" "$([[ "$MPRIS_HITS" -eq 0 ]] && echo 0 || echo 1)"
+# ── 9. Exactly one Quickshell MPRIS reader (QMEDIA-03, promoted from the
+#    Phase-11 "zero Quickshell MPRIS writer" assertion below, standing
+#    constraint 4) — Phase 18's D-18-05 legitimately repointed
+#    MediaBackend.qml onto the native Quickshell.Services.Mpris singleton,
+#    an intended change that made the old zero-assertion permanently and
+#    silently false: MPRIS_HITS was 1 in a healthy tree, asserted against
+#    0, [FAIL] on entirely healthy code since Phase 18 landed (verified
+#    live this session). The matched thing was always a reader, never a
+#    writer — the old label conflated the two. This promotes the check to
+#    the invariant this phase actually delivers: the desktop keeps exactly
+#    one MPRIS reader after RETIRE-06's ags deletion, held here so a
+#    future phase cannot silently reintroduce a second one — and
+#    additionally asserts the single match's identity (T-21-08): a bare
+#    count of one is spoofable by a defect that removes the real reader
+#    and adds a different one elsewhere. ─────────────────────────────────
+QSD_MPRIS_SCAN_DIR="$(_qsd_quickshell_config_dir)"
+if [[ -d "$QSD_MPRIS_SCAN_DIR" ]]; then
+    # T-11-REVIEWFIX (WR-02, still honoured): the assert function below
+    # matches an actual MPRIS API surface — the service import line or a
+    # QML `Mpris*` type instantiation — not a bare case-insensitive
+    # substring of the word, which would also flip on prose (e.g. a doc
+    # comment merely mentioning "MPRIS").
+    MPRIS_RES=$(_qsd_assert_mpris_reader "$QSD_MPRIS_SCAN_DIR" "MediaBackend.qml")
+    MPRIS_RC=$?
+    check "exactly one Quickshell MPRIS reader, and it is MediaBackend.qml (${MPRIS_RES}, under $QSD_MPRIS_SCAN_DIR)" "$MPRIS_RC"
 else
-    echo "  [SKIP] no Quickshell MPRIS writer check ($QUICKSHELL_CONFIG_DIR not found)"
+    echo "  [SKIP] exactly one Quickshell MPRIS reader check ($QSD_MPRIS_SCAN_DIR not found)"
 fi
 
 # ── D-15-25 (Phase 15 Plan 09) — four new panel checks, placed here (after
