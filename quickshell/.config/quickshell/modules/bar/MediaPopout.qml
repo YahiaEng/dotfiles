@@ -140,9 +140,15 @@ SectionPopout {
     readonly property int _visualiserBarCount: 60
     readonly property real _ringGap: 3
     readonly property real _ringRadius: root._artSize / 2 + root._ringGap
-    readonly property real _visualiserMaxExtension: 6
+    // Scaled up with MediaTab.qml on the same operator "too subtle"
+    // feedback, kept proportional to this popout's much smaller art.
+    readonly property real _visualiserMaxExtension: 8
     readonly property real _visualiserMinSliver: 1.5
-    readonly property real _visualiserBarStrokeWidth: 1
+    readonly property real _visualiserBarStrokeWidth: 1.5
+    // Same measured perceptual curve as MediaTab.qml — see the long note
+    // there. Duplicated per-file for the same file-lexical reason the
+    // other visualiser constants are duplicated.
+    readonly property real _visualiserResponseExponent: 0.45
     // The outer Item's side length needed to contain the ring at full
     // amplitude without clipping: art diameter plus the gap and max
     // extension on both sides.
@@ -207,9 +213,10 @@ SectionPopout {
                         readonly property real amplitude: popoutVisualiserBar.hasLiveData
                             ? Math.max(0, Math.min(1, CavaService.bars[popoutVisualiserBar.barIndex]))
                             : 0
+                        readonly property real shapedAmplitude: Math.pow(popoutVisualiserBar.amplitude, root._visualiserResponseExponent)
                         readonly property real outerRadius: root._ringRadius
                             + root._visualiserMinSliver
-                            + popoutVisualiserBar.amplitude * (root._visualiserMaxExtension - root._visualiserMinSliver)
+                            + popoutVisualiserBar.shapedAmplitude * (root._visualiserMaxExtension - root._visualiserMinSliver)
 
                         startX: artSlot.width / 2 + root._ringRadius * Math.cos(popoutVisualiserBar.angleRad)
                         startY: artSlot.height / 2 + root._ringRadius * Math.sin(popoutVisualiserBar.angleRad)

@@ -404,12 +404,36 @@ Item {
     //    lands pixel-for-pixel where the old dashed ring sat.
     readonly property int visualiserBarCount: 60
     // Outer radius at full amplitude = ringRadius + visualiserMaxExtension.
-    readonly property real visualiserMaxExtension: 14
+    // Raised from 14 to 18 on operator feedback ("too subtle"). Bounded by
+    // the player pill 8px (spacingSm) below artSlot, not by the details
+    // column 24px (sectionGap) to the right — the vertical gap is the
+    // binding constraint and 14 already overran it at peak.
+    readonly property real visualiserMaxExtension: 18
     // Minimum sliver length at silence — matches the old ring's
     // dashPattern dash length at ringStrokeWidth, the exact property the
     // silence-state equivalence argument (D-21-01) depends on.
     readonly property real visualiserMinSliver: 3
-    readonly property real visualiserBarStrokeWidth: 2
+    // Raised from 2 to 3 on the same feedback: costs no layout budget
+    // (thickness is perpendicular to the extension axis) and matches the
+    // old dashed ring's own ringStrokeWidth, so the silence state still
+    // reads as that ring.
+    readonly property real visualiserBarStrokeWidth: 3
+    // Perceptual response curve applied to each band's raw amplitude.
+    //
+    // MEASURED, not guessed: sampling this repo's own cava config live for
+    // 3s gave median band amplitude 0, 90th percentile 19/100, max 100.
+    // Under the previous LINEAR mapping a typical bar therefore sat at
+    // 3 + 0.19*11 ~= 5px of a 14px range — pinned near the silence floor,
+    // with almost the whole range reserved for peaks that occur in under
+    // 10% of samples. That, not the geometry, is why the ring read as
+    // subtle.
+    //
+    // pow(a, 0.45) expands exactly that crowded low end: 0.19 -> 0.47,
+    // 0.5 -> 0.73, while leaving the endpoints fixed (0 -> 0, 1 -> 1) so
+    // the silence sliver and the full-amplitude cap are both unchanged.
+    // Lower the exponent for more motion, raise it toward 1.0 for the old
+    // linear behaviour.
+    readonly property real visualiserResponseExponent: 0.45
     readonly property int detailsWidth: 340
     readonly property int controlRowHeight: 32
     readonly property int playerSelectorHeight: 36
@@ -705,9 +729,11 @@ Item {
                         readonly property real amplitude: visualiserBar.hasLiveData
                             ? Math.max(0, Math.min(1, CavaService.bars[visualiserBar.barIndex]))
                             : 0
+                        // Curved, not linear — see visualiserResponseExponent.
+                        readonly property real shapedAmplitude: Math.pow(visualiserBar.amplitude, root.visualiserResponseExponent)
                         readonly property real outerRadius: root.ringRadius
                             + root.visualiserMinSliver
-                            + visualiserBar.amplitude * (root.visualiserMaxExtension - root.visualiserMinSliver)
+                            + visualiserBar.shapedAmplitude * (root.visualiserMaxExtension - root.visualiserMinSliver)
 
                         startX: artSlot.width / 2 + root.ringRadius * Math.cos(visualiserBar.angleRad)
                         startY: artSlot.height / 2 + root.ringRadius * Math.sin(visualiserBar.angleRad)
