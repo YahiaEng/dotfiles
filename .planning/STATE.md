@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 22 (fresh-install-proof) — EXECUTING
-Plan: 7 of 9 summarized (07 of 9 planned — plans 04, 05, 06 still outstanding)
-Status: 22-07 complete (container gate overall=PASS); 22-04/05/06 remain before RETIRE-09 can be marked complete
+Plan: 7 of 9 summarized (plans 05, 06 still outstanding)
+Status: 22-04 complete (five gating steps, theme-doctor blocking, allowed=3 blocking=0, overall=PASS); 22-05/06 remain before RETIRE-09 can be marked complete
 Progress: [██████████] 97%
-Last activity: 2026-08-16 — plan 22-07 harness repair + re-baseline: overall=PASS in 17min22s, T-22-01-DOS closed, operator selected proceed-to-04
+Last activity: 2026-08-17 — plan 22-04: theme-doctor session-failure allowlist authored + container-run.sh converted to blocking against it, retirement-check/stow-link-check added as new blocking steps, pushed and run once — overall=PASS
 
 ## Performance Metrics
 
