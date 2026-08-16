@@ -476,6 +476,23 @@ Item {
     // a live render in this session; the operator's own visual pass is
     // what tunes these two constants if the lobes read too shallow, too
     // sharp, or too deep.
+    // Plain circular mask path — the shape the cover art uses after the
+    // operator reversed D-21-02 on 2026-08-16. Two 180-degree SVG elliptical
+    // arcs, which is the standard way to close a full circle in path data
+    // (a single 360-degree arc is degenerate: identical start and end points
+    // make the sweep ambiguous and renderers draw nothing).
+    function _circlePath(w, h) {
+        var cx = w / 2;
+        var cy = h / 2;
+        var r = Math.min(w, h) / 2;
+        return "M " + (cx - r).toFixed(2) + "," + cy.toFixed(2) +
+            " A " + r.toFixed(2) + "," + r.toFixed(2) + " 0 1 0 " + (cx + r).toFixed(2) + "," + cy.toFixed(2) +
+            " A " + r.toFixed(2) + "," + r.toFixed(2) + " 0 1 0 " + (cx - r).toFixed(2) + "," + cy.toFixed(2) + " Z";
+    }
+
+    // Retained but UNUSED since the D-21-02 reversal above — kept so the
+    // cookie can be restored by swapping one PathSvg call, without
+    // re-deriving the lobe geometry.
     function _cookiePath(w, h) {
         var lobes = 12;
         var cx = w / 2;
@@ -810,7 +827,18 @@ Item {
                         strokeColor: "transparent"
 
                         PathSvg {
-                            path: root._cookiePath(artContainer.width, artContainer.height)
+                            // Operator reversal of D-21-02 (2026-08-16):
+                            // the 12-lobe cookie was rejected on sight in
+                            // favour of the plain circle, consistent with
+                            // the round-3 feedback already recorded in this
+                            // file's header ("something rounder and dotted,
+                            // closer to the ring's own idle silhouette than
+                            // to the cookie-blob host shape underneath it").
+                            // `_cookiePath()` is retained, unused, so the
+                            // decision is reversible without re-deriving the
+                            // lobe geometry. The masking MECHANISM above is
+                            // untouched — only this path data changes.
+                            path: root._circlePath(artContainer.width, artContainer.height)
                         }
                     }
                 }

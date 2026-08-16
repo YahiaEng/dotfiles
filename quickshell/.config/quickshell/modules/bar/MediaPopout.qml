@@ -57,7 +57,20 @@ SectionPopout {
     Component.onCompleted: CavaService.claim()
     Component.onDestruction: CavaService.release()
 
-    // ── D-21-02: the same hand-authored 12-lobe cookie path MediaTab.qml
+    // Plain circular mask path — the shape the cover art uses after the
+    // operator reversed D-21-02 on 2026-08-16. Duplicated from MediaTab.qml
+    // for the same file-lexical reason its cookie twin below is duplicated.
+    // Two 180-degree arcs, since a single 360-degree SVG arc is degenerate.
+    function _circlePath(w, h) {
+        var cx = w / 2;
+        var cy = h / 2;
+        var r = Math.min(w, h) / 2;
+        return "M " + (cx - r).toFixed(2) + "," + cy.toFixed(2) +
+            " A " + r.toFixed(2) + "," + r.toFixed(2) + " 0 1 0 " + (cx + r).toFixed(2) + "," + cy.toFixed(2) +
+            " A " + r.toFixed(2) + "," + r.toFixed(2) + " 0 1 0 " + (cx - r).toFixed(2) + "," + cy.toFixed(2) + " Z";
+    }
+
+    // ── D-21-02 (REVERSED 2026-08-16, retained unused): the same hand-authored 12-lobe cookie path MediaTab.qml
     // builds, duplicated here rather than shared — QML functions are
     // file-lexical (the same reason MediaTab.qml's own header gives for
     // its locally-duplicated design constants), and this file has no
@@ -265,7 +278,9 @@ SectionPopout {
                         strokeColor: "transparent"
 
                         PathSvg {
-                            path: root._cookiePath(artContainer.width, artContainer.height)
+                            // Operator reversal of D-21-02 (2026-08-16) —
+                            // circle restored, masking mechanism untouched.
+                            path: root._circlePath(artContainer.width, artContainer.height)
                         }
                     }
                 }
