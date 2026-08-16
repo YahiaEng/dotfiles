@@ -149,17 +149,49 @@ Cloning from the real remote (not copying files from the host) is
 required — it is the only way this run counts as genuine fresh-environment
 evidence rather than a dev-machine re-stow (D-56's explicit prohibition).
 
-## 5. Run install.sh --core-only, then stow.sh
+## 5. Run install.sh (unflagged), then stow.sh
 
 ```bash
 chmod +x install.sh stow.sh
-./install.sh --core-only
+./install.sh
 ```
 
-Confirm the run ends with `install.sh`'s post-install verification table
-printing `[OK]` for every package and `All N packages verified installed.`
-— any `[MISS]` line means `install.sh` already exited nonzero (D-63/D-64)
-and this run has failed; do not proceed.
+**This VM tier now runs `install.sh` unflagged, reversing D-22-11's own
+container-tier precedent for this tier — recorded here, not slipped in.**
+`--core-only` skips exactly two sections: `section_hardware` (NVIDIA
+packages behind an `lspci` guard, limine bootloader steps behind a
+bootloader guard) and `section_personal` (git identity, timezone). Every
+package install — including the shell and visualiser packages — lives in
+`section_core_rice` and always runs regardless of the flag, and
+`verify_packages`'s post-install table hard-fails on that set either way.
+**The container tier's scope was already correct and stays
+`--core-only`** — do not "helpfully" change the container harness to match
+this section; that scope question is settled by D-22-11, not open.
+
+The gap an unflagged run closes: the tracked `system/` tree
+(`system/usr/local/bin/kernel-module-verify`,
+`system/etc/pacman.d/hooks/99-kernel-module-verify.hook`) is deliberately
+not stowed — `install.sh` installs it with `sudo install` inside
+`section_hardware`, and its post-install verification is also skipped
+under `--core-only`. Neither tier has ever installed it. A VM is a real
+machine with a real bootloader, so an unflagged run here proves
+`section_hardware`'s non-NVIDIA path and installs `system/` for the first
+time in any reproduction proof.
+
+**Reversal, named explicitly (D-61, D-22-11):** `section_personal` writes
+a git identity and a timezone, and has been skipped since v1.0 under D-61
+as "not meaningful, potentially wrong" in a disposable environment.
+Running it here is harmless — the VM is deleted at step 9 — but it IS a
+reversal of D-61 for this tier, and this paragraph is that record, not a
+silent behavior change.
+
+Because an unflagged run also runs `section_hardware`, the fallback-kernel
+package set joins the post-install verification table — so the expected
+`All N packages verified installed.` count is **higher** on this VM tier
+than on the container tier. Confirm the run still ends with `[OK]` for
+every package and `All N packages verified installed.` — any `[MISS]`
+line means `install.sh` already exited nonzero (D-63/D-64) and this run
+has failed; do not proceed.
 
 ```bash
 ./stow.sh
@@ -180,9 +212,32 @@ uwsm start hyprland-uwsm.desktop
 configured — the minimal archinstall baseline from step 2 has none by
 default, so the TTY command above is the expected path here.)
 
-Confirm walker, elephant, the Quickshell bar, swaync, and Thunar all come
-up themed — no relogin, no manual fixups. This is the moment the
-container tier cannot exercise at all.
+Confirm the current surface inventory all comes up themed — no relogin,
+no manual fixups — naming each surface by requirement ID so it can
+actually be found on screen:
+
+- The **bar** (QBAR)
+- **Notification popups and the notification centre** (QNOTIF)
+- The **dashboard drawer**
+- **OSD indicators** — volume/brightness/caps-lock (QOSD)
+- The **power menu** (QPOWER)
+- The **workspace overview**
+- The **Media tab**, including its cava audio-reactive ring (QMEDIA)
+- **walker** and **elephant** — the launcher and its backend, separate
+  processes, unchanged by this milestone's retirements
+- **Thunar** — unchanged by this milestone's retirements
+
+The bar, the notification surfaces, the OSD, the power menu, the
+dashboard and the overview are all **one Quickshell process** — confirming
+"did they all come up" is checking that one process's surfaces render
+correctly, not six separate daemons. Do not enable any systemd unit for
+this: the Quickshell units (`quickshell.service`,
+`quickshell-bar-watchdog.service`) deliberately carry no `[Install]`
+section so enabling can never write a wants-symlink outside the
+repository — `autostart.lua` starts them, and that is the whole
+mechanism.
+
+This is the moment the container tier cannot exercise at all.
 
 ## 7. Run theme-doctor and theme-parity, save the logs (D-45)
 
@@ -211,11 +266,14 @@ via SPICE) as the machine-readable half of the INST-03 evidence.
 Look at the VM's own display (the SPICE/QEMU console window, not a
 screenshot taken by a script) and confirm, with your own eyes:
 
-- The Quickshell bar (including its in-process power menu), swaync,
-  walker, and Thunar all show the same theme (Catppuccin, by default
-  from the first-boot seed in step 5)
-- Switching themes (`Super + Shift + T`) live-updates every visible app
-  instantly, no relogin — the same ten-target standard from Phase 1/2
+- Every listed surface — the bar (QBAR), notification popups and centre
+  (QNOTIF), the dashboard drawer, OSD indicators (QOSD), the power menu
+  (QPOWER), the workspace overview, the Media tab with its cava ring
+  (QMEDIA), walker, elephant, and Thunar — shows the same theme
+  (Catppuccin, by default from the first-boot seed in step 5)
+- Switching themes (`Super + Shift + T`) live-updates every visible
+  surface instantly, no relogin — the same ten-target standard from
+  Phase 1/2
 - Nothing is unstyled, blank, or still showing stock GTK defaults
 
 Only once you have personally seen this does INST-03 pass. Record the
