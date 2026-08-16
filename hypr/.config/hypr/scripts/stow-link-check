@@ -449,58 +449,79 @@ present_count = 0
 denom = 0  # roots counted toward the vacuous-green guard — excludes "."
 any_link_checked = 0
 
-for rel_path, rmode, why in SWEEP_ROOTS:
-    abs_root = os.path.normpath(os.path.join(sweep_home, rel_path))
-    exists = os.path.isdir(abs_root)
-    is_trivial = (rel_path == '.')
-    if not is_trivial:
-        denom += 1
-        if exists:
-            present_count += 1
-    if not exists:
-        emit('SKIP', f'{rel_path}: not present under {sweep_home} ({why})')
-        continue
+# CR-01 fix: the whole sweep body is wrapped in try/except so an unhandled
+# exception anywhere in the walk (a future code change, an uncaught OSError
+# variant, a permission oddity under rootless-podman UID mapping) still
+# reaches dump() and is reported as a FAIL, rather than the prior failure
+# mode — zero output, a vacuous "0 passed, 0 failed" from run_sweep(), and
+# a false PASS. This is layered ON TOP OF (not a replacement for) the
+# bash-side python3-process-exit-status check added to run_sweep(): this
+# try/except only helps once python3 itself is running; it cannot catch
+# python3 being entirely absent from $PATH, which is the bash-side check's
+# job (dump() never runs in that case because the interpreter never starts).
+try:
+    for rel_path, rmode, why in SWEEP_ROOTS:
+        abs_root = os.path.normpath(os.path.join(sweep_home, rel_path))
+        exists = os.path.isdir(abs_root)
+        is_trivial = (rel_path == '.')
+        if not is_trivial:
+            denom += 1
+            if exists:
+                present_count += 1
+        if not exists:
+            emit('SKIP', f'{rel_path}: not present under {sweep_home} ({why})')
+            continue
 
-    if rmode == 'depth1':
-        links = list(walk_links_depth1(abs_root))
-    elif rmode == 'home-named':
-        links = list(walk_links_home_named(abs_root, ALLOWED_HOME_DOTFILES))
-    elif rmode == 'config-scoped':
-        links = list(walk_config_scoped(abs_root, sweep_home))
-    else:
-        links = list(walk_links(abs_root))
-
-    dangling = []
-    for link_path in links:
-        any_link_checked += 1
-        if is_dangling(link_path):
-            rel = os.path.relpath(link_path, sweep_home)
-            dangling.append((rel, link_path))
-
-    # LC_ALL=C-equivalent byte-order sort — encode to bytes so ordering
-    # never depends on the interpreter's default Unicode collation.
-    dangling.sort(key=lambda t: t[0].encode('utf-8'))
-
-    for rel, link_path in dangling:
-        try:
-            target_desc = os.readlink(link_path)
-        except OSError:
-            target_desc = '<unreadable>'
-        ex = path_is_exempt(rel)
-        if ex is not None:
-            emit('EXEMPT', f"{rel} -> {target_desc} ({ex.get('reason', '')})")
+        if rmode == 'depth1':
+            links = list(walk_links_depth1(abs_root))
+        elif rmode == 'home-named':
+            links = list(walk_links_home_named(abs_root, ALLOWED_HOME_DOTFILES))
+        elif rmode == 'config-scoped':
+            links = list(walk_config_scoped(abs_root, sweep_home))
         else:
-            emit('FAIL', f'{rel} -> {target_desc} (dangling)')
+            links = list(walk_links(abs_root))
 
-    non_exempt_dangling = [r for r, lp in dangling if path_is_exempt(r) is None]
-    if links and not non_exempt_dangling:
-        emit('PASS', f'{rel_path}: {len(links)} symlink(s), none dangling')
+        dangling = []
+        for link_path in links:
+            any_link_checked += 1
+            if is_dangling(link_path):
+                rel = os.path.relpath(link_path, sweep_home)
+                dangling.append((rel, link_path))
 
-if denom > 0 and present_count == 0:
-    emit('FAIL', f'0 of {denom} sweep roots present under {sweep_home} — '
-                 'refusing to report clean (vacuous-green guard)')
+        # LC_ALL=C-equivalent byte-order sort — encode to bytes so ordering
+        # never depends on the interpreter's default Unicode collation.
+        dangling.sort(key=lambda t: t[0].encode('utf-8'))
+
+        for rel, link_path in dangling:
+            try:
+                target_desc = os.readlink(link_path)
+            except OSError:
+                target_desc = '<unreadable>'
+            ex = path_is_exempt(rel)
+            if ex is not None:
+                emit('EXEMPT', f"{rel} -> {target_desc} ({ex.get('reason', '')})")
+            else:
+                emit('FAIL', f'{rel} -> {target_desc} (dangling)')
+
+        non_exempt_dangling = [r for r, lp in dangling if path_is_exempt(r) is None]
+        if links and not non_exempt_dangling:
+            emit('PASS', f'{rel_path}: {len(links)} symlink(s), none dangling')
+
+    if denom > 0 and present_count == 0:
+        emit('FAIL', f'0 of {denom} sweep roots present under {sweep_home} — '
+                     'refusing to report clean (vacuous-green guard)')
+except Exception as _slc_exc:  # noqa: BLE001 - deliberately broad, fail-closed
+    emit('FAIL', f'stow-link-check: internal error mid-sweep — {_slc_exc!r} '
+                 '(fail-closed: an incomplete sweep is never reported clean)')
 
 dump()
+# CR-01 fix: exit status now reflects whether any FAIL was emitted (either a
+# real dangling link or the internal-error/vacuous-green guards above),
+# instead of always falling off the end at implicit exit 0. run_sweep()
+# reads this via $? on the direct invocation (no process substitution) to
+# distinguish "engine ran and found something" (rc 0/1) from "engine never
+# ran to completion at all" (any other rc, e.g. 127 for a missing python3).
+sys.exit(1 if any(tag == 'FAIL' for tag, _ in results) else 0)
 PYEOF
 }
 
@@ -517,13 +538,39 @@ run_list() {
 }
 
 run_sweep() {
+    # CR-01 fix: the python3 engine's own findings used to be read only via
+    # a bash process substitution (`done < <(_slc_sweep sweep ...)`), whose
+    # exit status is silently dropped by a `while read` loop unless
+    # explicitly `wait`-ed on. If python3 was missing or crashed before
+    # dump() ran, that produced zero lines of output, fail_n stayed 0, and
+    # this function returned success — a false PASS. Writing to a real file
+    # and capturing $? from the direct invocation makes the engine's own
+    # exit status visible; a zero-line-output run is now also treated as a
+    # FAIL rather than a vacuous pass, mirroring the python-side
+    # denom>0/present_count==0 vacuous-green guard's "never report clean on
+    # zero evidence" discipline instead of duplicating it inconsistently.
     local sweep_home="$1"
-    local pass_n=0 fail_n=0
+    local pass_n=0 fail_n=0 line_n=0 slc_rc out_file
+    out_file="$(mktemp)"
+    trap 'rm -f "$out_file"' RETURN
+
     echo "stow-link-check — dangling-symlink sweep"
     echo "  target: $sweep_home"
     echo ""
+
+    _slc_sweep sweep "$sweep_home" > "$out_file"
+    slc_rc=$?
+
+    if [[ "$slc_rc" -ne 0 && "$slc_rc" -ne 1 ]]; then
+        printf '  [FAIL] stow-link-check engine crashed or is unavailable (python3 exit %d) — refusing to report clean\n' "$slc_rc"
+        echo ""
+        printf 'Summary: %d passed, %d failed\n' 0 1
+        return 1
+    fi
+
     while IFS=$'\t' read -r tag detail; do
         [[ -z "$tag" ]] && continue
+        line_n=$((line_n + 1))
         case "$tag" in
             SKIP)       printf '  [SKIP] %s\n' "$detail" ;;
             PASS)       printf '  [PASS] %s\n' "$detail"; pass_n=$((pass_n + 1)) ;;
@@ -531,7 +578,13 @@ run_sweep() {
             EXEMPT)     printf '  [EXEMPT] %s\n' "$detail" ;;
             SCOPE-SKIP) printf '  [SCOPE-SKIP] %s\n' "$detail" ;;
         esac
-    done < <(_slc_sweep sweep "$sweep_home")
+    done < "$out_file"
+
+    if [[ "$line_n" -eq 0 ]]; then
+        printf '  [FAIL] stow-link-check produced no output at all — refusing to report clean (vacuous-green guard)\n'
+        fail_n=$((fail_n + 1))
+    fi
+
     echo ""
     printf 'Summary: %d passed, %d failed\n' "$pass_n" "$fail_n"
     [[ "$fail_n" -eq 0 ]]
