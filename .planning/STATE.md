@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
-current_phase: 21
-current_phase_name: media-fold-in-contract-close
-status: executing
+current_phase: 22
+current_phase_name: Fresh-Install Proof
+status: planning
 stopped_at: Completed 21-06-PLAN.md
-last_updated: "2026-08-16T10:32:47.865Z"
+last_updated: "2026-08-16T17:35:34.096Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 54
-  completed_plans: 50
-  percent: 67
+  completed_plans: 54
+  percent: 83
 ---
 
 # Project State
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 21 (media-fold-in-contract-close) — EXECUTING
-Plan: 1 of 9
-Status: Executing Phase 21
+Phase: 22 — Fresh-Install Proof
+Plan: Not started
+Status: Ready to plan
 Progress: [█████████░] 93%
-Last activity: 2026-08-16 — Phase 21 execution started
+Last activity: 2026-08-16 — Phase 21 complete, transitioned to Phase 22
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 158
+- Total plans completed: 167
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -65,6 +65,7 @@ Last activity: 2026-08-16 — Phase 21 execution started
 | 18 | 20 | - | - |
 | 19 | 8 | - | - |
 | 20 | 10 | - | - |
+| 21 | 9 | - | - |
 
 **Recent Trend:**
 

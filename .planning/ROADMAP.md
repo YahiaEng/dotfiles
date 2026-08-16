@@ -70,7 +70,7 @@ Full details: [milestones/v3.0-ROADMAP.md](milestones/v3.0-ROADMAP.md)
 - [x] **Phase 18: QML Bar & Retirement Machinery** - The always-on bar replaces waybar, and every gate and script the later retirements depend on is built and proven once (completed 2026-08-13)
 - [x] **Phase 19: Notification Server & Centre** - The shell itself owns `org.freedesktop.Notifications`; popups, slide-out centre and swaync's deletion land together with no rollback (completed 2026-08-14)
 - [x] **Phase 20: Indicators & Power Menu** - QML volume/brightness/caps-lock indicators and the six-action power menu; SwayOSD, wleave and the leftover wlogout/eww packages leave the host (completed 2026-08-16)
-- [ ] **Phase 21: Media Fold-In & Contract Close** - The AGS card folds into the dashboard's Media tab behind a cava go/no-go, ending the MPRIS duplication and closing `contract.json` at its post-migration size
+- [x] **Phase 21: Media Fold-In & Contract Close** - The AGS card folds into the dashboard's Media tab behind a cava go/no-go, ending the MPRIS duplication and closing `contract.json` at its post-migration size (completed 2026-08-16)
 - [ ] **Phase 22: Fresh-Install Proof** - The D-34/D-36 container gate proves a clean clone still reproduces the whole desktop after all five packages are gone
 
 ## Phase Details
@@ -388,11 +388,11 @@ Plans:
 - [x] 21-02-PLAN.md — GATE-01 behavioural enumeration off the LIVE media card, plus the parity checklist that unlocks the deletion gate (QMEDIA-01, RETIRE-06)
 - [x] 21-03-PLAN.md — LEDGER-06: Phase 16's verification report reconstructed as it stood, two malformed `coverage:` blocks fixed in place, quick task `260728-51j` closed on evidence (LEDGER-06)
 - [x] 21-04-PLAN.md — QMEDIA-03's standing check: repair `quickshell-doctor` check 9 zero→exactly-one, with self-test fixtures proving it fails at 0 and at 2 and ignores prose (QMEDIA-03)
-- [ ] 21-05-PLAN.md — Folded todos: one frost value across dashboard/overview/notifications/OSD, and the whole-capsule DND tint (QMEDIA-01)
+- [x] 21-05-PLAN.md — Folded todos: one frost value across dashboard/overview/notifications/OSD, and the whole-capsule DND tint (QMEDIA-01)
 - [x] 21-06-PLAN.md — Visualiser build-out: 60-bar radial ring + hand-authored 12-lobe cookie mask on BOTH the Media tab and the bar popout, plus the required `14-UI-SPEC.md` accent amendment (QMEDIA-02)
-- [ ] 21-07-PLAN.md — Parity completion: cross-source dedup, a volume control per player inline in the switcher, `Super+M` to the Media tab (QMEDIA-01)
-- [ ] 21-08-PLAN.md — THE COMBINED GATE (parity checklist + rendered look, one verdict) then the deletion: `ags` gone from repo and host, config-then-package, one commit (QMEDIA-01, QMEDIA-02, QMEDIA-03, RETIRE-06, RETIRE-08)
-- [ ] 21-09-PLAN.md — Contract close: the bare-path album-art handoff check nothing tests today, plus every gate re-run after the deletion with raw evidence committed (RETIRE-08, QMEDIA-03, RETIRE-06)
+- [x] 21-07-PLAN.md — Parity completion: cross-source dedup, a volume control per player inline in the switcher, `Super+M` to the Media tab (QMEDIA-01)
+- [x] 21-08-PLAN.md — THE COMBINED GATE (parity checklist + rendered look, one verdict) then the deletion: `ags` gone from repo and host, config-then-package, one commit (QMEDIA-01, QMEDIA-02, QMEDIA-03, RETIRE-06, RETIRE-08)
+- [x] 21-09-PLAN.md — Contract close: the bare-path album-art handoff check nothing tests today, plus every gate re-run after the deletion with raw evidence committed (RETIRE-08, QMEDIA-03, RETIRE-06)
 
 **Wave 1** — tracer plus four fully-independent openers (zero file overlap)
 
@@ -471,7 +471,7 @@ Cross-cutting constraints:
 | 18. QML Bar & Retirement Machinery | v4.0 | 20/20 | Complete    | 2026-08-13 |
 | 19. Notification Server & Centre | v4.0 | 8/8 | Complete    | 2026-08-14 |
 | 20. Indicators & Power Menu | v4.0 | 10/10 | Complete    | 2026-08-16 |
-| 21. Media Fold-In & Contract Close | v4.0 | 5/9 | In Progress|  |
+| 21. Media Fold-In & Contract Close | v4.0 | 9/9 | Complete    | 2026-08-16 |
 | 22. Fresh-Install Proof | v4.0 | 0/? | Not started | - |
 
 **Totals:** 23 phases (18 complete) · 141 plans complete · 3 milestones shipped
