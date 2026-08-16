@@ -175,6 +175,58 @@ ok=1
 [[ -f "$out_a" ]] && [[ -f "$out_b" ]] && ok=0
 check "media-art-resolve.sh: both resolved cache files actually exist on disk" "$ok"
 
+# ── Check 12 (T-21-26): album-art handoff — resolver stdout is ALWAYS a
+# bare local filesystem path, never a value carrying a scheme separator.
+# MediaBackend.qml's own header calls this "the breakable link": the
+# consuming surface (MediaTab.qml:907) prefixes the file:// scheme
+# itself, so a scheme-carrying resolver output would double the scheme
+# and silently blank the art area — no error, no log, no signal of any
+# kind. Exercised on both a remote-URL input (through the stubbed curl,
+# no real network call) and a local file:// input, inside the suite's
+# existing hermetic HOME/PATH. Nothing tested this handoff before.
+echo ""
+echo "-- media-art-resolve.sh: album-art handoff — bare-path contract (T-21-26) --"
+
+# -- remote URL input: resolves through the stubbed network client --
+: > "$CURL_LOG"
+remote_out="$("$MEDIA_ART_RESOLVE" 'https://example.invalid/art-handoff.png' 2>/dev/null || true)"
+
+ok=1
+[[ -n "$remote_out" && "$remote_out" == /* && "$remote_out" != *"://"* ]] && ok=0
+check "media-art-resolve.sh remote artUrl: stdout is a bare local path — no scheme separator anywhere" "$ok"
+
+ok=1
+[[ -n "$remote_out" && "$remote_out" != "https://example.invalid/art-handoff.png" ]] && ok=0
+check "media-art-resolve.sh remote artUrl: stdout is not the input echoed back" "$ok"
+
+ok=1
+[[ -s "$CURL_LOG" ]] && ok=0
+check "media-art-resolve.sh remote artUrl: fetch is recorded in the stubbed network client's invocation log (no real network call)" "$ok"
+
+# -- local file:// input: a real, readable local image, never re-echoed --
+ART_FILE="$TMPHOME/art-handoff.png"
+printf '%s' "$PNG_B64" | base64 -d > "$ART_FILE"
+file_url="file://$ART_FILE"
+
+: > "$CURL_LOG"
+file_out="$("$MEDIA_ART_RESOLVE" "$file_url" 2>/dev/null || true)"
+
+ok=1
+[[ -n "$file_out" && "$file_out" == /* && "$file_out" != *"://"* ]] && ok=0
+check "media-art-resolve.sh local file:// artUrl: stdout is a bare local path — no scheme separator anywhere" "$ok"
+
+ok=1
+[[ -n "$file_out" && "$file_out" != "$file_url" ]] && ok=0
+check "media-art-resolve.sh local file:// artUrl: stdout is not the input echoed back with its scheme intact" "$ok"
+
+ok=1
+[[ "$file_out" == "$ART_FILE" ]] && ok=0
+check "media-art-resolve.sh local file:// artUrl: stdout resolves to the real underlying file path" "$ok"
+
+ok=1
+[[ ! -s "$CURL_LOG" ]] && ok=0
+check "media-art-resolve.sh local file:// artUrl: file branch never touches the network client" "$ok"
+
 echo ""
 echo "Summary: ${PASS} passed, ${FAIL} failed"
 [[ "$FAIL" -eq 0 ]]
