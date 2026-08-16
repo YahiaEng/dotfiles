@@ -1,0 +1,9 @@
+stow-link-check — dangling-symlink sweep
+  target: /home/builder
+
+  [SCOPE-SKIP] .config/hypr/scripts/tests/stow-link-fixtures: this checker's own deployed test fixtures — out of sweep scope, not an exemption (22-08/D-22-06)
+  [PASS] .config: 43 symlink(s), none dangling
+  [PASS] Pictures/Wallpapers: 92 symlink(s), none dangling
+  [PASS] .: 1 symlink(s), none dangling
+
+Summary: 3 passed, 0 failed
