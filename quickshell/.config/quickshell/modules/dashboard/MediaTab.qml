@@ -566,6 +566,47 @@ Item {
                         }
                     }
                 }
+
+                // ── Phase 21 Plan 01 tracer (QMEDIA-02) — ONE live radial
+                //    segment, proving the cava-to-QML streaming contract
+                //    end-to-end before any expansion. A single "clock
+                //    hand" from `ringRadius` (the existing dashed ring's
+                //    own radius, unchanged) outward, its length driven by
+                //    `CavaService.bars[0]`. Do NOT read this as the full
+                //    D-21-01 visualiser — that replaces this whole block
+                //    with a Repeater of 60 bars in the expansion plan; this
+                //    is deliberately the minimum slice that proves the
+                //    pipe. Floors at a 3px sliver so silence (or no cava
+                //    process at all) never reads as a vanished segment,
+                //    and grows to 14px at full amplitude (T-21-02's array
+                //    is already length-capped upstream in CavaService).
+                ShapePath {
+                    id: cavaBarPath
+                    fillColor: "transparent"
+                    strokeColor: Colours.primary
+                    strokeWidth: root.ringStrokeWidth
+                    capStyle: ShapePath.RoundCap
+
+                    readonly property real _level: CavaService.bars.length > 0 ? Math.max(0, Math.min(1, CavaService.bars[0])) : 0
+                    readonly property real _outerRadius: root.ringRadius + 3 + cavaBarPath._level * 11
+
+                    startX: artSlot.width / 2
+                    startY: artSlot.height / 2 - root.ringRadius
+
+                    PathLine {
+                        x: artSlot.width / 2
+                        y: artSlot.height / 2 - cavaBarPath._outerRadius
+                    }
+
+                    Behavior on strokeColor {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+                }
             }
 
             Item {

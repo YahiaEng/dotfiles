@@ -25,3 +25,12 @@ ScreencopyProbe 1.0 ScreencopyProbe.qml
 Dashboard 1.0 Dashboard.qml
 Overview 1.0 Overview.qml
 Bar 1.0 Bar.qml
+# CavaService (Phase 21 Plan 01, QMEDIA-02) — the shared cava subprocess
+# singleton. Registered here, not modules/dashboard/qmldir, because
+# modules/bar/MediaPopout.qml must resolve the SAME instance in a later
+# plan; Colours/Motion above are the existing precedent for a singleton
+# reached from both dashboard/ and bar/. Carries the singleton keyword
+# (12-06's both-required finding — needs pragma Singleton in its own
+# source file too, or the type resolves undefined forever with no load
+# error).
+singleton CavaService 1.0 CavaService.qml
