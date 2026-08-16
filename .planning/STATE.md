@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
 current_phase_name: fresh-install-proof
 status: executing
-stopped_at: Completed 22-03-PLAN.md
-last_updated: "2026-08-16T20:56:14.279Z"
+stopped_at: Completed 22-08-PLAN.md
+last_updated: "2026-08-16T21:12:32.899Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 61
-  completed_plans: 57
+  total_plans: 62
+  completed_plans: 58
   percent: 83
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 22 (fresh-install-proof) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
-Progress: [█████████░] 93%
+Progress: [█████████░] 94%
 Last activity: 2026-08-16 — Phase 22 execution started
 
 ## Performance Metrics
@@ -247,6 +247,7 @@ Last activity: 2026-08-16 — Phase 22 execution started
 | Phase 22 P01 | 72min | 3 tasks | 4 files |
 | Phase 22 P02 | ~25min | 3 tasks | 31 files |
 | Phase 22 P03 | 35min | 3 tasks | 3 files |
+| Phase 22 P08 | ~35min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -549,6 +550,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 22-02: kept .local sweep root recursive per D-22-06's declared set rather than narrowing to stow's actual .local/share/applications target — matches 'every path PACKAGES can write to' at the cost of real-host noise on this dev machine (logged, not fixed).
 - [Phase ?]: 22-02: home root '.' listed by --list but excluded from stow-link-check's vacuous-green presence denominator, since it always trivially exists for any valid --root.
 - [Phase ?]: 22-03: VERIFICATION.md VM tier now runs install.sh unflagged (D-22-11 reversal of D-61 for VM only); §7 pass bar amended with a pre-authored, sourced exemption list (D-22-02) covering hypr-equivalence-check's options.jsonl Hyprland-version-drift gap
+- [Phase ?]: 22-08: split combined fixture-exclusion + sweep-narrowing edit into two isolated, independently-verified commits for true task atomicity
+- [Phase ?]: 22-08: home root narrowed to a named allowlist ({'.zshrc'}), not ownership-gated recursion like .config — no known retired-orphan case at that level to protect
 
 ### Quick Tasks Completed
 
@@ -688,8 +691,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T20:56:14.258Z
-Stopped at: Completed 22-03-PLAN.md
+Last session: 2026-08-16T21:12:32.876Z
+Stopped at: Completed 22-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
