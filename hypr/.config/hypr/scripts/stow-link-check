@@ -55,6 +55,24 @@
 # top-level dotfile links without descending into the repository clone or
 # unrelated home content, which would make the sweep unbounded.
 #
+# 22-08/Task 1 — the fixture-tree scope exclusion. This checker's own
+# committed test fixtures (tests/stow-link-fixtures/) are deployed by the
+# hypr package to ~/.config/hypr/scripts/tests/stow-link-fixtures/ on every
+# machine — a .config sweep that recurses into hypr/ would otherwise report
+# its own deliberately-poisoned test data as real findings on every run,
+# forever, permanently failing theme-doctor on a fresh install. A path found
+# there during a walk rooted somewhere else (a real $HOME sweep, or any
+# --root NOT inside the fixtures themselves) is out of the sweep's declared
+# scope and is pruned, once, with the reason printed. This is a SCOPE
+# exclusion, not an EXEMPTIONS entry (D-22-06 reserves EXEMPTIONS for links
+# legitimately dangling BY DESIGN within this repo's own stow output — a
+# deployed test fixture is out of the sweep's declared territory, a
+# different concept entirely). Keyed on the fixed relative deployment path,
+# never on the fixture directory names or the word "poisoned", so a
+# poisoned-looking link anywhere else is still caught. --self-test's own
+# `--root <fixture-dir>` invocations point AT a fixture directly and never
+# walk through this deployment path, so they are unaffected.
+#
 # Full-chain symlink resolution: a link is DANGLING if and only if the
 # entire chain fails to resolve — a link landing on an existing intermediate
 # whose own target is absent is still reported, and a symlink loop is
@@ -138,6 +156,13 @@ SWEEP_ROOTS = [
 #    written at that moment — never silently.
 EXEMPTIONS = []
 
+# ── 22-08/Task 1 — the fixture-tree scope exclusion (see header comment).
+#    This is where the hypr package's OWN committed test fixtures land once
+#    stowed — a fixed stow-TARGET location, not a name pattern.
+FIXTURE_SCOPE_EXCLUSION_RELPATH = os.path.join(
+    '.config', 'hypr', 'scripts', 'tests', 'stow-link-fixtures')
+_fixture_scope_excluded_paths = set()  # dedupe: print each pruned dir once
+
 results = []  # (tag, detail) — tag in {SKIP, PASS, FAIL, EXEMPT, LIST}
 
 
@@ -209,6 +234,27 @@ def walk_links(root):
         if real_current in visited_real:
             continue  # guard against a directory-symlink cycle
         visited_real.add(real_current)
+
+        # 22-08/Task 1 — prune this checker's own deployed test fixtures
+        # out of scope (see FIXTURE_SCOPE_EXCLUSION_RELPATH's header
+        # comment). Keyed on the fixed stow-TARGET relative path, never on
+        # a name or the word "poisoned", so it cannot blind the sweep to a
+        # real finding located anywhere else. --self-test's own
+        # `--root <fixture-dir>` calls root the walk INSIDE one fixture,
+        # so `rel_from_home` there is always relative to that fixture (a
+        # short path like '.'/'.config'), never equal to or under this
+        # deployment path — the exclusion cannot fire during a self-test.
+        rel_from_home = os.path.relpath(current_dir, sweep_home)
+        if (rel_from_home == FIXTURE_SCOPE_EXCLUSION_RELPATH
+                or rel_from_home.startswith(FIXTURE_SCOPE_EXCLUSION_RELPATH + os.sep)):
+            if rel_from_home not in _fixture_scope_excluded_paths:
+                _fixture_scope_excluded_paths.add(rel_from_home)
+                emit('SCOPE-SKIP',
+                     f"{rel_from_home}: this checker's own deployed test "
+                     'fixtures — out of sweep scope, not an exemption '
+                     '(22-08/D-22-06)')
+            continue
+
         try:
             entries = sorted(os.scandir(current_dir), key=lambda e: e.name)
         except OSError:
@@ -335,10 +381,11 @@ run_sweep() {
     while IFS=$'\t' read -r tag detail; do
         [[ -z "$tag" ]] && continue
         case "$tag" in
-            SKIP)   printf '  [SKIP] %s\n' "$detail" ;;
-            PASS)   printf '  [PASS] %s\n' "$detail"; pass_n=$((pass_n + 1)) ;;
-            FAIL)   printf '  [FAIL] %s\n' "$detail"; fail_n=$((fail_n + 1)) ;;
-            EXEMPT) printf '  [EXEMPT] %s\n' "$detail" ;;
+            SKIP)       printf '  [SKIP] %s\n' "$detail" ;;
+            PASS)       printf '  [PASS] %s\n' "$detail"; pass_n=$((pass_n + 1)) ;;
+            FAIL)       printf '  [FAIL] %s\n' "$detail"; fail_n=$((fail_n + 1)) ;;
+            EXEMPT)     printf '  [EXEMPT] %s\n' "$detail" ;;
+            SCOPE-SKIP) printf '  [SCOPE-SKIP] %s\n' "$detail" ;;
         esac
     done < <(_slc_sweep sweep "$sweep_home")
     echo ""
