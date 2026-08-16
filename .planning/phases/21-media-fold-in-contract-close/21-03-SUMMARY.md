@@ -148,3 +148,16 @@ None - no external service configuration required.
 ---
 *Phase: 21-media-fold-in-contract-close*
 *Completed: 2026-08-16*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/milestones/v3.0-phases/16-workspace-overview/16-VERIFICATION.md
+- FOUND: .planning/milestones/v3.0-phases/16-workspace-overview/16-05-SUMMARY.md
+- FOUND: .planning/milestones/v3.0-phases/16-workspace-overview/16-06-SUMMARY.md
+- FOUND: .planning/STATE.md
+- FOUND: matugen/.config/matugen/config.toml
+- FOUND: .planning/phases/21-media-fold-in-contract-close/21-03-SUMMARY.md
+- FOUND: commit 9b6ada8 (Task 1)
+- FOUND: commit 2f5ad8e (Task 2)
+- FOUND: commit f55ba2a (Task 3)
+- FOUND: commit b25600a (SUMMARY)
