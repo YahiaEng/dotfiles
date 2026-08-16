@@ -4,17 +4,17 @@ milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 20
 current_phase_name: indicators-power-menu
-status: executing
-stopped_at: Completed 20-09-PLAN.md (RETIRE-04, swayosd removal)
-last_updated: "2026-08-16T01:02:53.504Z"
+status: verifying
+stopped_at: Completed 20-10-PLAN.md (RETIRE-05/RETIRE-07, phase 20 complete)
+last_updated: "2026-08-16T01:43:08.641Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 20 execution started
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 45
-  completed_plans: 44
-  percent: 50
+  completed_plans: 45
+  percent: 67
 ---
 
 # Project State
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 Phase: 20 (indicators-power-menu) — EXECUTING
 Plan: 10 of 10
-Status: Ready to execute
-Progress: [██████████] 98%
+Status: Phase complete — ready for verification
+Progress: [██████████] 100%
 Last activity: 2026-08-15 — Phase 20 execution started
 
 ## Performance Metrics
@@ -236,6 +236,7 @@ Last activity: 2026-08-15 — Phase 20 execution started
 | Phase 20 P07 | ~30min | 3 tasks | 7 files |
 | Phase 20 P08 | multi-session (live sitting between Task 2 and Task 3) | 3 tasks | 3 files |
 | Phase 20 P09 | multi-session | 3 tasks | 22 files |
+| Phase 20 P10 | 45min | 3 tasks | 33 files |
 
 ## Accumulated Context
 
@@ -519,6 +520,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 20-08: Both GATE-02 render gates approved live — RETIRE-04 and RETIRE-05 authorised at sha 8b6a111; brightness OSD half stays NOT-DEMONSTRABLE (accepted risk, WINDOWS row 78 open); Caps Lock poll fallback confirmed live (WINDOWS row 77 closed); Gate B security carry-over (criterion 13) recorded OVERRIDDEN
 - [Phase ?]: 20-09: swayosd (RETIRE-04) fully removed — package, libinput backend, and every reference class cleared; retirement-check flipped to retired with zero blocking hits
 - [Phase ?]: 20-09: quickshell-doctor's swayosd-client source-holds-by-construction sub-check removed (not repointed) — its own literal pattern permanently blocked retirement-check's blocking tier; the osd-differential proof beside it is the substantive ongoing regression guard
+- [Phase ?]: wleave/wlogout/eww removal: Gate B interlock upheld as a real halt condition, operator-granted override recorded explicitly (never as passing)
+- [Phase ?]: eww-media-* cache paths renamed to media-* to close retirement-check's blocking tier, narrowing an earlier baseline disposition call
+- [Phase ?]: Brightness OSD NOT-DEMONSTRABLE verdict (WINDOWS row 78) stays open at phase close, superseding the plan's clear-verification-debt instruction for that one item
 
 ### Quick Tasks Completed
 
@@ -657,8 +661,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T01:02:53.480Z
-Stopped at: Completed 20-09-PLAN.md (RETIRE-04, swayosd removal)
+Last session: 2026-08-16T01:43:08.620Z
+Stopped at: Completed 20-10-PLAN.md (RETIRE-05/RETIRE-07, phase 20 complete)
 Resume file: None
 
 ## Operator Next Steps

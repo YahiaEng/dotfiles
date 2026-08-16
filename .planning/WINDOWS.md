@@ -2,9 +2,9 @@
 schema_version: 1
 open_count: 53
 waived_count: 2
-fixed_count: 26
-total_count: 81
-last_updated: 2026-08-16T01:02:29.771Z
+fixed_count: 27
+total_count: 82
+last_updated: 2026-08-16T01:42:48.234Z
 ---
 
 # Broken Windows Ledger
@@ -96,6 +96,7 @@ last_updated: 2026-08-16T01:02:29.771Z
 | 79 | 20 | unrun-verify | quickshell/.config/quickshell/modules/session/PowerMenu.qml |  | 20-07 Task 1/2/3 human-checks not run live (no restarts/keypresses this session): detector timing, warning chip placement, cascade stagger, OSD suppression, popup dismissal, scrim colour fix | open |  | 2026-08-15T18:48:59.990Z |  |
 | 80 | 20 | deviation | quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml |  | MPRIS import trips quickshell-doctor's zero-MPRIS-writer check — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md | open |  | 2026-08-16T01:02:25.646Z |  |
 | 81 | 20 | deviation | hypr/.config/hypr/config/permissions.lua |  | permissions-allowlist-paths-resolve gate fails (2 missing binary paths, 1 glob pattern) — pre-existing, unrelated to swayosd, logged in 20-09 deferred-items.md | open |  | 2026-08-16T01:02:29.771Z |  |
+| 82 | 20 | deviation | hypr/.config/hypr/scripts/media-players.sh |  | eww-media-* cache paths renamed to media-* to close eww's retirement-check blocking tier; narrows 20-RETIREMENT-BASELINE.md's original report-only disposition | fixed |  | 2026-08-16T01:42:29.301Z | 2026-08-16T01:42:48.234Z |
 
 ````json
 [
@@ -1070,6 +1071,18 @@ last_updated: 2026-08-16T01:02:29.771Z
     "reason": "",
     "recorded_at": "2026-08-16T01:02:29.771Z",
     "resolved_at": null
+  },
+  {
+    "id": 82,
+    "kind": "deviation",
+    "phase": "20",
+    "file": "hypr/.config/hypr/scripts/media-players.sh",
+    "line": null,
+    "description": "eww-media-* cache paths renamed to media-* to close eww's retirement-check blocking tier; narrows 20-RETIREMENT-BASELINE.md's original report-only disposition",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-08-16T01:42:29.301Z",
+    "resolved_at": "2026-08-16T01:42:48.234Z"
   }
 ]
 ````
