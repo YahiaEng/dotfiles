@@ -1397,6 +1397,24 @@ _qsd_reservation_diff() {
         "$common" "$appeared" "$disappeared" "$set_changed" "$axes_changed" "$axis" "$delta"
 }
 
+# Returns 0 (true) when two monitors-json readings show the SAME reserved
+# space (no monitor set change, no reserved-axis delta) — the correct,
+# narrowly-scoped equality test for QBAR-12's own claim ("the bar's own
+# reservation exists, is attributable, is stable"). 21-09 (Phase 21 Plan
+# 09): every "did the reservation actually change" question in this file
+# now goes through this helper rather than a raw whole-blob
+# `hyprctl monitors -j` string compare — measured this session to
+# false-positive on ordinary desktop activity (focused workspace, active
+# window) unrelated to the bar's reserved zone, across three separate call
+# sites that had each independently reimplemented the broad comparison.
+_qsd_reservation_equal() {
+    local a="$1" b="$2" diff set_changed axes_changed
+    diff=$(_qsd_reservation_diff "$a" "$b")
+    set_changed=$(printf '%s' "$diff" | grep -oP 'set-changed=\K[0-9]+')
+    axes_changed=$(printf '%s' "$diff" | grep -oP 'axes-changed=\K[0-9]+')
+    [[ "$set_changed" == "0" && "$axes_changed" == "0" ]]
+}
+
 # Reads the expected reservation extent straight out of Design.qml's own
 # `readonly property int` tokens — never restated as a literal here, so a
 # future token change cannot drift away from this gate unnoticed. D-18-38:
@@ -1595,7 +1613,7 @@ _qsd_check_bar_reserved_zone_stability() {
     #    only a PAIR returns it to "show" again. ─────────────────────────
     local restore_pair_attempt
     for ((restore_pair_attempt = 0; restore_pair_attempt < 3; restore_pair_attempt++)); do
-        [[ "$(_qsd_monitors_json)" == "$pre" ]] && break
+        _qsd_reservation_equal "$(_qsd_monitors_json)" "$pre" && break
         "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
         sleep 0.3
         "$BAR_VISIBILITY_SH" keybind toggle >/dev/null 2>&1
@@ -1604,7 +1622,7 @@ _qsd_check_bar_reserved_zone_stability() {
     BAR_STABILITY_TOGGLE_PENDING=0
     local restored_status restore_verified=0
     restored_status=$("$BAR_VISIBILITY_SH" status 2>/dev/null)
-    [[ "$(_qsd_monitors_json)" == "$pre" ]] && restore_verified=1
+    _qsd_reservation_equal "$(_qsd_monitors_json)" "$pre" && restore_verified=1
 
     local diff_res set_changed axes_changed axis delta
     diff_res=$(_qsd_reservation_diff "$pre" "$post")
@@ -1637,6 +1655,23 @@ _qsd_check_bar_reserved_zone_stability() {
     # ── Hot-reload half — runs on every plain invocation. Touch the bar's
     #    own source under the watched config directory, poll (bounded, no
     #    guessed sleep) for its namespace to reappear, then compare. ─────
+    #
+    # 21-09 (Phase 21 Plan 09): the comparison is scoped to the reserved-
+    # space fields ONLY, via `_qsd_reservation_equal` (shared with the
+    # toggle-restore half below and the compositor-reload half further
+    # down) — NOT a raw `hyprctl monitors -j` string equality. A raw
+    # whole-blob compare was measured to flip to "drifted"
+    # nondeterministically (2 of 3 consecutive live runs this session
+    # differed by this exact check, 0 real reservation change involved):
+    # `hyprctl monitors -j` carries volatile fields unrelated to QBAR-12's
+    # own claim (bar reservation exists, attributable, stable) —
+    # `focused`, `activeWorkspace`, cursor/refresh-adjacent state — any of
+    # which can change during the up-to-10s bounded poll below from
+    # ordinary desktop activity having nothing to do with the bar's
+    # reserved zone. Narrowing every comparison in this check to
+    # `_qsd_reservation_equal`'s name-keyed `reserved`-only diff
+    # (already hotplug-safe) makes every half of this one check measure
+    # the same thing the check's own name promises.
     local hot_reload_label="skipped" hot_reload_ok=1
     if [[ -f "$BAR_QML_PATH" ]]; then
         local hot_pre hot_post attempt found=0
@@ -1651,7 +1686,7 @@ _qsd_check_bar_reserved_zone_stability() {
         done
         if [[ "$found" -eq 1 ]]; then
             hot_post=$(_qsd_monitors_json)
-            if [[ "$hot_pre" == "$hot_post" ]]; then
+            if _qsd_reservation_equal "$hot_pre" "$hot_post"; then
                 hot_reload_ok=1
                 hot_reload_label="identical"
             else
@@ -2178,9 +2213,33 @@ _qsd_check_permissions_enforce_readback() {
 # under enforcement with no warning until a key is pressed. Also
 # mechanically asserts the T-11-20 discipline (no glob/alternation
 # metacharacter in any grant) rather than trusting it to review.
+#
+# 21-09 (Phase 21 Plan 09): extraction is now LINE-AWARE — it skips any
+# line whose trimmed text starts with Lua's `--` comment marker, matching
+# the exact discipline `_qsd_windowrules_candidates` (above) already
+# applies for the same reason. Without this, a bare
+# `grep -oP 'binary\s*=\s*"\K[^"]+'` over the raw file matches
+# `binary = "..."` INSIDE a commented-out line just as readily as inside
+# a live `hl.permission()` call — and this repo's real permissions.lua
+# carries three deliberately-inert, explicitly "STOP — DO NOT ENABLE"
+# candidate grants (T-17-05/D-35: one real-but-inert Hyprland self-load
+# path, plus two regex-pattern candidates kept only as a documented
+# decision record of a reproduced compositor SIGSEGV) — measured this
+# session to be the exact and only source of the reported
+# `grants=9 missing=2 pattern=1`: 6 live grants (all resolve, all
+# executable, no metacharacter) plus those 3 commented candidates, two of
+# which are regex strings that neither exist as a file nor use only
+# path-legal characters. A check named "paths-resolve" must judge only
+# the paths Hyprland itself will actually read, and Hyprland's own Lua
+# loader never evaluates a `--`-prefixed line.
 _qsd_assert_permissions_allowlist() {
-    local file="$1" p total=0 missing=0 nonexec=0 pattern=0
-    while IFS= read -r p; do
+    local file="$1" raw trimmed p total=0 missing=0 nonexec=0 pattern=0
+    while IFS= read -r raw; do
+        trimmed="${raw#"${raw%%[![:space:]]*}"}"
+        trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+        [[ -z "$trimmed" ]] && continue
+        [[ "$trimmed" == --* ]] && continue
+        p=$(grep -oP 'binary\s*=\s*"\K[^"]+' <<<"$trimmed" 2>/dev/null || true)
         [[ -z "$p" ]] && continue
         total=$((total + 1))
         case "$p" in
@@ -2191,7 +2250,7 @@ _qsd_assert_permissions_allowlist() {
         elif [[ ! -x "$p" ]]; then
             nonexec=$((nonexec + 1))
         fi
-    done < <(grep -oP 'binary\s*=\s*"\K[^"]+' -- "$file" 2>/dev/null)
+    done < "$file"
     printf 'grants=%s missing=%s non-executable=%s pattern=%s' "$total" "$missing" "$nonexec" "$pattern"
     [[ "$total" -gt 0 && "$missing" -eq 0 && "$nonexec" -eq 0 && "$pattern" -eq 0 ]]
 }
