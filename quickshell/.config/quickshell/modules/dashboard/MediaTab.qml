@@ -1107,7 +1107,29 @@ Item {
                 readonly property real _pillTopX: content.x + artColumn.x + playerSelector.x + selectorPill.x
                 readonly property real _pillTopY: content.y + artColumn.y + playerSelector.y + selectorPill.y
                 readonly property real _spaceBelow: root.height - (playerSelector._pillTopY + selectorPill.height) - root.spacingXs
-                readonly property bool menuOpensUpward: playerSelector._spaceBelow < playerMenu.height
+                readonly property real _spaceAbove: playerSelector._pillTopY - root.spacingXs
+
+                // ── Bounded, scrolling dropdown ───────────────────────────
+                // The menu used to be an unbounded Column: height grew
+                // strictly linearly at playerMenuRowHeight (32) per player
+                // with no ceiling, no clip and no Flickable anywhere in the
+                // chain, so with enough sources it simply grew past the
+                // panel. Measured with the constants in force — pill top at
+                // ~267, so `y = 263 - menuHeight` when opening upward, and
+                // menuHeight = N*32 + 8 — it fit through N=7 (232px, y=+31)
+                // and broke at N=8 (264px, y=-1). Plan 08's gate step 11
+                // requires it to "clip and scroll rather than growing past
+                // the panel"; there was no scroll to exercise.
+                //
+                // DESIRED height drives the open direction, and the CAP is
+                // applied afterwards. Deriving the direction from
+                // playerMenu.height (as before) while also capping that
+                // height against the direction would be a binding loop.
+                readonly property real _desiredMenuHeight: menuColumn.implicitHeight + root.spacingXs * 2
+                readonly property bool menuOpensUpward: playerSelector._spaceBelow < playerSelector._desiredMenuHeight
+                readonly property real _menuHeightCap: Math.max(0, playerSelector.menuOpensUpward
+                    ? playerSelector._spaceAbove
+                    : playerSelector._spaceBelow)
 
                 Rectangle {
                     id: selectorPill
@@ -1198,7 +1220,11 @@ Item {
                     // enough for a label (21-UI-SPEC.md "Per-Player
                     // Volume + Dedup Resolution"). Render-gate adjustable.
                     width: Math.max(selectorPill.width, root.artSize * 1.3)
-                    height: menuColumn.height + root.spacingXs * 2
+                    // Capped at the room actually available on whichever side
+                    // it opens — past that the list scrolls instead of
+                    // growing. Never exceeds its own content, so a short list
+                    // is still exactly as tall as its rows.
+                    height: Math.min(playerSelector._desiredMenuHeight, playerSelector._menuHeightCap)
                     radius: root.spacingSm
                     color: Colours.surfaceVariant
 
@@ -1211,13 +1237,28 @@ Item {
                         }
                     }
 
-                    Column {
-                        id: menuColumn
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
+                    Flickable {
+                        id: menuFlick
+                        anchors.fill: parent
                         anchors.margins: root.spacingXs
-                        spacing: 0
+                        clip: true
+                        contentWidth: width
+                        contentHeight: menuColumn.implicitHeight
+                        boundsBehavior: Flickable.StopAtBounds
+                        flickableDirection: Flickable.VerticalFlick
+                        // Only interactive when there is genuinely something
+                        // to scroll, AND never while a row's volume slider is
+                        // being dragged — a Flickable steals a drag from a
+                        // child control past the threshold, which is the very
+                        // failure the pager caused for these same sliders.
+                        // `controlDragActive` is the property already built
+                        // for that, reused rather than duplicated.
+                        interactive: contentHeight > height && !root.controlDragActive
+
+                        Column {
+                            id: menuColumn
+                            width: menuFlick.width
+                            spacing: 0
 
                         Repeater {
                             model: playerSelector.playerList
@@ -1421,7 +1462,8 @@ Item {
                                 }
                             }
                         }
-                    }
+                    }   // Column menuColumn
+                    }   // Flickable menuFlick
                 }
             }
         }
