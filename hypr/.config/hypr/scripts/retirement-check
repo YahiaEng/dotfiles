@@ -89,7 +89,7 @@ REGISTRY_RAW='waybar|retired|waybar/:hypr/.config/hypr/scripts/waybar-*|RETIRE-0
 swaync|retired|swaync/:hypr/.config/hypr/scripts/swaync-*|RETIRE-03
 swayosd|retired|swayosd/|RETIRE-04
 wleave|retired|wleave/:hypr/.config/hypr/scripts/wleave.sh|RETIRE-05
-ags|pending|ags/|RETIRE-06
+ags|retired|ags/|RETIRE-06
 wlogout|retired||RETIRE-07
 eww|retired||RETIRE-07
 retirement-fixture|retired|hypr/.config/hypr/scripts/tests/retirement-fixtures/|SELF-TEST'

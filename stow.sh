@@ -17,7 +17,6 @@ cd "$DOTFILES_DIR"
 
 # ── Stow packages ───────────────────────────────────
 PACKAGES=(
-    ags
     cava
     elephant
     fastfetch

@@ -110,7 +110,8 @@ PanelWindow {
     // found this was WRONG — 0.35 sits below the family `^quickshell-.*`
     // `ignore_alpha` floor (0.5, windowrules.lua), which does not soften the
     // blur, it silently DISABLES it — the backdrop read as raw unblurred
-    // transparency (ags-media's own documented past mistake, reproduced
+    // transparency (windowrules.lua's own FILE-LEVEL FINDING documents this
+    // exact mistake from an earlier surface's history; this reproduced it
     // firsthand rather than assumed). `LayerRule`'s only blur field is a
     // boolean (`hl.meta.lua` line 551); blur intensity has no per-surface
     // knob at all — "turn it down" has exactly one honest answer for this

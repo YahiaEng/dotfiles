@@ -1,0 +1,140 @@
+retirement-check — surface=ags status=pending root=/home/aorus/dotfiles
+captured: 2026-08-16, before any Task 3 edit, HEAD=ed1a8a51e7955135b6651ce9deb4f740d6b06892
+command: DOTFILES_DIR=/home/aorus/dotfiles hypr/.config/hypr/scripts/retirement-check ags
+
+All sixteen reference classes below print an explicit hit-count or
+zero-count line, so a zero-hit class is distinguishable in this committed
+output from a class that was never evaluated. Status is still `pending` at
+capture time (registry flip happens in Step 2, after this sweep), so every
+blocking-domain class prints as [REPORT] rather than [PASS]/[FAIL] — that
+is expected and does not indicate these were skipped.
+
+Known precision limit (per retirement-check --list): a short common-word
+surface token ('ags') can word-boundary-match unrelated prose in an
+unrelated sentence; word boundaries already exclude 'tags'/'flags'/
+'images'. Cross-checked every hit below against the actual file content
+before acting on it (see 21-08-SUMMARY.md) — zero were false positives.
+Every hit in every class is a genuine reference to the retiring surface.
+
+--- raw output ---
+
+retirement-check — surface=ags status=pending root=/home/aorus/dotfiles
+
+[REPORT] ags/own-tree: 36 reference(s)
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:1
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:10
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:14
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:15
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:19
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:22
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:28
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:29
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:31
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:35
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:37
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:39
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:4
+    /home/aorus/dotfiles/ags/.config/ags/app.tsx:5
+    /home/aorus/dotfiles/ags/.config/ags/lib/cava.ts:2
+    /home/aorus/dotfiles/ags/.config/ags/lib/cava.ts:3
+    /home/aorus/dotfiles/ags/.config/ags/lib/cava.ts:5
+    /home/aorus/dotfiles/ags/.config/ags/lib/media.ts:2
+    /home/aorus/dotfiles/ags/.config/ags/lib/media.ts:3
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:10
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:14
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:24
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:3
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:37
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:39
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:48
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:6
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:7
+    /home/aorus/dotfiles/ags/.config/ags/style.scss:8
+    /home/aorus/dotfiles/ags/.config/ags/tsconfig.json:12
+    /home/aorus/dotfiles/ags/.config/ags/widget/Cava.tsx:1
+    /home/aorus/dotfiles/ags/.config/ags/widget/MediaWindow.tsx:1
+    /home/aorus/dotfiles/ags/.config/ags/widget/MediaWindow.tsx:2
+    /home/aorus/dotfiles/ags/.config/ags/widget/MediaWindow.tsx:4
+    /home/aorus/dotfiles/ags/.config/ags/widget/MediaWindow.tsx:50
+    /home/aorus/dotfiles/ags/.config/ags/widget/MediaWindow.tsx:65
+[REPORT] ags/layer-window-rules: 2 reference(s)
+    /home/aorus/dotfiles/hypr/.config/hypr/config/windowrules.lua:305
+    /home/aorus/dotfiles/hypr/.config/hypr/config/windowrules.lua:352
+[REPORT] ags/autostart: 1 reference(s)
+    /home/aorus/dotfiles/hypr/.config/hypr/config/autostart.lua:165
+[REPORT] ags/keybinds: 1 reference(s)
+    /home/aorus/dotfiles/hypr/.config/hypr/config/keybinds.lua:236
+[REPORT] ags/contract-json: 1 reference(s)
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/contract.json:18
+[REPORT] ags/matugen-templates: 8 reference(s)
+    /home/aorus/dotfiles/matugen/.config/matugen/config.toml:100
+    /home/aorus/dotfiles/matugen/.config/matugen/config.toml:101
+    /home/aorus/dotfiles/matugen/.config/matugen/config.toml:102
+    /home/aorus/dotfiles/matugen/.config/matugen/config.toml:103
+    /home/aorus/dotfiles/matugen/.config/matugen/config.toml:94
+    /home/aorus/dotfiles/matugen/.config/matugen/config.toml:95
+    /home/aorus/dotfiles/matugen/.config/matugen/config.toml:98
+    /home/aorus/dotfiles/matugen/.config/matugen/templates/ags-colors.scss:1
+[REPORT] ags/checker-internals: 5 reference(s)
+    /home/aorus/dotfiles/hypr/.config/hypr/scripts/motion-lint:1133
+    /home/aorus/dotfiles/hypr/.config/hypr/scripts/motion-lint:417
+    /home/aorus/dotfiles/hypr/.config/hypr/scripts/quickshell-doctor:11
+    /home/aorus/dotfiles/hypr/.config/hypr/scripts/quickshell-doctor:2961
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/theme-parity:239
+[REPORT] ags/test-fixtures: 0 reference(s)
+[REPORT] ags/cross-package-refs: 20 reference(s)
+    /home/aorus/dotfiles/hypr/.config/hypr/scripts/media-status.sh:8
+    /home/aorus/dotfiles/quickshell/.config/quickshell/modules/CavaService.qml:124
+    /home/aorus/dotfiles/quickshell/.config/quickshell/modules/CavaService.qml:4
+    /home/aorus/dotfiles/quickshell/.config/quickshell/modules/Overview.qml:113
+    /home/aorus/dotfiles/quickshell/.config/quickshell/modules/bar/BarRoles.qml:121
+    /home/aorus/dotfiles/quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml:389
+    /home/aorus/dotfiles/quickshell/.config/quickshell/modules/overview/WorkspaceTile.qml:148
+    /home/aorus/dotfiles/quickshell/.config/quickshell/shell.qml:964
+    /home/aorus/dotfiles/quickshell/.config/quickshell/shortcuts.json:54
+    /home/aorus/dotfiles/quickshell/.config/systemd/user/quickshell.service:7
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/contract.sh:117
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/contract.sh:120
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/reload.sh:114
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/reload.sh:116
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/reload.sh:119
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/reload.sh:120
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/reload.sh:126
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/reload.sh:127
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/reload.sh:128
+    /home/aorus/dotfiles/theme-engine/.config/theme-engine/lib/reload.sh:129
+[REPORT] ags/install-stow-lists: 8 reference(s)
+    /home/aorus/dotfiles/install.sh:238
+    /home/aorus/dotfiles/install.sh:239
+    /home/aorus/dotfiles/install.sh:240
+    /home/aorus/dotfiles/install.sh:241
+    /home/aorus/dotfiles/install.sh:242
+    /home/aorus/dotfiles/install.sh:349
+    /home/aorus/dotfiles/install.sh:350
+    /home/aorus/dotfiles/stow.sh:20
+[REPORT] ags/systemd-units: 2 reference(s)
+    /home/aorus/dotfiles/quickshell/.config/systemd/user/quickshell.service:7
+    systemctl --user list-unit-files: app-Hyprland-ags-656e39eb.scope                                             transient -
+[REPORT] ags/dbus-activation: 0 reference(s)
+[REPORT] ags/xdg-autostart: 0 reference(s)
+[REPORT] ags/host-package: 0 reference(s)
+[REPORT] ags/planning-archive: 1091 reference(s)
+[REPORT] ags/repo-prose: 107 reference(s)
+
+Summary: surface=ags status=pending failed_classes=0
+
+--- notes ---
+
+ags/host-package printed 0 reference(s) even though the package IS
+installed on this host (pacman -Q aylurs-gtk-shell succeeds, version
+3.1.2-1) — this is the documented vacuous-pass this class carries: it
+queries the SURFACE name ("ags") via pacman, not the real package name
+("aylurs-gtk-shell"), and no package is literally named "ags". Verified
+directly and NOT accepted as evidence the host is clean — see
+21-08-SUMMARY.md for the real-package-name verification and its outcome.
+
+An AFTER-run of this same command, taken post-deletion (registry flipped
+to retired), is also recorded in 21-08-SUMMARY.md, following this repo's
+own RETIRE-07 precedent (commit ada405a) of closing every blocking-domain
+class to zero before landing a retirement commit — not only the classes
+the plan's own file list named.

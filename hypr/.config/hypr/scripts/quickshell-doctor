@@ -8,7 +8,7 @@
 # ║  level each surface is registered for, and shares every ║
 # ║  event source (D-Bus ownership, hardware keys,          ║
 # ║  volume/brightness step, MPRIS) with the in-process      ║
-# ║  QML OSD, QML power menu, AGS and walker without a second         ║
+# ║  QML OSD, QML power menu, and walker without a second     ║
 # ║  handler ever appearing. Report-only apart from a few    ║
 # ║  documented transient exceptions (the volume/brightness  ║
 # ║  step probes, the bar-reserved-zone-stability toggle,     ║
@@ -2958,8 +2958,9 @@ fi
 #    live this session). The matched thing was always a reader, never a
 #    writer — the old label conflated the two. This promotes the check to
 #    the invariant this phase actually delivers: the desktop keeps exactly
-#    one MPRIS reader after RETIRE-06's ags deletion, held here so a
-#    future phase cannot silently reintroduce a second one — and
+#    one MPRIS reader after RETIRE-06's deletion of the standalone media
+#    applet, held here so a future phase cannot silently reintroduce a
+#    second one — and
 #    additionally asserts the single match's identity (T-21-08): a bare
 #    count of one is spoofable by a defect that removes the real reader
 #    and adds a different one elsewhere. ─────────────────────────────────

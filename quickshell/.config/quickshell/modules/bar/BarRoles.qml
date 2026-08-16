@@ -118,8 +118,9 @@ Singleton {
     // Round 7 stopped at 0.55 because that was the floor: the family's own
     // `ignore_alpha = 0.5` means a region composited BELOW that cutoff is
     // not blurred at all and renders as raw unblurred transparency (the
-    // failure mode recorded at the ags-media and quickshell-overview
-    // rules), so 0.55 was as transparent as this surface could get while
+    // failure mode windowrules.lua's own FILE-LEVEL FINDING records, and
+    // the quickshell-overview rule reproduces firsthand), so 0.55 was as
+    // transparent as this surface could get while
     // staying frosted. Round 8 lifts that constraint at its source:
     // windowrules.lua now declares `ignore_alpha = 0.2` for the three
     // notification namespaces specifically, DECLARED LAST so it beats the

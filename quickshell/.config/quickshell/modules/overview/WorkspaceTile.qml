@@ -145,9 +145,8 @@ Item {
         //   round 4 — solid Colours.surfaceVariant dropped to 0.32 alpha.
         //     Blur was still off for this layer at that point, and
         //     translucency under a blur cutoff is raw transparency rather
-        //     than frost (ags-media 10-06c and a retired power-menu
-        //     surface's own 09-03 derivation both record it), so it read
-        //     as unchanged.
+        //     than frost (10-06c and a retired power-menu surface's own
+        //     09-03 derivation both record it), so it read as unchanged.
         //   round 5 — blur restored for the quickshell-overview namespace
         //     with ignore_alpha lowered to 0.25 (windowrules.lua ~line 338).
         //     The frost was real but sat BEHIND a surfaceVariant tint, and a

@@ -233,10 +233,11 @@ hl.bind(mainMod .. " + O", hl.dsp.global("quickshell:overview")) -- Summon works
 hl.bind(mainMod .. " + N", hl.dsp.global("quickshell:notif-centre")) -- Toggle notification center (QNOTIF-06)
 
 -- Media tab entry point (Phase 21 Plan 07, D-21-12, QMEDIA-01): restores
--- reachability for the retiring AGS media card's own opener, dead since
--- waybar's Phase 18 retirement (21-BEHAVIOUR-BASELINE.md D-01) with no
--- live caller since. `M` verified free among this host's remaining plain-
--- Super letters. Identifier below byte-matches shortcuts.json's
+-- reachability for the retired standalone media card's own opener
+-- (RETIRE-06), dead since waybar's Phase 18 retirement
+-- (21-BEHAVIOUR-BASELINE.md D-01) with no live caller since. `M` verified
+-- free among this host's remaining plain-Super letters. Identifier below
+-- byte-matches shortcuts.json's
 -- appid:name pair and shell.qml's own mediaShortcut — keybind-doctor's
 -- cross-check contract.
 hl.bind(mainMod .. " + M", hl.dsp.global("quickshell:media")) -- Open dashboard on Media tab (D-21-12)

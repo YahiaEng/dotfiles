@@ -15,7 +15,6 @@
     { "name": "motion.json", "format": "json" },
     { "name": "gtk-4.0-motion.css", "format": "css-vars" },
     { "name": "hyprland-tokens.lua", "format": "lua-table", "exempt_keys": ["colors.image"] },
-    { "name": "ags.scss", "format": "scss-vars" },
     { "name": "palette.json", "format": "json" },
     { "name": "_motion.scss", "format": "scss-vars" }
   ],

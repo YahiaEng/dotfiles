@@ -225,8 +225,8 @@ hl.window_rule({ match = { class = [[^(chromium)$]] }, no_blur = true })
 -- git history at this file's pre-RETIRE-05 sha for the full record. The
 -- one durable finding worth keeping — GTK4 layer-shell windows paint an
 -- opaque background by default, defeating blur without an explicit
--- override — is the same finding the ags-media rule below already relies
--- on.
+-- override — is why every layer-shell namespace rule in this file states
+-- its own `blur = true` explicitly rather than relying on a default.
 
 hl.layer_rule({ match = { namespace = "walker" }, blur = true })
 -- Dashboard drawer character arm (D-20, Phase 14 Plan 01), exact-match
@@ -275,8 +275,8 @@ hl.layer_rule({ match = { namespace = "quickshell-overview" }, animation = "fade
 -- and only cost strength. Plan 16-07 round 4 made the EMPTY tiles
 -- translucent to stop ten solid slabs dominating a grid whose real content
 -- is the few occupied tiles — and translucency without blur is precisely
--- the failure mode this file already records twice (ags-media 10-06c,
--- wleave 09-03): it reads as raw unblurred transparency, not frosted glass.
+-- the failure mode this file already records twice (10-06c, wleave 09-03):
+-- it reads as raw unblurred transparency, not frosted glass.
 -- Reported at the gate as "empty tiles are still the same, no glass look".
 -- Blur is what that request actually requires, so it goes back on.
 --
@@ -291,18 +291,13 @@ hl.layer_rule({ match = { namespace = "quickshell-overview" }, animation = "fade
 --
 -- Strength remains global and remains the known risk: if this reads too
 -- strong again, the lever is this surface's OWN alpha (Overview.qml's
--- scrimOpacity and WorkspaceTile.qml's emptyOpacity), which is how both
--- ags-media and wleave were tuned — not another boolean.
+-- scrimOpacity and WorkspaceTile.qml's emptyOpacity), which is how this
+-- same threshold was tuned for prior surfaces (10-06c, wleave 09-03) —
+-- not another boolean.
 -- NOTE: this namespace's `blur` and `ignore_alpha` rules are NOT here. They
 -- are declared AFTER the `^quickshell-.*` family pair further down, because
 -- a namespace rule placed BEFORE the family regex does not win — see the
 -- ordering finding recorded at that site.
--- AGS media applet (10-04, MEDIA-02). Astal.Window sets namespace
--- "ags-media" (10-02); targets ONLY this window, mirroring the other
--- namespace-scoped blur rules above. Paired with the translucent
--- .media-scrim / .media-controls backgrounds in ags/style.scss so the blur
--- has something to frost through.
-hl.layer_rule({ match = { namespace = "ags-media" }, blur = true })
 
 -- ── quickshell-* family treatment (D-42, Phase 14 Plan 01, RESEARCH.md
 --    Assumption A2 / Open Question 2) ────────────────────────────────────
@@ -336,20 +331,6 @@ hl.layer_rule({ match = { namespace = "^quickshell-.*" }, blur = true })
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, blur = true })
 
 hl.layer_rule({ match = { namespace = "walker" }, ignore_alpha = 0.5 })
--- An earlier draft (10-06c) lowered .media-scrim to rgba($background, 0.25)
--- and correspondingly dropped this threshold to 0.2 to chase a stronger
--- frost — but with .media-bg-art layered underneath at 0.35 too, that put
--- most of the card's composited alpha BELOW the blur cutoff, so it rendered
--- as raw unblurred transparency rather than frosted glass. That was
--- reverted back to the shared 0.5 default, but the resulting composited
--- alpha (~0.71) then read as a heavy opaque frost with the desktop barely
--- visible through it. 10-06d rebalances both sides at once: .media-bg-art
--- and .media-scrim were lowered (style.scss) to composite to ~0.44, and
--- THIS threshold is lowered in step to 0.25 so that ~0.44 stays
--- comfortably above the cutoff — the card is blurred+clickable (not raw
--- unblurred transparency) while still reading as a light, see-through
--- frost rather than a solid panel.
-hl.layer_rule({ match = { namespace = "ags-media" }, ignore_alpha = 0.25 })
 -- FILE-LEVEL FINDING, learned from wleave's own ignore_alpha rule (deleted
 -- RETIRE-05, Phase 20 Plan 10 — see git history at this file's pre-RETIRE-05
 -- sha for the full multi-value composited-alpha derivation): ignore_alpha
@@ -429,7 +410,8 @@ hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0
 --
 -- Threshold 0.25 sat below every alpha this surface composited (the tiles'
 -- own fill, ~0.615 empty), so the whole surface blurred consistently — the
--- wleave/ags-media pattern. Verified visually at that value, not derived:
+-- same below-every-composited-alpha pattern wleave's own rule (RETIRE-05-
+-- deleted) used. Verified visually at that value, not derived:
 -- screenshot with blur applied showed a frosted backdrop and readable
 -- glass tiles.
 --
@@ -482,14 +464,15 @@ hl.layer_rule({ match = { namespace = "quickshell-notif-toast" }, animation = "s
 -- lowered the surfaces to 0.55 alpha (BarRoles.notifSurface) and that was
 -- as far as the family's own `ignore_alpha = 0.5` floor allowed: below the
 -- cutoff a region is not blurred AT ALL and renders as raw unblurred
--- transparency — the failure mode already recorded at the ags-media rule
--- above, and the reason round 7 deliberately stopped at 0.55.
+-- transparency — the failure mode this file's own FILE-LEVEL FINDING
+-- comment records, and the reason round 7 deliberately stopped at 0.55.
 --
 -- Lowering the threshold for these three namespaces specifically is what
--- unlocks the rest of the range. 0.2 is chosen the same way ags-media's
--- own 0.25 was: it must sit below EVERY composited alpha the surface can
--- present, so no region of the card or the centre ever drops under the
--- cutoff and goes raw. Round 8 sets those alphas to 0.38 resting / 0.52
+-- unlocks the rest of the range. 0.2 is chosen the same way every
+-- namespace-specific override in this file is: it must sit below EVERY
+-- composited alpha the surface can present, so no region of the card or
+-- the centre ever drops under the cutoff and goes raw. Round 8 sets those
+-- alphas to 0.38 resting / 0.52
 -- hover, both comfortably clear of 0.2, so the whole surface frosts while
 -- reading as genuinely see-through glass rather than a tinted panel.
 --
@@ -547,9 +530,10 @@ hl.layer_rule({ match = { namespace = "quickshell-osd" }, ignore_alpha = 0.2 })
 -- (0.32, a deliberate light dim, BELOW the family floor) and each pill's
 -- own frosted fill at sessionPillFillOpacity (0.72, ABOVE it). ignore_alpha
 -- behaves as an all-or-nothing blur switch for the whole backdrop of one
--- namespace (the wleave rule's own finding, preserved above at the
--- ags-media ignore_alpha rule's FILE-LEVEL FINDING comment, since
--- RETIRE-05 deleted wleave's own rule) — a single
+-- namespace (the wleave rule's own finding, preserved above in this
+-- file's own FILE-LEVEL FINDING comment — RETIRE-05 deleted wleave's own
+-- rule, and RETIRE-06 later deleted the namespace that comment used to
+-- sit beside) — a single
 -- namespace-wide floor cannot serve both values, so Route A ("pin every
 -- alpha above the floor") is not available without contradicting the
 -- user's own light-scrim instruction. Route B — a quickshell-session-

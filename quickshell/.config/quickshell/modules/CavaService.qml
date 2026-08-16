@@ -1,7 +1,8 @@
 // CavaService.qml — pragma Singleton owning the shell's shared cava
 // subprocess (Phase 21 Plan 01, QMEDIA-02 tracer + D-21-06 ownership).
 //
-// Mirrors ags/.config/ags/lib/cava.ts's proven streaming contract exactly:
+// Mirrors the retired standalone media applet's own lib/cava.ts (Phase 10,
+// RETIRE-06-deleted) proven streaming contract exactly:
 // `cava -p <config>`, one line per frame, `;`-delimited ascii 0..100,
 // normalised to 0..1, blank/partial lines ignored rather than clobbering
 // the last good frame. `bar_delimiter = 59` (the ';' codepoint) in the new
@@ -120,8 +121,9 @@ Singleton {
                     .slice(0, root.barCount);
                 // Publish ONLY when at least one value survived — a blank
                 // or torn line must leave the previous array in place
-                // rather than clobbering it, mirroring
-                // ags/lib/cava.ts's own reader exactly.
+                // rather than clobbering it, mirroring the retired
+                // applet's own lib/cava.ts reader exactly (Phase 10,
+                // RETIRE-06-deleted).
                 if (vals.length > 0)
                     root._bars = vals;
             }

@@ -386,8 +386,9 @@ Scope {
     // length:0/canSeek:false mid-track (21-BEHAVIOUR-BASELINE.md's own
     // Provenance section). Without a latch, `lengthSeconds`/`canSeek`
     // below would flicker the seek row off and on for exactly that
-    // transient condition — the reason the retiring AGS card's own
-    // `lib/media.ts` carried a trackKeyOf/updateSeekLatch pair. Ported
+    // transient condition — the reason the retired standalone media
+    // card's own `lib/media.ts` (Phase 10, RETIRE-06-deleted) carried a
+    // trackKeyOf/updateSeekLatch pair. Ported
     // here: once a track is confirmed seekable (native canSeek === true
     // AND a positive length observed), that confirmation is held for the
     // SAME track identity even if a later read reports a transient

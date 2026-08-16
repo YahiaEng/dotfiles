@@ -159,11 +159,6 @@ hl.on("hyprland.start", function()
     -- two places, so they move together. See that file's own note at the
     -- registry row for the one wrinkle in how that landed here.
 
-    -- ── AGS media applet daemon (MEDIA-01/MEDIA-04, 10-06) ──
-    -- The sole media-widget daemon this repo autostarts. This instance
-    -- ("media") is toggled via `ags request -i media toggle-media`.
-    hl.exec_cmd("uwsm app -- ags run --directory ~/.config/ags")
-
     -- ── Application launcher (elephant backend + walker) ─
     hl.exec_cmd("uwsm app -- elephant")
     hl.exec_cmd("uwsm app -- walker --gapplication-service")

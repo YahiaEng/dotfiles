@@ -235,11 +235,15 @@ PACMAN_PKGS=(
     nwg-displays
     blueman
 
-    # AGS media applet (MEDIA-04) — official extra repo audio visualizer,
-    # the underlay cava feeds into the AGS v3 media applet (see AUR_PKGS
-    # for aylurs-gtk-shell, the AGS toolkit itself). dart-sass provides the
-    # `sass` binary AGS invokes at load to compile the applet's style.scss —
-    # without it `ags run` aborts with "executable sass not found".
+    # Audio analyser + sass compiler (official extra repo). cava is the
+    # underlay the QML Media tab's live 60-bar visualiser ring feeds from
+    # (RETIRE-06, Phase 21 — CavaService.qml, MediaTab.qml, DashboardTab.qml,
+    # Design.qml). dart-sass provides the `sass` binary — NOT for the
+    # retired GTK4 media applet that used to own this comment: stow.sh's
+    # GTK3 seed block (D-01/D-05/13-02/13-05) shells out to it independently
+    # to compile the GTK3 sass partial at install time, with zero relation
+    # to that retired package. Removing this package on the strength of the
+    # old attribution would leave GTK3 surfaces unstyled on a fresh install.
     cava
     dart-sass
 
@@ -345,12 +349,6 @@ AUR_PKGS=(
     # "fix" it back into PACMAN_PKGS, it does not exist there.
     heroic-games-launcher-bin
     protonup-qt
-
-    # AGS media applet (MEDIA-04) — aylurs-gtk-shell is the well-known
-    # upstream AGS v3 (GTK4) toolkit; AUR-only (no official-repo
-    # alternative). gjs is pulled in automatically as its dependency —
-    # do not add gjs separately here.
-    aylurs-gtk-shell
 
     # Material Symbols Rounded icon font (D-28 — human package-legitimacy
     # checkpoint approved 2026-07-29, evidence in 14-02-SUMMARY.md: package

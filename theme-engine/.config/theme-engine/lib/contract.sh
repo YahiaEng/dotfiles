@@ -114,13 +114,16 @@ contract_extract_names() {
             grep -oP '^\s*--\K[A-Za-z0-9_-]+(?=:)' "$path" 2>/dev/null | sort -u
             ;;
         scss-vars)
-            # Same shape as the ags.scss AGS-applet target (Phase 10):
-            # `$name: value;` SCSS variable declarations — distinct from
-            # hypr-vars's `$name = value` (colon+semicolon, not `= `).
-            # 13-02: WR-05-class fix — ags.scss (this format's only prior
-            # consumer) exclusively uses underscored names, so the char
-            # class never needed a hyphen until _motion.scss's
-            # $motion-duration-<token>-shaped names hit it and vanished
+            # Same shape as the retired standalone media applet's own
+            # style-variable target (Phase 10, RETIRE-06-removed from
+            # contract.json): `$name: value;` SCSS variable declarations —
+            # distinct from hypr-vars's `$name = value` (colon+semicolon,
+            # not `= `).
+            # 13-02: WR-05-class fix — that now-removed target (this
+            # format's only prior consumer) exclusively used underscored
+            # names, so the char class never needed a hyphen until
+            # _motion.scss's $motion-duration-<token>-shaped names hit it
+            # and vanished
             # from extraction entirely (a false-pass generator, same bug
             # class as WR-05's hypr-vars digit fix below). SCSS identifiers
             # allow hyphens natively; widening the class is a no-op for
