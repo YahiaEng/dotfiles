@@ -1,0 +1,248 @@
+# TRUNCATED EXCERPT of 03-install.log from run-20260816T191755Z
+# Full file: 17967 lines / 1,348,873 bytes. This excerpt keeps the head,
+# the complete limine-dracut-support failure block (the actual defect),
+# and the tail. Everything else omitted was verbose paru/pacman
+# transcript (dependency resolution, curl progress-bar carriage-return
+# noise, and successful builds/installs of every other package in the
+# batch: matugen-bin, walker, elephant*, zsh, oh-my-posh,
+# kernel-modules-hook, vscodium-bin, zen-browser-bin, spotify, discord,
+# 1password, octopi, tela-icon-theme, colloid-icon-theme-git,
+# papirus-folders, heroic-games-launcher-bin, protonup-qt,
+# ttf-material-symbols-variable-git, mpvpaper, rose-pine-hyprcursor,
+# rose-pine-cursor — all built and/or installed successfully in this run).
+# No content within the head/failure-block/tail sections below is edited.
+
+########## HEAD (lines 1-120) ##########
+╔══════════════════════════════════════════╗
+║   Installing Hyprland Rice Dependencies  ║
+╚══════════════════════════════════════════╝
+
+Synchronizing closest mirrors...
+
+:: Synchronizing package databases...
+ core downloading...
+ extra downloading...
+resolving dependencies...
+looking for conflicting packages...
+
+Package (1)      New Version  Net Change  Download Size
+
+extra/reflector  2023-5         0.15 MiB       0.04 MiB
+
+Total Download Size:   0.04 MiB
+Total Installed Size:  0.15 MiB
+
+:: Proceed with installation? [Y/n] 
+:: Retrieving packages...
+ reflector-2023-5-any downloading...
+checking keyring...
+checking package integrity...
+loading package files...
+checking for file conflicts...
+:: Processing package changes...
+installing reflector...
+Optional dependencies for reflector
+    rsync: rate rsync mirrors
+:: Running post-transaction hooks...
+(1/2) Reloading system manager configuration...
+  Skipped: Current root is not booted.
+(2/2) Arming ConditionNeedsUpdate...
+[2026-08-16 19:18:44] INFO: rating 30 mirror(s) by download speed
+[2026-08-16 19:18:44] INFO: Server                                                            Rate       Time
+[2026-08-16 19:18:45] INFO: https://mirror.ubrco.de/archlinux/                      11547.60 KiB/s     0.74 s
+[2026-08-16 19:18:49] INFO: https://mirror.ufscar.br/archlinux/                      2866.40 KiB/s     3.00 s
+[2026-08-16 19:18:50] INFO: https://mirror.lcarilla.de/archlinux/                   11016.32 KiB/s     0.78 s
+[2026-08-16 19:18:52] INFO: https://mirrors.uni-plovdiv.net/archlinux/               6832.00 KiB/s     1.26 s
+[2026-08-16 19:18:58] WARNING: failed to rate http(s) download (https://ftp.sh.cvut.cz/arch/extra/os/x86_64/extra.db): Download timed out after 5 second(s).
+[2026-08-16 19:18:58] INFO: https://ftp.sh.cvut.cz/arch/                                0.00 KiB/s     0.00 s
+[2026-08-16 19:18:59] INFO: https://mirror.osbeck.com/archlinux/                     9762.23 KiB/s     0.88 s
+[2026-08-16 19:19:00] INFO: https://mirror.cyberbits.eu/archlinux/                  13613.62 KiB/s     0.63 s
+[2026-08-16 19:19:07] WARNING: failed to rate http(s) download (https://mirror.cyberbits.asia/archlinux/extra/os/x86_64/extra.db): Download timed out after 5 second(s).
+[2026-08-16 19:19:07] INFO: https://mirror.cyberbits.asia/archlinux/                    0.00 KiB/s     0.00 s
+[2026-08-16 19:19:09] INFO: https://de.arch.niranjan.co/                             5088.69 KiB/s     1.69 s
+[2026-08-16 19:19:10] INFO: https://tr.arch.niranjan.co/                             8628.94 KiB/s     1.00 s
+[2026-08-16 19:19:12] INFO: https://ftp.energotel.sk/pub/linux/arch/                 6797.59 KiB/s     1.26 s
+[2026-08-16 19:19:13] INFO: https://hu.mirror.frigyes.dev/archlinux/                11836.34 KiB/s     0.73 s
+[2026-08-16 19:19:16] INFO: https://mirror.tzulo.com/archlinux/                      5695.21 KiB/s     1.51 s
+[2026-08-16 19:19:17] INFO: https://mirror.netcologne.de/archlinux/                  9423.16 KiB/s     0.91 s
+[2026-08-16 19:19:19] INFO: https://archlinux.nic.cz/archlinux/                      8273.20 KiB/s     1.04 s
+[2026-08-16 19:19:20] INFO: https://archlinux.richard-neumann.de/                   11323.12 KiB/s     0.76 s
+[2026-08-16 19:19:22] INFO: https://mirror.srv.fail/archlinux/                       8574.84 KiB/s     1.00 s
+[2026-08-16 19:19:24] INFO: https://mirror.nw-sys.ru/archlinux/                      5970.83 KiB/s     1.44 s
+[2026-08-16 19:19:25] INFO: https://mirror.alldaydev.com/archlinux/                  8664.39 KiB/s     0.99 s
+[2026-08-16 19:19:26] INFO: https://mirror.rznet.fr/archlinux/                      15922.33 KiB/s     0.54 s
+[2026-08-16 19:19:27] WARNING: failed to rate http(s) download (https://mirrors.urbanwave.co.za/archlinux/extra/os/x86_64/extra.db): HTTP Error 403: Forbidden
+[2026-08-16 19:19:27] INFO: https://mirrors.urbanwave.co.za/archlinux/                  0.00 KiB/s     0.00 s
+[2026-08-16 19:19:28] INFO: https://mirror.its-tps.fr/archlinux/                     8588.97 KiB/s     1.00 s
+[2026-08-16 19:19:30] INFO: https://mirror.it4i.cz/arch/                             9707.74 KiB/s     0.89 s
+[2026-08-16 19:19:32] INFO: https://repository.su/archlinux/                         7745.58 KiB/s     1.11 s
+[2026-08-16 19:19:33] INFO: https://archlinux.gay/archlinux/                         6782.79 KiB/s     1.27 s
+[2026-08-16 19:19:37] INFO: https://vlst.su/archlinux/                               3457.91 KiB/s     2.49 s
+[2026-08-16 19:19:39] INFO: https://mirror.sunred.org/archlinux/                     6458.18 KiB/s     1.33 s
+[2026-08-16 19:19:45] INFO: https://archlinux.cs.nycu.edu.tw/                        2425.12 KiB/s     3.55 s
+[2026-08-16 19:19:47] INFO: https://mirrors.n-ix.net/archlinux/                     13525.94 KiB/s     0.64 s
+[2026-08-16 19:19:48] INFO: https://www.mirrorservice.org/sites/ftp.archlinux.org/   8900.43 KiB/s     0.97 s
+:: Synchronizing package databases...
+ core downloading...
+ extra downloading...
+:: Starting full system upgrade...
+ there is nothing to do
+⚠  No AUR helper found. Installing paru...
+:: Synchronizing package databases...
+ core downloading...
+ extra downloading...
+warning: git-2.55.0-1 is up to date -- skipping
+warning: base-devel-1-2 is up to date -- skipping
+resolving dependencies...
+looking for conflicting packages...
+
+Package (1)   New Version  Net Change  Download Size
+
+extra/rustup  1.29.0-2      11.36 MiB       3.51 MiB
+
+Total Download Size:    3.51 MiB
+Total Installed Size:  11.36 MiB
+
+:: Proceed with installation? [Y/n] 
+:: Retrieving packages...
+ rustup-1.29.0-2-x86_64 downloading...
+checking keyring...
+checking package integrity...
+loading package files...
+checking for file conflicts...
+:: Processing package changes...
+installing rustup...
+You may need to run rustup update stable
+and possibly also rustup self upgrade-data
+Optional dependencies for rustup
+    lldb: rust-lldb script
+    gdb: rust-gdb script [installed]
+    gcc: build executables for most targets [installed]
+    mingw-w64-gcc: {i686,x86_64}-pc-windows-gnu targets
+    aarch64-linux-gnu-gcc: aarch64-unknown-linux-* targets
+:: Running post-transaction hooks...
+(1/1) Arming ConditionNeedsUpdate...
+info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: downloading 6 components
+info: default toolchain set to stable-x86_64-unknown-linux-gnu
+
+  stable-x86_64-unknown-linux-gnu installed - rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+Cloning into '/tmp/paru'...
+==> Making package: paru 2.1.0-2 (Sun Aug 16 19:20:07 2026)
+==> Checking runtime dependencies...
+==> Checking buildtime dependencies...
+
+########## [TRUNCATED: lines 121-12998 omitted — dependency
+########## resolution listing (32 AUR packages), downloads, and
+########## successful builds preceding the failure] ##########
+
+########## FAILURE BLOCK, VERBATIM (lines 12999-13065) ##########
+########## the complete limine-dracut-support build attempt and
+########## its actual Gradle error ##########
+==> Making package: limine-dracut-support 1.37.1-1 (Sun Aug 16 19:31:52 2026)
+==> Retrieving sources...
+  -> Cloning limine-entry-tool git repo...
+Cloning into bare repository '/home/builder/.cache/paru/clone/limine-dracut-support/limine-entry-tool'...
+  -> Downloading graalvm-community-jdk-25i1-25.0.3_linux-x64_bin.tar.gz...
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0                              0
+  0      0   0      0   0      0      0      0                              0  3 333.7M   3 12.83M   0      0  7.69M      0   00:43   00:01   00:42 12.40M  9 333.7M   9 31.95M   0      0 11.96M      0   00:27   00:02   00:25 15.68M 15 333.7M  15 50.88M   0      0 13.86M      0   00:24   00:03   00:21 16.75M 21 333.7M  21 70.73M   0      0 15.14M      0   00:22   00:04   00:18 17.52M 26 333.7M  26 87.69M   0      0 15.46M      0   00:21   00:05   00:16 17.41M 30 333.7M  30 102.8M   0      0 15.42M      0   00:21   00:06   00:15 18.00M 35 333.7M  35 119.0M   0      0 15.51M      0   00:21   00:07   00:14 17.41M 40 333.7M  40 133.9M   0      0 15.44M      0   00:21   00:08   00:13 16.60M 43 333.7M  43 146.4M   0      0 15.14M      0   00:22   00:09   00:13 15.14M 47 333.7M  47 159.6M   0      0 14.96M      0   00:22   00:10   00:12 14.39M 51 333.7M  51 173.4M   0      0 14.86M      0   00:22   00:11   00:11 14.11M 56 333.7M  56 187.5M   0      0 14.80M      0   00:22   00:12   00:10 13.71M 60 333.7M  60 201.7M   0      0 14.76M      0   00:22   00:13   00:09 13.58M 64 333.7M  64 216.0M   0      0 14.72M      0   00:22   00:14   00:08 13.92M 68 333.7M  68 230.2M   0      0 14.69M      0   00:22   00:15   00:07 14.12M 73 333.7M  73 244.5M   0      0 14.66M      0   00:22   00:16   00:06 14.21M 77 333.7M  77 258.9M   0      0 14.65M      0   00:22   00:17   00:05 14.28M 81 333.7M  81 273.5M   0      0 14.65M      0   00:22   00:18   00:04 14.35M 86 333.7M  86 288.5M   0      0 14.67M      0   00:22   00:19   00:03 14.50M 90 333.7M  90 300.8M   0      0 14.55M      0   00:22   00:20   00:02 14.12M 93 333.7M  93 313.3M   0      0 14.46M      0   00:23   00:21   00:02 13.77M 97 333.7M  97 327.0M   0      0 14.42M      0   00:23   00:22   00:01 13.62M100 333.7M 100 333.7M   0      0 14.42M      0   00:23   00:23         13.62M100 333.7M 100 333.7M   0      0 14.42M      0   00:23   00:23         13.62M100 333.7M 100 333.7M   0      0 14.42M      0   00:23   00:23         13.62M
+==> Validating source files with sha256sums...
+    limine-entry-tool ... Passed
+==> Validating source_x86_64 files with sha256sums...
+    graalvm-community-jdk-25i1-25.0.3_linux-x64_bin.tar.gz ... Passed
+==> Making package: limine-dracut-support 1.37.1-1 (Sun Aug 16 19:32:19 2026)
+==> Checking runtime dependencies...
+==> Checking buildtime dependencies...
+==> Retrieving sources...
+  -> Updating limine-entry-tool git repo...
+  -> Found graalvm-community-jdk-25i1-25.0.3_linux-x64_bin.tar.gz
+==> Validating source files with sha256sums...
+    limine-entry-tool ... Passed
+==> Validating source_x86_64 files with sha256sums...
+    graalvm-community-jdk-25i1-25.0.3_linux-x64_bin.tar.gz ... Passed
+==> Removing existing $srcdir/ directory...
+==> Extracting sources...
+  -> Creating working copy of limine-entry-tool git repo...
+Cloning into 'limine-entry-tool'...
+done.
+Switched to a new branch 'makepkg'
+  -> Extracting graalvm-community-jdk-25i1-25.0.3_linux-x64_bin.tar.gz with bsdtar
+==> Starting prepare()...
+==> Sources are ready.
+limine-dracut-support-1.37.1-1: parsing pkg list...
+==> Making package: limine-dracut-support 1.37.1-1 (Sun Aug 16 19:32:24 2026)
+==> Checking runtime dependencies...
+==> Checking buildtime dependencies...
+==> WARNING: Using existing $srcdir/ tree
+==> Starting build()...
+
+Welcome to Gradle 9.7.0!
+
+Here are the highlights of this release:
+ - Isolated Projects graduates to incubating
+ - Broader Configuration Cache compatibility
+ - More source locations in problem reports
+
+For more details see https://docs.gradle.org/9.7.0/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+A problem occurred configuring root project 'limine-entry-tool'.
+> Cannot find module 'gradle-public-api-legacy' in distribution directory '/usr/share/java/gradle'.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s
+==> ERROR: A failure occurred in build().
+    Aborting...
+error: failed to build 'limine-dracut-support-1.37.1-1': 
+==> Making package: vscodium-bin 1.126.04524-1 (Sun Aug 16 19:32:28 2026)
+
+########## [TRUNCATED: lines 13066-17936 omitted — paru continues
+########## past the one failed AUR package by design and
+########## builds/installs the remaining packages in the batch,
+########## ending with a successful rose-pine-cursor install] ##########
+
+########## TAIL (lines 17937-17967, the final 31 lines) ##########
+  -> Compressing man and info pages...
+==> Checking for packaging issues...
+==> Creating package "rose-pine-cursor"...
+  -> Generating .PKGINFO file...
+  -> Generating .BUILDINFO file...
+  -> Generating .MTREE file...
+  -> Compressing package...
+==> Leaving fakeroot environment.
+==> Finished making: rose-pine-cursor 1.1.0-2 (Sun Aug 16 20:21:27 2026)
+==> Cleaning up...
+loading packages...
+resolving dependencies...
+looking for conflicting packages...
+
+Package (1)       New Version  Net Change
+
+rose-pine-cursor  1.1.0-2       27.04 MiB
+
+Total Installed Size:  27.04 MiB
+
+:: Proceed with installation? [Y/n] 
+checking keyring...
+checking package integrity...
+loading package files...
+checking for file conflicts...
+:: Processing package changes...
+installing rose-pine-cursor...
+:: Running post-transaction hooks...
+(1/2) Arming ConditionNeedsUpdate...
+(2/2) Updating icon theme caches...
+error: packages failed to build: limine-dracut-support-1.37.1-1

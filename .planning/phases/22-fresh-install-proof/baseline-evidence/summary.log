@@ -1,0 +1,8 @@
+# container-run summary — 20260816T191755Z
+step=pull status=ok
+step=bootstrap status=ok
+step=clone status=ok
+step=container-run status=timeout after=3600s
+overall=FAIL
+step=install status=fail
+overall=FAIL
