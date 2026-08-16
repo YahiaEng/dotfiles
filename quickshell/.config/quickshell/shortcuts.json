@@ -46,5 +46,11 @@
     "name": "power-menu",
     "chord": { "mods": "SUPER SHIFT", "key": "Q" },
     "description": "Toggle the in-process session/power dialog (Phase 20 Plan 06, QPOWER-01, D-20-22) — repoints the retired GTK4 power-menu surface's own Super+Shift+Q chord onto this shell's own GlobalShortcut (that surface RETIRE-05-deleted, Phase 20 Plan 10)."
+  },
+  {
+    "appid": "quickshell",
+    "name": "media",
+    "chord": { "mods": "SUPER", "key": "M" },
+    "description": "Open the dashboard directly on the Media tab (Phase 21 Plan 07, D-21-12, QMEDIA-01) — restores reachability for the retiring AGS media card's own opener, which died with waybar in Phase 18 (21-BEHAVIOUR-BASELINE.md D-01) and has had no live caller since."
   }
 ]

@@ -40,6 +40,18 @@ ShellRoot {
     // memory only (CONTEXT.md's discretion note); never persisted to disk.
     property int dashboardTabIndex: 0
 
+    // Mirrors Dashboard.qml's own `tabIndexMedia` constant (D-15's fixed
+    // tab order: Dashboard, Media, Performance, Weather — Media is index
+    // 1). That property lives on the Dashboard instance itself, which is
+    // unreachable from here before the drawer is first summoned (the
+    // LazyLoader below has no `item` until `active` is true) — the same
+    // reason MediaPopout.qml's own wayfinding handler already passes a
+    // literal `1` with an identical comment rather than a cross-file
+    // property reference (modules/bar/MediaPopout.qml:125-128). Declared
+    // here, once, so `mediaShortcut` below references this named constant
+    // rather than repeating that literal at a second site.
+    readonly property int dashboardTabIndexMedia: 1
+
     // Home-directory accessor (Phase 18 Plan 15) — the same
     // `Quickshell.env("HOME")` idiom QuickToggles.qml/PanelDialog.qml
     // already use for their own fixed-argv Process commands, reused here
@@ -943,6 +955,37 @@ ShellRoot {
             if (dashboardLoader.active) {
                 dashboardLoader.active = false;
             } else if (!root.fullscreenBlocking) {
+                dashboardLoader.active = true;
+            }
+        }
+    }
+
+    // D-21-12 (Phase 21 Plan 07, QMEDIA-01): restores reachability for the
+    // retiring AGS media card's own opener, which died with waybar's
+    // Phase 18 retirement and has had no live caller since
+    // (21-BEHAVIOUR-BASELINE.md D-01). Opens the dashboard DIRECTLY on the
+    // Media tab — reuses the existing loader-open path (`dashboardLoader`)
+    // and the existing initial-tab-index parameter (`root.dashboardTabIndex`)
+    // rather than any new machinery, mirroring `onDashboardRequested`
+    // above (the bar's own wayfinding handler for the same summon shape).
+    // Toggle-with-fullscreen-guard shape is copied verbatim from
+    // `dashboardShortcut` above: D-21-12's own text describes only the
+    // open behaviour, not close, so toggle is the consistent choice
+    // against its sibling shortcuts rather than a bare "open" — a small
+    // resolved call, recorded here rather than left to read as an
+    // accident. On open the tab index is forced to Media every time
+    // (never left at whatever tab was last open), on an already-open
+    // drawer this always closes it, matching `dashboardShortcut`'s own
+    // "never trap a summoned drawer" rule (D-11).
+    GlobalShortcut {
+        id: mediaShortcut
+        appid: "quickshell"
+        name: "media"
+        onPressed: {
+            if (dashboardLoader.active) {
+                dashboardLoader.active = false;
+            } else if (!root.fullscreenBlocking) {
+                root.dashboardTabIndex = root.dashboardTabIndexMedia;
                 dashboardLoader.active = true;
             }
         }
