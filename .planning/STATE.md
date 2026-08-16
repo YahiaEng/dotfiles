@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
 current_phase_name: fresh-install-proof
 status: executing
-stopped_at: Completed 22-09-PLAN.md
-last_updated: "2026-08-16T22:22:59.419Z"
+stopped_at: Completed 22-07-PLAN.md — container gate overall=PASS, RETIRE-09 container tier answered, 22-04 unblocked
+last_updated: "2026-08-16T22:50:47.427Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 63
-  completed_plans: 59
+  completed_plans: 60
   percent: 83
 ---
 
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 22 (fresh-install-proof) — EXECUTING
-Plan: 6 of 6
-Status: Ready to execute
-Progress: [█████████░] 94%
-Last activity: 2026-08-16 — Phase 22 execution started
+Plan: 6 of 9 summarized (07 of 9 planned — plans 04, 05, 06 still outstanding)
+Status: 22-07 complete (container gate overall=PASS); 22-04/05/06 remain before RETIRE-09 can be marked complete
+Progress: [██████████] 95%
+Last activity: 2026-08-16 — plan 22-07 harness repair + re-baseline: overall=PASS in 17min22s, T-22-01-DOS closed, operator selected proceed-to-04
 
 ## Performance Metrics
 
@@ -249,6 +249,7 @@ Last activity: 2026-08-16 — Phase 22 execution started
 | Phase 22 P03 | 35min | 3 tasks | 3 files |
 | Phase 22 P08 | ~35min | 3 tasks | 2 files |
 | Phase 22 P09 | 20min | 3 tasks | 4 files |
+| Phase 22 P07 | multi-session (~50min active, gate re-run 17min22s) | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -554,6 +555,9 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: 22-08: split combined fixture-exclusion + sweep-narrowing edit into two isolated, independently-verified commits for true task atomicity
 - [Phase ?]: 22-08: home root narrowed to a named allowlist ({'.zshrc'}), not ownership-gated recursion like .config — no known retired-orphan case at that level to protect
 - [Phase ?]: 22-09: tela-icon-theme + colloid-icon-theme-git moved to AUR_PKGS_HOST (43min deterministic saving, host-only not deleted); host pacman/paru caches mounted read-only via pacman.conf multi-CacheDir + cp -an seed, --cold escape hatch added; chown -R builder fix found live-necessary for rootless podman subordinate-uid writes; actual wall-clock improvement remains unmeasured pending 22-07 task 3 re-run
+- [Phase ?]: Operator selected proceed-to-04 at plan 22-07's Task 3 blocking checkpoint: re-run resolved to world 1 (overall=PASS), RETIRE-09 container-tier answered on evidence, plan 22-04 unblocked with its D-22-09 input.
+- [Phase ?]: T-22-01-DOS marked CLOSED, superseded by T-22-07-DOS: the detached podman lifecycle (run -d/bounded wait/stop-kill-verify/trap) is now proven in production, not just on throwaway containers.
+- [Phase ?]: RETIRE-09 deliberately NOT marked complete after plan 22-07 — container tier passed but the graphical VM tier (plan 22-06) and its human verdict are still required.
 
 ### Quick Tasks Completed
 
@@ -693,8 +697,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T22:22:59.392Z
-Stopped at: Completed 22-09-PLAN.md
+Last session: 2026-08-16T22:50:47.404Z
+Stopped at: Completed 22-07-PLAN.md — container gate overall=PASS, RETIRE-09 container tier answered, 22-04 unblocked
 Resume file: None
 
 ## Operator Next Steps
