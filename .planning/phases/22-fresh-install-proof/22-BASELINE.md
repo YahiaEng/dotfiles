@@ -101,11 +101,24 @@ Two distinct things happened, discovered in this order:
    host wrapper had exited with `overall=FAIL`/rc 1. The container was left
    running, unbounded, consuming host CPU/network/disk with no supervision —
    under rootless podman, SIGKILL to the attached `podman run` client detaches
-   the CLI but does not propagate to the conmon-owned container process. This
-   falsifies this plan's own threat-model line for T-22-01-DOS ("Existing
-   `timeout --kill-after=30 "$CONTAINER_TIMEOUT"` wrapper
-   (`container-run.sh:241`) bounds the whole run") — it bounds the **host-side
-   wrapper's own exit**, not the containerized workload.
+   the CLI but does not propagate to the conmon-owned container process.
+
+   **THREAT-MODEL FINDING — T-22-01-DOS is DISPROVEN BY MEASUREMENT, not
+   silently left standing.** This plan's own threat register
+   (`22-01-PLAN.md` `<threat_model>`) states as the mitigation for
+   T-22-01-DOS: "Existing `timeout --kill-after=30 "$CONTAINER_TIMEOUT"`
+   wrapper (`container-run.sh:241`) bounds the whole run; rc 124/137 is
+   recorded as `step=container-run status=timeout`." The
+   rc-124/137-is-recorded half held (`step=container-run status=timeout
+   after=3600s` was written correctly). The "bounds the whole run" half did
+   **not** hold — it bounds only the **host-side wrapper's own exit**, not
+   the containerized workload, which is exactly what the independent
+   `podman ps -a`/`podman top`/`podman inspect` checks above confirmed. The
+   disposition for T-22-01-DOS should move from `mitigate` (as currently
+   recorded in the plan) to `mitigate — verification failed` / `open` the
+   next time the threat register is touched; this baseline plan does not
+   itself edit the threat model (D-22-12 scope), only records the finding
+   so it is not silently left standing as a passing mitigation.
    - The orphaned container was **not** left running after being found: it
      was observed continuing to make forward progress on its own for a few
      more minutes, then self-terminated (the `--rm` flag auto-removed it) once
@@ -209,3 +222,35 @@ command ran) — this is host-resource cleanup of a runaway process this
 measurement itself created, not a change to any tracked file or to the
 harness's behavior, and it happened only after every fact recorded above was
 already captured.
+
+## Checkpoint resolution (Task 3)
+
+**Operator decision: `harness-repair-first`.**
+
+**Reasoning, as given at decision time:** D-22-12 exists precisely so a
+harness bug is never attributed to the migration. Right now there are three
+confirmed harness/environment blockers (undersized `CONTAINER_TIMEOUT`, the
+broken timeout-kill leaving an orphaned container, and the unrelated
+pre-existing `limine-dracut-support` AUR build failure) and **zero** evidence
+about the migration either way. Proceeding to wave 2 (22-02/22-03, which
+build on top of this baseline) or attempting a rescope would both be
+premature without first getting the harness to a state where it can actually
+produce a trustworthy verdict.
+
+**Which of the plan's three anticipated worlds this baseline fits:** none of
+them cleanly. It is **closest to world 3** ("the harness did not complete —
+no `overall=` line, reproducing the four post-2026-07-09 runs' pattern") but
+differs from that world in a specific and important way: `overall=` lines
+**were** written this time — twice — by two different writers, about two
+different failures, neither of which is the five-deletion migration. World 1
+(clean `overall=PASS`) and world 2 (`overall=FAIL` on a real repository
+defect the migration caused) are both ruled out: the run never reached far
+enough to test the migration's actual claim (`stow.sh` and later), so there
+is no PASS or FAIL evidence about RETIRE-09's real question either way.
+
+**Consequence for the phase:** a separate harness-repair plan is being
+created (outside this plan's scope, per D-22-12's own sequencing: baseline →
+harness/checker changes → container re-run to green → VM tier). This plan
+(22-01) does not perform that repair — per its own prohibitions, no fix
+lands here. Plan 22-04's D-22-09 allowlist derivation remains blocked until
+a run reaches `step=theme-doctor` and produces a real, current failure list.
