@@ -115,17 +115,18 @@ the other.
 ## theme-doctor failure inventory (D-22-09 input)
 
 **Available for the first time this phase.** 574 total checks
-(571 passed, 3 failed). Structural-reason column deliberately left
-**empty** — D-22-09 requires the allowlist be justified from
-`theme-doctor`'s own source, which is plan 22-04's scope, not this
-plan's. Nothing here is fixed; this is the measured, verbatim input
-22-04 was blocked on.
+(571 passed, 3 failed). Structural-reason column filled by plan 22-04,
+justified from `theme-doctor`'s own source (and, where the check's own
+code was not the true structural cause, the deeper mechanism it depends
+on) — see `verify/theme-doctor-session-allowlist.txt` for the full
+`source_ref`/`reason` text this table summarises. All three admitted;
+zero defects — every recorded failure is accounted for.
 
-| # | `[FAIL]` description | structural reason (to be justified from theme-doctor source in 22-04) |
+| # | `[FAIL]` description | structural reason (justified 22-04) |
 |---|---|---|
-| 1 | `gsettings gtk-theme = adw-gtk3-dark (mode=dark, got: Adwaita)` | |
-| 2 | `walker process running` | |
-| 3 | `elephant process running` | |
+| 1 | `gsettings gtk-theme = adw-gtk3-dark (mode=dark, got: Adwaita)` | **no-session-bus** — `theme_engine_reload()`'s headless guard (`theme-engine/.config/theme-engine/lib/reload.sh:48`) skips the whole reload fan-out, including `gtk.sh`'s `gsettings set gtk-theme` call, whenever both `WAYLAND_DISPLAY` and `DBUS_SESSION_BUS_ADDRESS` are unset — gsettings/dconf writes persist through the session D-Bus, which a container never has. |
+| 2 | `walker process running` | **no-compositor** — walker is launched only by Hyprland's own autostart list (`hypr/.config/hypr/config/autostart.lua:164`), which runs only when the compositor starts; a headless container never starts Hyprland. |
+| 3 | `elephant process running` | **no-compositor** — elephant is launched only by Hyprland's own autostart list (`hypr/.config/hypr/config/autostart.lua:163`), same mechanism as row 2. |
 
 Full log: `.planning/phases/22-fresh-install-proof/baseline-evidence/05-theme-doctor.log`
 (copied verbatim from `verify/logs/run-20260816T222431Z/05-theme-doctor.log`,

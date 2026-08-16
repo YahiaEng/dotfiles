@@ -1,0 +1,73 @@
+# verify/theme-doctor-session-allowlist.txt — D-22-08/09/10
+#
+# Committed allowlist of theme-doctor [FAIL] lines that verify/container-run.sh
+# is permitted to admit when it runs theme-doctor as a BLOCKING container-gate
+# step (RETIRE-09, plan 22-04). theme-doctor stopped being informational in the
+# container in this same plan — every failure it reports now gates the harness's
+# exit code UNLESS it appears here.
+#
+# Format: pipe-delimited, one record per line. Lines beginning with `#` and
+# blank lines are ignored. Exactly four mandatory columns:
+#
+#   match_prefix | reason_class | source_ref | reason
+#
+# match_prefix — the byte-exact leading substring of a theme-doctor [FAIL]
+#   line's description, after stripping the two-space indent and the
+#   "[FAIL] " tag. A prefix, not a whole-line match, because several
+#   descriptions embed runtime values (a mode marker, an observed value, a
+#   resolved theme name) that differ between runs — the prefix stops before
+#   the first such value. Minimum 12 bytes; never empty or whitespace-only.
+#   Matching at read time is byte-exact and prefix-anchored under LC_ALL=C —
+#   no case folding, no Unicode normalisation, no whitespace collapsing, no
+#   glob/regex interpretation.
+#
+# reason_class — exactly one of four tokens, nothing else:
+#   no-session-bus   — the check (or the code path that would have made it
+#                       pass) depends on a live D-Bus session bus.
+#   no-compositor    — the check depends on a running Hyprland compositor
+#                       (directly, or because the compositor is the only
+#                       thing that ever launches the process/state the check
+#                       looks for).
+#   no-display       — the check depends on a live display/output.
+#   no-user-session  — the check depends on a logged-in user session as such,
+#                       independent of any single one of the above.
+#   A failure that fits none of these four is a defect, not an exemption,
+#   and must be left off this file so the gate reports it.
+#
+# source_ref — a theme-doctor file:line, or the file:line of the folded
+#   checker the failure came from — where the structural reason was read,
+#   not asserted. "Obviously session-dependent" is not a source_ref.
+#
+# reason — a non-empty sentence naming what the check does and why a
+#   container with no session cannot satisfy it, tracing to the concrete
+#   mechanism (a headless guard, an autostart list, a D-Bus call) rather
+#   than restating the failure text.
+#
+# Derivation rule: every entry here was measured, not imagined — each row
+# traces to a real [FAIL] line recorded in a real theme-doctor run inside
+# this project's container gate (run-20260816T222431Z, captured verbatim in
+# .planning/phases/22-fresh-install-proof/baseline-evidence/05-theme-doctor.log
+# and indexed in .planning/phases/22-fresh-install-proof/22-REBASELINE.md's
+# "theme-doctor failure inventory" section — the sole admissible D-22-09
+# input). No entry is added speculatively for a failure that run did not
+# produce, and no entry is fitted to whatever happened to go red — each was
+# justified afterward by reading theme-doctor's own check code (and, where
+# the check's own code was not the true structural cause, the deeper
+# mechanism it depends on) for the four reason classes above.
+#
+# Fail-closed rule (T-22-04-FAILOPEN): if this file is missing, unreadable,
+# or contains any malformed record (wrong field count, a match_prefix under
+# 12 bytes or empty, a reason_class outside the four-token set, an empty
+# source_ref or reason), the harness's theme-doctor step FAILS CLOSED —
+# step=theme-doctor status=fail — naming the offending line number. A gate
+# that silently degrades to informational when its data file is absent or
+# broken is worse than no gate at all.
+#
+# Unused-entry reporting: every run prints [UNUSED] for any entry that
+# matched nothing on that run. An unused entry is good news (the check
+# started passing) but is never silently discarded — it stays visible until
+# someone removes it deliberately.
+
+gsettings gtk-theme = |no-session-bus|theme-engine/.config/theme-engine/theme-doctor:52|Reads org.gnome.desktop.interface gtk-theme via gsettings/dconf, which persists writes through the session D-Bus. theme_engine_reload()'s headless guard (theme-engine/.config/theme-engine/lib/reload.sh:48) checks WAYLAND_DISPLAY and DBUS_SESSION_BUS_ADDRESS and returns early when both are unset, skipping the whole reload fan-out including gtk.sh's `gsettings set gtk-theme` call (theme-engine/.config/theme-engine/lib/gtk.sh:37) that would otherwise satisfy this check. A container with no session bus never runs that call, so gsettings reports the compiled schema default (Adwaita) instead of the theme this repo sets.
+walker process running|no-compositor|theme-engine/.config/theme-engine/theme-doctor:284|Greps the process table for a running walker via pgrep -x. walker is launched only by Hyprland's own autostart list (hl.exec_cmd("uwsm app -- walker --gapplication-service"), hypr/.config/hypr/config/autostart.lua:164), which executes only when the compositor itself starts. A headless container never starts Hyprland, so nothing ever spawns the process this check looks for.
+elephant process running|no-compositor|theme-engine/.config/theme-engine/theme-doctor:287|Greps the process table for a running elephant via pgrep -x. elephant is launched only by Hyprland's own autostart list (hl.exec_cmd("uwsm app -- elephant"), hypr/.config/hypr/config/autostart.lua:163), which executes only when the compositor itself starts. A headless container never starts Hyprland, so nothing ever spawns the process this check looks for.
