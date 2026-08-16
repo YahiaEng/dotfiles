@@ -5,15 +5,15 @@ milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
 current_phase_name: fresh-install-proof
 status: executing
-stopped_at: Completed 22-04-PLAN.md — container gate now five gating steps, theme-doctor blocking (allowed=3 blocking=0), overall=PASS on first modified-harness run; RETIRE-09 still open (VM tier + 22-05/22-06 outstanding)
-last_updated: "2026-08-16T23:19:07.757Z"
-last_activity: 2026-08-16
-last_activity_desc: Phase 20 complete, transitioned to Phase 21
+stopped_at: Completed 22-05-PLAN.md — SC-1/SC-2/SC-3 mechanical halves closed on 22-04's independently re-verified green run; zero-defect fix loop recorded; RETIRE-09 still open pending plan 22-06's VM tier
+last_updated: "2026-08-16T23:24:23.408Z"
+last_activity: 2026-08-17
+last_activity_desc: "plan 22-04: theme-doctor session-failure allowlist authored + container-run.sh converted to blocking against it, retirement-check/stow-link-check added as new blocking steps, pushed and run once — overall=PASS"
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 63
-  completed_plans: 61
+  completed_plans: 62
   percent: 83
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 ## Current Position
 
 Phase: 22 (fresh-install-proof) — EXECUTING
-Plan: 7 of 9 summarized (plans 05, 06 still outstanding)
+Plan: 8 of 9 summarized (plans 05, 06 still outstanding)
 Status: 22-04 complete (five gating steps, theme-doctor blocking, allowed=3 blocking=0, overall=PASS); 22-05/06 remain before RETIRE-09 can be marked complete
-Progress: [██████████] 97%
+Progress: [██████████] 98%
 Last activity: 2026-08-17 — plan 22-04: theme-doctor session-failure allowlist authored + container-run.sh converted to blocking against it, retirement-check/stow-link-check added as new blocking steps, pushed and run once — overall=PASS
 
 ## Performance Metrics
@@ -251,6 +251,7 @@ Last activity: 2026-08-17 — plan 22-04: theme-doctor session-failure allowlist
 | Phase 22 P09 | 20min | 3 tasks | 4 files |
 | Phase 22 P07 | multi-session (~50min active, gate re-run 17min22s) | 3 tasks | 5 files |
 | Phase 22 P04 | ~50min | 3 tasks | 8 files |
+| Phase 22 P05 | ~15min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -561,6 +562,8 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 - [Phase ?]: RETIRE-09 deliberately NOT marked complete after plan 22-07 — container tier passed but the graphical VM tier (plan 22-06) and its human verdict are still required.
 - [Phase ?]: Filled theme-doctor structural-reason column in 22-REBASELINE.md (not 22-BASELINE.md, whose table is correctly empty — theme-doctor never ran there)
 - [Phase ?]: gsettings gtk-theme classified no-session-bus (lib/reload.sh:48 headless guard); walker/elephant process checks classified no-compositor (autostart.lua:163-164, Hyprland-only exec)
+- [Phase ?]: Plan 22-05: closed on plan 22-04's existing green run after independently re-verifying all four raw evidence logs line-by-line, rather than launching a new ~17min container re-run — HEAD==origin/main confirmed, no repo/harness changes since the green run
+- [Phase ?]: Plan 22-05: SC-1/SC-2/SC-3 mechanical halves closed on cited evidence lines (green-evidence/*.log); RETIRE-09 remains open pending plan 22-06's graphical VM tier and human render verdict
 
 ### Quick Tasks Completed
 
@@ -700,8 +703,8 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T23:19:07.730Z
-Stopped at: Completed 22-04-PLAN.md — container gate now five gating steps, theme-doctor blocking (allowed=3 blocking=0), overall=PASS on first modified-harness run; RETIRE-09 still open (VM tier + 22-05/22-06 outstanding)
+Last session: 2026-08-16T23:24:23.385Z
+Stopped at: Completed 22-05-PLAN.md — SC-1/SC-2/SC-3 mechanical halves closed on 22-04's independently re-verified green run; zero-defect fix loop recorded; RETIRE-09 still open pending plan 22-06's VM tier
 Resume file: None
 
 ## Operator Next Steps
