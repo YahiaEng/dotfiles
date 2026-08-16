@@ -56,7 +56,7 @@
 
 ### QMEDIA — Media fold-in (replaces the AGS card)
 
-- [ ] **QMEDIA-01**: The dashboard's Media tab carries transport, seek, cover art, per-player volume and player switching — everything the standalone card did
+- [x] **QMEDIA-01**: The dashboard's Media tab carries transport, seek, cover art, per-player volume and player switching — everything the standalone card did
 - [x] **QMEDIA-02**: An audio-reactive visualiser renders as a ring around shaped cover art, restoring the cava element the Media tab cut in Phase 14
 - [x] **QMEDIA-03**: Exactly one MPRIS reader remains in the whole desktop — the three-consumer duplication v3.0 priced in is ended
 
@@ -67,7 +67,7 @@
 - [x] **RETIRE-03**: `swaync` is removed the same way, in the same phase as QNOTIF
 - [x] **RETIRE-04**: `swayosd` is removed the same way, including its libinput backend service
 - [x] **RETIRE-05**: `wleave` is removed the same way
-- [ ] **RETIRE-06**: `ags` is removed the same way
+- [x] **RETIRE-06**: `ags` is removed the same way
 - [x] **RETIRE-07**: The `wlogout` and `eww` packages — repo-retired in earlier milestones but **still installed on this host** — are uninstalled
 - [ ] **RETIRE-08**: `contract.json` reaches its post-migration size (29 → ~17 entries) with `theme-doctor` and `theme-parity` green and no orphaned entries
 - [ ] **RETIRE-09**: The fresh-install container gate (D-34/D-36) passes after every retirement has landed — the milestone's closing proof that a clean clone still reproduces the desktop
@@ -156,7 +156,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | QPOWER-02 | Phase 20 | Complete |
 | QPOWER-03 | Phase 20 | Complete |
 | QPOWER-04 | Phase 20 | Complete |
-| QMEDIA-01 | Phase 21 | Pending |
+| QMEDIA-01 | Phase 21 | Complete |
 | QMEDIA-02 | Phase 21 | Complete |
 | QMEDIA-03 | Phase 21 | Complete |
 | RETIRE-01 | Phase 18 | Complete |
@@ -164,7 +164,7 @@ Phase numbering continues from v3.0's Phase 17 — v4.0 runs Phases 18-22.
 | RETIRE-03 | Phase 19 | Complete |
 | RETIRE-04 | Phase 20 | Complete |
 | RETIRE-05 | Phase 20 | Complete |
-| RETIRE-06 | Phase 21 | Pending |
+| RETIRE-06 | Phase 21 | Complete |
 | RETIRE-07 | Phase 20 | Complete |
 | RETIRE-08 | Phase 21 | Pending |
 | RETIRE-09 | Phase 22 | Pending |
