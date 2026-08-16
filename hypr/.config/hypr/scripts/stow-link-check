@@ -36,42 +36,74 @@
 #
 # Sweep-root set, derived from stow.sh:19's PACKAGES loop and the three
 # documented exceptions at stow.sh:190-225 (RETIRE-09's own discretion note:
-# "err toward covering every path stow.sh's PACKAGES loop can write to"):
-#   .config              recursive  — every PACKAGES entry that stows under
-#                                      ~/.config/<pkg>/, plus the autostart/
-#                                      and systemd/user/ exception subtrees
-#                                      which live inside it
-#   .local               recursive  — the ~/.local/ targets (the editor
-#                                      package's share/applications entry
-#                                      among them)
-#   Pictures/Wallpapers  recursive  — the wallpapers package, the one
-#                                      package whose tree roots outside
-#                                      .config/.local
-#   Pictures/Screenshots recursive  — the sibling root stow.sh pre-creates
-#                                      alongside it
-#   .                    depth 1    — top-level dotfiles a shell package can
-#                                      place directly in $HOME
-# The depth-1 restriction on the home root is load-bearing: it catches
-# top-level dotfile links without descending into the repository clone or
-# unrelated home content, which would make the sweep unbounded.
+# "err toward covering every path stow.sh's PACKAGES loop can write to").
+# Re-measured directly against every PACKAGES entry's shipped tree for
+# 22-08 (a real dev-host sweep under the pre-22-08 rules reported 1095
+# findings; only 3 were this repo's own debt — the rest were sweep-scope
+# defects, corrected below):
+#   .config                    config-scoped — depth-1 catches every
+#                               top-level orphan (incl. a RETIRED package's
+#                               leftover link, e.g. swayosd/wleave, which no
+#                               longer has a PACKAGES entry to name), and
+#                               recurses ONLY into the owned-directory names
+#                               in OWNED_CONFIG_TOP below plus the single
+#                               systemd/user/ exception nested one level
+#                               inside it — never into a third-party app
+#                               directory no package owns (measured example:
+#                               zen/, a browser profile dir this repo does
+#                               not manage).
+#   .local/share/applications  recursive     — measured: of all 17 PACKAGES
+#                               entries, only vscodium writes anywhere under
+#                               ~/.local (three .desktop files at exactly
+#                               this path). The prior '.local' recursive
+#                               root swept the entire rest of ~/.local too
+#                               — unrelated host software (Steam's runtime
+#                               shims, podman's overlay storage) — producing
+#                               1085 of the 1095 pre-22-08 findings on this
+#                               dev host alone.
+#   Pictures/Wallpapers         recursive    — the wallpapers package, the
+#                               one package whose tree roots outside
+#                               .config/.local
+#   Pictures/Screenshots        recursive    — the sibling root stow.sh
+#                               pre-creates alongside it
+#   .                           home-named    — top-level dotfiles a
+#                               package can place directly in $HOME.
+#                               Measured: only zshell ships one (~/.zshrc)
+#                               — named-allowlist, not a blanket depth-1
+#                               walk, because a blanket walk also reports
+#                               ~/.steampath (Steam's own artifact, never
+#                               stow-managed) and there is no known
+#                               retired-package orphan at this level a
+#                               name allowlist would blind (unlike
+#                               .config's swayosd/wleave case).
+# The name-allowlist restriction on the home root is load-bearing: it
+# catches exactly the top-level dotfile link(s) a package actually writes
+# without descending into the repository clone or unrelated home content
+# (Steam's ~/.steampath, ~/.steam*), which would make the sweep unbounded.
 #
-# 22-08/Task 1 — the fixture-tree scope exclusion. This checker's own
-# committed test fixtures (tests/stow-link-fixtures/) are deployed by the
-# hypr package to ~/.config/hypr/scripts/tests/stow-link-fixtures/ on every
-# machine — a .config sweep that recurses into hypr/ would otherwise report
-# its own deliberately-poisoned test data as real findings on every run,
-# forever, permanently failing theme-doctor on a fresh install. A path found
-# there during a walk rooted somewhere else (a real $HOME sweep, or any
-# --root NOT inside the fixtures themselves) is out of the sweep's declared
-# scope and is pruned, once, with the reason printed. This is a SCOPE
-# exclusion, not an EXEMPTIONS entry (D-22-06 reserves EXEMPTIONS for links
-# legitimately dangling BY DESIGN within this repo's own stow output — a
-# deployed test fixture is out of the sweep's declared territory, a
-# different concept entirely). Keyed on the fixed relative deployment path,
-# never on the fixture directory names or the word "poisoned", so a
-# poisoned-looking link anywhere else is still caught. --self-test's own
-# `--root <fixture-dir>` invocations point AT a fixture directly and never
-# walk through this deployment path, so they are unaffected.
+# 22-08/T-22-08-BLIND: narrowing scope can silently convert a real finding
+# into a pass — exactly the failure SC-2 exists to prevent. The .config
+# depth-1 pass is deliberately unconditional (every top-level entry, owned
+# or not) specifically so a retired package's orphaned top-level link stays
+# caught even after its PACKAGES entry is long gone; only the RECURSIVE
+# descent below a real top-level directory is ownership-gated.
+#
+# 22-08/T-22-08-SELFBLIND: this checker's own committed fixture tree
+# (tests/stow-link-fixtures/) is deployed by the hypr package to
+# ~/.config/hypr/scripts/tests/stow-link-fixtures/ on every machine — a
+# .config sweep that recurses into hypr/ (owned) would otherwise report its
+# own deliberately-poisoned test data as real findings on every run,
+# forever. FIXTURE_SCOPE_EXCLUSION_RELPATH prunes exactly that one
+# stow-TARGET location during a normal walk. This is a SCOPE exclusion, not
+# an EXEMPTIONS entry (D-22-06 reserves EXEMPTIONS for links legitimately
+# dangling BY DESIGN within this repo's own stow output — a deployed test
+# fixture is out of the sweep's declared territory, a different concept
+# entirely) — printed whenever it fires, never silent, and it keys on the
+# fixed relative deployment path, not on the fixture directory names or the
+# word "poisoned", so a poisoned-looking link anywhere else is still caught
+# (self-test's own `--root <fixture-dir>` invocations point AT a fixture
+# directly and never walk through this deployment path, so they are
+# unaffected).
 #
 # Full-chain symlink resolution: a link is DANGLING if and only if the
 # entire chain fails to resolve — a link landing on an existing intermediate
@@ -133,20 +165,79 @@ sweep_home = sys.argv[2] if len(sys.argv) > 2 else ''
 #    --list) but deliberately EXCLUDED from the vacuous-green presence tally
 #    below — a root that can never be "absent" cannot inform that guard.
 SWEEP_ROOTS = [
-    ('.config', 'recursive',
-     'every PACKAGES entry that stows under ~/.config/<pkg>/, plus the '
-     'autostart/ and systemd/user/ exception subtrees which live inside it'),
-    ('.local', 'recursive',
-     'the ~/.local/ targets (the editor package\'s share/applications '
-     'entry among them)'),
+    ('.config', 'config-scoped',
+     'every PACKAGES entry that stows under ~/.config/<pkg>/ — depth-1 '
+     'catches ALL top-level entries (incl. a retired package\'s orphaned '
+     'link), recursion descends only into OWNED_CONFIG_TOP names plus the '
+     'systemd/user/ exception, never into an unowned dir like zen/ (22-08)'),
+    ('.local/share/applications', 'recursive',
+     'the ONE .local path any PACKAGES entry writes — vscodium\'s three '
+     '.desktop files. Narrowed 22-08 from a full .local recursive sweep, '
+     'which reported 1085 unrelated findings (Steam runtime shims, podman '
+     'overlay storage) on the dev host'),
     ('Pictures/Wallpapers', 'recursive',
      'the wallpapers package, the one package whose tree roots outside '
      '.config/.local'),
     ('Pictures/Screenshots', 'recursive',
      'the sibling root stow.sh pre-creates alongside it'),
-    ('.', 'depth1',
-     'top-level dotfiles a shell package can place directly in $HOME'),
+    ('.', 'home-named',
+     'top-level dotfiles a package can place directly in $HOME — measured: '
+     'only zshell ships one (~/.zshrc). Named-allowlist scoped (not a '
+     'blanket depth-1 walk) because a blanket walk also reports '
+     '~/.steampath, Steam\'s own artifact, never stow-managed — unlike '
+     '.config there is no known retired-package orphan at this level to '
+     'protect against a name-based narrowing (22-08 task 2 item 4)'),
 ]
+
+# ── 22-08/Task 2 item 4 — the ONLY top-level $HOME dotfile any PACKAGES
+#    entry ships, enumerated directly (zshell/.zshrc -> ~/.zshrc). Unlike
+#    .config's depth-1 pass (deliberately ungated, to keep catching a
+#    retired package's orphan with no current name to allowlist), this
+#    root has no equivalent known-orphan case — narrowing it to a name
+#    allowlist does not blind any real finding, and removes ~/.steampath
+#    (Steam's own artifact) from the sweep's declared territory.
+ALLOWED_HOME_DOTFILES = {'.zshrc'}
+
+# ── 22-08/Task 2 — .config recursion is ownership-gated. Every name here is
+#    a top-level ~/.config/<name> directory a PACKAGES entry ships,
+#    enumerated directly against each package's shipped tree (not guessed):
+#    cava, elephant, fastfetch, fish, gtk(-3.0/-4.0), hypr, kitty, matugen,
+#    quickshell, theme-engine, thunar (ships Thunar/ + xfce4/), uwsm,
+#    vscodium (ships VSCodium/), walker, yazi, zshell (ships oh-my-posh/),
+#    plus hypr's own xdg-desktop-portal/ exception subtree. Whichever of
+#    these render as a single whole-directory-fold symlink on a given host
+#    (the common case on a fresh install) are already caught by the
+#    depth-1 pass below without ever reaching this list — it only matters
+#    for the ones that render as REAL directories (pre-existing target, or
+#    stow.sh's explicit pre-create guards for fish/gtk/hypr/quickshell/
+#    Thunar/VSCodium/xfce4), where a recursive descent is required to reach
+#    the individually-symlinked files stow places inside.
+#    'autostart' is quickshell's own top-level exception subtree (ships
+#    .config/autostart/nm-applet.desktop) — same treatment.
+#    'systemd' is NOT included here: only its 'user' child is owned
+#    (quickshell's two .service files); systemd/'s OTHER children
+#    (systemd-generated *.wants/ dirs) are not this repo's concern and are
+#    handled by the one-level-then-user-only special case below, not by
+#    blanket inclusion.
+OWNED_CONFIG_TOP = {
+    'cava', 'elephant', 'fastfetch', 'fish', 'gtk-3.0', 'gtk-4.0', 'hypr',
+    'kitty', 'matugen', 'quickshell', 'theme-engine', 'Thunar', 'uwsm',
+    'VSCodium', 'walker', 'xfce4', 'yazi', 'xdg-desktop-portal',
+    'autostart', 'oh-my-posh',
+}
+
+# ── 22-08/Task 1 — the fixture-tree scope exclusion. This is where the
+#    hypr package's OWN committed test fixtures land once stowed — a fixed
+#    stow-TARGET location, not a name pattern. Any path found here during a
+#    walk rooted somewhere else (a real $HOME sweep, or any --root NOT
+#    inside the fixtures themselves) is out of the sweep's declared scope
+#    and is pruned, once, with the reason printed. --self-test's own
+#    `--root <fixture-dir>` invocations root the walk AT a fixture
+#    directly, so this relative path is never re-encountered inside one —
+#    the exclusion cannot blind the self-test to its own subject matter.
+FIXTURE_SCOPE_EXCLUSION_RELPATH = os.path.join(
+    '.config', 'hypr', 'scripts', 'tests', 'stow-link-fixtures')
+_fixture_scope_excluded_paths = set()  # dedupe: print each pruned dir once
 
 # ── Exemption list (D-22-06) — glob-equivalent regex -> required non-empty
 #    reason -> provisional bool. Deny-by-default: refuse to load an entry
@@ -155,13 +246,6 @@ SWEEP_ROOTS = [
 #    entry is added only when a real sweep finds one, with the reason
 #    written at that moment — never silently.
 EXEMPTIONS = []
-
-# ── 22-08/Task 1 — the fixture-tree scope exclusion (see header comment).
-#    This is where the hypr package's OWN committed test fixtures land once
-#    stowed — a fixed stow-TARGET location, not a name pattern.
-FIXTURE_SCOPE_EXCLUSION_RELPATH = os.path.join(
-    '.config', 'hypr', 'scripts', 'tests', 'stow-link-fixtures')
-_fixture_scope_excluded_paths = set()  # dedupe: print each pruned dir once
 
 results = []  # (tag, detail) — tag in {SKIP, PASS, FAIL, EXEMPT, LIST}
 
@@ -287,6 +371,60 @@ def walk_links_depth1(root):
             yield entry.path
 
 
+def walk_links_home_named(root, allowed_names):
+    """22-08/Task 2 item 4 — depth-1, but filtered to a named allowlist
+    rather than every top-level symlink. Deliberately narrower than
+    .config's depth-1 pass: see ALLOWED_HOME_DOTFILES's header comment for
+    why no retired-package-orphan protection is lost by narrowing here."""
+    try:
+        entries = sorted(os.scandir(root), key=lambda e: e.name)
+    except OSError:
+        entries = []
+    for entry in entries:
+        if entry.is_symlink() and entry.name in allowed_names:
+            yield entry.path
+
+
+def walk_config_scoped(root, sweep_home_arg):
+    """22-08/Task 2 — the .config-specific walk. Depth-1 always yields
+    every entry that is itself a symlink (catches a RETIRED package's
+    orphaned top-level link — swayosd/wleave are the live examples — which
+    no longer has a PACKAGES entry to name it by). Recursion below a
+    top-level REAL directory only happens for a name in OWNED_CONFIG_TOP,
+    or for .config/systemd/user specifically (systemd's only owned child;
+    its sibling *.wants/ dirs are systemd/pipewire's own generated content,
+    not this repo's). Every other top-level real directory — a third-party
+    app's own config dir, e.g. zen/ — is left entirely undescended, per
+    T-22-08-BLIND's requirement that narrowing not blind the sweep while
+    also not sweeping unowned territory."""
+    try:
+        entries = sorted(os.scandir(root), key=lambda e: e.name)
+    except OSError:
+        entries = []
+    for entry in entries:
+        path = entry.path
+        if entry.is_symlink():
+            yield path
+            continue
+        try:
+            is_real_dir = entry.is_dir(follow_symlinks=False)
+        except OSError:
+            is_real_dir = False
+        if not is_real_dir:
+            continue  # a plain file — never a symlink, nothing to check
+        if entry.name in OWNED_CONFIG_TOP:
+            yield from walk_links(path)
+        elif entry.name == 'systemd':
+            user_dir = os.path.join(path, 'user')
+            try:
+                user_is_real_dir = os.path.isdir(user_dir) and not os.path.islink(user_dir)
+            except OSError:
+                user_is_real_dir = False
+            if user_is_real_dir:
+                yield from walk_links(user_dir)
+        # else: an unowned top-level directory (e.g. zen/) — do not descend.
+
+
 if mode == 'list':
     for rel_path, rmode, why in SWEEP_ROOTS:
         emit('LIST', f'{rel_path} ({rmode}) — {why}')
@@ -323,6 +461,10 @@ for rel_path, rmode, why in SWEEP_ROOTS:
 
     if rmode == 'depth1':
         links = list(walk_links_depth1(abs_root))
+    elif rmode == 'home-named':
+        links = list(walk_links_home_named(abs_root, ALLOWED_HOME_DOTFILES))
+    elif rmode == 'config-scoped':
+        links = list(walk_config_scoped(abs_root, sweep_home))
     else:
         links = list(walk_links(abs_root))
 
