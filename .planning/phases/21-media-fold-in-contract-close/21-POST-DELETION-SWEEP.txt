@@ -1,0 +1,20 @@
+retirement-check — surface=ags status=retired root=/home/aorus/dotfiles
+
+[SKIP] ags/own-tree: own-tree path(s) not present under /home/aorus/dotfiles: ags/
+[PASS] ags/layer-window-rules: no references
+[PASS] ags/autostart: no references
+[PASS] ags/keybinds: no references
+[PASS] ags/contract-json: no references
+[PASS] ags/matugen-templates: no references
+[PASS] ags/checker-internals: no references
+[PASS] ags/test-fixtures: no references
+[PASS] ags/cross-package-refs: no references
+[PASS] ags/install-stow-lists: no references
+[PASS] ags/systemd-units: no references
+[PASS] ags/dbus-activation: no references
+[PASS] ags/xdg-autostart: no references
+[PASS] ags/host-package: no references
+[REPORT] ags/planning-archive: 1196 reference(s)
+[REPORT] ags/repo-prose: 107 reference(s)
+
+Summary: surface=ags status=retired failed_classes=0
