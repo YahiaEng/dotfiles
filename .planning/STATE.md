@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
-current_phase_name: Fresh-Install Proof
+current_phase_name: fresh-install-proof
 status: executing
 stopped_at: Phase 22 context gathered
-last_updated: "2026-08-16T19:14:41.121Z"
+last_updated: "2026-08-16T19:16:09.409Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
@@ -24,15 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-10)
 
 **Core value:** One theme switch — static or dynamic — instantly and consistently re-themes the entire desktop, and the whole setup reproduces from scratch with one script.
-**Current focus:** Phase 21 — media-fold-in-contract-close
+**Current focus:** Phase 22 — fresh-install-proof
 
 ## Current Position
 
-Phase: 22 — Fresh-Install Proof
-Plan: Not started
-Status: Ready to execute
+Phase: 22 (fresh-install-proof) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 22
 Progress: [█████████░] 93%
-Last activity: 2026-08-16 — Phase 21 complete, transitioned to Phase 22
+Last activity: 2026-08-16 — Phase 22 execution started
 
 ## Performance Metrics
 
