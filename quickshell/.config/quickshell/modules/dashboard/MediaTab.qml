@@ -1462,7 +1462,13 @@ Item {
                                     enabled: !modelData.active
                                     onClicked: {
                                         if (root.mediaBackend)
-                                            root.mediaBackend.selectPlayer(modelData.id);
+                                            // Object, not id — same live object this
+                                            // row renders from, so the row cannot
+                                            // select a player other than the one it
+                                            // displays. The id path silently no-opped
+                                            // and left the operator stuck on the first
+                                            // playing entry (Plan 08 gate).
+                                            root.mediaBackend.selectPlayerObject(modelData.player);
                                         playerSelector.menuOpen = false;
                                     }
                                 }

@@ -242,16 +242,38 @@ Scope {
     // preserves the model's own first-encountered group order, so two
     // equally-eligible players cannot swap between reads. A selection
     // whose player has vanished falls back through this same rule
-    // automatically: `_explicitSelectionId` simply stops matching
+    // automatically: `_explicitSelection` simply stops matching
     // anything canonical, it is never explicitly cleared.
-    property string _explicitSelectionId: ""
+    // Holds the selected PLAYER OBJECT, not an id string.
+    //
+    // Empirical basis, not a preference: per-player volume and player
+    // selection were two otherwise-identical call sites differing only in
+    // id-vs-object. When the volume write was switched to pass the live
+    // object it began working immediately; selection, still resolving an id
+    // through _findCanonicalById, remained broken — the operator could not
+    // move off the first playing entry ("stuck on spotify") at Plan 08's
+    // gate. selectPlayer() failed its lookup, never assigned, and
+    // activePlayer fell through to rule (2), the first canonical entry
+    // reporting isPlaying. A silent no-op by design, which is what made it
+    // invisible until someone tried to switch players with two sources
+    // actually playing.
+    //
+    // Storing the object removes the round-trip rather than auditing it
+    // again. Staleness is handled exactly as the id version's own note
+    // promised: membership is re-checked against the live canonical list on
+    // every read, so a selection whose player has vanished stops matching
+    // and the resolution falls through automatically.
+    property var _explicitSelection: null
 
     readonly property var activePlayer: {
         const list = root._canonicalPlayers;
-        if (root._explicitSelectionId !== "") {
-            const explicit = root._findCanonicalById(root._explicitSelectionId);
-            if (explicit)
-                return explicit;
+        if (root._explicitSelection) {
+            // Identity membership against the live list — never an id match,
+            // so this cannot reintroduce the resolution failure it replaces.
+            for (var k = 0; k < list.length; k++) {
+                if (list[k] === root._explicitSelection)
+                    return list[k];
+            }
         }
         for (var j = 0; j < list.length; j++) {
             if (list[j] && list[j].isPlaying === true)
@@ -268,11 +290,29 @@ Scope {
     // being accepted, so a caller can only ever select an identifier the
     // switcher actually displays; an unknown or collapsed-away id is a
     // no-op rather than a blind write.
+    // Takes the PLAYER OBJECT — the same live object the switcher row holds
+    // and renders from, so the row cannot select a player other than the one
+    // it displays. See _explicitSelection's note for why the id round-trip
+    // was removed rather than repaired.
+    function selectPlayerObject(player) {
+        if (!player)
+            return;
+        const list = root._canonicalPlayers;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] === player) {
+                root._explicitSelection = player;
+                return;
+            }
+        }
+    }
+
+    // Retained id-based wrapper — the name 21-BEHAVIOUR-BASELINE.md's C-13
+    // row cites. Delegates to the object path so there is one selection
+    // implementation.
     function selectPlayer(playerId) {
         if (typeof playerId !== "string" || playerId === "")
             return;
-        if (root._findCanonicalById(playerId))
-            root._explicitSelectionId = playerId;
+        root.selectPlayerObject(root._findCanonicalById(playerId));
     }
 
     // ── The switcher's data source — same element shape MediaTab.qml's
