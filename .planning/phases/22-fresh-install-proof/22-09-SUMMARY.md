@@ -41,7 +41,7 @@ key-decisions:
 patterns-established:
   - "Any future host-cache-reuse addition to container-run.sh should self-detect via [[ -d /caches/... ]] inside the single-quoted heredoc, never via an expanded host variable"
 
-requirements-completed: [RETIRE-09]
+requirements-completed: []  # RETIRE-09 intentionally NOT marked complete here — corrected post-hoc; the original [RETIRE-09] was a slip inconsistent with every sibling plan in this phase. This plan is a performance change to the gate (scope cut + cache mounts); it produced no verdict at all. RETIRE-09 closes only in 22-06, on both tiers passing.
 
 coverage:
   - id: D1
