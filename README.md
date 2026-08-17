@@ -69,15 +69,20 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │
 ├── matugen/.config/matugen/
 │   ├── config.toml                     # Matugen settings + template registry
-│   └── templates/                      # Matugen input templates
-│       ├── hyprland-colors.conf
+│   └── templates/                      # Matugen input templates (12 registered)
+│       ├── hyprland-colors.lua
 │       ├── kitty-colors.conf
-│       └── swaync-colors.css
+│       ├── gtk-colors.css              # Shared by the gtk3 + gtk4 targets
+│       ├── qml-palette.json            # Feeds the Quickshell bar's Colours.qml
+│       └── ...                         # walker, yazi, vscodium, fzf, hyprlock, zen, satty
 │
-├── themes/.config/themes/
-│   ├── static/                         # Hyprland color vars per theme
-│   ├── css/                            # CSS color vars per theme
-│   └── kitty/                          # Kitty color palette per theme
+├── theme-engine/.config/theme-engine/
+│   ├── theme-apply                     # The switch entry point (static + dynamic)
+│   ├── theme-doctor                    # Pipeline health gate
+│   ├── theme-parity                    # Output-contract parity gate
+│   ├── contract.json                   # Declared render targets
+│   ├── motion.json                     # Shared motion tokens
+│   └── palettes/                       # Static per-theme palettes (20 themes)
 │
 └── wallpapers/Pictures/Wallpapers/     # Your wallpaper collection
 ```
