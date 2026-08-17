@@ -1,9 +1,9 @@
 ---
 phase: 22-fresh-install-proof
 verified: 2026-08-17T03:10:00Z
-status: human_needed
-score: 3/4 must-haves verified
-behavior_unverified: 1
+status: passed
+score: 4/4 must-haves verified
+behavior_unverified: 0
 overrides_applied: 0
 gaps: []
 behavior_unverified_items:
@@ -96,3 +96,53 @@ None. Scanned the phase's primary changed artifacts (`verify/container-run.sh`, 
 No FAILED truths, no MISSING/STUB artifacts, no NOT_WIRED key links, no debt markers. The phase's substantive engineering (container-run.sh's 9-step gate, the theme-doctor allowlist mechanism, stow-link-check's dangling-symlink sweep, the retirement-check registry, the install.sh package-scope split) is present, wired, and — for SC-2, SC-3, and RETIRE-09's own VM-tier pass condition — proven with real evidence gathered from inside the reproduced system.
 
 The one open item is SC-1's timing: this phase's own code review (run and fixed within the same session as this verification) found and fixed two Critical false-PASS bugs in the exact gating steps SC-1 depends on, and the only completed "green" run predates those fixes. The evidence strongly suggests the fixes didn't change the actual verdict (the pre-fix run's raw logs are demonstrably substantive, not vacuous — real symlink counts, real theme-doctor pass/fail tallies matching the allowlist exactly), but that is an inference from log content, not a completed re-run of the current code. A container run built on the fixed harness was in progress and unfinished at verification time. This phase should not be treated as unconditionally closed until that run (or an equivalent one) completes and is checked.
+
+---
+
+## SC-1 closed — post-fix container re-run (appended 2026-08-17)
+
+The verifier held SC-1 open because its evidence run (`run-20260816T230409Z`)
+predated the seven commits fixing the two Critical false-PASS bugs. That
+condition is now discharged.
+
+**Post-fix run: `run-20260817T000253Z`, HEAD `e6baeb0`, warm cache — `overall=PASS`.**
+
+```
+pull ok · bootstrap ok · paru-cache-seed rc=0 · clone ok · install ok · stow ok
+retirement-check ok · stow-link-check ok
+theme-doctor ok allowed=3 blocking=0 · theme-parity ok
+overall=PASS
+```
+
+Each gating step was confirmed to have genuinely executed rather than
+vacuously reported success — the specific failure mode CR-01 and CR-02 made
+possible:
+
+- `stow-link-check` swept **136 real symlinks** (43 `.config` + 92
+  `Pictures/Wallpapers` + 1 home root) with its fixture scope-skip printed —
+  not the `0 passed, 0 failed` a silent python3 crash would have produced.
+- `theme-doctor` emitted `Summary: 571 passed, 3 failed`, which is the
+  affirmative marker CR-02's fix now *requires* before the allowlist verdict
+  is trusted. Exactly 3 `[FAIL]` lines, all allowlisted, `blocking=0`.
+- `retirement-check` reported `failed_classes=0`.
+- No leaked containers.
+
+Evidence copied to `postfix-evidence/` (`verify/logs/` is gitignored).
+
+**Delta between that run and the shipped tree (`bab9bef`):** two commits —
+removal of the orphaned, unregistered `matugen/.config/matugen/templates/eww-colors.scss`
+and a correction to README's repo-tree diagram. Neither touches `install.sh`,
+`stow.sh` or any gate script; the only functional change *removes* a file that
+was never referenced. All four gates re-verified green on the clean shipped
+tree: theme-doctor 580/0, theme-parity 1545/0, retirement-check
+`failed_classes=0`, stow-link-check self-test 6/6. A further container run was
+deliberately not taken — operator decision, recorded here rather than implied.
+
+**SC-3 accepted** on operator judgment: the 87 surviving non-`.planning` hits
+are 48 historical design docs, 12 instances of `retirement-check` naming its
+own targets, 11 retirement-lineage comments in `windowrules.lua`/`autostart.lua`
+(verified to be comments only — zero active config), plus `CLAUDE.md` and
+`settings.local.json`. This is what RETIRE-01's REPORT-vs-blocking tier design
+established.
+
+**Verdict: 4/4. Phase 22 goal achieved.**
