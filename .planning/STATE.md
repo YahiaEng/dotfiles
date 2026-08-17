@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
-status: completed
+status: milestone-complete
 stopped_at: Completed 22-06-PLAN.md — RETIRE-09 CLOSED, both INST-03 tiers pass, Phase 22 complete (9/9 plans), v4.0 milestone all 55 requirements satisfied
 last_updated: "2026-08-17T00:20:11.453Z"
 last_activity: 2026-08-17
