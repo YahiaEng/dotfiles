@@ -506,7 +506,7 @@ Cross-cutting constraints:
 | 19. Notification Server & Centre | v4.0 | 8/8 | Complete    | 2026-08-14 |
 | 20. Indicators & Power Menu | v4.0 | 10/10 | Complete    | 2026-08-16 |
 | 21. Media Fold-In & Contract Close | v4.0 | 9/9 | Complete    | 2026-08-16 |
-| 22. Fresh-Install Proof | v4.0 | 9/9 | Complete | 2026-08-17 |
+| 22. Fresh-Install Proof | v4.0 | 9/9 | Complete    | 2026-08-17 |
 
 **Totals:** 23 phases (18 complete) · 141 plans complete · 3 milestones shipped
 

@@ -3,10 +3,9 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Shell Migration & Debt Paydown
 current_phase: 22
-current_phase_name: fresh-install-proof
-status: executing
+status: completed
 stopped_at: Completed 22-06-PLAN.md — RETIRE-09 CLOSED, both INST-03 tiers pass, Phase 22 complete (9/9 plans), v4.0 milestone all 55 requirements satisfied
-last_updated: "2026-08-16T23:36:46.592Z"
+last_updated: "2026-08-17T00:20:11.453Z"
 last_activity: 2026-08-17
 last_activity_desc: "plan 22-06: graphical VM tier run by the operator — PASS, zero exemptions invoked, VM destroyed; RETIRE-09 closed; Phase 22 complete (9/9 plans); v4.0 milestone's all 55 requirements now satisfied"
 progress:
@@ -15,6 +14,7 @@ progress:
   total_plans: 63
   completed_plans: 63
   percent: 100
+current_phase_name: fresh-install-proof
 ---
 
 # Project State
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-08-10)
 
 ## Current Position
 
-Phase: 22 (fresh-install-proof) — COMPLETE
-Plan: 9 of 9 summarized
-Status: RETIRE-09 CLOSED — both INST-03 tiers pass (container run-20260816T230409Z overall=PASS; graphical VM operator verdict PASS, zero exemptions invoked, VM destroyed). Phase 22 complete; v4.0 milestone's all 55 requirements now satisfied. Milestone closeout (archiving, MILESTONES.md, PROJECT.md evolution) is a separate step, not yet run.
+Phase: 22
+Plan: Not started
+Status: All phases complete
 Progress: [██████████] 100%
-Last activity: 2026-08-17 — plan 22-06: graphical VM tier run by the operator — PASS, zero exemptions invoked, VM destroyed; RETIRE-09 closed; Phase 22 complete (9/9 plans); v4.0 milestone's all 55 requirements now satisfied
+Last activity: 2026-08-17 — Phase 22 complete
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 167
+- Total plans completed: 176
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -66,6 +66,7 @@ Last activity: 2026-08-17 — plan 22-06: graphical VM tier run by the operator 
 | 19 | 8 | - | - |
 | 20 | 10 | - | - |
 | 21 | 9 | - | - |
+| 22 | 9 | - | - |
 
 **Recent Trend:**
 
