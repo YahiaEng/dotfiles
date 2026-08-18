@@ -68,7 +68,7 @@ Item {
     property real nowMs: Date.now()
 
     signal toggleExpandRequested()
-    signal clearNotificationRequested(int id)
+    signal clearNotificationRequested(string key)
     signal clearGroupRequested(string appName)
 
     readonly property string groupAppName: groupItem.groupData.appName || ""
@@ -730,7 +730,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: -Design.spacingXs
                         hoverEnabled: true
-                        onClicked: groupItem.clearNotificationRequested(notifRow.modelData.id)
+                        onClicked: groupItem.clearNotificationRequested(notifRow.modelData.key !== undefined ? notifRow.modelData.key : String(notifRow.modelData.id))
                     }
                 }
             }

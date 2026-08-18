@@ -201,7 +201,13 @@ Singleton {
                 root._writeState();
                 return;
             }
-            root.history = root.history.slice(0, Math.max(0, root.history.length - Design.notifHistoryBatchSize));
+            var keep = Math.max(0, root.history.length - Design.notifHistoryBatchSize);
+            // Untrack this batch before dropping it (quick task 260818-nwo).
+            // Without this the rows vanished but the server kept every
+            // notification tracked and replayed the lot back into history —
+            // the exact "clear all does nothing that sticks" symptom.
+            root._releaseTrackedForEntries(root.history.slice(keep));
+            root.history = root.history.slice(0, keep);
         }
     }
     function clearAll() {
@@ -279,8 +285,88 @@ Singleton {
     //    shape has to stand alone. Capped at Design.notifHistoryCap,
     //    dropping the oldest (the array is newest-first by construction —
     //    every insert prepends — so "drop oldest" is "trim the tail"). ───
+    // ── Stable per-entry key + the live-object map behind it ────────────
+    // (Quick task 260818-nwo — "cleared notifications come back".)
+    //
+    // ROOT CAUSE this addresses: `onNotification` sets `notif.tracked = true`
+    // and NOTHING ever set it back to false, so with `keepOnReload: true` the
+    // NotificationServer retained every notification for the life of the
+    // process and re-emitted the whole retained set on reload. Since
+    // `_recordHistory` records unconditionally (D-19-33, deliberately, so a
+    // suppressed notification still leaves a trace), every replay re-added
+    // everything the user had already cleared. `clearOne`/`clearAll`/
+    // `clearGroup` only ever pruned THIS array — they never released the
+    // underlying notification, so the server handed it straight back.
+    //
+    // Measured in the live state file before the fix: 36 of 100 entries
+    // shared a wall-clock second with another entry (14 at 19:25:31, 7 at
+    // 19:03:50, 6 at 19:03:47). `timestamp` is stamped at RECORD time, so a
+    // 14-way tie is one bulk re-record, not fourteen notifications. Only 53
+    // of those 100 entries had a distinct `id`.
+    //
+    // Why a new key rather than reusing `id`: D-Bus notification ids are
+    // RECYCLED — they restart from 1 when the server restarts, and
+    // `replaces_id` reuses them by design. The same measurement found ids
+    // 1..53 covering 100 entries, 14 of them duplicated. Anything keyed on
+    // `id` alone therefore addresses the wrong rows; that is also why
+    // `clearOne(id)` used to delete EVERY entry sharing an id.
+    //
+    // The key is `id|appName|summary|body`: stable across a replay of the
+    // same notification (all four are unchanged), distinct for two genuinely
+    // separate notifications (the server hands out a fresh `id` per arrival
+    // within a session), and plain-serializable so it survives the JSON
+    // round-trip through `notifications.json`.
+    //
+    // `_trackedByKey` holds the LIVE Notification object per key so a clear
+    // can untrack it. It is deliberately keyed the same way, and deliberately
+    // never persisted — a disk-loaded entry has no live object, which is
+    // correct: it cannot be replayed either.
+    property var _trackedByKey: ({})
+
+    function _historyKey(id, appName, summary, body) {
+        return String(id) + "|" + String(appName) + "|" + String(summary) + "|" + String(body);
+    }
+
+    // Untrack the notification behind a key, if one is still live. This is
+    // the half that actually stops the replay: an untracked notification is
+    // released by the server and can never be re-emitted into history again.
+    function _releaseTracked(key) {
+        var notif = root._trackedByKey[key];
+        if (notif) {
+            try {
+                notif.tracked = false;
+            } catch (e) {
+                // The object may already be gone (server-side expiry); that
+                // is the desired end state anyway, so this is not an error.
+            }
+            delete root._trackedByKey[key];
+        }
+    }
+
+    function _releaseTrackedForEntries(entries) {
+        for (var i = 0; i < entries.length; i++) {
+            var e = entries[i];
+            if (e && e.key)
+                root._releaseTracked(e.key);
+        }
+    }
+
     function _recordHistory(notif) {
+        var key = root._historyKey(notif.id, notif.appName, notif.summary, notif.body);
+
+        // Replay guard. If this exact notification is already in history,
+        // the server is re-emitting a still-tracked object, not delivering a
+        // new arrival — refresh the live-object handle (the old one may be a
+        // stale reference from before a reload) and record nothing.
+        for (var i = 0; i < root.history.length; i++) {
+            if (root.history[i].key === key) {
+                root._trackedByKey[key] = notif;
+                return;
+            }
+        }
+
         var entry = {
+            key: key,
             id: notif.id,
             appName: notif.appName,
             summary: notif.summary,
@@ -296,9 +382,16 @@ Singleton {
             urgency: notif.urgency,
             timestamp: Date.now()
         };
+        root._trackedByKey[key] = notif;
+
         var next = [entry].concat(root.history);
-        if (next.length > Design.notifHistoryCap)
+        if (next.length > Design.notifHistoryCap) {
+            // Release what the cap drops, or the server would keep replaying
+            // notifications that no longer have a history row to land in —
+            // an unbounded retention leak on top of the duplicate rows.
+            root._releaseTrackedForEntries(next.slice(Design.notifHistoryCap));
             next = next.slice(0, Design.notifHistoryCap);
+        }
         root.history = next;
         root._writeState();
     }
@@ -374,12 +467,22 @@ Singleton {
     //    own text — one item, one filter); per-app-group clearing DOES
     //    batch, mirroring `clearAll()`'s own Timer shape, so a single
     //    app's very large history cannot stall the UI thread either. ─────
-    function clearOne(id) {
-        var next = root.history.filter(function (item) {
-            return item.id !== id;
+    // Takes the entry's stable `key`, NOT its `id` (quick task 260818-nwo).
+    // Keyed on `id` this removed EVERY entry sharing that id, and D-Bus ids
+    // are recycled — the live history measured 53 distinct ids across 100
+    // entries, so one click could take out up to nine unrelated rows.
+    // Falls back to id-matching for entries written before this fix, which
+    // have no `key` field.
+    function clearOne(key) {
+        var removed = root.history.filter(function (item) {
+            return item.key === key || (item.key === undefined && String(item.id) === String(key));
         });
-        if (next.length === root.history.length)
+        if (removed.length === 0)
             return;
+        var next = root.history.filter(function (item) {
+            return !(item.key === key || (item.key === undefined && String(item.id) === String(key)));
+        });
+        root._releaseTrackedForEntries(removed);
         root.history = next;
         root._writeState();
     }
@@ -410,14 +513,20 @@ Singleton {
             }
             var toRemove = Design.notifHistoryBatchSize;
             var next = [];
+            var dropped = [];
             for (var i = 0; i < root.history.length; i++) {
                 var item = root.history[i];
                 if (item.appName === root._clearGroupTarget && toRemove > 0) {
                     toRemove--;
+                    dropped.push(item);
                     continue;
                 }
                 next.push(item);
             }
+            // Same release-before-drop rule as clearAll/clearOne (quick task
+            // 260818-nwo) — pruning this array alone left the notification
+            // tracked, and the server replayed the whole group back.
+            root._releaseTrackedForEntries(dropped);
             root.history = next;
         }
     }
@@ -552,9 +661,54 @@ Singleton {
                 if (typeof obj.dnd === "boolean")
                     root.dnd = obj.dnd;
             }
+            root._migrateHistoryKeys();
         } catch (e) {
             console.log("NotifServer: state parse failed, starting empty: " + e);
         }
+    }
+
+    // ── One-time migration for pre-260818-nwo state files ───────────────
+    // Entries written before the stable-key fix carry no `key`, and the
+    // measured live file also carried duplicate rows produced by the replay
+    // bug itself (36 of 100 entries recorded in bulk bursts). Backfill the
+    // key and drop exact duplicates on the way in, so the very first load
+    // after this fix also cleans up the mess the bug left behind — a user
+    // should not have to clear a hundred rows by hand to get out of it.
+    //
+    // Runs on every load and is idempotent: once every entry has a key and
+    // no duplicates remain, it makes no change and writes nothing.
+    function _migrateHistoryKeys() {
+        var seen = {};
+        var next = [];
+        var changed = false;
+        for (var i = 0; i < root.history.length; i++) {
+            var item = root.history[i];
+            if (!item)
+                continue;
+            var key = item.key;
+            if (key === undefined) {
+                key = root._historyKey(item.id, item.appName, item.summary, item.body);
+                changed = true;
+            }
+            if (seen[key]) {
+                changed = true;
+                continue;
+            }
+            seen[key] = true;
+            if (item.key === undefined) {
+                var copy = {};
+                for (var f in item)
+                    copy[f] = item[f];
+                copy.key = key;
+                next.push(copy);
+            } else {
+                next.push(item);
+            }
+        }
+        if (!changed)
+            return;
+        root.history = next;
+        root._writeState();
     }
 
     function _writeState() {

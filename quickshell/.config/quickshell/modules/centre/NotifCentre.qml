@@ -675,7 +675,7 @@ PanelWindow {
                     expanded: !!centreWindow.expandedApps[modelData.appName]
                     nowMs: centreWindow._sharedClockNow
                     onToggleExpandRequested: centreWindow.toggleGroupExpanded(modelData.appName)
-                    onClearNotificationRequested: id => NotifServer.clearOne(id)
+                    onClearNotificationRequested: key => NotifServer.clearOne(key)
                     onClearGroupRequested: appName => NotifServer.clearGroup(appName)
                 }
             }
