@@ -1,5 +1,14 @@
 # QML Bar — Athena Restoration
 
+> ## 📜 HISTORICAL RECORD — the work shipped; one package it names is gone
+>
+> This spec was implemented as Phase 18.1 and its outcome is live. It is kept
+> verbatim as the design record. The one thing to know before reading: every
+> mention of **`waybar`** here describes the surface this work was built to
+> replace, which was deleted from repo *and* host by **RETIRE-02**, Phase 18
+> Plan 20 — it is not part of the current stack and cannot be installed,
+> compared against, or fallen back to.
+
 **Date:** 2026-08-11
 **Status:** Approved, handed to GSD for planning as an inserted phase
 **Blocks:** Phase 18's GATE-02 (18-19) and, transitively, 18-20 (waybar package retirement)

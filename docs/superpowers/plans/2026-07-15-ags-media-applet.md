@@ -1,5 +1,23 @@
 # AGS/astal Media Applet Implementation Plan
 
+> ## ⛔ HISTORICAL RECORD — NOT CURRENT GUIDANCE
+>
+> This plan shipped, and everything it built has since been **retired**. It is
+> kept verbatim as the design record of what was actually decided in July 2026;
+> do not follow any step in it, and do not treat any package it names as part
+> of the current stack.
+>
+> | Named here | Status now |
+> |---|---|
+> | `ags` (the applet this plan builds) | Deleted from repo *and* host by **RETIRE-06**, Phase 21 Plan 08. The media UI is now the Quickshell dashboard's Media tab (QMEDIA-01..03), at 16/16 checklist parity with this applet, with the cava visualiser restored as a 60-bar radial ring. |
+> | `waybar` | Retired by **RETIRE-02**, Phase 18 Plan 20. The bar is a Quickshell surface; there is no bar-side module system to toggle an applet from. |
+> | `swaync` | Retired by **RETIRE-03**, Phase 19 Plan 08. The Quickshell root *is* the session's `org.freedesktop.Notifications` server. |
+> | `eww` (the popup this plan replaced) | Uninstalled by **RETIRE-07**, Phase 20 Plan 10. |
+>
+> For anything media-related today, read
+> `quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml` and the bar's
+> `modules/bar/MediaConnectivityCapsule.qml` / `MediaPopout.qml`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the confirmed-dead eww media popup with a standalone AGS v3 (GTK4) centered media applet — garuda-style blurred-art card, working transport/seek/volume/switcher, cava underlay — keeping waybar/swaync/matugen intact.

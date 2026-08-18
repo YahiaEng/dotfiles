@@ -1,5 +1,14 @@
 # Hyprland Lua Config Migration — Design
 
+> ## 📜 HISTORICAL RECORD — the work shipped; one package it names is gone
+>
+> This spec was implemented as Phase 13.1 and its outcome is live — the Lua
+> config tree under `hypr/.config/hypr/config/` is the real one. It is kept
+> verbatim as the design record. The one thing to know before reading: its
+> mentions of **`waybar`** describe config that existed at the time; waybar was
+> deleted from repo *and* host by **RETIRE-02**, Phase 18 Plan 20, so those
+> bindings and rules no longer exist in the tree this spec describes.
+
 **Date:** 2026-07-28
 **Status:** Approved, pending roadmap insertion
 **Target:** v3.0, new Phase 14 (Dashboard Drawer and successors shift down)

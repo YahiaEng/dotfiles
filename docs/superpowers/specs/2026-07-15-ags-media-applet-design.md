@@ -1,5 +1,18 @@
 # AGS/astal Media Applet — Design Spec
 
+> ## ⛔ HISTORICAL RECORD — NOT CURRENT GUIDANCE
+>
+> This spec was implemented and the result has since been **retired**. It is
+> kept verbatim as the design record of what was decided in July 2026; every
+> package it names below has been deleted from repo *and* host.
+>
+> `ags` — **RETIRE-06**, Phase 21 Plan 08 · `waybar` — **RETIRE-02**, Phase 18
+> Plan 20 · `swaync` — **RETIRE-03**, Phase 19 Plan 08 · `eww` — **RETIRE-07**,
+> Phase 20 Plan 10.
+>
+> The media UI now lives in the Quickshell dashboard's Media tab (QMEDIA-01..03),
+> backed by `quickshell/.config/quickshell/modules/dashboard/MediaBackend.qml`.
+
 **Date:** 2026-07-15
 **Status:** Approved (design), pending implementation plan
 **Supersedes:** the eww media popup (`media-popup` / `media-backdrop`), confirmed non-viable — see `.planning/debug/resolved/eww-media-popup-clicks-dead.md`.
