@@ -92,6 +92,24 @@ for f in "$HYPR_CONFIG_DIR"/*.conf; do
     CONFIG_FILES+=("$f")
 done
 
+# ── Lua config file set (260818 follow-up) ───────────────────────────────
+# The hyprlang tree above is retired, so CONFIG_FILES is empty and
+# _derive_key_list fell back to the baseline's own frozen key list. That was
+# the deliberate 13.1-10 choice, but it left the options half of this gate
+# unable to see any option ADDED to the config since 2026-07-28: it only ever
+# re-queried the 46 keys the baseline happened to record. A `render:` key added
+# on 2026-08-18 was invisible to it, which is what surfaced this.
+#
+# LUA_FILES is the live equivalent, discovered the same dynamic way (D-08:
+# never a hardcoded list).
+LUA_FILES=()
+HYPRLAND_LUA="$HYPR_CONF_ROOT/hyprland.lua"
+[[ -e "$HYPRLAND_LUA" ]] && LUA_FILES+=("$HYPRLAND_LUA")
+for f in "$HYPR_CONFIG_DIR"/*.lua; do
+    [[ -e "$f" ]] || continue
+    LUA_FILES+=("$f")
+done
+
 # ── Mode dispatch ──────────────────────────────────────────────────────
 MODE="check"
 OUTDIR=""
@@ -364,9 +382,34 @@ THEME_DRIVEN_KEYS = {
 #   - An accepted change is REPORTED as a note, never silently dropped.
 #   - Anything not listed here still FAILs exactly as before.
 ACCEPTED_OPTION_CHANGES = {
-    # Format, when this is eventually non-empty:
-    #   ('some:new:option', 'added'): 'added by Hyprland 0.57.0; reviewed <plan-id>',
-    #   ('some:old:option', 'removed'): 'removed by Hyprland 0.57.0; reviewed <plan-id>',
+    # ── First real entries, 2026-08-18 ──────────────────────────────────
+    # These four are not version drift. They are options the config has set
+    # all along that this gate could not SEE, because `_derive_key_list` fell
+    # back to the baseline's own frozen key list once the hyprlang tree was
+    # retired (13.1-10) and therefore only ever re-queried the 46 keys the
+    # 2026-07-28 baseline happened to record. Teaching the gate to parse the
+    # LUA tree surfaced them on its first run — which is the whole point of
+    # that change, and exactly the arm this table exists to gate.
+    #
+    # Each is reviewed here rather than absorbed by re-capturing the baseline,
+    # for the reason recorded at the top of this block: a re-snapshot would
+    # overwrite the two deliberately un-loosened `bindm` records.
+    #
+    # dynamic-cursors: three plugin options set by
+    # `hypr/.config/hypr/config/dynamic-cursors.lua`, added 2026-08-09
+    # (commit e65c953, Phase 17) — eleven days AFTER this baseline was
+    # captured. New config, not drifted config.
+    ('plugin:dynamic_cursors:enabled', 'added'):
+        'dynamic-cursors.lua, added 2026-08-09 (e65c953, Phase 17) — post-dates the baseline',
+    ('plugin:dynamic_cursors:mode', 'added'):
+        'dynamic-cursors.lua, added 2026-08-09 (e65c953, Phase 17) — post-dates the baseline',
+    ('plugin:dynamic_cursors:shake:enabled', 'added'):
+        'dynamic-cursors.lua, added 2026-08-09 (e65c953, Phase 17) — post-dates the baseline',
+    # render: set 2026-08-18 by quick task 260818-nwo to stop the compositor
+    # stretching not-yet-resized textures, which was the reported smear on
+    # window edges during transitions. Operator-confirmed by live A/B.
+    ('render:expand_undersized_textures', 'added'):
+        'hyprland.lua, added 2026-08-18 (quick task 260818-nwo) — fixes the animated-resize edge smear',
 }
 
 # Fail CLOSED on a malformed entry. A typo'd kind (e.g. 'add' for 'added')
@@ -997,6 +1040,175 @@ sys.exit(0)
 PYEOF
 }
 
+# ── Lua option-key extractor (260818 follow-up) ──────────────────────────
+# The Lua counterpart of _parse_config_tree above: walks every `hl.config({…})`
+# table in the Lua tree and joins nested table names the way `hyprctl getoption`
+# addresses them. Deliberately a STATIC parse, not a `dofile`: the config files
+# reference globals supplied by Hyprland's own Lua host (`tokens`,
+# `registered_curves`), so executing them outside the compositor would fail on
+# nil indexes — and only KEY NAMES are needed here. Values always come from a
+# live `hyprctl -j getoption`, exactly as before.
+#
+# Only `hl.config` is read. `hl.bind*`/`hl.window_rule`/`hl.layer_rule`/
+# `hl.animation`/`hl.permission` are declarations, not options — the same
+# exclusion _parse_config_tree makes via DECL_KEYWORDS, achieved here by
+# construction rather than by a keyword list.
+#
+# TWO value-table rules, both needed and both validated against the committed
+# baseline's own 46 keys (the parser reproduces every one of them):
+#   * A `{…}` with no `ident =` inside is a VALUE, not a namespace — otherwise
+#     `offset = { 0, 4 }` swallows `decoration:shadow:offset` and emits nothing.
+#   * A `{…}` containing `colors =` is a gradient VALUE — otherwise
+#     `col = { active_border = { colors = {…}, angle = … } }` walks past the
+#     real key `general:col.active_border` and emits a nonexistent
+#     `…:active_border:angle` instead.
+_parse_lua_tree() {
+    [[ "${#LUA_FILES[@]}" -eq 0 ]] && return 0
+    python3 - "${LUA_FILES[@]}" <<'PYEOF'
+import re
+import sys
+
+IDENT_ASSIGN = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\s*=')
+ASSIGN_OPEN = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{')
+ASSIGN_LEAF = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*=\s*[^{\s]')
+
+
+def strip_lua(src):
+    """Blank out comments and string literals, preserving offsets."""
+    out, i, n = [], 0, len(src)
+    while i < n:
+        if src.startswith('--[[', i):
+            j = src.find(']]', i)
+            end = n if j < 0 else j + 2
+            out.append(' ' * (end - i))
+            i = end
+            continue
+        if src.startswith('--', i):
+            j = src.find('\n', i)
+            end = n if j < 0 else j
+            out.append(' ' * (end - i))
+            i = end
+            continue
+        if src.startswith('[[', i):
+            j = src.find(']]', i)
+            end = n if j < 0 else j + 2
+            out.append(' ' * (end - i))
+            i = end
+            continue
+        if src[i] in '"\'':
+            q, j = src[i], i + 1
+            while j < n and src[j] != q:
+                if src[j] == '\\':
+                    j += 1
+                j += 1
+            end = min(j + 1, n)
+            out.append(' ' * (end - i))
+            i = end
+            continue
+        out.append(src[i])
+        i += 1
+    return ''.join(out)
+
+
+def balanced(body, i):
+    depth, j = 0, i
+    while j < len(body):
+        if body[j] == '{':
+            depth += 1
+        elif body[j] == '}':
+            depth -= 1
+            if depth == 0:
+                return j
+        j += 1
+    return len(body) - 1
+
+
+def is_value_table(body, open_idx):
+    close = balanced(body, open_idx)
+    inner = body[open_idx + 1:close]
+    depth, top = 0, []
+    for ch in inner:
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+        elif depth == 0:
+            top.append(ch)
+    top = ''.join(top)
+    if not IDENT_ASSIGN.search(top):
+        return True, close
+    if re.search(r'\bcolors\s*=', top):
+        return True, close
+    return False, close
+
+
+def config_bodies(src):
+    for m in re.finditer(r'hl\.config\s*\(', src):
+        i, depth = m.end(), 1
+        while i < len(src) and depth:
+            if src[i] == '(':
+                depth += 1
+            elif src[i] == ')':
+                depth -= 1
+            i += 1
+        yield src[m.end():i - 1]
+
+
+def keys_from(body):
+    body = body.strip()
+    if body.startswith('{'):
+        body = body[1:]
+        if body.rstrip().endswith('}'):
+            body = body.rstrip()[:-1]
+    stack, out, i, n = [], [], 0, len(body)
+    while i < n:
+        m = ASSIGN_OPEN.match(body, i)
+        if m:
+            brace = body.index('{', m.start())
+            isval, close = is_value_table(body, brace)
+            if isval:
+                if None not in stack:
+                    out.append(':'.join(stack + [m.group(1)]))
+                i = close + 1
+                continue
+            stack.append(m.group(1))
+            i = m.end()
+            continue
+        m = ASSIGN_LEAF.match(body, i)
+        if m:
+            if None not in stack:
+                out.append(':'.join(stack + [m.group(1)]))
+            j = body.find('\n', i)
+            i = n if j < 0 else j + 1
+            continue
+        if body[i] == '{':
+            stack.append(None)
+            i += 1
+            continue
+        if body[i] == '}':
+            if stack:
+                stack.pop()
+            i += 1
+            continue
+        i += 1
+    return out
+
+
+found = set()
+for path in sys.argv[1:]:
+    try:
+        with open(path, encoding='utf-8', errors='ignore') as fh:
+            src = strip_lua(fh.read())
+    except OSError:
+        continue
+    for body in config_bodies(src):
+        found.update(keys_from(body))
+
+for k in sorted(found):
+    print(k)
+PYEOF
+}
+
 # ── _derive_key_list: the option-key source for _capture_snapshot below ──
 # Prefers parsing the live hyprlang config tree (D-08: dynamic, never
 # hardcoded) when CONFIG_FILES is non-empty — the exact pre-13.1-10
@@ -1012,9 +1224,50 @@ PYEOF
 _derive_key_list() {
     if [[ "${#CONFIG_FILES[@]}" -gt 0 ]]; then
         _parse_config_tree keys "${CONFIG_FILES[@]}"
-    else
-        jq -r '.option' "$BASELINE_DIR/options.jsonl" 2>/dev/null | sort -u
+        return
     fi
+
+    # ── Lua tree + baseline union (260818 follow-up) ─────────────────────
+    # The bare baseline fallback is kept as the FLOOR, never replaced: those
+    # 46 keys are the frozen record of what this gate has always checked, and
+    # a parser bug must never be able to silently shrink coverage. The Lua
+    # tree can only ADD to it.
+    #
+    # Spelling belongs to the baseline for any key it already tracks.
+    # `hyprctl getoption` resolves separator variants interchangeably —
+    # verified live: `general:col.active_border` and `general:col:active_border`
+    # both return the same gradient, as do `plugin:dynamic-cursors:enabled` and
+    # `plugin:dynamic_cursors:enabled`. But the COMPARATOR keys on the literal
+    # option string, so emitting the Lua spelling of a key the baseline records
+    # differently would produce two spurious diffs for one option ("present in
+    # baseline only" + "present in live only") and fail the gate on a cosmetic
+    # difference. Candidates are therefore deduped against the baseline on a
+    # separator-insensitive form, and the baseline's spelling wins.
+    local baseline_keys lua_keys
+    baseline_keys="$(jq -r '.option' "$BASELINE_DIR/options.jsonl" 2>/dev/null | sort -u)"
+    lua_keys="$(_parse_lua_tree)"
+    BASELINE_KEYS="$baseline_keys" LUA_KEYS="$lua_keys" python3 <<'PYEOF'
+import os
+import re
+
+
+def norm(k):
+    return re.sub(r'[:._-]+', ':', k.strip().lower())
+
+
+baseline = [k for k in os.environ.get('BASELINE_KEYS', '').splitlines() if k.strip()]
+lua = [k for k in os.environ.get('LUA_KEYS', '').splitlines() if k.strip()]
+
+seen = {norm(k) for k in baseline}
+out = list(baseline)
+for k in lua:
+    if norm(k) not in seen:
+        seen.add(norm(k))
+        out.append(k)
+
+for k in sorted(set(out)):
+    print(k)
+PYEOF
 }
 
 # ── Shared capture routine: writes binds.json/animations.json/options.jsonl ─
