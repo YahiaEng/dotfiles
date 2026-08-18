@@ -336,10 +336,19 @@ mkdir -p "$HOME/.local/state/theme"
 # is unit-aware for temperature, wind and precipitation independently.
 # No API key, token, secret or credential of any kind belongs in this
 # file — Open-Meteo (D-29) is keyless precisely so that stays true.
+#
+# Seeded city changed Cairo -> Alexandria (quick task 260819-3mz): the
+# operator is in Alexandria, so a fresh install that seeded Cairo would
+# not reproduce their actual setup — it silently served a forecast for
+# the wrong city ~180km away (measured 28.5C vs 25.6C at the time of the
+# change). Deliberately kept at TWO decimal places, city-centroid, per
+# the self-doxxing rule above: their live ~/.local/state/theme/ copy
+# carries full precision, this public one must not. Verified the coarse
+# value still reverse-geocodes to "Alexandria" rather than a suburb.
 [[ -f "$HOME/.local/state/theme/weather.json" ]] || cat > "$HOME/.local/state/theme/weather.json" <<'WEATHER_SEED_EOF'
 {
-  "lat": 30.04,
-  "lon": 31.24,
+  "lat": 31.20,
+  "lon": 29.92,
   "units_temp": "metric",
   "units_wind": "metric",
   "units_precip": "metric"

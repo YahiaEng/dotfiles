@@ -312,38 +312,11 @@ Item {
                     width: parent.width
                     spacing: root.spacingMd
 
-                    // ── City eyebrow (quick task 260818-v3m) — the current
-                    // city, above the temperature, resolved by
-                    // WeatherBackend's cityLabel chain (manual override ->
-                    // geocoded -> timezone fallback -> ""). A hidden
-                    // eyebrow when there is no label is the deliberate
-                    // no-placeholder behaviour (resolution step 4), not an
-                    // oversight — a QML Column skips non-visible children,
-                    // so this costs zero height and the tab's advisory
-                    // size formula above needs no edit.
-                    Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: root.spacingXs
-                        visible: !root.showPlaceholder && root.hasBackend && root.weatherBackend.cityLabel !== ""
-
-                        Text {
-                            text: "location_city"
-                            font.family: root.symbolFontFamily
-                            font.pixelSize: root.fontLabel + 4
-                            color: Colours.primary
-                        }
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.hasBackend ? root.weatherBackend.cityLabel : ""
-                            font.pixelSize: root.fontLabel
-                            font.weight: root.weightBody
-                            font.capitalization: Font.AllUppercase
-                            color: Colours.onSurfaceVariant
-                        }
-                    }
-
-                    // Row 1 — condition symbol + temperature/condition stack
+                    // Row 1 — condition symbol + temperature/condition stack.
+                    // The city label (260818-v3m, redesigned in 260819-3mz)
+                    // is NOT a sibling of this Row — it sits inside the
+                    // temperature/condition Column below, sharing that
+                    // column's left edge. See its comment there.
                     Row {
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: root.spacingMd
@@ -378,6 +351,39 @@ Item {
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 0
+
+                            // City (260819-3mz redesign). It lives INSIDE this
+                            // column, not as a centred sibling Row above the
+                            // hero, so it shares the left edge of the
+                            // temperature and condition beneath it — that
+                            // shared edge is what stops it reading as a
+                            // detached, floating caption.
+                            //
+                            // No glyph and no uppercase: the first shipping
+                            // of this label carried a primary-coloured
+                            // `location_city` symbol and Font.AllUppercase,
+                            // and the repo has zero precedent for either
+                            // (no toUpperCase / letterSpacing /
+                            // font.capitalization in any other .qml).
+                            // One muted role, one type step.
+                            //
+                            // fontBody (16) not fontLabel (12): measured type
+                            // scale is display 32 / heading 20 / body 16 /
+                            // label 12. The label step sat under a 32px
+                            // number and read as an accident.
+                            //
+                            // Still costs zero height when hidden — a QML
+                            // Column skips non-visible children, so the
+                            // tab's advisory size formula stays untouched
+                            // (the no-placeholder behaviour of resolution
+                            // step 4 is preserved: hidden, never a dash).
+                            Text {
+                                text: root.hasBackend ? root.weatherBackend.cityLabel : ""
+                                visible: !root.showPlaceholder && text !== ""
+                                font.pixelSize: root.fontBody
+                                font.weight: root.weightBody
+                                color: Colours.onSurfaceVariant
+                            }
 
                             Text {
                                 text: root.showPlaceholder ? "—" : root.weatherBackend.formatTemperature(root.weatherBackend.current.temperature)
