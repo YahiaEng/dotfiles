@@ -6,6 +6,7 @@ commits:
   - d38df38
   - e1eb19d
   - 1871c02
+  - 636100f
 open_items:
   - "Bug 2 (window-edge smear): narrowed to blur:xray vs blur:new_optimizations; blocked on an operator-observed runtime A/B"
 ---
@@ -111,3 +112,58 @@ the frame. A partial fix can create the residual it warns about.
 **Option names are not evidence.** `decoration:motion_blur:enabled` describes the
 reported symptom verbatim and is off. Checking cost one command; asserting it
 would have produced a confident wrong answer and a wasted fix.
+
+---
+
+## Follow-up round (`636100f`), after operator feedback
+
+**Reported back:** (1) kitty is legible now but lost the colour distinction
+between a command and its arguments; (2) weather jitter is better; (3) the
+`hyprctl keyword` A/B could not run — this repo's Hyprland config is Lua and
+needs `hyprctl eval`.
+
+### 1. Command/argument distinction restored
+
+`d38df38` fixed legibility and created a second problem: `on_secondary_container`
+renders near-white, so arguments became indistinguishable from the default
+foreground.
+
+The real bind: fish resolved every class through the 16 ANSI slots, forcing one
+mapping to be both a faithful ANSI palette and a readable command line. Material
+You has four chromatic roles; ANSI wants six hues. The command line always lost.
+
+Fixed by giving fish its own matugen-rendered palette
+(`matugen/.config/matugen/templates/fish-colors.fish` → `[templates.fish]` →
+sourced by `config.fish`), which decouples the two problems.
+
+Measured: `fish_color_command` defaults to **`normal`** — plain foreground — so
+commands were never accented in the first place; they now take `primary`.
+Arguments take `on_surface`, the only role class clearing AA in **all 20**
+palettes (worst 4.5:1). Command-vs-param CIE76 ΔE: worst 13.2 across the static
+themes, 29.5 live, both at ≥10.9:1.
+
+**A silent no-op caught only by reading the values back.** `#` opens a comment
+in fish, so `set -g fish_color_command #b3c5ff` sets the variable EMPTY, sources
+cleanly, and exits 0. The file looked correct and did nothing. Every value is
+single-quoted now. Trusting the exit code would have shipped it.
+
+New `fish-set` contract format added so the file is covered by parity rather
+than presence-only. `theme-parity` **1633 passed / 0 failed** across all 22
+render dirs; `theme-doctor` **580 passed**.
+
+### 2. Weather jitter — improved, not confirmed closed
+
+Operator reports "better". Left open pending a definite verdict rather than
+recorded as fixed.
+
+### 3. The A/B was un-runnable as issued — my error
+
+`hyprctl keyword` is the hyprlang idiom; this repo migrated to Lua in Phase 13.1,
+where the live-set path is `hyprctl eval 'hl.config({...})'` — the form
+`gaming-mode-toggle.sh:135` has used all along. Corrected commands verified by
+setting, reading back with `getoption`, and restoring.
+
+**Do not restore with `hyprctl reload`** — it drops layer rules on this config,
+which would look like a second, unrelated bug. Restore by setting the value back
+via `eval`.
+
