@@ -66,9 +66,46 @@ PanelWindow {
     // Assumption 2).
     signal panelRequested(string name)
 
-    // Only anchors.top — left/right/bottom stay false so the compositor
-    // horizontally centres the window (D-01).
+    // ── Layer posture: FULL-SCREEN surface, panel positioned in QML ─────
+    // (quick task 260818-nwo — the weather-tab jitter root cause.)
+    //
+    // This used to be `anchors.top: true` alone, which makes the compositor
+    // horizontally centre the surface. That is what caused the jitter, and
+    // it took three attempts to find because the first two looked inside the
+    // tab: with a compositor-centred surface, ANY width change drags the
+    // whole surface sideways, and every pixel painted inside it goes along.
+    //
+    // Measured on the live session (7210 samples of `hyprctl layers`,
+    // committed as drawer-geometry-trace.txt): Performance is 1040 wide and
+    // Weather is 760, so switching between them moved the surface
+    // x = 875 -> 735. That is exactly 140px = the 280px width delta halved,
+    // confirming compositor centring rather than anything in the QML. Worse,
+    // the centring is not applied atomically: the invariant `2x + w` (which
+    // must equal the 2510px available span) held at rest but swung
+    // 2416..2599 mid-animation, with the per-frame off-centre error
+    // oscillating +5.5, 0, +11, +9.5, +8, -0.5, ... — a back-and-forth
+    // wobble on top of the slide. That oscillation IS the reported jitter,
+    // which is why it only ever appeared on the Performance<->Weather pair:
+    // every other tab pair shares the 760 floor width, so the surface never
+    // resizes and never moves.
+    //
+    // The fix is the reference-shell convention (research/FEATURES.md:97 —
+    // end-4 uses "a true full-screen overlay, PanelWindow spanning the
+    // output, not an inline popout") and is already shipped once in this
+    // repo: PowerMenu.qml:184-207. The surface now spans the output and
+    // NEVER resizes, so the compositor has nothing to re-centre; the drawer
+    // rectangle is a plain QML Item (`panel` below) that carries the size
+    // animation and is centred by QML, which moves position and size in the
+    // same frame.
+    //
+    // `exclusionMode` stays Normal (NOT PowerMenu's Ignore): this drawer
+    // must still sit clear of the bar's reserved zone, and Normal is what
+    // makes the compositor hand back the 2510px span the panel centres in —
+    // so the panel's resting x is unchanged at 875.
     anchors.top: true
+    anchors.bottom: true
+    anchors.left: true
+    anchors.right: true
 
     // ── Top margin (render-gate feedback 2026-07-29) ────────────────────
     // Without this, the drawer's surface sits flush at y = the bar's
@@ -147,8 +184,8 @@ PanelWindow {
     // needed a change to follow this resize.
     readonly property real drawerWidth: Math.max(drawerMinWidth, activeContentWidth + spacingLg * 2)
     readonly property real drawerHeight: Math.max(drawerMinHeight, tabBarHeight + activeContentHeight + spacingLg * 2)
-    implicitWidth: drawerWidth
-    implicitHeight: drawerHeight
+    // NOTE: these are no longer the window's own implicit size — the window
+    // spans the output. `panel` below consumes them as its animated size.
 
     // The width a tab's own root WILL have once the frame settles, published
     // for tabs that must lay their content out at the destination size rather
@@ -191,22 +228,6 @@ PanelWindow {
     // the motion-scale axis exactly like every other Behavior in this file
     // (off/reduced/normal/lively via Motion.motionEnabled/standardDuration/
     // standardEasing).
-    Behavior on implicitWidth {
-        enabled: Motion.motionEnabled
-        NumberAnimation {
-            duration: Motion.standardDuration
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.standardEasing
-        }
-    }
-    Behavior on implicitHeight {
-        enabled: Motion.motionEnabled
-        NumberAnimation {
-            duration: Motion.standardDuration
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.standardEasing
-        }
-    }
 
     // Reserve nothing (D-03/D-08/D-43): the drawer holds zero exclusive
     // zone on any edge the bar reserves, but ExclusionMode.Normal means it
@@ -385,6 +406,61 @@ PanelWindow {
 
     Component.onCompleted: pager.setCurrentIndex(dashboardWindow.initialTabIndex)
 
+    HyprlandFocusGrab {
+        id: grab
+        windows: [ dashboardWindow ]
+        active: true
+        onCleared: dashboardWindow.dismissRequested()
+    }
+
+    // ── Dismiss scrim (quick task 260818-nwo) ───────────────────────────
+    // Required by the full-screen surface above, and lifted straight from
+    // PowerMenu.qml:59-70, which hit and documented this exact regression on
+    // 2026-08-15: once the surface spans the output, a click "outside the
+    // drawer" lands INSIDE this window, so HyprlandFocusGrab's onCleared —
+    // which fires on a focus CHANGE — never sees it and the drawer stops
+    // dismissing. An explicit full-surface MouseArea behind the panel closes
+    // it deterministically. The grab above is kept for the different case of
+    // focus genuinely moving to another surface.
+    //
+    // Transparent and unpainted: this is an input target only. The drawer is
+    // deliberately scrim-less (D-08) and that is unchanged — nothing here
+    // dims anything.
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+        onClicked: dashboardWindow.dismissRequested()
+    }
+
+    // ── The drawer rectangle itself ─────────────────────────────────────
+    // Everything that used to fill the window now fills THIS, which is the
+    // only thing that resizes. Centred in QML rather than by the compositor,
+    // so position and size always update in the same frame — the property
+    // the compositor could not give us (see the layer-posture note above).
+    Item {
+        id: panel
+        width: dashboardWindow.drawerWidth
+        height: dashboardWindow.drawerHeight
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: 0
+
+        Behavior on width {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
+        Behavior on height {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
+
     // ── Background (D-03/D-07): the window's own footprint IS the drawer
     //    rectangle — bottom-only rounding, translucent over the compositor
     //    blur Task 2 turns on for this namespace, no scrim anywhere (D-08).
@@ -466,12 +542,6 @@ PanelWindow {
     //    and focus-loss both land on the same signal, D-13's
     //    deprecated-blind coexistence rule with zero edits to walker or
     //    the (now-retired) GTK4 power-menu surface.
-    HyprlandFocusGrab {
-        id: grab
-        windows: [ dashboardWindow ]
-        active: true
-        onCleared: dashboardWindow.dismissRequested()
-    }
 
     // ── Content root (D-10 Esc dismiss, D-18 clamped arrows) ────────────
     Item {
@@ -855,4 +925,6 @@ PanelWindow {
             }
         }
     }
+    }
 }
+

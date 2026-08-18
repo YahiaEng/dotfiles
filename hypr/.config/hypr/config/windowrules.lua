@@ -329,6 +329,21 @@ hl.layer_rule({ match = { namespace = "quickshell-overview" }, animation = "fade
 -- the same A/B session.
 hl.layer_rule({ match = { namespace = "^quickshell-.*" }, blur = true })
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, blur = true })
+-- ignore_alpha (quick task 260818-nwo) — REQUIRED by the drawer's move to a
+-- full-screen layer surface. The surface now spans the output so the
+-- compositor cannot re-centre (and therefore jitter) it on a width change;
+-- everything outside the drawer rectangle is a fully transparent input-only
+-- scrim. Without this threshold the `blur = true` above would blur that whole
+-- transparent expanse — i.e. the entire screen — whenever the drawer is open.
+--
+-- 0.2 is the value the three notification surfaces below already ship, and it
+-- is chosen against this file's own FILE-LEVEL FINDING: the threshold must sit
+-- BELOW the surface's own painted alpha or blur dies silently on the thing you
+-- wanted blurred. The drawer's background is Qt.rgba(..., 0.38)
+-- (`Dashboard.qml`'s drawerSurfaceOpacity), so 0.2 < 0.38 keeps the panel
+-- blurred while excluding the alpha-0 scrim. Ordered AFTER the family regex
+-- above, per the same file-level rule.
+hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0.2 })
 
 hl.layer_rule({ match = { namespace = "walker" }, ignore_alpha = 0.5 })
 -- FILE-LEVEL FINDING, learned from wleave's own ignore_alpha rule (deleted
