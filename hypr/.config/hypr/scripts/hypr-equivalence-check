@@ -327,6 +327,64 @@ THEME_DRIVEN_KEYS = {
     'decoration:shadow:color',
 }
 
+# ── Accepted option-set changes (quick task 260818-ne8, 2026-08-18) ──────
+# The direct analog of `_compare_binds_structural`'s ACCEPTED_ADDITIONS, and
+# built for the same reason: the baseline is a FROZEN pre-migration snapshot,
+# which is what makes it ground truth, but the world around it keeps moving.
+#
+# The gap this closes, named by VERIFICATION.md's own pre-authored exemption
+# row (D-22-02): unlike binds.json, this comparator had NO accepted-changes
+# mechanism at all. Any option key a newer Hyprland release adds, renames or
+# removes produced an unconditional "present in live only" / "present in
+# baseline only" FAIL with no escape hatch — and once that fires there is no
+# way to record the review except by re-capturing the baseline, which is the
+# one thing this repo has already decided it must not do casually (see
+# .hypr-baseline/MANIFEST.md's 14-10 amendment: a re-snapshot would overwrite
+# the two deliberately un-loosened `bindm` mouse-field records that 13.1-04
+# Task 3 explicitly forbade loosening). That is exactly how LEDGER-07 became
+# unreachable rather than merely stale, and the same trap was set here.
+#
+# MEASURED STATE AT INTRODUCTION — this table ships EMPTY on purpose.
+# Baseline Hyprland is 0.56.1 (MANIFEST.md:3); this host runs 0.56.2; a live
+# run is PASS 3 / FAIL 0. The 0.56.1 -> 0.56.2 bump added, renamed and removed
+# zero of the 46 tracked keys. (The int -> bool type-key notes come from the
+# hyprlang -> Lua migration and already normalize; they are not version drift.)
+# So this is a preventive mechanism, not a fix for a firing failure — and an
+# empty table MUST be a no-op. If adding it changes any verdict, it is wrong.
+#
+# Discipline, inherited from ACCEPTED_ADDITIONS deliberately:
+#   - Keyed by (option-key, kind) where kind is 'added' or 'removed', never by
+#     option-key alone. Accepting that a newer release ADDED a key must never
+#     silently also accept a later release REMOVING it — those are different
+#     facts needing different reviews.
+#   - Enumerated, never pattern-matched. No `misc:*` glob can ever swallow the
+#     next drift too.
+#   - Each entry carries the reason and the Hyprland version that introduced
+#     the change, so accepting one is a conscious, reviewable act.
+#   - An accepted change is REPORTED as a note, never silently dropped.
+#   - Anything not listed here still FAILs exactly as before.
+ACCEPTED_OPTION_CHANGES = {
+    # Format, when this is eventually non-empty:
+    #   ('some:new:option', 'added'): 'added by Hyprland 0.57.0; reviewed <plan-id>',
+    #   ('some:old:option', 'removed'): 'removed by Hyprland 0.57.0; reviewed <plan-id>',
+}
+
+# Fail CLOSED on a malformed entry. A typo'd kind (e.g. 'add' for 'added')
+# would otherwise never match anything and silently degrade to the old
+# no-escape-hatch behaviour — a fail-open that looks identical to a correctly
+# empty table. Validate the shape before the comparison loop can consult it.
+for _entry in ACCEPTED_OPTION_CHANGES:
+    if (not isinstance(_entry, tuple) or len(_entry) != 2
+            or not isinstance(_entry[0], str) or _entry[1] not in ('added', 'removed')):
+        print(
+            f"ACCEPTED_OPTION_CHANGES: malformed entry {_entry!r} — expected "
+            f"a ('option:key', 'added'|'removed') tuple",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+_accepted_fired = set()
+
 for key in all_keys:
     b = baseline.get(key)
     l = live.get(key)
@@ -345,9 +403,25 @@ for key in all_keys:
             )
         continue
     if b is None:
+        reason = ACCEPTED_OPTION_CHANGES.get((key, 'added'))
+        if reason is not None:
+            _accepted_fired.add((key, 'added'))
+            notes.append(
+                f". {key}: present in live only ({l['type_key']}={l['raw_value']!r}) "
+                f"— option added since baseline, accepted: {reason}"
+            )
+            continue
         diffs.append(f"+ {key}: present in live only ({l['type_key']}={l['raw_value']!r})")
         continue
     if l is None:
+        reason = ACCEPTED_OPTION_CHANGES.get((key, 'removed'))
+        if reason is not None:
+            _accepted_fired.add((key, 'removed'))
+            notes.append(
+                f". {key}: present in baseline only ({b['type_key']}={b['raw_value']!r}) "
+                f"— option removed since baseline, accepted: {reason}"
+            )
+            continue
         diffs.append(f"- {key}: present in baseline only ({b['type_key']}={b['raw_value']!r})")
         continue
     if b['norm_value'] != l['norm_value'] or b['set'] != l['set']:
@@ -361,6 +435,18 @@ for key in all_keys:
             f". {key}: type-key differs but normalized value equal "
             f"(baseline={b['type_key']!r} vs live={l['type_key']!r}, both -> {b['norm_value']!r})"
         )
+
+# A forgiveness that never fires has rotted: the drift it was written to
+# accept is gone, so the entry is now dead weight that would silently forgive
+# a FUTURE unrelated change to the same key. Surface it as a note so the table
+# can be pruned. Deliberately a note and not a FAIL — a stale forgiveness is a
+# bookkeeping problem, not a config regression, and this comparator is folded
+# into theme-doctor where a red verdict must always mean "the config diverged".
+for _stale in sorted(set(ACCEPTED_OPTION_CHANGES) - _accepted_fired):
+    notes.append(
+        f". ACCEPTED_OPTION_CHANGES entry {_stale[0]!r}/{_stale[1]} did not fire "
+        f"— the drift it forgives is gone; prune it"
+    )
 
 for n in notes:
     print(n)

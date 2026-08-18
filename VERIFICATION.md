@@ -280,7 +280,52 @@ other.
 
 | Check (as `theme-doctor` names it) | Reason it may legitimately differ on a genuinely fresh machine | Source | Permanent / provisional |
 |---|---|---|---|
-| `hypr-equivalence-check: options.jsonl` (folded into `theme-doctor`, live-session-guarded) | This baseline was captured against Hyprland **0.56.1** (2026-07-28). This dev host already runs **0.56.2**, and a VM built fresh from the official `extra` repo at run time is very likely to differ again. `options.jsonl`'s comparator has **no** accepted-additions mechanism — unlike `binds.json`, which forgives a named, reviewed set of new binds via `ACCEPTED_ADDITIONS` — so any `hyprctl -j getoption` key a newer Hyprland release adds, renames or removes produces an unconditional "present in live only" / "present in baseline only" FAIL with no escape hatch. | `.hypr-baseline/MANIFEST.md:3` (baseline Hyprland version); `hyprctl version` on this host (0.56.2, confirmed live); `hypr-equivalence-check:347-351` (`_compare_options_normalized`'s `b is None` / `l is None` branches — the only two arms with no accepted-additions equivalent) | Provisional — resolved the day the baseline is re-captured against the VM's Hyprland version, or moot if `options.jsonl` ever gains an `ACCEPTED_ADDITIONS`-style mechanism like `binds.json` already has |
+| ~~`hypr-equivalence-check: options.jsonl`~~ (folded into `theme-doctor`, live-session-guarded) | ~~This baseline was captured against Hyprland **0.56.1** (2026-07-28). This dev host already runs **0.56.2**, and a VM built fresh from the official `extra` repo at run time is very likely to differ again. `options.jsonl`'s comparator has **no** accepted-additions mechanism — unlike `binds.json`, which forgives a named, reviewed set of new binds via `ACCEPTED_ADDITIONS` — so any `hyprctl -j getoption` key a newer Hyprland release adds, renames or removes produces an unconditional "present in live only" / "present in baseline only" FAIL with no escape hatch.~~ | `.hypr-baseline/MANIFEST.md:3` (baseline Hyprland version); `hyprctl version` on this host (0.56.2, confirmed live); `hypr-equivalence-check:405-427` (`_compare_options_normalized`'s `b is None` / `l is None` branches, now both routed through `ACCEPTED_OPTION_CHANGES`) | **RESOLVED 2026-08-18** (quick task `260818-ne8`) — see the note below |
+
+**Resolution of the `options.jsonl` row (2026-08-18).** The row named two ways
+out; the second was taken. `options.jsonl` now has its own
+`ACCEPTED_OPTION_CHANGES` table (`hypr-equivalence-check:366`), the direct
+analog of `binds.json`'s `ACCEPTED_ADDITIONS`, consulted by both
+no-escape-hatch arms (`:405-427`). It is keyed by `(option-key, kind)` where
+kind is `'added'` or `'removed'`, so forgiving an addition never silently
+forgives a later removal of the same key; entries are enumerated, never
+pattern-matched; a malformed entry exits 2 rather than degrading to the old
+fail-open (`:376-385`); and an entry that never fires is reported as stale so
+the table cannot rot (`:445-449`).
+
+**The re-capture route was deliberately NOT taken**, and this is the more
+important half of the resolution. `.hypr-baseline/MANIFEST.md`'s own 14-10
+amendment records why: a re-snapshot overwrites all ~80 records with fresh
+live values, including the two `bindm` mouse-field records that 13.1-04 Task 3
+explicitly forbade loosening. Re-capturing to clear a version-drift exemption
+would have quietly destroyed a deliberate, documented red.
+
+**Measured at resolution:** the drift this row anticipated had not yet fired.
+`hyprctl version` = 0.56.2 against a 0.56.1 baseline, and a live run is
+`PASS: 3  FAIL: 0` — the 0.56.1 → 0.56.2 bump added, renamed and removed zero
+of the 46 tracked keys. (The `int` → `bool` type-key notes come from the
+hyprlang → Lua migration, not the version bump, and already normalize.) So the
+table ships **empty** and adding it changes no verdict on the current tree,
+which is the correctness condition for a preventive mechanism.
+
+Because this repo's own closing lesson from v4.0 is that *a gate that has only
+ever been green has not been shown to reject anything*, the mechanism was
+exercised against synthetic fixtures before being trusted: an unlisted added
+key FAILs (exit 1); an unlisted removed key FAILs (exit 1); a listed added key
+is accepted with a note (exit 0); a listed removed key is accepted with a note
+(exit 0); an entry filed under the wrong kind does **not** forgive (exit 1);
+and a malformed entry exits 2. Both the rejection and the acceptance paths are
+proven, not just the green one.
+
+**Operational consequence for the next VM run: this exemption list is now
+empty.** It had exactly one row and that row is resolved. Every check a
+`theme-doctor` run reports on the VM tier is therefore a real defect with no
+exemption available — which is stricter than the tier shipped in Phase 22, and
+intentionally so. Version drift in `options.jsonl` is now handled *in the tool*
+by a named, reviewed `ACCEPTED_OPTION_CHANGES` entry, which is data the reader
+consults, rather than by a prose row someone has to remember to honour. Adding
+a new row here still requires authoring it **before** the run that would argue
+with it (D-22-02); that rule is unchanged.
 
 No other row is added: `binds.json` already absorbs legitimate new binds
 via its own `ACCEPTED_ADDITIONS` table (so a genuine addition there is not
