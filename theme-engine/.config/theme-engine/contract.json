@@ -74,6 +74,10 @@
     {
       "name": "fish-colors.fish",
       "format": "fish-set"
+    },
+    {
+      "name": "fastfetch.jsonc",
+      "format": "json"
     }
   ],
   "state_metadata_files": [
@@ -95,6 +99,8 @@
     "motion-scale",
     "weather.json",
     "weather-cache.json",
-    "wallpaper-frames"
+    "wallpaper-frames",
+    "fastfetch",
+    "fastfetch-logo"
   ]
 }

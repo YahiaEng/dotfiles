@@ -12,7 +12,44 @@ set -g APP2UNIT_SLICES "a=app-graphical.slice b=background-graphical.slice s=ses
 # `status is-interactive` is the fish equivalent of zsh's `[ -t 0 ]` guard.
 set -g fish_greeting
 if status is-interactive
-    fastfetch
+    # ── Logo selector (quick task 260818-srl) ────────
+    # matugen never knows which logo was picked; the selector never touches
+    # colours; box-close.awk touches neither — three independent layers,
+    # see PLAN.md's "the seam" diagram. This block owns layer 2 only.
+    #
+    # T-srl-01 (Tampering/Elevation): the state file's content becomes a
+    # `--logo <path>` argument. NEVER pass it raw — validate against the
+    # enumerated art set first (fish's `contains`, not string interpolation
+    # into a path) and fall back to themed ASCII on anything unrecognised.
+    # Sprite names and `random`/`none` are added by quick tasks 2 and 3 of
+    # this same plan; until then an unrecognised state value (including a
+    # sprite name picked before Task 2 exists) correctly falls through to
+    # the same themed-ASCII default below — "nothing may silently reach
+    # the stock builtin arch logo" holds even mid-rollout.
+    set -l ff_ascii_arts arch star satan_cross cyberpunk_mask illuminati
+    set -l ff_state (cat $HOME/.local/state/theme/fastfetch-logo 2>/dev/null)
+    set -l ff_logo arch
+    if contains -- "$ff_state" $ff_ascii_arts
+        set ff_logo "$ff_state"
+    end
+
+    # Fresh-install degradation: no theme-apply has ever rendered
+    # fastfetch.jsonc yet — run plain fastfetch with no `-c` rather than
+    # pointing at a file that doesn't exist. Same voice as the
+    # fish-colors.fish guard directly below: a missing render degrades to
+    # "the old look", never to a broken shell.
+    if test -f $HOME/.local/state/theme/fastfetch.jsonc
+        # `--pipe false` is load-bearing (M-4) — fastfetch auto-disables
+        # colour when stdout is a pipe; without this flag every colour
+        # this template renders is silently stripped before box-close.awk
+        # ever sees a byte.
+        fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
+            --logo-type file --logo $HOME/.config/fastfetch/art/$ff_logo.txt \
+            --pipe false \
+            | awk -f $HOME/.config/fastfetch/box-close.awk
+    else
+        fastfetch
+    end
 end
 
 # ── Theme colours (quick task 260818-nwo) ────────────

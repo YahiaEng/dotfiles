@@ -2,8 +2,19 @@
     "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
 
     "logo": {
-        "type": "builtin",
-        "source": "arch",
+        "type": "file",
+        "source": "~/.config/fastfetch/art/arch.txt",
+        "color": {
+            "1": "{{colors.primary.default.hex}}",
+            "2": "{{colors.secondary.default.hex}}",
+            "3": "{{colors.tertiary.default.hex}}",
+            "4": "{{colors.on_primary_container.default.hex}}",
+            "5": "{{colors.error.default.hex}}",
+            "6": "{{colors.on_secondary_container.default.hex}}",
+            "7": "{{colors.on_surface.default.hex}}",
+            "8": "{{colors.outline.default.hex}}",
+            "9": "{{colors.on_tertiary_container.default.hex}}"
+        },
         "padding": {
             "top": 1,
             "left": 2,
@@ -13,15 +24,22 @@
 
     "display": {
         "separator": "  ",
+        "constants": [
+            "────────────────────────────────────────────────────"
+        ],
         "color": {
-            "separator": "dim_white"
+            "keys": "{{colors.tertiary.default.hex}}",
+            "title": "{{colors.primary.default.hex}}",
+            "output": "{{colors.on_surface.default.hex}}",
+            "separator": "{{colors.outline.default.hex}}"
         }
     },
 
     "modules": [
         {
             "type": "custom",
-            "format": "┌──────────────────────────────────────┐"
+            "format": "┌{$1}┐",
+            "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "title",
@@ -30,7 +48,8 @@
         },
         {
             "type": "custom",
-            "format": "├──────────────────────────────────────┤"
+            "format": "├{$1}┤",
+            "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "os",
@@ -50,7 +69,8 @@
         },
         {
             "type": "custom",
-            "format": "├──────────────────────────────────────┤"
+            "format": "├{$1}┤",
+            "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "wm",
@@ -70,7 +90,8 @@
         },
         {
             "type": "custom",
-            "format": "├──────────────────────────────────────┤"
+            "format": "├{$1}┤",
+            "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "cpu",
@@ -96,7 +117,8 @@
         },
         {
             "type": "custom",
-            "format": "├──────────────────────────────────────┤"
+            "format": "├{$1}┤",
+            "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "colors",
@@ -105,7 +127,8 @@
         },
         {
             "type": "custom",
-            "format": "└──────────────────────────────────────┘"
+            "format": "└{$1}┘",
+            "outputColor": "{{colors.outline.default.hex}}"
         }
     ]
 }
