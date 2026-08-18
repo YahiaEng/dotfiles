@@ -119,10 +119,14 @@ output_path = "~/.local/state/theme/satty.toml"
 # All four clear WCAG AA (4.5:1).
 #
 # logo.color, all nine slots defined regardless of which art is active —
-# this is what makes star.txt's 25 "$7" runs and satan_cross.txt's
-# "$2"/"$4"/"$5" runs theme automatically without the template ever
-# knowing which art was picked (the picker/selector seam — see
-# box-close.awk's own header for the other half of that boundary):
+# this is what makes star.txt's 25 "$7" runs theme automatically without the
+# template ever knowing which art was picked (the picker/selector seam — see
+# box-close.awk's own header for the other half of that boundary). Defining
+# all nine rather than only the slots today's arts use is deliberate: it is
+# what lets an art be added, or re-offered, without touching this template.
+# satan_cross.txt ("$2"/"$4"/"$5" runs) is the standing case in point — it
+# was dropped from the picker in 260818-u6v for being 71 columns wide, but
+# the file is still on disk and would theme correctly if ever re-offered:
 #   1 primary               #b3c5ff  10.91:1  (the default single-colour
 #                                              run every no-$N-marker art —
 #                                              illuminati.txt,

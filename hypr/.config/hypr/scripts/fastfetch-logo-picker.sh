@@ -7,7 +7,7 @@
 # ║  history fixed a real, recorded bug (quick task        ║
 # ║  260818-srl, Task 3).                                  ║
 # ║                                                        ║
-# ║  13 entries: 6 sprites, 5 ASCII arts, random, none.     ║
+# ║  12 entries: 6 sprites, 4 ASCII arts, random, none.     ║
 # ║  Left pane:  entries, fzf fuzzy search                 ║
 # ║  Right pane: sprite = animated kitten icat preview;     ║
 # ║              ASCII = the actual art, coloured through   ║
@@ -37,7 +37,7 @@ ART_DIR="$HOME/.config/fastfetch/art"
 ACTIVE_MARKER=" ●"
 
 SPRITE_NAMES=(pulse sweep glitch scan assemble orbit)
-ASCII_NAMES=(arch star satan_cross cyberpunk_mask illuminati)
+ASCII_NAMES=(arch star cyberpunk_mask illuminati)
 
 # ── Pipeline-themed fzf colors (THM-04/D-15), same source + fallback
 # discipline as icon-theme-picker.sh ──────────────────────────────────
@@ -83,7 +83,7 @@ MARKED=0
 ENTRY="${RAW% ●}"
 
 SPRITE_NAMES_P=(pulse sweep glitch scan assemble orbit)
-ASCII_NAMES_P=(arch star satan_cross cyberpunk_mask illuminati)
+ASCII_NAMES_P=(arch star cyberpunk_mask illuminati)
 
 is_in() {
     local needle="$1"; shift
@@ -200,7 +200,7 @@ fi
 PREVIEW
 chmod +x "$PREVIEW_SCRIPT"
 
-# ── Build the 13-entry list, active one marked ────────────────────────
+# ── Build the 12-entry list, active one marked ────────────────────────
 ENTRIES=""
 for name in "${SPRITE_NAMES[@]}" "${ASCII_NAMES[@]}" random none; do
     if [[ "$name" == "$ACTIVE_LOGO" ]]; then

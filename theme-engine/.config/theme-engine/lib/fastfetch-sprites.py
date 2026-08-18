@@ -53,6 +53,15 @@ PALETTE_PATH = os.path.join(STATE_DIR, "palette.json")
 DEFAULT_OUT_DIR = os.path.join(STATE_DIR, "fastfetch")
 ARCH_SVG = "/usr/share/pixmaps/archlinux-logo.svg"
 
+# S is the sprite canvas in PIXELS, and it is load-bearing OUTSIDE this file
+# (260818-u6v): fastfetch never scales an image logo to a requested cell box —
+# its kitty graphics control carries the source pixel size with no cell-scaling
+# keys — so the greeting must reserve the sprite's NATURAL cell footprint, and
+# that footprint is derived from S. fish/config.fish pins
+#   ff_sprite_cols = S / 10   ff_sprite_rows = S / 20
+# against kitty's measured 10x20 px cell at `font_size 12.0`. Changing S here
+# WITHOUT changing those two numbers puts the info box back on top of the
+# sprite — the exact defect 260818-u6v fixed.
 S = 200
 N = 24
 DUR = 60

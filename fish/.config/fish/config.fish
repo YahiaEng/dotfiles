@@ -24,7 +24,7 @@ if status is-interactive
     # unrecognised. "Nothing may silently reach the stock builtin arch
     # logo" — the final fallback below is always themed ASCII (arch), even
     # for an unrecognised state value.
-    set -l ff_ascii_arts arch star satan_cross cyberpunk_mask illuminati
+    set -l ff_ascii_arts arch star cyberpunk_mask illuminati
     set -l ff_sprite_names pulse sweep glitch scan assemble orbit
     set -l ff_state (cat $HOME/.local/state/theme/fastfetch-logo 2>/dev/null)
 
@@ -52,6 +52,28 @@ if status is-interactive
 
     set -l ff_logo_type file
     set -l ff_logo_path "$HOME/.config/fastfetch/art/arch.txt"
+
+    # ── Sprite cell reservation (quick task 260818-u6v) ──
+    # fastfetch does NOT scale an image logo to a requested cell box: the
+    # kitty graphics control it emits is `s=200,v=200` (source pixel size)
+    # with no `c=`/`r=` cell-scaling keys, measured identical across every
+    # --logo-width value tested. The flags reserve TEXT COLUMNS and move the
+    # placement cue; the image is always drawn at its natural pixel size.
+    # Without them fastfetch reserved only `ESC[3C` — padding.left alone —
+    # and drew the whole info box straight through the sprite.
+    #
+    # COUPLING, deliberate and documented rather than silent: these two
+    # numbers are (sprite canvas px) / (kitty cell px).
+    #   cols = 200 / 10 = 20      rows = 200 / 20 = 10
+    # The canvas is `S = 200` in theme-engine/lib/fastfetch-sprites.py; the
+    # 10x20 px cell follows from `font_size 12.0` in kitty/kitty.conf
+    # (measured live: 2440x640 px over 244x32 cells). A materially SMALLER
+    # font shrinks the cell, pushes the natural column count above 20, and
+    # the clipping returns. Querying the real cell size per shell would cost
+    # another ~14ms `kitten` spawn on top of the one icat already pays, which
+    # is why this is pinned instead. Change either end -> change both.
+    set -l ff_sprite_cols 20
+    set -l ff_sprite_rows 10
 
     if test "$ff_state" = none
         set ff_logo_type none
@@ -86,7 +108,17 @@ if status is-interactive
                 --logo-type none \
                 --pipe false \
                 | awk -f $HOME/.config/fastfetch/box-close.awk
+        else if test "$ff_logo_type" = kitty-icat
+            # Image logo: fastfetch cannot measure it, so the cell footprint
+            # must be declared or the box overlaps the sprite (260818-u6v).
+            fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
+                --logo-type $ff_logo_type --logo $ff_logo_path \
+                --logo-width $ff_sprite_cols --logo-height $ff_sprite_rows \
+                --pipe false \
+                | awk -f $HOME/.config/fastfetch/box-close.awk
         else
+            # Text art: fastfetch counts the characters itself, so the width
+            # flags are meaningless here and are deliberately not passed.
             fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
                 --logo-type $ff_logo_type --logo $ff_logo_path \
                 --pipe false \
