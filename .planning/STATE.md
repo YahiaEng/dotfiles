@@ -7,7 +7,7 @@ status: milestone-complete
 stopped_at: Completed 22-06-PLAN.md — RETIRE-09 CLOSED, both INST-03 tiers pass, Phase 22 complete (9/9 plans), v4.0 milestone all 55 requirements satisfied
 last_updated: "2026-08-17T00:20:11.453Z"
 last_activity: 2026-08-18
-last_activity_desc: "quick task 260818-ne8: closed two v4.0 carried debts — SC-3 prose correction (CLAUDE.md + four bannered design docs) and the options.jsonl equivalence exemption (ACCEPTED_OPTION_CHANGES mechanism, ships empty, reject+accept paths proven)"
+last_activity_desc: "quick task 260818-nwo: fixed 3 of 4 reported bugs — kitty ANSI container-role contrast, notification tracked-replay restoring cleared history, weather-tab residual jitter; window-edge smear narrowed to two blur knobs, awaiting operator A/B"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -32,7 +32,7 @@ Phase: 22
 Plan: Not started
 Status: All phases complete
 Progress: [██████████] 100%
-Last activity: 2026-08-18 — Completed quick task 260818-ne8 (two v4.0 carried debts closed)
+Last activity: 2026-08-18 — Completed quick task 260818-nwo (3 of 4 reported bugs fixed)
 
 ## Performance Metrics
 
@@ -589,6 +589,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 260812-opa | GATE-02 F5: popout cards sat 52px low — SectionPopout double-counted the bar extent past an offset the compositor already applied (measured y=100). Leading edge then aligned flush with the Hyprland window edge, which sits at gaps_out below the reserved boundary, not on it (y=58) | 2026-08-12 | cefcf20, 7aa2cfd, d1acef4 | [260812-opa-fix-gate-02-f5-popout-cards-render-52px-](./quick/260812-opa-fix-gate-02-f5-popout-cards-render-52px-/) |
 | 260812-pd5 | Bar: ethernet popout card (native fields only — no IPv4 or NM profile name exists on the device object), "Update system" tooltip on the updates glyph, GPU readout in the system capsule (metric already sampled since 14-10, so display-only). Resource glyphs already recolour on threshold — no work needed (+ refinements: view_in_ar GPU glyph, "Update System" casing, centred more_horiz see-more foot in all 7 popouts). Also fixed two quickshell-doctor gate bugs found on the way: a pipefail/SIGPIPE `grep -q` pattern that false-FAILED the registry and could false-PASS the D-20 colour gate, and a stale compliant fixture from 260812-69w | 2026-08-12 | 84dbec1, 7204d17, f452eee, 2f896f8 | [260812-pd5-bar-ethernet-popout-card-with-link-speed](./quick/260812-pd5-bar-ethernet-popout-card-with-link-speed/) |
 | 260818-ne8 | Close two v4.0 carried debts: SC-3 prose (four materially-wrong .claude/CLAUDE.md entries presenting retired swaync/swayosd/wleave as the current stack, corrected; four docs/superpowers historical design docs bannered, bodies untouched at 49 insertions / 0 deletions) and the options.jsonl equivalence exemption (gave _compare_options_normalized an ACCEPTED_OPTION_CHANGES table mirroring binds.json's ACCEPTED_ADDITIONS, keyed by (key, kind), fail-closed on a malformed entry, stale-entry detection; ships empty because the 0.56.1->0.56.2 bump changed zero of the 46 tracked keys; both reject and accept paths proven on synthetic fixtures) | 2026-08-18 | 047aca4, bdd9646, 16a08a9 | [260818-ne8-execute-two-v4-0-carried-debts-sc-3-pros](./quick/260818-ne8-execute-two-v4-0-carried-debts-sc-3-pros/) |
+| 260818-nwo | Fix three of four reported bugs: kitty argument text unreadable in all themes (kitty runs fish; fish_color_param defaults to cyan, and the matugen template mapped ANSI cyan/magenta to Material You *container* roles — 1.98:1 live, 1.10-1.56:1 across all 20 static palettes; remapped to on_*_container, now 14.42:1); cleared notifications restored by tracked-notification replay (nothing ever set tracked=false, so keepOnReload replayed everything into history — proven by 36/100 entries sharing a wall-clock second; clear paths now release, entries carry a stable key, migration dropped 34 duplicate rows live 100->66); weather-tab jitter's two residual axes (settledPaneHeight + the horizontalCenter the prior fix itself introduced). Window-edge smear NOT fixed — motion_blur ruled out by measurement, narrowed to blur:xray vs blur:new_optimizations, blocked on an operator A/B | 2026-08-18 | d38df38, e1eb19d, 1871c02 | [260818-nwo-fix-three-measured-bugs-unreadable-ansi-](./quick/260818-nwo-fix-three-measured-bugs-unreadable-ansi-/) |
 
 ### Pending Todos
 
