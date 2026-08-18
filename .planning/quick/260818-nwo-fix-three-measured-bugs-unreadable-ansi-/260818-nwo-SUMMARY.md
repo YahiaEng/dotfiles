@@ -7,8 +7,9 @@ commits:
   - e1eb19d
   - 1871c02
   - cf002da
+  - 14a9f0e
 open_items:
-  - "Bug 2 (window-edge smear): narrowed to blur:xray vs blur:new_optimizations; blocked on an operator-observed runtime A/B"
+  - "Bug 2 (window-edge smear): blur:xray and blur:new_optimizations both RULED OUT by operator A/B. Next candidates: blur off entirely (bisect), render:expand_undersized_textures, debug:damage_tracking"
 ---
 
 # Quick Task 260818-nwo — Summary
@@ -166,4 +167,59 @@ setting, reading back with `getoption`, and restoring.
 **Do not restore with `hyprctl reload`** — it drops layer rules on this config,
 which would look like a second, unrelated bug. Restore by setting the value back
 via `eval`.
+
+---
+
+## Round 3 (`14a9f0e`)
+
+**Reported back:** (1) distinction restored but the argument colour is not
+liked; (2) jitter slightly noticeable — *the glyphs themselves* shift left and
+right before settling; (3) neither blur knob killed the smear.
+
+### 1. Argument colour → `tertiary`
+
+The first pass optimised the wrong thing. `on_surface` was picked because it is
+the only role clearing AA in all 20 palettes — but it *is* the default text
+colour, so arguments read as plain body text. Legibility solved, distinction
+still absent.
+
+Three candidates measured and put to the operator with numbers rather than
+adjectives; `tertiary` chosen (#e1bbdc, 10.9:1, ΔE 22.8 from the command and
+21.8 from plain white). The AA-safe-everywhere alternative
+(`on_primary_container`, worst 4.52:1) was too close to white to solve the
+reported problem. Quotes/operators moved off `tertiary` so a quoted argument
+does not collapse into a bare one.
+
+### 2. Glyph jitter — fractional cell widths
+
+A genuinely different symptom from round 1's frame-level jitter, and one that
+**pinning the width could never have fixed** — the width was already constant,
+it just was not a whole number:
+
+- `dayCellWidth = (664 − 4×4)/5 = **129.6**` — fractional unconditionally
+- `hourCellWidth = 664/hourColumns` — integer **only** at exactly 8 columns
+  (664/6 = 110.667, /7 = 94.857, /9 = 73.778, /10 = 66.4), and `hourColumns`
+  is backend-driven
+
+Fractional cells sit at fractional x; each cell centres its content; so glyphs
+landed on fractional coordinates and Qt re-rasterised them at a shifting
+subpixel phase while the frame animated.
+
+Both rows now round cell boundaries **cumulatively** — cell *i* spans
+`round(i·W/n)` to `round((i+1)·W/n)` — so every width and edge is integral and
+they still sum to exactly W. Verified for 6/7/8/9/10/12 columns and the 5-day
+row. Rounding each width independently would have drifted the total by up to
+n/2 px and left a ragged right edge.
+
+### 3. Smear — both blur knobs exonerated
+
+`blur:xray` and `blur:new_optimizations` both ruled out by operator A/B, on top
+of `motion_blur` already being off. Next round bisects rather than guesses:
+blur off **entirely** first, which either implicates or clears the whole blur
+subsystem in one observation, then `render:expand_undersized_textures` (whose
+documented job — stretching a texture that has not yet resized — is the closest
+description of the symptom remaining), then `debug:damage_tracking 0`.
+
+All three verified to apply and restore via `hyprctl eval` + `getoption`
+readback before being handed over.
 
