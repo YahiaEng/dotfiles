@@ -154,4 +154,30 @@ hl.config({
     cursor = {
         no_hardware_cursors = true,
     },
+
+    -- ── render (quick task 260818-nwo) ────────────────────────────────
+    -- expand_undersized_textures defaults to TRUE. Its job is to stretch a
+    -- surface's existing texture to fill the new geometry when the client
+    -- has not yet committed a buffer at that size — which is exactly what
+    -- an animated resize does on every frame. The stretched edge pixels are
+    -- the visible "smear" on window edges during transitions, worst on the
+    -- Quickshell drawer switching tabs and on the notification popouts'
+    -- bottom edge as they slide up: both animate their own layer-surface
+    -- geometry, so both hit this path continuously.
+    --
+    -- Identified by elimination on the live session, not by reading the
+    -- name. `decoration:motion_blur` was checked first (its name describes
+    -- the symptom verbatim) and is off; `decoration:blur:new_optimizations`
+    -- and `decoration:blur:xray` were each toggled live and neither changed
+    -- the smear. Setting this to false did, confirmed by the operator.
+    --
+    -- Cost of disabling: during the frames where a client is behind on
+    -- resizing, the un-expanded area shows the surface's own background
+    -- rather than stretched pixels. For this desktop every animated resize
+    -- is a Quickshell layer surface whose background is opaque and painted
+    -- by the shell itself, so there is nothing to see there anyway — the
+    -- stretch was pure artifact.
+    render = {
+        expand_undersized_textures = false,
+    },
 })
