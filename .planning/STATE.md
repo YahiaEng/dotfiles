@@ -707,11 +707,12 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-16T23:36:46.568Z
-Stopped at: Completed 22-06-PLAN.md — RETIRE-09 CLOSED, both INST-03 tiers pass, Phase 22 complete (9/9 plans), v4.0 milestone all 55 requirements satisfied
+Last session: 2026-08-18 (resume-work)
+Stopped at: Session resumed — v4.0 archived and clean, no incomplete work; awaiting v5.0 milestone scoping
 Resume file: None
 
 ## Operator Next Steps
 
-- Review `.planning/ROADMAP.md` (Phases 18-22) and `.planning/REQUIREMENTS.md` § Traceability
-- Then plan the first phase with `/gsd-plan-phase 18`
+- v4.0 shipped 2026-08-17 and is archived (`milestones/v4.0-MILESTONE.md`); Phases 18-22 all closed
+- Scope the next milestone with `/gsd-new-milestone` (v5.0 has no roadmap yet)
+- Before scoping, review `/gsd-review-backlog` and the v4.0 "Known carried debt" section
