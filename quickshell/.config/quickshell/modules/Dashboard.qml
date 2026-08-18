@@ -66,6 +66,39 @@ PanelWindow {
     // Assumption 2).
     signal panelRequested(string name)
 
+    // ── Animated dismiss (quick task 260818-nwo) ────────────────────────
+    // Reported: the dismiss reads as too slow. Measured: the surface itself
+    // unmaps in ~40ms, so the lag is not the teardown — it is that the panel
+    // sat perfectly still while the compositor faded it. The layer rule had
+    // to become `fade` (a full-screen surface has no edge to slide from), and
+    // a fade with no motion under it always reads slower than the slide it
+    // replaced, at any duration.
+    //
+    // So the exit gets real motion, as the mirror of the entrance: the panel
+    // travels back up and fades while the compositor fades the surface out
+    // underneath it. Same shape as PowerMenu._beginDismiss (:420) — guard,
+    // run the exit, and only emit the real dismissRequested() once the
+    // animation has finished, so shell.qml never destroys the drawer with a
+    // frame of exit still on screen.
+    //
+    // Timed on `emphasized-out` (187ms), not `emphasized-in` (375ms): exits
+    // are meant to be quicker than entrances, which is the whole reason the
+    // motion language carries two separate token pairs.
+    property bool _dismissing: false
+    function _beginDismiss() {
+        if (dashboardWindow._dismissing)
+            return;
+        dashboardWindow._dismissing = true;
+        panel.opened = false;
+        exitTimer.start();
+    }
+    Timer {
+        id: exitTimer
+        interval: Motion.motionEnabled ? Motion.emphasizedOutDuration : 0
+        repeat: false
+        onTriggered: dashboardWindow.dismissRequested()
+    }
+
     // ── Layer posture: FULL-SCREEN surface, panel positioned in QML ─────
     // (quick task 260818-nwo — the weather-tab jitter root cause.)
     //
@@ -447,7 +480,7 @@ PanelWindow {
         id: grab
         windows: [ dashboardWindow ]
         active: true
-        onCleared: dashboardWindow.dismissRequested()
+        onCleared: dashboardWindow._beginDismiss()
     }
 
     // ── Dismiss scrim (quick task 260818-nwo) ───────────────────────────
@@ -466,7 +499,7 @@ PanelWindow {
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-        onClicked: dashboardWindow.dismissRequested()
+        onClicked: dashboardWindow._beginDismiss()
     }
 
     // ── The drawer rectangle itself ─────────────────────────────────────
@@ -499,17 +532,17 @@ PanelWindow {
         Behavior on y {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: Motion.emphasizedInDuration
+                duration: dashboardWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.emphasizedInEasing
+                easing.bezierCurve: dashboardWindow._dismissing ? Motion.emphasizedOutEasing : Motion.emphasizedInEasing
             }
         }
         Behavior on opacity {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: Motion.emphasizedInDuration
+                duration: dashboardWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.emphasizedInEasing
+                easing.bezierCurve: dashboardWindow._dismissing ? Motion.emphasizedOutEasing : Motion.emphasizedInEasing
             }
         }
 
@@ -630,7 +663,7 @@ PanelWindow {
         anchors.margins: dashboardWindow.spacingLg
         focus: true
 
-        Keys.onEscapePressed: dashboardWindow.dismissRequested()
+        Keys.onEscapePressed: dashboardWindow._beginDismiss()
 
         // D-18: arrow keys are keyboard swipes — one spatial model for
         // both inputs — so they route through the same setCurrentIndex
