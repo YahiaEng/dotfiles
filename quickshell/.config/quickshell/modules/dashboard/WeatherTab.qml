@@ -129,6 +129,8 @@ Item {
     // `contentColumn` falls back to the previous fill-the-current-frame
     // behaviour, so this file still renders standalone (qml6 probes, tests).
     property real settledPaneWidth: 0
+    // Vertical counterpart, quick task 260818-nwo — see contentColumn's note.
+    property real settledPaneHeight: 0
 
     // D-41: "populated" | "pending" | "empty" — mirrors the backend's own
     // aggregate self-report, same convention PerformanceTab.qml's
@@ -238,17 +240,43 @@ Item {
     // frame, and this width is derived from that same frame target, so the
     // content can never be wider than the frame carrying it.
     //
-    // The VERTICAL axis deliberately still tracks the frame: the height delta
-    // is small, it was not part of the reported symptom, and changing one axis
-    // at a time keeps this reviewable.
+    // ── SECOND PASS (quick task 260818-nwo) — the residual jitter ────────
+    // The note above closed with: "The VERTICAL axis deliberately still
+    // tracks the frame: the height delta is small, it was not part of the
+    // reported symptom, and changing one axis at a time keeps this
+    // reviewable." That deferral was reported back as "the weather tab STILL
+    // jitters as it settles into place", so this pass finishes the job on
+    // both remaining axes.
+    //
+    // 1. HEIGHT — pinned to `settledPaneHeight`, the exact mirror of the
+    //    width fix, published by Dashboard.qml off the same un-animated
+    //    target. Checked for a binding loop before writing it: every band
+    //    here self-sizes from its own content (`heroInner.height`,
+    //    `hourColumnsRow.height`, `dayColumnsRow.height`,
+    //    `root.separatorHeight`) and none reads `parent.height`, so this
+    //    file's `implicitHeight` does not depend on the height it receives.
+    //
+    // 2. X POSITION — `anchors.horizontalCenter` was the OTHER half of the
+    //    residual, and it was introduced by the first fix itself. Pinning
+    //    the width while centring in a frame whose width animates 992 -> 712
+    //    keeps the content's SIZE constant but slides its LEFT EDGE every
+    //    frame, so the content still visibly travels into place. Anchoring
+    //    left at the same margin the old `anchors.fill` + margins used gives
+    //    a genuinely static box: constant width, constant x. It lands in the
+    //    same settled position, because the settled frame width is the one
+    //    the pinned width was derived from.
+    //
+    // Both fall back to the old frame-tracking behaviour when the settled
+    // values are still 0 (before Dashboard.qml has published them), so a
+    // first frame never collapses to zero size.
     Item {
         id: contentColumn
         anchors.top: parent.top
-        anchors.bottom: parent.bottom
         anchors.topMargin: root.spacingLg
-        anchors.bottomMargin: root.spacingLg
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.left: parent.left
+        anchors.leftMargin: root.spacingLg
         width: root.settledPaneWidth > 0 ? root.settledPaneWidth - root.spacingLg * 2 : parent.width - root.spacingLg * 2
+        height: root.settledPaneHeight > 0 ? root.settledPaneHeight - root.spacingLg * 2 : parent.height - root.spacingLg * 2
 
         // ── Populated bands (D-37) — hero, hour strip, day row ──────────
         // Sizing note: `hourCellWidth`/`dayCellWidth` below are still the

@@ -167,6 +167,23 @@ PanelWindow {
     // fill-the-animating-frame behaviour unchanged.
     readonly property real settledPaneWidth: drawerWidth - spacingLg * 2
 
+    // The height counterpart, added by quick task 260818-nwo — the axis
+    // WeatherTab.qml's own entrance-jitter note deliberately left tracking
+    // the animating frame ("changing one axis at a time keeps this
+    // reviewable"). Same derivation as `settledPaneWidth`, from the same
+    // un-animated target: the pager sits below the fixed-height header and
+    // inside `content`'s margins, so this is exactly the height a tab's root
+    // will have once the frame settles.
+    //
+    // No binding loop: every band in WeatherTab self-sizes from its own
+    // content (`heroInner.height`, `hourColumnsRow.height`,
+    // `dayColumnsRow.height`, `root.separatorHeight`) and none reads
+    // `parent.height`, so a tab's `implicitHeight` — which feeds
+    // `activeContentHeight` -> `drawerHeight` -> this value — never depends
+    // on the height handed back to it. Verified by reading every band's
+    // height binding before adding this, not assumed from the width case.
+    readonly property real settledPaneHeight: drawerHeight - tabBarHeight - spacingLg * 2
+
     // Animated on the SAME token pair, triggered by the SAME event
     // (pager.currentIndex changing), as the pager's own highlightMoveDuration
     // content transition below — so the frame and the content it holds
@@ -792,6 +809,7 @@ PanelWindow {
                     WeatherTab {
                         weatherBackend: dashboardWindow.weatherBackend
                         settledPaneWidth: dashboardWindow.settledPaneWidth
+                        settledPaneHeight: dashboardWindow.settledPaneHeight
                     }
                 }
                 onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
