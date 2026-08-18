@@ -6,7 +6,7 @@ commits:
   - d38df38
   - e1eb19d
   - 1871c02
-  - 636100f
+  - cf002da
 open_items:
   - "Bug 2 (window-edge smear): narrowed to blur:xray vs blur:new_optimizations; blocked on an operator-observed runtime A/B"
 ---
@@ -115,7 +115,7 @@ would have produced a confident wrong answer and a wasted fix.
 
 ---
 
-## Follow-up round (`636100f`), after operator feedback
+## Follow-up round (`cf002da`), after operator feedback
 
 **Reported back:** (1) kitty is legible now but lost the colour distinction
 between a command and its arguments; (2) weather jitter is better; (3) the
