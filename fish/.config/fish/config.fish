@@ -15,6 +15,26 @@ if status is-interactive
     fastfetch
 end
 
+# ── Theme colours (quick task 260818-nwo) ────────────
+# Rendered by matugen every theme-apply run into XDG state, same pattern as
+# every other themed surface in this repo. Sourced unconditionally (not only
+# when interactive) so a non-interactive fish that prints highlighted output
+# uses the same palette.
+#
+# Guarded on existence: on a fresh install this file does not exist until the
+# first theme-apply, and fish must not error on first launch. Without it fish
+# falls back to its own defaults, where `fish_color_param` is `cyan` — which
+# is exactly the unreadable path this file exists to replace, so a missing
+# render degrades to "the old look", never to a broken shell.
+#
+# No `set -U` universals anywhere: universal variables live in fish's own
+# state file, outside stow, and would silently outrank this file on any host
+# where they had ever been set — the non-reproducible host-only state this
+# repo's constraints forbid.
+if test -f $HOME/.local/state/theme/fish-colors.fish
+    source $HOME/.local/state/theme/fish-colors.fish
+end
+
 # ── Node tooling: nvm.fish (fisher plugin, human-approved) ─
 # nvm.fish uses the same version-dir layout as bash/zsh nvm's
 # $NVM_DIR/versions/node, so pointing nvm_data there reuses the already

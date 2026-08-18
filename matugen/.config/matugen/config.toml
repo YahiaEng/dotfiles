@@ -65,6 +65,17 @@ output_path = "~/.local/state/theme/walker-style.css"
 input_path = "~/.config/matugen/templates/fzf-colors.conf"
 output_path = "~/.local/state/theme/fzf-colors.conf"
 
+# ── fish shell syntax colors (quick task 260818-nwo) ────
+# kitty runs fish, so fish's highlighting is the terminal's most-read colour
+# surface. Assigned from named roles here rather than left to resolve through
+# the 16 ANSI slots — see the template header for the contrast measurements
+# and why the ANSI mapping alone could not serve both jobs.
+# Sourced by fish/.config/fish/config.fish; no post_hook needed, since fish
+# reads it at shell start and existing shells are not re-themed live.
+[templates.fish]
+input_path = "~/.config/matugen/templates/fish-colors.fish"
+output_path = "~/.local/state/theme/fish-colors.fish"
+
 # ── Hyprlock colors (LOCK-01/D-30, dedicated target) ────
 [templates.hyprlock]
 input_path = "~/.config/matugen/templates/hyprlock-colors.conf"

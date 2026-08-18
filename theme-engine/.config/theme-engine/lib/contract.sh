@@ -53,7 +53,7 @@ contract_engine_owned_files() {
 }
 
 # contract_format <name>
-# Emits the format tag for a contract file (gtk-css | hypr-vars | kitty-kv |
+# Emits the format tag for a contract file (gtk-css | hypr-vars | kitty-kv | fish-set |
 # toml | json | css-literal).
 contract_format() {
     local name="$1"
@@ -103,6 +103,17 @@ contract_extract_names() {
             # THM-04/D-15: fzf-colors.conf NAME="VALUE" assignment lines —
             # skip blanks/comments, extract the bare NAME token before '='.
             grep -oP '^[A-Za-z0-9_]+(?==)' "$path" 2>/dev/null | sort -u
+            ;;
+        fish-set)
+            # 260818-nwo: fish-colors.fish `set -g NAME value` lines. Kept in
+            # lockstep with the pair extractor below, the same way kitty-kv
+            # and hypr-vars keep their two halves aligned — a name matched
+            # here but not there (or vice versa) is a silent false-pass
+            # generator, which is why both anchor on the identical
+            # `^set -g <name>` prefix rather than one being looser.
+            # Comment lines never match: `#` is not in the name class and
+            # the anchor requires `set -g` first.
+            grep -oP "^set -g \K[A-Za-z0-9_]+(?= )" "$path" 2>/dev/null | sort -u
             ;;
         css-vars)
             # TOKEN-03/12-RESEARCH Pitfall 3: gtk-css's @define-color regex
@@ -336,6 +347,18 @@ contract_extract_values() {
             # FZF_COLOR_BG is a non-color token and does not match the
             # color regex in theme-parity's Layer 3 — it passes untouched).
             sed -nE 's/^([A-Za-z0-9_]+)="?([^"]*)"?$/\1\t\2/p' "$path" 2>/dev/null
+            ;;
+        fish-set)
+            # 260818-nwo: NAME<TAB>value from `set -g NAME value`. The value
+            # half deliberately keeps any `--background=` prefix intact —
+            # theme-parity's Layer 3 matches the colour token inside it, and
+            # stripping the flag would discard the only thing distinguishing
+            # a background assignment from a foreground one.
+            # Values are SINGLE-QUOTED in the template on purpose ('#' opens
+            # a comment in fish, so an unquoted hex silently sets the variable
+            # to empty). Strip those quotes here the same way env-kv strips
+            # its double quotes, so parity compares the colour token itself.
+            sed -nE "s/^set -g ([A-Za-z0-9_]+) '?([^']*)'?\$/\1\t\2/p" "$path" 2>/dev/null
             ;;
         css-vars)
             sed -nE 's/^\s*--([A-Za-z0-9_-]+):\s*(.*);\s*$/\1\t\2/p' "$path" 2>/dev/null

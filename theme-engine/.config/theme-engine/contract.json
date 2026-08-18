@@ -1,25 +1,88 @@
 {
   "files": [
-    { "name": "kitty.conf", "format": "kitty-kv" },
-    { "name": "gtk-3.0-colors.css", "format": "gtk-css" },
-    { "name": "gtk-4.0-colors.css", "format": "gtk-css" },
-    { "name": "walker-style.css", "format": "css-literal" },
-    { "name": "yazi.toml", "format": "toml" },
-    { "name": "vscodium.json", "format": "json" },
-    { "name": "gtk-3.0-settings.ini", "format": "ini-kv" },
-    { "name": "gtk-4.0-settings.ini", "format": "ini-kv" },
-    { "name": "fzf-colors.conf", "format": "env-kv" },
-    { "name": "hyprlock.conf", "format": "hypr-vars" },
-    { "name": "zen-userchrome.css", "format": "css-literal" },
-    { "name": "satty.toml", "format": "toml" },
-    { "name": "motion.json", "format": "json" },
-    { "name": "gtk-4.0-motion.css", "format": "css-vars" },
-    { "name": "hyprland-tokens.lua", "format": "lua-table", "exempt_keys": ["colors.image"] },
-    { "name": "palette.json", "format": "json" },
-    { "name": "_motion.scss", "format": "scss-vars" }
+    {
+      "name": "kitty.conf",
+      "format": "kitty-kv"
+    },
+    {
+      "name": "gtk-3.0-colors.css",
+      "format": "gtk-css"
+    },
+    {
+      "name": "gtk-4.0-colors.css",
+      "format": "gtk-css"
+    },
+    {
+      "name": "walker-style.css",
+      "format": "css-literal"
+    },
+    {
+      "name": "yazi.toml",
+      "format": "toml"
+    },
+    {
+      "name": "vscodium.json",
+      "format": "json"
+    },
+    {
+      "name": "gtk-3.0-settings.ini",
+      "format": "ini-kv"
+    },
+    {
+      "name": "gtk-4.0-settings.ini",
+      "format": "ini-kv"
+    },
+    {
+      "name": "fzf-colors.conf",
+      "format": "env-kv"
+    },
+    {
+      "name": "hyprlock.conf",
+      "format": "hypr-vars"
+    },
+    {
+      "name": "zen-userchrome.css",
+      "format": "css-literal"
+    },
+    {
+      "name": "satty.toml",
+      "format": "toml"
+    },
+    {
+      "name": "motion.json",
+      "format": "json"
+    },
+    {
+      "name": "gtk-4.0-motion.css",
+      "format": "css-vars"
+    },
+    {
+      "name": "hyprland-tokens.lua",
+      "format": "lua-table",
+      "exempt_keys": [
+        "colors.image"
+      ]
+    },
+    {
+      "name": "palette.json",
+      "format": "json"
+    },
+    {
+      "name": "_motion.scss",
+      "format": "scss-vars"
+    },
+    {
+      "name": "fish-colors.fish",
+      "format": "fish-set"
+    }
   ],
-  "state_metadata_files": ["current-theme", "mode"],
-  "presence_only_files": ["kitty-font.conf"],
+  "state_metadata_files": [
+    "current-theme",
+    "mode"
+  ],
+  "presence_only_files": [
+    "kitty-font.conf"
+  ],
   "engine_owned_files": [
     "logs",
     "last-wallpaper",
