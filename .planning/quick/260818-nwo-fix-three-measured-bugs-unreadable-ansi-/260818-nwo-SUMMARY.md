@@ -8,8 +8,13 @@ commits:
   - 1871c02
   - cf002da
   - 14a9f0e
-open_items:
-  - "Bug 2 (window-edge smear): blur:xray and blur:new_optimizations both RULED OUT by operator A/B. Next candidates: blur off entirely (bisect), render:expand_undersized_textures, debug:damage_tracking"
+  - a63788b
+  - 7e8a3f2
+  - dd9f81e
+  - d1d9b54
+  - da81f39
+  - db35f2f
+open_items: []
 ---
 
 # Quick Task 260818-nwo — Summary
@@ -222,4 +227,78 @@ description of the symptom remaining), then `debug:damage_tracking 0`.
 
 All three verified to apply and restore via `hyprctl eval` + `getoption`
 readback before being handed over.
+
+---
+
+## Rounds 4-6 — the drawer architecture (all operator-verified)
+
+### Smear (`a63788b`) — CLOSED
+
+`render:expand_undersized_textures` (default true) stretches a surface's
+existing texture to fill new geometry when the client has not yet committed a
+buffer at that size — i.e. every frame of an animated resize. Those stretched
+edge pixels were the smear. Found by elimination: `motion_blur` (already off,
+checked first *because* its name describes the symptom verbatim), then
+`blur:new_optimizations`, then `blur:xray`, then blur off entirely as a
+bisect, then this.
+
+### Weather jitter — CLOSED, after three wrong attempts
+
+The operator's observation closed it: *"only Performance ↔ Weather, and
+Performance has a different width."*
+
+`anchors.top: true` alone makes the compositor **horizontally centre** the
+surface, so any width change drags the whole surface sideways. 7210 samples of
+`hyprctl layers` (committed as `drawer-geometry-trace.txt`): x travelled
+875→735 = **140px, exactly the 280px width delta halved**. The centring is also
+non-atomic — `2x + w` held at rest but swung 2416–2599 mid-animation, the
+per-frame error oscillating ±11px. That oscillation was the jitter.
+
+Both earlier fixes made the *contents* stable relative to the surface. **The
+surface itself was what moved.**
+
+The final correction needed one more iteration: anchoring top+left+right fixed
+the width but let *height* animate, and the jitter returned. That isolated the
+real rule — **the surface must not resize on any axis** — so it is anchored on
+all four edges with no implicit size, and every motion happens in QML.
+
+### Three regressions from that refactor — all CLOSED
+
+- **Slid up from the bottom** (`dd9f81e`, `d1d9b54`): a `slide` on an
+  all-four-anchored surface has no edge to slide from. Layer rule → `fade`
+  (as `quickshell-session` already ships) with the drop-down done in QML.
+- **Content escaping the panel** (`dd9f81e`): a wl_surface clips implicitly;
+  a plain `Item` does not. `clip: true` restored what the surface boundary
+  used to provide for free.
+- **Dismiss too slow** (`da81f39`): measured — the surface unmaps in 38–42ms,
+  so the lag was the panel sitting *still* under a fade. Exit now mirrors the
+  entrance on the emphasized-out token pair, gated so the drawer is never
+  destroyed mid-animation (`PowerMenu._beginDismiss` pattern).
+
+### Media slowness (`d1d9b54`) — CLOSED
+
+Not the surface size. `Component.onCompleted: CavaService.claim()` **fork/execs
+`/usr/bin/cava`** on the first frame of the switch animation, followed by 60
+`ShapePath`s tessellating at 60fps. Window-creation latency was equal across
+tabs (23–36ms), which ruled out construction. The claim is deferred by one
+motion duration; the condition is unchanged, only its timing.
+
+### Non-uniform transition speed (`db35f2f`) — CLOSED
+
+Measured via a temporary IPC rig (since removed; the surface no longer reflects
+the panel size): Dashboard 760×826, Media 760×439, Performance 1040×448,
+Weather 760×502. Fixed 250ms over distances of 63–470px gave a **7.5× speed
+spread** across transitions (43× on the height axis alone).
+
+Duration now derives from distance, clamped to the 187–375ms token range.
+Five of six pairs land at 1278–1281 px/s — constant to within **0.3%** — with
+only the 63px Media↔Weather move hitting the floor by design.
+
+## Closing note
+
+Six of the seven fixes in this task were found by measurement; the three that
+went wrong all went wrong the same way — asserting a cause from a plausible
+mechanism instead of instrumenting first. The jitter in particular cost three
+attempts because each fix targeted the layer the *previous* symptom pointed at,
+and only a direct geometry trace showed the surface itself was moving.
 
