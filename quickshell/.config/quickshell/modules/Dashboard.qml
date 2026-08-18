@@ -102,8 +102,27 @@ PanelWindow {
     // must still sit clear of the bar's reserved zone, and Normal is what
     // makes the compositor hand back the 2510px span the panel centres in —
     // so the panel's resting x is unchanged at 875.
+    // ── REVISION (same task, after the first full-screen attempt) ───────
+    // The first cut anchored all four edges. That fixed the jitter but cost
+    // three things, all reported back immediately:
+    //   1. `animation = "slide"` (windowrules.lua) slid the drawer up from
+    //      the BOTTOM. A slide needs an unambiguous anchored edge to slide
+    //      from; with all four anchored there is none, so the compositor
+    //      picked one — not the top-edge dropdown this drawer is supposed to
+    //      have.
+    //   2. The surface grew from 760x439 to 2510x1430, so the compositor was
+    //      blurring and compositing a full-screen surface every frame while
+    //      the drawer was open. Worst on the heaviest tab.
+    //   3. (Separately: nothing clipped the pager any more — see `panel`.)
+    //
+    // Anchoring top+left+right instead keeps the property that actually
+    // fixed the jitter — the surface's WIDTH never changes, so the compositor
+    // never re-centres it — while giving back both of the above:
+    //   * a real top edge to slide from, so "slide" is a dropdown again;
+    //   * a surface only as tall as the drawer, not the whole screen.
+    // The height still animates, which is harmless: `anchors.top` pins the
+    // top edge, so growth extends downward and nothing moves sideways or up.
     anchors.top: true
-    anchors.bottom: true
     anchors.left: true
     anchors.right: true
 
@@ -184,8 +203,20 @@ PanelWindow {
     // needed a change to follow this resize.
     readonly property real drawerWidth: Math.max(drawerMinWidth, activeContentWidth + spacingLg * 2)
     readonly property real drawerHeight: Math.max(drawerMinHeight, tabBarHeight + activeContentHeight + spacingLg * 2)
-    // NOTE: these are no longer the window's own implicit size — the window
-    // spans the output. `panel` below consumes them as its animated size.
+    // Height is still the window's own, so the surface stays drawer-sized and
+    // keeps a top edge to slide from. WIDTH deliberately is NOT: a window
+    // whose width changes is exactly what the compositor re-centres, which is
+    // the jitter. `panel` below carries the width animation instead.
+    implicitHeight: drawerHeight
+
+    Behavior on implicitHeight {
+        enabled: Motion.motionEnabled
+        NumberAnimation {
+            duration: Motion.standardDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Motion.standardEasing
+        }
+    }
 
     // The width a tab's own root WILL have once the frame settles, published
     // for tabs that must lay their content out at the destination size rather
@@ -440,9 +471,20 @@ PanelWindow {
     Item {
         id: panel
         width: dashboardWindow.drawerWidth
-        height: dashboardWindow.drawerHeight
+        height: parent.height
         anchors.horizontalCenter: parent.horizontalCenter
         y: 0
+
+        // ── clip (reported: content appears outside the panel, then slides in)
+        // The drawer rectangle used to BE the wl_surface, and a Wayland
+        // surface physically cannot paint outside itself — so the pager's
+        // off-screen pages were clipped for free, by the window system. A
+        // plain Item has no such property: once the drawer became an Item
+        // inside a larger surface, SwipeView's incoming page rendered outside
+        // the drawer's bounds and was visible over the scrim before sliding
+        // in. That reads as a bug because it is one; this restores the clip
+        // the surface boundary used to provide implicitly.
+        clip: true
 
         Behavior on width {
             enabled: Motion.motionEnabled
@@ -452,14 +494,10 @@ PanelWindow {
                 easing.bezierCurve: Motion.standardEasing
             }
         }
-        Behavior on height {
-            enabled: Motion.motionEnabled
-            NumberAnimation {
-                duration: Motion.standardDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
-            }
-        }
+        // No Behavior on height: the panel fills the surface, and the
+        // surface's own implicitHeight already carries that animation. A
+        // second one here would animate the same value twice, at two
+        // different phases — the classic double-animation stutter.
 
     // ── Background (D-03/D-07): the window's own footprint IS the drawer
     //    rectangle — bottom-only rounding, translucent over the compositor
