@@ -527,6 +527,38 @@ Item {
                 // that formula with the padding subtraction already done.
                 readonly property real hourCellWidth: contentColumn.width / root.hourColumns
 
+                // ── Integer cell boundaries (quick task 260818-nwo, round 2)
+                // The formula above is the UI-SPEC's own, and it is
+                // FRACTIONAL for every column count except exactly 8:
+                // 664/8 = 83 but 664/6 = 110.667, 664/7 = 94.857,
+                // 664/9 = 73.778, 664/10 = 66.4. `hourColumns` is
+                // backend-driven, so the integer case is the exception, not
+                // the rule.
+                //
+                // A fractional cell width puts every cell at a fractional x,
+                // and each cell centres its content, so the glyphs inside
+                // land on fractional coordinates too. Qt then re-rasterises
+                // them at a different subpixel phase as the frame animates —
+                // which reads exactly as "the glyphs jitter left and right
+                // before settling into place", the residual reported after
+                // the width-pinning fix. Pinning the width could never fix
+                // this: the width was already constant, it was just not a
+                // whole number.
+                //
+                // Boundaries are rounded CUMULATIVELY rather than each width
+                // independently: cell i spans round(i*W/n) to round((i+1)*W/n).
+                // Every width is a whole number, every edge is a whole
+                // number, and they still sum to exactly W — whereas rounding
+                // each width on its own would drift the row's total by up to
+                // n/2 px and leave a ragged right edge.
+                function cellWidthAt(i) {
+                    var w = contentColumn.width;
+                    var n = root.hourColumns;
+                    if (n <= 0)
+                        return 0;
+                    return Math.round((i + 1) * w / n) - Math.round(i * w / n);
+                }
+
                 Row {
                     id: hourColumnsRow
                     width: parent.width
@@ -540,7 +572,7 @@ Item {
                         delegate: Item {
                             id: hourCell
                             required property int index
-                            width: hourStrip.hourCellWidth
+                            width: hourStrip.cellWidthAt(index)
                             height: hourCellColumn.height
                             readonly property var entry: (!root.showPlaceholder && root.weatherBackend.hourlyWindow && index < root.weatherBackend.hourlyWindow.length) ? root.weatherBackend.hourlyWindow[index] : null
 
@@ -614,6 +646,21 @@ Item {
 
                 readonly property real dayCellWidth: (contentColumn.width - (root.dayCells - 1) * root.spacingXs) / root.dayCells
 
+                // Same integer-boundary treatment as the hour strip above,
+                // and this row is the WORSE offender: its width is fractional
+                // unconditionally, not just for some counts —
+                // (664 - 4*4)/5 = 129.6 at every settled size this tab has.
+                // The available span excludes the inter-cell spacing, which
+                // the Row adds back as a whole number, so rounding within the
+                // span keeps every cell edge integral.
+                function cellWidthAt(i) {
+                    var avail = contentColumn.width - (root.dayCells - 1) * root.spacingXs;
+                    var n = root.dayCells;
+                    if (n <= 0)
+                        return 0;
+                    return Math.round((i + 1) * avail / n) - Math.round(i * avail / n);
+                }
+
                 Row {
                     id: dayColumnsRow
                     width: parent.width
@@ -627,7 +674,7 @@ Item {
                         delegate: Item {
                             id: dayCell
                             required property int index
-                            width: dayRow.dayCellWidth
+                            width: dayRow.cellWidthAt(index)
                             height: dayCellColumn.height
                             readonly property var entry: (!root.showPlaceholder && root.weatherBackend.dailyWindow && index < root.weatherBackend.dailyWindow.length) ? root.weatherBackend.dailyWindow[index] : null
 

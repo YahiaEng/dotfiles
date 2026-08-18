@@ -27,14 +27,9 @@
 # ── The assignment, and the measurement behind it ───────────────────────
 # `fish_color_command` defaults to `normal` — plain foreground — so a command
 # was never accented in the first place. It gets `primary`, the theme's
-# signature colour. Arguments are the highest-volume text on the line and the
-# thing originally reported as unreadable, so they get `on_surface`: measured
-# >= 4.5:1 against `background` in ALL 20 static palettes (worst 4.5,
-# tokyonight-day), the only class of role that clears AA everywhere.
-#
-# Command-vs-argument separation, measured as CIE76 dE across all 20 static
-# palettes: worst 13.2 (tokyonight-day), typical 25-88. Clearly two colours
-# in every theme, not a shade apart.
+# signature colour. Arguments get `tertiary` (see the note at that line for
+# the three candidates measured and why this one was chosen over the
+# AA-safe-everywhere alternative).
 #
 # Comments and autosuggestions deliberately use `outline`, a LOW-contrast
 # role: both are meant to recede, so the usual contrast floor does not apply
@@ -60,15 +55,31 @@
 set -g fish_color_command '{{colors.primary.default.hex}}'
 set -g fish_color_keyword '{{colors.primary.default.hex}}'
 
-# Arguments — the highest-volume text; the only AA-safe-everywhere role.
-set -g fish_color_param '{{colors.on_surface.default.hex}}'
+# Arguments — `tertiary`, operator-selected 2026-08-18 from three measured
+# candidates. The first pass used `on_surface` (plain foreground): AA-safe in
+# all 20 palettes, but that IS the default text colour, so arguments read as
+# undifferentiated body text and the command/argument distinction was reported
+# lost a second time. `tertiary` is the furthest of the available roles from
+# both the blue command and plain white — live dE 22.8 from `primary` and 21.8
+# from `on_surface`, at 10.9:1 against the background.
+#
+# Accepted trade-off, chosen with the numbers on the table: in the five light
+# palettes `tertiary` drops to ~2.96:1, below AA. That is the same pre-existing
+# light-palette accent weakness that already affects the shipped
+# `error`/`secondary`/`primary` slots there — not a new failure mode — and the
+# alternative that cleared AA everywhere (`on_primary_container`, worst 4.52:1)
+# was too close to plain white to solve the reported problem.
+set -g fish_color_param '{{colors.tertiary.default.hex}}'
 
 # Flags/options — distinct from a bare argument without competing with it.
 set -g fish_color_option '{{colors.secondary.default.hex}}'
 
-# Quoted strings and operators.
-set -g fish_color_quote '{{colors.tertiary.default.hex}}'
-set -g fish_color_operator '{{colors.tertiary.default.hex}}'
+# Quoted strings and operators — moved OFF `tertiary` when arguments took it,
+# so a quoted argument stays distinguishable from a bare one rather than both
+# collapsing to the same colour. `on_primary_container` is the soft tinted
+# off-white that clears AA in all 20 palettes (worst 4.52:1).
+set -g fish_color_quote '{{colors.on_primary_container.default.hex}}'
+set -g fish_color_operator '{{colors.on_primary_container.default.hex}}'
 set -g fish_color_redirection '{{colors.secondary.default.hex}}'
 set -g fish_color_end '{{colors.on_surface_variant.default.hex}}'
 
