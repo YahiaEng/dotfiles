@@ -84,6 +84,53 @@ PanelWindow {
     // Timed on `emphasized-out` (187ms), not `emphasized-in` (375ms): exits
     // are meant to be quicker than entrances, which is the whole reason the
     // motion language carries two separate token pairs.
+    // ── Constant-speed tab resize (quick task 260818-nwo) ───────────────
+    // Reported and then MEASURED: tab transitions were not uniform in speed.
+    // Every transition animated over the same fixed Motion.standardDuration
+    // (250ms) while the distances differ enormously — settled sizes are
+    // Dashboard 760x826, Media 760x439, Performance 1040x448, Weather 760x502,
+    // so adjacent transitions travel 387px, ~280px and ~285px, and the height
+    // alone ranges from 387px down to 9px. Fixed duration over variable
+    // distance means speed varies by up to 43x (1548 px/s vs 36 px/s), which
+    // is exactly what "some tabs fall faster than others" looks like.
+    //
+    // The duration is now derived from the distance, so px/ms is constant.
+    // CLAMPED to the motion language's own emphasized-out..emphasized-in range
+    // (187..375ms) rather than left unbounded: a strictly constant speed would
+    // render the 9px Media->Performance height change in ~7ms (indistinguish-
+    // able from a jump) and let a large change run past any duration the token
+    // set sanctions. Within the clamp the speed is constant; at the extremes
+    // it is bounded, which is the deliberate trade.
+    //
+    // The reference speed is expressed as a distance PER TOKEN, not as a
+    // literal ms figure, so the motion-scale axis (off/reduced/normal/lively)
+    // still governs it: at scale 'lively' standardDuration is 250ms and a
+    // 320px move takes exactly that; halve the scale and every transition
+    // speeds up with everything else in the shell.
+    readonly property real _resizeReferenceDistance: 320
+    readonly property real _resizeSpeedPxPerMs: _resizeReferenceDistance / Motion.standardDuration
+
+    // `_resizeFrom*` is the size the CURRENT animation started from. It is
+    // committed only when an animation finishes, which is what keeps
+    // `_resizeDuration` constant for the whole flight: during the animation
+    // neither the target nor the origin changes, so the binding does not
+    // re-evaluate and the running NumberAnimation is never re-timed
+    // mid-flight (which would distort its easing).
+    property real _resizeFromW: 0
+    property real _resizeFromH: 0
+    function _commitResizeOrigin() {
+        dashboardWindow._resizeFromW = panel.width;
+        dashboardWindow._resizeFromH = panel.height;
+    }
+    readonly property int _resizeDuration: {
+        var dw = dashboardWindow.drawerWidth - dashboardWindow._resizeFromW;
+        var dh = dashboardWindow.drawerHeight - dashboardWindow._resizeFromH;
+        var dist = Math.sqrt(dw * dw + dh * dh);
+        var raw = dist / dashboardWindow._resizeSpeedPxPerMs;
+        return Math.round(Math.max(Motion.emphasizedOutDuration,
+                                   Math.min(Motion.emphasizedInDuration, raw)));
+    }
+
     property bool _dismissing: false
     function _beginDismiss() {
         if (dashboardWindow._dismissing)
@@ -527,7 +574,10 @@ PanelWindow {
         property bool opened: false
         y: opened ? 0 : -height
         opacity: opened ? 1 : 0
-        Component.onCompleted: panel.opened = true
+        Component.onCompleted: {
+            dashboardWindow._commitResizeOrigin();
+            panel.opened = true;
+        }
 
         Behavior on y {
             enabled: Motion.motionEnabled
@@ -560,17 +610,19 @@ PanelWindow {
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: Motion.standardDuration
+                duration: dashboardWindow._resizeDuration
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: Motion.standardEasing
+                onRunningChanged: if (!running) dashboardWindow._commitResizeOrigin()
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: Motion.standardDuration
+                duration: dashboardWindow._resizeDuration
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: Motion.standardEasing
+                onRunningChanged: if (!running) dashboardWindow._commitResizeOrigin()
             }
         }
 
