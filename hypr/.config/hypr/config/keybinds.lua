@@ -99,6 +99,11 @@ hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("pkill walker")) -- Emergency: f
 -- name, then delegates to the single engine entrypoint,
 -- ~/.config/theme-engine/theme-apply, for all rendering + reload.
 hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("~/.config/hypr/scripts/theme-switch.sh")) -- Switch theme
+-- SUPER+SHIFT+T sits next to SUPER+T (theme) the same way SUPER+SHIFT+Z
+-- (icon theme) sits next to SUPER+Z (emoji) — free chord confirmed by a
+-- full grep of this file before this line was added (quick task
+-- 260818-srl, M-8 re-confirmed).
+hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("~/.config/hypr/scripts/fastfetch-logo-switch.sh")) -- Fastfetch logo picker
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/bar-orientation.sh")) -- Switch bar orientation
 -- BAR-01/D-02/D-37: the ONLY bind that can clear a persistent
 -- fullscreen/gaming-hide -- targets the owner's `keybind toggle` verb

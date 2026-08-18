@@ -21,11 +21,9 @@ if status is-interactive
     # `--logo <path>` argument. NEVER pass it raw — validate against the
     # enumerated art/sprite set first (fish's `contains`, not string
     # interpolation into a path) and fall back to themed ASCII on anything
-    # unrecognised. `random`/`none` are added by quick task 3 of this same
-    # plan; until then an unrecognised state value (including `random` or
-    # `none` picked before Task 3 exists) correctly falls through to the
-    # same themed-ASCII default below — "nothing may silently reach the
-    # stock builtin arch logo" holds even mid-rollout.
+    # unrecognised. "Nothing may silently reach the stock builtin arch
+    # logo" — the final fallback below is always themed ASCII (arch), even
+    # for an unrecognised state value.
     set -l ff_ascii_arts arch star satan_cross cyberpunk_mask illuminati
     set -l ff_sprite_names pulse sweep glitch scan assemble orbit
     set -l ff_state (cat $HOME/.local/state/theme/fastfetch-logo 2>/dev/null)
@@ -38,10 +36,27 @@ if status is-interactive
         set ff_in_kitty 1
     end
 
+    # "random" re-rolls the actual pick into ff_state itself, BEFORE the
+    # validation chain below — everything downstream (including the
+    # kitty-capability/GIF-readable gate on a sprite pick) still applies to
+    # whatever random landed on, so a randomly-picked sprite outside kitty
+    # still correctly degrades to themed ASCII rather than skipping that
+    # check.
+    if test "$ff_state" = random
+        if test "$ff_in_kitty" -eq 1
+            set ff_state (random choice $ff_sprite_names)
+        else
+            set ff_state (random choice $ff_ascii_arts)
+        end
+    end
+
     set -l ff_logo_type file
     set -l ff_logo_path "$HOME/.config/fastfetch/art/arch.txt"
 
-    if contains -- "$ff_state" $ff_ascii_arts
+    if test "$ff_state" = none
+        set ff_logo_type none
+        set ff_logo_path ""
+    else if contains -- "$ff_state" $ff_ascii_arts
         set ff_logo_type file
         set ff_logo_path "$HOME/.config/fastfetch/art/$ff_state.txt"
     else if contains -- "$ff_state" $ff_sprite_names
@@ -66,10 +81,17 @@ if status is-interactive
         # colour when stdout is a pipe; without this flag every colour
         # this template renders is silently stripped before box-close.awk
         # ever sees a byte.
-        fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
-            --logo-type $ff_logo_type --logo $ff_logo_path \
-            --pipe false \
-            | awk -f $HOME/.config/fastfetch/box-close.awk
+        if test "$ff_logo_type" = none
+            fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
+                --logo-type none \
+                --pipe false \
+                | awk -f $HOME/.config/fastfetch/box-close.awk
+        else
+            fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
+                --logo-type $ff_logo_type --logo $ff_logo_path \
+                --pipe false \
+                | awk -f $HOME/.config/fastfetch/box-close.awk
+        end
     else
         fastfetch
     end

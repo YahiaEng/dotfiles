@@ -664,6 +664,16 @@ ACCEPTED_ADDITIONS = {
     # (captured 2026-08-08); it is new config, not drifted config.
     ("", 64, "SUPER_L", False):
         "Phase 18 QBAR-09 hold-to-reveal bar (keybinds.lua:134)",
+    # Quick task 260818-srl: fastfetch logo picker, declared at
+    # keybinds.lua:106 as
+    # `hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("~/.config/hypr/scripts/fastfetch-logo-switch.sh"))`.
+    # Sits next to SUPER+T (theme-switch) the same way SUPER+SHIFT+Z sits
+    # next to SUPER+Z — no baseline bind was removed for it, so it reads
+    # here purely as an addition. modmask=65 confirmed live via
+    # `hyprctl -j binds` (SUPER=64 | SHIFT=1). Post-dates this baseline
+    # (captured 2026-08-08); it is new config, not drifted config.
+    ("", 65, "T", False):
+        "Quick task 260818-srl fastfetch logo picker (keybinds.lua:106)",
     # Phase 21 (QMEDIA-01) open-dashboard-on-Media-tab, declared at
     # keybinds.lua:243 as
     # `hl.bind(mainMod .. " + M", hl.dsp.global("quickshell:media"))`.
