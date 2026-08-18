@@ -51,3 +51,13 @@ verify/cache/
 vscodium/.local/share/applications/*
 !vscodium/.local/share/applications/codium.desktop
 !vscodium/.local/share/applications/claude-code-url-handler.desktop
+
+# Python bytecode cache (260818-u6v). theme-engine/lib/fastfetch-sprites.py is
+# this repo's first Python file, and theme-engine/lib is stow-symlinked to
+# ~/.config/theme-engine/lib — so anything that *imports* the module (rather
+# than exec'ing it, which is what theme_engine_fastfetch_regen does via
+# `python3 "$FASTFETCH_SPRITES_PY"`) drops a __pycache__/ straight into this
+# repo and trips theme-doctor's clean-tree gate. A py_compile syntax check
+# does exactly that. Never repo content.
+__pycache__/
+*.pyc
