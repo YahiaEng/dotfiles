@@ -238,7 +238,17 @@ hl.layer_rule({ match = { namespace = "walker" }, blur = true })
 -- verified fact) — D-20's whole point is that the drawer's open/close
 -- motion is already on the shared token axis without this file carrying a
 -- number.
-hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, animation = "slide" })
+-- animation = "fade", NOT "slide" (quick task 260818-nwo). The dashboard
+-- surface is now full-screen and never resizes — that is what stopped the
+-- compositor re-centring/reconfiguring it every frame, which was the weather
+-- tab jitter. A `slide` on a surface anchored to all four edges has no
+-- unambiguous edge to slide from, and the compositor picked the bottom: the
+-- drawer flew UP from the bottom of the screen instead of dropping from the
+-- top. Fading the surface and doing the directional motion in QML (see
+-- Dashboard.qml's `panel.opened`) puts the edge where it is explicit.
+-- Same choice, for the same reason, as quickshell-session below (line ~579),
+-- which is the other full-screen surface in this shell.
+hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, animation = "fade" })
 -- Phase 15's standalone panels (D-15-02's accepted cost: destroy-then-
 -- summon is two animations rather than one morph, tuned here). Exact-match
 -- only, same reasoning as the drawer's own rule above — each panel picks

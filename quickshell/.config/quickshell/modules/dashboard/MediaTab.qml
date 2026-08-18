@@ -343,8 +343,42 @@ Item {
     // Deliberately NOT gated on playback state (no `isPlaying` term
     // anywhere in this file): pausing must not release the claim, per
     // the same appendix.
-    Component.onCompleted: CavaService.claim()
-    Component.onDestruction: CavaService.release()
+    //
+    // ── DEFERRED claim (quick task 260818-nwo) ──────────────────────────
+    // Reported: switching to the Media tab is noticeably slower than to any
+    // other tab. `claim()` sets `cavaProcess.running = true`, i.e. it
+    // FORK/EXECs /usr/bin/cava — and on `Component.onCompleted` that lands on
+    // the first frame of the tab-change animation, alongside constructing the
+    // largest tab in the drawer. The 60-bar ring then begins tessellating 60
+    // ShapePaths at cava's own 60fps (cava/.config/cava/config: bars = 60,
+    // framerate = 60) while the animation is still running.
+    //
+    // The claim is delayed by one standard motion duration so the process
+    // spawn and the first visualiser frames land AFTER the transition rather
+    // than inside it. Nothing about the claim CONDITION changes — this is
+    // still "the Media tab is genuinely visible", just not "during the frame
+    // where it became visible". CavaService's own 5s linger already means a
+    // return visit inside that window re-uses the running process and never
+    // pays the spawn at all.
+    //
+    // `_claimed` guards the release: switching away before the timer fires
+    // destroys this component with no claim outstanding, and an unmatched
+    // release() would decrement a claim that was never taken.
+    property bool _claimed: false
+    Timer {
+        id: cavaClaimDelay
+        interval: Motion.standardDuration
+        repeat: false
+        running: true
+        onTriggered: {
+            CavaService.claim();
+            root._claimed = true;
+        }
+    }
+    Component.onDestruction: {
+        if (root._claimed)
+            CavaService.release();
+    }
 
     // ── Constants mirrored from 14-UI-SPEC.md (see header comment above —
     //    this file cannot reach dashboardWindow's copies). ────────────────

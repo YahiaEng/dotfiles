@@ -122,7 +122,25 @@ PanelWindow {
     //   * a surface only as tall as the drawer, not the whole screen.
     // The height still animates, which is harmless: `anchors.top` pins the
     // top edge, so growth extends downward and nothing moves sideways or up.
+    // ── REVISION 2 — the surface must never resize AT ALL ───────────────
+    // Revision 1 anchored top+left+right so `slide` would have a top edge to
+    // drop from. Width stayed fixed (verified: w=2510, x=0 on every tab), so
+    // the compositor never re-centred — but the jitter came straight back,
+    // because HEIGHT then animated, and an animating layer surface is
+    // re-configured, re-buffered and re-rendered every single frame.
+    //
+    // Measured: revision 1 gave w=2510 constant with h=502 vs 439 per tab —
+    // so the returning jitter was NOT re-centring (x never moved). The one
+    // property the jitter-free version had and revision 1 gave up is simply:
+    // the surface never changed size on any axis.
+    //
+    // So: all four edges, fixed extent, zero resizes for the surface's whole
+    // lifetime. EVERY motion — the drop-down entrance and the per-tab resize
+    // — happens inside QML, on `panel`, where it is a scene-graph transform
+    // rather than a Wayland reconfigure. That is what the reference shells do
+    // and what PowerMenu.qml already does here.
     anchors.top: true
+    anchors.bottom: true
     anchors.left: true
     anchors.right: true
 
@@ -203,20 +221,8 @@ PanelWindow {
     // needed a change to follow this resize.
     readonly property real drawerWidth: Math.max(drawerMinWidth, activeContentWidth + spacingLg * 2)
     readonly property real drawerHeight: Math.max(drawerMinHeight, tabBarHeight + activeContentHeight + spacingLg * 2)
-    // Height is still the window's own, so the surface stays drawer-sized and
-    // keeps a top edge to slide from. WIDTH deliberately is NOT: a window
-    // whose width changes is exactly what the compositor re-centres, which is
-    // the jitter. `panel` below carries the width animation instead.
-    implicitHeight: drawerHeight
-
-    Behavior on implicitHeight {
-        enabled: Motion.motionEnabled
-        NumberAnimation {
-            duration: Motion.standardDuration
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.standardEasing
-        }
-    }
+    // No implicitWidth/implicitHeight: the surface takes its extent from the
+    // four anchors and never resizes. `panel` carries both size animations.
 
     // The width a tab's own root WILL have once the frame settles, published
     // for tabs that must lay their content out at the destination size rather
@@ -471,9 +477,41 @@ PanelWindow {
     Item {
         id: panel
         width: dashboardWindow.drawerWidth
-        height: parent.height
+        height: dashboardWindow.drawerHeight
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 0
+
+        // ── Drop-down entrance, in QML (reported: Super+D slid up from the
+        //    bottom) ────────────────────────────────────────────────────────
+        // With a full-screen surface the compositor's own `slide` has no
+        // unambiguous edge to slide from and picked the bottom. Rather than
+        // fight it, the layer rule is now `animation = "fade"` — exactly what
+        // the equally full-screen PowerMenu uses (windowrules.lua:579) — and
+        // the directional motion is done here, where the edge is explicit.
+        //
+        // The drawer is created fresh by a LazyLoader on every summon (D-14),
+        // so `Component.onCompleted` IS the open event; there is no reopen
+        // case to reset.
+        property bool opened: false
+        y: opened ? 0 : -height
+        opacity: opened ? 1 : 0
+        Component.onCompleted: panel.opened = true
+
+        Behavior on y {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.emphasizedInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.emphasizedInEasing
+            }
+        }
+        Behavior on opacity {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.emphasizedInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.emphasizedInEasing
+            }
+        }
 
         // ── clip (reported: content appears outside the panel, then slides in)
         // The drawer rectangle used to BE the wl_surface, and a Wayland
@@ -494,10 +532,14 @@ PanelWindow {
                 easing.bezierCurve: Motion.standardEasing
             }
         }
-        // No Behavior on height: the panel fills the surface, and the
-        // surface's own implicitHeight already carries that animation. A
-        // second one here would animate the same value twice, at two
-        // different phases — the classic double-animation stutter.
+        Behavior on height {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
 
     // ── Background (D-03/D-07): the window's own footprint IS the drawer
     //    rectangle — bottom-only rounding, translucent over the compositor
