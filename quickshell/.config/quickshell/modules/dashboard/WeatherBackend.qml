@@ -52,11 +52,23 @@
 // fields, the two hourly fields, the five daily fields, `timezone=auto`,
 // `forecast_days` bound to `forecastDays`, and all three unit parameters
 // derived from the three state-file keys (metric is the fall-through for
-// any unrecognised unit string). No OPT-OUT row is present: no geocoding,
-// no location-lookup fallback of any kind, no sub-hourly block, no alerts,
-// no air quality, no archive, no model selection, no API key. The rule is
-// named here without naming a lookup-service host, so a grep for one stays
-// meaningful (acceptance criteria assert this by counting matches).
+// any unrecognised unit string). The forecast fence still holds: this file
+// is the ONE place a WEATHER request may be issued, and `forecastEndpoint`
+// is the only Open-Meteo host reference under `quickshell/`. The surviving
+// OPT-OUT items: no sub-hourly block, no alerts, no air quality, no
+// archive, no model selection, no API key.
+//
+// ── CORRECTED (quick task 260818-v3m) ────────────────────────────────────
+// This paragraph used to assert that no location lookup of any kind existed
+// anywhere in this tree. That claim is now false, and the fix is a
+// deliberate, recorded REVERSAL of the Phase-14 plan-time criterion above —
+// not drift. The rule is now one host per fenced file: a reverse geocode is
+// issued from `GeocodeBackend.qml`, a sibling registered in
+// `modules/dashboard/qmldir`, and that file is the only place its own host
+// appears — see its own header for the full privacy/rate-policy rationale.
+// Geocoding is no longer among this file's OPT-OUT items; do not read it
+// back into that list. The operator's coordinates now reach a SECOND host
+// as a direct result of this task.
 //
 // ── Coordinate validation (T-14-03) ─────────────────────────────────────
 // `lat`/`lon` are received as raw JSON values (`property var` inside the
@@ -150,6 +162,12 @@ Scope {
             property string units_temp: "metric"
             property string units_wind: "metric"
             property string units_precip: "metric"
+            // Quick task 260818-v3m — OPTIONAL manual override. Hand-
+            // editable only: deliberately absent from stow.sh's seed (this
+            // task does not touch a contract-registered seed file). When
+            // set, it wins outright over the geocode/timezone chain below
+            // and NO geocode request is issued at all.
+            property string city: ""
         }
     }
 
@@ -158,6 +176,14 @@ Scope {
     readonly property alias unitsTemp: state.units_temp
     readonly property alias unitsWind: state.units_wind
     readonly property alias unitsPrecip: state.units_precip
+    // Raw alias mirroring the pattern above exactly — this is what lets
+    // `onCityChanged` below fire the same way `onLatChanged` etc. already
+    // do. `cityOverride` (below) is the trimmed, public-facing value
+    // everything else reads.
+    readonly property alias city: state.city
+    // Quick task 260818-v3m — trimmed optional override, see JsonAdapter's
+    // own comment above.
+    readonly property string cityOverride: String(state.city).trim()
 
     // ── T-14-03 mitigation: validate before constructing anything ───────
     readonly property bool coordsValid: {
@@ -191,6 +217,13 @@ Scope {
     onUnitsTempChanged: root._revalidateAgainstSettings()
     onUnitsWindChanged: root._revalidateAgainstSettings()
     onUnitsPrecipChanged: root._revalidateAgainstSettings()
+    // Quick task 260818-v3m — same pattern as the five handlers above: a
+    // hand-edit to the override key routes through the single
+    // _revalidateAgainstSettings() chokepoint below (which already drives
+    // the geocode chain's own resolver — see its documented call sites,
+    // "no third call site" by design) rather than adding a second, direct
+    // call site here.
+    onCityChanged: root._revalidateAgainstSettings()
 
     // ── Published request/response state ────────────────────────────────
     property bool requestInFlight: false
@@ -212,6 +245,11 @@ Scope {
     property string _cachedUnitsTemp: ""
     property string _cachedUnitsWind: ""
     property string _cachedUnitsPrecip: ""
+    // Quick task 260818-v3m — the reverse-geocoded city, cached alongside
+    // the forecast. Cleared by the SAME coordinate-change invalidation
+    // that clears the payload below (_revalidateAgainstSettings()) — no
+    // second coordinate-change detector.
+    property string _cachedCity: ""
 
     // Advances only while the drawer is open (clockTimer below) — both the
     // age badge and the eight-hour window read this, never Date.now()
@@ -261,9 +299,18 @@ Scope {
             root.hasPayload = false;
             root.payload = null;
             root.fetchedAtMs = 0;
+            // Quick task 260818-v3m — this IS the "once per coordinate
+            // change" trigger for the geocode chain (no second detector):
+            // a city resolved for DIFFERENT coordinates is wrong, not
+            // stale, exactly like the payload beside it. Abort the child's
+            // own outstanding request too — a stale in-flight response
+            // must never resolve into the new coordinates' cached city.
+            root._cachedCity = "";
+            geocoder.abort();
         }
         if (root.drawerOpen)
             root.fetchIfStale();
+        root._resolveCityIfNeeded();
     }
 
     // ── The request (D-29, COVERAGE.md) ─────────────────────────────────
@@ -403,6 +450,12 @@ Scope {
             root._cachedUnitsTemp = obj.units.temp;
             root._cachedUnitsWind = obj.units.wind;
             root._cachedUnitsPrecip = obj.units.precip;
+            // Quick task 260818-v3m — `city` is OPTIONAL in the shape
+            // check above: every cache written before today lacks it, and
+            // adding it to the mandatory-key test would discard every
+            // pre-existing cache wholesale.
+            if (typeof obj.city === "string" && obj.city !== "")
+                root._cachedCity = obj.city;
             root._revalidateAgainstSettings();
         } catch (e) {
             console.log("WeatherBackend: cache parse failed: " + e);
@@ -423,9 +476,52 @@ Scope {
                 wind: root.unitsWind,
                 precip: root.unitsPrecip
             },
-            payload: root.payload
+            payload: root.payload,
+            city: root._cachedCity
         };
         cacheFile.setText(JSON.stringify(obj));
+    }
+
+    // ── The reverse-geocode chain (quick task 260818-v3m) ───────────────
+    // Ordinary (non-singleton) child instance — GeocodeBackend has exactly
+    // one consumer, this file, and needs `drawerOpen`/`coordsValid` handed
+    // straight down; a shell-root mount would add a shell.qml binding for
+    // zero benefit (see GeocodeBackend.qml's own header).
+    GeocodeBackend {
+        id: geocoder
+        drawerOpen: root.drawerOpen
+        lat: root.lat
+        lon: root.lon
+        coordsValid: root.coordsValid
+        onResolved: (city) => {
+            root._cachedCity = city;
+            // writeCache() serialises root.payload — writing a null
+            // payload would produce a cache that fails its own shape
+            // check on the next load. If the geocode lands first, the
+            // following applyResponse() persists the city anyway.
+            if (root.hasPayload)
+                root.writeCache();
+        }
+    }
+
+    // The single place `geocoder.resolve()` may be called from. Guards, in
+    // order: drawer must be open; coordinates must be valid; the manual
+    // override (if any) short-circuits the network entirely; already-known
+    // for these coordinates short-circuits it too. Called from exactly two
+    // places — beside the existing `fetchIfStale()` call in
+    // `_revalidateAgainstSettings()`, and beside the one in
+    // `onDrawerOpenChanged`'s open branch. No new timer, no new signal, no
+    // third call site.
+    function _resolveCityIfNeeded() {
+        if (!root.drawerOpen)
+            return;
+        if (!root.coordsValid)
+            return;
+        if (root.cityOverride !== "")
+            return;
+        if (root._cachedCity !== "")
+            return;
+        geocoder.resolve();
     }
 
     // ── Refresh policy (D-32) — timers exist only while the drawer is
@@ -435,6 +531,7 @@ Scope {
         if (root.drawerOpen) {
             root.nowMs = Date.now();
             root.fetchIfStale();
+            root._resolveCityIfNeeded();
         } else {
             if (root._currentXhr) {
                 try {
@@ -677,5 +774,48 @@ Scope {
             });
         }
         return out;
+    }
+
+    // ── The eyebrow's resolution chain (quick task 260818-v3m) ──────────
+    // Free, zero-network fallback: `timezone=auto` is already in
+    // buildRequestUrl(), so every response carries `payload.timezone`
+    // (e.g. "Africa/Cairo"). Last "/" segment with every "_" replaced by a
+    // space is a usable name with no network at all.
+    function _cityFromTimezone() {
+        if (!root.hasPayload || !root.payload || typeof root.payload.timezone !== "string" || root.payload.timezone.trim() === "")
+            return "";
+        var parts = root.payload.timezone.split("/");
+        return parts[parts.length - 1].replace(/_/g, " ").trim();
+    }
+
+    // Resolution order, first hit wins: manual override -> geocoded
+    // (cached) -> timezone fallback -> nothing (no placeholder dash —
+    // the eyebrow simply does not render).
+    readonly property string cityLabel: {
+        if (root.cityOverride !== "")
+            return root.cityOverride;
+        if (root._cachedCity !== "")
+            return root._cachedCity;
+        var tz = root._cityFromTimezone();
+        if (tz !== "")
+            return tz;
+        return "";
+    }
+
+    // Not decoration: the timezone fallback and the geocode return the
+    // SAME string for this operator ("Africa/Cairo" -> "Cairo"), so
+    // without this there is no way to tell which path actually ran.
+    readonly property string cityLabelSource: {
+        if (root.cityOverride !== "")
+            return "override";
+        if (root._cachedCity !== "")
+            return "geocoded";
+        if (root._cityFromTimezone() !== "")
+            return "timezone";
+        return "";
+    }
+
+    onCityLabelSourceChanged: {
+        console.log("WeatherBackend: cityLabelSource = " + root.cityLabelSource);
     }
 }

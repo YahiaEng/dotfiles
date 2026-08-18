@@ -3,15 +3,16 @@
 // ── The one-host-per-fenced-file rule ────────────────────────────────────
 // This is the ONE place in the repository from which a reverse-geocode
 // request may be issued. `WeatherBackend.qml` remains the one place a
-// forecast request may be issued, against a DIFFERENT host
-// (`api.open-meteo.com`). The fence that used to read "no location lookup
-// of any kind exists in this tree" is now "one host per fenced file" — this
-// file carries the reverse-geocode host and nothing else does; see
-// `WeatherBackend.qml`'s own header for its half of this correction.
+// forecast request may be issued, against its own DIFFERENT Open-Meteo
+// host (see that file's `forecastEndpoint`). The fence that used to read
+// "no location lookup of any kind exists in this tree" is now "one host
+// per fenced file" — this file carries the reverse-geocode host and
+// nothing else does; see `WeatherBackend.qml`'s own header for its half of
+// this correction.
 //
 // ── Privacy ───────────────────────────────────────────────────────────────
 // The operator's coordinates now reach a SECOND host, `nominatim.
-// openstreetmap.org`, in addition to `api.open-meteo.com`. That is a real
+// openstreetmap.org`, in addition to the forecast host. That is a real
 // change from the previous single-host design and is stated here plainly,
 // not buried: every reverse-geocode request sends `lat`/`lon` to the OSM
 // Foundation's Nominatim instance.
@@ -148,20 +149,29 @@ Scope {
         return "";
     }
 
+    // Abandon any outstanding request — used both when the drawer closes
+    // (below) and by the parent when the coordinates change underneath an
+    // in-flight lookup (WeatherBackend.qml's `_revalidateAgainstSettings()`
+    // mismatch branch): a stale response resolving after that point would
+    // otherwise land against the NEW coordinates' cache as if it were a
+    // fresh answer.
+    function abort() {
+        if (root._currentXhr) {
+            try {
+                root._currentXhr.abort();
+            } catch (e) {
+                // already finished/aborted — nothing to do
+            }
+            root._currentXhr = null;
+        }
+        root.requestInFlight = false;
+    }
+
     // Zero idle footprint (D-32) — abandon any outstanding request the
     // instant the drawer closes rather than leave it to resolve against a
     // torn-down consumer, exactly as the parent does for its own request.
     onDrawerOpenChanged: {
-        if (!root.drawerOpen) {
-            if (root._currentXhr) {
-                try {
-                    root._currentXhr.abort();
-                } catch (e) {
-                    // already finished/aborted — nothing to do
-                }
-                root._currentXhr = null;
-            }
-            root.requestInFlight = false;
-        }
+        if (!root.drawerOpen)
+            root.abort();
     }
 }
