@@ -285,6 +285,68 @@ Scope {
             && root._cachedUnitsPrecip === root.unitsPrecip;
     }
 
+    // ── DECLARATION ORDER IS LOAD-BEARING (quick task 260819-426) ───────
+    // The geocoder child and `_resolveCityIfNeeded()` are declared HERE,
+    // above `_revalidateAgainstSettings()`, because that function calls
+    // the resolver and is itself reached during construction — the state
+    // FileView's load path runs `loadCache()` -> `_revalidateAgainstSettings()`
+    // before members declared further down the file exist on the object.
+    // With them declared ~200 lines below the call site, every single
+    // invocation threw:
+    //
+    //   TypeError: Property '_resolveCityIfNeeded' of object
+    //   WeatherBackend_QMLTYPE_21 is not a function
+    //
+    // (read from ~/.cache/quickshell.log, the launcher's sink — the
+    // systemd unit journals nothing, so this class of error is INVISIBLE
+    // to `journalctl --user -u quickshell`.)
+    //
+    // The visible symptom was not an error but a plausible wrong answer:
+    // the geocode never ran, `city` stayed empty, and the chain fell
+    // through to the timezone fallback — which prints "Cairo" for
+    // Africa/Cairo whether the coordinates are Cairo's or Alexandria's.
+    // Do not move these back down.
+    // Ordinary (non-singleton) child instance — GeocodeBackend has exactly
+    // one consumer, this file, and needs `drawerOpen`/`coordsValid` handed
+    // straight down; a shell-root mount would add a shell.qml binding for
+    // zero benefit (see GeocodeBackend.qml's own header).
+    GeocodeBackend {
+        id: geocoder
+        drawerOpen: root.drawerOpen
+        lat: root.lat
+        lon: root.lon
+        coordsValid: root.coordsValid
+        onResolved: (city) => {
+            root._cachedCity = city;
+            // writeCache() serialises root.payload — writing a null
+            // payload would produce a cache that fails its own shape
+            // check on the next load. If the geocode lands first, the
+            // following applyResponse() persists the city anyway.
+            if (root.hasPayload)
+                root.writeCache();
+        }
+    }
+
+    // The single place `geocoder.resolve()` may be called from. Guards, in
+    // order: drawer must be open; coordinates must be valid; the manual
+    // override (if any) short-circuits the network entirely; already-known
+    // for these coordinates short-circuits it too. Called from exactly two
+    // places — beside the existing `fetchIfStale()` call in
+    // `_revalidateAgainstSettings()`, and beside the one in
+    // `onDrawerOpenChanged`'s open branch. No new timer, no new signal, no
+    // third call site.
+    function _resolveCityIfNeeded() {
+        if (!root.drawerOpen)
+            return;
+        if (!root.coordsValid)
+            return;
+        if (root.cityOverride !== "")
+            return;
+        if (root._cachedCity !== "")
+            return;
+        geocoder.resolve();
+    }
+
     function _revalidateAgainstSettings() {
         // Never invalidate against a state file that hasn't loaded yet —
         // `lat`/`lon` still sitting at their declared `null` default is
@@ -483,46 +545,7 @@ Scope {
     }
 
     // ── The reverse-geocode chain (quick task 260818-v3m) ───────────────
-    // Ordinary (non-singleton) child instance — GeocodeBackend has exactly
-    // one consumer, this file, and needs `drawerOpen`/`coordsValid` handed
-    // straight down; a shell-root mount would add a shell.qml binding for
-    // zero benefit (see GeocodeBackend.qml's own header).
-    GeocodeBackend {
-        id: geocoder
-        drawerOpen: root.drawerOpen
-        lat: root.lat
-        lon: root.lon
-        coordsValid: root.coordsValid
-        onResolved: (city) => {
-            root._cachedCity = city;
-            // writeCache() serialises root.payload — writing a null
-            // payload would produce a cache that fails its own shape
-            // check on the next load. If the geocode lands first, the
-            // following applyResponse() persists the city anyway.
-            if (root.hasPayload)
-                root.writeCache();
-        }
-    }
 
-    // The single place `geocoder.resolve()` may be called from. Guards, in
-    // order: drawer must be open; coordinates must be valid; the manual
-    // override (if any) short-circuits the network entirely; already-known
-    // for these coordinates short-circuits it too. Called from exactly two
-    // places — beside the existing `fetchIfStale()` call in
-    // `_revalidateAgainstSettings()`, and beside the one in
-    // `onDrawerOpenChanged`'s open branch. No new timer, no new signal, no
-    // third call site.
-    function _resolveCityIfNeeded() {
-        if (!root.drawerOpen)
-            return;
-        if (!root.coordsValid)
-            return;
-        if (root.cityOverride !== "")
-            return;
-        if (root._cachedCity !== "")
-            return;
-        geocoder.resolve();
-    }
 
     // ── Refresh policy (D-32) — timers exist only while the drawer is
     //    open, and any outstanding request is abandoned the instant it
