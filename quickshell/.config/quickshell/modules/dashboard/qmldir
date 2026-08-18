@@ -59,6 +59,11 @@
 # `QuickToggles.qml` so a second grid instance (Plan 19-06's centre footer)
 # cannot drift from the drawer's own. Same both-required `pragma Singleton`
 # + qmldir `singleton` keyword discipline as `Design`/`WeatherPalette` above.
+#
+# Quick task 260818-v3m adds a fifteenth type, not a singleton:
+# `GeocodeBackend`, the second fenced host (reverse-geocode, nominatim.
+# openstreetmap.org) — one ordinary instance, owned by `WeatherBackend.qml`
+# as a plain child, not mounted at shell root (exactly one consumer).
 module qs.modules.dashboard
 singleton Design 1.0 Design.qml
 singleton WeatherPalette 1.0 WeatherPalette.qml
@@ -69,6 +74,7 @@ PerformanceTab 1.0 PerformanceTab.qml
 WeatherTab 1.0 WeatherTab.qml
 MediaBackend 1.0 MediaBackend.qml
 WeatherBackend 1.0 WeatherBackend.qml
+GeocodeBackend 1.0 GeocodeBackend.qml
 SystemResources 1.0 SystemResources.qml
 QuickToggles 1.0 QuickToggles.qml
 Dial 1.0 Dial.qml
