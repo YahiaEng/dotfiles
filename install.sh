@@ -89,6 +89,15 @@ PACMAN_PKGS=(
     fzf
     chafa
     imagemagick
+    # python-pillow: fastfetch-sprites.py's Pillow dependency (quick task
+    # 260818-srl). Official `extra`-repo pacman package, confirmed via
+    # `pacman -Si python-pillow` before this line was added — not AUR, no
+    # build recipe (T-srl-04). Without it a fresh install silently gets
+    # ASCII-only fastfetch logos forever, with no diagnostic (the fish
+    # selector degrades gracefully to themed ASCII when a sprite GIF is
+    # missing, per its own T-srl-01 validation — but the sprite feature
+    # itself would never work).
+    python-pillow
     jq
     psmisc
     rsync

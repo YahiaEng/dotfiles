@@ -19,18 +19,41 @@ if status is-interactive
     #
     # T-srl-01 (Tampering/Elevation): the state file's content becomes a
     # `--logo <path>` argument. NEVER pass it raw — validate against the
-    # enumerated art set first (fish's `contains`, not string interpolation
-    # into a path) and fall back to themed ASCII on anything unrecognised.
-    # Sprite names and `random`/`none` are added by quick tasks 2 and 3 of
-    # this same plan; until then an unrecognised state value (including a
-    # sprite name picked before Task 2 exists) correctly falls through to
-    # the same themed-ASCII default below — "nothing may silently reach
-    # the stock builtin arch logo" holds even mid-rollout.
+    # enumerated art/sprite set first (fish's `contains`, not string
+    # interpolation into a path) and fall back to themed ASCII on anything
+    # unrecognised. `random`/`none` are added by quick task 3 of this same
+    # plan; until then an unrecognised state value (including `random` or
+    # `none` picked before Task 3 exists) correctly falls through to the
+    # same themed-ASCII default below — "nothing may silently reach the
+    # stock builtin arch logo" holds even mid-rollout.
     set -l ff_ascii_arts arch star satan_cross cyberpunk_mask illuminati
+    set -l ff_sprite_names pulse sweep glitch scan assemble orbit
     set -l ff_state (cat $HOME/.local/state/theme/fastfetch-logo 2>/dev/null)
-    set -l ff_logo arch
+
+    # Real kitty-graphics capability check, not a guess — mirrors the
+    # `[[ -n "${KITTY_WINDOW_ID:-}" ]] && command -v kitten` idiom
+    # icon-theme-picker.sh:273 already uses (measured reliable there).
+    set -l ff_in_kitty 0
+    if test -n "$KITTY_WINDOW_ID"; and command -v kitten >/dev/null 2>&1
+        set ff_in_kitty 1
+    end
+
+    set -l ff_logo_type file
+    set -l ff_logo_path "$HOME/.config/fastfetch/art/arch.txt"
+
     if contains -- "$ff_state" $ff_ascii_arts
-        set ff_logo "$ff_state"
+        set ff_logo_type file
+        set ff_logo_path "$HOME/.config/fastfetch/art/$ff_state.txt"
+    else if contains -- "$ff_state" $ff_sprite_names
+        set -l ff_gif "$HOME/.local/state/theme/fastfetch/$ff_state.gif"
+        # A sprite is selected ONLY if kitty's graphics protocol is
+        # actually available AND its GIF exists and is readable —
+        # otherwise themed ASCII (arch), never the sprite path and never
+        # the builtin logo.
+        if test "$ff_in_kitty" -eq 1; and test -r "$ff_gif"
+            set ff_logo_type kitty-icat
+            set ff_logo_path "$ff_gif"
+        end
     end
 
     # Fresh-install degradation: no theme-apply has ever rendered
@@ -44,7 +67,7 @@ if status is-interactive
         # this template renders is silently stripped before box-close.awk
         # ever sees a byte.
         fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
-            --logo-type file --logo $HOME/.config/fastfetch/art/$ff_logo.txt \
+            --logo-type $ff_logo_type --logo $ff_logo_path \
             --pipe false \
             | awk -f $HOME/.config/fastfetch/box-close.awk
     else

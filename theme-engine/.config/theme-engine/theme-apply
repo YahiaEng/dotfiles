@@ -28,6 +28,8 @@ source "$LIB_DIR/gtk.sh"
 source "$LIB_DIR/wallpaper.sh"
 # shellcheck source=lib/reload.sh
 source "$LIB_DIR/reload.sh"
+# shellcheck source=lib/fastfetch.sh
+source "$LIB_DIR/fastfetch.sh"
 
 usage() {
     echo "Usage: theme-apply <materialyou|materialyou-light|preset-name> [live-wallpaper-abs-path]" >&2
@@ -94,6 +96,18 @@ fi
 
 # Only reached on a fully successful render — atomic commit (D-14).
 theme_engine_commit "$NAME" "$TMP_DIR"
+
+# Fastfetch sprite regen (quick task 260818-srl) — MUST run after commit,
+# not before: the generator reads palette.json from the LIVE state dir
+# ($STATE_DIR), not the tmp render tree, so it needs the just-committed
+# palette already in place. Bounded to the single active sprite (T-srl-03)
+# and best-effort (|| true) — a generator failure must never fail or stall
+# a theme switch; the previous GIF (in the old palette) is a strictly
+# better failure mode than none at all. Placed before reload for the same
+# reason wallpaper autoset below is: the desktop should land colours and
+# (if the picked logo is a sprite) its freshly-regenerated frames together,
+# not colours now and a stale-palette sprite until the next shell opens.
+theme_engine_fastfetch_regen || true
 
 # Static-preset wallpaper auto-set (D-11/D-12) — after commit succeeds,
 # before reload, so the desktop lands wallpaper + colors together. No-op
