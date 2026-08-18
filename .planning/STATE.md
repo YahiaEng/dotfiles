@@ -6,8 +6,8 @@ current_phase: 22
 status: milestone-complete
 stopped_at: Completed 22-06-PLAN.md — RETIRE-09 CLOSED, both INST-03 tiers pass, Phase 22 complete (9/9 plans), v4.0 milestone all 55 requirements satisfied
 last_updated: "2026-08-17T00:20:11.453Z"
-last_activity: 2026-08-17
-last_activity_desc: "plan 22-06: graphical VM tier run by the operator — PASS, zero exemptions invoked, VM destroyed; RETIRE-09 closed; Phase 22 complete (9/9 plans); v4.0 milestone's all 55 requirements now satisfied"
+last_activity: 2026-08-18
+last_activity_desc: "quick task 260818-ne8: closed two v4.0 carried debts — SC-3 prose correction (CLAUDE.md + four bannered design docs) and the options.jsonl equivalence exemption (ACCEPTED_OPTION_CHANGES mechanism, ships empty, reject+accept paths proven)"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -32,7 +32,7 @@ Phase: 22
 Plan: Not started
 Status: All phases complete
 Progress: [██████████] 100%
-Last activity: 2026-08-17 — Phase 22 complete
+Last activity: 2026-08-18 — Completed quick task 260818-ne8 (two v4.0 carried debts closed)
 
 ## Performance Metrics
 
@@ -588,6 +588,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 | 13 | Add an event-driven bar watchdog (socket2 listener + systemd unit) that restores the QML bar after a monitor sleep/hotplug — works around WINDOWS row 67, which stays open | 2026-08-12 | 59ec9ae | — |
 | 260812-opa | GATE-02 F5: popout cards sat 52px low — SectionPopout double-counted the bar extent past an offset the compositor already applied (measured y=100). Leading edge then aligned flush with the Hyprland window edge, which sits at gaps_out below the reserved boundary, not on it (y=58) | 2026-08-12 | cefcf20, 7aa2cfd, d1acef4 | [260812-opa-fix-gate-02-f5-popout-cards-render-52px-](./quick/260812-opa-fix-gate-02-f5-popout-cards-render-52px-/) |
 | 260812-pd5 | Bar: ethernet popout card (native fields only — no IPv4 or NM profile name exists on the device object), "Update system" tooltip on the updates glyph, GPU readout in the system capsule (metric already sampled since 14-10, so display-only). Resource glyphs already recolour on threshold — no work needed (+ refinements: view_in_ar GPU glyph, "Update System" casing, centred more_horiz see-more foot in all 7 popouts). Also fixed two quickshell-doctor gate bugs found on the way: a pipefail/SIGPIPE `grep -q` pattern that false-FAILED the registry and could false-PASS the D-20 colour gate, and a stale compliant fixture from 260812-69w | 2026-08-12 | 84dbec1, 7204d17, f452eee, 2f896f8 | [260812-pd5-bar-ethernet-popout-card-with-link-speed](./quick/260812-pd5-bar-ethernet-popout-card-with-link-speed/) |
+| 260818-ne8 | Close two v4.0 carried debts: SC-3 prose (four materially-wrong .claude/CLAUDE.md entries presenting retired swaync/swayosd/wleave as the current stack, corrected; four docs/superpowers historical design docs bannered, bodies untouched at 49 insertions / 0 deletions) and the options.jsonl equivalence exemption (gave _compare_options_normalized an ACCEPTED_OPTION_CHANGES table mirroring binds.json's ACCEPTED_ADDITIONS, keyed by (key, kind), fail-closed on a malformed entry, stale-entry detection; ships empty because the 0.56.1->0.56.2 bump changed zero of the 46 tracked keys; both reject and accept paths proven on synthetic fixtures) | 2026-08-18 | 047aca4, bdd9646, 16a08a9 | [260818-ne8-execute-two-v4-0-carried-debts-sc-3-pros](./quick/260818-ne8-execute-two-v4-0-carried-debts-sc-3-pros/) |
 
 ### Pending Todos
 
@@ -656,7 +657,7 @@ _(Blocker 3 — the `theme-doctor` git-clean failure — was resolved during v3.
 - 18-10: live click-through verification of the tray menu (activation call + dismissal mechanism) deferred to the user — WINDOWS.md entries 30/31/32
 - QBAR-08 Super-hold half blocked: keybind-doctor's chord-collision check flags a press-bind on SUPER+SUPER_L against the shipped release-bind tap-to-menu bind at keybinds.lua:86; needs the Step 2 nested-hypr-lua-harness live probe (or a hand keypress test) before the mechanism can ship. Recovery path recorded in BarReveal.qml's header.
 - 18-18 HALTED (not complete): LEDGER-03 frame-rate campaign and QBAR-11 soak end-capture/200-cycle exercise both deferred — need user-present live desktop rearrangement (frame-rate) and ~3h40m more continued uptime on quickshell pid 737907 (soak). Resume commands in 18-FRAME-RATE.md and 18-BAR-SOAK.md Section five. WINDOWS.md entries 51/52. 18-19 blocked on this halt per status:halted contract.
-- hypr-equivalence-check baseline (Phase 13.1) is stale — binds.json/animations.json/options.jsonl diverge, plus a structural theme-coupling issue in the border-color comparison. Blocks theme-stress-test from ever reaching a full clean run until a surgical re-baseline (14-10/16-04 precedent) is done with human review. See WINDOWS.md #71 and 19-notification-server-centre/deferred-items.md.
+- ~~hypr-equivalence-check baseline (Phase 13.1) is stale — binds.json/animations.json/options.jsonl diverge, plus a structural theme-coupling issue in the border-color comparison~~ — **closed on measurement 2026-08-18 (quick task 260818-ne8).** A live run is `PASS: 3  FAIL: 0`. Each named divergence was resolved in place rather than by the re-baseline this entry called for: binds.json by `ACCEPTED_ADDITIONS` (14-10, extended 21-xx), the border-color theme-coupling by `THEME_DRIVEN_KEYS` (LEDGER-07, 2026-08-14 — the fix this entry predates), and options.jsonl by `ACCEPTED_OPTION_CHANGES` (260818-ne8). **The surgical re-baseline this entry recommended must NOT be done:** `.hypr-baseline/MANIFEST.md`'s own 14-10 amendment records that a re-snapshot overwrites the two `bindm` mouse-field records 13.1-04 Task 3 explicitly forbade loosening. Original refs: WINDOWS.md #71, 19-notification-server-centre/deferred-items.md.
 - Plan 22-04's D-22-09 theme-doctor allowlist derivation is blocked — no run has reached step=theme-doctor yet to produce the required failure-list input
 
 ## Deferred Items
