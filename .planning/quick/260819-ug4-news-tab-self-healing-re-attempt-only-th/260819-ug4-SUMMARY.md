@@ -132,7 +132,48 @@ model already registers. The retry set remains a strict subset of `root.sources`
 `_fetchSource()`/the shared transport unchanged, so both downstream https enforcement
 points still apply.
 
-## Task 3 — Awaiting Operator Verification
+## Task 3 — OPERATOR-VERIFIED 2026-08-19
+
+Exercise B and Exercise C both passed live. Evidence from `~/.cache/quickshell.log`:
+
+```
+8532: refresh() — cache fresh, 0 minute(s) old, every source has headlines — nothing to re-attempt
+8533: refresh() — cache fresh, 0 minute(s) old, every source has headlines — nothing to re-attempt
+8536: quickshell-launch.sh: starting 2026-08-19T22:17:23+03:00
+8547: refresh() — cache fresh, 3 minute(s) old, but re-attempting 1 source(s) with no cached headlines: Phoronix
+8548: carried 30 item(s) forward from 3 source(s) not refreshed this run: Hacker News: Front Page, Ars Technica, It's FOSS
+8549: partial run (1 of 4 source(s)) — fetchedAtMs left unchanged
+```
+
+`news-cache.json` after the run: `fetched_at` still 22:13:53 — i.e. from BEFORE the
+22:17:23 restart, so the partial run did not advance it — with items back to
+10/10/10/10 across all four sources, so the healed source's items reached disk anyway.
+
+Which must_haves this closes: retry set survives a restart (a fresh process with zero
+in-memory failure state targeted Phoronix from cache contents alone); only the
+zero-item source is fetched; the healthy sources are carried, not clobbered; a partial
+run does not advance `fetchedAtMs`; a heal survives a restart. Exercise B independently
+covers the no-op path — one log line, zero fetches.
+
+Exercise A was NOT run as scripted, and is treated as subsumed: its three assertions
+(targeted fetch of only the zero-item source, unchanged `fetched_at`, unchanged sibling
+counts) are all demonstrated by Exercise C above. A only differs in how the zero-item
+state is created — a source rename picked up via `watchChanges: true` rather than a
+doctored cache plus restart — which is a trigger mechanism, not a property of the fix.
+
+STILL NOT EXERCISED, recorded rather than implied: the all-attempted-sources-fail
+partial run, whose expected behaviour is that `_okNames` stays empty, the publish gate
+falls to the else branch and items/cache are left untouched. Reachable only with a
+deliberately unreachable host.
+
+BOUNDARY FOUND DURING VERIFICATION, from the operator's own log rather than reasoning:
+a source that FAILS but still holds previously-cached items is NOT re-attempted, because
+`_carryForward()` preserves those items and `_sourcesNeedingRetry()` keys on zero cached
+items. Observed at lines 8508 -> 8531 -> 8532: Hacker News failed, its 10 items were
+carried, and the next open reported "every source has headlines — nothing to
+re-attempt". This is coherent with the defect this task targeted — a feed that reads as
+DEAD, i.e. blank — but it is narrower than "retry anything that failed", and it means a
+stale-but-populated source still waits out the TTL. Not a defect; a named boundary.
 
 **Task 3 is a `checkpoint:human-verify` gated `blocking` and was NOT attempted by the
 executor**, per this quick task's host prohibitions (no `qml6`, no compositor probes, no
