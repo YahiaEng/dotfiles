@@ -249,8 +249,14 @@ while IFS= read -r fname; do
     # value that must never render empty, with the one intentional
     # exception contract.json's exempt_keys ("colors.image") already
     # carves out.
+    # Quick task 260820-0ha: kdl (zellij.kdl) joins this set for the same
+    # reason — the extractor is scoped to the themes block (see
+    # contract_kdl_theme_pairs), so every key it declares is definitionally
+    # a colour, exactly the property that puts the other formats in this
+    # list. This makes an empty colour value, and a zero-pair extraction,
+    # a hard failure rather than a vacuous pass.
     case "$fmt" in
-        gtk-css|hypr-vars|kitty-kv|css-literal|env-kv|css-vars|hypr-motion|scss-vars|lua-table) enforce_emptiness=1 ;;
+        gtk-css|hypr-vars|kitty-kv|css-literal|env-kv|css-vars|hypr-motion|scss-vars|lua-table|kdl) enforce_emptiness=1 ;;
         *) enforce_emptiness=0 ;;
     esac
 

@@ -82,6 +82,10 @@
     {
       "name": "tmux-colors.conf",
       "format": "tmux-set"
+    },
+    {
+      "name": "zellij.kdl",
+      "format": "kdl"
     }
   ],
   "state_metadata_files": [

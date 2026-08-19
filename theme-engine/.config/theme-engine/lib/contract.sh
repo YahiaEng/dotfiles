@@ -54,7 +54,7 @@ contract_engine_owned_files() {
 
 # contract_format <name>
 # Emits the format tag for a contract file (gtk-css | hypr-vars | kitty-kv | fish-set |
-# tmux-set | toml | json | css-literal).
+# tmux-set | toml | json | css-literal | kdl).
 contract_format() {
     local name="$1"
     jq -r --arg n "$name" '.files[] | select(.name == $n) | .format' "$CONTRACT_JSON"
@@ -66,6 +66,66 @@ contract_format() {
 contract_exempt_keys() {
     local name="$1"
     jq -r --arg n "$name" '.files[] | select(.name == $n) | (.exempt_keys // [])[]' "$CONTRACT_JSON"
+}
+
+# contract_kdl_theme_pairs <rendered_path>
+# Quick task 260820-0ha: the ONE shared emitter for zellij.kdl's `kdl`
+# format, called from BOTH contract_extract_names and
+# contract_extract_values below. Deliberate improvement over the
+# fish-set/tmux-set idiom directly below, whose comments warn twice that
+# two hand-mirrored regexes (one per extractor) can drift — a name matched
+# in one half but not the other is a silent false-pass generator. A single
+# emitter makes that drift structurally impossible instead of merely
+# warned about: both branches call this and either reduce its output (for
+# names) or pass it through unchanged (for values).
+#
+# Implemented in python3 — the same language/heredoc shape the toml and
+# json branches already use, and the reason install.sh needs no new
+# dependency for this. Strips KDL line-comments (`//`) so the template's
+# header can never contribute a key, tracks brace depth to note when the
+# `themes` node opens, and only considers `name "value"` lines nested
+# inside it — matching zellij-config.kdl's D-07 multi-line, one-colour-
+# per-line shape. Exits non-zero when it produced no pairs at all (e.g. a
+# themes-less file), matching the lua-table branch's stated discipline
+# that a failed extraction must be loud, never a silent empty pass that
+# vacuously matches every other empty extraction.
+contract_kdl_theme_pairs() {
+    local path="$1"
+    python3 - "$path" <<'PYEOF'
+import re
+import sys
+
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.read().splitlines()
+
+pairs = []
+depth = 0
+in_themes = False
+name_value_re = re.compile(r'^([A-Za-z_][A-Za-z0-9_]*)\s+"([^"]*)"\s*$')
+
+for raw in lines:
+    line = raw.strip()
+    if line.startswith("//"):
+        continue
+    if not in_themes and line.startswith("themes") and "{" in line:
+        in_themes = True
+        depth += line.count("{") - line.count("}")
+        continue
+    if in_themes:
+        m = name_value_re.match(line)
+        if m and depth >= 1:
+            pairs.append((m.group(1), m.group(2)))
+    depth += line.count("{") - line.count("}")
+    if in_themes and depth <= 0:
+        in_themes = False
+
+if not pairs:
+    sys.exit(1)
+
+for k, v in pairs:
+    print(f"{k}\t{v}")
+PYEOF
 }
 
 # contract_extract_names <name> <rendered_path>
@@ -127,6 +187,15 @@ contract_extract_names() {
             # identical hyphen-widened name class, so neither can be
             # looser than the other.
             grep -oP "^set -g \K[A-Za-z0-9_-]+(?= )" "$path" 2>/dev/null | sort -u
+            ;;
+        kdl)
+            # Quick task 260820-0ha: zellij.kdl's eleven themes-block colour
+            # slots. Shares ONE emitter with the value extractor below
+            # (contract_kdl_theme_pairs) rather than a second mirrored
+            # regex — see that function's own comment for why. Reduced to
+            # the first tab-separated field, sorted and unique, the same
+            # sorted-unique shape every other name branch above produces.
+            contract_kdl_theme_pairs "$path" | cut -f1 | sort -u
             ;;
         css-vars)
             # TOKEN-03/12-RESEARCH Pitfall 3: gtk-css's @define-color regex
@@ -388,6 +457,17 @@ contract_extract_values() {
             # `#[`) — stripped here the same way env-kv strips its own
             # double quotes.
             sed -nE 's/^set -g ([A-Za-z0-9_-]+) "?([^"]*)"?$/\1\t\2/p' "$path" 2>/dev/null
+            ;;
+        kdl)
+            # Quick task 260820-0ha: shares ONE emitter with the name
+            # extractor above (contract_kdl_theme_pairs) — see that
+            # function's own comment for why this is a deliberate
+            # improvement over the tmux-set/fish-set mirrored-regex idiom
+            # directly above. Output passed through unchanged: it is
+            # already NAME<TAB>value pairs with quotes stripped, so
+            # theme-parity's colour regex and contract_wellformed_color
+            # both see a valid bare hex token.
+            contract_kdl_theme_pairs "$path"
             ;;
         css-vars)
             sed -nE 's/^\s*--([A-Za-z0-9_-]+):\s*(.*);\s*$/\1\t\2/p' "$path" 2>/dev/null
