@@ -375,16 +375,22 @@ WEATHER_SEED_EOF
 # The three tunables below are clamped by NewsBackend.qml (see its
 # header) — a hostile or fat-fingered value here cannot turn this into
 # an unbounded fetch.
+#
+# "view_mode" (quick task 260819-m94) — "compact" | "cards" — is the one
+# key in this file the shell itself writes back, via the News tab's view
+# toggle. Everything else here is the operator's own surface.
 [[ -f "$HOME/.local/state/theme/news-sources.json" ]] || cat > "$HOME/.local/state/theme/news-sources.json" <<'NEWS_SEED_EOF'
 {
   "sources": [
     { "name": "BBC World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "enabled": true },
-    { "name": "NPR", "url": "https://feeds.npr.org/1001/rss.xml", "enabled": true },
-    { "name": "LWN", "url": "https://lwn.net/headlines/newrss", "enabled": true }
+    { "name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index", "enabled": true },
+    { "name": "LWN", "url": "https://lwn.net/headlines/newrss", "enabled": true },
+    { "name": "Phoronix", "url": "https://www.phoronix.com/rss.php", "enabled": true }
   ],
   "max_items_per_source": 15,
   "max_items_total": 40,
-  "ttl_minutes": 15
+  "ttl_minutes": 15,
+  "view_mode": "compact"
 }
 NEWS_SEED_EOF
 

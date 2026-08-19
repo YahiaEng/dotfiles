@@ -293,9 +293,11 @@ PanelWindow {
                 id: tabModel
                 ListElement {
                     label: "Notifications"
+                    glyph: "notifications"
                 }
                 ListElement {
                     label: "News"
+                    glyph: "newspaper"
                 }
             }
 
@@ -350,6 +352,7 @@ PanelWindow {
 
                         required property int index
                         required property string label
+                        required property string glyph
 
                         readonly property bool _current: tabButtonDelegate.index === pager.currentIndex
 
@@ -384,6 +387,22 @@ PanelWindow {
                             anchors.centerIn: parent
                             spacing: Design.spacingXs
 
+                            // ── Leading tab glyph (this quick task) —
+                            //    reuses the label's own existing
+                            //    selected/unselected colour binding
+                            //    verbatim, no third colour state minted.
+                            //    No restructure: this Row and its
+                            //    Design.spacingXs spacing already existed;
+                            //    implicitWidth below is content-hugging
+                            //    and absorbs this glyph automatically. ────
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: tabButtonDelegate.glyph
+                                font.family: Design.symbolFontFamily
+                                font.pixelSize: Design.iconSizeMd
+                                textFormat: Text.PlainText
+                                color: tabButtonDelegate._current ? BarRoles.notifSurfaceFg : BarRoles.capsuleFg
+                            }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: tabButtonDelegate.label
