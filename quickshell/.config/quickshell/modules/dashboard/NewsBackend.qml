@@ -190,6 +190,13 @@ Scope {
     property bool sourcesLoadHealthy: true
 
     property var _runBuffer: []
+
+    // Names of the sources that FAILED this run (network, HTTP, oversize
+    // or parse). Counts alone (`sourcesFailed`) cannot answer "which
+    // source's headlines must be carried forward", which is what the
+    // partial-failure rule in _finishRun() below needs. Reset per run
+    // alongside _runBuffer.
+    property var _failedNames: []
     property var _activeXhrs: []
 
     // ── Clamped tunables — a hard floor/ceiling so a bad value in the
@@ -521,14 +528,17 @@ Scope {
 
             if (xhr.status === 0) {
                 root.sourcesFailed++;
+                root._failedNames.push(src.name);
                 root.lastError = "network";
                 console.log("NewsBackend: " + src.name + " — network error (status 0)");
             } else if (xhr.status !== 200) {
                 root.sourcesFailed++;
+                root._failedNames.push(src.name);
                 root.lastError = "http " + xhr.status;
                 console.log("NewsBackend: " + src.name + " — HTTP " + xhr.status);
             } else if (xhr.responseText.length > root.maxResponseBytes) {
                 root.sourcesFailed++;
+                root._failedNames.push(src.name);
                 root.lastError = "oversize";
                 console.log("NewsBackend: " + src.name + " — response oversize (" + xhr.responseText.length + " bytes)");
             } else {
@@ -541,6 +551,7 @@ Scope {
                     root.sourcesOk++;
                 } catch (e) {
                     root.sourcesFailed++;
+                    root._failedNames.push(src.name);
                     root.lastError = "parse";
                     console.log("NewsBackend: " + src.name + " — parse threw: " + e);
                 }
@@ -583,10 +594,41 @@ Scope {
             var byNewest = function (a, b) {
                 return b.dateMs - a.dateMs;
             };
+
+            // ── Partial-failure carry-forward (bug fix 2026-08-19) ───────
+            // A run where SOME sources fail used to publish only the
+            // survivors, silently deleting every headline belonging to a
+            // source that happened to error — the whole feed vanished
+            // from the pane until some later run happened to succeed.
+            // The zero-successful-sources case was already guarded (the
+            // else branch below leaves items and cache untouched); the
+            // partial case was not, and it is the common one: measured 4
+            // `network error (status 0)` events across 24 runs on this
+            // host, BBC and LWN, i.e. transient and per-source rather
+            // than all-or-nothing.
+            //
+            // Items belonging to a source that failed THIS run are
+            // carried over from the previous published set, so a blip on
+            // one feed can no longer empty it. They cannot collide with
+            // fresh items, because a failed source contributed nothing to
+            // _runBuffer by definition. A source that is REMOVED from
+            // news-sources.json is not carried: it never appears in
+            // _failedNames, because no request is ever issued for it.
+            var carried = [];
+            if (root._failedNames.length > 0 && root.items.length > 0) {
+                for (var c = 0; c < root.items.length; c++) {
+                    if (root._failedNames.indexOf(root.items[c].source) !== -1)
+                        carried.push(root.items[c]);
+                }
+                if (carried.length > 0)
+                    console.log("NewsBackend: carried " + carried.length + " item(s) forward from " + root._failedNames.length + " failed source(s): " + root._failedNames.join(", "));
+            }
+            var pool = root._runBuffer.concat(carried);
+
             var bucket = {};
             var order = [];
-            for (var i = 0; i < root._runBuffer.length; i++) {
-                var it = root._runBuffer[i];
+            for (var i = 0; i < pool.length; i++) {
+                var it = pool[i];
                 if (bucket[it.source] === undefined) {
                     bucket[it.source] = [];
                     order.push(it.source);
@@ -647,6 +689,7 @@ Scope {
         root.sourcesFailed = 0;
         root.lastError = "";
         root._runBuffer = [];
+        root._failedNames = [];
         for (var i = 0; i < root.sources.length; i++)
             root._fetchSource(root.sources[i]);
     }
