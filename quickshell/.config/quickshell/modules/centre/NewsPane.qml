@@ -36,6 +36,19 @@
 // comment — would make an honest gate report a false failure. This
 // quick task's PLAN.md is the citable source of truth for their names.
 //
+// ── The manage-sources editor (quick task 260819-pi3) — the ONE Qt Quick
+//    Controls type used in this file is `TextField`, for the rename and
+//    add-flow inputs. The floating/overlay-selector fence in the section
+//    above is UNCHANGED and this is not an exception to it — a TextField
+//    is not a floating/overlay control. The enabling fact is
+//    `WifiPanel.qml:993-1015`: a shipped text field inside a layer
+//    surface under on-demand keyboard focus, not an assumption; and
+//    `NotifCentre.qml:220`'s `WlrKeyboardFocus.OnDemand` is what makes
+//    keystrokes reach it at all. The editor overlay itself follows the
+//    selector overlay's own shape exactly: an anchored, raised SIBLING
+//    of the headline list (never a layout child of `selectorHost`), so
+//    opening it moves nothing.
+//
 // ── The link opener carries no confirm dialog, unlike NotifCard.qml ────
 // `NotifCard.qml:570-590` gates its own external-link opener behind an
 // "Open link?" confirm step because THOSE links arrive from arbitrary
@@ -51,6 +64,7 @@
 // feature's two panes. (This file's own single call site is below, in the
 // headline delegate's MouseArea.)
 import QtQuick
+import QtQuick.Controls
 import "../"
 import "../dashboard"
 import "../bar"
@@ -122,7 +136,79 @@ Item {
         return diffDay + "d ago";
     }
 
+    // ── Reason-code → sentence map (this quick task) — pane-local so no
+    //    UI copy lives in the backend. Covers every reason code
+    //    NewsBackend.qml's mutation API and live probe can return: the
+    //    rename/add/delete/enable-toggle mutators (Task 1) and the live
+    //    feed probe (Task 2). Returns the code verbatim for anything
+    //    unmapped so a new code is visible rather than silent.
+    function _reasonText(code) {
+        switch (code) {
+        case "scheme":
+            return "URL must start with https://";
+        case "duplicate-url":
+            return "That feed is already listed";
+        case "duplicate-name":
+            return "A source with that name already exists";
+        case "empty-name":
+            return "Give the source a name";
+        case "long-name":
+            return "Name is too long (max " + (root._hasBackend ? root.newsBackend.maxSourceNameLen : 32) + " characters)";
+        case "full":
+            return "The list is full (max " + (root._hasBackend ? root.newsBackend.maxSources : 8) + " sources)";
+        case "network":
+            return "Could not reach that URL";
+        case "http":
+            return "The feed returned an error" + (root._hasBackend && root.newsBackend.probeDetail !== "" ? " (" + root.newsBackend.probeDetail + ")" : "");
+        case "oversize":
+            return "The feed is too large";
+        case "not-a-feed":
+            return "That URL is not a readable RSS or Atom feed";
+        case "parse":
+            return "The feed could not be parsed";
+        case "no-items":
+            return "The feed parsed but carried no usable headlines";
+        case "write-failed":
+            return "Could not write news-sources.json";
+        case "not-found":
+            return "That source is no longer in the list";
+        case "centre-closed":
+            return "Reopen the centre and try again";
+        default:
+            return code;
+        }
+    }
+
     property bool _selectorExpanded: false
+
+    // ── Editor state (this quick task) — D-2: URL handles, not indices,
+    //    because a splice() shifts every later index; an armed confirm
+    //    or edit holding an index would, after an unrelated delete, arm
+    //    a different row. `_editorExpanded` and `_selectorExpanded` are
+    //    mutually exclusive — opening either closes the other, mirroring
+    //    the single-overlay-at-a-time discipline this pane already
+    //    carries. Closing the editor clears both row-scoped states so
+    //    reopening it never resurrects a stale confirm or an armed edit
+    //    on a row that may no longer even exist. ─────────────────────
+    property bool _editorExpanded: false
+    property string _confirmRemoveUrl: ""
+    property string _editingUrl: ""
+
+    // Module-local geometry constant (D-4) — NOT a new Design.qml token,
+    // following the `_thumbSize`/`_ruleHeight` precedent already in this
+    // file: used in exactly one file.
+    readonly property int _labelCapWidth: 120
+
+    on_SelectorExpandedChanged: if (root._selectorExpanded)
+        root._editorExpanded = false
+    on_EditorExpandedChanged: {
+        if (root._editorExpanded) {
+            root._selectorExpanded = false;
+        } else {
+            root._confirmRemoveUrl = "";
+            root._editingUrl = "";
+        }
+    }
 
     // ── (a) The source dropdown — inline expand, see header ─────────────
     Column {
@@ -179,6 +265,16 @@ Item {
                         textFormat: Text.PlainText
                         font.pixelSize: Design.fontBody
                         color: BarRoles.capsuleFg
+                        // D-4 — the pixel-side guarantee for operator-
+                        // authored names. A character-count rule alone
+                        // cannot serve here: Design.qml deliberately pins
+                        // no font family (the shell inherits the GTK font
+                        // from gsettings), so pixel width per character is
+                        // not knowable at plan time. This label previously
+                        // had no width and no elide, and drove
+                        // selectorChip.implicitWidth directly.
+                        width: Math.min(implicitWidth, root._labelCapWidth)
+                        elide: Text.ElideRight
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -250,6 +346,50 @@ Item {
                     hoverEnabled: true
                     enabled: root._hasBackend
                     onClicked: root.newsBackend.setViewMode(root._cardMode ? "compact" : "cards")
+                }
+            }
+
+            // ── The gear chip (this quick task) — mirrors viewToggleChip's
+            //    shape (same fill, radius, content-hugging width, Behavior
+            //    on color) but ICON-ONLY, carrying no label. Icon-only is
+            //    load-bearing: the surface is 430px wide inset by
+            //    Design.spacingMd each side, and the two existing chips
+            //    already consume most of it. Toggles the manage-sources
+            //    editor overlay (below), never the filter dropdown.
+            Rectangle {
+                id: manageChip
+                color: BarRoles.capsule
+                radius: height / 2
+                implicitWidth: manageGlyph.implicitWidth + Design.spacingMd * 2
+                implicitHeight: manageGlyph.implicitHeight + Design.spacingXs * 2
+                width: implicitWidth
+                height: implicitHeight
+
+                Behavior on color {
+                    enabled: Motion.motionEnabled
+                    ColorAnimation {
+                        duration: Motion.standardDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
+                    }
+                }
+
+                Text {
+                    id: manageGlyph
+                    anchors.centerIn: parent
+                    text: "settings"
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.iconSizeMd
+                    textFormat: Text.PlainText
+                    color: BarRoles.capsuleFg
+                }
+
+                MouseArea {
+                    id: manageMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: root._hasBackend
+                    onClicked: root._editorExpanded = !root._editorExpanded
                 }
             }
         }
@@ -411,6 +551,307 @@ Item {
                                 if (root._hasBackend)
                                     root.newsBackend.selectedSource = sourceOptionRow.modelData.name;
                                 root._selectorExpanded = false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── The manage-sources editor overlay (this quick task) — an
+        //    anchored, raised SIBLING of the headline list, on a HIGHER
+        //    z than the filter overlay, exactly the shape anchor 6
+        //    requires: opening it moves nothing. Same opaque-backing
+        //    reasoning as selectorOverlay above (the window's own
+        //    notifSurface is 0.38 alpha and leans on compositor blur).
+        Rectangle {
+            id: editorOverlay
+            anchors.top: selectorHost.bottom
+            anchors.topMargin: Design.spacingXs
+            anchors.left: selectorHost.left
+            anchors.right: selectorHost.right
+            height: editorColumn.implicitHeight + Design.spacingSm * 2
+            radius: Design.spacingSm
+            color: BarRoles.surfaceVariantColour
+            z: 11
+            visible: opacity > 0
+            opacity: root._editorExpanded ? 1 : 0
+
+            Behavior on opacity {
+                enabled: Motion.motionEnabled
+                NumberAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
+
+            Column {
+                id: editorColumn
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.margins: Design.spacingSm
+                spacing: Design.spacingSm
+
+                Text {
+                    textFormat: Text.PlainText
+                    font.pixelSize: Design.fontLabel
+                    color: BarRoles.capsuleFg
+                    text: "MANAGE SOURCES"
+                }
+
+                Repeater {
+                    model: root._hasBackend ? root.newsBackend.allSources : []
+
+                    delegate: Rectangle {
+                        id: sourceRow
+                        required property var modelData
+
+                        width: editorColumn.width
+                        implicitHeight: sourceRowColumn.implicitHeight + Design.spacingXs * 2
+                        height: implicitHeight
+                        radius: Design.spacingSm
+                        color: sourceRowHover.containsMouse ? BarRoles.capsuleHover : "transparent"
+
+                        Behavior on implicitHeight {
+                            enabled: Motion.motionEnabled
+                            NumberAnimation {
+                                duration: Motion.standardDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Motion.standardEasing
+                            }
+                        }
+
+                        // Full-row hover target, declared first
+                        // (underneath) so the more specific verb
+                        // MouseAreas declared below it in paint order
+                        // take priority over their own small regions —
+                        // mirrors WifiPanel.qml's rowPressArea idiom.
+                        MouseArea {
+                            id: sourceRowHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                        }
+
+                        Column {
+                            id: sourceRowColumn
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.leftMargin: Design.spacingSm
+                            anchors.rightMargin: Design.spacingSm
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Design.spacingXs
+
+                            Row {
+                                id: sourceRowMain
+                                width: parent.width
+                                height: Design.spacingXl
+                                spacing: Design.spacingXs
+
+                                Text {
+                                    id: toggleGlyph
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: sourceRow.modelData.enabled ? "check_circle" : "radio_button_unchecked"
+                                    font.family: Design.symbolFontFamily
+                                    font.pixelSize: Design.iconSizeMd
+                                    textFormat: Text.PlainText
+                                    color: sourceRow.modelData.enabled ? BarRoles.accent : BarRoles.capsuleFg
+
+                                    // No confirm — disable is reversible
+                                    // (D-1).
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: if (root._hasBackend)
+                                            root.newsBackend.setSourceEnabled(sourceRow.modelData.url, !sourceRow.modelData.enabled)
+                                    }
+                                }
+
+                                Text {
+                                    id: sourceRowName
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - toggleGlyph.width - closeGlyph.width - parent.spacing * 2
+                                    text: sourceRow.modelData.name
+                                    textFormat: Text.PlainText
+                                    elide: Text.ElideRight
+                                    font.pixelSize: Design.fontBody
+                                    color: BarRoles.notifSurfaceFg
+                                    opacity: sourceRow.modelData.enabled ? 1 : 0.5
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            root._editingUrl = sourceRow.modelData.url;
+                                            root._confirmRemoveUrl = "";
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    id: closeGlyph
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "close"
+                                    font.family: Design.symbolFontFamily
+                                    font.pixelSize: Design.iconSizeMd
+                                    textFormat: Text.PlainText
+                                    color: BarRoles.capsuleFg
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            root._confirmRemoveUrl = sourceRow.modelData.url;
+                                            root._editingUrl = "";
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ── Inline rename (D-1/D-2) — shown when
+                            //    _editingUrl matches this row's url. Same
+                            //    shape rules as WifiPanel.qml:993-1015:
+                            //    explicit width/height on the control,
+                            //    style only its background, never anchor
+                            //    its contentItem. ──────────────────────
+                            Row {
+                                width: parent.width
+                                spacing: Design.spacingXs
+                                visible: root._editingUrl === sourceRow.modelData.url
+
+                                TextField {
+                                    id: renameField
+                                    width: parent.width - renameSave.implicitWidth - renameCancel.implicitWidth - parent.spacing * 2
+                                    height: Design.spacingXl
+                                    maximumLength: root._hasBackend ? root.newsBackend.maxSourceNameLen : 32
+                                    color: BarRoles.notifSurfaceFg
+                                    background: Rectangle {
+                                        radius: Design.spacingXs
+                                        color: BarRoles.capsule
+                                    }
+                                    // Seeded from the row's current name
+                                    // when it becomes visible, and takes
+                                    // focus immediately — the Phase 11
+                                    // QS-02 gate proved a human can type
+                                    // into a text field on a layer-shell
+                                    // surface under on-demand keyboard
+                                    // focus, the enabling fact, not an
+                                    // assumption.
+                                    onVisibleChanged: if (renameField.visible) {
+                                        renameField.text = sourceRow.modelData.name;
+                                        renameField.forceActiveFocus();
+                                    }
+                                    // Consumed here so Escape cancels the
+                                    // edit rather than reaching
+                                    // NotifCentre.qml's centre-closing
+                                    // handler.
+                                    Keys.onEscapePressed: function (event) {
+                                        root._editingUrl = "";
+                                        event.accepted = true;
+                                    }
+                                }
+                                Text {
+                                    id: renameSave
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Save"
+                                    textFormat: Text.PlainText
+                                    font.pixelSize: Design.fontLabel
+                                    font.weight: Design.weightEmphasis
+                                    color: BarRoles.accent
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            if (!root._hasBackend)
+                                                return;
+                                            var result = root.newsBackend.renameSource(sourceRow.modelData.url, renameField.text);
+                                            if (result === "ok") {
+                                                // Clear FIRST — the write
+                                                // triggers a file reload
+                                                // which re-derives
+                                                // allSources and rebuilds
+                                                // every delegate, so any
+                                                // edit state left armed
+                                                // would be destroyed
+                                                // mid-flight anyway.
+                                                root._editingUrl = "";
+                                            } else {
+                                                renameError.text = root._reasonText(result);
+                                            }
+                                        }
+                                    }
+                                }
+                                Text {
+                                    id: renameCancel
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Cancel"
+                                    textFormat: Text.PlainText
+                                    font.pixelSize: Design.fontLabel
+                                    color: BarRoles.capsuleFg
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: root._editingUrl = ""
+                                    }
+                                }
+                            }
+                            Text {
+                                id: renameError
+                                width: parent.width
+                                visible: root._editingUrl === sourceRow.modelData.url && text !== ""
+                                textFormat: Text.PlainText
+                                wrapMode: Text.Wrap
+                                font.pixelSize: Design.fontLabel
+                                color: BarRoles.danger
+                            }
+
+                            // ── Inline delete confirm (D-1/D-2, copying
+                            //    WifiPanel.qml:1085-1118) — never a
+                            //    modal, keyed by url so an index shift
+                            //    can never mis-target a row. ────────────
+                            Row {
+                                width: parent.width
+                                spacing: Design.spacingSm
+                                visible: root._confirmRemoveUrl === sourceRow.modelData.url
+
+                                Text {
+                                    id: removeConfirmLabel
+                                    width: parent.width - removeConfirmYes.implicitWidth - removeConfirmNo.implicitWidth - parent.spacing * 2
+                                    textFormat: Text.PlainText
+                                    wrapMode: Text.WordWrap
+                                    text: "Remove " + sourceRow.modelData.name + "?"
+                                    font.pixelSize: Design.fontLabel
+                                    color: BarRoles.notifSurfaceFg
+                                }
+                                Text {
+                                    id: removeConfirmYes
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Remove"
+                                    textFormat: Text.PlainText
+                                    font.pixelSize: Design.fontLabel
+                                    font.weight: Design.weightEmphasis
+                                    color: BarRoles.danger
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            if (root._hasBackend)
+                                                root.newsBackend.removeSource(sourceRow.modelData.url);
+                                            root._confirmRemoveUrl = "";
+                                        }
+                                    }
+                                }
+                                Text {
+                                    id: removeConfirmNo
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Cancel"
+                                    textFormat: Text.PlainText
+                                    font.pixelSize: Design.fontLabel
+                                    color: BarRoles.capsuleFg
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: root._confirmRemoveUrl = ""
+                                    }
+                                }
                             }
                         }
                     }
@@ -635,6 +1076,12 @@ Item {
                             textFormat: Text.PlainText
                             font.pixelSize: Design.fontLabel
                             color: BarRoles.capsuleFg
+                            // D-4 — the pixel-side guarantee, same
+                            // reasoning as the filter chip's label above.
+                            // This capsule previously had neither a width
+                            // nor an elide.
+                            width: Math.min(implicitWidth, root._labelCapWidth)
+                            elide: Text.ElideRight
                         }
                     }
                     Text {
