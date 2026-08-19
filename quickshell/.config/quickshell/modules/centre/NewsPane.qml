@@ -73,6 +73,13 @@ Item {
     // already set. 76 sits on the repo's 4px grid (76 / 4 = 19).
     readonly property int _thumbSize: 76
 
+    // Compact-mode row rule (operator report 2026-08-19). Module-local
+    // for the same reason `_thumbSize` above is, and following the one
+    // existing separator in this repo — WeatherTab.qml declares its own
+    // `separatorHeight: 1` locally rather than as a Design.qml token, so
+    // a token here would be inventing a convention, not following one.
+    readonly property int _ruleHeight: 1
+
     // ── The six render states — exactly ONE place this decision lives,
     //    so the overlays below can never disagree with each other. ──────
     readonly property string paneState: {
@@ -427,10 +434,20 @@ Item {
         delegate: Item {
             id: headlineDelegate
             required property var modelData
+            // Needed by the compact rule below, which must not draw under
+            // the last row (a trailing rule reads as a cut-off list).
+            required property int index
             width: headlineList.width
-            // Compact stays byte-identical to before this quick task.
-            // Cards: max(76, ~70 content) + 32 = 108px.
-            height: root._cardMode ? (Math.max(root._thumbSize, headlineContent.implicitHeight) + Design.spacingMd * 2) : (headlineContent.implicitHeight + Design.spacingSm * 2)
+            // Compact gained breathing room (operator report 2026-08-19:
+            // "separate articles by a line and small padding for better
+            // readability") — spacingSm -> spacingSm + spacingXs per side,
+            // i.e. 16px of vertical padding to 24px. Deliberately a modest
+            // step, not spacingMd*2: at 32px compact would stand within
+            // 6px of the 108px card and stop being the DENSE mode, which
+            // is the only reason it exists.
+            // Cards: max(76, ~70 content) + 32 = 108px, unchanged.
+            readonly property int _compactPadV: Design.spacingSm + Design.spacingXs
+            height: root._cardMode ? (Math.max(root._thumbSize, headlineContent.implicitHeight) + Design.spacingMd * 2) : (headlineContent.implicitHeight + headlineDelegate._compactPadV * 2)
 
             Rectangle {
                 anchors.fill: parent
@@ -445,6 +462,33 @@ Item {
                         easing.bezierCurve: Motion.standardEasing
                     }
                 }
+            }
+
+            // ── Compact-only row rule (operator report 2026-08-19) ───────
+            //    COMPACT ONLY, by design: in card mode each article
+            //    already owns a filled surface, so a rule between cards
+            //    would be a second separation mechanism doing the first
+            //    one's job. Compact rows are transparent and share one
+            //    background, which is exactly why they need the rule.
+            //
+            //    Never drawn under the LAST row — a trailing rule reads
+            //    as a truncated list rather than a divider. Inset to the
+            //    same spacingSm the content column uses, so it aligns
+            //    with the text above it rather than spanning the pane.
+            //
+            //    Mirrors the existing separator idiom
+            //    (WeatherTab.qml:665-673): a thin Rectangle on
+            //    Colours.outline via BarRoles, radius height/2.
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: Design.spacingSm
+                anchors.rightMargin: Design.spacingSm
+                height: root._ruleHeight
+                radius: height / 2
+                color: BarRoles.outlineColour
+                visible: !root._cardMode && headlineDelegate.index < headlineList.count - 1
             }
 
             // ── The thumbnail slot (this quick task) — mirrors
