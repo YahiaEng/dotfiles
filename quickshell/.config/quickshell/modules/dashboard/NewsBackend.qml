@@ -561,11 +561,56 @@ Scope {
         // still see yesterday's headlines" work rather than blanking the
         // pane (never assign a half-built/empty result over a good one).
         if (root.sourcesOk > 0) {
-            var merged = root._runBuffer.slice().sort(function (a, b) {
+            // ── Fair selection BEFORE the cap (bug fix 2026-08-19) ───────
+            // A plain global sort-then-truncate starves whichever source
+            // publishes slowest. MEASURED with the four default sources:
+            // 57 candidates cut to 40 by pure recency left BBC 15,
+            // Phoronix 12, Ars 10 and LWN **3** — LWN had been showing 15
+            // when only three sources existed and the candidate count
+            // happened to equal the cap exactly (15+15+10=40, nothing
+            // cut), which is why this only surfaced once a fourth source
+            // was added. The starvation scaled with how many high-volume
+            // feeds sat beside a low-volume one, so it would have got
+            // worse with every source added, silently.
+            //
+            // Selection is now round-robin BY SOURCE: take each source's
+            // newest unused item in turn, then each source's next, until
+            // the cap. Every source is therefore guaranteed roughly
+            // maxItemsTotal / sourceCount slots and none can be evicted
+            // by a noisier neighbour. Display order is unaffected — the
+            // SELECTED set is sorted by date afterwards, so the pane
+            // still reads strictly newest-first.
+            var byNewest = function (a, b) {
                 return b.dateMs - a.dateMs;
-            });
-            if (merged.length > root.maxItemsTotal)
-                merged = merged.slice(0, root.maxItemsTotal);
+            };
+            var bucket = {};
+            var order = [];
+            for (var i = 0; i < root._runBuffer.length; i++) {
+                var it = root._runBuffer[i];
+                if (bucket[it.source] === undefined) {
+                    bucket[it.source] = [];
+                    order.push(it.source);
+                }
+                bucket[it.source].push(it);
+            }
+            for (var s = 0; s < order.length; s++)
+                bucket[order[s]].sort(byNewest);
+
+            var picked = [];
+            var round = 0;
+            var drained = false;
+            while (picked.length < root.maxItemsTotal && !drained) {
+                drained = true;
+                for (var t = 0; t < order.length && picked.length < root.maxItemsTotal; t++) {
+                    var lane = bucket[order[t]];
+                    if (round < lane.length) {
+                        picked.push(lane[round]);
+                        drained = false;
+                    }
+                }
+                round++;
+            }
+            var merged = picked.sort(byNewest);
             // Assigned in ONE statement — never incrementally. A half
             // -rendered list is the failure mode the shape-check
             // discipline throughout this file exists to prevent.
