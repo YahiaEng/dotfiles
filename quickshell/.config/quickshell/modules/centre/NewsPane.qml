@@ -856,6 +856,226 @@ Item {
                         }
                     }
                 }
+
+                // ── The two-stage add flow (paste → probe → name →
+                //    commit, this quick task). Nothing is written to disk
+                //    until a probe has returned "ok" for the exact URL
+                //    being committed, and the name prefilled is the
+                //    feed's own title (falling back to the URL hostname)
+                //    but is fully editable — the backend's own commit
+                //    mutator re-validates it regardless, so the UI is not
+                //    the only thing standing
+                //    between an empty name and the file. ────────────────
+                Row {
+                    id: addUrlRow
+                    width: parent.width
+                    spacing: Design.spacingXs
+
+                    Item {
+                        id: addUrlFieldSlot
+                        width: parent.width - addUrlAction.implicitWidth - parent.spacing
+                        height: Design.spacingXl
+
+                        TextField {
+                            id: addUrlField
+                            anchors.fill: parent
+                            color: BarRoles.notifSurfaceFg
+                            background: Rectangle {
+                                radius: Design.spacingXs
+                                color: BarRoles.capsule
+                            }
+                            // Any change to the field's text clears the
+                            // probe — a stale "ok" must never be
+                            // committable against a URL the operator has
+                            // since edited.
+                            onTextChanged: if (root._hasBackend)
+                                root.newsBackend.clearProbe()
+                            onAccepted: if (addUrlField.text !== "" && root._hasBackend)
+                                root.newsBackend.probeSource(addUrlField.text)
+                            Keys.onEscapePressed: function (event) {
+                                root._editorExpanded = false;
+                                event.accepted = true;
+                            }
+                        }
+
+                        // Hand-rolled placeholder — not the control's own
+                        // placeholder properties: their availability and
+                        // their colour knob on this Qt build are
+                        // UNMEASURED, and a hand-rolled one is fully
+                        // colour-controlled through BarRoles and cannot
+                        // fail colour-lint.
+                        Text {
+                            anchors.left: parent.left
+                            anchors.leftMargin: Design.spacingSm
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Paste feed URL…"
+                            textFormat: Text.PlainText
+                            font.pixelSize: Design.fontBody
+                            color: BarRoles.capsuleFg
+                            visible: addUrlField.text === ""
+                        }
+                    }
+
+                    // Icon-only action chip, enabled only when the field
+                    // is non-empty (dimmed via opacity when not, mirroring
+                    // WifiPanel.qml:1030-1035's connectAction).
+                    Rectangle {
+                        id: addUrlAction
+                        color: BarRoles.capsule
+                        radius: height / 2
+                        implicitWidth: addUrlGlyph.implicitWidth + Design.spacingSm * 2
+                        implicitHeight: Design.spacingXl
+                        width: implicitWidth
+                        height: implicitHeight
+                        opacity: addUrlField.text !== "" ? 1 : 0.38
+
+                        Text {
+                            id: addUrlGlyph
+                            anchors.centerIn: parent
+                            text: "add"
+                            font.family: Design.symbolFontFamily
+                            font.pixelSize: Design.iconSizeMd
+                            textFormat: Text.PlainText
+                            color: BarRoles.capsuleFg
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: addUrlField.text !== "" && root._hasBackend
+                            onClicked: root.newsBackend.probeSource(addUrlField.text)
+                        }
+                    }
+                }
+
+                // ── The probe state line ────────────────────────────────
+                Row {
+                    width: parent.width
+                    spacing: Design.spacingXs
+                    visible: root._hasBackend && root.newsBackend.probeState !== "idle"
+
+                    Text {
+                        id: probeSpinner
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: root._hasBackend && root.newsBackend.probeState === "probing"
+                        width: visible ? implicitWidth : 0
+                        text: "autorenew"
+                        font.family: Design.symbolFontFamily
+                        font.pixelSize: Design.iconSizeMd
+                        textFormat: Text.PlainText
+                        color: BarRoles.capsuleFg
+
+                        // The same ambient-loop-token pattern this
+                        // pane's own pending overlay spinner already
+                        // uses (below, the non-"populated" states).
+                        RotationAnimation on rotation {
+                            running: root._hasBackend && root.newsBackend.probeState === "probing" && Motion.motionEnabled
+                            loops: Animation.Infinite
+                            from: 0
+                            to: 360
+                            duration: Motion.ambientDuration
+                        }
+                    }
+
+                    Text {
+                        width: parent.width - probeSpinner.width - parent.spacing
+                        textFormat: Text.PlainText
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Design.fontLabel
+                        color: root._hasBackend && root.newsBackend.probeState === "failed" ? BarRoles.danger : BarRoles.capsuleFg
+                        text: {
+                            if (!root._hasBackend)
+                                return "";
+                            if (root.newsBackend.probeState === "probing")
+                                return "Checking feed…";
+                            if (root.newsBackend.probeState === "failed")
+                                return root._reasonText(root.newsBackend.probeReason);
+                            if (root.newsBackend.probeState === "ok")
+                                return root.newsBackend.probeItemCount + " headline(s) found";
+                            return "";
+                        }
+                    }
+                }
+
+                // ── Stage B — the name row, visible only when the probe
+                //    is ok. Seeded from the feed's own title, fully
+                //    editable. ─────────────────────────────────────────
+                Row {
+                    width: parent.width
+                    spacing: Design.spacingXs
+                    visible: root._hasBackend && root.newsBackend.probeState === "ok"
+
+                    TextField {
+                        id: addNameField
+                        width: parent.width - addNameSave.implicitWidth - addNameCancel.implicitWidth - parent.spacing * 2
+                        height: Design.spacingXl
+                        maximumLength: root._hasBackend ? root.newsBackend.maxSourceNameLen : 32
+                        color: BarRoles.notifSurfaceFg
+                        background: Rectangle {
+                            radius: Design.spacingXs
+                            color: BarRoles.capsule
+                        }
+                        onVisibleChanged: if (addNameField.visible && root._hasBackend)
+                            addNameField.text = root.newsBackend.probeTitle
+                        Keys.onEscapePressed: function (event) {
+                            root._editorExpanded = false;
+                            event.accepted = true;
+                        }
+                    }
+                    Text {
+                        id: addNameSave
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Add source"
+                        textFormat: Text.PlainText
+                        font.pixelSize: Design.fontLabel
+                        font.weight: Design.weightEmphasis
+                        color: BarRoles.accent
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                if (!root._hasBackend)
+                                    return;
+                                var result = root.newsBackend.addSource(root.newsBackend.probeUrl, addNameField.text);
+                                if (result === "ok") {
+                                    addUrlField.text = "";
+                                    addNameField.text = "";
+                                    root.newsBackend.clearProbe();
+                                } else {
+                                    // Leave both fields as they are for
+                                    // correction.
+                                    addError.text = root._reasonText(result);
+                                }
+                            }
+                        }
+                    }
+                    Text {
+                        id: addNameCancel
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Cancel"
+                        textFormat: Text.PlainText
+                        font.pixelSize: Design.fontLabel
+                        color: BarRoles.capsuleFg
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                addUrlField.text = "";
+                                addNameField.text = "";
+                                if (root._hasBackend)
+                                    root.newsBackend.clearProbe();
+                            }
+                        }
+                    }
+                }
+                Text {
+                    id: addError
+                    width: parent.width
+                    visible: text !== ""
+                    textFormat: Text.PlainText
+                    wrapMode: Text.Wrap
+                    font.pixelSize: Design.fontLabel
+                    color: BarRoles.danger
+                }
             }
         }
 
