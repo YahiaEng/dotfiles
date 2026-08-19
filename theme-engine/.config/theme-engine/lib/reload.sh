@@ -80,6 +80,23 @@ theme_engine_reload() {
     # gate, fresh install) where there is no bar to actuate anyway.
     "$HOME"/.config/hypr/scripts/bar-visibility.sh reassert 2>/dev/null || true
     pkill -SIGUSR1 kitty 2>/dev/null || true
+
+    # ── tmux (quick task 260819-vas): grouped with kitty, the other
+    #    terminal surface this fan-out reloads. Sits after the function's
+    #    own headless early-return above, so a theme-apply with no
+    #    graphical session skips it — consistent with every other hook
+    #    here; a tmux server started later just picks the colours up from
+    #    its own config at start, same as any other surface would.
+    #
+    #    Different from fish (see [templates.fish] in config.toml): fish
+    #    is read once at shell start and existing shells are deliberately
+    #    NOT re-themed, because a fresh shell is cheap and common. A tmux
+    #    server instead holds every option in memory for the life of the
+    #    server — sessions routinely outlive a theme switch by days — so
+    #    without this hook a long-lived session would keep stale colours
+    #    indefinitely. That is precisely why this surface earns a reload
+    #    hook and fish does not.
+    theme_engine_reload_tmux
     # The retired notification daemon's reload step stood here until
     # Phase 19 Plan 19-08 Task 5 (RETIRE-03). Nothing replaces it: the
     # QML shell owns notifications in-process now and re-reads its own
@@ -121,6 +138,51 @@ theme_engine_reload() {
     # ── Zen browser (THM-05/D-26/D-27/D-28): lazy profile self-heal +
     #    notify-only reload — never kills the browser.
     theme_engine_reload_zen
+}
+
+# theme_engine_reload_tmux
+# Quick task 260819-vas: re-sources the freshly rendered colours file into
+# every LIVE tmux server, so a running session re-themes without a
+# restart. Best-effort and silent, like every other hook in this file —
+# never fatal to the wider fan-out.
+#
+# Three guards, in order:
+#   1. `command -v tmux` — absent on a host that hasn't installed tmux yet
+#      (M-10 — it was entirely undeclared before this task).
+#   2. The rendered file existing — a run before the first successful
+#      theme-apply (e.g. this very commit, before Task 1's stow ever ran
+#      matugen once) is a clean no-op, not an error.
+#   3. The tmux socket directory existing, then a per-socket `[[ -S ]]`
+#      test — so a host with tmux installed but no server running (the
+#      common case) is also a clean, silent no-op.
+#
+# Iterates every socket under ${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)/ rather
+# than only the default one, so a server on a named socket (e.g. one
+# started via `tmux -L somename`) re-themes too.
+#
+# Sources the GENERATED colours file directly
+# (~/.local/state/theme/tmux-colors.conf), never tmux.conf itself:
+# re-sourcing the whole config would re-execute the tpm `run` line and
+# re-source every plugin's *.tmux script on every theme switch, which is
+# both wasteful and exactly the kind of extra writer this plan's ordering
+# (M-3) is designed to avoid. Sourcing only the colour file makes matugen
+# trivially the last writer without depending on any file ordering at all.
+theme_engine_reload_tmux() {
+    command -v tmux &>/dev/null || return 0
+
+    local colours_file="$STATE_DIR/tmux-colors.conf"
+    [[ -f "$colours_file" ]] || return 0
+
+    local sock_dir="${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)"
+    [[ -d "$sock_dir" ]] || return 0
+
+    local sock
+    for sock in "$sock_dir"/*; do
+        [[ -S "$sock" ]] || continue
+        tmux -S "$sock" source-file -q "$colours_file" >/dev/null 2>&1 || true
+    done
+
+    return 0
 }
 
 theme_engine_reload_zen() {
