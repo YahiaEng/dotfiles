@@ -104,6 +104,44 @@
 // JSON but clamped to a hard floor/ceiling so a bad value can never turn
 // this into an unbounded fetch), `maxResponseBytes` (2MB, hard).
 //
+// ── Self-healing retry, derived from cache not memory (quick task
+//    260819-ug4) ──────────────────────────────────────────────────────
+// `refresh(force)`'s non-forced path used to gate on WHOLE-CACHE
+// staleness only: if the cache was fresh, it skipped the entire refresh,
+// even when one source had failed and contributed nothing that run. The
+// failed source then read as a dead feed for the rest of the TTL window,
+// recoverable only by the manual refresh click or by waiting the TTL out.
+//
+// The fix re-attempts, on every centre-open inside a fresh TTL, exactly
+// the subset of `root.sources` that currently has ZERO cached headlines
+// (`_sourcesNeedingRetry()`) — never the whole list, never nothing. That
+// retry set is derived from CACHE CONTENTS, not from `_failedNames`:
+// `_failedNames` is in-memory only and does not survive a shell restart,
+// while a reloaded cache still implicitly knows which sources are empty.
+// Deriving from the cache also catches a case `_failedNames` structurally
+// cannot: a source that fetched and parsed cleanly but yielded zero items
+// increments `sourcesOk` and never enters `_failedNames`, yet reads
+// exactly like a dead feed to the operator.
+//
+// The trade-off: a source that legitimately, persistently publishes
+// nothing is re-attempted on every centre-open. That is one bounded,
+// idempotent HTTP GET behind the D-32 centre-open gate, against a list
+// already hard-capped at `maxSources` (8) — cheaper than a feed silently
+// reading as dead. One pathological case is worth naming: if an operator
+// sets `max_items_total` below the number of configured sources, the
+// round-robin selection below gives the tail sources zero slots, and
+// those sources are re-attempted on every centre-open too — bounded,
+// logged, and visible rather than silent.
+//
+// A partial run (targets a strict subset of `root.sources`) never
+// advances `fetchedAtMs` — only a whole run does, so the age readout and
+// the TTL clock stay honest. The publish gate keys on whether THIS run
+// brought anything back (a positive per-run record, the twin of
+// `_failedNames`, called `_okNames`) rather than on the run-scoped
+// success counter alone, because that counter is now SEEDED with the
+// sources deliberately skipped as already-healthy — a wholly-failed
+// partial run must still refuse to publish.
+//
 // ── D-41 widget-state register ────────────────────────────────────────
 // `"populated" | "pending" | "empty"`, the same three-state vocabulary
 // every modules/dashboard/ file carries, including non-visual backends
@@ -192,11 +230,32 @@ Scope {
     property var _runBuffer: []
 
     // Names of the sources that FAILED this run (network, HTTP, oversize
-    // or parse). Counts alone (`sourcesFailed`) cannot answer "which
-    // source's headlines must be carried forward", which is what the
-    // partial-failure rule in _finishRun() below needs. Reset per run
-    // alongside _runBuffer.
+    // or parse). CORRECTED (quick task 260819-ug4): this is no longer
+    // what the carry-forward keys on — `_carryForward()` below keys on
+    // the positive record (`_okNames`) instead, because a partial run's
+    // never-attempted sources are absent from `_failedNames` too but
+    // still must be carried. What `_failedNames` remains for: per-run
+    // failure reporting (`sourcesFailed` alone cannot name WHICH sources
+    // failed) and the failed-source log line in `_fetchSource()`. Reset
+    // per run alongside _runBuffer.
     property var _failedNames: []
+
+    // The positive twin of `_failedNames` (quick task 260819-ug4) — names
+    // of the sources that SUCCEEDED this run (fetched and parsed without
+    // throwing). Both the publish gate and the carry-forward key on this,
+    // not on `_failedNames`, because it is what stays correct in a
+    // partial run: a source never attempted this run is neither ok nor
+    // failed in the old two-state sense, but it must still be excluded
+    // from the carry-forward exactly like a failed one. Reset per run
+    // alongside _runBuffer.
+    property var _okNames: []
+
+    // How many sources this run actually attempted (quick task
+    // 260819-ug4) — `root.sources.length` for a whole run, fewer for a
+    // partial one. Exists only so a partial run's log lines and its
+    // `fetchedAtMs` gate cannot mistake themselves for a whole run.
+    property int _runSourceCount: 0
+
     property var _activeXhrs: []
 
     // ── Clamped tunables — a hard floor/ceiling so a bad value in the
@@ -672,8 +731,11 @@ Scope {
                     root._runBuffer = root._runBuffer.concat(parsed);
                     // A source that parses cleanly but yields zero items
                     // still counts as ok — success-with-nothing is a
-                    // different state from failure.
+                    // different state from failure. _okNames (quick task
+                    // 260819-ug4) records the positive per-run result
+                    // alongside the counter.
                     root.sourcesOk++;
+                    root._okNames.push(src.name);
                 } catch (e) {
                     root.sourcesFailed++;
                     root._failedNames.push(src.name);
@@ -687,13 +749,66 @@ Scope {
         });
     }
 
+    // ── Self-healing retry set (quick task 260819-ug4) — see the header
+    //    section for the full design rationale. Returns the subset of
+    //    root.sources whose name appears on zero items in root.items.
+    //    Uses an array + indexOf, NOT a plain object used as a map — an
+    //    operator-authored source name such as "constructor" or
+    //    "__proto__" collides with Object.prototype and would silently
+    //    produce a wrong answer; indexOf on a list capped at 8 sources
+    //    and 200 items has no such hazard, and it matches the
+    //    _failedNames.indexOf idiom this file already uses. ────────────
+    function _sourcesNeedingRetry() {
+        var haveNames = [];
+        for (var i = 0; i < root.items.length; i++) {
+            if (haveNames.indexOf(root.items[i].source) === -1)
+                haveNames.push(root.items[i].source);
+        }
+        var retry = [];
+        for (var j = 0; j < root.sources.length; j++) {
+            if (haveNames.indexOf(root.sources[j].name) === -1)
+                retry.push(root.sources[j]);
+        }
+        return retry;
+    }
+
+    // ── Carry-forward, keyed on the positive record (quick task
+    //    260819-ug4) — replaces the _failedNames-keyed loop that used to
+    //    live inline in _finishRun(). An item is carried when BOTH hold:
+    //    its source is the name of a currently-configured enabled source
+    //    (i.e. it appears in root.sources — this is what drops a
+    //    hand-removed source's items, exactly as the old _failedNames
+    //    keying happened to achieve), AND its source is NOT in
+    //    root._okNames. In a whole run this is byte-identical to the old
+    //    behaviour (every source is either ok or failed); in a partial
+    //    run the sources never attempted this run are also not in
+    //    _okNames, so their items are carried too — which is precisely
+    //    what stops a partial run clobbering the healthy sources. ──────
+    function _carryForward() {
+        var configuredNames = [];
+        for (var i = 0; i < root.sources.length; i++)
+            configuredNames.push(root.sources[i].name);
+        var carried = [];
+        for (var c = 0; c < root.items.length; c++) {
+            var it = root.items[c];
+            if (configuredNames.indexOf(it.source) !== -1 && root._okNames.indexOf(it.source) === -1)
+                carried.push(it);
+        }
+        return carried;
+    }
+
     function _finishRun() {
-        // Write items ONLY if at least one source succeeded this run — if
-        // every source failed, leave both items and the cache exactly as
-        // they were. This is what makes "no network, open the centre,
-        // still see yesterday's headlines" work rather than blanking the
-        // pane (never assign a half-built/empty result over a good one).
-        if (root.sourcesOk > 0) {
+        // Write items ONLY if THIS run actually brought something back —
+        // if every attempted source failed, leave both items and the
+        // cache exactly as they were. This is what makes "no network,
+        // open the centre, still see yesterday's headlines" work rather
+        // than blanking the pane (never assign a half-built/empty result
+        // over a good one). The gate keys on the positive per-run record
+        // (quick task 260819-ug4), not on the run-scoped success counter
+        // alone: refresh() below now SEEDS that counter with the sources
+        // deliberately skipped as already-healthy, so a counter-only gate
+        // would let a wholly-failed partial run take this branch.
+        if (root._okNames.length > 0) {
             // ── Fair selection BEFORE the cap (bug fix 2026-08-19) ───────
             // A plain global sort-then-truncate starves whichever source
             // publishes slowest. MEASURED with the four default sources:
@@ -736,14 +851,18 @@ Scope {
             // _runBuffer by definition. A source that is REMOVED from
             // news-sources.json is not carried: it never appears in
             // _failedNames, because no request is ever issued for it.
-            var carried = [];
-            if (root._failedNames.length > 0 && root.items.length > 0) {
-                for (var c = 0; c < root.items.length; c++) {
-                    if (root._failedNames.indexOf(root.items[c].source) !== -1)
-                        carried.push(root.items[c]);
+            // ── Carry-forward, now keyed on the positive record (quick
+            //    task 260819-ug4 generalises the 2026-08-19 bug fix above
+            //    to a partial run — see _carryForward()'s own comment for
+            //    the full rationale) ──────────────────────────────────
+            var carried = root._carryForward();
+            if (carried.length > 0) {
+                var carriedSources = [];
+                for (var cc = 0; cc < carried.length; cc++) {
+                    if (carriedSources.indexOf(carried[cc].source) === -1)
+                        carriedSources.push(carried[cc].source);
                 }
-                if (carried.length > 0)
-                    console.log("NewsBackend: carried " + carried.length + " item(s) forward from " + root._failedNames.length + " failed source(s): " + root._failedNames.join(", "));
+                console.log("NewsBackend: carried " + carried.length + " item(s) forward from " + carriedSources.length + " source(s) not refreshed this run: " + carriedSources.join(", "));
             }
             var pool = root._runBuffer.concat(carried);
 
@@ -779,12 +898,29 @@ Scope {
             // -rendered list is the failure mode the shape-check
             // discipline throughout this file exists to prevent.
             root.items = merged;
-            root.fetchedAtMs = Date.now();
+            // The whole-cache timestamp advances ONLY on a whole run
+            // (quick task 260819-ug4) — every configured source was
+            // attempted this run, i.e. _runSourceCount equals
+            // root.sources.length. A partial run (the self-healing retry
+            // touches only the sources with zero cached headlines) must
+            // NOT advance it: doing so would both lie in the age readout
+            // (claiming the healthy sources were just re-checked, when
+            // they were deliberately skipped) and push the TTL out,
+            // indefinitely deferring the full refresh the healthy sources
+            // still need. writeCache() below still runs unconditionally
+            // in this branch, so a healed partial survives a restart even
+            // though fetchedAtMs did not move.
+            if (root._runSourceCount === root.sources.length) {
+                root.fetchedAtMs = Date.now();
+            } else {
+                console.log("NewsBackend: partial run (" + root._runSourceCount + " of " + root.sources.length + " source(s)) — fetchedAtMs left unchanged");
+            }
             root.writeCache();
         } else {
-            console.log("NewsBackend: refresh finished with 0 successful source(s) (" + root.sourcesFailed + " failed) — items and cache left untouched");
+            console.log("NewsBackend: refresh finished with 0 successful source(s) this run (" + root._runSourceCount + " of " + root.sources.length + " configured source(s) attempted, " + root.sourcesFailed + " failed) — items and cache left untouched");
         }
         root._runBuffer = [];
+        root._okNames = [];
         root._updateWidgetState();
     }
 
@@ -798,22 +934,46 @@ Scope {
             console.log("NewsBackend: refresh() skipped — a fetch is already in flight");
             return;
         }
-        if (!force && !root.isStale) {
-            console.log("NewsBackend: refresh() skipped — cache fresh, " + Math.floor(root.ageMs / 60000) + " minute(s) old");
-            return;
-        }
         if (root.sources.length === 0) {
             console.log("NewsBackend: refresh() — zero valid sources configured, nothing to fetch");
             return;
         }
 
-        root.sourcesOk = 0;
+        // ── The retry set (quick task 260819-ug4) — see the header
+        //    section for the full design rationale. A forced run (the
+        //    manual refresh button) and a genuinely stale cache both
+        //    still run the WHOLE source list, unchanged from before this
+        //    quick task. Only the fresh-cache, non-forced path narrows
+        //    to _sourcesNeedingRetry() — the self-healing addition. ────
+        var targets = root.sources;
+        if (!force && !root.isStale) {
+            targets = root._sourcesNeedingRetry();
+            if (targets.length === 0) {
+                console.log("NewsBackend: refresh() — cache fresh, " + Math.floor(root.ageMs / 60000) + " minute(s) old, every source has headlines — nothing to re-attempt");
+                return;
+            }
+            var retryNames = [];
+            for (var n = 0; n < targets.length; n++)
+                retryNames.push(targets[n].name);
+            console.log("NewsBackend: refresh() — cache fresh, " + Math.floor(root.ageMs / 60000) + " minute(s) old, but re-attempting " + targets.length + " source(s) with no cached headlines: " + retryNames.join(", "));
+        }
+
+        // Seeded, not zeroed (quick task 260819-ug4): sourcesOk starts at
+        // the number of sources deliberately NOT in targets — they were
+        // skipped because they already have cached headlines, i.e. they
+        // are known good. This is what keeps NewsPane.qml's "N of M
+        // sources unreachable" footer honest: M stays the full configured
+        // source count rather than collapsing to the retried subset. For
+        // a whole run this is 0, exactly as before this quick task.
+        root.sourcesOk = root.sources.length - targets.length;
         root.sourcesFailed = 0;
         root.lastError = "";
         root._runBuffer = [];
         root._failedNames = [];
-        for (var i = 0; i < root.sources.length; i++)
-            root._fetchSource(root.sources[i]);
+        root._okNames = [];
+        root._runSourceCount = targets.length;
+        for (var i = 0; i < targets.length; i++)
+            root._fetchSource(targets[i]);
     }
 
     // Zero idle footprint (D-32) — called on every centre-close.
@@ -828,6 +988,11 @@ Scope {
         root._activeXhrs = [];
         root.requestsInFlight = 0;
         root._runBuffer = [];
+        // Reset alongside _runBuffer (quick task 260819-ug4) — a
+        // centre-close mid-run must not leave a stale positive record for
+        // the next run's carry-forward to read.
+        root._okNames = [];
+        root._runSourceCount = 0;
         // D-5 — kills an in-flight probe for free (it shares
         // _activeXhrs). The in-flight callback's own probeState guard
         // then makes the late DONE a no-op.
