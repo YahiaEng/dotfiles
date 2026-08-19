@@ -339,6 +339,12 @@ PanelWindow {
                 // warning there.
                 contentItem: Row {
                     anchors.fill: parent
+                    // The two pills were flush against each other — this
+                    // Row carried NO spacing at all, so "Notifications"
+                    // and "News" touched and read as one run of chrome
+                    // rather than two targets (operator report,
+                    // 2026-08-19). Design token, never a literal.
+                    spacing: Design.spacingSm
                     Repeater {
                         model: tabBar.contentModel
                     }
@@ -361,7 +367,23 @@ PanelWindow {
                         // carried ("stays correct at 0, 9 or 100+
                         // entries"), which must survive this move in
                         // spirit: the numeral below shares this same box.
-                        implicitWidth: labelRow.implicitWidth + Design.spacingMd * 2
+                        // Content-hugging, never a fixed width — the exact
+                        // promise the deleted count capsule's own comment
+                        // carried, unchanged by the padding increase
+                        // below: the pill still grows and shrinks with
+                        // its own label and numeral.
+                        //
+                        // Padding widened spacingMd -> spacingLg per side
+                        // and an explicit pill height added (operator
+                        // report 2026-08-19: "dimensions are too tight").
+                        // The height is derived from the label row plus
+                        // symmetric vertical padding, NOT from the 48px
+                        // band — the band's own height is untouched, so
+                        // the layer surface still cannot move. It is
+                        // clamped to the band so a future font bump can
+                        // never push the pill past the header.
+                        implicitWidth: labelRow.implicitWidth + Design.spacingLg * 2
+                        implicitHeight: Math.min(labelRow.implicitHeight + Design.spacingSm * 2, Design.popoutHeaderHeight - Design.spacingXs * 2)
                         focusPolicy: Qt.NoFocus
 
                         background: Rectangle {
@@ -673,6 +695,56 @@ PanelWindow {
             target: pager
             function onCurrentIndexChanged() {
                 tabBar.setCurrentIndex(pager.currentIndex);
+            }
+        }
+
+        // ── Re-assert the SHOWN PAGE on every re-show (bug fix
+        //    2026-08-19) — the counterpart to the header sync above,
+        //    for the other half of the same one-way flow.
+        //
+        //    ROOT CAUSE: this surface is never destroyed on close. It
+        //    stays alive and only toggles `visible` (see the window's
+        //    own `visible: centreWindow.offsetScale < 1`). `pagerList`
+        //    sets `highlightRangeMode: ListView.StrictlyEnforceRange`,
+        //    and under that mode a ListView WRITES ITS OWN
+        //    `currentIndex` whenever `contentX` moves. On re-show the
+        //    hidden ListView's `contentX` has been reset to 0, so it
+        //    self-writes `currentIndex = 0` — and that imperative write
+        //    DESTROYS the `currentIndex: pager.currentIndex` binding,
+        //    exactly the way a TabButton tap destroys the header's
+        //    binding above. `pager.currentIndex` itself is untouched,
+        //    so the header (which reads it) kept saying "News" while
+        //    the pager rendered page 0: the tab and its content
+        //    disagreed.
+        //
+        //    Dashboard.qml does NOT need this only because it is
+        //    RECREATED per open (its `Component.onCompleted:
+        //    pager.setCurrentIndex(initialTabIndex)`, Dashboard.qml:524)
+        //    — it works by lifecycle accident, not by a guard, so
+        //    there was no prior art here to copy.
+        //
+        //    Re-establishing the BINDING (not just assigning the value)
+        //    is what makes this hold for every subsequent re-show
+        //    rather than only the first. `positionViewAtIndex` then
+        //    snaps `contentX` in the same pass, so the page does not
+        //    animate in from the wrong side.
+        //
+        //    Qt.callLater defers past binding settlement — inside
+        //    onVisibleChanged the ListView has not necessarily
+        //    re-laid-out yet, and positioning against a stale width
+        //    lands on the wrong page (the same deferral WeatherBackend's
+        //    own geocode call needed for the same class of reason).
+        Connections {
+            target: centreWindow
+            function onVisibleChanged() {
+                if (!centreWindow.visible)
+                    return;
+                Qt.callLater(function () {
+                    pagerList.currentIndex = Qt.binding(function () {
+                        return pager.currentIndex;
+                    });
+                    pagerList.positionViewAtIndex(pager.currentIndex, ListView.Beginning);
+                });
             }
         }
 
