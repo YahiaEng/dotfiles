@@ -64,6 +64,17 @@
 # `GeocodeBackend`, the second fenced host (reverse-geocode, nominatim.
 # openstreetmap.org) — one ordinary instance, owned by `WeatherBackend.qml`
 # as a plain child, not mounted at shell root (exactly one consumer).
+#
+# Quick task 260819-6oy adds a sixteenth type, not a singleton:
+# `NewsBackend`, the third fenced host in the widened sense its own header
+# records (an operator-editable news-sources.json rather than a single
+# literal host, enforced instead by a two-point https:// scheme allowlist)
+# — one ordinary instance, mounted at shell.qml's root as a sibling of
+# WeatherBackend, despite its only consumer being the notification centre's
+# News tab (modules/centre/NewsPane.qml): this directory is the repo's
+# backend home regardless of consumer, per AudioBackend's own precedent
+# (AudioBackend lives here and serves the centre footer, the bar and the
+# OSD).
 module qs.modules.dashboard
 singleton Design 1.0 Design.qml
 singleton WeatherPalette 1.0 WeatherPalette.qml
@@ -75,6 +86,7 @@ WeatherTab 1.0 WeatherTab.qml
 MediaBackend 1.0 MediaBackend.qml
 WeatherBackend 1.0 WeatherBackend.qml
 GeocodeBackend 1.0 GeocodeBackend.qml
+NewsBackend 1.0 NewsBackend.qml
 SystemResources 1.0 SystemResources.qml
 QuickToggles 1.0 QuickToggles.qml
 Dial 1.0 Dial.qml

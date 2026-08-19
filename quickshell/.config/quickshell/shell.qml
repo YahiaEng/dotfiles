@@ -364,6 +364,21 @@ ShellRoot {
         drawerOpen: dashboardLoader.active
     }
 
+    // ── News backend (quick task 260819-6oy) — the notification centre's
+    //    News-tab feed fetcher. Mounted here, a sibling of WeatherBackend
+    //    above, despite its only consumer being NotifCentre's own News tab
+    //    (modules/centre/NewsPane.qml) — modules/dashboard/ is the repo's
+    //    backend home regardless of consumer (AudioBackend's own
+    //    precedent). Gated on NotifServer.centreOpen (D-32) rather than
+    //    dashboardLoader.active: zero network while the centre is closed.
+    //    Do NOT add `newsBackend: newsBackendInstance` to the NotifCentre
+    //    block below yet — that property does not exist until this quick
+    //    task's Task 4 lands it.
+    NewsBackend {
+        id: newsBackendInstance
+        centreOpen: NotifServer.centreOpen
+    }
+
     // Round-3 render-gate correction (14-06, defect B — "warm cache across
     // opens"): moved here from inside Dashboard.qml for EXACTLY the reason
     // this comment block already states for MediaBackend/WeatherBackend
