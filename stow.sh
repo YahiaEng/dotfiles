@@ -28,7 +28,6 @@ PACKAGES=(
     quickshell
     theme-engine
     thunar
-    tmux
     uwsm
     vscodium
     walker
@@ -58,17 +57,6 @@ fi
 # first run, and they must live host-side, never inside the repo tree
 # (git-clean invariant).
 mkdir -p "$HOME/.config/fish/functions" "$HOME/.config/fish/conf.d" "$HOME/.config/fish/completions"
-
-# Quick task 260819-vas (T-vas-04): pre-create ~/.config/tmux/plugins as a
-# real directory, same fold-bug idiom as the fish dirs above — the `tmux`
-# package's only shipped file is .config/tmux/tmux.conf, so on a genuinely
-# fresh machine nothing stops stow folding ~/.config/tmux into a single
-# whole-directory symlink back into the repo. After that fold, tpm's own
-# `ensure_tpm_path_exists` would create plugins/ INSIDE THE CLONED REPO
-# TREE and git-clone four third-party plugin repos there, breaking the
-# git-clean invariant theme-doctor's state-manifest gate exists to protect.
-# Placement before the PACKAGES loop is load-bearing, not incidental.
-mkdir -p "$HOME/.config/tmux/plugins"
 
 # THM-01/D-08: pre-create the gtk-3.0/gtk-4.0 config dirs as real
 # directories, same rationale as the fish dirs above — settings.ini is now
@@ -293,32 +281,6 @@ for pkg in "${PACKAGES[@]}"; do
         echo "  ⚠ Skipping: $pkg (directory not found)"
     fi
 done
-
-# ── tmux plugin fetch, headless (D-02, quick task 260819-vas) ────────
-# M-7: this belongs HERE, not install.sh — install.sh does not run
-# stow.sh, so at install.sh time ~/.config/tmux/tmux.conf does not exist
-# yet, and tpm's own `_get_user_tmux_conf`/`_tpm_path` need that stowed
-# file to find both the plugin list and the plugin path (this loop just
-# stowed it, above). Guard on the tpm binary's presence (AUR
-# `tmux-plugin-manager`, M-1) so a host that has not installed it yet is
-# a clean, informative skip — never a script failure.
-if [[ -x /usr/share/tmux-plugin-manager/bin/install_plugins ]]; then
-    echo ""
-    echo "Fetching tmux plugins (tpm, headless)..."
-    # M-8: TMUX_TMPDIR redirects the socket directory tpm's own throwaway
-    # server binds to, isolating this fetch from the operator's live tmux
-    # server (a distinct socket dir under a distinct default socket) —
-    # measured during planning: with it set, the socket resolves under
-    # $TMUX_TMPDIR/tmux-<uid>/ and the real default socket is untouched.
-    TMUX_TMPDIR_GSD="$(mktemp -d)"
-    # Tolerate a non-zero exit (`|| true`) in the same spirit as the stow
-    # loop's own conflict guard just above: a plugin fetch failing (e.g.
-    # no network) must not abort the remaining seeds below it.
-    TMUX_TMPDIR="$TMUX_TMPDIR_GSD" /usr/share/tmux-plugin-manager/bin/install_plugins || true
-    rm -rf "$TMUX_TMPDIR_GSD"
-else
-    echo "  ⚠ tmux-plugin-manager not installed — skipping plugin fetch (paru -S tmux-plugin-manager, then re-run ./stow.sh)"
-fi
 
 # ── Make scripts executable ──────────────────────────
 echo ""
