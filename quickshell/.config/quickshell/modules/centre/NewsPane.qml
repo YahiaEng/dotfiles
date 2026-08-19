@@ -61,6 +61,18 @@ Item {
     property var newsBackend: null
     readonly property bool _hasBackend: root.newsBackend !== null
 
+    // ── ONE place decides the mode (this quick task) — the delegate, the
+    //    toggle chip's glyph and the toggle chip's label all read this
+    //    single property and can never disagree, the same discipline
+    //    `paneState` above already carries. ─────────────────────────────
+    readonly property bool _cardMode: root._hasBackend && root.newsBackend.viewMode === "cards"
+
+    // Module-local geometry constant (this quick task) — NOT a new
+    // Design.qml token: used in exactly one file, the same precedent
+    // ClockPopout.qml's `_cellHeight` and MediaPopout.qml's `_artSize`
+    // already set. 76 sits on the repo's 4px grid (76 / 4 = 19).
+    readonly property int _thumbSize: 76
+
     // ── The six render states — exactly ONE place this decision lives,
     //    so the overlays below can never disagree with each other. ──────
     readonly property string paneState: {
@@ -113,60 +125,122 @@ Item {
         anchors.right: parent.right
         spacing: Design.spacingXs
 
-        Rectangle {
-            id: selectorChip
-            color: BarRoles.capsule
-            radius: height / 2
-            implicitWidth: selectorRow.implicitWidth + Design.spacingMd * 2
-            implicitHeight: selectorRow.implicitHeight + Design.spacingXs * 2
-            width: implicitWidth
-            height: implicitHeight
+        // ── The filter chip and the view-mode toggle chip sit side by
+        //    side (this quick task) — the inline expand still drops
+        //    under this Row as selectorHost's second child. ──────────────
+        Row {
+            id: chipRow
+            spacing: Design.spacingSm
 
-            Behavior on color {
-                enabled: Motion.motionEnabled
-                ColorAnimation {
-                    duration: Motion.standardDuration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Motion.standardEasing
+            Rectangle {
+                id: selectorChip
+                color: BarRoles.capsule
+                radius: height / 2
+                implicitWidth: selectorRow.implicitWidth + Design.spacingMd * 2
+                implicitHeight: selectorRow.implicitHeight + Design.spacingXs * 2
+                width: implicitWidth
+                height: implicitHeight
+
+                Behavior on color {
+                    enabled: Motion.motionEnabled
+                    ColorAnimation {
+                        duration: Motion.standardDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
+                    }
+                }
+
+                Row {
+                    id: selectorRow
+                    anchors.centerIn: parent
+                    spacing: Design.spacingXs
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "filter_list"
+                        font.family: Design.symbolFontFamily
+                        font.pixelSize: Design.iconSizeMd
+                        textFormat: Text.PlainText
+                        color: BarRoles.capsuleFg
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root._hasBackend && root.newsBackend.selectedSource !== "" ? root.newsBackend.selectedSource : "All sources"
+                        textFormat: Text.PlainText
+                        font.pixelSize: Design.fontBody
+                        color: BarRoles.capsuleFg
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root._selectorExpanded ? "expand_less" : "expand_more"
+                        font.family: Design.symbolFontFamily
+                        font.pixelSize: Design.iconSizeMd
+                        textFormat: Text.PlainText
+                        color: BarRoles.capsuleFg
+                    }
+                }
+
+                MouseArea {
+                    id: selectorMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: root._hasBackend
+                    onClicked: root._selectorExpanded = !root._selectorExpanded
                 }
             }
 
-            Row {
-                id: selectorRow
-                anchors.centerIn: parent
-                spacing: Design.spacingXs
+            // ── The view toggle (this quick task) — mirrors selectorChip
+            //    exactly (same fill, radius, content-hugging width,
+            //    Behavior on color), but it is a TOGGLE, not a dropdown:
+            //    one tap flips compact <-> cards directly, no expand step,
+            //    no third chrome state. ────────────────────────────────
+            Rectangle {
+                id: viewToggleChip
+                color: BarRoles.capsule
+                radius: height / 2
+                implicitWidth: viewToggleRow.implicitWidth + Design.spacingMd * 2
+                implicitHeight: viewToggleRow.implicitHeight + Design.spacingXs * 2
+                width: implicitWidth
+                height: implicitHeight
 
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "filter_list"
-                    font.family: Design.symbolFontFamily
-                    font.pixelSize: Design.iconSizeMd
-                    textFormat: Text.PlainText
-                    color: BarRoles.capsuleFg
+                Behavior on color {
+                    enabled: Motion.motionEnabled
+                    ColorAnimation {
+                        duration: Motion.standardDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
+                    }
                 }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root._hasBackend && root.newsBackend.selectedSource !== "" ? root.newsBackend.selectedSource : "All sources"
-                    textFormat: Text.PlainText
-                    font.pixelSize: Design.fontBody
-                    color: BarRoles.capsuleFg
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root._selectorExpanded ? "expand_less" : "expand_more"
-                    font.family: Design.symbolFontFamily
-                    font.pixelSize: Design.iconSizeMd
-                    textFormat: Text.PlainText
-                    color: BarRoles.capsuleFg
-                }
-            }
 
-            MouseArea {
-                id: selectorMouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                enabled: root._hasBackend
-                onClicked: root._selectorExpanded = !root._selectorExpanded
+                Row {
+                    id: viewToggleRow
+                    anchors.centerIn: parent
+                    spacing: Design.spacingXs
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root._cardMode ? "view_agenda" : "view_list"
+                        font.family: Design.symbolFontFamily
+                        font.pixelSize: Design.iconSizeMd
+                        textFormat: Text.PlainText
+                        color: BarRoles.capsuleFg
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root._cardMode ? "Cards" : "Compact"
+                        textFormat: Text.PlainText
+                        font.pixelSize: Design.fontBody
+                        color: BarRoles.capsuleFg
+                    }
+                }
+
+                MouseArea {
+                    id: viewToggleMouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: root._hasBackend
+                    onClicked: root.newsBackend.setViewMode(root._cardMode ? "compact" : "cards")
+                }
             }
         }
 
@@ -346,11 +420,17 @@ Item {
             }
         }
 
+        // ── ONE delegate serves both modes (this quick task) — a second
+        //    delegate would be a second place for the row rhythm to
+        //    drift, and the whole point is that geometry is identical
+        //    between an image row and a glyph row. ────────────────────
         delegate: Item {
             id: headlineDelegate
             required property var modelData
             width: headlineList.width
-            height: headlineContent.implicitHeight + Design.spacingSm * 2
+            // Compact stays byte-identical to before this quick task.
+            // Cards: max(76, ~70 content) + 32 = 108px.
+            height: root._cardMode ? (Math.max(root._thumbSize, headlineContent.implicitHeight) + Design.spacingMd * 2) : (headlineContent.implicitHeight + Design.spacingSm * 2)
 
             Rectangle {
                 anchors.fill: parent
@@ -367,11 +447,68 @@ Item {
                 }
             }
 
+            // ── The thumbnail slot (this quick task) — mirrors
+            //    NotifCard.qml's iconSlot idiom verbatim: ALWAYS reserved,
+            //    NEVER blank, the card never changes width. Two tiers,
+            //    one shorter than NotifCard's four — there is no
+            //    icon-theme tier because a feed has no app_icon
+            //    equivalent. ─────────────────────────────────────────────
+            Item {
+                id: thumbSlot
+                anchors.left: parent.left
+                anchors.leftMargin: Design.spacingSm
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root._cardMode
+                width: root._cardMode ? root._thumbSize : 0
+                height: root._cardMode ? root._thumbSize : 0
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Design.spacingSm
+                    color: BarRoles.capsule
+
+                    // Fallback tier — same glyph tab 1 of the centre
+                    // carries ("newspaper"), the same idea as NotifCard's
+                    // final tier being the generic bell.
+                    Text {
+                        anchors.centerIn: parent
+                        text: "newspaper"
+                        font.family: Design.symbolFontFamily
+                        font.pixelSize: Design.iconSizeMd
+                        textFormat: Text.PlainText
+                        color: BarRoles.capsuleFg
+                        visible: thumbImage.status !== Image.Ready
+                    }
+
+                    // ── THE ZERO-REQUEST RULE — `visible: false` does NOT
+                    //    stop an Image from loading; only gating `source`
+                    //    does. Qt issues a network request iff `source` is
+                    //    non-empty, so `source` — never `visible` — is the
+                    //    load-prevention mechanism. Do not "simplify" this
+                    //    to a `visible`-only gate; that silently violates
+                    //    "compact issues zero image requests". ────────────
+                    Image {
+                        id: thumbImage
+                        anchors.fill: parent
+                        clip: true
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        // Decode bounded to the slot regardless of source
+                        // dimensions (Ars ships 500x500, BBC 240x135 —
+                        // both downscale into 76).
+                        sourceSize.width: root._thumbSize
+                        sourceSize.height: root._thumbSize
+                        visible: status === Image.Ready
+                        source: root._cardMode && headlineDelegate.modelData.image ? headlineDelegate.modelData.image : ""
+                    }
+                }
+            }
+
             Column {
                 id: headlineContent
-                anchors.left: parent.left
+                anchors.left: thumbSlot.right
+                anchors.leftMargin: root._cardMode ? Design.spacingMd : 0
                 anchors.right: parent.right
-                anchors.leftMargin: Design.spacingSm
                 anchors.rightMargin: Design.spacingSm
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Design.spacingXs / 2
@@ -387,13 +524,47 @@ Item {
                     font.pixelSize: Design.fontBody
                     color: BarRoles.notifSurfaceFg
                 }
+
+                // ── Compact meta line — today's single Text, unchanged. ──
                 Text {
                     width: parent.width
+                    visible: !root._cardMode
                     text: headlineDelegate.modelData.dateMs === 0 ? headlineDelegate.modelData.source : headlineDelegate.modelData.source + " · " + root._relativeAge(Date.now() - headlineDelegate.modelData.dateMs)
                     textFormat: Text.PlainText
                     elide: Text.ElideRight
                     font.pixelSize: Design.fontLabel
                     color: BarRoles.capsuleFg
+                }
+
+                // ── Card meta line — source as a capsule, age beside it. ─
+                Row {
+                    visible: root._cardMode
+                    spacing: Design.spacingXs
+
+                    Rectangle {
+                        color: BarRoles.capsule
+                        radius: height / 2
+                        implicitWidth: sourceCapsuleText.implicitWidth + Design.spacingSm * 2
+                        implicitHeight: sourceCapsuleText.implicitHeight + Design.spacingXs
+                        width: implicitWidth
+                        height: implicitHeight
+
+                        Text {
+                            id: sourceCapsuleText
+                            anchors.centerIn: parent
+                            text: headlineDelegate.modelData.source
+                            textFormat: Text.PlainText
+                            font.pixelSize: Design.fontLabel
+                            color: BarRoles.capsuleFg
+                        }
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: headlineDelegate.modelData.dateMs === 0 ? "" : root._relativeAge(Date.now() - headlineDelegate.modelData.dateMs)
+                        textFormat: Text.PlainText
+                        font.pixelSize: Design.fontLabel
+                        color: BarRoles.capsuleFg
+                    }
                 }
             }
 
