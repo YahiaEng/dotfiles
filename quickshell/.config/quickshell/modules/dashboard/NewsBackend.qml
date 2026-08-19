@@ -766,6 +766,340 @@ Scope {
         cacheFile.setText(JSON.stringify(obj));
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    // ── In-shell source editor (quick task 260819-pi3) ───────────────────
+    // Everything below stays ABOVE the two FileViews per this file's own
+    // load-bearing declaration-order rule (see header).
+    // ══════════════════════════════════════════════════════════════════
+
+    // D-4 — data-hygiene bound on operator-authored names. Layout is
+    // bounded SEPARATELY, in pixels, in NewsPane.qml — a character count
+    // cannot guarantee pixel width because Design.qml deliberately pins
+    // no font family (the shell inherits the GTK font from gsettings).
+    readonly property int maxSourceNameLen: 32
+
+    // The editor's model — a readonly COMPUTED property for the same
+    // reason `sources` above is one: it can never hold a stale `onLoaded`
+    // snapshot. `root.sources` is enabled-and-valid-only and projects
+    // away `enabled`, so it cannot drive an editor that must show
+    // disabled rows too (anchor 4).
+    readonly property var allSources: root._allSources()
+
+    // D-6 — set by addSource()/setSourceEnabled(true); consumed by the
+    // sources-changed handler below, which Qt.callLater()s the actual
+    // refresh so it reads settled state rather than the pre-write
+    // snapshot.
+    property bool _refreshWhenSourcesSettle: false
+
+    // The editor's model. Duck-typed on `.length` per anchor 5 — never
+    // the native array-type predicate against anything reached through
+    // newsState (see `_validSources()`'s own LIVE-MEASURED FINDING
+    // above). Does NOT filter on scheme or on empty name — a malformed
+    // entry must stay visible so the operator can delete it. `index` is
+    // carried for logging only; every mutator below keys on `url` (D-2),
+    // never on index, because a splice shifts every later index.
+    function _allSources() {
+        var raw = newsState.sources;
+        var out = [];
+        if (!raw || typeof raw.length !== "number") {
+            console.log("NewsBackend: _allSources() — news-sources.json 'sources' has no usable length — treating as empty");
+            return out;
+        }
+        for (var i = 0; i < raw.length; i++) {
+            var s = raw[i];
+            if (!s || typeof s !== "object") {
+                console.log("NewsBackend: _allSources() — source[" + i + "] skipped, not an object");
+                continue;
+            }
+            out.push({
+                name: typeof s.name === "string" ? s.name : "",
+                url: typeof s.url === "string" ? s.url : "",
+                enabled: s.enabled !== false,
+                index: i
+            });
+        }
+        return out;
+    }
+
+    // Strips control characters (everything below U+0020, plus U+007F),
+    // collapses whitespace to a single space, trims. Returns "" for a
+    // non-string.
+    function _normaliseName(raw) {
+        if (typeof raw !== "string")
+            return "";
+        var out = "";
+        for (var i = 0; i < raw.length; i++) {
+            var code = raw.charCodeAt(i);
+            if (code < 0x20 || code === 0x7f)
+                continue;
+            out += raw[i];
+        }
+        return out.replace(/\s+/g, " ").trim();
+    }
+
+    // The add-flow's name fallback when a feed carries no usable title:
+    // strip allowedScheme, cut at the first "/", drop a ":port", drop a
+    // leading "www.". Returns "" if nothing usable is left.
+    function _hostnameOf(url) {
+        if (typeof url !== "string" || url.indexOf(root.allowedScheme) !== 0)
+            return "";
+        var rest = url.slice(root.allowedScheme.length);
+        var slashIdx = rest.indexOf("/");
+        if (slashIdx !== -1)
+            rest = rest.slice(0, slashIdx);
+        var colonIdx = rest.indexOf(":");
+        if (colonIdx !== -1)
+            rest = rest.slice(0, colonIdx);
+        if (rest.indexOf("www.") === 0)
+            rest = rest.slice(4);
+        return rest;
+    }
+
+    // The ONE write path for the source array (anchor 2's idiom, exactly
+    // as setViewMode() above already proves). Deliberately NOT a
+    // whole-object republish, for the same reason setViewMode() gives:
+    // `sources` is not a native JS Array on this Qt build, so a generic
+    // re-serialise risks clobbering the operator's list. setViewMode()
+    // itself is left alone — it mutates a top-level key, not the array —
+    // two callers, same refuse-on-malformed guard, no shared mode flag.
+    function _writeSources(mutator) {
+        try {
+            var raw = sourcesFile.text();
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object" || !parsed.sources || typeof parsed.sources.length !== "number") {
+                console.log("NewsBackend: _writeSources() refused — news-sources.json has no usable 'sources' length");
+                return false;
+            }
+            var ok = mutator(parsed.sources);
+            if (ok === false) {
+                console.log("NewsBackend: _writeSources() refused by mutator — nothing written");
+                return false;
+            }
+            sourcesFile.setText(JSON.stringify(parsed, null, 2));
+            return true;
+        } catch (e) {
+            console.log("NewsBackend: _writeSources() failed: " + e);
+            return false;
+        }
+    }
+
+    // Linear scan comparing arr[i].url === url exactly. Duck-typed
+    // length again (anchor 5).
+    function _findSourceIndex(arr, url) {
+        if (!arr || typeof arr.length !== "number")
+            return -1;
+        for (var i = 0; i < arr.length; i++) {
+            if (arr[i] && arr[i].url === url)
+                return i;
+        }
+        return -1;
+    }
+
+    // Drops every cached item belonging to `name`. Assigns root.items in
+    // ONE statement — never incrementally (see _finishRun()'s own
+    // comment on this discipline).
+    function _pruneItemsOfSource(name) {
+        var kept = root.items.filter(function (i) {
+            return i.source !== name;
+        });
+        if (kept.length !== root.items.length) {
+            root.items = kept;
+            root.writeCache();
+        }
+    }
+
+    // Rewrites `source` on every cached item matching oldName. Note:
+    // `_failedNames` may still hold the old name for the remainder of
+    // the current run, which only means carry-forward in _finishRun()
+    // matches nothing for that one run — harmless, self-correcting on
+    // the next refresh.
+    function _renameItemsOfSource(oldName, newName) {
+        var renamed = root.items.map(function (i) {
+            if (i.source === oldName)
+                return Object.assign({}, i, {
+                    source: newName
+                });
+            return i;
+        });
+        root.items = renamed;
+        root.writeCache();
+    }
+
+    // Returns "" when acceptable, else a reason code. ownUrl is the
+    // entry's own url ("" for the add flow) — excluded from the
+    // duplicate-name scan so renaming a source to its own current name
+    // (case-adjusted) is not rejected as a duplicate of itself.
+    // Case-insensitive: the filter compares names exactly, so two names
+    // differing only in case would be technically distinct and visually
+    // indistinguishable.
+    function validateName(name, ownUrl) {
+        var norm = root._normaliseName(name);
+        if (norm === "")
+            return "empty-name";
+        if (norm.length > root.maxSourceNameLen)
+            return "long-name";
+        var all = root._allSources();
+        var lower = norm.toLowerCase();
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].url !== ownUrl && all[i].name.toLowerCase() === lower)
+                return "duplicate-name";
+        }
+        return "";
+    }
+
+    // → "ok" or a reason code. Live probe happens in NewsPane.qml via
+    // probeSource() (Task 2) BEFORE this is ever called — this is the
+    // commit step, and it re-validates regardless so the UI is never the
+    // only thing standing between a bad entry and the file.
+    function addSource(url, name) {
+        var trimmedUrl = typeof url === "string" ? url.trim() : "";
+        if (trimmedUrl.indexOf(root.allowedScheme) !== 0) {
+            console.log("NewsBackend: addSource() rejected — url is not " + root.allowedScheme);
+            return "scheme";
+        }
+        if (root._findSourceIndex(root._allSources(), trimmedUrl) !== -1) {
+            console.log("NewsBackend: addSource() rejected — duplicate url " + trimmedUrl);
+            return "duplicate-url";
+        }
+        if (root._allSources().length >= root.maxSources) {
+            console.log("NewsBackend: addSource() rejected — " + root.maxSources + "-source cap reached");
+            return "full";
+        }
+        var nameCode = root.validateName(name, "");
+        if (nameCode !== "") {
+            console.log("NewsBackend: addSource() rejected — " + nameCode);
+            return nameCode;
+        }
+        var normName = root._normaliseName(name);
+        var wrote = root._writeSources(function (arr) {
+            arr.push({
+                name: normName,
+                url: trimmedUrl,
+                enabled: true
+            });
+            return true;
+        });
+        if (!wrote) {
+            console.log("NewsBackend: addSource() write failed for " + trimmedUrl);
+            return "write-failed";
+        }
+        root._refreshWhenSourcesSettle = true;
+        return "ok";
+    }
+
+    // → "ok", "not-found" or "write-failed". This is what stops the
+    // filter stranding on a source that no longer exists and stops the
+    // list showing headlines from a source the dropdown no longer lists.
+    function removeSource(url) {
+        var all = root._allSources();
+        var idx = root._findSourceIndex(all, url);
+        if (idx === -1) {
+            console.log("NewsBackend: removeSource() — url not found: " + url);
+            return "not-found";
+        }
+        var name = all[idx].name;
+        var wrote = root._writeSources(function (arr) {
+            var i = root._findSourceIndex(arr, url);
+            if (i === -1)
+                return false;
+            arr.splice(i, 1);
+            return true;
+        });
+        if (!wrote) {
+            console.log("NewsBackend: removeSource() write failed for " + url);
+            return "write-failed";
+        }
+        if (root.selectedSource === name)
+            root.selectedSource = "";
+        root._pruneItemsOfSource(name);
+        return "ok";
+    }
+
+    // → "ok" or a reason code. Moves the filter and the already-fetched
+    // headlines with the rename when the currently filtered source is
+    // the one being renamed, so the filter is never stranded.
+    function renameSource(url, name) {
+        var code = root.validateName(name, url);
+        if (code !== "") {
+            console.log("NewsBackend: renameSource() rejected — " + code);
+            return code;
+        }
+        var all = root._allSources();
+        var idx = root._findSourceIndex(all, url);
+        if (idx === -1) {
+            console.log("NewsBackend: renameSource() — url not found: " + url);
+            return "not-found";
+        }
+        var oldName = all[idx].name;
+        var normName = root._normaliseName(name);
+        var wrote = root._writeSources(function (arr) {
+            var i = root._findSourceIndex(arr, url);
+            if (i === -1)
+                return false;
+            arr[i].name = normName;
+            return true;
+        });
+        if (!wrote) {
+            console.log("NewsBackend: renameSource() write failed for " + url);
+            return "write-failed";
+        }
+        if (root.selectedSource === oldName)
+            root.selectedSource = normName;
+        root._renameItemsOfSource(oldName, normName);
+        return "ok";
+    }
+
+    // → "ok", "not-found" or "write-failed". Disabling resets the filter
+    // and drops that source's headlines (same anti-stranding rule as
+    // removeSource()); enabling defers a refresh (D-6). No confirm on
+    // either direction — disable is reversible.
+    function setSourceEnabled(url, on) {
+        var all = root._allSources();
+        var idx = root._findSourceIndex(all, url);
+        if (idx === -1) {
+            console.log("NewsBackend: setSourceEnabled() — url not found: " + url);
+            return "not-found";
+        }
+        var name = all[idx].name;
+        var wrote = root._writeSources(function (arr) {
+            var i = root._findSourceIndex(arr, url);
+            if (i === -1)
+                return false;
+            arr[i].enabled = !!on;
+            return true;
+        });
+        if (!wrote) {
+            console.log("NewsBackend: setSourceEnabled() write failed for " + url);
+            return "write-failed";
+        }
+        if (!on) {
+            if (root.selectedSource === name)
+                root.selectedSource = "";
+            root._pruneItemsOfSource(name);
+        } else {
+            root._refreshWhenSourcesSettle = true;
+        }
+        return "ok";
+    }
+
+    // D-6 — the same deferral onCentreOpenChanged already uses, for the
+    // identical reason: refresh() reads root.sources, which derives from
+    // the child JsonAdapter (newsState). Reading it straight after
+    // setText() would read the pre-write value (the "child's binding
+    // lags the parent's own signal" class this file's onCentreOpenChanged
+    // comment documents, quick task 260819-426). So: set a flag here, and
+    // let this handler — the change signal of the readonly computed
+    // `sources` property, which the file already relies on re-deriving
+    // correctly — consume the flag and Qt.callLater() the refresh.
+    onSourcesChanged: {
+        if (root._refreshWhenSourcesSettle) {
+            root._refreshWhenSourcesSettle = false;
+            Qt.callLater(function () {
+                root.refresh(true);
+            });
+        }
+    }
+
     // ── The two FileViews (declared AFTER every property and function —
     //    see header) ─────────────────────────────────────────────────────
     FileView {
