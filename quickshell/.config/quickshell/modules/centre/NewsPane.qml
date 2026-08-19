@@ -133,8 +133,11 @@ Item {
         spacing: Design.spacingXs
 
         // ── The filter chip and the view-mode toggle chip sit side by
-        //    side (this quick task) — the inline expand still drops
-        //    under this Row as selectorHost's second child. ──────────────
+        //    side. This Row is now selectorHost's ONLY child: the expanded
+        //    option list used to be its second, which is exactly what made
+        //    expanding push the headline list down (it anchors to
+        //    selectorHost.bottom). The list is a sibling overlay below —
+        //    see its own note. ──────────────────────────────────────────
         Row {
             id: chipRow
             spacing: Design.spacingSm
@@ -251,16 +254,40 @@ Item {
             }
         }
 
-        // ── Inline expanded option list — a plain Column, no Popup (see
-        //    header). "All sources" first, then each validated source with
-        //    its own item count; the current selection carries a check
-        //    glyph. Tap sets `newsBackend.selectedSource` and collapses. ──
-        Column {
-            id: selectorOptions
-            width: selectorHost.width
+    }
+
+        // ── The source dropdown — an OVERLAY, not a layout sibling
+        //    (operator report 2026-08-19: expanding it "pushes content
+        //    down"). It used to be selectorHost's SECOND Column child, so
+        //    expanding grew that column and shoved `headlineList` — which
+        //    anchors to `selectorHost.bottom` — down the pane. It is now a
+        //    SIBLING of the list, anchored under the chip row and painted
+        //    over the headlines on a raised `z`, so opening it moves
+        //    nothing.
+        //
+        //    Still not a floating popup control: the header's reason is
+        //    unchanged — no such type is proven inside a Wayland layer
+        //    surface on this stack, and none is needed. An anchored
+        //    sibling with a `z` is the entire mechanism.
+        //
+        //    It needs its own OPAQUE backing now that it floats over
+        //    content: the option rows are transparent until hovered, and
+        //    the window's own `notifSurface` is 0.38 alpha (it leans on
+        //    compositor blur), so headlines would read straight through a
+        //    panel painted with that. `surfaceVariantColour` is the same
+        //    palette family the chip itself uses, at full opacity.
+        Rectangle {
+            id: selectorOverlay
+            anchors.top: selectorHost.bottom
+            anchors.topMargin: Design.spacingXs
+            anchors.left: selectorHost.left
+            anchors.right: selectorHost.right
+            height: selectorOptions.implicitHeight + Design.spacingSm * 2
+            radius: Design.spacingSm
+            color: BarRoles.surfaceVariantColour
+            z: 10
             visible: opacity > 0
             opacity: root._selectorExpanded ? 1 : 0
-            spacing: Design.spacingXs
 
             Behavior on opacity {
                 enabled: Motion.motionEnabled
@@ -271,70 +298,24 @@ Item {
                 }
             }
 
-            Rectangle {
-                width: parent.width
-                height: allOptionRow.implicitHeight + Design.spacingXs * 2
-                radius: Design.spacingSm
-                color: allOptionMouseArea.containsMouse ? BarRoles.capsuleHover : "transparent"
+            Column {
+                id: selectorOptions
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.margins: Design.spacingSm
+                spacing: Design.spacingXs
 
-                Row {
-                    id: allOptionRow
-                    anchors.left: parent.left
-                    anchors.leftMargin: Design.spacingSm
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Design.spacingXs
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "check"
-                        font.family: Design.symbolFontFamily
-                        font.pixelSize: Design.fontLabel
-                        textFormat: Text.PlainText
-                        color: BarRoles.accent
-                        visible: root._hasBackend && root.newsBackend.selectedSource === ""
-                    }
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "All sources"
-                        textFormat: Text.PlainText
-                        font.pixelSize: Design.fontBody
-                        color: BarRoles.notifSurfaceFg
-                    }
-                }
-
-                MouseArea {
-                    id: allOptionMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: {
-                        if (root._hasBackend)
-                            root.newsBackend.selectedSource = "";
-                        root._selectorExpanded = false;
-                    }
-                }
-            }
-
-            Repeater {
-                model: root._hasBackend ? root.newsBackend.sources : []
-
-                delegate: Rectangle {
-                    id: sourceOptionRow
-                    required property var modelData
-
-                    readonly property int _count: root._hasBackend ? root.newsBackend.items.filter(function (i) {
-                        return i.source === sourceOptionRow.modelData.name;
-                    }).length : 0
-
-                    width: selectorOptions.width
-                    height: sourceOptionContentRow.implicitHeight + Design.spacingXs * 2
+                Rectangle {
+                    width: parent.width
+                    height: allOptionRow.implicitHeight + Design.spacingXs * 2
                     radius: Design.spacingSm
-                    color: sourceOptionMouseArea.containsMouse ? BarRoles.capsuleHover : "transparent"
+                    color: allOptionMouseArea.containsMouse ? BarRoles.capsuleHover : "transparent"
 
                     Row {
-                        id: sourceOptionContentRow
+                        id: allOptionRow
                         anchors.left: parent.left
                         anchors.leftMargin: Design.spacingSm
-                        anchors.right: sourceOptionCount.left
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Design.spacingXs
 
@@ -345,43 +326,97 @@ Item {
                             font.pixelSize: Design.fontLabel
                             textFormat: Text.PlainText
                             color: BarRoles.accent
-                            visible: root._hasBackend && root.newsBackend.selectedSource === sourceOptionRow.modelData.name
+                            visible: root._hasBackend && root.newsBackend.selectedSource === ""
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: sourceOptionRow.modelData.name
+                            text: "All sources"
                             textFormat: Text.PlainText
                             font.pixelSize: Design.fontBody
                             color: BarRoles.notifSurfaceFg
-                            elide: Text.ElideRight
                         }
                     }
 
-                    Text {
-                        id: sourceOptionCount
-                        anchors.right: parent.right
-                        anchors.rightMargin: Design.spacingSm
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: String(sourceOptionRow._count)
-                        textFormat: Text.PlainText
-                        font.pixelSize: Design.fontLabel
-                        color: BarRoles.capsuleFg
-                    }
-
                     MouseArea {
-                        id: sourceOptionMouseArea
+                        id: allOptionMouseArea
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: {
                             if (root._hasBackend)
-                                root.newsBackend.selectedSource = sourceOptionRow.modelData.name;
+                                root.newsBackend.selectedSource = "";
                             root._selectorExpanded = false;
+                        }
+                    }
+                }
+
+                Repeater {
+                    model: root._hasBackend ? root.newsBackend.sources : []
+
+                    delegate: Rectangle {
+                        id: sourceOptionRow
+                        required property var modelData
+
+                        readonly property int _count: root._hasBackend ? root.newsBackend.items.filter(function (i) {
+                            return i.source === sourceOptionRow.modelData.name;
+                        }).length : 0
+
+                        width: selectorOptions.width
+                        height: sourceOptionContentRow.implicitHeight + Design.spacingXs * 2
+                        radius: Design.spacingSm
+                        color: sourceOptionMouseArea.containsMouse ? BarRoles.capsuleHover : "transparent"
+
+                        Row {
+                            id: sourceOptionContentRow
+                            anchors.left: parent.left
+                            anchors.leftMargin: Design.spacingSm
+                            anchors.right: sourceOptionCount.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Design.spacingXs
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "check"
+                                font.family: Design.symbolFontFamily
+                                font.pixelSize: Design.fontLabel
+                                textFormat: Text.PlainText
+                                color: BarRoles.accent
+                                visible: root._hasBackend && root.newsBackend.selectedSource === sourceOptionRow.modelData.name
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: sourceOptionRow.modelData.name
+                                textFormat: Text.PlainText
+                                font.pixelSize: Design.fontBody
+                                color: BarRoles.notifSurfaceFg
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        Text {
+                            id: sourceOptionCount
+                            anchors.right: parent.right
+                            anchors.rightMargin: Design.spacingSm
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: String(sourceOptionRow._count)
+                            textFormat: Text.PlainText
+                            font.pixelSize: Design.fontLabel
+                            color: BarRoles.capsuleFg
+                        }
+
+                        MouseArea {
+                            id: sourceOptionMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                if (root._hasBackend)
+                                    root.newsBackend.selectedSource = sourceOptionRow.modelData.name;
+                                root._selectorExpanded = false;
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
     // ── (b) The headline list ────────────────────────────────────────
     ListView {
