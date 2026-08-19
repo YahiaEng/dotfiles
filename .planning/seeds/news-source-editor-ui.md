@@ -7,6 +7,24 @@ origin: /gsd-explore session for the news-tab quick task
 
 # Seed: in-shell news source editor
 
+> **PROMOTED AND SHIPPED 2026-08-19** — quick task `260819-pi3`
+> (`.planning/quick/260819-pi3-in-shell-news-source-editor-ui-for-the-n/`).
+> Kept for its rationale, which is still accurate; the deferral it argues for
+> no longer applies.
+>
+> Shipped: the manage-sources surface, per-source enable/disable, delete, add
+> by URL, **live feed-probing** and **editable display names**. The last two
+> were initially cut as out-of-quick-scope and then restored by the operator
+> mid-flight — which is what took the plan to 4 tasks.
+>
+> Still deferred: **drag-to-reorder** (the mockup's `≡` handles). Headlines
+> sort by date and selection is round-robin by source, so list order affects
+> tie-breaks only.
+>
+> Two details below are now stale: the mockup lists NPR (dropped in
+> `260819-m94` over a tracking-pixel-first image path), and the name is
+> seeded from the feed's own title rather than typed blind.
+
 ## What was deferred
 
 During news-tab exploration, three source-management options were weighed:
