@@ -76,6 +76,18 @@ output_path = "~/.local/state/theme/fzf-colors.conf"
 input_path = "~/.config/matugen/templates/fish-colors.fish"
 output_path = "~/.local/state/theme/fish-colors.fish"
 
+# ── tmux status bar colors (D-01/D-05, quick task 260819-vas) ────────
+# Unlike fish (read once at shell start, existing shells NOT re-themed —
+# see [templates.fish] above), a running tmux server CAN be re-themed
+# live: its options live in server memory for the life of the session,
+# so lib/reload.sh's theme_engine_reload_tmux hook re-sources this exact
+# rendered file into every live socket after each theme-apply (Task 3).
+# No post_hook here either — lib/reload.sh is the sole fan-out owner
+# (D-04), same as every other template in this file.
+[templates.tmux]
+input_path = "~/.config/matugen/templates/tmux-colors.conf"
+output_path = "~/.local/state/theme/tmux-colors.conf"
+
 # ── Hyprlock colors (LOCK-01/D-30, dedicated target) ────
 [templates.hyprlock]
 input_path = "~/.config/matugen/templates/hyprlock-colors.conf"

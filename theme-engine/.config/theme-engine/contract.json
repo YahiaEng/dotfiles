@@ -78,6 +78,10 @@
     {
       "name": "fastfetch.jsonc",
       "format": "json"
+    },
+    {
+      "name": "tmux-colors.conf",
+      "format": "tmux-set"
     }
   ],
   "state_metadata_files": [

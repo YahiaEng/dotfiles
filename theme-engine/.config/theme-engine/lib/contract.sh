@@ -54,7 +54,7 @@ contract_engine_owned_files() {
 
 # contract_format <name>
 # Emits the format tag for a contract file (gtk-css | hypr-vars | kitty-kv | fish-set |
-# toml | json | css-literal).
+# tmux-set | toml | json | css-literal).
 contract_format() {
     local name="$1"
     jq -r --arg n "$name" '.files[] | select(.name == $n) | .format' "$CONTRACT_JSON"
@@ -114,6 +114,19 @@ contract_extract_names() {
             # Comment lines never match: `#` is not in the name class and
             # the anchor requires `set -g` first.
             grep -oP "^set -g \K[A-Za-z0-9_]+(?= )" "$path" 2>/dev/null | sort -u
+            ;;
+        tmux-set)
+            # Quick task 260819-vas: tmux-colors.conf `set -g NAME "value"`
+            # lines. `fish-set`'s name class is `[A-Za-z0-9_]+` — every
+            # tmux option is hyphenated (status-style, pane-border-style,
+            # message-style), so reusing fish-set would have vanished
+            # EVERY single name from extraction, the same class of silent
+            # false-pass WR-05's digit fix and 13-02's scss hyphen fix each
+            # closed. Kept in lockstep with the pair extractor below —
+            # both anchor on the identical `^set -g ` prefix and the
+            # identical hyphen-widened name class, so neither can be
+            # looser than the other.
+            grep -oP "^set -g \K[A-Za-z0-9_-]+(?= )" "$path" 2>/dev/null | sort -u
             ;;
         css-vars)
             # TOKEN-03/12-RESEARCH Pitfall 3: gtk-css's @define-color regex
@@ -359,6 +372,22 @@ contract_extract_values() {
             # to empty). Strip those quotes here the same way env-kv strips
             # its double quotes, so parity compares the colour token itself.
             sed -nE "s/^set -g ([A-Za-z0-9_]+) '?([^']*)'?\$/\1\t\2/p" "$path" 2>/dev/null
+            ;;
+        tmux-set)
+            # Quick task 260819-vas: NAME<TAB>value from
+            # `set -g NAME "value"`. Kept in lockstep with the name
+            # extractor above via the identical `^set -g ` prefix and
+            # hyphen-widened name class. Deliberately keeps the `#[...]`
+            # powerline markup and `#(...)` continuum interpolation
+            # intact inside the value, the same way fish-set keeps its
+            # `--background=` prefix intact — theme-parity's Layer 3
+            # matches the colour tokens inside it, and stripping the
+            # markup would discard the segment structure. Values are
+            # DOUBLE-QUOTED in the template on purpose (`#` opens a
+            # tmux comment, and every powerline marker starts with
+            # `#[`) — stripped here the same way env-kv strips its own
+            # double quotes.
+            sed -nE 's/^set -g ([A-Za-z0-9_-]+) "?([^"]*)"?$/\1\t\2/p' "$path" 2>/dev/null
             ;;
         css-vars)
             sed -nE 's/^\s*--([A-Za-z0-9_-]+):\s*(.*);\s*$/\1\t\2/p' "$path" 2>/dev/null
