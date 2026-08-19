@@ -171,6 +171,20 @@ theme_engine_commit() {
         ln -sf "$STATE_DIR/satty.toml" "$HOME/.config/satty/config.toml"
     fi
 
+    # D-01/D-02 (quick task 260820-0ha): zellij has no @import/include
+    # mechanism either — KDL has no such construct at all — so it joins
+    # walker/yazi/satty in the direct-wiring group rather than sourcing a
+    # fragment. This symlink is the ONLY path by which theme colours reach
+    # zellij. Guard: if ~/.config/zellij is itself a folded stow symlink,
+    # skip and warn instead of writing through the fold into the repo tree
+    # (same posture as the satty and gtk-3.0/gtk-4.0 guards above/below).
+    if [[ -L "$HOME/.config/zellij" ]]; then
+        echo "commit.sh: ~/.config/zellij is a folded stow symlink — skipping zellij.kdl wiring (re-run stow.sh to unfold it)" >&2
+    else
+        mkdir -p "$HOME/.config/zellij"
+        ln -sf "$STATE_DIR/zellij.kdl" "$HOME/.config/zellij/config.kdl"
+    fi
+
     # THM-01/D-08: settings.ini is now a rendered contract target — wire the
     # same idempotent symlink idiom as walker/yazi above. Guard: if the gtk
     # config dir is itself a symlink (stow dir-folded into the repo — the

@@ -88,6 +88,21 @@ output_path = "~/.local/state/theme/fish-colors.fish"
 input_path = "~/.config/matugen/templates/tmux-colors.conf"
 output_path = "~/.local/state/theme/tmux-colors.conf"
 
+# ── zellij themed multiplexer config (D-01/D-02, quick task 260820-0ha) ──
+# Unlike every fragment-shaped template above, this one renders a COMPLETE
+# application config — keybinds, options AND the themes block — because
+# KDL has no include/source mechanism and only an INLINE theme was measured
+# to live-reload a running zellij session (see the template header for the
+# byte-count evidence). No post_hook here either — lib/reload.sh is the
+# sole fan-out owner (D-04), same as every other template in this file.
+# Unlike tmux (whose live server needs an explicit re-source hook), zellij
+# needs NO hook at all: it watches its own config, and the symlink-plus-
+# rsync mechanism commit.sh already uses was measured this session to
+# live-reload a running session with no restart (D-05).
+[templates.zellij]
+input_path = "~/.config/matugen/templates/zellij-config.kdl"
+output_path = "~/.local/state/theme/zellij.kdl"
+
 # ── Hyprlock colors (LOCK-01/D-30, dedicated target) ────
 [templates.hyprlock]
 input_path = "~/.config/matugen/templates/hyprlock-colors.conf"
