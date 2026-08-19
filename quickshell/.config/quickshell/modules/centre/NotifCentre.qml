@@ -404,7 +404,52 @@ PanelWindow {
                         // gone rather than tuned. Horizontal padding and
                         // the inter-tab gap are unaffected; they are what
                         // the "too tight" report was actually about.
-                        implicitWidth: labelRow.implicitWidth + Design.spacingLg * 2
+                        // ROOT CAUSE of the "pill cuts through the number
+                        // vertically" report (2026-08-19), found by
+                        // comparing against Dashboard.qml — the SAME
+                        // TabBar/TabButton idiom, which does NOT have the
+                        // bug. The difference is one line: this delegate's
+                        // contentItem carried `anchors.centerIn: parent`,
+                        // Dashboard's does not.
+                        //
+                        // A Control positions AND sizes its own contentItem
+                        // inside its padding. Anchoring the contentItem
+                        // fights that and disturbs `implicitContentHeight`,
+                        // so the button's implicit height stopped
+                        // accounting for its own content — the pill
+                        // rendered SHORTER than the label row, and its
+                        // top/bottom edges crossed the 24px glyph and the
+                        // numeral. Widening the pill (padding, then an
+                        // explicit implicitHeight) could never fix that,
+                        // because neither addressed why the height was
+                        // wrong; the second attempt is why an override
+                        // briefly existed here at all.
+                        //
+                        // Padding is now expressed through the Control's
+                        // OWN properties, which is what makes both
+                        // implicit dimensions correct by construction:
+                        // implicitWidth = implicitContentWidth + left +
+                        // right, implicitHeight = implicitContentHeight +
+                        // top + bottom. Still content-hugging, still no
+                        // implicitHeight override, still never the 48px
+                        // band — exactly what this tab bar's own comment
+                        // above requires. The hand-rolled implicitWidth
+                        // this replaces was computing what the Control
+                        // already computes.
+                        // Vertical padding is spacingXs, not spacingSm:
+                        // the content row is 30px tall (the 24px glyph
+                        // dominates, not the 16px text), so spacingSm
+                        // would make a 46px pill inside a 48px band —
+                        // 1px of air, which reads as the pill bursting
+                        // the header rather than sitting in it.
+                        // spacingXs gives 38px, a 5px inset top and
+                        // bottom. Horizontal padding stays spacingLg;
+                        // that is what the "too tight" report was about
+                        // and the band constrains nothing horizontally.
+                        leftPadding: Design.spacingLg
+                        rightPadding: Design.spacingLg
+                        topPadding: Design.spacingXs
+                        bottomPadding: Design.spacingXs
                         focusPolicy: Qt.NoFocus
 
                         background: Rectangle {
@@ -427,7 +472,15 @@ PanelWindow {
 
                         contentItem: Row {
                             id: labelRow
-                            anchors.centerIn: parent
+                            // NO anchors here — see the padding block
+                            // above. This single line was the defect: the
+                            // Control lays its contentItem out itself, and
+                            // Dashboard.qml's equivalent Column carries no
+                            // anchors either. Children still anchor their
+                            // own verticalCenter to THIS Row, which is
+                            // fine — a positioner's children may anchor on
+                            // the cross axis.
+                            //
                             // spacingXs (4px) set the gap for BOTH the
                             // glyph->word and word->numeral joins. 4px
                             // reads as joined at fontBody, which is the
