@@ -78,12 +78,10 @@ PACMAN_PKGS=(
     # Themed terminal multiplexer (D-01/D-06, quick task 260820-0ha):
     # official `extra` repo, pacman — NOT the AUR, verified installed at
     # 0.44.3-1 on this host, with only curl/glibc/libgcc/zlib as
-    # dependencies. Unlike tmux directly above (which needs the AUR
-    # tmux-plugin-manager package below for tmux-resurrect/tmux-continuum),
-    # zellij requires no plugin manager, no git clone and no headless
-    # fetch step at all — session_serialization/serialize_pane_viewport
-    # are built-in options, so nothing is added to stow.sh's plugin-fetch
-    # section for it.
+    # dependencies. zellij requires no plugin manager, no git clone and no
+    # headless fetch step at all — session_serialization/
+    # serialize_pane_viewport are built-in options, so stow.sh needs no
+    # fetch step for it at all.
     zellij
 
     # Wallpaper

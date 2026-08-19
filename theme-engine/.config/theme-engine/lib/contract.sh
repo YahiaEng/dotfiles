@@ -72,8 +72,8 @@ contract_exempt_keys() {
 # Quick task 260820-0ha: the ONE shared emitter for zellij.kdl's `kdl`
 # format, called from BOTH contract_extract_names and
 # contract_extract_values below. Deliberate improvement over the
-# fish-set/tmux-set idiom directly below, whose comments warn twice that
-# two hand-mirrored regexes (one per extractor) can drift — a name matched
+# fish-set idiom directly below, whose comments warn twice that two
+# hand-mirrored regexes (one per extractor) can drift — a name matched
 # in one half but not the other is a silent false-pass generator. A single
 # emitter makes that drift structurally impossible instead of merely
 # warned about: both branches call this and either reduce its output (for
@@ -433,8 +433,8 @@ contract_extract_values() {
             # Quick task 260820-0ha: shares ONE emitter with the name
             # extractor above (contract_kdl_theme_pairs) — see that
             # function's own comment for why this is a deliberate
-            # improvement over the tmux-set/fish-set mirrored-regex idiom
-            # directly above. Output passed through unchanged: it is
+            # improvement over the fish-set mirrored-regex idiom directly
+            # above. Output passed through unchanged: it is
             # already NAME<TAB>value pairs with quotes stripped, so
             # theme-parity's colour regex and contract_wellformed_color
             # both see a valid bare hex token.

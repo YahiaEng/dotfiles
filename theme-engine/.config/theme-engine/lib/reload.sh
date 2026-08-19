@@ -96,18 +96,16 @@ theme_engine_reload() {
     # needs no signal, no client call and no restart on its behalf.
 
     # D-05, quick task 260820-0ha: zellij deliberately has NO hook here —
-    # this is a MEASURED decision, not an oversight. Unlike tmux directly
-    # above (whose live server holds every option in memory for the life
-    # of the server, so it needs an explicit re-source hook) and unlike
-    # fish (which gets none because it re-reads at shell start), zellij
-    # gets none for a THIRD and different reason: it is the only surface
-    # here that watches its own config file and live-reloads a running
-    # session by itself. Measured through the real mechanism this session
-    # — commit.sh's rsync replacing the symlink target's inode — with a
-    # PTY probe against a running session: the new colour's SGR appeared
-    # and the old one was entirely gone, no restart. Adding a hook here
-    # for symmetry with the tmux call above would be redundant work on
-    # every theme switch.
+    # this is a MEASURED decision, not an oversight. Unlike fish (which
+    # gets none because it re-reads at shell start, so existing shells are
+    # deliberately not re-themed), zellij gets none for a DIFFERENT
+    # reason: it is the only surface here that watches its own config file
+    # and live-reloads a running session by itself. Measured through the
+    # real mechanism this session — commit.sh's rsync replacing the
+    # symlink target's inode — with a PTY probe against a running session:
+    # the new colour's SGR appeared and the old one was entirely gone, no
+    # restart. Adding a hook here would be redundant work on every theme
+    # switch for a surface that already reloads itself.
 
     # ── GTK (gsettings toggle + env propagation + Thunar daemon) ──
     theme_engine_gtk_reload

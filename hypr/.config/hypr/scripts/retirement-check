@@ -85,6 +85,17 @@ DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 #    real repo, so it emits [PASS] on every theme-doctor run — the blocking
 #    tier is continuously exercised and demonstrably green, not dormant
 #    until 18-20.
+#    `tmux` (quick task 260820-2yz) ships `pending` for a DIFFERENT reason
+#    than eww/wlogout above: the repo-side surface is genuinely
+#    reference-free (its own sweep proves it), but the `host-package`
+#    class is BLOCKING and runs `pacman -Q tmux` against the live host,
+#    and the package is deliberately still installed there (D-04/D-07 —
+#    repo retirement is not host uninstall). Marking it `retired` now
+#    would arm the blocking tier against a reference this repo has no
+#    authority to clear. The flip to `retired` is the operator's
+#    follow-up once the host package is gone — the same eww/wlogout
+#    precedent described above, just triggered by a package instead of a
+#    stale grep hit.
 REGISTRY_RAW='waybar|retired|waybar/:hypr/.config/hypr/scripts/waybar-*|RETIRE-02
 swaync|retired|swaync/:hypr/.config/hypr/scripts/swaync-*|RETIRE-03
 swayosd|retired|swayosd/|RETIRE-04
@@ -92,6 +103,7 @@ wleave|retired|wleave/:hypr/.config/hypr/scripts/wleave.sh|RETIRE-05
 ags|retired|ags/|RETIRE-06
 wlogout|retired||RETIRE-07
 eww|retired||RETIRE-07
+tmux|pending|tmux/|260820-2yz
 retirement-fixture|retired|hypr/.config/hypr/scripts/tests/retirement-fixtures/|SELF-TEST'
 
 declare -A REG_STATUS REG_OWNTREE REG_REQ

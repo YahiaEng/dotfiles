@@ -8,7 +8,7 @@
 // does NOT live-reload (4901 bytes, a real negative). Touching config.kdl
 // does not make zellij re-read a separate themes dir either (7694 bytes,
 // still absent). KDL has no include/source mechanism, so the
-// "app sources a matugen fragment" pattern fish/fzf/tmux use here is
+// "app sources a matugen fragment" pattern fish/fzf use here is
 // UNAVAILABLE for zellij — the only way to make colours live-reload is to
 // render the entire config, inline theme included, from this one template.
 //
@@ -44,16 +44,17 @@
 //
 // ── No reload hook exists or is needed (D-05) ──
 // zellij watches its own config file and live-reloads a running session by
-// itself through the symlink-plus-rsync mechanism measured above — unlike
-// tmux (whose live server holds its options in memory and needs an
-// explicit re-source hook), zellij needs no hook in lib/reload.sh at all.
-// See the comment beside theme_engine_reload_tmux there for the full
-// contrast.
+// itself through the symlink-plus-rsync mechanism measured above — the
+// byte-count evidence at the top of this header (old fg SGR gone, new one
+// present, no restart) is what proves it. This is a MEASURED decision,
+// not an oversight: zellij needs no hook in lib/reload.sh at all. See
+// lib/reload.sh's own zellij paragraph, beside the fan-out itself, for
+// the same evidence recorded next to where a hook would otherwise sit.
 //
 // ── Role-assignment rule (follow without exception) ──────────────────
 // A bare container role is a BACKGROUND and must never land in a colour
-// slot on its own — the same category error fish-colors.fish, the
-// fastfetch template and tmux-colors.conf's own headers all document.
+// slot on its own — the same category error fish-colors.fish and the
+// fastfetch template both document.
 // Every role chosen below is either a surface/on-surface pair or an
 // `on_*` foreground role already trusted at measured-safe contrast by
 // kitty-colors.conf (color5/color6's `on_tertiary_container`/
@@ -73,20 +74,20 @@ theme "rice"
 // ── Options ─────────────────────────────────────────────────────────
 // Only what we mean; zellij's defaults are otherwise good.
 
-// Matches kitty.conf and tmux.conf. Unlike tmux.conf this cannot be
-// guarded on the binary's presence — KDL has no conditional — but it is
-// safe because install.sh declares fish in PACMAN_PKGS, so a reproduced
-// machine always has it.
+// Matches kitty.conf. KDL has no conditional, so this cannot be guarded
+// on the binary's presence the way a shell script could — but it is safe
+// regardless, because install.sh declares fish in PACMAN_PKGS, so a
+// reproduced machine always has it.
 default_shell "fish"
 
-// The wl-clipboard binary already declared in install.sh's PACMAN_PKGS;
-// replaces what tmux-yank did for the tmux surface. Without it zellij
+// The wl-clipboard binary already declared in install.sh's PACMAN_PKGS
+// gives zellij a native system-clipboard copy path. Without it zellij
 // falls back to OSC 52.
 copy_command "wl-copy"
 
-// The native equivalent of the tmux-resurrect + tmux-continuum plugin
-// pair, with no plugin manager and no fetch step — this is why zellij
-// needs no plugin infrastructure at all.
+// Session and pane-viewport state persist across a restart as BUILT-IN
+// options — no plugin manager, no git clone and no headless fetch step
+// needed for this surface at all.
 session_serialization true
 serialize_pane_viewport true
 
@@ -101,9 +102,8 @@ show_release_notes false
 // ── Keybinds ────────────────────────────────────────────────────────
 // Deliberately NONE. zellij's defaults merge in unless defaults are
 // explicitly cleared, they are discoverable from the status bar itself,
-// and nothing in this task's scope justifies overriding them — the same
-// reasoning tmux.conf records for keeping its default prefix. This is the
-// place to add overrides later, if ever wanted.
+// and nothing in this task's scope justifies overriding them. This is
+// the place to add overrides later, if ever wanted.
 
 // ── Theme block (D-07: MULTI-LINE, one colour per line) ────────────────
 // Eight named slots mirror kitty-colors.conf's already-measured ANSI
