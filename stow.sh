@@ -96,6 +96,20 @@ mkdir -p "$HOME/.config/quickshell"
 # consequence.
 mkdir -p "$HOME/.config/autostart"
 
+# D-03, quick task 260820-0ha: pre-create ~/.config/zellij as a real
+# directory, same fold-bug idiom as the fisher, tmux-plugins and
+# quickshell pre-creates above. No zellij stow package ships today — this
+# is a FORWARD GUARD, not a fix for a current bug, so do not delete it as
+# dead code. If a zellij stow package were ever added, and this guard were
+# missing, stow would fold the directory into the repo, and commit.sh's
+# `ln -sf` would then create config.kdl INSIDE the cloned repo tree,
+# breaking the git-clean invariant theme-doctor's state-manifest gate
+# exists to protect. commit.sh carries its own folded-symlink guard as the
+# second layer, so the two are belt-and-braces rather than duplicates.
+# Placement before the PACKAGES loop is load-bearing, exactly as the tmux
+# plugins pre-create's own comment says of itself.
+mkdir -p "$HOME/.config/zellij"
+
 # 13-02 (drop-in pre-create) stood here until Phase 19 Plan 19-08 Task 5
 # (RETIRE-03) deleted the notification daemon whose PACKAGED unit it
 # overrode — the drop-in, its unit and its package are all gone, so the

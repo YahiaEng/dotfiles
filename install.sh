@@ -79,7 +79,22 @@ PACMAN_PKGS=(
     # this task — `grep -n tmux install.sh` returned nothing even though
     # tmux 3.7c was already installed on this host by hand, so a fresh
     # install had no multiplexer at all. Official `extra` repo, pacman.
+    # Kept here deliberately (D-06, quick task 260820-0ha): retiring tmux
+    # is a separate follow-up the operator has already agreed to sequence
+    # second — removing it here would break the surface that is still the
+    # operator's working multiplexer.
     tmux
+
+    # Themed terminal multiplexer (D-01/D-06, quick task 260820-0ha):
+    # official `extra` repo, pacman — NOT the AUR, verified installed at
+    # 0.44.3-1 on this host, with only curl/glibc/libgcc/zlib as
+    # dependencies. Unlike tmux directly above (which needs the AUR
+    # tmux-plugin-manager package below for tmux-resurrect/tmux-continuum),
+    # zellij requires no plugin manager, no git clone and no headless
+    # fetch step at all — session_serialization/serialize_pane_viewport
+    # are built-in options, so nothing is added to stow.sh's plugin-fetch
+    # section for it.
+    zellij
 
     # Wallpaper
     awww
