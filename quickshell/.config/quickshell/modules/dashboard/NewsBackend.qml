@@ -20,16 +20,21 @@
 // a feed request may be issued (verified by grep: exactly three `.qml`
 // files in this tree construct an `XMLHttpRequest`, and this is the third).
 // Because the host list is operator-editable, the literal-host fence is
-// replaced by a SCHEME ALLOWLIST — `https://` only — enforced at TWO
+// replaced by a SCHEME ALLOWLIST — `https://` only — enforced at THREE
 // separate points: once at source validation (`_validSources()` — a
-// non-https *source* is never fetched) and again at item acceptance
+// non-https *source* is never fetched), again at item acceptance
 // (`_parseFeed()`'s acceptance filter — a non-https *link* in a feed
-// response never enters the model). Two enforcement points because they
-// guard two different attack surfaces: a mistyped/hostile source entry, and
-// a hostile/compromised feed response from an otherwise-trusted source.
-// The three default host strings (feeds.bbci.co.uk, feeds.npr.org, lwn.net)
-// appear in exactly two places in this repo: `stow.sh`'s seed block, and
-// this comment — no other `.qml` file names any feed host.
+// response never enters the model), and a third time at image-URL
+// acceptance (`_imageOf()` — a non-https candidate image URL is dropped,
+// the item itself still renders with its glyph fallback). Three
+// enforcement points because they guard three different attack surfaces: a
+// mistyped/hostile source entry, a hostile/compromised feed response from
+// an otherwise-trusted source, and an image URL — a NEW remote-host class —
+// that a hostile feed response can carry just as easily as a hostile link.
+// The four default host strings (feeds.bbci.co.uk, feeds.arstechnica.com,
+// lwn.net, www.phoronix.com) appear in exactly two places in this repo:
+// `stow.sh`'s seed block, and this comment — no other `.qml` file names any
+// feed host.
 //
 // ── Why the parser is a hand-rolled walk, not Qt's built-in XML list model
 //    (identifiers deliberately NOT spelled out verbatim below — see why at
@@ -104,11 +109,12 @@
 // every modules/dashboard/ file carries, including non-visual backends
 // like this one and WeatherBackend.qml.
 //
-// ── The three default hosts, named (second and last place outside
+// ── The four default hosts, named (second and last place outside
 //    stow.sh) ───────────────────────────────────────────────────────────
-// BBC World (feeds.bbci.co.uk/news/world/rss.xml), NPR
-// (feeds.npr.org/1001/rss.xml), LWN (lwn.net/headlines/newrss) — all three
-// public, keyless RSS endpoints, seeded by stow.sh into news-sources.json.
+// BBC World (feeds.bbci.co.uk/news/world/rss.xml), Ars Technica
+// (feeds.arstechnica.com/arstechnica/index), LWN (lwn.net/headlines/newrss),
+// Phoronix (www.phoronix.com/rss.php) — all four public, keyless RSS
+// endpoints, seeded by stow.sh into news-sources.json.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -148,6 +154,15 @@ Scope {
     // republishes this property.
     readonly property var sources: root._validSources()
     property string selectedSource: "" // "" = All; else a source name
+
+    // ── view_mode (this quick task) — a READONLY computed property
+    //    derived from the file, the same shape `sources` above already
+    //    settled on for the identical reason: it can never disagree with
+    //    disk. Unknown or missing values fall back to "compact", per the
+    //    spec. There is deliberately no writable local property here — the
+    //    screen only ever shows what `setViewMode()` below actually
+    //    persisted. ─────────────────────────────────────────────────────
+    readonly property string viewMode: newsState.view_mode === "cards" ? "cards" : "compact"
 
     readonly property var visibleItems: root.selectedSource === "" ? root.items : root.items.filter(function (i) {
         return i.source === root.selectedSource;
@@ -221,6 +236,29 @@ Scope {
         return out;
     }
 
+    // ── Namespace-tolerant sibling of `_childrenNamed()` (this quick
+    //    task) — whether this Qt build's `responseXML` reports a
+    //    namespaced tag's `nodeName` as the qualified name
+    //    ("media:thumbnail") or the local name ("thumbnail") was NOT
+    //    measured before writing this. Rather than guess and bet on one
+    //    behaviour, this accepts a child whose `nodeName` is either exactly
+    //    `localName` OR ends with `":" + localName` — correct under BOTH
+    //    behaviours. The live cache-population gate in this quick task's
+    //    PLAN.md (Task 1) proves end-to-end which branch actually fires. ──
+    function _childrenNamedNs(node, localName) {
+        var out = [];
+        if (!node || !node.childNodes)
+            return out;
+        var suffix = ":" + localName;
+        for (var i = 0; i < node.childNodes.length; i++) {
+            var child = node.childNodes[i];
+            var n = child.nodeName;
+            if (n === localName || (typeof n === "string" && n.endsWith(suffix)))
+                out.push(child);
+        }
+        return out;
+    }
+
     // Concatenates every child `nodeValue` — transparent to CDATA
     // sections (measured against BBC World's title elements).
     function _textOf(node) {
@@ -247,6 +285,44 @@ Scope {
         return "";
     }
 
+    // ── The image extractor (this quick task) — a GENERAL preference
+    //    order, no feed-specific branch anywhere: media:thumbnail, then
+    //    media:content, then an image/* enclosure, then none. Format-
+    //    agnostic, so both the RSS and Atom branches below call this same
+    //    function. This is the THIRD https enforcement point (see header):
+    //    a candidate URL that is not `root.allowedScheme` is dropped here,
+    //    and only the IMAGE is dropped — the item itself is still accepted
+    //    and renders its glyph fallback. ──────────────────────────────────
+    function _imageOf(itemNode) {
+        var candidate = "";
+        var thumbs = root._childrenNamedNs(itemNode, "thumbnail");
+        if (thumbs.length > 0) {
+            candidate = root._attrOf(thumbs[0], "url");
+        } else {
+            var contents = root._childrenNamedNs(itemNode, "content");
+            if (contents.length > 0) {
+                candidate = root._attrOf(contents[0], "url");
+            } else {
+                // `enclosure` is unnamespaced in RSS — the plain lookup.
+                var enclosures = root._childrenNamed(itemNode, "enclosure");
+                for (var i = 0; i < enclosures.length; i++) {
+                    var type = root._attrOf(enclosures[i], "type");
+                    if (typeof type === "string" && type.indexOf("image/") === 0) {
+                        candidate = root._attrOf(enclosures[i], "url");
+                        break;
+                    }
+                }
+            }
+        }
+        if (candidate === "")
+            return "";
+        if (candidate.indexOf(root.allowedScheme) !== 0) {
+            console.log("NewsBackend: _imageOf — dropped non-https image candidate, item still accepted");
+            return "";
+        }
+        return candidate;
+    }
+
     // Covers both RSS (<rss><channel><item>) and Atom (<feed><entry>).
     // Every guard below logs before returning — a silent guard is what
     // makes total failure look like a plausible wrong answer.
@@ -271,7 +347,8 @@ Scope {
                 rawItems.push({
                     title: root._textOf(titleNodes[0]),
                     link: root._textOf(linkNodes[0]),
-                    dateStr: dateNodes.length > 0 ? root._textOf(dateNodes[0]) : ""
+                    dateStr: dateNodes.length > 0 ? root._textOf(dateNodes[0]) : "",
+                    image: root._imageOf(it)
                 });
             }
         } else if (rootName === "feed") {
@@ -296,7 +373,11 @@ Scope {
                 rawItems.push({
                     title: root._textOf(titleN[0]),
                     link: chosenLink,
-                    dateStr: dateStr
+                    dateStr: dateStr,
+                    // Atom feeds can carry the same media:* children as
+                    // RSS — the extractor is format-agnostic, so reusing
+                    // it here is not a feed-specific branch.
+                    image: root._imageOf(e)
                 });
             }
         } else {
@@ -317,11 +398,15 @@ Scope {
             }
             var parsedDate = Date.parse(raw.dateStr);
             var dateMs = isNaN(parsedDate) ? 0 : parsedDate;
+            // Never reject an item for a missing or bad image — a
+            // text-only source is a first-class source; the fallback tier
+            // exists exactly for this.
             accepted.push({
                 title: raw.title,
                 link: raw.link,
                 dateMs: dateMs,
-                source: sourceName
+                source: sourceName,
+                image: raw.image
             });
         }
         if (rejected > 0)
@@ -383,6 +468,32 @@ Scope {
             candidates = candidates.slice(0, root.maxSources);
         }
         return candidates;
+    }
+
+    // ── Persist view_mode — a surgical read-modify-write, deliberately
+    //    NOT a `writeAdapter()`-style whole-object republish. `sources`
+    //    is not a native JS Array on this Qt build (see the LIVE-MEASURED
+    //    FINDING in `_validSources()` above) — round-tripping it through a
+    //    generic re-serialise risks clobbering the operator's source list.
+    //    So: read the raw text, parse it, set exactly one key, stringify,
+    //    write it back — the same idiom `writeCache()` already uses.
+    //    Refuses to write, with a log line, if the parsed object has no
+    //    usable `sources` length, so a malformed file can never be
+    //    replaced by a lossy rewrite. ────────────────────────────────────
+    function setViewMode(mode) {
+        var next = mode === "cards" ? "cards" : "compact";
+        try {
+            var raw = sourcesFile.text();
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object" || !parsed.sources || typeof parsed.sources.length !== "number") {
+                console.log("NewsBackend: setViewMode(" + next + ") refused — news-sources.json has no usable 'sources' length");
+                return;
+            }
+            parsed.view_mode = next;
+            sourcesFile.setText(JSON.stringify(parsed, null, 2));
+        } catch (e) {
+            console.log("NewsBackend: setViewMode(" + next + ") failed: " + e);
+        }
     }
 
     function _fetchSource(src) {
@@ -538,11 +649,17 @@ Scope {
                 var it = obj.items[i];
                 if (!it || typeof it.title !== "string" || it.title === "" || typeof it.link !== "string" || it.link.indexOf(root.allowedScheme) !== 0)
                     continue;
+                // Absent-key and empty-string converge on the same render
+                // path (the glyph fallback), which is exactly why an item
+                // cached before this quick task needs no migration and no
+                // cache invalidation — it just reads as image-less until
+                // the next refresh fills it in.
                 revalidated.push({
                     title: it.title,
                     link: it.link,
                     dateMs: typeof it.dateMs === "number" ? it.dateMs : 0,
-                    source: typeof it.source === "string" ? it.source : ""
+                    source: typeof it.source === "string" ? it.source : "",
+                    image: typeof it.image === "string" && it.image.indexOf(root.allowedScheme) === 0 ? it.image : ""
                 });
             }
             // Assigned in one go.
@@ -594,6 +711,7 @@ Scope {
             property int max_items_per_source: 15
             property int max_items_total: 40
             property int ttl_minutes: 15
+            property string view_mode: "compact"
         }
     }
 
