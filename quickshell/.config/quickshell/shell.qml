@@ -94,6 +94,8 @@ ShellRoot {
         audioBackend: audioBackendInstance
         wifiBackend: wifiBackendInstance
         bluetoothBackend: bluetoothBackendInstance
+        // Quick task 260819-6oy — the News tab's feed-fetcher seam.
+        newsBackend: newsBackendInstance
         // GATE-02 round 11 — terminus of the centre's chevron relay, the
         // same `openPanel(name)` the dashboard's own identical grid
         // already terminates on (line ~270). openPanel owns the guard and
