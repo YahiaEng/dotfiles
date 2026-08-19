@@ -384,7 +384,7 @@ WEATHER_SEED_EOF
   "sources": [
     { "name": "BBC World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "enabled": true },
     { "name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index", "enabled": true },
-    { "name": "LWN", "url": "https://lwn.net/headlines/newrss", "enabled": true },
+    { "name": "It's FOSS", "url": "https://itsfoss.com/rss/", "enabled": true },
     { "name": "Phoronix", "url": "https://www.phoronix.com/rss.php", "enabled": true }
   ],
   "max_items_per_source": 15,

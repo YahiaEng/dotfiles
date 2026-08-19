@@ -32,7 +32,7 @@
 // an otherwise-trusted source, and an image URL — a NEW remote-host class —
 // that a hostile feed response can carry just as easily as a hostile link.
 // The four default host strings (feeds.bbci.co.uk, feeds.arstechnica.com,
-// lwn.net, www.phoronix.com) appear in exactly two places in this repo:
+// itsfoss.com, www.phoronix.com) appear in exactly two places in this repo:
 // `stow.sh`'s seed block, and this comment — no other `.qml` file names any
 // feed host.
 //
@@ -112,7 +112,7 @@
 // ── The four default hosts, named (second and last place outside
 //    stow.sh) ───────────────────────────────────────────────────────────
 // BBC World (feeds.bbci.co.uk/news/world/rss.xml), Ars Technica
-// (feeds.arstechnica.com/arstechnica/index), LWN (lwn.net/headlines/newrss),
+// (feeds.arstechnica.com/arstechnica/index), It's FOSS (itsfoss.com/rss),
 // Phoronix (www.phoronix.com/rss.php) — all four public, keyless RSS
 // endpoints, seeded by stow.sh into news-sources.json.
 import QtQuick

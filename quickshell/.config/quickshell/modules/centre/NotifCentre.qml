@@ -383,16 +383,28 @@ PanelWindow {
                         // its own label and numeral.
                         //
                         // Padding widened spacingMd -> spacingLg per side
-                        // and an explicit pill height added (operator
-                        // report 2026-08-19: "dimensions are too tight").
-                        // The height is derived from the label row plus
-                        // symmetric vertical padding, NOT from the 48px
-                        // band — the band's own height is untouched, so
-                        // the layer surface still cannot move. It is
-                        // clamped to the band so a future font bump can
-                        // never push the pill past the header.
+                        // (operator report 2026-08-19: "dimensions are
+                        // too tight").
+                        //
+                        // NO implicitHeight override — an earlier attempt
+                        // at this report added one and the operator
+                        // reported the pill then "cuts through the
+                        // notification number". Measurement cleared the
+                        // two obvious mechanisms (the row totals 338px
+                        // against 366px available, so it does not
+                        // overflow; and the clamp resolved to 40px around
+                        // 30px of content, so it does not clip
+                        // vertically) — but the override contradicted
+                        // this tab bar's own documented decision, quoted
+                        // directly above: the delegates are content-
+                        // hugging and Control's content-derived default
+                        // height is the intended behaviour. Overriding a
+                        // documented invariant on a hunch is what
+                        // introduced the regression, so the override is
+                        // gone rather than tuned. Horizontal padding and
+                        // the inter-tab gap are unaffected; they are what
+                        // the "too tight" report was actually about.
                         implicitWidth: labelRow.implicitWidth + Design.spacingLg * 2
-                        implicitHeight: Math.min(labelRow.implicitHeight + Design.spacingSm * 2, Design.popoutHeaderHeight - Design.spacingXs * 2)
                         focusPolicy: Qt.NoFocus
 
                         background: Rectangle {
