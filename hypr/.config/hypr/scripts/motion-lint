@@ -915,7 +915,25 @@ def check_lua_surface(path):
 
 
 MOTION_PROP_RE = re.compile(r'Motion\.([A-Za-z][A-Za-z0-9]*)')
-QML_DURATION_RE = re.compile(r'\bduration\s*:\s*(\d+)\b')
+# Blind-spot fix 2026-08-19: this was anchored on a bare lowercase
+# `duration:` and is case-sensitive, so EVERY camel-cased duration
+# property slipped through untested — `highlightMoveDuration`,
+# `animationDuration`, `pauseDuration` and friends contain `Duration`
+# with a capital D, which `\bduration` can never match. The gap was
+# found the honest way: NotifCentre.qml's own pager binds
+# `highlightMoveDuration` to a Motion token and carries a source comment
+# saying a future edit dropping it back to a literal "would pass every
+# gate in this repo silently" — so the file documented the hole rather
+# than the lint closing it.
+#
+# Widened to any property name ENDING in duration/Duration. Measured
+# before the change: 0 additional hits across every .qml in this repo,
+# so it closes the hole without reclassifying a single existing line.
+# Safe against `duration: Motion.motionEnabled ? Motion.standardDuration
+# : 0` (the common ternary shape) because callers scan the MASKED line —
+# Motion.* spans are blanked first, so the token's own trailing `: 0`
+# is never visible to this pattern.
+QML_DURATION_RE = re.compile(r'\b[A-Za-z0-9_]*[Dd]uration\s*:\s*(\d+)\b')
 QML_LITERAL_BEZIER_RE = re.compile(r'easing\.bezierCurve\s*:\s*\[')
 
 
