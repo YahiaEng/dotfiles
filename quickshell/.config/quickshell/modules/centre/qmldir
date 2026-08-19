@@ -11,7 +11,13 @@
 # mounted once at shell.qml's root, exactly like `NotifPopupStack`/`Toast`.
 # `NotifGroup` is one instance per app-group ListView delegate; `CentreFooter`
 # is one instance, nested inside `NotifCentre`'s own pinned footer band.
+#
+# Quick task 260819-6oy adds a fourth type, also not a singleton:
+# `NewsPane`, page 1 of `NotifCentre`'s two-tab pager (the notification
+# history stays page 0) — one ordinary instance, registered in the same
+# commit that creates it, per this manifest's own standing rule.
 module qs.modules.centre
 NotifCentre 1.0 NotifCentre.qml
 NotifGroup 1.0 NotifGroup.qml
 CentreFooter 1.0 CentreFooter.qml
+NewsPane 1.0 NewsPane.qml
