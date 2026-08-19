@@ -75,6 +75,12 @@ PACMAN_PKGS=(
     # Shell (interactive, launched via kitty.conf; login shell stays zsh — D-12)
     fish
 
+    # Terminal multiplexer (M-10, quick task 260819-vas): undeclared until
+    # this task — `grep -n tmux install.sh` returned nothing even though
+    # tmux 3.7c was already installed on this host by hand, so a fresh
+    # install had no multiplexer at all. Official `extra` repo, pacman.
+    tmux
+
     # Wallpaper
     awww
 
@@ -417,6 +423,21 @@ AUR_PKGS=(
     # from AUR_PKGS in the same commit as this addition, not left as dead
     # weight).
     rose-pine-cursor
+
+    # tmux plugin manager (D-02, quick task 260819-vas — human
+    # package-legitimacy checkpoint required at the phase's blocking
+    # checkpoint before this is actually installed). Legitimacy audit
+    # (this plan's threat model, package-legitimacy section): AUR
+    # `tmux-plugin-manager` 3.1.0 builds from
+    # `git+https://github.com/tmux-plugins/tpm.git#tag=v3.1.0` — the
+    # canonical upstream, pinned to a signed release tag rather than a
+    # floating branch, +17 votes. Its PKGBUILD `cp -r`s tpm into
+    # /usr/share/tmux-plugin-manager/ only (M-1) — no other filesystem
+    # writes. Declaring the PACKAGE here is the deliverable; FETCHING the
+    # four plugins happens later, in stow.sh, not here — install.sh never
+    # runs stow.sh, so at this point ~/.config/tmux/tmux.conf does not yet
+    # exist and tpm cannot find a plugin list to read (M-7).
+    tmux-plugin-manager
 )
 
 # ── AUR packages (host-only — skipped under --core-only) ─

@@ -29,6 +29,13 @@ wallpapers/Pictures/Screenshots/
 # path) so the layout reproduces without ever needing to track a file here.
 wallpapers/Pictures/Wallpapers/*/live/
 
+# tmux plugins (T-vas-04, quick task 260819-vas) — belt-and-braces behind
+# stow.sh's ~/.config/tmux/plugins pre-create above: tpm clones third-party
+# plugin repos here at stow time (D-02). If the fold guard ever regresses,
+# cloned plugin code must still never enter git history, same rationale as
+# the wallpapers live/ entry above.
+tmux/.config/tmux/plugins/
+
 # GSD research cache — ephemeral web-research cache written by the research
 # skill/tool, never meant to be tracked (CLEAN-02/D-50 git-clean invariant).
 .planning/research/.cache/
