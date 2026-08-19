@@ -1313,15 +1313,33 @@ Scope {
                 return;
             }
             var doc = result.doc;
-            if (!doc || !doc.documentElement || (doc.documentElement.nodeName !== "rss" && doc.documentElement.nodeName !== "feed" && !root._isRdfRoot(doc.documentElement.nodeName))) {
-                // Distinguishes "the URL is not a feed" from "the feed is
-                // empty" — a bare item count would conflate the two. The
-                // accepted roots must stay in lockstep with _parseFeed()'s
-                // own branches, or the probe would green-light a document
-                // the walker then returns zero items for.
+            // ── Two distinct failures, deliberately NOT one. This branch
+            //    used to answer "not-a-feed" for both, and a LIVE OPERATOR
+            //    TEST proved that conflation actively misleads: probing
+            //    slashdot.org/slashdot.rdf reports the URL is not a feed,
+            //    when in truth it 301s through a cleartext http:// hop and
+            //    Qt is left holding the HTML redirect page — nothing was
+            //    ever parsed, and the real feed at rss.slashdot.org is
+            //    perfectly readable. Measured through qml6 with this
+            //    file's own userAgent: content-type HTML, responseXML
+            //    null. Splitting them is the same discipline that already
+            //    separates "not a feed" from "parsed but empty".
+            if (!doc || !doc.documentElement) {
+                root.probeState = "failed";
+                root.probeReason = "not-xml";
+                console.log("NewsBackend: probeSource(" + trimmed + ") failed — response carried no parseable XML document (a redirect to an HTML page does this)");
+                return;
+            }
+            // A real XML document whose root is simply not one this shell
+            // reads. The accepted roots must stay in lockstep with
+            // _parseFeed()'s own branches, or the probe would green-light
+            // a document the walker then returns zero items for.
+            var probeRoot = doc.documentElement.nodeName;
+            if (probeRoot !== "rss" && probeRoot !== "feed" && !root._isRdfRoot(probeRoot)) {
                 root.probeState = "failed";
                 root.probeReason = "not-a-feed";
-                console.log("NewsBackend: probeSource(" + trimmed + ") failed — not a readable RSS, Atom or RDF feed");
+                root.probeDetail = probeRoot;
+                console.log("NewsBackend: probeSource(" + trimmed + ") failed — XML parsed but root <" + probeRoot + "> is not a readable RSS, Atom or RDF feed");
                 return;
             }
             var title = root._feedTitleOf(doc);

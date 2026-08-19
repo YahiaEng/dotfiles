@@ -162,8 +162,13 @@ Item {
             return "The feed returned an error" + (root._hasBackend && root.newsBackend.probeDetail !== "" ? " (" + root.newsBackend.probeDetail + ")" : "");
         case "oversize":
             return "The feed is too large";
+        case "not-xml":
+            // Split out from "not-a-feed" after a live operator test: a URL
+            // that redirects to an HTML page parses to nothing at all, which
+            // is a different problem from a URL that serves the wrong XML.
+            return "That URL returned a web page, not a feed";
         case "not-a-feed":
-            return "That URL is not a readable RSS or Atom feed";
+            return "Not a readable RSS, Atom or RDF feed" + (root._hasBackend && root.newsBackend.probeDetail !== "" ? " (root <" + root.newsBackend.probeDetail + ">)" : "");
         case "parse":
             return "The feed could not be parsed";
         case "no-items":
