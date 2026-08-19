@@ -266,6 +266,17 @@ Scope {
         return out;
     }
 
+    // ── RSS 1.0 / RDF root detection. Namespace-tolerant for exactly the
+    //    same unmeasured reason `_childrenNamedNs()` above is: whether this
+    //    Qt build reports the root's `nodeName` as the qualified "rdf:RDF"
+    //    or the local "RDF" was not measured, so this accepts both rather
+    //    than betting on one. Declared here, above all three call sites
+    //    (`_parseFeed`, `_feedTitleOf`, `probeSource`), per this file's
+    //    helpers-above-use rule.
+    function _isRdfRoot(name) {
+        return name === "RDF" || (typeof name === "string" && name.endsWith(":RDF"));
+    }
+
     // Concatenates every child `nodeValue` — transparent to CDATA
     // sections (measured against BBC World's title elements).
     function _textOf(node) {
@@ -330,7 +341,8 @@ Scope {
         return candidate;
     }
 
-    // Covers both RSS (<rss><channel><item>) and Atom (<feed><entry>).
+    // Covers RSS 2.0 (<rss><channel><item>), Atom (<feed><entry>) and
+    // RSS 1.0 (<rdf:RDF><item>, items as SIBLINGS of <channel>).
     // Every guard below logs before returning — a silent guard is what
     // makes total failure look like a plausible wrong answer.
     function _parseFeed(doc, sourceName) {
@@ -385,6 +397,38 @@ Scope {
                     // RSS — the extractor is format-agnostic, so reusing
                     // it here is not a feed-specific branch.
                     image: root._imageOf(e)
+                });
+            }
+        } else if (root._isRdfRoot(rootName)) {
+            // RSS 1.0 differs from RSS 2.0 in exactly two ways that matter
+            // here, both measured against rss.slashdot.org: <item> is a
+            // SIBLING of <channel> rather than nested inside it, and the
+            // timestamp is Dublin Core's <dc:date> (ISO 8601) rather than
+            // <pubDate>. Title and link are plain-text children exactly as
+            // in RSS 2.0, so only the traversal and the date tag change —
+            // everything downstream (acceptance filter, https enforcement,
+            // image extraction, per-source cap) is shared unchanged.
+            var rdfItems = root._childrenNamed(docEl, "item");
+            for (var r = 0; r < rdfItems.length; r++) {
+                var ri = rdfItems[r];
+                var rdfTitleN = root._childrenNamed(ri, "title");
+                var rdfLinkN = root._childrenNamed(ri, "link");
+                // Namespace-tolerant, so this matches "dc:date" under a
+                // qualified-name build and a bare "date" under a local-name
+                // one — the same both-ways hedge _childrenNamedNs() exists for.
+                var rdfDateN = root._childrenNamedNs(ri, "date");
+                rawItems.push({
+                    title: root._textOf(rdfTitleN[0]),
+                    link: root._textOf(rdfLinkN[0]),
+                    // MEASURED: the bare slashdot.org/slashdot.rdf endpoint
+                    // carries no date element of any kind (0 pubDate, 0
+                    // dc:date across 18 links), while the rss.slashdot.org
+                    // paths carry dc:date. That needs no special case — the
+                    // acceptance filter below already assigns an absent or
+                    // unparseable date dateMs 0, which sorts last and still
+                    // shows, deliberately.
+                    dateStr: rdfDateN.length > 0 ? root._textOf(rdfDateN[0]) : "",
+                    image: root._imageOf(ri)
                 });
             }
         } else {
@@ -1176,7 +1220,10 @@ Scope {
         return "ok";
     }
 
-    // For an `rss` document element, walk channel then title; for a
+    // For an `rss` or `rdf:RDF` document element, walk channel then title
+    // — RSS 1.0 puts <channel> at the top level exactly as RSS 2.0 does,
+    // so the two share this branch; only <item> placement differs between
+    // them, and that is _parseFeed()'s concern, not this function's. For a
     // `feed` document element, walk title directly. Reuses
     // _childrenNamed()/_textOf() — the same DOM helpers _parseFeed()
     // itself uses. Runs the result through _normaliseName() and
@@ -1187,7 +1234,7 @@ Scope {
             return "";
         var docEl = doc.documentElement;
         var titleNode = null;
-        if (docEl.nodeName === "rss") {
+        if (docEl.nodeName === "rss" || root._isRdfRoot(docEl.nodeName)) {
             var channels = root._childrenNamed(docEl, "channel");
             if (channels.length > 0) {
                 var channelTitles = root._childrenNamed(channels[0], "title");
@@ -1266,12 +1313,15 @@ Scope {
                 return;
             }
             var doc = result.doc;
-            if (!doc || !doc.documentElement || (doc.documentElement.nodeName !== "rss" && doc.documentElement.nodeName !== "feed")) {
+            if (!doc || !doc.documentElement || (doc.documentElement.nodeName !== "rss" && doc.documentElement.nodeName !== "feed" && !root._isRdfRoot(doc.documentElement.nodeName))) {
                 // Distinguishes "the URL is not a feed" from "the feed is
-                // empty" — a bare item count would conflate the two.
+                // empty" — a bare item count would conflate the two. The
+                // accepted roots must stay in lockstep with _parseFeed()'s
+                // own branches, or the probe would green-light a document
+                // the walker then returns zero items for.
                 root.probeState = "failed";
                 root.probeReason = "not-a-feed";
-                console.log("NewsBackend: probeSource(" + trimmed + ") failed — not a readable RSS or Atom feed");
+                console.log("NewsBackend: probeSource(" + trimmed + ") failed — not a readable RSS, Atom or RDF feed");
                 return;
             }
             var title = root._feedTitleOf(doc);
