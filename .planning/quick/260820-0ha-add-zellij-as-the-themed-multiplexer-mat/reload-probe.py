@@ -193,12 +193,15 @@ def main():
                     f"{PALETTE_B}'s fg #{hex_b} -- the running session did NOT "
                     f"live-reload. This is the failure that matters most: the "
                     f"whole architecture (D-01) rests on it.")
-            # MEASURED EXCEPTION (2026-08-20, orchestrator). zellij 0.44.3 does
-            # NOT re-theme pane-FRAME chrome on a live config reload: the frame
-            # title line keeps its session-start colours until that pane is
-            # recreated. Everything this integration exists for -- the status
-            # bar and its powerline segments -- does re-theme, which is what the
-            # sgr_b assertion above proves.
+            # PROBE-ONLY EXCEPTION (2026-08-20, corrected same day).
+            # This probe's IDLE synthetic PTY session leaves one pane-frame line
+            # carrying the pre-swap colours. It was originally recorded here as a
+            # zellij 0.44.3 limitation -- that was WRONG, and the operator
+            # falsified it within the hour: in a real kitty window, switching
+            # themes with panes open re-coloured the frames too. Real usage is
+            # the better evidence; treat this as an artifact of an idle session
+            # that never repaints its frame, NOT as a product defect, and do not
+            # go hunting for a zellij bug on the strength of it.
             #
             # Ruled out by measurement before relaxing this, so nobody has to
             # redo it: the two renders genuinely differ (a clean swap really is
@@ -229,8 +232,9 @@ def main():
                     f"First offender: {non_frame[0][:120]!r}")
             if stale_lines:
                 print(f"NOTE: {len(stale_lines)} pane-frame line(s) still carry "
-                      f"#{hex_a} -- known zellij 0.44.3 limitation, corrects when "
-                      f"the pane is recreated. Status bar re-themed correctly.")
+                      f"#{hex_a} in this IDLE probe session. Operator-verified "
+                      f"2026-08-20 that real terminals DO re-colour frames live, "
+                      f"so this is a probe artifact, not a zellij defect.")
             print(f"PASS post: {len(post)} bytes, fg #{hex_b} live, "
                   f"#{hex_a} gone -- running session re-themed with no hook")
         finally:
