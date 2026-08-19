@@ -503,6 +503,76 @@ Scope {
         }
     }
 
+    // ── The shared transport (D-5, this quick task) — the ONE place an
+    //    XMLHttpRequest is constructed in this file. `_fetchSource()`
+    //    (the refresh run) and `probeSource()` (the add-flow's live
+    //    check) both call this; neither constructs its own request. It
+    //    registers in `_activeXhrs` so the existing `abort()` on
+    //    centre-close kills either caller's in-flight request for free.
+    //    `onDone` receives a single result object: `ok` (bool), `reason`
+    //    (a code, "" on success), `detail` (extra context — the HTTP
+    //    status or the oversize byte count), `doc` (the parsed
+    //    `responseXML`, null on failure). Reason codes on failure:
+    //    "scheme" (refused synchronously, before any request is issued),
+    //    "network" (status 0), "http" (detail carries the status),
+    //    "oversize" (response longer than maxResponseBytes, detail
+    //    carries the length). Never "parse" — parsing is the caller's
+    //    job, not this function's. ────────────────────────────────────
+    function _fetchXml(url, onDone) {
+        if (typeof url !== "string" || url.indexOf(root.allowedScheme) !== 0) {
+            console.log("NewsBackend: shared transport refused synchronously — url is not " + root.allowedScheme);
+            onDone({
+                ok: false,
+                reason: "scheme",
+                detail: "",
+                doc: null
+            });
+            return;
+        }
+        var xhr = new XMLHttpRequest();
+        root._activeXhrs.push(xhr);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== XMLHttpRequest.DONE)
+                return;
+            var idx = root._activeXhrs.indexOf(xhr);
+            if (idx !== -1)
+                root._activeXhrs.splice(idx, 1);
+
+            if (xhr.status === 0) {
+                onDone({
+                    ok: false,
+                    reason: "network",
+                    detail: "",
+                    doc: null
+                });
+            } else if (xhr.status !== 200) {
+                onDone({
+                    ok: false,
+                    reason: "http",
+                    detail: String(xhr.status),
+                    doc: null
+                });
+            } else if (xhr.responseText.length > root.maxResponseBytes) {
+                onDone({
+                    ok: false,
+                    reason: "oversize",
+                    detail: String(xhr.responseText.length),
+                    doc: null
+                });
+            } else {
+                onDone({
+                    ok: true,
+                    reason: "",
+                    detail: "",
+                    doc: xhr.responseXML
+                });
+            }
+        };
+        xhr.open("GET", url);
+        xhr.setRequestHeader("User-Agent", root.userAgent);
+        xhr.send();
+    }
+
     function _fetchSource(src) {
         if (!root.centreOpen) {
             console.log("NewsBackend: _fetchSource(" + src.name + ") skipped — centre closed");
@@ -515,35 +585,46 @@ Scope {
             return;
         }
 
+        // requestsInFlight is incremented BEFORE calling the shared
+        // transport, deliberately: the transport's own scheme guard can
+        // fail SYNCHRONOUSLY (see its own comment above), and
+        // incrementing after a transport that can fail synchronously
+        // would let _finishRun() fire after the first source while the
+        // rest of the loop in refresh() has not started yet. The
+        // transport's own scheme guard is now unreachable from this run
+        // path — the guard immediately above already refused — but it
+        // stays as the transport's own defence-in-depth.
         root.requestsInFlight++;
-        var xhr = new XMLHttpRequest();
-        root._activeXhrs.push(xhr);
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState !== XMLHttpRequest.DONE)
-                return;
+        root._fetchXml(src.url, function (result) {
             root.requestsInFlight--;
-            var idx = root._activeXhrs.indexOf(xhr);
-            if (idx !== -1)
-                root._activeXhrs.splice(idx, 1);
 
-            if (xhr.status === 0) {
+            if (!result.ok && result.reason === "network") {
                 root.sourcesFailed++;
                 root._failedNames.push(src.name);
                 root.lastError = "network";
                 console.log("NewsBackend: " + src.name + " — network error (status 0)");
-            } else if (xhr.status !== 200) {
+            } else if (!result.ok && result.reason === "http") {
                 root.sourcesFailed++;
                 root._failedNames.push(src.name);
-                root.lastError = "http " + xhr.status;
-                console.log("NewsBackend: " + src.name + " — HTTP " + xhr.status);
-            } else if (xhr.responseText.length > root.maxResponseBytes) {
+                root.lastError = "http " + result.detail;
+                console.log("NewsBackend: " + src.name + " — HTTP " + result.detail);
+            } else if (!result.ok && result.reason === "oversize") {
                 root.sourcesFailed++;
                 root._failedNames.push(src.name);
                 root.lastError = "oversize";
-                console.log("NewsBackend: " + src.name + " — response oversize (" + xhr.responseText.length + " bytes)");
+                console.log("NewsBackend: " + src.name + " — response oversize (" + result.detail + " bytes)");
+            } else if (!result.ok) {
+                // "scheme" — unreachable from this path (see the guard
+                // above), kept as defence-in-depth so a future change to
+                // the transport cannot silently drop a source with no
+                // log line at all.
+                root.sourcesFailed++;
+                root._failedNames.push(src.name);
+                root.lastError = result.reason;
+                console.log("NewsBackend: " + src.name + " — " + result.reason);
             } else {
                 try {
-                    var parsed = root._parseFeed(xhr.responseXML, src.name);
+                    var parsed = root._parseFeed(result.doc, src.name);
                     root._runBuffer = root._runBuffer.concat(parsed);
                     // A source that parses cleanly but yields zero items
                     // still counts as ok — success-with-nothing is a
@@ -559,10 +640,7 @@ Scope {
 
             if (root.requestsInFlight === 0)
                 root._finishRun();
-        };
-        xhr.open("GET", src.url);
-        xhr.setRequestHeader("User-Agent", root.userAgent);
-        xhr.send();
+        });
     }
 
     function _finishRun() {
@@ -706,6 +784,11 @@ Scope {
         root._activeXhrs = [];
         root.requestsInFlight = 0;
         root._runBuffer = [];
+        // D-5 — kills an in-flight probe for free (it shares
+        // _activeXhrs). The in-flight callback's own probeState guard
+        // then makes the late DONE a no-op.
+        if (root.probeState === "probing")
+            root.probeState = "idle";
     }
 
     function _updateWidgetState() {
@@ -790,6 +873,17 @@ Scope {
     // refresh so it reads settled state rather than the pre-write
     // snapshot.
     property bool _refreshWhenSourcesSettle: false
+
+    // ── D-5 — the probe register, a SEPARATE register from the run's own
+    //    counters on purpose: sharing requestsInFlight would let a
+    //    completing probe fire _finishRun() and publish a half-built
+    //    run. probeState is one of "idle" | "probing" | "ok" | "failed".
+    property string probeState: "idle"
+    property string probeReason: ""
+    property string probeDetail: ""
+    property string probeUrl: ""
+    property string probeTitle: ""
+    property int probeItemCount: 0
 
     // The editor's model. Duck-typed on `.length` per anchor 5 — never
     // the native array-type predicate against anything reached through
@@ -1080,6 +1174,138 @@ Scope {
             root._refreshWhenSourcesSettle = true;
         }
         return "ok";
+    }
+
+    // For an `rss` document element, walk channel then title; for a
+    // `feed` document element, walk title directly. Reuses
+    // _childrenNamed()/_textOf() — the same DOM helpers _parseFeed()
+    // itself uses. Runs the result through _normaliseName() and
+    // truncates to maxSourceNameLen. Returns "" when there is nothing
+    // usable (the add-flow then falls back to _hostnameOf()).
+    function _feedTitleOf(doc) {
+        if (!doc || !doc.documentElement)
+            return "";
+        var docEl = doc.documentElement;
+        var titleNode = null;
+        if (docEl.nodeName === "rss") {
+            var channels = root._childrenNamed(docEl, "channel");
+            if (channels.length > 0) {
+                var channelTitles = root._childrenNamed(channels[0], "title");
+                if (channelTitles.length > 0)
+                    titleNode = channelTitles[0];
+            }
+        } else if (docEl.nodeName === "feed") {
+            var feedTitles = root._childrenNamed(docEl, "title");
+            if (feedTitles.length > 0)
+                titleNode = feedTitles[0];
+        }
+        if (!titleNode)
+            return "";
+        var normalised = root._normaliseName(root._textOf(titleNode));
+        return normalised.length > root.maxSourceNameLen ? normalised.slice(0, root.maxSourceNameLen) : normalised;
+    }
+
+    // ── D-5 — the probe is a second CALLER of the shared transport, not
+    //    a second fetcher. Never touches requestsInFlight, sourcesOk,
+    //    sourcesFailed, lastError or _runBuffer — see the probe
+    //    register's own comment for why. Carries the D-32 gate: zero
+    //    network activity while the centre is closed, the same guard
+    //    refresh() carries. ────────────────────────────────────────────
+    function probeSource(url) {
+        var trimmed = typeof url === "string" ? url.trim() : "";
+        root.probeTitle = "";
+        root.probeItemCount = 0;
+        root.probeDetail = "";
+        root.probeUrl = trimmed;
+
+        if (!root.centreOpen) {
+            console.log("NewsBackend: probeSource() refused — centre closed");
+            root.probeState = "failed";
+            root.probeReason = "centre-closed";
+            return;
+        }
+        if (root.probeState === "probing") {
+            console.log("NewsBackend: probeSource() ignored — a probe is already in flight");
+            return;
+        }
+        if (trimmed.indexOf(root.allowedScheme) !== 0) {
+            console.log("NewsBackend: probeSource() rejected — url is not " + root.allowedScheme);
+            root.probeState = "failed";
+            root.probeReason = "scheme";
+            return;
+        }
+        if (root._findSourceIndex(root._allSources(), trimmed) !== -1) {
+            console.log("NewsBackend: probeSource() rejected — duplicate url " + trimmed);
+            root.probeState = "failed";
+            root.probeReason = "duplicate-url";
+            return;
+        }
+        if (root._allSources().length >= root.maxSources) {
+            console.log("NewsBackend: probeSource() rejected — " + root.maxSources + "-source cap reached");
+            root.probeState = "failed";
+            root.probeReason = "full";
+            return;
+        }
+
+        root.probeState = "probing";
+        root.probeReason = "";
+        root._fetchXml(trimmed, function (result) {
+            // Discard a superseded/aborted probe — the guard that makes
+            // a late DONE a no-op. abort() resets probeState to "idle"
+            // on centre-close; a text-field edit or a fresh probeSource()
+            // call moves probeUrl on before this callback ever fires.
+            if (root.probeState !== "probing" || root.probeUrl !== trimmed) {
+                console.log("NewsBackend: probeSource() callback discarded — superseded or aborted");
+                return;
+            }
+            if (!result.ok) {
+                root.probeState = "failed";
+                root.probeReason = result.reason;
+                root.probeDetail = result.detail;
+                console.log("NewsBackend: probeSource(" + trimmed + ") failed — " + result.reason);
+                return;
+            }
+            var doc = result.doc;
+            if (!doc || !doc.documentElement || (doc.documentElement.nodeName !== "rss" && doc.documentElement.nodeName !== "feed")) {
+                // Distinguishes "the URL is not a feed" from "the feed is
+                // empty" — a bare item count would conflate the two.
+                root.probeState = "failed";
+                root.probeReason = "not-a-feed";
+                console.log("NewsBackend: probeSource(" + trimmed + ") failed — not a readable RSS or Atom feed");
+                return;
+            }
+            var title = root._feedTitleOf(doc);
+            var fallbackName = title !== "" ? title : root._hostnameOf(trimmed);
+            try {
+                var parsed = root._parseFeed(doc, fallbackName);
+                if (parsed.length === 0) {
+                    root.probeState = "failed";
+                    root.probeReason = "no-items";
+                    console.log("NewsBackend: probeSource(" + trimmed + ") failed — feed parsed but carried no usable headlines");
+                    return;
+                }
+                root.probeTitle = fallbackName;
+                root.probeItemCount = parsed.length;
+                root.probeState = "ok";
+            } catch (e) {
+                root.probeState = "failed";
+                root.probeReason = "parse";
+                console.log("NewsBackend: probeSource(" + trimmed + ") — parse threw: " + e);
+            }
+        });
+    }
+
+    // Resets the whole probe register to idle. Called by the pane when
+    // the URL text changes or the add flow is cancelled — a stale "ok"
+    // must never be committable against a URL the operator has since
+    // edited.
+    function clearProbe() {
+        root.probeState = "idle";
+        root.probeReason = "";
+        root.probeDetail = "";
+        root.probeUrl = "";
+        root.probeTitle = "";
+        root.probeItemCount = 0;
     }
 
     // D-6 — the same deferral onCentreOpenChanged already uses, for the
