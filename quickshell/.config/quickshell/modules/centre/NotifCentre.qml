@@ -344,7 +344,16 @@ PanelWindow {
                     // and "News" touched and read as one run of chrome
                     // rather than two targets (operator report,
                     // 2026-08-19). Design token, never a literal.
-                    spacing: Design.spacingSm
+                    //
+                    // Raised spacingSm -> spacingMd on a second report
+                    // that the count numeral still sat too close to the
+                    // neighbouring pill. The numeral is the LAST thing in
+                    // tab 0 and the News pill starts immediately after it,
+                    // so the inter-tab gap is what separates a number from
+                    // a capsule edge — the two crowded elements belong to
+                    // different tabs, which is why widening the pill's own
+                    // padding alone did not resolve it.
+                    spacing: Design.spacingMd
                     Repeater {
                         model: tabBar.contentModel
                     }
@@ -407,7 +416,15 @@ PanelWindow {
                         contentItem: Row {
                             id: labelRow
                             anchors.centerIn: parent
-                            spacing: Design.spacingXs
+                            // spacingXs (4px) set the gap for BOTH the
+                            // glyph->word and word->numeral joins. 4px
+                            // reads as joined at fontBody, which is the
+                            // other half of the 2026-08-19 crowding
+                            // report: "Notifications" and its count ran
+                            // together. spacingSm separates the three
+                            // parts as three parts while keeping the pill
+                            // content-hugging.
+                            spacing: Design.spacingSm
 
                             // ── Leading tab glyph (this quick task) —
                             //    reuses the label's own existing
