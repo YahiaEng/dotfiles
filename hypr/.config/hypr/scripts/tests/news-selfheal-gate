@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+# ╔══════════════════════════════════════════════════════╗
+# ║              NEWS-SELFHEAL-GATE (quick task            ║
+# ║                     260819-ug4)                        ║
+# ║  Structural invariants for the News tab's self-healing  ║
+# ║  retry, checked against source text only — never spawns ║
+# ║  qml6, never opens a compositor surface, never screen-  ║
+# ║  shots (this host's Hyprland has crashed to every one   ║
+# ║  of those before). Report-only — never mutates the file ║
+# ║  under test. Exits nonzero if ANY invariant FAILs.      ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# Written in Python, not a shell pipeline, deliberately: this repo has two
+# recorded gate failure modes a Python implementation avoids outright — a
+# grep gate matching its own comment prose (this file's own target,
+# NewsBackend.qml, has a header comment that NAMES several of the exact
+# strings this gate checks for, which is exactly why every check below
+# strips `//` comment lines before matching), and `grep -q` under
+# `pipefail` exiting 141 on a match and flipping a verdict by file length.
+#
+# Five invariants, matched against the comment-stripped file body:
+#
+#   1. No timer introduced — D-32 requires the retry only ever run from a
+#      centre-open; a QML Timer would be the one way to violate that
+#      without touching refresh()'s own guard.
+#   2. The publish gate keys on the positive per-run record: exactly one
+#      occurrence of `_okNames.length > 0`.
+#   3. D-32's centre-open gate is still the first statement in refresh().
+#   4. A partial run cannot advance the whole-cache timestamp: exactly
+#      one `root.fetchedAtMs = Date.now()` assignment, and exactly one
+#      occurrence of the whole-run condition
+#      `_runSourceCount === root.sources.length`.
+#   5. Declaration order: both new helpers are declared above the first
+#      FileView block (this file's own load-bearing construction-order
+#      rule — quick task 260819-426).
+
+import re
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[5]
+TARGET = REPO_ROOT / "quickshell" / ".config" / "quickshell" / "modules" / "dashboard" / "NewsBackend.qml"
+
+
+def strip_comments(text):
+    """Drop every line whose first non-whitespace characters are `//`.
+    This is a line-level strip, not a full QML tokenizer — sufficient
+    here because every string this gate searches for is either genuine
+    code or lives entirely inside a `//`-prefixed prose line in this
+    file's own header/inline commentary; nothing under test spans a
+    comment/code boundary mid-line."""
+    kept = []
+    for line in text.splitlines():
+        if line.lstrip().startswith("//"):
+            continue
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def main():
+    if not TARGET.exists():
+        print(f"FAIL: target file not found: {TARGET}")
+        return 1
+
+    raw = TARGET.read_text()
+    body = strip_comments(raw)
+
+    results = []  # (invariant_number, passed, message)
+
+    # 1 — no timer type introduced.
+    timer_hits = re.findall(r"\bTimer\s*\{", body)
+    if len(timer_hits) == 0:
+        results.append((1, True, "no `Timer {` construct in the comment-stripped body"))
+    else:
+        results.append((1, False, f"found {len(timer_hits)} `Timer {{` construct(s) — D-32 forbids any timer-driven retry"))
+
+    # 2 — publish gate keys on the positive per-run record.
+    gate_hits = len(re.findall(r"_okNames\.length > 0", body))
+    if gate_hits == 1:
+        results.append((2, True, "exactly one `_okNames.length > 0` occurrence"))
+    else:
+        results.append((2, False, f"found {gate_hits} occurrence(s) of `_okNames.length > 0`, expected exactly 1"))
+
+    # 3 — D-32's gate is still first in refresh().
+    m = re.search(r"function\s+refresh\s*\(", body)
+    if not m:
+        results.append((3, False, "no `function refresh(` found in the comment-stripped body"))
+    else:
+        window = body[m.end():m.end() + 200]
+        if "if (!root.centreOpen)" in window:
+            results.append((3, True, "`if (!root.centreOpen)` appears within 200 characters of `function refresh(`"))
+        else:
+            results.append((3, False, "`if (!root.centreOpen)` does not appear within 200 characters of `function refresh(` — D-32's gate may no longer be first"))
+
+    # 4 — a partial run cannot advance the whole-cache timestamp.
+    fetched_hits = len(re.findall(r"root\.fetchedAtMs = Date\.now\(\)", body))
+    whole_run_hits = len(re.findall(r"_runSourceCount === root\.sources\.length", body))
+    if fetched_hits == 1 and whole_run_hits == 1:
+        results.append((4, True, "exactly one `fetchedAtMs = Date.now()` assignment, guarded by exactly one whole-run condition"))
+    else:
+        results.append((4, False, f"found {fetched_hits} `fetchedAtMs = Date.now()` assignment(s) (expected 1) and {whole_run_hits} whole-run condition(s) (expected 1)"))
+
+    # 5 — declaration order: both new helpers above the first FileView.
+    fv_idx = body.find("FileView {")
+    if fv_idx == -1:
+        results.append((5, False, "no `FileView {` found in the comment-stripped body"))
+    else:
+        missing_or_late = []
+        for fn in ("_sourcesNeedingRetry", "_carryForward"):
+            fn_idx = body.find("function " + fn)
+            if fn_idx == -1:
+                missing_or_late.append(f"{fn} missing")
+            elif fn_idx > fv_idx:
+                missing_or_late.append(f"{fn} declared below the FileViews")
+        if missing_or_late:
+            results.append((5, False, "; ".join(missing_or_late)))
+        else:
+            results.append((5, True, "both `_sourcesNeedingRetry` and `_carryForward` declared above the first FileView"))
+
+    all_pass = True
+    for num, passed, msg in results:
+        status = "PASS" if passed else "FAIL"
+        if not passed:
+            all_pass = False
+        print(f"{status}: invariant {num} — {msg}")
+
+    return 0 if all_pass else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
