@@ -450,6 +450,37 @@ PanelWindow {
                         rightPadding: Design.spacingLg
                         topPadding: Design.spacingXs
                         bottomPadding: Design.spacingXs
+
+                        // ── THE overlap fix, measured from a screenshot
+                        //    of the real surface rather than reasoned
+                        //    about (2026-08-19) ─────────────────────────
+                        // TabBar DIVIDES ITS WIDTH EQUALLY among its tabs
+                        // and ignores each button's implicitWidth. Pixel
+                        // measurement of the live header: available
+                        // TabBar width 366, and BOTH pills rendered 183
+                        // wide — 366 / 2 — while tab 0 needs 201 for
+                        // "Notifications" plus its glyph and numeral. The
+                        // 18px overflow is what pushed the count under
+                        // tab 1's capsule, which paints over it: the
+                        // reported "pill cuts through the number".
+                        //
+                        // This also explains the report history. At the
+                        // original spacingMd padding the overflow was
+                        // ~5px ("slightly touching"); every padding
+                        // increase widened the overlap, so each attempt
+                        // made it worse. No amount of padding or height
+                        // work could fix it — the button was being
+                        // RESIZED by its container, and nothing in the
+                        // delegate was contesting that.
+                        //
+                        // Binding width to implicitWidth is what makes
+                        // "content-hugging" — which this tab bar's own
+                        // comment above claims as its premise — actually
+                        // true, instead of merely intended. Dashboard.qml
+                        // needs no equivalent because it WANTS the equal
+                        // division and computes header.width / tabCount
+                        // deliberately; this bar wants the opposite.
+                        width: implicitWidth
                         focusPolicy: Qt.NoFocus
 
                         background: Rectangle {
