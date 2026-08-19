@@ -99,6 +99,8 @@
     "motion-scale",
     "weather.json",
     "weather-cache.json",
+    "news-sources.json",
+    "news-cache.json",
     "wallpaper-frames",
     "fastfetch",
     "fastfetch-logo"

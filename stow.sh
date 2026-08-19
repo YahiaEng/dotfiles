@@ -355,6 +355,39 @@ mkdir -p "$HOME/.local/state/theme"
 }
 WEATHER_SEED_EOF
 
+# news-sources.json (quick task 260819-6oy): the operator's hand-edited
+# surface for the notification centre's News tab. Adding a feed means
+# editing this file — there is deliberately NO in-shell editor (locked
+# decision 2 in .planning/notes/news-tab-feed-parsing.md, deferred to a
+# seed, same as this pattern already applies to weather.json above).
+#
+# It carries NO API key, token or credential of any kind, and must not
+# grow one — every default feed is a public, keyless RSS/Atom endpoint.
+# Same standing rule the weather.json seed above already states.
+#
+# Every "url" MUST be https://. NewsBackend.qml rejects and logs anything
+# else rather than fetching it (the two-point scheme allowlist); this
+# seed must never be the thing that teaches someone a plain-http entry
+# is acceptable.
+#
+# "enabled": false disables a source without deleting it.
+#
+# The three tunables below are clamped by NewsBackend.qml (see its
+# header) — a hostile or fat-fingered value here cannot turn this into
+# an unbounded fetch.
+[[ -f "$HOME/.local/state/theme/news-sources.json" ]] || cat > "$HOME/.local/state/theme/news-sources.json" <<'NEWS_SEED_EOF'
+{
+  "sources": [
+    { "name": "BBC World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "enabled": true },
+    { "name": "NPR", "url": "https://feeds.npr.org/1001/rss.xml", "enabled": true },
+    { "name": "LWN", "url": "https://lwn.net/headlines/newrss", "enabled": true }
+  ],
+  "max_items_per_source": 15,
+  "max_items_total": 40,
+  "ttl_minutes": 15
+}
+NEWS_SEED_EOF
+
 # D-30: seed the rendered motion files by INVOKING motion.sh's own
 # renderer — never a hand-authored stub. A stub is a second source of
 # truth that goes stale the instant a motion.json edit lands; D-30's whole
