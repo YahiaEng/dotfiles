@@ -344,7 +344,14 @@ Scope {
             return;
         if (root._cachedCity !== "")
             return;
-        geocoder.resolve();
+        // Qt.callLater, NOT a direct call: this function runs from
+        // `onDrawerOpenChanged`, and at that instant the child's own
+        // `drawerOpen: root.drawerOpen` binding has NOT been re-evaluated
+        // yet — measured, parent true / child false in the same tick —
+        // so a direct call hits GeocodeBackend's own drawerOpen guard and
+        // returns silently. Deferring to after bindings settle keeps every
+        // guard on both sides intact instead of deleting the child's.
+        Qt.callLater(geocoder.resolve);
     }
 
     function _revalidateAgainstSettings() {
