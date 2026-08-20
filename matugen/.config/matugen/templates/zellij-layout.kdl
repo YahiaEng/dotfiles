@@ -71,7 +71,7 @@ layout {
         pane size=1 borderless=true {
             plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
                 format_left "{mode}{tabs}"
-                format_right "{command_git}#[fg={{colors.on_surface_variant.default.hex}}] {datetime} "
+                format_right "{command_git}{datetime}"
                 format_space "#[bg={{colors.surface.default.hex}}]"
                 format_hide_on_overlength "true"
                 format_precedence "lrc"
@@ -79,16 +79,16 @@ layout {
                 border_enabled "false"
                 hide_frame_for_single_pane "false"
 
-                mode_normal "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] NORMAL #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
-                mode_locked "#[bg={{colors.error.default.hex}},fg={{colors.on_error.default.hex}},bold] LOCKED #[bg={{colors.surface.default.hex}},fg={{colors.error.default.hex}}]"
-                mode_pane "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] PANE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
-                mode_tab "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] TAB #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
-                mode_scroll "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] SCROLL #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
-                mode_search "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] SEARCH #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
-                mode_resize "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] RESIZE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
-                mode_move "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] MOVE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
-                mode_session "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] SESSION #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
-                mode_prompt "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] PROMPT #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                mode_normal "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] NORMAL #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                mode_locked "#[bg={{colors.error.default.hex}},fg={{colors.on_error.default.hex}},bold] LOCKED #[bg={{colors.surface.default.hex}},fg={{colors.error.default.hex}}]"
+                mode_pane "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] PANE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
+                mode_tab "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] TAB #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
+                mode_scroll "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] SCROLL #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
+                mode_search "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] SEARCH #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
+                mode_resize "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] RESIZE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
+                mode_move "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] MOVE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
+                mode_session "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] SESSION #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                mode_prompt "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] PROMPT #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
                 // NOTE: zellij ships one more mode, a compatibility mode
                 // named after the multiplexer this repo retired, and
                 // zjstatus has a styling slot for it. It is deliberately
@@ -100,18 +100,18 @@ layout {
                 // the mode still works; it renders in zjstatus defaults.
                 mode_default_to_mode "normal"
 
-                tab_normal "#[bg={{colors.surface.default.hex}},fg={{colors.surface_variant.default.hex}}]#[bg={{colors.surface_variant.default.hex}},fg={{colors.on_surface_variant.default.hex}}] {index} {name} #[bg={{colors.surface.default.hex}},fg={{colors.surface_variant.default.hex}}]"
-                tab_active "#[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] {index} {name} #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                tab_normal "#[bg={{colors.surface_variant.default.hex}},fg={{colors.on_surface_variant.default.hex}}] {index} {name} #[bg={{colors.surface.default.hex}},fg={{colors.surface_variant.default.hex}}]"
+                tab_active "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] {index} {name} #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
                 tab_sync_indicator " "
                 tab_fullscreen_indicator " "
                 tab_floating_indicator " "
 
                 command_git_command "git rev-parse --abbrev-ref HEAD"
-                command_git_format "#[fg={{colors.tertiary.default.hex}}]  {stdout} "
+                command_git_format "#[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold]  {stdout} "
                 command_git_interval "5"
                 command_git_rendermode "static"
 
-                datetime "#[fg={{colors.on_surface_variant.default.hex}}]{format} "
+                datetime "#[bg={{colors.surface.default.hex}},fg={{colors.surface_variant.default.hex}}]#[bg={{colors.surface_variant.default.hex}},fg={{colors.on_surface_variant.default.hex}}] {format} "
                 datetime_format "%H:%M"
                 datetime_timezone "Africa/Cairo"
             }
