@@ -96,15 +96,82 @@ Control {
         }
     }
 
+    // Operator live-pass item 10 (FAIL — "the theme selection menu is
+    // hardcoded and does not re-theme with theme switches") plus the
+    // reported hover flicker/inconsistent hitbox: MEASURED root cause,
+    // not assumed — read Qt's own installed Basic-style
+    // Menu.qml/MenuItem.qml directly. Both `Menu.background`
+    // (`color: control.palette.window`) and `MenuItem.background`
+    // (`color: control.down ? control.palette.midlight : control.highlighted
+    // ? control.palette.light : "transparent"`) use the QQC2 SYSTEM
+    // PALETTE — zero literals in this repo's own QML, which is exactly
+    // why colour-lint (which greps only OUR files) never caught it. This
+    // is a measured, named colour-lint blind spot, recorded as a
+    // follow-up in the SUMMARY rather than silently worked around.
+    //
+    // The hover flicker/"hitbox seems inconsistent": the default
+    // delegate's `implicitWidth`/`implicitHeight` derive from
+    // `implicitContentWidth`/`implicitBackgroundWidth`, which change as
+    // each item's OWN text metrics resolve — different labels (e.g.
+    // "Off" vs "Material You Light (Dynamic)") got different implicit
+    // sizes, so the highlighted rectangle's bounds visibly jumped
+    // between items instead of holding one fixed width. Fixed here with
+    // an explicit `implicitWidth: optionsMenu.width` on every item, so
+    // every row shares the exact same hit region regardless of its own
+    // label length. `highlighted` is QQC2's own canonical, built-in
+    // hover/keyboard-nav-selection property (confirmed live in the
+    // installed style's own MenuItem.qml) — used directly here rather
+    // than a hand-rolled MouseArea, which would fight the Menu's own
+    // internal ListView hover tracking and is the likely SOURCE of the
+    // reported "appearing and disappearing" flicker.
     Menu {
         id: optionsMenu
+
+        implicitWidth: Math.max(200, dropdownPill.implicitWidth)
+
+        background: Rectangle {
+            implicitWidth: optionsMenu.implicitWidth
+            radius: 12
+            color: Colours.surfaceVariant
+            border.width: 1
+            border.color: Colours.outline
+        }
 
         Repeater {
             model: root.model
 
             MenuItem {
+                id: menuItem
                 required property var modelData
                 text: modelData.display
+
+                implicitWidth: optionsMenu.implicitWidth
+                implicitHeight: 40
+
+                contentItem: Text {
+                    text: menuItem.text
+                    color: Colours.onSurfaceVariant
+                    font.pixelSize: Design.fontBody
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                    leftPadding: Design.spacingMd
+                    rightPadding: Design.spacingMd
+                }
+
+                background: Rectangle {
+                    radius: 8
+                    color: menuItem.highlighted ? Colours.primaryContainer : "transparent"
+
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.standardDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.standardEasing
+                        }
+                    }
+                }
+
                 onTriggered: root.selected(modelData.value)
             }
         }

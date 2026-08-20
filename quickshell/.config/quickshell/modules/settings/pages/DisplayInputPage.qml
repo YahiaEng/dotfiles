@@ -54,17 +54,35 @@ PageBase {
         Component.onCompleted: running = true
     }
 
+    // Shared trailing-zero trim ("165.00" -> "165", "119.88" unchanged) —
+    // WR-03 (code review): `_normaliseMode` and `_currentModeString` used
+    // to apply two DIFFERENT rounding rules to the same quantity
+    // (string-trim-only vs `Math.round` to a bare integer), so the
+    // "current mode" marker never matched its own dropdown entry for any
+    // non-integer refresh rate. MEASURED: `hyprctl monitors -j` reports
+    // `refreshRate` as a high-precision float (164.99899 for a nominal
+    // "165.00Hz" mode; a genuinely fractional mode like 119.88Hz reads
+    // ~119.8801) while `availableModes` strings are pre-formatted to 2
+    // decimals ("119.88Hz") — `Math.round(119.8801)` = 120, which
+    // collides with this monitor's SEPARATE, actually-120Hz mode entry,
+    // silently mismarking the current mode as the wrong one rather than
+    // merely failing to highlight it. Fixed by running both call sites
+    // through the exact same `.toFixed(2)` + trim pipeline.
+    function _trimTrailingZeros(numStr) {
+        return numStr.replace(/\.00$/, "").replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+    }
+
     // Normalises an `availableModes` entry ("2560x1440@165.00Hz") down to
     // the "WxH@R" shape hypr-overrides.sh accepts and hl.monitor emits —
     // strip "Hz", trim a trailing ".00" (RESEARCH.md's own normalisation
     // note).
     function _normaliseMode(raw) {
         var noHz = raw.endsWith("Hz") ? raw.slice(0, -2) : raw;
-        return noHz.replace(/\.00$/, "").replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+        return root._trimTrailingZeros(noHz);
     }
 
     function _currentModeString(mon) {
-        return mon.width + "x" + mon.height + "@" + Math.round(mon.refreshRate);
+        return mon.width + "x" + mon.height + "@" + root._trimTrailingZeros(mon.refreshRate.toFixed(2));
     }
 
     // T-SQD-04: `output` is a DEVICE-supplied string (hyprctl monitors -j's
@@ -286,13 +304,35 @@ PageBase {
     // ── Advanced escape hatch — the same nwg-displays the walker Display
     //    row already points at (D-06/PanelDialog.qml's own
     //    advancedLabel/advancedCommand precedent). ───────────────────────
+    //
+    // Operator live-pass item 6 ("open nwg-displays does nothing when
+    // clicked"): MEASURED, not guessed. `uwsm app -- nwg-displays` run
+    // standalone in a real shell launches it correctly (confirmed live:
+    // window class "nwg-displays" appears in `hyprctl clients -j` within
+    // ~1.5s) — the binary, argv, and uwsm wrap are all fine. The actual
+    // bug is a race this exact repo has already hit and documented once
+    // before: PowerMenu.qml's own header ("Bug fix ... post-unlock
+    // flash") explains that a `Process` with `running: true` is torn
+    // down along with its OWNING QML object — and `onActivated` here
+    // calls `root.sState.close()` in the same tick, which
+    // (Connections.onClose -> win.closeRequested -> shell.qml's
+    // `settingsLoader.active = false`) destroys this entire page
+    // (including `nwgDisplaysProc`) essentially immediately. The
+    // AppearancePage pickers get away with the same-tick close because
+    // their direct script execs (wallpaper-switch.sh et al.) fork/detach
+    // fast; `uwsm app --` hands off through systemd/dbus and is slower,
+    // so the teardown wins the race and kills it mid-launch — silent,
+    // no error, exactly the reported symptom. PowerMenu.qml's own fix
+    // for the identical class of bug is `Process.startDetached()`
+    // instead of `running = true`, specifically because a detached
+    // process's lifetime is NOT tied to the QML object that started it.
+    // Mirrored here verbatim.
     SettingsSection {
         title: "Advanced"
         icon: "open_in_new"
 
         Process {
             id: nwgDisplaysProc
-            running: false
             command: ["uwsm", "app", "--", "nwg-displays"]
         }
 
@@ -300,7 +340,7 @@ PageBase {
             label: "Open nwg-displays"
             subtext: "Full display layout editor, for anything the rows above don't cover"
             onActivated: {
-                nwgDisplaysProc.running = true;
+                nwgDisplaysProc.startDetached();
                 root.sState.close();
             }
         }

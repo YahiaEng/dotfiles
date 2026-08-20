@@ -217,9 +217,22 @@ PageBase {
         // session's own default, when unset). Inlined here rather than a
         // new shim script: the plan's own Task 4 file list names no such
         // script, and a fixed argv array needs none.
+        //
+        // Operator live-pass item 8 ("open in editor does nothing when
+        // clicked"): MEASURED, not guessed — same root cause as item 6
+        // (see DisplayInputPage.qml's nwgDisplaysProc for the full
+        // writeup): `running = true` ties the Process's lifetime to this
+        // page, which `root.sState.close()` destroys in the same tick;
+        // `uwsm app -- kitty ... -- nvim ...`'s systemd/dbus hand-off is
+        // slow enough that the teardown wins the race and kills it
+        // before nvim/kitty ever map a window. `nvim` being a TUI is
+        // NOT the cause here (kitty is already the terminal host, per
+        // the D-09 wrap this command already uses) — it is the same
+        // destroy-before-spawn-completes race PowerMenu.qml's header
+        // documents and fixes with `Process.startDetached()`. Mirrored
+        // here verbatim.
         Process {
             id: editorProc
-            running: false
             command: ["uwsm", "app", "--", "kitty",
                 "--class", "idle-overrides-editor",
                 "--title", "Idle & Lock Overrides",
@@ -232,7 +245,7 @@ PageBase {
             label: "Open in editor"
             subtext: "Edit the state-dir file directly for anything the rows above don't cover"
             onActivated: {
-                editorProc.running = true;
+                editorProc.startDetached();
                 root.sState.close();
             }
         }
