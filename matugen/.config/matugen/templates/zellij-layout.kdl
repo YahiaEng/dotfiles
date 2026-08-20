@@ -117,5 +117,18 @@ layout {
             }
         }
         children
+        // zellij's built-in keybind-hint bar, restored deliberately.
+        //
+        // The stock default layout is tab-bar (top) + status-bar (bottom),
+        // and a default_tab_template REPLACES BOTH. zjstatus takes over the
+        // tab-bar role at the top; without this pane the bottom keybind
+        // hints simply vanish, which is a real loss of discoverability and
+        // exactly what the config.kdl keybinds comment relies on when it
+        // says zellij's defaults "are discoverable from the status bar
+        // itself". One row, and it is themed by the same rendered `themes`
+        // block in config.kdl, so it follows every palette like the rest.
+        pane size=1 borderless=true {
+            plugin location="status-bar"
+        }
     }
 }
