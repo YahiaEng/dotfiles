@@ -29,6 +29,7 @@ import "modules/toast"
 import "modules/centre"
 import "modules/osd"
 import "modules/session"
+import "modules/settings"
 
 ShellRoot {
     id: root
@@ -687,6 +688,100 @@ ShellRoot {
                 return "active=false tiles=0 windows=0 withContent=0";
             var ov = overviewLoader.item;
             return "active=true tiles=" + ov.tileCount + " windows=" + ov.thumbnailCount + " withContent=" + ov.thumbnailsWithContent;
+        }
+    }
+
+    // ── Settings window (quick task 260820-sqd, Task 1, D-02/PD-01) ──────
+    // A real XDG toplevel (`FloatingWindow`), not a layer surface — the
+    // same summon-via-LazyLoader mechanism as every other surface here,
+    // but with no `WlrLayershell` namespace to register in
+    // quickshell-doctor's QSD_BAR_SURFACE_ROWS (that registry keys on a
+    // layer surface's namespace, which a toplevel does not have).
+    // `settingsInitialPageIdx` mirrors `dashboardTabIndex`'s own shape
+    // above: the ONLY way to seed which page the window opens on, read
+    // once at construction via `initialPageIdx` (Settings.qml), never
+    // pushed imperatively into an item that may not exist yet the instant
+    // the loader activates.
+    property int settingsInitialPageIdx: 0
+
+    LazyLoader {
+        id: settingsLoader
+        active: false
+
+        Settings {
+            initialPageIdx: root.settingsInitialPageIdx
+            onCloseRequested: settingsLoader.active = false
+        }
+    }
+
+    // The single guarded summon function every entry point below defers
+    // to — GlobalShortcut, the `settings` IpcHandler, and (Task 2) the
+    // walker menu's shim script. An already-open window ALWAYS closes,
+    // whatever is fullscreen behind it (D-02/D-06's "pressing it again
+    // closes it"), mirroring `dashboardShortcut`'s own onPressed shape
+    // above verbatim.
+    function openSettings() {
+        if (settingsLoader.active) {
+            settingsLoader.active = false;
+        } else if (!root.fullscreenBlocking) {
+            settingsLoader.active = true;
+        }
+    }
+
+    // Deep-link to one of PageRegistry's four groups by `category` name
+    // (F-05's foundation) — resolves the name, seeds
+    // `settingsInitialPageIdx` for a first-open, and pushes directly into
+    // the live SettingsState when the window is already open (safe: the
+    // item is guaranteed to exist once `active` was already true on a
+    // prior frame, unlike the just-activated case above).
+    function openSettingsPage(name) {
+        var idx = -1;
+        for (var i = 0; i < PageRegistry.pages.length; i++) {
+            if (PageRegistry.pages[i].category === name) {
+                idx = i;
+                break;
+            }
+        }
+        if (idx === -1)
+            return false;
+        root.settingsInitialPageIdx = idx;
+        if (!settingsLoader.active) {
+            if (root.fullscreenBlocking)
+                return false;
+            settingsLoader.active = true;
+        } else if (settingsLoader.item) {
+            settingsLoader.item.sState.currentPageIdx = idx;
+        }
+        return true;
+    }
+
+    GlobalShortcut {
+        id: settingsShortcut
+        appid: "quickshell"
+        name: "settings"
+        onPressed: root.openSettings()
+    }
+
+    // ── Settings IPC surface — `open()`/`toggle()`/`openPage(name)`,
+    //    mirroring `panelIpc`'s own shape: every verb defers to the
+    //    guarded summon functions above, never writes `settingsLoader.active`
+    //    directly. ────────────────────────────────────────────────────────
+    IpcHandler {
+        id: settingsIpc
+        target: "settings"
+
+        function open(): string {
+            var wasActive = settingsLoader.active;
+            root.openSettings();
+            return (settingsLoader.active !== wasActive) ? "settings" : "";
+        }
+
+        function toggle(): string {
+            return settingsIpc.open();
+        }
+
+        function openPage(name: string): string {
+            return root.openSettingsPage(name) ? name : "";
         }
     }
 

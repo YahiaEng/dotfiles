@@ -1,0 +1,11 @@
+# qmldir — explicit module manifest for quickshell/modules/settings/common/
+# (quick task 260820-sqd). Mirrors every sibling manifest's own standing
+# instruction: any .qml type added here that is NOT declared below becomes
+# unresolvable forever, with no load error. Any FUTURE type added to this
+# directory MUST be declared in the same commit that creates it — Task 2
+# adds ToggleRow/SliderRow/InfoRow here.
+module qs.modules.settings.common
+PageBase 1.0 PageBase.qml
+SettingsSection 1.0 SettingsSection.qml
+SelectRow 1.0 SelectRow.qml
+NavRow 1.0 NavRow.qml

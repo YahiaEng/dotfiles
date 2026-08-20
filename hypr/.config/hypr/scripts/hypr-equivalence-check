@@ -686,6 +686,15 @@ ACCEPTED_ADDITIONS = {
     # 2026-08-08); it is new config, not drifted config.
     ("", 64, "M", False):
         "Phase 21 QMEDIA-01 dashboard-on-Media-tab (keybinds.lua:243)",
+    # Quick task 260820-sqd: the in-shell QML settings window's entry point,
+    # declared at keybinds.lua as
+    # `hl.bind(mainMod .. " + comma", hl.dsp.global("quickshell:settings"))`.
+    # `comma` measured free under both SUPER and SUPER+SHIFT via
+    # `hyprctl binds -j` on 2026-08-20 (PD-02); no baseline bind was removed
+    # for it, so it reads here purely as an addition. Post-dates this
+    # baseline (captured 2026-08-08); it is new config, not drifted config.
+    ("", 64, "comma", False):
+        "Quick task 260820-sqd settings window entry point (keybinds.lua)",
 }
 
 for ident in live_by_id.keys() - base_by_id.keys():

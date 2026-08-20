@@ -1,0 +1,21 @@
+# qmldir — explicit module manifest for quickshell/modules/settings/ (quick
+# task 260820-sqd, Task 1). Mirrors every sibling module manifest's own
+# standing instruction (modules/qmldir:1-11): checking this file in disables
+# Quickshell's directory-scanner synthesis for this directory entirely — any
+# .qml type added here that is NOT declared below becomes unresolvable
+# forever, with no load error. Any FUTURE type added to this directory MUST
+# be declared in the same commit that creates it.
+#
+# PageRegistry/PageCompRegistry carry BOTH `pragma Singleton` in their own
+# file AND the `singleton` keyword here — modules/qmldir:14-21's
+# binary-verified finding: without the qmldir keyword, bare
+# `PageRegistry.pages`-style access resolves to `undefined` forever (the
+# object is never constructed). SettingsState is deliberately NOT a
+# singleton (one instance per window, owned by Settings.qml).
+module qs.modules.settings
+singleton PageRegistry 1.0 PageRegistry.qml
+singleton PageCompRegistry 1.0 PageCompRegistry.qml
+SettingsState 1.0 SettingsState.qml
+NavRail 1.0 NavRail.qml
+Pages 1.0 Pages.qml
+Settings 1.0 Settings.qml

@@ -247,6 +247,16 @@ hl.bind(mainMod .. " + N", hl.dsp.global("quickshell:notif-centre")) -- Toggle n
 -- cross-check contract.
 hl.bind(mainMod .. " + M", hl.dsp.global("quickshell:media")) -- Open dashboard on Media tab (D-21-12)
 
+-- Settings window entry point (quick task 260820-sqd, PD-02, D-02/D-06): the
+-- in-shell QML settings window (a FloatingWindow toplevel, not a layer
+-- surface). `comma` is the near-universal preferences chord and was
+-- measured free under both SUPER and SUPER+SHIFT on this host 2026-08-20
+-- (`hyprctl binds -j`) — `S` was NOT used because it is taken under both
+-- modmasks. Identifier below byte-matches shortcuts.json's appid:name pair
+-- and shell.qml's own settingsShortcut — keybind-doctor's cross-check
+-- contract.
+hl.bind(mainMod .. " + comma", hl.dsp.global("quickshell:settings")) -- Toggle settings window (quick task 260820-sqd)
+
 -- ── Lock screen ──────────────────────────────────────
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(lockScreen)) -- Lock screen
 

@@ -37,6 +37,23 @@ hl.window_rule({
     center = true,
 })
 
+-- Settings window (quick task 260820-sqd, PD-01) — the in-shell QML
+-- settings window is a real XDG toplevel (`FloatingWindow`), not a layer
+-- surface, so it needs an ordinary `window_rule` (never a `layer_rule`) to
+-- float and center: `hyprctl reload` re-sources this correctly, unlike a
+-- `hyprctl eval` layer-rule dance. Class MEASURED live via
+-- `hyprctl clients -j` after opening the window this task (2026-08-20):
+-- "org.quickshell" — title alone ("Settings") is not a stable match
+-- criterion since Quickshell's other summonable surfaces could plausibly
+-- retitle in the future; class is Quickshell's own fixed toplevel identity.
+hl.window_rule({
+    name = "float-settings",
+    match = { class = [[^(org\.quickshell)$]] },
+    float = true,
+    size = "960 640",
+    center = true,
+})
+
 hl.window_rule({ match = { class = [[^(nm-applet)$]] }, float = true })
 hl.window_rule({ match = { class = [[^(nm-connection-editor)$]] }, float = true })
 hl.window_rule({ match = { class = [[^(xdg-desktop-portal-gtk)$]] }, float = true })
