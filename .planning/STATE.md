@@ -728,7 +728,7 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 ## Session Continuity
 
 Last session: 2026-08-20T17:36:00.000Z
-Stopped at: Session resumed; archived the two stale Aug-20 todos (vim alias + nvim live-reload spike), both resolved by the themed-nvim work. Only `2026-08-15-brightness-osd-unverifiable-on-desktop` remains pending. Prior state below still current.
+Stopped at: Session resumed; archived the two stale Aug-20 todos (vim alias + nvim live-reload spike), both resolved by the themed-nvim work. Then two operator verdicts closed the last open items: the brightness OSD path is VERIFIED WORKING on a backlight-equipped laptop (todo archived — the pending queue is now EMPTY), and nord's separation-60 nvim ramp is ACCEPTED on sight as the palette's character, not a defect. Prior state below still current.
 
 Prior: THEMED NVIM COMPLETE AND OPERATOR-VERIFIED LIVE. Nothing in progress, tree clean, everything pushed through 8b7b2322.
 
@@ -740,9 +740,9 @@ Gates at hand-off: theme-doctor 610/0, theme-parity 1985/0 across all 20 palette
 
 THREE VALIDATED SPIKES underpin the nvim work and are the evidence base — do not re-derive them. `.planning/spikes/MANIFEST.md` holds the locked requirements under the `themed-nvim` idea. 001: a live nvim fully repaints ONLY if the colorscheme calls `highlight clear` first. 002: default socket is $XDG_RUNTIME_DIR/nvim.<pid>.<n>, globbable, driven with `--remote-expr "execute('colorscheme rice')"`; dead sockets fail in ~4ms so they cannot hang a switch. 003: Lua derives a legible ramp for 19/20 palettes, calibrated against gruvbox's tightest real pair (87), and monochrome palettes separate by brightness tiers plus bold/italic rather than injected hue.
 
-TWO THINGS GENUINELY OPEN. `nord` sits at separation 60 against the 70 bar — a deliberately low-contrast palette, not a defect; forcing saturation would cost its character. And blink.cmp and neo-tree were never primary-source verified for maintenance status (research question 5 in `.planning/research/questions.md` is still open on neo-tree). They work — a from-scratch lockfile restore reproduced 11/11 plugins — but "works today" is not "actively maintained".
+ONE THING GENUINELY OPEN. blink.cmp and neo-tree were never primary-source verified for maintenance status (research question 5 in `.planning/research/questions.md` is still open on neo-tree). They work — a from-scratch lockfile restore reproduced 11/11 plugins — but "works today" is not "actively maintained". RESOLVED 2026-08-20: `nord`'s separation 60 against the 70 bar is operator-accepted on sight — the low contrast is the palette's character, not a defect; do not force saturation into it.
 
-ALSO STILL OPEN, unrelated: the pending todo `2026-08-15-brightness-osd-unverifiable-on-desktop` (no backlight-class device on this host).
+ALSO RESOLVED 2026-08-20: the brightness-OSD verification debt (`2026-08-15-brightness-osd-unverifiable-on-desktop`, archived to completed/) — operator verified the path working on a backlight-equipped laptop. The pending-todo queue is empty.
 
 NEXT: the operator has a few more small tasks before scoping milestone v5.0. v4.0 shipped 2026-08-17 and is archived; v5.0 has no roadmap yet, so recent work has all been quick tasks against a closed roadmap. Route small items through /gsd-quick; when the operator is ready for v5.0, /gsd-new-milestone after reviewing /gsd-review-backlog and the v4.0 carried-debt section.
 

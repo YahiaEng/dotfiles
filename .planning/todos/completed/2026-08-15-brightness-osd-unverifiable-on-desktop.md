@@ -63,3 +63,11 @@ laptop at first install:
 
 Until then this path must be reported as implemented-but-unverified, never as
 passing.
+
+## Resolution (2026-08-20)
+
+Operator verified the brightness OSD path on a separate, backlight-equipped
+laptop (2026-08-20) and reports it working. This closes the verification debt
+above — the path is no longer implemented-but-unverified. The desktop host
+still has no backlight device, so any future re-verification must again happen
+on laptop hardware.

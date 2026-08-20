@@ -327,7 +327,8 @@ hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURC
 -- ── Brightness ───────────────────────────────────────
 -- Phase 20 Plan 05 (QOSD-01/QOSD-04, D-20-05, Rule 2 deviation — see
 -- 20-05-SUMMARY.md and
--- .planning/todos/pending/2026-08-15-brightness-osd-unverifiable-on-desktop.md):
+-- .planning/todos/completed/2026-08-15-brightness-osd-unverifiable-on-desktop.md,
+-- operator-verified working on a backlight-equipped laptop 2026-08-20):
 -- repointed OFF the raw `brightnessctl` exec Plan 04 Task 2 shipped, onto
 -- `qs ipc call -- osd raise|lower` (shell.qml's own `osd` IpcHandler,
 -- calling `BrightnessBackend.adjust()`). Plan 04's raw exec changed the
