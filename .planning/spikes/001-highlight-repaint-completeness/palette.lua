@@ -1,0 +1,1 @@
+return { fg = "#eeeeee", bg = "#333333", dim = "#bbbbbb", accent = "#ffcc00" }

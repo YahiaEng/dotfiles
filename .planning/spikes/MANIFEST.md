@@ -1,0 +1,43 @@
+# Spike Manifest
+
+## Ideas
+
+### themed-nvim
+
+A full-IDE neovim wired into this repo's existing matugen/theme-engine pipeline,
+so a theme switch re-colours a running nvim the way it already re-colours the
+bar, terminal and everything else. vscodium stays installed alongside it — two
+editors, chosen per task, no retirement gate. nvim is the first surface in this
+repo that must generate real syntax colours across all 20 palettes, and the
+first whose config language is a real programming language rather than a text
+template. Exploration and constraints:
+`.planning/notes/themed-nvim-design-constraints.md`.
+
+**Requirements:**
+
+- The colorscheme **must call `highlight clear` before painting** (spike 001).
+  Without it, `@lsp.*` groups keep the previous theme's colours and a theme
+  switch leaves a half-recoloured buffer.
+- Define the **base** `@lsp.*` groups and let the client-suffixed variants
+  (`@lsp.type.function.`) link to them — that is what the extmarks actually
+  reference (spike 001).
+- Colours must re-theme **live**, with no nvim restart — this is the project's
+  core value, not a nice-to-have.
+- The colorscheme reads its palette from a file the theme pipeline writes; it
+  does not hardcode colours.
+- Plugin manager is **lazy.nvim**, not the first-party `vim.pack` — a
+  deliberate exception, because `vim.pack`'s lockfile can drop entries on
+  partial install failure (neovim/neovim#38702) and reproducibility from
+  `install.sh` is this project's hardest constraint. Revisit when `vim.pack`
+  leaves experimental.
+- Config style: modular folders, real lazy-loading, short plain-English
+  comments. No plan IDs, requirement codes or workflow jargon in config files —
+  the operator reads and extends these by hand.
+
+## Spikes
+
+| # | Idea | Name | Type | Validates | Verdict | Tags |
+|---|------|------|------|-----------|---------|------|
+| 001 | themed-nvim | highlight-repaint-completeness | standard | Re-applying a colorscheme repaints plain, treesitter and `@lsp.*` groups with none stale | ✓ VALIDATED (requires `highlight clear`) | nvim, theming, highlight, treesitter, lsp, live-reload |
+| 002 | themed-nvim | external-drive-and-socket | standard | An external script can find a running nvim and make it re-apply its colorscheme | PENDING | nvim, ipc, socket, reload |
+| 003 | themed-nvim | lua-ramp-from-four-hues | standard | Lua can derive 8+ distinguishable syntax colours from the 9-role matugen palette | PENDING | nvim, theming, palette, colour |
