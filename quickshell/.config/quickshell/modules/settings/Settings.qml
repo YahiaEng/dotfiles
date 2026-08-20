@@ -127,16 +127,34 @@ FloatingWindow {
         // (a NavRail click also activates immediately). Clamped at both
         // ends: at index 0 an Up press and at index 3 a Down press change
         // nothing.
-        Keys.onUpPressed: win.sState.goToPage(Math.max(0, win.sState.currentPageIdx - 1))
-        Keys.onDownPressed: win.sState.goToPage(Math.min(PageRegistry.pages.length - 1, win.sState.currentPageIdx + 1))
-        // Operator live-pass item 2 (PARTIAL — Up/Down worked, Left/Right
-        // did nothing): the rail is a flat ordered list with only one
-        // axis of movement, so Left/Right mirror Up/Down exactly, on
-        // Dashboard.qml:725-726's own Left/Right-for-paging idiom — the
-        // operator's own stated expectation ("arrows navigate," all
-        // four). Same direct-activate, same clamping.
-        Keys.onLeftPressed: win.sState.goToPage(Math.max(0, win.sState.currentPageIdx - 1))
-        Keys.onRightPressed: win.sState.goToPage(Math.min(PageRegistry.pages.length - 1, win.sState.currentPageIdx + 1))
+        //
+        // SPEC CORRECTION (operator, second live-pass): the first Left/
+        // Right attempt mirrored Up/Down as a second page-switch axis —
+        // wrong model. The operator's own words: "I want left/right
+        // arrows to move between the left side and right side of the
+        // options menu." This is TWO-PANE FOCUS, not paging: Right moves
+        // keyboard focus from the rail INTO the content pane (Pages.qml's
+        // own row-focus tracking, since these rows use this shell's
+        // existing virtual-selection idiom — the rail itself is not a
+        // real QML focus chain either, see NavRail.qml); Left returns
+        // focus to the rail. Up/Down navigate WITHIN whichever pane
+        // currently holds focus: rail entries (unchanged, above) when the
+        // rail holds it, content-pane rows (`pagesHost.moveContentRow`)
+        // when the content pane does.
+        Keys.onUpPressed: {
+            if (pagesHost.contentFocused)
+                pagesHost.moveContentRow(-1);
+            else
+                win.sState.goToPage(Math.max(0, win.sState.currentPageIdx - 1));
+        }
+        Keys.onDownPressed: {
+            if (pagesHost.contentFocused)
+                pagesHost.moveContentRow(1);
+            else
+                win.sState.goToPage(Math.min(PageRegistry.pages.length - 1, win.sState.currentPageIdx + 1));
+        }
+        Keys.onLeftPressed: pagesHost.exitContent()
+        Keys.onRightPressed: pagesHost.enterContent()
 
         // Re-claims QML-level focus every time this window (re)gains real
         // OS activation — fixes the original construction-time race

@@ -30,9 +30,33 @@ Control {
         return root.currentValue;
     }
 
+    // Two-pane keyboard focus — see Pages.qml's header for the full
+    // design; ToggleRow.qml's own header has the geometry-stability
+    // reasoning for the border-color-only focus ring. Distinct from this
+    // row's OWN dropdown-popup highlight fix below (a completely
+    // separate Menu/MenuItem concern) — this ring is on the ROW itself.
+    readonly property bool focusable: true
+    property bool rowFocused: false
+
     implicitWidth: parent ? parent.width : 400
     implicitHeight: 56
     padding: Design.spacingMd
+
+    background: Rectangle {
+        radius: 12
+        color: "transparent"
+        border.width: 2
+        border.color: root.rowFocused ? Colours.primary : "transparent"
+
+        Behavior on border.color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
+    }
 
     contentItem: Item {
         id: rowContent
@@ -172,6 +196,54 @@ Control {
                     }
                 }
 
+                // ── Item 3 hover-flicker re-check (operator, second
+                //    live-pass) — INSTRUMENTED, not guessed further ─────
+                // Temporary logging (Console: "HOVERTRACE", removed after
+                // use) recorded `hovered` (Control's own mouse-driven
+                // property) and `highlighted` (Menu-internal, set by
+                // EITHER hover or keyboard `currentIndex`) separately at
+                // every change, plus this delegate's own y/height.
+                //
+                // Hypothesis (a), geometry-moves-under-a-stationary-
+                // cursor: RULED OUT both structurally and empirically.
+                // Structurally: neither `implicitWidth`/`implicitHeight`
+                // above nor this `background` reference `highlighted`/
+                // `hovered` in any geometry-affecting way — only `color`
+                // changes, and only via the `Behavior` already in place.
+                // Empirically: a keyboard-driven `currentIndex` walk
+                // (Down/Down/Down/Up) logged y=0/40/80 for the three
+                // items touched, in perfectly stable lockstep with which
+                // item was highlighted — zero geometry movement.
+                //
+                // Hypothesis (b), hover vs currentIndex fighting: RULED
+                // OUT for the keyboard-navigation path specifically —
+                // the same trace shows `hovered=false` throughout every
+                // one of 7 logged transitions, with `highlighted`
+                // flipping cleanly true-then-false in matched pairs, no
+                // double-set, no stale overlap between two highlighted
+                // items at once.
+                //
+                // NOT YET TESTABLE: the operator's actual report is
+                // MOUSE hover flicker, and this environment has no
+                // pointer-input-simulation tool (`ydotool`/`wlrctl`/
+                // `dotool` all absent) to reproduce that path directly.
+                // Hyprland's own `hl.dsp.cursor.move` warp was tried
+                // (twice) and confirmed to leave `hyprctl cursorpos`
+                // unchanged and generate zero HOVERTRACE activity —
+                // consistent with this session's own earlier documented
+                // finding that this warp does not drive real pointer
+                // state, so it cannot substitute for a genuine mouse
+                // move here either. Per the coordinator's own
+                // instruction not to guess further: reporting this
+                // rather than patching blind. The coordinator's third
+                // lead (dynamic-cursors plugin cursor-shape churn) is
+                // the leading remaining hypothesis precisely BECAUSE (a)
+                // and (b) are excluded on this component's own code and
+                // the one input path measurable here — but it needs
+                // either a pointer-simulation tool in this environment
+                // or one more operator-driven live reproduction with
+                // this same HOVERTRACE logging temporarily restored to
+                // confirm.
                 onTriggered: root.selected(modelData.value)
             }
         }

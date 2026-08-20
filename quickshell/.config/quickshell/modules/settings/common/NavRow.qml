@@ -15,6 +15,13 @@ Control {
     property string subtext: ""
     signal activated()
 
+    // Two-pane keyboard focus — see Pages.qml's header for the full
+    // design; ToggleRow.qml's own header has the geometry-stability
+    // reasoning for the border-color-only focus ring (merged below into
+    // this row's existing hover-driven `background`).
+    readonly property bool focusable: true
+    property bool rowFocused: false
+
     implicitWidth: parent ? parent.width : 400
     implicitHeight: 56
     padding: Design.spacingMd
@@ -62,8 +69,18 @@ Control {
     background: Rectangle {
         color: hoverArea.containsMouse ? Colours.surfaceVariant : "transparent"
         radius: 12
+        border.width: 2
+        border.color: root.rowFocused ? Colours.primary : "transparent"
 
         Behavior on color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
+        Behavior on border.color {
             enabled: Motion.motionEnabled
             ColorAnimation {
                 duration: Motion.standardDuration

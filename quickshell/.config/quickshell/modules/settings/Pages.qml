@@ -16,6 +16,76 @@ Item {
     required property SettingsState sState
     property Item currentItem: null
 
+    // ── Two-pane keyboard focus (operator spec correction, second
+    //    live-pass): "left/right arrows move between the left side and
+    //    right side of the options menu" — Right moves focus from the
+    //    rail INTO the content pane's first row; Left returns it to the
+    //    rail; Up/Down walk rows within whichever pane holds focus. This
+    //    shell has no real QML focus-chain for the rail either (NavRail's
+    //    selection is virtual — index-driven, not `activeFocus`), so the
+    //    content pane follows the SAME virtual-selection idiom rather
+    //    than introducing a second, competing focus model: `contentFocused`
+    //    + `contentRowIdx` are plain properties, and each row's own
+    //    `rowFocused` visual is written directly here, not bound through
+    //    a page-supplied index (a page has no numbering of its own rows —
+    //    SettingsSection/Repeater nesting varies per page).
+    property var _focusableRows: []
+    property bool contentFocused: false
+    property int contentRowIdx: -1
+
+    // Recursive tree walk, not a fixed SettingsSection/Repeater path —
+    // page shapes vary (DisplayInputPage repeats a whole SettingsSection
+    // per monitor; other pages declare them directly), so this walks
+    // ANY descendant chain looking for the `focusable` marker every row
+    // type (ToggleRow/SliderRow/SelectRow/NavRow) now declares, in
+    // strict child-declaration order (QML's `children` array preserves
+    // it) — the same order the rows actually render in, top to bottom.
+    function _collectFocusableRows(item) {
+        var result = [];
+        if (!item || !item.children)
+            return result;
+        for (var i = 0; i < item.children.length; i++) {
+            var child = item.children[i];
+            if (child.focusable === true)
+                result.push(child);
+            else
+                result = result.concat(root._collectFocusableRows(child));
+        }
+        return result;
+    }
+
+    function _applyRowFocusVisual() {
+        for (var i = 0; i < root._focusableRows.length; i++)
+            root._focusableRows[i].rowFocused = root.contentFocused && i === root.contentRowIdx;
+    }
+
+    // Right: enters the content pane at its first row. No-op (stays on
+    // the rail) if the current page has no focusable rows at all, rather
+    // than focusing nothing visibly.
+    function enterContent() {
+        if (root._focusableRows.length === 0)
+            return;
+        root.contentFocused = true;
+        root.contentRowIdx = Math.max(0, Math.min(root.contentRowIdx, root._focusableRows.length - 1));
+        root._applyRowFocusVisual();
+    }
+
+    // Left: returns focus to the rail. `contentRowIdx` is deliberately
+    // NOT reset to -1 here (only on a page swap, in `_swapTo` below) — a
+    // Left then Right round-trip on the SAME page returns to the same
+    // row, matching the rail's own "selection persists" behaviour.
+    function exitContent() {
+        root.contentFocused = false;
+        root._applyRowFocusVisual();
+    }
+
+    function moveContentRow(delta) {
+        if (!root.contentFocused || root._focusableRows.length === 0)
+            return;
+        root.contentRowIdx = Math.max(0, Math.min(root._focusableRows.length - 1, root.contentRowIdx + delta));
+        root._applyRowFocusVisual();
+    }
+
     // Declared ABOVE every construction-time caller in this file (MEMORY
     // qml-declare-before-construction-time-use) — Component.onCompleted
     // below calls this.
@@ -36,6 +106,12 @@ Item {
         } else {
             console.warn("Pages: failed to incubate page at index " + idx);
         }
+        // A new page has an entirely different (possibly differently
+        // shaped) row list — re-collect and reset pane focus to the
+        // rail every swap, never carry a stale row index across pages.
+        root._focusableRows = root._collectFocusableRows(root.currentItem);
+        root.contentFocused = false;
+        root.contentRowIdx = -1;
     }
 
     // Operator live-pass item 3 (PARTIAL — "moving between them feels
@@ -54,6 +130,26 @@ Item {
     // 500ms total, down from 562ms, and semantically the right speed
     // class for a frequent in-window interaction rather than a rare
     // whole-surface transition).
+    //
+    // ── Re-check (operator, second live-pass) — "snappier now, could
+    //    still be improved" ────────────────────────────────────────────
+    // Re-measured fresh (temporary diagnostic, removed after use): stable
+    // 493-502ms across 4 samples, unchanged from the prior fix. Checked
+    // Motion.qml's ACTUAL vocabulary (not assumed) for anything faster
+    // and still correctly scoped to a within-surface transition: the
+    // only one-shot durations faster than `standardDuration` (250ms) are
+    // `emphasizedOutDuration` (187ms, this codebase's own convention for
+    // a SURFACE's own close — already ruled out above, the exact
+    // wrong-scope mistake this fix corrected) and `staggerOffsetDuration`
+    // (62ms, the DELAY GAP between staggered list items animating in
+    // sequence, e.g. notification cards — not a transition duration for
+    // a single swap; using it here would misapply a token the same way
+    // this fix's own root cause did). The animation is already
+    // opacity-only (no slide/transform to trim). Per the coordinator's
+    // own explicit instruction, nothing in the vocabulary is faster
+    // without hand-rolling a raw value or misusing a wrongly-scoped
+    // token — left as-is rather than hardcode a duration motion-lint
+    // would (correctly) reject anyway.
     SequentialAnimation {
         id: swapAnim
 

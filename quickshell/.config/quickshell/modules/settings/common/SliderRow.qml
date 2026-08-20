@@ -20,9 +20,31 @@ Control {
     property real stepSize: 0.01
     signal moved(value: real)
 
+    // Two-pane keyboard focus — see Pages.qml's header for the full
+    // design; ToggleRow.qml's own header has the geometry-stability
+    // reasoning for the border-color-only focus ring below.
+    readonly property bool focusable: true
+    property bool rowFocused: false
+
     implicitWidth: parent ? parent.width : 400
     implicitHeight: 64
     padding: Design.spacingMd
+
+    background: Rectangle {
+        radius: 12
+        color: "transparent"
+        border.width: 2
+        border.color: root.rowFocused ? Colours.primary : "transparent"
+
+        Behavior on border.color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
+    }
 
     contentItem: Column {
         id: rowContent
