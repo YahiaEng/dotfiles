@@ -727,8 +727,10 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-20T17:35:00.000Z
-Stopped at: THEMED NVIM COMPLETE AND OPERATOR-VERIFIED LIVE. Nothing in progress, tree clean, everything pushed through 8b7b2322.
+Last session: 2026-08-20T17:36:00.000Z
+Stopped at: Session resumed; archived the two stale Aug-20 todos (vim alias + nvim live-reload spike), both resolved by the themed-nvim work. Only `2026-08-15-brightness-osd-unverifiable-on-desktop` remains pending. Prior state below still current.
+
+Prior: THEMED NVIM COMPLETE AND OPERATOR-VERIFIED LIVE. Nothing in progress, tree clean, everything pushed through 8b7b2322.
 
 Built across two quick tasks. 260820-nua: a new `nvim/` stow package — modular Lua, real lazy-loading, a nine-plugin IDE slate (lazy.nvim, core vim.lsp.config/enable + nvim-lspconfig, blink.cmp, nvim-treesitter main, telescope, neo-tree, gitsigns, lualine, conform) — whose repo-owned `rice` colorscheme derives its full syntax ramp in Lua from a matugen-written role table, so a theme switch re-colours a RUNNING nvim with no restart. 260820-r44: which-key (v3, helix preset, every prefix named) and an AORUS greeter (snacks.nvim dashboard module only), both painted explicitly from the palette — 18 WhichKey* and 11 SnacksDashboard* groups. Then an optimization pass removed `gr` and `K`, which duplicated nvim 0.11+ core maps; `gr` was both a binding and a prefix and stalled 400ms on every press.
 
