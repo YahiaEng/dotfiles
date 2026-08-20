@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 61
+open_count: 62
 waived_count: 2
 fixed_count: 27
-total_count: 90
-last_updated: 2026-08-16T20:56:04.982Z
+total_count: 91
+last_updated: 2026-08-20T14:57:22.290Z
 ---
 
 # Broken Windows Ledger
@@ -105,6 +105,7 @@ last_updated: 2026-08-16T20:56:04.982Z
 | 88 | 21 | unrun-verify | quickshell/.config/quickshell/shell.qml |  | Super+M open/close/fullscreen-guard human-check not live-verified this session — also requires a Quickshell process restart to register the new GlobalShortcut (D-17), not performed | open |  | 2026-08-16T10:56:39.602Z |  |
 | 89 | 21 | unrun-verify | theme-engine/.config/theme-engine/theme-stress-test |  | 21-09 Task 2: theme-stress-test not run — standing session rules prohibit live-theme-mutating commands (prior session accidentally re-themed the operator's desktop running this exact command, 21-08-SUMMARY.md). Static substitute verified instead (REPRESENTATIVE_FILES omits the removed ags.scss entry). Operator must run: bash theme-engine/.config/theme-engine/theme-stress-test | open |  | 2026-08-16T16:38:38.524Z |  |
 | 90 | 22 | deviation | VERIFICATION.md |  | 22-03: RETIRE-02 (waybar) repo-prose count did not decrease (37, unchanged) — all hits live in docs/superpowers historical design specs/plans, outside repo-prose's .lua/env.lua scan scope and outside this plan's declared file scope; RETIRE-03 (swaync) count did decrease 13->9. See 22-03-SUMMARY.md coverage D7. | open |  | 2026-08-16T20:56:04.982Z |  |
+| 91 | quick-260820-nua | unrun-verify | .planning/quick/260820-nua-build-the-themed-neovim-config-wired-int/260820-nua-PLAN.md |  | Task 8 operator checkpoint (blocking-human) not yet performed: live visual verification of syntax colours, live re-theme, monochrome/light palettes, plugin slate, and zellij autolock with nvim focused. All prior 7 tasks are code-complete and gate-verified; this is the one item requiring the operator's own eyes in a real kitty window. | open |  | 2026-08-20T14:57:22.290Z |  |
 
 ````json
 [
@@ -1186,6 +1187,18 @@ last_updated: 2026-08-16T20:56:04.982Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-16T20:56:04.982Z",
+    "resolved_at": null
+  },
+  {
+    "id": 91,
+    "kind": "unrun-verify",
+    "phase": "quick-260820-nua",
+    "file": ".planning/quick/260820-nua-build-the-themed-neovim-config-wired-int/260820-nua-PLAN.md",
+    "line": null,
+    "description": "Task 8 operator checkpoint (blocking-human) not yet performed: live visual verification of syntax colours, live re-theme, monochrome/light palettes, plugin slate, and zellij autolock with nvim focused. All prior 7 tasks are code-complete and gate-verified; this is the one item requiring the operator's own eyes in a real kitty window.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-20T14:57:22.290Z",
     "resolved_at": null
   }
 ]
