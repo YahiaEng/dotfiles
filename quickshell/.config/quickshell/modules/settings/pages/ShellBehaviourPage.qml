@@ -1,11 +1,16 @@
 // modules/settings/pages/ShellBehaviourPage.qml — D-01's Shell behaviour
 // group: motion preset (`motion-switch.sh`, already settings-ready via
-// its own `--list`/`--get`) and notification DND (`NotifServer`,
-// already in-process and already persisted — this row is a second VIEW
-// of state that already exists, not a new writer). The idle/lock section
-// is Task 4's seam, deliberately left unbuilt here (PD-03) — Task 4 must
-// re-measure the persistence mechanism against the installed hypridle
-// binary before any UI is wired to it.
+// its own `--list`/`--get`), notification DND (`NotifServer`, already
+// in-process and already persisted — this row is a second VIEW of state
+// that already exists, not a new writer), and Idle & lock (Task 4).
+//
+// Idle & lock reads current timeouts from
+// ~/.local/state/hypr/idle-overrides.conf — NEVER the tracked
+// hypridle.conf, which no longer holds them (Task 4 Step 2 moved all
+// five listener blocks out; hyprlang APPENDS rather than replaces, so a
+// listener left behind there would coexist with its override). Every
+// change calls idle-overrides.sh, which owns validate -> apply -> verify
+// -> rollback (PD-03/T-SQD-08) — this page writes nothing itself.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -109,16 +114,127 @@ PageBase {
         }
     }
 
-    // ── Idle & lock — Task 4's seam (PD-03). Left visibly marked, not a
-    //    silent placeholder: Task 4 owns both the mechanism re-measurement
-    //    (hypridle's `source =` support, re-confirmed against the
-    //    installed binary before any control here is wired) and this
-    //    section's own content.
+    // ── Idle & lock (Task 4, PD-03) ──────────────────────────────────────
     SettingsSection {
+        id: idleSection
         title: "Idle & lock"
         icon: "lock_clock"
-        // Task 4 fills this section with one row per listener
-        // (screen dim, screen off, lock, suspend), each backed by
-        // idle-overrides.sh. Intentionally empty until then.
+
+        // Plain-text read of the state-dir file, Probe.qml's own
+        // `.text()` pattern — never the tracked hypridle.conf.
+        FileView {
+            id: idleConfFile
+            path: Quickshell.env("HOME") + "/.local/state/hypr/idle-overrides.conf"
+            watchChanges: true
+            onFileChanged: reload()
+        }
+
+        // The five `timeout = N` values, in the file's own fixed
+        // declaration order (bar-idle, dim, lock, display-off, suspend —
+        // idle-overrides.sh's `_render()` never reorders them). Positional
+        // parsing, not per-block matching, since the file's comments
+        // (deliberately kept verbatim from the original tracked config)
+        // would otherwise need their own parser.
+        readonly property var timeouts: {
+            var text = idleConfFile.text() || "";
+            var matches = text.match(/timeout\s*=\s*(\d+)/g) || [];
+            return matches.map(function (m) {
+                return parseInt(m.replace(/[^\d]/g, ""), 10);
+            });
+        }
+        readonly property int barIdleSec: timeouts.length > 0 ? timeouts[0] : 120
+        readonly property int dimSec: timeouts.length > 1 ? timeouts[1] : 300
+        readonly property int lockSec: timeouts.length > 2 ? timeouts[2] : 600
+        readonly property int displayOffSec: timeouts.length > 3 ? timeouts[3] : 900
+        readonly property int suspendSec: timeouts.length > 4 ? timeouts[4] : 1800
+
+        // Bounded minute values (>= 1 minute, comfortably above
+        // idle-overrides.sh's own 30s floor) — never a free-text field,
+        // matching this repo's closed-set discipline for every other row.
+        function _minuteOptions() {
+            var mins = [1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120];
+            return mins.map(function (m) {
+                return { value: String(m * 60), display: m === 1 ? "1 minute" : m + " minutes" };
+            });
+        }
+
+        Process {
+            id: idleApplyProc
+            running: false
+            onExited: (exitCode, exitStatus) => {
+                if (exitCode !== 0)
+                    console.warn("ShellBehaviourPage: idle-overrides.sh failed (exit " + exitCode + ")");
+            }
+        }
+
+        // Fixed argv — same discipline as hypr-overrides.sh's own callers
+        // (no shell, every element a discrete array entry).
+        function applyListener(key, seconds) {
+            idleApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/idle-overrides.sh", "--set", key + "=" + seconds];
+            idleApplyProc.running = true;
+        }
+
+        SelectRow {
+            label: "Bar idle-hide"
+            subtext: "Hide the bar after this long with no input"
+            model: idleSection._minuteOptions()
+            currentValue: idleSection.barIdleSec.toString()
+            onSelected: (value) => idleSection.applyListener("bar-idle", value)
+        }
+        SelectRow {
+            label: "Screen dim"
+            subtext: "Dim the display and pause the live wallpaper"
+            model: idleSection._minuteOptions()
+            currentValue: idleSection.dimSec.toString()
+            onSelected: (value) => idleSection.applyListener("dim", value)
+        }
+        SelectRow {
+            label: "Lock"
+            subtext: "Lock the session"
+            model: idleSection._minuteOptions()
+            currentValue: idleSection.lockSec.toString()
+            onSelected: (value) => idleSection.applyListener("lock", value)
+        }
+        SelectRow {
+            label: "Screen off"
+            subtext: "Turn off the display (DPMS)"
+            model: idleSection._minuteOptions()
+            currentValue: idleSection.displayOffSec.toString()
+            onSelected: (value) => idleSection.applyListener("display-off", value)
+        }
+        SelectRow {
+            label: "Suspend"
+            subtext: "Suspend the machine"
+            model: idleSection._minuteOptions()
+            currentValue: idleSection.suspendSec.toString()
+            onSelected: (value) => idleSection.applyListener("suspend", value)
+        }
+
+        // Opens the state-dir file in $EDITOR inside a floating kitty, on
+        // wallpaper-switch.sh/icon-theme-switch.sh/font-switch.sh's own
+        // launcher shape (fixed argv — no shell string, `$EDITOR` is
+        // read directly by Quickshell.env, falling back to nvim, this
+        // session's own default, when unset). Inlined here rather than a
+        // new shim script: the plan's own Task 4 file list names no such
+        // script, and a fixed argv array needs none.
+        Process {
+            id: editorProc
+            running: false
+            command: ["uwsm", "app", "--", "kitty",
+                "--class", "idle-overrides-editor",
+                "--title", "Idle & Lock Overrides",
+                "-o", "background_opacity=0.85",
+                "-o", "font_size=11",
+                "--", (Quickshell.env("EDITOR") || "nvim"), Quickshell.env("HOME") + "/.local/state/hypr/idle-overrides.conf"]
+        }
+
+        NavRow {
+            label: "Open in editor"
+            subtext: "Edit the state-dir file directly for anything the rows above don't cover"
+            onActivated: {
+                editorProc.running = true;
+                root.sState.close();
+            }
+        }
     }
 }

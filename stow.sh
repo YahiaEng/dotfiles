@@ -503,6 +503,71 @@ mkdir -p "$HOME/.local/state/hypr"
 [[ -f "$HOME/.local/state/hypr/overrides.lua" ]] || echo "return {}" > "$HOME/.local/state/hypr/overrides.lua"
 ln -sf "../../../.local/state/hypr/overrides.lua" "$HOME/.config/hypr/state/overrides.lua"
 
+# Quick task 260820-sqd, Task 4: idle/lock listeners, the SAME seed-only-
+# when-absent idiom as weather.json/news-sources.json above. This seed is
+# LOAD-BEARING for a security property, not just convenience: hypridle
+# proceeds with ZERO rules on a broken/missing config rather than failing
+# loudly (PD-03 probe A, measured) — a fresh install with no seeded file
+# here would get zero idle listeners and NEVER LOCK. All five listener
+# blocks moved out of the tracked hypridle.conf (Task 4 Step 2 — hyprlang
+# APPENDS listener blocks rather than replacing them, so any left behind
+# in the tracked file would coexist with an override and fire at
+# whichever timeout is shorter). Sourced by an absolute-ish path in
+# hypridle.conf itself, not a symlink — no `ln -sf` needed here.
+[[ -f "$HOME/.local/state/hypr/idle-overrides.conf" ]] || cat > "$HOME/.local/state/hypr/idle-overrides.conf" <<'IDLE_SEED_EOF'
+# ── Bar idle hide (BAR-01/D-05, repointed Phase 18 Plan 15/QBAR-07) ──
+# Declares the "idle" intent to the visibility owner; the owner computes
+# the resulting state (D-01's OR-union across idle/fullscreen/gaming) and
+# actuates the QML bar over Quickshell IPC. Never calls `qs ipc call bar`
+# directly. 120s is deliberately shorter than the 300s dim listener below
+# it: D-01's OLED concern is "a static bar lit for hours while you read or
+# code," so the bar's own idle threshold must be meaningfully shorter than
+# the screen-dim listener or it never fires during exactly the scenario it
+# exists for. on-resume fires on any keypress/mouse movement, so
+# idle-hide clears on any input with no extra machinery (D-02).
+listener {
+    timeout = 120
+    on-timeout = ~/.config/hypr/scripts/bar-visibility.sh idle hide
+    on-resume = ~/.config/hypr/scripts/bar-visibility.sh idle show
+}
+
+# ── Dim screen after 5 minutes (D-30) ────────────────
+# D-30 chains the live-wallpaper owner's idle suppression onto THIS
+# existing listener rather than adding a new one. Confirmed live that
+# hypridle chains multiple shell commands on one on-timeout/on-resume
+# line correctly (each command fires independently, in order) — no
+# wrapper script needed.
+listener {
+    timeout = 300
+    on-timeout = brightnessctl -s set 30% && ~/.config/hypr/scripts/wallpaper-visibility.sh idle hide
+    on-resume = brightnessctl -r && ~/.config/hypr/scripts/wallpaper-visibility.sh idle show
+}
+
+# ── Lock screen after 10 minutes ─────────────────────
+listener {
+    timeout = 600
+    on-timeout = loginctl lock-session
+}
+
+# ── Turn off display after 15 minutes ────────────────
+# Table form is mandatory — the bare-string dpms form is a silent no-op
+# under the Lua config manager, and the string TOGGLE form (as opposed to
+# the table ENABLE/DISABLE form) would switch the display back OFF on
+# every wake, since wake-on-input has already turned it on by the time
+# on-resume runs (misc:mouse_move_enables_dpms/misc:key_press_enables_dpms).
+listener {
+    timeout = 900
+    on-timeout = hyprctl dispatch 'hl.dsp.dpms({action="off"})'
+    on-resume = hyprctl dispatch 'hl.dsp.dpms({action="on"})'
+}
+
+# ── Suspend after 30 minutes ─────────────────────────
+listener {
+    timeout = 1800
+    on-timeout = systemctl suspend
+}
+IDLE_SEED_EOF
+
 # D-01/D-05/13-02/13-05: seed the sass-compiled GTK3 stylesheet(s) by
 # INVOKING the real renderer AND the real compiler — never a
 # hand-authored/pre-compiled stub. Mirrors the motion-file seed block
