@@ -133,8 +133,8 @@ Control {
     // is a measured, named colour-lint blind spot, recorded as a
     // follow-up in the SUMMARY rather than silently worked around.
     //
-    // The hover flicker/"hitbox seems inconsistent": the default
-    // delegate's `implicitWidth`/`implicitHeight` derive from
+    // The "hitbox seems inconsistent" half: the default delegate's
+    // `implicitWidth`/`implicitHeight` derive from
     // `implicitContentWidth`/`implicitBackgroundWidth`, which change as
     // each item's OWN text metrics resolve — different labels (e.g.
     // "Off" vs "Material You Light (Dynamic)") got different implicit
@@ -142,12 +142,18 @@ Control {
     // between items instead of holding one fixed width. Fixed here with
     // an explicit `implicitWidth: optionsMenu.width` on every item, so
     // every row shares the exact same hit region regardless of its own
-    // label length. `highlighted` is QQC2's own canonical, built-in
-    // hover/keyboard-nav-selection property (confirmed live in the
-    // installed style's own MenuItem.qml) — used directly here rather
-    // than a hand-rolled MouseArea, which would fight the Menu's own
-    // internal ListView hover tracking and is the likely SOURCE of the
-    // reported "appearing and disappearing" flicker.
+    // label length — this part held up across two further live-passes,
+    // not revisited since. `highlighted` is QQC2's own canonical,
+    // built-in hover/keyboard-nav-selection property (confirmed live in
+    // the installed style's own MenuItem.qml) — used directly here
+    // rather than a hand-rolled MouseArea, which would fight the Menu's
+    // own internal ListView hover tracking.
+    //
+    // The "appearing and disappearing" flicker itself SURVIVED this fix
+    // (operator, second live-pass) and a further dynamic-cursors A/B
+    // test (operator, third live-pass — see the MenuItem `background`
+    // below for the full finding and the border-ring fix that
+    // ultimately replaced this section's original fill-based one).
     Menu {
         id: optionsMenu
 
@@ -182,11 +188,47 @@ Control {
                     rightPadding: Design.spacingMd
                 }
 
+                // ── Item 3 hover-flicker — THIRD re-check (operator,
+                //    third live-pass) ───────────────────────────────────
+                // Dynamic-cursors was A/B-tested live by the coordinator
+                // (disabled, oracle-verified, operator confirmed no
+                // tilt) and STILL flickered — exonerated, re-enabled.
+                // Not this plugin.
+                //
+                // Operator's own request, verbatim: "changing the hover
+                // appearance to match that of selecting with keyboard (a
+                // colorful border)" — the keyboard `rowFocused` ring
+                // (ToggleRow.qml/SliderRow.qml/NavRow.qml/this row's own
+                // outer Control, all elsewhere in this file) reads as
+                // stable to the operator; this popup's own FILL never
+                // did. Visual consistency between the two selection
+                // mechanisms is now the spec, so this background is a
+                // border ring, styled IDENTICALLY to `rowFocused`
+                // above — `Colours.primary`, constant 2px width, no fill.
+                //
+                // Restart-animation hypothesis (coordinator's third
+                // lead): does the `Behavior` reset from its ORIGINAL
+                // start value on every re-trigger, rather than
+                // redirecting smoothly from wherever it currently is?
+                // MEASURED, not assumed: a temporary per-event color log
+                // (Console: "ANIMTRACE", removed after use) driven by 5
+                // rapid keyboard Down presses (fired faster than
+                // `Motion.standardDuration`, so any settled item's
+                // transition should overlap the next one if this were
+                // going to happen at all) showed a single clean,
+                // monotonic alpha ramp for the item `currentIndex`
+                // settled on (30 samples, ~6ms apart, alpha rising
+                // strictly 0xac->0xfe with zero backtracking) — the
+                // Behavior redirects correctly, it does not restart.
+                // Kept the `Behavior` here on that basis, matching every
+                // other `rowFocused` ring in this module.
                 background: Rectangle {
                     radius: 8
-                    color: menuItem.highlighted ? Colours.primaryContainer : "transparent"
+                    color: "transparent"
+                    border.width: 2
+                    border.color: menuItem.highlighted ? Colours.primary : "transparent"
 
-                    Behavior on color {
+                    Behavior on border.color {
                         enabled: Motion.motionEnabled
                         ColorAnimation {
                             duration: Motion.standardDuration
@@ -196,54 +238,6 @@ Control {
                     }
                 }
 
-                // ── Item 3 hover-flicker re-check (operator, second
-                //    live-pass) — INSTRUMENTED, not guessed further ─────
-                // Temporary logging (Console: "HOVERTRACE", removed after
-                // use) recorded `hovered` (Control's own mouse-driven
-                // property) and `highlighted` (Menu-internal, set by
-                // EITHER hover or keyboard `currentIndex`) separately at
-                // every change, plus this delegate's own y/height.
-                //
-                // Hypothesis (a), geometry-moves-under-a-stationary-
-                // cursor: RULED OUT both structurally and empirically.
-                // Structurally: neither `implicitWidth`/`implicitHeight`
-                // above nor this `background` reference `highlighted`/
-                // `hovered` in any geometry-affecting way — only `color`
-                // changes, and only via the `Behavior` already in place.
-                // Empirically: a keyboard-driven `currentIndex` walk
-                // (Down/Down/Down/Up) logged y=0/40/80 for the three
-                // items touched, in perfectly stable lockstep with which
-                // item was highlighted — zero geometry movement.
-                //
-                // Hypothesis (b), hover vs currentIndex fighting: RULED
-                // OUT for the keyboard-navigation path specifically —
-                // the same trace shows `hovered=false` throughout every
-                // one of 7 logged transitions, with `highlighted`
-                // flipping cleanly true-then-false in matched pairs, no
-                // double-set, no stale overlap between two highlighted
-                // items at once.
-                //
-                // NOT YET TESTABLE: the operator's actual report is
-                // MOUSE hover flicker, and this environment has no
-                // pointer-input-simulation tool (`ydotool`/`wlrctl`/
-                // `dotool` all absent) to reproduce that path directly.
-                // Hyprland's own `hl.dsp.cursor.move` warp was tried
-                // (twice) and confirmed to leave `hyprctl cursorpos`
-                // unchanged and generate zero HOVERTRACE activity —
-                // consistent with this session's own earlier documented
-                // finding that this warp does not drive real pointer
-                // state, so it cannot substitute for a genuine mouse
-                // move here either. Per the coordinator's own
-                // instruction not to guess further: reporting this
-                // rather than patching blind. The coordinator's third
-                // lead (dynamic-cursors plugin cursor-shape churn) is
-                // the leading remaining hypothesis precisely BECAUSE (a)
-                // and (b) are excluded on this component's own code and
-                // the one input path measurable here — but it needs
-                // either a pointer-simulation tool in this environment
-                // or one more operator-driven live reproduction with
-                // this same HOVERTRACE logging temporarily restored to
-                // confirm.
                 onTriggered: root.selected(modelData.value)
             }
         }
