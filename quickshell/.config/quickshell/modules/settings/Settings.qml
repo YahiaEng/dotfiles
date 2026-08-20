@@ -11,6 +11,7 @@
 // SettingsState instance owned here — NOT a singleton, so a
 // closed-and-reopened window starts fresh (SettingsState.qml's own header).
 import QtQuick
+import QtQuick.Window
 import Quickshell
 import "../"
 
@@ -64,9 +65,28 @@ FloatingWindow {
     // AFTER the Row above so it never intercepts clicks meant for the nav
     // rail or page content (z-order follows declaration order).
     Item {
+        id: escCatcher
         anchors.fill: parent
         focus: true
         Keys.onEscapePressed: win.closeRequested()
+
+        // FIX (tracer checkpoint fail #2, "Esc dead"): a single
+        // Component.onCompleted `forceActiveFocus()` races the compositor.
+        // MEASURED live: at Component.onCompleted, `Window.window` is
+        // still null (the underlying toplevel has not yet become the
+        // OS-active window) — that settles ~800ms later, well after this
+        // item's own construction, so a one-shot grab can lose the race
+        // and leave NO item holding focus, silencing Keys.onEscapePressed
+        // with no error. `Window.onActiveChanged` is the standard QtQuick
+        // idiom for "(re)claim focus whenever this window becomes the
+        // active one" — it fires once when the race resolves in the
+        // window's favour, AND again on every later regain (e.g. the user
+        // alt-tabs away and back), so Esc keeps working for the whole
+        // session rather than only in the lucky-timing case.
+        Window.onActiveChanged: {
+            if (escCatcher.Window.active)
+                escCatcher.forceActiveFocus();
+        }
         Component.onCompleted: forceActiveFocus()
     }
 
