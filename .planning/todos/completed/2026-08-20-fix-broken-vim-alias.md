@@ -46,3 +46,12 @@ Do not leave it aliased to a missing binary either way.
 
 This is independent of the themed-nvim project and fixable in minutes. It was
 found while measuring the ground state for that work, not as part of it.
+
+## Resolution (2026-08-20)
+
+Resolved by the themed-nvim work (quick tasks 260820-nua + 260820-r44) via
+solution path 1: `neovim 0.12.4-1` is installed (`command -v nvim` →
+`/usr/bin/nvim`), so both aliases now point at a real binary, and
+`EDITOR`/`VISUAL` are exported as `nvim` in both shells
+(`zshell/.zshrc:100-101`, `fish/.config/fish/config.fish:172-173`) and
+confirmed set in the live environment.

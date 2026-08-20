@@ -74,3 +74,13 @@ no" is written down with the measurement that produced it — and if the answer
 is no, the working alternative is written down too.
 
 Run it with `/gsd-spike`.
+
+## Resolution (2026-08-20)
+
+Spike completed same day as `.planning/spikes/001-highlight-repaint-completeness/`
+(with 002-external-drive-and-socket and 003-lua-ramp-from-four-hues alongside);
+locked requirements live in `.planning/spikes/MANIFEST.md` under the
+`themed-nvim` idea. Answer: yes — a running nvim fully repaints if the
+colorscheme calls `highlight clear` first, driven over the
+`$XDG_RUNTIME_DIR/nvim.<pid>.<n>` socket with `--remote-expr`. Shipped and
+operator-verified live in quick task 260820-nua.
