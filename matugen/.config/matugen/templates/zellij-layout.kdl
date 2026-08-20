@@ -30,12 +30,31 @@
 // zellij watches its own config; lib/reload.sh stays the sole fan-out
 // owner and needs no entry for this file either.
 //
-// ── Role-assignment rule (follow without exception) ───────────────────
-// Identical to zellij-config.kdl's rule, and it matters more here because
-// zjstatus takes explicit fg/bg PAIRS: a bare container role is a
-// BACKGROUND and must never land in a foreground slot on its own. Every
-// pair below is either a surface/on-surface pair or an `on_*` foreground
-// already trusted at measured-safe contrast by kitty-colors.conf.
+// ── NAMED colours, not hex — and this is the load-bearing decision ────
+// The bar originally used matugen hex. It rendered correctly but could
+// NOT live-re-theme, which breaks this project's core value. Measured
+// 2026-08-20: zjstatus's colours are baked into this LAYOUT, and zellij
+// reads a layout only when a pane is created. Switching catppuccin ->
+// nord and then running `zellij action start-or-reload-plugin` left the
+// bar still emitting 24 catppuccin-purple SGR codes and zero nord ones.
+// A plugin reload does not re-read layout config; only a new session or
+// tab does.
+//
+// Named colours fix it. zjstatus resolves them to ANSI-16 SGR codes
+// (verified: `#[bg=blue,fg=black]` emits ESC[30m ESC[44m), which the
+// terminal resolves from its own palette at DRAW time rather than at
+// pane-creation time. Both ends of that path are already matugen-driven
+// and already hot-reload: the `themes` block in zellij-config.kdl and
+// kitty's ANSI palette. So the bar now re-themes live, with no restart.
+//
+// The trade, stated plainly: this bar can use only the theme's 8 named
+// slots, not the full Material You role set. Mapping comes from
+// zellij-config.kdl's own themes block —
+//   blue=primary  yellow=secondary  green=tertiary  red=error
+//   black=surface_variant  white=on_surface_variant
+// Change a colour HERE by changing that mapping THERE, never by pasting
+// a hex value back into this file — a hex value silently reverts this
+// file to the non-live-reloading behaviour described above.
 //
 // ── Doubled-brace guard ───────────────────────────────────────────────
 // Two opening braces must never appear adjacent in the rendered output —
@@ -63,8 +82,13 @@
 // below is therefore multi-line, one key per line. This is also what lets
 // the contract's `kdl-plugin` extractor read one `name "value"` per line.
 //
-// Every colour value below is a matugen keyword (colors.<role>.default.hex)
-// and no colour literal is hardcoded anywhere in this file.
+// NOTE ON THIS BEING A MATUGEN TEMPLATE AT ALL: since the switch to named
+// colours, nothing in the plugin block interpolates — the rendered output
+// is byte-identical for every palette. It is deliberately KEPT as a
+// rendered contract target anyway, because that is what makes theme-doctor
+// and theme-parity verify the file exists, is non-empty and is well-formed
+// across all 22 themes (measured: 1897 passed / 0 failed with it static).
+// The wiring also stays ready if a hex accent is ever wanted back.
 
 layout {
     default_tab_template {
@@ -72,23 +96,23 @@ layout {
             plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
                 format_left "{mode}{tabs}"
                 format_right "{command_git}{datetime}"
-                format_space "#[bg={{colors.surface.default.hex}}]"
+                format_space "#[bg=black]"
                 format_hide_on_overlength "true"
                 format_precedence "lrc"
 
                 border_enabled "false"
                 hide_frame_for_single_pane "false"
 
-                mode_normal "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] NORMAL #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
-                mode_locked "#[bg={{colors.error.default.hex}},fg={{colors.on_error.default.hex}},bold] LOCKED #[bg={{colors.surface.default.hex}},fg={{colors.error.default.hex}}]"
-                mode_pane "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] PANE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
-                mode_tab "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] TAB #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
-                mode_scroll "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] SCROLL #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
-                mode_search "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] SEARCH #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
-                mode_resize "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] RESIZE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
-                mode_move "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] MOVE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
-                mode_session "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] SESSION #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
-                mode_prompt "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] PROMPT #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                mode_normal "#[bg=blue,fg=black,bold] NORMAL #[bg=black,fg=blue]"
+                mode_locked "#[bg=red,fg=black,bold] LOCKED #[bg=black,fg=red]"
+                mode_pane "#[bg=green,fg=black,bold] PANE #[bg=black,fg=green]"
+                mode_tab "#[bg=yellow,fg=black,bold] TAB #[bg=black,fg=yellow]"
+                mode_scroll "#[bg=yellow,fg=black,bold] SCROLL #[bg=black,fg=yellow]"
+                mode_search "#[bg=yellow,fg=black,bold] SEARCH #[bg=black,fg=yellow]"
+                mode_resize "#[bg=green,fg=black,bold] RESIZE #[bg=black,fg=green]"
+                mode_move "#[bg=green,fg=black,bold] MOVE #[bg=black,fg=green]"
+                mode_session "#[bg=blue,fg=black,bold] SESSION #[bg=black,fg=blue]"
+                mode_prompt "#[bg=blue,fg=black,bold] PROMPT #[bg=black,fg=blue]"
                 // NOTE: zellij ships one more mode, a compatibility mode
                 // named after the multiplexer this repo retired, and
                 // zjstatus has a styling slot for it. It is deliberately
@@ -100,18 +124,18 @@ layout {
                 // the mode still works; it renders in zjstatus defaults.
                 mode_default_to_mode "normal"
 
-                tab_normal "#[bg={{colors.surface_variant.default.hex}},fg={{colors.on_surface_variant.default.hex}}] {index} {name} #[bg={{colors.surface.default.hex}},fg={{colors.surface_variant.default.hex}}]"
-                tab_active "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] {index} {name} #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                tab_normal "#[bg=black,fg=white] {index} {name} "
+                tab_active "#[bg=cyan,fg=black,bold] {index} {name} #[bg=black,fg=cyan]"
                 tab_sync_indicator " "
                 tab_fullscreen_indicator " "
                 tab_floating_indicator " "
 
                 command_git_command "git rev-parse --abbrev-ref HEAD"
-                command_git_format "#[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold]  {stdout} "
+                command_git_format "#[bg=black,fg=green]#[bg=green,fg=black,bold]  {stdout} "
                 command_git_interval "5"
                 command_git_rendermode "static"
 
-                datetime "#[bg={{colors.surface.default.hex}},fg={{colors.surface_variant.default.hex}}]#[bg={{colors.surface_variant.default.hex}},fg={{colors.on_surface_variant.default.hex}}] {format} "
+                datetime "#[bg=black,fg=white] {format} "
                 datetime_format "%H:%M"
                 datetime_timezone "Africa/Cairo"
             }

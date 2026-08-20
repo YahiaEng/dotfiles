@@ -102,9 +102,15 @@ show_release_notes false
 // stock layouts — it is this repo's own, rendered from
 // templates/zellij-layout.kdl and symlinked to
 // ~/.config/zellij/layouts/rice.kdl by lib/commit.sh. It replaces the
-// built-in bar with zjstatus, which draws the same wedge shape from
-// matugen colours and therefore follows all 20 palettes instead of the
-// terminal's 8 ANSI slots.
+// built-in bar with zjstatus, which draws the same wedge shape.
+//
+// Corrected 2026-08-20: an earlier version of this comment claimed the
+// bar follows "all 20 palettes instead of the terminal's 8 ANSI slots".
+// That is now exactly backwards. zjstatus was moved to NAMED colours
+// precisely so it resolves through the 8-slot themes block below at draw
+// time — which is what lets it re-theme LIVE. The hex version it replaced
+// had the full role set and could not re-theme without a new session.
+// See zellij-layout.kdl's header for the measurement behind that trade.
 default_layout "rice"
 
 // ── Background plugins ──────────────────────────────────────────────
@@ -128,30 +134,46 @@ load_plugins {
 }
 
 // ── Keybinds ────────────────────────────────────────────────────────
-// Still almost none, and for the reason the previous comment gave:
+// Still almost none, and for the reason the original comment gave:
 // zellij's defaults merge in unless explicitly cleared, and they are
-// discoverable from the status bar itself. The two binds below are
-// additive — they clear nothing and shadow nothing.
+// discoverable from the keybind-hint bar that zellij-layout.kdl puts
+// back at the bottom. The two binds below are additive — they clear
+// nothing and shadow nothing.
 //
 // Key choice is measured against zellij 0.44.3's own default mode keys
-// (Ctrl g/p/t/n/h/s/o/q). Ctrl y and Ctrl f are both unclaimed there, so
-// neither bind takes a stock binding away.
+// (Ctrl g/p/t/n/h/s/o/q). Ctrl y and Ctrl f are both unclaimed there.
 //
-// `shared_except "locked"` is what keeps these compatible with the
-// autolock plugin above: while a trigger program holds the pane, the
-// session is in locked mode and these two binds correctly go silent
-// rather than stealing Ctrl-f from the program that wanted it.
+// BOTH TARGETS ARE ZELLIJ'S OWN IN-TREE PLUGINS, and that is a decision
+// made on evidence rather than preference. This task originally bound
+// these to two third-party .wasm plugins, room and monocle. monocle
+// panicked on the operator's machine at src/main.rs:16 — 223 times in
+// two minutes, a render loop — and it was released 2025-01-03, seventeen
+// months before this zellij. The panic could not be reproduced across
+// four separate probes, and a third-party Rust panic cannot be patched
+// from here anyway. room did not fail, but carried the same rot risk
+// from the same cause: an out-of-tree plugin pinned against a moving
+// plugin API.
+//
+// `filepicker` and `session-manager` ship inside the zellij binary, so
+// they are version-matched by construction and cannot drift out of
+// compatibility the way monocle did. Prefer an in-tree plugin over a
+// third-party one unless it genuinely cannot do the job.
+//
+// `shared_except "locked"` keeps these compatible with the autolock
+// plugin above: while a trigger program holds the pane, the session is
+// in locked mode and these binds correctly go silent rather than
+// stealing Ctrl-f from the program that wanted it.
 keybinds {
     shared_except "locked" {
-        // room — session/tab switcher
+        // session / tab switcher
         bind "Ctrl y" {
-            LaunchOrFocusPlugin "file:~/.config/zellij/plugins/room.wasm" {
+            LaunchOrFocusPlugin "session-manager" {
                 floating true
             }
         }
-        // monocle — fuzzy file finder / scrollback search
+        // file finder
         bind "Ctrl f" {
-            LaunchOrFocusPlugin "file:~/.config/zellij/plugins/monocle.wasm" {
+            LaunchOrFocusPlugin "filepicker" {
                 floating true
             }
         }

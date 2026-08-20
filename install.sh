@@ -677,7 +677,15 @@ section_core_rice() {
     # ── D-33: optional dynamic-cursors hyprpm block (AMB-02) — END ──
 
     # ── zellij plugins (quick task 260820-1kp) ──────────────────────────
-    # Four .wasm plugins, fetched from pinned GitHub release assets.
+    # Two .wasm plugins, fetched from pinned GitHub release assets.
+    #
+    # It was four. monocle and room were dropped on 2026-08-20 after
+    # monocle panicked on the live desktop at src/main.rs:16 — 223 times
+    # in two minutes — having been released seventeen months before this
+    # zellij. Their jobs are now done by `filepicker` and
+    # `session-manager`, which ship INSIDE the zellij binary and so are
+    # version-matched by construction. Only plugins with no in-tree
+    # equivalent are fetched here: zjstatus (theming) and autolock.
     #
     # Why a fetch step at all, when the zellij package block above states
     # zellij needs none: that comment was true and stays true for zellij
@@ -708,8 +716,6 @@ section_core_rice() {
     ZELLIJ_PLUGINS=(
         "zjstatus.wasm|https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm|1ccedece1ded62cf3e209be690cdd39ca6fb9e8228ed71a951f6507f9956669b"
         "zellij-autolock.wasm|https://github.com/fresh2dev/zellij-autolock/releases/download/0.2.2/zellij-autolock.wasm|69c95607bfd97e075d6762a44fdbc703a82a3c4909dbbbe43952f020487b8ea4"
-        "room.wasm|https://github.com/rvcas/room/releases/download/v1.2.1/room.wasm|90b483a40b762468fb75862160587a05fbedcd5c13adcb3ed231f01bf9c072d1"
-        "monocle.wasm|https://github.com/imsnif/monocle/releases/download/v0.100.2/monocle.wasm|4cb7e2cc912d975b4e755c93e44e7f0de62ef9240a09a89b735490cf4713792c"
     )
     for _zp in "${ZELLIJ_PLUGINS[@]}"; do
         _zp_name="${_zp%%|*}"
@@ -774,8 +780,6 @@ section_core_rice() {
     ZELLIJ_PERMS=(
         "zjstatus.wasm|ReadApplicationState ChangeApplicationState RunCommands"
         "zellij-autolock.wasm|ReadApplicationState ChangeApplicationState"
-        "room.wasm|ReadApplicationState ChangeApplicationState"
-        "monocle.wasm|ReadApplicationState ChangeApplicationState OpenFiles RunCommands"
     )
     for _zperm in "${ZELLIJ_PERMS[@]}"; do
         _zperm_name="${_zperm%%|*}"
