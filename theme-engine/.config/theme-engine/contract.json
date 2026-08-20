@@ -86,6 +86,10 @@
     {
       "name": "zellij-layout.kdl",
       "format": "kdl-plugin"
+    },
+    {
+      "name": "nvim.lua",
+      "format": "lua-table"
     }
   ],
   "state_metadata_files": [

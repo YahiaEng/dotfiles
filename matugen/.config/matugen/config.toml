@@ -102,6 +102,21 @@ output_path = "~/.local/state/theme/zellij.kdl"
 input_path = "~/.config/matugen/templates/zellij-layout.kdl"
 output_path = "~/.local/state/theme/zellij-layout.kdl"
 
+# ── nvim role palette (themed-nvim idea, quick task 260820-nua) ──────────
+# A Lua table fragment carrying ROLE colours only — nvim/lua/theme/ramp.lua
+# derives the actual syntax colours from these at load time, because a
+# matugen template cannot do colour math. Same reuse-not-widen posture as
+# [templates.hyprland_lua] above: contract.sh's lua-table extractors already
+# handle a `return {...}` table, so this needed no new format handler.
+# Unlike zellij directly above, nvim DOES need a reload.sh fan-out entry —
+# a running nvim never re-reads this file on its own, whereas zellij
+# watches its own config and zjstatus is driven by a config file swap.
+# No post_hook here either — lib/reload.sh stays the sole fan-out owner
+# (D-04), same as every other template in this file.
+[templates.nvim]
+input_path = "~/.config/matugen/templates/nvim-palette.lua"
+output_path = "~/.local/state/theme/nvim.lua"
+
 # ── Hyprlock colors (LOCK-01/D-30, dedicated target) ────
 [templates.hyprlock]
 input_path = "~/.config/matugen/templates/hyprlock-colors.conf"

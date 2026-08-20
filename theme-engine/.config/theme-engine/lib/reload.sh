@@ -81,6 +81,27 @@ theme_engine_reload() {
     "$HOME"/.config/hypr/scripts/bar-visibility.sh reassert 2>/dev/null || true
     pkill -SIGUSR1 kitty 2>/dev/null || true
 
+    # ── nvim (themed-nvim idea, quick task 260820-nua) ──────────────
+    # Grouped here with the other terminal-surface reloads, next to the
+    # kitty signal. Unlike zellij (which watches its own config file) or
+    # fish (which reads at shell start and never re-themes an already-open
+    # shell), a running nvim never re-reads anything on its own — it needs
+    # to be told, which is what this block does.
+    #
+    # MEASURED (SPIKE-002): the default nvim server socket needs no
+    # `--listen` flag — every instance already listens at
+    # $XDG_RUNTIME_DIR/nvim.<pid>.<n>, so a plain glob enumerates every
+    # live one. MEASURED (SPIKE-002): a socket left behind by a crashed
+    # instance fails to connect in ~4ms rather than hanging — this repo has
+    # a scar from a reload hook that once blocked 45+ minutes on a dead
+    # endpoint (the INST-03 gate hang), so this block is both `timeout`-
+    # bounded AND `|| true`-guarded, belt-and-braces even though the
+    # measured failure mode is already fast.
+    for _nvim_sock in "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/nvim.*; do
+        [[ -S "$_nvim_sock" ]] || continue
+        timeout 1 nvim --server "$_nvim_sock" --remote-expr "execute('colorscheme rice')" >/dev/null 2>&1 || true
+    done
+
     # The retired multiplexer's re-source reload hook (grouped with kitty,
     # the other terminal surface this fan-out reloads) stood here until
     # quick task 260820-2yz removed it. Nothing replaces it: the

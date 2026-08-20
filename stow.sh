@@ -25,6 +25,7 @@ PACKAGES=(
     hypr
     kitty
     matugen
+    nvim
     quickshell
     theme-engine
     thunar
@@ -102,6 +103,16 @@ mkdir -p "$HOME/.config/autostart"
 # ~/.config/zellij, or the fold happens first and this guard arrives too
 # late to prevent it.
 mkdir -p "$HOME/.config/zellij"
+
+# quick task 260820-nua (themed nvim): pre-create ~/.config/nvim as a real
+# directory, same fold-bug idiom as the fisher/quickshell/zellij pre-creates
+# above — with one difference from the zellij guard: this is NOT a forward
+# guard for a package that might arrive later. The nvim/ stow package ships
+# in this same change, so without this line the very first stow run would
+# fold the whole directory into the repo, and anything nvim later writes
+# there (lazy.nvim's own lockfile updates included) would land inside the
+# git checkout instead of a real host directory.
+mkdir -p "$HOME/.config/nvim"
 
 # 13-02 (drop-in pre-create) stood here until Phase 19 Plan 19-08 Task 5
 # (RETIRE-03) deleted the notification daemon whose PACKAGED unit it
