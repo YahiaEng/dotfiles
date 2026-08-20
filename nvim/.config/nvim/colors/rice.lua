@@ -335,3 +335,44 @@ hi("SpellBad", { sp = r.err, undercurl = true })
 hi("SpellCap", { sp = r.type, undercurl = true })
 hi("SpellLocal", { sp = r.string, undercurl = true })
 hi("SpellRare", { sp = r.constant, undercurl = true })
+
+-- ══════════════════════════════════════════════════════════════════
+-- which-key — the popup that lists what a half-typed chord can do
+-- ══════════════════════════════════════════════════════════════════
+hi("WhichKey", { fg = r.keyword, bold = true })
+hi("WhichKeyGroup", { fg = r.fn })
+hi("WhichKeyDesc", { fg = roles.on_surface })
+hi("WhichKeySeparator", { fg = roles.outline })
+hi("WhichKeyValue", { fg = r.comment })
+hi("WhichKeyNormal", { fg = roles.on_surface, bg = roles.surface_variant })
+hi("WhichKeyBorder", { fg = roles.outline, bg = roles.surface_variant })
+hi("WhichKeyTitle", { fg = roles.primary, bg = roles.surface_variant, bold = true })
+
+-- Its icon accents. The palette has fewer hues than these names imply, so
+-- each maps to the nearest slot the ramp actually produced rather than to a
+-- literal colour — that keeps them following every theme.
+hi("WhichKeyIcon", { fg = r.fn })
+hi("WhichKeyIconAzure", { fg = r.fn })
+hi("WhichKeyIconBlue", { fg = r.fn })
+hi("WhichKeyIconCyan", { fg = r.type })
+hi("WhichKeyIconGreen", { fg = r.string })
+hi("WhichKeyIconGrey", { fg = r.comment })
+hi("WhichKeyIconOrange", { fg = r.number })
+hi("WhichKeyIconPurple", { fg = r.keyword })
+hi("WhichKeyIconRed", { fg = r.err })
+hi("WhichKeyIconYellow", { fg = r.type })
+
+-- ══════════════════════════════════════════════════════════════════
+-- Greeter
+-- ══════════════════════════════════════════════════════════════════
+hi("SnacksDashboardNormal", { fg = roles.on_surface, bg = roles.surface })
+hi("SnacksDashboardHeader", { fg = roles.primary, bold = true })
+hi("SnacksDashboardTitle", { fg = r.comment })
+hi("SnacksDashboardKey", { fg = r.keyword, bold = true })
+hi("SnacksDashboardDesc", { fg = roles.on_surface })
+hi("SnacksDashboardIcon", { fg = r.fn })
+hi("SnacksDashboardFile", { fg = r.string })
+hi("SnacksDashboardDir", { fg = r.comment })
+hi("SnacksDashboardSpecial", { fg = r.type })
+hi("SnacksDashboardFooter", { fg = r.comment, italic = true })
+hi("SnacksDashboardTerminal", { fg = roles.on_surface, bg = roles.surface })
