@@ -68,3 +68,27 @@ plugin count ever needs cutting.
 
 neo-tree.nvim is the chosen file tree, so its maintenance status specifically
 should be verified at plan time. Cheap to check — look at the repo directly.
+
+**RESOLVED 2026-08-20 — verified against the GitHub API (primary source), both
+chosen plugins actively maintained.** blink.cmp was checked in the same pass
+since it carried the same "never primary-source verified" caveat.
+
+**neo-tree.nvim** (`nvim-neo-tree/neo-tree.nvim`): not archived; last push
+2026-08-19 (the day before this check); 28 commits on `main` since 2026-06-01,
+substantive fixes not just CI (git discovery, job stdio flushing); steady
+release cadence — 3.39.0 (Feb), 3.40.0 (Mar), 3.41.0 (2026-05-15). Our
+lazy-lock pin `ebd66767` on branch `v3.x` **is** the 3.41.0 release commit —
+the current release, not a stale ref. `v3.x` has zero commits since then
+because releases are cut onto it from `main`; quiet `v3.x` + active `main` is
+the repo's normal shape, not abandonment. Caveat worth carrying: 22 of the 28
+recent commits are one maintainer (`pynappo`) — a real bus-factor, though the
+project accepts outside PRs (5 distinct other authors since June).
+
+**blink.cmp** (`Saghen/blink.cmp`): not archived; last push 2026-08-15; 93
+commits on `main` since 2026-06-01; release cadence roughly monthly through
+v1.10.2 (2026-04-04). Our pin `78336bc` is exactly the v1.10.2 version-bump
+commit — the latest release. Releases lag `main` by a few months but
+development is unambiguously active.
+
+nvim-tree and oil.nvim were not checked — neither is installed, and the
+question only mattered for the chosen tree.
