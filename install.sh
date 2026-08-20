@@ -744,6 +744,59 @@ section_core_rice() {
         rm -f "$_zp_tmp"
         echo "  ✓ $_zp_name"
     done
+
+    # ── Pre-grant zellij plugin permissions ─────────────────────────────
+    # WHY THIS IS NOT OPTIONAL POLISH — found live on 2026-08-20:
+    # a zellij plugin must be granted permissions before it renders, and
+    # zellij asks by drawing an "Allow?(y/n)" prompt INSIDE THE PLUGIN'S
+    # OWN PANE. zjstatus's pane is one row tall, so the prompt physically
+    # cannot render there. The result is a bar that silently shows
+    # nothing, with the plugin loading successfully in the log and no
+    # error anywhere a user would look. There is no in-session way to
+    # answer a prompt that cannot draw itself.
+    #
+    # So the grant is seeded here instead. This is a real security
+    # decision, made deliberately and narrowly: every plugin listed above
+    # is pinned to an exact release AND checksum-verified before it lands
+    # on disk, and each grant below is the minimum that plugin needs.
+    # zjstatus gets RunCommands only because the bar runs a git command;
+    # drop that line if the command widget is ever removed. Do NOT widen
+    # these to the full permission set for convenience.
+    #
+    # Idempotent and non-destructive: entries are appended only when the
+    # plugin path is absent, so zellij's own edits to this file (a user
+    # granting or revoking something interactively) are preserved.
+    echo "Seeding zellij plugin permissions..."
+    ZELLIJ_PERM_FILE="$HOME/.cache/zellij/permissions.kdl"
+    mkdir -p "$(dirname "$ZELLIJ_PERM_FILE")"
+    touch "$ZELLIJ_PERM_FILE"
+    # plugin-basename|permission list (space-separated)
+    ZELLIJ_PERMS=(
+        "zjstatus.wasm|ReadApplicationState ChangeApplicationState RunCommands"
+        "zellij-autolock.wasm|ReadApplicationState ChangeApplicationState"
+        "room.wasm|ReadApplicationState ChangeApplicationState"
+        "monocle.wasm|ReadApplicationState ChangeApplicationState OpenFiles RunCommands"
+    )
+    for _zperm in "${ZELLIJ_PERMS[@]}"; do
+        _zperm_name="${_zperm%%|*}"
+        _zperm_list="${_zperm#*|}"
+        _zperm_path="$ZELLIJ_PLUGIN_DIR/$_zperm_name"
+
+        # Only grant for a plugin that actually landed — a fetch that
+        # failed or failed its checksum must not get a standing grant.
+        [[ -f "$_zperm_path" ]] || continue
+
+        if grep -qF "\"$_zperm_path\"" "$ZELLIJ_PERM_FILE" 2>/dev/null; then
+            echo "  ✓ $_zperm_name (already granted)"
+            continue
+        fi
+        {
+            echo "\"$_zperm_path\" {"
+            for _p in $_zperm_list; do echo "    $_p"; done
+            echo "}"
+        } >> "$ZELLIJ_PERM_FILE"
+        echo "  ✓ $_zperm_name granted: $_zperm_list"
+    done
     echo ""
 }
 
