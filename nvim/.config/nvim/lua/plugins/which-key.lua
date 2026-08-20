@@ -25,12 +25,23 @@ return {
         spacing = 4,
       },
       -- Names for the prefixes, so a half-typed chord reads as a category
-      -- instead of a bare letter.
+      -- instead of a bare letter. Every individual key already carries its
+      -- own `desc` where it is defined, so only the prefixes need naming.
       spec = {
+        -- Leader groups
         { "<leader>f", group = "find" },
         { "<leader>c", group = "code" },
-        { "<leader>r", group = "rename" },
-        { "<leader>g", group = "git" },
+        { "<leader>h", group = "git hunk" },
+        { "<leader>r", group = "refactor" },
+
+        -- Non-leader prefixes worth labelling
+        { "g", group = "goto" },
+        { "]", group = "next" },
+        { "[", group = "previous" },
+
+        -- Buffer-local maps from the LSP and gitsigns only exist once those
+        -- attach, so they appear in the popup on a real buffer and are absent
+        -- on the greeter. That is the intended behaviour, not a gap.
       },
     },
     keys = {
