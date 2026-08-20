@@ -711,6 +711,11 @@ ShellRoot {
         Settings {
             initialPageIdx: root.settingsInitialPageIdx
             onCloseRequested: settingsLoader.active = false
+            // Task 2 (ConnectivityPage) — routes through the SAME guarded
+            // summon function every other panel entry point uses
+            // (audioPanelShortcut, the drawer's own chevrons); never a
+            // direct loader-active write from here.
+            onPanelRequested: (name) => root.openPanel(name)
         }
     }
 

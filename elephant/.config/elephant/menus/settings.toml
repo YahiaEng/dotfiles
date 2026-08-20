@@ -11,6 +11,15 @@ parent = "main"
 # walker submenus (walker's list view cannot draw them).
 
 [[entries]]
+text = "  Settings"
+# Quick task 260820-sqd (D-06/F-05) — the in-shell QML settings window's
+# top entry, above the nine existing rows kept for muscle memory. A bare
+# `qs ipc call` — RESEARCH.md A4 flagged this as unproven since no walker
+# entry called `qs ipc` before this task; measured live and it fires
+# correctly (no shim script needed).
+actions = { "open" = "qs ipc call settings open" }
+
+[[entries]]
 text = "  Theme"
 actions = { "open" = "~/.config/hypr/scripts/theme-switch.sh" }
 

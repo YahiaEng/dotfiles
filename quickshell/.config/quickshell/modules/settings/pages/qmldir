@@ -2,7 +2,9 @@
 # (quick task 260820-sqd). Mirrors every sibling manifest's own standing
 # instruction: any .qml type added here that is NOT declared below becomes
 # unresolvable forever, with no load error. Any FUTURE type added to this
-# directory MUST be declared in the same commit that creates it — Task 2
-# adds ConnectivityPage/ShellBehaviourPage, Task 3 adds DisplayInputPage.
+# directory MUST be declared in the same commit that creates it — Task 3
+# adds DisplayInputPage.
 module qs.modules.settings.pages
 AppearancePage 1.0 AppearancePage.qml
+ConnectivityPage 1.0 ConnectivityPage.qml
+ShellBehaviourPage 1.0 ShellBehaviourPage.qml

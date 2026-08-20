@@ -4,9 +4,10 @@
 // stay the same length and order; a mismatch renders the wrong page with no
 // error (this plan's own key_links).
 //
-// Task 1 ships index 0 (Appearance) as a real component; indices 1-3 point
-// at `placeholderComp` until Task 2 (Audio & connectivity, Shell
-// behaviour) and Task 3 (Display & input) replace them.
+// Task 1 shipped index 0 (Appearance). Task 2 fills indices 1 (Audio &
+// connectivity) and 3 (Shell behaviour); index 2 (Display & input) stays
+// on `placeholderComp` until Task 3 — deliberate and visible, not an
+// oversight.
 pragma Singleton
 import QtQuick
 import Quickshell
@@ -30,11 +31,17 @@ Singleton {
     readonly property Component appearanceComp: Component {
         AppearancePage {}
     }
+    readonly property Component connectivityComp: Component {
+        ConnectivityPage {}
+    }
+    readonly property Component shellBehaviourComp: Component {
+        ShellBehaviourPage {}
+    }
 
     readonly property list<Component> comps: [
         appearanceComp,
+        connectivityComp,
         placeholderComp,
-        placeholderComp,
-        placeholderComp
+        shellBehaviourComp
     ]
 }

@@ -21,6 +21,16 @@ QtObject {
 
     signal close()
 
+    // Task 2 (ConnectivityPage) — the shared relay every page uses to
+    // reach the guarded `openPanel()` summon path, since a dynamically
+    // incubated page (Pages.qml) has no direct handle back to Settings.qml
+    // or shell.qml. A page calls `sState.panelRequested(name)`;
+    // Settings.qml re-emits its own signal of the same shape, and
+    // shell.qml's LazyLoader listens and calls `root.openPanel(name)` —
+    // never a direct loader-active write from in here (D-04/DASH-08's own
+    // single-guard rule).
+    signal panelRequested(name: string)
+
     // Bounds-checked write — an out-of-range index (a typo'd category name
     // upstream, or PageRegistry.pages shrinking under a future edit) is
     // logged rather than silently accepted, per this plan's own "never let

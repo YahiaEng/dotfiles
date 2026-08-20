@@ -63,6 +63,11 @@ FloatingWindow {
 
     signal closeRequested()
 
+    // Task 2 (ConnectivityPage) — re-emitted from SettingsState's own
+    // signal of the same shape (see SettingsState.qml's header); shell.qml
+    // listens on this and calls the guarded `openPanel(name)`.
+    signal panelRequested(name: string)
+
     // Seeds SettingsState's currentPageIdx on construction only — the
     // shell-root `openSettingsPage()` deep-link's first-open path (see
     // shell.qml). Read once at Component.onCompleted below.
@@ -143,6 +148,10 @@ FloatingWindow {
     Connections {
         target: win.sState
         function onClose() {
+            win.closeRequested();
+        }
+        function onPanelRequested(name) {
+            win.panelRequested(name);
             win.closeRequested();
         }
     }
