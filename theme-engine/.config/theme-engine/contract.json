@@ -82,6 +82,10 @@
     {
       "name": "zellij.kdl",
       "format": "kdl"
+    },
+    {
+      "name": "zellij-layout.kdl",
+      "format": "kdl-plugin"
     }
   ],
   "state_metadata_files": [

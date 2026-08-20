@@ -183,6 +183,14 @@ theme_engine_commit() {
     else
         mkdir -p "$HOME/.config/zellij"
         ln -sf "$STATE_DIR/zellij.kdl" "$HOME/.config/zellij/config.kdl"
+        # Quick task 260820-1kp: the zjstatus layout is a SECOND rendered
+        # zellij target, wired the same way for the same reason — zjstatus
+        # is only configurable from a layout file, not from config.kdl.
+        # The layout name `rice` is what config.kdl's `default_layout`
+        # names; the two must stay in step or zellij falls back to its
+        # built-in bar with no error.
+        mkdir -p "$HOME/.config/zellij/layouts"
+        ln -sf "$STATE_DIR/zellij-layout.kdl" "$HOME/.config/zellij/layouts/rice.kdl"
     fi
 
     # THM-01/D-08: settings.ini is now a rendered contract target — wire the

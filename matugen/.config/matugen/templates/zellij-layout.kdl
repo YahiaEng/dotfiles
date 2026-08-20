@@ -1,0 +1,121 @@
+// ╔═══════════════════════════════════════════════════════════════════╗
+// ║  zellij LAYOUT — zjstatus status bar (quick task 260820-1kp)        ║
+// ╚═══════════════════════════════════════════════════════════════════╝
+//
+// ── Why a SECOND zellij template, separate from zellij-config.kdl ──────
+// zjstatus is not configurable from config.kdl. Measured last session:
+// driving it through the `plugins{}` alias block in config.kdl parsed
+// clean ("Well defined") and the session rendered ~36k of output, but the
+// format string never appeared on screen. Its own docs configure it as a
+// `pane { plugin location=... }` inside a LAYOUT, which is a different
+// file with a different schema — hence a second template and a second
+// contract entry (20 -> 21) rather than more lines in the existing one.
+//
+// ── output_path is the STATE DIR, not ~/.config/zellij/layouts directly ──
+// Same posture as zellij-config.kdl: matugen renders into
+// ~/.local/state/theme/ and lib/commit.sh symlinks it to
+// ~/.config/zellij/layouts/rice.kdl. The theme engine owns the render;
+// commit.sh owns the wiring. Nothing writes into the repo tree.
+//
+// ── Plugin paths use `file:~/...` on purpose (host-portability) ────────
+// A rendered template cannot expand $HOME — matugen has no such keyword —
+// so an absolute /home/<user>/ path baked in here would break every other
+// machine and the fresh-install gate, the same class of bug the relative
+// wallpaper symlink fix closed. Verified against the installed binary
+// rather than assumed: zellij 0.44.3 links shellexpand 3.0.0 and carries
+// the error string "Failed to shell expand plugin path:", so it shell-
+// expands plugin locations and `~` resolves per-host at load time.
+//
+// ── No reload hook (D-05, inherited) ──────────────────────────────────
+// zellij watches its own config; lib/reload.sh stays the sole fan-out
+// owner and needs no entry for this file either.
+//
+// ── Role-assignment rule (follow without exception) ───────────────────
+// Identical to zellij-config.kdl's rule, and it matters more here because
+// zjstatus takes explicit fg/bg PAIRS: a bare container role is a
+// BACKGROUND and must never land in a foreground slot on its own. Every
+// pair below is either a surface/on-surface pair or an `on_*` foreground
+// already trusted at measured-safe contrast by kitty-colors.conf.
+//
+// ── Doubled-brace guard ───────────────────────────────────────────────
+// Two opening braces must never appear adjacent in the rendered output —
+// theme-parity scans every contract file raw for a doubled-brace template
+// leftover and would fail the file. NOTE the extra hazard in this file
+// that zellij-config.kdl does not have: zjstatus format strings use
+// SINGLE-brace placeholders of their own ({session}, {mode}, {tabs}).
+// Those are zjstatus syntax, not matugen syntax, and are correct as
+// written — a single brace is passed through literally, verified against
+// matugen 4.1.0 directly. Never place one immediately beside a matugen
+// opening delimiter.
+//
+// AND NOTE, learned the hard way while writing this file: matugen parses
+// this whole file, KDL comments included. It has no idea `//` means
+// anything. A doubled opening brace written literally in a comment here —
+// even inside backticks, as prose about the rule — opens an expression
+// that never closes, and the parse error is then reported at whatever
+// line the parser finally gives up on, NOT at the comment that caused it.
+// That is why this paragraph describes the delimiter in words instead of
+// quoting it. Do not "helpfully" add an example.
+//
+// ── KDL multi-line rule (D-07, inherited and still load-bearing) ──────
+// An inline single-line child block is a PARSE ERROR in KDL — measured:
+// `{ welcome_screen true }` on one line fails outright. Every child block
+// below is therefore multi-line, one key per line. This is also what lets
+// the contract's `kdl-plugin` extractor read one `name "value"` per line.
+//
+// Every colour value below is a matugen keyword (colors.<role>.default.hex)
+// and no colour literal is hardcoded anywhere in this file.
+
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
+                format_left "{mode}{tabs}"
+                format_right "{command_git}#[fg={{colors.on_surface_variant.default.hex}}] {datetime} "
+                format_space "#[bg={{colors.surface.default.hex}}]"
+                format_hide_on_overlength "true"
+                format_precedence "lrc"
+
+                border_enabled "false"
+                hide_frame_for_single_pane "false"
+
+                mode_normal "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] NORMAL #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                mode_locked "#[bg={{colors.error.default.hex}},fg={{colors.on_error.default.hex}},bold] LOCKED #[bg={{colors.surface.default.hex}},fg={{colors.error.default.hex}}]"
+                mode_pane "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] PANE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
+                mode_tab "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] TAB #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
+                mode_scroll "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] SCROLL #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
+                mode_search "#[bg={{colors.secondary.default.hex}},fg={{colors.on_secondary.default.hex}},bold] SEARCH #[bg={{colors.surface.default.hex}},fg={{colors.secondary.default.hex}}]"
+                mode_resize "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] RESIZE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
+                mode_move "#[bg={{colors.tertiary.default.hex}},fg={{colors.on_tertiary.default.hex}},bold] MOVE #[bg={{colors.surface.default.hex}},fg={{colors.tertiary.default.hex}}]"
+                mode_session "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] SESSION #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                mode_prompt "#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] PROMPT #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                // NOTE: zellij ships one more mode, a compatibility mode
+                // named after the multiplexer this repo retired, and
+                // zjstatus has a styling slot for it. It is deliberately
+                // NOT styled here, and not named here either. That mode
+                // exists to ease migration FROM that surface, so styling
+                // it would be dead weight AND would reintroduce the
+                // surface's name into a file retirement-check scans as a
+                // blocking class — which it correctly rejects. Unstyled,
+                // the mode still works; it renders in zjstatus defaults.
+                mode_default_to_mode "normal"
+
+                tab_normal "#[bg={{colors.surface.default.hex}},fg={{colors.surface_variant.default.hex}}]#[bg={{colors.surface_variant.default.hex}},fg={{colors.on_surface_variant.default.hex}}] {index} {name} #[bg={{colors.surface.default.hex}},fg={{colors.surface_variant.default.hex}}]"
+                tab_active "#[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]#[bg={{colors.primary.default.hex}},fg={{colors.on_primary.default.hex}},bold] {index} {name} #[bg={{colors.surface.default.hex}},fg={{colors.primary.default.hex}}]"
+                tab_sync_indicator " "
+                tab_fullscreen_indicator " "
+                tab_floating_indicator " "
+
+                command_git_command "git rev-parse --abbrev-ref HEAD"
+                command_git_format "#[fg={{colors.tertiary.default.hex}}]  {stdout} "
+                command_git_interval "5"
+                command_git_rendermode "static"
+
+                datetime "#[fg={{colors.on_surface_variant.default.hex}}]{format} "
+                datetime_format "%H:%M"
+                datetime_timezone "Africa/Cairo"
+            }
+        }
+        children
+    }
+}

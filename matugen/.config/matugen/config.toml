@@ -90,6 +90,18 @@ output_path = "~/.local/state/theme/fish-colors.fish"
 input_path = "~/.config/matugen/templates/zellij-config.kdl"
 output_path = "~/.local/state/theme/zellij.kdl"
 
+# ── zellij zjstatus layout (quick task 260820-1kp) ──────────────────────
+# A SECOND zellij template, because zjstatus cannot be configured from
+# config.kdl: driving it through the plugins{} alias there was measured to
+# parse clean and render nothing. Its colours are inline `#[fg=#hex]`
+# format strings, which is why it can be themed by matugen at all — the
+# bar follows every palette instead of the terminal's 8 ANSI slots.
+# No post_hook, same as [templates.zellij] above: zellij watches its own
+# files and lib/reload.sh stays the sole fan-out owner (D-04).
+[templates.zellij_layout]
+input_path = "~/.config/matugen/templates/zellij-layout.kdl"
+output_path = "~/.local/state/theme/zellij-layout.kdl"
+
 # ── Hyprlock colors (LOCK-01/D-30, dedicated target) ────
 [templates.hyprlock]
 input_path = "~/.config/matugen/templates/hyprlock-colors.conf"

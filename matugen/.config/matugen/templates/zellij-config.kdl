@@ -94,16 +94,69 @@ serialize_pane_viewport true
 // So a fresh session is not hijacked by a release-notes pane.
 show_release_notes false
 
-// Deliberately UNSET (D-08): leaving the layout-selection option unset is
-// what makes the default layout's powerline status bar render. Switching
-// it to the compact bar would discard the wedge look the operator chose.
-// default_layout intentionally not set.
+// SET as of quick task 260820-1kp, superseding D-08's "deliberately
+// unset". D-08's reasoning was correct for its own scope: leaving this
+// unset is what made zellij's BUILT-IN powerline status bar render, and
+// naming the compact bar instead would have discarded the wedge look.
+// That trade no longer applies, because `rice` is not one of zellij's
+// stock layouts — it is this repo's own, rendered from
+// templates/zellij-layout.kdl and symlinked to
+// ~/.config/zellij/layouts/rice.kdl by lib/commit.sh. It replaces the
+// built-in bar with zjstatus, which draws the same wedge shape from
+// matugen colours and therefore follows all 20 palettes instead of the
+// terminal's 8 ANSI slots.
+default_layout "rice"
+
+// ── Background plugins ──────────────────────────────────────────────
+// zellij-autolock switches to locked mode while a trigger command owns
+// the pane, so a program with its own modal keymap (vim, fzf, an AI
+// agent TUI) stops losing keystrokes to zellij's own bindings.
+//
+// It is loaded HERE rather than in the layout on purpose: a plugin in a
+// layout needs a `pane`, and a pane costs a terminal row. autolock draws
+// nothing, so paying a row for it would be a visible regression against
+// the bar this task just added. `load_plugins` is zellij's mechanism for
+// exactly this — a plugin loaded at startup with no surface of its own.
+load_plugins {
+    "file:~/.config/zellij/plugins/zellij-autolock.wasm" {
+        is_enabled true
+        triggers "nvim|vim|hx|helix|git|fzf|yazi|claude|less|man"
+        watch_triggers "nvim|vim|hx|helix"
+        watch_interval "1.0"
+        reaction_seconds "0.3"
+    }
+}
 
 // ── Keybinds ────────────────────────────────────────────────────────
-// Deliberately NONE. zellij's defaults merge in unless defaults are
-// explicitly cleared, they are discoverable from the status bar itself,
-// and nothing in this task's scope justifies overriding them. This is
-// the place to add overrides later, if ever wanted.
+// Still almost none, and for the reason the previous comment gave:
+// zellij's defaults merge in unless explicitly cleared, and they are
+// discoverable from the status bar itself. The two binds below are
+// additive — they clear nothing and shadow nothing.
+//
+// Key choice is measured against zellij 0.44.3's own default mode keys
+// (Ctrl g/p/t/n/h/s/o/q). Ctrl y and Ctrl f are both unclaimed there, so
+// neither bind takes a stock binding away.
+//
+// `shared_except "locked"` is what keeps these compatible with the
+// autolock plugin above: while a trigger program holds the pane, the
+// session is in locked mode and these two binds correctly go silent
+// rather than stealing Ctrl-f from the program that wanted it.
+keybinds {
+    shared_except "locked" {
+        // room — session/tab switcher
+        bind "Ctrl y" {
+            LaunchOrFocusPlugin "file:~/.config/zellij/plugins/room.wasm" {
+                floating true
+            }
+        }
+        // monocle — fuzzy file finder / scrollback search
+        bind "Ctrl f" {
+            LaunchOrFocusPlugin "file:~/.config/zellij/plugins/monocle.wasm" {
+                floating true
+            }
+        }
+    }
+}
 
 // ── Theme block (D-07: MULTI-LINE, one colour per line) ────────────────
 // Eight named slots mirror kitty-colors.conf's already-measured ANSI

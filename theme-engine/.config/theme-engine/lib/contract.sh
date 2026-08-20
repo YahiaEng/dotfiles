@@ -89,36 +89,44 @@ contract_exempt_keys() {
 # themes-less file), matching the lua-table branch's stated discipline
 # that a failed extraction must be loud, never a silent empty pass that
 # vacuously matches every other empty extraction.
+# Quick task 260820-1kp: the container node is now a PARAMETER (defaulting
+# to `themes`) instead of a hardcoded string, so the zjstatus layout's
+# `plugin` node can reuse this same emitter. The alternative was a second
+# near-identical extractor, which is precisely the hand-mirrored drift this
+# function was written to make structurally impossible — duplicating it to
+# support a second container would have reintroduced that bug one level up.
+# Both callers still get one emitter; only the node name differs.
 contract_kdl_theme_pairs() {
     local path="$1"
-    python3 - "$path" <<'PYEOF'
+    local container="${2:-themes}"
+    python3 - "$path" "$container" <<'PYEOF'
 import re
 import sys
 
-path = sys.argv[1]
+path, container = sys.argv[1], sys.argv[2]
 with open(path) as f:
     lines = f.read().splitlines()
 
 pairs = []
 depth = 0
-in_themes = False
+in_container = False
 name_value_re = re.compile(r'^([A-Za-z_][A-Za-z0-9_]*)\s+"([^"]*)"\s*$')
 
 for raw in lines:
     line = raw.strip()
     if line.startswith("//"):
         continue
-    if not in_themes and line.startswith("themes") and "{" in line:
-        in_themes = True
+    if not in_container and line.startswith(container) and "{" in line:
+        in_container = True
         depth += line.count("{") - line.count("}")
         continue
-    if in_themes:
+    if in_container:
         m = name_value_re.match(line)
         if m and depth >= 1:
             pairs.append((m.group(1), m.group(2)))
     depth += line.count("{") - line.count("}")
-    if in_themes and depth <= 0:
-        in_themes = False
+    if in_container and depth <= 0:
+        in_container = False
 
 if not pairs:
     sys.exit(1)
@@ -183,6 +191,16 @@ contract_extract_names() {
             # the first tab-separated field, sorted and unique, the same
             # sorted-unique shape every other name branch above produces.
             contract_kdl_theme_pairs "$path" | cut -f1 | sort -u
+            ;;
+        kdl-plugin)
+            # Quick task 260820-1kp: zellij-layout.kdl's zjstatus settings.
+            # Same emitter as `kdl` directly above, pointed at the `plugin`
+            # node instead of `themes` — the layout has no themes block at
+            # all, so the `kdl` format would have hit that emitter's
+            # deliberate "no pairs -> exit 1" guard and failed loudly
+            # rather than silently passing. That guard is why this needed a
+            # distinct format instead of reusing `kdl`.
+            contract_kdl_theme_pairs "$path" plugin | cut -f1 | sort -u
             ;;
         css-vars)
             # TOKEN-03/12-RESEARCH Pitfall 3: gtk-css's @define-color regex
@@ -439,6 +457,19 @@ contract_extract_values() {
             # theme-parity's colour regex and contract_wellformed_color
             # both see a valid bare hex token.
             contract_kdl_theme_pairs "$path"
+            ;;
+        kdl-plugin)
+            # Quick task 260820-1kp: kept in lockstep with the name branch
+            # above by construction — same single emitter, same `plugin`
+            # container. Values here are zjstatus format strings
+            # (`#[fg=#rrggbb,bold] {session} `), not bare hex tokens, which
+            # is fine and was checked rather than assumed: theme-parity
+            # only runs contract_wellformed_color on values matching
+            # ^#?[0-9a-fA-F]{6}$ or ^rgba?\(, so a format string is carried
+            # through the emptiness check and skipped by the colour check.
+            # The hex inside it is still covered by the raw doubled-brace /
+            # template-leftover scan every contract file gets.
+            contract_kdl_theme_pairs "$path" plugin
             ;;
         css-vars)
             sed -nE 's/^\s*--([A-Za-z0-9_-]+):\s*(.*);\s*$/\1\t\2/p' "$path" 2>/dev/null
