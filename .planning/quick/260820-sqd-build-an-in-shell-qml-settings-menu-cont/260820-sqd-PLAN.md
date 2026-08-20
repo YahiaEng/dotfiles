@@ -37,6 +37,8 @@ files_modified:
   - hypr/.config/hypr/lib/overrides.lua
   - hypr/.config/hypr/scripts/hypr-overrides.sh
   - hypr/.config/hypr/scripts/hypr-equivalence-check
+  - hypr/.config/hypr/scripts/idle-overrides.sh
+  - hypr/.config/hypr/hypridle.conf
   - elephant/.config/elephant/menus/settings.toml
   - stow.sh
   - .planning/PROJECT.md
@@ -45,9 +47,9 @@ files_modified:
 user_setup: []
 
 estimate:
-  tokens: 260000
-  raw_tokens: 130000
-  tasks: 3
+  tokens: 330000
+  raw_tokens: 165000
+  tasks: 4
   confidence: low          # no calibration samples for a surface of this size in this repo
 
 must_haves:
@@ -58,6 +60,7 @@ must_haves:
     - "Audio, wifi and bluetooth entries summon the three existing in-shell panels; none of the three is rebuilt (D-01, D-04)."
     - "A monitor mode/scale or input change applies live AND survives `hyprctl reload` and a theme switch (D-01, D-03)."
     - "Motion preset and notification DND change from the window and persist across a shell restart (D-01, D-03)."
+    - "Idle and lock timeouts are EDITABLE from the window; a change takes effect on the running idle daemon and survives a reboot, with the git tree still clean (D-01 idle/lock override, D-03)."
     - "Every write lands under ~/.local/state; the git tree stays clean afterwards (D-03)."
     - "PROJECT.md's 'Full GUI settings app' Out of Scope entry reads as a dated, deliberate 2026-08-20 reversal, not silent drift (D-05)."
   artifacts:
@@ -71,6 +74,7 @@ must_haves:
     - quickshell/.config/quickshell/modules/settings/pages/ShellBehaviourPage.qml
     - hypr/.config/hypr/scripts/hypr-overrides.sh
     - hypr/.config/hypr/lib/overrides.lua
+    - hypr/.config/hypr/scripts/idle-overrides.sh
   key_links:
     - "keybinds.lua bind <-> shortcuts.json entry <-> shell.qml GlobalShortcut — keybind-doctor's three-way byte-match contract; any one missing fails the gate."
     - "modules/settings/qmldir <-> every .qml in modules/settings/ — an undeclared type is unresolvable to `import \"modules/settings\"` forever, with no load error."
@@ -79,6 +83,8 @@ must_haves:
     - "hypr-overrides.sh write -> ~/.local/state/hypr/overrides.lua -> stow.sh symlink -> lib/overrides.lua `require(\"state.overrides\")` -> monitors.lua/hyprland.lua merge — the chain that makes a Display+input change survive `hyprctl reload` (theme-engine/lib/reload.sh:70 fires it on EVERY theme apply)."
     - "New Super+comma bind <-> hypr-equivalence-check ACCEPTED_ADDITIONS (\"\", 64, \"comma\", False) — an unregistered addition fails the comparator closed."
     - "Overrides-writable Hyprland option keys <-> hypr-equivalence-check VOLATILE_KEYS — an operator-adjustable value is structurally unsatisfiable against a frozen value-equality baseline (LEDGER-07's failure mode)."
+    - "hypridle.conf `source =` line <-> ~/.local/state/hypr/idle-overrides.conf <-> stow.sh seed — MEASURED to work (see PD-03). The state-dir file holds ALL five listener blocks, because hyprlang APPENDS listener blocks rather than replacing them: a base listener left in the tracked file plus an override would fire at BOTH timeouts, making a lengthened timeout impossible."
+    - "idle-overrides.sh restart path <-> `uwsm app -- hypridle` (autostart.lua:177) — NOT `systemctl --user restart hypridle`. MEASURED: hypridle.service is inactive/disabled on this host; the live process is the uwsm transient scope `app-Hyprland-hypridle-*.scope`, so a systemctl restart silently does nothing."
 ---
 
 <objective>
@@ -86,7 +92,9 @@ Build an in-shell QML settings window — a Caelestia-`nexus`-shaped floating co
 
 Purpose: the desktop's settings currently live in nine walker rows that each shell out to a different tool. This gives them one home, in the shell's own palette and motion language, without rebuilding anything that already works (D-04).
 
-Output: `quickshell/.config/quickshell/modules/settings/` (a new QML module), `hypr-overrides.sh` + `lib/overrides.lua` (the Display+input persistence pair), a new `Super+comma` chord wired through all three keybind contract files, and the dated PROJECT.md scope reversal.
+Output: `quickshell/.config/quickshell/modules/settings/` (a new QML module), `hypr-overrides.sh` + `lib/overrides.lua` (the Display+input persistence pair), `idle-overrides.sh` + a restructured `hypridle.conf` (the editable idle/lock pair), a new `Super+comma` chord wired through all three keybind contract files, and the dated PROJECT.md scope reversal.
+
+**Task count:** four, not the usual three. The operator's 2026-08-20 override making idle/lock editable added a whole persistence mechanism with its own measurement gate; folding it into Task 2 or Task 3 would have buried that gate inside an already-full task. Task 4 is a coherent shippable increment and carries the plan's single operator checkpoint.
 </objective>
 
 <decision_ids>
@@ -103,16 +111,28 @@ CONTEXT.md carries no `D-NN` numbering. These IDs are minted here, one per CONTE
 
 ## Plan decisions (D-06 discretion, resolved)
 
-- **PD-01 — `FloatingWindow`, not `PanelWindow`.** The type is present and exported on the installed quickshell 0.3.0-2 (`/usr/lib/qt6/qml/Quickshell/_Window/quickshell-window.qmltypes:44`) and reachable from a bare `import Quickshell` (`/usr/lib/qt6/qml/Quickshell/qmldir:7` — `default import Quickshell._Window`). A real XDG toplevel makes layer-surface resizing, layerrule ordering, `ignore_alpha`, `exclusionMode`, `keyboardFocus` and the `QSD_BAR_SURFACE_ROWS` registry all non-issues — and a settings window with dropdowns genuinely wants to grow. This is RESEARCH.md assumption A3, the only load-bearing unverified claim in the research, which is why Task 1 is a tracer that kills it first.
+- **PD-01 — `FloatingWindow`, not `PanelWindow`. OPERATOR-CONFIRMED 2026-08-20** (CONTEXT.md Shape section), so this is a locked decision rather than a research recommendation Claude adopted. It remains subject to the Task-1 viability probe because the type has never been instantiated in this repo, and **if the probe falsifies it the plan falls back to `PanelWindow` and surfaces that change to the operator — never a silent switch.** The type is present and exported on the installed quickshell 0.3.0-2 (`/usr/lib/qt6/qml/Quickshell/_Window/quickshell-window.qmltypes:44`) and reachable from a bare `import Quickshell` (`/usr/lib/qt6/qml/Quickshell/qmldir:7` — `default import Quickshell._Window`). A real XDG toplevel makes layer-surface resizing, layerrule ordering, `ignore_alpha`, `exclusionMode`, `keyboardFocus` and the `QSD_BAR_SURFACE_ROWS` registry all non-issues — and a settings window with dropdowns genuinely wants to grow. This is RESEARCH.md assumption A3, the only load-bearing unverified claim in the research, which is why Task 1 is a tracer that kills it first.
 - **PD-02 — `Super+comma`.** Measured free under both `SUPER` and `SUPER+SHIFT` on this host (`hyprctl binds -j`, 2026-08-20). `S` is taken under both. `comma` is the near-universal preferences chord and does not burn one of the five remaining plain-Super letters (G H J K U).
-- **PD-03 — idle/lock timing is READ-ONLY in v1.** `hypridle.conf` is a tracked repo file; editing it from the window dirties the git tree and trips theme-doctor's clean-tree invariant (D-03 forbids it). Whether hypridle's parser honours `source =` is RESEARCH.md assumption A1 and is unmeasured. v1 displays the five current timeouts and offers an Advanced row that opens the file in `$EDITOR`, matching `PanelDialog.qml:60-63`'s existing `advancedLabel`/`advancedCommand` escape-hatch precedent. Recorded as follow-up F-02, not dropped.
+- **PD-03 — idle/lock timing is EDITABLE, through a `source =` include. RESEARCH.md A1 is now MEASURED, not assumed.** The operator overrode the research's read-only descope recommendation on 2026-08-20 (CONTEXT.md V1-scope). The mechanism was measured empirically during planning against the installed binary, `hypridle v0.1.8`, and the results are decisive:
+
+  | # | Probe | Result | What it proves |
+  |---|-------|--------|----------------|
+  | A | Config with a garbage keyword, no listeners | `[ERR] Config has errors: No rules configured` / `Proceeding ignoring faulty entries` | This binary DOES report config errors — so silence in probe C is meaningful. It also does NOT hard-fail on a bad config; it proceeds with whatever parsed. |
+  | B | `source = <a path that does not exist>` | `[ERR] source= globbing error: found no match` cited at file+line | **`source =` is handled by the parser, not ignored.** An unsupported keyword would have produced an unknown-keyword error instead. `ldd` confirms hypridle links `libhyprlang.so.2`, where `source` is a parser builtin. |
+  | C | `source = <a real file containing a listener block>` | `[LOG] Registered timeout rule for 99999s:` / `[LOG] found 1 rules` | **Sourced content is genuinely APPLIED, not merely tolerated** — the `No rules configured` error from control A is absent. Positive control with a matching negative control. |
+  | D | `strings /usr/bin/hypridle` for a SIGHUP/reload handler | no match | **hypridle has no live-reload.** Applying a change requires restarting the daemon. |
+  | E | `systemctl --user is-active hypridle.service` | `inactive` (unit `disabled`); live process is the uwsm transient scope `app-Hyprland-hypridle-*.scope`, launched by `hl.exec_cmd("uwsm app -- hypridle")` at `autostart.lua:177` | **`systemctl --user restart hypridle` is the WRONG restart path on this host — it would silently do nothing.** The restart must kill the running process and relaunch via `uwsm app -- hypridle`, matching autostart. |
+
+  **Design consequence, and it is not the obvious one.** hyprlang APPENDS `listener` blocks rather than replacing them (probe C registered a rule *in addition to* the base config's). So the tempting shape — keep the five listeners in the tracked `hypridle.conf` and source an overrides file that redefines one — produces TWO rules for the same event, firing at both timeouts. The earlier one always wins, which means a timeout could be shortened but never lengthened. **Therefore all five listener blocks move to the state-dir file**, and the tracked `hypridle.conf` retains only the `general { }` block plus one `source =` line. That is a single tracked-file edit at build time, never per-adjustment, so D-03's clean-tree invariant holds.
+
+  **Safety consequence.** Probe A shows hypridle proceeds with zero rules on a broken config — which means a corrupt overrides file leaves the machine that never locks. Idle lock is a security control, so this gets a real mitigation rather than a shrug: `stow.sh` seeds the file from repo defaults when absent, the script writes atomically, and after the restart the script verifies the effective rule count and rolls back to the previous file if it dropped. Registered as T-SQD-08.
 - **PD-04 — `hypr-equivalence-check` gets a third table, `VOLATILE_KEYS`.** The comparator diffs live `hyprctl getoption` values against a frozen 2026-08-08 baseline. An operator-adjustable value is structurally unsatisfiable against value equality — this is exactly how LEDGER-07 became unreachable. Do NOT re-capture the baseline (`hypr-equivalence-check:349-384` records that it would overwrite the two deliberately un-loosened `bindm` records). `VOLATILE_KEYS` is sized to exactly the keys `overrides.lua` can write, and reports rather than asserts.
 - **PD-05 — the Theme page enumerates palettes itself.** `theme-switch.sh` is a walker-dmenu wrapper whose UI would collide with this window's own. The page lists `~/.config/theme-engine/palettes` and calls `theme-apply <name>` directly — the same "palette filenames, never a hardcoded case ladder" rule `theme-switch.sh:13` already states.
 
 ## Named follow-ups (deferred, NOT dropped)
 
 - **F-01** — settings fuzzy search (Caelestia's `SearchBar`/`searchOpen`). Four pages does not need it.
-- **F-02** — editable idle/lock timings. Blocked on measuring whether hypridle honours `source =` and whether it re-reads on SIGHUP (RESEARCH.md A1).
+- **F-02** — ~~editable idle/lock timings~~ **WITHDRAWN.** The operator made these editable in v1 (CONTEXT.md V1-scope, 2026-08-20). The blocking question this follow-up existed to answer — does hypridle honour `source =`, and does it re-read on SIGHUP — was measured during planning and is answered in PD-03. Delivered by Task 4, not deferred.
 - **F-03** — per-device keyboard/mouse configuration. `hyprctl devices -j` reports 7 keyboards and 6 mice on this host, most of them phantom sub-devices of the same physical hardware; v1 uses the global `input { }` block, which is the right granularity.
 - **F-04** — `StackPage` sub-page drill-down (monitor list -> per-monitor detail). This host has one physical output; a flat list is correct until a second one exists.
 - **F-05** — deep-linking the nine existing walker rows onto `qs ipc call settings openPage <name>`. v1 prepends one row and leaves the nine intact for muscle memory (D-06 suggestion, honoured).
@@ -313,7 +333,7 @@ elephant/.config/elephant/menus/settings.toml
   <behavior>
 - Appearance page: five rows — Theme (built in Task 1), Wallpaper, Icon theme, Font, Bar orientation. The three picker rows launch the existing scripts unchanged; Bar orientation is an inline two-value dropdown.
 - Connectivity page: three rows — Audio, Wi-Fi, Bluetooth — each summoning the existing in-shell panel, with the settings window yielding focus.
-- Shell behaviour page: motion preset dropdown (3 values), notification DND toggle, five read-only idle/lock timeout rows, one Advanced row.
+- Shell behaviour page: motion preset dropdown (3 values) and a notification DND toggle. The idle/lock section is added to this same page by Task 4, which owns its measured persistence mechanism — this task leaves a clearly-marked seam, not a placeholder.
 - Selecting a nav entry for any of the four groups renders a real page; `placeholderComp` is referenced nowhere in `PageCompRegistry.comps` after this task except at the Display & input index, which Task 3 fills.
   </behavior>
 
@@ -329,7 +349,7 @@ Expand horizontally from Task 1's proven slice. Every knob here has an existing 
 **Shell behaviour page (D-01, D-03, PD-03).** `pages/ShellBehaviourPage.qml`:
 - **Motion preset** — a `SelectRow`. `motion-switch.sh` is already settings-ready: `--list` enumerates the valid scales (validated against `jq -r '.scales | keys[]' motion.json`, line 130) and `--get` returns the current one (lines 104-118). Call both; never hardcode the preset names. On selection, call `motion-switch.sh <name>` and let it do its own atomic write plus `theme-apply` re-render.
 - **Notification DND** — a `ToggleRow` bound to the `NotifServer` singleton's `dnd` property, toggled via its existing `toggleDnd()` function. This one is already in-process and already persisted to `~/.local/state/quickshell/notifications.json`; the row is a second view of state that already exists, not a new writer.
-- **Idle / lock timings — READ-ONLY (PD-03).** Five `InfoRow`s parsed live from `~/.config/hypr/hypridle.conf`'s `listener` blocks, showing each timeout and what it does. Below them, one `NavRow` labelled Advanced that opens `hypridle.conf` in the operator's editor, matching `PanelDialog.qml:60-63`'s `advancedLabel`/`advancedCommand` escape-hatch precedent. Add a short subtext saying these are edited in the file, not here. **Do not write to `hypridle.conf` from the shell** — it is a tracked repo file and any write dirties the git tree, breaking D-03 and theme-doctor's clean-tree invariant.
+- **Idle / lock timings — NOT in this task.** They are editable in v1 (operator decision, PD-03) and Task 4 owns them end to end, because the mechanism must be re-confirmed against the installed binary before any UI is wired to it. Leave a `SettingsSection` seam at the bottom of this page with a one-line comment naming Task 4 as its owner. Do not add read-only rows here that Task 4 would immediately replace.
 
 **New row types.** `common/ToggleRow.qml`, `common/SliderRow.qml` and `common/InfoRow.qml`, on the same `Control` discipline Task 1 established for `SelectRow`/`NavRow`: the QQC2 `contentItem`-anchoring trap applies to all three. Declare each in `common/qmldir` in this same commit.
 
@@ -370,9 +390,11 @@ for s in motion-switch.sh bar-orientation.sh; do
   [ "$N" -ge 1 ] || { echo "FAIL: $s not invoked from any settings page"; FAIL=1; }
 done
 
-# --- E. hypridle.conf is read, never written (PD-03 / D-03) ---
-W=$(grep -rn 'hypridle\.conf' "$SD" | grep -v '^[[:space:]]*//' | grep -ci 'write\|Process.*>\|setText' || true)
-[ "$W" -eq 0 ] || { echo "FAIL: settings/ appears to write hypridle.conf"; FAIL=1; }
+# --- E. the TRACKED hypridle.conf is never touched by the shell (D-03 clean tree).
+#     Writing the STATE-DIR overrides file is required by Task 4 and must stay legal,
+#     so this asserts on the tracked repo path only, never on the state-dir path.
+W=$(grep -rn 'hypr/hypridle\.conf\|\.config/hypr/hypridle\.conf' "$SD" 2>/dev/null | grep -vc '^[[:space:]]*//' || true)
+[ "$W" -eq 0 ] || { echo "FAIL: settings/ references the tracked hypridle.conf ($W sites) — Task 4 writes the state-dir file instead"; FAIL=1; }
 
 # --- F. walker row added, elephant restarted, menu still parses ---
 ROWS=$(grep -c '^\[\[entries\]\]' elephant/.config/elephant/menus/settings.toml)
@@ -406,7 +428,7 @@ exit "$FAIL"
   </verify>
 
   <done>
-Three of the four groups render real pages, each driven by its existing owner: Appearance reaches all five of D-01's items (Theme inline, Bar orientation inline, three pickers launched), Connectivity summons the three existing panels through `openPanel()`'s single guard, and Shell behaviour drives motion preset via `motion-switch.sh --list`/`--get` and DND via `NotifServer.toggleDnd()`, with idle/lock read-only behind an Advanced escape hatch (PD-03). All four nav entries incubate cleanly in a live shell with no new QML errors. The walker submenu has ten rows — the original nine plus the window on top — and elephant has been restarted, not walker. Committed.
+Three of the four groups render real pages, each driven by its existing owner: Appearance reaches all five of D-01's items (Theme inline, Bar orientation inline, three pickers launched), Connectivity summons the three existing panels through `openPanel()`'s single guard, and Shell behaviour drives motion preset via `motion-switch.sh --list`/`--get` and DND via `NotifServer.toggleDnd()`, with a marked seam where Task 4 adds the editable idle/lock section (PD-03). All four nav entries incubate cleanly in a live shell with no new QML errors. The walker submenu has ten rows — the original nine plus the window on top — and elephant has been restarted, not walker. Committed.
   </done>
 </task>
 
@@ -423,8 +445,7 @@ hypr/.config/hypr/hyprland.lua,
 hypr/.config/hypr/scripts/hypr-equivalence-check,
 quickshell/.config/quickshell/modules/settings/pages/DisplayInputPage.qml,
 quickshell/.config/quickshell/modules/settings/PageCompRegistry.qml,
-stow.sh,
-.planning/WINDOWS.md
+stow.sh
   </files>
 
   <reversibility rating="costly">
@@ -459,7 +480,7 @@ This is the new territory, and it carries the highest-severity finding in the re
 
 **Step 7 — fault-inject the persistence chain offline.** Use `hypr-lua-harness start --entry ~/.config/hypr/hyprland.lua` ONCE, with `hypr-lua-harness stop` on every exit path, to boot an isolated nested compositor and prove three things without touching the operator's live display: (a) a valid overrides table is honoured, (b) a syntactically broken `overrides.lua` still boots the compositor with repo defaults, (c) an absent `overrides.lua` does the same. This is the repo's own sanctioned tool for exactly this — it is not a QML probe window and it is not a screenshot.
 
-**Step 8 — file the human-verify row.** Add a row to `.planning/WINDOWS.md` (next id after 91, kind `unrun-verify`, phase `quick-260820-sqd`, status `open`) recording that the operator's live visual pass on the settings window is outstanding, and increment `open_count` and `total_count` in the frontmatter. It closes on the `<human-check>` below.
+**Step 8 — hand off, do not close.** The operator's live visual pass covers the whole window and is filed by Task 4, which is the last task to touch the surface. Do not open a `WINDOWS.md` row here and do not attempt a visual check — Task 4 owns both.
   </action>
 
   <verify>
@@ -546,6 +567,140 @@ hypr/.config/hypr/scripts/keybind-doctor         || { echo "FAIL: keybind-doctor
 exit "$FAIL"
 ]]></automated>
 
+  </verify>
+
+  <done>
+Display + input is live and persistent: a monitor or input change applies through `hyprctl eval`, is verified against `hyprctl -j` rather than the lying `ok` reply, and survives `hyprctl reload` — proven by the value-preserving round trip in check J. A malformed or absent `overrides.lua` boots the compositor to repo defaults, proven offline in a nested harness rather than against the operator's display. All four pages are real; no `placeholderComp` remains in `comps`. `hypr-equivalence-check` carries a `VOLATILE_KEYS` table sized to exactly the writable keys, with the baseline untouched. Every gate is at zero failures and the git tree is clean. Committed. The operator's live pass is NOT run here — Task 4 is the last task to touch the surface and owns it.
+  </done>
+</task>
+
+<task type="auto" tdd="false">
+  <name>Task 4: Idle and lock timing, EDITABLE — re-measure the mechanism, then wire it</name>
+
+  <precondition>`hypridle --version` reports v0.1.8. PD-03's mechanism table was measured against exactly that build during planning; a different version invalidates it and the Step 1 gate below must be re-run from scratch before any UI work.</precondition>
+
+  <files>
+hypr/.config/hypr/scripts/idle-overrides.sh,
+hypr/.config/hypr/hypridle.conf,
+quickshell/.config/quickshell/modules/settings/pages/ShellBehaviourPage.qml,
+stow.sh,
+.planning/WINDOWS.md
+  </files>
+
+  <reversibility rating="costly">
+This moves all five `listener` blocks out of the tracked `hypridle.conf` and into a state-dir file. Reversing means copying them back and dropping the `source =` line — mechanical, but the operator loses their adjusted timeouts. The genuinely dangerous direction is not reversal but breakage: idle lock is a security control, and probe A measured that hypridle proceeds with ZERO rules on a broken config rather than failing loudly. A machine that silently never locks is the failure mode to design against (T-SQD-08).
+  </reversibility>
+
+  <behavior>
+- The Shell behaviour page gains an editable Idle & lock section: one row per listener (screen dim, screen off, lock, suspend, and the DPMS resume pair as configured), each a stepper/select over a bounded set of minute values.
+- Changing a timeout applies to the running idle daemon and survives a reboot.
+- `git status --porcelain` is empty after any number of adjustments.
+- A corrupted or deleted overrides file never leaves the machine unlockable — it is re-seeded from repo defaults and the previous good file is restored on a failed apply.
+  </behavior>
+
+  <action>
+The operator overrode the read-only descope (CONTEXT.md V1-scope, 2026-08-20). These timeouts are editable. The mechanism is already measured — PD-03's table records five probes against `hypridle v0.1.8`, including a positive control proving sourced content is genuinely applied — but Step 1 re-confirms it on the executor's machine before any UI is wired, because that is the hard rule and a package update between planning and execution would silently invalidate it.
+
+**Step 1 — the mechanism gate. Run this BEFORE touching `hypridle.conf` or the page.** Reproduce PD-03's probes B and C against the installed binary, in a scratch directory, with no listener under 30 s so nothing can fire:
+- Probe B: `source =` a path that does not exist. Expect `source= globbing error: found no match` cited at file and line. That proves the keyword is *handled*.
+- Probe C: `source =` a real file containing one `listener` block with `timeout = 99999`. Expect `found 1 rules` and, critically, the ABSENCE of `No rules configured`. That proves the include is *applied*, not merely tolerated.
+If either probe disagrees with PD-03, **HALT and report** — the fallback shape (a script that regenerates a complete effective config into the state dir and points hypridle at it via `-c`, which `--help` confirms exists) is a different design and needs the operator's call, not an improvisation. Do not proceed to Step 2 on a failed gate.
+
+**Step 2 — restructure `hypridle.conf` (one tracked edit, at build time only).** Move ALL five `listener` blocks out of `hypr/.config/hypr/hypridle.conf` and leave the `general { }` block plus a single `source = ~/.local/state/hypr/idle-overrides.conf` line. **All five, not some.** hyprlang APPENDS listener blocks rather than replacing them (measured, probe C), so any listener left behind in the tracked file would coexist with its override and fire at whichever timeout is shorter — meaning a timeout could be shortened but never lengthened. Keep the file's existing explanatory comments, including the `hypridle.conf:22-24` note about the lying `ok` reply, and add a short one naming the state-dir file as the live source of the listeners. This is the ONLY write this task makes to a tracked file, and it happens once at build time — never per adjustment, so D-03 holds.
+
+**Step 3 — `stow.sh` seeding.** Beside the `overrides.lua` block Task 3 added: `mkdir -p "$HOME/.local/state/hypr"`, and seed `idle-overrides.conf` from the repo's default timeouts ONLY when absent, using the same seed-only discipline (`stow.sh:311`/`:331`) so a live operator's adjusted timeouts are never clobbered. Unlike `overrides.lua`, this file is sourced by an absolute-ish path in `hypridle.conf` rather than a symlink, so no `ln -sf` is needed — but if you do add one, it is relative, never absolute. **The seed is load-bearing for the security property**: a fresh install with no seeded file gets zero listeners and never locks.
+
+**Step 4 — `idle-overrides.sh`, on `hypr-overrides.sh`'s validate -> apply -> verify -> persist ordering.**
+- **Validate.** Timeouts are integers within a bounded range with a hard floor (no listener below 30 s — a 1 s lock timeout is indistinguishable from a denial of service). Enforce ordering sanity: dim < screen-off < lock < suspend. Reject and exit non-zero on anything else, writing nothing.
+- **Persist atomically**, tmp + `mv` on `motion-switch.sh:142-143`'s shape, after first copying the current file to a backup.
+- **Apply by restarting the daemon — and NOT via systemd.** MEASURED (PD-03 probe E): `hypridle.service` is `inactive`/`disabled` on this host; the live process is the uwsm transient scope `app-Hyprland-hypridle-*.scope` started by `hl.exec_cmd("uwsm app -- hypridle")` at `autostart.lua:177`. `systemctl --user restart hypridle` would exit cleanly and change nothing. Terminate the running process and relaunch it exactly as autostart does. hypridle has no SIGHUP handler (probe D), so a restart is the only path.
+- **Verify, then roll back on failure.** After the restart, confirm the effective config parses to the expected number of rules — run `timeout 2 hypridle -c <config>` in a throwaway and read its `found N rules` line, which is safe because validation already guaranteed no timeout under 30 s. If the count is wrong or zero, restore the backup, restart again, and exit non-zero. **Never leave the machine with zero idle rules** (T-SQD-08).
+
+**Step 5 — the UI section.** Fill the seam Task 2 left at the bottom of `ShellBehaviourPage.qml` with an Idle & lock `SettingsSection`: one row per listener, each a bounded select/stepper over minute values, current values parsed from the state-dir file (not from the tracked `hypridle.conf` — that no longer holds them). Every change calls `idle-overrides.sh`; the row's UI state updates only after the script exits zero, matching the Display+input discipline. Keep an Advanced `NavRow` that opens the state-dir file in `$EDITOR` for anything the bounded controls do not cover. **The page writes nothing itself** — the script owns the write (D-03).
+
+**Step 6 — file the operator's live-pass row.** Add a row to `.planning/WINDOWS.md` (next id after 91, kind `unrun-verify`, phase `quick-260820-sqd`, status `open`) recording that the live visual pass across the whole settings window is outstanding, and increment `open_count` and `total_count` in the frontmatter. It closes on the `<human-check>` below.
+  </action>
+
+  <verify>
+    <automated><![CDATA[
+set -uo pipefail
+cd /home/aorus/dotfiles
+FAIL=0
+SD=quickshell/.config/quickshell/modules/settings
+SCRATCH=$(mktemp -d); trap 'rm -rf "$SCRATCH"' EXIT
+
+# --- STEP 1 GATE: re-measure the mechanism BEFORE trusting any of the wiring ---
+printf 'source = %s/nope.conf\n' "$SCRATCH" > "$SCRATCH/b.conf"
+B=$(timeout 3 hypridle -c "$SCRATCH/b.conf" 2>&1 | grep -ci 'source=.*globbing error' || true)
+[ "$B" -ge 1 ] || { echo "FAIL: hypridle does not handle 'source =' — PD-03 invalidated, HALT"; FAIL=1; }
+
+printf 'listener {\n    timeout = 99999\n    on-timeout = true\n}\n' > "$SCRATCH/inc.conf"
+printf 'source = %s/inc.conf\n' "$SCRATCH" > "$SCRATCH/c.conf"
+COUT=$(timeout 3 hypridle -c "$SCRATCH/c.conf" 2>&1 || true)
+NORULES=$(printf '%s\n' "$COUT" | grep -ci 'No rules configured' || true)
+GOTRULE=$(printf '%s\n' "$COUT" | grep -ci 'found 1 rules' || true)
+[ "$NORULES" -eq 0 ] && [ "$GOTRULE" -ge 1 ] \
+  || { echo "FAIL: sourced listener NOT applied (norules=$NORULES gotrule=$GOTRULE) — PD-03 invalidated, HALT"; FAIL=1; }
+[ "$FAIL" -eq 0 ] || { echo "MECHANISM GATE FAILED — do not evaluate the rest"; exit 1; }
+echo "MECHANISM GATE: source= handled AND applied — PD-03 reconfirmed"
+
+# --- A. ALL listeners moved out of the tracked file (append-not-replace, measured) ---
+TL=$(grep -v '^[[:space:]]*#' hypr/.config/hypr/hypridle.conf | grep -c '^[[:space:]]*listener[[:space:]]*{' || true)
+[ "$TL" -eq 0 ] || { echo "FAIL: $TL listener block(s) still in the TRACKED hypridle.conf — they would coexist with overrides"; FAIL=1; }
+SRC=$(grep -v '^[[:space:]]*#' hypr/.config/hypr/hypridle.conf | grep -c '^[[:space:]]*source[[:space:]]*=' || true)
+[ "$SRC" -eq 1 ] || { echo "FAIL: expected exactly 1 source= line in hypridle.conf, found $SRC"; FAIL=1; }
+
+# --- B. the state-dir file holds the listeners and hypridle parses the pair ---
+IO="$HOME/.local/state/hypr/idle-overrides.conf"
+[ -f "$IO" ] || { echo "FAIL: $IO missing — stow.sh seed did not run"; FAIL=1; }
+SL=$(grep -c '^[[:space:]]*listener[[:space:]]*{' "$IO" 2>/dev/null || echo 0)
+[ "$SL" -ge 5 ] || { echo "FAIL: state-dir file has $SL listeners, expected >= 5"; FAIL=1; }
+EFF=$(timeout 3 hypridle -c "$HOME/.config/hypr/hypridle.conf" 2>&1 || true)
+printf '%s\n' "$EFF" | grep -ci 'No rules configured' | grep -qx 0 \
+  || { echo "FAIL: effective config yields NO rules — the machine would never lock"; FAIL=1; }
+
+# --- C. restart path is uwsm, NOT systemd (measured: the unit is inactive/disabled) ---
+SYS=$(grep -v '^[[:space:]]*#' hypr/.config/hypr/scripts/idle-overrides.sh | grep -c 'systemctl .*hypridle' || true)
+[ "$SYS" -eq 0 ] || { echo "FAIL: idle-overrides.sh restarts via systemctl ($SYS sites) — the unit is inactive, this is a silent no-op"; FAIL=1; }
+UW=$(grep -v '^[[:space:]]*#' hypr/.config/hypr/scripts/idle-overrides.sh | grep -c 'uwsm app -- hypridle' || true)
+[ "$UW" -ge 1 ] || { echo "FAIL: idle-overrides.sh never relaunches via 'uwsm app -- hypridle'"; FAIL=1; }
+
+# --- D. validate -> apply -> verify -> persist: floor, ordering, atomic write, rollback ---
+ATOMIC=$(grep -v '^[[:space:]]*#' hypr/.config/hypr/scripts/idle-overrides.sh | grep -c '\.tmp.*&&.*mv\|mv .*\.tmp' || true)
+[ "$ATOMIC" -ge 1 ] || { echo "FAIL: idle-overrides.sh write is not atomic"; FAIL=1; }
+RB=$(grep -v '^[[:space:]]*#' hypr/.config/hypr/scripts/idle-overrides.sh | grep -ci 'bak\|restore\|rollback' || true)
+[ "$RB" -ge 1 ] || { echo "FAIL: idle-overrides.sh has no rollback path (T-SQD-08)"; FAIL=1; }
+
+# --- E. the validator actually refuses bad input (behaviour, not just presence) ---
+hypr/.config/hypr/scripts/idle-overrides.sh --set lock=1 2>/dev/null \
+  && { echo "FAIL: accepted a 1-second lock timeout (below the 30s floor)"; FAIL=1; } \
+  || echo "ok: sub-floor timeout rejected"
+hypr/.config/hypr/scripts/idle-overrides.sh --set lock=abc 2>/dev/null \
+  && { echo "FAIL: accepted a non-integer timeout"; FAIL=1; } \
+  || echo "ok: non-integer rejected"
+
+# --- F. seed-when-absent must restore, never clobber (the security property) ---
+cp -a "$IO" "$SCRATCH/io.bak"
+rm -f "$IO"
+./stow.sh >/dev/null 2>&1 || true
+[ -f "$IO" ] || { echo "FAIL: stow.sh did not re-seed a MISSING idle-overrides.conf"; FAIL=1; }
+cp -a "$SCRATCH/io.bak" "$IO"
+
+# --- G. the page reads the state-dir file, never the tracked one ---
+TREF=$(grep -rn 'hypr/hypridle\.conf\|\.config/hypr/hypridle\.conf' "$SD" 2>/dev/null | grep -vc '^[[:space:]]*//' || true)
+[ "$TREF" -eq 0 ] || { echo "FAIL: settings/ still references the tracked hypridle.conf ($TREF sites)"; FAIL=1; }
+
+# --- H. gates + the clean-tree invariant this whole decision hinges on ---
+hypr/.config/hypr/scripts/colour-lint || { echo "FAIL: colour-lint"; FAIL=1; }
+hypr/.config/hypr/scripts/motion-lint || { echo "FAIL: motion-lint"; FAIL=1; }
+~/.config/theme-engine/theme-doctor    || { echo "FAIL: theme-doctor"; FAIL=1; }
+DIRTY=$(git status --porcelain | wc -l)
+[ "$DIRTY" -eq 0 ] || { echo "FAIL: tree dirty after idle adjustments — D-03 broken"; git status --porcelain; FAIL=1; }
+
+[ "$FAIL" -eq 0 ] && echo "TASK 4 VERIFY: PASS"
+exit "$FAIL"
+]]></automated>
+
     <human-check>
 **Operator live pass — the only step an agent must not attempt on this host.**
 
@@ -558,16 +713,18 @@ Please check, in a real session:
 3. The nav rail shows four groups and clicking each swaps the page with no flicker or stall.
 4. **Appearance:** picking a theme re-colours the desktop AND the settings window itself. Bar orientation flips the bar. Wallpaper, Icon theme and Font each open their existing kitty picker.
 5. **Audio & connectivity:** each of the three rows opens the existing panel you already know.
-6. **Display & input:** the resolution/refresh dropdown lists your real modes with the current one marked. Change the pointer sensitivity and feel it change. Then **switch theme** and confirm the display/input change is still in effect — that is the one failure this whole task was built around.
-7. **Shell behaviour:** motion preset visibly changes animation speed; the DND toggle matches the notification centre's own state; the five idle timeouts read correctly and Advanced opens `hypridle.conf`.
-8. Nothing looks off-palette or hardcoded.
+6. **Display & input:** the resolution/refresh dropdown lists your real modes with the current one marked. Change the pointer sensitivity and feel it change. Then **switch theme** and confirm the display/input change is still in effect — that is the failure Task 3 was built around.
+7. **Shell behaviour — motion and DND:** motion preset visibly changes animation speed; the DND toggle matches the notification centre's own state.
+8. **Shell behaviour — idle & lock (the new editable section):** the rows show your real current timeouts. Shorten the screen-dim timeout to something you can wait out, confirm it actually dims at the new time, then set it back. **Then LENGTHEN the lock timeout and confirm it locks at the new longer time, not the old shorter one** — that is the specific failure the append-not-replace finding predicts if any listener was left behind in the tracked config.
+9. Reboot (or log out and back in) and confirm your adjusted timeouts survived.
+10. Nothing looks off-palette or hardcoded.
 
-Reply with a pass/fail per item. On pass, close `.planning/WINDOWS.md`'s row for this task with `gsd-tools windows fixed <id>`.
+Reply with a pass/fail per item. On pass, close `.planning/WINDOWS.md`'s row with `gsd-tools windows fixed <id>`.
     </human-check>
   </verify>
 
   <done>
-Display + input is live and persistent: a monitor or input change applies through `hyprctl eval`, is verified against `hyprctl -j` rather than the lying `ok` reply, and survives `hyprctl reload` — proven by the value-preserving round trip in check J. A malformed or absent `overrides.lua` boots the compositor to repo defaults, proven offline in a nested harness rather than against the operator's display. All four pages are real; no `placeholderComp` remains in `comps`. `hypr-equivalence-check` carries a `VOLATILE_KEYS` table sized to exactly the writable keys, with the baseline untouched. Every gate is at zero failures and the git tree is clean. The `WINDOWS.md` row for the operator's live pass is filed and open, and this task is not complete until that `<human-check>` comes back green.
+Idle and lock timeouts are editable from the settings window and the mechanism was re-measured before the UI was wired, not assumed: the Step 1 gate reconfirmed that hypridle handles `source =` AND applies the sourced content. All five listener blocks live in `~/.local/state/hypr/idle-overrides.conf`; the tracked `hypridle.conf` holds the `general` block and one `source =` line and is never written again. `idle-overrides.sh` validates against a 30 s floor and an ordering rule, writes atomically, restarts via `uwsm app -- hypridle` (never systemd — the unit is inactive here), verifies the effective rule count, and rolls back rather than leaving the machine with zero idle rules. `stow.sh` re-seeds a missing file, proven by fault injection in check F. The tree is clean, every gate is at zero failures, and the `WINDOWS.md` row is filed. This task — and the plan — is not complete until the `<human-check>` comes back green, item 8 in particular.
   </done>
 </task>
 
@@ -580,6 +737,7 @@ Display + input is live and persistent: a monitor or input change applies throug
 |----------|-------------|
 | QML settings page -> `hyprctl eval` | A UI-selected string is interpolated into a Lua expression the compositor evaluates with full compositor privilege. |
 | `hypr-overrides.sh` -> `~/.local/state/hypr/overrides.lua` | A generated file the compositor `require`s — i.e. executes as Lua — at every boot and every reload. |
+| `idle-overrides.sh` -> `~/.local/state/hypr/idle-overrides.conf` | A generated file that now solely determines whether and when the machine locks. |
 | `hyprctl monitors -j` -> settings page | Device-supplied strings (`make`, `model`, `description`, `availableModes`) originate outside this repo and flow into both the UI and the generated Lua. |
 | Settings page -> existing scripts | Command strings dispatched to `theme-apply`, `bar-orientation.sh`, `motion-switch.sh` and the kitty pickers. |
 
@@ -592,6 +750,7 @@ Display + input is live and persistent: a monitor or input change applies throug
 | T-SQD-03 | Denial of Service | monitor mode persistence | high | mitigate | Ordering is the mitigation: validate -> apply live -> verify against `hyprctl monitors -j` -> only then persist. A mode never proven live cannot reach the file the compositor reads at boot, so the window cannot brick the display into an unrecoverable blank-at-every-boot state. |
 | T-SQD-04 | Tampering | device strings from `hyprctl monitors -j` / `devices -j` | medium | mitigate | Treated as untrusted display text: rendered as text only (never as QML markup or a shell fragment) and never interpolated into the generated Lua — only the normalised, allowlist-matched mode/scale values are. |
 | T-SQD-05 | Elevation of Privilege | script dispatch from QML | medium | mitigate | Every dispatch is a fixed argv to a known repo script; no user-typed string reaches a shell. Panel summons route through `shell.qml`'s `openPanel()`, the single place the DASH-08 refusal guard is read (Task 2). |
+| T-SQD-08 | Denial of Service / Elevation | `~/.local/state/hypr/idle-overrides.conf` -> idle lock | high | mitigate | **Idle lock is a security control and this file now owns it.** MEASURED (PD-03 probe A): hypridle proceeds with ZERO rules on a broken config rather than failing loudly, so a corrupt or missing overrides file silently leaves the machine that never locks. Four-part mitigation: `stow.sh` seeds from repo defaults when absent (fault-injected in Task 4 verify check F); `idle-overrides.sh` validates against a 30 s floor plus an ordering rule and rejects anything else; the write is atomic tmp+`mv` over a backup; and after the restart the script verifies the effective rule count and restores the backup if it dropped. |
 | T-SQD-06 | Information Disclosure | settings window content | low | accept | The window surfaces no secrets. Wi-Fi PSK entry stays in the existing `WifiPanel`, which already owns that flow; this surface only summons it. |
 | T-SQD-07 | Repudiation | state writes | low | accept | Every write goes through an existing script to `~/.local/state`, matching the repo's established convention. No new audit requirement is introduced by this task. |
 | T-SQD-SC | Tampering | supply chain | n/a | accept | No `npm`/`pip`/`cargo` installs and no new packages of any kind. Every dependency (`quickshell`, `jq`, `hyprctl`, `playerctl`) is already installed and already in `install.sh`. No package-legitimacy gate applies. |
@@ -610,9 +769,10 @@ Every item from every source artifact, mapped to the task that delivers it. No i
 | CONTEXT D-01 | Input: keyboard / mouse options | COVERED | Task 3 (global `input { }` block; per-device deferred as F-03) |
 | CONTEXT D-01 | Shell: motion preset | COVERED | Task 2 (`motion-switch.sh --list`/`--get`) |
 | CONTEXT D-01 | Shell: notification DND | COVERED | Task 2 (`NotifServer.toggleDnd()`) |
-| CONTEXT D-01 | Shell: idle/lock timing | COVERED (read-only, PD-03) | Task 2 — displayed + Advanced escape hatch; editable deferred as F-02 with the operator's approval recorded in the plan constraints |
+| CONTEXT D-01 | Shell: idle/lock timing — **EDITABLE** (operator decision 2026-08-20, overriding the research descope) | COVERED | Task 4 — full read/write via a measured `source =` include; mechanism gate runs before the UI is wired (PD-03) |
 | CONTEXT D-01 | Shell: OSD knobs | COVERED | Task 2 — the OSD's own knobs ARE the motion preset and DND rows; `Osd.qml` exposes no separate persisted setting (`modules/osd/qmldir` declares only `Osd`/`OsdSliderRow`). Recorded rather than silently absorbed. |
 | CONTEXT D-02 | Centred floating window, left nav rail, page per group | COVERED | Task 1 (PD-01 `FloatingWindow` + `windowrules.lua` `center = true`) |
+| CONTEXT D-02 | **`FloatingWindow` operator-confirmed 2026-08-20**, still probe-gated; fall back to `PanelWindow` and SURFACE the change if falsified | COVERED | Task 1 — PD-01 records it as locked; Task 1 Step 1 HALTs and reports rather than switching silently |
 | CONTEXT D-02 | Not a dashboard tab, not a PanelDialog accordion | COVERED | Task 1 — standalone toplevel, no `PanelDialog` inheritance |
 | CONTEXT D-03 | Scripts own the write, state in `~/.local/state` | COVERED | Tasks 1-3; enforced by Task 3 verify check K (theme-doctor clean-tree) |
 | CONTEXT D-03 | Display+input needs a state-dir mechanism, not stowed-file edits | COVERED | Task 3 (`overrides.lua` + `stow.sh` symlink) |
@@ -629,7 +789,7 @@ Every item from every source artifact, mapped to the task that delivers it. No i
 | RESEARCH | end-4 `ContentSection` hybrid | COVERED | Task 1 (`SettingsSection.qml`) |
 | RESEARCH | Skip Caelestia Blobs / Config C++ plugins / dual-mode WindowFactory | COVERED | Not built — this repo's `Colours`/`Motion`/`Design` are used instead |
 | RESEARCH | Skip `SearchBar` | DEFERRED (F-01) | Named follow-up |
-| RESEARCH A1 | hypridle `source =` unverified | HONOURED | PD-03 descope; F-02 |
+| RESEARCH A1 | hypridle `source =` unverified | **MEASURED IN PLAN — assumption discharged** | PD-03's five-probe table. `source =` is handled AND applied (positive + negative controls); no SIGHUP handler; the systemd unit is inactive so the restart path is uwsm. Task 4 Step 1 re-runs the two decisive probes as a gate before wiring the UI. |
 | RESEARCH A2 | Second `hl.monitor()` replace-vs-append unmeasured | HONOURED | Task 3 Step 2 emits exactly one call per output; verify check F asserts it |
 | RESEARCH A3 | `FloatingWindow` never instantiated in this repo | HONOURED | Task 1 is a tracer that kills it first, with a recorded HALT-and-report fallback |
 | RESEARCH A4 | `qs ipc` from a walker entry unproven | HONOURED | Task 2 carries the shim-script fallback inline |
@@ -663,6 +823,8 @@ Pass counts move UP as surfaces are added; the criterion is always **failed = 0*
 <success_criteria>
 - One `Super+comma` chord opens a centred floating Settings window with four working group pages (D-01, D-02).
 - Every knob in all four groups routes its write through an existing script or an existing in-process owner; the QML pages write nothing directly (D-03, D-04).
+- Idle and lock timeouts are editable, take effect on the running daemon, and survive a reboot — with the mechanism re-measured before the UI was wired (Task 4 Step 1 gate, PD-03).
+- A lengthened lock timeout actually lengthens it — the append-not-replace check that proves no listener was left behind in the tracked config (human-check item 8).
 - A Display+input change survives `hyprctl reload`, proven by the value-preserving round trip in Task 3 verify check J (RESEARCH.md Pitfall 2).
 - A malformed or absent `overrides.lua` boots the compositor on repo defaults, proven offline in a nested harness (Task 3 verify check I).
 - The git tree is clean after live exercise; theme-doctor exits 0.
@@ -678,5 +840,6 @@ Record in it, at minimum:
 - The **measured** `FloatingWindow` result (A3): the window class `hyprctl clients -j` reported, its geometry, and whether pointer/keyboard input worked — this is new ground truth for the repo and the next surface will want it.
 - Whether `qs ipc call settings open` fired from a walker entry directly, or needed the shim script (A4).
 - Whether a second `hl.monitor()` for the same output replaces or appends, if the work produced evidence either way (A2).
+- The Task 4 Step 1 gate result — whether the installed hypridle still matched PD-03's measured table, and the effective rule count after the restructure. A1 is discharged in this plan; record any drift so the next surface does not re-derive it.
 - The final gate pass/fail counts, and the operator's per-item verdict from the human-check.
 </output>

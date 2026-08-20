@@ -32,6 +32,14 @@ recorded — as a deliberate decision with a date, not silent drift.
   options via hyprctl/Hyprland Lua — the new territory.
 - **Shell behaviour**: motion preset (normal/reduced/off), notification DND,
   idle/lock timing, OSD knobs the shell and scripts already own.
+- **Idle/lock timing must be EDITABLE — operator decision 2026-08-20,
+  overriding the research's read-only descope recommendation.** The
+  persistence mechanism is Claude's discretion (verify hypridle's `source =`
+  support against the installed binary first; if unsupported, an acceptable
+  alternative is rendering hypridle timeouts from a state-dir file through
+  whatever mechanism actually works — but the mechanism must be MEASURED
+  before the UI is wired to it, never assumed, and must follow the state-dir
+  convention so the git tree stays clean).
 
 ### Shape — standalone settings window
 - Caelestia-style centered floating window on the shell: left nav rail, one
