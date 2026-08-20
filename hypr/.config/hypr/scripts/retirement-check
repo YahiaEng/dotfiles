@@ -75,27 +75,34 @@ FIXTURES_DIR="$SCRIPT_DIR/tests/retirement-fixtures"
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 
 # ── Registry (D-18-34) — surface|status|own-tree(colon-separated)|requirement.
-#    Every real surface ships `pending` in this phase (see PLAN's Measured
-#    ground truth table): `eww`/`wlogout` are repo-retired but NOT
-#    reference-free (33/3 surviving hits, measured 2026-08-10) — marking
-#    either `retired` now would arm the blocking tier against real
-#    surviving hits and turn theme-doctor red for the remaining eighteen
-#    plans of this phase. RETIRE-07 (Phase 20) is where they flip.
+#    Every surface here is now `retired`, but they did not get there at the
+#    same time. The rule the staging encodes is worth keeping: a surface
+#    stays `pending` while ANY blocking-class reference it cannot yet clear
+#    still exists, because marking it `retired` early arms the blocking tier
+#    against that reference and turns theme-doctor red. `pending` is a
+#    staging state, not a weaker form of retired.
+#    Two distinct triggers have released it so far:
+#    `eww`/`wlogout` were repo-retired but NOT reference-free (33/3
+#    surviving hits, measured 2026-08-10), so they held at `pending` through
+#    Phase 18 and flipped in RETIRE-07 (Phase 20) once the hits were gone —
+#    a STALE-GREP-HIT trigger, cleared by editing this repo.
+#    `tmux` (quick task 260820-2yz) held at `pending` for a different
+#    reason: its repo-side surface was reference-free from day one (its own
+#    sweep proved it), but the `host-package` class is BLOCKING and runs
+#    `pacman -Q tmux` against the live host, where the package was
+#    deliberately still installed (D-04/D-07 — repo retirement is not host
+#    uninstall). That is a reference this repo has no authority to clear, so
+#    the flip waited on the operator uninstalling it — a HOST-PACKAGE
+#    trigger. Released 2026-08-20 (quick task 260820-4b2), measured: both
+#    `tmux` and its dependent `tmux-plugin-manager` are gone from pacman,
+#    the binary is off PATH, and `host-package` reports 0 references from a
+#    real `pacman -Q` miss rather than a SKIP.
 #    `retirement-fixture` is `retired` by design and matches nothing in the
 #    real repo, so it emits [PASS] on every theme-doctor run — the blocking
-#    tier is continuously exercised and demonstrably green, not dormant
-#    until 18-20.
-#    `tmux` (quick task 260820-2yz) ships `pending` for a DIFFERENT reason
-#    than eww/wlogout above: the repo-side surface is genuinely
-#    reference-free (its own sweep proves it), but the `host-package`
-#    class is BLOCKING and runs `pacman -Q tmux` against the live host,
-#    and the package is deliberately still installed there (D-04/D-07 —
-#    repo retirement is not host uninstall). Marking it `retired` now
-#    would arm the blocking tier against a reference this repo has no
-#    authority to clear. The flip to `retired` is the operator's
-#    follow-up once the host package is gone — the same eww/wlogout
-#    precedent described above, just triggered by a package instead of a
-#    stale grep hit.
+#    tier is continuously exercised and demonstrably green, never dormant.
+#    Note for anyone adding a surface: this comment names its surfaces in
+#    plain text, and that is safe only because SELF_EXCLUDE (below) drops
+#    this script's own realpath from every grep. Do not remove that.
 REGISTRY_RAW='waybar|retired|waybar/:hypr/.config/hypr/scripts/waybar-*|RETIRE-02
 swaync|retired|swaync/:hypr/.config/hypr/scripts/swaync-*|RETIRE-03
 swayosd|retired|swayosd/|RETIRE-04
@@ -103,7 +110,7 @@ wleave|retired|wleave/:hypr/.config/hypr/scripts/wleave.sh|RETIRE-05
 ags|retired|ags/|RETIRE-06
 wlogout|retired||RETIRE-07
 eww|retired||RETIRE-07
-tmux|pending|tmux/|260820-2yz
+tmux|retired|tmux/|260820-2yz
 retirement-fixture|retired|hypr/.config/hypr/scripts/tests/retirement-fixtures/|SELF-TEST'
 
 declare -A REG_STATUS REG_OWNTREE REG_REQ
