@@ -38,6 +38,22 @@ Item {
         }
     }
 
+    // Operator live-pass item 3 (PARTIAL — "moving between them feels
+    // laggy"): MEASURED, not assumed — a temporary timestamp diagnostic
+    // showed destroy+incubate cost is trivial (0-13ms across several
+    // switches) while the full swap consistently took 552-568ms
+    // end-to-end, matching emphasizedOut(187ms)+emphasizedIn(375ms)
+    // almost exactly. The lag IS the animation, not re-incubation.
+    // `emphasizedIn`/`emphasizedOut` are this codebase's own convention
+    // for a SURFACE's own open/close (e.g. NotifCentre.qml:116-120, the
+    // whole centre appearing/disappearing) — `Motion.standardDuration`
+    // is the established token for moving BETWEEN tabs/pages within an
+    // already-open surface (NotifCentre.qml:924's own pager
+    // `highlightMoveDuration`). This swap borrowed the wrong pair;
+    // switched to the correctly-scoped one for both stages (250ms each,
+    // 500ms total, down from 562ms, and semantically the right speed
+    // class for a frequent in-window interaction rather than a rare
+    // whole-surface transition).
     SequentialAnimation {
         id: swapAnim
 
@@ -47,9 +63,9 @@ Item {
             target: root
             property: "opacity"
             to: 0
-            duration: Motion.motionEnabled ? Motion.emphasizedOutDuration : 0
+            duration: Motion.motionEnabled ? Motion.standardDuration : 0
             easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.emphasizedOutEasing
+            easing.bezierCurve: Motion.standardEasing
         }
         ScriptAction {
             script: root._swapTo(swapAnim.targetIdx)
@@ -58,9 +74,9 @@ Item {
             target: root
             property: "opacity"
             to: 1
-            duration: Motion.motionEnabled ? Motion.emphasizedInDuration : 0
+            duration: Motion.motionEnabled ? Motion.standardDuration : 0
             easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.emphasizedInEasing
+            easing.bezierCurve: Motion.standardEasing
         }
     }
 

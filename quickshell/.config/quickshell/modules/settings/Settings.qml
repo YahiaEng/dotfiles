@@ -129,6 +129,14 @@ FloatingWindow {
         // nothing.
         Keys.onUpPressed: win.sState.goToPage(Math.max(0, win.sState.currentPageIdx - 1))
         Keys.onDownPressed: win.sState.goToPage(Math.min(PageRegistry.pages.length - 1, win.sState.currentPageIdx + 1))
+        // Operator live-pass item 2 (PARTIAL — Up/Down worked, Left/Right
+        // did nothing): the rail is a flat ordered list with only one
+        // axis of movement, so Left/Right mirror Up/Down exactly, on
+        // Dashboard.qml:725-726's own Left/Right-for-paging idiom — the
+        // operator's own stated expectation ("arrows navigate," all
+        // four). Same direct-activate, same clamping.
+        Keys.onLeftPressed: win.sState.goToPage(Math.max(0, win.sState.currentPageIdx - 1))
+        Keys.onRightPressed: win.sState.goToPage(Math.min(PageRegistry.pages.length - 1, win.sState.currentPageIdx + 1))
 
         // Re-claims QML-level focus every time this window (re)gains real
         // OS activation — fixes the original construction-time race

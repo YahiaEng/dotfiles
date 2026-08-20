@@ -710,7 +710,21 @@ ShellRoot {
 
         Settings {
             initialPageIdx: root.settingsInitialPageIdx
-            onCloseRequested: settingsLoader.active = false
+            // Operator live-pass item "opens on last tab" (root-caused
+            // live, not assumed): `settingsInitialPageIdx` is a
+            // shell-root property that ONLY the `openPage()` deep-link
+            // path writes — nothing ever reset it back afterward, so it
+            // leaked into every SUBSEQUENT open (even a bare Super+comma
+            // press), not just the deep-linked one. Confirmed with a
+            // temporary diagnostic: after one `openPage "shell"` call,
+            // `initialPageIdx` read back as 3 on every later open. Reset
+            // it to 0 on every close, so only an open that IMMEDIATELY
+            // follows a fresh `openPage()` call ever starts anywhere but
+            // Appearance.
+            onCloseRequested: {
+                settingsLoader.active = false;
+                root.settingsInitialPageIdx = 0;
+            }
             // Task 2 (ConnectivityPage) — routes through the SAME guarded
             // summon function every other panel entry point uses
             // (audioPanelShortcut, the drawer's own chevrons); never a
