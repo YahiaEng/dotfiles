@@ -14,6 +14,20 @@ Column {
     property string icon: ""
     default property alias content: contentColumn.data
 
+    // FIX (tracer checkpoint fail, garbled visuals): without an explicit
+    // width, `root` is a bare Column whose width derives from the MAX of
+    // its own children's widths — and `contentColumn` below binds ITS OWN
+    // width back to `root.width`. That is a genuine circular binding, not
+    // a hypothetical one: measured live (diagnostic Component.onCompleted)
+    // at root.width=81px — just enough to fit the "Theme" header row — so
+    // every row inside `contentColumn` (SelectRow/NavRow, whose own
+    // implicitWidth reads `parent.width`) rendered squeezed into ~81px,
+    // overlapping its own label/dropdown internally. `parent` here is
+    // whichever Column places this section (PageBase's `bodyColumn`,
+    // itself bound to the page's own concrete `bodyFlick.width`) — binding
+    // to THAT breaks the cycle with a real, non-self-referential width.
+    width: parent ? parent.width : implicitWidth
+
     spacing: Design.spacingSm
 
     Row {
