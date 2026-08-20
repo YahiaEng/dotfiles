@@ -45,20 +45,22 @@ return {
         },
       })
 
-      -- Neovim 0.11+ already maps gra/gri/grn/grr/grt/K/]d/[d globally by
-      -- default (:h lsp-defaults, :h diagnostic-defaults) — this autocmd
-      -- only adds what core does NOT cover (go-to-definition has no
-      -- default keymap; it rides the tagfunc instead) plus a couple of
-      -- buffer-local aliases for muscle memory from other editors.
+      -- Core already covers most of this. `grn` rename, `gra` code action,
+      -- `grr` references, `gri` implementation, `grt` type definition and
+      -- `gO` symbols are mapped unconditionally, `]d`/`[d` jump diagnostics,
+      -- and nvim binds `K` to hover itself on attach — then removes it again
+      -- on detach, which a hand-rolled version would not.
+      --
+      -- So this only adds what core leaves out: `gd`, which has no default
+      -- map because it rides the tagfunc, plus two leader aliases for
+      -- muscle memory from other editors.
       vim.api.nvim_create_autocmd("LspAttach", {
         group = vim.api.nvim_create_augroup("lsp-attach", { clear = true }),
         callback = function(event)
           local opts = { buffer = event.buf }
           vim.keymap.set("n", "gd", vim.lsp.buf.definition, vim.tbl_extend("force", opts, { desc = "Go to definition" }))
-          vim.keymap.set("n", "K", vim.lsp.buf.hover, vim.tbl_extend("force", opts, { desc = "Hover" }))
           vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, vim.tbl_extend("force", opts, { desc = "Rename symbol" }))
           vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, vim.tbl_extend("force", opts, { desc = "Code action" }))
-          vim.keymap.set("n", "gr", vim.lsp.buf.references, vim.tbl_extend("force", opts, { desc = "References" }))
         end,
       })
     end,
