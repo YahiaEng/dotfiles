@@ -2,9 +2,7 @@
 -- a full syntax ramp from them in Lua, and paints nvim. Named to match this
 -- repo's walker `themes/rice` naming convention.
 --
--- Order matters here, and each step exists for a measured reason (see
--- .planning/spikes/001-highlight-repaint-completeness and
--- .planning/spikes/003-lua-ramp-from-four-hues):
+-- Order matters here, and each step exists for a measured reason:
 --   1. set &background from the surface colour's own luminance
 --   2. `highlight clear` — without it, @lsp.* groups from the previous
 --      theme survive a live re-theme and the buffer ends up half-painted
@@ -260,7 +258,7 @@ hi("@diff.delta", slot("type"))
 -- LSP semantic tokens — BASE groups only. The client-suffixed variants
 -- (@lsp.type.function.<client>) default-link to these; `highlight clear`
 -- above is what restores those links after a previous scheme overwrote
--- them (SPIKE-001).
+-- them.
 --
 -- Set directly (not via `link`) rather than pointing at the legacy group:
 -- `nvim_get_hl` returns an unresolved `{link=...}` table by default, and a
