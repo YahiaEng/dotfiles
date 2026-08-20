@@ -34,6 +34,15 @@ LUA_STATE="$STATE_DIR/overrides.lua"
 
 mkdir -p "$STATE_DIR"
 
+# ── Lua string escaping (review CR-03) — the ONE place both the eval sink
+#    and the persist sink escape a value before it enters a Lua string
+#    literal. `_persist()` already escaped via its own jq `luastr` filter;
+#    this is the same escaping, usable from bash for the `hyprctl eval`
+#    call sites, which is where CR-03 found the sink that was missed. ────
+_luastr() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 # ── JSON state (the read-modify-write source of truth) ──────────────────
 # overrides.lua is ALWAYS fully re-rendered from this JSON on a successful
 # write — never hand-patched — so the Lua file is a pure projection of
@@ -51,6 +60,21 @@ _read_json_state() {
 #    ONLY place this script writes hyprland's own state.overrides module. ─
 _persist() {
     local json="$1"
+
+    # Review WR-01: refuse to render/write a degenerate (empty or
+    # malformed) JSON payload — the caller-side fallback-read validation
+    # (cmd_input) is the FIRST line of defense; this is the second,
+    # independent one, at the one shared choke point every write passes
+    # through. Back up the existing good file before ever touching it,
+    # idle-overrides.sh's own pattern for the equivalent risk on the
+    # idle/lock side, mirrored here for the Display+input side.
+    if [[ -z "$json" ]] || ! printf '%s' "$json" | jq -e . >/dev/null 2>&1; then
+        echo "hypr-overrides.sh: _persist refused an empty/malformed JSON payload — overrides.lua NOT touched" >&2
+        return 1
+    fi
+    [[ -f "$LUA_STATE" ]] && cp -a "$LUA_STATE" "$LUA_STATE.bak"
+    [[ -f "$JSON_STATE" ]] && cp -a "$JSON_STATE" "$JSON_STATE.bak"
+
     local lua_body
     lua_body=$(printf '%s' "$json" | jq -r '
         def luastr: "\"" + (. | gsub("\""; "\\\"")) + "\"";
@@ -87,8 +111,14 @@ _mode_matches_available() {
     else
         return 1
     fi
+    # WR-02: filter to matching entries via `test()` BEFORE `capture()` —
+    # a bare `capture()` throws on any entry that doesn't match the
+    # pattern, poisoning the whole `map()` and rejecting every mode for
+    # this monitor over a single malformed/unexpected availableModes
+    # entry (interlaced/stereo suffix, different case, etc.).
     printf '%s\n' "$available_json" | jq -e --arg sw "$sw" --arg sh "$sh" --arg sr "$sr" '
         map(
+            select(test("^[0-9]+x[0-9]+@[0-9]+(\\.[0-9]+)?Hz$")) |
             capture("^(?<w>[0-9]+)x(?<h>[0-9]+)@(?<r>[0-9]+(\\.[0-9]+)?)Hz$") |
             select(.w == $sw and .h == $sh and (((.r|tonumber) - ($sr|tonumber)) | fabs) < 1.0)
         ) | length > 0
@@ -109,6 +139,17 @@ cmd_monitor() {
             *) echo "hypr-overrides.sh monitor: unknown flag $1" >&2; exit 1 ;;
         esac
     done
+
+    # Review CR-03: a strict character allowlist BEFORE any use — matches
+    # the threat model's own "closed allowlist" language. Every real
+    # connector name (DP-1, HDMI-A-1, eDP-1, Unknown-1, ...) is
+    # [A-Za-z0-9._-]; confirmed against this host's own `hyprctl monitors
+    # -j .name` (DP-1). Membership-in-live-set (below) is the SECOND,
+    # independent check — this one exists so a value that somehow passed
+    # membership (a race, a compositor bug) still cannot carry a `"` or
+    # backslash into the `hyprctl eval` Lua-string sink.
+    [[ "$output" =~ ^[A-Za-z0-9._-]+$ ]] \
+        || { echo "hypr-overrides.sh: output '$output' contains characters outside the closed allowlist" >&2; exit 1; }
 
     local monitors_json
     monitors_json=$(hyprctl monitors -j 2>/dev/null) || { echo "hypr-overrides.sh: hyprctl monitors -j failed" >&2; exit 1; }
@@ -161,19 +202,54 @@ cmd_monitor() {
 
     # ── Apply live via hyprctl eval, gaming-mode-toggle.sh's proven shape.
     #    Validated strings only — never raw user input reaches this
-    #    interpolation (T-SQD-01's whole mitigation). ─────────────────────
-    hyprctl eval "return hl.monitor({ output = \"$output\", mode = \"$final_mode\", position = \"$final_position\", scale = $final_scale })" >/dev/null 2>&1
+    #    interpolation (T-SQD-01's whole mitigation). Review CR-03: escaped
+    #    identically to how `_persist()`'s own `luastr` jq filter already
+    #    escapes the SAME values before they reach the persisted Lua file —
+    #    this eval call site was the one sink that had been missed. ───────
+    hyprctl eval "return hl.monitor({ output = \"$(_luastr "$output")\", mode = \"$(_luastr "$final_mode")\", position = \"$(_luastr "$final_position")\", scale = $final_scale })" >/dev/null 2>&1
 
     # ── Verify against the JSON oracle — NEVER the `ok` reply
     #    (hypridle.conf:22-24's own finding, repeated verbatim in this
-    #    plan's RESEARCH.md). Refresh-rate compared with tolerance. ───────
+    #    plan's RESEARCH.md). Review CR-01: verify ONLY the field(s) this
+    #    call actually asked to change (the ORIGINAL $mode/$position/$scale,
+    #    not $final_*, which always holds a value via the current-live
+    #    fallback and would make an unrequested field's check a tautology
+    #    against itself). If none of the three flags were given at all
+    #    (a bare re-apply of whatever is already live), verify all three —
+    #    still a real check, since it confirms the eval call actually took
+    #    effect rather than silently no-opping. ───────────────────────────
     sleep 0.3
-    local verify_ok=1
-    hyprctl monitors -j 2>/dev/null | jq -e --arg o "$output" --argjson s "$final_scale" '
-        .[] | select(.name == $o) | (.scale == $s)
-    ' >/dev/null 2>&1 && verify_ok=0
+    local live_json
+    live_json=$(hyprctl monitors -j 2>/dev/null)
+    local verify_ok=0
+    local check_mode=0 check_position=0 check_scale=0
+    if [[ -n "$mode" || ( -z "$mode" && -z "$position" && -z "$scale" ) ]]; then check_mode=1; fi
+    if [[ -n "$position" || ( -z "$mode" && -z "$position" && -z "$scale" ) ]]; then check_position=1; fi
+    if [[ -n "$scale" || ( -z "$mode" && -z "$position" && -z "$scale" ) ]]; then check_scale=1; fi
+
+    if [[ "$check_mode" -eq 1 ]]; then
+        local sw sh
+        if [[ "$final_mode" =~ ^([0-9]+)x([0-9]+)@ ]]; then
+            sw="${BASH_REMATCH[1]}"; sh="${BASH_REMATCH[2]}"
+            printf '%s\n' "$live_json" | jq -e --arg o "$output" --arg w "$sw" --arg h "$sh" \
+                '.[] | select(.name == $o) | ((.width|tostring) == $w and (.height|tostring) == $h)' >/dev/null 2>&1 \
+                || verify_ok=1
+        else
+            verify_ok=1
+        fi
+    fi
+    if [[ "$check_position" -eq 1 ]]; then
+        printf '%s\n' "$live_json" | jq -e --arg o "$output" --arg pos "$final_position" \
+            '.[] | select(.name == $o) | ((.x|tostring) + "x" + (.y|tostring)) == $pos' >/dev/null 2>&1 \
+            || verify_ok=1
+    fi
+    if [[ "$check_scale" -eq 1 ]]; then
+        printf '%s\n' "$live_json" | jq -e --arg o "$output" --argjson s "$final_scale" \
+            '.[] | select(.name == $o) | .scale == $s' >/dev/null 2>&1 \
+            || verify_ok=1
+    fi
     if [[ "$verify_ok" -ne 0 ]]; then
-        echo "hypr-overrides.sh: live apply did not verify against hyprctl monitors -j" >&2
+        echo "hypr-overrides.sh: live apply did not verify against hyprctl monitors -j (mode=$check_mode position=$check_position scale=$check_scale)" >&2
         exit 1
     fi
 
@@ -181,7 +257,7 @@ cmd_monitor() {
     local json
     json=$(_read_json_state | jq --arg o "$output" --arg mode "$final_mode" --arg pos "$final_position" --argjson scale "$final_scale" \
         '.monitors[$o] = { mode: $mode, position: $pos, scale: $scale }')
-    _persist "$json"
+    _persist "$json" || exit 1
     echo "hypr-overrides.sh: monitor $output applied and persisted"
 }
 
@@ -222,19 +298,70 @@ cmd_input() {
         esac
     fi
 
-    # Fall back to current live values for any field not supplied.
+    # Fall back to current live values for any field not supplied. Review
+    # WR-01: each fallback read is checked non-empty/well-formed before
+    # use — an unchecked empty value here would make the `--argjson`
+    # calls building `json` below fail, and `_persist("")` would silently
+    # clobber the ENTIRE overrides file (including any prior monitor
+    # settings) with an empty table. Fail closed instead: exit before
+    # ever calling `hyprctl eval` or touching the persisted file.
     local final_kb="$kb_layout" final_fm="$follow_mouse" final_sens="$sensitivity" final_ns="$natural_scroll"
     [[ -n "$final_kb" ]] || final_kb=$(hyprctl getoption input:kb_layout -j 2>/dev/null | jq -r '.str')
     [[ -n "$final_fm" ]] || final_fm=$(hyprctl getoption input:follow_mouse -j 2>/dev/null | jq -r '.int')
     [[ -n "$final_sens" ]] || final_sens=$(hyprctl getoption input:sensitivity -j 2>/dev/null | jq -r '.float')
-    [[ -n "$final_ns" ]] || final_ns=$(hyprctl getoption input:touchpad:natural_scroll -j 2>/dev/null | jq -r '.int == 1')
+    # `hyprctl getoption` reports this SPECIFIC option under a `.bool` key,
+    # not `.int` (measured live: `{"bool":true,"set":true}`, no `.int`
+    # field at all) — a `.int == 1` read here always evaluated to the
+    # literal string "false" regardless of the real value, found while
+    # testing CR-02's fix (the old code never verified natural_scroll at
+    # all, so this was silently masked until CR-02 added a real check).
+    [[ -n "$final_ns" ]] || final_ns=$(hyprctl getoption input:touchpad:natural_scroll -j 2>/dev/null | jq -r '.bool')
+    for _pair in "kb_layout:$final_kb" "follow_mouse:$final_fm" "sensitivity:$final_sens" "natural_scroll:$final_ns"; do
+        local _fname="${_pair%%:*}" _fval="${_pair#*:}"
+        [[ -n "$_fval" && "$_fval" != "null" ]] \
+            || { echo "hypr-overrides.sh: could not read current live value for '$_fname' (hyprctl getoption failed?) — refusing to apply or persist" >&2; exit 1; }
+    done
 
-    hyprctl eval "return hl.config({ input = { kb_layout = \"$final_kb\", follow_mouse = $final_fm, sensitivity = $final_sens, touchpad = { natural_scroll = $final_ns } } })" >/dev/null 2>&1
+    # Escaped identically to `_persist()`'s own `luastr` filter (CR-03's
+    # discipline extended here too, even though kb_layout's own regex
+    # already forbids quote/backslash characters — defense in depth, no
+    # cost). follow_mouse/sensitivity/natural_scroll are numeric/boolean
+    # Lua literals, unquoted, never string-interpolated.
+    hyprctl eval "return hl.config({ input = { kb_layout = \"$(_luastr "$final_kb")\", follow_mouse = $final_fm, sensitivity = $final_sens, touchpad = { natural_scroll = $final_ns } } })" >/dev/null 2>&1
 
+    # Review CR-02: verify ONLY the field(s) this call actually asked to
+    # change — the ORIGINAL $kb_layout/$follow_mouse/$sensitivity/
+    # $natural_scroll, not $final_*, which always holds a value via the
+    # current-live fallback and would make an unrequested field's check a
+    # tautology. A bare `input` call with no flags at all verifies every
+    # field, same reasoning as cmd_monitor above.
     sleep 0.3
-    local verify_ok=1
-    if [[ "$(hyprctl getoption input:sensitivity -j 2>/dev/null | jq -r '.float')" == "$final_sens" ]]; then
-        verify_ok=0
+    local verify_ok=0
+    local bare_call=0
+    [[ -z "$kb_layout" && -z "$follow_mouse" && -z "$sensitivity" && -z "$natural_scroll" ]] && bare_call=1
+
+    if [[ -n "$kb_layout" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption input:kb_layout -j 2>/dev/null | jq -r '.str')" == "$final_kb" ]] || verify_ok=1
+    fi
+    if [[ -n "$follow_mouse" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption input:follow_mouse -j 2>/dev/null | jq -r '.int')" == "$final_fm" ]] || verify_ok=1
+    fi
+    if [[ -n "$sensitivity" || "$bare_call" -eq 1 ]]; then
+        # Numeric comparison with tolerance, not exact string match: found
+        # while testing this fix — `hyprctl getoption`'s `.float` formats
+        # to 6 decimal places ("0.000000"), which never string-equals a
+        # user-supplied "0.00" (or any value not already in that exact
+        # shape) even when numerically identical. Same class of bug as
+        # the `.bool`/`.int` field-name mismatch above, surfaced the same
+        # way: the old code's sensitivity check was already exact-string,
+        # just tautological before CR-02 made it a real check.
+        local live_sens
+        live_sens=$(hyprctl getoption input:sensitivity -j 2>/dev/null | jq -r '.float')
+        awk -v a="$live_sens" -v b="$final_sens" 'BEGIN { exit !((a - b < 0 ? b - a : a - b) < 0.001) }' \
+            || verify_ok=1
+    fi
+    if [[ -n "$natural_scroll" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption input:touchpad:natural_scroll -j 2>/dev/null | jq -r '.bool')" == "$final_ns" ]] || verify_ok=1
     fi
     if [[ "$verify_ok" -ne 0 ]]; then
         echo "hypr-overrides.sh: live input apply did not verify against hyprctl getoption -j" >&2
@@ -244,7 +371,7 @@ cmd_input() {
     local json
     json=$(_read_json_state | jq --arg kb "$final_kb" --argjson fm "$final_fm" --argjson sens "$final_sens" --argjson ns "$final_ns" \
         '.input.kb_layout = $kb | .input.follow_mouse = $fm | .input.sensitivity = $sens | .input.touchpad.natural_scroll = $ns')
-    _persist "$json"
+    _persist "$json" || exit 1
     echo "hypr-overrides.sh: input applied and persisted"
 }
 
