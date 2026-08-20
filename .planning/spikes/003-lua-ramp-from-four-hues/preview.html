@@ -1,0 +1,592 @@
+<title>Twenty Palettes, One Ramp</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --ink:#14161a; --ground:#fbfbfc; --panel:#ffffff; --muted:#6a7080;
+  --rule:#e3e5ea; --accent:#147d7d; --pass:#2e7d4f; --fail:#b3261e;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink:#e7e9ee; --ground:#0f1114; --panel:#171a1f; --muted:#9aa1ad;
+    --rule:#272b32; --accent:#4fb3b3; --pass:#5cc98a; --fail:#ef6b60;
+  }
+}
+:root[data-theme="dark"] {
+  --ink:#e7e9ee; --ground:#0f1114; --panel:#171a1f; --muted:#9aa1ad;
+  --rule:#272b32; --accent:#4fb3b3; --pass:#5cc98a; --fail:#ef6b60;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:clamp(28px,5vw,64px) clamp(18px,4vw,32px) 96px;
+  display:flex;flex-direction:column;gap:40px}
+.lede{display:flex;flex-direction:column;gap:14px;max-width:66ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);font-weight:600}
+h1{font-size:clamp(30px,4.4vw,46px);line-height:1.1;margin:0;font-weight:700;
+  letter-spacing:-.02em;text-wrap:balance}
+.sub{color:var(--muted);font-size:17px;margin:0}
+.tally{display:flex;gap:26px;flex-wrap:wrap;padding:18px 22px;background:var(--panel);
+  border:1px solid var(--rule);border-radius:10px;font-family:var(--mono);font-size:13px}
+.tally b{font-size:22px;display:block;font-weight:600;font-variant-numeric:tabular-nums}
+.tally span{color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.scale{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:22px}
+.scale h2{font-size:14px;margin:0 0 4px;letter-spacing:.02em}
+.scale p{margin:0 0 16px;color:var(--muted);font-size:13.5px;max-width:70ch}
+.scale ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;
+  font-family:var(--mono);font-size:12.5px}
+.scale li{display:grid;grid-template-columns:58px 1fr;gap:14px;align-items:center}
+.scale .n{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:9px;border-radius:5px;background:var(--accent);opacity:.85}
+.scale .note{color:var(--muted)}
+.grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  display:flex;flex-direction:column}
+.card--fail{border-color:color-mix(in srgb,var(--fail) 45%,var(--rule))}
+.card--fail .card__head{box-shadow:inset 3px 0 0 var(--fail)}
+.card__head{display:flex;align-items:center;gap:9px;padding:13px 16px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.card__head h3{margin:0;font-size:14.5px;font-weight:600;font-family:var(--mono);flex:1}
+.chip{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 7px;border-radius:4px;border:1px solid var(--rule);color:var(--muted)}
+.verdict{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;font-weight:600}
+.verdict--ok{color:var(--pass)} .verdict--no{color:var(--fail)}
+.swatches{display:flex;height:14px}
+.swatches i{flex:1;display:flex;align-items:center;justify-content:center}
+.swatches b{font-family:var(--mono);font-size:7.5px;font-weight:700;color:#0006;
+  mix-blend-mode:luminosity;letter-spacing:.04em}
+.code{padding:15px 17px;overflow-x:auto}
+.code pre{margin:0;font-family:var(--mono);font-size:12px;line-height:1.62;white-space:pre}
+.metrics{display:flex;gap:20px;margin:0;padding:12px 16px;border-top:1px solid var(--rule);
+  font-family:var(--mono);flex-wrap:wrap}
+.metrics div{display:flex;flex-direction:column;gap:1px}
+.metrics dt{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.metrics dd{margin:0;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.metrics dd.bad{color:var(--fail)}
+footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--muted);font-size:13.5px;max-width:72ch}
+footer strong{color:var(--ink);font-weight:600}
+</style>
+<div class="wrap">
+  <div class="lede">
+    <p class="eyebrow">spike 003 &middot; themed nvim</p>
+    <h1>Twenty palettes, one derived ramp</h1>
+    <p class="sub">The theme palettes carry about four real hues plus greys. Syntax highlighting
+    wants ten colours you can tell apart. This is what happens when Lua spins the missing hues
+    off the ones that exist, then pushes each result until it is readable on its own background.</p>
+  </div>
+
+  <div class="tally">
+    <div><b>20</b><span>palettes</span></div>
+    <div><b style="color:var(--pass)">19</b><span>legible</span></div>
+    <div><b style="color:var(--fail)">1</b><span>too close</span></div>
+    <div><b>10</b><span>syntax slots</span></div>
+  </div>
+
+  <section class="scale">
+    <h2>What the separation number means</h2>
+    <p>Distance between the two closest colours in a ramp. The bar is calibrated against gruvbox,
+    a hand-tuned scheme, so the pass mark is borrowed from something known to work rather than picked.</p>
+    <ol>
+      <li><span class="n">650</span><span class="bar" style="width:100%"></span></li>
+      <li><span class="n"></span><span class="note">pure red vs pure green</span></li>
+      <li><span class="n">245</span><span class="bar" style="width:38%"></span></li>
+      <li><span class="n"></span><span class="note">gruvbox red vs green</span></li>
+      <li><span class="n">87</span><span class="bar" style="width:13.4%"></span></li>
+      <li><span class="n"></span><span class="note">gruvbox blue vs aqua &mdash; its tightest real pair, and the pass mark</span></li>
+      <li><span class="n">5</span><span class="bar" style="width:1%"></span></li>
+      <li><span class="n"></span><span class="note">two near-identical greys &mdash; unusable</span></li>
+    </ol>
+  </section>
+
+  <div class="grid">
+<article class="card">
+  <header class="card__head">
+    <h3>catppuccin</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #cba6f7 " style="background:#cba6f7"><b></b></i><i title="fn: #89b4fa " style="background:#89b4fa"><b></b></i><i title="string: #a1e99b " style="background:#a1e99b"><b></b></i><i title="number: #f3b38b " style="background:#f3b38b"><b></b></i><i title="type: #9be9e3 " style="background:#9be9e3"><b></b></i><i title="constant: #f7a6d8 " style="background:#f7a6d8"><b></b></i><i title="variable: #cdd6f4 " style="background:#cdd6f4"><b></b></i><i title="operator: #8a94b7 " style="background:#8a94b7"><b></b></i><i title="comment: #656981 I" style="background:#656981"><b>I</b></i><i title="err: #f38ba8 " style="background:#f38ba8"><b></b></i></div>
+  <div class="code" style="background:#1e1e2e"><pre><span style="color:#656981;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#cba6f7">local</span> <span style="color:#cdd6f4">Ramp</span> <span style="color:#8a94b7">=</span> <span style="color:#89b4fa">require</span><span style="color:#8a94b7">(</span><span style="color:#a1e99b">&#x27;ramp&#x27;</span><span style="color:#8a94b7">)</span>
+<span style="color:#cba6f7">local</span> <span style="color:#f7a6d8">MIN_CONTRAST</span> <span style="color:#8a94b7">=</span> <span style="color:#f3b38b">4.5</span>
+
+<span style="color:#cba6f7">function</span> <span style="color:#89b4fa">Ramp.build</span><span style="color:#8a94b7">(</span><span style="color:#cdd6f4">roles</span><span style="color:#8a94b7">)</span>
+  <span style="color:#cba6f7">local</span> <span style="color:#cdd6f4">bg</span> <span style="color:#8a94b7">=</span> <span style="color:#cdd6f4">roles</span><span style="color:#8a94b7">.</span><span style="color:#9be9e3">surface</span>
+  <span style="color:#cba6f7">if</span> <span style="color:#cba6f7">not</span> <span style="color:#cdd6f4">bg</span> <span style="color:#cba6f7">then</span>
+    <span style="color:#89b4fa">error</span><span style="color:#8a94b7">(</span><span style="color:#f38ba8">&#x27;palette has no surface&#x27;</span><span style="color:#8a94b7">)</span>
+  <span style="color:#cba6f7">end</span>
+  <span style="color:#cba6f7">return</span> <span style="color:#8a94b7">{</span> <span style="color:#9be9e3">keyword</span> <span style="color:#8a94b7">=</span> <span style="color:#89b4fa">spin</span><span style="color:#8a94b7">(</span><span style="color:#cdd6f4">roles</span><span style="color:#8a94b7">.</span><span style="color:#9be9e3">primary</span><span style="color:#8a94b7">,</span> <span style="color:#f3b38b">0</span><span style="color:#8a94b7">)</span> <span style="color:#8a94b7">}</span>
+<span style="color:#cba6f7">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">87</dd></div>
+    <div><dt>closest pair</dt><dd>keyword/constant</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>catppuccin-latte</h3>
+    <span class="chip chip--light">light</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #8839ef " style="background:#8839ef"><b></b></i><i title="fn: #1414f5 " style="background:#1414f5"><b></b></i><i title="string: #2d7d1b " style="background:#2d7d1b"><b></b></i><i title="number: #ac540c " style="background:#ac540c"><b></b></i><i title="type: #197564 " style="background:#197564"><b></b></i><i title="constant: #116dd0 " style="background:#116dd0"><b></b></i><i title="variable: #4c4f69 " style="background:#4c4f69"><b></b></i><i title="operator: #533f92 " style="background:#533f92"><b></b></i><i title="comment: #848a9f I" style="background:#848a9f"><b>I</b></i><i title="err: #d20f39 " style="background:#d20f39"><b></b></i></div>
+  <div class="code" style="background:#eff1f5"><pre><span style="color:#848a9f;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#8839ef">local</span> <span style="color:#4c4f69">Ramp</span> <span style="color:#533f92">=</span> <span style="color:#1414f5">require</span><span style="color:#533f92">(</span><span style="color:#2d7d1b">&#x27;ramp&#x27;</span><span style="color:#533f92">)</span>
+<span style="color:#8839ef">local</span> <span style="color:#116dd0">MIN_CONTRAST</span> <span style="color:#533f92">=</span> <span style="color:#ac540c">4.5</span>
+
+<span style="color:#8839ef">function</span> <span style="color:#1414f5">Ramp.build</span><span style="color:#533f92">(</span><span style="color:#4c4f69">roles</span><span style="color:#533f92">)</span>
+  <span style="color:#8839ef">local</span> <span style="color:#4c4f69">bg</span> <span style="color:#533f92">=</span> <span style="color:#4c4f69">roles</span><span style="color:#533f92">.</span><span style="color:#197564">surface</span>
+  <span style="color:#8839ef">if</span> <span style="color:#8839ef">not</span> <span style="color:#4c4f69">bg</span> <span style="color:#8839ef">then</span>
+    <span style="color:#1414f5">error</span><span style="color:#533f92">(</span><span style="color:#d20f39">&#x27;palette has no surface&#x27;</span><span style="color:#533f92">)</span>
+  <span style="color:#8839ef">end</span>
+  <span style="color:#8839ef">return</span> <span style="color:#533f92">{</span> <span style="color:#197564">keyword</span> <span style="color:#533f92">=</span> <span style="color:#1414f5">spin</span><span style="color:#533f92">(</span><span style="color:#4c4f69">roles</span><span style="color:#533f92">.</span><span style="color:#197564">primary</span><span style="color:#533f92">,</span> <span style="color:#ac540c">0</span><span style="color:#533f92">)</span> <span style="color:#533f92">}</span>
+<span style="color:#8839ef">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">75</dd></div>
+    <div><dt>closest pair</dt><dd>variable/operator</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>dracula</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #ff79c6 " style="background:#ff79c6"><b></b></i><i title="fn: #df93f9 " style="background:#df93f9"><b></b></i><i title="string: #8be9fd " style="background:#8be9fd"><b></b></i><i title="number: #ffc655 " style="background:#ffc655"><b></b></i><i title="type: #9f8bfd " style="background:#9f8bfd"><b></b></i><i title="constant: #feff79 " style="background:#feff79"><b></b></i><i title="variable: #f8f8f2 " style="background:#f8f8f2"><b></b></i><i title="operator: #a1a1a1 " style="background:#a1a1a1"><b></b></i><i title="comment: #6272a4 I" style="background:#6272a4"><b>I</b></i><i title="err: #ff5555 " style="background:#ff5555"><b></b></i></div>
+  <div class="code" style="background:#282a36"><pre><span style="color:#6272a4;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#ff79c6">local</span> <span style="color:#f8f8f2">Ramp</span> <span style="color:#a1a1a1">=</span> <span style="color:#df93f9">require</span><span style="color:#a1a1a1">(</span><span style="color:#8be9fd">&#x27;ramp&#x27;</span><span style="color:#a1a1a1">)</span>
+<span style="color:#ff79c6">local</span> <span style="color:#feff79">MIN_CONTRAST</span> <span style="color:#a1a1a1">=</span> <span style="color:#ffc655">4.5</span>
+
+<span style="color:#ff79c6">function</span> <span style="color:#df93f9">Ramp.build</span><span style="color:#a1a1a1">(</span><span style="color:#f8f8f2">roles</span><span style="color:#a1a1a1">)</span>
+  <span style="color:#ff79c6">local</span> <span style="color:#f8f8f2">bg</span> <span style="color:#a1a1a1">=</span> <span style="color:#f8f8f2">roles</span><span style="color:#a1a1a1">.</span><span style="color:#9f8bfd">surface</span>
+  <span style="color:#ff79c6">if</span> <span style="color:#ff79c6">not</span> <span style="color:#f8f8f2">bg</span> <span style="color:#ff79c6">then</span>
+    <span style="color:#df93f9">error</span><span style="color:#a1a1a1">(</span><span style="color:#ff5555">&#x27;palette has no surface&#x27;</span><span style="color:#a1a1a1">)</span>
+  <span style="color:#ff79c6">end</span>
+  <span style="color:#ff79c6">return</span> <span style="color:#a1a1a1">{</span> <span style="color:#9f8bfd">keyword</span> <span style="color:#a1a1a1">=</span> <span style="color:#df93f9">spin</span><span style="color:#a1a1a1">(</span><span style="color:#f8f8f2">roles</span><span style="color:#a1a1a1">.</span><span style="color:#9f8bfd">primary</span><span style="color:#a1a1a1">,</span> <span style="color:#ffc655">0</span><span style="color:#a1a1a1">)</span> <span style="color:#a1a1a1">}</span>
+<span style="color:#ff79c6">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">105</dd></div>
+    <div><dt>closest pair</dt><dd>keyword/fn</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>ethereal</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #7ca0da " style="background:#7ca0da"><b></b></i><i title="fn: #e4e94f " style="background:#e4e94f"><b></b></i><i title="string: #de87d0 " style="background:#de87d0"><b></b></i><i title="number: #edbd5a " style="background:#edbd5a"><b></b></i><i title="type: #de9587 " style="background:#de9587"><b></b></i><i title="constant: #7cd7da " style="background:#7cd7da"><b></b></i><i title="variable: #ffcead " style="background:#ffcead"><b></b></i><i title="operator: #a57f69 " style="background:#a57f69"><b></b></i><i title="comment: #6d7db6 I" style="background:#6d7db6"><b>I</b></i><i title="err: #ed5b5a " style="background:#ed5b5a"><b></b></i></div>
+  <div class="code" style="background:#060b1e"><pre><span style="color:#6d7db6;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#7ca0da">local</span> <span style="color:#ffcead">Ramp</span> <span style="color:#a57f69">=</span> <span style="color:#e4e94f">require</span><span style="color:#a57f69">(</span><span style="color:#de87d0">&#x27;ramp&#x27;</span><span style="color:#a57f69">)</span>
+<span style="color:#7ca0da">local</span> <span style="color:#7cd7da">MIN_CONTRAST</span> <span style="color:#a57f69">=</span> <span style="color:#edbd5a">4.5</span>
+
+<span style="color:#7ca0da">function</span> <span style="color:#e4e94f">Ramp.build</span><span style="color:#a57f69">(</span><span style="color:#ffcead">roles</span><span style="color:#a57f69">)</span>
+  <span style="color:#7ca0da">local</span> <span style="color:#ffcead">bg</span> <span style="color:#a57f69">=</span> <span style="color:#ffcead">roles</span><span style="color:#a57f69">.</span><span style="color:#de9587">surface</span>
+  <span style="color:#7ca0da">if</span> <span style="color:#7ca0da">not</span> <span style="color:#ffcead">bg</span> <span style="color:#7ca0da">then</span>
+    <span style="color:#e4e94f">error</span><span style="color:#a57f69">(</span><span style="color:#ed5b5a">&#x27;palette has no surface&#x27;</span><span style="color:#a57f69">)</span>
+  <span style="color:#7ca0da">end</span>
+  <span style="color:#7ca0da">return</span> <span style="color:#a57f69">{</span> <span style="color:#de9587">keyword</span> <span style="color:#a57f69">=</span> <span style="color:#e4e94f">spin</span><span style="color:#a57f69">(</span><span style="color:#ffcead">roles</span><span style="color:#a57f69">.</span><span style="color:#de9587">primary</span><span style="color:#a57f69">,</span> <span style="color:#edbd5a">0</span><span style="color:#a57f69">)</span> <span style="color:#a57f69">}</span>
+<span style="color:#7ca0da">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">91</dd></div>
+    <div><dt>closest pair</dt><dd>fn/number</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>everfrost</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #6fcbbf " style="background:#6fcbbf"><b></b></i><i title="fn: #dbdb7f " style="background:#dbdb7f"><b></b></i><i title="string: #d996b6 " style="background:#d996b6"><b></b></i><i title="number: #d27ee6 " style="background:#d27ee6"><b></b></i><i title="type: #a5d996 " style="background:#a5d996"><b></b></i><i title="constant: #73cb6f " style="background:#73cb6f"><b></b></i><i title="variable: #d3c6aa " style="background:#d3c6aa"><b></b></i><i title="operator: #b2ac9e " style="background:#b2ac9e"><b></b></i><i title="comment: #70818b I" style="background:#70818b"><b>I</b></i><i title="err: #e67e80 " style="background:#e67e80"><b></b></i></div>
+  <div class="code" style="background:#2d353b"><pre><span style="color:#70818b;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#6fcbbf">local</span> <span style="color:#d3c6aa">Ramp</span> <span style="color:#b2ac9e">=</span> <span style="color:#dbdb7f">require</span><span style="color:#b2ac9e">(</span><span style="color:#d996b6">&#x27;ramp&#x27;</span><span style="color:#b2ac9e">)</span>
+<span style="color:#6fcbbf">local</span> <span style="color:#73cb6f">MIN_CONTRAST</span> <span style="color:#b2ac9e">=</span> <span style="color:#d27ee6">4.5</span>
+
+<span style="color:#6fcbbf">function</span> <span style="color:#dbdb7f">Ramp.build</span><span style="color:#b2ac9e">(</span><span style="color:#d3c6aa">roles</span><span style="color:#b2ac9e">)</span>
+  <span style="color:#6fcbbf">local</span> <span style="color:#d3c6aa">bg</span> <span style="color:#b2ac9e">=</span> <span style="color:#d3c6aa">roles</span><span style="color:#b2ac9e">.</span><span style="color:#a5d996">surface</span>
+  <span style="color:#6fcbbf">if</span> <span style="color:#6fcbbf">not</span> <span style="color:#d3c6aa">bg</span> <span style="color:#6fcbbf">then</span>
+    <span style="color:#dbdb7f">error</span><span style="color:#b2ac9e">(</span><span style="color:#e67e80">&#x27;palette has no surface&#x27;</span><span style="color:#b2ac9e">)</span>
+  <span style="color:#6fcbbf">end</span>
+  <span style="color:#6fcbbf">return</span> <span style="color:#b2ac9e">{</span> <span style="color:#a5d996">keyword</span> <span style="color:#b2ac9e">=</span> <span style="color:#dbdb7f">spin</span><span style="color:#b2ac9e">(</span><span style="color:#d3c6aa">roles</span><span style="color:#b2ac9e">.</span><span style="color:#a5d996">primary</span><span style="color:#b2ac9e">,</span> <span style="color:#d27ee6">0</span><span style="color:#b2ac9e">)</span> <span style="color:#b2ac9e">}</span>
+<span style="color:#6fcbbf">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">77</dd></div>
+    <div><dt>closest pair</dt><dd>fn/variable</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>gruvbox</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #d79921 " style="background:#d79921"><b></b></i><i title="fn: #fe8019 " style="background:#fe8019"><b></b></i><i title="string: #7ee15b " style="background:#7ee15b"><b></b></i><i title="number: #fbce34 " style="background:#fbce34"><b></b></i><i title="type: #5be1be " style="background:#5be1be"><b></b></i><i title="constant: #e76385 " style="background:#e76385"><b></b></i><i title="variable: #ebdbb2 " style="background:#ebdbb2"><b></b></i><i title="operator: #aa9c88 " style="background:#aa9c88"><b></b></i><i title="comment: #7c716b I" style="background:#7c716b"><b>I</b></i><i title="err: #fb5b48 " style="background:#fb5b48"><b></b></i></div>
+  <div class="code" style="background:#282828"><pre><span style="color:#7c716b;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#d79921">local</span> <span style="color:#ebdbb2">Ramp</span> <span style="color:#aa9c88">=</span> <span style="color:#fe8019">require</span><span style="color:#aa9c88">(</span><span style="color:#7ee15b">&#x27;ramp&#x27;</span><span style="color:#aa9c88">)</span>
+<span style="color:#d79921">local</span> <span style="color:#e76385">MIN_CONTRAST</span> <span style="color:#aa9c88">=</span> <span style="color:#fbce34">4.5</span>
+
+<span style="color:#d79921">function</span> <span style="color:#fe8019">Ramp.build</span><span style="color:#aa9c88">(</span><span style="color:#ebdbb2">roles</span><span style="color:#aa9c88">)</span>
+  <span style="color:#d79921">local</span> <span style="color:#ebdbb2">bg</span> <span style="color:#aa9c88">=</span> <span style="color:#ebdbb2">roles</span><span style="color:#aa9c88">.</span><span style="color:#5be1be">surface</span>
+  <span style="color:#d79921">if</span> <span style="color:#d79921">not</span> <span style="color:#ebdbb2">bg</span> <span style="color:#d79921">then</span>
+    <span style="color:#fe8019">error</span><span style="color:#aa9c88">(</span><span style="color:#fb5b48">&#x27;palette has no surface&#x27;</span><span style="color:#aa9c88">)</span>
+  <span style="color:#d79921">end</span>
+  <span style="color:#d79921">return</span> <span style="color:#aa9c88">{</span> <span style="color:#5be1be">keyword</span> <span style="color:#aa9c88">=</span> <span style="color:#fe8019">spin</span><span style="color:#aa9c88">(</span><span style="color:#ebdbb2">roles</span><span style="color:#aa9c88">.</span><span style="color:#5be1be">primary</span><span style="color:#aa9c88">,</span> <span style="color:#fbce34">0</span><span style="color:#aa9c88">)</span> <span style="color:#aa9c88">}</span>
+<span style="color:#d79921">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">84</dd></div>
+    <div><dt>closest pair</dt><dd>keyword/fn</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>gruvbox-light</h3>
+    <span class="chip chip--light">light</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #876015 " style="background:#876015"><b></b></i><i title="fn: #af3a03 " style="background:#af3a03"><b></b></i><i title="string: #167e3e " style="background:#167e3e"><b></b></i><i title="number: #487400 " style="background:#487400"><b></b></i><i title="type: #1c6ea1 " style="background:#1c6ea1"><b></b></i><i title="constant: #ce204d " style="background:#ce204d"><b></b></i><i title="variable: #3c3836 " style="background:#3c3836"><b></b></i><i title="operator: #685e54 " style="background:#685e54"><b></b></i><i title="comment: #a08347 I" style="background:#a08347"><b>I</b></i><i title="err: #9d0006 " style="background:#9d0006"><b></b></i></div>
+  <div class="code" style="background:#fbf1c7"><pre><span style="color:#a08347;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#876015">local</span> <span style="color:#3c3836">Ramp</span> <span style="color:#685e54">=</span> <span style="color:#af3a03">require</span><span style="color:#685e54">(</span><span style="color:#167e3e">&#x27;ramp&#x27;</span><span style="color:#685e54">)</span>
+<span style="color:#876015">local</span> <span style="color:#ce204d">MIN_CONTRAST</span> <span style="color:#685e54">=</span> <span style="color:#487400">4.5</span>
+
+<span style="color:#876015">function</span> <span style="color:#af3a03">Ramp.build</span><span style="color:#685e54">(</span><span style="color:#3c3836">roles</span><span style="color:#685e54">)</span>
+  <span style="color:#876015">local</span> <span style="color:#3c3836">bg</span> <span style="color:#685e54">=</span> <span style="color:#3c3836">roles</span><span style="color:#685e54">.</span><span style="color:#1c6ea1">surface</span>
+  <span style="color:#876015">if</span> <span style="color:#876015">not</span> <span style="color:#3c3836">bg</span> <span style="color:#876015">then</span>
+    <span style="color:#af3a03">error</span><span style="color:#685e54">(</span><span style="color:#9d0006">&#x27;palette has no surface&#x27;</span><span style="color:#685e54">)</span>
+  <span style="color:#876015">end</span>
+  <span style="color:#876015">return</span> <span style="color:#685e54">{</span> <span style="color:#1c6ea1">keyword</span> <span style="color:#685e54">=</span> <span style="color:#af3a03">spin</span><span style="color:#685e54">(</span><span style="color:#3c3836">roles</span><span style="color:#685e54">.</span><span style="color:#1c6ea1">primary</span><span style="color:#685e54">,</span> <span style="color:#487400">0</span><span style="color:#685e54">)</span> <span style="color:#685e54">}</span>
+<span style="color:#876015">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">104</dd></div>
+    <div><dt>closest pair</dt><dd>keyword/fn</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>hackerman</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #82fb9c " style="background:#82fb9c"><b></b></i><i title="fn: #8084e5 " style="background:#8084e5"><b></b></i><i title="string: #50f7d4 " style="background:#50f7d4"><b></b></i><i title="number: #7ca6f8 " style="background:#7ca6f8"><b></b></i><i title="type: #5073f7 " style="background:#5073f7"><b></b></i><i title="constant: #d7fb82 " style="background:#d7fb82"><b></b></i><i title="variable: #ddf7ff " style="background:#ddf7ff"><b></b></i><i title="operator: #718b98 " style="background:#718b98"><b></b></i><i title="comment: #654db3 I" style="background:#654db3"><b>I</b></i><i title="err: #7cf8f7 " style="background:#7cf8f7"><b></b></i></div>
+  <div class="code" style="background:#0b0c16"><pre><span style="color:#654db3;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#82fb9c">local</span> <span style="color:#ddf7ff">Ramp</span> <span style="color:#718b98">=</span> <span style="color:#8084e5">require</span><span style="color:#718b98">(</span><span style="color:#50f7d4">&#x27;ramp&#x27;</span><span style="color:#718b98">)</span>
+<span style="color:#82fb9c">local</span> <span style="color:#d7fb82">MIN_CONTRAST</span> <span style="color:#718b98">=</span> <span style="color:#7ca6f8">4.5</span>
+
+<span style="color:#82fb9c">function</span> <span style="color:#8084e5">Ramp.build</span><span style="color:#718b98">(</span><span style="color:#ddf7ff">roles</span><span style="color:#718b98">)</span>
+  <span style="color:#82fb9c">local</span> <span style="color:#ddf7ff">bg</span> <span style="color:#718b98">=</span> <span style="color:#ddf7ff">roles</span><span style="color:#718b98">.</span><span style="color:#5073f7">surface</span>
+  <span style="color:#82fb9c">if</span> <span style="color:#82fb9c">not</span> <span style="color:#ddf7ff">bg</span> <span style="color:#82fb9c">then</span>
+    <span style="color:#8084e5">error</span><span style="color:#718b98">(</span><span style="color:#7cf8f7">&#x27;palette has no surface&#x27;</span><span style="color:#718b98">)</span>
+  <span style="color:#82fb9c">end</span>
+  <span style="color:#82fb9c">return</span> <span style="color:#718b98">{</span> <span style="color:#5073f7">keyword</span> <span style="color:#718b98">=</span> <span style="color:#8084e5">spin</span><span style="color:#718b98">(</span><span style="color:#ddf7ff">roles</span><span style="color:#718b98">.</span><span style="color:#5073f7">primary</span><span style="color:#718b98">,</span> <span style="color:#7ca6f8">0</span><span style="color:#718b98">)</span> <span style="color:#718b98">}</span>
+<span style="color:#82fb9c">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">75</dd></div>
+    <div><dt>closest pair</dt><dd>fn/number</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>kanagawa</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #7e9cd8 " style="background:#7e9cd8"><b></b></i><i title="fn: #c0a36e " style="background:#c0a36e"><b></b></i><i title="string: #997dc4 " style="background:#997dc4"><b></b></i><i title="number: #c39440 " style="background:#c39440"><b></b></i><i title="type: #c176a4 " style="background:#c176a4"><b></b></i><i title="constant: #7ed8c2 " style="background:#7ed8c2"><b></b></i><i title="variable: #dcd7ba " style="background:#dcd7ba"><b></b></i><i title="operator: #9a9783 " style="background:#9a9783"><b></b></i><i title="comment: #727169 I" style="background:#727169"><b>I</b></i><i title="err: #cf6769 " style="background:#cf6769"><b></b></i></div>
+  <div class="code" style="background:#1f1f28"><pre><span style="color:#727169;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#7e9cd8">local</span> <span style="color:#dcd7ba">Ramp</span> <span style="color:#9a9783">=</span> <span style="color:#c0a36e">require</span><span style="color:#9a9783">(</span><span style="color:#997dc4">&#x27;ramp&#x27;</span><span style="color:#9a9783">)</span>
+<span style="color:#7e9cd8">local</span> <span style="color:#7ed8c2">MIN_CONTRAST</span> <span style="color:#9a9783">=</span> <span style="color:#c39440">4.5</span>
+
+<span style="color:#7e9cd8">function</span> <span style="color:#c0a36e">Ramp.build</span><span style="color:#9a9783">(</span><span style="color:#dcd7ba">roles</span><span style="color:#9a9783">)</span>
+  <span style="color:#7e9cd8">local</span> <span style="color:#dcd7ba">bg</span> <span style="color:#9a9783">=</span> <span style="color:#dcd7ba">roles</span><span style="color:#9a9783">.</span><span style="color:#c176a4">surface</span>
+  <span style="color:#7e9cd8">if</span> <span style="color:#7e9cd8">not</span> <span style="color:#dcd7ba">bg</span> <span style="color:#7e9cd8">then</span>
+    <span style="color:#c0a36e">error</span><span style="color:#9a9783">(</span><span style="color:#cf6769">&#x27;palette has no surface&#x27;</span><span style="color:#9a9783">)</span>
+  <span style="color:#7e9cd8">end</span>
+  <span style="color:#7e9cd8">return</span> <span style="color:#9a9783">{</span> <span style="color:#c176a4">keyword</span> <span style="color:#9a9783">=</span> <span style="color:#c0a36e">spin</span><span style="color:#9a9783">(</span><span style="color:#dcd7ba">roles</span><span style="color:#9a9783">.</span><span style="color:#c176a4">primary</span><span style="color:#9a9783">,</span> <span style="color:#c39440">0</span><span style="color:#9a9783">)</span> <span style="color:#9a9783">}</span>
+<span style="color:#7e9cd8">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">74</dd></div>
+    <div><dt>closest pair</dt><dd>fn/operator</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>kanagawa-lotus</h3>
+    <span class="chip chip--light">light</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #4767a1 " style="background:#4767a1"><b></b></i><i title="fn: #71316d " style="background:#71316d"><b></b></i><i title="string: #a64a69 " style="background:#a64a69"><b></b></i><i title="number: #8e2940 " style="background:#8e2940"><b></b></i><i title="type: #7d4d35 " style="background:#7d4d35"><b></b></i><i title="constant: #316f5e " style="background:#316f5e"><b></b></i><i title="variable: #545464 " style="background:#545464"><b></b></i><i title="operator: #486f2f " style="background:#486f2f"><b></b></i><i title="comment: #85847b I" style="background:#85847b"><b>I</b></i><i title="err: #bd3649 " style="background:#bd3649"><b></b></i></div>
+  <div class="code" style="background:#f2ecbc"><pre><span style="color:#85847b;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#4767a1">local</span> <span style="color:#545464">Ramp</span> <span style="color:#486f2f">=</span> <span style="color:#71316d">require</span><span style="color:#486f2f">(</span><span style="color:#a64a69">&#x27;ramp&#x27;</span><span style="color:#486f2f">)</span>
+<span style="color:#4767a1">local</span> <span style="color:#316f5e">MIN_CONTRAST</span> <span style="color:#486f2f">=</span> <span style="color:#8e2940">4.5</span>
+
+<span style="color:#4767a1">function</span> <span style="color:#71316d">Ramp.build</span><span style="color:#486f2f">(</span><span style="color:#545464">roles</span><span style="color:#486f2f">)</span>
+  <span style="color:#4767a1">local</span> <span style="color:#545464">bg</span> <span style="color:#486f2f">=</span> <span style="color:#545464">roles</span><span style="color:#486f2f">.</span><span style="color:#7d4d35">surface</span>
+  <span style="color:#4767a1">if</span> <span style="color:#4767a1">not</span> <span style="color:#545464">bg</span> <span style="color:#4767a1">then</span>
+    <span style="color:#71316d">error</span><span style="color:#486f2f">(</span><span style="color:#bd3649">&#x27;palette has no surface&#x27;</span><span style="color:#486f2f">)</span>
+  <span style="color:#4767a1">end</span>
+  <span style="color:#4767a1">return</span> <span style="color:#486f2f">{</span> <span style="color:#7d4d35">keyword</span> <span style="color:#486f2f">=</span> <span style="color:#71316d">spin</span><span style="color:#486f2f">(</span><span style="color:#545464">roles</span><span style="color:#486f2f">.</span><span style="color:#7d4d35">primary</span><span style="color:#486f2f">,</span> <span style="color:#8e2940">0</span><span style="color:#486f2f">)</span> <span style="color:#486f2f">}</span>
+<span style="color:#4767a1">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">73</dd></div>
+    <div><dt>closest pair</dt><dd>string/err</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>matte-black</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #e68e0d " style="background:#e68e0d"><b></b></i><i title="fn: #ffc107 " style="background:#ffc107"><b></b></i><i title="string: #e05252 " style="background:#e05252"><b></b></i><i title="number: #b97f0a " style="background:#b97f0a"><b></b></i><i title="type: #e0e052 " style="background:#e0e052"><b></b></i><i title="constant: #f2165d " style="background:#f2165d"><b></b></i><i title="variable: #bebebe " style="background:#bebebe"><b></b></i><i title="operator: #8c8c8c " style="background:#8c8c8c"><b></b></i><i title="comment: #7c5dba I" style="background:#7c5dba"><b>I</b></i><i title="err: #f32222 " style="background:#f32222"><b></b></i></div>
+  <div class="code" style="background:#121212"><pre><span style="color:#7c5dba;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#e68e0d">local</span> <span style="color:#bebebe">Ramp</span> <span style="color:#8c8c8c">=</span> <span style="color:#ffc107">require</span><span style="color:#8c8c8c">(</span><span style="color:#e05252">&#x27;ramp&#x27;</span><span style="color:#8c8c8c">)</span>
+<span style="color:#e68e0d">local</span> <span style="color:#f2165d">MIN_CONTRAST</span> <span style="color:#8c8c8c">=</span> <span style="color:#b97f0a">4.5</span>
+
+<span style="color:#e68e0d">function</span> <span style="color:#ffc107">Ramp.build</span><span style="color:#8c8c8c">(</span><span style="color:#bebebe">roles</span><span style="color:#8c8c8c">)</span>
+  <span style="color:#e68e0d">local</span> <span style="color:#bebebe">bg</span> <span style="color:#8c8c8c">=</span> <span style="color:#bebebe">roles</span><span style="color:#8c8c8c">.</span><span style="color:#e0e052">surface</span>
+  <span style="color:#e68e0d">if</span> <span style="color:#e68e0d">not</span> <span style="color:#bebebe">bg</span> <span style="color:#e68e0d">then</span>
+    <span style="color:#ffc107">error</span><span style="color:#8c8c8c">(</span><span style="color:#f32222">&#x27;palette has no surface&#x27;</span><span style="color:#8c8c8c">)</span>
+  <span style="color:#e68e0d">end</span>
+  <span style="color:#e68e0d">return</span> <span style="color:#8c8c8c">{</span> <span style="color:#e0e052">keyword</span> <span style="color:#8c8c8c">=</span> <span style="color:#ffc107">spin</span><span style="color:#8c8c8c">(</span><span style="color:#bebebe">roles</span><span style="color:#8c8c8c">.</span><span style="color:#e0e052">primary</span><span style="color:#8c8c8c">,</span> <span style="color:#b97f0a">0</span><span style="color:#8c8c8c">)</span> <span style="color:#8c8c8c">}</span>
+<span style="color:#e68e0d">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">81</dd></div>
+    <div><dt>closest pair</dt><dd>keyword/number</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>miasma</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #519e44 " style="background:#519e44"><b></b></i><i title="fn: #c7706b " style="background:#c7706b"><b></b></i><i title="string: #c9a554 " style="background:#c9a554"><b></b></i><i title="number: #7e9043 " style="background:#7e9043"><b></b></i><i title="type: #78c954 " style="background:#78c954"><b></b></i><i title="constant: #bf69bd " style="background:#bf69bd"><b></b></i><i title="variable: #c2c2b0 " style="background:#c2c2b0"><b></b></i><i title="operator: #98988b " style="background:#98988b"><b></b></i><i title="comment: #707070 I" style="background:#707070"><b>I</b></i><i title="err: #ac8250 " style="background:#ac8250"><b></b></i></div>
+  <div class="code" style="background:#222222"><pre><span style="color:#707070;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#519e44">local</span> <span style="color:#c2c2b0">Ramp</span> <span style="color:#98988b">=</span> <span style="color:#c7706b">require</span><span style="color:#98988b">(</span><span style="color:#c9a554">&#x27;ramp&#x27;</span><span style="color:#98988b">)</span>
+<span style="color:#519e44">local</span> <span style="color:#bf69bd">MIN_CONTRAST</span> <span style="color:#98988b">=</span> <span style="color:#7e9043">4.5</span>
+
+<span style="color:#519e44">function</span> <span style="color:#c7706b">Ramp.build</span><span style="color:#98988b">(</span><span style="color:#c2c2b0">roles</span><span style="color:#98988b">)</span>
+  <span style="color:#519e44">local</span> <span style="color:#c2c2b0">bg</span> <span style="color:#98988b">=</span> <span style="color:#c2c2b0">roles</span><span style="color:#98988b">.</span><span style="color:#78c954">surface</span>
+  <span style="color:#519e44">if</span> <span style="color:#519e44">not</span> <span style="color:#c2c2b0">bg</span> <span style="color:#519e44">then</span>
+    <span style="color:#c7706b">error</span><span style="color:#98988b">(</span><span style="color:#ac8250">&#x27;palette has no surface&#x27;</span><span style="color:#98988b">)</span>
+  <span style="color:#519e44">end</span>
+  <span style="color:#519e44">return</span> <span style="color:#98988b">{</span> <span style="color:#78c954">keyword</span> <span style="color:#98988b">=</span> <span style="color:#c7706b">spin</span><span style="color:#98988b">(</span><span style="color:#c2c2b0">roles</span><span style="color:#98988b">.</span><span style="color:#78c954">primary</span><span style="color:#98988b">,</span> <span style="color:#7e9043">0</span><span style="color:#98988b">)</span> <span style="color:#98988b">}</span>
+<span style="color:#519e44">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">70</dd></div>
+    <div><dt>closest pair</dt><dd>fn/err</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>osaka-jade</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #22c279 " style="background:#22c279"><b></b></i><i title="fn: #e2589c " style="background:#e2589c"><b></b></i><i title="string: #29d9ba " style="background:#29d9ba"><b></b></i><i title="number: #ffcf45 " style="background:#ffcf45"><b></b></i><i title="type: #667ce4 " style="background:#667ce4"><b></b></i><i title="constant: #5ec222 " style="background:#5ec222"><b></b></i><i title="variable: #c1c497 " style="background:#c1c497"><b></b></i><i title="operator: #8f9575 " style="background:#8f9575"><b></b></i><i title="comment: #586e60 I" style="background:#586e60"><b>I</b></i><i title="err: #ff5345 " style="background:#ff5345"><b></b></i></div>
+  <div class="code" style="background:#111c18"><pre><span style="color:#586e60;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#22c279">local</span> <span style="color:#c1c497">Ramp</span> <span style="color:#8f9575">=</span> <span style="color:#e2589c">require</span><span style="color:#8f9575">(</span><span style="color:#29d9ba">&#x27;ramp&#x27;</span><span style="color:#8f9575">)</span>
+<span style="color:#22c279">local</span> <span style="color:#5ec222">MIN_CONTRAST</span> <span style="color:#8f9575">=</span> <span style="color:#ffcf45">4.5</span>
+
+<span style="color:#22c279">function</span> <span style="color:#e2589c">Ramp.build</span><span style="color:#8f9575">(</span><span style="color:#c1c497">roles</span><span style="color:#8f9575">)</span>
+  <span style="color:#22c279">local</span> <span style="color:#c1c497">bg</span> <span style="color:#8f9575">=</span> <span style="color:#c1c497">roles</span><span style="color:#8f9575">.</span><span style="color:#667ce4">surface</span>
+  <span style="color:#22c279">if</span> <span style="color:#22c279">not</span> <span style="color:#c1c497">bg</span> <span style="color:#22c279">then</span>
+    <span style="color:#e2589c">error</span><span style="color:#8f9575">(</span><span style="color:#ff5345">&#x27;palette has no surface&#x27;</span><span style="color:#8f9575">)</span>
+  <span style="color:#22c279">end</span>
+  <span style="color:#22c279">return</span> <span style="color:#8f9575">{</span> <span style="color:#667ce4">keyword</span> <span style="color:#8f9575">=</span> <span style="color:#e2589c">spin</span><span style="color:#8f9575">(</span><span style="color:#c1c497">roles</span><span style="color:#8f9575">.</span><span style="color:#667ce4">primary</span><span style="color:#8f9575">,</span> <span style="color:#ffcf45">0</span><span style="color:#8f9575">)</span> <span style="color:#8f9575">}</span>
+<span style="color:#22c279">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">119</dd></div>
+    <div><dt>closest pair</dt><dd>keyword/string</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>ristretto</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #f38d70 " style="background:#f38d70"><b></b></i><i title="fn: #f9cc6c " style="background:#f9cc6c"><b></b></i><i title="string: #a5a6ee " style="background:#a5a6ee"><b></b></i><i title="number: #dafd68 " style="background:#dafd68"><b></b></i><i title="type: #eda5ee " style="background:#eda5ee"><b></b></i><i title="constant: #f370cb " style="background:#f370cb"><b></b></i><i title="variable: #e6d9db " style="background:#e6d9db"><b></b></i><i title="operator: #a79b9c " style="background:#a79b9c"><b></b></i><i title="comment: #bc7762 I" style="background:#bc7762"><b>I</b></i><i title="err: #fd6883 " style="background:#fd6883"><b></b></i></div>
+  <div class="code" style="background:#2c2525"><pre><span style="color:#bc7762;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#f38d70">local</span> <span style="color:#e6d9db">Ramp</span> <span style="color:#a79b9c">=</span> <span style="color:#f9cc6c">require</span><span style="color:#a79b9c">(</span><span style="color:#a5a6ee">&#x27;ramp&#x27;</span><span style="color:#a79b9c">)</span>
+<span style="color:#f38d70">local</span> <span style="color:#f370cb">MIN_CONTRAST</span> <span style="color:#a79b9c">=</span> <span style="color:#dafd68">4.5</span>
+
+<span style="color:#f38d70">function</span> <span style="color:#f9cc6c">Ramp.build</span><span style="color:#a79b9c">(</span><span style="color:#e6d9db">roles</span><span style="color:#a79b9c">)</span>
+  <span style="color:#f38d70">local</span> <span style="color:#e6d9db">bg</span> <span style="color:#a79b9c">=</span> <span style="color:#e6d9db">roles</span><span style="color:#a79b9c">.</span><span style="color:#eda5ee">surface</span>
+  <span style="color:#f38d70">if</span> <span style="color:#f38d70">not</span> <span style="color:#e6d9db">bg</span> <span style="color:#f38d70">then</span>
+    <span style="color:#f9cc6c">error</span><span style="color:#a79b9c">(</span><span style="color:#fd6883">&#x27;palette has no surface&#x27;</span><span style="color:#a79b9c">)</span>
+  <span style="color:#f38d70">end</span>
+  <span style="color:#f38d70">return</span> <span style="color:#a79b9c">{</span> <span style="color:#eda5ee">keyword</span> <span style="color:#a79b9c">=</span> <span style="color:#f9cc6c">spin</span><span style="color:#a79b9c">(</span><span style="color:#e6d9db">roles</span><span style="color:#a79b9c">.</span><span style="color:#eda5ee">primary</span><span style="color:#a79b9c">,</span> <span style="color:#dafd68">0</span><span style="color:#a79b9c">)</span> <span style="color:#a79b9c">}</span>
+<span style="color:#f38d70">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">81</dd></div>
+    <div><dt>closest pair</dt><dd>keyword/err</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>rosepine</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #eecbb7 " style="background:#eecbb7"><b></b></i><i title="fn: #f6c177 " style="background:#f6c177"><b></b></i><i title="string: #c4a5e9 " style="background:#c4a5e9"><b></b></i><i title="number: #eb9f6f " style="background:#eb9f6f"><b></b></i><i title="type: #d5e9a5 " style="background:#d5e9a5"><b></b></i><i title="constant: #eeb7e7 " style="background:#eeb7e7"><b></b></i><i title="variable: #e0def4 " style="background:#e0def4"><b></b></i><i title="operator: #918daa " style="background:#918daa"><b></b></i><i title="comment: #696584 I" style="background:#696584"><b>I</b></i><i title="err: #eb6f92 " style="background:#eb6f92"><b></b></i></div>
+  <div class="code" style="background:#191724"><pre><span style="color:#696584;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#eecbb7">local</span> <span style="color:#e0def4">Ramp</span> <span style="color:#918daa">=</span> <span style="color:#f6c177">require</span><span style="color:#918daa">(</span><span style="color:#c4a5e9">&#x27;ramp&#x27;</span><span style="color:#918daa">)</span>
+<span style="color:#eecbb7">local</span> <span style="color:#eeb7e7">MIN_CONTRAST</span> <span style="color:#918daa">=</span> <span style="color:#eb9f6f">4.5</span>
+
+<span style="color:#eecbb7">function</span> <span style="color:#f6c177">Ramp.build</span><span style="color:#918daa">(</span><span style="color:#e0def4">roles</span><span style="color:#918daa">)</span>
+  <span style="color:#eecbb7">local</span> <span style="color:#e0def4">bg</span> <span style="color:#918daa">=</span> <span style="color:#e0def4">roles</span><span style="color:#918daa">.</span><span style="color:#d5e9a5">surface</span>
+  <span style="color:#eecbb7">if</span> <span style="color:#eecbb7">not</span> <span style="color:#e0def4">bg</span> <span style="color:#eecbb7">then</span>
+    <span style="color:#f6c177">error</span><span style="color:#918daa">(</span><span style="color:#eb6f92">&#x27;palette has no surface&#x27;</span><span style="color:#918daa">)</span>
+  <span style="color:#eecbb7">end</span>
+  <span style="color:#eecbb7">return</span> <span style="color:#918daa">{</span> <span style="color:#d5e9a5">keyword</span> <span style="color:#918daa">=</span> <span style="color:#f6c177">spin</span><span style="color:#918daa">(</span><span style="color:#e0def4">roles</span><span style="color:#918daa">.</span><span style="color:#d5e9a5">primary</span><span style="color:#918daa">,</span> <span style="color:#eb9f6f">0</span><span style="color:#918daa">)</span> <span style="color:#918daa">}</span>
+<span style="color:#eecbb7">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">71</dd></div>
+    <div><dt>closest pair</dt><dd>fn/number</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>rosepine-dawn</h3>
+    <span class="chip chip--light">light</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #2c7c21 " style="background:#2c7c21"><b></b></i><i title="fn: #796f0c " style="background:#796f0c"><b></b></i><i title="string: #894bce " style="background:#894bce"><b></b></i><i title="number: #a35a2d " style="background:#a35a2d"><b></b></i><i title="type: #3639c5 " style="background:#3639c5"><b></b></i><i title="constant: #bc33aa " style="background:#bc33aa"><b></b></i><i title="variable: #464261 " style="background:#464261"><b></b></i><i title="operator: #64607b " style="background:#64607b"><b></b></i><i title="comment: #938a91 I" style="background:#938a91"><b>I</b></i><i title="err: #c93a62 " style="background:#c93a62"><b></b></i></div>
+  <div class="code" style="background:#faf4ed"><pre><span style="color:#938a91;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#2c7c21">local</span> <span style="color:#464261">Ramp</span> <span style="color:#64607b">=</span> <span style="color:#796f0c">require</span><span style="color:#64607b">(</span><span style="color:#894bce">&#x27;ramp&#x27;</span><span style="color:#64607b">)</span>
+<span style="color:#2c7c21">local</span> <span style="color:#bc33aa">MIN_CONTRAST</span> <span style="color:#64607b">=</span> <span style="color:#a35a2d">4.5</span>
+
+<span style="color:#2c7c21">function</span> <span style="color:#796f0c">Ramp.build</span><span style="color:#64607b">(</span><span style="color:#464261">roles</span><span style="color:#64607b">)</span>
+  <span style="color:#2c7c21">local</span> <span style="color:#464261">bg</span> <span style="color:#64607b">=</span> <span style="color:#464261">roles</span><span style="color:#64607b">.</span><span style="color:#3639c5">surface</span>
+  <span style="color:#2c7c21">if</span> <span style="color:#2c7c21">not</span> <span style="color:#464261">bg</span> <span style="color:#2c7c21">then</span>
+    <span style="color:#796f0c">error</span><span style="color:#64607b">(</span><span style="color:#c93a62">&#x27;palette has no surface&#x27;</span><span style="color:#64607b">)</span>
+  <span style="color:#2c7c21">end</span>
+  <span style="color:#2c7c21">return</span> <span style="color:#64607b">{</span> <span style="color:#3639c5">keyword</span> <span style="color:#64607b">=</span> <span style="color:#796f0c">spin</span><span style="color:#64607b">(</span><span style="color:#464261">roles</span><span style="color:#64607b">.</span><span style="color:#3639c5">primary</span><span style="color:#64607b">,</span> <span style="color:#a35a2d">0</span><span style="color:#64607b">)</span> <span style="color:#64607b">}</span>
+<span style="color:#2c7c21">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">87</dd></div>
+    <div><dt>closest pair</dt><dd>variable/operator</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>tokyonight</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #7aa2f7 " style="background:#7aa2f7"><b></b></i><i title="fn: #7dcfff " style="background:#7dcfff"><b></b></i><i title="string: #9fe157 " style="background:#9fe157"><b></b></i><i title="number: #f7b476 " style="background:#f7b476"><b></b></i><i title="type: #57e199 " style="background:#57e199"><b></b></i><i title="constant: #7af7d9 " style="background:#7af7d9"><b></b></i><i title="variable: #c0caf5 " style="background:#c0caf5"><b></b></i><i title="operator: #8691c5 " style="background:#8691c5"><b></b></i><i title="comment: #5c6694 I" style="background:#5c6694"><b>I</b></i><i title="err: #f7768e " style="background:#f7768e"><b></b></i></div>
+  <div class="code" style="background:#1a1b26"><pre><span style="color:#5c6694;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#7aa2f7">local</span> <span style="color:#c0caf5">Ramp</span> <span style="color:#8691c5">=</span> <span style="color:#7dcfff">require</span><span style="color:#8691c5">(</span><span style="color:#9fe157">&#x27;ramp&#x27;</span><span style="color:#8691c5">)</span>
+<span style="color:#7aa2f7">local</span> <span style="color:#7af7d9">MIN_CONTRAST</span> <span style="color:#8691c5">=</span> <span style="color:#f7b476">4.5</span>
+
+<span style="color:#7aa2f7">function</span> <span style="color:#7dcfff">Ramp.build</span><span style="color:#8691c5">(</span><span style="color:#c0caf5">roles</span><span style="color:#8691c5">)</span>
+  <span style="color:#7aa2f7">local</span> <span style="color:#c0caf5">bg</span> <span style="color:#8691c5">=</span> <span style="color:#c0caf5">roles</span><span style="color:#8691c5">.</span><span style="color:#57e199">surface</span>
+  <span style="color:#7aa2f7">if</span> <span style="color:#7aa2f7">not</span> <span style="color:#c0caf5">bg</span> <span style="color:#7aa2f7">then</span>
+    <span style="color:#7dcfff">error</span><span style="color:#8691c5">(</span><span style="color:#f7768e">&#x27;palette has no surface&#x27;</span><span style="color:#8691c5">)</span>
+  <span style="color:#7aa2f7">end</span>
+  <span style="color:#7aa2f7">return</span> <span style="color:#8691c5">{</span> <span style="color:#57e199">keyword</span> <span style="color:#8691c5">=</span> <span style="color:#7dcfff">spin</span><span style="color:#8691c5">(</span><span style="color:#c0caf5">roles</span><span style="color:#8691c5">.</span><span style="color:#57e199">primary</span><span style="color:#8691c5">,</span> <span style="color:#f7b476">0</span><span style="color:#8691c5">)</span> <span style="color:#8691c5">}</span>
+<span style="color:#7aa2f7">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">88</dd></div>
+    <div><dt>closest pair</dt><dd>keyword/operator</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>tokyonight-day</h3>
+    <span class="chip chip--light">light</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #1524c5 " style="background:#1524c5"><b></b></i><i title="fn: #00698d " style="background:#00698d"><b></b></i><i title="string: #3f6912 " style="background:#3f6912"><b></b></i><i title="number: #a74308 " style="background:#a74308"><b></b></i><i title="type: #147122 " style="background:#147122"><b></b></i><i title="constant: #0c7250 " style="background:#0c7250"><b></b></i><i title="variable: #3760bf " style="background:#3760bf"><b></b></i><i title="operator: #46558b " style="background:#46558b"><b></b></i><i title="comment: #7f8188 I" style="background:#7f8188"><b>I</b></i><i title="err: #c40940 " style="background:#c40940"><b></b></i></div>
+  <div class="code" style="background:#e1e2e7"><pre><span style="color:#7f8188;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#1524c5">local</span> <span style="color:#3760bf">Ramp</span> <span style="color:#46558b">=</span> <span style="color:#00698d">require</span><span style="color:#46558b">(</span><span style="color:#3f6912">&#x27;ramp&#x27;</span><span style="color:#46558b">)</span>
+<span style="color:#1524c5">local</span> <span style="color:#0c7250">MIN_CONTRAST</span> <span style="color:#46558b">=</span> <span style="color:#a74308">4.5</span>
+
+<span style="color:#1524c5">function</span> <span style="color:#00698d">Ramp.build</span><span style="color:#46558b">(</span><span style="color:#3760bf">roles</span><span style="color:#46558b">)</span>
+  <span style="color:#1524c5">local</span> <span style="color:#3760bf">bg</span> <span style="color:#46558b">=</span> <span style="color:#3760bf">roles</span><span style="color:#46558b">.</span><span style="color:#147122">surface</span>
+  <span style="color:#1524c5">if</span> <span style="color:#1524c5">not</span> <span style="color:#3760bf">bg</span> <span style="color:#1524c5">then</span>
+    <span style="color:#00698d">error</span><span style="color:#46558b">(</span><span style="color:#c40940">&#x27;palette has no surface&#x27;</span><span style="color:#46558b">)</span>
+  <span style="color:#1524c5">end</span>
+  <span style="color:#1524c5">return</span> <span style="color:#46558b">{</span> <span style="color:#147122">keyword</span> <span style="color:#46558b">=</span> <span style="color:#00698d">spin</span><span style="color:#46558b">(</span><span style="color:#3760bf">roles</span><span style="color:#46558b">.</span><span style="color:#147122">primary</span><span style="color:#46558b">,</span> <span style="color:#a74308">0</span><span style="color:#46558b">)</span> <span style="color:#46558b">}</span>
+<span style="color:#1524c5">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">71</dd></div>
+    <div><dt>closest pair</dt><dd>string/type</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card">
+  <header class="card__head">
+    <h3>vantablack</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--ok">legible</span>
+  </header>
+  <div class="swatches"><i title="keyword: #f2f2f2 B" style="background:#f2f2f2"><b>B</b></i><i title="fn: #f2f2f2 BI" style="background:#f2f2f2"><b>BI</b></i><i title="string: #a1a1a1 I" style="background:#a1a1a1"><b>I</b></i><i title="number: #a1a1a1 B" style="background:#a1a1a1"><b>B</b></i><i title="type: #f2f2f2 I" style="background:#f2f2f2"><b>I</b></i><i title="constant: #a1a1a1 BI" style="background:#a1a1a1"><b>BI</b></i><i title="variable: #a1a1a1 " style="background:#a1a1a1"><b></b></i><i title="operator: #636363 " style="background:#636363"><b></b></i><i title="comment: #636363 I" style="background:#636363"><b>I</b></i><i title="err: #f2f2f2 " style="background:#f2f2f2"><b></b></i></div>
+  <div class="code" style="background:#000000"><pre><span style="color:#636363;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#f2f2f2;font-weight:600">local</span> <span style="color:#a1a1a1">Ramp</span> <span style="color:#636363">=</span> <span style="color:#f2f2f2;font-weight:600;font-style:italic">require</span><span style="color:#636363">(</span><span style="color:#a1a1a1;font-style:italic">&#x27;ramp&#x27;</span><span style="color:#636363">)</span>
+<span style="color:#f2f2f2;font-weight:600">local</span> <span style="color:#a1a1a1;font-weight:600;font-style:italic">MIN_CONTRAST</span> <span style="color:#636363">=</span> <span style="color:#a1a1a1;font-weight:600">4.5</span>
+
+<span style="color:#f2f2f2;font-weight:600">function</span> <span style="color:#f2f2f2;font-weight:600;font-style:italic">Ramp.build</span><span style="color:#636363">(</span><span style="color:#a1a1a1">roles</span><span style="color:#636363">)</span>
+  <span style="color:#f2f2f2;font-weight:600">local</span> <span style="color:#a1a1a1">bg</span> <span style="color:#636363">=</span> <span style="color:#a1a1a1">roles</span><span style="color:#636363">.</span><span style="color:#f2f2f2;font-style:italic">surface</span>
+  <span style="color:#f2f2f2;font-weight:600">if</span> <span style="color:#f2f2f2;font-weight:600">not</span> <span style="color:#a1a1a1">bg</span> <span style="color:#f2f2f2;font-weight:600">then</span>
+    <span style="color:#f2f2f2;font-weight:600;font-style:italic">error</span><span style="color:#636363">(</span><span style="color:#f2f2f2">&#x27;palette has no surface&#x27;</span><span style="color:#636363">)</span>
+  <span style="color:#f2f2f2;font-weight:600">end</span>
+  <span style="color:#f2f2f2;font-weight:600">return</span> <span style="color:#636363">{</span> <span style="color:#f2f2f2;font-style:italic">keyword</span> <span style="color:#636363">=</span> <span style="color:#f2f2f2;font-weight:600;font-style:italic">spin</span><span style="color:#636363">(</span><span style="color:#a1a1a1">roles</span><span style="color:#636363">.</span><span style="color:#f2f2f2;font-style:italic">primary</span><span style="color:#636363">,</span> <span style="color:#a1a1a1;font-weight:600">0</span><span style="color:#636363">)</span> <span style="color:#636363">}</span>
+<span style="color:#f2f2f2;font-weight:600">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="">186</dd></div>
+    <div><dt>closest pair</dt><dd>string/comment</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article>
+<article class="card card--fail">
+  <header class="card__head">
+    <h3>nord</h3>
+    <span class="chip chip--dark">dark</span>
+    <span class="verdict verdict--no">too close</span>
+  </header>
+  <div class="swatches"><i title="keyword: #88d0c8 " style="background:#88d0c8"><b></b></i><i title="fn: #a2c586 " style="background:#a2c586"><b></b></i><i title="string: #c98ebe " style="background:#c98ebe"><b></b></i><i title="number: #bf9761 " style="background:#bf9761"><b></b></i><i title="type: #cabf82 " style="background:#cabf82"><b></b></i><i title="constant: #88d09e " style="background:#88d09e"><b></b></i><i title="variable: #eceff4 " style="background:#eceff4"><b></b></i><i title="operator: #9dacc8 " style="background:#9dacc8"><b></b></i><i title="comment: #6f7d98 I" style="background:#6f7d98"><b>I</b></i><i title="err: #d18d93 " style="background:#d18d93"><b></b></i></div>
+  <div class="code" style="background:#2e3440"><pre><span style="color:#6f7d98;font-style:italic">-- derive a syntax ramp from the theme palette</span>
+<span style="color:#88d0c8">local</span> <span style="color:#eceff4">Ramp</span> <span style="color:#9dacc8">=</span> <span style="color:#a2c586">require</span><span style="color:#9dacc8">(</span><span style="color:#c98ebe">&#x27;ramp&#x27;</span><span style="color:#9dacc8">)</span>
+<span style="color:#88d0c8">local</span> <span style="color:#88d09e">MIN_CONTRAST</span> <span style="color:#9dacc8">=</span> <span style="color:#bf9761">4.5</span>
+
+<span style="color:#88d0c8">function</span> <span style="color:#a2c586">Ramp.build</span><span style="color:#9dacc8">(</span><span style="color:#eceff4">roles</span><span style="color:#9dacc8">)</span>
+  <span style="color:#88d0c8">local</span> <span style="color:#eceff4">bg</span> <span style="color:#9dacc8">=</span> <span style="color:#eceff4">roles</span><span style="color:#9dacc8">.</span><span style="color:#cabf82">surface</span>
+  <span style="color:#88d0c8">if</span> <span style="color:#88d0c8">not</span> <span style="color:#eceff4">bg</span> <span style="color:#88d0c8">then</span>
+    <span style="color:#a2c586">error</span><span style="color:#9dacc8">(</span><span style="color:#d18d93">&#x27;palette has no surface&#x27;</span><span style="color:#9dacc8">)</span>
+  <span style="color:#88d0c8">end</span>
+  <span style="color:#88d0c8">return</span> <span style="color:#9dacc8">{</span> <span style="color:#cabf82">keyword</span> <span style="color:#9dacc8">=</span> <span style="color:#a2c586">spin</span><span style="color:#9dacc8">(</span><span style="color:#eceff4">roles</span><span style="color:#9dacc8">.</span><span style="color:#cabf82">primary</span><span style="color:#9dacc8">,</span> <span style="color:#bf9761">0</span><span style="color:#9dacc8">)</span> <span style="color:#9dacc8">}</span>
+<span style="color:#88d0c8">end</span></pre></div>
+  <dl class="metrics">
+    <div><dt>separation</dt><dd class="bad">60</dd></div>
+    <div><dt>closest pair</dt><dd>fn/constant</dd></div>
+    <div><dt>contrast floor</dt><dd>met</dd></div>
+  </dl>
+</article></div>
+
+  <footer>Each sample is painted on its own palette&rsquo;s background, so these colours ignore
+  your light/dark setting &mdash; that is the point. Swatch strips are marked <strong>B</strong>
+  for bold and <strong>I</strong> for italic.
+  <strong>vantablack</strong> stays deliberately monochrome: it has no hue to spin, so three
+  brightness tiers carry the broad strokes and bold/italic separate the slots that share one.
+  <strong>nord</strong> is the one palette still under the mark &mdash; it is low-contrast and
+  tightly hued by design, and forcing saturation into it would cost the same character that
+  keeping vantablack grey preserves.</footer>
+</div>

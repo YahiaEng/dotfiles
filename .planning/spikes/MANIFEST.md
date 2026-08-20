@@ -35,6 +35,20 @@ template. Exploration and constraints:
   No `--listen` flag and no `serverstart()` in the config — that path is the
   default. Tolerate a non-zero exit per socket: sockets from crashed instances
   linger but fail in ~4ms, so they cannot hang the switch.
+- The colorscheme derives its syntax ramp **in Lua at load time** (spike 003).
+  matugen writes only the ~9 role colours and never needs to know about syntax
+  slots — templates cannot do colour math, Lua can.
+- **Monochrome themes stay monochrome** (operator decision, 2026-08-20).
+  Palettes with max role saturation < 0.20 are separated by brightness tiers
+  plus **bold/italic**, never by injected hue — forcing saturation into
+  vantablack would destroy the reason someone picks it. Every slot gets a
+  unique (tier, attribute) pair, and slots sharing an attribute sit at least a
+  tier apart.
+- Comments render **italic** in every palette, by convention.
+- Any colour-separation threshold must be **calibrated against a real scheme**,
+  never guessed (spike 003). The bar of 70 comes from gruvbox's tightest real
+  pair scoring 87; an earlier invented bar of 40 passed palettes that were not
+  actually legible.
 - Config style: modular folders, real lazy-loading, short plain-English
   comments. No plan IDs, requirement codes or workflow jargon in config files —
   the operator reads and extends these by hand.
@@ -45,4 +59,4 @@ template. Exploration and constraints:
 |---|------|------|------|-----------|---------|------|
 | 001 | themed-nvim | highlight-repaint-completeness | standard | Re-applying a colorscheme repaints plain, treesitter and `@lsp.*` groups with none stale | ✓ VALIDATED (requires `highlight clear`) | nvim, theming, highlight, treesitter, lsp, live-reload |
 | 002 | themed-nvim | external-drive-and-socket | standard | An external script can find a running nvim and make it re-apply its colorscheme | ✓ VALIDATED | nvim, ipc, socket, reload |
-| 003 | themed-nvim | lua-ramp-from-four-hues | standard | Lua can derive 8+ distinguishable syntax colours from the 9-role matugen palette | PENDING | nvim, theming, palette, colour |
+| 003 | themed-nvim | lua-ramp-from-four-hues | standard | Lua can derive 8+ distinguishable syntax colours from the 9-role matugen palette | ✓ VALIDATED (19/20; nord soft) | nvim, theming, palette, colour, contrast |
