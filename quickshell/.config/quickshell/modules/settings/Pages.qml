@@ -59,6 +59,31 @@ Item {
             root._focusableRows[i].rowFocused = root.contentFocused && i === root.contentRowIdx;
     }
 
+    // Scroll-into-view (Rule 2 follow-on, discovered verifying the
+    // row-hover fix with grim+PIL: SliderRow's ring measured with
+    // strong contrast, but only its extreme bottom-right corner sliver
+    // fell inside the capture — the row itself was scrolled past the
+    // Flickable's bottom edge. A `rowFocused` ring nobody can see is no
+    // fix at all.) Maps the focused row's position into the page's own
+    // Flickable content-item space (PageBase's `flickable` alias) and
+    // nudges `contentY` only as far as needed to bring the row fully
+    // into view — never re-centers, so a row already visible does not
+    // cause an unnecessary jump.
+    function _scrollRowIntoView() {
+        if (!root.contentFocused || root.contentRowIdx < 0 || root.contentRowIdx >= root._focusableRows.length)
+            return;
+        if (!root.currentItem || !root.currentItem.flickable)
+            return;
+        var flick = root.currentItem.flickable;
+        var row = root._focusableRows[root.contentRowIdx];
+        var rowTop = row.mapToItem(flick.contentItem, 0, 0).y;
+        var rowBottom = rowTop + row.height;
+        if (rowTop < flick.contentY)
+            flick.contentY = Math.max(0, rowTop);
+        else if (rowBottom > flick.contentY + flick.height)
+            flick.contentY = Math.min(Math.max(0, flick.contentHeight - flick.height), rowBottom - flick.height);
+    }
+
     // Right: enters the content pane at its first row. No-op (stays on
     // the rail) if the current page has no focusable rows at all, rather
     // than focusing nothing visibly.
@@ -68,6 +93,7 @@ Item {
         root.contentFocused = true;
         root.contentRowIdx = Math.max(0, Math.min(root.contentRowIdx, root._focusableRows.length - 1));
         root._applyRowFocusVisual();
+        root._scrollRowIntoView();
     }
 
     // Left: returns focus to the rail. `contentRowIdx` is deliberately
@@ -84,6 +110,7 @@ Item {
             return;
         root.contentRowIdx = Math.max(0, Math.min(root._focusableRows.length - 1, root.contentRowIdx + delta));
         root._applyRowFocusVisual();
+        root._scrollRowIntoView();
     }
 
     // Declared ABOVE every construction-time caller in this file (MEMORY

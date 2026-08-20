@@ -42,11 +42,33 @@ Control {
     implicitHeight: 56
     padding: Design.spacingMd
 
+    // ── Row hover fix (operator burst-screenshot + PIL pixel-sample,
+    //    fourth live-pass) — the wrong element was being fixed for three
+    //    rounds: the operator's "menu items" report was ALWAYS about the
+    //    page rows (this file, ToggleRow/SliderRow/NavRow), not the
+    //    dropdown popup those rounds all targeted. MEASURED: the page
+    //    pane paints `Colours.surfaceVariant` (Settings.qml's own window
+    //    background) and this row's own hover state had nothing to show
+    //    against it — there was no row-level hover indicator here at
+    //    all before this fix (only `dropdownPill`'s own click MouseArea
+    //    existed, scoped to the pill, not the row). A `HoverHandler` is
+    //    the right tool: passive, non-exclusive, does not compete with
+    //    `dropdownPill`'s own MouseArea underneath it for click/hover
+    //    delivery the way a second whole-row MouseArea would.
+    //    Coexistence with keyboard focus, decided deliberately: the ring
+    //    shows when EITHER `rowFocused` (keyboard) OR hover is true —
+    //    one shared visual for "this is the row you'd act on next,"
+    //    matching the operator's own request that hover LOOK LIKE
+    //    keyboard selection instead of inventing a second style.
+    HoverHandler {
+        id: rowHover
+    }
+
     background: Rectangle {
         radius: 12
         color: "transparent"
         border.width: 2
-        border.color: root.rowFocused ? Colours.primary : "transparent"
+        border.color: (root.rowFocused || rowHover.hovered) ? Colours.primary : "transparent"
 
         Behavior on border.color {
             enabled: Motion.motionEnabled
@@ -87,6 +109,12 @@ Control {
             }
         }
 
+        // dropdownPill contrast fix (same live-pass, same root cause):
+        // MEASURED via PIL pixel-sample — `Colours.surfaceVariant` fill
+        // on a `Colours.surfaceVariant` pane rendered as bare text, zero
+        // visible pill boundary. `Colours.outline` border added, the
+        // SAME role/width `optionsMenu`'s own popup background below
+        // already uses against this identical pane color.
         Rectangle {
             id: dropdownPill
             anchors.right: parent.right
@@ -95,6 +123,8 @@ Control {
             implicitHeight: 36
             radius: height / 2
             color: Colours.surfaceVariant
+            border.width: 1
+            border.color: Colours.outline
 
             Behavior on color {
                 enabled: Motion.motionEnabled

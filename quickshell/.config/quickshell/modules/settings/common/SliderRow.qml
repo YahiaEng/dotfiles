@@ -30,11 +30,23 @@ Control {
     implicitHeight: 64
     padding: Design.spacingMd
 
+    // Row hover (operator burst-screenshot + PIL pixel-sample, fourth
+    // live-pass): this row had no row-level hover indicator at all
+    // before this fix. `HoverHandler` is passive/non-exclusive, so it
+    // does not compete with the `Slider`'s own drag/click handling.
+    // Coexistence with keyboard focus, decided deliberately: the ring
+    // shows when EITHER `rowFocused` (keyboard) OR hover is true — one
+    // shared visual, matching the operator's own request that hover
+    // look like keyboard selection.
+    HoverHandler {
+        id: rowHover
+    }
+
     background: Rectangle {
         radius: 12
         color: "transparent"
         border.width: 2
-        border.color: root.rowFocused ? Colours.primary : "transparent"
+        border.color: (root.rowFocused || rowHover.hovered) ? Colours.primary : "transparent"
 
         Behavior on border.color {
             enabled: Motion.motionEnabled
@@ -87,6 +99,11 @@ Control {
             stepSize: root.stepSize
             onMoved: root.moved(slider.value)
 
+            // Same sweep, same root cause: the unfilled track was
+            // `surfaceVariant` on a `surfaceVariant` pane — invisible
+            // where the filled (primary) portion doesn't cover it.
+            // Outline border added — same role every other fix in this
+            // wave uses against this identical pane color.
             background: Rectangle {
                 x: slider.leftPadding
                 y: slider.topPadding + slider.availableHeight / 2 - height / 2
@@ -94,6 +111,8 @@ Control {
                 height: 4
                 radius: 2
                 color: Colours.surfaceVariant
+                border.width: 1
+                border.color: Colours.outline
 
                 Rectangle {
                     width: slider.visualPosition * parent.width

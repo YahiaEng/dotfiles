@@ -14,6 +14,14 @@ Item {
     required property SettingsState sState
     default property alias contentChild: bodyColumn.data
 
+    // Exposed so Pages.qml can scroll a keyboard-focused row into view
+    // (fourth live-pass follow-on, Rule 2 — discovered while verifying
+    // the row-hover fix via grim+PIL: a row past the fold gets its
+    // `rowFocused` ring set correctly, but nothing ever moved the
+    // Flickable to show it, so the very fix being verified was
+    // invisible for any row that didn't already fit on screen).
+    property alias flickable: bodyFlick
+
     Column {
         id: headerColumn
         anchors.top: parent.top

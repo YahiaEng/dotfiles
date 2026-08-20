@@ -18,7 +18,7 @@ Control {
     // Two-pane keyboard focus — see Pages.qml's header for the full
     // design; ToggleRow.qml's own header has the geometry-stability
     // reasoning for the border-color-only focus ring (merged below into
-    // this row's existing hover-driven `background`).
+    // this row's `background`).
     readonly property bool focusable: true
     property bool rowFocused: false
 
@@ -66,20 +66,24 @@ Control {
         }
     }
 
+    // Row hover fix (operator burst-screenshot + PIL pixel-sample,
+    // fourth live-pass) — MEASURED root cause, not the popup this
+    // module's prior three fix rounds all targeted: the page pane
+    // paints `Colours.surfaceVariant` (Settings.qml's own window
+    // background) and this row's OWN hover fill was the SAME
+    // `Colours.surfaceVariant` — invisible by construction, confirmed
+    // by pixel sample (fill == pane, identical RGB). Replaced with the
+    // same border-ring language every other row in this module uses.
+    // Coexistence with keyboard focus, decided deliberately: the ring
+    // shows when EITHER `rowFocused` (keyboard) OR `hoverArea.containsMouse`
+    // is true — one shared visual, matching the operator's own request
+    // that hover look like keyboard selection rather than a second style.
     background: Rectangle {
-        color: hoverArea.containsMouse ? Colours.surfaceVariant : "transparent"
+        color: "transparent"
         radius: 12
         border.width: 2
-        border.color: root.rowFocused ? Colours.primary : "transparent"
+        border.color: (root.rowFocused || hoverArea.containsMouse) ? Colours.primary : "transparent"
 
-        Behavior on color {
-            enabled: Motion.motionEnabled
-            ColorAnimation {
-                duration: Motion.standardDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
-            }
-        }
         Behavior on border.color {
             enabled: Motion.motionEnabled
             ColorAnimation {

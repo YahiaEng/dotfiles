@@ -37,11 +37,25 @@ Control {
     // Width stays a constant 2px always; only the color's alpha/hue
     // toggles, so the row's own footprint never moves under a
     // stationary cursor or a focus change.
+    //
+    // Row hover (operator burst-screenshot + PIL pixel-sample, fourth
+    // live-pass): this row never had any row-level hover indicator at
+    // all before this fix — only `switchPill`'s own click MouseArea
+    // existed, scoped to the pill. A `HoverHandler` is passive/non-
+    // exclusive, so it does not compete with that MouseArea for
+    // hover/click delivery. Coexistence with keyboard focus, decided
+    // deliberately: the ring shows when EITHER `rowFocused` (keyboard)
+    // OR hover is true — one shared visual, matching the operator's own
+    // request that hover look like keyboard selection.
+    HoverHandler {
+        id: rowHover
+    }
+
     background: Rectangle {
         radius: 12
         color: "transparent"
         border.width: 2
-        border.color: root.rowFocused ? Colours.primary : "transparent"
+        border.color: (root.rowFocused || rowHover.hovered) ? Colours.primary : "transparent"
 
         Behavior on border.color {
             enabled: Motion.motionEnabled
@@ -82,6 +96,11 @@ Control {
             }
         }
 
+        // Same sweep, same root cause: the OFF state's `surfaceVariant`
+        // fill was invisible against the surfaceVariant pane (only the
+        // ON/primary state had any visible boundary). Outline border
+        // added — same role this file's own `optionsMenu` popup and
+        // `dropdownPill` use against this identical pane color.
         Rectangle {
             id: switchPill
             anchors.right: parent.right
@@ -90,6 +109,8 @@ Control {
             implicitHeight: 28
             radius: height / 2
             color: root.checked ? Colours.primary : Colours.surfaceVariant
+            border.width: 1
+            border.color: Colours.outline
 
             Behavior on color {
                 enabled: Motion.motionEnabled
