@@ -1,0 +1,16 @@
+== 1. three instances at once ==
+  sockets discovered: 3
+    /run/user/1000/nvim.810068.0
+    /run/user/1000/nvim.810069.0
+    /run/user/1000/nvim.810070.0
+    /run/user/1000/nvim.810068.0 -> Normal=#123456
+    /run/user/1000/nvim.810069.0 -> Normal=#123456
+    /run/user/1000/nvim.810070.0 -> Normal=#123456
+  instances successfully re-themed: 3 / 3
+
+== 2. stale socket from a hard-killed nvim ==
+  SIGKILLing pid 810068 (socket /run/user/1000/nvim.810068.0)
+  socket LINGERS after SIGKILL -- reload.sh will meet dead sockets
+  connecting to it, timing the failure...
+  exit=2 after 4ms  <-- failed fast, safe
+  cleaned up

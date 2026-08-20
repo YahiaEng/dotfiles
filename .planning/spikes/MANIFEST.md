@@ -30,6 +30,11 @@ template. Exploration and constraints:
   partial install failure (neovim/neovim#38702) and reproducibility from
   `install.sh` is this project's hardest constraint. Revisit when `vim.pack`
   leaves experimental.
+- `reload.sh` finds live instances by globbing `$XDG_RUNTIME_DIR/nvim.*` and
+  drives each with `--remote-expr "execute('colorscheme <name>')"` (spike 002).
+  No `--listen` flag and no `serverstart()` in the config — that path is the
+  default. Tolerate a non-zero exit per socket: sockets from crashed instances
+  linger but fail in ~4ms, so they cannot hang the switch.
 - Config style: modular folders, real lazy-loading, short plain-English
   comments. No plan IDs, requirement codes or workflow jargon in config files —
   the operator reads and extends these by hand.
@@ -39,5 +44,5 @@ template. Exploration and constraints:
 | # | Idea | Name | Type | Validates | Verdict | Tags |
 |---|------|------|------|-----------|---------|------|
 | 001 | themed-nvim | highlight-repaint-completeness | standard | Re-applying a colorscheme repaints plain, treesitter and `@lsp.*` groups with none stale | ✓ VALIDATED (requires `highlight clear`) | nvim, theming, highlight, treesitter, lsp, live-reload |
-| 002 | themed-nvim | external-drive-and-socket | standard | An external script can find a running nvim and make it re-apply its colorscheme | PENDING | nvim, ipc, socket, reload |
+| 002 | themed-nvim | external-drive-and-socket | standard | An external script can find a running nvim and make it re-apply its colorscheme | ✓ VALIDATED | nvim, ipc, socket, reload |
 | 003 | themed-nvim | lua-ramp-from-four-hues | standard | Lua can derive 8+ distinguishable syntax colours from the 9-role matugen palette | PENDING | nvim, theming, palette, colour |

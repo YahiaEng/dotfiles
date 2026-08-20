@@ -1,0 +1,21 @@
+== start a detached nvim on the DEFAULT socket (no --listen) ==
+  discovered: /run/user/1000/nvim.809811.0
+  glob that finds every live instance: /run/user/1000/nvim.*
+
+== probe calibration (must pass before any verdict below counts) ==
+  remote-expr 1+1 -> 2   OK
+
+== palette v1, applied from outside via --remote-expr ==
+  Normal=#aaaaaa  @keyword=#ff0000  @lsp.type.function=#ff0000
+
+== rewrite palette on disk, re-drive from outside via --remote-expr ==
+  Normal=#dddddd  @keyword=#00ccff  @lsp.type.function=#00ccff
+
+== same again, but driven with --remote-send keystrokes ==
+  Normal=#eeeeee  @keyword=#ffcc00
+
+== verdict ==
+  remote-expr drove a change:  YES  (#aaaaaa -> #dddddd)
+  remote-send drove a change:  YES  (#dddddd -> #eeeeee)
+  @lsp.* followed externally:  YES  (#ff0000 -> #00ccff)
+  socket cleaned up on quit
