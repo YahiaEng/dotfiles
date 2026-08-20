@@ -4,10 +4,9 @@
 // stay the same length and order; a mismatch renders the wrong page with no
 // error (this plan's own key_links).
 //
-// Task 1 shipped index 0 (Appearance). Task 2 fills indices 1 (Audio &
-// connectivity) and 3 (Shell behaviour); index 2 (Display & input) stays
-// on `placeholderComp` until Task 3 — deliberate and visible, not an
-// oversight.
+// All four indices are now real components — `placeholderComp` remains
+// declared (used by Pages.qml's incubation contract as a safe never-hit
+// default) but is no longer referenced in `comps`.
 pragma Singleton
 import QtQuick
 import Quickshell
@@ -37,11 +36,14 @@ Singleton {
     readonly property Component shellBehaviourComp: Component {
         ShellBehaviourPage {}
     }
+    readonly property Component displayInputComp: Component {
+        DisplayInputPage {}
+    }
 
     readonly property list<Component> comps: [
         appearanceComp,
         connectivityComp,
-        placeholderComp,
+        displayInputComp,
         shellBehaviourComp
     ]
 }

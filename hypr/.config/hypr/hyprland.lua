@@ -42,6 +42,19 @@
 -- makes D-13 hold under Lua.
 
 local tokens = require("lib.tokens").get()
+-- Quick task 260820-sqd, Task 3: called independently here, beside
+-- `tokens` above — the same "no module depends on another being loaded
+-- first" independence lib.overrides.get()'s own header requires.
+local overrides = require("lib.overrides").get()
+-- `natural_scroll` is a boolean, which breaks the repo's usual
+-- `overrides.x or <literal>` idiom when the override is explicitly
+-- `false` (Lua's `and/or` ternary pattern silently reverts to the
+-- fallback whenever the "true" branch value is itself falsy) — computed
+-- as a real conditional here instead, once, rather than inline.
+local naturalScrollOverride = true
+if overrides.input.touchpad.natural_scroll ~= nil then
+    naturalScrollOverride = overrides.input.touchpad.natural_scroll
+end
 
 require("config.env")
 require("config.monitors")
@@ -82,12 +95,17 @@ hl.config({
 
     -- input block — hyprland.conf lines 38-45, reproduced exactly. No
     -- token dependency (no colour/motion value in this block).
+    -- Quick task 260820-sqd, Task 3: each field keeps its CURRENT literal
+    -- as the `or` fallback (D-13's guarantee) — a missing/corrupt
+    -- overrides file degrades to exactly today's behaviour. All four
+    -- fields here are overrides-writable (D-01's Display+input group);
+    -- hypr-equivalence-check's VOLATILE_KEYS is sized to exactly these.
     input = {
-        kb_layout = "us",
-        follow_mouse = 1,
-        sensitivity = 0,
+        kb_layout = overrides.input.kb_layout or "us",
+        follow_mouse = overrides.input.follow_mouse or 1,
+        sensitivity = overrides.input.sensitivity or 0,
         touchpad = {
-            natural_scroll = true,
+            natural_scroll = naturalScrollOverride,
         },
     },
 

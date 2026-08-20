@@ -492,6 +492,17 @@ fi
 mkdir -p "$HOME/.config/hypr/state"
 ln -sf "../../../.local/state/theme/hyprland-tokens.lua" "$HOME/.config/hypr/state/tokens.lua"
 
+# Quick task 260820-sqd, Task 3: the SAME state/-symlink treatment,
+# second instance — Display+input overrides (monitor mode/position/
+# scale, keyboard/mouse settings) persisted through the settings window.
+# Seed-only-when-absent (the D-27/D-28 idiom above): re-running stow.sh
+# must never clobber an operator's already-adjusted overrides. Relative,
+# never absolute — the same reproducibility rule tokens.lua's own symlink
+# follows two lines up.
+mkdir -p "$HOME/.local/state/hypr"
+[[ -f "$HOME/.local/state/hypr/overrides.lua" ]] || echo "return {}" > "$HOME/.local/state/hypr/overrides.lua"
+ln -sf "../../../.local/state/hypr/overrides.lua" "$HOME/.config/hypr/state/overrides.lua"
+
 # D-01/D-05/13-02/13-05: seed the sass-compiled GTK3 stylesheet(s) by
 # INVOKING the real renderer AND the real compiler — never a
 # hand-authored/pre-compiled stub. Mirrors the motion-file seed block

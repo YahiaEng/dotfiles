@@ -412,6 +412,36 @@ ACCEPTED_OPTION_CHANGES = {
         'hyprland.lua, added 2026-08-18 (quick task 260818-nwo) — fixes the animated-resize edge smear',
 }
 
+# ── Volatile (operator-adjustable) option keys (quick task 260820-sqd,
+# Task 3, PD-04) ──────────────────────────────────────────────────────────
+# `ACCEPTED_OPTION_CHANGES` forgives a value that changed ONCE, between two
+# baselines. It cannot forgive a value that is DESIGNED to keep changing —
+# every Display+input write through the settings window's `hypr-overrides.sh`
+# retunes one of these four keys, so a value-equality comparison against a
+# frozen baseline is structurally unsatisfiable for them: this is the exact
+# shape that made LEDGER-07 unreachable rather than merely stale (a tracked
+# option whose value legitimately varies can never match a frozen snapshot).
+#
+# Sized to EXACTLY the keys `hypr/.config/hypr/lib/overrides.lua` /
+# `hyprland.lua`'s own `input` block can write — no wider. A VOLATILE_KEYS
+# entry is a permanent hole in this comparator; every entry here is a
+# conscious trade of coverage for a real, operator-facing feature, not a
+# convenience default. Monitor fields (mode/position/scale) are NOT here:
+# `hl.monitor()` declarations are not `hyprctl getoption`-queryable config
+# options at all (a structurally different Hyprland concept from the
+# `input:*` keys below), so they never appear in `all_keys` in the first
+# place and need no entry.
+#
+# REPORTED as a note on every run, value included, never asserted on — the
+# comparator does not even check whether it changed, since "it may differ,
+# and that is fine" is the whole point.
+VOLATILE_KEYS = {
+    'input:kb_layout',
+    'input:follow_mouse',
+    'input:sensitivity',
+    'input:touchpad:natural_scroll',
+}
+
 # Fail CLOSED on a malformed entry. A typo'd kind (e.g. 'add' for 'added')
 # would otherwise never match anything and silently degrade to the old
 # no-escape-hatch behaviour — a fail-open that looks identical to a correctly
@@ -431,6 +461,13 @@ _accepted_fired = set()
 for key in all_keys:
     b = baseline.get(key)
     l = live.get(key)
+    if key in VOLATILE_KEYS:
+        notes.append(
+            f". {key}: volatile (operator-adjustable via the settings window) — "
+            f"baseline={(b['raw_value'] if b else None)!r} vs live={(l['raw_value'] if l else None)!r}; "
+            f"value equality is not asserted for this key (PD-04)"
+        )
+        continue
     if key in THEME_DRIVEN_KEYS and b is not None and l is not None:
         if b['set'] != l['set']:
             diffs.append(
