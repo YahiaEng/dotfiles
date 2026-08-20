@@ -26,6 +26,14 @@ require("lazy").setup({
     { import = "plugins" },
   },
   install = { colorscheme = { "rice" } },
+  -- The lockfile question was MEASURED, not assumed: lazy-lock.json ships
+  -- in this repo's nvim/ stow package, so ~/.config/nvim/lazy-lock.json is
+  -- a symlink into the repo after stowing. Confirmed live that a real
+  -- lockfile write (`:Lazy update`, which changes the file's content) goes
+  -- straight through that symlink rather than replacing it with a plain
+  -- file — lazy.nvim opens the path and writes, it does not unlink and
+  -- recreate. So the default lockfile location (this table has no explicit
+  -- `lockfile` key) is correct as-is; nothing to override here.
   checker = {
     -- Report available updates; never install them without asking.
     enabled = true,

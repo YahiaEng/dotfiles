@@ -203,16 +203,21 @@ ALLOWED_HOME_DOTFILES = {'.zshrc'}
 #    a top-level ~/.config/<name> directory a PACKAGES entry ships,
 #    enumerated directly against each package's shipped tree (not guessed):
 #    cava, elephant, fastfetch, fish, gtk(-3.0/-4.0), hypr, kitty, matugen,
-#    quickshell, theme-engine, thunar (ships Thunar/ + xfce4/), uwsm,
+#    nvim, quickshell, theme-engine, thunar (ships Thunar/ + xfce4/), uwsm,
 #    vscodium (ships VSCodium/), walker, yazi, zshell (ships oh-my-posh/),
 #    plus hypr's own xdg-desktop-portal/ exception subtree. Whichever of
 #    these render as a single whole-directory-fold symlink on a given host
 #    (the common case on a fresh install) are already caught by the
 #    depth-1 pass below without ever reaching this list — it only matters
 #    for the ones that render as REAL directories (pre-existing target, or
-#    stow.sh's explicit pre-create guards for fish/gtk/hypr/quickshell/
+#    stow.sh's explicit pre-create guards for fish/gtk/hypr/nvim/quickshell/
 #    Thunar/VSCodium/xfce4), where a recursive descent is required to reach
 #    the individually-symlinked files stow places inside.
+#    'nvim' (quick task 260820-nua): stow.sh pre-creates ~/.config/nvim as a
+#    real directory (same reason as fish/gtk/hypr/quickshell above), so its
+#    per-file symlinks (init.lua, colors/, lua/, lazy-lock.json) need this
+#    entry to be swept at all — without it the depth-1 pass never descends
+#    into a real directory, and nothing else would cover them.
 #    'autostart' is quickshell's own top-level exception subtree (ships
 #    .config/autostart/nm-applet.desktop) — same treatment.
 #    'systemd' is NOT included here: only its 'user' child is owned
@@ -222,8 +227,8 @@ ALLOWED_HOME_DOTFILES = {'.zshrc'}
 #    blanket inclusion.
 OWNED_CONFIG_TOP = {
     'cava', 'elephant', 'fastfetch', 'fish', 'gtk-3.0', 'gtk-4.0', 'hypr',
-    'kitty', 'matugen', 'quickshell', 'theme-engine', 'Thunar', 'uwsm',
-    'VSCodium', 'walker', 'xfce4', 'yazi', 'xdg-desktop-portal',
+    'kitty', 'matugen', 'nvim', 'quickshell', 'theme-engine', 'Thunar',
+    'uwsm', 'VSCodium', 'walker', 'xfce4', 'yazi', 'xdg-desktop-portal',
     'autostart', 'oh-my-posh',
 }
 

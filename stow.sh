@@ -612,6 +612,36 @@ else
     echo "  ⚠ theme-apply not found at $THEME_APPLY — skipping seed"
 fi
 
+# ── Restore nvim's plugins (quick task 260820-nua) ───
+# Runs here, not in install.sh: install.sh executes BEFORE this script, so
+# ~/.config/nvim does not exist yet at that point. This step needs both
+# the config tree (just stowed above) AND the rendered palette (just
+# seeded above) to exist, so it belongs right here.
+#
+# VERIFIED, not the commonly-repeated single-command form: `:Lazy restore`
+# only acts on plugins lazy.nvim already considers installed (its own
+# manage/init.lua filters on `plugin._.installed`) — on a genuinely fresh
+# machine with nothing cloned yet, `:Lazy restore` alone is a silent no-op.
+# `:Lazy install` clones everything but only checks out each plugin's spec
+# constraint (branch/version/tag), not the exact commit in the lockfile.
+# The two together — install, then restore — is what was measured on this
+# host to land every plugin on the exact commit committed in
+# nvim/.config/nvim/lazy-lock.json (confirmed by diffing every plugin's
+# resolved HEAD before and after a from-scratch run).
+#
+# Guarded on the `nvim` binary being present, timeout-bounded, and
+# non-fatal — stow.sh runs under `set -euo pipefail` and a network hiccup
+# here must not abort the script after everything else already succeeded,
+# the same posture the zellij plugin fetch takes further up this file.
+if command -v nvim >/dev/null 2>&1; then
+    echo ""
+    echo "Restoring nvim plugins..."
+    timeout 300 nvim --headless "+Lazy! install" "+Lazy! restore" +qa 2>&1 | tail -5 || \
+        echo "  ⚠ nvim plugin restore did not complete — run it manually: nvim --headless \"+Lazy! install\" \"+Lazy! restore\" +qa" >&2
+else
+    echo "  ⚠ nvim not installed — skipping plugin restore"
+fi
+
 echo ""
 echo "╔══════════════════════════════════════════╗"
 echo "║       Dotfiles stowed successfully!      ║"
@@ -623,3 +653,4 @@ echo "  2. Log into Hyprland"
 echo "  3. Use Super+Shift+T to switch themes"
 echo "  4. Use Super+B to switch bar orientation"
 echo "  5. Use Super+Shift+B to pick wallpapers"
+echo "  6. Run nvim — LSP, completion, treesitter and the rest of the slate are already restored"

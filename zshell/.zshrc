@@ -93,6 +93,13 @@ function y() {
 eval "$(fzf --zsh)"
 eval "$(zoxide init --cmd cd zsh)"
 
+# Editor (quick task 260820-nua): `vim` (aliased to nvim above) now
+# resolves to a real binary, so this is what actually answers when
+# something else (git commit, sudoedit, crontab -e, ...) asks the shell
+# for an editor.
+export EDITOR=nvim
+export VISUAL=nvim
+
 # Path
 export PATH="$HOME/.cargo/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"

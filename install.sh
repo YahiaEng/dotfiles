@@ -84,6 +84,37 @@ PACMAN_PKGS=(
     # fetch step for it at all.
     zellij
 
+    # Themed neovim (quick task 260820-nua): official `extra` repo, pacman
+    # — NOT the AUR, both measured present via `pacman -Si` before this
+    # line was added. `git`, `ripgrep`, `fd`, `gcc` (via base-devel),
+    # `curl` and `unzip` are already covered by existing entries or the
+    # paru bootstrap above — nothing else is needed for lazy.nvim itself.
+    #
+    # neovim 0.12.4-1 — the editor.
+    neovim
+    # tree-sitter-cli 0.26.9-1 — required by nvim-treesitter's `main`
+    # branch to compile a parser from source at first launch. Confirmed
+    # NOT installed on this host by default; without it, parser
+    # installation fails SILENTLY (the plugin logs a warning per parser,
+    # but nvim itself starts clean) and every buffer opens with no syntax
+    # highlighting at all, with nothing in the way that points at a
+    # missing compiler as the cause.
+    tree-sitter-cli
+    # lua-language-server 3.19.1-1 — Rule 2 addition (missing critical
+    # functionality), not in the original plan for this task. The LSP
+    # config in lua/plugins/lsp.lua enables `lua_ls`, but its binary was
+    # not installed on this host and nothing in this file provided it —
+    # without this line, LSP silently never attaches to a Lua buffer on a
+    # fresh install, which is most of what this config's own source tree
+    # is written in. Confirmed via `pacman -Si` before adding, same as the
+    # two entries above.
+    lua-language-server
+    # Deliberately NOT here: a headless plugin restore. install.sh runs
+    # BEFORE stow.sh (this script's own next-steps message says so), so
+    # ~/.config/nvim does not exist yet at this point — the restore lives
+    # in stow.sh, right after its first-boot theme seed, where both the
+    # config tree and the rendered palette already exist.
+
     # Wallpaper
     awww
 

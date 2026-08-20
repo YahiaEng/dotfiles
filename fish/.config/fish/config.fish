@@ -164,6 +164,14 @@ set -g nvm_default_version v24.18.0
 # ── bun ──────────────────────────────────────────────
 set -gx BUN_INSTALL $HOME/.bun
 
+# ── Editor (parity with .zshrc, quick task 260820-nua) ──
+# Unconditional, not inside the interactive block below — EDITOR/VISUAL
+# need to be visible to non-interactive invocations too (git, sudoedit,
+# any tool that shells out through fish), not just an interactive prompt.
+# `vim` (aliased to nvim further down) now resolves to a real binary.
+set -gx EDITOR nvim
+set -gx VISUAL nvim
+
 # ── PATH ─────────────────────────────────────────────
 # Parity: .zshrc exports for cargo, local bin, bun, spicetify.
 # (~/.local/bin is also covered by the uv-generated conf.d/uv.env.fish on
