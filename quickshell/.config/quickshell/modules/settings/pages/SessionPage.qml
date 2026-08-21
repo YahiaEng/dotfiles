@@ -387,6 +387,20 @@ PageBase {
         property string quickshellStatus: "unknown"
         property string watchdogStatus: "unknown"
 
+        // Operator fix wave finding 4: plain-English status words instead
+        // of raw `systemctl is-active` output ("active"/"inactive"/
+        // "failed"/etc.) — the row is read-only either way, this only
+        // changes what it says.
+        function _humanStatus(raw) {
+            if (raw === "active")
+                return "Running";
+            if (raw === "inactive")
+                return "Not running";
+            if (raw === "failed")
+                return "Failed to start";
+            return raw.length > 0 ? raw : "Unknown";
+        }
+
         Process {
             id: quickshellStatusProc
             running: false
@@ -413,12 +427,12 @@ PageBase {
         }
 
         InfoRow {
-            label: "quickshell.service"
-            subtext: "Status: " + servicesSection.quickshellStatus
+            label: "Shell service"
+            subtext: servicesSection._humanStatus(servicesSection.quickshellStatus) + " (quickshell.service)"
         }
         InfoRow {
-            label: "quickshell-bar-watchdog.service"
-            subtext: "Status: " + servicesSection.watchdogStatus
+            label: "Bar watchdog"
+            subtext: servicesSection._humanStatus(servicesSection.watchdogStatus) + " (quickshell-bar-watchdog.service)"
         }
     }
 }

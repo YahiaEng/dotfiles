@@ -189,9 +189,12 @@ PageBase {
         title: "Arrangement"
         icon: "desktop_windows"
 
+        // Operator fix wave finding 4: plain-language rewrite — the
+        // engineering rationale above (N-04) is unchanged, this is just
+        // the row text.
         InfoRow {
-            label: "No primary-monitor setting on this build"
-            subtext: "Hyprland has no primary-monitor concept exposed through hyprctl on this version — there is nothing here to make settable. Position above controls monitor layout."
+            label: "No primary monitor setting"
+            subtext: "There's no way to set a primary monitor here. Use Position above to arrange your monitors."
         }
     }
 

@@ -73,9 +73,13 @@ PageBase {
             currentValue: Prefs.getValue("notifs.lowPriorityTimeoutMs").toString()
             onSelected: (value) => Prefs.setValue("notifs.lowPriorityTimeoutMs", parseInt(value, 10))
         }
+        // Operator fix wave finding 4: plain-language rewrite. Engineering
+        // note (kept, not deleted): this is enforced at the notification
+        // card's own single dismiss-timer site, so it is not a bug and
+        // there is no timeout value to expose here.
         InfoRow {
             label: "Critical notifications never auto-dismiss"
-            subtext: "True by construction at the card's own single dismiss-timer site — this is not a bug, and there is no timeout to set for critical urgency."
+            subtext: "Critical notifications stay on screen until you dismiss them — there's no timeout to set."
         }
         SelectRow {
             label: "Popup position"
@@ -183,11 +187,15 @@ PageBase {
             }
         }
 
+        // Operator fix wave finding 4: plain-language rewrite. Engineering
+        // note (kept, not deleted): weather.json is a hand-edit-only file
+        // — WeatherBackend has no writer function, so there is no "Change"
+        // control to build here (N-06).
         InfoRow {
             label: "Weather location"
             subtext: (sourcesSection.weatherCityOverride.length > 0
-                ? ("Manual override: " + sourcesSection.weatherCityOverride)
-                : "Automatic (geocoded from your timezone)") + " — change it by hand-editing ~/.local/state/theme/weather.json's \"city\" field; this file is deliberately not written by the shell."
+                ? ("Set to: " + sourcesSection.weatherCityOverride)
+                : "Automatic, based on your timezone.") + " To set a specific city, edit ~/.local/state/theme/weather.json."
         }
 
         FileView {
@@ -206,9 +214,13 @@ PageBase {
             }
         }
 
+        // Operator fix wave finding 4: plain-language rewrite. Engineering
+        // note (kept, not deleted): NewsBackend is not a singleton, so
+        // this page has no writer to call — the News pane already owns
+        // the real read-modify-write path for this list (N-06).
         InfoRow {
             label: "News sources"
-            subtext: (sourcesSection.newsSourceNames.length > 0 ? sourcesSection.newsSourceNames.join(", ") : "None configured") + " — add, remove or filter sources from the notification centre's own News pane, which already owns this list's read-modify-write path."
+            subtext: (sourcesSection.newsSourceNames.length > 0 ? sourcesSection.newsSourceNames.join(", ") : "None configured") + " — manage sources from the News pane in the notification centre."
         }
     }
 }

@@ -327,9 +327,14 @@ PageBase {
             opacity: (root.applying && root.applyingKey === "border-size") ? 0.6 : 1
             onMoved: (v) => root.applyLook("border-size", "--border-size", Math.round(v))
         }
+        // Operator fix wave finding 4: plain-language rewrite. Engineering
+        // note (kept, not deleted): theme-apply re-runs `hyprctl reload`
+        // on every theme switch (N-02), which re-sources the border
+        // colour from the active theme — a persisted override here would
+        // silently revert on the next switch.
         InfoRow {
             label: "Border colour"
-            subtext: "Follows the active theme and re-applies on every theme switch — change it from Appearance → Theme, not here."
+            subtext: "Border colour follows your theme. Change it in Appearance → Theme."
         }
     }
 
@@ -470,14 +475,18 @@ PageBase {
 
         SelectRow {
             label: "Animation speed"
-            subtext: "Drives both the shell's own animations and the compositor's — one Motion preset, one owner"
+            subtext: "Controls animation speed everywhere — the bar, panels, and window manager"
             model: root.motionOptions
             currentValue: root.currentMotionScale
             onSelected: (value) => root.applyMotionScale(value)
         }
+        // Operator fix wave finding 4: plain-language rewrite. Engineering
+        // note (kept, not deleted): `config/animations.lua` derives every
+        // leaf's speed from the Motion preset above (N-01) — a second,
+        // separate speed setting here would fight that one.
         InfoRow {
-            label: "No separate compositor animation-speed option"
-            subtext: "This build has no standalone animation-speed setting — the Motion preset above already drives compositor animation speed through the same tokens. A second knob would fight this one."
+            label: "No separate animation-speed option"
+            subtext: "Animation speed is controlled by the Motion preset above — there's no separate setting here."
         }
     }
 

@@ -79,7 +79,7 @@ Singleton {
         { pageIdx: 5, section: "Display", label: "Resolution & refresh rate", keywords: "resolution refresh rate monitor screen display hz" },
         { pageIdx: 5, section: "Display", label: "Scale", keywords: "scale scaling dpi zoom monitor screen display" },
         { pageIdx: 5, section: "Display", label: "Position", keywords: "position monitor arrangement layout left right above below" },
-        { pageIdx: 5, section: "Arrangement", label: "No primary-monitor setting on this build", keywords: "primary monitor arrangement" },
+        { pageIdx: 5, section: "Arrangement", label: "No primary monitor setting", keywords: "primary monitor arrangement" },
         { pageIdx: 5, section: "Advanced", label: "Open nwg-displays", keywords: "monitor arrangement layout editor display advanced" },
 
         // ── pageIdx 6 — Input ─────────────────────────────────────────────
@@ -107,7 +107,7 @@ Singleton {
         { pageIdx: 7, section: "Workspaces", label: "Workspace back-and-forth", keywords: "workspace back and forth switch toggle" },
         { pageIdx: 7, section: "Workspaces", label: "Allow workspace cycles", keywords: "workspace cycle wrap around" },
         { pageIdx: 7, section: "Animation", label: "Animation speed", keywords: "animation speed motion preset shell" },
-        { pageIdx: 7, section: "Animation", label: "No separate compositor animation-speed option", keywords: "animation speed motion compositor" },
+        { pageIdx: 7, section: "Animation", label: "No separate animation-speed option", keywords: "animation speed motion compositor" },
 
         // ── pageIdx 8 — Notifications ─────────────────────────────────────
         { pageIdx: 8, section: "Notifications", label: "Do not disturb", keywords: "notifications dnd quiet do not disturb popup" },
@@ -140,7 +140,7 @@ Singleton {
         { pageIdx: 9, section: "Screen recording", label: "Recording status", keywords: "record capture screencast status idle recording" },
         { pageIdx: 9, section: "Power menu", label: "Warn when busy", keywords: "power shutdown reboot logout warn busy package manager" },
         { pageIdx: 9, section: "Power menu", label: "Default focused action", keywords: "power shutdown reboot logout default focus" },
-        { pageIdx: 9, section: "Services", label: "quickshell.service", keywords: "service daemon autostart quickshell status" },
-        { pageIdx: 9, section: "Services", label: "quickshell-bar-watchdog.service", keywords: "service daemon autostart watchdog bar status" }
+        { pageIdx: 9, section: "Services", label: "Shell service", keywords: "service daemon autostart quickshell status" },
+        { pageIdx: 9, section: "Services", label: "Bar watchdog", keywords: "service daemon autostart watchdog bar status" }
     ]
 }

@@ -97,9 +97,13 @@ PageBase {
             currentValue: root.currentThemeName
             onSelected: (value) => root.applyTheme(value)
         }
+        // Operator fix wave finding 4: plain-language rewrite. The window
+        // manager (borders/gaps) is a separate re-theme path from GTK/the
+        // terminal — this row exists so the operator knows both follow
+        // the same theme switch, and where the border settings live.
         InfoRow {
             label: "What Theme actually re-themes"
-            subtext: "The compositor's borders and gaps, the terminal, GTK apps, and this settings window all follow the active theme — see Window manager → Borders for the compositor half of that."
+            subtext: "Switching the theme also changes your window borders and gaps, the terminal, and GTK apps — not just this window. Border settings live in Window manager → Borders."
         }
     }
 

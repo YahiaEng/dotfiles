@@ -169,9 +169,12 @@ PageBase {
             showState: inputSection.naturalScrollLoaded
             onToggled: (value) => inputSection.apply("--natural-scroll", value ? "true" : "false")
         }
+        // Operator fix wave finding 4: plain-language rewrite — the N-03
+        // engineering rationale (no read-back to verify a per-device
+        // write against) lives at this file's own header above, unchanged.
         InfoRow {
             label: "No per-device sensitivity setting"
-            subtext: "This compositor build reports no value back for per-device pointer sensitivity or per-device natural scroll, so neither can be verified — and an unverifiable write is not shipped here. The two rows above apply to every pointer."
+            subtext: "Pointer speed and natural scroll apply to all pointers on this system, not per device."
         }
     }
 
@@ -183,7 +186,7 @@ PageBase {
 
         ToggleRow {
             label: "Show all devices"
-            subtext: "Off shows only the primary keyboard and the pointers this compositor reports; on shows every joined device"
+            subtext: "Off shows only your main keyboard and pointers. On shows every connected device."
             checked: Prefs.getValue("input.showAllDevices")
             onToggled: (value) => Prefs.setValue("input.showAllDevices", value)
         }
