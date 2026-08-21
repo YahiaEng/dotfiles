@@ -83,10 +83,10 @@ coverage:
     requirement: "D-01, D-04"
     verification:
       - kind: manual_procedural
-        ref: "Task 4 human-check item 4 (Appearance) — NOT YET RUN, WINDOWS.md row 92"
-        status: unknown
+        ref: "Task 4 human-check item 4 (Appearance) — operator PASS, full 10-item checklist green, WINDOWS.md row 92 closed"
+        status: pass
     human_judgment: true
-    rationale: "Visual re-colour correctness and picker-window appearance require the operator's own eyes; this host also forbids screenshotting a FloatingWindow (unproven grim -g safety), so no automated visual proof is possible."
+    rationale: "Visual re-colour correctness and picker-window appearance require the operator's own eyes; this host also forbids screenshotting a FloatingWindow (unproven grim -g safety at plan time — later proven safe mid-saga and used for pixel-sample verification of the fix waves below), so no automated visual proof was possible for the ORIGINAL plan pass."
   - id: D4
     description: "Audio, Wi-Fi and Bluetooth rows summon the three existing panels through the guarded openPanel() path; none of the three panels is rebuilt"
     requirement: "D-01, D-04"
@@ -95,8 +95,8 @@ coverage:
         ref: "grep: zero direct *PanelLoader.active writes in modules/settings/"
         status: pass
       - kind: manual_procedural
-        ref: "Task 4 human-check item 5 — NOT YET RUN, WINDOWS.md row 92"
-        status: unknown
+        ref: "Task 4 human-check item 5 — operator PASS, full 10-item checklist green, WINDOWS.md row 92 closed"
+        status: pass
     human_judgment: true
     rationale: "Confirming the correct panel opens (not just that a signal fired) needs the operator's own eyes."
   - id: D5
@@ -107,8 +107,8 @@ coverage:
         ref: "Task 3 verify check J — value-preserving round trip on the REAL compositor (write current DP-1 scale, hyprctl reload, confirm it held)"
         status: pass
       - kind: manual_procedural
-        ref: "Task 4 human-check item 6 (switch theme, confirm display/input change survives) — NOT YET RUN, WINDOWS.md row 92"
-        status: unknown
+        ref: "Task 4 human-check item 6 (switch theme, confirm display/input change survives) — operator PASS, full 10-item checklist green, WINDOWS.md row 92 closed"
+        status: pass
     human_judgment: true
     rationale: "The round trip proves the mechanism on a value-preserving no-op; the operator's item 6 proves it on a GENUINE change plus a real theme switch, which is the actual failure class Task 3 was built to prevent."
   - id: D6
@@ -130,10 +130,10 @@ coverage:
         ref: "idle-overrides.sh mechanism gate (PD-03 probes B/C re-measured against installed hypridle v0.1.8) + live round trip (dim=300 unchanged, hypridle restarted into the correct uwsm scope, 5 rules confirmed) + negative battery (sub-floor, non-integer rejected without touching the daemon)"
         status: pass
       - kind: manual_procedural
-        ref: "Task 4 human-check items 7-9 (motion/DND visible change, idle timeout re-check live, reboot survival) — NOT YET RUN, WINDOWS.md row 92"
-        status: unknown
+        ref: "Task 4 human-check items 7-9 (motion/DND visible change, idle timeout re-check live including item 8's lock-lengthening, reboot survival) — operator PASS on all three after the post-plan live-pass saga (see below); WINDOWS.md row 92 closed"
+        status: pass
     human_judgment: true
-    rationale: "Reboot survival and the append-not-replace lengthened-lock-timeout check (item 8) are the whole point of this task's security posture and cannot be proven without the operator living through a real idle cycle and a real reboot."
+    rationale: "Reboot survival and the append-not-replace lengthened-lock-timeout check (item 8) are the whole point of this task's security posture and could not be proven without the operator living through a real idle cycle and a real reboot — both now confirmed."
   - id: D8
     description: "Every write lands under ~/.local/state; the git tree stays clean afterwards"
     requirement: "D-03"
@@ -281,15 +281,32 @@ None. Every row routes through a real script/panel/singleton; no hardcoded empty
 
 None — no external service configuration required. `stow.sh` seeds all new state-dir files (`overrides.lua`, `idle-overrides.conf`) automatically, only when absent.
 
-## Outstanding — Task 4's human-check (NOT run by this executor)
+## Outstanding — Task 4's human-check: CLOSED
 
-**`.planning/WINDOWS.md` row 92 is open**, filed via `gsd_run query windows.append` at the end of Task 4. Per this task's own explicit instruction, the operator's live pass across the whole window is the one step an agent must not attempt on this host (no safe screenshot recipe exists for a `FloatingWindow`, and no synthetic-click tool exists at all). The ten-item checklist is reproduced in the plan's own `<human-check>` block (Task 4); item 8 — lengthening the lock timeout and confirming it fires at the NEW, longer time rather than the old shorter one — is the specific proof that the append-not-replace hyprlang finding (PD-03) was correctly handled, and item 6 — switching theme after a Display+input change and confirming it survived — is the specific proof Task 3 was built around.
+**`.planning/WINDOWS.md` row 92 is closed.** The full ten-item human-check is green, reached after a nine-fix-wave post-plan live-pass saga (below) — every item the operator's own live pass could not be proxied for at plan time (visual re-colour correctness, correct-panel-opens, display/input-survives-theme-switch, motion/DND, idle timeout re-check including item 8's lock-lengthening, and item 9's reboot persistence) is now operator-confirmed PASS.
 
-On pass, close the row with `gsd-tools windows fixed 92`.
+## Post-Plan Live-Pass Saga
+
+The operator's real-hardware walkthrough surfaced defects this task's own testing (no synthetic mouse click, per the tooling-gap note above) could not reach. Nine fix waves followed, full detail in each commit message (`e1b041e0` through `c05d5aca`, plus the diagnostic-only `3844d35c`):
+
+1. Dropdown theming (item 10), two dead launch rows (nwg-displays, editor), WR-03 refresh-rate rounding.
+2. Left/Right arrows corrected from a wrong page-switch model to the operator's actual two-pane-focus spec; page-switch-lag re-check (left as measured-optimal); tab-reset-on-open.
+3–5. Dropdown hover flicker chased across three rounds before the real cause surfaced: page ROWS (NavRow/ToggleRow/SliderRow/SelectRow), not the popup, and — once on the right element — a `surfaceVariant`-on-`surfaceVariant` pane made the fill invisible by construction.
+6. Idle-row edits appeared to silently fail; root cause was a real, correct ordering-validation rejection with zero UI feedback, not a code bug — fixed with visible error surfacing.
+7. Natural-scroll flash and idle-row "stays greyed out" both survived first fixes; root causes were an initial-load color animation racing a `Behavior`, and a missing watchdog on a Process that could hang without ever firing `onExited`.
+8. Full INSTRUMENTATION-ONLY round (`3844d35c`) at the operator's explicit order, after two more fix attempts still didn't match their real interaction — `SQDDIAG`-prefixed logging on both remaining paths, then the operator's own reproduction resolved both from their trace.
+9. Fixes landed straight from that trace (natural-scroll flash's exact animation-capture mechanism) plus an idle-row busy-spinner UX addition; instrumentation stripped once verified.
+
+**Headline lessons:**
+- **(a) Confirm which element a visual report names, with a screenshot, before fixing.** "Menu items" meant the page rows; three fix waves correctly diagnosed and fixed the dropdown POPUP instead, because that assumption was never checked against a picture.
+- **(b) Verify visuals by pixel sampling, not role names.** Four separate controls (`NavRow`'s hover fill, `SelectRow`'s dropdown pill, `ToggleRow`'s switch OFF-state, `SliderRow`'s track) were painting `Colours.surfaceVariant` on a `Colours.surfaceVariant` pane — invisible by construction, and invisible to every non-visual check that ran clean.
+- **(c) A test that injects below the UI layer, or exercises only the convenient value, verifies plumbing, not product.** Calling a row's own signal directly with hand-picked values proved the write path worked; it did not prove the operator's actual click-then-pick sequence did, and one round's "fix" was verified against a value that happened not to trigger the real bug.
+- **(d) The two endgame diagnoses came from instrumenting and letting the OPERATOR reproduce, not from synthetic trials.** After every direct reproduction attempt on this host converged on "works for me," the SQDDIAG round replaced guessing with the operator's own trace as ground truth.
+- **(e) Two named follow-ups, deliberately deferred rather than fixed in-band:** `colour-lint` has a measured blind spot for a default-styled QQC2 popup carrying zero in-repo color literals while still showing foreign (system-palette) colors — the gate cannot currently catch this class; and the deployment-order trap this saga hit repeatedly — a settings PAGE can keep serving a stale compiled `Component` across a plain hot-reload (`PageCompRegistry`'s per-page indirection), so verifying or re-checking a page-level fix needs a full `systemctl --user restart quickshell.service`, not just a re-navigate.
 
 ## Next Phase Readiness
 
-The settings window is feature-complete against D-01 and code-gate-verified (colour-lint 184/0, motion-lint 335/0, keybind-doctor 14/0, quickshell-doctor --self-test 59/0, hypr-equivalence-check 3/0, stow-link-check 2/0, theme-doctor clean-tree — passes once this SUMMARY/STATE/PROJECT.md docs commit lands, since the plan-relevant tree is already clean; the sole untracked artifact, `.gsd/dispatch-isolation-sentinel.json`, is orchestrator harness state that predates this task and is outside its file scope). No blockers for closing this quick task once the operator's live pass returns green.
+The settings window is feature-complete against D-01, code-gate-verified across every fix wave (final gate state: colour-lint 182/0, motion-lint 333/0, keybind-doctor 14/0, quickshell-doctor --self-test 59/0, hypr-equivalence-check 3/0), and the operator's full ten-item live pass is green. No blockers remain for closing this quick task.
 
 Named follow-ups this task deliberately did not build (F-01 through F-06 in the plan's own `<decision_ids>` section) remain deferred, not dropped — settings fuzzy search, per-device keyboard/mouse config, `StackPage` drill-down, deep-linking the nine existing walker rows, and the fastfetch logo picker.
 

@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 62
+open_count: 61
 waived_count: 2
-fixed_count: 28
+fixed_count: 29
 total_count: 92
-last_updated: 2026-08-20T20:04:54.092Z
+last_updated: 2026-08-21T01:40:17.262Z
 ---
 
 # Broken Windows Ledger
@@ -106,7 +106,7 @@ last_updated: 2026-08-20T20:04:54.092Z
 | 89 | 21 | unrun-verify | theme-engine/.config/theme-engine/theme-stress-test |  | 21-09 Task 2: theme-stress-test not run — standing session rules prohibit live-theme-mutating commands (prior session accidentally re-themed the operator's desktop running this exact command, 21-08-SUMMARY.md). Static substitute verified instead (REPRESENTATIVE_FILES omits the removed ags.scss entry). Operator must run: bash theme-engine/.config/theme-engine/theme-stress-test | open |  | 2026-08-16T16:38:38.524Z |  |
 | 90 | 22 | deviation | VERIFICATION.md |  | 22-03: RETIRE-02 (waybar) repo-prose count did not decrease (37, unchanged) — all hits live in docs/superpowers historical design specs/plans, outside repo-prose's .lua/env.lua scan scope and outside this plan's declared file scope; RETIRE-03 (swaync) count did decrease 13->9. See 22-03-SUMMARY.md coverage D7. | open |  | 2026-08-16T20:56:04.982Z |  |
 | 91 | quick-260820-nua | unrun-verify | .planning/quick/260820-nua-build-the-themed-neovim-config-wired-int/260820-nua-PLAN.md |  | Task 8 operator checkpoint (blocking-human) not yet performed: live visual verification of syntax colours, live re-theme, monochrome/light palettes, plugin slate, and zellij autolock with nvim focused. All prior 7 tasks are code-complete and gate-verified; this is the one item requiring the operator's own eyes in a real kitty window. | fixed | Operator verified live in a real terminal 2026-08-20: live theme reload confirmed; tested on a light theme and on vantablack; greeter renders correctly on both; which-key works and every prefix is named; keybinds work; zellij autolock fires when nvim opens; K and gr confirmed working after the LSP keymap cleanup (379435c). | 2026-08-20T14:57:22.290Z | 2026-08-20T17:29:46.038Z |
-| 92 | quick-260820-sqd | unrun-verify | .planning/quick/260820-sqd-build-an-in-shell-qml-settings-menu-cont/260820-sqd-PLAN.md |  | Task 4 operator checkpoint (blocking-human) not yet performed: live visual pass across the whole settings window - Super+comma open/close, pointer+keyboard input, all four nav pages, theme re-colour, wallpaper/icon/font pickers, audio/wifi/bluetooth panels, display/input dropdowns surviving a theme switch, motion/DND, and the new editable idle/lock section (including the append-not-replace lengthened-lock-timeout check). All four tasks are code-complete and gate-verified; this is the one item requiring the operator's own eyes in a real session. | open |  | 2026-08-20T20:04:54.092Z |  |
+| 92 | quick-260820-sqd | unrun-verify | .planning/quick/260820-sqd-build-an-in-shell-qml-settings-menu-cont/260820-sqd-PLAN.md |  | Task 4 operator checkpoint (blocking-human) not yet performed: live visual pass across the whole settings window - Super+comma open/close, pointer+keyboard input, all four nav pages, theme re-colour, wallpaper/icon/font pickers, audio/wifi/bluetooth panels, display/input dropdowns surviving a theme switch, motion/DND, and the new editable idle/lock section (including the append-not-replace lengthened-lock-timeout check). All four tasks are code-complete and gate-verified; this is the one item requiring the operator's own eyes in a real session. | fixed |  | 2026-08-20T20:04:54.092Z | 2026-08-21T01:40:17.262Z |
 
 ````json
 [
@@ -1209,10 +1209,10 @@ last_updated: 2026-08-20T20:04:54.092Z
     "file": ".planning/quick/260820-sqd-build-an-in-shell-qml-settings-menu-cont/260820-sqd-PLAN.md",
     "line": null,
     "description": "Task 4 operator checkpoint (blocking-human) not yet performed: live visual pass across the whole settings window - Super+comma open/close, pointer+keyboard input, all four nav pages, theme re-colour, wallpaper/icon/font pickers, audio/wifi/bluetooth panels, display/input dropdowns surviving a theme switch, motion/DND, and the new editable idle/lock section (including the append-not-replace lengthened-lock-timeout check). All four tasks are code-complete and gate-verified; this is the one item requiring the operator's own eyes in a real session.",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-08-20T20:04:54.092Z",
-    "resolved_at": null
+    "resolved_at": "2026-08-21T01:40:17.262Z"
   }
 ]
 ````
