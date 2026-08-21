@@ -750,6 +750,16 @@ ShellRoot {
 
         Settings {
             initialPageIdx: root.settingsInitialPageIdx
+            // Task 13 (D-01 bundle 4) — threads the shell's SINGLE
+            // AudioBackend instance into the settings window the same way
+            // every other consumer below (dashboardLoader, audioPanelLoader,
+            // NotifCentre, Osd) already receives it — never a second
+            // instance. `audioTruthNeeded`'s own OR-chain already includes
+            // `root.osdNeedsAudioTruth`, an unconditional `true` (the OSD's
+            // own always-on requirement), so AudioBackend's live PipeWire
+            // tracking is ALREADY permanently on — no gate widening needed
+            // here, only the relay.
+            audioBackend: audioBackendInstance
             // Operator live-pass item "opens on last tab" (root-caused
             // live, not assumed): `settingsInitialPageIdx` is a
             // shell-root property that ONLY the `openPage()` deep-link

@@ -49,7 +49,17 @@ Singleton {
         { pageIdx: 2, section: "Capsules", label: "Clock & actions", keywords: "bar capsule clock gaming notifications settings power" },
 
         // ── pageIdx 3 — Audio ─────────────────────────────────────────────
-        { pageIdx: 3, section: "Audio", label: "Audio", keywords: "audio volume sound output mixer" },
+        { pageIdx: 3, section: "Output", label: "Master volume", keywords: "audio volume sound output speaker" },
+        { pageIdx: 3, section: "Output", label: "Mute", keywords: "audio mute output speaker sound" },
+        { pageIdx: 3, section: "Output", label: "Output device", keywords: "audio output device speaker headphone" },
+        { pageIdx: 3, section: "Output", label: "Output device switch failed", keywords: "audio output device error failed" },
+        { pageIdx: 3, section: "Input", label: "Input device", keywords: "audio input mic microphone device" },
+        { pageIdx: 3, section: "Input", label: "Input level", keywords: "audio input mic microphone volume level" },
+        { pageIdx: 3, section: "Input", label: "Mic mute", keywords: "audio input mic microphone mute" },
+        { pageIdx: 3, section: "Input", label: "Input device switch failed", keywords: "audio input device error failed" },
+        { pageIdx: 3, section: "Per-app mixer", label: "Per-app volume", keywords: "audio app mixer stream volume" },
+        { pageIdx: 3, section: "Per-app mixer", label: "Nothing playing", keywords: "audio app mixer stream empty" },
+        { pageIdx: 3, section: "Per-app mixer", label: "Full mixer", keywords: "audio mixer panel full app" },
 
         // ── pageIdx 4 — Network ───────────────────────────────────────────
         { pageIdx: 4, section: "Devices", label: "Wi-Fi", keywords: "wifi wi-fi wireless network internet" },

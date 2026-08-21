@@ -19,6 +19,13 @@ QtObject {
 
     property int currentPageIdx: 0
 
+    // Task 13 (D-01 bundle 4) — relayed from Settings.qml at construction
+    // (the `SettingsState { audioBackend: win.audioBackend }` binding
+    // there). AudioPage.qml reads `sState.audioBackend` rather than
+    // instantiating its own AudioBackend — one shell-wide instance, same
+    // as every other consumer.
+    property var audioBackend: null
+
     signal close()
 
     // ── Search (quick-260821-6z1 Task 3, D-06/F-01/PD-08) — `searchText`

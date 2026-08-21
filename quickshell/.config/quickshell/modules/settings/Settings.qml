@@ -73,7 +73,16 @@ FloatingWindow {
     // shell.qml). Read once at Component.onCompleted below.
     property int initialPageIdx: 0
 
-    readonly property SettingsState sState: SettingsState {}
+    // Task 13 (D-01 bundle 4) — relayed onto `sState` at construction, the
+    // same shape `initialPageIdx` already uses. `AudioPage.qml` reads
+    // `sState.audioBackend` — pages are incubated with only `{ sState }`
+    // (Pages.qml's own `incubateObject` call), so the state object is the
+    // only channel a dynamically-incubated page has back to this window.
+    property var audioBackend: null
+
+    readonly property SettingsState sState: SettingsState {
+        audioBackend: win.audioBackend
+    }
 
     title: "Settings"
     color: Colours.surface
