@@ -210,6 +210,63 @@ PageBase {
         // validation output.
         property bool idleApplying: false
 
+        // Bug 1 — operator re-check round 3: "lock/screen-off/suspend
+        // stay GREYED OUT permanently; only closing and reopening the
+        // window re-enables them." Re-driven through the real popup+
+        // keyboard path repeatedly this round — a fast-validation-
+        // rejection, a genuine slow success (~3.3s, matching the
+        // measured script runtime), and a second consecutive edit
+        // immediately after, all without reopening — `idleApplying`
+        // correctly cleared and the row correctly re-enabled every
+        // single time on THIS machine. The unconditional
+        // `idleApplying = false` in `onExited` is provably correct when
+        // `onExited` fires.
+        //
+        // The one thing that CANNOT be tested here and directly matches
+        // every symptom (permanently stuck; only a fresh page
+        // construction — i.e. reopening — clears it, exactly the
+        // "flag lives in page state that only a fresh incubation
+        // resets" shape) is `onExited` never firing at all: this
+        // Process has no timeout, and `idle-overrides.sh` genuinely
+        // restarts the hypridle service — a real external dependency
+        // this dev host's hypridle happens to restart cleanly and
+        // promptly every time, but which has no guarantee of doing so
+        // on the operator's own system (a stuck systemd unit, a dbus
+        // timeout, anything that hangs the script before it reaches its
+        // own exit). With no watchdog, a hung process leaves
+        // `idleApplying` stuck true forever — the UI never learns the
+        // attempt failed, so nothing except destroying and
+        // reconstructing the whole page (closing the window) can ever
+        // clear it. Fixed defensively: a Timer bounds the wait at 10s
+        // (roughly 3x the measured ~3.3s worst case on this machine,
+        // generous headroom without making a genuinely slow-but-alive
+        // run look stuck) and force-clears `idleApplying` with a
+        // visible error if the process hasn't exited by then — the UI
+        // recovers on its own instead of requiring a reopen.
+        // Killing the process (below) does not clear `idleApplying`
+        // itself — that's left to `onExited`, which the kill triggers
+        // asynchronously a moment later. Verified live: an early version
+        // that set `idleApplying`/`lastError` directly in `onTriggered`
+        // raced with `onExited` firing right after and overwriting the
+        // clearer watchdog message with the killed process's own
+        // "exit 15" — functionally harmless (the row still correctly
+        // re-enabled) but a worse message. `watchdogFired` lets
+        // `onExited` recognise ITS OWN trigger came from a timeout,
+        // for the accurate message, with no dependency on which of the
+        // two handlers happens to run first.
+        property bool watchdogFired: false
+
+        Timer {
+            id: idleApplyWatchdog
+            interval: 10000
+            onTriggered: {
+                if (idleApplyProc.running) {
+                    idleSection.watchdogFired = true;
+                    idleApplyProc.running = false;
+                }
+            }
+        }
+
         Process {
             id: idleApplyProc
             running: false
@@ -217,8 +274,12 @@ PageBase {
                 id: idleApplyStderr
             }
             onExited: (exitCode, exitStatus) => {
+                idleApplyWatchdog.stop();
                 idleSection.idleApplying = false;
-                if (exitCode !== 0) {
+                if (idleSection.watchdogFired) {
+                    idleSection.watchdogFired = false;
+                    idleSection.lastError = "idle-overrides.sh did not respond within 10s — it may be stuck; try again";
+                } else if (exitCode !== 0) {
                     idleSection.lastError = idleSection._friendlyError(idleApplyStderr.text.trim()) || ("idle-overrides.sh failed (exit " + exitCode + ")");
                     console.warn("ShellBehaviourPage: " + idleApplyStderr.text.trim());
                 } else {
@@ -258,6 +319,7 @@ PageBase {
             idleSection.idleApplying = true;
             idleApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/idle-overrides.sh", "--set", key + "=" + seconds];
             idleApplyProc.running = true;
+            idleApplyWatchdog.restart();
         }
 
         // `enabled`/`opacity` on all five rows below: pending-state
