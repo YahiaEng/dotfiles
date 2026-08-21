@@ -1,9 +1,25 @@
 // modules/settings/common/SliderRow.qml — label + subtext + a value slider.
 // Same `Control` + never-anchor-contentItem discipline as SelectRow.qml —
-// see that file's header for the full QQC2 trap reasoning. Not consumed
-// until Task 3 (Display + input's pointer-sensitivity row); declared now
-// per this plan's own "declare the whole row-type family in Task 2"
-// instruction so Task 3 has no `common/qmldir` edit of its own to make.
+// see that file's header for the full QQC2 trap reasoning.
+//
+// ── Task 15 live-pass fix (MEASURED via grim -g pixel-sample on the real
+//    settings toplevel, not assumed from reading the code) — the QQC2
+//    `Slider` this row used to wrap rendered NOTHING at all: no track, no
+//    handle, not even the overridden `background`/`handle` delegates'
+//    own explicit-pixel Rectangles, on every page that used this row
+//    (Window manager's 8 sliders, Input's pointer-sensitivity and
+//    per-device scroll-factor rows, Audio's master/input-level/per-app
+//    rows) — a total rendering failure, not a contrast defect. Rather
+//    than chase QQC2 Slider's own internal implicit-size machinery
+//    (`implicitBackgroundWidth`/`implicitHandleWidth` derive from a
+//    delegate's `implicitWidth`, not its literal `width` — the likely
+//    cause, unconfirmed), this row is now hand-rolled: a plain
+//    Rectangle track + fill + handle + MouseArea, the SAME idiom
+//    ToggleRow's switch pill and SelectRow's dropdown pill already use
+//    successfully elsewhere in this module, rather than a THIRD QQC2
+//    interactive primitive risking a THIRD blind spot. `import
+//    QtQuick.Controls` stays only for `Control` itself (the row's own
+//    focus-ring/padding host), not for anything inside it.
 import QtQuick
 import QtQuick.Controls
 import "../../"
@@ -27,17 +43,17 @@ Control {
     property bool rowFocused: false
 
     implicitWidth: parent ? parent.width : 400
-    implicitHeight: 64
+    // Grown from Column's own real content (label row + subtext + the
+    // hand-rolled track), never a hardcoded literal — the exact class
+    // of bug this task's fix corrects. `rowContent` is `contentItem`'s
+    // own id below; a property BINDING may reference it regardless of
+    // textual order (unlike the imperative-JS-before-declaration trap
+    // this repo's memory warns about elsewhere).
+    implicitHeight: rowContent.implicitHeight + topPadding + bottomPadding
     padding: Design.spacingMd
 
-    // Row hover (operator burst-screenshot + PIL pixel-sample, fourth
-    // live-pass): this row had no row-level hover indicator at all
-    // before this fix. `HoverHandler` is passive/non-exclusive, so it
-    // does not compete with the `Slider`'s own drag/click handling.
-    // Coexistence with keyboard focus, decided deliberately: the ring
-    // shows when EITHER `rowFocused` (keyboard) OR hover is true — one
-    // shared visual, matching the operator's own request that hover
-    // look like keyboard selection.
+    // Row hover — HoverHandler is passive/non-exclusive, so it does not
+    // compete with the track's own MouseArea below for the drag gesture.
     HoverHandler {
         id: rowHover
     }
@@ -90,24 +106,23 @@ Control {
             elide: Text.ElideRight
         }
 
-        Slider {
-            id: slider
+        // ── Hand-rolled track — a fixed-height hit area (24px, a
+        //    touch/mouse-friendly target) taller than the 4px visual
+        //    track itself, so the drag gesture does not require
+        //    pixel-perfect precision on the thin line. `ratio` is the
+        //    ONE place value<->position conversion happens, read by
+        //    both the fill Rectangle and the handle's `x`. ─────────────
+        Item {
+            id: track
             width: parent.width
-            from: root.from
-            to: root.to
-            value: root.value
-            stepSize: root.stepSize
-            onMoved: root.moved(slider.value)
+            height: 24
 
-            // Same sweep, same root cause: the unfilled track was
-            // `surfaceVariant` on a `surfaceVariant` pane — invisible
-            // where the filled (primary) portion doesn't cover it.
-            // Outline border added — same role every other fix in this
-            // wave uses against this identical pane color.
-            background: Rectangle {
-                x: slider.leftPadding
-                y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                width: slider.availableWidth
+            readonly property real ratio: (root.to > root.from) ? Math.max(0, Math.min(1, (root.value - root.from) / (root.to - root.from))) : 0
+
+            Rectangle {
+                id: trackBg
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
                 height: 4
                 radius: 2
                 color: Colours.surfaceVariant
@@ -115,20 +130,51 @@ Control {
                 border.color: Colours.outline
 
                 Rectangle {
-                    width: slider.visualPosition * parent.width
+                    width: track.ratio * parent.width
                     height: parent.height
                     radius: parent.radius
                     color: Colours.primary
                 }
             }
 
-            handle: Rectangle {
-                x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
-                y: slider.topPadding + slider.availableHeight / 2 - height / 2
+            Rectangle {
+                id: handle
                 width: 18
                 height: 18
                 radius: height / 2
+                anchors.verticalCenter: parent.verticalCenter
+                x: track.ratio * (track.width - width)
                 color: Colours.primary
+                border.width: 1
+                border.color: Colours.onPrimary
+            }
+
+            // MouseArea fills `track` exactly, so `mouse.x` is already
+            // in the same coordinate space `ratio`'s own math uses —
+            // no separate margin/offset reconciliation needed. Pressing
+            // anywhere on the track jumps to that position (matches
+            // QQC2 Slider's own click-to-position convention); dragging
+            // continues tracking the cursor.
+            MouseArea {
+                id: dragArea
+                anchors.fill: parent
+
+                function _emitFromX(x) {
+                    var w = track.width;
+                    if (w <= 0)
+                        return;
+                    var r = Math.max(0, Math.min(1, x / w));
+                    var raw = root.from + r * (root.to - root.from);
+                    var stepped = root.stepSize > 0 ? Math.round(raw / root.stepSize) * root.stepSize : raw;
+                    stepped = Math.max(root.from, Math.min(root.to, stepped));
+                    root.moved(stepped);
+                }
+
+                onPressed: (mouse) => dragArea._emitFromX(mouse.x)
+                onPositionChanged: (mouse) => {
+                    if (pressed)
+                        dragArea._emitFromX(mouse.x);
+                }
             }
         }
     }
