@@ -286,6 +286,46 @@ ShellRoot {
         }
     }
 
+    // ── Prefs IPC surface (quick-260821-6z1 Task 1, D-02) — mirrors the
+    //    `notifs` target's own shape immediately above: a mechanical,
+    //    screenshot-free way to drive `Prefs.getValue`/`Prefs.setValue`
+    //    directly — the SAME functions a settings row's own handler calls,
+    //    not a synthetic stand-in for them. Also a genuinely useful
+    //    scripting surface on its own, consistent with this repo's
+    //    "write configs humans will edit" convention. `set()` coerces its
+    //    string argument to bool/number/string, since IPC callers (a shell
+    //    script, `qs ipc call`) can only ever pass strings — a settings
+    //    row calls `Prefs.setValue()` directly with an already-typed
+    //    value and does not go through this coercion at all. ────────────
+    IpcHandler {
+        id: prefsIpc
+        target: "prefs"
+
+        function _coerce(s: string) {
+            if (s === "true")
+                return true;
+            if (s === "false")
+                return false;
+            if (/^-?\d+$/.test(s))
+                return parseInt(s, 10);
+            if (/^-?\d*\.\d+$/.test(s))
+                return parseFloat(s);
+            return s;
+        }
+
+        function get(key: string): string {
+            return String(Prefs.getValue(key));
+        }
+
+        function set(key: string, value: string): bool {
+            return Prefs.setValue(key, prefsIpc._coerce(value));
+        }
+
+        function keys(): string {
+            return Prefs.listKeys();
+        }
+    }
+
     // QS-03 per-screen fan-out (D-12, Phase 12 arrangement B — arrangement
     // A, a Variants+LazyLoader fan-out declared here in shell.qml,
     // reproduced 11-QUICKSHELL-EVIDENCE.md's FM2 post-hotplug visibility

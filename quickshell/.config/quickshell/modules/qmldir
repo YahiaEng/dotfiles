@@ -20,6 +20,12 @@
 module qs.modules
 singleton Colours 1.0 Colours.qml
 singleton Motion 1.0 Motion.qml
+# Prefs (quick-260821-6z1 Task 1, D-02) — the shell-preferences JSON store.
+# Registered here, not modules/settings/qmldir, for the same cross-tree
+# reason CavaService is registered here rather than modules/dashboard/
+# qmldir below: modules/dashboard/Design.qml AND modules/settings/pages/*
+# AND shell.qml itself all need to resolve the SAME instance.
+singleton Prefs 1.0 Prefs.qml
 Probe 1.0 Probe.qml
 ScreencopyProbe 1.0 ScreencopyProbe.qml
 Dashboard 1.0 Dashboard.qml

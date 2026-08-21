@@ -75,6 +75,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import "../"
 
 Singleton {
     id: root
@@ -432,7 +433,10 @@ Singleton {
     // interactive: true means a drag must be able to complete inside the
     // dwell window, and the hover-pause already covers genuinely slow
     // interaction.
-    readonly property int osdHideDelayMs: 1200
+    // quick-260821-6z1 Task 1 (D-02): Prefs-backed, keeping this literal
+    // as the fallback default declared in Prefs.qml's own `_defaults` —
+    // an absent or malformed prefs.json degrades to exactly 1200ms.
+    readonly property int osdHideDelayMs: Prefs.getValue("osd.hideDelayMs")
     // osdRecencyWindowMs (1500) — D-20-08, Claude's Discretion resolved by
     // UI-SPEC. Gates SLIDER-ROW MEMBERSHIP (a control earns a row only if
     // its value changed within this window), not the dwell.
@@ -460,7 +464,9 @@ Singleton {
     // as a stack: enough for a burst to be visible at once, few enough
     // that the surplus rolls into the existing "+N more" summary card
     // instead of tiling the right edge of the screen.
-    readonly property int notifMaxVisiblePopups: 3
+    // quick-260821-6z1 Task 1 (D-02): Prefs-backed, keeping this literal
+    // as the fallback default declared in Prefs.qml's own `_defaults`.
+    readonly property int notifMaxVisiblePopups: Prefs.getValue("notifs.maxVisiblePopups")
     // Item 2 — expanded-state body clamp. The compact state already elides
     // the body to one line; the EXPANDED state had no bound at all
     // (`maximumLineCount: 0`, `elide: ElideNone`), so a long-bodied
@@ -497,7 +503,9 @@ Singleton {
     // D-19-30 — the named divergence from Caelestia's uncapped history:
     // oldest item dropped past 100, since this shell hot-reloads and
     // restarts far more often than either reference shell's deployment.
-    readonly property int notifHistoryCap: 100
+    // quick-260821-6z1 Task 1 (D-02): Prefs-backed, keeping this literal
+    // as the fallback default declared in Prefs.qml's own `_defaults`.
+    readonly property int notifHistoryCap: Prefs.getValue("notifs.historyCap")
 
     // ── Session (power menu) tokens (Phase 20 Plan 03, QPOWER-01;
     //    REVISED 2026-08-15 for the ring design — see 20-CONTEXT.md's
