@@ -328,12 +328,27 @@ mkdir -p "$HOME/.cache"
 # this section still need it.
 mkdir -p "$HOME/.local/state/theme"
 
-# D-06/D-07: seed the motion-scale axis to its default, same seed-only-
-# when-absent idiom as above — an absent file already reads as "normal"
-# through theme_engine_read_motion_scale's closed case, but a fresh
-# install should have the file present rather than relying on every
-# reader's fallback branch being exercised correctly on day one.
-[[ -f "$HOME/.local/state/theme/motion-scale" ]] || echo "normal" > "$HOME/.local/state/theme/motion-scale"
+# D-06/D-07 (rebased for the style/accessibility axis split by
+# quick-260821-swp): seed via theme_engine_migrate_motion_state so a fresh
+# install and an upgrading one (a legacy motion-scale value present) take
+# the EXACT SAME path — never a hand-written literal here that could drift
+# from that function's own migration rules. An absent style file already
+# reads as "md3"/"full" through the closed-set readers' own fallback, but a
+# fresh install should have both files present rather than relying on
+# every reader's fallback branch being exercised correctly on day one.
+MOTION_LIB_SEED="$DOTFILES_DIR/theme-engine/.config/theme-engine/lib/motion.sh"
+if [[ -f "$MOTION_LIB_SEED" ]]; then
+    (
+        set -uo pipefail
+        # shellcheck source=theme-engine/.config/theme-engine/lib/motion.sh
+        source "$MOTION_LIB_SEED"
+        theme_engine_migrate_motion_state
+    ) || echo "  ⚠ motion-state seed did not complete — see error above; theme-apply will attempt it again" >&2
+else
+    echo "  ⚠ $MOTION_LIB_SEED not found — skipping motion-state seed" >&2
+    [[ -f "$HOME/.local/state/theme/motion-style" ]] || echo "md3" > "$HOME/.local/state/theme/motion-style"
+    [[ -f "$HOME/.local/state/theme/motion-accessibility" ]] || echo "full" > "$HOME/.local/state/theme/motion-accessibility"
+fi
 
 # D-30/D-31: seed the weather location/units state axis, same seed-only-
 # when-absent idiom as above (state dir already created further up — no

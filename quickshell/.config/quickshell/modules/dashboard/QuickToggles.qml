@@ -359,9 +359,9 @@ Item {
                     id: rippleGrowAnim
                     target: rippleCircle
                     properties: "width,height"
-                    duration: Motion.emphasizedInDuration
+                    duration: Motion.spatialInDuration
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Motion.emphasizedInEasing
+                    easing.bezierCurve: Motion.spatialInEasing
                     onFinished: rippleFadeAnim.start()
                 }
                 NumberAnimation {
@@ -448,23 +448,32 @@ Item {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // Motion-scale segmented row (D-24) — full-width, direct jump, one
-    // press = exactly one theme-apply re-render. Sits OUTSIDE the DASH-07
-    // mirror proof by construction (D-23): there is no external-daemon counterpart
+    // Reduce-motion segmented row (D-24; rebased onto the accessibility
+    // axis by quick-260821-swp) — full-width, direct jump, one press =
+    // exactly one theme-apply re-render. Sits OUTSIDE the DASH-07 mirror
+    // proof by construction (D-23): there is no external-daemon counterpart
     // for this control, it is a one-way view of a state file — and, per
     // this plan's own header note, deliberately NOT part of the D-19-19
-    // singleton promotion either. Unchanged from Phase 14/15.
+    // singleton promotion either.
+    //
+    // quick-260821-swp/D-01: the old single motion-scale axis conflated
+    // curve SHAPE (off/reduced/normal/lively as an intensity ladder) with
+    // reduce-motion. Shape moved to its own "Animation style" picker in
+    // Settings > Window manager; this row is what stays reachable from
+    // "a control that is not the style picker" for reduce-motion/off — the
+    // three values it now shows (full/reduced/off) are exactly the
+    // `accessibility` axis's own closed set, read from the NEW state file.
     // ═══════════════════════════════════════════════════════════════════
 
     FileView {
-        id: motionScaleFile
-        path: root.homeDir + "/.local/state/theme/motion-scale"
+        id: motionAccessFile
+        path: root.homeDir + "/.local/state/theme/motion-accessibility"
         watchChanges: true
         onFileChanged: reload()
     }
-    readonly property string motionScaleRaw: (motionScaleFile.text() || "").trim()
-    readonly property var validMotionScales: ["off", "reduced", "normal", "lively"]
-    readonly property string motionScaleState: validMotionScales.indexOf(motionScaleRaw) !== -1 ? motionScaleRaw : "normal"
+    readonly property string motionAccessRaw: (motionAccessFile.text() || "").trim()
+    readonly property var validMotionAccess: ["full", "reduced", "off"]
+    readonly property string motionScaleState: validMotionAccess.indexOf(motionAccessRaw) !== -1 ? motionAccessRaw : "full"
 
     property bool presetPending: false
     readonly property int presetTimeoutMs: 8000
@@ -487,15 +496,14 @@ Item {
             return;
         root.presetPending = true;
         presetWatchdogTimer.restart();
-        presetProcess.command = [root.homeDir + "/.config/hypr/scripts/motion-switch.sh", value];
+        presetProcess.command = [root.homeDir + "/.config/hypr/scripts/motion-switch.sh", "--accessibility", value];
         presetProcess.running = true;
     }
 
     readonly property var presetModel: [
         { value: "off", label: "Off", tooltip: "No animations anywhere in the desktop" },
         { value: "reduced", label: "Reduced", tooltip: "Minimal, short animations" },
-        { value: "normal", label: "Normal", tooltip: "The default animation speed" },
-        { value: "lively", label: "Lively", tooltip: "Longer, more expressive animations" }
+        { value: "full", label: "Full", tooltip: "The active animation style's own full motion — see Settings > Window manager > Animation style" }
     ]
 
     // One inline component — an MD3 segmented-button segment.

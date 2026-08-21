@@ -318,24 +318,30 @@ BarCapsule {
         // directions, not this repo's semantic-motion emphasizedIn/Out
         // bezier pair (that pairing is tuned for panel/dialog reveals and
         // its acceleration is what the operator reported as "not smooth").
-        // Design.barDrawerEasingType (Easing.OutCubic) mimics Athena's own
-        // GTK transition exactly — see that token's own provenance comment.
-        // Horizontal-only now, but left exactly as it was: this Behavior
-        // pair only ever animated the horizontal-orientation width/height
-        // shape (vertical's own width/height are now a bare 0 above, not a
-        // second animated branch).
+        // quick-260821-swp (R-2b): the hardcoded `Design.barDrawerEasingType`
+        // (Easing.OutCubic) that used to serve this — a Qt enum with no
+        // bezier array, structurally unreachable by the style axis and
+        // invisible to any scan of bezier bindings — is retired in favour of
+        // `Motion.spatialMoveEasing`, bringing the four bar drawers onto
+        // Motion tokens for the first time. Horizontal-only now, but left
+        // exactly as it was: this Behavior pair only ever animated the
+        // horizontal-orientation width/height shape (vertical's own
+        // width/height are now a bare 0 above, not a second animated
+        // branch).
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Design.barDrawerEasingType
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Design.barDrawerEasingType
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
 

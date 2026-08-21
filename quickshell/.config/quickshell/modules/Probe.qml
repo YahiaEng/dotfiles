@@ -474,14 +474,26 @@ Variants {
                                         height: 24
                                         radius: 12
                                         color: Colours.tertiary
+                                        // quick-260821-swp (R-2): "x" is a
+                                        // spatial (position) property —
+                                        // retargeted onto spatial-move, the
+                                        // same name every real windowsMove/
+                                        // slide site now binds. Numerically
+                                        // identical to the old standard
+                                        // duration+easing under `md3`
+                                        // (Task 1's seed), so this Replay
+                                        // swatch is unchanged today and
+                                        // starts reflecting the active
+                                        // style the moment a non-md3 style
+                                        // is selected.
                                         NumberAnimation on x {
                                             id: standardReplayAnim
                                             running: false
                                             from: 0
                                             to: 80
-                                            duration: Motion.standardDuration
+                                            duration: Motion.spatialMoveDuration
                                             easing.type: Easing.BezierSpline
-                                            easing.bezierCurve: Motion.standardEasing
+                                            easing.bezierCurve: Motion.spatialMoveEasing
                                         }
                                         // TOKEN-06 (D-26) spring variant, same
                                         // element/property/range as the bezier
@@ -536,7 +548,7 @@ Variants {
                                             mass: 1
                                         }
                                     }
-                                    Label { text: "standard"; font.pixelSize: 12; color: Colours.onSurface }
+                                    Label { text: "standard → spatial-move"; font.pixelSize: 12; color: Colours.onSurface }
                                 }
 
                                 Column {
@@ -547,14 +559,17 @@ Variants {
                                         height: 24
                                         radius: 12
                                         color: Colours.tertiary
+                                        // quick-260821-swp (R-2): retargeted
+                                        // onto spatial-in — see
+                                        // standardReplayAnim's comment above.
                                         NumberAnimation on x {
                                             id: emphasizedInReplayAnim
                                             running: false
                                             from: 0
                                             to: 80
-                                            duration: Motion.emphasizedInDuration
+                                            duration: Motion.spatialInDuration
                                             easing.type: Easing.BezierSpline
-                                            easing.bezierCurve: Motion.emphasizedInEasing
+                                            easing.bezierCurve: Motion.spatialInEasing
                                         }
                                         // TOKEN-06 (D-26) spring variant — see
                                         // the full property-naming/no-1:1-port
@@ -572,7 +587,7 @@ Variants {
                                             mass: 1
                                         }
                                     }
-                                    Label { text: "emphasized-in"; font.pixelSize: 12; color: Colours.onSurface }
+                                    Label { text: "emphasized-in → spatial-in"; font.pixelSize: 12; color: Colours.onSurface }
                                 }
 
                                 Column {
@@ -583,14 +598,17 @@ Variants {
                                         height: 24
                                         radius: 12
                                         color: Colours.tertiary
+                                        // quick-260821-swp (R-2): retargeted
+                                        // onto spatial-out — see
+                                        // standardReplayAnim's comment above.
                                         NumberAnimation on x {
                                             id: emphasizedOutReplayAnim
                                             running: false
                                             from: 0
                                             to: 80
-                                            duration: Motion.emphasizedOutDuration
+                                            duration: Motion.spatialOutDuration
                                             easing.type: Easing.BezierSpline
-                                            easing.bezierCurve: Motion.emphasizedOutEasing
+                                            easing.bezierCurve: Motion.spatialOutEasing
                                         }
                                         // TOKEN-06 (D-26) spring variant — see
                                         // the full property-naming/no-1:1-port
@@ -608,7 +626,7 @@ Variants {
                                             mass: 1
                                         }
                                     }
-                                    Label { text: "emphasized-out"; font.pixelSize: 12; color: Colours.onSurface }
+                                    Label { text: "emphasized-out → spatial-out"; font.pixelSize: 12; color: Colours.onSurface }
                                 }
                             }
                         }

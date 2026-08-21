@@ -195,13 +195,19 @@ QtObject {
                     easing.type: Easing.BezierSpline
                     easing.bezierCurve: Motion.emphasizedInEasing
                 }
+                // quick-260821-swp (R-2): transformProperty holds "y" or
+                // "angle" (both spatial) at createObject() time — retargeted
+                // onto spatial-in. motion-lint-allow: runtime-computed-property
+                // (the target property name is not a literal here, so
+                // CHECK E's static scanner cannot classify this line; read
+                // by a human instead — both possible values are spatial).
                 NumberAnimation {
                     target: seqAnim.targetTransform
                     property: seqAnim.transformProperty
                     to: 0
-                    duration: Motion.emphasizedInDuration
+                    duration: Motion.spatialInDuration
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Motion.emphasizedInEasing
+                    easing.bezierCurve: Motion.spatialInEasing
                 }
             }
         }
@@ -230,13 +236,19 @@ QtObject {
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: Motion.emphasizedOutEasing
             }
+            // quick-260821-swp (R-2): transformProperty holds "y" or
+            // "angle" (both spatial) at createObject() time — retargeted
+            // onto spatial-out. motion-lint-allow: runtime-computed-property
+            // (the target property name is not a literal here, so CHECK E's
+            // static scanner cannot classify this line; read by a human
+            // instead — both possible values are spatial).
             NumberAnimation {
                 target: exitAnim.targetTransform
                 property: exitAnim.transformProperty
                 to: exitAnim.toValue
-                duration: Motion.emphasizedOutDuration
+                duration: Motion.spatialOutDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.emphasizedOutEasing
+                easing.bezierCurve: Motion.spatialOutEasing
             }
         }
     }

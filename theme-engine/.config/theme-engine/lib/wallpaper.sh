@@ -400,12 +400,18 @@ theme_engine_wallpaper_sync_owner() {
 
     # ── Reduced-motion intent FIRST, before any selection intent — a
     # selection made under reduced motion must never briefly start a
-    # player and then immediately stop it. D-31 is a three-valued axis:
-    # only the literal "off" suppresses; "reduced", "normal", "lively"
-    # and a missing/unreadable file all show.
-    local motion_scale
-    motion_scale=$(cat "$HOME/.local/state/theme/motion-scale" 2>/dev/null || true)
-    if [[ "$motion_scale" == "off" ]]; then
+    # player and then immediately stop it. D-31 is a three-valued axis
+    # (quick-260821-swp: now the `accessibility` axis, not motion-scale —
+    # style never suppresses wallpaper motion, only accessibility does):
+    # only the literal "off" suppresses; "reduced", "full" and a
+    # missing/unreadable file all show. theme_engine_read_motion_accessibility
+    # is in scope here: theme-apply sources lib/generate.sh (which sources
+    # lib/motion.sh) before lib/wallpaper.sh's callers ever run this
+    # function, so the closed-set reader (never a raw file read) is always
+    # available.
+    local motion_access
+    motion_access="$(theme_engine_read_motion_accessibility 2>/dev/null || echo full)"
+    if [[ "$motion_access" == "off" ]]; then
         "$owner" motion hide >/dev/null 2>&1 || true
     else
         "$owner" motion show >/dev/null 2>&1 || true

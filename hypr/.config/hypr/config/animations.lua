@@ -90,34 +90,54 @@ end
 -- here would itself be exactly the raw-value violation motion-lint's
 -- CHECK B exists to catch.
 
+-- quick-260821-swp: the eight STYLE-VARYING leaves below (windows in/out/
+-- move, workspaces, specialWorkspace, layers/in/out) read BOTH their curve
+-- name and their style string from tokens.motion.hypr_leaves.<key> — the
+-- active style's own resolved shape — rather than the hardcoded
+-- emphasized-decelerate/emphasized-accelerate/standard names and literal
+-- style strings this file used before this task. register_hypr_leaf()
+-- keeps the SAME explicit-nil-test/registration-guard discipline as every
+-- other leaf in this file: a leaf entry, a curve field, or a matching speed
+-- token that is nil OMITS the field/skips the leaf entirely rather than
+-- substituting a literal. The leaf's speed key is derived from its curve
+-- name (gsub("-", "_")) because motion.json's Task 1 seed pairs each
+-- spatial semantic entry 1:1 with the identically-named easing (e.g.
+-- semantic["spatial-in"].easing == "spatial-in"), so no separate
+-- curve-name -> semantic-name lookup table is needed.
+local function register_hypr_leaf(leaf_name, entry_key)
+    local entry = tokens.motion.hypr_leaves and tokens.motion.hypr_leaves[entry_key]
+    if entry == nil then
+        return
+    end
+    local curve = entry.curve
+    if curve == nil then
+        return
+    end
+    local curve_name = "motion-" .. curve
+    if not registered_curves[curve_name] then
+        return
+    end
+    local speed_key = curve:gsub("%-", "_")
+    local speed = tokens.motion.speed[speed_key]
+    if speed == nil then
+        return
+    end
+    local args = {
+        leaf = leaf_name,
+        enabled = true,
+        speed = speed,
+        bezier = curve_name,
+    }
+    if entry.style ~= nil then
+        args.style = entry.style
+    end
+    hl.animation(args)
+end
+
 -- ── Window animations ────────────────────────────
-if tokens.motion.speed.emphasized_in ~= nil and registered_curves["motion-emphasized-decelerate"] then
-    hl.animation({
-        leaf = "windowsIn",
-        enabled = true,
-        speed = tokens.motion.speed.emphasized_in,
-        bezier = "motion-emphasized-decelerate",
-        style = "popin 60%",
-    })
-end
-if tokens.motion.speed.emphasized_out ~= nil and registered_curves["motion-emphasized-accelerate"] then
-    hl.animation({
-        leaf = "windowsOut",
-        enabled = true,
-        speed = tokens.motion.speed.emphasized_out,
-        bezier = "motion-emphasized-accelerate",
-        style = "popin 60%",
-    })
-end
-if tokens.motion.speed.standard ~= nil and registered_curves["motion-standard"] then
-    hl.animation({
-        leaf = "windowsMove",
-        enabled = true,
-        speed = tokens.motion.speed.standard,
-        bezier = "motion-standard",
-        style = "slide",
-    })
-end
+register_hypr_leaf("windowsIn", "windows_in")
+register_hypr_leaf("windowsOut", "windows_out")
+register_hypr_leaf("windowsMove", "windows_move")
 
 -- ── Fade ─────────────────────────────────────────
 if tokens.motion.speed.emphasized_in ~= nil and registered_curves["motion-standard-decelerate"] then
@@ -181,24 +201,8 @@ if tokens.motion.speed.indicator_border_rotate ~= nil and registered_curves["mot
 end
 
 -- ── Workspace transitions ────────────────────────
-if tokens.motion.speed.emphasized_in ~= nil and registered_curves["motion-emphasized-decelerate"] then
-    hl.animation({
-        leaf = "workspaces",
-        enabled = true,
-        speed = tokens.motion.speed.emphasized_in,
-        bezier = "motion-emphasized-decelerate",
-        style = "slide",
-    })
-end
-if tokens.motion.speed.emphasized_in ~= nil and registered_curves["motion-emphasized-decelerate"] then
-    hl.animation({
-        leaf = "specialWorkspace",
-        enabled = true,
-        speed = tokens.motion.speed.emphasized_in,
-        bezier = "motion-emphasized-decelerate",
-        style = "slidevert",
-    })
-end
+register_hypr_leaf("workspaces", "workspaces")
+register_hypr_leaf("specialWorkspace", "special_workspace")
 
 -- ── Layers (menus, notifications) — D-07 split: layersIn/layersOut ──
 -- carry their own emphasized-in/emphasized-out speed+curve (300ms
@@ -206,30 +210,6 @@ end
 -- declared per the animation tree's inheritance semantics even though
 -- every real case is now covered by the two children (13-RESEARCH.md
 -- Open Question 2).
-if tokens.motion.speed.standard ~= nil and registered_curves["motion-standard"] then
-    hl.animation({
-        leaf = "layers",
-        enabled = true,
-        speed = tokens.motion.speed.standard,
-        bezier = "motion-standard",
-        style = "popin 80%",
-    })
-end
-if tokens.motion.speed.emphasized_in ~= nil and registered_curves["motion-emphasized-decelerate"] then
-    hl.animation({
-        leaf = "layersIn",
-        enabled = true,
-        speed = tokens.motion.speed.emphasized_in,
-        bezier = "motion-emphasized-decelerate",
-        style = "popin 80%",
-    })
-end
-if tokens.motion.speed.emphasized_out ~= nil and registered_curves["motion-emphasized-accelerate"] then
-    hl.animation({
-        leaf = "layersOut",
-        enabled = true,
-        speed = tokens.motion.speed.emphasized_out,
-        bezier = "motion-emphasized-accelerate",
-        style = "popin 80%",
-    })
-end
+register_hypr_leaf("layers", "layers")
+register_hypr_leaf("layersIn", "layers_in")
+register_hypr_leaf("layersOut", "layers_out")

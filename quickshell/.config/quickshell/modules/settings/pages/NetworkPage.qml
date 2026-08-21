@@ -317,12 +317,14 @@ PageBase {
         implicitHeight: rowColumn.implicitHeight
         height: implicitHeight
 
+        // quick-260821-swp (R-2): implicitHeight is spatial — retargeted
+        // onto spatial-move.
         Behavior on implicitHeight {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: Motion.standardDuration
+                duration: Motion.spatialMoveDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
 
@@ -640,12 +642,14 @@ PageBase {
         implicitHeight: rowColumn.implicitHeight
         height: implicitHeight
 
+        // quick-260821-swp (R-2): implicitHeight is spatial — retargeted
+        // onto spatial-move.
         Behavior on implicitHeight {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: Motion.standardDuration
+                duration: Motion.spatialMoveDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
 

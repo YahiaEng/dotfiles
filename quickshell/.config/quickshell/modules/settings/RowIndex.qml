@@ -113,8 +113,8 @@ Singleton {
         { pageIdx: 7, section: "Decoration", label: "Shadow", keywords: "shadow drop decoration" },
         { pageIdx: 7, section: "Workspaces", label: "Workspace back-and-forth", keywords: "workspace back and forth switch toggle" },
         { pageIdx: 7, section: "Workspaces", label: "Allow workspace cycles", keywords: "workspace cycle wrap around" },
-        { pageIdx: 7, section: "Animation", label: "Animation speed", keywords: "animation speed motion preset shell" },
-        { pageIdx: 7, section: "Animation", label: "No separate animation-speed option", keywords: "animation speed motion compositor" },
+        { pageIdx: 7, section: "Animation", label: "Animation style", keywords: "animation style motion preset shell md3 smooth snappy bouncy wavy" },
+        { pageIdx: 7, section: "Animation", label: "Reduce motion", keywords: "animation reduce motion accessibility off reduced full" },
 
         // ── pageIdx 8 — Notifications ─────────────────────────────────────
         { pageIdx: 8, section: "Notifications", label: "Do not disturb", keywords: "notifications dnd quiet do not disturb popup" },

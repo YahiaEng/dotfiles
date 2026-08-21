@@ -60,12 +60,14 @@ Item {
     // stepping — the caller (PerformanceTab) simply rebinds this to the
     // reader's latest fraction every poll; the caller never animates it.
     property real value: 0
+    // quick-260821-swp (R-2): value is spatial — retargeted onto
+    // spatial-move.
     Behavior on value {
         enabled: Motion.motionEnabled
         NumberAnimation {
-            duration: Motion.standardDuration
+            duration: Motion.spatialMoveDuration
             easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.standardEasing
+            easing.bezierCurve: Motion.spatialMoveEasing
         }
     }
 

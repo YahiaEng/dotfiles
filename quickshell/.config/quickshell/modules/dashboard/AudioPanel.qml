@@ -152,12 +152,14 @@ PanelDialog {
         // layout form ships first because it needs no second surface and
         // no floating type; a locally composed overlay remains Claude's
         // discretion for a later round if the render gate prefers it).
+        // quick-260821-swp (R-2): implicitHeight is spatial — retargeted
+        // onto spatial-move.
         Behavior on implicitHeight {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: Motion.standardDuration
+                duration: Motion.spatialMoveDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
 

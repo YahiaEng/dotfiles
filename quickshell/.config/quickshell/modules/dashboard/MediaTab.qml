@@ -1981,9 +1981,9 @@ Item {
                             id: rippleGrowAnim
                             target: rippleCircle
                             properties: "width,height"
-                            duration: Motion.emphasizedInDuration
+                            duration: Motion.spatialInDuration
                             easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.emphasizedInEasing
+                            easing.bezierCurve: Motion.spatialInEasing
                             onFinished: rippleFadeAnim.start()
                         }
                         NumberAnimation {

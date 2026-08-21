@@ -579,12 +579,16 @@ PanelWindow {
             panel.opened = true;
         }
 
+        // quick-260821-swp (R-2): "y" is a spatial (position) property — the
+        // panel's own entry/dismiss slide — so it is retargeted onto the
+        // spatial-in/spatial-out pair rather than the effects
+        // emphasized-in/emphasized-out pair every fade in this file keeps.
         Behavior on y {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: dashboardWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration
+                duration: dashboardWindow._dismissing ? Motion.spatialOutDuration : Motion.spatialInDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: dashboardWindow._dismissing ? Motion.emphasizedOutEasing : Motion.emphasizedInEasing
+                easing.bezierCurve: dashboardWindow._dismissing ? Motion.spatialOutEasing : Motion.spatialInEasing
             }
         }
         Behavior on opacity {
@@ -607,12 +611,15 @@ PanelWindow {
         // the surface boundary used to provide implicitly.
         clip: true
 
+        // quick-260821-swp (R-2): width/height are spatial (size) properties
+        // — retargeted onto spatial-move, the same name windowsMove uses on
+        // the compositor side for an already-open window's own resize.
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: dashboardWindow._resizeDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.spatialMoveEasing
                 onRunningChanged: if (!running) dashboardWindow._commitResizeOrigin()
             }
         }
@@ -621,7 +628,7 @@ PanelWindow {
             NumberAnimation {
                 duration: dashboardWindow._resizeDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.spatialMoveEasing
                 onRunningChanged: if (!running) dashboardWindow._commitResizeOrigin()
             }
         }

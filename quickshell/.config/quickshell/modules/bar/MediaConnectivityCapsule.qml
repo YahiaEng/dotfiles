@@ -649,21 +649,25 @@ BarCapsule {
 
         // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
         // directions, not this repo's semantic-motion emphasizedIn/Out
-        // bezier pair — see Design.barDrawerEasingType's own provenance
-        // comment. 650ms — Design.barDrawerTransitionMs, upstream's own
-        // audio-drawer transition-duration (groups.jsonc), unchanged.
+        // bezier pair. quick-260821-swp (R-2b): now on
+        // `Motion.spatialMoveEasing`, retiring the hardcoded
+        // `Design.barDrawerEasingType` Qt enum this used to read. 650ms —
+        // Design.barDrawerTransitionMs, upstream's own audio-drawer
+        // transition-duration (groups.jsonc), unchanged.
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Design.barDrawerEasingType
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Design.barDrawerEasingType
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
 
@@ -1190,20 +1194,22 @@ BarCapsule {
         height: root.vertical ? (root.connectionsDrawerExpanded ? root.connectionsStripExtent : 0) : wifiPopoutTrigger.height
 
         // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
-        // directions — see Design.barDrawerEasingType's own provenance
-        // comment (audioStripHost above carries the full rationale).
+        // directions — now on `Motion.spatialMoveEasing` (audioStripHost
+        // above carries the full quick-260821-swp R-2b rationale).
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionFastMs
-                easing.type: Design.barDrawerEasingType
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionFastMs
-                easing.type: Design.barDrawerEasingType
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
 

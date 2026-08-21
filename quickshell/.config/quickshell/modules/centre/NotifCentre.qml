@@ -112,12 +112,14 @@ PanelWindow {
     property real offsetScale: NotifServer.centreOpen ? 0 : 1
     visible: centreWindow.offsetScale < 1
 
+    // quick-260821-swp (R-2): offsetScale is a spatial (size/position)
+    // property — retargeted onto the spatial-in/spatial-out pair.
     Behavior on offsetScale {
         enabled: Motion.motionEnabled
         NumberAnimation {
-            duration: NotifServer.centreOpen ? Motion.emphasizedInDuration : Motion.emphasizedOutDuration
+            duration: NotifServer.centreOpen ? Motion.spatialInDuration : Motion.spatialOutDuration
             easing.type: Easing.BezierSpline
-            easing.bezierCurve: NotifServer.centreOpen ? Motion.emphasizedInEasing : Motion.emphasizedOutEasing
+            easing.bezierCurve: NotifServer.centreOpen ? Motion.spatialInEasing : Motion.spatialOutEasing
         }
     }
 
@@ -669,9 +671,9 @@ PanelWindow {
                         target: clearAllButton
                         property: "scale"
                         to: clearAllButton._shouldShow ? 1 : 0.5
-                        duration: Motion.motionEnabled ? Motion.standardDuration : 0
+                        duration: Motion.motionEnabled ? Motion.spatialMoveDuration : 0
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.spatialMoveEasing
                     }
                     on_ShouldShowChanged: Qt.callLater(function() {
                         clearAllOpacityAnim.restart();
@@ -746,9 +748,9 @@ PanelWindow {
                         target: newsRefreshButton
                         property: "scale"
                         to: newsRefreshButton._shouldShow ? 1 : 0.5
-                        duration: Motion.motionEnabled ? Motion.standardDuration : 0
+                        duration: Motion.motionEnabled ? Motion.spatialMoveDuration : 0
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.spatialMoveEasing
                     }
                     on_ShouldShowChanged: Qt.callLater(function() {
                         newsRefreshOpacityAnim.restart();

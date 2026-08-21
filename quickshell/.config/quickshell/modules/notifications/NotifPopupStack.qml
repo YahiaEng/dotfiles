@@ -170,20 +170,22 @@ PanelWindow {
                 easing.bezierCurve: Motion.standardEasing
             }
         }
+        // quick-260821-swp (R-2): "y" is spatial (position) — both
+        // retargeted onto spatial-move.
         move: Transition {
             NumberAnimation {
                 properties: "y"
-                duration: Motion.standardDuration
+                duration: Motion.spatialMoveDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
         displaced: Transition {
             NumberAnimation {
                 properties: "y"
-                duration: Motion.standardDuration
+                duration: Motion.spatialMoveDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
         remove: Transition {

@@ -61,7 +61,17 @@ Singleton {
     // scan / bluetooth discovery indeterminate progress lines, which
     // previously had no correctly-scaled loop period reachable from QML at
     // all (see `ambientDuration` below).
-    readonly property var _pairNames: ["standard", "emphasized-in", "emphasized-out", "stagger-offset", "ambient"]
+    //
+    // quick-260821-swp's three spatial keys (R-2/R-3) are APPENDED as the
+    // SIXTH/SEVENTH/EIGHTH entries — never inserted, same append-only
+    // discipline as every entry before them. These are the ONLY three
+    // easing names a style may ever give overshoot: every spatial QML site
+    // (the 40 retargeted sites plus the 8 former bar-drawer sites) binds
+    // one of these three, and every other alias below (standard/
+    // emphasizedIn/emphasizedOut/staggerOffset/ambient) stays monotonic in
+    // every style, forever — that split is what makes a bouncing fade
+    // impossible by construction rather than by a maintained list.
+    readonly property var _pairNames: ["standard", "emphasized-in", "emphasized-out", "stagger-offset", "ambient", "spatial-in", "spatial-out", "spatial-move"]
 
     property bool loadHealthy: true
 
@@ -80,7 +90,7 @@ Singleton {
 
         JsonAdapter {
             id: motion
-            // These two MUST carry motion.json's own snake_case key names.
+            // These MUST carry motion.json's own snake_case key names.
             // JsonAdapter maps top-level JSON keys to declared properties by
             // EXACT name — there is no snake_case-to-camelCase conversion
             // (verified behaviourally in 14-09: with the state file at `off`
@@ -92,8 +102,17 @@ Singleton {
             // masked this for two phases. The public camelCase aliases below
             // are what every consumer and motion-lint's CHECK A read; only
             // the binding names change here.
+            //
+            // quick-260821-swp: `motion_scale` (a duration multiplier) is
+            // replaced by `motion_style` (a curve-shape name) — the renderer
+            // no longer emits `motion_scale` at all, and this binding's own
+            // name change is exactly the divergence-catching mechanism the
+            // comment above describes; a stale `motion_scale` property here
+            // would silently keep reading `undefined` forever rather than
+            // failing loud. `motion_accessibility` is new alongside it.
             property bool motion_enabled: true
-            property string motion_scale: "normal"
+            property string motion_style: "md3"
+            property string motion_accessibility: "full"
             // G-15-1: the resolved multiplier itself, as a bare scalar (not
             // a duration/easing pair, so it takes no part in `_pairNames`/
             // `pairs`). QML needs this NUMBER, not just `motion_scale`'s
@@ -126,7 +145,8 @@ Singleton {
     }
 
     readonly property alias motionEnabled: motion.motion_enabled
-    readonly property alias motionScale: motion.motion_scale
+    readonly property alias motionStyle: motion.motion_style
+    readonly property alias motionAccessibility: motion.motion_accessibility
     readonly property alias motionMultiplier: motion.motion_multiplier
 
     // True once ANY of this phase's three semantic names is present in the

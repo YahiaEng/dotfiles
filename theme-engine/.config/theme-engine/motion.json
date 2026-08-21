@@ -1,6 +1,7 @@
 {
   "_comment": "Sole source for every duration and control-point number the theme-engine emits (D-05). Every consumer resolves a semantic name — never a copied/inlined literal. The 'motion-' prefix on emitted Hyprland curve names is a deliberate collision guard against animations.conf's 12 hand-authored beziers (D-04: additive only, nothing rewired this phase).",
   "_comment_13_07_removal": "13-07 removed D-21's temporary A/B curve-comparison toggle (the top-level object that used to sit here, named 'curve' + '_sets') and D-11's marked non-MD3 'x-' prefixed easing extension (the five character curves this project's default vocabulary never adopted) — no D-22 retune ever adopted any of them, because the soak gate that would have produced a retune verdict was waived by explicit operator decision rather than passed (see 13-MOTION-SOAK-VERDICT.md). The six feel-changing Hyprland slots (windows-in/out/move, fade-in/out, workspaces) that used to read the removed per-slot curve variable now reference the toggle's former MD3-default mapping directly as literals in animations.conf. The shipped easing vocabulary below is pure MD3.",
+  "_comment_260821_swp_reversal": "quick-260821-swp reinstates, as a genuine user-facing setting, the kind of per-style curve data plan 13-07 removed above as a measuring instrument — this time under a 'styles' table rather than a temporary A/B toggle, and never re-adopting the deleted 'x-' character easings by name. TOKEN-06's 'MD3 is better, spring is too fast' verdict was a tuning-parameter rejection, not a mechanism rejection (a future spring revisit was explicitly left open) — this task does not revisit springs, it revisits SHAPE via bezier-only per-style curves (R-1), so neither prior decision is being overturned, only the axis this repo exposes to the user.",
   "durations": {
     "short1": 50,
     "short2": 100,
@@ -19,6 +20,7 @@
     "extra-long3": 900,
     "extra-long4": 1000
   },
+  "_comment_spatial_easings": "spatial-in/spatial-out/spatial-move (R-2) are the ONLY three easing names a style may ever push a control-point Y above 1.0 on — every other name below stays monotonic within [0,1] in every style, forever, so a fade or a colour can never be given overshoot by construction. Seeded here identical to emphasized-decelerate/emphasized-accelerate/standard so this task's Task 1 restructure moves nothing on screen; Task 2 gives each non-md3 style its own points for these three names only.",
   "easings": {
     "standard": [0.2, 0, 0, 1],
     "standard-decelerate": [0, 0, 0, 1],
@@ -29,7 +31,10 @@
     "legacy-decelerate": [0, 0, 0.2, 1],
     "legacy-accelerate": [0.4, 0, 1, 1],
     "linear": [1, 1, 1, 1],
-    "css-linear": [0, 0, 1, 1]
+    "css-linear": [0, 0, 1, 1],
+    "spatial-in": [0.05, 0.7, 0.1, 1],
+    "spatial-out": [0.3, 0, 0.8, 0.15],
+    "spatial-move": [0.2, 0, 0, 1]
   },
   "semantic": {
     "standard": { "duration": "short4", "easing": "standard" },
@@ -37,18 +42,42 @@
     "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" },
     "standard-slow": { "duration": "medium2", "easing": "standard" },
     "ambient": { "duration": "extra-long4", "easing": "linear" },
-    "stagger-offset": { "duration": "short1", "easing": "standard" }
+    "stagger-offset": { "duration": "short1", "easing": "standard" },
+    "spatial-in": { "duration": "medium2", "easing": "spatial-in" },
+    "spatial-out": { "duration": "short3", "easing": "spatial-out" },
+    "spatial-move": { "duration": "short4", "easing": "spatial-move" }
   },
   "indicators": {
     "blink-slow": { "duration_ms": 1000, "easing": "css-linear" },
     "blink-fast": { "duration_ms": 500, "easing": "css-linear" },
     "border-rotate": { "duration_ms": 10000, "easing": "linear" }
   },
-  "scales": {
-    "off": { "multiplier": 1.0, "animations_enabled": false },
+  "_comment_accessibility": "The reduced-motion/animations-off axis, orthogonal to style (BRIEF: 'off'/'reduced' do NOT become styles). Same {multiplier, animations_enabled} shape the removed 'scales' table carried, so every reader below the resolution point (Motion.qml's ambientDuration divide-back-out logic, the gate's scaled-speed forgiveness) needs no rewrite. 'lively' (1.25x) has no home here — the multiplier axis is absorbed by per-style durations; a legacy 'lively' value migrates to style md3 + accessibility full (a deliberate, stated loss).",
+  "accessibility": {
+    "full": { "multiplier": 1.0, "animations_enabled": true },
     "reduced": { "multiplier": 0.5, "animations_enabled": true },
-    "normal": { "multiplier": 1.0, "animations_enabled": true },
-    "lively": { "multiplier": 1.25, "animations_enabled": true }
+    "off": { "multiplier": 1.0, "animations_enabled": false }
+  },
+  "_comment_hypr_leaves": "One entry per style-varying Hyprland leaf. Fade/border/borderangle leaves are deliberately absent — they keep their hardcoded wiring in animations.lua (a style changes window/workspace ENTRY SHAPE and curve, never a fade's style string or borderangle's loop mechanism). Seeded here identical to today's animations.lua literals, with the spatial curve names substituted for the emphasized-decelerate/emphasized-accelerate/standard names those leaves used before this task.",
+  "hypr_leaves": {
+    "windows_in": { "curve": "spatial-in", "style": "popin 60%" },
+    "windows_out": { "curve": "spatial-out", "style": "popin 60%" },
+    "windows_move": { "curve": "spatial-move", "style": "slide" },
+    "workspaces": { "curve": "spatial-in", "style": "slide" },
+    "special_workspace": { "curve": "spatial-in", "style": "slidevert" },
+    "layers": { "curve": "spatial-move", "style": "popin 80%" },
+    "layers_in": { "curve": "spatial-in", "style": "popin 80%" },
+    "layers_out": { "curve": "spatial-out", "style": "popin 80%" }
+  },
+  "_comment_styles": "Each style may override a SUBSET of easings/semantic/hypr_leaves keys (schema invariant: override keys must be a subset of the base table's keys — a style changes points behind a name, never adds a name). Overrides are shallow-merged over the base tables at render/gate time — a style-provided key replaces its base entry wholesale, a key the style does not mention keeps the base value. 'style' strings reach Hyprland's own parser directly, so each must match ^[a-z]+( [0-9]{1,3}%)?$.",
+  "styles": {
+    "md3": {
+      "label": "MD3",
+      "description": "Decelerate, lands exactly, no overshoot — today's shipped behaviour, unchanged.",
+      "easings": {},
+      "semantic": {},
+      "hypr_leaves": {}
+    }
   },
   "floor_ms": 40
 }

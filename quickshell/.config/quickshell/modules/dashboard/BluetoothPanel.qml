@@ -458,12 +458,14 @@ PanelDialog {
         // (a deliberate chevron press). Idle/pending/failed never touch
         // `implicitHeight` at all — the collapsed row's own height is the
         // fixed `root.controlRowHeight`, unconditionally.
+        // quick-260821-swp (R-2): implicitHeight is spatial — retargeted
+        // onto spatial-move.
         Behavior on implicitHeight {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: Motion.standardDuration
+                duration: Motion.spatialMoveDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
 
@@ -955,6 +957,8 @@ PanelDialog {
                             SequentialAnimation {
                                 running: (root.backend && root.backend.discovering) && Motion.motionEnabled
                                 loops: Animation.Infinite
+                                // quick-260821-swp (R-2): "x" is spatial —
+                                // retargeted onto the spatial-in/-out pair.
                                 NumberAnimation {
                                     target: discoveryProgressSegment
                                     property: "x"
@@ -962,7 +966,7 @@ PanelDialog {
                                     to: discoveryProgressTrack.width - discoveryProgressSegment.width
                                     duration: Motion.ambientDuration
                                     easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Motion.emphasizedInEasing
+                                    easing.bezierCurve: Motion.spatialInEasing
                                 }
                                 NumberAnimation {
                                     target: discoveryProgressSegment
@@ -971,7 +975,7 @@ PanelDialog {
                                     to: 0
                                     duration: Motion.ambientDuration
                                     easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Motion.emphasizedOutEasing
+                                    easing.bezierCurve: Motion.spatialOutEasing
                                 }
                             }
                         }

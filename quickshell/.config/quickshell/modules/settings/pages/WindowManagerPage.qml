@@ -7,13 +7,16 @@
 // key (`gaps_in`/`gaps_out` parse the first component of the `.css`
 // four-tuple, never `.int`).
 //
-// N-01 (Animation) — the Motion preset row moved here in Task 2 is
-// relabelled "Animation speed" and paired with an InfoRow: shell motion
-// and compositor animation speed are ONE setting on this build
-// (config/animations.lua derives every leaf's speed from the Motion
-// tokens), so a second compositor animation-speed knob would be a second
-// owner of a value motion.json already owns — the exact violation
-// animations.lua:88-95 refuses to make. No such knob is added here.
+// N-01 (Animation) — the Motion preset row moved here in Task 2 was
+// relabelled "Animation speed" and paired with an InfoRow. quick-260821-swp
+// (D-01/D-03) replaces that single speed axis with two independent rows:
+// an "Animation style" picker (curve shape/duration character/Hyprland
+// entry shape — config/animations.lua derives every style-varying leaf
+// from motion.json's active `.styles` entry, so a second compositor knob
+// would still be the same "second owner of a value motion.json owns"
+// violation animations.lua's own header refuses to make) and a separate
+// "Reduce motion" row for the accessibility axis (off/reduced/full),
+// reachable without touching the style picker at all.
 //
 // N-02 (Borders) — an InfoRow beside border size states that border
 // colour follows the active theme: theme-engine/lib/reload.sh runs
@@ -414,10 +417,17 @@ PageBase {
         }
     }
 
-    // ── Animation — N-01. The Motion preset row moved here in Task 2 IS
-    //    the animation-speed control on this build; relabelled, never
-    //    duplicated. ──────────────────────────────────────────────────
-    property var motionOptions: []
+    // ── Animation — N-01, rebased onto the style/accessibility axis split
+    //    by quick-260821-swp (D-01/D-03). The old single Motion preset
+    //    conflated curve SHAPE with reduce-motion; this page now offers TWO
+    //    independent rows: an animation STYLE picker (curve shape, duration
+    //    character, Hyprland entry shape — `config/animations.lua` derives
+    //    every style-varying leaf from the active style, same "one owner"
+    //    reasoning the old comment gave) and a separate reduce-motion row
+    //    (D-01: reachable from a control that is NOT the style picker).
+    //    ──────────────────────────────────────────────────────────────
+    property var motionStyleOptions: []
+    property var motionAccessibilityOptions: []
 
     Process {
         id: motionListProc
@@ -427,16 +437,40 @@ PageBase {
             id: motionListCollector
         }
         onExited: (exitCode, exitStatus) => {
+            // motion-switch.sh --list's contract (R-2/R-3): a header line,
+            // then one style per line as "  <key>\t<label>" — two leading
+            // spaces, tab-separated. This parser and that format change
+            // together, never one without the other.
             var lines = motionListCollector.text.split("\n");
             var opts = [];
             for (var i = 0; i < lines.length; i++) {
-                var m = lines[i].match(/^\s{2}(\S+)\s+\(x/);
+                var m = lines[i].match(/^  (\S+)\t(.+)$/);
                 if (m) {
-                    var display = m[1];
-                    opts.push({ value: display.toLowerCase(), display: display });
+                    opts.push({ value: m[1], display: m[2] });
                 }
             }
-            root.motionOptions = opts;
+            root.motionStyleOptions = opts;
+        }
+        Component.onCompleted: running = true
+    }
+
+    Process {
+        id: motionAccessListProc
+        running: false
+        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/motion-switch.sh", "--list-accessibility"]
+        stdout: StdioCollector {
+            id: motionAccessListCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            var lines = motionAccessListCollector.text.split("\n");
+            var opts = [];
+            for (var i = 0; i < lines.length; i++) {
+                var m = lines[i].match(/^  (\S+)\t(.+)$/);
+                if (m) {
+                    opts.push({ value: m[1], display: m[2] });
+                }
+            }
+            root.motionAccessibilityOptions = opts;
         }
         Component.onCompleted: running = true
     }
@@ -449,23 +483,50 @@ PageBase {
             id: motionGetCollector
         }
         onExited: (exitCode, exitStatus) => {
-            root.currentMotionScale = motionGetCollector.text.trim();
+            root.currentMotionStyle = motionGetCollector.text.trim();
         }
         Component.onCompleted: running = true
     }
-    property string currentMotionScale: "normal"
+    property string currentMotionStyle: "md3"
+
+    Process {
+        id: motionAccessGetProc
+        running: false
+        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/motion-switch.sh", "--get-accessibility"]
+        stdout: StdioCollector {
+            id: motionAccessGetCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root.currentMotionAccessibility = motionAccessGetCollector.text.trim();
+        }
+        Component.onCompleted: running = true
+    }
+    property string currentMotionAccessibility: "full"
 
     Process {
         id: motionApplyProc
         running: false
-        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/motion-switch.sh", root.pendingMotionScale]
+        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/motion-switch.sh", root.pendingMotionStyle]
     }
-    property string pendingMotionScale: ""
+    property string pendingMotionStyle: ""
 
-    function applyMotionScale(name) {
-        root.pendingMotionScale = name;
+    Process {
+        id: motionAccessApplyProc
+        running: false
+        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/motion-switch.sh", "--accessibility", root.pendingMotionAccessibility]
+    }
+    property string pendingMotionAccessibility: ""
+
+    function applyMotionStyle(name) {
+        root.pendingMotionStyle = name;
         motionApplyProc.running = true;
         motionGetProc.running = true;
+    }
+
+    function applyMotionAccessibility(name) {
+        root.pendingMotionAccessibility = name;
+        motionAccessApplyProc.running = true;
+        motionAccessGetProc.running = true;
     }
 
     SettingsSection {
@@ -474,19 +535,18 @@ PageBase {
         icon: "tune"
 
         SelectRow {
-            label: "Animation speed"
-            subtext: "Controls animation speed everywhere — the bar, panels, and window manager"
-            model: root.motionOptions
-            currentValue: root.currentMotionScale
-            onSelected: (value) => root.applyMotionScale(value)
+            label: "Animation style"
+            subtext: "Controls animation shape, duration character, and Hyprland entry shape — the bar, panels, and window manager"
+            model: root.motionStyleOptions
+            currentValue: root.currentMotionStyle
+            onSelected: (value) => root.applyMotionStyle(value)
         }
-        // Operator fix wave finding 4: plain-language rewrite. Engineering
-        // note (kept, not deleted): `config/animations.lua` derives every
-        // leaf's speed from the Motion preset above (N-01) — a second,
-        // separate speed setting here would fight that one.
-        InfoRow {
-            label: "No separate animation-speed option"
-            subtext: "Animation speed is controlled by the Motion preset above — there's no separate setting here."
+        SelectRow {
+            label: "Reduce motion"
+            subtext: "Shortens or disables animation everywhere — independent of the style above"
+            model: root.motionAccessibilityOptions
+            currentValue: root.currentMotionAccessibility
+            onSelected: (value) => root.applyMotionAccessibility(value)
         }
     }
 

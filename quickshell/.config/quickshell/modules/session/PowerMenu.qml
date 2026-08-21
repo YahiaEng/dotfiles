@@ -721,12 +721,14 @@ PanelWindow {
                 // transformOrigin: Item.Center), so this never shifts the
                 // pill's own ring position.
                 scale: pill.isFocused ? Design.sessionFocusScale : 1.0
+                // quick-260821-swp (R-2): scale is spatial — retargeted
+                // onto spatial-move.
                 Behavior on scale {
                     enabled: Motion.motionEnabled
                     NumberAnimation {
-                        duration: Motion.standardDuration
+                        duration: Motion.spatialMoveDuration
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.spatialMoveEasing
                     }
                 }
 

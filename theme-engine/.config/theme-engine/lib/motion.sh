@@ -19,8 +19,20 @@
 # BY NAME, never by inlined value — no number is ever written twice anywhere
 # in this pipeline.
 
-MOTION_STATE_FILE="$HOME/.local/state/theme/motion-scale"
-MOTION_DEFAULT="normal"
+MOTION_STATE_DIR="$HOME/.local/state/theme"
+# quick-260821-swp: the single motion-scale axis (a duration multiplier)
+# split into two theme-orthogonal state files — a STYLE (curve shape) and
+# an ACCESSIBILITY (reduce-motion/off) axis. MOTION_LEGACY_FILE is the old
+# single-axis state file; theme_engine_migrate_motion_state (below) is the
+# ONE place a legacy value ever gets read. Every path is a plain variable
+# (not inlined `$HOME/...` at each call site) so a caller — this file's own
+# verify block included — can point the whole migration at a scratch
+# directory by reassigning these four names after sourcing.
+MOTION_STYLE_FILE="$MOTION_STATE_DIR/motion-style"
+MOTION_ACCESS_FILE="$MOTION_STATE_DIR/motion-accessibility"
+MOTION_LEGACY_FILE="$MOTION_STATE_DIR/motion-scale"
+MOTION_DEFAULT_STYLE="md3"
+MOTION_DEFAULT_ACCESS="full"
 MOTION_JSON="$HOME/.config/theme-engine/motion.json"
 
 # D-13: Hyprland's animation `speed` unit, confirmed by a human-observed
@@ -45,19 +57,115 @@ MOTION_HYPR_SPEED_DIVISOR_DS=100
 # GENERATE_LOG channel the floor clamp already uses.
 MOTION_HYPR_MAX_SPEED=100.00
 
-# theme_engine_read_motion_scale
-# Echoes the current motion-scale state value, defaulting to "normal" when
-# the axis has never been set OR holds an unrecognised value. D-21 requires
-# a closed-set `case` here (unlike font.sh's free-text read) — this value
-# flows into jq filters and into a file Hyprland's config parser consumes,
-# so an arbitrary string must never pass through unvalidated (ASVS V5).
-theme_engine_read_motion_scale() {
+# theme_engine_migrate_motion_state
+# Idempotent one-way migration from the single motion-scale axis to the
+# style + accessibility pair (quick-260821-swp/R-4). Returns immediately —
+# a no-op — once $MOTION_STYLE_FILE already exists, so a second call (or a
+# second theme-apply run) never re-derives anything from a legacy value
+# that may no longer even be present. With a legacy file present: the
+# disabled value ("off") maps to accessibility "off", the halved value
+# ("reduced") maps to accessibility "reduced", anything else (including
+# "normal" and "lively" — lively's 1.25x has no home in the new model and
+# is a deliberate, stated loss) maps to accessibility "full". The style
+# axis always seeds "md3" on migration, regardless of the legacy value,
+# since shape was never user-configurable before this task. With NEITHER
+# file present (a genuinely fresh install), this seeds both defaults —
+# same call, same idempotent shape. Every path comes from the module-level
+# variables above, never inlined, so a caller can redirect the whole
+# function at a scratch state dir for testing.
+theme_engine_migrate_motion_state() {
+    if [[ -f "$MOTION_STYLE_FILE" ]]; then
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$MOTION_STYLE_FILE")"
+
+    local access="$MOTION_DEFAULT_ACCESS"
+    if [[ -f "$MOTION_LEGACY_FILE" ]]; then
+        local legacy
+        legacy="$(cat "$MOTION_LEGACY_FILE" 2>/dev/null || echo "")"
+        case "$legacy" in
+            off) access="off" ;;
+            reduced) access="reduced" ;;
+            *) access="$MOTION_DEFAULT_ACCESS" ;;
+        esac
+    fi
+
+    printf '%s\n' "$MOTION_DEFAULT_STYLE" > "$MOTION_STYLE_FILE.tmp" \
+        && mv "$MOTION_STYLE_FILE.tmp" "$MOTION_STYLE_FILE"
+    printf '%s\n' "$access" > "$MOTION_ACCESS_FILE.tmp" \
+        && mv "$MOTION_ACCESS_FILE.tmp" "$MOTION_ACCESS_FILE"
+
+    if [[ -f "$MOTION_LEGACY_FILE" ]]; then
+        rm -f "$MOTION_LEGACY_FILE"
+    fi
+
+    return 0
+}
+
+# theme_engine_read_motion_style
+# Echoes the current motion-style state value, defaulting to "md3" when
+# the axis has never been set OR holds a value that is not one of
+# motion.json's OWN `.styles` keys. The valid set is derived from the
+# rendered/hand-authored motion.json every call — never a hardcoded list —
+# so a style added purely as JSON data (D-04) is immediately a valid,
+# selectable value with no code change here. Runs the migration first so a
+# reader invoked before any writer still sees the post-migration value.
+theme_engine_read_motion_style() {
+    theme_engine_migrate_motion_state
     local v
-    v="$(cat "$MOTION_STATE_FILE" 2>/dev/null || echo "$MOTION_DEFAULT")"
+    v="$(cat "$MOTION_STYLE_FILE" 2>/dev/null || echo "$MOTION_DEFAULT_STYLE")"
+    if [[ -s "$MOTION_JSON" ]] && jq -e . "$MOTION_JSON" >/dev/null 2>&1; then
+        local valid
+        valid="$(jq -r '.styles | keys[]' "$MOTION_JSON" 2>/dev/null)"
+        if printf '%s\n' "$valid" | grep -qx -- "$v"; then
+            echo "$v"
+            return 0
+        fi
+    fi
+    echo "$MOTION_DEFAULT_STYLE"
+}
+
+# theme_engine_read_motion_accessibility
+# Echoes the current motion-accessibility state value, defaulting to
+# "full" when the axis has never been set OR holds an unrecognised value.
+# A literal closed `case`, not a motion.json-derived set (unlike the style
+# reader above) — this axis's three values (full/reduced/off) are fixed by
+# design, not data the JSON slate is meant to grow (R-4). This value flows
+# into jq filters and into a file Hyprland's config parser consumes, so an
+# arbitrary string must never pass through unvalidated (ASVS V5). Runs the
+# migration first, same reasoning as the style reader above.
+theme_engine_read_motion_accessibility() {
+    theme_engine_migrate_motion_state
+    local v
+    v="$(cat "$MOTION_ACCESS_FILE" 2>/dev/null || echo "$MOTION_DEFAULT_ACCESS")"
     case "$v" in
-        off|reduced|normal|lively) echo "$v" ;;
-        *) echo "$MOTION_DEFAULT" ;;
+        full|reduced|off) echo "$v" ;;
+        *) echo "$MOTION_DEFAULT_ACCESS" ;;
     esac
+}
+
+# theme_engine_build_effective_motion_json <out_path> <style>
+# Writes the ONE effective motion document for the active style to
+# <out_path>: the base `easings`/`semantic`/`hypr_leaves` tables SHALLOW-
+# merged with `.styles[<style>]`'s own override objects (jq's `+` —
+# RHS keys replace their LHS entry wholesale; a key the style does not
+# mention keeps the base value). Every other top-level key (durations,
+# indicators, accessibility, floor_ms, styles itself) passes through
+# unchanged. This is the SOLE merge point (quick-260821-swp Task 1B/3) —
+# every renderer below reads THIS file instead of $MOTION_JSON directly,
+# so two writers can never resolve a style's numbers differently.
+theme_engine_build_effective_motion_json() {
+    local out_path="$1"
+    local style="$2"
+    jq --arg style "$style" '
+        . as $m
+        | ($m.styles[$style] // {}) as $ov
+        | $m
+        | .easings = ($m.easings + ($ov.easings // {}))
+        | .semantic = ($m.semantic + ($ov.semantic // {}))
+        | .hypr_leaves = ($m.hypr_leaves + ($ov.hypr_leaves // {}))
+    ' "$MOTION_JSON" > "$out_path"
 }
 
 # theme_engine_validate_motion_values <multiplier> <floor_ms>
@@ -70,23 +178,29 @@ theme_engine_read_motion_scale() {
 # non-zero theme_engine_generate into .last-render-error.log and leaves the
 # desktop unchanged.
 theme_engine_validate_motion_values() {
-    local multiplier="$1"
-    local floor_ms="$2"
+    local motion_json_effective="$1"
+    local style="$2"
+    local multiplier="$3"
+    local floor_ms="$4"
 
     if [[ ! -s "$MOTION_JSON" ]] || ! jq -e . "$MOTION_JSON" >/dev/null 2>&1; then
         echo "motion.sh: $MOTION_JSON is missing, empty, or not valid JSON" >&2
         return 1
     fi
+    if [[ ! -s "$motion_json_effective" ]] || ! jq -e . "$motion_json_effective" >/dev/null 2>&1; then
+        echo "motion.sh: effective motion document for style '$style' is missing, empty, or not valid JSON" >&2
+        return 1
+    fi
 
-    if ! jq -e '(.durations // {}) | length > 0' "$MOTION_JSON" >/dev/null 2>&1; then
+    if ! jq -e '(.durations // {}) | length > 0' "$motion_json_effective" >/dev/null 2>&1; then
         echo "motion.sh: motion.json 'durations' layer is missing or empty" >&2
         return 1
     fi
-    if ! jq -e '(.easings // {}) | length > 0' "$MOTION_JSON" >/dev/null 2>&1; then
+    if ! jq -e '(.easings // {}) | length > 0' "$motion_json_effective" >/dev/null 2>&1; then
         echo "motion.sh: motion.json 'easings' layer is missing or empty" >&2
         return 1
     fi
-    if ! jq -e '(.semantic // {}) | length > 0' "$MOTION_JSON" >/dev/null 2>&1; then
+    if ! jq -e '(.semantic // {}) | length > 0' "$motion_json_effective" >/dev/null 2>&1; then
         echo "motion.sh: motion.json 'semantic' layer is missing or empty" >&2
         return 1
     fi
@@ -96,7 +210,7 @@ theme_engine_validate_motion_values() {
         .easings | to_entries[]
         | select((.value | type != "array") or (.value | length != 4)
                  or ([.value[] | (type != "number") or isnan or isinfinite] | any))
-        | .key' "$MOTION_JSON" 2>/dev/null)"
+        | .key' "$motion_json_effective" 2>/dev/null)"
     if [[ -n "$bad_easings" ]]; then
         echo "motion.sh: easing(s) with malformed control points (need exactly 4 finite numbers): $bad_easings" >&2
         return 1
@@ -107,7 +221,7 @@ theme_engine_validate_motion_values() {
         .durations as $D | .easings as $E
         | .semantic | to_entries[]
         | select(($D[.value.duration] // null) == null or ($E[.value.easing] // null) == null)
-        | .key' "$MOTION_JSON" 2>/dev/null)"
+        | .key' "$motion_json_effective" 2>/dev/null)"
     if [[ -n "$bad_refs" ]]; then
         echo "motion.sh: semantic pair(s) with an unresolvable duration/easing name: $bad_refs" >&2
         return 1
@@ -119,7 +233,7 @@ theme_engine_validate_motion_values() {
         | .semantic | to_entries[]
         | .value.duration as $dn | ($D[$dn]) as $dv
         | select(($dv | type != "number") or ($dv | isnan) or ($dv | isinfinite))
-        | .key' "$MOTION_JSON" 2>/dev/null)"
+        | .key' "$motion_json_effective" 2>/dev/null)"
     if [[ -n "$bad_durations" ]]; then
         echo "motion.sh: semantic pair(s) reference a non-numeric duration value: $bad_durations" >&2
         return 1
@@ -128,7 +242,7 @@ theme_engine_validate_motion_values() {
     local positivity
     positivity="$(jq -n --argjson floor "$floor_ms" --argjson mult "$multiplier" '$floor > 0 and $mult > 0' 2>/dev/null)"
     if [[ "$positivity" != "true" ]]; then
-        echo "motion.sh: floor_ms ($floor_ms) and the active scale's multiplier ($multiplier) must both be positive numbers" >&2
+        echo "motion.sh: floor_ms ($floor_ms) and the active accessibility entry's multiplier ($multiplier) must both be positive numbers" >&2
         return 1
     fi
 
@@ -139,7 +253,7 @@ theme_engine_validate_motion_values() {
         | .value.duration as $dn | ($D[$dn] * $mult) as $scaled
         | (if $scaled < $floor then $floor else $scaled end) as $clamped
         | select(($clamped | floor) <= 0)
-        | .key' "$MOTION_JSON" 2>/dev/null)"
+        | .key' "$motion_json_effective" 2>/dev/null)"
     if [[ -n "$bad_resolved" ]]; then
         echo "motion.sh: semantic pair(s) resolve to a non-positive duration after the D-09 clamp: $bad_resolved" >&2
         return 1
@@ -159,9 +273,63 @@ theme_engine_validate_motion_values() {
             or (.value.duration_ms | isinfinite) or (.value.duration_ms <= 0)
             or (($E[.value.easing] // null) == null)
           )
-        | .key' "$MOTION_JSON" 2>/dev/null)"
+        | .key' "$motion_json_effective" 2>/dev/null)"
     if [[ -n "$bad_indicators" ]]; then
         echo "motion.sh: indicator(s) with a non-positive/non-finite duration_ms or an unresolvable easing: $bad_indicators" >&2
+        return 1
+    fi
+
+    # quick-260821-swp Task 1A schema invariants — checked against the RAW
+    # $MOTION_JSON (every style, not just the active one): a style's
+    # easings/semantic/hypr_leaves override keys must be a subset of the
+    # base table's own keys (a style changes points behind a name, never
+    # adds one), and every style-string value that reaches Hyprland's own
+    # parser must match a strict lowercase-word[-space-percent] pattern
+    # (ASVS V5, mirroring the existing palette-name posture).
+    local bad_style_subset
+    bad_style_subset="$(jq -r '
+        (.easings // {} | keys) as $BE
+        | (.semantic // {} | keys) as $BS
+        | (.hypr_leaves // {} | keys) as $BH
+        | (.styles // {}) | to_entries[]
+        | .key as $sk | .value as $sv
+        | (
+            (((($sv.easings // {}) | keys) - $BE) | map("\($sk).easings.\(.)"))
+            + (((($sv.semantic // {}) | keys) - $BS) | map("\($sk).semantic.\(.)"))
+            + (((($sv.hypr_leaves // {}) | keys) - $BH) | map("\($sk).hypr_leaves.\(.)"))
+          )[]
+    ' "$MOTION_JSON" 2>/dev/null)"
+    if [[ -n "$bad_style_subset" ]]; then
+        echo "motion.sh: style override(s) introduce a key absent from the base table (a style may only override an EXISTING name): $bad_style_subset" >&2
+        return 1
+    fi
+
+    local bad_style_strings
+    bad_style_strings="$(jq -r '
+        (.styles // {}) | to_entries[]
+        | .key as $sk | (.value.hypr_leaves // {}) | to_entries[]
+        | select((.value.style // empty) != "" and ((.value.style | test("^[a-z]+( [0-9]{1,3}%)?$")) | not))
+        | "\($sk).hypr_leaves.\(.key).style=\(.value.style)"
+    ' "$MOTION_JSON" 2>/dev/null)"
+    if [[ -z "$bad_style_strings" ]]; then
+        bad_style_strings="$(jq -r '
+            (.hypr_leaves // {}) | to_entries[]
+            | select((.value.style // empty) != "" and ((.value.style | test("^[a-z]+( [0-9]{1,3}%)?$")) | not))
+            | "base.hypr_leaves.\(.key).style=\(.value.style)"
+        ' "$MOTION_JSON" 2>/dev/null)"
+    fi
+    if [[ -n "$bad_style_strings" ]]; then
+        echo "motion.sh: hypr_leaves style string does not match the lowercase[ NNN%] pattern Hyprland's own parser requires: $bad_style_strings" >&2
+        return 1
+    fi
+
+    local bad_access
+    bad_access="$(jq -r '
+        (.accessibility // {}) | to_entries[]
+        | select((.value.multiplier | type) != "number" or (.value.animations_enabled | type) != "boolean")
+        | .key' "$MOTION_JSON" 2>/dev/null)"
+    if [[ -n "$bad_access" ]]; then
+        echo "motion.sh: accessibility entry(s) missing a numeric multiplier or boolean animations_enabled: $bad_access" >&2
         return 1
     fi
 
@@ -185,33 +353,55 @@ theme_engine_validate_motion_values() {
 # 13.1-EQUIVALENCE-REPORT.md's "Decision (Task 2)" section.
 theme_engine_render_motion_files() {
     local tmp="$1"
-    local scale multiplier animations_enabled floor_ms
+    local style accessibility multiplier animations_enabled floor_ms
 
-    scale="$(theme_engine_read_motion_scale)"
+    style="$(theme_engine_read_motion_style)"
+    accessibility="$(theme_engine_read_motion_accessibility)"
 
     if [[ ! -s "$MOTION_JSON" ]] || ! jq -e . "$MOTION_JSON" >/dev/null 2>&1; then
         echo "motion.sh: $MOTION_JSON is missing, empty, or not valid JSON" >&2
         return 1
     fi
 
-    multiplier="$(jq -r --arg s "$scale" '.scales[$s].multiplier // empty' "$MOTION_JSON")"
+    # quick-260821-swp Task 1B.3: build the ONE effective document for the
+    # active style (base easings/semantic/hypr_leaves shallow-merged with
+    # `.styles[$style]`'s own overrides) BEFORE any other read below — every
+    # jq call in this function and in theme_engine_render_hypr_tokens/
+    # theme_engine_render_motion_scss (called from here, sharing this local
+    # via bash's dynamic scoping) reads THIS file, never $MOTION_JSON
+    # directly, so no two writers can ever resolve a style's numbers
+    # differently. Cleaned up on every return path via the RETURN trap.
+    local motion_eff
+    motion_eff="$(mktemp)"
+    # A `trap ... RETURN` is a SHELL-level registration, not a
+    # function-local one — left armed, it re-fires on the NEXT function
+    # return anywhere in the script (including after this function's own
+    # local $motion_eff has gone out of scope), which is exactly the
+    # "motion_eff: unbound variable" failure this one-shot self-disarm
+    # avoids: the handler unregisters itself (`trap - RETURN`) in the same
+    # breath it runs, so it fires exactly once, for THIS function's return,
+    # and never again.
+    trap 'rm -f "$motion_eff"; trap - RETURN' RETURN
+    theme_engine_build_effective_motion_json "$motion_eff" "$style"
+
+    multiplier="$(jq -r --arg a "$accessibility" '.accessibility[$a].multiplier // empty' "$motion_eff")"
     # D-08/D-20 fix: `// empty` treats JSON `false` as absent (jq's `//`
     # alternative operator falls through on both null AND false), which
     # silently broke the "off" preset — its whole point is
     # animations_enabled == false. `has()` distinguishes "key present and
     # false" from "key genuinely missing", which `// empty` cannot.
-    animations_enabled="$(jq -r --arg s "$scale" '
-        if (.scales[$s] // {} | has("animations_enabled"))
-        then (.scales[$s].animations_enabled | tostring)
-        else empty end' "$MOTION_JSON")"
-    floor_ms="$(jq -r '.floor_ms // empty' "$MOTION_JSON")"
+    animations_enabled="$(jq -r --arg a "$accessibility" '
+        if (.accessibility[$a] // {} | has("animations_enabled"))
+        then (.accessibility[$a].animations_enabled | tostring)
+        else empty end' "$motion_eff")"
+    floor_ms="$(jq -r '.floor_ms // empty' "$motion_eff")"
 
     if [[ -z "$multiplier" || -z "$animations_enabled" || -z "$floor_ms" ]]; then
-        echo "motion.sh: motion.json is missing scales.'$scale' or floor_ms" >&2
+        echo "motion.sh: motion.json is missing accessibility.'$accessibility' or floor_ms" >&2
         return 1
     fi
 
-    if ! theme_engine_validate_motion_values "$multiplier" "$floor_ms"; then
+    if ! theme_engine_validate_motion_values "$motion_eff" "$style" "$multiplier" "$floor_ms"; then
         return 1
     fi
 
@@ -227,7 +417,7 @@ theme_engine_render_motion_files() {
         | (if $scaled < $floor then $floor else $scaled end) as $clamped
         | [$k, $v.easing, (($clamped | floor) | tostring), ($scaled < $floor | tostring)]
         | @tsv
-    ' "$MOTION_JSON")"
+    ' "$motion_eff")"
 
     # D-09: warn (never fail) on every clamp event, one line per token,
     # through the same channel generate.sh's own render step already logs
@@ -237,7 +427,7 @@ theme_engine_render_motion_files() {
         [[ -z "$token" ]] && continue
         if [[ "$clamped_flag" == "true" ]]; then
             local warn_msg
-            warn_msg="WARN — ${token} collapsed to the ${floor_ms}ms floor at motion-scale '${scale}'; this is expected and imperceptible, not a failure."
+            warn_msg="WARN — ${token} collapsed to the ${floor_ms}ms floor at motion-style '${style}'/accessibility '${accessibility}'; this is expected and imperceptible, not a failure."
             warn_msg="$(printf '%s' "$warn_msg" | head -c 200 | tr -d '\000-\011\013\014\016-\037')"
             printf '%s\n' "$warn_msg" >> "${GENERATE_LOG:-/dev/null}"
         fi
@@ -261,7 +451,7 @@ theme_engine_render_motion_files() {
         | (if $scaled < $floor then $floor else $scaled end) as $clamped
         | [($k | gsub("-"; "_")), (($clamped | floor) | tostring)]
         | @tsv
-    ' "$MOTION_JSON")"
+    ' "$motion_eff")"
 
     local speed_indicators
     speed_indicators="$(jq -r --argjson mult "$multiplier" --argjson floor "$floor_ms" '
@@ -271,7 +461,7 @@ theme_engine_render_motion_files() {
         | (if $scaled < $floor then $floor else $scaled end) as $clamped
         | [($k | gsub("-"; "_")), (($clamped | floor) | tostring)]
         | @tsv
-    ' "$MOTION_JSON")"
+    ' "$motion_eff")"
 
     # ── 1. Hyprland target: the merged Lua token table (D-02/D-05, Phase
     #    13.1) — ONE generated file carrying BOTH colours and motion as
@@ -307,7 +497,7 @@ theme_engine_render_motion_files() {
         jq -r '
             .easings | to_entries[] |
             "  --motion-easing-\(.key): cubic-bezier(\(.value | join(", ")));"
-        ' "$MOTION_JSON"
+        ' "$motion_eff"
         echo "}"
     } > "$out_dir/gtk-4.0-motion.css"
 
@@ -334,8 +524,9 @@ theme_engine_render_motion_files() {
     local hypr_ceiling_ms
     hypr_ceiling_ms="$(awk -v s="$MOTION_HYPR_MAX_SPEED" -v d="$MOTION_HYPR_SPEED_DIVISOR_DS" 'BEGIN{printf "%d", s*d}')"
     # G-15-1: emit the resolved multiplier itself as a top-level number,
-    # alongside motion_scale/motion_enabled. QML needs the NUMBER, not just
-    # the scale NAME, so a continuous loop-period token (e.g. Motion.qml's
+    # alongside motion_style/motion_accessibility/motion_enabled. QML needs
+    # the NUMBER, not just the axis NAMES, so a continuous loop-period
+    # token (e.g. Motion.qml's
     # `ambientDuration`) can divide the multiplier back out and never
     # shrink its period when the multiplier drops below 1.0 — the
     # accessibility ("reduced") preset must not make an indicator faster.
@@ -344,12 +535,14 @@ theme_engine_render_motion_files() {
     # clamping arithmetic stays exactly as it was).
     jq -n --argjson mult "$multiplier" --argjson floor "$floor_ms" \
         --argjson ceil "$hypr_ceiling_ms" \
-        --arg scale "$scale" --argjson enabled "$animations_enabled" \
-        --slurpfile src "$MOTION_JSON" '
+        --arg style "$style" --arg accessibility "$accessibility" \
+        --argjson enabled "$animations_enabled" \
+        --slurpfile src "$motion_eff" '
         $src[0] as $m
         | $m.durations as $D | $m.easings as $E
         | {
-            motion_scale: $scale,
+            motion_style: $style,
+            motion_accessibility: $accessibility,
             motion_enabled: $enabled,
             motion_multiplier: $mult,
             floor_ms: $floor,
@@ -511,9 +704,10 @@ theme_engine_render_hypr_tokens() {
         done <<< "$speed_indicators"
         echo "        },"
         echo "        curves = {"
-        # motion.curves.<key> — one entry per .easings key in $MOTION_JSON,
-        # shaped { type = "bezier", points = { {x0,y0}, {x1,y1} } } from the
-        # SAME four floats the retired hyprland-motion.conf writer's (13.1-10)
+        # motion.curves.<key> — one entry per .easings key in the EFFECTIVE
+        # document (base + active style's own overrides), shaped
+        # { type = "bezier", points = { {x0,y0}, {x1,y1} } } from the SAME
+        # four floats the retired hyprland-motion.conf writer's (13.1-10)
         # `bezier = motion-<key>, x0, y0, x1, y1` line used to emit — structural
         # change (nested points array), not a value change. Bracket-string
         # keys (never bare identifiers) because easing names carry hyphens
@@ -521,8 +715,31 @@ theme_engine_render_hypr_tokens() {
         # syntax as a bare table key.
         jq -r '.easings | to_entries[] |
             "            [\"\(.key)\"] = { type = \"bezier\", points = { {\(.value[0]), \(.value[1])}, {\(.value[2]), \(.value[3])} } },"' \
-            "$MOTION_JSON"
+            "$motion_eff"
         echo "        },"
+        # quick-260821-swp: motion.hypr_leaves.<key> — one entry per
+        # style-varying Hyprland leaf (windows_in/out/move, workspaces,
+        # special_workspace, layers/in/out), {curve, style} from the
+        # EFFECTIVE document, so animations.lua reads the active style's
+        # own leaf shape without ever knowing what "style" means. Every
+        # string reaches Lua source ONLY through _hypr_lua_quote_string
+        # (T-13.1-01) — never printf'd raw.
+        echo "    hypr_leaves = {"
+        jq -r '(.hypr_leaves // {}) | keys[]' "$motion_eff" | while IFS= read -r leaf_key; do
+            [[ -z "$leaf_key" ]] && continue
+            local leaf_curve leaf_style
+            leaf_curve="$(jq -r --arg k "$leaf_key" '.hypr_leaves[$k].curve // empty' "$motion_eff")"
+            leaf_style="$(jq -r --arg k "$leaf_key" '.hypr_leaves[$k].style // empty' "$motion_eff")"
+            printf '        ["%s"] = {\n' "$leaf_key"
+            if [[ -n "$leaf_curve" ]]; then
+                printf '            curve = %s,\n' "$(_hypr_lua_quote_string "$leaf_curve")"
+            fi
+            if [[ -n "$leaf_style" ]]; then
+                printf '            style = %s,\n' "$(_hypr_lua_quote_string "$leaf_style")"
+            fi
+            echo "        },"
+        done
+        echo "    },"
         echo "    },"
         echo "}"
     } > "$out_file"
@@ -559,7 +776,7 @@ theme_engine_render_motion_scss() {
         jq -r '
             .easings | to_entries[] |
             "$motion-easing-\(.key): cubic-bezier(\(.value | join(", ")));"
-        ' "$MOTION_JSON"
+        ' "$motion_eff"
 
         # $motion-indicator-<name>-duration / -easing — one pair per
         # .indicators entry, scaled/clamped by the SAME multiplier/floor as
@@ -572,7 +789,7 @@ theme_engine_render_motion_scss() {
             | (if $scaled < $floor then $floor else $scaled end | floor) as $clamped
             | ($E[$v.easing] | join(", ")) as $bez
             | "$motion-indicator-\($k)-duration: \($clamped)ms;\n$motion-indicator-\($k)-easing: cubic-bezier(\($bez));"
-        ' "$MOTION_JSON"
+        ' "$motion_eff"
     } > "$out_dir/_motion.scss"
 
     return 0

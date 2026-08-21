@@ -181,12 +181,14 @@ Item {
     implicitHeight: headerRow.height + (groupItem.expanded ? (rowsColumn.height + Design.spacingXs) : 0)
     height: groupItem.implicitHeight
 
+    // quick-260821-swp (R-2): height is spatial (size) — retargeted onto
+    // spatial-move.
     Behavior on height {
         enabled: Motion.motionEnabled
         NumberAnimation {
-            duration: Motion.standardDuration
+            duration: Motion.spatialMoveDuration
             easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.standardEasing
+            easing.bezierCurve: Motion.spatialMoveEasing
         }
     }
 
@@ -399,12 +401,14 @@ Item {
                 rotation: groupItem.expanded ? 180 : 0
                 transformOrigin: Item.Center
 
+                // quick-260821-swp (R-2): rotation is spatial — retargeted
+                // onto spatial-move.
                 Behavior on rotation {
                     enabled: Motion.motionEnabled
                     NumberAnimation {
-                        duration: Motion.standardDuration
+                        duration: Motion.spatialMoveDuration
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.spatialMoveEasing
                     }
                 }
 

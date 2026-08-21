@@ -914,21 +914,52 @@ PYEOF
 _compare_animations() {
     local baseline="$1" live="$2"
     local motion_json="$HOME/.config/theme-engine/motion.json"
-    local scale mult floor_ms
+    local style access mult floor_ms
 
-    # Closed-set read, matching theme_engine_read_motion_scale's discipline:
-    # an unrecognised or absent value defaults to `normal`, never flows on raw.
-    scale="$(cat "$HOME/.local/state/theme/motion-scale" 2>/dev/null || echo normal)"
-    case "$scale" in
-        off|reduced|normal|lively) ;;
-        *) scale=normal ;;
+    # quick-260821-swp: the third legacy motion-scale closed-set reader
+    # (R-4 — the BRIEF named only motion-switch.sh and lib/motion.sh; this
+    # one hid at ~line 921 reading the legacy state file directly) moves
+    # onto the two new state files, each read through a closed-set case
+    # defaulting to md3/full — never flows on raw, same discipline as
+    # lib/motion.sh's own readers.
+    style="$(cat "$HOME/.local/state/theme/motion-style" 2>/dev/null || echo md3)"
+    if [[ -s "$motion_json" ]] && jq -e . "$motion_json" >/dev/null 2>&1; then
+        local valid_styles
+        valid_styles="$(jq -r '.styles | keys[]' "$motion_json" 2>/dev/null)"
+        printf '%s\n' "$valid_styles" | grep -qx -- "$style" || style=md3
+    else
+        style=md3
+    fi
+    access="$(cat "$HOME/.local/state/theme/motion-accessibility" 2>/dev/null || echo full)"
+    case "$access" in
+        full|reduced|off) ;;
+        *) access=full ;;
     esac
-    mult="$(jq -r --arg s "$scale" '.scales[$s].multiplier // 1' "$motion_json" 2>/dev/null || echo 1)"
+
+    mult="$(jq -r --arg a "$access" '.accessibility[$a].multiplier // 1' "$motion_json" 2>/dev/null || echo 1)"
     floor_ms="$(jq -r '.floor_ms // 40' "$motion_json" 2>/dev/null || echo 40)"
     [[ -n "$mult" && "$mult" != "null" ]] || mult=1
     [[ -n "$floor_ms" && "$floor_ms" != "null" ]] || floor_ms=40
 
-    python3 - "$baseline" "$live" "$mult" "$floor_ms" "$scale" <<'PYEOF'
+    # The SAME shallow-merge lib/motion.sh's own
+    # theme_engine_build_effective_motion_json performs — mirrored here
+    # (not sourced; this gate must work standalone) because the curve/leaf
+    # comparisons below need the ACTIVE style's own resolved easings/
+    # hypr_leaves, not the base table alone. If motion.sh's merge semantics
+    # ever change, this mirror must change with them (same warning the
+    # speed-scaling arithmetic below already carries).
+    local motion_eff
+    motion_eff="$(mktemp)"
+    trap 'rm -f "$motion_eff"; trap - RETURN' RETURN
+    jq --arg style "$style" '
+        . as $m
+        | ($m.styles[$style] // {}) as $ov
+        | $m
+        | .easings = ($m.easings + ($ov.easings // {}))
+        | .hypr_leaves = ($m.hypr_leaves + ($ov.hypr_leaves // {}))
+    ' "$motion_json" > "$motion_eff" 2>/dev/null
+
+    python3 - "$baseline" "$live" "$mult" "$floor_ms" "$access" "$style" "$motion_eff" <<'PYEOF'
 import json
 import math
 import sys
@@ -936,7 +967,14 @@ import sys
 baseline_path, live_path = sys.argv[1], sys.argv[2]
 MULTIPLIER = float(sys.argv[3])
 FLOOR_MS = float(sys.argv[4])
-SCALE_NAME = sys.argv[5]
+ACCESS_NAME = sys.argv[5]
+STYLE_NAME = sys.argv[6]
+motion_eff_path = sys.argv[7]
+try:
+    with open(motion_eff_path, 'r', encoding='utf-8') as fh:
+        EFF = json.load(fh)
+except (OSError, json.JSONDecodeError):
+    EFF = {}
 
 # Hyprland rejects any animation `speed` above this (lib/motion.sh's
 # MOTION_HYPR_MAX_SPEED, 14-04 render-gate fix) — in milliseconds here.
@@ -1006,7 +1044,72 @@ live_leaves, live_curves = load(live_path)
 
 diffs = []
 
-# ── Leaves: byte-exact positional (unchanged strictness) ─────────────────
+# quick-260821-swp: the eight style-varying leaves' `bezier`/`style` fields
+# now legitimately diverge from the frozen (pre-migration) baseline even
+# under the DEFAULT style — Task 1 renamed the curves they reference
+# (emphasized-decelerate/emphasized-accelerate/standard -> spatial-in/
+# spatial-out/spatial-move), so `bezier` differs by name even though the
+# underlying control points are identical. LEAF_TO_HYPR_LEAVES_KEY maps a
+# leaf's Hyprland name to its motion.json `hypr_leaves` key so the
+# forgiveness below can ask "does this match what the ACTIVE STYLE says it
+# should be", never "does this match the frozen baseline byte-for-byte".
+LEAF_TO_HYPR_LEAVES_KEY = {
+    'windowsIn': 'windows_in', 'windowsOut': 'windows_out', 'windowsMove': 'windows_move',
+    'workspaces': 'workspaces', 'specialWorkspace': 'special_workspace',
+    'layers': 'layers', 'layersIn': 'layers_in', 'layersOut': 'layers_out',
+}
+
+
+def _expected_leaf_fields(leaf_name):
+    key = LEAF_TO_HYPR_LEAVES_KEY.get(leaf_name)
+    if key is None:
+        return None
+    entry = (EFF.get('hypr_leaves') or {}).get(key)
+    if not entry:
+        return None
+    curve = entry.get('curve')
+    return {
+        'bezier': ('motion-' + curve) if curve else None,
+        'style': entry.get('style'),
+    }
+
+
+def leaf_is_forgivable(b, l):
+    """True when EVERY differing field is explainable: `speed` matching the
+    renderer's scaled expectation from the accessibility multiplier, and/or
+    `bezier`/`style` matching the ACTIVE STYLE's own hypr_leaves entry for
+    this leaf. Any other differing field, or a differing bezier/style/speed
+    that does NOT match its expectation, is not forgiven — narrow, in the
+    same shape as the pre-existing mouse-field/speed forgiveness, never
+    widened into a skip."""
+    if set(b.keys()) != set(l.keys()):
+        return False, []
+    differing = [k for k in b if b[k] != l[k]]
+    if not differing:
+        return True, []
+    if any(k not in ('speed', 'bezier', 'style') for k in differing):
+        return False, []
+    exp = _expected_leaf_fields(b.get('name'))
+    notes = []
+    for k in differing:
+        if k == 'speed':
+            expected_speed = expected_scaled_speed(b.get('speed'))
+            if expected_speed is None:
+                return False, []
+            try:
+                if abs(float(l.get('speed')) - expected_speed) >= 0.005:
+                    return False, []
+            except (TypeError, ValueError):
+                return False, []
+            notes.append(f"speed {b.get('speed')} -> {l.get('speed')}")
+        else:
+            if exp is None or exp.get(k) is None or l.get(k) != exp.get(k):
+                return False, []
+            notes.append(f"{k} {b.get(k)!r} -> {l.get(k)!r}")
+    return True, notes
+
+
+# ── Leaves: byte-exact positional, with the narrow forgiveness above ─────
 if len(baseline_leaves) != len(live_leaves):
     diffs.append(
         f"leaf count mismatch: baseline={len(baseline_leaves)} live={len(live_leaves)}"
@@ -1015,10 +1118,9 @@ scaled_forgiven = []
 for i, (b, l) in enumerate(zip(baseline_leaves, live_leaves)):
     if b == l:
         continue
-    if speed_is_scaled_equivalent(b, l):
-        scaled_forgiven.append(
-            f"leaf {b.get('name')!r}: speed {b.get('speed')} -> {l.get('speed')}"
-        )
+    ok, notes = leaf_is_forgivable(b, l)
+    if ok:
+        scaled_forgiven.append(f"leaf {b.get('name')!r}: " + ", ".join(notes))
         continue
     diffs.append(f"leaf record {i} (name={b.get('name')!r}): baseline={b!r} live={l!r}")
 
@@ -1027,15 +1129,29 @@ for i, (b, l) in enumerate(zip(baseline_leaves, live_leaves)):
 # FAIL, so a stdout note would vanish on exactly the runs it needs to explain.
 if scaled_forgiven:
     print(
-        f". motion-scale preset {SCALE_NAME!r} (multiplier {MULTIPLIER}): "
-        f"{len(scaled_forgiven)} leaf speed(s) match the renderer's scaled "
-        f"expectation from the multiplier-1.0 baseline — normalized, not ignored",
+        f". active style {STYLE_NAME!r} / accessibility {ACCESS_NAME!r} "
+        f"(multiplier {MULTIPLIER}): {len(scaled_forgiven)} leaf field(s) "
+        f"match the renderer's own resolved expectation — normalized, not ignored",
         file=sys.stderr,
     )
     for line in scaled_forgiven:
         print(f".   {line}", file=sys.stderr)
 
-# ── Curves: SET comparison on (name, X0, Y0, X1, Y1) ──────────────────────
+# ── Curves ─────────────────────────────────────────────────────────────
+# quick-260821-swp: the style axis means a "motion-"-prefixed curve's
+# CONTROL POINTS legitimately vary by active style — comparing them against
+# the frozen (single-style) baseline byte-for-byte would FAIL every style
+# but the one the baseline happened to capture. Instead: derive the
+# expected value from the CURRENT effective `easings` table (the exact
+# source lib/motion.sh's own renderer reads) and compare live against THAT
+# — a real divergence (a rendering bug) still FAILs, a value that merely
+# differs from the frozen baseline because the active style says so is
+# reported (never silently) as normalized. Every curve NAME present in the
+# baseline must still be registered live (a name a style can never drop),
+# and every live "motion-" curve must be one this build's motion.json
+# actually declares (an orphan still FAILs). Non-"motion-" curves (Hyprland
+# built-ins, hyprpm-plugin-registered) are UNTOUCHED by the style axis and
+# keep the pre-existing byte-exact SET comparison exactly as it was.
 EXPECTED_CURVE_KEYS = {"name", "X0", "Y0", "X1", "Y1"}
 for label, curves in (("baseline", baseline_curves), ("live", live_curves)):
     for c in curves:
@@ -1070,11 +1186,69 @@ if len(set(live_tuples)) != len(live_tuples):
     )
     sys.exit(2)
 
-baseline_set = set(baseline_tuples)
-live_set = set(live_tuples)
 
-missing = baseline_set - live_set
-added = live_set - baseline_set
+def _is_motion_curve(name):
+    return (name or '').startswith('motion-')
+
+
+baseline_motion = {t[0]: t[1:] for t in baseline_tuples if _is_motion_curve(t[0])}
+live_motion = {t[0]: t[1:] for t in live_tuples if _is_motion_curve(t[0])}
+baseline_other = {t for t in baseline_tuples if not _is_motion_curve(t[0])}
+live_other = {t for t in live_tuples if not _is_motion_curve(t[0])}
+
+expected_motion = {}
+for _name, _pts in (EFF.get('easings') or {}).items():
+    if isinstance(_pts, list) and len(_pts) == 4:
+        expected_motion['motion-' + _name] = tuple(float(v) for v in _pts)
+
+curve_normalized = []
+
+for _name in sorted(baseline_motion):
+    if _name not in live_motion:
+        diffs.append(f"- curve present in baseline only: motion curve {_name!r} no longer registered")
+
+for _name in sorted(expected_motion):
+    _pts = expected_motion[_name]
+    _live_pts = live_motion.get(_name)
+    if _live_pts is None:
+        diffs.append(
+            f"+ curve missing from live: expected motion curve {_name!r} "
+            f"(active style {STYLE_NAME!r}) not registered"
+        )
+        continue
+    try:
+        _live_pts_f = tuple(float(v) for v in _live_pts)
+    except (TypeError, ValueError):
+        diffs.append(f"! curve {_name!r} has non-numeric live control points: {_live_pts!r}")
+        continue
+    if all(abs(a - b) < 1e-6 for a, b in zip(_live_pts_f, _pts)):
+        _base_pts = baseline_motion.get(_name)
+        if _base_pts is not None and tuple(float(v) for v in _base_pts) != _pts:
+            curve_normalized.append(
+                f"curve {_name!r}: baseline {_base_pts} -> live {_live_pts} "
+                f"(style {STYLE_NAME!r} override, matches motion.json)"
+            )
+        continue
+    diffs.append(
+        f"! curve {_name!r} does not match motion.json's effective easings "
+        f"(active style {STYLE_NAME!r}): expected={_pts} live={_live_pts}"
+    )
+
+for _name in sorted(live_motion):
+    if _name not in expected_motion:
+        diffs.append(f"+ curve present in live only: {_name!r} not in motion.json's current easings table")
+
+if curve_normalized:
+    print(
+        f". active style {STYLE_NAME!r}: {len(curve_normalized)} curve(s) "
+        f"match motion.json's effective easings — normalized, not ignored",
+        file=sys.stderr,
+    )
+    for line in curve_normalized:
+        print(f".   {line}", file=sys.stderr)
+
+missing = baseline_other - live_other
+added = live_other - baseline_other
 
 # ── Plugin-registered curves are not this config's to declare ────────────
 # (LEDGER-07, 2026-08-14.)

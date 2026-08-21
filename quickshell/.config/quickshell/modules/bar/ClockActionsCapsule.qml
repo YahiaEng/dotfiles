@@ -929,22 +929,26 @@ BarCapsule {
         height: clockActionsCapsule.vertical ? 0 : clockActionsCapsule.cellPitch
 
         // GATE-02 round 4: a GTK Revealer slide is one ease-out curve, both
-        // directions — see Design.barDrawerEasingType's own provenance
-        // comment for why the former Motion.emphasizedIn/Out bezier pair is
-        // gone (that pairing's acceleration was the operator's "not smooth"
-        // report). Horizontal-only now, but left exactly as it was.
+        // directions — see LauncherCapsule.qml's own comment for why the
+        // former Motion.emphasizedIn/Out bezier pair is gone (that pairing's
+        // acceleration was the operator's "not smooth" report). quick-260821-
+        // swp (R-2b): now on `Motion.spatialMoveEasing`, the same retirement
+        // of the hardcoded `Design.barDrawerEasingType` Qt enum. Horizontal-
+        // only now, but left exactly as it was.
         Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Design.barDrawerEasingType
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
         Behavior on height {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Design.barDrawerTransitionMs
-                easing.type: Design.barDrawerEasingType
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialMoveEasing
             }
         }
 

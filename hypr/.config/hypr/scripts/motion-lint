@@ -331,6 +331,14 @@ def load_qml_defs():
         # not just the per-pair duration/easing properties above.
         if 'motion_enabled' in data:
             defs.add('motionEnabled')
+        # quick-260821-swp: the top-level `motion_style`/`motion_accessibility`
+        # strings replace/join the old `motion_scale` key — same
+        # top-level-presence-derives-the-name shape as `motion_enabled`,
+        # never a hardcoded literal that can drift from motion.json.
+        if 'motion_style' in data:
+            defs.add('motionStyle')
+        if 'motion_accessibility' in data:
+            defs.add('motionAccessibility')
         # G-15-1: motion.json's top-level `motion_multiplier` scalar is what
         # lets a continuous loop-period token (e.g. `ambient`) divide the
         # active multiplier back out so it cannot shrink under a smaller
@@ -983,6 +991,152 @@ def check_qml_surface(path):
     return True
 
 
+# ── CHECK E (quick-260821-swp) — spatial easings must never reach an
+#    effects animation ───────────────────────────────────────────────────
+# The animation-style axis confines overshoot to exactly three easing
+# names — spatial-in/spatial-out/spatial-move — so that a fade or a
+# colour can never bounce BY CONSTRUCTION rather than by a maintained
+# list (R-2). This check is the part of "by construction" a human cannot
+# verify by eye: for every `easing.bezierCurve` binding in a scanned QML
+# surface, it resolves the binding's TARGET PROPERTY and fails when that
+# property is `opacity` or any colour-valued property (`color`,
+# `border.color`, `strokeColor`, `iconFill`, or anything ending in
+# `Color`) and the bound easing is one of the three spatial names.
+#
+# Recognises all four syntactic forms a target property can be declared
+# through: a `property: "x"` / `properties: "x, y"` assignment inside the
+# SAME animation block, or an enclosing `Behavior on x { ... }` /
+# `<Type>Animation on x { ... }` header — whichever the binding's own
+# block does not itself declare. Reads BOTH arms of a ternary
+# (`easing.bezierCurve: cond ? Motion.aEasing : Motion.bEasing`) since
+# either arm reaching an effects target is equally real.
+#
+# What this check CAN see: all four syntactic forms above, the enclosing
+# target for each binding (nearest enclosing block wins), and both arms
+# of a ternary.
+#
+# What this check CANNOT see, named plainly rather than left silent:
+#   - A property name computed at runtime (`property: someObj.someProp`)
+#     rather than a literal — exactly two sites in this repo
+#     (Cascade.qml's `_animFactory`/`_exitAnimFactory`), each carrying an
+#     inline `motion-lint-allow: runtime-computed-property` marker comment
+#     that this check honours and no other line may use.
+#   - An animation constructed or retargeted from JavaScript rather than
+#     declared in QML.
+#   - `PropertyChanges`/`Transition` machinery that names a property
+#     indirectly through a `target`/`ParentChange`-style mechanism rather
+#     than a literal `property:`/`Behavior on X` header.
+#   - An easing reached through an intermediate alias rather than a
+#     literal `Motion.<X>Easing` reference on the same line.
+#   - Any `easing.type:`-only binding, which carries no bezier at all —
+#     this was exactly how the eight former bar-drawer sites (R-2b,
+#     `Design.barDrawerEasingType`) stayed out of view of every prior
+#     motion-lint check until this task brought them onto Motion tokens.
+QML_PROPERTY_DECL_RE = re.compile(r'\bpropert(?:y|ies)\s*:\s*"([^"]+)"')
+QML_BEHAVIOR_ANIMATION_ON_RE = re.compile(r'\b(?:\w*Animation|Behavior)\s+on\s+([A-Za-z0-9_.]+)')
+QML_EASING_BIND_RE = re.compile(
+    r'easing\.bezierCurve\s*:\s*(?:'
+    r'([A-Za-z0-9_.]+)\s*\?\s*(Motion\.[A-Za-z0-9]+Easing)\s*:\s*(Motion\.[A-Za-z0-9]+Easing)'
+    r'|(Motion\.[A-Za-z0-9]+Easing)'
+    r')'
+)
+SPATIAL_EASING_NAME_RE = re.compile(r'spatial', re.I)
+# The ONE inline marker CHECK E honours (Cascade.qml's two runtime-computed
+# sites, and no others) — a window of lines FOLLOWING the marker comment,
+# since the marker sits just above the NumberAnimation block it excuses,
+# not on the `easing.bezierCurve` line itself.
+ALLOW_MARKER_RE = re.compile(r'motion-lint-allow:\s*runtime-computed-property')
+ALLOW_MARKER_WINDOW = 20
+EFFECTS_TARGET_LITERALS = {'opacity', 'iconFill'}
+
+
+def _is_effects_target(prop):
+    prop = prop.strip()
+    if prop in EFFECTS_TARGET_LITERALS:
+        return True
+    if prop == 'color' or prop.endswith('.color') or prop.endswith('Color'):
+        return True
+    return False
+
+
+def check_qml_spatial_effects(path):
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting CHECK E scan, '
+             'remaining surfaces not checked this run')
+        return False
+
+    raw_lines = raw.split('\n')
+    allowed_lines = set()
+    for i, line in enumerate(raw_lines, start=1):
+        if ALLOW_MARKER_RE.search(line):
+            for j in range(i, min(i + ALLOW_MARKER_WINDOW, len(raw_lines) + 1)):
+                allowed_lines.add(j)
+
+    body = strip_qml_comments(raw)
+    lines = body.split('\n')
+    # Brace-depth stack: each frame remembers the text immediately
+    # preceding its own opening `{` (so a `Behavior on X`/`<T>Animation on
+    # X` header can be recovered) and any `property:`/`properties:` value
+    # declared directly inside it (never inherited from a deeper frame).
+    stack = [{'header': None, 'prop': None}]
+    hits = []
+
+    for i, line in enumerate(lines, start=1):
+        m = QML_PROPERTY_DECL_RE.search(line)
+        if m:
+            stack[-1]['prop'] = [p.strip() for p in m.group(1).split(',')]
+
+        if i not in allowed_lines:
+            for em in QML_EASING_BIND_RE.finditer(line):
+                if em.group(1):
+                    names = [em.group(2), em.group(3)]
+                else:
+                    names = [em.group(4)]
+                spatial_names = [n for n in names if SPATIAL_EASING_NAME_RE.search(n)]
+                if not spatial_names:
+                    continue
+                prop = stack[-1]['prop']
+                if not prop:
+                    for frame in reversed(stack):
+                        if frame['header']:
+                            bm = QML_BEHAVIOR_ANIMATION_ON_RE.search(frame['header'])
+                            if bm:
+                                prop = [bm.group(1)]
+                                break
+                if not prop:
+                    continue  # unresolved property name — a named blind spot, not a violation
+                for p in prop:
+                    if _is_effects_target(p):
+                        hits.append((i, p, spatial_names[0]))
+
+        idx = 0
+        while True:
+            o = line.find('{', idx)
+            c = line.find('}', idx)
+            if o == -1 and c == -1:
+                break
+            if o != -1 and (c == -1 or o < c):
+                stack.append({'header': line[:o], 'prop': None})
+                idx = o + 1
+            else:
+                if len(stack) > 1:
+                    stack.pop()
+                idx = c + 1
+
+    if hits:
+        for i, prop, easing in hits:
+            emit('E', 'FAIL',
+                 f"{path}:{i} binds spatial easing '{easing}' to effects "
+                 f"target '{prop}' — a fade or colour may never overshoot.")
+    else:
+        emit('E', 'PASS', f'{path}: no spatial easing reaches an effects target')
+
+    return True
+
+
 all_surfaces = []
 for p in sorted(surfaces['css']):
     all_surfaces.append(('css', p))
@@ -1004,6 +1158,8 @@ for kind, path in all_surfaces:
         ok = check_lua_surface(path)
     else:
         ok = check_qml_surface(path)
+        if ok:
+            ok = check_qml_spatial_effects(path)
     if not ok:
         break  # abort: do not report on the subset already read
 
@@ -1023,6 +1179,8 @@ run_self_test() {
         "compliant-hypr.lua:0"
         "poisoned-raw-hypr.lua:1"
         "poisoned-dangling-hypr.lua:1"
+        "compliant-check-e-qml.qml:0"
+        "poisoned-check-e-qml.qml:1"
     )
     local st_pass=0 st_fail=0
     local entry fname expect_nonzero src tmp out rc want_desc
@@ -1048,7 +1206,7 @@ run_self_test() {
     # accidental hyprlang .conf file (D-23 deny-by-default) — it already
     # degrades gracefully via a printed [NOTE] when hyprland-motion.conf
     # is absent, which is now the permanent, expected state.
-    echo "motion-lint --self-test — replaying the ten committed fixtures"
+    echo "motion-lint --self-test — replaying the twelve committed fixtures"
     echo ""
 
     for entry in "${fixtures[@]}"; do

@@ -217,13 +217,15 @@ Singleton {
     //    that the operator reported as "not smooth"/"very rough". Athena's
     //    own drawer is a GTK Revealer, whose slide transition is a plain
     //    ease-out curve, not an emphasized in/out pair — one direction, one
-    //    shape, the whole time. Easing.OutCubic is Qt's built-in equivalent
-    //    (no bezier array, no Motion.qml round-trip needed since this is not
-    //    a theme-driven semantic token, just Qt's own enum), named here so
-    //    the four drawer strips (launcher, settings, audio, connections)
-    //    share one literal rather than repeating the enum value at each
-    //    call site.
-    readonly property int barDrawerEasingType: Easing.OutCubic
+    //    shape, the whole time. This used to be served by a `barDrawerEasingType`
+    //    property here (Qt's `Easing.OutCubic` enum, no bezier array, no
+    //    Motion.qml round-trip) — quick-260821-swp (R-2b) retires it: that
+    //    Qt-enum shape was structurally unreachable by the animation style
+    //    axis (an `easing.type:`-only binding carries no bezier at all, so
+    //    it was also invisible to any scan for one) and is now dead code
+    //    with all four call sites moved onto `Motion.spatialMoveEasing`,
+    //    which reproduces the same "one direction, one shape" posture while
+    //    finally being reachable by a style change.
     //    Kept nonzero but small: a literal 0 makes the drawer fire on an
     //    incidental pointer transit across the trigger, which Athena avoids
     //    only because its own drawer is cheap to reopen. 80ms is below the

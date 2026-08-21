@@ -202,12 +202,14 @@ Control {
                 // Same class, same gate: a knob sliding left-to-right on
                 // first reveal is the identical "animation captured an
                 // initial-load correction" bug as the pill's own color.
+                // quick-260821-swp (R-2): x is spatial — retargeted onto
+                // spatial-move.
                 Behavior on x {
                     enabled: root._settled && Motion.motionEnabled
                     NumberAnimation {
-                        duration: Motion.standardDuration
+                        duration: Motion.spatialMoveDuration
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.spatialMoveEasing
                     }
                 }
             }

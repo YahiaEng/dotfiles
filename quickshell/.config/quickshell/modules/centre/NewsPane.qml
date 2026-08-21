@@ -619,12 +619,14 @@ Item {
                         radius: Design.spacingSm
                         color: sourceRowHover.containsMouse ? BarRoles.capsuleHover : "transparent"
 
+                        // quick-260821-swp (R-2): implicitHeight is spatial
+                        // (size) — retargeted onto spatial-move.
                         Behavior on implicitHeight {
                             enabled: Motion.motionEnabled
                             NumberAnimation {
-                                duration: Motion.standardDuration
+                                duration: Motion.spatialMoveDuration
                                 easing.type: Easing.BezierSpline
-                                easing.bezierCurve: Motion.standardEasing
+                                easing.bezierCurve: Motion.spatialMoveEasing
                             }
                         }
 

@@ -148,20 +148,22 @@ Item {
                         bottomLeftRadius: isCurrentPage ? 20 : (isCategoryEnd ? 16 : 4)
                         bottomRightRadius: navItem.bottomLeftRadius
 
+                        // quick-260821-swp (R-2): corner radius is spatial
+                        // (shape) — retargeted onto spatial-move.
                         Behavior on topLeftRadius {
                             enabled: Motion.motionEnabled
                             NumberAnimation {
-                                duration: Motion.standardDuration
+                                duration: Motion.spatialMoveDuration
                                 easing.type: Easing.BezierSpline
-                                easing.bezierCurve: Motion.standardEasing
+                                easing.bezierCurve: Motion.spatialMoveEasing
                             }
                         }
                         Behavior on bottomLeftRadius {
                             enabled: Motion.motionEnabled
                             NumberAnimation {
-                                duration: Motion.standardDuration
+                                duration: Motion.spatialMoveDuration
                                 easing.type: Easing.BezierSpline
-                                easing.bezierCurve: Motion.standardEasing
+                                easing.bezierCurve: Motion.spatialMoveEasing
                             }
                         }
                         Behavior on color {

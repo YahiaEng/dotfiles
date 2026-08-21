@@ -349,17 +349,17 @@ PanelWindow {
             Behavior on x {
                 enabled: Motion.motionEnabled
                 NumberAnimation {
-                    duration: barWindow.barRendered ? Motion.standardDuration : Motion.emphasizedOutDuration
+                    duration: barWindow.barRendered ? Motion.spatialMoveDuration : Motion.spatialOutDuration
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: barWindow.barRendered ? Motion.standardEasing : Motion.emphasizedOutEasing
+                    easing.bezierCurve: barWindow.barRendered ? Motion.spatialMoveEasing : Motion.spatialOutEasing
                 }
             }
             Behavior on y {
                 enabled: Motion.motionEnabled
                 NumberAnimation {
-                    duration: barWindow.barRendered ? Motion.standardDuration : Motion.emphasizedOutDuration
+                    duration: barWindow.barRendered ? Motion.spatialMoveDuration : Motion.spatialOutDuration
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: barWindow.barRendered ? Motion.standardEasing : Motion.emphasizedOutEasing
+                    easing.bezierCurve: barWindow.barRendered ? Motion.spatialMoveEasing : Motion.spatialOutEasing
                 }
             }
         }
