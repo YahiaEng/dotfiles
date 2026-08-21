@@ -77,6 +77,90 @@
       "easings": {},
       "semantic": {},
       "hypr_leaves": {}
+    },
+    "smooth": {
+      "label": "Smooth",
+      "description": "Critically damped, longest, no overshoot.",
+      "easings": {
+        "spatial-in": [0.16, 0.85, 0.3, 1.0],
+        "standard": [0.4, 0, 0.6, 1]
+      },
+      "semantic": {
+        "standard": { "duration": "medium1", "easing": "standard" },
+        "emphasized-in": { "duration": "medium4", "easing": "emphasized-decelerate" },
+        "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
+        "spatial-in": { "duration": "medium4", "easing": "spatial-in" },
+        "spatial-out": { "duration": "short4", "easing": "spatial-out" },
+        "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
+      },
+      "hypr_leaves": {
+        "windows_in": { "curve": "spatial-in", "style": "slidefade" },
+        "windows_out": { "curve": "spatial-out", "style": "slidefade" },
+        "workspaces": { "curve": "spatial-in", "style": "slidefade" },
+        "special_workspace": { "curve": "spatial-in", "style": "slidefade" }
+      }
+    },
+    "snappy": {
+      "label": "Snappy",
+      "description": "Short, fast rise, a barely-there overshoot.",
+      "easings": {
+        "spatial-in": [0.1, 0.9, 0.4, 1.12],
+        "standard": [0.05, 0.5, 0.1, 1]
+      },
+      "semantic": {
+        "standard": { "duration": "short3", "easing": "standard" },
+        "emphasized-in": { "duration": "short4", "easing": "emphasized-decelerate" },
+        "emphasized-out": { "duration": "short2", "easing": "emphasized-accelerate" },
+        "spatial-in": { "duration": "short4", "easing": "spatial-in" },
+        "spatial-out": { "duration": "short2", "easing": "spatial-out" },
+        "spatial-move": { "duration": "short3", "easing": "spatial-move" }
+      },
+      "hypr_leaves": {
+        "windows_in": { "curve": "spatial-in", "style": "popin 80%" },
+        "windows_out": { "curve": "spatial-out", "style": "popin 80%" }
+      }
+    },
+    "bouncy": {
+      "label": "Bouncy",
+      "description": "Overshoots visibly, settles once.",
+      "easings": {
+        "spatial-in": [0.1, 0.9, 0.4, 1.254]
+      },
+      "semantic": {
+        "standard": { "duration": "short4", "easing": "standard" },
+        "emphasized-in": { "duration": "medium3", "easing": "emphasized-decelerate" },
+        "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" },
+        "spatial-in": { "duration": "medium3", "easing": "spatial-in" },
+        "spatial-out": { "duration": "short3", "easing": "spatial-out" },
+        "spatial-move": { "duration": "short4", "easing": "spatial-move" }
+      },
+      "hypr_leaves": {
+        "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
+        "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
+        "workspaces": { "curve": "spatial-in", "style": "slidevert" }
+      }
+    },
+    "wavy": {
+      "label": "Wavy",
+      "description": "Low dampening — overshoots then dips back before settling.",
+      "_comment_hyprland_y_ceiling": "quick-260821-swp: the BRIEF's own R-1 measurement never live-tested a control point above Y1.15, so it never hit this — live-verified against this build's Hyprland: hl.curve() HARD-REJECTS any control-point Y above 2.00 ('value 2.20 is more than the maximum of 2.00'), silently keeping the PREVIOUS registration for that curve name rather than erroring the reload. [0.15, 2.2, 0.6, 0.4] (peak 1.130, dip 0.870) is therefore infeasible on Hyprland's own animation side, even though PySide6/Qt accepts it fine — measured directly, not guessed. [0.05, 2.0, 0.3, 0.6] sits AT the ceiling and is the closest achievable wave shape found by numeric search (peak 1.108, dip 0.924) — still a real overshoot-then-undershoot, just less pronounced than the original illustrative numbers. Task 3's operator pass tunes from here.",
+      "easings": {
+        "spatial-in": [0.05, 2.0, 0.3, 0.6]
+      },
+      "semantic": {
+        "standard": { "duration": "medium1", "easing": "standard" },
+        "emphasized-in": { "duration": "long1", "easing": "emphasized-decelerate" },
+        "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
+        "spatial-in": { "duration": "long1", "easing": "spatial-in" },
+        "spatial-out": { "duration": "short4", "easing": "spatial-out" },
+        "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
+      },
+      "hypr_leaves": {
+        "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
+        "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
+        "workspaces": { "curve": "spatial-in", "style": "slidefadevert" },
+        "special_workspace": { "curve": "spatial-in", "style": "slidefadevert" }
+      }
     }
   },
   "floor_ms": 40
