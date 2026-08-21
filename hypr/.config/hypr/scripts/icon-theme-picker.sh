@@ -69,7 +69,7 @@ _list_installed_icon_themes() {
             [[ "$name" == "hicolor" || "$name" == "default" ]] && continue
             idx="$dir/index.theme"
             [[ -f "$idx" ]] || continue
-            dirs_line=$(grep -m1 '^Directories=' "$idx" 2>/dev/null)
+            dirs_line=$(grep -m1 '^Directories=' "$idx" 2>/dev/null || true)
             [[ -n "$dirs_line" ]] || continue
             seen[$name]=1
             printf '%s\n' "$name"
@@ -167,7 +167,7 @@ for base in /usr/share/icons "$HOME/.local/share/icons"; do
         [[ "$name" == "hicolor" || "$name" == "default" ]] && continue
         idx="$dir/index.theme"
         [[ -f "$idx" ]] || continue
-        dirs_line=$(grep -m1 '^Directories=' "$idx" 2>/dev/null)
+        dirs_line=$(grep -m1 '^Directories=' "$idx" 2>/dev/null || true)
         [[ -n "$dirs_line" ]] || continue
         seen[$name]=1
         if [[ "$name" == "$ACTIVE" ]]; then
@@ -547,7 +547,7 @@ if [[ "$SELECTED" == *$'\t'* ]]; then
         RESOLVED_THEME=$(pacman -Ql "$SEL_PKG" 2>/dev/null \
             | grep -oE 'usr/share/icons/[^/]+/index\.theme$' \
             | sed -E 's#usr/share/icons/([^/]+)/index\.theme#\1#' \
-            | sort -u | head -1)
+            | sort -u | head -1 || true)
         if [[ -z "$RESOLVED_THEME" ]]; then
             echo "icon-theme-picker: $SEL_PKG is already installed but ships no recognisable icon-theme directory" >&2
             exit 1

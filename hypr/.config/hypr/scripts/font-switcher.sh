@@ -57,8 +57,14 @@ ACTIVE_MARKER=" ●"
 #    interactive path runs on Enter (state write, VSCodium merge,
 #    theme-apply re-run, notify) — one copy, both paths call it. ───────
 _list_fonts() {
+    # `|| true` on the whole pipeline (icon-theme-picker.sh bug class,
+    # quick-260821-6z1 fix wave finding 1): a `grep` mid-pipeline that
+    # matches nothing exits non-zero, and under this script's own
+    # `set -euo pipefail` that would abort the whole script here — an
+    # empty match set is a normal "no nerd fonts found" outcome, not an
+    # error, so it must not kill the caller.
     fc-list : family 2>/dev/null | cut -d',' -f1 | grep -i 'nerd' \
-        | grep -vx 'Symbols Nerd Font' | sort -u
+        | grep -vx 'Symbols Nerd Font' | sort -u || true
 }
 
 _persist_and_apply() {
