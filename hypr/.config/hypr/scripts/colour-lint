@@ -55,6 +55,21 @@
 #             a later plan (18-05..18-16) adds a QML file, so the
 #             assertion is `> 0`, with the actual count printed on every
 #             run so a partial-glob miss is visible to a human.
+#   CHECK D — no bare attached ToolTip usage (quick-260821-6z1 fix wave).
+#             `ToolTip.visible:`/`ToolTip.text:`/`ToolTip.delay:` — QML's
+#             attached-property shorthand — lazily instantiates QQC2's OWN
+#             default ToolTip delegate, styled from Qt's INSTALLED STYLE,
+#             not from any file in this repo. CHECK A/B are structurally
+#             blind to this: the offending colour never appears in a
+#             scanned .qml file at all (RESEARCH.md §6.1's documented
+#             blind spot, confirmed live for ToolTip specifically by the
+#             operator's own "unthemed and foreign" report on the settings
+#             nav rail). The fix is always the same shape — a standalone
+#             `ThemedToolTip { visible: ...; text: ... }` sibling instead
+#             of the attached shorthand (see modules/ThemedToolTip.qml) —
+#             so this check can be a flat deny rather than a colour-shape
+#             classifier: ANY attached-property ToolTip occurrence fails,
+#             with no compliant shape to distinguish it from.
 #
 # The hazard this whole design exists to defeat: a naive "any hex-shaped
 # string in a .qml file" scan finds 28 hits across this tree (19 of them
@@ -84,7 +99,7 @@
 #       "a gate that cannot fail is not a gate").
 #
 #   colour-lint --self-test
-#       Runs this script against each of the six committed fixtures under
+#       Runs this script against each of the seven committed fixtures under
 #       tests/colour-fixtures/ (one at a time, in isolation) and asserts
 #       the expected verdict: the compliant fixture exits 0, every
 #       poisoned fixture exits non-zero. Makes "proven to fail" a
@@ -576,6 +591,47 @@ def check_colour_assignment_surface(path):
     return True
 
 
+# ── CHECK D — no bare attached ToolTip usage (quick-260821-6z1 fix wave,
+#    see this script's own header) ───────────────────────────────────────
+# Anchored the same way ASSIGN_RE anchors a colour property: `ToolTip`
+# followed directly by `.visible`/`.text`/`.delay` and a colon, preceded
+# by start-of-line or a non-identifier/non-dot character — so this never
+# matches a STANDALONE `ToolTip { ... }` declaration (ThemedToolTip.qml's
+# own shape, or WifiPanel.qml's ssidTooltip / BluetoothPanel.qml's
+# nameTooltip), only the attached-property shorthand this check exists to
+# deny.
+TOOLTIP_ATTACHED_RE = re.compile(r'(?:^|[^A-Za-z0-9_.])ToolTip\.(visible|text|delay)\s*:')
+
+
+def check_bare_tooltip_surface(path):
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+    body = strip_qml_comments(raw)
+    d_hits = []
+    for i, line in enumerate(body.split('\n'), start=1):
+        if line_is_exempt(path, i):
+            continue
+        for m in TOOLTIP_ATTACHED_RE.finditer(line):
+            d_hits.append((i, m.group(0).strip()))
+    if d_hits:
+        for i, detail in d_hits:
+            emit('D', 'FAIL',
+                 f'{path}:{i} uses the bare attached ToolTip shorthand '
+                 f'({detail}) — styled from Qt\'s installed style, not '
+                 'this repo\'s Colours.qml. Replace with a standalone '
+                 'ThemedToolTip { visible: ...; text: ... } sibling '
+                 '(modules/ThemedToolTip.qml), or add a reasoned '
+                 'exemption.')
+    else:
+        emit('D', 'PASS', f'{path}: no bare attached ToolTip usage')
+    return True
+
+
 for path in qml_files:
     if path_is_exempt(path):
         continue
@@ -584,6 +640,8 @@ for path in qml_files:
     if colours_qml_realpath is not None and os.path.realpath(path) == colours_qml_realpath:
         continue  # the definition source is excluded from CHECK B's surface set
     if not check_colour_assignment_surface(path):
+        break
+    if not check_bare_tooltip_surface(path):
         break
 
 dump()
@@ -598,11 +656,12 @@ run_self_test() {
         "poisoned-rgba-literal-qml.qml:1"
         "poisoned-named-colour-qml.qml:1"
         "poisoned-dangling-qml.qml:1"
+        "poisoned-bare-tooltip-qml.qml:1"
     )
     local st_pass=0 st_fail=0
     local entry fname expect_nonzero src tmp out rc want_desc
 
-    echo "colour-lint --self-test — replaying the six committed fixtures"
+    echo "colour-lint --self-test — replaying the seven committed fixtures"
     echo ""
 
     for entry in "${fixtures[@]}"; do
