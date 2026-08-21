@@ -79,9 +79,15 @@ FloatingWindow {
     // (Pages.qml's own `incubateObject` call), so the state object is the
     // only channel a dynamically-incubated page has back to this window.
     property var audioBackend: null
+    // quick-260821-6z1 fix wave — same relay shape as audioBackend above,
+    // for NetworkPage.qml's own inline Wi-Fi/Bluetooth controls.
+    property var wifiBackend: null
+    property var bluetoothBackend: null
 
     readonly property SettingsState sState: SettingsState {
         audioBackend: win.audioBackend
+        wifiBackend: win.wifiBackend
+        bluetoothBackend: win.bluetoothBackend
     }
 
     title: "Settings"

@@ -626,9 +626,23 @@ ShellRoot {
         }
     }
 
+    // ── Settings → Network page inline wiring (quick-260821-6z1 fix wave,
+    //    operator request: "make wifi and bluetooth options open
+    //    inline"). NetworkPage.qml is a SECOND consumer of these same
+    //    backend instances (never a second WifiBackend/BluetoothBackend —
+    //    the AudioPage precedent's own rule), so `panelOpen` must widen
+    //    to cover "the settings window is open and showing the Network
+    //    page (pageIdx 4, `<page_map>`)" — without this, both backends'
+    //    live truth (wifi scanning, bluetooth's device model) stays off
+    //    while NetworkPage.qml is the one actually rendering it, and the
+    //    inline list would always read empty. Null-guarded: `settingsLoader.item`
+    //    does not exist until the loader has actually incubated its
+    //    content. ─────────────────────────────────────────────────────────
+    readonly property bool settingsShowingNetwork: settingsLoader.active && settingsLoader.item !== null && settingsLoader.item.sState.currentPageIdx === 4
+
     WifiBackend {
         id: wifiBackendInstance
-        panelOpen: wifiPanelLoader.active
+        panelOpen: wifiPanelLoader.active || root.settingsShowingNetwork
     }
 
     // ── Bluetooth panel (Phase 15 Plan 03, PANEL-04/PANEL-06) ────────────
@@ -649,7 +663,11 @@ ShellRoot {
 
     BluetoothBackend {
         id: bluetoothBackendInstance
-        panelOpen: bluetoothPanelLoader.active
+        // Same widening as WifiBackend above, same reason — discovery
+        // itself stays opt-in (BluetoothBackend.qml's own `startDiscovery()`
+        // is still the only call site), but the device model and adapter
+        // state need to be live while this page is showing it.
+        panelOpen: bluetoothPanelLoader.active || root.settingsShowingNetwork
     }
 
     // ── Workspace overview (Phase 16 Plan 02, the phase's tracer,
@@ -770,6 +788,14 @@ ShellRoot {
             // tracking is ALREADY permanently on — no gate widening needed
             // here, only the relay.
             audioBackend: audioBackendInstance
+            // quick-260821-6z1 fix wave (operator: "make wifi and
+            // bluetooth options open inline") — same relay shape as
+            // audioBackend above, but THESE two backends' `panelOpen`
+            // gate DOES widen (see `root.settingsShowingNetwork` beside
+            // wifiBackendInstance/bluetoothBackendInstance above) since
+            // neither is unconditionally live the way audio is.
+            wifiBackend: wifiBackendInstance
+            bluetoothBackend: bluetoothBackendInstance
             // Operator live-pass item "opens on last tab" (root-caused
             // live, not assumed): `settingsInitialPageIdx` is a
             // shell-root property that ONLY the `openPage()` deep-link

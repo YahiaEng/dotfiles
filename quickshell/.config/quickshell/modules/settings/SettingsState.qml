@@ -25,6 +25,14 @@ QtObject {
     // instantiating its own AudioBackend — one shell-wide instance, same
     // as every other consumer.
     property var audioBackend: null
+    // quick-260821-6z1 fix wave (operator: "make wifi and bluetooth
+    // options open inline") — same relay shape as audioBackend above.
+    // NetworkPage.qml reads `sState.wifiBackend`/`sState.bluetoothBackend`
+    // rather than instantiating its own backends — the SAME instances
+    // WifiPanel.qml/BluetoothPanel.qml already share (shell.qml's own
+    // wifiBackendInstance/bluetoothBackendInstance), never a second one.
+    property var wifiBackend: null
+    property var bluetoothBackend: null
 
     signal close()
 

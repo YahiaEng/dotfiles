@@ -71,9 +71,18 @@ Singleton {
         { pageIdx: 3, section: "Per-app mixer", label: "Nothing playing", keywords: "audio app mixer stream empty" },
         { pageIdx: 3, section: "Per-app mixer", label: "Full mixer", keywords: "audio mixer panel full app" },
 
-        // ── pageIdx 4 — Network ───────────────────────────────────────────
-        { pageIdx: 4, section: "Devices", label: "Wi-Fi", keywords: "wifi wi-fi wireless network internet" },
-        { pageIdx: 4, section: "Devices", label: "Bluetooth", keywords: "bluetooth pairing devices" },
+        // ── pageIdx 4 — Network (quick-260821-6z1 fix wave: "make wifi
+        //    and bluetooth options open inline" — the NavRows became
+        //    real inline controls, same labels retained). ────────────────
+        { pageIdx: 4, section: "Wi-Fi", label: "Wi-Fi", keywords: "wifi wi-fi wireless network internet toggle radio" },
+        { pageIdx: 4, section: "Wi-Fi", label: "Wi-Fi hardware is off", keywords: "wifi radio blocked airplane mode hardware switch" },
+        { pageIdx: 4, section: "Wi-Fi", label: "Turn on Wi-Fi to see nearby networks", keywords: "wifi off networks list" },
+        { pageIdx: 4, section: "Wi-Fi", label: "Advanced network settings", keywords: "wifi hidden network enterprise 802.1x nm-connection-editor advanced" },
+        { pageIdx: 4, section: "Bluetooth", label: "Bluetooth", keywords: "bluetooth pairing devices toggle radio" },
+        { pageIdx: 4, section: "Bluetooth", label: "No Bluetooth adapter found", keywords: "bluetooth adapter missing controller" },
+        { pageIdx: 4, section: "Bluetooth", label: "Bluetooth is blocked", keywords: "bluetooth rfkill blocked hardware switch" },
+        { pageIdx: 4, section: "Bluetooth", label: "Turn on Bluetooth to manage devices", keywords: "bluetooth off devices paired" },
+        { pageIdx: 4, section: "Bluetooth", label: "Advanced Bluetooth settings", keywords: "bluetooth blueman-manager advanced" },
 
         // ── pageIdx 5 — Display ───────────────────────────────────────────
         { pageIdx: 5, section: "Display", label: "Resolution & refresh rate", keywords: "resolution refresh rate monitor screen display hz" },
