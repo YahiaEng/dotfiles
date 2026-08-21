@@ -158,18 +158,53 @@ PageBase {
             });
         }
 
+        // Bug 1 root cause (operator: "I cannot change or select
+        // different options for lock, screen off and suspend" —
+        // reported as a regression against an earlier PASS where dim
+        // was shortened and lock lengthened). MEASURED, not guessed: a
+        // temporary IPC hook called `dimRow.selected(...)` and
+        // `lockRow.selected(...)` directly, bypassing click delivery
+        // entirely, with the state file's own mtime as the oracle.
+        // Result: an ordering-VIOLATING value (lock=120s, equal to the
+        // just-set dim=120s) left the file's mtime UNCHANGED — silently
+        // rejected; a valid value (lock=300s) updated it correctly,
+        // identically to dim. The write pipeline itself has no
+        // regression — `idle-overrides.sh:151` has ALWAYS enforced
+        // strict `dim < lock < display-off < suspend` ordering, and this
+        // `onExited` handler has ALWAYS only `console.warn`'d a
+        // rejection into a log nobody reads, with zero UI feedback. The
+        // earlier PASS worked because shortening dim + lengthening lock
+        // happens to preserve that ordering; whatever the operator tried
+        // this time did not, and the silent failure is indistinguishable
+        // from "the row stopped responding" — exactly the report. Fixed
+        // by surfacing the script's own stderr (already a precise,
+        // actionable message — see idle-overrides.sh:152) inline in this
+        // section instead of swallowing it.
         Process {
             id: idleApplyProc
             running: false
+            stderr: StdioCollector {
+                id: idleApplyStderr
+            }
             onExited: (exitCode, exitStatus) => {
-                if (exitCode !== 0)
-                    console.warn("ShellBehaviourPage: idle-overrides.sh failed (exit " + exitCode + ")");
+                if (exitCode !== 0) {
+                    idleSection.lastError = idleApplyStderr.text.trim() || ("idle-overrides.sh failed (exit " + exitCode + ")");
+                    console.warn("ShellBehaviourPage: " + idleSection.lastError);
+                } else {
+                    idleSection.lastError = "";
+                }
             }
         }
+
+        // Cleared on a fresh attempt (not just a successful one) so a
+        // stale error never survives a user retrying with a new value —
+        // matches this row's own `onSelected` re-firing immediately.
+        property string lastError: ""
 
         // Fixed argv — same discipline as hypr-overrides.sh's own callers
         // (no shell, every element a discrete array entry).
         function applyListener(key, seconds) {
+            idleSection.lastError = "";
             idleApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/idle-overrides.sh", "--set", key + "=" + seconds];
             idleApplyProc.running = true;
         }
@@ -208,6 +243,21 @@ PageBase {
             model: idleSection._minuteOptions()
             currentValue: idleSection.suspendSec.toString()
             onSelected: (value) => idleSection.applyListener("suspend", value)
+        }
+
+        // Visible failure feedback (the actual fix) — was previously
+        // console.warn-only. idle-overrides.sh's own stderr message is
+        // already precise and actionable (states the exact ordering
+        // rule and the four values it saw), so this surfaces that
+        // verbatim rather than inventing a paraphrase that could drift
+        // out of sync with the script's own validation logic.
+        Text {
+            visible: idleSection.lastError.length > 0
+            width: parent.width
+            wrapMode: Text.WordWrap
+            text: idleSection.lastError
+            font.pixelSize: Design.fontLabel
+            color: Colours.error
         }
 
         // Opens the state-dir file in $EDITOR inside a floating kitty, on
