@@ -91,7 +91,27 @@ Singleton {
         "dashboard.panels.resources",
         // Task 12 (D-01 bundle 3) — Session page: power-menu behaviour.
         "session.warnWhenBusy",
-        "session.defaultAction"
+        "session.defaultAction",
+        // Operator fix wave (quick-260821-6z1, finding 3) — per-ENTRY bar
+        // visibility, one level below the six bar.capsules.* keys above.
+        // Consumed at BarEntryModel.entryVisible()'s own single filter
+        // point, the same "one resolution function, never re-derived at
+        // the call site" discipline bar.capsules.* already established.
+        // `power` included deliberately: Super+Shift+Q
+        // (hypr/config/keybinds.lua:68, `hl.dsp.global("quickshell:power-menu")`)
+        // is an equally real route to the same power menu, so hiding this
+        // bar entry removes no capability, matching the plan's own
+        // instruction to ship it unless a concrete blocker exists.
+        "bar.entries.cpu",
+        "bar.entries.ram",
+        "bar.entries.disk",
+        "bar.entries.gpu",
+        "bar.entries.updates",
+        "bar.entries.clock",
+        "bar.entries.gaming",
+        "bar.entries.notifications",
+        "bar.entries.settings",
+        "bar.entries.power"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -121,7 +141,17 @@ Singleton {
         "dashboard.panels.media": true,
         "dashboard.panels.resources": true,
         "session.warnWhenBusy": true,
-        "session.defaultAction": "Lock"
+        "session.defaultAction": "Lock",
+        "bar.entries.cpu": true,
+        "bar.entries.ram": true,
+        "bar.entries.disk": true,
+        "bar.entries.gpu": true,
+        "bar.entries.updates": true,
+        "bar.entries.clock": true,
+        "bar.entries.gaming": true,
+        "bar.entries.notifications": true,
+        "bar.entries.settings": true,
+        "bar.entries.power": true
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

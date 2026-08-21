@@ -392,6 +392,12 @@ BarCapsule {
             Readout {
                 glyph: "memory"
                 maxValueText: "100%"
+                // Operator fix wave finding 3 — per-entry hiding, one
+                // resolution point (BarEntryModel.entryVisible()); the
+                // shared chrome's own Grid positioner excludes an
+                // invisible child from layout for free, the same
+                // mechanism the gpu/updates entries below already rely on.
+                visible: BarEntryModel.entryVisible("cpu")
                 populated: root.cpuStateValue === "populated"
                 errored: root.cpuStateValue === "empty"
                 valueToggleable: true
@@ -405,6 +411,7 @@ BarCapsule {
             Readout {
                 glyph: "memory_alt"
                 maxValueText: "100%"
+                visible: BarEntryModel.entryVisible("ram")
                 populated: root.memoryStateValue === "populated"
                 errored: root.memoryStateValue === "empty"
                 valueToggleable: true
@@ -419,6 +426,7 @@ BarCapsule {
                 glyph: "hard_drive_2"
                 maxValueText: "100%"
                 valueToggleable: true
+                visible: BarEntryModel.entryVisible("disk")
                 populated: root.storageStateValue === "populated"
                 errored: root.storageStateValue === "empty"
                 // Athena's own config-athena.jsonc disk states block.
@@ -440,7 +448,7 @@ BarCapsule {
                 // name in plain text.
                 glyph: "view_in_ar"
                 maxValueText: "100%"
-                visible: root.gpuPresent
+                visible: root.gpuPresent && BarEntryModel.entryVisible("gpu")
                 populated: root.gpuStateValue === "populated"
                 errored: root.gpuStateValue === "empty"
                 valueToggleable: true
@@ -498,7 +506,7 @@ BarCapsule {
     Readout {
         glyph: "deployed_code_update"
         maxValueText: "999"
-        visible: root.pendingUpdatesCount > 0
+        visible: root.pendingUpdatesCount > 0 && BarEntryModel.entryVisible("updates")
         populated: true
         errored: false
         clickable: true

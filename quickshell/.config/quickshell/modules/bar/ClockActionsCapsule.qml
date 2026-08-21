@@ -87,6 +87,14 @@ BarCapsule {
     //    notification source component. ─────────────────────────────────
     PopoutTrigger {
         id: clockPopoutTrigger
+        // Operator fix wave finding 3 — per-entry hiding, one resolution
+        // point (BarEntryModel.entryVisible()). This item is a top-level
+        // sibling reparented into BarCapsule's own shared content Grid
+        // (the "one positioner" the assembly comment above names), which
+        // already excludes an invisible child from layout for free —
+        // SystemCapsule.qml's gpu/updates entries already rely on the
+        // identical mechanism.
+        visible: BarEntryModel.entryVisible("clock")
         sectionId: "clock"
         popoutComponent: Component {
             ClockPopout {
@@ -813,6 +821,10 @@ BarCapsule {
 
     ActionCell {
         id: gamingCell
+        // Operator fix wave finding 3 — per-entry hiding, one resolution
+        // point (BarEntryModel.entryVisible()); same Grid-exclusion
+        // mechanism as clockPopoutTrigger above.
+        visible: BarEntryModel.entryVisible("gaming")
         glyph: "sports_esports"
         label: "Gaming Mode"
         filled: clockActionsCapsule.gamingOn
@@ -822,6 +834,10 @@ BarCapsule {
 
     ActionCell {
         id: bellCell
+        // Operator fix wave finding 3 — per-entry hiding, one resolution
+        // point (BarEntryModel.entryVisible()); same Grid-exclusion
+        // mechanism as clockPopoutTrigger above.
+        visible: BarEntryModel.entryVisible("notifications")
         glyph: {
             if (!notificationSource.available)
                 return "notifications";
@@ -903,6 +919,11 @@ BarCapsule {
     // order is load-bearing and stays exactly as it was.
     Item {
         id: settingsStripHost
+        // Operator fix wave finding 3 — per-entry hiding, one resolution
+        // point (BarEntryModel.entryVisible()); the "settings" entry is
+        // this Item plus settingsTriggerCell below, both gated together
+        // so hiding the row removes the trigger AND its expandable strip.
+        visible: BarEntryModel.entryVisible("settings")
         clip: true
         width: clockActionsCapsule.vertical ? 0 : (clockActionsCapsule.settingsExpanded ? clockActionsCapsule.expandedCrossExtent : 0)
         height: clockActionsCapsule.vertical ? 0 : clockActionsCapsule.cellPitch
@@ -965,6 +986,10 @@ BarCapsule {
 
     ActionCell {
         id: settingsTriggerCell
+        // Operator fix wave finding 3 — per-entry hiding, one resolution
+        // point (BarEntryModel.entryVisible()); paired with
+        // settingsStripHost above, same key.
+        visible: BarEntryModel.entryVisible("settings")
         glyph: "settings"
         label: "Settings"
         filled: clockActionsCapsule.settingsExpanded
@@ -1037,6 +1062,11 @@ BarCapsule {
 
     ActionCell {
         id: powerCell
+        // Operator fix wave finding 3 — per-entry hiding, one resolution
+        // point (BarEntryModel.entryVisible()). Shipped deliberately:
+        // Super+Shift+Q (hypr/config/keybinds.lua:68) opens the identical
+        // power menu, so hiding this bar entry removes no capability.
+        visible: BarEntryModel.entryVisible("power")
         glyph: "power_settings_new"
         label: "Power Menu"
         // available intentionally left at ActionCell's own default — no

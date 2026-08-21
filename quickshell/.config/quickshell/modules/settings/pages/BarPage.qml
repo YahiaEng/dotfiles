@@ -183,6 +183,42 @@ PageBase {
             checked: Prefs.getValue("bar.capsules.system")
             onToggled: (value) => Prefs.setValue("bar.capsules.system", value)
         }
+        // ── Per-entry toggles for "System" (operator fix wave finding 3)
+        //    — nested here, under their parent capsule's toggle, so the
+        //    hierarchy reads. Turning the capsule off above still hides
+        //    all five regardless of these; each is independently backed
+        //    by Prefs.bar.entries.<id>, consumed at
+        //    BarEntryModel.entryVisible()'s own single filter point. ─────
+        ToggleRow {
+            label: "CPU"
+            subtext: "The CPU usage readout"
+            checked: Prefs.getValue("bar.entries.cpu")
+            onToggled: (value) => Prefs.setValue("bar.entries.cpu", value)
+        }
+        ToggleRow {
+            label: "RAM"
+            subtext: "The memory usage readout"
+            checked: Prefs.getValue("bar.entries.ram")
+            onToggled: (value) => Prefs.setValue("bar.entries.ram", value)
+        }
+        ToggleRow {
+            label: "Disk"
+            subtext: "The disk usage readout"
+            checked: Prefs.getValue("bar.entries.disk")
+            onToggled: (value) => Prefs.setValue("bar.entries.disk", value)
+        }
+        ToggleRow {
+            label: "GPU"
+            subtext: "The GPU usage readout — only renders on a host with a detected GPU"
+            checked: Prefs.getValue("bar.entries.gpu")
+            onToggled: (value) => Prefs.setValue("bar.entries.gpu", value)
+        }
+        ToggleRow {
+            label: "Updates"
+            subtext: "The pending-updates pill — only renders when updates are pending"
+            checked: Prefs.getValue("bar.entries.updates")
+            onToggled: (value) => Prefs.setValue("bar.entries.updates", value)
+        }
         ToggleRow {
             label: "Workspaces"
             subtext: "The workspace indicator"
@@ -206,6 +242,41 @@ PageBase {
             subtext: "Clock, gaming mode, notifications, settings, power"
             checked: Prefs.getValue("bar.capsules.clockActions")
             onToggled: (value) => Prefs.setValue("bar.capsules.clockActions", value)
+        }
+        // ── Per-entry toggles for "Clock & actions" (operator fix wave
+        //    finding 3) — same nesting/consumption pattern as System's
+        //    five above. `power` shipped deliberately: Super+Shift+Q
+        //    (hypr/config/keybinds.lua) opens the same power menu, so
+        //    hiding this bar entry removes no capability.
+        ToggleRow {
+            label: "Clock"
+            subtext: "The clock and its popout"
+            checked: Prefs.getValue("bar.entries.clock")
+            onToggled: (value) => Prefs.setValue("bar.entries.clock", value)
+        }
+        ToggleRow {
+            label: "Gaming mode"
+            subtext: "The gaming-mode toggle glyph"
+            checked: Prefs.getValue("bar.entries.gaming")
+            onToggled: (value) => Prefs.setValue("bar.entries.gaming", value)
+        }
+        ToggleRow {
+            label: "Notifications"
+            subtext: "The notification bell and its centre"
+            checked: Prefs.getValue("bar.entries.notifications")
+            onToggled: (value) => Prefs.setValue("bar.entries.notifications", value)
+        }
+        ToggleRow {
+            label: "Settings"
+            subtext: "The settings gear and its quick-settings strip"
+            checked: Prefs.getValue("bar.entries.settings")
+            onToggled: (value) => Prefs.setValue("bar.entries.settings", value)
+        }
+        ToggleRow {
+            label: "Power"
+            subtext: "The power-menu glyph — Super+Shift+Q opens the same menu either way"
+            checked: Prefs.getValue("bar.entries.power")
+            onToggled: (value) => Prefs.setValue("bar.entries.power", value)
         }
     }
 }

@@ -256,6 +256,21 @@ Singleton {
         return result;
     }
 
+    // ── Operator fix wave finding 3 (quick-260821-6z1) — the ONE filter
+    //    point for `Prefs.bar.entries.<id>`, one level below
+    //    capsulesForZone() above. Same false-is-falsy guard: an entry the
+    //    operator explicitly turned OFF must not be silently read as
+    //    "unset, default to visible". Deliberately NOT consulted by
+    //    requiresBackend()/the three aggregates below, for the identical
+    //    reason capsule-level hiding already isn't — hiding a single
+    //    readout must never stop a backend the dashboard also reads.
+    function entryVisible(entryId) {
+        var visible = Prefs.getValue("bar.entries." + entryId);
+        if (typeof visible !== "boolean")
+            visible = true;
+        return visible;
+    }
+
     function zoneFor(capsuleId) {
         var capsule = root.capsuleById(capsuleId);
         if (!capsule)
