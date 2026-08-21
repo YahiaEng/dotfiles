@@ -158,28 +158,58 @@ PageBase {
             });
         }
 
-        // Bug 1 root cause (operator: "I cannot change or select
-        // different options for lock, screen off and suspend" —
-        // reported as a regression against an earlier PASS where dim
-        // was shortened and lock lengthened). MEASURED, not guessed: a
-        // temporary IPC hook called `dimRow.selected(...)` and
-        // `lockRow.selected(...)` directly, bypassing click delivery
-        // entirely, with the state file's own mtime as the oracle.
-        // Result: an ordering-VIOLATING value (lock=120s, equal to the
-        // just-set dim=120s) left the file's mtime UNCHANGED — silently
-        // rejected; a valid value (lock=300s) updated it correctly,
-        // identically to dim. The write pipeline itself has no
-        // regression — `idle-overrides.sh:151` has ALWAYS enforced
-        // strict `dim < lock < display-off < suspend` ordering, and this
-        // `onExited` handler has ALWAYS only `console.warn`'d a
-        // rejection into a log nobody reads, with zero UI feedback. The
-        // earlier PASS worked because shortening dim + lengthening lock
-        // happens to preserve that ordering; whatever the operator tried
-        // this time did not, and the silent failure is indistinguishable
-        // from "the row stopped responding" — exactly the report. Fixed
-        // by surfacing the script's own stderr (already a precise,
-        // actionable message — see idle-overrides.sh:152) inline in this
-        // section instead of swallowing it.
+        // Bug 1 — operator re-check round 2 (operator: "the error now
+        // shows but is INCORRECT — it fires even when the operator
+        // follows the correct order, and they still cannot change
+        // lock/screen off/suspend at all"). The prior round's mechanical
+        // test called `.selected(...)` directly with hand-picked values
+        // — real evidence, but of the wrong layer (the write plumbing,
+        // not the display->value mapping the operator's finger actually
+        // drives). Re-measured through the REAL path this round: opened
+        // each row's popup exactly as a click would
+        // (`optionsMenu.popup()`, the same call `dropdownPill`'s own
+        // MouseArea makes) and drove a REAL `MenuItem` via keyboard
+        // Down+Enter — QQC2's own `triggered()` signal, not a bypass.
+        //
+        // Two specific hypotheses this round, BOTH REFUTED by measurement:
+        //   - Unit mismatch (minutes sent where seconds are expected):
+        //     `_minuteOptions()` already converts (`String(m * 60)`);
+        //     logged the EXACT argv reaching the script for lock,
+        //     screen-off, AND suspend — every one was already in
+        //     seconds, matching what the script expects, e.g.
+        //     `--set lock=900` for a real "15 minutes" pick, exit 0,
+        //     file updated correctly.
+        //   - Dropped second request (all five rows share ONE
+        //     `idleApplyProc`, and the script itself takes ~1.6-3.3s —
+        //     measured directly, three internal `sleep`s): fired lock
+        //     then suspend ~1.5s apart, inside that window. Both argvs
+        //     landed, both exited 0, both persisted — Quickshell's
+        //     `Process` correctly defers the second `running=true`
+        //     rather than dropping it. Not a race.
+        //
+        // What DID reproduce, repeatedly, using values a real user would
+        // plausibly reach for: dim defaults to "5 minutes" and this
+        // round's own first real-path attempt at lock ALSO picked
+        // "5 minutes" — REJECTED, because the rule is a STRICT `<`, not
+        // `<=`, and nothing in the UI communicates that picking the
+        // SAME duration for two adjacent stages is invalid. Combined
+        // with the script's own ~1.6-3.3s runtime and zero pending
+        // feedback during it (the row just sits there, unchanged, for
+        // several seconds), a genuinely-successful selection can read as
+        // "nothing happened" long enough for a normal user to try again
+        // or move to the next row — which is indistinguishable from "I
+        // cannot change this at all." The error TEXT itself is a
+        // real, correct validation message, but it lists four raw
+        // second-counts with no labels — "(got 300, 60, 900, 1800)" —
+        // which reads as inscrutable/wrong to someone who selected
+        // "5 minutes," not "300." Fixed both: `idleApplying` now drives
+        // a visible pending state on all five rows for the ~1.6-3.3s the
+        // script genuinely takes, and the rendered error re-labels the
+        // script's own four numbers in minutes instead of raw seconds —
+        // reformatting, not re-implementing, the script's authoritative
+        // validation output.
+        property bool idleApplying: false
+
         Process {
             id: idleApplyProc
             running: false
@@ -187,9 +217,10 @@ PageBase {
                 id: idleApplyStderr
             }
             onExited: (exitCode, exitStatus) => {
+                idleSection.idleApplying = false;
                 if (exitCode !== 0) {
-                    idleSection.lastError = idleApplyStderr.text.trim() || ("idle-overrides.sh failed (exit " + exitCode + ")");
-                    console.warn("ShellBehaviourPage: " + idleSection.lastError);
+                    idleSection.lastError = idleSection._friendlyError(idleApplyStderr.text.trim()) || ("idle-overrides.sh failed (exit " + exitCode + ")");
+                    console.warn("ShellBehaviourPage: " + idleApplyStderr.text.trim());
                 } else {
                     idleSection.lastError = "";
                 }
@@ -201,19 +232,48 @@ PageBase {
         // matches this row's own `onSelected` re-firing immediately.
         property string lastError: ""
 
+        // Re-labels idle-overrides.sh's own stderr — "need dim < lock <
+        // display-off < suspend (got A, B, C, D)" — replacing the raw
+        // second-counts with minute-labeled ones ("dim=5min, lock=5min,
+        // display-off=15min, suspend=30min"), in the SAME fixed order
+        // the script always reports them. Reformats the script's
+        // authoritative message; does not re-implement its validation
+        // logic, so the two can never drift apart on what "valid" means
+        // — only on how the numbers are displayed.
+        function _friendlyError(raw) {
+            var m = raw.match(/\(got\s+(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)/);
+            if (!m)
+                return raw;
+            var names = ["dim", "lock", "display-off", "suspend"];
+            var labeled = names.map(function (name, i) {
+                return name + "=" + Math.round(parseInt(m[i + 1], 10) / 60) + "min";
+            }).join(", ");
+            return "idle-overrides.sh: ordering violated — need dim < lock < display-off < suspend (" + labeled + ")";
+        }
+
         // Fixed argv — same discipline as hypr-overrides.sh's own callers
         // (no shell, every element a discrete array entry).
         function applyListener(key, seconds) {
             idleSection.lastError = "";
+            idleSection.idleApplying = true;
             idleApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/idle-overrides.sh", "--set", key + "=" + seconds];
             idleApplyProc.running = true;
         }
 
+        // `enabled`/`opacity` on all five rows below: pending-state
+        // feedback for the ~1.6-3.3s idle-overrides.sh genuinely takes
+        // (measured directly, three internal `sleep`s) — previously a
+        // clicked row just sat there unchanged for several seconds with
+        // no indication anything was happening, which reads as "nothing
+        // happened" long enough to plausibly explain "I cannot change
+        // this at all" on its own, independent of the ordering rule.
         SelectRow {
             label: "Bar idle-hide"
             subtext: "Hide the bar after this long with no input"
             model: idleSection._minuteOptions()
             currentValue: idleSection.barIdleSec.toString()
+            enabled: !idleSection.idleApplying
+            opacity: idleSection.idleApplying ? 0.6 : 1
             onSelected: (value) => idleSection.applyListener("bar-idle", value)
         }
         SelectRow {
@@ -221,6 +281,8 @@ PageBase {
             subtext: "Dim the display and pause the live wallpaper"
             model: idleSection._minuteOptions()
             currentValue: idleSection.dimSec.toString()
+            enabled: !idleSection.idleApplying
+            opacity: idleSection.idleApplying ? 0.6 : 1
             onSelected: (value) => idleSection.applyListener("dim", value)
         }
         SelectRow {
@@ -228,6 +290,8 @@ PageBase {
             subtext: "Lock the session"
             model: idleSection._minuteOptions()
             currentValue: idleSection.lockSec.toString()
+            enabled: !idleSection.idleApplying
+            opacity: idleSection.idleApplying ? 0.6 : 1
             onSelected: (value) => idleSection.applyListener("lock", value)
         }
         SelectRow {
@@ -235,6 +299,8 @@ PageBase {
             subtext: "Turn off the display (DPMS)"
             model: idleSection._minuteOptions()
             currentValue: idleSection.displayOffSec.toString()
+            enabled: !idleSection.idleApplying
+            opacity: idleSection.idleApplying ? 0.6 : 1
             onSelected: (value) => idleSection.applyListener("display-off", value)
         }
         SelectRow {
@@ -242,6 +308,8 @@ PageBase {
             subtext: "Suspend the machine"
             model: idleSection._minuteOptions()
             currentValue: idleSection.suspendSec.toString()
+            enabled: !idleSection.idleApplying
+            opacity: idleSection.idleApplying ? 0.6 : 1
             onSelected: (value) => idleSection.applyListener("suspend", value)
         }
 
