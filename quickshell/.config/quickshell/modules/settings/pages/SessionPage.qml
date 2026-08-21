@@ -198,7 +198,7 @@ PageBase {
 
         NavRow {
             label: "Open in editor"
-            subtext: "Edit the state-dir file directly for anything the rows above don't cover"
+            subtext: "Open the idle settings file directly, for anything the rows above don't cover"
             onActivated: {
                 editorProc.startDetached();
                 root.sState.close();

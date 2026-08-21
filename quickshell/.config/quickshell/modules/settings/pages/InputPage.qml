@@ -125,7 +125,7 @@ PageBase {
 
         SelectRow {
             label: "Keyboard layout"
-            subtext: "xkb layout code"
+            subtext: "Which layout your keyboard uses"
             model: [
                 { value: "us", display: "US" },
                 { value: "gb", display: "UK" },
@@ -139,7 +139,7 @@ PageBase {
         }
         SelectRow {
             label: "Follow mouse"
-            subtext: "Hyprland's own input:follow_mouse mode (0-3)"
+            subtext: "How window focus follows your mouse — an advanced setting, values 0-3"
             model: [
                 { value: "0", display: "0" },
                 { value: "1", display: "1" },
@@ -151,7 +151,7 @@ PageBase {
         }
         SliderRow {
             label: "Pointer sensitivity"
-            subtext: "libinput sensitivity, -1.0 to 1.0 — applies to all pointers"
+            subtext: "-1.0 (slowest) to 1.0 (fastest). Applies to all pointers."
             from: -1.0
             to: 1.0
             stepSize: 0.05
