@@ -163,13 +163,16 @@ PageBase {
 
     // ── Capsules (Task 8, D-01 bundle 2/D-02/PD-04) — FIVE capsule-level
     //    ToggleRows, each backed by Prefs.bar.capsules.<id> with a default
-    //    of true. Five, not six: the "Clock & actions" parent was RETIRED
-    //    on operator request (2026-08-21) as redundant once all five of its
-    //    children (clock/gaming/notifications/settings/power) gained their
-    //    own per-entry toggles below. Its key is gone from Prefs' allowlist
-    //    too, so nothing can write it any more; capsulesForZone()'s
-    //    `typeof visible !== "boolean" -> true` guard means the absent key
-    //    reads as visible, which is the intended behaviour. Consumed at
+    //    of true. FOUR, not six: the "Clock & actions" and "System" parents
+    //    were both RETIRED on operator request (2026-08-21) as redundant
+    //    once every one of their children gained a per-entry toggle below —
+    //    clock/gaming/notifications/settings/power for the first,
+    //    cpu/ram/disk/gpu/updates for the second. Both keys are gone from
+    //    Prefs' allowlist too, so nothing can write them any more;
+    //    capsulesForZone()'s `typeof visible !== "boolean" -> true` guard
+    //    means an absent key reads as visible, which is the intended
+    //    behaviour. A capsule whose every child is toggled off collapses on
+    //    its own — that is the per-entry filter's job, not a parent's. Consumed at
     //    exactly ONE place, BarEntryModel.capsulesForZone() — see that
     //    function's own header for why requiresBackend()/the three
     //    aggregate properties are deliberately NOT filtered. ─────────────
@@ -182,12 +185,6 @@ PageBase {
             subtext: "The app-launcher icon"
             checked: Prefs.getValue("bar.capsules.launcher")
             onToggled: (value) => Prefs.setValue("bar.capsules.launcher", value)
-        }
-        ToggleRow {
-            label: "System"
-            subtext: "CPU, RAM, disk, GPU and update readouts"
-            checked: Prefs.getValue("bar.capsules.system")
-            onToggled: (value) => Prefs.setValue("bar.capsules.system", value)
         }
         // ── Per-entry toggles for "System" (operator fix wave finding 3)
         //    — nested here, under their parent capsule's toggle, so the

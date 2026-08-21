@@ -72,14 +72,14 @@ Singleton {
         // BarEntryModel.capsulesForZone()'s own single filter point.
         "bar.autoHideOnIdle",
         "bar.capsules.launcher",
-        "bar.capsules.system",
         "bar.capsules.workspaces",
         "bar.capsules.idleInhibitor",
         "bar.capsules.mediaConnectivity",
-        // "bar.capsules.clockActions" RETIRED 2026-08-21 (operator): its five
-        // children all have per-entry toggles, so the parent row was removed.
+        // "bar.capsules.clockActions" and "bar.capsules.system" RETIRED 2026-08-21
+        // (operator): their
+        // children all have per-entry toggles, so both parent rows were removed.
         // Off the allowlist deliberately — setValue() refuses unlisted keys, so
-        // no future write can strand the capsule hidden with no UI to restore it.
+        // no future write can strand either capsule hidden with no UI to restore it.
         // Task 9 (D-01 bundle 2/D-02) — Notifications page: popup timeout
         // (per urgency), position, OSD position, dashboard panel toggles.
         // History limit and max visible popups reuse the notifs.historyCap/
@@ -130,7 +130,6 @@ Singleton {
         "input.showAllDevices": false,
         "bar.autoHideOnIdle": true,
         "bar.capsules.launcher": true,
-        "bar.capsules.system": true,
         "bar.capsules.workspaces": true,
         "bar.capsules.idleInhibitor": true,
         "bar.capsules.mediaConnectivity": true,

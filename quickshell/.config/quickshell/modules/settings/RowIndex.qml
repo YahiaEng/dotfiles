@@ -42,7 +42,6 @@ Singleton {
         { pageIdx: 2, section: "Visibility", label: "Bar visible", keywords: "bar hide show visibility toggle" },
         { pageIdx: 2, section: "Idle behaviour", label: "Idle auto-hide", keywords: "bar idle hide autohide timeout" },
         { pageIdx: 2, section: "Capsules", label: "Launcher", keywords: "bar capsule launcher apps icon" },
-        { pageIdx: 2, section: "Capsules", label: "System", keywords: "bar capsule system cpu ram disk gpu" },
         { pageIdx: 2, section: "Capsules", label: "CPU", keywords: "bar entry cpu readout system" },
         { pageIdx: 2, section: "Capsules", label: "RAM", keywords: "bar entry ram memory readout system" },
         { pageIdx: 2, section: "Capsules", label: "Disk", keywords: "bar entry disk storage readout system" },
