@@ -17,6 +17,21 @@ Control {
     property bool checked: false
     signal toggled(value: bool)
 
+    // Bug 2 re-check (operator: "still flashes... shows one state for a
+    // split second before switching to the correct one"). The prior
+    // round's fix (defaulting `checked`'s backing value to `false` and
+    // dimming the row via `opacity`) was not enough — the switch pill
+    // still RENDERED a state (transparent-ish but still visibly a
+    // pill in the "off" position) before the real read landed, so the
+    // flip was still visible. Per the coordinator's own instruction:
+    // make the flash impossible BY CONSTRUCTION, not just less
+    // noticeable — `showState` defaults to `true` (harmless for every
+    // OTHER ToggleRow usage, which has no async-load gate at all) and
+    // this row's own consumer binds it to a `*Loaded` flag; while
+    // false, the pill is not rendered at all, so there is no state
+    // — right or wrong — for a flash to show.
+    property bool showState: true
+
     // Two-pane keyboard focus (Pages.qml's own `_collectFocusableRows`
     // marker + externally-written visual state) — see Pages.qml's header
     // for the full design. `focusable` is a plain readonly marker, not a
@@ -103,6 +118,7 @@ Control {
         // `dropdownPill` use against this identical pane color.
         Rectangle {
             id: switchPill
+            visible: root.showState
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             implicitWidth: 48

@@ -312,12 +312,17 @@ PageBase {
             value: inputSection.sensitivityValue
             onMoved: (value) => inputSection.apply("--sensitivity", value.toFixed(2))
         }
+        // Bug 2 re-check: `enabled`/`opacity` alone (prior round) still
+        // RENDERED the switch pill in its default position before the
+        // real read landed — dimmed, but visibly a state. `showState`
+        // (ToggleRow.qml) now gates the pill's own `visible`, so nothing
+        // — right or wrong — is drawn until `naturalScrollLoaded` flips,
+        // making the flash impossible rather than merely quieter.
         ToggleRow {
             label: "Natural scroll (touchpad)"
             subtext: "Reverse scroll direction to match touch gestures"
             checked: inputSection.naturalScroll
-            enabled: inputSection.naturalScrollLoaded
-            opacity: inputSection.naturalScrollLoaded ? 1 : 0.5
+            showState: inputSection.naturalScrollLoaded
             onToggled: (value) => inputSection.apply("--natural-scroll", value ? "true" : "false")
         }
     }
