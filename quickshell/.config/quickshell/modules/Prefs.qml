@@ -184,15 +184,34 @@ Singleton {
         return v;
     }
 
-    // Public write. Validates against the closed allowlist, refuses any
-    // write before the first read has settled, then reassigns `_data`
-    // wholesale (never an in-place mutation — see `_data`'s own comment)
-    // and persists. Returns true on a real write, false on a refusal —
-    // callers (the `prefs` IPC verb, a settings row's error path) can
-    // surface the refusal rather than silently doing nothing.
+    // Public write. Validates against the closed allowlist AND the value's
+    // own shape, refuses any write before the first read has settled, then
+    // reassigns `_data` wholesale (never an in-place mutation — see
+    // `_data`'s own comment) and persists. Returns true on a real write,
+    // false on a refusal — callers (the `prefs` IPC verb, a settings row's
+    // error path) can surface the refusal rather than silently doing
+    // nothing.
+    //
+    // ── Fix WR-05 (quick-260821-6z1 code review) — this used to validate
+    //    the KEY (the allowlist check just below) but never the VALUE's
+    //    own type, so a wrong-typed write (e.g. the `prefs` IPC's
+    //    `set(key, value)` verb passing a bare string that its own
+    //    `_coerce()` heuristic failed to convert) was accepted, returned
+    //    `true` (misrepresenting the write as fully valid), and persisted
+    //    permanently to `prefs.json` with no way for the operator to
+    //    notice. `getValue()`'s existing `typeof v !== typeof def` guard
+    //    meant the bad value was never READ back incorrectly — it just
+    //    sat as silent junk on disk forever. Reusing that exact guard here
+    //    (mirroring the unknown-key refusal immediately below) closes the
+    //    write side the same way the read side was already closed. ──────
     function setValue(path, value) {
         if (root._allowedKeys.indexOf(path) === -1) {
             console.warn("Prefs: refusing to set unknown key: " + path);
+            return false;
+        }
+        var def = root._defaults.hasOwnProperty(path) ? root._defaults[path] : undefined;
+        if (def !== undefined && typeof value !== typeof def) {
+            console.warn("Prefs: refusing to set " + path + " — expected " + typeof def + ", got " + typeof value + " (" + JSON.stringify(value) + ")");
             return false;
         }
         if (!root._loaded) {
