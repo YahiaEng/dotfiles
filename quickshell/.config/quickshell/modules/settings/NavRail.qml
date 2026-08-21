@@ -198,9 +198,21 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: root.sState.goToPage(navItem.index)
-                            ToolTip.visible: navMouseArea.containsMouse
-                            ToolTip.text: navItem.modelData.description
-                            ToolTip.delay: Design.tooltipDelayMs
+                        }
+
+                        // ThemedToolTip (quick-260821-6z1 fix wave) — replaces
+                        // the bare attached ToolTip shorthand, which rendered
+                        // with Qt's installed-style colours instead of this
+                        // repo's own (the operator's own report: "unthemed and
+                        // looks foreign"). See ThemedToolTip.qml's own header
+                        // for why this is safe here (a normal-height
+                        // FloatingWindow, not the bar's clamped one) and why
+                        // it is NOT BarTooltip/BarTooltipHost (that family
+                        // solves a position-clamping problem this window
+                        // doesn't have).
+                        ThemedToolTip {
+                            visible: navMouseArea.containsMouse
+                            text: navItem.modelData.description
                         }
                     }
                 }

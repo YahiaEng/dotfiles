@@ -40,3 +40,11 @@ Bar 1.0 Bar.qml
 # source file too, or the type resolves undefined forever with no load
 # error).
 singleton CavaService 1.0 CavaService.qml
+# ThemedToolTip (quick-260821-6z1 fix wave) — the shared themed
+# replacement for QQC2's bare attached ToolTip shorthand. Registered
+# here, not one leaf directory's own manifest, for the same cross-tree
+# reason Prefs/CavaService are: settings/, bar/, dashboard/ and centre/
+# call sites all need to resolve the SAME type. Not a singleton — every
+# call site owns its own instance, the same shape as Bar/Dashboard/
+# Overview above.
+ThemedToolTip 1.0 ThemedToolTip.qml
