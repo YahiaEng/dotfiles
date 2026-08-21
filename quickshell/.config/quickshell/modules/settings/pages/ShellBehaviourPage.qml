@@ -23,6 +23,8 @@ import "../../notifications"
 PageBase {
     id: root
 
+    Component.onCompleted: console.log("SQDDIAG t=" + Date.now() + " page-constructed name='shell'")
+
     title: "Shell behaviour"
 
     // ── Motion preset — never a hardcoded case ladder. `--list` output is
@@ -122,11 +124,20 @@ PageBase {
 
         // Plain-text read of the state-dir file, Probe.qml's own
         // `.text()` pattern — never the tracked hypridle.conf.
+        // Diagnostic instrumentation (operator-ordered — see the block
+        // header further down this section): logs every re-read
+        // triggered by `watchChanges`, and separately whether the load
+        // itself failed.
         FileView {
             id: idleConfFile
             path: Quickshell.env("HOME") + "/.local/state/hypr/idle-overrides.conf"
             watchChanges: true
-            onFileChanged: reload()
+            printErrors: true
+            onFileChanged: {
+                console.log("SQDDIAG t=" + Date.now() + " idle-conf-reread-started");
+                reload();
+            }
+            onLoadFailed: (error) => console.log("SQDDIAG t=" + Date.now() + " idle-conf-load-failed error=" + error)
         }
 
         // The five `timeout = N` values, in the file's own fixed
@@ -138,9 +149,11 @@ PageBase {
         readonly property var timeouts: {
             var text = idleConfFile.text() || "";
             var matches = text.match(/timeout\s*=\s*(\d+)/g) || [];
-            return matches.map(function (m) {
+            var parsed = matches.map(function (m) {
                 return parseInt(m.replace(/[^\d]/g, ""), 10);
             });
+            console.log("SQDDIAG t=" + Date.now() + " idle-conf-parsed timeouts=" + JSON.stringify(parsed));
+            return parsed;
         }
         readonly property int barIdleSec: timeouts.length > 0 ? timeouts[0] : 120
         readonly property int dimSec: timeouts.length > 1 ? timeouts[1] : 300
@@ -209,6 +222,16 @@ PageBase {
         // reformatting, not re-implementing, the script's authoritative
         // validation output.
         property bool idleApplying: false
+        // Diagnostic instrumentation (operator-ordered — instrumentation
+        // only, no behaviour change this round): shadow property tracks
+        // the previous value purely so every write can be logged as an
+        // old->new pair, since QML's own change signal only exposes the
+        // NEW value.
+        property bool _idleApplyingShadow: false
+        onIdleApplyingChanged: {
+            console.log("SQDDIAG t=" + Date.now() + " idleApplying " + idleSection._idleApplyingShadow + " -> " + idleSection.idleApplying);
+            idleSection._idleApplyingShadow = idleSection.idleApplying;
+        }
 
         // Bug 1 — operator re-check round 3: "lock/screen-off/suspend
         // stay GREYED OUT permanently; only closing and reopening the
@@ -260,6 +283,7 @@ PageBase {
             id: idleApplyWatchdog
             interval: 10000
             onTriggered: {
+                console.log("SQDDIAG t=" + Date.now() + " watchdog-fired running=" + idleApplyProc.running);
                 if (idleApplyProc.running) {
                     idleSection.watchdogFired = true;
                     idleApplyProc.running = false;
@@ -273,7 +297,9 @@ PageBase {
             stderr: StdioCollector {
                 id: idleApplyStderr
             }
+            onRunningChanged: console.log("SQDDIAG t=" + Date.now() + " idleApplyProc.running=" + idleApplyProc.running + " command=" + JSON.stringify(idleApplyProc.command))
             onExited: (exitCode, exitStatus) => {
+                console.log("SQDDIAG t=" + Date.now() + " idleApplyProc.onExited exitCode=" + exitCode + " watchdogFired=" + idleSection.watchdogFired);
                 idleApplyWatchdog.stop();
                 idleSection.idleApplying = false;
                 if (idleSection.watchdogFired) {
@@ -315,6 +341,7 @@ PageBase {
         // Fixed argv — same discipline as hypr-overrides.sh's own callers
         // (no shell, every element a discrete array entry).
         function applyListener(key, seconds) {
+            console.log("SQDDIAG t=" + Date.now() + " applyListener called key='" + key + "' seconds=" + seconds + " (idleApplying-before=" + idleSection.idleApplying + ")");
             idleSection.lastError = "";
             idleSection.idleApplying = true;
             idleApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/idle-overrides.sh", "--set", key + "=" + seconds];
@@ -329,6 +356,13 @@ PageBase {
         // no indication anything was happening, which reads as "nothing
         // happened" long enough to plausibly explain "I cannot change
         // this at all" on its own, independent of the ordering rule.
+        // `onEnabledChanged` on all five rows below: `enabled` here has
+        // exactly ONE input term (`idleApplying`), so logging the new
+        // `enabled` value alongside the CURRENT `idleApplying` fully
+        // documents which binding term drove it — a fired
+        // `onEnabledChanged` is, for a boolean, always an old->new
+        // transition (Qt suppresses no-op writes), so `old` is
+        // reliably `!new` without separate shadow tracking here.
         SelectRow {
             label: "Bar idle-hide"
             subtext: "Hide the bar after this long with no input"
@@ -336,7 +370,11 @@ PageBase {
             currentValue: idleSection.barIdleSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
-            onSelected: (value) => idleSection.applyListener("bar-idle", value)
+            onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Bar idle-hide' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
+            onSelected: (value) => {
+                console.log("SQDDIAG t=" + Date.now() + " onSelected row='Bar idle-hide' value=" + value);
+                idleSection.applyListener("bar-idle", value);
+            }
         }
         SelectRow {
             label: "Screen dim"
@@ -345,7 +383,11 @@ PageBase {
             currentValue: idleSection.dimSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
-            onSelected: (value) => idleSection.applyListener("dim", value)
+            onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Screen dim' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
+            onSelected: (value) => {
+                console.log("SQDDIAG t=" + Date.now() + " onSelected row='Screen dim' value=" + value);
+                idleSection.applyListener("dim", value);
+            }
         }
         SelectRow {
             label: "Lock"
@@ -354,7 +396,11 @@ PageBase {
             currentValue: idleSection.lockSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
-            onSelected: (value) => idleSection.applyListener("lock", value)
+            onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Lock' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
+            onSelected: (value) => {
+                console.log("SQDDIAG t=" + Date.now() + " onSelected row='Lock' value=" + value);
+                idleSection.applyListener("lock", value);
+            }
         }
         SelectRow {
             label: "Screen off"
@@ -363,7 +409,11 @@ PageBase {
             currentValue: idleSection.displayOffSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
-            onSelected: (value) => idleSection.applyListener("display-off", value)
+            onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Screen off' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
+            onSelected: (value) => {
+                console.log("SQDDIAG t=" + Date.now() + " onSelected row='Screen off' value=" + value);
+                idleSection.applyListener("display-off", value);
+            }
         }
         SelectRow {
             label: "Suspend"
@@ -372,7 +422,11 @@ PageBase {
             currentValue: idleSection.suspendSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
-            onSelected: (value) => idleSection.applyListener("suspend", value)
+            onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Suspend' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
+            onSelected: (value) => {
+                console.log("SQDDIAG t=" + Date.now() + " onSelected row='Suspend' value=" + value);
+                idleSection.applyListener("suspend", value);
+            }
         }
 
         // Visible failure feedback (the actual fix) — was previously

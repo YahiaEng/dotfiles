@@ -22,6 +22,13 @@ import "../../dashboard"
 PageBase {
     id: root
 
+    // Diagnostic instrumentation (operator-ordered — see SelectRow.qml's
+    // instrumentation-block header for full context). Marks the moment
+    // THIS page's Item tree finishes construction — the "page
+    // incubation" point Pages.qml's `_swapTo` creates via
+    // `Component.incubateObject`.
+    Component.onCompleted: console.log("SQDDIAG t=" + Date.now() + " page-constructed name='display'")
+
     title: "Display & input"
 
     // ── Monitors — read-only hyprctl monitors -j, re-queried after every
@@ -193,6 +200,14 @@ PageBase {
         // `opacity` below until the first real read lands, so the row
         // is inert rather than briefly lying.
         property bool naturalScrollLoaded: false
+        // Diagnostic instrumentation (operator-ordered — see
+        // SelectRow.qml's instrumentation-block header for full
+        // context). Logs the write at its SOURCE (this property), not
+        // just at ToggleRow's own generic `checked`/`showState` logging
+        // (which fires for label='Natural scroll (touchpad)' — cross-
+        // reference the two in the log).
+        onNaturalScrollLoadedChanged: console.log("SQDDIAG t=" + Date.now() + " naturalScrollLoaded=" + inputSection.naturalScrollLoaded)
+        onNaturalScrollChanged: console.log("SQDDIAG t=" + Date.now() + " naturalScroll(source)=" + inputSection.naturalScroll)
 
         function refresh() {
             kbLayoutProc.running = true;
@@ -248,7 +263,9 @@ PageBase {
             running: false
             command: ["hyprctl", "getoption", "input:touchpad:natural_scroll", "-j"]
             stdout: StdioCollector { id: naturalScrollCollector }
+            onRunningChanged: console.log("SQDDIAG t=" + Date.now() + " naturalScrollProc.running=" + naturalScrollProc.running)
             onExited: (code, status) => {
+                console.log("SQDDIAG t=" + Date.now() + " naturalScrollProc.onExited code=" + code + " raw=" + JSON.stringify(naturalScrollCollector.text));
                 if (code === 0) {
                     try {
                         inputSection.naturalScroll = JSON.parse(naturalScrollCollector.text).bool === true;

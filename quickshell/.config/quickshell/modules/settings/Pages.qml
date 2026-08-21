@@ -117,6 +117,7 @@ Item {
     // qml-declare-before-construction-time-use) — Component.onCompleted
     // below calls this.
     function _swapTo(idx) {
+        console.log("SQDDIAG t=" + Date.now() + " Pages._swapTo-start idx=" + idx);
         if (idx < 0 || idx >= PageCompRegistry.comps.length) {
             console.warn("Pages: index out of range: " + idx);
             return;
@@ -139,6 +140,7 @@ Item {
         root._focusableRows = root._collectFocusableRows(root.currentItem);
         root.contentFocused = false;
         root.contentRowIdx = -1;
+        console.log("SQDDIAG t=" + Date.now() + " Pages._swapTo-done idx=" + idx + " focusableRows=" + root._focusableRows.length);
     }
 
     // Operator live-pass item 3 (PARTIAL — "moving between them feels
@@ -203,7 +205,19 @@ Item {
         }
     }
 
+    // Diagnostic instrumentation (operator-ordered — see SelectRow.qml's
+    // instrumentation-block header for full context). This is the ONE
+    // path (via `Connections.onCurrentPageIdxChanged` below) both a
+    // nav-rail click (`SettingsState.goToPage` -> `currentPageIdx = idx`)
+    // AND an already-open-window IPC `openPage` deep-link
+    // (`settingsLoader.item.sState.currentPageIdx = idx` in shell.qml)
+    // funnel through — logging here, plus the `Component.onCompleted`
+    // direct-swap path below (the ONLY genuinely different path: the
+    // FIRST page shown whenever the window transitions closed->open,
+    // regardless of entry mechanism), exposes whichever asymmetry is
+    // actually real rather than assuming it from code reading alone.
     function goTo(idx) {
+        console.log("SQDDIAG t=" + Date.now() + " Pages.goTo-called idx=" + idx + " (animated swapAnim path)");
         swapAnim.targetIdx = idx;
         swapAnim.restart();
     }
@@ -211,9 +225,13 @@ Item {
     Connections {
         target: root.sState
         function onCurrentPageIdxChanged() {
+            console.log("SQDDIAG t=" + Date.now() + " SettingsState.currentPageIdx changed to " + root.sState.currentPageIdx + " -> Pages.goTo");
             root.goTo(root.sState.currentPageIdx);
         }
     }
 
-    Component.onCompleted: root._swapTo(root.sState.currentPageIdx)
+    Component.onCompleted: {
+        console.log("SQDDIAG t=" + Date.now() + " Pages.onCompleted initial-swap idx=" + root.sState.currentPageIdx + " (DIRECT _swapTo, no swapAnim — first page of a freshly (re)opened window)");
+        root._swapTo(root.sState.currentPageIdx);
+    }
 }

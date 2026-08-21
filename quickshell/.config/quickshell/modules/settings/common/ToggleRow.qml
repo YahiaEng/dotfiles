@@ -32,6 +32,19 @@ Control {
     // — right or wrong — for a flash to show.
     property bool showState: true
 
+    // ── Diagnostic instrumentation (operator-ordered — see
+    //    SelectRow.qml's own instrumentation-block header for the full
+    //    context; identical discipline here: no behaviour change, only
+    //    logging). `_checkedShadow` gives `onCheckedChanged` an old
+    //    value to log, since the change signal itself only exposes new.
+    property bool _checkedShadow: false
+    Component.onCompleted: console.log("SQDDIAG t=" + Date.now() + " ToggleRow-constructed label='" + root.label + "' checked=" + root.checked + " showState=" + root.showState)
+    onCheckedChanged: {
+        console.log("SQDDIAG t=" + Date.now() + " ToggleRow checked label='" + root.label + "' " + root._checkedShadow + " -> " + root.checked);
+        root._checkedShadow = root.checked;
+    }
+    onShowStateChanged: console.log("SQDDIAG t=" + Date.now() + " ToggleRow showState label='" + root.label + "' showState=" + root.showState)
+
     // Two-pane keyboard focus (Pages.qml's own `_collectFocusableRows`
     // marker + externally-written visual state) — see Pages.qml's header
     // for the full design. `focusable` is a plain readonly marker, not a
@@ -119,6 +132,7 @@ Control {
         Rectangle {
             id: switchPill
             visible: root.showState
+            onVisibleChanged: console.log("SQDDIAG t=" + Date.now() + " switchPill.visible label='" + root.label + "' visible=" + visible + " color-would-be=" + (root.checked ? "primary" : "surfaceVariant"))
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             implicitWidth: 48
