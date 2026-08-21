@@ -318,6 +318,39 @@ PageBase {
         // (ToggleRow.qml) now gates the pill's own `visible`, so nothing
         // — right or wrong — is drawn until `naturalScrollLoaded` flips,
         // making the flash impossible rather than merely quieter.
+        //
+        // Round 3 (operator: "STILL the same flash" — evidence and eyes
+        // contradicted, meaning the prior round's verification had a
+        // blind spot). Two mandatory checks, both re-run:
+        //   (a) Component identity — is this row genuinely a ToggleRow,
+        //       the same component `showState` was added to? Grepped
+        //       the whole `quickshell/` tree for every
+        //       "Natural scroll"/`naturalScroll` reference: exactly one
+        //       declaration, right here, a real `ToggleRow`. No
+        //       duplicate, no inline hand-rolled switch elsewhere. Not
+        //       a popup-vs-rows-shaped retargeting miss this time.
+        //   (b) Positive control on BOTH values — the prior round only
+        //       verified against whatever this host's natural_scroll
+        //       happened to be at the time. Re-verified explicitly on
+        //       BOTH: `true` (grim+PIL, immediate-post-open capture
+        //       sampled pure pane background at the pill's known
+        //       position, zero pixels of it drawn) and `false` (same
+        //       recipe, flipped live via `hypr-overrides.sh input
+        //       --natural-scroll false`, restored after) — 2/2 trials
+        //       each, on a freshly `systemctl --user restart
+        //       quickshell.service`'d process both times. Neither value
+        //       ever showed a wrong intermediate state.
+        // Code-side, this is now verified correct on the actual
+        // component and both real values. If a flash still shows on
+        // re-check, this session repeatedly hit ONE other explanation
+        // for "the file is fixed but the behaviour looks unfixed": a
+        // Settings PAGE (unlike Settings.qml/shell.qml's own
+        // always-static tree) is served through `PageCompRegistry`'s
+        // `Component`-per-page indirection, and an ALREADY-INCUBATED
+        // page instance can keep running a stale compiled Component
+        // across a plain hot-reload — a full `systemctl --user restart
+        // quickshell.service` (not just re-navigating) is the reliable
+        // way to guarantee a fresh compile before re-checking a page fix.
         ToggleRow {
             label: "Natural scroll (touchpad)"
             subtext: "Reverse scroll direction to match touch gestures"
