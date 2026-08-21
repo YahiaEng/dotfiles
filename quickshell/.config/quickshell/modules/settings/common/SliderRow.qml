@@ -159,11 +159,23 @@ Control {
                 id: dragArea
                 anchors.fill: parent
 
+                // Fix IN-01 (code review, quick-260821-6z1 fix wave) — the
+                // rendered handle sits at `track.ratio * (track.width -
+                // handle.width)` (inset by its own 18px so it never
+                // overflows the track — see `handle.x` above), but this
+                // used to map a click/drag `x` back to a value via the
+                // FULL `track.width`, with no equivalent inset. The two
+                // mappings agreed exactly at the extremes (0 and 1) but
+                // diverged by up to ~9px mid-track, so clicking the
+                // visual center of the handle did not reproduce the value
+                // it was currently displaying. Mirrors the `ratio`
+                // binding's own inset exactly, so hit-test and render now
+                // use the SAME value<->position mapping.
                 function _emitFromX(x) {
-                    var w = track.width;
+                    var w = track.width - handle.width;
                     if (w <= 0)
                         return;
-                    var r = Math.max(0, Math.min(1, x / w));
+                    var r = Math.max(0, Math.min(1, (x - handle.width / 2) / w));
                     var raw = root.from + r * (root.to - root.from);
                     var stepped = root.stepSize > 0 ? Math.round(raw / root.stepSize) * root.stepSize : raw;
                     stepped = Math.max(root.from, Math.min(root.to, stepped));
