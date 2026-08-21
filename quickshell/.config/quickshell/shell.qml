@@ -638,7 +638,22 @@ ShellRoot {
     //    inline list would always read empty. Null-guarded: `settingsLoader.item`
     //    does not exist until the loader has actually incubated its
     //    content. ─────────────────────────────────────────────────────────
-    readonly property bool settingsShowingNetwork: settingsLoader.active && settingsLoader.item !== null && settingsLoader.item.sState.currentPageIdx === 4
+    // The Network page's index is LOOKED UP by its stable `slug`, never
+    // hardcoded. `settings-index-check` guards PageRegistry/PageCompRegistry/
+    // RowIndex against index drift, but it cannot see a literal index living
+    // over here in shell.qml — a page reorder would silently gate these
+    // backends on the wrong page, leaving the inline list empty with no
+    // error. Same two-stage slug resolution `openSettingsPage()` uses below
+    // (:850). -1 when absent, which no currentPageIdx can equal.
+    readonly property int networkPageIdx: {
+        for (var i = 0; i < PageRegistry.pages.length; i++) {
+            if (PageRegistry.pages[i].slug === "network")
+                return i;
+        }
+        return -1;
+    }
+
+    readonly property bool settingsShowingNetwork: settingsLoader.active && settingsLoader.item !== null && settingsLoader.item.sState.currentPageIdx === root.networkPageIdx
 
     WifiBackend {
         id: wifiBackendInstance
