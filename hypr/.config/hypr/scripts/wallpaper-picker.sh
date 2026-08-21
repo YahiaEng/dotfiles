@@ -13,6 +13,25 @@
 # ║  Ctrl-A   = temporarily browse the full collection   ║
 # ║  Esc/q    = cancel and restore previous wallpaper    ║
 # ╚══════════════════════════════════════════════════════╝
+#
+# Non-interactive surface (quick-260821-6z1 Task 14, D-08/PD-06) — built
+# for the settings window's inline wallpaper grid, the operator's own
+# selected option over a launcher:
+#   wallpaper-picker.sh --list
+#       Emits the full-pool relpaths, one per line, no markers — the same
+#       find-based enumeration the interactive picker's own ENUM_SCRIPT
+#       uses (stills via maxdepth 2 + IMG_MATCH, "live/" videos via a
+#       separate unfiltered mindepth/maxdepth 3 pass).
+#   wallpaper-picker.sh --active
+#       Prints the currently-active relpath (empty if none is recorded) —
+#       the SAME active-detection algorithm the interactive ENUM_SCRIPT
+#       already runs, copied here rather than re-derived.
+#   wallpaper-picker.sh --set <relpath>
+#       Re-validates <relpath> against --list's own enumerated set, then
+#       runs the IDENTICAL "confirm selection" tail the interactive path
+#       always ran on Enter (live/still, materialyou/static,
+#       last-wallpaper bookkeeping, sync_owner) — one function,
+#       _confirm_and_apply(), both paths call it.
 
 set -euo pipefail
 
@@ -84,6 +103,233 @@ wp_strip_markers() {
     done
     printf '%s' "$entry"
 }
+
+
+# ── _confirm_and_apply (quick-260821-6z1 Task 14, D-08/PD-06) — the
+#    SAME "confirm selection" tail the interactive path always ran on
+#    Enter, extracted verbatim (zero logic changes) so a non-interactive
+#    --set call runs the IDENTICAL live/still, materialyou/static,
+#    last-wallpaper-bookkeeping and sync_owner logic — one copy, both
+#    paths call it. Takes the raw fzf-style selection string (markers
+#    optional; wp_strip_markers strips them the same way it always did).
+_confirm_and_apply() {
+    SELECTED="$1"
+    # Strip both marker suffixes before any path use (D-14/D-17), via the one
+    # order-independent helper — never a second open-coded strip.
+    SELECTED="$(wp_strip_markers "$SELECTED")"
+
+    # ── Confirm selection ────────────────────────────────
+    FULL_PATH="$WALLPAPER_DIR/$SELECTED"
+    if [[ ! -f "$FULL_PATH" ]]; then
+        # Defense in depth (T-05-09) — entries come exclusively from the
+        # enumeration script's find output above, never free text, but the
+        # joined path is re-validated as an existing regular file under the
+        # Wallpapers root before any symlink operation.
+        echo "wallpaper-picker: selected entry does not resolve to a file: $SELECTED" >&2
+        rm -f "$PREVIOUS_FILE"
+        exit 1
+    fi
+    # D-06/D-18: is the confirmed selection live? Same shape test as the
+    # preview pane and the writer guard below — the remainder after the
+    # theme prefix satisfies theme_engine_wallpaper_is_live_ref.
+    SEL_THEME="${SELECTED%%/*}"
+    SEL_REMAINDER="${SELECTED#*/}"
+    SEL_IS_LIVE=0
+    if [[ "$SELECTED" == */* ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \
+        && theme_engine_wallpaper_is_live_ref "$SEL_REMAINDER"; then
+        SEL_IS_LIVE=1
+    fi
+
+    if [[ "$SEL_IS_LIVE" == "1" ]]; then
+        # Live selection (D-06/17-02 handoff (b)): current.jpg must point at
+        # the extracted FRAME, never the source video — awww cannot play
+        # video, and generate.sh's Material You branch would otherwise hand a
+        # video to the colour extractor. Resolve/extract ONLY through the
+        # sourced library functions — never a second ffmpeg call site here.
+        # On failure, leave current.jpg completely untouched and warn: never
+        # a dangling lock-screen pointer (T-17-09).
+        SEL_FRAME="$(theme_engine_wallpaper_frame_path "$SEL_THEME" "$SEL_REMAINDER")"
+        if [[ ! -s "$SEL_FRAME" ]]; then
+            SEL_OFFSET="$(theme_engine_wallpaper_frame_offset "$SEL_THEME" "$SEL_REMAINDER")"
+            theme_engine_wallpaper_extract_frame "$FULL_PATH" "$SEL_FRAME" "$SEL_OFFSET" || true
+        fi
+        if [[ -s "$SEL_FRAME" ]]; then
+            ln -sfr "$SEL_FRAME" "$CURRENT_LINK"
+            # awww owns the static-image path (D-04) — the frame, never the
+            # video, which awww cannot play.
+            awww img "$SEL_FRAME" \
+                --transition-type center \
+                --transition-duration 2 \
+                --transition-fps 165
+        else
+            echo "wallpaper-picker: no frame could be extracted for $SELECTED — lock-screen pointer left unchanged" >&2
+        fi
+    else
+        ln -sfr "$FULL_PATH" "$CURRENT_LINK"
+
+        # Final animated set (in case live preview didn't fire)
+        awww img "$FULL_PATH" \
+            --transition-type center \
+            --transition-duration 2 \
+            --transition-fps 165
+    fi
+
+    # ── Post-selection branching (D-05/D-11/D-20/D-21) ───
+    # In dynamic mode, wallpaper and palette must always match — re-run the
+    # single shared engine entrypoint (theme-apply) with the exact active
+    # variant name (never hardcode the dark variant), never reimplement
+    # apply+reload here (this used to be a third duplication site, D-01).
+    # theme-apply's own D-21 call site reaches the SAME sync_owner function
+    # this branch calls directly below — do not add a second owner call
+    # inside this branch.
+    # In static mode, picking a wallpaper changes only the wallpaper, and —
+    # when the selection lives inside the active theme's own folder — records
+    # it as that theme's last-used wallpaper (D-11; Ctrl-A selections from
+    # outside the folder are not recorded).
+    if [[ "$CURRENT_THEME" == "materialyou" || "$CURRENT_THEME" == "materialyou-light" ]]; then
+        sleep 0.5
+        # CR-01: forward the absolute path of a live pick so theme-apply's own
+        # D-21 sync_owner call site can select it directly — without this,
+        # sync_owner's one-arg fallback reads last-wallpaper/materialyou[-light],
+        # which nothing in this codebase ever writes, and always resolves to
+        # `clear`. Only reaches the owner through theme-apply's existing single
+        # call site (D-21) — never a second owner-declaration path.
+        if [[ "$SEL_IS_LIVE" == "1" ]]; then
+            ~/.config/theme-engine/theme-apply "$CURRENT_THEME" "$FULL_PATH"
+        else
+            ~/.config/theme-engine/theme-apply "$CURRENT_THEME"
+        fi
+    else
+        SYNC_REF=""
+        if [[ -n "$CURRENT_THEME" && "$SELECTED" == "$CURRENT_THEME/"* ]]; then
+            BARE_FILENAME="${SELECTED#"$CURRENT_THEME"/}"
+            # T-17-12/D-12 writer half: WIDEN, never relax — the pre-existing
+            # no-slash branch stays byte-identical, and exactly one
+            # alternative branch is added, delegating to the SAME shape
+            # function 17-02's reader uses, so the writer and reader can
+            # never drift into accepting different shapes. Never a prefix
+            # test, never a fresh regex here.
+            if [[ "$BARE_FILENAME" != */* ]] || theme_engine_wallpaper_is_live_ref "$BARE_FILENAME"; then
+                mkdir -p "$LAST_WALLPAPER_DIR" 2>/dev/null || true
+                printf '%s\n' "$BARE_FILENAME" > "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" 2>/dev/null \
+                    && mv "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" "$LAST_WALLPAPER_DIR/$CURRENT_THEME" 2>/dev/null || true
+                SYNC_REF="$BARE_FILENAME"
+            fi
+        elif [[ "$SEL_IS_LIVE" == "1" ]]; then
+            # CR-01: a Ctrl-A cross-theme live pick. It is never recorded as
+            # $CURRENT_THEME's own last-used choice (matches confirm's
+            # existing in-theme-only recording rule), but it must still play
+            # — pass the absolute path so sync_owner's widened absolute-ref
+            # form (lib/wallpaper.sh) can validate and select it directly,
+            # instead of an empty SYNC_REF falling through to `clear`.
+            SYNC_REF="$FULL_PATH"
+        fi
+
+        # D-21: the ONE sync path — reach the owner through the SAME function
+        # theme-apply calls, exactly once. An empty SYNC_REF (an out-of-theme
+        # Ctrl-A STILL pick, or a shape the guard above rejected) makes the
+        # owner `clear` — correct: picking a still from another theme must
+        # stop a playing video.
+        if declare -F theme_engine_wallpaper_sync_owner >/dev/null 2>&1; then
+            theme_engine_wallpaper_sync_owner "$CURRENT_THEME" "$SYNC_REF" || true
+        fi
+
+        # CR-01: notify-send must not claim unqualified success when a live
+        # pick's playback did not actually start. Read-only status query —
+        # wallpaper-visibility.sh's own documented read-only verb, never a
+        # second owner-declaration path; the select/clear intent above is
+        # still declared exclusively through sync_owner.
+        NOTIFY_BODY="Set to $SELECTED"
+        if [[ "$SEL_IS_LIVE" == "1" ]]; then
+            PLAYBACK_OK=0
+            if [[ -x "$WALLPAPER_OWNER" ]]; then
+                OWNER_STATUS=$("$WALLPAPER_OWNER" status 2>/dev/null || true)
+                [[ "$OWNER_STATUS" == playing:* ]] && PLAYBACK_OK=1
+            fi
+            if [[ "$PLAYBACK_OK" != "1" ]]; then
+                NOTIFY_BODY="Set to $SELECTED — live playback is not currently active (suppressed by idle/gaming/reduced-motion, or it failed to start)"
+            fi
+        fi
+
+        notify-send -a "Wallpaper Picker" "Wallpaper Changed" \
+            "$NOTIFY_BODY" \
+            -i preferences-desktop-wallpaper -t 2000
+    fi
+
+    rm -f "$PREVIOUS_FILE"
+}
+
+# ── Non-interactive surface (Task 14) — "$1" MUST be one of
+#    _list_wallpapers()'s own enumerated relpaths (the SAME find-based
+#    full-pool enumeration the interactive picker's ENUM_SCRIPT uses,
+#    stills via maxdepth 2 + IMG_MATCH, live/ videos via the separate
+#    unfiltered mindepth/maxdepth 3 pass) — re-validated here, never
+#    trusted as free text: these names come from the filesystem, not
+#    from this repo's own text.
+_list_wallpapers() {
+    find "$WALLPAPER_DIR" -maxdepth 2 -type f \( "${IMG_MATCH[@]}" \) -printf '%P\n' 2>/dev/null | sort
+    find "$WALLPAPER_DIR" -mindepth 3 -maxdepth 3 -type f -path '*/live/*' -printf '%P\n' 2>/dev/null | sort
+}
+
+# ── _active_relpath (Task 14) — the SAME active-detection algorithm the
+#    interactive ENUM_SCRIPT heredoc below already runs (copied, not
+#    re-derived): a still active pick resolves current.jpg directly under
+#    WALLPAPER_DIR; a live active pick resolves current.jpg under
+#    FRAME_DIR instead, so the recorded last-wallpaper/<theme> entry is
+#    the authority for that case, never a reverse-derivation of the frame
+#    filename. Prints nothing (empty) if neither resolves — an honest
+#    "no active wallpaper is recorded" rather than a guess.
+_active_relpath() {
+    local wallpaper_dir_real frame_dir_real current_theme active_target
+    wallpaper_dir_real=$(readlink -f "$WALLPAPER_DIR" 2>/dev/null || echo "$WALLPAPER_DIR")
+    frame_dir_real=$(readlink -f "${FRAME_DIR:-$HOME/.local/state/theme/wallpaper-frames}" 2>/dev/null || echo "${FRAME_DIR:-$HOME/.local/state/theme/wallpaper-frames}")
+    current_theme=$(cat "$STATE_FILE" 2>/dev/null || echo "")
+
+    [[ -f "$CURRENT_LINK" ]] || return 0
+    active_target=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
+    [[ -n "$active_target" ]] || return 0
+
+    if [[ "$active_target" == "$wallpaper_dir_real"/* ]]; then
+        printf '%s\n' "${active_target#"$wallpaper_dir_real"/}"
+        return 0
+    fi
+    if [[ -n "$frame_dir_real" && "$active_target" == "$frame_dir_real"/* && -n "$current_theme" ]]; then
+        if [[ -f "$LAST_WALLPAPER_DIR/$current_theme" ]]; then
+            local recorded
+            recorded=$(head -n1 "$LAST_WALLPAPER_DIR/$current_theme" 2>/dev/null || true)
+            if [[ -n "$recorded" ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \
+                && theme_engine_wallpaper_is_live_ref "$recorded" \
+                && [[ -f "$WALLPAPER_DIR/$current_theme/$recorded" ]]; then
+                printf '%s\n' "$current_theme/$recorded"
+            fi
+        fi
+    fi
+}
+
+CURRENT_THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "")
+
+case "${1:-}" in
+    --list)
+        _list_wallpapers
+        exit 0
+        ;;
+    --active)
+        _active_relpath
+        exit 0
+        ;;
+    --set)
+        REL="${2:-}"
+        [[ -n "$REL" ]] || { echo "wallpaper-picker.sh --set: relative path required" >&2; exit 1; }
+        VALID=0
+        while IFS= read -r _entry; do
+            [[ "$_entry" == "$REL" ]] && { VALID=1; break; }
+        done < <(_list_wallpapers)
+        [[ "$VALID" -eq 1 ]] \
+            || { echo "wallpaper-picker.sh --set: '$REL' did not resolve to an enumerated wallpaper" >&2; exit 1; }
+        _confirm_and_apply "$REL"
+        exit 0
+        ;;
+esac
 
 # ── Pipeline-themed fzf colors (THM-04/D-15) ─────────
 # Best-effort source of the engine-rendered fragment; the current
@@ -673,146 +919,4 @@ if [[ -z "$SELECTED" ]]; then
     exit 0
 fi
 
-# Strip both marker suffixes before any path use (D-14/D-17), via the one
-# order-independent helper — never a second open-coded strip.
-SELECTED="$(wp_strip_markers "$SELECTED")"
-
-# ── Confirm selection ────────────────────────────────
-FULL_PATH="$WALLPAPER_DIR/$SELECTED"
-if [[ ! -f "$FULL_PATH" ]]; then
-    # Defense in depth (T-05-09) — entries come exclusively from the
-    # enumeration script's find output above, never free text, but the
-    # joined path is re-validated as an existing regular file under the
-    # Wallpapers root before any symlink operation.
-    echo "wallpaper-picker: selected entry does not resolve to a file: $SELECTED" >&2
-    rm -f "$PREVIOUS_FILE"
-    exit 1
-fi
-# D-06/D-18: is the confirmed selection live? Same shape test as the
-# preview pane and the writer guard below — the remainder after the
-# theme prefix satisfies theme_engine_wallpaper_is_live_ref.
-SEL_THEME="${SELECTED%%/*}"
-SEL_REMAINDER="${SELECTED#*/}"
-SEL_IS_LIVE=0
-if [[ "$SELECTED" == */* ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \
-    && theme_engine_wallpaper_is_live_ref "$SEL_REMAINDER"; then
-    SEL_IS_LIVE=1
-fi
-
-if [[ "$SEL_IS_LIVE" == "1" ]]; then
-    # Live selection (D-06/17-02 handoff (b)): current.jpg must point at
-    # the extracted FRAME, never the source video — awww cannot play
-    # video, and generate.sh's Material You branch would otherwise hand a
-    # video to the colour extractor. Resolve/extract ONLY through the
-    # sourced library functions — never a second ffmpeg call site here.
-    # On failure, leave current.jpg completely untouched and warn: never
-    # a dangling lock-screen pointer (T-17-09).
-    SEL_FRAME="$(theme_engine_wallpaper_frame_path "$SEL_THEME" "$SEL_REMAINDER")"
-    if [[ ! -s "$SEL_FRAME" ]]; then
-        SEL_OFFSET="$(theme_engine_wallpaper_frame_offset "$SEL_THEME" "$SEL_REMAINDER")"
-        theme_engine_wallpaper_extract_frame "$FULL_PATH" "$SEL_FRAME" "$SEL_OFFSET" || true
-    fi
-    if [[ -s "$SEL_FRAME" ]]; then
-        ln -sfr "$SEL_FRAME" "$CURRENT_LINK"
-        # awww owns the static-image path (D-04) — the frame, never the
-        # video, which awww cannot play.
-        awww img "$SEL_FRAME" \
-            --transition-type center \
-            --transition-duration 2 \
-            --transition-fps 165
-    else
-        echo "wallpaper-picker: no frame could be extracted for $SELECTED — lock-screen pointer left unchanged" >&2
-    fi
-else
-    ln -sfr "$FULL_PATH" "$CURRENT_LINK"
-
-    # Final animated set (in case live preview didn't fire)
-    awww img "$FULL_PATH" \
-        --transition-type center \
-        --transition-duration 2 \
-        --transition-fps 165
-fi
-
-# ── Post-selection branching (D-05/D-11/D-20/D-21) ───
-# In dynamic mode, wallpaper and palette must always match — re-run the
-# single shared engine entrypoint (theme-apply) with the exact active
-# variant name (never hardcode the dark variant), never reimplement
-# apply+reload here (this used to be a third duplication site, D-01).
-# theme-apply's own D-21 call site reaches the SAME sync_owner function
-# this branch calls directly below — do not add a second owner call
-# inside this branch.
-# In static mode, picking a wallpaper changes only the wallpaper, and —
-# when the selection lives inside the active theme's own folder — records
-# it as that theme's last-used wallpaper (D-11; Ctrl-A selections from
-# outside the folder are not recorded).
-if [[ "$CURRENT_THEME" == "materialyou" || "$CURRENT_THEME" == "materialyou-light" ]]; then
-    sleep 0.5
-    # CR-01: forward the absolute path of a live pick so theme-apply's own
-    # D-21 sync_owner call site can select it directly — without this,
-    # sync_owner's one-arg fallback reads last-wallpaper/materialyou[-light],
-    # which nothing in this codebase ever writes, and always resolves to
-    # `clear`. Only reaches the owner through theme-apply's existing single
-    # call site (D-21) — never a second owner-declaration path.
-    if [[ "$SEL_IS_LIVE" == "1" ]]; then
-        ~/.config/theme-engine/theme-apply "$CURRENT_THEME" "$FULL_PATH"
-    else
-        ~/.config/theme-engine/theme-apply "$CURRENT_THEME"
-    fi
-else
-    SYNC_REF=""
-    if [[ -n "$CURRENT_THEME" && "$SELECTED" == "$CURRENT_THEME/"* ]]; then
-        BARE_FILENAME="${SELECTED#"$CURRENT_THEME"/}"
-        # T-17-12/D-12 writer half: WIDEN, never relax — the pre-existing
-        # no-slash branch stays byte-identical, and exactly one
-        # alternative branch is added, delegating to the SAME shape
-        # function 17-02's reader uses, so the writer and reader can
-        # never drift into accepting different shapes. Never a prefix
-        # test, never a fresh regex here.
-        if [[ "$BARE_FILENAME" != */* ]] || theme_engine_wallpaper_is_live_ref "$BARE_FILENAME"; then
-            mkdir -p "$LAST_WALLPAPER_DIR" 2>/dev/null || true
-            printf '%s\n' "$BARE_FILENAME" > "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" 2>/dev/null \
-                && mv "$LAST_WALLPAPER_DIR/$CURRENT_THEME.tmp" "$LAST_WALLPAPER_DIR/$CURRENT_THEME" 2>/dev/null || true
-            SYNC_REF="$BARE_FILENAME"
-        fi
-    elif [[ "$SEL_IS_LIVE" == "1" ]]; then
-        # CR-01: a Ctrl-A cross-theme live pick. It is never recorded as
-        # $CURRENT_THEME's own last-used choice (matches confirm's
-        # existing in-theme-only recording rule), but it must still play
-        # — pass the absolute path so sync_owner's widened absolute-ref
-        # form (lib/wallpaper.sh) can validate and select it directly,
-        # instead of an empty SYNC_REF falling through to `clear`.
-        SYNC_REF="$FULL_PATH"
-    fi
-
-    # D-21: the ONE sync path — reach the owner through the SAME function
-    # theme-apply calls, exactly once. An empty SYNC_REF (an out-of-theme
-    # Ctrl-A STILL pick, or a shape the guard above rejected) makes the
-    # owner `clear` — correct: picking a still from another theme must
-    # stop a playing video.
-    if declare -F theme_engine_wallpaper_sync_owner >/dev/null 2>&1; then
-        theme_engine_wallpaper_sync_owner "$CURRENT_THEME" "$SYNC_REF" || true
-    fi
-
-    # CR-01: notify-send must not claim unqualified success when a live
-    # pick's playback did not actually start. Read-only status query —
-    # wallpaper-visibility.sh's own documented read-only verb, never a
-    # second owner-declaration path; the select/clear intent above is
-    # still declared exclusively through sync_owner.
-    NOTIFY_BODY="Set to $SELECTED"
-    if [[ "$SEL_IS_LIVE" == "1" ]]; then
-        PLAYBACK_OK=0
-        if [[ -x "$WALLPAPER_OWNER" ]]; then
-            OWNER_STATUS=$("$WALLPAPER_OWNER" status 2>/dev/null || true)
-            [[ "$OWNER_STATUS" == playing:* ]] && PLAYBACK_OK=1
-        fi
-        if [[ "$PLAYBACK_OK" != "1" ]]; then
-            NOTIFY_BODY="Set to $SELECTED — live playback is not currently active (suppressed by idle/gaming/reduced-motion, or it failed to start)"
-        fi
-    fi
-
-    notify-send -a "Wallpaper Picker" "Wallpaper Changed" \
-        "$NOTIFY_BODY" \
-        -i preferences-desktop-wallpaper -t 2000
-fi
-
-rm -f "$PREVIOUS_FILE"
+_confirm_and_apply "$SELECTED"
