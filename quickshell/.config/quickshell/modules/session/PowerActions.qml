@@ -1,0 +1,53 @@
+// modules/session/PowerActions.qml — the six power-menu actions, extracted
+// from PowerMenu.qml's own inline array (quick-260821-6z1 Task 12, D-01
+// bundle 3) into a singleton BOTH PowerMenu.qml and SessionPage.qml read.
+// PowerMenu.qml is NOT itself a singleton (mounted behind a LazyLoader,
+// modules/session/qmldir's own header explains why) — a settings page has
+// no live instance to read `actions` from, so the six names would
+// otherwise have to be duplicated in two places. This singleton is the
+// single source of truth for the label set; SessionPage.qml's own
+// "default focused action" SelectRow reads `PowerActions.actions` for its
+// model, never a second hardcoded name list.
+//
+// Same registration discipline as every other singleton in this tree:
+// `pragma Singleton` here AND the `singleton` keyword in
+// modules/session/qmldir, or bare `PowerActions.actions`-style access
+// resolves to `undefined` forever, with no load error.
+pragma Singleton
+import QtQuick
+import Quickshell
+
+Singleton {
+    id: root
+
+    // 12 o'clock (0°), then clockwise — Log Out (60°), Suspend (120°),
+    // Hibernate (180°), Reboot (240°), Shut Down (300°). PowerMenu.qml's
+    // own rotation model reads this same order; do not reorder without
+    // checking that file's `rotateFocus()`.
+    readonly property var actions: [
+        {
+            glyph: "lock", label: "Lock", mnemonic: "l",
+            command: ["sh", "-c", "uwsm app -- hyprlock"]
+        },
+        {
+            glyph: "logout", label: "Log Out", mnemonic: "e",
+            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'uwsm stop'"]
+        },
+        {
+            glyph: "bedtime", label: "Suspend", mnemonic: "u",
+            command: ["sh", "-c", "systemctl suspend"]
+        },
+        {
+            glyph: "ac_unit", label: "Hibernate", mnemonic: "h",
+            command: ["sh", "-c", "systemctl hibernate"]
+        },
+        {
+            glyph: "restart_alt", label: "Reboot", mnemonic: "r",
+            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'systemctl reboot'"]
+        },
+        {
+            glyph: "power_settings_new", label: "Shut Down", mnemonic: "s",
+            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'systemctl poweroff'"]
+        }
+    ]
+}

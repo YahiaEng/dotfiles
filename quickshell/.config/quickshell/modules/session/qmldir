@@ -13,3 +13,9 @@
 module qs.modules.session
 PowerMenu 1.0 PowerMenu.qml
 PowerMenuBackend 1.0 PowerMenuBackend.qml
+# PowerActions (quick-260821-6z1 Task 12) — the six power-menu actions,
+# extracted to a singleton so a settings page (which has no live
+# PowerMenu instance to read) and PowerMenu.qml itself share one source
+# of truth. Singleton keyword required here per this file's own header
+# rule.
+singleton PowerActions 1.0 PowerActions.qml

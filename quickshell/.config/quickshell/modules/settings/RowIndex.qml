@@ -112,6 +112,15 @@ Singleton {
         { pageIdx: 9, section: "Idle & lock", label: "Lock", keywords: "idle lock screen timeout session" },
         { pageIdx: 9, section: "Idle & lock", label: "Screen off", keywords: "idle screen off dpms display timeout" },
         { pageIdx: 9, section: "Idle & lock", label: "Suspend", keywords: "idle suspend sleep timeout power" },
-        { pageIdx: 9, section: "Idle & lock", label: "Open in editor", keywords: "idle lock editor advanced session" }
+        { pageIdx: 9, section: "Idle & lock", label: "Open in editor", keywords: "idle lock editor advanced session" },
+        { pageIdx: 9, section: "Gaming", label: "Gaming mode", keywords: "gaming performance mode idle notifications" },
+        { pageIdx: 9, section: "Screen recording", label: "Recording fps", keywords: "record capture screencast fps frame rate" },
+        { pageIdx: 9, section: "Screen recording", label: "Recording codec", keywords: "record capture screencast codec video h264 hevc av1" },
+        { pageIdx: 9, section: "Screen recording", label: "Recording audio", keywords: "record capture screencast audio mic desktop silent" },
+        { pageIdx: 9, section: "Screen recording", label: "Recording status", keywords: "record capture screencast status idle recording" },
+        { pageIdx: 9, section: "Power menu", label: "Warn when busy", keywords: "power shutdown reboot logout warn busy package manager" },
+        { pageIdx: 9, section: "Power menu", label: "Default focused action", keywords: "power shutdown reboot logout default focus" },
+        { pageIdx: 9, section: "Services", label: "quickshell.service", keywords: "service daemon autostart quickshell status" },
+        { pageIdx: 9, section: "Services", label: "quickshell-bar-watchdog.service", keywords: "service daemon autostart watchdog bar status" }
     ]
 }

@@ -13,6 +13,7 @@ import ".."
 import "../common"
 import "../../"
 import "../../dashboard"
+import "../../session"
 
 PageBase {
     id: root
@@ -202,6 +203,222 @@ PageBase {
                 editorProc.startDetached();
                 root.sState.close();
             }
+        }
+    }
+
+    // ── Gaming mode (Task 12, D-01 bundle 3) — bound to
+    //    ToggleState.gamingState, which already watches
+    //    ~/.cache/gaming-mode with a FileView (ToggleState.qml/
+    //    NotifServer.qml both already read it this way) — no second
+    //    reader, no polling `gaming-mode-toggle.sh status` in a timer.
+    //    The write is a fixed-argv invocation of the script itself; the
+    //    row shows `busy` until the watched file changes, with a
+    //    watchdog so a stuck script cannot spin forever. ─────────────────
+    SettingsSection {
+        id: gamingSection
+        title: "Gaming"
+        icon: "sports_esports"
+
+        property bool applying: false
+
+        Timer {
+            id: gamingWatchdog
+            interval: 5000
+            onTriggered: gamingSection.applying = false
+        }
+        // Clears the busy state the instant the WATCHED file itself
+        // changes — not on the script's own exit, since the script forks
+        // detached work and the file write is the actual completion
+        // signal this row cares about.
+        Connections {
+            target: ToggleState
+            function onGamingStateChanged() {
+                gamingSection.applying = false;
+                gamingWatchdog.stop();
+            }
+        }
+
+        Process {
+            id: gamingToggleProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/gaming-mode-toggle.sh"]
+        }
+
+        ToggleRow {
+            label: "Gaming mode"
+            subtext: "Disables idle timeouts and notification popups while gaming"
+            checked: ToggleState.gamingState
+            enabled: !gamingSection.applying
+            opacity: gamingSection.applying ? 0.6 : 1
+            onToggled: (value) => {
+                gamingSection.applying = true;
+                gamingWatchdog.restart();
+                gamingToggleProc.running = true;
+            }
+        }
+    }
+
+    // ── Recording defaults (Task 12, D-01 bundle 3, PD-05) ──────────────
+    SettingsSection {
+        id: recordingSection
+        title: "Screen recording"
+        icon: "videocam"
+
+        property var defaultsValue: ({ fps: 60, codec: "auto", audio: "ask" })
+        property string statusValue: "idle"
+
+        function refresh() {
+            defaultsProc.running = true;
+            statusProc.running = true;
+        }
+
+        Process {
+            id: defaultsProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/record-toggle.sh", "get-defaults"]
+            stdout: StdioCollector { id: defaultsCollector }
+            onExited: (code, status) => {
+                if (code === 0) {
+                    try { recordingSection.defaultsValue = JSON.parse(defaultsCollector.text); } catch (e) {}
+                }
+            }
+        }
+        Process {
+            id: statusProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/record-toggle.sh", "status"]
+            stdout: StdioCollector { id: statusCollector }
+            onExited: (code, status) => {
+                if (code === 0) {
+                    var v = statusCollector.text.trim();
+                    if (v.length > 0)
+                        recordingSection.statusValue = v;
+                }
+            }
+        }
+        Process {
+            id: setDefaultProc
+            running: false
+            onExited: (code, status) => recordingSection.refresh()
+        }
+        function setDefault(key, value) {
+            setDefaultProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/record-toggle.sh", "set-default", key, value];
+            setDefaultProc.running = true;
+        }
+
+        Timer {
+            id: recordingStatusPoll
+            interval: 3000
+            repeat: true
+            onTriggered: recordingSection.refresh()
+        }
+        Component.onCompleted: {
+            recordingSection.refresh();
+            recordingStatusPoll.start();
+        }
+        Component.onDestruction: recordingStatusPoll.stop()
+
+        SelectRow {
+            label: "Recording fps"
+            subtext: "Frame rate for new recordings"
+            model: [24, 30, 60, 120].map(function (v) { return { value: String(v), display: String(v) }; })
+            currentValue: String(recordingSection.defaultsValue.fps || 60)
+            onSelected: (value) => recordingSection.setDefault("fps", value)
+        }
+        SelectRow {
+            label: "Recording codec"
+            subtext: "Video codec for new recordings"
+            model: [
+                { value: "auto", display: "Auto" },
+                { value: "h264", display: "H.264" },
+                { value: "hevc", display: "HEVC" },
+                { value: "av1", display: "AV1" },
+                { value: "vp8", display: "VP8" },
+                { value: "vp9", display: "VP9" }
+            ]
+            currentValue: recordingSection.defaultsValue.codec || "auto"
+            onSelected: (value) => recordingSection.setDefault("codec", value)
+        }
+        SelectRow {
+            label: "Recording audio"
+            subtext: "Skips the interactive picker unless set to Ask"
+            model: [
+                { value: "ask", display: "Ask every time" },
+                { value: "silent", display: "Silent (no audio)" },
+                { value: "desktop", display: "Desktop audio" },
+                { value: "desktop+mic", display: "Desktop + mic" }
+            ]
+            currentValue: recordingSection.defaultsValue.audio || "ask"
+            onSelected: (value) => recordingSection.setDefault("audio", value)
+        }
+        InfoRow {
+            label: "Recording status"
+            subtext: recordingSection.statusValue === "recording" ? "Currently recording" : "Idle — not recording"
+        }
+    }
+
+    // ── Power-menu behaviour (Task 12, D-01 bundle 3) ───────────────────
+    SettingsSection {
+        title: "Power menu"
+        icon: "power_settings_new"
+
+        ToggleRow {
+            label: "Warn when busy"
+            subtext: "Show a warning if a package manager transaction or download is in progress"
+            checked: Prefs.getValue("session.warnWhenBusy")
+            onToggled: (value) => Prefs.setValue("session.warnWhenBusy", value)
+        }
+        SelectRow {
+            label: "Default focused action"
+            subtext: "Which power-menu action is focused when it opens"
+            model: PowerActions.actions.map(function (a) { return { value: a.label, display: a.label }; })
+            currentValue: Prefs.getValue("session.defaultAction")
+            onSelected: (value) => Prefs.setValue("session.defaultAction", value)
+        }
+    }
+
+    // ── Service status (Task 12, D-01 bundle 3) — read-only: this page
+    //    reports service state, it does not start or stop anything. ─────
+    SettingsSection {
+        id: servicesSection
+        title: "Services"
+        icon: "dns"
+
+        property string quickshellStatus: "unknown"
+        property string watchdogStatus: "unknown"
+
+        Process {
+            id: quickshellStatusProc
+            running: false
+            command: ["systemctl", "--user", "is-active", "quickshell.service"]
+            stdout: StdioCollector { id: quickshellStatusCollector }
+            onExited: (code, status) => {
+                var v = quickshellStatusCollector.text.trim();
+                if (v.length > 0)
+                    servicesSection.quickshellStatus = v;
+            }
+            Component.onCompleted: running = true
+        }
+        Process {
+            id: watchdogStatusProc
+            running: false
+            command: ["systemctl", "--user", "is-active", "quickshell-bar-watchdog.service"]
+            stdout: StdioCollector { id: watchdogStatusCollector }
+            onExited: (code, status) => {
+                var v = watchdogStatusCollector.text.trim();
+                if (v.length > 0)
+                    servicesSection.watchdogStatus = v;
+            }
+            Component.onCompleted: running = true
+        }
+
+        InfoRow {
+            label: "quickshell.service"
+            subtext: "Status: " + servicesSection.quickshellStatus
+        }
+        InfoRow {
+            label: "quickshell-bar-watchdog.service"
+            subtext: "Status: " + servicesSection.watchdogStatus
         }
     }
 }

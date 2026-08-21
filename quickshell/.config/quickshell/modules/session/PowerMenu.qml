@@ -280,44 +280,32 @@ PanelWindow {
     //    (0°), then clockwise — Log Out (60°), Suspend (120°), Hibernate
     //    (180°), Reboot (240°), Shut Down (300°). This is also the
     //    rotation model's index order (see rotateFocus() below).
-    readonly property var actions: [
-        {
-            glyph: "lock", label: "Lock", mnemonic: "l",
-            // unchanged from the baseline
-            command: ["sh", "-c", "uwsm app -- hyprlock"]
-        },
-        {
-            glyph: "logout", label: "Log Out", mnemonic: "e",
-            // D-20-37: a genuine ADDITION of the hyprshutdown wrap — the
-            // baseline's bare `cliphist wipe; uwsm stop` never wrapped
-            // through hyprshutdown. See 20-LEDGER-02-RECORD.md (Task 3).
-            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'uwsm stop'"]
-        },
-        {
-            glyph: "bedtime", label: "Suspend", mnemonic: "u",
-            command: ["sh", "-c", "systemctl suspend"]
-        },
-        {
-            glyph: "ac_unit", label: "Hibernate", mnemonic: "h",
-            command: ["sh", "-c", "systemctl hibernate"]
-        },
-        {
-            glyph: "restart_alt", label: "Reboot", mnemonic: "r",
-            // unchanged — QPOWER-04's graceful compositor exit, carried
-            // over verbatim from the baseline, not re-derived.
-            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'systemctl reboot'"]
-        },
-        {
-            glyph: "power_settings_new", label: "Shut Down", mnemonic: "s",
-            // unchanged — same graceful-exit mechanism as Reboot above.
-            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'systemctl poweroff'"]
-        }
-    ]
+    // quick-260821-6z1 Task 12 (D-01 bundle 3): extracted to
+    // PowerActions.qml, a sibling singleton, so SessionPage.qml's own
+    // "default focused action" row can read the SAME six names without
+    // a live PowerMenu instance to read them from (this window is NOT a
+    // singleton — see qmldir's own header). Values, order and every
+    // command are byte-identical to what this array held inline before
+    // the extraction.
+    readonly property var actions: PowerActions.actions
 
-    // Lock (index 0, 12 o'clock) auto-focused on open — the least
-    // destructive action, and the one action QPOWER-03 never warns about
-    // (D-20-29).
+    // Lock (index 0, 12 o'clock) auto-focused on open by default — the
+    // least destructive action, and the one action QPOWER-03 never warns
+    // about (D-20-29). quick-260821-6z1 Task 12 (D-01 bundle 3): a
+    // Prefs-backed default action seeds this instead, read from `actions`
+    // itself (never a second hardcoded name list) so the two can never
+    // drift apart on what the valid action set is.
     property int focusedIndex: 0
+
+    function _defaultActionIndex() {
+        var label = Prefs.getValue("session.defaultAction");
+        for (var i = 0; i < powerWindow.actions.length; i++) {
+            if (powerWindow.actions[i].label === label)
+                return i;
+        }
+        return 0;
+    }
+    Component.onCompleted: powerWindow.focusedIndex = powerWindow._defaultActionIndex()
 
     // ── Severity colour mapping (D-20-21, revised twice — mapping itself
     //    UNCHANGED across both revisions; only WHERE it renders changed —
@@ -381,7 +369,10 @@ PanelWindow {
     //    as a hard poweroff (D-20-29's own stated reason) — recorded here
     //    so the inclusion does not read as an over-inclusion to a later
     //    reader.
-    readonly property bool warningActive: powerMenuBackend.pkgManagerBusy || powerMenuBackend.downloadsActive || powerMenuBackend.denyListActive
+    // quick-260821-6z1 Task 12 (D-01 bundle 3): Prefs-gated — the warning
+    // COMPOSITION itself (which conditions count as "busy") is untouched;
+    // only whether the whole thing is allowed to show at all is new.
+    readonly property bool warningActive: Prefs.getValue("session.warnWhenBusy") && (powerMenuBackend.pkgManagerBusy || powerMenuBackend.downloadsActive || powerMenuBackend.denyListActive)
 
     // Copywriting Contract strings, verbatim (20-UI-SPEC.md). Hard bound
     // of three lines — one per detector, no detector can fire twice.

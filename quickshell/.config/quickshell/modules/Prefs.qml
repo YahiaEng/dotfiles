@@ -88,7 +88,10 @@ Singleton {
         "dashboard.panels.clock",
         "dashboard.panels.calendar",
         "dashboard.panels.media",
-        "dashboard.panels.resources"
+        "dashboard.panels.resources",
+        // Task 12 (D-01 bundle 3) — Session page: power-menu behaviour.
+        "session.warnWhenBusy",
+        "session.defaultAction"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -116,7 +119,9 @@ Singleton {
         "dashboard.panels.clock": true,
         "dashboard.panels.calendar": true,
         "dashboard.panels.media": true,
-        "dashboard.panels.resources": true
+        "dashboard.panels.resources": true,
+        "session.warnWhenBusy": true,
+        "session.defaultAction": "Lock"
     })
 
     // ── Helper functions — ALL declared here, above the FileView and
