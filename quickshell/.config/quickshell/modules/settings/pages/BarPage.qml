@@ -161,9 +161,15 @@ PageBase {
         }
     }
 
-    // ── Capsules (Task 8, D-01 bundle 2/D-02/PD-04) — six ToggleRows,
-    //    one per BarEntryModel.capsules[] entry, each backed by
-    //    Prefs.bar.capsules.<id> with a default of true. Consumed at
+    // ── Capsules (Task 8, D-01 bundle 2/D-02/PD-04) — FIVE capsule-level
+    //    ToggleRows, each backed by Prefs.bar.capsules.<id> with a default
+    //    of true. Five, not six: the "Clock & actions" parent was RETIRED
+    //    on operator request (2026-08-21) as redundant once all five of its
+    //    children (clock/gaming/notifications/settings/power) gained their
+    //    own per-entry toggles below. Its key is gone from Prefs' allowlist
+    //    too, so nothing can write it any more; capsulesForZone()'s
+    //    `typeof visible !== "boolean" -> true` guard means the absent key
+    //    reads as visible, which is the intended behaviour. Consumed at
     //    exactly ONE place, BarEntryModel.capsulesForZone() — see that
     //    function's own header for why requiresBackend()/the three
     //    aggregate properties are deliberately NOT filtered. ─────────────
@@ -236,12 +242,6 @@ PageBase {
             subtext: "Now-playing, audio, brightness, network, Bluetooth, battery"
             checked: Prefs.getValue("bar.capsules.mediaConnectivity")
             onToggled: (value) => Prefs.setValue("bar.capsules.mediaConnectivity", value)
-        }
-        ToggleRow {
-            label: "Clock & actions"
-            subtext: "Clock, gaming mode, notifications, settings, power"
-            checked: Prefs.getValue("bar.capsules.clockActions")
-            onToggled: (value) => Prefs.setValue("bar.capsules.clockActions", value)
         }
         // ── Per-entry toggles for "Clock & actions" (operator fix wave
         //    finding 3) — same nesting/consumption pattern as System's

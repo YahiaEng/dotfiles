@@ -51,7 +51,6 @@ Singleton {
         { pageIdx: 2, section: "Capsules", label: "Workspaces", keywords: "bar capsule workspaces indicator" },
         { pageIdx: 2, section: "Capsules", label: "Idle inhibitor", keywords: "bar capsule idle inhibitor bulb" },
         { pageIdx: 2, section: "Capsules", label: "Media & connectivity", keywords: "bar capsule media audio brightness network bluetooth battery" },
-        { pageIdx: 2, section: "Capsules", label: "Clock & actions", keywords: "bar capsule clock gaming notifications settings power" },
         { pageIdx: 2, section: "Capsules", label: "Clock", keywords: "bar entry clock popout" },
         { pageIdx: 2, section: "Capsules", label: "Gaming mode", keywords: "bar entry gaming mode toggle" },
         { pageIdx: 2, section: "Capsules", label: "Notifications", keywords: "bar entry notifications bell centre" },

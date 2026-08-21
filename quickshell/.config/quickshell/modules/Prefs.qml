@@ -76,7 +76,10 @@ Singleton {
         "bar.capsules.workspaces",
         "bar.capsules.idleInhibitor",
         "bar.capsules.mediaConnectivity",
-        "bar.capsules.clockActions",
+        // "bar.capsules.clockActions" RETIRED 2026-08-21 (operator): its five
+        // children all have per-entry toggles, so the parent row was removed.
+        // Off the allowlist deliberately — setValue() refuses unlisted keys, so
+        // no future write can strand the capsule hidden with no UI to restore it.
         // Task 9 (D-01 bundle 2/D-02) — Notifications page: popup timeout
         // (per urgency), position, OSD position, dashboard panel toggles.
         // History limit and max visible popups reuse the notifs.historyCap/
@@ -131,7 +134,6 @@ Singleton {
         "bar.capsules.workspaces": true,
         "bar.capsules.idleInhibitor": true,
         "bar.capsules.mediaConnectivity": true,
-        "bar.capsules.clockActions": true,
         "notifs.popupTimeoutMs": 5000,
         "notifs.lowPriorityTimeoutMs": 3000,
         "notifs.position": "top-right",
