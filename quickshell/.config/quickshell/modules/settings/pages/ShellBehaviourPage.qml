@@ -222,6 +222,20 @@ PageBase {
         // reformatting, not re-implementing, the script's authoritative
         // validation output.
         property bool idleApplying: false
+
+        // Busy-state UX (operator decision, folded into this same wave):
+        // "keep the serialized apply and the row disabling exactly as
+        // they are, but the edited row shows a small spinner/'Applying…'
+        // state during the script's runtime so the wait reads as working
+        // rather than broken." `applyingKey` names WHICH of the five
+        // rows to show it on (`idleApplying` alone only says something
+        // is in flight, not which row triggered it); each row below
+        // binds `busy: idleSection.applyingKey === "<its own key>"`.
+        // Cleared on EVERY `onExited` path (success AND error) and on
+        // watchdog fire, same as `idleApplying` itself — never left
+        // showing a spinner after the row is usable again.
+        property string applyingKey: ""
+
         // Diagnostic instrumentation (operator-ordered — instrumentation
         // only, no behaviour change this round): shadow property tracks
         // the previous value purely so every write can be logged as an
@@ -302,6 +316,7 @@ PageBase {
                 console.log("SQDDIAG t=" + Date.now() + " idleApplyProc.onExited exitCode=" + exitCode + " watchdogFired=" + idleSection.watchdogFired);
                 idleApplyWatchdog.stop();
                 idleSection.idleApplying = false;
+                idleSection.applyingKey = "";
                 if (idleSection.watchdogFired) {
                     idleSection.watchdogFired = false;
                     idleSection.lastError = "idle-overrides.sh did not respond within 10s — it may be stuck; try again";
@@ -344,6 +359,7 @@ PageBase {
             console.log("SQDDIAG t=" + Date.now() + " applyListener called key='" + key + "' seconds=" + seconds + " (idleApplying-before=" + idleSection.idleApplying + ")");
             idleSection.lastError = "";
             idleSection.idleApplying = true;
+            idleSection.applyingKey = key;
             idleApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/idle-overrides.sh", "--set", key + "=" + seconds];
             idleApplyProc.running = true;
             idleApplyWatchdog.restart();
@@ -370,6 +386,7 @@ PageBase {
             currentValue: idleSection.barIdleSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
+            busy: idleSection.applyingKey === "bar-idle"
             onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Bar idle-hide' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
             onSelected: (value) => {
                 console.log("SQDDIAG t=" + Date.now() + " onSelected row='Bar idle-hide' value=" + value);
@@ -383,6 +400,7 @@ PageBase {
             currentValue: idleSection.dimSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
+            busy: idleSection.applyingKey === "dim"
             onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Screen dim' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
             onSelected: (value) => {
                 console.log("SQDDIAG t=" + Date.now() + " onSelected row='Screen dim' value=" + value);
@@ -396,6 +414,7 @@ PageBase {
             currentValue: idleSection.lockSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
+            busy: idleSection.applyingKey === "lock"
             onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Lock' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
             onSelected: (value) => {
                 console.log("SQDDIAG t=" + Date.now() + " onSelected row='Lock' value=" + value);
@@ -409,6 +428,7 @@ PageBase {
             currentValue: idleSection.displayOffSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
+            busy: idleSection.applyingKey === "display-off"
             onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Screen off' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
             onSelected: (value) => {
                 console.log("SQDDIAG t=" + Date.now() + " onSelected row='Screen off' value=" + value);
@@ -422,6 +442,7 @@ PageBase {
             currentValue: idleSection.suspendSec.toString()
             enabled: !idleSection.idleApplying
             opacity: idleSection.idleApplying ? 0.6 : 1
+            busy: idleSection.applyingKey === "suspend"
             onEnabledChanged: console.log("SQDDIAG t=" + Date.now() + " row='Suspend' enabled=" + enabled + " (idleApplying=" + idleSection.idleApplying + ")")
             onSelected: (value) => {
                 console.log("SQDDIAG t=" + Date.now() + " onSelected row='Suspend' value=" + value);

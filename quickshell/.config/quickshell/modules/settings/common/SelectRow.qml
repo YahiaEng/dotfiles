@@ -22,6 +22,18 @@ Control {
     property string currentValue: ""
     signal selected(value: string)
 
+    // Busy state (operator, idle-row UX follow-up): "the edited row
+    // shows a small spinner/'Applying…' state during the script's
+    // runtime so the wait reads as working rather than broken." Reuses
+    // WifiPanel.qml's own established indeterminate-spinner idiom
+    // (`RotationAnimation on rotation`, gated on the in-flight flag AND
+    // `Motion.motionEnabled`, period bound to `Motion.ambientDuration`
+    // — the loop-period token, never a one-shot transition duration)
+    // rather than inventing a second spinner language. Defaults to
+    // `false`, harmless for every OTHER SelectRow usage, which has no
+    // long-running apply step at all.
+    property bool busy: false
+
     readonly property string currentDisplay: {
         for (var i = 0; i < root.model.length; i++) {
             if (root.model[i].value === root.currentValue)
@@ -119,7 +131,7 @@ Control {
             id: dropdownPill
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            implicitWidth: Math.max(120, valueText.implicitWidth + Design.spacingLg * 2)
+            implicitWidth: Math.max(120, pillContent.implicitWidth + Design.spacingLg * 2)
             implicitHeight: 36
             radius: height / 2
             color: Colours.surfaceVariant
@@ -135,16 +147,46 @@ Control {
                 }
             }
 
-            Text {
-                id: valueText
+            Row {
+                id: pillContent
                 anchors.centerIn: parent
-                text: root.currentDisplay
-                font.pixelSize: Design.fontBody
-                color: Colours.onSurfaceVariant
+                spacing: Design.spacingXs
+
+                // Same idiom as WifiPanel.qml's own refresh-in-flight
+                // glyph: a Material Symbols "progress_activity" glyph
+                // (the semantically-correct indeterminate-spinner icon,
+                // not a repurposed "refresh"), spinning via
+                // `Motion.ambientDuration` — the loop-period token every
+                // OTHER indeterminate indicator in this shell uses.
+                Text {
+                    visible: root.busy
+                    anchors.verticalCenter: parent.verticalCenter
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.iconSizeMd
+                    text: "progress_activity"
+                    color: Colours.onSurfaceVariant
+
+                    RotationAnimation on rotation {
+                        running: root.busy && Motion.motionEnabled
+                        loops: Animation.Infinite
+                        from: 0
+                        to: 360
+                        duration: Motion.ambientDuration
+                    }
+                }
+
+                Text {
+                    id: valueText
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.busy ? "Applying…" : root.currentDisplay
+                    font.pixelSize: Design.fontBody
+                    color: Colours.onSurfaceVariant
+                }
             }
 
             MouseArea {
                 anchors.fill: parent
+                enabled: !root.busy
                 onClicked: {
                     console.log("SQDDIAG t=" + Date.now() + " pill-clicked row='" + root.label + "'");
                     optionsMenu.popup();
