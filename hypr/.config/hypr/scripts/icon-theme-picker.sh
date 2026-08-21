@@ -46,6 +46,74 @@ CURRENT_THEME_FILE="$HOME/.local/state/theme/current-theme"
 ACTIVE_MARKER=" ●"
 CATALOG_SEARCH_TERM="icon-theme"
 
+# ── Non-interactive surface (quick-260821-6z1 Task 10, R-6) — `--list`/
+#    `--set <name>`, handled BEFORE any interactive machinery (AUR helper
+#    resolution, the enum script mktemp, fzf-colors). Covers ONLY the
+#    already-INSTALLED theme set, via the SAME real directory scan the
+#    interactive path's own ENUM_SCRIPT uses — never the AUR-catalog
+#    install flow further down this file, which installs a package and
+#    is out of scope for a settings-window dropdown (package installs
+#    are never auto-driven from this surface). `_persist_and_apply()` is
+#    the SAME "legacy installed-theme" tail the interactive path runs on
+#    Enter for an already-installed selection (state write, theme-apply
+#    re-run, notify) — one copy, both paths call it. ────────────────────
+_list_installed_icon_themes() {
+    local base dir name idx dirs_line
+    declare -A seen
+    for base in /usr/share/icons "$HOME/.local/share/icons"; do
+        [[ -d "$base" ]] || continue
+        for dir in "$base"/*/; do
+            [[ -d "$dir" ]] || continue
+            name=$(basename "$dir")
+            [[ -n "${seen[$name]:-}" ]] && continue
+            [[ "$name" == "hicolor" || "$name" == "default" ]] && continue
+            idx="$dir/index.theme"
+            [[ -f "$idx" ]] || continue
+            dirs_line=$(grep -m1 '^Directories=' "$idx" 2>/dev/null)
+            [[ -n "$dirs_line" ]] || continue
+            seen[$name]=1
+            printf '%s\n' "$name"
+        done
+    done | sort
+}
+
+_persist_and_apply() {
+    local selected="$1"
+    mkdir -p "$(dirname "$ICON_STATE")"
+    printf '%s\n' "$selected" > "$ICON_STATE.tmp" && mv "$ICON_STATE.tmp" "$ICON_STATE"
+
+    local active_preset
+    active_preset=$(cat "$CURRENT_THEME_FILE" 2>/dev/null || echo "")
+    if [[ -n "$active_preset" ]]; then
+        ~/.config/theme-engine/theme-apply "$active_preset"
+    else
+        echo "icon-theme-picker: no active theme recorded yet — icon-theme state saved, will apply on the next run of the engine" >&2
+    fi
+
+    notify-send -a "Icon Theme" "Icon Theme Changed" \
+        "Applied $selected" \
+        -i preferences-desktop-icons -t 2000 2>/dev/null || true
+}
+
+case "${1:-}" in
+    --list)
+        _list_installed_icon_themes
+        exit 0
+        ;;
+    --set)
+        NAME="${2:-}"
+        [[ -n "$NAME" ]] || { echo "icon-theme-picker.sh --set: name required" >&2; exit 1; }
+        VALID=0
+        while IFS= read -r _n; do
+            [[ "$_n" == "$NAME" ]] && { VALID=1; break; }
+        done < <(_list_installed_icon_themes)
+        [[ "$VALID" -eq 1 ]] \
+            || { echo "icon-theme-picker.sh --set: '$NAME' did not resolve to an installed icon theme" >&2; exit 1; }
+        _persist_and_apply "$NAME"
+        exit 0
+        ;;
+esac
+
 # ── Pipeline-themed fzf colors (THM-04/D-15) ─────────
 # Best-effort source of the engine-rendered fragment — the current
 # catppuccin-mocha hex values survive only as ${VAR:-fallback} defaults
@@ -582,22 +650,8 @@ else
     fi
 fi
 
-# ── Persist as a theme-orthogonal state axis (Pitfall 6/D-19) ────────
-# Never a bare standalone settings write here — write the state file and
-# re-run the engine's apply entrypoint so generate.sh's render_gtk_settings
-# and gtk.sh's theme_engine_apply_icon_theme own the actual write (same
-# discipline as wallpaper-picker.sh's post-selection apply-pipeline
-# re-run, D-05/D-11/D-20).
-mkdir -p "$(dirname "$ICON_STATE")"
-printf '%s\n' "$SELECTED" > "$ICON_STATE.tmp" && mv "$ICON_STATE.tmp" "$ICON_STATE"
-
-ACTIVE_PRESET=$(cat "$CURRENT_THEME_FILE" 2>/dev/null || echo "")
-if [[ -n "$ACTIVE_PRESET" ]]; then
-    ~/.config/theme-engine/theme-apply "$ACTIVE_PRESET"
-else
-    echo "icon-theme-picker: no active theme recorded yet — icon-theme state saved, will apply on the next run of the engine" >&2
-fi
-
-notify-send -a "Icon Theme" "Icon Theme Changed" \
-    "Applied $SELECTED" \
-    -i preferences-desktop-icons -t 2000 2>/dev/null || true
+# ── Persist as a theme-orthogonal state axis (Pitfall 6/D-19) — the SAME
+# tail `--set` runs, factored into `_persist_and_apply()` above so there
+# is only one copy (state write, engine re-run, notify; never a bare
+# standalone settings write here).
+_persist_and_apply "$SELECTED"

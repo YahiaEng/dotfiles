@@ -47,6 +47,75 @@ CURRENT_THEME_FILE="$HOME/.local/state/theme/current-theme"
 VSCODIUM_SETTINGS="$HOME/.config/VSCodium/User/settings.json"
 ACTIVE_MARKER=" ●"
 
+# ── Non-interactive surface (quick-260821-6z1 Task 10, R-6) — `--list`/
+#    `--set <name>`, handled BEFORE any interactive machinery (the enum
+#    script mktemp, the fzf-colors source, everything below). `--list`
+#    runs the SAME real `fc-list : family` enumeration the interactive
+#    ENUM_SCRIPT uses (never a hardcoded list) — no active-marker suffix,
+#    since a marker in a machine-facing list would corrupt the SelectRow
+#    model it feeds. `_persist_and_apply()` is the SAME tail the
+#    interactive path runs on Enter (state write, VSCodium merge,
+#    theme-apply re-run, notify) — one copy, both paths call it. ───────
+_list_fonts() {
+    fc-list : family 2>/dev/null | cut -d',' -f1 | grep -i 'nerd' \
+        | grep -vx 'Symbols Nerd Font' | sort -u
+}
+
+_persist_and_apply() {
+    local selected="$1"
+
+    mkdir -p "$(dirname "$FONT_STATE")"
+    printf '%s\n' "$selected" > "$FONT_STATE.tmp" && mv "$FONT_STATE.tmp" "$FONT_STATE"
+
+    if command -v jq >/dev/null 2>&1; then
+        mkdir -p "$(dirname "$VSCODIUM_SETTINGS")"
+        [[ -f "$VSCODIUM_SETTINGS" ]] || echo '{}' > "$VSCODIUM_SETTINGS"
+
+        local fragment_file
+        fragment_file=$(mktemp /tmp/font-vscodium-fragment-XXXXXX.json)
+        jq -n --arg editor "'${selected}', 'Fira Code', monospace" \
+              --arg term "'${selected}'" \
+              '{ "editor.fontFamily": $editor, "terminal.integrated.fontFamily": $term }' \
+            > "$fragment_file"
+
+        jq -s '.[0] * .[1]' "$VSCODIUM_SETTINGS" "$fragment_file" > "${VSCODIUM_SETTINGS}.tmp" 2>/dev/null \
+            && mv "${VSCODIUM_SETTINGS}.tmp" "$VSCODIUM_SETTINGS" \
+            || rm -f "${VSCODIUM_SETTINGS}.tmp"
+        rm -f "$fragment_file"
+    fi
+
+    local active_preset
+    active_preset=$(cat "$CURRENT_THEME_FILE" 2>/dev/null || echo "")
+    if [[ -n "$active_preset" ]]; then
+        ~/.config/theme-engine/theme-apply "$active_preset"
+    else
+        echo "font-switcher: no active theme recorded yet — font-choice saved, will apply on the next theme-apply run" >&2
+    fi
+
+    notify-send -a "Font Switcher" "Font Changed" \
+        "Applied $selected — restart apps to see the full effect" \
+        -i preferences-desktop-font -t 2500 2>/dev/null || true
+}
+
+case "${1:-}" in
+    --list)
+        _list_fonts
+        exit 0
+        ;;
+    --set)
+        NAME="${2:-}"
+        [[ -n "$NAME" ]] || { echo "font-switcher.sh --set: name required" >&2; exit 1; }
+        VALID=0
+        while IFS= read -r _n; do
+            [[ "$_n" == "$NAME" ]] && { VALID=1; break; }
+        done < <(_list_fonts)
+        [[ "$VALID" -eq 1 ]] \
+            || { echo "font-switcher.sh --set: '$NAME' did not resolve to an enumerated nerd font" >&2; exit 1; }
+        _persist_and_apply "$NAME"
+        exit 0
+        ;;
+esac
+
 # ── Pipeline-themed fzf colors (THM-04/D-15) ─────────
 # shellcheck source=/dev/null
 source "$HOME/.local/state/theme/fzf-colors.conf" 2>/dev/null || true
@@ -218,49 +287,8 @@ if [[ "$VALID" -ne 1 ]]; then
     exit 1
 fi
 
-# ── Persist as a theme-orthogonal state axis (D-19) ──────────────────
-# Atomic temp-file + mv, same idiom as commit.sh's current-theme write.
-# Never a bare one-off write to any single surface — the state file plus
-# the theme-apply re-run below is the sole write path (mirrors
-# wallpaper-picker.sh/icon-theme-picker.sh's post-selection re-run,
-# D-05/D-11/D-20).
-mkdir -p "$(dirname "$FONT_STATE")"
-printf '%s\n' "$SELECTED" > "$FONT_STATE.tmp" && mv "$FONT_STATE.tmp" "$FONT_STATE"
-
-# ── VSCodium: jq-merge the chosen family in (mirrors reload.sh's
-# theme_engine_reload_vscodium jq -s '.[0] * .[1]' idiom) — the engine's
-# reload fan-out has no font key of its own (font is not matugen-rendered
-# for vscodium), so this script owns the one-time write here, same as it
-# owns the font-choice state file above. ──────────────────────────────
-if command -v jq >/dev/null 2>&1; then
-    mkdir -p "$(dirname "$VSCODIUM_SETTINGS")"
-    [[ -f "$VSCODIUM_SETTINGS" ]] || echo '{}' > "$VSCODIUM_SETTINGS"
-
-    FONT_FRAGMENT_FILE=$(mktemp /tmp/font-vscodium-fragment-XXXXXX.json)
-    jq -n --arg editor "'${SELECTED}', 'Fira Code', monospace" \
-          --arg term "'${SELECTED}'" \
-          '{ "editor.fontFamily": $editor, "terminal.integrated.fontFamily": $term }' \
-        > "$FONT_FRAGMENT_FILE"
-
-    jq -s '.[0] * .[1]' "$VSCODIUM_SETTINGS" "$FONT_FRAGMENT_FILE" > "${VSCODIUM_SETTINGS}.tmp" 2>/dev/null \
-        && mv "${VSCODIUM_SETTINGS}.tmp" "$VSCODIUM_SETTINGS" \
-        || rm -f "${VSCODIUM_SETTINGS}.tmp"
-    rm -f "$FONT_FRAGMENT_FILE"
-fi
-
-# ── Re-run theme-apply so font.sh re-renders kitty-font.conf/
-# gtk-font-name and the reload fan-out picks it up (kitty SIGUSR1
-# live-reloads, GTK reload) — never reimplement render/reload here. ─────
-ACTIVE_PRESET=$(cat "$CURRENT_THEME_FILE" 2>/dev/null || echo "")
-if [[ -n "$ACTIVE_PRESET" ]]; then
-    ~/.config/theme-engine/theme-apply "$ACTIVE_PRESET"
-else
-    echo "font-switcher: no active theme recorded yet — font-choice saved, will apply on the next theme-apply run" >&2
-fi
-
-# UI-SPEC Copywriting Contract: worded generically since kitty live-reloads
-# and vscodium needs a restart — never overpromise instant effect
-# everywhere.
-notify-send -a "Font Switcher" "Font Changed" \
-    "Applied $SELECTED — restart apps to see the full effect" \
-    -i preferences-desktop-font -t 2500 2>/dev/null || true
+# ── Persist as a theme-orthogonal state axis (D-19), VSCodium merge,
+# theme-apply re-run, notify — the SAME tail `--set` runs, factored into
+# `_persist_and_apply()` above so there is only one copy (atomic
+# temp-file + mv, never a bare one-off write to any single surface). ────
+_persist_and_apply "$SELECTED"

@@ -39,6 +39,61 @@ ACTIVE_MARKER=" ●"
 SPRITE_NAMES=(pulse sweep glitch scan assemble orbit)
 ASCII_NAMES=(arch star cyberpunk_mask illuminati)
 
+# ── Non-interactive surface (quick-260821-6z1 Task 10, R-6) — `--list`/
+#    `--set <name>`, handled BEFORE any interactive machinery, including
+#    before the cache-warm background job below. `_persist_and_apply()`
+#    is the SAME tail the interactive path runs on Enter (atomic state
+#    write, sprite regen if needed, notify) — factored into one function
+#    both paths call, so there is only one copy to keep correct. ────────
+_all_names() {
+    printf '%s\n' "${SPRITE_NAMES[@]}" "${ASCII_NAMES[@]}" random none
+}
+
+_persist_and_apply() {
+    local selected="$1"
+    mkdir -p "$(dirname "$LOGO_STATE")"
+    printf '%s\n' "$selected" > "$LOGO_STATE.tmp" && mv "$LOGO_STATE.tmp" "$LOGO_STATE"
+
+    # If a sprite was chosen and its GIF is missing or stale against the
+    # current palette hash, generate it now — the ~250ms cost the
+    # interactive path always paid, and the reason a write-only dropdown
+    # would have been the wrong shape for this specific script.
+    if [[ " ${SPRITE_NAMES[*]} " == *" $selected "* ]]; then
+        if command -v python3 &>/dev/null && [[ -f "$SPRITES_PY" ]]; then
+            python3 "$SPRITES_PY" "$selected" >/dev/null 2>&1 || \
+                echo "fastfetch-logo-picker: sprite regen failed for '$selected' — will fall back to themed ASCII until it succeeds" >&2
+        fi
+    fi
+
+    # 3d: deliberately NOT re-running theme-apply here — see the
+    # interactive path's own note, preserved verbatim below.
+    notify-send -a "Fastfetch Logo" "Logo Changed" \
+        "Next shell will greet with: ${selected}" \
+        -i preferences-desktop-theme -t 2500 2>/dev/null || true
+}
+
+case "${1:-}" in
+    --list)
+        _all_names
+        exit 0
+        ;;
+    --set)
+        NAME="${2:-}"
+        [[ -n "$NAME" ]] || { echo "fastfetch-logo-picker.sh --set: name required" >&2; exit 1; }
+        # Re-validate against the ACTUALLY-enumerated set — never trust
+        # the argument as free text, exactly as the interactive path
+        # already re-validates fzf's own return below.
+        VALID=0
+        while IFS= read -r _n; do
+            [[ "$_n" == "$NAME" ]] && { VALID=1; break; }
+        done < <(_all_names)
+        [[ "$VALID" -eq 1 ]] \
+            || { echo "fastfetch-logo-picker.sh --set: '$NAME' is not an enumerated entry" >&2; exit 1; }
+        _persist_and_apply "$NAME"
+        exit 0
+        ;;
+esac
+
 # ── Pipeline-themed fzf colors (THM-04/D-15), same source + fallback
 # discipline as icon-theme-picker.sh ──────────────────────────────────
 # shellcheck source=/dev/null
@@ -253,28 +308,15 @@ if [[ "$VALID" -ne 1 ]]; then
 fi
 
 # ── Persist as a theme-orthogonal state axis (same shape as icon-theme,
-# font-choice, motion-scale) — atomic write, temp file then mv. ────────
-mkdir -p "$(dirname "$LOGO_STATE")"
-printf '%s\n' "$SELECTED" > "$LOGO_STATE.tmp" && mv "$LOGO_STATE.tmp" "$LOGO_STATE"
-
-# ── If a sprite was chosen and its GIF is missing or stale against the
-# current palette hash, generate it now (fastfetch-sprites.py's own
-# hash-sidecar check makes this a no-op if the cache-warm background job
-# above already covered it — never a duplicate ~250ms regen). ─────────
-if [[ " ${SPRITE_NAMES[*]} " == *" $SELECTED "* ]]; then
-    if command -v python3 &>/dev/null && [[ -f "$SPRITES_PY" ]]; then
-        python3 "$SPRITES_PY" "$SELECTED" >/dev/null 2>&1 || \
-            echo "fastfetch-logo-picker: sprite regen failed for '$SELECTED' — will fall back to themed ASCII until it succeeds" >&2
-    fi
-fi
-
-# 3d: deliberately NOT re-running theme-apply here — colours did not
-# change, only which logo the NEXT shell draws (a theme-orthogonal axis
-# exactly like icon-theme/font-choice/motion-scale). Do not "fix" this by
-# adding a theme-apply call; it would be pure overhead for zero visible
-# change on this axis, unlike icon-theme-picker.sh's re-apply, which
-# exists because an icon-theme change on THAT axis needs settings.ini
-# rewritten by the engine.
-notify-send -a "Fastfetch Logo" "Logo Changed" \
-    "Next shell will greet with: ${SELECTED}" \
-    -i preferences-desktop-theme -t 2500 2>/dev/null || true
+# font-choice, motion-scale), regen the sprite if needed, notify — the
+# SAME tail `--set` runs, factored into `_persist_and_apply()` above so
+# there is only one copy. The cache-warm background job earlier in this
+# file makes the sprite-regen call a no-op here if it already finished
+# (fastfetch-sprites.py's own hash-sidecar check), never a duplicate
+# ~250ms regen. 3d: deliberately NOT re-running theme-apply — colours
+# did not change, only which logo the NEXT shell draws (a
+# theme-orthogonal axis exactly like icon-theme/font-choice/
+# motion-scale), unlike icon-theme-picker.sh's re-apply, which exists
+# because an icon-theme change on THAT axis needs settings.ini rewritten
+# by the engine.
+_persist_and_apply "$SELECTED"

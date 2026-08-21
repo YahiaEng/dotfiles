@@ -29,6 +29,88 @@ RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 RECORDING_FILE="$RUNTIME_DIR/record-toggle-filename"
 LOG_FILE="$RUNTIME_DIR/record-toggle.log"
 
+# ── Recording defaults (quick-260821-6z1 Task 10, R-6/PD-05) — bounded to
+#    the three values that were previously literals in the single
+#    gpu-screen-recorder invocation (fps, codec) plus the audio mode that
+#    was previously re-asked interactively on EVERY recording (audio).
+#    Container, capture-target selection, the CPU-fallback flag and the
+#    notification/GIF pipeline are all untouched — this is bounded flag
+#    plumbing, not a script redesign. Absent file degrades to exactly
+#    today's literals (60/auto/ask — "ask" preserves the interactive
+#    walker prompt this script always ran before this task). ────────────
+RECORD_DEFAULTS_STATE="$HOME/.local/state/hypr/record-defaults.json"
+
+_read_defaults() {
+    if [[ -s "$RECORD_DEFAULTS_STATE" ]] && jq -e . "$RECORD_DEFAULTS_STATE" >/dev/null 2>&1; then
+        cat "$RECORD_DEFAULTS_STATE"
+    else
+        echo '{"fps":60,"codec":"auto","audio":"ask"}'
+    fi
+}
+
+cmd_get_defaults() {
+    _read_defaults
+}
+
+# Closed enumeration per key — an unknown key or an unenumerated value
+# exits non-zero and writes nothing, never trusting the argument as free
+# text. `fps`/`codec` are gpu-screen-recorder's own documented value sets
+# (the binary is not installed on this dev host — see this file's own
+# header — so these are its documented CLI vocabulary, not a live probe);
+# `audio` mirrors pick_audio()'s own three interactive choices plus
+# "ask" for today's per-recording prompt.
+cmd_set_default() {
+    local key="${1:-}" value="${2:-}"
+    [[ -n "$key" && -n "$value" ]] \
+        || { echo "record-toggle.sh set-default: usage: set-default <key> <value>" >&2; exit 1; }
+
+    case "$key" in
+        fps)
+            case "$value" in
+                24|30|60|120) ;;
+                *) echo "record-toggle.sh: fps '$value' not in {24,30,60,120}" >&2; exit 1 ;;
+            esac
+            ;;
+        codec)
+            case "$value" in
+                auto|h264|hevc|av1|vp8|vp9) ;;
+                *) echo "record-toggle.sh: codec '$value' not in {auto,h264,hevc,av1,vp8,vp9}" >&2; exit 1 ;;
+            esac
+            ;;
+        audio)
+            case "$value" in
+                silent|desktop|desktop+mic|ask) ;;
+                *) echo "record-toggle.sh: audio '$value' not in {silent,desktop,desktop+mic,ask}" >&2; exit 1 ;;
+            esac
+            ;;
+        *)
+            echo "record-toggle.sh: set-default: unknown key '$key' (expected fps|codec|audio)" >&2
+            exit 1
+            ;;
+    esac
+
+    mkdir -p "$(dirname "$RECORD_DEFAULTS_STATE")"
+    local json
+    if [[ "$key" == "fps" ]]; then
+        json=$(_read_defaults | jq --arg k "$key" --argjson v "$value" '.[$k] = $v')
+    else
+        json=$(_read_defaults | jq --arg k "$key" --arg v "$value" '.[$k] = $v')
+    fi
+    printf '%s' "$json" > "$RECORD_DEFAULTS_STATE.tmp" && mv "$RECORD_DEFAULTS_STATE.tmp" "$RECORD_DEFAULTS_STATE"
+    echo "record-toggle.sh: $key set to $value"
+}
+
+# The `pgrep` status probe this file's own header already anticipated as
+# "a future bar module could read" — a readable status surface, not a
+# new mechanism.
+cmd_status() {
+    if recording_active; then
+        echo "recording"
+    else
+        echo "idle"
+    fi
+}
+
 # Status probe for a future bar recording indicator: while a
 # recording is active, `pgrep -f "^gpu-screen-recorder "` (note the
 # trailing space, bounding the match to argv[0]) is truthy — no other
@@ -88,6 +170,20 @@ stop_recording() {
 # on cancel/failure actually terminate the script, not just a subshell.
 AUDIO_DEVICES=""
 pick_audio() {
+    # Task 10 (PD-05): a non-"ask" default skips the interactive picker
+    # entirely — "ask" (the absent-file default) preserves today's flow
+    # byte-for-byte.
+    local audio_default
+    audio_default=$(_read_defaults | jq -r '.audio // "ask"')
+    if [[ "$audio_default" != "ask" ]]; then
+        case "$audio_default" in
+            silent) AUDIO_DEVICES="" ;;
+            desktop) AUDIO_DEVICES="default_output" ;;
+            desktop+mic) AUDIO_DEVICES="default_output|default_input" ;;
+        esac
+        return
+    fi
+
     local rc=0
     local selected
     selected=$(printf '%s\n' \
@@ -190,7 +286,14 @@ start_recording() {
     filename="$VIDEOS_DIR/recording_$(date +%Y%m%d_%H%M%S).mp4"
     : >"$LOG_FILE"
 
-    gpu-screen-recorder "${capture_args[@]}" -k auto -f 60 -fm cfr \
+    # Task 10 (PD-05): fps/codec read from the same defaults `pick_audio`
+    # already reads, each falling back to today's literal (60/auto).
+    local defaults fps codec
+    defaults=$(_read_defaults)
+    fps=$(printf '%s' "$defaults" | jq -r '.fps // 60')
+    codec=$(printf '%s' "$defaults" | jq -r '.codec // "auto"')
+
+    gpu-screen-recorder "${capture_args[@]}" -k "$codec" -f "$fps" -fm cfr \
         -fallback-cpu-encoding yes -o "$filename" "${audio_args[@]}" \
         >/dev/null 2>>"$LOG_FILE" &
     local pid=$!
@@ -217,8 +320,35 @@ start_recording() {
     fi
 }
 
-if recording_active; then
-    stop_recording
-else
-    start_recording
-fi
+# ── Dispatcher (Task 10, R-6) — every existing caller and keybind is
+#    unaffected: `record-toggle.sh` with no argument still does exactly
+#    the bare `if recording_active; then stop_recording; else
+#    start_recording; fi` this file always did. ─────────────────────────
+main() {
+    local sub="${1:-}"
+    case "$sub" in
+        status)
+            cmd_status
+            ;;
+        set-default)
+            shift
+            cmd_set_default "$@"
+            ;;
+        get-defaults)
+            cmd_get_defaults
+            ;;
+        "")
+            if recording_active; then
+                stop_recording
+            else
+                start_recording
+            fi
+            ;;
+        *)
+            echo "record-toggle.sh: unknown argument '$sub' (expected status|set-default|get-defaults, or no argument to toggle)" >&2
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
