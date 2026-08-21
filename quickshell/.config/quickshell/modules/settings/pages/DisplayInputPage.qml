@@ -174,7 +174,25 @@ PageBase {
         property string kbLayout: "us"
         property int followMouseValue: 1
         property real sensitivityValue: 0
-        property bool naturalScroll: true
+        property bool naturalScroll: false
+        // Bug 2 fix (operator: "Natural Scroll flashes ON for a split
+        // second, then switches itself OFF"): MEASURED, not guessed —
+        // `hyprctl getoption input:touchpad:natural_scroll -j` returns
+        // `{"bool": true, ...}`, no `.int` field at all (this option is
+        // boolean-typed; `.int`/`.float`/`.str` are the OTHER getoption
+        // shapes, per this repo's own established quirk). The read
+        // below used to check `.int === 1`, which is `undefined === 1`
+        // — always false — so the "correction" wasn't just late, it was
+        // WRONG every time, permanently misreporting an ON setting as
+        // OFF once the async read landed. Fixed at the source (`.bool`
+        // below). The flash itself was a SEPARATE problem layered on
+        // top: `naturalScroll` defaulted to a GUESSED `true`, rendering
+        // a state nobody had confirmed before the real read arrived.
+        // Per the coordinator's own instruction, never render a guessed
+        // state — `naturalScrollLoaded` gates the row's `enabled`/
+        // `opacity` below until the first real read lands, so the row
+        // is inert rather than briefly lying.
+        property bool naturalScrollLoaded: false
 
         function refresh() {
             kbLayoutProc.running = true;
@@ -233,7 +251,8 @@ PageBase {
             onExited: (code, status) => {
                 if (code === 0) {
                     try {
-                        inputSection.naturalScroll = JSON.parse(naturalScrollCollector.text).int === 1;
+                        inputSection.naturalScroll = JSON.parse(naturalScrollCollector.text).bool === true;
+                        inputSection.naturalScrollLoaded = true;
                     } catch (e) {}
                 }
             }
@@ -297,6 +316,8 @@ PageBase {
             label: "Natural scroll (touchpad)"
             subtext: "Reverse scroll direction to match touch gestures"
             checked: inputSection.naturalScroll
+            enabled: inputSection.naturalScrollLoaded
+            opacity: inputSection.naturalScrollLoaded ? 1 : 0.5
             onToggled: (value) => inputSection.apply("--natural-scroll", value ? "true" : "false")
         }
     }
