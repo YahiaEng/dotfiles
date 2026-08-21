@@ -192,6 +192,16 @@ Control {
         }
     }
 
+    // Fix WR-02 (code review, quick-260821-6z1 fix wave) — keyboard
+    // activation for the two-pane focus system (Pages.qml's own
+    // `activateContentRow()` calls this by duck-typing on `model`, the
+    // property unique to this row type among the five primitives). Same
+    // guard as the mouse path: no-op while a write is already in flight.
+    function openMenu() {
+        if (!root.busy)
+            optionsMenu.popup();
+    }
+
     // Operator live-pass item 10 (FAIL — "the theme selection menu is
     // hardcoded and does not re-theme with theme switches") plus the
     // reported hover flicker/inconsistent hitbox: MEASURED root cause,

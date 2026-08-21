@@ -113,6 +113,51 @@ Item {
         root._scrollRowIntoView();
     }
 
+    // ── Fix WR-02 (code review, quick-260821-6z1 fix wave) — the two-pane
+    //    focus system above draws a ring on whichever row holds
+    //    `contentRowIdx` but, until this fix, wired no way to actually DO
+    //    anything to that row from the keyboard: no row type declared a
+    //    `Keys.onReturnPressed`/`onSpacePressed` handler, and none of them
+    //    ever receive real QML `activeFocus` (`rowFocused` is a plain
+    //    externally-set property this file writes, not `Item.focus`).
+    //    Settings.qml's `escCatcher` dispatches Enter/Space here.
+    //
+    //    Duck-types on each row TYPE's own distinguishing property/signal
+    //    rather than a `type`/`kind` string this file would have to keep
+    //    in step with five separate row files — a genuinely-declared QML
+    //    property is either present (a real value) or `undefined` (never
+    //    declared), so this reads reliably regardless of the row's
+    //    current value:
+    //      - ToggleRow — the only type with a `checked` property.
+    //      - SelectRow — the only type with a `model` property.
+    //      - NavRow — has neither `checked` nor `model`, but DOES expose
+    //        an `activated()` signal.
+    //    SliderRow and InfoRow are DELIBERATELY not handled here — see
+    //    SUMMARY.md's "Deferred: SliderRow keyboard value adjustment"
+    //    note. A single Enter/Space keypress has no natural "the one
+    //    thing to do" semantics for a continuous-value slider the way it
+    //    does for a boolean/enum/navigation row, and the reviewer's own
+    //    suggested shape (Left/Right nudges the value once inside a row)
+    //    would collide directly with THIS SAME escCatcher's existing
+    //    Left/Right bindings (`exitContent()`/`enterContent()`, the
+    //    two-pane rail<->content switch) — reusing those keys for a
+    //    third, row-local meaning is a genuine interaction-model
+    //    decision, not a contained per-row handler, so it is named as a
+    //    follow-up rather than started here. InfoRow is intentionally
+    //    non-interactive (PD-07) and has no action to take at all.
+    function activateContentRow() {
+        if (!root.contentFocused || root.contentRowIdx < 0 || root.contentRowIdx >= root._focusableRows.length)
+            return;
+        var row = root._focusableRows[root.contentRowIdx];
+        if (row.checked !== undefined) {
+            row.toggled(!row.checked);
+        } else if (row.model !== undefined) {
+            row.openMenu();
+        } else if (typeof row.activated === "function") {
+            row.activated();
+        }
+    }
+
     // Declared ABOVE every construction-time caller in this file (MEMORY
     // qml-declare-before-construction-time-use) — Component.onCompleted
     // below calls this.

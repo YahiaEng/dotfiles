@@ -165,6 +165,17 @@ FloatingWindow {
         Keys.onLeftPressed: pagesHost.exitContent()
         Keys.onRightPressed: pagesHost.enterContent()
 
+        // Fix WR-02 (code review, quick-260821-6z1 fix wave) — the
+        // two-pane focus ring above had no way to ACT on the row it
+        // highlighted. Dispatches to whichever row currently holds
+        // `contentRowIdx`, via `Pages.qml`'s own duck-typed
+        // `activateContentRow()` — see that function's header for which
+        // row types respond and why SliderRow is a named, sized
+        // follow-up rather than handled here.
+        Keys.onReturnPressed: pagesHost.activateContentRow()
+        Keys.onEnterPressed: pagesHost.activateContentRow()
+        Keys.onSpacePressed: pagesHost.activateContentRow()
+
         // Re-claims QML-level focus every time this window (re)gains real
         // OS activation — fixes the original construction-time race
         // (Component.onCompleted alone can fire before
