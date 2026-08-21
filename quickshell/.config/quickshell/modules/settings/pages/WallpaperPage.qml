@@ -39,6 +39,68 @@ PageBase {
         property string applyingRelpath: ""
         property string listError: ""
 
+        // ── Folder filter (operator fix wave finding 2) — "All" plus one
+        //    entry per folder actually present in `entries`, NEVER a
+        //    hardcoded folder list: a new theme's wallpaper folder shows
+        //    up here automatically the next time `--list` is run, exactly
+        //    the same enumerate-don't-hardcode discipline every picker
+        //    script in this repo already follows.
+        readonly property var folders: {
+            var seen = ({});
+            var list = [];
+            for (var i = 0; i < wallpaperSection.entries.length; i++) {
+                var f = wallpaperSection.entries[i].relpath.split("/")[0];
+                if (!seen[f]) {
+                    seen[f] = true;
+                    list.push(f);
+                }
+            }
+            list.sort();
+            return list;
+        }
+        readonly property var folderOptions: {
+            var opts = [{ value: "All", display: "All" }];
+            for (var i = 0; i < wallpaperSection.folders.length; i++)
+                opts.push({ value: wallpaperSection.folders[i], display: wallpaperSection.folders[i] });
+            return opts;
+        }
+        property string filterFolder: "All"
+        // Runs once, the first time `entries` is non-empty — defaults the
+        // filter to the ACTIVE theme's own folder when one exists (the
+        // wallpaper folder names are literally the theme preset names —
+        // wallpaper-picker.sh:506 itself already does
+        // `THEME_FOLDER="$WALLPAPER_DIR/$CURRENT_THEME"`, so this is the
+        // SAME identity mapping the picker already relies on, never an
+        // invented one). Falls back to "All" when the active theme has no
+        // matching folder (materialyou/materialyou-light, or a
+        // not-yet-populated `entries`).
+        property bool filterDefaulted: false
+        function applyDefaultFilter() {
+            if (wallpaperSection.filterDefaulted || wallpaperSection.folders.length === 0)
+                return;
+            wallpaperSection.filterDefaulted = true;
+            var theme = (currentThemeFile.text() || "").trim();
+            if (theme.length > 0 && wallpaperSection.folders.indexOf(theme) !== -1)
+                wallpaperSection.filterFolder = theme;
+        }
+        readonly property var filteredEntries: {
+            if (wallpaperSection.filterFolder === "All")
+                return wallpaperSection.entries;
+            return wallpaperSection.entries.filter(function (e) {
+                return e.relpath.split("/")[0] === wallpaperSection.filterFolder;
+            });
+        }
+
+        // Same plain-text state read AppearancePage.qml's `currentThemeFile`
+        // already uses (MEMORY stale-theme-tracker-trap: read
+        // ~/.local/state/theme/current-theme, never ~/.cache/current-theme).
+        FileView {
+            id: currentThemeFile
+            path: Quickshell.env("HOME") + "/.local/state/theme/current-theme"
+            watchChanges: true
+            onFileChanged: reload()
+        }
+
         function refreshActive() {
             activeProc.running = true;
         }
@@ -85,6 +147,7 @@ PageBase {
                         isLive: relpath.indexOf("/live/") !== -1
                     };
                 });
+                wallpaperSection.applyDefaultFilter();
             }
             Component.onCompleted: {
                 listWatchdog.restart();
@@ -144,6 +207,14 @@ PageBase {
             color: Colours.error
         }
 
+        SelectRow {
+            label: "Filter by folder"
+            subtext: "Show wallpapers from one folder, or all of them."
+            model: wallpaperSection.folderOptions
+            currentValue: wallpaperSection.filterFolder
+            onSelected: (value) => wallpaperSection.filterFolder = value
+        }
+
         // ── The grid itself — a bounded-height, independently-scrollable
         //    GridView (never an eager Grid/Flow): with the library's
         //    ~90 entries on this host alone, an unbounded Grid would
@@ -161,7 +232,7 @@ PageBase {
             clip: true
             cellWidth: 132
             cellHeight: 104
-            model: wallpaperSection.entries
+            model: wallpaperSection.filteredEntries
 
             delegate: Item {
                 id: tile
