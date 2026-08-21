@@ -139,6 +139,39 @@ Item {
         root._focusableRows = root._collectFocusableRows(root.currentItem);
         root.contentFocused = false;
         root.contentRowIdx = -1;
+
+        // ── Search-result jump target (quick-260821-6z1 Task 3, D-06/R-4)
+        //    — SettingsState.selectSearchResult() sets `pendingRowLabel`
+        //    BEFORE calling `goToPage()`, so it is already populated by
+        //    the time this swap lands. Reuses the EXISTING focus-ring and
+        //    scroll mechanisms (`_applyRowFocusVisual()`/
+        //    `_scrollRowIntoView()`) rather than building a second
+        //    highlight visual — this plan's own explicit instruction. A
+        //    label that matches nothing (a stale RowIndex entry, a rename
+        //    landed in one place and not the other) clears the pending
+        //    label and logs a NAMED warning rather than returning
+        //    silently — a guard that returns silently is what turned a
+        //    real ordering rejection into "the edit did nothing" in a
+        //    prior wave on this same surface. ─────────────────────────
+        if (root.sState.pendingRowLabel.length > 0) {
+            var targetLabel = root.sState.pendingRowLabel;
+            var foundIdx = -1;
+            for (var j = 0; j < root._focusableRows.length; j++) {
+                if (root._focusableRows[j].label === targetLabel) {
+                    foundIdx = j;
+                    break;
+                }
+            }
+            if (foundIdx >= 0) {
+                root.contentFocused = true;
+                root.contentRowIdx = foundIdx;
+                root._applyRowFocusVisual();
+                root._scrollRowIntoView();
+            } else {
+                console.warn("Pages: search jump target not found on this page: " + targetLabel);
+            }
+            root.sState.pendingRowLabel = "";
+        }
     }
 
     // Operator live-pass item 3 (PARTIAL — "moving between them feels

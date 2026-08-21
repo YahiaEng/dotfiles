@@ -21,6 +21,45 @@ QtObject {
 
     signal close()
 
+    // ── Search (quick-260821-6z1 Task 3, D-06/F-01/PD-08) — `searchText`
+    //    drives NavRail's own model switch (PageRegistry.pages when
+    //    empty, `searchResults` below otherwise). `pendingRowLabel` is
+    //    the jump key a search-result click sets before calling
+    //    `goToPage()`: Pages.qml's `_swapTo()` reads it once the new
+    //    page has incubated and re-collected its focusable rows, rings
+    //    and scrolls the matching row into view, then clears it — see
+    //    that file's own header. Matching is substring, case-insensitive
+    //    (PD-08 — not fuzzy: at ~75 rows a wrong fuzzy hit at the top of
+    //    the list is worse than a missing substring hit), over
+    //    `label + " " + section + " " + keywords`. Declared ABOVE
+    //    `goToPage` below is unnecessary here (searchResults has no
+    //    construction-time caller in this file), but functions are kept
+    //    grouped above every property that reads them for the same
+    //    discipline this file's own header already requires. ───────────
+    property string searchText: ""
+    property string pendingRowLabel: ""
+
+    readonly property var searchResults: {
+        var q = root.searchText.trim().toLowerCase();
+        if (q.length === 0)
+            return [];
+        var out = [];
+        var rows = RowIndex.rows;
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var haystack = (row.label + " " + row.section + " " + (row.keywords || "")).toLowerCase();
+            if (haystack.indexOf(q) !== -1) {
+                out.push(row);
+                // Capped at a sane result count — a runaway match list is
+                // no more useful than the unfiltered page list it
+                // replaces.
+                if (out.length >= 20)
+                    break;
+            }
+        }
+        return out;
+    }
+
     // Task 2 (ConnectivityPage) — the shared relay every page uses to
     // reach the guarded `openPanel()` summon path, since a dynamically
     // incubated page (Pages.qml) has no direct handle back to Settings.qml
@@ -42,5 +81,18 @@ QtObject {
             return;
         }
         root.currentPageIdx = idx;
+    }
+
+    // Called from a search-result delegate's click (NavRail.qml) — sets
+    // the jump key BEFORE navigating, so Pages.qml's `_swapTo()` sees it
+    // already populated once the new page's incubation completes and its
+    // own `Component.onCompleted`/`onCurrentPageIdxChanged` path runs
+    // `goTo()`. Also clears `searchText`, closing the result list once a
+    // result has been chosen — matching a normal nav-rail click's own
+    // "the window now shows that page" behaviour.
+    function selectSearchResult(row) {
+        root.pendingRowLabel = row.label;
+        root.searchText = "";
+        root.goToPage(row.pageIdx);
     }
 }

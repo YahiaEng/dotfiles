@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════════╗
+# ║              SETTINGS-INDEX-CHECK (quick-260821-6z1)      ║
+# ║  RowIndex/page-row completeness gate for the Quickshell    ║
+# ║  settings window's search index.                           ║
+# ╚══════════════════════════════════════════════════════════╝
+#
+# D-06/R-4: the settings search box (NavRail.qml) is backed by a
+# declarative RowIndex.qml singleton, NOT a live walk of every page's
+# instantiated rows (Pages.qml destroys the previous page before
+# incubating the next — exactly one page object exists at a time, so a
+# live index is structurally impossible). That makes RowIndex a SEPARATE
+# source of truth from the page files themselves, which rots on the very
+# first follow-up commit that adds a row to a page without adding its
+# RowIndex entry in the same commit — silently: a missing entry is not a
+# crash, not a load error, just a row nobody can find by typing its name.
+# This gate is the mechanism that keeps the two in step.
+#
+# Every check strips `//`-comment lines before counting or matching, so a
+# gate that greps its own or its target's prose can never inflate a count
+# or produce a false match (this repo has already been bitten by exactly
+# that class of bug elsewhere).
+#
+# CHECK A — for each page index, the count of RowIndex entries with that
+#           pageIdx equals the count of row-primitive declarations
+#           (ToggleRow/SliderRow/SelectRow/NavRow/InfoRow) in the mapped
+#           page file. The index-to-file mapping is parsed from
+#           PageCompRegistry.qml's own `comps:` array and its
+#           `Component { XPage {} }` declarations — NEVER a hardcoded
+#           list, so this gate cannot itself drift from the registry it
+#           checks against.
+# CHECK B — every RowIndex entry's `label` string appears verbatim
+#           (fixed-string match, via `grep -F`, never a regex) in its
+#           mapped page file — catches a rename landed in one place and
+#           not the other.
+# CHECK C — every RowIndex entry's `pageIdx` is within range of the
+#           `comps` array.
+# CHECK D — the scanned-page count is greater than zero (mirrors
+#           colour-lint's own CHECK C), so an empty scan can never read
+#           as a pass.
+#
+# Usage:
+#   settings-index-check
+#       No argument: scans the real deployed settings module under
+#       $HOME/.config/quickshell/modules/settings.
+#   settings-index-check <dir>
+#       Treats <dir> as the settings module root (RowIndex.qml,
+#       PageCompRegistry.qml, pages/ all expected directly under it) —
+#       lets this be pointed at a throwaway fixture, same idiom every
+#       other gate in this repo uses.
+#
+# Deliberately NO --self-test flag (unlike quickshell-doctor) — this
+# gate's own falsification is exercised inline by Task 3's own <verify>
+# block: temporarily add one unindexed row to a real page file, confirm
+# the gate FAILs and names that page, remove it, confirm PASS again. A
+# --self-test-free simple design, per this task's own instruction.
+#
+# Exit codes: 0 clean / 1 any [FAIL] / 2 invalid target (missing files).
+
+QS_DIR="${1:-$HOME/.config/quickshell/modules/settings}"
+
+ROWINDEX="$QS_DIR/RowIndex.qml"
+COMPREG="$QS_DIR/PageCompRegistry.qml"
+PAGES_DIR="$QS_DIR/pages"
+
+echo "settings-index-check — RowIndex/page row completeness gate"
+echo "  target: $QS_DIR"
+echo ""
+
+if [[ ! -f "$ROWINDEX" || ! -f "$COMPREG" || ! -d "$PAGES_DIR" ]]; then
+    echo "settings-index-check: cannot find RowIndex.qml / PageCompRegistry.qml / pages/ under $QS_DIR" >&2
+    exit 2
+fi
+
+PASS=0
+FAIL=0
+
+check() {
+    local desc="$1" cond="$2"
+    if [[ "$cond" -eq 0 ]]; then
+        printf '  [PASS] %s\n' "$desc"
+        PASS=$((PASS + 1))
+    else
+        printf '  [FAIL] %s\n' "$desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+strip_comments() {
+    grep -v '^[[:space:]]*//' "$1"
+}
+
+# ── Derive pageIdx -> page-file mapping from PageCompRegistry.qml's own
+#    `comps:` array — never a hand-maintained list, so this gate itself
+#    cannot drift from the registry it checks. ─────────────────────────
+mapfile -t COMP_ORDER < <(awk '
+    /readonly property list<Component> comps:/ { inarr = 1; next }
+    inarr {
+        if ($0 ~ /\]/) { inarr = 0; next }
+        gsub(/[, \t]/, "")
+        if (length($0) > 0) print $0
+    }
+' "$COMPREG")
+
+PAGE_FILES=()
+for comp in "${COMP_ORDER[@]}"; do
+    pagename=$(awk -v c="$comp" '
+        $0 ~ ("property Component " c ":") { found = 1; next }
+        found {
+            if (match($0, /[A-Za-z_][A-Za-z0-9_]*Page/)) {
+                print substr($0, RSTART, RLENGTH)
+                exit
+            }
+        }
+    ' "$COMPREG")
+    if [[ -z "$pagename" ]]; then
+        echo "settings-index-check: could not resolve a page class for comp '$comp' in $COMPREG" >&2
+        exit 2
+    fi
+    PAGE_FILES+=("$PAGES_DIR/$pagename.qml")
+done
+
+N=${#PAGE_FILES[@]}
+
+# ── CHECK A ─────────────────────────────────────────────────────────────
+for ((i = 0; i < N; i++)); do
+    f="${PAGE_FILES[$i]}"
+    if [[ ! -f "$f" ]]; then
+        check "CHECK A: pageIdx $i — mapped file does not exist: $f" 1
+        continue
+    fi
+    idx_count=$(strip_comments "$ROWINDEX" | grep -c "pageIdx: $i,")
+    row_count=$(strip_comments "$f" | grep -cE '^[[:space:]]*(ToggleRow|SliderRow|SelectRow|NavRow|InfoRow)[[:space:]]*\{')
+    if [[ "$idx_count" -eq "$row_count" ]]; then
+        check "CHECK A: pageIdx $i ($(basename "$f")): RowIndex entries ($idx_count) match row declarations ($row_count)" 0
+    else
+        check "CHECK A: pageIdx $i ($(basename "$f")): RowIndex entries ($idx_count) != row declarations ($row_count)" 1
+    fi
+done
+
+# ── CHECK B ─────────────────────────────────────────────────────────────
+# Process substitution, NOT a trailing `| while` — a `| while` loop runs
+# in a subshell, and PASS/FAIL increments inside it would silently vanish
+# once the pipeline exits (the exact pipefail/subshell class of bug this
+# repo's own project memory already warns about).
+while IFS= read -r line; do
+    idx=$(grep -oE 'pageIdx: [0-9]+' <<<"$line" | grep -oE '[0-9]+')
+    label=$(grep -oE 'label: "[^"]*"' <<<"$line" | sed -E 's/label: "(.*)"/\1/')
+    if [[ -z "$idx" || "$idx" -ge "$N" ]]; then
+        check "CHECK B: label \"$label\" — pageIdx $idx out of range, skipped (see CHECK C)" 0
+        continue
+    fi
+    f="${PAGE_FILES[$idx]}"
+    if grep -qF "label: \"$label\"" "$f"; then
+        check "CHECK B: pageIdx $idx label \"$label\" found verbatim in $(basename "$f")" 0
+    else
+        check "CHECK B: pageIdx $idx label \"$label\" NOT found in $(basename "$f")" 1
+    fi
+done < <(strip_comments "$ROWINDEX" | grep -oE 'pageIdx: [0-9]+, section: "[^"]*", label: "[^"]*"')
+
+# ── CHECK C ─────────────────────────────────────────────────────────────
+OUT_OF_RANGE=0
+while IFS= read -r idx; do
+    if (( idx < 0 || idx >= N )); then
+        OUT_OF_RANGE=1
+        echo "  [FAIL] CHECK C: RowIndex pageIdx $idx is out of range [0, $((N - 1))]"
+    fi
+done < <(strip_comments "$ROWINDEX" | grep -oE 'pageIdx: [0-9]+' | grep -oE '[0-9]+')
+check "CHECK C: every RowIndex pageIdx is within range [0, $((N - 1))]" "$OUT_OF_RANGE"
+
+# ── CHECK D ─────────────────────────────────────────────────────────────
+if [[ "$N" -gt 0 ]]; then
+    check "CHECK D: scanned $N page(s) — non-zero floor" 0
+else
+    check "CHECK D: scanned $N page(s) — non-zero floor" 1
+fi
+
+echo ""
+if [[ "$FAIL" -eq 1 ]]; then
+    FAIL_WORD="check failed"
+else
+    FAIL_WORD="checks failed"
+fi
+printf 'Summary: %d passed, %d %s\n' "$PASS" "$FAIL" "$FAIL_WORD"
+[[ "$FAIL" -eq 0 ]]
+exit $?

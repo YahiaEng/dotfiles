@@ -15,6 +15,11 @@
 module qs.modules.settings
 singleton PageRegistry 1.0 PageRegistry.qml
 singleton PageCompRegistry 1.0 PageCompRegistry.qml
+# RowIndex (quick-260821-6z1 Task 3, D-06/R-4) — the declarative per-row
+# search index, a separate singleton with a `pageIdx` foreign key into
+# PageRegistry/PageCompRegistry (see RowIndex.qml's own header for why it
+# is not folded into PageRegistry.pages[]).
+singleton RowIndex 1.0 RowIndex.qml
 SettingsState 1.0 SettingsState.qml
 NavRail 1.0 NavRail.qml
 Pages 1.0 Pages.qml
