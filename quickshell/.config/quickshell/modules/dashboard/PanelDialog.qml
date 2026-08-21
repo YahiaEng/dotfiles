@@ -306,9 +306,13 @@ PanelWindow {
                     anchors.fill: parent
                     hoverEnabled: true
                     onClicked: panelWindow.launchAdvanced()
-                    ToolTip.visible: advancedMouseArea.containsMouse
-                    ToolTip.text: panelWindow.advancedAvailable ? "Open " + panelWindow.advancedLabel.toLowerCase() + " settings" : panelWindow.advancedUnavailableReason
-                    ToolTip.delay: Design.tooltipDelayMs
+                }
+                // ThemedToolTip (quick-260821-6z1 fix wave) — replaces the
+                // bare attached ToolTip shorthand; see ThemedToolTip.qml's
+                // own header.
+                ThemedToolTip {
+                    visible: advancedMouseArea.containsMouse
+                    text: panelWindow.advancedAvailable ? "Open " + panelWindow.advancedLabel.toLowerCase() + " settings" : panelWindow.advancedUnavailableReason
                 }
             }
         }

@@ -497,20 +497,23 @@ PanelWindow {
                 // making the reason UNREACHABLE, which is exactly what
                 // PanelDialog.qml's own Advanced button comment warns
                 // against.
-                // F2 (quick task 260812-69w) — deliberately LEFT AS the
-                // plain attached ToolTip, not converted to
-                // BarTooltipHost. Same reasoning as AudioPopout.qml's own
-                // audioMuteMouseArea comment: this frame is several
-                // hundred pixels tall (Task 1's Probe B measured the
-                // sibling site's Popup clamp landing at y=60, fully clear
-                // of its glyph, in the same window architecture this foot
-                // link shares), so there is no overlap here to fix.
+                // F2 (quick task 260812-69w) — deliberately LEFT AS a
+                // standalone ToolTip, not converted to BarTooltipHost. Same
+                // reasoning as AudioPopout.qml's own audioMuteMouseArea
+                // comment: this frame is several hundred pixels tall (Task
+                // 1's Probe B measured the sibling site's Popup clamp
+                // landing at y=60, fully clear of its glyph, in the same
+                // window architecture this foot link shares), so there is
+                // no overlap here to fix. Orthogonal to the colour fix below
+                // (quick-260821-6z1 fix wave) — see ThemedToolTip.qml.
                 MouseArea {
                     id: wayfindingMouseArea
                     anchors.fill: parent
                     hoverEnabled: true
                     onClicked: popoutWindow.activateWayfinding()
-                    ToolTip.visible: wayfindingMouseArea.containsMouse
+                }
+                ThemedToolTip {
+                    visible: wayfindingMouseArea.containsMouse
                     // The label VERBATIM, not "Open " + label.toLowerCase().
                     // Every one of the seven wayfindingLabel values already
                     // begins with "Open", so the old expression rendered "Open
@@ -518,8 +521,7 @@ PanelWindow {
                     // label was also drawn on the pill, but this tooltip is now
                     // the only place the destination appears at all, so it has
                     // to read correctly.
-                    ToolTip.text: popoutWindow.wayfindingAvailable ? popoutWindow.wayfindingLabel : popoutWindow.wayfindingUnavailableReason
-                    ToolTip.delay: Design.tooltipDelayMs
+                    text: popoutWindow.wayfindingAvailable ? popoutWindow.wayfindingLabel : popoutWindow.wayfindingUnavailableReason
                 }
             }
         }

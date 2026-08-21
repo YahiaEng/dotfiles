@@ -206,13 +206,17 @@ Item {
         //    the reason unreachable, exactly the failure PanelDialog's
         //    own Advanced button comment already warns against. ─────────
         MouseArea {
+            id: footerReasonMouseArea
             anchors.fill: parent
             enabled: !row.reachable
             hoverEnabled: true
             acceptedButtons: Qt.NoButton
-            ToolTip.visible: containsMouse && !row.reachable
-            ToolTip.text: row.unavailableReason
-            ToolTip.delay: Design.tooltipDelayMs
+        }
+        // ThemedToolTip (quick-260821-6z1 fix wave) — replaces the bare
+        // attached ToolTip shorthand; see ThemedToolTip.qml's own header.
+        ThemedToolTip {
+            visible: footerReasonMouseArea.containsMouse && !row.reachable
+            text: row.unavailableReason
         }
     }
 
