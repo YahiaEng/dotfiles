@@ -51,6 +51,13 @@ function M.get()
     overrides.decoration.shadow = (type(overrides.decoration.shadow) == "table") and overrides.decoration.shadow or {}
     overrides.binds = (type(overrides.binds) == "table") and overrides.binds or {}
 
+    -- quick-260821-6z1 Task 6 (D-08/F-03) — per-device keyboard layout /
+    -- scroll factor, keyed by device name. Guaranteed present the same
+    -- way every sibling sub-table above is, so `hyprland.lua`'s own
+    -- `pairs(overrides.devices)` loop never has to nil-check the table
+    -- itself, only each entry's individual fields.
+    overrides.devices = (type(overrides.devices) == "table") and overrides.devices or {}
+
     return overrides
 end
 

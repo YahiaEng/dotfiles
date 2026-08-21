@@ -46,6 +46,26 @@
 # `animations:first_launch_animation` and `misc:new_window_takes_over_fullscreen`
 # all return `no such option` on this build (Hyprland 0.56.2) and must
 # never appear below.
+#
+#   hypr-overrides.sh devices
+#       Emits a filtered JSON device list on stdout: real keyboards
+#       (udev ID_INPUT_KEYBOARD=1) and real pointers (ID_INPUT_MOUSE=1),
+#       joined against `hyprctl devices -j` by Hyprland's own
+#       lowercase-and-hyphenate name transform. Excludes the ID_INPUT_KEY
+#       -only phantom nodes (power buttons, headset consumer-control) a
+#       hand-maintained name blocklist could never keep up with. A device
+#       that fails to join is still emitted, flagged `joined:false` —
+#       never silently dropped.
+#   hypr-overrides.sh device <name> [--kb-layout <layout>] [--scroll-factor <0.0-10.0>]
+#       Per-device write (quick-260821-6z1 Task 6, D-08/F-03/R-5). The
+#       ONLY two per-device fields with a real read-back oracle
+#       (`hyprctl devices -j` — `hyprctl getoption device:<name>:<key>`
+#       returns `no such option` for EVERY per-device key on this build).
+#       Per-device sensitivity and per-device natural scroll are
+#       deliberately NOT here (N-03) — both apply live (`ok`) but produce
+#       no observable change in any `hyprctl` output, so this script's
+#       own "verify against `hyprctl -j`, never the `ok` reply" contract
+#       cannot be satisfied for either.
 
 set -uo pipefail
 
@@ -72,7 +92,7 @@ _read_json_state() {
     if [[ -s "$JSON_STATE" ]] && jq -e . "$JSON_STATE" >/dev/null 2>&1; then
         cat "$JSON_STATE"
     else
-        echo '{"monitors":{},"input":{},"general":{},"decoration":{},"binds":{}}'
+        echo '{"monitors":{},"input":{},"general":{},"decoration":{},"binds":{},"devices":{}}'
     fi
 }
 
@@ -136,6 +156,14 @@ _persist() {
         ( if ((.binds.workspace_back_and_forth) | type) != "null" then "        workspace_back_and_forth = " + (.binds.workspace_back_and_forth | tostring) + ",\n" else "" end ) +
         ( if ((.binds.allow_workspace_cycles) | type) != "null" then "        allow_workspace_cycles = " + (.binds.allow_workspace_cycles | tostring) + ",\n" else "" end ) +
         "    },\n" +
+        "    devices = {\n" +
+        ( [ (.devices // {}) | to_entries[] |
+            "        [" + (.key | luastr) + "] = {" +
+            ( if (.value.kb_layout | type) != "null" then " kb_layout = " + (.value.kb_layout | luastr) + "," else "" end ) +
+            ( if (.value.scroll_factor | type) != "null" then " scroll_factor = " + (.value.scroll_factor | tostring) + "," else "" end ) +
+            " },"
+          ] | join("\n") ) +
+        "\n    },\n" +
         "}\n"
     ')
     printf '%s' "$lua_body" > "$LUA_STATE.tmp" && mv "$LUA_STATE.tmp" "$LUA_STATE"
@@ -581,14 +609,170 @@ cmd_look() {
     echo "hypr-overrides.sh: look applied and persisted"
 }
 
+# ── devices subcommand (quick-260821-6z1 Task 6, D-08/F-03/R-5) ─────────
+# Emits `{keyboards:[{name,primary,joined}], mice:[{name,primary,joined}]}`
+# on stdout. `primary`: for keyboards, Hyprland's own `main` field; for
+# mice, always `true` within this joined set — the udev join itself
+# already excludes the alias-pattern phantom nodes (a keyboard's own
+# secondary event node re-listed under a `-1`-suffixed name in
+# `hyprctl devices -j .mice[]`), since those have no REAL
+# ID_INPUT_MOUSE=1 udev node of their own to join against. A device whose
+# udev-transformed name does NOT appear in `hyprctl devices -j` at all is
+# still emitted, `joined:false` — never silently dropped (an exotic name
+# must not make a real device disappear from the operator's list).
+cmd_devices() {
+    local hypr_json
+    hypr_json=$(hyprctl devices -j 2>/dev/null) || { echo "hypr-overrides.sh: hyprctl devices -j failed" >&2; exit 1; }
+
+    local kb_json="[]" mice_json="[]"
+    local f name flags is_kb is_mouse hypr_name
+
+    for f in /sys/class/input/event*; do
+        [[ -e "$f/device/name" ]] || continue
+        name=$(cat "$f/device/name" 2>/dev/null)
+        [[ -n "$name" ]] || continue
+
+        flags=$(udevadm info -q property -p "$f" 2>/dev/null)
+        is_kb=0; is_mouse=0
+        grep -q '^ID_INPUT_KEYBOARD=1$' <<<"$flags" && is_kb=1
+        grep -q '^ID_INPUT_MOUSE=1$' <<<"$flags" && is_mouse=1
+        [[ "$is_kb" -eq 1 || "$is_mouse" -eq 1 ]] || continue
+
+        # Hyprland's own name transform, measured exact on all 11 devices
+        # on this host (RESEARCH.md §5.2): lowercase, each space -> '-'.
+        hypr_name=$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')
+
+        if [[ "$is_kb" -eq 1 ]]; then
+            local kb_entry
+            if printf '%s\n' "$hypr_json" | jq -e --arg n "$hypr_name" '[.keyboards[]|select(.name==$n)]|length==1' >/dev/null 2>&1; then
+                local main_val
+                main_val=$(printf '%s\n' "$hypr_json" | jq -r --arg n "$hypr_name" '.keyboards[]|select(.name==$n)|.main')
+                kb_entry=$(jq -n --arg n "$hypr_name" --argjson p "$([[ "$main_val" == "true" ]] && echo true || echo false)" \
+                    '{name: $n, primary: $p, joined: true}')
+            else
+                kb_entry=$(jq -n --arg n "$hypr_name" '{name: $n, primary: false, joined: false}')
+            fi
+            kb_json=$(printf '%s\n' "$kb_json" | jq --argjson e "$kb_entry" '. + [$e]')
+        fi
+
+        if [[ "$is_mouse" -eq 1 ]]; then
+            local mouse_entry
+            if printf '%s\n' "$hypr_json" | jq -e --arg n "$hypr_name" '[.mice[]|select(.name==$n)]|length==1' >/dev/null 2>&1; then
+                mouse_entry=$(jq -n --arg n "$hypr_name" '{name: $n, primary: true, joined: true}')
+            else
+                mouse_entry=$(jq -n --arg n "$hypr_name" '{name: $n, primary: false, joined: false}')
+            fi
+            mice_json=$(printf '%s\n' "$mice_json" | jq --argjson e "$mouse_entry" '. + [$e]')
+        fi
+    done
+
+    jq -n --argjson kb "$kb_json" --argjson mi "$mice_json" '{keyboards: $kb, mice: $mi}'
+}
+
+# ── device subcommand (quick-260821-6z1 Task 6, D-08/F-03/R-5) ──────────
+cmd_device() {
+    local name="${1:-}"
+    [[ -n "$name" ]] || { echo "hypr-overrides.sh device: name required" >&2; exit 1; }
+    shift
+    local kb_layout="" scroll_factor=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --kb-layout) kb_layout="$2"; shift 2 ;;
+            --scroll-factor) scroll_factor="$2"; shift 2 ;;
+            *) echo "hypr-overrides.sh device: unknown flag $1" >&2; exit 1 ;;
+        esac
+    done
+    [[ -n "$kb_layout" || -n "$scroll_factor" ]] \
+        || { echo "hypr-overrides.sh device: at least one of --kb-layout/--scroll-factor required" >&2; exit 1; }
+
+    # Character allowlist BEFORE any use, independent of the membership
+    # check below — device names are device-supplied, not this repo's
+    # own text (T-6z1-02).
+    [[ "$name" =~ ^[A-Za-z0-9._-]+$ ]] \
+        || { echo "hypr-overrides.sh: device name '$name' contains characters outside the closed allowlist" >&2; exit 1; }
+
+    # Membership check against the LIVE filtered device set, not a static
+    # list — a device unplugged since the last `devices` call must be
+    # refused, not silently accepted.
+    local devices_json is_kb is_mouse
+    devices_json=$(cmd_devices) || exit 1
+    is_kb=$(printf '%s\n' "$devices_json" | jq -r --arg n "$name" '[.keyboards[] | select(.name==$n and .joined==true)] | length')
+    is_mouse=$(printf '%s\n' "$devices_json" | jq -r --arg n "$name" '[.mice[] | select(.name==$n and .joined==true)] | length')
+
+    if [[ -n "$kb_layout" ]]; then
+        [[ "$is_kb" -eq 1 ]] || { echo "hypr-overrides.sh: '$name' is not a known keyboard in the live device set" >&2; exit 1; }
+        [[ "$kb_layout" =~ ^[a-z]{2}(,[a-z]{2})*$ ]] \
+            || { echo "hypr-overrides.sh: kb-layout '$kb_layout' does not match a closed xkb-layout-code shape" >&2; exit 1; }
+    fi
+    if [[ -n "$scroll_factor" ]]; then
+        [[ "$is_mouse" -eq 1 ]] || { echo "hypr-overrides.sh: '$name' is not a known pointer in the live device set" >&2; exit 1; }
+        [[ "$scroll_factor" =~ ^[0-9]+(\.[0-9]+)?$ ]] \
+            || { echo "hypr-overrides.sh: scroll-factor '$scroll_factor' is not numeric" >&2; exit 1; }
+        # Floor is 0.00 — `hl.device` rejects a negative scroll_factor
+        # outright (measured: "value -1.00 is less than the minimum of
+        # 0.00"), so the "-1 = inherit global" sentinel is NOT writable
+        # back through this script. A settings row's own "reset to
+        # default" must write the current GLOBAL `input:scroll_factor`
+        # value instead (RESEARCH.md §5.3) — that substitution happens at
+        # the QML call site (Task 7), not here.
+        awk -v v="$scroll_factor" 'BEGIN { exit !(v >= 0.0 && v <= 10.0) }' \
+            || { echo "hypr-overrides.sh: scroll-factor '$scroll_factor' out of bounds [0.0,10.0]" >&2; exit 1; }
+    fi
+
+    # ── APPLY LIVE — hl.device({ name = ..., [kb_layout|scroll_factor] }).
+    #    `name` is _luastr-escaped despite the character allowlist above
+    #    already forbidding quote/backslash — defense in depth, no cost,
+    #    same discipline cmd_input's kb_layout already follows. ──────────
+    local eval_fields="name = \"$(_luastr "$name")\""
+    [[ -n "$kb_layout" ]] && eval_fields="$eval_fields, kb_layout = \"$(_luastr "$kb_layout")\""
+    [[ -n "$scroll_factor" ]] && eval_fields="$eval_fields, scroll_factor = $scroll_factor"
+    hyprctl eval "return hl.device({ $eval_fields })" >/dev/null 2>&1
+
+    # ── VERIFY — ONLY against `hyprctl devices -j`, the ONLY per-device
+    #    oracle on this build (`hyprctl getoption device:<name>:<key>`
+    #    returns `no such option` for every per-device key, verified
+    #    live for both kb_layout and sensitivity — asserted absent from
+    #    this script's own non-comment lines by this task's own verify). ─
+    sleep 0.3
+    local live_json verify_ok=0
+    live_json=$(hyprctl devices -j 2>/dev/null)
+    if [[ -n "$kb_layout" ]]; then
+        printf '%s\n' "$live_json" | jq -e --arg n "$name" --arg l "$kb_layout" \
+            '.keyboards[] | select(.name==$n) | .layout == $l' >/dev/null 2>&1 || verify_ok=1
+    fi
+    if [[ -n "$scroll_factor" ]]; then
+        printf '%s\n' "$live_json" | jq -e --arg n "$name" --argjson sf "$scroll_factor" \
+            '.mice[] | select(.name==$n) | ((.scrollFactor - $sf) | fabs) < 0.01' >/dev/null 2>&1 || verify_ok=1
+    fi
+    if [[ "$verify_ok" -ne 0 ]]; then
+        echo "hypr-overrides.sh: live device apply did not verify against hyprctl devices -j" >&2
+        exit 1
+    fi
+
+    # ── PERSIST ONLY after the live apply is proven — overrides.devices,
+    #    keyed by device name, each entry merging in (never replacing)
+    #    whichever of the two fields this call did not touch. ────────────
+    local json
+    json=$(_read_json_state | jq --arg n "$name" --arg kb "$kb_layout" --arg sf "$scroll_factor" '
+        .devices = (.devices // {}) |
+        .devices[$n] = ((.devices[$n] // {})
+            + (if $kb != "" then {kb_layout: $kb} else {} end)
+            + (if $sf != "" then {scroll_factor: ($sf | tonumber)} else {} end))
+    ')
+    _persist "$json" || exit 1
+    echo "hypr-overrides.sh: device $name applied and persisted"
+}
+
 main() {
     local sub="${1:-}"
-    [[ -n "$sub" ]] || { echo "Usage: hypr-overrides.sh <monitor|input|look> ..." >&2; exit 1; }
+    [[ -n "$sub" ]] || { echo "Usage: hypr-overrides.sh <monitor|input|look|devices|device> ..." >&2; exit 1; }
     shift
     case "$sub" in
         monitor) cmd_monitor "$@" ;;
         input) cmd_input "$@" ;;
         look) cmd_look "$@" ;;
+        devices) cmd_devices "$@" ;;
+        device) cmd_device "$@" ;;
         *) echo "hypr-overrides.sh: unknown subcommand '$sub'" >&2; exit 1 ;;
     esac
 }

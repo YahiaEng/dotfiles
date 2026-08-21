@@ -248,3 +248,29 @@ hl.config({
         expand_undersized_textures = false,
     },
 })
+
+-- ── Per-device overrides (quick-260821-6z1 Task 6, D-08/F-03/R-5) ──────
+-- `hl.device()` is a distinct API from `hl.config()` (RESEARCH.md §5.3)
+-- — looped separately, one call per persisted entry, keyboard layout
+-- and/or scroll factor only (the only two per-device fields with a real
+-- read-back oracle; per-device sensitivity/natural-scroll are N-03,
+-- never persisted here at all).
+--
+-- T-6z1-04: an unplugged device must not block compositor start.
+-- `pcall` is the boot-time tolerance rule; membership-in-the-live-set is
+-- a SEPARATE write-time rule already enforced by `hypr-overrides.sh
+-- device`'s own membership check — deliberately not collapsed into this
+-- one, since a device present at write-time can legitimately be absent
+-- at a LATER boot (unplugged, swapped) without that being an error here.
+for _devName, _devSpec in pairs(overrides.devices) do
+    local _spec = { name = _devName }
+    if _devSpec.kb_layout ~= nil then
+        _spec.kb_layout = _devSpec.kb_layout
+    end
+    if _devSpec.scroll_factor ~= nil then
+        _spec.scroll_factor = _devSpec.scroll_factor
+    end
+    pcall(function()
+        hl.device(_spec)
+    end)
+end
