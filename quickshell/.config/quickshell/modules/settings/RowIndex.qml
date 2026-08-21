@@ -27,11 +27,15 @@ Singleton {
     readonly property list<var> rows: [
         // ── pageIdx 0 — Appearance ───────────────────────────────────────
         { pageIdx: 0, section: "Theme", label: "Theme", keywords: "theme palette colour color scheme dracula matugen" },
+        { pageIdx: 0, section: "Theme", label: "What Theme actually re-themes", keywords: "theme scope border terminal gtk" },
         { pageIdx: 0, section: "Personalization", label: "Icon theme", keywords: "icon theme symbols" },
         { pageIdx: 0, section: "Personalization", label: "Font", keywords: "font typeface text" },
+        { pageIdx: 0, section: "Personalization", label: "Fastfetch logo", keywords: "logo ascii fastfetch greeter sprite" },
 
         // ── pageIdx 1 — Wallpaper ─────────────────────────────────────────
         { pageIdx: 1, section: "Wallpaper", label: "Wallpaper", keywords: "wallpaper background image video picture" },
+        { pageIdx: 1, section: "Wallpaper", label: "The wallpaper drives dynamic theming", keywords: "wallpaper theme dynamic materialyou palette" },
+        { pageIdx: 1, section: "Motion", label: "Wallpaper motion", keywords: "wallpaper motion video playing stopped animation" },
 
         // ── pageIdx 2 — Bar ───────────────────────────────────────────────
         { pageIdx: 2, section: "Bar", label: "Bar orientation", keywords: "bar orientation horizontal vertical dock topbar" },

@@ -1,19 +1,12 @@
-// modules/settings/pages/AppearancePage.qml — Theme, Icon theme, Font
-// (quick-260821-6z1 Task 2 split — page index 0 of the ten-page layout,
-// D-05/PD-02/PD-03). Wallpaper moved to its own WallpaperPage.qml (index
-// 1, its own personalization concerns — motion, the Task 14 picker
-// decision); Bar orientation moved to BarPage.qml (index 2). Pure
-// restructuring in this commit — every row below is byte-identical in
-// behaviour to what shipped before the split; Task 11 converts Icon theme
-// and Font into inline pickers and adds Fastfetch logo + the theme-scope
-// InfoRow.
-//
-// The page enumerates ~/.config/theme-engine/palettes itself at runtime
-// (never a hardcoded case ladder — theme-switch.sh:13's own rule) and
-// calls theme-apply directly; theme-switch.sh itself is a walker-dmenu
-// wrapper whose own UI would collide with this window's. Icon theme and
-// Font are still summoned via NavRow here (D-04) — Task 11 replaces both
-// with inline pickers once Task 10 lands their non-interactive setters.
+// modules/settings/pages/AppearancePage.qml — Theme, Icon theme, Font,
+// Fastfetch logo (quick-260821-6z1 Task 11, D-01 bundles 3/4, F-06 —
+// page index 0 of the ten-page layout). Icon theme, Font and Fastfetch
+// logo are now real inline SelectRows, populated from each script's
+// `--list` (Task 10) and applied via its `--set`, with a `busy` spinner
+// during the apply chain (the sprite regen alone costs ~250ms) so the
+// wait reads as progress rather than nothing happening. Theme stays a
+// SelectRow over the palettes directory listing, never a hardcoded case
+// ladder (theme-switch.sh:13's own rule).
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -104,17 +97,25 @@ PageBase {
             currentValue: root.currentThemeName
             onSelected: (value) => root.applyTheme(value)
         }
+        InfoRow {
+            label: "What Theme actually re-themes"
+            subtext: "The compositor's borders and gaps, the terminal, GTK apps, and this settings window all follow the active theme — see Window manager → Borders for the compositor half of that."
+        }
     }
 
-    // ── Icon theme / Font — summoned pickers (D-04). Each NavRow runs the
-    //    identical command the walker row runs today and closes this
-    //    window via `sState.close()` so the picker's own floating kitty
-    //    is never summoned behind it. Task 11 replaces both with inline
-    //    SelectRows once Task 10 lands their `--list`/`--set` surface. ──
+    // ── Personalization — Icon theme, Font, Fastfetch logo, all real
+    //    inline pickers now (Task 10 lands their --list/--set surface).
+    //    Each list is fetched once on page mount by a fixed-argv Process
+    //    with a watchdog Timer, parsed line-wise; each row shows `busy`
+    //    during its own apply so the wait reads as progress. ─────────────
     SettingsSection {
         id: personalizationSection
         title: "Personalization"
         icon: "style"
+
+        // ── Icon theme ───────────────────────────────────────────────────
+        property var iconThemeOptions: []
+        property bool iconThemeApplying: false
 
         FileView {
             id: iconThemeFile
@@ -123,6 +124,50 @@ PageBase {
             onFileChanged: reload()
         }
         readonly property string iconThemeName: (iconThemeFile.text() || "").trim()
+
+        Timer {
+            id: iconThemeListWatchdog
+            interval: 5000
+            onTriggered: {
+                if (iconThemeListProc.running)
+                    iconThemeListProc.running = false;
+            }
+        }
+        Process {
+            id: iconThemeListProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/icon-theme-picker.sh", "--list"]
+            stdout: StdioCollector { id: iconThemeListCollector }
+            onExited: (code, status) => {
+                iconThemeListWatchdog.stop();
+                if (code === 0) {
+                    var lines = iconThemeListCollector.text.split("\n").filter(function (l) { return l.trim().length > 0; });
+                    personalizationSection.iconThemeOptions = lines.map(function (n) { return { value: n, display: n }; });
+                }
+            }
+            Component.onCompleted: {
+                iconThemeListWatchdog.restart();
+                running = true;
+            }
+        }
+        Process {
+            id: iconThemeApplyProc
+            running: false
+            onExited: (code, status) => {
+                personalizationSection.iconThemeApplying = false;
+                if (code !== 0)
+                    console.warn("AppearancePage: icon-theme-picker.sh --set failed (exit " + code + ")");
+            }
+        }
+        function applyIconTheme(name) {
+            personalizationSection.iconThemeApplying = true;
+            iconThemeApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/icon-theme-picker.sh", "--set", name];
+            iconThemeApplyProc.running = true;
+        }
+
+        // ── Font ─────────────────────────────────────────────────────────
+        property var fontOptions: []
+        property bool fontApplying: false
 
         FileView {
             id: kittyFontFile
@@ -143,32 +188,121 @@ PageBase {
             return "";
         }
 
-        Process {
-            id: iconThemeLaunchProc
-            running: false
-            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/icon-theme-switch.sh"]
+        Timer {
+            id: fontListWatchdog
+            interval: 5000
+            onTriggered: {
+                if (fontListProc.running)
+                    fontListProc.running = false;
+            }
         }
         Process {
-            id: fontLaunchProc
+            id: fontListProc
             running: false
-            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/font-switch.sh"]
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/font-switcher.sh", "--list"]
+            stdout: StdioCollector { id: fontListCollector }
+            onExited: (code, status) => {
+                fontListWatchdog.stop();
+                if (code === 0) {
+                    var lines = fontListCollector.text.split("\n").filter(function (l) { return l.trim().length > 0; });
+                    personalizationSection.fontOptions = lines.map(function (n) { return { value: n, display: n }; });
+                }
+            }
+            Component.onCompleted: {
+                fontListWatchdog.restart();
+                running = true;
+            }
+        }
+        Process {
+            id: fontApplyProc
+            running: false
+            onExited: (code, status) => {
+                personalizationSection.fontApplying = false;
+                if (code !== 0)
+                    console.warn("AppearancePage: font-switcher.sh --set failed (exit " + code + ")");
+            }
+        }
+        function applyFont(name) {
+            personalizationSection.fontApplying = true;
+            fontApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/font-switcher.sh", "--set", name];
+            fontApplyProc.running = true;
         }
 
-        NavRow {
-            label: "Icon theme"
-            subtext: personalizationSection.iconThemeName
-            onActivated: {
-                iconThemeLaunchProc.running = true;
-                root.sState.close();
+        // ── Fastfetch logo (F-06) ───────────────────────────────────────
+        property var fastfetchLogoOptions: []
+        property bool fastfetchLogoApplying: false
+
+        FileView {
+            id: fastfetchLogoFile
+            path: Quickshell.env("HOME") + "/.local/state/theme/fastfetch-logo"
+            watchChanges: true
+            onFileChanged: reload()
+        }
+        readonly property string fastfetchLogoName: (fastfetchLogoFile.text() || "").trim()
+
+        Timer {
+            id: fastfetchLogoListWatchdog
+            interval: 5000
+            onTriggered: {
+                if (fastfetchLogoListProc.running)
+                    fastfetchLogoListProc.running = false;
             }
         }
-        NavRow {
-            label: "Font"
-            subtext: personalizationSection.fontFamilyName
-            onActivated: {
-                fontLaunchProc.running = true;
-                root.sState.close();
+        Process {
+            id: fastfetchLogoListProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/fastfetch-logo-picker.sh", "--list"]
+            stdout: StdioCollector { id: fastfetchLogoListCollector }
+            onExited: (code, status) => {
+                fastfetchLogoListWatchdog.stop();
+                if (code === 0) {
+                    var lines = fastfetchLogoListCollector.text.split("\n").filter(function (l) { return l.trim().length > 0; });
+                    personalizationSection.fastfetchLogoOptions = lines.map(function (n) { return { value: n, display: n }; });
+                }
             }
+            Component.onCompleted: {
+                fastfetchLogoListWatchdog.restart();
+                running = true;
+            }
+        }
+        Process {
+            id: fastfetchLogoApplyProc
+            running: false
+            onExited: (code, status) => {
+                personalizationSection.fastfetchLogoApplying = false;
+                if (code !== 0)
+                    console.warn("AppearancePage: fastfetch-logo-picker.sh --set failed (exit " + code + ")");
+            }
+        }
+        function applyFastfetchLogo(name) {
+            personalizationSection.fastfetchLogoApplying = true;
+            fastfetchLogoApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/fastfetch-logo-picker.sh", "--set", name];
+            fastfetchLogoApplyProc.running = true;
+        }
+
+        SelectRow {
+            label: "Icon theme"
+            subtext: "Installed icon themes"
+            model: personalizationSection.iconThemeOptions
+            currentValue: personalizationSection.iconThemeName
+            busy: personalizationSection.iconThemeApplying
+            onSelected: (value) => personalizationSection.applyIconTheme(value)
+        }
+        SelectRow {
+            label: "Font"
+            subtext: "Installed Nerd Fonts"
+            model: personalizationSection.fontOptions
+            currentValue: personalizationSection.fontFamilyName
+            busy: personalizationSection.fontApplying
+            onSelected: (value) => personalizationSection.applyFont(value)
+        }
+        SelectRow {
+            label: "Fastfetch logo"
+            subtext: "The logo the greeter draws — sprites, ASCII art, random, or none"
+            model: personalizationSection.fastfetchLogoOptions
+            currentValue: personalizationSection.fastfetchLogoName
+            busy: personalizationSection.fastfetchLogoApplying
+            onSelected: (value) => personalizationSection.applyFastfetchLogo(value)
         }
     }
 }
