@@ -787,8 +787,14 @@ ShellRoot {
         }
     }
 
-    // Deep-link to one of PageRegistry's four groups by `category` name
-    // (F-05's foundation) — resolves the name, seeds
+    // Deep-link to a settings page by name (F-05's foundation, extended by
+    // quick-260821-6z1 Task 2's ten-page split, PD-03) — resolves the
+    // name via a TWO-STAGE rule (both documented on PageRegistry.qml's own
+    // header): exact `slug` match FIRST (the new, precise per-page keys),
+    // then `category` first-match-wins by index SECOND (the four legacy
+    // keys this function accepted before the split — `appearance`,
+    // `connectivity`, `display`, `shell` — which must keep resolving to
+    // whichever page is first in `pages[]` carrying that category). Seeds
     // `settingsInitialPageIdx` for a first-open, and pushes directly into
     // the live SettingsState when the window is already open (safe: the
     // item is guaranteed to exist once `active` was already true on a
@@ -796,9 +802,17 @@ ShellRoot {
     function openSettingsPage(name) {
         var idx = -1;
         for (var i = 0; i < PageRegistry.pages.length; i++) {
-            if (PageRegistry.pages[i].category === name) {
+            if (PageRegistry.pages[i].slug === name) {
                 idx = i;
                 break;
+            }
+        }
+        if (idx === -1) {
+            for (var j = 0; j < PageRegistry.pages.length; j++) {
+                if (PageRegistry.pages[j].category === name) {
+                    idx = j;
+                    break;
+                }
             }
         }
         if (idx === -1)

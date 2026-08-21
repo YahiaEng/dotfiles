@@ -1,10 +1,17 @@
 # qmldir — explicit module manifest for quickshell/modules/settings/pages/
-# (quick task 260820-sqd). Mirrors every sibling manifest's own standing
-# instruction: any .qml type added here that is NOT declared below becomes
-# unresolvable forever, with no load error. Any FUTURE type added to this
-# directory MUST be declared in the same commit that creates it.
+# (quick task 260820-sqd; ten-page split quick-260821-6z1 Task 2). Mirrors
+# every sibling manifest's own standing instruction: any .qml type added
+# here that is NOT declared below becomes unresolvable forever, with no
+# load error. Any FUTURE type added to this directory MUST be declared in
+# the same commit that creates it.
 module qs.modules.settings.pages
 AppearancePage 1.0 AppearancePage.qml
-ConnectivityPage 1.0 ConnectivityPage.qml
-ShellBehaviourPage 1.0 ShellBehaviourPage.qml
-DisplayInputPage 1.0 DisplayInputPage.qml
+WallpaperPage 1.0 WallpaperPage.qml
+BarPage 1.0 BarPage.qml
+AudioPage 1.0 AudioPage.qml
+NetworkPage 1.0 NetworkPage.qml
+DisplayPage 1.0 DisplayPage.qml
+InputPage 1.0 InputPage.qml
+WindowManagerPage 1.0 WindowManagerPage.qml
+NotificationsPage 1.0 NotificationsPage.qml
+SessionPage 1.0 SessionPage.qml

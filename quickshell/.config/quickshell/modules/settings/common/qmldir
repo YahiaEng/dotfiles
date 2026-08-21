@@ -10,3 +10,6 @@ SelectRow 1.0 SelectRow.qml
 NavRow 1.0 NavRow.qml
 ToggleRow 1.0 ToggleRow.qml
 SliderRow 1.0 SliderRow.qml
+# InfoRow (quick-260821-6z1 Task 2, PD-07) — non-interactive explanatory
+# row, same focusable-marker discipline as every row type above.
+InfoRow 1.0 InfoRow.qml

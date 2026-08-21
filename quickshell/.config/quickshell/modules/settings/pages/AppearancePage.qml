@@ -1,13 +1,19 @@
-// modules/settings/pages/AppearancePage.qml — Theme (Task 1, PD-05) plus
-// Wallpaper/Icon theme/Font/Bar orientation (Task 2), D-01's full
-// Appearance group. The page enumerates ~/.config/theme-engine/palettes
-// itself at runtime (never a hardcoded case ladder — theme-switch.sh:13's
-// own rule) and calls theme-apply directly; theme-switch.sh itself is a
-// walker-dmenu wrapper whose own UI would collide with this window's.
-// Wallpaper/Icon theme/Font are summoned, never rebuilt (D-04) — each
-// NavRow runs the EXACT script the walker row runs today, then closes
-// this window (via `sState.close()`) so the picker's own floating kitty
-// is not summoned behind it.
+// modules/settings/pages/AppearancePage.qml — Theme, Icon theme, Font
+// (quick-260821-6z1 Task 2 split — page index 0 of the ten-page layout,
+// D-05/PD-02/PD-03). Wallpaper moved to its own WallpaperPage.qml (index
+// 1, its own personalization concerns — motion, the Task 14 picker
+// decision); Bar orientation moved to BarPage.qml (index 2). Pure
+// restructuring in this commit — every row below is byte-identical in
+// behaviour to what shipped before the split; Task 11 converts Icon theme
+// and Font into inline pickers and adds Fastfetch logo + the theme-scope
+// InfoRow.
+//
+// The page enumerates ~/.config/theme-engine/palettes itself at runtime
+// (never a hardcoded case ladder — theme-switch.sh:13's own rule) and
+// calls theme-apply directly; theme-switch.sh itself is a walker-dmenu
+// wrapper whose own UI would collide with this window's. Icon theme and
+// Font are still summoned via NavRow here (D-04) — Task 11 replaces both
+// with inline pickers once Task 10 lands their non-interactive setters.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -100,10 +106,11 @@ PageBase {
         }
     }
 
-    // ── Wallpaper / Icon theme / Font — summoned pickers (D-04). Each
-    //    NavRow runs the identical command the walker row runs today and
-    //    closes this window via `sState.close()` so the picker's own
-    //    floating kitty is never summoned behind it. ─────────────────────
+    // ── Icon theme / Font — summoned pickers (D-04). Each NavRow runs the
+    //    identical command the walker row runs today and closes this
+    //    window via `sState.close()` so the picker's own floating kitty
+    //    is never summoned behind it. Task 11 replaces both with inline
+    //    SelectRows once Task 10 lands their `--list`/`--set` surface. ──
     SettingsSection {
         id: personalizationSection
         title: "Personalization"
@@ -137,27 +144,6 @@ PageBase {
         }
 
         Process {
-            id: wallpaperBasenameProc
-            running: false
-            command: ["readlink", "-f", Quickshell.env("HOME") + "/.local/state/theme/current.jpg"]
-            stdout: StdioCollector {
-                id: wallpaperBasenameCollector
-            }
-            onExited: (exitCode, exitStatus) => {
-                var full = wallpaperBasenameCollector.text.trim();
-                var parts = full.split("/");
-                personalizationSection.wallpaperBasename = parts.length > 0 ? parts[parts.length - 1] : full;
-            }
-        }
-        property string wallpaperBasename: ""
-        Component.onCompleted: wallpaperBasenameProc.running = true
-
-        Process {
-            id: wallpaperLaunchProc
-            running: false
-            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/wallpaper-switch.sh"]
-        }
-        Process {
             id: iconThemeLaunchProc
             running: false
             command: [Quickshell.env("HOME") + "/.config/hypr/scripts/icon-theme-switch.sh"]
@@ -168,14 +154,6 @@ PageBase {
             command: [Quickshell.env("HOME") + "/.config/hypr/scripts/font-switch.sh"]
         }
 
-        NavRow {
-            label: "Wallpaper"
-            subtext: personalizationSection.wallpaperBasename
-            onActivated: {
-                wallpaperLaunchProc.running = true;
-                root.sState.close();
-            }
-        }
         NavRow {
             label: "Icon theme"
             subtext: personalizationSection.iconThemeName
@@ -190,48 +168,6 @@ PageBase {
             onActivated: {
                 fontLaunchProc.running = true;
                 root.sState.close();
-            }
-        }
-    }
-
-    // ── Bar orientation — inline SelectRow over bar-orientation.sh's own
-    //    closed two-value set (lines 27-30). Current value from the
-    //    entry model's own state file; the script owns the write. ───────
-    SettingsSection {
-        id: barSection
-        title: "Bar"
-        icon: "dock_to_bottom"
-
-        FileView {
-            id: barOrientationFile
-            path: Quickshell.env("HOME") + "/.local/state/quickshell/bar-orientation"
-            watchChanges: true
-            onFileChanged: reload()
-        }
-        readonly property string barOrientationValue: {
-            var v = (barOrientationFile.text() || "").trim();
-            return (v === "horizontal" || v === "vertical") ? v : "horizontal";
-        }
-
-        property string pendingOrientation: ""
-
-        Process {
-            id: barOrientationProc
-            running: false
-            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/bar-orientation.sh", barSection.pendingOrientation]
-        }
-
-        SelectRow {
-            label: "Bar orientation"
-            subtext: "Where the bar sits and which axis it lays out along"
-            model: [
-                { value: "horizontal", display: "Horizontal" },
-                { value: "vertical", display: "Vertical" }
-            ]
-            currentValue: barSection.barOrientationValue
-            onSelected: (value) => {
-                barSection.pendingOrientation = value;
-                barOrientationProc.running = true;
             }
         }
     }
