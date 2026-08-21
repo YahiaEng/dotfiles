@@ -5,6 +5,19 @@
 // error (this plan's own key_links). `Component.onCompleted` below asserts
 // the length match directly (quick-260821-6z1 Task 2) — cheap insurance
 // against the one invariant this module already has.
+//
+// ── Fix WR-03 (quick-260821-6z1 code review) — a length-only assertion
+//    passes silently on a same-length REORDER, reproducing exactly the
+//    "mismatch renders the wrong page with no error" failure the comment
+//    above already warns about. `compSlugs` below is a second, parallel
+//    array — one string per `comps[]` entry, in the SAME order — so
+//    `Component.onCompleted` can additionally assert per-index IDENTITY
+//    against `PageRegistry.pages[i].slug`, not just array length.
+//    `settings-index-check`'s own CHECK E (hypr/.config/hypr/scripts/
+//    settings-index-check) reads this same array statically and
+//    cross-checks it against `PageRegistry.qml`'s `slug:` fields — this
+//    file cannot itself go out of sync with the registry it is meant to
+//    mirror without BOTH the live warning below and the gate catching it.
 pragma Singleton
 import QtQuick
 import Quickshell
@@ -72,8 +85,36 @@ Singleton {
         sessionComp
     ]
 
+    // Index-locked to `comps` above (and therefore to `PageRegistry.pages`
+    // too) — one slug per entry, same order. Purely a static identity key
+    // for the assertion below and for `settings-index-check`'s CHECK E; it
+    // is never read by `Pages.qml` itself, which still indexes `comps`
+    // directly.
+    readonly property list<string> compSlugs: [
+        "appearance",
+        "wallpaper",
+        "bar",
+        "audio",
+        "network",
+        "display",
+        "input",
+        "window-manager",
+        "notifications",
+        "session"
+    ]
+
     Component.onCompleted: {
-        if (root.comps.length !== PageRegistry.pages.length)
+        if (root.comps.length !== PageRegistry.pages.length) {
             console.warn("PageCompRegistry: comps.length (" + root.comps.length + ") != PageRegistry.pages.length (" + PageRegistry.pages.length + ") — a mismatch renders the wrong page with no error");
+            return;
+        }
+        // Per-index IDENTITY, not just length (WR-03) — a same-length
+        // reorder of either array passes the check above but would still
+        // render the wrong page for at least one slug with no error.
+        for (var i = 0; i < root.compSlugs.length; i++) {
+            if (root.compSlugs[i] !== PageRegistry.pages[i].slug) {
+                console.warn("PageCompRegistry: index " + i + " identity mismatch — compSlugs[" + i + "]=\"" + root.compSlugs[i] + "\" != PageRegistry.pages[" + i + "].slug=\"" + PageRegistry.pages[i].slug + "\" — a mismatch renders the wrong page with no error");
+            }
+        }
     }
 }
