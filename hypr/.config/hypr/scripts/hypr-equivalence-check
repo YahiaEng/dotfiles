@@ -956,6 +956,7 @@ _compare_animations() {
         | ($m.styles[$style] // {}) as $ov
         | $m
         | .easings = ($m.easings + ($ov.easings // {}))
+        | .semantic = ($m.semantic + ($ov.semantic // {}))
         | .hypr_leaves = ($m.hypr_leaves + ($ov.hypr_leaves // {}))
     ' "$motion_json" > "$motion_eff" 2>/dev/null
 
@@ -979,42 +980,6 @@ except (OSError, json.JSONDecodeError):
 # Hyprland rejects any animation `speed` above this (lib/motion.sh's
 # MOTION_HYPR_MAX_SPEED, 14-04 render-gate fix) — in milliseconds here.
 MAX_SPEED_MS = 10000.0
-
-
-def expected_scaled_speed(baseline_speed):
-    """Reproduce lib/motion.sh's emission for a baseline (multiplier-1.0) speed.
-
-    Baseline speed is in Hyprland deciseconds at 2dp, so its source duration in
-    ms is speed*100. Scale, clamp low to floor_ms, clamp high to the Hyprland
-    ceiling, truncate to whole ms (jq's `| floor`), convert back to deciseconds.
-    """
-    try:
-        baseline_ms = round(float(baseline_speed) * 100)
-    except (TypeError, ValueError):
-        return None
-    scaled = baseline_ms * MULTIPLIER
-    if scaled < FLOOR_MS:
-        scaled = FLOOR_MS
-    if scaled > MAX_SPEED_MS:
-        scaled = MAX_SPEED_MS
-    return math.floor(scaled) / 100.0
-
-
-def speed_is_scaled_equivalent(b, l):
-    """True when `speed` is the ONLY differing field and the live value is
-    exactly the renderer's scaled expectation for the baseline value."""
-    if set(b.keys()) != set(l.keys()):
-        return False
-    differing = [k for k in b if b[k] != l[k]]
-    if differing != ["speed"]:
-        return False
-    expected = expected_scaled_speed(b.get("speed"))
-    if expected is None:
-        return False
-    try:
-        return abs(float(l.get("speed")) - expected) < 0.005
-    except (TypeError, ValueError):
-        return False
 
 
 def load(path):
@@ -1059,6 +1024,38 @@ LEAF_TO_HYPR_LEAVES_KEY = {
     'layers': 'layers', 'layersIn': 'layers_in', 'layersOut': 'layers_out',
 }
 
+# quick-260821-swp: every OTHER leaf that carries a speed (the five fade
+# leaves) still resolves its speed from a semantic entry whose DURATION can
+# ALSO vary per style (Task 2 gives smooth/snappy/bouncy/wavy their own
+# "standard"/emphasized-in/emphasized-out duration names) — even though
+# these five leaves' bezier/style never change. Missing this class entirely
+# was a real gap found live: fadeSwitch/fadeShadow/fadeDim's speed differs
+# from the frozen baseline under EVERY non-md3 style (they all resolve
+# "standard"), and the old single-multiplier-only forgiveness had no way to
+# explain that divergence. border/borderangle are absent here deliberately:
+# they resolve "ambient"/indicator_border_rotate, neither of which any style
+# overrides, so their speed never differs from baseline scaled by the
+# accessibility multiplier alone.
+FADE_LEAF_TO_SEMANTIC_KEY = {
+    'fadeIn': 'emphasized-in', 'fadeOut': 'emphasized-out',
+    'fadeSwitch': 'standard', 'fadeShadow': 'standard', 'fadeDim': 'standard',
+}
+
+
+def _leaf_semantic_key(leaf_name):
+    """The EFFECTIVE `semantic` key (post style-merge) whose duration drives
+    this leaf's speed. For the eight style-varying leaves this is read from
+    the EFFECTIVE `hypr_leaves` entry's own `curve` field (never hardcoded —
+    a style could point ONE of these at a different name and this must
+    follow, though no shipped style currently does); for the five fade
+    leaves it is the fixed mapping above (their curve/style never change,
+    only the semantic entry's duration can)."""
+    key = LEAF_TO_HYPR_LEAVES_KEY.get(leaf_name)
+    if key is not None:
+        entry = (EFF.get('hypr_leaves') or {}).get(key) or {}
+        return entry.get('curve')
+    return FADE_LEAF_TO_SEMANTIC_KEY.get(leaf_name)
+
 
 def _expected_leaf_fields(leaf_name):
     key = LEAF_TO_HYPR_LEAVES_KEY.get(leaf_name)
@@ -1074,14 +1071,42 @@ def _expected_leaf_fields(leaf_name):
     }
 
 
+def _expected_speed_for_leaf(leaf_name):
+    """Mirrors lib/motion.sh's own emission EXACTLY: resolve the semantic
+    key this leaf's speed traces to (in the EFFECTIVE, active-style
+    document), take ITS duration name, scale by the accessibility
+    multiplier, clamp low to floor_ms and high to Hyprland's own speed
+    ceiling, truncate to whole ms, convert to Hyprland's decisecond speed
+    unit. If motion.sh's rounding/clamp order ever changes, this mirror
+    must change with it (same warning the rest of this function already
+    carries)."""
+    sem_key = _leaf_semantic_key(leaf_name)
+    if sem_key is None:
+        return None
+    sem = (EFF.get('semantic') or {}).get(sem_key)
+    if not sem:
+        return None
+    dur_name = sem.get('duration')
+    base_ms = (EFF.get('durations') or {}).get(dur_name)
+    if not isinstance(base_ms, (int, float)):
+        return None
+    scaled = base_ms * MULTIPLIER
+    if scaled < FLOOR_MS:
+        scaled = FLOOR_MS
+    if scaled > MAX_SPEED_MS:
+        scaled = MAX_SPEED_MS
+    return math.floor(scaled) / 100.0
+
+
 def leaf_is_forgivable(b, l):
     """True when EVERY differing field is explainable: `speed` matching the
-    renderer's scaled expectation from the accessibility multiplier, and/or
-    `bezier`/`style` matching the ACTIVE STYLE's own hypr_leaves entry for
-    this leaf. Any other differing field, or a differing bezier/style/speed
-    that does NOT match its expectation, is not forgiven — narrow, in the
-    same shape as the pre-existing mouse-field/speed forgiveness, never
-    widened into a skip."""
+    renderer's own resolved expectation (active style's duration for
+    whichever semantic key this leaf traces to, scaled by the accessibility
+    multiplier), and/or `bezier`/`style` matching the ACTIVE STYLE's own
+    hypr_leaves entry for this leaf. Any other differing field, or a
+    differing bezier/style/speed that does NOT match its expectation, is
+    not forgiven — narrow, in the same shape as the pre-existing
+    mouse-field forgiveness, never widened into a skip."""
     if set(b.keys()) != set(l.keys()):
         return False, []
     differing = [k for k in b if b[k] != l[k]]
@@ -1093,7 +1118,7 @@ def leaf_is_forgivable(b, l):
     notes = []
     for k in differing:
         if k == 'speed':
-            expected_speed = expected_scaled_speed(b.get('speed'))
+            expected_speed = _expected_speed_for_leaf(b.get('name'))
             if expected_speed is None:
                 return False, []
             try:
@@ -1221,7 +1246,10 @@ for _name in sorted(expected_motion):
     except (TypeError, ValueError):
         diffs.append(f"! curve {_name!r} has non-numeric live control points: {_live_pts!r}")
         continue
-    if all(abs(a - b) < 1e-6 for a, b in zip(_live_pts_f, _pts)):
+    # Hyprland's own `-j` JSON output rounds control points to 2 decimal
+    # places (live-verified: an authored 1.254 reads back as 1.25) — the
+    # tolerance below absorbs exactly that rounding, nothing more.
+    if all(abs(a - b) < 0.006 for a, b in zip(_live_pts_f, _pts)):
         _base_pts = baseline_motion.get(_name)
         if _base_pts is not None and tuple(float(v) for v in _base_pts) != _pts:
             curve_normalized.append(
