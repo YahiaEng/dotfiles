@@ -99,6 +99,31 @@ PageBase {
         monitorApplyProc.running = true;
     }
 
+    function applyMonitorPosition(output, position) {
+        monitorApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/hypr-overrides.sh", "monitor", output, "--position", position];
+        monitorApplyProc.running = true;
+    }
+
+    // Position options derived from the LIVE monitor set (Task 7,
+    // D-01 bundle 4) — never free-form coordinates. Single-monitor hosts
+    // get exactly one option (the origin); a second/third monitor adds
+    // one relative-placement option per neighbour per edge. Values are
+    // the "XxY" shape hypr-overrides.sh monitor --position already
+    // validates and verifies against .x/.y.
+    function _positionOptions(mon) {
+        var opts = [{ value: "0x0", display: "Origin (0, 0)" }];
+        for (var i = 0; i < root.monitorsModel.length; i++) {
+            var other = root.monitorsModel[i];
+            if (other.name === mon.name)
+                continue;
+            opts.push({ value: (other.x + other.width) + "x" + other.y, display: "Right of " + other.name });
+            opts.push({ value: (other.x - mon.width) + "x" + other.y, display: "Left of " + other.name });
+            opts.push({ value: other.x + "x" + (other.y + other.height), display: "Below " + other.name });
+            opts.push({ value: other.x + "x" + (other.y - mon.height), display: "Above " + other.name });
+        }
+        return opts;
+    }
+
     Repeater {
         model: root.monitorsModel
 
@@ -143,6 +168,30 @@ PageBase {
                 currentValue: monitorSection.modelData.scale.toString()
                 onSelected: (value) => root.applyMonitorScale(monitorSection.modelData.name, value)
             }
+            SelectRow {
+                label: "Position"
+                subtext: "Where this monitor sits relative to the others"
+                model: root._positionOptions(monitorSection.modelData)
+                currentValue: monitorSection.modelData.x + "x" + monitorSection.modelData.y
+                onSelected: (value) => root.applyMonitorPosition(monitorSection.modelData.name, value)
+            }
+        }
+    }
+
+    // ── Arrangement — N-04 (measured this task, not anticipated by
+    //    RESEARCH.md): `hyprctl eval 'return hl.monitor({ output = "…",
+    //    primary = true })'` returns "hl.monitor: unknown field
+    //    'primary'" on this build — Hyprland exposes no primary-monitor
+    //    concept through `hl.monitor` at all, and `hyprctl getoption`
+    //    has no matching key either ("no such option"). An honest
+    //    InfoRow instead of a knob that would silently no-op. ───────────
+    SettingsSection {
+        title: "Arrangement"
+        icon: "desktop_windows"
+
+        InfoRow {
+            label: "No primary-monitor setting on this build"
+            subtext: "Hyprland has no primary-monitor concept exposed through hyprctl on this version — there is nothing here to make settable. Position above controls monitor layout."
         }
     }
 

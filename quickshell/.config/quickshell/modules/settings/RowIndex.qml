@@ -46,6 +46,8 @@ Singleton {
         // ── pageIdx 5 — Display ───────────────────────────────────────────
         { pageIdx: 5, section: "Display", label: "Resolution & refresh rate", keywords: "resolution refresh rate monitor screen display hz" },
         { pageIdx: 5, section: "Display", label: "Scale", keywords: "scale scaling dpi zoom monitor screen display" },
+        { pageIdx: 5, section: "Display", label: "Position", keywords: "position monitor arrangement layout left right above below" },
+        { pageIdx: 5, section: "Arrangement", label: "No primary-monitor setting on this build", keywords: "primary monitor arrangement" },
         { pageIdx: 5, section: "Advanced", label: "Open nwg-displays", keywords: "monitor arrangement layout editor display advanced" },
 
         // ── pageIdx 6 — Input ─────────────────────────────────────────────
@@ -53,6 +55,10 @@ Singleton {
         { pageIdx: 6, section: "Input", label: "Follow mouse", keywords: "follow mouse focus input" },
         { pageIdx: 6, section: "Input", label: "Pointer sensitivity", keywords: "mouse sensitivity pointer speed input" },
         { pageIdx: 6, section: "Input", label: "Natural scroll (touchpad)", keywords: "natural scroll touchpad reverse direction input" },
+        { pageIdx: 6, section: "Input", label: "No per-device sensitivity setting", keywords: "sensitivity per-device device mouse pointer" },
+        { pageIdx: 6, section: "Per-device", label: "Show all devices", keywords: "device keyboard mouse show all filter" },
+        { pageIdx: 6, section: "Per-device", label: "Per-device keyboard layout", keywords: "keyboard layout device secondary" },
+        { pageIdx: 6, section: "Per-device", label: "Per-device pointer scroll factor", keywords: "scroll factor mouse pointer device" },
 
         // ── pageIdx 7 — Window manager (quick-260821-6z1 Task 5) ────────────
         { pageIdx: 7, section: "Layout", label: "Gaps in", keywords: "gap spacing margin gaps in window" },

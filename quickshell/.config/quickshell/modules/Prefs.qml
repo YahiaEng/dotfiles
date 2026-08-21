@@ -64,7 +64,9 @@ Singleton {
     readonly property var _allowedKeys: [
         "notifs.historyCap",
         "notifs.maxVisiblePopups",
-        "osd.hideDelayMs"
+        "osd.hideDelayMs",
+        // Task 7 (D-08/F-03) — Input page's "Show all devices" toggle.
+        "input.showAllDevices"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -76,7 +78,8 @@ Singleton {
     readonly property var _defaults: ({
         "notifs.historyCap": 100,
         "notifs.maxVisiblePopups": 3,
-        "osd.hideDelayMs": 1200
+        "osd.hideDelayMs": 1200,
+        "input.showAllDevices": false
     })
 
     // ── Helper functions — ALL declared here, above the FileView and
