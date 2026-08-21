@@ -49,7 +49,6 @@ Item {
             id: searchField
             width: parent.width
             placeholderText: "Search settings"
-            text: root.sState.searchText
             onTextChanged: root.sState.searchText = text
             font.pixelSize: Design.fontBody
             color: Colours.onSurface
@@ -78,6 +77,38 @@ Item {
                         easing.bezierCurve: Motion.standardEasing
                     }
                 }
+            }
+        }
+
+        // ── Fix WR-01 (quick-260821-6z1 code review) — the field used to
+        //    be `text: root.sState.searchText` PLUS the write-back above,
+        //    a one-way binding + manual write-back combo. Per QML binding
+        //    semantics, `TextInput`'s own internal `setText()` on the
+        //    user's FIRST keystroke is itself a property WRITE, and any
+        //    write to a property currently holding a declarative binding
+        //    destroys that binding — from that point on `searchField.text`
+        //    was a plain unbound property that never tracked
+        //    `sState.searchText` again. `SettingsState.selectSearchResult()`
+        //    clears `searchText` to close the result list after a click,
+        //    and every OTHER consumer (`pageColumn.visible`,
+        //    `flick.contentHeight`, `searchColumn`) is a genuine live
+        //    binding and correctly reverted — only this field's own
+        //    displayed text stayed stale. Fixed by driving the field
+        //    IMPERATIVELY from `sState.searchText` changes instead of a
+        //    declarative `text:` binding: `onTextChanged` above still
+        //    propagates the user's own typing up to `sState` exactly as
+        //    before, and this `Connections` block propagates DOWN
+        //    whenever `sState.searchText` changes for a reason other than
+        //    this field's own typing (a search-result click, or any
+        //    future non-typing writer). The `!==` guard makes the two
+        //    directions idempotent — no infinite ping-pong, since setting
+        //    a QML property to its own current value never re-fires the
+        //    change signal.
+        Connections {
+            target: root.sState
+            function onSearchTextChanged() {
+                if (searchField.text !== root.sState.searchText)
+                    searchField.text = root.sState.searchText;
             }
         }
 
