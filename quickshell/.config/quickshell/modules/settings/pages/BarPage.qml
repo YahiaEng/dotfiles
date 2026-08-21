@@ -57,4 +57,155 @@ PageBase {
             }
         }
     }
+
+    // ── Visibility (Task 8, D-01 bundle 2) — `bar-visibility.sh status`
+    //    is THREE-valued (visible/hidden-idle/hidden-hard), so a
+    //    ToggleRow's checked/unchecked pair cannot represent it honestly
+    //    on its own — the toggle drives the `keybind toggle` verb, and
+    //    the real three-valued status rides along as subtext so the
+    //    operator sees not just THAT it is hidden but WHY. `main()`
+    //    takes an flock before doing anything, so status is polled only
+    //    while this page is mounted (a Timer started in
+    //    Component.onCompleted, stopped in Component.onDestruction),
+    //    never on a background timer that outlives the page. ────────────
+    SettingsSection {
+        id: visibilitySection
+        title: "Visibility"
+        icon: "visibility"
+
+        property string statusValue: "visible"
+
+        function refreshStatus() {
+            statusProc.running = true;
+        }
+
+        Process {
+            id: statusProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/bar-visibility.sh", "status"]
+            stdout: StdioCollector { id: statusCollector }
+            onExited: (code, status) => {
+                if (code === 0) {
+                    var v = statusCollector.text.trim();
+                    if (v.length > 0)
+                        visibilitySection.statusValue = v;
+                }
+            }
+        }
+
+        Process {
+            id: toggleProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/bar-visibility.sh", "keybind", "toggle"]
+            onExited: (code, status) => visibilitySection.refreshStatus()
+        }
+
+        Timer {
+            id: statusPoll
+            interval: 3000
+            repeat: true
+            onTriggered: visibilitySection.refreshStatus()
+        }
+        Component.onCompleted: {
+            visibilitySection.refreshStatus();
+            statusPoll.start();
+        }
+        Component.onDestruction: statusPoll.stop()
+
+        ToggleRow {
+            label: "Bar visible"
+            subtext: "Current state: " + visibilitySection.statusValue
+            checked: visibilitySection.statusValue === "visible"
+            onToggled: (value) => toggleProc.running = true
+        }
+    }
+
+    // ── Idle auto-hide (Task 8, D-01 bundle 2/D-02) — measured limit,
+    //    stated plainly rather than shipping a fake toggle: idle-hide is
+    //    wired unconditionally through a hypridle listener
+    //    (idle-overrides.sh's own `on-timeout`/`on-resume` block calling
+    //    `bar-visibility.sh idle hide`/`idle show`), and idle-overrides.sh
+    //    has no per-listener enable/disable knob — only the TIMEOUT
+    //    duration, which stays on the Session page's own "Bar idle-hide"
+    //    row. Extending idle-overrides.sh for a real on/off gate is out
+    //    of this task's file scope. This toggle is real but LIMITED: OFF
+    //    immediately shows the bar and remembers the preference; it does
+    //    not suppress a FUTURE idle timeout, which is why the subtext
+    //    says so rather than implying full control. ─────────────────────
+    SettingsSection {
+        title: "Idle behaviour"
+        icon: "lock_clock"
+
+        Process {
+            id: idleShowProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/bar-visibility.sh", "idle", "show"]
+        }
+        Process {
+            id: idleReassertProc
+            running: false
+            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/bar-visibility.sh", "reassert"]
+        }
+
+        ToggleRow {
+            label: "Idle auto-hide"
+            subtext: "Off shows the bar immediately, but the next idle timeout may hide it again — this does not change the timeout itself (see Session → Bar idle-hide)"
+            checked: Prefs.getValue("bar.autoHideOnIdle")
+            onToggled: (value) => {
+                Prefs.setValue("bar.autoHideOnIdle", value);
+                if (!value)
+                    idleShowProc.running = true;
+                else
+                    idleReassertProc.running = true;
+            }
+        }
+    }
+
+    // ── Capsules (Task 8, D-01 bundle 2/D-02/PD-04) — six ToggleRows,
+    //    one per BarEntryModel.capsules[] entry, each backed by
+    //    Prefs.bar.capsules.<id> with a default of true. Consumed at
+    //    exactly ONE place, BarEntryModel.capsulesForZone() — see that
+    //    function's own header for why requiresBackend()/the three
+    //    aggregate properties are deliberately NOT filtered. ─────────────
+    SettingsSection {
+        title: "Capsules"
+        icon: "view_module"
+
+        ToggleRow {
+            label: "Launcher"
+            subtext: "The app-launcher icon"
+            checked: Prefs.getValue("bar.capsules.launcher")
+            onToggled: (value) => Prefs.setValue("bar.capsules.launcher", value)
+        }
+        ToggleRow {
+            label: "System"
+            subtext: "CPU, RAM, disk, GPU and update readouts"
+            checked: Prefs.getValue("bar.capsules.system")
+            onToggled: (value) => Prefs.setValue("bar.capsules.system", value)
+        }
+        ToggleRow {
+            label: "Workspaces"
+            subtext: "The workspace indicator"
+            checked: Prefs.getValue("bar.capsules.workspaces")
+            onToggled: (value) => Prefs.setValue("bar.capsules.workspaces", value)
+        }
+        ToggleRow {
+            label: "Idle inhibitor"
+            subtext: "The idle-inhibitor bulb"
+            checked: Prefs.getValue("bar.capsules.idleInhibitor")
+            onToggled: (value) => Prefs.setValue("bar.capsules.idleInhibitor", value)
+        }
+        ToggleRow {
+            label: "Media & connectivity"
+            subtext: "Now-playing, audio, brightness, network, Bluetooth, battery"
+            checked: Prefs.getValue("bar.capsules.mediaConnectivity")
+            onToggled: (value) => Prefs.setValue("bar.capsules.mediaConnectivity", value)
+        }
+        ToggleRow {
+            label: "Clock & actions"
+            subtext: "Clock, gaming mode, notifications, settings, power"
+            checked: Prefs.getValue("bar.capsules.clockActions")
+            onToggled: (value) => Prefs.setValue("bar.capsules.clockActions", value)
+        }
+    }
 }

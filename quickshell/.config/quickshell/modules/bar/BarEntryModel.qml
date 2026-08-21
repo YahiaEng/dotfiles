@@ -31,6 +31,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../"
 
 Singleton {
     id: root
@@ -224,10 +225,30 @@ Singleton {
     // therefore stable — two capsules comparing equal on zone cannot swap
     // positions between reloads or between orientations, and that is the
     // ordering contract in must_haves.
+    // ── Task 8 (quick-260821-6z1, D-01 bundle 2/D-02, PD-04) — the ONE
+    //    filter point for `Prefs.bar.capsules.<id>`. Deliberately inlined
+    //    HERE rather than factored into a helper: this is the single
+    //    resolution function every zone renders through, in both
+    //    orientations, so filtering here covers all six zones/both
+    //    orientations in one edit. `requiresBackend()` and the
+    //    `requiresResources`/`requiresMedia`/`requiresAudio` aggregates
+    //    below walk `root.capsules` directly, NEVER through this
+    //    function — hiding a capsule from the bar must never stop a
+    //    backend the dashboard also reads, so those aggregates stay
+    //    permanently unfiltered by construction, not by convention.
+    //    `typeof visible !== "boolean"` (never `||`/truthiness) is the
+    //    false-is-falsy footgun guard: a capsule the operator explicitly
+    //    turned OFF (`false`) must not be silently read as "unset,
+    //    default to visible".
     function capsulesForZone(zoneName) {
         var result = [];
         for (var i = 0; i < root.capsules.length; i++) {
             var capsule = root.capsules[i];
+            var visible = Prefs.getValue("bar.capsules." + capsule.id);
+            if (typeof visible !== "boolean")
+                visible = true;
+            if (!visible)
+                continue;
             var zoneValue = root.isVertical ? capsule.zone.vertical : capsule.zone.horizontal;
             if (zoneValue === zoneName)
                 result.push(capsule);

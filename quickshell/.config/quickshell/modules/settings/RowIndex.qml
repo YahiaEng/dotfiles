@@ -35,6 +35,14 @@ Singleton {
 
         // ── pageIdx 2 — Bar ───────────────────────────────────────────────
         { pageIdx: 2, section: "Bar", label: "Bar orientation", keywords: "bar orientation horizontal vertical dock topbar" },
+        { pageIdx: 2, section: "Visibility", label: "Bar visible", keywords: "bar hide show visibility toggle" },
+        { pageIdx: 2, section: "Idle behaviour", label: "Idle auto-hide", keywords: "bar idle hide autohide timeout" },
+        { pageIdx: 2, section: "Capsules", label: "Launcher", keywords: "bar capsule launcher apps icon" },
+        { pageIdx: 2, section: "Capsules", label: "System", keywords: "bar capsule system cpu ram disk gpu" },
+        { pageIdx: 2, section: "Capsules", label: "Workspaces", keywords: "bar capsule workspaces indicator" },
+        { pageIdx: 2, section: "Capsules", label: "Idle inhibitor", keywords: "bar capsule idle inhibitor bulb" },
+        { pageIdx: 2, section: "Capsules", label: "Media & connectivity", keywords: "bar capsule media audio brightness network bluetooth battery" },
+        { pageIdx: 2, section: "Capsules", label: "Clock & actions", keywords: "bar capsule clock gaming notifications settings power" },
 
         // ── pageIdx 3 — Audio ─────────────────────────────────────────────
         { pageIdx: 3, section: "Audio", label: "Audio", keywords: "audio volume sound output mixer" },

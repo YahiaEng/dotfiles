@@ -66,7 +66,17 @@ Singleton {
         "notifs.maxVisiblePopups",
         "osd.hideDelayMs",
         // Task 7 (D-08/F-03) — Input page's "Show all devices" toggle.
-        "input.showAllDevices"
+        "input.showAllDevices",
+        // Task 8 (D-01 bundle 2/D-02) — Bar page: idle auto-hide and the
+        // six per-capsule visibility toggles, consumed at
+        // BarEntryModel.capsulesForZone()'s own single filter point.
+        "bar.autoHideOnIdle",
+        "bar.capsules.launcher",
+        "bar.capsules.system",
+        "bar.capsules.workspaces",
+        "bar.capsules.idleInhibitor",
+        "bar.capsules.mediaConnectivity",
+        "bar.capsules.clockActions"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -79,7 +89,14 @@ Singleton {
         "notifs.historyCap": 100,
         "notifs.maxVisiblePopups": 3,
         "osd.hideDelayMs": 1200,
-        "input.showAllDevices": false
+        "input.showAllDevices": false,
+        "bar.autoHideOnIdle": true,
+        "bar.capsules.launcher": true,
+        "bar.capsules.system": true,
+        "bar.capsules.workspaces": true,
+        "bar.capsules.idleInhibitor": true,
+        "bar.capsules.mediaConnectivity": true,
+        "bar.capsules.clockActions": true
     })
 
     // ── Helper functions — ALL declared here, above the FileView and
