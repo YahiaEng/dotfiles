@@ -36,6 +36,20 @@ Control {
     property real stepSize: 0.01
     signal moved(value: real)
 
+    // ── Fix WR-04 (code review, quick-260821-6z1 fix wave) —
+    // `hypr-overrides.sh`'s own `cmd_device` comment names a "reset to
+    // default" affordance that "happens at the QML call site (Task 7),
+    // not here", and Task 7's own InputPage.qml never built it. `false`
+    // by default — harmless for every other SliderRow usage, which has
+    // no meaningful "default" to reset TO. A consumer opts in with
+    // `resettable: true` and handles `onResetRequested` itself (e.g.
+    // InputPage.qml's per-device scroll-factor row writes back the
+    // current GLOBAL `input:scroll_factor` value, per the script
+    // comment's own instruction — the "-1 = inherit global" sentinel
+    // itself is not writable, `hl.device` rejects it outright).
+    property bool resettable: false
+    signal resetRequested()
+
     // Two-pane keyboard focus — see Pages.qml's header for the full
     // design; ToggleRow.qml's own header has the geometry-stability
     // reasoning for the border-color-only focus ring below.
@@ -83,7 +97,7 @@ Control {
             spacing: Design.spacingMd
 
             Text {
-                width: parent.width - valueLabel.implicitWidth - Design.spacingMd
+                width: parent.width - valueLabel.implicitWidth - Design.spacingMd - (root.resettable ? resetIcon.implicitWidth + Design.spacingMd : 0)
                 text: root.label
                 font.pixelSize: Design.fontBody
                 color: Colours.onSurface
@@ -94,6 +108,29 @@ Control {
                 text: root.value.toFixed(2)
                 font.pixelSize: Design.fontLabel
                 color: Colours.onSurfaceVariant
+            }
+            // Reset-to-default affordance (WR-04) — a small clickable
+            // glyph, not a fourth row primitive: `settings-index-check`'s
+            // CHECK A counts row-primitive DECLARATIONS
+            // (ToggleRow/SliderRow/SelectRow/NavRow/InfoRow), and this
+            // stays inside the ONE SliderRow declaration it belongs to,
+            // so it needs no separate RowIndex entry.
+            Text {
+                id: resetIcon
+                visible: root.resettable
+                font.family: Design.symbolFontFamily
+                font.pixelSize: Design.iconSizeMd
+                text: "restart_alt"
+                color: resetHover.hovered ? Colours.primary : Colours.onSurfaceVariant
+
+                HoverHandler {
+                    id: resetHover
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.resetRequested()
+                }
             }
         }
 

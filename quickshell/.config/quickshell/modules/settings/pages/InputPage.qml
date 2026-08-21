@@ -205,6 +205,16 @@ PageBase {
         // itself carries only name/primary/joined, not current values.
         property var liveDevicesModel: ({ keyboards: [], mice: [] })
 
+        // Fix WR-04 (code review, quick-260821-6z1 fix wave) — the GLOBAL
+        // `input:scroll_factor` value, read separately from the per-device
+        // ones above. `hypr-overrides.sh`'s own `cmd_device` comment names
+        // this as the value a per-device "reset to default" must write
+        // back, since the real "-1 = inherit global" sentinel is not
+        // writable through this script (`hl.device` rejects a negative
+        // scroll_factor outright) — this is that substitution, at the
+        // "QML call site" the script's own comment names.
+        property real globalScrollFactor: 1.0
+
         readonly property var visibleKeyboards: {
             var all = (devicesSection.devicesModel.keyboards || []).filter(function (k) { return k.joined; });
             if (Prefs.getValue("input.showAllDevices"))
@@ -290,6 +300,21 @@ PageBase {
         }
 
         Process {
+            id: globalScrollFactorProc
+            running: false
+            command: ["hyprctl", "getoption", "input:scroll_factor", "-j"]
+            stdout: StdioCollector { id: globalScrollFactorCollector }
+            onExited: (code, status) => {
+                if (code === 0) {
+                    try {
+                        devicesSection.globalScrollFactor = JSON.parse(globalScrollFactorCollector.text).float;
+                    } catch (e) {}
+                }
+            }
+            Component.onCompleted: running = true
+        }
+
+        Process {
             id: deviceApplyProc
             running: false
             onExited: (code, status) => {
@@ -354,6 +379,12 @@ PageBase {
                 stepSize: 0.1
                 value: devicesSection._liveScrollFactorFor(mouseRow.modelData.name)
                 onMoved: (value) => devicesSection.applyDeviceScrollFactor(mouseRow.modelData.name, value.toFixed(2))
+                // Fix WR-04 — "reset to default" writes back the current
+                // GLOBAL input:scroll_factor value (the real -1 "inherit
+                // global" sentinel cannot be written through this script;
+                // see globalScrollFactorProc's own comment above).
+                resettable: true
+                onResetRequested: devicesSection.applyDeviceScrollFactor(mouseRow.modelData.name, devicesSection.globalScrollFactor.toFixed(2))
             }
         }
     }

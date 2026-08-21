@@ -714,7 +714,11 @@ cmd_device() {
         # back through this script. A settings row's own "reset to
         # default" must write the current GLOBAL `input:scroll_factor`
         # value instead (RESEARCH.md §5.3) — that substitution happens at
-        # the QML call site (Task 7), not here.
+        # the QML call site, not here: InputPage.qml's per-device
+        # scroll-factor SliderRow (`resettable: true`) reads the global
+        # value via a separate `hyprctl getoption input:scroll_factor -j`
+        # call and re-applies it through this same `device` subcommand
+        # (WR-04, quick-260821-6z1 code review fix wave).
         awk -v v="$scroll_factor" 'BEGIN { exit !(v >= 0.0 && v <= 10.0) }' \
             || { echo "hypr-overrides.sh: scroll-factor '$scroll_factor' out of bounds [0.0,10.0]" >&2; exit 1; }
     fi
