@@ -722,7 +722,6 @@ ShellRoot {
             // follows a fresh `openPage()` call ever starts anywhere but
             // Appearance.
             onCloseRequested: {
-                console.log("SQDDIAG t=" + Date.now() + " === Settings window CLOSE requested ===");
                 settingsLoader.active = false;
                 root.settingsInitialPageIdx = 0;
             }
@@ -742,10 +741,8 @@ ShellRoot {
     // above verbatim.
     function openSettings() {
         if (settingsLoader.active) {
-            console.log("SQDDIAG t=" + Date.now() + " openSettings: closing (settingsLoader.active -> false)");
             settingsLoader.active = false;
         } else if (!root.fullscreenBlocking) {
-            console.log("SQDDIAG t=" + Date.now() + " openSettings: opening (settingsLoader.active -> true, first-open initial idx=" + root.settingsInitialPageIdx + ")");
             settingsLoader.active = true;
         }
     }
@@ -770,10 +767,8 @@ ShellRoot {
         if (!settingsLoader.active) {
             if (root.fullscreenBlocking)
                 return false;
-            console.log("SQDDIAG t=" + Date.now() + " openSettingsPage('" + name + "'): FIRST-OPEN branch, idx=" + idx + " (settingsLoader.active -> true, direct _swapTo path)");
             settingsLoader.active = true;
         } else if (settingsLoader.item) {
-            console.log("SQDDIAG t=" + Date.now() + " openSettingsPage('" + name + "'): ALREADY-OPEN branch, idx=" + idx + " (currentPageIdx write, animated swapAnim path)");
             settingsLoader.item.sState.currentPageIdx = idx;
         }
         return true;
@@ -790,28 +785,21 @@ ShellRoot {
     //    mirroring `panelIpc`'s own shape: every verb defers to the
     //    guarded summon functions above, never writes `settingsLoader.active`
     //    directly. ────────────────────────────────────────────────────────
-    // Diagnostic instrumentation (operator-ordered — see SelectRow.qml's
-    // instrumentation-block header for full context). Marks the IPC
-    // entry path specifically, distinct from the nav-rail click and
-    // keyboard-nav paths — the coordinator's own trials used this one.
     IpcHandler {
         id: settingsIpc
         target: "settings"
 
         function open(): string {
-            console.log("SQDDIAG t=" + Date.now() + " ipc-settings-open called, settingsLoader.active-before=" + settingsLoader.active);
             var wasActive = settingsLoader.active;
             root.openSettings();
             return (settingsLoader.active !== wasActive) ? "settings" : "";
         }
 
         function toggle(): string {
-            console.log("SQDDIAG t=" + Date.now() + " ipc-settings-toggle called");
             return settingsIpc.open();
         }
 
         function openPage(name: string): string {
-            console.log("SQDDIAG t=" + Date.now() + " ipc-settings-openPage called name='" + name + "' settingsLoader.active=" + settingsLoader.active);
             return root.openSettingsPage(name) ? name : "";
         }
     }

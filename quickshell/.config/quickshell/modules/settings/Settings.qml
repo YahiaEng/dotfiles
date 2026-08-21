@@ -141,31 +141,20 @@ FloatingWindow {
         // currently holds focus: rail entries (unchanged, above) when the
         // rail holds it, content-pane rows (`pagesHost.moveContentRow`)
         // when the content pane does.
-        // Diagnostic instrumentation (operator-ordered — see
-        // SelectRow.qml's instrumentation-block header for full
-        // context). Marks the keyboard-nav entry path specifically.
         Keys.onUpPressed: {
-            console.log("SQDDIAG t=" + Date.now() + " keyboard-nav Up contentFocused=" + pagesHost.contentFocused);
             if (pagesHost.contentFocused)
                 pagesHost.moveContentRow(-1);
             else
                 win.sState.goToPage(Math.max(0, win.sState.currentPageIdx - 1));
         }
         Keys.onDownPressed: {
-            console.log("SQDDIAG t=" + Date.now() + " keyboard-nav Down contentFocused=" + pagesHost.contentFocused);
             if (pagesHost.contentFocused)
                 pagesHost.moveContentRow(1);
             else
                 win.sState.goToPage(Math.min(PageRegistry.pages.length - 1, win.sState.currentPageIdx + 1));
         }
-        Keys.onLeftPressed: {
-            console.log("SQDDIAG t=" + Date.now() + " keyboard-nav Left (exitContent)");
-            pagesHost.exitContent();
-        }
-        Keys.onRightPressed: {
-            console.log("SQDDIAG t=" + Date.now() + " keyboard-nav Right (enterContent)");
-            pagesHost.enterContent();
-        }
+        Keys.onLeftPressed: pagesHost.exitContent()
+        Keys.onRightPressed: pagesHost.enterContent()
 
         // Re-claims QML-level focus every time this window (re)gains real
         // OS activation — fixes the original construction-time race
@@ -208,8 +197,5 @@ FloatingWindow {
         onCleared: win.closeRequested()
     }
 
-    Component.onCompleted: {
-        console.log("SQDDIAG t=" + Date.now() + " === Settings window OPEN (constructed) === initialPageIdx=" + win.initialPageIdx);
-        win.sState.currentPageIdx = win.initialPageIdx;
-    }
+    Component.onCompleted: win.sState.currentPageIdx = win.initialPageIdx
 }

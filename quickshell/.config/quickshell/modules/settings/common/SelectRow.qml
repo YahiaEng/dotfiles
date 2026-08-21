@@ -187,10 +187,7 @@ Control {
             MouseArea {
                 anchors.fill: parent
                 enabled: !root.busy
-                onClicked: {
-                    console.log("SQDDIAG t=" + Date.now() + " pill-clicked row='" + root.label + "'");
-                    optionsMenu.popup();
-                }
+                onClicked: optionsMenu.popup()
             }
         }
     }
@@ -229,21 +226,10 @@ Control {
     // test (operator, third live-pass — see the MenuItem `background`
     // below for the full finding and the border-ring fix that
     // ultimately replaced this section's original fill-based one).
-    // ── Diagnostic instrumentation (operator-ordered, this round —
-    //    "make the two paths observable, so the operator's own
-    //    reproduction writes the truth into quickshell.log"). NOT a
-    //    fix; nothing below changes behaviour. Grep `SQDDIAG` in
-    //    ~/.cache/quickshell.log. This block stays until the operator's
-    //    own session data resolves items 6/7 (idle rows staying
-    //    unresponsive, natural-scroll flash) — remove only once that
-    //    round closes them out.
     Menu {
         id: optionsMenu
 
         implicitWidth: Math.max(200, dropdownPill.implicitWidth)
-
-        onOpened: console.log("SQDDIAG t=" + Date.now() + " menu-opened row='" + root.label + "'")
-        onClosed: console.log("SQDDIAG t=" + Date.now() + " menu-closed row='" + root.label + "'")
 
         background: Rectangle {
             implicitWidth: optionsMenu.implicitWidth
@@ -324,19 +310,7 @@ Control {
                     }
                 }
 
-                // `hovered` at the moment of trigger is the best
-                // available proxy for mouse-vs-keyboard: QQC2 exposes
-                // no direct "which input device fired this" signal.
-                // hovered=true strongly suggests the pointer was over
-                // this item (mouse click or mouse-driven highlight);
-                // hovered=false with highlighted=true suggests
-                // keyboard-driven (arrow nav + Enter/Space, no pointer
-                // involvement). Not authoritative — logged as a
-                // best-effort signal, not a claim.
-                onTriggered: {
-                    console.log("SQDDIAG t=" + Date.now() + " menuitem-triggered row='" + root.label + "' value='" + modelData.value + "' hovered=" + menuItem.hovered + " highlighted=" + menuItem.highlighted);
-                    root.selected(modelData.value);
-                }
+                onTriggered: root.selected(modelData.value)
             }
         }
     }

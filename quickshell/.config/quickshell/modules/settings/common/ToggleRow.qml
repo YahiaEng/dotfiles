@@ -71,26 +71,11 @@ Control {
             });
     }
 
-    // ── Diagnostic instrumentation (operator-ordered — see
-    //    SelectRow.qml's own instrumentation-block header for the full
-    //    context; identical discipline here: no behaviour change, only
-    //    logging). `_checkedShadow` gives `onCheckedChanged` an old
-    //    value to log, since the change signal itself only exposes new.
-    //    Merged with the settle-trigger handlers above (single QML
-    //    signal handler per object per signal — cannot be declared
-    //    twice).
-    property bool _checkedShadow: false
     Component.onCompleted: {
-        console.log("SQDDIAG t=" + Date.now() + " ToggleRow-constructed label='" + root.label + "' checked=" + root.checked + " showState=" + root.showState);
         if (root.showState)
             root._settle();
     }
-    onCheckedChanged: {
-        console.log("SQDDIAG t=" + Date.now() + " ToggleRow checked label='" + root.label + "' " + root._checkedShadow + " -> " + root.checked);
-        root._checkedShadow = root.checked;
-    }
     onShowStateChanged: {
-        console.log("SQDDIAG t=" + Date.now() + " ToggleRow showState label='" + root.label + "' showState=" + root.showState);
         if (root.showState)
             root._settle();
     }
@@ -182,7 +167,6 @@ Control {
         Rectangle {
             id: switchPill
             visible: root.showState
-            onVisibleChanged: console.log("SQDDIAG t=" + Date.now() + " switchPill.visible label='" + root.label + "' visible=" + visible + " color-would-be=" + (root.checked ? "primary" : "surfaceVariant"))
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             implicitWidth: 48

@@ -100,19 +100,11 @@ Item {
                         }
                     }
 
-                    // Diagnostic instrumentation (operator-ordered —
-                    // see SelectRow.qml's instrumentation-block header
-                    // for full context). Marks the rail-click entry
-                    // path specifically, distinct from any IPC/keyboard
-                    // entry — the operator uses this one.
                     MouseArea {
                         id: navMouseArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        onClicked: {
-                            console.log("SQDDIAG t=" + Date.now() + " nav-rail-click index=" + navItem.index + " label='" + navItem.modelData.label + "'");
-                            root.sState.goToPage(navItem.index);
-                        }
+                        onClicked: root.sState.goToPage(navItem.index)
                         ToolTip.visible: navMouseArea.containsMouse
                         ToolTip.text: navItem.modelData.description
                         ToolTip.delay: Design.tooltipDelayMs
