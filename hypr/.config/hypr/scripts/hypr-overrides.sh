@@ -25,6 +25,27 @@
 #   hypr-overrides.sh monitor <output> [--mode <WxH@R>] [--position <XxY>] [--scale <N>]
 #   hypr-overrides.sh input [--kb-layout <layout>] [--follow-mouse <0|1|2|3>]
 #                            [--sensitivity <-1.0..1.0>] [--natural-scroll <true|false>]
+#   hypr-overrides.sh look [--gaps-in <0-30>] [--gaps-out <0-60>]
+#                           [--border-size <0-10>] [--gaps-workspaces <0-100>]
+#                           [--rounding <0-30>] [--blur-enabled <true|false>]
+#                           [--blur-size <1-20>] [--blur-passes <1-5>]
+#                           [--inactive-opacity <0.5-1.0>] [--shadow-enabled <true|false>]
+#                           [--workspace-back-and-forth <true|false>]
+#                           [--allow-workspace-cycles <true|false>]
+#
+# `look` (quick-260821-6z1 Task 4, D-03/R-2) — the compositor "look and
+# feel" knobs the Window manager settings page drives. Ships ONLY the
+# GREEN rows of RESEARCH.md's Compositor Knob Ledger, both AMBER rows
+# (gaps-workspaces, allow-workspace-cycles) probed live on this host on
+# 2026-08-21 and shipped since their write half verified. Deliberately
+# does NOT cover animation speed (N-01 — not a compositor option at all;
+# the Motion preset already IS this control) or border colour (N-02 — the
+# theme pipeline re-applies it on every `hyprctl reload`, which fires on
+# every theme switch; an eval-applied override would silently revert).
+# `general:no_border_on_floating`, `misc:vfr`, `dwindle:pseudotile`,
+# `animations:first_launch_animation` and `misc:new_window_takes_over_fullscreen`
+# all return `no such option` on this build (Hyprland 0.56.2) and must
+# never appear below.
 
 set -uo pipefail
 
@@ -51,7 +72,7 @@ _read_json_state() {
     if [[ -s "$JSON_STATE" ]] && jq -e . "$JSON_STATE" >/dev/null 2>&1; then
         cat "$JSON_STATE"
     else
-        echo '{"monitors":{},"input":{}}'
+        echo '{"monitors":{},"input":{},"general":{},"decoration":{},"binds":{}}'
     fi
 }
 
@@ -92,6 +113,28 @@ _persist() {
         ( if (.input.touchpad.natural_scroll | type) != "null" then
             "        touchpad = { natural_scroll = " + (.input.touchpad.natural_scroll | tostring) + " },\n"
           else "" end ) +
+        "    },\n" +
+        "    general = {\n" +
+        ( if ((.general.gaps_in) | type) != "null" then "        gaps_in = " + (.general.gaps_in | tostring) + ",\n" else "" end ) +
+        ( if ((.general.gaps_out) | type) != "null" then "        gaps_out = " + (.general.gaps_out | tostring) + ",\n" else "" end ) +
+        ( if ((.general.border_size) | type) != "null" then "        border_size = " + (.general.border_size | tostring) + ",\n" else "" end ) +
+        ( if ((.general.gaps_workspaces) | type) != "null" then "        gaps_workspaces = " + (.general.gaps_workspaces | tostring) + ",\n" else "" end ) +
+        "    },\n" +
+        "    decoration = {\n" +
+        ( if ((.decoration.rounding) | type) != "null" then "        rounding = " + (.decoration.rounding | tostring) + ",\n" else "" end ) +
+        ( if ((.decoration.inactive_opacity) | type) != "null" then "        inactive_opacity = " + (.decoration.inactive_opacity | tostring) + ",\n" else "" end ) +
+        "        blur = {\n" +
+        ( if ((.decoration.blur.enabled) | type) != "null" then "            enabled = " + (.decoration.blur.enabled | tostring) + ",\n" else "" end ) +
+        ( if ((.decoration.blur.size) | type) != "null" then "            size = " + (.decoration.blur.size | tostring) + ",\n" else "" end ) +
+        ( if ((.decoration.blur.passes) | type) != "null" then "            passes = " + (.decoration.blur.passes | tostring) + ",\n" else "" end ) +
+        "        },\n" +
+        "        shadow = {\n" +
+        ( if ((.decoration.shadow.enabled) | type) != "null" then "            enabled = " + (.decoration.shadow.enabled | tostring) + ",\n" else "" end ) +
+        "        },\n" +
+        "    },\n" +
+        "    binds = {\n" +
+        ( if ((.binds.workspace_back_and_forth) | type) != "null" then "        workspace_back_and_forth = " + (.binds.workspace_back_and_forth | tostring) + ",\n" else "" end ) +
+        ( if ((.binds.allow_workspace_cycles) | type) != "null" then "        allow_workspace_cycles = " + (.binds.allow_workspace_cycles | tostring) + ",\n" else "" end ) +
         "    },\n" +
         "}\n"
     ')
@@ -375,13 +418,177 @@ cmd_input() {
     echo "hypr-overrides.sh: input applied and persisted"
 }
 
+# Extracts the first whitespace-separated token of a `hyprctl getoption
+# -j` reply's `.css` field ("5 5 5 5" -> "5") — `gaps_in`/`gaps_out`
+# verify on this 4-tuple STRING field, never `.int` (RESEARCH.md's own
+# finding, the same field-name bug class that already bit
+# `input:touchpad:natural_scroll`'s `.bool`/`.int` mismatch).
+_first_css_token() {
+    printf '%s' "$1" | jq -r '.css' | awk '{print $1}'
+}
+
+# ── look subcommand (quick-260821-6z1 Task 4, D-03/R-2) ─────────────────
+cmd_look() {
+    local gaps_in="" gaps_out="" border_size="" gaps_workspaces=""
+    local rounding="" blur_enabled="" blur_size="" blur_passes="" inactive_opacity="" shadow_enabled=""
+    local wbf="" awc=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --gaps-in) gaps_in="$2"; shift 2 ;;
+            --gaps-out) gaps_out="$2"; shift 2 ;;
+            --border-size) border_size="$2"; shift 2 ;;
+            --gaps-workspaces) gaps_workspaces="$2"; shift 2 ;;
+            --rounding) rounding="$2"; shift 2 ;;
+            --blur-enabled) blur_enabled="$2"; shift 2 ;;
+            --blur-size) blur_size="$2"; shift 2 ;;
+            --blur-passes) blur_passes="$2"; shift 2 ;;
+            --inactive-opacity) inactive_opacity="$2"; shift 2 ;;
+            --shadow-enabled) shadow_enabled="$2"; shift 2 ;;
+            --workspace-back-and-forth) wbf="$2"; shift 2 ;;
+            --allow-workspace-cycles) awc="$2"; shift 2 ;;
+            *) echo "hypr-overrides.sh look: unknown flag $1" >&2; exit 1 ;;
+        esac
+    done
+
+    # ── VALIDATE — a character-shape check independent of the numeric
+    #    bound check, per every other subcommand's own discipline. ───────
+    _bool_ok() { [[ "$1" == "true" || "$1" == "false" ]]; }
+    _int_bounded() {
+        local v="$1" lo="$2" hi="$3"
+        [[ "$v" =~ ^[0-9]+$ ]] || return 1
+        awk -v v="$v" -v lo="$lo" -v hi="$hi" 'BEGIN { exit !(v >= lo && v <= hi) }'
+    }
+
+    [[ -z "$gaps_in" ]]           || _int_bounded "$gaps_in" 0 30           || { echo "hypr-overrides.sh: gaps-in '$gaps_in' out of bounds [0,30]" >&2; exit 1; }
+    [[ -z "$gaps_out" ]]          || _int_bounded "$gaps_out" 0 60          || { echo "hypr-overrides.sh: gaps-out '$gaps_out' out of bounds [0,60]" >&2; exit 1; }
+    [[ -z "$border_size" ]]       || _int_bounded "$border_size" 0 10       || { echo "hypr-overrides.sh: border-size '$border_size' out of bounds [0,10]" >&2; exit 1; }
+    [[ -z "$gaps_workspaces" ]]   || _int_bounded "$gaps_workspaces" 0 100  || { echo "hypr-overrides.sh: gaps-workspaces '$gaps_workspaces' out of bounds [0,100]" >&2; exit 1; }
+    [[ -z "$rounding" ]]          || _int_bounded "$rounding" 0 30          || { echo "hypr-overrides.sh: rounding '$rounding' out of bounds [0,30]" >&2; exit 1; }
+    [[ -z "$blur_size" ]]         || _int_bounded "$blur_size" 1 20         || { echo "hypr-overrides.sh: blur-size '$blur_size' out of bounds [1,20]" >&2; exit 1; }
+    [[ -z "$blur_passes" ]]       || _int_bounded "$blur_passes" 1 5        || { echo "hypr-overrides.sh: blur-passes '$blur_passes' out of bounds [1,5]" >&2; exit 1; }
+    [[ -z "$blur_enabled" ]]      || _bool_ok "$blur_enabled"               || { echo "hypr-overrides.sh: blur-enabled '$blur_enabled' not in {true,false}" >&2; exit 1; }
+    [[ -z "$shadow_enabled" ]]    || _bool_ok "$shadow_enabled"             || { echo "hypr-overrides.sh: shadow-enabled '$shadow_enabled' not in {true,false}" >&2; exit 1; }
+    [[ -z "$wbf" ]]               || _bool_ok "$wbf"                       || { echo "hypr-overrides.sh: workspace-back-and-forth '$wbf' not in {true,false}" >&2; exit 1; }
+    [[ -z "$awc" ]]               || _bool_ok "$awc"                       || { echo "hypr-overrides.sh: allow-workspace-cycles '$awc' not in {true,false}" >&2; exit 1; }
+    if [[ -n "$inactive_opacity" ]]; then
+        [[ "$inactive_opacity" =~ ^[0-9]+(\.[0-9]+)?$ ]] \
+            || { echo "hypr-overrides.sh: inactive-opacity '$inactive_opacity' is not numeric" >&2; exit 1; }
+        awk -v v="$inactive_opacity" 'BEGIN { exit !(v >= 0.5 && v <= 1.0) }' \
+            || { echo "hypr-overrides.sh: inactive-opacity '$inactive_opacity' out of bounds [0.5,1.0]" >&2; exit 1; }
+    fi
+
+    # ── Fall back to current live values for any field not supplied
+    #    (cmd_input's own WR-01 discipline: every fallback read is
+    #    checked non-empty/well-formed BEFORE use, since an unchecked
+    #    empty value would make the eval/persist calls below silently
+    #    clobber the entire overrides file). ───────────────────────────
+    local final_gaps_in="$gaps_in" final_gaps_out="$gaps_out" final_border_size="$border_size" final_gaps_workspaces="$gaps_workspaces"
+    local final_rounding="$rounding" final_blur_enabled="$blur_enabled" final_blur_size="$blur_size" final_blur_passes="$blur_passes"
+    local final_inactive_opacity="$inactive_opacity" final_shadow_enabled="$shadow_enabled"
+    local final_wbf="$wbf" final_awc="$awc"
+
+    [[ -n "$final_gaps_in" ]]           || final_gaps_in=$(_first_css_token "$(hyprctl getoption general:gaps_in -j 2>/dev/null)")
+    [[ -n "$final_gaps_out" ]]          || final_gaps_out=$(_first_css_token "$(hyprctl getoption general:gaps_out -j 2>/dev/null)")
+    [[ -n "$final_border_size" ]]       || final_border_size=$(hyprctl getoption general:border_size -j 2>/dev/null | jq -r '.int')
+    [[ -n "$final_gaps_workspaces" ]]   || final_gaps_workspaces=$(hyprctl getoption general:gaps_workspaces -j 2>/dev/null | jq -r '.int')
+    [[ -n "$final_rounding" ]]          || final_rounding=$(hyprctl getoption decoration:rounding -j 2>/dev/null | jq -r '.int')
+    [[ -n "$final_blur_enabled" ]]      || final_blur_enabled=$(hyprctl getoption decoration:blur:enabled -j 2>/dev/null | jq -r '.bool')
+    [[ -n "$final_blur_size" ]]         || final_blur_size=$(hyprctl getoption decoration:blur:size -j 2>/dev/null | jq -r '.int')
+    [[ -n "$final_blur_passes" ]]       || final_blur_passes=$(hyprctl getoption decoration:blur:passes -j 2>/dev/null | jq -r '.int')
+    [[ -n "$final_inactive_opacity" ]]  || final_inactive_opacity=$(hyprctl getoption decoration:inactive_opacity -j 2>/dev/null | jq -r '.float')
+    [[ -n "$final_shadow_enabled" ]]    || final_shadow_enabled=$(hyprctl getoption decoration:shadow:enabled -j 2>/dev/null | jq -r '.bool')
+    [[ -n "$final_wbf" ]]               || final_wbf=$(hyprctl getoption binds:workspace_back_and_forth -j 2>/dev/null | jq -r '.bool')
+    [[ -n "$final_awc" ]]               || final_awc=$(hyprctl getoption binds:allow_workspace_cycles -j 2>/dev/null | jq -r '.bool')
+
+    for _pair in "gaps_in:$final_gaps_in" "gaps_out:$final_gaps_out" "border_size:$final_border_size" \
+                 "gaps_workspaces:$final_gaps_workspaces" "rounding:$final_rounding" "blur_enabled:$final_blur_enabled" \
+                 "blur_size:$final_blur_size" "blur_passes:$final_blur_passes" "inactive_opacity:$final_inactive_opacity" \
+                 "shadow_enabled:$final_shadow_enabled" "workspace_back_and_forth:$final_wbf" "allow_workspace_cycles:$final_awc"; do
+        local _fname="${_pair%%:*}" _fval="${_pair#*:}"
+        [[ -n "$_fval" && "$_fval" != "null" ]] \
+            || { echo "hypr-overrides.sh: could not read current live value for '$_fname' (hyprctl getoption failed?) — refusing to apply or persist" >&2; exit 1; }
+    done
+
+    # ── APPLY LIVE — one combined hl.config call, every field a numeric
+    #    or boolean Lua literal (none need _luastr — no strings here). ───
+    hyprctl eval "return hl.config({ general = { gaps_in = $final_gaps_in, gaps_out = $final_gaps_out, border_size = $final_border_size, gaps_workspaces = $final_gaps_workspaces }, decoration = { rounding = $final_rounding, inactive_opacity = $final_inactive_opacity, blur = { enabled = $final_blur_enabled, size = $final_blur_size, passes = $final_blur_passes }, shadow = { enabled = $final_shadow_enabled } }, binds = { workspace_back_and_forth = $final_wbf, allow_workspace_cycles = $final_awc } })" >/dev/null 2>&1
+
+    # ── VERIFY — ONLY the fields THIS call actually asked to change; a
+    #    bare call with no flags at all verifies every field (still a
+    #    real check: confirms the eval call took effect at all). ────────
+    sleep 0.3
+    local verify_ok=0
+    local bare_call=0
+    [[ -z "$gaps_in$gaps_out$border_size$gaps_workspaces$rounding$blur_enabled$blur_size$blur_passes$inactive_opacity$shadow_enabled$wbf$awc" ]] && bare_call=1
+
+    if [[ -n "$gaps_in" || "$bare_call" -eq 1 ]]; then
+        [[ "$(_first_css_token "$(hyprctl getoption general:gaps_in -j 2>/dev/null)")" == "$final_gaps_in" ]] || verify_ok=1
+    fi
+    if [[ -n "$gaps_out" || "$bare_call" -eq 1 ]]; then
+        [[ "$(_first_css_token "$(hyprctl getoption general:gaps_out -j 2>/dev/null)")" == "$final_gaps_out" ]] || verify_ok=1
+    fi
+    if [[ -n "$border_size" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption general:border_size -j 2>/dev/null | jq -r '.int')" == "$final_border_size" ]] || verify_ok=1
+    fi
+    if [[ -n "$gaps_workspaces" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption general:gaps_workspaces -j 2>/dev/null | jq -r '.int')" == "$final_gaps_workspaces" ]] || verify_ok=1
+    fi
+    if [[ -n "$rounding" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption decoration:rounding -j 2>/dev/null | jq -r '.int')" == "$final_rounding" ]] || verify_ok=1
+    fi
+    if [[ -n "$blur_enabled" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption decoration:blur:enabled -j 2>/dev/null | jq -r '.bool')" == "$final_blur_enabled" ]] || verify_ok=1
+    fi
+    if [[ -n "$blur_size" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption decoration:blur:size -j 2>/dev/null | jq -r '.int')" == "$final_blur_size" ]] || verify_ok=1
+    fi
+    if [[ -n "$blur_passes" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption decoration:blur:passes -j 2>/dev/null | jq -r '.int')" == "$final_blur_passes" ]] || verify_ok=1
+    fi
+    if [[ -n "$inactive_opacity" || "$bare_call" -eq 1 ]]; then
+        local live_op
+        live_op=$(hyprctl getoption decoration:inactive_opacity -j 2>/dev/null | jq -r '.float')
+        awk -v a="$live_op" -v b="$final_inactive_opacity" 'BEGIN { exit !((a - b < 0 ? b - a : a - b) < 0.001) }' \
+            || verify_ok=1
+    fi
+    if [[ -n "$shadow_enabled" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption decoration:shadow:enabled -j 2>/dev/null | jq -r '.bool')" == "$final_shadow_enabled" ]] || verify_ok=1
+    fi
+    if [[ -n "$wbf" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption binds:workspace_back_and_forth -j 2>/dev/null | jq -r '.bool')" == "$final_wbf" ]] || verify_ok=1
+    fi
+    if [[ -n "$awc" || "$bare_call" -eq 1 ]]; then
+        [[ "$(hyprctl getoption binds:allow_workspace_cycles -j 2>/dev/null | jq -r '.bool')" == "$final_awc" ]] || verify_ok=1
+    fi
+    if [[ "$verify_ok" -ne 0 ]]; then
+        echo "hypr-overrides.sh: live look apply did not verify against hyprctl getoption -j" >&2
+        exit 1
+    fi
+
+    # ── PERSIST ONLY after the live apply is proven ──────────────────────
+    local json
+    json=$(_read_json_state | jq \
+        --argjson gi "$final_gaps_in" --argjson go "$final_gaps_out" --argjson bs "$final_border_size" --argjson gw "$final_gaps_workspaces" \
+        --argjson ro "$final_rounding" --argjson io "$final_inactive_opacity" \
+        --argjson be "$final_blur_enabled" --argjson bsz "$final_blur_size" --argjson bp "$final_blur_passes" \
+        --argjson se "$final_shadow_enabled" --argjson wbf "$final_wbf" --argjson awc "$final_awc" \
+        '.general.gaps_in = $gi | .general.gaps_out = $go | .general.border_size = $bs | .general.gaps_workspaces = $gw
+         | .decoration.rounding = $ro | .decoration.inactive_opacity = $io
+         | .decoration.blur.enabled = $be | .decoration.blur.size = $bsz | .decoration.blur.passes = $bp
+         | .decoration.shadow.enabled = $se
+         | .binds.workspace_back_and_forth = $wbf | .binds.allow_workspace_cycles = $awc')
+    _persist "$json" || exit 1
+    echo "hypr-overrides.sh: look applied and persisted"
+}
+
 main() {
     local sub="${1:-}"
-    [[ -n "$sub" ]] || { echo "Usage: hypr-overrides.sh <monitor|input> ..." >&2; exit 1; }
+    [[ -n "$sub" ]] || { echo "Usage: hypr-overrides.sh <monitor|input|look> ..." >&2; exit 1; }
     shift
     case "$sub" in
         monitor) cmd_monitor "$@" ;;
         input) cmd_input "$@" ;;
+        look) cmd_look "$@" ;;
         *) echo "hypr-overrides.sh: unknown subcommand '$sub'" >&2; exit 1 ;;
     esac
 }

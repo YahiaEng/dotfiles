@@ -56,6 +56,35 @@ if overrides.input.touchpad.natural_scroll ~= nil then
     naturalScrollOverride = overrides.input.touchpad.natural_scroll
 end
 
+-- quick-260821-6z1 Task 4 (D-03/R-2) — the `look` subcommand's boolean
+-- knobs, same `~= nil` discipline as naturalScrollOverride above and for
+-- the identical reason: `false or <default>` would silently re-enable
+-- something the operator deliberately turned off. Numeric knobs
+-- (gaps_in/gaps_out/border_size/gaps_workspaces/rounding/
+-- inactive_opacity/blur.size/blur.passes) do NOT need this treatment —
+-- Lua only treats `nil`/`false` as falsy, so `overrides.general.gaps_in
+-- or 5` is already correct even when the override is the number 0.
+local blurEnabledOverride = true
+if overrides.decoration.blur.enabled ~= nil then
+    blurEnabledOverride = overrides.decoration.blur.enabled
+end
+local shadowEnabledOverride = true
+if overrides.decoration.shadow.enabled ~= nil then
+    shadowEnabledOverride = overrides.decoration.shadow.enabled
+end
+-- Both binds default to Hyprland's own compositor default (`false`,
+-- measured live via `hyprctl getoption binds:<key> -j` before either was
+-- ever touched, RESEARCH.md §2.2/§2.4) — there was no prior `binds`
+-- block in this file at all before this task.
+local workspaceBackAndForthOverride = false
+if overrides.binds.workspace_back_and_forth ~= nil then
+    workspaceBackAndForthOverride = overrides.binds.workspace_back_and_forth
+end
+local allowWorkspaceCyclesOverride = false
+if overrides.binds.allow_workspace_cycles ~= nil then
+    allowWorkspaceCyclesOverride = overrides.binds.allow_workspace_cycles
+end
+
 require("config.env")
 require("config.monitors")
 require("config.autostart")
@@ -75,9 +104,15 @@ require("config.dynamic-cursors")
 -- is the braces.
 hl.config({
     general = {
-        gaps_in = 5,
-        gaps_out = 10,
-        border_size = 3,
+        -- quick-260821-6z1 Task 4 (D-03/R-2) — each keeps its CURRENT
+        -- literal as the `or` fallback (D-13's guarantee): a missing or
+        -- partial overrides file degrades to exactly today's behaviour.
+        -- `gaps_workspaces` had no prior literal here at all (Hyprland's
+        -- own compositor default is 0, measured live).
+        gaps_in = overrides.general.gaps_in or 5,
+        gaps_out = overrides.general.gaps_out or 10,
+        border_size = overrides.general.border_size or 3,
+        gaps_workspaces = overrides.general.gaps_workspaces or 0,
         col = {
             active_border = {
                 colors = {
@@ -116,15 +151,20 @@ hl.config({
     -- was tried first and reads back correctly — see
     -- 13.1-LUA-FINDINGS.md's "Option readback divergences" section.
     decoration = {
-        rounding = 12,
+        -- quick-260821-6z1 Task 4 (D-03/R-2) — same or-fallback discipline
+        -- as `general` above for the numeric fields; the two booleans
+        -- (blur.enabled, shadow.enabled) go through the `~= nil`-checked
+        -- locals above, never `or`, for the same reason
+        -- naturalScrollOverride does.
+        rounding = overrides.decoration.rounding or 12,
         active_opacity = 1.0,
-        inactive_opacity = 0.92,
+        inactive_opacity = overrides.decoration.inactive_opacity or 0.92,
         fullscreen_opacity = 1.0,
 
         blur = {
-            enabled = true,
-            size = 8,
-            passes = 3,
+            enabled = blurEnabledOverride,
+            size = overrides.decoration.blur.size or 8,
+            passes = overrides.decoration.blur.passes or 3,
             new_optimizations = true,
             xray = true,
             noise = 0.02,
@@ -135,12 +175,21 @@ hl.config({
         },
 
         shadow = {
-            enabled = true,
+            enabled = shadowEnabledOverride,
             range = 20,
             render_power = 3,
             color = "rgba(00000055)",
             offset = { 0, 4 },
         },
+    },
+
+    -- binds block (quick-260821-6z1 Task 4, D-03/R-2) — no prior block of
+    -- this name existed in this file before this task. Both fields
+    -- default to Hyprland's own compositor default (`false`, measured
+    -- live) and go through the `~= nil`-checked locals above, never `or`.
+    binds = {
+        workspace_back_and_forth = workspaceBackAndForthOverride,
+        allow_workspace_cycles = allowWorkspaceCyclesOverride,
     },
 
     -- dwindle block — hyprland.conf lines 77-82. `pseudotile` is

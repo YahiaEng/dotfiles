@@ -432,6 +432,12 @@ ACCEPTED_OPTION_CHANGES = {
 # `input:*` keys below), so they never appear in `all_keys` in the first
 # place and need no entry.
 #
+# quick-260821-6z1 Task 4 (D-03/R-2) widens this set to every key
+# `hypr-overrides.sh look` can write — the GREEN (plus both probe-passed
+# AMBER) rows of the Compositor Knob Ledger. Same trade, named the same
+# way: each entry below is required, or this gate FAILs the moment the
+# operator moves that knob from the Window manager settings page.
+#
 # REPORTED as a note on every run, value included, never asserted on — the
 # comparator does not even check whether it changed, since "it may differ,
 # and that is fine" is the whole point.
@@ -440,6 +446,18 @@ VOLATILE_KEYS = {
     'input:follow_mouse',
     'input:sensitivity',
     'input:touchpad:natural_scroll',
+    'general:gaps_in',
+    'general:gaps_out',
+    'general:border_size',
+    'general:gaps_workspaces',
+    'decoration:rounding',
+    'decoration:blur:enabled',
+    'decoration:blur:size',
+    'decoration:blur:passes',
+    'decoration:inactive_opacity',
+    'decoration:shadow:enabled',
+    'binds:workspace_back_and_forth',
+    'binds:allow_workspace_cycles',
 }
 
 # Fail CLOSED on a malformed entry. A typo'd kind (e.g. 'add' for 'added')

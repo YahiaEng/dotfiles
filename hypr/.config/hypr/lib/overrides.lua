@@ -40,6 +40,17 @@ function M.get()
     overrides.input = (type(overrides.input) == "table") and overrides.input or {}
     overrides.input.touchpad = (type(overrides.input.touchpad) == "table") and overrides.input.touchpad or {}
 
+    -- quick-260821-6z1 Task 4 (D-03) — `general`/`decoration`/`binds`
+    -- (and `decoration.blur`/`decoration.shadow`) guaranteed present the
+    -- same way `input`/`input.touchpad` already are, so hyprland.lua can
+    -- index two AND three levels deep (`overrides.decoration.blur.size`)
+    -- even when the whole file is absent or only partially populated.
+    overrides.general = (type(overrides.general) == "table") and overrides.general or {}
+    overrides.decoration = (type(overrides.decoration) == "table") and overrides.decoration or {}
+    overrides.decoration.blur = (type(overrides.decoration.blur) == "table") and overrides.decoration.blur or {}
+    overrides.decoration.shadow = (type(overrides.decoration.shadow) == "table") and overrides.decoration.shadow or {}
+    overrides.binds = (type(overrides.binds) == "table") and overrides.binds or {}
+
     return overrides
 end
 
