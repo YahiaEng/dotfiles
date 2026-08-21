@@ -301,7 +301,17 @@ ShellRoot {
         id: prefsIpc
         target: "prefs"
 
-        function _coerce(s: string) {
+        // Fix (verifier's low-severity finding, quick-260821-6z1 fix
+        // wave): an unannotated return type made QML's own qmltc/qmlsc
+        // treat every call site as needing a runtime coercion to `void`,
+        // logging an `ERROR`-level "should be coerced to void because the
+        // function called is insufficiently annotated" line on every
+        // `qs ipc call prefs set ...` — pure log noise (the return value
+        // was still used correctly), but this project debugs through that
+        // exact log channel. `_coerce` genuinely returns bool, number, OR
+        // string depending on its input, so `var` is the correct
+        // annotation — not `bool`/`real`/`string` alone.
+        function _coerce(s: string): var {
             if (s === "true")
                 return true;
             if (s === "false")
