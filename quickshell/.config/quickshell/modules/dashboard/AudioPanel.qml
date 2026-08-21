@@ -270,9 +270,12 @@ PanelDialog {
                             root.backend.clearDeviceFailure();
                         pickerRow._expanded = !pickerRow._expanded;
                     }
-                    ToolTip.visible: rowMouseArea.containsMouse && !pickerRow.isPending
-                    ToolTip.text: pickerRow.currentLabel
-                    ToolTip.delay: Design.tooltipDelayMs
+                }
+                // ThemedToolTip (quick-260821-6z1 fix wave) — replaces the
+                // bare attached ToolTip shorthand; see ThemedToolTip.qml.
+                ThemedToolTip {
+                    visible: rowMouseArea.containsMouse && !pickerRow.isPending
+                    text: pickerRow.currentLabel
                 }
             }
 
@@ -328,9 +331,10 @@ PanelDialog {
                                 pickerRow.activated(modelData);
                                 pickerRow._expanded = false;
                             }
-                            ToolTip.visible: candidateMouseArea.containsMouse
-                            ToolTip.text: root.backend ? root.backend.deviceLabel(modelData) : ""
-                            ToolTip.delay: Design.tooltipDelayMs
+                        }
+                        ThemedToolTip {
+                            visible: candidateMouseArea.containsMouse
+                            text: root.backend ? root.backend.deviceLabel(modelData) : ""
                         }
                     }
                 }
@@ -398,9 +402,10 @@ PanelDialog {
                                 if (root.backend)
                                     root.backend.setMasterMuted(!root.backend.masterMuted);
                             }
-                            ToolTip.visible: muteMouseArea.containsMouse
-                            ToolTip.text: (root.backend && root.backend.masterMuted) ? "Unmute" : "Mute"
-                            ToolTip.delay: Design.tooltipDelayMs
+                        }
+                        ThemedToolTip {
+                            visible: muteMouseArea.containsMouse
+                            text: (root.backend && root.backend.masterMuted) ? "Unmute" : "Mute"
                         }
                     }
 
@@ -574,9 +579,10 @@ PanelDialog {
                                 if (root.backend)
                                     root.backend.setInputMuted(!root.backend.inputMuted);
                             }
-                            ToolTip.visible: micMouseArea.containsMouse
-                            ToolTip.text: (root.backend && root.backend.inputMuted) ? "Unmute microphone" : "Mute microphone"
-                            ToolTip.delay: Design.tooltipDelayMs
+                        }
+                        ThemedToolTip {
+                            visible: micMouseArea.containsMouse
+                            text: (root.backend && root.backend.inputMuted) ? "Unmute microphone" : "Mute microphone"
                         }
                     }
 
@@ -731,9 +737,10 @@ PanelDialog {
                             if (root.backend)
                                 root.backend.setStreamMuted(streamRow.node, !streamRow.muted);
                         }
-                        ToolTip.visible: streamMuteArea.containsMouse
-                        ToolTip.text: streamRow.muted ? "Unmute" : "Mute"
-                        ToolTip.delay: Design.tooltipDelayMs
+                    }
+                    ThemedToolTip {
+                        visible: streamMuteArea.containsMouse
+                        text: streamRow.muted ? "Unmute" : "Mute"
                     }
                 }
 
@@ -753,9 +760,10 @@ PanelDialog {
                         id: streamLabelHover
                         anchors.fill: parent
                         hoverEnabled: true
-                        ToolTip.visible: streamLabelHover.containsMouse
-                        ToolTip.text: root.backend ? root.backend.streamLabel(streamRow.node) : ""
-                        ToolTip.delay: Design.tooltipDelayMs
+                    }
+                    ThemedToolTip {
+                        visible: streamLabelHover.containsMouse
+                        text: root.backend ? root.backend.streamLabel(streamRow.node) : ""
                     }
                 }
 

@@ -176,8 +176,15 @@ Text {
         id: conditionMouseArea
         anchors.fill: root
         hoverEnabled: true
-        ToolTip.visible: conditionMouseArea.containsMouse && root.conditionLabel !== ""
-        ToolTip.text: root.conditionLabel
-        ToolTip.delay: root.tooltipDelay
+    }
+    // ThemedToolTip (quick-260821-6z1 fix wave) — replaces the bare
+    // attached ToolTip shorthand; see ThemedToolTip.qml. `delay:` is
+    // still driven from root.tooltipDelay, not ThemedToolTip's own
+    // Design.tooltipDelayMs default, so a future caller overriding
+    // root.tooltipDelay keeps working exactly as before.
+    ThemedToolTip {
+        visible: conditionMouseArea.containsMouse && root.conditionLabel !== ""
+        text: root.conditionLabel
+        delay: root.tooltipDelay
     }
 }

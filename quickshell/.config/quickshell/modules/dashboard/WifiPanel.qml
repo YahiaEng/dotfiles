@@ -1260,11 +1260,15 @@ PanelDialog {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: if (root.backend) root.backend.rescan()
-                        ToolTip.visible: refreshMouseArea.containsMouse
-                        // Idle copy unchanged; in-flight copy is Task 3's
-                        // new Copywriting Contract row (D-15-15 amendment).
-                        ToolTip.text: (root.backend && root.backend.rescanInFlight) ? "Rescanning…" : "Rescan"
-                        ToolTip.delay: Design.tooltipDelayMs
+                    }
+                    // ThemedToolTip (quick-260821-6z1 fix wave) — replaces
+                    // the bare attached ToolTip shorthand; see
+                    // ThemedToolTip.qml. Idle copy unchanged; in-flight
+                    // copy is Task 3's Copywriting Contract row (D-15-15
+                    // amendment), preserved here verbatim.
+                    ThemedToolTip {
+                        visible: refreshMouseArea.containsMouse
+                        text: (root.backend && root.backend.rescanInFlight) ? "Rescanning…" : "Rescan"
                     }
                 }
             }

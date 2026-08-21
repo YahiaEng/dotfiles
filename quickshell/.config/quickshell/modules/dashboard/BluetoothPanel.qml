@@ -395,10 +395,12 @@ PanelDialog {
                     // guard for a different requirement, and lives in
                     // BluetoothBackend.setAdapterEnabled()'s early return.
                     enabled: true
-
-                    ToolTip.visible: blockedEnableMouseArea.containsMouse
-                    ToolTip.delay: Design.tooltipDelayMs
-                    ToolTip.text: "Run  rfkill unblock bluetooth  in a terminal to clear it"
+                }
+                // ThemedToolTip (quick-260821-6z1 fix wave) — replaces the
+                // bare attached ToolTip shorthand; see ThemedToolTip.qml.
+                ThemedToolTip {
+                    visible: blockedEnableMouseArea.containsMouse
+                    text: "Run  rfkill unblock bluetooth  in a terminal to clear it"
                 }
             }
         }

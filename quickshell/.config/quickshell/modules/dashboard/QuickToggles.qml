@@ -339,9 +339,6 @@ Item {
                 // an unreachable tile has nowhere real to go.
                 enabled: !chipItem.pending && chipItem.reachable
                 hoverEnabled: true
-                ToolTip.visible: mouseArea.containsMouse && (chipItem.reachable ? chipItem.chipTooltip !== "" : chipItem.unavailableReason !== "")
-                ToolTip.text: chipItem.reachable ? chipItem.chipTooltip : chipItem.unavailableReason
-                ToolTip.delay: root.tooltipDelayMs
                 onPressed: (mouse) => {
                     if (!Motion.motionEnabled)
                         return;
@@ -377,6 +374,13 @@ Item {
                     easing.bezierCurve: Motion.emphasizedOutEasing
                 }
             }
+            // ThemedToolTip (quick-260821-6z1 fix wave) — replaces the
+            // bare attached ToolTip shorthand; see ThemedToolTip.qml.
+            ThemedToolTip {
+                visible: mouseArea.containsMouse && (chipItem.reachable ? chipItem.chipTooltip !== "" : chipItem.unavailableReason !== "")
+                text: chipItem.reachable ? chipItem.chipTooltip : chipItem.unavailableReason
+                delay: root.tooltipDelayMs
+            }
 
             // ── 15-07 chevron split affordance ──────────────────────────
             Text {
@@ -408,10 +412,14 @@ Item {
                 width: root.chevronHitSize
                 height: root.chevronHitSize
                 hoverEnabled: true
-                ToolTip.visible: chevronMouseArea.containsMouse && chipItem.chipChevronTooltip !== ""
-                ToolTip.text: chipItem.chipChevronTooltip
-                ToolTip.delay: root.tooltipDelayMs
                 onClicked: root.openPanel(chipItem.chipPanel)
+            }
+            // ThemedToolTip (quick-260821-6z1 fix wave) — replaces the
+            // bare attached ToolTip shorthand; see ThemedToolTip.qml.
+            ThemedToolTip {
+                visible: chevronMouseArea.containsMouse && chipItem.chipChevronTooltip !== ""
+                text: chipItem.chipChevronTooltip
+                delay: root.tooltipDelayMs
             }
         }
     }
@@ -549,10 +557,14 @@ Item {
                 anchors.fill: parent
                 enabled: !root.presetPending
                 hoverEnabled: true
-                ToolTip.visible: presetMouseArea.containsMouse && segItem.segTooltip !== ""
-                ToolTip.text: segItem.segTooltip
-                ToolTip.delay: root.tooltipDelayMs
                 onClicked: root.pressPreset(segItem.segValue)
+            }
+            // ThemedToolTip (quick-260821-6z1 fix wave) — replaces the
+            // bare attached ToolTip shorthand; see ThemedToolTip.qml.
+            ThemedToolTip {
+                visible: presetMouseArea.containsMouse && segItem.segTooltip !== ""
+                text: segItem.segTooltip
+                delay: root.tooltipDelayMs
             }
         }
     }
