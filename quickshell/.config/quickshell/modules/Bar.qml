@@ -165,6 +165,7 @@ PanelWindow {
     signal panelRequested(string name)
     signal dashboardRequested(int tabIndex)
     signal powerMenuRequested()
+    signal settingsRequested()
 
     // ── Visibility state (Phase 18 Plan 15, QBAR-07) — this file's own
     //    slice of the single-owner claim: `visibilityState` is written
@@ -232,6 +233,7 @@ PanelWindow {
         function onPanelRequested(name) { barWindow.panelRequested(name); }
         function onDashboardRequested(tabIndex) { barWindow.dashboardRequested(tabIndex); }
         function onPowerMenuRequested() { barWindow.powerMenuRequested(); }
+        function onSettingsRequested() { barWindow.settingsRequested(); }
     }
 
     // Mirrors shell.qml's own panelLoaderFor(name) name-to-object map

@@ -499,6 +499,10 @@ ShellRoot {
         // verb, the same `togglePowerMenu()` the keybind and the walker
         // menu already call.
         onPowerMenuRequested: root.togglePowerMenu()
+        // Operator request (2026-08-21): the bar's settings glyph reaches
+        // the same `openSettings()` verb Super+comma and the walker menu
+        // already call — never a second summon path.
+        onSettingsRequested: root.openSettings()
     }
 
     // ── Hot zone (Phase 18 Plan 16, QBAR-08) — mounted behind a loader

@@ -131,6 +131,17 @@ Singleton {
         root.powerMenuRequested();
     }
 
+    // Operator request (2026-08-21): the settings trigger's HOVER opens the
+    // five-axis drawer; its CLICK opens the settings window. Same relay shape
+    // as powerMenuRequested above and for the same reason — ClockActionsCapsule
+    // has no declarative path to shell.qml's root, and the settings window is a
+    // top-level LazyLoader toggle, not a popout-family member.
+    signal settingsRequested()
+
+    function requestSettings() {
+        root.settingsRequested();
+    }
+
     // ══════════════════════════════════════════════════════════════════
     // Task 2 — the hover contract (D-18-19 through D-18-22)
     // ══════════════════════════════════════════════════════════════════

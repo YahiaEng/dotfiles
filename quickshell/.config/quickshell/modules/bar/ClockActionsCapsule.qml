@@ -1025,6 +1025,16 @@ BarCapsule {
         // open/closed state indication — this removes the permanent colour,
         // not the feedback.
 
+        // Operator request (2026-08-21): hover still opens the five-axis
+        // drawer; CLICK opens the settings window. The two gestures do not
+        // fight — this adds no drawer-state write, so `reportDrawerHover`
+        // stays the sole hover relay (D-18-19) and the dwell/settle state
+        // machine is untouched. The drawer collapses on hover-exit exactly
+        // as it always has. Routed through PopoutController -> Bar.qml ->
+        // shell.qml's `openSettings()`, the same verb Super+comma calls,
+        // mirroring powerCell's relay rather than inventing a second path.
+        onClicked: PopoutController.requestSettings()
+
         HoverHandler {
             id: settingsTriggerHoverHandler
             onHoveredChanged: clockActionsCapsule.reportDrawerHover("trigger", settingsTriggerHoverHandler.hovered)
