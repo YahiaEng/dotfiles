@@ -76,7 +76,19 @@ Singleton {
         "bar.capsules.workspaces",
         "bar.capsules.idleInhibitor",
         "bar.capsules.mediaConnectivity",
-        "bar.capsules.clockActions"
+        "bar.capsules.clockActions",
+        // Task 9 (D-01 bundle 2/D-02) — Notifications page: popup timeout
+        // (per urgency), position, OSD position, dashboard panel toggles.
+        // History limit and max visible popups reuse the notifs.historyCap/
+        // notifs.maxVisiblePopups keys Task 1 already declared.
+        "notifs.popupTimeoutMs",
+        "notifs.lowPriorityTimeoutMs",
+        "notifs.position",
+        "osd.position",
+        "dashboard.panels.clock",
+        "dashboard.panels.calendar",
+        "dashboard.panels.media",
+        "dashboard.panels.resources"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -96,7 +108,15 @@ Singleton {
         "bar.capsules.workspaces": true,
         "bar.capsules.idleInhibitor": true,
         "bar.capsules.mediaConnectivity": true,
-        "bar.capsules.clockActions": true
+        "bar.capsules.clockActions": true,
+        "notifs.popupTimeoutMs": 5000,
+        "notifs.lowPriorityTimeoutMs": 3000,
+        "notifs.position": "top-right",
+        "osd.position": "bottom",
+        "dashboard.panels.clock": true,
+        "dashboard.panels.calendar": true,
+        "dashboard.panels.media": true,
+        "dashboard.panels.resources": true
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

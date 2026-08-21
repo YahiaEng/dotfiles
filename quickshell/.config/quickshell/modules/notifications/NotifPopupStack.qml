@@ -80,13 +80,36 @@ PanelWindow {
     // surface's own exclusiveZone is 0, kept for family consistency.
     exclusionMode: ExclusionMode.Ignore
 
+    // ── Position (quick-260821-6z1 Task 9, D-01 bundle 2/D-02) — a
+    //    four-corner Prefs.notifs.position value, default "top-right"
+    //    (byte-identical to the prior hardcoded anchors). Whichever
+    //    corner is chosen, the anchor pair is simply that corner's own
+    //    two edges — this PRESERVES the file's own established mechanism
+    //    (this header's own text above) without a special case: any
+    //    corner that shares an edge with what the bar can ever reserve
+    //    (top when horizontal, right when vertical) still anchors that
+    //    shared edge as one of its own two, so the compositor's own
+    //    auto-push-past-exclusive-zone behaviour keeps applying exactly
+    //    as before; a corner sharing neither (bottom-left) never collides
+    //    with the bar in the first place. `exclusiveZone: 0` above is
+    //    unchanged — no margin here re-adds a zone the compositor already
+    //    applied for either edge.
+    readonly property string _position: Prefs.getValue("notifs.position")
+    readonly property var _positionParts: popupStack._position.split("-")
+    readonly property bool _anchorTop: popupStack._positionParts[0] !== "bottom"
+    readonly property bool _anchorLeft: popupStack._positionParts[1] === "left"
+
     anchors {
-        top: true
-        right: true
+        top: popupStack._anchorTop
+        bottom: !popupStack._anchorTop
+        left: popupStack._anchorLeft
+        right: !popupStack._anchorLeft
     }
 
-    margins.top: Design.barSideMargin
-    margins.right: Design.barSideMargin
+    margins.top: popupStack._anchorTop ? Design.barSideMargin : 0
+    margins.bottom: !popupStack._anchorTop ? Design.barSideMargin : 0
+    margins.left: popupStack._anchorLeft ? Design.barSideMargin : 0
+    margins.right: !popupStack._anchorLeft ? Design.barSideMargin : 0
 
     implicitWidth: Design.notifSurfaceWidth
     implicitHeight: Math.max(0, notifListView.contentHeight)
@@ -131,6 +154,11 @@ PanelWindow {
         interactive: false
         spacing: Design.spacingSm
         model: popupStack._displayModel
+        // Task 9: for a bottom-anchored position, the newest card (index
+        // 0 — NotifServer.qml's own onNotification handler prepends)
+        // renders nearest the anchored edge, matching the existing
+        // top-anchored default's own "newest at the top" reading.
+        verticalLayoutDirection: popupStack._anchorTop ? ListView.TopToBottom : ListView.BottomToTop
 
         add: Transition {
             NumberAnimation {

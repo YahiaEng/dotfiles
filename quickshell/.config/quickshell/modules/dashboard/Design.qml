@@ -507,6 +507,20 @@ Singleton {
     // as the fallback default declared in Prefs.qml's own `_defaults`.
     readonly property int notifHistoryCap: Prefs.getValue("notifs.historyCap")
 
+    // quick-260821-6z1 Task 9 (D-01 bundle 2/D-02) — the two dismiss
+    // windows NotifCard.qml's own `_fullDismissMs` used to hardcode as
+    // `card._critical ? -1 : (card._low ? 3000 : 5000)`. Critical stays a
+    // structural `-1` at the CARD's own single-timer site (never
+    // Prefs-backed — "critical never auto-dismisses" is a correctness
+    // guarantee, not an operator preference); these two Prefs-backed
+    // constants keep their current literals as fallback defaults.
+    readonly property int notifPopupTimeoutMs: Prefs.getValue("notifs.popupTimeoutMs")
+    readonly property int notifLowPriorityTimeoutMs: Prefs.getValue("notifs.lowPriorityTimeoutMs")
+    // OSD position and popup position (Task 9) both read Prefs directly
+    // at their own consumption sites (Osd.qml's `edge` property,
+    // NotifPopupStack.qml's own anchor-selection block) rather than
+    // through a Design constant here — no other consumer needs either.
+
     // ── Session (power menu) tokens (Phase 20 Plan 03, QPOWER-01;
     //    REVISED 2026-08-15 for the ring design — see 20-CONTEXT.md's
     //    D-20-21 revision note and 20-UI-SPEC.md's "## New Tokens —

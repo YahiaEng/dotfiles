@@ -387,6 +387,11 @@ Item {
                 id: heroRow
                 width: parent.width
                 height: root.heroHeight
+                // quick-260821-6z1 Task 9 (D-01 bundle 2/D-02) — Prefs-backed
+                // panel visibility, default true. An Item with visible:false
+                // is excluded from a Column's layout automatically, so hiding
+                // a band collapses its space rather than leaving a gap.
+                visible: Prefs.getValue("dashboard.panels.clock")
 
                 Column {
                     id: heroTextColumn
@@ -473,6 +478,7 @@ Item {
                 width: parent.width
                 height: root.calendarCardHeight
                 radius: root.cardRadius
+                visible: Prefs.getValue("dashboard.panels.calendar")
                 color: Colours.surfaceVariant
 
                 property int viewYear: systemClock.date.getFullYear()
@@ -938,6 +944,7 @@ Item {
                 width: parent.width
                 height: root.compactMediaHeight
                 targetTabIndex: root.mediaTabIndex
+                visible: Prefs.getValue("dashboard.panels.media")
 
                 readonly property string mediaState: root.mediaBackend ? root.mediaBackend.widgetState : "empty"
                 readonly property bool isPopulated: compactMedia.mediaState === "populated"
@@ -1267,6 +1274,7 @@ Item {
                 width: parent.width
                 height: root.resourcesStripHeight
                 targetTabIndex: root.performanceTabIndex
+                visible: Prefs.getValue("dashboard.panels.resources")
 
                 readonly property bool hasResources: root.systemResources !== null && root.systemResources !== undefined
                 // A fixed, modest gap rather than a computed edge-to-edge

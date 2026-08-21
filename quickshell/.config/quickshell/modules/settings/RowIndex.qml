@@ -87,6 +87,20 @@ Singleton {
 
         // ── pageIdx 8 — Notifications ─────────────────────────────────────
         { pageIdx: 8, section: "Notifications", label: "Do not disturb", keywords: "notifications dnd quiet do not disturb popup" },
+        { pageIdx: 8, section: "Popups", label: "Popup timeout", keywords: "notification popup toast timeout dismiss duration" },
+        { pageIdx: 8, section: "Popups", label: "Low-priority timeout", keywords: "notification popup toast timeout dismiss low priority" },
+        { pageIdx: 8, section: "Popups", label: "Critical notifications never auto-dismiss", keywords: "critical urgency notification timeout" },
+        { pageIdx: 8, section: "Popups", label: "Popup position", keywords: "notification popup toast position corner" },
+        { pageIdx: 8, section: "Popups", label: "History limit", keywords: "notification history limit cap" },
+        { pageIdx: 8, section: "Popups", label: "Max visible popups", keywords: "notification popup visible count max" },
+        { pageIdx: 8, section: "On-screen display", label: "OSD duration", keywords: "osd indicator volume brightness duration timeout" },
+        { pageIdx: 8, section: "On-screen display", label: "OSD position", keywords: "osd indicator volume brightness position edge" },
+        { pageIdx: 8, section: "Dashboard panels", label: "Clock", keywords: "dashboard panel clock date hero" },
+        { pageIdx: 8, section: "Dashboard panels", label: "Calendar", keywords: "dashboard panel calendar month grid" },
+        { pageIdx: 8, section: "Dashboard panels", label: "Media", keywords: "dashboard panel media now playing" },
+        { pageIdx: 8, section: "Dashboard panels", label: "Resources", keywords: "dashboard panel resources cpu memory storage battery" },
+        { pageIdx: 8, section: "Content sources", label: "Weather location", keywords: "weather source location city forecast" },
+        { pageIdx: 8, section: "Content sources", label: "News sources", keywords: "news source feed rss" },
 
         // ── pageIdx 9 — Session ───────────────────────────────────────────
         { pageIdx: 9, section: "Idle & lock", label: "Bar idle-hide", keywords: "idle bar hide auto-hide timeout" },

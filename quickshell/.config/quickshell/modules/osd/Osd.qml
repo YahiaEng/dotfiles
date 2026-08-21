@@ -116,7 +116,11 @@ Toast {
     property bool powerMenuOpen: false
     suppressed: osd.powerMenuOpen
 
-    edge: "bottom"
+    // quick-260821-6z1 Task 9 (D-01 bundle 2/D-02): Prefs-backed, keeping
+    // "bottom" (D-20-01) as the fallback default. Toast.qml's own `edge`
+    // property already handles both "top" and "bottom" — no new
+    // anchoring work needed here.
+    edge: Prefs.getValue("osd.position")
     interactive: true
     layerNamespace: "quickshell-osd"
     dismissDurationMs: Design.osdHideDelayMs

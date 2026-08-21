@@ -669,7 +669,14 @@ Item {
     // `_critical` (never starts, no exemption from the height clamp
     // elsewhere) excludes itself from `_fullDismissMs` here — the single
     // place the timer's own running condition is derived.
-    readonly property int _fullDismissMs: card._critical ? -1 : (card._low ? 3000 : 5000)
+    // quick-260821-6z1 Task 9 (D-01 bundle 2/D-02): the two non-critical
+    // windows are now Prefs-backed (Design.notifPopupTimeoutMs/
+    // notifLowPriorityTimeoutMs), keeping 5000/3000 as their fallback
+    // defaults. `-1` for critical stays a structural literal, never
+    // Prefs-backed — it is a correctness guarantee (critical notifications
+    // never auto-dismiss), not an operator preference, and the
+    // NotificationsPage InfoRow beside the two timeout rows says so.
+    readonly property int _fullDismissMs: card._critical ? -1 : (card._low ? Design.notifLowPriorityTimeoutMs : Design.notifPopupTimeoutMs)
     property int _remainingMs: card._fullDismissMs
     property real _resumeEpoch: 0
 
