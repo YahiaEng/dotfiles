@@ -54,8 +54,22 @@ Singleton {
         { pageIdx: 6, section: "Input", label: "Pointer sensitivity", keywords: "mouse sensitivity pointer speed input" },
         { pageIdx: 6, section: "Input", label: "Natural scroll (touchpad)", keywords: "natural scroll touchpad reverse direction input" },
 
-        // ── pageIdx 7 — Window manager ────────────────────────────────────
-        { pageIdx: 7, section: "Motion", label: "Motion preset", keywords: "motion animation speed preset shell" },
+        // ── pageIdx 7 — Window manager (quick-260821-6z1 Task 5) ────────────
+        { pageIdx: 7, section: "Layout", label: "Gaps in", keywords: "gap spacing margin gaps in window" },
+        { pageIdx: 7, section: "Layout", label: "Gaps out", keywords: "gap spacing margin gaps out screen edge" },
+        { pageIdx: 7, section: "Layout", label: "Gaps between workspaces", keywords: "gap spacing workspace swipe" },
+        { pageIdx: 7, section: "Borders", label: "Border size", keywords: "border size thickness outline" },
+        { pageIdx: 7, section: "Borders", label: "Border colour", keywords: "border colour color outline theme" },
+        { pageIdx: 7, section: "Decoration", label: "Rounding", keywords: "round corner radius decoration" },
+        { pageIdx: 7, section: "Decoration", label: "Blur", keywords: "blur frost glass decoration" },
+        { pageIdx: 7, section: "Decoration", label: "Blur size", keywords: "blur size kernel radius decoration" },
+        { pageIdx: 7, section: "Decoration", label: "Blur passes", keywords: "blur passes decoration" },
+        { pageIdx: 7, section: "Decoration", label: "Inactive opacity", keywords: "opacity transparency fade inactive unfocused" },
+        { pageIdx: 7, section: "Decoration", label: "Shadow", keywords: "shadow drop decoration" },
+        { pageIdx: 7, section: "Workspaces", label: "Workspace back-and-forth", keywords: "workspace back and forth switch toggle" },
+        { pageIdx: 7, section: "Workspaces", label: "Allow workspace cycles", keywords: "workspace cycle wrap around" },
+        { pageIdx: 7, section: "Animation", label: "Animation speed", keywords: "animation speed motion preset shell" },
+        { pageIdx: 7, section: "Animation", label: "No separate compositor animation-speed option", keywords: "animation speed motion compositor" },
 
         // ── pageIdx 8 — Notifications ─────────────────────────────────────
         { pageIdx: 8, section: "Notifications", label: "Do not disturb", keywords: "notifications dnd quiet do not disturb popup" },
