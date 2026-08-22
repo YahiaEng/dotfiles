@@ -79,7 +79,7 @@ hl.bind(mainMod .. " + P", hl.dsp.window.pseudo()) -- Toggle pseudotiling
 --   Super+R     -> app runner
 hl.bind(mainMod .. " + SPACE", hl.dsp.global("quickshell:launcher")) -- Open app launcher (native QML, quick-260822-sht Task 1)
 hl.bind(mainMod .. " + R", hl.dsp.global("quickshell:launcher")) -- Open app runner (collapsed into the same apps-mode launcher, quick-260822-sht Task 2 — the retired runner/apps providers are one mode here)
-hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("uwsm app -- walker -m menus:main"), { release = true }) -- Open main menu (Super tap)
+hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:launcher-menu"), { release = true }) -- Open main menu (Super tap, native QML, quick-260822-sht Task 3 — a DISTINCT GlobalShortcut name from quickshell:launcher since a bare global dispatch carries no argument to request menu mode specifically)
 
 -- ── Escape hatch (D-03) ──────────────────────────────
 -- Reserved, never-shadowed kill-bind. This exists so a future Super-bind

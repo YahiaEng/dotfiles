@@ -42,6 +42,12 @@ Singleton {
     readonly property string modeSymbols: "symbols"
     readonly property string modeProviderList: "providerlist"
     readonly property string modeWebSearch: "websearch"
+    // Menu mode (quick task 260822-sht, Task 3) — the 9 D-2 verb-based
+    // roots, drilled via `LauncherState.navStack` and rendered by
+    // `MenuMode.qml`. Reached only via `pendingMode` on a fresh summon
+    // (the Super-tap bind, `keybinds.lua`) — never via a typed prefix
+    // character, per `_routeQuery()`'s own guard below.
+    readonly property string modeMenu: "menu"
 
     property string mode: root.modeApps
 
@@ -57,7 +63,19 @@ Singleton {
             "@": root.modeWebSearch
         })
 
+    // Menu mode is intentionally EXEMPT from prefix routing (quick task
+    // 260822-sht, Task 3) — inside a submenu, `query` is what
+    // `MenuMode.qml` fuzzy-filters the CURRENT level's rows against
+    // (D-2's own "typed input preserved across levels" requirement), not
+    // a route selector. Without this guard, typing "c" to filter down to
+    // "Colour picker" would hit the router's own no-match branch and kick
+    // the surface back to apps mode mid-search — the ONE behaviour this
+    // guard exists to prevent. Also skips the empty-query "return to
+    // apps" default: clearing the search field to re-browse a submenu's
+    // full row list must not exit menu mode either.
     function _routeQuery() {
+        if (root.mode === root.modeMenu)
+            return;
         const q = root.query;
         if (q.length === 0) {
             root.mode = root.modeApps;

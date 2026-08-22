@@ -570,6 +570,8 @@ PanelWindow {
                         return modePlaceholderComponent;
                     case LauncherState.modeSymbols:
                         return modePlaceholderComponent;
+                    case LauncherState.modeMenu:
+                        return menuComponent;
                     default:
                         return appsComponent;
                     }
@@ -702,6 +704,21 @@ PanelWindow {
                 id: filesComponent
 
                 FilesMode {
+                }
+            }
+
+            // ── Menu mode — the 9 D-2 verb-based roots (quick task
+            //    260822-sht, Task 3). `dismissCallback` is evaluated in
+            //    THIS Component's own enclosing scope (Launcher.qml's own
+            //    document), where `launcherWindow` is a visible id, then
+            //    handed to MenuMode.qml as a plain function-valued
+            //    property — MenuMode.qml lives in a separate file and has
+            //    no other way to close the surface it's hosted in. ──────
+            Component {
+                id: menuComponent
+
+                MenuMode {
+                    dismissCallback: launcherWindow._beginDismiss
                 }
             }
 

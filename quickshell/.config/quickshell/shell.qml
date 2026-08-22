@@ -790,6 +790,32 @@ ShellRoot {
         }
     }
 
+    // ── Launcher menu-mode shortcut (quick task 260822-sht, Task 3) ───────
+    // Super-tap (`keybinds.lua`'s `SUPER_L` release bind) needs to open the
+    // launcher directly into menu mode (D-2's 9 verb-based roots) rather
+    // than the default apps mode `launcherShortcut` above opens into. A
+    // bare `GlobalShortcut`'s `onPressed` carries no argument, so this
+    // cannot reuse `launcherShortcut`'s own name/handler — it is a
+    // DISTINCT shortcut name that sets `LauncherState.pendingMode` BEFORE
+    // activating the loader, mirroring `launcherShortcut`'s own toggle-
+    // with-fullscreenBlocking-guard shape otherwise. Phase 7's
+    // launcher/menu split is preserved: Super+Space stays apps-only, this
+    // bind stays menu-only, and this rebuild does not collapse them into
+    // one entry point.
+    GlobalShortcut {
+        id: launcherMenuShortcut
+        appid: "quickshell"
+        name: "launcher-menu"
+        onPressed: {
+            if (launcherLoader.active) {
+                launcherLoader.active = false;
+            } else if (!root.fullscreenBlocking) {
+                LauncherState.pendingMode = LauncherState.modeMenu;
+                launcherLoader.active = true;
+            }
+        }
+    }
+
     // ── Power menu (Phase 20 Plan 06, the power half's tracer, QPOWER-01)
     // ────────────────────────────────────────────────────────────────────
     // Same summon-via-LazyLoader mechanism as the panels/overview above —

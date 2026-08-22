@@ -22,9 +22,17 @@
 # entry here: only `.qml` TYPES require qmldir registration; a plain
 # `import "fuzzy.js" as Fuzzy` relative-path JS import resolves without one
 # (fuzzy.js's own header note).
+#
+# MenuTree (quick task 260822-sht, Task 3) is a singleton — a static data
+# model, same rationale as LauncherState: `pragma Singleton` in-source AND
+# the `singleton` keyword here, or bare `MenuTree.roots` access resolves to
+# `undefined` forever. MenuMode is a plain Item-rooted mode result view,
+# same non-singleton shape as CalcMode/WebSearchMode/FilesMode above.
 module qs.modules.launcher
 singleton LauncherState 1.0 LauncherState.qml
+singleton MenuTree 1.0 MenuTree.qml
 Launcher 1.0 Launcher.qml
 CalcMode 1.0 CalcMode.qml
 WebSearchMode 1.0 WebSearchMode.qml
 FilesMode 1.0 FilesMode.qml
+MenuMode 1.0 MenuMode.qml
