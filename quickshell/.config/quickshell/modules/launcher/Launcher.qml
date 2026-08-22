@@ -260,12 +260,35 @@ PanelWindow {
     // to bindings/functions declared outside it, the same rule this file's
     // own delegate already relies on in reverse: `resultDelegate` can see
     // `resultsList` because BOTH live inside the same Component).
+    // Item 1 fix (quick task 260822-sht, operator-reported: "restarting
+    // quickshell kills apps launched from the app list"). ROOT CAUSE:
+    // `entry.execute()` (DesktopEntry.execute()) spawns the child INSIDE
+    // quickshell's own process, which sits in `quickshell.service`'s
+    // `KillMode=control-group` cgroup — a service restart kills every app
+    // ever launched from this list. `uwsm app --` is this repo's already-
+    // established fix for the same class of problem: it hands the launch
+    // to uwsm's app daemon, which starts the child as its OWN systemd
+    // scope (verified live: Steam launched via `uwsm app --` lands in
+    // `app-Hyprland-steam-<hash>.scope`, not quickshell's). Passing the
+    // Desktop Entry ID (not a hand-expanded `execString`) is deliberate:
+    // uwsm resolves `StartupWMClass`, `Terminal=` and `%U`/`%f` field
+    // codes itself from the entry file — `uwsm`'s own `app()` sets
+    // `terminal = True` automatically when `entry.getTerminal()` is true
+    // for a Desktop-Entry-ID launch (verified against
+    // `/usr/share/uwsm/modules/uwsm/main.py`), so `runInTerminal` entries
+    // need no separate handling here. `entry.id` never carries the
+    // `.desktop` suffix (`DesktopEntries.byId()` elsewhere in this repo,
+    // e.g. NotifGroup.qml:142, is keyed the same bare way) but `uwsm app`
+    // requires a full Desktop File ID ending in `.desktop`
+    // (`uwsm-app.1`'s own MainArg parser only recognises an argument that
+    // `endswith(".desktop")`) — appended here, matching LauncherCapsule.qml's
+    // already-shipped `uwsm app -- <id>.desktop` convention verbatim.
     function launchCurrent() {
         const item = resultsLoader.item;
         const idx = item ? item.currentIndex : 0;
         const entry = launcherWindow.filteredApps[idx];
-        if (entry) {
-            entry.execute();
+        if (entry && entry.id && entry.id.length > 0) {
+            Quickshell.execDetached(["uwsm", "app", "--", entry.id + ".desktop"]);
             launcherWindow._bumpLaunchCount(entry);
         }
         launcherWindow._beginDismiss();
@@ -275,8 +298,10 @@ PanelWindow {
     // `DesktopEntry.id: QString`) — never `name` or a synthesised slug, so
     // the keyspace can't mix. `Prefs.setValue()` refuses every write until
     // its own load has settled (returns false, per its own contract) —
-    // that's fine here: `entry.execute()` above already ran, so the launch
-    // itself never depends on this succeeding, only the tally can drop.
+    // that's fine here: `Quickshell.execDetached()` above already fired
+    // (fire-and-forget, independent of this surface's own lifetime — see
+    // the Item 1 fix comment above), so the launch itself never depends on
+    // this succeeding, only the tally can drop.
     function _bumpLaunchCount(entry) {
         if (!entry.id || entry.id.length === 0)
             return;
