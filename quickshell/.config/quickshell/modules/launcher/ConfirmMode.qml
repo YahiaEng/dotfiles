@@ -45,22 +45,21 @@ Item {
     property string message: ""
     property bool _countLoaded: false
 
+    // Bug 1 fix (quick task 260822-sht): fire-and-forget, no stdin/stdout/
+    // exit-code needed here — `Quickshell.execDetached` (PickerMode.qml's
+    // own header has the full reasoning) spawns it independent of this
+    // Item's lifetime, surviving `dismissCallback()` tearing down this
+    // whole surface a couple of lines below.
     function activate() {
         const picked = root._rows[root.currentIndex];
         if (picked === "Yes") {
             const home = Quickshell.env("HOME");
-            execProcess.command = root._isClipboardWipe ? [home + "/.config/hypr/scripts/clipboard-wipe.sh", "--yes"] : [];
-            if (execProcess.command.length > 0) {
-                execProcess.running = false;
-                execProcess.running = true;
-            }
+            const command = root._isClipboardWipe ? [home + "/.config/hypr/scripts/clipboard-wipe.sh", "--yes"] : [];
+            if (command.length > 0)
+                Quickshell.execDetached(command);
         }
         if (typeof root.dismissCallback === "function")
             root.dismissCallback();
-    }
-
-    Process {
-        id: execProcess
     }
 
     // Same defensive shape `clipboard-wipe.sh` itself used before this

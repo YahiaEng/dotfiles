@@ -53,25 +53,34 @@ Item {
     property int currentIndex: 0
     readonly property int count: root.displays.length
 
+    // ── Bug 1 fix (quick task 260822-sht) ────────────────────────────────
+    // The retired shape here ran `execProcess.running = true` then called
+    // `dismissCallback()` on the very next line — which tears down this
+    // whole surface (and every child `Process` on it) via shell.qml's
+    // LazyLoader. `theme-apply` in particular renders ~22 targets and
+    // reloads apps, well past this surface's own teardown, which is why
+    // "Style ▸ Theme ▸ switching does not work" was reported: the child
+    // process died mid-flight almost every time. None of these three
+    // commands read stdin or need this file to observe their stdout/exit
+    // code, so `Quickshell.execDetached` — the same primitive
+    // MenuMode.qml's own leaf-command dispatch already used — spawns them
+    // independent of this Item's lifetime instead of a longer-lived
+    // `Process`.
     function activate() {
         const value = root.values[root.currentIndex];
         if (value === undefined)
             return;
         const home = Quickshell.env("HOME");
+        let command;
         if (root._isTheme)
-            execProcess.command = [home + "/.config/theme-engine/theme-apply", value];
+            command = [home + "/.config/theme-engine/theme-apply", value];
         else if (root._isRecordAudio)
-            execProcess.command = [home + "/.config/hypr/scripts/record-toggle.sh", "--audio", value];
+            command = [home + "/.config/hypr/scripts/record-toggle.sh", "--audio", value];
         else
-            execProcess.command = [home + "/.config/hypr/scripts/bar-orientation.sh", value];
-        execProcess.running = false;
-        execProcess.running = true;
+            command = [home + "/.config/hypr/scripts/bar-orientation.sh", value];
+        Quickshell.execDetached(command);
         if (typeof root.dismissCallback === "function")
             root.dismissCallback();
-    }
-
-    Process {
-        id: execProcess
     }
 
     // ── Theme data source (consumer 1) ──────────────────────────────────

@@ -118,28 +118,26 @@ Item {
     readonly property int count: root._rows.length
     onCountChanged: root.currentIndex = 0
 
-    Process {
-        id: viewAllProcess
-        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/cheat-sheet-view-all.sh"]
-    }
-
-    Process {
-        id: copyProcess
-    }
-
+    // ── Bug 1 fix (quick task 260822-sht) ────────────────────────────────
+    // Both commands below are fire-and-forget CLI invocations (neither
+    // reads stdin, and this file never needs their stdout/exit code
+    // back), so `Quickshell.execDetached` — same fix as PickerMode.qml's
+    // own header — spawns them independent of this Item's lifetime.
+    // `dismissCallback()` a few lines down tears down this whole surface
+    // (and every child `Process` on it) via shell.qml's LazyLoader the
+    // instant it fires; `cheat-sheet-view-all.sh` opens its own kitty
+    // window, slower than that teardown, which is why "selecting 'View
+    // all keybinds' does nothing" was reported — a plain `Process` died
+    // before the window ever opened.
     function activate() {
         const row = root._rows[root.currentIndex];
         if (!row)
             return;
 
-        if (row._kind === "viewall") {
-            viewAllProcess.running = false;
-            viewAllProcess.running = true;
-        } else {
-            copyProcess.command = ["wl-copy", row.chord];
-            copyProcess.running = false;
-            copyProcess.running = true;
-        }
+        if (row._kind === "viewall")
+            Quickshell.execDetached([Quickshell.env("HOME") + "/.config/hypr/scripts/cheat-sheet-view-all.sh"]);
+        else
+            Quickshell.execDetached(["wl-copy", row.chord]);
 
         if (typeof root.dismissCallback === "function")
             root.dismissCallback();

@@ -85,26 +85,23 @@ Item {
         }
     }
 
-    // `onStarted` (not an immediate `.write()` after `running = true`) —
-    // the child process is guaranteed spawned by the time this signal
-    // fires, where a same-tick write is a real ordering race against
-    // process startup.
-    Process {
-        id: restoreProcess
-        command: ["sh", "-c", "cliphist decode | wl-copy"]
-        stdinEnabled: true
-        onStarted: restoreProcess.write(root._pendingRestore)
+    // Bug 1 fix (quick task 260822-sht): the restore/delete processes
+    // both write the picked entry to the child's stdin, which
+    // `Quickshell.execDetached` cannot carry (no stdin handle) — so
+    // instead of a `Process` declared on THIS Item (destroyed the moment
+    // `dismissCallback()` tears down the surface, or when an unrelated
+    // Escape hits mid-delete since delete never dismisses), both now live
+    // on the always-alive `LauncherState` singleton — see its own header
+    // for the full reasoning. `_refresh()` here is wired to
+    // `LauncherState.clipboardEntryDeleted` below rather than a local
+    // `onExited`, since the delete `Process` itself moved out of this
+    // file.
+    Connections {
+        target: LauncherState
+        function onClipboardEntryDeleted() {
+            root._refresh();
+        }
     }
-    property string _pendingRestore: ""
-
-    Process {
-        id: deleteProcess
-        command: ["cliphist", "delete"]
-        stdinEnabled: true
-        onStarted: deleteProcess.write(root._pendingDelete)
-        onExited: exitCode => root._refresh()
-    }
-    property string _pendingDelete: ""
 
     function activate() {
         const row = root._rows[root.currentIndex];
@@ -116,9 +113,7 @@ Item {
             return;
         }
 
-        root._pendingRestore = row.raw;
-        restoreProcess.running = false;
-        restoreProcess.running = true;
+        LauncherState.restoreClipboardEntry(row.raw);
         if (typeof root.dismissCallback === "function")
             root.dismissCallback();
     }
@@ -129,9 +124,7 @@ Item {
         const row = root._rows[index];
         if (!row || row._kind !== "entry")
             return;
-        root._pendingDelete = row.raw + "\n";
-        deleteProcess.running = false;
-        deleteProcess.running = true;
+        LauncherState.deleteClipboardEntry(row.raw);
     }
 
     ListView {

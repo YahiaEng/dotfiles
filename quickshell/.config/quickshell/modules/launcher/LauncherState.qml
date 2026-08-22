@@ -30,6 +30,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 Singleton {
     id: root
@@ -134,5 +135,61 @@ Singleton {
         } else {
             root.mode = root.modeApps;
         }
+    }
+
+    // ── Clipboard restore/delete processes (quick task 260822-sht, bug 1
+    //    fix) — hosted here, NOT on ClipboardMode.qml's own Item ─────────
+    // Both write the picked entry to the child's STDIN
+    // (`cliphist decode | wl-copy` / `cliphist delete`), so
+    // `Quickshell.execDetached` (no stdin handle at all) cannot carry
+    // them — see PickerMode.qml's own header for the wider bug this quick
+    // task fixes site by site. Restore fires from ClipboardMode.qml's own
+    // `activate()`, which immediately calls `dismissCallback()`
+    // afterwards, same one-shot shape as every other leaf mode; delete
+    // fires from a row's own delete affordance WITHOUT dismissing (the
+    // picker stays open to keep browsing), so an unrelated Escape/
+    // click-outside a beat later would tear down ClipboardMode.qml's own
+    // Item mid-write with no `dismissCallback()` of its own to defer.
+    // Hosting both `Process` objects here, on the singleton every
+    // launcher summon shares, is the one fix that closes BOTH races: this
+    // object is never destroyed, so a `Process` declared on it outlives
+    // every open/close cycle of the launcher surface that triggers it.
+    property string _pendingClipboardRestore: ""
+
+    Process {
+        id: clipboardRestoreProcess
+        command: ["sh", "-c", "cliphist decode | wl-copy"]
+        stdinEnabled: true
+        onStarted: clipboardRestoreProcess.write(root._pendingClipboardRestore)
+    }
+
+    function restoreClipboardEntry(raw) {
+        root._pendingClipboardRestore = raw;
+        clipboardRestoreProcess.running = false;
+        clipboardRestoreProcess.running = true;
+    }
+
+    property string _pendingClipboardDelete: ""
+
+    // ClipboardMode.qml's own `_refresh()` listens for this (via a
+    // `Connections` block) to re-run `cliphist list` once the delete has
+    // actually completed — it cannot just call `_refresh()` synchronously
+    // after `deleteClipboardEntry()` returns, since the delete itself is
+    // now async on a `Process` this file owns, not one ClipboardMode.qml
+    // can attach its own `onExited` to directly.
+    signal clipboardEntryDeleted()
+
+    Process {
+        id: clipboardDeleteProcess
+        command: ["cliphist", "delete"]
+        stdinEnabled: true
+        onStarted: clipboardDeleteProcess.write(root._pendingClipboardDelete)
+        onExited: exitCode => root.clipboardEntryDeleted()
+    }
+
+    function deleteClipboardEntry(raw) {
+        root._pendingClipboardDelete = raw + "\n";
+        clipboardDeleteProcess.running = false;
+        clipboardDeleteProcess.running = true;
     }
 }

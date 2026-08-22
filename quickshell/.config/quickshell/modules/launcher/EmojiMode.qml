@@ -125,18 +125,6 @@ Item {
             grid.contentY = rowY + 64 - grid.height;
     }
 
-    Process {
-        id: typeProcess
-    }
-
-    Process {
-        id: copyProcess
-    }
-
-    Process {
-        id: notifyProcess
-    }
-
     function activate() {
         const row = root._rows[root.currentIndex];
         if (!row)
@@ -152,20 +140,22 @@ Item {
         const validatedGlyph = root._knownGlyphs.has(row.glyph) ? row.glyph : null;
         if (validatedGlyph !== null) {
             // The one type-tool call site (T-06-17) — a missing binary
-            // simply fails this Process silently; the copy below still
-            // runs independently, which is the graceful degradation this
+            // simply fails this call silently; the copy below still runs
+            // independently, which is the graceful degradation this
             // file's header documents.
-            typeProcess.command = ["wtype", validatedGlyph];
-            typeProcess.running = false;
-            typeProcess.running = true;
-
-            copyProcess.command = ["wl-copy", validatedGlyph];
-            copyProcess.running = false;
-            copyProcess.running = true;
-
-            notifyProcess.command = ["notify-send", "-a", "Emoji", "Copied", validatedGlyph, "-t", "2000"];
-            notifyProcess.running = false;
-            notifyProcess.running = true;
+            //
+            // Bug 1 fix (quick task 260822-sht): all three commands below
+            // are fire-and-forget (no stdin, and this file never reads
+            // their stdout/exit code back), so `Quickshell.execDetached`
+            // — same fix as PickerMode.qml's own header — spawns them
+            // independent of this Item's lifetime. `dismissCallback()` a
+            // few lines down tears down this whole surface (and every
+            // child `Process` on it) via shell.qml's LazyLoader the
+            // instant it fires; a plain `Process` here raced that
+            // teardown exactly like PickerMode.qml's `theme-apply` did.
+            Quickshell.execDetached(["wtype", validatedGlyph]);
+            Quickshell.execDetached(["wl-copy", validatedGlyph]);
+            Quickshell.execDetached(["notify-send", "-a", "Emoji", "Copied", validatedGlyph, "-t", "2000"]);
         }
 
         if (typeof root.dismissCallback === "function")
