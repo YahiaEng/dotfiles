@@ -20,6 +20,7 @@ import Quickshell
 import Quickshell.Io
 import ".."
 import "."
+import "../dashboard"
 
 Item {
     id: root

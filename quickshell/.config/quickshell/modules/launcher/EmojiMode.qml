@@ -39,13 +39,14 @@ import Quickshell
 import Quickshell.Io
 import ".."
 import "."
+import "../dashboard"
 import "fuzzy.js" as Fuzzy
 
 Item {
     id: root
 
     width: parent ? parent.width : 0
-    height: Math.min(320, grid.contentHeight > 0 ? 4 * grid.cellHeight : 80)
+    height: Math.min(320, root._allEntries.length > 0 ? 4 * 64 : 80)
 
     property var dismissCallback: null
 
@@ -108,6 +109,21 @@ Item {
     property int currentIndex: 0
     readonly property int count: root._rows.length
     onCountChanged: root.currentIndex = 0
+    onCurrentIndexChanged: root._ensureVisible()
+
+    // Keeps the row holding `currentIndex` inside the Flickable's visible
+    // window — the same "scroll to reveal the selected row" behaviour a
+    // virtualizing view provides natively, reimplemented by hand because
+    // this file deliberately does NOT use one (see the Flickable/Grid
+    // header note below).
+    function _ensureVisible() {
+        const row = Math.floor(root.currentIndex / 4);
+        const rowY = row * 64;
+        if (rowY < grid.contentY)
+            grid.contentY = rowY;
+        else if (rowY + 64 > grid.contentY + grid.height)
+            grid.contentY = rowY + 64 - grid.height;
+    }
 
     Process {
         id: typeProcess
@@ -156,51 +172,76 @@ Item {
             root.dismissCallback();
     }
 
-    GridView {
+    // Flickable + Grid + Repeater, deliberately NOT a `GridView` (quick
+    // task 260822-sht, Task 9 verification fix): a virtualizing
+    // `GridView` here reproduced a consistent, deterministic clip on
+    // row 0 and column 0's delegates — confirmed on this host across
+    // four independent structural fixes (deferred construction behind a
+    // `Loader`, explicit `contentX`/`contentY`/`currentIndex` resets, and
+    // an added outer margin, which shifted the clipped region WITH the
+    // grid rather than resolving it, ruling out an external clip mask or
+    // edge-proximity cause) — grim-screenshot verified live each time,
+    // never fixed. At 160 lightweight Rectangle+Text delegates (no image
+    // decode, unlike WallpaperPage.qml's own GridView-for-90-thumbnails
+    // case that virtualization genuinely earns its keep for), eager
+    // rendering via a plain `Grid` costs nothing worth virtualizing away,
+    // so this sidesteps the bug entirely rather than chasing its root
+    // cause further. `_ensureVisible()` above hand-rolls the "scroll to
+    // reveal the selected row" behaviour a virtualizing view would
+    // otherwise provide for free.
+    Flickable {
         id: grid
         anchors.fill: parent
         clip: true
         interactive: false
-        cellWidth: Math.floor(width / 4)
-        cellHeight: 64
-        model: root._rows
-        currentIndex: root.currentIndex
+        contentWidth: width
+        contentHeight: gridPositioner.height
 
-        delegate: Rectangle {
-            id: emojiDelegate
-            required property var modelData
-            required property int index
+        Grid {
+            id: gridPositioner
+            width: parent.width
+            columns: 4
 
-            width: grid.cellWidth - Design.spacingXs
-            height: grid.cellHeight - Design.spacingXs
-            radius: 8
-            color: root.currentIndex === emojiDelegate.index ? Colours.surfaceVariant : "transparent"
+            Repeater {
+                model: root._rows
 
-            Column {
-                anchors.centerIn: parent
-                spacing: 2
+                delegate: Rectangle {
+                    id: emojiDelegate
+                    required property var modelData
+                    required property int index
 
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: emojiDelegate.modelData.glyph
-                    font.pixelSize: 24
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: grid.cellWidth - 12
-                    text: emojiDelegate.modelData.name
-                    color: Colours.onSurfaceVariant
-                    font.pixelSize: 9
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                }
-            }
+                    width: Math.floor(gridPositioner.width / 4) - Design.spacingXs
+                    height: 64 - Design.spacingXs
+                    radius: 8
+                    color: root.currentIndex === emojiDelegate.index ? Colours.surfaceVariant : "transparent"
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    root.currentIndex = emojiDelegate.index;
-                    root.activate();
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 2
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: emojiDelegate.modelData.glyph
+                            font.pixelSize: 24
+                        }
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: emojiDelegate.width - 8
+                            text: emojiDelegate.modelData.name
+                            color: Colours.onSurfaceVariant
+                            font.pixelSize: 9
+                            elide: Text.ElideRight
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            root.currentIndex = emojiDelegate.index;
+                            root.activate();
+                        }
+                    }
                 }
             }
         }
