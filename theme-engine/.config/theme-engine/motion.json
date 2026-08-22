@@ -142,24 +142,25 @@
     },
     "wavy": {
       "label": "Wavy",
-      "description": "Low dampening — overshoots then dips back before settling.",
-      "_comment_hyprland_y_ceiling": "quick-260821-swp: the BRIEF's own R-1 measurement never live-tested a control point above Y1.15, so it never hit this — live-verified against this build's Hyprland: hl.curve() HARD-REJECTS any control-point Y above 2.00 ('value 2.20 is more than the maximum of 2.00'), silently keeping the PREVIOUS registration for that curve name rather than erroring the reload. [0.15, 2.2, 0.6, 0.4] (peak 1.130, dip 0.870) is therefore infeasible on Hyprland's own animation side, even though PySide6/Qt accepts it fine — measured directly, not guessed. [0.05, 2.0, 0.3, 0.6] sits AT the ceiling and is the closest achievable wave shape found by numeric search (peak 1.108, dip 0.924) — still a real overshoot-then-undershoot, just less pronounced than the original illustrative numbers. Task 3's operator pass tunes from here.",
+      "description": "Rises past the target once, dips back a little, settles.",
+      "_comment_curve": "Two hard-won facts for anyone retuning this curve. (1) Hyprland's hl.curve() rejects any control-point Y above 2.00 and then SILENTLY KEEPS the previously registered curve instead of failing the reload — an out-of-range number looks exactly like 'my edit did nothing'. (2) The shape this style first shipped with, [0.05, 2.0, 0.3, 0.6], sat right at that ceiling and was retuned on 2026-08-22 after the operator reported it caused motion sickness: it fired its whole +11% overshoot in the first 94ms of 450ms, then sagged to 8% BELOW the target for the remaining 356ms — two direction reversals, the only style in this table that ever travelled below its target. The current [0.3, 1.45, 0.7, 0.94] rises smoothly, peaks +4% at 62% of the way through, dips 1%, and settles: same wave character, no snap and no deep sag.",
       "easings": {
-        "spatial-in": [0.05, 2.0, 0.3, 0.6]
+        "spatial-in": [0.3, 1.45, 0.7, 0.94]
       },
       "semantic": {
         "standard": { "duration": "medium1", "easing": "standard" },
-        "emphasized-in": { "duration": "long1", "easing": "emphasized-decelerate" },
+        "emphasized-in": { "duration": "medium2", "easing": "emphasized-decelerate" },
         "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
-        "spatial-in": { "duration": "long1", "easing": "spatial-in" },
+        "spatial-in": { "duration": "medium2", "easing": "spatial-in" },
         "spatial-out": { "duration": "short4", "easing": "spatial-out" },
         "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
       },
+      "_comment_leaves": "workspaces/special_workspace deliberately use spatial-move (monotonic) and a HORIZONTAL slidefade — not the wave, and not slidefadevert. A whole-screen vertical slide that reverses direction is the strongest motion-sickness trigger in the set; the wave belongs on windows and panels, where it reads as character rather than as the floor moving. Note that a leaf's DURATION follows its curve name (animations.lua register_hypr_leaf: speed_key = curve name), so pointing these two at spatial-move also puts workspace switching on spatial-move's 250ms instead of spatial-in's.",
       "hypr_leaves": {
         "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
         "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
-        "workspaces": { "curve": "spatial-in", "style": "slidefadevert" },
-        "special_workspace": { "curve": "spatial-in", "style": "slidefadevert" }
+        "workspaces": { "curve": "spatial-move", "style": "slidefade" },
+        "special_workspace": { "curve": "spatial-move", "style": "slidefade" }
       }
     }
   },
