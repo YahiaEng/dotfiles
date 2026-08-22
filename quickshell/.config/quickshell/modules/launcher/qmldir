@@ -32,6 +32,12 @@
 # SystemInfoMode/UpdatesMode (quick task 260822-sht, Task 4 — R-1/R-2) are
 # plain Item-rooted mode result views, same non-singleton shape as every
 # other mode above.
+#
+# PickerMode (quick task 260822-sht, Task 5) is a plain Item-rooted mode
+# result view, same non-singleton shape as every other mode above. One
+# type, two `pickerId` instances (Style ▸ Theme, Style ▸ Bar orientation)
+# — see its own header for the inversion-of-control shape both consumers
+# share.
 module qs.modules.launcher
 singleton LauncherState 1.0 LauncherState.qml
 singleton MenuTree 1.0 MenuTree.qml
@@ -42,3 +48,4 @@ FilesMode 1.0 FilesMode.qml
 MenuMode 1.0 MenuMode.qml
 SystemInfoMode 1.0 SystemInfoMode.qml
 UpdatesMode 1.0 UpdatesMode.qml
+PickerMode 1.0 PickerMode.qml

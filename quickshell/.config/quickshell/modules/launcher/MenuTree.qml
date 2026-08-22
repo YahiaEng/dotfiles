@@ -41,9 +41,11 @@
 // the two leaves still awaiting their real component (Tools ▸ Emoji,
 // Task 7; Learn ▸ Keybinds, Task 9) — their retired command still runs
 // until then, so the surface stays fully functional in the interim.
-// Style ▸ Theme and Style ▸ Bar orientation are also destined to be
-// superseded (Task 5's `PickerMode.qml`) but are NOT marked `placeholder`
-// — they stay ordinary executed leaves until that task replaces them.
+// Style ▸ Theme and Style ▸ Bar orientation now carry `mode: "theme"` /
+// `mode: "barorientation"` (quick task 260822-sht, Task 5), routing to
+// `PickerMode.qml` the same way Tools ▸ Clipboard routes to its own mode
+// — neither is marked `placeholder` because their `mode` is real, not a
+// stand-in for a future task.
 pragma Singleton
 import QtQuick
 import Quickshell
@@ -107,7 +109,14 @@ Singleton {
             children: [
                 {
                     text: "  Theme",
-                    command: `~/.config/hypr/scripts/theme-switch.sh`
+                    // Superseded by PickerMode (quick task 260822-sht,
+                    // Task 5, consumer 1) — `mode` wins over `command` in
+                    // MenuMode.qml's activate(); `command` is kept
+                    // byte-identical to the retired TOML action for the
+                    // record, same precedent as Tools ▸ Clipboard's own
+                    // `mode`+stale-`command` pairing above.
+                    command: `~/.config/hypr/scripts/theme-switch.sh`,
+                    mode: "theme"
                 },
                 {
                     text: "  Wallpaper",
@@ -123,7 +132,14 @@ Singleton {
                 },
                 {
                     text: "  Bar orientation",
-                    command: `~/.config/hypr/scripts/bar-orientation.sh`
+                    // Superseded by PickerMode (quick task 260822-sht,
+                    // Task 5, consumer 6) — same `mode`+stale-`command`
+                    // pairing as Theme above. `bar-orientation.sh` no
+                    // longer has an interactive path, so this `command`
+                    // is unreachable dead reference text now, not a live
+                    // fallback.
+                    command: `~/.config/hypr/scripts/bar-orientation.sh`,
+                    mode: "barorientation"
                 },
             ]
         },

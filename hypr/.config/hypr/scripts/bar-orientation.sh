@@ -75,58 +75,17 @@ _apply() {
         -i preferences-desktop-display -t 2000 2>/dev/null || true
 }
 
-# _pick — the interactive path: no shell script ever runs a menu itself,
-# it hands the labels to walker and reads back a selection.
-_pick() {
-    # WR-04 cancel convention (this repo's existing dmenu-caller precedent):
-    # walker signals Esc / click-outside / Return-on-empty via exit status
-    # 130 with no stdout (128+SIGINT), never exit 0 + empty output. `|| rc=$?`
-    # captures the exit code without tripping `set -euo pipefail` on a bare
-    # command-substitution assignment.
-    local rc=0
-    local selected
-    selected=$(printf '%s\n' "${DISPLAYS[@]}" | walker --dmenu --placeholder "Bar Orientation") || rc=$?
-    if (( rc == 130 )); then
-        exit 0   # user cancel
-    elif (( rc != 0 )); then
-        notify-send -a "Bar Orientation" "Error" "walker dmenu failed" -i dialog-error 2>/dev/null || true
-        exit 1   # hard failure: not installed, elephant dead, crash
-    fi
-
-    [[ -z "$selected" ]] && exit 0   # defensive; walker never returns 0+empty, but harmless
-
-    # Parallel-array lookup — never re-parse a decorated label with glob
-    # patterns (this repo's existing dmenu-caller precedent).
-    local slug=""
-    local i
-    for i in "${!DISPLAYS[@]}"; do
-        if [[ "${DISPLAYS[$i]}" == "$selected" ]]; then
-            slug="${SLUGS[$i]}"
-            break
-        fi
-    done
-
-    [[ -z "$slug" ]] && exit 1
-
-    _apply "$slug"
-}
-
-# Two entry shapes and no third:
-#   - one argument  -> apply it non-interactively (the path a stability
-#                      check or a render gate uses to flip orientation
-#                      without a menu)
-#   - no arguments  -> the walker picker
-#   - anything else -> a usage error
+# One entry shape and no other: an argument is always required, applied
+# non-interactively. The launcher's picker mode is the only caller that
+# builds the two-row list now; anything without an argument is a usage
+# error.
 main() {
     case $# in
-        0)
-            _pick
-            ;;
         1)
             _apply "$1"
             ;;
         *)
-            echo "bar-orientation.sh: usage: bar-orientation.sh [horizontal|vertical]" >&2
+            echo "bar-orientation.sh: usage: bar-orientation.sh <horizontal|vertical>" >&2
             exit 1
             ;;
     esac

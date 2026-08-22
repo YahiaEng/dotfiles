@@ -588,6 +588,15 @@ PanelWindow {
                         return updatesComponent;
                     case "systeminfo":
                         return systemInfoComponent;
+                    // "theme"/"barorientation" (quick task 260822-sht,
+                    // Task 5, consumers 1 and 6) — same raw-literal,
+                    // MenuTree-only-reachable shape as "updates"/
+                    // "systeminfo" above; one PickerMode.qml type,
+                    // distinguished by its own `pickerId` prop.
+                    case "theme":
+                        return themePickerComponent;
+                    case "barorientation":
+                        return barOrientationPickerComponent;
                     default:
                         return appsComponent;
                     }
@@ -755,6 +764,32 @@ PanelWindow {
                 id: systemInfoComponent
 
                 SystemInfoMode {
+                }
+            }
+
+            // ── Style ▸ Theme / Style ▸ Bar orientation (quick task
+            //    260822-sht, Task 5, consumers 1 and 6). Non-interactive
+            //    pickers per D-1's inversion of control — Enter runs the
+            //    consumer with an argument and dismisses, exactly like
+            //    `launchCurrent()`'s own launch-then-dismiss shape.
+            //    `dismissCallback` is evaluated in THIS Component's own
+            //    enclosing scope, same reasoning as `menuComponent`
+            //    above. ─────────────────────────────────────────────────
+            Component {
+                id: themePickerComponent
+
+                PickerMode {
+                    pickerId: "theme"
+                    dismissCallback: launcherWindow._beginDismiss
+                }
+            }
+
+            Component {
+                id: barOrientationPickerComponent
+
+                PickerMode {
+                    pickerId: "barorientation"
+                    dismissCallback: launcherWindow._beginDismiss
                 }
             }
 
