@@ -503,10 +503,22 @@ PageBase {
     }
     property string currentMotionAccessibility: "full"
 
+    // The authoritative re-read MUST be chained off the apply process's own
+    // onExited, never fired alongside it. motion-switch.sh writes
+    // ~/.local/state/theme/motion-style and then re-renders; `--get` reads
+    // that same file. Starting both in one tick raced them: `--get` won,
+    // read the PREVIOUS value, and wrote it back over currentMotionStyle.
+    // Since SelectRow is fully controlled (its currentDisplay derives only
+    // from currentValue), the row visibly snapped back to the old style and
+    // the user had to pick twice — the second pick reading the value the
+    // FIRST pick had by then finished writing.
     Process {
         id: motionApplyProc
         running: false
         command: [Quickshell.env("HOME") + "/.config/hypr/scripts/motion-switch.sh", root.pendingMotionStyle]
+        onExited: (exitCode, exitStatus) => {
+            motionGetProc.running = true;
+        }
     }
     property string pendingMotionStyle: ""
 
@@ -514,19 +526,26 @@ PageBase {
         id: motionAccessApplyProc
         running: false
         command: [Quickshell.env("HOME") + "/.config/hypr/scripts/motion-switch.sh", "--accessibility", root.pendingMotionAccessibility]
+        onExited: (exitCode, exitStatus) => {
+            motionAccessGetProc.running = true;
+        }
     }
     property string pendingMotionAccessibility: ""
 
+    // The optimistic assignment gives the row instant feedback instead of
+    // leaving it on the old value for the whole re-render; the chained
+    // `--get` above is still the authority and will correct it if the apply
+    // failed.
     function applyMotionStyle(name) {
         root.pendingMotionStyle = name;
+        root.currentMotionStyle = name;
         motionApplyProc.running = true;
-        motionGetProc.running = true;
     }
 
     function applyMotionAccessibility(name) {
         root.pendingMotionAccessibility = name;
+        root.currentMotionAccessibility = name;
         motionAccessApplyProc.running = true;
-        motionAccessGetProc.running = true;
     }
 
     SettingsSection {
