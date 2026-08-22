@@ -122,40 +122,43 @@
     },
     "bouncy": {
       "label": "Bouncy",
-      "description": "Overshoots visibly, settles once.",
-      "easings": {
-        "spatial-in": [0.1, 0.9, 0.4, 1.254]
-      },
-      "semantic": {
-        "standard": { "duration": "short4", "easing": "standard" },
-        "emphasized-in": { "duration": "medium3", "easing": "emphasized-decelerate" },
-        "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" },
-        "spatial-in": { "duration": "medium3", "easing": "spatial-in" },
-        "spatial-out": { "duration": "short3", "easing": "spatial-out" },
-        "spatial-move": { "duration": "short4", "easing": "spatial-move" }
-      },
-      "hypr_leaves": {
-        "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
-        "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
-        "workspaces": { "curve": "spatial-in", "style": "slidevert" }
-      }
-    },
-    "wavy": {
-      "label": "Wavy",
-      "description": "Crests well past the target, dips back, then settles — windows and panels wave, the screen itself does not.",
-      "_comment_curve": "Retuning notes for this curve, in the order they were learned. (1) Hyprland's hl.curve() rejects any control-point Y above 2.00 and then SILENTLY KEEPS the previously registered curve instead of failing the reload — an out-of-range number looks exactly like 'my edit did nothing'. (2) The shape this style first shipped with, [0.05, 2.0, 0.3, 0.6], was rejected by the operator on 2026-08-22 as causing motion sickness: it fired its whole +10.8% overshoot in the first 94ms of 450ms — it had already travelled 111% of the way by a fifth of the duration — then sagged to 8% BELOW the target for the remaining 356ms. (3) The first retune, [0.3, 1.45, 0.7, 0.94] at +4%, overcorrected: wavy then read as a near-twin of smooth. What the two verdicts together establish is that neither the SIZE of the crest nor the 450ms duration was the problem — the SNAP was, together with the depth of the sag and the fact that the reversal was landing on a whole-screen vertical slide. Current [0.4, 1.85, 0.75, 0.74] keeps nearly the original crest (+9.7%) but reaches it smoothly at 54% of the duration rather than 21%, and dips 4.2% rather than 7.6%. The duration is back at long1/450ms deliberately: with the snap gone and the reversal kept off full-screen motion (see _comment_leaves), the length now just gives the wave room to read, and it separates wavy from bouncy, which shares this style's popin 0% window shape and sat at the same 350ms before this change.",
+      "description": "Crests past the target, drops back through it, then settles — the snap-back of a bounce.",
+      "_comment_curve": "This dipping curve carries a history worth knowing before retuning it. (1) Hyprland's hl.curve() rejects any control-point Y above 2.00 and then SILENTLY KEEPS the previously registered curve instead of failing the reload — an out-of-range number looks exactly like 'my edit did nothing'. (2) It first shipped as [0.05, 2.0, 0.3, 0.6] and was rejected by the operator on 2026-08-22 as causing motion sickness: it fired its whole +10.8% overshoot in the first 94ms of 450ms — already 111% of the way by a fifth of the duration — then sagged to 8% BELOW the target for the remaining 356ms. (3) A retune to [0.3, 1.45, 0.7, 0.94] at +4% overcorrected and read as a near-twin of smooth. What those verdicts together establish is that neither the crest SIZE nor the 450ms length was the problem — the SNAP was, together with the sag depth and the fact that the reversal landed on a whole-screen vertical slide. [0.4, 1.85, 0.75, 0.74] keeps the crest (+9.7%) but reaches it smoothly at 54% of the duration and dips only 4.2%. (4) It lived under the 'wavy' name until 2026-08-22, when the operator judged the two names backwards — a curve that overshoots and comes BACK DOWN reads as a bounce, not a wave — and the curves were swapped. The motion moved; this history moved with it.",
       "easings": {
         "spatial-in": [0.4, 1.85, 0.75, 0.74]
       },
       "semantic": {
-        "standard": { "duration": "medium1", "easing": "standard" },
+        "standard": { "duration": "short4", "easing": "standard" },
         "emphasized-in": { "duration": "long1", "easing": "emphasized-decelerate" },
-        "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
+        "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" },
         "spatial-in": { "duration": "long1", "easing": "spatial-in" },
+        "spatial-out": { "duration": "short3", "easing": "spatial-out" },
+        "spatial-move": { "duration": "short4", "easing": "spatial-move" }
+      },
+      "_comment_leaves": "workspaces/special_workspace MUST stay on a monotonic curve while this style owns the dipping spatial-in. They keep their vertical slidevert shape, but on spatial-move rather than spatial-in. This is not stylistic: the operator's motion sickness came from a reversing curve landing on a whole-screen VERTICAL slide, and this style is the one that puts full-screen motion on spatial-in. Vertical motion itself was never the trigger — this style ran a full-screen vertical slidevert with a +8% monotonic overshoot for weeks without complaint — so the shape stays and only the reversal is kept off it. special_workspace needs an explicit override here because the BASE table points it at spatial-in. Note a leaf's DURATION follows its curve name (animations.lua register_hypr_leaf: speed_key = curve name), so this also moves workspace switching onto spatial-move's 200ms.",
+      "hypr_leaves": {
+        "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
+        "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
+        "workspaces": { "curve": "spatial-move", "style": "slidevert" },
+        "special_workspace": { "curve": "spatial-move", "style": "slidevert" }
+      }
+    },
+    "wavy": {
+      "label": "Wavy",
+      "description": "One smooth swell past the target, settling from above — never doubles back.",
+      "_comment_curve": "Held the dipping wave curve until 2026-08-22, when the operator judged the wavy/bouncy names backwards and the two curves were swapped — a dip-and-return reads as a bounce, a single smooth swell reads as a wave. The full history of the dipping curve now lives under 'bouncy'. [0.1, 0.9, 0.4, 1.254] peaks +8.0% at 66% of the duration and settles from above without ever crossing back below the target.",
+      "easings": {
+        "spatial-in": [0.1, 0.9, 0.4, 1.254]
+      },
+      "semantic": {
+        "standard": { "duration": "medium1", "easing": "standard" },
+        "emphasized-in": { "duration": "medium3", "easing": "emphasized-decelerate" },
+        "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
+        "spatial-in": { "duration": "medium3", "easing": "spatial-in" },
         "spatial-out": { "duration": "short4", "easing": "spatial-out" },
         "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
       },
-      "_comment_leaves": "workspaces/special_workspace deliberately use spatial-move (MONOTONIC) rather than the wave, while keeping a vertical slidefadevert. Splitting it this way is the whole point: the operator's motion sickness came from a whole-screen vertical slide that REVERSED DIRECTION over 450ms, not from vertical motion as such — bouncy has run a full-screen vertical slidevert at 350ms with a +8% overshoot throughout without complaint. So the reversal is removed from full-screen motion and the wave is kept on windows and panels, where the moving field is small. An earlier pass also made these leaves horizontal (slidefade); that was reverted because it made wavy read as smooth, whose workspace switch is horizontal slidefade. Note that a leaf's DURATION follows its curve name (animations.lua register_hypr_leaf: speed_key = curve name), so pointing these two at spatial-move also puts workspace switching on spatial-move's 250ms instead of spatial-in's 350ms.",
+      "_comment_leaves": "workspaces/special_workspace use spatial-move with a vertical slidefadevert. This style no longer carries a reversing curve (that moved to 'bouncy' in the 2026-08-22 name swap), so the split is now about pacing rather than safety: full-screen motion runs at spatial-move's 250ms while windows and panels swell over 350ms. Keep the shape here distinct from smooth's horizontal slidefade — an earlier pass made these leaves horizontal and the operator reported the style then read as smooth. Note a leaf's DURATION follows its curve name (animations.lua register_hypr_leaf: speed_key = curve name).",
       "hypr_leaves": {
         "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
         "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
