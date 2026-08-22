@@ -187,6 +187,50 @@ Item {
         contentWidth: width
         contentHeight: gridPositioner.height
 
+        // Item 2 fix (quick task 260822-sht, operator-reported: "I cannot
+        // use my mouse to scroll inside the emoji picker"). ROOT CAUSE:
+        // `interactive: false` above disables flicking AND wheel scrolling
+        // outright — it is kept `false` here deliberately (this whole
+        // package is keyboard-driven; drag-flicking would fight
+        // `_ensureVisible()`'s own currentIndex-driven scroll), so the fix
+        // is a dedicated `WheelHandler` that moves `contentY` directly
+        // rather than re-enabling `interactive`. `acceptedDevices:
+        // PointerDevice.AllDevices` is REQUIRED, not decorative — this
+        // shell's own measured, load-bearing finding (OsdSliderRow.qml,
+        // MediaConnectivityCapsule.qml's `audioWheelHandler`/
+        // `brightnessWheelHandler`): Qt's Wayland backend reports the seat
+        // pointer as `PointerDevice.TouchPad` for EVERY pointing device on
+        // this host, including a real mouse, so a `WheelHandler` left at
+        // its default `acceptedDevices: Mouse` fires zero events. Notch
+        // quantization (accumulate `angleDelta.y` to 120-unit steps) is
+        // the same pattern those two handlers use, so a touchpad's
+        // fractional events scroll proportionally instead of firing a
+        // full row-step per micro-event. Scrolling is independent of
+        // keyboard `currentIndex` — matches every other scrollable surface
+        // in this shell (NotifCentre.qml's `historyList`,
+        // PageBase.qml's `bodyFlick`), where the wheel pans the view
+        // without moving a selection — and never touches the per-tile
+        // `MouseArea` below, so click-to-pick is unaffected.
+        WheelHandler {
+            id: gridWheelHandler
+            target: null
+            acceptedDevices: PointerDevice.AllDevices
+
+            property real pendingAngle: 0
+
+            onWheel: event => {
+                gridWheelHandler.pendingAngle += event.angleDelta.y;
+                const notchUnits = 120;
+                const rowHeight = 64;
+                const maxY = Math.max(0, gridPositioner.height - grid.height);
+                while (Math.abs(gridWheelHandler.pendingAngle) >= notchUnits) {
+                    const direction = gridWheelHandler.pendingAngle > 0 ? 1 : -1;
+                    gridWheelHandler.pendingAngle -= direction * notchUnits;
+                    grid.contentY = Math.max(0, Math.min(maxY, grid.contentY - direction * rowHeight));
+                }
+            }
+        }
+
         Grid {
             id: gridPositioner
             width: parent.width
