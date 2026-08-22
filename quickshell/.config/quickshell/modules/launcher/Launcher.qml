@@ -481,6 +481,70 @@ PanelWindow {
                         launcherWindow.moveSelection(-1);
                         event.accepted = true;
                     }
+
+                    // ── Backspace-goes-back (quick task 260822-sht,
+                    //    feature 2) ─────────────────────────────────────
+                    // No dedicated `Keys.onBackspacePressed` compatibility
+                    // signal exists (unlike Up/Down/Return/Escape above),
+                    // so this reads the raw key. Only ever acts when the
+                    // query is ALREADY empty — with any text still in the
+                    // field this returns immediately on the first line and
+                    // the TextField's own default handling deletes a
+                    // character exactly as it always has, which is the one
+                    // hazard this feature exists to avoid. Every
+                    // prefix-routed mode (calc/files/websearch/clipboard/
+                    // symbols/providerlist) already reverts to apps mode
+                    // via LauncherState's own `_routeQuery()` the moment
+                    // its OWN prefix character is itself backspaced away,
+                    // through that same default path — so by the time the
+                    // branches below ever run, that transition has already
+                    // happened.
+                    Keys.onPressed: function (event) {
+                        if (event.key !== Qt.Key_Backspace)
+                            return;
+                        if (searchField.text.length > 0)
+                            return;
+
+                        if (LauncherState.mode === LauncherState.modeMenu) {
+                            // Reuses MenuMode.qml's own `_goBack()` rather
+                            // than duplicating its navStack-pop logic here
+                            // — `resultsLoader.item` IS the live MenuMode
+                            // instance whenever `mode === modeMenu`.
+                            // Empty navStack (menu root): no-op, per this
+                            // feature's own explicit requirement — Escape
+                            // remains the one way out from there.
+                            if (LauncherState.navStack.length > 0) {
+                                const item = launcherWindow._activeItem();
+                                if (item && typeof item._goBack === "function")
+                                    item._goBack();
+                            }
+                            event.accepted = true;
+                            return;
+                        }
+
+                        // Leaf mode. MenuMode.qml's own `activate()` never
+                        // touches `navStack` when handing off to a `mode:`
+                        // leaf (Style ▸ Theme, Tools ▸ Clipboard, etc.), so
+                        // a non-empty `navStack` IS the "reached via the
+                        // menu" signal here — independent of which mode
+                        // name this is, since the SAME mode name (e.g.
+                        // "clipboard"/"symbols") is also reachable directly
+                        // by typing `:`/`.`, where navStack stays empty the
+                        // whole time. A leaf reached via the menu returns
+                        // to it at the exact level it was drilled from.
+                        if (LauncherState.navStack.length > 0) {
+                            LauncherState.mode = LauncherState.modeMenu;
+                            event.accepted = true;
+                            return;
+                        }
+
+                        // Not reached from the menu (apps mode, a typed
+                        // prefix route, or recordaudio's mid-flow IPC
+                        // entry) — least-surprising choice, mirroring the
+                        // menu-root rule two branches up: do nothing.
+                        // Escape stays the one way to dismiss from here.
+                        event.accepted = true;
+                    }
                 }
 
                 // ── Sort toggle — cycles alpha/frecency on click and
