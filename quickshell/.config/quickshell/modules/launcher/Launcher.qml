@@ -569,7 +569,7 @@ PanelWindow {
                     case LauncherState.modeClipboard:
                         return modePlaceholderComponent;
                     case LauncherState.modeSymbols:
-                        return modePlaceholderComponent;
+                        return emojiComponent;
                     case LauncherState.modeMenu:
                         return menuComponent;
                     // "updates"/"systeminfo" (R-1/R-2, quick task
@@ -922,15 +922,27 @@ PanelWindow {
                 }
             }
 
-            // ── `:` clipboard, `.` symbols — placeholder result views
-            //    (quick task 260822-sht, Task 2). The router above already
-            //    routes both prefixes to real mode names; Tasks 8 and 7
-            //    replace this shared placeholder with a real component each
-            //    — a router change, nothing here, per this task's own plan
-            //    text ("declare the enum values now so the router is
-            //    complete and the later tasks are pure additions"). `count`
-            //    stays 0 and `activate()` a no-op: there is nothing to pick
-            //    yet. ─────────────────────────────────────────────────────
+            // ── `.` symbols / Tools ▸ Emoji (quick task 260822-sht, Task
+            //    7). `dismissCallback` is evaluated in THIS Component's own
+            //    enclosing scope, same reasoning as `menuComponent` above —
+            //    picking a glyph is a decisive one-shot action, same shape
+            //    as a PickerMode pick. ─────────────────────────────────────
+            Component {
+                id: emojiComponent
+
+                EmojiMode {
+                    dismissCallback: launcherWindow._beginDismiss
+                }
+            }
+
+            // ── `:` clipboard — placeholder result view (quick task
+            //    260822-sht, Task 2). The router above already routes this
+            //    prefix to a real mode name; Task 8 replaces this
+            //    placeholder with a real component — a router change,
+            //    nothing here, per this task's own plan text ("declare the
+            //    enum values now so the router is complete and the later
+            //    task is a pure addition"). `count` stays 0 and `activate()`
+            //    a no-op: there is nothing to pick yet. ───────────────────
             Component {
                 id: modePlaceholderComponent
 

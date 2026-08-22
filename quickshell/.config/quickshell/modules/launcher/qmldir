@@ -42,6 +42,11 @@
 # ConfirmMode (quick task 260822-sht, Task 6) is a plain Item-rooted mode
 # result view, same non-singleton shape — the destructive-confirm
 # counterpart to PickerMode: non-destructive option first and preselected.
+#
+# EmojiMode (quick task 260822-sht, Task 7) is a plain Item-rooted mode
+# result view, same non-singleton shape as every other mode above. Reads
+# emoji.tsv (also this directory, no qmldir entry needed — plain data,
+# not a QML type) via FileView.
 module qs.modules.launcher
 singleton LauncherState 1.0 LauncherState.qml
 singleton MenuTree 1.0 MenuTree.qml
@@ -54,3 +59,4 @@ SystemInfoMode 1.0 SystemInfoMode.qml
 UpdatesMode 1.0 UpdatesMode.qml
 PickerMode 1.0 PickerMode.qml
 ConfirmMode 1.0 ConfirmMode.qml
+EmojiMode 1.0 EmojiMode.qml

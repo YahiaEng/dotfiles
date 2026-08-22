@@ -38,9 +38,11 @@
 // means it is NEVER executed — the ONE entry this task's own plan text
 // names as the deliberate exception to "byte-identical AND executed",
 // since Task 8 replaces its behaviour entirely. `placeholder: true` marks
-// the two leaves still awaiting their real component (Tools ▸ Emoji,
-// Task 7; Learn ▸ Keybinds, Task 9) — their retired command still runs
-// until then, so the surface stays fully functional in the interim.
+// the one leaf still awaiting its real component (Learn ▸ Keybinds,
+// Task 9) — its retired command still runs until then, so the surface
+// stays fully functional in the interim. Tools ▸ Emoji now carries
+// `mode: "symbols"` (quick task 260822-sht, Task 7) and is no longer a
+// placeholder — its real component (EmojiMode.qml) exists.
 // Style ▸ Theme and Style ▸ Bar orientation now carry `mode: "theme"` /
 // `mode: "barorientation"` (quick task 260822-sht, Task 5), routing to
 // `PickerMode.qml` the same way Tools ▸ Clipboard routes to its own mode
@@ -89,9 +91,15 @@ Singleton {
             text: "  Tools",
             children: [
                 {
+                    // Superseded by EmojiMode.qml (quick task 260822-sht,
+                    // Task 7) — `mode` wins over `command` in
+                    // MenuMode.qml's activate(); `command` is kept
+                    // byte-identical to the retired TOML action for the
+                    // record, same precedent as Style ▸ Theme/Bar
+                    // orientation above.
                     text: "  Emoji",
                     command: `~/.config/hypr/scripts/emoji-picker.sh`,
-                    placeholder: true
+                    mode: "symbols"
                 },
                 {
                     text: "  Colour picker",
