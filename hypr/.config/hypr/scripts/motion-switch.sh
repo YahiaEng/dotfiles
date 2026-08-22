@@ -116,7 +116,11 @@ _trigger_theme_apply() {
     current_theme="$(cat "$CURRENT_THEME_FILE" 2>/dev/null || echo "catppuccin")"
 
     if [[ -x "$THEME_APPLY" ]]; then
-        "$THEME_APPLY" "$current_theme"
+        # Re-render only: the COLOUR theme is unchanged, so suppress
+        # theme-apply's "Theme Applied — Switched to X" toast, which would
+        # otherwise announce a colour-theme switch that never happened.
+        # Errors inside theme-apply still notify.
+        THEME_APPLY_QUIET=1 "$THEME_APPLY" "$current_theme"
         return $?
     else
         echo "motion-switch.sh: $THEME_APPLY not found or not executable — state written but not re-rendered" >&2

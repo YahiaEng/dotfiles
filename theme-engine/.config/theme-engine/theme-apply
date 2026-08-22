@@ -139,5 +139,13 @@ fi
 # Single reload owner (D-04) — runs once, only after commit succeeds.
 theme_engine_reload
 
-notify-send -a "Theme Switcher" "Theme Applied" "Switched to ${NAME}" \
-    -i preferences-desktop-theme -t 3000 2>/dev/null || true
+# THEME_APPLY_QUIET suppresses only this SUCCESS toast, never the error
+# ones above. Sub-switchers that call theme-apply purely to RE-RENDER the
+# current theme (motion-switch.sh changing the animation style, for example)
+# set it: without it, changing an animation style pops "Theme Applied —
+# Switched to <colour theme>", reporting a colour-theme switch that never
+# happened. A real theme switch leaves it unset and still notifies.
+if [[ "${THEME_APPLY_QUIET:-0}" != "1" ]]; then
+    notify-send -a "Theme Switcher" "Theme Applied" "Switched to ${NAME}" \
+        -i preferences-desktop-theme -t 3000 2>/dev/null || true
+fi
