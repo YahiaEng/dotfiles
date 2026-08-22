@@ -139,9 +139,23 @@ PanelWindow {
     // sort. In frecency mode, equal launch counts (including every
     // zero-count app on first run) fall through to the SAME A→Z comparison
     // alpha mode uses, so ties never come out in an unstable order.
-    function _compareApps(a, b) {
+    //
+    // ── Hoisted-lookup fix (quick task 260822-sht, pre-Task-2 fix) ───────
+    // `counts` is read ONCE per sort by the caller (`filteredApps` below)
+    // and threaded through as a third argument, rather than this function
+    // calling `Prefs.getValue("launcher.launchCounts")` itself on every
+    // pairwise comparison — Array.sort's comparator runs O(n·log n) times
+    // per keystroke in frecency mode (~1,500 calls for 200 apps), so a
+    // per-comparison Prefs read was ~1,500 redundant map fetches per
+    // keystroke for one unchanging map. Chosen over a cached/invalidated
+    // property because Task 2's fuzzy matcher composes this function as
+    // ITS tiebreaker inside its own single sort/filter pass — passing the
+    // already-fetched map straight through composes naturally with that
+    // call shape and needs no separate cache-invalidation contract. `counts`
+    // is `undefined` in alpha mode (never read) and always defined in
+    // frecency mode (`filteredApps` only fetches it when needed).
+    function _compareApps(a, b, counts) {
         if (launcherWindow.sortMode === launcherWindow.sortModeFrecency) {
-            const counts = Prefs.getValue("launcher.launchCounts");
             const countA = counts[a.id] || 0;
             const countB = counts[b.id] || 0;
             if (countA !== countB)
@@ -166,7 +180,12 @@ PanelWindow {
         const matched = q === "" ? all : all.filter(function (e) {
             return (e.name || "").toLowerCase().indexOf(q) !== -1;
         });
-        return matched.slice().sort(launcherWindow._compareApps);
+        // Fetched once per sort, not once per comparison — see
+        // `_compareApps`'s header note above.
+        const counts = launcherWindow.sortMode === launcherWindow.sortModeFrecency ? Prefs.getValue("launcher.launchCounts") : undefined;
+        return matched.slice().sort(function (a, b) {
+            return launcherWindow._compareApps(a, b, counts);
+        });
     }
 
     function launchCurrent() {
