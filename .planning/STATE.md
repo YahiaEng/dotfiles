@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: QUICK TASK 260821-swp TASK 3 IN PROGRESS — the operator judged `wavy` as causing motion sickness; it was diagnosed, retuned and committed (8e5f742a). Four styles (md3/smooth/snappy/bouncy) plus the retuned wavy still await the operator's render-and-judge pass, as does the reduce-motion walk.
-last_updated: "2026-08-22T18:00:00.000Z"
+stopped_at: QUICK TASK 260821-swp TASK 3 IN PROGRESS — two operator verdicts handled. `wavy` retuned twice (first too sickening, then too close to smooth) and now sits at a +9.7% crest reached smoothly at 54% over 350ms, with the reversal kept OFF full-screen motion. Two settings bugs found and fixed alongside: the animation-style row needed selecting twice (a re-read racing its own write), and a style change popped a bogus "Theme Applied" toast. Four styles plus the re-retuned wavy still await the render-and-judge pass.
+last_updated: "2026-08-22T19:30:00.000Z"
 last_activity: 2026-08-22
-last_activity_desc: "Task 3 verdict 1 on quick-260821-swp: wavy rejected as motion-sickness-inducing and retuned — the only style that travelled BELOW its target (peak +10.8% at 21% of 450ms, then -7.6% for 356ms) is now a single smooth crossing at 300ms, and its whole-screen vertical slidefadevert workspace switch moved to a monotonic horizontal slidefade"
-state_head: 8e5f742a
+last_activity_desc: "Task 3 verdicts 1 and 2 on quick-260821-swp: wavy retuned twice to a +9.7% crest reached at 54% over 350ms with workspaces kept monotonic; plus two settings bugs fixed — a --get re-read racing its own write made the style row need two clicks, and theme-apply's unconditional success toast made every style change claim a colour-theme switch"
+state_head: 30119923
 progress:
   total_phases: 6
   completed_phases: 6
@@ -737,23 +737,25 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-22T18:00:00.000Z
-PRIOR AGREED NEXT — PARTLY DELIVERED: Task 3's operator pass on quick-260821-swp began. The operator judged ONE style (`wavy`) and rejected it; it has been diagnosed, retuned and committed. The other four styles and the reduce-motion walk are still owed.
+Last session: 2026-08-22T19:30:00.000Z
+PRIOR AGREED NEXT — PARTLY DELIVERED: Task 3's operator pass continued. `wavy` has now been judged twice and retuned twice; two settings bugs surfaced during that judging and were fixed. The other four styles and the reduce-motion walk are still owed.
 
-Stopped at: TASK 3 IS NOW MID-PASS, NOT UNSTARTED. `wavy` came back "will cause motion sickness". Two stacking causes were measured, not guessed:
-  (a) its `spatial-in` `[0.05, 2.0, 0.3, 0.6]` fired its entire +10.8% overshoot in the first 94ms of 450ms then sagged to 7.6% BELOW the target for the remaining 356ms — two direction reversals, and the ONLY style in the table that ever travelled below its target (bouncy +8% settles monotonically, snappy +3%);
-  (b) that oscillation was wired to `workspaces`/`special_workspace` as `slidefadevert` — a whole-screen VERTICAL slide, the strongest vestibular trigger available.
-Both are gone: curve -> `[0.3, 1.45, 0.7, 0.94]` (peak +4.0% at 62%, dip -0.5%, one crossing), `spatial-in`/`emphasized-in` 450ms -> 300ms, and those two leaves -> monotonic `spatial-move` + horizontal `slidefade`. Commit `8e5f742a`, motion.json-only.
+Stopped at: TASK 3 MID-PASS. Verdict 1: `wavy` "will cause motion sickness". Verdict 2: the retune overcorrected — "reads very similar to smooth" — plus two unrelated settings bugs.
 
-THREE THINGS WORTH CARRYING FORWARD FROM THIS ROUND:
+THE ONE INSIGHT THAT SETTLED WAVY, and it took both verdicts to see it: THE SIZE OF THE CREST WAS NEVER THE PROBLEM. Original `[0.05, 2.0, 0.3, 0.6]` = +10.8% peak but reached in the first 94ms of 450ms (a SNAP), then a 7.6% sag held for 356ms. Retune 1 cut the crest to +4% and lost the style's identity. Retune 2 put the crest BACK to +9.7% — nearly the original — but reached smoothly at 54% of the duration, dipping only 4.2%, over 350ms. Shipped: `[0.4, 1.85, 0.75, 0.74]`, commit `3182d047`.
 
-  1. A LEAF'S DURATION FOLLOWS ITS CURVE NAME, NOT A SEPARATE FIELD. `animations.lua register_hypr_leaf()` derives the speed key from the curve name (`curve:gsub("%-","_")`). So repointing a leaf's curve silently repoints its duration too — moving `workspaces` to `spatial-move` also moved it from 450ms to 250ms (confirmed live: `speed 3.0 -> 2.5`). Useful lever; also a trap if you only meant to change the shape.
+THE STRUCTURAL SPLIT THAT MAKES IT SAFE, and the measurement behind it: `bouncy` has always run a FULL-SCREEN VERTICAL slidevert at 350ms with a +8% overshoot and was never reported as sickening. So vertical motion was not the trigger — vertical motion that REVERSES DIRECTION over 450ms was. wavy therefore keeps `slidefadevert` on workspaces/special_workspace but on the MONOTONIC `spatial-move` curve at 250ms, while the wave lives on windows and panels where the moving field is small. Retune 1 made those leaves horizontal instead, and that is precisely what made wavy read as smooth — do not "fix" it back to horizontal.
 
-  2. WHEN A VERDICT REJECTS A BAND, THE BAND IS THE THING BEING TUNED — SO MAKE IT STRICTER, NOT WIDER. Task 2 asserted wavy's peak ∈ [1.10, 1.25], which encoded the rejected behaviour. After retuning, wavy's PEAK no longer identifies it at all (1.0398 sits inside snappy's [1.02, 1.05] band) — its DIP does. The band was restated as peak ∈ [1.03, 1.06] PLUS a new per-style dip band pinning every other style to `dip == 1.0` and wavy to 0.98-0.998. That is a stronger gate than the one it replaced and encodes the spatial/effects invariant directly.
+TWO REAL BUGS FOUND WHILE JUDGING, BOTH FIXED:
+  1. `d2201d06` — the settings animation-style row needed selecting TWICE. `applyMotionStyle()` fired the apply process and the authoritative `--get` re-read in the SAME tick. Both touch `~/.local/state/theme/motion-style`; `--get` won, read the PREVIOUS value, and wrote it back over `currentMotionStyle`. `SelectRow` is fully controlled (`currentDisplay` derives only from `currentValue`), so the row snapped back — and the second click only "worked" because it read what the FIRST click had by then written. Re-read is now chained off the apply's own `onExited`, with an optimistic assignment for instant feedback. The reduce-motion row had the identical race.
+  2. `30119923` — every animation-style change popped "Theme Applied — Switched to <colour theme>". `motion-switch.sh` calls `theme-apply` purely to RE-RENDER, and `theme-apply` ended with an unconditional success `notify-send`. It now honours `THEME_APPLY_QUIET=1` (success toast only; both error toasts untouched). Passed as an ENV VAR, not a flag, because `theme-apply` enforces a strict 1-2 positional arity that `theme-init.sh`, the walker dmenu picker and the wallpaper picker all rely on.
 
-  3. CHECK 5 IS RED AND IS NOT A REGRESSION — DO NOT CHASE IT. Task 2's literal `grep -cE 'normalized'` form reports 18 under md3+full. Measured identical (18) with the change stashed at `d79c796e`. 17 of the 18 are unrelated pre-existing `bool<->int` type-key folding lines; the 18th is Task 1's permanent leaf-bezier rename. SUMMARY:173 already documents this and records the narrow curve-section form as the real assertion — that form reports 0, verified.
+CARRIED FORWARD FROM THE EARLIER ROUND, STILL TRUE:
+  - A LEAF'S DURATION FOLLOWS ITS CURVE NAME. `animations.lua register_hypr_leaf()` derives the speed key from the curve name (`curve:gsub("%-","_")`), so repointing a leaf's curve silently repoints its duration too. That is how wavy's workspace switch became 250ms.
+  - THE DIP BAND, NOT THE PEAK BAND, IS WHAT IDENTIFIES WAVY. Its peak band is now [1.08, 1.12], which OVERLAPS bouncy's [1.06, 1.10]. The dip band [0.94, 0.97] plus `dip == 1.0` for every other style is the real assertion, and it encodes the spatial/effects invariant directly.
+  - CHECK 5 IS RED AND IS NOT A REGRESSION — DO NOT CHASE IT. The literal `grep -cE 'normalized'` form reports 18 under md3+full; measured identical with the change stashed. 17 are unrelated pre-existing bool<->int type-key folding lines, the 18th is Task 1's permanent leaf-bezier rename. SUMMARY:173 documents it; the narrow curve-section form reports 0, verified.
 
-STILL OWED BY TASK 3: judge `md3`, `smooth`, `snappy`, `bouncy` and re-judge the retuned `wavy` across the four surfaces (window open/close, workspace switch, notification arrival — must NOT bounce, bar drawer), then walk reduce-motion full -> reduced -> off -> full on both the Settings page and the dashboard quick-toggle row.
+STILL OWED BY TASK 3: judge `md3`, `smooth`, `snappy`, `bouncy` and RE-judge the re-retuned `wavy` across window open/close, workspace switch, notification arrival (must NOT bounce) and a bar drawer; then walk reduce-motion full -> reduced -> off -> full on both the Settings page and the dashboard quick-toggle row. The settings row should now register on ONE click and pop no toast — confirm that too.
 
 Prior: 260821-6z1 settings control panel, operator-verified. Before that: themed nvim (260820-nua/r44), operator-verified.
 

@@ -543,15 +543,21 @@ import json, sys
 m = json.load(open('theme-engine/.config/theme-engine/motion.json'))
 SPATIAL = {'spatial-in', 'spatial-out', 'spatial-move'}
 BANDS = {'md3': (1.0, 1.0), 'smooth': (1.0, 1.0), 'snappy': (1.02, 1.05),
-         'bouncy': (1.06, 1.10), 'wavy': (1.03, 1.06)}
-# 260822 Task 3 retune: the operator judged wavy's original 1.10-1.25 peak band
-# as motion-sickness-inducing, so the band itself was the rejected thing. After
-# retuning, wavy's PEAK no longer distinguishes it (1.0398 sits inside snappy's
-# band) -- its DIP does. Only wavy may travel below the target, and only
-# shallowly. DIPS below is a STRICTER assertion than the peak band it augments:
-# it now pins every other style to never undershoot at all.
+         'bouncy': (1.06, 1.10), 'wavy': (1.08, 1.12)}
+# 260822 Task 3, two operator verdicts. Verdict 1 rejected wavy's original
+# 1.10-1.25 peak band as motion-sickness-inducing, so the band itself was the
+# rejected thing. Verdict 2 rejected the resulting +4% retune as reading like
+# smooth -- an overcorrection. What the two verdicts together establish is that
+# the SIZE of the crest was never the problem: the snap (peak at 21% of the
+# duration) and the depth of the sag were. wavy is back near its original crest
+# at +9.7%, reached smoothly at 54%, dipping 4.2%.
+#
+# The peak band alone cannot identify wavy -- it now overlaps bouncy's. The DIP
+# is the distinguishing assertion, and DIPS below is STRICTER than the peak band
+# it augments: it pins every other style to never undershoot at all, which is
+# exactly the spatial/effects invariant this task was built around.
 DIPS = {'md3': (1.0, 1.0), 'smooth': (1.0, 1.0), 'snappy': (1.0, 1.0),
-        'bouncy': (1.0, 1.0), 'wavy': (0.98, 0.998)}
+        'bouncy': (1.0, 1.0), 'wavy': (0.94, 0.97)}
 def curve(p):
     x1, y1, x2, y2 = p; n = 2000
     xs = [3*(1-t/n)**2*(t/n)*x1 + 3*(1-t/n)*(t/n)**2*x2 + (t/n)**3 for t in range(n+1)]
@@ -603,7 +609,7 @@ c.addCubicBezierSegment(QPointF(p[0], p[1]), QPointF(p[2], p[3]), QPointF(1.0, 1
 v = [c.valueForProgress(i/200) for i in range(201)]
 peak = max(v); dip = min(v[v.index(peak):])
 print(f'wavy peak={peak:.4f} dip={dip:.4f} settle={v[-1]:.4f}')
-sys.exit(0 if peak > 1.02 and dip < 0.998 and abs(v[-1]-1.0) < 1e-6 else 1)
+sys.exit(0 if peak > 1.05 and dip < 0.98 and abs(v[-1]-1.0) < 1e-6 else 1)
 EOF
     </automated>
     <automated>

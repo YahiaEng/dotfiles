@@ -159,7 +159,32 @@ Two independent contributors were stacking, and both were removed:
 
 **Task 2's wavy band was itself retuned, and deliberately made stricter rather than merely wider.** The plan asserted `wavy` spatial-in peak ∈ [1.10, 1.25] — the band encoding the rejected behaviour, so it could not survive the verdict. After retuning, wavy's *peak* (1.0398) no longer distinguishes it at all: it sits inside `snappy`'s band. Its *dip* does. The band was therefore restated as peak ∈ [1.03, 1.06] **plus a new per-style dip band** pinning every other style to never undershoot (`dip == 1.0`) and `wavy` to 0.98-0.998. That is a stronger assertion than the one it replaces, and it directly encodes the spatial/effects invariant this task was built around.
 
-**Still owed by Task 3:** the per-style render-and-judge pass for `md3`, `smooth`, `snappy`, `bouncy` (and a re-judge of the retuned `wavy`), plus the reduce-motion `full -> reduced -> off -> full` walk on both the Settings page and the dashboard quick-toggle row.
+**Still owed by Task 3 (after verdict 2):** the per-style render-and-judge pass for `md3`, `smooth`, `snappy`, `bouncy` and a re-judge of the re-retuned `wavy`, plus the reduce-motion `full -> reduced -> off -> full` walk on both the Settings page and the dashboard quick-toggle row.
+
+
+### Task 3 verdict 2 — three findings (2026-08-22)
+
+**(a) `wavy` had converged on `smooth` — the first retune overcorrected.** Measuring all five styles side by side showed why:
+
+| style | window-in | dur | workspace style | ws dur | peak |
+|---|---|---|---|---|---|
+| md3 | popin 60% | 300 | slide | 300 | 1.0000 |
+| smooth | slidefade | 400 | slidefade | 400 | 1.0000 |
+| snappy | popin 80% | 200 | slide | 200 | 1.0301 |
+| bouncy | popin 0% | 350 | slidevert | 350 | 1.0802 |
+| **wavy (after retune 1)** | popin 0% | 300 | **slidefade** | 250 | **1.0398** |
+
+The retune had made workspace switching — the animation seen most often — identical in *shape* to smooth's, leaving wavy differentiated only by a +4% crest that is close to invisible and a `popin 0%` it already shares with bouncy.
+
+Taken together the two verdicts establish that **the size of the crest was never the problem**; the snap (peak at 21% of the duration) and the depth of the sag were. So the crest returns and the snap does not: `spatial-in` → `[0.4, 1.85, 0.75, 0.74]` (peak **+9.7%** vs the original +10.8%, but reached at **54%** of the duration rather than 21%, dipping **4.2%** rather than 7.6%, over **350ms** rather than 450ms), and `workspaces`/`special_workspace` go back to **vertical** `slidefadevert` while staying on the **monotonic** `spatial-move` curve at 250ms.
+
+That split is the whole point, and it rests on a measurement rather than a preference: `bouncy` has been running a full-screen vertical `slidevert` at 350ms with a +8% overshoot throughout, and was never reported as sickening. Vertical motion was not the trigger — vertical motion that *reverses direction* over 450ms was. Horizontal was tried in retune 1 and is exactly what made wavy read as smooth.
+
+**(b) The settings animation-style row needed selecting twice.** `applyMotionStyle()` started the apply process and the authoritative `--get` re-read in the *same tick*. `motion-switch.sh` writes the state file and then re-renders; `--get` reads that same file. `--get` won the race, read the **previous** value, and assigned it back over `currentMotionStyle`. Because `SelectRow` is fully controlled (`currentDisplay` derives only from `currentValue`, no internal selection state), the row visibly snapped back — and the second pick appeared to work only because it read the value the *first* pick had by then finished writing. Fixed by chaining the re-read off the apply process's own `onExited`, plus an optimistic assignment so the row responds immediately. The reduce-motion row had the identical race and got the identical fix.
+
+**(c) Changing the animation style claimed a colour-theme switch.** `theme-apply` ends with an unconditional `notify-send "Theme Applied — Switched to <name>"`, and `motion-switch.sh` calls it purely to re-render. It now honours `THEME_APPLY_QUIET=1`, which suppresses that **success** toast only — both error notifications untouched — and `motion-switch.sh` sets it on its single re-render call site. Passed as an env var rather than a flag deliberately: `theme-apply` enforces a strict 1–2 positional arity that `theme-init.sh`, the walker dmenu picker and the wallpaper picker all depend on.
+
+**Verify after verdict 2:** checks 1–4 green across all five styles (`hypr-equivalence-check` PASS 3 / FAIL 0, `motion-lint` 489/0 each); `colour-lint` 305/0, `settings-index-check` 116/0, `quickshell-doctor` 28/0; `bash -n` and `shellcheck -S error` clean on both shell files. The wavy peak band moved to [1.08, 1.12] and its dip band to [0.94, 0.97] — the peak band now overlaps bouncy's and no longer identifies wavy on its own, so **the dip band is the distinguishing assertion**, and it still pins every other style to never undershoot at all.
 
 ## Deviations from Plan
 
