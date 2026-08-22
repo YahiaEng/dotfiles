@@ -92,3 +92,45 @@ development is unambiguously active.
 
 nvim-tree and oil.nvim were not checked — neither is installed, and the
 question only mattered for the chosen tree.
+
+---
+
+## Launcher QML migration (raised 2026-08-22)
+
+Context: `.planning/notes/launcher-qml-migration-design.md`
+
+A two-agent research pass on 2026-08-22 (Omarchy's menu; Caelestia + end-4
+launcher QML) admitted most claims against primary source. These two could not
+be stood behind. Researcher tier resolved to `sonnet`, above the budget tier, so
+the tier floor did not arm — these are genuine abstains, not suppressed admits.
+
+### 1. How do end-4's clipboard and emoji providers actually work?
+
+Whether end-4's `Cliphist.qml` / `Emojis.qml` shell out to `cliphist` and a
+system emoji source, or bundle their own data (a vendored emoji JSON, an
+in-QML model).
+
+*Failed as:* unverifiable — the researcher routed clipboard/emoji through the
+prefix system in `LauncherSearch.qml` but did not open the two provider files
+themselves.
+
+**This is the one that matters.** Both surfaces have to be built natively here
+(Tools ▸ Emoji, Tools ▸ Clipboard, plus the Super+C bind), and the answer
+decides whether emoji data ships in-repo or is read from the system. Resolve
+before planning those two surfaces, not during.
+
+### 2. Does `walker --dmenu` return a distinct exit code on Escape?
+
+Whether walker distinguishes "user pressed Escape" from "no match / empty pick"
+by exit code, or only by empty stdout.
+
+*Failed as:* unverifiable — inferred from how `omarchy-menu` consumes it (it
+string-matches stdout and falls through to a `*)` default arm, never checking
+an exit code), with walker's own source not fetched.
+
+**Largely moot** — walker is being retired, and this repo already answers the
+question operationally: `hypr/.config/hypr/scripts/tests/test-walker-dmenu-cancel.sh`
+exists specifically to check exit-130 cancel handling across the picker scripts.
+Recorded because that test file is evidence this repo *did* rely on the
+distinction, which is worth knowing when the QML surfaces define their own
+cancel semantics.
