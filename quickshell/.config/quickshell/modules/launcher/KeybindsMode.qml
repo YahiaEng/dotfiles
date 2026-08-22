@@ -30,6 +30,7 @@ import Quickshell
 import Quickshell.Io
 import ".."
 import "."
+import "../dashboard"
 import "fuzzy.js" as Fuzzy
 
 Item {
@@ -161,15 +162,83 @@ Item {
             radius: 8
             color: root.currentIndex === keybindDelegate.index ? Colours.surfaceVariant : "transparent"
 
+            readonly property bool _isViewAll: keybindDelegate.modelData._kind === "viewall"
+
+            // Pinned "View all keybinds ›" row (quick task 260822-sht,
+            // feature 3) — plain full-width text, no chip row at all:
+            // T-07-26's own contract means this row structurally carries
+            // no `chord`/`desc` fields to split, so it stays visually
+            // distinct rather than rendering an empty chip.
             Text {
+                visible: keybindDelegate._isViewAll
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.margins: 12
                 text: keybindDelegate.modelData._text
-                color: keybindDelegate.modelData._kind === "viewall" ? Colours.primary : Colours.onSurface
+                color: Colours.primary
                 font.pixelSize: 13
                 elide: Text.ElideRight
+            }
+
+            // Ordinary bind row (quick task 260822-sht, feature 3) —
+            // description on the LEFT (elides), chord rendered as
+            // keycap-style chips pinned to the RIGHT. `chordRow` sizes
+            // itself to its own content and `descText` anchors its right
+            // edge to `chordRow.left`, so a chord with more keys shrinks
+            // the description instead of ever squeezing/clipping the
+            // chips — and the delegate's own `height: 40` above is never
+            // driven by either child, so row height never changes either.
+            Text {
+                id: descText
+                visible: !keybindDelegate._isViewAll
+                anchors.left: parent.left
+                anchors.right: chordRow.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 12
+                anchors.rightMargin: Design.spacingSm
+                text: keybindDelegate.modelData.desc || ""
+                color: Colours.onSurface
+                font.pixelSize: 13
+                elide: Text.ElideRight
+            }
+
+            Row {
+                id: chordRow
+                visible: !keybindDelegate._isViewAll
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: 12
+                spacing: Design.spacingXs
+
+                // Chord separator is "+" — confirmed against
+                // `cheat-sheet-parser.sh --dump`'s own live output
+                // (`_cheat_sheet_mod_name`'s `mods_str="${mods_str}+${mod_name}"`
+                // and `chord="${mods_str}+${key_name}"`), not assumed.
+                Repeater {
+                    model: keybindDelegate._isViewAll ? [] : (keybindDelegate.modelData.chord || "").split("+")
+
+                    delegate: Rectangle {
+                        id: keycapChip
+                        required property string modelData
+
+                        radius: 6
+                        height: 22
+                        width: keycapLabel.implicitWidth + Design.spacingSm * 2
+                        color: Colours.surfaceVariant
+                        border.width: 1
+                        border.color: Colours.outline
+
+                        Text {
+                            id: keycapLabel
+                            anchors.centerIn: parent
+                            text: keycapChip.modelData
+                            color: Colours.onSurfaceVariant
+                            font.pixelSize: Design.fontLabel
+                            font.bold: true
+                        }
+                    }
+                }
             }
 
             MouseArea {
