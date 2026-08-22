@@ -143,15 +143,15 @@
     "wavy": {
       "label": "Wavy",
       "description": "Crests well past the target, dips back, then settles — windows and panels wave, the screen itself does not.",
-      "_comment_curve": "Retuning notes for this curve, in the order they were learned. (1) Hyprland's hl.curve() rejects any control-point Y above 2.00 and then SILENTLY KEEPS the previously registered curve instead of failing the reload — an out-of-range number looks exactly like 'my edit did nothing'. (2) The shape this style first shipped with, [0.05, 2.0, 0.3, 0.6], was rejected by the operator on 2026-08-22 as causing motion sickness: it fired its whole +10.8% overshoot in the first 94ms of 450ms, then sagged to 8% BELOW the target for the remaining 356ms. The problem was never the SIZE of the overshoot — it was the SNAP (peak at 21% of the duration) and the depth of the sag. (3) The first retune, [0.3, 1.45, 0.7, 0.94] at +4%, overcorrected: the operator reported wavy then read as a near-twin of smooth. Current [0.4, 1.85, 0.75, 0.74] restores nearly the original crest (+9.7%) but reaches it smoothly at 54% of the duration and dips only 4.2%, at 350ms rather than 450ms.",
+      "_comment_curve": "Retuning notes for this curve, in the order they were learned. (1) Hyprland's hl.curve() rejects any control-point Y above 2.00 and then SILENTLY KEEPS the previously registered curve instead of failing the reload — an out-of-range number looks exactly like 'my edit did nothing'. (2) The shape this style first shipped with, [0.05, 2.0, 0.3, 0.6], was rejected by the operator on 2026-08-22 as causing motion sickness: it fired its whole +10.8% overshoot in the first 94ms of 450ms — it had already travelled 111% of the way by a fifth of the duration — then sagged to 8% BELOW the target for the remaining 356ms. (3) The first retune, [0.3, 1.45, 0.7, 0.94] at +4%, overcorrected: wavy then read as a near-twin of smooth. What the two verdicts together establish is that neither the SIZE of the crest nor the 450ms duration was the problem — the SNAP was, together with the depth of the sag and the fact that the reversal was landing on a whole-screen vertical slide. Current [0.4, 1.85, 0.75, 0.74] keeps nearly the original crest (+9.7%) but reaches it smoothly at 54% of the duration rather than 21%, and dips 4.2% rather than 7.6%. The duration is back at long1/450ms deliberately: with the snap gone and the reversal kept off full-screen motion (see _comment_leaves), the length now just gives the wave room to read, and it separates wavy from bouncy, which shares this style's popin 0% window shape and sat at the same 350ms before this change.",
       "easings": {
         "spatial-in": [0.4, 1.85, 0.75, 0.74]
       },
       "semantic": {
         "standard": { "duration": "medium1", "easing": "standard" },
-        "emphasized-in": { "duration": "medium3", "easing": "emphasized-decelerate" },
+        "emphasized-in": { "duration": "long1", "easing": "emphasized-decelerate" },
         "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
-        "spatial-in": { "duration": "medium3", "easing": "spatial-in" },
+        "spatial-in": { "duration": "long1", "easing": "spatial-in" },
         "spatial-out": { "duration": "short4", "easing": "spatial-out" },
         "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
       },
