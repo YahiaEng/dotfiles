@@ -138,8 +138,12 @@ hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/hypr/scripts/wallpaper-swi
 -- ── Clipboard ────────────────────────────────────────
 hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("cliphist list | walker --dmenu | cliphist decode | wl-copy")) -- Open clipboard history
 -- UTIL-03/D-15 manual wipe entry — reachable without touching the Super+C
--- flow above (destructive-safe default-No confirm lives in the script).
-hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("~/.config/hypr/scripts/clipboard-wipe.sh")) -- Wipe clipboard history
+-- flow above. The destructive-safe default-No confirm now lives in the
+-- launcher's ConfirmMode.qml (quick task 260822-sht, Task 6) rather than
+-- in the script itself — clipboard-wipe.sh no longer has an interactive
+-- path, so this bind opens the launcher directly in the confirm mode
+-- instead of calling the script with no argument.
+hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("qs ipc call launcher open clipboardwipe")) -- Wipe clipboard history
 
 -- ── Screenshots ──────────────────────────────────────
 -- Omarchy-style Print-key family (D-05): freeze-capture into satty for

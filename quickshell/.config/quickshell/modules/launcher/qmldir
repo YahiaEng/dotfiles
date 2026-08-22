@@ -33,11 +33,15 @@
 # plain Item-rooted mode result views, same non-singleton shape as every
 # other mode above.
 #
-# PickerMode (quick task 260822-sht, Task 5) is a plain Item-rooted mode
-# result view, same non-singleton shape as every other mode above. One
-# type, two `pickerId` instances (Style ▸ Theme, Style ▸ Bar orientation)
-# — see its own header for the inversion-of-control shape both consumers
-# share.
+# PickerMode (quick task 260822-sht, Task 5, extended Task 6) is a plain
+# Item-rooted mode result view, same non-singleton shape as every other
+# mode above. One type, three `pickerId` instances (Style ▸ Theme,
+# Style ▸ Bar orientation, Capture ▸ Record toggle audio) — see its own
+# header for the inversion-of-control shape all three consumers share.
+#
+# ConfirmMode (quick task 260822-sht, Task 6) is a plain Item-rooted mode
+# result view, same non-singleton shape — the destructive-confirm
+# counterpart to PickerMode: non-destructive option first and preselected.
 module qs.modules.launcher
 singleton LauncherState 1.0 LauncherState.qml
 singleton MenuTree 1.0 MenuTree.qml
@@ -49,3 +53,4 @@ MenuMode 1.0 MenuMode.qml
 SystemInfoMode 1.0 SystemInfoMode.qml
 UpdatesMode 1.0 UpdatesMode.qml
 PickerMode 1.0 PickerMode.qml
+ConfirmMode 1.0 ConfirmMode.qml

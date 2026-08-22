@@ -168,11 +168,29 @@ stop_recording() {
 # AUDIO_DEVICES var (empty = silent, omit -a entirely). Must be called
 # as a plain function (not via command substitution) so its `exit` calls
 # on cancel/failure actually terminate the script, not just a subshell.
+#
+# `AUDIO_OVERRIDE` (quick task 260822-sht, Task 6, consumer 5) is set by
+# main()'s `--audio <mode>` argument — the seam the launcher's
+# ConfirmMode-adjacent picker (PickerMode.qml, `pickerId: "recordaudio"`)
+# re-invokes this script through. D-1's inversion of control: this script
+# no longer blocks on an interactive picker mid-flow at all.
 AUDIO_DEVICES=""
+AUDIO_OVERRIDE=""
 pick_audio() {
-    # Task 10 (PD-05): a non-"ask" default skips the interactive picker
-    # entirely — "ask" (the absent-file default) preserves today's flow
-    # byte-for-byte.
+    # An explicit --audio override always wins, regardless of the stored
+    # default — this is the picker's own re-invocation path.
+    if [[ -n "$AUDIO_OVERRIDE" ]]; then
+        case "$AUDIO_OVERRIDE" in
+            silent) AUDIO_DEVICES="" ;;
+            desktop) AUDIO_DEVICES="default_output" ;;
+            desktop+mic) AUDIO_DEVICES="default_output|default_input" ;;
+        esac
+        return
+    fi
+
+    # Task 10 (PD-05): a non-"ask" default skips the picker entirely —
+    # "ask" (the absent-file default) preserves today's flow byte-for-byte,
+    # this non-`ask` fast path unchanged.
     local audio_default
     audio_default=$(_read_defaults | jq -r '.audio // "ask"')
     if [[ "$audio_default" != "ask" ]]; then
@@ -184,29 +202,11 @@ pick_audio() {
         return
     fi
 
-    local rc=0
-    local selected
-    selected=$(printf '%s\n' \
-        "🔇 Silent (no audio)" \
-        "🔊 Desktop Audio" \
-        "🎙️ Desktop + Mic" |
-        walker --dmenu --placeholder "Select Recording Audio") || rc=$?
-    # walker 2.16.2 cancel convention (Esc/click-outside) is exit 130 —
-    # reused verbatim from theme-switch.sh (D-06).
-    if ((rc == 130)); then
-        exit 0
-    elif ((rc != 0)); then
-        notify-send -a "Screen Recorder" "Error" "walker dmenu failed" -i dialog-error 2>/dev/null || true
-        exit 1
-    fi
-    [[ -z "$selected" ]] && exit 0
-
-    case "$selected" in
-        "🔇 Silent (no audio)") AUDIO_DEVICES="" ;;
-        "🔊 Desktop Audio") AUDIO_DEVICES="default_output" ;;
-        "🎙️ Desktop + Mic") AUDIO_DEVICES="default_output|default_input" ;;
-        *) exit 1 ;;
-    esac
+    # "ask" and no --audio override: this script has no interactive path
+    # left. Summon the launcher's audio picker and exit — the picker
+    # re-invokes `record-toggle.sh --audio <mode>` once a choice is made.
+    qs ipc call launcher open recordaudio >/dev/null 2>&1 || true
+    exit 0
 }
 
 # Monitor + window rectangles on the focused workspace, slurp's "X,Y WxH"
@@ -337,6 +337,27 @@ main() {
         get-defaults)
             cmd_get_defaults
             ;;
+        --audio)
+            # Quick task 260822-sht, Task 6, consumer 5 — validated BEFORE
+            # any use (T-08-05's allowlist-before-use discipline), same
+            # closed three-way enumeration `pick_audio()`'s own case
+            # statements map to devices. The picker (PickerMode.qml,
+            # `pickerId: "recordaudio"`) re-invokes exactly this shape.
+            local mode="${2:-}"
+            case "$mode" in
+                silent | desktop | desktop+mic) ;;
+                *)
+                    echo "record-toggle.sh: --audio '$mode' not in {silent,desktop,desktop+mic}" >&2
+                    exit 1
+                    ;;
+            esac
+            AUDIO_OVERRIDE="$mode"
+            if recording_active; then
+                stop_recording
+            else
+                start_recording
+            fi
+            ;;
         "")
             if recording_active; then
                 stop_recording
@@ -345,7 +366,7 @@ main() {
             fi
             ;;
         *)
-            echo "record-toggle.sh: unknown argument '$sub' (expected status|set-default|get-defaults, or no argument to toggle)" >&2
+            echo "record-toggle.sh: unknown argument '$sub' (expected status|set-default|get-defaults|--audio <mode>, or no argument to toggle)" >&2
             exit 1
             ;;
     esac

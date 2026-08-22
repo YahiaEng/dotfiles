@@ -1,14 +1,18 @@
 // PickerMode.qml — reusable non-interactive-picker rows view (quick task
-// 260822-sht, Task 5, Stage 2 dmenu-consumer migration). D-1's inversion
-// of control: the retired pattern blocked a shell script on an external
-// picker and read the pick off stdout; a QML surface cannot do that, so
-// the launcher now owns the list and the selection, and on pick invokes
-// the consumer non-interactively with an argument. This file is the
-// shared half of that shape — a rows view over parallel display/value
-// arrays, an optional preselect, and a command-on-Enter — reused by both
-// of this task's two consumers (`pickerId` selects which). Escape
-// dismisses with no action, which is the whole of the old exit-130 cancel
-// contract: there is no second process left to signal.
+// 260822-sht, Task 5, extended Task 6, Stage 2 dmenu-consumer migration).
+// D-1's inversion of control: the retired pattern blocked a shell script
+// on an external picker and read the pick off stdout; a QML surface
+// cannot do that, so the launcher now owns the list and the selection,
+// and on pick invokes the consumer non-interactively with an argument.
+// This file is the shared half of that shape — a rows view over parallel
+// display/value arrays, an optional preselect, and a command-on-Enter —
+// reused by three consumers now (`pickerId` selects which): Style ▸
+// Theme, Style ▸ Bar orientation (Task 5) and Capture ▸ Record toggle
+// audio (Task 6, mid-flow — `record-toggle.sh`'s own `pick_audio()`
+// summons this directly via `qs ipc call launcher open recordaudio`
+// rather than through a MenuTree leaf). Escape dismisses with no action,
+// which is the whole of the old exit-130 cancel contract: there is no
+// second process left to signal.
 //
 // Duck-typed interface Launcher.qml's generic keyboard-nav glue reads:
 // `currentIndex`, `count`, `activate()` — same rows shape FilesMode.qml
@@ -30,15 +34,16 @@ Item {
     width: parent ? parent.width : 0
     height: Math.min(320, Math.max(root.count, 1) * 40)
 
-    // "theme" (Style ▸ Theme) or "barorientation" (Style ▸ Bar
-    // orientation) — the two consumers this task migrates. Each owns its
-    // own data source and command invocation below; everything else in
-    // this file (rows rendering, keyboard nav, Enter -> exec -> dismiss)
-    // is shared.
+    // "theme" (Style ▸ Theme), "barorientation" (Style ▸ Bar orientation)
+    // or "recordaudio" (Capture ▸ Record toggle audio). Each owns its own
+    // data source and command invocation below; everything else in this
+    // file (rows rendering, keyboard nav, Enter -> exec -> dismiss) is
+    // shared.
     required property string pickerId
     property var dismissCallback: null
 
     readonly property bool _isTheme: root.pickerId === "theme"
+    readonly property bool _isRecordAudio: root.pickerId === "recordaudio"
 
     // Parallel index-matched arrays — never reverse-transform a
     // prettified label back to a value (T-05-06's own rule, carried over
@@ -53,7 +58,12 @@ Item {
         if (value === undefined)
             return;
         const home = Quickshell.env("HOME");
-        execProcess.command = root._isTheme ? [home + "/.config/theme-engine/theme-apply", value] : [home + "/.config/hypr/scripts/bar-orientation.sh", value];
+        if (root._isTheme)
+            execProcess.command = [home + "/.config/theme-engine/theme-apply", value];
+        else if (root._isRecordAudio)
+            execProcess.command = [home + "/.config/hypr/scripts/record-toggle.sh", "--audio", value];
+        else
+            execProcess.command = [home + "/.config/hypr/scripts/bar-orientation.sh", value];
         execProcess.running = false;
         execProcess.running = true;
         if (typeof root.dismissCallback === "function")
@@ -158,10 +168,25 @@ Item {
         }
     }
 
+    // ── Record audio data source (consumer 5) ───────────────────────────
+    // Same three display labels and device-string mappings
+    // `record-toggle.sh`'s own retired `pick_audio()` interactive branch
+    // held, moved here unchanged (this task's own plan text). No
+    // preselect: this mode is reached only when the stored default is
+    // "ask", so there is no "current" audio mode to highlight — opens
+    // with Silent (index 0) under the cursor, the least-surprising
+    // default for a mode with no persisted state of its own.
+    readonly property var _audioDisplays: ["🔇 Silent (no audio)", "🔊 Desktop Audio", "🎙️ Desktop + Mic"]
+    readonly property var _audioValues: ["silent", "desktop", "desktop+mic"]
+
     Component.onCompleted: {
         if (root._isTheme) {
             paletteListProcess.running = true;
             currentThemeProcess.running = true;
+        } else if (root._isRecordAudio) {
+            root.displays = root._audioDisplays;
+            root.values = root._audioValues;
+            root.currentIndex = 0;
         } else {
             barOrientationStateProcess.running = true;
         }

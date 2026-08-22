@@ -597,6 +597,18 @@ PanelWindow {
                         return themePickerComponent;
                     case "barorientation":
                         return barOrientationPickerComponent;
+                    // "recordaudio"/"clipboardwipe" (quick task
+                    // 260822-sht, Task 6, consumers 4 and 5) — same
+                    // raw-literal shape. "recordaudio" is reached via the
+                    // launcher IPC directly from `record-toggle.sh`'s own
+                    // `pick_audio()`, not a MenuTree leaf — the one
+                    // exception to "MenuTree-only-reachable" the comment
+                    // above names, because this mode fires mid-flow from
+                    // a running script, not from browsing the menu.
+                    case "recordaudio":
+                        return recordAudioPickerComponent;
+                    case "clipboardwipe":
+                        return clipboardWipeConfirmComponent;
                     default:
                         return appsComponent;
                     }
@@ -789,6 +801,27 @@ PanelWindow {
 
                 PickerMode {
                     pickerId: "barorientation"
+                    dismissCallback: launcherWindow._beginDismiss
+                }
+            }
+
+            // ── Capture ▸ Record toggle audio / Tools ▸ Clipboard wipe
+            //    (quick task 260822-sht, Task 6, consumers 4 and 5). Same
+            //    dismiss-on-Enter shape as the two Components above. ────
+            Component {
+                id: recordAudioPickerComponent
+
+                PickerMode {
+                    pickerId: "recordaudio"
+                    dismissCallback: launcherWindow._beginDismiss
+                }
+            }
+
+            Component {
+                id: clipboardWipeConfirmComponent
+
+                ConfirmMode {
+                    confirmId: "clipboardwipe"
                     dismissCallback: launcherWindow._beginDismiss
                 }
             }

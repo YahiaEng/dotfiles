@@ -102,6 +102,16 @@ Singleton {
                     command: `cliphist list | walker --dmenu | cliphist decode | wl-copy`,
                     mode: "clipboard"
                 },
+                {
+                    // New leaf, no retired TOML precedent (quick task
+                    // 260822-sht, Task 6, consumer 4) — routes to
+                    // ConfirmMode.qml's destructive-safe confirm, which
+                    // invokes `clipboard-wipe.sh --yes` only on an
+                    // explicit "Yes" pick.
+                    text: "  Clipboard wipe",
+                    command: null,
+                    mode: "clipboardwipe"
+                },
             ]
         },
         {
