@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: QUICK TASK 260821-swp — ALL FIVE STYLES PASS the operator's judging. The quick-toggle row in the dashboard/notification centre now picks the STYLE (reduce-motion lives in Settings). A latent defect surfaced doing it: Motion.qml never declared the six spatial aliases, so 74 QML call sites resolved to undefined and the shell-side half of the style axis had NEVER worked — now fixed, which means panels/centre/nav are worth a second look. Remaining: the reduce-motion full->reduced->off->full walk.
-last_updated: "2026-08-22T21:30:00.000Z"
+stopped_at: QUICK TASK 260821-swp COMPLETE — Task 3 operator-verified. All five animation styles pass and the reduce-motion full/reduced/off walk passes. The motion axis is now style + accessibility, the quick-toggle row picks the style, and a latent defect that had kept the QML half of the axis inert since Task 1 is fixed. Nothing outstanding on the task; v5.0 still has no roadmap.
+last_updated: "2026-08-22T22:00:00.000Z"
 last_activity: 2026-08-22
-last_activity_desc: "All five animation styles passed operator judging; the dashboard/notification-centre quick-toggle row swapped from the accessibility axis to the style axis; and Motion.qml was found never to have declared its six spatial aliases — 74 QML call sites had been resolving to undefined, so the shell-side half of the style axis had been inert since Task 1"
+last_activity_desc: "quick-260821-swp closed: the motion scale axis is now an animation STYLE axis plus a separate accessibility axis, all five styles and the reduce-motion walk operator-verified, and Motion.qml's six never-declared spatial aliases fixed after 74 QML call sites were found resolving to undefined"
 state_head: 44e16340
 progress:
   total_phases: 6
@@ -775,7 +775,9 @@ ALL FIVE STYLES PASS (2026-08-22). Two follow-ups came out of that pass.
 
   CONSEQUENCE: the five styles were passed while the shell-side spatial motion was inert. Panels, notification centre and settings nav will now respond to style for the first time and deserve a second look.
 
-STILL OWED BY TASK 3: judge `md3`, `smooth`, `snappy`, `bouncy` and RE-judge the re-retuned `wavy` across window open/close, workspace switch, notification arrival (must NOT bounce) and a bar drawer; then walk reduce-motion full -> reduced -> off -> full on both the Settings page and the dashboard quick-toggle row. The settings row should now register on ONE click and pop no toast — confirm that too.
+TASK 3 IS CLOSED (2026-08-22): all five styles passed and the reduce-motion walk passed, both operator-verified. ONE CAVEAT RECORDED, NOT HIDDEN: the five-style verdict predates `69f5912f`, so the styles were judged while the shell-side spatial motion was inert; panels/centre/nav respond to style for the first time after that fix and were never part of what was judged.
+
+FORMER CHECKLIST, NOW SATISFIED: judge `md3`, `smooth`, `snappy`, `bouncy` and RE-judge the re-retuned `wavy` across window open/close, workspace switch, notification arrival (must NOT bounce) and a bar drawer; then walk reduce-motion full -> reduced -> off -> full on both the Settings page and the dashboard quick-toggle row. The settings row should now register on ONE click and pop no toast — confirm that too.
 
 Prior: 260821-6z1 settings control panel, operator-verified. Before that: themed nvim (260820-nua/r44), operator-verified.
 

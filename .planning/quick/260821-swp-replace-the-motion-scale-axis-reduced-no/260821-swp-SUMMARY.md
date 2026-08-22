@@ -17,7 +17,7 @@ affects: [settings-window-animation-section, hypr-scripts-motion-family, quicksh
 
 actuals:
   tokens: 38764
-  tasks: 2
+  tasks: 3
   commits: 3
 
 tech-stack:
@@ -133,7 +133,7 @@ status: complete
    - **Deviation (Rule 1 — bug fix found live, committed separately):** `hypr-equivalence-check`'s mirrored effective-document merge dropped `.semantic`, and its curve-value comparison used a too-strict 1e-6 tolerance against Hyprland's own 2-decimal-place JSON output — `823708e4` (fix)
 2. **Task 2: Add the four remaining styles — JSON only** - `545b5b5e` (feat)
 
-**Task 3 (operator render-and-judge pass, `checkpoint:human-verify`, `gate="blocking-human"`): IN PROGRESS — first operator verdict received and acted on, remaining styles still await judgement.**
+**Task 3 (operator render-and-judge pass, `checkpoint:human-verify`, `gate="blocking-human"`): COMPLETE — operator-verified 2026-08-22. All five styles passed after three verdicts and their fixes; the reduce-motion `full/reduced/off` walk passed. Detail below.**
 
 ### Task 3 verdict 1 — `wavy` rejected: "will cause motion sickness" (2026-08-22)
 
@@ -159,7 +159,9 @@ Two independent contributors were stacking, and both were removed:
 
 **Task 2's wavy band was itself retuned, and deliberately made stricter rather than merely wider.** The plan asserted `wavy` spatial-in peak ∈ [1.10, 1.25] — the band encoding the rejected behaviour, so it could not survive the verdict. After retuning, wavy's *peak* (1.0398) no longer distinguishes it at all: it sits inside `snappy`'s band. Its *dip* does. The band was therefore restated as peak ∈ [1.03, 1.06] **plus a new per-style dip band** pinning every other style to never undershoot (`dip == 1.0`) and `wavy` to 0.98-0.998. That is a stronger assertion than the one it replaces, and it directly encodes the spatial/effects invariant this task was built around.
 
-**Still owed by Task 3:** the reduce-motion `full -> reduced -> off -> full` walk (now on the Settings page only, since the quick-toggle row carries the style axis), and a re-look at the panels / notification centre / settings nav now that the QML half of the style axis actually resolves.
+**Task 3 CLOSED — reduce-motion verified 2026-08-22.** The operator confirmed the accessibility axis works, which was the last item on Task 3's own checklist. All five styles had already passed.
+
+**One caveat recorded rather than hidden:** the five-style verdict was given *before* `69f5912f` declared the six missing spatial `Motion` aliases, so the styles were judged while the shell-side spatial motion was inert. Panels, the notification centre and the settings nav rail respond to the style axis for the first time after that fix. Nothing is known to be wrong with them — they simply were not part of what was judged, and a second look is cheap.
 
 
 ### Task 3 — all five styles PASS (2026-08-22)
