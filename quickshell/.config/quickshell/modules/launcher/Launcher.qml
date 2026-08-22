@@ -243,16 +243,46 @@ PanelWindow {
     // value the grid itself renders with — EmojiMode.qml's `root.columns`
     // — never a second hardcoded `4` here), so navigation stays correct
     // if that column count ever becomes width-responsive.
+    // Up/Down. WRAPS at both ends rather than stopping on the last item
+    // (operator request): past the bottom returns to the top and vice
+    // versa, so a long app list is reachable from either direction.
     function moveSelection(delta) {
         const item = launcherWindow._activeItem();
-        if (!item || item.count === undefined || item.count <= 1)
-            return;
-        const step = item.columns !== undefined && item.columns > 0 ? item.columns : 1;
         // CalcMode/WebSearchMode declare `currentIndex` READONLY (a
         // single-result view is always "row 0") — their `count` is never
-        // above 1, so the guard above already keeps this line from ever
-        // writing to a readonly property; it is not merely defensive.
-        item.currentIndex = Math.max(0, Math.min(item.count - 1, item.currentIndex + delta * step));
+        // above 1, so this guard keeps the writes below from ever
+        // targeting a readonly property; it is not merely defensive.
+        if (!item || item.count === undefined || item.count <= 1)
+            return;
+        const count = item.count;
+        const columns = item.columns !== undefined && item.columns > 0 ? item.columns : 1;
+
+        // Flat list: plain modular wrap. The double-modulo keeps a
+        // negative intermediate (index 0 moving up) positive.
+        if (columns === 1) {
+            item.currentIndex = ((item.currentIndex + delta) % count + count) % count;
+            return;
+        }
+
+        // Grid (EmojiMode): move a whole row, holding the column, and wrap
+        // around the row count. The final row is usually PARTIAL — 160
+        // emoji over 4 columns is exact today, but `columns` is a real
+        // property and the tsv is operator-editable, so a hole in the last
+        // row must not select an index past `count`. Stepping again in the
+        // same direction skips the hole; the loop is bounded by `rows`, so
+        // a grid with no valid landing simply leaves the selection alone
+        // rather than spinning.
+        const rows = Math.ceil(count / columns);
+        const col = item.currentIndex % columns;
+        let row = Math.floor(item.currentIndex / columns);
+        for (let i = 0; i < rows; i++) {
+            row = ((row + delta) % rows + rows) % rows;
+            const candidate = row * columns + col;
+            if (candidate < count) {
+                item.currentIndex = candidate;
+                return;
+            }
+        }
     }
 
     // Item 3 fix (quick task 260822-sht) — Left/Right tile-within-row
@@ -261,23 +291,27 @@ PanelWindow {
     // searchField's `Keys.onLeftPressed`/`onRightPressed` handlers below
     // leave `event.accepted` unset and the TextField's own default cursor
     // movement runs unchanged while filtering — this function is never
-    // reached with intent to move a text cursor. Clamped, not wrapped:
-    // Left/Right stop at the row's own edge rather than spilling into the
-    // row above/below (Up/Down own that axis).
+    // reached with intent to move a text cursor.
+    //
+    // WRAPS WITHIN THE ROW (operator request). Left/Right still never spill
+    // into the row above or below — Up/Down own that axis, and that split is
+    // what makes the two directions predictable — so wrapping here means
+    // running off the right edge returns to that same row's first tile.
+    // `rowLength` is computed from `count`, not from `columns`, so a partial
+    // final row wraps across the tiles it actually has instead of through
+    // empty cells.
     function moveSelectionColumn(delta) {
         const item = launcherWindow._activeItem();
         if (!item || item.columns === undefined || item.columns <= 0 || item.count === undefined || item.count <= 1)
             return false;
         const columns = item.columns;
-        const row = Math.floor(item.currentIndex / columns);
-        const col = item.currentIndex % columns;
-        const newCol = col + delta;
-        if (newCol < 0 || newCol >= columns)
+        const rowStart = Math.floor(item.currentIndex / columns) * columns;
+        const rowLength = Math.min(columns, item.count - rowStart);
+        if (rowLength <= 1)
             return true;
-        const newIndex = row * columns + newCol;
-        if (newIndex >= item.count)
-            return true;
-        item.currentIndex = newIndex;
+        const col = item.currentIndex - rowStart;
+        const newCol = ((col + delta) % rowLength + rowLength) % rowLength;
+        item.currentIndex = rowStart + newCol;
         return true;
     }
 
