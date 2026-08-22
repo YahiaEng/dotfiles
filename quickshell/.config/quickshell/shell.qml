@@ -750,6 +750,46 @@ ShellRoot {
         }
     }
 
+    // ── Launcher IPC (quick task 260822-sht, Task 2) ──────────────────────
+    // `panelIpc`'s own shape (functions only, below), reused for the
+    // launcher: this handler must live in shell.qml's own permanently-
+    // mounted scope rather than inside Launcher.qml itself, because
+    // Launcher.qml is destroyed whenever `launcherLoader.active` is false
+    // (D-14's zero-idle doctrine) — an IpcHandler declared inside it would
+    // cease to exist the moment the surface is closed, and could never
+    // SUMMON a closed launcher, only control an already-open one.
+    //
+    // `open(mode)` sets `LauncherState.pendingMode` BEFORE activating the
+    // loader, so `LauncherState.reset()` (called from Launcher.qml's own
+    // `Component.onCompleted` on every fresh summon) picks it up and opens
+    // directly in that mode rather than always landing on apps mode — the
+    // seam Tasks 7-9's menu leaves and Task 8's Super+C repoint use to
+    // request a specific starting mode. Reuses `launcherShortcut`'s own
+    // fullscreenBlocking guard rather than writing `launcherLoader.active`
+    // a second, divergent way.
+    IpcHandler {
+        id: launcherIpc
+        target: "launcher"
+
+        function open(mode: string): string {
+            LauncherState.pendingMode = mode && mode.length > 0 ? mode : "";
+            if (!launcherLoader.active && !root.fullscreenBlocking)
+                launcherLoader.active = true;
+            return launcherLoader.active ? "launcher" : "";
+        }
+
+        // An already-open launcher closes unconditionally, matching
+        // `launcherShortcut`'s own close branch (closing is deliberately
+        // ungated, D-11). Otherwise defers to `open()` above.
+        function toggle(): string {
+            if (launcherLoader.active) {
+                launcherLoader.active = false;
+                return "";
+            }
+            return launcherIpc.open("");
+        }
+    }
+
     // ── Power menu (Phase 20 Plan 06, the power half's tracer, QPOWER-01)
     // ────────────────────────────────────────────────────────────────────
     // Same summon-via-LazyLoader mechanism as the panels/overview above —

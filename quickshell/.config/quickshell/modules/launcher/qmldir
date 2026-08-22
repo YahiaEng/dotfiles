@@ -15,6 +15,16 @@
 # Launcher is deliberately NOT a singleton — it is the PanelWindow instance
 # mounted once by shell.qml's launcherLoader, matching Dashboard/Overview's
 # own non-singleton shape in the parent modules/qmldir.
+#
+# CalcMode/WebSearchMode/FilesMode (quick task 260822-sht, Task 2) are
+# plain Item-rooted mode result views, loaded by Launcher.qml's results
+# Loader — same non-singleton shape as Launcher itself. `fuzzy.js` needs NO
+# entry here: only `.qml` TYPES require qmldir registration; a plain
+# `import "fuzzy.js" as Fuzzy` relative-path JS import resolves without one
+# (fuzzy.js's own header note).
 module qs.modules.launcher
 singleton LauncherState 1.0 LauncherState.qml
 Launcher 1.0 Launcher.qml
+CalcMode 1.0 CalcMode.qml
+WebSearchMode 1.0 WebSearchMode.qml
+FilesMode 1.0 FilesMode.qml

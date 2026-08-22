@@ -47,6 +47,7 @@ import Quickshell.Hyprland
 import ".."
 import "."
 import "../dashboard"
+import "fuzzy.js" as Fuzzy
 
 PanelWindow {
     id: launcherWindow
@@ -170,26 +171,99 @@ PanelWindow {
         return 0;
     }
 
-    // ── App enumeration + substring filter (Task 1's whole surface;
-    //    Task 2 replaces this with the vendored fuzzy matcher) ──────────
+    // ── App enumeration + fuzzy filter (quick task 260822-sht, Task 2 —
+    //    replaces Task 1's plain substring filter with the vendored
+    //    `fuzzy.js` matcher). Score is computed ONCE per app per keystroke
+    //    (not per comparison) and cached on each match entry alongside the
+    //    app itself, so the sort below reads `_score` rather than
+    //    recomputing it — the exact same "hoist the expensive read out of
+    //    the comparator" discipline this task's own pre-Task-2 fix applied
+    //    to the frecency-counts lookup, applied here to fuzzy scoring.
+    //
+    //    Empty query: no fuzzy scoring at all (a `-1`/`0` split is
+    //    meaningless with nothing typed) — every app matches and
+    //    `_compareApps` alone (alpha/frecency) orders the list, exactly
+    //    Task 1's original empty-query behaviour. Non-empty query: fuzzy
+    //    score DESCENDING is the primary order (a better subsequence match
+    //    ranks first); `_compareApps` is the tiebreaker for equal scores,
+    //    per this task's own plan text ("Task 2's vendored fuzzy matcher
+    //    composes with this by calling it as ITS tiebreaker").
     readonly property var filteredApps: {
-        const q = LauncherState.query.trim().toLowerCase();
+        const q = LauncherState.query.trim();
         const all = DesktopEntries.applications.values.filter(function (e) {
             return !e.noDisplay;
         });
-        const matched = q === "" ? all : all.filter(function (e) {
-            return (e.name || "").toLowerCase().indexOf(q) !== -1;
-        });
-        // Fetched once per sort, not once per comparison — see
-        // `_compareApps`'s header note above.
         const counts = launcherWindow.sortMode === launcherWindow.sortModeFrecency ? Prefs.getValue("launcher.launchCounts") : undefined;
-        return matched.slice().sort(function (a, b) {
-            return launcherWindow._compareApps(a, b, counts);
+
+        if (q === "") {
+            return all.slice().sort(function (a, b) {
+                return launcherWindow._compareApps(a, b, counts);
+            });
+        }
+
+        const scored = [];
+        for (let i = 0; i < all.length; i++) {
+            const entry = all[i];
+            const s = Fuzzy.score(q, entry.name || "");
+            if (s >= 0)
+                scored.push({
+                    entry: entry,
+                    _score: s
+                });
+        }
+        scored.sort(function (a, b) {
+            if (a._score !== b._score)
+                return b._score - a._score;
+            return launcherWindow._compareApps(a.entry, b.entry, counts);
+        });
+        return scored.map(function (s) {
+            return s.entry;
         });
     }
 
+    // ── Generic mode nav glue (quick task 260822-sht, Task 2) ────────────
+    // Every mode result view (the apps ListView below, CalcMode,
+    // WebSearchMode, FilesMode, the inline providerlist/placeholder
+    // Components further down) exposes the same duck-typed trio:
+    // `currentIndex`, `count`, `activate()`. `searchField`'s Up/Down/Enter
+    // handlers call these three functions instead of reaching into a
+    // fixed `resultsList` id directly, so the same three key handlers work
+    // unmodified across every mode the results Loader below can show.
+    function _activeItem() {
+        return resultsLoader.item;
+    }
+
+    function moveSelection(delta) {
+        const item = launcherWindow._activeItem();
+        if (!item || item.count === undefined || item.count <= 1)
+            return;
+        // CalcMode/WebSearchMode declare `currentIndex` READONLY (a
+        // single-result view is always "row 0") — their `count` is never
+        // above 1, so the guard above already keeps this line from ever
+        // writing to a readonly property; it is not merely defensive.
+        item.currentIndex = Math.max(0, Math.min(item.count - 1, item.currentIndex + delta));
+    }
+
+    function activateCurrent() {
+        const item = launcherWindow._activeItem();
+        if (item && typeof item.activate === "function")
+            item.activate();
+    }
+
+    // Apps mode's own `activate()` implementation, called via the apps
+    // ListView's `activate()` below (never called directly by a key
+    // handler any more — see `activateCurrent()` above). Reads the
+    // CURRENTLY LOADED item's `currentIndex` via `resultsLoader.item`
+    // rather than a fixed `resultsList` id, because `resultsList` is now
+    // declared INSIDE `appsComponent` below — a `Component` boundary,
+    // which is its own id scope (ids inside a `Component` are not visible
+    // to bindings/functions declared outside it, the same rule this file's
+    // own delegate already relies on in reverse: `resultDelegate` can see
+    // `resultsList` because BOTH live inside the same Component).
     function launchCurrent() {
-        const entry = launcherWindow.filteredApps[resultsList.currentIndex];
+        const item = resultsLoader.item;
+        const idx = item ? item.currentIndex : 0;
+        const entry = launcherWindow.filteredApps[idx];
         if (entry) {
             entry.execute();
             launcherWindow._bumpLaunchCount(entry);
@@ -373,11 +447,18 @@ PanelWindow {
                     // Two-way with LauncherState.query so a future mode can seed
                     // or read the same buffer (Task 2's prefix router reads this
                     // field to pick a mode).
+                    //
+                    // The per-mode "reset selection to row 0 on a new
+                    // filter" reset moved OUT of this handler in Task 2 —
+                    // it now lives inside each mode's own result view
+                    // (apps ListView's `onModelChanged` below, FilesMode's
+                    // own `_search()`), since this field can no longer
+                    // reach a single fixed `resultsList` id: which result
+                    // view is even loaded now depends on `LauncherState.mode`.
                     text: LauncherState.query
                     onTextChanged: {
                         if (LauncherState.query !== searchField.text)
                             LauncherState.query = searchField.text;
-                        resultsList.currentIndex = 0;
                     }
 
                     Keys.onEscapePressed: function (event) {
@@ -385,19 +466,19 @@ PanelWindow {
                         event.accepted = true;
                     }
                     Keys.onReturnPressed: function (event) {
-                        launcherWindow.launchCurrent();
+                        launcherWindow.activateCurrent();
                         event.accepted = true;
                     }
                     Keys.onEnterPressed: function (event) {
-                        launcherWindow.launchCurrent();
+                        launcherWindow.activateCurrent();
                         event.accepted = true;
                     }
                     Keys.onDownPressed: function (event) {
-                        resultsList.currentIndex = Math.min(resultsList.currentIndex + 1, resultsList.count - 1);
+                        launcherWindow.moveSelection(1);
                         event.accepted = true;
                     }
                     Keys.onUpPressed: function (event) {
-                        resultsList.currentIndex = Math.max(resultsList.currentIndex - 1, 0);
+                        launcherWindow.moveSelection(-1);
                         event.accepted = true;
                     }
                 }
@@ -455,89 +536,298 @@ PanelWindow {
                 }
             }
 
-            ListView {
-                id: resultsList
+            // ── Results area — mode Loader (quick task 260822-sht, Task 2)
+            //    ──────────────────────────────────────────────────────────
+            // Task 1 shipped a single fixed apps ListView here; Task 2
+            // replaces it with a Loader whose `sourceComponent` switches on
+            // `LauncherState.mode`, per D-1 Option B's own "one frame,
+            // shared search field and chrome, results area swaps component
+            // per content type" shape. Every Component below instantiates
+            // an item exposing the same duck-typed trio `_activeItem()` /
+            // `moveSelection()` / `activateCurrent()` read: `currentIndex`,
+            // `count`, `activate()`.
+            //
+            // No explicit `height:` here — a `Loader` with only `width` set
+            // auto-sizes its own height to the loaded item's height (Qt's
+            // documented default), so `contentColumn`'s `Column` layout
+            // keeps reflowing correctly as the loaded item's own height
+            // varies mode to mode, exactly as it did when `resultsList` was
+            // this Column's direct child.
+            Loader {
+                id: resultsLoader
                 width: parent.width
-                height: Math.min(360, count * 48)
-                clip: true
-                model: launcherWindow.filteredApps
-                currentIndex: 0
+                sourceComponent: {
+                    switch (LauncherState.mode) {
+                    case LauncherState.modeCalc:
+                        return calcComponent;
+                    case LauncherState.modeFiles:
+                        return filesComponent;
+                    case LauncherState.modeWebSearch:
+                        return webSearchComponent;
+                    case LauncherState.modeProviderList:
+                        return providerListComponent;
+                    case LauncherState.modeClipboard:
+                        return modePlaceholderComponent;
+                    case LauncherState.modeSymbols:
+                        return modePlaceholderComponent;
+                    default:
+                        return appsComponent;
+                    }
+                }
+            }
 
-                delegate: Rectangle {
-                    id: resultDelegate
-                    required property var modelData
-                    required property int index
+            // ── Apps mode (Task 1's original view, now Loader-hosted) ────
+            Component {
+                id: appsComponent
 
-                    width: resultsList.width
-                    height: 48
-                    radius: 8
-                    color: resultsList.currentIndex === resultDelegate.index ? Colours.surfaceVariant : "transparent"
+                ListView {
+                    id: resultsList
+                    width: resultsLoader.width
+                    height: Math.min(360, count * 48)
+                    clip: true
+                    model: launcherWindow.filteredApps
+                    currentIndex: 0
+                    // Replaces the reset that used to live in searchField's
+                    // own onTextChanged — `filteredApps` (and therefore
+                    // `model`) changes on every query keystroke, so resetting
+                    // here keeps the highlighted row from pointing at a
+                    // now-unrelated app after a refilter.
+                    onModelChanged: currentIndex = 0
 
-                    // ── App icon (quick task 260822-sht, Task 1 REWORK
-                    //    ROUND 2, defect 2) — sized from Design.iconSizeMd,
-                    //    the same 24px token NotifGroup.qml's own row icon
-                    //    slot settled on after its round-11 measured gate
-                    //    (dashboard/Design.qml:539); no new token needed.
-                    //    Two tiers only (no "picture" tier — a DesktopEntry
-                    //    has just one `icon` field): the resolved icon, or
-                    //    a generic glyph placeholder so a row with no
-                    //    resolvable icon still renders cleanly and stays
-                    //    aligned with rows that do have one.
-                    Item {
-                        id: iconSlot
-                        anchors.left: parent.left
-                        anchors.leftMargin: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Design.iconSizeMd
-                        height: Design.iconSizeMd
+                    // Duck-typed `activate()` Launcher.qml's `activateCurrent()`
+                    // reads — delegates to `launchCurrent()`, which is only
+                    // ever called while THIS item is the loaded one.
+                    function activate() {
+                        launcherWindow.launchCurrent();
+                    }
 
-                        readonly property string _iconSrc: launcherWindow.resolveAppIconSource(resultDelegate.modelData.icon || "")
+                    delegate: Rectangle {
+                        id: resultDelegate
+                        required property var modelData
+                        required property int index
 
-                        Image {
-                            id: iconImage
+                        width: resultsList.width
+                        height: 48
+                        radius: 8
+                        color: resultsList.currentIndex === resultDelegate.index ? Colours.surfaceVariant : "transparent"
+
+                        // ── App icon (quick task 260822-sht, Task 1 REWORK
+                        //    ROUND 2, defect 2) — sized from Design.iconSizeMd,
+                        //    the same 24px token NotifGroup.qml's own row icon
+                        //    slot settled on after its round-11 measured gate
+                        //    (dashboard/Design.qml:539); no new token needed.
+                        //    Two tiers only (no "picture" tier — a DesktopEntry
+                        //    has just one `icon` field): the resolved icon, or
+                        //    a generic glyph placeholder so a row with no
+                        //    resolvable icon still renders cleanly and stays
+                        //    aligned with rows that do have one.
+                        Item {
+                            id: iconSlot
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Design.iconSizeMd
+                            height: Design.iconSizeMd
+
+                            readonly property string _iconSrc: launcherWindow.resolveAppIconSource(resultDelegate.modelData.icon || "")
+
+                            Image {
+                                id: iconImage
+                                anchors.fill: parent
+                                visible: iconSlot._iconSrc.length > 0 && status !== Image.Error
+                                source: iconSlot._iconSrc
+                                fillMode: Image.PreserveAspectFit
+                                asynchronous: true
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                visible: !iconImage.visible
+                                text: "apps"
+                                font.family: Design.symbolFontFamily
+                                font.pixelSize: Design.iconSizeMd
+                                textFormat: Text.PlainText
+                                color: Colours.onSurfaceVariant
+                            }
+                        }
+
+                        Column {
+                            anchors.left: iconSlot.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: Design.spacingSm
+                            spacing: 0
+
+                            Text {
+                                text: resultDelegate.modelData.name || ""
+                                color: Colours.onSurface
+                                font.pixelSize: 15
+                            }
+                            Text {
+                                visible: (resultDelegate.modelData.comment || "") !== ""
+                                text: resultDelegate.modelData.comment || ""
+                                color: Colours.onSurfaceVariant
+                                font.pixelSize: 11
+                            }
+                        }
+
+                        MouseArea {
                             anchors.fill: parent
-                            visible: iconSlot._iconSrc.length > 0 && status !== Image.Error
-                            source: iconSlot._iconSrc
-                            fillMode: Image.PreserveAspectFit
-                            asynchronous: true
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            visible: !iconImage.visible
-                            text: "apps"
-                            font.family: Design.symbolFontFamily
-                            font.pixelSize: Design.iconSizeMd
-                            textFormat: Text.PlainText
-                            color: Colours.onSurfaceVariant
+                            onClicked: {
+                                resultsList.currentIndex = resultDelegate.index;
+                                launcherWindow.launchCurrent();
+                            }
                         }
                     }
+                }
+            }
 
-                    Column {
-                        anchors.left: iconSlot.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: Design.spacingSm
-                        spacing: 0
+            // ── `=` calc, `@` websearch, `/` files — thin wrappers around
+            //    the three standalone mode files (quick task 260822-sht,
+            //    Task 2). ───────────────────────────────────────────────
+            Component {
+                id: calcComponent
 
-                        Text {
-                            text: resultDelegate.modelData.name || ""
-                            color: Colours.onSurface
-                            font.pixelSize: 15
+                CalcMode {
+                }
+            }
+
+            Component {
+                id: webSearchComponent
+
+                WebSearchMode {
+                }
+            }
+
+            Component {
+                id: filesComponent
+
+                FilesMode {
+                }
+            }
+
+            // ── `;` providerlist — rows listing the other five routable
+            //    prefixes (quick task 260822-sht, Task 2). Like-for-like
+            //    with the retired `providerlist` provider, not net-new
+            //    (this task's own plan text). Selecting a row sets
+            //    `LauncherState.query` to that provider's bare prefix
+            //    character and does NOT dismiss the surface — the point is
+            //    to keep typing inside the chosen mode, exactly like typing
+            //    the prefix character directly would. ────────────────────
+            Component {
+                id: providerListComponent
+
+                Item {
+                    id: providerListRoot
+                    width: resultsLoader.width
+                    height: Math.min(320, Math.max(providerListRoot._entries.length, 1) * 40)
+
+                    readonly property var _entries: [
+                        {
+                            prefix: "=",
+                            label: "Calculator"
+                        },
+                        {
+                            prefix: "/",
+                            label: "Files"
+                        },
+                        {
+                            prefix: ":",
+                            label: "Clipboard"
+                        },
+                        {
+                            prefix: ".",
+                            label: "Symbols"
+                        },
+                        {
+                            prefix: "@",
+                            label: "Web search"
                         }
-                        Text {
-                            visible: (resultDelegate.modelData.comment || "") !== ""
-                            text: resultDelegate.modelData.comment || ""
-                            color: Colours.onSurfaceVariant
-                            font.pixelSize: 11
-                        }
+                    ]
+                    property int currentIndex: 0
+                    readonly property int count: providerListRoot._entries.length
+
+                    function activate() {
+                        const entry = providerListRoot._entries[providerListRoot.currentIndex];
+                        if (entry)
+                            LauncherState.query = entry.prefix;
                     }
 
-                    MouseArea {
+                    ListView {
+                        id: providerListView
                         anchors.fill: parent
-                        onClicked: {
-                            resultsList.currentIndex = resultDelegate.index;
-                            launcherWindow.launchCurrent();
+                        clip: true
+                        interactive: false
+                        model: providerListRoot._entries
+                        currentIndex: providerListRoot.currentIndex
+
+                        delegate: Rectangle {
+                            id: providerDelegate
+                            required property var modelData
+                            required property int index
+
+                            width: providerListView.width
+                            height: 40
+                            radius: 8
+                            color: providerListRoot.currentIndex === providerDelegate.index ? Colours.surfaceVariant : "transparent"
+
+                            Row {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 12
+                                spacing: Design.spacingSm
+
+                                Text {
+                                    text: providerDelegate.modelData.prefix
+                                    color: Colours.primary
+                                    font.pixelSize: 15
+                                    font.bold: true
+                                }
+                                Text {
+                                    text: providerDelegate.modelData.label
+                                    color: Colours.onSurface
+                                    font.pixelSize: 15
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    providerListRoot.currentIndex = providerDelegate.index;
+                                    providerListRoot.activate();
+                                }
+                            }
                         }
+                    }
+                }
+            }
+
+            // ── `:` clipboard, `.` symbols — placeholder result views
+            //    (quick task 260822-sht, Task 2). The router above already
+            //    routes both prefixes to real mode names; Tasks 8 and 7
+            //    replace this shared placeholder with a real component each
+            //    — a router change, nothing here, per this task's own plan
+            //    text ("declare the enum values now so the router is
+            //    complete and the later tasks are pure additions"). `count`
+            //    stays 0 and `activate()` a no-op: there is nothing to pick
+            //    yet. ─────────────────────────────────────────────────────
+            Component {
+                id: modePlaceholderComponent
+
+                Item {
+                    id: placeholderRoot
+                    width: resultsLoader.width
+                    height: 56
+
+                    readonly property int currentIndex: 0
+                    readonly property int count: 0
+                    function activate() {
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Coming soon"
+                        color: Colours.onSurfaceVariant
+                        font.pixelSize: 14
                     }
                 }
             }

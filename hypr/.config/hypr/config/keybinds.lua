@@ -52,9 +52,6 @@ local mainMod = "SUPER"
 local terminal = "uwsm app -- kitty.desktop"
 local fileExplorer = "uwsm app -- thunar.desktop"
 local tui = 'uwsm app -- kitty --class yazi-fm --title "Yazi" -- yazi'
--- `-s <set>` panics walker 2.16.2 (src/data.rs:566, "can't find specified
--- set") — do not revert to `-s`.
-local appLauncherDrun = "walker -m runner"
 local lockScreen = "uwsm app -- hyprlock"
 local codeEditor = "uwsm app -- codium.desktop --enable-features=UseOzonePlatform --ozone-platform=wayland --log debug"
 
@@ -81,7 +78,7 @@ hl.bind(mainMod .. " + P", hl.dsp.window.pseudo()) -- Toggle pseudotiling
 --   Super+Space -> app launcher (drun)
 --   Super+R     -> app runner
 hl.bind(mainMod .. " + SPACE", hl.dsp.global("quickshell:launcher")) -- Open app launcher (native QML, quick-260822-sht Task 1)
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(appLauncherDrun)) -- Open app runner
+hl.bind(mainMod .. " + R", hl.dsp.global("quickshell:launcher")) -- Open app runner (collapsed into the same apps-mode launcher, quick-260822-sht Task 2 — the retired runner/apps providers are one mode here)
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("uwsm app -- walker -m menus:main"), { release = true }) -- Open main menu (Super tap)
 
 -- ── Escape hatch (D-03) ──────────────────────────────
