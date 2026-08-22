@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: QUICK TASK 260821-swp TASK 3 IN PROGRESS — two operator verdicts handled. `wavy` retuned twice (first too sickening, then too close to smooth) and now sits at a +9.7% crest reached smoothly at 54% over 350ms, with the reversal kept OFF full-screen motion. Two settings bugs found and fixed alongside: the animation-style row needed selecting twice (a re-read racing its own write), and a style change popped a bogus "Theme Applied" toast. Four styles plus the re-retuned wavy still await the render-and-judge pass.
-last_updated: "2026-08-22T19:30:00.000Z"
+stopped_at: QUICK TASK 260821-swp TASK 3 IN PROGRESS — three operator verdicts handled. The dipping curve was retuned twice and then SWAPPED ONTO `bouncy`, because the operator judged the wavy/bouncy names backwards (a dip-and-return reads as a bounce). Full-screen motion is now monotonic under every style. Two settings bugs fixed alongside. md3/smooth/snappy still await judging, as do the swapped bouncy/wavy and the reduce-motion walk.
+last_updated: "2026-08-22T20:30:00.000Z"
 last_activity: 2026-08-22
-last_activity_desc: "Task 3 verdicts 1 and 2 on quick-260821-swp: wavy retuned twice to a +9.7% crest reached at 54% over 350ms with workspaces kept monotonic; plus two settings bugs fixed — a --get re-read racing its own write made the style row need two clicks, and theme-apply's unconditional success toast made every style change claim a colour-theme switch"
-state_head: d3be2030
+last_activity_desc: "Task 3 verdicts 1-3 on quick-260821-swp: the dipping curve retuned twice then swapped onto bouncy after the operator judged the two names backwards; bouncy's workspaces moved to a monotonic curve so no style now puts a reversal on whole-screen motion; plus two settings bugs fixed (a --get re-read racing its own write, and a bogus Theme Applied toast)"
+state_head: e0a26804
 progress:
   total_phases: 6
   completed_phases: 6
@@ -754,6 +754,14 @@ CARRIED FORWARD FROM THE EARLIER ROUND, STILL TRUE:
   - A LEAF'S DURATION FOLLOWS ITS CURVE NAME. `animations.lua register_hypr_leaf()` derives the speed key from the curve name (`curve:gsub("%-","_")`), so repointing a leaf's curve silently repoints its duration too. That is how wavy's workspace switch became 250ms.
   - THE DIP BAND, NOT THE PEAK BAND, IS WHAT IDENTIFIES WAVY. Its peak band is now [1.08, 1.12], which OVERLAPS bouncy's [1.06, 1.10]. The dip band [0.94, 0.97] plus `dip == 1.0` for every other style is the real assertion, and it encodes the spatial/effects invariant directly.
   - CHECK 5 IS RED AND IS NOT A REGRESSION — DO NOT CHASE IT. The literal `grep -cE 'normalized'` form reports 18 under md3+full; measured identical with the change stashed. 17 are unrelated pre-existing bool<->int type-key folding lines, the 18th is Task 1's permanent leaf-bezier rename. SUMMARY:173 documents it; the narrow curve-section form reports 0, verified.
+
+VERDICT 3 — THE NAMES WERE BACKWARDS. Judged on the settings window, the operator found each style's motion belonged to the other's name, and it holds up: a curve that overshoots then comes BACK DOWN reads as a bounce; a single smooth swell reads as a wave. Labels stayed, motion swapped — `bouncy` now owns [0.4, 1.85, 0.75, 0.74] at 450ms, `wavy` owns [0.1, 0.9, 0.4, 1.254] at 350ms (`e0a26804`).
+
+  WHY THE SWAP COULD NOT BE SCOPED TO THE SETTINGS WINDOW: `Settings.qml` is a plain FloatingWindow with NO animation of its own (grep-verified: no Behavior, no animator, no opacity/scale binding), so it renders through the shared `windowsIn` leaf, whose curve is `spatial-in` — which also drives `layersIn`. A style may only repoint an existing curve NAME, never add one, and all three overshoot-capable names are spoken for. Per-window animation is not expressible in this schema.
+
+  THE SAFETY CHANGE THAT HAD TO RIDE ALONG: `bouncy` is the style that puts FULL-SCREEN motion on `spatial-in`, so handing it the dipping curve would have recreated verdict 1's exact configuration (reversal on a whole-screen vertical slide). Its workspaces/special_workspace moved to monotonic `spatial-move`, keeping slidevert; special_workspace needed an EXPLICIT override because the base table points it at spatial-in. Duration follows curve name, so bouncy's workspace switch also went 350ms -> 200ms. The invariant is now universal: NO style puts a reversing curve on whole-screen motion.
+
+  A GATE HARDENING CAME OUT OF IT: Task 2's Qt check hardcoded `m['styles']['wavy']`. After the swap it would have silently validated the wrong style — passing while testing a curve that no longer dips. It now resolves the dipping style BY SHAPE and fails unless there is exactly one. Names are labels; assert on the shape.
 
 ALSO MEASURED, ALL FIVE STYLES: the snap is unique to the rejected shape (it was at 111% of travel by a fifth of its duration; nothing shipped exceeds 78%). No other style reverses at all. `bouncy` is the residual-risk style — a +8% overshoot on a full-screen VERTICAL slide on both workspace leaves at 350ms, monotonic, never flagged, but judge it deliberately. And `bouncy`'s `standard` easing/duration are byte-identical to md3's, so bouncy and wavy change SPATIAL motion only; the bar and panels' non-spatial motion is md3's under both.
 

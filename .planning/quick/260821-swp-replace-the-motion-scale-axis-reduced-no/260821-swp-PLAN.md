@@ -543,7 +543,7 @@ import json, sys
 m = json.load(open('theme-engine/.config/theme-engine/motion.json'))
 SPATIAL = {'spatial-in', 'spatial-out', 'spatial-move'}
 BANDS = {'md3': (1.0, 1.0), 'smooth': (1.0, 1.0), 'snappy': (1.02, 1.05),
-         'bouncy': (1.06, 1.10), 'wavy': (1.08, 1.12)}
+         'bouncy': (1.08, 1.12), 'wavy': (1.06, 1.10)}
 # 260822 Task 3, two operator verdicts. Verdict 1 rejected wavy's original
 # 1.10-1.25 peak band as motion-sickness-inducing, so the band itself was the
 # rejected thing. Verdict 2 rejected the resulting +4% retune as reading like
@@ -552,12 +552,16 @@ BANDS = {'md3': (1.0, 1.0), 'smooth': (1.0, 1.0), 'snappy': (1.02, 1.05),
 # duration) and the depth of the sag were. wavy is back near its original crest
 # at +9.7%, reached smoothly at 54%, dipping 4.2%.
 #
-# The peak band alone cannot identify wavy -- it now overlaps bouncy's. The DIP
-# is the distinguishing assertion, and DIPS below is STRICTER than the peak band
-# it augments: it pins every other style to never undershoot at all, which is
-# exactly the spatial/effects invariant this task was built around.
+# 2026-08-22, verdict 3: the operator judged the wavy/bouncy NAMES backwards --
+# a curve that overshoots then comes BACK DOWN reads as a bounce, not a wave --
+# so the two curves and their durations were swapped. The bands swapped with the
+# motion they describe: the dipping curve and its [0.94, 0.97] dip band now live
+# under 'bouncy'. Peak bands overlap and cannot identify either style on their
+# own; the DIP is the distinguishing assertion, and DIPS is STRICTER than the
+# peak band it augments -- it pins every other style to never undershoot at all,
+# which is exactly the spatial/effects invariant this task was built around.
 DIPS = {'md3': (1.0, 1.0), 'smooth': (1.0, 1.0), 'snappy': (1.0, 1.0),
-        'bouncy': (1.0, 1.0), 'wavy': (0.94, 0.97)}
+        'bouncy': (0.94, 0.97), 'wavy': (1.0, 1.0)}
 def curve(p):
     x1, y1, x2, y2 = p; n = 2000
     xs = [3*(1-t/n)**2*(t/n)*x1 + 3*(1-t/n)*(t/n)**2*x2 + (t/n)**3 for t in range(n+1)]
@@ -598,17 +602,29 @@ sys.exit(1 if fail else 0)
 EOF
     </automated>
     <automated>
-# wavy is a real wave on the installed Qt, not just on paper. Offscreen: no window.
+# The dipping curve really dips on the installed Qt, not just on paper.
+# Resolved by SHAPE, never by style NAME: verdict 3 swapped which style owns
+# this curve, and a name-hardcoded check would have silently started
+# validating the wrong style. Offscreen: no window.
 QT_QPA_PLATFORM=offscreen python3 - <<'EOF'
 import json, sys
 from PySide6.QtCore import QEasingCurve, QPointF
 m = json.load(open('theme-engine/.config/theme-engine/motion.json'))
-p = m['styles']['wavy']['easings']['spatial-in']
+def _dip(pts):
+    x1, y1, x2, y2 = pts; n = 2000
+    ys = [3*(1-t/n)**2*(t/n)*y1 + 3*(1-t/n)*(t/n)**2*y2 + (t/n)**3 for t in range(n+1)]
+    return min(ys[ys.index(max(ys)):])
+_dipping = [k for k, v in m['styles'].items()
+            if _dip((v.get('easings') or {}).get('spatial-in') or m['easings']['spatial-in']) < 0.999]
+if len(_dipping) != 1:
+    print(f'expected exactly one dipping style, found {_dipping}'); sys.exit(1)
+print(f'dipping style is {_dipping[0]!r}')
+p = m['styles'][_dipping[0]]['easings']['spatial-in']
 c = QEasingCurve(QEasingCurve.BezierSpline)
 c.addCubicBezierSegment(QPointF(p[0], p[1]), QPointF(p[2], p[3]), QPointF(1.0, 1.0))
 v = [c.valueForProgress(i/200) for i in range(201)]
 peak = max(v); dip = min(v[v.index(peak):])
-print(f'wavy peak={peak:.4f} dip={dip:.4f} settle={v[-1]:.4f}')
+print(f'peak={peak:.4f} dip={dip:.4f} settle={v[-1]:.4f}')
 sys.exit(0 if peak > 1.05 and dip < 0.98 and abs(v[-1]-1.0) < 1e-6 else 1)
 EOF
     </automated>

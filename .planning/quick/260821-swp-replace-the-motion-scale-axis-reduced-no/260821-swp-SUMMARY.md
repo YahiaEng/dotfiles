@@ -159,7 +159,25 @@ Two independent contributors were stacking, and both were removed:
 
 **Task 2's wavy band was itself retuned, and deliberately made stricter rather than merely wider.** The plan asserted `wavy` spatial-in peak ∈ [1.10, 1.25] — the band encoding the rejected behaviour, so it could not survive the verdict. After retuning, wavy's *peak* (1.0398) no longer distinguishes it at all: it sits inside `snappy`'s band. Its *dip* does. The band was therefore restated as peak ∈ [1.03, 1.06] **plus a new per-style dip band** pinning every other style to never undershoot (`dip == 1.0`) and `wavy` to 0.98-0.998. That is a stronger assertion than the one it replaces, and it directly encodes the spatial/effects invariant this task was built around.
 
-**Still owed by Task 3 (after verdict 2):** the per-style render-and-judge pass for `md3`, `smooth`, `snappy`, `bouncy` and a re-judge of the re-retuned `wavy`, plus the reduce-motion `full -> reduced -> off -> full` walk on both the Settings page and the dashboard quick-toggle row.
+**Still owed by Task 3 (after verdict 3):** the per-style render-and-judge pass for `md3`, `smooth`, `snappy` and a re-judge of the swapped `bouncy` and `wavy`, plus the reduce-motion `full -> reduced -> off -> full` walk on both the Settings page and the dashboard quick-toggle row.
+
+
+### Task 3 verdict 3 — the wavy/bouncy names were backwards (2026-08-22)
+
+Judged on the settings window, the operator found each style's animation belonged to the other's name. The reading holds up on inspection: a curve that overshoots and then comes **back down through** the target is the snap-back of a bounce; a single smooth swell settling from above is the wave. Labels stay, motion swaps.
+
+| | now holds | duration | shape |
+|---|---|---|---|
+| **bouncy** | `[0.4, 1.85, 0.75, 0.74]` | 450ms | +9.7%, dips 4.2% and returns |
+| **wavy** | `[0.1, 0.9, 0.4, 1.254]` | 350ms | +8.0%, settles from above |
+
+**The scope is wider than the settings window, and that is a schema limit rather than an oversight.** `Settings.qml` is a plain `FloatingWindow` with no animation of its own — verified, the file contains no `Behavior`, animator, or opacity/scale binding — so it renders through the shared `windowsIn` leaf, whose curve is `spatial-in`. That same curve drives `layersIn` under both styles. A style may only repoint an existing curve *name*, never add one, so there is no way to give one window its own treatment within this model. The three overshoot-capable names are all already spoken for.
+
+**Required safety change, included.** `bouncy` is the style that puts full-screen motion on `spatial-in`, so handing it the dipping curve would have put a reversal back onto a whole-screen **vertical** slide — exactly the combination behind verdict 1. Its `workspaces` and `special_workspace` therefore moved to the monotonic `spatial-move` curve while keeping `slidevert`; `special_workspace` needed an explicit override because the base table points it at `spatial-in`. Duration follows curve name, so bouncy's workspace switch also went **350ms → 200ms** — fast and monotonic, but a real change worth watching during the judging pass.
+
+**The invariant is now universal:** no style puts a reversing curve on whole-screen motion. Convergence is unchanged (`bouncy`/`wavy` still 2/8) and window-open duration stays unique across all five (200/300/350/400/450).
+
+**A gate hardening came out of this.** Task 2's Qt check hardcoded `m['styles']['wavy']` to assert "wavy is a real wave". After the swap that check would have silently validated the wrong style — passing while testing a curve that no longer dips. It now resolves the dipping style **by shape**, and fails if there is not exactly one. Style names are labels; the shape is the thing worth asserting on.
 
 
 ### Task 3 — convergence sweep across all five styles (2026-08-22)
