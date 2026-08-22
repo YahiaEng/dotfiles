@@ -142,25 +142,25 @@
     },
     "wavy": {
       "label": "Wavy",
-      "description": "Rises past the target once, dips back a little, settles.",
-      "_comment_curve": "Two hard-won facts for anyone retuning this curve. (1) Hyprland's hl.curve() rejects any control-point Y above 2.00 and then SILENTLY KEEPS the previously registered curve instead of failing the reload — an out-of-range number looks exactly like 'my edit did nothing'. (2) The shape this style first shipped with, [0.05, 2.0, 0.3, 0.6], sat right at that ceiling and was retuned on 2026-08-22 after the operator reported it caused motion sickness: it fired its whole +11% overshoot in the first 94ms of 450ms, then sagged to 8% BELOW the target for the remaining 356ms — two direction reversals, the only style in this table that ever travelled below its target. The current [0.3, 1.45, 0.7, 0.94] rises smoothly, peaks +4% at 62% of the way through, dips 1%, and settles: same wave character, no snap and no deep sag.",
+      "description": "Crests well past the target, dips back, then settles — windows and panels wave, the screen itself does not.",
+      "_comment_curve": "Retuning notes for this curve, in the order they were learned. (1) Hyprland's hl.curve() rejects any control-point Y above 2.00 and then SILENTLY KEEPS the previously registered curve instead of failing the reload — an out-of-range number looks exactly like 'my edit did nothing'. (2) The shape this style first shipped with, [0.05, 2.0, 0.3, 0.6], was rejected by the operator on 2026-08-22 as causing motion sickness: it fired its whole +10.8% overshoot in the first 94ms of 450ms, then sagged to 8% BELOW the target for the remaining 356ms. The problem was never the SIZE of the overshoot — it was the SNAP (peak at 21% of the duration) and the depth of the sag. (3) The first retune, [0.3, 1.45, 0.7, 0.94] at +4%, overcorrected: the operator reported wavy then read as a near-twin of smooth. Current [0.4, 1.85, 0.75, 0.74] restores nearly the original crest (+9.7%) but reaches it smoothly at 54% of the duration and dips only 4.2%, at 350ms rather than 450ms.",
       "easings": {
-        "spatial-in": [0.3, 1.45, 0.7, 0.94]
+        "spatial-in": [0.4, 1.85, 0.75, 0.74]
       },
       "semantic": {
         "standard": { "duration": "medium1", "easing": "standard" },
-        "emphasized-in": { "duration": "medium2", "easing": "emphasized-decelerate" },
+        "emphasized-in": { "duration": "medium3", "easing": "emphasized-decelerate" },
         "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
-        "spatial-in": { "duration": "medium2", "easing": "spatial-in" },
+        "spatial-in": { "duration": "medium3", "easing": "spatial-in" },
         "spatial-out": { "duration": "short4", "easing": "spatial-out" },
         "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
       },
-      "_comment_leaves": "workspaces/special_workspace deliberately use spatial-move (monotonic) and a HORIZONTAL slidefade — not the wave, and not slidefadevert. A whole-screen vertical slide that reverses direction is the strongest motion-sickness trigger in the set; the wave belongs on windows and panels, where it reads as character rather than as the floor moving. Note that a leaf's DURATION follows its curve name (animations.lua register_hypr_leaf: speed_key = curve name), so pointing these two at spatial-move also puts workspace switching on spatial-move's 250ms instead of spatial-in's.",
+      "_comment_leaves": "workspaces/special_workspace deliberately use spatial-move (MONOTONIC) rather than the wave, while keeping a vertical slidefadevert. Splitting it this way is the whole point: the operator's motion sickness came from a whole-screen vertical slide that REVERSED DIRECTION over 450ms, not from vertical motion as such — bouncy has run a full-screen vertical slidevert at 350ms with a +8% overshoot throughout without complaint. So the reversal is removed from full-screen motion and the wave is kept on windows and panels, where the moving field is small. An earlier pass also made these leaves horizontal (slidefade); that was reverted because it made wavy read as smooth, whose workspace switch is horizontal slidefade. Note that a leaf's DURATION follows its curve name (animations.lua register_hypr_leaf: speed_key = curve name), so pointing these two at spatial-move also puts workspace switching on spatial-move's 250ms instead of spatial-in's 350ms.",
       "hypr_leaves": {
         "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
         "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
-        "workspaces": { "curve": "spatial-move", "style": "slidefade" },
-        "special_workspace": { "curve": "spatial-move", "style": "slidefade" }
+        "workspaces": { "curve": "spatial-move", "style": "slidefadevert" },
+        "special_workspace": { "curve": "spatial-move", "style": "slidefadevert" }
       }
     }
   },
