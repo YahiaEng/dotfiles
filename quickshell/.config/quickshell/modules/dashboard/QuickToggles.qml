@@ -448,32 +448,68 @@ Item {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // Reduce-motion segmented row (D-24; rebased onto the accessibility
-    // axis by quick-260821-swp) — full-width, direct jump, one press =
+    // Animation-style segmented row (D-24; rebased onto the accessibility
+    // axis by quick-260821-swp, then onto the STYLE axis on 2026-08-22 at
+    // the operator's request) — full-width, direct jump, one press =
     // exactly one theme-apply re-render. Sits OUTSIDE the DASH-07 mirror
     // proof by construction (D-23): there is no external-daemon counterpart
     // for this control, it is a one-way view of a state file — and, per
     // this plan's own header note, deliberately NOT part of the D-19-19
     // singleton promotion either.
     //
-    // quick-260821-swp/D-01: the old single motion-scale axis conflated
-    // curve SHAPE (off/reduced/normal/lively as an intensity ladder) with
-    // reduce-motion. Shape moved to its own "Animation style" picker in
-    // Settings > Window manager; this row is what stays reachable from
-    // "a control that is not the style picker" for reduce-motion/off — the
-    // three values it now shows (full/reduced/off) are exactly the
-    // `accessibility` axis's own closed set, read from the NEW state file.
+    // This row shows the STYLE axis; reduce-motion/off moved to
+    // Settings > Window manager > Reduce motion. D-01 is still satisfied:
+    // it required reduce-motion to be reachable from "a control that is not
+    // the style picker", and that Settings row is a SelectRow entirely
+    // separate from the Animation style SelectRow beside it.
+    //
+    // The model is read from `motion-switch.sh --list` rather than written
+    // out here. That is deliberate: this task already tripped over THREE
+    // separate hardcoded `off|reduced|normal|lively` closed sets that all
+    // had to be found and changed together, and a fourth copy of the style
+    // list would be the same bug waiting to happen. The parser matches
+    // WindowManagerPage.qml's, and `--list`'s "  <key>\t<label>" contract
+    // and these two parsers change together, never one without the other.
     // ═══════════════════════════════════════════════════════════════════
 
     FileView {
-        id: motionAccessFile
-        path: root.homeDir + "/.local/state/theme/motion-accessibility"
+        id: motionStyleFile
+        path: root.homeDir + "/.local/state/theme/motion-style"
         watchChanges: true
         onFileChanged: reload()
     }
-    readonly property string motionAccessRaw: (motionAccessFile.text() || "").trim()
-    readonly property var validMotionAccess: ["full", "reduced", "off"]
-    readonly property string motionScaleState: validMotionAccess.indexOf(motionAccessRaw) !== -1 ? motionAccessRaw : "full"
+    readonly property string motionStyleRaw: (motionStyleFile.text() || "").trim()
+    // Validated against the LIVE list, not a literal — an unknown or empty
+    // read falls back to the first listed style rather than to a name that
+    // might no longer exist.
+    readonly property string motionStyleState: {
+        for (var i = 0; i < root.presetModel.length; i++)
+            if (root.presetModel[i].value === root.motionStyleRaw)
+                return root.motionStyleRaw;
+        return root.presetModel.length > 0 ? root.presetModel[0].value : "";
+    }
+
+    property var presetModel: []
+
+    Process {
+        id: presetListProcess
+        running: false
+        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/motion-switch.sh", "--list"]
+        stdout: StdioCollector {
+            id: presetListCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            var lines = presetListCollector.text.split("\n");
+            var opts = [];
+            for (var i = 0; i < lines.length; i++) {
+                var m = lines[i].match(/^  (\S+)\t(.+)$/);
+                if (m)
+                    opts.push({ value: m[1], label: m[2], tooltip: "" });
+            }
+            root.presetModel = opts;
+        }
+        Component.onCompleted: running = true
+    }
 
     property bool presetPending: false
     readonly property int presetTimeoutMs: 8000
@@ -484,7 +520,7 @@ Item {
         repeat: false
         onTriggered: root.presetPending = false
     }
-    onMotionScaleStateChanged: if (root.presetPending) { root.presetPending = false; presetWatchdogTimer.stop(); }
+    onMotionStyleStateChanged: if (root.presetPending) { root.presetPending = false; presetWatchdogTimer.stop(); }
 
     Process {
         id: presetProcess
@@ -496,15 +532,11 @@ Item {
             return;
         root.presetPending = true;
         presetWatchdogTimer.restart();
-        presetProcess.command = [root.homeDir + "/.config/hypr/scripts/motion-switch.sh", "--accessibility", value];
+        // The style is a POSITIONAL argument; only the accessibility axis
+        // takes the --accessibility flag.
+        presetProcess.command = [root.homeDir + "/.config/hypr/scripts/motion-switch.sh", value];
         presetProcess.running = true;
     }
-
-    readonly property var presetModel: [
-        { value: "off", label: "Off", tooltip: "No animations anywhere in the desktop" },
-        { value: "reduced", label: "Reduced", tooltip: "Minimal, short animations" },
-        { value: "full", label: "Full", tooltip: "The active animation style's own full motion — see Settings > Window manager > Animation style" }
-    ]
 
     // One inline component — an MD3 segmented-button segment.
     component PresetSegment: Item {
@@ -515,7 +547,7 @@ Item {
         property string segValue: ""
         property string segLabel: ""
         property string segTooltip: ""
-        readonly property bool selected: root.motionScaleState === segValue
+        readonly property bool selected: root.motionStyleState === segValue
 
         Rectangle {
             id: segFill
@@ -538,16 +570,29 @@ Item {
                 anchors.centerIn: parent
                 spacing: root.spacingXs
 
+                // The row divides its width by the model length, so moving
+                // from three values to five made each segment ~40% narrower.
+                // Rather than assume the tick still fits beside the label,
+                // it is shown only when the segment can actually hold both —
+                // measured off the label's own implicitWidth, not a guessed
+                // pixel budget. The filled background remains the primary
+                // selection cue either way.
                 Text {
+                    id: segCheck
                     visible: segItem.selected
+                        && segItem.width >= segLabelText.implicitWidth + implicitWidth + root.spacingXs + root.spacingSm
                     text: "check"
                     font.family: root.symbolFontFamily
                     font.pixelSize: root.fontLabel + 2
                     color: Colours.onPrimary
                 }
                 Text {
+                    id: segLabelText
                     text: segItem.segLabel
                     font.pixelSize: root.fontLabel
+                    elide: Text.ElideRight
+                    width: Math.min(implicitWidth, Math.max(0, segItem.width - root.spacingSm))
+                    horizontalAlignment: Text.AlignHCenter
                     color: segItem.selected ? Colours.onPrimary : Colours.onSurfaceVariant
                     Behavior on color {
                         enabled: Motion.motionEnabled
