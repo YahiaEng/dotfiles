@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: QUICK TASK 260821-swp TASK 3 IN PROGRESS — three operator verdicts handled. The dipping curve was retuned twice and then SWAPPED ONTO `bouncy`, because the operator judged the wavy/bouncy names backwards (a dip-and-return reads as a bounce). Full-screen motion is now monotonic under every style. Two settings bugs fixed alongside. md3/smooth/snappy still await judging, as do the swapped bouncy/wavy and the reduce-motion walk.
-last_updated: "2026-08-22T20:30:00.000Z"
+stopped_at: QUICK TASK 260821-swp — ALL FIVE STYLES PASS the operator's judging. The quick-toggle row in the dashboard/notification centre now picks the STYLE (reduce-motion lives in Settings). A latent defect surfaced doing it: Motion.qml never declared the six spatial aliases, so 74 QML call sites resolved to undefined and the shell-side half of the style axis had NEVER worked — now fixed, which means panels/centre/nav are worth a second look. Remaining: the reduce-motion full->reduced->off->full walk.
+last_updated: "2026-08-22T21:30:00.000Z"
 last_activity: 2026-08-22
-last_activity_desc: "Task 3 verdicts 1-3 on quick-260821-swp: the dipping curve retuned twice then swapped onto bouncy after the operator judged the two names backwards; bouncy's workspaces moved to a monotonic curve so no style now puts a reversal on whole-screen motion; plus two settings bugs fixed (a --get re-read racing its own write, and a bogus Theme Applied toast)"
-state_head: e0a26804
+last_activity_desc: "All five animation styles passed operator judging; the dashboard/notification-centre quick-toggle row swapped from the accessibility axis to the style axis; and Motion.qml was found never to have declared its six spatial aliases — 74 QML call sites had been resolving to undefined, so the shell-side half of the style axis had been inert since Task 1"
+state_head: 44e16340
 progress:
   total_phases: 6
   completed_phases: 6
@@ -764,6 +764,16 @@ VERDICT 3 — THE NAMES WERE BACKWARDS. Judged on the settings window, the opera
   A GATE HARDENING CAME OUT OF IT: Task 2's Qt check hardcoded `m['styles']['wavy']`. After the swap it would have silently validated the wrong style — passing while testing a curve that no longer dips. It now resolves the dipping style BY SHAPE and fails unless there is exactly one. Names are labels; assert on the shape.
 
 ALSO MEASURED, ALL FIVE STYLES: the snap is unique to the rejected shape (it was at 111% of travel by a fifth of its duration; nothing shipped exceeds 78%). No other style reverses at all. `bouncy` is the residual-risk style — a +8% overshoot on a full-screen VERTICAL slide on both workspace leaves at 350ms, monotonic, never flagged, but judge it deliberately. And `bouncy`'s `standard` easing/duration are byte-identical to md3's, so bouncy and wavy change SPATIAL motion only; the bar and panels' non-spatial motion is md3's under both.
+
+ALL FIVE STYLES PASS (2026-08-22). Two follow-ups came out of that pass.
+
+  THE QUICK-TOGGLE ROW NOW PICKS THE STYLE (`44e16340`). The dashboard and notification centre render the SAME QuickToggles instance (CentreFooter.qml:80) — one edit changes both, do not go looking for a second copy. Reduce-motion moved to Settings; D-01 still holds because it only ever required reduce-motion to be reachable from a control that is not the STYLE PICKER, and the Settings Reduce-motion SelectRow is separate from the Animation-style one. The row's model is read from `motion-switch.sh --list`, deliberately NOT hardcoded — this task already tripped over three hardcoded closed sets and a fourth would be the same bug waiting.
+
+  THE BIG ONE — THE QML HALF OF THE STYLE AXIS HAD NEVER WORKED (`69f5912f`). Motion.qml carried the three spatial keys in `_pairNames` since Task 1 (34bd0410) but NEVER DECLARED the six aliases consumers read. All of Motion.spatialIn/Out/Move{Duration,Easing} resolved to `undefined` at 74 CALL SITES ACROSS 23 FILES. Qt accepts undefined on a NumberAnimation and silently falls back to its own 250ms default, so the bar, panels, notification centre, settings nav and dashboard tabs animated IDENTICALLY UNDER EVERY STYLE while the Hyprland leaves worked fine. That is likely a large part of why the styles read as more alike inside the shell than in the window manager.
+
+  WHY NOTHING CAUGHT IT — THE REUSABLE LESSON: motion-lint (489 green checks) verifies a site reads a TOKEN RATHER THAN A LITERAL; it does not verify THE TOKEN EXISTS. QML resolves an undeclared singleton property to undefined rather than raising. The only trace anywhere was two `Unable to assign [undefined]` scene warnings in ~/.cache/quickshell.log. When a token-discipline gate is green, ask separately whether the tokens RESOLVE — and read the shell log after a QML edit, not just the gate summary.
+
+  CONSEQUENCE: the five styles were passed while the shell-side spatial motion was inert. Panels, notification centre and settings nav will now respond to style for the first time and deserve a second look.
 
 STILL OWED BY TASK 3: judge `md3`, `smooth`, `snappy`, `bouncy` and RE-judge the re-retuned `wavy` across window open/close, workspace switch, notification arrival (must NOT bounce) and a bar drawer; then walk reduce-motion full -> reduced -> off -> full on both the Settings page and the dashboard quick-toggle row. The settings row should now register on ONE click and pop no toast — confirm that too.
 

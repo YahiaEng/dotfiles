@@ -159,7 +159,26 @@ Two independent contributors were stacking, and both were removed:
 
 **Task 2's wavy band was itself retuned, and deliberately made stricter rather than merely wider.** The plan asserted `wavy` spatial-in peak ∈ [1.10, 1.25] — the band encoding the rejected behaviour, so it could not survive the verdict. After retuning, wavy's *peak* (1.0398) no longer distinguishes it at all: it sits inside `snappy`'s band. Its *dip* does. The band was therefore restated as peak ∈ [1.03, 1.06] **plus a new per-style dip band** pinning every other style to never undershoot (`dip == 1.0`) and `wavy` to 0.98-0.998. That is a stronger assertion than the one it replaces, and it directly encodes the spatial/effects invariant this task was built around.
 
-**Still owed by Task 3 (after verdict 3):** the per-style render-and-judge pass for `md3`, `smooth`, `snappy` and a re-judge of the swapped `bouncy` and `wavy`, plus the reduce-motion `full -> reduced -> off -> full` walk on both the Settings page and the dashboard quick-toggle row.
+**Still owed by Task 3:** the reduce-motion `full -> reduced -> off -> full` walk (now on the Settings page only, since the quick-toggle row carries the style axis), and a re-look at the panels / notification centre / settings nav now that the QML half of the style axis actually resolves.
+
+
+### Task 3 — all five styles PASS (2026-08-22)
+
+The operator judged all five styles and passed them. Two follow-ups came out of that pass.
+
+**(a) The quick-toggle motion row now picks the animation style.** The dashboard and notification centre render the *same* `QuickToggles` instance (`CentreFooter.qml:80`), so both changed from one edit. The segmented row showed the accessibility axis (Off/Reduced/Full) and now shows the style axis; reduce-motion moves to `Settings > Window manager > Reduce motion`. **D-01 is still satisfied** — it required reduce-motion to be reachable from "a control that is not the style picker", and that Settings row is a `SelectRow` entirely separate from the Animation style one beside it. The model is read from `motion-switch.sh --list` rather than written out locally: this task already tripped over three hardcoded `off|reduced|normal|lively` closed sets that all had to be found together, and a fourth copy of the style list would be the same bug waiting to happen. Going from three to five values makes each segment ~40% narrower (~80px in the 430px centre), so the tick glyph is now shown only when the segment can hold it beside the label, measured off the label's own `implicitWidth` rather than a guessed pixel budget.
+
+**(b) A latent defect surfaced while verifying (a): the QML half of the style axis had never worked.** `Motion.qml` has carried the three spatial keys in `_pairNames` since `34bd0410` — this task's own Task 1 — but the convenience aliases every consumer reads were never declared. All six of `Motion.spatialIn/Out/Move{Duration,Easing}` resolved to `undefined` at **74 call sites across 23 files**. Qt accepts `undefined` on a `NumberAnimation` without erroring and falls back to its own 250ms default, so the bar, panels, notification centre, settings nav rail and dashboard tabs animated *identically under every style*, while the Hyprland leaves responded correctly. This is very likely part of why the styles read as more alike inside the shell than in the window manager.
+
+**Why nothing caught it, which is the reusable part:**
+
+- `motion-lint` (489 checks, green throughout) verifies a site reads a **token** instead of a literal. It does not verify that the token **exists**.
+- QML resolves an undeclared singleton property to `undefined` rather than raising, so the shell started clean.
+- The only trace anywhere was a pair of `Unable to assign [undefined] to int` / `to QList<double>` scene warnings in `~/.cache/quickshell.log`.
+
+Fixed by declaring the six aliases with motion.json's own base (md3) values as fallbacks, matching the four aliases above them. Verified: undefined-assignment warnings drop to zero, and the resolved tokens now differ per style (spatial-in 300/200/450/350ms for md3/snappy/bouncy/wavy).
+
+**This changes what was judged.** The styles were passed while the shell-side spatial motion was inert; panels, the notification centre and the settings nav will now respond to the style axis for the first time, so those surfaces are worth a second look.
 
 
 ### Task 3 verdict 3 — the wavy/bouncy names were backwards (2026-08-22)
