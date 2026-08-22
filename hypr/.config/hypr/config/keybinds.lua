@@ -136,7 +136,10 @@ hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:bar-reveal")) -- Reve
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/hypr/scripts/wallpaper-switch.sh")) -- Change wallpaper
 
 -- ── Clipboard ────────────────────────────────────────
-hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("cliphist list | walker --dmenu | cliphist decode | wl-copy")) -- Open clipboard history
+-- Quick task 260822-sht, Task 8 — repointed from the shell dmenu pipeline
+-- to the launcher's own clipboard mode (ClipboardMode.qml), which owns
+-- the same D-5 four-verb cliphist contract natively now.
+hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("qs ipc call launcher open clipboard")) -- Open clipboard history
 -- UTIL-03/D-15 manual wipe entry — reachable without touching the Super+C
 -- flow above. The destructive-safe default-No confirm now lives in the
 -- launcher's ConfirmMode.qml (quick task 260822-sht, Task 6) rather than

@@ -567,7 +567,7 @@ PanelWindow {
                     case LauncherState.modeProviderList:
                         return providerListComponent;
                     case LauncherState.modeClipboard:
-                        return modePlaceholderComponent;
+                        return clipboardComponent;
                     case LauncherState.modeSymbols:
                         return emojiComponent;
                     case LauncherState.modeMenu:
@@ -935,33 +935,18 @@ PanelWindow {
                 }
             }
 
-            // ── `:` clipboard — placeholder result view (quick task
-            //    260822-sht, Task 2). The router above already routes this
-            //    prefix to a real mode name; Task 8 replaces this
-            //    placeholder with a real component — a router change,
-            //    nothing here, per this task's own plan text ("declare the
-            //    enum values now so the router is complete and the later
-            //    task is a pure addition"). `count` stays 0 and `activate()`
-            //    a no-op: there is nothing to pick yet. ───────────────────
+            // ── `:` clipboard / Tools ▸ Clipboard (quick task 260822-sht,
+            //    Task 8) — the last of the six prefix routes to get its
+            //    real component; no placeholder remains in this Loader.
+            //    `dismissCallback` fires on restore-pick, same one-shot
+            //    shape as EmojiMode above (wipe-all instead switches
+            //    `LauncherState.mode` without dismissing, same as any
+            //    other mode handoff). ─────────────────────────────────────
             Component {
-                id: modePlaceholderComponent
+                id: clipboardComponent
 
-                Item {
-                    id: placeholderRoot
-                    width: resultsLoader.width
-                    height: 56
-
-                    readonly property int currentIndex: 0
-                    readonly property int count: 0
-                    function activate() {
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Coming soon"
-                        color: Colours.onSurfaceVariant
-                        font.pixelSize: 14
-                    }
+                ClipboardMode {
+                    dismissCallback: launcherWindow._beginDismiss
                 }
             }
         }

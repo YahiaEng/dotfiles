@@ -35,9 +35,10 @@
 // System's Updates/System info (`mode: "updates"`/`"systeminfo"`, R-1/R-2,
 // Task 4) — plus Tools ▸ Clipboard, whose retired TOML action IS still
 // recorded here verbatim for reversibility even though `mode: "clipboard"`
-// means it is NEVER executed — the ONE entry this task's own plan text
-// names as the deliberate exception to "byte-identical AND executed",
-// since Task 8 replaces its behaviour entirely. `placeholder: true` marks
+// means it is NEVER executed — the ONE entry Task 3's own plan text named
+// as the deliberate exception to "byte-identical AND executed". Task 8
+// (quick task 260822-sht) has now wired `mode: "clipboard"` to a real
+// component (ClipboardMode.qml). `placeholder: true` marks
 // the one leaf still awaiting its real component (Learn ▸ Keybinds,
 // Task 9) — its retired command still runs until then, so the surface
 // stays fully functional in the interim. Tools ▸ Emoji now carries
