@@ -137,6 +137,62 @@ PanelWindow {
         launcherWindow._beginDismiss();
     }
 
+    // ── Result-row icon resolution (quick task 260822-sht, Task 1 REWORK
+    //    ROUND 2, defect 2) — the same chain NotifGroup.qml:121-158 proved
+    //    for app_icon: `Quickshell.iconPath(name, "")` alone is unsafe
+    //    because an unresolvable THEME NAME can still come back as a
+    //    resolvable "missing icon" placeholder pixmap (NotifCard.qml:196-
+    //    215's live diagnosis), which then renders as a broken-texture
+    //    glyph rather than failing. `Quickshell.hasThemeIcon(name)` is the
+    //    real existence check, but only for a bare theme name — a
+    //    DesktopEntry's `icon` field can also be a path/URI (kitty's own
+    //    real example), which `hasThemeIcon()` correctly reports false for
+    //    since it isn't a theme lookup at all. `_looksLikeThemeName` is the
+    //    same trust boundary NotifGroup.qml draws: only a bare name goes
+    //    through `hasThemeIcon()`; a path/URI is trusted straight to
+    //    `iconPath()`, with the Image element's own `status !== Image.Error`
+    //    below as the runtime safety net.
+    function _looksLikeThemeName(name) {
+        return name.indexOf("/") === -1 && name.indexOf("://") === -1;
+    }
+    function resolveAppIconSource(iconName) {
+        if (!iconName || iconName.length === 0)
+            return "";
+        if (!launcherWindow._looksLikeThemeName(iconName) || Quickshell.hasThemeIcon(iconName)) {
+            const p = Quickshell.iconPath(iconName, "");
+            if (p.length > 0)
+                return p;
+        }
+        return "";
+    }
+
+    // ── Dismiss scrim (quick task 260822-sht, Task 1 REWORK ROUND 2,
+    //    defect 1) ──────────────────────────────────────────────────────
+    // Root cause, already documented twice in this repo — PowerMenu.qml:
+    // 59-70 (2026-08-15) and Dashboard.qml:533-550 (quick task 260818-nwo):
+    // once the surface spans the output, a click "outside the drawer"
+    // still lands INSIDE this window, so HyprlandFocusGrab's `onCleared` —
+    // which fires on a focus CHANGE, never a plain click — never sees it,
+    // and the drawer stops dismissing. The launcher inherited this the
+    // moment its surface went full-screen. Fix, mirrored from
+    // Dashboard.qml:546-550 verbatim: an explicit full-surface MouseArea
+    // closes it deterministically, independent of compositor focus-grab
+    // semantics. The grab below is kept for the different case of focus
+    // genuinely moving to another surface — both routes call the same
+    // idempotent `_beginDismiss()`, so there is no double-fire hazard.
+    //
+    // Declared BEFORE `panel` below, so `panel` (and its search field,
+    // result rows, and their own MouseAreas) stacks on top and keeps
+    // receiving its own clicks — same declaration-order trick
+    // Dashboard.qml uses. Transparent and unpainted: this is an input
+    // target only. The launcher is deliberately scrim-less (D-08) and
+    // that is unchanged — nothing here dims or tints anything.
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+        onClicked: launcherWindow._beginDismiss()
+    }
+
     // ── The drawer rectangle itself (quick task 260822-sht, Task 1
     //    REWORK) ──────────────────────────────────────────────────────
     // Everything that used to fill the window now fills THIS, which is
@@ -275,10 +331,50 @@ PanelWindow {
                     radius: 8
                     color: resultsList.currentIndex === resultDelegate.index ? Colours.surfaceVariant : "transparent"
 
-                    Column {
+                    // ── App icon (quick task 260822-sht, Task 1 REWORK
+                    //    ROUND 2, defect 2) — sized from Design.iconSizeMd,
+                    //    the same 24px token NotifGroup.qml's own row icon
+                    //    slot settled on after its round-11 measured gate
+                    //    (dashboard/Design.qml:539); no new token needed.
+                    //    Two tiers only (no "picture" tier — a DesktopEntry
+                    //    has just one `icon` field): the resolved icon, or
+                    //    a generic glyph placeholder so a row with no
+                    //    resolvable icon still renders cleanly and stays
+                    //    aligned with rows that do have one.
+                    Item {
+                        id: iconSlot
                         anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Design.iconSizeMd
+                        height: Design.iconSizeMd
+
+                        readonly property string _iconSrc: launcherWindow.resolveAppIconSource(resultDelegate.modelData.icon || "")
+
+                        Image {
+                            id: iconImage
+                            anchors.fill: parent
+                            visible: iconSlot._iconSrc.length > 0 && status !== Image.Error
+                            source: iconSlot._iconSrc
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: !iconImage.visible
+                            text: "apps"
+                            font.family: Design.symbolFontFamily
+                            font.pixelSize: Design.iconSizeMd
+                            textFormat: Text.PlainText
+                            color: Colours.onSurfaceVariant
+                        }
+                    }
+
+                    Column {
+                        anchors.left: iconSlot.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: Design.spacingSm
                         spacing: 0
 
                         Text {
