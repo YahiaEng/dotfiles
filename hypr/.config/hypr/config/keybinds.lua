@@ -68,18 +68,35 @@ hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen(1)) -- Toggle maximi
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo()) -- Toggle pseudotiling
 -- bind = $mainMod, J, togglesplit
 
--- ── Launchers (walker as primary, wofi still available) ─
+-- ── Launchers (native QML launcher, quick-260822-sht) ────
 -- D-01 three-way split: a bare Super tap is the menu alone (below), the
 -- app launcher moved to its own dedicated Super+Space bind, and Super+R
 -- (runner) stays exactly as-is. The tap-only mechanism is Hyprland's
 -- native default release-bind shadowing (D-02) — proven live by keypress
 -- in 07-04 Task 1 (see 07-04-SUMMARY.md) before this split was made.
---   tap Super  -> menu (main)
---   Super+Space -> app launcher (drun)
---   Super+R     -> app runner
-hl.bind(mainMod .. " + SPACE", hl.dsp.global("quickshell:launcher")) -- Open app launcher (native QML, quick-260822-sht Task 1)
-hl.bind(mainMod .. " + R", hl.dsp.global("quickshell:launcher")) -- Open app runner (collapsed into the same apps-mode launcher, quick-260822-sht Task 2 — the retired runner/apps providers are one mode here)
-hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:launcher-menu"), { release = true }) -- Open main menu (Super tap, native QML, quick-260822-sht Task 3 — a DISTINCT GlobalShortcut name from quickshell:launcher since a bare global dispatch carries no argument to request menu mode specifically)
+--   tap Super  -> menu (main), quickshell:launcher-menu — a DISTINCT
+--                 GlobalShortcut name from quickshell:launcher, since a
+--                 bare global dispatch carries no argument to request
+--                 menu mode specifically
+--   Super+Space -> app launcher, quickshell:launcher
+--   Super+R     -> app runner — collapsed into the same apps-mode
+--                 launcher as Super+Space (quickshell:launcher); the
+--                 retired runner/apps providers are one mode now
+-- Item 4 fix (quick task 260822-sht, live-use bug report): the three
+-- trailing bind comments below used to carry this whole rationale
+-- inline (task IDs and all) — cheat-sheet-parser.sh reads that exact
+-- text as the keybind reference card's description column with no
+-- length cap, and one 204-char description ballooned every panel in
+-- the rendered table wide enough to wrap mid-line in the kitty window,
+-- shattering every box-drawing border. Short, plain-English descriptions
+-- only below; the rationale lives here instead — matching this file's
+-- own established convention for planning noise (see
+-- cheat-sheet-parser.sh's `_cheat_sheet_clean_section()`, which already
+-- strips a decision-ID/multi-clause parenthetical from SECTION banners
+-- for the identical reason).
+hl.bind(mainMod .. " + SPACE", hl.dsp.global("quickshell:launcher")) -- Open app launcher
+hl.bind(mainMod .. " + R", hl.dsp.global("quickshell:launcher")) -- Open app runner
+hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:launcher-menu"), { release = true }) -- Open main menu (Super tap)
 
 -- ── Escape hatch (D-03) ──────────────────────────────
 -- Reserved, never-shadowed kill-bind. This exists so a future Super-bind
