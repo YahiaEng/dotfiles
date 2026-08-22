@@ -114,7 +114,13 @@ Singleton {
         "bar.entries.gaming",
         "bar.entries.notifications",
         "bar.entries.settings",
-        "bar.entries.power"
+        "bar.entries.power",
+        // Task 1 REWORK ROUND 3 (quick task 260822-sht, operator tracer-gate
+        // feedback) — the launcher's A→Z / most-used sort toggle. sortMode
+        // is which of the two modes is active; launchCounts is the
+        // per-desktop-entry-id launch tally the "most used" mode ranks by.
+        "launcher.sortMode",
+        "launcher.launchCounts"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -152,7 +158,9 @@ Singleton {
         "bar.entries.gaming": true,
         "bar.entries.notifications": true,
         "bar.entries.settings": true,
-        "bar.entries.power": true
+        "bar.entries.power": true,
+        "launcher.sortMode": "alpha",
+        "launcher.launchCounts": ({})
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

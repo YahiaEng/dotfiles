@@ -116,6 +116,46 @@ PanelWindow {
     // same discipline as Dashboard.qml's own `cornerRadius`.
     readonly property int cornerRadius: 28
 
+    // ── Sort mode (quick task 260822-sht, Task 1 REWORK ROUND 3, operator
+    //    tracer-gate feedback) — A→Z vs most-launched-first. Persisted via
+    //    Prefs (`launcher.sortMode`); read once at construction, same as
+    //    every other Prefs-backed toggle in this shell reads its default —
+    //    Prefs is a shell-wide singleton loaded well before this
+    //    LazyLoaded panel is ever constructed, so this is never a stale
+    //    read. ────────────────────────────────────────────────────────────
+    property string sortMode: Prefs.getValue("launcher.sortMode")
+    readonly property string sortModeAlpha: "alpha"
+    readonly property string sortModeFrecency: "frecency"
+
+    function toggleSortMode() {
+        const next = launcherWindow.sortMode === launcherWindow.sortModeFrecency ? launcherWindow.sortModeAlpha : launcherWindow.sortModeFrecency;
+        launcherWindow.sortMode = next;
+        Prefs.setValue("launcher.sortMode", next);
+    }
+
+    // Named function, not inlined into `filteredApps` below — Task 2's
+    // vendored fuzzy matcher composes with this by calling it as ITS
+    // tiebreaker, per this task's own plan text, rather than rewriting the
+    // sort. In frecency mode, equal launch counts (including every
+    // zero-count app on first run) fall through to the SAME A→Z comparison
+    // alpha mode uses, so ties never come out in an unstable order.
+    function _compareApps(a, b) {
+        if (launcherWindow.sortMode === launcherWindow.sortModeFrecency) {
+            const counts = Prefs.getValue("launcher.launchCounts");
+            const countA = counts[a.id] || 0;
+            const countB = counts[b.id] || 0;
+            if (countA !== countB)
+                return countB - countA;
+        }
+        const nameA = (a.name || "").toLowerCase();
+        const nameB = (b.name || "").toLowerCase();
+        if (nameA < nameB)
+            return -1;
+        if (nameA > nameB)
+            return 1;
+        return 0;
+    }
+
     // ── App enumeration + substring filter (Task 1's whole surface;
     //    Task 2 replaces this with the vendored fuzzy matcher) ──────────
     readonly property var filteredApps: {
@@ -123,18 +163,36 @@ PanelWindow {
         const all = DesktopEntries.applications.values.filter(function (e) {
             return !e.noDisplay;
         });
-        if (q === "")
-            return all;
-        return all.filter(function (e) {
+        const matched = q === "" ? all : all.filter(function (e) {
             return (e.name || "").toLowerCase().indexOf(q) !== -1;
         });
+        return matched.slice().sort(launcherWindow._compareApps);
     }
 
     function launchCurrent() {
         const entry = launcherWindow.filteredApps[resultsList.currentIndex];
-        if (entry)
+        if (entry) {
             entry.execute();
+            launcherWindow._bumpLaunchCount(entry);
+        }
         launcherWindow._beginDismiss();
+    }
+
+    // The verified counter key is `entry.id` (quickshell-core.qmltypes'
+    // `DesktopEntry.id: QString`) — never `name` or a synthesised slug, so
+    // the keyspace can't mix. `Prefs.setValue()` refuses every write until
+    // its own load has settled (returns false, per its own contract) —
+    // that's fine here: `entry.execute()` above already ran, so the launch
+    // itself never depends on this succeeding, only the tally can drop.
+    function _bumpLaunchCount(entry) {
+        if (!entry.id || entry.id.length === 0)
+            return;
+        const counts = Prefs.getValue("launcher.launchCounts");
+        const next = {};
+        for (const k in counts)
+            next[k] = counts[k];
+        next[entry.id] = (next[entry.id] || 0) + 1;
+        Prefs.setValue("launcher.launchCounts", next);
     }
 
     // ── Result-row icon resolution (quick task 260822-sht, Task 1 REWORK
@@ -267,49 +325,114 @@ PanelWindow {
             anchors.margins: 16
             spacing: 12
 
-            TextField {
-                id: searchField
+            // ── Search row (quick task 260822-sht, Task 1 REWORK ROUND 3)
+            //    ─ the field plus the sort toggle at its right edge, wrapped
+            //    in one Item so the field's own width shrinks to make room
+            //    rather than the button overlapping it. ────────────────────
+            Item {
+                id: searchRow
                 width: parent.width
-                placeholderText: "Search apps…"
-                color: Colours.onSurface
-                font.pixelSize: 18
-                selectByMouse: true
-                background: Rectangle {
-                    radius: 10
-                    color: Colours.surfaceVariant
-                    border.width: 1
-                    border.color: Colours.outline
+                height: Math.max(searchField.implicitHeight, sortToggle.height)
+
+                TextField {
+                    id: searchField
+                    anchors.left: parent.left
+                    anchors.right: sortToggle.left
+                    anchors.rightMargin: Design.spacingSm
+                    anchors.verticalCenter: parent.verticalCenter
+                    placeholderText: "Search apps…"
+                    color: Colours.onSurface
+                    font.pixelSize: 18
+                    selectByMouse: true
+                    background: Rectangle {
+                        radius: 10
+                        color: Colours.surfaceVariant
+                        border.width: 1
+                        border.color: Colours.outline
+                    }
+
+                    // Two-way with LauncherState.query so a future mode can seed
+                    // or read the same buffer (Task 2's prefix router reads this
+                    // field to pick a mode).
+                    text: LauncherState.query
+                    onTextChanged: {
+                        if (LauncherState.query !== searchField.text)
+                            LauncherState.query = searchField.text;
+                        resultsList.currentIndex = 0;
+                    }
+
+                    Keys.onEscapePressed: function (event) {
+                        launcherWindow._beginDismiss();
+                        event.accepted = true;
+                    }
+                    Keys.onReturnPressed: function (event) {
+                        launcherWindow.launchCurrent();
+                        event.accepted = true;
+                    }
+                    Keys.onEnterPressed: function (event) {
+                        launcherWindow.launchCurrent();
+                        event.accepted = true;
+                    }
+                    Keys.onDownPressed: function (event) {
+                        resultsList.currentIndex = Math.min(resultsList.currentIndex + 1, resultsList.count - 1);
+                        event.accepted = true;
+                    }
+                    Keys.onUpPressed: function (event) {
+                        resultsList.currentIndex = Math.max(resultsList.currentIndex - 1, 0);
+                        event.accepted = true;
+                    }
                 }
 
-                // Two-way with LauncherState.query so a future mode can seed
-                // or read the same buffer (Task 2's prefix router reads this
-                // field to pick a mode).
-                text: LauncherState.query
-                onTextChanged: {
-                    if (LauncherState.query !== searchField.text)
-                        LauncherState.query = searchField.text;
-                    resultsList.currentIndex = 0;
-                }
+                // ── Sort toggle — cycles alpha/frecency on click and
+                //    re-sorts immediately (filteredApps above reads
+                //    launcherWindow.sortMode inside its own binding
+                //    evaluation, so it re-runs automatically). The glyph
+                //    and ThemedToolTip both reflect the ACTIVE mode so it's
+                //    discoverable without clicking. A plain MouseArea never
+                //    takes keyboard focus in QML — only an explicit
+                //    forceActiveFocus() call would — so this can never
+                //    steal focus from searchField; this is a static fact
+                //    about the type, not something interactively probed
+                //    (no click-injection tool exists on this host). Sits
+                //    inside `panel`, so — like searchField and every result
+                //    row — it stacks above the full-surface dismiss scrim
+                //    declared before `panel` and never triggers it.
+                Item {
+                    id: sortToggle
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Design.iconSizeMd + Design.spacingSm * 2
+                    height: Design.iconSizeMd + Design.spacingSm * 2
 
-                Keys.onEscapePressed: function (event) {
-                    launcherWindow._beginDismiss();
-                    event.accepted = true;
-                }
-                Keys.onReturnPressed: function (event) {
-                    launcherWindow.launchCurrent();
-                    event.accepted = true;
-                }
-                Keys.onEnterPressed: function (event) {
-                    launcherWindow.launchCurrent();
-                    event.accepted = true;
-                }
-                Keys.onDownPressed: function (event) {
-                    resultsList.currentIndex = Math.min(resultsList.currentIndex + 1, resultsList.count - 1);
-                    event.accepted = true;
-                }
-                Keys.onUpPressed: function (event) {
-                    resultsList.currentIndex = Math.max(resultsList.currentIndex - 1, 0);
-                    event.accepted = true;
+                    Text {
+                        anchors.centerIn: parent
+                        text: launcherWindow.sortMode === launcherWindow.sortModeFrecency ? "trending_up" : "sort_by_alpha"
+                        font.family: Design.symbolFontFamily
+                        font.pixelSize: Design.iconSizeMd
+                        textFormat: Text.PlainText
+                        color: sortToggleMouseArea.containsMouse ? Colours.onSurface : Colours.onSurfaceVariant
+
+                        Behavior on color {
+                            enabled: Motion.motionEnabled
+                            ColorAnimation {
+                                duration: Motion.standardDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Motion.standardEasing
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: sortToggleMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: launcherWindow.toggleSortMode()
+                    }
+
+                    ThemedToolTip {
+                        visible: sortToggleMouseArea.containsMouse
+                        text: launcherWindow.sortMode === launcherWindow.sortModeFrecency ? "Sort: Most used" : "Sort: A→Z"
+                    }
                 }
             }
 
