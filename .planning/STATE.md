@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: LAUNCHER MIGRATION SCOPED, NOT STARTED — exploration complete and committed; zero code written. walker+elephant will be retired into a native Quickshell QML launcher as a standalone quick task BEFORE v5.0 scoping. All design decisions D-1..D-6 and both research passes are recorded in .planning/notes/launcher-qml-migration-design.md. Next action is /gsd-quick against that note.
-last_updated: "2026-08-22T23:30:00.000Z"
+stopped_at: "LAUNCHER MIGRATION PLANNED AND CHECKED, EXECUTOR NOT DISPATCHED — quick task 260822-sht. 12-task plan committed at 02006b6e; plan checker returned VERIFICATION PASSED on the first iteration, no revisions. Zero code written. Paused at the operator's request immediately after the check. Resume with /gsd-quick resume migrate-walker-elephant-to-a-native-quic — full handoff in .continue-here.md. One decision waits on the operator: DQ-1 rebinds Super+Escape from pkill walker to systemctl --user restart quickshell.service, the only behaviour change in the plan; change it before T10 or it becomes a multi-file unpick."
+last_updated: "2026-08-22T18:05:00.000Z"
 last_activity: 2026-08-22
-last_activity_desc: "launcher QML migration explored and scoped: Option B shape chosen (one frame, per-mode result views, own LazyLoader+PanelWindow), 36 menu entries remapped to 9 verb-based Omarchy-influenced roots, 3 net-new requirements minted, and research question 1 resolved (emoji bundles in-repo, clipboard via cliphist)"
-state_head: 39d713f4
+last_activity_desc: "launcher QML migration planned and plan-checked as quick task 260822-sht: 12 tasks in three ordered stages (build launcher+menu tree, migrate 7 dmenu consumers, retire walker+elephant last), checker passed first iteration across 8 dimensions, executor deliberately not dispatched — paused for later resume"
+state_head: 02006b6e
 progress:
   total_phases: 6
   completed_phases: 6
@@ -33,7 +33,7 @@ Phase: 22
 Plan: Not started
 Status: All phases complete
 Progress: [██████████] 100%
-Last activity: 2026-08-21 — quick task 260821-6z1: the settings window expanded into a complete control panel (ten pages, ~75 controls, Prefs store, per-row search, compositor + per-device write paths, inline wallpaper grid). Code-complete, gates green, review findings all fixed — awaiting the operator's own 10-item live pass.
+Last activity: 2026-08-22 — quick task 260822-sht (launcher QML migration): planned and plan-checked, executor NOT dispatched. Paused for later resume; see .continue-here.md.
 
 ## Performance Metrics
 
