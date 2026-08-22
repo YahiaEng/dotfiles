@@ -177,11 +177,18 @@ field, chrome and motion language; the **results area swaps component per conten
 type**: rows for apps/menus, grid for emoji/icons, carousel for wallpaper, table
 for keybinds, single-result for calc.
 
-*Why:* both reference shells converged here independently, and Caelestia
-explicitly breaks to a `PathView` carousel rather than forcing wallpapers into
-the app list. Option A (one layout for everything) is contradicted by both
-references **and** would silently undo Phase 7's launcher/menu split. Option C
-(two products) has no reference precedent.
+*Why:* both reference shells converged on one-surface-many-modes independently,
+and Caelestia explicitly breaks to a `PathView` carousel rather than forcing
+wallpapers into the app list. Option A (one layout for everything) is
+contradicted by both references **and** would silently undo Phase 7's
+launcher/menu split. Option C (two products) has no reference precedent.
+
+**Attribution correction (2026-08-22, after Q1 resolved).** The *principle* —
+result view varies by content — is reference-backed by Caelestia's carousel/list
+split. The specific choice of **grid for emoji is NOT**: end-4 renders emoji in a
+plain `ListView`, same as apps, and Caelestia has no emoji surface at all. Grid
+is a local design judgment (16 visible vs 4), taken deliberately against the only
+available precedent. Recorded so nobody downstream cites a reference for it.
 
 **Phase 7's split is preserved.** `07-DISCUSSION-LOG.md:20-21` records that
 Super+Space (launcher) and Super-tap (menu) were separated specifically because
@@ -238,6 +245,62 @@ cut back to like-for-like.
 | `clipboard` | `cliphist` | **Already wired** — `keybinds.lua:143` |
 | `menus` | QML tree model | To build — replaces 6 TOML files |
 | `runner`, `websearch`, `files`, `symbols` | vendored fuzzy JS | To build — both references vendor `fzf.js`/`fuzzysort.js` |
+
+### D-5 — Emoji and clipboard data sources (research question 1, resolved 2026-08-22)
+
+**Emoji — must ship in-repo. There is no system source.**
+
+- Measured here: **no `/usr/share/unicode/emoji/`, no `emoji-test.txt`, no package
+  owns one.** Reading emoji from the system is not an available option without
+  adding a package, which touches `install.sh` and fresh-install reproducibility.
+- Measured here: the current list is **160 entries hardcoded inline** in
+  `emoji-picker.sh` lines 46–205 (`EMOJIS=$'😀\tgrinning face…'`, literal `\t`
+  that bash expands at runtime — grep for a real tab returns 0 and is blind).
+- Researched (admitted, `end-4/dots-hyprland`
+  `dots/.config/hypr/hyprland/scripts/fuzzel-emoji.sh` +
+  `dots/.config/quickshell/ii/services/Emojis.qml`): end-4 bundles **~1,947
+  entries** in a 1,953-line shell script, everything after a literal
+  `### DATA ###` marker, read via a QML `FileView`. Loaded whole into a
+  `list<var>`, no lazy loading, fuzzy-filtered per keystroke, rendered in a plain
+  `ListView`.
+- Researched (admitted): **caelestia-dots/shell has no emoji provider at all.**
+
+**Format decision to make:** end-4's rows carry *multiple search keywords* per
+glyph (`😀 grinning face face smile happy joy :D grin`); this repo's carry **one
+name** (`😀\tgrinning face`), so "happy" and "joy" currently match nothing.
+Whether to widen the keyword set is independent of whether to grow past 160.
+
+**Clipboard — `cliphist`, already installed (1:0.7.0-2, wl-clipboard 1:2.3.0-1).**
+
+Researched (admitted, `dots/.config/quickshell/ii/services/Cliphist.qml` and
+`modules/common/widgets/CliphistImage.qml`) — the exact contract:
+
+- list: `cliphist list`
+- restore: `printf '<entry>' | cliphist decode | wl-copy`
+- delete one: `echo '<entry>' | cliphist delete` · wipe all: `cliphist wipe`
+- **image entries**: detected by regex `^\d+\t\[\[.*binary data.*\d+x\d+.*\]\]$`
+  (cliphist's own marker), width/height parsed from that same string, decoded once
+  to a temp file on `Component.onCompleted`, shown as a thumbnail, temp file
+  deleted `onDestruction`.
+
+**Image previews are net-new capability here.** The current Super+C pipeline
+(`keybinds.lua:143`) is text-only. Treat as a scope decision, not an assumed
+inclusion.
+
+**No performance work required, and no spike.** end-4 holds ~1,947 entries in
+memory and re-filters per keystroke with **no** GridView, `cacheBuffer`, proxy
+model or pagination — only a debounce `Timer`. At 160 entries this is not a
+performance question at all.
+
+### D-6 — Security constraint inherited from the shell picker
+
+`emoji-picker.sh:44` records Security Domain **T-06-17**: *"wtype must only ever
+type a value we recognize, never raw, unvalidated walker stdout — glyph&lt;TAB&gt;name,
+one per line."*
+
+The QML surface inherits this. The selected glyph must be validated against the
+known set before `wtype` is invoked — it cannot type back whatever the list
+widget hands it. This is a requirement, not a nicety.
 
 ---
 

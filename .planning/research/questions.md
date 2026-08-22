@@ -104,20 +104,29 @@ launcher QML) admitted most claims against primary source. These two could not
 be stood behind. Researcher tier resolved to `sonnet`, above the budget tier, so
 the tier floor did not arm — these are genuine abstains, not suppressed admits.
 
-### 1. How do end-4's clipboard and emoji providers actually work?
+### 1. ~~How do end-4's clipboard and emoji providers actually work?~~ RESOLVED 2026-08-22
 
-Whether end-4's `Cliphist.qml` / `Emojis.qml` shell out to `cliphist` and a
-system emoji source, or bundle their own data (a vendored emoji JSON, an
-in-QML model).
+**Answer: emoji is bundled in-repo; clipboard shells out to `cliphist`.**
 
-*Failed as:* unverifiable — the researcher routed clipboard/emoji through the
-prefix system in `LauncherSearch.qml` but did not open the two provider files
-themselves.
+Resolved by a second research pass that opened the provider files directly, plus
+local measurement on this host. Full detail — including the exact `cliphist`
+command contract and the image-entry regex — is recorded as **D-5** in
+`.planning/notes/launcher-qml-migration-design.md`. Headlines:
 
-**This is the one that matters.** Both surfaces have to be built natively here
-(Tools ▸ Emoji, Tools ▸ Clipboard, plus the Super+C bind), and the answer
-decides whether emoji data ships in-repo or is read from the system. Resolve
-before planning those two surfaces, not during.
+- end-4 bundles **~1,947 emoji** in `fuzzel-emoji.sh` after a `### DATA ###`
+  marker, read via QML `FileView`. Caelestia has **no** emoji provider at all.
+- **No system emoji source exists on this host** (`/usr/share/unicode/emoji/`
+  absent, unowned), so shipping the data in-repo is the only option that does not
+  add a package and touch `install.sh`.
+- Clipboard is `cliphist list` / `printf '<entry>' | cliphist decode | wl-copy`,
+  with image entries detected by cliphist's own binary-data marker.
+- No performance mitigation is needed: end-4 does none at ~1,947 entries; this
+  repo's current list is **160**.
+
+**One correction this forced:** the design sketch showed emoji in a grid and
+implied reference precedent. There is none — end-4 uses a plain `ListView`.
+Grid remains the local choice, but it is a deliberate divergence, not a borrowed
+pattern. Do not cite a reference shell for it.
 
 ### 2. Does `walker --dmenu` return a distinct exit code on Escape?
 
