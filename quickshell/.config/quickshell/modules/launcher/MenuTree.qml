@@ -28,26 +28,22 @@
 // ── Node schema ───────────────────────────────────────────────────────────
 // A node is either a SUBMENU (`children: [...]`, no `command`) or a LEAF
 // (`command`, no `children`). A leaf's `command` is `null` when the entry
-// is a Task 4/7/8/9 placeholder not yet filled (`placeholder: true` marks
-// those — Apps' own child, System's Updates/System info are R-3/R-1/R-2,
-// Task 4; Tools' Emoji is Task 7; Learn's Keybinds is Task 9) or when it
-// carries a `mode` instead (Tools ▸ Clipboard: its retired TOML action IS
-// still recorded here verbatim for reversibility, but `mode: "clipboard"`
-// tells `MenuMode.qml` to route into the in-launcher clipboard mode
-// (`LauncherState.modeClipboard`, Task 2's router) rather than ever
-// executing the old `cliphist list | walker --dmenu | ...` pipeline — the
-// ONE entry this task's own plan text names as the deliberate exception to
-// "byte-identical AND executed", since Task 8 replaces its behaviour
-// entirely.
-//
-// Three of the 30 real commands below are legitimately SUPERSEDED by a
-// later task without being removed from this file: Style ▸ Theme and
-// Style ▸ Bar orientation (Task 5's `PickerMode.qml`), Learn ▸ Keybinds
-// (Task 9's `KeybindsMode.qml` — kept here as an executed leaf, not a
-// placeholder, since `cheat-sheet.sh` remains fully functional until then).
-// Tools ▸ Emoji is marked `placeholder: true` even though its command is
-// present and would still work if executed — Task 7 replaces routing to
-// it with `mode: "symbols"`, matching the Clipboard shape.
+// carries a `mode` instead: `MenuMode.qml`'s `activate()` switches
+// `LauncherState.mode` to that string and does NOT dismiss the launcher,
+// the same mechanism a typed route prefix uses (Task 2's router). Three
+// leaves use this today — Apps' own child (`mode: "apps"`, R-3, Task 4),
+// System's Updates/System info (`mode: "updates"`/`"systeminfo"`, R-1/R-2,
+// Task 4) — plus Tools ▸ Clipboard, whose retired TOML action IS still
+// recorded here verbatim for reversibility even though `mode: "clipboard"`
+// means it is NEVER executed — the ONE entry this task's own plan text
+// names as the deliberate exception to "byte-identical AND executed",
+// since Task 8 replaces its behaviour entirely. `placeholder: true` marks
+// the two leaves still awaiting their real component (Tools ▸ Emoji,
+// Task 7; Learn ▸ Keybinds, Task 9) — their retired command still runs
+// until then, so the surface stays fully functional in the interim.
+// Style ▸ Theme and Style ▸ Bar orientation are also destined to be
+// superseded (Task 5's `PickerMode.qml`) but are NOT marked `placeholder`
+// — they stay ordinary executed leaves until that task replaces them.
 pragma Singleton
 import QtQuick
 import Quickshell
@@ -62,7 +58,7 @@ Singleton {
                 {
                     text: "  Application list",
                     command: null,
-                    placeholder: true
+                    mode: "apps"
                 },
             ]
         },
@@ -234,12 +230,12 @@ Singleton {
                 {
                     text: "  Updates",
                     command: null,
-                    placeholder: true
+                    mode: "updates"
                 },
                 {
                     text: "  System info",
                     command: null,
-                    placeholder: true
+                    mode: "systeminfo"
                 },
             ]
         },

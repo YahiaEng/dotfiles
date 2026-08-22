@@ -572,6 +572,22 @@ PanelWindow {
                         return modePlaceholderComponent;
                     case LauncherState.modeMenu:
                         return menuComponent;
+                    // "updates"/"systeminfo" (R-1/R-2, quick task
+                    // 260822-sht, Task 4) are raw string literals rather
+                    // than LauncherState.mode* constants — these two modes
+                    // are reachable ONLY via MenuTree.qml's own `mode:
+                    // "updates"`/`mode: "systeminfo"` leaf fields (System ▸
+                    // Updates, System ▸ System info), never via a typed
+                    // route prefix, so they have no reason to live in
+                    // LauncherState.qml's prefix-routing table — the exact
+                    // same reasoning Tools ▸ Clipboard's `mode: "clipboard"`
+                    // already established for a mode value written as a
+                    // literal in MenuTree.qml. Task 4 does not touch
+                    // LauncherState.qml.
+                    case "updates":
+                        return updatesComponent;
+                    case "systeminfo":
+                        return systemInfoComponent;
                     default:
                         return appsComponent;
                     }
@@ -719,6 +735,26 @@ PanelWindow {
 
                 MenuMode {
                     dismissCallback: launcherWindow._beginDismiss
+                }
+            }
+
+            // ── System ▸ Updates / System ▸ System info (quick task
+            //    260822-sht, Task 4 — R-1/R-2). Read-only report views;
+            //    neither dismisses on activate() since there is nothing to
+            //    "pick" — the user reads the list and closes the launcher
+            //    themselves (Escape/click-outside), same as leaving apps
+            //    mode open after a search that didn't launch anything. ────
+            Component {
+                id: updatesComponent
+
+                UpdatesMode {
+                }
+            }
+
+            Component {
+                id: systemInfoComponent
+
+                SystemInfoMode {
                 }
             }
 

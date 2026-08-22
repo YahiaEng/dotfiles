@@ -28,6 +28,10 @@
 # the `singleton` keyword here, or bare `MenuTree.roots` access resolves to
 # `undefined` forever. MenuMode is a plain Item-rooted mode result view,
 # same non-singleton shape as CalcMode/WebSearchMode/FilesMode above.
+#
+# SystemInfoMode/UpdatesMode (quick task 260822-sht, Task 4 — R-1/R-2) are
+# plain Item-rooted mode result views, same non-singleton shape as every
+# other mode above.
 module qs.modules.launcher
 singleton LauncherState 1.0 LauncherState.qml
 singleton MenuTree 1.0 MenuTree.qml
@@ -36,3 +40,5 @@ CalcMode 1.0 CalcMode.qml
 WebSearchMode 1.0 WebSearchMode.qml
 FilesMode 1.0 FilesMode.qml
 MenuMode 1.0 MenuMode.qml
+SystemInfoMode 1.0 SystemInfoMode.qml
+UpdatesMode 1.0 UpdatesMode.qml
