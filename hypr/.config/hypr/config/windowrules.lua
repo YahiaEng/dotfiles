@@ -266,6 +266,13 @@ hl.layer_rule({ match = { namespace = "walker" }, blur = true })
 -- Same choice, for the same reason, as quickshell-session below (line ~579),
 -- which is the other full-screen surface in this shell.
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, animation = "fade" })
+-- quickshell-launcher (quick task 260822-sht Task 1 rework) — same fade
+-- choice, for the same reason, as the drawer's own rule immediately above:
+-- the launcher surface is now full-screen (all four anchors, never resizes)
+-- so `slide` has no unambiguous edge to slide from and the compositor would
+-- pick one arbitrarily. The directional drop-down motion is done in QML on
+-- `panel` instead (see Launcher.qml), same shape as Dashboard.qml's own.
+hl.layer_rule({ match = { namespace = "quickshell-launcher" }, animation = "fade" })
 -- Phase 15's standalone panels (D-15-02's accepted cost: destroy-then-
 -- summon is two animations rather than one morph, tuned here). Exact-match
 -- only, same reasoning as the drawer's own rule above — each panel picks
@@ -403,6 +410,16 @@ hl.layer_rule({ match = { namespace = "^quickshell-.*" }, ignore_alpha = 0.5 })
 -- with Dashboard.qml's drawerSurfaceOpacity, raised in step from 0.78 to
 -- 0.38 to clear this new, lower cutoff — see that file's own comment.
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0.2 })
+
+-- quickshell-launcher's own ignore_alpha (quick task 260822-sht Task 1
+-- rework) — REQUIRED, not cosmetic: the family regex above sets the 0.5
+-- floor, and the launcher's new drawerSurfaceOpacity (0.38, mirroring the
+-- dashboard's own frost-unified fill) falls BELOW that floor, so without
+-- this override blur dies silently on the launcher panel (this file's own
+-- recorded failure mode). Declared AFTER the family regex, same ordering
+-- finding as quickshell-dashboard's own row immediately above — a
+-- namespace rule placed before the family regex does not win.
+hl.layer_rule({ match = { namespace = "quickshell-launcher" }, ignore_alpha = 0.2 })
 
 -- ── quickshell-overview blur pair — DECLARED LAST, DELIBERATELY ──────────
 -- (plan 16-07 Task 3 render gate, round 8. Full rationale for WHY this
