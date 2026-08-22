@@ -304,3 +304,25 @@ cheat_sheet_parse_binds() {
         esac
     done < <(_cheat_sheet_tokenize "$conf" "$mainmod_value")
 }
+
+# ── Guarded direct-execution path (quick task 260822-sht, Task 9) ─────────
+# D-29's "one parser, two surfaces" becomes one parser, three consumers:
+# the retired cheat-sheet.sh walker list, cheat-sheet-view-all.sh's kitty
+# table (unchanged, both already source this file), and now
+# `cheat-sheet-parser.sh --dump` for KeybindsMode.qml's own live-parsed
+# table. This block only runs when the file is EXECUTED, never when it is
+# sourced — `${BASH_SOURCE[0]}" == "$0"` is true only in the former case
+# — so sourcing behaves exactly as it always has: defining functions only,
+# no output, no side effects, no shell option changes (this file's own
+# header promise, unchanged by this addition).
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    case "${1:-}" in
+        --dump)
+            cheat_sheet_parse_binds
+            ;;
+        *)
+            echo "cheat-sheet-parser.sh: usage: cheat-sheet-parser.sh --dump" >&2
+            exit 1
+            ;;
+    esac
+fi

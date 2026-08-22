@@ -609,6 +609,10 @@ PanelWindow {
                         return recordAudioPickerComponent;
                     case "clipboardwipe":
                         return clipboardWipeConfirmComponent;
+                    // "keybinds" (quick task 260822-sht, Task 9) — same
+                    // raw-literal, MenuTree-only-reachable shape.
+                    case "keybinds":
+                        return keybindsComponent;
                     default:
                         return appsComponent;
                     }
@@ -822,6 +826,19 @@ PanelWindow {
 
                 ConfirmMode {
                     confirmId: "clipboardwipe"
+                    dismissCallback: launcherWindow._beginDismiss
+                }
+            }
+
+            // ── Learn ▸ Keybinds (quick task 260822-sht, Task 9) — a
+            //    table reference, not a launcher (T-07-26); dismisses on
+            //    activate() the same one-shot shape as the retired
+            //    surface (select once, close), whether the pick was a
+            //    chord copy or the pinned View-all row. ─────────────────
+            Component {
+                id: keybindsComponent
+
+                KeybindsMode {
                     dismissCallback: launcherWindow._beginDismiss
                 }
             }

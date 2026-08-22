@@ -38,12 +38,10 @@
 // means it is NEVER executed — the ONE entry Task 3's own plan text named
 // as the deliberate exception to "byte-identical AND executed". Task 8
 // (quick task 260822-sht) has now wired `mode: "clipboard"` to a real
-// component (ClipboardMode.qml). `placeholder: true` marks
-// the one leaf still awaiting its real component (Learn ▸ Keybinds,
-// Task 9) — its retired command still runs until then, so the surface
-// stays fully functional in the interim. Tools ▸ Emoji now carries
-// `mode: "symbols"` (quick task 260822-sht, Task 7) and is no longer a
-// placeholder — its real component (EmojiMode.qml) exists.
+// component (ClipboardMode.qml). No leaf carries `placeholder: true`
+// any more — Tools ▸ Emoji (`mode: "symbols"`, Task 7, EmojiMode.qml)
+// and Learn ▸ Keybinds (`mode: "keybinds"`, Task 9, KeybindsMode.qml)
+// were the last two, both now wired to real components.
 // Style ▸ Theme and Style ▸ Bar orientation now carry `mode: "theme"` /
 // `mode: "barorientation"` (quick task 260822-sht, Task 5), routing to
 // `PickerMode.qml` the same way Tools ▸ Clipboard routes to its own mode
@@ -249,9 +247,15 @@ Singleton {
             text: "  Learn",
             children: [
                 {
+                    // Superseded by KeybindsMode.qml (quick task
+                    // 260822-sht, Task 9) — `mode` wins over `command` in
+                    // MenuMode.qml's activate(); `command` is kept
+                    // byte-identical to the retired TOML action for the
+                    // record, same precedent as every other superseded
+                    // leaf above.
                     text: "  Keybinds",
                     command: `~/.config/hypr/scripts/cheat-sheet.sh`,
-                    placeholder: true
+                    mode: "keybinds"
                 },
             ]
         },

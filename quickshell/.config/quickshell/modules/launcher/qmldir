@@ -50,6 +50,9 @@
 #
 # ClipboardMode (quick task 260822-sht, Task 8) is a plain Item-rooted
 # mode result view, same non-singleton shape as every other mode above.
+#
+# KeybindsMode (quick task 260822-sht, Task 9) is a plain Item-rooted
+# mode result view, same non-singleton shape as every other mode above.
 module qs.modules.launcher
 singleton LauncherState 1.0 LauncherState.qml
 singleton MenuTree 1.0 MenuTree.qml
@@ -64,3 +67,4 @@ PickerMode 1.0 PickerMode.qml
 ConfirmMode 1.0 ConfirmMode.qml
 EmojiMode 1.0 EmojiMode.qml
 ClipboardMode 1.0 ClipboardMode.qml
+KeybindsMode 1.0 KeybindsMode.qml
