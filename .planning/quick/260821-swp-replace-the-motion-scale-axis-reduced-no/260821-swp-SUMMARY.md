@@ -162,6 +162,19 @@ Two independent contributors were stacking, and both were removed:
 **Still owed by Task 3 (after verdict 2):** the per-style render-and-judge pass for `md3`, `smooth`, `snappy`, `bouncy` and a re-judge of the re-retuned `wavy`, plus the reduce-motion `full -> reduced -> off -> full` walk on both the Settings page and the dashboard quick-toggle row.
 
 
+### Task 3 — convergence sweep across all five styles (2026-08-22)
+
+After verdict 2, all five styles were measured against the three failure modes wavy had hit, rather than assuming wavy was the only offender.
+
+**Trap 1, the snap — clean, and unique to the rejected shape.** The discriminator is not front-loading (every style completes 69-78% of its travel by 20% of its duration, normal decelerate behaviour) but whether the curve has already passed the target by then. The rejected `[0.05, 2.0, 0.3, 0.6]` was at **111%**; nothing shipped exceeds 78%.
+
+**Trap 2, reversal on whole-screen motion — clean, one item to watch.** `wavy` is the only style whose curve reverses at all, and the only one whose full-screen leaves sit on a monotonic curve. `bouncy` is the nearest neighbour to the failure: a +8% overshoot on a full-screen **vertical** slide on both `workspaces` and `special_workspace` at 350ms. It never reverses and has not been reported as sickening, but it carries the highest residual risk and should be judged deliberately.
+
+**Trap 3, convergence — wavy/smooth fixed, a new pair found and fixed.** The complaint pair went from 3/8 shared axes (including workspace shape, the most-seen animation) to 1/8. But `bouncy` and `wavy` had come to share **both** window-open axes — `popin 0%` and 350ms — with peaks of 8.0% vs 9.7%, leaving only wavy's 4.2% dip to separate them on that surface. The duration collision was introduced by this task's own previous commit. Measured against the alternatives, 450ms drops the pair to 2/8 with no new collision while 400ms only trades it for a `smooth`/`wavy` clash; window-open duration is now unique across all five styles (200/300/350/400/450).
+
+**Structural note.** `bouncy`'s `standard` easing and duration are byte-identical to `md3`'s, and `wavy` shares md3's curve differing only in duration — only `smooth` and `snappy` override `standard`. So `bouncy` and `wavy` change *spatial* motion only; non-spatial UI motion in the bar and panels is md3's throughout. That follows directly from the spatial/effects split this task is built on, so it is by design rather than a defect, but it means those two styles do not express their character outside windows, panels and workspaces.
+
+
 ### Task 3 verdict 2 — three findings (2026-08-22)
 
 **(a) `wavy` had converged on `smooth` — the first retune overcorrected.** Measuring all five styles side by side showed why:

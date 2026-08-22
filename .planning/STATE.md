@@ -7,7 +7,7 @@ stopped_at: QUICK TASK 260821-swp TASK 3 IN PROGRESS — two operator verdicts h
 last_updated: "2026-08-22T19:30:00.000Z"
 last_activity: 2026-08-22
 last_activity_desc: "Task 3 verdicts 1 and 2 on quick-260821-swp: wavy retuned twice to a +9.7% crest reached at 54% over 350ms with workspaces kept monotonic; plus two settings bugs fixed — a --get re-read racing its own write made the style row need two clicks, and theme-apply's unconditional success toast made every style change claim a colour-theme switch"
-state_head: 30119923
+state_head: d3be2030
 progress:
   total_phases: 6
   completed_phases: 6
@@ -742,7 +742,7 @@ PRIOR AGREED NEXT — PARTLY DELIVERED: Task 3's operator pass continued. `wavy`
 
 Stopped at: TASK 3 MID-PASS. Verdict 1: `wavy` "will cause motion sickness". Verdict 2: the retune overcorrected — "reads very similar to smooth" — plus two unrelated settings bugs.
 
-THE ONE INSIGHT THAT SETTLED WAVY, and it took both verdicts to see it: THE SIZE OF THE CREST WAS NEVER THE PROBLEM. Original `[0.05, 2.0, 0.3, 0.6]` = +10.8% peak but reached in the first 94ms of 450ms (a SNAP), then a 7.6% sag held for 356ms. Retune 1 cut the crest to +4% and lost the style's identity. Retune 2 put the crest BACK to +9.7% — nearly the original — but reached smoothly at 54% of the duration, dipping only 4.2%, over 350ms. Shipped: `[0.4, 1.85, 0.75, 0.74]`, commit `3182d047`.
+THE ONE INSIGHT THAT SETTLED WAVY, and it took both verdicts to see it: THE SIZE OF THE CREST WAS NEVER THE PROBLEM. Original `[0.05, 2.0, 0.3, 0.6]` = +10.8% peak but reached in the first 94ms of 450ms (a SNAP), then a 7.6% sag held for 356ms. Retune 1 cut the crest to +4% and lost the style's identity. Retune 2 put the crest BACK to +9.7% — nearly the original — but reached smoothly at 54% of the duration, dipping only 4.2%, over 350ms. Shipped: `[0.4, 1.85, 0.75, 0.74]` at 450ms. A convergence sweep afterwards found the 350ms it briefly carried had made it share BOTH window-open axes with bouncy (popin 0% + 350ms, peaks 8.0% vs 9.7%) — the same convergence failure relocated to another surface — so the duration went back to 450ms, which drops that pair to 2/8 with no new collision. 450ms is NOT a regression: the sickness came from the snap plus a sag landing on a whole-screen vertical slide, not from the length.
 
 THE STRUCTURAL SPLIT THAT MAKES IT SAFE, and the measurement behind it: `bouncy` has always run a FULL-SCREEN VERTICAL slidevert at 350ms with a +8% overshoot and was never reported as sickening. So vertical motion was not the trigger — vertical motion that REVERSES DIRECTION over 450ms was. wavy therefore keeps `slidefadevert` on workspaces/special_workspace but on the MONOTONIC `spatial-move` curve at 250ms, while the wave lives on windows and panels where the moving field is small. Retune 1 made those leaves horizontal instead, and that is precisely what made wavy read as smooth — do not "fix" it back to horizontal.
 
@@ -754,6 +754,8 @@ CARRIED FORWARD FROM THE EARLIER ROUND, STILL TRUE:
   - A LEAF'S DURATION FOLLOWS ITS CURVE NAME. `animations.lua register_hypr_leaf()` derives the speed key from the curve name (`curve:gsub("%-","_")`), so repointing a leaf's curve silently repoints its duration too. That is how wavy's workspace switch became 250ms.
   - THE DIP BAND, NOT THE PEAK BAND, IS WHAT IDENTIFIES WAVY. Its peak band is now [1.08, 1.12], which OVERLAPS bouncy's [1.06, 1.10]. The dip band [0.94, 0.97] plus `dip == 1.0` for every other style is the real assertion, and it encodes the spatial/effects invariant directly.
   - CHECK 5 IS RED AND IS NOT A REGRESSION — DO NOT CHASE IT. The literal `grep -cE 'normalized'` form reports 18 under md3+full; measured identical with the change stashed. 17 are unrelated pre-existing bool<->int type-key folding lines, the 18th is Task 1's permanent leaf-bezier rename. SUMMARY:173 documents it; the narrow curve-section form reports 0, verified.
+
+ALSO MEASURED, ALL FIVE STYLES: the snap is unique to the rejected shape (it was at 111% of travel by a fifth of its duration; nothing shipped exceeds 78%). No other style reverses at all. `bouncy` is the residual-risk style — a +8% overshoot on a full-screen VERTICAL slide on both workspace leaves at 350ms, monotonic, never flagged, but judge it deliberately. And `bouncy`'s `standard` easing/duration are byte-identical to md3's, so bouncy and wavy change SPATIAL motion only; the bar and panels' non-spatial motion is md3's under both.
 
 STILL OWED BY TASK 3: judge `md3`, `smooth`, `snappy`, `bouncy` and RE-judge the re-retuned `wavy` across window open/close, workspace switch, notification arrival (must NOT bounce) and a bar drawer; then walk reduce-motion full -> reduced -> off -> full on both the Settings page and the dashboard quick-toggle row. The settings row should now register on ONE click and pop no toast — confirm that too.
 
