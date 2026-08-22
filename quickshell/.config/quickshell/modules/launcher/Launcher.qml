@@ -233,15 +233,52 @@ PanelWindow {
         return resultsLoader.item;
     }
 
+    // Item 3 fix (quick task 260822-sht) — grid-aware row step. A mode
+    // that is a grid (EmojiMode) exposes a `columns` property alongside
+    // the duck-typed trio above; a plain list (every other mode) does
+    // not, so `step` falls back to `1` and this function's behaviour for
+    // every existing mode is byte-identical to before this fix — `delta`
+    // is still `±1` at both call sites below, only the multiplier
+    // changes for a mode that opts in. Reads `item.columns` (the SAME
+    // value the grid itself renders with — EmojiMode.qml's `root.columns`
+    // — never a second hardcoded `4` here), so navigation stays correct
+    // if that column count ever becomes width-responsive.
     function moveSelection(delta) {
         const item = launcherWindow._activeItem();
         if (!item || item.count === undefined || item.count <= 1)
             return;
+        const step = item.columns !== undefined && item.columns > 0 ? item.columns : 1;
         // CalcMode/WebSearchMode declare `currentIndex` READONLY (a
         // single-result view is always "row 0") — their `count` is never
         // above 1, so the guard above already keeps this line from ever
         // writing to a readonly property; it is not merely defensive.
-        item.currentIndex = Math.max(0, Math.min(item.count - 1, item.currentIndex + delta));
+        item.currentIndex = Math.max(0, Math.min(item.count - 1, item.currentIndex + delta * step));
+    }
+
+    // Item 3 fix (quick task 260822-sht) — Left/Right tile-within-row
+    // navigation, grid-only. Returns `false` for every mode that does not
+    // expose `item.columns` (every mode except EmojiMode), so the
+    // searchField's `Keys.onLeftPressed`/`onRightPressed` handlers below
+    // leave `event.accepted` unset and the TextField's own default cursor
+    // movement runs unchanged while filtering — this function is never
+    // reached with intent to move a text cursor. Clamped, not wrapped:
+    // Left/Right stop at the row's own edge rather than spilling into the
+    // row above/below (Up/Down own that axis).
+    function moveSelectionColumn(delta) {
+        const item = launcherWindow._activeItem();
+        if (!item || item.columns === undefined || item.columns <= 0 || item.count === undefined || item.count <= 1)
+            return false;
+        const columns = item.columns;
+        const row = Math.floor(item.currentIndex / columns);
+        const col = item.currentIndex % columns;
+        const newCol = col + delta;
+        if (newCol < 0 || newCol >= columns)
+            return true;
+        const newIndex = row * columns + newCol;
+        if (newIndex >= item.count)
+            return true;
+        item.currentIndex = newIndex;
+        return true;
     }
 
     function activateCurrent() {
@@ -505,6 +542,27 @@ PanelWindow {
                     Keys.onUpPressed: function (event) {
                         launcherWindow.moveSelection(-1);
                         event.accepted = true;
+                    }
+
+                    // ── Grid Left/Right (quick task 260822-sht, Item 3,
+                    //    operator-requested arrow-key nav) — routed through
+                    //    the same searchField key-handler arrangement as
+                    //    Up/Down/Enter/Escape above, not a competing
+                    //    handler elsewhere. `moveSelectionColumn()` returns
+                    //    `false` for every mode except EmojiMode (the only
+                    //    one exposing `columns`), so `event.accepted` is
+                    //    only ever set true in grid mode — every other
+                    //    mode's searchField keeps the TextField's own
+                    //    default Left/Right cursor movement while the
+                    //    operator is typing a filter query, exactly as
+                    //    before this fix.
+                    Keys.onLeftPressed: function (event) {
+                        if (launcherWindow.moveSelectionColumn(-1))
+                            event.accepted = true;
+                    }
+                    Keys.onRightPressed: function (event) {
+                        if (launcherWindow.moveSelectionColumn(1))
+                            event.accepted = true;
                     }
 
                     // ── Backspace-goes-back (quick task 260822-sht,

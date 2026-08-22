@@ -111,13 +111,23 @@ Item {
     onCountChanged: root.currentIndex = 0
     onCurrentIndexChanged: root._ensureVisible()
 
+    // Item 3 (quick task 260822-sht) — the ONE source of truth for this
+    // grid's column count. `Launcher.qml`'s `moveSelection()`/
+    // `moveSelectionColumn()` read this exact property (duck-typed,
+    // alongside `currentIndex`/`count`/`activate()` above) rather than a
+    // second hardcoded `4` living in the key-handling file — grid.qml's
+    // own `columns:` below and `_ensureVisible()`'s row math also bind to
+    // this single value, so all three stay correct together if the
+    // column count ever becomes width-responsive.
+    readonly property int columns: 4
+
     // Keeps the row holding `currentIndex` inside the Flickable's visible
     // window — the same "scroll to reveal the selected row" behaviour a
     // virtualizing view provides natively, reimplemented by hand because
     // this file deliberately does NOT use one (see the Flickable/Grid
     // header note below).
     function _ensureVisible() {
-        const row = Math.floor(root.currentIndex / 4);
+        const row = Math.floor(root.currentIndex / root.columns);
         const rowY = row * 64;
         if (rowY < grid.contentY)
             grid.contentY = rowY;
@@ -234,7 +244,7 @@ Item {
         Grid {
             id: gridPositioner
             width: parent.width
-            columns: 4
+            columns: root.columns
 
             Repeater {
                 model: root._rows
@@ -244,7 +254,7 @@ Item {
                     required property var modelData
                     required property int index
 
-                    width: Math.floor(gridPositioner.width / 4) - Design.spacingXs
+                    width: Math.floor(gridPositioner.width / root.columns) - Design.spacingXs
                     height: 64 - Design.spacingXs
                     radius: 8
                     color: root.currentIndex === emojiDelegate.index ? Colours.surfaceVariant : "transparent"
