@@ -806,7 +806,39 @@ ShellRoot {
         id: launcherMenuShortcut
         appid: "quickshell"
         name: "launcher-menu"
-        onPressed: {
+
+        // ── Both edges, deliberately (fix: "Super-tap does nothing") ──────
+        // This is the ONLY bind in keybinds.lua that uses `release = true`
+        // (line 82) — the Super-TAP edge, which D-02 needs so a tap can be
+        // told apart from Super held for any other combo. The handler
+        // originally implemented `onPressed` alone, so the shortcut fired on
+        // an edge nothing was listening for and the tap silently did nothing.
+        //
+        // The predecessor bind worked because it was `exec_cmd("walker ...")`
+        // — a plain process spawn with no protocol edges involved at all.
+        // Routing the same bind through `global` put it on the
+        // hyprland-global-shortcuts protocol, where press and release are
+        // DISTINCT signals: `bar-reveal` (line ~1429) is bound to this SAME
+        // physical chord on the press edge and has always handled both, which
+        // is the proof both edges reach a client.
+        //
+        // Which edge a release-bound `global` dispatch delivers was NOT
+        // verifiable from here — reproducing it needs a real Super keypress,
+        // and this host has no input-injection tool (wtype misroutes to the
+        // focused toplevel). So rather than guess an edge and ship a
+        // coin-flip, both are wired to one handler and `_lastToggleMs` makes
+        // a double delivery idempotent: if the protocol turns out to send
+        // both edges for this bind, the second lands inside the window and is
+        // dropped instead of immediately re-closing what the first opened.
+        readonly property int _tapDebounceMs: 250
+        property real _lastToggleMs: 0
+
+        function _toggleMenu() {
+            const now = Date.now();
+            if (now - launcherMenuShortcut._lastToggleMs < launcherMenuShortcut._tapDebounceMs)
+                return;
+            launcherMenuShortcut._lastToggleMs = now;
+
             if (launcherLoader.active) {
                 launcherLoader.active = false;
             } else if (!root.fullscreenBlocking) {
@@ -814,6 +846,9 @@ ShellRoot {
                 launcherLoader.active = true;
             }
         }
+
+        onPressed: launcherMenuShortcut._toggleMenu()
+        onReleased: launcherMenuShortcut._toggleMenu()
     }
 
     // ── Power menu (Phase 20 Plan 06, the power half's tracer, QPOWER-01)
