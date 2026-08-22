@@ -543,7 +543,15 @@ import json, sys
 m = json.load(open('theme-engine/.config/theme-engine/motion.json'))
 SPATIAL = {'spatial-in', 'spatial-out', 'spatial-move'}
 BANDS = {'md3': (1.0, 1.0), 'smooth': (1.0, 1.0), 'snappy': (1.02, 1.05),
-         'bouncy': (1.06, 1.10), 'wavy': (1.10, 1.25)}
+         'bouncy': (1.06, 1.10), 'wavy': (1.03, 1.06)}
+# 260822 Task 3 retune: the operator judged wavy's original 1.10-1.25 peak band
+# as motion-sickness-inducing, so the band itself was the rejected thing. After
+# retuning, wavy's PEAK no longer distinguishes it (1.0398 sits inside snappy's
+# band) -- its DIP does. Only wavy may travel below the target, and only
+# shallowly. DIPS below is a STRICTER assertion than the peak band it augments:
+# it now pins every other style to never undershoot at all.
+DIPS = {'md3': (1.0, 1.0), 'smooth': (1.0, 1.0), 'snappy': (1.0, 1.0),
+        'bouncy': (1.0, 1.0), 'wavy': (0.98, 0.998)}
 def curve(p):
     x1, y1, x2, y2 = p; n = 2000
     xs = [3*(1-t/n)**2*(t/n)*x1 + 3*(1-t/n)*(t/n)**2*x2 + (t/n)**3 for t in range(n+1)]
@@ -563,9 +571,12 @@ for sname, s in m['styles'].items():
             fail.append(f'{sname}/{ename}: x is not monotonic within [0,1]')
         if ename not in SPATIAL and peak > 1.0 + 1e-6:
             fail.append(f'{sname}/{ename}: exceeds 1.0 but is not a spatial name')
-    lo, hi = BANDS[sname]; peak = curve(eff['spatial-in'])[0]
+    lo, hi = BANDS[sname]; peak, dip = curve(eff['spatial-in'])[0], curve(eff['spatial-in'])[1]
     if not (lo - 1e-6 <= peak <= hi + 1e-6):
         fail.append(f'{sname}: spatial-in peak {peak:.4f} outside its band [{lo}, {hi}]')
+    dlo, dhi = DIPS[sname]
+    if not (dlo - 1e-6 <= dip <= dhi + 1e-6):
+        fail.append(f'{sname}: spatial-in dip {dip:.4f} outside its band [{dlo}, {dhi}]')
     for k, v in (s.get('semantic') or {}).items():
         if k not in m['semantic']: fail.append(f'{sname}: semantic override {k} is not a base key')
         if v.get('duration') and v['duration'] not in m['durations']:
@@ -592,7 +603,7 @@ c.addCubicBezierSegment(QPointF(p[0], p[1]), QPointF(p[2], p[3]), QPointF(1.0, 1
 v = [c.valueForProgress(i/200) for i in range(201)]
 peak = max(v); dip = min(v[v.index(peak):])
 print(f'wavy peak={peak:.4f} dip={dip:.4f} settle={v[-1]:.4f}')
-sys.exit(0 if peak > 1.05 and dip < 0.97 and abs(v[-1]-1.0) < 1e-6 else 1)
+sys.exit(0 if peak > 1.02 and dip < 0.998 and abs(v[-1]-1.0) < 1e-6 else 1)
 EOF
     </automated>
     <automated>

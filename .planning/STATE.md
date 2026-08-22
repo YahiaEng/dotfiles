@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: QUICK TASK 260821-swp CODE-COMPLETE, AWAITING THE OPERATOR'S OWN EYES — the motion scale axis is now an animation STYLE axis (md3/smooth/snappy/bouncy/wavy) with reduced-motion split into its own accessibility axis. Tasks 1-2 done and committed; Task 3 is a blocking per-style render-and-judge pass only the operator can run.
-last_updated: "2026-08-21T19:15:00.000Z"
-last_activity: 2026-08-21
-last_activity_desc: "motion scale axis replaced by a style axis (260821-swp); springs measured and deliberately rejected as gate-invisible; the fade fix inverted to spatial-only easings after a brace-aware sweep found 58 colour sites, not the 5 opacity sites first enumerated"
-state_head: 545b5b5e
+stopped_at: QUICK TASK 260821-swp TASK 3 IN PROGRESS — the operator judged `wavy` as causing motion sickness; it was diagnosed, retuned and committed (8e5f742a). Four styles (md3/smooth/snappy/bouncy) plus the retuned wavy still await the operator's render-and-judge pass, as does the reduce-motion walk.
+last_updated: "2026-08-22T18:00:00.000Z"
+last_activity: 2026-08-22
+last_activity_desc: "Task 3 verdict 1 on quick-260821-swp: wavy rejected as motion-sickness-inducing and retuned — the only style that travelled BELOW its target (peak +10.8% at 21% of 450ms, then -7.6% for 356ms) is now a single smooth crossing at 300ms, and its whole-screen vertical slidefadevert workspace switch moved to a monotonic horizontal slidefade"
+state_head: 8e5f742a
 progress:
   total_phases: 6
   completed_phases: 6
@@ -737,30 +737,27 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-Last session: 2026-08-21T19:15:00.000Z
-PRIOR AGREED NEXT — DELIVERED: expand the settings window into a complete control panel (260821-6z1), operator-verified.
+Last session: 2026-08-22T18:00:00.000Z
+PRIOR AGREED NEXT — PARTLY DELIVERED: Task 3's operator pass on quick-260821-swp began. The operator judged ONE style (`wavy`) and rejected it; it has been diagnosed, retuned and committed. The other four styles and the reduce-motion walk are still owed.
 
-Stopped at: QUICK TASK 260821-swp CODE-COMPLETE, TASK 3 AWAITS THE OPERATOR. The motion axis is no longer a speed dial. `motion.json` now carries a `styles` table (md3 default, smooth, snappy, bouncy, wavy) where each style owns its curves, its durations AND its Hyprland window/workspace entry shapes; `scales` is gone, replaced by an `accessibility` axis (full/reduced/off) on its own state file. Three commits: 34bd0410, 823708e4, 545b5b5e. Nothing pushed yet.
+Stopped at: TASK 3 IS NOW MID-PASS, NOT UNSTARTED. `wavy` came back "will cause motion sickness". Two stacking causes were measured, not guessed:
+  (a) its `spatial-in` `[0.05, 2.0, 0.3, 0.6]` fired its entire +10.8% overshoot in the first 94ms of 450ms then sagged to 7.6% BELOW the target for the remaining 356ms — two direction reversals, and the ONLY style in the table that ever travelled below its target (bouncy +8% settles monotonically, snappy +3%);
+  (b) that oscillation was wired to `workspaces`/`special_workspace` as `slidefadevert` — a whole-screen VERTICAL slide, the strongest vestibular trigger available.
+Both are gone: curve -> `[0.3, 1.45, 0.7, 0.94]` (peak +4.0% at 62%, dip -0.5%, one crossing), `spatial-in`/`emphasized-in` 450ms -> 300ms, and those two leaves -> monotonic `spatial-move` + horizontal `slidefade`. Commit `8e5f742a`, motion.json-only.
 
-WHAT THE OPERATOR STILL OWES THIS TASK — per style (md3/smooth/snappy/bouncy/wavy), judge a window open/close, a workspace switch, a notification arrival (it must NOT bounce — that is the whole point of the spatial/effects split), and a bar drawer sliding open. Then exercise reduce-motion full -> reduced -> off -> full on BOTH the Settings page and the dashboard quick-toggle row. `wavy` most needs fresh eyes: its plan numbers were invalid and it shipped retuned (peak 1.108/dip 0.924, not 1.130/0.870). Any tuning is a motion.json-only edit plus a re-run of Task 2's verify block.
+THREE THINGS WORTH CARRYING FORWARD FROM THIS ROUND:
 
-FOUR THINGS WORTH CARRYING FORWARD:
+  1. A LEAF'S DURATION FOLLOWS ITS CURVE NAME, NOT A SEPARATE FIELD. `animations.lua register_hypr_leaf()` derives the speed key from the curve name (`curve:gsub("%-","_")`). So repointing a leaf's curve silently repoints its duration too — moving `workspaces` to `spatial-move` also moved it from 450ms to 250ms (confirmed live: `speed 3.0 -> 2.5`). Useful lever; also a trap if you only meant to change the shape.
 
-  1. THE MEASUREMENT THAT DECIDED THE DESIGN. Hyprland 0.56.2 DOES have native spring curves — `hl.curve(n, {type="spring", stiffness, dampening, mass})`, note the spelling `dampening`, all three required, and leaves reference them through a SEPARATE `spring=` field, not `bezier=` (the error text `bezier or spring is required` is what reveals this). Springs were rejected ANYWAY: `hyprctl animations -j` reports only bezier control points, so a registered spring is STRUCTURALLY INVISIBLE to hypr-equivalence-check. Bezier-only keeps 100% of a style's curve change gate-visible. This supersedes 12-RESEARCH.md:478's "nothing exports springs to the bezier targets" — that was true when written and is not any more.
+  2. WHEN A VERDICT REJECTS A BAND, THE BAND IS THE THING BEING TUNED — SO MAKE IT STRICTER, NOT WIDER. Task 2 asserted wavy's peak ∈ [1.10, 1.25], which encoded the rejected behaviour. After retuning, wavy's PEAK no longer identifies it at all (1.0398 sits inside snappy's [1.02, 1.05] band) — its DIP does. The band was restated as peak ∈ [1.03, 1.06] PLUS a new per-style dip band pinning every other style to `dip == 1.0` and wavy to 0.98-0.998. That is a stronger gate than the one it replaced and encodes the spatial/effects invariant directly.
 
-  2. ENUMERATE WITH A PARSER, NOT A REGEX, AND ALWAYS FIND THE SECOND SYNTAX. The first opacity-site sweep found 5 sites in 5 files, one at a path that does not exist. The truth was 31 across 16 files in FOUR forms (`property:`, `properties:` plural, `Behavior on opacity`, `easing.type:`-only), and a brace-aware scanner resolving each binding to its target found 132 bindings: 90 effects (32 opacity + 58 COLOUR) vs 40 spatial. Colour was the bigger and worse half — an overshooting colour interpolation extrapolates PAST the target, where Qt clamps opacity.
+  3. CHECK 5 IS RED AND IS NOT A REGRESSION — DO NOT CHASE IT. Task 2's literal `grep -cE 'normalized'` form reports 18 under md3+full. Measured identical (18) with the change stashed at `d79c796e`. 17 of the 18 are unrelated pre-existing `bool<->int` type-key folding lines; the 18th is Task 1's permanent leaf-bezier rename. SUMMARY:173 already documents this and records the narrow curve-section form as the real assertion — that form reports 0, verified.
 
-  3. INVERT A FIX THAT SCALES WITH A LIST. The obvious fade fix — one "effects" easing every fade binds to — was 90 retargets and DEFAULT-UNSAFE, because `standard` is the most-reached-for name in the tree (73 effects sites): the next contributor writing `Motion.standardEasing` on a fade still gets a bouncing fade. Inverted instead: new spatial-only names carry the overshoot, existing names stay permanently monotonic. 90 sites byte-unchanged and safe BY CONSTRUCTION. When a fix's size scales with an enumeration, invert it so the default is correct.
-
-  4. A GATE THAT PASSES PROVES ONLY WHAT IT CAN SEE — and so does a plan. Two bugs survived every static gate and fell out only from switching through all five styles on real hardware: the gate's own effective-json mirror omitted `.semantic` (13 of 15 leaves scored against BASE durations, false-FAILing every non-md3 style), and Hyprland HARD-REJECTS bezier control-point Y above 2.00 then SILENTLY KEEPS THE PREVIOUS REGISTRATION instead of erroring the reload — which is how the plan's own wavy numbers shipped invalid. Also: THREE hardcoded `off|reduced|normal|lively` closed sets existed, not the two the brief named, the third inside hypr-equivalence-check itself. And `Design.barDrawerEasingType` = `Easing.OutCubic` meant all four bar drawers could not respond to ANY style — invisible to a bezier scan, and the operator would have been asked to judge a surface that physically cannot change.
-
-ACCEPTED LOSS, STATED NOT HIDDEN: `lively`'s 1.25x has no home in the new model and migrates to md3 + full. Speed-as-a-dial was traded for style-as-a-personality.
-
-ONE KNOWN-RED GATE, NOT A REGRESSION: hypr-equivalence-check reports 1 FAIL whose sole unforgiven diff is `zztest` — a probe curve registered live via `hyprctl eval` during this session's own capability measurement. It exists in NO file (grep-verified), and Hyprland does not clear eval-registered curves on `hyprctl reload` (retested empirically — reload left it untouched and disturbed no layer surfaces). It clears on the next compositor restart. Do not chase it as a code defect.
+STILL OWED BY TASK 3: judge `md3`, `smooth`, `snappy`, `bouncy` and re-judge the retuned `wavy` across the four surfaces (window open/close, workspace switch, notification arrival — must NOT bounce, bar drawer), then walk reduce-motion full -> reduced -> off -> full on both the Settings page and the dashboard quick-toggle row.
 
 Prior: 260821-6z1 settings control panel, operator-verified. Before that: themed nvim (260820-nua/r44), operator-verified.
 
-NEXT: finish Task 3's operator pass, then push. v4.0 shipped 2026-08-17 and is archived; v5.0 still has no roadmap, so keep routing small items through /gsd-quick and run /gsd-new-milestone when ready (review /gsd-review-backlog and the v4.0 carried-debt section first).
+NEXT: finish Task 3's remaining styles. v4.0 shipped 2026-08-17 and is archived; v5.0 still has no roadmap, so keep routing small items through /gsd-quick and run /gsd-new-milestone when ready (review /gsd-review-backlog and the v4.0 carried-debt section first).
 
 Resume file: None
 

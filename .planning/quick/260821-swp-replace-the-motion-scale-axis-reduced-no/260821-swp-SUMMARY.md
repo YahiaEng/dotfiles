@@ -133,7 +133,33 @@ status: complete
    - **Deviation (Rule 1 — bug fix found live, committed separately):** `hypr-equivalence-check`'s mirrored effective-document merge dropped `.semantic`, and its curve-value comparison used a too-strict 1e-6 tolerance against Hyprland's own 2-decimal-place JSON output — `823708e4` (fix)
 2. **Task 2: Add the four remaining styles — JSON only** - `545b5b5e` (feat)
 
-**Task 3 (operator render-and-judge pass, `checkpoint:human-verify`, `gate="blocking-human"`): NOT STARTED — awaits the operator.**
+**Task 3 (operator render-and-judge pass, `checkpoint:human-verify`, `gate="blocking-human"`): IN PROGRESS — first operator verdict received and acted on, remaining styles still await judgement.**
+
+### Task 3 verdict 1 — `wavy` rejected: "will cause motion sickness" (2026-08-22)
+
+The operator judged `wavy` unusable as shipped. Diagnosis, measured not assumed:
+
+| | shipped | retuned |
+|---|---|---|
+| `spatial-in` control points | `[0.05, 2.0, 0.3, 0.6]` | `[0.3, 1.45, 0.7, 0.94]` |
+| peak | +10.8% at **21%** of the duration (94ms of 450ms) | +4.0% at **62%** |
+| dip after peak | **-7.6%** below target, held across the remaining 356ms | -0.5% |
+| direction reversals | 2 | 1 crossing, then settles |
+| `spatial-in` / `emphasized-in` duration | `long1` (450ms) | `medium2` (300ms) |
+| `workspaces` / `special_workspace` | `spatial-in` (the wave) + `slidefadevert` | `spatial-move` (monotonic) + `slidefade` |
+
+Two independent contributors were stacking, and both were removed:
+
+1. **The curve was a different class of motion, not just a stronger one.** `wavy` was the only style in the table that ever travelled *below* its target — `bouncy` peaks +8% and settles monotonically, `snappy` +3%. It snapped its whole overshoot out in the first 94ms and then sagged for 356ms.
+2. **That oscillation was wired to the largest surface available.** `workspaces` and `special_workspace` used it with `slidefadevert` — a whole-screen *vertical* slide. Full-field vertical motion that reverses direction is the strongest vestibular trigger in the set; the same curve on a single window is far milder. Per `animations.lua` `register_hypr_leaf()` a leaf's duration follows its *curve* name, so repointing these two at `spatial-move` also moved workspace switching from 450ms to 250ms as a side effect (verified live: `speed 3.0 -> 2.5`).
+
+`smooth` already used horizontal `slidefade` for `special_workspace`, so that leaf choice follows existing precedent rather than inventing one.
+
+**Task 2 verify block re-run against the tuned numbers — checks 1-4 green** (all five styles switch, reach the compositor with matching `windowsIn` style and `spatial-in` Y1, `hypr-equivalence-check` PASS 3 / FAIL 0 and `motion-lint` 489/0 under each). Check 5's literal `grep -cE 'normalized'` form reports 18 — **measured identical (18) with this change stashed at `d79c796e`**, i.e. pre-existing and unrelated; it is the already-recorded mis-scoping documented below in this file, and its narrow curve-section form reports 0 under md3+full as recorded.
+
+**Task 2's wavy band was itself retuned, and deliberately made stricter rather than merely wider.** The plan asserted `wavy` spatial-in peak ∈ [1.10, 1.25] — the band encoding the rejected behaviour, so it could not survive the verdict. After retuning, wavy's *peak* (1.0398) no longer distinguishes it at all: it sits inside `snappy`'s band. Its *dip* does. The band was therefore restated as peak ∈ [1.03, 1.06] **plus a new per-style dip band** pinning every other style to never undershoot (`dip == 1.0`) and `wavy` to 0.98-0.998. That is a stronger assertion than the one it replaces, and it directly encodes the spatial/effects invariant this task was built around.
+
+**Still owed by Task 3:** the per-style render-and-judge pass for `md3`, `smooth`, `snappy`, `bouncy` (and a re-judge of the retuned `wavy`), plus the reduce-motion `full -> reduced -> off -> full` walk on both the Settings page and the dashboard quick-toggle row.
 
 ## Deviations from Plan
 
