@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: QUICK TASK 260821-swp COMPLETE — Task 3 operator-verified. All five animation styles pass and the reduce-motion full/reduced/off walk passes. The motion axis is now style + accessibility, the quick-toggle row picks the style, and a latent defect that had kept the QML half of the axis inert since Task 1 is fixed. Nothing outstanding on the task; v5.0 still has no roadmap.
-last_updated: "2026-08-22T22:00:00.000Z"
+stopped_at: LAUNCHER MIGRATION SCOPED, NOT STARTED — exploration complete and committed; zero code written. walker+elephant will be retired into a native Quickshell QML launcher as a standalone quick task BEFORE v5.0 scoping. All design decisions D-1..D-6 and both research passes are recorded in .planning/notes/launcher-qml-migration-design.md. Next action is /gsd-quick against that note.
+last_updated: "2026-08-22T23:30:00.000Z"
 last_activity: 2026-08-22
-last_activity_desc: "quick-260821-swp closed: the motion scale axis is now an animation STYLE axis plus a separate accessibility axis, all five styles and the reduce-motion walk operator-verified, and Motion.qml's six never-declared spatial aliases fixed after 74 QML call sites were found resolving to undefined"
-state_head: 44e16340
+last_activity_desc: "launcher QML migration explored and scoped: Option B shape chosen (one frame, per-mode result views, own LazyLoader+PanelWindow), 36 menu entries remapped to 9 verb-based Omarchy-influenced roots, 3 net-new requirements minted, and research question 1 resolved (emoji bundles in-repo, clipboard via cliphist)"
+state_head: 39d713f4
 progress:
   total_phases: 6
   completed_phases: 6
@@ -781,7 +781,62 @@ FORMER CHECKLIST, NOW SATISFIED: judge `md3`, `smooth`, `snappy`, `bouncy` and R
 
 Prior: 260821-6z1 settings control panel, operator-verified. Before that: themed nvim (260820-nua/r44), operator-verified.
 
-NEXT: finish Task 3's remaining styles. v4.0 shipped 2026-08-17 and is archived; v5.0 still has no roadmap, so keep routing small items through /gsd-quick and run /gsd-new-milestone when ready (review /gsd-review-backlog and the v4.0 carried-debt section first).
+---
+
+## SESSION 2026-08-22 (evening) — LAUNCHER MIGRATION SCOPED, ZERO CODE WRITTEN
+
+Task 3 / quick-260821-swp is CLOSED — the "finish Task 3's remaining styles"
+line that stood here was already stale when written. Nothing is outstanding on
+motion.
+
+**THE WHOLE OF THIS SESSION IS AN EXPLORATION. No source file was touched.**
+Three commits, all `.planning/` docs: `d354f3dd` (capture), `39d713f4`
+(research question 1 resolved), plus this state update.
+
+**READ THIS FIRST ON RESUME:** `.planning/notes/launcher-qml-migration-design.md`
+— it is the complete brief and carries decisions D-1..D-6, the measured scope,
+both research passes with sources, and the carried risks. Visual decision record
+(three candidate shapes, mode gallery, full taxonomy remap, drawn in the live
+palette): https://claude.ai/code/artifact/e4522757-3067-4547-91dd-00b2879cd6a5
+
+**WHAT WAS DECIDED, and the operator decided every one of these explicitly:**
+  - Retire walker + elephant entirely into native QML. This REVERSES the
+    deferral at `PROJECT.md:146`, which had called it "a v5.0+ question."
+  - Route as a STANDALONE QUICK TASK before v5.0 is scoped — research-first,
+    which is why the two research passes exist.
+  - Shape = Option B: one frame, one search field, result view swaps per content
+    type. Its own LazyLoader + PanelWindow, matching this repo's house pattern.
+  - Menu restructured to 9 verb-based Omarchy-influenced roots; all 36 existing
+    entries re-homed, none dropped. Omarchy's `Trigger` renamed to `Tools`.
+  - 3 net-new requirements ship WITH the migration (R-1 Updates, R-2 System
+    info, R-3 Apps root) — minted per `PROJECT.md:31`, not invented mid-phase.
+
+**THE THING MOST LIKELY TO BE UNDERESTIMATED:** the real work is not the
+launcher, it is the **7 `--dmenu` consumer scripts**, each needing a native QML
+surface AND a caller repoint. Scoping this as "rebuild the launcher" gets it
+wrong. The full list with line numbers is in the note.
+
+**TWO SUB-DECISIONS DELIBERATELY LEFT OPEN** — both scope, not mechanism, and
+both should be named at the top of the quick task rather than settled silently:
+  1. Emoji keyword breadth — today's 160 entries carry ONE name each
+     (`😀\tgrinning face`), so "happy"/"joy" match nothing. end-4 carries many
+     keywords per glyph. Independent of whether to grow past 160.
+  2. Clipboard image previews — net-new; the current Super+C pipeline is
+     text-only. end-4's exact image contract is recorded in D-5.
+
+**ONE CORRECTION ALREADY MADE, DO NOT RE-DERIVE IT:** the sketch shows emoji in
+a GRID and originally implied reference precedent. There is none — end-4 uses a
+plain `ListView` and Caelestia has no emoji surface at all. Grid stands as a
+deliberate local divergence (16 visible vs 4). Never cite a reference shell for
+it. The note's D-1 carries this correction inline.
+
+**NO SPIKE IS NEEDED** and this was checked from both directions: end-4 holds
+~1,947 emoji in memory with zero proxy model / cacheBuffer / pagination, and
+this repo's list is 160.
+
+NEXT: `/gsd-quick` against the design note. v4.0 shipped 2026-08-17 and is
+archived; v5.0 still has no roadmap — run `/gsd-new-milestone` after this task
+lands (review `/gsd-review-backlog` and the v4.0 carried-debt section first).
 
 Resume file: None
 
