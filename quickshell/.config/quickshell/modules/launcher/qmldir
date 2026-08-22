@@ -1,0 +1,20 @@
+# qmldir — explicit module manifest for modules/launcher/ (quick task
+# 260822-sht, Task 1). Mirrors every sibling module manifest's own standing
+# instruction (modules/qmldir:1-11, modules/dashboard/qmldir,
+# modules/settings/qmldir): checking this file in disables Quickshell's
+# directory-scanner synthesis for this directory entirely — any .qml type
+# added here that is NOT declared below becomes unresolvable to shell.qml's
+# `import "modules/launcher"` forever, with no load error. Any FUTURE type
+# added to this directory (Tasks 2-9 each add one or more) MUST be declared
+# in the SAME commit that creates it.
+#
+# LauncherState carries BOTH `pragma Singleton` in its own file AND the
+# `singleton` keyword here — modules/qmldir's binary-verified finding:
+# without the qmldir keyword, bare `LauncherState.query`-style access
+# resolves to `undefined` forever (the object is never constructed).
+# Launcher is deliberately NOT a singleton — it is the PanelWindow instance
+# mounted once by shell.qml's launcherLoader, matching Dashboard/Overview's
+# own non-singleton shape in the parent modules/qmldir.
+module qs.modules.launcher
+singleton LauncherState 1.0 LauncherState.qml
+Launcher 1.0 Launcher.qml

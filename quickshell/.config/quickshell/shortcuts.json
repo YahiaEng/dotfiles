@@ -58,5 +58,11 @@
     "name": "settings",
     "chord": { "mods": "SUPER", "key": "comma" },
     "description": "Toggle the in-shell QML settings window (quick task 260820-sqd, PD-02, D-02/D-06) — a FloatingWindow toplevel, not a layer surface. `comma` measured free under both SUPER and SUPER+SHIFT on this host 2026-08-20; `S` was not used because it is taken under both modmasks."
+  },
+  {
+    "appid": "quickshell",
+    "name": "launcher",
+    "chord": { "mods": "SUPER", "key": "SPACE" },
+    "description": "Task 1: Launcher surface tracer — Super+Space opens the native QML launcher (app search, substring-filtered) replacing walker's app-launcher role, ahead of the full walker+elephant retirement (quick task 260822-sht)."
   }
 ]

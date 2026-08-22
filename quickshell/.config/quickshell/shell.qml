@@ -30,6 +30,7 @@ import "modules/centre"
 import "modules/osd"
 import "modules/session"
 import "modules/settings"
+import "modules/launcher"
 
 ShellRoot {
     id: root
@@ -716,6 +717,37 @@ ShellRoot {
     // escape hatch while leaving the fire exit open.
     function toggleOverview() {
         overviewLoader.active = !overviewLoader.active;
+    }
+
+    // ── Launcher (quick task 260822-sht, Task 1 — the walker+elephant
+    //    retirement's tracer slice) ─────────────────────────────────────
+    // Same summon-via-LazyLoader mechanism as the panels/overview above.
+    // Coexists with the still-live walker surface for the duration of this
+    // migration's stages 1-2 (that overlap is deliberate, per the plan's
+    // own ordering constraint) — retiring walker's own binds is Task 10.
+    LazyLoader {
+        id: launcherLoader
+        active: false
+
+        Launcher {
+            onDismissRequested: launcherLoader.active = false
+        }
+    }
+
+    // dashboardShortcut's own toggle-with-fullscreenBlocking-guard shape,
+    // reused verbatim: an already-open launcher always closes, a closed
+    // one only opens when not fullscreen-blocked.
+    GlobalShortcut {
+        id: launcherShortcut
+        appid: "quickshell"
+        name: "launcher"
+        onPressed: {
+            if (launcherLoader.active) {
+                launcherLoader.active = false;
+            } else if (!root.fullscreenBlocking) {
+                launcherLoader.active = true;
+            }
+        }
     }
 
     // ── Power menu (Phase 20 Plan 06, the power half's tracer, QPOWER-01)
