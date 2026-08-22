@@ -208,6 +208,32 @@ Singleton {
     readonly property int staggerOffsetDuration: pairs[3].duration || 50
     readonly property var staggerOffsetEasing: pairs[3].easingValid ? pairs[3].easing : [0.2, 0, 0, 1, 1, 1]
 
+    // ── spatial-in/out/move (quick-260821-swp) ──────────────────────────
+    //    These six aliases were MISSING until 2026-08-22 even though
+    //    `_pairNames` has carried the three spatial keys since 34bd0410 and
+    //    74 call sites across 23 files were already reading them. Every one
+    //    of those resolved to `undefined`, which Qt silently accepts on a
+    //    NumberAnimation — it falls back to its own 250ms default and its
+    //    own default easing — so the QML half of the animation-style axis
+    //    did nothing at all: the bar, panels, notification centre, settings
+    //    nav and dashboard tabs animated identically under every style,
+    //    while the Hyprland leaves responded correctly. Nothing caught it:
+    //    motion-lint checks that a site reads a TOKEN rather than a
+    //    literal, not that the token it reads exists, and QML resolves an
+    //    undefined singleton property to `undefined` rather than erroring.
+    //    The only trace was a pair of `Unable to assign [undefined]` scene
+    //    warnings in ~/.cache/quickshell.log.
+    //
+    //    Fallbacks below are motion.json's own BASE (md3) values for each
+    //    key, matching the four aliases above: an unresolved pair yields
+    //    today's shipped md3 motion rather than a Qt default.
+    readonly property int spatialInDuration: pairs[5].duration || 300
+    readonly property var spatialInEasing: pairs[5].easingValid ? pairs[5].easing : [0.05, 0.7, 0.1, 1, 1, 1]
+    readonly property int spatialOutDuration: pairs[6].duration || 150
+    readonly property var spatialOutEasing: pairs[6].easingValid ? pairs[6].easing : [0.3, 0, 0.8, 0.15, 1, 1]
+    readonly property int spatialMoveDuration: pairs[7].duration || 200
+    readonly property var spatialMoveEasing: pairs[7].easingValid ? pairs[7].easing : [0.2, 0, 0, 1, 1, 1]
+
     // ── ambient (G-15-1) — a LOOP PERIOD, not a one-shot transition; the
     //    fifth `_pairNames` entry appended above. `pairs[4].duration` is
     //    ALREADY multiplier-scaled and floor-clamped by lib/motion.sh (the
