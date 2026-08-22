@@ -53,17 +53,17 @@ Singleton {
 
     readonly property var roots: [
         {
-            text: "  Apps",
+            text: "  Apps",
             children: [
                 {
-                    text: "  Application list",
+                    text: "  Application list",
                     command: null,
                     mode: "apps"
                 },
             ]
         },
         {
-            text: "  Capture",
+            text: "  Capture",
             children: [
                 {
                     text: "  Region",
@@ -84,7 +84,7 @@ Singleton {
             ]
         },
         {
-            text: "  Tools",
+            text: "  Tools",
             children: [
                 {
                     text: "  Emoji",
@@ -103,7 +103,7 @@ Singleton {
             ]
         },
         {
-            text: "  Style",
+            text: "  Style",
             children: [
                 {
                     text: "  Theme",
@@ -128,7 +128,7 @@ Singleton {
             ]
         },
         {
-            text: "  Setup",
+            text: "  Setup",
             children: [
                 {
                     text: "  Settings",
@@ -153,7 +153,7 @@ Singleton {
             ]
         },
         {
-            text: "  Play",
+            text: "  Play",
             children: [
                 {
                     text: "  Steam",
@@ -178,7 +178,7 @@ Singleton {
             ]
         },
         {
-            text: "  AI",
+            text: "  AI",
             children: [
                 {
                     text: "  Claude",
@@ -211,7 +211,7 @@ Singleton {
             ]
         },
         {
-            text: "  Learn",
+            text: "  Learn",
             children: [
                 {
                     text: "  Keybinds",
@@ -221,19 +221,19 @@ Singleton {
             ]
         },
         {
-            text: "  System",
+            text: "  System",
             children: [
                 {
                     text: "  Power",
                     command: `hyprctl dispatch 'hl.dsp.global("quickshell:power-menu")'`
                 },
                 {
-                    text: "  Updates",
+                    text: "  Updates",
                     command: null,
                     mode: "updates"
                 },
                 {
-                    text: "  System info",
+                    text: "  System info",
                     command: null,
                     mode: "systeminfo"
                 },
