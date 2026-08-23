@@ -164,6 +164,26 @@ BarCapsule {
             // middle is the secondary action; right opens the menu.
             // display() is called on THIS popup's own window handle — see
             // CORRECTION 2, no menu is ever hand-rolled here.
+            //
+            // KNOWN GAP, investigated and left unfixed (Task 3 operator
+            // feedback, 260823-65s) — Steam's own SNI item implements NO
+            // Activate D-Bus method at all (measured: `busctl --user call
+            // ... Activate ii 0 0` -> "No such method") while ALSO
+            // reporting `ItemIsMenu: false`/`onlyMenu: false` — it
+            // under-reports its own capability against the very spec
+            // CORRECTION 3's guard trusts. Quickshell exposes no property
+            // that distinguishes "this item lacks Activate" from "it has
+            // Activate but it's a no-op" (activate() is fire-and-forget,
+            // no reply is surfaced to QML), and `hasMenu` is NOT a usable
+            // substitute — measured true for BOTH Steam (non-compliant)
+            // and Discord (spec-compliant, activate() genuinely restores
+            // its window), so branching on it would show a menu on every
+            // left click for compliant apps too, breaking their contract.
+            // No safe, non-fragile fix exists at this layer: left click on
+            // an app that lies about onlyMenu correctly does nothing
+            // (activate() is called and silently no-ops). The operator's
+            // real path to Steam's menu is RIGHT click, which the
+            // `//@ pragma UseQApplication` fix (shell.qml) makes work.
             MouseArea {
                 id: trayMouseArea
                 anchors.fill: parent

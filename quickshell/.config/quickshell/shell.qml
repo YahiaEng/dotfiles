@@ -1,3 +1,16 @@
+//@ pragma UseQApplication
+// FIX (quick task 260823-65s, Task 3 operator feedback) — required so
+// TrayCapsule.qml/TrayPopout.qml's right-click display() can render a
+// platform (DBusMenu) menu at all. Measured: right-clicking a tray item
+// produced six repetitions in ~/.cache/quickshell.log of "Cannot display
+// PlatformMenuEntry as quickshell was not started in QApplication mode" —
+// proof the MouseArea and display() call were already correct; only the
+// application class was wrong. This pragma is SHELL-WIDE, not tray-local:
+// it switches Quickshell's underlying Qt application class for every
+// surface this root owns (bar, notification server/popups/centre, OSD,
+// launcher, dashboard, settings) — re-verify the whole shell, not just
+// the tray, every time this line is touched.
+//
 // shell.qml — Quickshell shell root (D-01/D-02/D-19)
 //
 // Headless by design: this root renders nothing on its own. Its only
