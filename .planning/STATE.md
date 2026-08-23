@@ -7,7 +7,7 @@ stopped_at: "QUICK TASK 260822-sht COMPLETE — walker+elephant retired, native 
 last_updated: "2026-08-23T01:00:00.000Z"
 last_activity: 2026-08-23
 last_activity_desc: "quick task 260822-sht complete: walker+elephant retired and replaced by an in-process QML launcher (fuzzy search, 6-route prefix router, 9-root menu tree, emoji/clipboard/keybinds/picker surfaces). Nine defects were found by live operator use rather than by any gate — including exec-on-dismiss killing every command mid-flight, which had silently broken emoji typing and clipboard paste since they were written."
-state_head: 5ba0f746
+state_head: 7eca8ce3
 progress:
   total_phases: 6
   completed_phases: 6
