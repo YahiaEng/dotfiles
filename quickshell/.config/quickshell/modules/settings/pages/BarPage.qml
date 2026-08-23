@@ -161,6 +161,25 @@ PageBase {
         }
     }
 
+    // ── Edge bar (quick task 260823-9ak, Task 4, R1/R2/R3) — the single
+    //    toggle for the two always-on top/bottom strips. Default ON (R3);
+    //    OFF is exactly today's behaviour — both strips unmount entirely
+    //    (shell.qml's LazyLoader, not a visible:false binding, since a
+    //    mounted-but-hidden layer surface would still hold its
+    //    exclusiveZone and silently fail R3) and the launcher reverts to
+    //    its original top-drop direction (Task 6).
+    SettingsSection {
+        title: "Edge bar"
+        icon: "border_horizontal"
+
+        ToggleRow {
+            label: "Edge bar"
+            subtext: "A frame at the top and bottom screen edges that the dashboard and launcher attach to and rise from"
+            checked: Prefs.getValue("edgeBar.enabled")
+            onToggled: (value) => Prefs.setValue("edgeBar.enabled", value)
+        }
+    }
+
     // ── Capsules (Task 8, D-01 bundle 2/D-02/PD-04) — FIVE capsule-level
     //    ToggleRows, each backed by Prefs.bar.capsules.<id> with a default
     //    of true. FOUR, not six: the "Clock & actions" and "System" parents

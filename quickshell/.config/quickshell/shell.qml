@@ -48,6 +48,13 @@ import "modules/launcher"
 ShellRoot {
     id: root
 
+    // ── Edge bar enable flag (quick task 260823-9ak, Task 4, R2/R3) ─────
+    // Read ONCE here — the single resolution point both EdgeBar loaders
+    // below AND Launcher.qml's direction branch (Task 6, via a property
+    // threaded onto the launcher instance) read, never a second
+    // `Prefs.getValue` call re-derived at another call site.
+    readonly property bool edgeBarEnabled: Prefs.getValue("edgeBar.enabled")
+
     // Selected-tab memory (D-14, Phase 14 Plan 03): the dashboard drawer's
     // LazyLoader destroys the surface on dismiss, so this is the only
     // thing that outlives it — Dashboard.qml seeds its pager from this on
@@ -519,20 +526,33 @@ ShellRoot {
         onSettingsRequested: root.openSettings()
     }
 
-    // ── Edge bar (quick task 260823-9ak, Task 3, R1/R2/R4/D-2) — two
-    //    always-on strips, top and bottom. Mounted directly at shell root,
-    //    unconditionally for now — Task 4 gates both on `edgeBar.enabled`
-    //    (default ON) via a LazyLoader, per R3's OFF-must-unmount
-    //    requirement. Permanent surfaces, the same direct-mount posture
-    //    `barInstance` above and the notification popup stack already use
-    //    — never behind a LazyLoader keyed on anything transient.
-    EdgeBar {
-        id: edgeBarTop
-        bottom: false
+    // ── Edge bar (quick task 260823-9ak, Task 3+4, R1/R2/R3/R4/D-2) — two
+    //    always-on strips, top and bottom. Gated on `root.edgeBarEnabled`
+    //    via a LazyLoader, PER INSTANCE (not a shared wrapper Item) so
+    //    EACH strip's own wl_surface is destroyed when disabled — R3
+    //    demands OFF unmount entirely (a mounted-but-`visible:false`
+    //    layer surface keeps its `exclusiveZone`, which would silently
+    //    fail R3's "exactly today's behaviour" requirement). Otherwise
+    //    the same permanent-while-on posture `barInstance` above and the
+    //    notification popup stack already use — never behind a loader
+    //    keyed on anything transient.
+    LazyLoader {
+        id: edgeBarTopLoader
+        active: root.edgeBarEnabled
+
+        EdgeBar {
+            id: edgeBarTop
+            bottom: false
+        }
     }
-    EdgeBar {
-        id: edgeBarBottom
-        bottom: true
+    LazyLoader {
+        id: edgeBarBottomLoader
+        active: root.edgeBarEnabled
+
+        EdgeBar {
+            id: edgeBarBottom
+            bottom: true
+        }
     }
 
     // ── Hot zone (Phase 18 Plan 16, QBAR-08) — mounted behind a loader

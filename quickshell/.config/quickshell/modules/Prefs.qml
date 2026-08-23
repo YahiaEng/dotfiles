@@ -135,7 +135,13 @@ Singleton {
         // is which of the two modes is active; launchCounts is the
         // per-desktop-entry-id launch tally the "most used" mode ranks by.
         "launcher.sortMode",
-        "launcher.launchCounts"
+        "launcher.launchCounts",
+        // edgeBar.enabled (quick task 260823-9ak, Task 4, R2/R3) — the
+        // edge bar's own settings toggle. Default true (R3: enabled is
+        // the default); gates both EdgeBar.qml instances in shell.qml
+        // AND Launcher.qml's direction branch (Task 6) off ONE resolved
+        // shell-root property, never re-derived at each call site.
+        "edgeBar.enabled"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -177,7 +183,8 @@ Singleton {
         "bar.entries.settings": true,
         "bar.entries.power": true,
         "launcher.sortMode": "alpha",
-        "launcher.launchCounts": ({})
+        "launcher.launchCounts": ({}),
+        "edgeBar.enabled": true
     })
 
     // ── Helper functions — ALL declared here, above the FileView and
