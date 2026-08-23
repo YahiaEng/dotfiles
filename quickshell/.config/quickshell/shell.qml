@@ -1387,12 +1387,42 @@ ShellRoot {
         // (D-11). Otherwise, only open when fullscreenBlocking is false;
         // when blocked, do nothing at all — no notification, no sound, no
         // visible acknowledgement (DASH-08's whole point).
-        onPressed: {
+        //
+        // Named `toggle()` (quick task 260823-9ak, Task 5, R5) rather than
+        // inlined directly on `onPressed`, mirroring `launcherMenuShortcut`'s
+        // own `_toggleMenu()` shape below — so the top edge-bar strip's
+        // dwelled-hover signal (EdgeBar.qml's `bulgeHoverTriggered`) can
+        // call the SAME code path the keybind runs, never a second,
+        // divergent `dashboardLoader.active` write.
+        function toggle() {
             if (dashboardLoader.active) {
                 dashboardLoader.active = false;
             } else if (!root.fullscreenBlocking) {
                 dashboardLoader.active = true;
             }
+        }
+        onPressed: dashboardShortcut.toggle()
+    }
+
+    // ── Edge bar hover reveal (quick task 260823-9ak, Task 5, R5/R6) ─────
+    // `Connections.target` re-binds automatically as each LazyLoader's
+    // `.item` goes null/non-null across an enable/disable toggle (Task 4),
+    // and gracefully no-ops while null — so these two blocks need no
+    // `edgeBarEnabled` guard of their own. Top strip reuses
+    // `dashboardShortcut`'s own toggle path (R5); bottom strip reuses
+    // `launcherMenuShortcut`'s own `_toggleMenu()` verbatim (R6), which
+    // already sets `LauncherState.pendingMode = LauncherState.modeMenu`
+    // before opening — so the bottom edge opens MENU mode, not apps mode.
+    Connections {
+        target: edgeBarTopLoader.item
+        function onBulgeHoverTriggered() {
+            dashboardShortcut.toggle();
+        }
+    }
+    Connections {
+        target: edgeBarBottomLoader.item
+        function onBulgeHoverTriggered() {
+            launcherMenuShortcut._toggleMenu();
         }
     }
 

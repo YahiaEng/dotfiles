@@ -226,14 +226,62 @@ PanelWindow {
     }
 
     // ── Bulge overhang hit area (GT-6) — the only input-live rectangle on
-    //    this surface. Task 5 attaches the hover handler here.
+    //    this surface. The hover reveal below is scoped to this same
+    //    item, so what the operator SEES (the permanent bulge landmark,
+    //    D-3) and what actually triggers are the same object (P-3).
     Item {
         id: bulgeHitArea
         x: edgeBarWindow._xl
         width: edgeBarWindow._wb
         y: edgeBarWindow.bottom ? 0 : edgeBarWindow._t
         height: edgeBarWindow._b
+
+        // ── Hover reveal (quick task 260823-9ak, Task 5, R5/R6, P-3,
+        //    T-9ak-01) — a HoverHandler and a dwell Timer, NOTHING else.
+        //    No TapHandler/MouseArea/WheelHandler/DragHandler exists
+        //    anywhere in this file — permanently, per HotZone.qml's own
+        //    T-18-16-01 click-inert posture this reuses verbatim: a click
+        //    this surface unavoidably consumes must do nothing rather
+        //    than something wrong. This component does not know what a
+        //    dashboard or a launcher is — it only exposes the fire as a
+        //    plain signal; shell.qml decides what that means.
+        HoverHandler {
+            id: bulgeHover
+            onHoveredChanged: {
+                if (bulgeHover.hovered) {
+                    // A pointer merely crossing the bulge must not summon
+                    // anything — only start the dwell timer while ARMED.
+                    // Disarmed briefly after a fire (see the timer below),
+                    // so a surface that dismisses while the pointer is
+                    // still resting here does not immediately re-fire.
+                    if (edgeBarWindow._bulgeArmed)
+                        bulgeDwellTimer.start();
+                } else {
+                    bulgeDwellTimer.stop();
+                    edgeBarWindow._bulgeArmed = true;
+                }
+            }
+        }
     }
+
+    // Re-armed only by a genuine hover EXIT (bulgeHover.onHoveredChanged
+    // above), never by time alone.
+    property bool _bulgeArmed: true
+
+    Timer {
+        id: bulgeDwellTimer
+        interval: Design.edgeBarDwellMs
+        repeat: false
+        onTriggered: {
+            edgeBarWindow._bulgeArmed = false;
+            edgeBarWindow.bulgeHoverTriggered();
+        }
+    }
+
+    // Fired once per dwelled hover, per file header — shell.qml decides
+    // what it means (Task 5: the dashboard on the top instance, the
+    // launcher's menu mode on the bottom instance).
+    signal bulgeHoverTriggered()
 
     mask: Region {
         item: bulgeHitArea
