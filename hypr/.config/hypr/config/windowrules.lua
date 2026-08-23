@@ -230,7 +230,7 @@ hl.window_rule({ match = { class = [[^(firefox)$]] }, no_blur = true })
 -- live rule)
 hl.window_rule({ match = { class = [[^(chromium)$]] }, no_blur = true })
 
--- ── Layer rules (walker)
+-- ── Layer rules ──────────────────────────────────────
 -- D-08 (13-01): the two wofi layerrules formerly here (blur on / ignore_alpha
 -- 0.5, match:namespace wofi) were deleted — wofi was retired in v1.0 and
 -- these were dead config referencing a non-existent surface. RETIRE-02
@@ -239,13 +239,16 @@ hl.window_rule({ match = { class = [[^(chromium)$]] }, no_blur = true })
 -- namespace rules from this file the same way — wleave's exit-animation
 -- and entrance-defect investigation (09-03/09-04) was specific to its own
 -- CSS keyframe/compositor-scale interaction and is not repeated here; see
--- git history at this file's pre-RETIRE-05 sha for the full record. The
--- one durable finding worth keeping — GTK4 layer-shell windows paint an
+-- git history at this file's pre-RETIRE-05 sha for the full record. Quick
+-- task 260822-sht (Task 10) deleted the retired external launcher's own
+-- two namespace rules the same way again — the native QML launcher that
+-- replaced it declares its
+-- own `quickshell-launcher` namespace rules below instead. The one
+-- durable finding worth keeping — GTK4 layer-shell windows paint an
 -- opaque background by default, defeating blur without an explicit
 -- override — is why every layer-shell namespace rule in this file states
 -- its own `blur = true` explicitly rather than relying on a default.
 
-hl.layer_rule({ match = { namespace = "walker" }, blur = true })
 -- Dashboard drawer character arm (D-20, Phase 14 Plan 01), exact-match
 -- ONLY — `slide` is the drawer's own character, never given the family
 -- regex, since Phases 15/16 choose their own animation per surface. No
@@ -379,7 +382,6 @@ hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, blur = true })
 -- above, per the same file-level rule.
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, ignore_alpha = 0.2 })
 
-hl.layer_rule({ match = { namespace = "walker" }, ignore_alpha = 0.5 })
 -- FILE-LEVEL FINDING, learned from wleave's own ignore_alpha rule (deleted
 -- RETIRE-05, Phase 20 Plan 10 — see git history at this file's pre-RETIRE-05
 -- sha for the full multi-value composited-alpha derivation): ignore_alpha
@@ -389,11 +391,13 @@ hl.layer_rule({ match = { namespace = "walker" }, ignore_alpha = 0.5 })
 -- threshold is the only per-surface lever, and it must be set BELOW every
 -- alpha value that surface composites, not just its nominal scrim alpha.
 -- This is the finding quickshell-session's own ignore_alpha rule below
--- still cites.
+-- still cites. The retired external launcher's own ignore_alpha rule,
+-- once the precedent for this 0.5 threshold, was retired here (quick
+-- task 260822-sht, Task 10).
 -- quickshell-* family ignore_alpha floor (D-42, Phase 14 Plan 01) — see
 -- the family-treatment comment block above the blur arm for the full A2
 -- rationale and verdict; this pair mirrors it exactly for ignore_alpha,
--- matching the 0.5 threshold the walker rule already uses.
+-- at the same 0.5 threshold this family has used since D-42.
 hl.layer_rule({ match = { namespace = "^quickshell-.*" }, ignore_alpha = 0.5 })
 
 -- quickshell-dashboard's own ignore_alpha — REVISED (D-21-26, frost

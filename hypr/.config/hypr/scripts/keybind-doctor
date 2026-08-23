@@ -92,8 +92,8 @@ _kbd_modmask() {
 # Lua bind lines aren't a regex-friendly `key = value, value, value`
 # shape like hyprlang's — they're a real (if simple) function call whose
 # key-string and options-table arguments can themselves contain quoted
-# text with embedded "--" (e.g. `hl.dsp.exec_cmd("uwsm app -- walker -m
-# menus:main")`, `"cliphist list | walker --dmenu | ..."`), which a
+# text with embedded "--" (e.g. `hl.dsp.exec_cmd("uwsm app -- kitty.desktop")`,
+# `hl.dsp.exec_cmd("timeout 2 qs ipc call -- osd raise || ...")`), which a
 # naive "find the first --" comment search would misidentify as the
 # trailing description. Parsing this correctly needs a real (quote- and
 # bracket-depth-aware) small tokenizer, not a regex — the same reasoning
@@ -292,18 +292,6 @@ check "declared-bind parse shape guard: ${DESC_TOTAL} hl.bind(...) line(s) parse
 # ── Description parity (D-30) — pure static parse, no hyprctl needed ───
 check "description parity (D-30): all ${DESC_TOTAL} declared binds carry a trailing '--' description (missing: ${DESC_MISSING})" "$([[ $DESC_MISSING -eq 0 ]] && echo 0 || echo 1)"
 
-# ── Static guard for the D-05 `walker -s` bug class (Task 1b). This is a
-#    STATIC GREP ONLY — it proves the known-broken flag string is absent
-#    from the file, NOT that the exec'd command won't crash at runtime.
-#    `walker -s <set>` *registers* fine in hyprctl binds -j; only the
-#    exec'd process panics (src/data.rs:566). A report-only doctor that
-#    never invokes exec targets cannot catch that class by design. ──────
-if grep -q 'walker -s' "$KEYBINDS_SRC"; then
-    check "static grep: no 'walker -s <set>' invocation in ${SRC_LABEL} (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)" "1"
-else
-    check "static grep: no 'walker -s <set>' invocation in ${SRC_LABEL} (known-broken flag on walker 2.16.2 — static grep only, not a runtime proof)" "0"
-fi
-
 # ── Cross-check against the compositor's ACTUAL registered state ───────
 #
 # D-14 record-why: this file used to feed the compositor's structured
@@ -477,27 +465,35 @@ else
         #    opaque at the compositor's live registry (dispatcher reads
         #    back "__lua", arg an opaque internal index — confirmed live
         #    on this build) — the pre-retarget check's exact-match
-        #    `dispatcher == "exec" && arg == "pkill walker"` can now
-        #    never fire for ANY Lua-registered bind, which is why it
-        #    started failing post-cutover (13.1-08's "11 passed, 2
+        #    `dispatcher == "exec" && arg == "<old kill-bind command>"`
+        #    can now never fire for ANY Lua-registered bind, which is why
+        #    it started failing post-cutover (13.1-08's "11 passed, 2
         #    failed" record). Neither half alone proves what this check
         #    needs: the live half alone cannot show WHICH command a
         #    chord runs (the opacity gap itself); the source half alone
         #    cannot show the bind actually survived config load. Both
         #    together is not a loosening — it is a different, and more
         #    directly verifiable, form of the same proof.
+        #
+        #    DQ-1 (quick task 260822-sht, Task 10): the expected expression
+        #    below was retargeted from force-killing the retired external
+        #    launcher's process to restarting the Quickshell service that
+        #    now hosts the native QML launcher in-process. See keybinds.lua's
+        #    own DQ-1 comment for the full rationale (a plain SIGTERM is in
+        #    quickshell.service's clean-exit exemption list and would not
+        #    restart it; an IPC verb cannot recover a wedged QML event loop).
         KILLBIND_SOURCE_FOUND=0
         i=0
         for t in "${DECLARED_TUPLES[@]}"; do
             IFS='|' read -r d_modmask d_key d_keycode d_release <<<"$t"
             if [[ "$d_modmask" == "64" && "$d_key" == "Escape" && "$d_keycode" == "0" && "$d_release" == "false" ]]; then
-                if [[ "${DECLARED_DISPATCHER_EXPR[$i]}" == 'hl.dsp.exec_cmd("pkill walker")' ]]; then
+                if [[ "${DECLARED_DISPATCHER_EXPR[$i]}" == 'hl.dsp.exec_cmd("systemctl --user restart quickshell.service")' ]]; then
                     KILLBIND_SOURCE_FOUND=1
                 fi
             fi
             i=$((i + 1))
         done
-        check "D-03 kill-bind present (source: ${SRC_LABEL} declares Super+Escape -> hl.dsp.exec_cmd(\"pkill walker\"): $([[ $KILLBIND_SOURCE_FOUND -eq 1 ]] && echo yes || echo no); live: that exact chord is registered: $([[ $KILLBIND_LIVE_FOUND -eq 1 ]] && echo yes || echo no))" "$([[ "$KILLBIND_SOURCE_FOUND" -eq 1 && "$KILLBIND_LIVE_FOUND" -eq 1 ]] && echo 0 || echo 1)"
+        check "D-03 kill-bind present (source: ${SRC_LABEL} declares Super+Escape -> hl.dsp.exec_cmd(\"systemctl --user restart quickshell.service\"): $([[ $KILLBIND_SOURCE_FOUND -eq 1 ]] && echo yes || echo no); live: that exact chord is registered: $([[ $KILLBIND_LIVE_FOUND -eq 1 ]] && echo yes || echo no))" "$([[ "$KILLBIND_SOURCE_FOUND" -eq 1 && "$KILLBIND_LIVE_FOUND" -eq 1 ]] && echo 0 || echo 1)"
     fi
 fi
 

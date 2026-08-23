@@ -17,4 +17,4 @@ hl.bind(mainMod .. " + D", hl.dsp.global("quickshell:dashboard")) -- Summon the 
 hl.bind(mainMod .. " + A", hl.dsp.global("quickshell:audio-panel")) -- Summon audio mixer panel (PANEL-02)
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("pavucontrol")) -- POISON: collides with the audio-panel chord, no matching global()
 hl.bind(mainMod .. " + C", hl.dsp.window.kill_active()) -- Close active window
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("pkill walker")) -- Emergency: force-close walker
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("systemctl --user restart quickshell.service")) -- Emergency: restart the shell

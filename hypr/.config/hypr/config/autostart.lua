@@ -159,9 +159,20 @@ hl.on("hyprland.start", function()
     -- two places, so they move together. See that file's own note at the
     -- registry row for the one wrinkle in how that landed here.
 
-    -- ── Application launcher (elephant backend + walker) ─
-    hl.exec_cmd("uwsm app -- elephant")
-    hl.exec_cmd("uwsm app -- walker --gapplication-service")
+    -- The separate application-launcher processes (the retired backend
+    -- daemon and its GTK4 frontend) that used to be started HERE were
+    -- RETIRED in quick task 260822-sht Task 10: the launcher is now a
+    -- native QML surface
+    -- (`modules/launcher/`) living inside the quickshell.service process
+    -- started above, summoned in-process rather than autostarted as its
+    -- own daemon pair.
+    --
+    -- This is an entry REMOVED, which this file's own "no entry added,
+    -- removed or reordered" prohibition (top of file) otherwise forbids.
+    -- Named here as a deliberate, plan-authorised removal in the same
+    -- register D-18-28 and RETIRE-02/RETIRE-03 (18-20/19-08) used for
+    -- theirs — not an oversight, and not a widening of the prohibition's
+    -- exception surface beyond this one entry.
 
     -- ── Idle daemon ──────────────────────────────────────
     -- Session-start idle-intent reset: the bar-visibility intent files

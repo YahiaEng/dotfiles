@@ -105,7 +105,20 @@ hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:launcher-menu"), { re
 -- this line was added), so it can never be shadowed by anything else here.
 -- Do NOT remove this bind because it "looks unused" — it is the escape
 -- hatch, tested and proven in isolation before any risky Super-tap change.
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("pkill walker")) -- Emergency: force-close walker
+--
+-- DQ-1 (quick task 260822-sht, Task 10): repointed from force-killing the
+-- retired external launcher's process to a Quickshell service restart.
+-- The launcher used to be a separate
+-- process this bind could force-kill; now the launcher lives inside the
+-- permanently-mounted quickshell.service, so killing a process no longer
+-- applies. Two other options were weighed and rejected: a plain SIGTERM
+-- is in quickshell.service's own clean-exit exemption list and would NOT
+-- trigger a restart (bar/notifications/OSD would stay dead), and an IPC
+-- verb cannot recover a wedged QML event loop, which is the exact
+-- failure this escape hatch exists to guard against. A full service
+-- restart is the only repoint that keeps D-03's process-level guarantee.
+-- Cost: the bar/notifications/OSD cycle for ~2s (RestartSec=2).
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("systemctl --user restart quickshell.service")) -- Emergency: restart the shell
 
 -- ── Custom menus ─────────────────────────────────────
 -- theme-switch.sh is a thin picker (D-01): it only prompts for a theme

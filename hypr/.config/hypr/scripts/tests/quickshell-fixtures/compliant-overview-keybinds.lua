@@ -13,4 +13,4 @@ hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd("kitty")) -- Open terminal
 hl.bind(mainMod .. " + D", hl.dsp.global("quickshell:dashboard")) -- Summon the dashboard drawer (DASH-01)
 hl.bind(mainMod .. " + O", hl.dsp.global("quickshell:overview")) -- Summon the workspace overview (OVER-01)
 hl.bind(mainMod .. " + C", hl.dsp.window.kill_active()) -- Close active window
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("pkill walker")) -- Emergency: force-close walker
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("systemctl --user restart quickshell.service")) -- Emergency: restart the shell
