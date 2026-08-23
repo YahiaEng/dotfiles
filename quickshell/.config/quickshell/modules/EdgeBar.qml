@@ -262,7 +262,7 @@ PanelWindow {
     readonly property string _outlinePath: {
         var t = edgeBarWindow._t;          // flat run depth
         var b = edgeBarWindow._b;          // bulge depth beyond the flat run
-        var re = edgeBarWindow._re;        // pill-cap radius at each end
+        var re = edgeBarWindow._re;        // pill-cap radius (= t/2, a true semicircle)
         var f = edgeBarWindow._f;          // concave shoulder fillet radius
         var rc = edgeBarWindow._rc;        // convex bulge-corner radius
         var ww = edgeBarWindow._ww;
@@ -270,36 +270,33 @@ PanelWindow {
         var yb = t + b;                    // the bulge face
         var S = edgeBarWindow._shoulderSweep;
 
-        // Mirror helper: for edge="bottom" the whole profile reflects about
-        // the surface's horizontal midline, so a y of `v` becomes `h - v`.
         var flip = edgeBarWindow.bottom;
         var h = yb;
         function Y(v) {
             return flip ? h - v : v;
         }
 
+        // Clockwise. The OUTER edge (y=0, flush to the screen) is one
+        // straight run from cap to cap; the bulge is an excursion of the
+        // INNER face only.
         var p = "M " + re + " " + Y(0);
-        // Flat run, left cap to the left fillet.
-        p += " L " + (xl - f) + " " + Y(0);
-        // Concave fillet: flat run -> bulge's left side. Centre sits at the
-        // box corner (xl - f, Y(f)).
-        p += " A " + f + " " + f + " 0 0 " + S(xl - f, Y(0), xl, Y(f), f, xl - f, Y(f)) + " " + xl + " " + Y(f);
-        // Down the bulge's left side to the first convex corner.
-        p += " L " + xl + " " + Y(yb - rc);
-        p += " A " + rc + " " + rc + " 0 0 " + S(xl, Y(yb - rc), xl + rc, Y(yb), rc, xl + rc, Y(yb - rc)) + " " + (xl + rc) + " " + Y(yb);
-        // The bulge face.
-        p += " L " + (xr - rc) + " " + Y(yb);
-        p += " A " + rc + " " + rc + " 0 0 " + S(xr - rc, Y(yb), xr, Y(yb - rc), rc, xr - rc, Y(yb - rc)) + " " + xr + " " + Y(yb - rc);
-        // Up the bulge's right side, then the right concave fillet.
-        p += " L " + xr + " " + Y(f);
-        p += " A " + f + " " + f + " 0 0 " + S(xr, Y(f), xr + f, Y(0), f, xr + f, Y(f)) + " " + (xr + f) + " " + Y(0);
-        // Flat run out to the right cap.
         p += " L " + (ww - re) + " " + Y(0);
-        // Right pill cap, down to the strip's inner face.
+        // Right pill cap.
         p += " A " + re + " " + re + " 0 0 " + S(ww - re, Y(0), ww - re, Y(t), re, ww - re, Y(re)) + " " + (ww - re) + " " + Y(t);
-        // Inner face back leftward, under the bulge shoulders.
+        // Inner face leftward to the right shoulder.
+        p += " L " + (xr + f) + " " + Y(t);
+        // Concave fillet down into the bulge's right side.
+        p += " A " + f + " " + f + " 0 0 " + S(xr + f, Y(t), xr, Y(t + f), f, xr + f, Y(t + f)) + " " + xr + " " + Y(t + f);
+        p += " L " + xr + " " + Y(yb - rc);
+        // Convex corner, bulge face, convex corner.
+        p += " A " + rc + " " + rc + " 0 0 " + S(xr, Y(yb - rc), xr - rc, Y(yb), rc, xr - rc, Y(yb - rc)) + " " + (xr - rc) + " " + Y(yb);
+        p += " L " + (xl + rc) + " " + Y(yb);
+        p += " A " + rc + " " + rc + " 0 0 " + S(xl + rc, Y(yb), xl, Y(yb - rc), rc, xl + rc, Y(yb - rc)) + " " + xl + " " + Y(yb - rc);
+        // Up the bulge's left side, concave fillet back to the flat run.
+        p += " L " + xl + " " + Y(t + f);
+        p += " A " + f + " " + f + " 0 0 " + S(xl, Y(t + f), xl - f, Y(t), f, xl - f, Y(t + f)) + " " + (xl - f) + " " + Y(t);
+        // Inner face onward to the left cap.
         p += " L " + re + " " + Y(t);
-        // Left pill cap, closing back to the start.
         p += " A " + re + " " + re + " 0 0 " + S(re, Y(t), re, Y(0), re, re, Y(re)) + " " + re + " " + Y(0);
         return p + " Z";
     }
