@@ -422,12 +422,14 @@ lua_speed_defs, lua_curve_defs, lua_curve_base_defs = load_lua_defs()
 #    the layer animation) was REMOVED by Phase 21 Plan 08 (RETIRE-06) once
 #    the exempted package was deleted from the repo — same treatment as
 #    the OSD daemon's and the retired bar's own entries above.
-EXEMPTIONS = [
-    {'glob': 'walker/**/style.css', 'regex': re.compile(r'(^|/)walker/.*/style\.css$'),
-     'reason': 'no motion literals — motion is compositor-delivered through '
-               'the layer animation',
-     'pending': False},
-]
+#    The retired external launcher's own whole-package exemption entry
+#    (no motion literals, motion compositor-delivered through the layer
+#    animation) was REMOVED by quick task 260822-sht (Task 11) once the
+#    exempted package was deleted from the repo — same treatment as every
+#    entry above. The native QML launcher that replaced it is covered by
+#    CHECK A/B like any other non-exempt QML surface (see check below),
+#    with no exemption needed.
+EXEMPTIONS = []
 
 for ex in EXEMPTIONS:
     if not ex['reason'].strip():
@@ -1305,7 +1307,6 @@ else
     ROOTS=(
         "$HOME/.config/hypr"
         "$HOME/.config/quickshell"
-        "$HOME/.config/walker"
         "$HOME/.config/gtk-4.0"
     )
 fi

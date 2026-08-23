@@ -139,7 +139,7 @@ PYEOF
 # contract_extract_names <name> <rendered_path>
 # Dispatches to the correct per-format extractor and emits the sorted set of
 # key/variable names found in the rendered file at <rendered_path>. For the
-# css-literal format (walker-style.css has no named variables) this instead
+# css-literal format (zen-userchrome.css has no named variables) this instead
 # emits the sorted set of "<selector> <property>" pairs as a structural
 # stand-in (RESEARCH Open Question 1).
 contract_extract_names() {
@@ -248,10 +248,11 @@ if not ok or type(data) ~= "table" then os.exit(1) end
 -- with sequential integer keys 1..n — pairs() cannot tell an array
 -- element apart from a genuine named key. Without this check, "1"/"2"
 -- would leak into the name set as if they were real declared keys, which
--- the json/toml sibling branches never do (toml's Python walker only adds
--- dict keys; list items are walked but never contribute a key of their
--- own). is_array mirrors that distinction so array elements are still
--- walked (for any nested named keys) but their own integer index is not.
+-- the json/toml sibling branches never do (toml's Python tree traversal
+-- only adds dict keys; list items are visited but never contribute a key
+-- of their own). is_array mirrors that distinction so array elements are
+-- still visited (for any nested named keys) but their own integer index
+-- is not.
 local function is_array(t)
     local n = 0
     for k in pairs(t) do

@@ -28,7 +28,7 @@
 //      `"${RENDERED_DIRS[$target]}/$fname"`, i.e. `$tmp$STATE_DIR/$fname`.
 // So output_path is ~/.local/state/theme/zellij.kdl (D-02), and commit.sh
 // wires ~/.config/zellij/config.kdl to it with `ln -sf`, mirroring the
-// walker/yazi/satty/gtk-3.0/gtk-4.0 idiom already used five times in this
+// yazi/satty/gtk-3.0/gtk-4.0 idiom already used four times in this
 // repo. Measured THIS session that this shape live-reloads too: with
 // ~/.config/zellij/config.kdl a SYMLINK to the state-dir file, a running
 // session picked up an `rsync -a --delete` replacement of the symlink's

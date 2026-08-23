@@ -36,18 +36,22 @@
 # allowlist at verify/theme-doctor-session-allowlist.txt — see below),
 # and `theme-parity` (headless-safe render/output-contract gate).
 #
-# What this does NOT prove: theme-doctor's three genuinely
-# session-dependent checks (gsettings gtk-theme, walker process running,
-# elephant process running) legitimately cannot pass in a headless
-# container with no running Hyprland session and no D-Bus session bus —
-# each is admitted by a source-justified entry in
+# What this does NOT prove: theme-doctor's one genuinely
+# session-dependent check (gsettings gtk-theme) legitimately cannot pass
+# in a headless container with no running Hyprland session and no D-Bus
+# session bus — it is admitted by a source-justified entry in
 # verify/theme-doctor-session-allowlist.txt (D-22-09/10), a committed,
 # byte-exact-matched allowlist, never fitted to whatever happened to go
-# red. Every OTHER theme-doctor failure — roughly 575 headless-safe file
-# and lint checks — now blocks this harness's exit code, for the first
-# time. The graphical VM procedure in VERIFICATION.md remains the tier
-# that proves the three allowlisted checks pass with a live session and a
-# human's own eyes (D-53).
+# red. (Two further session-dependent entries, for the retired external
+# launcher's own process-liveness checks, were removed from the allowlist
+# in quick task 260822-sht Task 11 along with the checks themselves —
+# the native QML launcher that replaced them lives inside the same
+# Quickshell shell process this harness already health-checks
+# elsewhere.) Every OTHER theme-doctor failure — roughly 575
+# headless-safe file and lint checks — now blocks this harness's exit
+# code, for the first time. The graphical VM procedure in
+# VERIFICATION.md remains the tier that proves the allowlisted check
+# passes with a live session and a human's own eyes (D-53).
 #
 # Exit code: 0 only if clone + install.sh --core-only + stow.sh +
 # retirement-check --all + stow-link-check + theme-doctor (against the

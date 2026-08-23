@@ -164,8 +164,8 @@ theme_engine_gtk_reload() {
             fi
 
             # Fully detach so a long-running daemon never holds a
-            # caller's pipe/fd open (same rationale as the walker
-            # relaunch in reload.sh).
+            # caller's pipe/fd open (same rationale used for the other
+            # backgrounded relaunches in reload.sh).
             setsid uwsm app -- thunar --daemon >/dev/null 2>&1 </dev/null &
             disown
         fi

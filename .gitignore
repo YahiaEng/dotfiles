@@ -10,12 +10,13 @@ Thumbs.db
 # !wallpapers/Pictures/Wallpapers/.gitkeep
 
 # Theme engine runtime output (PIPE-03/D-05) — generated colors live in
-# ~/.local/state/theme/, outside this repo. Two consumers have no native
-# @import/include mechanism (walker, yazi, D-07) so theme-engine wires their
-# config path directly with a symlink into the state dir; since both live
-# under whole-package stow symlinks back into this repo tree, the symlink
-# theme-apply creates lands at these exact repo-relative paths — ignore it.
-walker/.config/walker/themes/rice/style.css
+# ~/.local/state/theme/, outside this repo. yazi has no native
+# @import/include mechanism (D-07) so theme-engine wires its config path
+# directly with a symlink into the state dir; since it lives under a
+# whole-package stow symlink back into this repo tree, the symlink
+# theme-apply creates lands at this exact repo-relative path — ignore it.
+# (The retired external launcher's own equivalent ignore rule was removed
+# in quick task 260822-sht Task 11 along with its direct-wiring symlink.)
 yazi/.config/yazi/theme.toml
 
 # Screenshots (D-48) — runtime output from screenshot.sh, never repo content.

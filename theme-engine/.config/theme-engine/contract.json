@@ -13,10 +13,6 @@
       "format": "gtk-css"
     },
     {
-      "name": "walker-style.css",
-      "format": "css-literal"
-    },
-    {
       "name": "yazi.toml",
       "format": "toml"
     },
@@ -107,7 +103,6 @@
     ".last-render-error.log",
     "icon-theme",
     "font-choice",
-    "walker-relaunch.log",
     "motion-style",
     "motion-accessibility",
     "weather.json",

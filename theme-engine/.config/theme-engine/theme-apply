@@ -7,8 +7,9 @@
 #
 # Usage: theme-apply <materialyou|catppuccin|dracula|gruvbox|nord|rosepine|tokyonight>
 #
-# The walker dmenu picker, wallpaper picker, and login init (theme-init.sh)
-# are thin callers of this script — they only pass a name.
+# The native QML launcher's Style > Theme picker, wallpaper picker, and
+# login init (theme-init.sh) are thin callers of this script — they only
+# pass a name.
 
 set -euo pipefail
 
@@ -48,9 +49,9 @@ NAME="$1"
 # CR-01: optional explicit live-wallpaper ref, forwarded verbatim to
 # theme_engine_wallpaper_sync_owner's call site below — never a second
 # owner-declaration path (D-21). Only the wallpaper picker's Material You
-# branch passes this; every other caller (theme-init.sh, the walker
-# dmenu picker, a plain theme switch) still passes exactly one argument
-# and gets the pre-existing no-ref fallback behaviour untouched.
+# branch passes this; every other caller (theme-init.sh, the launcher's
+# Style > Theme picker, a plain theme switch) still passes exactly one
+# argument and gets the pre-existing no-ref fallback behaviour untouched.
 
 # Security Domain V5 — validate the argument against the ACTUAL palette
 # filenames before it is ever interpolated into a filesystem path. Reject

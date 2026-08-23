@@ -12,10 +12,12 @@
 #                   inside the 3-5s real-usage-pacing window, D-32)
 #
 # A bare invocation reproduces the PIPE-06 gate exactly (D-43): 10
-# alternating static<->dynamic switches with a fixed settle gap, Thunar and
-# Walker preconditions verified before the first switch, per-switch
-# theme-doctor + sentinel-color + walker/elephant health assertions, and
-# postconditions re-checked after the last switch.
+# alternating static<->dynamic switches with a fixed settle gap, a Thunar
+# precondition verified before the first switch, per-switch theme-doctor +
+# sentinel-color assertions, and postconditions re-checked after the last
+# switch. (The retired external launcher's own health preconditions,
+# per-switch assertions and postconditions stood here until quick task
+# 260822-sht Task 11 removed them along with the surface they targeted.)
 #
 # Opposite failure-handling philosophy from theme-parity (D-39): this tool
 # aborts IMMEDIATELY on the first failed check and dumps diagnostics — it
@@ -30,7 +32,6 @@ LIB_DIR="$ENGINE_DIR/lib"
 PALETTES_DIR="$ENGINE_DIR/palettes"
 STATE_DIR="$HOME/.local/state/theme"
 LOG_DIR="$STATE_DIR/logs"
-BUS_NAME="dev.benz.walker"
 
 # shellcheck source=lib/contract.sh
 source "$LIB_DIR/contract.sh"
@@ -140,10 +141,10 @@ abort_with_diagnostics() {
         # WR-03: when the failed check IS the theme-doctor check, dump the
         # output captured at failure time (check_theme_doctor's
         # THEME_DOCTOR_OUTPUT) — re-running here can observe an already-
-        # recovered system (e.g. walker briefly dead during reload but
-        # respawned seconds later) and show a healthy doctor run for the
-        # very failure D-39 exists to evidence. For non-doctor failures a
-        # fresh run is the right diagnostic.
+        # recovered system (e.g. a client process briefly dead during
+        # reload but respawned seconds later) and show a healthy doctor
+        # run for the very failure D-39 exists to evidence. For
+        # non-doctor failures a fresh run is the right diagnostic.
         if [[ "$failed_desc" == *"theme-doctor"* && -n "$THEME_DOCTOR_OUTPUT" ]]; then
             echo "-- theme-doctor output (captured at failure time) --"
             printf '%s\n' "$THEME_DOCTOR_OUTPUT"
@@ -189,31 +190,15 @@ check_thunar_window_open() {
         >/dev/null 2>&1
 }
 
-check_walker_process() {
-    pgrep -x walker >/dev/null 2>&1
-}
-
-check_elephant_process() {
-    pgrep -x elephant >/dev/null 2>&1
-}
-
-# Walker D-Bus bus-name registration (lib/reload.sh lines 97-103,157-166).
-# Gracefully degrades (treated as satisfied) if busctl is unavailable, same
-# as lib/reload.sh's own `command -v busctl` guard.
-check_walker_busname() {
-    command -v busctl >/dev/null 2>&1 || return 0
-    busctl --user status "$BUS_NAME" >/dev/null 2>&1
-}
-
-check_elephant_listproviders() {
-    command -v elephant >/dev/null 2>&1 || return 1
-    elephant listproviders >/dev/null 2>&1
-}
+# The retired external launcher's own process-liveness, D-Bus bus-name
+# registration and backend-provider-listing check functions stood here
+# until quick task 260822-sht (Task 11) removed them along with the
+# surface they targeted.
 
 # check_theme_doctor
-# Runs theme-doctor and requires a strict exit 0 (D-66) — the elephant
-# provider gap and the accepted-gap tolerance that used to live here were
-# removed once the gap was root-caused and closed (Phase 3 Plan 03-03).
+# Runs theme-doctor and requires a strict exit 0 (D-66) — a provider gap
+# and the accepted-gap tolerance that used to live here were removed once
+# the gap was root-caused and closed (Phase 3 Plan 03-03).
 # A clean theme-doctor is now the bar for every switch; any [FAIL] line
 # is a real regression and aborts immediately via check_or_abort.
 THEME_DOCTOR_OUTPUT=""
@@ -373,8 +358,8 @@ quickshell_probe_ensure_open() {
     # The probe therefore never opened on this Lua-cutover session, the
     # wait loop below always timed out, and this function's un-guarded
     # final `quickshell_probe_open` call tripped `set -e` — silently
-    # killing the whole run right after the elephant precondition, before
-    # a single switch or this task's own sentinel check ever executed.
+    # killing the whole run right after the last precondition, before a
+    # single switch or this task's own sentinel check ever executed.
     # Confirmed live before applying: the bare string form fails with
     # exactly that Lua parse error; `hl.dsp.global("quickshell:probe")`
     # (the same Lua expression form keybinds.lua's own bind uses)
@@ -411,18 +396,6 @@ done
 
 if check_thunar_window_open; then thunar_pre_rc=0; else thunar_pre_rc=1; fi
 check_or_abort "precondition: Thunar window open" "$thunar_pre_rc"
-
-if check_walker_process; then rc=0; else rc=1; fi
-check_or_abort "precondition: walker process running" "$rc"
-
-if check_walker_busname; then rc=0; else rc=1; fi
-check_or_abort "precondition: walker bus-name ($BUS_NAME) registered" "$rc"
-
-if check_elephant_process; then rc=0; else rc=1; fi
-check_or_abort "precondition: elephant process running" "$rc"
-
-if check_elephant_listproviders; then rc=0; else rc=1; fi
-check_or_abort "precondition: elephant listproviders responds" "$rc"
 
 # D-17 setup — guarded, report-only (never aborts the run on its own):
 # with a quickshell daemon present, capture its PID (the PID-unchanged
@@ -495,20 +468,12 @@ for (( i = 1; i <= SWITCHES; i++ )); do
         check_or_abort "switch #${i}: sentinel (${expected_sentinel}) present in ${fname} (normalized)" "$rc"
     done
 
-    # (c) walker+elephant liveness incl. bus-name registration (D-38)
-    if check_walker_process; then rc=0; else rc=1; fi
-    check_or_abort "switch #${i}: walker process running" "$rc"
+    # The retired external launcher's own per-switch liveness and
+    # bus-name registration checks (D-38) stood here as step (c) until
+    # quick task 260822-sht (Task 11) removed them along with the surface
+    # they targeted.
 
-    if check_walker_busname; then rc=0; else rc=1; fi
-    check_or_abort "switch #${i}: walker bus-name ($BUS_NAME) registered" "$rc"
-
-    if check_elephant_process; then rc=0; else rc=1; fi
-    check_or_abort "switch #${i}: elephant process running" "$rc"
-
-    if check_elephant_listproviders; then rc=0; else rc=1; fi
-    check_or_abort "switch #${i}: elephant listproviders responds" "$rc"
-
-    # (d) D-17: live re-colour — quickshell's rendered Colours.primary
+    # (c) D-17: live re-colour — quickshell's rendered Colours.primary
     #     tracks palette.json's freshly-rendered primary on THIS switch,
     #     and the daemon PID never changed (no restart occurred). Guarded:
     #     skipped entirely (no FAIL) when D-17 setup found no daemon.
@@ -555,18 +520,6 @@ current_theme_name="${SEQUENCE[$((SWITCHES - 1))]}"
 
 if check_thunar_window_open; then rc=0; else rc=1; fi
 check_or_abort "postcondition: Thunar window still open" "$rc"
-
-if check_walker_process; then rc=0; else rc=1; fi
-check_or_abort "postcondition: walker process still running" "$rc"
-
-if check_walker_busname; then rc=0; else rc=1; fi
-check_or_abort "postcondition: walker bus-name ($BUS_NAME) still registered" "$rc"
-
-if check_elephant_process; then rc=0; else rc=1; fi
-check_or_abort "postcondition: elephant process still running" "$rc"
-
-if check_elephant_listproviders; then rc=0; else rc=1; fi
-check_or_abort "postcondition: elephant listproviders still responds" "$rc"
 
 if [[ "$QUICKSHELL_D17_ENABLED" -eq 1 ]]; then
     if check_quickshell_process; then rc=0; else rc=1; fi

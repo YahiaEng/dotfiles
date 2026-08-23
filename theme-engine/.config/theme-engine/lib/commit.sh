@@ -4,7 +4,11 @@
 # Only ever invoked after theme_engine_generate returns 0 — a failed render
 # never reaches here, so the live desktop is never touched by a half-
 # rendered theme. Moves the rendered tree into ~/.local/state/theme/ and
-# wires the two apps with no native import mechanism (walker, yazi — D-07).
+# wires the apps with no native import mechanism directly (D-07's
+# original pair was the retired external launcher and yazi; the retired
+# launcher's own wiring was removed in quick task 260822-sht Task 11, and
+# the direct-wiring group has since grown to include satty, zellij and
+# gtk-3.0/4.0's settings.ini too — see each guard below).
 
 STATE_DIR="$HOME/.local/state/theme"
 
@@ -71,14 +75,18 @@ theme_engine_commit() {
     # (lib/font.sh writes it every run) and is therefore NOT excluded —
     # only the root-level state file itself is.
     #
-    # WR-06 (06-18, sixth occurrence of this bug class): walker-relaunch.log
-    # is a fifth engine-owned root-level state file, written by reload.sh's
-    # walker-relaunch path (theme_engine_reload_walker) and never part of
-    # the rendered tree matugen produces. Without the exclusion, every theme
-    # commit destroys the previous run's walker diagnostics — including when
-    # the new run never reaches the walker step (a render/commit crash or a
+    # WR-06 (06-18, sixth occurrence of this bug class): the retired
+    # launcher's own relaunch log was a fifth engine-owned root-level
+    # state file, written by reload.sh's retired launcher-relaunch path
+    # and never part of the rendered tree matugen produces. Without the
+    # exclusion, every theme commit destroyed
+    # the previous run's launcher-reload diagnostics — including when the
+    # new run never reached that step (a render/commit crash or a
     # headless-guard early return), leaving the failure notification
-    # pointing the user at a log a later switch already wiped.
+    # pointing the user at a log a later switch already wiped. Retired in
+    # quick task 260822-sht (Task 11) along with the whole relaunch path,
+    # which is why this exclusion no longer appears in contract.json's
+    # engine_owned_files array.
     #
     # 08-12 (seventh occurrence of this bug class, found live while
     # verifying this plan's own checkpoint screenshots): the retired bar's
@@ -147,20 +155,18 @@ theme_engine_commit() {
     printf '%s\n' "$name" > "$STATE_DIR/current-theme.tmp" \
         && mv "$STATE_DIR/current-theme.tmp" "$STATE_DIR/current-theme"
 
-    # D-07: walker and yazi have no @import/include mechanism, so the
-    # engine wires their config path directly to the state-dir output via
-    # a symlink. This is idempotent one-time wiring (D-09) — `ln -sf`
-    # re-links to the same target on every call, no per-login dance.
-    local walker_dir="$HOME/.config/walker/themes/rice"
-    mkdir -p "$walker_dir"
-    ln -sf "$STATE_DIR/walker-style.css" "$walker_dir/style.css"
-
+    # D-07: yazi has no @import/include mechanism, so the engine wires its
+    # config path directly to the state-dir output via a symlink. This is
+    # idempotent one-time wiring (D-09) — `ln -sf` re-links to the same
+    # target on every call, no per-login dance. D-07's original pair also
+    # wired the retired external launcher's own theme file the same way;
+    # that wiring was retired in quick task 260822-sht (Task 11).
     mkdir -p "$HOME/.config/yazi"
     ln -sf "$STATE_DIR/yazi.toml" "$HOME/.config/yazi/theme.toml"
 
     # SHOT-02/D-30: satty has no @import/include mechanism either — wire its
     # config path directly to the rendered satty.toml via the same idempotent
-    # `ln -sf` idiom as walker/yazi above. Guard: if ~/.config/satty is
+    # `ln -sf` idiom as yazi above. Guard: if ~/.config/satty is
     # itself a folded stow symlink (pre-migration state), skip and warn
     # instead of writing through the fold into the repo tree (same posture
     # as the gtk-3.0/gtk-4.0 guards below).
@@ -173,7 +179,7 @@ theme_engine_commit() {
 
     # D-01/D-02 (quick task 260820-0ha): zellij has no @import/include
     # mechanism either — KDL has no such construct at all — so it joins
-    # walker/yazi/satty in the direct-wiring group rather than sourcing a
+    # yazi/satty in the direct-wiring group rather than sourcing a
     # fragment. This symlink is the ONLY path by which theme colours reach
     # zellij. Guard: if ~/.config/zellij is itself a folded stow symlink,
     # skip and warn instead of writing through the fold into the repo tree
@@ -194,7 +200,7 @@ theme_engine_commit() {
     fi
 
     # THM-01/D-08: settings.ini is now a rendered contract target — wire the
-    # same idempotent symlink idiom as walker/yazi above. Guard: if the gtk
+    # same idempotent symlink idiom as yazi above. Guard: if the gtk
     # config dir is itself a symlink (stow dir-folded into the repo — the
     # pre-migration state), skip wiring and warn instead of writing through
     # the fold into the repo tree (would break the git-clean invariant).
