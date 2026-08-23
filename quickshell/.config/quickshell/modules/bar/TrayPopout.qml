@@ -37,27 +37,42 @@ SectionPopout {
     // THIS popout window; item.display() opens the platform menu as its
     // OWN separate window, which the grab does not know about, so Hyprland
     // sees focus leave the grabbed set the instant the menu appears and
-    // fires onCleared -> requestDismiss(). The popout — and the menu
-    // anchored to it — both vanish. Checked for a menu-closed signal to
-    // suppress-and-rearm the grab around instead (the ideal fix): the
-    // installed Quickshell.DBusMenu module exposes only sendOpened/
-    // sendClosed/sendTriggered on a hand-rolled DBusMenuItem, none of
-    // which are lifecycle signals for the platform menu display() itself
-    // opens — no such signal exists to rearm on. Fixed instead by closing
-    // the popout FIRST (root.requestDismiss(), the exact function
-    // popoutGrab.onCleared already calls, so this is the same dismiss
-    // path, just triggered explicitly) and only then calling display()
-    // against a window that is never destroyed — this popout's own window
-    // is a bad choice moments after requestDismiss() starts its exit
-    // animation, but the bar (Bar.qml's own "never unmounts for the life
-    // of the session") is always safe. Handed down from TrayCapsule.qml
-    // as `root._barWindowHandle` — NOT re-read as a bare `QsWindow.window`
-    // anywhere in THIS file, which would attach to this popout's own
-    // window instead (round 6's actual bug, round 7 fix — see
-    // TrayCapsule.qml's own property declaration for the full
-    // attached-property-scoping reasoning, confirmed by three
-    // repetitions of "Cannot display PlatformMenuEntry with null parent
-    // window" in ~/.cache/quickshell.log).
+    // fires onCleared -> requestDismiss(). Checked for a menu-closed
+    // signal to suppress-and-rearm the grab around instead (the ideal
+    // fix): the installed Quickshell.DBusMenu module exposes only
+    // sendOpened/sendClosed/sendTriggered on a hand-rolled DBusMenuItem,
+    // none of which are lifecycle signals for the platform menu
+    // display() itself opens — no such signal exists to rearm on.
+    //
+    // The actual fix has two parts, developed over four rounds:
+    //   1. Parent the menu to a window that OUTLIVES the popout (this
+    //      property) — Bar.qml's own "never unmounts for the life of the
+    //      session" window (grep -c HyprlandFocusGrab Bar.qml == 0 —
+    //      MEASURED: the bar holds no grab at all, which is WHY the
+    //      inline path never had this problem), not the popout's own.
+    //   2. Still call requestDismiss() — round 8 tried dropping it
+    //      entirely and that was ALSO wrong: the popout's OWN
+    //      HyprlandFocusGrab (SectionPopout.qml's popoutGrab) still fires
+    //      on the menu taking focus regardless of whether this file calls
+    //      requestDismiss() itself, because popoutGrab.onCleared calls it
+    //      independently the instant focus leaves the grabbed set. What
+    //      round 8 removed wasn't the race — it just stopped firing
+    //      requestDismiss() a SECOND time. The real fix (round 9): call
+    //      requestDismiss(), then wait for its own `dismissFinished()`
+    //      signal (SectionPopout.qml's own — requestDismiss() is
+    //      ASYNCHRONOUS, so this must be a signal handler, never assumed
+    //      complete by the next line) before calling display(). By the
+    //      time dismissFinished() fires, the popout window and its grab
+    //      are both fully torn down, so there is nothing left to clear
+    //      when the menu subsequently takes focus. See the onClicked
+    //      handler below for the full sequencing.
+    // Handed down from TrayCapsule.qml as `root._barWindowHandle` — NOT
+    // re-read as a bare `QsWindow.window` anywhere in THIS file, which
+    // would attach to this popout's own window instead (round 6's actual
+    // bug, round 7 fix — see TrayCapsule.qml's own property declaration
+    // for the full attached-property-scoping reasoning, confirmed by
+    // three repetitions of "Cannot display PlatformMenuEntry with null
+    // parent window" in ~/.cache/quickshell.log).
     property var barWindow: null
 
     // The TrayCapsule instance itself (round 7) — NOT just a window
@@ -231,40 +246,64 @@ SectionPopout {
                 // the hidden vlc tray icon shows the context menu but
                 // immediately dismisses it." Round 6 fix (dismiss first,
                 // reparent to the bar window) was directionally right but
-                // carried TWO further bugs the coordinator found by
-                // reading, confirmed live via three repetitions of
-                // "Cannot display PlatformMenuEntry with null parent
-                // window" in ~/.cache/quickshell.log:
-                //   Bug 1 — root.barWindow now resolves correctly (see
-                //     that property's own declaration above): the previous
-                //     round wrote a bare `QsWindow.window` INSIDE the
-                //     TrayPopout object literal in TrayCapsule.qml, which
-                //     attaches to the TrayPopout instance being created,
-                //     not to the bar — an attached-property scoping trap,
-                //     not a data-flow one.
-                //   Bug 2 — the ANCHOR COORDINATES had the identical
-                //     coordinate-space hazard BarTooltipHost.qml's own
-                //     header warns about (the one already correctly
-                //     heeded when this file chose ThemedToolTip over
-                //     BarTooltipHost): `overflowRow.mapToItem(null, ...)`
-                //     maps into THIS popout's own window, and handing
-                //     those numbers to the BAR window places the menu
-                //     wherever that offset lands in the WRONG window's
-                //     space. Fixed by asking menuAnchorSource (the real
-                //     TrayCapsule instance, living in the bar's own
-                //     window) for an anchor already computed in the bar's
-                //     coordinate space — see that property's own
-                //     declaration above.
+                // carried TWO further bugs (window-attachment scoping,
+                // coordinate-space mismatch), fixed in round 7. Round 7's
+                // OWN operator re-test then found a third defect: the menu
+                // now had a valid parent and landed in the right place,
+                // but still closed before a selection could be made —
+                // MEASURED by direct comparison against the inline path,
+                // which has never called requestDismiss() and has never
+                // had this problem. `requestDismiss()` only STARTS an exit
+                // animation (this file's own earlier comment already said
+                // so); the popout's `HyprlandFocusGrab` therefore tears
+                // down AFTER the menu has already opened and taken focus,
+                // and that focus disturbance is what closed it — the exact
+                // mechanism of the ORIGINAL round-5 bug, still firing,
+                // just now against a menu that would otherwise have
+                // survived it. The explicit dismiss was written when the
+                // menu was parented to the popout, where the popout dying
+                // necessarily killed it too; round 7 already re-parented
+                // the menu to the bar (which never unmounts), so the
+                // popout no longer needs to be gone before display() is
+                // called — dropped entirely. The popout still dismisses
+                // itself, via the SAME `popoutGrab.onCleared` path this
+                // whole investigation started from: once the menu opens
+                // and takes focus, Hyprland reports focus left the grabbed
+                // set and the grab's own existing handler closes the
+                // popout — now AFTER the menu is already open on a
+                // surviving window, so the two no longer race.
+                //
                 // Applies to BOTH ways this row can reach display() —
-                // right-click AND the onlyMenu left-click fall-through,
-                // even though only right-click was reported (no
-                // currently-registered item sets onlyMenu, so that path
-                // was never exercised, but the mechanism is identical).
-                // Dismiss this popout FIRST via root.requestDismiss() —
-                // the exact function popoutGrab.onCleared already calls
-                // elsewhere, so this is the same dismiss path, not a new
-                // one — THEN call display() against a window and a point
-                // that are both valid in the SAME coordinate space.
+                // right-click AND the onlyMenu left-click fall-through.
+                //
+                // ROUND 9 (operator re-test of round 8's "drop
+                // requestDismiss() entirely" fix): menu appears (YES),
+                // positioned sensibly (YES) — the round-7 window/anchor
+                // fixes are confirmed correct and stay. But dropping the
+                // dismiss call outright was ALSO wrong, MEASURED not
+                // reasoned: Bar.qml holds `grep -c HyprlandFocusGrab` == 0
+                // (the inline path's own window has no grab, which is WHY
+                // it never had this problem) while the popout's own grab
+                // (SectionPopout.qml's popoutGrab) is real and still fires
+                // on the menu taking focus, dismiss call or not. The
+                // popout was still going to close itself via
+                // `popoutGrab.onCleared -> requestDismiss()` the instant
+                // the menu opened — round 8 didn't remove that race, it
+                // just stopped calling requestDismiss() a SECOND time.
+                //
+                // The actual fix: requestDismiss() IS still called, but
+                // display() now waits for it to fully FINISH
+                // (`dismissFinished()`, SectionPopout.qml's own signal —
+                // emitted synchronously in the reduce-motion branch, or
+                // via `exitFade.onFinished` otherwise) before opening the
+                // menu, instead of firing immediately alongside it.
+                // requestDismiss() itself is asynchronous (this file's own
+                // earlier comment already established that) — by the time
+                // dismissFinished() fires, the popout window is fully gone
+                // and popoutGrab has already torn down with it, so there
+                // is nothing left to clear when the menu subsequently
+                // takes focus. The menu opens into the exact same
+                // grab-free end state the inline path always has.
                 MouseArea {
                     id: overflowRowMouseArea
                     anchors.fill: parent
@@ -281,31 +320,57 @@ SectionPopout {
                         }
                         var wantsMenu = mouse.button === Qt.RightButton || overflowRow.modelData.onlyMenu;
                         if (wantsMenu) {
-                            // Captured BEFORE requestDismiss() — the anchor
-                            // source (the bar's own trayOverflowCell) is
-                            // never destroyed by this popout closing, but
-                            // computing it first, in the same statement
-                            // order the previous round used, keeps the
-                            // sequencing easy to audit: read everything
-                            // needed, THEN dismiss, THEN act.
+                            // Capture BEFORE requestDismiss() — everything
+                            // this closure needs after the popout is gone
+                            // must be read into locals now, while the row
+                            // (and root.barWindow/menuAnchorSource) are
+                            // still guaranteed alive.
                             var origin = (root.menuAnchorSource && root.barWindow)
                                 ? root.menuAnchorSource._overflowMenuAnchor()
                                 : null;
                             var menuItem = overflowRow.modelData;
-                            root.requestDismiss();
-                            // Fail SAFE, not silently: if either handle is
-                            // missing (menuAnchorSource unset, or
-                            // barWindow still resolved falsy for some
-                            // reason not yet measured), do not call
-                            // display() with a null window again — that is
-                            // the exact defect just fixed. Falling through
-                            // to activate() at least does something
-                            // rather than repeating "Cannot display
-                            // PlatformMenuEntry with null parent window".
-                            if (origin && root.barWindow)
-                                menuItem.display(root.barWindow, origin.x, origin.y);
-                            else if (!menuItem.onlyMenu)
-                                menuItem.activate();
+                            var barWin = root.barWindow;
+
+                            if (origin && barWin) {
+                                // ONE-SHOT dismissFinished handler — a
+                                // permanent connection would re-fire
+                                // display() on every FUTURE dismissal of
+                                // this same popout instance, a latent bug
+                                // worse than the one being fixed.
+                                // Self-disconnects on its own first call,
+                                // the standard QML/JS idiom for a one-shot
+                                // signal handler.
+                                //
+                                // Connected BEFORE requestDismiss() is
+                                // called, not after — REQUIRED, not
+                                // stylistic: when Motion.motionEnabled is
+                                // false, SectionPopout.requestDismiss()
+                                // emits dismissFinished() SYNCHRONOUSLY,
+                                // before the call even returns to this
+                                // line. A handler connected after that
+                                // call would permanently miss a
+                                // synchronous emission and the menu would
+                                // never open at all for anyone running
+                                // with reduced motion — this was verified
+                                // against SectionPopout.qml's own
+                                // requestDismiss()/exitFade code, not
+                                // assumed.
+                                var onPopoutDismissed = function () {
+                                    root.dismissFinished.disconnect(onPopoutDismissed);
+                                    menuItem.display(barWin, origin.x, origin.y);
+                                };
+                                root.dismissFinished.connect(onPopoutDismissed);
+                                root.requestDismiss();
+                            } else {
+                                // Fail-safe: no valid window/anchor to
+                                // open a menu against. Still dismiss (the
+                                // row was clicked), then fall through to
+                                // activate() rather than repeat a
+                                // null-window display() call.
+                                root.requestDismiss();
+                                if (!menuItem.onlyMenu)
+                                    menuItem.activate();
+                            }
                             return;
                         }
                         // Left button, not onlyMenu.
