@@ -39,6 +39,53 @@ BarCapsule {
     id: root
     capsuleId: "systemTray"
 
+    // BUG FIX (round 7, coordinator diagnosis, confirmed by direct log
+    // measurement) — the bar's own window handle, captured HERE, on
+    // root's own property list, and NOWHERE else. QsWindow is an
+    // ATTACHED property: `QsWindow.window` attaches to whichever object
+    // literal's `{ }` block the syntax is lexically written inside, not
+    // to whichever .qml FILE that syntax happens to live in. Written
+    // directly on `root` (this BarCapsule instance, a real child of the
+    // bar's own PanelWindow tree — the exact case IdleInhibitorCapsule.qml's
+    // `window: QsWindow.window` and this file's own inline
+    // `trayCell.modelData.display(QsWindow.window, ...)` calls below both
+    // already prove correct), it resolves to the bar window. The PREVIOUS
+    // attempt wrote `barWindow: QsWindow.window` INSIDE
+    // `PopoutTrigger { popoutComponent: Component { TrayPopout { ... } } }`
+    // — lexically inside the TrayPopout object literal, so QsWindow
+    // attached to the TARGET TrayPopout instance instead (itself a
+    // PanelWindow root, not an item inside one), which is not what
+    // QsWindow.window is meant to resolve for. MEASURED, not inferred:
+    // three repetitions of "ERROR: Cannot display PlatformMenuEntry with
+    // null parent window" in ~/.cache/quickshell.log confirm it resolved
+    // to null, exactly matching this diagnosis.
+    readonly property var _barWindowHandle: QsWindow.window
+
+    // BUG 2 FIX (round 7, coordinator diagnosis) — a FUNCTION, not a
+    // cached property, matching PopoutTrigger.publishAnchor()'s own
+    // established rule in this same directory: "scene mapping does not
+    // re-evaluate when an ancestor moves", so this must be called fresh
+    // at the moment it is needed, never bound once and reused. Returns
+    // the overflow chevron's own anchor point in THIS (the bar) window's
+    // coordinate space — the same space _barWindowHandle above is a
+    // handle to, so a caller holding both can hand `display()` a
+    // consistent (window, x, y) triple.
+    //
+    // TrayPopout.qml cannot compute this itself: `mapToItem(null, ...)`
+    // maps into the CALLING item's OWN window (BarTooltipHost.qml's own
+    // header names this exact coordinate-space hazard — the one already
+    // correctly heeded when this task chose ThemedToolTip over
+    // BarTooltipHost for that file), and a popout row lives in the
+    // POPOUT's window, not the bar's. Mapping there and handing the
+    // result to the BAR window (as the previous round did) places the
+    // menu wherever that offset lands hundreds of pixels into the wrong
+    // window — a second, independent defect from Bug 1 (the null
+    // window), found by the coordinator reading the code, not by
+    // reproducing it live.
+    function _overflowMenuAnchor() {
+        return trayOverflowCell.mapToItem(null, 0, trayOverflowCell.height);
+    }
+
     // Tight action-glyph pitch (matches the connections drawer's own
     // glyph-to-glyph spacing), not BarCapsule's 18px intra-group default —
     // this row is a set of bare icon cells, not text-bearing readouts.
@@ -392,11 +439,21 @@ BarCapsule {
                 overflowItems: root.overflowItems
                 // The bar's own stable window handle (round 5 focus-grab
                 // fix — see that property's own declaration in
-                // TrayPopout.qml for the full reasoning). TrayCapsule.qml
-                // lives inside the bar window, so QsWindow.window resolves
-                // correctly here; TrayPopout.qml cannot read it directly,
-                // since it is a separate window.
-                barWindow: QsWindow.window
+                // TrayPopout.qml for the full reasoning), bound to
+                // root._barWindowHandle — NOT written as a fresh
+                // `QsWindow.window` here. That was round 5's actual bug
+                // (round 7 fix): this exact spot is INSIDE the TrayPopout
+                // object literal this Component instantiates, so a bare
+                // `QsWindow.window` here attaches to THAT TrayPopout
+                // instance (itself a separate PanelWindow), not to the
+                // bar. root._barWindowHandle is captured once, correctly,
+                // on root's own property list above, and simply read here.
+                barWindow: root._barWindowHandle
+                // The bar-window object holding _overflowMenuAnchor(),
+                // so a click inside the popout can ask THIS (the bar's)
+                // tree for a bar-window-space anchor point instead of
+                // computing one in its own (wrong) window.
+                menuAnchorSource: root
             }
         }
 

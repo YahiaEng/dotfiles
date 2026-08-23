@@ -50,10 +50,29 @@ SectionPopout {
     // against a window that is never destroyed — this popout's own window
     // is a bad choice moments after requestDismiss() starts its exit
     // animation, but the bar (Bar.qml's own "never unmounts for the life
-    // of the session") is always safe. Handed down from TrayCapsule.qml,
-    // which already lives inside that window and can read QsWindow.window
-    // directly — this popout cannot, since it is a SEPARATE window.
+    // of the session") is always safe. Handed down from TrayCapsule.qml
+    // as `root._barWindowHandle` — NOT re-read as a bare `QsWindow.window`
+    // anywhere in THIS file, which would attach to this popout's own
+    // window instead (round 6's actual bug, round 7 fix — see
+    // TrayCapsule.qml's own property declaration for the full
+    // attached-property-scoping reasoning, confirmed by three
+    // repetitions of "Cannot display PlatformMenuEntry with null parent
+    // window" in ~/.cache/quickshell.log).
     property var barWindow: null
+
+    // The TrayCapsule instance itself (round 7) — NOT just a window
+    // handle, because the ANCHOR COORDINATES for display() have the
+    // identical space problem `barWindow` had: `mapToItem(null, ...)`
+    // inside this popout maps into the POPOUT's own window, and handing
+    // those numbers to a DIFFERENT window (the bar) places the menu
+    // wherever that offset lands in the wrong window's space — the same
+    // coordinate-space hazard BarTooltipHost.qml's own header warns
+    // about, walked into here despite having been correctly heeded
+    // earlier in this same file (ThemedToolTip over BarTooltipHost).
+    // menuAnchorSource._overflowMenuAnchor() returns the chevron's own
+    // anchor point already computed in the BAR window's space, which is
+    // the only space that is valid to hand to `barWindow` above.
+    property var menuAnchorSource: null
 
     // Icon tint (260823-65s round 3, final shape round 5) — the SAME
     // Prefs key TrayCapsule.qml reads, so the two surfaces never
@@ -208,24 +227,44 @@ SectionPopout {
 
                 // Same three gestures as an inline cell (CORRECTIONs 2/3).
                 //
-                // Menu path FIXED (round 5, operator-reported): "Right-click
-                // on the hidden vlc tray icon shows the context menu but
-                // immediately dismisses it making it impossible to select
-                // any action." Root cause and full reasoning live on
-                // root.barWindow's own declaration above. The fix applies
-                // to BOTH ways this row can reach display() — right-click
-                // AND the onlyMenu left-click fall-through carry the
-                // identical hazard, even though only right-click was
-                // reported (no currently-registered item sets onlyMenu, so
-                // that path was never exercised, but the mechanism is
-                // identical and left unfixed would be an obvious latent
-                // repeat of the same bug): dismiss this popout FIRST via
-                // root.requestDismiss() — the exact function
-                // popoutGrab.onCleared already calls elsewhere, so this is
-                // the same dismiss path, not a new one — THEN call
-                // display() against root.barWindow, a window that is never
-                // destroyed, instead of this popout's own window, which is
-                // mid-exit-animation by the time the menu would open.
+                // Menu path — round 5 (operator-reported): "Right-click on
+                // the hidden vlc tray icon shows the context menu but
+                // immediately dismisses it." Round 6 fix (dismiss first,
+                // reparent to the bar window) was directionally right but
+                // carried TWO further bugs the coordinator found by
+                // reading, confirmed live via three repetitions of
+                // "Cannot display PlatformMenuEntry with null parent
+                // window" in ~/.cache/quickshell.log:
+                //   Bug 1 — root.barWindow now resolves correctly (see
+                //     that property's own declaration above): the previous
+                //     round wrote a bare `QsWindow.window` INSIDE the
+                //     TrayPopout object literal in TrayCapsule.qml, which
+                //     attaches to the TrayPopout instance being created,
+                //     not to the bar — an attached-property scoping trap,
+                //     not a data-flow one.
+                //   Bug 2 — the ANCHOR COORDINATES had the identical
+                //     coordinate-space hazard BarTooltipHost.qml's own
+                //     header warns about (the one already correctly
+                //     heeded when this file chose ThemedToolTip over
+                //     BarTooltipHost): `overflowRow.mapToItem(null, ...)`
+                //     maps into THIS popout's own window, and handing
+                //     those numbers to the BAR window places the menu
+                //     wherever that offset lands in the WRONG window's
+                //     space. Fixed by asking menuAnchorSource (the real
+                //     TrayCapsule instance, living in the bar's own
+                //     window) for an anchor already computed in the bar's
+                //     coordinate space — see that property's own
+                //     declaration above.
+                // Applies to BOTH ways this row can reach display() —
+                // right-click AND the onlyMenu left-click fall-through,
+                // even though only right-click was reported (no
+                // currently-registered item sets onlyMenu, so that path
+                // was never exercised, but the mechanism is identical).
+                // Dismiss this popout FIRST via root.requestDismiss() —
+                // the exact function popoutGrab.onCleared already calls
+                // elsewhere, so this is the same dismiss path, not a new
+                // one — THEN call display() against a window and a point
+                // that are both valid in the SAME coordinate space.
                 MouseArea {
                     id: overflowRowMouseArea
                     anchors.fill: parent
@@ -242,14 +281,31 @@ SectionPopout {
                         }
                         var wantsMenu = mouse.button === Qt.RightButton || overflowRow.modelData.onlyMenu;
                         if (wantsMenu) {
-                            // Captured BEFORE requestDismiss() — overflowRow
-                            // is still fully alive at this exact point (the
-                            // dismiss below only STARTS an exit animation;
-                            // it does not synchronously destroy anything).
-                            var origin = overflowRow.mapToItem(null, 0, overflowRow.height);
+                            // Captured BEFORE requestDismiss() — the anchor
+                            // source (the bar's own trayOverflowCell) is
+                            // never destroyed by this popout closing, but
+                            // computing it first, in the same statement
+                            // order the previous round used, keeps the
+                            // sequencing easy to audit: read everything
+                            // needed, THEN dismiss, THEN act.
+                            var origin = (root.menuAnchorSource && root.barWindow)
+                                ? root.menuAnchorSource._overflowMenuAnchor()
+                                : null;
                             var menuItem = overflowRow.modelData;
                             root.requestDismiss();
-                            menuItem.display(root.barWindow, origin.x, origin.y);
+                            // Fail SAFE, not silently: if either handle is
+                            // missing (menuAnchorSource unset, or
+                            // barWindow still resolved falsy for some
+                            // reason not yet measured), do not call
+                            // display() with a null window again — that is
+                            // the exact defect just fixed. Falling through
+                            // to activate() at least does something
+                            // rather than repeating "Cannot display
+                            // PlatformMenuEntry with null parent window".
+                            if (origin && root.barWindow)
+                                menuItem.display(root.barWindow, origin.x, origin.y);
+                            else if (!menuItem.onlyMenu)
+                                menuItem.activate();
                             return;
                         }
                         // Left button, not onlyMenu.
