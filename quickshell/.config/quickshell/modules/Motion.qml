@@ -234,6 +234,79 @@ Singleton {
     readonly property int spatialMoveDuration: pairs[7].duration || 200
     readonly property var spatialMoveEasing: pairs[7].easingValid ? pairs[7].easing : [0.2, 0, 0, 1, 1, 1]
 
+    // ── Reversed-entrance easings (quick task 260823-9ak, operator round 9)
+    //
+    //    The operator asked that the launcher's and dashboard's DISMISS be
+    //    "a reverse motion of the spawn animation". Measured, it was not
+    //    close: the spawn runs `spatial-in` (450ms under the live `bouncy`
+    //    style, a decelerate WITH an overshoot) while the dismiss ran
+    //    `spatial-out` (150ms, a plain accelerate). Three times faster, and
+    //    a different curve family — the out pair is a generic exit, not a
+    //    mirror of anything.
+    //
+    //    ONLY THE EASING IS NEW HERE. A true time-reversal runs for the
+    //    same length as what it reverses, so the reversed DURATION is just
+    //    `spatialInDuration`/`emphasizedInDuration` and the consumers read
+    //    those directly rather than through an alias that would only ever
+    //    restate them.
+    //
+    //    A true time-reversal of a cubic bezier easing is its
+    //    point-reflection through (0.5, 0.5):
+    //
+    //        [x1, y1, x2, y2]  ->  [1-x2, 1-y2, 1-x1, 1-y1]
+    //
+    //    which plays the identical shape backwards. The overshoot that
+    //    lands at the END of the entrance therefore becomes a small recoil
+    //    at the START of the exit — the surface nudges inward, then sweeps
+    //    out. That is the whole point; it is what "played backwards" looks
+    //    like, not a defect.
+    //
+    //    WHY THESE ARE DERIVED FROM THE IN-EASINGS RATHER THAN AUTHORED:
+    //    the reflection has to track whatever the active motion style put
+    //    in the in-pair. Under `bouncy` the spatial in-easing is
+    //    [0.4, 1.85, 0.75, 0.74]; under `md3` it is a plain decelerate with
+    //    no overshoot at all. Hardcoding either mirror would silently
+    //    desynchronise on a style switch — the same class of bug as the
+    //    Task 2 gate that hardcoded `m['styles']['wavy']` and would have
+    //    validated the wrong style after the names were swapped.
+    //
+    //    NAMING IS LOAD-BEARING: motion-lint's CHECK A allow-list is
+    //    derived from motion.json's semantic keys, and it was extended in
+    //    this same commit to accept `<camelKey>ReverseEasing` alongside the
+    //    existing `<camelKey>Duration`/`<camelKey>Easing`. These two names
+    //    must therefore stay exactly `spatialIn`/`emphasizedIn` +
+    //    `ReverseEasing`, or CHECK A will report them dangling.
+    //
+    //    `_reverseEasing` is DECLARED ABOVE the properties that call it.
+    //    QML resolves a member used at construction time by textual order,
+    //    and a later-declared function throws "is not a function" into
+    //    ~/.cache/quickshell.log while the binding falls back to whatever
+    //    the surrounding expression offers — a plausible wrong answer
+    //    rather than a visible failure. Design.qml:736 carries the same
+    //    note for the same reason.
+    //
+    //    Reversibility: delete these two aliases and `_reverseEasing`, drop
+    //    the `ReverseEasing` line from motion-lint's `load_qml_defs`, and
+    //    point Launcher.qml/Dashboard.qml's `_dismissing` branches back at
+    //    the `spatialOut`/`emphasizedOut` pair. Nothing else reads them.
+    function _reverseEasing(e) {
+        // Guard the shape rather than trusting it: `pairs[N].easing` is
+        // only guaranteed 6-long when `easingValid`, and each alias below
+        // can also receive its own literal fallback array. Anything else
+        // passes straight through unreflected, which degrades to "the
+        // entrance curve, unmirrored" — still symmetric in duration, never
+        // an undefined handed to Qt.
+        if (!Array.isArray(e) || e.length < 4)
+            return e;
+        return [1 - e[2], 1 - e[3], 1 - e[0], 1 - e[1], 1, 1];
+    }
+
+    // Spatial (position) reversal — the dismiss slide itself.
+    readonly property var spatialInReverseEasing: root._reverseEasing(spatialInEasing)
+
+    // Emphasized (opacity) reversal — the fade that rides alongside it.
+    readonly property var emphasizedInReverseEasing: root._reverseEasing(emphasizedInEasing)
+
     // ── ambient (G-15-1) — a LOOP PERIOD, not a one-shot transition; the
     //    fifth `_pairNames` entry appended above. `pairs[4].duration` is
     //    ALREADY multiplier-scaled and floor-clamped by lib/motion.sh (the

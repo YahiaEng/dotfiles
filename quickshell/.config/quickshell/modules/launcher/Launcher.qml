@@ -80,9 +80,15 @@ PanelWindow {
         panel.opened = false;
         exitTimer.start();
     }
+    // Teardown timer — must OUTLAST the exit animation, or shell.qml's
+    // loader destroys the wl_surface mid-slide. A time-reversed exit runs
+    // for exactly as long as the entrance it reverses, so this is the max
+    // of the two ENTRANCE durations (operator round 9). It read
+    // `emphasizedOutDuration` — 150ms — which would now sever the 450ms
+    // reversed slide at a third of its travel.
     Timer {
         id: exitTimer
-        interval: Motion.motionEnabled ? Motion.emphasizedOutDuration : 0
+        interval: Motion.motionEnabled ? Math.max(Motion.spatialInDuration, Motion.emphasizedInDuration) : 0
         repeat: false
         onTriggered: launcherWindow.dismissRequested()
     }
@@ -592,14 +598,32 @@ PanelWindow {
             id: panelSlide
             y: panel.opened ? 0 : (launcherWindow.edgeBarEnabled ? panel.height : -panel.height)
 
-            // Spatial (position) motion — rides the spatial-in/out pair,
-            // matching Dashboard.qml's own entrance Behavior.
+            // Spatial (position) motion — rides the spatial-in pair on the
+            // way in and its REVERSAL on the way out, matching
+            // Dashboard.qml's own Behavior verbatim.
+            //
+            // OPERATOR ROUND 9 (quick task 260823-9ak): the dismiss branch
+            // read `spatialOut` — 150ms on a plain accelerate against this
+            // panel's 450ms decelerate-with-overshoot entrance, so it left
+            // three times faster than it arrived and on a different curve
+            // family. `spatialReverse*` is the entrance easing
+            // point-reflected through (0.5, 0.5): the same shape played
+            // backwards. See Motion.qml's own note for why it is derived
+            // from the in-token rather than authored.
+            //
+            // Note this reads correctly in BOTH directions without further
+            // branching: the closed offset below is already `+panel.height`
+            // when the edge bar is on and `-panel.height` when it is off,
+            // so the reversed curve simply retraces whichever path the
+            // entrance took. The entrance overshoot surfaces as a brief
+            // inward recoil at the START of the dismiss — that is the
+            // reversal, not a defect.
             Behavior on y {
                 enabled: Motion.motionEnabled && panel._armed
                 NumberAnimation {
-                    duration: launcherWindow._dismissing ? Motion.spatialOutDuration : Motion.spatialInDuration
+                    duration: Motion.spatialInDuration
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: launcherWindow._dismissing ? Motion.spatialOutEasing : Motion.spatialInEasing
+                    easing.bezierCurve: launcherWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
                 }
             }
         }
@@ -607,9 +631,9 @@ PanelWindow {
         Behavior on opacity {
             enabled: Motion.motionEnabled && panel._armed
             NumberAnimation {
-                duration: launcherWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration
+                duration: Motion.emphasizedInDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: launcherWindow._dismissing ? Motion.emphasizedOutEasing : Motion.emphasizedInEasing
+                easing.bezierCurve: launcherWindow._dismissing ? Motion.emphasizedInReverseEasing : Motion.emphasizedInEasing
             }
         }
 

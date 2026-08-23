@@ -81,9 +81,16 @@ PanelWindow {
     // animation has finished, so shell.qml never destroys the drawer with a
     // frame of exit still on screen.
     //
-    // Timed on `emphasized-out` (187ms), not `emphasized-in` (375ms): exits
-    // are meant to be quicker than entrances, which is the whole reason the
-    // motion language carries two separate token pairs.
+    // SUPERSEDED BY OPERATOR ROUND 9 (quick task 260823-9ak). This used to
+    // read: "Timed on `emphasized-out`, not `emphasized-in`: exits are meant
+    // to be quicker than entrances, which is the whole reason the motion
+    // language carries two separate token pairs." The operator asked
+    // instead that the dismiss be a REVERSE of the spawn, so the exit now
+    // runs the entrance's own duration on the entrance's own easing
+    // MIRRORED — see the `Behavior on y`/`Behavior on opacity` pair below
+    // and Motion.qml's `spatialInReverseEasing` note. The out pair is still
+    // the right default for surfaces that have not been asked to mirror;
+    // it is simply no longer what this drawer uses.
     // ── Constant-speed tab resize (quick task 260818-nwo) ───────────────
     // Reported and then MEASURED: tab transitions were not uniform in speed.
     // Every transition animated over the same fixed Motion.standardDuration
@@ -139,9 +146,15 @@ PanelWindow {
         panel.opened = false;
         exitTimer.start();
     }
+    // Teardown timer — must OUTLAST the exit animation, or the loader
+    // destroys the wl_surface mid-slide. A time-reversed exit runs for
+    // exactly as long as the entrance it reverses, so this is the max of
+    // the two ENTRANCE durations (operator round 9). It read
+    // `emphasizedOutDuration` — 150ms — which would now sever the 450ms
+    // reversed slide at a third of its travel.
     Timer {
         id: exitTimer
-        interval: Motion.motionEnabled ? Motion.emphasizedOutDuration : 0
+        interval: Motion.motionEnabled ? Math.max(Motion.spatialInDuration, Motion.emphasizedInDuration) : 0
         repeat: false
         onTriggered: dashboardWindow.dismissRequested()
     }
@@ -620,20 +633,32 @@ PanelWindow {
         // panel's own entry/dismiss slide — so it is retargeted onto the
         // spatial-in/spatial-out pair rather than the effects
         // emphasized-in/emphasized-out pair every fade in this file keeps.
+        //
+        // OPERATOR ROUND 9 (quick task 260823-9ak): the dismiss branch now
+        // reads the REVERSED entrance pair, not the out pair. Measured, the
+        // out pair was never a mirror of anything — 150ms on a plain
+        // accelerate against a 450ms decelerate-with-overshoot entrance, so
+        // the drawer left three times faster than it arrived and on a
+        // different curve family. `spatialReverse*` is the entrance easing
+        // point-reflected through (0.5, 0.5), i.e. the same shape played
+        // backwards; see Motion.qml's own note for why it is derived from
+        // the in-token rather than authored. The entrance overshoot
+        // consequently surfaces as a brief inward recoil at the START of
+        // the dismiss — that is the reversal, not a defect.
         Behavior on y {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: dashboardWindow._dismissing ? Motion.spatialOutDuration : Motion.spatialInDuration
+                duration: Motion.spatialInDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: dashboardWindow._dismissing ? Motion.spatialOutEasing : Motion.spatialInEasing
+                easing.bezierCurve: dashboardWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
             }
         }
         Behavior on opacity {
             enabled: Motion.motionEnabled
             NumberAnimation {
-                duration: dashboardWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration
+                duration: Motion.emphasizedInDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: dashboardWindow._dismissing ? Motion.emphasizedOutEasing : Motion.emphasizedInEasing
+                easing.bezierCurve: dashboardWindow._dismissing ? Motion.emphasizedInReverseEasing : Motion.emphasizedInEasing
             }
         }
 
