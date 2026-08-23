@@ -361,3 +361,117 @@ required — touching `shell.qml` is not enough), and `Qt.callLater`
 COALESCES into the end of the current event-loop iteration, so a
 self-rescheduling retry spins inside one frame and can never wait for a
 Wayland configure.
+
+---
+
+## Post-summary: operator feedback round 9 (2026-08-23)
+
+Two notes, `2bbd9786..c203a631` on `main`.
+
+| Report | Commit | Root cause |
+|---|---|---|
+| "make the bulge thinner" | `2bbd9786` | Taste, but it exposed a latent geometry constraint — see below. `edgeBarBulgeExtra` 10 -> 6. |
+| "the dismiss animation of super+Space, super-tap and super+d should be a reverse motion of the spawn animation" | `93f594ac` | The dismiss branch read the `spatial-out`/`emphasized-out` pair — 150ms on a plain accelerate against a 450ms decelerate-with-overshoot entrance. The out pair is a generic exit, not a mirror of anything. |
+| (same report, second and larger cause) | `c203a631` | **On those three binds there was no dismiss animation at all.** Every toggle-off path in `shell.qml` wrote `<loader>.active = false` directly, destroying the surface on the spot and skipping `_beginDismiss()` entirely. |
+
+### The bulge constraint, which was latent and is now written down
+
+`EdgeBar.qml:288-294` runs the bulge's SIDE as one straight segment from
+`t + fillet` to `(t + extra) - cornerRadius`. The outline is therefore only
+well-formed while:
+
+```
+edgeBarFilletRadius + edgeBarBulgeCornerRadius <= edgeBarBulgeExtra
+```
+
+and the fillet alone must not exceed `extra`, or the arc falls outside the
+surface's own `implicitHeight` (`thickness + extra`) and is clipped.
+**Neither condition raises anything — no QML warning, no gate.**
+
+Dropping `extra` to 6 while the radii still read 8 and 6 put the sum at 14
+against a 6px protrusion. A 16x region capture of the top strip's left
+shoulder showed a dark **notch** cutting up into the strip — the same
+self-intersection class as round 8's floating bulge. Scaled to 4 + 2 = 6
+(round 7's own 4:3 fillet:corner ratio preserved), both shoulders re-render
+as clean concave sweeps, top and bottom.
+
+**For any future retune:** round 7's shipped 8 + 6 = 14 against a 10px
+protrusion ALREADY broke the first inequality. It survived only because
+8 <= 10 kept the arc inside the surface, so the overlap stayed sub-pixel at
+the seam. Do not read the old values as a licence to exceed the sum again —
+re-derive both from `extra`.
+
+### The reversal
+
+A true time-reversal of a cubic bezier easing is its point-reflection
+through (0.5, 0.5): `[x1,y1,x2,y2] -> [1-x2,1-y2,1-x1,1-y1]`. `Motion.qml`
+gains exactly two derived tokens for it, `spatialInReverseEasing` and
+`emphasizedInReverseEasing` — derived from the in-easings rather than
+authored, because the reflection has to track whatever the active style put
+in the in-pair (under `md3` there is no overshoot at all). No reversed
+DURATION token exists: a time-reversal runs as long as what it reverses, so
+consumers read the entrance duration on both branches.
+
+The entrance overshoot now surfaces as a brief inward recoil at the START of
+the exit. That is what "played backwards" looks like, not a defect.
+
+`motion-lint` CHECK A caught the two new names as dangling, correctly — its
+allow-list is derived from `motion.json`'s semantic keys and these are
+Motion.qml-side derivations. It now derives `<camelKey>ReverseEasing` the
+same way it already derives `Duration` and `Easing`. Duration is pointedly
+NOT added: that would allow-list a reference that does not resolve, the
+identical trap the `indicators` block already spells out.
+
+### The measurement that caught the bigger half
+
+Retiming the curve would have changed nothing on the binds the operator
+named. Polling `hyprctl layers` after a dismiss trigger:
+
+| Bind | Before | After |
+|---|---|---|
+| Super+Space (launcher) | surface destroyed **21 ms** after trigger | **482 ms** |
+| Super-tap (menu) | (same path) | **467 ms** |
+| Super+D (dashboard) | surface destroyed **38 ms** after trigger | **471 ms** |
+
+against a ~450ms exit. Only Escape, click-outside and launch-an-app ever
+reached `_beginDismiss()`. One `root._dismissLoader()` helper now owns the
+close, and five sites call it: `launcherShortcut`, `launcherIpc.toggle`, the
+Super-tap menu toggle, `dashboardShortcut.toggle` (which the top bulge hover
+also runs through) and `mediaShortcut`.
+
+KNOWN EDGE, deliberately accepted: pressing the same bind again WHILE the
+exit plays is now a no-op (`_beginDismiss` guards re-entry) rather than an
+instant close-then-reopen. The surface is gone ~450ms later and the next
+press opens normally.
+
+### Verified by measurement
+
+- Reserved `[0,6,50,6]` unchanged; surface height 16 -> 12; strips still
+  `x=10 w=2490`.
+- Both shoulders captured at 16x, top and bottom, notch-free.
+- Both surfaces summoned AND dismissed live with a clean shell log below the
+  start marker — no `undefined`, no "is not a function", no `QEasingCurve`
+  complaint, so Qt accepts the mirrored curve's negative-y control point.
+- Gates: `quickshell-doctor` 28/0, `colour-lint` 359/0, `motion-lint` 546/0
+  (544/10 mid-change), `keybind-doctor` 13/0; `motion-lint --self-test` 12/0
+  and `quickshell-doctor --self-test` 59/0 after the gate edit.
+
+### Instruments that lied this round too
+
+- **Threshold-against-a-corner-pixel depth scan** reported depth 19 in a 12px
+  strip. Dumping raw RGB per row read it correctly at 6 flat + 6 bulge — the
+  same lesson round 7/8 already paid for, relearned on the first try here.
+- **`hyprctl dispatch global quickshell:dashboard` silently fails** on this
+  host: the Lua config layer wraps the argument, so it must be
+  `hyprctl dispatch 'hl.dsp.global("quickshell:dashboard")'`. The first
+  attempt at a "clean log" proof for `Dashboard.qml` was a blind probe — the
+  surface never opened. A positive control (assert the namespace appears in
+  `hyprctl layers` while open) is what caught it.
+
+### Still open — needs the operator
+
+Unchanged from round 8, plus this round's own two:
+1. Task 7's hover-dwell walk (still not self-verifiable — no input injection).
+2. Visual sign-off, now on the round-9 shape: the thinner bulge, and whether
+   the reversed exit's inward recoil reads right on all three binds.
+3. The menu surface still measured only in APP mode for the entrance.
