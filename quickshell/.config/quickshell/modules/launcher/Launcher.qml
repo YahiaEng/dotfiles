@@ -466,6 +466,13 @@ PanelWindow {
         width: 640
         height: contentColumn.implicitHeight + contentColumn.anchors.margins * 2
         anchors.horizontalCenter: parent.horizontalCenter
+        // Anchored to the edge it hangs from; the entrance is a
+        // Translate off that anchor (see the slide note below), never a
+        // `y` derived from the window height. `undefined` clears the
+        // unused anchor — the standard QtQuick idiom for a branched
+        // Item anchor.
+        anchors.top: launcherWindow.edgeBarEnabled ? undefined : parent.top
+        anchors.bottom: launcherWindow.edgeBarEnabled ? parent.bottom : undefined
 
         // ── Drop-down/rise entrance, in QML (quick task 260823-9ak,
         //    Task 6, D-5) ────────────────────────────────────────────
@@ -477,23 +484,126 @@ PanelWindow {
         // against `launcherWindow.height` (the window's own local
         // content height, already net of the flush margins above).
         property bool opened: false
-        y: launcherWindow.edgeBarEnabled ? (opened ? launcherWindow.height - height : launcherWindow.height) : (opened ? 0 : -height)
-        opacity: opened ? 1 : 0
-        Component.onCompleted: panel.opened = true
 
-        // `y` is a spatial (position) property — the panel's own
-        // entry/dismiss slide — so it rides the spatial-in/spatial-out
-        // pair, matching Dashboard.qml's own `panel.y` Behavior.
-        Behavior on y {
-            enabled: Motion.motionEnabled
-            NumberAnimation {
-                duration: launcherWindow._dismissing ? Motion.spatialOutDuration : Motion.spatialInDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: launcherWindow._dismissing ? Motion.spatialOutEasing : Motion.spatialInEasing
+        // ── Deferred arm+open (OPERATOR FEEDBACK ROUND 5, 2026-08-23) ────
+        // The operator reported the panel "starts from the middle of the
+        // screen then slides down" in edge-bar mode — the exact reverse of
+        // the intended rise. Measured by diffing 30 frames against a
+        // closed-state baseline: top ran 466 -> 750 -> 879 -> 957 -> 975,
+        // i.e. it DESCENDED into place.
+        //
+        // Cause, and it is a construction-order bug, not a direction bug.
+        // The closed position in edge-bar mode is `launcherWindow.height`,
+        // which is 0 until the layer surface is configured; `panel.height`
+        // is likewise 0 until `contentColumn` lays out. `Component.
+        // onCompleted` fired with BOTH still 0, so open (`height - height`)
+        // and closed (`height`) evaluated to the same 0 and there was
+        // nothing to travel. The real geometry then arrived, the binding
+        // re-evaluated to ~974, and the Behavior animated y from 0 to 974
+        // — a slide DOWN from the top, which is precisely what was seen.
+        //
+        // Dashboard.qml never had this: its open position is the constant
+        // 0 and never reads the window height, so its own zero-geometry
+        // window is harmless. Only this file's bottom-anchored branch
+        // depends on a value that starts at 0, which is why the operator
+        // saw the dashboard behave and the launcher not.
+        //
+        // So opening waits for real geometry, and the Behaviors stay
+        // ── Entrance slide (OPERATOR FEEDBACK ROUNDS 5-6, 2026-08-23) ───
+        // The operator reported the panel "starts from the middle of the
+        // screen then slides down" in edge-bar mode — the reverse of the
+        // intended rise. Two wrong fixes preceded this one; what finally
+        // settled it was console.log instrumentation read out of
+        // ~/.cache/quickshell.log, not reasoning about the file:
+        //
+        //   winH=100   panelH=32   -> "ready", opened flipped here
+        //   winH=500   panelH=444  -> y=7.2
+        //   winH=1424  panelH=444  -> y 173 -> 298 -> 389 ... -> 927 ...
+        //
+        // `launcherWindow.height` is NEVER 0. The layer surface is
+        // configured in STAGES — 100, then 500, then 1424 — so the old
+        // open position `launcherWindow.height - height` tracked a value
+        // that kept growing, and dragged the panel steadily DOWNWARD long
+        // after it had opened. Any "wait for a non-zero height" guard
+        // passes at winH=100 and cannot help; the first two attempts here
+        // failed for exactly that reason. (Qt.callLater retry loops also
+        // cannot help, and are worse: callLater COALESCES into the end of
+        // the current event-loop iteration, so a self-rescheduling retry
+        // spins inside ONE frame and never waits for a configure at all.)
+        //
+        // Dashboard.qml is immune because its open position is the
+        // constant 0 and never reads the window height — which is why the
+        // operator saw the drawer behave and only the launcher invert.
+        //
+        // THE RULE THIS ENCODES: never derive a layer-shell surface's
+        // entrance geometry from that surface's own height. Anchor to the
+        // edge and animate a TRANSLATION whose distance depends only on
+        // the panel's own height. Staged configures then move the anchor,
+        // which is free, instead of retargeting a running animation.
+        property bool _armed: false
+
+        // Debounced open: `panel.height` also arrives in stages (32 -> 72
+        // -> 444), and flipping at the first non-zero value would slide
+        // the panel a token 32px instead of its full height. Each height
+        // change restarts the timer, so the slide starts once the size has
+        // held still for one interval.
+        function _armAndOpen() {
+            if (panel.opened || panel.height <= 0)
+                return;
+            // Arm one tick BEFORE the flip so `Behavior.enabled` has
+            // already re-evaluated true when `opened` changes; doing both
+            // in one tick leaves that ordering to chance. While disarmed,
+            // the closed offset tracks `panel.height` instantly rather
+            // than animating, so the panel simply waits off-screen.
+            panel._armed = true;
+            Qt.callLater(function () {
+                panel.opened = true;
+            });
+        }
+
+        Timer {
+            id: settleTimer
+            interval: 60
+            repeat: false
+            onTriggered: panel._armAndOpen()
+        }
+        onHeightChanged: if (!panel.opened)
+            settleTimer.restart()
+
+        // Hard stop: never leave the panel invisible if the size never
+        // settles. Routed through the same path so the arm/flip ordering
+        // holds here too.
+        Timer {
+            interval: 500
+            running: !panel.opened
+            repeat: false
+            onTriggered: panel._armAndOpen()
+        }
+
+        opacity: opened ? 1 : 0
+        Component.onCompleted: settleTimer.restart()
+
+        // The slide itself. `Translate` is relative to wherever the anchors
+        // put the panel, so a staged surface configure repositions the
+        // anchor without touching this animation.
+        transform: Translate {
+            id: panelSlide
+            y: panel.opened ? 0 : (launcherWindow.edgeBarEnabled ? panel.height : -panel.height)
+
+            // Spatial (position) motion — rides the spatial-in/out pair,
+            // matching Dashboard.qml's own entrance Behavior.
+            Behavior on y {
+                enabled: Motion.motionEnabled && panel._armed
+                NumberAnimation {
+                    duration: launcherWindow._dismissing ? Motion.spatialOutDuration : Motion.spatialInDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: launcherWindow._dismissing ? Motion.spatialOutEasing : Motion.spatialInEasing
+                }
             }
         }
+
         Behavior on opacity {
-            enabled: Motion.motionEnabled
+            enabled: Motion.motionEnabled && panel._armed
             NumberAnimation {
                 duration: launcherWindow._dismissing ? Motion.emphasizedOutDuration : Motion.emphasizedInDuration
                 easing.type: Easing.BezierSpline
