@@ -30,20 +30,62 @@ SectionPopout {
     // EthernetPopout's own device-handle property carries.
     property var overflowItems: []
 
-    // Icon tint (260823-65s round 3, rebuilt round 4) — the SAME Prefs key
-    // TrayCapsule.qml reads, so the two surfaces never disagree on mode.
-    // Colour source is this popout's OWN content role (Colours.onSurface,
-    // the same colour rowLabel below already uses), never BarRoles —
-    // that role belongs to the bar window, not this one (EthernetPopout's
-    // own colour layer, which this file already follows for everything
-    // else). See TrayCapsule.qml's own header comment for the full round-4
-    // rebuild reasoning (the operator-measured "monochrome and desaturated
-    // look identical" defect, and why a mask-based silhouette replaces the
-    // unverified colorization-amount approach).
-    readonly property string _trayIconTint: Prefs.getValue("bar.tray.iconTint")
-    readonly property bool _tintMonochrome: root._trayIconTint === "monochrome"
+    // The BAR's own window handle (quick task 260823-65s round 5,
+    // operator-reported bug: right-click "shows the context menu but
+    // immediately dismisses it"). MEASURED root cause: SectionPopout.qml's
+    // own HyprlandFocusGrab (`popoutGrab`, below in that file) only lists
+    // THIS popout window; item.display() opens the platform menu as its
+    // OWN separate window, which the grab does not know about, so Hyprland
+    // sees focus leave the grabbed set the instant the menu appears and
+    // fires onCleared -> requestDismiss(). The popout — and the menu
+    // anchored to it — both vanish. Checked for a menu-closed signal to
+    // suppress-and-rearm the grab around instead (the ideal fix): the
+    // installed Quickshell.DBusMenu module exposes only sendOpened/
+    // sendClosed/sendTriggered on a hand-rolled DBusMenuItem, none of
+    // which are lifecycle signals for the platform menu display() itself
+    // opens — no such signal exists to rearm on. Fixed instead by closing
+    // the popout FIRST (root.requestDismiss(), the exact function
+    // popoutGrab.onCleared already calls, so this is the same dismiss
+    // path, just triggered explicitly) and only then calling display()
+    // against a window that is never destroyed — this popout's own window
+    // is a bad choice moments after requestDismiss() starts its exit
+    // animation, but the bar (Bar.qml's own "never unmounts for the life
+    // of the session") is always safe. Handed down from TrayCapsule.qml,
+    // which already lives inside that window and can read QsWindow.window
+    // directly — this popout cannot, since it is a SEPARATE window.
+    property var barWindow: null
+
+    // Icon tint (260823-65s round 3, final shape round 5) — the SAME
+    // Prefs key TrayCapsule.qml reads, so the two surfaces never
+    // disagree on mode. Colour source is this popout's OWN content role
+    // (Colours.onSurface, the same colour rowLabel below already uses),
+    // never BarRoles — that belongs to the bar window, not this one
+    // (EthernetPopout's own colour layer, which this file already
+    // follows for everything else). See TrayCapsule.qml's own header
+    // comment for the full round-5 design reasoning: "tinted"
+    // (saturation:-1.0 + colorization:1.0, replacing the retired
+    // "monochrome") keeps a tray icon's own logo detail legible while
+    // recolouring it, since these are brand logos, not flat pictograms;
+    // "desaturate" is the SAME pipeline with colorization:0 — plain
+    // greyscale, no tint, distinct from "tinted" at the two mathematical
+    // endpoints of one parameter rather than a tuned in-between value.
+    //
+    // Migration — declared BEFORE the property that calls it (MEMORY
+    // qml-declare-before-construction-time-use), same shape as
+    // TrayCapsule.qml's own: a stored "monochrome" (written by the
+    // ed8928c8 build) maps forward to "tinted" rather than matching none
+    // of this file's branches and silently falling through to "off".
+    function _normalizeTrayIconTint(raw) {
+        if (raw === "monochrome")
+            return "tinted";
+        if (raw === "tinted" || raw === "desaturate" || raw === "off")
+            return raw;
+        return "desaturate";
+    }
+    readonly property string _trayIconTint: root._normalizeTrayIconTint(Prefs.getValue("bar.tray.iconTint"))
+    readonly property bool _tintTinted: root._trayIconTint === "tinted"
     readonly property bool _tintDesaturate: root._trayIconTint === "desaturate"
-    readonly property bool _tintActive: root._tintMonochrome || root._tintDesaturate
+    readonly property bool _tintActive: root._tintTinted || root._tintDesaturate
 
     sectionId: "tray"
     popoutTitle: "System tray"
@@ -108,11 +150,11 @@ SectionPopout {
                     // straight to source, exactly as the inline cell does.
                     // Tint mechanism identical to TrayCapsule.qml's own
                     // (see that file's own header comment for the full
-                    // round-4 reasoning): "off" paints this IconImage
-                    // directly; "monochrome" reads it as an ALPHA MASK
-                    // ONLY over a flat fill; "desaturate" reads it as a
-                    // plain saturation:-1.0 source. Never painted itself
-                    // while either Loader below is active.
+                    // round-5 reasoning): "off" paints this IconImage
+                    // directly; "tinted"/"desaturate" turn it into an
+                    // invisible, layered texture source for the Loader
+                    // below, which differs only in `colorization` amount
+                    // (1.0 vs 0).
                     IconImage {
                         id: overflowIcon
                         width: Design.iconSizeMd
@@ -124,59 +166,31 @@ SectionPopout {
                         layer.enabled: root._tintActive
                     }
 
-                    // The "monochrome" mode's ONLY colour source — never
-                    // painted itself (visible: false always, so Row
-                    // excludes it from layout unconditionally), fed into
-                    // the mask MultiEffect below as `source`. Colours.onSurface
-                    // is this popout's own content role (matches rowLabel
-                    // below), never BarRoles.
-                    Rectangle {
-                        id: overflowSilhouetteFill
-                        width: Design.iconSizeMd
-                        height: Design.iconSizeMd
-                        color: Colours.onSurface
-                        visible: false
-                        layer.enabled: root._tintMonochrome
-                    }
-
-                    // "monochrome" — the same NotifGroup.qml/NotifCard.qml
-                    // picture-masking MultiEffect shape TrayCapsule.qml's
-                    // own identical block reuses: `source` is the flat
-                    // fill, `maskSource` is the icon (its ALPHA channel
-                    // only), so the result is a flat silhouette by
-                    // construction. Row excludes an invisible child AND
-                    // its spacing, so visible/width/height are all gated
-                    // on _tintMonochrome to reserve ZERO Row space
-                    // whenever this mode is not active.
+                    // Row is a positioner — it excludes an invisible
+                    // child AND its spacing (BarCapsule.qml's own Grid
+                    // carries the identical note). visible AND the
+                    // explicit width/height are both gated on
+                    // _tintActive so this Loader reserves ZERO Row space
+                    // in "off" mode; a fixed size here regardless of
+                    // `active` would have doubled the icon column's width
+                    // whenever the effect is not instantiated.
                     Loader {
-                        visible: root._tintMonochrome
-                        width: root._tintMonochrome ? Design.iconSizeMd : 0
-                        height: root._tintMonochrome ? Design.iconSizeMd : 0
-                        active: root._tintMonochrome
+                        visible: root._tintActive
+                        width: root._tintActive ? Design.iconSizeMd : 0
+                        height: root._tintActive ? Design.iconSizeMd : 0
+                        active: root._tintActive
                         sourceComponent: MultiEffect {
-                            anchors.fill: parent
-                            source: overflowSilhouetteFill
-                            maskEnabled: true
-                            maskSource: overflowIcon
-                            maskThresholdMin: 0.5
-                            maskSpreadAtMin: 1.0
-                        }
-                    }
-
-                    // "desaturate" — greyscale, nothing else. No
-                    // colorization tint, per the operator's own word
-                    // choice (see TrayCapsule.qml's header comment for
-                    // why the previous build's re-tint collapsed this
-                    // mode into monochrome).
-                    Loader {
-                        visible: root._tintDesaturate
-                        width: root._tintDesaturate ? Design.iconSizeMd : 0
-                        height: root._tintDesaturate ? Design.iconSizeMd : 0
-                        active: root._tintDesaturate
-                        sourceComponent: MultiEffect {
+                            // anchors.fill: parent, NOT overflowIcon —
+                            // same fix as TrayCapsule.qml's identical
+                            // Loader/MultiEffect pair, same measured root
+                            // cause (a Loader's sourceComponent item is a
+                            // CHILD of the Loader, so a sibling of the
+                            // Loader is two levels away, not one).
                             anchors.fill: parent
                             source: overflowIcon
                             saturation: -1.0
+                            colorization: root._tintTinted ? 1.0 : 0.0
+                            colorizationColor: Colours.onSurface
                         }
                     }
 
@@ -192,8 +206,26 @@ SectionPopout {
                     }
                 }
 
-                // Same three gestures as an inline cell (CORRECTIONs 2/3),
-                // passing THIS popout's own window as display()'s parent.
+                // Same three gestures as an inline cell (CORRECTIONs 2/3).
+                //
+                // Menu path FIXED (round 5, operator-reported): "Right-click
+                // on the hidden vlc tray icon shows the context menu but
+                // immediately dismisses it making it impossible to select
+                // any action." Root cause and full reasoning live on
+                // root.barWindow's own declaration above. The fix applies
+                // to BOTH ways this row can reach display() — right-click
+                // AND the onlyMenu left-click fall-through carry the
+                // identical hazard, even though only right-click was
+                // reported (no currently-registered item sets onlyMenu, so
+                // that path was never exercised, but the mechanism is
+                // identical and left unfixed would be an obvious latent
+                // repeat of the same bug): dismiss this popout FIRST via
+                // root.requestDismiss() — the exact function
+                // popoutGrab.onCleared already calls elsewhere, so this is
+                // the same dismiss path, not a new one — THEN call
+                // display() against root.barWindow, a window that is never
+                // destroyed, instead of this popout's own window, which is
+                // mid-exit-animation by the time the menu would open.
                 MouseArea {
                     id: overflowRowMouseArea
                     anchors.fill: parent
@@ -208,16 +240,20 @@ SectionPopout {
                             overflowRow.modelData.secondaryActivate();
                             return;
                         }
-                        var origin = overflowRow.mapToItem(null, 0, overflowRow.height);
-                        if (mouse.button === Qt.RightButton) {
-                            overflowRow.modelData.display(QsWindow.window, origin.x, origin.y);
+                        var wantsMenu = mouse.button === Qt.RightButton || overflowRow.modelData.onlyMenu;
+                        if (wantsMenu) {
+                            // Captured BEFORE requestDismiss() — overflowRow
+                            // is still fully alive at this exact point (the
+                            // dismiss below only STARTS an exit animation;
+                            // it does not synchronously destroy anything).
+                            var origin = overflowRow.mapToItem(null, 0, overflowRow.height);
+                            var menuItem = overflowRow.modelData;
+                            root.requestDismiss();
+                            menuItem.display(root.barWindow, origin.x, origin.y);
                             return;
                         }
-                        // Left button.
-                        if (overflowRow.modelData.onlyMenu)
-                            overflowRow.modelData.display(QsWindow.window, origin.x, origin.y);
-                        else
-                            overflowRow.modelData.activate();
+                        // Left button, not onlyMenu.
+                        overflowRow.modelData.activate();
                     }
                 }
 

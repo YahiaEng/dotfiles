@@ -107,47 +107,67 @@ BarCapsule {
     //    "we already colour/theme all the other icons/pills/glyphs, this
     //    should not be an exception") — a LIVE Prefs read, re-evaluated
     //    on every getValue() call the same way every other Prefs-backed
-    //    binding in this shell already is (Prefs._data is reassigned
-    //    wholesale on write, which is what makes a `property var`
-    //    binding re-fire). The colour source below (root.contentColour)
-    //    is equally live — it traces to BarRoles.capsuleFg ->
-    //    Colours.onSurfaceVariant, the same singleton chain every other
-    //    themed bar glyph already reads, so this recolours on a theme
-    //    switch exactly like its neighbours.
+    //    binding in this shell already is. The colour source below
+    //    (root.contentColour) is equally live — it traces to
+    //    BarRoles.capsuleFg -> Colours.onSurfaceVariant, the same
+    //    singleton chain every other themed bar glyph already reads.
     //
-    // ROUND-4 CORRECTION (operator: "Monochrome and desaturated look
-    // exactly the same") — the FIRST implementation built "monochrome"
-    // on `colorization: 1.0`, on the unverified assumption that a full
-    // colorization amount flattens every source pixel to one solid
-    // colour. That assumption was never measured: no shader source,
-    // formula, or doc comment for `MultiEffect.colorization` exists
-    // anywhere on this host (checked plugins.qmltypes, the private C++
-    // headers, and the compiled libQt6QuickEffects.so's own symbol
-    // table — none carry the actual blend formula). With `saturation:
-    // -1.0` applied unconditionally in both branches, the two modes
-    // differed only in colorization STRENGTH (1.0 vs 0.55) over the
-    // SAME greyscale image — both a weak wash of one muted tone
-    // (BarRoles.capsuleFg -> Colours.onSurfaceVariant, `#a89984` on the
-    // live palette) at 16px, which is exactly what the operator
-    // reported as indistinguishable.
+    // ROUND-5 — the final shape, decided by the operator after LOOKING at
+    // both prior attempts. Round 4's flat-silhouette "monochrome" (a
+    // masked solid fill, correct by construction — MultiEffect.maskSource
+    // over a flat Rectangle can only ever render one colour) was rejected
+    // on sight anyway: "The current monochrome looks terrible. It is so
+    // hard to tell what app it is." That verdict is about the MASK
+    // technique specifically, not about colorization — a masked
+    // silhouette is ALWAYS 100% flat by definition, so "hard to tell" is
+    // exactly what a pure silhouette produces regardless of any shader
+    // semantic. It does NOT confirm or disprove anything about what
+    // `MultiEffect.colorization` itself does at any amount — that
+    // question is still UNRESOLVED on this host (no shader source,
+    // formula, or doc comment for it exists anywhere available here,
+    // confirmed by direct search of plugins.qmltypes, the private C++
+    // headers, and libQt6QuickEffects.so's own symbol table). The
+    // round-3 comment claiming a full-strength blend "overrides every
+    // source pixel" was an unmeasured assertion and stays deleted for
+    // that reason — not because it was disproven, but because it was
+    // never proven either.
     //
-    // Fixed by construction instead of by tuning a number: "monochrome"
-    // is now a genuine flat silhouette via MultiEffect's MASK path
-    // (`maskSource`/`maskEnabled`) — a solid Rectangle in the content
-    // colour, masked by the icon's own alpha. A masked solid fill is
-    // definitionally one colour; there is no shader semantic left to
-    // get wrong. This is the SAME mask technique already shipped in
-    // this repo (NotifGroup.qml/NotifCard.qml's picture-masking
-    // MultiEffect blocks), reused rather than invented. "desaturate" no
-    // longer carries any colorization tint at all — the operator's own
-    // word choice: desaturate means greyscale, not "greyscale then
-    // partially re-tinted", and the re-tint is what collapsed it into
-    // monochrome. Pure `saturation: -1.0` is unambiguous against a true
-    // flat silhouette by construction, with no tuning required.
-    readonly property string trayIconTint: Prefs.getValue("bar.tray.iconTint")
-    readonly property bool _tintMonochrome: root.trayIconTint === "monochrome"
+    // The design below does not need that question answered: "tinted"
+    // simply WANTS whatever colorization:1.0 actually produces (logo
+    // identity carried through, in the palette hue — brand logos need to
+    // stay identifiable, unlike the bar's own flat Material Symbols
+    // glyphs, which is why "monochrome" was the wrong SHAPE for this
+    // content, not merely an imperfect build of the right one).
+    // "desaturate" sets colorization to EXACTLY 0 instead of the prior
+    // build's nonzero 0.55 — no tint at all, the honest meaning of
+    // "desaturate". The two modes are now the two mathematical endpoints
+    // of the same parameter (0 and 1.0), never a tuned intermediate value
+    // either has to "look different enough" against, which is what makes
+    // this design correct regardless of colorization's exact internal
+    // formula.
+    // Migration (round 5), declared BEFORE the property that calls it
+    // (MEMORY qml-declare-before-construction-time-use) — the prior
+    // build (ed8928c8) shipped "monochrome" as a valid stored value;
+    // some installs (this host included — confirmed live in
+    // ~/.local/state/quickshell/prefs.json before writing this) already
+    // persisted it before the operator's design change replaced it with
+    // "tinted". A raw, unmigrated "monochrome" matches none of this
+    // file's three live branches, which would silently fall through to
+    // the untinted "off" rendering path — not broken, but a silent
+    // behaviour change with no visible cause. Mapped forward instead;
+    // any OTHER unrecognised value falls back to the hardcoded default,
+    // never a blank/broken tray.
+    function _normalizeTrayIconTint(raw) {
+        if (raw === "monochrome")
+            return "tinted";
+        if (raw === "tinted" || raw === "desaturate" || raw === "off")
+            return raw;
+        return "desaturate";
+    }
+    readonly property string trayIconTint: root._normalizeTrayIconTint(Prefs.getValue("bar.tray.iconTint"))
+    readonly property bool _tintTinted: root.trayIconTint === "tinted"
     readonly property bool _tintDesaturate: root.trayIconTint === "desaturate"
-    readonly property bool _tintActive: root._tintMonochrome || root._tintDesaturate
+    readonly property bool _tintActive: root._tintTinted || root._tintDesaturate
 
     Repeater {
         model: root.inlineItems
@@ -184,22 +204,25 @@ BarCapsule {
             // CORRECTION 1 above. Empty only when the item genuinely
             // supplies no icon.
             //
-            // Icon tint (260823-65s, rebuilt round 4) — painted THREE
-            // different ways depending on root.trayIconTint:
-            //   "off"        -> trayIcon renders itself directly, exactly
-            //                    as before this task existed. Neither
-            //                    Loader below is ever active — this mode
-            //                    costs nothing and cannot alter a single
-            //                    pixel.
-            //   "monochrome" -> trayIcon becomes an ALPHA MASK ONLY
-            //                    (never its own colour); traySilhouetteFill
-            //                    below is the actual colour source. Both
-            //                    need visible:false + layer.enabled:true to
-            //                    hand MultiEffect a texture while painting
-            //                    nothing themselves (NotifCentre.qml's own
-            //                    empty-illustration precedent).
-            //   "desaturate" -> trayIcon becomes a plain saturation:-1.0
-            //                    texture source (no mask, no tint).
+            // Icon tint (260823-65s, final shape round 5) — painted TWO
+            // ways depending on root.trayIconTint:
+            //   "off"                 -> trayIcon renders itself directly,
+            //                            exactly as before this task
+            //                            existed. The Loader below stays
+            //                            inactive — this mode costs
+            //                            nothing and cannot alter a
+            //                            single pixel.
+            //   "tinted"/"desaturate" -> trayIcon becomes a texture
+            //                            SOURCE only (visible: false,
+            //                            layer.enabled: true — NotifCentre
+            //                            .qml's own empty-illustration
+            //                            precedent) and the Loader below
+            //                            paints the result — same
+            //                            technique for both, differing
+            //                            only in `colorization` amount
+            //                            (1.0 vs 0, the two mathematical
+            //                            endpoints, never a tuned
+            //                            in-between value).
             IconImage {
                 id: trayIcon
                 anchors.centerIn: parent
@@ -220,59 +243,34 @@ BarCapsule {
                 }
             }
 
-            // The "monochrome" mode's ONLY colour source — a flat fill,
-            // never painted itself (visible: false), fed into the mask
-            // MultiEffect below as `source`. Never touched by saturation
-            // or colorization: it IS the exact content colour already,
-            // and a masked solid fill is one colour by definition — there
-            // is no shader semantic left to depend on.
-            Rectangle {
-                id: traySilhouetteFill
-                anchors.fill: trayIcon
-                color: root.contentColour
-                visible: false
-                layer.enabled: root._tintMonochrome
-            }
-
-            // "monochrome" — NotifGroup.qml/NotifCard.qml's own picture-
-            // masking MultiEffect shape, reused verbatim: `source` is the
-            // flat fill, `maskSource` is the icon (read for its ALPHA
-            // channel only, never its colour), so the result is the
-            // icon's own silhouette filled solid. anchors.fill: parent,
-            // NOT trayIcon — MEASURED live on this task's own prior round
-            // (quickshell.log: "Cannot anchor to an item that isn't a
-            // parent or sibling"): a Loader's sourceComponent item is a
-            // CHILD of the Loader, so a Loader SIBLING (trayIcon) is two
-            // levels away, not one. `parent` here is the Loader, which
-            // already carries `anchors.fill: trayIcon` below.
+            // "tinted": saturation:-1.0 then colorization:1.0 toward the
+            // content colour — logo detail (light/dark structure) stays
+            // legible, only hue is replaced, matching how tray icons
+            // (brand logos) need to stay identifiable rather than
+            // reducing to a flat pictogram. "desaturate": the SAME
+            // pipeline with colorization:0 — plain greyscale, no tint at
+            // all, which is what makes it unmistakably distinct from
+            // "tinted" (0 vs 1.0, not a tuned middle value either has to
+            // "look different enough" against).
+            //
+            // anchors.fill: parent, NOT trayIcon — MEASURED live on this
+            // task's own earlier round (quickshell.log: "Cannot anchor
+            // to an item that isn't a parent or sibling"): a Loader's
+            // sourceComponent item is a CHILD of the Loader, so a Loader
+            // SIBLING (trayIcon) is two levels away, not one. `parent`
+            // here is the Loader, which already carries `anchors.fill:
+            // trayIcon` below.
             Loader {
                 anchors.fill: trayIcon
-                active: root._tintMonochrome
-                sourceComponent: MultiEffect {
-                    anchors.fill: parent
-                    source: traySilhouetteFill
-                    maskEnabled: true
-                    maskSource: trayIcon
-                    maskThresholdMin: 0.5
-                    maskSpreadAtMin: 1.0
-                    visible: trayIcon.status === Image.Ready
-                    opacity: trayIcon.opacity
-                }
-            }
-
-            // "desaturate" — greyscale, nothing else. No colorization:
-            // the operator's own word choice means "strip hue", not
-            // "strip hue then partially re-tint" — the re-tint is what
-            // made the previous build collapse into monochrome.
-            Loader {
-                anchors.fill: trayIcon
-                active: root._tintDesaturate
+                active: root._tintActive
                 sourceComponent: MultiEffect {
                     anchors.fill: parent
                     source: trayIcon
-                    saturation: -1.0
                     visible: trayIcon.status === Image.Ready
                     opacity: trayIcon.opacity
+                    saturation: -1.0
+                    colorization: root._tintTinted ? 1.0 : 0.0
+                    colorizationColor: root.contentColour
                 }
             }
 
@@ -392,6 +390,13 @@ BarCapsule {
         popoutComponent: Component {
             TrayPopout {
                 overflowItems: root.overflowItems
+                // The bar's own stable window handle (round 5 focus-grab
+                // fix — see that property's own declaration in
+                // TrayPopout.qml for the full reasoning). TrayCapsule.qml
+                // lives inside the bar window, so QsWindow.window resolves
+                // correctly here; TrayPopout.qml cannot read it directly,
+                // since it is a separate window.
+                barWindow: QsWindow.window
             }
         }
 

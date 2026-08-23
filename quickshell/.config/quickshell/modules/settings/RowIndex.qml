@@ -57,7 +57,7 @@ Singleton {
         // this later pass ran it directly — recorded honestly in the
         // SUMMARY rather than left silently fixed).
         { pageIdx: 2, section: "Capsules", label: "System tray", keywords: "bar capsule tray systemtray statusnotifieritem sni steam discord" },
-        { pageIdx: 2, section: "Capsules", label: "Tray icon tint", keywords: "bar tray icon tint colour color monochrome desaturate theme" },
+        { pageIdx: 2, section: "Capsules", label: "Tray icon tint", keywords: "bar tray icon tint colour color tinted desaturate theme" },
         { pageIdx: 2, section: "Capsules", label: "Clock", keywords: "bar entry clock popout" },
         { pageIdx: 2, section: "Capsules", label: "Gaming mode", keywords: "bar entry gaming mode toggle" },
         { pageIdx: 2, section: "Capsules", label: "Notifications", keywords: "bar entry notifications bell centre" },

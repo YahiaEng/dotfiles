@@ -260,11 +260,22 @@ PageBase {
             label: "Tray icon tint"
             subtext: "How app tray icons are coloured to match the theme"
             model: [
-                { value: "monochrome", display: "Monochrome" },
+                { value: "tinted", display: "Tinted" },
                 { value: "desaturate", display: "Desaturated" },
                 { value: "off", display: "Off" }
             ]
-            currentValue: Prefs.getValue("bar.tray.iconTint")
+            // Migration (round 5) — "monochrome" (the prior build's value,
+            // which some installs, including this host during development,
+            // already persisted) is not in the model above any more and
+            // would otherwise render as raw, unmatched text instead of a
+            // selected pill (SelectRow.currentDisplay falls back to the raw
+            // currentValue string when no model entry matches it). Mapped
+            // forward to "tinted" here, same rule TrayCapsule.qml/
+            // TrayPopout.qml apply at their own read sites.
+            currentValue: {
+                var raw = Prefs.getValue("bar.tray.iconTint");
+                return raw === "monochrome" ? "tinted" : raw;
+            }
             onSelected: (value) => Prefs.setValue("bar.tray.iconTint", value)
         }
         // ── Per-entry toggles for "Clock & actions" (operator fix wave
