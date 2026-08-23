@@ -251,7 +251,42 @@ PanelWindow {
     // INSIDE the space Hyprland already leaves free for layer-shell
     // surfaces, not a change to what any surface reserves.
     readonly property int drawerTopMargin: 10
-    margins.top: dashboardWindow.drawerTopMargin
+
+    // ── Edge-bar attachment (quick task 260823-9ak, OPERATOR FEEDBACK
+    //    ROUND 2, 2026-08-23) ────────────────────────────────────────────
+    // Threaded in from shell.qml's single `root.edgeBarEnabled` resolution
+    // point, exactly as Launcher.qml:67 already does — this file has no
+    // `root` id of its own to read, so the value is passed in rather than
+    // re-resolved through a second `Prefs.getValue` call.
+    //
+    // WHY THIS WAS MISSING AND WHAT IT BROKE. Task 6 branched only the
+    // LAUNCHER's posture (its own title says so), so this drawer kept the
+    // regular-mode `drawerTopMargin` in BOTH modes. The operator reported
+    // two symptoms that are one bug: "the concave flares exist alongside
+    // the old geometry" and "app dashboard still spawns from the top of
+    // the hyprland workspace instead of the top edge bar".
+    //
+    // The mechanism, measured: with `exclusionMode: Normal` this surface
+    // is already positioned BELOW every reserved zone, and the edge bar
+    // reserves 8 (live reading [0,8,50,8]). A further `margins.top: 10` on
+    // top of that left the panel 10px adrift of the strip. The Task 2
+    // flares anchor to `panel.top`, so they inherited that 10px offset and
+    // hung in mid-air with a visible gap between flare and strip — which
+    // is precisely "flares alongside the old geometry". The flare geometry
+    // itself was never wrong; it had nothing to attach TO.
+    //
+    // 0 is the correct flush value rather than `edgeBarBulgeExtra`: the
+    // flare's own edge-line must meet the strip's FLAT RUN, whose inner
+    // face sits exactly at this surface's top once the 8px reservation is
+    // accounted for. Offsetting by the bulge depth instead would re-open
+    // the same gap 8px lower. The centre bulge overhangs INTO this
+    // surface's top 8px and this drawer is Overlay while EdgeBar is Top,
+    // so the panel paints over the bulge while open — intended: the bulge
+    // is the closed-state landmark (D-3) and the spawn point the panel
+    // emerges from, not something to keep visible underneath it.
+    property bool edgeBarEnabled: false
+
+    margins.top: dashboardWindow.edgeBarEnabled ? 0 : dashboardWindow.drawerTopMargin
 
     // ── Dynamic per-tab geometry (D-02/D-04 SUPERSEDED, render-gate
     //    checkpoint feedback 2026-07-29) ───────────────────────────────────

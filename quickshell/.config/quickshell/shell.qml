@@ -397,6 +397,11 @@ ShellRoot {
 
         Dashboard {
             initialTabIndex: root.dashboardTabIndex
+            // Operator feedback round 2 (260823-9ak): the drawer must hang
+            // flush off the top strip, not float a margin below it. Same
+            // single resolution point the launcher and both EdgeBar
+            // loaders read — never a second Prefs.getValue call.
+            edgeBarEnabled: root.edgeBarEnabled
             mediaBackend: mediaBackendInstance
             weatherBackend: weatherBackendInstance
             systemResources: systemResourcesInstance
