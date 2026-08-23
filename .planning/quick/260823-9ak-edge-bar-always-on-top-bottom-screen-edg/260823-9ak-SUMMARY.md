@@ -288,3 +288,76 @@ On a named "no": treat it as the Design-token tuning round the plan itself antic
 ---
 *Phase: quick-260823-9ak*
 *Completed: 2026-08-23*
+
+---
+
+## Post-summary: operator feedback rounds 1-8 (2026-08-23)
+
+Seven further commits landed after this SUMMARY was first written, all
+from live operator feedback. `015ca199..930532df` on `main`, all pushed.
+
+| Round | Report | Commit | Root cause |
+|---|---|---|---|
+| 1 | "completely black and not color shifting" | `c869a57e` | Filled with `Colours.surface` — the PAGE BACKGROUND role, a near-black on all 16 dark palettes. Binding was live; the role was wrong. Now the `primary/secondary/tertiary` accent gradient, the same language `GradientBorder` gives its 13 consumers. |
+| 2 | dashboard "spawns from the top of the hyprland workspace" + flares "alongside the old geometry" | `88dc68f5` | Task 6 branched only the LAUNCHER; `shell.qml` never threaded `edgeBarEnabled` into `Dashboard.qml`, so it kept `margins.top: 10` and the flares inherited the offset. |
+| 3 | flares still alongside old geometry | `eff5869d` | Once a flare attaches, the attached edge and the adjacent `flareRadius` of both sides become INTERIOR to the merged silhouette. The panel's `GradientBorder` still drew them. Clipped rather than teaching GradientBorder an open-ring mode (13 consumers). |
+| 4 | "even more messed up now. Stop trying random stuff and measure it" | `97bc6ddb` | `_rimPath` ran the band from `R-borderWidth` to `R` — correct for a CONVEX corner. This corner is CONCAVE, material is at radius >= R, so the rim floated in the empty quarter. Now `R -> R+borderWidth`; the screen-edge run was also dropped from the rim (interior seam). |
+| 5-6 | launcher "starts from the middle of the screen then slides down" | `eb5b7913` | The layer surface is configured in STAGES (winH 100 -> 500 -> 1424), so an open position of `launcherWindow.height - height` tracked a growing value and dragged the panel down. Now anchored to its edge with a `Translate` sized only by `panel.height`. |
+| 7 | four design changes | `b64db88a` | Thinner (8->6) with pill ends; bulge width = the panel that spawns from it (760 top / 640 bottom, shared tokens); rounded bulge corners; strip inset 10 to match the measured window silhouette 10..2500. |
+| 8 | "the bulge appears to be floating above the rest of the bar" | `930532df` | The round-7 outline put the bulge excursion on the OUTER (screen) edge and ran the inner face straight across beneath it. Self-intersecting path; the fill rule cancelled the strip's thickness above the bulge. The bulge must protrude from the INNER face. |
+
+### Verified by measurement
+
+- Strips `x=10 w=2490` -> spans 10..2500, matching the measured Hyprland
+  window silhouette (windows at 13..2497 content, `border_size: 3`).
+- Reserved `[0,6,50,6]`.
+- Flat run depth 6, bulge depth 16, continuous across the shoulder.
+- Top bulge 875..1635 (760 = dashboard width), bottom 935..1575
+  (640 = launcher width), both centred 1255.
+- Launcher entrance rises: top 1161 -> 1017, bottom pinned 1429; at rest
+  top=106 bottom=1429.
+- Flare rim continuous into the panel border: y 1385-1412 at x 935-937,
+  curving to 915-924 by y 1431. Right flare mirrors it.
+- R3 (edge bar OFF) re-checked live: strips absent, launcher drops from
+  the top as before, reservation returns to `[0,0,50,0]`.
+- Gates at every commit: quickshell-doctor 28/0, colour-lint 359/0,
+  motion-lint 546/0.
+
+### STILL OPEN — needs the operator, cannot be done here
+
+1. **Task 7's hover-dwell walk.** Dwell on each bulge opens its surface;
+   a fast sweep must not fire; dismissing while still hovering must not
+   re-fire; the strip must stay click-inert; fullscreen must block it.
+   No input-injection tool exists on this host and `wtype` types into the
+   focused window, so none of this is self-verifiable.
+2. **Visual sign-off** on the round-7/8 shape (thickness, pill ends,
+   bulge corner radius, whether the bulge overhanging 10px into the
+   client area is acceptable — it paints over the top border of whatever
+   is beneath it, since only 6 of its 16px are reserved).
+3. **The menu surface (Super-tap)** shares `Launcher.qml` and therefore
+   the new rise, but only APP mode was measured.
+
+### Instruments that lied, recorded so nobody repeats them
+
+Measuring this strip defeated four approaches before one worked:
+
+- **Saturation thresholding** picks up the wallpaper.
+- **Luminance thresholding** picks up the Hyprland window border, which
+  is the same hue as the strip.
+- **Diffing edge-bar-on against edge-bar-off** is useless: toggling
+  changes the reservation, so every window moves and the diff captures
+  that. Switching to an empty workspace does not rescue it — the
+  vertical bar's own geometry still shifts.
+- **Contiguous-run scans** count uniform background as full depth
+  wherever the strip is absent.
+
+What works: dump raw RGB per column and read where the strip colour
+stops.
+
+Two QML traps also cost a round each, both already in project memory but
+worth restating here: a `LazyLoader` serves an INCUBATED STALE component
+after a file edit (`systemctl --user restart quickshell.service` is
+required — touching `shell.qml` is not enough), and `Qt.callLater`
+COALESCES into the end of the current event-loop iteration, so a
+self-rescheduling retry spins inside one frame and can never wait for a
+Wayland configure.
