@@ -62,3 +62,9 @@ vscodium/.local/share/applications/*
 # does exactly that. Never repo content.
 __pycache__/
 *.pyc
+
+# GSD run-scoped dispatch-isolation sentinel. Written by gsd-tools on every
+# agent dispatch so the isolation guard hooks can read the resolved mode; it
+# is session-local state, not repo content, and its presence trips
+# theme-doctor's clean-tree gate. Same class as __pycache__/ above.
+.gsd/
