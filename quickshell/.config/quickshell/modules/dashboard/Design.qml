@@ -176,20 +176,6 @@ Singleton {
     readonly property int barBodySize: 13
     readonly property int barCapsulePadding: 6
 
-    // Tray icon tint (quick task 260823-65s, operator round-3 feedback —
-    // "add switch between full monochrome, desaturate(default), and off").
-    // The desaturate mode's own MultiEffect.colorization amount: paired
-    // with saturation:-1.0, 1.0 here would be indistinguishable from
-    // monochrome (a full colourization blend flattens every pixel to one
-    // solid colour regardless of the source's own saturation). 0.55 sits
-    // roughly mid-way between "barely tinted" and "flat", biased slightly
-    // toward stronger tint since the operator's whole complaint was that
-    // tray icons read as completely untouched — the goal is a visible
-    // duotone (palette hue, original per-pixel luminance still legible),
-    // not a subtle wash. A single shared token so TrayCapsule.qml (bar)
-    // and TrayPopout.qml (popout) can never disagree on the amount.
-    readonly property real trayIconDesaturateColorization: 0.55
-
     //    Athena's capsules also carry `margin: 4px 5px`
     //    (style-athena.scss:70), so a capsule is 8px SHORTER than the bar
     //    and adjacent capsules sit 10px apart — they read as pills floating

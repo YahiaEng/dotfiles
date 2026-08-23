@@ -30,14 +30,20 @@ SectionPopout {
     // EthernetPopout's own device-handle property carries.
     property var overflowItems: []
 
-    // Icon tint (260823-65s round 3) — the SAME Prefs key TrayCapsule.qml
-    // reads, so the two surfaces never disagree on mode. Colour source is
-    // this popout's OWN content role (Colours.onSurface, the same colour
-    // rowLabel below already uses), never BarRoles — that role belongs to
-    // the bar window, not this one (EthernetPopout's own colour layer,
-    // which this file already follows for everything else).
+    // Icon tint (260823-65s round 3, rebuilt round 4) — the SAME Prefs key
+    // TrayCapsule.qml reads, so the two surfaces never disagree on mode.
+    // Colour source is this popout's OWN content role (Colours.onSurface,
+    // the same colour rowLabel below already uses), never BarRoles —
+    // that role belongs to the bar window, not this one (EthernetPopout's
+    // own colour layer, which this file already follows for everything
+    // else). See TrayCapsule.qml's own header comment for the full round-4
+    // rebuild reasoning (the operator-measured "monochrome and desaturated
+    // look identical" defect, and why a mask-based silhouette replaces the
+    // unverified colorization-amount approach).
     readonly property string _trayIconTint: Prefs.getValue("bar.tray.iconTint")
-    readonly property bool _tintActive: root._trayIconTint === "monochrome" || root._trayIconTint === "desaturate"
+    readonly property bool _tintMonochrome: root._trayIconTint === "monochrome"
+    readonly property bool _tintDesaturate: root._trayIconTint === "desaturate"
+    readonly property bool _tintActive: root._tintMonochrome || root._tintDesaturate
 
     sectionId: "tray"
     popoutTitle: "System tray"
@@ -101,11 +107,12 @@ SectionPopout {
                     // image:// URI Quickshell itself supplies; bound
                     // straight to source, exactly as the inline cell does.
                     // Tint mechanism identical to TrayCapsule.qml's own
-                    // (see that file's own comment for the full
-                    // reasoning): "off" paints this IconImage directly and
-                    // instantiates no effect; monochrome/desaturate turn
-                    // it into an invisible, layered texture source for the
-                    // Loader-gated MultiEffect below instead.
+                    // (see that file's own header comment for the full
+                    // round-4 reasoning): "off" paints this IconImage
+                    // directly; "monochrome" reads it as an ALPHA MASK
+                    // ONLY over a flat fill; "desaturate" reads it as a
+                    // plain saturation:-1.0 source. Never painted itself
+                    // while either Loader below is active.
                     IconImage {
                         id: overflowIcon
                         width: Design.iconSizeMd
@@ -117,33 +124,59 @@ SectionPopout {
                         layer.enabled: root._tintActive
                     }
 
-                    // Row is a positioner — it excludes an invisible
-                    // child AND its spacing (BarCapsule.qml's own Grid
-                    // carries the identical note). visible AND the
-                    // explicit width/height are both gated on
-                    // _tintActive so this Loader reserves ZERO Row space
-                    // in "off" mode; a fixed size here regardless of
-                    // `active` would have doubled the icon column's width
-                    // whenever the effect is not instantiated.
+                    // The "monochrome" mode's ONLY colour source — never
+                    // painted itself (visible: false always, so Row
+                    // excludes it from layout unconditionally), fed into
+                    // the mask MultiEffect below as `source`. Colours.onSurface
+                    // is this popout's own content role (matches rowLabel
+                    // below), never BarRoles.
+                    Rectangle {
+                        id: overflowSilhouetteFill
+                        width: Design.iconSizeMd
+                        height: Design.iconSizeMd
+                        color: Colours.onSurface
+                        visible: false
+                        layer.enabled: root._tintMonochrome
+                    }
+
+                    // "monochrome" — the same NotifGroup.qml/NotifCard.qml
+                    // picture-masking MultiEffect shape TrayCapsule.qml's
+                    // own identical block reuses: `source` is the flat
+                    // fill, `maskSource` is the icon (its ALPHA channel
+                    // only), so the result is a flat silhouette by
+                    // construction. Row excludes an invisible child AND
+                    // its spacing, so visible/width/height are all gated
+                    // on _tintMonochrome to reserve ZERO Row space
+                    // whenever this mode is not active.
                     Loader {
-                        visible: root._tintActive
-                        width: root._tintActive ? Design.iconSizeMd : 0
-                        height: root._tintActive ? Design.iconSizeMd : 0
-                        active: root._tintActive
+                        visible: root._tintMonochrome
+                        width: root._tintMonochrome ? Design.iconSizeMd : 0
+                        height: root._tintMonochrome ? Design.iconSizeMd : 0
+                        active: root._tintMonochrome
                         sourceComponent: MultiEffect {
-                            // anchors.fill: parent, NOT overflowIcon —
-                            // same fix as TrayCapsule.qml's identical
-                            // Loader/MultiEffect pair, same measured root
-                            // cause (a Loader's sourceComponent item is a
-                            // CHILD of the Loader, so a sibling of the
-                            // Loader is two levels away, not one).
-                            // `parent` here is the Loader, already sized
-                            // to Design.iconSizeMd to match overflowIcon.
+                            anchors.fill: parent
+                            source: overflowSilhouetteFill
+                            maskEnabled: true
+                            maskSource: overflowIcon
+                            maskThresholdMin: 0.5
+                            maskSpreadAtMin: 1.0
+                        }
+                    }
+
+                    // "desaturate" — greyscale, nothing else. No
+                    // colorization tint, per the operator's own word
+                    // choice (see TrayCapsule.qml's header comment for
+                    // why the previous build's re-tint collapsed this
+                    // mode into monochrome).
+                    Loader {
+                        visible: root._tintDesaturate
+                        width: root._tintDesaturate ? Design.iconSizeMd : 0
+                        height: root._tintDesaturate ? Design.iconSizeMd : 0
+                        active: root._tintDesaturate
+                        sourceComponent: MultiEffect {
                             anchors.fill: parent
                             source: overflowIcon
                             saturation: -1.0
-                            colorization: root._trayIconTint === "monochrome" ? 1.0 : Design.trayIconDesaturateColorization
-                            colorizationColor: Colours.onSurface
                         }
                     }
 
