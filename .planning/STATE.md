@@ -7,7 +7,7 @@ stopped_at: "QUICK TASK 260823-65s COMPLETE — system tray capsule shipped and 
 last_updated: "2026-08-23T02:30:00.000Z"
 last_activity: 2026-08-23
 last_activity_desc: "quick task 260823-65s complete: the system tray capability, deliberately dropped in 18.1 D-15 and absent since waybar was retired, is back as a native QML capsule — SNI host, 3-item inline row + overflow popout, DBusMenu context menus, a tri-state icon tint, and a D-5 exclusion for the two applets that duplicate the connections capsule. Ten code commits across nine operator feedback rounds."
-state_head: 2c958c50
+state_head: 6983d3e2
 progress:
   total_phases: 6
   completed_phases: 6
