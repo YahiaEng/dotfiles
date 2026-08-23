@@ -1,8 +1,8 @@
 // MenuTree.qml — the 9 D-2 verb-based menu roots (quick task 260822-sht,
-// Task 3), replacing the retired 6-TOML / 36-entry `elephant` `menus`
+// Task 3), replacing the retired backend's 6-TOML / 36-entry `menus`
 // provider with a QML data model. **All 36 existing entries are re-homed;
 // none is dropped** — every non-clipboard `actions.open` string below was
-// copied BYTE-IDENTICAL from `elephant/.config/elephant/menus/*.toml`
+// copied BYTE-IDENTICAL from the retired backend's own menus TOML files
 // (parsed programmatically, not hand-transcribed, specifically to rule out
 // a transcription slip in a Nerd Font private-use-area glyph or an escaped
 // quote) — see this task's own `<verify>` gate, which re-parses those same
@@ -105,8 +105,15 @@ Singleton {
                     command: `~/.config/hypr/scripts/color-picker.sh`
                 },
                 {
+                    // The named exception to this file's byte-identical
+                    // rule (see header comment): the retired TOML action
+                    // embedded the old dmenu-picker pipeline directly, which
+                    // does not apply once `mode` routes to ClipboardMode.qml
+                    // instead — `command` is unused whenever `mode` is set
+                    // (MenuMode.qml's activate() returns on the `mode`
+                    // branch before ever reading `command`).
                     text: "  Clipboard",
-                    command: `cliphist list | walker --dmenu | cliphist decode | wl-copy`,
+                    command: null,
                     mode: "clipboard"
                 },
                 {

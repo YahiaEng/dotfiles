@@ -353,9 +353,10 @@ _actuate() {
         # eval (T-17-01). Matches how every other session process this
         # repo launches goes through `uwsm app --` (D-15); `setsid ... &
         # disown` detaches it from this script's own process group, the
-        # same idiom elephant-restart.sh already uses to launch a
-        # long-running process and return control immediately. Plays on
-        # every output via the literal '*' (D-22).
+        # same idiom theme-engine/lib/gtk.sh's Thunar daemon relaunch
+        # already uses to launch a long-running process and return
+        # control immediately. Plays on every output via the literal '*'
+        # (D-22).
         #
         # `8>&-` is load-bearing, not decoration: without it, this
         # long-running child INHERITS fd 8 (the open flock reference

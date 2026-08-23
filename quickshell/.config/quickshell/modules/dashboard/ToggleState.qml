@@ -79,10 +79,12 @@ Singleton {
     //   DND    — read `NotifServer.dnd`, write `NotifServer.toggleDnd()`
     //            (D-19-19's own promotion — was an external client, is now the
     //            shell's own persisted server state).
-    //   Dark   — exec `theme-switch.sh`,
+    //   Dark   — `qs ipc call launcher open theme` (quick task 260822-sht,
+    //            Task 12 — theme-switch.sh is retired; the native QML
+    //            launcher's own Style ▸ Theme picker, PickerMode.qml, is
+    //            the sole theme-picker surface now),
     //            read `cat ~/.local/state/theme/mode 2>/dev/null || echo dark`,
-    //            lit iff value == "dark". theme-switch.sh takes no
-    //            arguments and opens a walker palette picker.
+    //            lit iff value == "dark".
     // ═══════════════════════════════════════════════════════════════════
 
     // ── Gaming state reader (bare FileView, Probe.qml's shape) ──────────
@@ -192,17 +194,18 @@ Singleton {
     // (render-gate regression fix, carried over from QuickToggles.qml's
     // own prior header: a lifetime-bound `running: true` Process is
     // killed when the drawer that owns its QML object tree is dismissed,
-    // but walker — launched by theme-switch.sh — takes focus and D-13's
-    // focus-loss rule dismisses the drawer the instant it does, mid-flight
-    // of the very script that would call `theme-apply` on the user's
-    // selection. `startDetached()` launches the same fixed argv fully
-    // independent of ANY QML object's lifetime — now doubly so, since this
-    // Process lives on the singleton rather than on a destroy-on-dismiss
-    // drawer instance, but the detachment is kept for the walker-focus
-    // reason above regardless. ───────────────────────────────────────────
+    // but the launcher — summoned via `qs ipc call launcher open theme`
+    // (quick task 260822-sht, Task 12; theme-switch.sh is retired) —
+    // takes focus and D-13's focus-loss rule dismisses the drawer the
+    // instant it does, mid-flight of the very IPC call that would open
+    // the launcher's own Style ▸ Theme picker. `startDetached()` launches
+    // the same fixed argv fully independent of ANY QML object's lifetime
+    // — now doubly so, since this Process lives on the singleton rather
+    // than on a destroy-on-dismiss drawer instance, but the detachment is
+    // kept for the launcher-focus reason above regardless. ─────────────
     Process {
         id: darkProcess
-        command: [root.homeDir + "/.config/hypr/scripts/theme-switch.sh"]
+        command: ["qs", "ipc", "call", "launcher", "open", "theme"]
     }
 
     function pressGaming() {

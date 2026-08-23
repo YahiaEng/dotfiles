@@ -18,7 +18,6 @@ cd "$DOTFILES_DIR"
 # ── Stow packages ───────────────────────────────────
 PACKAGES=(
     cava
-    elephant
     fastfetch
     fish
     gtk
@@ -31,7 +30,6 @@ PACKAGES=(
     thunar
     uwsm
     vscodium
-    walker
     wallpapers
     yazi
     zshell

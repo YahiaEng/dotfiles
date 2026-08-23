@@ -669,8 +669,14 @@ BarCapsule {
     //    Task 2's drawer shape verbatim. Promoting that shape to a
     //    shared type is a named follow-on, not a licence to edit the
     //    frozen manifest here. ──────────────────────────────────────────
+    // "theme" carries `launcherMode` instead of `script` (quick task
+    // 260822-sht, Task 12): theme-switch.sh is retired, and the native
+    // QML launcher's own Style ▸ Theme picker (PickerMode.qml) is the
+    // sole theme-picker surface now, reached the same way Super+C reaches
+    // ClipboardMode.qml — `qs ipc call launcher open <mode>`. See
+    // SettingsAxisCell below for how the two shapes are dispatched.
     readonly property var settingsAxes: [
-        { id: "theme", glyph: "contrast", label: "Theme", script: "theme-switch.sh" },
+        { id: "theme", glyph: "contrast", label: "Theme", launcherMode: "theme" },
         { id: "orientation", glyph: "screen_rotation", label: "Bar Orientation", script: "bar-orientation.sh" },
         { id: "font", glyph: "text_fields", label: "Font", script: "font-switch.sh" },
         { id: "icons", glyph: "palette", label: "Icon Theme", script: "icon-theme-switch.sh" },
@@ -778,14 +784,20 @@ BarCapsule {
 
     // One axis cell — an ActionCell that also owns its own script-present
     // probe and its own detached launcher, keyed off its own `axis` data
-    // rather than a second literal script name.
+    // rather than a second literal script name. An axis with a
+    // `launcherMode` (currently just "theme", quick task 260822-sht
+    // Task 12) skips the script-present probe entirely — the launcher is
+    // always available in-process, so `available` stays at ActionCell's
+    // own `true` default — and dispatches through `qs ipc call` instead
+    // of a bare script path.
     component SettingsAxisCell: ActionCell {
         id: axisCell
         property var axis: ({})
         glyph: axisCell.axis.glyph ? axisCell.axis.glyph : ""
         label: axisCell.axis.label ? axisCell.axis.label : ""
 
-        readonly property string scriptPath: clockActionsCapsule.homeDir + "/.config/hypr/scripts/" + axisCell.axis.script
+        readonly property bool isLauncherAxis: !!axisCell.axis.launcherMode
+        readonly property string scriptPath: clockActionsCapsule.homeDir + "/.config/hypr/scripts/" + (axisCell.axis.script || "")
 
         Process {
             id: axisAvailabilityProbe
@@ -796,10 +808,15 @@ BarCapsule {
         }
         Process {
             id: axisLaunchProcess
-            command: [axisCell.scriptPath]
+            command: axisCell.isLauncherAxis
+                ? ["qs", "ipc", "call", "launcher", "open", axisCell.axis.launcherMode]
+                : [axisCell.scriptPath]
         }
 
-        Component.onCompleted: axisAvailabilityProbe.running = true
+        Component.onCompleted: {
+            if (!axisCell.isLauncherAxis)
+                axisAvailabilityProbe.running = true;
+        }
 
         onClicked: {
             // Every one of these five opens a focus-stealing picker; a

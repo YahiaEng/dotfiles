@@ -497,11 +497,11 @@ ShellRoot {
         // Phase 20 Plan 06 Task 2 (QPOWER-01/D-20-22) — the bar's
         // `powerCell` relays through PopoutController -> Bar.qml's third
         // summon seam (see both files' own comments) to reach this one
-        // verb, the same `togglePowerMenu()` the keybind and the walker
-        // menu already call.
+        // verb, the same `togglePowerMenu()` the keybind and the QML menu
+        // already call.
         onPowerMenuRequested: root.togglePowerMenu()
         // Operator request (2026-08-21): the bar's settings glyph reaches
-        // the same `openSettings()` verb Super+comma and the walker menu
+        // the same `openSettings()` verb Super+comma and the QML menu
         // already call — never a second summon path.
         onSettingsRequested: root.openSettings()
     }
@@ -719,12 +719,14 @@ ShellRoot {
         overviewLoader.active = !overviewLoader.active;
     }
 
-    // ── Launcher (quick task 260822-sht, Task 1 — the walker+elephant
-    //    retirement's tracer slice) ─────────────────────────────────────
+    // ── Launcher (quick task 260822-sht — the native QML launcher that
+    //    replaced the retired external launcher + backend daemon) ────────
     // Same summon-via-LazyLoader mechanism as the panels/overview above.
-    // Coexists with the still-live walker surface for the duration of this
-    // migration's stages 1-2 (that overlap is deliberate, per the plan's
-    // own ordering constraint) — retiring walker's own binds is Task 10.
+    // Stages 1-2 (Tasks 1-9) built this surface alongside the still-live
+    // retired launcher, by design (the plan's own ordering constraint —
+    // retiring the old surface's binds and process is Task 10, and the
+    // rest of the retired tree is deleted in Task 12); that overlap is
+    // now fully resolved.
     LazyLoader {
         id: launcherLoader
         active: false
@@ -814,8 +816,9 @@ ShellRoot {
         // originally implemented `onPressed` alone, so the shortcut fired on
         // an edge nothing was listening for and the tap silently did nothing.
         //
-        // The predecessor bind worked because it was `exec_cmd("walker ...")`
-        // — a plain process spawn with no protocol edges involved at all.
+        // The predecessor bind worked because it was a plain `exec_cmd(...)`
+        // process spawn of the retired external launcher — no protocol
+        // edges involved at all.
         // Routing the same bind through `global` put it on the
         // hyprland-global-shortcuts protocol, where press and release are
         // DISTINCT signals: `bar-reveal` (line ~1429) is bound to this SAME
@@ -870,7 +873,7 @@ ShellRoot {
 
     // D-20-32 (Phase 20 Plan 07) — opening the menu dismisses live
     // notification popups. All three of this surface's entry points
-    // (Super+Shift+Q's GlobalShortcut, the walker menu's dispatch, and the
+    // (Super+Shift+Q's GlobalShortcut, the QML menu's dispatch, and the
     // bar's `powerCell`) already converge on THIS one function (see the
     // comments beside each), so gating the dismissal here — on the
     // OPENING transition only, never on close — is the single place both
@@ -972,8 +975,9 @@ ShellRoot {
     }
 
     // The single guarded summon function every entry point below defers
-    // to — GlobalShortcut, the `settings` IpcHandler, and (Task 2) the
-    // walker menu's shim script. An already-open window ALWAYS closes,
+    // to — GlobalShortcut, the `settings` IpcHandler, and the QML menu's
+    // Settings leaf (`qs ipc call settings open`, MenuTree.qml). An
+    // already-open window ALWAYS closes,
     // whatever is fullscreen behind it (D-02/D-06's "pressing it again
     // closes it"), mirroring `dashboardShortcut`'s own onPressed shape
     // above verbatim.
@@ -1426,7 +1430,7 @@ ShellRoot {
     //    retired GTK4 power-menu surface's own Super+Shift+Q chord
     //    (keybinds.lua) onto this GlobalShortcut, that surface
     //    RETIRE-05-deleted (Phase 20 Plan 10). All three consumers this
-    //    plan repoints (this bind, the walker menu's power entry, the
+    //    plan repoints (this bind, the QML menu's power entry, the
     //    bar's `powerCell`) call `root.togglePowerMenu()` above — one
     //    verb, three callers, per D-17's declared-manifest mechanism. ────
     GlobalShortcut {

@@ -67,10 +67,10 @@ _cs_icon() {
 # Keeping the two in lockstep is what keeps the box borders aligned: never
 # measure a string that has ANSI escapes in it.
 #
-# The PARSER deliberately still emits plain text: the walker surface searches
-# it, so "Super+Z" must stay typeable. This glyph translation is presentation
-# and is local to the card — D-29's single-parser rule governs extraction, not
-# rendering.
+# The PARSER deliberately still emits plain text: the native QML launcher's
+# KeybindsMode.qml fuzzy-filters over it, so "Super+Z" must stay typeable.
+# This glyph translation is presentation and is local to the card — D-29's
+# single-parser rule governs extraction, not rendering.
 CAP_PLAIN=""
 CAP_COLOR=""
 _cs_keycap() {

@@ -91,7 +91,7 @@ Item {
     // filter uses, applied to each row's own display text — the pinned
     // row is a normal row in this array (first, so it holds that
     // position at an empty query, and still reachable by typing "view",
-    // exactly matching the retired surface's own per-row walker --dmenu
+    // exactly matching the retired surface's own per-row dmenu-picker
     // matching).
     readonly property var _rows: {
         const all = [root._pinnedRow].concat(root._parsedRows);

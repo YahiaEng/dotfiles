@@ -47,7 +47,7 @@
 #       `hyprctl instances -j`, and print its instance signature.
 #       Autostart is excluded by default: a nested instance running this
 #       repo's exec-once lines would spawn a second
-#       walker/quickshell/wallpaper-daemon and fight the
+#       quickshell/wallpaper-daemon and fight the
 #       live session over layer namespaces and the
 #       org.freedesktop.Notifications bus name.
 #

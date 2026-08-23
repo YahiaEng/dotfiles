@@ -198,8 +198,9 @@ PageBase {
         }
     }
 
-    // ── Advanced escape hatch — the same nwg-displays the walker Display
-    //    row already points at. `Process.startDetached()`, not
+    // ── Advanced escape hatch — the same nwg-displays the QML menu's
+    //    Display row already points at (MenuTree.qml).
+    //    `Process.startDetached()`, not
     //    `running = true`: `onActivated` calls `root.sState.close()` in
     //    the same tick, which destroys this page (and any `running: true`
     //    Process owned by it) before uwsm's slower systemd/dbus hand-off

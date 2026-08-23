@@ -4,7 +4,7 @@
 # ║                                                        ║
 # ║  D-20: fzf-in-floating-kitty with a rich icon-grid     ║
 # ║  preview — the SAME pattern as wallpaper-picker.sh,    ║
-# ║  not the walker dmenu picker pattern (Pitfall 6        ║
+# ║  not the retired dmenu-picker pattern (Pitfall 6       ║
 # ║  mandates a real state read/re-render, never a bare    ║
 # ║  standalone settings write).                           ║
 # ║                                                        ║

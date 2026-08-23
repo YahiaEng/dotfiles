@@ -1498,7 +1498,7 @@ Scope {
             // A real XML document whose root is simply not one this shell
             // reads. The accepted roots must stay in lockstep with
             // _parseFeed()'s own branches, or the probe would green-light
-            // a document the walker then returns zero items for.
+            // a document that the feed parser then returns zero items for.
             var probeRoot = doc.documentElement.nodeName;
             if (probeRoot !== "rss" && probeRoot !== "feed" && !root._isRdfRoot(probeRoot)) {
                 root.probeState = "failed";

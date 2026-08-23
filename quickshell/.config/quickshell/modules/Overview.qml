@@ -271,9 +271,10 @@ PanelWindow {
     // No editable-text QML control of any kind, no filter property, no
     // search state — arrows and modifiers only, on this file and every
     // file it composes. This is deliberate, not an oversight: a place to
-    // type here would be a second "type to find a thing" surface competing
-    // with walker (REQUIREMENTS.md's OVER-05 exclusion). T-16-34 enforces
-    // this mechanically via the acceptance grep, not by convention alone —
+    // type here would be a second "type to find a thing" surface
+    // competing with the app launcher (REQUIREMENTS.md's OVER-05
+    // exclusion). T-16-34 enforces this mechanically via the acceptance
+    // grep, not by convention alone —
     // which is also why this note itself avoids spelling out the three
     // banned type names literally.
     property int selectedTile: 0

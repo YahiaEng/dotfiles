@@ -22,8 +22,9 @@
 //     a future leaf can opt in without a MenuMode.qml change.
 //
 // Typed-input preservation across levels is a structural side effect of
-// this being a real QML tree walked in place, not Omarchy's per-level
-// `walker --dmenu` respawn — nothing here has to reimplement it.
+// this being a real QML tree walked in place, not Omarchy's own
+// per-level dmenu-picker respawn pattern — nothing here has to
+// reimplement it.
 //
 // `dismissCallback` is a plain function-valued property injected by
 // Launcher.qml's own `menuComponent` (`MenuMode { dismissCallback:

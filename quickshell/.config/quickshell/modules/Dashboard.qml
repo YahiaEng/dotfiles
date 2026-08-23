@@ -712,8 +712,9 @@ PanelWindow {
     // ── Dismiss wiring (D-12/D-13) — Probe.qml/ScreencopyProbe.qml's
     //    existing, QS-02-proven combination reused verbatim: click-outside
     //    and focus-loss both land on the same signal, D-13's
-    //    deprecated-blind coexistence rule with zero edits to walker or
-    //    the (now-retired) GTK4 power-menu surface.
+    //    deprecated-blind coexistence rule with zero edits to the (now-
+    //    retired) external launcher or the (now-retired) GTK4 power-menu
+    //    surface.
 
     // ── Content root (D-10 Esc dismiss, D-18 clamped arrows) ────────────
     Item {

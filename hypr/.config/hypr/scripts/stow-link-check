@@ -202,9 +202,9 @@ ALLOWED_HOME_DOTFILES = {'.zshrc'}
 # ── 22-08/Task 2 — .config recursion is ownership-gated. Every name here is
 #    a top-level ~/.config/<name> directory a PACKAGES entry ships,
 #    enumerated directly against each package's shipped tree (not guessed):
-#    cava, elephant, fastfetch, fish, gtk(-3.0/-4.0), hypr, kitty, matugen,
+#    cava, fastfetch, fish, gtk(-3.0/-4.0), hypr, kitty, matugen,
 #    nvim, quickshell, theme-engine, thunar (ships Thunar/ + xfce4/), uwsm,
-#    vscodium (ships VSCodium/), walker, yazi, zshell (ships oh-my-posh/),
+#    vscodium (ships VSCodium/), yazi, zshell (ships oh-my-posh/),
 #    plus hypr's own xdg-desktop-portal/ exception subtree. Whichever of
 #    these render as a single whole-directory-fold symlink on a given host
 #    (the common case on a fresh install) are already caught by the
@@ -226,9 +226,9 @@ ALLOWED_HOME_DOTFILES = {'.zshrc'}
 #    handled by the one-level-then-user-only special case below, not by
 #    blanket inclusion.
 OWNED_CONFIG_TOP = {
-    'cava', 'elephant', 'fastfetch', 'fish', 'gtk-3.0', 'gtk-4.0', 'hypr',
+    'cava', 'fastfetch', 'fish', 'gtk-3.0', 'gtk-4.0', 'hypr',
     'kitty', 'matugen', 'nvim', 'quickshell', 'theme-engine', 'Thunar',
-    'uwsm', 'VSCodium', 'walker', 'xfce4', 'yazi', 'xdg-desktop-portal',
+    'uwsm', 'VSCodium', 'xfce4', 'yazi', 'xdg-desktop-portal',
     'autostart', 'oh-my-posh',
 }
 

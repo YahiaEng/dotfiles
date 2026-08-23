@@ -33,7 +33,7 @@
     "appid": "quickshell",
     "name": "bar-reveal",
     "chord": { "mods": "SUPER", "key": "SUPER_L", "release": false },
-    "description": "Reveal the hidden bar while Super is held (QBAR-08). Explicit `release: false` — this entry claims the PRESS edge only. The RELEASE edge of the same chord is a separate, pre-existing Hyprland bind (tap Super -> main menu, keybinds.lua), and the two never collide because keybind-doctor's chord-collision check compares the edge, exactly as its shadow check always has."
+    "description": "Reveal the hidden bar while Super is held (QBAR-08). Explicit `release: false` — this entry claims the PRESS edge only. The RELEASE edge of the same chord is a separate GlobalShortcut, `quickshell:launcher-menu` (tap Super -> menu, quick task 260822-sht), and the two never collide because keybind-doctor's chord-collision check compares the edge, exactly as its shadow check always has."
   },
   {
     "appid": "quickshell",
@@ -63,6 +63,12 @@
     "appid": "quickshell",
     "name": "launcher",
     "chord": { "mods": "SUPER", "key": "SPACE" },
-    "description": "Task 1: Launcher surface tracer — Super+Space opens the native QML launcher (app search, substring-filtered) replacing walker's app-launcher role, ahead of the full walker+elephant retirement (quick task 260822-sht)."
+    "description": "Super+Space opens the native QML launcher's apps mode (fuzzy-filtered app search), also reached by Super+R and the six prefix routes (quick task 260822-sht)."
+  },
+  {
+    "appid": "quickshell",
+    "name": "launcher-menu",
+    "chord": { "mods": "SUPER", "key": "SUPER_L", "release": true },
+    "description": "A bare Super tap opens the same launcher directly in menu mode (D-2's 9 verb-based roots), a distinct GlobalShortcut from launcher above since a bare global dispatch carries no mode argument (quick task 260822-sht)."
   }
 ]

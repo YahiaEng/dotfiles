@@ -6,10 +6,13 @@ stow\.sh
 LICENSE
 \.stow-local-ignore
 
-# D-09/AUDIT #17: the walker rice-theme dir is wired directly by
-# theme-engine/lib/commit.sh (a symlink into ~/.local/state/theme/,
-# idempotent on every theme-apply) — never let a plain `stow --restow`
-# fight over this path.
+# D-09/AUDIT #17: originally guarded the retired external launcher's own
+# rice-theme dir, which theme-engine/lib/commit.sh wired directly with a
+# symlink into ~/.local/state/theme/ (idempotent on every theme-apply) —
+# never let a plain `stow --restow` fight over that path. That wiring and
+# the package it protected were retired in quick task 260822-sht (Task
+# 11/12); the pattern is left in place as a harmless, no-longer-matching
+# guard in case a future package ever names a directory `rice` again.
 ^rice$
 
 # D-48: screenshot.sh writes runtime PNGs to ~/Pictures/Screenshots, which

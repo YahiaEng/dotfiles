@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
 # ║          CHEAT-SHEET PARSER (D-29/D-30/D-31)          ║
-# ║  Shared, display-only keybinds.lua parser. Sourced     ║
-# ║  by BOTH cheat-sheet surfaces (cheat-sheet.sh's walker  ║
-# ║  list and cheat-sheet-view-all.sh's kitty table) so     ║
-# ║  they read one implementation and can never disagree    ║
-# ║  (D-29). Parses live, on every call — nothing is        ║
-# ║  cached anywhere (D-31).                                ║
+# ║  Shared, display-only keybinds.lua parser. Sourced by   ║
+# ║  every cheat-sheet surface — cheat-sheet-view-all.sh's   ║
+# ║  kitty table and the native QML launcher's own           ║
+# ║  KeybindsMode.qml (quick task 260822-sht, Task 9, via     ║
+# ║  `--dump`) — so they read one implementation and can      ║
+# ║  never disagree (D-29). Parses live, on every call —     ║
+# ║  nothing is cached anywhere (D-31).                       ║
 # ║                                                        ║
 # ║  SECURITY (V5/ASVS L1, RESEARCH.md Security Domain):   ║
 # ║  every parsed field is treated as inert display text.  ║
@@ -306,11 +307,14 @@ cheat_sheet_parse_binds() {
 }
 
 # ── Guarded direct-execution path (quick task 260822-sht, Task 9) ─────────
-# D-29's "one parser, two surfaces" becomes one parser, three consumers:
-# the retired cheat-sheet.sh walker list, cheat-sheet-view-all.sh's kitty
-# table (unchanged, both already source this file), and now
-# `cheat-sheet-parser.sh --dump` for KeybindsMode.qml's own live-parsed
-# table. This block only runs when the file is EXECUTED, never when it is
+# D-29's "one parser, two surfaces" became one parser, three consumers when
+# this path was added — cheat-sheet.sh's retired dmenu-picker list,
+# cheat-sheet-view-all.sh's kitty table, and `cheat-sheet-parser.sh --dump`
+# for KeybindsMode.qml's own live-parsed table — and is back to one parser,
+# two consumers now that Task 12 deleted cheat-sheet.sh along with the rest
+# of the retired surface: cheat-sheet-view-all.sh's kitty table (unchanged,
+# already sources this file) and `--dump` for KeybindsMode.qml. This block
+# only runs when the file is EXECUTED, never when it is
 # sourced — `${BASH_SOURCE[0]}" == "$0"` is true only in the former case
 # — so sourcing behaves exactly as it always has: defining functions only,
 # no output, no side effects, no shell option changes (this file's own

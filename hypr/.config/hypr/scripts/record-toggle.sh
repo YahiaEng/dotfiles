@@ -11,10 +11,13 @@
 # gpu-screen-recorder invocation, and the SIGINT-then-bounded-5s-poll-
 # then-SIGKILL stop idiom (mirrors this repo's existing reload.sh/gtk.sh
 # bounded-poll convention). Diverges from the Omarchy reference for:
-#   - D-06: an explicit walker --dmenu audio picker (silent/desktop/
-#     desktop+mic) runs BEFORE region/monitor select, reusing theme-
-#     switch.sh's exit-code-130 cancel pattern verbatim — Omarchy takes
-#     audio mode as CLI flags instead.
+#   - D-06: an explicit dmenu-picker audio picker (silent/desktop/
+#     desktop+mic) originally ran BEFORE region/monitor select, reusing
+#     theme-switch.sh's exit-code-130 cancel pattern verbatim — Omarchy
+#     takes audio mode as CLI flags instead. Quick task 260822-sht Task 6
+#     replaced that picker with the launcher's own ConfirmMode-adjacent
+#     audio picker (see `--audio`/`pick_audio` below); this history is
+#     kept for why the flag exists in the first place.
 #   - D-04: GIF export is a notification action calling the separate
 #     gif-export.sh, not a synchronous ffmpeg finalize step.
 #   - No webcam overlay (out of scope this phase) and no bar-status
@@ -37,7 +40,7 @@ LOG_FILE="$RUNTIME_DIR/record-toggle.log"
 #    notification/GIF pipeline are all untouched — this is bounded flag
 #    plumbing, not a script redesign. Absent file degrades to exactly
 #    today's literals (60/auto/ask — "ask" preserves the interactive
-#    walker prompt this script always ran before this task). ────────────
+#    audio-picker prompt this script always ran before this task). ──────
 RECORD_DEFAULTS_STATE="$HOME/.local/state/hypr/record-defaults.json"
 
 _read_defaults() {

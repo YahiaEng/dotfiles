@@ -7,14 +7,14 @@
 # ║  other, sits on its own quickshell-* namespaces at the ║
 # ║  level each surface is registered for, and shares every ║
 # ║  event source (D-Bus ownership, hardware keys,          ║
-# ║  volume/brightness step, MPRIS) with the in-process      ║
-# ║  QML OSD, QML power menu, and walker without a second     ║
-# ║  handler ever appearing. Report-only apart from a few    ║
-# ║  documented transient exceptions (the volume/brightness  ║
-# ║  step probes, the bar-reserved-zone-stability toggle,     ║
-# ║  and the opt-in compositor-reload half), each of which    ║
-# ║  restores what it changes via a trap installed before      ║
-# ║  its first mutation runs (T-11-11).                        ║
+# ║  volume/brightness step, MPRIS) with the in-process QML ║
+# ║  OSD, QML power menu, and QML launcher without a second ║
+# ║  handler ever appearing. Report-only apart from a few   ║
+# ║  documented transient exceptions (the volume/brightness ║
+# ║  step probes, the bar-reserved-zone-stability toggle,   ║
+# ║  and the opt-in compositor-reload half), each of which  ║
+# ║  restores what it changes via a trap installed before   ║
+# ║  its first mutation runs (T-11-11).                     ║
 # ╚══════════════════════════════════════════════════════╝
 #
 # Record-why (D-14-style correction, for this file's own design): on
@@ -428,7 +428,14 @@ QSD_BAR_SURFACE_ROWS=(
 # the shared frame D-18-15 built the registry below to compensate for
 # (its own header forbids a bespoke PanelWindow beyond it); Dashboard.qml,
 # Overview.qml, Probe.qml and ScreencopyProbe.qml all predate this phase.
-QSD_KNOWN_NONBAR_FRAMES=(PanelDialog.qml Dashboard.qml Overview.qml Probe.qml ScreencopyProbe.qml)
+# Launcher.qml (quick task 260822-sht) is the native QML launcher's own
+# dedicated PanelWindow (D-1's Option B — a dedicated frame, not the
+# shared PanelDialog.qml above), declaring `quickshell-launcher` since
+# Task 1; it is the ONLY launcher-package file that declares its own
+# WlrLayershell.namespace — every other file under modules/launcher/
+# (MenuMode.qml, EmojiMode.qml, KeybindsMode.qml, etc.) is a child
+# component rendered inside this one frame, not a separate layer surface.
+QSD_KNOWN_NONBAR_FRAMES=(PanelDialog.qml Dashboard.qml Overview.qml Probe.qml ScreencopyProbe.qml Launcher.qml)
 
 PASS=0
 FAIL=0

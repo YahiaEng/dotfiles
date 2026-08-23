@@ -352,19 +352,6 @@ AUR_PKGS=(
     # Rice
     matugen-bin
 
-    # Walker
-    walker
-    elephant
-    elephant-desktopapplications
-    elephant-providerlist
-    elephant-calc
-    elephant-clipboard
-    elephant-symbols
-    elephant-menus
-    elephant-runner
-    elephant-websearch
-    elephant-files
-
     # Z-shell
     zsh
     oh-my-posh
@@ -403,7 +390,7 @@ AUR_PKGS=(
     # Google's own github.com/google/material-design-icons, package()
     # installs only .ttf files under /usr/share/fonts). This is an unpinned
     # -git package verified by presence only, not by version — the same
-    # property walker and elephant already have in this array.
+    # property colloid-icon-theme-git already has in AUR_PKGS_HOST below.
     ttf-material-symbols-variable-git
 
     # Live wallpaper player (D-23 — package-legitimacy audit in

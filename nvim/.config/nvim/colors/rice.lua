@@ -1,6 +1,7 @@
 -- The `rice` colorscheme — reads role colours from the theme engine, derives
 -- a full syntax ramp from them in Lua, and paints nvim. Named to match this
--- repo's walker `themes/rice` naming convention.
+-- repo's own `rice` naming convention for theme-engine-wired config targets
+-- (zellij's `layouts/rice.kdl` is the other live example).
 --
 -- Order matters here, and each step exists for a measured reason:
 --   1. set &background from the surface colour's own luminance

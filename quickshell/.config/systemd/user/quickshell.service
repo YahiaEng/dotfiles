@@ -4,7 +4,8 @@
 # Every autostart entry in this repo — the wallpaper daemon, the (now
 # retired) bar, its fullscreen watcher, quickshell (until this plan), the
 # notification daemon retired in Phase 19, the (now retired) OSD daemon,
-# the (now retired, RETIRE-06) standalone media applet, elephant, walker,
+# the (now retired, RETIRE-06) standalone media applet, the (now retired,
+# quick task 260822-sht) external launcher and its backend daemon,
 # hypridle, the polkit agent and both clipboard watchers — launches
 # through a transient `uwsm app` scope in
 # `app-graphical.slice`, with no `Restart=` directive anywhere. There is

@@ -15,9 +15,9 @@ Two tiers make up INST-03's evidence:
 | Graphical VM (final gate) | Hyprland actually starts; the full themed desktop is visually confirmed | This document, followed by hand, once per verification cycle | Below |
 
 The container tier **cannot** prove Hyprland starts or that a human sees a
-themed desktop — `theme-doctor`'s session-dependent checks (running
-walker/elephant processes, `gsettings`, D-Bus) legitimately fail headless.
-That is exactly what this VM procedure exists to prove.
+themed desktop — `theme-doctor`'s one remaining session-dependent check
+(`gsettings gtk-theme`, D-Bus) legitimately fails headless. That is
+exactly what this VM procedure exists to prove.
 
 **Pass condition (unambiguous, D-53):**
 
@@ -224,14 +224,15 @@ actually be found on screen:
 - The **power menu** (QPOWER)
 - The **workspace overview**
 - The **Media tab**, including its cava audio-reactive ring (QMEDIA)
-- **walker** and **elephant** — the launcher and its backend, separate
-  processes, unchanged by this milestone's retirements
+- The **native QML launcher** (quick task 260822-sht) — replaces the
+  retired external launcher and its backend daemon, in-process now
 - **Thunar** — unchanged by this milestone's retirements
 
 The bar, the notification surfaces, the OSD, the power menu, the
-dashboard and the overview are all **one Quickshell process** — confirming
-"did they all come up" is checking that one process's surfaces render
-correctly, not six separate daemons. Do not enable any systemd unit for
+dashboard, the overview and the launcher are all **one Quickshell
+process** — confirming "did they all come up" is checking that one
+process's surfaces render correctly, not six separate daemons. Do not
+enable any systemd unit for
 this: the Quickshell units (`quickshell.service`,
 `quickshell-bar-watchdog.service`) deliberately carry no `[Install]`
 section so enabling can never write a wants-symlink outside the
@@ -254,10 +255,9 @@ echo "theme-parity exit: $?"
 
 Both commands must exit `0`. `theme-doctor` must report zero failures
 **except for entries on the pre-authored exemption list below** —
-including the session-dependent checks (`walker process running`,
-`elephant process running`, `gsettings gtk-theme = adw-gtk3-dark`,
-`elephant listproviders responds`) that the container tier cannot
-exercise, which must still pass here with no exemption needed.
+including the one remaining session-dependent check (`gsettings gtk-theme
+= adw-gtk3-dark`) that the container tier cannot exercise, which must
+still pass here with no exemption needed.
 `theme-parity` must report 0 failures across all 7 render targets — its
 half of the bar is unqualified; no exemption row ever applies to it.
 
@@ -346,7 +346,7 @@ screenshot taken by a script) and confirm, with your own eyes:
 - Every listed surface — the bar (QBAR), notification popups and centre
   (QNOTIF), the dashboard drawer, OSD indicators (QOSD), the power menu
   (QPOWER), the workspace overview, the Media tab with its cava ring
-  (QMEDIA), walker, elephant, and Thunar — shows the same theme
+  (QMEDIA), the native QML launcher, and Thunar — shows the same theme
   (Catppuccin, by default from the first-boot seed in step 5)
 - Switching themes (`Super + Shift + T`) live-updates every visible
   surface instantly, no relogin — the same ten-target standard from

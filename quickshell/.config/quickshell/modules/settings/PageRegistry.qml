@@ -20,7 +20,7 @@
 //         exactly as they did before this split (`appearance`->0,
 //         `connectivity`->3, `display`->5, `shell`->7). There are zero
 //         external callers of the legacy keys today (grepped over
-//         quickshell/, hypr/, walker/ — only the IPC verb itself), so this
+//         quickshell/, hypr/ — only the IPC verb itself), so this
 //         introduces no regression.
 //    `shell.qml`'s own `Component.onCompleted` runs an assertion that all
 //    four legacy category keys still resolve to an in-range index, and

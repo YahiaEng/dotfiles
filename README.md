@@ -1,13 +1,13 @@
 # 🍚 Hyprland Dotfiles — Material You + Multi-Theme Rice
 
-A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme switching and bar orientation switching through custom Walker menus.
+A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme switching and bar orientation switching through the native QML launcher's own pickers.
 
 ## ✨ Features
 
 - **Dynamic Material You theming** — colors auto-generated from your wallpaper via Matugen
 - **6 static themes** — Catppuccin Mocha, Dracula, Rosé Pine, Gruvbox Dark, Tokyo Night, Nord
 - **Quickshell bar** — horizontal/vertical orientation switching, workspaces, media/connectivity capsule, tray, clock
-- **Walker-powered switching** — change themes and bar orientation on the fly
+- **In-shell picker switching** — change themes and bar orientation on the fly, from the native QML launcher
 - **NVIDIA optimized** — env variables for 2160×1440 @ 165Hz
 - **Smooth animations** — Material Design 3 inspired bezier curves
 - **GNU Stow managed** — clean symlink structure from `~/dotfiles` → `~/.config`
@@ -19,7 +19,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 |:----------------|:----------------------|
 | Window Manager  | Hyprland              |
 | Status Bar      | Quickshell            |
-| Launcher        | Walker                |
+| Launcher        | Quickshell (native QML) |
 | Terminal        | Kitty                 |
 | Notifications   | Quickshell            |
 | Wallpaper       | awww                  |
@@ -49,9 +49,8 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │   ├── hypridle.conf
 │   ├── hyprlock.conf
 │   └── scripts/
-│       ├── theme-switch.sh             # Walker theme picker
-│       ├── bar-orientation.sh          # Walker bar orientation picker
-│       ├── wallpaper-switch.sh         # Walker wallpaper picker + matugen
+│       ├── bar-orientation.sh          # Bar orientation switcher (invoked by the launcher's picker)
+│       ├── wallpaper-switch.sh         # fzf wallpaper picker + matugen
 │       ├── quickshell-launch.sh        # Guarded launcher for the QML shell root
 │       ├── theme-init.sh               # Restores theme on login
 │       └── screenshot.sh               # grim + slurp screenshots
@@ -74,7 +73,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │       ├── kitty-colors.conf
 │       ├── gtk-colors.css              # Shared by the gtk3 + gtk4 targets
 │       ├── qml-palette.json            # Feeds the Quickshell bar's Colours.qml
-│       └── ...                         # walker, yazi, vscodium, fzf, hyprlock, zen, satty
+│       └── ...                         # yazi, vscodium, fzf, hyprlock, zen, satty
 │
 ├── theme-engine/.config/theme-engine/
 │   ├── theme-apply                     # The switch entry point (static + dynamic)
@@ -113,7 +112,7 @@ cp /path/to/your/wallpapers/*.jpg ~/Pictures/Wallpapers/
 | Binding              | Action                    |
 |:---------------------|:--------------------------|
 | `Super + Return`     | Open Kitty terminal       |
-| `Super` (tap)        | Open Walker launcher      |
+| `Super` (tap)        | Open the menu (native QML launcher) |
 | `Super + Q`          | Close window              |
 | `Super + F`          | Toggle fullscreen         |
 | `Super + V`          | Toggle floating           |
@@ -139,7 +138,8 @@ All themes produce the same set of color variables (primary, surface, etc.) so e
 1. Create `~/.config/themes/static/mytheme.conf` (Hyprland `$variable = rgba(...)` format)
 2. Create `~/.config/themes/css/mytheme.css` (`@define-color variable #hex;` format)
 3. Create `~/.config/themes/kitty/mytheme.conf` (kitty color format)
-4. Add a menu entry in `~/.config/hypr/scripts/theme-switch.sh`
+4. No menu entry to add — the launcher's Style ▸ Theme picker auto-discovers
+   every `theme-engine/palettes/*.json` file on open
 
 ## 📄 License
 

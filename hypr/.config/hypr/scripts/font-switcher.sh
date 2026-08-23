@@ -4,7 +4,7 @@
 # ║                                                        ║
 # ║  D-20: fzf-in-floating-kitty with a live rendered      ║
 # ║  specimen — the SAME pattern as wallpaper-picker.sh/   ║
-# ║  icon-theme-picker.sh, NOT the walker dmenu picker.    ║
+# ║  icon-theme-picker.sh, NOT the retired dmenu picker.   ║
 # ║                                                        ║
 # ║  Left pane:  installed nerd fonts, fzf fuzzy search    ║
 # ║  Right pane: live specimen (pangram + code sample +    ║
