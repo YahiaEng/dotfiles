@@ -29,14 +29,21 @@ Quickshell bar never took the role over, so the capability was lost rather than 
 **How it surfaced.** The operator reported that Steam relaunched itself every time they
 closed it. Debugging separated two independent faults:
 
-1. A `steamwebhelper` crash loop — 9 renderer kills (`bad IPC message, reason 213`) and
-   29 webhelper respawns in one session. **Fixed and unrelated to this todo**: clearing
-   `~/.local/share/Steam/config/htmlcache` plus launching with `-cef-disable-gpu` took it
-   to 0 kills. Note the alarming-looking `data:text/html,%3Cbody%3E%3C%2Fbody%3E` URL was
-   a red herring — `webhelper.txt` shows Steam's own client window is internally named
-   `SteamBrowser-'data:text/'`, so that is normal.
-2. **This one** — with the crash loop fixed, closing the window still did not quit Steam,
+1. A `steamwebhelper` crash loop — `bad IPC message, reason 213` renderer kills plus
+   repeated webhelper respawns. **STILL UNFIXED and unrelated to this todo.** Two
+   remedies were tried and BOTH FAILED: clearing
+   `~/.local/share/Steam/config/htmlcache`, and launching with `-cef-disable-gpu`.
+   Measured over the full log 2026-08-23 04:19: 37 browser starts and 22 renderer kills,
+   with starts continuing at 02:43, 02:46 and two 10s apart at 04:18 — i.e. long after
+   both remedies were applied. An earlier note in this file claimed it was fixed; that
+   was wrong, drawn from a ~1-minute sample of a loop whose period is minutes to hours.
+   Note the alarming-looking `data:text/html,%3Cbody%3E%3C%2Fbody%3E` URL IS a red
+   herring — `webhelper.txt` shows Steam's own client window is internally named
+   `SteamBrowser-'data:text/'`, so that part is normal.
+2. **This one** — independently of the crash loop, closing the window does not quit Steam,
    because there is no tray to minimise into. `steam -shutdown` is the only reliable quit.
+   The two faults are separate: a tray would fix the close behaviour even while the
+   webhelper loop persists.
 
 Affects every tray-minimising app, not just Steam: Discord, Telegram, Nextcloud, etc.
 

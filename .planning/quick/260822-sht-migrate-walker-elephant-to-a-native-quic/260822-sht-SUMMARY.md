@@ -122,8 +122,11 @@ Every one was found by live operator use or by measurement, **not** by a gate:
   `.planning/todos/pending/2026-08-23-add-system-tray-capsule-to-the-quickshell-bar.md`
   (severity major). No SNI host has existed since waybar's retirement, so
   tray-minimising apps cannot be closed. Found while debugging a Steam relaunch
-  loop; the separate `steamwebhelper` crash loop was Steam-side and fixed by
-  clearing `htmlcache` + `-cef-disable-gpu`.
+  loop. The separate `steamwebhelper` crash loop is Steam-side and REMAINS
+  UNFIXED — clearing `htmlcache` and `-cef-disable-gpu` were both tried and
+  both failed (37 browser starts / 22 renderer kills across the full log,
+  still firing after both). An earlier claim that it was fixed came from
+  sampling a ~1-minute window of a loop that fires minutes-to-hours apart.
 - See `deferred-items.md` in this directory for the in-flight scope notes.
 
 ## Gate results at close
