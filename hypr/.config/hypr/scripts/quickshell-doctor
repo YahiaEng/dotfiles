@@ -420,6 +420,30 @@ QSD_BAR_SURFACE_ROWS=(
     #    toast row's own transient lifetime above rather than the
     #    permanent notif-popups/notif-centre rows.
     "session/PowerMenu.qml|quickshell-session|exact|3|noreserve|transient"
+    # ── Quick task 260823-9ak Task 3 (R1/R4/D-2) — the edge bar's own two
+    #    permanent strips (top+bottom), one type instantiated twice in
+    #    shell.qml. Namespace prefix is `quickshell-baredge-`, NOT
+    #    `quickshell-bar-edge-...` — the same trap BarDrawer.qml's/
+    #    BarTooltip.qml's own rows above already avoid: the SectionPopout
+    #    row's pattern `quickshell-bar-` matches any string starting with
+    #    that prefix plus one more character, so a hyphenated namespace
+    #    would match TWO rows and fail the live half's exactly-one-match
+    #    cardinality check the moment either strip is mapped (which is
+    #    always, since these are permanent, unlike every transient row
+    #    above). `quickshell-baredge-` still starts with `quickshell-bar`
+    #    (broad candidate net) and `quickshell-` (family blur/ignore_alpha
+    #    rules) while resolving to exactly one row.
+    #
+    #    Level 2 (`WlrLayer.Top`, matching Bar.qml's own row) — always-on
+    #    chrome, never Overlay. `reserve`, not `noreserve` — GT-3 (this
+    #    task's own measured ground truth): the forward check's
+    #    `exclusiveZone: 0` assertion applies ONLY to `noreserve` rows, and
+    #    a reserving row is legal exactly as Bar.qml's own row already is.
+    #    `permanent_count` in the live half only increments on an EXACT
+    #    match of the literal namespace `quickshell-bar`, so these two
+    #    further permanent surfaces cannot break that assertion's
+    #    `permanent == 1` cardinality.
+    "EdgeBar.qml|quickshell-baredge-|pattern|2|reserve|permanent"
 )
 
 # Pre-existing summonable layer-shell frames this phase did not add and

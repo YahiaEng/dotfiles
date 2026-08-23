@@ -519,6 +519,22 @@ ShellRoot {
         onSettingsRequested: root.openSettings()
     }
 
+    // ── Edge bar (quick task 260823-9ak, Task 3, R1/R2/R4/D-2) — two
+    //    always-on strips, top and bottom. Mounted directly at shell root,
+    //    unconditionally for now — Task 4 gates both on `edgeBar.enabled`
+    //    (default ON) via a LazyLoader, per R3's OFF-must-unmount
+    //    requirement. Permanent surfaces, the same direct-mount posture
+    //    `barInstance` above and the notification popup stack already use
+    //    — never behind a LazyLoader keyed on anything transient.
+    EdgeBar {
+        id: edgeBarTop
+        bottom: false
+    }
+    EdgeBar {
+        id: edgeBarBottom
+        bottom: true
+    }
+
     // ── Hot zone (Phase 18 Plan 16, QBAR-08) — mounted behind a loader
     //    keyed on the INVERSE of the owner's base visible state: present
     //    in EITHER hidden state, absent whenever the owner says visible.

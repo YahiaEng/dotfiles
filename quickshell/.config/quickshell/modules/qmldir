@@ -48,3 +48,11 @@ singleton CavaService 1.0 CavaService.qml
 # call site owns its own instance, the same shape as Bar/Dashboard/
 # Overview above.
 ThemedToolTip 1.0 ThemedToolTip.qml
+# EdgeBar (quick task 260823-9ak, Task 3, R1/R4/D-2) — the always-on top/
+# bottom strip. Registered here, a sibling of Bar.qml/Dashboard.qml/
+# Overview.qml, deliberately NOT under modules/bar/ — see the file's own
+# header for why (GT-4: the colour-role-routing gate scans modules/bar/
+# only, and this file needs to read Colours.* directly). Not a singleton —
+# shell.qml mounts two ordinary instances (top and bottom), the same
+# "one type, N instances" posture as ThemedToolTip above.
+EdgeBar 1.0 EdgeBar.qml

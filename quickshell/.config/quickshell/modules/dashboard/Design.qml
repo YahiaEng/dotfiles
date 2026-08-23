@@ -698,4 +698,12 @@ Singleton {
     //    one-time retired-bar-parity reasons. A taste value, deliberately
     //    re-tunable — see AttachedCorner.qml's own reversibility note.
     readonly property int attachedCornerRadius: 24
+
+    // ── EdgeBar tokens (quick task 260823-9ak, Task 3, R1/R8) — all four
+    //    on the repo's 4px grid, all four operator-tunable taste values.
+    //    See EdgeBar.qml's own reversibility note.
+    readonly property int edgeBarThickness: 8 // the strip's flat run depth — the sole exclusiveZone contributor (D-4)
+    readonly property int edgeBarBulgeExtra: 8 // the static centre bulge's EXTRA depth beyond the flat run (D-3) — also the shoulder fillet radius
+    readonly property int edgeBarBulgeWidth: 240 // the static centre bulge's width — an already-established on-grid value in this file
+    readonly property int edgeBarDwellMs: 400 // hover dwell before a bulge hover summons its surface (Task 5) — matches popoutDwellMs above
 }
