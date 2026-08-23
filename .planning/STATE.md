@@ -4,7 +4,7 @@ milestone: v4.0
 current_phase: 22
 status: milestone-complete
 stopped_at: "QUICK TASK 260823-65s COMPLETE — system tray capsule shipped and operator-verified. Steam now closes through its own tray menu, the fault the todo was filed for. Two bug classes (icon theming, popout menu) were each closed WRONGLY several times on unmeasured assertions while the full gate suite stayed green — neither failure mode writes to a log. Items 6 (onlyMenu) stays UNPROVEN: no menu-only tray app exists on this host."
-last_updated: "2026-08-23T02:30:00.000Z"
+last_updated: "2026-08-23T06:35:00.000Z"
 last_activity: 2026-08-23
 last_activity_desc: "quick task 260823-65s complete: the system tray capability, deliberately dropped in 18.1 D-15 and absent since waybar was retired, is back as a native QML capsule — SNI host, 3-item inline row + overflow popout, DBusMenu context menus, a tri-state icon tint, and a D-5 exclusion for the two applets that duplicate the connections capsule. Ten code commits across nine operator feedback rounds."
 state_head: 6983d3e2
@@ -756,7 +756,11 @@ Resume file: None
 
 ---
 
-RESUMED 2026-08-23 (this session) — /gsd-resume-work. No HANDOFF.json, no `.continue-here`, no async jobs, no PLAN-without-SUMMARY. Tree clean at `2c958c50`, nothing unpushed. `state_head` was lagging two docs commits behind HEAD again (7eca8ce3 → 2c958c50) and has been repointed. v4.0 is shipped and archived; v5.0 has no roadmap. Awaiting operator direction — the standing next step is `/gsd-new-milestone` after `/gsd-review-backlog`.
+RESUMED 2026-08-23 (this session) — /gsd-resume-work. Clean resume, nothing to recover: no HANDOFF.json, no `.continue-here`, no async-job manifest, no PLAN-without-SUMMARY. Tree clean at `cb032bc9`, `origin/main` level with HEAD (0 unpushed). `state_head: 6983d3e2` is CORRECT and lagging by exactly one on purpose — cb032bc9 is the state commit that set it, and a state commit cannot reference itself. Do not "fix" it. Quick task 260823-65s (system tray capsule) is closed and operator-verified. v4.0 shipped 2026-08-17 and is archived; v5.0 still has no roadmap. One pending todo: `2026-08-23-steamwebhelper-crash-loop-on-nvidia-xwayland` — measured Steam-side (reproduces with no quickshell, no uwsm, no launcher), so it is not this repo's bug to fix. NOTED, NOT FIXED: PROJECT.md's "What This Is" and target-features prose still describe walker as the live launcher and still carries the "launcher stays / v5.0+ question" scope boundary — both were overtaken by quick task 260822-sht, which retired walker + elephant into native QML. That prose should be corrected when v5.0 is scoped. Awaiting operator direction — standing next step is `/gsd-review-backlog` then `/gsd-new-milestone`.
+
+---
+
+RESUMED 2026-08-23 (earlier) — /gsd-resume-work. No HANDOFF.json, no `.continue-here`, no async jobs, no PLAN-without-SUMMARY. Tree clean at `2c958c50`, nothing unpushed. `state_head` was lagging two docs commits behind HEAD again (7eca8ce3 → 2c958c50) and has been repointed. v4.0 is shipped and archived; v5.0 has no roadmap. Awaiting operator direction — the standing next step is `/gsd-new-milestone` after `/gsd-review-backlog`.
 
 ---
 
