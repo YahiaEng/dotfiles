@@ -111,6 +111,28 @@ BarCapsule {
             width: Design.barGlyphSize + Design.spacingXs * 2
             height: Design.barGlyphSize + Design.spacingXs * 2
 
+            // ── Tooltip text (Task 3 operator feedback, 260823-65s) —
+            //    SystemTrayItem exposes tooltipTitle/tooltipDescription;
+            //    reading them here matches 4 of this capsule's 5
+            //    neighbours (IdleInhibitorCapsule x2, MediaConnectivity-
+            //    Capsule, ClockActionsCapsule, LauncherCapsule each carry
+            //    a BarTooltipHost; only WorkspaceCapsule has none) rather
+            //    than silently dropping data the protocol hands us.
+            //    tooltipTitle wins over title; tooltipDescription is
+            //    appended only when it is non-empty AND differs from the
+            //    text already shown, so a description that merely repeats
+            //    the title never duplicates a line.
+            readonly property string _tooltipTitle: (trayCell.modelData && trayCell.modelData.tooltipTitle) ? trayCell.modelData.tooltipTitle : ""
+            readonly property string _tooltipBase: trayCell._tooltipTitle !== "" ? trayCell._tooltipTitle : ((trayCell.modelData && trayCell.modelData.title) ? trayCell.modelData.title : "")
+            readonly property string _tooltipDescription: (trayCell.modelData && trayCell.modelData.tooltipDescription) ? trayCell.modelData.tooltipDescription : ""
+            readonly property string _tooltipText: {
+                if (trayCell._tooltipBase === "")
+                    return "";
+                if (trayCell._tooltipDescription !== "" && trayCell._tooltipDescription !== trayCell._tooltipBase)
+                    return trayCell._tooltipBase + "\n" + trayCell._tooltipDescription;
+                return trayCell._tooltipBase;
+            }
+
             // Resolved image:// URI straight from Quickshell — see
             // CORRECTION 1 above. Empty only when the item genuinely
             // supplies no icon.
@@ -188,6 +210,10 @@ BarCapsule {
                 id: trayMouseArea
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                // Needed for containsMouse below (the tooltip's hover
+                // signal) — verified this changes no click behaviour:
+                // acceptedButtons/onClicked are unaffected by hoverEnabled.
+                hoverEnabled: true
                 onClicked: (mouse) => {
                     if (!trayCell.modelData)
                         return;
@@ -206,6 +232,21 @@ BarCapsule {
                     else
                         trayCell.modelData.activate();
                 }
+            }
+
+            // BarTooltipHost pattern (IdleInhibitorCapsule.qml's own
+            // instance, copied exactly) — NOT a QtQuick.Controls ToolTip,
+            // which that file's own comment records is clamped wrong in
+            // the 42px bar window. Gated on non-empty text too, so a rare
+            // item with neither a title nor a tooltip never mounts an
+            // empty surface. tipId keyed off the item's own id (already
+            // load-bearing for the D-5 exclusion filter, so guaranteed
+            // present) so two tray items can never collide in the host.
+            BarTooltipHost {
+                anchorItem: trayCell
+                text: trayCell._tooltipText
+                active: trayMouseArea.containsMouse && trayCell._tooltipText !== ""
+                tipId: "systemTray-" + (trayCell.modelData ? trayCell.modelData.id : "")
             }
         }
     }

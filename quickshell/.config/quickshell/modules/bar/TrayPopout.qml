@@ -67,6 +67,21 @@ SectionPopout {
                     return "—";
                 }
 
+                // ── Tooltip text (Task 3 operator feedback, 260823-65s) —
+                //    same tooltipTitle/title/tooltipDescription contract as
+                //    TrayCapsule.qml's inline cells, so overflowed items do
+                //    not lose data the protocol hands us just because they
+                //    already show a plain-text title inline (tooltipDescription
+                //    is never shown any other way in this row).
+                readonly property string _tooltipTitle: (overflowRow.modelData && overflowRow.modelData.tooltipTitle) ? overflowRow.modelData.tooltipTitle : ""
+                readonly property string _tooltipBase: overflowRow._tooltipTitle !== "" ? overflowRow._tooltipTitle : overflowRow._titleText
+                readonly property string _tooltipDescription: (overflowRow.modelData && overflowRow.modelData.tooltipDescription) ? overflowRow.modelData.tooltipDescription : ""
+                readonly property string _tooltipText: {
+                    if (overflowRow._tooltipDescription !== "" && overflowRow._tooltipDescription !== overflowRow._tooltipBase)
+                        return overflowRow._tooltipBase + "\n" + overflowRow._tooltipDescription;
+                    return overflowRow._tooltipBase;
+                }
+
                 Row {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
@@ -98,8 +113,12 @@ SectionPopout {
                 // Same three gestures as an inline cell (CORRECTIONs 2/3),
                 // passing THIS popout's own window as display()'s parent.
                 MouseArea {
+                    id: overflowRowMouseArea
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                    // Needed for containsMouse below (the tooltip's hover
+                    // signal) — verified this changes no click behaviour.
+                    hoverEnabled: true
                     onClicked: (mouse) => {
                         if (!overflowRow.modelData)
                             return;
@@ -118,6 +137,21 @@ SectionPopout {
                         else
                             overflowRow.modelData.activate();
                     }
+                }
+
+                // ThemedToolTip, NOT BarTooltipHost — this row renders
+                // inside SectionPopout's own window, several hundred
+                // pixels tall (measured for the sibling popouts:
+                // popoutH=334), so the QQC2 Popup clamp BarTooltipHost
+                // exists to work around lands clear of this row with
+                // nothing to fix (BarTooltipHost.qml's own header names
+                // AudioPopout.qml/SectionPopout.qml as exactly this
+                // family, and both already use ThemedToolTip — this row
+                // follows that established, colour-token-bound precedent
+                // rather than reaching for the bar-window mechanism).
+                ThemedToolTip {
+                    visible: overflowRowMouseArea.containsMouse && overflowRow._tooltipText !== ""
+                    text: overflowRow._tooltipText
                 }
             }
         }
