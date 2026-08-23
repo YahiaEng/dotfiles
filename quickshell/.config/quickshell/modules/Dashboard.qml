@@ -600,16 +600,10 @@ PanelWindow {
             }
         }
 
-        // ── clip (reported: content appears outside the panel, then slides in)
-        // The drawer rectangle used to BE the wl_surface, and a Wayland
-        // surface physically cannot paint outside itself — so the pager's
-        // off-screen pages were clipped for free, by the window system. A
-        // plain Item has no such property: once the drawer became an Item
-        // inside a larger surface, SwipeView's incoming page rendered outside
-        // the drawer's bounds and was visible over the scrim before sliding
-        // in. That reads as a bug because it is one; this restores the clip
-        // the surface boundary used to provide implicitly.
-        clip: true
+        // clip — MOVED to `content` below (quick task 260823-9ak, Task 2).
+        // See that item's own comment for why: this file's own AttachedCorner
+        // instances need to paint OUTSIDE `panel`'s own bounds (R7/GT-7), and
+        // a clip set here would silently hide them.
 
         // quick-260821-swp (R-2): width/height are spatial (size) properties
         // — retargeted onto spatial-move, the same name windowsMove uses on
@@ -670,12 +664,50 @@ PanelWindow {
     // Radii are handed across from the same properties `background` uses, so
     // the rim and the surface can never disagree about the drawer's shape.
     GradientBorder {
+        id: dashboardGradientBorder
         anchors.fill: parent
         borderWidth: dashboardWindow.borderWidth
         topLeftRadius: 0
         topRightRadius: 0
         bottomLeftRadius: dashboardWindow.cornerRadius
         bottomRightRadius: dashboardWindow.cornerRadius
+    }
+
+    // ── Attached corners (quick task 260823-9ak, Task 2, R7/P-1) ────────
+    // The same component Task 1 proved on the launcher, unchanged — the
+    // second consumer that proves it is genuinely reusable rather than
+    // launcher-shaped. `gradientHalfDiagonal` reads `drawerWidth`/
+    // `drawerHeight` LIVE (not a captured constant), so the flares track
+    // `panel`'s own per-tab resize Behaviors for free via anchoring, and
+    // the rim gradient's sweep keeps spanning panel+flares continuously
+    // through a resize too. `edge` stays "top" in both modes (unlike the
+    // launcher, only the launcher's direction branches per D-5 — see
+    // Launcher.qml's own Task 6 note).
+    AttachedCorner {
+        id: dashboardFlareLeft
+        edge: "top"
+        side: "left"
+        flareRadius: Design.attachedCornerRadius
+        anchors.right: panel.left
+        anchors.top: panel.top
+        fillColour: Qt.rgba(dashboardWindow.surfaceBase.r, dashboardWindow.surfaceBase.g, dashboardWindow.surfaceBase.b, dashboardWindow.drawerSurfaceOpacity)
+        borderWidth: dashboardWindow.borderWidth
+        angle: dashboardGradientBorder.startAngle + dashboardGradientBorder.angle
+        gradientCentre: Qt.point(panel.width / 2 - dashboardFlareLeft.x, panel.height / 2 - dashboardFlareLeft.y)
+        gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
+    }
+    AttachedCorner {
+        id: dashboardFlareRight
+        edge: "top"
+        side: "right"
+        flareRadius: Design.attachedCornerRadius
+        anchors.left: panel.right
+        anchors.top: panel.top
+        fillColour: Qt.rgba(dashboardWindow.surfaceBase.r, dashboardWindow.surfaceBase.g, dashboardWindow.surfaceBase.b, dashboardWindow.drawerSurfaceOpacity)
+        borderWidth: dashboardWindow.borderWidth
+        angle: dashboardGradientBorder.startAngle + dashboardGradientBorder.angle
+        gradientCentre: Qt.point(panel.width / 2 - dashboardFlareRight.x, panel.height / 2 - dashboardFlareRight.y)
+        gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
     }
 
     // One shared resource reader for PerformanceTab's dials (14-06) and
@@ -722,6 +754,19 @@ PanelWindow {
         anchors.fill: parent
         anchors.margins: dashboardWindow.spacingLg
         focus: true
+
+        // clip — moved here from `panel` (quick task 260823-9ak, Task 2,
+        // deviation: Rule 1/3). The original comment's own reasoning still
+        // holds exactly, unchanged: the pager's off-screen SwipeView pages
+        // need clipping to their content bounds, or an incoming page renders
+        // outside the drawer before sliding into place. But that reasoning
+        // only ever needed THIS item clipped, not the whole `panel` — and
+        // clipping `panel` also clips `background`'s own siblings, which is
+        // exactly where Task 2's AttachedCorner instances live (R7/GT-7:
+        // they must paint outside `panel`'s own bounds). Moving the clip one
+        // level down, onto the item that actually owns the pager, keeps the
+        // pager's own clipping byte-identical while unblocking the flares.
+        clip: true
 
         Keys.onEscapePressed: dashboardWindow._beginDismiss()
 
