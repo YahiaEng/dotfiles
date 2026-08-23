@@ -386,6 +386,43 @@ ShellRoot {
         }
     }
 
+    // ── Animated close for the two summonable drawers (quick task
+    //    260823-9ak, operator round 9) ──────────────────────────────────
+    // Both Launcher.qml and Dashboard.qml carry a `_beginDismiss()` that
+    // plays an exit animation and only then emits `dismissRequested`, which
+    // the loaders below answer by deactivating. But every TOGGLE-OFF path
+    // in this file wrote `<loader>.active = false` directly, which destroys
+    // the wl_surface on the spot and skips that animation entirely.
+    //
+    // Measured before changing anything, by polling `hyprctl layers` after
+    // a dismiss trigger: the launcher surface vanished 21ms after Super+
+    // Space and the dashboard 38ms after Super+D, against a ~450ms exit.
+    // So the three binds the operator named — Super+Space, Super-tap and
+    // Super+D — had NO dismiss animation at all; only Escape, click-outside
+    // and launch-an-app ever reached `_beginDismiss()`. Retiming the
+    // animation alone would have changed nothing on those binds.
+    //
+    // Routing every close through here fixes that once rather than in five
+    // places. The `typeof` check is not defensive padding: `loader.item` is
+    // null whenever the loader is inactive, and a LazyLoader mid-teardown
+    // can hand back an item whose functions have already gone — falling
+    // back to the direct write keeps the surface closing either way, which
+    // is the behaviour that must never regress.
+    //
+    // KNOWN EDGE, deliberately accepted: pressing the same bind again
+    // WHILE the exit is playing is now a no-op (`_beginDismiss` guards
+    // re-entry) rather than an instant close-then-reopen. The surface is
+    // gone ~450ms later and the next press opens normally.
+    function _dismissLoader(loader) {
+        if (!loader || !loader.active)
+            return;
+        const item = loader.item;
+        if (item && typeof item._beginDismiss === "function")
+            item._beginDismiss();
+        else
+            loader.active = false;
+    }
+
     // Dashboard drawer (Phase 14 tracer, D-09/D-14/DASH-01): the same
     // summon-via-LazyLoader mechanism as the two probes above. Deactivating
     // destroys the wl_surface rather than hiding it, so `hyprctl layers -j`
@@ -807,7 +844,7 @@ ShellRoot {
         name: "launcher"
         onPressed: {
             if (launcherLoader.active) {
-                launcherLoader.active = false;
+                root._dismissLoader(launcherLoader);
             } else if (!root.fullscreenBlocking) {
                 launcherLoader.active = true;
             }
@@ -847,7 +884,7 @@ ShellRoot {
         // ungated, D-11). Otherwise defers to `open()` above.
         function toggle(): string {
             if (launcherLoader.active) {
-                launcherLoader.active = false;
+                root._dismissLoader(launcherLoader);
                 return "";
             }
             return launcherIpc.open("");
@@ -905,7 +942,7 @@ ShellRoot {
             launcherMenuShortcut._lastToggleMs = now;
 
             if (launcherLoader.active) {
-                launcherLoader.active = false;
+                root._dismissLoader(launcherLoader);
             } else if (!root.fullscreenBlocking) {
                 LauncherState.pendingMode = LauncherState.modeMenu;
                 launcherLoader.active = true;
@@ -1409,7 +1446,7 @@ ShellRoot {
         // divergent `dashboardLoader.active` write.
         function toggle() {
             if (dashboardLoader.active) {
-                dashboardLoader.active = false;
+                root._dismissLoader(dashboardLoader);
             } else if (!root.fullscreenBlocking) {
                 dashboardLoader.active = true;
             }
@@ -1462,7 +1499,7 @@ ShellRoot {
         name: "media"
         onPressed: {
             if (dashboardLoader.active) {
-                dashboardLoader.active = false;
+                root._dismissLoader(dashboardLoader);
             } else if (!root.fullscreenBlocking) {
                 root.dashboardTabIndex = root.dashboardTabIndexMedia;
                 dashboardLoader.active = true;
