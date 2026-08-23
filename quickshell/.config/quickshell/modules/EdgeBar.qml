@@ -126,18 +126,77 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
 
-    // ── Colour (R9) — Colours.surface, blended at the SAME alpha
-    //    BarRoles.qml's own `barSurface` role already uses for the bar's
-    //    own chrome background (0.55 — matching Athena's own @surface-
-    //    derived treatment). Declared locally rather than read through
-    //    BarRoles (GT-4: this file is deliberately outside `modules/bar/`
-    //    so it can read `Colours.*` directly). Per GT-5, `Colours.surface`
-    //    is a STRING role — blending `.r`/`.g`/`.b` straight off it would
-    //    read BLACK silently, so it is captured as a colour-typed property
-    //    first. 0.55 sits above GT-9's 0.5 ignore_alpha floor, so
-    //    windowrules.lua's family blur rule stays alive behind the strip.
-    readonly property color surfaceBase: Colours.surface
-    readonly property color fillColour: Qt.rgba(edgeBarWindow.surfaceBase.r, edgeBarWindow.surfaceBase.g, edgeBarWindow.surfaceBase.b, 0.55)
+    // ── Colour (R9) — OPERATOR FEEDBACK ROUND 1, 2026-08-23 ─────────────
+    //    This strip first shipped filled with `Colours.surface` at 0.55
+    //    alpha, copying BarRoles.qml's `barSurface` chrome treatment. The
+    //    operator reported it "completely black and not color shifting",
+    //    and the measurement backs that up exactly: `surface` is the PAGE
+    //    BACKGROUND role, and across all 20 shipped palettes it is a
+    //    near-black on every dark theme — gruvbox #282828, catppuccin
+    //    #1e1e2e, tokyonight #1a1b26, rosepine #191724, hackerman #0b0c16,
+    //    vantablack #000000. The binding was live and the values DID
+    //    differ per theme; they are simply all the same dark grey to the
+    //    eye, and at 0.55 over a dark wallpaper they read as flat black.
+    //    Nothing was broken — the role was wrong for what R9 asked.
+    //
+    //    The shell's actual "colour-shifting edge" language is
+    //    GradientBorder.qml's, and it is everywhere: 13 consumers today,
+    //    including Dashboard, Launcher, NotifCard, NotifCentre,
+    //    NotifPopupStack, PanelDialog, PowerMenu, SectionPopout and Toast.
+    //    Its stops are the three ACCENT roles — primary -> secondary ->
+    //    tertiary — which are exactly the roles that do visibly shift
+    //    (gruvbox amber/orange/green, catppuccin mauve, nord ice blue).
+    //    This strip now speaks that same language.
+    //
+    //    WHY NOT JUST MOUNT `GradientBorder` HERE, since every other
+    //    surface does: GradientBorder builds its ring from
+    //    `_roundedRect(...)` — a rounded RECTANGLE with per-corner radii.
+    //    This strip is NOT a rect; `_outlinePath` below is a flat run with
+    //    a centre bulge and two shoulder arcs. A GradientBorder dropped on
+    //    this window would trace a rounded rect around the strip's
+    //    BOUNDING BOX and ignore the bulge entirely. So the gradient IDIOM
+    //    is transplanted (same LinearGradient, same three accent stops,
+    //    same Motion.borderRotateDuration period) onto this file's own
+    //    real outline, rather than the component.
+    //
+    //    ONE DELIBERATE DIVERGENCE FROM GradientBorder, and the reason:
+    //    GradientBorder sweeps its gradient ENDPOINTS around the item
+    //    centre on a half-diagonal, which works because its consumers are
+    //    roughly panel-shaped. This strip is ~3440x16 — at 90 degrees that
+    //    rotation compresses the whole spectrum into 16px of visible band,
+    //    so the strip would cycle between "full spectrum across the
+    //    screen" and "one flat colour", i.e. it would pulse. Instead the
+    //    axis is LOCKED to the strip's long axis and the gradient SCROLLS
+    //    along it, which reads as a steady flow. The scroll is seamless
+    //    because the stop list closes back on `primary` at 1.0 and the
+    //    gradient uses RepeatSpread (verified present in this Qt build:
+    //    QtQuick/Shapes/plugins.qmltypes lists
+    //    ["PadSpread","ReflectSpread","RepeatSpread"]), so translating by
+    //    exactly one period per cycle has no seam.
+    //
+    //    Stops are OPAQUE, unlike the old 0.55 fill — the operator's own
+    //    word for the reference was "solid bar edges". Opaque is trivially
+    //    above GT-9's 0.5 ignore_alpha floor, so windowrules.lua's family
+    //    blur rule is unaffected.
+    //
+    //    TO TUNE: `Colours.primary/secondary/tertiary` are the three stops
+    //    and the period is one screen width. To go quieter, swap the stops
+    //    for primaryContainer/secondaryContainer/tertiaryContainer — same
+    //    structure, muted hues.
+    property real _gradientPhase: 0
+
+    // One full spectrum spans one screen width; the phase slides it by
+    // exactly one period per cycle (seamless under RepeatSpread).
+    readonly property real _gradientPeriod: Math.max(1, edgeBarWindow._ww)
+
+    NumberAnimation on _gradientPhase {
+        running: Motion.motionEnabled
+        from: 0
+        to: 1
+        duration: Motion.borderRotateDuration
+        loops: Animation.Infinite
+        easing.type: Easing.Linear
+    }
 
     readonly property real _t: Design.edgeBarThickness
     readonly property real _b: Design.edgeBarBulgeExtra
@@ -216,9 +275,42 @@ PanelWindow {
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
-            fillColor: edgeBarWindow.fillColour
+            // Fill only — a stroke would trace the outline as a second
+            // hairline over the gradient, the same reason GradientBorder's
+            // own ShapePath sets strokeWidth -1.
             strokeWidth: -1
             strokeColor: "transparent"
+
+            fillGradient: LinearGradient {
+                // Locked to the strip's long axis and scrolled by phase —
+                // see the R9 note above for why this diverges from
+                // GradientBorder's rotating endpoints.
+                x1: edgeBarWindow._gradientPhase * edgeBarWindow._gradientPeriod
+                y1: 0
+                x2: edgeBarWindow._gradientPhase * edgeBarWindow._gradientPeriod + edgeBarWindow._gradientPeriod
+                y2: 0
+                spread: ShapeGradient.RepeatSpread
+
+                // Closes back on `primary` at 1.0 so one period tiles into
+                // the next with no visible seam.
+                GradientStop {
+                    position: 0.0
+                    color: Colours.primary
+                }
+                GradientStop {
+                    position: 0.33
+                    color: Colours.secondary
+                }
+                GradientStop {
+                    position: 0.66
+                    color: Colours.tertiary
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Colours.primary
+                }
+            }
+
             PathSvg {
                 path: edgeBarWindow._outlinePath
             }
