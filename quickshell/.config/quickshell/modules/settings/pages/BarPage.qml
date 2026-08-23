@@ -249,6 +249,24 @@ PageBase {
             checked: Prefs.getValue("bar.capsules.systemTray")
             onToggled: (value) => Prefs.setValue("bar.capsules.systemTray", value)
         }
+        // Icon tint (quick task 260823-65s, operator round-3 feedback) —
+        // placed immediately after "System tray" so settings order keeps
+        // tracking bar order. Pure Prefs read/write, same shape as every
+        // other SelectRow in this file (AudioPage.qml's device pickers
+        // are the fuller reference) — no `busy` state is needed since
+        // there is no external process/device confirmation to wait on,
+        // unlike the "Bar orientation" row above.
+        SelectRow {
+            label: "Tray icon tint"
+            subtext: "How app tray icons are coloured to match the theme"
+            model: [
+                { value: "monochrome", display: "Monochrome" },
+                { value: "desaturate", display: "Desaturated" },
+                { value: "off", display: "Off" }
+            ]
+            currentValue: Prefs.getValue("bar.tray.iconTint")
+            onSelected: (value) => Prefs.setValue("bar.tray.iconTint", value)
+        }
         // ── Per-entry toggles for "Clock & actions" (operator fix wave
         //    finding 3) — same nesting/consumption pattern as System's
         //    five above. `power` shipped deliberately: Super+Shift+Q

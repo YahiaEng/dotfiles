@@ -50,6 +50,14 @@ Singleton {
         { pageIdx: 2, section: "Capsules", label: "Workspaces", keywords: "bar capsule workspaces indicator" },
         { pageIdx: 2, section: "Capsules", label: "Idle inhibitor", keywords: "bar capsule idle inhibitor bulb" },
         { pageIdx: 2, section: "Capsules", label: "Media & connectivity", keywords: "bar capsule media audio brightness network bluetooth battery" },
+        // System tray + Icon tint (quick task 260823-65s) — the System
+        // tray row itself was added to BarPage.qml in this same task's
+        // Task 1 but missed its RowIndex entry then (settings-index-check
+        // is not wired into quickshell-doctor, so nothing caught it until
+        // this later pass ran it directly — recorded honestly in the
+        // SUMMARY rather than left silently fixed).
+        { pageIdx: 2, section: "Capsules", label: "System tray", keywords: "bar capsule tray systemtray statusnotifieritem sni steam discord" },
+        { pageIdx: 2, section: "Capsules", label: "Tray icon tint", keywords: "bar tray icon tint colour color monochrome desaturate theme" },
         { pageIdx: 2, section: "Capsules", label: "Clock", keywords: "bar entry clock popout" },
         { pageIdx: 2, section: "Capsules", label: "Gaming mode", keywords: "bar entry gaming mode toggle" },
         { pageIdx: 2, section: "Capsules", label: "Notifications", keywords: "bar entry notifications bell centre" },

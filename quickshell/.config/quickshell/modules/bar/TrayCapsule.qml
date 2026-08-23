@@ -28,6 +28,7 @@
 // CORRECTION 3 — `onlyMenu` items have no activate action; left click must
 // fall through to display() for them, or the click does nothing visible.
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
@@ -102,6 +103,20 @@ BarCapsule {
     readonly property int inlineLimit: 3
     readonly property var inlineItems: root.trayItems.slice(0, root.inlineLimit)
 
+    // ── Icon tint (quick task 260823-65s, operator round-3 feedback:
+    //    "we already colour/theme all the other icons/pills/glyphs, this
+    //    should not be an exception") — a LIVE Prefs read, re-evaluated
+    //    on every getValue() call the same way every other Prefs-backed
+    //    binding in this shell already is (Prefs._data is reassigned
+    //    wholesale on write, which is what makes a `property var`
+    //    binding re-fire). The colour source below (root.contentColour)
+    //    is equally live — it traces to BarRoles.capsuleFg ->
+    //    Colours.onSurfaceVariant, the same singleton chain every other
+    //    themed bar glyph already reads, so this recolours on a theme
+    //    switch exactly like its neighbours.
+    readonly property string trayIconTint: Prefs.getValue("bar.tray.iconTint")
+    readonly property bool _tintActive: root.trayIconTint === "monochrome" || root.trayIconTint === "desaturate"
+
     Repeater {
         model: root.inlineItems
         delegate: Item {
@@ -136,13 +151,29 @@ BarCapsule {
             // Resolved image:// URI straight from Quickshell — see
             // CORRECTION 1 above. Empty only when the item genuinely
             // supplies no icon.
+            //
+            // Icon tint (260823-65s round 3) — painted TWO different ways
+            // depending on root.trayIconTint:
+            //   "off"     -> trayIcon renders itself directly, exactly as
+            //                before this task existed. No MultiEffect is
+            //                even instantiated (the Loader below stays
+            //                inactive) — this mode costs nothing and
+            //                cannot alter a single pixel, per the
+            //                operator's own requirement.
+            //   monochrome/desaturate -> trayIcon becomes a texture SOURCE
+            //                only (visible: false, layer.enabled: true —
+            //                NotifCentre.qml's own empty-illustration
+            //                precedent for feeding an invisible item into
+            //                MultiEffect) and the Loader below paints the
+            //                tinted result instead.
             IconImage {
                 id: trayIcon
                 anchors.centerIn: parent
                 implicitSize: Design.barGlyphSize
                 asynchronous: true
                 source: trayCell.modelData ? trayCell.modelData.icon : ""
-                visible: trayIcon.status === Image.Ready
+                visible: trayIcon.status === Image.Ready && !root._tintActive
+                layer.enabled: root._tintActive
                 opacity: trayIcon.status === Image.Ready ? 1 : 0
 
                 Behavior on opacity {
@@ -152,6 +183,38 @@ BarCapsule {
                         easing.type: Easing.BezierSpline
                         easing.bezierCurve: Motion.standardEasing
                     }
+                }
+            }
+
+            Loader {
+                anchors.fill: trayIcon
+                active: root._tintActive
+                sourceComponent: MultiEffect {
+                    // anchors.fill: parent, NOT trayIcon — MEASURED live
+                    // (quickshell.log: "Cannot anchor to an item that
+                    // isn't a parent or sibling"): a Loader's
+                    // sourceComponent item is a CHILD of the Loader, so
+                    // trayIcon (the Loader's own SIBLING, both children
+                    // of trayCell) is two levels away, not one. `parent`
+                    // here is the Loader itself, which already carries
+                    // `anchors.fill: trayIcon` above — so this still ends
+                    // up trayIcon-sized, just via the correct hop.
+                    anchors.fill: parent
+                    source: trayIcon
+                    visible: trayIcon.status === Image.Ready
+                    opacity: trayIcon.opacity
+                    // "monochrome" flattens fully to one solid content
+                    // colour (colorization 1.0 overrides every source
+                    // pixel regardless of its own saturation, so
+                    // `saturation` is moot at this amount). "desaturate"
+                    // strips hue first (saturation -1.0) then tints
+                    // PARTIALLY (Design.trayIconDesaturateColorization —
+                    // see that token's own comment for the exact value
+                    // and why), which is what keeps the artwork's own
+                    // light/dark detail legible instead of flattening it.
+                    saturation: -1.0
+                    colorization: root.trayIconTint === "monochrome" ? 1.0 : Design.trayIconDesaturateColorization
+                    colorizationColor: root.contentColour
                 }
             }
 

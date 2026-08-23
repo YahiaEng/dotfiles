@@ -16,6 +16,7 @@
 // elides; no tray string is ever used to construct a command, path or
 // dispatch string.
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Widgets
 import "../"
@@ -28,6 +29,15 @@ SectionPopout {
     // is an ordinary value here, never an error — the same contract
     // EthernetPopout's own device-handle property carries.
     property var overflowItems: []
+
+    // Icon tint (260823-65s round 3) — the SAME Prefs key TrayCapsule.qml
+    // reads, so the two surfaces never disagree on mode. Colour source is
+    // this popout's OWN content role (Colours.onSurface, the same colour
+    // rowLabel below already uses), never BarRoles — that role belongs to
+    // the bar window, not this one (EthernetPopout's own colour layer,
+    // which this file already follows for everything else).
+    readonly property string _trayIconTint: Prefs.getValue("bar.tray.iconTint")
+    readonly property bool _tintActive: root._trayIconTint === "monochrome" || root._trayIconTint === "desaturate"
 
     sectionId: "tray"
     popoutTitle: "System tray"
@@ -90,12 +100,51 @@ SectionPopout {
                     // CORRECTION 1 (CONTEXT.md) — `.icon` is a resolved
                     // image:// URI Quickshell itself supplies; bound
                     // straight to source, exactly as the inline cell does.
+                    // Tint mechanism identical to TrayCapsule.qml's own
+                    // (see that file's own comment for the full
+                    // reasoning): "off" paints this IconImage directly and
+                    // instantiates no effect; monochrome/desaturate turn
+                    // it into an invisible, layered texture source for the
+                    // Loader-gated MultiEffect below instead.
                     IconImage {
+                        id: overflowIcon
                         width: Design.iconSizeMd
                         height: Design.iconSizeMd
                         implicitSize: Design.iconSizeMd
                         asynchronous: true
                         source: overflowRow.modelData ? overflowRow.modelData.icon : ""
+                        visible: !root._tintActive
+                        layer.enabled: root._tintActive
+                    }
+
+                    // Row is a positioner — it excludes an invisible
+                    // child AND its spacing (BarCapsule.qml's own Grid
+                    // carries the identical note). visible AND the
+                    // explicit width/height are both gated on
+                    // _tintActive so this Loader reserves ZERO Row space
+                    // in "off" mode; a fixed size here regardless of
+                    // `active` would have doubled the icon column's width
+                    // whenever the effect is not instantiated.
+                    Loader {
+                        visible: root._tintActive
+                        width: root._tintActive ? Design.iconSizeMd : 0
+                        height: root._tintActive ? Design.iconSizeMd : 0
+                        active: root._tintActive
+                        sourceComponent: MultiEffect {
+                            // anchors.fill: parent, NOT overflowIcon —
+                            // same fix as TrayCapsule.qml's identical
+                            // Loader/MultiEffect pair, same measured root
+                            // cause (a Loader's sourceComponent item is a
+                            // CHILD of the Loader, so a sibling of the
+                            // Loader is two levels away, not one).
+                            // `parent` here is the Loader, already sized
+                            // to Design.iconSizeMd to match overflowIcon.
+                            anchors.fill: parent
+                            source: overflowIcon
+                            saturation: -1.0
+                            colorization: root._trayIconTint === "monochrome" ? 1.0 : Design.trayIconDesaturateColorization
+                            colorizationColor: Colours.onSurface
+                        }
                     }
 
                     Text {

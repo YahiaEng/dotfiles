@@ -81,6 +81,15 @@ Singleton {
         // apps) and have no per-entry bar.entries.* toggle of their own;
         // this parent row is the only way to hide the capsule.
         "bar.capsules.systemTray",
+        // bar.tray.iconTint (quick task 260823-65s, operator round-3
+        // feedback) — how the tray's app-supplied icon bitmaps are tinted
+        // toward the active palette. Three-way, never a bool: "monochrome"
+        // (full flatten to one content colour), "desaturate" (default —
+        // strip hue, tint toward the palette, keep luminance detail so the
+        // artwork stays readable), "off" (raw icon, untouched). Consumed
+        // by TrayCapsule.qml AND TrayPopout.qml identically so the two
+        // surfaces never disagree.
+        "bar.tray.iconTint",
         // "bar.capsules.clockActions" and "bar.capsules.system" RETIRED 2026-08-21
         // (operator): their
         // children all have per-entry toggles, so both parent rows were removed.
@@ -146,6 +155,7 @@ Singleton {
         "bar.capsules.idleInhibitor": true,
         "bar.capsules.mediaConnectivity": true,
         "bar.capsules.systemTray": true,
+        "bar.tray.iconTint": "desaturate",
         "notifs.popupTimeoutMs": 5000,
         "notifs.lowPriorityTimeoutMs": 3000,
         "notifs.position": "top-right",
