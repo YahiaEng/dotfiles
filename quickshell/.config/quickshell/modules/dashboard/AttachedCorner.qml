@@ -132,25 +132,65 @@ Item {
         return p + " Z";
     }
 
-    // The rim ribbon: outer boundary at radius R (arc) + the screen-edge
-    // run only (never the panel-touching run — see file header), inner
-    // boundary the same shape inset by borderWidth, joined by two caps.
+    // The rim ribbon: the ARC ALONE, as a band between radius R and
+    // R + borderWidth, concentric on the same centre (farX, farY).
+    //
+    // ── TWO CORRECTIONS, OPERATOR FEEDBACK ROUND 3 (2026-08-23), both
+    //    found by pixel-measuring a region capture rather than by reading
+    //    this file ─────────────────────────────────────────────────────
+    //
+    // (1) THE BAND WAS ON THE WRONG SIDE OF ITS OWN ARC. It used to run
+    //     from R - borderWidth to R, i.e. offset TOWARD the centre. That
+    //     is right for a CONVEX corner, where the material lies inside the
+    //     arc — and wrong here, because this corner is CONCAVE: the solid
+    //     fill is the region at radius >= R (see `_fillPath`, whose arc
+    //     bulges toward the centre and leaves (farX,farY) as open
+    //     background). Offsetting inward therefore painted the rim into
+    //     the EMPTY quarter, floating clear of the fill it was meant to
+    //     edge. Measured on the launcher's bottom-left flare, arc centre
+    //     (911,1408) R=24: at y=1422 the band sat at x 926-929, while the
+    //     fill boundary was at x=930.5 — the rim was outside its own
+    //     material, and read as a second line beside the panel's border.
+    //     The junction was measurably discontinuous too: the panel's own
+    //     3px border ran at x 935-937 down to y=1407, then the band
+    //     resumed at x 932-934 — a 3px lateral jog, exactly borderWidth.
+    //
+    //     At R -> R + borderWidth the same junction lands at x 935-938,
+    //     which is the panel border's own 935-937 span. The two rims are
+    //     then colinear at the seam by construction, not by tuning.
+    //
+    // (2) THE SCREEN-EDGE RUN IS NO LONGER PART OF THE RIM. It used to be
+    //     included on the reasoning that it is an outer boundary. Once the
+    //     panel sits flush against the strip that is false: the run along
+    //     the edge is where flare material MEETS the strip, an interior
+    //     seam of the merged silhouette, and drawing it left a ~24px
+    //     horizontal rim stub beside the panel's bottom on each side
+    //     (measured at y 1429-1431). The rim is now the arc alone — the
+    //     only genuinely outer boundary this piece owns. The panel-
+    //     touching run stays excluded for the original reason.
+    //
+    // The band extends borderWidth PAST this Item's own R x R box at both
+    // arc endpoints, which is intended: at the panel end it overlaps the
+    // panel's own border span so the seam is continuous, and at the edge
+    // end it runs into the strip, where the host surface's own bounds clip
+    // it. QQuickShape does not clip to its item rect, so this renders.
     readonly property string _rimPath: {
         var g = root._cornerGeometry();
         var r = root.flareRadius;
         var bw = root.borderWidth;
-        var t = root.edge === "top" ? 1 : -1;
-        var s = root.side === "left" ? 1 : -1;
-        var innerLineY = g.edgeY + t * bw;
-        var innerTouchX = g.touchX - s * bw;
-        var ri = Math.max(0, r - bw);
-        var innerSweep = 1 - g.sweep;
+        var ro = r + bw;
+        // Unit directions from the arc centre (farX,farY) out to each of
+        // the two arc endpoints. Each is exactly +/-1 because both
+        // endpoints sit exactly r away along one of the box's own axes.
+        var dx = (g.touchX - g.farX) / r;
+        var dy = (g.edgeY - g.farY) / r;
+        // The same two endpoints pushed out to the outer radius.
+        var oTouchX = g.farX + dx * ro; // beside the panel-touching run
+        var oEdgeY = g.farY + dy * ro;  // beside the screen-edge run
         var p = "M " + g.touchX + " " + g.farY;
         p += " A " + r + " " + r + " 0 0 " + g.sweep + " " + g.farX + " " + g.edgeY;
-        p += " L " + g.touchX + " " + g.edgeY;
-        p += " L " + g.touchX + " " + innerLineY;
-        p += " L " + g.farX + " " + innerLineY;
-        p += " A " + ri + " " + ri + " 0 0 " + innerSweep + " " + innerTouchX + " " + g.farY;
+        p += " L " + g.farX + " " + oEdgeY;
+        p += " A " + ro + " " + ro + " 0 0 " + (1 - g.sweep) + " " + oTouchX + " " + g.farY;
         return p + " Z";
     }
 
