@@ -781,6 +781,10 @@ ShellRoot {
         active: false
 
         Launcher {
+            // Threaded from the single shell-root resolution point (Task
+            // 4/6, D-5) — Launcher.qml has no `root` id of its own to
+            // read (a separate document's ids are not visible there).
+            edgeBarEnabled: root.edgeBarEnabled
             onDismissRequested: launcherLoader.active = false
         }
     }

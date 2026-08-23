@@ -57,6 +57,15 @@ PanelWindow {
     // than merely hiding it — same contract as Dashboard.qml/Overview.qml.
     signal dismissRequested()
 
+    // Threaded in from shell.qml's single `root.edgeBarEnabled` resolution
+    // point (quick task 260823-9ak, Task 6, D-5) — this file has no `root`
+    // id of its own to read (a separate document's ids are not visible
+    // here), so the value is passed in as a property rather than
+    // re-resolved via a second `Prefs.getValue` call. Per D-5: DIRECTION
+    // branches on this flag (bottom-anchored ON, top-anchored — today's
+    // exact behaviour — OFF); the corner SHAPE below does not branch.
+    property bool edgeBarEnabled: false
+
     // ── Animated dismiss (quick task 260822-sht, Task 1 REWORK) ─────────
     // Mirrors Dashboard.qml's own `_dismissing`/`_beginDismiss` shape: the
     // real `dismissRequested()` (which shell.qml's loader answers by
@@ -86,9 +95,14 @@ PanelWindow {
     // Same value and same rationale as Dashboard.qml's own
     // `drawerTopMargin`: lands the panel's top edge where a real tiled
     // Hyprland window starts (`hyprland.lua`'s `general.gaps_out: 10`),
-    // not flush against the bar.
+    // not flush against the bar. Per P-2, this margin applies only when
+    // the edge bar is OFF (R3: exactly today's behaviour); when the edge
+    // bar is ON the launcher is bottom-anchored instead (below) and sits
+    // flush (margin 0) against the true screen edges so the flares
+    // actually meet the strip.
     readonly property int drawerTopMargin: 10
-    margins.top: launcherWindow.drawerTopMargin
+    margins.top: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.drawerTopMargin
+    margins.bottom: 0
 
     // Reserve nothing — the launcher never displaces the bar's own
     // reservation, matching Dashboard.qml's own exclusiveZone/exclusionMode
@@ -453,12 +467,17 @@ PanelWindow {
         height: contentColumn.implicitHeight + contentColumn.anchors.margins * 2
         anchors.horizontalCenter: parent.horizontalCenter
 
-        // ── Drop-down entrance, in QML ───────────────────────────────
+        // ── Drop-down/rise entrance, in QML (quick task 260823-9ak,
+        //    Task 6, D-5) ────────────────────────────────────────────
         // The LazyLoader creates this surface fresh on every summon
         // (D-14), so `Component.onCompleted` IS the open event; there is
-        // no reopen case to reset.
+        // no reopen case to reset. Direction branches on `edgeBarEnabled`
+        // (D-5): OFF is `opened ? 0 : -height` unchanged (today's exact
+        // drop from the top); ON rises from the bottom instead, flush
+        // against `launcherWindow.height` (the window's own local
+        // content height, already net of the flush margins above).
         property bool opened: false
-        y: opened ? 0 : -height
+        y: launcherWindow.edgeBarEnabled ? (opened ? launcherWindow.height - height : launcherWindow.height) : (opened ? 0 : -height)
         opacity: opened ? 1 : 0
         Component.onCompleted: panel.opened = true
 
@@ -485,10 +504,14 @@ PanelWindow {
         Rectangle {
             id: background
             anchors.fill: parent
-            topLeftRadius: 0
-            topRightRadius: 0
-            bottomLeftRadius: launcherWindow.cornerRadius
-            bottomRightRadius: launcherWindow.cornerRadius
+            // Per D-5 (quick task 260823-9ak, Task 6): the square/round
+            // pair flips with direction — round the end the panel RISES
+            // FROM (bottom, edge-bar mode) or drops FROM (top, disabled)
+            // stays square; the far end is the opposite.
+            topLeftRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
+            topRightRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
+            bottomLeftRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
+            bottomRightRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
             color: Qt.rgba(launcherWindow.surfaceBase.r, launcherWindow.surfaceBase.g, launcherWindow.surfaceBase.b, launcherWindow.drawerSurfaceOpacity)
         }
 
@@ -501,29 +524,33 @@ PanelWindow {
             id: launcherGradientBorder
             anchors.fill: parent
             borderWidth: Design.borderWidth
-            topLeftRadius: 0
-            topRightRadius: 0
-            bottomLeftRadius: launcherWindow.cornerRadius
-            bottomRightRadius: launcherWindow.cornerRadius
+            topLeftRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
+            topRightRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
+            bottomLeftRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
+            bottomRightRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
         }
 
-        // ── Attached corners (quick task 260823-9ak, Task 1, R7/P-1) ────
-        // Two concave flares joining the panel's own top-left/top-right
-        // corners to the screen edge it hangs from — siblings of
-        // `background`, painting OUTSIDE the panel's own bounds (`panel`
-        // carries no `clip` here, unlike Dashboard.qml's own panel — see
-        // that file's own Task 2 note). `edge` stays "top" here; Task 6
-        // branches it to "bottom" when edge-bar mode flips the launcher's
-        // own drop direction. `angle` reads `startAngle + angle` off the
-        // SAME GradientBorder instance above, so the rim's gradient sweep
-        // never drifts out of phase with the panel's own rim.
+        // ── Attached corners (quick task 260823-9ak, Task 1+6, R7/P-1/D-5) ─
+        // Two concave flares joining the panel's own top corners (edge-bar
+        // OFF) or bottom corners (edge-bar ON) to the screen edge the
+        // panel hangs from — siblings of `background`, painting OUTSIDE
+        // the panel's own bounds (`panel` carries no `clip` here, unlike
+        // Dashboard.qml's own panel — see that file's own Task 2 note).
+        // Per D-5, only the EDGE branches (`edge` ternary + the `y`
+        // positioning below, which replaces a fixed `anchors.top: panel.top`
+        // so either panel edge can be targeted) — the corner SHAPE itself
+        // (AttachedCorner's own geometry) is never branched; it is present
+        // and identically shaped in both modes. `angle` reads
+        // `startAngle + angle` off the SAME GradientBorder instance above,
+        // so the rim's gradient sweep never drifts out of phase with the
+        // panel's own rim.
         AttachedCorner {
             id: launcherFlareLeft
-            edge: "top"
+            edge: launcherWindow.edgeBarEnabled ? "bottom" : "top"
             side: "left"
             flareRadius: Design.attachedCornerRadius
             anchors.right: panel.left
-            anchors.top: panel.top
+            y: launcherWindow.edgeBarEnabled ? panel.height - flareRadius : 0
             fillColour: Qt.rgba(launcherWindow.surfaceBase.r, launcherWindow.surfaceBase.g, launcherWindow.surfaceBase.b, launcherWindow.drawerSurfaceOpacity)
             borderWidth: Design.borderWidth
             angle: launcherGradientBorder.startAngle + launcherGradientBorder.angle
@@ -532,11 +559,11 @@ PanelWindow {
         }
         AttachedCorner {
             id: launcherFlareRight
-            edge: "top"
+            edge: launcherWindow.edgeBarEnabled ? "bottom" : "top"
             side: "right"
             flareRadius: Design.attachedCornerRadius
             anchors.left: panel.right
-            anchors.top: panel.top
+            y: launcherWindow.edgeBarEnabled ? panel.height - flareRadius : 0
             fillColour: Qt.rgba(launcherWindow.surfaceBase.r, launcherWindow.surfaceBase.g, launcherWindow.surfaceBase.b, launcherWindow.drawerSurfaceOpacity)
             borderWidth: Design.borderWidth
             angle: launcherGradientBorder.startAngle + launcherGradientBorder.angle
