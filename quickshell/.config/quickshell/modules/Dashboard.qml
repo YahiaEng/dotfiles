@@ -698,14 +698,35 @@ PanelWindow {
     //
     // Radii are handed across from the same properties `background` uses, so
     // the rim and the surface can never disagree about the drawer's shape.
-    GradientBorder {
-        id: dashboardGradientBorder
+    // ── Attached-edge border clip (OPERATOR FEEDBACK ROUND 3, 2026-08-23)
+    // See Launcher.qml's twin block for the full derivation and the region
+    // capture that diagnosed it. In short: once a flare is attached, the
+    // attached edge and the adjacent `attachedCornerRadius` of both sides
+    // stop being OUTER edges of the merged panel+flare silhouette, so the
+    // ring must not draw them — otherwise the panel's own side border runs
+    // straight past the flare's arc as a second parallel rim line, which
+    // is what "the concave flares exist alongside the old geometry"
+    // described. This drawer's flares are `edge: "top"` in BOTH modes
+    // (only the launcher's direction branches, per D-5), so the clip is
+    // unconditional here.
+    Item {
+        id: dashboardBorderClip
         anchors.fill: parent
-        borderWidth: dashboardWindow.borderWidth
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: dashboardWindow.cornerRadius
-        bottomRightRadius: dashboardWindow.cornerRadius
+        anchors.topMargin: Design.attachedCornerRadius
+        clip: true
+
+        GradientBorder {
+            id: dashboardGradientBorder
+            x: 0
+            y: -Design.attachedCornerRadius
+            width: panel.width
+            height: panel.height
+            borderWidth: dashboardWindow.borderWidth
+            topLeftRadius: 0
+            topRightRadius: 0
+            bottomLeftRadius: dashboardWindow.cornerRadius
+            bottomRightRadius: dashboardWindow.cornerRadius
+        }
     }
 
     // ── Attached corners (quick task 260823-9ak, Task 2, R7/P-1) ────────

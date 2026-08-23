@@ -520,14 +520,55 @@ PanelWindow {
         // same desktop rather than as a foreign panel. Radii are handed
         // across from the same properties `background` uses, mirroring
         // Dashboard.qml:672-680.
-        GradientBorder {
-            id: launcherGradientBorder
+        // ── Attached-edge border clip (OPERATOR FEEDBACK ROUND 3,
+        //    2026-08-23) ───────────────────────────────────────────────
+        // The operator reported "the concave flares exist alongside the
+        // old geometry", and a region capture of this panel's own bottom-
+        // left corner showed exactly that: TWO parallel rim lines, the
+        // flare's arc curving out to the strip and the panel's own side
+        // border still running straight down past it to a hard 90 degree
+        // junction, with the flare's solid fill sandwiched between them.
+        //
+        // The flare geometry was never wrong. AttachedCorner deliberately
+        // omits a rim on its panel-touching run (see its header) so it
+        // does not double-stroke the shared seam — but once a flare is
+        // attached, that seam stops being an OUTER edge at all. The last
+        // `flareRadius` of each side, and the whole attached edge, become
+        // INTERIOR to the merged panel+flare silhouette, and an interior
+        // line is precisely what a window border must not draw.
+        //
+        // So the ring is clipped rather than redrawn: GradientBorder keeps
+        // the panel's full geometry (its corner radii must still land in
+        // the panel's own corners), and this wrapper hides the attached
+        // edge plus the adjacent `attachedCornerRadius` of both sides.
+        // What survives ends exactly where the flare's arc leaves the
+        // panel edge — AttachedCorner's arc endpoint on the touching run
+        // is `flareRadius` from the attached edge, the same inset clipped
+        // here — so the two read as one continuous line.
+        //
+        // Clipping rather than teaching GradientBorder an "open edge"
+        // mode: that component has 13 consumers, and an open-ring path
+        // built from two nested closed subpaths under OddEvenFill is a
+        // real rewrite of its `_ringPath`. This costs one Item.
+        Item {
+            id: launcherBorderClip
             anchors.fill: parent
-            borderWidth: Design.borderWidth
-            topLeftRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
-            topRightRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
-            bottomLeftRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
-            bottomRightRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
+            anchors.topMargin: launcherWindow.edgeBarEnabled ? 0 : Design.attachedCornerRadius
+            anchors.bottomMargin: launcherWindow.edgeBarEnabled ? Design.attachedCornerRadius : 0
+            clip: true
+
+            GradientBorder {
+                id: launcherGradientBorder
+                x: 0
+                y: launcherWindow.edgeBarEnabled ? 0 : -Design.attachedCornerRadius
+                width: panel.width
+                height: panel.height
+                borderWidth: Design.borderWidth
+                topLeftRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
+                topRightRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
+                bottomLeftRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
+                bottomRightRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
+            }
         }
 
         // ── Attached corners (quick task 260823-9ak, Task 1+6, R7/P-1/D-5) ─
