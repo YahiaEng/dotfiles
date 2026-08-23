@@ -498,12 +498,50 @@ PanelWindow {
         // across from the same properties `background` uses, mirroring
         // Dashboard.qml:672-680.
         GradientBorder {
+            id: launcherGradientBorder
             anchors.fill: parent
             borderWidth: Design.borderWidth
             topLeftRadius: 0
             topRightRadius: 0
             bottomLeftRadius: launcherWindow.cornerRadius
             bottomRightRadius: launcherWindow.cornerRadius
+        }
+
+        // ── Attached corners (quick task 260823-9ak, Task 1, R7/P-1) ────
+        // Two concave flares joining the panel's own top-left/top-right
+        // corners to the screen edge it hangs from — siblings of
+        // `background`, painting OUTSIDE the panel's own bounds (`panel`
+        // carries no `clip` here, unlike Dashboard.qml's own panel — see
+        // that file's own Task 2 note). `edge` stays "top" here; Task 6
+        // branches it to "bottom" when edge-bar mode flips the launcher's
+        // own drop direction. `angle` reads `startAngle + angle` off the
+        // SAME GradientBorder instance above, so the rim's gradient sweep
+        // never drifts out of phase with the panel's own rim.
+        AttachedCorner {
+            id: launcherFlareLeft
+            edge: "top"
+            side: "left"
+            flareRadius: Design.attachedCornerRadius
+            anchors.right: panel.left
+            anchors.top: panel.top
+            fillColour: Qt.rgba(launcherWindow.surfaceBase.r, launcherWindow.surfaceBase.g, launcherWindow.surfaceBase.b, launcherWindow.drawerSurfaceOpacity)
+            borderWidth: Design.borderWidth
+            angle: launcherGradientBorder.startAngle + launcherGradientBorder.angle
+            gradientCentre: Qt.point(panel.width / 2 - launcherFlareLeft.x, panel.height / 2 - launcherFlareLeft.y)
+            gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
+        }
+        AttachedCorner {
+            id: launcherFlareRight
+            edge: "top"
+            side: "right"
+            flareRadius: Design.attachedCornerRadius
+            anchors.left: panel.right
+            anchors.top: panel.top
+            fillColour: Qt.rgba(launcherWindow.surfaceBase.r, launcherWindow.surfaceBase.g, launcherWindow.surfaceBase.b, launcherWindow.drawerSurfaceOpacity)
+            borderWidth: Design.borderWidth
+            angle: launcherGradientBorder.startAngle + launcherGradientBorder.angle
+            gradientCentre: Qt.point(panel.width / 2 - launcherFlareRight.x, panel.height / 2 - launcherFlareRight.y)
+            gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
         }
 
         Column {

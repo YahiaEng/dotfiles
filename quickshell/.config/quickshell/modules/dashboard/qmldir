@@ -42,6 +42,13 @@
 # surface it outlines. Registered in the same commit that creates it, per
 # this manifest's own rule above.
 #
+# Quick task 260823-9ak Task 1 adds a type here, not a singleton:
+# `AttachedCorner`, the concave flare joining a panel's vertical side to the
+# screen edge it hangs from (R7). One instance per side, sharing this
+# directory with GradientBorder because both Dashboard.qml (`import
+# "dashboard"`) and Launcher.qml (`import "../dashboard"`) already resolve
+# it, so one file serves both consumers with no new import path.
+#
 # Phase 15 Plan 02 (the phase's tracer, PANEL-06) adds three more types,
 # none a singleton, in the SAME commit that creates them, per this
 # manifest's own standing rule: `PanelDialog`, the shared standalone-panel
@@ -93,6 +100,7 @@ Dial 1.0 Dial.qml
 Cascade 1.0 Cascade.qml
 ConditionGlyph 1.0 ConditionGlyph.qml
 GradientBorder 1.0 GradientBorder.qml
+AttachedCorner 1.0 AttachedCorner.qml
 PanelDialog 1.0 PanelDialog.qml
 AudioPanel 1.0 AudioPanel.qml
 AudioBackend 1.0 AudioBackend.qml

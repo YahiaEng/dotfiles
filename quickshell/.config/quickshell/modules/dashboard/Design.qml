@@ -690,4 +690,12 @@ Singleton {
     //    condition never releases on pause, since pause gaps run to tens
     //    of seconds and no linger value would cover them.
     readonly property int cavaLingerMs: 5000
+
+    // ── attachedCornerRadius (quick task 260823-9ak, Task 1, R7) —
+    //    AttachedCorner.qml's own square-side length. 24 sits on the
+    //    repo's 4px grid (24/4 = 6), so it needs none of the grid
+    //    exemptions barEdgeMargin/barSideMargin above carry for their own
+    //    one-time retired-bar-parity reasons. A taste value, deliberately
+    //    re-tunable — see AttachedCorner.qml's own reversibility note.
+    readonly property int attachedCornerRadius: 24
 }
