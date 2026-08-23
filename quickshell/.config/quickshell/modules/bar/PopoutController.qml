@@ -41,7 +41,15 @@ Singleton {
     // admit the seventh. GATE-03's bar-surface registry needed no new row
     // either — its SectionPopout entry stores the PATTERN prefix
     // `quickshell-bar-`, which `quickshell-bar-ethernet` already matches.
-    readonly property var sections: ["audio", "wifi", "bluetooth", "clock", "resources", "media", "ethernet"]
+    //
+    // EXTENDED from seven to eight, 2026-08-23, by quick task 260823-65s:
+    // "tray" joins them so TrayCapsule.qml's overflow chevron can open
+    // TrayPopout.qml for the 4th-and-later tray item (D-1). Same reasoning
+    // as the ethernet extension above — recorded because growing this list
+    // is a visible act, and no GATE-03 row is needed since
+    // `quickshell-bar-tray` already matches the same `quickshell-bar-`
+    // pattern prefix.
+    readonly property var sections: ["audio", "wifi", "bluetooth", "clock", "resources", "media", "ethernet", "tray"]
 
     function isValidSection(id) {
         return root.sections.indexOf(id) !== -1;

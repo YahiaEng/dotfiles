@@ -83,6 +83,10 @@ BluetoothPopout 1.0 BluetoothPopout.qml
 ClockPopout 1.0 ClockPopout.qml
 ResourcesPopout 1.0 ResourcesPopout.qml
 MediaPopout 1.0 MediaPopout.qml
+# TrayPopout (quick task 260823-65s, Task 2) — the tray capsule's overflow
+# body, opened through its own PopoutTrigger's popoutComponent, same
+# ordinary-instance shape as the five siblings immediately above.
+TrayPopout 1.0 TrayPopout.qml
 
 # BarReveal / HotZone (Phase 18 Plan 16, QBAR-08) — the reveal state machine
 # and the invisible input-only hot zone. BarReveal carries the singleton

@@ -2080,6 +2080,7 @@ QSD_BAR_COLOUR_ROLE_EXEMPT=(
     "ClockPopout.qml"       # popout content — out of phase 18.1 scope_fence
     "ResourcesPopout.qml"   # popout content — out of phase 18.1 scope_fence
     "MediaPopout.qml"       # popout content — out of phase 18.1 scope_fence
+    "TrayPopout.qml"        # popout content — same colour layer as its seven siblings (added 2026-08-23)
 )
 
 # Assert half — no bar capsule file (excluding QSD_BAR_COLOUR_ROLE_EXEMPT

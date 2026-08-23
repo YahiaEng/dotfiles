@@ -184,4 +184,62 @@ BarCapsule {
             }
         }
     }
+
+    // ── D-1's overflow half — a counted chevron opening TrayPopout.qml
+    //    through the shared PopoutController/SectionPopout machinery
+    //    (PopoutController.qml's "tray" section). No second popout
+    //    mechanism is introduced. ───────────────────────────────────────
+    readonly property int overflowCount: Math.max(0, root.trayItems.length - root.inlineLimit)
+    readonly property var overflowItems: root.trayItems.slice(root.inlineLimit)
+
+    PopoutTrigger {
+        id: trayOverflowTrigger
+        sectionId: "tray"
+        // Both the trigger AND its child carry `visible: overflowCount > 0`
+        // (MediaConnectivityCapsule.qml's own Rule-1 note): PopoutTrigger
+        // wraps a plain Item, not a positioner, so its own implicit size
+        // does not collapse to zero just because its child is invisible —
+        // without this the content Grid keeps reserving space for an
+        // empty chevron cell at 0-3 items.
+        visible: root.overflowCount > 0
+        popoutComponent: Component {
+            TrayPopout {
+                overflowItems: root.overflowItems
+            }
+        }
+
+        // The chevron cell. No second MouseArea here — PopoutTrigger owns
+        // its own click/hover paths (see that file's own contentHost
+        // z: 1 stacking note); a nested MouseArea would sit above it and
+        // swallow the click.
+        Item {
+            id: trayOverflowCell
+            visible: root.overflowCount > 0
+            width: overflowRow.implicitWidth + Design.spacingXs * 2
+            height: Design.barGlyphSize + Design.spacingXs * 2
+
+            Row {
+                id: overflowRow
+                anchors.centerIn: parent
+                spacing: Design.spacingXs / 2
+
+                Text {
+                    text: "expand_more"
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.barGlyphSize
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
+                    color: root.contentColour
+                }
+
+                Text {
+                    text: String(root.overflowCount)
+                    font.pixelSize: Design.barBodySize
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
+                    color: root.contentColour
+                }
+            }
+        }
+    }
 }
