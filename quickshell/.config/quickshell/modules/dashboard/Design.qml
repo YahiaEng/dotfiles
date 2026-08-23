@@ -704,9 +704,42 @@ Singleton {
     //    See EdgeBar.qml's own reversibility note.
     readonly property int edgeBarThickness: 6 // the strip's flat run depth — the sole exclusiveZone contributor (D-4). Operator round 7: 8 -> 6, "slightly thinner".
     readonly property int edgeBarEndRadius: 3 // = thickness/2, so each end of the strip is a semicircular pill cap (operator round 7, "rounded ends")
-    readonly property int edgeBarBulgeExtra: 10 // the static centre bulge's EXTRA depth beyond the flat run (D-3)
-    readonly property int edgeBarFilletRadius: 8 // the CONCAVE shoulder joining the flat run to the bulge's side — decoupled from bulgeExtra in round 7 so the two tune independently
-    readonly property int edgeBarBulgeCornerRadius: 6 // CONVEX rounding on the bulge's two outer corners (operator round 7). Must stay <= edgeBarBulgeExtra or the corners eat the whole protrusion.
+    // Operator round 9: 10 -> 6, "make the bulge thinner". This is also the
+    // token that sets how far the bulge OVERHANGS into the client area:
+    // exclusiveZone reserves the flat run alone (EdgeBar.qml:135), so the
+    // overhang is exactly this value — 10px before, 6px now. The bulge
+    // still paints over the top border of whatever sits beneath it; that
+    // remains the deliberate trade (reserving the full depth would push
+    // every window down instead), just a smaller one.
+    readonly property int edgeBarBulgeExtra: 6 // the static centre bulge's EXTRA depth beyond the flat run (D-3)
+    // ── THE TWO SHOULDER RADII MUST FIT INSIDE edgeBarBulgeExtra ────────
+    //    Read EdgeBar.qml:288-294 for where this comes from. The bulge's
+    //    SIDE is a single straight segment from `t + fillet` down to
+    //    `(t + extra) - cornerRadius`, so the outline is only well-formed
+    //    while:
+    //
+    //        edgeBarFilletRadius + edgeBarBulgeCornerRadius <= edgeBarBulgeExtra
+    //
+    //    Exceed it and that segment runs BACKWARDS, self-intersecting the
+    //    path; exceed `extra` with the fillet alone and the arc also falls
+    //    outside the surface's own `implicitHeight` (= thickness + extra)
+    //    and is clipped. Neither raises anything — no QML warning, no gate.
+    //
+    //    Round 9 measured this rather than assuming it. Dropping extra
+    //    10 -> 6 while these still read 8 and 6 put the sum at 14 against a
+    //    6px protrusion, and a 16x region capture of the top strip's left
+    //    shoulder showed a dark NOTCH cutting up into the strip — the same
+    //    self-intersection class as round 8's floating bulge. Scaled to
+    //    4 + 2 = 6, the shoulder renders as a clean concave sweep again.
+    //    Ratio 4:3 fillet:corner is round 7's own, preserved.
+    //
+    //    NOTE FOR ANY FUTURE RETUNE: round 7's shipped 8 + 6 = 14 against a
+    //    10px protrusion ALREADY broke the first inequality. It survived
+    //    only because 8 <= 10 kept it inside the surface, so the overlap
+    //    stayed sub-pixel at the seam. Do not read the old values as a
+    //    licence to exceed the sum again — re-derive both from `extra`.
+    readonly property int edgeBarFilletRadius: 4 // the CONCAVE shoulder joining the flat run to the bulge's side — decoupled from bulgeExtra in round 7 so the two tune independently
+    readonly property int edgeBarBulgeCornerRadius: 2 // CONVEX rounding on the bulge's two outer corners (operator round 7). Must stay <= edgeBarBulgeExtra or the corners eat the whole protrusion.
 
     // ── edgeBarSideMargin (operator round 7, "bar width should match
     //    hyprland windows") — MEASURED, not derived. `hyprctl clients`
