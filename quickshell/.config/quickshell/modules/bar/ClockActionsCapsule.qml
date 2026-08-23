@@ -669,15 +669,28 @@ BarCapsule {
     //    Task 2's drawer shape verbatim. Promoting that shape to a
     //    shared type is a named follow-on, not a licence to edit the
     //    frozen manifest here. ──────────────────────────────────────────
-    // "theme" carries `launcherMode` instead of `script` (quick task
-    // 260822-sht, Task 12): theme-switch.sh is retired, and the native
-    // QML launcher's own Style ▸ Theme picker (PickerMode.qml) is the
-    // sole theme-picker surface now, reached the same way Super+C reaches
+    // "theme" and "orientation" carry `launcherMode` instead of `script`
+    // (quick task 260822-sht): both of their pickers now live in the native
+    // QML launcher and are reached the same way Super+C reaches
     // ClipboardMode.qml — `qs ipc call launcher open <mode>`. See
     // SettingsAxisCell below for how the two shapes are dispatched.
+    //
+    // theme (Task 12): theme-switch.sh is retired outright, so the
+    // launcher's Style ▸ Theme picker (PickerMode.qml) is the sole
+    // theme-picker surface.
+    //
+    // orientation (fixed after Stage 3): bar-orientation.sh still EXISTS and
+    // still applies an orientation, but Task 5 removed its interactive
+    // `_pick()` path when PickerMode took over the choosing. This axis kept
+    // invoking it with NO argument, and the script's no-arg branch prints a
+    // usage line and exits 0 — so the cell probed as available, the click
+    // dispatched, nothing happened, and nothing errored. A silent no-op
+    // since Task 5. The three remaining `script` axes are unaffected:
+    // font-switch.sh, icon-theme-switch.sh and wallpaper-switch.sh are all
+    // present and all still own their own interactive path.
     readonly property var settingsAxes: [
         { id: "theme", glyph: "contrast", label: "Theme", launcherMode: "theme" },
-        { id: "orientation", glyph: "screen_rotation", label: "Bar Orientation", script: "bar-orientation.sh" },
+        { id: "orientation", glyph: "screen_rotation", label: "Bar Orientation", launcherMode: "barorientation" },
         { id: "font", glyph: "text_fields", label: "Font", script: "font-switch.sh" },
         { id: "icons", glyph: "palette", label: "Icon Theme", script: "icon-theme-switch.sh" },
         { id: "wallpaper", glyph: "wallpaper", label: "Wallpaper", script: "wallpaper-switch.sh" }
