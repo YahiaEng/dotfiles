@@ -240,6 +240,15 @@ PageBase {
             checked: Prefs.getValue("bar.capsules.mediaConnectivity")
             onToggled: (value) => Prefs.setValue("bar.capsules.mediaConnectivity", value)
         }
+        // System tray (quick task 260823-65s, D-4) — placed here so the
+        // settings order tracks the bar order (D-3: the capsule renders
+        // immediately after mediaConnectivity, before clockActions).
+        ToggleRow {
+            label: "System tray"
+            subtext: "Tray icons from apps that minimise to tray"
+            checked: Prefs.getValue("bar.capsules.systemTray")
+            onToggled: (value) => Prefs.setValue("bar.capsules.systemTray", value)
+        }
         // ── Per-entry toggles for "Clock & actions" (operator fix wave
         //    finding 3) — same nesting/consumption pattern as System's
         //    five above. `power` shipped deliberately: Super+Shift+Q

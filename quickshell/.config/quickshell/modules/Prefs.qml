@@ -75,6 +75,12 @@ Singleton {
         "bar.capsules.workspaces",
         "bar.capsules.idleInhibitor",
         "bar.capsules.mediaConnectivity",
+        // bar.capsules.systemTray (quick task 260823-65s, D-4) — kept as a
+        // PARENT row, unlike clockActions/system below, because a tray
+        // item's children are dynamic (they come and go with running
+        // apps) and have no per-entry bar.entries.* toggle of their own;
+        // this parent row is the only way to hide the capsule.
+        "bar.capsules.systemTray",
         // "bar.capsules.clockActions" and "bar.capsules.system" RETIRED 2026-08-21
         // (operator): their
         // children all have per-entry toggles, so both parent rows were removed.
@@ -139,6 +145,7 @@ Singleton {
         "bar.capsules.workspaces": true,
         "bar.capsules.idleInhibitor": true,
         "bar.capsules.mediaConnectivity": true,
+        "bar.capsules.systemTray": true,
         "notifs.popupTimeoutMs": 5000,
         "notifs.lowPriorityTimeoutMs": 3000,
         "notifs.position": "top-right",

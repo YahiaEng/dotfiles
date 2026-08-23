@@ -44,8 +44,18 @@ IdleInhibitorCapsule 1.0 IdleInhibitorCapsule.qml
 # the tray capsule was deleted along with its qmldir row, its two Bar.qml
 # consumers (componentFor() branch + trayComponent Component block) and its
 # BarEntryModel entry, matching Athena's own config, whose tray was dropped
-# because nm-applet/blueman icons duplicated the connections group. Do not
-# re-add this row without first re-adding TrayCapsule.qml itself.
+# because nm-applet/blueman icons duplicated the connections group.
+#
+# REINSTATED 2026-08-23 by quick task 260823-65s, operator decisions
+# D-1..D-4 (260823-65s-CONTEXT.md): apps that minimise to tray had nowhere
+# to register once waybar (the prior SNI host) was retired, so their
+# windows bounced straight back on close. Read the paragraph above as
+# history, not as a standing prohibition — this row and TrayCapsule.qml
+# are reinstated together, in the same commit, per this file's own rule.
+# D-15's actual concern (nm-applet/blueman duplicating the connections
+# group) is still honoured: TrayCapsule.qml's own D-5 amendment excludes
+# those two specifically, rather than dropping the whole capsule again.
+TrayCapsule 1.0 TrayCapsule.qml
 
 # SectionPopout / PopoutController / PopoutTrigger / AudioPopout (Phase 18
 # Plan 13, QBAR-09) added in WAVE 5, after the wave-3 freeze above had

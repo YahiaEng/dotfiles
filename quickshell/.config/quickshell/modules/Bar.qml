@@ -251,18 +251,20 @@ PanelWindow {
             return idleInhibitorComponent;
         if (capsuleId === "mediaConnectivity")
             return mediaConnectivityComponent;
+        if (capsuleId === "systemTray")
+            return systemTrayComponent;
         if (capsuleId === "clockActions")
             return clockActionsComponent;
         return null;
     }
 
     // Binding all five backend handles to all six capsule types (tray was
-    // a different sixth, removed under phase 18.1 plan 04's D-15; the
-    // GATE-02 fix that relocated the idle-inhibitor bulb into its own
-    // capsule, IdleInhibitorCapsule, added a new sixth here) is deliberate
-    // redundancy: it is what lets a wave-3 plan discover a backend need
-    // inside its own file instead of editing this one and serialising the
-    // wave.
+    // a different sixth, removed under phase 18.1 plan 04's D-15 and
+    // reinstated by quick task 260823-65s; the GATE-02 fix that relocated
+    // the idle-inhibitor bulb into its own capsule, IdleInhibitorCapsule,
+    // added a new sixth here) is deliberate redundancy: it is what lets a
+    // wave-3 plan discover a backend need inside its own file instead of
+    // editing this one and serialising the wave.
     Component {
         id: launcherComponent
         LauncherCapsule {
@@ -306,6 +308,16 @@ PanelWindow {
     Component {
         id: mediaConnectivityComponent
         MediaConnectivityCapsule {
+            audioBackend: barWindow.audioBackend
+            mediaBackend: barWindow.mediaBackend
+            systemResources: barWindow.systemResources
+            wifiBackend: barWindow.wifiBackend
+            bluetoothBackend: barWindow.bluetoothBackend
+        }
+    }
+    Component {
+        id: systemTrayComponent
+        TrayCapsule {
             audioBackend: barWindow.audioBackend
             mediaBackend: barWindow.mediaBackend
             systemResources: barWindow.systemResources

@@ -1,0 +1,187 @@
+// TrayCapsule.qml — the system-tray capsule (quick task 260823-65s).
+// Reinstates StatusNotifierItem hosting, lost when waybar was retired
+// (Phase 18 Plan 20, RETIRE-02) and the previous tray capsule was deleted
+// (Phase 18.1 Plan 04, D-15). See this file's own qmldir row for the D-15
+// history note and CONTEXT.md (260823-65s) for the operator decisions
+// (D-1..D-4) and D-5 amendment this file implements.
+//
+// D-1 — up to 3 items render inline; the rest live behind a chevron/popout
+// (TrayPopout.qml, wired in Task 2). D-2 — every SNI status renders; no
+// hide, no dim, ever (Passive is a known-inconsistent flag and Steam is a
+// known offender — hiding it would reproduce the exact fault this capsule
+// exists to fix). D-5 — nm-applet/blueman-applet are excluded; see
+// _trayExcludedIdPrefixes below.
+//
+// CORRECTION 1 (CONTEXT.md, measured against
+// quickshell-service-statusnotifier.qmltypes): `SystemTrayItem.icon` is
+// a resolved image:// URI Quickshell itself supplies, NOT a raw theme
+// name/path. It is bound straight to IconImage.source below — routing it
+// through Quickshell.iconPath()/hasThemeIcon() (the chain the source todo
+// asked for, built for NOTIFICATION appIcon strings) is a category error.
+// If an icon ever renders as a broken texture, diagnose against the live
+// item; do not reinstate that chain.
+//
+// CORRECTION 2 — there is no rightClick/openMenu method. The context menu
+// is opened via `item.display(parentWindow, x, y)`; Quickshell renders the
+// DBusMenu itself. No QML menu tree is hand-rolled anywhere in this file.
+//
+// CORRECTION 3 — `onlyMenu` items have no activate action; left click must
+// fall through to display() for them, or the click does nothing visible.
+import QtQuick
+import Quickshell
+import Quickshell.Services.SystemTray
+import Quickshell.Widgets
+import "../"
+import "../dashboard"
+
+BarCapsule {
+    id: root
+    capsuleId: "systemTray"
+
+    // Tight action-glyph pitch (matches the connections drawer's own
+    // glyph-to-glyph spacing), not BarCapsule's 18px intra-group default —
+    // this row is a set of bare icon cells, not text-bearing readouts.
+    contentGap: Design.spacingXs
+
+    // ── D-5 AMENDMENT (post-planning, CONTEXT.md) — exclude nm-applet and
+    //    blueman-applet from the tray model. ─────────────────────────────
+    //
+    // This does NOT re-open 18.1 D-15 (the tray capsule's removal) — it
+    // reinstates only the half of it that was genuinely lost. D-15's own
+    // reason, recorded at v4.0-REQUIREMENTS.md:20 under QBAR-05, is that
+    // upstream Athena dropped its tray because nm-applet/blueman icons
+    // DUPLICATED the connections group. That is still true here today:
+    // MediaConnectivityCapsule.qml renders `network` and `bluetooth`
+    // entries two capsules to the left of this one. With D-1's 3-slot
+    // inline row, letting both applets in risks crowding Steam — the app
+    // this capsule exists to fix — straight into the overflow popout.
+    //
+    // These id strings are a best guess: no StatusNotifierWatcher was
+    // running while this plan was written, so the real registered ids
+    // could not be measured (CONTEXT.md's own live-state caveat). This
+    // list is matched by case-insensitive PREFIX so a vendor-suffixed id
+    // ("nm-applet-2", say) still matches, but it is never widened to a
+    // bare substring — a miss here is harmless (the icon just renders,
+    // exactly today's status quo), while an over-broad match would hide
+    // an unrelated app, which is the severe direction. When in doubt,
+    // this must fail toward rendering the item, not hiding it.
+    readonly property var _trayExcludedIdPrefixes: ["nm-applet", "blueman-applet"]
+
+    function _isExcludedTrayId(id) {
+        if (!id)
+            return false;
+        var lower = String(id).toLowerCase();
+        for (var i = 0; i < root._trayExcludedIdPrefixes.length; i++) {
+            if (lower.indexOf(root._trayExcludedIdPrefixes[i]) === 0)
+                return true;
+        }
+        return false;
+    }
+
+    // ── The model — D-1's inline/overflow split ──────────────────────────
+    // SystemTray.items is an UntypedObjectModel; .values is a plain JS
+    // array with its own change notification (valuesChanged), so this
+    // re-evaluates live and can be .slice()d with no manual index
+    // bookkeeping — the identical idiom Launcher.qml already uses over a
+    // different ObjectModel (DesktopEntries.applications.values.filter(...)).
+    readonly property var _rawTrayItems: SystemTray.items.values
+    readonly property var trayItems: root._rawTrayItems.filter(function (item) {
+        return item && !root._isExcludedTrayId(item.id);
+    })
+
+    // D-2 — no filter on status or category anywhere in this file. The SNI
+    // spec says hide Passive; apps set it inconsistently and Steam is a
+    // known offender. Hiding Passive risks making Steam vanish from the
+    // tray, which is the exact fault this capsule exists to fix. Do not
+    // "restore spec compliance" here.
+    readonly property int inlineLimit: 3
+    readonly property var inlineItems: root.trayItems.slice(0, root.inlineLimit)
+
+    Repeater {
+        model: root.inlineItems
+        delegate: Item {
+            id: trayCell
+            required property var modelData
+
+            width: Design.barGlyphSize + Design.spacingXs * 2
+            height: Design.barGlyphSize + Design.spacingXs * 2
+
+            // Resolved image:// URI straight from Quickshell — see
+            // CORRECTION 1 above. Empty only when the item genuinely
+            // supplies no icon.
+            IconImage {
+                id: trayIcon
+                anchors.centerIn: parent
+                implicitSize: Design.barGlyphSize
+                asynchronous: true
+                source: trayCell.modelData ? trayCell.modelData.icon : ""
+                visible: trayIcon.status === Image.Ready
+                opacity: trayIcon.status === Image.Ready ? 1 : 0
+
+                Behavior on opacity {
+                    enabled: Motion.motionEnabled
+                    NumberAnimation {
+                        duration: Motion.standardDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
+                    }
+                }
+            }
+
+            // Fallback for the genuinely-empty/not-yet-resolved case,
+            // occupying the identical cell geometry so the row never
+            // reflows when an async icon resolves late.
+            Text {
+                anchors.centerIn: parent
+                text: "apps"
+                font.family: Design.symbolFontFamily
+                font.pixelSize: Design.barGlyphSize
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: root.contentColour
+                visible: trayIcon.status !== Image.Ready
+            }
+
+            // D-2's NeedsAttention accent — a small dot, never a hide or a
+            // dim for any other status.
+            Rectangle {
+                width: Design.spacingXs
+                height: Design.spacingXs
+                radius: width / 2
+                color: BarRoles.fillNotification
+                anchors.top: parent.top
+                anchors.right: parent.right
+                visible: trayCell.modelData ? trayCell.modelData.status === Status.NeedsAttention : false
+            }
+
+            // Interaction contract (CONTEXT.md): left activates unless
+            // onlyMenu (CORRECTION 3, then falls through to the menu);
+            // middle is the secondary action; right opens the menu.
+            // display() is called on THIS popup's own window handle — see
+            // CORRECTION 2, no menu is ever hand-rolled here.
+            MouseArea {
+                id: trayMouseArea
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                onClicked: (mouse) => {
+                    if (!trayCell.modelData)
+                        return;
+                    if (mouse.button === Qt.MiddleButton) {
+                        trayCell.modelData.secondaryActivate();
+                        return;
+                    }
+                    var origin = trayCell.mapToItem(null, 0, trayCell.height);
+                    if (mouse.button === Qt.RightButton) {
+                        trayCell.modelData.display(QsWindow.window, origin.x, origin.y);
+                        return;
+                    }
+                    // Left button.
+                    if (trayCell.modelData.onlyMenu)
+                        trayCell.modelData.display(QsWindow.window, origin.x, origin.y);
+                    else
+                        trayCell.modelData.activate();
+                }
+            }
+        }
+    }
+}

@@ -207,6 +207,22 @@ Singleton {
             ]
         },
         {
+            // systemTray (quick task 260823-65s, D-1..D-4) — declared
+            // between mediaConnectivity and clockActions so it renders
+            // immediately left of the clock (declaration order IS render
+            // order, see capsulesForZone() below). No per-entry toggles:
+            // unlike every other capsule's children, a tray item's set is
+            // dynamic — it comes and goes with running apps — so there is
+            // no static bar.entries.* row to back, and the parent
+            // bar.capsules.systemTray toggle (Prefs.qml) is the only way
+            // to hide it (D-4's rationale).
+            id: "systemTray",
+            zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
+            entries: [
+                { id: "systemTray", backends: [], textBearing: false }
+            ]
+        },
+        {
             id: "clockActions",
             zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
             entries: [
