@@ -702,8 +702,45 @@ Singleton {
     // ── EdgeBar tokens (quick task 260823-9ak, Task 3, R1/R8) — all four
     //    on the repo's 4px grid, all four operator-tunable taste values.
     //    See EdgeBar.qml's own reversibility note.
-    readonly property int edgeBarThickness: 8 // the strip's flat run depth — the sole exclusiveZone contributor (D-4)
-    readonly property int edgeBarBulgeExtra: 8 // the static centre bulge's EXTRA depth beyond the flat run (D-3) — also the shoulder fillet radius
-    readonly property int edgeBarBulgeWidth: 240 // the static centre bulge's width — an already-established on-grid value in this file
+    readonly property int edgeBarThickness: 6 // the strip's flat run depth — the sole exclusiveZone contributor (D-4). Operator round 7: 8 -> 6, "slightly thinner".
+    readonly property int edgeBarEndRadius: 3 // = thickness/2, so each end of the strip is a semicircular pill cap (operator round 7, "rounded ends")
+    readonly property int edgeBarBulgeExtra: 10 // the static centre bulge's EXTRA depth beyond the flat run (D-3)
+    readonly property int edgeBarFilletRadius: 8 // the CONCAVE shoulder joining the flat run to the bulge's side — decoupled from bulgeExtra in round 7 so the two tune independently
+    readonly property int edgeBarBulgeCornerRadius: 6 // CONVEX rounding on the bulge's two outer corners (operator round 7). Must stay <= edgeBarBulgeExtra or the corners eat the whole protrusion.
+
+    // ── edgeBarSideMargin (operator round 7, "bar width should match
+    //    hyprland windows") — MEASURED, not derived. `hyprctl clients`
+    //    reports tiled windows at x 13..2497 on this 2560-wide output with
+    //    the vertical bar reserving 50 on the right, and
+    //    `general:border_size` is 3 — so a window's own CONTENT box starts
+    //    13 in and its VISIBLE OUTER edge (content minus the border it
+    //    draws outside itself) starts at 10, which is gaps_out. The strips
+    //    are anchored inside the same 0..2510 usable band, so insetting
+    //    both sides by this value lands their ends exactly on the window
+    //    silhouette. Aligned to the OUTER (border-inclusive) edge because
+    //    that is the rectangle a person actually sees; switch to 13 to
+    //    align with the content box instead.
+    readonly property int edgeBarSideMargin: 10
+
+    // The centre bulge's width per strip. R-round-7: the bulge must be the
+    // SAME width as the surface that spawns from it, so the protrusion
+    // reads as the panel itself beginning to emerge rather than as a
+    // separate tab. These are the same two tokens the panels themselves
+    // size from (see launcherPanelWidth / dashboardMinWidth below), so the
+    // two can never drift apart.
+    // Panel widths, hoisted here in operator round 7 so the edge bar's
+    // bulge and the panel it spawns share ONE source. Previously 640 was
+    // an inline literal in Launcher.qml and 760 an inline `drawerMinWidth`
+    // in Dashboard.qml.
+    //
+    // DECLARED BEFORE the two bulge-width tokens that read them: a
+    // later-declared member resolves to `undefined` at construction time on
+    // this build, which surfaced as "EdgeBar.qml[203:5]: Unable to assign
+    // [undefined] to double" the first time this pair sat below them.
+    readonly property int launcherPanelWidth: 640
+    readonly property int dashboardMinWidth: 760
+
+    readonly property int edgeBarBulgeWidthTop: dashboardMinWidth
+    readonly property int edgeBarBulgeWidthBottom: launcherPanelWidth
     readonly property int edgeBarDwellMs: 400 // hover dwell before a bulge hover summons its surface (Task 5) — matches popoutDwellMs above
 }

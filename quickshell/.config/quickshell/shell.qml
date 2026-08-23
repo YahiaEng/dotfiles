@@ -548,6 +548,8 @@ ShellRoot {
         EdgeBar {
             id: edgeBarTop
             bottom: false
+            // Matches the dashboard, which spawns from this strip.
+            bulgeWidth: Design.edgeBarBulgeWidthTop
         }
     }
     LazyLoader {
@@ -557,6 +559,8 @@ ShellRoot {
         EdgeBar {
             id: edgeBarBottom
             bottom: true
+            // Matches the launcher, which spawns from this strip.
+            bulgeWidth: Design.edgeBarBulgeWidthBottom
         }
     }
 

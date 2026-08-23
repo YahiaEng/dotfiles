@@ -98,6 +98,10 @@ PanelWindow {
     // mounts two instances, one per value.
     property bool bottom: false
 
+    // The centre bulge's width — set per strip by shell.qml so each one
+    // matches the surface that spawns from it (operator round 7).
+    property real bulgeWidth: Design.edgeBarBulgeWidthTop
+
     anchors {
         top: !edgeBarWindow.bottom
         bottom: edgeBarWindow.bottom
@@ -105,8 +109,14 @@ PanelWindow {
         right: true
     }
 
-    // No margins on any edge (D-4) — flush to the screen edge by
-    // construction, so there is nothing to fold into exclusiveZone.
+    // Side margins align the strip's ends with the Hyprland window
+    // silhouette (operator round 7) — see Design.edgeBarSideMargin for the
+    // measurement. The anchored EDGE still carries no margin (D-4), so
+    // nothing is folded into exclusiveZone: Hyprland's reservation total is
+    // margins.<anchored-edge> + exclusiveZone, and only left/right are
+    // margined here, neither of which is the anchored edge.
+    margins.left: Design.edgeBarSideMargin
+    margins.right: Design.edgeBarSideMargin
 
     // Fixed axis = the strip's full painted extent (flat thickness + bulge
     // overhang); free axis = 0, the same zero-is-inert idiom Bar.qml's own
@@ -200,7 +210,10 @@ PanelWindow {
 
     readonly property real _t: Design.edgeBarThickness
     readonly property real _b: Design.edgeBarBulgeExtra
-    readonly property real _wb: Design.edgeBarBulgeWidth
+    readonly property real _re: Design.edgeBarEndRadius
+    readonly property real _f: Design.edgeBarFilletRadius
+    readonly property real _rc: Design.edgeBarBulgeCornerRadius
+    readonly property real _wb: edgeBarWindow.bulgeWidth
     readonly property real _ww: edgeBarWindow.width
     readonly property real _cx: edgeBarWindow._ww / 2
     readonly property real _xl: edgeBarWindow._cx - edgeBarWindow._wb / 2
@@ -225,48 +238,69 @@ PanelWindow {
         return (Math.abs(c.x - expectedCx) < 0.01 && Math.abs(c.y - expectedCy) < 0.01) ? 1 : 0;
     }
 
-    // The full strip outline, clockwise from the strip's own top-left
-    // (edge="top" orientation), then mirrored in y for edge="bottom" — see
-    // file header for the full derivation.
+    // ── The full strip outline (operator round 7 reshape) ───────────────
+    // Built for edge="top" (y=0 at the screen edge, material extending
+    // downward) and mirrored in y for edge="bottom". Walked CLOCKWISE in
+    // this y-down coordinate system, so the outward side of every convex
+    // corner is on the left of travel.
+    //
+    // The profile, left to right:
+    //   pill cap -> flat run -> concave fillet down into the bulge ->
+    //   bulge side -> convex corner -> bulge face -> convex corner ->
+    //   bulge side -> concave fillet back up -> flat run -> pill cap
+    //
+    // The concave fillets are the same shape AttachedCorner.qml paints
+    // where a panel meets this strip — deliberately, since the bulge is now
+    // the same width as the panel that spawns from it, so the closed bulge
+    // reads as that panel's first few pixels already emerging.
+    //
+    // EVERY arc's sweep flag is resolved by `_shoulderSweep`, which checks
+    // which flag actually produces the centre the geometry demands. None is
+    // hand-derived: the wrong flag silently selects the other geometrically
+    // valid centre for the same endpoints and radius, turning a concave
+    // fillet into a convex bulge (or vice versa) with no error anywhere.
     readonly property string _outlinePath: {
-        var t = edgeBarWindow._t, b = edgeBarWindow._b, ww = edgeBarWindow._ww;
+        var t = edgeBarWindow._t;          // flat run depth
+        var b = edgeBarWindow._b;          // bulge depth beyond the flat run
+        var re = edgeBarWindow._re;        // pill-cap radius at each end
+        var f = edgeBarWindow._f;          // concave shoulder fillet radius
+        var rc = edgeBarWindow._rc;        // convex bulge-corner radius
+        var ww = edgeBarWindow._ww;
         var xl = edgeBarWindow._xl, xr = edgeBarWindow._xr;
+        var yb = t + b;                    // the bulge face
+        var S = edgeBarWindow._shoulderSweep;
 
-        // Right shoulder: flat floor (xr+b, t) -> bulge floor (xr, t+b).
-        var rCx = xr + b, rCy = t + b;
-        var rSweep = edgeBarWindow._shoulderSweep(xr + b, t, xr, t + b, b, rCx, rCy);
-        // Left shoulder: bulge floor (xl, t+b) -> flat floor (xl-b, t).
-        var lCx = xl - b, lCy = t + b;
-        var lSweep = edgeBarWindow._shoulderSweep(xl, t + b, xl - b, t, b, lCx, lCy);
-
-        var p;
-        if (!edgeBarWindow.bottom) {
-            p = "M 0 0";
-            p += " L " + ww + " 0";
-            p += " L " + ww + " " + t;
-            p += " L " + (xr + b) + " " + t;
-            p += " A " + b + " " + b + " 0 0 " + rSweep + " " + xr + " " + (t + b);
-            p += " L " + xl + " " + (t + b);
-            p += " A " + b + " " + b + " 0 0 " + lSweep + " " + (xl - b) + " " + t;
-            p += " L 0 " + t;
-        } else {
-            // Same outline mirrored in y (flat run flush with the bottom
-            // screen edge, bulge overhanging upward into the client area).
-            // Mirroring y flips every arc's sweep-flag (standard SVG
-            // mirror rule) — re-verified against `_shoulderSweep` above
-            // using the mirrored points/centres, not assumed.
-            var h = t + b;
-            var rSweepM = edgeBarWindow._shoulderSweep(xr + b, b, xr, 0, b, rCx, h - rCy);
-            var lSweepM = edgeBarWindow._shoulderSweep(xl, 0, xl - b, b, b, lCx, h - lCy);
-            p = "M 0 " + h;
-            p += " L " + ww + " " + h;
-            p += " L " + ww + " " + b;
-            p += " L " + (xr + b) + " " + b;
-            p += " A " + b + " " + b + " 0 0 " + rSweepM + " " + xr + " 0";
-            p += " L " + xl + " 0";
-            p += " A " + b + " " + b + " 0 0 " + lSweepM + " " + (xl - b) + " " + b;
-            p += " L 0 " + b;
+        // Mirror helper: for edge="bottom" the whole profile reflects about
+        // the surface's horizontal midline, so a y of `v` becomes `h - v`.
+        var flip = edgeBarWindow.bottom;
+        var h = yb;
+        function Y(v) {
+            return flip ? h - v : v;
         }
+
+        var p = "M " + re + " " + Y(0);
+        // Flat run, left cap to the left fillet.
+        p += " L " + (xl - f) + " " + Y(0);
+        // Concave fillet: flat run -> bulge's left side. Centre sits at the
+        // box corner (xl - f, Y(f)).
+        p += " A " + f + " " + f + " 0 0 " + S(xl - f, Y(0), xl, Y(f), f, xl - f, Y(f)) + " " + xl + " " + Y(f);
+        // Down the bulge's left side to the first convex corner.
+        p += " L " + xl + " " + Y(yb - rc);
+        p += " A " + rc + " " + rc + " 0 0 " + S(xl, Y(yb - rc), xl + rc, Y(yb), rc, xl + rc, Y(yb - rc)) + " " + (xl + rc) + " " + Y(yb);
+        // The bulge face.
+        p += " L " + (xr - rc) + " " + Y(yb);
+        p += " A " + rc + " " + rc + " 0 0 " + S(xr - rc, Y(yb), xr, Y(yb - rc), rc, xr - rc, Y(yb - rc)) + " " + xr + " " + Y(yb - rc);
+        // Up the bulge's right side, then the right concave fillet.
+        p += " L " + xr + " " + Y(f);
+        p += " A " + f + " " + f + " 0 0 " + S(xr, Y(f), xr + f, Y(0), f, xr + f, Y(f)) + " " + (xr + f) + " " + Y(0);
+        // Flat run out to the right cap.
+        p += " L " + (ww - re) + " " + Y(0);
+        // Right pill cap, down to the strip's inner face.
+        p += " A " + re + " " + re + " 0 0 " + S(ww - re, Y(0), ww - re, Y(t), re, ww - re, Y(re)) + " " + (ww - re) + " " + Y(t);
+        // Inner face back leftward, under the bulge shoulders.
+        p += " L " + re + " " + Y(t);
+        // Left pill cap, closing back to the start.
+        p += " A " + re + " " + re + " 0 0 " + S(re, Y(t), re, Y(0), re, re, Y(re)) + " " + re + " " + Y(0);
         return p + " Z";
     }
 

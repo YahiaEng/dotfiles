@@ -294,7 +294,9 @@ PanelWindow {
     // header's four icon+label tabs need a minimum width regardless of tab
     // content, and the frame should never collapse below a usable minimum
     // even if some future tab's content turns out tiny.
-    readonly property int drawerMinWidth: 760
+    // Shared with the top strip's bulge (operator round 7) — see
+    // Design.dashboardMinWidth.
+    readonly property int drawerMinWidth: Design.dashboardMinWidth
     readonly property int drawerMinHeight: 420
 
     // Reads whichever tab's Loader is currently active — RESEARCH Pattern 4

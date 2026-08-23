@@ -463,7 +463,9 @@ PanelWindow {
     // (see the layer-posture note above). Mirrors Dashboard.qml:557-601.
     Item {
         id: panel
-        width: 640
+        // Shared with the bottom strip's bulge so the two cannot drift
+        // (operator round 7) — see Design.launcherPanelWidth.
+        width: Design.launcherPanelWidth
         height: contentColumn.implicitHeight + contentColumn.anchors.margins * 2
         anchors.horizontalCenter: parent.horizontalCenter
         // Anchored to the edge it hangs from; the entrance is a
