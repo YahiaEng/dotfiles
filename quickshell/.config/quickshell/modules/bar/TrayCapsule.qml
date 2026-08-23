@@ -56,16 +56,21 @@ BarCapsule {
     // inline row, letting both applets in risks crowding Steam — the app
     // this capsule exists to fix — straight into the overflow popout.
     //
-    // These id strings are a best guess: no StatusNotifierWatcher was
-    // running while this plan was written, so the real registered ids
-    // could not be measured (CONTEXT.md's own live-state caveat). This
-    // list is matched by case-insensitive PREFIX so a vendor-suffixed id
-    // ("nm-applet-2", say) still matches, but it is never widened to a
-    // bare substring — a miss here is harmless (the icon just renders,
-    // exactly today's status quo), while an over-broad match would hide
-    // an unrelated app, which is the severe direction. When in doubt,
-    // this must fail toward rendering the item, not hiding it.
-    readonly property var _trayExcludedIdPrefixes: ["nm-applet", "blueman-applet"]
+    // MEASURED 2026-08-23 (Task 2's own restart gave this host its first
+    // StatusNotifierWatcher, so the real ids could finally be read via
+    // busctl rather than guessed, closing CONTEXT.md's own live-state
+    // caveat): nm-applet registers `Id: "nm-applet"` — the guessed prefix
+    // was right. blueman-applet registers `Id: "blueman"` — NOT
+    // "blueman-applet"; the original guess here would have MISSED it
+    // (harmless per this comment's own fail-safe rule, but pointless).
+    // Corrected to the measured value. This list is matched by
+    // case-insensitive PREFIX so a vendor-suffixed id ("nm-applet-2", say)
+    // still matches, but it is never widened to a bare substring — a miss
+    // is harmless (the icon just renders, exactly today's status quo),
+    // while an over-broad match would hide an unrelated app, which is the
+    // severe direction. When in doubt, this must fail toward rendering
+    // the item, not hiding it.
+    readonly property var _trayExcludedIdPrefixes: ["nm-applet", "blueman"]
 
     function _isExcludedTrayId(id) {
         if (!id)
