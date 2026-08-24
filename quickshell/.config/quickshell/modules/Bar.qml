@@ -48,6 +48,7 @@
 // block below; the owner script and the IpcHandler both live in
 // shell.qml, never in this file (see that block's own closing note).
 import QtQuick
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import "dashboard"
@@ -58,6 +59,39 @@ PanelWindow {
 
     // The single value the whole file binds to.
     readonly property bool vertical: BarEntryModel.isVertical
+
+    // ── Continuous edge-bar weld (quick task 260824-ns3, Task 3, Q4b) ────
+    // DELIBERATE REVERSAL OF D-2 ("Bar.qml is not opened, moved,
+    // reoriented or absorbed" by the edge bar, see this file's own header
+    // above) — recorded here and in the SUMMARY exactly the way D-3's
+    // reversal was recorded in round 11, not discovered mid-task. The
+    // brief's own words: "Continuous requires the bar and the rail to
+    // share a shape." Continuous is the DEFAULT edge-bar style (Q4), so
+    // this fires on first install, not on some rare opt-in path.
+    //
+    // The mechanism, and why it is this one and not the obvious one: the
+    // study draws the rails running from the screen inset to the bar's
+    // OWN centre line — past the bar's left edge. The strip surface
+    // cannot get there; it is anchored left+right with a non-negative
+    // `exclusiveZone`, and a layer-shell surface with a non-negative
+    // exclusive zone is positioned INSIDE every other surface's zone, so
+    // the vertical bar's own 50px reservation already pins the strip's
+    // right end at the bar's left edge no matter what margin is set.
+    // Setting the strip's own exclusiveZone negative to escape that would
+    // surrender its own 6px reservation — one surface cannot do both. So
+    // the strips stop exactly where they already stop, and the BAR itself
+    // paints the bridge from that point through its own body — which is
+    // the whole content of "the bar and the rail must share a shape".
+    //
+    // `&& vertical` is load-bearing: Continuous is drawn against a
+    // right-edge VERTICAL bar (the live orientation). This shell's bar
+    // can be flipped horizontal from Settings; in that orientation there
+    // is no meaningful "weld" (the strips run along the top/bottom edges,
+    // orthogonal to a horizontal bar's own edge), so this collapses to
+    // false and the bar renders exactly as it does today — the strips
+    // simply end at their own right edge, no weld, no error.
+    property string edgeBarStyle: "off"
+    readonly property bool _continuousWeld: barWindow.edgeBarStyle === "continuous" && barWindow.vertical
 
     // ── Anchors — each a boolean binding off `vertical`, no branch. These
     //    are PanelWindow's own bool anchor flags (layer-shell edge
@@ -77,10 +111,17 @@ PanelWindow {
     }
 
     // ── Margins — a ternary per property, never a branch ────────────────
-    margins.top: barWindow.vertical ? Design.barSideMargin : Design.barEdgeMargin
+    // Continuous weld (Task 3): margins.top/.bottom go to 0 so the slab
+    // spans the FULL screen height, matching the study's `rect{y:0, h:H}`.
+    // Neither is the anchored edge that carries the reservation — that is
+    // `margins.right` below, per this file's own documented arithmetic
+    // (`margins.<edge> + exclusiveZone`) — so `reserved` cannot move; this
+    // file has shipped the double-count version of that bug twice, hence
+    // the explicit note.
+    margins.top: barWindow.vertical ? (barWindow._continuousWeld ? 0 : Design.barSideMargin) : Design.barEdgeMargin
     margins.right: barWindow.vertical ? Design.barEdgeMargin : Design.barSideMargin
     margins.left: barWindow.vertical ? 0 : Design.barSideMargin
-    margins.bottom: barWindow.vertical ? Design.barSideMargin : 0
+    margins.bottom: barWindow.vertical ? (barWindow._continuousWeld ? 0 : Design.barSideMargin) : 0
 
     // ── Extent — the free axis is the one both opposite edges anchor, so
     //    the compositor's own stretch behaviour determines its real size
@@ -90,8 +131,19 @@ PanelWindow {
     //    stretched correctly). 0 on the free axis is therefore inert, not
     //    a magic number — the fixed axis's ternary branch is what is
     //    load-bearing. ──────────────────────────────────────────────────
+    //
+    // Continuous weld (Task 3): the surface widens LEFTWARD by
+    // `edgeBarSideMargin + barColumnWidth / 2` (10 + 22 = 32, both
+    // already-existing tokens — no new one added). `margins.right` and
+    // `exclusiveZone` below are BOTH unchanged, so a surface wider than
+    // its own exclusive zone overhangs into the client area — the exact
+    // idiom the edge bar's own bulge already uses. `reserved` must still
+    // measure `[0, 6, 50, 6]` afterwards; measured, not asserted (see the
+    // SUMMARY).
     implicitHeight: barWindow.vertical ? 0 : Design.barHeight
-    implicitWidth: barWindow.vertical ? Design.barColumnWidth : 0
+    implicitWidth: barWindow.vertical
+        ? Design.barColumnWidth + (barWindow._continuousWeld ? (Design.edgeBarSideMargin + Design.barColumnWidth / 2) : 0)
+        : 0
 
     // ── Layer posture — copies Overview.qml's structural template; the
     //    only properties whose VALUE changes are exclusiveZone/implicit
@@ -335,9 +387,216 @@ PanelWindow {
             bluetoothBackend: barWindow.bluetoothBackend
         }
     }
+    // ── Continuous weld — the bridge from the strip's end into the bar's
+    //    own body (Task 3, D-2 reversal) ─────────────────────────────────
+    // Three pieces, painted BEHIND `barContent` (declared before it —
+    // QtQuick z-order is declaration order for siblings with no explicit
+    // `z`): the full-height slab, its inset `Colours.surface` core, and
+    // two horizontal weld stubs that close the 1860 -> 1892 run from the
+    // strip's own end into the slab's rounded cap. All inert
+    // (zero-visible) whenever `_continuousWeld` is false.
+    //
+    // Reuses the SAME three accent roles the strip's own gradient uses
+    // (Colours.primary/.secondary/.tertiary) and the SAME scrolling idiom
+    // EdgeBar.qml's strip already established (a phase property animated
+    // 0 -> 1 over `Motion.borderRotateDuration`, `ShapeGradient.RepeatSpread`,
+    // period = the consumer's own extent) — no new `Motion.*` token name.
+    property real _weldGradientPhase: 0
+
+    NumberAnimation on _weldGradientPhase {
+        running: Motion.motionEnabled && barWindow._continuousWeld
+        from: 0
+        to: 1
+        duration: Motion.borderRotateDuration
+        loops: Animation.Infinite
+        easing.type: Easing.Linear
+    }
+
+    // A single rounded-rect fill path — GradientBorder.qml's own
+    // `_roundedRect` reasoning applies verbatim (no `PathRectangle` in
+    // this Qt build's QtQuick/Shapes), simplified to one uniform radius
+    // since both the slab and its core are pills/near-pills, never
+    // per-corner radii.
+    function _weldRoundedRect(w, h, r) {
+        var rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+        var p = "M " + rr + " 0";
+        p += " L " + (w - rr) + " 0";
+        if (rr > 0)
+            p += " A " + rr + " " + rr + " 0 0 1 " + w + " " + rr;
+        p += " L " + w + " " + (h - rr);
+        if (rr > 0)
+            p += " A " + rr + " " + rr + " 0 0 1 " + (w - rr) + " " + h;
+        p += " L " + rr + " " + h;
+        if (rr > 0)
+            p += " A " + rr + " " + rr + " 0 0 1 0 " + (h - rr);
+        p += " L 0 " + rr;
+        if (rr > 0)
+            p += " A " + rr + " " + rr + " 0 0 1 " + rr + " 0";
+        return p + " Z";
+    }
+
+    // 1. The full-height slab — the bar's own body, painted in the rail's
+    //    own vocabulary continuing through it (`rect{x:BAR.x, y:0, w:44,
+    //    h:H, rx:22}` in the study).
+    Shape {
+        id: weldSlab
+        visible: barWindow._continuousWeld
+        x: Design.edgeBarSideMargin + Design.barColumnWidth / 2
+        y: 0
+        width: Design.barColumnWidth
+        height: barWindow.height
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+            strokeWidth: -1
+            strokeColor: "transparent"
+            fillGradient: LinearGradient {
+                x1: 0
+                y1: barWindow._weldGradientPhase * Math.max(1, weldSlab.height)
+                x2: 0
+                y2: barWindow._weldGradientPhase * Math.max(1, weldSlab.height) + Math.max(1, weldSlab.height)
+                spread: ShapeGradient.RepeatSpread
+                GradientStop {
+                    position: 0.0
+                    color: Colours.primary
+                }
+                GradientStop {
+                    position: 0.33
+                    color: Colours.secondary
+                }
+                GradientStop {
+                    position: 0.66
+                    color: Colours.tertiary
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Colours.primary
+                }
+            }
+            PathSvg {
+                path: barWindow._weldRoundedRect(weldSlab.width, weldSlab.height, Design.barColumnWidth / 2)
+            }
+        }
+    }
+
+    // 2. The inset core — `rect{x:BAR.x+4, y:22, w:36, h:H-44, rx:18,
+    //    fill:surface}` in the study. `Colours.surface` assigned straight
+    //    to `color:` — never `Qt.rgba(Colours.surface.r, ...)`, since the
+    //    roles are `property string`, not colour-typed, and that
+    //    silently resolves to black.
+    Rectangle {
+        visible: barWindow._continuousWeld
+        x: weldSlab.x + 4
+        y: 22
+        width: weldSlab.width - 8
+        height: Math.max(0, barWindow.height - 44)
+        radius: (weldSlab.width - 8) / 2
+        color: Colours.surface
+    }
+
+    // 3. Two horizontal weld stubs — the 1860 -> 1892 run that closes the
+    //    silhouette: strip end -> stub -> slab. Tucked under the slab's
+    //    own rounded cap (the stub's x=0 sits at the widened surface's
+    //    own left edge, and the slab starts exactly `edgeBarSideMargin +
+    //    barColumnWidth / 2` in, so the stub's right end runs UNDER the
+    //    cap rather than butting against it).
+    Shape {
+        id: weldStubTop
+        visible: barWindow._continuousWeld
+        x: 0
+        y: 0
+        width: Design.edgeBarSideMargin + Design.barColumnWidth
+        height: Design.edgeBarThickness
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+            strokeWidth: -1
+            strokeColor: "transparent"
+            fillGradient: LinearGradient {
+                x1: barWindow._weldGradientPhase * Math.max(1, weldStubTop.width)
+                y1: 0
+                x2: barWindow._weldGradientPhase * Math.max(1, weldStubTop.width) + Math.max(1, weldStubTop.width)
+                y2: 0
+                spread: ShapeGradient.RepeatSpread
+                GradientStop {
+                    position: 0.0
+                    color: Colours.primary
+                }
+                GradientStop {
+                    position: 0.33
+                    color: Colours.secondary
+                }
+                GradientStop {
+                    position: 0.66
+                    color: Colours.tertiary
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Colours.primary
+                }
+            }
+            PathSvg {
+                path: "M 0 0 L " + weldStubTop.width + " 0 L " + weldStubTop.width + " " + weldStubTop.height + " L 0 " + weldStubTop.height + " Z"
+            }
+        }
+    }
+    Shape {
+        id: weldStubBottom
+        visible: barWindow._continuousWeld
+        x: 0
+        y: Math.max(0, barWindow.height - Design.edgeBarThickness)
+        width: Design.edgeBarSideMargin + Design.barColumnWidth
+        height: Design.edgeBarThickness
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+            strokeWidth: -1
+            strokeColor: "transparent"
+            fillGradient: LinearGradient {
+                x1: barWindow._weldGradientPhase * Math.max(1, weldStubBottom.width)
+                y1: 0
+                x2: barWindow._weldGradientPhase * Math.max(1, weldStubBottom.width) + Math.max(1, weldStubBottom.width)
+                y2: 0
+                spread: ShapeGradient.RepeatSpread
+                GradientStop {
+                    position: 0.0
+                    color: Colours.primary
+                }
+                GradientStop {
+                    position: 0.33
+                    color: Colours.secondary
+                }
+                GradientStop {
+                    position: 0.66
+                    color: Colours.tertiary
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Colours.primary
+                }
+            }
+            PathSvg {
+                path: "M 0 0 L " + weldStubBottom.width + " 0 L " + weldStubBottom.width + " " + weldStubBottom.height + " L 0 " + weldStubBottom.height + " Z"
+            }
+        }
+    }
+
     Item {
         id: barContent
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        // NEVER `: undefined` here. `vertical` is FALSE at construction
+        // (BarEntryModel.isVertical settles later), so an undefined branch
+        // is what QML actually evaluates first — and assigning undefined to
+        // a real-typed property DESTROYS the binding rather than deferring
+        // it. `width` then stays 0 forever, the vertical flip never
+        // re-evaluates it, and the zone children (which position off
+        // `(parent.width - width) / 2`) resolve against a zero-width parent
+        // and clip to a sliver. Measured: barContent w=0, x=76, content
+        // visible only across 2532-2553 of a 2510-2554 column. Right-anchor
+        // plus a real width in BOTH branches has no undefined to trip over.
+        width: barWindow.vertical ? Design.barColumnWidth : barWindow.width
 
         // ── Rendering the three-state model (Phase 18 Plan 15, QBAR-07)
         //    — boolean visibility plus a token-driven slide-and-fade.

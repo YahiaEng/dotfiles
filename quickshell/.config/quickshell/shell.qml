@@ -561,6 +561,11 @@ ShellRoot {
     // existing summon shape (set the tab index, then activate the loader).
     Bar {
         id: barInstance
+        // Quick task 260824-ns3, Task 3 (Q4b, REVERSES D-2) — threaded so
+        // Bar.qml can weld its own slab to the edge bar's rails on
+        // Continuous, the one style where the bar and the rail share a
+        // single silhouette.
+        edgeBarStyle: root.edgeBarStyle
         audioBackend: audioBackendInstance
         mediaBackend: mediaBackendInstance
         systemResources: systemResourcesInstance
