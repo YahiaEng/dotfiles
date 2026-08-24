@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "EDGE BAR STYLE PICKER FULLY SPECIFIED, ZERO CODE WRITTEN. All four open questions settled on resume: Q2 = single edgeBar.style string (bool retired, Launcher.qml reads a derived edgeBarRailPresent); Q4 = default and migration target is Continuous, which REVERSES D-2 (Bar.qml must change); Q3 per-style = Continuous unchanged, Segmented merges segments under the bulge, Brackets has no bulge and panels do not attach, Halo keeps the ordinary toggle. Nothing left to ask. Brief at .planning/notes/edge-bar-style-directions.md; shapes source of truth is claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789. NEXT: /gsd-quick against the brief."
-last_updated: "2026-08-24T14:05:00.000Z"
+stopped_at: "EDGE BAR STYLE PICKER: Tasks 1-3 of 8 DONE and OPERATOR-APPROVED ('it now looks good'). Task 1 = edgeBar.style key + migration + derived predicates (8e4417c9). Task 2 = edgebarpath.js extraction + vertical transposition (bf4bdbfa). Task 3 = Continuous, REVERSES D-2 (7498035b) plus a four-fault round-2 fix (9fbd4cea). NEXT: Tasks 4-7 = Halo, Brackets, Segmented, settings completion. Task 8 is a blocking operator checkpoint. Plan at .planning/quick/260824-ns3-implement-the-edge-bar-style-picker-per-/260824-ns3-PLAN.md (UNTRACKED, commit it). Brief at .planning/notes/edge-bar-style-directions.md; shapes source of truth is .planning/notes/edge-rail-studies.html (vendored)."
+last_updated: "2026-08-24T19:40:00.000Z"
 last_activity: 2026-08-24
 last_activity_desc: "quick task 260823-9ak rounds 9-11 shipped and operator-approved (reversed-entrance dismiss, pill-cap fix, hover target decoupled, animated bulge reversing D-3); then a seven-direction edge bar design study was published and the operator chose FOUR shapes plus off to implement as a style picker. Zero implementation code written."
-state_head: d610dbb7
+state_head: 9fbd4cea
 progress:
   total_phases: 6
   completed_phases: 6
@@ -740,6 +740,42 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
+RESUMED then WORKED 2026-08-24 (evening) — /gsd-resume-work into /gsd-quick. Quick task **260824-ns3** (edge bar style picker) is **3 of 8 tasks done, all committed and pushed**, tree clean at `9fbd4cea`. The operator has SEEN Continuous live and approved it: *"it now looks good."* Context cleared at their request immediately after.
+
+**WHAT IS DONE**
+  - `8e4417c9` Task 1 — `edgeBar.style` string key, migration from the retired `edgeBar.enabled` bool, and the two derived predicates.
+  - `bf4bdbfa` Task 2 — `edgebarpath.js` extracted verbatim, committed golden, then taught vertical.
+  - `7498035b` Task 3 — Continuous. **REVERSES D-2**, recorded as deliberate.
+  - `9fbd4cea` Task 3 round 2 — four operator-reported faults fixed.
+
+**WHAT IS LEFT: Tasks 4, 5, 6, 7, then 8.** Halo, Brackets, Segmented, settings completion, then the blocking operator checkpoint. The plan file is **UNTRACKED** — `.planning/quick/260824-ns3-.../260824-ns3-PLAN.md`. Commit it with the docs commit; it was never staged.
+
+**THE FIVE THINGS ROUND 2 PAID FOR — do not rediscover these.**
+
+  1. **`width: cond ? X : undefined` DESTROYS the binding.** `BarEntryModel.isVertical` is FALSE at construction, so the undefined branch is the one QML evaluates first, and assigning undefined to a real-typed property removes the binding rather than deferring it. `barContent.width` stayed **0 forever** — instrumented, not inferred (`x=76 w=0` at settle) — and the zone children, which position off `(parent.width - width) / 2`, resolved against a zero-width parent and clipped to a 22px sliver of a 44px column. Never write an `undefined` branch on a real-typed property in this shell.
+
+  2. **Two independent animations cannot hold a moving gradient in step.** `loops: Animation.Infinite` 0→1 keeps rate but inherits the start-time offset, and the strips load through a LazyLoader while the bar does not. New singleton **`modules/GradientPhase.qml`** is now the shell's ONE scrolling-accent clock; strips and weld both read it. Any new gradient-scrolling surface must read it too. It also fixed unreported drift between the top and bottom strips.
+
+  3. **The stub's PERIOD was the visible fault, not its phase.** It carried its own 54px period, compressing the whole spectrum into the joint — a rainbow band against a strip spreading the same spectrum over 2490px. A weld must take the other surface's period AND origin and map its own local x into that space.
+
+  4. **Decoration and content may not share pixels.** The slab is now `barColumnWidth + 2 * edgeBarWeldRim` so the core it encloses is exactly the 44 widgets expect; the extra width goes leftward into the existing non-reserving overhang, so `reserved` stays `[0, 6, 50, 6]` — measured throughout, never asserted. **DELIBERATE DEVIATION FROM THE STUDY:** the study insets the core 4px at the sides but 22px top/bottom (a solid dome). That is fine for a study whose bar is empty; here the first and last widgets sat on it and the operator reported the glyphs "very hard if not impossible to see". Cap depth is `edgeBarThickness + edgeBarWeldRim` instead. Reverting to the dome is a one-value change at `_weldCapDepth`; `Design.edgeBarWeldRim` carries the reasoning.
+
+  5. **A uniform 4px rim is WRONG and was tried.** The core's rounded cap rises into the same rows as the 6px rail run and punches through it — measured as an 8px dark bite at y=4 on the bar's centre line. **The cap must be at least as deep as the rail it swallows**, which is why the cap depth and the content inset are ONE quantity, not two that happen to match.
+
+**`buildOutline` now takes an opt-in `squareEnd`** that omits the far pill cap so another surface can continue the run. Opt-in by construction, so the committed golden is byte-identical — 59/59, re-verify with `node hypr/.config/hypr/scripts/tests/edgebar-path-test.mjs`.
+
+**TWO MEASUREMENT TRAPS THAT COST REAL TIME THIS SESSION, both worth avoiding:**
+  - **The bar auto-hides on idle** (`visibility=hidden-idle`) and then renders as an empty outlined capsule — indistinguishable from a regression you just caused. Check `hypr/.config/hypr/scripts/bar-visibility.sh status` and run `bar-visibility.sh idle show` BEFORE believing any capture.
+  - **When the physical display sleeps, Hyprland falls back to a synthetic `FALLBACK 1920x1080` output that does NOT present layer surfaces.** Every capture comes back near-black (max RGB sum ~74-83) while windows still render, so it looks exactly like the bar breaking. Proven by reproducing the same blank capture at the previously-working committed state. Geometry via `hyprctl -j layers` stays correct and trustworthy; only pixels are unavailable. If `hyprctl -j monitors` says FALLBACK, visual verification is BLOCKED — say so rather than reasoning about pixels. `hyprctl dispatch dpms on` does NOT work here (the Lua wrapper rejects it).
+
+**STILL TRUE:** raw per-column/row RGB is the only probe that works on this surface; `grim -g` bounded regions only, never full-screen (SIGSEGVs this NVIDIA host); no `qml6` probes; restart the service before believing any render; a `LazyLoader` serves a stale incubated component after a file edit.
+
+**GATES, all green at `9fbd4cea`:** quickshell-doctor 28/0, colour-lint 362/0, motion-lint 549/0, keybind-doctor 13/0, settings-index-check 120/0, path golden 59/59. (colour-lint and motion-lint rose by 3 each — the new singleton adds checks. settings-index-check's pre-existing 117/1 was closed by Task 1.)
+
+Resume file: None. NEXT ACTION: resume quick task 260824-ns3 at Task 4 against its PLAN.md.
+
+---
+
 RESUMED 2026-08-24 — /gsd-resume-work. Clean resume: no HANDOFF.json, no `.continue-here`, no async-job manifest, no PLAN-without-SUMMARY, no interrupted agent. Tree clean at `d610dbb7`, 0 unpushed. **`state_head` was 29 commits stale** (`6983d3e2`, last repointed at the tray task) — this is NOT the deliberate one-commit lag a previous entry described; it has been repointed to `d610dbb7`.
 
 **THE EDGE BAR STYLE PICKER IS NOW FULLY SPECIFIED. Still zero implementation code.** All four questions the previous session left open were put to the operator and answered. Do not re-open any of them; the brief carries each answer with its quote and its consequence.
@@ -822,7 +858,7 @@ THE LESSON THIS TASK PAID FOR, in the operator's own words: "stop trying random 
 
 ---
 
-RESUMED 2026-08-23 (this session) — /gsd-resume-work. Clean resume, nothing to recover: no HANDOFF.json, no `.continue-here`, no async-job manifest, no PLAN-without-SUMMARY. Tree clean at `cb032bc9`, `origin/main` level with HEAD (0 unpushed). `state_head: d610dbb7` is CORRECT and lagging by exactly one on purpose — cb032bc9 is the state commit that set it, and a state commit cannot reference itself. Do not "fix" it. Quick task 260823-65s (system tray capsule) is closed and operator-verified. v4.0 shipped 2026-08-17 and is archived; v5.0 still has no roadmap. One pending todo: `2026-08-23-steamwebhelper-crash-loop-on-nvidia-xwayland` — measured Steam-side (reproduces with no quickshell, no uwsm, no launcher), so it is not this repo's bug to fix. NOTED, NOT FIXED: PROJECT.md's "What This Is" and target-features prose still describe walker as the live launcher and still carries the "launcher stays / v5.0+ question" scope boundary — both were overtaken by quick task 260822-sht, which retired walker + elephant into native QML. That prose should be corrected when v5.0 is scoped. Awaiting operator direction — standing next step is `/gsd-review-backlog` then `/gsd-new-milestone`.
+RESUMED 2026-08-23 (this session) — /gsd-resume-work. Clean resume, nothing to recover: no HANDOFF.json, no `.continue-here`, no async-job manifest, no PLAN-without-SUMMARY. Tree clean at `cb032bc9`, `origin/main` level with HEAD (0 unpushed). `state_head: 9fbd4cea` is CORRECT and lagging by exactly one on purpose — cb032bc9 is the state commit that set it, and a state commit cannot reference itself. Do not "fix" it. Quick task 260823-65s (system tray capsule) is closed and operator-verified. v4.0 shipped 2026-08-17 and is archived; v5.0 still has no roadmap. One pending todo: `2026-08-23-steamwebhelper-crash-loop-on-nvidia-xwayland` — measured Steam-side (reproduces with no quickshell, no uwsm, no launcher), so it is not this repo's bug to fix. NOTED, NOT FIXED: PROJECT.md's "What This Is" and target-features prose still describe walker as the live launcher and still carries the "launcher stays / v5.0+ question" scope boundary — both were overtaken by quick task 260822-sht, which retired walker + elephant into native QML. That prose should be corrected when v5.0 is scoped. Awaiting operator direction — standing next step is `/gsd-review-backlog` then `/gsd-new-milestone`.
 
 ---
 
