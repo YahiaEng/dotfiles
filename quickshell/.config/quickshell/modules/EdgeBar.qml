@@ -90,6 +90,7 @@ import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import "dashboard"
+import "edgebarpath.js" as EdgeBarPath
 
 PanelWindow {
     id: edgeBarWindow
@@ -323,60 +324,14 @@ PanelWindow {
     readonly property real _xl: edgeBarWindow._cx - edgeBarWindow._wb / 2
     readonly property real _xr: edgeBarWindow._cx + edgeBarWindow._wb / 2
 
-    // Candidate arc centre for a minor (large-arc-flag=0) arc from
-    // (x1,y1) to (x2,y2) at the given radius, per the SVG endpoint-to-
-    // centre formula (spec F.6.5): `sweepPositive` selects which of the
-    // two valid centres (large-arc-flag != sweep-flag when true).
+    // ── The full strip outline (operator round 7 reshape; extracted to
+    //    `edgebarpath.js` in quick task 260824-ns3 Task 2, hazard 1/4) ────
+    // Built for edge="top" (depth=0 at the screen edge, material extending
+    // inward) and mirrored for edge="bottom"/"right". Walked CLOCKWISE in
+    // the along/depth coordinate system `edgebarpath.js` builds in, so the
+    // outward side of every convex corner is on the left of travel.
     //
-    // ── DOMAIN: 90-DEGREE ARCS ONLY (operator round 10, 2026-08-24) ─────
-    // F.6.5's offset from the chord midpoint is
-    //   sqrt((r^2 - d^2) / d^2) * (y1p, -x1p),   d^2 = x1p^2 + y1p^2
-    // and this function omits that scalar, i.e. it hardcodes it to 1. That
-    // is exact when d^2 = r^2/2 — a quarter-circle, chord = r*sqrt(2) —
-    // and wrong for every other sweep angle.
-    //
-    // Every fillet and bulge corner in `_outlinePath` is a quarter arc, so
-    // this held. The two pill caps were NOT: each was one 180-degree arc,
-    // for which the true centre is the chord midpoint (offset zero). With
-    // the scalar pinned at 1 the two candidates came out r to either side
-    // of that midpoint, so NEITHER matched the expected centre and
-    // `_shoulderSweep` fell through to its `: 0` branch — the INWARD
-    // direction. Measured on the live strip: the top edge's ends curved
-    // concave, biting 4px off the left and 6px off the right, while the
-    // bottom edge looked right purely because `Y()` mirrors the path and
-    // flips which flag means outward.
-    //
-    // The scalar is deliberately NOT added here. Adding it would be a
-    // floating-point change on four arcs that currently resolve exactly,
-    // and `_shoulderSweep` matches its expected centre to a 0.01
-    // tolerance — a wrong flag there silently inverts a fillet with no
-    // error anywhere. The caps are drawn as two quarter arcs each instead
-    // (see `_outlinePath`), which brings them inside this domain and lets
-    // the same verify-the-centre mechanism resolve them like everything
-    // else. If a non-quarter arc is ever genuinely needed, add the scalar
-    // AND re-verify all four existing arcs, in that order.
-    function _arcCentre(x1, y1, x2, y2, r, sweepPositive) {
-        var x1p = (x1 - x2) / 2, y1p = (y1 - y2) / 2;
-        var sign = sweepPositive ? 1 : -1;
-        return Qt.point(sign * y1p + (x1 + x2) / 2, -sign * x1p + (y1 + y2) / 2);
-    }
-
-    // Returns the sweep-flag (0 or 1) whose candidate centre matches the
-    // EXPECTED centre this geometry demands, rather than a hand-derived
-    // flag trusted blind — the same caution AttachedCorner.qml's own
-    // header names.
-    function _shoulderSweep(x1, y1, x2, y2, r, expectedCx, expectedCy) {
-        var c = edgeBarWindow._arcCentre(x1, y1, x2, y2, r, true);
-        return (Math.abs(c.x - expectedCx) < 0.01 && Math.abs(c.y - expectedCy) < 0.01) ? 1 : 0;
-    }
-
-    // ── The full strip outline (operator round 7 reshape) ───────────────
-    // Built for edge="top" (y=0 at the screen edge, material extending
-    // downward) and mirrored in y for edge="bottom". Walked CLOCKWISE in
-    // this y-down coordinate system, so the outward side of every convex
-    // corner is on the left of travel.
-    //
-    // The profile, left to right:
+    // The profile, along the strip:
     //   pill cap -> flat run -> concave fillet down into the bulge ->
     //   bulge side -> convex corner -> bulge face -> convex corner ->
     //   bulge side -> concave fillet back up -> flat run -> pill cap
@@ -386,68 +341,29 @@ PanelWindow {
     // the same width as the panel that spawns from it, so the closed bulge
     // reads as that panel's first few pixels already emerging.
     //
-    // EVERY arc's sweep flag is resolved by `_shoulderSweep`, which checks
-    // which flag actually produces the centre the geometry demands. None is
-    // hand-derived: the wrong flag silently selects the other geometrically
-    // valid centre for the same endpoints and radius, turning a concave
-    // fillet into a convex bulge (or vice versa) with no error anywhere.
-    readonly property string _outlinePath: {
-        var t = edgeBarWindow._t;          // flat run depth
-        var b = edgeBarWindow._b;          // bulge depth beyond the flat run
-        var re = edgeBarWindow._re;        // pill-cap radius (= t/2, a true semicircle)
-        var f = edgeBarWindow._f;          // concave shoulder fillet radius
-        var rc = edgeBarWindow._rc;        // convex bulge-corner radius
-        var ww = edgeBarWindow._ww;
-        var xl = edgeBarWindow._xl, xr = edgeBarWindow._xr;
-        var yb = t + b;                    // the bulge face
-        var S = edgeBarWindow._shoulderSweep;
-
-        var flip = edgeBarWindow.bottom;
-        // Mirror about the SURFACE depth, not `yb` (the painted depth).
+    // `edgebarpath.js`'s own `buildOutline()` resolves every arc's sweep
+    // flag by checking which flag actually produces the centre the
+    // geometry demands — see that file's own header for the full
+    // explanation (this is the single path implementation now; nothing
+    // here re-derives a sweep flag by hand).
+    readonly property string _outlinePath: EdgeBarPath.buildOutline({
+        t: edgeBarWindow._t,
+        b: edgeBarWindow._b,
+        re: edgeBarWindow._re,
+        f: edgeBarWindow._f,
+        rc: edgeBarWindow._rc,
+        along: edgeBarWindow._ww,
+        xl: edgeBarWindow._xl,
+        xr: edgeBarWindow._xr,
+        // Mirror about the SURFACE depth, not the painted depth (`t + b`).
         // They were equal until round 10 deepened the surface for the hover
-        // region; mirroring about `yb` would have pinned the bottom strip's
-        // paint to the TOP of its own surface, leaving it floating
-        // `_surfaceDepth - yb` px above the screen edge.
-        var h = edgeBarWindow._surfaceDepth;
-        function Y(v) {
-            return flip ? h - v : v;
-        }
-
-        // Clockwise. The OUTER edge (y=0, flush to the screen) is one
-        // straight run from cap to cap; the bulge is an excursion of the
-        // INNER face only.
-        var p = "M " + re + " " + Y(0);
-        p += " L " + (ww - re) + " " + Y(0);
-        // Right pill cap, as TWO quarter arcs through the cap's outermost
-        // point (ww, t/2) rather than one 180-degree arc — see
-        // `_arcCentre`'s domain note for why the single-arc form could not
-        // have its sweep flag resolved and silently drew inward.
-        // PRECONDITION, and it is the token pair's own contract: this is a
-        // true semicircle only while `edgeBarEndRadius == thickness / 2`,
-        // which is exactly what Design.qml declares it as. If they ever
-        // diverge, the two endpoints below stop lying on the cap circle at
-        // all and the shape is ill-defined in either arc form.
-        p += " A " + re + " " + re + " 0 0 " + S(ww - re, Y(0), ww, Y(re), re, ww - re, Y(re)) + " " + ww + " " + Y(re);
-        p += " A " + re + " " + re + " 0 0 " + S(ww, Y(re), ww - re, Y(t), re, ww - re, Y(re)) + " " + (ww - re) + " " + Y(t);
-        // Inner face leftward to the right shoulder.
-        p += " L " + (xr + f) + " " + Y(t);
-        // Concave fillet down into the bulge's right side.
-        p += " A " + f + " " + f + " 0 0 " + S(xr + f, Y(t), xr, Y(t + f), f, xr + f, Y(t + f)) + " " + xr + " " + Y(t + f);
-        p += " L " + xr + " " + Y(yb - rc);
-        // Convex corner, bulge face, convex corner.
-        p += " A " + rc + " " + rc + " 0 0 " + S(xr, Y(yb - rc), xr - rc, Y(yb), rc, xr - rc, Y(yb - rc)) + " " + (xr - rc) + " " + Y(yb);
-        p += " L " + (xl + rc) + " " + Y(yb);
-        p += " A " + rc + " " + rc + " 0 0 " + S(xl + rc, Y(yb), xl, Y(yb - rc), rc, xl + rc, Y(yb - rc)) + " " + xl + " " + Y(yb - rc);
-        // Up the bulge's left side, concave fillet back to the flat run.
-        p += " L " + xl + " " + Y(t + f);
-        p += " A " + f + " " + f + " 0 0 " + S(xl, Y(t + f), xl - f, Y(t), f, xl - f, Y(t + f)) + " " + (xl - f) + " " + Y(t);
-        // Inner face onward to the left cap.
-        p += " L " + re + " " + Y(t);
-        // Left pill cap, same two-quarter-arc construction as the right.
-        p += " A " + re + " " + re + " 0 0 " + S(re, Y(t), 0, Y(re), re, re, Y(re)) + " 0 " + Y(re);
-        p += " A " + re + " " + re + " 0 0 " + S(0, Y(re), re, Y(0), re, re, Y(re)) + " " + re + " " + Y(0);
-        return p + " Z";
-    }
+        // region; mirroring about the painted depth would have pinned the
+        // bottom strip's paint to the TOP of its own surface, leaving it
+        // floating `_surfaceDepth - (t+b)` px above the screen edge.
+        surfaceDepth: edgeBarWindow._surfaceDepth,
+        flip: edgeBarWindow.bottom,
+        axis: "horizontal"
+    })
 
     Shape {
         anchors.fill: parent
