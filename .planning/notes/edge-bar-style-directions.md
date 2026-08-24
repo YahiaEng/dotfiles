@@ -1,7 +1,7 @@
 # Edge bar style directions — design brief
 
-**Status:** APPROVED FOR IMPLEMENTATION, zero code written.
-**Decided:** 2026-08-24, operator.
+**Status:** APPROVED FOR IMPLEMENTATION, **all questions settled**, zero code written.
+**Decided:** 2026-08-24, operator. Q1/Q3 settled first pass; Q2/Q3-per-style/Q4 settled on resume.
 **Source of truth for the shapes:** the design study artifact —
 https://claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789
 (local copy of the page source: `/tmp/claude-1000/-home-aorus-dotfiles/19342790-4823-4fd7-9d1f-2b3f513786f5/scratchpad/edge-rail-studies.html` — **ephemeral**, re-read the artifact URL instead.)
@@ -114,37 +114,77 @@ survive."* Remove it. The picker is exactly **off · Continuous · Brackets · S
   corner 1), and the reversed-entrance dismiss. Continuous and Segmented inherit all of it
   directly; Brackets and Halo inherit the vocabulary but not the bulge geometry.
 
-**Q3 — Does `edgeBar.animatedBulge` need a per-style answer? → YES.** Operator confirmed:
-*"yes we will need a per style answer."* Still to be answered per style — this is confirmed IN
-SCOPE, not yet resolved. The shapes as drawn in the study imply, but do not settle:
+**Q3 — Does `edgeBar.animatedBulge` need a per-style answer? → YES, and all four are now
+answered (operator, 2026-08-24).** Original confirmation: *"yes we will need a per style answer."*
 
-  | Style | Bulge in the study | Question to answer |
-  |---|---|---|
-  | Continuous | yes, top + bottom | swell as today, or hold permanently since the frame is closed? |
-  | Segmented | yes, overlaying the segments | does the bulge fight the segments? one may have to yield |
-  | Brackets | **none drawn** | is there any hover landmark at all, or does hover move to the corners? |
-  | Halo | yes, and it is the ONLY landmark at 2px | must the swell be forced ON here? |
+| Style | Bulge behaviour | Toggle in Settings |
+|---|---|---|
+| Continuous | swells on hover/open exactly as today | **visible**, default ON |
+| Segmented | swells; segments inside the bulge span **merge into one solid run** | **visible**, default ON |
+| Brackets | **no bulge at all**; the L arms extend toward the centre on hover | **hidden** — nothing to animate |
+| Halo | swells 2 → 12; toggle OFF = permanent static bulge at full depth | **visible**, default ON |
 
-  Decide whether the toggle applies per style, is forced per style, or is hidden per style.
+  **Continuous** keeps round 11's behaviour untouched — the operator judged it live and approved it,
+  and Continuous inherits the whole round 7-11 vocabulary, so the shape it already signed off on is
+  the shape it ships with.
+
+  **Segmented** — the bulge wins, the segments yield. Segments falling inside the bulge's 760px span
+  collapse into the bulge's own continuous silhouette; segments outside stay separate. The reason is
+  the thesis itself: an attachment root cannot have gaps in it, or the `AttachedCorner` flare has
+  nothing to weld to and the one-silhouette effect breaks at exactly the joint it exists to hide.
+
+  **Brackets** — no bulge is drawn, and **panels do not attach on this style**. The study's own table
+  scores Brackets `0 direct` rails-with-a-panel; that is a property of the shape, not a gap in the
+  drawing. The dashboard and launcher open unattached, as they do in `off` mode — no flare, no weld,
+  no rim clipping. The hover landmark moves to the corners: the L arms extend toward the centre.
+  Grafting a centre bulge onto Brackets was offered and declined; so was growing the arms until they
+  meet (which would make Brackets a resting state of Continuous rather than its own shape).
+
+  **Halo** — the toggle behaves as on every other style rather than being forced. Note what OFF means
+  here and do not implement it as "no bulge": `animatedBulge: false` is the *static permanent bulge*
+  (D-3's original), so Halo with the toggle off is a 2px hairline frame plus two fixed 12px masses —
+  still a landmark, just a motionless one. It is a legitimate state, not a dead one.
 
 ---
 
-## STILL OPEN — settle at the top of the implementation task, do not settle silently
+## DECIDED — Q2 and Q4, settled by the operator 2026-08-24
 
-**Q2 — Key shape.** `edgeBar.enabled` (bool) already exists, is allow-listed in `Prefs.qml` with
-a default of `true`, and `shell.qml` resolves it once into `root.edgeBarEnabled` which BOTH
-`EdgeBar` instances and `Launcher.qml`'s direction branch read (D-5). Options:
-(a) add `edgeBar.style` string with "off" as a value and retire the bool;
-(b) keep the bool as a master and add the style beneath it.
-(a) is cleaner, but the bool is load-bearing for the launcher's direction branch — that branch
-must follow **"is any rail present"**, not "is the style non-off", or R3 breaks.
+**Q2 — Key shape. → A single `edgeBar.style` string; the bool is retired.**
+`edgeBar.style` takes `"continuous" | "brackets" | "segmented" | "halo" | "off"`, allow-listed in
+`Prefs.qml`. The `edgeBar.enabled` bool goes away as a stored key.
 
-**Q4 — Default style, and what `edgeBar.enabled: true` migrates to.** Created by Q1's answer.
-Every existing install (including this host) currently holds `edgeBar.enabled: true`, which
-renders a shape that will no longer exist. That value has to land somewhere.
-**Recommendation: Continuous.** It was the study's recommendation, it is the only direction where
+  **The load-bearing detail that must not be lost.** `Launcher.qml`'s direction branch (D-5) reads a
+  boolean today, and it must keep following **"is any rail present"**, never "is the style non-off".
+  Those are the same predicate right now — all four shapes render a rail — but they are not the same
+  question, and R3 breaks if a future style renders nothing while still being non-off. So `shell.qml`
+  resolves the style once and derives an explicit intermediate:
+
+  ```
+  readonly property string edgeBarStyle       : Prefs.get("edgeBar.style")
+  readonly property bool   edgeBarRailPresent : edgeBarStyle !== "off"   // ← the predicate
+  ```
+
+  `Launcher.qml` reads `edgeBarRailPresent`. It must NOT read `edgeBarStyle`.
+  Settings gets one `SelectRow` with five entries — no switch, no greyed-out row, and no reachable
+  `enabled:false + style:halo` dead state.
+
+**Q4 — Default style, and the migration target for `edgeBar.enabled: true`. → Continuous.**
+Default is `"continuous"`; any stored `edgeBar.enabled: true` migrates to `style: "continuous"`, and
+`false` migrates to `"off"`. It was the study's own recommendation, it is the only direction where
 every edge does a job, and at 12px (6 + 6) it costs exactly what Two Rails cost — so the migration
-does not silently change how much screen the operator loses. **Ask before assuming it.**
+does not silently change how much screen the operator loses.
+
+  **Accepted cost, stated up front: this reverses D-2.** Task 7's acceptance evidence was that
+  `Bar.qml` appears in NO commit of this task; Continuous requires the bar and the rail to share one
+  silhouette, so `Bar.qml` must change. Record it as a deliberate reversal exactly the way D-3's was
+  in round 11 — not as a deviation discovered mid-execution.
+
+---
+
+## Nothing is open. Implementation scope is fully defined.
+
+Q1 · Q2 · Q3 (all four styles) · Q4 are settled and quoted above. No question remains to be asked
+before code is written.
 
 ---
 
@@ -164,10 +204,11 @@ does not silently change how much screen the operator loses. **Ask before assumi
 4. **`_arcCentre` in `EdgeBar.qml` is valid for 90° arcs ONLY.** It hardcodes SVG F.6.5's offset
    scalar to 1. Any new arc that is not a quarter circle will silently resolve to the wrong sweep
    flag and curve inward. The function carries a full note; read it before adding an arc.
-5. **Continuous breaks D-2.** Task 7's own acceptance evidence was that `Bar.qml` appears in NO
-   commit of this task. Continuous requires the bar and the rail to share a shape. That is a
-   deliberate reversal of D-2 and must be recorded as one, exactly as D-3's reversal was in
-   round 11.
+5. **Continuous breaks D-2, and Continuous is now the DEFAULT** (Q4), so this is not a
+   conditional hazard — it fires on the first install. Task 7's own acceptance evidence was that
+   `Bar.qml` appears in NO commit of this task. Continuous requires the bar and the rail to share a
+   shape. Record it as a deliberate reversal of D-2, exactly as D-3's reversal was recorded in
+   round 11 — not as a mid-execution deviation.
 6. **Reservation is `margins.<anchored-edge> + exclusiveZone`.** Only the flat run may contribute.
    Left/right rails will each add their own reservation — Halo's four 2px edges cost 8px total,
    Brackets can cost **0** if the corners overhang entirely.
@@ -207,4 +248,5 @@ CHECK A reports it dangling — which it correctly did during round 9.
 | `quickshell/.config/quickshell/shell.qml` | style resolution point, instance mounting per style |
 | `quickshell/.config/quickshell/modules/Prefs.qml` | allow-list + default for the style key |
 | `quickshell/.config/quickshell/modules/settings/pages/BarPage.qml` | the picker row (`SelectRow`, not `ToggleRow`) |
-| `quickshell/.config/quickshell/modules/Bar.qml` | **Continuous only** — and this reverses D-2 |
+| `quickshell/.config/quickshell/modules/Bar.qml` | **Continuous only** — but Continuous is the default, so this WILL be touched; reverses D-2 |
+| `quickshell/.config/quickshell/modules/launcher/Launcher.qml` | direction branch must read `edgeBarRailPresent`, not the style string (Q2) |

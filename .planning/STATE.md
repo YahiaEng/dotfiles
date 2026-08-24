@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "EDGE BAR STYLE PICKER APPROVED, ZERO CODE WRITTEN — off/Continuous/Brackets/Segmented/Halo. Two Rails REMOVED by operator decision. animatedBulge needs a per-style answer (in scope, unresolved). Q2 (key shape) and Q4 (default + migration for edgeBar.enabled:true) still open. Brief at .planning/notes/edge-bar-style-directions.md; shapes source of truth is claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789."
-last_updated: "2026-08-24T09:40:00.000Z"
+stopped_at: "EDGE BAR STYLE PICKER FULLY SPECIFIED, ZERO CODE WRITTEN. All four open questions settled on resume: Q2 = single edgeBar.style string (bool retired, Launcher.qml reads a derived edgeBarRailPresent); Q4 = default and migration target is Continuous, which REVERSES D-2 (Bar.qml must change); Q3 per-style = Continuous unchanged, Segmented merges segments under the bulge, Brackets has no bulge and panels do not attach, Halo keeps the ordinary toggle. Nothing left to ask. Brief at .planning/notes/edge-bar-style-directions.md; shapes source of truth is claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789. NEXT: /gsd-quick against the brief."
+last_updated: "2026-08-24T14:05:00.000Z"
 last_activity: 2026-08-24
 last_activity_desc: "quick task 260823-9ak rounds 9-11 shipped and operator-approved (reversed-entrance dismiss, pill-cap fix, hover target decoupled, animated bulge reversing D-3); then a seven-direction edge bar design study was published and the operator chose FOUR shapes plus off to implement as a style picker. Zero implementation code written."
-state_head: 6983d3e2
+state_head: d610dbb7
 progress:
   total_phases: 6
   completed_phases: 6
@@ -740,6 +740,22 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
+RESUMED 2026-08-24 — /gsd-resume-work. Clean resume: no HANDOFF.json, no `.continue-here`, no async-job manifest, no PLAN-without-SUMMARY, no interrupted agent. Tree clean at `d610dbb7`, 0 unpushed. **`state_head` was 29 commits stale** (`6983d3e2`, last repointed at the tray task) — this is NOT the deliberate one-commit lag a previous entry described; it has been repointed to `d610dbb7`.
+
+**THE EDGE BAR STYLE PICKER IS NOW FULLY SPECIFIED. Still zero implementation code.** All four questions the previous session left open were put to the operator and answered. Do not re-open any of them; the brief carries each answer with its quote and its consequence.
+
+  **Q2 → a single `edgeBar.style` string. The bool is retired.** Values `"continuous" | "brackets" | "segmented" | "halo" | "off"`, allow-listed in `Prefs.qml`, one `SelectRow` in Settings with five entries. THE DETAIL THAT MUST SURVIVE: `Launcher.qml`'s direction branch (D-5) must keep following **"is any rail present"**, NOT "is the style non-off". `shell.qml` resolves the style once and derives `edgeBarRailPresent` explicitly; the launcher reads that derived bool and must never read the style string. The two predicates coincide today and are not the same question.
+
+  **Q4 → default and migration target is Continuous.** `enabled: true` migrates to `"continuous"`, `false` to `"off"`. Chosen because it was the study's own pick, it is the only direction where every edge does a job, and at 12px it costs exactly what Two Rails cost — so the migration does not silently change how much screen is lost. **ACCEPTED COST, NOT A SURPRISE: this REVERSES D-2.** Task 7's acceptance evidence was that `Bar.qml` appears in no commit of this task; Continuous welds bar and rail into one silhouette. Because Continuous is the *default*, this fires on first install — it is not a conditional hazard. Record the reversal deliberately, the way D-3's was in round 11, not as a mid-execution deviation.
+
+  **Q3 → answered for all four styles.** Continuous: toggle visible, default ON, behaviour byte-identical to round 11 (the operator judged that live and approved it). Segmented: the bulge wins — segments inside its 760px span MERGE into one solid run, because an attachment root cannot have gaps or the `AttachedCorner` flare has nothing to weld to. Brackets: **no bulge at all, and panels do not attach on this style** — the study's table scores it `0 direct` and that is the shape's property, not a gap in the drawing; panels open unattached as in `off`, and the hover landmark is the L arms extending toward the centre. Two alternatives were offered and declined: grafting a centre bulge on, and growing the arms until they meet (which would make Brackets a resting state of Continuous). Halo: the ordinary toggle applies rather than being forced — and note what OFF means, because implementing it as "no bulge" would be wrong: `animatedBulge: false` is the *static permanent bulge*, so Halo+off is a 2px hairline frame plus two fixed 12px masses. A landmark, just a motionless one.
+
+  **STILL TRUE AND STILL THE FIRST THINGS TO BITE:** `EdgeBar.qml` is HORIZONTAL-ONLY (`_outlinePath` is x-major throughout) so Halo and Brackets need a second path builder, not a parameter flip; and `_arcCentre` is valid for 90° arcs ONLY — it hardcodes SVG F.6.5's offset scalar to 1, and any non-quarter arc silently resolves to the wrong sweep flag and curves inward, which is exactly the round-10 pill-cap bug. Eight more hazards are in the brief, all already paid for.
+
+Resume file: None. NEXT ACTION: `/gsd-quick` against `.planning/notes/edge-bar-style-directions.md`.
+
+---
+
 PAUSED 2026-08-24 — EDGE BAR STYLE PICKER APPROVED, **ZERO CODE WRITTEN**. Context cleared at operator request.
 
 READ FIRST ON RESUME: `.planning/notes/edge-bar-style-directions.md`. It is the complete brief — the five shapes with their exact geometry constants, the attachment-map thesis they were chosen against, three OPEN QUESTIONS that must be settled out loud rather than silently, ten implementation hazards this task already paid for, and the file list.
@@ -806,7 +822,7 @@ THE LESSON THIS TASK PAID FOR, in the operator's own words: "stop trying random 
 
 ---
 
-RESUMED 2026-08-23 (this session) — /gsd-resume-work. Clean resume, nothing to recover: no HANDOFF.json, no `.continue-here`, no async-job manifest, no PLAN-without-SUMMARY. Tree clean at `cb032bc9`, `origin/main` level with HEAD (0 unpushed). `state_head: 6983d3e2` is CORRECT and lagging by exactly one on purpose — cb032bc9 is the state commit that set it, and a state commit cannot reference itself. Do not "fix" it. Quick task 260823-65s (system tray capsule) is closed and operator-verified. v4.0 shipped 2026-08-17 and is archived; v5.0 still has no roadmap. One pending todo: `2026-08-23-steamwebhelper-crash-loop-on-nvidia-xwayland` — measured Steam-side (reproduces with no quickshell, no uwsm, no launcher), so it is not this repo's bug to fix. NOTED, NOT FIXED: PROJECT.md's "What This Is" and target-features prose still describe walker as the live launcher and still carries the "launcher stays / v5.0+ question" scope boundary — both were overtaken by quick task 260822-sht, which retired walker + elephant into native QML. That prose should be corrected when v5.0 is scoped. Awaiting operator direction — standing next step is `/gsd-review-backlog` then `/gsd-new-milestone`.
+RESUMED 2026-08-23 (this session) — /gsd-resume-work. Clean resume, nothing to recover: no HANDOFF.json, no `.continue-here`, no async-job manifest, no PLAN-without-SUMMARY. Tree clean at `cb032bc9`, `origin/main` level with HEAD (0 unpushed). `state_head: d610dbb7` is CORRECT and lagging by exactly one on purpose — cb032bc9 is the state commit that set it, and a state commit cannot reference itself. Do not "fix" it. Quick task 260823-65s (system tray capsule) is closed and operator-verified. v4.0 shipped 2026-08-17 and is archived; v5.0 still has no roadmap. One pending todo: `2026-08-23-steamwebhelper-crash-loop-on-nvidia-xwayland` — measured Steam-side (reproduces with no quickshell, no uwsm, no launcher), so it is not this repo's bug to fix. NOTED, NOT FIXED: PROJECT.md's "What This Is" and target-features prose still describe walker as the live launcher and still carries the "launcher stays / v5.0+ question" scope boundary — both were overtaken by quick task 260822-sht, which retired walker + elephant into native QML. That prose should be corrected when v5.0 is scoped. Awaiting operator direction — standing next step is `/gsd-review-backlog` then `/gsd-new-milestone`.
 
 ---
 
