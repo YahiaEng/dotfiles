@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "QUICK TASK 260823-65s COMPLETE — system tray capsule shipped and operator-verified. Steam now closes through its own tray menu, the fault the todo was filed for. Two bug classes (icon theming, popout menu) were each closed WRONGLY several times on unmeasured assertions while the full gate suite stayed green — neither failure mode writes to a log. Items 6 (onlyMenu) stays UNPROVEN: no menu-only tray app exists on this host."
-last_updated: "2026-08-23T15:40:00.000Z"
-last_activity: 2026-08-23
-last_activity_desc: "quick task 260823-9ak in progress (Task 7 human-verify OPEN); prior: quick task 260823-65s complete: the system tray capability, deliberately dropped in 18.1 D-15 and absent since waybar was retired, is back as a native QML capsule — SNI host, 3-item inline row + overflow popout, DBusMenu context menus, a tri-state icon tint, and a D-5 exclusion for the two applets that duplicate the connections capsule. Ten code commits across nine operator feedback rounds."
+stopped_at: "EDGE BAR STYLE PICKER APPROVED, ZERO CODE WRITTEN — Continuous/Brackets/Segmented/Halo/off. Brief at .planning/notes/edge-bar-style-directions.md; shapes source of truth is the published study at claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789. Three open questions must be settled out loud before building."
+last_updated: "2026-08-24T09:10:00.000Z"
+last_activity: 2026-08-24
+last_activity_desc: "quick task 260823-9ak rounds 9-11 shipped and operator-approved (reversed-entrance dismiss, pill-cap fix, hover target decoupled, animated bulge reversing D-3); then a seven-direction edge bar design study was published and the operator chose FOUR shapes plus off to implement as a style picker. Zero implementation code written."
 state_head: 6983d3e2
 progress:
   total_phases: 6
@@ -739,6 +739,28 @@ after a real session restart — was `deferred-items.md` item 0) and 16-05/D5
 synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
+
+PAUSED 2026-08-24 — EDGE BAR STYLE PICKER APPROVED, **ZERO CODE WRITTEN**. Context cleared at operator request.
+
+READ FIRST ON RESUME: `.planning/notes/edge-bar-style-directions.md`. It is the complete brief — the five shapes with their exact geometry constants, the attachment-map thesis they were chosen against, three OPEN QUESTIONS that must be settled out loud rather than silently, ten implementation hazards this task already paid for, and the file list.
+
+THE SHAPES' SOURCE OF TRUTH IS A PUBLISHED PAGE, not prose: https://claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789 — the operator named it as such ("use the webpage you created as the source of truth"). Re-read it before drawing anything; the scratchpad copy of its source is ephemeral.
+
+WHAT WAS DECIDED: ship a style PICKER, not a toggle — **Continuous, Brackets, Segmented, Halo, plus off**. `Closed Frame` and `Three Rails` were shown and explicitly NOT chosen; do not reintroduce them. Whether the currently-shipped `Two Rails` survives as a sixth option is OPEN QUESTION 1 and the operator has not answered it — it is the approved, verified, default shape today, so ASK rather than dropping it.
+
+THE THESIS THAT PICKED THESE, worth not relearning: a rail here is an ATTACHMENT ROOT, not a border — the bulge is sized to exactly the panel that spawns from it (760 = dashboard, 640 = launcher, shared tokens) and a flare welds the two into one silhouette. Measured attachment map: top = dashboard, bottom = launcher, right = the bar AND the notification centre's slide-in edge (established by reading which margin it animates, not guessed), left = NOTHING. Closed and Three Rails lost because both buy symmetry with a dead left edge. Also corrected and worth keeping: Caelestia has NO four-edge frame — `.planning/research/FEATURES.md:15` sources it as one vertical right-edge bar — so the house "Caelestia is the tiebreaker" rule gives no cover here.
+
+TWO HAZARDS THAT WILL BITE FIRST, of the ten in the note: `EdgeBar.qml` is HORIZONTAL-ONLY — `_outlinePath` is x-major throughout, so Halo and Brackets need vertical runs and that is a second path builder, not a parameter flip. And `_arcCentre` is valid for 90-degree arcs ONLY (it hardcodes SVG F.6.5's offset scalar to 1); any non-quarter arc silently resolves to the wrong sweep flag and curves inward, which is exactly the round-10 pill-cap bug.
+
+CONTINUOUS REVERSES D-2. Task 7's own acceptance evidence was that `Bar.qml` appears in NO commit of this task; Continuous requires the bar and rail to share a shape. Record it as a deliberate reversal the way D-3's was in round 11.
+
+WHERE ROUNDS 9-11 LEFT THE CODE, all shipped, pushed and operator-approved: reversed-entrance dismiss on the launcher and drawer (and the finding underneath it — Super+Space/Super-tap/Super+D had NO dismiss animation at all, every toggle-off wrote `loader.active = false` directly); the top strip's pill caps fixed from concave to convex; the hover target decoupled from the paint into `edgeBarHoverDepth: 16`; and the animated bulge behind `edgeBar.animatedBulge` (default ON), which REVERSED D-3. Operator's verdict on all of it: "The implementation is solid and the hover as well."
+
+STILL OPEN FROM TASK 7, unchanged and still needing the operator: the hover-dwell walk (no pointer-injection tool exists on this host — ydotool/wlrctl/dotool/xdotool all absent), visual sign-off on the round-11 trial, and the menu surface still measured only in APP mode for the entrance.
+
+Resume file: None (no HANDOFF.json — nothing was mid-flight, the tree is clean and pushed).
+
+---
 
 CLOSED 2026-08-23 — quick task 260823-65s (system tray capsule) complete and operator-verified. Ten code commits `af0559e5..b46fef61`, docs commit follows. Steam closes through its own tray menu again — the originating fault.
 

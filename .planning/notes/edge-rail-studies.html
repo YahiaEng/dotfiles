@@ -1,0 +1,712 @@
+<title>Edge Rail Studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..800;1,62..125,400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  /* Page identity — violet-biased neutrals, chosen to sit under the shell's
+     own Dracula accent triad without competing with it. */
+  --ground:#f4f3f8;
+  --panel:#ffffff;
+  --panel-2:#eceaf3;
+  --ink:#1c1b26;
+  --ink-2:#4a4760;
+  --muted:#6e6a85;
+  --line:rgba(28,27,38,.14);
+  --line-strong:rgba(28,27,38,.30);
+  --accent:#6437c4;
+  --accent-soft:rgba(100,55,196,.10);
+  --shadow:0 1px 2px rgba(28,27,38,.05),0 12px 32px -18px rgba(28,27,38,.35);
+
+  /* The desktop's real palette. These are literal — the desktop is dark in
+     every theme, so the mockups do not follow the page theme. */
+  --dsk-surface:#282a36;
+  --dsk-deep:#1d1f28;
+  --dsk-win:#31333f;
+  --dsk-outline:#6272a4;
+  --dsk-pink:#ff79c6;
+  --dsk-violet:#bd93f9;
+  --dsk-cyan:#8be9fd;
+  --dsk-text:#f8f8f2;
+
+  --plate-w:100%;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#121119;
+    --panel:#1a1926;
+    --panel-2:#232235;
+    --ink:#eeecf7;
+    --ink-2:#c2bed6;
+    --muted:#948fae;
+    --line:rgba(238,236,247,.13);
+    --line-strong:rgba(238,236,247,.28);
+    --accent:#bd93f9;
+    --accent-soft:rgba(189,147,249,.13);
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -22px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#121119;
+  --panel:#1a1926;
+  --panel-2:#232235;
+  --ink:#eeecf7;
+  --ink-2:#c2bed6;
+  --muted:#948fae;
+  --line:rgba(238,236,247,.13);
+  --line-strong:rgba(238,236,247,.28);
+  --accent:#bd93f9;
+  --accent-soft:rgba(189,147,249,.13);
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 16px 40px -22px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Archivo","Helvetica Neue",Arial,sans-serif;
+  font-variation-settings:"wdth" 100;
+  font-size:16.5px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+
+h1,h2,h3,.tt{
+  font-family:"Archivo","Helvetica Neue",Arial,sans-serif;
+  font-variation-settings:"wdth" 118;
+  text-wrap:balance;
+  margin:0;
+}
+h1{font-size:clamp(2.3rem,5.4vw,3.9rem);font-weight:800;line-height:1.02;letter-spacing:-.022em}
+h2{font-size:clamp(1.45rem,2.7vw,2rem);font-weight:700;line-height:1.12;letter-spacing:-.015em}
+h3{font-size:1.12rem;font-weight:700;line-height:1.25;letter-spacing:-.008em}
+
+.mono,code,.spec dt,.tag,.eyebrow,.plate-id,th{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.eyebrow{
+  font-size:.685rem;font-weight:600;letter-spacing:.19em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--line);min-width:24px}
+
+/* ---------- masthead ---------- */
+header.mast{padding:64px 0 40px;border-bottom:1px solid var(--line)}
+.stand{
+  font-size:1.18rem;line-height:1.55;color:var(--ink-2);max-width:63ch;margin:22px 0 0;
+}
+.stand strong{color:var(--ink);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:"IBM Plex Mono",monospace;font-size:.72rem;
+  padding:5px 10px;border:1px solid var(--line);border-radius:999px;color:var(--ink-2);
+  background:var(--panel);
+}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+/* ---------- generic section ---------- */
+section{padding:56px 0;border-bottom:1px solid var(--line)}
+.lede{color:var(--ink-2);max-width:65ch;margin:14px 0 0}
+.lede + .lede{margin-top:12px}
+
+/* ---------- hero mockup ---------- */
+.hero-frame{
+  margin-top:30px;border-radius:var(--r);overflow:hidden;
+  border:1px solid var(--line-strong);box-shadow:var(--shadow);background:var(--dsk-deep);
+}
+.hero-frame svg{display:block;width:100%;height:auto}
+.caption{
+  display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;
+  font-family:"IBM Plex Mono",monospace;font-size:.735rem;color:var(--muted);
+  margin-top:12px;
+}
+.caption b{color:var(--ink-2);font-weight:500}
+
+/* ---------- attachment map ---------- */
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:28px}
+.edge{
+  border:1px solid var(--line);border-radius:12px;padding:16px 17px;background:var(--panel);
+  position:relative;overflow:hidden;
+}
+.edge::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--edge-c,var(--line-strong))}
+.edge h3{margin-bottom:3px}
+.edge .who{font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--ink-2);margin:8px 0 0}
+.edge .verdict{
+  font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
+  margin-top:11px;padding-top:10px;border-top:1px dashed var(--line);color:var(--muted);
+}
+.edge .verdict b{color:var(--edge-c,var(--ink));font-weight:600}
+
+/* ---------- state control ---------- */
+.controls{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  margin:0 0 26px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;
+  background:var(--panel);
+}
+.controls .lbl{
+  font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin-right:4px;
+}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden}
+.seg button{
+  font-family:"IBM Plex Mono",monospace;font-size:.75rem;
+  padding:7px 14px;border:0;background:transparent;color:var(--ink-2);cursor:pointer;
+  border-right:1px solid var(--line);
+}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--panel)}
+:root[data-theme="dark"] .seg button[aria-pressed="true"],
+.seg button[aria-pressed="true"]{color:#14121c}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.hint{font-size:.79rem;color:var(--muted);margin-left:auto}
+
+/* ---------- plates ---------- */
+.plates{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:20px}
+@media(max-width:900px){.plates{grid-template-columns:1fr}}
+.plate{
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);
+  overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);
+}
+.plate.is-current{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+.plate .art{background:var(--dsk-deep);border-bottom:1px solid var(--line)}
+.plate .art svg{display:block;width:100%;height:auto}
+.plate .body{padding:18px 19px 19px;display:flex;flex-direction:column;gap:11px;flex:1}
+.plate-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.plate-id{
+  font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);border-radius:5px;padding:2px 7px;
+}
+.plate.is-current .plate-id{color:var(--accent);border-color:var(--accent)}
+.thesis{color:var(--ink-2);margin:0;font-size:.95rem}
+.spec{
+  display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:2px 0 0;
+  font-size:.775rem;
+}
+.spec dt{color:var(--muted);font-size:.685rem;letter-spacing:.07em;text-transform:uppercase;padding-top:2px}
+.spec dd{margin:0;color:var(--ink-2)}
+.tradeoff{
+  margin:auto 0 0;padding-top:12px;border-top:1px dashed var(--line);
+  font-size:.85rem;color:var(--ink-2);
+}
+.tradeoff b{
+  font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;font-weight:600;
+}
+
+/* ---------- matrix ---------- */
+.tablewrap{overflow-x:auto;margin-top:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:.85rem}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+th{
+  font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+  font-weight:600;background:var(--panel-2);position:sticky;top:0;
+}
+tbody tr:last-child td{border-bottom:0}
+td.name{font-weight:600;color:var(--ink);white-space:nowrap}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+tr.hi td{background:var(--accent-soft)}
+
+/* ---------- recommendation ---------- */
+.rec{
+  border:1px solid var(--accent);border-radius:var(--r);padding:26px 28px;
+  background:var(--accent-soft);margin-top:26px;
+}
+.rec h3{margin-bottom:8px}
+.rec p{margin:0 0 12px;color:var(--ink-2);max-width:66ch}
+.rec p:last-child{margin-bottom:0}
+.rec .pick{
+  font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);font-weight:600;
+}
+.ol{counter-reset:s;list-style:none;padding:0;margin:16px 0 0;display:grid;gap:10px}
+.ol li{
+  position:relative;padding-left:30px;color:var(--ink-2);font-size:.93rem;
+}
+.ol li::before{
+  counter-increment:s;content:counter(s);
+  position:absolute;left:0;top:1px;
+  font-family:"IBM Plex Mono",monospace;font-size:.68rem;font-weight:600;
+  width:20px;height:20px;border-radius:5px;display:grid;place-items:center;
+  background:var(--accent);color:var(--ground);
+}
+
+footer{padding:44px 0 72px;color:var(--muted);font-size:.8rem}
+footer p{max-width:70ch;margin:0 0 8px}
+footer code{font-size:.95em;color:var(--ink-2)}
+
+/* svg helpers */
+.swell{transition:transform .22s cubic-bezier(.2,0,0,1);transform-origin:center}
+@media(prefers-reduced-motion:reduce){
+  .swell{transition:none}
+  *{scroll-behavior:auto!important}
+}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Quickshell · edge bar · design study</p>
+  <h1>Edge Rail Studies</h1>
+  <p class="stand">
+    Seven directions for the strips that frame the screen — drawn to the real geometry
+    of your live session, not to taste. The useful question turns out not to be
+    <em>how many edges</em>. It is <strong>which edges have something to attach to.</strong>
+  </p>
+  <div class="chips">
+    <span class="chip"><i class="sw" style="background:#ff79c6"></i>primary</span>
+    <span class="chip"><i class="sw" style="background:#bd93f9"></i>secondary</span>
+    <span class="chip"><i class="sw" style="background:#8be9fd"></i>tertiary</span>
+    <span class="chip">theme dracula</span>
+    <span class="chip">1920 × 1080</span>
+    <span class="chip">reserved [0, 6, 50, 6]</span>
+  </div>
+</header>
+
+<section>
+  <p class="eyebrow">Where you are now</p>
+  <h2>Two rails, 6px, inset ten</h2>
+  <p class="lede">
+    This is the current build drawn to scale — every measurement below came out of
+    <code class="mono">hyprctl</code> and pixel dumps during this session. Hover the mockup
+    to fire the swell you just shipped.
+  </p>
+  <div class="hero-frame" id="hero"></div>
+  <p class="caption">
+    <b>strips</b> x 10 → 1860 · 6px flat &nbsp;·&nbsp;
+    <b>surface</b> 16px deep &nbsp;·&nbsp;
+    <b>swell</b> 0 → 10px over 200ms &nbsp;·&nbsp;
+    <b>bar</b> 44px, floating right &nbsp;·&nbsp;
+    <b>reserves</b> top 6, right 50, bottom 6
+  </p>
+</section>
+
+<section>
+  <p class="eyebrow">The thesis</p>
+  <h2>A rail is an attachment root, not a border</h2>
+  <p class="lede">
+    In most rices a screen frame is decoration. In yours it is structural: each strip is
+    the thing a panel grows out of, with the bulge sized to exactly the panel that spawns
+    from it and an <code class="mono">AttachedCorner</code> flare welding the two into one
+    silhouette. That is why the bulge is 760 wide on top and 640 on the bottom — those are
+    the dashboard and launcher widths, read from shared tokens.
+  </p>
+  <p class="lede">
+    So before choosing a shape, it is worth knowing what each edge actually holds. This map
+    is measured, not assumed — the notification centre's slide direction came from reading
+    which margin it animates.
+  </p>
+
+  <div class="map">
+    <div class="edge" style="--edge-c:#ff79c6">
+      <h3>Top</h3>
+      <p class="who">dashboard · Super+D</p>
+      <p class="verdict">Rail <b>earns it</b></p>
+    </div>
+    <div class="edge" style="--edge-c:#bd93f9">
+      <h3>Bottom</h3>
+      <p class="who">launcher + menu · Super+Space, Super tap</p>
+      <p class="verdict">Rail <b>earns it</b></p>
+    </div>
+    <div class="edge" style="--edge-c:#8be9fd">
+      <h3>Right</h3>
+      <p class="who">the bar (44px, floating) · notification centre slides in here</p>
+      <p class="verdict">Already <b>furnished</b></p>
+    </div>
+    <div class="edge" style="--edge-c:#6272a4">
+      <h3>Left</h3>
+      <p class="who">nothing</p>
+      <p class="verdict">A rail here is <b>pure geometry</b></p>
+    </div>
+  </div>
+
+  <p class="lede" style="margin-top:24px">
+    That asymmetry is the whole design problem. A closed frame is only closed if you accept
+    one edge that attaches to nothing — or move something to it.
+  </p>
+</section>
+
+<section>
+  <p class="eyebrow">The directions</p>
+  <h2>Seven studies</h2>
+  <p class="lede">
+    All seven drawn at the same scale, in your live palette. Geometry is to scale; the
+    shoulder fillets are schematic — at 6px the real curve is three pixels of anti-aliasing.
+  </p>
+
+  <div class="controls" style="margin-top:26px">
+    <span class="lbl">State</span>
+    <div class="seg" role="group" aria-label="Mockup state">
+      <button type="button" data-state="rest" aria-pressed="true">Rest</button>
+      <button type="button" data-state="hover" aria-pressed="false">Hover</button>
+      <button type="button" data-state="open" aria-pressed="false">Panel open</button>
+    </div>
+    <span class="hint">Changes every plate at once, so shapes stay comparable.</span>
+  </div>
+
+  <div class="plates" id="plates"></div>
+</section>
+
+<section>
+  <p class="eyebrow">Side by side</p>
+  <h2>What each one costs</h2>
+  <p class="lede">
+    “Screen lost” counts only what the frame itself reserves — the bar's existing 50px on
+    the right is excluded, since every direction pays it equally.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Direction</th><th>Edges</th><th>Screen lost</th>
+          <th>Rails with a panel</th><th>Build</th><th>Reads as</th>
+        </tr>
+      </thead>
+      <tbody id="matrix"></tbody>
+    </table>
+  </div>
+</section>
+
+<section style="border-bottom:0">
+  <p class="eyebrow">If you want my call</p>
+  <h2>Make the bar the fourth side</h2>
+
+  <div class="rec">
+    <p class="pick">Recommended · Continuous</p>
+    <h3>Three rails plus the bar, welded into one silhouette</h3>
+    <p>
+      It is the only direction where every edge is doing a job. Top and bottom keep their
+      panels. The right edge stops being a gap in the frame and becomes the bar itself —
+      which is already a floating 44px slab inset 10px, so the rail can run straight into
+      it with the same corner language <code class="mono">AttachedCorner</code> already
+      speaks. The left stays open, deliberately: an unclosed frame that admits its own
+      asymmetry looks intentional, whereas a closed one with a dead edge looks like the
+      dead edge was missed.
+    </p>
+    <p>
+      It also costs the least new screen of any multi-edge option — the right side is
+      already reserved for the bar, so you are paying for geometry you have already bought.
+    </p>
+  </div>
+
+  <ol class="ol">
+    <li><strong>Continuous</strong> is the one I would build. Most integrated, no dead edge, cheapest reservation of the multi-edge set.</li>
+    <li><strong>Bracket</strong> is the interesting outsider — it is the only direction that can reserve nothing at all and still read as a frame, because corners are where windows are already rounded away.</li>
+    <li><strong>Halo</strong> if you want the frame quieter rather than different; it is the current design at 2px with the gradient doing all the work.</li>
+    <li><strong>Closed</strong> only if you will move something to the left edge. A media flyout or the notification centre would both fit there and would make the fourth rail honest.</li>
+    <li><strong>Segmented</strong> is the one that adds information rather than shape — worth a spike on its own terms, not as a frame decision.</li>
+  </ol>
+</section>
+
+<footer>
+  <p>
+    Every number on this page was measured on the live session, not estimated:
+    geometry from <code>hyprctl -j monitors</code> and <code>hyprctl -j layers</code>,
+    palette from <code>~/.local/state/theme/palette.json</code>, widths from the shared
+    Design tokens, and the notification centre's edge from which margin it animates.
+  </p>
+  <p>
+    Mockups render the desktop dark in both page themes, because the desktop is dark in
+    both. Strip thickness is true to scale — if 6px looks slight here, that is what 6px
+    looks like.
+  </p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* Real measured geometry of the live output, used as the drawing scale. */
+  var W=1920, H=1080;
+  var BAR={x:1870,y:10,w:44,h:1060};   /* vertical bar, floating right      */
+  var INSET=10;                         /* strip inset from each side        */
+  var RIGHT_EDGE=1860;                  /* strips stop before the bar        */
+  var T=6;                              /* flat run thickness                */
+  var SWELL=10;                         /* hover/open bulge depth            */
+  var TOPW=760, BOTW=640;               /* bulge widths = panel widths       */
+
+  var C={
+    pink:"#ff79c6", violet:"#bd93f9", cyan:"#8be9fd",
+    surface:"#282a36", deep:"#1d1f28", win:"#31333f",
+    outline:"#6272a4", text:"#f8f8f2"
+  };
+
+  function el(tag,attrs,kids){
+    var s="<"+tag;
+    for(var k in attrs){ if(attrs[k]!==null&&attrs[k]!==undefined) s+=" "+k+'="'+attrs[k]+'"'; }
+    s+=">";
+    if(kids) s+=kids;
+    return s+"</"+tag+">";
+  }
+
+  /* Wallpaper-ish ground + two tiled windows, so a frame reads in context. */
+  function desktop(){
+    var g=el("rect",{x:0,y:0,width:W,height:H,fill:C.deep});
+    g+=el("rect",{x:0,y:0,width:W,height:H,fill:"url(#wall)"});
+    /* usable area: y 6..1074, x 0..1870, minus gaps_out 10 */
+    var wy=16, wh=1048, wx=10, ww=1840;
+    var split=Math.round(wx+ww*0.58);
+    g+=el("rect",{x:wx,y:wy,width:split-wx-5,height:wh,rx:12,fill:C.win,stroke:C.outline,"stroke-width":3,opacity:".92"});
+    g+=el("rect",{x:split+5,y:wy,width:wx+ww-split-5,height:Math.round(wh*0.52),rx:12,fill:C.win,stroke:C.outline,"stroke-width":3,opacity:".92"});
+    g+=el("rect",{x:split+5,y:wy+Math.round(wh*0.52)+10,width:wx+ww-split-5,height:wh-Math.round(wh*0.52)-10,rx:12,fill:C.win,stroke:C.outline,"stroke-width":3,opacity:".92"});
+    return g;
+  }
+
+  function bar(){
+    return el("rect",{x:BAR.x,y:BAR.y,width:BAR.w,height:BAR.h,rx:BAR.w/2,
+      fill:C.surface,stroke:C.outline,"stroke-width":2,opacity:".97"});
+  }
+
+  /* A horizontal rail with an optional centre bulge that swells. */
+  function railH(y, from, to, edge, bulgeW, depth){
+    var out="";
+    var w=to-from;
+    out+=el("rect",{x:from,y:(edge==="top"?y:y-T),width:w,height:T,rx:T/2,fill:"url(#grad)"});
+    if(bulgeW&&depth>0){
+      var cx=(from+to)/2;
+      var by = edge==="top" ? y : y-T-depth;
+      out+=el("rect",{x:cx-bulgeW/2,y:by,width:bulgeW,height:T+depth,rx:5,
+        fill:"url(#grad)",class:"swell","data-edge":edge});
+    }
+    return out;
+  }
+  function railV(x, from, to, side){
+    var h=to-from;
+    return el("rect",{x:(side==="left"?x:x-T),y:from,width:T,height:h,rx:T/2,fill:"url(#gradV)"});
+  }
+
+  /* A panel hanging off an edge, for the "open" state. */
+  function panel(edge){
+    if(edge==="top"){
+      var pw=TOPW, px=(INSET+RIGHT_EDGE)/2-pw/2;
+      return el("rect",{x:px,y:6,width:pw,height:430,rx:26,fill:C.surface,stroke:C.violet,"stroke-width":3,opacity:".98"});
+    }
+    var bw=BOTW, bx=(INSET+RIGHT_EDGE)/2-bw/2;
+    return el("rect",{x:bx,y:H-6-380,width:bw,height:380,rx:26,fill:C.surface,stroke:C.violet,"stroke-width":3,opacity:".98"});
+  }
+
+  var defs =
+    '<defs>'+
+    '<linearGradient id="grad" x1="0" y1="0" x2="1" y2="0">'+
+      '<stop offset="0" stop-color="'+C.pink+'"/><stop offset=".5" stop-color="'+C.violet+'"/>'+
+      '<stop offset="1" stop-color="'+C.cyan+'"/></linearGradient>'+
+    '<linearGradient id="gradV" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0" stop-color="'+C.cyan+'"/><stop offset=".5" stop-color="'+C.violet+'"/>'+
+      '<stop offset="1" stop-color="'+C.pink+'"/></linearGradient>'+
+    '<linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">'+
+      '<stop offset="0" stop-color="#2b2440"/><stop offset=".55" stop-color="#20222e"/>'+
+      '<stop offset="1" stop-color="#1a2430"/></linearGradient>'+
+    '</defs>';
+
+  /* ---- the seven directions ------------------------------------------- */
+  var STUDIES=[
+    {
+      id:"current", name:"Two Rails", tag:"Current build",
+      thesis:"Top and bottom only. Every rail has a panel; neither empty edge is drawn.",
+      edges:"2 · top, bottom", cost:"12px (6 + 6)", panels:"2 of 2", build:"Shipped",
+      reads:"Restrained, slightly unresolved on the sides",
+      trade:"Nothing wasted, but the frame never closes — the eye reads two lines rather than an enclosure.",
+      draw:function(d){
+        var s="";
+        s+=railH(0, INSET, RIGHT_EDGE, "top", TOPW, d.top);
+        s+=railH(H, INSET, RIGHT_EDGE, "bottom", BOTW, d.bot);
+        return s;
+      }
+    },
+    {
+      id:"closed", name:"Closed Frame", tag:"Four edges",
+      thesis:"A full rectangle. Symmetrical and unmistakably a frame — at the price of one edge that attaches to nothing.",
+      edges:"4 · all", cost:"24px (6 × 4)", panels:"2 of 4", build:"Moderate — two more instances, corner joins",
+      reads:"Deliberate, contained, a little formal",
+      trade:"The left rail has no panel and the right duplicates the bar. Symmetry you can see, function you cannot.",
+      draw:function(d){
+        var s="";
+        s+=railH(0, INSET, RIGHT_EDGE, "top", TOPW, d.top);
+        s+=railH(H, INSET, RIGHT_EDGE, "bottom", BOTW, d.bot);
+        s+=railV(0, INSET, H-INSET, "left");
+        s+=railV(RIGHT_EDGE, INSET, H-INSET, "right");
+        return s;
+      }
+    },
+    {
+      id:"three", name:"Three Rails", tag:"Open right",
+      thesis:"Top, bottom and left. The right stays open because the bar already lives there.",
+      edges:"3 · top, left, bottom", cost:"18px (6 × 3)", panels:"2 of 3", build:"Small — one more instance",
+      reads:"A bracket around the content, bar closing it",
+      trade:"The left rail is still decoration. Better balanced than Closed, but it buys symmetry with the same dead edge.",
+      draw:function(d){
+        var s="";
+        s+=railH(0, INSET, RIGHT_EDGE, "top", TOPW, d.top);
+        s+=railH(H, INSET, RIGHT_EDGE, "bottom", BOTW, d.bot);
+        s+=railV(0, INSET, H-INSET, "left");
+        return s;
+      }
+    },
+    {
+      id:"continuous", name:"Continuous", tag:"Bar is the fourth side", pick:true,
+      thesis:"The rails run into the bar and stop. One silhouette: rail, corner, bar, corner, rail.",
+      edges:"3 + bar", cost:"12px (6 + 6)", panels:"3 of 3", build:"Largest — bar and rail must share a shape",
+      reads:"Engineered. The frame and the bar stop being separate objects",
+      trade:"Highest build cost and it couples two components that are independent today. In exchange nothing on screen is ornamental.",
+      draw:function(d){
+        var s="";
+        s+=railH(0, INSET, BAR.x+BAR.w/2, "top", TOPW, d.top);
+        s+=railH(H, INSET, BAR.x+BAR.w/2, "bottom", BOTW, d.bot);
+        s+=el("rect",{x:BAR.x,y:0,width:BAR.w,height:H,rx:BAR.w/2,fill:"url(#gradV)",opacity:".95"});
+        s+=el("rect",{x:BAR.x+4,y:22,width:BAR.w-8,height:H-44,rx:(BAR.w-8)/2,fill:C.surface,opacity:".92"});
+        return s;
+      },
+      noBar:true
+    },
+    {
+      id:"bracket", name:"Brackets", tag:"Corners only",
+      thesis:"Four short L-pieces at the corners, nothing in between. The frame is implied, never drawn.",
+      edges:"4 corners", cost:"0px — can overhang entirely", panels:"0 direct",
+      build:"Moderate — new shape, hover zones move",
+      reads:"Sparse, technical, confident",
+      trade:"Loses the attachment story completely: a panel has no rail to grow from, so the flares need rethinking or dropping.",
+      draw:function(d){
+        var L=170, s="";
+        var yb=H, k=T;
+        function corner(x,y,dx,dy){
+          var o="";
+          o+=el("rect",{x:(dx>0?x:x-L),y:(dy>0?y:y-k),width:L,height:k,rx:k/2,fill:"url(#grad)"});
+          o+=el("rect",{x:(dx>0?x:x-k),y:(dy>0?y:y-L),width:k,height:L,rx:k/2,fill:"url(#gradV)"});
+          return o;
+        }
+        s+=corner(INSET,0,1,1);
+        s+=corner(RIGHT_EDGE,0,-1,1);
+        s+=corner(INSET,yb,1,-1);
+        s+=corner(RIGHT_EDGE,yb,-1,-1);
+        if(d.top>0){
+          var cx=(INSET+RIGHT_EDGE)/2;
+          s+=el("rect",{x:cx-TOPW/2,y:0,width:TOPW,height:k+d.top,rx:5,fill:"url(#grad)",class:"swell"});
+        }
+        return s;
+      }
+    },
+    {
+      id:"halo", name:"Halo", tag:"Hairline, four edges",
+      thesis:"The same closed frame at 2px. Not a bar — an outline, with the scrolling gradient doing all the work.",
+      edges:"4 · all", cost:"8px (2 × 4)", panels:"2 of 4", build:"Trivial — one token per edge",
+      reads:"Ambient. You notice the colour before you notice the shape",
+      trade:"At 2px the bulge stops working as a hover landmark, so the hover target becomes invisible — fine only if you keep the animated swell.",
+      draw:function(d){
+        var k=2, s="";
+        s+=el("rect",{x:INSET,y:0,width:RIGHT_EDGE-INSET,height:k,rx:1,fill:"url(#grad)"});
+        s+=el("rect",{x:INSET,y:H-k,width:RIGHT_EDGE-INSET,height:k,rx:1,fill:"url(#grad)"});
+        s+=el("rect",{x:0,y:INSET,width:k,height:H-INSET*2,rx:1,fill:"url(#gradV)"});
+        s+=el("rect",{x:RIGHT_EDGE,y:INSET,width:k,height:H-INSET*2,rx:1,fill:"url(#gradV)"});
+        if(d.top>0){
+          var cx=(INSET+RIGHT_EDGE)/2;
+          s+=el("rect",{x:cx-TOPW/2,y:0,width:TOPW,height:k+d.top,rx:4,fill:"url(#grad)",class:"swell"});
+        }
+        return s;
+      }
+    },
+    {
+      id:"segmented", name:"Segmented", tag:"Top rail carries state",
+      thesis:"The top rail breaks into one segment per workspace, the active one lit. The frame stops being decoration and starts reporting.",
+      edges:"2 · top, bottom", cost:"12px (6 + 6)", panels:"2 of 2",
+      build:"Moderate — needs a Hyprland workspace binding",
+      reads:"Informational. Closest to a heads-up display",
+      trade:"Adds a second job to a surface whose first job is attachment — and the bulge now competes with the segments for the same strip.",
+      draw:function(d){
+        var s="", n=10, gap=8;
+        var total=RIGHT_EDGE-INSET, seg=(total-gap*(n-1))/n, act=2;
+        for(var i=0;i<n;i++){
+          var x=INSET+i*(seg+gap);
+          s+=el("rect",{x:x,y:0,width:seg,height:T,rx:T/2,
+            fill:(i===act?"url(#grad)":C.outline),opacity:(i===act?"1":".45")});
+        }
+        s+=railH(H, INSET, RIGHT_EDGE, "bottom", BOTW, d.bot);
+        if(d.top>0){
+          var cx=(INSET+RIGHT_EDGE)/2;
+          s+=el("rect",{x:cx-TOPW/2,y:0,width:TOPW,height:T+d.top,rx:5,fill:"url(#grad)",class:"swell"});
+        }
+        return s;
+      }
+    }
+  ];
+
+  function depthsFor(state){
+    if(state==="hover") return {top:SWELL,bot:0};
+    if(state==="open")  return {top:SWELL,bot:0};
+    return {top:0,bot:0};
+  }
+
+  function svgFor(study,state,h){
+    var d=depthsFor(state);
+    var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+study.name+', '+state+' state" style="height:'+(h||"auto")+'">';
+    s+=defs;
+    s+=desktop();
+    if(state==="open") s+=panel("top");
+    if(!study.noBar) s+=bar();
+    s+=study.draw(d);
+    s+='</svg>';
+    return s;
+  }
+
+  /* ---- hero: same renderer, hover-driven ------------------------------ */
+  var hero=document.getElementById("hero");
+  var heroState="rest";
+  function paintHero(){ hero.innerHTML=svgFor(STUDIES[0],heroState); }
+  paintHero();
+  hero.addEventListener("mouseenter",function(){ heroState="hover"; paintHero(); });
+  hero.addEventListener("mouseleave",function(){ heroState="rest";  paintHero(); });
+
+  /* ---- plates ---------------------------------------------------------- */
+  var plates=document.getElementById("plates");
+  var state="rest";
+
+  function plateHTML(st){
+    var h='<article class="plate'+(st.pick?" is-current":"")+'" data-id="'+st.id+'">';
+    h+='<div class="art">'+svgFor(st,state)+'</div>';
+    h+='<div class="body">';
+    h+='<div class="plate-head"><h3>'+st.name+'</h3><span class="plate-id">'+st.tag+'</span></div>';
+    h+='<p class="thesis">'+st.thesis+'</p>';
+    h+='<dl class="spec">'+
+       '<dt>Edges</dt><dd>'+st.edges+'</dd>'+
+       '<dt>Screen lost</dt><dd>'+st.cost+'</dd>'+
+       '<dt>Rails w/ panel</dt><dd>'+st.panels+'</dd>'+
+       '<dt>Build</dt><dd>'+st.build+'</dd>'+
+       '</dl>';
+    h+='<p class="tradeoff"><b>The trade</b>'+st.trade+'</p>';
+    h+='</div></article>';
+    return h;
+  }
+  function paintPlates(){
+    plates.innerHTML=STUDIES.map(plateHTML).join("");
+  }
+  paintPlates();
+
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"),function(b){
+    b.addEventListener("click",function(){
+      state=b.getAttribute("data-state");
+      Array.prototype.forEach.call(document.querySelectorAll(".seg button"),function(o){
+        o.setAttribute("aria-pressed", o===b ? "true":"false");
+      });
+      paintPlates();
+    });
+  });
+
+  /* ---- matrix ---------------------------------------------------------- */
+  var m=document.getElementById("matrix");
+  m.innerHTML=STUDIES.map(function(s){
+    return '<tr'+(s.pick?' class="hi"':'')+'>'+
+      '<td class="name">'+s.name+'</td>'+
+      '<td class="num">'+s.edges+'</td>'+
+      '<td class="num">'+s.cost+'</td>'+
+      '<td class="num">'+s.panels+'</td>'+
+      '<td>'+s.build+'</td>'+
+      '<td>'+s.reads+'</td>'+
+    '</tr>';
+  }).join("");
+})();
+</script>
