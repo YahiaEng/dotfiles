@@ -41,6 +41,11 @@ Singleton {
         { pageIdx: 2, section: "Bar", label: "Bar orientation", keywords: "bar orientation horizontal vertical dock topbar" },
         { pageIdx: 2, section: "Visibility", label: "Bar visible", keywords: "bar hide show visibility toggle" },
         { pageIdx: 2, section: "Idle behaviour", label: "Idle auto-hide", keywords: "bar idle hide autohide timeout" },
+        // Edge bar style picker (quick task 260823-9ak added the row,
+        // quick task 260824-ns3 Task 1 closes the pre-existing
+        // settings-index-check CHECK A gap by adding both entries here).
+        { pageIdx: 2, section: "Edge bar", label: "Edge bar style", keywords: "edge bar style continuous brackets segmented halo off picker frame rail" },
+        { pageIdx: 2, section: "Edge bar", label: "Animate the bulge", keywords: "edge bar bulge animate swell hover landmark continuous brackets segmented halo" },
         { pageIdx: 2, section: "Capsules", label: "Launcher", keywords: "bar capsule launcher apps icon" },
         { pageIdx: 2, section: "Capsules", label: "CPU", keywords: "bar entry cpu readout system" },
         { pageIdx: 2, section: "Capsules", label: "RAM", keywords: "bar entry ram memory readout system" },

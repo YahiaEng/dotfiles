@@ -136,12 +136,13 @@ Singleton {
         // per-desktop-entry-id launch tally the "most used" mode ranks by.
         "launcher.sortMode",
         "launcher.launchCounts",
-        // edgeBar.enabled (quick task 260823-9ak, Task 4, R2/R3) — the
-        // edge bar's own settings toggle. Default true (R3: enabled is
-        // the default); gates both EdgeBar.qml instances in shell.qml
-        // AND Launcher.qml's direction branch (Task 6) off ONE resolved
-        // shell-root property, never re-derived at each call site.
-        "edgeBar.enabled",
+        // edgeBar.style (quick task 260824-ns3, Task 1) — REPLACES the
+        // retired edgeBar.enabled bool (Q2). One string, five values:
+        // "off" | "continuous" | "brackets" | "segmented" | "halo".
+        // Resolved ONCE in shell.qml into edgeBarStyle plus two derived
+        // predicates (edgeBarRailPresent, edgeBarPanelsAttach) — never
+        // re-read as a raw string anywhere else in the tree.
+        "edgeBar.style",
         // edgeBar.animatedBulge (operator round 11) — REVERSES D-3, which
         // locked the centre bulge as a permanent landmark. ON rests the
         // strip flat and swells the bulge on hover, holding while the
@@ -191,7 +192,7 @@ Singleton {
         "bar.entries.power": true,
         "launcher.sortMode": "alpha",
         "launcher.launchCounts": ({}),
-        "edgeBar.enabled": true,
+        "edgeBar.style": "continuous",
         "edgeBar.animatedBulge": true
     })
 
@@ -299,6 +300,48 @@ Singleton {
         return root._allowedKeys.join(",");
     }
 
+    // ── edgeBar.enabled -> edgeBar.style migration (quick task 260824-ns3,
+    //    Task 1, Q4) — declared ABOVE `_loadPrefs` per this file's own
+    //    declare-before-construction-time-use discipline (header comment,
+    //    MEMORY qml-declare-before-construction-time-use). Runs once, right
+    //    after `_loadPrefs()` installs the parsed tree into `_data` and
+    //    before it returns. If the loaded tree has a boolean at
+    //    `edgeBar.enabled` and no string at `edgeBar.style`, writes the
+    //    Q4-decided mapping (`true` -> `"continuous"`, `false` -> `"off"`),
+    //    deletes the retired `edgeBar.enabled` key from the tree, and
+    //    persists so the retired key does not linger as junk on disk.
+    //    `_loaded` is already true by the time this runs (`_loadPrefs`
+    //    sets it on its first line), so `_persist()` is legal here.
+    //    `watchChanges: false` means a LIVE shell does not observe a
+    //    hand-edit to prefs.json — this migration runs at shell start, and
+    //    its effect is only observable after
+    //    `systemctl --user restart quickshell.service`.
+    function _migrate() {
+        var enabledRaw = root._lookup(root._data, "edgeBar.enabled");
+        var styleRaw = root._lookup(root._data, "edgeBar.style");
+        if (typeof enabledRaw === "boolean" && typeof styleRaw !== "string") {
+            var newStyle = enabledRaw ? "continuous" : "off";
+            console.log("Prefs: migrating edgeBar.enabled=" + enabledRaw + " -> edgeBar.style=\"" + newStyle + "\"");
+            var out = {};
+            for (var k in root._data) {
+                if (k === "edgeBar") {
+                    var edgeBarOut = {};
+                    for (var ek in root._data[k]) {
+                        if (ek === "enabled")
+                            continue;
+                        edgeBarOut[ek] = root._data[k][ek];
+                    }
+                    edgeBarOut.style = newStyle;
+                    out[k] = edgeBarOut;
+                } else {
+                    out[k] = root._data[k];
+                }
+            }
+            root._data = out;
+            root._persist();
+        }
+    }
+
     // T-6z1-05 (malformed/hand-edited prefs.json degrades to defaults, not
     // a crash) — parse sits inside try/catch behind an explicit shape
     // check (`typeof obj === "object"`), matching
@@ -312,6 +355,7 @@ Singleton {
             var raw = prefsFile.text();
             if (!raw || raw.trim().length === 0) {
                 root._data = {};
+                root._migrate();
                 return;
             }
             var obj = JSON.parse(raw);
@@ -325,6 +369,7 @@ Singleton {
             console.warn("Prefs: prefs.json parse failed, using defaults: " + e);
             root._data = {};
         }
+        root._migrate();
     }
 
     function _persist() {

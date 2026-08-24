@@ -161,22 +161,32 @@ PageBase {
         }
     }
 
-    // ── Edge bar (quick task 260823-9ak, Task 4, R1/R2/R3) — the single
-    //    toggle for the two always-on top/bottom strips. Default ON (R3);
-    //    OFF is exactly today's behaviour — both strips unmount entirely
-    //    (shell.qml's LazyLoader, not a visible:false binding, since a
-    //    mounted-but-hidden layer surface would still hold its
-    //    exclusiveZone and silently fail R3) and the launcher reverts to
-    //    its original top-drop direction (Task 6).
+    // ── Edge bar (quick task 260823-9ak Task 4 R1/R2/R3, replaced with a
+    //    five-entry style picker by quick task 260824-ns3 Task 1, Q1/Q2) —
+    //    off unmounts both strips entirely (shell.qml's LazyLoader, not a
+    //    visible:false binding, since a mounted-but-hidden layer surface
+    //    would still hold its exclusiveZone and silently fail R3's "off is
+    //    exactly today's behaviour") and the launcher reverts to its
+    //    original top-drop direction. No switch anywhere and no
+    //    greyed-out row — Q2 forbids a reachable "enabled:false +
+    //    style:halo" dead state, and this picker's five values are the
+    //    whole state space.
     SettingsSection {
         title: "Edge bar"
         icon: "border_horizontal"
 
-        ToggleRow {
-            label: "Edge bar"
-            subtext: "A frame at the top and bottom screen edges that the dashboard and launcher attach to and rise from"
-            checked: Prefs.getValue("edgeBar.enabled")
-            onToggled: (value) => Prefs.setValue("edgeBar.enabled", value)
+        SelectRow {
+            label: "Edge bar style"
+            subtext: "Which shape, if any, the dashboard and launcher attach to and rise from"
+            model: [
+                { value: "continuous", display: "Continuous" },
+                { value: "brackets", display: "Brackets" },
+                { value: "segmented", display: "Segmented" },
+                { value: "halo", display: "Halo" },
+                { value: "off", display: "Off" }
+            ]
+            currentValue: Prefs.getValue("edgeBar.style")
+            onSelected: (value) => Prefs.setValue("edgeBar.style", value)
         }
 
         // Operator round 11. Reverses D-3 (the bulge was locked as a

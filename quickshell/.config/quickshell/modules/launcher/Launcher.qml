@@ -57,14 +57,23 @@ PanelWindow {
     // than merely hiding it — same contract as Dashboard.qml/Overview.qml.
     signal dismissRequested()
 
-    // Threaded in from shell.qml's single `root.edgeBarEnabled` resolution
-    // point (quick task 260823-9ak, Task 6, D-5) — this file has no `root`
-    // id of its own to read (a separate document's ids are not visible
-    // here), so the value is passed in as a property rather than
-    // re-resolved via a second `Prefs.getValue` call. Per D-5: DIRECTION
-    // branches on this flag (bottom-anchored ON, top-anchored — today's
-    // exact behaviour — OFF); the corner SHAPE below does not branch.
-    property bool edgeBarEnabled: false
+    // Threaded in from shell.qml's single resolution point (quick task
+    // 260823-9ak Task 6 D-5, split into two predicates by quick task
+    // 260824-ns3 Task 1, Q2) — this file has no `root` id of its own to
+    // read (a separate document's ids are not visible here), so both
+    // values are passed in as properties rather than re-resolved via a
+    // second `Prefs.getValue` call.
+    //
+    // `edgeBarRailPresent` answers "is any rail present" — DIRECTION
+    // (bottom-anchored when true, top-anchored — today's exact behaviour
+    // — when false) branches on THIS one, never on the style string
+    // (Q2b, the load-bearing detail).
+    property bool edgeBarRailPresent: false
+    // `edgeBarPanelsAttach` is a SEPARATE predicate (Q3-brackets): rails
+    // can be present while panels do not weld to them (Brackets). The
+    // welded/square-round corner shape, the flare and the rim clip below
+    // branch on THIS one.
+    property bool edgeBarPanelsAttach: false
 
     // ── Animated dismiss (quick task 260822-sht, Task 1 REWORK) ─────────
     // Mirrors Dashboard.qml's own `_dismissing`/`_beginDismiss` shape: the
@@ -102,13 +111,17 @@ PanelWindow {
     // `drawerTopMargin`: lands the panel's top edge where a real tiled
     // Hyprland window starts (`hyprland.lua`'s `general.gaps_out: 10`),
     // not flush against the bar. Per P-2, this margin applies only when
-    // the edge bar is OFF (R3: exactly today's behaviour); when the edge
-    // bar is ON the launcher is bottom-anchored instead (below) and sits
-    // flush (margin 0) against the true screen edges so the flares
-    // actually meet the strip.
+    // no rail is present (R3: exactly today's behaviour); when a rail IS
+    // present the launcher is bottom-anchored instead (below) and, if its
+    // panels weld to that rail, sits flush (margin 0) against the true
+    // screen edge so the flares actually meet the strip.
     readonly property int drawerTopMargin: 10
-    margins.top: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.drawerTopMargin
-    margins.bottom: 0
+    margins.top: launcherWindow.edgeBarRailPresent ? 0 : launcherWindow.drawerTopMargin
+    // Third state (quick task 260824-ns3, Q3-brackets): a rail present but
+    // NOT welded (Brackets) floats the panel off the bottom screen edge by
+    // the same drawerTopMargin the off-mode top drop uses, rather than
+    // sitting flush against an edge it is not welded to.
+    margins.bottom: (launcherWindow.edgeBarRailPresent && !launcherWindow.edgeBarPanelsAttach) ? launcherWindow.drawerTopMargin : 0
 
     // Reserve nothing — the launcher never displaces the bar's own
     // reservation, matching Dashboard.qml's own exclusiveZone/exclusionMode
@@ -479,17 +492,19 @@ PanelWindow {
         // `y` derived from the window height. `undefined` clears the
         // unused anchor — the standard QtQuick idiom for a branched
         // Item anchor.
-        anchors.top: launcherWindow.edgeBarEnabled ? undefined : parent.top
-        anchors.bottom: launcherWindow.edgeBarEnabled ? parent.bottom : undefined
+        anchors.top: launcherWindow.edgeBarRailPresent ? undefined : parent.top
+        anchors.bottom: launcherWindow.edgeBarRailPresent ? parent.bottom : undefined
 
         // ── Drop-down/rise entrance, in QML (quick task 260823-9ak,
         //    Task 6, D-5) ────────────────────────────────────────────
         // The LazyLoader creates this surface fresh on every summon
         // (D-14), so `Component.onCompleted` IS the open event; there is
-        // no reopen case to reset. Direction branches on `edgeBarEnabled`
-        // (D-5): OFF is `opened ? 0 : -height` unchanged (today's exact
-        // drop from the top); ON rises from the bottom instead, flush
-        // against `launcherWindow.height` (the window's own local
+        // no reopen case to reset. Direction branches on
+        // `edgeBarRailPresent` (D-5, renamed by quick task 260824-ns3):
+        // no rail is `opened ? 0 : -height` unchanged (today's exact
+        // drop from the top); a rail present rises from the bottom
+        // instead, flush against `launcherWindow.height` (the window's
+        // own local
         // content height, already net of the flush margins above).
         property bool opened: false
 
@@ -596,7 +611,7 @@ PanelWindow {
         // anchor without touching this animation.
         transform: Translate {
             id: panelSlide
-            y: panel.opened ? 0 : (launcherWindow.edgeBarEnabled ? panel.height : -panel.height)
+            y: panel.opened ? 0 : (launcherWindow.edgeBarRailPresent ? panel.height : -panel.height)
 
             // Spatial (position) motion — rides the spatial-in pair on the
             // way in and its REVERSAL on the way out, matching
@@ -640,14 +655,22 @@ PanelWindow {
         Rectangle {
             id: background
             anchors.fill: parent
-            // Per D-5 (quick task 260823-9ak, Task 6): the square/round
-            // pair flips with direction — round the end the panel RISES
-            // FROM (bottom, edge-bar mode) or drops FROM (top, disabled)
-            // stays square; the far end is the opposite.
-            topLeftRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
-            topRightRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
-            bottomLeftRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
-            bottomRightRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
+            // Per D-5 (quick task 260823-9ak, Task 6), extended to a
+            // three-state shape by quick task 260824-ns3 Task 1
+            // (Q3-brackets): the TOP pair follows DIRECTION
+            // (edgeBarRailPresent) — round the end the panel rises from,
+            // square the top when it drops from the top instead — and the
+            // BOTTOM pair follows ATTACHMENT (edgeBarPanelsAttach) — square
+            // only when the panel is genuinely welded to the rail it rose
+            // from. A rail present but unattached (Brackets) therefore
+            // gets top=round (railPresent) AND bottom=round (not attached)
+            // — round on all four corners, a floating panel — while
+            // leaving both the no-rail (off) and rail+attached (Continuous
+            // etc.) cases at their original byte-identical values.
+            topLeftRadius: launcherWindow.edgeBarRailPresent ? launcherWindow.cornerRadius : 0
+            topRightRadius: launcherWindow.edgeBarRailPresent ? launcherWindow.cornerRadius : 0
+            bottomLeftRadius: launcherWindow.edgeBarPanelsAttach ? 0 : launcherWindow.cornerRadius
+            bottomRightRadius: launcherWindow.edgeBarPanelsAttach ? 0 : launcherWindow.cornerRadius
             color: Qt.rgba(launcherWindow.surfaceBase.r, launcherWindow.surfaceBase.g, launcherWindow.surfaceBase.b, launcherWindow.drawerSurfaceOpacity)
         }
 
@@ -686,48 +709,74 @@ PanelWindow {
         // mode: that component has 13 consumers, and an open-ring path
         // built from two nested closed subpaths under OddEvenFill is a
         // real rewrite of its `_ringPath`. This costs one Item.
+        // Third state (quick task 260824-ns3, Q3-brackets): "no rim
+        // clipping" for a rail present but unattached (Brackets) panel —
+        // topMargin already reads 0 whenever a rail is present (matching
+        // the welded case, since the panel never attaches at the TOP in
+        // either rail-present state) and bottomMargin reads 0 whenever
+        // panels do not attach, so both land at 0 together for Brackets:
+        // the clip rect equals the panel's own full bounds, i.e. no
+        // effective clipping — the full ring is drawn, exactly as the
+        // brief asks.
         Item {
             id: launcherBorderClip
             anchors.fill: parent
-            anchors.topMargin: launcherWindow.edgeBarEnabled ? 0 : Design.attachedCornerRadius
-            anchors.bottomMargin: launcherWindow.edgeBarEnabled ? Design.attachedCornerRadius : 0
+            anchors.topMargin: launcherWindow.edgeBarRailPresent ? 0 : Design.attachedCornerRadius
+            anchors.bottomMargin: launcherWindow.edgeBarPanelsAttach ? Design.attachedCornerRadius : 0
             clip: true
 
             GradientBorder {
                 id: launcherGradientBorder
                 x: 0
-                y: launcherWindow.edgeBarEnabled ? 0 : -Design.attachedCornerRadius
+                // Mirrors `anchors.topMargin` above (not `edgeBarPanelsAttach`
+                // alone) so the rim offset stays correct for the no-rail
+                // (off) case, which is the only one where this needs to be
+                // nonzero — both rail-present states (welded or not) sit at 0.
+                y: launcherWindow.edgeBarRailPresent ? 0 : -Design.attachedCornerRadius
                 width: panel.width
                 height: panel.height
                 borderWidth: Design.borderWidth
-                topLeftRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
-                topRightRadius: launcherWindow.edgeBarEnabled ? launcherWindow.cornerRadius : 0
-                bottomLeftRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
-                bottomRightRadius: launcherWindow.edgeBarEnabled ? 0 : launcherWindow.cornerRadius
+                // Mirrors `background`'s own radii (comment above them):
+                // top pair follows direction, bottom pair follows
+                // attachment — see that Rectangle's comment for the full
+                // three-state derivation.
+                topLeftRadius: launcherWindow.edgeBarRailPresent ? launcherWindow.cornerRadius : 0
+                topRightRadius: launcherWindow.edgeBarRailPresent ? launcherWindow.cornerRadius : 0
+                bottomLeftRadius: launcherWindow.edgeBarPanelsAttach ? 0 : launcherWindow.cornerRadius
+                bottomRightRadius: launcherWindow.edgeBarPanelsAttach ? 0 : launcherWindow.cornerRadius
             }
         }
 
         // ── Attached corners (quick task 260823-9ak, Task 1+6, R7/P-1/D-5) ─
-        // Two concave flares joining the panel's own top corners (edge-bar
-        // OFF) or bottom corners (edge-bar ON) to the screen edge the
-        // panel hangs from — siblings of `background`, painting OUTSIDE
-        // the panel's own bounds (`panel` carries no `clip` here, unlike
+        // Two concave flares joining the panel's own top corners (no rail)
+        // or bottom corners (rail welded) to the screen edge the panel
+        // hangs from — siblings of `background`, painting OUTSIDE the
+        // panel's own bounds (`panel` carries no `clip` here, unlike
         // Dashboard.qml's own panel — see that file's own Task 2 note).
         // Per D-5, only the EDGE branches (`edge` ternary + the `y`
         // positioning below, which replaces a fixed `anchors.top: panel.top`
         // so either panel edge can be targeted) — the corner SHAPE itself
         // (AttachedCorner's own geometry) is never branched; it is present
-        // and identically shaped in both modes. `angle` reads
+        // and identically shaped whenever visible. `angle` reads
         // `startAngle + angle` off the SAME GradientBorder instance above,
         // so the rim's gradient sweep never drifts out of phase with the
         // panel's own rim.
+        //
+        // `visible` is the third state's own addition (quick task
+        // 260824-ns3, Q3-brackets): "no flare" for a rail present but
+        // unattached (Brackets) panel. True whenever the panel is NOT in
+        // that specific floating state — i.e. true for both the no-rail
+        // (off, welds to the plain top screen edge, unchanged) and
+        // rail+attached (welds to the rail) cases, false only when a rail
+        // is present without attachment.
         AttachedCorner {
             id: launcherFlareLeft
-            edge: launcherWindow.edgeBarEnabled ? "bottom" : "top"
+            visible: !launcherWindow.edgeBarRailPresent || launcherWindow.edgeBarPanelsAttach
+            edge: launcherWindow.edgeBarPanelsAttach ? "bottom" : "top"
             side: "left"
             flareRadius: Design.attachedCornerRadius
             anchors.right: panel.left
-            y: launcherWindow.edgeBarEnabled ? panel.height - flareRadius : 0
+            y: launcherWindow.edgeBarPanelsAttach ? panel.height - flareRadius : 0
             fillColour: Qt.rgba(launcherWindow.surfaceBase.r, launcherWindow.surfaceBase.g, launcherWindow.surfaceBase.b, launcherWindow.drawerSurfaceOpacity)
             borderWidth: Design.borderWidth
             angle: launcherGradientBorder.startAngle + launcherGradientBorder.angle
@@ -736,11 +785,12 @@ PanelWindow {
         }
         AttachedCorner {
             id: launcherFlareRight
-            edge: launcherWindow.edgeBarEnabled ? "bottom" : "top"
+            visible: !launcherWindow.edgeBarRailPresent || launcherWindow.edgeBarPanelsAttach
+            edge: launcherWindow.edgeBarPanelsAttach ? "bottom" : "top"
             side: "right"
             flareRadius: Design.attachedCornerRadius
             anchors.left: panel.right
-            y: launcherWindow.edgeBarEnabled ? panel.height - flareRadius : 0
+            y: launcherWindow.edgeBarPanelsAttach ? panel.height - flareRadius : 0
             fillColour: Qt.rgba(launcherWindow.surfaceBase.r, launcherWindow.surfaceBase.g, launcherWindow.surfaceBase.b, launcherWindow.drawerSurfaceOpacity)
             borderWidth: Design.borderWidth
             angle: launcherGradientBorder.startAngle + launcherGradientBorder.angle

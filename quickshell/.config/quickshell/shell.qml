@@ -48,13 +48,31 @@ import "modules/launcher"
 ShellRoot {
     id: root
 
-    // ── Edge bar enable flag (quick task 260823-9ak, Task 4, R2/R3) ─────
-    // Read ONCE here — the single resolution point both EdgeBar loaders
-    // below AND Launcher.qml's direction branch (Task 6, via a property
-    // threaded onto the launcher instance) read, never a second
-    // `Prefs.getValue` call re-derived at another call site.
-    readonly property bool edgeBarEnabled: Prefs.getValue("edgeBar.enabled")
-    // Operator round 11 — resolved ONCE here beside `edgeBarEnabled`, for
+    // ── Edge bar style resolution (quick task 260824-ns3, Task 1, Q2/Q4) ──
+    // Read ONCE here — the single resolution point every consumer (both/all
+    // EdgeBar loaders below, Launcher.qml, Dashboard.qml, Bar.qml) reads,
+    // never a second `Prefs.getValue` call re-derived at another call site.
+    // `_edgeBarStyleRaw` is the raw stored string; `edgeBarStyle` clamps it
+    // against the five allowed values (the VALUE allow-list `indexOf`
+    // catches what Prefs.getValue's `typeof` guard cannot — an unknown but
+    // correctly-typed string), falling back to the default "continuous" on
+    // no match.
+    readonly property string _edgeBarStyleRaw: Prefs.getValue("edgeBar.style")
+    readonly property var _edgeBarStyles: ["off", "continuous", "brackets", "segmented", "halo"]
+    readonly property string edgeBarStyle: root._edgeBarStyles.indexOf(root._edgeBarStyleRaw) !== -1 ? root._edgeBarStyleRaw : "continuous"
+    // Answers "is any rail present at all" — NEVER "is the style non-off"
+    // reasoned about at a call site. Launcher.qml's direction branch reads
+    // ONLY this predicate, per Q2b — the load-bearing detail that keeps a
+    // future style that renders nothing while being non-off from silently
+    // flipping the launcher's direction.
+    readonly property bool edgeBarRailPresent: root.edgeBarStyle !== "off"
+    // A SEPARATE predicate from the one above (Q3-brackets): rails can be
+    // present while panels do not weld to them. Brackets is the only style
+    // today where these two diverge — Launcher.qml and Dashboard.qml read
+    // THIS one for attachment (flares, rim clip, corner radii, flush
+    // margin), never edgeBarRailPresent.
+    readonly property bool edgeBarPanelsAttach: root.edgeBarRailPresent && root.edgeBarStyle !== "brackets"
+    // Operator round 11 — resolved ONCE here beside `edgeBarStyle`, for
     // the same reason that one is: two EdgeBar instances read it and a
     // second Prefs.getValue at either call site would be a divergent
     // resolution point.
@@ -442,8 +460,10 @@ ShellRoot {
             // Operator feedback round 2 (260823-9ak): the drawer must hang
             // flush off the top strip, not float a margin below it. Same
             // single resolution point the launcher and both EdgeBar
-            // loaders read — never a second Prefs.getValue call.
-            edgeBarEnabled: root.edgeBarEnabled
+            // loaders read — never a second Prefs.getValue call. Reads the
+            // ATTACHMENT predicate (quick task 260824-ns3) — Brackets has
+            // a rail present but its panels do not weld.
+            edgeBarPanelsAttach: root.edgeBarPanelsAttach
             mediaBackend: mediaBackendInstance
             weatherBackend: weatherBackendInstance
             systemResources: systemResourcesInstance
@@ -573,23 +593,26 @@ ShellRoot {
         onSettingsRequested: root.openSettings()
     }
 
-    // ── Edge bar (quick task 260823-9ak, Task 3+4, R1/R2/R3/R4/D-2) — two
-    //    always-on strips, top and bottom. Gated on `root.edgeBarEnabled`
-    //    via a LazyLoader, PER INSTANCE (not a shared wrapper Item) so
-    //    EACH strip's own wl_surface is destroyed when disabled — R3
-    //    demands OFF unmount entirely (a mounted-but-`visible:false`
-    //    layer surface keeps its `exclusiveZone`, which would silently
-    //    fail R3's "exactly today's behaviour" requirement). Otherwise
-    //    the same permanent-while-on posture `barInstance` above and the
-    //    notification popup stack already use — never behind a loader
-    //    keyed on anything transient.
+    // ── Edge bar (quick task 260823-9ak Task 3+4 R1/R2/R3/R4/D-2, restyled
+    //    quick task 260824-ns3) — style-picker-gated strips. Gated on
+    //    `root.edgeBarRailPresent` via a LazyLoader, PER INSTANCE (not a
+    //    shared wrapper Item) so EACH strip's own wl_surface is destroyed
+    //    when disabled — R3 demands OFF unmount entirely (a
+    //    mounted-but-`visible:false` layer surface keeps its
+    //    `exclusiveZone`, which would silently fail R3's "exactly today's
+    //    behaviour" requirement). Otherwise the same permanent-while-on
+    //    posture `barInstance` above and the notification popup stack
+    //    already use — never behind a loader keyed on anything transient.
+    //    `style:` is threaded onto both instances (Task 1) — inert on
+    //    EdgeBar.qml's side until Task 3 routes it.
     LazyLoader {
         id: edgeBarTopLoader
-        active: root.edgeBarEnabled
+        active: root.edgeBarRailPresent
 
         EdgeBar {
             id: edgeBarTop
             bottom: false
+            style: root.edgeBarStyle
             // Matches the dashboard, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthTop
             animatedBulge: root.edgeBarAnimatedBulge
@@ -601,11 +624,12 @@ ShellRoot {
     }
     LazyLoader {
         id: edgeBarBottomLoader
-        active: root.edgeBarEnabled
+        active: root.edgeBarRailPresent
 
         EdgeBar {
             id: edgeBarBottom
             bottom: true
+            style: root.edgeBarStyle
             // Matches the launcher, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthBottom
             animatedBulge: root.edgeBarAnimatedBulge
@@ -840,9 +864,11 @@ ShellRoot {
 
         Launcher {
             // Threaded from the single shell-root resolution point (Task
-            // 4/6, D-5) — Launcher.qml has no `root` id of its own to
+            // 4/6, D-5; split into two predicates by quick task 260824-ns3
+            // Task 1, Q2) — Launcher.qml has no `root` id of its own to
             // read (a separate document's ids are not visible there).
-            edgeBarEnabled: root.edgeBarEnabled
+            edgeBarRailPresent: root.edgeBarRailPresent
+            edgeBarPanelsAttach: root.edgeBarPanelsAttach
             onDismissRequested: launcherLoader.active = false
         }
     }
@@ -1470,7 +1496,7 @@ ShellRoot {
     // `Connections.target` re-binds automatically as each LazyLoader's
     // `.item` goes null/non-null across an enable/disable toggle (Task 4),
     // and gracefully no-ops while null — so these two blocks need no
-    // `edgeBarEnabled` guard of their own. Top strip reuses
+    // `edgeBarRailPresent` guard of their own. Top strip reuses
     // `dashboardShortcut`'s own toggle path (R5); bottom strip reuses
     // `launcherMenuShortcut`'s own `_toggleMenu()` verbatim (R6), which
     // already sets `LauncherState.pendingMode = LauncherState.modeMenu`

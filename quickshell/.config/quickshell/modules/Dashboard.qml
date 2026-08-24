@@ -266,11 +266,14 @@ PanelWindow {
     readonly property int drawerTopMargin: 10
 
     // ── Edge-bar attachment (quick task 260823-9ak, OPERATOR FEEDBACK
-    //    ROUND 2, 2026-08-23) ────────────────────────────────────────────
-    // Threaded in from shell.qml's single `root.edgeBarEnabled` resolution
-    // point, exactly as Launcher.qml:67 already does — this file has no
-    // `root` id of its own to read, so the value is passed in rather than
-    // re-resolved through a second `Prefs.getValue` call.
+    //    ROUND 2, 2026-08-23; renamed by quick task 260824-ns3 Task 1) ────
+    // Threaded in from shell.qml's single resolution point, exactly as
+    // Launcher.qml already does — this file has no `root` id of its own
+    // to read, so the value is passed in rather than re-resolved through
+    // a second `Prefs.getValue` call. The dashboard has no direction
+    // branch (it is always top), so only the ATTACHMENT predicate
+    // (edgeBarPanelsAttach) is threaded in here — edgeBarRailPresent is
+    // not needed.
     //
     // WHY THIS WAS MISSING AND WHAT IT BROKE. Task 6 branched only the
     // LAUNCHER's posture (its own title says so), so this drawer kept the
@@ -297,9 +300,9 @@ PanelWindow {
     // so the panel paints over the bulge while open — intended: the bulge
     // is the closed-state landmark (D-3) and the spawn point the panel
     // emerges from, not something to keep visible underneath it.
-    property bool edgeBarEnabled: false
+    property bool edgeBarPanelsAttach: false
 
-    margins.top: dashboardWindow.edgeBarEnabled ? 0 : dashboardWindow.drawerTopMargin
+    margins.top: dashboardWindow.edgeBarPanelsAttach ? 0 : dashboardWindow.drawerTopMargin
 
     // ── Dynamic per-tab geometry (D-02/D-04 SUPERSEDED, render-gate
     //    checkpoint feedback 2026-07-29) ───────────────────────────────────
@@ -768,6 +771,9 @@ PanelWindow {
     // Launcher.qml's own Task 6 note).
     AttachedCorner {
         id: dashboardFlareLeft
+        // Q3-brackets (quick task 260824-ns3, Task 1): "no flare" when a
+        // rail is present but panels do not weld to it (Brackets).
+        visible: dashboardWindow.edgeBarPanelsAttach
         edge: "top"
         side: "left"
         flareRadius: Design.attachedCornerRadius
@@ -781,6 +787,7 @@ PanelWindow {
     }
     AttachedCorner {
         id: dashboardFlareRight
+        visible: dashboardWindow.edgeBarPanelsAttach
         edge: "top"
         side: "right"
         flareRadius: Design.attachedCornerRadius

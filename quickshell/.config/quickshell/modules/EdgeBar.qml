@@ -102,6 +102,12 @@ PanelWindow {
     // matches the surface that spawns from it (operator round 7).
     property real bulgeWidth: Design.edgeBarBulgeWidthTop
 
+    // Edge-bar style (quick task 260824-ns3, Task 1) — threaded in from
+    // shell.qml's single resolution point (root.edgeBarStyle). INERT
+    // until Task 3 routes shape selection off it; every instance still
+    // draws today's single shape regardless of this value until then.
+    property string style: "continuous"
+
     anchors {
         top: !edgeBarWindow.bottom
         bottom: edgeBarWindow.bottom
