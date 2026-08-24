@@ -224,20 +224,17 @@ PanelWindow {
     //    and the period is one screen width. To go quieter, swap the stops
     //    for primaryContainer/secondaryContainer/tertiaryContainer — same
     //    structure, muted hues.
-    property real _gradientPhase: 0
+    // Read from the ONE shared clock rather than run a private animation.
+    // On Continuous the bar continues this strip's gradient through its own
+    // body, and two independently-started infinite animations hold a
+    // constant, arbitrary offset — a hard colour seam at the joint. See
+    // GradientPhase.qml. The top and bottom strips are now in step too.
+    readonly property real _gradientPhase: GradientPhase.phase
 
     // One full spectrum spans one screen width; the phase slides it by
     // exactly one period per cycle (seamless under RepeatSpread).
     readonly property real _gradientPeriod: Math.max(1, edgeBarWindow._ww)
 
-    NumberAnimation on _gradientPhase {
-        running: Motion.motionEnabled
-        from: 0
-        to: 1
-        duration: Motion.borderRotateDuration
-        loops: Animation.Infinite
-        easing.type: Easing.Linear
-    }
 
     // ── ANIMATED BULGE (operator round 11) — REVERSES D-3 ───────────────
     // D-3 (260823-9ak-CONTEXT.md) locked the bulge as a PERMANENT landmark,
@@ -353,6 +350,10 @@ PanelWindow {
         f: edgeBarWindow._f,
         rc: edgeBarWindow._rc,
         along: edgeBarWindow._ww,
+        // Continuous is the one style where this strip does NOT end at its
+        // own surface edge — Bar.qml carries the run on through the bar's
+        // body. Cap it there and the joint reads as a rounded lump.
+        squareEnd: edgeBarWindow.style === "continuous",
         xl: edgeBarWindow._xl,
         xr: edgeBarWindow._xr,
         // Mirror about the SURFACE depth, not the painted depth (`t + b`).

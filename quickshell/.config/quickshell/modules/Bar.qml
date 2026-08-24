@@ -401,16 +401,50 @@ PanelWindow {
     // EdgeBar.qml's strip already established (a phase property animated
     // 0 -> 1 over `Motion.borderRotateDuration`, `ShapeGradient.RepeatSpread`,
     // period = the consumer's own extent) — no new `Motion.*` token name.
-    property real _weldGradientPhase: 0
+    // ── Weld geometry, all derived from ONE token ───────────────────────
+    // The slab is the bar's own body painted in the rail's vocabulary. It
+    // is `edgeBarWeldRim` wider than the bar's column on EACH side, so the
+    // surface-coloured core it encloses is exactly `barColumnWidth` — the
+    // width every bar widget was built for. Sizing the slab AT the column
+    // width instead (what round 1 did) leaves a 36px interior, and the
+    // 44px widgets then straddle the rim: measured, the workspace group's
+    // outer 4px on both sides came back blended with the gradient.
+    // The extra width is taken LEFTWARD into the surface's existing
+    // non-reserving overhang, so `margins.right` and `exclusiveZone` are
+    // untouched and `reserved` cannot move.
+    readonly property real _weldSlabWidth: Design.barColumnWidth + 2 * Design.edgeBarWeldRim
+    // Local x of the slab: flush to the surface's right edge.
+    readonly property real _weldSlabX: barWindow.width - barWindow._weldSlabWidth
+    // The rail runs to the bar's CENTRE LINE — the study's own
+    // `railH(0, INSET, BAR.x + BAR.w/2, ...)`. Stopping at the slab's left
+    // edge leaves the slab's corner radius uncovered as a notch.
+    readonly property real _weldRunEnd: barWindow._weldSlabX + barWindow._weldSlabWidth / 2
+    // Solid gradient depth at the slab's two ends. Rim alone is not enough
+    // (see the core's own note); the rail run must land entirely on solid
+    // colour. Content is inset by this same number for the same reason —
+    // they are one quantity, not two that happen to match.
+    readonly property real _weldCapDepth: Design.edgeBarThickness + Design.edgeBarWeldRim
 
-    NumberAnimation on _weldGradientPhase {
-        running: Motion.motionEnabled && barWindow._continuousWeld
-        from: 0
-        to: 1
-        duration: Motion.borderRotateDuration
-        loops: Animation.Infinite
-        easing.type: Easing.Linear
-    }
+    // ── Gradient continuity with the strip ──────────────────────────────
+    // Phase comes from the shared clock (GradientPhase.qml) so this cannot
+    // drift against the strip. PERIOD and ORIGIN are the other half, and
+    // the half that was actually wrong in round 1: the stub carried its own
+    // 54px period, compressing the WHOLE primary/secondary/tertiary
+    // spectrum into the joint, which is why it read as a rainbow band
+    // against a strip that spreads the same spectrum over 2490px.
+    //
+    // The strip's period is its own surface width and its origin is
+    // `edgeBarSideMargin`. Mapping this surface's local u onto that space:
+    //     absX = u + _barSurfaceX      strip-local s = absX - edgeBarSideMargin
+    // so an x1 of `phase * period - (_barSurfaceX - edgeBarSideMargin)`
+    // makes the colour at any absolute x identical on both surfaces.
+    readonly property real _barSurfaceX: barWindow.screen
+        ? barWindow.screen.width - Design.barEdgeMargin - barWindow.width
+        : 0
+    readonly property real _stripPeriod: barWindow.screen
+        ? Math.max(1, barWindow.screen.width - 2 * Design.edgeBarSideMargin - (Design.barColumnWidth + Design.barEdgeMargin))
+        : 1
+    readonly property real _stripGradX1: GradientPhase.phase * barWindow._stripPeriod - (barWindow._barSurfaceX - Design.edgeBarSideMargin)
 
     // A single rounded-rect fill path — GradientBorder.qml's own
     // `_roundedRect` reasoning applies verbatim (no `PathRectangle` in
@@ -435,65 +469,6 @@ PanelWindow {
         return p + " Z";
     }
 
-    // 1. The full-height slab — the bar's own body, painted in the rail's
-    //    own vocabulary continuing through it (`rect{x:BAR.x, y:0, w:44,
-    //    h:H, rx:22}` in the study).
-    Shape {
-        id: weldSlab
-        visible: barWindow._continuousWeld
-        x: Design.edgeBarSideMargin + Design.barColumnWidth / 2
-        y: 0
-        width: Design.barColumnWidth
-        height: barWindow.height
-        preferredRendererType: Shape.CurveRenderer
-
-        ShapePath {
-            strokeWidth: -1
-            strokeColor: "transparent"
-            fillGradient: LinearGradient {
-                x1: 0
-                y1: barWindow._weldGradientPhase * Math.max(1, weldSlab.height)
-                x2: 0
-                y2: barWindow._weldGradientPhase * Math.max(1, weldSlab.height) + Math.max(1, weldSlab.height)
-                spread: ShapeGradient.RepeatSpread
-                GradientStop {
-                    position: 0.0
-                    color: Colours.primary
-                }
-                GradientStop {
-                    position: 0.33
-                    color: Colours.secondary
-                }
-                GradientStop {
-                    position: 0.66
-                    color: Colours.tertiary
-                }
-                GradientStop {
-                    position: 1.0
-                    color: Colours.primary
-                }
-            }
-            PathSvg {
-                path: barWindow._weldRoundedRect(weldSlab.width, weldSlab.height, Design.barColumnWidth / 2)
-            }
-        }
-    }
-
-    // 2. The inset core — `rect{x:BAR.x+4, y:22, w:36, h:H-44, rx:18,
-    //    fill:surface}` in the study. `Colours.surface` assigned straight
-    //    to `color:` — never `Qt.rgba(Colours.surface.r, ...)`, since the
-    //    roles are `property string`, not colour-typed, and that
-    //    silently resolves to black.
-    Rectangle {
-        visible: barWindow._continuousWeld
-        x: weldSlab.x + 4
-        y: 22
-        width: weldSlab.width - 8
-        height: Math.max(0, barWindow.height - 44)
-        radius: (weldSlab.width - 8) / 2
-        color: Colours.surface
-    }
-
     // 3. Two horizontal weld stubs — the 1860 -> 1892 run that closes the
     //    silhouette: strip end -> stub -> slab. Tucked under the slab's
     //    own rounded cap (the stub's x=0 sits at the widened surface's
@@ -505,7 +480,7 @@ PanelWindow {
         visible: barWindow._continuousWeld
         x: 0
         y: 0
-        width: Design.edgeBarSideMargin + Design.barColumnWidth
+        width: barWindow._weldRunEnd
         height: Design.edgeBarThickness
         preferredRendererType: Shape.CurveRenderer
 
@@ -513,9 +488,9 @@ PanelWindow {
             strokeWidth: -1
             strokeColor: "transparent"
             fillGradient: LinearGradient {
-                x1: barWindow._weldGradientPhase * Math.max(1, weldStubTop.width)
+                x1: barWindow._stripGradX1
                 y1: 0
-                x2: barWindow._weldGradientPhase * Math.max(1, weldStubTop.width) + Math.max(1, weldStubTop.width)
+                x2: barWindow._stripGradX1 + barWindow._stripPeriod
                 y2: 0
                 spread: ShapeGradient.RepeatSpread
                 GradientStop {
@@ -545,7 +520,7 @@ PanelWindow {
         visible: barWindow._continuousWeld
         x: 0
         y: Math.max(0, barWindow.height - Design.edgeBarThickness)
-        width: Design.edgeBarSideMargin + Design.barColumnWidth
+        width: barWindow._weldRunEnd
         height: Design.edgeBarThickness
         preferredRendererType: Shape.CurveRenderer
 
@@ -553,9 +528,9 @@ PanelWindow {
             strokeWidth: -1
             strokeColor: "transparent"
             fillGradient: LinearGradient {
-                x1: barWindow._weldGradientPhase * Math.max(1, weldStubBottom.width)
+                x1: barWindow._stripGradX1
                 y1: 0
-                x2: barWindow._weldGradientPhase * Math.max(1, weldStubBottom.width) + Math.max(1, weldStubBottom.width)
+                x2: barWindow._stripGradX1 + barWindow._stripPeriod
                 y2: 0
                 spread: ShapeGradient.RepeatSpread
                 GradientStop {
@@ -580,12 +555,85 @@ PanelWindow {
             }
         }
     }
+    // 1. The full-height slab — the bar's own body, painted in the rail's
+    //    own vocabulary continuing through it (`rect{x:BAR.x, y:0, w:44,
+    //    h:H, rx:22}` in the study).
+    Shape {
+        id: weldSlab
+        visible: barWindow._continuousWeld
+        x: barWindow._weldSlabX
+        y: 0
+        width: barWindow._weldSlabWidth
+        height: barWindow.height
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+            strokeWidth: -1
+            strokeColor: "transparent"
+            fillGradient: LinearGradient {
+                x1: 0
+                y1: GradientPhase.phase * Math.max(1, weldSlab.height)
+                x2: 0
+                y2: GradientPhase.phase * Math.max(1, weldSlab.height) + Math.max(1, weldSlab.height)
+                spread: ShapeGradient.RepeatSpread
+                GradientStop {
+                    position: 0.0
+                    color: Colours.primary
+                }
+                GradientStop {
+                    position: 0.33
+                    color: Colours.secondary
+                }
+                GradientStop {
+                    position: 0.66
+                    color: Colours.tertiary
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Colours.primary
+                }
+            }
+            PathSvg {
+                path: barWindow._weldRoundedRect(weldSlab.width, weldSlab.height, weldSlab.width / 2)
+            }
+        }
+    }
+
+    // 2. The inset core — `rect{x:BAR.x+4, y:22, w:36, h:H-44, rx:18,
+    //    fill:surface}` in the study. `Colours.surface` assigned straight
+    //    to `color:` — never `Qt.rgba(Colours.surface.r, ...)`, since the
+    //    roles are `property string`, not colour-typed, and that
+    //    silently resolves to black.
+    Rectangle {
+        visible: barWindow._continuousWeld
+        x: weldSlab.x + Design.edgeBarWeldRim
+        // The cap must be AT LEAST as deep as the rail it swallows, which
+        // is why this is not the plain rim. The weld run is
+        // `edgeBarThickness` deep and is drawn UNDER the slab so the slab
+        // hides where the horizontal run becomes the vertical body. At a
+        // uniform 4px inset the core's own rounded cap rises into those
+        // same rows and punches a hole straight through the run — measured
+        // as an 8px dark bite at y=4 dead on the bar's centre line, which
+        // is exactly where the joint is supposed to be solid.
+        y: barWindow._weldCapDepth
+        width: weldSlab.width - 2 * Design.edgeBarWeldRim
+        height: Math.max(0, barWindow.height - 2 * barWindow._weldCapDepth)
+        radius: (weldSlab.width - 2 * Design.edgeBarWeldRim) / 2
+        color: Colours.surface
+    }
+
 
     Item {
         id: barContent
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.right: parent.right
+        // Confined to the slab's core when welded: the decoration and the
+        // content must not share pixels. Round 1 let them, and the first
+        // and last widgets rendered their glyphs on the gradient.
+        anchors.rightMargin: barWindow._continuousWeld ? Design.edgeBarWeldRim : 0
+        anchors.topMargin: barWindow._continuousWeld ? barWindow._weldCapDepth : 0
+        anchors.bottomMargin: barWindow._continuousWeld ? barWindow._weldCapDepth : 0
         // NEVER `: undefined` here. `vertical` is FALSE at construction
         // (BarEntryModel.isVertical settles later), so an undefined branch
         // is what QML actually evaluates first — and assigning undefined to

@@ -20,6 +20,10 @@
 module qs.modules
 singleton Colours 1.0 Colours.qml
 singleton Motion 1.0 Motion.qml
+# One shared scrolling-accent clock (quick task 260824-ns3). Both the edge
+# bar strips and the Continuous weld in Bar.qml read it, so a moving gradient
+# cannot drift between two surfaces that must join without a seam.
+singleton GradientPhase 1.0 GradientPhase.qml
 # Prefs (quick-260821-6z1 Task 1, D-02) — the shell-preferences JSON store.
 # Registered here, not modules/settings/qmldir, for the same cross-tree
 # reason CavaService is registered here rather than modules/dashboard/

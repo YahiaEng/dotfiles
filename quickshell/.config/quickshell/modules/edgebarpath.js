@@ -79,6 +79,12 @@ function _shoulderSweep(x1, y1, x2, y2, r, expectedCx, expectedCy) {
 //   xl, xr        the bulge span's along-axis bounds
 //   surfaceDepth  the surface's own depth (the mirror axis for `flip`)
 //   flip          mirror the depth axis (edge: bottom/right)
+//   squareEnd     OPT-IN. Omit the far-end pill cap and finish the run
+//                 square, so another surface can continue it without a
+//                 visible bulge at the joint. Continuous needs it: the
+//                 strip does not terminate there, the bar carries it on.
+//                 Default false, so every existing caller — and the
+//                 committed golden — is byte-identical by construction.
 //   axis          "horizontal" | "vertical" — default "horizontal"
 //
 // Built entirely in ALONG/DEPTH space — "along" runs the length of the
@@ -96,6 +102,7 @@ function buildOutline(params) {
     var t = params.t, b = params.b, re = params.re, f = params.f, rc = params.rc;
     var along = params.along, xl = params.xl, xr = params.xr;
     var surfaceDepth = params.surfaceDepth, flip = !!params.flip;
+    var squareEnd = !!params.squareEnd;
     var axis = params.axis || "horizontal";
     var vertical = axis === "vertical";
 
@@ -136,14 +143,24 @@ function buildOutline(params) {
     // 0, flush to the screen) is one straight run from cap to cap; the
     // bulge is an excursion of the INNER face only.
     var p = "M " + P(re, Y(0));
-    p += " L " + P(along - re, Y(0));
-    // Right pill cap, as TWO quarter arcs through the cap's outermost
-    // point — see `_arcCentre`'s domain note above for why the single-arc
-    // form could not have its sweep flag resolved and silently drew
-    // inward. PRECONDITION, the token pair's own contract: this is a true
-    // semicircle only while `re == t / 2`.
-    p += " A " + re + " " + re + " 0 0 " + S(along - re, Y(0), along, Y(re), re, along - re, Y(re)) + " " + P(along, Y(re));
-    p += " A " + re + " " + re + " 0 0 " + S(along, Y(re), along - re, Y(t), re, along - re, Y(re)) + " " + P(along - re, Y(t));
+    if (squareEnd) {
+        // Butt end. The run reaches the surface's far edge at full
+        // thickness and stops there with no cap, because something else
+        // continues it past this surface's boundary. A pill cap here
+        // reads as a rounded lump mid-rail once the continuation is
+        // drawn, which is exactly what it looked like.
+        p += " L " + P(along, Y(0));
+        p += " L " + P(along, Y(t));
+    } else {
+        p += " L " + P(along - re, Y(0));
+        // Right pill cap, as TWO quarter arcs through the cap's outermost
+        // point — see `_arcCentre`'s domain note above for why the single-arc
+        // form could not have its sweep flag resolved and silently drew
+        // inward. PRECONDITION, the token pair's own contract: this is a true
+        // semicircle only while `re == t / 2`.
+        p += " A " + re + " " + re + " 0 0 " + S(along - re, Y(0), along, Y(re), re, along - re, Y(re)) + " " + P(along, Y(re));
+        p += " A " + re + " " + re + " 0 0 " + S(along, Y(re), along - re, Y(t), re, along - re, Y(re)) + " " + P(along - re, Y(t));
+    }
     // Inner face inward to the right shoulder.
     p += " L " + P(xr + f, Y(t));
     // Concave fillet down into the bulge's right side.

@@ -824,5 +824,32 @@ Singleton {
     // above 10, raise `edgeBarHoverDepth` with it or the swell is clipped.
     readonly property int edgeBarBulgeSwellExtra: 10
 
+    // ── edgeBarWeldRim (quick task 260824-ns3, operator round 2 on
+    //    Continuous) — the gradient rim thickness on the bar's own slab,
+    //    i.e. how far the surface-coloured core is inset from the slab on
+    //    EVERY side. It is the one number that decides how much of the bar
+    //    is decoration and how much is usable interior.
+    //
+    //    THE STUDY DREW THIS ASYMMETRICALLY and this shell cannot: its
+    //    Continuous bar is `rect{x:BAR.x+4, y:22, w:BAR.w-8, h:H-44}` — a
+    //    4px rim on the sides but a 22px SOLID DOME at the top and bottom.
+    //    That is fine for a study, whose bar is empty. This bar is not: the
+    //    first and last widgets (app drawer, power) landed inside those
+    //    domes and their glyphs were measured sitting on the gradient with
+    //    almost no contrast — the operator's report was that they were
+    //    "very hard if not impossible to see". A uniform rim keeps every
+    //    glyph on the dark core by construction.
+    //
+    //    It also matches the rail better. The rail is `edgeBarThickness`
+    //    deep (6); a 4px rim meets it at nearly the same weight, whereas a
+    //    22px dome is a blob the 6px run slams into — part of what read as
+    //    the joint being "weird and bugged".
+    //
+    //    TO GO BACK TO THE STUDY'S DOME: give the core a separate vertical
+    //    inset of `_weldSlabWidth / 2` in Bar.qml's core Rectangle. Content
+    //    must then be inset by the same amount or the glyph-contrast fault
+    //    returns — they are the same number for that reason.
+    readonly property int edgeBarWeldRim: 4
+
     readonly property int edgeBarDwellMs: 400 // hover dwell before a bulge hover summons its surface (Task 5) — matches popoutDwellMs above
 }
