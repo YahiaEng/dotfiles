@@ -475,3 +475,100 @@ Unchanged from round 8, plus this round's own two:
 2. Visual sign-off, now on the round-9 shape: the thinner bulge, and whether
    the reversed exit's inward recoil reads right on all three binds.
 3. The menu surface still measured only in APP mode for the entrance.
+
+---
+
+## Post-summary: operator feedback round 10 (2026-08-24)
+
+Reverse recoil (round 9) **approved by the operator**. Two notes plus one
+bug, `c7aea8da..0f8f5c8e` on `main`.
+
+| Report | Commit | Root cause |
+|---|---|---|
+| "both ends of the top edge are messed up" | `c7aea8da` | `_arcCentre` hardcodes SVG F.6.5's offset scalar to 1, which is exact only for QUARTER arcs. The pill caps were single 180-degree arcs, so neither sweep candidate matched the expected centre and `_shoulderSweep` fell through to `0` — the inward direction. |
+| "the hitbox for it is too small" | `0f8f5c8e` | The hover target WAS the bulge's overhang rect, so its depth was the paint's depth. Rounds 8/9/10 thinning the bulge shrank it 10 -> 6 -> 4px. |
+| "make the bulge slightly thinner" | `0f8f5c8e` | Taste. `edgeBarBulgeExtra` 6 -> 4, radii re-derived to 3 + 1. |
+
+### The cap bug, measured before and after
+
+Raw per-pixel dump at both ends, top strip:
+
+| | before | after |
+|---|---|---|
+| top-left, middle rows | x=**16** | x=**10** |
+| top-left, top/bottom rows | x=14 | x=11 |
+| top-right, middle rows | x=**2493** | x=**2499** |
+| top-right, top/bottom rows | x=2494/2495 | x=2498 |
+
+Before, the middle RECEDED — concave, a bite taken out, 4px short on the
+left and 6px on the right. After, the middle extends furthest — convex, and
+the strip spans its full intended 10..2500.
+
+**The bottom edge was correct throughout, and that is the tell.** `Y()`
+mirrors the path for the bottom instance, which flips which sweep flag means
+outward — so one bug rendered correctly on one instance and inverted on the
+other. Do not read "only the top is wrong" as two separate defects.
+
+Verified numerically BEFORE editing: for the right cap as one 180-degree
+arc, `_arcCentre`'s two candidates are `(2484,3)` and `(2490,3)` against an
+expected `(2487,3)`. As two quarter arcs, both halves resolve to `(2487,3)`
+with sweep 1.
+
+The scalar is **deliberately not** added to `_arcCentre`. It would be a
+floating-point change on four arcs that currently resolve exactly, feeding a
+0.01-tolerance comparison where a wrong flag silently inverts a fillet with
+no error anywhere. The quarter-arc-only domain is documented at the function
+instead, with what to do if a non-quarter arc is ever genuinely needed.
+
+### The hitbox, and the two couplings it exposed
+
+`edgeBarHoverDepth: 16` is new and owns the hover target's depth, measured
+from the screen edge inward. Tune it alone; it touches neither the paint,
+`exclusiveZone`, nor the reservation.
+
+Two things had to move with it, both of which would have failed **silently**:
+
+1. **The surface had to grow.** An Item taller than its window is clipped,
+   and the `mask: Region` derived from it clips with it — the target would
+   have stayed 4px tall no matter what the token said. `implicitHeight` is
+   now `max(paintedDepth, hoverDepth)`.
+2. **`_outlinePath` mirrored the bottom instance about `yb`** (the PAINTED
+   depth), which was equal to the surface depth until now. Left alone, the
+   bottom strip's paint would have pinned to the top of its own surface,
+   floating 6px above the screen edge. It mirrors about `_surfaceDepth` now.
+   Measured after: bottom flat run still at y1434..1439 with the surface at
+   y1424 — still flush.
+
+### Verified by measurement
+
+- Reserved `[0,6,50,6]` unchanged; surfaces now 16 deep (`h=16`), paint 6
+  flat + 4 bulge = 10.
+- All four strip ends convex.
+- Bulge shoulder a clean 3-step concave sweep, x=873 -> the bulge edge at
+  x=875, no notch.
+- Gates: `quickshell-doctor` 28/0, `colour-lint` 359/0, `motion-lint` 546/0,
+  `keybind-doctor` 13/0. Shell log clean below the start marker.
+
+### NOT verified — stated plainly
+
+The hover target's new depth is **structural only**. The surface measures 16
+and the hit Item is unclipped at 16, so the region is 16 tall by
+construction — but no pointer-injection tool exists on this host (`ydotool`,
+`wlrctl`, `dotool`, `xdotool` all absent, and none was installed to find
+out), so nothing exercised a real pointer against it. Whether 16 is *enough*
+is the operator's call, and `edgeBarHoverDepth` is the single line to change.
+
+### Instrument note
+
+`hyprctl dispatch global <name>` fails on this host — the Lua config layer
+wraps the argument, so it must be `hyprctl dispatch 'hl.dsp.global("...")'`.
+There is no `movecursor` in that dispatcher table, which is what closed off
+the pointer-injection route above.
+
+### Still open — needs the operator
+
+1. Task 7's hover-dwell walk, now including whether `edgeBarHoverDepth: 16`
+   is actually comfortable to hit.
+2. Visual sign-off on the round-10 shape: the 4px bulge and the repaired
+   end caps.
+3. The menu surface still measured only in APP mode for the entrance.
