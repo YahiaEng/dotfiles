@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "EDGE BAR STYLE PICKER APPROVED, ZERO CODE WRITTEN — Continuous/Brackets/Segmented/Halo/off. Brief at .planning/notes/edge-bar-style-directions.md; shapes source of truth is the published study at claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789. Three open questions must be settled out loud before building."
-last_updated: "2026-08-24T09:10:00.000Z"
+stopped_at: "EDGE BAR STYLE PICKER APPROVED, ZERO CODE WRITTEN — off/Continuous/Brackets/Segmented/Halo. Two Rails REMOVED by operator decision. animatedBulge needs a per-style answer (in scope, unresolved). Q2 (key shape) and Q4 (default + migration for edgeBar.enabled:true) still open. Brief at .planning/notes/edge-bar-style-directions.md; shapes source of truth is claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789."
+last_updated: "2026-08-24T09:40:00.000Z"
 last_activity: 2026-08-24
 last_activity_desc: "quick task 260823-9ak rounds 9-11 shipped and operator-approved (reversed-entrance dismiss, pill-cap fix, hover target decoupled, animated bulge reversing D-3); then a seven-direction edge bar design study was published and the operator chose FOUR shapes plus off to implement as a style picker. Zero implementation code written."
 state_head: 6983d3e2
@@ -746,7 +746,13 @@ READ FIRST ON RESUME: `.planning/notes/edge-bar-style-directions.md`. It is the 
 
 THE SHAPES' SOURCE OF TRUTH IS A PUBLISHED PAGE, not prose: https://claude.ai/code/artifact/b3ebc0ec-7345-4aff-94b4-23c784412789 — the operator named it as such ("use the webpage you created as the source of truth"). Re-read it before drawing anything; the scratchpad copy of its source is ephemeral.
 
-WHAT WAS DECIDED: ship a style PICKER, not a toggle — **Continuous, Brackets, Segmented, Halo, plus off**. `Closed Frame` and `Three Rails` were shown and explicitly NOT chosen; do not reintroduce them. Whether the currently-shipped `Two Rails` survives as a sixth option is OPEN QUESTION 1 and the operator has not answered it — it is the approved, verified, default shape today, so ASK rather than dropping it.
+WHAT WAS DECIDED: ship a style PICKER, not a toggle — **off, Continuous, Brackets, Segmented, Halo**, exactly five entries. `Closed Frame` and `Three Rails` were shown and explicitly NOT chosen; do not reintroduce them.
+
+**TWO RAILS IS REMOVED** — the operator settled it directly ("no two rails does not survive"). That is the shape shipping TODAY, so its removal is deliberate, not an oversight; do not reinstate it as a fallback or a default. What does NOT go with it is the strip's vocabulary, which rounds 7-11 tuned and which carries forward: flat run 6, side inset 10, convex pill caps, hoverDepth 16, swell 10, the scrolling accent gradient, the static bulge shape (extra 4 / fillet 3 / corner 1), and the reversed-entrance dismiss. Continuous and Segmented inherit all of it; Brackets and Halo inherit the vocabulary but not the bulge geometry.
+
+ALSO SETTLED: `edgeBar.animatedBulge` needs a PER-STYLE answer ("yes we will need a per style answer"). Confirmed in scope, NOT yet resolved — the brief carries a per-style table of what each shape implies (Brackets has no bulge drawn at all; Halo's bulge is its only landmark at 2px). Decide per style whether the swell applies, is forced, or the toggle is hidden.
+
+TWO QUESTIONS REMAIN OPEN and must be asked, not assumed: the Prefs key shape (Q2 — the existing bool is load-bearing for `Launcher.qml`'s direction branch, which must follow "is any rail present", not "is the style non-off", or R3 breaks); and Q4, which Q1's answer CREATED — every install including this host holds `edgeBar.enabled: true`, which now renders a shape that will not exist, so the default and that value's migration target are both undefined. Recommendation on Q4 is Continuous: it was the study's pick, it is the only direction where every edge does a job, and at 12px it costs exactly what Two Rails cost, so the migration does not silently change how much screen is lost.
 
 THE THESIS THAT PICKED THESE, worth not relearning: a rail here is an ATTACHMENT ROOT, not a border — the bulge is sized to exactly the panel that spawns from it (760 = dashboard, 640 = launcher, shared tokens) and a flare welds the two into one silhouette. Measured attachment map: top = dashboard, bottom = launcher, right = the bar AND the notification centre's slide-in edge (established by reading which margin it animates, not guessed), left = NOTHING. Closed and Three Rails lost because both buy symmetry with a dead left edge. Also corrected and worth keeping: Caelestia has NO four-edge frame — `.planning/research/FEATURES.md:15` sources it as one vertical right-edge bar — so the house "Caelestia is the tiebreaker" rule gives no cover here.
 

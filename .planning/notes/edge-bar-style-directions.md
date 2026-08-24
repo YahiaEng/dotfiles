@@ -19,7 +19,7 @@ A **style picker**, not a toggle. Five shapes plus off.
 | Style | Ship? | Edges | Screen lost | Rails with a panel |
 |---|---|---|---|---|
 | Off | ✅ | none | 0 | — |
-| Two Rails | ⚠️ SEE OPEN QUESTION 1 | 2 · top, bottom | 12px (6+6) | 2 of 2 |
+| ~~Two Rails~~ | ❌ **REMOVED** — operator, 2026-08-24 | 2 · top, bottom | 12px (6+6) | 2 of 2 |
 | Continuous | ✅ | 3 + bar | 12px (6+6) | 3 of 3 |
 | Brackets | ✅ | 4 corners | 0 — can overhang entirely | 0 direct |
 | Segmented | ✅ | 2 · top, bottom | 12px (6+6) | 2 of 2 |
@@ -27,6 +27,9 @@ A **style picker**, not a toggle. Five shapes plus off.
 
 **Closed Frame** and **Three Rails** were shown in the study and **not chosen**. Do not
 build them; do not quietly reintroduce them as "the left rail" of something else.
+
+**Two Rails — the shape shipped today — is REMOVED**, not kept as a fallback. The picker has
+five entries, one of which is off.
 
 ---
 
@@ -95,22 +98,53 @@ literals (`colour-lint` GATE-04 rejects hardcoded colours).
 
 ---
 
-## OPEN QUESTIONS — settle these at the top of the implementation task, do not settle them silently
+## DECIDED — settled by the operator 2026-08-24, do not re-litigate
 
-1. **Does "Two Rails" survive as a style?** The operator listed four styles + off and did
-   not name the current shipped shape. It is approved, verified and is what `edgeBar.enabled`
-   renders today. Dropping it silently would discard round 10's sign-off. **Recommendation:
-   keep it as the default style.** Ask.
-2. **Key shape.** `edgeBar.enabled` (bool) already exists and is allow-listed in `Prefs.qml`
-   with a default of `true`, and `shell.qml` resolves it once into `root.edgeBarEnabled`
-   which BOTH `EdgeBar` instances and `Launcher.qml`'s direction branch read (D-5). Options:
-   (a) add `edgeBar.style` string alongside, with "off" as a value and retire the bool;
-   (b) keep the bool as a master and add the style beneath it. (a) is cleaner but the bool
-   is load-bearing for the launcher's direction branch — that branch must follow "is any
-   rail present", not "is the style non-off", or R3 breaks.
-3. **`edgeBar.animatedBulge`** (round 11) is orthogonal today. Under Brackets there is no
-   centre bulge in the study's drawing, and under Halo the bulge is the only landmark. Decide
-   per style whether the swell applies, or gate the toggle's visibility.
+**Q1 — Does "Two Rails" survive as a style? → NO.** Operator's words: *"no two rails does not
+survive."* Remove it. The picker is exactly **off · Continuous · Brackets · Segmented · Halo**.
+
+  Consequence, and it is the reason Q4 below exists: Two Rails is what ships TODAY. Removing it
+  means the currently-rendered shape has no home in the new picker, so both the default and the
+  migration for the existing `edgeBar.enabled: true` become undefined. See Q4.
+
+  **What is NOT discarded with it.** Rounds 7-11 tuned Two Rails, but almost none of that tuning
+  was Two-Rails-specific — it is the strip's own vocabulary and it carries forward:
+  flat run `T = 6`, side inset `10`, convex pill caps, `edgeBarHoverDepth = 16`, swell `10`,
+  the `primary/secondary/tertiary` scrolling gradient, the static bulge shape (extra 4, fillet 3,
+  corner 1), and the reversed-entrance dismiss. Continuous and Segmented inherit all of it
+  directly; Brackets and Halo inherit the vocabulary but not the bulge geometry.
+
+**Q3 — Does `edgeBar.animatedBulge` need a per-style answer? → YES.** Operator confirmed:
+*"yes we will need a per style answer."* Still to be answered per style — this is confirmed IN
+SCOPE, not yet resolved. The shapes as drawn in the study imply, but do not settle:
+
+  | Style | Bulge in the study | Question to answer |
+  |---|---|---|
+  | Continuous | yes, top + bottom | swell as today, or hold permanently since the frame is closed? |
+  | Segmented | yes, overlaying the segments | does the bulge fight the segments? one may have to yield |
+  | Brackets | **none drawn** | is there any hover landmark at all, or does hover move to the corners? |
+  | Halo | yes, and it is the ONLY landmark at 2px | must the swell be forced ON here? |
+
+  Decide whether the toggle applies per style, is forced per style, or is hidden per style.
+
+---
+
+## STILL OPEN — settle at the top of the implementation task, do not settle silently
+
+**Q2 — Key shape.** `edgeBar.enabled` (bool) already exists, is allow-listed in `Prefs.qml` with
+a default of `true`, and `shell.qml` resolves it once into `root.edgeBarEnabled` which BOTH
+`EdgeBar` instances and `Launcher.qml`'s direction branch read (D-5). Options:
+(a) add `edgeBar.style` string with "off" as a value and retire the bool;
+(b) keep the bool as a master and add the style beneath it.
+(a) is cleaner, but the bool is load-bearing for the launcher's direction branch — that branch
+must follow **"is any rail present"**, not "is the style non-off", or R3 breaks.
+
+**Q4 — Default style, and what `edgeBar.enabled: true` migrates to.** Created by Q1's answer.
+Every existing install (including this host) currently holds `edgeBar.enabled: true`, which
+renders a shape that will no longer exist. That value has to land somewhere.
+**Recommendation: Continuous.** It was the study's recommendation, it is the only direction where
+every edge does a job, and at 12px (6 + 6) it costs exactly what Two Rails cost — so the migration
+does not silently change how much screen the operator loses. **Ask before assuming it.**
 
 ---
 
