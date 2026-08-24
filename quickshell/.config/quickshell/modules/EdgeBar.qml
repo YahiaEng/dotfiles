@@ -118,12 +118,31 @@ PanelWindow {
     margins.left: Design.edgeBarSideMargin
     margins.right: Design.edgeBarSideMargin
 
-    // Fixed axis = the strip's full painted extent (flat thickness + bulge
-    // overhang); free axis = 0, the same zero-is-inert idiom Bar.qml's own
-    // header documents for a doubly-anchored axis (both left and right are
-    // anchored here, so the compositor's own stretch determines the real
-    // width regardless of this value).
-    implicitHeight: Design.edgeBarThickness + Design.edgeBarBulgeExtra
+    // ── Surface depth vs PAINTED depth (operator round 10) ──────────────
+    // These were the same number until the hover target was decoupled from
+    // the bulge. The surface must now be at least as deep as the hit
+    // region, because an Item taller than its window is clipped and the
+    // `mask: Region` derived from it would be clipped with it — the hover
+    // target would have silently stayed 4px tall no matter what the token
+    // said.
+    //
+    // Growing the surface is free in every direction that matters: the
+    // extra depth is transparent, input is confined to the mask, and the
+    // reservation is untouched — Hyprland's reservation total is
+    // `margins.<anchored-edge> + exclusiveZone`, neither of which reads
+    // this (measured: reserved stays [0,6,50,6]).
+    //
+    // `_paintedDepth` is what the outline is drawn into and is the value
+    // the bottom instance mirrors about; see `_outlinePath`'s `Y()`.
+    readonly property real _paintedDepth: Design.edgeBarThickness + Design.edgeBarBulgeExtra
+    readonly property real _surfaceDepth: Math.max(edgeBarWindow._paintedDepth, Design.edgeBarHoverDepth)
+
+    // Fixed axis = the surface's own depth; free axis = 0, the same
+    // zero-is-inert idiom Bar.qml's own header documents for a doubly-
+    // anchored axis (both left and right are anchored here, so the
+    // compositor's own stretch determines the real width regardless of
+    // this value).
+    implicitHeight: edgeBarWindow._surfaceDepth
     implicitWidth: 0
 
     WlrLayershell.layer: WlrLayer.Top // never Overlay — always-on chrome sits below transient dialogs (Bar.qml's own note)
@@ -223,6 +242,34 @@ PanelWindow {
     // (x1,y1) to (x2,y2) at the given radius, per the SVG endpoint-to-
     // centre formula (spec F.6.5): `sweepPositive` selects which of the
     // two valid centres (large-arc-flag != sweep-flag when true).
+    //
+    // ── DOMAIN: 90-DEGREE ARCS ONLY (operator round 10, 2026-08-24) ─────
+    // F.6.5's offset from the chord midpoint is
+    //   sqrt((r^2 - d^2) / d^2) * (y1p, -x1p),   d^2 = x1p^2 + y1p^2
+    // and this function omits that scalar, i.e. it hardcodes it to 1. That
+    // is exact when d^2 = r^2/2 — a quarter-circle, chord = r*sqrt(2) —
+    // and wrong for every other sweep angle.
+    //
+    // Every fillet and bulge corner in `_outlinePath` is a quarter arc, so
+    // this held. The two pill caps were NOT: each was one 180-degree arc,
+    // for which the true centre is the chord midpoint (offset zero). With
+    // the scalar pinned at 1 the two candidates came out r to either side
+    // of that midpoint, so NEITHER matched the expected centre and
+    // `_shoulderSweep` fell through to its `: 0` branch — the INWARD
+    // direction. Measured on the live strip: the top edge's ends curved
+    // concave, biting 4px off the left and 6px off the right, while the
+    // bottom edge looked right purely because `Y()` mirrors the path and
+    // flips which flag means outward.
+    //
+    // The scalar is deliberately NOT added here. Adding it would be a
+    // floating-point change on four arcs that currently resolve exactly,
+    // and `_shoulderSweep` matches its expected centre to a 0.01
+    // tolerance — a wrong flag there silently inverts a fillet with no
+    // error anywhere. The caps are drawn as two quarter arcs each instead
+    // (see `_outlinePath`), which brings them inside this domain and lets
+    // the same verify-the-centre mechanism resolve them like everything
+    // else. If a non-quarter arc is ever genuinely needed, add the scalar
+    // AND re-verify all four existing arcs, in that order.
     function _arcCentre(x1, y1, x2, y2, r, sweepPositive) {
         var x1p = (x1 - x2) / 2, y1p = (y1 - y2) / 2;
         var sign = sweepPositive ? 1 : -1;
@@ -271,7 +318,12 @@ PanelWindow {
         var S = edgeBarWindow._shoulderSweep;
 
         var flip = edgeBarWindow.bottom;
-        var h = yb;
+        // Mirror about the SURFACE depth, not `yb` (the painted depth).
+        // They were equal until round 10 deepened the surface for the hover
+        // region; mirroring about `yb` would have pinned the bottom strip's
+        // paint to the TOP of its own surface, leaving it floating
+        // `_surfaceDepth - yb` px above the screen edge.
+        var h = edgeBarWindow._surfaceDepth;
         function Y(v) {
             return flip ? h - v : v;
         }
@@ -281,8 +333,17 @@ PanelWindow {
         // INNER face only.
         var p = "M " + re + " " + Y(0);
         p += " L " + (ww - re) + " " + Y(0);
-        // Right pill cap.
-        p += " A " + re + " " + re + " 0 0 " + S(ww - re, Y(0), ww - re, Y(t), re, ww - re, Y(re)) + " " + (ww - re) + " " + Y(t);
+        // Right pill cap, as TWO quarter arcs through the cap's outermost
+        // point (ww, t/2) rather than one 180-degree arc — see
+        // `_arcCentre`'s domain note for why the single-arc form could not
+        // have its sweep flag resolved and silently drew inward.
+        // PRECONDITION, and it is the token pair's own contract: this is a
+        // true semicircle only while `edgeBarEndRadius == thickness / 2`,
+        // which is exactly what Design.qml declares it as. If they ever
+        // diverge, the two endpoints below stop lying on the cap circle at
+        // all and the shape is ill-defined in either arc form.
+        p += " A " + re + " " + re + " 0 0 " + S(ww - re, Y(0), ww, Y(re), re, ww - re, Y(re)) + " " + ww + " " + Y(re);
+        p += " A " + re + " " + re + " 0 0 " + S(ww, Y(re), ww - re, Y(t), re, ww - re, Y(re)) + " " + (ww - re) + " " + Y(t);
         // Inner face leftward to the right shoulder.
         p += " L " + (xr + f) + " " + Y(t);
         // Concave fillet down into the bulge's right side.
@@ -297,7 +358,9 @@ PanelWindow {
         p += " A " + f + " " + f + " 0 0 " + S(xl, Y(t + f), xl - f, Y(t), f, xl - f, Y(t + f)) + " " + (xl - f) + " " + Y(t);
         // Inner face onward to the left cap.
         p += " L " + re + " " + Y(t);
-        p += " A " + re + " " + re + " 0 0 " + S(re, Y(t), re, Y(0), re, re, Y(re)) + " " + re + " " + Y(0);
+        // Left pill cap, same two-quarter-arc construction as the right.
+        p += " A " + re + " " + re + " 0 0 " + S(re, Y(t), 0, Y(re), re, re, Y(re)) + " 0 " + Y(re);
+        p += " A " + re + " " + re + " 0 0 " + S(0, Y(re), re, Y(0), re, re, Y(re)) + " " + re + " " + Y(0);
         return p + " Z";
     }
 
@@ -352,12 +415,35 @@ PanelWindow {
     //    this surface. The hover reveal below is scoped to this same
     //    item, so what the operator SEES (the permanent bulge landmark,
     //    D-3) and what actually triggers are the same object (P-3).
+    // OPERATOR ROUND 10: this rectangle used to be the bulge's overhang
+    // exactly — `y: _t, height: _b` — which tied the hover target's depth
+    // to the PAINT. Every round that thinned the bulge therefore shrank
+    // what you have to hit, 10px -> 6px -> 4px, and the operator reported
+    // it as too small. Depth now comes from its own token, measured from
+    // the screen edge inward, so the landmark can keep getting thinner
+    // without the target following it down.
+    //
+    // Still the same WIDTH as the bulge (`_wb`), so P-3 holds: what is
+    // seen and what triggers remain the same object horizontally, which is
+    // the axis the operator actually aims along.
+    //
+    // `Math.max` floors the region at the painted depth so a future
+    // hoverDepth smaller than the bulge can never leave part of the
+    // visible landmark inert.
     Item {
         id: bulgeHitArea
         x: edgeBarWindow._xl
         width: edgeBarWindow._wb
-        y: edgeBarWindow.bottom ? 0 : edgeBarWindow._t
-        height: edgeBarWindow._b
+        // Fills the surface's depth. `_surfaceDepth` is the surface's own
+        // `implicitHeight`, so this spans it exactly — for BOTH instances,
+        // since the bottom one is anchored to the bottom edge and its
+        // surface therefore already starts where its hover region should.
+        // Deliberately not `edgeBarWindow.height`: a layer surface's height
+        // arrives in STAGES (100 -> 500 -> ... on this host, measured in
+        // round 5), so reading it here would size the region off a
+        // transient value.
+        y: 0
+        height: edgeBarWindow._surfaceDepth
 
         // ── Hover reveal (quick task 260823-9ak, Task 5, R5/R6, P-3,
         //    T-9ak-01) — a HoverHandler and a dwell Timer, NOTHING else.
