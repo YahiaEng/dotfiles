@@ -806,5 +806,23 @@ Singleton {
     // reservation.
     readonly property int edgeBarHoverDepth: 16
 
+    // ── edgeBarBulgeSwellExtra (operator round 11) — the ANIMATED bulge's
+    //    hovered/open depth ─────────────────────────────────────────────
+    // Read only when `edgeBar.animatedBulge` is on. In that mode the strip
+    // rests FLAT (bulge depth 0) and swells to this on hover, holding while
+    // the surface it summons is open. `edgeBarBulgeExtra` above stays the
+    // depth of the STATIC bulge and is what the strip reverts to when the
+    // toggle is off, so round 10's approved static shape is preserved
+    // exactly rather than re-derived.
+    //
+    // 10 is deliberate, not arbitrary: 6 (flat) + 10 lands at exactly
+    // `edgeBarHoverDepth`, so the fully-swelled bulge fills the surface the
+    // hover region already required and the LAYER SURFACE NEVER RESIZES.
+    // That last point is load-bearing — a resizing layer surface is
+    // re-configured and re-buffered every frame and drags its own content
+    // (round 5 paid for that lesson on the launcher). If this is raised
+    // above 10, raise `edgeBarHoverDepth` with it or the swell is clipped.
+    readonly property int edgeBarBulgeSwellExtra: 10
+
     readonly property int edgeBarDwellMs: 400 // hover dwell before a bulge hover summons its surface (Task 5) — matches popoutDwellMs above
 }

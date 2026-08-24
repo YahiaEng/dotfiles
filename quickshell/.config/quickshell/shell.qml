@@ -54,6 +54,11 @@ ShellRoot {
     // threaded onto the launcher instance) read, never a second
     // `Prefs.getValue` call re-derived at another call site.
     readonly property bool edgeBarEnabled: Prefs.getValue("edgeBar.enabled")
+    // Operator round 11 — resolved ONCE here beside `edgeBarEnabled`, for
+    // the same reason that one is: two EdgeBar instances read it and a
+    // second Prefs.getValue at either call site would be a divergent
+    // resolution point.
+    readonly property bool edgeBarAnimatedBulge: Prefs.getValue("edgeBar.animatedBulge")
 
     // Selected-tab memory (D-14, Phase 14 Plan 03): the dashboard drawer's
     // LazyLoader destroys the surface on dismiss, so this is the only
@@ -587,6 +592,11 @@ ShellRoot {
             bottom: false
             // Matches the dashboard, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthTop
+            animatedBulge: root.edgeBarAnimatedBulge
+            // Holds the swell for as long as the surface THIS strip summons
+            // is up, so the bulge does not collapse under the drawer the
+            // moment the pointer leaves the strip and enters it.
+            surfaceOpen: dashboardLoader.active
         }
     }
     LazyLoader {
@@ -598,6 +608,8 @@ ShellRoot {
             bottom: true
             // Matches the launcher, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthBottom
+            animatedBulge: root.edgeBarAnimatedBulge
+            surfaceOpen: launcherLoader.active
         }
     }
 

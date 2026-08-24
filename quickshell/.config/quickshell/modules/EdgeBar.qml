@@ -134,7 +134,12 @@ PanelWindow {
     //
     // `_paintedDepth` is what the outline is drawn into and is the value
     // the bottom instance mirrors about; see `_outlinePath`'s `Y()`.
-    readonly property real _paintedDepth: Design.edgeBarThickness + Design.edgeBarBulgeExtra
+    // The MAXIMUM the outline can ever reach, never the live `_b` — pinning
+    // the surface to the animating value would resize the layer surface on
+    // every frame of the swell, which is the one thing this animation must
+    // not do (see the ANIMATED BULGE note below).
+    readonly property real _paintedDepth: Design.edgeBarThickness
+        + (edgeBarWindow.animatedBulge ? Design.edgeBarBulgeSwellExtra : Design.edgeBarBulgeExtra)
     readonly property real _surfaceDepth: Math.max(edgeBarWindow._paintedDepth, Design.edgeBarHoverDepth)
 
     // Fixed axis = the surface's own depth; free axis = 0, the same
@@ -227,11 +232,85 @@ PanelWindow {
         easing.type: Easing.Linear
     }
 
+    // ── ANIMATED BULGE (operator round 11) — REVERSES D-3 ───────────────
+    // D-3 (260823-9ak-CONTEXT.md) locked the bulge as a PERMANENT landmark,
+    // explicitly "not a hover-reactive or open-reactive swell", on the
+    // rationale that it shows you where to hover even when nothing is open.
+    // The operator asked to try the opposite and reversed that decision
+    // knowingly. It is a live toggle rather than a rewrite: with
+    // `edgeBar.animatedBulge` OFF the strip is byte-identical to round 10's
+    // approved static shape, tokens and all.
+    //
+    // WHAT ANIMATES AND WHAT MUST NOT: only the painted outline. The layer
+    // surface's own depth is pinned to the MAXIMUM the bulge can ever
+    // reach (see `_paintedDepth`), never to the current value, because a
+    // resizing layer surface is re-configured and re-buffered every frame
+    // and drags its own content — round 5 spent a full round rediscovering
+    // that on the launcher. `exclusiveZone` is likewise untouched, so the
+    // reservation never changes and no window ever moves in response to a
+    // hover.
+    //
+    // The swell holds while `surfaceOpen` is true so the bulge does not pop
+    // away underneath the panel it just summoned the moment the pointer
+    // travels into that panel.
+    property bool animatedBulge: false
+    property bool surfaceOpen: false
+
+    // Written by the HoverHandler far below rather than read from it. That
+    // handler lives inside `bulgeHitArea`, declared after this point, and a
+    // binding here that reached forward to `bulgeHover.hovered` would be
+    // evaluating an id that does not exist yet at construction — the same
+    // declare-before-use trap Design.qml:736 records, which surfaces as a
+    // one-line warning in ~/.cache/quickshell.log and an otherwise silent
+    // wrong answer. Pushing the value forward instead has no ordering
+    // requirement at all.
+    property bool _bulgeHovered: false
+
+    readonly property bool _bulgeOut: edgeBarWindow.animatedBulge
+        && (edgeBarWindow._bulgeHovered || edgeBarWindow.surfaceOpen)
+
+    readonly property real _bTarget: edgeBarWindow.animatedBulge
+        ? (edgeBarWindow._bulgeOut ? Design.edgeBarBulgeSwellExtra : 0)
+        : Design.edgeBarBulgeExtra
+
     readonly property real _t: Design.edgeBarThickness
-    readonly property real _b: Design.edgeBarBulgeExtra
+    // NOT readonly and NOT a plain token read: the Behavior below has to be
+    // able to drive it. The binding still re-evaluates normally; a Behavior
+    // on a bound property animates toward each new binding result, which is
+    // exactly the shape wanted here.
+    property real _b: edgeBarWindow._bTarget
+
+    Behavior on _b {
+        enabled: Motion.motionEnabled && edgeBarWindow.animatedBulge
+        NumberAnimation {
+            duration: Motion.standardDuration
+            easing.type: Easing.BezierSpline
+            // Grows on `standard`, retracts along that same curve played
+            // BACKWARDS — the reversal language the operator approved in
+            // round 9 for the launcher and drawer, applied to the one other
+            // thing on this surface that moves.
+            //
+            // 200ms is also shorter than `edgeBarDwellMs` (400), so the
+            // swell has fully landed before the dwell fires: it reads as a
+            // "you are dwelling here" hint rather than racing the summon.
+            easing.bezierCurve: edgeBarWindow._bulgeOut ? Motion.standardEasing : Motion.standardReverseEasing
+        }
+    }
+
     readonly property real _re: Design.edgeBarEndRadius
-    readonly property real _f: Design.edgeBarFilletRadius
-    readonly property real _rc: Design.edgeBarBulgeCornerRadius
+    // The two shoulder radii must satisfy `_f + _rc <= _b` at EVERY frame of
+    // the animation, not just at the endpoints — round 10 measured what
+    // breaking it looks like (a dark notch cutting into the strip, from the
+    // outline self-intersecting). Fixed tokens cannot do that while `_b`
+    // sweeps 0 -> 10, so in animated mode they are derived as a fixed split
+    // of the current depth: 0.6/0.4, which sums to exactly `_b` at every
+    // value including 0.
+    //
+    // In static mode the authored tokens are used unchanged, so toggling the
+    // animation off reproduces round 10's approved shape exactly rather
+    // than a re-derived approximation of it.
+    readonly property real _f: edgeBarWindow.animatedBulge ? edgeBarWindow._b * 0.6 : Design.edgeBarFilletRadius
+    readonly property real _rc: edgeBarWindow.animatedBulge ? edgeBarWindow._b * 0.4 : Design.edgeBarBulgeCornerRadius
     readonly property real _wb: edgeBarWindow.bulgeWidth
     readonly property real _ww: edgeBarWindow.width
     readonly property real _cx: edgeBarWindow._ww / 2
@@ -457,6 +536,10 @@ PanelWindow {
         HoverHandler {
             id: bulgeHover
             onHoveredChanged: {
+                // Pushed up to the window root for the animated-bulge
+                // binding — see `_bulgeHovered` there for why it is not
+                // read directly off this handler.
+                edgeBarWindow._bulgeHovered = bulgeHover.hovered;
                 if (bulgeHover.hovered) {
                     // A pointer merely crossing the bulge must not summon
                     // anything — only start the dwell timer while ARMED.

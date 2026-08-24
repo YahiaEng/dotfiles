@@ -178,6 +178,22 @@ PageBase {
             checked: Prefs.getValue("edgeBar.enabled")
             onToggled: (value) => Prefs.setValue("edgeBar.enabled", value)
         }
+
+        // Operator round 11. Reverses D-3 (the bulge was locked as a
+        // permanent landmark); offered as a toggle rather than a swap so
+        // both shapes stay reachable without a rollback.
+        ToggleRow {
+            label: "Animate the bulge"
+            subtext: "Rest the edges flat and swell the centre only while you hover it or its panel is open, instead of showing a permanent bulge"
+            // Deliberately NOT disabled when the edge bar is off: ToggleRow
+            // has no styled disabled state anywhere in this shell, so
+            // `enabled: false` would block input while looking identical —
+            // a row that reads as broken. With the edge bar off both strips
+            // are unmounted and this pref simply has no effect until it is
+            // switched back on.
+            checked: Prefs.getValue("edgeBar.animatedBulge")
+            onToggled: (value) => Prefs.setValue("edgeBar.animatedBulge", value)
+        }
     }
 
     // ── Capsules (Task 8, D-01 bundle 2/D-02/PD-04) — FIVE capsule-level

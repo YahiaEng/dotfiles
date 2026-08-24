@@ -301,6 +301,11 @@ Singleton {
         return [1 - e[2], 1 - e[3], 1 - e[0], 1 - e[1], 1, 1];
     }
 
+    // Standard reversal — for a shape that grows on one curve and must
+    // retract along the same curve backwards (the edge bar's animated
+    // bulge, operator round 11).
+    readonly property var standardReverseEasing: root._reverseEasing(standardEasing)
+
     // Spatial (position) reversal — the dismiss slide itself.
     readonly property var spatialInReverseEasing: root._reverseEasing(spatialInEasing)
 

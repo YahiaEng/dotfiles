@@ -141,7 +141,14 @@ Singleton {
         // the default); gates both EdgeBar.qml instances in shell.qml
         // AND Launcher.qml's direction branch (Task 6) off ONE resolved
         // shell-root property, never re-derived at each call site.
-        "edgeBar.enabled"
+        "edgeBar.enabled",
+        // edgeBar.animatedBulge (operator round 11) — REVERSES D-3, which
+        // locked the centre bulge as a permanent landmark. ON rests the
+        // strip flat and swells the bulge on hover, holding while the
+        // surface it summons is open; OFF is round 10's static bulge,
+        // unchanged. Default ON because the operator asked to try it —
+        // flip this row in Settings > Bar to compare, no restart needed.
+        "edgeBar.animatedBulge"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -184,7 +191,8 @@ Singleton {
         "bar.entries.power": true,
         "launcher.sortMode": "alpha",
         "launcher.launchCounts": ({}),
-        "edgeBar.enabled": true
+        "edgeBar.enabled": true,
+        "edgeBar.animatedBulge": true
     })
 
     // ── Helper functions — ALL declared here, above the FileView and
