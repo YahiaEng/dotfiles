@@ -572,3 +572,108 @@ the pointer-injection route above.
 2. Visual sign-off on the round-10 shape: the 4px bulge and the repaired
    end caps.
 3. The menu surface still measured only in APP mode for the entrance.
+
+---
+
+## Post-summary: operator feedback round 11 (2026-08-24) — D-3 REVERSED
+
+Round 10 shipped solid per the operator. This round is a **trial**, asked
+for as one: `8f7b55fb` on `main`.
+
+### D-3 is reversed, knowingly
+
+`260823-9ak-CONTEXT.md` D-3 locked the bulge as a **permanent** landmark and
+says in terms that it is "not a hover-reactive or open-reactive swell",
+because it "shows you where to hover even when nothing is open". The
+operator asked to try exactly that swell. Recorded as a deliberate reversal,
+not drift — and the discoverability rationale D-3 was built on is the thing
+to watch while judging it.
+
+Shipped as a **live Prefs toggle** (`edgeBar.animatedBulge`, Settings > Bar,
+default ON) rather than a swap, so both shapes stay reachable without a git
+operation. OFF reproduces round 10's approved static shape exactly — the
+static path reads the authored radii unchanged rather than re-deriving them.
+
+### Behaviour
+
+Rests FLAT → swells to 10px on hover → **holds while the surface that strip
+summons is open** → retracts along the growth curve played backwards
+(`Motion.standardReverseEasing`, new, reusing round 9's `_reverseEasing`
+helper and its already-derived motion-lint allow-list entry).
+
+200ms swell against a 400ms dwell, so the swell lands *before* the summon
+fires and reads as a "you are dwelling here" hint rather than racing it.
+
+### The constraint that shaped every number
+
+**The layer surface must never resize.** `_paintedDepth` is pinned to the
+MAXIMUM the bulge can reach, never the live value, and 6 + 10 lands exactly
+on `edgeBarHoverDepth` — the depth the hover region already required. So the
+surface stays 16 in both modes and through every frame of the swell, and
+`exclusiveZone` is untouched so the reservation never changes and no window
+moves in response to a hover. Round 5 paid for this lesson on the launcher.
+
+**If `edgeBarBulgeSwellExtra` is ever raised above 10, raise
+`edgeBarHoverDepth` with it** or the swell is clipped by its own surface.
+
+### Two traps handled on the way
+
+1. **The shoulder radii must hold `fillet + corner <= extra` at EVERY FRAME**,
+   not just at the endpoints — round 10 measured what breaking it looks like
+   (a dark notch, from the outline self-intersecting). Fixed tokens cannot do
+   that while the depth sweeps 0 → 10, so in animated mode they are a
+   0.6/0.4 split of the LIVE depth, which sums to exactly the depth at every
+   value including 0.
+2. **`_bulgeHovered` is pushed UP from the HoverHandler, not read down from
+   it.** That handler lives inside `bulgeHitArea`, declared later in the
+   file; a binding reaching forward to its id would evaluate against
+   something that does not exist yet at construction — Design.qml:736's
+   recorded trap, one log line and an otherwise silent wrong answer.
+
+### Verified by measurement
+
+| state | depth at the bulge centre |
+|---|---|
+| animated ON, at rest | **6px** — flat, bulge depth 0 |
+| toggled OFF live | **10px** — 6 flat + the static 4, round 10's shape |
+| toggled back ON | **6px** |
+
+No restart at any point. Reservation `[0,6,50,6]` and surface `h=16`
+unchanged across all of it. Shell log clean. Gates: `quickshell-doctor`
+28/0, `colour-lint` 359/0, `motion-lint` 546/0, `keybind-doctor` 13/0.
+
+### NOT verified — stated plainly
+
+**Nothing exercised the swell itself.** Two separate reasons:
+
+- The **hover** trigger needs a real pointer, and no injection tool exists on
+  this host.
+- The **open-state** trigger turns out to be unobservable by capture *at
+  all*, which is worth writing down: the bulge is exactly the panel's width
+  by design, and the panel's `AttachedCorner` flare extends ~24px beyond that
+  against the fillet's 6 — **so an open panel and its flare always occlude
+  the bulge they grew from.** A control capture with the dashboard open read
+  100% non-background in both toggle states, i.e. the probe was blind, not
+  the effect absent. Mid-dismiss capture does not rescue it either: the panel
+  is still covering y0..132 at 84% of its 450ms exit.
+
+What the toggle test *does* prove is the whole chain beneath the trigger:
+`_bTarget` → `_b` → radii → `_outlinePath` → `Shape` all rebuild and repaint
+correctly, live. The unproven link is only the two booleans feeding
+`_bulgeOut`.
+
+### Rollback
+
+- **Don't like it, want the static bulge:** flip "Animate the bulge" off in
+  Settings > Bar. No restart, no git.
+- **Want it gone entirely:** `git revert 8f7b55fb`. Nothing else depends on
+  it; `Motion.standardReverseEasing` would go with it, and nothing else
+  reads that either.
+
+### Still open — needs the operator
+
+1. Task 7's hover-dwell walk, now also covering whether the swell reads
+   right and whether losing the permanent landmark hurts discoverability
+   (D-3's original rationale).
+2. Visual sign-off on the round-11 trial.
+3. The menu surface still measured only in APP mode for the entrance.
