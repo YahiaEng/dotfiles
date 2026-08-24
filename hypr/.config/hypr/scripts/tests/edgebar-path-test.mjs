@@ -238,6 +238,59 @@ for (const c of CASES) {
     check(c.key + ": vertical has the same sweep-flag count as horizontal (" + hFlags.length + ")", hFlags.length === vFlags.length);
 }
 
+// ── Group 6: the plain run (`bulge: false`) ──────────────────────────
+// Halo's left/right rails and all four of Brackets' arms are flat runs
+// with no centre excursion (quick task 260824-ns3, Task 4/5). Asserted
+// here rather than trusted, because a plain run is what the vertical
+// instances draw and there is no other detector for it: a self-
+// intersecting or backwards run produces no QML error and no gate.
+console.log("── Group 6: bulge:false emits a plain run, on both axes ──");
+{
+    // Halo's own live parameter set for a vertical rail: t = 2
+    // (edgeBarHaloThickness), re = 1 (edgeBarHaloEndRadius, = t/2 so the
+    // cap is a true semicircle), surfaceDepth = 16 (edgeBarHoverDepth).
+    const base = { t: 2, b: 0, re: 1, f: 3, rc: 1, along: 1420, xl: 0, xr: 0, surfaceDepth: 16, bulge: false };
+
+    for (const flip of [false, true]) {
+        for (const axis of ["horizontal", "vertical"]) {
+            const key = "plain_" + axis + "_flip" + flip;
+            const got = buildOutline(Object.assign({}, base, { flip, axis }));
+            check(key + ": no NaN/undefined in path", !/NaN|undefined/.test(got));
+            const flags = parseSweepFlags(got);
+            // Two pill caps, two quarter arcs each — exactly four arcs, no
+            // fillets and no bulge corners.
+            check(key + ": exactly 4 arcs (two two-quarter-arc pill caps, no fillets)", flags.length === 4);
+            check(key + ": all sweep flags are exactly 0 or 1", flags.every((f) => f === "0" || f === "1"));
+            // The run is monotone along its own axis: M -> far cap -> back
+            // -> near cap. Seven coordinate pairs, and the depth axis only
+            // ever takes 0, re or t (mirrored when flipped) — never t+b.
+            const coords = parseCoords(got);
+            check(key + ": 7 coordinate pairs (M + L + 2 cap arcs + L + 2 cap arcs)", coords.length === 7);
+            const depths = coords.map(([x, y]) => (axis === "vertical" ? x : y));
+            const allowed = [0, base.re, base.t].map((v) => (flip ? base.surfaceDepth - v : v));
+            check(key + ": every depth coordinate is 0, re or t (no bulge excursion)", depths.every((d) => allowed.some((a) => Math.abs(a - d) < 1e-9)));
+        }
+    }
+
+    // And the transposition holds for the plain run too.
+    const h = buildOutline(Object.assign({}, base, { flip: false, axis: "horizontal" }));
+    const v = buildOutline(Object.assign({}, base, { flip: false, axis: "vertical" }));
+    const hc = parseCoords(h), vc = parseCoords(v);
+    check("plain run: vertical is the horizontal run with every coordinate pair swapped",
+        hc.length === vc.length && hc.every(([x, y], i) => Math.abs(vc[i][0] - y) < 1e-9 && Math.abs(vc[i][1] - x) < 1e-9));
+}
+
+// ── Group 7: `bulge` defaults to true ────────────────────────────────
+// The golden was generated before this parameter existed, so omitting it
+// MUST be byte-identical to passing true — otherwise every pre-Task-4
+// caller silently changed shape.
+console.log("── Group 7: omitting `bulge` is identical to bulge:true ──");
+for (const c of CASES) {
+    const omitted = buildOutline(c.params);
+    const explicit = buildOutline(Object.assign({}, c.params, { bulge: true }));
+    check(c.key + ": omitted `bulge` === bulge:true", omitted === explicit);
+}
+
 console.log("");
 console.log(total + " assertions, " + (total - failures) + " passed, " + failures + " failed");
 process.exit(failures > 0 ? 1 : 0);

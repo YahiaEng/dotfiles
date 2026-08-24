@@ -851,5 +851,26 @@ Singleton {
     //    returns — they are the same number for that reason.
     readonly property int edgeBarWeldRim: 4
 
+    // ── Halo (quick task 260824-ns3, Task 4) — the four-edge hairline ───
+    //    The style draws all four screen edges at a thickness the other
+    //    styles never use, so it carries its OWN thickness/end-radius pair
+    //    rather than re-tuning `edgeBarThickness`, which Continuous,
+    //    Segmented and Brackets all still read at 6.
+    //
+    //    Both numbers are the study's own measured values
+    //    (`.planning/notes/edge-rail-studies.html:552-627`, the Halo block:
+    //    `k = 2` — explicitly NOT `T` — and `rx = 1`). Both are off this
+    //    repo's 4px spacing grid, deliberately: a hairline is a stroke
+    //    weight, not a spacing token, and snapping either to the grid would
+    //    make the style a second Continuous rather than its own shape.
+    //
+    //    The pair's own contract, inherited from
+    //    `edgeBarThickness`/`edgeBarEndRadius`: the end radius must stay
+    //    exactly half the thickness or `edgebarpath.js`'s two-quarter-arc
+    //    pill cap is no longer a true semicircle (that file's own
+    //    PRECONDITION note). 1 = 2/2. Change one, change the other.
+    readonly property int edgeBarHaloThickness: 2
+    readonly property int edgeBarHaloEndRadius: 1
+
     readonly property int edgeBarDwellMs: 400 // hover dwell before a bulge hover summons its surface (Task 5) — matches popoutDwellMs above
 }

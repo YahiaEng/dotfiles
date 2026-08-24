@@ -1,6 +1,16 @@
-// EdgeBar.qml — the always-on top/bottom strip (quick task 260823-9ak,
-// Task 3, R1/R4/R8/R9/D-2/D-3/D-4). One type, instantiated twice in
-// shell.qml (top and bottom) — never two near-duplicate files.
+// EdgeBar.qml — the always-on edge strip (quick task 260823-9ak, Task 3,
+// R1/R4/R8/R9/D-2/D-3/D-4). One type, instantiated up to FOUR times in
+// shell.qml, one per screen edge — never two near-duplicate files.
+//
+// ── FOUR EDGES, ONE TYPE (quick task 260824-ns3, Task 4) ─────────────────
+// `edge` names which screen edge this instance runs along ("top" |
+// "bottom" | "left" | "right"). Continuous and Segmented mount the
+// horizontal pair only; Halo and Brackets mount all four. The vertical
+// pair is NOT a second component and NOT a hand-authored second path —
+// `edgebarpath.js` builds in along/depth space and transposes through one
+// helper, so a vertical run is the horizontal run with its coordinate
+// pairs swapped and every sweep flag re-resolved against the centre THAT
+// axis's geometry demands.
 //
 // ── INDEPENDENT FRAME, NOT THE BAR (D-2) ─────────────────────────────────
 // `Bar.qml` is not opened, moved, reoriented or absorbed by this file, and
@@ -8,7 +18,14 @@
 // is `vertical` (right edge — CONTEXT.md's own measured ground truth), so a
 // top+bottom strip pair cannot BE the bar; the two coexist. This file does
 // not read `BarEntryModel.isVertical` anywhere — it has no orientation of
-// its own, only an edge (`bottom`).
+// its own, only an edge (`edge`).
+//
+// D-2 WAS DELIBERATELY REVERSED for the Continuous style in quick task
+// 260824-ns3 Task 3: there the BAR paints the bridge that closes the
+// silhouette, because a strip with a non-negative exclusive zone is
+// positioned inside the bar's own zone and can never reach it. That
+// reversal lives entirely in `Bar.qml`; this file still does not know the
+// bar exists.
 //
 // ── FILE PLACEMENT IS LOAD-BEARING (GT-4) ────────────────────────────────
 // This file MUST live at `modules/EdgeBar.qml`, a sibling of `Bar.qml`, and
@@ -34,14 +51,18 @@
 //
 // ── RESERVATION (D-4, Bar.qml's own double-count warning) ────────────────
 // Hyprland's reservation TOTAL is `margins.<anchored-edge> + exclusiveZone`.
-// This surface sits flush to the screen edge — no margin at all, on any
-// edge — so `exclusiveZone` (the strip's own FLAT thickness alone, never
-// thickness+bulge) is the entire reservation, and the double-count bug
-// Bar.qml's own header records (18-01, 18-05, always a +6 signature) is
-// impossible here by construction: there is no second term to fold it
-// into. The bulge's extra depth deliberately OVERHANGS into the client
-// area rather than being reserved — reserving a full-width band to
-// accommodate a centre-only bulge would waste the whole edge.
+// Three of the four instances sit flush to their screen edge — no margin
+// on the ANCHORED edge — so `exclusiveZone` (the strip's own FLAT
+// thickness alone, never thickness+bulge) is the entire reservation, and
+// the double-count bug Bar.qml's own header records (18-01, 18-05, always
+// a +6 signature) is impossible on them by construction: there is no
+// second term to fold it into. The fourth, the right rail, carries a
+// margin on its anchored edge ON PURPOSE and pays for it by reserving
+// nothing (`exclusiveZone: 0`) — see the margins block below, DC-2.
+//
+// The bulge's extra depth deliberately OVERHANGS into the client area
+// rather than being reserved — reserving a full-width band to accommodate
+// a centre-only bulge would waste the whole edge.
 //
 // ── GEOMETRY, WORKED OUT ONCE ─────────────────────────────────────────────
 // One continuous `Shape` outline: a flat run of thickness T across the
@@ -61,10 +82,11 @@
 // the trap ("the wrong flag produces a convex bulge that will look
 // deliberate and be wrong").
 //
-// `edge: "bottom"` is this same outline mirrored in y (the flat run sits
-// at the window's own bottom, flush with the screen; the bulge overhangs
-// upward, into the client area) — built by parametrising the geometry on
-// `bottom`, not by hand-authoring a second path string.
+// `edge: "bottom"` and `edge: "right"` are this same outline mirrored in
+// the DEPTH axis (the flat run sits at the window's own far side, flush
+// with the screen; the bulge overhangs inward, into the client area) —
+// built by parametrising the geometry on `_flip`, not by hand-authoring a
+// second path string.
 //
 // ── STATIC BULGE (D-3) ────────────────────────────────────────────────────
 // Every geometry input below (`Design.edgeBarThickness/BulgeExtra/
@@ -95,35 +117,107 @@ import "edgebarpath.js" as EdgeBarPath
 PanelWindow {
     id: edgeBarWindow
 
-    // Selects which screen edge this instance flares from. shell.qml
-    // mounts two instances, one per value.
-    property bool bottom: false
+    // ── Which screen edge this instance runs along (quick task
+    //    260824-ns3, Task 4) ────────────────────────────────────────────
+    // Was `property bool bottom` when only two instances existed. Halo and
+    // Brackets need FOUR, so the edge is now named rather than counted, and
+    // the two facts the rest of the file actually branches on are derived
+    // from it exactly once each:
+    //
+    //   `_vertical` — which way the run points. Drives the anchors, the
+    //     margins, which implicit dimension is the depth, the gradient's
+    //     axis, and `edgebarpath.js`'s `axis` argument.
+    //   `_flip`    — whether the depth axis is mirrored, i.e. whether the
+    //     anchored edge is the far side of the surface. Exactly the
+    //     mirror-about-surfaceDepth case the path builder's `Y()` already
+    //     implements; "bottom" and "right" are the two mirrored edges.
+    //
+    // Anything else that wants to know about the edge derives from these
+    // two, never from a second string comparison at a call site.
+    property string edge: "top"
+    readonly property bool _vertical: edgeBarWindow.edge === "left" || edgeBarWindow.edge === "right"
+    readonly property bool _flip: edgeBarWindow.edge === "bottom" || edgeBarWindow.edge === "right"
 
     // The centre bulge's width — set per strip by shell.qml so each one
     // matches the surface that spawns from it (operator round 7).
     property real bulgeWidth: Design.edgeBarBulgeWidthTop
 
     // Edge-bar style (quick task 260824-ns3, Task 1) — threaded in from
-    // shell.qml's single resolution point (root.edgeBarStyle). INERT
-    // until Task 3 routes shape selection off it; every instance still
-    // draws today's single shape regardless of this value until then.
+    // shell.qml's single resolution point (root.edgeBarStyle).
     property string style: "continuous"
 
+    // ── Which instances carry a bulge (Task 4) ──────────────────────────
+    // Only the horizontal pair. The measured attachment map is: top =
+    // dashboard, bottom = launcher, right = the bar, left = nothing — so
+    // the two vertical rails have nothing to be the attachment root OF,
+    // and a bulge on them would be a landmark pointing at no surface.
+    // They draw a plain run (`bulge: false` in the path call below), which
+    // is an explicit branch in `edgebarpath.js` rather than a zero-depth
+    // bulge — see that file for why passing `b = 0` self-intersects.
+    readonly property bool _hasBulge: !edgeBarWindow._vertical
+
+    // ── Per-style thickness (Task 4) ────────────────────────────────────
+    // Halo is the one style that draws at a different weight: 2px, not
+    // `T`, per the study's own `k = 2` (deliberately NOT `T`) and `rx = 1`.
+    // Selected here, ONCE, off `style` — never a second token read at a
+    // call site, and never a re-tuning of `edgeBarThickness`, which the
+    // other three styles all still read at 6.
+    // Declared HERE, above every consumer, rather than beside the other
+    // geometry properties further down: `_paintedDepth` (a few lines below)
+    // reads all three, and this file's own header records the
+    // declare-before-use discipline the rest of the shell follows.
+    readonly property bool _halo: edgeBarWindow.style === "halo"
+    readonly property real _t: edgeBarWindow._halo ? Design.edgeBarHaloThickness : Design.edgeBarThickness
+    readonly property real _re: edgeBarWindow._halo ? Design.edgeBarHaloEndRadius : Design.edgeBarEndRadius
+    // ── THE STATIC BULGE'S DEPTH, AND HALO'S WHOLE WARNING (Q3-halo) ────
+    // `animatedBulge: false` on Halo does NOT mean "no bulge". It means a
+    // STATIC PERMANENT bulge at FULL depth — a 2px hairline frame plus two
+    // motionless 12px masses at the top and bottom centres. That is a
+    // legitimate landmark state, and it is the state the operator asked
+    // for by name. Halo's swell is 2 -> 12, so its static extra is
+    // `edgeBarBulgeSwellExtra` (10), not `edgeBarBulgeExtra` (4); reading
+    // the latter here would silently give a 2 -> 6 stub and look like the
+    // masses were simply missing.
+    //
+    // Fillet invariant at both ends: static Halo is f(3) + rc(1) = 4 <= 10,
+    // and animated mode's 0.6/0.4 derivation sums to `_b` at every value
+    // including 0.
+    readonly property real _staticBulgeExtra: edgeBarWindow._halo ? Design.edgeBarBulgeSwellExtra : Design.edgeBarBulgeExtra
+
     anchors {
-        top: !edgeBarWindow.bottom
-        bottom: edgeBarWindow.bottom
-        left: true
-        right: true
+        top: edgeBarWindow._vertical || edgeBarWindow.edge === "top"
+        bottom: edgeBarWindow._vertical || edgeBarWindow.edge === "bottom"
+        left: !edgeBarWindow._vertical || edgeBarWindow.edge === "left"
+        right: !edgeBarWindow._vertical || edgeBarWindow.edge === "right"
     }
 
     // Side margins align the strip's ends with the Hyprland window
     // silhouette (operator round 7) — see Design.edgeBarSideMargin for the
-    // measurement. The anchored EDGE still carries no margin (D-4), so
-    // nothing is folded into exclusiveZone: Hyprland's reservation total is
-    // margins.<anchored-edge> + exclusiveZone, and only left/right are
-    // margined here, neither of which is the anchored edge.
-    margins.left: Design.edgeBarSideMargin
-    margins.right: Design.edgeBarSideMargin
+    // measurement. They are applied to the two FREE (doubly-anchored) sides
+    // in both orientations, so the run is inset by the same 10 at each end
+    // whichever way it points.
+    //
+    // The anchored EDGE carries no margin on three of the four instances
+    // (D-4), so nothing is folded into exclusiveZone: Hyprland's
+    // reservation total is `margins.<anchored-edge> + exclusiveZone`.
+    //
+    // THE ONE EXCEPTION IS THE RIGHT RAIL, and it is decided rather than
+    // accidental (DC-2). The study draws it at `RIGHT_EDGE` — 10px inside
+    // the BAR's own reserved boundary — and reservation IS
+    // `margins.<anchored-edge> + exclusiveZone`, so it cannot both sit
+    // there and reserve only its own 2px thickness; those are the same
+    // number. The drawn position wins: `margins.right` = the side margin
+    // and `exclusiveZone` = 0, so it reserves NOTHING and overhangs into
+    // the client area exactly the way the bulge already does. A surface
+    // with a non-negative exclusive zone is still positioned inside every
+    // other surface's zone, so the bar's own 50 puts this rail at
+    // `screenW - 50 - 10` with no arithmetic here at all.
+    margins.left: edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin
+    margins.right: edgeBarWindow._vertical
+        ? (edgeBarWindow.edge === "right" ? Design.edgeBarSideMargin : 0)
+        : Design.edgeBarSideMargin
+    margins.top: edgeBarWindow._vertical ? Design.edgeBarSideMargin : 0
+    margins.bottom: edgeBarWindow._vertical ? Design.edgeBarSideMargin : 0
 
     // ── Surface depth vs PAINTED depth (operator round 10) ──────────────
     // These were the same number until the hover target was decoupled from
@@ -145,25 +239,42 @@ PanelWindow {
     // the surface to the animating value would resize the layer surface on
     // every frame of the swell, which is the one thing this animation must
     // not do (see the ANIMATED BULGE note below).
-    readonly property real _paintedDepth: Design.edgeBarThickness
-        + (edgeBarWindow.animatedBulge ? Design.edgeBarBulgeSwellExtra : Design.edgeBarBulgeExtra)
+    readonly property real _paintedDepth: edgeBarWindow._t
+        + (edgeBarWindow._hasBulge
+            ? (edgeBarWindow.animatedBulge ? Design.edgeBarBulgeSwellExtra : edgeBarWindow._staticBulgeExtra)
+            : 0)
     readonly property real _surfaceDepth: Math.max(edgeBarWindow._paintedDepth, Design.edgeBarHoverDepth)
 
     // Fixed axis = the surface's own depth; free axis = 0, the same
     // zero-is-inert idiom Bar.qml's own header documents for a doubly-
-    // anchored axis (both left and right are anchored here, so the
-    // compositor's own stretch determines the real width regardless of
-    // this value).
-    implicitHeight: edgeBarWindow._surfaceDepth
-    implicitWidth: 0
+    // anchored axis (the compositor's own stretch determines the real
+    // extent along the run regardless of this value). Which of the two is
+    // which flips with the orientation — never `undefined` on either
+    // branch: assigning undefined to a real-typed QML property REMOVES the
+    // binding rather than deferring it, and the condition is evaluated at
+    // construction when it is usually false, so the property sticks at 0
+    // forever (this shell has paid for that one).
+    implicitHeight: edgeBarWindow._vertical ? 0 : edgeBarWindow._surfaceDepth
+    implicitWidth: edgeBarWindow._vertical ? edgeBarWindow._surfaceDepth : 0
 
     WlrLayershell.layer: WlrLayer.Top // never Overlay — always-on chrome sits below transient dialogs (Bar.qml's own note)
-    WlrLayershell.namespace: "quickshell-baredge-" + (edgeBarWindow.bottom ? "bottom" : "top")
+    // EXACTLY ONE `WlrLayershell.namespace` binding may exist in this file,
+    // permanently: quickshell-doctor's registry FORWARD check counts the
+    // marker and requires the count to be 1. All four edges resolve through
+    // this single binding, and all four resulting namespaces pattern-match
+    // the ONE existing `EdgeBar.qml|quickshell-baredge-|pattern|...`
+    // registry row — a second row must NOT be added for the new edges,
+    // because the LIVE half requires each mapped surface to match exactly
+    // one row and two matching rows would fail by construction.
+    WlrLayershell.namespace: "quickshell-baredge-" + edgeBarWindow.edge
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     focusable: false
 
     // D-4 — the strip's own FLAT thickness alone, never thickness+bulge.
-    exclusiveZone: Design.edgeBarThickness
+    // The right rail is the DC-2 exception (see the margins block above):
+    // it reserves nothing and overhangs, because it cannot both sit at the
+    // study's drawn position and reserve, those being the same number.
+    exclusiveZone: edgeBarWindow.edge === "right" ? 0 : edgeBarWindow._t
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
 
@@ -273,11 +384,12 @@ PanelWindow {
     readonly property bool _bulgeOut: edgeBarWindow.animatedBulge
         && (edgeBarWindow._bulgeHovered || edgeBarWindow.surfaceOpen)
 
-    readonly property real _bTarget: edgeBarWindow.animatedBulge
-        ? (edgeBarWindow._bulgeOut ? Design.edgeBarBulgeSwellExtra : 0)
-        : Design.edgeBarBulgeExtra
+    readonly property real _bTarget: !edgeBarWindow._hasBulge
+        ? 0
+        : (edgeBarWindow.animatedBulge
+            ? (edgeBarWindow._bulgeOut ? Design.edgeBarBulgeSwellExtra : 0)
+            : edgeBarWindow._staticBulgeExtra)
 
-    readonly property real _t: Design.edgeBarThickness
     // NOT readonly and NOT a plain token read: the Behavior below has to be
     // able to drive it. The binding still re-evaluates normally; a Behavior
     // on a bound property animates toward each new binding result, which is
@@ -301,7 +413,6 @@ PanelWindow {
         }
     }
 
-    readonly property real _re: Design.edgeBarEndRadius
     // The two shoulder radii must satisfy `_f + _rc <= _b` at EVERY frame of
     // the animation, not just at the endpoints — round 10 measured what
     // breaking it looks like (a dark notch cutting into the strip, from the
@@ -315,8 +426,15 @@ PanelWindow {
     // than a re-derived approximation of it.
     readonly property real _f: edgeBarWindow.animatedBulge ? edgeBarWindow._b * 0.6 : Design.edgeBarFilletRadius
     readonly property real _rc: edgeBarWindow.animatedBulge ? edgeBarWindow._b * 0.4 : Design.edgeBarBulgeCornerRadius
-    readonly property real _wb: edgeBarWindow.bulgeWidth
-    readonly property real _ww: edgeBarWindow.width
+    // 0 on an instance that carries no bulge, so the hit region below
+    // collapses to zero area and the mask derived from it admits no input
+    // at all on the two vertical rails.
+    readonly property real _wb: edgeBarWindow._hasBulge ? edgeBarWindow.bulgeWidth : 0
+    // The run's own ALONG-axis extent — `width` on a horizontal instance,
+    // `height` on a vertical one. Everything downstream (the gradient
+    // period, the bulge span, the path builder's `along`) reads this rather
+    // than a raw dimension, so nothing has to know the orientation twice.
+    readonly property real _ww: edgeBarWindow._vertical ? edgeBarWindow.height : edgeBarWindow.width
     readonly property real _cx: edgeBarWindow._ww / 2
     readonly property real _xl: edgeBarWindow._cx - edgeBarWindow._wb / 2
     readonly property real _xr: edgeBarWindow._cx + edgeBarWindow._wb / 2
@@ -354,6 +472,8 @@ PanelWindow {
         // own surface edge — Bar.qml carries the run on through the bar's
         // body. Cap it there and the joint reads as a rounded lump.
         squareEnd: edgeBarWindow.style === "continuous",
+        // Halo's two vertical rails are plain runs (see `_hasBulge`).
+        bulge: edgeBarWindow._hasBulge,
         xl: edgeBarWindow._xl,
         xr: edgeBarWindow._xr,
         // Mirror about the SURFACE depth, not the painted depth (`t + b`).
@@ -362,8 +482,8 @@ PanelWindow {
         // bottom strip's paint to the TOP of its own surface, leaving it
         // floating `_surfaceDepth - (t+b)` px above the screen edge.
         surfaceDepth: edgeBarWindow._surfaceDepth,
-        flip: edgeBarWindow.bottom,
-        axis: "horizontal"
+        flip: edgeBarWindow._flip,
+        axis: edgeBarWindow._vertical ? "vertical" : "horizontal"
     })
 
     Shape {
@@ -380,11 +500,16 @@ PanelWindow {
             fillGradient: LinearGradient {
                 // Locked to the strip's long axis and scrolled by phase —
                 // see the R9 note above for why this diverges from
-                // GradientBorder's rotating endpoints.
-                x1: edgeBarWindow._gradientPhase * edgeBarWindow._gradientPeriod
-                y1: 0
-                x2: edgeBarWindow._gradientPhase * edgeBarWindow._gradientPeriod + edgeBarWindow._gradientPeriod
-                y2: 0
+                // GradientBorder's rotating endpoints. "Long axis" is x on
+                // a horizontal instance and y on a vertical one, so the
+                // scroll is applied to whichever pair the run points along
+                // and the other pair is pinned to 0 — never `undefined`,
+                // which would remove the binding outright.
+                readonly property real _o: edgeBarWindow._gradientPhase * edgeBarWindow._gradientPeriod
+                x1: edgeBarWindow._vertical ? 0 : _o
+                y1: edgeBarWindow._vertical ? _o : 0
+                x2: edgeBarWindow._vertical ? 0 : _o + edgeBarWindow._gradientPeriod
+                y2: edgeBarWindow._vertical ? _o + edgeBarWindow._gradientPeriod : 0
                 spread: ShapeGradient.RepeatSpread
 
                 // Closes back on `primary` at 1.0 so one period tiles into
@@ -434,18 +559,28 @@ PanelWindow {
     // visible landmark inert.
     Item {
         id: bulgeHitArea
-        x: edgeBarWindow._xl
-        width: edgeBarWindow._wb
-        // Fills the surface's depth. `_surfaceDepth` is the surface's own
-        // `implicitHeight`, so this spans it exactly — for BOTH instances,
-        // since the bottom one is anchored to the bottom edge and its
-        // surface therefore already starts where its hover region should.
-        // Deliberately not `edgeBarWindow.height`: a layer surface's height
-        // arrives in STAGES (100 -> 500 -> ... on this host, measured in
-        // round 5), so reading it here would size the region off a
+        // Placed in the same ALONG/DEPTH terms the path is drawn in and
+        // mapped onto x/y by the orientation, exactly as `edgebarpath.js`'s
+        // own `P(a, d)` does — along = `_xl` .. `_xl + _wb`, depth = the
+        // full surface depth.
+        //
+        // On a vertical rail `_wb` is 0 (`_hasBulge` is false there), so
+        // this region has zero area and the `mask: Region` derived from it
+        // admits no pointer input at all — which is correct: those rails
+        // have no bulge to hover and nothing to summon.
+        x: edgeBarWindow._vertical ? 0 : edgeBarWindow._xl
+        y: edgeBarWindow._vertical ? edgeBarWindow._xl : 0
+        // Fills the surface's depth on the depth axis. `_surfaceDepth` is
+        // the surface's own implicit depth, so this spans it exactly — for
+        // EVERY instance, since a mirrored edge ("bottom"/"right") is
+        // anchored on the far side and its surface therefore already starts
+        // where its hover region should. Deliberately not
+        // `edgeBarWindow.height`/`.width`: a layer surface's dimensions
+        // arrive in STAGES (100 -> 500 -> ... on this host, measured in
+        // round 5), so reading one here would size the region off a
         // transient value.
-        y: 0
-        height: edgeBarWindow._surfaceDepth
+        width: edgeBarWindow._vertical ? edgeBarWindow._surfaceDepth : edgeBarWindow._wb
+        height: edgeBarWindow._vertical ? edgeBarWindow._wb : edgeBarWindow._surfaceDepth
 
         // ── Hover reveal (quick task 260823-9ak, Task 5, R5/R6, P-3,
         //    T-9ak-01) — a HoverHandler and a dwell Timer, NOTHING else.

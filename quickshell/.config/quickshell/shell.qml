@@ -608,15 +608,23 @@ ShellRoot {
     //    behaviour" requirement). Otherwise the same permanent-while-on
     //    posture `barInstance` above and the notification popup stack
     //    already use — never behind a loader keyed on anything transient.
-    //    `style:` is threaded onto both instances (Task 1) — inert on
-    //    EdgeBar.qml's side until Task 3 routes it.
+    //    `style:` is threaded onto every instance (Task 1) and EdgeBar.qml
+    //    routes its own shape off it (Tasks 3-6).
+    //
+    //    FOUR loaders, not two (Task 4). The horizontal pair is present on
+    //    every non-off style; the VERTICAL pair only on the two styles that
+    //    draw all four edges — Halo and Brackets. Per-instance loaders
+    //    throughout, never a shared wrapper Item: R3's original reasoning
+    //    still applies, a mounted-but-`visible:false` layer surface keeps
+    //    its `exclusiveZone`, so unmounting is the only way a style can
+    //    genuinely cost nothing on the edges it does not draw.
     LazyLoader {
         id: edgeBarTopLoader
         active: root.edgeBarRailPresent
 
         EdgeBar {
             id: edgeBarTop
-            bottom: false
+            edge: "top"
             style: root.edgeBarStyle
             // Matches the dashboard, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthTop
@@ -633,12 +641,43 @@ ShellRoot {
 
         EdgeBar {
             id: edgeBarBottom
-            bottom: true
+            edge: "bottom"
             style: root.edgeBarStyle
             // Matches the launcher, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthBottom
             animatedBulge: root.edgeBarAnimatedBulge
             surfaceOpen: launcherLoader.active
+        }
+    }
+
+    // ── The vertical pair (Task 4) ──────────────────────────────────────
+    // Mounted only by the two styles that draw all four edges. Neither
+    // carries a `bulgeWidth` or a `surfaceOpen`: nothing attaches on the
+    // left or right edges (the measured attachment map is top = dashboard,
+    // bottom = launcher, right = the bar, left = nothing), so EdgeBar.qml's
+    // own `_hasBulge` is false on both and they draw plain runs.
+    readonly property bool _edgeBarFourSided: root.edgeBarStyle === "halo" || root.edgeBarStyle === "brackets"
+
+    LazyLoader {
+        id: edgeBarLeftLoader
+        active: root._edgeBarFourSided
+
+        EdgeBar {
+            id: edgeBarLeft
+            edge: "left"
+            style: root.edgeBarStyle
+            animatedBulge: root.edgeBarAnimatedBulge
+        }
+    }
+    LazyLoader {
+        id: edgeBarRightLoader
+        active: root._edgeBarFourSided
+
+        EdgeBar {
+            id: edgeBarRight
+            edge: "right"
+            style: root.edgeBarStyle
+            animatedBulge: root.edgeBarAnimatedBulge
         }
     }
 

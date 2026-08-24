@@ -85,6 +85,18 @@ function _shoulderSweep(x1, y1, x2, y2, r, expectedCx, expectedCy) {
 //                 strip does not terminate there, the bar carries it on.
 //                 Default false, so every existing caller — and the
 //                 committed golden — is byte-identical by construction.
+//   bulge         OPT-OUT (default true). false emits the flat run with
+//                 its two pill caps and NO centre excursion at all —
+//                 `b`, `xl`, `xr`, `f` and `rc` are then unread. Halo's
+//                 left/right rails need it (nothing attaches on those
+//                 edges, so there is nothing for a bulge to be the root
+//                 of) and Brackets' four arms need it (Q3-brackets: no
+//                 bulge is drawn on that style at all). Written as an
+//                 explicit branch rather than "pass b = 0": a zero-depth
+//                 bulge still emits four zero-radius arcs and a
+//                 backwards face segment when xl == xr, which
+//                 self-intersects exactly the way round 10's broken
+//                 fillet invariant did — silently, with no error.
 //   axis          "horizontal" | "vertical" — default "horizontal"
 //
 // Built entirely in ALONG/DEPTH space — "along" runs the length of the
@@ -103,6 +115,7 @@ function buildOutline(params) {
     var along = params.along, xl = params.xl, xr = params.xr;
     var surfaceDepth = params.surfaceDepth, flip = !!params.flip;
     var squareEnd = !!params.squareEnd;
+    var bulge = params.bulge === undefined ? true : !!params.bulge;
     var axis = params.axis || "horizontal";
     var vertical = axis === "vertical";
 
@@ -161,19 +174,22 @@ function buildOutline(params) {
         p += " A " + re + " " + re + " 0 0 " + S(along - re, Y(0), along, Y(re), re, along - re, Y(re)) + " " + P(along, Y(re));
         p += " A " + re + " " + re + " 0 0 " + S(along, Y(re), along - re, Y(t), re, along - re, Y(re)) + " " + P(along - re, Y(t));
     }
-    // Inner face inward to the right shoulder.
-    p += " L " + P(xr + f, Y(t));
-    // Concave fillet down into the bulge's right side.
-    p += " A " + f + " " + f + " 0 0 " + S(xr + f, Y(t), xr, Y(t + f), f, xr + f, Y(t + f)) + " " + P(xr, Y(t + f));
-    p += " L " + P(xr, Y(yb - rc));
-    // Convex corner, bulge face, convex corner.
-    p += " A " + rc + " " + rc + " 0 0 " + S(xr, Y(yb - rc), xr - rc, Y(yb), rc, xr - rc, Y(yb - rc)) + " " + P(xr - rc, Y(yb));
-    p += " L " + P(xl + rc, Y(yb));
-    p += " A " + rc + " " + rc + " 0 0 " + S(xl + rc, Y(yb), xl, Y(yb - rc), rc, xl + rc, Y(yb - rc)) + " " + P(xl, Y(yb - rc));
-    // Up the bulge's left side, concave fillet back to the flat run.
-    p += " L " + P(xl, Y(t + f));
-    p += " A " + f + " " + f + " 0 0 " + S(xl, Y(t + f), xl - f, Y(t), f, xl - f, Y(t + f)) + " " + P(xl - f, Y(t));
-    // Inner face onward to the left cap.
+    if (bulge) {
+        // Inner face inward to the right shoulder.
+        p += " L " + P(xr + f, Y(t));
+        // Concave fillet down into the bulge's right side.
+        p += " A " + f + " " + f + " 0 0 " + S(xr + f, Y(t), xr, Y(t + f), f, xr + f, Y(t + f)) + " " + P(xr, Y(t + f));
+        p += " L " + P(xr, Y(yb - rc));
+        // Convex corner, bulge face, convex corner.
+        p += " A " + rc + " " + rc + " 0 0 " + S(xr, Y(yb - rc), xr - rc, Y(yb), rc, xr - rc, Y(yb - rc)) + " " + P(xr - rc, Y(yb));
+        p += " L " + P(xl + rc, Y(yb));
+        p += " A " + rc + " " + rc + " 0 0 " + S(xl + rc, Y(yb), xl, Y(yb - rc), rc, xl + rc, Y(yb - rc)) + " " + P(xl, Y(yb - rc));
+        // Up the bulge's left side, concave fillet back to the flat run.
+        p += " L " + P(xl, Y(t + f));
+        p += " A " + f + " " + f + " 0 0 " + S(xl, Y(t + f), xl - f, Y(t), f, xl - f, Y(t + f)) + " " + P(xl - f, Y(t));
+    }
+    // Inner face onward to the left cap. With `bulge: false` this is the
+    // WHOLE inner face — one straight run, cap to cap.
     p += " L " + P(re, Y(t));
     // Left pill cap, same two-quarter-arc construction as the right.
     p += " A " + re + " " + re + " 0 0 " + S(re, Y(t), 0, Y(re), re, re, Y(re)) + " " + P(0, Y(re));
