@@ -131,17 +131,26 @@ FloatingWindow {
     implicitHeight: Math.max(500, Math.round(win._screenHeight * win._heightMult))
     implicitWidth: Math.max(800, Math.round(win.implicitHeight * win._aspectRatio))
 
-    // Proportional, so the rail keeps its share of a window that is now
-    // screen-sized. Caelestia uses `min(maxNavWidth, width / 3)`; the divisor
-    // here is 4 rather than 3 because their nav rows are a taller, more
-    // spacious shape than this rail's compact list — width/3 of 1792 would be
-    // 597px of mostly empty rail. width/4 keeps the rail at roughly the 27%
-    // share it had at 960x640, and the 340 cap stops it growing without limit
-    // on an ultrawide.
-    // `win.width` is 0 until the window is mapped; falling back to
-    // implicitWidth keeps the rail from rendering at zero width for the
-    // first frame and shoving the whole Row.
-    readonly property int navRailWidth: Math.min(340, Math.round(Math.max(win.width, win.implicitWidth) / 4))
+    // ── Nav rail width — Caelestia's own formula, verbatim ──────────────
+    //    `Math.min(maxNavWidth, width / 3)` with maxNavWidth 600
+    //    (Nexus.qml, and NexusTokens at tokens.hpp:219). Resolves to 597 on
+    //    this 1792-wide window.
+    //
+    //    Round 2 used `min(340, width / 4)` on the reasoning that their nav
+    //    rows are a taller, more spacious shape than this rail's compact
+    //    list, so width/3 would be "597px of mostly empty rail". The
+    //    operator compared the two side by side and the reasoning did not
+    //    survive: "the left side of the settings menu is wider than ours."
+    //    A rail that reads as a real pane rather than a strip is part of
+    //    what makes that window feel the way it does, and this project's
+    //    standing rule is that Caelestia's convention wins on shell design
+    //    decisions unless something measured says otherwise. Nothing did —
+    //    that was a taste call dressed as a measurement.
+    //
+    //    The knock-on is the point, not a side effect: at 597 the content
+    //    pane is 1195 wide, so PageBase's centred 800px column sits in
+    //    ~173px of air per side instead of ~330px.
+    readonly property int navRailWidth: Math.min(600, Math.round(Math.max(win.width, win.implicitWidth) / 3))
 
     Rectangle {
         id: background

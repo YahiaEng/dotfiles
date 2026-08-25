@@ -43,7 +43,7 @@ Column {
         }
         Text {
             text: root.title
-            font.pixelSize: Design.fontBody
+            font.pixelSize: Design.settingsFontRow
             font.weight: Design.weightEmphasis
             color: Colours.onSurfaceVariant
         }

@@ -613,7 +613,7 @@ PageBase {
         width: parent.width
         wrapMode: Text.WordWrap
         text: root.lastError
-        font.pixelSize: Design.fontLabel
+        font.pixelSize: Design.settingsFontSub
         color: Colours.error
     }
 }

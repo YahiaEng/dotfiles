@@ -68,7 +68,7 @@ Item {
             Text {
                 width: parent.width - Design.iconSizeMd - Design.spacingXs
                 text: root.label
-                font.pixelSize: Design.fontBody
+                font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurface
                 wrapMode: Text.WordWrap
             }
@@ -80,7 +80,7 @@ Item {
             // subtext (NavRow/ToggleRow/SliderRow/SelectRow all elide,
             // since their subtext is a short descriptor, not the payload).
             text: root.subtext
-            font.pixelSize: Design.fontLabel
+            font.pixelSize: Design.settingsFontSub
             color: Colours.onSurfaceVariant
             width: parent.width
             wrapMode: Text.WordWrap

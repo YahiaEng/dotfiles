@@ -203,7 +203,7 @@ PageBase {
             width: parent.width
             wrapMode: Text.WordWrap
             text: wallpaperSection.listError
-            font.pixelSize: Design.fontLabel
+            font.pixelSize: Design.settingsFontSub
             color: Colours.error
         }
 
@@ -316,7 +316,7 @@ PageBase {
                             width: parent.width - 8
                             horizontalAlignment: Text.AlignHCenter
                             elide: Text.ElideRight
-                            font.pixelSize: Design.fontLabel
+                            font.pixelSize: Design.settingsFontSub
                             color: Colours.onSurface
                             text: tile.modelData.displayName
                         }

@@ -37,18 +37,34 @@ Item {
     // 800px. The title stays full-width and left-aligned with the content,
     // matching Caelestia's own header, which uses `Layout.fillWidth: true`
     // beside capped rows.
-    readonly property int cappedWidth: Math.min(800, width - Design.panelPadding * 2)
+    readonly property int cappedWidth: Math.max(0, Math.min(800, width - Design.panelPadding * 2))
+
+    // ── CENTRED, not left-aligned (quick task 260825-v3u round 3) ────────
+    // Caelestia's own pages do exactly this: `width: root.cappedWidth` with
+    // `anchors.horizontalCenter: parent.horizontalCenter`
+    // (modules/nexus/pages/PanelsPage.qml). Round 2 left the capped column
+    // hard against the left edge, so on a 1792-wide window ALL the slack
+    // piled up on one side — measured off a real capture: content ended at
+    // x=1144 with 644px of empty background to its right, over a third of
+    // the window. The cap itself is not the problem (it is what keeps a
+    // row's label near its control); the lopsidedness was.
+    //
+    // One inset serves BOTH the header and the body so the page title stays
+    // aligned with the left edge of the rows beneath it. Centring the title
+    // independently would float it away from the content it labels.
+    readonly property int contentInset: Math.max(0, Math.round(((width - Design.panelPadding * 2) - cappedWidth) / 2))
 
     Column {
         id: headerColumn
         anchors.top: parent.top
         anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.margins: Design.panelPadding
+        anchors.topMargin: Design.panelPadding
+        anchors.leftMargin: Design.panelPadding + root.contentInset
+        width: root.cappedWidth
 
         Text {
             text: root.title
-            font.pixelSize: Design.fontHeading
+            font.pixelSize: Design.settingsFontTitle
             font.weight: Design.weightEmphasis
             color: Colours.onSurface
         }
@@ -73,6 +89,7 @@ Item {
             // incubates each page and assigns `anchors.fill` afterwards), and
             // a negative width is a QML warning plus a zero-size layout that
             // some children latch onto.
+            x: root.contentInset
             width: Math.max(0, Math.min(root.cappedWidth, bodyFlick.width))
             spacing: Design.spacingLg
         }

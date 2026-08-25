@@ -144,7 +144,7 @@ Control {
 
             Text {
                 text: root.label
-                font.pixelSize: Design.fontBody
+                font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurface
                 elide: Text.ElideRight
                 width: parent.width
@@ -152,7 +152,7 @@ Control {
             Text {
                 visible: root.subtext.length > 0
                 text: root.subtext
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.settingsFontSub
                 color: Colours.onSurfaceVariant
                 elide: Text.ElideRight
                 width: parent.width

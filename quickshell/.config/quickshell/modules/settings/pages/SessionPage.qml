@@ -177,7 +177,7 @@ PageBase {
             width: parent.width
             wrapMode: Text.WordWrap
             text: idleSection.lastError
-            font.pixelSize: Design.fontLabel
+            font.pixelSize: Design.settingsFontSub
             color: Colours.error
         }
 

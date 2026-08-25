@@ -342,7 +342,7 @@ PageBase {
             width: parent.width
             wrapMode: Text.WordWrap
             text: devicesSection.devicesError
-            font.pixelSize: Design.fontLabel
+            font.pixelSize: Design.settingsFontSub
             color: Colours.error
         }
 

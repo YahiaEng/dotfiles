@@ -99,14 +99,14 @@ Control {
             Text {
                 width: parent.width - valueLabel.implicitWidth - Design.spacingMd - (root.resettable ? resetIcon.implicitWidth + Design.spacingMd : 0)
                 text: root.label
-                font.pixelSize: Design.fontBody
+                font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurface
                 elide: Text.ElideRight
             }
             Text {
                 id: valueLabel
                 text: root.value.toFixed(2)
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.settingsFontSub
                 color: Colours.onSurfaceVariant
             }
             // Reset-to-default affordance (WR-04) — a small clickable
@@ -137,7 +137,7 @@ Control {
         Text {
             visible: root.subtext.length > 0
             text: root.subtext
-            font.pixelSize: Design.fontLabel
+            font.pixelSize: Design.settingsFontSub
             color: Colours.onSurfaceVariant
             width: parent.width
             elide: Text.ElideRight

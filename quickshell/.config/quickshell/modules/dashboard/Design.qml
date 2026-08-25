@@ -112,6 +112,31 @@ Singleton {
     readonly property int fontBody: 16
     readonly property int fontLabel: 12
 
+    // ── Settings-window type scale (quick task 260825-v3u round 3) ───────
+    // The settings window's CONTENT PANE reads one step larger than the
+    // rest of the shell. Operator, comparing against Caelestia: "the right
+    // side is centered and has slightly bigger font."
+    //
+    // These are SEPARATE TOKENS rather than a bump to fontBody/fontLabel
+    // above, and that separation is the whole point: those three are read
+    // by the bar capsules, the dashboard, the notification centre, the OSD
+    // and the launcher. Raising them would resize every surface in the
+    // shell to fix one window — roughly seventy call sites of collateral,
+    // none of it asked for.
+    //
+    // Scoped to the CONTENT PANE only. `NavRail.qml` deliberately keeps the
+    // shell-wide sizes, which is what makes the two sides read as different
+    // weights — the same relationship Caelestia has, where its nav pane
+    // labels are a smaller class than its page rows.
+    //
+    // Caelestia's own scale is in POINTS (FontSizeTokens: 11/12/13/15/18/28,
+    // tokens.hpp:69-78) and this shell's is in PIXELS, so these are not
+    // copied numbers — they are this shell's existing scale moved up one
+    // step, which is what "slightly bigger" asked for.
+    readonly property int settingsFontTitle: 24
+    readonly property int settingsFontRow: 18
+    readonly property int settingsFontSub: 14
+
     readonly property int weightDisplay: Font.Medium
     readonly property int weightEmphasis: Font.DemiBold
     // Athena sets `font-weight: bold` on #clock and #custom-updates — CSS bold

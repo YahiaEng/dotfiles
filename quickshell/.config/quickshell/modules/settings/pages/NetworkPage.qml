@@ -393,7 +393,7 @@ PageBase {
                     // attacker-controllable text arriving over the air.
                     textFormat: Text.PlainText
                     text: networkRow.network ? networkRow.network.name : ""
-                    font.pixelSize: Design.fontBody
+                    font.pixelSize: Design.settingsFontRow
                     color: Colours.onSurface
 
                     HoverHandler {
@@ -436,7 +436,7 @@ PageBase {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: !networkRow.isPendingRow
                             text: root.rowVerbLabel(networkRow.network)
-                            font.pixelSize: Design.fontBody
+                            font.pixelSize: Design.settingsFontRow
                             color: Colours.primary
 
                             MouseArea {
@@ -448,7 +448,7 @@ PageBase {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: networkRow.isPendingRow
                             text: "Cancel"
-                            font.pixelSize: Design.fontBody
+                            font.pixelSize: Design.settingsFontRow
                             color: Colours.onSurfaceVariant
 
                             MouseArea {
@@ -462,7 +462,7 @@ PageBase {
                         visible: networkRow.forgetEligible
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Forget"
-                        font.pixelSize: Design.fontBody
+                        font.pixelSize: Design.settingsFontRow
                         color: Colours.error
 
                         MouseArea {
@@ -483,7 +483,7 @@ PageBase {
                 width: parent.width
                 visible: networkRow.kind === "enterprise"
                 text: "Use Advanced to connect"
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.settingsFontSub
                 color: Colours.onSurfaceVariant
             }
 
@@ -544,7 +544,7 @@ PageBase {
                         id: connectLabel
                         anchors.centerIn: parent
                         text: "Connect"
-                        font.pixelSize: Design.fontBody
+                        font.pixelSize: Design.settingsFontRow
                         color: Colours.onPrimary
                     }
                     MouseArea {
@@ -569,7 +569,7 @@ PageBase {
                 width: parent.width
                 visible: networkRow.isFailedRow
                 text: root.failedText
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.settingsFontSub
                 color: Colours.error
             }
 
@@ -586,14 +586,14 @@ PageBase {
                     // `ssidText` above.
                     textFormat: Text.PlainText
                     text: "Forget " + (networkRow.network ? networkRow.network.name : "") + "?"
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurface
                     wrapMode: Text.WordWrap
                 }
                 Text {
                     id: forgetYes
                     text: "Forget"
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     font.weight: Design.weightEmphasis
                     color: Colours.error
 
@@ -608,7 +608,7 @@ PageBase {
                 Text {
                     id: forgetNo
                     text: "Cancel"
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
 
                     MouseArea {
@@ -703,7 +703,7 @@ PageBase {
                     // is attacker-controllable text arriving over the air.
                     textFormat: Text.PlainText
                     text: deviceRow.device ? deviceRow.device.deviceName : ""
-                    font.pixelSize: Design.fontBody
+                    font.pixelSize: Design.settingsFontRow
                     color: Colours.onSurface
 
                     HoverHandler {
@@ -747,7 +747,7 @@ PageBase {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: !deviceRow.isPending
                             text: deviceRow.verb === "pair" ? "Pair" : deviceRow.verb === "connect" ? "Connect" : deviceRow.verb === "disconnect" ? "Disconnect" : ""
-                            font.pixelSize: Design.fontBody
+                            font.pixelSize: Design.settingsFontRow
                             color: Colours.primary
 
                             MouseArea {
@@ -759,7 +759,7 @@ PageBase {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: deviceRow.isPendingPair
                             text: "Cancel"
-                            font.pixelSize: Design.fontBody
+                            font.pixelSize: Design.settingsFontRow
                             color: Colours.onSurfaceVariant
 
                             MouseArea {
@@ -784,13 +784,13 @@ PageBase {
                             width: 140
                             horizontalAlignment: Text.AlignRight
                             text: root.failedReason
-                            font.pixelSize: Design.fontLabel
+                            font.pixelSize: Design.settingsFontSub
                             color: Colours.error
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Retry"
-                            font.pixelSize: Design.fontBody
+                            font.pixelSize: Design.settingsFontRow
                             color: Colours.primary
 
                             MouseArea {
@@ -836,7 +836,7 @@ PageBase {
                 Text {
                     visible: deviceRow.batteryAvailable
                     text: deviceRow.device ? "Battery " + Math.round(deviceRow.device.battery) + "%" : ""
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                 }
                 Text {
@@ -844,7 +844,7 @@ PageBase {
                     // address is over-the-air text like the name above.
                     textFormat: Text.PlainText
                     text: deviceRow.device ? deviceRow.device.address : ""
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                 }
 
@@ -852,7 +852,7 @@ PageBase {
                     visible: !deviceRow.isConfirmingForget
                     Text {
                         text: "Forget"
-                        font.pixelSize: Design.fontLabel
+                        font.pixelSize: Design.settingsFontSub
                         color: Colours.error
 
                         MouseArea {
@@ -869,14 +869,14 @@ PageBase {
                         width: parent.width - btForgetYes.implicitWidth - btForgetNo.implicitWidth - Design.spacingSm * 2
                         textFormat: Text.PlainText
                         text: "Forget " + (deviceRow.device ? deviceRow.device.deviceName : "") + "?"
-                        font.pixelSize: Design.fontLabel
+                        font.pixelSize: Design.settingsFontSub
                         color: Colours.onSurface
                         wrapMode: Text.WordWrap
                     }
                     Text {
                         id: btForgetYes
                         text: "Forget"
-                        font.pixelSize: Design.fontLabel
+                        font.pixelSize: Design.settingsFontSub
                         font.weight: Design.weightEmphasis
                         color: Colours.error
 
@@ -891,7 +891,7 @@ PageBase {
                     Text {
                         id: btForgetNo
                         text: "Cancel"
-                        font.pixelSize: Design.fontLabel
+                        font.pixelSize: Design.settingsFontSub
                         color: Colours.onSurfaceVariant
 
                         MouseArea {
@@ -941,7 +941,7 @@ PageBase {
 
                 Text {
                     font.family: Design.symbolFontFamily
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     text: "sync"
                     color: Colours.onSurfaceVariant
 
@@ -955,7 +955,7 @@ PageBase {
                 }
                 Text {
                     text: "Scanning for networks…"
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                 }
             }
@@ -985,7 +985,7 @@ PageBase {
                     ? (root.wifiBackend.wifiDevice !== null && !root.wifiBackend.currentNetwork && root.wifiBackend.savedNetworks.length === 0 && root.wifiBackend.otherNetworks.length === 0 && !root.wifiBackend.scanning)
                     : false
                 text: "No networks found yet"
-                font.pixelSize: Design.fontBody
+                font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurfaceVariant
             }
         }
@@ -1056,7 +1056,7 @@ PageBase {
                     ? (root.bluetoothBackend.connectedDevices.length === 0 && root.bluetoothBackend.pairedDevices.length === 0 && root.bluetoothBackend.discoveredDevices.length === 0 && !root.bluetoothBackend.discovering)
                     : false
                 text: "No paired devices"
-                font.pixelSize: Design.fontBody
+                font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurfaceVariant
             }
 
@@ -1070,7 +1070,7 @@ PageBase {
                 Text {
                     visible: !(root.bluetoothBackend && root.bluetoothBackend.discovering)
                     text: "Add device"
-                    font.pixelSize: Design.fontBody
+                    font.pixelSize: Design.settingsFontRow
                     font.weight: Design.weightEmphasis
                     color: Colours.primary
 
@@ -1082,13 +1082,13 @@ PageBase {
                 Text {
                     visible: root.bluetoothBackend ? root.bluetoothBackend.discovering : false
                     text: "Searching for devices…"
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                 }
                 Text {
                     visible: root.bluetoothBackend ? root.bluetoothBackend.discovering : false
                     text: "Stop"
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
 
                     MouseArea {

@@ -106,7 +106,7 @@ Control {
 
             Text {
                 text: root.label
-                font.pixelSize: Design.fontBody
+                font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurface
                 elide: Text.ElideRight
                 width: parent.width
@@ -114,7 +114,7 @@ Control {
             Text {
                 visible: root.subtext.length > 0
                 text: root.subtext
-                font.pixelSize: Design.fontLabel
+                font.pixelSize: Design.settingsFontSub
                 color: Colours.onSurfaceVariant
                 elide: Text.ElideRight
                 width: parent.width
@@ -179,7 +179,7 @@ Control {
                     id: valueText
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.busy ? "Applying…" : root.currentDisplay
-                    font.pixelSize: Design.fontBody
+                    font.pixelSize: Design.settingsFontRow
                     color: Colours.onSurfaceVariant
                 }
             }
@@ -263,7 +263,7 @@ Control {
                 contentItem: Text {
                     text: menuItem.text
                     color: Colours.onSurfaceVariant
-                    font.pixelSize: Design.fontBody
+                    font.pixelSize: Design.settingsFontRow
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                     leftPadding: Design.spacingMd
