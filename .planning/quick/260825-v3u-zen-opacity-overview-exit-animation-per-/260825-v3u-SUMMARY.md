@@ -173,3 +173,49 @@ because two of the four changes cannot be verified any other way.
    a volume key press (the OSD fill should ease); Bar > Capsules (six new
    rows, no group row); Super+comma (a 1792x1008 window, page name in the
    title, content in a centred-left 800px column, pages sliding by direction).
+
+---
+
+# Round 2 — the resize was inert, and it always had been
+
+Operator live-check: 1, 2, 3 and 5 pass; **4 "the settings menu look is
+unchanged"**.
+
+**Cause: this repo's own window rule, not the QML.** `windowrules.lua`'s
+`float-settings` carried `size = "960 640"`, written by the task that first
+created the window (260820-sqd), and **a Hyprland size rule overrides the
+client's requested geometry**. `Settings.qml`'s implicitWidth/implicitHeight
+had therefore never had any effect at all — not merely since round 1, but
+since the window existed.
+
+Measured live before touching anything (`hyprctl clients -j`, class
+`org.quickshell`): `at [775,400] size [960,640]` against a QML asking for
+1792x1008.
+
+Everything round 1 derived from `width` had been computing against 960 and
+landing within a few pixels of the old design: nav rail `min(340, 960/4)` =
+240 (against 260 before), and the 800px content cap never engaged because the
+content pane was only 672 wide. **The one piece that did show was the window
+title** — `Settings — Appearance` — which is what proved the QML changes were
+live at all rather than unstowed or unreloaded.
+
+**Fix:** remove the `size` term. No literal replaces it: only the QML knows the
+screen, so only the QML can size this window, and a number here would re-pin it
+to one display's pixels and defeat the formula again. `float` and `center`
+stay — placement genuinely is the compositor's business.
+
+**Measured after:** `size [1792,1008] at [359,216]` — centred in the *usable*
+area to the pixel, `(2560-50)/2 - 896 = 359` and `(1440-12)/2 - 504 + 6 = 216`.
+
+Commit `1a28478c`. `luac -p` clean, `hyprctl reload` ok, `configerrors` empty.
+
+## What this should have caught earlier
+
+Round 1 changed a window's size in QML without checking whether the compositor
+was already dictating it. The repo's own standing habit —
+"absence claims need a tree-wide grep" — was applied to `windowrules.lua` for
+`zen` and `opacity` in the very same session, and not for the surface being
+resized. **When changing a surface's geometry, grep the compositor config for
+that surface's class or namespace first**: a `size`/`move`/`maxsize` rule wins
+over anything the client asks for, and it fails silently — the QML binding is
+correct, evaluates correctly, and is simply ignored.
