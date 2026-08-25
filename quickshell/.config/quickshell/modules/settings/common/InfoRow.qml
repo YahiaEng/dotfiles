@@ -13,6 +13,13 @@
 // across all five row types, and so an explanatory row is reachable by
 // both keyboard two-pane focus and `RowIndex` search, not just by
 // scrolling past it.
+//
+// `icon` (quick-260826-1n9, D-2) — defaulted to "info" so every existing
+// call site (40+ across the tree) renders byte-identically with no other
+// file needing to change in this same commit. The default is NOT the
+// point, though — a page that leaves nine rows on the default is
+// precisely the defect this property exists to let a page fix: SHOULD
+// override it with a glyph that actually names the field.
 import QtQuick
 import "../../"
 import "../../dashboard"
@@ -22,6 +29,7 @@ Item {
 
     property string label: ""
     property string subtext: ""
+    property string icon: "info"
 
     readonly property bool focusable: true
     property bool rowFocused: false
@@ -62,7 +70,7 @@ Item {
             Text {
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd
-                text: "info"
+                text: root.icon
                 color: Colours.onSurfaceVariant
             }
             Text {
