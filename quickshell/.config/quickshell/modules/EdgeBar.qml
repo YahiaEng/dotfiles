@@ -190,17 +190,27 @@ PanelWindow {
     // ── THE STATIC BULGE'S DEPTH, AND HALO'S WHOLE WARNING (Q3-halo) ────
     // `animatedBulge: false` on Halo does NOT mean "no bulge". It means a
     // STATIC PERMANENT bulge at FULL depth — a 2px hairline frame plus two
-    // motionless 12px masses at the top and bottom centres. That is a
-    // legitimate landmark state, and it is the state the operator asked
-    // for by name. Halo's swell is 2 -> 12, so its static extra is
-    // `edgeBarBulgeSwellExtra` (10), not `edgeBarBulgeExtra` (4); reading
-    // the latter here would silently give a 2 -> 6 stub and look like the
-    // masses were simply missing.
+    // motionless masses at the top and bottom centres. That is a legitimate
+    // landmark state, and it is the state the operator asked for by name.
+    // Halo's static extra is therefore its own SWELL depth, never
+    // `edgeBarBulgeExtra` (4) — reading the latter here would silently give
+    // a stub and look like the masses were simply missing.
     //
-    // Fillet invariant at both ends: static Halo is f(3) + rc(1) = 4 <= 10,
+    // Round 12 made that swell depth Halo-specific: the masses were 12px
+    // (2 + edgeBarBulgeSwellExtra) and the operator asked for thinner, so
+    // Halo now reads `edgeBarHaloBulgeSwellExtra` (6) and the masses are
+    // 8px. Every other style is untouched at 10.
+    //
+    // Fillet invariant at both ends: static Halo is f(3) + rc(1) = 4 <= 6,
     // and animated mode's 0.6/0.4 derivation sums to `_b` at every value
     // including 0.
-    readonly property real _staticBulgeExtra: edgeBarWindow._halo ? Design.edgeBarBulgeSwellExtra : Design.edgeBarBulgeExtra
+    // Halo carries its own swell depth (operator round 12, "the bulge size
+    // should be thinner in this style"); every other style keeps the 6px
+    // rail's. Read through this, never Design.edgeBarBulgeSwellExtra
+    // directly, or the two halves of the swell disagree and the bulge
+    // animates toward a depth the surface was never sized for.
+    readonly property real _swellExtra: edgeBarWindow._halo ? Design.edgeBarHaloBulgeSwellExtra : Design.edgeBarBulgeSwellExtra
+    readonly property real _staticBulgeExtra: edgeBarWindow._halo ? edgeBarWindow._swellExtra : Design.edgeBarBulgeExtra
 
     anchors {
         top: edgeBarWindow._vertical || edgeBarWindow.edge === "top"
@@ -219,37 +229,42 @@ PanelWindow {
     // (D-4), so nothing is folded into exclusiveZone: Hyprland's
     // reservation total is `margins.<anchored-edge> + exclusiveZone`.
     //
-    // THE ONE EXCEPTION IS THE RIGHT RAIL, and it is decided rather than
-    // accidental (DC-2). The study draws it at `RIGHT_EDGE` — 10px inside
-    // the BAR's own reserved boundary — and reservation IS
-    // `margins.<anchored-edge> + exclusiveZone`, so it cannot both sit
-    // there and reserve only its own 2px thickness; those are the same
-    // number. The drawn position wins: `margins.right` = the side margin
-    // and `exclusiveZone` = 0, so it reserves NOTHING and overhangs into
-    // the client area exactly the way the bulge already does. A surface
-    // with a non-negative exclusive zone is still positioned inside every
-    // other surface's zone, so the bar's own 50 puts this rail at
-    // `screenW - 50 - 10` with no arithmetic here at all.
+    // THE ANCHORED EDGE CARRIES NO MARGIN ON ANY OF THE FOUR — operator
+    // round 12, and this REVERSES DC-2 on measured evidence.
     //
-    // BRACKETS ADDS A SECOND, SAME-SHAPED EXCEPTION on the LEFT rail. That
-    // style reserves nothing anywhere (see `exclusiveZone` below), so its
-    // vertical arms are free to sit where the study draws them —
-    // `corner(INSET, 0, ...)`, i.e. flush to the horizontal screen edge but
-    // inset by the side margin from the vertical one. Halo's left rail
-    // reserves, so it stays flush at x = 0 where the study draws IT
-    // (`rect{x: 0, w: k}`). The two styles genuinely differ here; this is
-    // not an inconsistency to tidy away.
-    readonly property real _anchoredMargin: (edgeBarWindow.edge === "right"
-        || (edgeBarWindow._brackets && edgeBarWindow.edge === "left"))
-        ? Design.edgeBarSideMargin
-        : 0
-
-    margins.left: edgeBarWindow._vertical
-        ? (edgeBarWindow.edge === "left" ? edgeBarWindow._anchoredMargin : 0)
-        : Design.edgeBarSideMargin
-    margins.right: edgeBarWindow._vertical
-        ? (edgeBarWindow.edge === "right" ? edgeBarWindow._anchoredMargin : 0)
-        : Design.edgeBarSideMargin
+    // DC-2 gave the study's drawn position priority: the study puts the
+    // right rail at `RIGHT_EDGE = BAR.x - 10`, i.e. ten pixels inside the
+    // bar's own face, and Brackets' vertical arms at `corner(INSET, ...)`.
+    // Reproducing that meant `margins.<anchored-edge> = edgeBarSideMargin`
+    // on those instances.
+    //
+    // WHAT THE STUDY DOES NOT MODEL IS `gaps_out`. Hyprland insets every
+    // window by `gaps_out` (10 here) from the usable area, so the window
+    // silhouette's own outer edge lands on EXACTLY the same pixel the
+    // study's 10px inset puts the rail on. Measured live at 2560x1440,
+    // before this change:
+    //
+    //     Brackets left arm   x  10..15   window box x  10..2499  -> overlap
+    //     Brackets right arm  x 2494..2499                        -> overlap
+    //     Halo right rail     x 2498..2499                        -> overlap
+    //
+    // The operator reported both as clipping ("the brackets are clipping
+    // with hyprland windows", "the right edge is clipping"). Their live
+    // judgement outranks the study, which was drawn against a bare
+    // rectangle rather than against a compositor that gaps its clients.
+    //
+    // Anchoring all four flush to their own boundary and letting `gaps_out`
+    // supply the separation is what the top and bottom rails have always
+    // done — they were never reported as clipping precisely because their
+    // anchored margin was already 0. This makes the vertical pair behave
+    // like the horizontal pair instead of differing from it, and the gap is
+    // then a property of the compositor's own spacing rather than a second
+    // constant that has to be kept in sync with it.
+    //
+    // Halo's left rail is unchanged: it was already flush at x = 0, which
+    // is where the study draws IT (`rect{x: 0, w: k}`).
+    margins.left: edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin
+    margins.right: edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin
     margins.top: edgeBarWindow._vertical ? Design.edgeBarSideMargin : 0
     margins.bottom: edgeBarWindow._vertical ? Design.edgeBarSideMargin : 0
 
@@ -275,7 +290,7 @@ PanelWindow {
     // not do (see the ANIMATED BULGE note below).
     readonly property real _paintedDepth: edgeBarWindow._t
         + (edgeBarWindow._hasBulge
-            ? (edgeBarWindow.animatedBulge ? Design.edgeBarBulgeSwellExtra : edgeBarWindow._staticBulgeExtra)
+            ? (edgeBarWindow.animatedBulge ? edgeBarWindow._swellExtra : edgeBarWindow._staticBulgeExtra)
             : 0)
     readonly property real _surfaceDepth: Math.max(edgeBarWindow._paintedDepth, Design.edgeBarHoverDepth)
 
@@ -430,7 +445,7 @@ PanelWindow {
     readonly property real _bTarget: !edgeBarWindow._hasBulge
         ? 0
         : (edgeBarWindow.animatedBulge
-            ? (edgeBarWindow._bulgeOut ? Design.edgeBarBulgeSwellExtra : 0)
+            ? (edgeBarWindow._bulgeOut ? edgeBarWindow._swellExtra : 0)
             : edgeBarWindow._staticBulgeExtra)
 
     // NOT readonly and NOT a plain token read: the Behavior below has to be
