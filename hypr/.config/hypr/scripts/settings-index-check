@@ -21,18 +21,32 @@
 # or produce a false match (this repo has already been bitten by exactly
 # that class of bug elsewhere).
 #
-# CHECK A — for each page index, the count of RowIndex entries with that
-#           pageIdx equals the count of row-primitive declarations
-#           (ToggleRow/SliderRow/SelectRow/NavRow/InfoRow) in the mapped
-#           page file. The index-to-file mapping is parsed from
-#           PageCompRegistry.qml's own `comps:` array and its
-#           `Component { XPage {} }` declarations — NEVER a hardcoded
-#           list, so this gate cannot itself drift from the registry it
-#           checks against.
+# CHECK A — for each (pageIdx, subPageIdx) pair, the count of matching
+#           RowIndex entries equals the count of row-primitive
+#           declarations (ToggleRow/SliderRow/SelectRow/NavRow/InfoRow/
+#           StepperRow) in the pair's mapped page file. The index-to-file
+#           mapping is parsed from PageCompRegistry.qml's own `comps:`
+#           array — NEVER a hardcoded list, so this gate cannot itself
+#           drift from the registry it checks against.
+#
+#           ── Pair keying (D-4, quick task 260825-wj2 Task 1) ───────────
+#           A `comps[i]` entry may be a bare page Component (root only) OR
+#           a StackPage wrapping N sub-pages (D-2) — the parser collects
+#           EVERY `*Page` identifier declared inside a comp's own block, in
+#           order, skipping the literal `StackPage` wrapper itself: index 0
+#           is the root file, 1..N are its sub-pages. Root rows are keyed
+#           by the literal text `pageIdx: $i, section:` (subPageIdx absent
+#           means the root page); sub-page rows are keyed by
+#           `pageIdx: $i, subPageIdx: $s, section:` — those exact strings
+#           are the grep keys, so a RowIndex entry's canonical text must
+#           match one of the two shapes verbatim.
 # CHECK B — every RowIndex entry's `label` string appears verbatim
 #           (fixed-string match, via `grep -F`, never a regex) in its
-#           mapped page file — catches a rename landed in one place and
-#           not the other.
+#           (pageIdx, subPageIdx)-mapped page file — catches a rename
+#           landed in one place and not the other. Extracts
+#           `pageIdx: N(, subPageIdx: S)?, section: "…", label: "…"`, so a
+#           sub-page row's optional `subPageIdx` field routes it to its
+#           OWN file rather than the root page's.
 # CHECK C — every RowIndex entry's `pageIdx` is within range of the
 #           `comps` array.
 # CHECK D — the scanned-page count is greater than zero (mirrors
@@ -49,6 +63,13 @@
 #           this check) and asserts they match ELEMENT-FOR-ELEMENT, named
 #           by index — the one cross-file invariant both files' own
 #           headers already call load-bearing.
+# CHECK F — D-4 (quick task 260825-wj2 Task 1): every sub-page component
+#           named inside a StackPage-wrapped comp in PageCompRegistry.qml
+#           resolves to a file that exists under pages/ AND is declared in
+#           pages/qmldir — an undeclared type in a directory carrying a
+#           manifest becomes unresolvable forever with no load error, so
+#           this is the sub-page equivalent of CHECK A's "mapped file does
+#           not exist" arm.
 #
 # Usage:
 #   settings-index-check
@@ -115,60 +136,110 @@ mapfile -t COMP_ORDER < <(awk '
 ' "$COMPREG")
 
 PAGE_FILES=()
-for comp in "${COMP_ORDER[@]}"; do
-    pagename=$(awk -v c="$comp" '
-        $0 ~ ("property Component " c ":") { found = 1; next }
-        found {
-            if (match($0, /[A-Za-z_][A-Za-z0-9_]*Page/)) {
-                print substr($0, RSTART, RLENGTH)
-                exit
+declare -A SUB_PAGE_FILES   # keyed "i,s" (s starting at 1) -> mapped file
+declare -A SUB_PAGE_COUNT   # keyed "i" -> number of sub-pages for page i
+
+for ((i = 0; i < ${#COMP_ORDER[@]}; i++)); do
+    comp="${COMP_ORDER[$i]}"
+    # ── D-4: collect EVERY `*Page` identifier declared inside this comp's
+    #    own `property Component <name>: Component { ... }` block, in
+    #    order, skipping the literal `StackPage` wrapper. Index 0 of the
+    #    collected list is the root page; 1..N (only present when the comp
+    #    wraps a StackPage, D-2) are its sub-pages. Brace-counted rather
+    #    than a single next-line grep (the pre-D-4 shape) — a StackPage
+    #    comp declares N+1 Page classes inside ONE property block. ────────
+    block=$(awk -v target="property Component ${comp}:" '
+        BEGIN { capturing = 0; depth = 0; began = 0 }
+        {
+            if (!capturing && index($0, target) > 0)
+                capturing = 1
+            if (capturing) {
+                print $0
+                o = gsub(/\{/, "{")
+                c = gsub(/\}/, "}")
+                depth += o - c
+                if (depth > 0) began = 1
+                if (began && depth <= 0) exit
             }
         }
     ' "$COMPREG")
-    if [[ -z "$pagename" ]]; then
+    mapfile -t page_idents < <(grep -oE '[A-Za-z_][A-Za-z0-9_]*Page' <<<"$block" | grep -v '^StackPage$')
+    if [[ "${#page_idents[@]}" -eq 0 ]]; then
         echo "settings-index-check: could not resolve a page class for comp '$comp' in $COMPREG" >&2
         exit 2
     fi
-    PAGE_FILES+=("$PAGES_DIR/$pagename.qml")
+    PAGE_FILES+=("$PAGES_DIR/${page_idents[0]}.qml")
+    SUB_PAGE_COUNT[$i]=$((${#page_idents[@]} - 1))
+    for ((s = 1; s < ${#page_idents[@]}; s++)); do
+        SUB_PAGE_FILES["$i,$s"]="$PAGES_DIR/${page_idents[$s]}.qml"
+    done
 done
 
 N=${#PAGE_FILES[@]}
 
-# ── CHECK A ─────────────────────────────────────────────────────────────
+# ── CHECK A (pair-keyed, D-4) ─────────────────────────────────────────
+ROW_PRIMITIVE_RE='^[[:space:]]*(ToggleRow|SliderRow|SelectRow|NavRow|InfoRow|StepperRow)[[:space:]]*\{'
 for ((i = 0; i < N; i++)); do
     f="${PAGE_FILES[$i]}"
     if [[ ! -f "$f" ]]; then
         check "CHECK A: pageIdx $i — mapped file does not exist: $f" 1
-        continue
-    fi
-    idx_count=$(strip_comments "$ROWINDEX" | grep -c "pageIdx: $i,")
-    row_count=$(strip_comments "$f" | grep -cE '^[[:space:]]*(ToggleRow|SliderRow|SelectRow|NavRow|InfoRow)[[:space:]]*\{')
-    if [[ "$idx_count" -eq "$row_count" ]]; then
-        check "CHECK A: pageIdx $i ($(basename "$f")): RowIndex entries ($idx_count) match row declarations ($row_count)" 0
     else
-        check "CHECK A: pageIdx $i ($(basename "$f")): RowIndex entries ($idx_count) != row declarations ($row_count)" 1
+        idx_count=$(strip_comments "$ROWINDEX" | grep -c "pageIdx: $i, section:")
+        row_count=$(strip_comments "$f" | grep -cE "$ROW_PRIMITIVE_RE")
+        if [[ "$idx_count" -eq "$row_count" ]]; then
+            check "CHECK A: pageIdx $i ($(basename "$f")): RowIndex entries ($idx_count) match row declarations ($row_count)" 0
+        else
+            check "CHECK A: pageIdx $i ($(basename "$f")): RowIndex entries ($idx_count) != row declarations ($row_count)" 1
+        fi
     fi
+
+    sc="${SUB_PAGE_COUNT[$i]:-0}"
+    for ((s = 1; s <= sc; s++)); do
+        sf="${SUB_PAGE_FILES[$i,$s]}"
+        if [[ ! -f "$sf" ]]; then
+            check "CHECK A: pageIdx $i subPageIdx $s — mapped file does not exist: $sf" 1
+            continue
+        fi
+        sidx_count=$(strip_comments "$ROWINDEX" | grep -c "pageIdx: $i, subPageIdx: $s, section:")
+        srow_count=$(strip_comments "$sf" | grep -cE "$ROW_PRIMITIVE_RE")
+        if [[ "$sidx_count" -eq "$srow_count" ]]; then
+            check "CHECK A: pageIdx $i subPageIdx $s ($(basename "$sf")): RowIndex entries ($sidx_count) match row declarations ($srow_count)" 0
+        else
+            check "CHECK A: pageIdx $i subPageIdx $s ($(basename "$sf")): RowIndex entries ($sidx_count) != row declarations ($srow_count)" 1
+        fi
+    done
 done
 
-# ── CHECK B ─────────────────────────────────────────────────────────────
+# ── CHECK B (pair-keyed, D-4) ────────────────────────────────────────────
 # Process substitution, NOT a trailing `| while` — a `| while` loop runs
 # in a subshell, and PASS/FAIL increments inside it would silently vanish
 # once the pipeline exits (the exact pipefail/subshell class of bug this
 # repo's own project memory already warns about).
 while IFS= read -r line; do
     idx=$(grep -oE 'pageIdx: [0-9]+' <<<"$line" | grep -oE '[0-9]+')
+    subidx=$(grep -oE 'subPageIdx: [0-9]+' <<<"$line" | grep -oE '[0-9]+')
     label=$(grep -oE 'label: "[^"]*"' <<<"$line" | sed -E 's/label: "(.*)"/\1/')
     if [[ -z "$idx" || "$idx" -ge "$N" ]]; then
         check "CHECK B: label \"$label\" — pageIdx $idx out of range, skipped (see CHECK C)" 0
         continue
     fi
-    f="${PAGE_FILES[$idx]}"
-    if grep -qF "label: \"$label\"" "$f"; then
-        check "CHECK B: pageIdx $idx label \"$label\" found verbatim in $(basename "$f")" 0
+    if [[ -n "$subidx" ]]; then
+        f="${SUB_PAGE_FILES[$idx,$subidx]:-}"
+        loc_desc="pageIdx $idx subPageIdx $subidx"
     else
-        check "CHECK B: pageIdx $idx label \"$label\" NOT found in $(basename "$f")" 1
+        f="${PAGE_FILES[$idx]}"
+        loc_desc="pageIdx $idx"
     fi
-done < <(strip_comments "$ROWINDEX" | grep -oE 'pageIdx: [0-9]+, section: "[^"]*", label: "[^"]*"')
+    if [[ -z "$f" || ! -f "$f" ]]; then
+        check "CHECK B: $loc_desc label \"$label\" — mapped file does not exist" 1
+        continue
+    fi
+    if grep -qF "label: \"$label\"" "$f"; then
+        check "CHECK B: $loc_desc label \"$label\" found verbatim in $(basename "$f")" 0
+    else
+        check "CHECK B: $loc_desc label \"$label\" NOT found in $(basename "$f")" 1
+    fi
+done < <(strip_comments "$ROWINDEX" | grep -oE 'pageIdx: [0-9]+(, subPageIdx: [0-9]+)?, section: "[^"]*", label: "[^"]*"')
 
 # ── CHECK C ─────────────────────────────────────────────────────────────
 OUT_OF_RANGE=0
@@ -214,6 +285,25 @@ else
     done
     check "CHECK E: PageRegistry.pages[].slug order matches PageCompRegistry.compSlugs order at every index (${#REG_SLUGS[@]} entries)" "$E_MISMATCH"
 fi
+
+# ── CHECK F (D-4) ──────────────────────────────────────────────────────
+F_FAIL=0
+F_COUNT=0
+for key in "${!SUB_PAGE_FILES[@]}"; do
+    F_COUNT=$((F_COUNT + 1))
+    sf="${SUB_PAGE_FILES[$key]}"
+    base=$(basename "$sf" .qml)
+    if [[ ! -f "$sf" ]]; then
+        F_FAIL=1
+        echo "  [FAIL] CHECK F: sub-page $key ($base) — file does not exist: $sf"
+        continue
+    fi
+    if ! grep -qE "^[[:space:]]*${base}[[:space:]]+[0-9]+\.[0-9]+[[:space:]]+${base}\.qml[[:space:]]*\$" "$PAGES_DIR/qmldir"; then
+        F_FAIL=1
+        echo "  [FAIL] CHECK F: sub-page $key ($base) — not declared in $PAGES_DIR/qmldir"
+    fi
+done
+check "CHECK F: every sub-page component resolves to a file under pages/ and is declared in pages/qmldir ($F_COUNT sub-page(s))" "$F_FAIL"
 
 echo ""
 if [[ "$FAIL" -eq 1 ]]; then

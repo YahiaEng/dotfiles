@@ -17,6 +17,25 @@
 // that every entry's label appears verbatim in its mapped page — every
 // task that adds a row adds its RowIndex entry in the SAME commit, or the
 // gate fails.
+//
+// ── Sub-page fields (quick task 260825-wj2 Task 1, D-4/D-5) — two OPTIONAL
+//    fields, both absent on every entry below this header (all 113
+//    pre-existing rows stay byte-identical):
+//      - `subPageIdx` — which level of the page this row lives on. Absent
+//        means 0, the root page. A row on a StackPage-wrapped page's
+//        sub-page N carries `subPageIdx: N`. The canonical row TEXT
+//        (settings-index-check's own grep key) is therefore
+//        `{ pageIdx: N, section: …` for a root row and
+//        `{ pageIdx: N, subPageIdx: S, section: …` for a sub-page row —
+//        those exact strings, verbatim, since CHECK A/B grep them.
+//      - `jumpSubPageIdx` — the deepest sub-page level search can actually
+//        OPEN this row on without a prior user selection. Defaults to
+//        `subPageIdx` when absent. Diverges from `subPageIdx` only for a
+//        selection-dependent sub-page (e.g. App info, which needs
+//        `sState.selectedApp` already set) — that row's `subPageIdx`
+//        stays the level it truly lives on (what CHECK A/B grep against),
+//        while `jumpSubPageIdx` names the shallower level
+//        `selectSearchResult()` actually jumps to.
 pragma Singleton
 import QtQuick
 import Quickshell

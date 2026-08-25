@@ -13,3 +13,9 @@ SliderRow 1.0 SliderRow.qml
 # InfoRow (quick-260821-6z1 Task 2, PD-07) — non-interactive explanatory
 # row, same focusable-marker discipline as every row type above.
 InfoRow 1.0 InfoRow.qml
+# StackPage (quick task 260825-wj2 Task 1, D-2) — the sub-page host a root
+# page wraps itself in when it has drill-in children. An undeclared type in
+# a directory carrying a manifest becomes unresolvable forever with no load
+# error, per this file's own header — declared in the same commit as the
+# type it names.
+StackPage 1.0 StackPage.qml

@@ -164,29 +164,18 @@ Item {
         }
     }
 
-    // Declared ABOVE every construction-time caller in this file (MEMORY
-    // qml-declare-before-construction-time-use) — Component.onCompleted
-    // below calls this.
-    function _swapTo(idx) {
-        if (idx < 0 || idx >= PageCompRegistry.comps.length) {
-            console.warn("Pages: index out of range: " + idx);
-            return;
-        }
-        if (root.currentItem) {
-            root.currentItem.destroy();
-            root.currentItem = null;
-        }
-        var comp = PageCompRegistry.comps[idx];
-        var incubator = comp.incubateObject(root, { sState: root.sState }, Qt.Synchronous);
-        if (incubator && incubator.object) {
-            root.currentItem = incubator.object;
-            root.currentItem.anchors.fill = root;
-        } else {
-            console.warn("Pages: failed to incubate page at index " + idx);
-        }
-        // A new page has an entirely different (possibly differently
-        // shaped) row list — re-collect and reset pane focus to the
-        // rail every swap, never carry a stale row index across pages.
+    // Extracted from `_swapTo`'s own tail (quick task 260825-wj2 Task 1) so
+    // it can ALSO run off a sub-page push/pop, not just a whole-page swap —
+    // a StackView push changes the focusable-row set exactly the way a
+    // page swap does, and search still needs to land on the right row
+    // whichever kind of navigation got it there. Declared ABOVE `_swapTo`
+    // below (MEMORY qml-declare-before-construction-time-use), which is
+    // itself called from Component.onCompleted.
+    function _recollectRows() {
+        // A new page (or a newly-pushed sub-page) has an entirely
+        // different (possibly differently shaped) row list — re-collect
+        // and reset pane focus to the rail every time, never carry a
+        // stale row index across pages/sub-pages.
         root._focusableRows = root._collectFocusableRows(root.currentItem);
         root.contentFocused = false;
         root.contentRowIdx = -1;
@@ -223,6 +212,43 @@ Item {
             }
             root.sState.pendingRowLabel = "";
         }
+    }
+
+    // Declared ABOVE every construction-time caller in this file (MEMORY
+    // qml-declare-before-construction-time-use) — Component.onCompleted
+    // below calls this.
+    function _swapTo(idx) {
+        if (idx < 0 || idx >= PageCompRegistry.comps.length) {
+            console.warn("Pages: index out of range: " + idx);
+            return;
+        }
+        if (root.currentItem) {
+            root.currentItem.destroy();
+            root.currentItem = null;
+        }
+        var comp = PageCompRegistry.comps[idx];
+        var incubator = comp.incubateObject(root, { sState: root.sState }, Qt.Synchronous);
+        if (incubator && incubator.object) {
+            root.currentItem = incubator.object;
+            root.currentItem.anchors.fill = root;
+        } else {
+            console.warn("Pages: failed to incubate page at index " + idx);
+        }
+
+        // ── Sub-page deep-link (quick task 260825-wj2 Task 1, D-5) — the
+        //    target page object does not exist until the incubation just
+        //    above, so this is the earliest point `openSubPage` can run.
+        //    Only a StackPage-wrapped comp exposes `openSubPage`; a bare
+        //    PageBase does not, so this is guarded rather than assumed —
+        //    a plain page whose pendingSubPageIdx somehow arrived >0 (it
+        //    should not, since only sub-page-bearing rows set it) simply
+        //    lands on the page's root with no sub-page opened, not a
+        //    crash. ──────────────────────────────────────────────────────
+        if (root.sState.pendingSubPageIdx > 0 && root.currentItem && typeof root.currentItem.openSubPage === "function")
+            root.currentItem.openSubPage(root.sState.pendingSubPageIdx, true);
+        root.sState.pendingSubPageIdx = -1;
+
+        root._recollectRows();
     }
 
     // Operator live-pass item 3 (PARTIAL — "moving between them feels
@@ -363,6 +389,22 @@ Item {
         target: root.sState
         function onCurrentPageIdxChanged() {
             root.goTo(root.sState.currentPageIdx);
+        }
+
+        // Sub-page push/pop (quick task 260825-wj2 Task 1) — a StackPage
+        // handles the actual push/pop itself (its own Connections on the
+        // same signals), but the row-focus system here also needs to
+        // re-collect for the newly-visible sub-page/root. `Qt.callLater`,
+        // not a bare call: inside `onXChanged` a child binding still sees
+        // the OLD value and the StackView's push has not settled yet
+        // (MEMORY child-binding-lags-parent-signal — the same reason
+        // `_swapTo` is already sequenced through a `ScriptAction` rather
+        // than a bare handler).
+        function onSubPageOpened(idx) {
+            Qt.callLater(root._recollectRows);
+        }
+        function onSubPageClosed() {
+            Qt.callLater(root._recollectRows);
         }
     }
 

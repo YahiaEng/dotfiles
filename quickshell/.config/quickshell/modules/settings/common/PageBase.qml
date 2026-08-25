@@ -14,6 +14,12 @@ Item {
     required property SettingsState sState
     default property alias contentChild: bodyColumn.data
 
+    // Sub-page marker (quick task 260825-wj2 Task 1, D-2) — set true only
+    // by a page instantiated as `pages[1..N]` inside a StackPage. Shows the
+    // back affordance below; the root page (`pages[0]`) never sets this, so
+    // its header stays exactly the title-only shape it already had.
+    property bool isSubPage: false
+
     // Exposed so Pages.qml can scroll a keyboard-focused row into view
     // (fourth live-pass follow-on, Rule 2 — discovered while verifying
     // the row-hover fix via grim+PIL: a row past the fold gets its
@@ -54,15 +60,71 @@ Item {
     // independently would float it away from the content it labels.
     readonly property int contentInset: Math.max(0, Math.round(((width - Design.panelPadding * 2) - cappedWidth) / 2))
 
-    Column {
+    // Row rather than the old bare Column so a sub-page's back affordance
+    // sits beside the title without a second anchored block (which would
+    // need its own contentInset math to stay aligned with the rows below).
+    Row {
         id: headerColumn
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.topMargin: Design.panelPadding
         anchors.leftMargin: Design.panelPadding + root.contentInset
         width: root.cappedWidth
+        spacing: Design.spacingMd
+
+        // Back affordance (D-2) — shown only when this instance is a
+        // sub-page (StackPage's `pages[1..N]`). `Loader` + `active`, the
+        // same lazy-visibility idiom the vendored reference uses, so a
+        // root page (`isSubPage: false`, the overwhelming majority) pays
+        // nothing for a button it never shows.
+        Loader {
+            id: backLoader
+            anchors.verticalCenter: parent.verticalCenter
+            active: root.isSubPage
+            visible: active
+            sourceComponent: Item {
+                id: backButton
+                implicitWidth: Design.settingsIconSize + Design.spacingSm * 2
+                implicitHeight: Design.settingsIconSize + Design.spacingSm * 2
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: height / 2
+                    color: "transparent"
+                    border.width: 2
+                    border.color: (backHover.hovered) ? Colours.primary : "transparent"
+
+                    Behavior on border.color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.colourDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.colourEasing
+                        }
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.settingsIconSize
+                    text: "arrow_back"
+                    color: Colours.onSurface
+                }
+
+                HoverHandler {
+                    id: backHover
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.sState.closeSubPage()
+                }
+            }
+        }
 
         Text {
+            anchors.verticalCenter: parent.verticalCenter
             text: root.title
             font.pixelSize: Design.settingsFontTitle
             font.weight: Design.weightEmphasis

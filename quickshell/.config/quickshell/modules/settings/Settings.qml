@@ -184,7 +184,16 @@ FloatingWindow {
         id: escCatcher
         anchors.fill: parent
         focus: true
-        Keys.onEscapePressed: win.closeRequested()
+        // Sub-page mechanism (quick task 260825-wj2 Task 1) — Escape pops
+        // one sub-page level when one is open, matching the back-arrow
+        // affordance's own action; only closes the whole window once the
+        // sub-page stack is empty.
+        Keys.onEscapePressed: {
+            if (win.sState.subPageIdxStack.length > 0)
+                win.sState.closeSubPage();
+            else
+                win.closeRequested();
+        }
 
         // Arrow-key nav rail selection (Dashboard.qml:725-726's own
         // clamped-arrow idiom, translated from its horizontal Left/Right

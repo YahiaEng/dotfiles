@@ -34,6 +34,47 @@ QtObject {
     property var wifiBackend: null
     property var bluetoothBackend: null
 
+    // ── Sub-page mechanism (quick task 260825-wj2 Task 1) — mirrors
+    //    Caelestia's NexusState shape. `subPageIdxStack` is REASSIGNED
+    //    wholesale by openSubPage/closeSubPage below, never `.push()`/
+    //    `.pop()`-mutated in place: QML change notification for a
+    //    `property var` fires on reassignment only (this file's own
+    //    established rule, restated by `_data` in Prefs.qml). `selectedApp`/
+    //    `selectedBtDevice` are the selection a selection-dependent
+    //    sub-page reads (AppInfoPage/BtDeviceInfoPage); `pendingSubPageIdx`
+    //    is the search deep-link's jump target — set by
+    //    `selectSearchResult()` below, consumed by `Pages.qml:_swapTo`
+    //    once the target page object exists (D-5).
+    property var subPageIdxStack: []
+    property var selectedApp: null
+    property var selectedBtDevice: null
+    property int pendingSubPageIdx: -1
+
+    signal subPageOpened(idx: int)
+    signal subPageClosed()
+
+    // Reassign wholesale (never `.push()`) — see this block's header.
+    function openSubPage(idx) {
+        root.subPageIdxStack = root.subPageIdxStack.concat([idx]);
+        root.subPageOpened(idx);
+    }
+
+    // Emit BEFORE popping — mirrors Caelestia's own ordering
+    // (`NexusState.qml:31-32`), so a `Connections` handler reacting to the
+    // signal still sees the about-to-be-removed index at the top of the
+    // stack if it needs it.
+    function closeSubPage() {
+        root.subPageClosed();
+        root.subPageIdxStack = root.subPageIdxStack.slice(0, -1);
+    }
+
+    // A page switch abandons any sub-page depth from the PREVIOUS page —
+    // mirrors Caelestia's `onCurrentPageIdxChanged: subPageIdxStack.length
+    // = 0` exactly. Declared here (this file's own function-grouping
+    // discipline) even though it is a handler, not a callable function,
+    // since it reads/writes the same property the functions above do.
+    onCurrentPageIdxChanged: root.subPageIdxStack = []
+
     signal close()
 
     // ── Search (quick-260821-6z1 Task 3, D-06/F-01/PD-08) — `searchText`
@@ -105,9 +146,17 @@ QtObject {
     // `goTo()`. Also clears `searchText`, closing the result list once a
     // result has been chosen — matching a normal nav-rail click's own
     // "the window now shows that page" behaviour.
+    // Extended (quick task 260825-wj2 Task 1, D-5) — `jumpSubPageIdx`
+    // defaults to `subPageIdx` (both optional, absent means 0/the root
+    // page). `pendingSubPageIdx` is set here but NOT acted on here:
+    // `openSubPage()` cannot run yet because the target page object does
+    // not exist until `Pages.qml:swapAnim`'s `ScriptAction` incubates it —
+    // `_swapTo()` is what actually calls `openSubPage(pendingSubPageIdx)`
+    // once that incubation has happened.
     function selectSearchResult(row) {
         root.pendingRowLabel = row.label;
         root.searchText = "";
+        root.pendingSubPageIdx = (row.jumpSubPageIdx !== undefined) ? row.jumpSubPageIdx : ((row.subPageIdx !== undefined) ? row.subPageIdx : 0);
         root.goToPage(row.pageIdx);
     }
 }
