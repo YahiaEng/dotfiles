@@ -138,8 +138,72 @@ PanelWindow {
                                    Math.min(Motion.emphasizedInDuration, raw)));
     }
 
+    // ── HOVER-SUMMON DISMISSAL (operator round 12) ──────────────────────
+    // Set by shell.qml immediately BEFORE this drawer's loader is
+    // activated, so the value is already correct by the time the component
+    // is constructed. Only the bulge-hover path sets it true; every
+    // keyboard and IPC summon leaves it false, which is the operator's
+    // decision — Super+D with the pointer parked mid-screen opens a panel
+    // the pointer is already outside of, and an unconditional rule would
+    // close it inside the grace period.
+    property bool hoverSummoned: false
+
+    // SNAPSHOT, not the live property. The drawer is built fresh on every
+    // summon (D-14), so construction IS the open event and this captures
+    // the summon's own provenance. A live read could be flipped later by an
+    // unrelated summon of the OTHER panel and retro-arm this one.
+    property bool _hoverArmEligible: false
+
+    // Arm-on-entry: nothing dismisses until the pointer has actually been
+    // inside the drawer once, so travelling toward it can never close it —
+    // including across the wide gap Brackets leaves between a corner and
+    // the floating panel.
+    property bool _pointerHasEntered: false
+
+    // The snapshot and the idle timer are started from the shell root's
+    // SINGLE Component.onCompleted further down — a second handler on the
+    // same object is a duplicate signal handler and QML rejects it.
+
+    // Leaving after at least one entry.
+    Timer {
+        id: hoverLeaveTimer
+        interval: Design.drawerHoverLeaveGraceMs
+        repeat: false
+        onTriggered: dashboardWindow._beginDismiss()
+    }
+
+    // The abandoned peek: hover-summoned, never entered, pointer elsewhere.
+    Timer {
+        id: hoverIdleTimer
+        interval: Design.drawerHoverIdleDismissMs
+        repeat: false
+        onTriggered: dashboardWindow._beginDismiss()
+    }
+
+    function _onDrawerHoverChanged(inside: bool): void {
+        if (!dashboardWindow._hoverArmEligible)
+            return;
+        if (inside) {
+            dashboardWindow._pointerHasEntered = true;
+            hoverIdleTimer.stop();
+            hoverLeaveTimer.stop();
+            return;
+        }
+        // Only a genuine exit AFTER an entry arms the dismissal; an exit
+        // that happens before the pointer ever arrived is the travel case
+        // and the idle timer already covers it.
+        if (dashboardWindow._pointerHasEntered)
+            hoverLeaveTimer.restart();
+    }
+
     property bool _dismissing: false
     function _beginDismiss() {
+        // Whatever dismisses this drawer, stop both timers first — a
+        // pending one firing into an already-dismissing window would call
+        // through a second time. `_beginDismiss` guards itself, but the
+        // timers are cheaper to stop than to reason about.
+        hoverLeaveTimer.stop();
+        hoverIdleTimer.stop();
         if (dashboardWindow._dismissing)
             return;
         dashboardWindow._dismissing = true;
@@ -598,7 +662,16 @@ PanelWindow {
     property var wifiBackend: null
     property var bluetoothBackend: null
 
-    Component.onCompleted: pager.setCurrentIndex(dashboardWindow.initialTabIndex)
+    Component.onCompleted: {
+        pager.setCurrentIndex(dashboardWindow.initialTabIndex);
+        // Operator round 12 — construction IS the open event for this
+        // drawer (it is built fresh on every summon, D-14), so this is
+        // where the summon's provenance is captured and the abandoned-peek
+        // timer starts.
+        dashboardWindow._hoverArmEligible = dashboardWindow.hoverSummoned;
+        if (dashboardWindow._hoverArmEligible)
+            hoverIdleTimer.start();
+    }
 
     HyprlandFocusGrab {
         id: grab
@@ -648,6 +721,22 @@ PanelWindow {
         // The drawer is created fresh by a LazyLoader on every summon (D-14),
         // so `Component.onCompleted` IS the open event; there is no reopen
         // case to reset.
+        // ── Hover-summon dismissal probe (operator round 12) ────────────
+        // On `panel`, NOT on the window: the surface spans the whole output
+        // (x=0 w=2510 measured), so a window-level handler would report
+        // "inside" across the entire desktop and never fire. The drawer
+        // rectangle is what the operator means by "their bounds".
+        //
+        // A HoverHandler and nothing else — no TapHandler, no MouseArea, no
+        // `acceptedButtons`. The existing full-surface click-to-dismiss
+        // MouseArea sits BEHIND this panel and is untouched, and a
+        // HoverHandler does not accept presses, so click behaviour inside
+        // the drawer is unchanged.
+        HoverHandler {
+            id: drawerHover
+            onHoveredChanged: dashboardWindow._onDrawerHoverChanged(drawerHover.hovered)
+        }
+
         property bool opened: false
         y: opened ? 0 : -height
         opacity: opened ? 1 : 0

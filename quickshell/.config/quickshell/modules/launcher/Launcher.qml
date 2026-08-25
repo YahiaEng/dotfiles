@@ -81,8 +81,50 @@ PanelWindow {
     // destroying the surface) is deferred until the panel's own out
     // animation has actually played, so Escape/Enter/click-outside never
     // cut the drop-down off mid-flight.
+    // ── HOVER-SUMMON DISMISSAL (operator round 12) ──────────────────────
+    // The twin of Dashboard.qml's block; see it for the full derivation.
+    // Set by shell.qml immediately BEFORE this loader is activated, so it
+    // is already correct at construction. Only the bottom bulge's hover
+    // path sets it true — Super+Space and Super-tap leave it false.
+    //
+    // WORTH KNOWING: the bottom bulge's hover opens MENU mode, not apps
+    // mode (shell.qml routes it through `launcherMenuShortcut._toggleMenu`,
+    // R6), so in practice this arms the MENU surface rather than the app
+    // launcher. Both live in this one component.
+    property bool hoverSummoned: false
+    property bool _hoverArmEligible: false
+    property bool _pointerHasEntered: false
+
+    Timer {
+        id: hoverLeaveTimer
+        interval: Design.drawerHoverLeaveGraceMs
+        repeat: false
+        onTriggered: launcherWindow._beginDismiss()
+    }
+    Timer {
+        id: hoverIdleTimer
+        interval: Design.drawerHoverIdleDismissMs
+        repeat: false
+        onTriggered: launcherWindow._beginDismiss()
+    }
+
+    function _onDrawerHoverChanged(inside: bool): void {
+        if (!launcherWindow._hoverArmEligible)
+            return;
+        if (inside) {
+            launcherWindow._pointerHasEntered = true;
+            hoverIdleTimer.stop();
+            hoverLeaveTimer.stop();
+            return;
+        }
+        if (launcherWindow._pointerHasEntered)
+            hoverLeaveTimer.restart();
+    }
+
     property bool _dismissing: false
     function _beginDismiss() {
+        hoverLeaveTimer.stop();
+        hoverIdleTimer.stop();
         if (launcherWindow._dismissing)
             return;
         launcherWindow._dismissing = true;
@@ -482,6 +524,14 @@ PanelWindow {
     // (see the layer-posture note above). Mirrors Dashboard.qml:557-601.
     Item {
         id: panel
+
+        // Hover-summon dismissal probe — on `panel`, not the window, which
+        // spans the whole output. See Dashboard.qml's twin for why.
+        HoverHandler {
+            id: drawerHover
+            onHoveredChanged: launcherWindow._onDrawerHoverChanged(drawerHover.hovered)
+        }
+
         // Shared with the bottom strip's bulge so the two cannot drift
         // (operator round 7) — see Design.launcherPanelWidth.
         width: Design.launcherPanelWidth
@@ -1458,5 +1508,11 @@ PanelWindow {
     Component.onCompleted: {
         LauncherState.reset();
         searchField.forceActiveFocus();
+        // Operator round 12 — construction IS the open event (the surface
+        // is built fresh on every summon), so the summon's provenance is
+        // captured here and the abandoned-peek timer starts.
+        launcherWindow._hoverArmEligible = launcherWindow.hoverSummoned;
+        if (launcherWindow._hoverArmEligible)
+            hoverIdleTimer.start();
     }
 }

@@ -888,6 +888,38 @@ Singleton {
     // these are the hairline style's own measured values, not spacing.
     readonly property int edgeBarHaloBulgeSwellExtra: 6
 
+    // ── HOVER-SUMMON DISMISSAL (operator round 12) ──────────────────────
+    // "if I open the app dashboard or super-tab/super+space by hovering on
+    // the bulge, I can then dismiss them by moving the mouse outside of
+    // their bounds."
+    //
+    // Two numbers, because the operator chose arm-on-entry PLUS an idle
+    // close rather than either alone:
+    //
+    //   drawerHoverLeaveGraceMs  — once the pointer has been INSIDE the
+    //     drawer at least once, leaving it dismisses after this delay. The
+    //     delay is what stops a brush along the drawer's own edge, or the
+    //     one-frame gap crossing a child surface, from killing the panel.
+    //     250 rather than popoutDismissGraceMs' 200: a full drawer is a
+    //     bigger travel target than a bar popout and is more expensive to
+    //     lose by accident.
+    //
+    //   drawerHoverIdleDismissMs — if the pointer NEVER enters, the panel
+    //     tidies itself away after this long. This is the "abandoned peek"
+    //     case: hover the bulge, change your mind, walk the pointer off.
+    //     Without it that panel would sit open until clicked or Escaped.
+    //
+    // Both gate WHETHER a dismissal starts, not how long one animates, so
+    // they live here rather than on Motion — the same reasoning
+    // popoutDwellMs/popoutDismissGraceMs above already record.
+    //
+    // NEITHER APPLIES TO A KEYBOARD SUMMON, by operator decision. Super+D
+    // with the pointer parked mid-screen opens a panel the pointer is
+    // already outside of, so an unconditional rule would close it within
+    // the grace period and make the keybind unusable.
+    readonly property int drawerHoverLeaveGraceMs: 250
+    readonly property int drawerHoverIdleDismissMs: 3000
+
     // ── Brackets (quick task 260824-ns3, Task 5) — the corner L pieces ──
     //    ARM LENGTH IS A FRACTION, NEVER A LENGTH. The study measured its
     //    arms at 170px on a 1920-wide capture

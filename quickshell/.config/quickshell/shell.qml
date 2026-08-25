@@ -85,6 +85,20 @@ ShellRoot {
     // reads this one value and there is no second place for the two to
     // disagree. Both ternary branches are real bools: never `undefined`,
     // which would remove the binding outright.
+    // ── HOVER-SUMMON PROVENANCE (operator round 12) ─────────────────────
+    // Which path opened a drawer, so it can decide whether leaving it with
+    // the pointer should dismiss it. Set immediately BEFORE the loader is
+    // activated — the drawer snapshots the value in its own
+    // Component.onCompleted, which runs after this, so the ordering is
+    // what makes a plain property sufficient here rather than a signal.
+    //
+    // DEFAULT FALSE, and every path that is not a bulge hover sets it back
+    // to false explicitly rather than relying on the last writer. A stale
+    // true would arm a keyboard summon, which is exactly what the operator
+    // ruled out.
+    property bool dashboardHoverSummoned: false
+    property bool launcherHoverSummoned: false
+
     readonly property bool edgeBarAnimatedBulgeEffective: root.edgeBarStyle === "segmented"
         ? true
         : root.edgeBarAnimatedBulge
@@ -466,6 +480,14 @@ ShellRoot {
         id: dashboardLoader
         active: false
 
+        // Round 12 — the single reset point for the hover-summon flag.
+        // Clearing on DEACTIVATE rather than trying to set false in every
+        // non-hover caller means the flag is true only between the bulge
+        // hover that set it and the moment that drawer goes away; any
+        // later summon that does not set it therefore starts false by
+        // construction. There is no list of callers to keep in sync.
+        onActiveChanged: if (!dashboardLoader.active) root.dashboardHoverSummoned = false
+
         Dashboard {
             initialTabIndex: root.dashboardTabIndex
             // Operator feedback round 2 (260823-9ak): the drawer must hang
@@ -475,6 +497,7 @@ ShellRoot {
             // ATTACHMENT predicate (quick task 260824-ns3) — Brackets has
             // a rail present but its panels do not weld.
             edgeBarPanelsAttach: root.edgeBarPanelsAttach
+            hoverSummoned: root.dashboardHoverSummoned
             // Round 12 — the dashboard needs BOTH predicates to tell the
             // no-rail case apart from the rail-present-but-unattached one.
             edgeBarRailPresent: root.edgeBarRailPresent
@@ -1018,6 +1041,9 @@ ShellRoot {
         id: launcherLoader
         active: false
 
+        // Round 12 — see dashboardLoader's twin comment.
+        onActiveChanged: if (!launcherLoader.active) root.launcherHoverSummoned = false
+
         Launcher {
             // Threaded from the single shell-root resolution point (Task
             // 4/6, D-5; split into two predicates by quick task 260824-ns3
@@ -1025,6 +1051,7 @@ ShellRoot {
             // read (a separate document's ids are not visible there).
             edgeBarRailPresent: root.edgeBarRailPresent
             edgeBarPanelsAttach: root.edgeBarPanelsAttach
+            hoverSummoned: root.launcherHoverSummoned
             onDismissRequested: launcherLoader.active = false
         }
     }
@@ -1664,12 +1691,14 @@ ShellRoot {
     Connections {
         target: edgeBarTopLoader.item
         function onBulgeHoverTriggered() {
+            root.dashboardHoverSummoned = true;
             dashboardShortcut.toggle();
         }
     }
     Connections {
         target: edgeBarBottomLoader.item
         function onBulgeHoverTriggered() {
+            root.launcherHoverSummoned = true;
             launcherMenuShortcut._toggleMenu();
         }
     }
