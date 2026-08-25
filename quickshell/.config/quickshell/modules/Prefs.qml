@@ -74,7 +74,16 @@ Singleton {
         "bar.capsules.launcher",
         "bar.capsules.workspaces",
         "bar.capsules.idleInhibitor",
-        "bar.capsules.mediaConnectivity",
+        // bar.capsules.mediaConnectivity RETIRED 2026-08-25 (operator, quick
+        // task 260825-v3u), on exactly the precedent clockActions/system set
+        // below: its six children (media/audio/brightness/network/bluetooth/
+        // battery) all gained per-entry toggles in the same commit, so the
+        // parent row became a redundant second way to hide the same six
+        // things. Off the allowlist deliberately — setValue() refuses
+        // unlisted keys, so no stale write can strand the capsule hidden
+        // with no UI left to restore it, and capsulesForZone()'s
+        // `typeof visible !== "boolean" -> true` guard reads the now-absent
+        // key as visible.
         // bar.capsules.systemTray (quick task 260823-65s, D-4) — kept as a
         // PARENT row, unlike clockActions/system below, because a tray
         // item's children are dynamic (they come and go with running
@@ -130,6 +139,26 @@ Singleton {
         "bar.entries.notifications",
         "bar.entries.settings",
         "bar.entries.power",
+        // Quick task 260825-v3u — the six mediaConnectivity children, which
+        // is what let its parent capsule row retire above. Same append-only
+        // discipline and the same single filter point
+        // (BarEntryModel.entryVisible()) as the ten keys above.
+        //
+        // `network` and `bluetooth` are separate keys even though the bar
+        // renders bluetooth inside the network glyph's own hover drawer
+        // (MediaConnectivityCapsule.qml's connectionsStripHost): they are two
+        // independent capabilities and the operator asked for one toggle per
+        // capsule, not one per rendering container. Turning `network` off
+        // while leaving `bluetooth` on removes the glyph you hover to reveal
+        // bluetooth, so bluetooth then renders on its own — hidden behind
+        // nothing rather than hidden entirely, which is the honest result of
+        // that combination rather than a defect.
+        "bar.entries.media",
+        "bar.entries.audio",
+        "bar.entries.brightness",
+        "bar.entries.network",
+        "bar.entries.bluetooth",
+        "bar.entries.battery",
         // Task 1 REWORK ROUND 3 (quick task 260822-sht, operator tracer-gate
         // feedback) — the launcher's A→Z / most-used sort toggle. sortMode
         // is which of the two modes is active; launchCounts is the
@@ -175,7 +204,6 @@ Singleton {
         "bar.capsules.launcher": true,
         "bar.capsules.workspaces": true,
         "bar.capsules.idleInhibitor": true,
-        "bar.capsules.mediaConnectivity": true,
         "bar.capsules.systemTray": true,
         "bar.tray.iconTint": "desaturate",
         "notifs.popupTimeoutMs": 5000,
@@ -198,6 +226,15 @@ Singleton {
         "bar.entries.notifications": true,
         "bar.entries.settings": true,
         "bar.entries.power": true,
+        // Quick task 260825-v3u — the six mediaConnectivity children.
+        // All default true, so an install that has never opened the Bar page
+        // renders exactly the capsule it rendered before the split.
+        "bar.entries.media": true,
+        "bar.entries.audio": true,
+        "bar.entries.brightness": true,
+        "bar.entries.network": true,
+        "bar.entries.bluetooth": true,
+        "bar.entries.battery": true,
         "launcher.sortMode": "alpha",
         "launcher.launchCounts": ({}),
         "edgeBar.style": "continuous",

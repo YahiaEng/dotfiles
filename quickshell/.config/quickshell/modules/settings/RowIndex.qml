@@ -64,7 +64,12 @@ Singleton {
         { pageIdx: 2, section: "Capsules", label: "Updates", keywords: "bar entry updates pending readout system" },
         { pageIdx: 2, section: "Capsules", label: "Workspaces", keywords: "bar capsule workspaces indicator" },
         { pageIdx: 2, section: "Capsules", label: "Idle inhibitor", keywords: "bar capsule idle inhibitor bulb" },
-        { pageIdx: 2, section: "Capsules", label: "Media & connectivity", keywords: "bar capsule media audio brightness network bluetooth battery" },
+        { pageIdx: 2, section: "Capsules", label: "Media", keywords: "bar entry media nowplaying mpris player song track" },
+        { pageIdx: 2, section: "Capsules", label: "Audio", keywords: "bar entry audio volume sound mixer speaker mute" },
+        { pageIdx: 2, section: "Capsules", label: "Brightness", keywords: "bar entry brightness backlight screen display" },
+        { pageIdx: 2, section: "Capsules", label: "Network", keywords: "bar entry network wifi wireless ethernet wired connection" },
+        { pageIdx: 2, section: "Capsules", label: "Bluetooth", keywords: "bar entry bluetooth bt device pairing" },
+        { pageIdx: 2, section: "Capsules", label: "Battery", keywords: "bar entry battery power charge percentage" },
         // System tray + Icon tint (quick task 260823-65s) — the System
         // tray row itself was added to BarPage.qml in this same task's
         // Task 1 but missed its RowIndex entry then (settings-index-check

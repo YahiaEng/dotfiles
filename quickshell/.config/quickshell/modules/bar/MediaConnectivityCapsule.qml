@@ -357,7 +357,14 @@ BarCapsule {
     //    this comment exists to prevent (Rule 1). ─────────────────────────
     PopoutTrigger {
         id: mediaPopoutTrigger
-        visible: root.mediaBackend ? root.mediaBackend.hasPlayer : false
+        // Per-entry visibility (quick task 260825-v3u). The six entries this
+        // capsule declares in BarEntryModel.qml:189-207 each gained a
+        // settings toggle when the mediaConnectivity PARENT row retired, so
+        // each now ANDs BarEntryModel.entryVisible() onto whatever backend
+        // condition it already carried. Same single resolution point and the
+        // same shape SystemCapsule.qml:400-451 and ClockActionsCapsule.qml:97
+        // already use — never a second re-derivation at the call site.
+        visible: BarEntryModel.entryVisible("media") && (root.mediaBackend ? root.mediaBackend.hasPlayer : false)
         sectionId: "media"
         popoutComponent: Component {
             MediaPopout {
@@ -626,6 +633,10 @@ BarCapsule {
     //    — rather than pushing the trigger itself sideways. ─────────────
     Item {
         id: audioStripHost
+        // Rides the "audio" entry with audioPopoutTrigger below — this host
+        // is that entry's hover-reveal drawer (the volume slider and mic
+        // cell), not an entry of its own.
+        visible: BarEntryModel.entryVisible("audio")
         clip: true
         width: root.vertical ? root.drawerCellPitch : (root.audioDrawerExpanded ? root.audioStripExtent : 0)
         // Phase 18.1 trigger-shift fix, measured via mapToItem (temporary
@@ -913,6 +924,7 @@ BarCapsule {
     //    "{icon}" (config-athena.jsonc:306), never a percentage badge.
     PopoutTrigger {
         id: audioPopoutTrigger
+        visible: BarEntryModel.entryVisible("audio")
         sectionId: "audio"
         popoutComponent: Component {
             AudioPopout {
@@ -1010,7 +1022,7 @@ BarCapsule {
     // that looks live but cannot act.
     Readout {
         id: brightnessReadout
-        visible: BrightnessBackend.present
+        visible: BarEntryModel.entryVisible("brightness") && BrightnessBackend.present
         glyph: "brightness_medium"
         maxValueText: "100%"
         populated: true
@@ -1181,6 +1193,10 @@ BarCapsule {
     //    upstream's own connections-drawer transition-duration. ─────────
     Item {
         id: connectionsStripHost
+        // Rides the "bluetooth" entry: this host exists solely to reveal
+        // bluetoothPopoutTrigger on hover, and its own extent is literally
+        // `bluetoothPopoutTrigger.implicitWidth` (connectionsStripExtent).
+        visible: BarEntryModel.entryVisible("bluetooth")
         clip: true
         width: root.vertical ? root.drawerCellPitch : (root.connectionsDrawerExpanded ? root.connectionsStripExtent : 0)
         // Same fix and same reasoning as audioStripHost's own comment above
@@ -1355,6 +1371,7 @@ BarCapsule {
     //    unchanged. ───────────────────────────────────────────────────
     PopoutTrigger {
         id: wifiPopoutTrigger
+        visible: BarEntryModel.entryVisible("network")
         sectionId: "wifi"
         popoutComponent: Component {
             WifiPopout {
@@ -1400,7 +1417,10 @@ BarCapsule {
     // extent depend on whether a cable is plugged in.
     PopoutTrigger {
         id: ethernetPopoutTrigger
-        visible: root.ethernetConnected
+        // Ethernet is the wired half of the same "network" entry, not a
+        // seventh entry — one toggle covers both, matching the single
+        // "Network" row the settings page offers.
+        visible: BarEntryModel.entryVisible("network") && root.ethernetConnected
         sectionId: "ethernet"
         popoutComponent: Component {
             EthernetPopout {
@@ -1450,7 +1470,7 @@ BarCapsule {
     }
 
     Readout {
-        visible: root.batteryPresent
+        visible: BarEntryModel.entryVisible("battery") && root.batteryPresent
         glyph: root.batteryGlyph
         maxValueText: "100%"
         populated: true

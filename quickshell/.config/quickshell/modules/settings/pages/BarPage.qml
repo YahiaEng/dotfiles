@@ -331,11 +331,60 @@ PageBase {
             checked: Prefs.getValue("bar.capsules.idleInhibitor")
             onToggled: (value) => Prefs.setValue("bar.capsules.idleInhibitor", value)
         }
+        // ── Per-entry toggles for what used to be one "Media & connectivity"
+        //    row (operator, quick task 260825-v3u). The parent row is GONE,
+        //    not merely supplemented: the operator asked for individual
+        //    toggles per capsule and for the group toggle to be removed,
+        //    which is the same call already made for "Clock & actions" and
+        //    "System" on 2026-08-21 once their children gained per-entry
+        //    toggles. `bar.capsules.mediaConnectivity` is off Prefs'
+        //    allowlist too, so nothing can write it any more; an absent key
+        //    reads as visible through capsulesForZone()'s
+        //    `typeof visible !== "boolean" -> true` guard, so the capsule
+        //    itself simply stops being hideable as a unit and collapses on
+        //    its own when all six children are off.
+        //
+        //    Order tracks the bar's own render order (BarEntryModel.qml:189-207),
+        //    the same rule the System and Clock groups above and below follow.
         ToggleRow {
-            label: "Media & connectivity"
-            subtext: "Now-playing, audio, brightness, network, Bluetooth, battery"
-            checked: Prefs.getValue("bar.capsules.mediaConnectivity")
-            onToggled: (value) => Prefs.setValue("bar.capsules.mediaConnectivity", value)
+            label: "Media"
+            subtext: "The now-playing readout and its popout — only renders while something is playing"
+            checked: Prefs.getValue("bar.entries.media")
+            onToggled: (value) => Prefs.setValue("bar.entries.media", value)
+        }
+        ToggleRow {
+            label: "Audio"
+            subtext: "The volume glyph, its scroll-to-adjust drawer and the mixer popout"
+            checked: Prefs.getValue("bar.entries.audio")
+            onToggled: (value) => Prefs.setValue("bar.entries.audio", value)
+        }
+        ToggleRow {
+            label: "Brightness"
+            subtext: "The screen-brightness readout — only renders on a host with a backlight"
+            checked: Prefs.getValue("bar.entries.brightness")
+            onToggled: (value) => Prefs.setValue("bar.entries.brightness", value)
+        }
+        ToggleRow {
+            label: "Network"
+            subtext: "The Wi-Fi glyph and its picker, plus the wired readout when Ethernet is up"
+            checked: Prefs.getValue("bar.entries.network")
+            onToggled: (value) => Prefs.setValue("bar.entries.network", value)
+        }
+        ToggleRow {
+            label: "Bluetooth"
+            // Said plainly rather than left to be discovered: the bar reveals
+            // bluetooth by hovering the network glyph, so turning Network off
+            // while leaving this on leaves bluetooth with nothing to hide
+            // behind.
+            subtext: "The Bluetooth glyph and its device list — revealed by hovering Network, so it sits on its own if Network is off"
+            checked: Prefs.getValue("bar.entries.bluetooth")
+            onToggled: (value) => Prefs.setValue("bar.entries.bluetooth", value)
+        }
+        ToggleRow {
+            label: "Battery"
+            subtext: "The battery readout — only renders on a host with a battery"
+            checked: Prefs.getValue("bar.entries.battery")
+            onToggled: (value) => Prefs.setValue("bar.entries.battery", value)
         }
         // System tray (quick task 260823-65s, D-4) — placed here so the
         // settings order tracks the bar order (D-3: the capsule renders
