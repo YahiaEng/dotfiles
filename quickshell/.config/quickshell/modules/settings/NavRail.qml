@@ -50,7 +50,7 @@ Item {
             width: parent.width
             placeholderText: "Search settings"
             onTextChanged: root.sState.searchText = text
-            font.pixelSize: Design.fontBody
+            font.pixelSize: Design.settingsFontRow
             color: Colours.onSurface
             placeholderTextColor: Colours.onSurfaceVariant
             leftPadding: Design.spacingMd
@@ -63,7 +63,7 @@ Item {
             // own `implicitWidth`/`implicitHeight` via padding, never
             // anchored against `searchField`'s own geometry.
             background: Rectangle {
-                implicitHeight: 40
+                implicitHeight: 48
                 radius: 12
                 color: Colours.surfaceVariant
                 border.width: 1
@@ -140,7 +140,10 @@ Item {
                         readonly property bool isCategoryEnd: index === PageRegistry.pages.length - 1 || PageRegistry.pages[index + 1].category !== modelData.category
 
                         width: pageColumn.width
-                        height: 56
+                        // 56 -> 72: the row carries two lines of text now
+                        // (label + description) at the settings scale, where
+                        // it used to carry one at the shell scale.
+                        height: 72
                         color: isCurrentPage ? Colours.secondaryContainer : "transparent"
 
                         topLeftRadius: isCurrentPage ? 20 : (isCategoryStart ? 16 : 4)
@@ -175,23 +178,58 @@ Item {
                             }
                         }
 
+                        // ── icon + label + description (quick task
+                        //    260825-v3u round 4) ─────────────────────────
+                        // `description` has been in PageRegistry since the
+                        // window was built, but it only ever surfaced as a
+                        // HOVER TOOLTIP. Caelestia's nav row shows it inline
+                        // under the label (navpane/NavLocations.qml), and at
+                        // a 597px rail carrying one short label per row there
+                        // was a lot of nothing to the right of "Audio". The
+                        // tooltip that used to carry this text is removed
+                        // rather than kept alongside — the same string in two
+                        // places, one of which you have to hover to find.
                         Row {
+                            id: navRow
                             anchors.left: parent.left
+                            anchors.right: parent.right
                             anchors.leftMargin: Design.spacingMd
+                            anchors.rightMargin: Design.spacingMd
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: Design.spacingSm
+                            spacing: Design.spacingMd
 
                             Text {
+                                id: navIcon
+                                anchors.verticalCenter: parent.verticalCenter
                                 font.family: Design.symbolFontFamily
-                                font.pixelSize: Design.iconSizeMd
+                                font.pixelSize: Design.settingsIconSize
                                 text: navItem.modelData.icon
                                 color: navItem.isCurrentPage ? Colours.onSecondaryContainer : Colours.onSurface
                             }
-                            Text {
-                                text: navItem.modelData.label
-                                font.pixelSize: Design.fontBody
-                                font.weight: navItem.isCurrentPage ? Design.weightEmphasis : Design.weightBody
-                                color: navItem.isCurrentPage ? Colours.onSecondaryContainer : Colours.onSurface
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                // Explicit width so both lines can elide: a
+                                // Row gives its children their implicit width,
+                                // under which `elide` never fires and a long
+                                // description would push past the rail edge.
+                                width: Math.max(0, navRow.width - navIcon.width - navRow.spacing)
+                                spacing: 0
+
+                                Text {
+                                    text: navItem.modelData.label
+                                    font.pixelSize: Design.settingsFontRow
+                                    font.weight: navItem.isCurrentPage ? Design.weightEmphasis : Design.weightBody
+                                    color: navItem.isCurrentPage ? Colours.onSecondaryContainer : Colours.onSurface
+                                    elide: Text.ElideRight
+                                    width: parent.width
+                                }
+                                Text {
+                                    text: navItem.modelData.description
+                                    font.pixelSize: Design.settingsFontSub
+                                    color: navItem.isCurrentPage ? Colours.onSecondaryContainer : Colours.onSurfaceVariant
+                                    elide: Text.ElideRight
+                                    width: parent.width
+                                }
                             }
                         }
 
@@ -202,20 +240,6 @@ Item {
                             onClicked: root.sState.goToPage(navItem.index)
                         }
 
-                        // ThemedToolTip (quick-260821-6z1 fix wave) — replaces
-                        // the bare attached ToolTip shorthand, which rendered
-                        // with Qt's installed-style colours instead of this
-                        // repo's own (the operator's own report: "unthemed and
-                        // looks foreign"). See ThemedToolTip.qml's own header
-                        // for why this is safe here (a normal-height
-                        // FloatingWindow, not the bar's clamped one) and why
-                        // it is NOT BarTooltip/BarTooltipHost (that family
-                        // solves a position-clamping problem this window
-                        // doesn't have).
-                        ThemedToolTip {
-                            visible: navMouseArea.containsMouse
-                            text: navItem.modelData.description
-                        }
                     }
                 }
             }
@@ -260,14 +284,14 @@ Item {
 
                             Text {
                                 text: resultItem.modelData.label
-                                font.pixelSize: Design.fontBody
+                                font.pixelSize: Design.settingsFontRow
                                 color: Colours.onSurface
                                 elide: Text.ElideRight
                                 width: parent.width
                             }
                             Text {
                                 text: (PageRegistry.pages[resultItem.modelData.pageIdx] ? PageRegistry.pages[resultItem.modelData.pageIdx].label : "")
-                                font.pixelSize: Design.fontLabel
+                                font.pixelSize: Design.settingsFontSub
                                 color: Colours.onSurfaceVariant
                                 elide: Text.ElideRight
                                 width: parent.width
@@ -286,7 +310,7 @@ Item {
                 Text {
                     visible: root.sState.searchResults.length === 0
                     text: "No matches"
-                    font.pixelSize: Design.fontBody
+                    font.pixelSize: Design.settingsFontRow
                     color: Colours.onSurfaceVariant
                     width: searchColumn.width
                     horizontalAlignment: Text.AlignHCenter

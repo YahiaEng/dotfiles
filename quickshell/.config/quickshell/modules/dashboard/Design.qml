@@ -137,6 +137,13 @@ Singleton {
     readonly property int settingsFontRow: 18
     readonly property int settingsFontSub: 14
 
+    // Icon size for the settings window, scaled in step with the type above
+    // (24 * 18/16 = 27, rounded to an even 28). Round 3 raised the content
+    // pane's type without this, which left every settings icon at the
+    // shell-wide 24 beside 18px labels — visibly under-scaled once the
+    // operator asked for the nav rail to match.
+    readonly property int settingsIconSize: 28
+
     readonly property int weightDisplay: Font.Medium
     readonly property int weightEmphasis: Font.DemiBold
     // Athena sets `font-weight: bold` on #clock and #custom-updates — CSS bold
