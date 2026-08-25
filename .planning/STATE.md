@@ -4,10 +4,10 @@ milestone: v4.0
 current_phase: 22
 status: milestone-complete
 stopped_at: "EDGE BAR STYLE PICKER: Tasks 1-7 done; ROUND 12 of operator feedback applied and pushed (0b8db18e..4a9490b4). Operator verdict: Continuous PASS, Segmented PASS. Fixed: rails clipped Hyprland windows (REVERSES DC-2 — the study never modelled gaps_out); Halo bulge 12px -> 8px via its own edgeBarHaloBulgeSwellExtra; Segmented lost the animate-bulge row entirely; and NEW — every style except off now makes Hyprland windows rimless via hypr-overrides.sh look --border-size, cooperating with the Window Manager page slider through the new edgeBar.restoreBorderSize pref. TASK 8 STILL OPEN: operator has not re-judged Brackets or Halo since round 12, and the rimless change is explicitly on trial ('I will see it for myself and rollback if I do not like it'). All six gates green at 4a9490b4."
-last_updated: "2026-08-25T04:40:00.000Z"
+last_updated: "2026-08-25T05:40:00.000Z"
 last_activity: 2026-08-25
 last_activity_desc: "quick task 260824-ns3 Tasks 4-7 executed and pushed (e533d9dd..ae9ec82a) — Halo, Brackets, Segmented and the settings picker completion. All six gates green, path golden 59/59 -> 123/123. Only the blocking operator checkpoint (Task 8) remains. PRIOR: quick task 260823-9ak rounds 9-11 shipped and operator-approved (reversed-entrance dismiss, pill-cap fix, hover target decoupled, animated bulge reversing D-3); then a seven-direction edge bar design study was published and the operator chose FOUR shapes plus off to implement as a style picker. Zero implementation code written."
-state_head: 4a9490b4
+state_head: 809f60c0
 progress:
   total_phases: 6
   completed_phases: 6
@@ -739,6 +739,32 @@ after a real session restart — was `deferred-items.md` item 0) and 16-05/D5
 synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
+
+WORKED 2026-08-25 (round 12b) — operator PASSED all round-12 fixes and said the rimless design is **"so much better than we had before (it was sensory vomit with so much shifting rainbow gradients)"**. That is the reason rimless stays: it is a SENSORY-LOAD argument, not a taste one — the window border was a second animated gradient competing with the rail's. Do not reintroduce a window border while a rail style is active.
+
+**TWO MORE ITEMS SHIPPED** (`1a4d9b9f`, `809f60c0`), pushed, tree clean.
+
+**1. Dashboard's upper corners were cut off on Brackets — TWO HALVES, ONE BUG.** `background` and `dashboardGradientBorder` hardcoded `topLeftRadius`/`topRightRadius` to 0, AND `dashboardBorderClip` hardcoded `anchors.topMargin: Design.attachedCornerRadius` with `clip: true`. The clip exists to stop the ring drawing along an edge a flare welds across — but Brackets draws NO flare, so it deleted rim that should be there. `Launcher.qml`'s twin block already had all of this right; Task 6 branched only the launcher's posture, so the dashboard kept welded geometry in a mode that never welds. **Task 5's evidence checked the launcher's BOTTOM corners and never the dashboard's TOP ones** — a coverage gap, not a regression.
+
+**THE PREDICATE LESSON, worth not relearning:** `edgeBarPanelsAttach` is false in TWO different states — no rail at all, and rail-present-but-unattached. Branching on it alone would have changed the no-rail case too. `edgeBarRailPresent` is now threaded into `Dashboard.qml` (its old comment claimed it "isn't needed because the dashboard is always top" — true of DIRECTION, but the shape question is not a direction question) and the two collapse into `_floatingFromRail`. This follows the doctrine `Launcher.qml`'s own radii comment states: leave off and rail+attached BYTE-IDENTICAL, change only rail-present-unattached. Verified: Brackets corners round with rim drawn round them; Continuous still welds via the concave flare at surface y=6.
+
+**2. Hover-summoned drawers now dismiss on mouse-leave.** Operator chose **arm-on-entry PLUS idle close**, and **hover-summoned ONLY**. Nothing dismisses until the pointer has been inside once (so travel toward the panel — especially across the Brackets gap — can never close it); after that, leaving dismisses in `Design.drawerHoverLeaveGraceMs` (250); an abandoned peek closes in `drawerHoverIdleDismissMs` (3000). Keyboard/IPC summons are exempt by decision: Super+D with the pointer mid-screen opens a panel the pointer is ALREADY outside of.
+
+**THE PROVENANCE FLAG'S RESET IS THE DESIGN'S ONE SUBTLE PART.** It is cleared in exactly ONE place — the loader's `onActiveChanged` deactivate edge — never in each non-hover caller. It is therefore true only between the bulge hover that set it and that drawer going away, so every other summon starts false BY CONSTRUCTION and there is no caller list to keep in sync. The drawer snapshots it in `Component.onCompleted` (exact, because D-14 rebuilds the drawer on every summon); a live read could be flipped by a summon of the OTHER panel.
+
+**HoverHandler goes on `panel`, NOT the window** — the surface spans the whole output (measured x=0 w=2510), so a window-level handler reports "inside" across the entire desktop and never fires.
+
+**VERIFIED BOTH DIRECTIONS, deliberately** — a negative alone cannot tell "correctly exempt" from "dead code". Positive control (`hoverSummoned` forced true): dashboard AND launcher both self-closed between t=1s and t=4s. Negative (shipped code): keyboard summon of both stayed open past t=8s and closed only on toggle. **The pointer-in/pointer-out half is UNVERIFIABLE here** — `hl.dsp.movecursor` is nil on this build and there is still no input-injection tool; that half is the operator's to judge.
+
+**TWO PROCESS RULES FROM THIS ROUND, both now in memory:** run each gate ONCE (operator: "Stop running the gates twice for every check") — only re-run one that actually FAILED right after a hot reload; and every visual claim must come from `grim` + raw pixel dump, never from a Design.qml token.
+
+**A QML TRAP HIT TWICE IN ONE SESSION:** `Component.onCompleted` already existed on the root of BOTH `shell.qml` and `Dashboard.qml`. A second handler on the same object is a duplicate signal handler and QML rejects it outright — fold the call into the existing block. Also: a Python slice-replace silently swallowed the `margins.left`/`margins.right` bindings and the follow-up `.replace()` was a no-op that raised nothing. Re-grep what you meant to KEEP, not just what you meant to change.
+
+**GATES at `809f60c0` (run once each):** doctor 28/0, colour-lint 362/0, motion-lint 549/0, keybind-doctor 13/0, settings-index-check 120/0, path golden 123/123.
+
+Resume file: None. NEXT ACTION: operator judges the hover-dismiss feel and re-judges Brackets/Halo; Task 8 still open.
+
+---
 
 WORKED 2026-08-25 (round 12) — operator reviewed Tasks 4-7 live and returned four notes plus one new design directive. All applied, committed and pushed (`0b8db18e` clipping, `e272a88e` Halo bulge, `514febd3` Segmented row, `4a9490b4` rimless). Tree clean, `origin/main` level.
 
