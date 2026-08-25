@@ -1046,6 +1046,34 @@ PanelWindow {
         // double-count this file's margin notes record twice.
         value: popoutWindow.triggerCentre
     }
+    // The panel's ACTUAL along-axis top in screen space, published after this
+    // surface's own clamp has run — the bar draws the bulge to exactly this
+    // span so the two can no longer disagree. See PopoutController.openTop
+    // for the measurement that forced it. Only meaningful welded and
+    // vertical; the bar ignores it otherwise (`rootAttached` gates the whole
+    // bulge).
+    Binding {
+        target: PopoutController
+        property: "openTop"
+        // ── MARGIN SPACE -> SCREEN SPACE, and this term is the whole reason
+        //    the two clamps could not simply be compared ────────────────
+        // `_attachedClampedTop` is a MARGIN, and margins here measure from
+        // the USABLE area, while the bar draws its bulge in SCREEN space
+        // (its own surface sits at screen y 0). The gap between the two is
+        // whatever the top rail reserves — `exclusiveZone: _t` at
+        // EdgeBar.qml:335, i.e. `Design.edgeBarThickness`.
+        //
+        // MEASURED, not derived and hoped for: with this term missing the
+        // bulge came back at 44..314 against a panel at 50..320 — short by
+        // exactly 6 — and `hyprctl layers` put the surface at screen y 26
+        // against its own `margins.top` of 20. Adding it lands the span on
+        // the panel exactly.
+        //
+        // Only while attached, which is Continuous-only, which is the one
+        // style where that rail exists to reserve anything.
+        value: popoutWindow._attachedClampedTop + popoutWindow.flareRadius
+            + (popoutWindow.attached ? Design.edgeBarThickness : 0)
+    }
     Binding {
         target: PopoutController
         property: "openExtent"

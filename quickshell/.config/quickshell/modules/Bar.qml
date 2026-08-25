@@ -497,9 +497,25 @@ PanelWindow {
         NumberAnimation {
             // The dashboard's own register, which is the point of the
             // exercise: the same growth the rail performs under a drawer.
-            duration: PopoutController.anyOpen ? Motion.spatialInDuration : Motion.spatialOutDuration
+            //
+            // ── THE RETRACT IS THE MIRRORED ENTRANCE, NOT THE OUT-TOKEN ──
+            // (quick task 260825-w4c.) It read `spatialOut` on the way back,
+            // and the popout it roots does NOT: `SectionPopout` retracts on
+            // `spatialInReverseEasing` over `spatialInDuration`. So the
+            // shelf collapsed flat in roughly a third of the time the panel
+            // took to slide home, and the two came apart — the panel
+            // finished retracting into a bar that had already gone flat,
+            // which is exactly the "two objects" read the operator is asking
+            // to remove ("feel like it is extending from the bar", and "the
+            // dismissal is a reversal of the spawn").
+            //
+            // Matching the panel's own pair makes the bulge and the panel
+            // one body in BOTH directions: they grow together and they
+            // retract together, on the same curve played forwards and then
+            // point-reflected.
+            duration: Motion.spatialInDuration
             easing.type: Easing.BezierSpline
-            easing.bezierCurve: PopoutController.anyOpen ? Motion.spatialInEasing : Motion.spatialOutEasing
+            easing.bezierCurve: PopoutController.anyOpen ? Motion.spatialInEasing : Motion.spatialInReverseEasing
         }
     }
 
@@ -550,12 +566,41 @@ PanelWindow {
     readonly property real _popoutBulgeHalf: Math.max(0,
         PopoutController.openExtent / 2)
     readonly property real _popoutBulgeCap: barWindow._weldSlabWidth / 2
+
+    // `_popoutBulgeCentre` still exists and is still what `rootCentre`
+    // publishes, because that is what the POPOUT positions itself against.
+    // It is no longer what the bulge is drawn to — see below.
     readonly property real _popoutBulgeCentre: Math.max(
         barWindow._popoutBulgeCap + barWindow._popoutBulgeHalf,
         Math.min(PopoutController.openCentre,
                  barWindow.height - barWindow._popoutBulgeCap - barWindow._popoutBulgeHalf))
-    readonly property real _popoutBulgeXl: barWindow._popoutBulgeCentre - barWindow._popoutBulgeHalf
-    readonly property real _popoutBulgeXr: barWindow._popoutBulgeCentre + barWindow._popoutBulgeHalf
+
+    // ── THE SPAN IS THE PANEL'S, SHRUNK — NEVER SHIFTED (260825-w4c) ────
+    // Operator: "The bulge's width must be so that it never pops out behind
+    // of the panel's sideways."
+    //
+    // It used to be `_popoutBulgeCentre +/- _popoutBulgeHalf`, i.e. the bar
+    // clamped a centre of its own and drew a span around it. The popout
+    // clamped SEPARATELY, and the two disagreed: measured on the resources
+    // popout, `triggerCentre` 114 clamps here to `cap + half` = 161 and drew
+    // the bulge at 26..296, while the popout's own clamp put the panel at
+    // 50..320. Off by exactly `flareRadius`, because this clamp reasons
+    // about the panel and the popout's reasons about the window, which is
+    // `2 * flareRadius` taller. Seen in pixels first: bar-coloured material
+    // at the bulge's exact 14px depth in rows 26..46, above a panel starting
+    // at 50, and none at all below it.
+    //
+    // Two independent clamps cannot be made to agree by tuning either one.
+    // So the bulge is no longer positioned at all — it is HANDED the panel's
+    // real post-clamp span and may only be SHRUNK to fit the slab's straight
+    // run between the pill caps. Shrinking keeps it a subset of the panel;
+    // shifting is what let it escape. The operator's invariant is now
+    // structural rather than emergent.
+    readonly property real _popoutBulgeXl: Math.max(barWindow._popoutBulgeCap,
+        PopoutController.openTop)
+    readonly property real _popoutBulgeXr: Math.min(
+        barWindow.height - barWindow._popoutBulgeCap,
+        PopoutController.openTop + PopoutController.openExtent)
 
     // A span that would not fit between the two caps at all collapses the
     // bulge rather than drawing a degenerate one — `buildOutline`'s own

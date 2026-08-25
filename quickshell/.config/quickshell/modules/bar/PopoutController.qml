@@ -140,6 +140,35 @@ Singleton {
     // popout can set its own margin against that edge directly.
     property real rootInset: 0
 
+    // ── THE PANEL'S ACTUAL ALONG-AXIS TOP, POST-CLAMP (260825-w4c) ──────
+    // Written by the popout AFTER its own clamp has run, read by the bar as
+    // the bulge's span. This exists because the bulge and the panel used to
+    // be positioned by TWO INDEPENDENT CLAMPS that disagreed.
+    //
+    // MEASURED, on the resources popout: `triggerCentre` 114, so the bar
+    // clamped the bulge's CENTRE to `cap + half` = 26 + 135 = 161 and drew
+    // it at 26..296, while the popout clamped its WINDOW's top to 26, which
+    // puts the PANEL at 50..320 — centre 185. The two minimums differ by
+    // exactly `flareRadius`, because the bar's clamp reasons about the panel
+    // while the popout's reasons about the window, and the window is
+    // `2 * flareRadius` taller. Confirmed in pixels before it was confirmed
+    // in code: bar-coloured material at 14px depth (the bulge's exact depth)
+    // in rows 26..46, above a panel starting at 50, and none below it.
+    //
+    // The invariant this restores is the operator's own words — "the bulge's
+    // width must be so that it never pops out behind of the panel's
+    // sideways". The bar now takes this span and may only SHRINK it to fit
+    // the slab's straight run, never shift it, so the bulge is a subset of
+    // the panel's extent by construction rather than by two clamps happening
+    // to agree.
+    //
+    // NOT A FEEDBACK LOOP, and this is the part to check before editing
+    // either side: `rootCentre` below is still derived from `openCentre`
+    // (the trigger's own centre) and is what the popout positions against,
+    // so it does not depend on this value. This flows one way only —
+    // trigger centre -> popout position -> bulge span.
+    property real openTop: 0
+
     // The bulge's along-axis centre in screen space, AFTER the bar has
     // clamped it into the slab's straight section. The popout must align to
     // THIS and not to its own `triggerCentre`: near the top or bottom of the
