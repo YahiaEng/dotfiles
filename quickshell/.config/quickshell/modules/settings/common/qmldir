@@ -19,3 +19,6 @@ InfoRow 1.0 InfoRow.qml
 # error, per this file's own header — declared in the same commit as the
 # type it names.
 StackPage 1.0 StackPage.qml
+# StepperRow (quick task 260825-wj2 Task 5, D-9) — the sixth row primitive,
+# reserved for continuous numeric values with an increment (poll intervals).
+StepperRow 1.0 StepperRow.qml

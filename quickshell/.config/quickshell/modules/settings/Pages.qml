@@ -151,11 +151,26 @@ Item {
     //    decision, not a contained per-row handler, so it is named as a
     //    follow-up rather than started here. InfoRow is intentionally
     //    non-interactive (PD-07) and has no action to take at all.
+    //
+    //    StepperRow (quick task 260825-wj2 Task 5) IS handled — checked
+    //    FIRST, ahead of the three branches above: a genuinely-declared
+    //    function is either present or `undefined`, no other row type
+    //    declares `stepUp`, and putting the most specific marker first
+    //    means the ordering cannot rot as row types are added. This
+    //    differs from the SliderRow deferral right above for a real
+    //    reason, not an inconsistency: that note rules out a single
+    //    keypress for a CONTINUOUS value with no natural "the one thing
+    //    to do" — a stepper is discrete and bounded, so "advance by one
+    //    `stepSize`, clamped at `to`" is well defined. Left/Right are
+    //    deliberately NOT reached for here either, for the identical
+    //    collision this file already names for SliderRow.
     function activateContentRow() {
         if (!root.contentFocused || root.contentRowIdx < 0 || root.contentRowIdx >= root._focusableRows.length)
             return;
         var row = root._focusableRows[root.contentRowIdx];
-        if (row.checked !== undefined) {
+        if (typeof row.stepUp === "function") {
+            row.stepUp();
+        } else if (row.checked !== undefined) {
             row.toggled(!row.checked);
         } else if (row.model !== undefined) {
             row.openMenu();
